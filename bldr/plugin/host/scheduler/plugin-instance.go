@@ -57,7 +57,7 @@ type pluginInstance struct {
 	// downloadManifestRoutine is the routine to download the contents of a manifest to a local bucket
 	// this routine only runs if watchWorldManifestRoutine triggers it.
 	downloadManifestRoutine *routine.StateRoutineContainer[*bldr_manifest.ManifestSnapshot]
-	// manifestCopyStatus exposes the owner-local copy class for tests and diagnostics.
+	// manifestCopyStatus exposes this instance's copy class for tests and diagnostics.
 	manifestCopyStatus *ccontainer.CContainer[*manifestCopyStatus]
 	// executePluginRoutine is the routine to execute a plugin with a manifest.
 	executePluginRoutine *routine.StateRoutineContainer[*executePluginArgs]

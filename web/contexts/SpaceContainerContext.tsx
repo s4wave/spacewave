@@ -48,7 +48,7 @@ export interface SpaceContainerContextValue {
   navigateToRoot: () => void
   // navigateToObjects is the NavigateToObjectsFunc for the space.
   navigateToObjects: NavigateToObjectsFunc
-  // switchObjectAtCurrentPosition replaces the object at the nearest position owner.
+  // switchObjectAtCurrentPosition replaces the object at the current route position.
   switchObjectAtCurrentPosition?: SwitchObjectAtCurrentPositionFunc
   // buildObjectUrls builds urls for the given object keys.
   buildObjectUrls: BuildObjectUrlsFunc

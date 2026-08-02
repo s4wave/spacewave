@@ -130,7 +130,7 @@ export type BrowserFetchSourceKind =
   | 'bldr-runtime'
   | 'native-fetch'
 
-// BrowserFetchSource records the typed owner for a ServiceWorker request.
+// BrowserFetchSource records the typed origin of a ServiceWorker request.
 export interface BrowserFetchSource {
   kind: BrowserFetchSourceKind
   path: string
@@ -958,7 +958,7 @@ async function matchStaticPluginAsset(
 }
 
 // Static plugin assets are warm-cached by promoted browser-release generation.
-// Content identity and ETag validation remain a follow-on owner API.
+// Content identity and ETag validation remain a follow-on API.
 async function revalidateStaticPluginAsset(
   source: BrowserFetchSource,
   asset: StaticPluginAsset,
@@ -1274,7 +1274,7 @@ async function handleDedicatedRuntimeHostConnectRequest(
   })
 }
 
-// handleServiceWorkerMessage routes a page message to the ServiceWorker owner.
+// handleServiceWorkerMessage routes a page message to its ServiceWorker handler.
 export function handleServiceWorkerMessage(
   ev: ExtendableMessageEvent,
   deps: ServiceWorkerMessageDeps,
@@ -1402,7 +1402,7 @@ function isNavigationRequest(request: Request): boolean {
   )
 }
 
-// classifyBrowserFetchSource returns the ServiceWorker owner for a request.
+// classifyBrowserFetchSource returns the BrowserFetchSource for a request.
 export function classifyBrowserFetchSource(
   request: Request,
   matchPrefixes: readonly string[] = BLDR_URI_PREFIXES,

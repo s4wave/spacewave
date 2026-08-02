@@ -15,7 +15,8 @@ function DocsTable(props: React.TableHTMLAttributes<HTMLTableElement>) {
 // docsMarkdownOverrides is the shared markdown-to-jsx configuration for every
 // docs surface: internal-link handling, syntax-highlighted code blocks, and
 // overflow-safe tables. Both the docs site and the in-app documentation viewer
-// render markdown through this single owner so their prose behaves identically.
+// render markdown through this one configuration so their prose behaves
+// identically.
 export const docsMarkdownOverrides = {
   overrides: {
     a: { component: MarkdownLink },

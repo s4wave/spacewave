@@ -12,7 +12,7 @@ import (
 const DeviceTypeID = "spacewave/device"
 
 const (
-	// DeviceCapabilityKindFilesystem identifies filesystem-owner access exposed by a Device.
+	// DeviceCapabilityKindFilesystem identifies filesystem access exposed by a Device.
 	DeviceCapabilityKindFilesystem = "filesystem"
 	// DeviceCapabilityKindForgeWorker identifies Forge Worker execution exposed by a Device.
 	DeviceCapabilityKindForgeWorker = "forge-worker"
@@ -95,7 +95,8 @@ func (d *Device) Validate() error {
 }
 
 // IsSelectable reports whether the Device has enough identity and setup state
-// for another owner to present it as an execution or resource target.
+// for Forge or a workflow builder to present it as an execution or resource
+// target.
 func (d *Device) IsSelectable() bool {
 	if d == nil {
 		return false
@@ -122,7 +123,8 @@ func (d *Device) FindCapabilityByKind(kind string) *DeviceCapability {
 }
 
 // DeviceCapabilityIsSelectable reports whether a capability can be selected by
-// another owner without taking over the capability's execution state.
+// Forge or a workflow builder without taking over the capability's execution
+// state.
 func DeviceCapabilityIsSelectable(cap *DeviceCapability) bool {
 	if cap == nil {
 		return false
@@ -190,7 +192,7 @@ func (d *Device) FindSelectableCheckoutRoot(name string) *DeviceCapability {
 }
 
 // DeviceCheckoutRootCanRead reports whether a checkout root may be opened for
-// reads through its linked filesystem owner.
+// reads through its linked filesystem object.
 func DeviceCheckoutRootCanRead(checkoutRoot *DeviceCheckoutRootCapability) bool {
 	if checkoutRoot == nil || !checkoutRoot.GetReadAvailable() {
 		return false
@@ -221,7 +223,7 @@ func DeviceCapabilityCanWriteCheckoutRoot(cap *DeviceCapability) bool {
 }
 
 // FindReadableCheckoutRoot returns a selectable checkout-root capability with a
-// linked filesystem owner object that can be opened through the Resource SDK.
+// linked filesystem object that can be opened through the Resource SDK.
 func (d *Device) FindReadableCheckoutRoot(name string) *DeviceCapability {
 	cap := d.FindSelectableCheckoutRoot(name)
 	if cap == nil || !DeviceCheckoutRootCanRead(cap.GetCheckoutRoot()) {
@@ -235,7 +237,7 @@ func (d *Device) FindReadableCheckoutRoot(name string) *DeviceCapability {
 }
 
 // FindWritableCheckoutRoot returns a selectable checkout-root capability with a
-// linked filesystem owner object that may be opened for writes after approval.
+// linked filesystem object that may be opened for writes after approval.
 func (d *Device) FindWritableCheckoutRoot(name string) *DeviceCapability {
 	cap := d.FindSelectableCheckoutRoot(name)
 	if cap == nil || !DeviceCapabilityCanWriteCheckoutRoot(cap) {
@@ -249,7 +251,7 @@ func (d *Device) FindWritableCheckoutRoot(name string) *DeviceCapability {
 }
 
 // FindSelectableForgeWorker returns a selectable Forge Worker capability linked
-// to the owner object that records execution state, logs, and results.
+// to the Worker object that records execution state, logs, and results.
 func (d *Device) FindSelectableForgeWorker() *DeviceCapability {
 	if d == nil {
 		return nil

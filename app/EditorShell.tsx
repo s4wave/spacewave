@@ -132,7 +132,7 @@ function EditorShellContent() {
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
-  // Keep ShellTabStrip (and its single OptimizedLayout owner) mounted for
+  // Keep ShellTabStrip (and the single OptimizedLayout it renders) mounted for
   // both URL modes. Its model handoff preserves FlexLayout's tab nodes and
   // therefore the mounted per-tab application trees.
   return (

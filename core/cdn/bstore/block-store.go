@@ -263,7 +263,7 @@ func (s *CdnBlockStore) SetPointer(ptr *cdn.CdnRootPointer) {
 // EnsureDecodedBlockCacheFresh refreshes pointer state before decoded cache reads.
 func (s *CdnBlockStore) EnsureDecodedBlockCacheFresh(ctx context.Context) error {
 	// Decoded cache hits can otherwise bypass ensurePointer entirely. Keep CDN
-	// pointer TTL freshness on the store owner, before any decoded object reuse.
+	// pointer TTL freshness in CdnBlockStore, before any decoded object reuse.
 	_, _, err := s.ensurePointer(ctx)
 	return err
 }
@@ -274,7 +274,7 @@ func (s *CdnBlockStore) setPointer(ctx context.Context, ptr *cdn.CdnRootPointer)
 		if s.memCache != nil {
 			s.memCache.reset()
 		}
-		// Pointer, manifest, and decoded-cache epoch publish under one owner lock.
+		// Pointer, manifest, and decoded-cache epoch publish under one bcast lock.
 		// Reads take the same lock while snapshotting the manifest so they cannot
 		// pair an old pointer decision with a new manifest view.
 		s.invalidateDecodedBlocks(ctx)
@@ -368,9 +368,9 @@ func (s *CdnBlockStore) invalidateDecodedBlocks(ctx context.Context) {
 	if s.decodedBlocks == nil {
 		return
 	}
-	// A CDN pointer swap changes the manifest owner under the store. Decoded
-	// hits must be equivalent to reading through the current manifest, not an
-	// older CDN root that happened to decode the same ref earlier.
+	// A CDN pointer swap replaces the manifest under the store. Decoded hits
+	// must be equivalent to reading through the current manifest, not an older
+	// CDN root that happened to decode the same ref earlier.
 	s.decodedBlocks.InvalidateAll(ctx)
 }
 

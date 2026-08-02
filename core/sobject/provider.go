@@ -41,7 +41,7 @@ type SharedObjectProvider interface {
 	AccessSharedObjectList(ctx context.Context, released func()) (ccontainer.Watchable[*SharedObjectList], func(), error)
 
 	// RefreshSharedObjectList invalidates and reloads the current shared object
-	// list snapshot when the provider has a remote list owner.
+	// list snapshot when the provider has a remote list source.
 	RefreshSharedObjectList(ctx context.Context) error
 }
 

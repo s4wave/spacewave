@@ -274,7 +274,7 @@ async function opWriteFile(args: unknown): Promise<number> {
 
 // Async file opens keep only FileSystemFileHandle tokens. Sync access handles pin
 // exclusive OPFS locks, so holding one across bbolt read/write calls can block
-// later writable sessions from the same storage owner.
+// later writable sessions against the same OPFS file.
 async function opOpenFile(
   args: unknown,
   create: boolean,

@@ -155,7 +155,7 @@ func (b *BlockStore) newSessionBlockStore(
 }
 
 // sessionBlockStore keeps writes and durability on the account-owned store
-// while routing reads through the Session cache, child DEX, and Cloud owners.
+// while routing reads through the Session cache, child DEX, and Cloud stores.
 type sessionBlockStore struct {
 	*BlockStore
 	readStore block_store.Store

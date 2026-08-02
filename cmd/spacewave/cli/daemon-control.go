@@ -20,7 +20,7 @@ const (
 )
 
 // daemonControlHandler wraps the shared daemon-control handler and records the
-// granted connection so the serve owner can wait for that requester to read its
+// granted connection so the serve loop can wait for that requester to read its
 // acknowledgement and close before draining.
 type daemonControlHandler struct {
 	*listener_control.Handler

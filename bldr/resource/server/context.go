@@ -10,7 +10,7 @@ import (
 // ResourceClientContext is the value attached to a Context containing
 // information about the Resource RPC request.
 type ResourceClientContext interface {
-	// Context returns the resource owner lifetime context.
+	// Context returns the lifetime context of the Resource RPC request.
 	Context() context.Context
 	// AddResource adds a child resource with a release callback.
 	AddResource(mux srpc.Invoker, releaseFn func()) (uint32, error)

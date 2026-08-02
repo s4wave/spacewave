@@ -1,7 +1,8 @@
 // PersistenceStatus is the latest observed browser eviction-protection state.
 export type PersistenceStatus = 'unknown' | 'persisted' | 'not-persisted'
 
-// StorageManagerLike is the subset of navigator.storage this owner requires.
+// StorageManagerLike is the subset of navigator.storage that
+// StorageDurabilityOwner reads.
 export interface StorageManagerLike {
   persisted(): Promise<boolean>
   persist(): Promise<boolean>

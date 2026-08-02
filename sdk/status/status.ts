@@ -51,7 +51,7 @@ export class SystemStatus {
   }
 
   // reportRecoveryStatus publishes renderer-owned recovery facts to the
-  // session-local status owner.
+  // session-local status resource.
   public async reportRecoveryStatus(
     req: ReportRecoveryStatusRequest,
     abortSignal?: AbortSignal,

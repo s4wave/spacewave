@@ -258,7 +258,7 @@ type SignedHTTPClient struct {
 	priv crypto.PrivKey
 	// peerID is the peer ID (base58 encoded for headers)
 	peerID peer.ID
-	// sign signs payloads when private key material lives behind another owner.
+	// sign signs payloads when the private key is held elsewhere.
 	sign SigningFunc
 }
 
@@ -759,7 +759,7 @@ func (c *EntityClient) RegisterSessionWithRequest(ctx context.Context, req *api.
 }
 
 // RollbackSessionRegistration removes a just-created APP/DEVICE registration
-// row through the Cloud registration rollback owner. Reused rows and USER
+// row through the Cloud registration rollback endpoint. Reused rows and USER
 // sessions are preserved by the Cloud endpoint.
 func (c *EntityClient) RollbackSessionRegistration(ctx context.Context, sessionPeerID string) error {
 	_, err := c.doDelete(ctx, "/api/account/session/"+url.PathEscape(sessionPeerID)+"/registration", SeedReasonMutation)

@@ -84,8 +84,8 @@ type Controller struct {
 	pluginStatusMtx sync.Mutex
 	// pluginStatus stores live plugin instance states by pluginInstanceKey.
 	pluginStatus map[string]*bldr_plugin.PluginStatus
-	// pluginManifestRecoveryStatus stores owner-owned retained Manifest
-	// selection and eligibility facts by pluginInstanceKey.
+	// pluginManifestRecoveryStatus stores retained Manifest selection and
+	// eligibility facts by pluginInstanceKey.
 	pluginManifestRecoveryStatus map[string]*PluginManifestRecoveryStatus
 }
 

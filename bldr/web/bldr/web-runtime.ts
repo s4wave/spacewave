@@ -160,7 +160,7 @@ class WebRuntimeClientInstance {
     return this.state === 'closed'
   }
 
-  // clientId returns the stable logical id used for routing and ownership.
+  // clientId returns the stable logical id WebRuntime routes and keys locks by.
   public get clientId(): string {
     return this.host.getClientId(this.init)
   }

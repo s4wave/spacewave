@@ -104,7 +104,7 @@ func (r *DeviceResource) ReportDeviceStatus(ctx context.Context, req *ReportDevi
 	return nil, errors.New("device status reports are daemon-owned and unavailable through typed object resources")
 }
 
-// AccessCheckoutRoot opens a selected checkout-root filesystem owner as an
+// AccessCheckoutRoot opens the selected checkout root's filesystem object as an
 // FSHandle resource. Write access requires explicit capability and approval
 // metadata before Device creates a writer-backed UnixFS cursor.
 func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessCheckoutRootRequest) (*AccessCheckoutRootResponse, error) {

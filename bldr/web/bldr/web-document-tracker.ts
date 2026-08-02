@@ -115,9 +115,9 @@ export class WebDocumentTracker {
       | null,
     logicalClientId?: string,
     // onOpfsBridgeLost fires when the WebDocument hosting the OPFS bridge worker
-    // is removed, or the broker reports that worker died. The owner re-hosts the
-    // bridge. Removing a non-host WebDocument does not fire it, so an unrelated
-    // tab close never invalidates a healthy mounted volume's handles.
+    // is removed, or the broker reports that worker died. The handler re-hosts
+    // the bridge. Removing a non-host WebDocument does not fire it, so an
+    // unrelated tab close never invalidates a healthy mounted volume's handles.
     private readonly onOpfsBridgeLost?: (() => Promise<void> | void) | null,
   ) {
     this.clientUuid = clientUuid

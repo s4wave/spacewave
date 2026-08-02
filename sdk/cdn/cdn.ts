@@ -37,7 +37,7 @@ export class Cdn extends Resource {
 
   // copyV86ImageToSpace copies a V86Image (metadata block plus the five asset
   // edges) from this CDN Space into a user-owned destination Space and streams
-  // the server owner's block-copy accounting.
+  // the server's block-copy accounting.
   //
   // Asset UnixFS blocks are content-addressed; the destination block store
   // dedupes them against the CDN block store without re-upload.

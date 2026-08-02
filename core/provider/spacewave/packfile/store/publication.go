@@ -21,7 +21,7 @@ import (
 // bytes land in the span store), find the target entry, compute the
 // semantic neighborhood window, ensure those bytes are resident, admit
 // every fully-contained block into the catalog, and either return the target
-// bytes immediately or wait for verification when the owner requires it.
+// bytes immediately or wait for verification when verifyBeforeServe is set.
 func (e *PackReader) getBlock(ctx context.Context, key []byte) ([]byte, bool, error) {
 	keyStr := string(key)
 

@@ -26,7 +26,7 @@ type SyncTelemetrySnapshot = synctelemetry.Snapshot
 // SyncTelemetryBlockStoreSnapshot describes one mounted block store.
 type SyncTelemetryBlockStoreSnapshot = synctelemetry.BlockStoreSnapshot
 
-// SyncTelemetryBlockSource identifies the owner-observed source of a block read.
+// SyncTelemetryBlockSource identifies the observed source of a block read.
 type SyncTelemetryBlockSource = synctelemetry.BlockSource
 
 const (

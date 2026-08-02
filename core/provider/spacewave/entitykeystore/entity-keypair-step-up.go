@@ -12,7 +12,7 @@ type EntityKeypairStepUp struct {
 	rc    *refcount.RefCount[struct{}]
 }
 
-// NewEntityKeypairStepUp creates a step-up retention owner.
+// NewEntityKeypairStepUp constructs an EntityKeypairStepUp reading from store.
 func NewEntityKeypairStepUp(ctx context.Context, store func() *EntityKeyStore) *EntityKeypairStepUp {
 	stepUp := &EntityKeypairStepUp{
 		store: store,

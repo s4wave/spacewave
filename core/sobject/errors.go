@@ -100,7 +100,7 @@ var (
 	// ErrJournalSupersessionImmutable is returned when a lineage successor changes its predecessor.
 	ErrJournalSupersessionImmutable = errors.New("shared object journal supersession is immutable")
 
-	// ErrJournalStorageRequired is returned when a journal storage owner is missing.
+	// ErrJournalStorageRequired is returned when journal storage is missing.
 	ErrJournalStorageRequired = errors.New("shared object journal storage is required")
 
 	// ErrJournalScopeMismatch is returned when a key belongs to another journal scope.

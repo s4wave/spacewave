@@ -68,7 +68,8 @@ type transportCompositionOwner struct {
 	sessions map[string]*transportCompositionSession
 
 	// Hooks keep the state machine independently testable. Production hooks bind
-	// the owner to the account's SessionTransport and P2P lifecycle maps.
+	// transportCompositionOwner to the account's SessionTransport and P2P
+	// lifecycle maps.
 	startDirect    func(context.Context, string, crypto.PrivKey, string) (transportCompositionLinkSource, error)
 	stopDirect     func(string)
 	transportState func(string) (bool, <-chan struct{})

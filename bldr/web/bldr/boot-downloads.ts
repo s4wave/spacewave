@@ -121,9 +121,9 @@ export function failBootDownload(id: string, error?: string): void {
 }
 
 // streamResponseWithBootProgress reads a fetch Response body to completion while
-// reporting per-chunk byte progress under id. It is the single owner of the
-// getReader accounting loop so producers never hand-roll byte counting; it
-// returns the collected chunks for the caller to assemble (Blob, module URL,
+// reporting per-chunk byte progress under id. It holds the only getReader
+// accounting loop so producers never hand-roll byte counting; it returns the
+// collected chunks for the caller to assemble (Blob, module URL,
 // WebAssembly compile, ...). totalHint wins over content-length when a decoded
 // size is known ahead of the compressed transfer length.
 export async function streamResponseWithBootProgress(

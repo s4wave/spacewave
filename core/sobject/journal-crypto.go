@@ -55,7 +55,7 @@ type JournalCrypto struct {
 	nonces map[[journalNonceSize]byte]struct{}
 }
 
-// NewJournalCrypto constructs an at-rest crypto owner for one journal scope.
+// NewJournalCrypto constructs a JournalCrypto for one journal scope.
 // The scope identifier is fixed-width so derived keys cannot cross domains.
 func NewJournalCrypto(scopeID []byte, authority JournalKeyAuthority) (*JournalCrypto, error) {
 	if len(scopeID) != journalScopeIDSize {

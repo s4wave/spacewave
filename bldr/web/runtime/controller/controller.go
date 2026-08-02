@@ -285,7 +285,7 @@ func (c *Controller) ServePluginHTTP(pluginID string, rw http.ResponseWriter, re
 }
 
 // setNoCacheHeaders keeps controller headers non-load-bearing for plugin asset
-// freshness; generation-scoped ServiceWorker cache ownership handles warm reads.
+// freshness; the generation-scoped ServiceWorker cache handles warm reads.
 func setNoCacheHeaders(hdr http.Header) {
 	hdr.Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	hdr.Set("Pragma", "no-cache")

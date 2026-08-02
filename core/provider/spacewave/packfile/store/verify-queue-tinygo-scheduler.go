@@ -12,9 +12,9 @@ func defaultVerifyConcurrency() int {
 
 // goroutineVerifyExecutor runs each enqueued job on a fresh goroutine.
 //
-// TinyGo cooperative schedulers can run verification in background tasks. The
-// PackReader owner prepares jobs under its broadcast lock and enqueues them
-// only after releasing that lock, so this executor matches the production queue
+// TinyGo cooperative schedulers can run verification in background tasks.
+// PackReader prepares jobs under its broadcast lock and enqueues them only
+// after releasing that lock, so this executor matches the production queue
 // shape without relying on recursive lock avoidance.
 type goroutineVerifyExecutor struct{}
 

@@ -6,7 +6,8 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 )
 
-// ReferenceKind identifies the owner and rewrite semantics for one embedded identity.
+// ReferenceKind identifies the identity namespace and rewrite semantics for
+// one embedded identity.
 type ReferenceKind int32
 
 const (

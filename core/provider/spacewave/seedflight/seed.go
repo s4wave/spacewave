@@ -7,7 +7,7 @@ import (
 )
 
 // Seed coordinates concurrent callers around a single fetch invocation.
-// The owner runs the fetch function while waiters block on the supplied
+// The first caller runs the fetch function while waiters block on the supplied
 // broadcast and observe the same result; once the fetch completes, a later Run
 // call fires fetch again.
 //
@@ -28,7 +28,7 @@ func (s *Seed) Run(
 }
 
 // RunWhenReady runs fetchFn at most once across concurrent callers, skipping
-// the fetch when readyFn reports that the owner's cache is already usable.
+// the fetch when readyFn reports that the guarded cache is already usable.
 // readyFn runs while bcast's lock is held.
 func (s *Seed) RunWhenReady(
 	ctx context.Context,

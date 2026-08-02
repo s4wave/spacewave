@@ -8,7 +8,7 @@ type ClaimHeldError struct {
 	Epoch   uint64
 }
 
-// Error returns the claim ownership conflict.
+// Error names the claim holding the execution and its epoch.
 func (e *ClaimHeldError) Error() string {
 	return "execution claim held by " + e.ClaimID + " at epoch " + strconv.FormatUint(e.Epoch, 10)
 }

@@ -57,7 +57,7 @@ func (sl WebPkgRefConfigSlice) AppendWebPkgRefConfig(addConf *WebPkgRefConfig) (
 // MergeWebPkgRefConfigImports merges declared config imports into resolved web
 // package refs. Config imports are package-root-relative entry files and apply
 // everywhere a WebPkgRefConfig is consumed; callers that already resolved package
-// roots use this owner helper instead of rebuilding the merge policy locally.
+// roots call this instead of rebuilding the merge policy locally.
 func MergeWebPkgRefConfigImports(refs web_pkg.WebPkgRefSlice, configs []*WebPkgRefConfig) web_pkg.WebPkgRefSlice {
 	if len(refs) == 0 || len(configs) == 0 {
 		return refs

@@ -21,7 +21,8 @@ type SessionProjection struct {
 	AttentionItems []*desktop_runtime.DesktopRuntimeAttentionItem
 }
 
-// SessionProjectionRow carries one Session row snapshot into the projection owner.
+// SessionProjectionRow carries one Session row snapshot into
+// BuildSessionProjection.
 type SessionProjectionRow struct {
 	Entry          *session.SessionListEntry
 	Metadata       *session.SessionMetadata

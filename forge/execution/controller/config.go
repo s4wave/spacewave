@@ -51,7 +51,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// BuildUniqueID builds the durable execution owner ID.
+// BuildUniqueID builds the durable execution controller ID.
 func (c *Config) BuildUniqueID() string {
 	h := blake3.NewDeriveKey("forge/execution/controller: config: unique id")
 	_, _ = h.WriteString(c.GetEngineId())

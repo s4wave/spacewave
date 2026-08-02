@@ -45,7 +45,7 @@ type Controller struct {
 	// sfs is the step factory set
 	sfs *block_transform.StepFactorySet
 	// staticLookupOp is an optional in-process lookup chain supplied by
-	// domain owners that know this engine's built-in operation surface.
+	// domain packages that know this engine's built-in operation surface.
 	staticLookupOpMu sync.RWMutex
 	staticLookupOp   world.LookupOp
 

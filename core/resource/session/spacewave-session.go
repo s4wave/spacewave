@@ -754,7 +754,7 @@ func (r *SpacewaveSessionResource) CreateOrganization(
 
 	// Publish the cloud response synchronously so cached org-list readers cannot
 	// observe a stale list after this RPC returns. Root SO bootstrap and the full
-	// cloud refresh run through the ProviderAccount org-sync keyed owner.
+	// cloud refresh run through the ProviderAccount keyed org-sync routine.
 	orgID := info.GetId()
 	r.swAcc.PublishCreatedOrganization(&info)
 	r.swAcc.QueueOrganizationSync(orgID)
@@ -2567,7 +2567,7 @@ func (r *SpacewaveSessionResource) SetPrimaryEmail(
 //     against the SO config chain locally (the chain entry from step 1) and
 //     run the standard mailbox-driven enrollment via ProcessMailboxEntry.
 //
-// Local-vs-cloud ownership boundary:
+// Local-vs-cloud authority boundary:
 //
 //   - Local (spacewave package): builds and signs the SOInviteMessage,
 //     verifies the message, drives mailbox processing, and applies invite

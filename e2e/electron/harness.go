@@ -129,7 +129,7 @@ func Boot(ctx context.Context, le *logrus.Entry) (_ *Harness, retErr error) {
 	)
 
 	// Resolve the socket through the listener config so the harness reads the
-	// same owner the daemon does, after SPACEWAVE_DATA_DIR is exported.
+	// same path the daemon does, after SPACEWAVE_DATA_DIR is exported.
 	listenerConf := &resource_listener.Config{StorageProjectId: spacewaveProjectID}
 	cliSocketPath, err := listenerConf.DetermineSocketPath()
 	if err != nil {

@@ -92,8 +92,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		yielded, err := c.serveOnce(ctx, le, invokers[0], absPath, broker, status, allowTakeover)
 		if err != nil {
 			if listener_control.IsSocketInUse(err) {
-				// Another live daemon owns the socket. Retrying under the
-				// controller backoff loop cannot succeed while the owner
+				// Another live daemon holds the socket. Retrying under the
+				// controller backoff loop cannot succeed while that daemon
 				// lives and would leave this daemon running without its
 				// front door, so surface the conflict as process-fatal
 				// and stop the restart loop.
@@ -126,10 +126,10 @@ func handoffBlocksListener(handoff yield_policy.HandoffState) bool {
 
 // serveOnce prepares the socket, listens, and serves until either the
 // serve context is canceled externally or a daemon-control Shutdown
-// is honored. When allowTakeover is true a live socket owner is asked
-// to yield; otherwise a live owner is refused with a typed in-use
-// error. The returned bool is true when the listener yielded cleanly
-// so the caller can enter the reclaim-wait loop.
+// is honored. When allowTakeover is true the live socket holder is
+// asked to yield; otherwise it is refused with a typed in-use error.
+// The returned bool is true when the listener yielded cleanly so the
+// caller can enter the reclaim-wait loop.
 func (c *Controller) serveOnce(
 	parentCtx context.Context,
 	le *logrus.Entry,
@@ -154,7 +154,7 @@ func (c *Controller) serveOnce(
 	if err != nil {
 		if stderrors.Is(err, syscall.EADDRINUSE) {
 			// Two daemons can both pass the availability check before
-			// either binds. The bind loser is the same live-owner
+			// either binds. The bind loser hits the same live-holder
 			// conflict as the pre-bind refusal, so classify it the
 			// same way and let the caller surface it fatally.
 			return false, &listener_control.SocketInUseError{Path: absPath}
@@ -223,7 +223,7 @@ func (c *Controller) serveOnce(
 
 // acceptCountingListener serves accepted clients independently while reporting
 // accept/close transitions to the status broker. It returns a drain function
-// after accepting stops so the owner can release the listener synchronously,
+// after accepting stops so the caller can release the listener synchronously,
 // finish a takeover acknowledgement, and only then close active clients.
 func acceptCountingListener(
 	ctx context.Context,

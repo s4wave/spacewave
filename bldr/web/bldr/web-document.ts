@@ -791,8 +791,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // workers at a time. The holder keeps the lock until close so other tabs use
   // the same worker instance through the WebRuntime instead of forcing handoff.
   private pluginSingletonReady: Promise<void> = Promise.resolve()
-  // pluginSingletonLockEnabled records whether this document participates in
-  // ownership of the dedicated plugin worker singleton.
+  // pluginSingletonLockEnabled records whether this document contends for the
+  // dedicated plugin worker singleton lock.
   private pluginSingletonLockEnabled = false
   // singletonAbort aborts the singleton lock request on close.
   private singletonAbort?: AbortController
@@ -829,13 +829,13 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   }
 
   // readStoragePersistenceStatus refreshes browser cleanup protection through
-  // the document-owned durability owner.
+  // storageDurabilityOwner.
   public readStoragePersistenceStatus(): Promise<PersistenceStatus> {
     return this.storageDurabilityOwner.readStatus()
   }
 
-  // requestStoragePersistence requests browser cleanup protection through the
-  // document-owned durability owner.
+  // requestStoragePersistence requests browser cleanup protection through
+  // storageDurabilityOwner.
   public requestStoragePersistence(): Promise<void> {
     return this.storageDurabilityOwner.requestProtection()
   }
@@ -1065,7 +1065,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         this.webRuntimeId,
         this.webDocumentUuid,
       )
-      // Every dedicated document participates in plugin singleton ownership.
+      // Every dedicated document contends for the plugin singleton lock.
       // Attached documents must wait for the elected runtime host's workers
       // instead of starting a private plugin host that cannot join the runtime.
       this.enablePluginSingletonLock()
@@ -2117,7 +2117,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     this.pluginSingletonLockEnabled = true
     if (!shouldUseWebDocumentLivenessLock()) {
       // There is no timer fallback here: backgrounded tabs throttle timers, and
-      // plugin startup needs a real cross-tab singleton owner.
+      // plugin startup needs a real cross-tab singleton lock.
       this.pluginSingletonReady = Promise.reject(
         new Error('Web Locks unavailable for dedicated plugin workers'),
       )
@@ -2626,7 +2626,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // requesterId, waits for it to report ready, and returns the client
   // MessagePort. After startup, a worker error tears the worker down and invokes
   // onWorkerDied so the requester can re-host (the dead worker leaves the
-  // transferred client port with no owner, hanging in-flight bridge requests).
+  // transferred client port with nothing reading it, hanging in-flight bridge
+  // requests).
   // Returns null when a concurrent request already superseded this worker (the
   // superseding request owns the response). Throws when the worker fails to
   // start.
@@ -2719,10 +2720,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         clientPort.close()
         return null
       }
-      // A post-startup OPFS worker error leaves the transferred client port with
-      // no live owner. Tear the dead worker down and notify the requester to
-      // re-host. Guard on identity so a worker already replaced by a re-host does
-      // not trigger a second teardown.
+      // A post-startup OPFS worker error leaves the transferred client port
+      // with nothing reading it. Tear the dead worker down and notify the
+      // requester to re-host. Guard on identity so a worker already replaced by
+      // a re-host does not trigger a second teardown.
       worker.onerror = (ev: ErrorEvent) => {
         reportWorkerError(ev)
         if (this.opfsWorkers.get(requesterId) !== worker) {

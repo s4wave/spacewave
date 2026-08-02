@@ -19,8 +19,8 @@ type OpfsBridgeResponse = {
 }
 
 // OpfsBridgeClient correlates id-tagged requests to a DedicatedWorker OPFS
-// bridge over a MessagePort, exposing a promise-based request(). It is the only
-// owner of the bridge transport; closing it rejects in-flight requests so a
+// bridge over a MessagePort, exposing a promise-based request(). It holds the
+// bridge MessagePort exclusively; closing it rejects in-flight requests so a
 // port swap (re-host) fails the Go side deterministically instead of hanging.
 export class OpfsBridgeClient {
   private readonly pending = new Map<

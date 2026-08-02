@@ -59,7 +59,7 @@ func (t *Factory) Construct(
 	}
 
 	// The local provider does not use a provider-level Peer. Account and session
-	// operations resolve the volume peer at their storage owner.
+	// operations resolve the volume peer through their volume.
 	return provider_controller.NewProviderControllerWithoutPeer(
 		le,
 		t.bus,

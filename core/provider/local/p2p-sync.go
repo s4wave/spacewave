@@ -300,9 +300,9 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 		return a.awaitP2PSyncStart(ctx, waitState)
 	}
 
-	// Startup belongs to every owner of the state, not to the caller that
+	// Startup belongs to every holder of the state, not to the caller that
 	// happened to create it. Running it here would tie it to that caller's
-	// goroutine, so a caller whose context is canceled while later owners keep
+	// goroutine, so a caller whose context is canceled while later holders keep
 	// the state alive could not return until startup finished on its own.
 	go a.runP2PSyncStart(state, previous, previousRetained, sessionTransport, childBus)
 	return a.awaitP2PSyncStart(ctx, state)
@@ -310,7 +310,7 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 
 // awaitP2PSyncStart waits for the shared startup to finish or for the caller's
 // own context to end, whichever comes first. Giving up releases this caller's
-// ownership without stopping the run; it ends only when the last owner leaves.
+// reference without stopping the run; it ends only when the last holder leaves.
 func (a *ProviderAccount) awaitP2PSyncStart(ctx context.Context, state *p2pSyncState) error {
 	for {
 		var waitCh <-chan struct{}

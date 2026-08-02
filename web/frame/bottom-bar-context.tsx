@@ -71,7 +71,7 @@ export interface BottomBarItem {
   contextMenuLabel?: string
   /** Optional key that triggers secondary action re-registration when it changes */
   contextMenuKey?: React.Key
-  /** Typed secondary actions rendered by the frame context-menu owner */
+  /** Typed secondary actions rendered by the frame's context menu */
   contextMenuItems?: readonly BottomBarContextMenuItem[]
   /** Optional handler called when the breadcrumb separator to the right of this item is clicked */
   onBreadcrumbClick?: () => void

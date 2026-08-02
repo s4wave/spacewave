@@ -24,7 +24,7 @@ export const DeviceCapabilityKindForgeWorker = 'forge-worker'
 export const DeviceCapabilityKindTerminal = 'terminal'
 
 // isDeviceSelectable reports whether a Device can be presented as a target by
-// another owner such as Forge or a workflow builder.
+// Forge or a workflow builder.
 export function isDeviceSelectable(device: Device | null | undefined): boolean {
   return (
     (device?.peerId ?? '').trim() !== '' &&

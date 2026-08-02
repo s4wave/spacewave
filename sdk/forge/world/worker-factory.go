@@ -57,7 +57,7 @@ func forgeWorkerFactory(
 		return nil, nil, err
 	}
 	if len(workerPeerID) == 0 {
-		// Worker has no linked keypair; cannot determine owner.
+		// Worker has no linked keypair; cannot determine which session runs it.
 		return nil, func() {}, nil
 	}
 
