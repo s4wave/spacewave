@@ -38,6 +38,27 @@ linters:
                 Use protobuf-go-lite/json for proto types or
                 aperturerobotics/fastjson for non-proto JSON.
                 encoding/json uses reflection.
+        net-layering:
+          list-mode: lax
+          files:
+            - '**/net/**'
+          allow:
+            - github.com/s4wave/spacewave/net
+          deny:
+            - pkg: github.com/s4wave/spacewave
+              desc: net imports only its own packages inside the Spacewave module.
+        db-layering:
+          list-mode: lax
+          files:
+            - '**/db/**'
+            - '!$test'
+            - '!**/db/opfs/chrometest/**'
+          allow:
+            - github.com/s4wave/spacewave/db
+            - github.com/s4wave/spacewave/net
+          deny:
+            - pkg: github.com/s4wave/spacewave
+              desc: db imports only db and lower-layer net packages inside the Spacewave module.
     gosec:
       excludes:
         - G306
