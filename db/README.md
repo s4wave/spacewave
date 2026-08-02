@@ -381,3 +381,40 @@ func TestWorld(t *testing.T) {
 ```
 
 You can run the tests with `go test ./...`
+
+## Build Targets
+
+Hydra compiles for the native platform and for WebAssembly. Go build
+constraints select the code for each target:
+
+- `js` (`GOOS=js GOARCH=wasm`): WebAssembly in the browser, using `syscall/js`
+  for browser APIs. The IndexedDB and OPFS volumes and the rest of the browser
+  storage stack build here. The daemon, CLI, and bolt-backed stores are marked
+  `!js && !wasip1`.
+- `tinygo`: defined by the [TinyGo] compiler, which produces a smaller browser
+  WASM binary. Files marked `js && tinygo` under [opfs](./opfs) and
+  [util/jsbuf](./util/jsbuf) carry the TinyGo variants of the browser
+  bindings, with `js && !tinygo` counterparts for the standard Go compiler.
+- `goscript`: defined by the [GoScript] compiler, which translates Go to
+  TypeScript and loads packages as `GOOS=js GOARCH=wasm`. The `-goscript.go`
+  files, for example in [store/kvtx](./store/kvtx) and
+  [kvtx/block/okra](./kvtx/block/okra), substitute implementations for that
+  runtime.
+- `wasip1` (`GOOS=wasip1`): WASI runtimes. Files marked `!js && !wasip1` are
+  excluded from WASI builds, `js || wasip1` files share the browser fallbacks,
+  and the world-engine lease provider falls back to its in-memory
+  implementation
+  ([world-engine-lease-fallback.go](./volume/world-engine-lease-fallback.go)).
+
+[TinyGo]: https://tinygo.org/
+[GoScript]: https://github.com/s4wave/goscript
+
+`go test ./...` builds and tests only the native target. In CI, `bun run
+test:go:db` runs the native tests, `GOOS=js GOARCH=wasm go vet
+./db/block/gc/...` type-checks the block garbage collector for the browser, the
+OPFS Chrome suites run the js/wasm storage stack in Chromium, and the goscript
+CI member compiles and tests
+[blocktype/controller-factory](./blocktype/controller-factory) and
+[object/peer](./object/peer) with GoScript. The nightly release-WASM matrix
+builds the full browser bundle with the standard Go compiler, TinyGo, and
+GoScript. No CI job builds the wasip1 target.
