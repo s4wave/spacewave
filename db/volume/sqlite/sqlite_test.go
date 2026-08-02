@@ -8,6 +8,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/core"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_sqlite "github.com/s4wave/spacewave/db/volume/sqlite"
@@ -69,7 +70,7 @@ func TestSqliteVolume(t *testing.T) {
 	t.Log(bvol.GetPeerID().String())
 }
 
-func TestSqliteWorldEngineLeaseNamespacesTables(t *testing.T) {
+func TestSqliteKeyedLeaseNamespacesTables(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
 	path := filepath.Join(t.TempDir(), "shared.db")
@@ -86,15 +87,15 @@ func TestSqliteWorldEngineLeaseNamespacesTables(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = volumeB.Close() })
 
-	leaseA, err := volumeA.AcquireWorldEngineLease(ctx, "shared-object")
-	if err != nil {
-		t.Fatal(err)
+	leaseA, acquired, err := volumeA.TryAcquireWriteLease(ctx, coord.Scope{VolumeID: volumeA.GetID(), Key: "shared-object"})
+	if err != nil || !acquired {
+		t.Fatalf("acquire first SQLite table lease: acquired=%v err=%v", acquired, err)
 	}
-	t.Cleanup(func() { _ = leaseA.Release() })
+	t.Cleanup(func() { _ = leaseA.Release(ctx) })
 
-	leaseB, err := volumeB.AcquireWorldEngineLease(ctx, "shared-object")
-	if err != nil {
-		t.Fatalf("acquire lease for second SQLite table: %v", err)
+	leaseB, acquired, err := volumeB.TryAcquireWriteLease(ctx, coord.Scope{VolumeID: volumeB.GetID(), Key: "shared-object"})
+	if err != nil || !acquired {
+		t.Fatalf("acquire second SQLite table lease: acquired=%v err=%v", acquired, err)
 	}
-	t.Cleanup(func() { _ = leaseB.Release() })
+	t.Cleanup(func() { _ = leaseB.Release(ctx) })
 }
