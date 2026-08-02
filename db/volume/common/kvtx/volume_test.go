@@ -119,7 +119,7 @@ func TestVolumeForwardsBatchPut(t *testing.T) {
 	}
 }
 
-func TestVolumeWithBlockStoreInitializesWorldEngineLeases(t *testing.T) {
+func TestVolumeWithBlockStoreInitializesKeyedCoordinator(t *testing.T) {
 	ctx := context.Background()
 	vol, err := NewVolumeWithBlockStore(
 		ctx,
@@ -138,16 +138,16 @@ func TestVolumeWithBlockStoreInitializesWorldEngineLeases(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = vol.Close() })
 
-	lease, err := vol.AcquireWorldEngineLease(ctx, "object-a")
-	if err != nil {
-		t.Fatalf("AcquireWorldEngineLease failed: %v", err)
+	lease, acquired, err := vol.TryAcquireWriteLease(ctx, coord.Scope{VolumeID: vol.GetID(), Key: "object-a"})
+	if err != nil || !acquired {
+		t.Fatalf("TryAcquireWriteLease failed: acquired=%v err=%v", acquired, err)
 	}
-	if err := lease.Release(); err != nil {
-		t.Fatalf("WorldEngineLease.Release failed: %v", err)
+	if err := lease.Release(ctx); err != nil {
+		t.Fatalf("WriteLease.Release failed: %v", err)
 	}
 }
 
-func TestVolumeWithBlockStoreAndGCInitializesWorldEngineLeases(t *testing.T) {
+func TestVolumeWithBlockStoreAndGCInitializesKeyedCoordinator(t *testing.T) {
 	ctx := context.Background()
 	vol, err := NewVolumeWithBlockStoreAndGC(
 		ctx,
@@ -167,12 +167,12 @@ func TestVolumeWithBlockStoreAndGCInitializesWorldEngineLeases(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = vol.Close() })
 
-	lease, err := vol.AcquireWorldEngineLease(ctx, "object-a")
-	if err != nil {
-		t.Fatalf("AcquireWorldEngineLease failed: %v", err)
+	lease, acquired, err := vol.TryAcquireWriteLease(ctx, coord.Scope{VolumeID: vol.GetID(), Key: "object-a"})
+	if err != nil || !acquired {
+		t.Fatalf("TryAcquireWriteLease failed: acquired=%v err=%v", acquired, err)
 	}
-	if err := lease.Release(); err != nil {
-		t.Fatalf("WorldEngineLease.Release failed: %v", err)
+	if err := lease.Release(ctx); err != nil {
+		t.Fatalf("WriteLease.Release failed: %v", err)
 	}
 }
 

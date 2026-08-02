@@ -14,6 +14,7 @@ import (
 	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/util/blockenc"
 	"github.com/s4wave/spacewave/db/volume"
@@ -111,6 +112,16 @@ func TestBlockVolume(t *testing.T) {
 	// check volume behavior
 	if err := volume_test.CheckVolume(ctx, bvol); err != nil {
 		t.Fatal(err.Error())
+	}
+
+	scope := coord.Scope{VolumeID: bvol.GetID(), Key: "shared-world-engine"}
+	lease, acquired, err := bvol.TryAcquireWriteLease(ctx, scope)
+	if err != nil || !acquired {
+		t.Fatalf("block volume keyed lease = (%v, %v), want acquired: %v", lease, acquired, err)
+	}
+	defer lease.Release(context.Background())
+	if contender, acquired, err := vol.TryAcquireWriteLease(ctx, scope); err != nil || acquired || contender != nil {
+		t.Fatalf("backing volume keyed lease = (%v, %v, %v), want (nil, false, nil)", contender, acquired, err)
 	}
 
 	// check volume key
