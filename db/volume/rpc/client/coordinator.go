@@ -31,11 +31,16 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 		Scope: volume_rpc.NewCoordinatorScope(scope),
 	})
 	if err != nil {
-		return nil, err
+		return nil, normalizeCoordError(err)
 	}
 	capability := resp.GetCapability().ToCoordCapability()
 	if capability == nil {
 		return c.unsupported.Capability(ctx, scope)
+	}
+	if capability.Supported {
+		// The acquire stream carries lease liveness, so the client detects
+		// loss regardless of the server backend.
+		capability.DetectsLoss = true
 	}
 	return capability, nil
 }
@@ -46,7 +51,7 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 		Scope: volume_rpc.NewCoordinatorScope(scope),
 	})
 	if err != nil {
-		return nil, err
+		return nil, normalizeCoordError(err)
 	}
 	return resp.GetSnapshot().ToCoordSnapshot(), nil
 }
@@ -60,7 +65,7 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 	})
 	if err != nil {
 		cancel()
-		return nil, err
+		return nil, normalizeCoordError(err)
 	}
 
 	watch := &watch{
@@ -75,51 +80,90 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 }
 
 // TryAcquireWriteLease attempts to acquire the remote write lease.
+//
+// The acquire stream stays open for the lease lifetime: the server releases
+// the lease when the stream ends, and the client reports loss through
+// WriteLease.Done when the stream ends first.
 func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, bool, error) {
 	leaseCtx, cancel := context.WithCancel(context.Background())
+	stopAcquireCancel := context.AfterFunc(ctx, cancel)
 	stream, err := c.client.TryAcquireCoordinatorWriteLease(leaseCtx, &volume_rpc.TryAcquireCoordinatorWriteLeaseRequest{
 		Scope: volume_rpc.NewCoordinatorScope(scope),
 	})
 	if err != nil {
+		stopAcquireCancel()
 		cancel()
-		return nil, false, err
+		return nil, false, normalizeCoordError(err)
 	}
 	resp, err := stream.Recv()
 	if err != nil {
+		stopAcquireCancel()
 		cancel()
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, false, ctxErr
+		}
 		return nil, false, err
 	}
 	if !resp.GetAcquired() {
+		stopAcquireCancel()
 		cancel()
 		return nil, false, nil
 	}
-	return &lease{
+	if !stopAcquireCancel() {
+		// ctx ended during acquisition: the stream is already canceled and
+		// the server releases the lease on stream teardown.
+		cancel()
+		return nil, false, ctx.Err()
+	}
+	l := &lease{
 		client:  c.client,
 		cancel:  cancel,
 		leaseID: resp.GetLeaseId(),
-	}, true, nil
+		done:    make(chan struct{}),
+	}
+	go l.watchStream(func() error {
+		_, err := stream.Recv()
+		return err
+	})
+	return l, true, nil
 }
 
 // WaitAcquireWriteLease waits to acquire the remote write lease.
 func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, error) {
-	leaseCtx, cancel := context.WithCancel(ctx)
+	leaseCtx, cancel := context.WithCancel(context.Background())
+	stopAcquireCancel := context.AfterFunc(ctx, cancel)
 	stream, err := c.client.WaitAcquireCoordinatorWriteLease(leaseCtx, &volume_rpc.WaitAcquireCoordinatorWriteLeaseRequest{
 		Scope: volume_rpc.NewCoordinatorScope(scope),
 	})
 	if err != nil {
+		stopAcquireCancel()
 		cancel()
-		return nil, err
+		return nil, normalizeCoordError(err)
 	}
 	resp, err := stream.Recv()
 	if err != nil {
+		stopAcquireCancel()
 		cancel()
-		return nil, err
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
+		return nil, normalizeCoordError(err)
 	}
-	return &lease{
+	if !stopAcquireCancel() {
+		cancel()
+		return nil, ctx.Err()
+	}
+	l := &lease{
 		client:  c.client,
 		cancel:  cancel,
 		leaseID: resp.GetLeaseId(),
-	}, nil
+		done:    make(chan struct{}),
+	}
+	go l.watchStream(func() error {
+		_, err := stream.Recv()
+		return err
+	})
+	return l, nil
 }
 
 var _ coord.Coordinator = (*Coordinator)(nil)
@@ -172,6 +216,50 @@ type lease struct {
 	client  volume_rpc.SRPCProxyVolumeClient
 	cancel  context.CancelFunc
 	leaseID string
+	done    chan struct{}
+
+	// mtx guards released and lossErr; done closes exactly once when either
+	// released or lossErr transitions from its zero value.
+	mtx      sync.Mutex
+	released bool
+	lossErr  error
+}
+
+// Done returns a channel closed when the lease is released or the acquire
+// stream ends while the lease is held.
+func (l *lease) Done() <-chan struct{} {
+	return l.done
+}
+
+// Err returns the stream error that lost the lease, or nil for a held or
+// cleanly released lease.
+func (l *lease) Err() error {
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	return l.lossErr
+}
+
+// watchStream marks the lease lost when the acquire stream ends before
+// Release cancels it.
+func (l *lease) watchStream(recv func() error) {
+	for {
+		if err := recv(); err != nil {
+			l.markLost(err)
+			return
+		}
+	}
+}
+
+func (l *lease) markLost(err error) {
+	l.mtx.Lock()
+	if l.released || l.lossErr != nil {
+		l.mtx.Unlock()
+		return
+	}
+	l.lossErr = err
+	close(l.done)
+	l.mtx.Unlock()
+	l.cancel()
 }
 
 func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
@@ -179,7 +267,7 @@ func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
 		LeaseId: l.leaseID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, normalizeCoordError(err)
 	}
 	return resp.GetSnapshot().ToCoordSnapshot(), nil
 }
@@ -190,17 +278,55 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 		Event:   volume_rpc.NewCoordinatorEvent(event),
 	})
 	if err != nil {
-		return nil, err
+		return nil, normalizeCoordError(err)
 	}
 	return resp.GetSnapshot().ToCoordSnapshot(), nil
 }
 
-func (l *lease) Release(ctx context.Context) error {
-	defer l.cancel()
-	_, err := l.client.ReleaseCoordinatorWriteLease(ctx, &volume_rpc.CoordinatorWriteLeaseRequest{
+func (l *lease) Release(context.Context) error {
+	l.mtx.Lock()
+	if l.released {
+		l.mtx.Unlock()
+		return nil
+	}
+	l.released = true
+	lost := l.lossErr != nil
+	if !lost {
+		close(l.done)
+	}
+	l.mtx.Unlock()
+
+	// The stream and unary request are two idempotent release paths. Cancel the
+	// stream first so the server releases the lease even if transport teardown
+	// wins the race with the unary request.
+	l.cancel()
+	if lost {
+		return nil
+	}
+	_, err := l.client.ReleaseCoordinatorWriteLease(context.Background(), &volume_rpc.CoordinatorWriteLeaseRequest{
 		LeaseId: l.leaseID,
 	})
-	return err
+	return normalizeCoordError(err)
+}
+
+// normalizeCoordError restores coordinator sentinel errors after SRPC has
+// transported them as text.
+func normalizeCoordError(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch err.Error() {
+	case coord.ErrUnsupported.Error():
+		return coord.ErrUnsupported
+	case coord.ErrLeaseReleased.Error():
+		return coord.ErrLeaseReleased
+	case coord.ErrStaleGeneration.Error():
+		return coord.ErrStaleGeneration
+	case coord.ErrScopeEmpty.Error():
+		return coord.ErrScopeEmpty
+	default:
+		return err
+	}
 }
 
 var _ coord.WriteLease = (*lease)(nil)

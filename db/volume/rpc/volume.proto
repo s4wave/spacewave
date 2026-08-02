@@ -56,11 +56,6 @@ service ProxyVolume {
   // WaitAcquireCoordinatorWriteLease waits for the remote write lease.
   rpc WaitAcquireCoordinatorWriteLease(WaitAcquireCoordinatorWriteLeaseRequest) returns (stream AcquireCoordinatorWriteLeaseResponse);
 
-  // TryAcquireWorldEngineLease attempts to acquire a keyed World Engine lease.
-  rpc TryAcquireWorldEngineLease(TryAcquireWorldEngineLeaseRequest) returns (stream AcquireWorldEngineLeaseResponse);
-  // ReleaseWorldEngineLease releases a remote World Engine lease.
-  rpc ReleaseWorldEngineLease(ReleaseWorldEngineLeaseRequest) returns (ReleaseWorldEngineLeaseResponse);
-
   // RefreshCoordinatorWriteLease refreshes a remote write lease.
   rpc RefreshCoordinatorWriteLease(CoordinatorWriteLeaseRequest) returns (CoordinatorWriteLeaseSnapshotResponse);
 
@@ -87,7 +82,7 @@ message GetVolumeInfoResponse {
   .volume.VolumeInfo volume_info = 1;
 }
 
-// CoordinatorScope identifies a coordinated ObjectStore inside a Volume.
+// CoordinatorScope identifies a coordinated ObjectStore or exclusion subject inside a Volume.
 message CoordinatorScope {
   // VolumeId is the owning Volume id.
   string volume_id = 1;
@@ -95,6 +90,8 @@ message CoordinatorScope {
   string object_store_id = 2;
   // ParticipantId identifies the process or handle performing the operation.
   string participant_id = 3;
+  // Key names a caller-chosen exclusion subject inside the Volume.
+  string key = 4;
 }
 
 // CoordinatorCapability describes direct coordination support for a scoped ObjectStore.
@@ -111,6 +108,10 @@ message CoordinatorCapability {
   uint64 generation = 5;
   // FallbackReason explains why Supported is false.
   string fallback_reason = 6;
+  // Generations is true when the scope carries durable generation fencing.
+  bool generations = 7;
+  // DetectsLoss is true when involuntary lease loss is reported.
+  bool detects_loss = 8;
 }
 
 // CoordinatorEvent reports a coordination state change for a scoped ObjectStore.
@@ -197,28 +198,9 @@ message WaitAcquireCoordinatorWriteLeaseRequest {
   CoordinatorScope scope = 1;
 }
 
-// TryAcquireWorldEngineLeaseRequest is a non-blocking keyed lease request.
-message TryAcquireWorldEngineLeaseRequest {
-  // Key identifies the World Engine lease.
-  string key = 1;
-}
-
-// AcquireWorldEngineLeaseResponse is returned by a World Engine lease request.
-message AcquireWorldEngineLeaseResponse {
-  // LeaseId identifies the remote lease for later release.
-  string lease_id = 1;
-  // Acquired is false when the requested lease key is already held.
-  bool acquired = 2;
-}
-
-// ReleaseWorldEngineLeaseRequest identifies a held remote World Engine lease.
-message ReleaseWorldEngineLeaseRequest {
-  // LeaseId identifies the remote lease.
-  string lease_id = 1;
-}
-
-// ReleaseWorldEngineLeaseResponse is returned after releasing a lease.
-message ReleaseWorldEngineLeaseResponse {}
+// Reserved removed top-level message names; do not reuse:
+// TryAcquireWorldEngineLeaseRequest, AcquireWorldEngineLeaseResponse,
+// ReleaseWorldEngineLeaseRequest, ReleaseWorldEngineLeaseResponse.
 
 // AcquireCoordinatorWriteLeaseResponse is returned by lease acquisition.
 message AcquireCoordinatorWriteLeaseResponse {

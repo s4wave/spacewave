@@ -266,10 +266,6 @@ type SRPCProxyVolumeClient interface {
 	TryAcquireCoordinatorWriteLease(ctx context.Context, in *TryAcquireCoordinatorWriteLeaseRequest) (SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseClient, error)
 	// WaitAcquireCoordinatorWriteLease waits for the remote write lease.
 	WaitAcquireCoordinatorWriteLease(ctx context.Context, in *WaitAcquireCoordinatorWriteLeaseRequest) (SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseClient, error)
-	// TryAcquireWorldEngineLease attempts to acquire a keyed World Engine lease.
-	TryAcquireWorldEngineLease(ctx context.Context, in *TryAcquireWorldEngineLeaseRequest) (SRPCProxyVolume_TryAcquireWorldEngineLeaseClient, error)
-	// ReleaseWorldEngineLease releases a remote World Engine lease.
-	ReleaseWorldEngineLease(ctx context.Context, in *ReleaseWorldEngineLeaseRequest) (*ReleaseWorldEngineLeaseResponse, error)
 	// RefreshCoordinatorWriteLease refreshes a remote write lease.
 	RefreshCoordinatorWriteLease(ctx context.Context, in *CoordinatorWriteLeaseRequest) (*CoordinatorWriteLeaseSnapshotResponse, error)
 	// PublishCoordinatorWriteLease publishes a remote write lease event.
@@ -430,49 +426,6 @@ func (x *srpcProxyVolume_WaitAcquireCoordinatorWriteLeaseClient) RecvTo(m *Acqui
 	return x.MsgRecv(m)
 }
 
-func (c *srpcProxyVolumeClient) TryAcquireWorldEngineLease(ctx context.Context, in *TryAcquireWorldEngineLeaseRequest) (SRPCProxyVolume_TryAcquireWorldEngineLeaseClient, error) {
-	stream, err := c.cc.NewStream(ctx, c.serviceID, "TryAcquireWorldEngineLease", in)
-	if err != nil {
-		return nil, err
-	}
-	strm := &srpcProxyVolume_TryAcquireWorldEngineLeaseClient{stream}
-	if err := strm.CloseSend(); err != nil {
-		return nil, err
-	}
-	return strm, nil
-}
-
-type SRPCProxyVolume_TryAcquireWorldEngineLeaseClient interface {
-	srpc.Stream
-	Recv() (*AcquireWorldEngineLeaseResponse, error)
-	RecvTo(*AcquireWorldEngineLeaseResponse) error
-}
-
-type srpcProxyVolume_TryAcquireWorldEngineLeaseClient struct {
-	srpc.Stream
-}
-
-func (x *srpcProxyVolume_TryAcquireWorldEngineLeaseClient) Recv() (*AcquireWorldEngineLeaseResponse, error) {
-	m := new(AcquireWorldEngineLeaseResponse)
-	if err := x.MsgRecv(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (x *srpcProxyVolume_TryAcquireWorldEngineLeaseClient) RecvTo(m *AcquireWorldEngineLeaseResponse) error {
-	return x.MsgRecv(m)
-}
-
-func (c *srpcProxyVolumeClient) ReleaseWorldEngineLease(ctx context.Context, in *ReleaseWorldEngineLeaseRequest) (*ReleaseWorldEngineLeaseResponse, error) {
-	out := new(ReleaseWorldEngineLeaseResponse)
-	err := c.cc.ExecCall(ctx, c.serviceID, "ReleaseWorldEngineLease", in, out)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *srpcProxyVolumeClient) RefreshCoordinatorWriteLease(ctx context.Context, in *CoordinatorWriteLeaseRequest) (*CoordinatorWriteLeaseSnapshotResponse, error) {
 	out := new(CoordinatorWriteLeaseSnapshotResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "RefreshCoordinatorWriteLease", in, out)
@@ -531,10 +484,6 @@ type SRPCProxyVolumeServer interface {
 	TryAcquireCoordinatorWriteLease(*TryAcquireCoordinatorWriteLeaseRequest, SRPCProxyVolume_TryAcquireCoordinatorWriteLeaseStream) error
 	// WaitAcquireCoordinatorWriteLease waits for the remote write lease.
 	WaitAcquireCoordinatorWriteLease(*WaitAcquireCoordinatorWriteLeaseRequest, SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream) error
-	// TryAcquireWorldEngineLease attempts to acquire a keyed World Engine lease.
-	TryAcquireWorldEngineLease(*TryAcquireWorldEngineLeaseRequest, SRPCProxyVolume_TryAcquireWorldEngineLeaseStream) error
-	// ReleaseWorldEngineLease releases a remote World Engine lease.
-	ReleaseWorldEngineLease(context.Context, *ReleaseWorldEngineLeaseRequest) (*ReleaseWorldEngineLeaseResponse, error)
 	// RefreshCoordinatorWriteLease refreshes a remote write lease.
 	RefreshCoordinatorWriteLease(context.Context, *CoordinatorWriteLeaseRequest) (*CoordinatorWriteLeaseSnapshotResponse, error)
 	// PublishCoordinatorWriteLease publishes a remote write lease event.
@@ -580,8 +529,6 @@ func (SRPCProxyVolumeHandler) GetMethodIDs() []string {
 		"GetCoordinatorSnapshot",
 		"TryAcquireCoordinatorWriteLease",
 		"WaitAcquireCoordinatorWriteLease",
-		"TryAcquireWorldEngineLease",
-		"ReleaseWorldEngineLease",
 		"RefreshCoordinatorWriteLease",
 		"PublishCoordinatorWriteLease",
 		"ReleaseCoordinatorWriteLease",
@@ -611,10 +558,6 @@ func (d *SRPCProxyVolumeHandler) InvokeMethod(
 		return true, d.InvokeMethod_TryAcquireCoordinatorWriteLease(d.impl, strm)
 	case "WaitAcquireCoordinatorWriteLease":
 		return true, d.InvokeMethod_WaitAcquireCoordinatorWriteLease(d.impl, strm)
-	case "TryAcquireWorldEngineLease":
-		return true, d.InvokeMethod_TryAcquireWorldEngineLease(d.impl, strm)
-	case "ReleaseWorldEngineLease":
-		return true, d.InvokeMethod_ReleaseWorldEngineLease(d.impl, strm)
 	case "RefreshCoordinatorWriteLease":
 		return true, d.InvokeMethod_RefreshCoordinatorWriteLease(d.impl, strm)
 	case "PublishCoordinatorWriteLease":
@@ -691,27 +634,6 @@ func (SRPCProxyVolumeHandler) InvokeMethod_WaitAcquireCoordinatorWriteLease(impl
 	}
 	serverStrm := &srpcProxyVolume_WaitAcquireCoordinatorWriteLeaseStream{strm}
 	return impl.WaitAcquireCoordinatorWriteLease(req, serverStrm)
-}
-
-func (SRPCProxyVolumeHandler) InvokeMethod_TryAcquireWorldEngineLease(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
-	req := new(TryAcquireWorldEngineLeaseRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	serverStrm := &srpcProxyVolume_TryAcquireWorldEngineLeaseStream{strm}
-	return impl.TryAcquireWorldEngineLease(req, serverStrm)
-}
-
-func (SRPCProxyVolumeHandler) InvokeMethod_ReleaseWorldEngineLease(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
-	req := new(ReleaseWorldEngineLeaseRequest)
-	if err := strm.MsgRecv(req); err != nil {
-		return err
-	}
-	out, err := impl.ReleaseWorldEngineLease(strm.Context(), req)
-	if err != nil {
-		return err
-	}
-	return strm.MsgSend(out)
 }
 
 func (SRPCProxyVolumeHandler) InvokeMethod_RefreshCoordinatorWriteLease(impl SRPCProxyVolumeServer, strm srpc.Stream) error {
@@ -865,37 +787,6 @@ func (x *srpcProxyVolume_WaitAcquireCoordinatorWriteLeaseStream) SendAndClose(m 
 		}
 	}
 	return x.CloseSend()
-}
-
-type SRPCProxyVolume_TryAcquireWorldEngineLeaseStream interface {
-	srpc.Stream
-	Send(*AcquireWorldEngineLeaseResponse) error
-	SendAndClose(*AcquireWorldEngineLeaseResponse) error
-}
-
-type srpcProxyVolume_TryAcquireWorldEngineLeaseStream struct {
-	srpc.Stream
-}
-
-func (x *srpcProxyVolume_TryAcquireWorldEngineLeaseStream) Send(m *AcquireWorldEngineLeaseResponse) error {
-	return x.MsgSend(m)
-}
-
-func (x *srpcProxyVolume_TryAcquireWorldEngineLeaseStream) SendAndClose(m *AcquireWorldEngineLeaseResponse) error {
-	if m != nil {
-		if err := x.MsgSend(m); err != nil {
-			return err
-		}
-	}
-	return x.CloseSend()
-}
-
-type SRPCProxyVolume_ReleaseWorldEngineLeaseStream interface {
-	srpc.Stream
-}
-
-type srpcProxyVolume_ReleaseWorldEngineLeaseStream struct {
-	srpc.Stream
 }
 
 type SRPCProxyVolume_RefreshCoordinatorWriteLeaseStream interface {

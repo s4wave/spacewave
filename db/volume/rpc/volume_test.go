@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/coord"
+	"github.com/s4wave/spacewave/db/coord/conformance"
 	store_test "github.com/s4wave/spacewave/db/store/test"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/volume"
@@ -120,6 +121,10 @@ func TestRPCVolume(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	volRef.Release()
+
+	conformance.Check(t, func(testing.TB) (coord.Coordinator, coord.Coordinator) {
+		return vol, vol
+	})
 
 	capability, err := vol.Capability(ctx, coord.Scope{
 		VolumeID:      vol.GetID(),
@@ -247,43 +252,48 @@ func TestRPCVolume(t *testing.T) {
 		t.Fatalf("expected RPC coordinator wait-lease release, got %v", err)
 	}
 
-	worldLease, err := vol.AcquireWorldEngineLease(ctx, "rpc-world-engine-object")
+	keyedScope := coord.Scope{VolumeID: vol.GetID(), ParticipantID: "rpc-a", Key: "rpc-world-engine-object"}
+	keyedCapability, err := vol.Capability(ctx, keyedScope)
 	if err != nil {
-		t.Fatalf("expected RPC World Engine lease, got %v", err)
+		t.Fatalf("expected RPC keyed capability, got %v", err)
 	}
-	_, err = vol.AcquireWorldEngineLease(ctx, "rpc-world-engine-object")
-	var heldErr *volume.WorldEngineLeaseHeldError
-	if !errors.As(err, &heldErr) {
-		_ = worldLease.Release()
-		t.Fatalf("expected held World Engine lease error, got %v", err)
+	if !keyedCapability.Supported || keyedCapability.Generations || !keyedCapability.DetectsLoss {
+		t.Fatalf("unexpected RPC keyed capability: %#v", keyedCapability)
 	}
-	differentWorldLease, err := vol.AcquireWorldEngineLease(ctx, "rpc-world-engine-other")
-	if err != nil {
-		_ = worldLease.Release()
-		t.Fatalf("expected different World Engine lease key to acquire, got %v", err)
+	keyedLease, acquired, err := vol.TryAcquireWriteLease(ctx, keyedScope)
+	if err != nil || !acquired {
+		t.Fatalf("expected RPC keyed lease: acquired=%v err=%v", acquired, err)
 	}
-	if err := differentWorldLease.Release(); err != nil {
-		_ = worldLease.Release()
-		t.Fatalf("expected different World Engine lease release, got %v", err)
+	if contender, acquired, err := vol.TryAcquireWriteLease(ctx, keyedScope); err != nil || acquired || contender != nil {
+		t.Fatalf("contended RPC keyed lease = (%v, %v, %v), want (nil, false, nil)", contender, acquired, err)
 	}
-	if err := worldLease.Release(); err != nil {
-		t.Fatalf("expected World Engine lease release, got %v", err)
+	forgedScope := keyedScope
+	forgedScope.VolumeID = "forged-volume"
+	if contender, acquired, err := vol.TryAcquireWriteLease(ctx, forgedScope); err != nil || acquired || contender != nil {
+		t.Fatalf("forged-volume RPC keyed lease = (%v, %v, %v), want (nil, false, nil)", contender, acquired, err)
 	}
-	worldLease, err = vol.AcquireWorldEngineLease(ctx, "rpc-world-engine-object")
-	if err != nil {
-		t.Fatalf("expected World Engine lease reacquisition, got %v", err)
+	differentScope := keyedScope
+	differentScope.Key = "rpc-world-engine-other"
+	differentLease, acquired, err := vol.TryAcquireWriteLease(ctx, differentScope)
+	if err != nil || !acquired {
+		_ = keyedLease.Release(ctx)
+		t.Fatalf("expected different RPC key to acquire: acquired=%v err=%v", acquired, err)
 	}
-	differentWorldLease, err = vol.AcquireWorldEngineLease(ctx, "rpc-world-engine-other")
-	if err != nil {
-		_ = worldLease.Release()
-		t.Fatalf("expected different World Engine lease reacquisition, got %v", err)
+	if err := differentLease.Release(ctx); err != nil {
+		_ = keyedLease.Release(ctx)
+		t.Fatalf("release different RPC keyed lease: %v", err)
 	}
-	if err := differentWorldLease.Release(); err != nil {
-		_ = worldLease.Release()
-		t.Fatalf("expected different World Engine lease reacquisition release, got %v", err)
+	canceled, cancelRelease := context.WithCancel(ctx)
+	cancelRelease()
+	if err := keyedLease.Release(canceled); err != nil {
+		t.Fatalf("release RPC keyed lease under canceled context: %v", err)
 	}
-	if err := worldLease.Release(); err != nil {
-		t.Fatalf("expected World Engine lease reacquisition release, got %v", err)
+	keyedLease, acquired, err = vol.TryAcquireWriteLease(ctx, keyedScope)
+	if err != nil || !acquired {
+		t.Fatalf("reacquire RPC keyed lease: acquired=%v err=%v", acquired, err)
+	}
+	if err := keyedLease.Release(ctx); err != nil {
+		t.Fatalf("release reacquired RPC keyed lease: %v", err)
 	}
 
 	t.Log("testing object store api")

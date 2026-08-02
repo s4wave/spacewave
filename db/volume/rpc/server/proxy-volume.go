@@ -2,7 +2,6 @@ package volume_rpc_server
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aperturerobotics/starpc/srpc"
 
@@ -31,8 +30,6 @@ type ProxyVolume struct {
 	vol volume.Volume
 	// coordinatorLeases owns remote write leases acquired through this service.
 	coordinatorLeases *coordinatorLeases
-	// worldEngineLeases owns remote World Engine leases acquired through this service.
-	worldEngineLeases *worldEngineLeases
 	// exposePrivKey controls if we allow exposing the private key
 	exposePrivKey bool
 }
@@ -47,7 +44,6 @@ func NewProxyVolume(ctx context.Context, vol volume.Volume, exposePrivKey bool) 
 
 		vol:               vol,
 		coordinatorLeases: newCoordinatorLeases(),
-		worldEngineLeases: newWorldEngineLeases(),
 		exposePrivKey:     exposePrivKey,
 	}
 }
@@ -126,9 +122,7 @@ func (v *ProxyVolume) GetCoordinatorCapability(
 	}
 
 	scope := req.GetScope().ToCoordScope()
-	if scope.VolumeID == "" {
-		scope.VolumeID = v.vol.GetID()
-	}
+	scope.VolumeID = v.vol.GetID()
 
 	capability, err := v.vol.Capability(ctx, scope)
 	if err != nil {
@@ -160,9 +154,7 @@ func (v *ProxyVolume) WatchCoordinatorEvents(
 ) error {
 	ctx := strm.Context()
 	scope := req.GetScope().ToCoordScope()
-	if scope.VolumeID == "" {
-		scope.VolumeID = v.vol.GetID()
-	}
+	scope.VolumeID = v.vol.GetID()
 
 	watch, err := v.vol.Watch(ctx, scope, req.GetAfterGeneration())
 	if err != nil {
@@ -193,9 +185,7 @@ func (v *ProxyVolume) GetCoordinatorSnapshot(
 	req *volume_rpc.GetCoordinatorSnapshotRequest,
 ) (*volume_rpc.GetCoordinatorSnapshotResponse, error) {
 	scope := req.GetScope().ToCoordScope()
-	if scope.VolumeID == "" {
-		scope.VolumeID = v.vol.GetID()
-	}
+	scope.VolumeID = v.vol.GetID()
 
 	snapshot, err := v.vol.Snapshot(ctx, scope)
 	if err != nil {
@@ -213,9 +203,7 @@ func (v *ProxyVolume) TryAcquireCoordinatorWriteLease(
 ) error {
 	ctx := strm.Context()
 	scope := req.GetScope().ToCoordScope()
-	if scope.VolumeID == "" {
-		scope.VolumeID = v.vol.GetID()
-	}
+	scope.VolumeID = v.vol.GetID()
 
 	lease, acquired, err := v.vol.TryAcquireWriteLease(ctx, scope)
 	if err != nil {
@@ -226,67 +214,14 @@ func (v *ProxyVolume) TryAcquireCoordinatorWriteLease(
 			Acquired: false,
 		})
 	}
-	leaseID := v.coordinatorLeases.add(lease)
+	leaseID, err := v.coordinatorLeases.add(lease)
+	if err != nil {
+		_ = lease.Release(context.Background())
+		return err
+	}
 	defer v.coordinatorLeases.release(context.Background(), leaseID)
 
 	if err := strm.Send(&volume_rpc.AcquireCoordinatorWriteLeaseResponse{
-		LeaseId:  leaseID,
-		Acquired: true,
-	}); err != nil {
-		return err
-	}
-	<-ctx.Done()
-	return ctx.Err()
-}
-
-// WaitAcquireCoordinatorWriteLease waits to acquire the remote write lease.
-func (v *ProxyVolume) WaitAcquireCoordinatorWriteLease(
-	req *volume_rpc.WaitAcquireCoordinatorWriteLeaseRequest,
-	strm volume_rpc.SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream,
-) error {
-	ctx := strm.Context()
-	scope := req.GetScope().ToCoordScope()
-	if scope.VolumeID == "" {
-		scope.VolumeID = v.vol.GetID()
-	}
-
-	lease, err := v.vol.WaitAcquireWriteLease(ctx, scope)
-	if err != nil {
-		return err
-	}
-	leaseID := v.coordinatorLeases.add(lease)
-	defer v.coordinatorLeases.release(context.Background(), leaseID)
-
-	if err := strm.Send(&volume_rpc.AcquireCoordinatorWriteLeaseResponse{
-		LeaseId:  leaseID,
-		Acquired: true,
-	}); err != nil {
-		return err
-	}
-	<-ctx.Done()
-	return ctx.Err()
-}
-
-// TryAcquireWorldEngineLease attempts to acquire a keyed World Engine lease.
-func (v *ProxyVolume) TryAcquireWorldEngineLease(
-	req *volume_rpc.TryAcquireWorldEngineLeaseRequest,
-	strm volume_rpc.SRPCProxyVolume_TryAcquireWorldEngineLeaseStream,
-) error {
-	ctx := strm.Context()
-	lease, err := v.vol.AcquireWorldEngineLease(ctx, req.GetKey())
-	if err != nil {
-		var heldErr *volume.WorldEngineLeaseHeldError
-		if errors.As(err, &heldErr) {
-			return strm.SendAndClose(&volume_rpc.AcquireWorldEngineLeaseResponse{
-				Acquired: false,
-			})
-		}
-		return err
-	}
-	leaseID := v.worldEngineLeases.add(lease)
-	defer v.worldEngineLeases.release(leaseID)
-
-	if err := strm.Send(&volume_rpc.AcquireWorldEngineLeaseResponse{
 		LeaseId:  leaseID,
 		Acquired: true,
 	}); err != nil {
@@ -296,22 +231,42 @@ func (v *ProxyVolume) TryAcquireWorldEngineLease(
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-lease.Done():
-		if err := lease.Err(); err != nil {
-			return err
-		}
-		return nil
+		return lease.Err()
 	}
 }
 
-// ReleaseWorldEngineLease releases a remote World Engine lease.
-func (v *ProxyVolume) ReleaseWorldEngineLease(
-	ctx context.Context,
-	req *volume_rpc.ReleaseWorldEngineLeaseRequest,
-) (*volume_rpc.ReleaseWorldEngineLeaseResponse, error) {
-	if err := v.worldEngineLeases.release(req.GetLeaseId()); err != nil {
-		return nil, err
+// WaitAcquireCoordinatorWriteLease waits to acquire the remote write lease.
+func (v *ProxyVolume) WaitAcquireCoordinatorWriteLease(
+	req *volume_rpc.WaitAcquireCoordinatorWriteLeaseRequest,
+	strm volume_rpc.SRPCProxyVolume_WaitAcquireCoordinatorWriteLeaseStream,
+) error {
+	ctx := strm.Context()
+	scope := req.GetScope().ToCoordScope()
+	scope.VolumeID = v.vol.GetID()
+
+	lease, err := v.vol.WaitAcquireWriteLease(ctx, scope)
+	if err != nil {
+		return err
 	}
-	return &volume_rpc.ReleaseWorldEngineLeaseResponse{}, nil
+	leaseID, err := v.coordinatorLeases.add(lease)
+	if err != nil {
+		_ = lease.Release(context.Background())
+		return err
+	}
+	defer v.coordinatorLeases.release(context.Background(), leaseID)
+
+	if err := strm.Send(&volume_rpc.AcquireCoordinatorWriteLeaseResponse{
+		LeaseId:  leaseID,
+		Acquired: true,
+	}); err != nil {
+		return err
+	}
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-lease.Done():
+		return lease.Err()
+	}
 }
 
 // RefreshCoordinatorWriteLease refreshes a remote write lease.

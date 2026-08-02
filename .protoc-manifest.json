@@ -1833,7 +1833,7 @@
       "protoFiles": ["db/volume/redis/redis.proto"]
     },
     "github.com/s4wave/spacewave/db/volume/rpc": {
-      "hash": "2636b55406dc81fecb72481444281e146c15e5b16c4c80a8c31fa1a73530c444",
+      "hash": "dae1913e594e7249325a21d691af5c11dc077e849e0b6d03b54eaadc7dcd2802",
       "generatedFiles": [
         "db/volume/rpc/volume.pb.go",
         "db/volume/rpc/volume.pb.ts",

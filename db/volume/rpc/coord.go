@@ -13,6 +13,7 @@ func NewCoordinatorScope(scope coord.Scope) *CoordinatorScope {
 		VolumeId:      scope.VolumeID,
 		ObjectStoreId: scope.ObjectStoreID,
 		ParticipantId: scope.ParticipantID,
+		Key:           scope.Key,
 	}
 }
 
@@ -25,6 +26,7 @@ func (x *CoordinatorScope) ToCoordScope() coord.Scope {
 		VolumeID:      x.GetVolumeId(),
 		ObjectStoreID: x.GetObjectStoreId(),
 		ParticipantID: x.GetParticipantId(),
+		Key:           x.GetKey(),
 	}
 }
 
@@ -39,6 +41,8 @@ func NewCoordinatorCapability(cap *coord.Capability) *CoordinatorCapability {
 		VolumeId:       cap.VolumeID,
 		ObjectStoreId:  cap.ObjectStoreID,
 		Generation:     cap.Generation,
+		Generations:    cap.Generations,
+		DetectsLoss:    cap.DetectsLoss,
 		FallbackReason: string(cap.FallbackReason),
 	}
 }
@@ -54,6 +58,8 @@ func (x *CoordinatorCapability) ToCoordCapability() *coord.Capability {
 		VolumeID:       x.GetVolumeId(),
 		ObjectStoreID:  x.GetObjectStoreId(),
 		Generation:     x.GetGeneration(),
+		Generations:    x.GetGenerations(),
+		DetectsLoss:    x.GetDetectsLoss(),
 		FallbackReason: coord.FallbackReason(x.GetFallbackReason()),
 	}
 }
