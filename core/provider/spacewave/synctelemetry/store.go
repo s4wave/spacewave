@@ -22,7 +22,7 @@ const (
 	UploadPhaseError
 )
 
-// BlockSource identifies the owner-observed source of a block read.
+// BlockSource identifies the observed source of a block read.
 type BlockSource uint8
 
 const (
@@ -183,7 +183,7 @@ type FetchStatsProvider interface {
 	SnapshotStats() packfile_store.PackfileStoreStats
 }
 
-// StatsChangedProvider notifies the telemetry owner when fetch-side stats change.
+// StatsChangedProvider notifies the telemetry Store when fetch-side stats change.
 type StatsChangedProvider interface {
 	SetStatsChangedCallback(func())
 }

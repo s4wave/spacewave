@@ -80,8 +80,9 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	}
 	defer pluginStorageCtrlRef.Release()
 
-	// Web-server mode still loads the web plugin for package/RPC ownership, but
-	// the devtool serves the browser shell and must not embed a native renderer.
+	// Web-server mode still loads the web plugin so it registers its packages
+	// and RPCs, but the devtool serves the browser shell and must not embed a
+	// native renderer.
 	if err := os.Setenv(web_plugin_compiler.SkipNativeWebRendererEnvVar, "true"); err != nil {
 		return err
 	}

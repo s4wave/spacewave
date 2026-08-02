@@ -2,7 +2,7 @@ package forge_execution
 
 import "github.com/pkg/errors"
 
-// Validate checks that the claim identifies an owner and fencing epoch.
+// Validate checks that the claim identifies a claim id and fencing epoch.
 func (c *Claim) Validate() error {
 	if c.GetClaimId() == "" {
 		return errors.New("claim_id cannot be empty")

@@ -428,7 +428,7 @@ func (s *FileJournalStorage) Close() error {
 	return s.file.Close()
 }
 
-// memoryJournalStorage is an in-memory JournalStorage for owner-local tests.
+// memoryJournalStorage is an in-memory JournalStorage for tests in this package.
 type memoryJournalStorage struct {
 	mu sync.Mutex
 

@@ -23,7 +23,8 @@ type RemoteResourceClient struct {
 	adoptionAckEnabled bool
 	// resources contains the map of resources owned by this client.
 	resources map[uint32]*trackedResource
-	// pendingAdoptions maps invocation-created resources to their owner.
+	// pendingAdoptions maps invocation-created resources to the
+	// resourceRPCContext that created them.
 	pendingAdoptions map[uint32]*resourceRPCContext
 	// adoptedAdoptions maps acknowledged resources to their invocation until commit.
 	adoptedAdoptions map[uint32]*resourceRPCContext

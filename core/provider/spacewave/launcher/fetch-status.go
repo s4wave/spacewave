@@ -17,7 +17,7 @@ type FetchStatus struct {
 	HasConfig bool
 	// SelectedConfigRev is the revision currently selected by the launcher.
 	SelectedConfigRev uint64
-	// SelectedConfigSource names the owner/source of the selected DistConfig.
+	// SelectedConfigSource names the source of the selected DistConfig.
 	SelectedConfigSource string
 	// FetchedConfigRev is the most recent valid endpoint DistConfig revision.
 	FetchedConfigRev uint64

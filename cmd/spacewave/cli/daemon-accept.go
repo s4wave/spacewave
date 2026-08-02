@@ -86,7 +86,7 @@ func serveDaemonListener(
 }
 
 // acceptDaemonListener accepts incoming daemon connections and tracks their
-// lifecycle. It returns a drain function once accepting stops so the owner can
+// lifecycle. It returns a drain function once accepting stops so the caller can
 // release the listener, let a shutdown requester read its acknowledgement, and
 // only then close any remaining clients synchronously.
 func acceptDaemonListener(

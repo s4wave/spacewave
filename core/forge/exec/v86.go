@@ -62,8 +62,8 @@ type v86Handler struct {
 	loadInvoker v86InvokerFactory
 }
 
-// Execute requests desired RUNNING and waits for its process owner to report
-// observed RUNNING or a terminal failure.
+// Execute requests desired RUNNING and waits for the v86 execution stream to
+// report observed RUNNING or a terminal failure.
 func (h *v86Handler) Execute(ctx context.Context) error {
 	if h.b == nil {
 		return errors.New("v86 exec requires bus")

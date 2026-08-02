@@ -162,7 +162,7 @@ export function ShellGridLayout() {
     [],
   )
 
-  // Handle model changes without replacing the grid layout owner.
+  // Handle model changes without replacing the mounted grid Layout.
   const handleModelChange = useCallback(
     (newModel: Model) => {
       setModel(newModel)

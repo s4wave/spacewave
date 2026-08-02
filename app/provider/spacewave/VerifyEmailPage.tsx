@@ -61,7 +61,7 @@ export function VerifyEmailPage() {
     setAddExpanded(false)
   }, [addEmail, newEmail])
 
-  // Onboarding Status is the route-status owner for account-level email
+  // Onboarding Status decides route status for account-level email
   // verification; the email list may still be one fetch behind that gate.
   const accountEmailVerified = onboarding?.emailVerified ?? false
   const hasVerifiedEmail = emails?.some((e) => e.verified) ?? false

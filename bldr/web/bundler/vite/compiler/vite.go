@@ -21,9 +21,9 @@ func BuildViteBundleMeta(bundles []*ViteBundleMeta) ([]*ViteBundleMeta, error) {
 
 		existingBundle, exists := bundleMap[bundleID]
 		if exists {
-			// Merge duplicate bundle declarations into the bundle owner. Project
-			// config may define the entrypoints while compiler shortcuts add
-			// runtime externals for the same id.
+			// Merge duplicate bundle declarations into the existing bundle.
+			// Project config may define the entrypoints while compiler shortcuts
+			// add runtime externals for the same id.
 			existingBundle.Entrypoints = append(existingBundle.Entrypoints, bundle.GetEntrypoints()...)
 			existingBundle.ExternalPkgs = appendMissingStrings(existingBundle.ExternalPkgs, bundle.GetExternalPkgs())
 			existingBundle.ViteConfigPaths = appendMissingStrings(existingBundle.ViteConfigPaths, bundle.GetViteConfigPaths())

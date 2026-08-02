@@ -419,7 +419,7 @@ function absPath(path){
   return path.startsWith('/')?path:'/'+path;
 }
 // Boot download registry: the pre-module mirror of the bldr boot-downloads
-// owner. Producers report streamed bytes per boot asset; the static loading
+// registry. Producers report streamed bytes per boot asset; the static loading
 // shell renders one bar per download and the same snapshot/event feed the
 // React loading screen once it mounts. No polling: every change dispatches
 // bootDownloadEvent.

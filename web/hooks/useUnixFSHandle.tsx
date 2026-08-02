@@ -43,8 +43,8 @@ export function useUnixFSHandle(
   )
 }
 
-// resolveUnixFSHandle resolves a display path while preserving ownership of the
-// root handle resource.
+// resolveUnixFSHandle resolves a display path without releasing the root
+// handle resource.
 export async function resolveUnixFSHandle(
   root: FSHandle,
   path: string,

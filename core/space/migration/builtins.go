@@ -69,7 +69,7 @@ func BuiltInRegistry() (*Registry, error) {
 	return registry, nil
 }
 
-// Keep imports for built-in world ObjectType packages visible to the registry owner.
+// Keep imports for built-in world ObjectType packages visible to the registry.
 var _ = s4wave_org_world.OrganizationType
 var _ = s4wave_device_world.DeviceType
 var _ = s4wave_terminal_world.TerminalType

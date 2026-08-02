@@ -466,8 +466,8 @@ func runEsbuildBundle(opts esbuild.BuildOptions) (esbuild.BuildResult, []string,
 	return result, inputs, nil
 }
 
-// esbuildOptionsDigest hashes every output-affecting BuildOptions field used by
-// the browser bundle owner. Unknown typed plugin state is not cacheable.
+// esbuildOptionsDigest hashes every output-affecting BuildOptions field the
+// browser bundle build sets. Unknown typed plugin state is not cacheable.
 func esbuildOptionsDigest(opts esbuild.BuildOptions) ([]byte, bool) {
 	if len(opts.MangleCache) != 0 {
 		return nil, false

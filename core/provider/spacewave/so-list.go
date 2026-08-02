@@ -45,7 +45,7 @@ func (a *ProviderAccount) hasSharedObjectListAccess() bool {
 	return allowed
 }
 
-// invalidateSharedObjectList restarts the SO list owner when a full snapshot is stale.
+// invalidateSharedObjectList restarts soListRc when a full snapshot is stale.
 func (a *ProviderAccount) invalidateSharedObjectList() {
 	var invalidate func()
 	a.soListBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -84,7 +84,7 @@ func (a *ProviderAccount) setSharedObjectListInvalidator(invalidate func()) {
 	})
 }
 
-// EnsureSharedObjectListLoaded resolves the SO list owner and waits for the current snapshot.
+// EnsureSharedObjectListLoaded resolves soListRc and waits for the current snapshot.
 func (a *ProviderAccount) EnsureSharedObjectListLoaded(ctx context.Context) error {
 	_, rel, err := a.soListRc.Resolve(ctx)
 	if err != nil {

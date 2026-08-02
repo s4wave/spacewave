@@ -56,7 +56,7 @@ type State struct {
 	bcast                   broadcast.Broadcast
 }
 
-// NewState returns a sharing watch state owner.
+// NewState constructs a State from the first sharing snapshot.
 func NewState(
 	soState *sobject.SOState,
 	mailboxEntries []*MailboxEntry,

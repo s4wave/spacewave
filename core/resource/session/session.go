@@ -189,7 +189,7 @@ func (r *SessionResource) Close() {
 //
 // No-op when the session's provider is not spacewave (local-only never
 // receives cdn-root-changed). Safe to call once per SessionResource; a
-// second call releases the second subscription to preserve single ownership.
+// second call releases the second subscription so one remains.
 func (r *SessionResource) SetCdnRootChangedHook(hook func(spaceID string)) {
 	if hook == nil {
 		return

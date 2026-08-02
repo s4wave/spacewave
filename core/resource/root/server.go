@@ -37,7 +37,8 @@ type CoreRootServer struct {
 	releaseStateAtomStoreIndex func()
 	// stateAtomStoreClosed rejects lazy store acquisition after shutdown.
 	stateAtomStoreClosed bool
-	// stateAtomStoreIndexBuilder overrides the external acquisition in owner tests.
+	// stateAtomStoreIndexBuilder overrides the external acquisition in
+	// CoreRootServer tests.
 	stateAtomStoreIndexBuilder func(context.Context) (*session.StateAtomStoreIndex, func(), error)
 	// cdnRegistry owns the process-scoped map of CdnInstances.
 	cdnRegistry *resource_cdn.Registry

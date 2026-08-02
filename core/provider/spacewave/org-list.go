@@ -69,7 +69,7 @@ func (a *ProviderAccount) PublishCreatedOrganization(org *api.OrgResponse) {
 	})
 }
 
-// QueueOrganizationSync schedules the keyed organization sync owner.
+// QueueOrganizationSync schedules the keyed organization sync routine.
 func (a *ProviderAccount) QueueOrganizationSync(orgID string) {
 	if orgID == "" || a.orgSyncs == nil {
 		return

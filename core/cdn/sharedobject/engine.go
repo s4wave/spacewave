@@ -38,7 +38,8 @@ type WorldEngine struct {
 	Cursor *bucket_lookup.Cursor
 	// decodedBlocks is the decoded-block cache borrowed by this CDN object engine.
 	decodedBlocks *block.DecodedBlockCache
-	// ownDecodedBlocks is true only for explicit fallback cache ownership.
+	// ownDecodedBlocks is true when WorldEngine built decodedBlocks itself and
+	// closes it on Release.
 	ownDecodedBlocks bool
 
 	// refresh runs the head-ref watcher goroutine; owned by Release.

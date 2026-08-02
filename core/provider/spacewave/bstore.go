@@ -62,9 +62,10 @@ type BlockStore struct {
 	refreshRemote func(ctx context.Context) error
 	// remoteSequence returns the local manifest's last-seen remote sequence.
 	remoteSequence func(ctx context.Context) (uint64, error)
-	// cacheStore is the account-owned non-dirty local cache read/write owner.
+	// cacheStore is the account-owned local cache store used for non-dirty reads
+	// and writes.
 	cacheStore block.StoreOps
-	// cloudStore is the account-owned Cloud read owner.
+	// cloudStore is the account-owned Cloud read store.
 	cloudStore block.StoreOps
 }
 
@@ -119,9 +120,9 @@ func (b *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 
 // PutBlockBatch forwards batched writes to the inner store.
 func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	// Tombstone publication and decoded-cache ownership are separate lower
-	// owners; invalidate on both sides so in-flight decoded stores cannot cross
-	// the mutation boundary.
+	// Tombstone publication and the decoded cache are separate lower stores;
+	// invalidate on both sides so in-flight decoded stores cannot cross the
+	// mutation boundary.
 	b.invalidateBatchTombstones(ctx, entries)
 	if err := b.store.PutBlockBatch(ctx, entries); err != nil {
 		return err
@@ -147,7 +148,7 @@ func (b *BlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Bloc
 
 // RmBlock forwards to the inner store.
 func (b *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
-	// Delete publication and decoded-cache ownership are separate lower owners;
+	// Delete publication and the decoded cache are separate lower stores;
 	// invalidate on both sides so in-flight decoded stores cannot cross the
 	// mutation boundary.
 	b.InvalidateDecodedBlockRef(ctx, ref)
@@ -530,7 +531,7 @@ func (s *sourceTrackingStore) BeginReadOperation(ctx context.Context) (block.Sto
 	}, release, nil
 }
 
-// GetBlock records cache, direct, or Cloud ownership for a successful read.
+// GetBlock records the cache, direct, or Cloud source of a successful read.
 func (s *sourceTrackingStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	cached := false
 	if s.upperCache {
@@ -774,7 +775,7 @@ func (r *publicReadRemote) Refresh(ctx context.Context) error {
 	}
 	entries := clonePackfileEntries(ptr.GetPacks())
 	// Invalidate before publishing the refreshed manifest. Reads can observe the
-	// lower store and Entries snapshot from separate owners, and stale decoded
+	// lower store and Entries snapshot from separate sources, and stale decoded
 	// blocks must not survive into either new view.
 	r.decodedBlocks.InvalidateAll(ctx)
 	r.lower.UpdateManifest(entries)

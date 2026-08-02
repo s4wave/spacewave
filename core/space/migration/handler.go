@@ -14,7 +14,8 @@ type SchemaInspector func(context.Context, *ObjectDescriptor) (*Inspection, erro
 // SchemaRewriter decodes, rewrites, and serializes one registered payload.
 type SchemaRewriter func(context.Context, *ObjectDescriptor, *IdentityMap) (*RewriteResult, error)
 
-// TypedHandler is a built-in handler with explicit reference-field ownership.
+// TypedHandler is a built-in handler that declares which reference fields it
+// rewrites.
 type TypedHandler struct {
 	typeID              string
 	classification      Classification

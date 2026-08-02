@@ -111,7 +111,7 @@ export class DedicatedWorkerHostOwner {
     })
 
     void navigator.locks.query().then((snapshot) => {
-      // A grant can beat the query; only a still-pending owner can attach to
+      // A grant can beat the query; only a still-pending role can attach to
       // the already-held standing lock.
       if (this.role !== 'pending') {
         return

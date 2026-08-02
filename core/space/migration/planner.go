@@ -18,7 +18,8 @@ import (
 	s4wave_canvas_world "github.com/s4wave/spacewave/sdk/canvas/world"
 )
 
-// PlannerInput describes the two World owners and read-only preview inputs.
+// PlannerInput describes the source and destination Worlds and read-only
+// preview inputs.
 type PlannerInput struct {
 	SourceSpaceID       string
 	DestinationSpaceID  string

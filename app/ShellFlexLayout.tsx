@@ -357,8 +357,8 @@ function ShellTabStripInner({
   const initializedRef = useRef(false)
 
   // A deep link or back/forward navigation can supply a new grid structure
-  // without remounting this owner. Replace only the model; tab nodes retain
-  // their stable IDs and OptimizedLayout remains mounted.
+  // without remounting ShellTabStripInner. Replace only the model; tab nodes
+  // retain their stable IDs and OptimizedLayout remains mounted.
   useEffect(() => {
     const path = getAppPath()
     if (!path.startsWith('/g/')) {
@@ -627,7 +627,7 @@ function ShellTabStripInner({
         ) {
           return
         }
-        // Selection follows the user across panes. The tab owner drives the
+        // Selection follows the user across panes. The selected tab drives the
         // document title, the command session, and the toolbar actions, so a
         // selection left behind here points all three at the wrong pane.
         const selectedId = getSelectedTabId(newModel)

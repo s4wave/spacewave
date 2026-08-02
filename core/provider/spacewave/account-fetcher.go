@@ -18,12 +18,12 @@ import (
 // accountStateCacheKey is the ObjectStore key for the account state cache.
 const accountStateCacheKey = "account-state-cache"
 
-// accountFetcherRetryOwner owns transient retry delay for accountFetcher.
+// accountFetcherRetryOwner holds the transient retry delay for accountFetcher.
 //
 // The wake channel is captured with the account snapshot that produced the
 // failed fetch. If account epoch or session-client readiness changes while a
-// request is in flight, that channel closes and the retry owner skips the
-// remaining backoff so the fetcher can re-check current account state.
+// request is in flight, that channel closes and the remaining backoff is
+// skipped so the fetcher can re-check current account state.
 type accountFetcherRetryOwner struct {
 	bo cbackoff.BackOff
 }

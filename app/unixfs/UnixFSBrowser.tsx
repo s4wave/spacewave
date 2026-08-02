@@ -84,7 +84,7 @@ export interface UnixFSBrowserProps {
   worldState: Resource<IWorldState>
   // browserBody replaces the browser's default file list/file viewer body.
   browserBody?: ComponentType<UnixFSBrowserBodyProps>
-  // directoryHeader renders owner-specific content above the generic file list.
+  // directoryHeader renders caller-supplied content above the file list.
   directoryHeader?: ComponentType<UnixFSBrowserDirectoryHeaderProps>
 }
 

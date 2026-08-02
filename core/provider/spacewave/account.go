@@ -75,7 +75,7 @@ type ProviderAccount struct {
 	sessionClientSessionID string
 	// sessionTransports contains direct transports keyed by mounted Session ID.
 	sessionTransports map[string]*sessionTransportState
-	// transportComposition is the per-Session direct-transport selection owner.
+	// transportComposition selects the direct transport for each Session.
 	transportComposition transportCompositionOwner
 	// conf is the provider configuration
 	conf *Config
@@ -90,11 +90,11 @@ type ProviderAccount struct {
 	soListCtr *ccontainer.CContainer[*sobject.SharedObjectList]
 	// soListRc owns SO list fetches so all callers share one invalidatable path.
 	soListRc *refcount.RefCount[struct{}]
-	// soListBcast guards the SO list owner fields below.
+	// soListBcast guards the SO list fields below.
 	soListBcast broadcast.Broadcast
 	// soListAccess indicates subscription status permits SO list access.
 	soListAccess bool
-	// soListInvalidate restarts the SO list owner when the cache is stale.
+	// soListInvalidate restarts soListRc when the cache is stale.
 	soListInvalidate func()
 	// writeTicketOwnersMtx guards writeTicketOwners and writeTicketOwnersCtx.
 	writeTicketOwnersMtx sync.Mutex

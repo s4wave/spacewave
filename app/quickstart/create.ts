@@ -1212,7 +1212,7 @@ async function initKvQuickstart(
     await store.withTransaction(
       true,
       async (tx) => {
-        // eslint-disable-next-line react-doctor/async-parallel -- transaction writes stay ordered on one transaction owner.
+        // eslint-disable-next-line react-doctor/async-parallel -- transaction writes stay ordered on one transaction.
         await tx.set(encoder.encode('hello'), encoder.encode('world'))
         await tx.set(
           encoder.encode('profile.json'),

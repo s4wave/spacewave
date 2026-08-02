@@ -28,7 +28,7 @@ export class GraphLinkPredicatePolicy {
     }
 
     // TODO: Replace this TypeScript predicate table with ObjectType metadata
-    // ownership once graph edge ownership is exposed by object types.
+    // once object types declare their owner-managed graph edges.
     if (ownerManagedPredicates.has(link.predicate)) {
       return {
         viewable: true,

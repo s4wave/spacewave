@@ -74,7 +74,7 @@ function getProgressDetail(
 }
 
 // VmCreationProgressScreen renders the event-driven CDN copy and VM creation
-// stages without implying a byte fraction the copy owner cannot provide.
+// stages without implying a byte fraction the copy events cannot provide.
 export function VmCreationProgressScreen({
   progress,
   vmName,

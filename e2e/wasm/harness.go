@@ -1285,11 +1285,12 @@ func reapHarnessCacheOffStateRoots(le *logrus.Entry, parent, currentStateRoot, s
 func shouldReapHarnessCacheOffStateRoot(stateRoot string, entry os.DirEntry, now time.Time, currentOwner harnessStateRootOwner) (bool, error) {
 	owner, err := readHarnessStateRootOwner(stateRoot)
 	if err == nil {
-		// The marker token is kept in the live Harness owner and disambiguates
-		// stale roots that claim this process's PID after PID reuse. A stale
-		// root whose PID has been recycled by another live process is preserved;
-		// portable start-time checks are not available across this harness's
-		// supported darwin/linux test hosts, so liveness wins over cleanup.
+		// The marker token is kept in the live Harness state-root marker and
+		// disambiguates stale roots that claim this process's PID after PID
+		// reuse. A stale root whose PID has been recycled by another live
+		// process is preserved; portable start-time checks are not available
+		// across this harness's supported darwin/linux test hosts, so liveness
+		// wins over cleanup.
 		if owner.pid == currentOwner.pid && owner.token != currentOwner.token {
 			return true, nil
 		}
@@ -1302,7 +1303,7 @@ func shouldReapHarnessCacheOffStateRoot(stateRoot string, entry os.DirEntry, now
 	if err != nil {
 		return false, err
 	}
-	// Pre-fix cache-off roots have no owner marker. The 24h threshold only
+	// Pre-fix cache-off roots have no state-root marker. The 24h threshold only
 	// reaps stale markerless wasm roots after the stable cache-on root name has
 	// been excluded; young markerless roots may belong to an older live binary.
 	return now.Sub(info.ModTime()) > harnessMarkerlessStateRootMaxAge, nil

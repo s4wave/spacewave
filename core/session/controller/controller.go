@@ -361,7 +361,7 @@ func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.Ses
 	}
 
 	// Retry classification: external to RunTransaction. The callback emits
-	// invalid-entry handling; the owner publishes the update after commit.
+	// invalid-entry handling; Controller publishes the update after commit.
 
 	otx, err := objStore.NewTransaction(ctx, true)
 	if err != nil {

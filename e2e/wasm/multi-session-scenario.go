@@ -51,7 +51,7 @@ func CreateMultiSessionScenario(t testing.TB, h *Harness, session *TestSession) 
 	return scenario
 }
 
-// GetSession returns the browser context and Resource SDK owner.
+// GetSession returns the browser context and Resource SDK session.
 func (s *MultiSessionScenario) GetSession() *TestSession { return s.session }
 
 // GetFirstSessionIndex returns the PIN-backed drive session index.

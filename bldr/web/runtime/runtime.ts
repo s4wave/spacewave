@@ -253,8 +253,8 @@ export interface WebDocumentToClient {
   // this intent the two close signals are indistinguishable, and either choice
   // is wrong for the other case.
   terminal?: true
-  // closeAckPort receives a message after the client owner removes this
-  // WebDocument and completes its close handling.
+  // closeAckPort receives a message after the client removes this WebDocument
+  // and completes its close handling.
   closeAckPort?: MessagePort
   // bridgePort is the MessagePort to use for WebRTC bridge commands.
   bridgePort?: MessagePort

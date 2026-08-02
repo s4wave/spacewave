@@ -35,7 +35,7 @@ func WithRetainedEventLimit(limit uint32) HubOption {
 	}
 }
 
-// WithClock sets the clock used for owner-assigned event timestamps.
+// WithClock sets the clock Hub reads when it timestamps an event.
 func WithClock(now func() time.Time) HubOption {
 	return func(h *Hub) {
 		h.now = now
@@ -58,7 +58,7 @@ func NewHub(opts ...HubOption) *Hub {
 	return h
 }
 
-// Emit appends an event and assigns owner-controlled metadata.
+// Emit appends an event and fills in the metadata Hub assigns.
 func (h *Hub) Emit(event *StructuredLogEvent) (*EmitStructuredLogResponse, error) {
 	if event == nil {
 		return nil, errors.New("structured log event cannot be nil")

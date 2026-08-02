@@ -13,10 +13,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// SocketInUseError reports that a live listener already owns the
+// SocketInUseError reports that a live listener already holds the
 // daemon socket and takeover was not requested. The condition is
 // permanent for the refusing process: retrying without takeover
-// cannot succeed while the owner lives.
+// cannot succeed while that listener lives.
 type SocketInUseError struct {
 	// Path is the contended socket path.
 	Path string
@@ -89,7 +89,7 @@ func prepareSocket(
 
 		// A yielded process can exit before its completion response
 		// reaches us. Connection failure is the event; a fresh dial
-		// distinguishes that completed exit from a still-live owner.
+		// distinguishes that completed exit from a still-live listener.
 		_ = conn.Close()
 		probe, probeErr := net.Dial("unix", sockPath)
 		if probeErr == nil {

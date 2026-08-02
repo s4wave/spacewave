@@ -118,7 +118,7 @@ export function getRouteDocumentTitleParts(
   return lastSegment ? { view: humanizeRouteSegment(lastSegment) } : {}
 }
 
-// DocumentTitleProvider is the only owner that writes document.title.
+// DocumentTitleProvider is the only component that writes document.title.
 export function DocumentTitleProvider({ children }: { children: ReactNode }) {
   const [candidates, setCandidates] = useState(
     () => new Map<string, DocumentTitleCandidate>(),
@@ -165,7 +165,7 @@ export function DocumentTitleProvider({ children }: { children: ReactNode }) {
   )
 }
 
-// useDocumentTitle publishes context to the document-local title owner.
+// useDocumentTitle publishes title parts to DocumentTitleProvider.
 export function useDocumentTitle(
   parts: DocumentTitleParts,
   options: UseDocumentTitleOptions = {},

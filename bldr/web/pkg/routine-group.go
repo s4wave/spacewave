@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-// RoutineGroup tracks routines that must stop before their owner closes.
+// RoutineGroup tracks routines so StopAccepting and Wait can drain them.
 type RoutineGroup struct {
 	mtx    sync.Mutex
 	wg     sync.WaitGroup

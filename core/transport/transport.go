@@ -45,13 +45,13 @@ type SessionTransport struct {
 	bridgeFilter bus_bridge.FilterFn
 	// startupTimeout bounds the readiness phase for every consumer.
 	startupTimeout time.Duration
-	// startupDeadlineCtx is the owner budget shared by every readiness waiter.
+	// startupDeadlineCtx is the startup budget shared by every readiness waiter.
 	startupDeadlineCtx context.Context
-	// startupDeadlineCancel stops the owner budget after a terminal outcome.
+	// startupDeadlineCancel stops the startup budget after a terminal outcome.
 	startupDeadlineCancel context.CancelFunc
 	// startupDeadlineStarted prevents retries and waiters from resetting the budget.
 	startupDeadlineStarted bool
-	// cancel cancels the owner context after startup stop admission.
+	// cancel cancels the SessionTransport context after startup stop admission.
 	cancel context.CancelFunc
 	// startupStopped admits timeout cancellation before Execute publishes cancel.
 	startupStopped bool
@@ -65,7 +65,7 @@ type SessionTransport struct {
 	startupErr error
 	// startupStage records the last startup stage entered.
 	startupStage string
-	// startupRetryable keeps per-attempt failures private to a retry owner.
+	// startupRetryable keeps per-attempt failures private to the retrying caller.
 	startupRetryable bool
 }
 
@@ -84,16 +84,16 @@ func WithStartupTimeout(timeout time.Duration) SessionTransportOption {
 }
 
 // WithBridgeDirectiveFilter excludes matching directives from the generic
-// child-to-parent bridge while preserving the transport package's ownership.
+// child-to-parent bridge while SessionTransport keeps forwarding the rest.
 func WithBridgeDirectiveFilter(filter bus_bridge.FilterFn) SessionTransportOption {
 	return func(t *SessionTransport) {
 		t.bridgeFilter = filter
 	}
 }
 
-// WithStartupRetry enables retry-owner startup semantics. Execute attempts
-// leave transient failures to the retry owner, while AwaitReady reports only
-// the transport's admitted terminal outcome.
+// WithStartupRetry enables retrying startup semantics. Execute attempts leave
+// transient failures to the retrying caller, while AwaitReady reports only the
+// transport's admitted terminal outcome.
 func WithStartupRetry() SessionTransportOption {
 	return func(t *SessionTransport) {
 		t.startupRetryable = true

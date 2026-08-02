@@ -711,7 +711,7 @@ function callGoCallback(cb: () => void): boolean {
   const consoleError = console.error
   let released = false
   console.error = (...args: unknown[]) => {
-    // Go may release a callback before this owner invokes it. Filter that
+    // Go may release a callback before callGoCallback invokes it. Filter that
     // known callback edge only inside the invocation, never for the whole worker.
     if (args.some(isReleasedGoCallbackError)) {
       released = true

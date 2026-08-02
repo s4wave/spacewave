@@ -217,7 +217,7 @@ func (r *StatusResource) WatchNetworkStats(
 
 // ReportRecoveryStatus stores renderer-owned runtime recovery facts for status
 // composition. The report is volatile diagnostic state; it never mutates
-// release, Manifest, package, boot, or asset-serving owners.
+// release, Manifest, package, boot, or asset-serving state.
 func (r *StatusResource) ReportRecoveryStatus(
 	_ context.Context,
 	req *s4wave_status.ReportRecoveryStatusRequest,
@@ -242,7 +242,7 @@ func (r *StatusResource) ReportRecoveryStatus(
 	return &s4wave_status.ReportRecoveryStatusResponse{}, nil
 }
 
-// WatchRecoveryStatus streams owner-owned runtime recovery status snapshots.
+// WatchRecoveryStatus streams the recorded runtime recovery status snapshots.
 func (r *StatusResource) WatchRecoveryStatus(
 	_ *s4wave_status.WatchRecoveryStatusRequest,
 	strm s4wave_status.SRPCSystemStatusService_WatchRecoveryStatusStream,

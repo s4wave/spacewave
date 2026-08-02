@@ -56,7 +56,7 @@ func (o *InitForgeQuickstartOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// Parse the session peer ID for entity ownership.
+	// Parse the session peer ID that authors every world op below.
 	sessionPeerID, err := confparse.ParsePeerID(o.GetSessionPeerId())
 	if err != nil {
 		return false, err
