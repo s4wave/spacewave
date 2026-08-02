@@ -13,6 +13,15 @@ import (
 
 const (
 	// DefaultHashType is the hash type for new refs when callers do not choose one.
+	//
+	// SHA256 matches hash.RecommendedHashType: SubtleCrypto in browsers
+	// supports only the SHA family, and the goscript build sums only SHA-256
+	// and SHA-1. Peers must compute identical refs for identical content, so
+	// every build target must agree on this default for content addressing to
+	// converge. A ref embeds its hash type in hash.Hash, so blocks written
+	// under a previous default remain readable if this changes; the same
+	// content would then hash to a new ref, and old and new writers would no
+	// longer deduplicate or find each other's blocks.
 	DefaultHashType = hash.HashType_HashType_SHA256
 )
 
