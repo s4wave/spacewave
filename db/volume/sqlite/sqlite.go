@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	coord_filelock "github.com/s4wave/spacewave/db/coord/filelock"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	sqlite "github.com/s4wave/spacewave/db/store/kvtx/sqlite"
@@ -46,7 +47,7 @@ func NewSqlite(
 
 	db := store.GetDB()
 	path := conf.GetPath()
-	return kvtx.NewVolumeWithWorldEngineLeaseProvider(
+	vol, err := kvtx.NewVolume(
 		ctx,
 		ControllerID,
 		kvkey,
@@ -76,10 +77,18 @@ func NewSqlite(
 				BlockCount: count,
 			}, nil
 		},
-		volume.NewFileWorldEngineLeaseProvider(filepath.Dir(path), path+"\x00"+conf.GetTable()),
 		db.Close,
 		func() error { return os.Remove(path) },
 	)
+	if err != nil {
+		return nil, err
+	}
+	vol.Coordinator = coord_filelock.NewCoordinator(
+		filepath.Dir(path),
+		path+"\x00"+conf.GetTable(),
+		vol.Coordinator,
+	)
+	return vol, nil
 }
 
 // _ is a type assertion

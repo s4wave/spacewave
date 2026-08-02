@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
+	coord_filelock "github.com/s4wave/spacewave/db/coord/filelock"
 	kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	skvtx "github.com/s4wave/spacewave/db/store/kvtx"
 	sbadger "github.com/s4wave/spacewave/db/store/kvtx/badger"
@@ -53,7 +54,7 @@ func NewBadger(
 	}
 
 	db := store.GetDB()
-	return kvtx.NewVolumeWithWorldEngineLeaseProvider(
+	vol, err := kvtx.NewVolume(
 		ctx,
 		ControllerID,
 		kvkey,
@@ -80,7 +81,11 @@ func NewBadger(
 				BlockCount: count,
 			}, nil
 		},
-		volume.NewFileWorldEngineLeaseProvider(badgerOpts.Dir, badgerOpts.Dir),
 		db.Close,
 	)
+	if err != nil {
+		return nil, err
+	}
+	vol.Coordinator = coord_filelock.NewCoordinator(badgerOpts.Dir, badgerOpts.Dir, vol.Coordinator)
+	return vol, nil
 }
