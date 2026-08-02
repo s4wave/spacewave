@@ -29,8 +29,11 @@ func TestControllerCoordinatorSupported(t *testing.T) {
 		ParticipantID: "engine",
 	}
 
-	if !ctrl.coordinatorSupported(ctx, fakeCoordinator{capability: &coord.Capability{Supported: true}}, scope) {
+	if !ctrl.coordinatorSupported(ctx, fakeCoordinator{capability: &coord.Capability{Supported: true, Generations: true}}, scope) {
 		t.Fatal("supported coordinator reported false")
+	}
+	if ctrl.coordinatorSupported(ctx, fakeCoordinator{capability: &coord.Capability{Supported: true}}, scope) {
+		t.Fatal("coordinator without generations reported true")
 	}
 	if ctrl.coordinatorSupported(ctx, fakeCoordinator{capability: &coord.Capability{Supported: false}}, scope) {
 		t.Fatal("unsupported coordinator reported true")

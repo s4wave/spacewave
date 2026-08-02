@@ -409,7 +409,7 @@ func (c *Controller) coordinatorSupported(
 		}
 		return false
 	}
-	return capability != nil && capability.Supported
+	return capability != nil && capability.Supported && capability.Generations
 }
 
 // HandleDirective asks if the handler can resolve the directive.

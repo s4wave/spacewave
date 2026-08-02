@@ -170,7 +170,7 @@ func TestWorldEngineController(t *testing.T) {
 	// success
 }
 
-func TestWorldEngineControllerFallsBackWhenCoordinatorUnsupported(t *testing.T) {
+func TestWorldEngineControllerUsesDeferredDurabilityWithoutGenerations(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -189,10 +189,7 @@ func TestWorldEngineControllerFallsBackWhenCoordinatorUnsupported(t *testing.T) 
 	if !ok {
 		t.Fatalf("testbed volume type = %T, want *common_kvtx.Volume", tb.Volume)
 	}
-	kvtxVolume.Coordinator = coord.NewUnsupportedCoordinator(
-		coord.BackendKindRPC,
-		coord.FallbackReasonUnsupported,
-	)
+	kvtxVolume.Coordinator = generationlessCoordinator{Coordinator: kvtxVolume.Coordinator}
 
 	transformConf, err := block_transform.NewConfig(nil)
 	if err != nil {
@@ -231,6 +228,30 @@ func TestWorldEngineControllerFallsBackWhenCoordinatorUnsupported(t *testing.T) 
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatalf("commit with unsupported coordinator: %v", err)
 	}
+	fenced, err := engine.Sync(ctx)
+	if err != nil {
+		t.Fatalf("sync deferred write: %v", err)
+	}
+	if !fenced {
+		t.Fatal("generationless coordinator did not select deferred durability")
+	}
+}
+
+type generationlessCoordinator struct {
+	coord.Coordinator
+}
+
+func (c generationlessCoordinator) Capability(
+	ctx context.Context,
+	scope coord.Scope,
+) (*coord.Capability, error) {
+	capability, err := c.Coordinator.Capability(ctx, scope)
+	if err != nil {
+		return nil, err
+	}
+	capability.Supported = true
+	capability.Generations = false
+	return capability, nil
 }
 
 func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {

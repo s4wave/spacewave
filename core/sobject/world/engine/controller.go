@@ -158,14 +158,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 	defer soRef.Release()
-	worldEngineLease, err := c.acquireWorldEngineLease(rctx, so)
+	worldEngineLease, detectsLeaseLoss, err := c.acquireWorldEngineLease(rctx, so)
 	if err != nil {
 		return err
 	}
 	if worldEngineLease != nil {
-		watchWorldEngineLease(rctx, worldEngineLease, rctxCancel)
+		watchWorldEngineLease(rctx, worldEngineLease, detectsLeaseLoss, rctxCancel)
 		defer func() {
-			if err := worldEngineLease.Release(); err != nil {
+			if err := worldEngineLease.Release(rctx); err != nil {
 				le.WithError(err).Warn("failed to release World Engine lease")
 			}
 		}()
