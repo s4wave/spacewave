@@ -1095,6 +1095,14 @@
       ],
       "protoFiles": ["core/space/world/world.proto"]
     },
+    "github.com/s4wave/spacewave/core/space/world/blocktype": {
+      "hash": "e433ccc8e4dcaf1a12449d0bd486d60591ec0478d63a950ff2cb92d6e51b3038",
+      "generatedFiles": [
+        "core/space/world/blocktype/controller.pb.go",
+        "core/space/world/blocktype/controller.pb.ts"
+      ],
+      "protoFiles": ["core/space/world/blocktype/controller.proto"]
+    },
     "github.com/s4wave/spacewave/core/space/world/ops": {
       "hash": "8af62947c4a3670a8c0401a5816633638951f4477980b922812dcc2c6c936936",
       "generatedFiles": [
@@ -1112,7 +1120,7 @@
       "protoFiles": ["core/trace/service/config.proto"]
     },
     "github.com/s4wave/spacewave/db/block": {
-      "hash": "4c7a96f85400f593c894cb27525f1d6d9ee1baaf9cc6544841b6b22144226fbe",
+      "hash": "ff03ea24f2baefd634d19c240106dfd0af80053bdd40cd7f23dad95cd2c7a2f5",
       "generatedFiles": ["db/block/block.pb.go", "db/block/block.pb.ts"],
       "protoFiles": ["db/block/block.proto"]
     },
@@ -1383,14 +1391,6 @@
         "db/block/transform/snappy/snappy.pb.ts"
       ],
       "protoFiles": ["db/block/transform/snappy/snappy.proto"]
-    },
-    "github.com/s4wave/spacewave/db/blocktype/controller-factory": {
-      "hash": "84865f0a2e7702910d657824a9400cb670c55c47b0ebae4bbdc4f4a3db3cb8c3",
-      "generatedFiles": [
-        "db/blocktype/controller-factory/controller.pb.go",
-        "db/blocktype/controller-factory/controller.pb.ts"
-      ],
-      "protoFiles": ["db/blocktype/controller-factory/controller.proto"]
     },
     "github.com/s4wave/spacewave/db/bucket": {
       "hash": "ae7306e4efaf7d01b2f88d93b71ffa18440ea926fb04cfa3cb3d9eee4c62fa6f",

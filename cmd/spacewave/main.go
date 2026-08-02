@@ -26,11 +26,11 @@ import (
 	space_http_download "github.com/s4wave/spacewave/core/space/http/download"
 	space_http_export "github.com/s4wave/spacewave/core/space/http/export"
 	space_sobject "github.com/s4wave/spacewave/core/space/sobject"
+	space_world_blocktype "github.com/s4wave/spacewave/core/space/world/blocktype"
 	optypes "github.com/s4wave/spacewave/core/space/world/optypes"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
 	block_store_rpc_server "github.com/s4wave/spacewave/db/block/store/rpc/server"
-	blocktype_controller_factory "github.com/s4wave/spacewave/db/blocktype/controller-factory"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	object_peer "github.com/s4wave/spacewave/db/object/peer"
 	unixfs_access_http "github.com/s4wave/spacewave/db/unixfs/access/http"
@@ -63,8 +63,6 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 	return []controller.Factory{block_store_rpc.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{block_store_rpc_server.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{blocktype_controller_factory.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{cluster_controller.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
@@ -115,6 +113,8 @@ var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Fac
 	return []controller.Factory{space_http_export.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{space_sobject.NewFactory(b)}
+}, func(b bus.Bus) []controller.Factory {
+	return []controller.Factory{space_world_blocktype.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {
 	return []controller.Factory{storage_volume.NewFactory(b)}
 }, func(b bus.Bus) []controller.Factory {

@@ -414,7 +414,7 @@ test:go:db` runs the native tests, `GOOS=js GOARCH=wasm go vet
 ./db/block/gc/...` type-checks the block garbage collector for the browser, the
 OPFS Chrome suites run the js/wasm storage stack in Chromium, and the goscript
 CI member compiles and tests
-[blocktype/controller-factory](./blocktype/controller-factory) and
+[core/space/world/blocktype](../core/space/world/blocktype) and
 [object/peer](./object/peer) with GoScript. The nightly release-WASM matrix
 builds the full browser bundle with the standard Go compiler, TinyGo, and
 GoScript. No CI job builds the wasip1 target.

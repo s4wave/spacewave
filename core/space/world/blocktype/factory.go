@@ -1,4 +1,4 @@
-package blocktype_controller_factory
+package space_world_blocktype
 
 import (
 	"context"
