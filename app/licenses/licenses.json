@@ -927,7 +927,7 @@
     },
     {
       "name": "github.com/aperturerobotics/util",
-      "version": "v1.34.10-0.20260802045522-604241938dbe",
+      "version": "v1.34.10-0.20260802062101-496aab6cefd2",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/util",
