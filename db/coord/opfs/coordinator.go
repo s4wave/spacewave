@@ -15,38 +15,48 @@ import (
 // Coordinator adapts OPFS Web Locks, metashard generations, and
 // BroadcastChannel invalidations into the Volume coordinator contract.
 type Coordinator struct {
-	meta          *metashard.MetaShard
-	inner         *coord_inmem.Coordinator
-	writeLockName string
-	blockScope    string
+	meta       *metashard.MetaShard
+	inner      *coord_inmem.Coordinator
+	lockPrefix string
+	blockScope string
 }
 
-// NewCoordinator builds an OPFS-backed coordinator.
+// NewCoordinator builds an OPFS-backed coordinator. meta may be nil for
+// backends with Web Lock exclusion but no metashard generation store; the
+// inner coordinator then carries generations alone.
 func NewCoordinator(meta *metashard.MetaShard, lockPrefix string, inner *coord_inmem.Coordinator) *Coordinator {
 	if inner == nil {
 		inner = coord_inmem.NewCoordinator()
 	}
 	return &Coordinator{
-		meta:          meta,
-		inner:         inner,
-		writeLockName: lockPrefix + "/coord/write",
-		blockScope:    lockPrefix + "/blocks",
+		meta:       meta,
+		inner:      inner,
+		lockPrefix: lockPrefix,
+		blockScope: lockPrefix + "/blocks",
 	}
 }
 
 // Capability reports OPFS coordination support.
 func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord.Capability, error) {
-	generation, err := c.generation(ctx)
-	if err != nil {
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	return &coord.Capability{
+	capability := &coord.Capability{
 		Supported:     true,
 		Backend:       coord.BackendKindOPFS,
 		VolumeID:      scope.VolumeID,
 		ObjectStoreID: scope.ObjectStoreID,
-		Generation:    generation,
-	}, nil
+		Generations:   scope.Key == "",
+	}
+	if !capability.Generations {
+		return capability, nil
+	}
+	generation, err := c.generation(ctx, scope)
+	if err != nil {
+		return nil, err
+	}
+	capability.Generation = generation
+	return capability, nil
 }
 
 // Snapshot returns the latest metashard generation and coordinator root.
@@ -55,7 +65,10 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 	if err != nil {
 		return nil, err
 	}
-	snapshot.Generation, err = c.generation(ctx)
+	if c.meta == nil {
+		return snapshot, nil
+	}
+	snapshot.Generation, err = c.generation(ctx, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +103,7 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 		return nil, false, err
 	}
 
-	releaseWebLock, acquired, err := filelock.AcquireWebLockIfAvailable(c.writeLockName, true)
+	releaseWebLock, acquired, err := filelock.AcquireWebLockIfAvailable(writeLockName(c.lockPrefix, scope), true)
 	if err != nil || !acquired {
 		return nil, acquired, err
 	}
@@ -105,22 +118,29 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 
 // WaitAcquireWriteLease waits until the OPFS logical write lease is available.
 func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, error) {
-	releaseWebLock, err := filelock.AcquireWebLockContext(ctx, c.writeLockName, true)
+	inner, err := c.inner.WaitAcquireWriteLease(ctx, scope)
 	if err != nil {
 		return nil, err
 	}
 
-	inner, err := c.inner.WaitAcquireWriteLease(ctx, scope)
+	releaseWebLock, err := filelock.AcquireWebLockContext(ctx, writeLockName(c.lockPrefix, scope), true)
 	if err != nil {
-		releaseWebLock()
+		_ = inner.Release(context.Background())
 		return nil, err
 	}
 	return &lease{c: c, scope: scope, inner: inner, releaseWebLock: releaseWebLock}, nil
 }
 
-func (c *Coordinator) generation(ctx context.Context) (uint64, error) {
+func (c *Coordinator) generation(ctx context.Context, scope coord.Scope) (uint64, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, err
+	}
+	if c.meta == nil {
+		snapshot, err := c.inner.Snapshot(ctx, scope)
+		if err != nil {
+			return 0, err
+		}
+		return snapshot.Generation, nil
 	}
 	return c.meta.RefreshGenerationContext(ctx)
 }

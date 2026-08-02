@@ -47,6 +47,7 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 		VolumeID:      scope.VolumeID,
 		ObjectStoreID: scope.ObjectStoreID,
 		Generation:    c.generation(),
+		Generations:   scope.Key == "",
 	}, nil
 }
 
@@ -56,7 +57,9 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 	if err != nil {
 		return nil, err
 	}
-	snapshot.Generation = c.generation()
+	if generation, ok := c.safeGeneration(); ok {
+		snapshot.Generation = generation
+	}
 	return snapshot, nil
 }
 
@@ -86,6 +89,12 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
 	}
+	if scope.Key != "" {
+		// Keyed scopes coordinate through the inner in-memory coordinator: the
+		// bbolt coordination lock is the single per-DB write turn, not a keyed
+		// exclusion namespace.
+		return c.inner.TryAcquireWriteLease(ctx, scope)
+	}
 	if reserved, _ := c.reserveWriteLease(); !reserved {
 		return nil, false, nil
 	}
@@ -107,6 +116,9 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 
 // WaitAcquireWriteLease waits until the logical bbolt write lease is available.
 func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, error) {
+	if scope.Key != "" {
+		return c.inner.WaitAcquireWriteLease(ctx, scope)
+	}
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -201,18 +213,10 @@ func (c *Coordinator) generation() uint64 {
 	return generation
 }
 
-func (c *Coordinator) safeGeneration() (generation uint64, ok bool) {
+func (c *Coordinator) safeGeneration() (uint64, bool) {
 	if c == nil || c.db == nil {
 		return 0, false
 	}
-	// CommitCounter panics on a closed or unopened bbolt DB; treat that
-	// foreign panic as an unavailable generation rather than a crash.
-	defer func() {
-		if recover() != nil {
-			generation = 0
-			ok = false
-		}
-	}()
 	return c.db.CommitCounter(), true
 }
 

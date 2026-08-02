@@ -15,9 +15,22 @@ type lease struct {
 	scope                   coord.Scope
 	inner                   coord.WriteLease
 	releaseCoordinationLock func() error
-	once                    sync.Once
+	mtx                     sync.Mutex
+	released                bool
+	releaseErr              error
 	refreshed               bool
 	baseGeneration          uint64
+}
+
+// Done returns the inner lease channel, closed when Release completes the
+// inner release. The bbolt lease cannot be lost involuntarily.
+func (l *lease) Done() <-chan struct{} {
+	return l.inner.Done()
+}
+
+// Err returns the inner lease error, nil for a held or cleanly released lease.
+func (l *lease) Err() error {
+	return l.inner.Err()
 }
 
 func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
@@ -30,9 +43,11 @@ func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	snapshot.Generation = l.c.generation()
-	l.refreshed = true
-	l.baseGeneration = snapshot.Generation
+	if generation, ok := l.c.safeGeneration(); ok {
+		snapshot.Generation = generation
+		l.refreshed = true
+		l.baseGeneration = generation
+	}
 	return snapshot, nil
 }
 
@@ -41,29 +56,36 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 		return nil, err
 	}
 
-	generation := l.c.generation()
-	if l.refreshed && generation != l.baseGeneration {
-		l.baseGeneration = generation
+	generation, durable := l.c.safeGeneration()
+	if durable {
+		if l.refreshed && generation != l.baseGeneration {
+			l.baseGeneration = generation
+		}
+		event.Generation = generation
 	}
-	event.Generation = generation
 	snapshot, err := l.inner.Publish(ctx, event)
 	if err != nil {
 		return nil, err
 	}
-	snapshot.Generation = l.c.generation()
+	if durable {
+		snapshot.Generation = generation
+	}
 	return snapshot, nil
 }
 
 func (l *lease) Release(ctx context.Context) error {
-	var releaseErr error
-	l.once.Do(func() {
-		if l.releaseCoordinationLock != nil {
-			releaseErr = l.releaseCoordinationLock()
-		}
-		releaseErr = errors.Join(releaseErr, l.inner.Release(context.Background()))
-		l.c.releaseWriteLease()
-	})
-	return releaseErr
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	if l.released {
+		return l.releaseErr
+	}
+	l.released = true
+	if l.releaseCoordinationLock != nil {
+		l.releaseErr = l.releaseCoordinationLock()
+	}
+	l.releaseErr = errors.Join(l.releaseErr, l.inner.Release(context.Background()))
+	l.c.releaseWriteLease()
+	return l.releaseErr
 }
 
 // _ is a type assertion

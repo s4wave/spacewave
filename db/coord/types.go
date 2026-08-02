@@ -14,6 +14,10 @@ const (
 	BackendKindBbolt BackendKind = "bbolt"
 	// BackendKindOPFS identifies the OPFS coordinator adapter.
 	BackendKindOPFS BackendKind = "opfs"
+	// BackendKindFileLock identifies the advisory file lock coordinator adapter.
+	BackendKindFileLock BackendKind = "filelock"
+	// BackendKindRedis identifies the redis coordinator adapter.
+	BackendKindRedis BackendKind = "redis"
 	// BackendKindRPC identifies a remote coordinator adapter.
 	BackendKindRPC BackendKind = "rpc"
 	// BackendKindUnsupported identifies a backend with no direct coordinator.
@@ -34,7 +38,7 @@ const (
 	FallbackReasonDescriptorStale FallbackReason = "descriptor-stale"
 )
 
-// Scope identifies the coordinated ObjectStore inside a Volume.
+// Scope identifies the coordinated ObjectStore or exclusion subject inside a Volume.
 type Scope struct {
 	// VolumeID is the owning Volume id.
 	VolumeID string
@@ -42,6 +46,8 @@ type Scope struct {
 	ObjectStoreID string
 	// ParticipantID identifies the process or handle performing the operation.
 	ParticipantID string
+	// Key names a caller-chosen exclusion subject inside the Volume.
+	Key string
 }
 
 // Capability describes direct coordination support for a scoped ObjectStore.
@@ -56,6 +62,12 @@ type Capability struct {
 	ObjectStoreID string
 	// Generation is the latest durable generation observed by the coordinator.
 	Generation uint64
+	// Generations is true when the scope carries durable generation fencing,
+	// Snapshot, Publish, and Watch.
+	Generations bool
+	// DetectsLoss is true when the backend closes WriteLease.Done and reports
+	// WriteLease.Err on involuntary loss.
+	DetectsLoss bool
 	// FallbackReason explains why Supported is false.
 	FallbackReason FallbackReason
 }

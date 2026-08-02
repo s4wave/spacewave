@@ -11,11 +11,26 @@ type lease struct {
 	scope    coord.Scope
 	state    *scopeState
 	released bool
+	done     chan struct{}
+}
+
+// Done returns a channel closed by Release. The in-memory lease cannot be
+// lost involuntarily, so Done never closes while the lease is held.
+func (l *lease) Done() <-chan struct{} {
+	return l.done
+}
+
+// Err returns nil: the in-memory lease is only ever released cleanly.
+func (*lease) Err() error {
+	return nil
 }
 
 func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	if l.scope.Key != "" {
+		return nil, coord.ErrUnsupported
 	}
 
 	l.c.mu.Lock()
@@ -30,6 +45,9 @@ func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
 func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	if l.scope.Key != "" {
+		return nil, coord.ErrUnsupported
 	}
 
 	l.c.mu.Lock()
@@ -65,6 +83,7 @@ func (l *lease) Release(context.Context) error {
 		return nil
 	}
 	l.released = true
+	close(l.done)
 	if l.state == l.c.getScopeLocked(l.scope) && l.state.locked {
 		l.state.locked = false
 		l.state.publishLocked(coord.Event{

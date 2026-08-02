@@ -5,6 +5,7 @@ package opfs
 import (
 	"context"
 	"sync"
+	"syscall/js"
 
 	"github.com/s4wave/spacewave/db/coord"
 )
@@ -14,7 +15,20 @@ type lease struct {
 	scope          coord.Scope
 	inner          coord.WriteLease
 	releaseWebLock func()
-	once           sync.Once
+	mtx            sync.Mutex
+	released       bool
+	releaseErr     error
+}
+
+// Done returns the inner lease channel, closed when Release completes the
+// inner release. The Web Lock lease cannot report involuntary loss.
+func (l *lease) Done() <-chan struct{} {
+	return l.inner.Done()
+}
+
+// Err returns the inner lease error, nil for a held or cleanly released lease.
+func (l *lease) Err() error {
+	return l.inner.Err()
 }
 
 func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
@@ -22,9 +36,11 @@ func (l *lease) Refresh(ctx context.Context) (*coord.Snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	snapshot.Generation, err = l.c.generation(ctx)
-	if err != nil {
-		return nil, err
+	if l.c.meta != nil {
+		snapshot.Generation, err = l.c.generation(ctx, l.scope)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return snapshot, nil
 }
@@ -34,7 +50,10 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 		return nil, err
 	}
 
-	generation, err := l.c.generation(ctx)
+	if l.c.meta == nil {
+		return l.inner.Publish(ctx, event)
+	}
+	generation, err := l.c.generation(ctx, l.scope)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +62,7 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 	if err != nil {
 		return nil, err
 	}
-	snapshot.Generation, err = l.c.generation(ctx)
+	snapshot.Generation, err = l.c.generation(ctx, l.scope)
 	if err != nil {
 		return nil, err
 	}
@@ -51,9 +70,27 @@ func (l *lease) Publish(ctx context.Context, event coord.Event) (*coord.Snapshot
 }
 
 func (l *lease) Release(ctx context.Context) error {
-	err := l.inner.Release(context.Background())
-	l.once.Do(l.releaseWebLock)
-	return err
+	l.mtx.Lock()
+	defer l.mtx.Unlock()
+	if l.released {
+		return l.releaseErr
+	}
+	l.released = true
+	l.releaseWebLock()
+	waitForWebLockRelease()
+	l.releaseErr = l.inner.Release(context.Background())
+	return l.releaseErr
+}
+
+func waitForWebLockRelease() {
+	done := make(chan struct{})
+	callback := js.FuncOf(func(js.Value, []js.Value) any {
+		close(done)
+		return nil
+	})
+	defer callback.Release()
+	js.Global().Call("queueMicrotask", callback)
+	<-done
 }
 
 // _ is a type assertion
