@@ -104,7 +104,7 @@ export const GetVolumeInfoResponse: MessageType<GetVolumeInfoResponse> =
   })
 
 /**
- * CoordinatorScope identifies a coordinated ObjectStore inside a Volume.
+ * CoordinatorScope identifies a coordinated ObjectStore or exclusion subject inside a Volume.
  *
  * @generated from message volume.rpc.CoordinatorScope
  */
@@ -127,6 +127,12 @@ export interface CoordinatorScope {
    * @generated from field: string participant_id = 3;
    */
   participantId?: string
+  /**
+   * Key names a caller-chosen exclusion subject inside the Volume.
+   *
+   * @generated from field: string key = 4;
+   */
+  key?: string
 }
 
 export const CoordinatorScope: MessageType<CoordinatorScope> =
@@ -136,6 +142,7 @@ export const CoordinatorScope: MessageType<CoordinatorScope> =
       { no: 1, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'participant_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -182,6 +189,18 @@ export interface CoordinatorCapability {
    * @generated from field: string fallback_reason = 6;
    */
   fallbackReason?: string
+  /**
+   * Generations is true when the scope carries durable generation fencing.
+   *
+   * @generated from field: bool generations = 7;
+   */
+  generations?: boolean
+  /**
+   * DetectsLoss is true when involuntary lease loss is reported.
+   *
+   * @generated from field: bool detects_loss = 8;
+   */
+  detectsLoss?: boolean
 }
 
 export const CoordinatorCapability: MessageType<CoordinatorCapability> =
@@ -194,6 +213,8 @@ export const CoordinatorCapability: MessageType<CoordinatorCapability> =
       { no: 4, name: 'object_store_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'generation', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 6, name: 'fallback_reason', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'generations', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 8, name: 'detects_loss', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -526,95 +547,6 @@ export const WaitAcquireCoordinatorWriteLeaseRequest: MessageType<WaitAcquireCoo
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
-
-/**
- * TryAcquireWorldEngineLeaseRequest is a non-blocking keyed lease request.
- *
- * @generated from message volume.rpc.TryAcquireWorldEngineLeaseRequest
- */
-export interface TryAcquireWorldEngineLeaseRequest {
-  /**
-   * Key identifies the World Engine lease.
-   *
-   * @generated from field: string key = 1;
-   */
-  key?: string
-}
-
-export const TryAcquireWorldEngineLeaseRequest: MessageType<TryAcquireWorldEngineLeaseRequest> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'volume.rpc.TryAcquireWorldEngineLeaseRequest',
-    fields: [
-      { no: 1, name: 'key', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * AcquireWorldEngineLeaseResponse is returned by a World Engine lease request.
- *
- * @generated from message volume.rpc.AcquireWorldEngineLeaseResponse
- */
-export interface AcquireWorldEngineLeaseResponse {
-  /**
-   * LeaseId identifies the remote lease for later release.
-   *
-   * @generated from field: string lease_id = 1;
-   */
-  leaseId?: string
-  /**
-   * Acquired is false when the requested lease key is already held.
-   *
-   * @generated from field: bool acquired = 2;
-   */
-  acquired?: boolean
-}
-
-export const AcquireWorldEngineLeaseResponse: MessageType<AcquireWorldEngineLeaseResponse> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'volume.rpc.AcquireWorldEngineLeaseResponse',
-    fields: [
-      { no: 1, name: 'lease_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'acquired', kind: 'scalar', T: ScalarType.BOOL },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * ReleaseWorldEngineLeaseRequest identifies a held remote World Engine lease.
- *
- * @generated from message volume.rpc.ReleaseWorldEngineLeaseRequest
- */
-export interface ReleaseWorldEngineLeaseRequest {
-  /**
-   * LeaseId identifies the remote lease.
-   *
-   * @generated from field: string lease_id = 1;
-   */
-  leaseId?: string
-}
-
-export const ReleaseWorldEngineLeaseRequest: MessageType<ReleaseWorldEngineLeaseRequest> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'volume.rpc.ReleaseWorldEngineLeaseRequest',
-    fields: [
-      { no: 1, name: 'lease_id', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * ReleaseWorldEngineLeaseResponse is returned after releasing a lease.
- *
- * @generated from message volume.rpc.ReleaseWorldEngineLeaseResponse
- */
-export interface ReleaseWorldEngineLeaseResponse {}
-
-export const ReleaseWorldEngineLeaseResponse: MessageType<ReleaseWorldEngineLeaseResponse> =
-  /* @__PURE__ */ createEmptyMessageType<ReleaseWorldEngineLeaseResponse>(
-    'volume.rpc.ReleaseWorldEngineLeaseResponse',
-    true,
-  )
 
 /**
  * AcquireCoordinatorWriteLeaseResponse is returned by lease acquisition.

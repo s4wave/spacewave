@@ -2,16 +2,15 @@ package volume_rpc_server
 
 import (
 	"context"
-	"strconv"
+	"crypto/rand"
+	"encoding/hex"
 	"sync"
-	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/coord"
 )
 
 type coordinatorLeases struct {
 	mu     sync.Mutex
-	nextID atomic.Uint64
 	leases map[string]coord.WriteLease
 }
 
@@ -21,14 +20,22 @@ func newCoordinatorLeases() *coordinatorLeases {
 	}
 }
 
-func (l *coordinatorLeases) add(lease coord.WriteLease) string {
-	id := "lease-" + strconv.FormatUint(l.nextID.Add(1), 10)
+func (l *coordinatorLeases) add(lease coord.WriteLease) (string, error) {
+	var token [16]byte
+	for {
+		if _, err := rand.Read(token[:]); err != nil {
+			return "", err
+		}
+		id := hex.EncodeToString(token[:])
 
-	l.mu.Lock()
-	l.leases[id] = lease
-	l.mu.Unlock()
-
-	return id
+		l.mu.Lock()
+		if _, exists := l.leases[id]; !exists {
+			l.leases[id] = lease
+			l.mu.Unlock()
+			return id, nil
+		}
+		l.mu.Unlock()
+	}
 }
 
 func (l *coordinatorLeases) get(id string) (coord.WriteLease, error) {

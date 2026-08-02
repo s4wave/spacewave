@@ -27,7 +27,6 @@ type ProxyVolume struct {
 	*rpc_bucket_client.BucketStore
 	*rpc_object_client.ObjectStore
 	coord.Coordinator
-	volume.WorldEngineLeaseProvider
 
 	// client is the client to use
 	client volume_rpc.SRPCProxyVolumeClient
@@ -59,11 +58,10 @@ func NewProxyVolume(
 	}
 
 	return &ProxyVolume{
-		BlockStore:               rpc_block_client.NewBlockStore(blockStoreClient, volInfo.ResolveHashType(), false),
-		BucketStore:              rpc_bucket_client.NewBucketStore(bucketStoreClient),
-		ObjectStore:              rpc_object_client.NewObjectStore(objectStoreClient),
-		WorldEngineLeaseProvider: newWorldEngineLeaseProvider(proxyVolumeClient),
-		Coordinator:              NewCoordinator(proxyVolumeClient),
+		BlockStore:  rpc_block_client.NewBlockStore(blockStoreClient, volInfo.ResolveHashType(), false),
+		BucketStore: rpc_bucket_client.NewBucketStore(bucketStoreClient),
+		ObjectStore: rpc_object_client.NewObjectStore(objectStoreClient),
+		Coordinator: NewCoordinator(proxyVolumeClient),
 
 		client:   proxyVolumeClient,
 		refGraph: refGraph,
