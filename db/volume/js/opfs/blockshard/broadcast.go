@@ -196,9 +196,12 @@ func scopedBroadcastChannelName(scope string) string {
 	if scope == "" {
 		return BroadcastChannelName
 	}
-	// scope is the Engine lock prefix, which names one OPFS blockshard
-	// directory. Scoping the channel name to it keeps another Engine on the
-	// same origin from advancing this Engine's shard generations and forcing a
+	// scope is the caller-supplied Engine lock prefix, used here as a channel
+	// namespace. Two Engines constructed with the same prefix share the
+	// channel even when they open different OPFS blockshard directories, so a
+	// caller that wants per-directory isolation keeps the prefix unique per
+	// directory. Scoping the channel name keeps Engines with different
+	// prefixes from advancing each other's shard generations and forcing a
 	// refresh on every read.
 	return BroadcastChannelName + ":" + scope
 }
