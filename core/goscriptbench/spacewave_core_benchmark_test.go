@@ -73,7 +73,7 @@ func TestSpacewaveCoreCompile(t *testing.T) {
 			"./core/plugin/space",
 			"./core/space/http/download",
 			"./core/space/http/export",
-			"./db/blocktype/controller-factory",
+			"./core/space/world/blocktype",
 			"github.com/s4wave/spacewave/db/object/peer",
 		)
 		if err != nil {

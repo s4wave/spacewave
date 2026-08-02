@@ -1,5 +1,7 @@
 syntax = "proto3";
 package blocktype.controller.factory;
 
+option go_package = "github.com/s4wave/spacewave/core/space/world/blocktype;space_world_blocktype";
+
 // Config configures the BlockType controller.
 message Config {}
