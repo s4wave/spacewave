@@ -57,7 +57,8 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		e.Discard()
 		return nil, tx.ErrNotWrite
 	}
-	// Claim lifecycle ownership before moving the lease out of Engine state.
+	// Set rel before moving the lease out of Engine state. A commit that finds
+	// rel already set returns ErrDiscarded.
 	if e.rel.Swap(true) {
 		return nil, tx.ErrDiscarded
 	}
@@ -194,8 +195,9 @@ func (e *EngineTx) Discard() {
 	e.engine.drainRetirement(context.Background(), retirement)
 }
 
-// detachLocked removes this transaction from Engine ownership without waiting
-// for its transaction locks or coordinator lease.
+// detachLocked removes this transaction from Engine.coordinatorTxs and
+// Engine.writeTx without waiting for its transaction locks or coordinator
+// lease.
 func (e *EngineTx) detachLocked() engineRetirement {
 	// Mark the transaction discarded before removing its Engine registrations.
 	e.rel.Store(true)
@@ -206,7 +208,8 @@ func (e *EngineTx) detachLocked() engineRetirement {
 		lease:   e.lease,
 	}
 	e.lease = nil
-	// Clear Engine writer ownership without releasing its serialized turn here.
+	// Move Engine.writeTxRel into the retirement, which releases the serialized
+	// write turn after the Engine lock drops.
 	if e.engine.writeTx == e {
 		e.engine.writeTx = nil
 		retirement.writeTxRel = e.engine.writeTxRel

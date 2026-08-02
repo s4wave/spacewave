@@ -692,7 +692,7 @@ func (t *WorldState) GarbageCollect(ctx context.Context) (*block_gc.Stats, error
 	}
 	// A World ref graph covers one retained root, while the physical store is
 	// shared by engine snapshots, transactions, forks, and coordinated heads.
-	// Only a store-scoped reachability owner may authorize physical deletion.
+	// CollectGraphOnly prunes the ref graph and deletes no blocks.
 	c := block_gc.NewCollector(t.refGraph, t.store, t.onSwept)
 	return c.CollectGraphOnly(ctx)
 }

@@ -16,8 +16,8 @@ type StoreSource func() block.StoreOps
 // StoreReadThrough reads from a primary source, then an optional lower source.
 // When writeback is enabled, lower hits are synchronously written to primary.
 //
-// This owner is separate from block.StoreOverlay because StoreOverlay readback
-// is intentionally asynchronous.
+// StoreReadThrough is separate from block.StoreOverlay because StoreOverlay
+// readback is asynchronous.
 type StoreReadThrough struct {
 	primary   StoreSource
 	lower     StoreSource

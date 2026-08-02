@@ -8,7 +8,8 @@ type BatchTxOps interface {
 	GetBatch(ctx context.Context, keys [][]byte) (values [][]byte, found []bool, err error)
 }
 
-// GetBatch reads multiple keys with the owner's batch path when available.
+// GetBatch reads multiple keys with BatchTxOps.GetBatch when ops implements it
+// and with GetBatchFallback when it does not.
 func GetBatch(ctx context.Context, ops TxOps, keys [][]byte) ([][]byte, []bool, error) {
 	if batch, ok := ops.(BatchTxOps); ok {
 		return batch.GetBatch(ctx, keys)

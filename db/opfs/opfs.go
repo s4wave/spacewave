@@ -97,7 +97,7 @@ type BrowserDriver struct{}
 // DefaultDriver selects the process-local browser OPFS driver by default.
 var DefaultDriver Driver = BrowserDriver{}
 
-// ErrorKind classifies browser OPFS failures into storage-owner outcomes.
+// ErrorKind classifies a browser OPFS failure by its DOMException name.
 type ErrorKind int
 
 const (
@@ -1059,14 +1059,14 @@ func (BrowserDriver) SyncAvailable() bool {
 	return method.Type() == js.TypeFunction
 }
 
-// PreferSyncAccessHandles reports whether OPFS owners should use sync access
-// handles for writes in the current runtime.
+// PreferSyncAccessHandles reports whether the current runtime supports sync
+// access handles for writes.
 func PreferSyncAccessHandles() bool {
 	return DefaultDriver.PreferSyncAccessHandles()
 }
 
-// PreferSyncAccessHandles reports whether OPFS owners should use sync access
-// handles for writes in the current runtime.
+// PreferSyncAccessHandles reports whether the current runtime supports sync
+// access handles for writes.
 func (d BrowserDriver) PreferSyncAccessHandles() bool {
 	return d.SyncAvailable() && !jsutil.UseTinyGoHelpers()
 }

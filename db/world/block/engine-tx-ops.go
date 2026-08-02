@@ -281,7 +281,8 @@ func (e *EngineTx) refreshReadSnapshot(ctx context.Context) error {
 		}
 	}
 
-	// Revalidate transaction ownership after acquiring the Engine lock.
+	// Recheck the Engine closed flag and this transaction's release flag under
+	// the Engine lock.
 	locked := e.engine.bcast.Lock()
 	if e.engine.closed {
 		locked.Unlock()

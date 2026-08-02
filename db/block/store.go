@@ -94,7 +94,8 @@ func EndDeferFlush(ctx context.Context, store StoreOps) error {
 // DecodedBlockCacheFreshener is implemented by stores whose decoded-cache hits
 // depend on external freshness state that ordinary block reads would refresh.
 type DecodedBlockCacheFreshener interface {
-	// EnsureDecodedBlockCacheFresh updates owner state before decoded-cache lookup.
+	// EnsureDecodedBlockCacheFresh refreshes the external freshness state
+	// before a decoded-cache lookup.
 	EnsureDecodedBlockCacheFresh(ctx context.Context) error
 }
 

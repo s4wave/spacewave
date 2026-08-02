@@ -645,7 +645,8 @@ func (e *Engine) NewBlockEngineTransaction(ctx context.Context, write bool) (*En
 		return nil, err
 	}
 
-	// Publish writer ownership only after its complete state is ready.
+	// Assign Engine.writeTx only after the EngineTx carries its base head ref
+	// and lease.
 	engTx := newEngineTx(e, NewTx(world))
 	engTx.baseHeadRef = baseHeadRef
 	engTx.lease = lease
@@ -731,8 +732,8 @@ func (e *Engine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cursor,
 // If the ref Bucket ID is empty, uses the same bucket + volume as the world.
 // The lookup cursor will be released after cb returns.
 // The root clone is made while bcast is held for the documented same-bucket
-// root path. Cursor.Clone does not retain a bucket-handle release owner, so
-// this does not establish a cross-bucket lifetime across Engine.Close.
+// root path. Cursor.Clone copies the bucket handle without taking a release
+// func, so this does not establish a cross-bucket lifetime across Engine.Close.
 //
 // NOTE: this is the implementation of AccessWorldState for the world/block engine.
 func (e *Engine) AccessWorldState(

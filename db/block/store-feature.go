@@ -7,7 +7,7 @@ const (
 	StoreFeatureNativeBatchExists = StoreFeature_STORE_FEATURE_NATIVE_BATCH_EXISTS
 	// StoreFeatureSelfBuffered means the store has its own read-through pending
 	// buffer, so the world block engine must not wrap it in a BufferedStore.
-	// Volume remains the durability barrier owner for volume-backed stores.
+	// Volume.Sync remains the durability barrier for volume-backed stores.
 	StoreFeatureSelfBuffered = StoreFeature_STORE_FEATURE_SELF_BUFFERED
 )
 

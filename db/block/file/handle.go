@@ -172,8 +172,8 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 			r.currentRangeIdx = 0
 			r.nextEval = 0
 			if err == io.EOF && blobReadN > 0 && r.idx == readEnd {
-				// EOF with bytes at the planned boundary hands selection back to
-				// the file owner so the next covering span can be chosen.
+				// EOF with bytes read at the planned boundary continues the
+				// loop so evaluateCurrentRange selects the next covering span.
 				continue
 			}
 			if n > 0 {

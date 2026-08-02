@@ -196,8 +196,9 @@ func scopedBroadcastChannelName(scope string) string {
 	if scope == "" {
 		return BroadcastChannelName
 	}
-	// Lock prefixes identify the OPFS blockshard storage owner. Broadcasts stay
-	// within that owner so another engine on the same origin cannot advance this
-	// engine's shard generations and force refreshes on every read.
+	// scope is the Engine lock prefix, which names one OPFS blockshard
+	// directory. Scoping the channel name to it keeps another Engine on the
+	// same origin from advancing this Engine's shard generations and forcing a
+	// refresh on every read.
 	return BroadcastChannelName + ":" + scope
 }
