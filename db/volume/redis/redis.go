@@ -51,7 +51,7 @@ func NewRedis(
 		vstore = kvtx_vlogger.NewVLogger(le, vstore)
 	}
 
-	return kvtx.NewVolumeWithWorldEngineLeaseProvider(
+	vol, err := kvtx.NewVolume(
 		ctx,
 		ControllerID,
 		kvkey,
@@ -60,10 +60,15 @@ func NewRedis(
 		conf.GetNoGenerateKey(),
 		conf.GetNoWriteKey(),
 		nil,
-		NewRedisWorldEngineLeaseProvider(
-			store.GetPool(),
-			string(kvkey.GetObjectStorePrefixByID(ControllerID)),
-		),
 		store.GetPool().Close,
 	)
+	if err != nil {
+		return nil, err
+	}
+	vol.Coordinator = NewCoordinator(
+		store.GetPool(),
+		string(kvkey.GetObjectStorePrefixByID(ControllerID)),
+		vol.Coordinator,
+	)
+	return vol, nil
 }

@@ -10,11 +10,12 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-func TestRedisWorldEngineLeaseRenewalLossSignalsDone(t *testing.T) {
-	lease := &redisWorldEngineLease{
+func TestRedisLeaseRenewalLossSignalsDone(t *testing.T) {
+	lease := &lease{
 		cancel:        func() {},
 		done:          make(chan struct{}),
 		keepaliveDone: make(chan struct{}),
+		releaseDone:   make(chan struct{}),
 	}
 	renewCh := make(chan time.Time, 1)
 	renewErr := errors.New("renewal failed")
@@ -83,7 +84,7 @@ func (*timeoutRedisConn) ReceiveWithTimeout(time.Duration) (any, error) {
 }
 
 func newTimeoutRedisLease(t *testing.T) (
-	*redisWorldEngineLease,
+	*lease,
 	*timeoutRedisConn,
 	*redis.Pool,
 ) {
@@ -97,22 +98,23 @@ func newTimeoutRedisLease(t *testing.T) (
 			return conn, nil
 		},
 	}
-	lease := &redisWorldEngineLease{
+	l := &lease{
 		pool:          pool,
 		key:           "lease-key",
 		value:         []byte("lease-value"),
 		cancel:        func() {},
 		done:          make(chan struct{}),
 		keepaliveDone: make(chan struct{}),
+		releaseDone:   make(chan struct{}),
 	}
 	t.Cleanup(func() {
 		_ = conn.Close()
 		pool.Close()
 	})
-	return lease, conn, pool
+	return l, conn, pool
 }
 
-func TestRedisWorldEngineLeaseHangingRenewalSignalsLoss(t *testing.T) {
+func TestRedisLeaseHangingRenewalSignalsLoss(t *testing.T) {
 	lease, conn, _ := newTimeoutRedisLease(t)
 	renewCh := make(chan time.Time, 1)
 
@@ -129,7 +131,7 @@ func TestRedisWorldEngineLeaseHangingRenewalSignalsLoss(t *testing.T) {
 	}
 	select {
 	case timeout := <-conn.timeoutCh:
-		if timeout <= 0 || timeout >= redisWorldEngineLeaseTTL {
+		if timeout <= 0 || timeout >= redisLeaseTTL {
 			t.Fatalf("renewal timeout = %s, want between zero and lease TTL", timeout)
 		}
 	default:
@@ -137,11 +139,11 @@ func TestRedisWorldEngineLeaseHangingRenewalSignalsLoss(t *testing.T) {
 	}
 }
 
-func TestRedisWorldEngineLeaseReleaseTimeoutClosesDone(t *testing.T) {
+func TestRedisLeaseReleaseTimeoutClosesDone(t *testing.T) {
 	lease, conn, _ := newTimeoutRedisLease(t)
 	close(lease.keepaliveDone)
 
-	err := lease.Release()
+	err := lease.Release(context.Background())
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("release error = %v, want context deadline exceeded", err)
 	}
@@ -152,7 +154,7 @@ func TestRedisWorldEngineLeaseReleaseTimeoutClosesDone(t *testing.T) {
 	}
 	select {
 	case timeout := <-conn.timeoutCh:
-		if timeout <= 0 || timeout >= redisWorldEngineLeaseTTL {
+		if timeout <= 0 || timeout >= redisLeaseTTL {
 			t.Fatalf("release timeout = %s, want between zero and lease TTL", timeout)
 		}
 	default:
