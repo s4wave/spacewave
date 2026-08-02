@@ -54,7 +54,7 @@ require (
 	github.com/aperturerobotics/protobuf-go-lite v0.16.1-0.20260730104859-e2b81e01d832 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.50.1-0.20260731034932-ebdecfee9c3c // master
-	github.com/aperturerobotics/util v1.34.10-0.20260731194114-2100f074c2ee // master
+	github.com/aperturerobotics/util v1.34.10-0.20260802045522-604241938dbe // master
 )
 
 require (
@@ -135,7 +135,7 @@ require (
 
 require (
 	filippo.io/hpke v0.4.0 // indirect
-	github.com/Microsoft/go-winio v0.6.2 // indirect
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/bwesterb/go-ristretto v1.2.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
