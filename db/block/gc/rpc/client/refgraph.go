@@ -179,7 +179,7 @@ func (r *RefGraph) RemoveObjectRoot(ctx context.Context, objectKey string, ref *
 }
 
 // ApplyRefBatch sends one bounded ownership transition to the server-side
-// RefGraph owner.
+// RefGraph.
 func (r *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []block_gc.RefEdge) error {
 	resp, err := r.client.ApplyRefBatch(ctx, &block_gc_rpc.ApplyRefBatchRequest{
 		Adds:    refEdgesToRPC(adds),

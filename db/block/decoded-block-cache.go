@@ -88,7 +88,7 @@ func NewDecodedBlockCache() *DecodedBlockCache {
 	return cache
 }
 
-// NewDecodedBlockCacheWithOptions constructs a decoded-block cache owner.
+// NewDecodedBlockCacheWithOptions constructs a decoded-block cache with opts.
 func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlockCache, error) {
 	opts = opts.normalize()
 	cache := &DecodedBlockCache{
@@ -125,7 +125,7 @@ func NewDecodedBlockCacheWithOptions(opts DecodedBlockCacheOptions) (*DecodedBlo
 	return cache, nil
 }
 
-// WithDecodedBlockCache attaches an owner-provided decoded-block cache to ctx.
+// WithDecodedBlockCache attaches a decoded-block cache to ctx.
 func WithDecodedBlockCache(ctx context.Context, cache *DecodedBlockCache) context.Context {
 	if cache == nil {
 		return ctx

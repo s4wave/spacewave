@@ -47,7 +47,7 @@ export enum StoreFeature {
   /**
    * STORE_FEATURE_SELF_BUFFERED means the store has its own read-through
    * pending buffer, so the world block engine must not wrap it in a
-   * BufferedStore. Volume remains the durability barrier owner for
+   * BufferedStore. Volume.Sync remains the durability barrier for
    * volume-backed stores.
    *
    * @generated from enum value: STORE_FEATURE_SELF_BUFFERED = 32;

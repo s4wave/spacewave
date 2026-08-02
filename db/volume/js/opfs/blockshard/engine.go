@@ -308,8 +308,8 @@ func (e *Engine) Sync(ctx context.Context) error {
 // CompactOnce runs at most one compaction plan per shard.
 //
 // Compaction is storage maintenance, so foreground writes do not run it
-// inline. Maintenance owners can call CompactOnce when they have a lifecycle
-// slot for background OPFS work.
+// inline. Callers run CompactOnce from a goroutine dedicated to background
+// OPFS work.
 func (e *Engine) CompactOnce(ctx context.Context) error {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/compact-once")
 	defer task.End()

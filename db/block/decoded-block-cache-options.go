@@ -7,7 +7,7 @@ const (
 	defaultDecodedBlockCacheBufferItems int64 = 64
 )
 
-// DecodedBlockCacheOptions configures a decoded-block cache owner.
+// DecodedBlockCacheOptions configures a DecodedBlockCache.
 type DecodedBlockCacheOptions struct {
 	// MaxCost is the Ristretto cache budget.
 	MaxCost int64

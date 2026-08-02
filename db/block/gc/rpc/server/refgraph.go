@@ -50,7 +50,7 @@ func (s *RefGraph) RemoveRef(
 	return resp, nil
 }
 
-// ApplyRefBatch forwards one bounded ownership transition to the RefGraph owner.
+// ApplyRefBatch forwards one bounded ownership transition to the wrapped RefGraphOps.
 func (s *RefGraph) ApplyRefBatch(
 	ctx context.Context,
 	req *block_gc_rpc.ApplyRefBatchRequest,

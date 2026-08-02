@@ -119,9 +119,9 @@ func (rg *RefGraph) RemoveRef(ctx context.Context, subject, object string) error
 	return rg.handle.RemoveQuad(ctx, q)
 }
 
-// ApplyRefBatch serializes one bounded ownership transition under the RefGraph
-// owner lock. It applies additions before removals, treats missing exact
-// removals as no-ops, and derives orphan marks from the resulting owner set.
+// ApplyRefBatch serializes one bounded ownership transition under writeMu. It
+// applies additions before removals, treats missing exact removals as no-ops,
+// and derives orphan marks from the resulting owner set.
 // Preparation and application are bounded together so each slice commits
 // before preparation of the next slice begins.
 func (rg *RefGraph) ApplyRefBatch(ctx context.Context, adds, removes []RefEdge) error {

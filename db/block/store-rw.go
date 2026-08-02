@@ -60,7 +60,7 @@ func (b *StoreRW) BeginReadOperation(ctx context.Context) (StoreOps, func(), err
 	return NewStoreRW(readHandle, readHandle), release, nil
 }
 
-// EnsureDecodedBlockCacheFresh forwards decoded-cache freshness to the read owner.
+// EnsureDecodedBlockCacheFresh forwards decoded-cache freshness to the read handle.
 func (b *StoreRW) EnsureDecodedBlockCacheFresh(ctx context.Context) error {
 	freshener, ok := b.readHandle.(DecodedBlockCacheFreshener)
 	if !ok {

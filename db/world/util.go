@@ -93,8 +93,8 @@ type releasableObjectState interface {
 	Release()
 }
 
-// ReleaseObjectState releases object-state implementations with explicit
-// resource ownership.
+// ReleaseObjectState calls Release on obj when the ObjectState implementation
+// has a Release method.
 func ReleaseObjectState(obj ObjectState) {
 	if obj == nil {
 		return
