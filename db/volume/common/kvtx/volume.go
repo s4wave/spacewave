@@ -45,8 +45,6 @@ type Volume struct {
 	statsFn StatsFn
 	// statsBcast wakes watchers when storage stats may have changed.
 	statsBcast broadcast.Broadcast
-	// worldEngineLeases owns keyed World Engine leases.
-	worldEngineLeases volume.WorldEngineLeaseProvider
 	// closeFn is the close func, may be nil
 	closeFn func() error
 	// deleteFn removes the backing store after Close, may be nil.
@@ -83,43 +81,12 @@ func NewVolume(
 	closeFn func() error,
 	deleteFn ...func() error,
 ) (*Volume, error) {
-	return NewVolumeWithWorldEngineLeaseProvider(
-		ctx,
-		storeID,
-		kvkey,
-		store,
-		conf,
-		noGenerateKey,
-		noWriteKey,
-		statsFn,
-		volume.NewInMemoryWorldEngineLeaseProvider(),
-		closeFn,
-		deleteFn...,
-	)
-}
-
-// NewVolumeWithWorldEngineLeaseProvider builds a key-value volume with the
-// supplied World Engine lease provider.
-func NewVolumeWithWorldEngineLeaseProvider(
-	ctx context.Context,
-	storeID string,
-	kvkey *store_kvkey.KVKey,
-	store kvtx.Store,
-	conf *store_kvtx.Config,
-	noGenerateKey,
-	noWriteKey bool,
-	statsFn StatsFn,
-	worldEngineLeases volume.WorldEngineLeaseProvider,
-	closeFn func() error,
-	deleteFn ...func() error,
-) (*Volume, error) {
 	v := &Volume{
-		Store:             store_kvtx.NewKVTx(kvkey, store, conf),
-		kvtxStore:         store,
-		kvKey:             kvkey,
-		statsFn:           statsFn,
-		worldEngineLeases: worldEngineLeases,
-		closeFn:           closeFn,
+		Store:     store_kvtx.NewKVTx(kvkey, store, conf),
+		kvtxStore: store,
+		kvKey:     kvkey,
+		statsFn:   statsFn,
+		closeFn:   closeFn,
 	}
 	if len(deleteFn) != 0 {
 		v.deleteFn = deleteFn[0]
@@ -149,45 +116,12 @@ func NewVolumeWithBlockStore(
 	closeFn func() error,
 	deleteFn ...func() error,
 ) (*Volume, error) {
-	return NewVolumeWithBlockStoreAndWorldEngineLeaseProvider(
-		ctx,
-		storeID,
-		kvkey,
-		store,
-		blk,
-		conf,
-		noGenerateKey,
-		noWriteKey,
-		statsFn,
-		volume.NewInMemoryWorldEngineLeaseProvider(),
-		closeFn,
-		deleteFn...,
-	)
-}
-
-// NewVolumeWithBlockStoreAndWorldEngineLeaseProvider builds a key/value volume
-// with a custom block store and World Engine lease provider.
-func NewVolumeWithBlockStoreAndWorldEngineLeaseProvider(
-	ctx context.Context,
-	storeID string,
-	kvkey *store_kvkey.KVKey,
-	store kvtx.Store,
-	blk block.StoreOps,
-	conf *store_kvtx.Config,
-	noGenerateKey,
-	noWriteKey bool,
-	statsFn StatsFn,
-	worldEngineLeases volume.WorldEngineLeaseProvider,
-	closeFn func() error,
-	deleteFn ...func() error,
-) (*Volume, error) {
 	v := &Volume{
-		Store:             store_kvtx.NewKVTxWithBlockStore(kvkey, store, blk, conf),
-		kvtxStore:         store,
-		kvKey:             kvkey,
-		statsFn:           statsFn,
-		worldEngineLeases: worldEngineLeases,
-		closeFn:           closeFn,
+		Store:     store_kvtx.NewKVTxWithBlockStore(kvkey, store, blk, conf),
+		kvtxStore: store,
+		kvKey:     kvkey,
+		statsFn:   statsFn,
+		closeFn:   closeFn,
 	}
 	if len(deleteFn) != 0 {
 		v.deleteFn = deleteFn[0]
@@ -216,48 +150,13 @@ func NewVolumeWithBlockStoreAndGC(
 	closeFn func() error,
 	deleteFn ...func() error,
 ) (*Volume, error) {
-	return NewVolumeWithBlockStoreAndGCAndWorldEngineLeaseProvider(
-		ctx,
-		storeID,
-		kvkey,
-		store,
-		blk,
-		rg,
-		conf,
-		noGenerateKey,
-		noWriteKey,
-		statsFn,
-		volume.NewInMemoryWorldEngineLeaseProvider(),
-		closeFn,
-		deleteFn...,
-	)
-}
-
-// NewVolumeWithBlockStoreAndGCAndWorldEngineLeaseProvider builds a key/value
-// volume with a custom block store, GC graph, and World Engine lease provider.
-func NewVolumeWithBlockStoreAndGCAndWorldEngineLeaseProvider(
-	ctx context.Context,
-	storeID string,
-	kvkey *store_kvkey.KVKey,
-	store kvtx.Store,
-	blk block.StoreOps,
-	rg block_gc.RefGraphOps,
-	conf *store_kvtx.Config,
-	noGenerateKey,
-	noWriteKey bool,
-	statsFn StatsFn,
-	worldEngineLeases volume.WorldEngineLeaseProvider,
-	closeFn func() error,
-	deleteFn ...func() error,
-) (*Volume, error) {
 	v := &Volume{
-		Store:             store_kvtx.NewKVTxWithBlockStore(kvkey, store, blk, conf),
-		kvtxStore:         store,
-		kvKey:             kvkey,
-		refGraph:          rg,
-		statsFn:           statsFn,
-		worldEngineLeases: worldEngineLeases,
-		closeFn:           closeFn,
+		Store:     store_kvtx.NewKVTxWithBlockStore(kvkey, store, blk, conf),
+		kvtxStore: store,
+		kvKey:     kvkey,
+		refGraph:  rg,
+		statsFn:   statsFn,
+		closeFn:   closeFn,
 	}
 	if len(deleteFn) != 0 {
 		v.deleteFn = deleteFn[0]
@@ -304,9 +203,6 @@ func initVolumeSkipGC(
 	noGenerateKey,
 	noWriteKey bool,
 ) (*Volume, error) {
-	if v.worldEngineLeases == nil {
-		v.worldEngineLeases = volume.NewInMemoryWorldEngineLeaseProvider()
-	}
 	peerPriv, err := v.LoadPeerPriv(ctx)
 	if err != nil {
 		return nil, err
@@ -368,14 +264,6 @@ func (v *Volume) GetKvtxStore() kvtx.Store {
 // GetKvKey returns the instance of KvKey used to build keys.
 func (v *Volume) GetKvKey() *store_kvkey.KVKey {
 	return v.kvKey
-}
-
-// AcquireWorldEngineLease attempts to acquire a keyed World Engine lease.
-func (v *Volume) AcquireWorldEngineLease(
-	ctx context.Context,
-	key string,
-) (volume.WorldEngineLease, error) {
-	return v.worldEngineLeases.AcquireWorldEngineLease(ctx, key)
 }
 
 // GetStorageStats returns storage usage statistics for the volume.

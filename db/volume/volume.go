@@ -53,9 +53,6 @@ type Volume interface {
 	// Coordinator coordinates direct multi-writer ObjectStore access.
 	coord.Coordinator
 
-	// WorldEngineLeaseProvider acquires keyed World Engine leases.
-	WorldEngineLeaseProvider
-
 	// Close closes the volume, returning any errors.
 	Close() error
 
