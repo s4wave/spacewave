@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/volume"
 	alpha_testbed "github.com/s4wave/spacewave/testbed"
 )
@@ -28,19 +29,15 @@ func TestWorldEngineLeaseLifecycle(t *testing.T) {
 		vol: tb.Volume,
 	}
 	engineA := &Controller{bus: tb.Bus, engineID: "world-x"}
-	leaseA, err := engineA.acquireWorldEngineLease(ctx, soA)
+	leaseA, _, err := engineA.acquireWorldEngineLease(ctx, soA)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	engineB := &Controller{bus: tb.Bus, engineID: "world-y"}
-	_, err = engineB.acquireWorldEngineLease(ctx, soA)
-	var heldErr *volume.WorldEngineLeaseHeldError
-	if !errors.As(err, &heldErr) {
-		t.Fatalf("second acquisition for object-a = %v, want WorldEngineLeaseHeldError", err)
-	}
-	if heldErr.Key != "object-a" {
-		t.Fatalf("held lease key = %q, want object-a", heldErr.Key)
+	_, _, err = engineB.acquireWorldEngineLease(ctx, soA)
+	if err == nil {
+		t.Fatal("second acquisition for object-a succeeded")
 	}
 
 	soB := &leaseTestSharedObject{
@@ -50,22 +47,22 @@ func TestWorldEngineLeaseLifecycle(t *testing.T) {
 		id:  "object-b",
 		vol: tb.Volume,
 	}
-	leaseB, err := engineB.acquireWorldEngineLease(ctx, soB)
+	leaseB, _, err := engineB.acquireWorldEngineLease(ctx, soB)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if err := leaseB.Release(); err != nil {
+	if err := leaseB.Release(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 
-	if err := leaseA.Release(); err != nil {
+	if err := leaseA.Release(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
-	leaseA, err = engineB.acquireWorldEngineLease(ctx, soA)
+	leaseA, _, err = engineB.acquireWorldEngineLease(ctx, soA)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if err := leaseA.Release(); err != nil {
+	if err := leaseA.Release(ctx); err != nil {
 		t.Fatal(err.Error())
 	}
 }
@@ -78,7 +75,7 @@ func TestWorldEngineLeaseLossStopsEngineContext(t *testing.T) {
 	defer tb.Release()
 
 	lease := newTestWorldEngineLease()
-	vol := &leaseTestVolume{Volume: tb.Volume, lease: lease}
+	vol := &leaseTestVolume{Volume: tb.Volume, lease: lease, detectsLoss: true}
 	so := &leaseTestSharedObject{
 		testSharedObject: testSharedObject{
 			blockStore: newTestBlockStore("provider-block-store-loss", tb.Volume),
@@ -87,14 +84,17 @@ func TestWorldEngineLeaseLossStopsEngineContext(t *testing.T) {
 		vol: vol,
 	}
 	c := &Controller{bus: tb.Bus, engineID: "world-loss"}
-	acquired, err := c.acquireWorldEngineLease(ctx, so)
+	acquired, detectsLoss, err := c.acquireWorldEngineLease(ctx, so)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	engineCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	watchWorldEngineLease(engineCtx, acquired, cancel)
+	if !detectsLoss {
+		t.Fatal("loss-reporting coordinator did not declare DetectsLoss")
+	}
+	watchWorldEngineLease(engineCtx, acquired, detectsLoss, cancel)
 
 	lossErr := errors.New("lease renewal failed")
 	lease.lose(lossErr)
@@ -109,16 +109,36 @@ func TestWorldEngineLeaseLossStopsEngineContext(t *testing.T) {
 	}
 }
 
-type leaseTestVolume struct {
-	volume.Volume
-	lease volume.WorldEngineLease
+func TestWorldEngineLeaseWithoutLossDetectionKeepsEngineContext(t *testing.T) {
+	engineCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	lease := newTestWorldEngineLease()
+	watchWorldEngineLease(engineCtx, lease, false, cancel)
+	lease.lose(errors.New("unreported lease loss"))
+
+	select {
+	case <-engineCtx.Done():
+		t.Fatal("engine context canceled for a coordinator without loss detection")
+	case <-time.After(20 * time.Millisecond):
+	}
 }
 
-func (v *leaseTestVolume) AcquireWorldEngineLease(
+type leaseTestVolume struct {
+	volume.Volume
+	lease       coord.WriteLease
+	detectsLoss bool
+}
+
+func (v *leaseTestVolume) Capability(context.Context, coord.Scope) (*coord.Capability, error) {
+	return &coord.Capability{Supported: true, DetectsLoss: v.detectsLoss}, nil
+}
+
+func (v *leaseTestVolume) TryAcquireWriteLease(
 	context.Context,
-	string,
-) (volume.WorldEngineLease, error) {
-	return v.lease, nil
+	coord.Scope,
+) (coord.WriteLease, bool, error) {
+	return v.lease, true, nil
 }
 
 type testWorldEngineLease struct {
@@ -138,7 +158,15 @@ func (l *testWorldEngineLease) Err() error {
 	return l.err
 }
 
-func (l *testWorldEngineLease) Release() error {
+func (*testWorldEngineLease) Refresh(context.Context) (*coord.Snapshot, error) {
+	return nil, coord.ErrUnsupported
+}
+
+func (*testWorldEngineLease) Publish(context.Context, coord.Event) (*coord.Snapshot, error) {
+	return nil, coord.ErrUnsupported
+}
+
+func (l *testWorldEngineLease) Release(context.Context) error {
 	select {
 	case <-l.done:
 	default:
