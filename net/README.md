@@ -319,6 +319,33 @@ A PubSub is a controller that supports topic-based at-least-once delivery.
 
 Floodsub is currently supported as a PubSub protocol.
 
+## Build Targets
+
+Bifrost compiles for the native platform and for the web browser. Go build
+constraints select the code for each target:
+
+- `js` (`GOOS=js GOARCH=wasm`): WebAssembly in the browser, using `syscall/js`
+  for browser APIs. Browser-only code such as the WebRTC browser ICE bindings
+  and the browser link examples builds here, and [hash](./hash) calls
+  SubtleCrypto for large digests. The daemon CLI and other native-only code is
+  marked `!js`.
+- `tinygo`: defined by the [TinyGo] compiler, which produces a smaller browser
+  WASM binary. Files marked `!tinygo`, such as the websocket and webrtc
+  transport factories, are excluded from TinyGo builds.
+- `goscript`: defined by the [GoScript] compiler, which translates Go to
+  TypeScript and loads packages as `GOOS=js GOARCH=wasm`. The `-goscript.go`
+  files in [hash](./hash) and [crypto/tls](./crypto/tls) substitute
+  implementations for that runtime: hashing supports SHA-256 and SHA-1, and
+  TLS restricts curve preferences to X25519.
+
+[TinyGo]: https://tinygo.org/
+[GoScript]: https://github.com/s4wave/goscript
+
+`go test ./...` builds and tests only the native target. CI adds the
+goscript-tagged tests (`go test -tags goscript ./net/crypto/tls`), builds the
+browser bundle with the standard Go compiler for the end-to-end WASM tests, and
+builds it with all three compilers in the nightly release-WASM matrix.
+
 ## License
 
 Apache 2.0
