@@ -4,6 +4,7 @@ package store_kvtx_bolt
 
 import (
 	"bytes"
+	"context"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -148,6 +149,48 @@ func TestIteratorPrefixSeekCost(t *testing.T) {
 				t.Fatalf("prefix seek cost grew more than 20x with unrelated filler: 100 keys=%s, 100000 keys=%s", small, large)
 			}
 		})
+	}
+}
+
+func TestBoltScanPrefixSeekCost(t *testing.T) {
+	const iterations = 64
+	measure := func(filler int) time.Duration {
+		db := openPrefixSeekDB(t, filler, false)
+		rawTx, err := db.Begin(false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer rawTx.Rollback()
+		tx := NewTx(rawTx, iteratorTestBucket)
+		scan := func() {
+			count := 0
+			err := tx.ScanPrefix(context.Background(), []byte("zzz/"), func(_, _ []byte) error {
+				count++
+				return nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if count != 1 {
+				t.Fatalf("ScanPrefix matched %d keys, want 1", count)
+			}
+		}
+		for range 4 {
+			scan()
+		}
+		started := time.Now()
+		for range iterations {
+			scan()
+		}
+		return time.Since(started)
+	}
+
+	small := measure(100)
+	large := measure(100_000)
+	t.Logf("100 filler: %s total for %d scans", small, iterations)
+	t.Logf("100000 filler: %s total for %d scans", large, iterations)
+	if large > small*20 {
+		t.Fatalf("prefix scan cost grew more than 20x with unrelated filler: 100 keys=%s, 100000 keys=%s", small, large)
 	}
 }
 

@@ -2,13 +2,18 @@ package block_gc
 
 import (
 	"context"
+	"encoding/binary"
 	"io"
+	"strconv"
 	"sync"
 
 	"github.com/aperturerobotics/cayley"
 	"github.com/aperturerobotics/cayley/graph"
 	cayley_kv "github.com/aperturerobotics/cayley/graph/kv"
+	cayley_proto "github.com/aperturerobotics/cayley/graph/proto"
 	"github.com/aperturerobotics/cayley/graph/refs"
+	cayley_hkv "github.com/aperturerobotics/cayley/kv"
+	cayley_flat "github.com/aperturerobotics/cayley/kv/flat"
 	"github.com/aperturerobotics/cayley/quad"
 	"github.com/aperturerobotics/cayley/query/shape"
 	"github.com/pkg/errors"
@@ -26,6 +31,7 @@ import (
 // open.
 type RefGraph struct {
 	handle *cayley.Handle
+	store  kvtx.Store
 
 	writeMu sync.Mutex
 }
@@ -71,7 +77,7 @@ func NewRefGraph(ctx context.Context, store kvtx.Store, prefix []byte) (*RefGrap
 	if err != nil {
 		return nil, errors.Wrap(err, "new ref graph")
 	}
-	return &RefGraph{handle: h}, nil
+	return &RefGraph{handle: h, store: prefixed}, nil
 }
 
 // RegisterEntityChain registers a chain of gc/ref edges between nodes.
@@ -98,13 +104,20 @@ func (rg *RefGraph) AddRef(ctx context.Context, subject, object string) error {
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/add-ref")
 	defer task.End()
 	trace.Log(ctx, "hydra/block-gc/refgraph/add-ref/shape", "edges=1")
+	found, err := rg.hasRef(ctx, subject, object)
+	if err != nil {
+		return errors.Wrap(err, "check existing ref edge")
+	}
+	if found {
+		return nil
+	}
 
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/block-gc/refgraph/add-ref/build-quad")
 	q := quad.Make(quad.IRI(subject), quad.IRI(PredGCRef), quad.IRI(object), nil)
 	subtask.End()
 
 	taskCtx, subtask = trace.NewTask(taskCtx, "hydra/block-gc/refgraph/add-ref/add-quad")
-	err := rg.handle.AddQuad(taskCtx, q)
+	err = rg.handle.AddQuad(taskCtx, q)
 	subtask.End()
 	return err
 }
@@ -397,9 +410,9 @@ func (rg *RefGraph) filterExistingRemoves(
 	return existing, nil
 }
 
-// hasRef reports whether the durable graph holds the exact gc/ref edge. On the
-// native kv store it walks the object index for the target, so the read is
-// bounded by that object's in-degree rather than by the size of the graph.
+// hasRef reports whether the durable graph holds the exact gc/ref edge. It
+// reads the complete object-predicate-subject posting key rather than scanning
+// keys that share its unpadded base62 prefix.
 func (rg *RefGraph) hasRef(ctx context.Context, subject, object string) (bool, error) {
 	qs, ok := graph.Unwrap(rg.handle.QuadStore).(*cayley_kv.QuadStore)
 	if !ok {
@@ -414,24 +427,57 @@ func (rg *RefGraph) hasRef(ctx context.Context, subject, object string) (bool, e
 		return false, nil
 	}
 
-	var found bool
-	err = iterateIncomingIndexRefs(ctx, qs, objectID, predID,
-		func(ref cayley_kv.Int64Value, hasLive func() (bool, error)) error {
-			if uint64(ref) != subjectID {
-				return nil
-			}
-			live, err := hasLive()
-			if err != nil {
-				return err
-			}
-			if !live {
-				return nil
-			}
-			found = true
-			return io.EOF
-		},
-	)
-	return found, errors.Wrap(err, "iterate exact ref edge candidates")
+	indexKey := cayley_flat.KeyEscape(cayley_kv.DefaultQuadIndexes[1].Key(
+		[]uint64{objectID, predID, subjectID},
+	))
+	tx, err := rg.store.NewTransaction(ctx, false)
+	if err != nil {
+		return false, errors.Wrap(err, "open exact ref edge transaction")
+	}
+	defer tx.Discard()
+
+	postings, found, err := tx.Get(ctx, indexKey)
+	if err != nil {
+		return false, errors.Wrap(err, "read exact ref edge index")
+	}
+	if !found {
+		return false, nil
+	}
+	quadIDs := make([]uint64, 0, 1)
+	for len(postings) != 0 {
+		quadID, n := binary.Uvarint(postings)
+		if n <= 0 {
+			return false, errors.New("decode exact ref edge index")
+		}
+		quadIDs = append(quadIDs, quadID)
+		postings = postings[n:]
+	}
+	for i := len(quadIDs) - 1; i >= 0; i-- {
+		quadID := quadIDs[i]
+		logKey := cayley_flat.KeyEscape(cayley_hkv.Key{
+			[]byte("l"),
+			[]byte(strconv.FormatUint(quadID, 10)),
+		})
+		data, found, err := tx.Get(ctx, logKey)
+		if err != nil {
+			return false, errors.Wrap(err, "read exact ref edge primitive")
+		}
+		if !found {
+			return false, errors.Errorf("exact ref edge primitive %d is missing", quadID)
+		}
+		var prim cayley_proto.Primitive
+		if err := prim.UnmarshalVT(data); err != nil {
+			return false, errors.Wrap(err, "decode exact ref edge primitive")
+		}
+		if !prim.Deleted &&
+			prim.Object == objectID &&
+			prim.Predicate == predID &&
+			prim.Subject == subjectID &&
+			prim.Label == 0 {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (rg *RefGraph) hasRefGeneric(ctx context.Context, subject, object string) (bool, error) {

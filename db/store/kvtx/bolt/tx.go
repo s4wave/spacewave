@@ -12,7 +12,6 @@ import (
 
 	bdb "github.com/aperturerobotics/bbolt"
 	bdberrors "github.com/aperturerobotics/bbolt/errors"
-	rbt "github.com/emirpasic/gods/trees/redblacktree"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -103,29 +102,19 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 		return err
 	}
 
-	write := t.txn.Writable()
-	emittedKeys := rbt.NewWith(func(i, j any) int {
-		return bytes.Compare(i.([]byte), j.([]byte))
-	})
-	checkElem := func(k, v []byte) error {
-		if len(prefix) != 0 {
-			if !bytes.HasPrefix(k, prefix) {
-				return nil
-			}
-		}
-
-		if !write {
-			if _, ok := emittedKeys.Get(k); ok {
-				return nil
-			}
-			emittedKeys.Put(k, struct{}{})
-		}
-
-		return cb(k, v)
+	cur := bkt.Cursor()
+	var key, value []byte
+	if len(prefix) == 0 {
+		key, value = cur.First()
+	} else {
+		key, value = cur.Seek(prefix)
 	}
-
-	// TODO: use a cursor for the prefix instead of ForEach.
-	return bkt.ForEach(checkElem)
+	for ; key != nil && (len(prefix) == 0 || bytes.HasPrefix(key, prefix)); key, value = cur.Next() {
+		if err := cb(key, value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ScanPrefixKeys iterates over keys with a prefix.
