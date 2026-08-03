@@ -28,7 +28,7 @@ replace (
 
 require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
-	github.com/aperturerobotics/bbolt v0.0.0-20260802102853-331472f62805 // master
+	github.com/aperturerobotics/bbolt v0.0.0-20260803053248-633a6560e3d0 // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260705021747-c5ec5d20d2b6 // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
@@ -86,7 +86,10 @@ require (
 	modernc.org/sqlite v1.55.0
 )
 
-require github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
+require (
+	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
+)
 
 require (
 	github.com/cloudflare/circl v1.6.4
@@ -96,7 +99,6 @@ require (
 	github.com/dolthub/go-mysql-server v0.20.0
 	github.com/dolthub/vitess v0.0.0-20260617012411-2f308f6cdc23
 	github.com/dustin/go-humanize v1.0.1
-	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260728104803-133d4f9bfd41 // main
