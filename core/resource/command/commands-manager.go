@@ -14,18 +14,14 @@ import (
 	s4wave_command_registry "github.com/s4wave/spacewave/sdk/command/registry"
 )
 
-// attachedResourceClient resolves attached command handler resources.
-type attachedResourceClient interface {
-	GetAttachedResource(id uint32) (srpc.Client, error)
-}
-
 // commandRegistration holds a registered command and its associated handler.
 type commandRegistration struct {
 	resourceID        uint32
 	command           *s4wave_command.Command
 	surface           s4wave_command.CommandSurface
 	handlerResourceID uint32
-	client            attachedResourceClient
+	client            resource_server.ResourceClientContext
+	clientDone        <-chan struct{}
 	active            bool
 	enabled           bool
 }
@@ -84,6 +80,7 @@ func (r *CommandsManager) RegisterCommand(
 		surface:           surface,
 		handlerResourceID: req.GetHandlerResourceId(),
 		client:            client,
+		clientDone:        resourceClientDone(client),
 		enabled:           true,
 	}
 
@@ -121,7 +118,8 @@ func (r *CommandsManager) RegisterCommand(
 	}, nil
 }
 
-// SetActive sets the active state of a registration.
+// SetActive sets a registration active and deactivates active registrations
+// from the same client with the same command ID and surface.
 func (r *CommandsManager) SetActive(
 	ctx context.Context,
 	req *s4wave_command_registry.SetActiveRequest,
@@ -131,19 +129,40 @@ func (r *CommandsManager) SetActive(
 		return nil, ErrResourceIdRequired
 	}
 
+	client, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var found bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		reg := r.registrations[resourceID]
-		if reg == nil {
+		if reg == nil || !registrationMatchesClient(reg, client) {
 			return
 		}
-		if reg.active == req.GetActive() {
-			found = true
-			return
+
+		active := req.GetActive()
+		changed := reg.active != active
+		if active {
+			for _, candidate := range r.registrations {
+				if candidate == nil ||
+					candidate == reg ||
+					candidate.command == nil ||
+					candidate.command.GetCommandId() != reg.command.GetCommandId() ||
+					!sameRegisteredClient(candidate, reg) ||
+					candidate.surface != reg.surface ||
+					!candidate.active {
+					continue
+				}
+				candidate.active = false
+				changed = true
+			}
 		}
-		reg.active = req.GetActive()
+		reg.active = active
 		found = true
-		broadcast()
+		if changed {
+			broadcast()
+		}
 	})
 	if !found {
 		return nil, ErrRegistrationNotFound
@@ -162,10 +181,15 @@ func (r *CommandsManager) SetEnabled(
 		return nil, ErrResourceIdRequired
 	}
 
+	client, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var found bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		reg := r.registrations[resourceID]
-		if reg == nil {
+		if reg == nil || !registrationMatchesClient(reg, client) {
 			return
 		}
 		if reg.enabled == req.GetEnabled() {
@@ -198,7 +222,12 @@ func (r *CommandsManager) GetSubItems(
 		return nil, err
 	}
 
-	reg, err := r.getActiveRegistration(cmdID, surface)
+	client, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	reg, err := r.getActiveRegistration(cmdID, surface, client)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +248,7 @@ func (r *CommandsManager) GetSubItems(
 	})
 }
 
-// WatchCommands streams the full command registry with active state.
+// WatchCommands streams the calling client's command registry with active state.
 func (r *CommandsManager) WatchCommands(
 	req *s4wave_command_registry.WatchCommandsRequest,
 	strm s4wave_command_registry.SRPCCommandRegistryResourceService_WatchCommandsStream,
@@ -230,13 +259,17 @@ func (r *CommandsManager) WatchCommands(
 	}
 
 	ctx := strm.Context()
+	client, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return err
+	}
 
 	for {
 		var states []*s4wave_command_registry.CommandState
 		var waitCh <-chan struct{}
 
 		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			states = r.getCommandStatesLocked(surface)
+			states = r.getCommandStatesLocked(surface, client)
 			waitCh = getWaitCh()
 		})
 
@@ -269,7 +302,12 @@ func (r *CommandsManager) InvokeCommand(
 		return nil, err
 	}
 
-	reg, err := r.getActiveRegistration(cmdID, surface)
+	client, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	reg, err := r.getActiveRegistration(cmdID, surface, client)
 	if err != nil {
 		return nil, err
 	}
@@ -294,10 +332,11 @@ func (r *CommandsManager) InvokeCommand(
 	return &s4wave_command_registry.InvokeCommandResponse{}, nil
 }
 
-// getCommandStatesLocked builds CommandState entries from registrations.
+// getCommandStatesLocked builds CommandState entries for one client.
 // Must be called with bcast lock held.
 func (r *CommandsManager) getCommandStatesLocked(
 	surface s4wave_command.CommandSurface,
+	client resource_server.ResourceClientContext,
 ) []*s4wave_command_registry.CommandState {
 	regs := make([]*commandRegistration, 0, len(r.registrations))
 	for _, reg := range r.registrations {
@@ -305,6 +344,9 @@ func (r *CommandsManager) getCommandStatesLocked(
 			continue
 		}
 		if reg.surface != surface {
+			continue
+		}
+		if !registrationMatchesClient(reg, client) {
 			continue
 		}
 		regs = append(regs, reg)
@@ -329,10 +371,11 @@ func (r *CommandsManager) getCommandStatesLocked(
 	return states
 }
 
-// getActiveRegistration returns the single active registration for a command surface.
+// getActiveRegistration returns one client's active registration for a command surface.
 func (r *CommandsManager) getActiveRegistration(
 	cmdID string,
 	surface s4wave_command.CommandSurface,
+	client resource_server.ResourceClientContext,
 ) (*commandRegistration, error) {
 	var reg *commandRegistration
 	var err error
@@ -344,6 +387,7 @@ func (r *CommandsManager) getActiveRegistration(
 			}
 			if candidate.command.GetCommandId() != cmdID ||
 				candidate.surface != surface ||
+				!registrationMatchesClient(candidate, client) ||
 				!candidate.active {
 				continue
 			}
@@ -361,6 +405,29 @@ func (r *CommandsManager) getActiveRegistration(
 		return nil, ErrCommandNotFound
 	}
 	return reg, nil
+}
+
+// resourceClientDone returns the stable client-session cancellation channel.
+func resourceClientDone(client resource_server.ResourceClientContext) <-chan struct{} {
+	if client == nil {
+		return nil
+	}
+	ctx := client.Context()
+	if ctx == nil {
+		return nil
+	}
+	return ctx.Done()
+}
+
+func sameRegisteredClient(a, b *commandRegistration) bool {
+	return a.clientDone != nil && a.clientDone == b.clientDone
+}
+
+func registrationMatchesClient(
+	reg *commandRegistration,
+	client resource_server.ResourceClientContext,
+) bool {
+	return reg.clientDone != nil && reg.clientDone == resourceClientDone(client)
 }
 
 func normalizeCommandSurface(

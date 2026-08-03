@@ -23,5 +23,6 @@ var ErrCommandNotFound = errors.New("command not found")
 // ErrNoHandler is returned when a command has no handler.
 var ErrNoHandler = errors.New("command has no handler")
 
-// ErrMultipleActiveRegistrations is returned when more than one registration is active.
+// ErrMultipleActiveRegistrations is returned when one client has more than one
+// active registration for a command surface.
 var ErrMultipleActiveRegistrations = errors.New("multiple active command registrations")
