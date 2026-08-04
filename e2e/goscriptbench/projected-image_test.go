@@ -3,6 +3,9 @@
 package goscriptbench
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"os"
 	"slices"
 	"strings"
@@ -22,6 +25,9 @@ func TestProjectedImageSetupScriptCompiles(t *testing.T) {
 	}
 	if scripts[projectedImageSetupScript] == "" {
 		t.Fatalf("compiled scripts omit %s", projectedImageSetupScript)
+	}
+	if scripts[projectedImageMeasureScript] == "" {
+		t.Fatalf("compiled scripts omit %s", projectedImageMeasureScript)
 	}
 }
 
@@ -115,6 +121,108 @@ func TestProjectedImageRestartRetainsFixture(t *testing.T) {
 	if !slices.Equal(metadata.State.Recreated, wantRecreated) {
 		t.Fatalf("recreated state = %v, want %v", metadata.State.Recreated, wantRecreated)
 	}
+}
+
+func TestProjectedImageMeasureUntracedProjectedFile(t *testing.T) {
+	workload := newProjectedImageSmoke(t)
+	if _, err := workload.Setup(t.Context()); err != nil {
+		t.Fatal(err.Error())
+	}
+	corruptPath := uploadCorruptProjectedImage(t, workload)
+	request := SampleRequest{Kind: SampleKindWarmup, Number: 1}
+	if _, err := workload.MeasureUntraced(t.Context(), request); err == nil {
+		t.Fatal("sample was measured before a runtime restart")
+	}
+	if err := workload.Restart(t.Context(), request); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	sample, err := workload.MeasureUntraced(t.Context(), request)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if sample.ID != "warmup-1" {
+		t.Fatalf("sample ID = %q, want warmup-1", sample.ID)
+	}
+	if err := workload.ValidateUntraced(t.Context(), request, sample); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if err := workload.Restart(t.Context(), request); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := workload.MeasureUntraced(t.Context(), request); err == nil {
+		t.Fatal("reused sample identity was measured")
+	}
+	if _, err := workload.MeasureUntraced(t.Context(), SampleRequest{
+		Kind:   SampleKindWarmup,
+		Number: 1,
+		Trace:  true,
+	}); err == nil {
+		t.Fatal("traced scalar request was measured")
+	}
+
+	for _, invalid := range []struct {
+		name   string
+		path   string
+		width  int
+		height int
+	}{
+		{
+			name:   "missing",
+			path:   "goscriptbench-missing-image.png",
+			width:  workload.metadata.Fixture.Width,
+			height: workload.metadata.Fixture.Height,
+		},
+		{
+			name:   "corrupt",
+			path:   corruptPath,
+			width:  workload.metadata.Fixture.Width,
+			height: workload.metadata.Fixture.Height,
+		},
+		{
+			name:   "dimensions",
+			path:   workload.metadata.Fixture.Path,
+			width:  workload.metadata.Fixture.Width + 1,
+			height: workload.metadata.Fixture.Height,
+		},
+	} {
+		projectedURL := workload.harness.BaseURL() +
+			projectedImageFileURL(workload.sessionIndex, workload.spaceID, invalid.path) +
+			"&sample=" + invalid.name
+		if _, err := workload.measureProjectedImageURL(
+			t.Context(),
+			invalid.name,
+			projectedURL,
+			invalid.width,
+			invalid.height,
+		); err == nil {
+			t.Fatalf("%s projected image was measured", invalid.name)
+		}
+	}
+}
+
+func uploadCorruptProjectedImage(t *testing.T, workload *ProjectedImage) string {
+	t.Helper()
+	data := []byte("corrupt projected image")
+	digest := sha256.Sum256(data)
+	fixture := Fixture{
+		Path:         "goscriptbench-corrupt-image.png",
+		SHA256:       hex.EncodeToString(digest[:]),
+		EncodedBytes: int64(len(data)),
+	}
+	proof, err := workload.runFixtureScript(
+		"upload",
+		base64.StdEncoding.EncodeToString(data),
+		fixture,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := proof.validate("upload", fixture); err != nil {
+		t.Fatal(err.Error())
+	}
+	return fixture.Path
 }
 
 func newProjectedImageSmoke(t *testing.T) *ProjectedImage {

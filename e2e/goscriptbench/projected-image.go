@@ -18,7 +18,10 @@ import (
 	wasm "github.com/s4wave/spacewave/e2e/wasm"
 )
 
-const projectedImageSetupScript = "projected-image-setup.ts"
+const (
+	projectedImageMeasureScript = "projected-image-measure.ts"
+	projectedImageSetupScript   = "projected-image-setup.ts"
+)
 
 // ProjectedImage sets up and restarts the retained-OPFS image workload.
 type ProjectedImage struct {
@@ -41,6 +44,10 @@ type ProjectedImage struct {
 	priorWorkers []playwright.Worker
 	// targetHash reopens the created Drive without quickstart setup
 	targetHash string
+	// measuredSamples records cache tokens already consumed by browser actions
+	measuredSamples map[string]struct{}
+	// readyToMeasure reports that Restart completed for the next sample
+	readyToMeasure bool
 }
 
 // NewProjectedImage constructs the retained-OPFS image workload.
@@ -58,7 +65,12 @@ func NewProjectedImage(t testing.TB, harness *wasm.Harness, config ProjectedImag
 		return nil, errors.Errorf("configured engine %q differs from browser harness %q", config.Engine, name)
 	}
 	config.UnavailableFields = slices.Clone(config.UnavailableFields)
-	return &ProjectedImage{t: t, harness: harness, config: config}, nil
+	return &ProjectedImage{
+		t:               t,
+		harness:         harness,
+		config:          config,
+		measuredSamples: make(map[string]struct{}),
+	}, nil
 }
 
 // Setup generates, uploads, and reads back the fixture before sampling begins.
@@ -172,6 +184,9 @@ func (p *ProjectedImage) Restart(ctx context.Context, _ SampleRequest) error {
 		return errors.New("projected-image workload is not set up")
 	}
 
+	// Require a fresh successful restart before another browser action.
+	p.readyToMeasure = false
+
 	// Replace the document and its dedicated worker inside the retained context.
 	priorPage := p.session.Page()
 	if err := p.session.ReplacePageInCurrentContext(); err != nil {
@@ -215,8 +230,12 @@ func (p *ProjectedImage) Restart(ctx context.Context, _ SampleRequest) error {
 	if err := proof.validate("verify", p.metadata.Fixture); err != nil {
 		return errors.Wrap(err, "validate retained fixture")
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	p.priorWorkers = workers
-	return ctx.Err()
+	p.readyToMeasure = true
+	return nil
 }
 
 func (p *ProjectedImage) runFixtureScript(action, fixtureBase64 string, fixture Fixture) (projectedImageFixtureProof, error) {
@@ -286,9 +305,13 @@ func (p *ProjectedImage) requireDedicatedRuntime() error {
 }
 
 func projectedImageURL(sessionIndex uint32, spaceID string) string {
+	return projectedImageFileURL(sessionIndex, spaceID, ProjectedImageFixturePath)
+}
+
+func projectedImageFileURL(sessionIndex uint32, spaceID, filePath string) string {
 	return "/p/spacewave-core/fs/u/" + strconv.FormatUint(uint64(sessionIndex), 10) +
 		"/so/" + url.PathEscape(spaceID) + "/-/files/-/" +
-		url.PathEscape(ProjectedImageFixturePath) + "?inline=1"
+		url.PathEscape(filePath) + "?inline=1"
 }
 
 func projectedImageRoute(pageURL string) (uint32, string, error) {
