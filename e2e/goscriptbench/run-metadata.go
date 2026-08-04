@@ -73,22 +73,29 @@ func (m RunMetadata) Validate() error {
 	if err := m.State.Validate(); err != nil {
 		return errors.Wrap(err, "validate state boundary")
 	}
-	if m.UnavailableFields == nil {
-		return errors.New("unavailable-field metadata is required")
-	}
-	for idx, field := range m.UnavailableFields {
-		if !slices.Contains(optionalSampleFields, field) {
-			return errors.Errorf("unavailable sample field %q is unknown", field)
-		}
-		if slices.Contains(m.UnavailableFields[:idx], field) {
-			return errors.Errorf("unavailable sample field %q is duplicated", field)
-		}
+	if err := validateUnavailableFields(m.UnavailableFields); err != nil {
+		return err
 	}
 	return nil
 }
 
 func (m RunMetadata) fieldUnavailable(field string) bool {
 	return slices.Contains(m.UnavailableFields, field)
+}
+
+func validateUnavailableFields(fields []string) error {
+	if fields == nil {
+		return errors.New("unavailable-field metadata is required")
+	}
+	for idx, field := range fields {
+		if !slices.Contains(optionalSampleFields, field) {
+			return errors.Errorf("unavailable sample field %q is unknown", field)
+		}
+		if slices.Contains(fields[:idx], field) {
+			return errors.Errorf("unavailable sample field %q is duplicated", field)
+		}
+	}
+	return nil
 }
 
 func validArtifactID(value string) bool {
