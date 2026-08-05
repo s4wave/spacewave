@@ -26,9 +26,15 @@ type segmentReader interface {
 }
 
 type cachedSegmentFile struct {
+	// rd supplies immutable file bytes and size.
 	rd   segmentReader
 	size int64
 
+	// coordinator and entry select engine-wide admission.
+	coordinator *cacheCoordinator
+	entry       *cacheEntry
+
+	// mu guards standalone blocks and their recency order.
 	mu     sync.Mutex
 	blocks map[int64][]byte
 	order  []int64
@@ -47,23 +53,58 @@ func newCachedSegmentFile(rd segmentReader, size int64) *cachedSegmentFile {
 	}
 }
 
+func newCoordinatedSegmentFile(
+	rd segmentReader,
+	size int64,
+	coordinator *cacheCoordinator,
+	entry *cacheEntry,
+) *cachedSegmentFile {
+	if size == 0 {
+		if resolved, err := rd.Size(); err == nil {
+			size = resolved
+		}
+	}
+	return &cachedSegmentFile{
+		rd:          rd,
+		size:        size,
+		coordinator: coordinator,
+		entry:       entry,
+	}
+}
+
 func (f *cachedSegmentFile) ReadAt(p []byte, off int64) (int, error) {
+	return f.readAt(p, off, nil)
+}
+
+func (f *cachedSegmentFile) readAt(p []byte, off int64, lease *segmentCacheLease) (int, error) {
+	// Return immediately for an empty request.
 	if len(p) == 0 {
 		return 0, nil
 	}
+
+	// Bypass retained spans for requests above the shipping threshold.
 	if len(p) > maxCachedSegmentRead {
-		return f.rd.ReadAt(p, off)
+		if f.coordinator != nil {
+			f.coordinator.recordBypass()
+		}
+		n, err := f.rd.ReadAt(p, off)
+		if f.coordinator != nil {
+			f.coordinator.recordRead(n)
+		}
+		return n, err
 	}
+
+	// Clamp the cacheable request to immutable file bounds.
 	if off >= f.size {
 		return 0, io.EOF
 	}
-
 	readEnd := min(off+int64(len(p)), f.size)
 
+	// Copy every intersecting aligned block into the caller buffer.
 	startBlock := alignSegmentOffset(off)
 	endBlock := alignSegmentOffset(readEnd - 1)
 	for blockOff := startBlock; blockOff <= endBlock; blockOff += cachedSegmentBlockSize {
-		block, err := f.getBlock(blockOff)
+		block, err := f.getBlock(blockOff, lease)
 		if err != nil {
 			return 0, err
 		}
@@ -79,6 +120,7 @@ func (f *cachedSegmentFile) ReadAt(p []byte, off int64) (int, error) {
 		copy(p[copyStart:copyEnd], block[srcStart:srcEnd])
 	}
 
+	// Preserve short-read and EOF behavior at the final file block.
 	n := int(readEnd - off)
 	if n < len(p) {
 		return n, io.EOF
@@ -86,21 +128,35 @@ func (f *cachedSegmentFile) ReadAt(p []byte, off int64) (int, error) {
 	return n, nil
 }
 
-func (f *cachedSegmentFile) getBlock(blockOff int64) ([]byte, error) {
-	f.mu.Lock()
-	if block := f.blocks[blockOff]; block != nil {
-		f.touchBlockLocked(blockOff)
-		f.mu.Unlock()
-		return block, nil
+func (f *cachedSegmentFile) getBlock(blockOff int64, lease *segmentCacheLease) ([]byte, error) {
+	// Reuse a resident coordinated block.
+	if f.coordinator != nil {
+		if block, ok := f.coordinator.getBlock(f.entry, lease, blockOff); ok {
+			return block, nil
+		}
 	}
-	f.mu.Unlock()
 
+	// Reuse a resident standalone block.
+	if f.coordinator == nil {
+		f.mu.Lock()
+		if block := f.blocks[blockOff]; block != nil {
+			f.touchBlockLocked(blockOff)
+			f.mu.Unlock()
+			return block, nil
+		}
+		f.mu.Unlock()
+	}
+
+	// Read one exact aligned block from the immutable file.
 	blockEnd := min(blockOff+cachedSegmentBlockSize, f.size)
 	if blockEnd <= blockOff {
 		return nil, io.EOF
 	}
 	buf := make([]byte, blockEnd-blockOff)
 	n, err := f.rd.ReadAt(buf, blockOff)
+	if f.coordinator != nil {
+		f.coordinator.recordRead(n)
+	}
 	if err != nil && err != io.EOF {
 		return nil, err
 	}
@@ -109,18 +165,24 @@ func (f *cachedSegmentFile) getBlock(blockOff int64) ([]byte, error) {
 	}
 	block := buf[:n]
 
+	// Admit coordinated data through the engine-wide budget.
+	if f.coordinator != nil {
+		return f.coordinator.admitBlock(f.entry, lease, blockOff, block), nil
+	}
+
+	// Publish standalone data under the original per-file policy.
 	f.mu.Lock()
 	if existing := f.blocks[blockOff]; existing != nil {
 		f.touchBlockLocked(blockOff)
-		block = existing
-	} else {
-		f.blocks[blockOff] = block
-		f.order = append(f.order, blockOff)
-		if len(f.order) > maxCachedSegmentBlocks {
-			evict := f.order[0]
-			f.order = f.order[1:]
-			delete(f.blocks, evict)
-		}
+		f.mu.Unlock()
+		return existing, nil
+	}
+	f.blocks[blockOff] = block
+	f.order = append(f.order, blockOff)
+	if len(f.order) > maxCachedSegmentBlocks {
+		evict := f.order[0]
+		f.order = f.order[1:]
+		delete(f.blocks, evict)
 	}
 	f.mu.Unlock()
 	return block, nil
@@ -140,99 +202,43 @@ func (f *cachedSegmentFile) Size() (int64, error) {
 }
 
 func (s *Shard) setManifestLocked(m *Manifest) {
+	// Publish the newest observed manifest generation.
 	s.manifest = m
 	if m.Generation > s.latestGen {
 		s.latestGen = m.Generation
 	}
-	refs := m.ReferencedFiles()
-	for name := range s.lookupCache {
-		if _, ok := refs[name]; ok {
-			continue
-		}
-		delete(s.lookupCache, name)
-	}
-	for name := range s.segmentFileCache {
-		if _, ok := refs[name]; ok {
-			continue
-		}
-		delete(s.segmentFileCache, name)
-	}
+
+	// Retire cache entries omitted by the new manifest.
+	s.cache.retainVisible(s.id, m.ReferencedFiles())
 }
 
-func (s *Shard) cacheLookup(filename string, lookup *segment.LookupMeta) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.lookupCache == nil {
-		s.lookupCache = make(map[string]*segment.LookupMeta)
-	}
-	s.lookupCache[filename] = lookup
-}
-
-func (s *Shard) getLookup(ctx context.Context, meta *SegmentMeta) (*segment.LookupMeta, error) {
-	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/get-lookup")
+func (s *Shard) acquireSegment(ctx context.Context, meta *SegmentMeta) (*segmentCacheLease, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/acquire-segment")
 	defer task.End()
 
-	s.mu.Lock()
-	lookup := s.lookupCache[meta.Filename]
-	s.mu.Unlock()
-	if lookup != nil {
-		return lookup, nil
-	}
-	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/get-lookup/load-meta")
-	f, err := s.getSegmentFile(taskCtx, meta)
-	if err == nil {
-		lookup, err = loadLookupMeta(taskCtx, f, meta)
-	}
-	subtask.End()
-	if err != nil {
-		return nil, err
-	}
-	s.mu.Lock()
-	if existing := s.lookupCache[meta.Filename]; existing != nil {
-		lookup = existing
-	} else {
-		s.lookupCache[meta.Filename] = lookup
-	}
-	s.mu.Unlock()
-	return lookup, nil
-}
-
-func (s *Shard) getSegmentFile(ctx context.Context, meta *SegmentMeta) (*cachedSegmentFile, error) {
-	s.mu.Lock()
-	f := s.segmentFileCache[meta.Filename]
-	s.mu.Unlock()
-	if f != nil {
-		return f, nil
-	}
-
-	_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/get-segment-file/open-file")
-	af, err := opfs.OpenAsyncFile(s.dir, meta.Filename)
-	subtask.End()
-	if err != nil {
-		return nil, err
-	}
-	f = newCachedSegmentFile(af, int64(meta.Size))
-
-	s.mu.Lock()
-	if existing := s.segmentFileCache[meta.Filename]; existing != nil {
-		f = existing
-	} else {
-		s.segmentFileCache[meta.Filename] = f
-	}
-	s.mu.Unlock()
-	return f, nil
+	// Delegate admission and immutable file opening to the engine coordinator.
+	return s.cache.acquireSegment(
+		ctx,
+		cacheKey{shardID: s.id, filename: meta.Filename},
+		meta,
+		func() (segmentReader, error) {
+			_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/acquire-segment/open-file")
+			file, err := opfs.OpenAsyncFile(s.dir, meta.Filename)
+			subtask.End()
+			return file, err
+		},
+	)
 }
 
 func (s *Shard) dropSegmentFile(filename string) {
-	s.mu.Lock()
-	delete(s.segmentFileCache, filename)
-	s.mu.Unlock()
+	s.cache.remove(cacheKey{shardID: s.id, filename: filename})
 }
 
 func loadLookupMeta(ctx context.Context, f segmentReader, meta *SegmentMeta) (*segment.LookupMeta, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/load-lookup-meta")
 	defer task.End()
 
+	// Resolve file size when the manifest predates stored size metadata.
 	var err error
 	var subtask *trace.Task
 	size := int64(meta.Size)
@@ -244,6 +250,8 @@ func loadLookupMeta(ctx context.Context, f segmentReader, meta *SegmentMeta) (*s
 			return nil, errors.Wrap(err, "get segment size")
 		}
 	}
+
+	// Decode the sparse index, key range, and Bloom filter.
 	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/load-lookup-meta/load")
 	lookup, err := segment.LoadLookupMeta(f, size)
 	subtask.End()
