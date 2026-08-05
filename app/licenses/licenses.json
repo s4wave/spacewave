@@ -926,7 +926,7 @@
     },
     {
       "name": "github.com/aperturerobotics/protobuf-go-lite",
-      "version": "v0.16.1-0.20260730104859-e2b81e01d832",
+      "version": "v0.16.1-0.20260805173842-d747642c94f0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/protobuf-go-lite",
@@ -1351,7 +1351,7 @@
     },
     {
       "name": "github.com/pierrec/lz4/v4",
-      "version": "v4.1.27",
+      "version": "v4.1.28",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/pierrec/lz4",
