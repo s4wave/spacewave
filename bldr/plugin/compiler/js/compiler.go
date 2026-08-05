@@ -630,8 +630,12 @@ func (c *Controller) BuildManifest(
 		return nil, errors.Errorf("unable to find output path for entrypoint %s in esbuild metafile", entrypointTsRelativePath)
 	}
 
-	// The path in the metafile is relative to outDistPath.
-	compiledEntrypointRelPath, err := relativeEntrypointOutputPath(outDistPath, entrypointOutputPath)
+	// Esbuild metafile output paths are absolute or relative to AbsWorkingDir.
+	compiledEntrypointRelPath, err := relativeEntrypointOutputPath(
+		buildOptions.AbsWorkingDir,
+		outDistPath,
+		entrypointOutputPath,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -742,9 +746,9 @@ func (c *Controller) BuildManifest(
 }
 
 // relativeEntrypointOutputPath converts an esbuild metafile output path to a path relative to outDistPath.
-func relativeEntrypointOutputPath(outDistPath, entrypointOutputPath string) (string, error) {
+func relativeEntrypointOutputPath(workingDir, outDistPath, entrypointOutputPath string) (string, error) {
 	if !filepath.IsAbs(entrypointOutputPath) {
-		entrypointOutputPath = filepath.Join(outDistPath, filepath.FromSlash(entrypointOutputPath))
+		entrypointOutputPath = filepath.Join(workingDir, filepath.FromSlash(entrypointOutputPath))
 	}
 	return filepath.Rel(outDistPath, entrypointOutputPath)
 }

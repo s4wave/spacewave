@@ -19,12 +19,32 @@ func TestRelativeEntrypointOutputPathPreservesAbsoluteOutput(t *testing.T) {
 		t.Fatalf("test output path %q is not outside source root %q", outputPath, sourceRoot)
 	}
 
-	got, err := relativeEntrypointOutputPath(outputRoot, outputPath)
+	got, err := relativeEntrypointOutputPath(sourceRoot, outputRoot, outputPath)
 	if err != nil {
 		t.Fatalf("relativeEntrypointOutputPath() error = %v", err)
 	}
 	const want = "plugin-HASH.mjs"
 	if got != want {
 		t.Fatalf("relativeEntrypointOutputPath(%q, %q) = %q, want %q", outputRoot, outputPath, got, want)
+	}
+}
+
+func TestRelativeEntrypointOutputPathResolvesRelativeOutputFromWorkingDir(t *testing.T) {
+	baseDir := t.TempDir()
+	workingRoot := filepath.Join(baseDir, "repo", "source", "root")
+	outputRoot := filepath.Join(baseDir, "dist")
+	outputPath := filepath.Join(outputRoot, "plugin-HASH.mjs")
+
+	outputFromWorkingRoot, err := filepath.Rel(workingRoot, outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := relativeEntrypointOutputPath(workingRoot, outputRoot, outputFromWorkingRoot)
+	if err != nil {
+		t.Fatalf("relativeEntrypointOutputPath() error = %v", err)
+	}
+	const want = "plugin-HASH.mjs"
+	if got != want {
+		t.Fatalf("relativeEntrypointOutputPath(%q, %q) = %q, want %q", outputRoot, outputFromWorkingRoot, got, want)
 	}
 }
