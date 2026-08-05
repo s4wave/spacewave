@@ -50,10 +50,13 @@ func CastToUint8Array(value safejs.Value) (safejs.Value, error) {
 //
 // Returns an error if value is not a Uint8Array.
 func CopyBytesToGo(value safejs.Value) ([]byte, error) {
+	// Convert the JavaScript value to a Uint8Array.
 	arr, err := CastToUint8Array(value)
 	if err != nil {
 		return nil, err
 	}
+
+	// Allocate the Go buffer and copy the JavaScript bytes.
 	len, err := arr.Length()
 	if err != nil {
 		return nil, err

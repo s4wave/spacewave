@@ -61,6 +61,7 @@ func NewController(le *logrus.Entry, b bus.Bus, cc *Config) (*Controller, error)
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Resolve the local peer identity.
 	c.le.Debug("dex solicit controller running")
 
 	peerID, err := c.cc.ParsePeerID()
@@ -68,6 +69,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Publish the solicitation protocol for the configured bucket.
 	// Emit SolicitProtocol directive with bucket ID as context.
 	solicitCtx := []byte(c.cc.GetBucketId())
 	dir := link_solicit.NewSolicitProtocol(
@@ -91,12 +93,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer solicitRef.Release()
 
+	// Wait for controller cancellation.
 	<-ctx.Done()
 	return ctx.Err()
 }
 
 // handleSolicitedStream processes a new solicited stream from a DEX peer.
 func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit.SolicitMountedStream) {
+	// Accept the solicited stream and identify the remote peer.
 	ms, taken, err := sms.AcceptMountedStream()
 	if err != nil || taken {
 		return
@@ -111,6 +115,7 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 		le.Debug("dex peer session ended")
 	})
 
+	// Replace any previous session for this peer.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		// Replace existing session if any.
 		if old, ok := c.sessions[remotePeer]; ok {
@@ -120,6 +125,7 @@ func (c *Controller) handleSolicitedStream(ctx context.Context, sms link_solicit
 		broadcast()
 	})
 
+	// Start the peer session.
 	le.Debug("dex peer session started")
 	sess.start(ctx)
 }
@@ -195,6 +201,7 @@ type lookupResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *lookupResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	// Snapshot connected peer sessions.
 	var sessions []*peerSession
 	r.c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, s := range r.c.sessions {
@@ -202,6 +209,7 @@ func (r *lookupResolver) Resolve(ctx context.Context, handler directive.Resolver
 		}
 	})
 
+	// Query peers and emit the first successful block.
 	data, found := r.queryPeers(ctx, sessions)
 	if !found {
 		handler.AddValue(dex.NewLookupBlockFromNetworkValue(nil, nil))
@@ -241,6 +249,7 @@ func (f peerBlockFanout) run(ctx context.Context) ([]byte, bool) {
 	reqCtx, reqCancel := context.WithTimeout(ctx, requestTimeout)
 	defer reqCancel()
 
+	// Fan out the request with a bounded timeout.
 	results := make(chan peerBlockFanoutResult, len(f.sessions))
 	for _, sess := range f.sessions {
 		go func(sess *peerSession) {
@@ -253,6 +262,7 @@ func (f peerBlockFanout) run(ctx context.Context) ([]byte, bool) {
 		}(sess)
 	}
 
+	// Return the first successful peer response.
 	for range f.sessions {
 		res := <-results
 		if res.found {

@@ -25,13 +25,18 @@ func NewAddr(peerID peer.ID) *Addr {
 
 // ParseAddr parses an address.
 func ParseAddr(addr string) (net.Addr, error) {
+	// Require the in-process address scheme before decoding its peer ID.
 	if !strings.HasPrefix(addr, scheme) {
 		return nil, errors.Errorf("expected inproc prefix: %s", addr)
 	}
+
+	// Decode the peer identity embedded in the address.
 	pid, err := peer.IDB58Decode(addr[len(scheme):])
 	if err != nil {
 		return nil, err
 	}
+
+	// Rebuild the typed address from the decoded peer identity.
 	return NewAddr(pid), nil
 }
 

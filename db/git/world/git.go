@@ -91,6 +91,7 @@ func AccessRepoWithCursor(
 	refStore git_block.ReferenceStore,
 	cb func(repo *git.Repository) error,
 ) error {
+	// Resolve default stores and validate the persisted repository block.
 	if indexStore == nil {
 		indexStore = &memory.IndexStorage{}
 	}
@@ -104,11 +105,15 @@ func AccessRepoWithCursor(
 	if err := repob.Validate(); err != nil {
 		return err
 	}
+
+	// Open the block-backed git store and release it after the callback.
 	store, err := git_block.NewStore(ctx, nil, bcs, indexStore, refStore)
 	if err != nil {
 		return err
 	}
 	defer store.Close()
+
+	// Open or initialize the git repository in the requested worktree.
 	repo, err := git.Open(store, workdir)
 	if errors.Is(err, git.ErrRepositoryNotExists) {
 		repo, err = git.Init(store, git.WithWorkTree(workdir))
@@ -116,11 +121,15 @@ func AccessRepoWithCursor(
 	if err != nil {
 		return err
 	}
+
+	// Run the repository callback before committing its block changes.
 	if cb != nil {
 		if err := cb(repo); err != nil {
 			return err
 		}
 	}
+
+	// Commit the repository mutation.
 	return store.Commit()
 }
 
@@ -131,6 +140,7 @@ func ValidateOrCreateRepo(
 	accessState world.AccessWorldStateFunc,
 	repoRef *bucket.ObjectRef,
 ) (*bucket.ObjectRef, error) {
+	// Create a repository block for an empty reference or validate the existing repository.
 	var err error
 	if repoRef.GetEmpty() {
 		repoRef, err = world.AccessObject(ctx, accessState, nil, func(bcs *block.Cursor) error {
@@ -138,6 +148,7 @@ func ValidateOrCreateRepo(
 			return nil
 		})
 	} else {
+		// Validate the supplied reference before opening its repository block.
 		if err := repoRef.Validate(); err != nil {
 			return nil, err
 		}
@@ -150,6 +161,8 @@ func ValidateOrCreateRepo(
 			return err
 		})
 	}
+
+	// Return any repository creation or validation failure.
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +259,7 @@ func AccessWorldObjectRepoWithWorktree(
 		return err
 	}
 
-	// open the workdir fs
+	// Open the referenced UnixFS workdir with write access when requested.
 	writeWorkdir := updateWorld && sender != ""
 	wdFsHandle, err := unixfs_world.BuildFSFromUnixfsRef(ctx, le, ws, sender, workdirRef, true, writeWorkdir, ts)
 	if err != nil {
@@ -254,19 +267,22 @@ func AccessWorldObjectRepoWithWorktree(
 	}
 	defer wdFsHandle.Release()
 
-	// construct billy fs
+	// Wrap the UnixFS handle as the billy worktree filesystem.
 	wdBfs := unixfs_billy.NewBillyFilesystem(ctx, wdFsHandle, "", ts)
 
-	// access worktree object
+	// Access the worktree object and persist its updated block when writable.
 	_, _, err = AccessWorldObjectWorktree(ctx, ws, worktreeObjKey, updateWorld, wdBfs, func(bcs *block.Cursor, wt *Worktree) error {
 		if updateWorld {
 			bcs.SetBlock(wt, true)
 		}
-		// access repo
+
+		// Resolve the repository's HEAD reference store before invoking the callback.
 		hrs, err := wt.FollowHeadRefStore(bcs)
 		if err != nil {
 			return err
 		}
+
+		// Access the repository object and run the caller callback against both handles.
 		_, _, err = AccessWorldObjectRepo(ctx, ws, repoObjKey, updateWorld, wt, wdBfs, hrs, func(repo *git.Repository) error {
 			if cb != nil {
 				return cb(repo, wdBfs)
@@ -296,7 +312,7 @@ func CreateWorldObjectWorktree(
 	sender peer.ID,
 	ts time.Time,
 ) error {
-	// ensure workdir exists
+	// Ensure the referenced workdir object exists before creating the worktree.
 	workdirObjKey := workdirRef.GetObjectKey()
 	_, wdObjExists, err := ws.GetObject(ctx, workdirObjKey)
 	if err != nil {
@@ -307,17 +323,17 @@ func CreateWorldObjectWorktree(
 			return errors.Wrap(world.ErrObjectNotFound, "workdir")
 		}
 
-		// init the workdir
+		// Initialize the missing workdir when creation was requested.
 		_, _, err = unixfs_world.FsInit(ctx, ws, sender, workdirObjKey, workdirRef.GetFsType(), nil, false, ts)
 		if err != nil {
 			return err
 		}
 	}
 
-	// create worktree
+	// Allocate the worktree block that will hold checkout metadata.
 	wtree := &Worktree{}
 
-	// checkout
+	// Configure checkout staging and cleanup for the optional checkout path.
 	disableCheckout := checkoutOpts == nil
 	var checkoutDir string
 	defer func() {
@@ -326,12 +342,12 @@ func CreateWorldObjectWorktree(
 		}
 	}()
 
-	// create worktree object
+	// Create or update the worktree object and materialize checkout files when enabled.
 	_, _, err = world.AccessWorldObject(ctx, ws, worktreeObjKey, true, func(bcs *block.Cursor) error {
 		bcs.SetBlock(wtree, true)
 
 		if !disableCheckout {
-			// call git to checkout to the worktree
+			// Materialize the repository, perform checkout, and capture its index.
 			hrs, err := wtree.FollowHeadRefStore(bcs)
 			if err != nil {
 				return err
@@ -371,6 +387,7 @@ func CreateWorldObjectWorktree(
 		return err
 	}
 	if checkoutDir != "" {
+		// Synchronize materialized checkout files into the UnixFS workdir.
 		if err := syncFSToUnixfsRefBatch(
 			ctx,
 			ws,
@@ -383,18 +400,18 @@ func CreateWorldObjectWorktree(
 		}
 	}
 
-	// worktree type -> types/git/worktree
+	// Record the worktree type in world metadata.
 	if err := world_types.SetObjectType(ctx, ws, worktreeObjKey, GitWorktreeTypeID); err != nil {
 		return err
 	}
 
-	// worktree parent -> repo
+	// Record the worktree's parent repository relationship.
 	err = world_parent.SetObjectParent(ctx, ws, worktreeObjKey, repoObjKey, false)
 	if err != nil {
 		return err
 	}
 
-	// worktree git/repo -> repo
+	// Record the worktree-to-repository graph edge.
 	err = ws.SetGraphQuad(
 		ctx,
 		world.NewGraphQuadWithKeys(worktreeObjKey, GitRepoPred, repoObjKey, ""),
@@ -403,7 +420,7 @@ func CreateWorldObjectWorktree(
 		return err
 	}
 
-	// worktree git/workdir -> workdir <ref-value>
+	// Encode the workdir reference and record its graph edge.
 	refValue := &unixfs_world.RefValue{
 		FsType: workdirRef.GetFsType(),
 		Path:   workdirRef.GetPath().Clone(),
@@ -421,7 +438,7 @@ func CreateWorldObjectWorktree(
 		return err
 	}
 
-	// repo git/worktree -> worktree
+	// Record the repository-to-worktree graph edge.
 	err = ws.SetGraphQuad(
 		ctx,
 		world.NewGraphQuadWithKeys(repoObjKey, GitRepoWorktreePred, worktreeObjKey, ""),
@@ -440,7 +457,7 @@ func WorktreeLookupWorkdirRef(
 	worldHandle world.WorldState,
 	objKey string,
 ) (*unixfs_world.UnixfsRef, error) {
-	// access the workdir
+	// Read the workdir graph edge and normalize a missing edge to ErrQuadNotFound.
 	gqs, err := worldHandle.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(objKey, GitWorktreeWorkdirPred, "", ""), 1)
 	if len(gqs) == 0 && err == nil {
 		err = world.ErrQuadNotFound
@@ -455,7 +472,7 @@ func WorktreeLookupWorkdirRef(
 		return nil, errors.Wrap(err, "workdir: graph quad object")
 	}
 
-	// get the ref opts
+	// Decode the optional ref-value label attached to the graph edge.
 	var workdirRefValue *unixfs_world.RefValue
 	if refValueKey := gq.GetLabel(); len(refValueKey) != 0 {
 		refValueGv, err := world.GraphValueToKey(refValueKey)
@@ -466,6 +483,8 @@ func WorktreeLookupWorkdirRef(
 			return nil, errors.Wrap(err, "workdir: graph quad label")
 		}
 	}
+
+	// Build and validate the UnixFS reference returned to the caller.
 	ref := &unixfs_world.UnixfsRef{
 		ObjectKey: workdirObjKey,
 		FsType:    workdirRefValue.GetFsType(),

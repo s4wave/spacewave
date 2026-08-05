@@ -40,6 +40,7 @@ func (m *MountedStreamHandler) HandleMountedStream(
 	ctx context.Context,
 	strm link.MountedStream,
 ) error {
+	// Capture the local and remote identities for the hold-open directive.
 	localPeerID, remotePeerID := strm.GetLink().GetLocalPeer(), strm.GetPeerID()
 	_, elRef, err := m.bus.AddDirective(
 		link.NewEstablishLinkWithPeer(localPeerID, remotePeerID),
@@ -49,29 +50,37 @@ func (m *MountedStreamHandler) HandleMountedStream(
 		return err
 	}
 
+	// Relay the stream asynchronously so the handler returns promptly.
 	go func() {
+		// Retain the incoming stream and release its link reference on exit.
 		s := strm.GetStream()
 		defer func() {
 			elRef.Release()
 			s.Close()
 		}()
 
-		// Emit directive to relay stream to target peer
+		// Open the target stream using the incoming stream's options.
 		m.le.Debug("relaying stream to target peer")
 		outMstrm, rel, err := link.OpenStreamWithPeerEx(ctx, m.bus, m.targetProtocolID, localPeerID, m.targetPeerID, 0, strm.GetOpenOpts())
 		if err != nil {
 			m.le.WithError(err).Warn("unable to relay stream to target peer")
 			return
 		}
+
+		// Release the target link reference after opening the stream.
 		rel()
 
+		// Keep the target stream open for the proxy lifetime.
 		outStrm := outMstrm.GetStream()
 		defer outStrm.Close()
 
+		// Proxy both streams until the shared context is canceled.
 		m.le.Debug("connection opened")
 		subCtx, subCtxCancel := context.WithCancel(ctx)
 		defer subCtxCancel()
 		ioproxy.ProxyStreams(s, outStrm, subCtxCancel)
+
+		// Wait for the proxy to finish before closing the connection.
 		<-subCtx.Done()
 		m.le.Debug("connection closing")
 

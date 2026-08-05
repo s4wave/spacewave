@@ -78,12 +78,15 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 	req *s4wave_provider_spacewave.WatchOnboardingStatusRequest,
 	strm s4wave_session.SRPCSpacewaveSessionResourceService_WatchOnboardingStatusStream,
 ) error {
+	// Initialize the session projection watch state.
 	ctx := strm.Context()
 	sessionID := r.getSessionID()
 	sessRef := r.getSessionRef()
 	accountBcast := r.swAcc.GetAccountBroadcast()
 
 	var prev *s4wave_provider_spacewave.WatchOnboardingStatusResponse
+
+	// Read account status and wait channel for each update.
 	for {
 		var ch <-chan struct{}
 		var accountStatus provider.ProviderAccountStatus
@@ -110,12 +113,14 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 			continue
 		}
 
+		// Build the current onboarding projection.
 		projCtx := r.buildOnboardingStatusProjectionContext(ctx, sessionID, sessRef)
 		resp, err := r.swAcc.BuildOnboardingStatusProjection(ctx, projCtx)
 		if err != nil {
 			r.le.WithError(err).Warn("failed to fetch managed billing account list")
 		}
 
+		// Emit only a changed projection.
 		if prev == nil || !resp.EqualVT(prev) {
 			if err := strm.Send(resp); err != nil {
 				return err
@@ -123,6 +128,7 @@ func (r *SpacewaveSessionResource) WatchOnboardingStatus(
 			prev = resp
 		}
 
+		// Wait for account changes or cancellation.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -137,16 +143,18 @@ func (r *SpacewaveSessionResource) buildOnboardingStatusProjectionContext(
 	sessRef *session.SessionRef,
 ) provider_spacewave.OnboardingStatusProjectionContext {
 	var projCtx provider_spacewave.OnboardingStatusProjectionContext
+
+	// Resolve linked local-session state.
 	found, localIdx, _ := r.swAcc.GetLinkedLocalSession(ctx, sessionID)
 	if found {
 		projCtx.HasLinkedLocal = true
 		projCtx.LinkedLocalSessionIndex = localIdx
+
+		// Resolve the linked cloud session for local sessions.
 		projCtx.LinkedLocalHasContent = r.checkLocalHasContent(ctx, localIdx)
 	}
 
-	// Populate the cloud session index for local sessions that need to redirect
-	// to the migration wizard on the cloud session. Skip for cloud sessions:
-	// they would find themselves.
+	// Resolve the linked cloud session for local sessions that need migration.
 	if sessRef.GetProviderResourceRef().GetProviderId() != "spacewave" {
 		cloudIdx := r.findCloudSessionIndex(ctx, r.swAcc.GetAccountID())
 		if cloudIdx != 0 {
@@ -952,6 +960,7 @@ func (r *SpacewaveSessionResource) CreateOrgInvite(
 	if err := inv.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "unmarshal invite")
 	}
+
 	// Mirror to local org SO.
 	var inviteType s4wave_org.OrgInviteType
 	switch req.GetType() {
@@ -2491,6 +2500,7 @@ func (r *SpacewaveSessionResource) VerifyEmailCode(
 	if err := cli.VerifyEmailCode(ctx, req.GetEmail(), req.GetCode()); err != nil {
 		return nil, err
 	}
+
 	// Bump local epoch to trigger account state re-fetch (picks up emailVerified).
 	r.swAcc.BumpLocalEpoch()
 	return &s4wave_provider_spacewave.VerifyEmailCodeResponse{Verified: true}, nil

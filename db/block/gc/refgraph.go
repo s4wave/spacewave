@@ -147,6 +147,7 @@ func (rg *RefGraph) applyRefBatch(
 	markOrphaned bool,
 	lockPerSlice bool,
 ) error {
+	// Disable nested store tracking before tracing the bounded batch.
 	ctx = disableStoreTracking(ctx)
 	ctx, task := trace.NewTask(ctx, "hydra/block-gc/refgraph/apply-ref-batch")
 	defer task.End()
@@ -160,6 +161,7 @@ func (rg *RefGraph) applyRefBatch(
 		refGraphApplyBatchLimit,
 	)
 
+	// Return early when the batch carries no ownership transition.
 	if len(adds) == 0 && len(removes) == 0 {
 		return nil
 	}
@@ -173,6 +175,7 @@ func (rg *RefGraph) applyRefBatch(
 			}
 		}
 
+		// Slice the transition and acquire the write lock for each slice.
 		addCount, removeCount := refBatchSliceCounts(adds, removes)
 		slice++
 		trace.Logf(
@@ -191,6 +194,8 @@ func (rg *RefGraph) applyRefBatch(
 		if lockPerSlice {
 			rg.writeMu.Lock()
 		}
+
+		// Prepare durable additions and removals before applying the slice.
 		preparedAdds, preparedRemoves, err := rg.prepareRefBatch(
 			ctx,
 			sliceAdds,
@@ -225,6 +230,8 @@ func (rg *RefGraph) applyRefBatch(
 				removes: appendRefEdges(sliceRemoves, removes[removeCount:]),
 			}
 		}
+
+		// Advance to the next slice after recording its successful application.
 		trace.Logf(
 			ctx,
 			"hydra/block-gc/refgraph/apply-ref-batch/slice-complete",
@@ -273,6 +280,7 @@ func (rg *RefGraph) applyRefBatchSliceLocked(
 	ctx context.Context,
 	adds, removes []RefEdge,
 ) ([]RefEdge, []RefEdge, error) {
+	// Commit additions in bounded chunks before committing removals.
 	chunks := 0
 	for len(adds) != 0 {
 		count := min(len(adds), refGraphApplyBatchLimit)
@@ -299,6 +307,7 @@ func (rg *RefGraph) applyRefBatchChunk(ctx context.Context, adds, removes []RefE
 	defer task.End()
 	trace.Logf(ctx, "hydra/block-gc/refgraph/apply-ref-batch/apply-transaction/shape", "adds=%d removes=%d", len(adds), len(removes))
 
+	// Materialize one transaction preserving additions-before-removals order.
 	n := len(adds) + len(removes)
 	tx := graph.NewTransactionN(n)
 	for _, e := range adds {
@@ -315,6 +324,7 @@ func (rg *RefGraph) prepareRefBatch(
 	adds, removes []RefEdge,
 	markOrphaned bool,
 ) ([]RefEdge, []RefEdge, error) {
+	// Filter missing removals before deriving orphan markers.
 	removes, err := rg.filterExistingRemoves(ctx, adds, removes)
 	if err != nil {
 		return nil, nil, err
@@ -331,6 +341,7 @@ func (rg *RefGraph) prepareOrphanMarks(
 		return adds, removes, nil
 	}
 
+	// Collect current owners for each removed edge before applying the transition.
 	owners := make(map[string]map[string]struct{})
 	stagingRemoves := make(map[string]struct{})
 	for _, edge := range removes {
@@ -356,14 +367,18 @@ func (rg *RefGraph) prepareOrphanMarks(
 		}
 		owners[edge.Object] = set
 	}
+
 	// Additions land before removals, so an object whose only owner this batch
 	// both adds and removes ends the batch with no owner at all. Deleting first
 	// would leave that owner in the set and hide the orphan.
+	// Apply additions to the owner sets before removing edges.
 	for _, edge := range adds {
 		if set, ok := owners[edge.Object]; ok && edge.Subject != NodeUnreferenced {
 			set[edge.Subject] = struct{}{}
 		}
 	}
+
+	// Remove outgoing owners and mark objects with no remaining owners.
 	for _, edge := range removes {
 		if set, ok := owners[edge.Object]; ok {
 			delete(set, edge.Subject)

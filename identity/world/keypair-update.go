@@ -127,6 +127,8 @@ func EnsureKeypairsExist(
 ) ([]string, error) {
 	createdKp := make(map[string]struct{})
 	kpObjectKeys := make([]string, len(kps))
+
+	// Resolve object keys and reject duplicate keypair identities.
 	for nki, nkp := range kps {
 		pid, err := nkp.ParsePeerID()
 		if err != nil {
@@ -140,8 +142,9 @@ func EnsureKeypairsExist(
 		}
 		createdKp[objKey] = struct{}{}
 	}
+
+	// Persist each validated keypair.
 	for _, kp := range kps {
-		// store keypair
 		_, _, err := StoreKeypair(ctx, ws, sender, kp, overwrite)
 		if err != nil {
 			return nil, err
@@ -173,7 +176,7 @@ func (o *KeypairUpdateOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	kpRef := o.GetKeypairRef()
 
-	// create / validate the objectref
+	// Resolve and validate the referenced keypair.
 	var kp *identity.Keypair
 	kp, err = FollowKeypair(ctx, worldHandle.AccessWorldState, kpRef)
 	if err == nil && kp.GetPeerId() == "" {
@@ -182,7 +185,6 @@ func (o *KeypairUpdateOp) ApplyWorldOp(
 	if err != nil {
 		return false, err
 	}
-
 	if err := kp.Validate(); err != nil {
 		return false, err
 	}
@@ -195,7 +197,7 @@ func (o *KeypairUpdateOp) ApplyWorldOp(
 	pidString := pid.String()
 	objKey := NewKeypairKey(pidString)
 
-	// create the object if it doesn't exist.
+	// Update the existing keypair object or create it with its type index.
 	obj, objFound, err := worldHandle.GetObject(ctx, objKey)
 	if err != nil {
 		return false, err
@@ -210,7 +212,7 @@ func (o *KeypairUpdateOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// set keypair type ref
+	// Index the new object as an identity keypair.
 	if err := world_types.SetObjectType(ctx, worldHandle, objKey, KeypairTypeID); err != nil {
 		return false, err
 	}
@@ -225,14 +227,14 @@ func (o *KeypairUpdateOp) ApplyWorldObjectOp(
 	objectHandle world.ObjectState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
-	// Applying to an existing object.
+	// Verify the referenced keypair before updating the object root.
 	keypairRef := o.GetKeypairRef()
 	_, err = FollowKeypair(ctx, objectHandle.AccessWorldState, keypairRef)
 	if err != nil {
 		return false, err
 	}
 
-	// update the object
+	// Replace the object's root reference with the validated keypair.
 	_, err = objectHandle.SetRootRef(ctx, keypairRef)
 	return false, err
 }

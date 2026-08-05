@@ -22,6 +22,7 @@ func (s *Server) Listen(req *signaling.ListenRequest, strm signaling.SRPCSignali
 		}
 	*/
 
+	// Register the peer and supersede any previous listen stream.
 	// Register this peer
 	s.mtx.Lock()
 	tkr, existed := s.getPeer(pidStr)
@@ -33,6 +34,7 @@ func (s *Server) Listen(req *signaling.ListenRequest, strm signaling.SRPCSignali
 	listenNonce := tkr.listenNonce
 	s.mtx.Unlock()
 
+	// Clear the registration when this listen stream exits.
 	// Cleanup when we exit
 	defer func() {
 		s.mtx.Lock()
@@ -46,6 +48,7 @@ func (s *Server) Listen(req *signaling.ListenRequest, strm signaling.SRPCSignali
 		s.mtx.Unlock()
 	}()
 
+	// Reconcile desired peer notifications with the last sent state.
 	sentWant := make(map[string]struct{})
 	for {
 		s.mtx.Lock()
@@ -69,6 +72,7 @@ func (s *Server) Listen(req *signaling.ListenRequest, strm signaling.SRPCSignali
 		waitCh := tkr.getWaitCh()
 		s.mtx.Unlock()
 
+		// Notify the peer about removed session requests.
 		if txNotWant != "" {
 			if err := strm.Send(&signaling.ListenResponse{
 				Body: &signaling.ListenResponse_ClearPeer{ClearPeer: txNotWant},
@@ -78,6 +82,7 @@ func (s *Server) Listen(req *signaling.ListenRequest, strm signaling.SRPCSignali
 			delete(sentWant, txNotWant)
 		}
 
+		// Notify the peer about new session requests.
 		if txWant != "" {
 			if err := strm.Send(&signaling.ListenResponse{
 				Body: &signaling.ListenResponse_SetPeer{SetPeer: txWant},
@@ -87,6 +92,7 @@ func (s *Server) Listen(req *signaling.ListenRequest, strm signaling.SRPCSignali
 			sentWant[txWant] = struct{}{}
 		}
 
+		// Wait for a state change or stream cancellation.
 		if txNotWant == "" && txWant == "" {
 			select {
 			case <-ctx.Done():

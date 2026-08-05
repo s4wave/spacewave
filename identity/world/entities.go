@@ -58,7 +58,7 @@ func FollowEntity(
 	}
 	var entity *identity.Entity
 	_, err = world.AccessObject(ctx, accessState, entityRef, func(bcs *block.Cursor) error {
-		// Confirm valid Entity object.
+		// Decode the referenced entity block.
 		var err error
 		entity, err = identity.UnmarshalEntity(ctx, bcs)
 		return err
@@ -133,7 +133,7 @@ func CollectAllEntities(ctx context.Context, w world.WorldState) ([]*identity.En
 	}
 	slices.Sort(objKeys)
 
-	// collect entity list
+	// Resolve the collected entity keys.
 	entityList, err := LookupEntities(ctx, w, objKeys)
 	return entityList, objKeys, err
 }

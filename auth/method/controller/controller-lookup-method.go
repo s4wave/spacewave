@@ -20,22 +20,25 @@ type authLookupMethodResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *authLookupMethodResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	// if we already resolved the keypair, return.
+	// Return immediately when the method has already been published.
 	if handler.CountValues(false) != 0 {
 		return nil
 	}
 
+	// Match the requested method against this controller's method ID.
 	c := o.c
 	methodID := o.dir.AuthLookupMethodID()
 	if o.c.methodID != methodID {
 		return nil
 	}
 
+	// Resolve the active authentication method from the controller.
 	method, err := c.GetAuthMethod(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Publish the resolved method to the directive handler.
 	_, _ = handler.AddValue(method)
 	return nil
 }

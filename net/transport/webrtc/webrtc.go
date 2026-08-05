@@ -127,6 +127,7 @@ func NewWebRTC(
 	c transport.TransportHandler,
 	opts ...Option,
 ) (*WebRTC, error) {
+	// Apply non-nil options to the transport configuration.
 	var o options
 	for _, opt := range opts {
 		if opt != nil {
@@ -134,21 +135,25 @@ func NewWebRTC(
 		}
 	}
 
+	// Resolve the configured transport type.
 	tptType := conf.GetTransportType()
 	if tptType == "" {
 		tptType = TransportType
 	}
 
+	// Derive the local peer identity.
 	peerID, err := peer.IDFromPrivateKey(pKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Build the TLS identity used by signaling sessions.
 	identity, err := p2ptls.NewIdentity(pKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Clone or initialize the QUIC options.
 	quicOpts := conf.GetQuic()
 	if quicOpts == nil {
 		quicOpts = &transport_quic.Opts{}
@@ -156,18 +161,19 @@ func NewWebRTC(
 		quicOpts = quicOpts.CloneVT()
 	}
 
-	// set webrtc-signal-rpc-specific quic opts
+	// Configure QUIC for WebRTC data channels.
 	quicOpts.DisableDatagrams = true
 	quicOpts.DisableKeepAlive = false
 	quicOpts.DisablePathMtuDiscovery = true
 
-	// Setup the webrtc API
+	// Build the WebRTC API and configuration.
 	settingEngine := webrtc.SettingEngine{}
 	settingEngine.DetachDataChannels()
 	applyICEOptions(&settingEngine, &o)
 	webrtcApi := webrtc.NewAPI(webrtc.WithSettingEngine(settingEngine))
 	webrtcConf := conf.WebRtc.ToWebRtcConfiguration()
 
+	// Assemble the transport state.
 	tpt := &WebRTC{
 		ctx:        ctx,
 		b:          b,
@@ -185,7 +191,7 @@ func NewWebRTC(
 		identity:   identity,
 	}
 
-	// The session tracker starts when we want a session with a remote peer.
+	// Initialize ingress leases and keyed session trackers.
 	tpt.incomingSessions = make(map[string]*signalIngress)
 	tpt.sessionTrackers = keyed.NewKeyedRefCount[string, *sessionTracker](
 		tpt.newSessionTracker,
@@ -241,10 +247,10 @@ func (w *WebRTC) GetPeerDialer(ctx context.Context, peerID peer.ID) (*dialer.Dia
 
 // Execute executes the transport as configured, returning any fatal error.
 func (w *WebRTC) Execute(ctx context.Context) error {
-	// Startup session trackers and signaling client
+	// Start session trackers for the execution context.
 	w.sessionTrackers.SetContext(ctx, true)
 
-	// If listening isn't disabled, handle incoming signals.
+	// Register the signaling handler when listening is enabled.
 	if !w.conf.GetDisableListen() {
 		handler := NewWebRTCSignalHandler(w)
 		relSignalHandler, err := w.b.AddController(ctx, handler, nil)
@@ -272,8 +278,7 @@ func (w *WebRTC) DialPeer(
 	peerID peer.ID,
 	addr string,
 ) (olnk link.Link, fatal bool, err error) {
-	// Ignore the address, since there is no address associated w/ WebRTC connections.
-	// Get the peer ID string
+	// Resolve the peer identity and reject blocked peers.
 	peerIDStr := peerID.String()
 	if slices.Contains(w.conf.GetBlockPeers(), peerIDStr) {
 		return nil, false, nil
@@ -285,9 +290,10 @@ func (w *WebRTC) DialPeer(
 	var lnk *transport_quic.Link
 
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		// Add the session reference.
+		// Add or reuse the keyed session tracker reference.
 		var existed bool
 		ref, tkr, existed, err = w.addSessionTrackerRef(peerIDStr)
+
 		// Notify signal handlers if it didn't exist
 		if err == nil && !existed {
 			broadcast()
@@ -304,7 +310,7 @@ func (w *WebRTC) DialPeer(
 		return nil, false, err
 	}
 
-	// Wait for the link to be established
+	// Wait until the session tracker publishes a link.
 	for lnk == nil {
 		select {
 		case <-ctx.Done():
@@ -312,6 +318,7 @@ func (w *WebRTC) DialPeer(
 		case <-waitCh:
 		}
 
+		// Refresh the link snapshot and wait channel under the broadcast lock.
 		w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			lnk = tkr.link
 			waitCh = getWaitCh()
@@ -323,6 +330,7 @@ func (w *WebRTC) DialPeer(
 
 // Close closes the transport, returning any errors closing.
 func (w *WebRTC) Close() error {
+	// Stop session trackers and release the signaling handler.
 	w.sessionTrackers.ClearContext()
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		if w.relSignalHandler != nil {
@@ -335,13 +343,13 @@ func (w *WebRTC) Close() error {
 
 // addSessionTrackerRef validates the peer id string and adds a session tracker ref.
 func (w *WebRTC) addSessionTrackerRef(peerIDStr string) (*keyed.KeyedRef[string, *sessionTracker], *sessionTracker, bool, error) {
-	// assert that we can extract the public key from the peer id
+	// Parse the remote identity and public key before tracking its session.
 	peerID, peerPub, err := peer.ParsePeerIDWithPubKey(peerIDStr)
 	if err != nil {
 		return nil, nil, false, err
 	}
 
-	// assert that we are not trying to open a session with ourselves
+	// Reject attempts to establish a session with the local peer.
 	if w.peerID.MatchesPublicKey(peerPub) {
 		return nil, nil, false, errors.New("signaling: cannot self-dial")
 	}

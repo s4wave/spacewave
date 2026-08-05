@@ -205,11 +205,13 @@ func newJSErrorCode(code int) *JSError {
 // AwaitPromise blocks the calling goroutine until a JS Promise resolves or rejects.
 // Returns the resolved value or an error wrapping the rejection reason.
 func AwaitPromise(promise js.Value) (js.Value, error) {
+	// Allocate callback state for the promise result and rejection.
 	ch := make(chan struct{})
 	var closeOnce sync.Once
 	var result js.Value
 	var jsErr error
 
+	// Register the promise fulfillment callback.
 	thenCb := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) > 0 {
 			result = args[0]
@@ -221,6 +223,7 @@ func AwaitPromise(promise js.Value) (js.Value, error) {
 	})
 	defer thenCb.Release()
 
+	// Register the promise rejection callback.
 	catchCb := js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) > 0 && !args[0].IsUndefined() && !args[0].IsNull() {
 			jsErr = newJSError(args[0])
@@ -232,6 +235,7 @@ func AwaitPromise(promise js.Value) (js.Value, error) {
 	})
 	defer catchCb.Release()
 
+	// Attach callbacks, wait for settlement, and return the captured result.
 	jsutil.AwaitPromise(promise, thenCb, catchCb)
 	<-ch
 
@@ -962,6 +966,7 @@ func (BrowserDriver) ListDirectory(dir js.Value) ([]string, error) {
 		if done {
 			break
 		}
+
 		// entry is [name, handle]
 		entry := nextResult.Get("value")
 		name := entry.Index(0).String()

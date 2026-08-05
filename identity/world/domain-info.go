@@ -43,7 +43,7 @@ func FollowDomainInfo(
 	}
 	var domain *identity_domain.DomainInfo
 	_, err = world.AccessObject(ctx, accessState, domainInfoRef, func(bcs *block.Cursor) error {
-		// Confirm valid DomainInfo object.
+		// Decode the referenced domain information block.
 		var err error
 		domain, err = identity_domain.UnmarshalDomainInfo(ctx, bcs)
 		return err
@@ -117,7 +117,7 @@ func CollectAllDomainInfos(ctx context.Context, w world.WorldState) ([]*identity
 	}
 	slices.Sort(objKeys)
 
-	// collect list
+	// Resolve the collected domain information keys.
 	list, err := LookupDomainInfos(ctx, w, objKeys)
 	return list, objKeys, err
 }

@@ -42,6 +42,5 @@ func (c *Controller) resolveLookupEntity(
 		return nil, nil
 	}
 
-	// Return resolver.
 	return &lookupEntityResolver{c: c, ctx: ctx, dir: dir}, nil
 }

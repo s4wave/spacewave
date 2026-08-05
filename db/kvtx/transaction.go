@@ -58,6 +58,7 @@ func RunTransactionWithRetry[T TransactionLifecycle](
 			return err
 		}
 
+		// Run one transaction attempt and classify its retryability.
 		err := runTransactionAttempt(ctx, write, open, body)
 		if err == nil {
 			return nil
@@ -86,13 +87,18 @@ func runTransactionAttempt[T TransactionLifecycle](
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Execute the replayable transaction body.
 	if err := body(ctx, tx); err != nil {
 		return err
 	}
+
 	// Body cancellation must prevent a write from committing partial work.
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+
+	// Commit completed write work before the deferred discard.
 	if !write {
 		return nil
 	}

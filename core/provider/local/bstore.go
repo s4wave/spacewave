@@ -24,7 +24,7 @@ const blockStoreBucketConfigRev = 2
 
 // BlockStore implements the bstore interface.
 type BlockStore struct {
-	// store owns local writes and durability.
+	// store provides local writes and durability.
 	store block_store.Store
 	// readStore optionally routes uncached reads through the active Session DEX.
 	readStore block_store.Store
@@ -95,23 +95,24 @@ func (b *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	if err := b.store.PutBlockBatch(ctx, entries); err != nil {
 		return err
 	}
+
 	// Batch tombstones bypass RmBlock, so the provider wrapper must invalidate
 	// decoded entries here before any future read can reuse stale content.
 	b.invalidateBatchTombstones(ctx, entries)
 	return nil
 }
 
-// GetBlock forwards to the active Session read owner when configured.
+// GetBlock forwards to the configured Session read store.
 func (b *BlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	return b.readOwner().GetBlock(ctx, ref)
 }
 
-// GetBlockExists forwards to the active Session read owner when configured.
+// GetBlockExists forwards to the configured Session read store.
 func (b *BlockStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	return b.readOwner().GetBlockExists(ctx, ref)
 }
 
-// GetBlockExistsBatch forwards batched existence probes to the active read owner.
+// GetBlockExistsBatch forwards batched existence probes to the configured read store.
 func (b *BlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	return b.readOwner().GetBlockExistsBatch(ctx, refs)
 }
@@ -133,7 +134,7 @@ func (b *BlockStore) invalidateBatchTombstones(ctx context.Context, entries []*b
 	}
 }
 
-// StatBlock forwards to the active Session read owner when configured.
+// StatBlock forwards to the configured Session read store.
 func (b *BlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	return b.readOwner().StatBlock(ctx, ref)
 }

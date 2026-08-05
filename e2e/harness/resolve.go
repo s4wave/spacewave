@@ -20,6 +20,8 @@ func Resolve[A any](ctx context.Context, le *logrus.Entry, opts ResolveOptions, 
 
 func resolve[A any](ctx context.Context, le *logrus.Entry, opts ResolveOptions, shape Shape[A], hooks resolveHooks) (A, error) {
 	var zero A
+
+	// Compute the artifact content key and inspect existing generations.
 	key, err := shape.ContentKey(ctx)
 	if err != nil {
 		return zero, err
@@ -35,12 +37,14 @@ func resolve[A any](ctx context.Context, le *logrus.Entry, opts ResolveOptions, 
 		hooks.afterSnapshot()
 	}
 
+	// Acquire the build lock before rechecking concurrent generations.
 	lock, err := AcquireBuildLock(ctx, le, opts.LockDir, opts.LockName)
 	if err != nil {
 		return zero, err
 	}
 	defer lock.Release()
 
+	// Recheck generations created while waiting for the lock.
 	post, _, err := lookupGenerations(ctx, shape, key)
 	if err != nil {
 		return zero, err
@@ -53,6 +57,8 @@ func resolve[A any](ctx context.Context, le *logrus.Entry, opts ResolveOptions, 
 			return generation.Artifact, nil
 		}
 	}
+
+	// Build and validate a new artifact generation.
 	generation, err := shape.Build(ctx, key)
 	if err != nil {
 		return zero, err
@@ -64,10 +70,13 @@ func resolve[A any](ctx context.Context, le *logrus.Entry, opts ResolveOptions, 
 }
 
 func lookupGenerations[A any](ctx context.Context, shape Shape[A], key string) ([]Generation[A], map[string]struct{}, error) {
+	// Load generations for the requested artifact key.
 	generations, err := shape.Lookup(ctx, key)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Validate generation tokens and index them for freshness checks.
 	tokens := make(map[string]struct{}, len(generations))
 	for _, generation := range generations {
 		if generation.Token == "" {

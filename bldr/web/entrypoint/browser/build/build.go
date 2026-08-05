@@ -38,12 +38,13 @@ func BuildWasmRuntimeEntrypoint(
 ) error {
 	le.Info("building runtime-wasm.mjs")
 
+	// Resolve the wasm execution shim for the selected compiler.
 	wasmExecFile, err := gocompiler.GetWasmExecPath(ctx, le, useTinygo)
 	if err != nil {
 		return err
 	}
 
-	// Build runtime wasm entrypoint
+	// Configure the browser runtime entrypoint and output path.
 	entrypointJsDir := filepath.Join(bldrDistRoot, webEntrypointBrowserDir)
 	runtimeJsOut := filepath.Join(buildDir, "runtime-wasm.mjs")
 
@@ -52,6 +53,7 @@ func BuildWasmRuntimeEntrypoint(
 	opts.Outfile = runtimeJsOut
 	opts.Write = true
 
+	// Apply TinyGo fallbacks when requested.
 	if useTinygo {
 		nodeStubsLoc := filepath.Join(bldrDistRoot, nodeStubsPath)
 		nodeStubsLoc, err = filepath.Rel(entrypointJsDir, nodeStubsLoc)
@@ -62,18 +64,19 @@ func BuildWasmRuntimeEntrypoint(
 		entrypoint_browser_bundle.ApplyTinyGoNodeFallbacks(&opts)
 		entrypoint_browser_bundle.ApplyTinyGoWasmExecPatches(&opts, wasmExecFile)
 	}
+
+	// Add the wasm execution shim and optional runtime path define.
 	opts.Inject = append(opts.Inject, wasmExecFile)
 
 	if runtimeWasmPath != "" {
 		opts.Define["BLDR_RUNTIME_WASM"] = strconv.Quote(runtimeWasmPath)
 	}
 
+	// Build the configured browser runtime bundle.
 	res := esbuild_api.Build(opts)
 	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
 		return err
 	}
-
-	// build complete
 	return nil
 }
 
@@ -82,6 +85,8 @@ func BuildWasmRuntimeEntrypoint(
 // builds to buildDir/runtime-ws.mjs
 func BuildWsRuntime(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify, sourcemaps bool) error {
 	le.Info("building runtime-ws.mjs")
+
+	// Configure the WebSocket runtime entrypoint and output path.
 	entrypointJsDir := filepath.Join(bldrDistRoot, webEntrypointBrowserDir)
 	runtimeJsOut := filepath.Join(buildDir, "runtime-ws.mjs")
 
@@ -90,11 +95,10 @@ func BuildWsRuntime(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDi
 	opts.Outfile = runtimeJsOut
 	opts.Write = true
 
+	// Build the configured WebSocket runtime bundle.
 	res := esbuild_api.Build(opts)
 	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
 		return err
 	}
-
-	// build complete
 	return nil
 }

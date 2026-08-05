@@ -25,11 +25,13 @@ func RunDemoGit(
 	volCtr volume.Controller,
 	url string,
 ) error {
+	// Resolve the example volume.
 	vol, err := volCtr.GetVolume(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Build the lookup controller configuration.
 	lookupConf := &lc.Config{
 		// NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
 		NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_NONE,
@@ -39,6 +41,8 @@ func RunDemoGit(
 	if err != nil {
 		return err
 	}
+
+	// Create the example bucket configuration.
 	bucketConf, err := bucket.NewConfig(
 		"example-bucket-1",
 		1,
@@ -49,6 +53,7 @@ func RunDemoGit(
 	}
 	bucketID := bucketConf.GetId()
 
+	// Apply the bucket configuration to the volume.
 	// assert the volume
 	_, _, abcRef, err := bus.ExecOneOff(
 		ctx,
@@ -65,6 +70,7 @@ func RunDemoGit(
 	}
 	abcRef.Release()
 
+	// Build the empty graph cursor and Git store.
 	inMem := memory.NewStorage()
 	worktree := memfs.New()
 
@@ -79,6 +85,8 @@ func RunDemoGit(
 	if err != nil {
 		return err
 	}
+
+	// Run the clone example and commit the result.
 	err = git_examples.RunCloneExample(ctx, le, url, store, worktree)
 	if err != nil {
 		return err

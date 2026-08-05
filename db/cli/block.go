@@ -13,12 +13,15 @@ import (
 
 // RunPutBlock runs putting a block into a bucket.
 func (a *ClientArgs) RunPutBlock(_ *cli.Context) error {
+	// Resolve the client and request context.
 	le := a.GetLogger()
 	ctx := a.GetContext()
 	c, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
+
+	// Read block data from stdin or the configured file.
 	var dat []byte
 	if a.BlockDataFile == "" || a.BlockDataFile == "-" {
 		le.Debug("reading from stdin")
@@ -31,6 +34,7 @@ func (a *ClientArgs) RunPutBlock(_ *cli.Context) error {
 		return err
 	}
 
+	// Submit the block operation to the daemon.
 	resp, err := c.BucketOp(ctx, &api.BucketOpRequest{
 		Op:           api.BucketOp_BucketOp_BLOCK_PUT,
 		BucketOpArgs: &a.BucketOpArgs,
@@ -40,6 +44,7 @@ func (a *ClientArgs) RunPutBlock(_ *cli.Context) error {
 		return err
 	}
 
+	// Log the response and print the resulting block reference.
 	d, err := resp.MarshalJSON()
 	if err != nil {
 		le.WithError(err).Warn("unable to marshal put block result")
@@ -54,19 +59,19 @@ func (a *ClientArgs) RunPutBlock(_ *cli.Context) error {
 
 // RunGetBlock runs getting a block from a bucket.
 func (a *ClientArgs) RunGetBlock(_ *cli.Context) error {
+	// Resolve the request context and block reference.
 	le := a.GetLogger()
 	ctx := a.GetContext()
-
 	br, err := block.UnmarshalBlockRefB58(a.GetBlockRef)
 	if err != nil {
 		return err
 	}
 
+	// Open the daemon client and fetch the block.
 	c, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
-
 	resp, err := c.BucketOp(ctx, &api.BucketOpRequest{
 		Op:           api.BucketOp_BucketOp_BLOCK_GET,
 		BucketOpArgs: &a.BucketOpArgs,
@@ -76,10 +81,10 @@ func (a *ClientArgs) RunGetBlock(_ *cli.Context) error {
 		return err
 	}
 
+	// Reject missing blocks and log the response before writing data.
 	if !resp.GetFound() {
 		return block.ErrNotFound
 	}
-
 	data := resp.GetData()
 	resp.Data = nil
 	d, err := resp.MarshalJSON()
@@ -93,18 +98,18 @@ func (a *ClientArgs) RunGetBlock(_ *cli.Context) error {
 
 // RunRmBlock runs removing a block from a bucket.
 func (a *ClientArgs) RunRmBlock(_ *cli.Context) error {
+	// Resolve and validate the block reference.
 	ctx := a.GetContext()
-
 	br, err := block.UnmarshalBlockRefB58(a.GetBlockRef)
 	if err != nil {
 		return err
 	}
 
+	// Submit the block removal operation.
 	c, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
-
 	_, err = c.BucketOp(ctx, &api.BucketOpRequest{
 		Op:           api.BucketOp_BucketOp_BLOCK_RM,
 		BucketOpArgs: &a.BucketOpArgs,
@@ -113,6 +118,8 @@ func (a *ClientArgs) RunRmBlock(_ *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Print the removed block reference.
 	os.Stdout.WriteString(br.MarshalString())
 	os.Stdout.WriteString("\n")
 	return nil

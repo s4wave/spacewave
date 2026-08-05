@@ -532,7 +532,10 @@ type browserCommandOptions struct {
 }
 
 func parseBrowserCommandOptions(args []string, allowWatch bool) (browserCommandOptions, error) {
+	// Initialize defaults shared by all browser CLI commands.
 	opts := browserCommandOptions{outputFormat: "text", sessionIdx: 1}
+
+	// Parse flags and retain positional command arguments.
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {

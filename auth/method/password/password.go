@@ -59,13 +59,17 @@ func (p *PasswordMethod) UnmarshalParameters(data []byte) (auth_method.Parameter
 // Authenticate authenticates with existing auth parameters.
 // authSecretData is the password bytes.
 func (p *PasswordMethod) Authenticate(paramsi auth_method.Parameters, authSecretData []byte) (crypto.PrivKey, error) {
+	// Require the password parameter type used by this method.
 	params, ok := paramsi.(*Parameters)
 	if !ok {
 		return nil, errors.New("params object not recognized")
 	}
+
+	// Require secret data before deriving the private key.
 	if len(authSecretData) == 0 {
 		return nil, errors.New("auth secret data must be set")
 	}
+
 	return deriveKey(params, authSecretData)
 }
 

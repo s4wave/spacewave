@@ -53,6 +53,7 @@ func ImportDebPackage(
 	packageKey string,
 	deb []byte,
 ) (*AptPackage, *block.BlockRef, error) {
+	// Validate the world and package identifiers before importing data.
 	if ws == nil {
 		return nil, nil, errors.New("world state is required")
 	}
@@ -66,17 +67,20 @@ func ImportDebPackage(
 		return nil, nil, err
 	}
 
+	// Parse the Debian package and compute its checksums.
 	parsed, err := ParseDebPackage(deb)
 	if err != nil {
 		return nil, nil, err
 	}
 	parsed.Checksums = AptPackageChecksums(deb)
 
+	// Resolve the existing package target, if any.
 	objectState, existing, err := lookupAptPackageImportTarget(ctx, ws, packageKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Allocate storage and complete the imported package state.
 	cursor, err := ws.BuildStorageCursor(ctx)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "build storage cursor")
@@ -92,6 +96,7 @@ func ImportDebPackage(
 		return nil, nil, err
 	}
 
+	// Create and initialize a package object when none exists.
 	if objectState == nil {
 		op := NewAddAptPackageOp(repositoryKey, packageKey, parsed)
 		if _, _, err := ws.ApplyWorldOp(ctx, op, ""); err != nil {
@@ -107,6 +112,7 @@ func ImportDebPackage(
 		return aptPackage, debRef, nil
 	}
 
+	// Update the existing package and restore its repository graph link.
 	if err := updateImportedAptPackage(ctx, objectState, existing, aptPackage); err != nil {
 		return nil, nil, err
 	}

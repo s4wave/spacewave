@@ -42,6 +42,7 @@ type Peer struct {
 
 // newPeer constructs a new Peer.
 func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool) (*Peer, error) {
+	// Collect cleanup callbacks before constructing the testbed.
 	var rels []func()
 	rel := func() {
 		for _, r := range rels {
@@ -49,6 +50,7 @@ func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool
 		}
 	}
 
+	// Build the peer testbed and register its static factories.
 	np := &Peer{
 		graphPeer:     gp,
 		le:            le.WithField("sim-peer", gp.ID()),
@@ -56,9 +58,11 @@ func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool
 	}
 
 	var ctxCancel func()
+
 	np.ctx, ctxCancel = context.WithCancel(ctx) //nolint:gosec // cancel stored in rels and released by Close
 	rels = append(rels, ctxCancel)
 
+	// Start the peer testbed with the graph peer's private key.
 	var err error
 	np.testbed, err = testbed.NewTestbed(
 		np.ctx,
@@ -78,6 +82,7 @@ func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool
 		extraFactoryCtor(np.testbed.Bus, np.testbed.StaticResolver)
 	}
 
+	// Start the in-process transport controller with configured dialers.
 	tpc, _, tp1Ref, err := loader.WaitExecControllerRunningTyped[*transport_controller.Controller](
 		np.ctx,
 		np.testbed.Bus,
@@ -106,6 +111,7 @@ func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool
 	np.inproc = tp.(*inproc.Inproc)
 	np.transportController = tpc
 
+	// Start the config-set controller without applying peer config yet.
 	_, _, tp2Ref, err := bus.ExecOneOff(
 		np.ctx,
 		np.testbed.Bus,
@@ -119,6 +125,7 @@ func newPeer(ctx context.Context, le *logrus.Entry, gp *graph.Peer, verbose bool
 	}
 	rels = append(rels, tp2Ref.Release)
 
+	// Retain release callbacks until the simulator finishes startup.
 	// Don't call ApplyConfigSet yet until the simulator is fully started.
 	np.rels = rels
 	return np, nil

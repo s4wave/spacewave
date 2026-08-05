@@ -11,10 +11,13 @@ import (
 
 // TestSignedMsg tests signing a message.
 func TestSignedMsg(t *testing.T) {
+	// Create a peer and obtain its signing key.
 	p, err := NewPeer(nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+
+	// Record the expected identity and private key.
 	ctx := context.Background()
 	exPeerID := p.GetPeerID()
 	privKey, err := p.GetPrivKey(ctx)
@@ -22,6 +25,7 @@ func TestSignedMsg(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Sign and immediately verify the test message.
 	encContext := "bifrost/peer TestSignedMsg"
 	msg := "hello world from signed message test"
 	smsg, err := NewSignedMsg(encContext, privKey, hash.RecommendedHashType, []byte(msg))
@@ -32,6 +36,7 @@ func TestSignedMsg(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Verify the sender identity returned by the signed message.
 	_, peerID, err := smsg.ExtractAndVerify(encContext)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -40,12 +45,14 @@ func TestSignedMsg(t *testing.T) {
 		t.Fatalf("peer id mismatch: %s != %s", exPeerID.String(), peerID.String())
 	}
 
+	// Confirm that the original body remains intact.
 	if !bytes.Equal(smsg.Data, []byte(msg)) {
 		t.FailNow()
 	}
 }
 
 func TestSignedMsgExtractAndVerifyRejectsTamperedData(t *testing.T) {
+	// Create a peer and obtain its signing key.
 	p, err := NewPeer(nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -55,12 +62,14 @@ func TestSignedMsgExtractAndVerifyRejectsTamperedData(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Sign a body that will be tampered with after signing.
 	encContext := "bifrost/peer TestSignedMsg tamper"
 	smsg, err := NewSignedMsg(encContext, privKey, hash.RecommendedHashType, []byte("signed body"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Replace the body and require signature verification to reject it.
 	smsg.Data = []byte("tampered body")
 	_, _, err = smsg.ExtractAndVerify(encContext)
 	if !errors.Is(err, ErrSignatureInvalid) {

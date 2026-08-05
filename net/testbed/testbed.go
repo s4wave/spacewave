@@ -45,6 +45,7 @@ type TestbedOpts struct {
 // NewTestbed constructs a new core bus with a attached kvtx in-memory volume,
 // logger, and other core controllers required for a test to function.
 func NewTestbed(ctx context.Context, le *logrus.Entry, opts TestbedOpts) (*Testbed, error) {
+	// Create the testbed release callbacks and retain the requested private key.
 	var rels []func()
 	t := &Testbed{
 		Context: ctx,
@@ -57,6 +58,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts TestbedOpts) (*Testb
 		},
 	}
 
+	// Build the in-memory controller bus and register common factories.
 	b, sr, err := core.NewTestingBus(ctx, le)
 	if err != nil {
 		return nil, err
@@ -65,6 +67,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts TestbedOpts) (*Testb
 	t.Bus = b
 	sr.AddFactory(stream_echo.NewFactory(t.Bus))
 
+	// Generate a peer identity when the testbed requests one.
 	if !opts.NoPeer && t.PrivKey == nil {
 		npeer, err := peer.NewPeer(nil)
 		if err != nil {
@@ -75,6 +78,8 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts TestbedOpts) (*Testb
 			return nil, err
 		}
 	}
+
+	// Derive the public peer ID from the configured private key.
 	if t.PrivKey != nil {
 		pid, err := peer.IDFromPrivateKey(t.PrivKey)
 		if err != nil {
@@ -83,8 +88,8 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts TestbedOpts) (*Testb
 		t.PeerID = pid
 	}
 
+	// Start the peer controller unless peer setup is disabled.
 	if !opts.NoPeer {
-		// start peer controller
 		peerConfig, err := peer_controller.NewConfigWithPrivKey(t.PrivKey)
 		if err != nil {
 			return nil, err
@@ -103,6 +108,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts TestbedOpts) (*Testb
 		rels = append(rels, peerRef.Release)
 	}
 
+	// Start the echo stream controller unless echo is disabled.
 	if !opts.NoEcho {
 		_, _, echoRef, err := bus.ExecOneOff(
 			ctx,

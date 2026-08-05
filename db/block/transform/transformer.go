@@ -24,6 +24,7 @@ func NewTransformer(
 	fs *StepFactorySet,
 	c *Config,
 ) (*Transformer, error) {
+	// Construct each configured transform step in order.
 	steps := make([]Step, len(c.GetSteps()))
 	for i, s := range c.GetSteps() {
 		if fs == nil {
@@ -43,6 +44,8 @@ func NewTransformer(
 		}
 		steps[i] = s
 	}
+
+	// Derive the cache identity after all steps are constructed.
 	key, err := decodedBlockCacheTransformKeyForConfig(c)
 	if err != nil {
 		return nil, err
@@ -76,6 +79,7 @@ func (t *Transformer) DecodedBlockCacheTransformKey() string {
 // EncodeBlock encodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (t *Transformer) EncodeBlock(data []byte) ([]byte, error) {
+	// Apply transforms in declaration order for encoding.
 	var err error
 	for _, s := range t.steps {
 		data, err = s.EncodeBlock(data)
@@ -90,10 +94,12 @@ func (t *Transformer) EncodeBlock(data []byte) ([]byte, error) {
 // DecodeBlock decodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (t *Transformer) DecodeBlock(data []byte) ([]byte, error) {
+	// Leave untransformed data untouched when no decode steps exist.
 	if len(t.steps) == 0 {
 		return data, nil
 	}
 
+	// Reverse the configured steps to restore the original block.
 	var err error
 	for _, s := range slices.Backward(t.steps) {
 		data, err = s.DecodeBlock(data)

@@ -153,6 +153,7 @@ func (r *CanvasResource) UpdateCanvas(ctx context.Context, req *UpdateCanvasRequ
 		updated.HiddenGraphLinks = filtered
 	}
 
+	// Set layout metadata for updated nodes.
 	if setLayout := req.GetSetLayoutMetadata(); len(setLayout) > 0 {
 		if updated.LayoutMetadata == nil {
 			updated.LayoutMetadata = make(map[string]*CanvasLayoutMetadata, len(setLayout))
@@ -165,6 +166,7 @@ func (r *CanvasResource) UpdateCanvas(ctx context.Context, req *UpdateCanvasRequ
 		}
 	}
 
+	// Remove layout metadata for deleted nodes.
 	for _, id := range req.GetRemoveLayoutMetadataNodeIds() {
 		delete(updated.LayoutMetadata, id)
 	}

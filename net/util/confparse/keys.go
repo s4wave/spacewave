@@ -23,6 +23,7 @@ func ParsePeer(
 	// The peer ID should contain the public key.
 	peerId string,
 ) (peer.Peer, error) {
+	// Prefer the configured private key, then public key, then peer ID.
 	pkey, err := ParsePrivateKey(privKey)
 	if err != nil {
 		return nil, err
@@ -31,6 +32,7 @@ func ParsePeer(
 		return peer.NewPeer(pkey)
 	}
 
+	// Fall back to the configured public key when no private key is present.
 	pub, err := ParsePublicKey(pubKey)
 	if err != nil {
 		return nil, err
@@ -39,6 +41,7 @@ func ParsePeer(
 		return peer.NewPeerWithPubKey(pub)
 	}
 
+	// Resolve the peer ID only after key-based forms are absent.
 	peerID, err := ParsePeerID(peerId)
 	if err != nil {
 		return nil, err

@@ -91,18 +91,20 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 func (c *Controller) Execute(ctx context.Context) error {
 	le := c.le
 
-	// Listen on the multiaddress
+	// Listen on the configured multiaddress.
 	listener, err := manet.Listen(c.listenMa)
 	if err != nil {
 		return err
 	}
 	defer listener.Close()
 
+	// Start accepting connections while the listener remains active.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- c.acceptPump(ctx, listener)
 	}()
 
+	// Wait for cancellation or an accept-loop failure.
 	le.Debug("listening on multiaddr")
 	select {
 	case <-ctx.Done():
@@ -115,11 +117,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 // acceptPump accepts incoming connections.
 func (c *Controller) acceptPump(ctx context.Context, listener manet.Listener) error {
 	for {
+		// Accept each incoming connection and hand it to a stream routine.
 		conn, err := listener.Accept()
 		if err != nil {
 			return err
 		}
 
+		// Log and dispatch the accepted connection.
 		c.le.Debug("accepted connection")
 		go c.handleConn(ctx, conn)
 	}
@@ -130,9 +134,11 @@ var openStreamTimeout = time.Second * 10
 
 // handleConn handles a connection.
 func (c *Controller) handleConn(ctx context.Context, conn manet.Conn) {
+	// Bound stream establishment and release its timeout context on return.
 	openCtx, openCtxCancel := context.WithTimeout(ctx, openStreamTimeout)
 	defer openCtxCancel()
 
+	// Open the configured mounted stream for the remote endpoint.
 	opts := stream.OpenOpts{}
 	mstrm, rel, err := link.OpenStreamWithPeerEx(
 		openCtx,
@@ -145,10 +151,12 @@ func (c *Controller) handleConn(ctx context.Context, conn manet.Conn) {
 	)
 	if err != nil {
 		conn.Close()
+
 		// c.le.WithError(err).Warn("unable to open stream to handle conn")
 		return
 	}
 
+	// Proxy the network connection through the mounted stream.
 	strm := mstrm.GetStream()
 	ioproxy.ProxyStreams(conn, strm, func() {
 		rel()

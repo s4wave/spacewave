@@ -18,6 +18,7 @@ const PubPemType = "LIBP2P PUBLIC KEY"
 // Returns nil for the private key if not set.
 // Returns nil, nil, nil if nothing found in the pem.
 func ParseKeyPem(pemDat []byte) (crypto.PrivKey, crypto.PubKey, error) {
+	// Decode the first PEM block and classify its key type.
 	b, _ := pem.Decode(pemDat)
 	if b == nil {
 		return nil, nil, nil
@@ -25,12 +26,14 @@ func ParseKeyPem(pemDat []byte) (crypto.PrivKey, crypto.PubKey, error) {
 
 	switch b.Type {
 	case PrivPemType:
+		// Unmarshal a private key and derive its public counterpart.
 		pkey, err := crypto.UnmarshalPrivateKey(b.Bytes)
 		if err != nil {
 			return nil, nil, err
 		}
 		return pkey, pkey.GetPublic(), nil
 	case PubPemType:
+		// Unmarshal a standalone public key.
 		pkey, err := crypto.UnmarshalPublicKey(b.Bytes)
 		if err != nil {
 			return nil, nil, err

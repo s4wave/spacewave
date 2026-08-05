@@ -75,16 +75,16 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 	rctx, rctxCancel := context.WithCancel(ctx)
 	defer rctxCancel()
 
-	// Determine the init ref to the HEAD
+	// Select the configured initial head reference.
 	var headRef *bucket.ObjectRef
 
-	// initialize headRef using the configured head ref
+	// Resolve the configured initial head reference.
 	initRef := c.conf.GetInitHeadRef()
 	if initRef != nil {
 		headRef = initRef.Clone()
 	}
 
-	// Lookup the state store
+	// Resolve the object store used for persisted SQL state.
 	stateStoreID := c.conf.GetObjectStoreId()
 	stateStoreVol := c.conf.GetVolumeId()
 	if stateStoreVol == "" {
@@ -103,11 +103,12 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 	}
 	var headState *HeadState
 	if stateStore != nil {
-		// apply object store prefix
+		// Apply the configured object-store key prefix.
 		if prefix := c.conf.GetObjectStorePrefix(); len(prefix) != 0 {
 			stateStore = object.NewPrefixer(stateStore, []byte(prefix))
 		}
-		// load initial head ref
+
+		// Load the persisted head state when available.
 		var headStateFound bool
 		var err error
 		headState, headStateFound, err = c.loadHeadState(ctx, stateStore)
@@ -126,7 +127,8 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 	if headRef == nil {
 		headRef = &bucket.ObjectRef{}
 	}
-	// override bucket id if configured
+
+	// Override the configured bucket and validate the selected head.
 	if confBucketID := c.conf.GetBucketId(); confBucketID != "" {
 		headRef.BucketId = confBucketID
 	}
@@ -134,6 +136,7 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 		return errors.New("head ref bucket id required but was unset")
 	}
 
+	// Build the SQL cursor from the selected head reference.
 	le.Debug("building sql database")
 	cursor, err := bucket_lookup.BuildCursor(
 		ctx,
@@ -149,14 +152,16 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 	}
 	defer cursor.Release()
 
+	// Connect commits to head-state persistence when a state store exists.
 	var commitFn sql_mysql.CommitFn
 	if stateStore != nil {
 		commitFn = func(nref *bucket.ObjectRef) error {
-			// write state back to state store
+			// Persist each committed head state in the configured object store.
 			return c.writeHeadState(ctx, stateStore, nref)
 		}
 	}
 
+	// Create configured databases before publishing the SQL store.
 	mysql := sql_mysql.NewMysql(cursor, commitFn)
 	createDBs := c.conf.GetCreateDbs()
 	if len(createDBs) != 0 {
@@ -176,11 +181,13 @@ func (c *Controller) executeDB(ctx context.Context, ctr *ccontainer.CContainer[*
 		}
 	}
 
+	// Publish the SQL store until controller shutdown.
 	le.Info("sql store ready")
 	var handle hydra_sql.SqlStore = mysql
 	ctr.SetValue(&handle)
 	<-rctx.Done()
 
+	// Clear the published SQL store after controller shutdown.
 	le.Debug("shutting down")
 	ctr.SetValue(nil)
 	return context.Canceled

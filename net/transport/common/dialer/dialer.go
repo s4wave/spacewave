@@ -50,31 +50,42 @@ func (d *Dialer) GetLogger() *logrus.Entry {
 // Execute executes the dialer, with backoff.
 func (d *Dialer) Execute(ctx context.Context) (link.Link, error) {
 	for {
+		// Attempt the transport dial for the configured peer and address.
 		d.le.Debug("attempting to dial peer")
 		lnk, fatal, err := d.tptDialer.DialPeer(ctx, d.peerID, d.address)
+
+		// Reset backoff after a successful link.
 		if err == nil {
 			d.backoff.Reset()
 			return lnk, nil
 		}
+
+		// Stop retrying when the caller has canceled the dial.
 		if ctx.Err() != nil {
 			return nil, context.Canceled
 		}
 
+		// Select the next retry delay after a failed attempt.
 		bo := d.backoff.NextBackOff()
+
+		// Return fatal dial errors without retrying.
 		if fatal {
 			d.le.WithError(err).Warn("dialer errored fatally")
 			return nil, err
 		}
 
+		// Record the retryable dial failure and selected backoff.
 		d.le.
 			WithError(err).
 			WithField("backoff", bo.String()).
 			Warn("dialer errored")
 
+		// Stop when the backoff policy is exhausted.
 		if bo == -1 {
 			return nil, errors.New("dial backoff max duration exceeded")
 		}
 
+		// Wait for cancellation or the retry delay before dialing again.
 		select {
 		case <-ctx.Done():
 			return nil, context.Canceled

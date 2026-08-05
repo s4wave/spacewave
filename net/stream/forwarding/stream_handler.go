@@ -35,6 +35,7 @@ func (m *MountedStreamHandler) HandleMountedStream(
 	ctx context.Context,
 	strm link.MountedStream,
 ) error {
+	// Hold the source link while forwarding the mounted stream.
 	_, elRef, err := m.bus.AddDirective(
 		link.NewEstablishLinkWithPeer(strm.GetLink().GetLocalPeer(), strm.GetPeerID()),
 		nil,
@@ -42,14 +43,17 @@ func (m *MountedStreamHandler) HandleMountedStream(
 	if err != nil {
 		return err
 	}
+
+	// Forward the stream asynchronously so the handler returns promptly.
 	go func() {
+		// Retain the source stream and release its link reference on exit.
 		s := strm.GetStream()
 		defer func() {
 			elRef.Release()
 			s.Close()
 		}()
 
-		// Attempt to dial the target.
+		// Dial the configured target multiaddress.
 		m.le.Debug("dialing to forward stream")
 		conn, err := (&manet.Dialer{}).DialContext(ctx, m.dialMa)
 		if err != nil {
@@ -57,10 +61,13 @@ func (m *MountedStreamHandler) HandleMountedStream(
 			return
 		}
 
+		// Proxy the target connection until either side closes.
 		m.le.Debug("connection opened")
 		subCtx, subCtxCancel := context.WithCancel(ctx)
 		defer subCtxCancel()
 		ioproxy.ProxyStreams(conn, s, subCtxCancel)
+
+		// Wait for the proxy to finish before closing the connection.
 		<-subCtx.Done()
 		m.le.Debug("connection closing")
 

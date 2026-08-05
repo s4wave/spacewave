@@ -28,6 +28,7 @@ func ValidateURL(uri string, allowEmpty bool) error {
 //
 // Removes any empty values.
 func ParseURLs(urlStrs []string, allowEmpty bool) ([]*url.URL, error) {
+	// Parse each configured URL and omit allowed empty entries.
 	urls := make([]*url.URL, 0, len(urlStrs))
 	for i, urlStr := range urlStrs {
 		v, err := ParseURL(urlStr)

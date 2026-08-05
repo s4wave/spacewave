@@ -553,7 +553,7 @@ func (h *cloudSOHost) handleSONotifyWithContext(ctx context.Context, payload *ap
 	case "configChanged":
 		h.triggerConfigChanged()
 	case "metadata":
-		// Account-level notification handling owns metadata cache updates.
+		// Metadata updates are handled by account-level notification routing.
 	case "delete":
 		// SO is being deleted; no inline state to apply.
 	default:
@@ -885,6 +885,7 @@ func (h *cloudSOHost) writeStateWithRetry(ctx context.Context, state *sobject.SO
 				WithField("duration", time.Since(started)).
 				WithField("so-seqno", state.GetRoot().GetInnerSeqno()).
 				Debug("posted root state")
+
 			// Update cached state on successful write.
 			h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				h.stateCtr.SetValue(state)
@@ -1256,6 +1257,7 @@ func (h *cloudSOHost) syncConfigChainResponse(
 			if revInfo == nil {
 				continue
 			}
+
 			// Determine which peer was removed by diffing this entry's config
 			// against the previous entry's config.
 			if entry.GetConfigSeqno() == 0 {

@@ -10,9 +10,10 @@ func (r *SessionResource) WatchPairingStatus(
 	req *s4wave_session.WatchPairingStatusRequest,
 	strm s4wave_session.SRPCSessionResourceService_WatchPairingStatusStream,
 ) error {
+	// Initialize the pairing watch context.
 	ctx := strm.Context()
 
-	// Only the local provider supports pairing status.
+	// Return idle status for providers without pairing support.
 	localAcc, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount)
 	if !ok {
 		return strm.Send(&s4wave_session.WatchPairingStatusResponse{
@@ -20,6 +21,7 @@ func (r *SessionResource) WatchPairingStatus(
 		})
 	}
 
+	// Capture pairing state and its wake channel.
 	bcast := localAcc.GetPairingBroadcast()
 	var prev *s4wave_session.WatchPairingStatusResponse
 	for {
@@ -30,6 +32,7 @@ func (r *SessionResource) WatchPairingStatus(
 			snap = localAcc.GetPairingSnapshot()
 		})
 
+		// Emit only changed pairing snapshots.
 		resp := pairingSnapshotToProto(snap)
 		if prev == nil || !resp.EqualVT(prev) {
 			if err := strm.Send(resp); err != nil {
@@ -38,6 +41,7 @@ func (r *SessionResource) WatchPairingStatus(
 			prev = resp
 		}
 
+		// Wait for pairing changes or cancellation.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

@@ -15,11 +15,13 @@ import (
 )
 
 func Run(ctx context.Context, le *logrus.Entry) error {
+	// Construct the core bus.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		return err
 	}
 
+	// Add the platform-specific storage volume.
 	// TODO: add storage depending on if we are in js or not.
 	verbose := false
 	av, _, ref, err := common.AddStorageVolume(ctx, le, b, sr, verbose)
@@ -28,6 +30,7 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 	}
 	defer ref.Release()
 
+	// Resolve the node controller.
 	// Construct the node controller.
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
 	_, _, ncRef, err := loader.WaitExecControllerRunning(ctx, b, dir, nil)
@@ -37,6 +40,7 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 	defer ncRef.Release()
 	le.Info("node controller resolved")
 
+	// Run the block and Git demos on the resolved volume.
 	le.Info("storage volume resolved")
 	volCtr := av.(volume.Controller)
 

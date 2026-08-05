@@ -74,11 +74,13 @@ func WithKeyLogWriter(w io.Writer) IdentityOption {
 
 // NewIdentity creates a new TLS identity from a bifrost private key.
 func NewIdentity(privKey crypto.PrivKey, opts ...IdentityOption) (*Identity, error) {
+	// Apply identity options before generating the certificate template.
 	config := IdentityConfig{}
 	for _, opt := range opts {
 		opt(&config)
 	}
 
+	// Build a default certificate template when none was supplied.
 	var err error
 	if config.CertTemplate == nil {
 		config.CertTemplate, err = certTemplate()
@@ -87,6 +89,7 @@ func NewIdentity(privKey crypto.PrivKey, opts ...IdentityOption) (*Identity, err
 		}
 	}
 
+	// Bind the private key to the TLS certificate and assemble config.
 	cert, err := keyToCertificate(privKey, config.CertTemplate)
 	if err != nil {
 		return nil, err
@@ -111,6 +114,7 @@ func NewIdentity(privKey crypto.PrivKey, opts ...IdentityOption) (*Identity, err
 // certificate chain and returns the peer's public key via the channel. If the
 // peer ID is empty, the returned config will accept any peer.
 func (i *Identity) ConfigForPeer(remote peer.ID) (*tls.Config, <-chan crypto.PubKey) {
+	// Clone the base config and install peer certificate verification.
 	keyCh := make(chan crypto.PubKey, 1)
 	conf := i.config.Clone()
 	conf.VerifyConnection = func(cs tls.ConnectionState) (err error) {
@@ -125,10 +129,13 @@ func (i *Identity) ConfigForPeer(remote peer.ID) (*tls.Config, <-chan crypto.Pub
 			return errors.New("expected peer certificate")
 		}
 
+		// Extract and validate the signed peer public key.
 		pubKey, err := PubKeyFromCertChain(cs.PeerCertificates)
 		if err != nil {
 			return err
 		}
+
+		// Enforce the requested remote peer identity when constrained.
 		if remote != "" && !remote.MatchesPublicKey(pubKey) {
 			peerID, err := peer.IDFromPublicKey(pubKey)
 			if err != nil {
@@ -136,6 +143,8 @@ func (i *Identity) ConfigForPeer(remote peer.ID) (*tls.Config, <-chan crypto.Pub
 			}
 			return errors.Errorf("peer ID mismatch: expected %s, got %s", remote, peerID)
 		}
+
+		// Publish the verified public key to the transport caller.
 		keyCh <- pubKey
 		return nil
 	}
@@ -147,6 +156,8 @@ func PubKeyFromCertChain(chain []*x509.Certificate) (crypto.PubKey, error) {
 	if len(chain) != 1 {
 		return nil, errors.New("expected one certificate in the chain")
 	}
+
+	// Build a trust pool and locate the embedded signed-key extension.
 	cert := chain[0]
 	pool := x509.NewCertPool()
 	pool.AddCert(cert)
@@ -168,10 +179,13 @@ func PubKeyFromCertChain(chain []*x509.Certificate) (crypto.PubKey, error) {
 	if !found {
 		return nil, errors.New("expected certificate to contain the key extension")
 	}
+
+	// Verify the certificate chain before decoding the signed key.
 	if _, err := cert.Verify(x509.VerifyOptions{Roots: pool}); err != nil {
 		return nil, errors.Wrap(err, "certificate verification failed")
 	}
 
+	// Decode the signed public key and verify its certificate binding.
 	var sk signedKey
 	if _, err := asn1.Unmarshal(keyExt.Value, &sk); err != nil {
 		return nil, errors.Wrap(err, "unmarshalling signed certificate failed")
@@ -198,6 +212,7 @@ func PubKeyFromCertChain(chain []*x509.Certificate) (crypto.PubKey, error) {
 // and returns the signature within a pkix.Extension. This extension is included
 // in a certificate to cryptographically tie it to the bifrost private key.
 func GenerateSignedExtension(sk crypto.PrivKey, pubKey gocrypto.PublicKey) (pkix.Extension, error) {
+	// Marshal the identity key and certificate key before signing them.
 	keyBytes, err := crypto.MarshalPublicKey(sk.GetPublic())
 	if err != nil {
 		return pkix.Extension{}, err
@@ -210,6 +225,8 @@ func GenerateSignedExtension(sk crypto.PrivKey, pubKey gocrypto.PublicKey) (pkix
 	if err != nil {
 		return pkix.Extension{}, err
 	}
+
+	// Encode the signed key extension for certificate installation.
 	value, err := asn1.Marshal(signedKey{
 		PubKey:    keyBytes,
 		Signature: signature,

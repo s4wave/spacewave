@@ -62,7 +62,7 @@ func NewCoreRootServer(le *logrus.Entry, b bus.Bus) *CoreRootServer {
 	return s
 }
 
-// SetHostPluginID records the plugin id that owns this resource root.
+// SetHostPluginID records the plugin id serving this resource root.
 func (s *CoreRootServer) SetHostPluginID(pluginID string) {
 	s.hostPluginID = pluginID
 }
@@ -88,17 +88,20 @@ func (s *CoreRootServer) GetDebugDb(
 	ctx context.Context,
 	_ *s4wave_root.GetDebugDbRequest,
 ) (*s4wave_root.GetDebugDbResponse, error) {
+	// Acquire the caller resource context.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Construct and register the debug database resource.
 	debugResource := resource_debugdb.NewDebugDbResource(s.le, s.b)
 	id, err := resourceCtx.AddResource(debugResource.GetMux(), func() {})
 	if err != nil {
 		return nil, err
 	}
 
+	// Return the registered resource identifier.
 	return &s4wave_root.GetDebugDbResponse{ResourceId: id}, nil
 }
 

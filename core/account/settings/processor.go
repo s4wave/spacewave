@@ -18,15 +18,21 @@ func ProcessAccountSettingsOps(
 	currentStateData []byte,
 	ops []*sobject.SOOperationInner,
 ) (*[]byte, []*sobject.SOOperationResult, error) {
+	// Decode the current AccountSettings snapshot.
 	state := &AccountSettings{}
 	if len(currentStateData) > 0 {
 		if err := state.UnmarshalVT(currentStateData); err != nil {
 			return nil, nil, errors.Wrap(err, "unmarshal account settings state")
 		}
 	}
+
+	// Preserve the initial state for no-op detection.
 	initState := state.CloneVT()
 
+	// Initialize operation results.
 	results := make([]*sobject.SOOperationResult, 0, len(ops))
+
+	// Decode and apply each submitted operation.
 	for _, opInner := range ops {
 		peerID, err := opInner.ParsePeerID()
 		if err != nil {
@@ -34,6 +40,7 @@ func ProcessAccountSettingsOps(
 		}
 		peerIDStr := peerID.String()
 
+		// Decode the operation payload before dispatch.
 		op := &AccountSettingsOp{}
 		if err := op.UnmarshalVT(opInner.GetOpData()); err != nil {
 			results = append(results, sobject.BuildSOOperationResult(
@@ -47,6 +54,7 @@ func ProcessAccountSettingsOps(
 			continue
 		}
 
+		// Dispatch the operation body by its concrete variant.
 		switch body := op.GetOp().(type) {
 		case *AccountSettingsOp_UpdateDisplayName:
 			state.DisplayName = body.UpdateDisplayName.GetDisplayName()
@@ -61,7 +69,8 @@ func ProcessAccountSettingsOps(
 				))
 				continue
 			}
-			// Remove existing entry with same peer_id to avoid duplicates.
+
+			// Replace any paired-device entry with the same peer ID.
 			state.PairedDevices = slices.DeleteFunc(state.PairedDevices, func(d *PairedDevice) bool {
 				return d.GetPeerId() == dev.GetPeerId()
 			})
@@ -91,7 +100,8 @@ func ProcessAccountSettingsOps(
 				))
 				continue
 			}
-			// Remove existing entry with same peer_id to avoid duplicates.
+
+			// Replace any entity-keypair entry with the same peer ID.
 			state.EntityKeypairs = slices.DeleteFunc(state.EntityKeypairs, func(k *session.EntityKeypair) bool {
 				return k.GetPeerId() == kp.GetPeerId()
 			})
@@ -212,11 +222,12 @@ func ProcessAccountSettingsOps(
 		}
 	}
 
-	// If no state changes, return nil to signal no-op.
+	// Return without state data when no operation changed the snapshot.
 	if state.EqualVT(initState) {
 		return nil, results, nil
 	}
 
+	// Marshal the changed AccountSettings snapshot.
 	nextData, err := state.MarshalVT()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal account settings state")

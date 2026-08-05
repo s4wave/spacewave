@@ -38,7 +38,8 @@ func TestWorldEngine(ctx context.Context, le *logrus.Entry, eng world.Engine) er
 // TestWorldEngine_Basic performs basic sanity tests on a world engine.
 func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engine) error {
 	objKey := "test-object"
-	// create the object in the world
+
+	// Create the initial object in a writable transaction.
 	ws, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -48,7 +49,8 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	if err != nil {
 		return errors.Wrapf(err, "create object: %s", objKey)
 	}
-	// lookup the object
+
+	// Read back the created object and verify its root reference.
 	objState, err := world.MustGetObject(ctx, ws, objKey)
 	if err != nil {
 		return errors.Wrapf(err, "get object: %s", objKey)
@@ -69,13 +71,13 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return errors.Wrap(err, "object state get root ref")
 	}
 
-	// commit
+	// Commit the initial object transaction.
 	err = ws.Commit(ctx)
 	if err != nil {
 		return err
 	}
 
-	// create read tx
+	// Open a read transaction for persisted-state assertions.
 	ws, err = eng.NewTransaction(ctx, false)
 	if err != nil {
 		return err
@@ -102,20 +104,19 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	oref2 := &bucket.ObjectRef{}
 
-	// expect ErrNotWrite
+	// Confirm that read transactions reject root-reference writes.
 	_, err = objState.SetRootRef(ctx, oref2)
 	if err != tx.ErrNotWrite {
 		return errors.Errorf("expected error %v but got %v", tx.ErrNotWrite, err)
 	}
 
-	// check mechanics of writing while reading
-	// this should be possible with a world engine
+	// Open a writable transaction while retaining the original read snapshot.
 	ws2, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 
-	// update object reference & commit
+	// Update the object reference and commit the writable transaction.
 	objState2, err := world.MustGetObject(ctx, ws2, objKey)
 	if err != nil {
 		ws2.Discard()
@@ -135,9 +136,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
-	// check if original read tx was updated. Some engines keep read
-	// transactions live-updated, while coordinated storage engines provide a
-	// stable snapshot and expose the write through the next read transaction.
+	// Verify whether the original read snapshot observes the committed reference.
 	oref1b, _, err = objState.GetRootRef(ctx)
 	if err == nil {
 		err = assertEqual(oref1b, oref2)
@@ -161,13 +160,13 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		}
 	}
 
-	// test some graph transactions
+	// Open a writable transaction for graph mutation checks.
 	ws2, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 
-	// add a second object
+	// Add a second object and connect it with a graph quad.
 	obj2Key := "test-object-2"
 	_, err = ws2.CreateObject(ctx, obj2Key, oref1)
 	if err != nil {
@@ -193,8 +192,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
-	// Continue read assertions from a fresh transaction so engines with
-	// snapshot-isolated reads observe the committed graph update.
+	// Reopen a read transaction so snapshot-isolated engines observe the graph update.
 	ws.Discard()
 	ws, err = eng.NewTransaction(ctx, false)
 	if err != nil {
@@ -202,7 +200,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 	defer ws.Discard()
 
-	// check quad exists
+	// Verify that the committed graph quad can be looked up.
 	quads, err := ws.LookupGraphQuads(ctx, testQuad1, 1)
 	found := len(quads) != 0
 	if err == nil && !found {
@@ -212,11 +210,12 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
-	// attempt a cayley graph query
+	// Exercise a Cayley path query and iterator result handling.
 	err = ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
-		// check obj <parent> -> ?
+		// Build the parent path from the first object key.
 		p := cayley.StartPath(h, world.KeyToGraphValue(objKey)).Out(quad.IRI("parent"))
-		// quad stats + optimization basics
+
+		// Optimize the path and verify its iterator statistics.
 		sh, _, err := p.Shape().Optimize(ctx, nil)
 		if err != nil {
 			return err
@@ -229,7 +228,8 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		if stats.Size.Exact && stats.Size.Value != 1 {
 			return errors.Errorf("expected size of %d but got %d", 1, stats.Size.Value)
 		}
-		// test iterator basics
+
+		// Iterate path results and verify the expected child key.
 		sc := it.Iterate(ctx)
 		defer sc.Close()
 		n := 0
@@ -261,7 +261,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
-	// attempt a parent graph system query using our existing <parent> quad
+	// Exercise the parent graph helper against the existing relationship.
 	ws2, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -292,7 +292,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return errors.Errorf("expected parent to be empty but got: %s", parentStr)
 	}
 
-	// test a type set/lookup
+	// Verify the object type can be stored and read back.
 	objTypeID := "mock"
 	if err := world_types.SetObjectType(ctx, ws2, objKey, objTypeID); err != nil {
 		ws2.Discard()
@@ -326,7 +326,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 	defer ws.Discard()
 
-	// search for objects with the given type via path
+	// Query the graph for objects carrying the stored type.
 	err = ws.AccessCayleyGraph(ctx, false, func(ctx context.Context, h world.CayleyHandle) error {
 		p := path.StartPath(h)
 		p = world_types.LimitNodesToTypes(p, objTypeID)
@@ -344,7 +344,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
-	// search for types (iterate references to the type object)
+	// Enumerate objects linked to the stored type.
 	var objsWithTypeKey []string
 	err = world_types.IterateObjectsWithType(ctx, ws, objTypeID, func(objKey string) (bool, error) {
 		objsWithTypeKey = append(objsWithTypeKey, objKey)
@@ -360,13 +360,11 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return errors.Errorf("expected object %s w/ type %q but got %s", objKey, objTypeID, v)
 	}
 
-	// test a control loop by applying various operations to increase the
-	// revision of an object until the revision >= 20.
-	// if any one operation fails, the rev won't increase and the test will fail.
+	// Drive a control loop until repeated operations reach revision 20.
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
-	// increment revision until revision >= 20
+	// Configure the control loop's target revision.
 	var targetRev uint64 = 20
 	loop := world_control.NewWatchLoop(le, objKey, func(
 		ctx context.Context,
@@ -403,12 +401,10 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		nextMsg := "Hello from rev: " + strconv.Itoa(int(rev)) //nolint:gosec
 		if rev < targetRev {
 			if rev%2 != 0 || prevMsg == "" {
-				// odd numbers
+				// Build the next example block for odd revisions.
 				eb := block_mock.NewExample(nextMsg)
 
-				// write next root object into storage
-				// note: world.AccessObjectState is a utility for this
-				// var nroot *bucket.ObjectRef
+				// Write the next root block through the object-state access path.
 				var changed bool
 				_, changed, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
 					bcs.SetBlock(eb, true)
@@ -418,11 +414,10 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 					err = errors.New("changed = false but expected true")
 				}
 			} else if rev%10 == 0 {
-				// even numbers divisible by 10, use world op method
+				// Apply a world operation at revisions divisible by ten.
 				_, _, err = ws.ApplyWorldOp(ctx, NewMockWorldOp(objKey, nextMsg), "")
 			} else if rev%5 == 0 {
-				// even numbers divisible by 5, use object op method
-				// note: passing empty peer id
+				// Apply an object operation at other selected revisions.
 				_, _, err = obj.ApplyObjectOp(ctx, NewMockObjectOp(nextMsg), "")
 			} else {
 				_, err = obj.IncrementRev(ctx)
@@ -435,17 +430,18 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		if rev > targetRev {
 			return false, errors.Errorf("unexpected exceeded target rev: %v", rev)
 		}
-		// stop execution, success
+
+		// Stop the loop after the target revision is reached.
 		return false, nil
 	})
 
-	// test control loop
+	// Execute the control loop against the engine world state.
 	engWs := world.NewEngineWorldState(eng, true)
 	if err := loop.Execute(subCtx, engWs); err != nil {
 		return err
 	}
 
-	// delete the object
+	// Delete the object after the control-loop assertions complete.
 	ws2, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -468,7 +464,8 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	if err != nil {
 		return err
 	}
-	// test access object to create a blob
+
+	// Recreate the object with a blob payload.
 	_, bref, err := world.CreateWorldObject(ctx, ws2, objKey, func(bcs *block.Cursor) error {
 		_, berr := blob.BuildBlobWithBytes(ctx, blobTestData, bcs)
 		return berr
@@ -482,7 +479,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
-	// read the data out again
+	// Read the blob back and verify its content and unchanged reference.
 	le.Infof("stored blob length %d to object %s", len(blobTestData), bref.MarshalString())
 	engWs = world.NewEngineWorldState(eng, true)
 	var blobReadbackData []byte
@@ -510,13 +507,13 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 	le.Info("read back and verified blob contents from object")
 
-	// Test IterateObjects
+	// Create objects for prefix iteration checks.
 	ws2, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		return err
 	}
 
-	// Create a few test objects with different prefixes
+	// Seed objects under two prefixes.
 	testObjs := map[string]*bucket.ObjectRef{
 		"test/a":  {BucketId: "test-1"},
 		"test/b":  {BucketId: "test-2"},
@@ -536,13 +533,13 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 
-	// Create new transaction for iteration tests
+	// Open a read transaction for forward iteration.
 	ws2, err = eng.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
 
-	// Test forward iteration with prefix
+	// Verify forward iteration order for the test prefix.
 	iter := ws2.IterateObjects(ctx, "test/", false)
 
 	var keys []string
@@ -573,13 +570,13 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	iter.Close()
 	ws2.Discard()
 
-	// Create new transaction for reverse iteration
+	// Open a read transaction for reverse iteration.
 	ws2, err = eng.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
 
-	// Test reverse iteration with prefix
+	// Verify reverse iteration order for the test prefix.
 	iter = ws2.IterateObjects(ctx, "test/", true)
 
 	keys = nil
@@ -609,13 +606,13 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	iter.Close()
 
-	// Create new transaction for seek test
+	// Open a read transaction for seek checks.
 	ws2, err = eng.NewTransaction(ctx, false)
 	if err != nil {
 		return err
 	}
 
-	// Test seek
+	// Verify seeking to a prefix key.
 	iter = ws2.IterateObjects(ctx, "", false)
 
 	if err := iter.Seek("test/b"); err != nil {

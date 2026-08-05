@@ -90,10 +90,12 @@ func NewFloodSub(
 // Execute executes the PubSub routines.
 func (m *FloodSub) Execute(ctx context.Context) error {
 	m.le.Debug("floodsub starting")
+
 	// re-evaluate at most once every 100ms
 	evalTimer := time.NewTicker(time.Millisecond * 100)
 	defer evalTimer.Stop()
 
+	// Register incoming sessions before reconciling subscriptions.
 	pubbedChannels := make(map[string]struct{})
 	for {
 		var initSet []*SubscriptionOpts
@@ -103,6 +105,7 @@ func (m *FloodSub) Execute(ctx context.Context) error {
 			nctx, nctxCancel := context.WithCancel(ctx)
 			s.ctx = nctx
 			s.ctxCancel = nctxCancel
+
 			// if !s.initiator {
 			if initSet == nil {
 				initSet = make([]*SubscriptionOpts, 0, len(m.channels))
@@ -114,31 +117,39 @@ func (m *FloodSub) Execute(ctx context.Context) error {
 				}
 			}
 			s.packetCh <- &Packet{Subscriptions: initSet}
+
 			// }
 			go func() {
 				err := s.executeSession()
 				if err != nil && err != context.Canceled {
 					s.le.WithError(err).Warn("session exited with error")
 				}
+
 				// if s.initiator {
 				m.mtx.Lock()
 				if m.peers[s.tpl] == s {
 					delete(m.peers, s.tpl)
 				}
 				m.mtx.Unlock()
+
 				// }
 			}()
+
 			// if s.initiator {
 			m.peers[s.tpl] = s
+
 			// }
 		}
 		m.incSessions = nil
+
 		m.mtx.Unlock() // intentional mtx hold-break
 		initSet = nil
 
+		// Reconcile local subscriptions and collect peers to notify.
 		var xmitPeers []*streamHandler
 		var subChanges []*SubscriptionOpts
 		m.mtx.Lock()
+
 		// sweep empty channels
 		for chid, chm := range m.channels {
 			if len(chm) == 0 {
@@ -171,10 +182,12 @@ func (m *FloodSub) Execute(ctx context.Context) error {
 			}
 		}
 		m.mtx.Unlock()
+
 		for _, p := range xmitPeers { // xmitPeers is usually nil
 			p.writePacket(&Packet{Subscriptions: subChanges})
 		}
 
+		// Process wakeups and queued publications until evaluation is due.
 		var woken bool
 		for !woken {
 			select {
@@ -187,6 +200,7 @@ func (m *FloodSub) Execute(ctx context.Context) error {
 			}
 		}
 
+		// Re-enter reconciliation on the next timer tick.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -279,6 +293,7 @@ func (m *FloodSub) AddPeerStream(
 		initiator: initiator,
 	}
 	m.mtx.Lock()
+
 	// if !initiator {
 	if e, ok := m.peers[tpl]; ok {
 		if e.ctxCancel != nil {
@@ -286,6 +301,7 @@ func (m *FloodSub) AddPeerStream(
 		}
 	}
 	m.peers[tpl] = sh
+
 	// }
 	m.incSessions = append(m.incSessions, sh)
 	m.mtx.Unlock()

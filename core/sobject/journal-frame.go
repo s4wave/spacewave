@@ -83,11 +83,14 @@ type FileJournalStorage struct {
 
 // OpenFileJournalStorage opens or creates a journal storage file.
 func OpenFileJournalStorage(path string) (*FileJournalStorage, error) {
+	// Inspect the journal path and persisted identity metadata.
 	_, pathErr := os.Stat(path)
 	pathExists := pathErr == nil
 	if pathErr != nil && !os.IsNotExist(pathErr) {
 		return nil, errors.Wrap(ErrJournalCheckpointCorrupt, pathErr.Error())
 	}
+
+	// Load or create the journal identity.
 	identity, initialized, identityExists, err := readJournalIdentityMetadata(path)
 	if err != nil {
 		return nil, err
@@ -116,6 +119,8 @@ func OpenFileJournalStorage(path string) (*FileJournalStorage, error) {
 			return nil, errors.Wrap(ErrJournalCheckpointCorrupt, "initializing journal is nonempty")
 		}
 	}
+
+	// Validate the active generation marker.
 	markerData, markerErr := os.ReadFile(path + ".generation")
 	if markerErr != nil && !os.IsNotExist(markerErr) {
 		return nil, errors.Wrap(ErrJournalCheckpointCorrupt, markerErr.Error())
@@ -123,6 +128,8 @@ func OpenFileJournalStorage(path string) (*FileJournalStorage, error) {
 	if !initialized && len(markerData) > 0 {
 		return nil, errors.Wrap(ErrJournalCheckpointCorrupt, "initializing journal has an active generation")
 	}
+
+	// Open the journal file with restricted permissions.
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
 		return nil, errors.Wrap(err, "open shared object journal")
@@ -131,6 +138,8 @@ func OpenFileJournalStorage(path string) (*FileJournalStorage, error) {
 		_ = file.Close()
 		return nil, openErr
 	}
+
+	// Verify file metadata before initialization.
 	stat, err := file.Stat()
 	if err != nil {
 		return closeWithError(errors.Wrap(err, "stat shared object journal"))
@@ -138,6 +147,8 @@ func OpenFileJournalStorage(path string) (*FileJournalStorage, error) {
 	if stat.Mode().Perm()&0o077 != 0 {
 		return closeWithError(ErrJournalInsecureFileMode)
 	}
+
+	// Initialize generation metadata for a new journal.
 	if !initialized {
 		if err := ensureJournalGenerationFloor(path, identity, true); err != nil {
 			return closeWithError(err)
@@ -169,6 +180,8 @@ func OpenFileJournalStorage(path string) (*FileJournalStorage, error) {
 	if !initialized {
 		return closeWithError(errors.Wrap(ErrJournalCheckpointCorrupt, "journal identity was not initialized"))
 	}
+
+	// Return the initialized file-backed journal storage.
 	return &FileJournalStorage{file: file, path: path, identity: identity}, nil
 }
 

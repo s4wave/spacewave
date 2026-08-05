@@ -23,8 +23,8 @@ func isOrganizationMemberNotFound(err error) bool {
 	return errors.As(err, &target)
 }
 
-// reconcileOwnedOrganizationSpaces enrolls org members into spaces owned by
-// organizations this account owns.
+// reconcileOwnedOrganizationSpaces enrolls org members into spaces for which
+// this account holds the organization owner role.
 func (a *ProviderAccount) reconcileOwnedOrganizationSpaces(ctx context.Context, orgID string) error {
 	if !a.canMutateCloudObjects() {
 		return nil
@@ -51,7 +51,7 @@ func (a *ProviderAccount) reconcileOwnedOrganizationSpaces(ctx context.Context, 
 }
 
 // reconcilePendingParticipant enrolls a single account into a shared object
-// after the cloud worker notifies the owner session.
+// after the cloud worker notifies the authorized organization session.
 func (a *ProviderAccount) reconcilePendingParticipant(ctx context.Context, soID, accountID string) error {
 	if soID == "" {
 		return errors.New("shared object id is required")

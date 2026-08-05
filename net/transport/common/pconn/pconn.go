@@ -63,15 +63,18 @@ func NewTransport(
 	// may be nil
 	staticPeerMap map[string]*dialer.DialerOpts,
 ) (*Transport, error) {
+	// Resolve packet transport options before deriving the local identity.
 	if opts == nil {
 		opts = &Opts{}
 	}
 
+	// Derive the local peer identity for the transport.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Build the packet transport state.
 	tpt := &Transport{
 		ctx:           ctx,
 		le:            le,
@@ -86,14 +89,15 @@ func NewTransport(
 
 	var dialFn transport_quic.DialFunc
 	if addrParser != nil {
+		// Parse the dial address and negotiate QUIC over the packet transport.
 		dialFn = func(ctx context.Context, addr string) (*quic.Conn, net.Addr, error) {
-			// parse the addr to a net.Addr
+			// Parse the dial address into a network address.
 			na, err := addrParser(addr)
 			if err != nil {
 				return nil, na, err
 			}
 
-			// dial via quic
+			// Dial a QUIC session through the shared packet transport.
 			conn, _, err := transport_quic.DialSessionViaTransport(
 				ctx,
 				le,
@@ -110,7 +114,7 @@ func NewTransport(
 		}
 	}
 
-	// Build quic transport
+	// Install the QUIC transport and retain its packet listener.
 	tpt.Transport, err = transport_quic.NewTransport(
 		ctx,
 		le,
@@ -125,6 +129,7 @@ func NewTransport(
 		return nil, err
 	}
 
+	// Build the QUIC listener configuration and bind it to the packet socket.
 	tpt.quicConfig = transport_quic.BuildQuicConfig(opts.GetQuic())
 	tpt.quicTpt = &quic.Transport{Conn: pc}
 
@@ -138,11 +143,13 @@ func (t *Transport) GetPeerID() peer.ID {
 
 // Execute executes the transport as configured, returning any fatal error.
 func (t *Transport) Execute(ctx context.Context) error {
+	// Log the listener identity before accepting incoming sessions.
 	t.le.
 		WithField("local-addr", t.LocalAddr().String()).
 		WithField("peer-id", t.peerID.String()).
 		Info("starting to listen with quic + tls")
-	// Configure TLS to allow any incoming remote peer.
+
+	// Configure TLS to accept incoming sessions from any peer.
 	tlsConf := transport_quic.BuildIncomingTlsConf(t.GetIdentity(), "")
 	ln, err := t.quicTpt.Listen(tlsConf, t.quicConfig)
 	if err != nil {
@@ -151,7 +158,7 @@ func (t *Transport) Execute(ctx context.Context) error {
 	defer t.pc.Close()
 	defer ln.Close()
 
-	// accept new connections
+	// Accept sessions and register each resulting link.
 	for {
 		sess, err := ln.Accept(ctx)
 		if err != nil {

@@ -63,6 +63,7 @@ type CdnBlockStore struct {
 // lazily on the first read; pass a pre-populated pointer via SetPointer if
 // the caller already has one.
 func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
+	// Validate CDN configuration and select dependencies.
 	if opts.CdnBaseURL == "" {
 		return nil, errors.New("cdn bstore: CdnBaseURL required")
 	}
@@ -73,6 +74,8 @@ func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 	if cli == nil {
 		cli = http.DefaultClient
 	}
+
+	// Configure index caching and the anonymous packfile opener.
 	cache := opts.IndexCache
 	var memCache *memIndexCache
 	if cache == nil {
@@ -81,10 +84,14 @@ func NewCdnBlockStore(opts Options) (*CdnBlockStore, error) {
 	}
 	opener := NewAnonymousOpener(cli, opts.CdnBaseURL, opts.SpaceID)
 	pfs := packfile_store.NewPackfileStore(opener, cache)
+
+	// Allocate the decoded-block cache.
 	decodedBlocks, err := block.NewDecodedBlockCacheWithOptions(block.DefaultDecodedBlockCacheOptions())
 	if err != nil {
 		return nil, err
 	}
+
+	// Assemble the CDN block store.
 	return &CdnBlockStore{
 		opts:          opts,
 		cli:           cli,
@@ -133,6 +140,7 @@ func (s *CdnBlockStore) Close() {
 // SetWriteback enables local co-block persistence through the underlying
 // packfile store.
 func (s *CdnBlockStore) SetWriteback(ctx context.Context, target block.StoreOps, windowBytes int64) {
+	// Publish writeback configuration and update packfile verification.
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
 		s.writebackTarget = target
 		broadcastFn()
@@ -148,9 +156,12 @@ func (s *CdnBlockStore) SetRangeCacheMaxBytes(maxBytes int64) {
 
 // GetBlock reads a block by reference, refreshing the pointer if needed.
 func (s *CdnBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	// Serve a current decoded-cache hit when available.
 	if data, ok, err := s.getCurrentCachedBlock(ctx, ref); err != nil || ok {
 		return data, ok, err
 	}
+
+	// Read the block through the current CDN manifest.
 	var data []byte
 	var found bool
 	err := s.withCurrentManifest(ctx, func() error {
@@ -230,6 +241,7 @@ func (s *CdnBlockStore) Pointer() *cdn.CdnRootPointer {
 // Refresh forces a re-fetch of the root pointer and updates the manifest.
 // Returns the new pointer (nil if the CDN Space is empty).
 func (s *CdnBlockStore) Refresh(ctx context.Context) (*cdn.CdnRootPointer, error) {
+	// Fetch and publish the current CDN root pointer.
 	ptr, err := FetchRootPointer(ctx, s.cli, s.opts.CdnBaseURL, s.opts.SpaceID)
 	if err != nil {
 		return nil, err
@@ -274,6 +286,7 @@ func (s *CdnBlockStore) setPointer(ctx context.Context, ptr *cdn.CdnRootPointer)
 		if s.memCache != nil {
 			s.memCache.reset()
 		}
+
 		// Pointer, manifest, and decoded-cache epoch publish under one bcast lock.
 		// Reads take the same lock while snapshotting the manifest so they cannot
 		// pair an old pointer decision with a new manifest view.
@@ -368,6 +381,7 @@ func (s *CdnBlockStore) invalidateDecodedBlocks(ctx context.Context) {
 	if s.decodedBlocks == nil {
 		return
 	}
+
 	// A CDN pointer swap replaces the manifest under the store. Decoded hits
 	// must be equivalent to reading through the current manifest, not an older
 	// CDN root that happened to decode the same ref earlier.

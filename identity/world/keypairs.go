@@ -59,7 +59,7 @@ func FollowKeypair(
 	}
 	var entity *identity.Keypair
 	_, err = world.AccessObject(ctx, accessState, keypairRef, func(bcs *block.Cursor) error {
-		// Confirm valid Keypair object.
+		// Decode the referenced keypair block.
 		var err error
 		entity, err = identity.UnmarshalKeypair(ctx, bcs)
 		return err
@@ -133,8 +133,9 @@ func CollectAllKeypairs(ctx context.Context, w world.WorldState) ([]*identity.Ke
 	}
 	slices.Sort(objKeys)
 
-	// collect list
+	// Resolve the collected keypair keys.
 	list, err := LookupKeypairs(ctx, w, objKeys)
+
 	return list, objKeys, err
 }
 
@@ -146,9 +147,8 @@ func ListKeypairEntities(ctx context.Context, w world.WorldState, keypairKeys ..
 		w,
 		keypairKeys,
 		func(p *cayley.Path) (*cayley.Path, error) {
-			// In(PredObjectToKeypair): list all objects linking to the Keypairs.
+			// Traverse incoming links and retain entity objects.
 			p = p.In(PredObjectToKeypair)
-			// Filter those objects to Entities
 			p = world_types.LimitNodesToTypes(p, EntityTypeID)
 			return p, nil
 		},

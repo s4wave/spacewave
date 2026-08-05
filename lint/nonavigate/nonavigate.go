@@ -41,6 +41,7 @@ func (p *plugin) GetLoadMode() string {
 }
 
 func run(pass *analysis.Pass) (any, error) {
+	// Inspect each file for forbidden navigation calls.
 	for _, file := range pass.Files {
 		ast.Inspect(file, func(n ast.Node) bool {
 			call, ok := n.(*ast.CallExpr)
@@ -52,6 +53,7 @@ func run(pass *analysis.Pass) (any, error) {
 				return true
 			}
 			if sel.Sel.Name == "Navigate" {
+				// Report navigation calls that destroy the WASM process.
 				pass.Report(analysis.Diagnostic{
 					Pos:     sel.Sel.Pos(),
 					Message: "Navigate triggers a full page reload destroying the WASM process and all workers; use page.Evaluate with pushState for client-side routing instead",

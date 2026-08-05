@@ -71,15 +71,18 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 
 // WriteFrom writes data from a reader to a blob and then an index.
 func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error {
+	// Reject empty writes before preparing blob or range state.
 	if dataLen <= 0 {
 		return nil
 	}
 
+	// Reuse the append operation for an existing root or range blob.
 	// appendToBlob appends to an existing blob
 	appendToBlob := func(rcsBlob *blob.Blob, rblobCs *block.Cursor) error {
 		return rcsBlob.AppendData(w.ctx, dataLen, dataRdr, rblobCs, w.buildBlobOpts)
 	}
 
+	// Replace the file root when this write covers the existing contents.
 	// optimization: if start=0 and len >= size, fully overwrite the entire file
 	rootTotalSize := w.root.GetTotalSize()
 	if rootTotalSize > math.MaxInt64 {
@@ -88,6 +91,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 	if index == 0 && dataLen >= int64(rootTotalSize) {
 		// clear file contents
 		w.Reset()
+
 		// set root blob to the new contents
 		rootBlobCs := w.bcs.FollowSubBlock(2)
 		b1, err := blob.BuildBlob(w.ctx, dataLen, dataRdr, rootBlobCs, w.buildBlobOpts)
@@ -95,12 +99,14 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 			return err
 		}
 		w.root.RootBlob = b1
+
 		// set total size to new size
 		w.root.TotalSize = uint64(dataLen)
 		w.bcs.MarkDirty()
 		return nil
 	}
 
+	// Append directly to an un-ranged root blob when the write is contiguous.
 	// optimization: if root blob is set and len == index, append to it
 	rlen := len(w.root.Ranges)
 	rootBlobSize := w.root.GetRootBlob().GetTotalSize()
@@ -117,15 +123,18 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		return nil
 	}
 
+	// Move the root blob into a range before handling partial writes.
 	// XXX: optimization: if index==0, check root blob has same len and contents
 	if err := w.moveRootBlobToRange(); err != nil {
 		return err
 	}
 
+	// Extend a contiguous range when no higher-nonce range would overlap.
 	// optimization: extend the range at the location
 	// to do this properly, need to assert that:
 	// - the range is the highest nonce for that position
 	// - there is no range following the range w/ a higher nonce within the write len
+	// Locate a candidate range and inspect its overlap boundary.
 	ranges := w.root.Ranges
 	rlen = len(ranges)
 	if rlen != 0 && index != 0 {
@@ -135,6 +144,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		rangeSlice := RangeSlice(ranges)
 		rng, rngIdx, rngFound := rangeSlice.LocatePosition(int(index) - 1)
 		writeEnd := index + uint64(dataLen)
+
 		// if the range covers index-1 and ends at the write index...
 		if rngFound && rng.GetStart()+rng.GetLength() == index {
 			// scan forward
@@ -151,12 +161,14 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 				if rrngEnd < index {
 					continue
 				}
+
 				// ignore nonce < rng.Nonce
 				if rrng.GetNonce() > rng.GetNonce() {
 					found = true
 					break
 				}
 			}
+
 			// if found = true, we can't extend this range, it will collide with another.
 			if !found {
 				// append to the range
@@ -166,6 +178,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 				if err != nil {
 					return err
 				}
+
 				// only append to blob with length filling entire range
 				rcsBlobSize := rcsBlob.GetTotalSize()
 				if rcsBlobSize != 0 && rcsBlobSize == rng.GetLength() {
@@ -191,6 +204,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		}
 	}
 
+	// Create a new range for data that cannot extend an existing range.
 	nonce := w.root.GetRangeNonce()
 	w.root.RangeNonce += 1
 	w.root.Ranges = append(w.root.Ranges, &Range{
@@ -200,9 +214,11 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		Ref:    nil, // will be filled by writer
 	})
 
+	// Replace the range's blob reference with the newly built blob.
 	_, rangeCs := w.rangeSet.Get(rlen)
 	rangeCs.ClearRef(4)
 	rcs := rangeCs.FollowRef(4, nil)
+
 	// rcs.SetBlock() and MarkDirty() will be called
 	bblob, err := blob.BuildBlob(
 		w.ctx,
@@ -218,6 +234,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		return err
 	}
 
+	// Sort and compact ranges, then grow the file size when necessary.
 	size := bblob.GetTotalSize()
 	w.sortRanges()
 	w.compactOccludedRanges()
@@ -230,6 +247,7 @@ func (w *Writer) WriteFrom(index uint64, dataLen int64, dataRdr io.Reader) error
 		w.bcs.MarkDirty()
 	}
 
+	// Move the new range back into the root blob when it can be folded.
 	// move range to root blob if possible
 	if err := w.moveRangeToRootBlob(); err != nil {
 		return err
@@ -261,6 +279,7 @@ func (w *Writer) WriteBlob(index, size uint64, ref *block.BlockRef) error {
 	})
 	_, rcs := w.rangeSet.Get(rlen)
 	rcs.ClearRef(4)
+
 	w.sortRanges() // TODO: faster sorted insert
 	w.compactOccludedRanges()
 
@@ -315,6 +334,7 @@ func (w *Writer) Truncate(size uint64) error {
 			irangeStart := irange.GetStart()
 			if irangeStart >= size {
 				removeFrom = i
+
 				rangesBcs.ClearRef(uint32(i)) //nolint:gosec
 				continue
 			}
@@ -324,6 +344,7 @@ func (w *Writer) Truncate(size uint64) error {
 			if irangeEnd <= size {
 				continue
 			}
+
 			// shorten range to end of file
 			irangeBcs := rangesBcs.FollowSubBlock(uint32(i)) //nolint:gosec
 			if irangeEnd > size {
@@ -447,6 +468,7 @@ func (w *Writer) moveRootBlobToRange() error {
 // with start == 0 or containing zeros only. otherwise does nothing.
 func (w *Writer) moveRangeToRootBlob() error {
 	ranges := w.root.GetRanges()
+
 	// note: can probably remove the ranges[0].getstart check here.
 	if len(ranges) != 1 || ranges[0].GetStart() != 0 {
 		return nil
@@ -510,6 +532,7 @@ func (w *Writer) deleteRange(idx int) {
 	}
 	w.root.Ranges[lastIdx] = nil
 	w.root.Ranges = w.root.Ranges[:lastIdx]
+
 	w.rangeSet.GetCursor().ClearRef(uint32(lastIdx)) //nolint:gosec
 	w.bcs.MarkDirty()
 }

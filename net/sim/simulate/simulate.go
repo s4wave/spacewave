@@ -33,10 +33,13 @@ func NewSimulator(
 	grp *graph.Graph,
 	opts ...SimulatorOption,
 ) (*Simulator, error) {
+	// Initialize simulator state and apply construction options.
 	s := &Simulator{
 		le:    le,
 		peers: make(map[string]*Peer),
 	}
+
+	// Create the simulator cancellation context before starting peers.
 	s.ctx, s.ctxCancel = context.WithCancel(ctx)
 
 	for _, opt := range opts {
@@ -47,7 +50,7 @@ func NewSimulator(
 		}
 	}
 
-	// Instantiate the nodes
+	// Instantiate graph peers and prepare their in-process links.
 	allNodes := grp.AllNodes()
 	le.Debugf("processing %d nodes in graph", len(allNodes))
 	var allPeers []*Peer
@@ -70,11 +73,11 @@ func NewSimulator(
 		}
 		allPeers = append(allPeers, pushedPeer)
 
-		// get the list of linked peers
+		// Discover peers linked through the graph.
 		linkedPeers := peer.GetLinkedPeers(grp)
 		le.Debugf("peer %s has %d linked peers", peerIDStr, len(linkedPeers))
 
-		// add each linked peer
+		// Connect each discovered peer in both directions.
 		for _, lpeer := range linkedPeers {
 			lpeerPeerIDStr := lpeer.GetPeerID().String()
 			op, ok := s.peers[lpeerPeerIDStr]
@@ -95,7 +98,7 @@ func NewSimulator(
 		}
 	}
 
-	// Finish startup
+	// Apply each peer's deferred configuration after all links exist.
 	for _, addedPeer := range allPeers {
 		if err := addedPeer.finishSetup(); err != nil {
 			s.ctxCancel()

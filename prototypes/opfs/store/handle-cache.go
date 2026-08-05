@@ -27,6 +27,7 @@ func newHandleCache() *handleCache {
 // acquire increments the refcount for a file (or opens it if not cached).
 // The caller must provide the FileHandle to open from if not cached.
 func (c *handleCache) acquire(name string, fh *opfs.FileHandle) (opfs.FileOps, error) {
+	// Lock the cache while resolving or opening the named handle.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -35,6 +36,7 @@ func (c *handleCache) acquire(name string, fh *opfs.FileHandle) (opfs.FileOps, e
 		return e.handle, nil
 	}
 
+	// Open and retain a new handle when the cache has no entry.
 	ops, err := fh.OpenFileOps()
 	if err != nil {
 		return nil, err
@@ -45,6 +47,7 @@ func (c *handleCache) acquire(name string, fh *opfs.FileHandle) (opfs.FileOps, e
 
 // release decrements the refcount, closing the handle when it reaches zero.
 func (c *handleCache) release(name string) {
+	// Lock the cache while decrementing the named handle reference.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -54,6 +57,7 @@ func (c *handleCache) release(name string) {
 	}
 	e.refcount--
 	if e.refcount <= 0 {
+		// Close and remove handles whose final reference was released.
 		_ = e.handle.Close()
 		delete(c.entries, name)
 	}
@@ -61,6 +65,7 @@ func (c *handleCache) release(name string) {
 
 // closeAll closes all cached handles.
 func (c *handleCache) closeAll() {
+	// Close every cached handle while holding the cache lock.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for name, e := range c.entries {

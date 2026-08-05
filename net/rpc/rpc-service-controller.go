@@ -87,8 +87,8 @@ func (c *RpcServiceController) HandleDirective(
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case LookupRpcService:
+		// Match the service against configured prefixes, expressions, and IDs.
 		serviceID := d.LookupRpcServiceID()
-		// if we have no filters, match all.
 		matched := len(c.serviceIdPrefixes) == 0 && c.serviceIdRe == nil && len(c.serviceIdList) == 0
 		if !matched && len(c.serviceIdPrefixes) != 0 {
 			for _, prefix := range c.serviceIdPrefixes {
@@ -106,6 +106,8 @@ func (c *RpcServiceController) HandleDirective(
 				matched = true
 			}
 		}
+
+		// Apply the optional server filter after service matching.
 		if matched && c.serverIdRe != nil {
 			serverID := d.LookupRpcServerID()
 			matched = c.serverIdRe.MatchString(serverID)
@@ -120,6 +122,7 @@ func (c *RpcServiceController) HandleDirective(
 					if val == nil {
 						return nil, nil
 					}
+
 					var invoker LookupRpcServiceValue = val //nolint:staticcheck
 					if c.stripServiceIdPrefix {
 						invoker = srpc.NewPrefixInvoker(invoker, c.serviceIdPrefixes)

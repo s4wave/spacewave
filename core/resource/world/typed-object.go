@@ -79,9 +79,12 @@ func newTypedObjectResourceWithContextAndSessionPeerID(
 	sessionPeerID peer.ID,
 	sessionPeerIDBound bool,
 ) *TypedObjectResource {
+	// Normalize the parent context and create resource lifecycle state.
 	if ctx == nil {
 		ctx = context.Background()
 	}
+
+	// Construct the typed-object resource.
 	lifecycleCtx, lifecycleCancel := context.WithCancel(ctx)
 	r := &TypedObjectResource{
 		le:                 le,
@@ -93,10 +96,14 @@ func newTypedObjectResourceWithContextAndSessionPeerID(
 		sessionPeerID:      sessionPeerID,
 		sessionPeerIDBound: sessionPeerIDBound,
 	}
+
+	// Initialize keyed typed-object handles.
 	r.objects = keyed.NewKeyedRefCount(
 		r.buildTypedObjectHandle,
 		keyed.WithExitLoggerWithNameFn[typedObjectResourceKey, *typedObjectHandle](le, typedObjectResourceKey.String),
 	)
+
+	// Start handle tracking under the lifecycle context.
 	r.objects.SetContext(lifecycleCtx, false)
 	return r
 }
@@ -125,28 +132,31 @@ func (r *TypedObjectResource) Close() {
 //   - plugin-dist/{plugin-id}: accesses the plugin's distribution filesystem
 //   - plugin-assets/{plugin-id}: accesses the plugin's assets filesystem
 func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave_world.AccessTypedObjectRequest) (*s4wave_world.AccessTypedObjectResponse, error) {
+	// Acquire the caller resource context.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Validate the requested object key.
 	objectKey := req.GetObjectKey()
 	if objectKey == "" {
 		return nil, world.ErrEmptyObjectKey
 	}
 
-	// Check for plugin filesystem prefixes (plugin-dist/*, plugin-assets/*)
+	// Route plugin filesystem prefixes to their specialized resource.
 	_, matchedPrefix := bldr_plugin.ParsePluginUnixfsID(objectKey)
 	if matchedPrefix != "" {
 		return r.accessPluginUnixFS(ctx, resourceCtx, objectKey)
 	}
 
+	// Select the world state used for this access.
 	ws := r.ws
 	if r.engine != nil && r.ws.GetReadOnly() {
 		ws = world.NewEngineWorldState(r.engine, true)
 	}
 
-	// Look up the object to verify it exists
+	// Verify that the object exists.
 	_, found, err := ws.GetObject(ctx, objectKey)
 	if err != nil {
 		return nil, err
@@ -155,7 +165,7 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 		return nil, world.ErrObjectNotFound
 	}
 
-	// Get the object type from graph quads
+	// Resolve the object's graph type.
 	typeID, err := world_types.GetObjectType(ctx, ws, objectKey)
 	if err != nil {
 		return nil, err
@@ -164,6 +174,7 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 		return nil, world_types.ErrUnknownObjectType
 	}
 
+	// Bind trusted session and engine context to the handle key.
 	sessionPeerID := objecttype.SessionPeerIDFromContext(ctx)
 	if r.sessionPeerIDBound {
 		sessionPeerID = r.sessionPeerID
@@ -175,6 +186,8 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 		sessionPeerID: sessionPeerID,
 		engineID:      objecttype.EngineIDFromContext(ctx),
 	}
+
+	// Acquire a shared typed-object handle.
 	ref, handle, _ := r.objects.AddKeyRef(key)
 	if handle == nil {
 		ref.Release()
@@ -185,6 +198,7 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 		return nil, handle.err
 	}
 
+	// Register the typed-object resource and its release callback.
 	id, err := resourceCtx.AddResource(handle.invoker, ref.Release)
 	if err != nil {
 		ref.Release()

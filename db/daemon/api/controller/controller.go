@@ -58,17 +58,15 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	// Construct the API
+	// Construct and register the Hydra API.
 	api, err := hydra_api.NewAPI(c.bus, c.conf.GetHydraApiConfig())
 	if err != nil {
 		return err
 	}
-
-	// hydra api
 	mux := srpc.NewMux()
 	api.RegisterAsSRPCServer(mux)
 
-	// bifrost api
+	// Register optional Bifrost and controller-bus APIs.
 	if !c.conf.GetDisableBifrostApi() {
 		bapi, err := bapi.NewAPI(c.bus, c.conf.GetBifrostApiConfig())
 		if err != nil {
@@ -76,19 +74,17 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		bapi.RegisterAsSRPCServer(mux)
 	}
-
-	// controllerbus api
 	if !c.conf.GetDisableBusApi() {
 		bapi := cbapi.NewAPI(c.bus, c.conf.GetBusApiConfig())
 		_ = bapi.RegisterAsSRPCServer(mux)
 	}
 
+	// Listen for API connections and serve until cancellation or failure.
 	c.le.WithField("local-addr", c.listenAddr).Info("starting to listen for api connections")
 	lis, err := net.Listen("tcp", c.listenAddr)
 	if err != nil {
 		return err
 	}
-
 	srv := srpc.NewServer(mux)
 	errCh := make(chan error, 1)
 	go func() {
@@ -96,6 +92,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		_ = lis.Close()
 	}()
 
+	// Close the listener when the context ends.
 	select {
 	case <-ctx.Done():
 		_ = lis.Close()

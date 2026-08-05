@@ -148,6 +148,7 @@ func runAuthBackupGenerate(c *cli.Context, statePath string, sessionIdx uint32, 
 // the PEM to outFile, and print a confirmation line. Used by both the
 // auth backup generate and auth method add backup subcommands.
 func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint32, authPemFile, outFile string) error {
+	// Resolve the state path and collect the account credential.
 	ctx := c.Context
 	resolved, err := authResolveStatePath(c, statePath)
 	if err != nil {
@@ -159,6 +160,7 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 		return err
 	}
 
+	// Connect to the daemon and mount the requested session.
 	client, err := connectDaemonWithResolvedFallback(ctx, c, resolved)
 	if err != nil {
 		return err
@@ -171,6 +173,7 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 	}
 	defer sess.Release()
 
+	// Resolve the account service for the mounted session.
 	info, err := sess.GetSessionInfo(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get session info")
@@ -184,6 +187,7 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 	}
 	defer acctCleanup()
 
+	// Generate and persist the backup key through the account service.
 	resp, err := acctSvc.GenerateBackupKey(ctx, &s4wave_account.GenerateBackupKeyRequest{
 		Credential: cred,
 	})
@@ -195,6 +199,7 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 		return errors.Wrap(err, "write PEM file")
 	}
 
+	// Report the saved file and abbreviated peer identifier.
 	pidStr := resp.GetPeerId()
 	if len(pidStr) > 16 {
 		pidStr = pidStr[:16] + "..."
@@ -207,6 +212,7 @@ func generateAndSaveBackupKey(c *cli.Context, statePath string, sessionIdx uint3
 // If pemFile is non-empty, reads the PEM file. Otherwise prompts for password.
 func promptCredential(pemFile string) (*session_pb.EntityCredential, error) {
 	if pemFile != "" {
+		// Read and wrap the supplied PEM credential.
 		data, err := os.ReadFile(pemFile)
 		if err != nil {
 			return nil, errors.Wrap(err, "read PEM file")
@@ -215,6 +221,8 @@ func promptCredential(pemFile string) (*session_pb.EntityCredential, error) {
 			Credential: &session_pb.EntityCredential_PemPrivateKey{PemPrivateKey: data},
 		}, nil
 	}
+
+	// Prompt for and validate the account password.
 	os.Stderr.WriteString("Account password: ")
 	pw, err := term.ReadPassword(int(os.Stdin.Fd()))
 	os.Stderr.WriteString("\n")

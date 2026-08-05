@@ -395,6 +395,7 @@ func (t *SessionTransport) publishStartupReady() {
 // Execute creates the child bus with bifrost transport controllers and
 // blocks until ctx is canceled.
 func (t *SessionTransport) Execute(ctx context.Context) (err error) {
+	// Initialize cancellation and publish startup state.
 	ctx, cancel := context.WithCancel(ctx)
 	t.ensureStartupDeadline(ctx)
 	var startupStopped bool
@@ -431,8 +432,8 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 		}()
 	}
 
+	// Create the child bus and its controller infrastructure.
 	t.setStartupStage("child-bus")
-	// Create child bus with loader and resolver infrastructure.
 	b, sr, err := cbc.NewCoreBus(ctx, le)
 	if err != nil {
 		return err
@@ -450,6 +451,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	}()
 
 	t.setStartupStage("bridge")
+
 	// Bridge directives from child to parent.
 	bridge := bus_bridge.NewBusBridge(t.parentBus, func(di directive.Instance) (bool, error) {
 		if t.bridgeFilter != nil {
@@ -469,6 +471,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	}
 
 	t.setStartupStage("peer-controller")
+
 	// Register peer controller with the session's private key.
 	sessionPeer, err := peer.NewPeer(t.sessionKey)
 	if err != nil {
@@ -480,6 +483,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	}
 
 	t.setStartupStage("factories")
+
 	// Register bifrost transport factories on the child bus.
 	for _, factory := range sessionTransportFactories(b) {
 		sr.AddFactory(factory)
@@ -488,6 +492,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	sr.AddFactory(dex_solicit.NewFactory(b))
 
 	t.setStartupStage("solicit-controller")
+
 	// Start solicit controller for bilateral stream matching.
 	_, _, solicitRef, err := loader.WaitExecControllerRunning(
 		ctx, b,

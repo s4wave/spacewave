@@ -94,8 +94,10 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(rctx context.Context) error {
+	// Derive a cancellable context for the runtime lifecycle.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
+
 	// Construct the web runtime.
 	rt, err := c.ctor(
 		ctx,
@@ -112,17 +114,20 @@ func (c *Controller) Execute(rctx context.Context) error {
 		}
 	})
 
+	// Publish the runtime before starting its execution loop.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		c.rt = rt
 		broadcast()
 	})
 
+	// Start runtime execution and retain its error channel.
 	c.le.Debug("executing bldr web runtime")
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- rt.Execute(ctx)
 	}()
 
+	// Wait for runtime cancellation or execution failure.
 	for {
 		// note: will add case to re-sync when needed
 		select {
@@ -141,6 +146,8 @@ func (c *Controller) GetWebRuntime(ctx context.Context) (web_runtime.WebRuntime,
 	for {
 		var trig <-chan struct{}
 		var rt web_runtime.WebRuntime
+
+		// Read the runtime and wait channel under one broadcast lock.
 		c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			rt = c.rt
 			if rt == nil {
@@ -150,6 +157,8 @@ func (c *Controller) GetWebRuntime(ctx context.Context) (web_runtime.WebRuntime,
 		if rt != nil {
 			return rt, nil
 		}
+
+		// Wait for publication or caller cancellation.
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -163,12 +172,16 @@ func (c *Controller) GetWebRuntime(ctx context.Context) (web_runtime.WebRuntime,
 // Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	// Inspect the requested web runtime directive.
 	switch dir := di.GetDirective().(type) {
 	case web_runtime.LookupWebRuntime:
+		// Resolve the runtime when the requested ID matches this controller.
 		if dir.LookupWebRuntimeID() == c.runtimeID {
 			return directive.R(directive.NewGetterResolver(c.GetWebRuntime), nil)
 		}
 	}
+
+	// Leave unrelated runtime directives unresolved.
 	return nil, nil
 }
 
@@ -298,6 +311,7 @@ func (c *Controller) ServePluginDistFsHTTP(pluginID string, rw http.ResponseWrit
 		WithField("plugin-id", pluginID).
 		WithField("path", req.URL.Path).
 		Debug("accessing plugin dist filesystem")
+
 	// see: plugin/host/controller/plugin-tracker.go distFsID
 	unixFsID := bldr_plugin.PluginDistFsId(pluginID)
 	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)
@@ -313,6 +327,7 @@ func (c *Controller) ServePluginAssetsFsHTTP(pluginID string, rw http.ResponseWr
 		WithField("plugin-id", pluginID).
 		WithField("path", req.URL.Path).
 		Debug("accessing plugin assets filesystem")
+
 	// see: plugin/host/controller/plugin-tracker.go assetsFsID
 	unixFsID := bldr_plugin.PluginAssetsFsId(pluginID)
 	handler := unixfs_access_http.NewHTTPHandler(req.Context(), c.bus, unixFsID, "", "", true)

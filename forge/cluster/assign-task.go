@@ -66,7 +66,7 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	clusterKey, jobKey, taskKey := o.GetClusterKey(), o.GetJobKey(), o.GetTaskKey()
 
-	// check the <type> of the job, cluster, and task objects
+	// Confirm the cluster, job, and task object types.
 	err = CheckClusterType(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
@@ -82,7 +82,7 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// unmarshal the cluster
+	// Load the cluster record and its controlling peer.
 	cluster, _, err := LookupCluster(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
@@ -96,50 +96,50 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 		return false, errors.Wrap(peer.ErrEmptyPeerID, "cluster")
 	}
 
-	// ensure the sender matches the cluster peer id
+	// Require the sender to match the cluster's controlling peer.
 	senderPeerIDStr := sender.String()
 	if senderPeerIDStr != clusterPeerIDStr {
 		return false, errors.Errorf("tx sender %s does not match cluster %s", senderPeerIDStr, clusterPeerIDStr)
 	}
 
-	// ensure the cluster and job are linked
+	// Confirm the job is linked to the cluster.
 	err = EnsureClusterHasJob(ctx, worldHandle, clusterKey, jobKey)
 	if err != nil {
 		return false, err
 	}
 
-	// unmarshal the job
+	// Load the job record.
 	job, _, err := forge_job.LookupJob(ctx, worldHandle, jobKey)
 	if err != nil {
 		return false, err
 	}
 
-	// ensure the job is running
+	// Require the job to be running before assigning the task.
 	err = job.GetJobState().EnsureMatches(forge_job.State_JobState_RUNNING)
 	if err != nil {
 		return false, err
 	}
 
-	// ensure the job and task are linked
+	// Confirm the task is linked to the job.
 	err = forge_job.EnsureJobHasTask(ctx, worldHandle, jobKey, taskKey)
 	if err != nil {
 		return false, err
 	}
 
-	// update the task
+	// Assign the task to the cluster when it is unclaimed.
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, taskKey, true, func(bcs *block.Cursor) error {
 		task, err := forge_task.UnmarshalTask(ctx, bcs)
 		if err != nil {
 			return err
 		}
 
-		// check if the task is assigned already
+		// Reject tasks that already have a peer assignment.
 		taskPeerID := task.GetPeerId()
 		if taskPeerID != "" {
 			return errors.Errorf("task already assigned to %s", taskPeerID)
 		}
 
-		// assign the task to the cluster
+		// Store the cluster peer assignment.
 		task.PeerId = clusterPeerIDStr
 		bcs.SetBlock(task, true)
 		return nil
@@ -148,13 +148,13 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// create the keypair and link to it if necessary
+	// Link the cluster keypair to the assigned task.
 	_, _, err = identity_world.LinkObjectToKeypair(ctx, worldHandle, sender, taskKey, clusterPeerID, "", nil)
 	if err != nil {
 		return false, err
 	}
 
-	// done
+	// Finish after the task assignment is linked.
 	return false, nil
 }
 

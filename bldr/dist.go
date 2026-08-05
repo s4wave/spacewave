@@ -63,8 +63,9 @@ var DistSources embed.FS
 
 // BuildDistSourcesFSCursor builds a *fs.Cursor for the DistSources.
 func BuildDistSourcesFSCursor() *unixfs_iofs.FSCursor {
-	// NOTE: we assert there is no error in src-web_test.go
 	ifs := util_iofs.NewWritableFS(DistSources)
+
+	// NOTE: we assert there is no error in src-web_test.go
 	fs, _ := unixfs_iofs.NewFSCursor(ifs)
 	return fs
 }

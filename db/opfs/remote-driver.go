@@ -94,6 +94,7 @@ func (d *RemoteDriver) installPort(port js.Value) bool {
 		if remotePortUsable(d.port) && d.port.Equal(port) {
 			return
 		}
+
 		// Replacing an existing usable port is a swap: bump the generation and
 		// wake WaitSwap so the mounted volume remounts and rebuilds its handle
 		// tree from a fresh GetRoot. Every cached handle from the root down
@@ -119,16 +120,24 @@ func (d *RemoteDriver) WaitSwap(ctx context.Context) error {
 	d.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		startGen = d.swapGen
 	})
+
+	// Capture the generation that was current when the wait began.
 	for {
+		// Wait for a generation change or context cancellation.
 		var changed bool
 		var waitCh <-chan struct{}
+
+		// Compare the current generation and retain its wake channel atomically.
 		d.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			changed = d.swapGen != startGen
 			waitCh = getWaitCh()
 		})
 		if changed {
+			// Return after observing the bridge swap.
 			return nil
 		}
+
+		// Wait for a swap notification or cancellation.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

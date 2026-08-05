@@ -85,6 +85,7 @@ func (p *PacketConn) RemoteAddr() net.Addr {
 // ReadFrom can be made to time out and return an error after a
 // fixed time limit; see SetDeadline and SetReadDeadline.
 func (p *PacketConn) ReadFrom(pk []byte) (n int, addr net.Addr, err error) {
+	// Apply the configured read deadline to the connection context.
 	deadline := p.rd
 	ctx := p.ctx
 	if !deadline.IsZero() {
@@ -93,6 +94,7 @@ func (p *PacketConn) ReadFrom(pk []byte) (n int, addr net.Addr, err error) {
 		defer ctxCancel()
 	}
 
+	// Wait for the next complete packet or a connection close.
 	var pkt []byte
 	var ok bool
 	select {
@@ -108,6 +110,7 @@ func (p *PacketConn) ReadFrom(pk []byte) (n int, addr net.Addr, err error) {
 		}
 	}
 
+	// Copy the packet into the caller's buffer and return its address.
 	pl := len(pkt)
 	copy(pk, pkt)
 	p.ar.Put(&pkt)
@@ -122,10 +125,12 @@ func (p *PacketConn) ReadFrom(pk []byte) (n int, addr net.Addr, err error) {
 // fixed time limit; see SetDeadline and SetWriteDeadline.
 // On packet-oriented connections, write timeouts are rare.
 func (p *PacketConn) WriteTo(pkt []byte, addr net.Addr) (n int, err error) {
+	// Reject empty packets before checking the destination address.
 	if len(pkt) == 0 {
 		return 0, nil
 	}
 
+	// Enforce the packet connection's bound remote address.
 	if addr != p.raddr {
 		as := addr.String()
 		rs := p.raddr.String()
@@ -134,11 +139,13 @@ func (p *PacketConn) WriteTo(pkt []byte, addr net.Addr) (n int, err error) {
 		}
 	}
 
+	// Encode the payload length and write one framed packet.
 	pktLen := len(pkt)
 	if pktLen > math.MaxInt32 {
 		return 0, errors.New("message too large: exceeds maximum uint32 value")
 	}
 
+	// Reserve an arena buffer for the length-prefixed packet.
 	buf := p.getArenaBuf(pktLen + 4)
 	binary.LittleEndian.PutUint32(buf, uint32(pktLen))
 
@@ -235,6 +242,7 @@ func (p *PacketConn) rxPump() (rerr error) {
 		close(p.packetCh)
 	}()
 
+	// Read and validate each packet header from the underlying stream.
 	var header [4]byte
 	for {
 		select {
@@ -243,11 +251,13 @@ func (p *PacketConn) rxPump() (rerr error) {
 		default:
 		}
 
+		// Read the fixed-size packet header.
 		_, err := io.ReadFull(p.rwc, header[:])
 		if err != nil {
 			return err
 		}
 
+		// Reject packet lengths outside the configured bounds.
 		pktLen := binary.LittleEndian.Uint32(header[:])
 		if pktLen == 0 {
 			return errors.New("received header indicating zero packet size")
@@ -256,6 +266,7 @@ func (p *PacketConn) rxPump() (rerr error) {
 			return errors.Errorf("indicated packet size %d larger than max size %d", pktLen, p.maxPacketSize)
 		}
 
+		// Read the payload and enqueue it for callers.
 		pktBuf := p.getArenaBuf(int(pktLen))
 		_, err = io.ReadFull(p.rwc, pktBuf)
 		if err != nil {

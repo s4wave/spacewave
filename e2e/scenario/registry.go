@@ -76,6 +76,7 @@ type Registry struct {
 
 // NewRegistry constructs a scenario registry from an explicit catalog.
 func NewRegistry(scenarios ...Scenario) *Registry {
+	// Track names while copying the validated scenario catalog.
 	seen := make(map[string]struct{}, len(scenarios))
 	out := make([]Scenario, len(scenarios))
 	for index, s := range scenarios {
@@ -95,6 +96,8 @@ func NewRegistry(scenarios ...Scenario) *Registry {
 			panic("duplicate scenario registration: " + s.Name)
 		}
 		seen[s.Name] = struct{}{}
+
+		// Clone tags so later caller mutations cannot alter the registry.
 		s.Tags = slices.Clone(s.Tags)
 		out[index] = s
 	}
@@ -113,8 +116,11 @@ func (r *Registry) All() []Scenario {
 
 // ParseTags splits a comma-separated tag selector and removes duplicates.
 func ParseTags(raw string) []string {
+	// Track tags already accepted from the selector.
 	seen := make(map[string]struct{})
 	var tags []string
+
+	// Normalize non-empty tags and discard duplicates.
 	for tag := range strings.SplitSeq(raw, ",") {
 		tag = strings.TrimSpace(tag)
 		if tag == "" {
@@ -126,6 +132,8 @@ func ParseTags(raw string) []string {
 		seen[tag] = struct{}{}
 		tags = append(tags, tag)
 	}
+
+	// Sort tags for stable selector behavior.
 	slices.Sort(tags)
 	return tags
 }
@@ -149,6 +157,8 @@ func (r *Registry) Run(ctx context.Context, rt runtime.Runtime, tags []string) R
 	scenarios := r.All()
 	selectedScenarios := make([]Scenario, 0, len(scenarios))
 	report := Report{Rows: make([]Row, len(scenarios))}
+
+	// Initialize report rows and select scenarios matching the requested tags.
 	for index, s := range scenarios {
 		report.Rows[index] = Row{
 			Scenario: s.Name,
@@ -161,6 +171,7 @@ func (r *Registry) Run(ctx context.Context, rt runtime.Runtime, tags []string) R
 		}
 	}
 
+	// Reset session boundaries and execute each selected scenario.
 	for _, s := range selectedScenarios {
 		row := Row{Scenario: s.Name, Runtime: rt.Name()}
 		if s.Session != runtime.SessionAny {
@@ -171,6 +182,8 @@ func (r *Registry) Run(ctx context.Context, rt runtime.Runtime, tags []string) R
 				continue
 			}
 		}
+
+		// Record failure, skip, or success for the scenario run.
 		if err := s.Run(ctx, rt); err != nil {
 			row.Status = StatusFail
 			row.Reason = err.Error()

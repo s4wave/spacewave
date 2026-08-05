@@ -88,7 +88,7 @@ type ProviderAccount struct {
 	wsTracker *wsTracker
 	// soListCtr is the persistent shared object list container.
 	soListCtr *ccontainer.CContainer[*sobject.SharedObjectList]
-	// soListRc owns SO list fetches so all callers share one invalidatable path.
+	// soListRc coordinates SO list fetches so all callers share one invalidatable path.
 	soListRc *refcount.RefCount[struct{}]
 	// soListBcast guards the SO list fields below.
 	soListBcast broadcast.Broadcast
@@ -105,7 +105,7 @@ type ProviderAccount struct {
 	// selfRejoinSweep opportunistically heals missing same-entity SO peers after
 	// a new session registers or reconnect invalidates sweep-side caches.
 	selfRejoinSweep *routine.StateRoutineContainer[*selfRejoinSweepState]
-	// selfEnrollmentRunRoutine owns explicit visible Session Self-Enrollment runs.
+	// selfEnrollmentRunRoutine schedules explicit visible Session Self-Enrollment runs.
 	selfEnrollmentRunRoutine *routine.StateRoutineContainer[*selfenrollmentrun.Request]
 	// sessionPresentationReconcile prunes orphaned mirrored session metadata.
 	sessionPresentationReconcile *routine.StateRoutineContainer[*sessionPresentationReconcileState]
@@ -113,16 +113,16 @@ type ProviderAccount struct {
 	gcCleanup *routine.RoutineContainer
 	// gcCleanupRunner serializes provider-account cleanup sweeps.
 	gcCleanupRunner *provider_gccleanup.Runner
-	// accountFetcherRoutine owns account-state refetches for this account.
+	// accountFetcherRoutine runs account-state refetches for this account.
 	accountFetcherRoutine *routine.RoutineContainer
 	// orgProcessors watches org SO membership and runs org processors.
 	orgProcessors *routine.RoutineContainer
-	// launcherRecheckJobs owns update_available launcher recheck work.
+	// launcherRecheckJobs schedules update_available launcher recheck work.
 	launcherRecheckJobs *asyncCallbackJobs
 	// entityKeyStore holds unlocked entity keypairs shared across account
 	// resources for this provider account.
 	entityKeyStore *EntityKeyStore
-	// selfEnrollmentRun owns visible Session Self-Enrollment progress.
+	// selfEnrollmentRun tracks visible Session Self-Enrollment progress.
 	selfEnrollmentRun *selfEnrollmentRunState
 	// entityKeypairStepUp retains unlocked entity keypairs until the last
 	// screen-scoped step-up reference is released.
@@ -491,6 +491,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			broadcast()
 		})
+
 		// Re-evaluate every mounted SO once on reconnect: the cold-start gate
 		// short-circuits warm SOs and the cache-aware classifier fetches only
 		// what is missing on the rest, so a long disconnect window cannot leave
@@ -551,6 +552,7 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 			)
 			return
 		}
+
 		// Exiting dormant means cloud access reopened; force a fresh account
 		// state fetch so onboarding reflects the restored subscription.
 		acc.BumpLocalEpoch()

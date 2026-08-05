@@ -21,7 +21,7 @@ type selectEntityResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *selectEntityResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	// Ask the user for an entity id.
+	// Collect the entity ID requested by the user.
 	purpose := o.dir.SelectIdentityEntityPurpose()
 	domainID := o.dir.SelectIdentityEntityDomainID()
 	prevErr := o.dir.SelectIdentityEntityPrevError()
@@ -30,13 +30,15 @@ func (o *selectEntityResolver) Resolve(ctx context.Context, handler directive.Re
 	if err != nil {
 		return err
 	}
+
+	// Return an empty selection when the user provided no entity ID.
 	if entityID == "" {
 		o.c.le.Info("user provided empty entity id")
 		handler.AddValue(identity.SelectIdentityEntityValue(nil))
 		return nil
 	}
 
-	// Lookup the entity - via directive so other controllers can handle it.
+	// Resolve the entity through the directive bus.
 	le := o.c.le.
 		WithField("entity-id", entityID).
 		WithField("domain-id", domainID)
@@ -57,7 +59,7 @@ func (o *selectEntityResolver) Resolve(ctx context.Context, handler directive.Re
 	if val == nil || v1.IsNotFound() {
 		le.WithError(err).Warn("entity lookup returned not found")
 	} else {
-		// validate: ensure keypair signatures are valid
+		// Verify the returned entity keypair signatures.
 		kps, err := val.UnmarshalVerifyKeypairs()
 		if err != nil {
 			le.WithError(err).Error("entity lookup returned invalid entity")
@@ -71,6 +73,7 @@ func (o *selectEntityResolver) Resolve(ctx context.Context, handler directive.Re
 		}).Info("retrieved entity")
 	}
 
+	// Deliver the selected entity value.
 	handler.AddValue(val)
 	return nil
 }

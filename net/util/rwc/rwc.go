@@ -30,6 +30,7 @@ func (r *ReadWriteCloser) Write(p []byte) (n int, err error) {
 
 // Close closes both streams.
 func (r *ReadWriteCloser) Close() error {
+	// Close both streams before reporting either error.
 	er1 := r.reader.Close()
 	er2 := r.writer.Close()
 	if er1 != nil {

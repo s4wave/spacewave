@@ -288,7 +288,7 @@ func TestReadAtFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// read entire file
+	// Read the full file and verify the end-of-file contract.
 	buf := make([]byte, 100)
 	n, err := childOps.ReadAt(ctx, 0, buf)
 	if err != io.EOF {
@@ -324,7 +324,7 @@ func TestReadAtOffset(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// read from offset 2 ("Hello World\n")
+	// Read from a non-zero offset and verify the returned suffix.
 	buf := make([]byte, 100)
 	n, err := childOps.ReadAt(ctx, 2, buf)
 	if err != io.EOF {
@@ -398,6 +398,7 @@ func TestFileSize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if size != 14 { // "# Hello World\n" = 14 bytes
 		t.Fatalf("expected size 14, got %d", size)
 	}
@@ -440,6 +441,7 @@ func TestFilePermissions(t *testing.T) {
 
 	tests := []struct {
 		name string
+
 		perm string // expected permission string representation
 	}{
 		{"README.md", "-rw-r--r--"},
@@ -483,6 +485,7 @@ func TestRootPermissions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	// root dir: 0755 | ModeDir
 	if perm.String() != "drwxr-xr-x" {
 		t.Fatalf("expected drwxr-xr-x, got %s", perm.String())
@@ -707,7 +710,7 @@ func TestReadlinkAbsolute(t *testing.T) {
 	ctx := context.Background()
 	s := memory.NewStorage()
 
-	// create a symlink with absolute target
+	// Build a symlink with an absolute target for readlink checks.
 	linkHash := storeBlob(t, s, "/usr/local/bin/foo")
 	rootHash := storeTree(t, s, []object.TreeEntry{
 		{Name: "abs-link", Mode: filemode.Symlink, Hash: linkHash},
@@ -811,7 +814,7 @@ func TestWriteOpsReturnReadOnly(t *testing.T) {
 		t.Fatalf("Symlink: expected ErrReadOnly, got %v", err)
 	}
 
-	// Remove
+	// Confirm immutable cursor operations reject removal.
 	if err := ops.Remove(ctx, []string{"x"}, time.Time{}); err != unixfs_errors.ErrReadOnly {
 		t.Fatalf("Remove: expected ErrReadOnly, got %v", err)
 	}

@@ -21,6 +21,7 @@ import (
 const testSharedObjectID = "test-shared-object"
 
 func TestCoalescedTriggerRoutineQueuesSinglePendingRun(t *testing.T) {
+	// Initialize a coalescing trigger routine.
 	started := make(chan struct{}, 3)
 	release := make(chan struct{})
 	routine := newCoalescedTriggerRoutine(
@@ -35,6 +36,7 @@ func TestCoalescedTriggerRoutineQueuesSinglePendingRun(t *testing.T) {
 		},
 	)
 
+	// Start the routine and observe its first run.
 	ctx := t.Context()
 	routine.SetContext(ctx)
 	defer routine.ClearContext()
@@ -42,11 +44,13 @@ func TestCoalescedTriggerRoutineQueuesSinglePendingRun(t *testing.T) {
 	routine.Trigger()
 	waitCoalescedTriggerRun(t, started)
 
+	// Queue duplicate triggers while the first run is active.
 	routine.Trigger()
 	routine.Trigger()
 	release <- struct{}{}
 	waitCoalescedTriggerRun(t, started)
 
+	// Confirm duplicates do not create an extra pending run.
 	release <- struct{}{}
 	select {
 	case <-started:
@@ -65,6 +69,7 @@ func waitCoalescedTriggerRun(t *testing.T, started <-chan struct{}) {
 }
 
 func TestAsyncCallbackJobsStartsOneOwnedJobPerTrigger(t *testing.T) {
+	// Initialize callback jobs and their lifecycle context.
 	started := make(chan struct{}, 2)
 	release := make(chan struct{})
 	jobs := newAsyncCallbackJobs(func(ctx context.Context) {
@@ -78,6 +83,7 @@ func TestAsyncCallbackJobsStartsOneOwnedJobPerTrigger(t *testing.T) {
 	jobs.SetContext(t.Context())
 	defer jobs.ClearContext()
 
+	// Trigger jobs and observe each admitted run.
 	jobs.Trigger()
 	waitAsyncCallbackJob(t, started)
 	jobs.Trigger()
@@ -88,6 +94,7 @@ func TestAsyncCallbackJobsStartsOneOwnedJobPerTrigger(t *testing.T) {
 }
 
 func TestAsyncCallbackJobsClearContextWaitsForOwnedJobs(t *testing.T) {
+	// Initialize a job blocked on cancellation.
 	started := make(chan struct{})
 	canceled := make(chan struct{})
 	allowReturn := make(chan struct{})
@@ -99,6 +106,7 @@ func TestAsyncCallbackJobsClearContextWaitsForOwnedJobs(t *testing.T) {
 		<-allowReturn
 	})
 
+	// Cancel the job context and start cleanup.
 	ctx, cancel := context.WithCancel(context.Background())
 	jobs.SetContext(ctx)
 	jobs.Trigger()
@@ -109,6 +117,8 @@ func TestAsyncCallbackJobsClearContextWaitsForOwnedJobs(t *testing.T) {
 		jobs.ClearContext()
 		close(clearReturned)
 	}()
+
+	// Verify cleanup waits for the callback to return.
 	select {
 	case <-canceled:
 	case <-time.After(time.Second):

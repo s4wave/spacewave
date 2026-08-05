@@ -15,6 +15,8 @@ import (
 func OpenOrWritePrivKey(le *logrus.Entry, privKeyPath string) (crypto.PrivKey, error) {
 	var privKey crypto.PrivKey
 	var err error
+
+	// Generate and persist a key when the configured file is absent.
 	if _, err := os.Stat(privKeyPath); err != nil {
 		if os.IsNotExist(err) {
 			if le != nil {
@@ -36,6 +38,7 @@ func OpenOrWritePrivKey(le *logrus.Entry, privKeyPath string) (crypto.PrivKey, e
 			}
 		}
 	} else {
+		// Load and parse the existing private-key file.
 		dat, err := os.ReadFile(privKeyPath)
 		if err != nil {
 			return privKey, err

@@ -93,7 +93,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	// Fetch the peer if the peer ID is set.
+	// Resolve the configured peer before constructing the PubSub.
 	var cpeer peer.Peer
 	var err error
 	if len(c.peerID) != 0 {
@@ -116,7 +116,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.peerCtr.SetValue(&cpeer)
 	defer c.peerCtr.SetValue(nil)
 
-	// Construct the PubSub
+	// Construct and publish the controlled PubSub instance.
 	ps, err := c.ctor(
 		ctx,
 		c.le,
@@ -129,6 +129,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer ps.Close()
 	c.pubSubCtr.SetValue(&ps)
 
+	// Run the PubSub and surface fatal execution errors.
 	psErr := make(chan error, 1)
 	go func() {
 		c.le.Debug("executing pubsub")
@@ -137,6 +138,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}()
 
+	// Track newly observed links until the controller context ends.
 	for {
 		var waitCh <-chan struct{}
 		c.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {

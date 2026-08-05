@@ -49,6 +49,7 @@ func (a *fakeProviderAccount) GetProviderAccountFeature(ctx context.Context, fea
 }
 
 func TestResolveSharedObjectRecoveryMaterial(t *testing.T) {
+	// Build a provider-backed recovery fixture.
 	ctx := context.Background()
 	entityID := "entity-1"
 	expected := &SOEntityRecoveryMaterial{
@@ -67,10 +68,13 @@ func TestResolveSharedObjectRecoveryMaterial(t *testing.T) {
 		},
 	}
 
+	// Resolve recovery material through the provider feature.
 	got, err := ResolveSharedObjectRecoveryMaterial(ctx, provAcc, &SharedObjectRef{})
 	if err != nil {
 		t.Fatalf("ResolveSharedObjectRecoveryMaterial: %v", err)
 	}
+
+	// Verify the recovered entity identity.
 	if got.GetEntityId() != expected.GetEntityId() {
 		t.Fatalf("expected entity id %q, got %q", expected.GetEntityId(), got.GetEntityId())
 	}

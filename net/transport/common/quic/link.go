@@ -57,15 +57,20 @@ func NewLink(
 	sess *quic.Conn,
 	closed func(),
 ) (*Link, error) {
+	// Determine the remote identity from the negotiated session.
 	remotePeerID, remotePubKey, err := DetermineSessionIdentity(sess)
 	if err != nil {
 		return nil, err
 	}
 
+	// Compute link addresses and deterministic identifiers.
 	remoteAddr := sess.RemoteAddr()
+
 	nctx, nctxCancel := context.WithCancel(ctx) //nolint:gosec // cancel stored on Link and called by Close
 	uuid := NewLinkUUID(localAddr, remoteAddr, remotePeerID)
 	remoteTransportUUID := NewTransportUUID(remoteAddr.String(), remotePeerID)
+
+	// Assemble the link state with local and remote session metadata.
 	return &Link{
 		ctx:       nctx,
 		ctxCancel: nctxCancel,
@@ -140,14 +145,18 @@ func (l *Link) OpenStream(opts stream.OpenOpts) (stream.Stream, error) {
 
 // AcceptStream accepts a stream from the link.
 func (l *Link) AcceptStream() (stream.Stream, stream.OpenOpts, error) {
+	// Accept the next QUIC stream and handle link cancellation.
 	qstream, err := l.sess.AcceptStream(l.ctx)
 	if l.ctx.Err() != nil {
-		// detect link shutdown, avoid logging unnecessary errors
+		// Close a partially accepted stream after link shutdown.
 		if qstream != nil {
 			_ = qstream.Close()
 		}
 		return nil, stream.OpenOpts{}, context.Canceled
+
 	}
+
+	// Translate clean QUIC closure to EOF and preserve other errors.
 	if err != nil {
 		if isCleanAcceptClose(err) {
 			return nil, stream.OpenOpts{}, io.EOF
@@ -155,6 +164,7 @@ func (l *Link) AcceptStream() (stream.Stream, stream.OpenOpts, error) {
 		return nil, stream.OpenOpts{}, err
 	}
 
+	// Return the accepted stream with default open options.
 	opts := stream.OpenOpts{}
 	return qstream, opts, nil
 }
@@ -162,10 +172,13 @@ func (l *Link) AcceptStream() (stream.Stream, stream.OpenOpts, error) {
 // Close closes the connection.
 func (l *Link) Close() error {
 	l.closedOnce.Do(func() {
+		// Cancel the link context before invoking the close callback.
 		l.ctxCancel()
 		if closed := l.closed; closed != nil {
 			closed()
 		}
+
+		// Close the QUIC session after invoking the close callback.
 		if l.sess != nil {
 			_ = l.sess.CloseWithError(0, "")
 		}

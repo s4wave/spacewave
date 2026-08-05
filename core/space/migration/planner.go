@@ -45,6 +45,7 @@ func NewPlanner(registry *Registry) *Planner {
 
 // Plan scans both Worlds and returns a deterministic preview.
 func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPreview, error) {
+	// Validate planner inputs and normalize the requested migration operation.
 	if p == nil || p.registry == nil {
 		return nil, errors.New("migration registry is required")
 	}
@@ -62,6 +63,7 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 		return nil, errors.Wrapf(ErrUnknownOperation, "%d", input.Operation)
 	}
 
+	// Read source and destination revisions for the preview.
 	sourceRevision, err := input.Source.GetSeqno(ctx)
 	if err != nil {
 		return nil, err
@@ -70,6 +72,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 	if err != nil {
 		return nil, err
 	}
+
+	// Scan both Worlds into object descriptors.
 	source, err := scanWorld(ctx, input.Source)
 	if err != nil {
 		return nil, err
@@ -78,6 +82,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 	if err != nil {
 		return nil, err
 	}
+
+	// Resolve the block-store identities used by each World.
 	sourceBlockStoreID, err := owningBlockStoreID(ctx, input.Source, source, "source")
 	if err != nil {
 		return nil, err
@@ -86,6 +92,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 	if err != nil {
 		return nil, err
 	}
+
+	// Index source objects and initialize closure diagnostics.
 	objects := make(map[string]*ObjectDescriptor, len(source))
 	for _, object := range source {
 		objects[object.ObjectKey] = object
@@ -95,6 +103,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 	conflicts := make([]*MigrationConflict, 0)
 	closure := make(map[string]struct{}, len(selected))
 	queue := append([]string(nil), selected...)
+
+	// Traverse selected objects and collect dependency closure diagnostics.
 	for len(queue) > 0 {
 		key := queue[0]
 		queue = queue[1:]
@@ -168,6 +178,7 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 		}
 	}
 
+	// Sort the closure and initialize identity mappings.
 	closureKeys := make([]string, 0, len(closure))
 	for key := range closure {
 		closureKeys = append(closureKeys, key)
@@ -177,6 +188,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 	mapping.SpaceIDs[input.SourceSpaceID] = input.DestinationSpaceID
 	mapping.BlockStoreIDs[sourceBlockStoreID] = destinationBlockStoreID
 	canvasCombineKeys := make(map[string]bool)
+
+	// Detect Canvas collisions that support identity combination.
 	for _, key := range closureKeys {
 		object := objects[key]
 		destinationObject := destination[key]
@@ -188,6 +201,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 			canvasCombineKeys[key] = true
 		}
 	}
+
+	// Translate each object's typed references into destination identities.
 	for _, key := range closureKeys {
 		mapping.ObjectKeys[key] = key
 		object := objects[key]
@@ -207,7 +222,7 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 						Code:       "block-store-mismatch",
 						ObjectType: object.ObjectType,
 						ObjectKeys: []string{key},
-						Detail:     "typed block-store reference does not belong to the source World owner",
+						Detail:     "typed block-store reference does not belong to the source World",
 					})
 					continue
 				}
@@ -216,6 +231,7 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 		}
 	}
 
+	// Resolve destination-key collisions and record blockers.
 	for _, key := range closureKeys {
 		object := objects[key]
 		destinationObject := destination[key]
@@ -280,6 +296,7 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 		}
 	}
 
+	// Expand renamed parent keys to their dependent child keys.
 	for _, key := range closureKeys {
 		if mapping.ObjectKeys[key] != key {
 			continue
@@ -296,6 +313,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 			mapping.ObjectKeys[key] = bestDestination + key[len(bestSource):]
 		}
 	}
+
+	// Detect duplicate destination keys and populate graph IRIs.
 	seenDestinationKeys := make(map[string]string, len(closureKeys))
 	for _, key := range closureKeys {
 		destinationKey := mapping.ObjectKeys[key]
@@ -320,6 +339,7 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 		mapping.GraphIRIs["<"+source+">"] = "<" + destinationKey + ">"
 	}
 
+	// Assemble deterministic identity-mapping records.
 	identityMappings := make([]*MigrationIdentityMapping, 0)
 	for _, key := range closureKeys {
 		identityMappings = append(identityMappings, &MigrationIdentityMapping{
@@ -334,6 +354,7 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 	appendIdentityMappings(&identityMappings, MigrationReferenceKind_MIGRATION_REFERENCE_KIND_GRAPH_IRI, mapping.GraphIRIs)
 	slices.SortStableFunc(identityMappings, compareIdentityMappings)
 
+	// Assemble planned object metadata.
 	planObjects := make([]*MigrationObject, 0, len(closureKeys))
 	for _, key := range closureKeys {
 		object := objects[key]
@@ -345,6 +366,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 			LogicalBytes: object.LogicalBytes,
 		})
 	}
+
+	// Rewrite migratable objects against the destination identity map.
 	for _, key := range closureKeys {
 		object := objects[key]
 		handler := p.registry.Lookup(object.ObjectType)
@@ -360,12 +383,14 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 			})
 		}
 	}
+
+	// Sum logical bytes and apply capacity blockers.
 	logicalBytes := uint64(0)
 	logicalOverflow := false
 	for _, key := range closureKeys {
 		object := objects[key]
 		if !object.LogicalBytesKnown {
-			blockers = append(blockers, &MigrationBlocker{Code: "logical-size-unavailable", ObjectKeys: []string{key}, Detail: "the immutable block-store DAG size owner could not provide a logical byte total"})
+			blockers = append(blockers, &MigrationBlocker{Code: "logical-size-unavailable", ObjectKeys: []string{key}, Detail: "the immutable block-store DAG size provider could not provide a logical byte total"})
 			continue
 		}
 		size := object.LogicalBytes
@@ -381,6 +406,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 	if input.CapacityKnown && input.DestinationCapacity < logicalBytes {
 		blockers = append(blockers, &MigrationBlocker{Code: "destination-capacity", Detail: "available destination capacity is below the estimated logical bytes"})
 	}
+
+	// Sort diagnostics and choose the terminal preview state.
 	slices.SortStableFunc(blockers, compareBlockers)
 	slices.SortStableFunc(conflicts, compareConflicts)
 	result := &MigrationTerminalResult{State: MigrationTerminalState_MIGRATION_TERMINAL_STATE_PREVIEW_READY}
@@ -389,6 +416,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 		result.Code = "preview-blocked"
 		result.Detail = blockerDetail(blockers[0])
 	}
+
+	// Assemble the preview and compute its digest.
 	preview := &MigrationPreview{
 		Operation:           operation,
 		SourceSpaceId:       input.SourceSpaceID,
@@ -405,6 +434,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 		CapacityKnown:       input.CapacityKnown,
 	}
 	preview.Digest = digestPreview(preview)
+
+	// Return a blocked preview or the ready preview.
 	if len(blockers) > 0 {
 		if input.CapacityKnown && input.DestinationCapacity < logicalBytes {
 			return preview, errors.Wrap(ErrCapacityInsufficient, result.Detail)

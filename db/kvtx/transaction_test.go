@@ -25,6 +25,7 @@ func TestRunTransactionRetriesFreshAttemptsAndDiscards(t *testing.T) {
 	var events []string
 	var opened int
 
+	// Run a write transaction whose first body attempt requests a retry.
 	err := RunTransaction(
 		context.Background(),
 		true,
@@ -44,6 +45,7 @@ func TestRunTransactionRetriesFreshAttemptsAndDiscards(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Compare the retry, commit, and discard event sequence.
 	want := []string{
 		"body:1",
 		"discard:1",
@@ -51,6 +53,8 @@ func TestRunTransactionRetriesFreshAttemptsAndDiscards(t *testing.T) {
 		"commit:2",
 		"discard:2",
 	}
+
+	// Require exactly one successful commit after the retry.
 	if len(events) != len(want) {
 		t.Fatalf("events = %v, want %v", events, want)
 	}

@@ -38,6 +38,7 @@ func spaceResourceClient(t *testing.T, mux srpc.Invoker) srpc.Client {
 }
 
 func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
+	// Initialize the testbed and channel object.
 	ctx := t.Context()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
@@ -48,6 +49,7 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 	const channelKey = "chat/channel/space-resource"
 	createSpaceResourceChatChannel(t, ctx, tb.WorldState, channelKey)
 
+	// Install a recording object-type factory.
 	factory := &recordingChatFactory{
 		base:      spacewave_chat_world.ChatChannelType.GetFactory(),
 		cleanupCh: make(chan int, 4),
@@ -71,6 +73,8 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 		engineID: tb.EngineID,
 		bucketID: tb.EngineBucketID,
 	}
+
+	// Exercise anonymous access and cleanup.
 	resources := newSpaceRecordingResourceClient(ctx)
 	ctx = resource_server.WithResourceClientContext(ctx, resources)
 
@@ -112,6 +116,8 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for anonymous factory cleanup")
 	}
+
+	// Create peer-bound resources and resolve typed channels.
 	spaceA := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, peerA.String())
 	spaceB := NewSpaceResourceWithSessionPeerID(tb.Logger, tb.Bus, body, peerB.String())
 
@@ -130,7 +136,7 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 	engineA := s4wave_world.NewSRPCTypedObjectResourceServiceClient(resources.client(t, worldA.GetResourceId()))
 	engineB := s4wave_world.NewSRPCTypedObjectResourceServiceClient(resources.client(t, worldB.GetResourceId()))
 
-	// A downstream request carrying B's peer cannot override A's mounted identity.
+	// Verify mounted peer identity overrides request context.
 	ctxWithPeerB := objecttype.WithSessionPeerID(ctx, peerB)
 	typedA, err := engineA.AccessTypedObject(ctxWithPeerB, &s4wave_world.AccessTypedObjectRequest{ObjectKey: channelKey})
 	if err != nil {
@@ -143,6 +149,7 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 	}
 	assertSpaceChatSender(t, ctx, tb.BusEngine, sendA.GetMessageKey(), peerA.String())
 
+	// Verify the second mounted peer identity.
 	ctxWithPeerA := objecttype.WithSessionPeerID(ctx, peerA)
 	typedB, err := engineB.AccessTypedObject(ctxWithPeerA, &s4wave_world.AccessTypedObjectRequest{ObjectKey: channelKey})
 	if err != nil {

@@ -24,6 +24,7 @@ func CopyBlockDAG(
 	src block.StoreOps,
 	dest block.StoreOps,
 ) error {
+	// Start tracing and return immediately for an empty root.
 	ctx, task := trace.NewTask(ctx, "hydra/block/copy/dag")
 	defer task.End()
 
@@ -31,6 +32,8 @@ func CopyBlockDAG(
 		trace.Log(ctx, "result", "empty-root")
 		return nil
 	}
+
+	// Record the root and recurse through the destination graph.
 	trace.Log(ctx, "root-ref", rootRef.MarshalString())
 	visited := make(map[string]bool)
 	return copyBlock(ctx, rootRef, rootCtor, src, dest, visited)
@@ -45,22 +48,25 @@ func copyBlock(
 	dest block.StoreOps,
 	visited map[string]bool,
 ) error {
+	// Skip empty or previously visited references before reading storage.
 	if ref.GetEmpty() {
 		return nil
 	}
 
+	// Start tracing this block copy and skip references already visited.
 	refStr := ref.MarshalString()
 	ctx, task := trace.NewTask(ctx, "hydra/block/copy/block")
 	defer task.End()
 	trace.Log(ctx, "block-ref", refStr)
 
+	// Avoid traversing a reference more than once.
 	if visited[refStr] {
 		trace.Log(ctx, "result", "already-visited")
 		return nil
 	}
 	visited[refStr] = true
 
-	// Check if already in dest.
+	// Check whether the destination already contains this block.
 	exists, err := dest.GetBlockExists(ctx, ref)
 	if err != nil {
 		return errors.Wrapf(err, "check block exists: %s", refStr)
@@ -86,6 +92,8 @@ func copyBlock(
 			return errors.Wrapf(block.ErrNotFound, "existing block: %s", refStr)
 		}
 	}
+
+	// Fetch missing blocks from the source and persist them in the destination.
 	if !exists {
 		// Read from source.
 		taskCtx, subtask := trace.NewTask(ctx, "hydra/block/copy/source-get")
@@ -111,7 +119,7 @@ func copyBlock(
 		}
 	}
 
-	// Decode to find child refs (only if we have a constructor).
+	// Decode copied data and recurse through known child references.
 	if ctor == nil {
 		trace.Log(ctx, "result", "leaf-copied")
 		return nil
@@ -143,6 +151,7 @@ func followBlockGraph(
 	dest block.StoreOps,
 	visited map[string]bool,
 ) error {
+	// Copy direct block references before descending into nested sub-blocks.
 	withRefs, ok := blk.(block.BlockWithRefs)
 	if ok {
 		refs, err := withRefs.GetBlockRefs()
@@ -157,6 +166,7 @@ func followBlockGraph(
 		}
 	}
 
+	// Recurse through each non-empty nested sub-block.
 	if withSubBlocks, ok := blk.(block.BlockWithSubBlocks); ok {
 		for _, sub := range withSubBlocks.GetSubBlocks() {
 			if sub == nil || sub.IsNil() {

@@ -12,6 +12,7 @@ func (a *API) ListVolumes(
 	ctx context.Context,
 	req *ListVolumesRequest,
 ) (*ListVolumesResponse, error) {
+	// Inspect each registered volume controller.
 	var volumeInfos []*volume.VolumeInfo
 	controllers := a.bus.GetControllers()
 	for _, controller := range controllers {
@@ -32,6 +33,7 @@ func (a *API) ListVolumes(
 		}
 	}
 
+	// Return the collected volume information.
 	return &ListVolumesResponse{
 		Volumes: volumeInfos,
 	}, nil

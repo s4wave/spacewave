@@ -40,16 +40,20 @@ func (a *ProviderAccount) OpenFriendDM(
 	ctx context.Context,
 	targetAccountID string,
 ) (*FriendDmOpenResult, error) {
+	// Resolve the authenticated cloud client.
 	cli := a.GetSessionClient()
 	if cli == nil {
 		return nil, errors.New("session client not available")
 	}
 
+	// Load and validate the friend-DM bootstrap record.
 	targetAccountID = strings.TrimSpace(targetAccountID)
 	bootstrap, err := cli.GetFriendDM(ctx, targetAccountID)
 	if err != nil {
 		return nil, err
 	}
+
+	// Resolve local account and session identity.
 	localAccountID := a.GetAccountID()
 	localPeerID := a.GetCurrentSessionPeerID().String()
 	if err := validateFriendDmBootstrap(
@@ -61,6 +65,7 @@ func (a *ProviderAccount) OpenFriendDM(
 		return nil, err
 	}
 
+	// Create the canonical Space when bootstrap is not ready.
 	if !bootstrap.Ready {
 		if bootstrap.OwnerAccountID != localAccountID {
 			return nil, errors.New("friend dm is not ready and caller is not owner")
@@ -130,6 +135,7 @@ func (a *ProviderAccount) OpenFriendDM(
 		return nil, errors.New("friend dm is not ready")
 	}
 
+	// Mount the canonical shared object.
 	ref := a.buildSharedObjectRef(bootstrap.SharedObjectID)
 	swSO, relSO, err := a.mountSpaceSO(ctx, bootstrap.SharedObjectID)
 	if err != nil {
@@ -137,10 +143,13 @@ func (a *ProviderAccount) OpenFriendDM(
 	}
 	defer relSO()
 
+	// Read participant state before applying owner-authorized actions.
 	state, err := swSO.GetSOHost().GetHostState(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "read friend dm state")
 	}
+
+	// Reconcile grants and the deterministic channel for writable participants.
 	localParticipant := participantConfigForPeer(state.GetConfig(), localPeerID)
 	if localParticipant != nil && sobject.CanWriteOps(localParticipant.GetRole()) {
 		if bootstrap.OwnerAccountID == localAccountID &&
@@ -166,10 +175,13 @@ func (a *ProviderAccount) OpenFriendDM(
 		}
 	}
 
+	// Build the shared-object metadata response.
 	meta, err := space.NewSharedObjectMeta("Friend DM")
 	if err != nil {
 		return nil, errors.Wrap(err, "build friend dm metadata")
 	}
+
+	// Return the mounted Space identity.
 	return &FriendDmOpenResult{
 		SharedObjectRef:  ref,
 		SharedObjectMeta: meta,

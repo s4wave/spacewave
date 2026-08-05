@@ -11,6 +11,8 @@ import (
 
 func AddPeer(t *testing.T, g *graph.Graph) *graph.Peer {
 	ctx := context.Background()
+
+	// Add a generated graph peer for the test.
 	p, err := graph.GenerateAddPeer(ctx, g)
 	if err != nil {
 		t.Fatal(err.Error())

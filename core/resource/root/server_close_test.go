@@ -13,6 +13,7 @@ import (
 )
 
 func TestRootServerCloseBeforeStateAtomUse(t *testing.T) {
+	// Configure a server and close it before any state-atom access.
 	var builds atomic.Int32
 	server := newCloseTestServer(t)
 	server.stateAtomStoreIndexBuilder = func(context.Context) (*session.StateAtomStoreIndex, func(), error) {
@@ -20,6 +21,7 @@ func TestRootServerCloseBeforeStateAtomUse(t *testing.T) {
 		return session.NewStateAtomStoreIndex(nil), func() {}, nil
 	}
 
+	// Verify closed servers reject lazy state-atom use.
 	server.Close()
 	if builds.Load() != 0 {
 		t.Fatalf("state atom store built after close: %d builds", builds.Load())
@@ -30,6 +32,7 @@ func TestRootServerCloseBeforeStateAtomUse(t *testing.T) {
 }
 
 func TestRootServerCloseReleasesStateAtomAndCDN(t *testing.T) {
+	// Configure state-atom and CDN resources for release tracking.
 	var releases atomic.Int32
 	server := newCloseTestServer(t)
 	server.stateAtomStoreIndexBuilder = func(context.Context) (*session.StateAtomStoreIndex, func(), error) {
@@ -37,6 +40,8 @@ func TestRootServerCloseReleasesStateAtomAndCDN(t *testing.T) {
 			releases.Add(1)
 		}, nil
 	}
+
+	// Materialize both resources before closing.
 	if _, err := server.getStateAtomStoreIndex(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -44,6 +49,7 @@ func TestRootServerCloseReleasesStateAtomAndCDN(t *testing.T) {
 		t.Fatalf("create CDN instance: %v", err)
 	}
 
+	// Close twice and verify each lifecycle release occurs once.
 	server.Close()
 	server.Close()
 
@@ -59,6 +65,7 @@ func TestRootServerCloseReleasesStateAtomAndCDN(t *testing.T) {
 }
 
 func TestRootServerCloseWaitsForConcurrentStateAtomUse(t *testing.T) {
+	// Block state-atom acquisition while close waits for the lock.
 	started := make(chan struct{})
 	allow := make(chan struct{})
 	var releases atomic.Int32
@@ -71,6 +78,7 @@ func TestRootServerCloseWaitsForConcurrentStateAtomUse(t *testing.T) {
 		}, nil
 	}
 
+	// Start acquisition and concurrent close operations.
 	useDone := make(chan error, 1)
 	go func() {
 		_, err := server.getStateAtomStoreIndex(context.Background())
@@ -89,6 +97,7 @@ func TestRootServerCloseWaitsForConcurrentStateAtomUse(t *testing.T) {
 	case <-time.After(25 * time.Millisecond):
 	}
 
+	// Release acquisition and await close completion.
 	close(allow)
 	if err := <-useDone; err != nil {
 		t.Fatalf("state atom use: %v", err)

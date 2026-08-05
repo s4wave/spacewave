@@ -89,14 +89,17 @@ func (c *Collector) CollectGraphOnly(ctx context.Context) (*Stats, error) {
 // collect loops until no unreferenced nodes remain, since removing a node may
 // orphan its children.
 func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, error) {
+	// Start timing and accumulate cycle statistics across cascaded sweeps.
 	start := time.Now()
 	stats := &Stats{}
 
+	// Scan unreferenced nodes until an iteration makes no progress.
 	for {
 		if err := ctx.Err(); err != nil {
 			return stats, context.Canceled
 		}
 
+		// Read the current unreferenced set and account for scan time.
 		phaseStart := time.Now()
 		nodes, err := c.refGraph.GetUnreferencedNodes(ctx)
 		stats.UnreferencedScanDuration += time.Since(phaseStart)
@@ -111,6 +114,7 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 			break
 		}
 
+		// Remove each eligible node's graph edges, callback, and physical block.
 		var swept int
 		for _, node := range nodes {
 			if err := ctx.Err(); err != nil {
@@ -182,6 +186,7 @@ func (c *Collector) collect(ctx context.Context, removeBlocks bool) (*Stats, err
 			stats.NodesSwept++
 		}
 
+		// Stop when only permanent roots or otherwise unsweepable nodes remain.
 		// If no nodes were swept this iteration (e.g., all were
 		// permanent roots), stop to avoid infinite loop.
 		if swept == 0 {

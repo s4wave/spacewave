@@ -61,12 +61,17 @@ func (p *PemMethod) UnmarshalParameters(data []byte) (auth_method.Parameters, er
 // Authenticate authenticates with existing auth parameters.
 // authSecretData is the full PEM private key file bytes.
 func (p *PemMethod) Authenticate(paramsi auth_method.Parameters, authSecretData []byte) (crypto.PrivKey, error) {
+	// Require PEM parameters before parsing the private key.
 	if _, ok := paramsi.(*PemParameters); !ok {
 		return nil, errors.New("params object not recognized")
 	}
+
+	// Require private-key data for authentication.
 	if len(authSecretData) == 0 {
 		return nil, errors.New("auth secret data must be set")
 	}
+
+	// Parse and validate the supplied private key.
 	privKey, err := keypem.ParsePrivKeyPem(authSecretData)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse pem private key")
@@ -90,9 +95,12 @@ func (p *PemParameters) MarshalBlock() ([]byte, error) {
 
 // Validate validates the parameters by parsing the PEM public key.
 func (p *PemParameters) Validate() error {
+	// Require PEM public-key data before parsing.
 	if len(p.PubKeyPem) == 0 {
 		return errors.New("pub key pem must be set")
 	}
+
+	// Parse and validate the public key.
 	pub, err := keypem.ParsePubKeyPem(p.PubKeyPem)
 	if err != nil {
 		return errors.Wrap(err, "parse pub key pem")
@@ -109,14 +117,19 @@ var _ auth_method.Parameters = ((*PemParameters)(nil))
 // GenerateBackupKey creates a new Ed25519 keypair for PEM backup.
 // Returns the private key PEM and public key PEM bytes.
 func GenerateBackupKey() (privPem []byte, pubPem []byte, err error) {
+	// Generate the Ed25519 private key used for the backup.
 	priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "generate ed25519 key")
 	}
+
+	// Encode the private key as PEM.
 	privPem, err = keypem.MarshalPrivKeyPem(priv)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal private key pem")
 	}
+
+	// Encode the corresponding public key as PEM.
 	pubPem, err = keypem.MarshalPubKeyPem(priv.GetPublic())
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "marshal public key pem")

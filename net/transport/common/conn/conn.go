@@ -58,12 +58,14 @@ func NewTransport(
 	// if nil, the dialer will not function
 	addrDialer AddrDialFunc,
 ) (*Transport, error) {
+	// Resolve and clone connection options before applying defaults.
 	if opts == nil {
 		opts = &Opts{}
 	} else {
 		opts = opts.CloneVT()
 	}
 
+	// Resolve the packet MTU and buffer count.
 	mtu := opts.GetMtu()
 	if mtu <= 0 {
 		mtu = defaultMtu
@@ -74,13 +76,15 @@ func NewTransport(
 		bufSize = 10
 	}
 
+	// Ensure QUIC options exist.
 	if opts.Quic == nil {
 		opts.Quic = &transport_quic.Opts{}
 	}
 
-	// override some quic opts
+	// Disable QUIC path MTU discovery because this transport fixes the MTU.
 	opts.Quic.DisablePathMtuDiscovery = true // known mtu
 
+	// Build the ordered transport state.
 	tpt := &Transport{
 		ctx:     ctx,
 		le:      le,
@@ -92,12 +96,14 @@ func NewTransport(
 
 	var dialFn transport_quic.DialFunc
 	if addrDialer != nil {
+		// Dial the underlying address and wrap it as a packet connection.
 		dialFn = func(dctx context.Context, addr string) (*quic.Conn, net.Addr, error) {
 			c, na, err := addrDialer(dctx, addr)
 			if err != nil {
 				return nil, nil, err
 			}
 
+			// Negotiate a QUIC session over the packet connection.
 			pc := rwc.NewPacketConn(ctx, c, laddr, na, mtu, int(bufSize))
 			conn, _, err := transport_quic.DialSession(ctx, le, opts.GetQuic(), pc, tpt.GetIdentity(), na, "")
 			if err != nil {
@@ -108,6 +114,7 @@ func NewTransport(
 		}
 	}
 
+	// Install the QUIC-backed transport implementation.
 	var err error
 	tpt.Transport, err = transport_quic.NewTransport(
 		ctx,
@@ -138,6 +145,7 @@ func (t *Transport) HandleConn(
 	raddr net.Addr,
 	peerID peer.ID,
 ) (*Link, error) {
+	// Resolve a missing remote address from the expected peer identity.
 	if raddr == nil {
 		if len(peerID) == 0 {
 			return nil, transport_quic.ErrRemoteUnspecified
@@ -145,6 +153,7 @@ func (t *Transport) HandleConn(
 		raddr = peer.NewNetAddr(peerID)
 	}
 
+	// Wrap the ordered connection as a packet connection for QUIC.
 	pc := rwc.NewPacketConn(
 		t.ctx,
 		c,

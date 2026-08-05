@@ -34,7 +34,7 @@ func (b *loadedBucket) newLoadedBucketBlockStore(blockStoreID string) (keyed.Rou
 
 // execute executes the bucket block store tracker.
 func (l *loadedBucketBlockStore) execute(ctx context.Context) error {
-	// TODO: clean this function up and avoid the unnecessary goroutine
+	// Watch the bucket API for this block store.
 	_, diRef, err := l.b.c.b.AddDirective(
 		bucket.NewBuildBucketAPI(l.b.bucketID, l.blockStoreID),
 		l,
@@ -42,6 +42,8 @@ func (l *loadedBucketBlockStore) execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Release the directive when the tracker context ends.
 	<-ctx.Done()
 	diRef.Release()
 	return nil

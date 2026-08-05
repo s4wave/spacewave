@@ -57,8 +57,10 @@ func NewMultiOpenStreamFunc(
 		msgHandler srpc.PacketDataHandler,
 		closeHandler srpc.CloseHandler,
 	) (srpc.PacketWriter, error) {
+		// Try each configured destination until one establishes a stream.
 		var lastErr error
 		for _, destPeer := range destPeers {
+			// Create the attempt context with the configured timeout policy.
 			var estCtx context.Context
 			var estCtxCancel context.CancelFunc
 			if timeoutDur > 0 {
@@ -67,6 +69,7 @@ func NewMultiOpenStreamFunc(
 				estCtx, estCtxCancel = context.WithCancel(ctx)
 			}
 
+			// Establish the SRPC stream for this destination.
 			le := le.WithField("server-peer-id", destPeer.String())
 			writer, err := EstablishSrpcStream(
 				estCtx,
@@ -77,12 +80,16 @@ func NewMultiOpenStreamFunc(
 				msgHandler,
 				closeHandler,
 			)
+
+			// Release the attempt context before handling the result.
 			estCtxCancel()
 			if err != nil {
-				// detect deadline exceeded
+				// Normalize cancellation caused by the attempt deadline.
 				if err == context.Canceled && estCtx.Err() != nil && ctx.Err() == nil {
 					err = context.DeadlineExceeded
 				}
+
+				// Record the failed destination before trying the next one.
 				le.WithError(err).Warn("unable to establish srpc conn")
 				lastErr = err
 				continue
@@ -90,6 +97,7 @@ func NewMultiOpenStreamFunc(
 			return writer, nil
 		}
 
+		// Return a terminal error when no destination succeeded.
 		if lastErr == nil {
 			lastErr = errors.New("connection failed")
 		}
@@ -111,6 +119,7 @@ func EstablishSrpcStream(
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 ) (srpc.PacketWriter, error) {
+	// Open and retain the mounted stream for the SRPC read pump.
 	ms, msRel, err := link.OpenStreamWithPeerEx(
 		ctx,
 		b,
@@ -122,6 +131,7 @@ func EstablishSrpcStream(
 		return nil, err
 	}
 
+	// Start the read pump and release the mounted-stream reference on exit.
 	rw := srpc.NewPacketReadWriter(ms.GetStream())
 	go func() {
 		rw.ReadPump(msgHandler, closeHandler)

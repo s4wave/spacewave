@@ -22,6 +22,7 @@ func UnlockEnvelope(
 	env *Envelope,
 	privKeys []crypto.PrivKey,
 ) ([]byte, *EnvelopeUnlockResult, error) {
+	// Reject envelopes without grants or recipient keypairs.
 	if len(env.GetGrants()) == 0 {
 		return nil, nil, ErrNoGrants
 	}
@@ -82,6 +83,7 @@ func UnlockEnvelope(
 			continue
 		}
 		scrub.Scrub(innerData)
+
 		unlockedIndexes = append(unlockedIndexes, uint32(gi)) //nolint:gosec // gi bounded by grants slice length
 
 		// Extract shares from the grant, deduplicating by ID.
@@ -106,11 +108,13 @@ func UnlockEnvelope(
 		}
 	}
 
+	// Record recovered share progress before deciding whether to decrypt.
 	result := &EnvelopeUnlockResult{
 		SharesAvailable:      uint32(len(collected)), //nolint:gosec // bounded by grant share count
 		SharesNeeded:         sharesNeeded,
 		UnlockedGrantIndexes: unlockedIndexes,
 	}
+
 	if uint32(len(collected)) < sharesNeeded { //nolint:gosec // bounded by grant share count
 		return nil, result, nil
 	}

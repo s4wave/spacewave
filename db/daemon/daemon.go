@@ -47,6 +47,7 @@ func NewDaemon(
 	nodePriv crypto.PrivKey,
 	opts ConstructOpts,
 ) (*Daemon, error) {
+	// Resolve the daemon logger.
 	le := opts.LogEntry
 	if le == nil {
 		log := logrus.New()
@@ -54,6 +55,7 @@ func NewDaemon(
 		le = logrus.NewEntry(log)
 	}
 
+	// Create the daemon context and local peer identity.
 	ctx, subCtxCancel := context.WithCancel(ctx)
 	nodePeer, err := peer.NewPeer(nodePriv)
 	if err != nil {
@@ -61,7 +63,7 @@ func NewDaemon(
 		return nil, err
 	}
 
-	// Construct the controller bus.
+	// Construct the controller bus and register all factories.
 	b, sr, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		subCtxCancel()
@@ -69,7 +71,7 @@ func NewDaemon(
 	}
 	core_all.AddFactories(b, sr)
 
-	// Construct the node controller.
+	// Resolve the node controller.
 	dir := resolver.NewLoadControllerWithConfig(&node_controller.Config{})
 	_, _, valRef, err := bus.ExecOneOff(ctx, b, dir, nil, nil)
 	if err != nil {
@@ -78,7 +80,7 @@ func NewDaemon(
 	}
 	le.Info("node controller resolved")
 
-	// Construct the peer controller
+	// Add and retain the peer controller.
 	peerCtrl := peer_controller.NewController(le, nodePeer)
 	peerCtrlRel, err := b.AddController(ctx, peerCtrl, nil)
 	if err != nil {
@@ -87,6 +89,7 @@ func NewDaemon(
 	}
 	le.Info("node peer controller resolved")
 
+	// Return the daemon with all release callbacks.
 	return &Daemon{
 		Peer: nodePeer,
 
@@ -109,8 +112,11 @@ func (d *Daemon) GetControllerBus() bus.Bus {
 
 // Close calls all close callbacks.
 func (d *Daemon) Close() {
+	// Detach the release callbacks before invoking them.
 	closeCbs := d.closeCbs
 	d.closeCbs = nil
+
+	// Invoke each detached release callback.
 	for _, cb := range closeCbs {
 		cb()
 	}

@@ -27,6 +27,7 @@ import (
 
 // setupWorldTestbed creates a hydra world testbed and returns it.
 func setupWorldTestbed(ctx context.Context, t *testing.T) (*world_testbed.Testbed, func()) {
+	// Create the World testbed and release callback.
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -41,6 +42,7 @@ func setupWorldTestbed(ctx context.Context, t *testing.T) (*world_testbed.Testbe
 
 // setupWorldResourceClient sets up resource client and returns Engine SDK wrapper.
 func setupWorldResourceClient(ctx context.Context, t *testing.T, tb *world_testbed.Testbed) (*resource_client.Client, *s4wave_world.Engine, func()) {
+	// Acquire the resource client and create a World engine.
 	resClient, clientCleanup := resource_testbed.SetupResourceClient(ctx, t, tb)
 
 	rootRef := resClient.AccessRootResource()
@@ -60,6 +62,7 @@ func setupWorldResourceClient(ctx context.Context, t *testing.T, tb *world_testb
 		t.Fatal(err.Error())
 	}
 
+	// Build the engine wrapper and cleanup closure.
 	engineRef := resClient.CreateResourceReference(createWorldResp.ResourceId)
 	engine, err := s4wave_world.NewEngine(resClient, engineRef)
 	if err != nil {
@@ -87,6 +90,7 @@ func TestGraphPathQueryResourceClose(t *testing.T) {
 	resClient, engine, cleanup := setupWorldResourceClient(ctx, t, tb)
 	defer cleanup()
 
+	// Create graph objects and commit their edges.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -110,6 +114,7 @@ func TestGraphPathQueryResourceClose(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Open a read transaction and execute the graph-path query.
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -137,6 +142,7 @@ func TestGraphPathQueryResourceClose(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Page and close the query resource.
 	queryRef := resClient.CreateResourceReference(resp.GetResourceId())
 	defer queryRef.Release()
 	queryClient, err := queryRef.GetClient()
@@ -162,6 +168,7 @@ func TestGraphPathQueryResourceClose(t *testing.T) {
 		t.Fatalf("expected closed query to return done, got keys=%#v done=%v", page.GetObjectKeys(), page.GetDone())
 	}
 
+	// Verify canceled and closed resource behavior.
 	resource := resource_world.NewGraphPathQueryResource(nil, nil, &world.GraphPathQueryResult{
 		ObjectKeys: []string{"query/direct"},
 	}, 1)

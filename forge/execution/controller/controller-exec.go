@@ -103,7 +103,7 @@ func (c *Controller) processExec(
 		defer cancel()
 	}
 
-	// resolve the controller config
+	// Resolve and validate the execution controller configuration.
 	cconf, err := ctrlConf.Resolve(resolveCtx, c.bus)
 	if err != nil {
 		if err == context.Canceled {
@@ -118,12 +118,12 @@ func (c *Controller) processExec(
 		return errors.Wrap(err, "validate exec controller config")
 	}
 
-	// ask the handler if it's ok to execute this controller
+	// Confirm the handler permits this controller execution.
 	if err := c.CheckExecControllerConfig(ctx, rCtrlConf); err != nil {
 		return err
 	}
 
-	// load the factory for the controller
+	// Load the factory for the configured controller.
 	factoryAv, _, factoryRef, err := bus.ExecOneOff(
 		ctx,
 		c.bus,
@@ -141,7 +141,7 @@ func (c *Controller) processExec(
 		return errors.New("load exec controller factory returned unexpected type")
 	}
 
-	// construct the controller, using the ExecutionController logger
+	// Construct the execution controller with its logger.
 	le := c.le
 	ctrl, err := fac.Construct(ctx, rCtrlConf, controller.ConstructOpts{
 		Logger: le,
@@ -150,10 +150,10 @@ func (c *Controller) processExec(
 		return errors.Wrap(err, "construct exec controller")
 	}
 
-	// lookup the target world engine if applicable
+	// Resolve the target world input when configured.
 	var targetWorld forge_target.InputValueWorld
 	if tgtWorldID := c.conf.GetInputWorld().GetEngineId(); tgtWorldID != "" {
-		// only set if there is not an Input set with the id
+		// Resolve the world only when the execution input is not already set.
 		v, rel, err := c.conf.GetInputWorld().ResolveValue(ctx, tgtBus)
 		if err != nil {
 			return err
@@ -166,7 +166,7 @@ func (c *Controller) processExec(
 		}
 	}
 
-	// build inputs map for passing to controller
+	// Resolve the controller input map against the target world.
 	inputsValMap, err := forge_value.
 		ValueSlice(exState.GetValueSet().GetInputs()).
 		BuildValueMap(true, true)
@@ -186,16 +186,15 @@ func (c *Controller) processExec(
 	}
 	defer inputsRelease()
 
-	// we expect all inputs to be resolved at this point.
+	// Reject unresolved inputs before controller execution.
 	if len(inputsUnresolved) != 0 {
 		inputNames := forge_target.GetInputsNames(inputsUnresolved)
 		return errors.Errorf("found %d unset inputs: %s", len(inputNames), inputNames)
 	}
 
-	// ensure the inputs match the ValueSet on the Execution.
+	// Compare resolved inputs with the execution snapshot.
 	inputValueSet := inputsMap.BuildValueSet()
 
-	// compare the value set with the stored inputs
 	var inputSet forge_value.ValueSlice = inputValueSet.GetInputs()
 	var exInputSet forge_value.ValueSlice = exState.GetValueSet().GetInputs()
 	addedInputs, removedInputs, changedInputs := exInputSet.Compare(inputSet)
@@ -205,12 +204,12 @@ func (c *Controller) processExec(
 		return errors.Errorf("found %d outdated inputs: %s", len(dirtyNames), dirtyNames)
 	}
 
-	// set the default "world" input if not already set
+	// Add the default world input when no explicit value exists.
 	if _, targetWorldOk := inputsMap[targetWorldInput]; !targetWorldOk && targetWorld != nil {
 		inputsMap[targetWorldInput] = targetWorld
 	}
 
-	// pass handles to the exec controller
+	// Build the execution handle and pass it to the controller.
 	execCtx := forge_target.WithExecCancelSignal(ctx, c.cancelCh)
 	execCtrlHandle := newExecControllerHandle(
 		execCtx,

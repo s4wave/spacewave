@@ -60,6 +60,7 @@ type incPacket struct {
 // an Error with Timeout() == true after a fixed time limit;
 // see SetDeadline and SetReadDeadline.
 func (c *packetConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
+	// Apply the configured read deadline to the packet context.
 	deadline := c.rd
 	ctx := c.ctx
 	if !deadline.IsZero() {
@@ -68,6 +69,7 @@ func (c *packetConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 		defer ctxCancel()
 	}
 
+	// Wait for a packet or context cancellation.
 	var pkt *incPacket
 	select {
 	case <-ctx.Done():
@@ -75,6 +77,7 @@ func (c *packetConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 	case pkt = <-c.packetCh:
 	}
 
+	// Copy the packet payload and report truncation.
 	copy(p, pkt.data)
 	if len(p) < len(pkt.data) {
 		return len(p), pkt.addr, io.ErrShortBuffer
@@ -84,9 +87,12 @@ func (c *packetConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 
 // HandlePacket intakes a packet, returning it from ReadFrom.
 func (c *packetConn) HandlePacket(ctx context.Context, p []byte, addr net.Addr) (int, error) {
+	// Copy the payload before publishing it to readers.
 	data := make([]byte, len(p))
 	copy(data, p)
 	pkt := &incPacket{data: data, addr: addr}
+
+	// Publish the packet unless the caller has canceled.
 	select {
 	case <-ctx.Done():
 		return 0, ctx.Err()
@@ -101,6 +107,7 @@ func (c *packetConn) HandlePacket(ctx context.Context, p []byte, addr net.Addr) 
 // see SetDeadline and SetWriteDeadline.
 // On packet-oriented connections, write timeouts are rare.
 func (c *packetConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
+	// Apply the configured write deadline to the packet context.
 	deadline := c.wd
 	ctx := c.ctx
 	if !deadline.IsZero() {
@@ -109,6 +116,7 @@ func (c *packetConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 		defer ctxCancel()
 	}
 
+	// Route the packet to the connected remote endpoint.
 	return c.writer(ctx, p, addr)
 }
 

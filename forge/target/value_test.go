@@ -29,7 +29,7 @@ func buildTestbedHandle(t *testing.T) (*testbed.Testbed, world.WorldState, ExecC
 	t.Cleanup(tb.Release)
 	hydra_all.AddFactories(tb.Bus, tb.StaticResolver)
 
-	// construct & mount world controller
+	// Construct and mount the world controller used by the handle.
 	engineID := "forge-target-test"
 	volumeID := tb.Volume.GetID()
 	bucketID := tb.BucketId
@@ -68,8 +68,9 @@ func TestStoreBlobValue(t *testing.T) {
 	tb, _, handle := buildTestbedHandle(t)
 	ctx := tb.Context
 
-	// Test storing large value
+	// Store a large blob value.
 	rnd := prng.BuildSeededReader([]byte("test-store-blob-value"))
+
 	dat := make([]byte, 250000) // 250kb
 	_, err := io.ReadFull(rnd, dat)
 	if err != nil {
@@ -80,7 +81,7 @@ func TestStoreBlobValue(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Test loading value
+	// Load the blob and compare its bytes with the stored value.
 	outData, err := LoadBlobValueToBytes(ctx, handle, fv)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -95,14 +96,13 @@ func TestStoreMsgpackBlobValue(t *testing.T) {
 	tb, _, handle := buildTestbedHandle(t)
 	ctx := tb.Context
 
-	// Test storing value
+	// Store a structured value and load it back.
 	testValue := map[string]int{"test": 2}
 	fv, err := StoreMsgpackValue(ctx, handle, testValue)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// Test loading value
 	loaded, err := LoadMsgpackValue(ctx, handle, fv, func() map[string]int {
 		return map[string]int{}
 	})
@@ -119,14 +119,14 @@ func TestStoreMsgpackBlockValue(t *testing.T) {
 	tb, _, handle := buildTestbedHandle(t)
 	ctx := tb.Context
 
-	// Test storing value directly in block
+	// Store a structured value in a msgpack block.
 	testValue := map[string]int{"test": 2}
 	fv, err := StoreMsgpackValue(ctx, handle, testValue)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// Test loading value
+	// Load the block and verify its decoded value.
 	loaded, err := LoadMsgpackValue(ctx, handle, fv, func() map[string]int { return map[string]int{} })
 	if err != nil {
 		t.Fatal(err.Error())

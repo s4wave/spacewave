@@ -28,6 +28,7 @@ type LookupTptAddrValue = string
 //
 // Note: waits to return until all resolvers become idle.
 func ExLookupTptAddr(ctx context.Context, b bus.Bus, destPeerID peer.ID, waitOne bool) ([]LookupTptAddrValue, directive.Instance, directive.Reference, error) {
+	// Collect matching transport addresses through the directive bus.
 	out, di, valsRef, err := bus.ExecCollectValues[LookupTptAddrValue](
 		ctx,
 		b,

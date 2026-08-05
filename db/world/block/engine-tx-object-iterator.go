@@ -69,7 +69,8 @@ func (e *engineTxObjectIterator) Next() bool {
 	var prevTx *Tx
 	err := e.e.performOp(e.ctx, func(tx *Tx) error {
 		var iter world.ObjectIterator
-		// fast path: same txn as before
+
+		// Reuse the prior iterator when the transaction snapshot is unchanged.
 		if prevTx == tx {
 			iter = prevIter
 			if !iter.Next() {
@@ -80,16 +81,16 @@ func (e *engineTxObjectIterator) Next() bool {
 			return nil
 		}
 
-		// slow path: rebuild iterator with new read txn (contents changed)
+		// Rebuild the iterator after the transaction snapshot changes.
 		iter = tx.IterateObjects(e.ctx, e.prefix, e.reversed)
 		defer iter.Close()
 
-		// check for error
+		// Reject an iterator that failed during initialization.
 		if err := iter.Err(); err != nil {
 			return err
 		}
 
-		// save txn and iter for later
+		// Retain the transaction and iterator for the next call.
 		prevTx, prevIter = tx, iter
 
 		if e.currKey != "" {
@@ -101,15 +102,15 @@ func (e *engineTxObjectIterator) Next() bool {
 				return iter.Err()
 			}
 
-			// Check if Seek already moved us past the current key
+			// Advance past the current key when Seek returns it again.
 			if iter.Key() == e.currKey {
-				// Still on same key, need to move past it
+				// Advance once more when Seek returned the previous key.
 				if !iter.Next() {
 					return iter.Err()
 				}
 			}
 		} else {
-			// Need to move to first valid entry
+			// Position the fresh iterator at its first valid entry.
 			if !iter.Next() {
 				return iter.Err()
 			}

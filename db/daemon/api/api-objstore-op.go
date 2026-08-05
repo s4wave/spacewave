@@ -13,10 +13,12 @@ func (a *API) ObjectStoreOp(
 	ctx context.Context,
 	req *ObjectStoreOpRequest,
 ) (*ObjectStoreOpResponse, error) {
+	// Validate the requested object operation.
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
 
+	// Resolve the object store and retain its directive release.
 	av, _, diRef, err := bus.ExecOneOffTyped[volume.BuildObjectStoreAPIValue](
 		ctx,
 		a.bus,
@@ -32,11 +34,11 @@ func (a *API) ObjectStoreOp(
 	}
 	defer diRef.Release()
 
+	// Open the resolved object store and choose transaction write access.
 	objStore := av.GetValue().GetObjectStore()
 	if objStore == nil {
 		return nil, errors.New("object store value was empty")
 	}
-
 	var write bool
 	switch req.GetOp() {
 	case ObjectStoreOp_ObjectStoreOp_DELETE_KEY:
@@ -44,13 +46,13 @@ func (a *API) ObjectStoreOp(
 	case ObjectStoreOp_ObjectStoreOp_PUT_KEY:
 		write = true
 	}
-
 	tx, err := objStore.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Discard()
 
+	// Execute the object operation against the transaction.
 	err = nil
 	resp := &ObjectStoreOpResponse{}
 	reqKey := []byte(req.GetKey())
@@ -72,6 +74,8 @@ func (a *API) ObjectStoreOp(
 		})
 		resp.Keys = keys
 	}
+
+	// Commit successful write operations.
 	if err == nil && write {
 		err = tx.Commit(ctx)
 	}

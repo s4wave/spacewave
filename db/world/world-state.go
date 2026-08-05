@@ -309,25 +309,36 @@ func AccessObject(
 	defer task.End()
 
 	var outRef *bucket.ObjectRef
+
+	// Build the block transaction for the accessed object.
 	err := access(ctx, ref, func(bls *bucket_lookup.Cursor) error {
 		_, subtask := trace.NewTask(ctx, "hydra/world/access-object/build-transaction")
 		btx, bcs := bls.BuildTransaction(nil)
 		subtask.End()
+
+		// Initialize an empty object root before invoking the caller operation.
 		if ref.GetRootRef().GetEmpty() {
 			_, subtask = trace.NewTask(ctx, "hydra/world/access-object/init-empty-root")
+
 			// bcs.SetBlock(nil, false)
 			bcs.SetRefAtCursor(nil, true)
 			subtask.End()
 		}
+
+		// Apply the caller operation to the object cursor.
 		_, subtask = trace.NewTask(ctx, "hydra/world/access-object/callback")
 		berr := cb(bcs)
 		subtask.End()
 		if berr != nil {
 			return berr
 		}
+
+		// Capture the updated object reference before writing the transaction.
 		_, subtask = trace.NewTask(ctx, "hydra/world/access-object/clone-out-ref")
 		outRef = bls.GetRefWithOpArgs()
 		subtask.End()
+
+		// Persist the block transaction and return its result.
 		_, subtask = trace.NewTask(ctx, "hydra/world/access-object/write-transaction")
 		outRef.RootRef, _, berr = btx.Write(ctx, true)
 		subtask.End()
@@ -345,6 +356,7 @@ func CreateWorldObject(
 	objKey string,
 	cb AccessObjectCb,
 ) (ObjectState, *bucket.ObjectRef, error) {
+	// Confirm that the object key is not already present.
 	obj, exists, err := ws.GetObject(ctx, objKey)
 	ReleaseObjectState(obj)
 	if err == nil && exists {
@@ -354,10 +366,13 @@ func CreateWorldObject(
 		return nil, nil, err
 	}
 
+	// Build and persist the new object's root block.
 	objRef, err := AccessObject(ctx, ws.AccessWorldState, nil, cb)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Register the new object in world state.
 	objs, err := ws.CreateObject(ctx, objKey, objRef)
 	return objs, objRef, err
 }
@@ -374,17 +389,19 @@ func AccessWorldObject(
 	updateWorld bool,
 	cb AccessObjectCb,
 ) (*bucket.ObjectRef, bool, error) {
+	// Read-only world states cannot publish object updates.
 	if ws.GetReadOnly() {
 		updateWorld = false
 	}
 
+	// Look up the object and release its handle when this access returns.
 	obj, existed, err := ws.GetObject(ctx, objKey)
 	defer ReleaseObjectState(obj)
 	if err != nil {
 		return nil, false, err
 	}
 
-	// create object from scratch if it didn't exist.
+	// Create a root block and publish the object when it is new.
 	if !existed {
 		initRef, err := AccessObject(ctx, ws.AccessWorldState, nil, cb)
 		if err == nil && updateWorld {
@@ -395,6 +412,7 @@ func AccessWorldObject(
 		return initRef, true, err
 	}
 
+	// Update the existing object's root and publish it when dirty.
 	return AccessObjectState(ctx, obj, updateWorld, cb)
 }
 
@@ -411,21 +429,28 @@ func AccessObjectState(
 	ctx, task := trace.NewTask(ctx, "hydra/world/access-object-state")
 	defer task.End()
 
+	// Reject an absent object before opening its root reference.
 	if obj == nil {
 		return nil, false, ErrObjectNotFound
 	}
+
+	// Read the current object root before applying the callback.
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world/access-object-state/get-root-ref")
 	initRef, _, err := obj.GetRootRef(taskCtx)
 	subtask.End()
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Apply the callback against the current object root.
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world/access-object-state/access-object")
 	outRef, err := AccessObject(taskCtx, obj.AccessWorldState, initRef, cb)
 	subtask.End()
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Compare the original and updated roots to detect a dirty object.
 	var dirty bool
 	_, subtask = trace.NewTask(ctx, "hydra/world/access-object-state/compare-root-ref")
 	if initRef.GetBucketId() != "" && initRef.GetBucketId() != outRef.GetBucketId() {
@@ -435,6 +460,8 @@ func AccessObjectState(
 		dirty = true
 	}
 	subtask.End()
+
+	// Publish a changed root when the caller requested world updates.
 	if updateWorld && dirty {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/world/access-object-state/set-root-ref")
 		_, err = obj.SetRootRef(taskCtx, outRef)

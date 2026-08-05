@@ -43,10 +43,12 @@ func (a *ProviderAccount) GeneratePairingCode(
 	sessionPriv crypto.PrivKey,
 	sessionPeerID peer.ID,
 ) (string, error) {
+	// Start the session transport required by the relay request.
 	if _, _, err := a.ensureSessionTransport(ctx, sessionPriv, relayURL, signingEnvPrefix); err != nil {
 		return "", errors.Wrap(err, "start session transport")
 	}
 
+	// Generate and serialize the pairing request.
 	code, err := generatePairingCode()
 	if err != nil {
 		return "", err
@@ -60,6 +62,7 @@ func (a *ProviderAccount) GeneratePairingCode(
 		return "", errors.Wrap(err, "marshal pairing request")
 	}
 
+	// Build and sign the relay HTTP request.
 	reqURL, err := url.JoinPath(relayURL, "/api/pair")
 	if err != nil {
 		return "", errors.Wrap(err, "build pairing URL")
@@ -75,6 +78,7 @@ func (a *ProviderAccount) GeneratePairingCode(
 		return "", errors.Wrap(err, "sign pairing request")
 	}
 
+	// Submit the pairing code and classify the relay response.
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", errors.Wrap(err, "post pairing code")
@@ -89,6 +93,7 @@ func (a *ProviderAccount) GeneratePairingCode(
 		return "", errors.Errorf("pairing relay returned %d: %s", resp.StatusCode, string(respBody))
 	}
 
+	// Cache the code for later local confirmation.
 	a.SetPairingCode(code, sessionPriv)
 	return code, nil
 }
@@ -104,10 +109,12 @@ func (a *ProviderAccount) CompletePairing(
 	sessionPriv crypto.PrivKey,
 	sessionPeerID peer.ID,
 ) (peer.ID, error) {
+	// Start the session transport required for the lookup.
 	if _, _, err := a.ensureSessionTransport(ctx, sessionPriv, relayURL, signingEnvPrefix); err != nil {
 		return "", errors.Wrap(err, "start session transport")
 	}
 
+	// Fetch and decode the remote pairing response.
 	reqURL, err := url.JoinPath(relayURL, "/api/pair", code)
 	if err != nil {
 		return "", errors.Wrap(err, "build pairing URL")
@@ -138,6 +145,7 @@ func (a *ProviderAccount) CompletePairing(
 		return "", errors.Wrap(err, "unmarshal pairing response")
 	}
 
+	// Decode the remote peer identity and watch for its transport link.
 	remotePeerID, err := peer.IDB58Decode(pr.GetPeerId())
 	if err != nil {
 		return "", errors.Errorf("decode remote peer ID: %v", err)

@@ -124,28 +124,35 @@ func (s *Session) GetDirectP2PEnabled() bool {
 
 // SetDirectP2PEnabled persists and reconciles the Session-local transport policy.
 func (s *Session) SetDirectP2PEnabled(ctx context.Context, enabled bool) error {
+	// Acquire the session controller and read mounted metadata.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.GetBus(), "", false, nil)
 	if err != nil {
 		return err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Resolve the session metadata record.
 	ref := s.GetSessionRef()
 	meta, err := lookupSessionMetadata(ctx, sessionCtrl, ref)
 	if err != nil {
 		return err
 	}
+
+	// Fill metadata defaults for a first update.
 	if meta == nil {
 		meta = &session.SessionMetadata{
 			ProviderDisplayName: "Cloud",
 			ProviderId:          "spacewave",
 		}
 	}
+
+	// Persist the direct-transport policy in session metadata.
 	meta.DirectP2PDisabled = !enabled
 	if err := sessionCtrl.UpdateSessionMetadata(ctx, ref, meta); err != nil {
 		return err
 	}
 
+	// Publish the local policy and persist the account setting.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.directP2PEnabled = enabled
 		broadcast()
@@ -163,6 +170,7 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		return errors.New("session is not PIN-locked")
 	}
 
+	// Read the encrypted PIN-lock material.
 	encPriv, encSymKey, config, err := session_lock.ReadPINLockFiles(ctx, s.objStore, s.tkr.id)
 	if err != nil {
 		return errors.Wrap(err, "read PIN lock files")
@@ -171,6 +179,7 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		return errors.New("PIN lock files not found")
 	}
 
+	// Decrypt and parse the session private key.
 	privPEM, err := session_lock.UnlockPIN(encPriv, encSymKey, config, pin)
 	if err != nil {
 		return err
@@ -182,6 +191,7 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		return errors.Wrap(err, "parse unlocked key")
 	}
 
+	// Install the key and reconcile authenticated transport state.
 	s.sessionPriv = privKey
 	s.tkr.a.maybeSetSessionClient(s.tkr.id, NewSessionClient(
 
@@ -204,7 +214,7 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		s.tkr.a.le.WithError(err).Warn("failed to reconcile session transport after unlock")
 	}
 
-	// Broadcast unlocked state.
+	// Publish the unlocked session state.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
 	})
@@ -230,14 +240,14 @@ func (s *Session) LockSession(ctx context.Context) error {
 	}
 	s.sessionPriv = nil
 
-	// Invalidate the published session so future mounts do not reuse it.
+	// Invalidate the published session and stop its transport.
 	s.tkr.sessionProm.SetPromise(nil)
 	s.tkr.unlockProm = promise.NewPromiseContainer[[]byte]()
 	s.tkr.releasePinnedRef()
 	s.tkr.a.dropSessionClientForSession(s.tkr.id)
 	s.tkr.a.StopSessionTransportComposition(s.tkr.id)
 
-	// Broadcast locked=true so WatchLockState emits.
+	// Publish the locked session state.
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
 	})

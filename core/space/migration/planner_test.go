@@ -20,6 +20,7 @@ import (
 )
 
 func TestPlannerDeterminismClosureAndTypedMappings(t *testing.T) {
+	// Initialize source and destination World testbeds.
 	ctx := context.Background()
 	source, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -32,6 +33,7 @@ func TestPlannerDeterminismClosureAndTypedMappings(t *testing.T) {
 	}
 	defer destination.Release()
 
+	// Populate the source closure and construct the planner.
 	setObject(t, ctx, source.WorldState, "root", s4wave_kv_world.KvStoreTypeID)
 	setObject(t, ctx, source.WorldState, "child", s4wave_kv_world.KvStoreTypeID)
 	setObject(t, ctx, source.WorldState, "secret", s4wave_kv_world.KvStoreTypeID)
@@ -47,6 +49,8 @@ func TestPlannerDeterminismClosureAndTypedMappings(t *testing.T) {
 		Destination:        destination.WorldState,
 		SelectedObjectKeys: []string{"root"},
 	}
+
+	// Plan twice and compare deterministic output.
 	first, err := planner.Plan(ctx, input)
 	if err != nil {
 		t.Fatal(err)
@@ -55,6 +59,8 @@ func TestPlannerDeterminismClosureAndTypedMappings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Verify closure totals and identity mappings.
 	if first.Digest != second.Digest {
 		t.Fatalf("digest changed between identical plans: %s != %s", first.Digest, second.Digest)
 	}
@@ -67,6 +73,7 @@ func TestPlannerDeterminismClosureAndTypedMappings(t *testing.T) {
 }
 
 func TestPlannerRefusesUnknownAndInsufficientCapacity(t *testing.T) {
+	// Initialize testbeds for blocker and capacity cases.
 	ctx := context.Background()
 	source, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -78,6 +85,8 @@ func TestPlannerRefusesUnknownAndInsufficientCapacity(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer destination.Release()
+
+	// Plan an unknown object and verify its blocker.
 	setObject(t, ctx, source.WorldState, "unknown", "plugin/unknown")
 	registry, err := space_migration.BuiltInRegistry()
 	if err != nil {
@@ -103,6 +112,7 @@ func TestPlannerRefusesUnknownAndInsufficientCapacity(t *testing.T) {
 		t.Fatalf("unknown type blocker = %#v", preview.GetBlockers())
 	}
 
+	// Plan a known object against insufficient destination capacity.
 	setObject(t, ctx, source.WorldState, "known", s4wave_kv_world.KvStoreTypeID)
 	preview, err = planner.Plan(ctx, &space_migration.PlannerInput{
 		SourceSpaceID:       "source-space",
@@ -122,6 +132,7 @@ func TestPlannerRefusesUnknownAndInsufficientCapacity(t *testing.T) {
 }
 
 func TestPlannerRejectsStaleWorld(t *testing.T) {
+	// Initialize worlds and a baseline preview.
 	ctx := context.Background()
 	source, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -147,6 +158,8 @@ func TestPlannerRejectsStaleWorld(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Mutate the source after planning and reject the stale preview.
 	setObject(t, ctx, source.WorldState, "later", s4wave_kv_world.KvStoreTypeID)
 	if err := planner.VerifyFresh(ctx, input, preview); !errors.Is(err, space_migration.ErrStalePlan) {
 		t.Fatalf("stale verification error = %v, want ErrStalePlan", err)

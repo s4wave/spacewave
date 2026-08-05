@@ -57,8 +57,10 @@ func (br *BufferedReaderAt) alignOffset(offset int64) int64 {
 // ReadAt reads from the underlying io.ReaderAt into p, implementing caching, page alignment, and preventing overlapping cache pages.
 // Supports concurrent requests.
 func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
+	// Track the unread portion of the caller's request.
 	remaining := len(p)
 
+	// Resolve and copy each aligned cache range.
 	for remaining > 0 {
 		currentOffset := off + int64(n)
 		startOffset := br.alignOffset(currentOffset)
@@ -68,6 +70,7 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 		}
 		desiredSize := endOffset - startOffset
 
+		// Find or create the cache range covering the current offset.
 		br.mtx.Lock()
 
 		// Using binary search to find the insertion index or existing range
@@ -158,12 +161,14 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 		}
 		br.mtx.Unlock()
 
+		// Wait for the cache range to finish loading.
 		<-matchedRange.done // Wait for the read to complete
 
 		if matchedRange.err != nil {
 			return n, matchedRange.err // Return the error if any
 		}
 
+		// Copy the requested bytes from the completed range.
 		copyStart := int(currentOffset - matchedRange.offset)
 		if copyStart < 0 {
 			// range returned was after the requested starting point

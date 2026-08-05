@@ -16,11 +16,13 @@ func NewTestingBus(
 	le *logrus.Entry,
 	opts ...cbc.Option,
 ) (bus.Bus, *static.Resolver, error) {
+	// Construct the minimal controller bus.
 	b, sr, err := cbc.NewCoreBus(ctx, le, opts...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Register the network peer factory used by tests.
 	sr.AddFactory(nctr.NewFactory(b))
 	return b, sr, nil
 }

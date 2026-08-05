@@ -18,17 +18,19 @@ const keypairEncContext = "identity sign EntityKeypair 2024-06-05T06:48:39.30967
 // The keypair must not already exist.
 // If Entity != nil, checks if the Entity matches the keypair.
 func (e *EntityKeypairSet) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeypair, ent *Entity) error {
-	// validate keypair
+	// Validate the keypair before signing or storing it.
 	if err := ekp.Validate(); err != nil {
 		return err
 	}
+
 	if ent != nil {
 		// Note: does not check if the entity keypair set contains the entity.
 		if err := ekp.ValidateMatchesEntity(ent); err != nil {
 			return err
 		}
 	}
-	// ensure that peer ids match
+
+	// Confirm that the private key matches the keypair peer ID.
 	kp := ekp.GetKeypair()
 	expectedPeerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
@@ -39,7 +41,7 @@ func (e *EntityKeypairSet) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeyp
 		return errors.Errorf("private key %s does not match keypair %s", expectedPeerIDString, kpPeerID)
 	}
 
-	// sign the keypair data w/ the private key
+	// Sign the keypair data with the private key.
 	kpData, err := ekp.MarshalBlock()
 	if err != nil {
 		return err
@@ -48,13 +50,15 @@ func (e *EntityKeypairSet) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeyp
 	if err != nil {
 		return err
 	}
-	// verify the signature matches (sanity check)
+
+	// Verify the generated signature against the private key's public key.
 	pubKey := privKey.GetPublic()
 	_, err = sig.VerifyWithPublic(keypairEncContext, pubKey, kpData)
 	if err != nil {
 		return err
 	}
-	// ensure no keypair exists with the peer id
+
+	// Reject an existing keypair with the same peer or public key.
 	for i, kpData := range e.GetEntityKeypairs() {
 		ekp := &EntityKeypair{}
 		var peerID peer.ID
@@ -74,7 +78,7 @@ func (e *EntityKeypairSet) AppendKeypair(privKey crypto.PrivKey, ekp *EntityKeyp
 		}
 	}
 
-	// append the signature + keypair
+	// Append the signed keypair data.
 	e.EntityKeypairs = append(e.EntityKeypairs, kpData)
 	e.EntityKeypairSignatures = append(e.EntityKeypairSignatures, sig)
 	return nil
@@ -88,9 +92,13 @@ func (e *EntityKeypairSet) UnmarshalVerifyKeypairs(ent *Entity) ([]*EntityKeypai
 	kpLen := len(keypairs)
 	keypairSigs := e.GetEntityKeypairSignatures()
 	sigLen := len(keypairSigs)
+
+	// Require one signature for every encoded keypair.
 	if kpLen != sigLen {
 		return nil, errors.Errorf("keypairs count must match signatures count: %d != %d", kpLen, sigLen)
 	}
+
+	// Decode and validate each keypair before checking its signature.
 	keypairVals := make([]*EntityKeypair, len(keypairs))
 	for i, kpData := range keypairs {
 		ekp := &EntityKeypair{}
@@ -108,6 +116,8 @@ func (e *EntityKeypairSet) UnmarshalVerifyKeypairs(ent *Entity) ([]*EntityKeypai
 		}
 		keypairVals[i] = ekp
 	}
+
+	// Verify each signature against the corresponding keypair payload.
 	for i, kpSig := range keypairSigs {
 		ekp := keypairVals[i]
 		pubKey, err := kpSig.ParsePubKey()

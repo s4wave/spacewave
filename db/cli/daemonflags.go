@@ -88,11 +88,13 @@ func (a *DaemonArgs) BuildFlags() []cli.Flag {
 //
 // If baseVolCtrlConf is nil, a default volume controller config is used.
 func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite bool, baseVolCtrlConf *volume_controller.Config) error {
+	// Prepare the shared volume configuration and CLI alias.
 	if baseVolCtrlConf == nil {
 		baseVolCtrlConf = &volume_controller.Config{}
 	}
 	baseVolCtrlConf.VolumeIdAlias = append(baseVolCtrlConf.VolumeIdAlias, CLIVolumeIDAlias)
 
+	// Register the optional in-memory volume.
 	if a.InmemDB || a.InmemDBVerbose {
 		id := "cli-inmem-volume-0"
 		conf := &volume_kvtxinmem.Config{
@@ -104,13 +106,13 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		}
 	}
 
+	// Register each configured Badger volume.
 	for i, bdbi := range a.BadgerDBs.Value() {
 		id := "cli-badger-volume-" + strconv.Itoa(i)
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
 			continue
 		}
-
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, &volume_badger.Config{
 				Dir:          bdb,
@@ -119,13 +121,13 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		}
 	}
 
+	// Register each configured Bolt volume.
 	for i, bdbi := range a.BoltDBs.Value() {
 		id := "cli-bolt-volume-" + strconv.Itoa(i)
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
 			continue
 		}
-
 		if _, ok := confSet[id]; !ok || overwrite {
 			confSet[id] = configset.NewControllerConfig(1, &volume_bolt.Config{
 				Path:         bdb,
@@ -135,6 +137,7 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		}
 	}
 
+	// Register the optional Redis volume.
 	if a.RedisURL != "" {
 		id := "cli-redis-volume-0"
 		if _, ok := confSet[id]; !ok || overwrite {
@@ -154,36 +157,35 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 // id is optional and specifies a prefix to use for the volume. If
 // baseVolCtrlConf is nil, a default volume controller config is used.
 func (a *DaemonArgs) BuildSingleVolume(id string, baseVolCtrlConf *volume_controller.Config) config.Config {
+	// Prepare the shared volume configuration and normalize the volume ID.
 	if baseVolCtrlConf == nil {
 		baseVolCtrlConf = &volume_controller.Config{}
 	}
 	baseVolCtrlConf.VolumeIdAlias = append(baseVolCtrlConf.VolumeIdAlias, CLIVolumeIDAlias)
-
 	id = strings.TrimSpace(id)
 
+	// Build a Badger volume when a database directory is configured.
 	for _, bdbi := range a.BadgerDBs.Value() {
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
 			continue
 		}
-
 		dir := bdb
 		if id != "" {
 			dir = filepath.Join(dir, id)
 		}
-
 		return &volume_badger.Config{
 			Dir:          dir,
 			VolumeConfig: baseVolCtrlConf,
 		}
 	}
 
+	// Build a Bolt volume when a database file is configured.
 	for _, bdbi := range a.BoltDBs.Value() {
 		bdb := strings.TrimSpace(bdbi)
 		if bdb == "" {
 			continue
 		}
-
 		if id != "" {
 			dir := filepath.Dir(bdb)
 			fileName := filepath.Base(bdb)
@@ -191,7 +193,6 @@ func (a *DaemonArgs) BuildSingleVolume(id string, baseVolCtrlConf *volume_contro
 			nameWithoutExt := strings.TrimSuffix(fileName, ext)
 			bdb = filepath.Join(dir, nameWithoutExt+"-"+id+ext)
 		}
-
 		return &volume_bolt.Config{
 			Path:         bdb,
 			Verbose:      a.BoltDBVerbose,
@@ -199,6 +200,7 @@ func (a *DaemonArgs) BuildSingleVolume(id string, baseVolCtrlConf *volume_contro
 		}
 	}
 
+	// Build a Redis volume when a Redis URL is configured.
 	if a.RedisURL != "" {
 		// Redis volume construction has no id-scoped path component.
 		return &volume_redis.Config{
@@ -209,5 +211,6 @@ func (a *DaemonArgs) BuildSingleVolume(id string, baseVolCtrlConf *volume_contro
 		}
 	}
 
+	// Fall back to the in-memory volume configuration.
 	return &volume_kvtxinmem.Config{Verbose: a.InmemDBVerbose, VolumeConfig: baseVolCtrlConf}
 }

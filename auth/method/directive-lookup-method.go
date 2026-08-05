@@ -30,16 +30,23 @@ func ExAuthLookupMethod(
 	methodID string,
 	returnIfIdle bool,
 ) (AuthLookupMethodValue, error) {
+	// Execute the lookup directive with the requested idle behavior.
 	val, _, valRef, err := bus.ExecOneOff(ctx, b, NewAuthLookupMethod(methodID), bus.ReturnIfIdle(returnIfIdle), nil)
 	if err != nil {
 		return nil, err
 	}
+
+	// Release the lookup reference before inspecting the returned value.
 	if valRef != nil {
 		valRef.Release()
 	}
+
+	// Return an empty result when the lookup found no value.
 	if val == nil {
 		return nil, nil
 	}
+
+	// Validate and return the resolved authentication method.
 	v, vOk := val.GetValue().(AuthLookupMethodValue)
 	if !vOk {
 		return nil, errors.New("lookup auth method returned invalid type")
@@ -127,7 +134,10 @@ func (d *lookupMethod) GetName() string {
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *lookupMethod) GetDebugVals() directive.DebugValues {
+	// Create the debug-value collection for this directive.
 	vals := directive.NewDebugValues()
+
+	// Record the requested authentication method ID.
 	vals["id"] = []string{d.AuthLookupMethodID()}
 	return vals
 }

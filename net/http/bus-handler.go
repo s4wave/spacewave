@@ -27,6 +27,7 @@ func NewBusHandler(b bus.Bus, clientID string, notFoundIfIdle bool) *BusHandler 
 
 // ServeHTTP serves the http request.
 func (h *BusHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Resolve the current handler for this request.
 	ctx := req.Context()
 	handler, _, handlerRef, err := ExLookupFirstHTTPHandler(
 		ctx,
@@ -40,17 +41,23 @@ func (h *BusHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if handlerRef != nil {
 		defer handlerRef.Release()
 	}
+
+	// Return resolution errors to the caller.
 	if err != nil {
 		rw.WriteHeader(500)
+
 		_, _ = rw.Write([]byte(err.Error())) //nolint:gosec // internal error, not user-controlled
 		return
 	}
+
+	// Return not-found when no handler reference is available.
 	if handlerRef == nil {
 		rw.WriteHeader(404)
 		_, _ = rw.Write([]byte("404 not found"))
 		return
 	}
 
+	// Delegate the request to the resolved handler.
 	handler.ServeHTTP(rw, req)
 }
 

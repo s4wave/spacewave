@@ -50,19 +50,23 @@ func (e *EngineTx) Commit(ctx context.Context) error {
 // Can return an error to indicate tx failure.
 // If not write, returns ErrNotWrite.
 func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRef, error) {
+	// Start the commit trace.
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction")
 	defer task.End()
 
+	// Require a writable transaction.
 	if e.writeTx == nil {
 		e.Discard()
 		return nil, tx.ErrNotWrite
 	}
+
 	// Set rel before moving the lease out of Engine state. A commit that finds
 	// rel already set returns ErrDiscarded.
 	if e.rel.Swap(true) {
 		return nil, tx.ErrDiscarded
 	}
-	// Keep the coordinator lease local so root publication still precedes release.
+
+	// Move the coordinator lease into commit-local state.
 	locked := e.engine.bcast.Lock()
 	if e.engine.writeTx != e {
 		locked.Unlock()
@@ -92,6 +96,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	if commitErr == nil {
 		_, subtask = trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/validate-root")
 		nroot = e.writeTx.state.GetRootRef()
+
 		// A successful block commit must return a root.
 		commitErr = nroot.Validate(false)
 		subtask.End()
@@ -102,6 +107,7 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 	var retirement engineRetirement
 	_, subtask = trace.NewTask(ctx, "hydra/world-block/engine-tx/commit-block-transaction/apply-root-update")
 	locked = e.engine.bcast.Lock()
+
 	// Another Engine lifecycle path discarded this writer.
 	if e.engine.writeTx != e {
 		if commitErr == nil {
@@ -111,9 +117,11 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		// Apply the root only after commit and validation succeed.
 		if commitErr == nil {
 			nextRootRef = e.engine.head.root.GetRef().Clone()
+
 			// Publish only when the transaction changed root data.
 			if !nroot.EqualVT(nextRootRef.RootRef) {
 				nextRootRef.RootRef = nroot
+
 				// Durable-on-write modes validate that the committed root is
 				// followable from durable storage, then publish it through commitFn.
 				// Deferred single-writer mode postpones both steps until Sync makes
@@ -128,6 +136,8 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 					if errors.Is(commitErr, block.ErrNotFound) {
 						commitErr = errors.Wrap(coord.ErrStaleGeneration, "validate committed root")
 					}
+
+					// Publish the durable root through the configured callback.
 					if commitErr == nil && e.engine.commitFn != nil {
 						commitErr = e.engine.commitFn(ctx, e.baseHeadRef, nextRootRef.Clone())
 						if commitErr == nil {
@@ -135,37 +145,50 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 						}
 					}
 				}
+
+				// Publish the root into Engine state and capture retired resources.
 				if commitErr == nil {
 					retirement, commitErr = e.engine.setRootRefLocked(ctx, nextRootRef)
 				}
 			}
 		}
+
 		// Detach this writer even when commit or publication failed.
 		if e.engine.writeTx == e {
 			retirement = e.engine.beginRetirementLocked(e.detachLocked())
 		}
 	}
+
+	// Release the Engine lock and drain retired transaction users.
 	locked.Unlock()
 	subtask.End()
-	// Drain transaction users before releasing the serialized writer turn.
 	e.engine.drainRetirement(ctx, retirement)
 
 	// Publish the coordinator event only after local head publication succeeds.
 	if commitErr == nil && commitLease != nil {
+		// Select the root to publish. Fall back to the current head when this
+		// transaction did not produce a new root reference.
 		publishRoot := nextRootRef
 		if publishRoot == nil {
 			locked := e.engine.bcast.Lock()
 			publishRoot = e.engine.head.root.GetRef().Clone()
 			locked.Unlock()
 		}
+
+		// Build the coordinator event for the written key prefix.
 		event := coord.Event{
 			KeyPrefixChanged: append([]byte(nil), e.engine.writeCoordKeyPrefix...),
 		}
+
+		// Attach the selected root when one is available.
 		if publishRoot != nil {
 			event.RootChanged = publishRoot.Clone()
 		}
+
+		// Publish the event after local head publication succeeds.
 		_, commitErr = commitLease.Publish(ctx, event)
 	}
+
 	// Always release the coordinator lease after commit cleanup.
 	if commitLease != nil {
 		leaseErr := commitLease.Release(ctx)
@@ -174,9 +197,12 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 		}
 	}
 
+	// Return any commit or cleanup failure.
 	if commitErr != nil {
 		return nil, commitErr
 	}
+
+	// Return the committed root.
 	return nextRootRef, nil
 }
 
@@ -185,9 +211,11 @@ func (e *EngineTx) CommitBlockTransaction(ctx context.Context) (*bucket.ObjectRe
 // Cannot return an error.
 // Can be called unlimited times.
 func (e *EngineTx) Discard() {
+	// Stop when another lifecycle path already released this transaction.
 	if e.rel.Swap(true) {
 		return
 	}
+
 	// Detach under the Engine lock, then drain after unlocking.
 	locked := e.engine.bcast.Lock()
 	retirement := e.engine.beginRetirementLocked(e.detachLocked())
@@ -208,6 +236,7 @@ func (e *EngineTx) detachLocked() engineRetirement {
 		lease:   e.lease,
 	}
 	e.lease = nil
+
 	// Move Engine.writeTxRel into the retirement, which releases the serialized
 	// write turn after the Engine lock drops.
 	if e.engine.writeTx == e {
@@ -215,6 +244,8 @@ func (e *EngineTx) detachLocked() engineRetirement {
 		retirement.writeTxRel = e.engine.writeTxRel
 		e.engine.writeTxRel = nil
 	}
+
+	// Return the detached resources for retirement outside the Engine lock.
 	return retirement
 }
 

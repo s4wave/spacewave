@@ -54,13 +54,13 @@ func (t *Tx) Get(ctx context.Context, key []byte) (out []byte, found bool, err e
 		return nil, false, err
 	}
 
-	// bolt uses nil vs. []byte{} to indicate existence.
+	// Read the value from Bolt's transaction-scoped bucket view.
 	value := bkt.Get(key)
 	if value == nil {
 		return nil, false, nil
 	}
 
-	// value is only valid for time of transaction, copy
+	// Clone the transaction-scoped value before returning it.
 	return slices.Clone(value), true, nil
 }
 
@@ -72,6 +72,7 @@ func (t *Tx) Size(ctx context.Context) (size uint64, err error) {
 		return 0, err
 	}
 	stats := bkt.Stats()
+
 	return uint64(stats.KeyN), nil //nolint:gosec
 }
 
@@ -102,6 +103,7 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 		return err
 	}
 
+	// Position the cursor at the requested prefix boundary.
 	cur := bkt.Cursor()
 	var key, value []byte
 	if len(prefix) == 0 {
@@ -109,6 +111,8 @@ func (t *Tx) ScanPrefix(ctx context.Context, prefix []byte, cb func(key, value [
 	} else {
 		key, value = cur.Seek(prefix)
 	}
+
+	// Deliver each matching key and value in sorted cursor order.
 	for ; key != nil && (len(prefix) == 0 || bytes.HasPrefix(key, prefix)); key, value = cur.Next() {
 		if err := cb(key, value); err != nil {
 			return err
@@ -188,7 +192,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (exists bool, err error) {
 		return false, err
 	}
 
-	// bolt uses nil vs. []byte{} to indicate existence.
+	// Use Bolt's nil value to distinguish an absent key.
 	i := bkt.Get(key)
 	return i != nil, nil
 }

@@ -15,11 +15,11 @@ func (a *API) ApplyBucketConfig(
 	req *ApplyBucketConfigRequest,
 	serv SRPCHydraDaemonService_ApplyBucketConfigStream,
 ) error {
+	// Validate and resolve the requested bucket configuration.
 	ctx := serv.Context()
 	if err := req.Validate(); err != nil {
 		return err
 	}
-
 	errCh := make(chan error, 1)
 	handleErr := func(err error) {
 		select {
@@ -27,12 +27,12 @@ func (a *API) ApplyBucketConfig(
 		default:
 		}
 	}
-
 	applyBucketConf, err := req.ToApplyBucketConfig()
 	if err != nil {
 		return err
 	}
 
+	// Watch the configuration and stream each result.
 	var emittedAny atomic.Bool
 	di, diRef, err := bus.ExecWatchEffect(
 		func(val directive.TypedAttachedValue[*bucket.ApplyBucketConfigResult]) func() {
@@ -52,24 +52,23 @@ func (a *API) ApplyBucketConfig(
 	}
 	defer diRef.Release()
 
+	// Complete the stream when the resolver becomes idle.
 	defer di.AddIdleCallback(func(isIdle bool, resolverErrs []error) {
 		if !isIdle {
 			return
 		}
-
 		for _, err := range resolverErrs {
 			if err != nil && err != context.Canceled {
 				handleErr(err)
 				return
 			}
 		}
-
-		// handle idle with success if at least one value emitted
 		if emittedAny.Load() {
 			handleErr(nil)
 		}
 	})()
 
+	// Wait for cancellation or the resolver result.
 	select {
 	case <-ctx.Done():
 		return nil
@@ -83,11 +82,13 @@ func (a *API) ListBuckets(
 	ctx context.Context,
 	req *volume.ListBucketsRequest,
 ) (*ListBucketsResponse, error) {
+	// Collect bucket values from the controller bus.
 	bucketInfos, _, ref, err := bus.ExecCollectValues[*volume.ListBucketsValue](ctx, a.bus, req, false, nil)
 	if err != nil {
 		return nil, err
 	}
 	ref.Release()
 
+	// Return the collected bucket information.
 	return &ListBucketsResponse{Buckets: bucketInfos}, nil
 }

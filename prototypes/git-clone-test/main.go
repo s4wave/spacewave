@@ -11,16 +11,18 @@ import (
 )
 
 func main() {
+	// Resolve the requested repository URL.
 	url := "."
 	if len(os.Args) > 1 {
 		url = os.Args[1]
 	}
 
+	// Prepare in-memory storage and a filesystem for the recursive clone.
 	log.Printf("cloning %s (recursive)...", url)
-
 	fs := billy_memfs.New()
 	storer := memory.NewStorage()
 
+	// Clone the repository and report the result.
 	_, err := git.Clone(storer, fs, &git.CloneOptions{
 		URL:               url,
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,

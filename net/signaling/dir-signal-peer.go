@@ -55,6 +55,7 @@ func ExSignalPeer(
 	localPeerID, remotePeerID peer.ID,
 	returnIfIdle bool,
 ) (SignalPeerValue, func(), error) {
+	// Wait for the bus to provide a matching signaling session.
 	estl, _, ref, err := bus.ExecWaitValue[SignalPeerValue](
 		ctx,
 		b,
@@ -69,11 +70,14 @@ func ExSignalPeer(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Release an idle directive that produced no session.
 	if estl == nil {
 		ref.Release()
 		return nil, nil, nil
 	}
 
+	// Return the session and its release callback.
 	return estl, ref.Release, nil
 }
 

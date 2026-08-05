@@ -56,11 +56,15 @@ func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
 ) ([]directive.Resolver, error) {
+	// Inspect the directive type requested by the bus.
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case identity.DeriveEntityKeypair:
+		// Return a resolver for keypair derivation requests.
 		return directive.R(c.resolveDeriveEntityKeypair(ctx, di, d))
 	}
+
+	// Leave unsupported directives unresolved.
 	return nil, nil
 }
 

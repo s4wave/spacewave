@@ -34,11 +34,13 @@ func TestTptAddr(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	// Derive both peer identities from the generated testbed keys.
 	tb1PeerID, err := peer.IDFromPrivateKey(tb1.PrivKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	// Derive the server identity used by the in-process transport.
 	tb2PeerID, err := peer.IDFromPrivateKey(tb2.PrivKey)
 	if err != nil {
 		t.Fatal(err.Error())

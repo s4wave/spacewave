@@ -42,10 +42,13 @@ func NewUDP(
 	listenAddr string,
 	staticPeerMap map[string]*dialer.DialerOpts,
 ) (*UDP, error) {
+	// Open the UDP packet socket on the configured address.
 	pc, err := net.ListenPacket("udp", listenAddr)
 	if err != nil {
 		return nil, err
 	}
+
+	// Increase socket buffers when the listener is a UDP socket.
 	if uc, ok := pc.(*net.UDPConn); ok {
 		if err := uc.SetReadBuffer(ExtendedSockBuf); err != nil {
 			le.WithError(err).Warn("unable to set read buffer on conn")
@@ -55,6 +58,7 @@ func NewUDP(
 		}
 	}
 
+	// Construct the packet-backed transport around the socket.
 	pct, err := pconn.NewTransport(
 		ctx,
 		le,
@@ -71,6 +75,8 @@ func NewUDP(
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the initialized UDP transport.
 	return &UDP{
 		Transport: pct,
 	}, nil

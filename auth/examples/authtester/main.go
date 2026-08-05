@@ -30,18 +30,22 @@ func main() {
 }
 
 func runAuthTester(c *cli.Context) error {
+	// Initialize the authentication test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// the root command starts interactive authentication.
+	// Collect credentials through the shared login prompt.
+	// The root command starts interactive authentication.
 	username, password, err := common.RunLoginPrompt()
 	if err != nil {
 		return err
 	}
 
+	// Construct the password method and derive its parameters.
 	le.Info("scrypt...")
+
 	var handler auth_method.Handler // TODO
 	authMethod, err := auth_method_password.NewMethod(ctx, le, handler)
 	if err != nil {
@@ -51,6 +55,8 @@ func runAuthTester(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Authenticate and derive the peer identity.
 	privKey, err := authMethod.Authenticate(
 		params,
 		[]byte(password),
@@ -62,10 +68,13 @@ func runAuthTester(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Derive the test entity identifier and serialize its parameters.
 	// aperture domain uuid for v0
 	domainUUID, _ := uuid.FromString("1e4a7ac8-d1d9-4172-8d73-601e501f2382")
 	entityUUID := uuid.NewV5(domainUUID, username)
 
+	// Serialize and report the authentication parameters.
 	authParamsDat, err := params.MarshalVT()
 	if err != nil {
 		return err
@@ -76,6 +85,7 @@ func runAuthTester(c *cli.Context) error {
 		WithField("entity-uuid", entityUUID).
 		Info("authenticated and derived private key")
 
+	// Sign the derived peer identifier as the final authentication check.
 	dat, err := privKey.Sign([]byte(peerID.String()))
 	if err != nil {
 		return err

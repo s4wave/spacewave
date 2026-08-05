@@ -77,10 +77,14 @@ func (a *ProviderAccount) retainP2PSyncLowerSourceLocked(state *p2pSyncState) bo
 }
 
 func (a *ProviderAccount) watchP2PSyncOwner(ctx context.Context, state *p2pSyncState) {
+	// Ignore contexts that cannot signal cancellation.
 	if ctx.Done() == nil {
 		return
 	}
+
+	// Watch ownership until the state stops or the caller cancels.
 	go func() {
+		// Reconcile state ownership on each lifecycle transition.
 		for {
 			var waitCh <-chan struct{}
 			var stopped bool
@@ -93,6 +97,8 @@ func (a *ProviderAccount) watchP2PSyncOwner(ctx context.Context, state *p2pSyncS
 			if stopped {
 				return
 			}
+
+			// Release the state when the caller exits.
 			select {
 			case <-ctx.Done():
 				a.releaseP2PSyncState(state)
@@ -104,6 +110,7 @@ func (a *ProviderAccount) watchP2PSyncOwner(ctx context.Context, state *p2pSyncS
 }
 
 func (a *ProviderAccount) releaseP2PSyncState(state *p2pSyncState) {
+	// Decrement ownership and mark the state for retirement.
 	retire := false
 	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		if state.owners == 0 {
@@ -124,6 +131,7 @@ func (a *ProviderAccount) releaseP2PSyncState(state *p2pSyncState) {
 		retire = true
 	})
 
+	// Retire the state after the final owner releases it.
 	if retire {
 		a.retireP2PSyncState(state)
 	}

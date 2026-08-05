@@ -90,6 +90,7 @@ func NewController(le *logrus.Entry, conf *Config) (*Controller, error) {
 
 // buildLinkRoutine constructs the keyed routine for a link UUID.
 func (c *Controller) buildLinkRoutine(uuid uint64) (keyed.Routine, struct{}) {
+	// Snapshot the link state under the broadcast lock.
 	var ls *linkState
 	c.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		ls = c.links[uuid]
@@ -97,6 +98,8 @@ func (c *Controller) buildLinkRoutine(uuid uint64) (keyed.Routine, struct{}) {
 	if ls == nil || !ls.localIsLower {
 		return nil, struct{}{}
 	}
+
+	// Run the control stream only from the lower peer side.
 	return func(ctx context.Context) error {
 		return c.initiateControlStream(ctx, ls)
 	}, struct{}{}
@@ -136,12 +139,14 @@ func (c *Controller) handleSolicitProtocol(
 		rctx context.Context,
 		rh directive.ResolverHandler,
 	) error {
+		// Register the solicitation while its resolver is active.
 		ss := &solicitState{dir: d, handler: rh}
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			c.solicitations[ss] = struct{}{}
 			broadcast()
 		})
 
+		// Remove the solicitation when the resolver is disposed.
 		defer func() {
 			c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 				delete(c.solicitations, ss)
@@ -149,6 +154,7 @@ func (c *Controller) handleSolicitProtocol(
 			})
 		}()
 
+		// Keep the resolver idle until its context is canceled.
 		rh.MarkIdle(true)
 		<-rctx.Done()
 		return nil
@@ -162,6 +168,7 @@ func (c *Controller) handleMountedStream(
 	_ directive.Instance,
 	d link.HandleMountedStream,
 ) ([]directive.Resolver, error) {
+	// Route control and solicited protocol IDs to their handlers.
 	pid := d.HandleMountedStreamProtocolID()
 
 	if pid == ControlProtocolID {
@@ -188,6 +195,7 @@ func (c *Controller) handleEstablishLink(
 	di directive.Instance,
 	_ link.EstablishLinkWithPeer,
 ) ([]directive.Resolver, error) {
+	// Track mounted links through typed add/remove callbacks.
 	ref := di.AddReference(
 		directive.NewTypedCallbackHandler[link.MountedLink](
 			func(v directive.TypedAttachedValue[link.MountedLink]) {
@@ -208,6 +216,7 @@ func (c *Controller) handleEstablishLink(
 
 // addLink registers a new link for solicitation.
 func (c *Controller) addLink(ml link.MountedLink) {
+	// Snapshot link identity and derive the canonical session state.
 	uuid := ml.GetLinkUUID()
 	localPeer := ml.GetLocalPeer()
 	remotePeer := ml.GetRemotePeer()
@@ -219,6 +228,7 @@ func (c *Controller) addLink(ml link.MountedLink) {
 		WithField("remote-peer", remotePeer.String()).
 		WithField("is-lower", isLower)
 
+	// Build the per-link solicitation state.
 	ls := &linkState{
 		le:           le,
 		ml:           ml,
@@ -227,6 +237,7 @@ func (c *Controller) addLink(ml link.MountedLink) {
 		matched:      make(map[string]struct{}),
 	}
 
+	// Publish the link once while retaining references for duplicates.
 	var added bool
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if existing := c.links[uuid]; existing != nil {
@@ -238,17 +249,23 @@ func (c *Controller) addLink(ml link.MountedLink) {
 		added = true
 		broadcast()
 	})
+
+	// Ignore duplicate link registrations.
 	if !added {
 		return
 	}
 
 	le.Debug("link added for solicitation")
+
+	// Start the keyed control routine for a newly published link.
 	c.linkRoutines.SetKey(uuid, true)
 }
 
 // removeLink removes a link from solicitation tracking.
 func (c *Controller) removeLink(uuid uint64) {
 	var ls *linkState
+
+	// Decrement the link reference and remove it when the count reaches zero.
 	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		ls = c.links[uuid]
 		if ls != nil {
@@ -262,6 +279,7 @@ func (c *Controller) removeLink(uuid uint64) {
 		}
 	})
 
+	// Stop the keyed routine after removing the final link reference.
 	if ls != nil {
 		ls.le.Debug("link removed from solicitation")
 		c.linkRoutines.RemoveKey(uuid)
@@ -271,6 +289,7 @@ func (c *Controller) removeLink(uuid uint64) {
 // initiateControlStream opens the bifrost/solicit control stream on a link.
 // Only called by the lower peer ID side via keyed routine.
 func (c *Controller) initiateControlStream(ctx context.Context, ls *linkState) error {
+	// Open the control stream and run its exchange loop.
 	ms, err := ls.ml.OpenMountedStream(ctx, ControlProtocolID, stream.OpenOpts{})
 	if err != nil {
 		ls.le.WithError(err).Warn("failed to open control stream")

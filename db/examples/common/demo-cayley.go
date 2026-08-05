@@ -26,12 +26,14 @@ func RunDemoCayley(
 	b bus.Bus,
 	volCtr volume.Controller,
 ) error {
+	// Resolve the example volume.
 	tStart := time.Now()
 	vol, err := volCtr.GetVolume(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Build the lookup controller configuration.
 	lookupConf := &lc.Config{
 		// NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE,
 		NotFoundBehavior: lc.NotFoundBehavior_NotFoundBehavior_NONE,
@@ -41,6 +43,8 @@ func RunDemoCayley(
 	if err != nil {
 		return err
 	}
+
+	// Create and apply the example bucket configuration.
 	bucketConf, err := bucket.NewConfig("example-bucket-1", 1, &bucket.LookupConfig{
 		Controller: cc,
 	})
@@ -57,6 +61,7 @@ func RunDemoCayley(
 		return err
 	}
 
+	// Open the bucket lookup and store a sample block.
 	// store something
 	lkr, _, lkRef, err := lookup.ExBuildBucketLookup(ctx, b, false, "example-bucket-1", nil)
 	if err != nil {
@@ -84,6 +89,7 @@ func RunDemoCayley(
 		le.Infof("placed block with ref: %v", refStr)
 	}
 
+	// Parse the stored block reference and read the block back.
 	le.WithField("ref", refStr).Info("attempting to lookup block")
 	br, err := bucket.ParseObjectRef(
 		refStr,
@@ -102,6 +108,7 @@ func RunDemoCayley(
 	}
 	le.Infof("fetched block with data length: %d", len(data))
 
+	// Open the example object store for transaction checks.
 	// build the key/value "object store" for the volume
 	objStoreAv, _, objStoreRef, err := bus.ExecOneOff(
 		ctx,
@@ -116,11 +123,13 @@ func RunDemoCayley(
 	defer objStoreRef.Release()
 	objStore := objStoreAv.GetValue().(volume.BuildObjectStoreAPIValue).GetObjectStore()
 
+	// Exercise concurrent object-store transactions.
 	// attempt concurrent transactions
 	t1, _ := objStore.NewTransaction(ctx, false)
 	t2, _ := objStore.NewTransaction(ctx, false)
 	_, _, _ = t2.Get(ctx, []byte("test"))
 	t2.Discard()
+
 	// expect that t1 is still live (not discarded)
 	_, _, err = t1.Get(ctx, []byte("test"))
 	if err != nil {
@@ -220,6 +229,7 @@ func RunDemoCayley(
 	le.Infof("demo completed in %v", tEnd.Sub(tStart).String())
 
 	le.Info("demo: starting follow recursive: expect to see <f> <b> <d> <c>")
+
 	// Test follow recursive
 	gt := graph.NewTransaction()
 	gt.AddQuad(quad.MakeIRI("a", "ref", "b", ""))
@@ -231,6 +241,7 @@ func RunDemoCayley(
 	if err := store.ApplyTransaction(ctx, gt); err != nil {
 		return err
 	}
+
 	// The third argument, "depthTags" is a set of tags that will return strings of
 	// numeric values relating to how many applications of the path were applied the
 	// first time the result node was seen.

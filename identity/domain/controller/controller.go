@@ -97,11 +97,12 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Record the execution context and domain logger.
 	c.ctx = ctx
-	// Acquire a handle to the node.
+
 	le := c.le.WithField("domain-id", c.domainInfo.GetDomainId())
 
-	// Construct the domain
+	// Construct and publish the controlled domain.
 	dm, err := c.ctor(
 		ctx,
 		le,
@@ -113,12 +114,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer dm.Close()
 	c.domainCh <- dm
 
+	// Execute the domain and wait for cancellation after a clean return.
 	c.le.Debug("executing identity domain controller")
 	err = dm.Execute(ctx)
 	if err == nil {
-		// indicated success, wait for ctx cancel
 		<-ctx.Done()
 	}
+
+	// Release the published domain and return its execution result.
 	select {
 	case <-c.domainCh:
 	default:

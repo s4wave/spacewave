@@ -12,6 +12,7 @@ import (
 // TestConnectivity tests for basic connectivity between two peers.
 // Uses an echo test: dials the Echo controller.
 func TestConnectivity(ctx context.Context, px0, px1 *Peer) error {
+	// Open a link and stream from the first peer to the second.
 	tb0 := px0.testbed
 
 	_, esRef, err := tb0.Bus.AddDirective(link.NewEstablishLinkWithPeer(
@@ -37,7 +38,7 @@ func TestConnectivity(ctx context.Context, px0, px1 *Peer) error {
 	}
 	defer ms1Rel()
 
-	// expect px0 stream remote peer to equal px1
+	// Verify that the stream reports the expected remote peer.
 	mns1rp := ms1.GetLink().GetRemotePeer().String()
 	if px1p := px1.GetPeerID().String(); px1p != mns1rp {
 		return errors.Errorf(
@@ -46,7 +47,8 @@ func TestConnectivity(ctx context.Context, px0, px1 *Peer) error {
 			px1p,
 		)
 	}
-	// expect px0 stream local peer to equal px0
+
+	// Verify that the stream reports the expected local peer.
 	mns1lp := ms1.GetLink().GetLocalPeer().String()
 	if px0p := px0.GetPeerID().String(); px0p != mns1lp {
 		return errors.Errorf(

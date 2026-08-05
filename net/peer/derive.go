@@ -25,11 +25,13 @@ import (
 // the purpose of these requirements is to ensure that an attacker cannot trick
 // two different applications into using the same context string.
 func DeriveKey(context string, salt []byte, privKey crypto.PrivKey, out []byte) error {
+	// Convert the private key to its standard representation.
 	spKey, err := crypto.PrivKeyToStdKey(privKey)
 	if err != nil {
 		return err
 	}
 
+	// Derive shared material using the supported key type.
 	var material []byte
 	switch t := spKey.(type) {
 	case *ed25519.PrivateKey:
@@ -70,13 +72,13 @@ func DeriveKey(context string, salt []byte, privKey crypto.PrivKey, out []byte) 
 		return errors.Errorf("unhandled private key type: %s", privKey.Type().String())
 	}
 
-	// xor the material with context
+	// Mix the derivation context into the shared material.
 	contextb := []byte(context)
 	for i := range material {
 		material[i] = material[i] ^ contextb[i%len(contextb)]
 	}
 
-	// derive key with blake3
+	// Feed the domain separator, salt, and material into BLAKE3.
 	dkh := blake3.NewDeriveKey(context)
 	_, err = dkh.Write([]byte("bifrost/peer/derive-key"))
 	if err != nil {
@@ -88,6 +90,7 @@ func DeriveKey(context string, salt []byte, privKey crypto.PrivKey, out []byte) 
 			return err
 		}
 	}
+
 	_, err = dkh.Write(material) // never returns an error
 	if err != nil {
 		return err
@@ -110,11 +113,13 @@ func DeriveKey(context string, salt []byte, privKey crypto.PrivKey, out []byte) 
 // the purpose of these requirements is to ensure that an attacker cannot trick
 // two different applications into using the same context string.
 func DeriveEd25519Key(context string, salt []byte, privKey crypto.PrivKey) (crypto.PrivKey, crypto.PubKey, error) {
+	// Allocate the seed that will hold the derived Ed25519 key material.
 	seed := make([]byte, ed25519.SeedSize)
 	if err := DeriveKey(context, salt, privKey, seed); err != nil {
 		return nil, nil, err
 	}
 
+	// Construct the Ed25519 keypair from the derived seed.
 	key := ed25519.NewKeyFromSeed(seed)
 	return crypto.KeyPairFromStdKey(&key)
 }

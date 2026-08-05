@@ -40,6 +40,5 @@ func (c *Controller) resolveLookupIdentityDomain(
 		return nil, nil
 	}
 
-	// Return resolver.
 	return &lookupIdentityDomainResolver{c: c, ctx: ctx, dir: dir}, nil
 }

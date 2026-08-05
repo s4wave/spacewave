@@ -38,9 +38,12 @@ func NewCoordinator(meta *metashard.MetaShard, lockPrefix string, inner *coord_i
 
 // Capability reports OPFS coordination support.
 func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord.Capability, error) {
+	// Reject canceled capability requests before reading generation state.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+
+	// Build the capability record and mark keyed scopes as generation-free.
 	capability := &coord.Capability{
 		Supported:     true,
 		Backend:       coord.BackendKindOPFS,
@@ -51,6 +54,8 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 	if !capability.Generations {
 		return capability, nil
 	}
+
+	// Read the metashard generation for root scopes.
 	generation, err := c.generation(ctx, scope)
 	if err != nil {
 		return nil, err
@@ -61,6 +66,7 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 
 // Snapshot returns the latest metashard generation and coordinator root.
 func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.Snapshot, error) {
+	// Read the inner snapshot before overlaying metashard generation.
 	snapshot, err := c.inner.Snapshot(ctx, scope)
 	if err != nil {
 		return nil, err
@@ -68,6 +74,8 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 	if c.meta == nil {
 		return snapshot, nil
 	}
+
+	// Refresh the generation only when this coordinator has a metashard.
 	snapshot.Generation, err = c.generation(ctx, scope)
 	if err != nil {
 		return nil, err
@@ -77,11 +85,13 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 
 // Watch streams root/prefix lease events and OPFS BroadcastChannel wakeups.
 func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGeneration uint64) (coord.Watch, error) {
+	// Start the inner watch before attaching OPFS invalidation events.
 	inner, err := c.inner.Watch(ctx, scope, afterGeneration)
 	if err != nil {
 		return nil, err
 	}
 
+	// Create and start the combined watch lifecycle.
 	ctx, cancel := context.WithCancel(ctx)
 	w := &watch{
 		ctx:      ctx,
@@ -99,15 +109,18 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 
 // TryAcquireWriteLease attempts to acquire the OPFS logical write lease.
 func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, bool, error) {
+	// Reject canceled requests before acquiring the Web Lock and inner lease.
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
 	}
 
+	// Acquire the Web Lock before claiming the inner logical lease.
 	releaseWebLock, acquired, err := filelock.AcquireWebLockIfAvailable(writeLockName(c.lockPrefix, scope), true)
 	if err != nil || !acquired {
 		return nil, acquired, err
 	}
 
+	// Claim the inner lease and release Web Lock state on failure.
 	inner, ok, err := c.inner.TryAcquireWriteLease(ctx, scope)
 	if err != nil || !ok {
 		releaseWebLock()
@@ -118,11 +131,13 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 
 // WaitAcquireWriteLease waits until the OPFS logical write lease is available.
 func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, error) {
+	// Acquire the inner lease before waiting for the Web Lock.
 	inner, err := c.inner.WaitAcquireWriteLease(ctx, scope)
 	if err != nil {
 		return nil, err
 	}
 
+	// Acquire the Web Lock and roll back the inner lease on failure.
 	releaseWebLock, err := filelock.AcquireWebLockContext(ctx, writeLockName(c.lockPrefix, scope), true)
 	if err != nil {
 		_ = inner.Release(context.Background())
@@ -132,6 +147,7 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 }
 
 func (c *Coordinator) generation(ctx context.Context, scope coord.Scope) (uint64, error) {
+	// Reject canceled generation reads before consulting metashard state.
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}

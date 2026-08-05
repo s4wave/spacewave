@@ -81,11 +81,13 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Bind the execution context used by method lookups.
 	c.ctx = ctx
-	// Acquire a handle to the node.
+
+	// Log the start of authentication method loading.
 	c.le.Debug("loading authentication method")
 
-	// Construct the auth method.
+	// Construct the authentication method for this controller run.
 	tpt, err := c.ctor(
 		ctx,
 		c.le,
@@ -94,20 +96,25 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Publish the method while the controller keeps it active.
 	defer tpt.Close()
 	c.methodCh <- tpt
 
+	// Run the method and wait for cancellation when it completes cleanly.
 	err = tpt.Execute(ctx)
 	if err == nil {
 		select {
 		case <-ctx.Done():
 			err = ctx.Err()
 		default:
-			// wait to close the auth method until the ctx is canceled.
+			// Keep the method open until the execution context is canceled.
 			<-ctx.Done()
 			return nil
 		}
 	}
+
+	// Remove the method from the publication channel before returning.
 	select {
 	case <-c.methodCh:
 	default:
@@ -131,12 +138,15 @@ func (c *Controller) GetAuthMethod(ctx context.Context) (auth_method.Method, err
 // Any unexpected errors are returned for logging.
 // It is safe to add a reference to the directive during this call.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	// Inspect the directive type requested by the bus.
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case auth_method.AuthLookupMethod:
+		// Return a resolver for authentication method lookups.
 		return directive.R(c.resolveAuthLookupMethod(di, d))
 	}
 
+	// Leave unsupported directives unresolved.
 	return nil, nil
 }
 

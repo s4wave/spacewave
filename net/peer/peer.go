@@ -24,6 +24,7 @@ type Peer interface {
 // NewPeer builds a new Peer object with a private key.
 // If privKey is nil, one will be generated.
 func NewPeer(privKey crypto.PrivKey) (Peer, error) {
+	// Generate an Ed25519 key when the caller did not supply one.
 	if privKey == nil {
 		var err error
 		privKey, _, err = crypto.GenerateEd25519Key(rand.Reader)
@@ -32,11 +33,13 @@ func NewPeer(privKey crypto.PrivKey) (Peer, error) {
 		}
 	}
 
+	// Derive the peer identity from the private key.
 	id, err := IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Assemble the in-memory peer with both key views.
 	return &peer{
 		privKey: privKey,
 		pubKey:  privKey.GetPublic(),
@@ -46,23 +49,31 @@ func NewPeer(privKey crypto.PrivKey) (Peer, error) {
 
 // NewPeerWithGenerateED25519 generates an ED25519 key and returns it + the peer.
 func NewPeerWithGenerateED25519() (Peer, crypto.PrivKey, crypto.PubKey, error) {
+	// Generate the keypair used by the new peer.
 	privKey, pubKey, err := crypto.GenerateEd25519Key(rand.Reader)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	// Build the peer from the generated private key.
 	p, err := NewPeer(privKey)
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	// Return the peer and generated keypair.
 	return p, privKey, pubKey, nil
 }
 
 // NewPeerWithPubKey builds a Peer with a public key.
 func NewPeerWithPubKey(pubKey crypto.PubKey) (Peer, error) {
+	// Derive the peer identity from the public key.
 	id, err := IDFromPublicKey(pubKey)
 	if err != nil {
 		return nil, err
 	}
+
+	// Assemble a peer that exposes only the public key.
 	return &peer{
 		pubKey: pubKey,
 		peerID: id,

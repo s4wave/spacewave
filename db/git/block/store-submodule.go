@@ -62,8 +62,7 @@ func (r *Store) Module(name string) (storage.Storer, error) {
 	}
 	var repoRootCs *block.Cursor
 	if subm == nil {
-		// create submodule
-		// use a somewhat round-about method to double-check our work
+		// Create the missing submodule reference and verify it can be reopened.
 		if err := r.SetModuleReference(name, nil); err != nil {
 			return nil, err
 		}
@@ -74,7 +73,8 @@ func (r *Store) Module(name string) (storage.Storer, error) {
 		if subm == nil || submCs == nil {
 			return nil, errors.New("failed to create submodule")
 		}
-		// initialize the submodule storer
+
+		// Initialize the new submodule repository root.
 		repoRootCs = submCs.FollowRef(2, nil)
 		subm.RepoRef = nil
 		nrepo := NewRepo()

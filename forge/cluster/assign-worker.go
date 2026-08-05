@@ -69,7 +69,7 @@ func (o *ClusterAssignWorkerOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// assign the worker to the cluster
+	// Link the worker to the cluster.
 	err = worldHandle.SetGraphQuad(ctx, NewClusterToWorkerQuad(clusterKey, workerKey))
 	if err != nil {
 		return false, err

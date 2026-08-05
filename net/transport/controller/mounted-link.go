@@ -64,20 +64,28 @@ func (l *mountedLink) OpenMountedStream(
 	protocolID protocol.ID,
 	opts stream.OpenOpts,
 ) (link.MountedStream, error) {
+	// Build the establishment header for the requested protocol.
 	estMsg := NewStreamEstablish(protocolID)
 
+	// Open the underlying stream on the link.
 	strm, err := l.link.OpenStream(opts)
 	if err != nil {
 		return nil, err
 	}
 
+	// Bound header negotiation by a write deadline.
 	_ = strm.SetWriteDeadline(time.Now().Add(streamEstablishTimeout))
+
+	// Write the establishment header and close failed streams.
 	if _, err := writeStreamEstablishHeader(strm, estMsg); err != nil {
 		_ = strm.Close()
 		return nil, err
 	}
 
+	// Clear the negotiation deadline after the header is sent.
 	_ = strm.SetDeadline(time.Time{})
+
+	// Log the mounted stream when verbose transport logging is enabled.
 	if l.c.verbose {
 		l.c.le.
 			WithFields(logrus.Fields{
@@ -89,6 +97,7 @@ func (l *mountedLink) OpenMountedStream(
 			Debug("opened stream with peer")
 	}
 
+	// Return the stream with its negotiated protocol metadata.
 	return newMountedStream(strm, opts, protocolID, l), nil
 }
 

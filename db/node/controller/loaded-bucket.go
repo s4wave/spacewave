@@ -78,12 +78,14 @@ func (c *Controller) newLoadedBucket(bucketID string) (keyed.Routine, *loadedBuc
 
 // execute executes the loaded bucket routine.
 func (b *loadedBucket) execute(ctx context.Context) error {
+	// Start bucket tracking and defer routine shutdown.
 	b.le.Debug("starting bucket tracking")
 
 	// State management routines.
 	defer b.blockStores.SyncKeys(nil, false)
 	defer b.le.Debug("exited bucket tracking")
 
+	// Publish state changes through the state container.
 	var st loadedBucketState
 	emitState := func() {
 		if b.lastState.equal(&st) {
@@ -97,6 +99,7 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 		emitState()
 	}()
 
+	// Start block-store tracking and wait for state changes.
 	// startup
 	var waitCh <-chan struct{}
 	b.blockStores.SetContext(ctx, true)
@@ -116,6 +119,7 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 			}
 		}
 
+		// Reconcile bucket configuration and available block-store handles.
 		b.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			waitCh = getWaitCh()
 			if b.lastState == nil {
@@ -148,10 +152,12 @@ func (b *loadedBucket) execute(ctx context.Context) error {
 				b.bucketHandleSetDirty = false
 			}
 
+			// Publish the current bucket state when it changed.
 			if stDirty {
 				emitState()
 			}
 
+			// Start or retain the configured lookup controller.
 			// if necessary, start the lookup controller.
 			if bc := b.bucketConf; bc != nil &&
 				lookupCtrCancel == nil &&
@@ -216,6 +222,7 @@ func (b *loadedBucket) execLookupController(
 			le.WithError(err).Warn("lookup controller exited with error")
 		}
 	}()
+
 	// acquire controller conf
 	c := bc.GetLookup().GetController()
 	if c.GetId() == "" {

@@ -23,6 +23,7 @@ func BuildSOEntityRecoveryEnvelope(
 	material *SOEntityRecoveryMaterial,
 	recipientPubs []bifrost_crypto.PubKey,
 ) (*SOEntityRecoveryEnvelope, error) {
+	// Validate recovery inputs and recipients.
 	if entityID == "" {
 		return nil, errors.New("entity id is required")
 	}
@@ -36,12 +37,14 @@ func BuildSOEntityRecoveryEnvelope(
 		return nil, errors.New("at least one recipient pubkey is required")
 	}
 
+	// Marshal and scrub the recovery material.
 	materialData, err := material.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal recovery material")
 	}
 	defer scrub.Scrub(materialData)
 
+	// Build one envelope grant for each recipient.
 	grantConfigs := make([]*envelope.EnvelopeGrantConfig, len(recipientPubs))
 	for i := range recipientPubs {
 		grantConfigs[i] = &envelope.EnvelopeGrantConfig{
@@ -54,6 +57,7 @@ func BuildSOEntityRecoveryEnvelope(
 		GrantConfigs: grantConfigs,
 	}
 
+	// Encrypt the recovery payload for all recipients.
 	env, err := envelope.BuildEnvelope(
 		rand.Reader,
 		soEntityRecoveryEnvelopeContext,
@@ -65,11 +69,13 @@ func BuildSOEntityRecoveryEnvelope(
 		return nil, errors.Wrap(err, "build recovery envelope")
 	}
 
+	// Marshal the encrypted envelope.
 	envData, err := env.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal recovery envelope")
 	}
 
+	// Return the envelope with config-chain identity.
 	return &SOEntityRecoveryEnvelope{
 		EntityId:         entityID,
 		KeyEpoch:         keyEpoch,
@@ -81,6 +87,7 @@ func BuildSOEntityRecoveryEnvelope(
 
 // UnlockSOEntityRecoveryEnvelope decrypts a recovery envelope into recovery material.
 func UnlockSOEntityRecoveryEnvelope(entityPrivKeys []bifrost_crypto.PrivKey, env *SOEntityRecoveryEnvelope) (*SOEntityRecoveryMaterial, error) {
+	// Validate and decode the recovery envelope.
 	if env == nil {
 		return nil, errors.New("recovery envelope is required")
 	}
@@ -88,16 +95,19 @@ func UnlockSOEntityRecoveryEnvelope(entityPrivKeys []bifrost_crypto.PrivKey, env
 		return nil, ErrSharedObjectRecoveryCredentialRequired
 	}
 
+	// Read and authenticate the envelope payload.
 	data := env.GetEnvelopeData()
 	if len(data) == 0 {
 		return nil, errors.New("recovery envelope data is required")
 	}
 
+	// Decode the recovery envelope message.
 	envMsg := &envelope.Envelope{}
 	if err := envMsg.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "unmarshal recovery envelope")
 	}
 
+	// Unlock the envelope with entity keys.
 	payload, result, err := envelope.UnlockEnvelope(
 		soEntityRecoveryEnvelopeContext,
 		envMsg,
@@ -111,6 +121,7 @@ func UnlockSOEntityRecoveryEnvelope(entityPrivKeys []bifrost_crypto.PrivKey, env
 	}
 	defer scrub.Scrub(payload)
 
+	// Decode the recovered material.
 	material := &SOEntityRecoveryMaterial{}
 	if err := material.UnmarshalVT(payload); err != nil {
 		return nil, errors.Wrap(err, "unmarshal recovery material")
@@ -127,6 +138,7 @@ func BuildSelfEnrollPeerConfigChange(
 	entityID string,
 	role SOParticipantRole,
 ) (*SOConfigChange, error) {
+	// Validate self-enrollment inputs.
 	if currentCfg == nil {
 		return nil, errors.New("current config is required")
 	}
@@ -143,12 +155,15 @@ func BuildSelfEnrollPeerConfigChange(
 		return nil, err
 	}
 
+	// Append the enrolling peer to the next configuration.
 	nextCfg := currentCfg.CloneVT()
 	nextCfg.Participants = append(nextCfg.Participants, &SOParticipantConfig{
 		PeerId:   signerPeerID,
 		Role:     role,
 		EntityId: entityID,
 	})
+
+	// Sign the self-enrollment configuration change.
 	return BuildSOConfigChange(
 		currentCfg,
 		nextCfg,
@@ -196,11 +211,13 @@ func ResolveSharedObjectRecoveryMaterial(
 	provAcc provider.ProviderAccount,
 	ref *SharedObjectRef,
 ) (*SOEntityRecoveryMaterial, error) {
+	// Resolve the recovery provider feature.
 	recoveryProv, err := GetSharedObjectRecoveryProviderAccountFeature(ctx, provAcc)
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve the current entity identity.
 	entityID, err := recoveryProv.GetSelfEntityID(ctx)
 	if err != nil {
 		return nil, err
@@ -209,6 +226,7 @@ func ResolveSharedObjectRecoveryMaterial(
 		return nil, errors.New("self entity id is required")
 	}
 
+	// Read and validate the recovery envelope.
 	env, err := recoveryProv.ReadSharedObjectRecoveryEnvelope(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -217,11 +235,13 @@ func ResolveSharedObjectRecoveryMaterial(
 		return nil, ErrSharedObjectRecoveryEntityMismatch
 	}
 
+	// Acquire the recovery decoder.
 	dec, err := recoveryProv.GetSharedObjectRecoveryDecoder(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Decrypt and validate recovered material.
 	material, err := dec.DecryptSharedObjectRecoveryEnvelope(ctx, env)
 	if err != nil {
 		return nil, err
