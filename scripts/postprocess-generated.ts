@@ -253,7 +253,12 @@ export function generateResourceRPCMethodFile(
       '\t\treturn true',
     )
   }
-  lines.push('\t}', '\treturn false', '}', '')
+  lines.push(
+    '\t}',
+    '\treturn isExternalResourceRPCAdoptingUnaryMethod(serviceID, methodID)',
+    '}',
+    '',
+  )
   return lines.join('\n')
 }
 

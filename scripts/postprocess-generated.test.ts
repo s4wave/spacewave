@@ -190,6 +190,9 @@ message Result {
       'case "fixture.FixtureService/Create":',
     )
     expect(resourceRPCMethods).not.toContain('fixture.FixtureService/Watch')
+    expect(resourceRPCMethods).toContain(
+      'return isExternalResourceRPCAdoptingUnaryMethod(serviceID, methodID)',
+    )
     expect(first.endsWith('\n')).toBe(true)
 
     await generateResourceIDExtractors(root)

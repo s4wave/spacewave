@@ -142,5 +142,5 @@ func IsResourceRPCAdoptingUnaryMethod(serviceID, methodID string) bool {
 	case "s4wave.worldop.registry.WorldOpRegistryResourceService/RegisterWorldOp":
 		return true
 	}
-	return false
+	return isExternalResourceRPCAdoptingUnaryMethod(serviceID, methodID)
 }
