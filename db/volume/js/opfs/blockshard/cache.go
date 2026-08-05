@@ -16,13 +16,39 @@ import (
 
 const (
 	cachedSegmentBlockSize = 64 * 1024
-	maxCachedSegmentBlocks = 4
-	maxCachedSegmentRead   = cachedSegmentBlockSize * maxCachedSegmentBlocks
+	maxCachedSegmentSpans  = 4
+	maxCachedSegmentRead   = cachedSegmentBlockSize * maxCachedSegmentSpans
 )
 
 type segmentReader interface {
 	io.ReaderAt
 	Size() (int64, error)
+}
+
+// segmentDataSpan is one request-local immutable range and its backing allocation.
+type segmentDataSpan struct {
+	start int64
+	data  []byte
+}
+
+// segmentFillRange identifies one exact aligned snapshot read.
+type segmentFillRange struct {
+	start int64
+	end   int64
+}
+
+// segmentFill publishes one in-flight range result to equal waiters.
+type segmentFill struct {
+	key      segmentFillRange
+	done     chan struct{}
+	span     segmentDataSpan
+	resource *cacheResource
+	err      error
+}
+
+// localCachedSpan retains one standalone span behind aligned block views.
+type localCachedSpan struct {
+	segmentDataSpan
 }
 
 type cachedSegmentFile struct {
@@ -34,10 +60,11 @@ type cachedSegmentFile struct {
 	coordinator *cacheCoordinator
 	entry       *cacheEntry
 
-	// mu guards standalone blocks and their recency order.
+	// mu guards standalone spans, fills, and recency.
 	mu     sync.Mutex
-	blocks map[int64][]byte
-	order  []int64
+	blocks map[int64]*localCachedSpan
+	order  []*localCachedSpan
+	fills  map[segmentFillRange]*segmentFill
 }
 
 func newCachedSegmentFile(rd segmentReader, size int64) *cachedSegmentFile {
@@ -49,7 +76,8 @@ func newCachedSegmentFile(rd segmentReader, size int64) *cachedSegmentFile {
 	return &cachedSegmentFile{
 		rd:     rd,
 		size:   size,
-		blocks: make(map[int64][]byte),
+		blocks: make(map[int64]*localCachedSpan),
+		fills:  make(map[segmentFillRange]*segmentFill),
 	}
 }
 
@@ -100,101 +128,166 @@ func (f *cachedSegmentFile) readAt(p []byte, off int64, lease *segmentCacheLease
 	}
 	readEnd := min(off+int64(len(p)), f.size)
 
-	// Copy every intersecting aligned block into the caller buffer.
-	startBlock := alignSegmentOffset(off)
+	// Fill and copy each resident or missing aligned span.
+	blockOff := alignSegmentOffset(off)
 	endBlock := alignSegmentOffset(readEnd - 1)
-	for blockOff := startBlock; blockOff <= endBlock; blockOff += cachedSegmentBlockSize {
-		block, err := f.getBlock(blockOff, lease)
+	copied := 0
+	for blockOff <= endBlock {
+		span, err := f.getSpan(blockOff, endBlock, lease)
 		if err != nil {
-			return 0, err
+			return copied, err
 		}
-		blockStart := max(off, blockOff)
-		blockEnd := min(readEnd, blockOff+int64(len(block)))
-		copyStart := blockStart - off
-		copyEnd := blockEnd - off
+		spanEnd := span.start + int64(len(span.data))
+		copyStart := max(off, blockOff)
+		copyEnd := min(readEnd, spanEnd)
 		if copyEnd <= copyStart {
-			continue
+			return copied, io.ErrUnexpectedEOF
 		}
-		srcStart := blockStart - blockOff
-		srcEnd := blockEnd - blockOff
-		copy(p[copyStart:copyEnd], block[srcStart:srcEnd])
+		copied += copy(
+			p[copyStart-off:copyEnd-off],
+			span.data[copyStart-span.start:copyEnd-span.start],
+		)
+		blockOff = alignSegmentOffset(spanEnd-1) + cachedSegmentBlockSize
 	}
 
-	// Preserve short-read and EOF behavior at the final file block.
-	n := int(readEnd - off)
-	if n < len(p) {
-		return n, io.EOF
+	// Preserve short-read and EOF behavior at the final file span.
+	if copied < len(p) {
+		return copied, io.EOF
 	}
-	return n, nil
+	return copied, nil
 }
 
-func (f *cachedSegmentFile) getBlock(blockOff int64, lease *segmentCacheLease) ([]byte, error) {
-	// Reuse a resident coordinated block.
+func (f *cachedSegmentFile) getSpan(
+	blockOff int64,
+	endBlock int64,
+	lease *segmentCacheLease,
+) (segmentDataSpan, error) {
+	// Coordinate resident spans and equal in-flight fills for engine entries.
 	if f.coordinator != nil {
-		if block, ok := f.coordinator.getBlock(f.entry, lease, blockOff); ok {
-			return block, nil
+		span, fill, leader := f.coordinator.startSpanFill(
+			f.entry,
+			lease,
+			blockOff,
+			endBlock,
+			f.size,
+		)
+		if fill == nil {
+			return span, nil
 		}
+		if !leader {
+			return f.coordinator.awaitSpanFill(fill, lease)
+		}
+		span, err := f.readSpan(fill.key)
+		return f.coordinator.finishSpanFill(f.entry, lease, fill, span, err)
 	}
 
-	// Reuse a resident standalone block.
-	if f.coordinator == nil {
-		f.mu.Lock()
-		if block := f.blocks[blockOff]; block != nil {
-			f.touchBlockLocked(blockOff)
-			f.mu.Unlock()
-			return block, nil
-		}
-		f.mu.Unlock()
-	}
+	// Use the standalone span cache for operation-local readers.
+	return f.getLocalSpan(blockOff, endBlock)
+}
 
-	// Read one exact aligned block from the immutable file.
-	blockEnd := min(blockOff+cachedSegmentBlockSize, f.size)
-	if blockEnd <= blockOff {
-		return nil, io.EOF
+func (f *cachedSegmentFile) readSpan(key segmentFillRange) (segmentDataSpan, error) {
+	// Read one exact request-bounded allocation from the immutable snapshot.
+	span := segmentDataSpan{
+		start: key.start,
+		data:  make([]byte, key.end-key.start),
 	}
-	buf := make([]byte, blockEnd-blockOff)
-	n, err := f.rd.ReadAt(buf, blockOff)
+	n, err := f.rd.ReadAt(span.data, key.start)
 	if f.coordinator != nil {
 		f.coordinator.recordRead(n)
 	}
 	if err != nil && err != io.EOF {
-		return nil, err
+		return segmentDataSpan{}, err
 	}
-	if n <= 0 {
-		return nil, io.EOF
+	if n != len(span.data) {
+		return segmentDataSpan{}, io.ErrUnexpectedEOF
 	}
-	block := buf[:n]
-
-	// Admit coordinated data through the engine-wide budget.
-	if f.coordinator != nil {
-		return f.coordinator.admitBlock(f.entry, lease, blockOff, block), nil
-	}
-
-	// Publish standalone data under the original per-file policy.
-	f.mu.Lock()
-	if existing := f.blocks[blockOff]; existing != nil {
-		f.touchBlockLocked(blockOff)
-		f.mu.Unlock()
-		return existing, nil
-	}
-	f.blocks[blockOff] = block
-	f.order = append(f.order, blockOff)
-	if len(f.order) > maxCachedSegmentBlocks {
-		evict := f.order[0]
-		f.order = f.order[1:]
-		delete(f.blocks, evict)
-	}
-	f.mu.Unlock()
-	return block, nil
+	return span, nil
 }
 
-func (f *cachedSegmentFile) touchBlockLocked(blockOff int64) {
-	idx := slices.Index(f.order, blockOff)
+func (f *cachedSegmentFile) getLocalSpan(blockOff, endBlock int64) (segmentDataSpan, error) {
+	// Reuse a resident standalone span.
+	f.mu.Lock()
+	if cached := f.blocks[blockOff]; cached != nil {
+		f.touchLocalSpanLocked(cached)
+		span := cached.segmentDataSpan
+		f.mu.Unlock()
+		return span, nil
+	}
+
+	// Join an equal fill or register the consecutive missing range.
+	key := f.localFillRangeLocked(blockOff, endBlock)
+	if fill := f.fills[key]; fill != nil {
+		f.mu.Unlock()
+		<-fill.done
+		return fill.span, fill.err
+	}
+	fill := &segmentFill{key: key, done: make(chan struct{})}
+	f.fills[key] = fill
+	f.mu.Unlock()
+
+	// Read the range without holding the standalone cache mutex.
+	span, err := f.readSpan(key)
+
+	// Publish one span when no unequal fill already covered its blocks.
+	f.mu.Lock()
+	fill.span = span
+	fill.err = err
+	if err == nil && !f.localRangeOverlapsLocked(key) {
+		if len(f.order) >= maxCachedSegmentSpans {
+			f.removeLocalSpanLocked(f.order[0])
+		}
+		cached := &localCachedSpan{segmentDataSpan: span}
+		for off := key.start; off < key.end; off += cachedSegmentBlockSize {
+			f.blocks[off] = cached
+		}
+		f.order = append(f.order, cached)
+	}
+	delete(f.fills, key)
+	close(fill.done)
+	f.mu.Unlock()
+	return span, err
+}
+
+func (f *cachedSegmentFile) localFillRangeLocked(blockOff, endBlock int64) segmentFillRange {
+	// Stop the missing run at the next resident block or request boundary.
+	end := min(endBlock+cachedSegmentBlockSize, f.size)
+	for off := blockOff + cachedSegmentBlockSize; off <= endBlock; off += cachedSegmentBlockSize {
+		if f.blocks[off] != nil {
+			end = off
+			break
+		}
+	}
+	return segmentFillRange{start: blockOff, end: end}
+}
+
+func (f *cachedSegmentFile) localRangeOverlapsLocked(key segmentFillRange) bool {
+	// Reject admission when an unequal concurrent fill already published a block.
+	for off := key.start; off < key.end; off += cachedSegmentBlockSize {
+		if f.blocks[off] != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *cachedSegmentFile) touchLocalSpanLocked(span *localCachedSpan) {
+	// Move the reused backing allocation to the recency tail.
+	idx := slices.Index(f.order, span)
 	if idx < 0 || idx == len(f.order)-1 {
 		return
 	}
 	copy(f.order[idx:], f.order[idx+1:])
-	f.order[len(f.order)-1] = blockOff
+	f.order[len(f.order)-1] = span
+}
+
+func (f *cachedSegmentFile) removeLocalSpanLocked(span *localCachedSpan) {
+	// Remove every aligned block view backed by the evicted allocation.
+	for off := span.start; off < span.start+int64(len(span.data)); off += cachedSegmentBlockSize {
+		if f.blocks[off] == span {
+			delete(f.blocks, off)
+		}
+	}
+	f.order = f.order[1:]
 }
 
 func (f *cachedSegmentFile) Size() (int64, error) {

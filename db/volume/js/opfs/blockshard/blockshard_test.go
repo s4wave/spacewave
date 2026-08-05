@@ -514,8 +514,8 @@ func TestCachedSegmentFileCachesWindow(t *testing.T) {
 	if got := string(buf); got != want {
 		t.Fatalf("first read got %q want %q", got, want)
 	}
-	if rd.reads != 2 {
-		t.Fatalf("reads after cross-block call: got %d want 2", rd.reads)
+	if rd.reads != 1 {
+		t.Fatalf("reads after cross-block call: got %d want 1", rd.reads)
 	}
 
 	buf = make([]byte, 8)
@@ -527,7 +527,7 @@ func TestCachedSegmentFileCachesWindow(t *testing.T) {
 	if got := string(buf); got != want {
 		t.Fatalf("cached overlap got %q want %q", got, want)
 	}
-	if rd.reads != 2 {
+	if rd.reads != 1 {
 		t.Fatalf("cached overlap should not reread: got %d reads", rd.reads)
 	}
 
@@ -535,8 +535,47 @@ func TestCachedSegmentFileCachesWindow(t *testing.T) {
 	if _, err := f.ReadAt(buf, int64(cachedSegmentBlockSize*2)); err != nil {
 		t.Fatal(err)
 	}
-	if rd.reads != 3 {
+	if rd.reads != 2 {
 		t.Fatalf("third block should reread once: got %d reads", rd.reads)
+	}
+}
+
+func TestCachedSegmentFileSplitsMissingRunsAroundResidentSpan(t *testing.T) {
+	// Build three aligned immutable blocks and retain the middle block first.
+	data := bytes.Repeat([]byte("abcdefghijklmnopqrstuvwxyz"), (cachedSegmentBlockSize*3)/26+2)
+	rd := &fakeSegmentReader{buf: data[:cachedSegmentBlockSize*3]}
+	f := newCachedSegmentFile(rd, int64(len(rd.buf)))
+	var middle [1]byte
+	if _, err := f.ReadAt(middle[:], cachedSegmentBlockSize); err != nil {
+		t.Fatal(err)
+	}
+	if rd.reads != 1 {
+		t.Fatalf("middle block reads: got %d want 1", rd.reads)
+	}
+
+	// Read across the file with one missing fill on each side of the resident block.
+	got := make([]byte, len(rd.buf))
+	if _, err := f.ReadAt(got, 0); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, rd.buf) {
+		t.Fatal("split span read returned different bytes")
+	}
+	if rd.reads != 3 {
+		t.Fatalf("split span reads: got %d want 3", rd.reads)
+	}
+
+	// Preserve final-file short-read semantics from the retained last span.
+	var tail [8]byte
+	n, err := f.ReadAt(tail[:], int64(len(rd.buf)-4))
+	if n != 4 || err != io.EOF {
+		t.Fatalf("final read: bytes=%d err=%v want bytes=4 err=EOF", n, err)
+	}
+	if !bytes.Equal(tail[:n], rd.buf[len(rd.buf)-4:]) {
+		t.Fatal("final read returned different bytes")
+	}
+	if rd.reads != 3 {
+		t.Fatalf("retained final span reread: got %d reads", rd.reads)
 	}
 }
 
