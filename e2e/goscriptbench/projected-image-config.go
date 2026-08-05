@@ -16,6 +16,8 @@ type ProjectedImageConfig struct {
 	GoScriptRevision string
 	// unavailableFields names optional timing fields omitted by the engine
 	UnavailableFields []string
+	// browserCPUProfile enables optional same-window Chromium profiling
+	BrowserCPUProfile bool
 }
 
 // Validate checks the workload identity before browser setup begins.
@@ -23,8 +25,13 @@ func (c ProjectedImageConfig) Validate() error {
 	if !validArtifactID(c.RunID) {
 		return errors.New("run ID must be a safe artifact path component")
 	}
-	if !validArtifactID(c.Engine) {
-		return errors.New("engine must be a safe artifact path component")
+	switch c.Engine {
+	case "chromium", "firefox", "webkit":
+	default:
+		return errors.New("engine must be chromium, firefox, or webkit")
+	}
+	if c.BrowserCPUProfile && c.Engine != "chromium" {
+		return errors.New("browser CPU profile requires Chromium")
 	}
 	if c.SpacewaveRevision == "" || c.GoScriptRevision == "" {
 		return errors.New("Spacewave and GoScript revisions are required")

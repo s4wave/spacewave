@@ -163,6 +163,7 @@ func (p *ProjectedImage) Setup(ctx context.Context) (RunMetadata, error) {
 				"opfs-segment-cache",
 				"world-state",
 				"response-cache-key",
+				"resource-sdk-connection",
 				"decoded-image-entry",
 			},
 		},
@@ -209,6 +210,11 @@ func (p *ProjectedImage) Restart(ctx context.Context, _ SampleRequest) error {
 	wasm.WaitForDriveShell(p.t, page)
 	if err := p.requireDedicatedRuntime(); err != nil {
 		return err
+	}
+
+	// Connect the trace-control client before the measured browser action.
+	if err := p.session.ConnectResources(ctx); err != nil {
+		return errors.Wrap(err, "connect projected-image trace resources")
 	}
 
 	// Prove the new dedicated worker differs from the previous runtime generation.

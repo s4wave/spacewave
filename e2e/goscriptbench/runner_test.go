@@ -32,7 +32,7 @@ func (w *deterministicWorkload) Restart(_ context.Context, request SampleRequest
 	return nil
 }
 
-func (w *deterministicWorkload) Measure(_ context.Context, request SampleRequest) (Sample, error) {
+func (w *deterministicWorkload) Measure(_ context.Context, request SampleRequest) (Measurement, error) {
 	w.events = append(w.events, "measure:"+sampleRequestName(request))
 	value := 11.0
 	if request.Kind == SampleKindRetained {
@@ -41,7 +41,11 @@ func (w *deterministicWorkload) Measure(_ context.Context, request SampleRequest
 	if request.Kind == SampleKindDiagnostic {
 		value = 12
 	}
-	return testSample(sampleRequestName(request), value, request.Trace), nil
+	measurement := Measurement{Sample: testSample(sampleRequestName(request), value, request.Trace)}
+	if request.Trace {
+		measurement.RuntimeTrace = []byte("deterministic runtime trace")
+	}
+	return measurement, nil
 }
 
 func (w *deterministicWorkload) Validate(_ context.Context, request SampleRequest, sample Sample) error {
@@ -83,7 +87,7 @@ func TestRunnerPublishesPerEngineArtifact(t *testing.T) {
 		files[idx] = entry.Name()
 	}
 	slices.Sort(files)
-	if want := []string{artifactDiagnosticFile, artifactManifestFile, artifactResultFile}; !slices.Equal(files, want) {
+	if want := []string{artifactDiagnosticFile, artifactManifestFile, artifactResultFile, artifactRuntimeTraceFile}; !slices.Equal(files, want) {
 		t.Fatalf("artifact files = %q, want %q", files, want)
 	}
 	bundle, err := ReadArtifact(artifactDir)
@@ -95,6 +99,9 @@ func TestRunnerPublishesPerEngineArtifact(t *testing.T) {
 	}
 	if bundle.Result.Warmup.ID != "warmup-1" || bundle.Diagnostic.Sample.ID != "diagnostic-1" {
 		t.Fatalf("warm-up/diagnostic identity = %q/%q", bundle.Result.Warmup.ID, bundle.Diagnostic.Sample.ID)
+	}
+	if string(bundle.RuntimeTrace) != "deterministic runtime trace" {
+		t.Fatalf("runtime trace = %q", bundle.RuntimeTrace)
 	}
 	if len(bundle.Result.Samples) != len(retainedTestValues) {
 		t.Fatalf("retained row count = %d, want %d", len(bundle.Result.Samples), len(retainedTestValues))
@@ -180,6 +187,23 @@ func TestArtifactRejectsInvalidRuns(t *testing.T) {
 		{name: "fixture dimensions", mutate: func(b *ArtifactBundle) { b.Result.Samples[0].NaturalWidth++ }},
 		{name: "traced retained row", mutate: func(b *ArtifactBundle) { b.Result.Samples[0].Traced = true }},
 		{name: "untraced diagnostic", mutate: func(b *ArtifactBundle) { b.Diagnostic.Sample.Traced = false }},
+		{name: "missing runtime trace", mutate: func(b *ArtifactBundle) { b.RuntimeTrace = nil }},
+		{name: "missing runtime trace name", mutate: func(b *ArtifactBundle) { b.Diagnostic.RuntimeTraceFile = "" }},
+		{
+			name: "cross-engine CPU profile",
+			mutate: func(b *ArtifactBundle) {
+				b.Result.Metadata.Engine = "firefox"
+				b.Diagnostic.Engine = "firefox"
+				b.Diagnostic.BrowserCPUProfileFile = artifactBrowserCPUProfileFile
+				b.BrowserCPUProfile = []byte("profile")
+			},
+		},
+		{
+			name: "missing CPU profile",
+			mutate: func(b *ArtifactBundle) {
+				b.Diagnostic.BrowserCPUProfileFile = artifactBrowserCPUProfileFile
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -232,6 +256,46 @@ func TestArtifactPublicationIsAtomic(t *testing.T) {
 }
 
 func TestReadArtifactRejectsCorruption(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		file       string
+		cpuProfile bool
+	}{
+		{name: "result", file: artifactResultFile},
+		{name: "runtime trace", file: artifactRuntimeTraceFile},
+		{name: "browser CPU profile", file: artifactBrowserCPUProfileFile, cpuProfile: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			publisher, err := NewArtifactPublisher(t.TempDir())
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			bundle := validArtifactBundle(t)
+			if test.cpuProfile {
+				bundle.Diagnostic.BrowserCPUProfileFile = artifactBrowserCPUProfileFile
+				bundle.BrowserCPUProfile = []byte("deterministic CPU profile")
+			}
+			artifactDir, err := publisher.Publish(bundle)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			path := filepath.Join(artifactDir, test.file)
+			data, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			data[len(data)/2] ^= 1
+			if err := os.WriteFile(path, data, 0o644); err != nil {
+				t.Fatal(err.Error())
+			}
+			if _, err := ReadArtifact(artifactDir); err == nil {
+				t.Fatal("corrupted artifact validated")
+			}
+		})
+	}
+}
+
+func TestReadArtifactRejectsUnmanifestedFile(t *testing.T) {
 	publisher, err := NewArtifactPublisher(t.TempDir())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -240,17 +304,11 @@ func TestReadArtifactRejectsCorruption(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	resultPath := filepath.Join(artifactDir, artifactResultFile)
-	data, err := os.ReadFile(resultPath)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	data[len(data)/2] ^= 1
-	if err := os.WriteFile(resultPath, data, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(artifactDir, "extra.data"), []byte("extra"), 0o644); err != nil {
 		t.Fatal(err.Error())
 	}
 	if _, err := ReadArtifact(artifactDir); err == nil {
-		t.Fatal("corrupted artifact validated")
+		t.Fatal("artifact with an unmanifested file validated")
 	}
 }
 
@@ -275,11 +333,13 @@ func validArtifactBundle(t *testing.T) ArtifactBundle {
 			Summary:       summary,
 		},
 		Diagnostic: DiagnosticArtifact{
-			SchemaVersion: artifactSchemaVersion,
-			RunID:         metadata.RunID,
-			Engine:        metadata.Engine,
-			Sample:        testSample("diagnostic-1", 12, true),
+			SchemaVersion:    artifactSchemaVersion,
+			RunID:            metadata.RunID,
+			Engine:           metadata.Engine,
+			Sample:           testSample("diagnostic-1", 12, true),
+			RuntimeTraceFile: artifactRuntimeTraceFile,
 		},
+		RuntimeTrace: []byte("deterministic runtime trace"),
 	}
 }
 

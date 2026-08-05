@@ -80,6 +80,7 @@
     "diagnostic:react:full-audit": "bun cmd/react-diagnostic-run.ts --full-audit",
     "design:lint": "design.md lint DESIGN.md",
     "trace:quickstart:baseline": "bun scripts/tracetool-quickstart-baseline.ts",
+    "benchmark:goscript-storage": "bun scripts/goscript-storage-benchmark.ts",
     "shadcn:add": "bunx shadcn add",
     "gen": "bun run go:aptre -- generate && bun scripts/postprocess-generated.ts",
     "gen:force": "bun run go:aptre -- generate --force && bun scripts/postprocess-generated.ts",

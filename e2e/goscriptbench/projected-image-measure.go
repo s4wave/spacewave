@@ -11,6 +11,86 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Measure runs one scalar or diagnostic projected-image sample after Restart.
+func (p *ProjectedImage) Measure(ctx context.Context, request SampleRequest) (Measurement, error) {
+	if !request.Trace {
+		sample, err := p.MeasureUntraced(ctx, request)
+		if err != nil {
+			return Measurement{}, err
+		}
+		return Measurement{Sample: sample}, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return Measurement{}, err
+	}
+	id, err := projectedImageDiagnosticSampleID(request)
+	if err != nil {
+		return Measurement{}, err
+	}
+	projectedURL, err := p.projectedImageSampleURL(id)
+	if err != nil {
+		return Measurement{}, err
+	}
+
+	// Capture the runtime trace and optional Chromium profile around one browser action.
+	var sample Sample
+	var browserCPUProfile []byte
+	runtimeTrace, err := p.session.CaptureTrace(ctx, "goscriptbench-"+id, func(traceCtx context.Context) error {
+		measured, profile, err := p.captureBrowserCPUProfile(
+			traceCtx,
+			func(measureCtx context.Context) (Sample, error) {
+				return p.measureProjectedImageURL(
+					measureCtx,
+					id,
+					projectedURL,
+					p.metadata.Fixture.Width,
+					p.metadata.Fixture.Height,
+				)
+			},
+		)
+		if err != nil {
+			return err
+		}
+		sample = measured
+		browserCPUProfile = profile
+		return nil
+	})
+	if err != nil {
+		return Measurement{}, errors.Wrap(err, "capture projected-image diagnostic")
+	}
+	sample.Traced = true
+	return Measurement{
+		Sample:            sample,
+		RuntimeTrace:      runtimeTrace,
+		BrowserCPUProfile: browserCPUProfile,
+	}, nil
+}
+
+// Validate checks one scalar or diagnostic sample against its request and fixture.
+func (p *ProjectedImage) Validate(
+	ctx context.Context,
+	request SampleRequest,
+	sample Sample,
+) error {
+	if !request.Trace {
+		return p.ValidateUntraced(ctx, request, sample)
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	id, err := projectedImageDiagnosticSampleID(request)
+	if err != nil {
+		return err
+	}
+	if sample.ID != id {
+		return errors.Errorf("projected-image sample ID %q differs from request %q", sample.ID, id)
+	}
+	if !sample.Traced {
+		return errors.Errorf("projected-image diagnostic sample %q omits tracing", sample.ID)
+	}
+	return sample.Validate(p.metadata)
+}
+
 // MeasureUntraced runs one scalar projected-image sample after Restart.
 func (p *ProjectedImage) MeasureUntraced(ctx context.Context, request SampleRequest) (Sample, error) {
 	if err := ctx.Err(); err != nil {
@@ -20,20 +100,10 @@ func (p *ProjectedImage) MeasureUntraced(ctx context.Context, request SampleRequ
 	if err != nil {
 		return Sample{}, err
 	}
-	if !p.readyToMeasure {
-		return Sample{}, errors.New("projected-image sample requires a completed runtime restart")
+	projectedURL, err := p.projectedImageSampleURL(id)
+	if err != nil {
+		return Sample{}, err
 	}
-	token := p.config.RunID + "-" + id
-	if _, measured := p.measuredSamples[token]; measured {
-		return Sample{}, errors.Errorf("projected-image sample %q was already measured", id)
-	}
-
-	// Consume the restarted runtime and cache token before starting the browser action.
-	p.readyToMeasure = false
-	p.measuredSamples[token] = struct{}{}
-	projectedURL := p.harness.BaseURL() +
-		projectedImageURL(p.sessionIndex, p.spaceID) +
-		"&sample=" + url.QueryEscape(token)
 	return p.measureProjectedImageURL(
 		ctx,
 		id,
@@ -63,6 +133,33 @@ func (p *ProjectedImage) ValidateUntraced(
 		return errors.Errorf("projected-image scalar sample %q reports tracing", sample.ID)
 	}
 	return sample.Validate(p.metadata)
+}
+
+func (p *ProjectedImage) projectedImageSampleURL(id string) (string, error) {
+	if !p.readyToMeasure {
+		return "", errors.New("projected-image sample requires a completed runtime restart")
+	}
+	token := p.config.RunID + "-" + id
+	if _, measured := p.measuredSamples[token]; measured {
+		return "", errors.Errorf("projected-image sample %q was already measured", id)
+	}
+
+	// Consume the restarted runtime and cache token before starting the browser action.
+	p.readyToMeasure = false
+	p.measuredSamples[token] = struct{}{}
+	return p.harness.BaseURL() +
+		projectedImageURL(p.sessionIndex, p.spaceID) +
+		"&sample=" + url.QueryEscape(token), nil
+}
+
+func projectedImageDiagnosticSampleID(request SampleRequest) (string, error) {
+	if !request.Trace {
+		return "", errors.New("projected-image diagnostic sample requires tracing")
+	}
+	if request.Kind != SampleKindDiagnostic || request.Number != 1 {
+		return "", errors.New("projected-image diagnostic request must be sample one")
+	}
+	return "diagnostic-1", nil
 }
 
 func projectedImageUntracedSampleID(request SampleRequest) (string, error) {
@@ -253,3 +350,5 @@ func projectedImageBrowserBool(result map[string]any, field string) (bool, error
 	}
 	return value, nil
 }
+
+var _ Workload = (*ProjectedImage)(nil)

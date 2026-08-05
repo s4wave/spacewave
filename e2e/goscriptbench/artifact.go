@@ -4,7 +4,7 @@ package goscriptbench
 
 import "github.com/pkg/errors"
 
-const artifactSchemaVersion = 1
+const artifactSchemaVersion = 2
 
 // Artifact is one engine's untraced scalar result.
 type Artifact struct {

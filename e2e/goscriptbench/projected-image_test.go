@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	wasm "github.com/s4wave/spacewave/e2e/wasm"
 	"github.com/sirupsen/logrus"
 )
@@ -116,6 +117,7 @@ func TestProjectedImageRestartRetainsFixture(t *testing.T) {
 		"opfs-segment-cache",
 		"world-state",
 		"response-cache-key",
+		"resource-sdk-connection",
 		"decoded-image-entry",
 	}
 	if !slices.Equal(metadata.State.Recreated, wantRecreated) {
@@ -202,6 +204,34 @@ func TestProjectedImageMeasureUntracedProjectedFile(t *testing.T) {
 	}
 }
 
+func TestProjectedImageCapturesDiagnosticEvidence(t *testing.T) {
+	workload := newProjectedImageDiagnosticSmoke(t)
+	metadata, err := workload.Setup(t.Context())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	request := SampleRequest{Kind: SampleKindDiagnostic, Number: 1, Trace: true}
+	if err := workload.Restart(t.Context(), request); err != nil {
+		t.Fatal(err.Error())
+	}
+	measurement, err := workload.Measure(t.Context(), request)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := workload.Validate(t.Context(), request, measurement.Sample); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := measurement.Validate(request, metadata); err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(measurement.RuntimeTrace) == 0 {
+		t.Fatal("diagnostic runtime trace is empty")
+	}
+	if len(measurement.BrowserCPUProfile) == 0 {
+		t.Fatal("diagnostic Chromium CPU profile is empty")
+	}
+}
+
 func uploadCorruptProjectedImage(t *testing.T, workload *ProjectedImage) string {
 	t.Helper()
 	data := []byte("corrupt projected image")
@@ -227,31 +257,20 @@ func uploadCorruptProjectedImage(t *testing.T, workload *ProjectedImage) string 
 
 func newProjectedImageSmoke(t *testing.T) *ProjectedImage {
 	t.Helper()
+	return newProjectedImageSmokeMode(t, false)
+}
+
+func newProjectedImageDiagnosticSmoke(t *testing.T) *ProjectedImage {
+	t.Helper()
+	return newProjectedImageSmokeMode(t, true)
+}
+
+func newProjectedImageSmokeMode(t *testing.T, diagnostic bool) *ProjectedImage {
+	t.Helper()
 	if !strings.EqualFold(strings.TrimSpace(os.Getenv(projectedImageSmokeEnv)), "true") {
 		t.Skipf("set %s=true to run the retained-OPFS browser smoke", projectedImageSmokeEnv)
 	}
-	t.Setenv(wasm.E2EWasmCompilerEnv, string(wasm.E2EWasmCompilerGoScript))
-	t.Setenv(wasm.E2EWasmWorkerModeEnv, string(wasm.WorkerModeDedicated))
-
-	logger := logrus.New()
-	logger.SetLevel(logrus.DebugLevel)
-	harness, err := wasm.Boot(
-		t.Context(),
-		logrus.NewEntry(logger),
-		wasm.WithSessionHarness(),
-		wasm.WithGoScriptBrowserStartup(),
-		wasm.WithWorkerMode(wasm.WorkerModeDedicated),
-		wasm.WithBrowserName("chromium"),
-		wasm.WithStartupBuildCache(true),
-		wasm.WithManifestBuildTimeout(20*time.Minute),
-	)
-	if err != nil {
-		t.Fatalf("boot GoScript browser harness: %v", err)
-	}
-	t.Cleanup(harness.Release)
-	if err := harness.LaunchBrowser(); err != nil {
-		t.Fatalf("launch Chromium: %v", err)
-	}
+	harness := newProjectedImageHarness(t, "chromium", diagnostic)
 
 	workload, err := NewProjectedImage(t, harness, ProjectedImageConfig{
 		RunID:             "projected-image-smoke",
@@ -259,9 +278,45 @@ func newProjectedImageSmoke(t *testing.T) *ProjectedImage {
 		SpacewaveRevision: "test-spacewave-revision",
 		GoScriptRevision:  "test-goscript-revision",
 		UnavailableFields: []string{},
+		BrowserCPUProfile: diagnostic,
 	})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	return workload
+}
+
+func newProjectedImageHarness(t *testing.T, engine string, trace bool) *wasm.Harness {
+	t.Helper()
+	t.Setenv(wasm.E2EWasmCompilerEnv, string(wasm.E2EWasmCompilerGoScript))
+	t.Setenv(wasm.E2EWasmWorkerModeEnv, string(wasm.WorkerModeDedicated))
+
+	options := []wasm.Option{
+		wasm.WithSessionHarness(),
+		wasm.WithGoScriptBrowserStartup(),
+		wasm.WithWorkerMode(wasm.WorkerModeDedicated),
+		wasm.WithBrowserName(engine),
+		wasm.WithStartupBuildCache(true),
+		wasm.WithManifestBuildTimeout(20 * time.Minute),
+	}
+	if trace {
+		t.Setenv(wasm.E2EWasmGoScriptRuntimeTraceEnv, "true")
+		options = append(options, wasm.WithConfigMutator(trace_service.InjectTraceConfig))
+	}
+
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	harness, err := wasm.Boot(
+		t.Context(),
+		logrus.NewEntry(logger),
+		options...,
+	)
+	if err != nil {
+		t.Fatalf("boot GoScript browser harness: %v", err)
+	}
+	t.Cleanup(harness.Release)
+	if err := harness.LaunchBrowser(); err != nil {
+		t.Fatalf("launch %s: %v", engine, err)
+	}
+	return harness
 }

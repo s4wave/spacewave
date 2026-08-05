@@ -42,7 +42,7 @@ func (r *Runner) Run(ctx context.Context, workload Workload) (string, error) {
 	}
 
 	// Execute one complete untraced warm-up and discard it from the distribution.
-	warmup, err := r.runSample(ctx, workload, metadata, SampleRequest{
+	warmupMeasurement, err := r.runSample(ctx, workload, metadata, SampleRequest{
 		Kind:   SampleKindWarmup,
 		Number: 1,
 	})
@@ -60,7 +60,7 @@ func (r *Runner) Run(ctx context.Context, workload Workload) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		samples = append(samples, sample)
+		samples = append(samples, sample.Sample)
 	}
 
 	// Execute the traced diagnostic outside the retained population.
@@ -73,7 +73,12 @@ func (r *Runner) Run(ctx context.Context, workload Workload) (string, error) {
 		return "", err
 	}
 
-	// Derive summaries from retained source rows and publish one complete bundle.
+	// Name optional evidence, derive summaries, and publish one complete bundle.
+	browserCPUProfileFile := ""
+	if len(diagnostic.BrowserCPUProfile) != 0 {
+		browserCPUProfileFile = artifactBrowserCPUProfileFile
+	}
+
 	summary, err := SummarizeSamples(samples)
 	if err != nil {
 		return "", errors.Wrap(err, "summarize retained samples")
@@ -83,16 +88,20 @@ func (r *Runner) Run(ctx context.Context, workload Workload) (string, error) {
 			SchemaVersion: artifactSchemaVersion,
 			Metadata:      metadata,
 			Sampling:      fixedSamplingPolicy(),
-			Warmup:        warmup,
+			Warmup:        warmupMeasurement.Sample,
 			Samples:       samples,
 			Summary:       summary,
 		},
 		Diagnostic: DiagnosticArtifact{
-			SchemaVersion: artifactSchemaVersion,
-			RunID:         metadata.RunID,
-			Engine:        metadata.Engine,
-			Sample:        diagnostic,
+			SchemaVersion:         artifactSchemaVersion,
+			RunID:                 metadata.RunID,
+			Engine:                metadata.Engine,
+			Sample:                diagnostic.Sample,
+			RuntimeTraceFile:      artifactRuntimeTraceFile,
+			BrowserCPUProfileFile: browserCPUProfileFile,
 		},
+		RuntimeTrace:      diagnostic.RuntimeTrace,
+		BrowserCPUProfile: diagnostic.BrowserCPUProfile,
 	})
 }
 
@@ -101,25 +110,22 @@ func (r *Runner) runSample(
 	workload Workload,
 	metadata RunMetadata,
 	request SampleRequest,
-) (Sample, error) {
+) (Measurement, error) {
 	if err := ctx.Err(); err != nil {
-		return Sample{}, err
+		return Measurement{}, err
 	}
 	if err := workload.Restart(ctx, request); err != nil {
-		return Sample{}, errors.Wrapf(err, "restart workload for %s sample %d", request.Kind, request.Number)
+		return Measurement{}, errors.Wrapf(err, "restart workload for %s sample %d", request.Kind, request.Number)
 	}
-	sample, err := workload.Measure(ctx, request)
+	measurement, err := workload.Measure(ctx, request)
 	if err != nil {
-		return Sample{}, errors.Wrapf(err, "measure %s sample %d", request.Kind, request.Number)
+		return Measurement{}, errors.Wrapf(err, "measure %s sample %d", request.Kind, request.Number)
 	}
-	if err := workload.Validate(ctx, request, sample); err != nil {
-		return Sample{}, errors.Wrapf(err, "workload validation failed for %s sample %d", request.Kind, request.Number)
+	if err := workload.Validate(ctx, request, measurement.Sample); err != nil {
+		return Measurement{}, errors.Wrapf(err, "workload validation failed for %s sample %d", request.Kind, request.Number)
 	}
-	if sample.Traced != request.Trace {
-		return Sample{}, errors.Errorf("%s sample %d trace state differs from its request", request.Kind, request.Number)
+	if err := measurement.Validate(request, metadata); err != nil {
+		return Measurement{}, errors.Wrapf(err, "validate %s sample %d", request.Kind, request.Number)
 	}
-	if err := sample.Validate(metadata); err != nil {
-		return Sample{}, errors.Wrapf(err, "validate %s sample %d", request.Kind, request.Number)
-	}
-	return sample, nil
+	return measurement, nil
 }

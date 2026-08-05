@@ -10,11 +10,15 @@ import (
 )
 
 type artifactManifest struct {
-	SchemaVersion    int
-	ResultFile       string
-	ResultSHA256     string
-	DiagnosticFile   string
-	DiagnosticSHA256 string
+	SchemaVersion           int
+	ResultFile              string
+	ResultSHA256            string
+	DiagnosticFile          string
+	DiagnosticSHA256        string
+	RuntimeTraceFile        string
+	RuntimeTraceSHA256      string
+	BrowserCPUProfileFile   string
+	BrowserCPUProfileSHA256 string
 }
 
 func marshalArtifactData(artifact Artifact) []byte {
@@ -36,6 +40,8 @@ func marshalDiagnosticData(diagnostic DiagnosticArtifact) []byte {
 	value.Set("runId", arena.NewString(diagnostic.RunID))
 	value.Set("engine", arena.NewString(diagnostic.Engine))
 	value.Set("sample", marshalSampleValue(&arena, diagnostic.Sample))
+	value.Set("runtimeTraceFile", arena.NewString(diagnostic.RuntimeTraceFile))
+	value.Set("browserCpuProfileFile", arena.NewString(diagnostic.BrowserCPUProfileFile))
 	return append(value.MarshalTo(nil), '\n')
 }
 
@@ -47,6 +53,10 @@ func marshalManifestData(manifest artifactManifest) []byte {
 	value.Set("resultSha256", arena.NewString(manifest.ResultSHA256))
 	value.Set("diagnosticFile", arena.NewString(manifest.DiagnosticFile))
 	value.Set("diagnosticSha256", arena.NewString(manifest.DiagnosticSHA256))
+	value.Set("runtimeTraceFile", arena.NewString(manifest.RuntimeTraceFile))
+	value.Set("runtimeTraceSha256", arena.NewString(manifest.RuntimeTraceSHA256))
+	value.Set("browserCpuProfileFile", arena.NewString(manifest.BrowserCPUProfileFile))
+	value.Set("browserCpuProfileSha256", arena.NewString(manifest.BrowserCPUProfileSHA256))
 	return append(value.MarshalTo(nil), '\n')
 }
 
@@ -200,6 +210,12 @@ func parseDiagnosticData(data []byte) (DiagnosticArtifact, error) {
 	if diagnostic.Sample, err = parseSample(value.Get("sample")); err != nil {
 		return DiagnosticArtifact{}, errors.Wrap(err, "parse diagnostic sample")
 	}
+	if diagnostic.RuntimeTraceFile, err = parseString(value, "runtimeTraceFile"); err != nil {
+		return DiagnosticArtifact{}, err
+	}
+	if diagnostic.BrowserCPUProfileFile, err = parseString(value, "browserCpuProfileFile"); err != nil {
+		return DiagnosticArtifact{}, err
+	}
 	return diagnostic, nil
 }
 
@@ -226,6 +242,18 @@ func parseManifestData(data []byte) (artifactManifest, error) {
 		return artifactManifest{}, err
 	}
 	if manifest.DiagnosticSHA256, err = parseString(value, "diagnosticSha256"); err != nil {
+		return artifactManifest{}, err
+	}
+	if manifest.RuntimeTraceFile, err = parseString(value, "runtimeTraceFile"); err != nil {
+		return artifactManifest{}, err
+	}
+	if manifest.RuntimeTraceSHA256, err = parseString(value, "runtimeTraceSha256"); err != nil {
+		return artifactManifest{}, err
+	}
+	if manifest.BrowserCPUProfileFile, err = parseString(value, "browserCpuProfileFile"); err != nil {
+		return artifactManifest{}, err
+	}
+	if manifest.BrowserCPUProfileSHA256, err = parseString(value, "browserCpuProfileSha256"); err != nil {
 		return artifactManifest{}, err
 	}
 	return manifest, nil

@@ -14,6 +14,10 @@ type DiagnosticArtifact struct {
 	Engine string
 	// sample is excluded from the retained scalar population
 	Sample Sample
+	// runtimeTraceFile names the required runtime trace
+	RuntimeTraceFile string
+	// browserCPUProfileFile names optional Chromium-only CPU evidence
+	BrowserCPUProfileFile string
 }
 
 // Validate checks that the diagnostic is complete and traced.
@@ -26,6 +30,12 @@ func (d DiagnosticArtifact) Validate(metadata RunMetadata) error {
 	}
 	if !d.Sample.Traced {
 		return errors.New("diagnostic sample must be traced")
+	}
+	if d.RuntimeTraceFile != artifactRuntimeTraceFile {
+		return errors.New("diagnostic runtime trace filename is invalid")
+	}
+	if d.BrowserCPUProfileFile != "" && d.Engine != "chromium" {
+		return errors.New("diagnostic browser CPU profile requires Chromium")
 	}
 	if err := d.Sample.Validate(metadata); err != nil {
 		return errors.Wrap(err, "validate diagnostic sample")
