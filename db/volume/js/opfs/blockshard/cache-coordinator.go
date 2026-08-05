@@ -26,22 +26,29 @@ type cacheResourceKind uint8
 
 const (
 	cacheResourceLookup cacheResourceKind = iota
-	cacheResourceBlock
+	cacheResourceSpan
 )
 
 type cacheResource struct {
 	entry    *cacheEntry
 	kind     cacheResourceKind
-	blockOff int64
+	span     *cachedSpan
 	bytes    uint64
 	pins     int
 	prev     *cacheResource
 	next     *cacheResource
+	resident bool
 }
 
-type cachedBlock struct {
-	data     []byte
+// cachedSpan retains one admitted backing allocation and its cache resource.
+type cachedSpan struct {
+	segmentDataSpan
 	resource *cacheResource
+}
+
+// cachedBlock maps one aligned offset to its shared admitted span.
+type cachedBlock struct {
+	span *cachedSpan
 }
 
 type cacheEntry struct {
@@ -51,6 +58,8 @@ type cacheEntry struct {
 	lookup         *segment.LookupMeta
 	lookupResource *cacheResource
 	blocks         map[int64]*cachedBlock
+	blockSpans     int
+	fills          map[segmentFillRange]*segmentFill
 	leases         int
 	loading        chan struct{}
 	removed        bool
@@ -198,6 +207,7 @@ func (c *cacheCoordinator) acquireSegment(
 		entry = &cacheEntry{
 			key:     key,
 			blocks:  make(map[int64]*cachedBlock),
+			fills:   make(map[segmentFillRange]*segmentFill),
 			leases:  1,
 			loading: make(chan struct{}),
 		}
@@ -353,81 +363,154 @@ func (c *cacheCoordinator) releaseLease(lease *segmentCacheLease) {
 	c.closeFiles(closers)
 }
 
-func (c *cacheCoordinator) getBlock(
+func (c *cacheCoordinator) startSpanFill(
 	entry *cacheEntry,
 	lease *segmentCacheLease,
 	blockOff int64,
-) ([]byte, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	block := entry.blocks[blockOff]
-	if block == nil {
-		c.stats.Misses++
-		return nil, false
-	}
-	c.stats.Hits++
-	c.pinResourceLocked(lease, block.resource)
-	return block.data, true
-}
-
-func (c *cacheCoordinator) admitBlock(
-	entry *cacheEntry,
-	lease *segmentCacheLease,
-	blockOff int64,
-	data []byte,
-) []byte {
-	// Reuse a concurrent winner before reserving another allocation.
+	endBlock int64,
+	size int64,
+) (segmentDataSpan, *segmentFill, bool) {
+	// Reuse and pin a resident span covering the next requested block.
 	c.mu.Lock()
 	if block := entry.blocks[blockOff]; block != nil {
-		c.pinResourceLocked(lease, block.resource)
+		c.stats.Hits++
+		c.pinResourceLocked(lease, block.span.resource)
+		span := block.span.segmentDataSpan
 		c.mu.Unlock()
-		return block.data
+		return span, nil, false
 	}
 
-	// Keep reads operation-local after retirement or engine close.
-	if entry.removed || c.closed {
-		c.stats.Bypasses++
+	// Bound the fill at the next resident block, request edge, or file edge.
+	end := min(endBlock+cachedSegmentBlockSize, size)
+	var misses uint64
+	for off := blockOff; off <= endBlock; off += cachedSegmentBlockSize {
+		if off != blockOff && entry.blocks[off] != nil {
+			end = off
+			break
+		}
+		misses++
+	}
+	c.stats.Misses += misses
+	key := segmentFillRange{start: blockOff, end: end}
+
+	// Join an equal in-flight range without starting another snapshot read.
+	if entry.fills == nil {
+		entry.fills = make(map[segmentFillRange]*segmentFill)
+	}
+	if fill := entry.fills[key]; fill != nil {
+		c.stats.SharedFills++
+		c.cond.Broadcast()
 		c.mu.Unlock()
-		return data
+		return segmentDataSpan{}, fill, false
 	}
 
-	// Preserve the per-segment span limit without evicting a pinned block.
+	// Publish this caller as the range leader.
+	fill := &segmentFill{key: key, done: make(chan struct{})}
+	entry.fills[key] = fill
+	c.mu.Unlock()
+	return segmentDataSpan{}, fill, true
+}
+
+func (c *cacheCoordinator) awaitSpanFill(
+	fill *segmentFill,
+	lease *segmentCacheLease,
+) (segmentDataSpan, error) {
+	// Wait for the leader to publish bytes or its exact failure.
+	<-fill.done
+	if fill.err != nil {
+		return segmentDataSpan{}, fill.err
+	}
+
+	// Pin the admitted resource when it still resides in the cache.
+	c.mu.Lock()
+	if fill.resource != nil && fill.resource.resident {
+		c.pinResourceLocked(lease, fill.resource)
+	}
+	c.mu.Unlock()
+	return fill.span, nil
+}
+
+func (c *cacheCoordinator) finishSpanFill(
+	entry *cacheEntry,
+	lease *segmentCacheLease,
+	fill *segmentFill,
+	span segmentDataSpan,
+	fillErr error,
+) (segmentDataSpan, error) {
+	// Publish completion state before waking equal-range waiters.
+	c.mu.Lock()
+	fill.span = span
+	fill.err = fillErr
 	var closers []*cachedSegmentFile
-	if len(entry.blocks) >= maxCachedSegmentBlocks {
-		resource := c.oldestBlockLocked(entry)
+	admit := fillErr == nil
+
+	// Keep successful bytes operation-local after retirement or an unequal race.
+	if admit && (entry.removed || c.closed) {
+		c.stats.Bypasses++
+		admit = false
+	}
+	if admit {
+		for off := fill.key.start; off < fill.key.end; off += cachedSegmentBlockSize {
+			if entry.blocks[off] != nil {
+				c.stats.Bypasses++
+				admit = false
+				break
+			}
+		}
+	}
+
+	// Preserve the per-segment span count without evicting a pinned span.
+	if admit && entry.blockSpans >= maxCachedSegmentSpans {
+		resource := c.oldestSpanLocked(entry)
 		if resource == nil {
 			c.stats.Bypasses++
-			c.mu.Unlock()
-			return data
+			admit = false
 		}
-		c.removeResourceLocked(resource, true)
+		if resource != nil {
+			c.removeResourceLocked(resource, true)
+		}
 	}
 
-	// Reserve exact backing capacity or return the operation-local allocation.
-	charge := uint64(cap(data))
-	reservedClosers, admitted := c.reserveBytesLocked(charge)
-	closers = append(closers, reservedClosers...)
-	if !admitted {
-		c.stats.Bypasses++
-		c.mu.Unlock()
-		c.closeFiles(closers)
-		return data
+	// Reserve the exact backing allocation through the engine byte budget.
+	charge := uint64(cap(span.data))
+	if admit {
+		var admitted bool
+		var reservedClosers []*cachedSegmentFile
+		reservedClosers, admitted = c.reserveBytesLocked(charge)
+		closers = append(closers, reservedClosers...)
+		if !admitted {
+			c.stats.Bypasses++
+			admit = false
+		}
 	}
 
-	// Publish and pin the admitted block before exposing it to the reader.
-	resource := &cacheResource{
-		entry:    entry,
-		kind:     cacheResourceBlock,
-		blockOff: blockOff,
-		bytes:    charge,
+	// Publish one resource and all aligned block views of its backing allocation.
+	if admit {
+		cached := &cachedSpan{segmentDataSpan: span}
+		resource := &cacheResource{
+			entry: entry,
+			kind:  cacheResourceSpan,
+			span:  cached,
+			bytes: charge,
+		}
+		cached.resource = resource
+		for off := fill.key.start; off < fill.key.end; off += cachedSegmentBlockSize {
+			entry.blocks[off] = &cachedBlock{span: cached}
+		}
+		entry.blockSpans++
+		fill.resource = resource
+		c.addResourceLocked(resource)
+		c.pinResourceLocked(lease, resource)
+		c.stats.Admissions++
 	}
-	entry.blocks[blockOff] = &cachedBlock{data: data, resource: resource}
-	c.addResourceLocked(resource)
-	c.pinResourceLocked(lease, resource)
-	c.stats.Admissions++
+
+	// Remove the in-flight identity and wake every waiter with the same result.
+	delete(entry.fills, fill.key)
+	close(fill.done)
+	c.cond.Broadcast()
 	c.mu.Unlock()
 	c.closeFiles(closers)
-	return data
+	return span, fillErr
 }
 
 func (c *cacheCoordinator) recordRead(n int) {
@@ -519,7 +602,7 @@ func (c *cacheCoordinator) snapshot() cacheStats {
 
 func (c *cacheCoordinator) hasActiveLeasesLocked() bool {
 	for _, entry := range c.entries {
-		if entry.leases != 0 || entry.loading != nil {
+		if entry.leases != 0 || entry.loading != nil || len(entry.fills) != 0 {
 			return true
 		}
 	}
@@ -581,9 +664,9 @@ func (c *cacheCoordinator) oldestEvictableLocked(forHandle bool) *cacheResource 
 	return nil
 }
 
-func (c *cacheCoordinator) oldestBlockLocked(entry *cacheEntry) *cacheResource {
+func (c *cacheCoordinator) oldestSpanLocked(entry *cacheEntry) *cacheResource {
 	for resource := c.lruHead; resource != nil; resource = resource.next {
-		if resource.entry == entry && resource.kind == cacheResourceBlock && resource.pins == 0 {
+		if resource.entry == entry && resource.kind == cacheResourceSpan && resource.pins == 0 {
 			return resource
 		}
 	}
@@ -591,7 +674,8 @@ func (c *cacheCoordinator) oldestBlockLocked(entry *cacheEntry) *cacheResource {
 }
 
 func (c *cacheCoordinator) addResourceLocked(resource *cacheResource) {
-	// Link the resource at the recency tail.
+	// Mark the resource resident and link it at the recency tail.
+	resource.resident = true
 	resource.prev = c.lruTail
 	if c.lruTail == nil {
 		c.lruHead = resource
@@ -607,7 +691,7 @@ func (c *cacheCoordinator) addResourceLocked(resource *cacheResource) {
 	switch resource.kind {
 	case cacheResourceLookup:
 		c.stats.MetadataBytes += resource.bytes
-	case cacheResourceBlock:
+	case cacheResourceSpan:
 		c.stats.BlockBytes += resource.bytes
 	}
 }
@@ -652,14 +736,14 @@ func (c *cacheCoordinator) removeIdleResourcesLocked(entry *cacheEntry, eviction
 		c.removeResourceLocked(entry.lookupResource, eviction)
 	}
 	for _, block := range entry.blocks {
-		if block.resource.pins == 0 {
-			c.removeResourceLocked(block.resource, eviction)
+		if block.span.resource != nil && block.span.resource.pins == 0 {
+			c.removeResourceLocked(block.span.resource, eviction)
 		}
 	}
 }
 
 func (c *cacheCoordinator) removeResourceLocked(resource *cacheResource, eviction bool) {
-	if resource.pins != 0 {
+	if !resource.resident || resource.pins != 0 {
 		return
 	}
 
@@ -676,6 +760,7 @@ func (c *cacheCoordinator) removeResourceLocked(resource *cacheResource, evictio
 	if resource.next != nil {
 		resource.next.prev = resource.prev
 	}
+	resource.resident = false
 
 	// Remove the typed payload from its segment entry.
 	entry := resource.entry
@@ -684,8 +769,16 @@ func (c *cacheCoordinator) removeResourceLocked(resource *cacheResource, evictio
 		entry.lookup = nil
 		entry.lookupResource = nil
 		c.stats.MetadataBytes -= resource.bytes
-	case cacheResourceBlock:
-		delete(entry.blocks, resource.blockOff)
+	case cacheResourceSpan:
+		span := resource.span
+		for off := span.start; off < span.start+int64(len(span.data)); off += cachedSegmentBlockSize {
+			if block := entry.blocks[off]; block != nil && block.span == span {
+				delete(entry.blocks, off)
+			}
+		}
+		entry.blockSpans--
+		span.resource = nil
+		resource.span = nil
 		c.stats.BlockBytes -= resource.bytes
 	}
 
@@ -698,7 +791,11 @@ func (c *cacheCoordinator) removeResourceLocked(resource *cacheResource, evictio
 
 func (c *cacheCoordinator) detachIdleEntryLocked(entry *cacheEntry) *cachedSegmentFile {
 	// Keep entries with active operations or resident resources attached.
-	if entry.leases != 0 || entry.loading != nil || entry.lookupResource != nil || len(entry.blocks) != 0 {
+	if entry.leases != 0 ||
+		entry.loading != nil ||
+		len(entry.fills) != 0 ||
+		entry.lookupResource != nil ||
+		len(entry.blocks) != 0 {
 		return nil
 	}
 	if current := c.entries[entry.key]; current != entry {

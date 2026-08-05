@@ -51,6 +51,66 @@ func (r *cacheCoordinatorTestReader) closeCount() int {
 	return r.closes
 }
 
+// readCount reports snapshot reads without exposing the test reader mutex.
+func (r *cacheCoordinatorTestReader) readCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.reads
+}
+
+// cacheCoordinatorBlockingReader pauses the first snapshot read for fill-sharing tests.
+type cacheCoordinatorBlockingReader struct {
+	*cacheCoordinatorTestReader
+	started  chan struct{}
+	unblock  chan struct{}
+	firstErr error
+}
+
+// ReadAt exposes the first in-flight read before returning scripted bytes or failure.
+func (r *cacheCoordinatorBlockingReader) ReadAt(p []byte, off int64) (int, error) {
+	r.mu.Lock()
+	r.reads++
+	call := r.reads
+	r.mu.Unlock()
+
+	// Hold the first call until a competing request joins its fill.
+	if call == 1 {
+		close(r.started)
+		<-r.unblock
+		if r.firstErr != nil {
+			return 0, r.firstErr
+		}
+	}
+
+	// Copy immutable fixture bytes with ReaderAt short-read semantics.
+	if off >= int64(len(r.data)) {
+		return 0, io.EOF
+	}
+	n := copy(p, r.data[off:])
+	if n < len(p) {
+		return n, io.EOF
+	}
+	return n, nil
+}
+
+// cacheCoordinatorReadResult carries one concurrent span request outcome.
+type cacheCoordinatorReadResult struct {
+	data []byte
+	n    int
+	err  error
+}
+
+// readCoordinatorSpan executes one lease read and publishes its complete outcome.
+func readCoordinatorSpan(
+	lease *segmentCacheLease,
+	size int,
+	results chan<- cacheCoordinatorReadResult,
+) {
+	data := make([]byte, size)
+	n, err := lease.ReadAt(data, 0)
+	results <- cacheCoordinatorReadResult{data: data, n: n, err: err}
+}
+
 func TestCacheCoordinatorChargesExactPayloadAndReleases(t *testing.T) {
 	// Size the cache for one exact fixture payload.
 	data, meta, key, expectedCharge := cacheCoordinatorFixture(t)
@@ -205,30 +265,192 @@ func TestCacheCoordinatorOpenFailureRollsBackHandle(t *testing.T) {
 	}
 }
 
-func TestCacheCoordinatorPerSegmentBlockLimitBypassesPinnedPressure(t *testing.T) {
-	// Build an immutable file spanning more blocks than one segment admits.
+func TestCacheCoordinatorPerSegmentSpanLimitBypassesPinnedPressure(t *testing.T) {
+	// Build an immutable file spanning more fills than one segment admits.
 	data, meta := cacheCoordinatorLargeFixture(t)
 	cache := newCacheCoordinator(^uint64(0), 2)
 	lease, _ := acquireCoordinatorFixture(t, cache, 0, meta.Filename, data, meta)
 
-	// Pin more aligned blocks than the shipping per-segment policy admits.
-	for i := range maxCachedSegmentBlocks + 2 {
+	// Pin more one-block spans than the shipping per-segment policy admits.
+	for i := range maxCachedSegmentSpans + 2 {
 		var dst [1]byte
 		if _, err := lease.ReadAt(dst[:], int64(i*cachedSegmentBlockSize)); err != nil {
 			t.Fatal(err)
 		}
 	}
 	stats := cache.snapshot()
-	if len(lease.entry.blocks) > maxCachedSegmentBlocks {
-		t.Fatalf("resident blocks: got %d limit %d", len(lease.entry.blocks), maxCachedSegmentBlocks)
+	if lease.entry.blockSpans > maxCachedSegmentSpans {
+		t.Fatalf("resident spans: got %d limit %d", lease.entry.blockSpans, maxCachedSegmentSpans)
+	}
+	if len(lease.entry.blocks) > maxCachedSegmentSpans {
+		t.Fatalf("resident block views: got %d limit %d", len(lease.entry.blocks), maxCachedSegmentSpans)
 	}
 	if stats.Bypasses == 0 {
-		t.Fatal("expected pinned block pressure to bypass admission")
+		t.Fatal("expected pinned span pressure to bypass admission")
 	}
 
 	// Release every retained resource after the pressure check.
 	lease.Release()
 	cache.close()
+}
+
+func TestCacheCoordinatorChargesOneBackingAllocationPerSpan(t *testing.T) {
+	// Read three consecutive missing blocks through one request-local allocation.
+	data := bytes.Repeat([]byte("span"), cachedSegmentBlockSize*3/4)
+	reader := &cacheCoordinatorTestReader{data: data}
+	cache := newCacheCoordinator(^uint64(0), 1)
+	lease, key := newCoordinatorDataLease(cache, reader, int64(len(data)))
+	got := make([]byte, len(data))
+	n, err := lease.ReadAt(got, 0)
+	if err != nil || n != len(got) {
+		t.Fatalf("span read: bytes=%d err=%v", n, err)
+	}
+	if !bytes.Equal(got, data) {
+		t.Fatal("span read returned different bytes")
+	}
+
+	// Assert one read, one charge, one span, and three aligned block views.
+	stats := cache.snapshot()
+	wantCharge := uint64(len(data))
+	if reader.readCount() != 1 || stats.ReadCalls != 1 || stats.FetchedBytes != wantCharge {
+		t.Fatalf("snapshot reads: reader=%d calls=%d bytes=%d", reader.readCount(), stats.ReadCalls, stats.FetchedBytes)
+	}
+	if stats.ChargedBytes != wantCharge || stats.BlockBytes != wantCharge {
+		t.Fatalf("span charge: charged=%d blocks=%d want=%d", stats.ChargedBytes, stats.BlockBytes, wantCharge)
+	}
+	if lease.entry.blockSpans != 1 || len(lease.entry.blocks) != 3 {
+		t.Fatalf("resident span: spans=%d block_views=%d", lease.entry.blockSpans, len(lease.entry.blocks))
+	}
+	span := lease.entry.blocks[0].span
+	for off := int64(0); off < int64(len(data)); off += cachedSegmentBlockSize {
+		if block := lease.entry.blocks[off]; block == nil || block.span != span {
+			t.Fatalf("block view at %d does not share the backing span", off)
+		}
+	}
+
+	// Remove the idle span and its handle without leaving any block view or charge.
+	lease.Release()
+	cache.remove(key)
+	stats = cache.snapshot()
+	if len(lease.entry.blocks) != 0 || lease.entry.blockSpans != 0 {
+		t.Fatalf("removed span: spans=%d block_views=%d", lease.entry.blockSpans, len(lease.entry.blocks))
+	}
+	if stats.ChargedBytes != 0 || stats.BlockBytes != 0 || stats.LiveHandles != 0 {
+		t.Fatalf("removed charge: charged=%d blocks=%d handles=%d", stats.ChargedBytes, stats.BlockBytes, stats.LiveHandles)
+	}
+	if reader.closeCount() != 1 {
+		t.Fatalf("removed reader closes: got %d want 1", reader.closeCount())
+	}
+}
+
+func TestCacheCoordinatorSharesEqualInFlightSpan(t *testing.T) {
+	// Pause one two-block snapshot read while an equal request starts.
+	data := bytes.Repeat([]byte("fill"), cachedSegmentBlockSize*2/4)
+	reader := &cacheCoordinatorBlockingReader{
+		cacheCoordinatorTestReader: &cacheCoordinatorTestReader{data: data},
+		started:                    make(chan struct{}),
+		unblock:                    make(chan struct{}),
+	}
+	cache := newCacheCoordinator(^uint64(0), 1)
+	leaseA, key := newCoordinatorDataLease(cache, reader, int64(len(data)))
+	leaseB := newCoordinatorPeerLease(cache, leaseA.entry)
+	results := make(chan cacheCoordinatorReadResult, 2)
+	go readCoordinatorSpan(leaseA, len(data), results)
+	<-reader.started
+	go readCoordinatorSpan(leaseB, len(data), results)
+
+	// Wait until the equal request joins, then release the single underlying read.
+	cache.mu.Lock()
+	for cache.stats.SharedFills != 1 {
+		cache.cond.Wait()
+	}
+	cache.mu.Unlock()
+	close(reader.unblock)
+	first := <-results
+	second := <-results
+
+	// Require identical successful bytes from one snapshot call and one admission.
+	for i, result := range []cacheCoordinatorReadResult{first, second} {
+		if result.err != nil || result.n != len(data) {
+			t.Fatalf("result %d: bytes=%d err=%v", i, result.n, result.err)
+		}
+		if !bytes.Equal(result.data, data) {
+			t.Fatalf("result %d returned different bytes", i)
+		}
+	}
+	stats := cache.snapshot()
+	if reader.readCount() != 1 || stats.ReadCalls != 1 || stats.SharedFills != 1 || stats.Admissions != 1 {
+		t.Fatalf("shared fill: reader=%d calls=%d shared=%d admissions=%d", reader.readCount(), stats.ReadCalls, stats.SharedFills, stats.Admissions)
+	}
+
+	// Release both pins and retire the shared span.
+	leaseA.Release()
+	leaseB.Release()
+	cache.remove(key)
+}
+
+func TestCacheCoordinatorSharesFailureAndAllowsRetry(t *testing.T) {
+	// Pause one failing snapshot read while an equal request starts.
+	fillErr := errors.New("scripted fill failure")
+	data := bytes.Repeat([]byte("retry"), cachedSegmentBlockSize/5+1)[:cachedSegmentBlockSize]
+	reader := &cacheCoordinatorBlockingReader{
+		cacheCoordinatorTestReader: &cacheCoordinatorTestReader{data: data},
+		started:                    make(chan struct{}),
+		unblock:                    make(chan struct{}),
+		firstErr:                   fillErr,
+	}
+	cache := newCacheCoordinator(^uint64(0), 1)
+	leaseA, key := newCoordinatorDataLease(cache, reader, int64(len(data)))
+	leaseB := newCoordinatorPeerLease(cache, leaseA.entry)
+	results := make(chan cacheCoordinatorReadResult, 2)
+	go readCoordinatorSpan(leaseA, len(data), results)
+	<-reader.started
+	go readCoordinatorSpan(leaseB, len(data), results)
+
+	// Wait for fill sharing before publishing the leader failure.
+	cache.mu.Lock()
+	for cache.stats.SharedFills != 1 {
+		cache.cond.Wait()
+	}
+	cache.mu.Unlock()
+	close(reader.unblock)
+	first := <-results
+	second := <-results
+
+	// Require the same failure and no resident state from either request.
+	for i, result := range []cacheCoordinatorReadResult{first, second} {
+		if result.n != 0 || result.err != fillErr {
+			t.Fatalf("failure %d: bytes=%d err=%v", i, result.n, result.err)
+		}
+	}
+	stats := cache.snapshot()
+	if stats.ChargedBytes != 0 || stats.BlockBytes != 0 || stats.Admissions != 0 {
+		t.Fatalf("failed fill residency: charged=%d blocks=%d admissions=%d", stats.ChargedBytes, stats.BlockBytes, stats.Admissions)
+	}
+	if len(leaseA.entry.fills) != 0 || len(leaseA.entry.blocks) != 0 || leaseA.entry.blockSpans != 0 {
+		t.Fatalf("failed fill state: fills=%d block_views=%d spans=%d", len(leaseA.entry.fills), len(leaseA.entry.blocks), leaseA.entry.blockSpans)
+	}
+
+	// Start a new lease after failure and admit its successful retry.
+	retryLease := newCoordinatorPeerLease(cache, leaseA.entry)
+	leaseA.Release()
+	leaseB.Release()
+	got := make([]byte, len(data))
+	n, err := retryLease.ReadAt(got, 0)
+	if err != nil || n != len(got) {
+		t.Fatalf("retry: bytes=%d err=%v", n, err)
+	}
+	if !bytes.Equal(got, data) || reader.readCount() != 2 {
+		t.Fatalf("retry bytes or calls: equal=%t calls=%d", bytes.Equal(got, data), reader.readCount())
+	}
+	stats = cache.snapshot()
+	if stats.Admissions != 1 || stats.ReadCalls != 2 {
+		t.Fatalf("retry counters: admissions=%d calls=%d", stats.Admissions, stats.ReadCalls)
+	}
+
+	// Release and retire the successfully retried span.
+	retryLease.Release()
+	cache.remove(key)
 }
 
 func TestCacheCoordinatorTouchesGlobalLRU(t *testing.T) {
@@ -289,6 +511,37 @@ func TestCacheCoordinatorOversizeReadBypassesAdmission(t *testing.T) {
 	// Release the admitted entry after the operation-local read.
 	lease.Release()
 	cache.close()
+}
+
+// newCoordinatorDataLease constructs one admitted data-only entry for focused span tests.
+func newCoordinatorDataLease(
+	cache *cacheCoordinator,
+	reader segmentReader,
+	size int64,
+) (*segmentCacheLease, cacheKey) {
+	key := cacheKey{shardID: 0, filename: "data-only.sst"}
+	entry := &cacheEntry{
+		key:    key,
+		blocks: make(map[int64]*cachedBlock),
+		fills:  make(map[segmentFillRange]*segmentFill),
+		leases: 1,
+	}
+	entry.file = newCoordinatedSegmentFile(reader, size, cache, entry)
+	cache.entries[key] = entry
+	cache.stats.LiveHandles = 1
+	cache.stats.PeakLiveHandles = 1
+	return &segmentCacheLease{
+		cache:     cache,
+		entry:     entry,
+		resources: make(map[*cacheResource]struct{}),
+	}, key
+}
+
+// newCoordinatorPeerLease creates another operation lease for one admitted entry.
+func newCoordinatorPeerLease(cache *cacheCoordinator, entry *cacheEntry) *segmentCacheLease {
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+	return cache.newLeaseLocked(entry)
 }
 
 func cacheCoordinatorLargeFixture(t testing.TB) ([]byte, *SegmentMeta) {

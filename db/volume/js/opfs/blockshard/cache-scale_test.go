@@ -126,7 +126,7 @@ func TestCachedSegmentFileScale(t *testing.T) {
 	if jsStatus == "available" {
 		jsDelta = int64(jsAfter) - int64(jsBefore)
 	}
-	const rowFormat = "cache-scale policy_block_bytes=%d policy_max_blocks=%d " +
+	const rowFormat = "cache-scale policy_block_bytes=%d policy_max_spans=%d " +
 		"byte_limit=%d handle_limit=%d segments=%d entries_per_segment=%d " +
 		"retained_block_bytes=%d retained_metadata_bytes=%d retained_bytes=%d " +
 		"peak_retained_bytes=%d go_heap_bytes=%d go_heap_delta_bytes=%d " +
@@ -137,7 +137,7 @@ func TestCachedSegmentFileScale(t *testing.T) {
 	t.Logf(
 		rowFormat,
 		cachedSegmentBlockSize,
-		maxCachedSegmentBlocks,
+		maxCachedSegmentSpans,
 		defaultCacheByteLimit,
 		defaultCacheHandleLimit,
 		count,
