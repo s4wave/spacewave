@@ -86,7 +86,7 @@ func (o *GitFetchOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	objKey := o.GetObjectKey()
 
-	// check that the object exists
+	// Confirm that the target repository object exists before fetching.
 	_, exists, err := worldHandle.GetObject(ctx, objKey)
 	if err != nil {
 		return false, err
@@ -95,7 +95,7 @@ func (o *GitFetchOp) ApplyWorldOp(
 		return false, errors.Wrap(world.ErrObjectNotFound, objKey)
 	}
 
-	// perform the fetch
+	// Fetch remote objects into the existing repository.
 	err = GitFetch(ctx, worldHandle, objKey, o.GetFetchOpts(), nil, nil)
 	return false, err
 }

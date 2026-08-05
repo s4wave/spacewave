@@ -68,12 +68,15 @@ func TestHandoffBlocksActiveListener(t *testing.T) {
 }
 
 func TestServeOnceRefusesConnectableSocket(t *testing.T) {
+	// Initialize a cancelable listener test context.
 	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
 
 	if err := os.MkdirAll(".tmp", 0o755); err != nil {
 		t.Fatal(err)
 	}
+
+	// Create the temporary socket directory.
 	dir, err := os.MkdirTemp(".tmp", "refuse-")
 	if err != nil {
 		t.Fatal(err)
@@ -82,6 +85,8 @@ func TestServeOnceRefusesConnectableSocket(t *testing.T) {
 		_ = os.RemoveAll(dir)
 	})
 	sock := filepath.Join(dir, "spacewave.sock")
+
+	// Bind the connectable Unix listener.
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sock, Net: "unix"})
 	if err != nil {
 		t.Fatal(err)
@@ -145,6 +150,8 @@ func TestAcceptCountingListenerKeepsExistingClientAfterPeerDeparts(t *testing.T)
 			return false, nil
 		}
 	}))
+
+	// Start the accept loop with a drainable server.
 	serverErr := make(chan error, 1)
 	go func() {
 		drainClients, err := acceptCountingListener(ctx, listener, srpc.NewServer(mux), status)
@@ -161,6 +168,7 @@ func TestAcceptCountingListenerKeepsExistingClientAfterPeerDeparts(t *testing.T)
 		}
 	}()
 
+	// Connect clients and verify active-stream behavior.
 	clientA, closeA := dialListenerTestClient(t, listener.Addr().String())
 	defer closeA()
 	watchCtx, cancelWatch := context.WithCancel(t.Context())
@@ -177,6 +185,7 @@ func TestAcceptCountingListenerKeepsExistingClientAfterPeerDeparts(t *testing.T)
 	defer watchA.Close()
 	recvListenerTestWatch(t, watchA)
 
+	// Exercise a second client while the first watch remains active.
 	clientB, closeB := dialListenerTestClient(t, listener.Addr().String())
 	pingListenerTestClient(t, clientB)
 	waitListenerClientCount(t, status, 2)

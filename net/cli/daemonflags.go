@@ -92,6 +92,7 @@ func (a *DaemonArgs) ApplyFactories(b bus.Bus, sr *static.Resolver) {
 // ApplyToConfigSet applies controller configurations to a config set.
 // Map is from string descriptor to config object.
 func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite bool) error {
+	// Apply each requested controller configuration through the local helper.
 	apply := func(id string, conf config.Config) {
 		if !overwrite {
 			if _, ok := confSet[id]; ok {
@@ -100,6 +101,8 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		}
 		confSet[id] = configset.NewControllerConfig(1, conf)
 	}
+
+	// Configure explicit peer establishment when requested.
 	if len(a.EstablishPeers.Value()) != 0 {
 		establishConf := &link_establish_controller.Config{
 			PeerIds: a.EstablishPeers.Value(),
@@ -109,10 +112,13 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		}
 		apply("establish-peers", establishConf)
 	}
+
+	// Keep established links open during long-lived streams.
 	if a.HoldOpenLinks {
 		apply("hold-open", &link_holdopen_controller.Config{})
 	}
 
+	// Configure the websocket listener and static peers.
 	if a.WebsocketListen != "" {
 		staticPeers, err := parseDialerAddrs(a.WebsocketPeers)
 		if err != nil {
@@ -125,6 +131,7 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		})
 	}
 
+	// Configure the UDP listener and static peers.
 	if a.UDPListen != "" {
 		staticPeers, err := parseDialerAddrs(a.UDPPeers)
 		if err != nil {
@@ -138,6 +145,7 @@ func (a *DaemonArgs) ApplyToConfigSet(confSet configset.ConfigSet, overwrite boo
 		})
 	}
 
+	// Configure the selected pubsub provider.
 	if a.Pubsub != "" {
 		conf, err := a.callPubsubProvider(strings.ToLower(a.Pubsub))
 		if err != nil {

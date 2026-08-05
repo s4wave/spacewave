@@ -58,24 +58,27 @@ func main() {
 }
 
 func runAuthTester(c *cli.Context) error {
+	// Initialize the test context and logger.
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
+	// Construct the password authentication method.
 	var handler auth_method.Handler // TODO
 	authMethod, err := auth_method_password.NewMethod(ctx, le, handler)
 	if err != nil {
 		return err
 	}
 
+	// Define the test entity and domain identifiers.
 	entityID := "testuser"
 	domainID := "aperture.app"
 	domainName := "Aperture App"
 	hardcodedPassword := "testpassword"
 	entityUUID := uuid.NewV4().String()
 
-	// generate the user private key with the password in advance
+	// Derive the test entity keypair from its password.
 	paramsSrc, userPrivKey, err := auth_method_password.BuildParametersWithUsernamePassword(
 		entityID,
 		[]byte(hardcodedPassword),
@@ -84,11 +87,13 @@ func runAuthTester(c *cli.Context) error {
 		return err
 	}
 
+	// Serialize the authentication parameters for the entity record.
 	authMethodParams, err := paramsSrc.MarshalVT()
 	if err != nil {
 		return err
 	}
 
+	// Build the target entity record with its private key.
 	targetEntitySrc, err := identity.EntityWithPrivKey(
 		domainID,
 		entityID, entityUUID,
@@ -100,7 +105,7 @@ func runAuthTester(c *cli.Context) error {
 		return err
 	}
 
-	// Build testbed
+	// Build the client testbed and register its controllers.
 	tb, err := testbed.NewTestbed(
 		ctx,
 		le.WithField("testbed", "auth-client"),
@@ -109,16 +114,19 @@ func runAuthTester(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Add core and transport factories to the client testbed.
 	core.AddFactories(tb.Bus, tb.StaticResolver)
 	tb.StaticResolver.AddFactory(inproc.NewFactory(tb.Bus))
 
+	// Resolve the client peer identity from its private key.
 	privKey := tb.PrivKey
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return err
 	}
 
-	// Build testbed for the "auth server"
+	// Build the testbed that hosts the authentication server.
 	tbServer, err := testbed.NewTestbed(
 		ctx,
 		le.WithField("testbed", "auth-server"),
@@ -130,7 +138,7 @@ func runAuthTester(c *cli.Context) error {
 	core.AddFactories(tbServer.Bus, tbServer.StaticResolver)
 	tbServer.StaticResolver.AddFactory(inproc.NewFactory(tbServer.Bus))
 
-	// Start the auth server.
+	// Start the authentication server controller.
 	serverPrivKey := tbServer.PrivKey
 	serverPeerID, err := peer.IDFromPrivateKey(serverPrivKey)
 	if err != nil {
@@ -153,7 +161,7 @@ func runAuthTester(c *cli.Context) error {
 
 	serverPeerIDs := []string{serverPeerID.String()}
 
-	// Static auth list (simulating a auth database)
+	// Publish the target entity through the static authentication list.
 	_, _, staticRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		tbServer.Bus,
@@ -171,6 +179,7 @@ func runAuthTester(c *cli.Context) error {
 	}
 	defer staticRef.Release()
 
+	// Start the server-side in-process transport.
 	tp2i, _, tp2Ref, err := loader.WaitExecControllerRunning(
 		ctx,
 		tbServer.Bus,
@@ -190,6 +199,7 @@ func runAuthTester(c *cli.Context) error {
 	}
 	tp2 := tp2k.(*inproc.Inproc)
 
+	// Start the client-side in-process transport and dial the server.
 	tp1i, _, tp1Ref, err := loader.WaitExecControllerRunning(
 		ctx,
 		tb.Bus,
@@ -214,10 +224,11 @@ func runAuthTester(c *cli.Context) error {
 	}
 	tp1 := tp1k.(*inproc.Inproc)
 
+	// Connect both in-process transports.
 	tp2.ConnectToInproc(ctx, tp1)
 	tp1.ConnectToInproc(ctx, tp2)
 
-	// Execute the client.
+	// Execute the client controller against the authentication server.
 	_, _, clientRef, err := bus.ExecOneOff(
 		ctx,
 		tb.Bus,
@@ -240,7 +251,7 @@ func runAuthTester(c *cli.Context) error {
 	}
 	defer clientRef.Release()
 
-	// 1. Input username
+	// Collect the username used for the authentication lookup.
 	if username == "" {
 		username, err = (&promptui.Prompt{Label: "Username"}).Run()
 		if err != nil {
@@ -251,7 +262,7 @@ func runAuthTester(c *cli.Context) error {
 		return errors.New("username cannot be empty")
 	}
 
-	// 2. Lookup username auth record from active domain.
+	// Look up the username record from the active domain.
 	entityRecordInter, _, di, err := bus.ExecOneOff(
 		ctx,
 		tb.Bus,
@@ -264,6 +275,7 @@ func runAuthTester(c *cli.Context) error {
 	}
 	di.Release()
 
+	// Validate the lookup result and capture the entity record.
 	entityRecordValue := entityRecordInter.GetValue().(identity.IdentityLookupEntityValue)
 	if entityRecordValue.IsNotFound() {
 		return errors.New("authentication failed: entity not found")
@@ -274,7 +286,7 @@ func runAuthTester(c *cli.Context) error {
 	entity := entityRecordValue.GetEntity()
 	le.Infof("got authentication entity with uuid %s", entity.GetEntityUuid())
 
-	// 3. authenticate against the record
+	// Select the keypair registered for this authentication method.
 	var selectedKeypair *identity.Keypair
 	for i, kpd := range entity.GetEntityKeypairSet().GetEntityKeypairs() {
 		ekp := &identity.EntityKeypair{}
@@ -292,7 +304,7 @@ func runAuthTester(c *cli.Context) error {
 		return errors.New("no keypairs match auth method")
 	}
 
-	// Gather the password for the username/password method.
+	// Collect and normalize the password for authentication.
 	if password == "" {
 		password, err = (&promptui.Prompt{Label: "Password", Mask: '*'}).Run()
 		if err != nil {
@@ -307,11 +319,13 @@ func runAuthTester(c *cli.Context) error {
 	}
 	le.Debugf("%q", password)
 
+	// Decode the selected keypair's authentication parameters.
 	selectedParams, err := authMethod.UnmarshalParameters(selectedKeypair.GetAuthMethodParams())
 	if err != nil {
 		return err
 	}
 
+	// Authenticate the password and derive the peer identity.
 	derivedPrivKey, err := authMethod.Authenticate(selectedParams, []byte(password))
 	if err != nil {
 		return err
@@ -320,6 +334,8 @@ func runAuthTester(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Verify that the derived peer matches the selected keypair.
 	derivedPeerIDStr := derivedPeerID.String()
 	if derivedPeerIDStr != selectedKeypair.GetPeerId() {
 		return errors.Errorf(
@@ -329,6 +345,7 @@ func runAuthTester(c *cli.Context) error {
 		)
 	}
 
+	// Report successful authentication for the derived peer.
 	le.Infof("successfully derived private key for peer id %s", derivedPeerIDStr)
 	return nil
 }

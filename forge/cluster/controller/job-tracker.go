@@ -87,13 +87,13 @@ func (jt *jobTracker) processState(
 ) (waitForChanges bool, err error) {
 	jobKey, clusterKey := jt.objKey, jt.c.objKey
 
-	// check the <type> of the job object
+	// Confirm the job object type.
 	err = forge_job.CheckJobType(ctx, ws, jobKey)
 	if err != nil {
 		return false, err
 	}
 
-	// unmarshal Job state
+	// Decode and validate the job state.
 	var job *forge_job.Job
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
@@ -107,7 +107,7 @@ func (jt *jobTracker) processState(
 		return true, err
 	}
 
-	// promote any pending jobs to running
+	// Promote pending jobs to running.
 	jobState := job.GetJobState()
 	if jobState == forge_job.State_JobState_PENDING {
 		le.Debugf("starting job: %s", jobKey)
@@ -115,18 +115,18 @@ func (jt *jobTracker) processState(
 		return true, err
 	}
 
-	// completed job
+	// Stop when the job is no longer running.
 	if jobState != forge_job.State_JobState_RUNNING {
 		return true, nil
 	}
 
-	// look up any Task associated with the job
+	// Load the tasks linked to the job.
 	tasks, taskKeys, err := forge_job.CollectJobTasks(ctx, ws, jobKey)
 	if err != nil {
 		return true, err
 	}
 
-	// build list of non-complete Task
+	// Collect tasks that still need completion.
 	var pendingTasks []string
 	for i, task := range tasks {
 		taskState := task.GetTaskState()
@@ -135,11 +135,11 @@ func (jt *jobTracker) processState(
 		}
 	}
 
-	// update the list of task watchers
+	// Synchronize task watchers with the pending task set.
 	jt.c.le.Debugf("found %d pending tasks: %v", len(pendingTasks), pendingTasks)
 	jt.taskTrackers.SyncKeys(pendingTasks, true)
 
-	// if no tasks remain, promote to complete
+	// Complete the job when no tasks remain.
 	if len(pendingTasks) == 0 {
 		jt.c.le.Info("marking job as complete")
 		_, _, err = forge_cluster.CompleteJob(ctx, ws, clusterKey, jobKey, jt.c.peerID)
@@ -148,7 +148,7 @@ func (jt *jobTracker) processState(
 		}
 	}
 
-	// done
+	// Keep watching the job for state changes.
 	return true, nil
 }
 

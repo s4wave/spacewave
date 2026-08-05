@@ -27,6 +27,7 @@ func (id ID) String() string {
 
 // ShortString returns a short representation of the peer ID.
 func (id ID) ShortString() string {
+	// Compute the printable ID before deciding whether to abbreviate it.
 	pid := id.String()
 	if len(pid) <= 10 {
 		return pid
@@ -44,6 +45,7 @@ func (id ID) Validate() error {
 
 // MatchesPublicKey tests whether this ID was derived from the public key pk.
 func (id ID) MatchesPublicKey(pk crypto.PubKey) bool {
+	// Derive the candidate ID from the public key.
 	oid, err := IDFromPublicKey(pk)
 	if err != nil {
 		return false
@@ -60,19 +62,25 @@ func (id ID) MatchesPrivateKey(sk crypto.PrivKey) bool {
 //
 // All peer IDs embed the full public key using the IDENTITY multihash.
 func (id ID) ExtractPublicKey() (crypto.PubKey, error) {
+	// Decode the multihash and recover its embedded public key bytes.
 	code, digest, err := decodeMultihash([]byte(id))
 	if err != nil {
 		return nil, err
 	}
+
+	// Require the identity multihash form that carries a public key.
 	if code != mhIdentity {
 		return nil, ErrNoPublicKey
 	}
+
+	// Unmarshal the embedded public key.
 	return crypto.UnmarshalPublicKey(digest)
 }
 
 // IDFromBytes casts a byte slice to the ID type and validates that
 // the value is a well-formed multihash.
 func IDFromBytes(b []byte) (ID, error) {
+	// Validate the multihash before converting the bytes to an ID.
 	if _, _, err := decodeMultihash(b); err != nil {
 		return "", err
 	}
@@ -81,10 +89,13 @@ func IDFromBytes(b []byte) (ID, error) {
 
 // IDB58Decode returns a base58-decoded peer ID.
 func IDB58Decode(s string) (ID, error) {
+	// Decode the base58 representation before validating its multihash.
 	m, err := b58.Decode(s)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to parse peer ID")
 	}
+
+	// Validate and convert the decoded multihash.
 	return IDFromBytes(m)
 }
 
@@ -97,10 +108,13 @@ func IDB58Encode(id ID) string {
 //
 // The IDENTITY multihash is always used, embedding the full marshaled public key.
 func IDFromPublicKey(pk crypto.PubKey) (ID, error) {
+	// Marshal the public key into the identity multihash.
 	b, err := crypto.MarshalPublicKey(pk)
 	if err != nil {
 		return "", err
 	}
+
+	// Encode the validated public key bytes as a peer ID.
 	return ID(encodeMultihash(mhIdentity, b)), nil
 }
 
@@ -111,6 +125,7 @@ func IDFromPrivateKey(sk crypto.PrivKey) (ID, error) {
 
 // IDsToString converts a slice of IDs to strings.
 func IDsToString(ids []ID) []string {
+	// Convert each peer ID to its base58 representation.
 	out := make([]string, len(ids))
 	for i := range ids {
 		out[i] = ids[i].String()
@@ -126,6 +141,7 @@ func (es IDSlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
 func (es IDSlice) Less(i, j int) bool { return string(es[i]) < string(es[j]) }
 
 func (es IDSlice) String() string {
+	// Convert the slice to printable strings before joining it.
 	strs := make([]string, len(es))
 	for i, id := range es {
 		strs[i] = id.String()
@@ -144,19 +160,26 @@ func encodeMultihash(code uint64, digest []byte) []byte {
 
 // decodeMultihash decodes a multihash into its function code and digest.
 func decodeMultihash(b []byte) (code uint64, digest []byte, err error) {
+	// Reject an empty multihash.
 	if len(b) == 0 {
 		return 0, nil, errors.New("multihash too short")
 	}
+
+	// Decode the function code and advance past its varint.
 	code, n := binary.Uvarint(b)
 	if n <= 0 {
 		return 0, nil, errors.New("invalid multihash varint")
 	}
 	b = b[n:]
+
+	// Decode the digest length and advance to the digest.
 	dlen, n := binary.Uvarint(b)
 	if n <= 0 {
 		return 0, nil, errors.New("invalid multihash digest length varint")
 	}
 	b = b[n:]
+
+	// Verify that the encoded digest length matches the remaining bytes.
 	if uint64(len(b)) != dlen {
 		return 0, nil, errors.Errorf("multihash digest length mismatch: expected %d, got %d", dlen, len(b))
 	}

@@ -64,18 +64,22 @@ func NewTxWithCbs(
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) Commit(ctx context.Context) error {
+	// Reject commits for read-only or discarded transactions.
 	if !t.write {
 		return kvtx.ErrNotWrite
 	}
 	if t.readTx == nil || t.tc == nil {
 		return kvtx.ErrDiscarded
 	}
+
+	// Close the read transaction before opening its write replacement.
 	if t.closeReadTx != nil {
 		t.closeReadTx()
 		t.closeReadTx = nil
 	}
 	t.readTx = nil
 
+	// Open the write transaction that will receive cached operations.
 	writeTx, err := t.newWriteTx()
 	if err != nil {
 		return err
@@ -84,20 +88,27 @@ func (t *Tx) Commit(ctx context.Context) error {
 		defer writeTx.Discard()
 	}
 
+	// Build cached operations and release the cache before applying them.
 	ops, err := t.tc.BuildOps(ctx, false)
 	t.tc = nil
 	if err != nil {
 		return err
 	}
+
+	// Apply cached operations in order and release each operation after use.
 	for i, op := range ops {
 		if err := op(writeTx); err != nil {
 			return err
 		}
 		ops[i] = nil
 	}
+
+	// Leave externally managed write transactions uncommitted.
 	if !t.commitWriteTx {
 		return nil
 	}
+
+	// Commit the internally managed write transaction.
 	return writeTx.Commit(ctx)
 }
 

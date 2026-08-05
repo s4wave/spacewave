@@ -18,14 +18,18 @@ const (
 // Pass nil to use a random seed.
 // https://stackoverflow.com/questions/22892120
 func RandString(src *mrand.Rand, n int) string {
+	// Seed a local generator when the caller did not provide one.
 	if src == nil {
 		var seed [32]byte
 		_, _ = rand.Read(seed[:])
+
 		src = mrand.New(mrand.NewChaCha8(seed)) //nolint:gosec
 	}
 
+	// Build the requested identifier from random alphabet indexes.
 	sb := strings.Builder{}
 	sb.Grow(n)
+
 	// A src.Int64() generates 64 random bits, enough for letterIdxMax characters!
 	for i, cache, remain := n-1, src.Int64(), letterIdxMax; i >= 0; {
 		if remain == 0 {

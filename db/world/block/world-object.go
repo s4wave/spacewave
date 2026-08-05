@@ -192,6 +192,7 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 	if err := ot.Delete(ctx, oldTreeKey); err != nil {
 		return nil, err
 	}
+
 	// The old key no longer resolves; drop any stale object memo entry.
 	t.forgetObject(oldKey)
 
@@ -364,21 +365,22 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 		}
 	}
 
-	// delete any graph links with the object as subject or object
+	// Remove graph links that refer to the object.
 	err = t.DeleteGraphObject(ctx, key)
 	if err != nil {
 		return true, err
 	}
 
-	// delete the object
+	// Delete the object entry and clear its memoized state.
 	err = ot.Delete(ctx, k)
 	if err != nil {
 		return true, err
 	}
+
 	// A deleted object no longer exists; drop any stale object memo entry.
 	t.forgetObject(key)
 
-	// update the changelog
+	// Record the object deletion in the world changelog.
 	changeBcs, err := t.queueWorldChange(ctx, &WorldChange{
 		Key:        key,
 		ChangeType: WorldChangeType_WorldChange_OBJECT_DELETE,
@@ -390,7 +392,7 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 		changeBcs.SetRef(6, nbcs)
 	}
 
-	// success
+	// Report that the object was deleted.
 	return true, nil
 }
 

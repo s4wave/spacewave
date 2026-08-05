@@ -107,7 +107,7 @@ func (o *GitCreateWorktreeOp) ApplyWorldOp(
 		}
 	}
 
-	// create worktree and checkout
+	// Create the worktree and perform checkout when configured.
 	err = CreateWorldObjectWorktree(
 		ctx,
 		le,
@@ -124,7 +124,7 @@ func (o *GitCreateWorktreeOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// success
+	// Report successful worktree creation.
 	return false, nil
 }
 

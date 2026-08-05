@@ -38,6 +38,7 @@ func (c *Controller) newSessionTracker(peerIDStr string) (keyed.Routine, *sessio
 
 // execute executes the sessionTracker.
 func (s *sessionTracker) execute(ctx context.Context) error {
+	// Wait for the signaling client and attach a peer reference.
 	client, err := s.c.client.WaitValue(ctx, nil)
 	if err != nil {
 		return err
@@ -46,6 +47,7 @@ func (s *sessionTracker) execute(ctx context.Context) error {
 	signalRef := client.AddPeerRef(s.peerID.String())
 	defer signalRef.Release()
 
+	// Publish a handle directive when listening is enabled.
 	if !s.c.conf.GetDisableListen() {
 		sess := NewSessionWithRef(signalRef)
 		di, dirRef, err := s.c.b.AddDirective(

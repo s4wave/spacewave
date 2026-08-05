@@ -79,7 +79,7 @@ func TestKvtx(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// store the blob in a world object
+	// Store the input blob in a world object.
 	ts := timestamp.Now()
 	uniqueID := "kvtx-test"
 	handle := forge_target.ExecControllerHandleWithAccess(uniqueID, tb.Volume.GetPeerID(), tb.Engine, ws.AccessWorldState, ts)
@@ -95,6 +95,7 @@ func TestKvtx(t *testing.T) {
 
 	valueSet := &forge_target.ValueSet{}
 
+	// Resolve the world-object input for the target execution.
 	// TODO: ordinarily resolved by Task controller, set it manually
 	// remove this when the Task controller can resolve world objects.
 	inpSnapshot, err := forge_value.NewWorldObjectSnapshot(ctx, testObj, ws)
@@ -119,7 +120,7 @@ func TestKvtx(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// check setTestValue output
+	// Verify the first value-set output contains the stored blob.
 	stv := valMap["setTestValue"]
 	if stv.IsEmpty() {
 		t.Fatal("expected setTestValue output to be set but was empty")
@@ -143,7 +144,7 @@ func TestKvtx(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// check setTestValue output
+	// Verify the second value-set output.
 	stv = valMap["setTestValue2"]
 	if stv.IsEmpty() {
 		t.Fatal("expected setTestValue2 output to be set but was empty")
@@ -168,7 +169,7 @@ func TestKvtx(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// check setTestValue3 output
+	// Verify the third output records the existing-key result.
 	stv = valMap["setTestValue3"]
 	if stv.IsEmpty() {
 		t.Fatal("expected setTestValue3 output to be set but was empty")
@@ -181,7 +182,7 @@ func TestKvtx(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// check store output
+	// Verify the key-value store output and its persisted entries.
 	stv = valMap["store"]
 	if stv.IsEmpty() {
 		t.Fatal("expected store output to be set but was empty")
@@ -203,6 +204,7 @@ func TestKvtx(t *testing.T) {
 		if nkeys != 2 {
 			return errors.Errorf("expected %d keys but got %d", 2, nkeys)
 		}
+
 		// bug: vbcs is pointing to a node in iavl tree
 		tdata, tfound, err := btx.Get(ctx, []byte("test-1"))
 		if err != nil {

@@ -151,6 +151,7 @@ func (a *EnvelopeArgs) loadPrivKeys() ([]crypto.PrivKey, error) {
 
 // RunSeal seals data into an envelope.
 func (a *EnvelopeArgs) RunSeal(_ *cli.Context) error {
+	// Load recipient keys before reading and sealing the payload.
 	pubKeys, err := a.loadPubKeys()
 	if err != nil {
 		return err
@@ -164,7 +165,7 @@ func (a *EnvelopeArgs) RunSeal(_ *cli.Context) error {
 		return errors.New("input is empty")
 	}
 
-	// Build grant configs: one grant per key, one share each.
+	// Build one grant for each recipient key.
 	grants := make([]*envelope.EnvelopeGrantConfig, len(pubKeys))
 	for i := range pubKeys {
 		grants[i] = &envelope.EnvelopeGrantConfig{
@@ -177,6 +178,7 @@ func (a *EnvelopeArgs) RunSeal(_ *cli.Context) error {
 		return errors.New("threshold exceeds maximum value")
 	}
 
+	// Encrypt the payload into an envelope and serialize it.
 	env, err := envelope.BuildEnvelope(
 		rand.Reader,
 		a.Context,
@@ -191,6 +193,7 @@ func (a *EnvelopeArgs) RunSeal(_ *cli.Context) error {
 		return errors.Wrap(err, "build envelope")
 	}
 
+	// Write the serialized envelope to the selected output.
 	data, err := env.MarshalVT()
 	if err != nil {
 		return errors.Wrap(err, "marshal envelope")
@@ -201,11 +204,13 @@ func (a *EnvelopeArgs) RunSeal(_ *cli.Context) error {
 
 // RunUnseal unseals an envelope.
 func (a *EnvelopeArgs) RunUnseal(c *cli.Context) error {
+	// Load recipient keys before reading and unlocking the envelope.
 	privKeys, err := a.loadPrivKeys()
 	if err != nil {
 		return err
 	}
 
+	// Read and decode the sealed envelope.
 	data, err := a.readInput()
 	if err != nil {
 		return errors.Wrap(err, "read input")
@@ -216,11 +221,13 @@ func (a *EnvelopeArgs) RunUnseal(c *cli.Context) error {
 		return errors.Wrap(err, "unmarshal envelope")
 	}
 
+	// Unlock the payload with the available private keys.
 	payload, result, err := envelope.UnlockEnvelope(a.Context, env, privKeys)
 	if err != nil {
 		return errors.Wrap(err, "unlock envelope")
 	}
 
+	// Emit diagnostic unlock information when requested.
 	if c.Bool("info") {
 		dat, err := marshalEnvelopeInfoJSON(env, result)
 		if err != nil {

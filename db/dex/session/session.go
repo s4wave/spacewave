@@ -41,6 +41,7 @@ func NewDexSession(stream io.ReadWriteCloser, chunkSize int, maxBlockSize uint64
 	if maxBlockSize <= 0 {
 		maxBlockSize = defaultMaxBlockSize
 	}
+
 	// maxMessageSize must accommodate a single chunk plus proto framing overhead.
 	// We always chunk, so the largest single message is chunkSize + BlockTransfer fields.
 	maxMsg := uint32(chunkSize) + 1024 //nolint:gosec
@@ -101,10 +102,12 @@ func (d *DexSession) ReadMessage() (*BlockTransfer, error) {
 // SendBlock sends a complete block as Init + chunked data messages.
 // The data is always chunked even if it fits in a single chunk.
 func (d *DexSession) SendBlock(requestID uint64, ref *block.BlockRef, data []byte) error {
+	// Send the block initialization message.
 	if err := d.SendInit(requestID, ref, uint64(len(data))); err != nil {
 		return errors.Wrap(err, "send init")
 	}
 
+	// Send each data chunk and mark the final chunk.
 	for i := 0; i < len(data); i += d.chunkSize {
 		end := min(i+d.chunkSize, len(data))
 		complete := end >= len(data)
@@ -113,7 +116,7 @@ func (d *DexSession) SendBlock(requestID uint64, ref *block.BlockRef, data []byt
 		}
 	}
 
-	// Handle empty data: send a single empty chunk with complete=true.
+	// Send an explicit complete chunk for empty data.
 	if len(data) == 0 {
 		if err := d.SendChunk(requestID, nil, true); err != nil {
 			return errors.Wrap(err, "send chunk")
@@ -127,11 +130,12 @@ func (d *DexSession) SendBlock(requestID uint64, ref *block.BlockRef, data []byt
 // If maxBlockSize is 0, uses the session default.
 // Returns the request ID, block reference, assembled data, and any error.
 func (d *DexSession) ReceiveBlock(maxBlockSize uint64) (uint64, *block.BlockRef, []byte, error) {
+	// Resolve the maximum accepted block size.
 	if maxBlockSize == 0 {
 		maxBlockSize = d.maxBlock
 	}
 
-	// Read the init message.
+	// Read and validate the initialization message.
 	init, err := d.ReadMessage()
 	if err != nil {
 		return 0, nil, nil, errors.Wrap(err, "read init")
@@ -145,7 +149,6 @@ func (d *DexSession) ReceiveBlock(maxBlockSize uint64) (uint64, *block.BlockRef,
 	if init.GetError() != "" {
 		return init.GetRequestId(), init.GetRef(), nil, errors.New(init.GetError())
 	}
-
 	totalSize := init.GetTotalSize()
 	if totalSize > maxBlockSize {
 		return init.GetRequestId(), init.GetRef(), nil, errors.Errorf(
@@ -154,12 +157,12 @@ func (d *DexSession) ReceiveBlock(maxBlockSize uint64) (uint64, *block.BlockRef,
 			strconv.FormatUint(maxBlockSize, 10),
 		)
 	}
-
 	requestID := init.GetRequestId()
 	ref := init.GetRef()
 
-	// Read chunks into a buffer.
+	// Accumulate chunks until the transfer is complete.
 	var buf bytes.Buffer
+
 	buf.Grow(int(totalSize)) //nolint:gosec
 	for {
 		msg, rerr := d.ReadMessage()
@@ -172,10 +175,10 @@ func (d *DexSession) ReceiveBlock(maxBlockSize uint64) (uint64, *block.BlockRef,
 		if msg.GetError() != "" {
 			return requestID, ref, nil, errors.New(msg.GetError())
 		}
-
 		chunk := msg.GetData()
 		if len(chunk) > 0 {
 			buf.Write(chunk)
+
 			if uint64(buf.Len()) > totalSize { //nolint:gosec
 				return requestID, ref, nil, errors.Errorf(
 					"accumulated data %s exceeds declared size %s",
@@ -184,19 +187,16 @@ func (d *DexSession) ReceiveBlock(maxBlockSize uint64) (uint64, *block.BlockRef,
 				)
 			}
 		}
-
 		if msg.GetComplete() {
 			break
 		}
 	}
-
 	data := buf.Bytes()
 
-	// Verify hash.
+	// Verify the assembled block hash before returning data.
 	if err := ref.VerifyData(data, true); err != nil {
 		return requestID, ref, nil, errors.Wrap(err, "block verification failed")
 	}
-
 	return requestID, ref, data, nil
 }
 

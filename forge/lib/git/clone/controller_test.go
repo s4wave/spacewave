@@ -91,8 +91,9 @@ func TestGitClone(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// ordinarily resolved by Task controller, set it manually
+	// Supply the value set that the Task controller normally resolves.
 	valueSet := &forge_target.ValueSet{}
+
 	// handle := forge_target.ExecControllerHandleWithAccess(ws.AccessWorldState)
 	ts := timestamp.Now()
 	finalState, err := tb.RunExecutionWithTarget(tgt, valueSet, ts)
@@ -106,7 +107,7 @@ func TestGitClone(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// check repo output
+	// Verify that the clone output is present.
 	stv := valMap["repo"]
 	if stv.IsEmpty() {
 		t.Fatal("expected repo output to be set but was empty")

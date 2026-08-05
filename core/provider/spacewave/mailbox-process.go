@@ -39,6 +39,7 @@ func (a *ProviderAccount) ProcessMailboxEntry(
 	entryID int64,
 	accept bool,
 ) error {
+	// Validate the mailbox target and authenticated client.
 	if soID == "" {
 		return errors.New("shared object id is required")
 	}
@@ -51,11 +52,13 @@ func (a *ProviderAccount) ProcessMailboxEntry(
 		return errors.New("session client not available")
 	}
 
+	// Load the pending mailbox snapshot.
 	resp, err := a.getPendingMailboxResponseCached(ctx, soID)
 	if err != nil {
 		return err
 	}
 
+	// Resolve the requested mailbox entry.
 	var entry *api.MailboxEntry
 	for _, candidate := range resp.GetEntries() {
 		if candidate.GetId() == entryID {
@@ -67,6 +70,7 @@ func (a *ProviderAccount) ProcessMailboxEntry(
 		return errors.New("mailbox entry not found")
 	}
 
+	// Apply the requested accept or reject action.
 	return a.processMailboxEntry(ctx, cli, soID, entry, accept)
 }
 
@@ -76,6 +80,7 @@ func (a *ProviderAccount) processPendingMailboxEntries(
 	ctx context.Context,
 	soID string,
 ) error {
+	// Validate mailbox processing authority.
 	if soID == "" {
 		return errors.New("shared object id is required")
 	}
@@ -88,11 +93,13 @@ func (a *ProviderAccount) processPendingMailboxEntries(
 		return errors.New("session client not available")
 	}
 
+	// Load pending entries and process them in order.
 	resp, err := a.getPendingMailboxResponseCached(ctx, soID)
 	if err != nil {
 		return err
 	}
 
+	// Reject or accept each pending entry.
 	for _, entry := range resp.GetEntries() {
 		if err := a.processMailboxEntryWithReject(ctx, cli, soID, entry); err != nil {
 			return err
@@ -132,12 +139,15 @@ func (a *ProviderAccount) clearMailboxAutoProcessEntry(key mailboxAutoProcessKey
 // buildMailboxAutoProcessRoutine builds the keyed owner-side mailbox processor.
 func (a *ProviderAccount) buildMailboxAutoProcessRoutine(key mailboxAutoProcessKey) (keyed.Routine, struct{}) {
 	return func(ctx context.Context) error {
+		// Validate the keyed auto-process request.
 		if key.soID == "" || key.entryID == 0 {
 			return nil
 		}
 		if !a.canAccessOwnerMailbox() {
 			return nil
 		}
+
+		// Load the queued mailbox entry and authenticated client.
 		entry := a.getMailboxAutoProcessEntry(key)
 		if entry == nil {
 			return nil
@@ -146,6 +156,8 @@ func (a *ProviderAccount) buildMailboxAutoProcessRoutine(key mailboxAutoProcessK
 		if cli == nil {
 			return errors.New("session client not available")
 		}
+
+		// Process the queued entry and preserve cancellation errors.
 		if err := a.processMailboxEntryWithReject(ctx, cli, key.soID, entry); err != nil {
 			if errors.Is(err, context.Canceled) {
 				return err
@@ -190,6 +202,7 @@ func (a *ProviderAccount) processMailboxEntryWithReject(
 	soID string,
 	entry *api.MailboxEntry,
 ) error {
+	// Attempt the accept path before rejecting invalid entries.
 	err := a.processMailboxEntry(ctx, cli, soID, entry, true)
 	if err == nil {
 		return nil
@@ -198,6 +211,8 @@ func (a *ProviderAccount) processMailboxEntryWithReject(
 	if !errors.As(err, &invalidErr) {
 		return err
 	}
+
+	// Reject invalid entries and remove them from the local queue.
 	if _, rejectErr := cli.ProcessMailboxEntry(ctx, soID, &api.ProcessMailboxEntryRequest{
 		Id:     entry.GetId(),
 		Accept: false,
@@ -215,10 +230,12 @@ func (a *ProviderAccount) processMailboxEntry(
 	entry *api.MailboxEntry,
 	accept bool,
 ) error {
+	// Validate the mailbox entry before applying the requested action.
 	if entry == nil {
 		return errors.New("mailbox entry is required")
 	}
 
+	// Reject immediately when acceptance was not requested.
 	if !accept {
 		if _, err := cli.ProcessMailboxEntry(ctx, soID, &api.ProcessMailboxEntryRequest{
 			Id:     entry.GetId(),
@@ -230,12 +247,14 @@ func (a *ProviderAccount) processMailboxEntry(
 		return nil
 	}
 
+	// Mount the shared object for accepted-entry validation.
 	swSO, rel, err := a.mountSpaceSO(ctx, soID)
 	if err != nil {
 		return err
 	}
 	defer rel()
 
+	// Resolve the owner account for targeted invitations.
 	ownerAccountID := ""
 	if entry.GetTargetedEnvelope() != nil {
 		account, err := cli.GetAccountInfo(ctx)
@@ -244,11 +263,14 @@ func (a *ProviderAccount) processMailboxEntry(
 		}
 		ownerAccountID = account.GetAccountId()
 	}
+
+	// Validate the invitation and responder proof.
 	invite, responderPeerID, responderPub, err := validateMailboxEntryForAccept(ctx, swSO, soID, entry, ownerAccountID)
 	if err != nil {
 		return err
 	}
 
+	// Add the responder participant and consume invite uses.
 	grant, err := swSO.AddParticipant(
 		ctx,
 		responderPeerID.String(),
@@ -265,6 +287,7 @@ func (a *ProviderAccount) processMailboxEntry(
 		}
 	}
 
+	// Commit the accepted mailbox decision to the cloud.
 	if _, err := cli.ProcessMailboxEntry(ctx, soID, &api.ProcessMailboxEntryRequest{
 		Id:     entry.GetId(),
 		Accept: true,

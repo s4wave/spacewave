@@ -100,7 +100,7 @@ func (a *PipeArgs) Run(c *cli.Context) error {
 // setupDaemon creates an in-process daemon with UDP transport.
 // Returns the daemon and a cleanup function that releases controller references.
 func (a *PipeArgs) setupDaemon(ctx context.Context, listenAddr string, dialers map[string]*dialer.DialerOpts) (*daemon.Daemon, func(), error) {
-	// Create logger (quiet mode uses a no-op logger)
+	// Build the logger used by the daemon and transport controllers.
 	logger := logrus.New()
 	logger.SetLevel(logrus.WarnLevel)
 	if a.Quiet {
@@ -108,13 +108,13 @@ func (a *PipeArgs) setupDaemon(ctx context.Context, listenAddr string, dialers m
 	}
 	le := logrus.NewEntry(logger)
 
-	// Generate or load private key
+	// Load or generate the node private key.
 	privKey, err := a.loadOrGenerateKey(le)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "load/generate key")
 	}
 
-	// Create daemon
+	// Construct the daemon around the node identity.
 	d, err := daemon.NewDaemon(ctx, privKey, daemon.ConstructOpts{
 		LogEntry: le,
 	})
@@ -122,6 +122,7 @@ func (a *PipeArgs) setupDaemon(ctx context.Context, listenAddr string, dialers m
 		return nil, nil, errors.Wrap(err, "construct daemon")
 	}
 
+	// Register and start the hold-open controller.
 	b := d.GetControllerBus()
 	sr := d.GetStaticResolver()
 
@@ -137,7 +138,7 @@ func (a *PipeArgs) setupDaemon(ctx context.Context, listenAddr string, dialers m
 		return nil, nil, errors.Wrap(err, "start hold-open controller")
 	}
 
-	// Start UDP transport
+	// Start the UDP transport with the requested listen address.
 	_, _, udpRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
@@ -152,7 +153,7 @@ func (a *PipeArgs) setupDaemon(ctx context.Context, listenAddr string, dialers m
 		return nil, nil, errors.Wrap(err, "start UDP transport")
 	}
 
-	// Return cleanup function that releases all controller references
+	// Return cleanup for both controller references.
 	cleanup := func() {
 		udpRef.Release()
 		hoRef.Release()
@@ -209,6 +210,7 @@ func pipeStream(strm io.ReadWriteCloser, stdin io.Reader, stdout io.Writer) erro
 	go func() {
 		buf := make([]byte, 8192)
 		_, _ = io.CopyBuffer(strm, stdin, buf)
+
 		// Signal that stdin is done - close the stream to signal EOF to remote
 		strm.Close()
 	}()

@@ -234,18 +234,22 @@ func (a *ProviderAccount) createSessionTransportForSession(
 	sessionKey crypto.PrivKey,
 	signalingURL string,
 ) error {
+	// Acquire replacement cleanup scope and serialize transport changes.
 	cleanupCtx, cleanupCancel := sessionTransportReplacementContext(ctx)
 	rel, err := a.transportReplaceMtx.Lock(cleanupCtx)
 	if err != nil {
 		cleanupCancel()
 		return err
 	}
+
+	// Stop the previous session transport before constructing its replacement.
 	if err := a.stopSessionTransportLocked(cleanupCtx, sessionID, nil); err != nil {
 		rel()
 		cleanupCancel()
 		return err
 	}
 
+	// Construct the replacement transport with its bridge policy.
 	st, err := transport.NewSessionTransport(
 		a.le,
 		a.p.b,
@@ -264,6 +268,7 @@ func (a *ProviderAccount) createSessionTransportForSession(
 		return errors.Wrap(err, "create session transport")
 	}
 
+	// Publish the replacement transport state.
 	sts := newSessionTransportState(a, sessionID, st)
 	a.transportBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if a.sessionTransports == nil {
@@ -272,10 +277,13 @@ func (a *ProviderAccount) createSessionTransportForSession(
 		a.sessionTransports[sessionID] = sts
 		broadcast()
 	})
+
+	// Start the transport and release replacement locks.
 	sts.Start(ctx)
 	rel()
 	cleanupCancel()
 
+	// Await readiness and clean up failed startup.
 	if err := sts.WaitStarted(ctx); err != nil {
 		err = classifySessionTransportError(err)
 		if stopErr := a.stopSessionTransportForSession(ctx, sessionID, sts); stopErr != nil {

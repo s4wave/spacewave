@@ -24,30 +24,34 @@ func NewCoreBus(
 	le *logrus.Entry,
 	opts ...cbc.Option,
 ) (bus.Bus, *static.Resolver, error) {
+	// Construct the controller bus and static resolver.
 	b, sr, err := cbc.NewCoreBus(ctx, le, opts...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Register the standard controller factories.
 	AddFactories(b, sr)
 	return b, sr, nil
 }
 
 // AddFactories adds factories to an existing static resolver.
 func AddFactories(b bus.Bus, sr *static.Resolver) {
+	// Register platform and network factories.
 	addNativeFactories(b, sr)
 	bifrostcore.AddFactories(b, sr)
 
+	// Register node, bucket, and lookup factories.
 	sr.AddFactory(nctr.NewFactory(b))
 	sr.AddFactory(bucket_setup.NewFactory(b))
-
 	sr.AddFactory(node_controller.NewFactory(b))
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
 
+	// Register the in-memory volume and block stores.
 	sr.AddFactory(volume_kvtxinmem.NewFactory(b))
-
 	sr.AddFactory(block_store_inmem.NewFactory(b))
 	sr.AddFactory(block_store_overlay.NewFactory(b))
 
+	// Register the pub-sub exchange factory.
 	sr.AddFactory(psecho.NewFactory(b))
 }

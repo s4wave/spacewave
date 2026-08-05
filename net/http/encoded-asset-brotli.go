@@ -17,9 +17,12 @@ import (
 // send Accept-Encoding: br, so this fallback is unreachable in the browser and
 // would otherwise add the decoder and its dictionary to the runtime bundle.
 func maybeServeDecodedBrotli(rw http.ResponseWriter, req *http.Request, hfs http.FileSystem) bool {
+	// Only decode explicit Brotli URLs for clients without Brotli support.
 	if !strings.HasSuffix(req.URL.Path, ".br") || acceptsEncoding(req, "br") {
 		return false
 	}
+
+	// Open the compressed asset and map filesystem errors to HTTP.
 	f, err := openHTTPFile(hfs, req.URL.Path)
 	if err != nil {
 		msg, code := ToHTTPError(err)
@@ -28,6 +31,7 @@ func maybeServeDecodedBrotli(rw http.ResponseWriter, req *http.Request, hfs http
 	}
 	defer f.Close()
 
+	// Decode the asset directly into the response body.
 	_, err = io.Copy(rw, brotli.NewReader(f))
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)

@@ -91,6 +91,7 @@ func NewController(le *logrus.Entry, b bus.Bus, cc *Config) (*Controller, error)
 
 // Execute executes the controller goroutine.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Resolve the configured peer and private key.
 	c.le.Debug("psecho controller running")
 
 	peerID, err := c.cc.ParsePeerID()
@@ -114,6 +115,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	c.incomingKeyed.SetContext(ctx, true)
 	c.outgoingKeyed.SetContext(ctx, true)
 
+	// Subscribe to the configured pub-sub channel.
 	sub, _, subRef, err := pubsub.ExBuildChannelSubscription(
 		ctx, c.b, false, c.cc.GetPubsubChannelId(), privKey, nil,
 	)
@@ -122,6 +124,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer subRef.Release()
 
+	// Register message handling and start want-list publishing.
 	relHandler := sub.AddHandler(func(m pubsub.Message) {
 		c.handleIncomingMessage(ctx, m, privKey)
 	})
@@ -129,6 +132,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	go c.publishLoop(ctx, sub)
 
+	// Wait for controller cancellation.
 	<-ctx.Done()
 	return ctx.Err()
 }
@@ -148,6 +152,7 @@ func (c *Controller) publishLoop(ctx context.Context, sub pubsub.Subscription) {
 			maps.Copy(refs, c.wantRefs)
 		})
 
+		// Wait for a publish trigger or debounce interval.
 		immediate := c.publishNow.Swap(0) != 0
 		if !immediate {
 			if !timer.Stop() {
@@ -163,6 +168,7 @@ func (c *Controller) publishLoop(ctx context.Context, sub pubsub.Subscription) {
 			case <-ch:
 			case <-timer.C:
 			}
+
 			// Re-snapshot after waiting.
 			c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 				ch = getWaitCh()
@@ -171,6 +177,7 @@ func (c *Controller) publishLoop(ctx context.Context, sub pubsub.Subscription) {
 			})
 		}
 
+		// Wait for a directive when the want-list is empty.
 		if len(refs) == 0 {
 			// Empty wantlist: wait for a directive to add something.
 			select {
@@ -184,6 +191,7 @@ func (c *Controller) publishLoop(ctx context.Context, sub pubsub.Subscription) {
 		// Always re-publish non-empty wantlists on each tick.
 		// Pub-sub messages can be lost (e.g. subscription not yet
 		// established), so periodic re-announce ensures delivery.
+		// Re-publish the non-empty want-list for peer delivery.
 		if err := c.publishWantList(sub, refs); err != nil {
 			c.le.WithError(err).Warn("publish wantlist failed")
 		}
@@ -244,6 +252,7 @@ func (c *Controller) handleIncomingMessage(
 		return
 	}
 
+	// Decode the authenticated pub-sub message.
 	var msg PubSubMessage
 	if err := msg.UnmarshalVT(m.GetData()); err != nil {
 		c.le.WithError(err).Warn("cannot parse pubsub message")
@@ -253,6 +262,7 @@ func (c *Controller) handleIncomingMessage(
 	from := m.GetFrom()
 	ts := msg.GetTimestampUnixNano()
 
+	// Reconcile the remote peer want-list snapshot.
 	c.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
 		rp, ok := c.remotePeers[from]
 		if msg.GetWantEmpty() {
@@ -290,7 +300,7 @@ func (c *Controller) handleIncomingMessage(
 		bcast()
 	})
 
-	// Check local bucket for blocks the remote peer wants.
+	// Check the local bucket and queue blocks for the remote peer.
 	c.checkAndQueueBlocks(ctx, from)
 }
 

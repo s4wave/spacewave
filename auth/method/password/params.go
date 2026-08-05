@@ -45,9 +45,11 @@ func BuildParametersWithUsernamePassword(username string, password []byte) (*Par
 // buildParametersWithUsernamePassword builds Parameters with explicit scrypt
 // settings and derives an Ed25519 private key from a username and password.
 func buildParametersWithUsernamePassword(username string, password []byte, n, r, p uint32) (*Parameters, crypto.PrivKey, error) {
+	// Derive the deterministic salt from the username.
 	var salt [saltLen]byte
 	blake3.DeriveKey(saltContext, []byte(username), salt[:])
 
+	// Assemble the persisted password KDF parameters.
 	params := &Parameters{
 		Salt:    salt[:],
 		ScryptN: n,
@@ -55,6 +57,7 @@ func buildParametersWithUsernamePassword(username string, password []byte, n, r,
 		ScryptP: p,
 	}
 
+	// Derive the private key from the assembled parameters.
 	privKey, err := deriveKey(params, password)
 	if err != nil {
 		return nil, nil, err
@@ -64,6 +67,7 @@ func buildParametersWithUsernamePassword(username string, password []byte, n, r,
 
 // deriveKey derives an Ed25519 private key from parameters and password.
 func deriveKey(params *Parameters, password []byte) (crypto.PrivKey, error) {
+	// Resolve default KDF parameters when the record omits them.
 	n := params.GetScryptN()
 	if n == 0 {
 		n = DefaultScryptN
@@ -77,15 +81,17 @@ func deriveKey(params *Parameters, password []byte) (crypto.PrivKey, error) {
 		p = DefaultScryptP
 	}
 
-	// Derive password key via blake3 before passing to scrypt.
+	// Derive the password key before passing it to scrypt.
 	var passKey [32]byte
 	blake3.DeriveKey("aperture/auth 2026-03-16 password-kdf passphrase v2", password, passKey[:])
 
+	// Run scrypt with the persisted salt and resolved parameters.
 	seed, err := scrypt.Key(passKey[:], params.GetSalt(), 1<<n, r, p, 32)
 	if err != nil {
 		return nil, errors.Wrap(err, "scrypt key derivation")
 	}
 
+	// Turn the derived seed into the Ed25519 private key.
 	privKey, _, err := crypto.GenerateEd25519Key(bytes.NewReader(seed))
 	if err != nil {
 		return nil, errors.Wrap(err, "generate ed25519 key from seed")

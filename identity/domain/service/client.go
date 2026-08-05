@@ -18,6 +18,7 @@ func LookupEntity(
 	localPriv crypto.PrivKey,
 	domainID, entityID string,
 ) (*identity.Entity, error) {
+	// Construct the identity-domain client and lookup request.
 	svc := NewSRPCIdentityDomainClient(cl)
 
 	req, err := NewLookupEntityReq(domainID, entityID, nil, 0)
@@ -25,11 +26,13 @@ func LookupEntity(
 		return nil, err
 	}
 
+	// Sign the lookup request for the remote domain service.
 	sigReq, err := req.SignReq(localPriv)
 	if err != nil {
 		return nil, err
 	}
 
+	// Submit the request and translate the response into an entity result.
 	resp, err := svc.LookupEntity(ctx, sigReq)
 	if err != nil {
 		return nil, err

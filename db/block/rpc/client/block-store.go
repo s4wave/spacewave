@@ -49,6 +49,7 @@ func (v *BlockStore) GetHashType() hash.HashType {
 // The result is cached after the first call: the remote feature set is static
 // for the lifetime of the store, and this method is on the hot path.
 func (v *BlockStore) GetSupportedFeatures() block.StoreFeature {
+	// Fetch and cache the remote feature set once for this store lifetime.
 	v.featuresOnce.Do(func() {
 		resp, err := v.client.GetSupportedFeatures(context.Background(), &block_rpc.GetSupportedFeaturesRequest{})
 		if err != nil {
@@ -73,6 +74,7 @@ func (v *BlockStore) BeginReadOperation(context.Context) (block.StoreOps, func()
 // The ref should not be modified after return.
 // The second return value can optionally indicate if the block already existed.
 func (v *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Reject writes from a read-only client before issuing the RPC.
 	if v.readOnly {
 		return nil, false, block_store.ErrReadOnly
 	}
@@ -95,6 +97,7 @@ func (v *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 
 // PutBlockBatch requests a remote batch write.
 func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Reject read-only clients before building the remote batch request.
 	if v.readOnly {
 		return block_store.ErrReadOnly
 	}

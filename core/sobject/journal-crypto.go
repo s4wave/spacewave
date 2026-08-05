@@ -81,6 +81,7 @@ func (c *JournalCrypto) SealWithIdentity(kind SOJournalRecordKind, sequence uint
 }
 
 func (c *JournalCrypto) seal(kind SOJournalRecordKind, sequence uint64, key *SOMutationKey, identity, plaintext []byte) (*SOJournalEncryptedPayload, error) {
+	// Validate the journal scope and cipher input.
 	if err := validateJournalScopeKey(c, key); err != nil {
 		return nil, err
 	}
@@ -90,6 +91,8 @@ func (c *JournalCrypto) seal(kind SOJournalRecordKind, sequence uint64, key *SOM
 	if err := validateJournalCipherInput(kind, key, plaintext); err != nil {
 		return nil, err
 	}
+
+	// Construct the authenticated block cipher.
 	block, err := c.newBlock(kind)
 	if err != nil {
 		return nil, err
@@ -98,6 +101,8 @@ func (c *JournalCrypto) seal(kind SOJournalRecordKind, sequence uint64, key *SOM
 	if err != nil {
 		return nil, errors.Wrap(ErrJournalKeyAuthority, "construct journal cipher")
 	}
+
+	// Allocate a unique nonce and authenticated metadata.
 	nonce, err := c.nextNonce()
 	if err != nil {
 		return nil, err
@@ -106,6 +111,8 @@ func (c *JournalCrypto) seal(kind SOJournalRecordKind, sequence uint64, key *SOM
 	if err != nil {
 		return nil, err
 	}
+
+	// Encrypt a scrubbed copy of the plaintext.
 	staged := slices.Clone(plaintext)
 	defer scrub.Scrub(staged)
 	ciphertext := gcm.Seal(nil, nonce[:], staged, aad)
@@ -118,9 +125,12 @@ func (c *JournalCrypto) seal(kind SOJournalRecordKind, sequence uint64, key *SOM
 // SealCheckpointGeneration encrypts a compact snapshot with generation-bound
 // authenticated metadata. The active marker supplies the same tuple on reopen.
 func (c *JournalCrypto) SealCheckpointGeneration(identity []byte, generation, nextSequence uint64, plaintext []byte) ([]byte, error) {
+	// Validate checkpoint generation inputs.
 	if c == nil || len(identity) != sha256.Size || len(plaintext) == 0 {
 		return nil, errors.Wrap(ErrJournalCheckpointCorrupt, "invalid checkpoint generation input")
 	}
+
+	// Construct the checkpoint cipher.
 	block, err := c.newDomainBlock(journalCheckpointDomain)
 	if err != nil {
 		return nil, err
@@ -129,16 +139,22 @@ func (c *JournalCrypto) SealCheckpointGeneration(identity []byte, generation, ne
 	if err != nil {
 		return nil, errors.Wrap(ErrJournalKeyAuthority, "construct checkpoint cipher")
 	}
+
+	// Allocate the nonce and bind the plaintext digest.
 	nonce, err := c.nextNonce()
 	if err != nil {
 		return nil, err
 	}
 	digest := sha256.Sum256(plaintext)
 	aad := journalCheckpointGenerationAAD(c.scopeID, identity, generation, nextSequence, len(plaintext), digest[:])
+
+	// Encrypt a scrubbed checkpoint copy.
 	staged := slices.Clone(plaintext)
 	defer scrub.Scrub(staged)
 	ciphertext := gcm.Seal(nil, nonce[:], staged, aad)
 	payload := &SOJournalEncryptedPayload{Nonce: slices.Clone(nonce[:]), Ciphertext: ciphertext}
+
+	// Marshal the encrypted checkpoint payload.
 	data, err := payload.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(ErrJournalCheckpointCorrupt, "marshal encrypted checkpoint")
@@ -149,6 +165,7 @@ func (c *JournalCrypto) SealCheckpointGeneration(identity []byte, generation, ne
 // OpenCheckpointGeneration authenticates a checkpoint against the published
 // identity, generation, sequence, length, and digest tuple.
 func (c *JournalCrypto) OpenCheckpointGeneration(data, identity []byte, generation, nextSequence uint64, snapshotLength int, snapshotDigest []byte) ([]byte, error) {
+	// Validate checkpoint metadata and decode the payload.
 	if c == nil || len(identity) != sha256.Size || snapshotLength <= 0 || len(snapshotDigest) != sha256.Size {
 		return nil, errors.Wrap(ErrJournalCheckpointCorrupt, "invalid checkpoint generation metadata")
 	}
@@ -159,6 +176,8 @@ func (c *JournalCrypto) OpenCheckpointGeneration(data, identity []byte, generati
 	if len(payload.GetNonce()) != journalNonceSize || len(payload.GetCiphertext()) == 0 {
 		return nil, errors.Wrap(ErrJournalCheckpointCorrupt, "invalid encrypted checkpoint")
 	}
+
+	// Construct the checkpoint cipher for decryption.
 	block, err := c.newDomainBlock(journalCheckpointDomain)
 	if err != nil {
 		return nil, err
@@ -167,6 +186,8 @@ func (c *JournalCrypto) OpenCheckpointGeneration(data, identity []byte, generati
 	if err != nil {
 		return nil, errors.Wrap(ErrJournalKeyAuthority, "construct checkpoint cipher")
 	}
+
+	// Authenticate ciphertext length and associated metadata.
 	if len(payload.GetCiphertext())-gcm.Overhead() != snapshotLength {
 		return nil, errors.Wrap(ErrJournalCheckpointCorrupt, "checkpoint length mismatch")
 	}
@@ -175,6 +196,8 @@ func (c *JournalCrypto) OpenCheckpointGeneration(data, identity []byte, generati
 	if err != nil {
 		return nil, errors.Wrap(ErrJournalCheckpointCorrupt, "checkpoint ciphertext authentication failed")
 	}
+
+	// Verify the recovered snapshot digest.
 	digest := sha256.Sum256(plaintext)
 	if !bytes.Equal(digest[:], snapshotDigest) {
 		clear(plaintext)

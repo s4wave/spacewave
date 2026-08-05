@@ -88,7 +88,7 @@ func (o *DomainInfoUpdateOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	kpRef := o.GetDomainInfoRef()
 
-	// create / validate the objectref
+	// Resolve and validate the referenced domain information.
 	var di *identity_domain.DomainInfo
 	di, err = FollowDomainInfo(ctx, worldHandle.AccessWorldState, kpRef)
 	if err == nil && di.GetDomainId() == "" {
@@ -97,7 +97,6 @@ func (o *DomainInfoUpdateOp) ApplyWorldOp(
 	if err != nil {
 		return false, err
 	}
-
 	if err := di.Validate(); err != nil {
 		return false, err
 	}
@@ -105,7 +104,7 @@ func (o *DomainInfoUpdateOp) ApplyWorldOp(
 	domainID := di.GetDomainId()
 	objKey := NewDomainInfoKey(domainID)
 
-	// create the object if it doesn't exist.
+	// Update the existing domain object or create it at the referenced root.
 	obj, objFound, err := worldHandle.GetObject(ctx, objKey)
 	if err != nil {
 		return false, err
@@ -120,7 +119,7 @@ func (o *DomainInfoUpdateOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// DomainInfo type -> types/identity/domain
+	// Index the new object as identity domain information.
 	if err := world_types.SetObjectType(ctx, worldHandle, objKey, DomainInfoTypeID); err != nil {
 		return false, err
 	}
@@ -135,14 +134,14 @@ func (o *DomainInfoUpdateOp) ApplyWorldObjectOp(
 	objectHandle world.ObjectState,
 	sender peer.ID,
 ) (sysErr bool, err error) {
-	// Applying to an existing object.
+	// Verify the referenced domain information before updating the object.
 	domainInfoRef := o.GetDomainInfoRef()
 	_, err = FollowDomainInfo(ctx, objectHandle.AccessWorldState, domainInfoRef)
 	if err != nil {
 		return false, err
 	}
 
-	// update the object
+	// Replace the object's root reference with the validated domain information.
 	_, err = objectHandle.SetRootRef(ctx, domainInfoRef)
 	return false, err
 }

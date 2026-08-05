@@ -74,8 +74,8 @@ func (c *HTTPHandlerController) HandleDirective(
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case LookupHTTPHandler:
+		// Match the request path and retain any prefix to strip.
 		rpath := d.LookupHTTPHandlerURL().Path
-		// if we have no filters, match all.
 		matched := len(c.pathPrefixes) == 0 && c.pathRe == nil
 		var stripPrefix string
 		if !matched && len(c.pathPrefixes) != 0 {
@@ -100,6 +100,7 @@ func (c *HTTPHandlerController) HandleDirective(
 					if val == nil {
 						return nil, nil
 					}
+
 					var handler LookupHTTPHandlerValue = val //nolint:staticcheck
 					if c.stripPathPrefix && len(stripPrefix) != 0 {
 						handler = http.StripPrefix(stripPrefix, handler)

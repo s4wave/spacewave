@@ -66,28 +66,34 @@ func NewTransport(
 	opts *Opts,
 	dialFn DialFunc,
 ) (*Transport, error) {
+	// Resolve defaults before deriving the local identity.
 	if opts == nil {
 		opts = &Opts{}
 	}
 
+	// Derive the local peer identity.
 	peerID, err := peer.IDFromPrivateKey(privKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Derive a deterministic transport UUID when none was supplied.
 	if uuid == 0 {
 		uuid = NewTransportUUID("conn", peerID)
 	}
 
+	// Derive a local address when none was supplied.
 	if laddr == nil {
 		laddr = peer.NewNetAddr(peerID)
 	}
 
+	// Build the TLS identity used by QUIC sessions.
 	identity, err := p2ptls.NewIdentity(privKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Assemble the transport state and link registries.
 	return &Transport{
 		ctx:      ctx,
 		le:       le,
@@ -129,17 +135,19 @@ func (t *Transport) LocalAddr() net.Addr {
 // was established. DialPeer will then not be called again for the same peer
 // ID and address tuple until the yielded link is lost.
 func (t *Transport) DialPeer(ctx context.Context, peerID peer.ID, as string) (link.Link, bool, error) {
+	// Reject dialing when this transport has no dial function.
 	if t.dialFn == nil {
 		return nil, false, ErrDialUnimplemented
 	}
 
-	// abort if we already have a peer with the same addr connected
+	// Reject duplicate links for the same address and peer.
 	ok, err := CheckAlreadyConnected(t, as, peerID)
 	if ok || err != nil {
 		// returns an error if already connected w/ different peer id
 		return nil, false, err
 	}
 
+	// Reuse or register the address dialer under the transport lock.
 	var dl *Dialer
 	t.mtx.Lock()
 	if edl, dialerOk := t.dialers[as]; dialerOk {
@@ -150,6 +158,7 @@ func (t *Transport) DialPeer(ctx context.Context, peerID peer.ID, as string) (li
 		dl, err = NewDialer(t.ctx, t, peerID, as)
 		if err == nil {
 			t.dialers[as] = dl
+
 			// start a separate goroutine to execute the dialer.
 			go dl.Execute()
 		}
@@ -159,7 +168,7 @@ func (t *Transport) DialPeer(ctx context.Context, peerID peer.ID, as string) (li
 		return nil, false, err
 	}
 
-	// wait for dialer to finish
+	// Await the registered dialer result.
 	lnk, err := dl.result.Await(ctx)
 	if err != nil {
 		return nil, false, err
@@ -194,6 +203,7 @@ func (t *Transport) Execute(ctx context.Context) error {
 // if peerID is empty, allows any peer ID on the remote end
 // raddr can be nil if peerID is NOT empty
 func (t *Transport) HandleConn(ctx context.Context, dial bool, pc net.PacketConn, raddr net.Addr, peerID peer.ID) (*Link, error) {
+	// Resolve a missing remote address from the expected peer identity.
 	if raddr == nil {
 		if len(peerID) == 0 {
 			return nil, ErrRemoteUnspecified
@@ -201,6 +211,7 @@ func (t *Transport) HandleConn(ctx context.Context, dial bool, pc net.PacketConn
 		raddr = peer.NewNetAddr(peerID)
 	}
 
+	// Negotiate a session as a dialer or listener.
 	var sess *quic.Conn
 	var err error
 
@@ -229,6 +240,7 @@ func (t *Transport) HandleConn(ctx context.Context, dial bool, pc net.PacketConn
 		return nil, err
 	}
 
+	// Build the link from the negotiated session and publish failures cleanly.
 	lnk, err := t.HandleSession(ctx, sess)
 	if err != nil {
 		t.le.WithError(err).Warn("cannot build link for session")
@@ -241,6 +253,7 @@ func (t *Transport) HandleConn(ctx context.Context, dial bool, pc net.PacketConn
 
 // HandleSession handles a new Quic session, creating & registering a link.
 func (t *Transport) HandleSession(ctx context.Context, sess *quic.Conn) (*Link, error) {
+	// Allocate a session ID before constructing the link.
 	t.mtx.Lock()
 	sessID := t.sessionCounter
 	t.sessionCounter++
@@ -266,8 +279,10 @@ func (t *Transport) HandleSession(ctx context.Context, sess *quic.Conn) (*Link, 
 		return nil, err
 	}
 
+	// Register the link and replace any prior session at this address.
 	t.mtx.Lock()
-	// Clear any ongoing dial attempt for this addr.
+
+	// Clear any ongoing dial attempt for this address.
 	raddr := lnk.RemoteAddr()
 	if raddr != nil {
 		rs := raddr.String()
@@ -323,6 +338,7 @@ func (t *Transport) handleLinkLost(addrStr string, lnk *Link) {
 	}
 	t.mtx.Unlock()
 
+	// Notify the handler only when this link remains the registered address entry.
 	if t.handler != nil && rel {
 		t.handler.HandleLinkLost(lnk)
 	}

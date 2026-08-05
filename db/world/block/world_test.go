@@ -644,7 +644,7 @@ func TestWorldState_DeleteObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Create a test object
+	// Create two objects for graph deletion checks.
 	objKey1 := "test-obj1"
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
 	_, err = ws.CreateObject(ctx, objKey1, oref)
@@ -658,7 +658,7 @@ func TestWorldState_DeleteObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Add some graph quads related to the object
+	// Add graph edges between the objects.
 	err = ws.SetGraphQuad(ctx, world.NewGraphQuad(
 		world.KeyToGraphValue(objKey1).String(),
 		"<predicate1>",
@@ -679,13 +679,13 @@ func TestWorldState_DeleteObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Commit the changes
+	// Commit the initial objects and graph edges.
 	err = ws.Commit(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// Delete the object
+	// Delete the first object and its graph edges.
 	deleted, err := ws.DeleteObject(ctx, objKey1)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -694,13 +694,13 @@ func TestWorldState_DeleteObject(t *testing.T) {
 		t.FailNow()
 	}
 
-	// Commit the deletion
+	// Commit the deletion before verifying persisted absence.
 	err = ws.Commit(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// Verify that the object no longer exists
+	// Verify the deleted object is no longer addressable.
 	_, err = world.MustGetObject(ctx, ws, objKey1)
 	if err == nil {
 		t.Fatal("Expected error when getting deleted object, but got nil")
@@ -709,16 +709,16 @@ func TestWorldState_DeleteObject(t *testing.T) {
 		t.Fatalf("Expected ErrObjectNotFound, but got: %v", err)
 	}
 
-	// Verify that the quads related to the object are deleted
+	// Verify graph edges involving the deleted object are gone.
 	valueStr := world.KeyToGraphValue(objKey1).String()
 
-	// find all matching quads where subject == value
+	// Query quads where the deleted object was the subject.
 	subjQuads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad(valueStr, "", "", ""), 0)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// find all matching quads where object == value
+	// Query quads where the deleted object was the object.
 	objQuads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad("", "", valueStr, ""), 0)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1059,7 +1059,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// add the mock object
+	// Seed the original state with a mock object.
 	objKey := "tx-test-obj-1"
 	_, err = world_block.BuildMockObject(ctx, ws, objKey)
 	if err != nil {
@@ -1072,7 +1072,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 	}
 	ocs.SetRootRef(ws.GetRootRef())
 
-	// test forking it + applying changes
+	// Fork the state and apply a revision-changing operation.
 	sender := tb.Volume.GetPeerID()
 	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err == nil {
@@ -1088,7 +1088,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 	}
 	forked := forkedWs.(*world_block.WorldState)
 
-	// apply operation, after, rev=3
+	// Apply the operation to the fork.
 	_, _, err = forked.ApplyWorldOp(
 		ctx,
 		world_mock.NewMockWorldOp(objKey, "hello there #2"),
@@ -1098,14 +1098,14 @@ func TestWorldEngine_Fork(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// checkRev asserts a object is at a revision
+	// Define the revision assertion used for both states.
 	checkRev := func(obj world.ObjectState, expected uint64) {
 		if err := world.AssertObjectRev(ctx, obj, expected); err != nil {
 			t.Fatal(err.Error())
 		}
 	}
 
-	// ensure original state was still at rev=1
+	// Verify the original state remains unchanged.
 	obj, err := world.MustGetObject(ctx, ws, objKey)
 	if err == nil {
 		checkRev(obj, 1)
@@ -1114,21 +1114,22 @@ func TestWorldEngine_Fork(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// write the forked state
+	// Commit the forked state.
 	err = forked.Commit(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// apply the updated ref to the original state.
+	// Publish the forked root and reopen the original state from it.
 	ocs.SetRootRef(forked.GetRootRef())
-	// note: we need a new block transaction to force a new cursor
+
+	// A new block transaction forces a fresh cursor for the reopened state.
 	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// check if it was applied
+	// Verify the forked revision was published.
 	obj, err = world.MustGetObject(ctx, ws, objKey)
 	if err == nil {
 		checkRev(obj, 2)
@@ -1137,7 +1138,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// success
+	// Report successful fork assertions.
 	t.Log("tests successful")
 }
 
@@ -1173,7 +1174,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 
 	objKey := "test-object"
 
-	// create the object in the world
+	// Create and commit the initial object state.
 	ws, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1187,10 +1188,10 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// save the first state
+	// Capture the first published root reference.
 	state1 := eng.GetRootRef()
 
-	// change the object
+	// Increment the object revision and commit the updated state.
 	ws, err = eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1207,16 +1208,16 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// create a new read tx
+	// Open a read transaction for the updated revision.
 	rtx, err := eng.NewTransaction(ctx, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// save the second state
+	// Capture the second published root reference.
 	state2 := eng.GetRootRef()
 
-	// ensure the rev is correct
+	// Verify the read transaction observes the committed revision.
 	obj1, err = world.MustGetObject(ctx, rtx, objKey)
 	if err == nil {
 		var rev uint64
@@ -1229,15 +1230,16 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// create a write tx
+	// Open a write transaction that will be invalidated by root rollback.
 	wtx, err := eng.NewTransaction(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// change back to the original state
+	// Roll back the engine root and verify the read transaction follows it.
 	err = eng.SetRootRef(ctx, state1)
-	// use the same read tx to get the current rev
+
+	// Re-read the current revision through the existing read transaction.
 	if err == nil {
 		var rev uint64
 		_, rev, err = obj1.GetRootRef(ctx)
@@ -1248,7 +1250,8 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	// expect the write tx to have been discarded
+
+	// Confirm the prior write transaction was discarded by the rollback.
 	werr := wtx.Commit(ctx)
 	if werr != tx.ErrDiscarded {
 		t.Fatalf("expected discarded error, got %v", werr)
@@ -1258,7 +1261,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 	// could check state2 again as well
 	_ = state2
 
-	// success
+	// Report successful root update assertions.
 	t.Log("tests successful")
 }
 
@@ -1285,7 +1288,7 @@ func TestWorldState_Basic(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// construct a basic example object
+	// Build a reusable example root reference for the object set.
 	objRefCs := ocs.Clone()
 	oref := objRefCs.GetRef()
 	oref.BucketId = ""
@@ -1309,13 +1312,13 @@ func TestWorldState_Basic(t *testing.T) {
 		}
 	}
 
-	// create the objects in the world
+	// Create all test objects in the world.
 	forEachObj(func(objKey string) error {
 		_, err = ws.CreateObject(ctx, objKey, oref)
 		return err
 	})
 
-	// lookup the objects
+	// Read all test objects into iterator test state.
 	var i int
 	objStates := make([]world.ObjectState, len(keys))
 	forEachObj(func(objKey string) error {
@@ -1325,7 +1328,7 @@ func TestWorldState_Basic(t *testing.T) {
 		return err
 	})
 
-	// adjust object ref
+	// Update the shared root reference used by each object.
 	obcs.SetBlock(&block_mock.SubBlock{ExamplePtr: oref.GetRootRef()}, true)
 	oref.RootRef, obcs, err = obtx.Write(ctx, true)
 	if err != nil {
@@ -1333,7 +1336,7 @@ func TestWorldState_Basic(t *testing.T) {
 	}
 	_ = obcs
 
-	// adjust ref in the state
+	// Publish the updated root reference on every object.
 	for _, objState := range objStates {
 		_, err = objState.SetRootRef(ctx, oref)
 		if err != nil {
@@ -1341,7 +1344,7 @@ func TestWorldState_Basic(t *testing.T) {
 		}
 	}
 
-	// increment rev
+	// Increment every object's revision after updating its root.
 	for _, objState := range objStates {
 		_, err = objState.IncrementRev(ctx)
 		if err != nil {
@@ -1405,6 +1408,7 @@ func TestWorldState_Basic(t *testing.T) {
 			}
 			return nil
 		})
+
 		if int(ent.GetSeqno()) != 3-i { //nolint:gosec
 			t.Fatalf("%d: seqno expected %d but got %d", i, 3-i, ent.GetSeqno())
 		}
@@ -2415,6 +2419,7 @@ func TestEngineDeferredDurabilityCrashRecovery(t *testing.T) {
 	if _, err := world.MustGetObject(ctx, recovered, "obj-a"); err != nil {
 		t.Fatalf("recovery must land on the last Sync'd head with its blocks present: %v", err.Error())
 	}
+
 	// ...and obj-b, committed after the last Sync, is rolled back.
 	if _, err := world.MustGetObject(ctx, recovered, "obj-b"); err == nil {
 		t.Fatal("post-Sync commit must not survive a crash before the next Sync")

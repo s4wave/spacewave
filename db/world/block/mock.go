@@ -28,7 +28,7 @@ func BuildMockWorldState(ctx context.Context, le *logrus.Entry, write bool, ocs 
 
 // BuildMockObject builds a mock object in a world.
 func BuildMockObject(ctx context.Context, ws world.WorldState, objKey string) (world.ObjectState, error) {
-	// construct a basic example object
+	// Choose a default key and build the example block transaction.
 	if objKey == "" {
 		objKey = "test-obj-1"
 	}
@@ -46,13 +46,13 @@ func BuildMockObject(ctx context.Context, ws world.WorldState, objKey string) (w
 		return nil, err
 	}
 
-	// create the object in the world
+	// Register the newly written root reference as a world object.
 	_, err = ws.CreateObject(ctx, objKey, oref)
 	if err != nil {
 		return nil, err
 	}
 
-	// lookup the object
+	// Read back the object to confirm registration succeeded.
 	objState, found, err := ws.GetObject(ctx, objKey)
 	if err != nil {
 		return nil, err

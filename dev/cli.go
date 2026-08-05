@@ -24,9 +24,11 @@ const downstreamSrcPath = "../.."
 
 // BuildApp constructs the spacewave-dev CLI application.
 func BuildApp() *cli.App {
+	// Configure the downstream source path for the devtool arguments.
 	args := bldr_devtool.NewDevtoolArgs()
 	args.BldrSrcPath = downstreamSrcPath
 
+	// Construct the CLI application and expose the devtool commands.
 	app := cli.NewApp()
 	app.Name = CLIName
 	app.HideVersion = true

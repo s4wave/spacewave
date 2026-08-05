@@ -109,6 +109,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer v.Close()
 
+	// Prepare readiness diagnostics and the volume execution error channel.
 	le := c.le.WithField("peer-id", v.GetPeerID().String())
 	le.Debug("volume constructed, initializing")
 	errCh := make(chan error, 1)
@@ -127,7 +128,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}()
 
-	// check the cache mode & wrap the volume if necessary
+	// Wrap the volume with the configured block-store overlay.
 	if blockStoreID := c.config.GetBlockStoreId(); blockStoreID != "" {
 		blkStore, _, blkStoreRef, err := block_store.ExLookupFirstBlockStore(ctx, c.bus, blockStoreID, false, func() {
 			if ctx.Err() == nil {
@@ -167,7 +168,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		le.Debugf("wrapped volume with block store %s mode %s", blockStoreID, overlayMode.String())
 	}
 
-	// load the peer to the bus
+	// Register the volume peer with the controller bus.
 	if !c.config.GetDisablePeer() {
 		peerWithPriv, err := v.GetPeer(ctx, true)
 		if err != nil {
@@ -183,6 +184,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}
 
+	// Publish the ready volume and enable bucket-handle activity.
 	le.WithField("volume-id", v.GetID()).Debug("volume ready")
 	c.volume.SetValue(&volumeCtxPair{
 		ctx: volCtx,
@@ -197,12 +199,14 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}()
 
+	// Start garbage collection and wait for shutdown or execution failure.
 	select {
 	case <-ctx.Done():
 		err = ctx.Err()
 	case err = <-errCh:
 	}
 
+	// Disable bucket-handle activity before returning the terminal error.
 	c.bucketHandles.SetContext(nil, false)
 	return err
 }

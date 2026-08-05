@@ -38,6 +38,7 @@ func NewCoordinator(db *bdb.DB, inner *coord_inmem.Coordinator) *Coordinator {
 
 // Capability reports bbolt coordination support.
 func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord.Capability, error) {
+	// Reject canceled requests before reading coordinator state.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -53,6 +54,7 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 
 // Snapshot returns the latest bbolt commit generation and coordinator root.
 func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.Snapshot, error) {
+	// Read the inner snapshot before overlaying the bbolt generation.
 	snapshot, err := c.inner.Snapshot(ctx, scope)
 	if err != nil {
 		return nil, err
@@ -65,11 +67,13 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 
 // Watch streams root/prefix lease events and bbolt commit-generation changes.
 func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGeneration uint64) (coord.Watch, error) {
+	// Start the inner watch before creating the bbolt event stream.
 	inner, err := c.inner.Watch(ctx, scope, afterGeneration)
 	if err != nil {
 		return nil, err
 	}
 
+	// Create and start the combined watch lifecycle.
 	ctx, cancel := context.WithCancel(ctx)
 	w := &watch{
 		ctx:    ctx,
@@ -86,6 +90,7 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 
 // TryAcquireWriteLease attempts to acquire the logical bbolt write lease.
 func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, bool, error) {
+	// Reject canceled requests before reserving the write lease.
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
 	}
@@ -95,10 +100,13 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 		// exclusion namespace.
 		return c.inner.TryAcquireWriteLease(ctx, scope)
 	}
+
+	// Reserve the local write turn before acquiring the inner lease.
 	if reserved, _ := c.reserveWriteLease(); !reserved {
 		return nil, false, nil
 	}
 
+	// Roll back local reservation when inner or cross-process acquisition fails.
 	inner, ok, err := c.inner.TryAcquireWriteLease(ctx, scope)
 	if err != nil || !ok {
 		c.releaseWriteLease()
@@ -124,6 +132,7 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 			return nil, err
 		}
 
+		// Reserve the local write turn or await its release notification.
 		reserved, waitCh := c.reserveWriteLease()
 		if !reserved {
 			select {
@@ -134,12 +143,14 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 			continue
 		}
 
+		// Acquire the inner lease after reserving this process's write turn.
 		inner, err := c.inner.WaitAcquireWriteLease(ctx, scope)
 		if err != nil {
 			c.releaseWriteLease()
 			return nil, err
 		}
 
+		// Acquire the cross-process bbolt lock and return the combined lease.
 		releaseCoordinationLock, acquired, err := c.tryAcquireCoordinationLock()
 		if err != nil {
 			_ = inner.Release(context.Background())
@@ -150,6 +161,7 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 			return &lease{c: c, scope: scope, inner: inner, releaseCoordinationLock: releaseCoordinationLock}, nil
 		}
 
+		// Release local state before waiting for another process's lock turn.
 		_ = inner.Release(context.Background())
 		c.releaseWriteLease()
 

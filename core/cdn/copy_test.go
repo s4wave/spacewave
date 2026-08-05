@@ -20,6 +20,7 @@ import (
 )
 
 func TestCopyV86ImageFromCdnCopiesAssetObjectsBeforeEdges(t *testing.T) {
+	// Initialize source and destination World testbeds.
 	ctx := context.Background()
 	srcTB, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
 	if err != nil {
@@ -38,6 +39,7 @@ func TestCopyV86ImageFromCdnCopiesAssetObjectsBeforeEdges(t *testing.T) {
 		assetKey    = "assets/rootfs"
 	)
 
+	// Create the source asset object and V86 image graph.
 	content := bytes.Repeat([]byte("copied rootfs payload\n"), 64*1024)
 	createFSNodeObjectWithFile(t, ctx, srcTB.WorldState, assetKey, "hello.txt", content)
 	createdAt := time.Unix(123, 0)
@@ -54,6 +56,7 @@ func TestCopyV86ImageFromCdnCopiesAssetObjectsBeforeEdges(t *testing.T) {
 		t.Fatalf("set source rootfs edge: %v", err)
 	}
 
+	// Copy the image while collecting progress.
 	var progress []bucket_lookup.ObjectCopyStats
 	if err := CopyV86ImageFromCdnWithProgress(
 		ctx,
@@ -82,6 +85,7 @@ func TestCopyV86ImageFromCdnCopiesAssetObjectsBeforeEdges(t *testing.T) {
 		t.Fatalf("retry completed v86 image copy: %v", err)
 	}
 
+	// Verify destination object, type, and graph edge state.
 	if _, found, err := dstTB.WorldState.GetObject(ctx, assetKey); err != nil {
 		t.Fatalf("get copied asset: %v", err)
 	} else if !found {
@@ -102,6 +106,7 @@ func TestCopyV86ImageFromCdnCopiesAssetObjectsBeforeEdges(t *testing.T) {
 		t.Fatalf("expected copied rootfs edge target %q, got %q", assetKey, target)
 	}
 
+	// Verify copied asset content.
 	got := readFSNodeFile(t, ctx, dstTB.WorldState, assetKey, "hello.txt")
 	if !bytes.Equal(got, content) {
 		t.Fatalf("copied asset file content mismatch: got %q want %q", string(got), string(content))
@@ -117,6 +122,8 @@ func createFSNodeObjectWithFile(
 	content []byte,
 ) {
 	t.Helper()
+
+	// Create the source filesystem object and file.
 	op := unixfs_world.NewFsInitOp(objKey, unixfs_world.FSType_FSType_FS_NODE, nil, false, time.Unix(1, 0))
 	if _, _, err := ws.ApplyWorldOp(ctx, op, ""); err != nil {
 		t.Fatalf("create fs-node object %q: %v", objKey, err)
@@ -144,6 +151,7 @@ func createFSNodeObjectWithFile(
 	}
 }
 
+// Open and read the copied filesystem file.
 func readFSNodeFile(t *testing.T, ctx context.Context, ws world.WorldState, objKey, name string) []byte {
 	t.Helper()
 	fsc := unixfs_world.NewFSCursor(logrus.NewEntry(logrus.New()), ws, objKey, unixfs_world.FSType_FSType_FS_NODE, nil, false)
@@ -167,6 +175,7 @@ func readFSNodeFile(t *testing.T, ctx context.Context, ws world.WorldState, objK
 	return got
 }
 
+// Build diagnostic information for a filesystem object.
 func describeFSNodeObject(t *testing.T, ctx context.Context, ws world.WorldState, objKey string) string {
 	t.Helper()
 	obj, found, err := ws.GetObject(ctx, objKey)

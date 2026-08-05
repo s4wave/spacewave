@@ -43,7 +43,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 	}
 	defer store.Close()
 
-	// check not exists
+	// Confirm missing hashes return ErrObjectNotFound.
 	ohash, ok := plumbing.FromBytes([]byte("notfound000000000000"))
 	if !ok {
 		t.Fatal("FromBytes failed")
@@ -98,20 +98,20 @@ func TestStorage_EncodedObject(t *testing.T) {
 		return encObj
 	}
 
-	// put an object
+	// Write an encoded object into the bulk store.
 	ph := putObject(store, objData)
 
-	// read the object back
+	// Read the object before committing the bulk store.
 	encObj := getObject(store, ph)
 	_ = encObj
 
-	// commit via Store (builds IAVL trees from bulk-written objects)
+	// Commit the store so its IAVL trees become durable.
 	err = store.Commit()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// re-build the store from the committed ref
+	// Reopen the store from the committed root reference.
 	storeRef := store.GetRef()
 	oc.SetRootRef(storeRef)
 	btx, bcs = oc.BuildTransaction(nil)
@@ -121,7 +121,7 @@ func TestStorage_EncodedObject(t *testing.T) {
 	}
 	defer store.Close()
 
-	// read the object back
+	// Read the committed object and verify its size.
 	encObj = getObject(store, ph)
 
 	// check it exists
@@ -133,6 +133,6 @@ func TestStorage_EncodedObject(t *testing.T) {
 		t.Fatalf("size mismatch: got %d, want %d", size, len(objData))
 	}
 
-	// success
+	// Finish after validating the committed object.
 	_ = encObj
 }

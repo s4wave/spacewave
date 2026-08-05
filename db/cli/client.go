@@ -67,6 +67,7 @@ type ClientArgs struct {
 
 // ParseRemotePeerIdsCsv parses the RemotePeerIdsCsv field.
 func (a *ClientArgs) ParseRemotePeerIdsCsv() []string {
+	// Split and normalize the configured peer IDs.
 	pts := strings.Split(a.RemotePeerIdsCsv, ",")
 	var peerIds []string
 	for _, pt := range pts {
@@ -95,18 +96,21 @@ func (a *ClientArgs) SetClient(client api.HydraDaemonClient) {
 
 // BuildClient builds the client or returns it if it has been set.
 func (a *ClientArgs) BuildClient() (api.HydraDaemonClient, error) {
+	// Reuse an injected client when available.
 	if a.client != nil {
 		return a.client, nil
 	}
 
+	// Validate the configured dial address and open the connection.
 	if a.DialAddr == "" {
 		return nil, errors.New("dial address is not set")
 	}
-
 	nconn, err := net.Dial("tcp", a.DialAddr)
 	if err != nil {
 		return nil, err
 	}
+
+	// Wrap the connection in an SRPC client and cache it.
 	muxedConn, err := srpc.NewMuxedConn(nconn, true, nil)
 	if err != nil {
 		return nil, err

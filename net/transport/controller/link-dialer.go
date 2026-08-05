@@ -32,6 +32,7 @@ type linkDialer struct {
 
 // buildLinkDialer constructs a new link dialer.
 func (c *Controller) buildLinkDialer(key linkDialerKey) (keyed.Routine, *linkDialer) {
+	// Allocate the keyed dialer state and result container.
 	ld := &linkDialer{c: c, key: key, opts: promise.NewPromise[*dialer.DialerOpts]()}
 	ld.lnk = ccontainer.NewCContainer[link.Link](nil)
 	return ld.executeLinkDialer, ld
@@ -41,26 +42,33 @@ func (c *Controller) buildLinkDialer(key linkDialerKey) (keyed.Routine, *linkDia
 func (l *linkDialer) executeLinkDialer(
 	ctx context.Context,
 ) error {
+	// Wait for the transport needed by this dial attempt.
 	tpt, err := l.c.GetTransport(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Require a transport implementation that can dial peers.
 	tptDialer, ok := tpt.(dialer.TransportDialer)
 	if !ok {
 		return dialer.ErrNotTransportDialer
 	}
 
+	// Wait for the caller to provide dial options.
 	dialOpts, err := l.opts.Await(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Scope the dial attempt to the routine context.
 	subCtx, subCtxCancel := context.WithCancel(ctx)
 	defer subCtxCancel()
 
+	// Execute the dial with the resolved address and peer.
 	dialer := dialer.NewDialer(l.c.le, tptDialer, dialOpts, l.key.peerID, l.key.dialAddress)
 	lnk, err := dialer.Execute(subCtx)
+
+	// Normalize cancellation before returning dial errors.
 	if ctx.Err() != nil {
 		return context.Canceled
 	}
@@ -68,7 +76,7 @@ func (l *linkDialer) executeLinkDialer(
 		return err
 	}
 
-	// success
+	// Publish the established link to waiters.
 	l.lnk.SetValue(lnk)
 	return nil
 }

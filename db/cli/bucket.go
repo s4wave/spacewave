@@ -13,35 +13,33 @@ import (
 
 // RunApplyBucketConf runs applying a bucket configuration.
 func (a *ClientArgs) RunApplyBucketConf(_ *cli.Context) error {
+	// Resolve the request context and read the bucket configuration file.
 	le := a.GetLogger()
 	ctx := a.GetContext()
-
-	// parse json to bucket configuration.
 	dat, err := os.ReadFile(a.ApplyBucketConfigFile)
 	if err != nil {
 		return err
 	}
 
+	// Build the resolver bus and parse the JSON configuration.
 	b, _, err := core.NewCoreBus(ctx, le)
 	if err != nil {
 		return err
 	}
-
 	jconf, err := bucket_json.ParseConfig(dat)
 	if err != nil {
 		return err
 	}
-
 	bconf, err := jconf.ResolveToProto(ctx, b)
 	if err != nil {
 		return err
 	}
 
+	// Submit the resolved bucket configuration to the daemon.
 	c, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
-
 	req := &a.ApplyBucketConfigReq
 	req.Config = bconf
 	req.VolumeIdList = a.ApplyBucketConfigReqVolumeIDs.Value()
@@ -50,6 +48,7 @@ func (a *ClientArgs) RunApplyBucketConf(_ *cli.Context) error {
 		return err
 	}
 
+	// Stream each applied configuration result to standard output.
 	for {
 		msg, err := resp.Recv()
 		if err != nil {
@@ -82,12 +81,14 @@ func (a *ClientArgs) RunApplyBucketConf(_ *cli.Context) error {
 
 // RunListBuckets runs listing buckets.
 func (a *ClientArgs) RunListBuckets(_ *cli.Context) error {
+	// Resolve the client and request context.
 	ctx := a.GetContext()
 	c, err := a.BuildClient()
 	if err != nil {
 		return err
 	}
 
+	// Configure and execute the bucket listing.
 	req := a.ListBucketsReq.CloneVT()
 	req.VolumeIdList = a.ListBucketsReqVolumeIDs.Value()
 	ni, err := c.ListBuckets(ctx, req)
@@ -95,10 +96,10 @@ func (a *ClientArgs) RunListBuckets(_ *cli.Context) error {
 		return err
 	}
 
+	// Marshal the response and write formatted JSON.
 	dat, err := ni.MarshalJSON()
 	if err != nil {
 		return err
 	}
-
 	return writeIndentedJSON(os.Stdout, dat)
 }

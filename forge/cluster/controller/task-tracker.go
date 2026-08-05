@@ -63,13 +63,13 @@ func (t *taskTracker) processState(
 ) (waitForChanges bool, err error) {
 	taskKey, jobKey, clusterKey := t.objKey, t.jt.objKey, t.jt.c.objKey
 
-	// check the <type> of the task object
+	// Confirm the task object type.
 	err = forge_task.CheckTaskType(ctx, ws, taskKey)
 	if err != nil {
 		return false, err
 	}
 
-	// unmarshal Task state
+	// Decode and validate the task state.
 	var task *forge_task.Task
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
@@ -87,15 +87,15 @@ func (t *taskTracker) processState(
 	le.Debugf("task %q: %s", taskKey, taskState.String())
 
 	if t.prevState != taskState {
-		// re-scan job tasks to check if complete
+		// Wake the job tracker when the task state changes.
 		t.jt.objLoop.Wake()
 	}
 	t.prevState = taskState
 
-	// assign us to any task which is not assigned
+	// Assign unclaimed tasks to this cluster.
 	taskPeerID := task.GetPeerId()
 	if taskPeerID != "" && taskPeerID != t.jt.c.peerIDStr {
-		// assigned to someone else
+		// Leave tasks assigned to another cluster untouched.
 		return true, nil
 	}
 	if taskPeerID == "" {
@@ -110,7 +110,7 @@ func (t *taskTracker) processState(
 		}
 	}
 
-	// done
+	// Keep watching the task for state changes.
 	return true, nil
 }
 

@@ -18,11 +18,13 @@ func StartBucketRWOperation(
 	b bus.Bus,
 	args *bucket.BucketOpArgs,
 ) (bucket.Bucket, func(), error) {
+	// Validate the bucket operation before acquiring any handles.
 	if err := args.Validate(); err != nil {
 		return nil, nil, err
 	}
 
 	// 1. acquire the lookup handle
+	// Acquire the lookup handle used for reads.
 	blv, _, blvRel, err := ExBuildBucketLookup(ctx, b, false, args.GetBucketId(), nil)
 	if err != nil {
 		return nil, nil, err
@@ -30,6 +32,7 @@ func StartBucketRWOperation(
 	readHandle := NewBucketFromHandle(blv)
 
 	// 2. acquire the write handle
+	// Acquire the optional volume handle used for writes and retain releases.
 	var writeHandle bucket.Bucket
 	rels := []func(){blvRel.Release}
 	rel := func() {

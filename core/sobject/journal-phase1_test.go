@@ -13,6 +13,7 @@ import (
 )
 
 func TestPhase1MutationKeyAndTransitionCorpus(t *testing.T) {
+	// Build mutation keys, lineages, and version fixtures.
 	scope := testScope("scope")
 	keyA := testMutationKey(scope, "peer-a", "same-local")
 	keyB := testMutationKey(scope, "peer-b", "same-local")
@@ -26,6 +27,7 @@ func TestPhase1MutationKeyAndTransitionCorpus(t *testing.T) {
 		t.Fatalf("short origin scope accepted: %v", err)
 	}
 
+	// Append valid intents and verify participant separation.
 	crypto := testJournalCrypto(t, scope)
 	intentA := testIntent(t, crypto, keyA, lineageA, version, 1, "world-neutral-op")
 	intentB := testIntent(t, crypto, keyB, testLineage(keyB, nil), version, 2, "non-world-op")
@@ -40,6 +42,7 @@ func TestPhase1MutationKeyAndTransitionCorpus(t *testing.T) {
 		t.Fatalf("participant-separated attempts = %d, want 2", got)
 	}
 
+	// Reject an envelope with a changed version tuple.
 	badVersion := JournalVersion(4, 2, 3, testDigest("config"))
 	badEnvelope, err := NewJournalEnvelopeRecord(crypto, 3, &SOJournalIntent{Key: keyA, Lineage: lineageA, Version: badVersion, CanonicalOperation: []byte("changed")}, []byte("signed-envelope"), journalDefaultIdentity())
 	if err != nil {
@@ -48,6 +51,8 @@ func TestPhase1MutationKeyAndTransitionCorpus(t *testing.T) {
 	if err := pipeline.appendRecord(badEnvelope); !errors.Is(err, ErrJournalSupersessionImmutable) {
 		t.Fatalf("changed tuple accepted: %v", err)
 	}
+
+	// Append valid terminal evidence and verify checkpoint readiness.
 	validEnvelope, err := NewJournalEnvelopeRecord(crypto, 3, testDecodedIntent(t, crypto, intentA, keyA, lineageA, version, 1), []byte("signed-envelope"), journalDefaultIdentity())
 	if err != nil {
 		t.Fatal(err)
@@ -97,6 +102,7 @@ func TestPhase1MutationKeyAndTransitionCorpus(t *testing.T) {
 		t.Fatal("checkpoint dropped staged or terminal evidence")
 	}
 
+	// Reject transitions with missing or unknown terminal state.
 	illegal := NewJournalReceiptRecord(keyB, testLineage(keyB, nil), version, testReceipt(keyB, []byte("e"), []byte("r"), 1, []byte("root")))
 	illegal.Sequence = uint64(len(pipeline.Replay()) + 1)
 	if err := NewJournalReducer().Apply(illegal); !errors.Is(err, ErrJournalInvalidTransition) {

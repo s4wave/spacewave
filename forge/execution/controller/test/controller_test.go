@@ -20,13 +20,12 @@ func TestExecutionController(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// add the boilerplate controller factory
-	// referenced in the Target below
+	// Register the controller factories used by the target.
 	b, sr := tb.Bus, tb.StaticResolver
 	sr.AddFactory(boilerplate_controller.NewFactory(b))
 	sr.AddFactory(forge_lib_kvtx.NewFactory(b))
 
-	// End to end test of building a target and running in a testbed.
+	// Resolve and execute the end-to-end target.
 	tgt, err := target_mock.ResolveMockTarget(ctx, b)
 	if err != nil {
 		t.Fatal(err.Error())

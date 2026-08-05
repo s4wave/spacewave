@@ -37,6 +37,7 @@ type Coordinator struct {
 // sibling volumes sharing dir do not contend. On platforms without advisory
 // file locks the keyed scopes fall back to in-memory exclusion.
 func NewCoordinator(dir, storeID string, inner coord.Coordinator) *Coordinator {
+	// Canonicalize the store identity before constructing keyed state.
 	canonicalStoreID := canonicalLockStoreID(storeID)
 	return &Coordinator{
 		inner:   inner,
@@ -48,6 +49,7 @@ func NewCoordinator(dir, storeID string, inner coord.Coordinator) *Coordinator {
 
 // Capability reports keyed file lock support, delegating ObjectStore scopes.
 func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord.Capability, error) {
+	// Delegate root scopes and validate keyed capability requests.
 	if scope.Key == "" {
 		return c.inner.Capability(ctx, scope)
 	}
@@ -64,6 +66,7 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 
 // Snapshot delegates ObjectStore scopes; keyed scopes carry no generations.
 func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.Snapshot, error) {
+	// Delegate snapshots to the coordinator selected by scope kind.
 	if scope.Key == "" {
 		return c.inner.Snapshot(ctx, scope)
 	}
@@ -72,6 +75,7 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 
 // Watch delegates ObjectStore scopes; keyed scopes carry no event stream.
 func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGeneration uint64) (coord.Watch, error) {
+	// Delegate watches to the coordinator selected by scope kind.
 	if scope.Key == "" {
 		return c.inner.Watch(ctx, scope, afterGeneration)
 	}
@@ -80,10 +84,12 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 
 // TryAcquireWriteLease attempts to acquire the keyed file lock without blocking.
 func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, bool, error) {
+	// Delegate root scopes before acquiring the keyed lease.
 	if scope.Key == "" {
 		return c.inner.TryAcquireWriteLease(ctx, scope)
 	}
 
+	// Claim the in-memory keyed lease before probing the cross-process lock.
 	inner, ok, err := c.keyed.TryAcquireWriteLease(ctx, scope)
 	if err != nil || !ok {
 		return nil, ok, err
@@ -92,6 +98,7 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 		return &lease{inner: inner}, true, nil
 	}
 
+	// Probe the lock file and release the keyed lease if acquisition fails.
 	file, locked, err := c.openLockedFile(ctx, scope)
 	if err != nil || !locked {
 		_ = inner.Release(context.Background())
@@ -102,10 +109,12 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 
 // WaitAcquireWriteLease waits until the keyed file lock is available.
 func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, error) {
+	// Delegate root scopes before waiting for the keyed lease.
 	if scope.Key == "" {
 		return c.inner.WaitAcquireWriteLease(ctx, scope)
 	}
 
+	// Retry keyed acquisition until both in-memory and file locks are held.
 	for {
 		inner, err := c.keyed.WaitAcquireWriteLease(ctx, scope)
 		if err != nil {
@@ -115,6 +124,7 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 			return &lease{inner: inner}, nil
 		}
 
+		// Probe the lock file after the keyed lease is available.
 		file, locked, err := c.openLockedFile(ctx, scope)
 		if err != nil {
 			_ = inner.Release(context.Background())
@@ -125,6 +135,7 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 		}
 		_ = inner.Release(context.Background())
 
+		// Release the keyed lease before pacing the next cross-process probe.
 		timer := time.NewTimer(crossProcessLockRetryDelay)
 		select {
 		case <-ctx.Done():
@@ -143,6 +154,7 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 // openLockedFile opens and try-locks the lock file for scope, returning the
 // locked file, whether the lock was acquired, and any error.
 func (c *Coordinator) openLockedFile(ctx context.Context, scope coord.Scope) (*os.File, bool, error) {
+	// Validate context and lock identity before creating the lock directory.
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
 	}
@@ -153,6 +165,7 @@ func (c *Coordinator) openLockedFile(ctx context.Context, scope coord.Scope) (*o
 		return nil, false, errors.New("filelock: backing store identity cannot be empty")
 	}
 
+	// Create the private lock directory before opening this scope's file.
 	lockDir := filepath.Join(c.dir, lockDirName)
 	if err := os.MkdirAll(lockDir, 0o700); err != nil {
 		return nil, false, pkgerrors.Wrap(err, "create lock directory")
@@ -161,6 +174,7 @@ func (c *Coordinator) openLockedFile(ctx context.Context, scope coord.Scope) (*o
 		return nil, false, err
 	}
 
+	// Open and validate the lock file, then acquire its advisory lock.
 	path := filepath.Join(lockDir, lockDigest(c.storeID, scope)+".lock")
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {

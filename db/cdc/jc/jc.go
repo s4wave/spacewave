@@ -61,6 +61,7 @@ func embedMask(maskC uint64) uint64 {
 	if maskC == 0 {
 		return 0
 	}
+
 	// Unset the least significant 1-bit in maskC
 	return maskC & (maskC - 1)
 }
@@ -139,6 +140,7 @@ func NewJC() (*JC, error) {
 // NewWithOptions constructs the JC with the given options.
 func NewWithOptions(minSize, maxSize, targetSize uint64, key []byte) (*JC, error) {
 	// validate parameters
+	// Validate chunk size bounds before deriving masks and jump parameters.
 	if targetSize == 0 || targetSize < 64 || targetSize > 1024*1024*1024 {
 		return nil, ErrTargetSize
 	}
@@ -149,6 +151,7 @@ func NewWithOptions(minSize, maxSize, targetSize uint64, key []byte) (*JC, error
 		return nil, ErrMaxSize
 	}
 
+	// Derive the jump and boundary masks from the target size.
 	c := &JC{minSize: int(minSize), maxSize: int(maxSize), targetSize: int(targetSize)} //nolint:gosec
 	bits := uint64(math.Log2(float64(targetSize)))
 
@@ -161,6 +164,7 @@ func NewWithOptions(minSize, maxSize, targetSize uint64, key []byte) (*JC, error
 	c.maskC = generateSpacedMask(int(cOnes), 64) //nolint:gosec
 	c.maskJ = embedMask(c.maskC)
 
+	// Populate the hash table from the caller key or deterministic defaults.
 	// the key can be len(0) here and this will still be acceptable.
 	if len(key) == 0 {
 		copy(c.G[:], defaultG())
@@ -247,11 +251,13 @@ func (c *Chunker) Reset() {
 // current chunk is undefined. When the last chunk has been returned, all
 // subsequent calls yield an io.EOF error.
 func (c *Chunker) Next(data []byte) (Chunk, error) {
+	// Return EOF only after buffered data has been exhausted.
 	availableData := c.bufLen - c.bufPos
 	if c.eof && availableData == 0 {
 		return Chunk{}, io.EOF
 	}
 
+	// Fill the sliding buffer until a boundary is available or the reader ends.
 	// Keep reading until we have enough data for chunk boundary detection or reach EOF
 	for !c.eof {
 		// If we have enough data to potentially find a boundary, try that first
@@ -297,11 +303,13 @@ func (c *Chunker) Next(data []byte) (Chunk, error) {
 		}
 	}
 
+	// Return EOF when filling produced no remaining data.
 	// If no data left, return EOF
 	if availableData == 0 {
 		return Chunk{}, io.EOF
 	}
 
+	// Choose the next boundary and copy or expose its bytes.
 	// Find chunk boundary using JC algorithm
 	chunkSize := c.jc.Algorithm(c.buf[c.bufPos:c.bufLen], availableData)
 
@@ -316,6 +324,7 @@ func (c *Chunker) Next(data []byte) (Chunk, error) {
 		chunkData = c.buf[c.bufPos : c.bufPos+chunkSize]
 	}
 
+	// Record the chunk position and advance the streaming cursor.
 	// Create chunk
 	chunk := Chunk{
 		Start:  c.pos,
@@ -325,6 +334,7 @@ func (c *Chunker) Next(data []byte) (Chunk, error) {
 
 	// Update state
 	c.bufPos += chunkSize
+
 	c.pos += uint64(chunkSize) //nolint:gosec
 
 	return chunk, nil

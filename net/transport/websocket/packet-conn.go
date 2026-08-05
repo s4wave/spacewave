@@ -33,6 +33,7 @@ func (c *PacketConn) LocalAddr() net.Addr {
 
 // ReadMessage reads a single message from the connection.
 func (c *PacketConn) ReadMessage() ([]byte, error) {
+	// Apply the configured read deadline to the connection context.
 	ctx := c.ctx
 	if rd := c.rd; !rd.IsZero() {
 		var cancel context.CancelFunc
@@ -40,18 +41,21 @@ func (c *PacketConn) ReadMessage() ([]byte, error) {
 		defer cancel()
 	}
 
+	// Read the next WebSocket message.
 	_, data, err := c.ws.Read(ctx)
 	return data, err
 }
 
 // ReadFrom reads a packet from the connection.
 func (c *PacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
+	// Return EOF when the connection context is already closed.
 	select {
 	case <-c.ctx.Done():
 		return 0, nil, io.EOF
 	default:
 	}
 
+	// Read one message and translate clean closure to EOF.
 	data, err := c.ReadMessage()
 	if err != nil {
 		if isCleanReadClose(err) {
@@ -59,6 +63,8 @@ func (c *PacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 		}
 		return 0, nil, err
 	}
+
+	// Copy the message payload and report truncation.
 	dlen := len(data)
 	copy(p, data)
 	if len(p) < len(data) {
@@ -69,12 +75,15 @@ func (c *PacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
 
 // WriteMessage writes a single message to the connection.
 func (c *PacketConn) WriteMessage(msg []byte) error {
+	// Apply the configured write deadline to the connection context.
 	ctx := c.ctx
 	if wd := c.wd; !wd.IsZero() {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithDeadline(ctx, wd)
 		defer cancel()
 	}
+
+	// Write the message as a binary WebSocket frame.
 	return c.ws.Write(ctx, websocket.MessageBinary, msg)
 }
 
@@ -83,6 +92,7 @@ func (c *PacketConn) WriteMessage(msg []byte) error {
 // fixed time limit; see SetDeadline and SetWriteDeadline.
 // On packet-oriented connections, write timeouts are rare.
 func (c *PacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
+	// Verify that packet writes target the bound remote address.
 	if addr != c.raddr {
 		as := addr.String()
 		rs := c.raddr.String()
@@ -90,6 +100,8 @@ func (c *PacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
 			return 0, errors.Errorf("packet conn bound to %s and cannot write to %s", rs, as)
 		}
 	}
+
+	// Write the packet payload after validating its destination.
 	if err := c.WriteMessage(p); err != nil {
 		return 0, err
 	}
@@ -148,10 +160,12 @@ func (c *PacketConn) Close() error {
 }
 
 func isCleanReadClose(err error) bool {
+	// Treat cancellation, EOF, and normal closure as clean reads.
 	if err == context.Canceled || errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) {
 		return true
 	}
 
+	// Recognize normal WebSocket closure statuses.
 	switch websocket.CloseStatus(err) {
 	case websocket.StatusNormalClosure, websocket.StatusGoingAway:
 		return true

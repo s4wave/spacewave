@@ -26,10 +26,12 @@ func NewCoordinator() *Coordinator {
 
 // Capability reports in-memory coordination support.
 func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord.Capability, error) {
+	// Reject canceled capability requests before reading shared state.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
+	// Snapshot the current scope generation under the coordinator lock.
 	c.mu.Lock()
 	state := c.getScopeLocked(scope)
 	generation := state.generation
@@ -47,6 +49,7 @@ func (c *Coordinator) Capability(ctx context.Context, scope coord.Scope) (*coord
 
 // Snapshot returns the latest in-memory generation and root.
 func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.Snapshot, error) {
+	// Reject canceled or keyed snapshot requests before reading state.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -54,6 +57,7 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 		return nil, coord.ErrUnsupported
 	}
 
+	// Copy the scope snapshot while holding the state lock.
 	c.mu.Lock()
 	snapshot := c.getScopeLocked(scope).snapshot(scope)
 	c.mu.Unlock()
@@ -62,6 +66,7 @@ func (c *Coordinator) Snapshot(ctx context.Context, scope coord.Scope) (*coord.S
 
 // Watch returns coordination events after afterGeneration.
 func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGeneration uint64) (coord.Watch, error) {
+	// Reject canceled or keyed watch requests before registering a watcher.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -69,6 +74,7 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 		return nil, coord.ErrUnsupported
 	}
 
+	// Register the watcher and replay a missed generation while locked.
 	watch := &watch{
 		c:     c,
 		scope: scope,
@@ -86,6 +92,7 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 	}
 	c.mu.Unlock()
 
+	// Close the watcher when its request context ends.
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -99,6 +106,7 @@ func (c *Coordinator) Watch(ctx context.Context, scope coord.Scope, afterGenerat
 
 // TryAcquireWriteLease attempts to acquire the logical write lease.
 func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, bool, error) {
+	// Validate the lease request before checking lock ownership.
 	if err := ctx.Err(); err != nil {
 		return nil, false, err
 	}
@@ -106,6 +114,7 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 		return nil, false, coord.ErrScopeEmpty
 	}
 
+	// Publish contention or claim the scope lock atomically.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -127,6 +136,7 @@ func (c *Coordinator) TryAcquireWriteLease(ctx context.Context, scope coord.Scop
 
 // WaitAcquireWriteLease waits until the logical write lease is available.
 func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Scope) (coord.WriteLease, error) {
+	// Validate the wait request before installing cancellation wakeups.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -134,6 +144,7 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 		return nil, coord.ErrScopeEmpty
 	}
 
+	// Wake the condition wait when the context is canceled.
 	cancelWake := context.AfterFunc(ctx, func() {
 		c.mu.Lock()
 		c.cond.Broadcast()
@@ -141,6 +152,7 @@ func (c *Coordinator) WaitAcquireWriteLease(ctx context.Context, scope coord.Sco
 	})
 	defer cancelWake()
 
+	// Wait for the scope lock and recheck context after each wakeup.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

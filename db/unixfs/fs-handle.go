@@ -47,15 +47,18 @@ func NewFSHandleWithPrefix(
 	mkdirPath bool,
 	ts time.Time,
 ) (*FSHandle, error) {
+	// Create the root handle.
 	rootHandle, err := NewFSHandle(cursor)
 	if err != nil {
 		return nil, err
 	}
 
+	// Return the root when no prefix traversal is needed.
 	if len(prefixPath) == 0 {
 		return rootHandle, nil
 	}
 
+	// Create the requested prefix directories.
 	// if we should mkdirPath, ensure the prefix exists first.
 	if mkdirPath {
 		err = rootHandle.MkdirAll(
@@ -70,10 +73,13 @@ func NewFSHandleWithPrefix(
 		}
 	}
 
+	// Traverse the prefix and release the temporary root handle.
 	// follow the new prefix path
 	handle, _, err := rootHandle.LookupPathPts(ctx, prefixPath)
+
 	// release the old root
 	rootHandle.Release()
+
 	// return the new handle
 	return handle, err
 }
@@ -91,22 +97,26 @@ func (h *FSHandle) CheckReleased() bool {
 // AddReleaseCallback adds a callback that will be called when the FSHandle is released.
 // May be called immediately (in the same call as AddReleaseCallback).
 func (h *FSHandle) AddReleaseCallback(rcb func()) {
+	// Ignore nil callbacks.
 	if rcb == nil {
 		return
 	}
 
+	// Wrap the callback so release invokes it once.
 	var once sync.Once
 	cb := func() {
 		once.Do(rcb)
 	}
 	h.relCbs.Push(rcb)
 
+	// Handle an already-released handle without locking.
 	// fast path
 	if h.CheckReleased() {
 		cb()
 		return
 	}
 
+	// Register the callback on the current inode, retrying replacement races.
 	// slow path
 	for {
 		inode := h.i()
@@ -115,6 +125,7 @@ func (h *FSHandle) AddReleaseCallback(rcb func()) {
 			return
 		}
 		inode.relCbs.Push(rcb)
+
 		// if the inode was released or changed on h, continue & retry
 		if inode.checkReleased() || h.i() != inode {
 			continue
@@ -153,6 +164,7 @@ func (h *FSHandle) GetOps(ctx context.Context) (FSCursor, FSCursorOps, error) {
 
 // GetFileInfo constructs a file info object and creation time for the inode at handle.
 func (h *FSHandle) GetFileInfo(ctx context.Context) (fs.FileInfo, error) {
+	// Read permissions, size, and timestamps from the cursor.
 	var fileInfo fs.FileInfo
 	err := h.i().accessInode(ctx, func(cursor FSCursor, ops FSCursorOps) error {
 		permissions, err := ops.GetPermissions(ctx)
@@ -168,6 +180,7 @@ func (h *FSHandle) GetFileInfo(ctx context.Context) (fs.FileInfo, error) {
 		if err != nil {
 			return err
 		}
+
 		fileInfo = NewFileInfo(ops.GetName(), int64(size), mode, modTime) //nolint:gosec
 		return nil
 	})
@@ -359,10 +372,13 @@ func (h *FSHandle) LookupPathHandles(ctx context.Context, filePath string) ([]*F
 //
 // Check if fsHandle is not nil and release it even if an error is returned.
 func (h *FSHandle) LookupPathPts(ctx context.Context, pathParts []string) (*FSHandle, []string, error) {
+	// Clone the starting handle for path traversal.
 	outHandle, err := h.Clone(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Traverse each non-empty path component.
 	for i, pathPart := range pathParts {
 		// these should not be given but handle it anyway
 		if pathPart == "." || pathPart == "" {
@@ -373,6 +389,7 @@ func (h *FSHandle) LookupPathPts(ctx context.Context, pathParts []string) (*FSHa
 		if err != nil {
 			return outHandle, pathParts[:i], err
 		}
+
 		outHandle.Release() // release parent handle
 		outHandle = nh
 	}
@@ -457,14 +474,18 @@ func (h *FSHandle) MkdirAllPath(ctx context.Context, filepath string, perm fs.Fi
 // for all directories that MkdirAll creates. If path is/ already a directory,
 // MkdirAll does nothing and returns nil.
 func (h *FSHandle) MkdirAll(ctx context.Context, dirPath []string, perm fs.FileMode, ts time.Time) error {
+	// Clone the starting directory handle.
 	dirHandle, err := h.Clone(ctx)
 	if err != nil {
 		return err
 	}
+
+	// Resolve or create each directory component.
 	for _, pname := range dirPath {
 		if pname == "." {
 			continue
 		}
+
 		// check if exists
 		dh, err := dirHandle.Lookup(ctx, pname)
 		if err == unixfs_errors.ErrNotExist {
@@ -474,6 +495,7 @@ func (h *FSHandle) MkdirAll(ctx context.Context, dirPath []string, perm fs.FileM
 				dirHandle.Release()
 				return err
 			}
+
 			// lookup again
 			dh, err = dirHandle.Lookup(ctx, pname)
 		}
@@ -495,6 +517,7 @@ func (h *FSHandle) MkdirAll(ctx context.Context, dirPath []string, perm fs.FileM
 		}
 	}
 
+	// Release the final directory handle.
 	// done
 	dirHandle.Release()
 	return nil
@@ -510,6 +533,7 @@ func (h *FSHandle) MkdirLookup(ctx context.Context, name string, perm fs.FileMod
 		if err != nil {
 			return nil, err
 		}
+
 		// Lookup again
 		dir, err = h.Lookup(ctx, name)
 	}
@@ -671,10 +695,12 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 		}
 
 		srcLoc, destParent = h.i(), dest.i()
+
 		// check if srcLoc is destParent
 		if srcLoc == destParent {
 			return unixfs_errors.ErrMoveToSelf
 		}
+
 		// check if srcLoc is a parent of destParent
 		for nn := destParent.parent; nn != nil; nn = nn.parent {
 			if nn == srcLoc {
@@ -762,9 +788,11 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 		if fsOpsSrc == nil || fsOpsSrc.CheckReleased() {
 			// release the destination loc for now
 			relDestParent()
+
 			// we will perform the lookup
 			fsWait := make(chan struct{})
 			srcLoc.fsWait = fsWait
+
 			// expects mtx to be locked on entry & released on exit.
 			srcLoc.resolveOpsRoutineLocked(ctx, fsWait, relSrcLoc)
 			continue
@@ -774,9 +802,11 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 		if fsOpsDest == nil || fsOpsSrc.CheckReleased() {
 			// release the src loc for now
 			relSrcLoc()
+
 			// we will perform the lookup
 			fsWait := make(chan struct{})
 			destParent.fsWait = fsWait
+
 			// expects mtx to be locked on entry & released on exit.
 			destParent.resolveOpsRoutineLocked(ctx, fsWait, relDestParent)
 			continue
@@ -859,6 +889,7 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 		if oldChild != nil {
 			// remove the old child from the parent
 			parent.removeChildInodeAtIdx(oldChildIdx)
+
 			// release the old child if it's not srcLoc (unlikely)
 			if oldChild != srcLoc {
 				oldChild.releaseWithChildrenLocked(nil)

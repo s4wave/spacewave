@@ -1,5 +1,4 @@
-// Package cacheseedbuffer owns bounded recording of seed-reason-tagged HTTP
-// requests.
+// Package cacheseedbuffer records bounded seed-reason-tagged HTTP requests.
 package cacheseedbuffer
 
 import (

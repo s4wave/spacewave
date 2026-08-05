@@ -37,6 +37,7 @@ const RequesterNameDefault = "spacewave serve"
 
 // Execute executes the controller.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Resolve the configured socket and stop cleanly when it is disabled.
 	le := c.GetLogger()
 	b := c.GetBus()
 
@@ -49,15 +50,18 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return nil
 	}
 
+	// Resolve the socket to an absolute path.
 	absPath, err := resolveSocketPath(le, sockPath)
 	if err != nil {
 		return errors.Wrap(err, "resolve socket path")
 	}
 
+	// Publish listener status while the resource service is acquired.
 	status := GetProcessStatusBroker()
 	status.SetSocketPath(absPath)
 	defer status.SetListening(false)
 
+	// Acquire the resource service invoker.
 	le.Info("waiting for resource service")
 	serviceID := resource.SRPCResourceServiceServiceID
 	invokers, _, invokerRef, err := bifrost_rpc.ExLookupRpcService(ctx, b, serviceID, "", true, nil)
@@ -70,6 +74,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer invokerRef.Release()
 
+	// Enter the handoff-aware serve and reclaim loop.
 	broker := GetProcessYieldBroker()
 
 	// allowTakeover is false on first entry so a live daemon on the
@@ -89,6 +94,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 				continue
 			}
 		}
+
+		// Serve until shutdown, takeover, or context cancellation.
 		yielded, err := c.serveOnce(ctx, le, invokers[0], absPath, broker, status, allowTakeover)
 		if err != nil {
 			if listener_control.IsSocketInUse(err) {
@@ -107,6 +114,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		if !yielded || ctx.Err() != nil {
 			return nil
 		}
+
+		// Wait for a reclaim signal before binding again.
 		reclaimCh := broker.BeginHandoff(RequesterNameDefault, absPath)
 		le.Info("runtime handed off, waiting for reclaim signal")
 		select {
@@ -139,6 +148,7 @@ func (c *Controller) serveOnce(
 	status *StatusBroker,
 	allowTakeover bool,
 ) (bool, error) {
+	// Choose the socket preparation policy for this serve attempt.
 	prepare := listener_control.EnsureSocketAvailable
 	if allowTakeover {
 		prepare = listener_control.TakeoverSocket
@@ -150,6 +160,7 @@ func (c *Controller) serveOnce(
 		return false, err
 	}
 
+	// Bind the Unix socket and classify bind races.
 	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: absPath, Net: "unix"})
 	if err != nil {
 		if stderrors.Is(err, syscall.EADDRINUSE) {
@@ -167,6 +178,7 @@ func (c *Controller) serveOnce(
 		le.WithError(err).Warn("failed to chmod socket")
 	}
 
+	// Publish listening status and register RPC handlers.
 	le.Infof("resource listener listening on %s", absPath)
 	status.SetListening(true)
 	defer status.SetListening(false)
@@ -197,6 +209,7 @@ func (c *Controller) serveOnce(
 		lis.Close()
 	}()
 
+	// Serve clients and drain them after the listener stops.
 	srv := srpc.NewServer(mux)
 	drainClients, err := acceptCountingListener(serveCtx, lis, srv, status)
 	yielded := false
@@ -231,9 +244,12 @@ func acceptCountingListener(
 	srv *srpc.Server,
 	status *StatusBroker,
 ) (func(), error) {
+	// Initialize connection tracking and the client wait group.
 	var clients sync.WaitGroup
 	var connectionsMtx sync.Mutex
 	connections := make(map[*countingConn]struct{})
+
+	// Close a snapshot of active client connections.
 	closeConnections := func() {
 		connectionsMtx.Lock()
 		active := make([]*countingConn, 0, len(connections))
@@ -246,6 +262,7 @@ func acceptCountingListener(
 		}
 	}
 
+	// Build an idempotent drain operation for shutdown.
 	drainOnce := sync.Once{}
 	drainClients := func() {
 		drainOnce.Do(func() {
@@ -254,11 +271,14 @@ func acceptCountingListener(
 		})
 	}
 
+	// Accept connections until the listener closes.
 	for {
 		nc, err := lis.Accept()
 		if err != nil {
 			return drainClients, err
 		}
+
+		// Register each accepted client before serving it.
 		status.AddClient()
 		tracked := &countingConn{Conn: nc, status: status}
 		mc, err := srpc.NewMuxedConn(tracked, false, nil)

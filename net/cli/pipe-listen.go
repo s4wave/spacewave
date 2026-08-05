@@ -15,7 +15,7 @@ import (
 
 // runListen runs the pipe command in listen/server mode.
 func (a *PipeArgs) runListen(ctx context.Context) error {
-	// Setup daemon with UDP transport
+	// Start the daemon and accept-handler transport.
 	d, cleanup, err := a.setupDaemon(ctx, a.ListenAddr, nil)
 	if err != nil {
 		return err
@@ -29,10 +29,10 @@ func (a *PipeArgs) runListen(ctx context.Context) error {
 	a.logStatus("Peer ID: %s", peerID.String())
 	a.logStatus("Listening on %s", a.ListenAddr)
 
-	// Create stream channel for accepting incoming streams
+	// Create the channel that receives accepted mounted streams.
 	streamCh := make(chan link.MountedStream, 1)
 
-	// Create and register the accept handler controller
+	// Register the controller that resolves incoming mounted streams.
 	acceptHandler := newPipeAcceptController(
 		b,
 		protocol.ID(a.ProtocolID),
@@ -46,7 +46,7 @@ func (a *PipeArgs) runListen(ctx context.Context) error {
 		return errors.Wrap(err, "add accept handler")
 	}
 
-	// Wait for incoming stream
+	// Wait for cancellation or the next accepted stream.
 	select {
 	case <-ctx.Done():
 		return ctx.Err()

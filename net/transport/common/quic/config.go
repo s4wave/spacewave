@@ -11,6 +11,7 @@ import (
 
 // BuildQuicConfig constructs the quic config.
 func BuildQuicConfig(opts *Opts) *quic.Config {
+	// Resolve the configured idle timeout.
 	maxIdleTimeout := time.Second * 10
 	if ntDur := opts.GetMaxIdleTimeoutDur(); ntDur != "" {
 		nt, err := time.ParseDuration(ntDur)
@@ -19,11 +20,13 @@ func BuildQuicConfig(opts *Opts) *quic.Config {
 		}
 	}
 
+	// Resolve the configured incoming stream limit.
 	maxIncStreams := 100000
 	if mis := opts.GetMaxIncomingStreams(); mis > 0 {
 		maxIncStreams = int(mis)
 	}
 
+	// Resolve the keepalive period from the timeout and options.
 	keepAlivePeriod := maxIdleTimeout / 2
 	if opts.GetDisableKeepAlive() {
 		keepAlivePeriod = 0
@@ -34,6 +37,7 @@ func BuildQuicConfig(opts *Opts) *quic.Config {
 		}
 	}
 
+	// Build the QUIC configuration from the resolved limits.
 	return &quic.Config{
 		// We don't use datagrams (yet), but this is necessary for WebTransport
 		EnableDatagrams:         !opts.GetDisableDatagrams(),
@@ -50,17 +54,22 @@ func BuildQuicConfig(opts *Opts) *quic.Config {
 //
 // rpeer can be empty to indicate accepting any remote peer.
 func BuildIncomingTlsConf(identity *p2ptls.Identity, rpeer peer.ID) *tls.Config {
+	// Configure ALPN and the peer-aware TLS callback.
 	var tlsConf tls.Config
 	tlsConf.NextProtos = []string{Alpn}
 	tlsConf.GetConfigForClient = func(_ *tls.ClientHelloInfo) (*tls.Config, error) {
-		// note: if rpeer is empty, allows any incoming peer id.
+		// Resolve the peer-specific TLS configuration for each client.
 		conf, _ := identity.ConfigForPeer(rpeer)
+
+		// Require the QUIC ALPN and disable session tickets.
 		conf.NextProtos = []string{Alpn}
+
 		// TODO: https://github.com/golang/go/issues/60506
 		conf.SessionTicketsDisabled = true
 		return conf, nil
 	}
 
+	// Disable session tickets on the listener configuration.
 	// TODO: https://github.com/golang/go/issues/60506
 	tlsConf.SessionTicketsDisabled = true
 	return &tlsConf

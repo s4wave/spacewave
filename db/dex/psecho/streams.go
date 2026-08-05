@@ -39,6 +39,7 @@ func filterLocalExistingBlocks(
 	lk bucket_lookup.Lookup,
 	refs []*block.BlockRef,
 ) ([]*block.BlockRef, error) {
+	// Prefer the batch existence lookup for the requested references.
 	found, err := lk.LookupBlockExistsBatch(ctx, refs, WithLocalOnly())
 	if err != nil {
 		return filterLocalExistingBlocksIndividually(ctx, lk, refs), nil
@@ -47,6 +48,7 @@ func filterLocalExistingBlocks(
 		return nil, errors.Errorf("lookup exists batch returned %d results for %d refs", len(found), len(refs))
 	}
 
+	// Queue references confirmed present in the local store.
 	queued := make([]*block.BlockRef, 0, len(refs))
 	for i, ok := range found {
 		if ok {

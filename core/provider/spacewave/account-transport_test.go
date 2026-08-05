@@ -25,6 +25,7 @@ func (c *observedDoneContext) Done() <-chan struct{} {
 }
 
 func TestCreateSessionTransportPublishesReadyAndStops(t *testing.T) {
+	// Start the initial session transport.
 	acc := NewTestProviderAccount(t, "http://example.invalid")
 	priv, _ := generateTestKeypair(t)
 	ctx := t.Context()
@@ -35,6 +36,8 @@ func TestCreateSessionTransportPublishesReadyAndStops(t *testing.T) {
 	if st := acc.GetSessionTransport(); st == nil {
 		t.Fatal("expected ready session transport to be published")
 	}
+
+	// Verify publication and stop cleanup.
 	running, _ := acc.GetTransportSnapshotWithWait()
 	if !running {
 		t.Fatal("expected transport snapshot to report running")
@@ -51,6 +54,7 @@ func TestCreateSessionTransportPublishesReadyAndStops(t *testing.T) {
 }
 
 func TestCreateSessionTransportReplacesExisting(t *testing.T) {
+	// Start the first transport for replacement.
 	acc := NewTestProviderAccount(t, "http://example.invalid")
 	ctx := t.Context()
 
@@ -63,6 +67,7 @@ func TestCreateSessionTransportReplacesExisting(t *testing.T) {
 		t.Fatal("expected first session transport")
 	}
 
+	// Start a second transport and verify replacement state.
 	secondPriv, _ := generateTestKeypair(t)
 	if err := acc.CreateSessionTransport(ctx, secondPriv, ""); err != nil {
 		t.Fatalf("second CreateSessionTransport: %v", err)
@@ -93,6 +98,7 @@ func TestSessionTransportStateExitBeforeReadyFailsStartup(t *testing.T) {
 }
 
 func TestSessionTransportStateExitWakesPendingStartup(t *testing.T) {
+	// Start a transport with a pending readiness waiter.
 	acc := NewTestProviderAccount(t, "http://example.invalid")
 	priv, _ := generateTestKeypair(t)
 	st, err := transport.NewSessionTransport(acc.le, acc.p.b, priv, "", "")
@@ -108,6 +114,7 @@ func TestSessionTransportStateExitWakesPendingStartup(t *testing.T) {
 		observed: observed,
 	}
 
+	// Wait for the pending startup before publishing exit.
 	done := make(chan error, 1)
 	go func() {
 		done <- sts.WaitStarted(waitCtx)
@@ -119,6 +126,7 @@ func TestSessionTransportStateExitWakesPendingStartup(t *testing.T) {
 	}
 	sts.setExited(context.Canceled)
 
+	// Assert the waiter observes the terminal exit.
 	select {
 	case err := <-done:
 		if !errors.Is(err, context.Canceled) {

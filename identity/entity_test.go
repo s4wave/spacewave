@@ -16,7 +16,7 @@ func TestBuildEntity(t *testing.T) {
 
 	ent := NewEntity(domainID, entityID, entityUUID)
 
-	// generate 2 private keys + keypair objects
+	// Generate two private keys and their entity keypair records.
 	p1, _ := peer.NewPeer(nil)
 	p2, _ := peer.NewPeer(nil)
 	kp1, err := EntityKeypairWithPubKey(
@@ -36,7 +36,7 @@ func TestBuildEntity(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// append them
+	// Append both signed keypairs to the entity.
 	ctx := context.Background()
 	p1Priv, err := p1.GetPrivKey(ctx)
 	if err != nil {
@@ -55,11 +55,10 @@ func TestBuildEntity(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// verify
+	// Validate the completed entity and its keypair signatures.
 	if err := ent.Validate(); err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// done
 	t.Logf("successfully created entity with %d keypairs", len(ent.GetEntityKeypairSet().GetEntityKeypairs()))
 }

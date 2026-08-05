@@ -44,6 +44,7 @@ func NewController(b bus.Bus, le *logrus.Entry, peerID peer.ID, topics []string)
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Resolve the local peer and retain its reference for subscriptions.
 	cpeer, _, ref, err := peer.GetPeerWithID(ctx, c.bus, c.peerID, false, nil)
 	if err != nil {
 		return err
@@ -52,11 +53,13 @@ func (c *Controller) Execute(ctx context.Context) error {
 		defer ref.Release()
 	}
 
+	// Load the private key used to identify each topic subscription.
 	privKey, err := cpeer.GetPrivKey(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Build and retain one subscription directive per configured topic.
 	for _, topic := range c.topics {
 		le := c.le.WithField("topic", topic)
 		_, diRef, err := c.bus.AddDirective(
@@ -70,6 +73,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		le.Info("establishing pubsub subscription")
 		defer diRef.Release()
 	}
+
+	// Keep subscriptions active until controller cancellation.
 	<-ctx.Done()
 	return nil
 }

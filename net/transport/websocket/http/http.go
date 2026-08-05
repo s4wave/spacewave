@@ -31,21 +31,25 @@ type WebSocketHttp struct {
 
 // NewWebSocketHttp builds a new WebSocket http handler controller.
 func NewWebSocketHttp(le *logrus.Entry, b bus.Bus, conf *Config) (*WebSocketHttp, error) {
+	// Resolve the configured peer identity before registering handlers.
 	peerID, err := conf.ParseTransportPeerID()
 	if err != nil {
 		return nil, err
 	}
 
+	// Create the mux that will serve configured HTTP patterns.
 	mux := http.NewServeMux()
 	ctrl := &WebSocketHttp{mux: mux}
 
-	// Ensure no duplicate patterns (causes a panic in net/http)
+	// Track patterns so net/http does not receive duplicates.
 	seenPatterns := make(map[string]struct{}, len(conf.GetHttpPatterns())+len(conf.GetPeerHttpPatterns()))
 	checkPattern := func(httpPattern string) bool {
+		// Ignore empty patterns before checking registrations.
 		if len(httpPattern) == 0 {
 			return false
 		}
 
+		// Reject patterns already registered on this mux.
 		if _, ok := seenPatterns[httpPattern]; ok {
 			le.
 				WithField("http-pattern", httpPattern).
@@ -53,22 +57,26 @@ func NewWebSocketHttp(le *logrus.Entry, b bus.Bus, conf *Config) (*WebSocketHttp
 			return false
 		}
 
+		// Record the accepted pattern for later registrations.
 		seenPatterns[httpPattern] = struct{}{}
 		return true
 	}
 
+	// Register WebSocket endpoint patterns.
 	for _, httpPattern := range conf.GetHttpPatterns() {
 		if checkPattern(httpPattern) {
 			mux.HandleFunc(httpPattern, ctrl.ServeWebSocketHTTP)
 		}
 	}
 
+	// Register peer identity endpoint patterns.
 	for _, peerHttpPattern := range conf.GetPeerHttpPatterns() {
 		if checkPattern(peerHttpPattern) {
 			mux.HandleFunc(peerHttpPattern, ctrl.ServePeerHTTP)
 		}
 	}
 
+	// Construct the transport controller with the WebSocket factory.
 	ctrl.Controller = transport_controller.NewController(
 		le,
 		b,
@@ -123,6 +131,7 @@ func (t *WebSocketHttp) ServePeerHTTP(rw http.ResponseWriter, req *http.Request)
 	}
 
 	rw.WriteHeader(200)
+
 	_, _ = rw.Write([]byte(tpt.GetPeerID().String())) //nolint:gosec // peer ID is not user-controlled
 }
 

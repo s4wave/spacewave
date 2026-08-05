@@ -12,9 +12,11 @@ import (
 )
 
 func newEngineTransformConfig(engineBucketID string) (*block_transform.Config, error) {
+	// Derive the engine transform key from its bucket identifier.
 	key := make([]byte, 32)
 	blake3.DeriveKey("hydra/world/testbed "+engineBucketID, []byte("testbed"), key)
 
+	// Compose compression and encrypted block transforms.
 	return block_transform.NewConfig([]config.Config{
 		&transform_gzip.Config{},
 		&transform_blockenc.Config{

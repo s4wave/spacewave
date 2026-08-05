@@ -29,6 +29,7 @@ func BuildEnvelope(
 	keypairs []crypto.PubKey,
 	config *EnvelopeConfig,
 ) (*Envelope, error) {
+	// Validate the payload, recipients, and grant configuration.
 	if len(payload) == 0 {
 		return nil, ErrEmptyPayload
 	}

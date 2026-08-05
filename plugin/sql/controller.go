@@ -71,12 +71,14 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // Execute registers SQL ObjectTypes, WorldOps, viewers, and Quickstart metadata.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Connect to the core plugin resources.
 	resources, err := s4wave_plugin.ConnectPluginResources(ctx, c.GetBus(), "spacewave-core")
 	if err != nil {
 		return err
 	}
 	defer resources.Release()
 
+	// Resolve the core root resource client.
 	rootRef := resources.Client.AccessRootResource()
 	rootClient, err := rootRef.GetClient()
 	if err != nil {
@@ -85,6 +87,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer rootRef.Release()
 
+	// Register SQL resources and retain their references for the controller lifetime.
 	refs, err := c.registerSQL(ctx, resources.Client, rootClient)
 	if err != nil {
 		releaseRefs(refs)
@@ -92,33 +95,42 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	defer releaseRefs(refs)
 
+	// Keep registrations active until the controller context ends.
 	<-ctx.Done()
 	return nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	// Inspect the directive type requested by the bus.
 	switch d := di.GetDirective().(type) {
 	case bifrost_rpc.LookupRpcService:
+		// Resolve the SQL resource service when its ID matches.
 		if d.LookupRpcServiceID() == resource.SRPCResourceServiceServiceID {
 			return directive.R(bifrost_rpc.NewLookupRpcServiceResolver(c.mux), nil)
 		}
 	case blocktype.LookupBlockType:
+		// Require a block type ID before creating a resolver.
 		typeID := d.LookupBlockTypeID()
 		if typeID == "" {
 			return nil, nil
 		}
 		return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+			// Resolve the SQL block type from its registered ID.
 			blockType, err := lookupSQLBlockType(typeID)
 			if err != nil {
 				return err
 			}
+
+			// Publish the block type when the registry contains it.
 			if blockType != nil {
 				_, _ = handler.AddValue(blockType)
 			}
 			return nil
 		}), nil)
 	}
+
+	// Leave unsupported directives unresolved.
 	return nil, nil
 }
 
@@ -127,6 +139,7 @@ func (c *Controller) registerSQL(
 	client *resource_client.Client,
 	rootClient srpc.Client,
 ) ([]resource_client.ResourceRef, error) {
+	// Track resource references so registrations can be released together.
 	var refs []resource_client.ResourceRef
 	retain := func(label string, resourceID uint32) error {
 		if resourceID == 0 {
@@ -136,6 +149,7 @@ func (c *Controller) registerSQL(
 		return nil
 	}
 
+	// Register SQL object types with the core registry.
 	otSvc := s4wave_objecttype_registry.NewSRPCObjectTypeRegistryResourceServiceClient(rootClient)
 	for _, typeID := range sqlObjectTypeIDs {
 		resp, err := otSvc.RegisterObjectType(ctx, &s4wave_objecttype_registry.RegisterObjectTypeRequest{
@@ -150,6 +164,7 @@ func (c *Controller) registerSQL(
 		}
 	}
 
+	// Register SQL world operations with the core registry.
 	woSvc := s4wave_worldop_registry.NewSRPCWorldOpRegistryResourceServiceClient(rootClient)
 	for _, opID := range sqlWorldOpIDs {
 		resp, err := woSvc.RegisterWorldOp(ctx, &s4wave_worldop_registry.RegisterWorldOpRequest{
@@ -164,6 +179,7 @@ func (c *Controller) registerSQL(
 		}
 	}
 
+	// Register the SQL quickstart metadata.
 	qsSvc := s4wave_quickstart_registry.NewSRPCQuickstartRegistryResourceServiceClient(rootClient)
 	quickstart, err := qsSvc.RegisterQuickstart(ctx, &s4wave_quickstart_registry.RegisterQuickstartRequest{
 		Registration: &s4wave_quickstart_registry.QuickstartRegistration{
@@ -184,6 +200,7 @@ func (c *Controller) registerSQL(
 		return refs, err
 	}
 
+	// Register SQL viewers with the core registry.
 	viewerSvc := s4wave_viewer_registry.NewSRPCViewerRegistryResourceServiceClient(rootClient)
 	for _, viewer := range sqlViewerRegistrations {
 		resp, err := viewerSvc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{Registration: viewer})
@@ -199,6 +216,7 @@ func (c *Controller) registerSQL(
 }
 
 func releaseRefs(refs []resource_client.ResourceRef) {
+	// Release registrations in reverse order of acquisition.
 	for i := len(refs) - 1; i >= 0; i-- {
 		refs[i].Release()
 	}

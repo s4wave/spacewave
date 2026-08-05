@@ -10,6 +10,7 @@ import (
 )
 
 func TestSessionTransportStartupTimeoutCannotBeOverwrittenByReady(t *testing.T) {
+	// Initialize startup state and admit the timeout.
 	st := &SessionTransport{startupTimeout: time.Second}
 	st.setStartupStage("ready")
 
@@ -18,6 +19,7 @@ func TestSessionTransportStartupTimeoutCannotBeOverwrittenByReady(t *testing.T) 
 		t.Fatal("expected startup timeout admission")
 	}
 
+	// Attempt readiness publication after terminal timeout.
 	st.publishStartupReady()
 
 	if st.startupReady {
@@ -30,6 +32,7 @@ func TestSessionTransportStartupTimeoutCannotBeOverwrittenByReady(t *testing.T) 
 }
 
 func TestSessionTransportPublicationWinsInternalDeadlineCancellation(t *testing.T) {
+	// Define terminal publication cases.
 	terminalErr := errors.New("terminal startup")
 	tests := []struct {
 		name      string
@@ -67,6 +70,8 @@ func TestSessionTransportPublicationWinsInternalDeadlineCancellation(t *testing.
 			wantError: errSignalTicketUnauthorized.Error(),
 		},
 	}
+
+	// Run each publication case behind a captured wait epoch.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
@@ -88,6 +93,7 @@ func TestSessionTransportPublicationWinsInternalDeadlineCancellation(t *testing.
 				})
 			}()
 
+			// Wait for the readiness snapshot before publishing the result.
 			select {
 			case <-snapshot:
 			case <-ctx.Done():
@@ -96,6 +102,7 @@ func TestSessionTransportPublicationWinsInternalDeadlineCancellation(t *testing.
 			tt.publish(st)
 			close(release)
 
+			// Assert the admitted terminal outcome.
 			select {
 			case err := <-done:
 				if !tt.check(err) {
@@ -109,6 +116,7 @@ func TestSessionTransportPublicationWinsInternalDeadlineCancellation(t *testing.
 }
 
 func TestSessionTransportCancellationDoesNotAdmitStartupTimeout(t *testing.T) {
+	// Initialize cancellation and the transport deadline.
 	callerCtx, callerCancel := context.WithCancel(t.Context())
 	defer callerCancel()
 	st := &SessionTransport{startupTimeout: time.Second}
@@ -117,6 +125,7 @@ func TestSessionTransportCancellationDoesNotAdmitStartupTimeout(t *testing.T) {
 	st.ensureStartupDeadline(startupCtx)
 	st.cancelStartupDeadline()
 
+	// Await readiness after caller cancellation.
 	err := st.awaitReady(callerCtx, callerCancel)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("AwaitReady returned %v after owner cancellation, want context canceled", err)

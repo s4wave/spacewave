@@ -64,6 +64,7 @@ func CopyV86ImageFromCdnWithProgress(
 	dstObjectKey string,
 	progress V86ImageCopyProgressFunc,
 ) error {
+	// Validate source and destination object keys.
 	if srcObjectKey == "" {
 		return errors.New("source object key is required")
 	}
@@ -71,21 +72,25 @@ func CopyV86ImageFromCdnWithProgress(
 		return errors.New("destination object key is required")
 	}
 
+	// Read the source image metadata.
 	img, err := readCdnV86Image(ctx, src, srcObjectKey)
 	if err != nil {
 		return errors.Wrapf(err, "read v86 image %q from cdn", srcObjectKey)
 	}
 
+	// Read the source image's asset edges.
 	edges, err := readV86ImageEdges(ctx, src, srcObjectKey)
 	if err != nil {
 		return errors.Wrapf(err, "read v86 image edges for %q", srcObjectKey)
 	}
 
+	// Check whether the destination image can be created.
 	dstImageExists, err := checkDstV86Image(ctx, dst, dstObjectKey, img)
 	if err != nil {
 		return errors.Wrap(err, "destination write check")
 	}
 
+	// Create the destination image when it is absent.
 	if !dstImageExists {
 		createdAt := img.GetCreatedAt().AsTime()
 		if createdAt.IsZero() {
@@ -97,6 +102,7 @@ func CopyV86ImageFromCdnWithProgress(
 		}
 	}
 
+	// Copy each asset object and link its graph edge.
 	var copiedStats bucket_lookup.ObjectCopyStats
 	for pred, targetKey := range edges {
 		if targetKey == "" {
@@ -119,6 +125,7 @@ func CopyV86ImageFromCdnWithProgress(
 		}
 	}
 
+	// Report completion after all asset edges are durable.
 	return nil
 }
 

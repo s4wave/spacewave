@@ -13,12 +13,14 @@ import (
 func (s *CoreRootServer) getStateAtomStoreIndex(
 	ctx context.Context,
 ) (*session.StateAtomStoreIndex, error) {
+	// Serialize lazy index creation and reject closed servers.
 	s.stateAtomStoreIndexMtx.Lock()
 	defer s.stateAtomStoreIndexMtx.Unlock()
 	if s.stateAtomStoreClosed {
 		return nil, errors.New("root resource server is closed")
 	}
 
+	// Reuse the existing state-atom index when available.
 	if s.stateAtomStoreIndex != nil {
 		return s.stateAtomStoreIndex, nil
 	}
@@ -28,6 +30,8 @@ func (s *CoreRootServer) getStateAtomStoreIndex(
 		release             func()
 		err                 error
 	)
+
+	// Build the index through the test hook or plugin object store.
 	if builder := s.stateAtomStoreIndexBuilder; builder != nil {
 		stateAtomStoreIndex, release, err = builder(ctx)
 	} else {
@@ -45,6 +49,8 @@ func (s *CoreRootServer) getStateAtomStoreIndex(
 		stateAtomStoreIndex = session.NewStateAtomStoreIndex(objStoreHandle.GetObjectStore())
 		release = diRef.Release
 	}
+
+	// Publish the initialized index and release callback.
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +68,7 @@ func (s *CoreRootServer) closeStateAtomStoreIndex() {
 	s.releaseStateAtomStoreIndex = nil
 	s.stateAtomStoreIndexMtx.Unlock()
 
+	// Release the detached object-store index after unlocking.
 	if release != nil {
 		release()
 	}

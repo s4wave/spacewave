@@ -18,6 +18,7 @@ func NewPubMessage(
 	hashType hash.HashType,
 	data []byte,
 ) (*peer.SignedMsg, *PubMessageInner, error) {
+	// Build and serialize the signed inner message.
 	inner := &PubMessageInner{
 		Data:      data,
 		Channel:   channelID,
@@ -28,12 +29,14 @@ func NewPubMessage(
 		return nil, inner, err
 	}
 
+	// Sign the serialized payload with the channel encryption context.
 	sig, err := peer.NewSignedMsg(pubMessageEncContext+channelID, privKey, hashType, innerData)
 	return sig, inner, err
 }
 
 // ExtractAndVerify extracts the inner message from a signed message.
 func ExtractAndVerify(msg *peer.SignedMsg) (*PubMessageInner, crypto.PubKey, peer.ID, error) {
+	// Decode and validate the signed inner message before verifying identity.
 	data := msg.GetData()
 
 	out := &PubMessageInner{}
@@ -45,6 +48,7 @@ func ExtractAndVerify(msg *peer.SignedMsg) (*PubMessageInner, crypto.PubKey, pee
 		return nil, nil, "", err
 	}
 
+	// Verify the signature against the decoded channel context.
 	pubKey, peerID, err := msg.ExtractAndVerify(pubMessageEncContext + out.GetChannel())
 	if err != nil {
 		return nil, nil, "", err

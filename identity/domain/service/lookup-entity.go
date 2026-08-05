@@ -22,7 +22,6 @@ func NewLookupEntityReq(
 	ts *timestamp.Timestamp,
 	nonce uint64,
 ) (*LookupEntityReq, error) {
-	// fill
 	if nonce == 0 {
 		var b [8]byte
 		if _, err := rand.Read(b[:]); err != nil {
@@ -59,7 +58,7 @@ func (r *LookupEntityReq) Validate() error {
 
 // CheckTimestamp checks if the timestamp is within range.
 func (r *LookupEntityReq) CheckTimestamp(now time.Time) error {
-	// assert timestamp is within last 5 mins
+	// Enforce the allowed request clock skew.
 	reqTs := r.GetTimestamp().AsTime()
 	reqTsDiff := now.Sub(reqTs)
 	if reqTsDiff > time.Minute*5 || reqTsDiff < -1*time.Second*30 {

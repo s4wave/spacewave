@@ -52,7 +52,7 @@ func NewSpaceResourceWithSessionPeerID(
 }
 
 // NewSpaceResourceWithSessionPeerIDAndHostPluginID creates a SpaceResource
-// with the mounted local session peer ID and owning host plugin ID.
+// with the mounted local session peer ID and host plugin ID.
 func NewSpaceResourceWithSessionPeerIDAndHostPluginID(
 	le *logrus.Entry,
 	b bus.Bus,
@@ -108,12 +108,15 @@ func (r *SpaceResource) WatchSpaceState(
 	req *s4wave_space.WatchSpaceStateRequest,
 	strm s4wave_space.SRPCSpaceResourceService_WatchSpaceStateStream,
 ) error {
+	// Initialize the world snapshot watch.
 	ctx, worldEng := strm.Context(), r.space.GetWorldEngine()
 
-	// Watch the world contents.
+	// Read and publish the current world contents.
 	var prevWorldSeqno uint64
 	for {
 		r.le.Debugf("checking world state: seqno(%v)", prevWorldSeqno+1)
+
+		// Build one SpaceState snapshot from a read transaction.
 		var state *s4wave_space.SpaceState
 		if err := func() error {
 			wtx, err := worldEng.NewTransaction(ctx, false)
@@ -127,30 +130,31 @@ func (r *SpaceResource) WatchSpaceState(
 				return err
 			}
 
+			// Start a ready SpaceState response.
 			state = &s4wave_space.SpaceState{Ready: true}
 
-			// build the object list
+			// Build the world object list.
 			state.WorldContents, err = space_world.BuildWorldContents(ctx, wtx)
 			if err != nil {
 				return err
 			}
 
-			// Load SpaceSettings from the world (ignore not found error)
+			// Load SpaceSettings when present.
 			state.Settings, _, err = space_world.LookupSpaceSettings(ctx, wtx)
 			if err != nil {
 				return err
 			}
 
-			// Build transform info from the shared object state.
+			// Attach shared-object transform information.
 			state.TransformInfo = r.buildTransformInfo(ctx)
 
-			// send ready
+			// Publish the snapshot.
 			return strm.Send(state)
 		}(); err != nil {
 			return err
 		}
 
-		// wait til seqno changes
+		// Wait for the next world sequence.
 		if _, err := worldEng.WaitSeqno(ctx, prevWorldSeqno+1); err != nil {
 			return err
 		}

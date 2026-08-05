@@ -13,6 +13,7 @@ import (
 
 // RunGetObject returns an object from the store.
 func (a *ClientArgs) RunGetObject(_ *cli.Context) error {
+	// Resolve the client and request context.
 	le := a.GetLogger()
 	ctx := a.GetContext()
 	c, err := a.BuildClient()
@@ -20,12 +21,12 @@ func (a *ClientArgs) RunGetObject(_ *cli.Context) error {
 		return err
 	}
 
+	// Validate and execute the object lookup.
 	req := &a.ObjectStoreOpReq
 	req.Op = api.ObjectStoreOp_ObjectStoreOp_GET_KEY
 	if err := req.Validate(); err != nil {
 		return err
 	}
-
 	resp, err := c.ObjectStoreOp(ctx, req)
 	if err != nil {
 		return err
@@ -34,6 +35,7 @@ func (a *ClientArgs) RunGetObject(_ *cli.Context) error {
 		return errors.New("object not found")
 	}
 
+	// Log the response metadata and write the object data.
 	data := resp.GetData()
 	resp.Data = nil
 	d, err := resp.MarshalJSON()
@@ -47,6 +49,7 @@ func (a *ClientArgs) RunGetObject(_ *cli.Context) error {
 
 // RunRmObject removes an object from the store.
 func (a *ClientArgs) RunRmObject(_ *cli.Context) error {
+	// Resolve the client and request context.
 	le := a.GetLogger()
 	ctx := a.GetContext()
 	c, err := a.BuildClient()
@@ -54,12 +57,12 @@ func (a *ClientArgs) RunRmObject(_ *cli.Context) error {
 		return err
 	}
 
+	// Validate and execute the object removal.
 	req := &a.ObjectStoreOpReq
 	req.Op = api.ObjectStoreOp_ObjectStoreOp_DELETE_KEY
 	if err := req.Validate(); err != nil {
 		return err
 	}
-
 	resp, err := c.ObjectStoreOp(ctx, req)
 	if err != nil {
 		return err
@@ -68,6 +71,7 @@ func (a *ClientArgs) RunRmObject(_ *cli.Context) error {
 		return errors.New("object not found")
 	}
 
+	// Log the response metadata and write the removed object data.
 	data := resp.GetData()
 	resp.Data = nil
 	d, err := resp.MarshalJSON()
@@ -81,6 +85,7 @@ func (a *ClientArgs) RunRmObject(_ *cli.Context) error {
 
 // RunPutObject puts an object to the store.
 func (a *ClientArgs) RunPutObject(_ *cli.Context) error {
+	// Resolve the client and request context.
 	le := a.GetLogger()
 	ctx := a.GetContext()
 	c, err := a.BuildClient()
@@ -88,6 +93,7 @@ func (a *ClientArgs) RunPutObject(_ *cli.Context) error {
 		return err
 	}
 
+	// Read object data from stdin or the configured file.
 	var dat []byte
 	if a.ObjectStoreFile == "" || a.ObjectStoreFile == "-" {
 		le.Debug("reading from stdin")
@@ -100,6 +106,7 @@ func (a *ClientArgs) RunPutObject(_ *cli.Context) error {
 		return err
 	}
 
+	// Configure and submit the object write.
 	req := &a.ObjectStoreOpReq
 	req.Data = dat
 	req.Op = api.ObjectStoreOp_ObjectStoreOp_PUT_KEY
@@ -111,6 +118,7 @@ func (a *ClientArgs) RunPutObject(_ *cli.Context) error {
 
 // RunListObjectKeys lists object keys in a store.
 func (a *ClientArgs) RunListObjectKeys(_ *cli.Context) error {
+	// Resolve the client and request context.
 	le := a.GetLogger()
 	ctx := a.GetContext()
 	c, err := a.BuildClient()
@@ -118,16 +126,18 @@ func (a *ClientArgs) RunListObjectKeys(_ *cli.Context) error {
 		return err
 	}
 
+	// Validate and execute the key listing.
 	req := &a.ObjectStoreOpReq
 	req.Op = api.ObjectStoreOp_ObjectStoreOp_LIST_KEYS
 	if err := req.Validate(); err != nil {
 		return err
 	}
-
 	resp, err := c.ObjectStoreOp(ctx, req)
 	if err != nil {
 		return err
 	}
+
+	// Log the key count and print each returned key.
 	le.WithField("key-count", len(resp.GetKeys())).Debug("returned keys")
 	for _, key := range resp.GetKeys() {
 		os.Stdout.WriteString(string(key))

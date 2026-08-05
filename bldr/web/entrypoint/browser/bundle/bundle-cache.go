@@ -103,6 +103,7 @@ func (bc *bundleCache) build(
 	extraDigest []byte,
 	doBuild func() (*bundleBuildOutput, error),
 ) (*bundleBuildOutput, error) {
+	// Compute cache provenance and fall back to a direct build when unavailable.
 	configDigest, cacheable := bc.configDigest(opts, extraDigest)
 	if !cacheable {
 		out, err := doBuild()
@@ -112,18 +113,21 @@ func (bc *bundleCache) build(
 		return out, err
 	}
 
+	// Serialize builds for the same bundle name.
 	lock, err := acquireBundleCacheLock(filepath.Join(bc.dir, name+".lock"))
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = lock.Close() }()
 
+	// Reuse a valid cached bundle when provenance still matches.
 	if cached := bc.load(name, configDigest); cached != nil {
 		bc.reuses.Add(1)
 		bc.le.WithField("bundle", name).Debug("reusing cached browser bundle")
 		return cached, nil
 	}
 
+	// Build the bundle and count the fresh output.
 	out, err := doBuild()
 	if err != nil {
 		return nil, err

@@ -17,8 +17,12 @@ const encodedAssetVary = "Accept-Encoding"
 // asset headers for precompressed immutable files.
 func NewEncodedAssetFileServer(hfs http.FileSystem) http.Handler {
 	fileServer := http.FileServer(hfs)
+
+	// Apply immutable asset metadata before serving or decoding the file.
 	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		applyEncodedAssetHeaders(rw, req, hfs)
+
+		// Serve Brotli assets directly when the client lacks Brotli support.
 		if maybeServeDecodedBrotli(rw, req, hfs) {
 			return
 		}
@@ -27,15 +31,20 @@ func NewEncodedAssetFileServer(hfs http.FileSystem) http.Handler {
 }
 
 func applyEncodedAssetHeaders(rw http.ResponseWriter, req *http.Request, hfs http.FileSystem) {
+	// Classify the requested asset and its optional content encoding.
 	reqPath := req.URL.Path
 	contentType, encoded := encodedAssetContentType(reqPath)
 	if contentType == "" {
 		return
 	}
+
+	// Verify the encoded file exists before setting response headers.
 	st, err := statHTTPFile(hfs, reqPath)
 	if err != nil {
 		return
 	}
+
+	// Advertise the selected encoding and cache-vary behavior.
 	rw.Header().Set("Content-Type", contentType)
 	switch encoded {
 	case "gzip":
@@ -47,6 +56,8 @@ func applyEncodedAssetHeaders(rw http.ResponseWriter, req *http.Request, hfs htt
 			rw.Header().Set("Vary", encodedAssetVary)
 		}
 	}
+
+	// Set the encoded size after content negotiation succeeds.
 	if rw.Header().Get("Content-Encoding") == "" {
 		return
 	}
@@ -140,6 +151,8 @@ func cleanHTTPFilePath(name string) (string, error) {
 	if strings.Contains(name, "\\") {
 		return "", fs.ErrPermission
 	}
+
+	// Reject traversal components before normalizing the filesystem path.
 	for part := range strings.SplitSeq(name, "/") {
 		if part == ".." {
 			return "", fs.ErrPermission

@@ -1,4 +1,4 @@
-// Package device_policy owns daemon-local Device policy persistence and watches.
+// Package device_policy stores and watches daemon-local Device policy.
 package device_policy
 
 import (

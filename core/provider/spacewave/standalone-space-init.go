@@ -35,6 +35,7 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 	accountID string,
 	spaceID string,
 ) (bool, error) {
+	// Validate the authenticated client and initialization inputs.
 	if c == nil {
 		return false, errors.New("session client is required")
 	}
@@ -54,11 +55,13 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 		le = logrus.New().WithField("component", "standalone-space-init")
 	}
 
+	// Load the current shared-object state and config chain.
 	state, chain, err := c.loadStandaloneInitState(ctx, spaceID)
 	if err != nil {
 		return false, err
 	}
 
+	// Verify local owner participation and grant state.
 	localPeerID := c.peerID.String()
 	localParticipant := participantConfigForPeer(state.GetConfig(), localPeerID)
 	if localParticipant == nil {
@@ -73,6 +76,7 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 		return false, nil
 	}
 
+	// Initialize an unrooted shared object when needed.
 	root := state.GetRoot()
 	if root == nil || root.GetInnerSeqno() == 0 {
 		if err := initializeCloudSharedObjectState(
@@ -90,6 +94,7 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 		return true, nil
 	}
 
+	// Reject inconsistent config history before repair.
 	if len(chain.GetConfigChanges()) != 0 {
 		return false, errors.New("local grant missing on initialized space with config history")
 	}
@@ -98,6 +103,8 @@ func (c *SessionClient) InitEmptyStandaloneSpace(
 			return false, errors.New("local grant missing on initialized space with existing key grants")
 		}
 	}
+
+	// Repair an initialized shared object missing the local grant.
 	if err := repairGrantlessStandaloneSpace(
 		ctx,
 		c,
@@ -118,6 +125,7 @@ func (c *SessionClient) loadStandaloneInitState(
 	ctx context.Context,
 	spaceID string,
 ) (*sobject.SOState, *sobject.SOConfigChainResponse, error) {
+	// Fetch and decode the cloud state snapshot.
 	stateData, err := c.GetSOState(ctx, spaceID, 0, SeedReasonColdSeed)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "get so state")
@@ -129,6 +137,8 @@ func (c *SessionClient) loadStandaloneInitState(
 	if state == nil {
 		return nil, nil, errors.New("missing so state snapshot")
 	}
+
+	// Load the config chain when the state response omitted it.
 	if chain == nil {
 		chainData, err := c.GetConfigChain(ctx, spaceID)
 		if err != nil {
@@ -174,6 +184,7 @@ func initializeCloudSharedObjectState(
 	sfs *block_transform.StepFactorySet,
 	seedWorldHead bool,
 ) error {
+	// Build the signed standalone initialization state.
 	state, err := buildStandaloneSpaceInitState(
 		ctx,
 		cli,
@@ -188,6 +199,8 @@ func initializeCloudSharedObjectState(
 	if err != nil {
 		return err
 	}
+
+	// Publish the signed config state.
 	if err := cli.PostConfigState(
 		ctx,
 		sharedObjectID,
@@ -198,6 +211,8 @@ func initializeCloudSharedObjectState(
 	); err != nil {
 		return errors.Wrap(err, "post signed genesis config")
 	}
+
+	// Marshal and publish the initial root state.
 	rootData, err := state.root.MarshalVT()
 	if err != nil {
 		return errors.Wrap(err, "marshal root")

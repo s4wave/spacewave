@@ -41,13 +41,13 @@ func TestStorage_References(t *testing.T) {
 	}
 	defer store.Close()
 
-	// check not exists
+	// Confirm missing references return ErrReferenceNotFound.
 	_, err = store.Reference("notfound")
 	if err != plumbing.ErrReferenceNotFound {
 		t.Fail()
 	}
 
-	// store a reference
+	// Store a symbolic reference in the repository.
 	testRef := plumbing.ReferenceName("main")
 	err = store.SetReference(plumbing.NewSymbolicReference(testRef, "master"))
 	if err != nil {
@@ -55,13 +55,13 @@ func TestStorage_References(t *testing.T) {
 	}
 	le.Info("set reference 'main'")
 
-	// check exists
+	// Read back the reference before persisting the transaction.
 	_, err = store.Reference(testRef)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// write
+	// Persist the reference root and reopen the store.
 	rootRef, bcs, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -74,7 +74,7 @@ func TestStorage_References(t *testing.T) {
 	}
 	defer store.Close()
 
-	// check exists
+	// Verify the reference remains after reopening the store.
 	ref, err := store.Reference(testRef)
 	if err != nil {
 		t.Fatal(err.Error())

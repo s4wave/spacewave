@@ -76,24 +76,24 @@ func (o *GitInitOp) ApplyWorldOp(
 	objKey := o.GetObjectKey()
 	repoRef := o.GetRepoRef()
 
-	// create / validate the objectref for the repo
+	// Create or validate the repository root reference.
 	repoRef, err = ValidateOrCreateRepo(ctx, worldHandle.AccessWorldState, repoRef)
 	if err != nil {
 		return false, err
 	}
 
-	// create the repo object
+	// Register the repository object in world state.
 	_, err = worldHandle.CreateObject(ctx, objKey, repoRef)
 	if err != nil {
 		return false, err
 	}
 
-	// repo type -> types/git/repo
+	// Record the repository type metadata.
 	if err := world_types.SetObjectType(ctx, worldHandle, objKey, GitRepoTypeID); err != nil {
 		return false, err
 	}
 
-	// if configured perform the checkout
+	// Create the configured worktree and checkout when enabled.
 	if !o.GetDisableCheckout() {
 		op := o.GetCreateWorktree()
 		if op == nil {
@@ -127,13 +127,13 @@ func (o *GitInitOp) ApplyWorldObjectOp(
 	// Disable checkout, ignore object key.
 	repoRef := o.GetRepoRef()
 
-	// create / validate the objectref for the repo
+	// Create or validate the repository root for the existing object.
 	repoRef, err = ValidateOrCreateRepo(ctx, objectHandle.AccessWorldState, repoRef)
 	if err != nil {
 		return false, err
 	}
 
-	// update the object
+	// Publish the validated repository root on the object handle.
 	_, err = objectHandle.SetRootRef(ctx, repoRef)
 	return false, err
 }

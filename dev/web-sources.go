@@ -32,6 +32,7 @@ const (
 // materialized "@scope/name". Best effort: on failure the existing resolver
 // stages run and surface the original build error.
 func ensureWebSources(ctx context.Context, args *bldr_devtool.DevtoolArgs) {
+	// Resolve the downstream repository root.
 	le := args.Logger
 	repoRoot, err := args.FindRepoRoot()
 	if err != nil {
@@ -39,26 +40,34 @@ func ensureWebSources(ctx context.Context, args *bldr_devtool.DevtoolArgs) {
 		return
 	}
 
+	// Resolve the spacewave module directory from the module graph.
 	moduleDir, err := spacewaveModuleDir(ctx, repoRoot)
 	if err != nil {
 		le.WithError(err).Debug("ensure web sources: resolve spacewave module dir")
 		return
 	}
+
+	// Require the module's web source directory before linking it.
 	source := filepath.Join(moduleDir, webPkgName)
 	if info, statErr := os.Stat(source); statErr != nil || !info.IsDir() {
 		le.WithError(statErr).Debugf("ensure web sources: missing %s", source)
 		return
 	}
 
+	// Create the scope directory used for the materialized web package.
 	scope := filepath.Join(repoRoot, webPkgScopeDir)
 	if err := os.MkdirAll(scope, 0o755); err != nil {
 		le.WithError(err).Debug("ensure web sources: create scope dir")
 		return
 	}
+
+	// Reuse an existing link when it already targets the module source.
 	link := filepath.Join(scope, webPkgName)
 	if current, readErr := os.Readlink(link); readErr == nil && current == source {
 		return
 	}
+
+	// Remove a stale link before creating the current source link.
 	if err := os.Remove(link); err != nil && !os.IsNotExist(err) {
 		le.WithError(err).Debug("ensure web sources: clear stale link")
 		return
@@ -73,12 +82,15 @@ func ensureWebSources(ctx context.Context, args *bldr_devtool.DevtoolArgs) {
 // spacewaveModuleDir returns the on-disk source directory for the spacewave
 // module as resolved from repoRoot's module graph, downloading it if needed.
 func spacewaveModuleDir(ctx context.Context, repoRoot string) (string, error) {
+	// Ask Go to resolve the spacewave module directory.
 	cmd := exec.CommandContext(ctx, "go", "list", "-m", "-mod=mod", "-f", "{{.Dir}}", spacewaveModulePath)
 	cmd.Dir = repoRoot
 	out, err := cmd.Output()
 	if err != nil {
 		return "", errors.Wrap(err, "go list spacewave module")
 	}
+
+	// Require a non-empty module directory for source linking.
 	dir := strings.TrimSpace(string(out))
 	if dir == "" {
 		return "", errors.New("spacewave module dir is empty")

@@ -70,6 +70,7 @@ func WithVerbose(verbose bool) Option {
 // NewTestbed constructs a new core bus with a attached kvtx in-memory volume,
 // logger, and other core controllers required for a test to function.
 func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Testbed, tbErr error) {
+	// Release partially initialized controllers when setup fails.
 	var rels []func()
 	defer func() {
 		if tbErr != nil {
@@ -79,6 +80,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 		}
 	}()
 
+	// Construct the testing bus and register core factories.
 	b, sr, err := core_test.NewTestingBus(ctx, le)
 	if err != nil {
 		return nil, err
@@ -87,6 +89,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 	core.AddFactories(b, sr)
 
 	// ConfigSet controller
+	// Start the config-set controller.
 	_, _, csRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
@@ -98,6 +101,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 	}
 	rels = append(rels, csRef.Release)
 
+	// Resolve testbed volume options.
 	var volumeConfig config.Config
 	var volumeConfigEmpty bool
 	verbose := Verbose
@@ -119,6 +123,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 		}
 	}
 
+	// Start the node controller.
 	_, _, nref, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
@@ -132,6 +137,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 	}
 	rels = append(rels, nref.Release)
 
+	// Start the configured volume and apply the test bucket.
 	var vc volume.Controller
 	var v volume.Volume
 	var bucketID string
@@ -166,6 +172,7 @@ func NewTestbed(ctx context.Context, le *logrus.Entry, opts ...Option) (tb *Test
 		}
 	}
 
+	// Build the transform factory set and return the testbed.
 	sfs := transform_all.BuildFactorySet()
 
 	return &Testbed{

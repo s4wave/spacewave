@@ -49,6 +49,7 @@ func (l *lookupBucket) BeginReadOperation(context.Context) (block.StoreOps, func
 // PutBlock puts a block into the store.
 // The ref should not be modified after return.
 func (l *lookupBucket) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	// Resolve the lookup handle before writing the block.
 	lb, err := l.h.GetLookup(ctx)
 	if err != nil {
 		return nil, false, err
@@ -58,6 +59,8 @@ func (l *lookupBucket) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 	}
 
 	var blockRef *block.BlockRef
+
+	// Select the first non-empty root reference returned by the lookup write.
 	objRefs, existed, err := lb.PutBlock(ctx, data, opts)
 	for _, objRef := range objRefs {
 		rootRef := objRef.GetRootRef()
@@ -71,6 +74,7 @@ func (l *lookupBucket) PutBlock(ctx context.Context, data []byte, opts *block.Pu
 
 // PutBlockBatch loops calling PutBlock or RmBlock per entry.
 func (l *lookupBucket) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	// Apply each batch entry as either a tombstone removal or a block write.
 	for _, entry := range entries {
 		if entry.Tombstone {
 			if err := l.RmBlock(ctx, entry.Ref); err != nil {

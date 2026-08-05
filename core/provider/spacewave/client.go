@@ -1707,6 +1707,7 @@ func (c *SessionClient) CreateSharedObject(
 	ownerID string,
 	accountPrivate bool,
 ) error {
+	// Marshal the shared-object creation request.
 	body, err := (&api.CreateSObjectRequest{
 		DisplayName:    displayName,
 		ObjectType:     objectType,
@@ -1717,10 +1718,14 @@ func (c *SessionClient) CreateSharedObject(
 	if err != nil {
 		return errors.Wrap(err, "marshal create request")
 	}
+
+	// Submit the creation mutation to the cloud.
 	data, err := c.doPostBinary(ctx, path.Join("/api/sobject", soID, "create"), body, nil, SeedReasonMutation)
 	if err != nil {
 		return errors.Wrap(err, "create shared object")
 	}
+
+	// Decode the cloud response before returning.
 	var resp api.CreateSObjectResponse
 	if err := resp.UnmarshalVT(data); err != nil {
 		return errors.Wrap(err, "unmarshal create shared object response")

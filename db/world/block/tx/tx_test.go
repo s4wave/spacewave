@@ -34,13 +34,13 @@ func TestWorldState(t *testing.T) {
 	}
 	defer ocs.Release()
 
-	// pass 1: build base mock world
+	// Build the base mock world state.
 	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// add the mock object
+	// Seed the base state with a mock object and commit it.
 	objKey := "tx-test-obj-1"
 	sender := tb.Volume.GetPeerID()
 	_, err = world_block.BuildMockObject(ctx, ws, objKey)
@@ -54,7 +54,7 @@ func TestWorldState(t *testing.T) {
 	}
 	ocs.SetRootRef(ws.GetRootRef())
 
-	// pass 2: test forking it + applying changes
+	// Reopen the base state before forking and applying changes.
 	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err == nil {
 		_, err = world.MustGetObject(ctx, ws, objKey)
@@ -63,14 +63,13 @@ func TestWorldState(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// test forking the state using the tx wrapper
-	// create a new tx wrapper, forking the state.
+	// Fork the state through the transaction wrapper.
 	forkedTx, err := ForkWorldState(ctx, ws, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	// checkRev asserts a object is at a revision
+	// Define the revision assertion used for the fork.
 	checkRev := func(obj world.ObjectState, expected uint64) {
 		if err := world.AssertObjectRev(ctx, obj, expected); err != nil {
 			t.Fatal(err.Error())
@@ -87,14 +86,14 @@ func TestWorldState(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// ensure the change was applied to the object
+	// Verify the forked operation changed the object revision.
 	obj, err := world.MustGetObject(ctx, forkedTx, objKey)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	checkRev(obj, 2)
 
-	// check the updated field on the object
+	// Verify the forked operation changed the object payload.
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		e, err := block_mock.UnmarshalExample(ctx, bcs)
 		if err == nil && e.GetMsg() != secondMsg {
@@ -106,13 +105,13 @@ func TestWorldState(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// check the transaction set
+	// Verify the fork recorded exactly one transaction.
 	txBatch := forkedTx.GetTxBatch()
 	if l := len(txBatch.GetTxs()); l != 1 {
 		t.Fatalf("expected 1 tx but got %d", l)
 	}
 
-	// check the tx
+	// Verify the recorded transaction type and sender.
 	tx := txBatch.GetTxs()[0]
 	if tt := tx.GetTxType(); tt != TxType_TxType_APPLY_WORLD_OP {
 		t.Fatalf("expected %s but got %s", TxType_TxType_APPLY_WORLD_OP.String(), tt.String())
@@ -121,7 +120,7 @@ func TestWorldState(t *testing.T) {
 		t.Fatalf("expected world op sender %q, got %q", sender.String(), got)
 	}
 
-	// pass 3: apply the tx to a fresh state and check result
+	// Apply the recorded transaction to a fresh state and verify its result.
 	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err == nil {
 		_, err = world.MustGetObject(ctx, ws, objKey)

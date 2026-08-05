@@ -41,17 +41,17 @@ func NewTrackedWorldState(ws world.WorldState, watchWs world.WorldState, initial
 		changeResultCh: make(chan error, 1),
 	}
 
-	// Create StateRoutineContainer with protobuf EqualVT comparison
+	// Initialize change detection with snapshot equality.
 	t.stateRoutine = routine.NewStateRoutineContainerVT[*s4wave_world.TrackedWorldStateSnapshot]()
 
-	// Set the state routine function that watches for changes
+	// Publish each watch result to the wait channel.
 	t.stateRoutine.SetStateRoutine(func(ctx context.Context, snapshot *s4wave_world.TrackedWorldStateSnapshot) error {
 		err := watchTrackedChanges(ctx, snapshot, watchWs)
 		if errors.Is(err, context.Canceled) {
 			return err
 		}
 
-		// Write result to channel (nil = changes detected, error = watch failed)
+		// Deliver the watch result without blocking the routine.
 		select {
 		case t.changeResultCh <- err:
 		default:
@@ -59,7 +59,7 @@ func NewTrackedWorldState(ws world.WorldState, watchWs world.WorldState, initial
 		return err
 	})
 
-	// Set context to start the routine
+	// Start change detection under the caller context.
 	t.stateRoutine.SetContext(ctx, false)
 
 	return t
@@ -78,7 +78,7 @@ func (t *TrackedWorldState) WaitForChanges(ctx context.Context) error {
 
 // cloneAndUpdateSnapshot creates a new snapshot with updated tracking data.
 func (t *TrackedWorldState) cloneAndUpdateSnapshot(updateFn func(*s4wave_world.TrackedWorldStateSnapshot)) *s4wave_world.TrackedWorldStateSnapshot {
-	// Clone the current snapshot
+	// Clone the current tracking state.
 	newSnapshot := &s4wave_world.TrackedWorldStateSnapshot{
 		ObjectAccesses: make([]*s4wave_world.TrackedWorldStateSnapshot_ObjectAccess, len(t.currentSnapshot.ObjectAccesses)),
 		HasQuadAccess:  t.currentSnapshot.HasQuadAccess,
@@ -86,7 +86,7 @@ func (t *TrackedWorldState) cloneAndUpdateSnapshot(updateFn func(*s4wave_world.T
 	}
 	copy(newSnapshot.ObjectAccesses, t.currentSnapshot.ObjectAccesses)
 
-	// Apply update
+	// Apply the requested tracking update.
 	updateFn(newSnapshot)
 
 	return newSnapshot
@@ -94,20 +94,18 @@ func (t *TrackedWorldState) cloneAndUpdateSnapshot(updateFn func(*s4wave_world.T
 
 // trackObjectAccess records an object access.
 func (t *TrackedWorldState) trackObjectAccess(key string, rev uint64) {
-	// Clone snapshot and add new access
+	// Clone the current tracking state.
 	newSnapshot := t.cloneAndUpdateSnapshot(func(snap *s4wave_world.TrackedWorldStateSnapshot) {
-		// Check if this key already exists
+		// Update an existing access or append a new entry.
 		found := false
 		for _, objAccess := range snap.ObjectAccesses {
 			if objAccess.Key == key {
-				// Update existing entry
 				objAccess.Rev = rev
 				found = true
 				break
 			}
 		}
 		if !found {
-			// Add new entry
 			snap.ObjectAccesses = append(snap.ObjectAccesses, &s4wave_world.TrackedWorldStateSnapshot_ObjectAccess{
 				Key: key,
 				Rev: rev,
@@ -115,7 +113,7 @@ func (t *TrackedWorldState) trackObjectAccess(key string, rev uint64) {
 		}
 	})
 
-	// Update current snapshot and notify StateRoutine
+	// Publish the updated snapshot.
 	t.currentSnapshot = newSnapshot
 	t.stateRoutine.SetState(newSnapshot)
 }
@@ -128,6 +126,7 @@ func (t *TrackedWorldState) trackObjectBodyAccesses(bodies []*world.ObjectBody) 
 		return
 	}
 
+	// Merge batched body accesses into one tracking snapshot.
 	newSnapshot := t.cloneAndUpdateSnapshot(func(snap *s4wave_world.TrackedWorldStateSnapshot) {
 		existing := make(map[string]*s4wave_world.TrackedWorldStateSnapshot_ObjectAccess, len(snap.ObjectAccesses))
 		for _, objAccess := range snap.ObjectAccesses {
@@ -147,18 +146,19 @@ func (t *TrackedWorldState) trackObjectBodyAccesses(bodies []*world.ObjectBody) 
 		}
 	})
 
+	// Publish the batched snapshot.
 	t.currentSnapshot = newSnapshot
 	t.stateRoutine.SetState(newSnapshot)
 }
 
 // trackQuadQuery records a quad query access.
 func (t *TrackedWorldState) trackQuadQuery() {
-	// Clone snapshot and set quad flag
+	// Mark quad access in a cloned snapshot.
 	newSnapshot := t.cloneAndUpdateSnapshot(func(snap *s4wave_world.TrackedWorldStateSnapshot) {
 		snap.HasQuadAccess = true
 	})
 
-	// Update current snapshot and notify StateRoutine
+	// Publish the updated quad-access snapshot.
 	t.currentSnapshot = newSnapshot
 	t.stateRoutine.SetState(newSnapshot)
 }
@@ -240,7 +240,7 @@ func (t *TrackedWorldState) AccessWorldState(ctx context.Context, ref *bucket.Ob
 func (t *TrackedWorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	obj, err := t.ws.CreateObject(ctx, key, rootRef)
 	if err == nil {
-		// Track this access
+		// Record the created object's revision.
 		_, rev, _ := obj.GetRootRef(ctx)
 		t.trackObjectAccess(key, rev)
 	}
@@ -250,7 +250,7 @@ func (t *TrackedWorldState) CreateObject(ctx context.Context, key string, rootRe
 func (t *TrackedWorldState) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
 	obj, found, err := t.ws.GetObject(ctx, key)
 	if err == nil {
-		// Track this access even if not found (rev=0 means non-existent)
+		// Record the requested object's revision, including a missing object.
 		rev := uint64(0)
 		if found {
 			_, rev, _ = obj.GetRootRef(ctx)
@@ -392,6 +392,7 @@ func checkTrackedChanges(ctx context.Context, snapshot *s4wave_world.TrackedWorl
 		if refs[i].Exists {
 			currentRev = refs[i].Rev
 		}
+
 		// Detect changes:
 		// - Tracked as non-existent (rev=0) but now exists (currentRev>0)
 		// - Tracked as existing (rev>0) but now deleted (currentRev=0)

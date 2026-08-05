@@ -29,6 +29,7 @@ type Controller struct {
 //
 // Returns a list of errors for skipped addresses.
 func ParsePeerAddressMap(addressesWithPeerIDs []string) (map[string][]string, []error) {
+	// Prepare the peer address index before validating each configured address.
 	var errs []error
 	peers := make(map[string][]string)
 	for _, addr := range addressesWithPeerIDs {
@@ -46,6 +47,8 @@ func ParsePeerAddressMap(addressesWithPeerIDs []string) (map[string][]string, []
 		pidString := pid.String()
 		peers[pidString] = append(peers[pidString], tptaddr)
 	}
+
+	// Sort and deduplicate each peer's transport addresses.
 	for k, sl := range peers {
 		slices.Sort(sl)
 		sl = slices.Compact(sl)
@@ -56,6 +59,7 @@ func ParsePeerAddressMap(addressesWithPeerIDs []string) (map[string][]string, []
 
 // NewController constructs a new controller.
 func NewController(conf *Config) (*Controller, error) {
+	// Parse configured addresses and reject the first invalid entry.
 	peers, errs := ParsePeerAddressMap(conf.GetAddresses())
 	if len(errs) != 0 {
 		return nil, errs[0]

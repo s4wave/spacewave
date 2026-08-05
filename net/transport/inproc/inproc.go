@@ -53,22 +53,28 @@ func NewInproc(
 	pKey crypto.PrivKey,
 	c transport.TransportHandler,
 ) (transport.Transport, error) {
+	// Derive the local peer identity for this in-process transport.
 	peerID, err := peer.IDFromPrivateKey(pKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Build the local address and transport state.
 	localAddr := NewAddr(peerID)
 	ip := &Inproc{
 		le:        le,
 		localAddr: localAddr,
 		remotes:   make(map[string]*packetConn),
 	}
+
+	// Create the packet connection that routes to known remotes.
 	npc := newPacketConn(
 		ctx,
 		localAddr,
 		ip.writeToAddr,
 	)
+
+	// Construct the packet-backed transport.
 	ip.Transport, err = pconn.NewTransport(
 		ctx,
 		le,
@@ -83,6 +89,8 @@ func NewInproc(
 	if err != nil {
 		return nil, err
 	}
+
+	// Retain the packet connection for future remote wiring.
 	ip.packetConn = npc
 	return ip, nil
 }
@@ -127,6 +135,7 @@ func (t *Inproc) MatchTransportType(transportType string) bool {
 // ConnectToInproc connects the inproc to a remote inproc.
 // Will overwrite any existing connection
 func (t *Inproc) ConnectToInproc(ctx context.Context, other *Inproc) {
+	// Record the remote packet endpoint under its address.
 	oa := other.localAddr.String()
 	t.mtx.Lock()
 	t.remotes[oa] = other.packetConn
@@ -135,6 +144,7 @@ func (t *Inproc) ConnectToInproc(ctx context.Context, other *Inproc) {
 
 // DisconnectInproc disconnects a previously connected inproc.
 func (t *Inproc) DisconnectInproc(ctx context.Context, other *Inproc) {
+	// Remove the remote packet endpoint from the routing table.
 	oa := other.localAddr.String()
 	t.mtx.Lock()
 	delete(t.remotes, oa)
@@ -143,16 +153,21 @@ func (t *Inproc) DisconnectInproc(ctx context.Context, other *Inproc) {
 
 // writeToAddr routes outgoing packets.
 func (t *Inproc) writeToAddr(ctx context.Context, p []byte, addr net.Addr) (int, error) {
+	// Resolve the remote endpoint while holding the routing mutex.
 	oa := addr.String()
 	t.mtx.Lock()
 	out, outOk := t.remotes[oa]
 	t.mtx.Unlock()
+
+	// Reject packets for an endpoint that is not connected.
 	if !outOk {
 		return 0, &net.AddrError{
 			Addr: oa,
 			Err:  "remote transport not connected",
 		}
 	}
+
+	// Deliver the packet to the remote in-process connection.
 	return out.HandlePacket(ctx, p, t.localAddr)
 }
 

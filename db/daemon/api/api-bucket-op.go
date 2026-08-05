@@ -14,15 +14,20 @@ func (a *API) BucketOp(
 	ctx context.Context,
 	req *BucketOpRequest,
 ) (*BucketOpResponse, error) {
+	// Validate the requested bucket operation.
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
+
+	// Open the bucket operation and ensure its release callback runs.
 	bk, rel, err := a.startBucketOp(ctx, req.GetBucketOpArgs())
 	if err != nil {
 		return nil, err
 	}
 	defer rel()
 	resp := &BucketOpResponse{}
+
+	// Apply the requested block mutation or lookup.
 	switch req.GetOp() {
 	case BucketOp_BucketOp_BLOCK_PUT:
 		ref, existed, err := bk.PutBlock(ctx, req.GetData(), req.GetPutOpts())

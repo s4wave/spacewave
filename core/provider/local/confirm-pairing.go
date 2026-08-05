@@ -38,9 +38,12 @@ func (a *ProviderAccount) ConfirmPairing(
 	remotePeerID peer.ID,
 	displayName string,
 ) error {
+	// Consume the verified pairing exchange.
 	if err := a.consumePairingExchange(remotePeerID); err != nil {
 		return err
 	}
+
+	// Resolve the remote peer identity and public key.
 	remotePeerIDStr := remotePeerID.String()
 
 	remotePub, err := remotePeerID.ExtractPublicKey()
@@ -48,7 +51,7 @@ func (a *ProviderAccount) ConfirmPairing(
 		return errors.Wrap(err, "extract remote public key")
 	}
 
-	// Get the volume's peer identity (used for SO participant/grant operations).
+	// Resolve the volume signer used for shared-object grants.
 	volPeer, err := a.vol.GetPeer(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "get volume peer")
@@ -59,14 +62,14 @@ func (a *ProviderAccount) ConfirmPairing(
 		return errors.Wrap(err, "get volume private key")
 	}
 
+	// Resolve the account-settings shared object.
 	accountSettingsRef, err := a.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get account settings ref")
 	}
 	accountSettingsID := accountSettingsRef.GetProviderResourceRef().GetId()
 
-	// Add remote peer as OWNER on all SOs. For the account settings SO,
-	// also queue the AddPairedDevice operation in the same mount.
+	// Add the remote peer across mounted shared objects.
 	soList := a.soListCtr.GetValue()
 	for _, entry := range soList.GetSharedObjects() {
 		ref := entry.GetRef()
@@ -83,7 +86,7 @@ func (a *ProviderAccount) ConfirmPairing(
 			a.le.WithError(err).WithField("so-id", soID).Warn("failed to add participant to SO")
 		}
 
-		// Persist paired device while the account settings SO is still mounted.
+		// Persist the paired device while account settings remain mounted.
 		if isAccountSettings {
 			if err := a.queueAddPairedDevice(ctx, so, remotePeerIDStr, displayName); err != nil {
 				relSO()
@@ -94,7 +97,7 @@ func (a *ProviderAccount) ConfirmPairing(
 		relSO()
 	}
 
-	// Start P2P sync if the session transport is running.
+	// Start P2P sync when a session transport is already running.
 	if st := a.GetSessionTransport(); st != nil {
 		if err := a.StartP2PSync(ctx, st); err != nil {
 			a.le.WithError(err).Warn("failed to start P2P sync after pairing confirmation")
@@ -131,10 +134,12 @@ func (a *ProviderAccount) queueAddPairedDevice(
 	remotePeerIDStr string,
 	displayName string,
 ) error {
+	// Normalize the paired-device display name.
 	if displayName == "" {
 		displayName = "Device"
 	}
 
+	// Build and marshal the paired-device operation.
 	addOp := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_AddPairedDevice{
 			AddPairedDevice: &account_settings.PairedDevice{
@@ -149,10 +154,12 @@ func (a *ProviderAccount) queueAddPairedDevice(
 		return errors.Wrap(err, "marshal add paired device op")
 	}
 
+	// Queue the paired-device operation.
 	if _, err := so.QueueOperation(ctx, opData); err != nil {
 		return errors.Wrap(err, "queue add paired device operation")
 	}
 
+	// Build and queue the session-presentation operation.
 	presOp := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_UpsertSessionPresentation{
 			UpsertSessionPresentation: &account_settings.SessionPresentation{

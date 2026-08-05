@@ -22,6 +22,7 @@ func NewSignature(
 	data []byte,
 	inclPubKey bool,
 ) (*Signature, error) {
+	// Hash the data before constructing the signature body.
 	h, err := hash.Sum(hashType, data)
 	if err != nil {
 		return nil, err
@@ -48,11 +49,12 @@ func NewSignatureWithHashedData(
 	hashData []byte,
 	inclPubKey bool,
 ) (*Signature, error) {
+	// Validate the requested hash algorithm.
 	if err := hashType.Validate(); err != nil {
 		return nil, err
 	}
 
-	// prepend the encryption context and hash type
+	// Build the signed body from the context, hash type, and digest.
 	signBody := bytes.Join([][]byte{
 		[]byte(encContext),
 		[]byte(strconv.Itoa(int(hashType))),
@@ -60,11 +62,13 @@ func NewSignatureWithHashedData(
 	}, []byte(" - SIGN - "))
 	defer scrub.Scrub(signBody)
 
+	// Sign the constructed body with the private key.
 	sd, err := privKey.Sign(signBody)
 	if err != nil {
 		return nil, err
 	}
 
+	// Assemble the signature and optionally include the public key.
 	s := &Signature{HashType: hashType, SigData: sd}
 	if inclPubKey {
 		pkey, err := crypto.MarshalPublicKey(privKey.GetPublic())
@@ -79,12 +83,15 @@ func NewSignatureWithHashedData(
 
 // Validate checks the signature object (but not the signature itself).
 func (s *Signature) Validate() error {
+	// Validate the hash type and signature bytes.
 	if err := s.GetHashType().Validate(); err != nil {
 		return err
 	}
 	if len(s.GetSigData()) == 0 {
 		return ErrSignatureInvalid
 	}
+
+	// Validate the embedded public key when present.
 	if len(s.GetPubKey()) != 0 {
 		if _, err := s.ParsePubKey(); err != nil {
 			return errors.Wrap(err, "pub_key")
@@ -98,6 +105,7 @@ func (s *Signature) Validate() error {
 //
 // encContext must match the context used when creating the signature.
 func (s *Signature) VerifyWithPublic(encContext string, pubKey crypto.PubKey, data []byte) (bool, error) {
+	// Validate the signature metadata before hashing the data.
 	ht := s.GetHashType()
 	if ht == hash.HashType_HashType_UNKNOWN {
 		return false, errors.New("hash type missing")
@@ -109,14 +117,14 @@ func (s *Signature) VerifyWithPublic(encContext string, pubKey crypto.PubKey, da
 		return false, err
 	}
 
-	// hash the data
+	// Hash the data with the signature's declared algorithm.
 	dataHash, err := hash.Sum(ht, data)
 	if err != nil {
 		return false, err
 	}
 	defer scrub.Scrub(dataHash.Hash)
 
-	// prepend the encryption context and hash type
+	// Build the signed body from the context, hash type, and digest.
 	signBody := bytes.Join([][]byte{
 		[]byte(encContext),
 		[]byte(strconv.Itoa(int(ht))),
@@ -130,6 +138,7 @@ func (s *Signature) VerifyWithPublic(encContext string, pubKey crypto.PubKey, da
 // ParsePubKey parses the incldued public key.
 // Returns nil, nil if the pub key field was not set.
 func (s *Signature) ParsePubKey() (crypto.PubKey, error) {
+	// Return no key when the signature omitted its public key.
 	pubKey := s.GetPubKey()
 	if len(pubKey) == 0 {
 		return nil, nil

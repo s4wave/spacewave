@@ -56,7 +56,7 @@ func NewController(cc *Config, le *logrus.Entry, b bus.Bus) *Controller {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	// execute block store monitoring.
+	// Watch block-store values for bucket tracking.
 	_, vRef, err := c.b.AddDirective(
 		block_store.NewLookupBlockStore(""),
 		newBlockStoreRefHandler(c),
@@ -65,6 +65,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
+	// Start bucket routines and release the watcher on cancellation.
 	c.buckets.SetContext(ctx, true)
 	_ = context.AfterFunc(ctx, vRef.Release)
 	return nil

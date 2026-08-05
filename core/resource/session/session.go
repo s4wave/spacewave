@@ -95,7 +95,7 @@ func NewSessionResource(le *logrus.Entry, b bus.Bus, sess session.Session) *Sess
 }
 
 // NewSessionResourceWithHostPluginID creates a new SessionResource with the
-// plugin id that owns the resource root.
+// plugin id serving the resource root.
 func NewSessionResourceWithHostPluginID(
 	le *logrus.Entry,
 	b bus.Bus,
@@ -323,21 +323,21 @@ func (r *SessionResource) addSharedObjectResource(
 
 // CreateSpace creates a new space within the ProviderAccount with the Session.
 func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.CreateSpaceRequest) (*s4wave_session.CreateSpaceResponse, error) {
-	// Create the new shared object metadata
+	// Build the requested Space metadata.
 	soId := ulid.NewULID()
 	soMeta, err := space.NewSharedObjectMeta(req.GetSpaceName())
 	if err != nil {
 		return nil, err
 	}
 
-	// Get the provider account feature for shared objects.
+	// Resolve the shared-object provider feature.
 	providerAcc := r.session.GetProviderAccount()
 	soFeature, err := sobject.GetSharedObjectProviderAccountFeature(ctx, providerAcc)
 	if err != nil {
 		return nil, err
 	}
 
-	// Default owner = caller's account when unspecified.
+	// Resolve the principal receiving ownership.
 	ownerType := req.GetOwnerType()
 	ownerID := req.GetOwnerId()
 	if ownerType == "" && ownerID == "" {
@@ -345,7 +345,7 @@ func (r *SessionResource) CreateSpace(ctx context.Context, req *s4wave_session.C
 		ownerID = r.session.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 	}
 
-	// Create the new shared object.
+	// Create and mount the shared object.
 	soRef, err := soFeature.CreateSharedObject(ctx, soId, soMeta, ownerType, ownerID)
 	if err != nil {
 		return nil, err
@@ -647,6 +647,7 @@ func (r *SessionResource) watchSpaceIndexObjectType(
 		}
 		return
 	}
+
 	// A returnIfIdle miss is generic in the prompt batch; the blocking mount
 	// below reports the durable type as a later live update.
 	initialPending := true
@@ -1098,6 +1099,7 @@ func (r *SessionResource) DeleteAccount(ctx context.Context, req *s4wave_session
 			if ref.GetProviderId() != "spacewave" || ref.GetProviderAccountId() != cloudAccountID {
 				continue
 			}
+
 			// Look up the spacewave provider via the bus.
 			swProv, swProvRef, aerr := provider.ExLookupProvider(ctx, r.b, "spacewave", false, nil)
 			if aerr != nil {

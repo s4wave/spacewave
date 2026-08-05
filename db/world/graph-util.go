@@ -21,7 +21,7 @@ func QuadEqual(q1, q2 quad.Quad) bool {
 
 // CheckQuadExists checks if the quad exists on the graph handle.
 func CheckQuadExists(ctx context.Context, h CayleyHandle, gq quad.Quad) (bool, error) {
-	// there may be a faster way to lookup a quad
+	// Scan matching quads until the requested quad is found.
 	var found bool
 	err := FilterIterateQuads(ctx, h, gq, func(q quad.Quad) error {
 		if q.IsValid() && QuadEqual(q, gq) {
@@ -30,6 +30,8 @@ func CheckQuadExists(ctx context.Context, h CayleyHandle, gq quad.Quad) (bool, e
 		}
 		return nil
 	})
+
+	// Normalize the early-stop sentinel into a successful lookup.
 	if err == io.EOF {
 		err = nil
 	}
@@ -44,6 +46,7 @@ func FilterIterateQuads(ctx context.Context, h CayleyHandle, gq quad.Quad, cb fu
 
 // IterateFilteredFullQuads iterates over full quads matching a concrete quad filter.
 func IterateFilteredFullQuads(ctx context.Context, h CayleyHandle, filter quad.Quad, cb func(q quad.Quad) error) error {
+	// Leave empty callbacks and filters to the cheapest valid path.
 	if cb == nil {
 		return nil
 	}
@@ -53,11 +56,13 @@ func IterateFilteredFullQuads(ctx context.Context, h CayleyHandle, filter quad.Q
 		return iterateQuadResults(ctx, h, it, cb)
 	}
 
+	// Select the smallest indexed direction for the concrete filter.
 	dir, ref, ok, err := selectQuadFilterIterator(ctx, h, filter)
 	if err != nil || !ok {
 		return err
 	}
 
+	// Filter the selected iterator before forwarding each matching quad.
 	it := h.QuadIterator(ctx, dir, ref).Iterate(ctx)
 	defer it.Close()
 	return iterateQuadResults(ctx, h, it, func(q quad.Quad) error {
@@ -70,6 +75,7 @@ func IterateFilteredFullQuads(ctx context.Context, h CayleyHandle, filter quad.Q
 
 // CollectFilteredFullQuadsBatch collects full quads for a batch of concrete quad filters.
 func CollectFilteredFullQuadsBatch(ctx context.Context, h CayleyHandle, filters []quad.Quad, limitPerFilter uint32) ([][]quad.Quad, error) {
+	// Allocate result slots and group filters by their selected iterator.
 	results := make([][]quad.Quad, len(filters))
 	groupsByKey := make(map[quadFilterBatchKey]int)
 	var groups []quadFilterBatchGroup
@@ -103,6 +109,7 @@ func CollectFilteredFullQuadsBatch(ctx context.Context, h CayleyHandle, filters 
 		})
 	}
 
+	// Scan each shared iterator group and populate its result slots.
 	for _, group := range groups {
 		if err := collectQuadFilterBatchGroup(ctx, h, filters, results, group, limitPerFilter); err != nil {
 			return nil, err
@@ -123,14 +130,18 @@ type quadFilterBatchGroup struct {
 }
 
 func collectFilteredFullQuads(ctx context.Context, h CayleyHandle, filter quad.Quad, limit uint32) ([]quad.Quad, error) {
+	// Collect matching quads until the requested limit or iterator end.
 	var quads []quad.Quad
 	err := IterateFilteredFullQuads(ctx, h, filter, func(q quad.Quad) error {
 		quads = append(quads, q)
+
 		if limit != 0 && uint32(len(quads)) >= limit { //nolint:gosec
 			return io.EOF
 		}
 		return nil
 	})
+
+	// Normalize the early-stop sentinel into a successful collection.
 	if err == io.EOF {
 		err = nil
 	}
@@ -145,6 +156,7 @@ func collectQuadFilterBatchGroup(
 	group quadFilterBatchGroup,
 	limit uint32,
 ) error {
+	// Open the shared iterator and initialize each filter's limit state.
 	it := h.QuadIterator(ctx, group.dir, group.ref).Iterate(ctx)
 	defer it.Close()
 
@@ -153,12 +165,15 @@ func collectQuadFilterBatchGroup(
 	if limit != 0 {
 		remaining = len(group.filterIndexes)
 	}
+
+	// Route each scanned quad to every matching filter still below its limit.
 	err := iterateQuadResults(ctx, h, it, func(q quad.Quad) error {
 		for _, filterIdx := range group.filterIndexes {
 			if filled[filterIdx] || !quadMatchesFilter(q, filters[filterIdx]) {
 				continue
 			}
 			results[filterIdx] = append(results[filterIdx], q)
+
 			if limit != 0 && uint32(len(results[filterIdx])) >= limit { //nolint:gosec
 				filled[filterIdx] = true
 				remaining--
@@ -169,6 +184,8 @@ func collectQuadFilterBatchGroup(
 		}
 		return nil
 	})
+
+	// Normalize the early-stop sentinel after all requested filters are filled.
 	if err == io.EOF {
 		err = nil
 	}
@@ -190,6 +207,7 @@ func IterateFullQuads(ctx context.Context, h CayleyHandle, sh shape.Shape, cb fu
 }
 
 func iterateQuadResults(ctx context.Context, h CayleyHandle, it iterator.Scanner, cb func(q quad.Quad) error) error {
+	// Read quads from the scanner and forward each one to the callback.
 	rsc := graph.NewResultReader(ctx, h, it)
 	for {
 		q, err := rsc.ReadQuad(ctx)
@@ -197,6 +215,7 @@ func iterateQuadResults(ctx context.Context, h CayleyHandle, it iterator.Scanner
 			err = cb(q)
 		}
 		if err != nil {
+			// End-of-stream is a successful completion for this iterator.
 			if err == io.EOF {
 				err = nil
 			}

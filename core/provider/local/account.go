@@ -138,14 +138,15 @@ func (p *Provider) buildProviderAccountTracker(accountID string) (keyed.Routine,
 
 // executeProviderAccountTracker executes the provider account tracker routine.
 func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Context) error {
+	// Initialize the account tracker context.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
-	// Look up or create the ProviderAccount in the world.
+	// Resolve provider and account identity.
 	providerID := t.p.info.GetProviderId()
 	accountID := t.accountInfo.GetProviderAccountId()
 
-	// Mount the storage volume for this space.
+	// Select the storage volume identity.
 	storageID := t.p.storageID
 	if storageID == "" {
 		storageID = "default"
@@ -173,13 +174,13 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	}
 	defer volCtrlRef.Release()
 
-	// wait for the volume
+	// Acquire the mounted volume.
 	vol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Construct the ProviderAccount handle
+	// Construct the ProviderAccount and keyed trackers.
 	le := t.p.le.WithField("account-id", t.accountInfo.GetProviderAccountId())
 	providerAcc := &ProviderAccount{
 		t:   t,

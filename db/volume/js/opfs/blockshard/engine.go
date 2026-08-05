@@ -175,8 +175,11 @@ func NewEngineWithSettings(
 	lockPrefix string,
 	settings *Settings,
 ) (*Engine, error) {
+	// Normalize settings and derive the engine cancellation context.
 	settings = normalizeSettings(settings)
 	ctx, cancel := context.WithCancel(ctx)
+
+	// Allocate shard state, actors, pending buffers, and bridge listeners.
 	e := &Engine{
 		shards:      make([]*Shard, settings.ShardCount),
 		actors:      make([]*shardActor, settings.ShardCount),
@@ -189,6 +192,7 @@ func NewEngineWithSettings(
 		listener:    NewListener(lockPrefix),
 	}
 
+	// Open and recover every shard before starting its write actor.
 	for i := range e.shards {
 		name := "shard-" + zeroPad(uint64(i), 2)
 		shardDir, err := opfs.GetDirectory(dir, name, true)
@@ -225,7 +229,7 @@ func NewEngineWithSettings(
 		go e.runActor(ctx, e.actors[i])
 	}
 
-	// Start invalidation listener.
+	// Start the invalidation listener after all shard actors are running.
 	e.wg.Add(1)
 	go e.runInvalidationListener(ctx)
 
@@ -530,6 +534,7 @@ func (e *Engine) getFromShard(
 	// Scan segments newest-first (last in manifest = newest).
 	for i := len(m.Segments) - 1; i >= 0; i-- {
 		seg := &m.Segments[i]
+
 		// Range check.
 		if string(key) < string(seg.MinKey) || string(key) > string(seg.MaxKey) {
 			continue
@@ -826,6 +831,7 @@ func (e *Engine) getExistsBatchFromShard(
 
 	out := make([]bool, len(keys))
 	resolved := make([]bool, len(keys))
+
 	// Pending-then-published: resolve buffered keys before scanning segments so
 	// an in-flight write or tombstone wins over an older published value.
 	for i, key := range keys {
@@ -957,6 +963,7 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 	shard := actor.shard
 
 	var reqs []writeReq
+
 	var fgOnly int // consecutive foreground-only cycles
 	for {
 		// If no pending entries, block for the next request.

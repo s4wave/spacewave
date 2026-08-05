@@ -67,8 +67,7 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 	}
 	defer ref.Release()
 
-	// mark idle based on the lookup tpt addr value directive
-	// handle any non-nil resolver errors if isIdle
+	// Route lookup idle and disposal errors through the resolver wait channel.
 	errCh := make(chan error, 1)
 	handleErr := func(err error) {
 		select {

@@ -35,6 +35,7 @@ func NewEngineResource(
 	engineInfo *s4wave_world.EngineInfo,
 	opts ...WorldStateResourceOption,
 ) *EngineResource {
+	// Capture trusted access options and initialize the resource wrapper.
 	sessionPeerID, sessionPeerIDBound := worldStateResourceSessionPeerID(opts...)
 	engineResource := &EngineResource{
 		le:                le,
@@ -44,6 +45,8 @@ func NewEngineResource(
 		engineInfo:        engineInfo,
 		worldStateOptions: opts,
 	}
+
+	// Attach typed-object access to the world engine.
 	engineResource.typedResource = newTypedObjectResourceWithSessionPeerID(
 		le,
 		b,
@@ -52,6 +55,8 @@ func NewEngineResource(
 		sessionPeerID,
 		sessionPeerIDBound,
 	)
+
+	// Register world, watch, and typed-object RPC services.
 	engineResource.mux = resource_server.NewResourceMux(
 		func(mux srpc.Mux) error { return s4wave_world.SRPCRegisterEngineResourceService(mux, engineResource) },
 		func(mux srpc.Mux) error {
@@ -84,14 +89,18 @@ func (r *EngineResource) WatchWorldRootSnapshots(
 	req *s4wave_world.WatchWorldRootSnapshotsRequest,
 	stream s4wave_world.SRPCEngineResourceService_WatchWorldRootSnapshotsStream,
 ) error {
+	// Load and emit each changed root snapshot.
 	ctx := stream.Context()
 	var sentSeqno uint64
 	var sent bool
 	for {
+		// Read the current committed root.
 		snapshot, err := r.loadWorldRootSnapshot(ctx)
 		if err != nil {
 			return err
 		}
+
+		// Send a changed snapshot to the client.
 		if !sent || snapshot.GetSeqno() != sentSeqno {
 			if err := stream.Send(snapshot); err != nil {
 				return err
@@ -99,6 +108,8 @@ func (r *EngineResource) WatchWorldRootSnapshots(
 			sentSeqno = snapshot.GetSeqno()
 			sent = true
 		}
+
+		// Wait for the next committed sequence.
 		_, err = r.engine.WaitSeqno(ctx, sentSeqno+1)
 		if err != nil {
 			return err
@@ -108,12 +119,14 @@ func (r *EngineResource) WatchWorldRootSnapshots(
 
 // GetSeqno returns the current seqno of the world state.
 func (r *EngineResource) GetSeqno(ctx context.Context, req *s4wave_world.GetSeqnoRequest) (*s4wave_world.GetSeqnoResponse, error) {
+	// Open a read transaction for the current sequence.
 	wtx, err := r.engine.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
 	defer wtx.Discard()
 
+	// Read the transaction sequence.
 	seqno, err := wtx.GetSeqno(ctx)
 	if err != nil {
 		return nil, err
@@ -124,6 +137,7 @@ func (r *EngineResource) GetSeqno(ctx context.Context, req *s4wave_world.GetSeqn
 
 // Sync fences durable storage and advances the durable head via the engine.
 func (r *EngineResource) Sync(ctx context.Context, req *s4wave_world.SyncRequest) (*s4wave_world.SyncResponse, error) {
+	// Flush durable state and notify browser observers.
 	fenced, err := r.engine.Sync(ctx)
 	if err != nil {
 		return nil, err
@@ -145,6 +159,7 @@ func (r *EngineResource) WaitSeqno(ctx context.Context, req *s4wave_world.WaitSe
 
 // NewTransaction creates a new transaction against the world state.
 func (r *EngineResource) NewTransaction(ctx context.Context, req *s4wave_world.NewTransactionRequest) (*s4wave_world.NewTransactionResponse, error) {
+	// Acquire the resource client and open a transaction.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -155,6 +170,7 @@ func (r *EngineResource) NewTransaction(ctx context.Context, req *s4wave_world.N
 		return nil, err
 	}
 
+	// Register the transaction resource with its release hook.
 	txResource := NewTxResource(r.le, r.b, wtx, r.lookupOp, r.engine, r.worldStateOptions...)
 	id, err := resourceCtx.AddResource(txResource.GetMux(), func() {
 		txResource.Release()
@@ -169,6 +185,7 @@ func (r *EngineResource) NewTransaction(ctx context.Context, req *s4wave_world.N
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
 func (r *EngineResource) BuildStorageCursor(ctx context.Context, req *s4wave_world.BuildStorageCursorRequest) (*s4wave_world.BuildStorageCursorResponse, error) {
+	// Acquire the resource client and build a storage cursor.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -179,6 +196,7 @@ func (r *EngineResource) BuildStorageCursor(ctx context.Context, req *s4wave_wor
 		return nil, err
 	}
 
+	// Register the cursor resource with its release hook.
 	cursorResource := resource_bucket_lookup.NewBucketLookupCursorResource(r.le, r.b, cursor)
 	id, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {
 		cursor.Release()
@@ -193,6 +211,7 @@ func (r *EngineResource) BuildStorageCursor(ctx context.Context, req *s4wave_wor
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
 func (r *EngineResource) AccessWorldState(ctx context.Context, req *s4wave_world.AccessWorldStateRequest) (*s4wave_world.AccessWorldStateResponse, error) {
+	// Acquire the resource client and build a world-state cursor.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
@@ -207,6 +226,7 @@ func (r *EngineResource) AccessWorldState(ctx context.Context, req *s4wave_world
 		return nil, err
 	}
 
+	// Register the world-state cursor resource.
 	id, err := resourceCtx.AddResource(cursorResource.GetMux(), func() {})
 	if err != nil {
 		return nil, err
@@ -216,18 +236,22 @@ func (r *EngineResource) AccessWorldState(ctx context.Context, req *s4wave_world
 }
 
 func (r *EngineResource) loadWorldRootSnapshot(ctx context.Context) (*s4wave_world.WorldRootSnapshot, error) {
+	// Read the root sequence and storage reference.
 	wtx, err := r.engine.NewTransaction(ctx, false)
 	if err != nil {
 		return nil, err
 	}
 	defer wtx.Discard()
 
+	// Capture the current world sequence.
 	seqno, err := wtx.GetSeqno(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var rootRef *bucket.ObjectRef
 	var storageVolumeID string
+
+	// Read the current root reference and storage volume.
 	err = wtx.AccessWorldState(ctx, nil, func(c *bucket_lookup.Cursor) error {
 		rootRef = c.GetRefWithOpArgs()
 		storageVolumeID = c.GetOpArgs().GetVolumeId()
@@ -236,6 +260,8 @@ func (r *EngineResource) loadWorldRootSnapshot(ctx context.Context) (*s4wave_wor
 	if err != nil {
 		return nil, err
 	}
+
+	// Assemble the root snapshot response.
 	return &s4wave_world.WorldRootSnapshot{
 		RootRef:         rootRef,
 		Seqno:           seqno,
@@ -257,25 +283,23 @@ func (r *EngineResource) WatchWorldState(
 	}
 
 	for {
-		// Create a read transaction to get current world state
+		// Begin a tracked snapshot transaction.
 		wtx, err := r.engine.NewTransaction(ctx, false)
 		if err != nil {
 			return err
 		}
 
-		// Get current world seqno
+		// Capture the current sequence.
 		seqno, err := wtx.GetSeqno(ctx)
 		if err != nil {
 			wtx.Discard()
 			return err
 		}
 
-		// Create new tracked WorldState (empty - no tracking yet).
-		// Client reads use the initial snapshot, while the watcher checks the
-		// current engine state so committed updates can invalidate the snapshot.
+		// Build a tracked WorldState for client reads.
 		trackedWs := NewTrackedWorldState(wtx, world.NewEngineWorldState(r.engine, false), seqno, ctx)
 
-		// Register as a resource
+		// Register the tracked resource.
 		trackedResource := NewEngineWorldStateResource(r.le, r.b, trackedWs, r.lookupOp, r.engine, r.worldStateOptions...)
 		resourceId, err := resourceCtx.AddResource(trackedResource.GetMux(), func() {
 			trackedWs.Close()
@@ -285,7 +309,7 @@ func (r *EngineResource) WatchWorldState(
 			return err
 		}
 
-		// Send resource_id to client
+		// Publish its resource ID.
 		err = stream.Send(&s4wave_world.WatchWorldStateResponse{
 			ResourceId: resourceId,
 		})
@@ -294,27 +318,18 @@ func (r *EngineResource) WatchWorldState(
 			return err
 		}
 
-		// Wait for tracked resources to change
-		// As client calls methods on TrackedWorldState:
-		//   1. Access recorded (e.g., GetObject called)
-		//   2. Snapshot cloned and updated
-		//   3. SetState() called on StateRoutineContainer
-		//   4. StateRoutineContainer compares snapshots (EqualVT)
-		//   5. If different, restarts watchTrackedChanges with new snapshot
-		//   6. watchTrackedChanges checks resources, waits on world seqno
-		//   7. When change detected, returns nil, writes to changeResultCh
-		// WaitForChanges blocks on changeResultCh until change or error
+		// Wait for an observed world change.
 		err = trackedWs.WaitForChanges(ctx)
 
-		// Release the tracked resource
+		// Release the previous tracked resource.
 		_ = resourceCtx.ReleaseResource(resourceId)
 
+		// Return terminal watch errors.
 		if err != nil {
-			// Context canceled or other error
 			return err
 		}
 
-		// Changes detected - loop will create new tracked WorldState (empty)
+		// Continue with a fresh tracked WorldState after a change.
 	}
 }
 

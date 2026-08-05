@@ -51,11 +51,13 @@ func NewWebSocket(
 	pKey crypto.PrivKey,
 	c transport.TransportHandler,
 ) (*WebSocket, error) {
+	// Derive the local peer identity used by the transport and packet addresses.
 	peerID, err := peer.IDFromPrivateKey(pKey)
 	if err != nil {
 		return nil, err
 	}
 
+	// Resolve and clone the configured QUIC options.
 	quicOpts := conf.GetQuic()
 	if quicOpts == nil {
 		quicOpts = &transport_quic.Opts{}
@@ -63,21 +65,24 @@ func NewWebSocket(
 		quicOpts = quicOpts.CloneVT()
 	}
 
-	// set websocket-specific quic opts
+	// Disable QUIC features that WebSocket cannot carry.
 	quicOpts.DisableDatagrams = true
 	quicOpts.DisablePathMtuDiscovery = true
 
-	// websocket manages connection lifecycle, not quic
+	// Let WebSocket own connection liveness instead of QUIC.
 	quicOpts.DisableKeepAlive = true
 	quicOpts.MaxIdleTimeoutDur = "24h"
 
+	// Build the transport shell before wiring its dial function.
 	tpt := &WebSocket{
 		ctx:  ctx,
 		le:   le,
 		conf: conf,
 	}
 
+	// Dial WebSocket connections and negotiate a QUIC session over each one.
 	var dialFn transport_quic.DialFunc = func(dctx context.Context, addr string) (*quic.Conn, net.Addr, error) {
+		// Establish the WebSocket connection with the QUIC subprotocol.
 		conn, _, err := websocket.Dial(dctx, addr, &websocket.DialOptions{
 			// Negotiate the bifrost quic sub-protocol ID.
 			Subprotocols: []string{transport_quic.Alpn},
@@ -85,10 +90,11 @@ func NewWebSocket(
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// Wrap the WebSocket and negotiate the QUIC session.
 		laddr := peer.NewNetAddr(peerID)
 		raddr := saddr.NewStringAddr("ws", addr)
 		pc := NewPacketConn(ctx, conn, laddr, raddr)
-		// Negotiate quic session.
 		qconn, _, err := transport_quic.DialSession(ctx, le, quicOpts, pc, tpt.GetIdentity(), raddr, "")
 		if err != nil {
 			return nil, raddr, err
@@ -96,6 +102,7 @@ func NewWebSocket(
 		return qconn, raddr, nil
 	}
 
+	// Install the QUIC-backed transport implementation.
 	tpt.Transport, err = transport_quic.NewTransport(
 		ctx,
 		le,
@@ -130,11 +137,13 @@ func (w *WebSocket) GetPeerDialer(ctx context.Context, peerID peer.ID) (*dialer.
 // Execute executes the transport as configured, returning any fatal error.
 func (w *WebSocket) Execute(ctx context.Context) error {
 	// note: w.Transport.Execute is unnecessary (no-op for quic)
+	// Skip listening when no HTTP address is configured.
 	listenAddr := w.conf.GetListenAddr()
 	if listenAddr == "" {
 		return nil
 	}
 
+	// Run the HTTP listener until the transport or caller stops it.
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- w.ListenHTTP(ctx, listenAddr)
@@ -152,10 +161,13 @@ func (w *WebSocket) Execute(ctx context.Context) error {
 
 // ListenHTTP listens for incoming HTTP connections on an address.
 func (w *WebSocket) ListenHTTP(ctx context.Context, addr string) error {
+	// Log the listening endpoint before constructing the HTTP server.
 	w.le.WithFields(logrus.Fields{
 		"addr":    addr,
 		"peer-id": w.GetPeerID().String(),
 	}).Debug("listening for http/ws")
+
+	// Configure the HTTP server with the transport lifecycle context.
 	server := &http.Server{
 		BaseContext: func(net.Listener) context.Context {
 			return ctx
@@ -164,6 +176,8 @@ func (w *WebSocket) ListenHTTP(ctx context.Context, addr string) error {
 		Handler:           w,
 		ReadHeaderTimeout: time.Second * 10,
 	}
+
+	// Serve requests, then shut down and close the server.
 	err := server.ListenAndServe()
 	if serr := server.Shutdown(ctx); serr != nil && serr != context.Canceled {
 		w.le.WithError(serr).Warn("graceful shutdown failed")
@@ -174,31 +188,32 @@ func (w *WebSocket) ListenHTTP(ctx context.Context, addr string) error {
 
 // ServeHTTP serves the websocket upgraded HTTP endpoint.
 func (w *WebSocket) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Return a not-found response and record the rejected request.
 	returnNotFound := func() {
 		rw.WriteHeader(404)
 		_, _ = rw.Write([]byte("404 - Page not found\n"))
 		httplog.WithLoggerFields(w.le, req, 404).Debug("request not found")
 	}
 
+	// Read the configured paths used to route this request.
 	httpPath := req.URL.Path
 	confPath := w.conf.GetHttpPath()
 	httpPeerPath := w.conf.GetHttpPeerPath()
 
-	// Serve peer ID if enabled
+	// Serve the local peer ID endpoint when it is configured.
 	if httpPeerPath != "" && httpPath == httpPeerPath {
-		// Serve peer ID
 		rw.WriteHeader(200)
 		_, _ = rw.Write([]byte(w.GetPeerID().String()))
 		return
 	}
 
-	// Filter http path if set
+	// Reject requests outside the configured WebSocket path.
 	if confPath != "" && req.URL.Path != confPath {
 		returnNotFound()
 		return
 	}
 
-	// Accept websocket
+	// Upgrade the request and negotiate the QUIC subprotocol.
 	c, err := websocket.Accept(rw, req, &websocket.AcceptOptions{
 		// Negotiate the bifrost quic sub-protocol ID.
 		Subprotocols: []string{transport_quic.Alpn},
@@ -216,6 +231,7 @@ func (w *WebSocket) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Attach the upgraded connection to a QUIC link.
 	raddr := saddr.NewStringAddr("ws", req.RemoteAddr)
 	pc := NewPacketConn(req.Context(), c, w.LocalAddr(), raddr)
 	lnk, err := w.HandleConn(w.ctx, false, pc, raddr, "")
@@ -228,7 +244,7 @@ func (w *WebSocket) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// hold the HTTP request open until something closes.
+	// Keep the HTTP request open until the transport, link, or request closes.
 	httplog.
 		WithLoggerFields(w.le, req, 200).
 		Debug("started websocket conn")
@@ -237,6 +253,8 @@ func (w *WebSocket) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	case <-lnk.GetContext().Done():
 	case <-req.Context().Done():
 	}
+
+	// Close the packet connection and link after the request lifecycle ends.
 	_ = pc.Close()
 	_ = lnk.Close()
 }

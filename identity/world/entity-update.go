@@ -85,7 +85,7 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	entityRef := o.GetEntityRef()
 
-	// create / validate the objectref
+	// Resolve and validate the referenced entity.
 	var entity *identity.Entity
 	entity, err = FollowEntity(ctx, worldHandle.AccessWorldState, entityRef)
 	if err != nil || entity == nil {
@@ -95,7 +95,7 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 	domainID, entityID := entity.GetDomainId(), entity.GetEntityId()
 	objKey := NewEntityKey(domainID, entityID)
 
-	// create the entity if it doesn't exist.
+	// Update the existing entity object or create its initial type index.
 	obj, objFound, err := worldHandle.GetObject(ctx, objKey)
 	if err != nil {
 		return false, err
@@ -121,13 +121,13 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 			return false, err
 		}
 
-		// Entity type
+		// Index the new object as an identity entity.
 		if err := world_types.SetObjectType(ctx, worldHandle, objKey, EntityTypeID); err != nil {
 			return false, err
 		}
 	}
 
-	// Add new keypairs to storage if they don't exist.
+	// Persist newly referenced keypairs and collect their object keys.
 	entityKps, err := entity.UnmarshalVerifyKeypairs()
 	if err != nil {
 		return false, err
@@ -141,7 +141,7 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// Create/update links to keypairs.
+	// Link the entity to each referenced keypair.
 	for _, kpObjKey := range kpObjectKeys {
 		kpQuad := NewObjectToKeypairQuad(objKey, kpObjKey)
 		if err := worldHandle.SetGraphQuad(ctx, kpQuad); err != nil {
@@ -149,7 +149,7 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 		}
 	}
 
-	// Create/update link to domain info (if exists)
+	// Link the entity to its domain information when available.
 	diKey := NewDomainInfoKey(domainID)
 	_, diExists, err := worldHandle.GetObject(ctx, diKey)
 	if err != nil {
@@ -161,7 +161,6 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 			return false, err
 		}
 	}
-
 	return false, nil
 }
 

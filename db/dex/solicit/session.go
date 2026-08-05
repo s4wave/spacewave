@@ -69,12 +69,14 @@ func (s *peerSession) waitExited(ctx context.Context) error {
 // run starts the session, reading messages in a loop and dispatching
 // responses to pending requests or handling incoming requests.
 func (s *peerSession) run(ctx context.Context) {
+	// Mark the session closed and wake pending requests on exit.
 	defer func() {
 		s.closed.Store(true)
 		s.sess.Close()
 		s.wakePending()
 	}()
 
+	// Read and dispatch session messages.
 	for {
 		var msg DexMessage
 		if err := s.sess.RecvMsg(&msg); err != nil {
@@ -104,6 +106,7 @@ func (s *peerSession) run(ctx context.Context) {
 
 // handleRequest handles an incoming block request and sends a response.
 func (s *peerSession) handleRequest(ctx context.Context, req *DexMessage) {
+	// Prepare a response that is sent when request handling finishes.
 	ref := req.GetRef()
 	resp := &DexMessage{
 		RequestId:  req.GetRequestId(),
@@ -120,6 +123,7 @@ func (s *peerSession) handleRequest(ctx context.Context, req *DexMessage) {
 		return
 	}
 
+	// Check the local bucket before forwarding.
 	// Check local store first.
 	data, found, err := s.lookupLocalBlock(ctx, ref)
 	if err != nil {
@@ -132,6 +136,7 @@ func (s *peerSession) handleRequest(ctx context.Context, req *DexMessage) {
 		return
 	}
 
+	// Forward unresolved requests while hops remain.
 	// Forward to other peers if hops remain.
 	// Clamp to configured max so a malicious peer cannot amplify traffic.
 	maxHops := s.c.cc.GetMaxForwardHops()
@@ -170,6 +175,7 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		return nil, false, errors.New("session closed")
 	}
 
+	// Register the pending request before sending it.
 	id := s.nextID.Add(1)
 	ch := make(chan *DexMessage, 1)
 	s.mtx.Lock()
@@ -185,6 +191,7 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		s.mtx.Unlock()
 	}()
 
+	// Send the block request to the peer.
 	req := &DexMessage{
 		RequestId:     id,
 		Ref:           ref,
@@ -194,6 +201,7 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		return nil, false, err
 	}
 
+	// Await the response or request cancellation.
 	select {
 	case <-ctx.Done():
 		return nil, false, ctx.Err()
@@ -207,6 +215,8 @@ func (s *peerSession) requestBlock(ctx context.Context, ref *block.BlockRef, hop
 		if !resp.GetFound() {
 			return nil, false, nil
 		}
+
+		// Verify returned block data before reporting success.
 		data := resp.GetData()
 		if err := ref.VerifyData(data, true); err != nil {
 			return data, false, err

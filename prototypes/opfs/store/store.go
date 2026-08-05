@@ -29,10 +29,13 @@ type Store struct {
 // NewStore creates a new OPFS store rooted at the given directory.
 // It creates a "data" subdirectory for key-value storage.
 func NewStore(root *opfs.DirectoryHandle) (*Store, error) {
+	// Create the data directory that stores key-value files.
 	data, err := root.GetDirectoryHandle("data", true)
 	if err != nil {
 		return nil, err
 	}
+
+	// Assemble the store handles and file cache.
 	s := &Store{
 		root:  root,
 		data:  data,
@@ -43,6 +46,7 @@ func NewStore(root *opfs.DirectoryHandle) (*Store, error) {
 
 // Open creates a new OPFS store in a subdirectory of the OPFS root.
 func Open(name string) (*Store, error) {
+	// Resolve or create the named OPFS root directory.
 	root, err := opfs.GetRootDirectory()
 	if err != nil {
 		return nil, err
@@ -56,10 +60,13 @@ func Open(name string) (*Store, error) {
 
 // NewTransaction returns a new transaction against the store.
 func (s *Store) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	// Create a read transaction shared by either transaction mode.
 	readTx := newTx(s, false)
 	if !write {
 		return readTx, nil
 	}
+
+	// Wrap write transactions with the transaction cache and discard callback.
 	return kvtx_txcache.NewTxWithCbs(readTx, true, readTx.Discard, func() (kvtx.Tx, error) {
 		return newTx(s, true), nil
 	}, true)

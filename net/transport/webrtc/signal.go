@@ -15,23 +15,27 @@ var SignalingCryptContext = "github.com/s4wave/spacewave/net 2024-01-15 17:58:55
 
 // EncodeWebRtcSignal marshals and encrypts the WebRtcSignal message.
 func EncodeWebRtcSignal(s *WebRtcSignal, dstPeer crypto.PubKey) ([]byte, error) {
+	// Marshal the signal before encrypting its serialized bytes.
 	msgSrc, err := s.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
 	defer scrub.Scrub(msgSrc)
 
+	// Encrypt the serialized signal for the destination peer.
 	return peer.EncryptToPubKey(dstPeer, SignalingCryptContext, msgSrc)
 }
 
 // DecodeWebRtcSignal decrypts and unmarshals the WebRtcSignal message.
 func DecodeWebRtcSignal(msg []byte, privKey crypto.PrivKey) (*WebRtcSignal, error) {
+	// Decrypt the signal before unmarshaling its body.
 	msgDec, err := peer.DecryptWithPrivKey(privKey, SignalingCryptContext, msg)
 	if err != nil {
 		return nil, err
 	}
 	defer scrub.Scrub(msgDec)
 
+	// Unmarshal the decrypted signal.
 	out := &WebRtcSignal{}
 	if err := out.UnmarshalVT(msgDec); err != nil {
 		return nil, err
@@ -41,7 +45,7 @@ func DecodeWebRtcSignal(msg []byte, privKey crypto.PrivKey) (*WebRtcSignal, erro
 
 // Validate validates the WebRtcSignal message.
 func (m *WebRtcSignal) Validate() error {
-	// Validate body
+	// Validate the concrete signal body variant.
 	switch b := m.GetBody().(type) {
 	case *WebRtcSignal_RequestOffer:
 	case *WebRtcSignal_Sdp:
@@ -70,12 +74,15 @@ func NewWebRtcSdp(txSeqno uint64, desc *webrtc.SessionDescription) *WebRtcSdp {
 
 // Validate validates the WebRtcSdp message.
 func (s *WebRtcSdp) Validate() error {
+	// Require a non-empty and recognized SDP type.
 	if s.GetSdpType() == "" {
 		return errors.New("sdp_type: cannot be empty")
 	}
 	if s.ParseSDPType() == webrtc.SDPTypeUnknown {
 		return errors.Errorf("sdp_type: unknown sdp type: %v", s.GetSdpType())
 	}
+
+	// Parse the SDP payload to validate its structure.
 	if _, err := s.ParseSDP(); err != nil {
 		return err
 	}
@@ -121,10 +128,13 @@ func (s *WebRtcIce) Validate() error {
 
 // NewWebRtcIce constructs a new WebRtcIce from a ICECandidateInit.
 func NewWebRtcIce(candidate *webrtc.ICECandidateInit) (*WebRtcIce, error) {
+	// Marshal the ICE candidate before storing its JSON representation.
 	data, err := marshalICECandidateInit(candidate)
 	if err != nil {
 		return nil, err
 	}
+
+	// Return the encoded ICE candidate message.
 	return &WebRtcIce{Candidate: string(data)}, nil
 }
 

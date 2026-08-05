@@ -30,6 +30,7 @@ func (m *MountedStreamHandler) HandleMountedStream(
 	ctx context.Context,
 	strm link.MountedStream,
 ) error {
+	// Hold the source link while echoing the mounted stream.
 	_, elRef, err := m.bus.AddDirective(
 		link.NewEstablishLinkWithPeer(strm.GetLink().GetLocalPeer(), strm.GetPeerID()),
 		nil,
@@ -37,15 +38,22 @@ func (m *MountedStreamHandler) HandleMountedStream(
 	if err != nil {
 		return err
 	}
+
+	// Echo the stream asynchronously so the handler returns promptly.
 	go func() {
+		// Release the link reference when the echo routine exits.
 		defer elRef.Release()
+
+		// Prepare the echo stream and cancellation context.
 		m.le.Debug("echoing stream")
 		s := strm.GetStream()
 		subCtx, subCtxCancel := context.WithCancel(ctx)
 		defer subCtxCancel()
+
+		// Proxy the stream back to itself until either side closes.
 		ioproxy.ProxyStreams(s, s, subCtxCancel)
 
-		// wait to release EstablishLink ref
+		// Wait for the proxy to finish before releasing the reference.
 		<-subCtx.Done()
 	}()
 	return nil

@@ -76,7 +76,7 @@ func (o *ClusterAssignJobOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// assign the job to the cluster
+	// Link the job to the cluster.
 	err = worldHandle.SetGraphQuad(ctx, NewClusterToJobQuad(clusterKey, jobKey))
 	if err != nil {
 		return false, err

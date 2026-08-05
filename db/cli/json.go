@@ -10,10 +10,13 @@ import (
 )
 
 func writeIndentedJSON(out io.Writer, dat []byte) error {
+	// Indent the JSON response into a reusable buffer.
 	var buf bytes.Buffer
 	if err := json.Indent(&buf, dat, "", "\t"); err != nil {
 		return err
 	}
+
+	// Write the indented response and its trailing newline.
 	if _, err := out.Write(buf.Bytes()); err != nil {
 		return err
 	}

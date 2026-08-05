@@ -66,6 +66,7 @@ func TestMatchServeMuxPattern(t *testing.T) {
 		},
 	}
 
+	// Exercise each method and path combination against the mux.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			parsedURL, err := url.Parse(tt.url)

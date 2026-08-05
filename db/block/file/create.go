@@ -25,11 +25,13 @@ func BuildFileWithBytes(
 	data []byte,
 	buildBlobOpts *blob.BuildBlobOpts,
 ) (*File, error) {
+	// Initialize the file root and clear any previous cursor references.
 	totalSize := uint64(len(data))
 	fn := &File{TotalSize: totalSize}
 	bcs.ClearAllRefs()
 	bcs.SetBlock(fn, true)
 
+	// Build and attach the root blob beneath the initialized file.
 	rootBlobCs := bcs.FollowSubBlock(2)
 	rootBlob, err := blob.BuildBlob(
 		ctx,
@@ -50,11 +52,12 @@ func BuildFileWithReader(
 	rdr io.Reader,
 	buildBlobOpts *blob.BuildBlobOpts,
 ) (*File, error) {
-	// Create initial file with TotalSize blank
+	// Initialize an empty file root before streaming reader data.
 	fn := &File{}
 	bcs.ClearAllRefs()
 	bcs.SetBlock(fn, true)
 
+	// Build and attach the streamed root blob, then record its size.
 	rootBlobCs := bcs.FollowSubBlock(2)
 	rootBlob, err := blob.BuildBlobWithReader(
 		ctx,

@@ -73,13 +73,13 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// if the peer id matches the current, return nil
+	// Skip the update when the peer ID is unchanged.
 	peerIDStr := peerID.String()
 	if o.GetPeerId() == peerIDStr {
 		return false, nil
 	}
 
-	// check the <type> of the cluster
+	// Confirm the cluster object type.
 	err = CheckClusterType(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
@@ -105,13 +105,13 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 			return errors.Wrap(peer.ErrEmptyPeerID, "cluster")
 		}
 
-		// ensure the sender matches the cluster peer id
+		// Require the sender to match the cluster's current peer.
 		senderPeerIDStr := sender.String()
 		if senderPeerIDStr != clusterPeerIDStr {
 			return errors.Errorf("tx sender %s does not match cluster %s", senderPeerIDStr, clusterPeerIDStr)
 		}
 
-		// update the cluster peer id field
+		// Store the replacement cluster peer ID.
 		cluster.PeerId = peerIDStr
 		bcs.SetBlock(cluster, true)
 		return nil
@@ -120,7 +120,7 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// clear any old keypair links
+	// Remove links to the previous cluster keypairs.
 	oldKpKeys, err := identity_world.ListObjectKeypairs(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
@@ -137,13 +137,13 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		}
 	}
 
-	// create the keypair and link to it if necessary
+	// Link the replacement peer keypair to the cluster.
 	_, _, err = identity_world.LinkObjectToKeypair(ctx, worldHandle, sender, clusterKey, peerID, "", nil)
 	if err != nil {
 		return false, err
 	}
 
-	// done
+	// Finish after the cluster links are updated.
 	return false, nil
 }
 

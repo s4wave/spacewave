@@ -72,6 +72,7 @@ func (p *Conn) RemoteAddr() net.Addr {
 // Read can be made to time out and return an error after a fixed
 // time limit; see SetDeadline and SetReadDeadline.
 func (p *Conn) Read(b []byte) (n int, err error) {
+	// Apply the configured read deadline to the connection context.
 	deadline := p.rd
 	ctx := p.ctx
 	if !deadline.IsZero() {
@@ -80,6 +81,7 @@ func (p *Conn) Read(b []byte) (n int, err error) {
 		defer ctxCancel()
 	}
 
+	// Wait for the next buffered payload or a connection close.
 	var pkt []byte
 	var ok bool
 	select {
@@ -98,6 +100,7 @@ func (p *Conn) Read(b []byte) (n int, err error) {
 		}
 	}
 
+	// Copy the payload into the caller's buffer and release its arena slot.
 	pl := len(pkt)
 	copy(b, pkt)
 	p.ar.Put(&pkt)
@@ -109,10 +112,12 @@ func (p *Conn) Read(b []byte) (n int, err error) {
 
 // Write writes data to the connection.
 func (p *Conn) Write(pkt []byte) (n int, err error) {
+	// Write the complete payload, retrying partial writes.
 	if len(pkt) == 0 {
 		return 0, nil
 	}
 
+	// Continue writing until the entire payload is transmitted.
 	written := 0
 	for written < len(pkt) {
 		n, err = p.rwc.Write(pkt[written:])
@@ -202,6 +207,7 @@ func (p *Conn) rxPump() (rerr error) {
 		close(p.packetCh)
 	}()
 
+	// Read packets until cancellation or the underlying stream closes.
 	for {
 		select {
 		case <-p.ctx.Done():
@@ -209,6 +215,7 @@ func (p *Conn) rxPump() (rerr error) {
 		default:
 		}
 
+		// Read into a reusable packet buffer and enqueue received bytes.
 		pktBuf := p.getArenaBuf(int(connPktSize))
 		n, err := p.rwc.Read(pktBuf)
 		if n == 0 {

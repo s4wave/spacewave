@@ -17,6 +17,7 @@ var ProtocolID = protocol.ID("bifrost/signaling")
 const encContext = "bifrost/signaling/rpc session msg 2024-06-05T02:45:07.208906Z"
 
 // NewSessionMsg creates a new SessionMsg with the provided data signed.
+// Sign and package the session payload with its sequence number.
 func NewSessionMsg(privKey crypto.PrivKey, hashType hash.HashType, msg []byte, seqno uint64) (*SessionMsg, error) {
 	signedMsg, err := peer.NewSignedMsg(encContext, privKey, hashType, msg)
 	if err != nil {

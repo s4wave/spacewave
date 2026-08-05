@@ -44,30 +44,33 @@ func (s *ObjectStore) DeleteObjectStore(
 	ctx context.Context,
 	req *object_rpc.DeleteObjectStoreRequest,
 ) (*object_rpc.DeleteObjectStoreResponse, error) {
+	// Delete the requested object store.
 	err := s.store.DeleteObjectStore(ctx, req.GetObjectStoreId())
 	var errStr string
 	if err != nil {
 		errStr = err.Error()
 	}
+
+	// Return the deletion error as an RPC response field.
 	return &object_rpc.DeleteObjectStoreResponse{Error: errStr}, nil
 }
 
 // GetObjectStoreMux returns the srpc.Mux for an object store.
 func (s *ObjectStore) GetObjectStoreMux(ctx context.Context, objStoreID string, _ func()) (srpc.Invoker, func(), error) {
+	// Acquire the keyed object-store tracker.
 	ref, tracker, _ := s.kvtxStores.AddKeyRef(objStoreID)
-
 	st, err := tracker.waitStore(ctx)
 	if err != nil {
 		ref.Release()
 		return nil, nil, err
 	}
 
+	// Register the object-store RPC implementation.
 	mux := srpc.NewMux()
 	if err := rpc_kvtx.SRPCRegisterKvtx(mux, st); err != nil {
 		ref.Release()
 		return nil, nil, err
 	}
-
 	return mux, ref.Release, nil
 }
 

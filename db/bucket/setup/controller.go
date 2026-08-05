@@ -60,11 +60,14 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Snapshot configured bucket applications and track their completion.
 	bucketConfs := c.conf.GetApplyBucketConfigs()
 	refs := make([]func(), 0, len(bucketConfs)*2)
 	var running atomic.Int32
+
 	running.Store(int32(len(bucketConfs))) //nolint:gosec
 
+	// Report the first application failure without blocking other buckets.
 	errCh := make(chan error, 1)
 	handleErr := func(err error) {
 		select {
@@ -73,6 +76,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}
 
+	// Build and submit each valid bucket configuration directive.
 	for i, conf := range bucketConfs {
 		if conf.GetConfig() == nil {
 			continue
@@ -94,6 +98,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 			le.WithError(err).Warn("apply bucket config failed")
 			continue
 		}
+
+		// Release each directive when idle and publish completion or failure.
 		var markedNotRunning atomic.Bool
 		refs = append(refs,
 			di.AddIdleCallback(func(isIdle bool, errs []error) {
@@ -114,6 +120,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 			ref.Release,
 		)
 	}
+
+	// Retain directive references until the controller closes or is already closed.
 	if len(refs) != 0 {
 		c.le.Infof("applied %d bucket configs", len(refs)/2)
 	}
@@ -129,6 +137,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}
 
+	// Wait for cancellation or the first application error.
 	// wait
 	select {
 	case <-ctx.Done():
@@ -153,6 +162,7 @@ func (c *Controller) Close() error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Release every retained directive reference during controller close.
 	// release all refs
 	for _, r := range c.refs {
 		r()

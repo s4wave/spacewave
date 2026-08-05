@@ -91,6 +91,7 @@ func NewClientWithBus(
 	protocolID protocol.ID,
 	serviceID string,
 ) (*Client, error) {
+	// Apply default protocol and service identifiers.
 	if protocolID == "" {
 		protocolID = signaling_rpc.ProtocolID
 	}
@@ -141,6 +142,7 @@ func (c *Client) SetListenHandler(listenHandler ClientListenHandler) {
 
 // executeListenRoutine is the routine to run the Listen RPC.
 func (c *Client) executeListenRoutine(ctx context.Context, handler ClientListenHandler) error {
+	// Open the listen stream and notify the handler when it closes.
 	c.le.Debug("signaling: starting to listen for incoming sessions")
 	strm, err := c.client.Listen(ctx, &signaling_rpc.ListenRequest{})
 	if err != nil {
@@ -379,13 +381,16 @@ func (c *Client) newPeerTracker(peerIDStr string) (keyed.Routine, *clientPeerTra
 
 // execute executes the clientPeerTracker.
 func (s *clientPeerTracker) execute(ctx context.Context) error {
+	// Open the long-lived signaling session for this peer tracker.
 	sess, err := s.c.client.Session(ctx)
 	if err != nil {
 		return errors.Wrap(err, "open signaling rpc session")
 	}
 
+	// Route session failures through the tracker error channel.
 	errCh := make(chan error, 2)
 
+	// Define state transitions for close, open, receive, and acknowledgements.
 	handleClose := func() {
 		s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			if s.open != nil {
@@ -460,11 +465,13 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		})
 	}
 
+	// Close the session and clear all tracker state on exit.
 	defer func() {
 		_ = sess.Close()
 		handleClose()
 	}()
 
+	// Register this peer identity with the remote signaling server.
 	err = sess.Send(&signaling_rpc.SessionRequest{
 		Body: &signaling_rpc.SessionRequest_Init{
 			Init: &signaling_rpc.SessionInit{
@@ -476,6 +483,7 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		return errors.Wrap(err, "send signaling init")
 	}
 
+	// Consume remote session responses in a dedicated receiver.
 	go func() {
 		for {
 			resp, err := sess.Recv()
@@ -509,6 +517,7 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 		}
 	}()
 
+	// Reconcile queued sends, cancellations, and acknowledgements.
 	for {
 
 		if err := ctx.Err(); err != nil {
@@ -551,6 +560,7 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 			waitCh = getWaitCh()
 		})
 
+		// Acknowledge messages consumed by the caller.
 		if ackRecvMsg != 0 {
 			err := sess.Send(&signaling_rpc.SessionRequest{
 				SessionSeqno: sessSeqno,
@@ -563,6 +573,7 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 			}
 		}
 
+		// Cancel messages withdrawn before transmission.
 		if cancelMsg != 0 {
 			err := sess.Send(&signaling_rpc.SessionRequest{
 				SessionSeqno: sessSeqno,
@@ -575,6 +586,7 @@ func (s *clientPeerTracker) execute(ctx context.Context) error {
 			}
 		}
 
+		// Transmit the next queued message.
 		if sendMsg != nil {
 			err := sess.Send(&signaling_rpc.SessionRequest{
 				SessionSeqno: sessSeqno,

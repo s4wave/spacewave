@@ -125,6 +125,7 @@ func (s *Server) ResolveHandleMountedStream(
 	di directive.Instance,
 	dir link.HandleMountedStream,
 ) ([]directive.Resolver, error) {
+	// Match the incoming protocol against the configured protocol set.
 	inProtocol := dir.HandleMountedStreamProtocolID()
 	var match bool
 	if slices.Contains(s.protocolIDs, inProtocol) {
@@ -134,6 +135,7 @@ func (s *Server) ResolveHandleMountedStream(
 		return nil, nil
 	}
 
+	// Match the incoming local peer against the configured peer set.
 	inPeerID := dir.HandleMountedStreamLocalPeerID()
 	inPeerIDString := inPeerID.String()
 	if len(s.peerIDs) != 0 {
@@ -148,6 +150,7 @@ func (s *Server) ResolveHandleMountedStream(
 		}
 	}
 
+	// Return the mounted-stream resolver for matching requests.
 	return directive.Resolvers(newMountedStreamResolver(s)), nil
 }
 
@@ -157,7 +160,7 @@ func (s *Server) ResolveHandleMountedStream(
 // additional goroutines to manage the lifecycle of the stream.
 // Typically EstablishLink is asserted in HandleMountedStream.
 func (s *Server) HandleMountedStream(ctx context.Context, ms link.MountedStream) error {
-	// keep the link open
+	// Keep the link referenced while the SRPC server handles the stream.
 	var elRef directive.Reference
 	var err error
 	if !s.disableEstablishLink {
@@ -169,10 +172,15 @@ func (s *Server) HandleMountedStream(ctx context.Context, ms link.MountedStream)
 			return err
 		}
 	}
+
+	// Handle the stream asynchronously and release the link reference on exit.
 	go func() {
+		// Attach mounted-stream context and serve the SRPC stream.
 		strm := ms.GetStream()
 		sctx := link.WithMountedStreamContext(ctx, ms)
 		s.server.HandleStream(sctx, strm)
+
+		// Close the stream before releasing the optional link reference.
 		strm.Close()
 		if elRef != nil {
 			elRef.Release()

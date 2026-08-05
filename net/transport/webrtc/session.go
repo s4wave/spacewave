@@ -153,11 +153,15 @@ func (s *sessionTracker) executeXmitSignal(ctx context.Context, sig *outgoingSig
 			err = pkgerrors.Errorf("xmit signal panic: %v\n%s", e, debug.Stack())
 		}
 	}()
+
+	// Encode the signal for the remote peer before transmission.
 	msgEnc, err := EncodeWebRtcSignal(sig.sig, s.peerPub)
 	if err != nil {
 		return pkgerrors.Wrap(err, "encode web rtc signal")
 	}
 	defer scrub.Scrub(msgEnc)
+
+	// Send the encrypted signal and mark it delivered.
 	if err := sig.sess.Send(ctx, msgEnc); err != nil {
 		return pkgerrors.Wrap(err, "send signaling message")
 	}
@@ -170,21 +174,25 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	// Packet conn: maximum packet size should be larger than the MTU quic uses.
 	// Use one that aligns with one memory page (4096 bytes)
 	// Buffer 8 packets at a time.
+	// Wrap the data channel as a packet connection with peer addresses.
 	localAddr := peer.NewNetAddr(s.w.peerID)
 	remoteAddr := peer.NewNetAddr(s.peerID)
 	pc := rwc.NewRwcPacketConn(dcRwc, localAddr, remoteAddr)
+
+	// Resolve the QUIC role from the deterministic offerer selection.
 	role := "client"
 	if s.offerer {
 		role = "server"
 	}
 	s.le.WithField("quic-role", role).Info("webrtc quic phase: data channel ready")
 
-	// Configure quic with settings specific to webRTC
+	// Configure QUIC for WebRTC data-channel transport.
 	linkOpts := s.w.conf.GetQuic().CloneVT()
 	if linkOpts == nil {
 		linkOpts = &transport_quic.Opts{}
 	}
 	linkOpts.DisableDatagrams = true
+
 	// Keep QUIC keepalive enabled for WebRTC links. The link rides a datachannel
 	// and can sit idle (a quiet resource stream, a lull between bursts) longer
 	// than MaxIdleTimeout; without keepalive PINGs quic-go reaps it with an idle
@@ -196,7 +204,7 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	linkOpts.DisablePathMtuDiscovery = true
 	linkOpts.MaxIdleTimeoutDur = "60s"
 
-	// Invert it so that the answerer dials the Quic link.
+	// Negotiate QUIC with the offerer listening and answerer dialing.
 	// This evenly splits responsibilities between the peers.
 	//
 	// Assuming peer A is the offerer and B the answerer:
@@ -238,6 +246,7 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	}
 	s.le.WithField("quic-role", role).Info("webrtc quic phase: handshake complete")
 
+	// Prepare link-close signaling before constructing the QUIC link.
 	errCh := make(chan error, 1)
 	var nextLink *transport_quic.Link
 	var wasClosed atomic.Bool
@@ -256,6 +265,7 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 		errCh <- io.EOF
 	}
 
+	// Construct the link and report any construction failure.
 	nextLink, err = transport_quic.NewLink(
 		ctx,
 		s.le,
@@ -271,7 +281,7 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	}
 	s.le.WithField("quic-role", role).Info("webrtc quic phase: link constructed")
 
-	// Link established.
+	// Publish the link under the broadcast lock and notify the handler.
 	s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		s.link = nextLink
 		broadcast()
@@ -279,14 +289,14 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	s.w.handler.HandleLinkEstablished(nextLink)
 	s.le.WithField("quic-role", role).Info("webrtc quic phase: link published")
 
-	// Cleanup link on exit
+	// Close the link if this execution exits before its close callback.
 	defer func() {
 		if !wasClosed.Load() {
 			go nextLink.Close()
 		}
 	}()
 
-	// Wait for the context to be canceled or routine canceled
+	// Wait for cancellation or link closure.
 	select {
 	case <-ctx.Done():
 		return context.Canceled
@@ -414,6 +424,7 @@ func (s *sessionTracker) newSession() (*session, <-chan struct{}, error) {
 		_ = pc.Close()
 		return nil, nil, err
 	}
+
 	// pc.OnDataChannel(sess.onDataChannel)
 	if s.w.GetVerbose() {
 		s.le.Debug("session constructed")
@@ -431,6 +442,7 @@ func (s *session) createDataChannel(
 
 	negotiated := true
 	protocol := dataChannelID
+
 	ordered := false // Allow unordered data since Quic can handle it.
 	var channelID uint16 = 1
 	return createDataChannel(dataChannelID, &webrtc.DataChannelInit{
@@ -526,6 +538,7 @@ func (s *session) onDataChannelOpen() {
 	if s.t.w.GetVerbose() {
 		s.t.le.Debugf("data channel open: %v", s.dc.Label())
 	}
+
 	// We set DetachDataChannels in the WebRTC settings engine.
 	rwc, err := s.dc.Detach()
 	if err != nil {
@@ -693,17 +706,22 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	// Currently processed local sequence number.
 	var lastLocalSeqno, currRemoteSeqno uint64
 	var currLinkRwc datachannel.ReadWriteCloser
+
 	_ = currRemoteSeqno // TODO: remote restarted SDP?
+
 	// lastAppliedRemoteSdp is the SDP string we last applied via
 	// SetRemoteDescription. A byte-identical duplicate is ignored to avoid an
 	// unnecessary renegotiation / ICE restart.
 	var lastAppliedRemoteSdp string
+
 	// Which ICE candidate index did we send last?
 	var lastSentICE int
+
 	// sentIceComplete records whether the end-of-candidates marker has been
 	// transmitted for the current negotiation generation. It is reset whenever
 	// lastSentICE resets (a new local offer/answer regathers candidates).
 	var sentIceComplete bool
+
 	// pendingRemoteIce buffers remote ICE candidates that arrive before the
 	// remote description is set. pion's AddICECandidate requires a remote
 	// description, and the offerer routinely receives the answerer's trickled
@@ -714,6 +732,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 
 	for {
 		phase = "wait for session change"
+
 		// Wait for something to change or for an incoming signal.
 		var currIncomingSignal *incomingSignal
 
@@ -816,6 +835,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		// Construct or tear down link as necessary.
 		if currDcRwc != currLinkRwc {
 			phase = "update link routine"
+
 			// Update the link routine and wait for the old link to exit.
 			waitReturn, changed, _, _ := linkRoutine.SetState(currDcRwc)
 			if changed && waitReturn != nil {
@@ -832,6 +852,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		sdpType := currRxSdp.GetSdpType()
 		if sdpType != "" {
 			phase = "handle remote sdp"
+
 			// Enforce offerer always does the offering.
 			if s.offerer {
 				if sdpType != "answer" {
@@ -901,6 +922,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			if err != nil {
 				return pkgerrors.Wrap(err, "parse remote ice candidate")
 			}
+
 			// Apply the candidate once a remote description exists; otherwise
 			// buffer it. pion drops candidates added with no remote description,
 			// and the offerer commonly receives the answerer's candidates before
@@ -954,6 +976,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		// Transmit at most once at a time, we need to make sure to process remote messages in a timely fashion.
 		if len(currTxICE) != 0 {
 			phase = "transmit local ice"
+
 			// make sure waitCh hasn't proced already
 			select {
 			case <-ctx.Done():

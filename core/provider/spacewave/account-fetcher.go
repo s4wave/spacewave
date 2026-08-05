@@ -18,7 +18,7 @@ import (
 // accountStateCacheKey is the ObjectStore key for the account state cache.
 const accountStateCacheKey = "account-state-cache"
 
-// accountFetcherRetryOwner holds the transient retry delay for accountFetcher.
+// accountFetcherRetryOwner tracks transient retry delay for accountFetcher.
 //
 // The wake channel is captured with the account snapshot that produced the
 // failed fetch. If account epoch or session-client readiness changes while a
@@ -67,10 +67,12 @@ func waitAccountFetcherRetryDelay(
 // epoch advances past the last fetched epoch. Single goroutine, triggered by
 // epoch changes via accountBcast.
 func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
+	// Initialize account-fetcher logging and retry state.
 	le := a.le.WithField("component", "account-fetcher")
 	retry := newAccountFetcherRetryOwner()
 	var prevKeypairs []*session.EntityKeypair
 	for {
+		// Read the current account epoch, client, and wake channel.
 		var epoch, lastFetched uint64
 		var cli *SessionClient
 		var ch <-chan struct{}
@@ -81,6 +83,7 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			ch = getWaitCh()
 		})
 
+		// Wait for a usable authenticated client when an epoch needs fetching.
 		if epoch > lastFetched {
 			if cli == nil || cli.priv == nil || cli.peerID == "" {
 				select {
@@ -91,6 +94,7 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 				}
 			}
 
+			// Fetch account state for the current epoch.
 			state, err := cli.GetAccountState(ctx)
 			if err != nil {
 				if isNonRetryableCloudError(err) {
@@ -110,7 +114,7 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 				continue
 			}
 
-			// Fetch emails alongside account state (same epoch invalidation).
+			// Fetch the account email snapshot for the same epoch.
 			emailResp, err := cli.ListEmails(ctx)
 			if err != nil {
 				if isNonRetryableCloudError(err) {
@@ -130,6 +134,7 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 				continue
 			}
 
+			// Fetch the account session snapshot for the same epoch.
 			sessionRows, err := cli.ListSessions(ctx)
 			if err != nil {
 				if isNonRetryableCloudError(err) {
@@ -148,6 +153,8 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 				}
 				continue
 			}
+
+			// Apply the fetched snapshots and reset transient retries.
 			retry.Reset()
 
 			le.WithFields(logrus.Fields{
@@ -158,17 +165,19 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			keypairsChanged := !protobuf_go_lite.IsEqualVTSlice(prevKeypairs, state.GetKeypairs())
 			prevKeypairs = state.GetKeypairs()
 
+			// Publish fetched state and refresh dependent access state.
 			a.applyFetchedAccountState(epoch, state, emailResp.GetEmails(), sessionRows)
 			a.syncSharedObjectListAccess(state.GetSubscriptionStatus())
 			a.refreshSelfRejoinSweepState()
 
-			// Write cache to ObjectStore if epoch advanced.
+			// Persist the fetched state when the server epoch advanced.
 			if uint64(state.GetEpoch()) > lastFetched {
 				if err := a.writeAccountStateCache(ctx, state); err != nil {
 					le.WithError(err).Warn("failed to write account state cache")
 				}
 			}
 
+			// Rewrap the session envelope when account keypairs changed.
 			if keypairsChanged && len(state.GetKeypairs()) > 0 {
 				le.Debug("keypairs changed, rewrapping session envelope")
 				if err := a.RewrapSessionEnvelope(ctx); err != nil {
@@ -177,6 +186,7 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			}
 		}
 
+		// Wait for the next epoch change or cancellation.
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

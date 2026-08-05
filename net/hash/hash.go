@@ -80,13 +80,18 @@ func (h *Hash) CompareHash(other *Hash) bool {
 // Returns the hash of the data, hash type, and error
 // Returns an error if failed to validate.
 func (h *Hash) VerifyData(data []byte) ([]byte, error) {
+	// Compute the requested digest before checking its length and bytes.
 	hash, err := h.GetHashType().Sum(data)
 	if err != nil {
 		return nil, err
 	}
+
+	// Reject a digest with the wrong encoded length.
 	if len(hash) != len(h.GetHash()) {
 		return hash, ErrHashMismatch
 	}
+
+	// Reject a digest whose bytes differ from the computed value.
 	if !bytes.Equal(hash, h.GetHash()) {
 		return hash, ErrHashMismatch
 	}
@@ -100,6 +105,7 @@ func NewHash(ht HashType, h []byte) *Hash {
 
 // Sum constructs a hash type by summing an object.
 func Sum(ht HashType, data []byte) (*Hash, error) {
+	// Compute the digest and wrap it in the hash record.
 	h, err := ht.Sum(data)
 	if err != nil {
 		return nil, err
@@ -123,6 +129,8 @@ func (h *Hash) MarshalString() string {
 	if h == nil {
 		return ""
 	}
+
+	// Marshal the hash before encoding it for transport.
 	dat, err := h.MarshalVT()
 	if err != nil {
 		return ""
@@ -141,6 +149,7 @@ func (h *Hash) MarshalDigest() []byte {
 
 // ParseFromB58 parses the object ref from a base58 string.
 func (h *Hash) ParseFromB58(ref string) error {
+	// Decode the base58 value before unmarshalling the hash record.
 	dat, err := b58.Decode(ref)
 	if err != nil {
 		return err

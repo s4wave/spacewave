@@ -27,16 +27,19 @@ type deriveKeypairResolver struct {
 // The resolver will not be retried after returning an error.
 // Values will be maintained from the previous call.
 func (o *deriveKeypairResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	// if we already resolved the keypair, return.
+	// Return immediately when the keypair has already been resolved.
 	if handler.CountValues(false) != 0 {
 		return nil
 	}
 
+	// Derive the requested keypair through the controller's auth services.
 	keypairList := o.dir.DeriveEntityKeypairList()
 	res, err := DeriveEntityKeypair(ctx, o.c.bus, o.c.le, keypairList)
 	if err != nil {
 		return err
 	}
+
+	// Publish a derived peer when the request produced one.
 	if res != nil {
 		_, _ = handler.AddValue(res)
 	}
@@ -50,18 +53,20 @@ func DeriveEntityKeypair(
 	le *logrus.Entry,
 	keypairList []*identity.EntityKeypair,
 ) (peer.Peer, error) {
+	// Track the last failure while trying each configured keypair.
 	var lastErr error
 KeypairLoop:
+	// Process keypairs until one authenticates successfully.
 	for kpi, ekp := range keypairList {
 		kp := ekp.GetKeypair()
 		methodID := kp.GetAuthMethodId()
 		expectedPeerID := kp.GetPeerId()
 		if !AuthMethodIdSupported(methodID) || len(expectedPeerID) < 12 {
-			// Currently only triplesec is supported.
+			// Skip keypairs whose method or peer identifier is unsupported.
 			continue
 		}
 
-		// Lookup auth method.
+		// Resolve the authentication method for this keypair.
 		authMethod, err := auth_method.ExAuthLookupMethod(ctx, b, methodID, true)
 		if err == nil && authMethod == nil {
 			err = errors.Errorf("auth method not found: %s", methodID)
@@ -76,7 +81,7 @@ KeypairLoop:
 			continue
 		}
 
-		// Unmarshal params
+		// Decode and validate the stored authentication parameters.
 		params, err := authMethod.UnmarshalParameters(kp.GetAuthMethodParams())
 		if err != nil {
 			le.
@@ -87,6 +92,7 @@ KeypairLoop:
 			continue
 		}
 
+		// Build the user-facing reason for the password prompt.
 		var reasonBuf strings.Builder
 		if ekp.GetEntityEmpty() {
 			reasonBuf.WriteString("unlock ")
@@ -109,6 +115,7 @@ KeypairLoop:
 			reasonBuf.WriteString(domainID)
 		}
 
+		// Prepare prompt metadata and surface any prior keypair failure.
 		reasonDetail := reasonBuf.String()
 		reason := strings.Join([]string{
 			ControllerID,
@@ -121,7 +128,7 @@ KeypairLoop:
 			showErr = errors.Wrap(showErr, "Other keypair failed")
 		}
 
-		// Ask user for password, repeatedly if incorrect.
+		// Prompt for a password until this keypair succeeds or is skipped.
 		for {
 			passwordTxt, err := identity.ExPromptPassword(
 				ctx,
@@ -145,7 +152,7 @@ KeypairLoop:
 				continue KeypairLoop
 			}
 
-			// Attempt to derive keypair
+			// Authenticate the password and verify the resulting peer identity.
 			var incorrectPw bool
 			privKey, err := authMethod.Authenticate(params, []byte(passwordTxt))
 			if err == nil {
@@ -177,7 +184,7 @@ KeypairLoop:
 				continue
 			}
 
-			// otherwise we have successfully derived the peer.
+			// Construct and return the authenticated peer.
 			npeer, err := peer.NewPeer(privKey)
 			if err != nil {
 				le.
@@ -200,7 +207,6 @@ func (c *Controller) resolveDeriveEntityKeypair(
 	di directive.Instance,
 	dir identity.DeriveEntityKeypair,
 ) (directive.Resolver, error) {
-	// Return resolver.
 	return &deriveKeypairResolver{c: c, ctx: ctx, di: di, dir: dir}, nil
 }
 

@@ -49,12 +49,16 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // HandleDirective asks if the handler can resolve the directive.
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	// Inspect the requested RPC service directive.
 	switch d := di.GetDirective().(type) {
 	case bifrost_rpc.LookupRpcService:
+		// Resolve the CLI terminal service when its ID matches.
 		if d.LookupRpcServiceID() == s4wave_cli_terminal.SRPCCliTerminalServiceServiceID {
 			return directive.R(bifrost_rpc.NewLookupRpcServiceResolver(c.mux), nil)
 		}
 	}
+
+	// Leave unsupported RPC services unresolved.
 	return nil, nil
 }
 

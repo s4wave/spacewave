@@ -15,6 +15,7 @@ type RoutineGroup struct {
 // Wrap registers a routine until it returns, refusing work after shutdown begins.
 func (g *RoutineGroup) Wrap(r func(context.Context) error) func(context.Context) error {
 	return func(ctx context.Context) error {
+		// Reserve a routine slot before starting work.
 		if !g.Begin() {
 			return context.Canceled
 		}

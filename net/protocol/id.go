@@ -6,6 +6,7 @@ import "unicode/utf8"
 type ID string
 
 func (i ID) Validate() error {
+	// Reject empty and invalid UTF-8 protocol identifiers.
 	if i == "" {
 		return ErrEmptyProtocolID
 	}

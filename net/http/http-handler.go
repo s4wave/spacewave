@@ -51,6 +51,7 @@ func (h *HTTPHandler) SetContext(ctx context.Context) {
 
 // ServeHTTP serves a http request.
 func (h *HTTPHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Resolve the current handler and retry if it is released before commit.
 	ctx := req.Context()
 	for {
 		var released sync.Once
@@ -62,21 +63,28 @@ func (h *HTTPHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			})
 		})
 		resolveCancel()
+
+		// Return resolution failures to the requesting client.
 		if err != nil {
 			if resolveCtx.Err() != nil &&
 				(errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) {
 				err = errors.Wrap(context.Cause(resolveCtx), errHTTPHandlerResolveTimeout.Error())
 			}
 			rw.WriteHeader(500)
+
 			_, _ = rw.Write([]byte(err.Error())) //nolint:gosec // internal error, not user-controlled
 			return
 		}
+
+		// Return not-found when no handler is currently available.
 		if access == nil {
 			rw.WriteHeader(404)
 			_, _ = rw.Write([]byte("404 not found"))
 			accessRel()
 			return
 		}
+
+		// Serve through a cancellable context that tracks handler release.
 		serveCtx, serveCancel := context.WithCancel(ctx)
 		stateRw := newResponseStateWriter(rw)
 		go func() {
@@ -87,6 +95,8 @@ func (h *HTTPHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				serveCancel()
 			}
 		}()
+
+		// Release the handler and preserve committed responses.
 		access.ServeHTTP(stateRw, req.WithContext(serveCtx))
 		serveCancel()
 		accessRel()
