@@ -182,6 +182,7 @@ func parseConfig(args []string) (*config, error) {
 }
 
 func run(ctx context.Context, c *config) error {
+	opfs.InstallRemoteDriverFromGlobal()
 	switch c.scenario {
 	case "pipe-write-loop":
 		return runPipeWriteLoop(c)
@@ -224,9 +225,13 @@ func run(ctx context.Context, c *config) error {
 	case "block-writer":
 		return runBlockWriter(ctx, c)
 	case "block-reader":
-		return runBlockReader(ctx, c)
+		return runBlockReader(ctx, c, false)
+	case "block-reader-compact":
+		return runBlockReader(ctx, c, true)
 	case "block-verify":
 		return runBlockVerify(ctx, c)
+	case "remote-cache-lifecycle":
+		return runRemoteCacheLifecycle(ctx, c)
 	case "block-orphan-segment":
 		return runBlockOrphanSegment(c)
 	case "block-orphan-verify-clean":
@@ -1150,7 +1155,8 @@ func runBlockWriter(ctx context.Context, c *config) error {
 	return nil
 }
 
-func runBlockReader(ctx context.Context, c *config) error {
+func runBlockReader(ctx context.Context, c *config, compact bool) error {
+	// Open one reader runtime before the writers start.
 	e, release, err := openBlockEngine(ctx, c)
 	if err != nil {
 		return err
@@ -1160,6 +1166,7 @@ func runBlockReader(ctx context.Context, c *config) error {
 	defer events.Close()
 	postReady(c)
 
+	// Read each published batch until every writer reports completion.
 	done := make([]bool, c.workers)
 	var found int
 	var doneCount int
@@ -1170,7 +1177,7 @@ func runBlockReader(ctx context.Context, c *config) error {
 		}
 		switch ev.typ {
 		case "block-written":
-			for j := 0; j < c.batch; j++ {
+			for j := range c.batch {
 				key := blockKey(ev.worker, ev.iteration, j)
 				val, ok, err := e.GetContext(ctx, key)
 				if err != nil {
@@ -1196,9 +1203,11 @@ func runBlockReader(ctx context.Context, c *config) error {
 			continue
 		}
 	}
+
+	// Confirm final visibility when publication events raced manifest refresh.
 	if found == 0 {
-		for w := 0; w < c.workers; w++ {
-			for i := 0; i < c.iterations; i++ {
+		for w := range c.workers {
+			for i := range c.iterations {
 				key := blockKey(w, i, 0)
 				val, ok, err := e.GetContext(ctx, key)
 				if err != nil {
@@ -1213,10 +1222,35 @@ func runBlockReader(ctx context.Context, c *config) error {
 			}
 		}
 	}
-	if found > 0 {
+	if found == 0 {
+		return errors.New("reader found no concurrently written blocks")
+	}
+	if !compact {
 		return nil
 	}
-	return errors.New("reader found no concurrently written blocks")
+
+	// Compact through the live reader and verify every retained value.
+	if err := e.CompactOnce(ctx); err != nil {
+		return errors.Wrap(err, "compact shared block volume")
+	}
+	for w := range c.workers {
+		for i := range c.iterations {
+			for j := range c.batch {
+				key := blockKey(w, i, j)
+				val, ok, err := e.GetContext(ctx, key)
+				if err != nil {
+					return errors.Wrap(err, "read block after compaction")
+				}
+				if !ok {
+					return errors.Errorf("missing block after compaction key=%s", string(key))
+				}
+				if string(val) != string(blockValue(key)) {
+					return errors.Errorf("bad block after compaction key=%s", string(key))
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func runBlockVerify(ctx context.Context, c *config) error {
@@ -1242,6 +1276,114 @@ func runBlockVerify(ctx context.Context, c *config) error {
 				}
 			}
 		}
+	}
+	return nil
+}
+
+func runRemoteCacheLifecycle(ctx context.Context, c *config) error {
+	// Install and require the bridge-backed driver.
+	if !opfs.InstallRemoteDriverFromGlobal() {
+		return errors.New("remote OPFS driver was not installed")
+	}
+	driver, ok := opfs.DefaultDriver.(*opfs.RemoteDriver)
+	if !ok {
+		return errors.Errorf("OPFS driver is %T, want *opfs.RemoteDriver", opfs.DefaultDriver)
+	}
+
+	// Populate the block cache through the first bridge.
+	e, release, err := openBlockEngine(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if release != nil {
+			release()
+		}
+	}()
+	key := []byte("remote-cache-key")
+	value := []byte("remote-cache-value")
+	if err := e.Put(ctx, []segment.Entry{{Key: key, Value: value}}); err != nil {
+		return errors.Wrap(err, "write remote cache block")
+	}
+	got, found, err := e.GetContext(ctx, key)
+	if err != nil {
+		return errors.Wrap(err, "read remote cache block")
+	}
+	if !found || string(got) != string(value) {
+		return errors.Errorf("remote cache read returned found=%t value=%q", found, got)
+	}
+
+	// Retain one raw file token that must become stale on replacement.
+	root, err := opfs.GetRoot()
+	if err != nil {
+		return err
+	}
+	dir, err := opfs.GetDirectory(root, c.root, true)
+	if err != nil {
+		return err
+	}
+	const filename = "remote-stale-handle"
+	if err := opfs.WriteFile(dir, filename, []byte("stale")); err != nil {
+		return err
+	}
+	stale, err := opfs.OpenAsyncFile(dir, filename)
+	if err != nil {
+		return err
+	}
+
+	// Replace the bridge and reject every token from its prior id space.
+	postReady(c)
+	if err := driver.WaitSwap(ctx); err != nil {
+		return err
+	}
+	if _, err := stale.Size(); err == nil {
+		return errors.New("stale remote file handle remained usable after bridge swap")
+	}
+	if err := stale.Close(); err == nil {
+		return errors.New("stale remote file close unexpectedly succeeded")
+	}
+	release()
+	release = nil
+
+	// Remount the block cache through fresh directory and file tokens.
+	fresh, freshRelease, err := openBlockEngine(ctx, c)
+	if err != nil {
+		return errors.Wrap(err, "remount block engine after bridge swap")
+	}
+	defer freshRelease()
+	got, found, err = fresh.GetContext(ctx, key)
+	if err != nil {
+		return errors.Wrap(err, "read remote cache block after remount")
+	}
+	if !found || string(got) != string(value) {
+		return errors.Errorf("remote cache remount returned found=%t value=%q", found, got)
+	}
+
+	// Verify remote deletion errors and explicit fresh-token release.
+	root, err = opfs.GetRoot()
+	if err != nil {
+		return err
+	}
+	dir, err = opfs.GetDirectory(root, c.root, false)
+	if err != nil {
+		return err
+	}
+	if err := opfs.DeleteEntry(dir, "missing-entry", false); !opfs.IsNotFound(err) {
+		return errors.Errorf("remote missing delete error=%v, want NotFoundError", err)
+	}
+	file, err := opfs.OpenAsyncFile(dir, filename)
+	if err != nil {
+		return err
+	}
+	buf := make([]byte, len("stale"))
+	if _, err := file.ReadAt(buf, 0); err != nil {
+		return err
+	}
+	if string(buf) != "stale" {
+		return errors.Errorf("remote remount file value=%q", buf)
+	}
+	if err := file.Close(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -4751,6 +4893,7 @@ func postProgress(c *config, phase string, values ...int) {
 var benchExtra map[string]int64
 
 func postResult(c *config, dur time.Duration, err error) {
+	// Build the common result and optional benchmark fields.
 	obj := js.Global().Get("Object").New()
 	obj.Set("kind", "result")
 	if c != nil {
@@ -4761,11 +4904,21 @@ func postResult(c *config, dur time.Duration, err error) {
 	for k, v := range benchExtra {
 		obj.Set(k, v)
 	}
+
+	// Attach the current bridge handle count when this worker is remote.
+	remote := js.Global().Get("__spacewaveOpfsBridgePort")
+	if remote.Type() == js.TypeObject {
+		handles := remote.Get("liveHandles")
+		if handles.Type() == js.TypeNumber {
+			obj.Set("remoteHandles", handles.Int())
+		}
+	}
+
+	// Attach the terminal status and publish the result.
+	obj.Set("ok", true)
 	if err != nil {
 		obj.Set("ok", false)
 		obj.Set("error", err.Error())
-	} else {
-		obj.Set("ok", true)
 	}
 	js.Global().Call("postMessage", obj)
 }
