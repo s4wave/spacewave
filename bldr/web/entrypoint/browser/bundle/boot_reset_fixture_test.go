@@ -131,6 +131,7 @@ globalThis.window = {
   removeEventListener() {},
 }
 globalThis.document = {
+  documentElement: { setAttribute() {} },
   querySelector() { return null },
   getElementById() { return null },
   addEventListener() {},
@@ -290,6 +291,7 @@ function installEnvironment({ events, localStorage, sessionStorage, autoStart, e
     removeEventListener() {},
   }
   globalThis.document = {
+    documentElement: { setAttribute() {} },
     readyState,
     querySelector() { return null },
     getElementById() { return null },
@@ -587,7 +589,9 @@ async function runCase(testCase) {
     addEventListener() {},
     removeEventListener() {},
   }
+  const documentElement = new ElementFixture()
   globalThis.document = {
+    documentElement,
     querySelector(selector) {
       if (selector === '[data-sw-boot-status]') return status
       if (selector === '[data-sw-boot-progress]') return progress
@@ -672,6 +676,7 @@ async function runCase(testCase) {
     const importIndex = events.indexOf('import:direct:' + testCase.name)
     assert(manifestIndex !== -1, testCase.name + ' did not fetch release manifest: ' + events.join(','))
     assert(entrypointFetchIndex > manifestIndex, testCase.name + ' did not fetch entrypoint after manifest: ' + events.join(','))
+    assert(documentElement.getAttribute('data-sw-boot-visibility') === 'loading', testCase.name + ' did not retain loading-shell visibility through boot')
     if (testCase.streamError) {
       assert(importIndex === -1, testCase.name + ' imported the entrypoint after its stream failed: ' + events.join(','))
     } else {
@@ -858,6 +863,7 @@ globalThis.window = {
   removeEventListener() {},
 }
 globalThis.document = {
+  documentElement: { setAttribute() {} },
   querySelector() {
     return null
   },

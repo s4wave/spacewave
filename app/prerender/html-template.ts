@@ -11,6 +11,7 @@ interface PageHtmlOptions {
   twitterCard?: string
   jsonLd?: object
   themeColor?: string
+  headScript?: string
   bootstrapScript: string
   hydrateScript?: string
   criticalCss: string
@@ -44,6 +45,7 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
   const jsonLdTag = opts.jsonLd
     ? `\n  <script type="application/ld+json">${serializeJsonScriptData(opts.jsonLd)}</script>`
     : ''
+  const headScript = opts.headScript ? `\n  ${opts.headScript}` : ''
   const criticalStyle = opts.criticalCss
     ? `\n  <style>${opts.criticalCss}</style>`
     : ''
@@ -75,7 +77,7 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
   <meta property="og:description" content="${opts.description}"/>${ogUrlTag}${ogImageTag}
   <meta name="twitter:card" content="${twitterCard}"/>
   <meta name="twitter:title" content="${opts.title}"/>
-  <meta name="twitter:description" content="${opts.description}"/>${twitterImageTag}${jsonLdTag}${criticalStyle}${importMapTag}${stylesheetTags}
+  <meta name="twitter:description" content="${opts.description}"/>${twitterImageTag}${headScript}${jsonLdTag}${criticalStyle}${importMapTag}${stylesheetTags}
 </head>
 <body>
   <div id="bldr-root"${opts.prerendered !== false ? ' data-prerendered="true"' : ''} role="main">${opts.body}</div>

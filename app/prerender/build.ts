@@ -38,7 +38,11 @@ import {
 import { StaticProvider } from './StaticContext.js'
 import { STATIC_PAGES } from './static-pages.js'
 import { getMetadata, type PageMetadata } from './metadata.js'
-import { ROOT_LOADING_STYLE } from './root-loading-shell.js'
+import {
+  ROOT_BOOT_VISIBILITY_CSS,
+  ROOT_BOOT_VISIBILITY_SCRIPT,
+  ROOT_LOADING_STYLE,
+} from './root-loading-shell.js'
 import { ROOT_LANDING_SHELL_CLASS } from './root-landing-shell.js'
 
 const SITE_ORIGIN = process.env.SITE_ORIGIN ?? SPACEWAVE_PUBLIC_BASE_URL
@@ -470,21 +474,13 @@ async function main() {
   console.log('[prerender] === Prerender Build Complete ===')
 }
 
-// buildRootTemplate builds the special / route HTML.
-// Contains both sw-landing (prerendered landing) and sw-loading (loading screen).
-// Bootstrap script handles three-tier visibility:
-//   hash in URL -> show loading, boot immediately
-//   hasSession -> show loading, boot immediately
-//   new visitor -> show landing, deferred boot
-// hydrate.tsx handles auto-boot for return visitors.
+// buildRootTemplate builds the root document with the landing and loading
+// shells needed before the application starts.
 async function buildRootTemplate(ctx: PrerenderContext) {
   const landingHtml = await prerenderElement(createElement(Landing), '/')
 
   const canonicalUrl = ctx.siteOrigin + '/'
 
-  // Root template includes both landing and loading screen.
-  // Bootstrap inline script (in bootstrapScript) handles visibility
-  // based on hasSession/hash. No separate inline script needed.
   const body = `<div id="sw-landing" class="${ROOT_LANDING_SHELL_CLASS}">${landingHtml}</div>
       <style>@keyframes sw-boot-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}[data-sw-boot-progress][data-sw-boot-progress-stalled]{position:relative;overflow:hidden}[data-sw-boot-progress][data-sw-boot-progress-stalled]::after{content:"";position:absolute;top:0;bottom:0;left:0;width:35%;border-radius:inherit;background:color-mix(in srgb,var(--color-foreground,#fafafa) 45%,transparent);animation:sw-boot-shimmer 1.1s ease-in-out infinite}@media (prefers-reduced-motion:reduce){[data-sw-boot-progress][data-sw-boot-progress-stalled]::after{display:none;animation:none}}</style>
       <div id="sw-loading" data-sw-boot-state="loading" style="${ROOT_LOADING_STYLE}">
@@ -561,8 +557,9 @@ async function buildRootTemplate(ctx: PrerenderContext) {
     ogImage: landingMetadata.ogImage,
     jsonLd: landingMetadata.jsonLd,
     bootstrapScript: ctx.bootstrapScript,
+    headScript: ROOT_BOOT_VISIBILITY_SCRIPT,
     hydrateScript: ctx.hydrateScriptTag,
-    criticalCss: '',
+    criticalCss: ROOT_BOOT_VISIBILITY_CSS,
     mainCssUrl: ctx.mainCssUrl,
     additionalCssUrls: ctx.hydrateCssUrls,
     iconUrl: ctx.iconUrl,

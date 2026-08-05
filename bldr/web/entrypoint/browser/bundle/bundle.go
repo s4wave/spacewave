@@ -619,10 +619,7 @@ function startBoot(){
   void primeRelease()
     .then(function(release){
       if(release.autoStart||window.location.hash.length>1||localStorage.getItem('spacewave-has-session')){
-        const landing=document.getElementById('sw-landing');
-        const loading=document.getElementById('sw-loading');
-        if(landing)landing.style.display='none';
-        if(loading)loading.style.display='';
+        document.documentElement.setAttribute('data-sw-boot-visibility','loading');
         doImport();
         return;
       }

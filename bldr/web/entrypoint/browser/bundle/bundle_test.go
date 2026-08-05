@@ -446,6 +446,9 @@ func TestWriteStableBootAsset(t *testing.T) {
 	if !strings.Contains(script, "#sw-loading") {
 		t.Fatalf("boot asset missing root loading selector: %s", script)
 	}
+	if !strings.Contains(script, "data-sw-boot-visibility") {
+		t.Fatalf("boot asset missing root visibility attribute: %s", script)
+	}
 	if !strings.Contains(script, "__swStaticHandoffLinks") {
 		t.Fatalf("boot asset missing static handoff link flag: %s", script)
 	}
