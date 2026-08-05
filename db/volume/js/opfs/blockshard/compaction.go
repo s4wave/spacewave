@@ -38,30 +38,34 @@ func ExecuteCompaction(ctx context.Context, shard *Shard, plan *CompactionPlan) 
 		return err
 	}
 
+	// Pin every immutable input until the merge finishes.
 	iters := make([]*segment.EntryIterator, len(plan.InputSegs))
+	leases := make([]*segmentCacheLease, 0, len(plan.InputSegs))
+	defer func() {
+		for _, lease := range leases {
+			lease.Release()
+		}
+	}()
 	for i, meta := range plan.InputSegs {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		f, err := shard.getSegmentFile(ctx, &meta)
+		lease, err := shard.acquireSegment(ctx, &meta)
 		if err != nil {
-			return errors.Errorf("open input segment %s: %v", meta.Filename, err)
+			return errors.Errorf("acquire input segment %s: %v", meta.Filename, err)
 		}
+		leases = append(leases, lease)
 		size := int64(meta.Size)
 		if size == 0 {
-			size, err = f.Size()
+			size, err = lease.Size()
 			if err != nil {
 				return errors.Errorf("get input segment %s size: %v", meta.Filename, err)
 			}
 		}
-		if err := segment.VerifyChecksum(f, size); err != nil {
+		if err := segment.VerifyChecksum(lease, size); err != nil {
 			return errors.Errorf("verify input segment %s: %v", meta.Filename, err)
 		}
-		lookup, err := loadLookupMeta(ctx, f, &meta)
-		if err != nil {
-			return errors.Errorf("parse input segment %s: %v", meta.Filename, err)
-		}
-		iters[i] = segment.NewEntryIterator(f, lookup)
+		iters[i] = segment.NewEntryIterator(lease, lease.lookup)
 	}
 
 	writer := compactionOutputWriter{
@@ -119,9 +123,6 @@ func ExecuteCompaction(ctx context.Context, shard *Shard, plan *CompactionPlan) 
 
 	if err := shard.writeManifest(ctx, newManifest); err != nil {
 		return cleanupOutputs(errors.Wrap(err, "write compaction manifest"))
-	}
-	for i := range outputs {
-		shard.cacheLookup(outputs[i].Meta.Filename, outputs[i].Lookup)
 	}
 	return nil
 }

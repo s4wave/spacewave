@@ -158,6 +158,7 @@ type Engine struct {
 	maxEntryN   int
 	broadcaster *Broadcaster
 	listener    *Listener
+	cache       *cacheCoordinator
 }
 
 // NewEngine creates a new block shard engine in the given OPFS directory.
@@ -179,7 +180,8 @@ func NewEngineWithSettings(
 	settings = normalizeSettings(settings)
 	ctx, cancel := context.WithCancel(ctx)
 
-	// Allocate shard state, actors, pending buffers, and bridge listeners.
+	// Allocate shard state and one shared cache budget.
+	cache := newDefaultCacheCoordinator()
 	e := &Engine{
 		shards:      make([]*Shard, settings.ShardCount),
 		actors:      make([]*shardActor, settings.ShardCount),
@@ -190,21 +192,25 @@ func NewEngineWithSettings(
 		maxEntryN:   settings.MaxEntryValueBytes,
 		broadcaster: NewBroadcaster(lockPrefix),
 		listener:    NewListener(lockPrefix),
+		cache:       cache,
 	}
 
 	// Open and recover every shard before starting its write actor.
 	for i := range e.shards {
+		// Bind one immutable shard directory to the engine cache.
 		name := "shard-" + zeroPad(uint64(i), 2)
 		shardDir, err := opfs.GetDirectory(dir, name, true)
 		if err != nil {
 			cancel()
 			return nil, errors.Errorf("create shard %d directory: %v", i, err)
 		}
-		shard, err := NewShard(i, shardDir, lockPrefix, settings)
+		shard, err := newShard(i, shardDir, lockPrefix, settings, cache)
 		if err != nil {
 			cancel()
 			return nil, errors.Errorf("open shard %d: %v", i, err)
 		}
+
+		// Recover pending deletion and orphan state under the publish lock.
 		release, err := shard.AcquirePublishLockContext(ctx)
 		if err != nil {
 			cancel()
@@ -221,10 +227,11 @@ func NewEngineWithSettings(
 			return nil, errors.Errorf("clean shard %d orphans: %v", i, err)
 		}
 		release()
+
+		// Publish recovered shard state before starting its actor.
 		e.shards[i] = shard
 		e.actors[i] = newShardActor(i, shard)
 		e.pending[i] = newPendingBuffer()
-
 		e.wg.Add(1)
 		go e.runActor(ctx, e.actors[i])
 	}
@@ -236,11 +243,17 @@ func NewEngineWithSettings(
 	return e, nil
 }
 
-// Close stops all write actors and waits for them to drain.
+// Close stops engine activity and releases cache and broadcast resources.
 func (e *Engine) Close() {
+	// Stop engine goroutines and their cross-runtime broadcasts.
 	e.cancel()
 	e.wg.Wait()
 	e.broadcaster.Close()
+
+	// Wait for active lookups and release every cached file handle.
+	e.cache.close()
+
+	// Release the invalidation listener after cache shutdown.
 	e.listener.Close()
 }
 
@@ -534,31 +547,26 @@ func (e *Engine) getFromShard(
 	// Scan segments newest-first (last in manifest = newest).
 	for i := len(m.Segments) - 1; i >= 0; i-- {
 		seg := &m.Segments[i]
-
-		// Range check.
+		// Skip segments whose immutable key range excludes the request.
 		if string(key) < string(seg.MinKey) || string(key) > string(seg.MaxKey) {
 			continue
 		}
-		taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard/load-lookup")
-		lookup, err := shard.getLookup(taskCtx, seg)
+
+		// Pin cache resources for this segment lookup step.
+		taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard/acquire-segment")
+		lease, err := shard.acquireSegment(taskCtx, seg)
 		subtask.End()
 		if err != nil {
 			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
 				return e.getFromShard(ctx, shardIdx, key, true)
 			}
-			return nil, false, errors.Errorf("load segment %s lookup: %v", seg.Filename, err)
+			return nil, false, errors.Errorf("acquire segment %s: %v", seg.Filename, err)
 		}
-		taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard/open-segment")
-		f, err := shard.getSegmentFile(taskCtx, seg)
-		subtask.End()
-		if err != nil {
-			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
-				return e.getFromShard(ctx, shardIdx, key, true)
-			}
-			return nil, false, errors.Errorf("open segment %s: %v", seg.Filename, err)
-		}
+
+		// Locate the key and release every segment resource pin.
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard/locate")
-		val, found, tombstone, err := lookup.Locate(f, key, true)
+		val, found, tombstone, err := lease.lookup.Locate(lease, key, true)
+		lease.Release()
 		subtask.End()
 		if err != nil {
 			if opfs.IsNotFound(err) {
@@ -627,7 +635,9 @@ func (e *Engine) getExistsFromShard(shardIdx int, key []byte, retried bool) (boo
 		if string(key) < string(seg.MinKey) || string(key) > string(seg.MaxKey) {
 			continue
 		}
-		lookup, err := shard.getLookup(ctx, seg)
+
+		// Pin cache resources while checking this segment.
+		lease, err := shard.acquireSegment(ctx, seg)
 		if err != nil {
 			if opfs.IsNotFound(err) {
 				shard.dropSegmentFile(seg.Filename)
@@ -635,16 +645,10 @@ func (e *Engine) getExistsFromShard(shardIdx int, key []byte, retried bool) (boo
 			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
 				return e.getExistsFromShard(shardIdx, key, true)
 			}
-			return false, errors.Errorf("load segment %s lookup: %v", seg.Filename, err)
+			return false, errors.Errorf("acquire segment %s: %v", seg.Filename, err)
 		}
-		f, err := shard.getSegmentFile(ctx, seg)
-		if err != nil {
-			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
-				return e.getExistsFromShard(shardIdx, key, true)
-			}
-			return false, errors.Errorf("open segment %s: %v", seg.Filename, err)
-		}
-		_, found, tombstone, err := lookup.Locate(f, key, false)
+		_, found, tombstone, err := lease.lookup.Locate(lease, key, false)
+		lease.Release()
 		if err != nil {
 			if opfs.IsNotFound(err) {
 				shard.dropSegmentFile(seg.Filename)
@@ -777,7 +781,9 @@ func (e *Engine) statFromShard(
 		if string(key) < string(seg.MinKey) || string(key) > string(seg.MaxKey) {
 			continue
 		}
-		lookup, err := shard.getLookup(ctx, seg)
+
+		// Pin cache resources while reading value metadata.
+		lease, err := shard.acquireSegment(ctx, seg)
 		if err != nil {
 			if opfs.IsNotFound(err) {
 				shard.dropSegmentFile(seg.Filename)
@@ -785,16 +791,10 @@ func (e *Engine) statFromShard(
 			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
 				return e.statFromShard(ctx, shardIdx, key, true)
 			}
-			return 0, false, errors.Errorf("load segment %s lookup: %v", seg.Filename, err)
+			return 0, false, errors.Errorf("acquire segment %s: %v", seg.Filename, err)
 		}
-		f, err := shard.getSegmentFile(ctx, seg)
-		if err != nil {
-			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
-				return e.statFromShard(ctx, shardIdx, key, true)
-			}
-			return 0, false, errors.Errorf("open segment %s: %v", seg.Filename, err)
-		}
-		stat, err := lookup.Stat(f, key)
+		stat, err := lease.lookup.Stat(lease, key)
+		lease.Release()
 		if err != nil {
 			if opfs.IsNotFound(err) {
 				shard.dropSegmentFile(seg.Filename)
@@ -860,7 +860,8 @@ func (e *Engine) getExistsBatchFromShard(
 			continue
 		}
 
-		lookup, err := shard.getLookup(ctx, seg)
+		// Pin cache resources for the batched segment step.
+		lease, err := shard.acquireSegment(ctx, seg)
 		if err != nil {
 			if opfs.IsNotFound(err) {
 				shard.dropSegmentFile(seg.Filename)
@@ -868,23 +869,18 @@ func (e *Engine) getExistsBatchFromShard(
 			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
 				return e.getExistsBatchFromShard(ctx, shardIdx, keys, true)
 			}
-			return nil, errors.Errorf("load segment %s lookup: %v", seg.Filename, err)
-		}
-		f, err := shard.getSegmentFile(ctx, seg)
-		if err != nil {
-			if e.shouldRetryAfterRefresh(ctx, shardIdx, m.Generation, retried, err) {
-				return e.getExistsBatchFromShard(ctx, shardIdx, keys, true)
-			}
-			return nil, errors.Errorf("open segment %s: %v", seg.Filename, err)
+			return nil, errors.Errorf("acquire segment %s: %v", seg.Filename, err)
 		}
 		if err := ctx.Err(); err != nil {
+			lease.Release()
 			return nil, err
 		}
 		candidateKeys := make([][]byte, len(candidates))
 		for i, j := range candidates {
 			candidateKeys[i] = keys[j]
 		}
-		results, err := lookup.LocateBatch(f, candidateKeys, false)
+		results, err := lease.lookup.LocateBatch(lease, candidateKeys, false)
+		lease.Release()
 		if err != nil {
 			if opfs.IsNotFound(err) {
 				shard.dropSegmentFile(seg.Filename)

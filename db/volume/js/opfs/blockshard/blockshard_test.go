@@ -557,24 +557,28 @@ func TestShardCachesSegmentFiles(t *testing.T) {
 	}
 	seg := &m.Segments[0]
 
-	f1, err := e.shards[0].getSegmentFile(context.Background(), seg)
+	lease1, err := e.shards[0].acquireSegment(context.Background(), seg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	f2, err := e.shards[0].getSegmentFile(context.Background(), seg)
+	file1 := lease1.entry.file
+	lease1.Release()
+
+	lease2, err := e.shards[0].acquireSegment(context.Background(), seg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f1 != f2 {
+	file2 := lease2.entry.file
+	lease2.Release()
+	if file1 != file2 {
 		t.Fatal("expected cached segment file handle")
 	}
 
 	e.shards[0].mu.Lock()
 	e.shards[0].setManifestLocked(&Manifest{Generation: m.Generation + 1})
-	_, ok := e.shards[0].segmentFileCache[seg.Filename]
 	e.shards[0].mu.Unlock()
-	if ok {
-		t.Fatal("expected segment file cache eviction after manifest update")
+	if stats := e.cache.snapshot(); stats.LiveHandles != 0 {
+		t.Fatalf("live cache handles after manifest update: got %d want 0", stats.LiveHandles)
 	}
 }
 
@@ -763,15 +767,18 @@ func TestBlockStoreFlushDoesNotCompactForegroundSegments(t *testing.T) {
 	)
 	defer cleanup()
 
+	// Publish two foreground segments at the inline compaction trigger.
 	store := NewBlockStore(e, block.DefaultHashType)
-	for _, data := range [][]byte{
-		[]byte("value-a"),
-		[]byte("value-b"),
+	for _, entry := range []segment.Entry{
+		{Key: []byte("key-a"), Value: []byte("value-a")},
+		{Key: []byte("key-b"), Value: []byte("value-b")},
 	} {
-		if _, _, err := store.PutBlock(context.Background(), data, nil); err != nil {
+		if err := e.Put(context.Background(), []segment.Entry{entry}); err != nil {
 			t.Fatal(err)
 		}
 	}
+
+	// Flush the store without adding a durability or compaction boundary.
 	if err := store.Flush(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -1528,15 +1535,12 @@ func assertShardEntry(t testing.TB, shard *Shard, key, want []byte) {
 		if string(key) < string(seg.MinKey) || string(key) > string(seg.MaxKey) {
 			continue
 		}
-		lookup, err := shard.getLookup(context.Background(), seg)
+		lease, err := shard.acquireSegment(context.Background(), seg)
 		if err != nil {
 			t.Fatal(err)
 		}
-		f, err := shard.getSegmentFile(context.Background(), seg)
-		if err != nil {
-			t.Fatal(err)
-		}
-		val, found, tombstone, err := lookup.Locate(f, key, true)
+		val, found, tombstone, err := lease.lookup.Locate(lease, key, true)
+		lease.Release()
 		if err != nil {
 			t.Fatal(err)
 		}

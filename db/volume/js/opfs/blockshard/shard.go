@@ -41,13 +41,25 @@ type Shard struct {
 	maxSegmentDataBytes int
 	buildSegmentFileFn  func(context.Context, string, *segment.Writer) (segment.BuildResult, error)
 
-	lookupCache      map[string]*segment.LookupMeta
-	segmentFileCache map[string]*cachedSegmentFile
+	// cache coordinates immutable segment resources across engine shards.
+	cache *cacheCoordinator
 }
 
-// NewShard opens or creates a shard in the given OPFS directory.
-// It reads both manifest slots and picks the higher valid generation.
+// NewShard opens or creates one standalone shard in an OPFS directory.
+// Immutable reads use operation-local resources because engine construction
+// supplies the shared cache lifecycle.
 func NewShard(id int, dir js.Value, lockPrefix string, settings *Settings) (*Shard, error) {
+	return newShard(id, dir, lockPrefix, settings, newCacheCoordinator(0, 0))
+}
+
+func newShard(
+	id int,
+	dir js.Value,
+	lockPrefix string,
+	settings *Settings,
+	cache *cacheCoordinator,
+) (*Shard, error) {
+	// Construct one shard around the supplied cache lifecycle.
 	settings = normalizeSettings(settings)
 	s := &Shard{
 		id:                  id,
@@ -57,10 +69,10 @@ func NewShard(id int, dir js.Value, lockPrefix string, settings *Settings) (*Sha
 		nowFn:               time.Now,
 		bloomFPR:            settings.BloomFPR,
 		maxSegmentDataBytes: settings.MaxSegmentDataBytes,
-		lookupCache:         make(map[string]*segment.LookupMeta),
-		segmentFileCache:    make(map[string]*cachedSegmentFile),
+		cache:               cache,
 	}
 
+	// Load the durable manifest before exposing shard state.
 	if err := s.reloadManifestFromDisk(context.Background()); err != nil {
 		return nil, err
 	}
@@ -136,9 +148,6 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 			return errors.Wrapf(err, "clean failed publish segments: %v", cleanupErr)
 		}
 		return err
-	}
-	for i := range outputs {
-		s.cacheLookup(outputs[i].Meta.Filename, outputs[i].Lookup)
 	}
 	subtask.End()
 	return nil

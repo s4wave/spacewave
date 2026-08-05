@@ -3,6 +3,7 @@
 package blockshard
 
 import (
+	"context"
 	"encoding/binary"
 	"os"
 	"runtime"
@@ -10,36 +11,19 @@ import (
 	"syscall/js"
 	"testing"
 	"time"
-	"unsafe"
 
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 )
 
-const cacheScaleSegmentsEnv = "SPACEWAVE_OPFS_CACHE_SCALE_SEGMENTS"
-
-type cacheScaleReader struct {
-	segmentReader
-	reads int64
-	bytes int64
-}
-
-func (r *cacheScaleReader) ReadAt(p []byte, off int64) (int, error) {
-	r.reads++
-	n, err := r.segmentReader.ReadAt(p, off)
-	r.bytes += int64(n)
-	return n, err
-}
-
-type cacheScaleSegment struct {
-	file   *opfs.AsyncFile
-	reader *cacheScaleReader
-	cache  *cachedSegmentFile
-	lookup *segment.LookupMeta
-}
+const (
+	cacheScaleSegmentsEnv    = "SPACEWAVE_OPFS_CACHE_SCALE_SEGMENTS"
+	cacheScaleEntriesEnv     = "SPACEWAVE_OPFS_CACHE_SCALE_ENTRIES"
+	defaultCacheScaleEntries = 4096
+)
 
 func TestCachedSegmentFileScale(t *testing.T) {
-	// Select one isolated geometric corpus size.
+	// Select one isolated geometric corpus size and fixture width.
 	countText := os.Getenv(cacheScaleSegmentsEnv)
 	if countText == "" {
 		t.Skipf("set %s to the active segment count", cacheScaleSegmentsEnv)
@@ -48,9 +32,16 @@ func TestCachedSegmentFileScale(t *testing.T) {
 	if err != nil || count < 1 {
 		t.Fatalf("%s=%q is not a positive integer", cacheScaleSegmentsEnv, countText)
 	}
+	entryCount := defaultCacheScaleEntries
+	if entriesText := os.Getenv(cacheScaleEntriesEnv); entriesText != "" {
+		entryCount, err = strconv.Atoi(entriesText)
+		if err != nil || entryCount < 1 {
+			t.Fatalf("%s=%q is not a positive integer", cacheScaleEntriesEnv, entriesText)
+		}
+	}
 
-	// Build one deterministic SSTable shared by every active cache entry.
-	entries := make([]segment.Entry, 4096)
+	// Build one deterministic SSTable shared by every cache identity.
+	entries := make([]segment.Entry, entryCount)
 	value := make([]byte, 176)
 	for i := range entries {
 		key := make([]byte, 4)
@@ -79,54 +70,48 @@ func TestCachedSegmentFileScale(t *testing.T) {
 	if err := opfs.WriteFile(dir, filename, data); err != nil {
 		t.Fatal(err)
 	}
+	meta := &SegmentMeta{
+		Filename:   filename,
+		EntryCount: uint32(len(entries)),
+		Size:       uint32(len(data)),
+		MinKey:     entries[0].Key,
+		MaxKey:     entries[len(entries)-1].Key,
+	}
 
-	// Capture the runtime baseline before retaining cache resources.
+	// Capture the runtime baseline before retaining coordinated resources.
 	runtime.GC()
 	var goBefore runtime.MemStats
 	runtime.ReadMemStats(&goBefore)
 	jsBefore, jsStatus := cacheScaleJSHeap()
 	started := time.Now()
-	segments := make([]cacheScaleSegment, 0, count)
-	t.Cleanup(func() {
-		for i := range segments {
-			if err := segments[i].file.Close(); err != nil {
-				t.Error(err)
-			}
-		}
-	})
+	cache := newDefaultCacheCoordinator()
+	t.Cleanup(cache.close)
 
-	// Open and touch one independent cache entry per active segment.
+	// Touch one independent segment identity and release each lookup pin.
 	for i := range count {
-		file, err := opfs.OpenAsyncFile(dir, filename)
+		lease, err := cache.acquireSegment(
+			context.Background(),
+			cacheKey{shardID: i, filename: filename},
+			meta,
+			func() (segmentReader, error) {
+				return opfs.OpenAsyncFile(dir, filename)
+			},
+		)
 		if err != nil {
-			t.Fatalf("open segment %d: %v", i, err)
-		}
-		reader := &cacheScaleReader{segmentReader: file}
-		cache := newCachedSegmentFile(reader, int64(len(data)))
-		lookup, err := segment.LoadLookupMeta(cache, int64(len(data)))
-		if err != nil {
-			file.Close()
-			t.Fatalf("load segment %d metadata: %v", i, err)
+			t.Fatalf("acquire segment %d: %v", i, err)
 		}
 		key := entries[(i*2053)%len(entries)].Key
-		got, found, err := lookup.Get(cache, key)
+		got, found, err := lease.lookup.Get(lease, key)
+		lease.Release()
 		if err != nil {
-			file.Close()
 			t.Fatalf("read segment %d: %v", i, err)
 		}
 		if !found || len(got) != len(value) {
-			file.Close()
 			t.Fatalf("read segment %d returned found=%t bytes=%d", i, found, len(got))
 		}
-		segments = append(segments, cacheScaleSegment{
-			file:   file,
-			reader: reader,
-			cache:  cache,
-			lookup: lookup,
-		})
 	}
 
-	// Capture heaps while every segment resource remains reachable.
+	// Capture heaps while the coordinator retains its bounded working set.
 	runtime.GC()
 	var goAfter runtime.MemStats
 	runtime.ReadMemStats(&goAfter)
@@ -134,46 +119,66 @@ func TestCachedSegmentFileScale(t *testing.T) {
 	if afterStatus != jsStatus {
 		jsStatus += "-then-" + afterStatus
 	}
-
-	// Count exact retained payloads and underlying I/O.
-	var blockBytes uint64
-	var metadataBytes uint64
-	var reads int64
-	var fetchedBytes int64
-	for i := range segments {
-		segments[i].cache.mu.Lock()
-		for _, block := range segments[i].cache.blocks {
-			blockBytes += uint64(cap(block))
-		}
-		segments[i].cache.mu.Unlock()
-		metadataBytes += cacheScaleLookupBytes(segments[i].lookup)
-		reads += segments[i].reader.reads
-		fetchedBytes += segments[i].reader.bytes
-	}
+	stats := cache.snapshot()
 
 	// Report one parseable row for the geometric evidence table.
 	jsDelta := int64(0)
 	if jsStatus == "available" {
 		jsDelta = int64(jsAfter) - int64(jsBefore)
 	}
-	t.Logf("cache-scale policy_block_bytes=%d policy_max_blocks=%d segments=%d retained_block_bytes=%d retained_metadata_bytes=%d go_heap_bytes=%d go_heap_delta_bytes=%d js_heap_bytes=%d js_heap_delta_bytes=%d js_heap_status=%s live_handles=%d reads=%d fetched_bytes=%d wall_ms=%d", cachedSegmentBlockSize, maxCachedSegmentBlocks, count, blockBytes, metadataBytes, goAfter.HeapAlloc, int64(goAfter.HeapAlloc)-int64(goBefore.HeapAlloc), jsAfter, jsDelta, jsStatus, len(segments), reads, fetchedBytes, time.Since(started).Milliseconds())
-}
+	const rowFormat = "cache-scale policy_block_bytes=%d policy_max_blocks=%d " +
+		"byte_limit=%d handle_limit=%d segments=%d entries_per_segment=%d " +
+		"retained_block_bytes=%d retained_metadata_bytes=%d retained_bytes=%d " +
+		"peak_retained_bytes=%d go_heap_bytes=%d go_heap_delta_bytes=%d " +
+		"js_heap_bytes=%d js_heap_delta_bytes=%d js_heap_status=%s " +
+		"live_handles=%d peak_handles=%d reads=%d fetched_bytes=%d hits=%d " +
+		"misses=%d admissions=%d evictions=%d bypasses=%d release_errors=%d " +
+		"wall_ms=%d"
+	t.Logf(
+		rowFormat,
+		cachedSegmentBlockSize,
+		maxCachedSegmentBlocks,
+		defaultCacheByteLimit,
+		defaultCacheHandleLimit,
+		count,
+		entryCount,
+		stats.BlockBytes,
+		stats.MetadataBytes,
+		stats.ChargedBytes,
+		stats.PeakChargedBytes,
+		goAfter.HeapAlloc,
+		int64(goAfter.HeapAlloc)-int64(goBefore.HeapAlloc),
+		jsAfter,
+		jsDelta,
+		jsStatus,
+		stats.LiveHandles,
+		stats.PeakLiveHandles,
+		stats.ReadCalls,
+		stats.FetchedBytes,
+		stats.Hits,
+		stats.Misses,
+		stats.Admissions,
+		stats.Evictions,
+		stats.Bypasses,
+		stats.ReleaseErrors,
+		time.Since(started).Milliseconds(),
+	)
+	if stats.ChargedBytes > defaultCacheByteLimit {
+		t.Fatalf("charged bytes exceeded limit: got %d limit %d", stats.ChargedBytes, defaultCacheByteLimit)
+	}
+	if stats.LiveHandles > defaultCacheHandleLimit {
+		t.Fatalf("live handles exceeded limit: got %d limit %d", stats.LiveHandles, defaultCacheHandleLimit)
+	}
+	if stats.ReleaseErrors != 0 {
+		t.Fatalf("driver release errors: got %d", stats.ReleaseErrors)
+	}
 
-func cacheScaleLookupBytes(meta *segment.LookupMeta) uint64 {
-	bytes := uint64(unsafe.Sizeof(*meta))
-	bytes += uint64(unsafe.Sizeof(*meta.Header))
-	bytes += uint64(cap(meta.MinKey) + cap(meta.MaxKey))
-	bytes += uint64(cap(meta.Index)) * uint64(unsafe.Sizeof(segment.IndexEntry{}))
-	for i := range meta.Index {
-		bytes += uint64(cap(meta.Index[i].Key))
+	// Prove phase closeout drains every admitted resource.
+	cache.close()
+	closed := cache.snapshot()
+	if closed.ChargedBytes != 0 || closed.LiveHandles != 0 {
+		t.Fatalf("cache close left charged=%d handles=%d", closed.ChargedBytes, closed.LiveHandles)
 	}
-	if meta.Bloom != nil {
-		bytes += uint64(unsafe.Sizeof(*meta.Bloom))
-		if meta.Header.BloomSize >= 5 {
-			bytes += uint64(meta.Header.BloomSize - 5)
-		}
-	}
-	return bytes
 }
 
 func cacheScaleJSHeap() (uint64, string) {
