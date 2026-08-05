@@ -561,28 +561,35 @@
     },
     {
       "name": "@videojs/core",
-      "version": "10.0.0-beta.25",
+      "version": "10.0.0-beta.26",
+      "spdx": "Apache-2.0",
+      "source": "js",
+      "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
+    },
+    {
+      "name": "@videojs/media",
+      "version": "10.0.0-beta.26",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
     },
     {
       "name": "@videojs/react",
-      "version": "10.0.0-beta.25",
+      "version": "10.0.0-beta.26",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
     },
     {
       "name": "@videojs/store",
-      "version": "10.0.0-beta.25",
+      "version": "10.0.0-beta.26",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
     },
     {
       "name": "@videojs/utils",
-      "version": "10.0.0-beta.25",
+      "version": "10.0.0-beta.26",
       "spdx": "Apache-2.0",
       "source": "js",
       "fullText": "Copyright 2025-present Video.js contributors\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n     http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\n------------------------------------------------------------------\n\nTrademark Notice:\n“Video.js” is a registered trademark of Brightcove Inc.\nThe project is maintained independently by the open-source community,\ngoverned by the Video.js Technical Steering Committee."
@@ -1296,7 +1303,7 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3",
-      "version": "v0.35.2",
+      "version": "v0.35.3",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3",
@@ -1304,7 +1311,7 @@
     },
     {
       "name": "github.com/ncruces/go-sqlite3-wasm/v3",
-      "version": "v3.2.35303",
+      "version": "v3.2.35304",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/ncruces/go-sqlite3-wasm",
@@ -1448,7 +1455,7 @@
     },
     {
       "name": "github.com/pion/transport/v4",
-      "version": "v4.0.2",
+      "version": "v4.1.0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/transport",
