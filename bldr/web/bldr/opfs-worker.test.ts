@@ -28,10 +28,16 @@ function makeWritable(writes: Uint8Array[]) {
   }
 }
 
-function makeFile(name: string, bytes: Uint8Array, writes: Uint8Array[]) {
+function makeFile(
+  name: string,
+  bytes: Uint8Array,
+  writes: Uint8Array[],
+  calls: DirCall[],
+) {
   return {
     name,
     async getFile() {
+      calls.push({ method: 'getFile', name, opts: undefined })
       return {
         size: bytes.byteLength,
         async arrayBuffer() {
@@ -68,7 +74,7 @@ function makeDir(
     },
     async getFileHandle(n: string, opts: unknown) {
       calls.push({ method: 'getFileHandle', name: n, opts })
-      return makeFile(n, fileBytes, writes)
+      return makeFile(n, fileBytes, writes, calls)
     },
     async removeEntry(n: string, opts: unknown) {
       calls.push({ method: 'removeEntry', name: n, opts })
@@ -90,7 +96,13 @@ describe('opfs-worker dispatchOp', () => {
     vi.resetModules()
     calls = []
     writes = []
-    const root = makeDir('', calls, writes, ['a.txt', 'b.txt'], new Uint8Array([1, 2, 3, 4]))
+    const root = makeDir(
+      '',
+      calls,
+      writes,
+      ['a.txt', 'b.txt'],
+      new Uint8Array([1, 2, 3, 4]),
+    )
     vi.stubGlobal('navigator', { storage: { getDirectory: async () => root } })
     ;({ dispatchOp } = await import('./opfs-worker.js'))
   })
@@ -106,7 +118,9 @@ describe('opfs-worker dispatchOp', () => {
 
   test('getDirectory decodes dir, name, create', async () => {
     await dispatchOp('getRoot', {})
-    expect(await dispatchOp('getDirectory', { dir: 1, name: 'sub', create: true })).toEqual({
+    expect(
+      await dispatchOp('getDirectory', { dir: 1, name: 'sub', create: true }),
+    ).toEqual({
       id: 2,
     })
     expect(calls).toContainEqual({
@@ -118,7 +132,9 @@ describe('opfs-worker dispatchOp', () => {
 
   test('openFile resolves dir + name without creating', async () => {
     await dispatchOp('getRoot', {})
-    expect(await dispatchOp('openFile', { dir: 1, name: 'db' })).toEqual({ id: 2 })
+    expect(await dispatchOp('openFile', { dir: 1, name: 'db' })).toEqual({
+      id: 2,
+    })
     expect(calls).toContainEqual({
       method: 'getFileHandle',
       name: 'db',
@@ -149,26 +165,69 @@ describe('opfs-worker dispatchOp', () => {
     }
   })
 
+  test('read snapshots resolve once, reuse ranges, and release tokens', async () => {
+    await dispatchOp('getRoot', {})
+    const opened = await dispatchOp('openReadSnapshot', {
+      dir: 1,
+      name: 'segment.sst',
+    })
+    const snapshot = handleID(opened)
+    expect(opened).toEqual({ id: snapshot, size: 4 })
+
+    const first = await dispatchOp('readSnapshotAt', {
+      snapshot,
+      offset: 1,
+      length: 2,
+    })
+    const second = await dispatchOp('readSnapshotAt', {
+      snapshot,
+      offset: 3,
+      length: 4,
+    })
+    expect(Array.from(new Uint8Array(first as ArrayBuffer))).toEqual([2, 3])
+    expect(Array.from(new Uint8Array(second as ArrayBuffer))).toEqual([4])
+    expect(calls.filter((call) => call.method === 'getFile')).toHaveLength(1)
+
+    await expect(
+      dispatchOp('closeReadSnapshot', { snapshot }),
+    ).resolves.toBeNull()
+    await expect(
+      dispatchOp('readSnapshotAt', { snapshot, offset: 0, length: 1 }),
+    ).rejects.toThrow(/unknown read snapshot/)
+  })
+
   test('listDirectory returns the entry names', async () => {
     await dispatchOp('getRoot', {})
-    expect(await dispatchOp('listDirectory', { dir: 1 })).toEqual(['a.txt', 'b.txt'])
+    expect(await dispatchOp('listDirectory', { dir: 1 })).toEqual([
+      'a.txt',
+      'b.txt',
+    ])
   })
 
   test('createWriteStream then streamWrite decode the stream handle and bytes', async () => {
     await dispatchOp('getRoot', {})
-    const stream = handleID(await dispatchOp('createWriteStream', { dir: 1, name: 's' }))
-    expect(await dispatchOp('streamWrite', { stream, data: new Uint8Array([5, 6]).buffer })).toBe(2)
+    const stream = handleID(
+      await dispatchOp('createWriteStream', { dir: 1, name: 's' }),
+    )
+    expect(
+      await dispatchOp('streamWrite', {
+        stream,
+        data: new Uint8Array([5, 6]).buffer,
+      }),
+    ).toBe(2)
     expect(Array.from(writes[writes.length - 1])).toEqual([5, 6])
   })
 
   test('a missing required field rejects with a TypeError', async () => {
     await dispatchOp('getRoot', {})
-    await expect(dispatchOp('getDirectory', { dir: 1, create: true })).rejects.toThrow(
-      /expected string field name/,
-    )
+    await expect(
+      dispatchOp('getDirectory', { dir: 1, create: true }),
+    ).rejects.toThrow(/expected string field name/)
   })
 
   test('an unknown op rejects', async () => {
-    await expect(dispatchOp('frobnicate', {})).rejects.toThrow(/unsupported OPFS op/)
+    await expect(dispatchOp('frobnicate', {})).rejects.toThrow(
+      /unsupported OPFS op/,
+    )
   })
 })

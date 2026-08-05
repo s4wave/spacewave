@@ -57,6 +57,7 @@ type Driver interface {
 	GetDirectory(parent js.Value, name string, create bool) (js.Value, error)
 	GetDirectoryPath(parent js.Value, path []string, create bool) (js.Value, error)
 	OpenAsyncFile(dir js.Value, name string) (*AsyncFile, error)
+	OpenReadSnapshot(dir js.Value, name string) (*ReadSnapshot, error)
 	CreateAsyncFile(dir js.Value, name string) (*AsyncFile, error)
 	WriteFile(dir js.Value, name string, data []byte) error
 	CreateWriteStream(dir js.Value, name string) (*WriteStream, error)

@@ -20,6 +20,10 @@ func openAsyncFileWithTinyGoImport(_ js.Value, _ string, _ bool) (*AsyncFile, er
 	return nil, errors.New("tinygo OPFS import helper unavailable")
 }
 
+func openReadSnapshotWithTinyGoImport(_ js.Value, _ string) (*ReadSnapshot, error) {
+	return nil, errors.New("tinygo OPFS import helper unavailable")
+}
+
 func fileExistsWithTinyGoImport(_ js.Value, _ string) (bool, error) {
 	return false, errors.New("tinygo OPFS import helper unavailable")
 }
@@ -42,6 +46,14 @@ func (f *AsyncFile) truncateWithTinyGoImport(_ int64) error {
 
 func (f *AsyncFile) readAtWithTinyGoImport(_ []byte, _ int64) (int, error) {
 	return 0, errors.New("tinygo OPFS import helper unavailable")
+}
+
+func (s *ReadSnapshot) readAtWithTinyGoImport(_ []byte, _ int64) (int, error) {
+	return 0, errors.New("tinygo OPFS import helper unavailable")
+}
+
+func (s *ReadSnapshot) closeWithTinyGoImport() error {
+	return errors.New("tinygo OPFS import helper unavailable")
 }
 
 func (f *AsyncFile) writeAtWithTinyGoImport(_ []byte, _ int64, _ bool) (int, error) {

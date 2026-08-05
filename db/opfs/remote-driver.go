@@ -21,6 +21,7 @@ const (
 	remoteHandleKindDirectory = "directory"
 	remoteHandleKindFile      = "file"
 	remoteHandleKindStream    = "stream"
+	remoteHandleKindSnapshot  = "snapshot"
 )
 
 // RemoteDriver routes OPFS File System Access operations over a worker bridge.
@@ -235,6 +236,44 @@ func (d *RemoteDriver) OpenAsyncFile(dir js.Value, name string) (*AsyncFile, err
 	return &AsyncFile{driver: d, name: name, handle: handle}, nil
 }
 
+// OpenReadSnapshot resolves one immutable File in the remote worker.
+func (d *RemoteDriver) OpenReadSnapshot(dir js.Value, name string) (*ReadSnapshot, error) {
+	// Resolve the remote directory before creating a worker-side snapshot token.
+	dirID, err := d.handleID(dir, remoteHandleKindDirectory)
+	if err != nil {
+		return nil, err
+	}
+	result, err := d.call("openReadSnapshot", remoteArgs(
+		"dir", dirID,
+		"name", name,
+	))
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate the full token response before admitting it to the driver table.
+	snapshotID, err := remoteHandleID(result)
+	if err != nil {
+		return nil, err
+	}
+	size, err := remoteInt(result, "size")
+	if err != nil {
+		_, _ = d.call("closeReadSnapshot", remoteArgs("snapshot", snapshotID))
+		return nil, err
+	}
+	handle, err := d.newHandle(result, remoteHandleKindSnapshot)
+	if err != nil {
+		_, _ = d.call("closeReadSnapshot", remoteArgs("snapshot", snapshotID))
+		return nil, err
+	}
+	return &ReadSnapshot{
+		driver: d,
+		name:   name,
+		handle: handle,
+		size:   size,
+	}, nil
+}
+
 // CreateAsyncFile opens or creates a remote file.
 func (d *RemoteDriver) CreateAsyncFile(dir js.Value, name string) (*AsyncFile, error) {
 	dirID, err := d.handleID(dir, remoteHandleKindDirectory)
@@ -429,6 +468,36 @@ func (d *RemoteDriver) readAsyncFileAt(f *AsyncFile, p []byte, off int64) (int, 
 		return 0, err
 	}
 	return remoteCopyBytes(p, result, "readAt")
+}
+
+func (d *RemoteDriver) readSnapshotAt(snapshot *ReadSnapshot, p []byte, off int64) (int, error) {
+	// Resolve and validate the worker token before each range request.
+	snapshotID, err := d.handleID(snapshot.handle, remoteHandleKindSnapshot)
+	if err != nil {
+		return 0, err
+	}
+	result, err := d.call("readSnapshotAt", remoteArgs(
+		"snapshot", snapshotID,
+		"offset", off,
+		"length", len(p),
+	))
+	if err != nil {
+		return 0, err
+	}
+	return remoteCopyBytes(p, result, "readSnapshotAt")
+}
+
+func (d *RemoteDriver) closeReadSnapshot(snapshot *ReadSnapshot) error {
+	// Release the worker token before removing its local identity.
+	snapshotID, err := d.handleID(snapshot.handle, remoteHandleKindSnapshot)
+	if err != nil {
+		return err
+	}
+	_, err = d.call("closeReadSnapshot", remoteArgs("snapshot", snapshotID))
+	if err == nil {
+		d.removeHandle(snapshotID)
+	}
+	return err
 }
 
 func (d *RemoteDriver) writeAsyncFileAt(ctx context.Context, f *AsyncFile, p []byte, off int64) (int, error) {
