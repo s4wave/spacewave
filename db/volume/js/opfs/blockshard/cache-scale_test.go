@@ -94,7 +94,7 @@ func TestCachedSegmentFileScale(t *testing.T) {
 			cacheKey{shardID: i, filename: filename},
 			meta,
 			func() (segmentReader, error) {
-				return opfs.OpenAsyncFile(dir, filename)
+				return opfs.OpenReadSnapshot(dir, filename)
 			},
 		)
 		if err != nil {
