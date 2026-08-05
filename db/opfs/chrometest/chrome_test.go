@@ -23,6 +23,7 @@ const (
 	runEnv                          = "RUN_OPFS_CHROME_TEST"
 	profileEnv                      = "RUN_OPFS_CHROME_PROFILE"
 	tinyGoEnv                       = "RUN_OPFS_CHROME_TINYGO"
+	cacheProbeEnv                   = "RUN_OPFS_CHROME_CACHE_PROBE"
 	tinyGoProfileEnv                = "RUN_OPFS_CHROME_TINYGO_PROFILE"
 	tinyGoOptEnv                    = "RUN_OPFS_CHROME_TINYGO_OPT"
 	tinyGoGCEnv                     = "RUN_OPFS_CHROME_TINYGO_GC"
@@ -130,6 +131,116 @@ func TestOpfsChromeConcurrentBlockReadersWriters(t *testing.T) {
 		batch:      batch,
 		shards:     defaultShards,
 	})
+}
+
+func TestOpfsChromeSharedVolumeCacheLifecycle(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke, chromeStress)
+	runSharedVolumeCacheLifecycle(t, false)
+}
+
+func TestOpfsChromeRemoteSharedVolumeCacheLifecycle(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+	runSharedVolumeCacheLifecycle(t, true)
+}
+
+func runSharedVolumeCacheLifecycle(t *testing.T, remote bool) {
+	t.Helper()
+	// Open one browser session for the shared volume cell.
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	// Clear a driver-specific volume root before starting runtimes.
+	mode := "direct"
+	if remote {
+		mode = "remote"
+	}
+	root := "opfs-chrome-" + mode + "-cache-lifecycle-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+		remote:   remote,
+	})
+
+	// Start both reader runtimes before publishing from writer runtimes.
+	const (
+		writers    = 2
+		iterations = 16
+		batch      = 8
+	)
+	args := []workerArgs{
+		{
+			scenario:   "block-reader",
+			root:       root,
+			worker:     0,
+			workers:    writers,
+			iterations: iterations,
+			batch:      batch,
+			shards:     defaultShards,
+			remote:     remote,
+		},
+		{
+			scenario:   "block-reader-compact",
+			root:       root,
+			worker:     1,
+			workers:    writers,
+			iterations: iterations,
+			batch:      batch,
+			shards:     defaultShards,
+			remote:     remote,
+		},
+	}
+	for i := range writers {
+		args = append(args, workerArgs{
+			scenario:   "block-writer",
+			root:       root,
+			worker:     i,
+			workers:    writers,
+			iterations: iterations,
+			batch:      batch,
+			shards:     defaultShards,
+			remote:     remote,
+		})
+	}
+
+	// Run the simultaneous publish and compaction cell.
+	s.runWorkersStaged(t, args[:2], args[2:])
+
+	// Remount one fresh runtime and verify every durable block.
+	s.runWorker(t, workerArgs{
+		scenario:   "block-verify",
+		root:       root,
+		workers:    writers,
+		iterations: iterations,
+		batch:      batch,
+		shards:     defaultShards,
+		remote:     remote,
+	})
+}
+
+func TestOpfsChromeRemoteDriverCacheLifecycle(t *testing.T) {
+	requireChromeProfile(t, chromeSmoke)
+
+	// Open one browser session around a live bridge replacement.
+	h := newChromeHarness(t)
+	s := h.newSession(t)
+	defer s.close(t)
+
+	// Clear the direct root before the remote bridge owns the volume.
+	root := "opfs-chrome-remote-cache-lifecycle-" + time.Now().Format("150405.000000000")
+	s.runWorker(t, workerArgs{
+		scenario: "clear",
+		root:     root,
+	})
+
+	// Swap the bridge, remount, and report remaining remote handles.
+	result := s.runRemoteSwapWorker(t, workerArgs{
+		scenario: "remote-cache-lifecycle",
+		root:     root,
+		shards:   defaultShards,
+		remote:   true,
+	})
+	t.Logf("remote driver live handles after remount and release: %d", result.remoteHandles)
 }
 
 // TestOpfsChromeMaterializeFanout measures how the block feed pattern changes
@@ -1914,6 +2025,16 @@ func (s *chromeSession) runTerminatedReadyWorker(t testing.TB, worker workerArgs
 	return results[0]
 }
 
+func (s *chromeSession) runRemoteSwapWorker(t testing.TB, worker workerArgs) workerResult {
+	t.Helper()
+	results := s.runWorkersScript(t, `async ({ worker }) => {
+  return await window.runOpfsRemoteSwapWorker(worker)
+}`, map[string]any{
+		"worker": mapSingleWorkerArg(worker),
+	})
+	return results[0]
+}
+
 func (s *chromeSession) runWorkersScript(t testing.TB, script string, args map[string]any) []workerResult {
 	t.Helper()
 	results, err := s.evalWorkersScript(t, script, args, runWorkersScriptTimeout(t))
@@ -1924,7 +2045,7 @@ func (s *chromeSession) runWorkersScript(t testing.TB, script string, args map[s
 		if !res.ok {
 			t.Fatalf("worker scenario=%s worker=%d failed: %s", res.scenario, res.worker, res.err)
 		}
-		t.Logf("worker scenario=%s worker=%d ok=%t duration=%dms", res.scenario, res.worker, res.ok, res.durationMS)
+		t.Logf("worker scenario=%s worker=%d ok=%t duration=%dms remote_handles=%d", res.scenario, res.worker, res.ok, res.durationMS, res.remoteHandles)
 	}
 	return results
 }
@@ -2011,6 +2132,9 @@ func runWorkersScriptTimeout(t testing.TB) time.Duration {
 }
 
 func buildAssets(dir string) error {
+	if err := buildOpfsBridgeWorker(dir); err != nil {
+		return err
+	}
 	if err := buildWasm(filepath.Join(dir, "testprog.wasm")); err != nil {
 		return err
 	}
@@ -2030,6 +2154,34 @@ func buildAssets(dir string) error {
 	return nil
 }
 
+func buildOpfsBridgeWorker(dir string) error {
+	// Resolve the repository source for the real bridge worker.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	root, err := repoRoot()
+	if err != nil {
+		return err
+	}
+
+	// Compile the TypeScript worker as a browser module.
+	cmd := exec.CommandContext(
+		ctx,
+		"bun",
+		"build",
+		filepath.Join(root, "bldr/web/bldr/opfs-worker.ts"),
+		"--outfile",
+		filepath.Join(dir, "opfs-worker.js"),
+		"--target",
+		"browser",
+	)
+	cmd.Dir = root
+	data, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.Errorf("build OPFS bridge worker failed: %v\n%s", err, data)
+	}
+	return nil
+}
+
 func buildWasm(out string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
@@ -2037,13 +2189,19 @@ func buildWasm(out string) error {
 	if err != nil {
 		return err
 	}
+
+	// Select the storage-focused worker when the TinyGo cache probe requests it.
+	program := "./db/opfs/chrometest/testprog"
+	if os.Getenv(cacheProbeEnv) == "1" || strings.EqualFold(os.Getenv(cacheProbeEnv), "true") {
+		program = "./db/opfs/chrometest/cachetestprog"
+	}
 	if os.Getenv(tinyGoEnv) == "1" || strings.EqualFold(os.Getenv(tinyGoEnv), "true") {
 		envelope, err := resolveTinyGoBuildEnvelope()
 		if err != nil {
 			return err
 		}
 		args := append([]string{"build"}, envelope.args()...)
-		args = append(args, "-o", out, "./db/opfs/chrometest/testprog")
+		args = append(args, "-o", out, program)
 		fmt.Fprintf(
 			os.Stderr,
 			"opfs chrometest wasm build: compiler=tinygo version=%q envelope=%s args=%q\n",
@@ -2071,7 +2229,7 @@ func buildWasm(out string) error {
 		)
 		return nil
 	}
-	cmd := exec.CommandContext(ctx, "go", "build", "-o", out, "./db/opfs/chrometest/testprog")
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", out, program)
 	cmd.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
 	cmd.Dir = root
 	data, err := cmd.CombinedOutput()
@@ -2362,9 +2520,10 @@ func decodeWorkerResults(raw any) ([]workerResult, error) {
 				m,
 				"durationMs",
 			),
-			writeMS:    intField(m, "writeMs"),
-			blocks:     intField(m, "blocks"),
-			publishGen: intField(m, "publishGen"),
+			writeMS:       intField(m, "writeMs"),
+			blocks:        intField(m, "blocks"),
+			publishGen:    intField(m, "publishGen"),
+			remoteHandles: intField(m, "remoteHandles"),
 		}
 	}
 	return results, nil
@@ -2386,6 +2545,7 @@ func mapSingleWorkerArg(arg workerArgs) map[string]any {
 		"workers":    arg.workers,
 		"iterations": arg.iterations,
 		"batch":      arg.batch,
+		"remote":     arg.remote,
 		"shards":     arg.shards,
 	}
 }
@@ -2428,17 +2588,19 @@ type workerArgs struct {
 	iterations int
 	batch      int
 	shards     int
+	remote     bool
 }
 
 type workerResult struct {
-	scenario   string
-	worker     int
-	ok         bool
-	err        string
-	durationMS int
-	writeMS    int
-	blocks     int
-	publishGen int
+	scenario      string
+	worker        int
+	ok            bool
+	err           string
+	durationMS    int
+	writeMS       int
+	blocks        int
+	publishGen    int
+	remoteHandles int
 }
 
 type workerScriptEnvelope struct {
@@ -2556,6 +2718,16 @@ const indexHTML = `<!doctype html>
         }
         const started = workers.map((args) => runWorker(args))
         return await waitWorkers([...ready, ...started])
+      }
+
+      window.runOpfsRemoteSwapWorker = async (args) => {
+        const worker = runWorker(args)
+        const ready = await worker.ready
+        if (ready.kind === 'result') {
+          return compactResults([ready])
+        }
+        await worker.swapBridge()
+        return await waitWorkers([worker])
       }
 
       window.runOpfsBlockedLockWorkers = async (holderArgs, workers) => {
@@ -2723,14 +2895,48 @@ const indexHTML = `<!doctype html>
         return String(reason)
       }
 
+      function openOpfsBridge() {
+        return new Promise((resolve, reject) => {
+          const bridge = new Worker('/opfs-worker.js', { type: 'module' })
+          const channel = new MessageChannel()
+          bridge.onerror = (event) => {
+            bridge.terminate()
+            reject(new Error(event.message))
+          }
+          channel.port1.onmessage = (event) => {
+            if (event.data?.opfsWorkerReady !== true) {
+              return
+            }
+            channel.port1.onmessage = null
+            resolve({ worker: bridge, port: channel.port1 })
+          }
+          bridge.postMessage({}, [channel.port2])
+        })
+      }
       function runWorker(args) {
         let readyResolve
+        let bridgeWorker
         recordWorkerProgress(args, 'start')
         const worker = new Worker('/worker.js', { type: 'classic' })
         const ready = new Promise((resolve) => {
           readyResolve = resolve
         })
         const done = new Promise((resolve) => {
+          const fail = (message) => {
+            worker.terminate()
+            bridgeWorker?.terminate()
+            window.__opfsChromeWorkerWatchdog.exception(message)
+            const data = {
+              kind: 'result',
+              scenario: args.scenario,
+              worker: args.worker ?? 0,
+              ok: false,
+              error: message,
+            }
+            recordWorkerProgress(data, 'worker-error')
+            readyResolve(data)
+            resolve(data)
+          }
           worker.onmessage = (event) => {
             const data = event.data
             if (data.kind === 'ready') {
@@ -2746,30 +2952,40 @@ const indexHTML = `<!doctype html>
             if (data.kind === 'result') {
               recordWorkerProgress(data, data.ok ? 'result-ok' : 'result-error')
               worker.terminate()
+              bridgeWorker?.terminate()
               readyResolve(data)
               resolve(data)
             }
           }
           worker.onerror = (event) => {
-            worker.terminate()
-            window.__opfsChromeWorkerWatchdog.exception(event.message)
-            const data = {
-              kind: 'result',
-              scenario: args.scenario,
-              worker: args.worker ?? 0,
-              ok: false,
-              error: event.message,
-            }
-            recordWorkerProgress(data, 'worker-error')
-            readyResolve(data)
-            resolve(data)
+            fail(event.message)
           }
-          worker.postMessage(args)
+          void (async () => {
+            if (!args.remote) {
+              worker.postMessage(args)
+              return
+            }
+            const bridge = await openOpfsBridge()
+            bridgeWorker = bridge.worker
+            worker.postMessage(args, [bridge.port])
+          })().catch((reason) => {
+            fail(describeBrowserError(reason))
+          })
         })
         return {
           ready,
           done,
-          stop: () => worker.terminate(),
+          stop: () => {
+            worker.terminate()
+            bridgeWorker?.terminate()
+          },
+          swapBridge: async () => {
+            const bridge = await openOpfsBridge()
+            const previous = bridgeWorker
+            bridgeWorker = bridge.worker
+            worker.postMessage({ kind: 'opfsBridgeSwap' }, [bridge.port])
+            previous?.terminate()
+          },
         }
       }
 
@@ -3262,8 +3478,82 @@ self.onunhandledrejection = (event) => {
   __opfsChrometestPostUnhandled(event.reason)
 }
 
+
+class OpfsChrometestBridgeClient {
+  constructor(port) {
+    this.port = port
+    this.nextID = 1
+    this.pending = new Map()
+    this.handles = new Map()
+    port.onmessage = (event) => {
+      const response = event.data
+      const pending = this.pending.get(response?.id)
+      if (!pending) {
+        return
+      }
+      this.pending.delete(response.id)
+      if (!response.ok) {
+        const error = new Error(response.error?.message ?? 'OPFS bridge request failed')
+        error.name = response.error?.name ?? 'Error'
+        pending.reject(error)
+        return
+      }
+      const result = response.result
+      if (result && typeof result.id === 'number') {
+        this.handles.set(result.id, pending.op)
+      }
+      if (pending.op === 'closeFile') {
+        this.handles.delete(pending.args.file)
+      }
+      if (pending.op === 'streamClose' || pending.op === 'streamAbort') {
+        this.handles.delete(pending.args.stream)
+      }
+      pending.resolve(result)
+    }
+    port.start()
+  }
+
+  get liveHandles() {
+    return this.handles.size
+  }
+
+  request(op, args) {
+    const id = this.nextID++
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { op, args, resolve, reject })
+      this.port.postMessage({ id, op, args })
+    })
+  }
+
+  close() {
+    for (const pending of this.pending.values()) {
+      const error = new Error('OPFS bridge closed')
+      error.name = 'AbortError'
+      pending.reject(error)
+    }
+    this.pending.clear()
+    this.handles.clear()
+    this.port.close()
+  }
+}
+
+function installOpfsChrometestBridge(port) {
+  const previous = self.__spacewaveOpfsBridgePort
+  const client = new OpfsChrometestBridgeClient(port)
+  previous?.close()
+  self.__spacewaveOpfsBridgePort = client
+  self.__spacewaveInstallOpfsRemoteDriver?.(client)
+}
+
 self.onmessage = async (event) => {
+  if (event.data?.kind === 'opfsBridgeSwap') {
+    installOpfsChrometestBridge(event.ports[0])
+    return
+  }
   const args = event.data
+  if (args.remote) {
+    installOpfsChrometestBridge(event.ports[0])
+  }
   __opfsChrometestCurrentArgs = args
   const go = new Go()
   self.__BLDR_TINYGO_CURRENT_GO = go
