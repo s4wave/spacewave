@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"runtime/trace"
 )
 
 // Cursor tracks traversal of a block reference DAG structure with an associated
@@ -612,8 +613,15 @@ func (c *Cursor) fetch(ctx context.Context) ([]byte, []byte, bool, error) {
 	}
 	storedData := data
 	if xfrm := c.transformer(); xfrm != nil {
-		storedData = bytes.Clone(data)
-		data, err = xfrm.DecodeBlock(data)
+		if trace.IsEnabled() {
+			_, task := trace.NewTask(ctx, "db/block/cursor/fetch/decode")
+			storedData = bytes.Clone(data)
+			data, err = xfrm.DecodeBlock(data)
+			task.End()
+		} else {
+			storedData = bytes.Clone(data)
+			data, err = xfrm.DecodeBlock(data)
+		}
 		if err != nil {
 			return nil, nil, false, err
 		}

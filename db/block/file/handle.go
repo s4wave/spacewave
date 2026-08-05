@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"math"
+	"runtime/trace"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -115,17 +116,33 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
+
+	traceEnabled := trace.IsEnabled()
+	readCtx := r.ctx
+	if traceEnabled {
+		var task *trace.Task
+		readCtx, task = trace.NewTask(readCtx, "db/block/file/handle/read")
+		defer task.End()
+	}
 	totalSize := r.root.GetTotalSize()
 	if r.idx >= totalSize {
 		return 0, io.EOF
 	}
 
 	for n < len(p) && r.idx < totalSize {
-		if err := r.evaluateCurrentRange(); err != nil {
-			if n > 0 && err == io.EOF {
+		var evalErr error
+		if traceEnabled {
+			_, task := trace.NewTask(readCtx, "db/block/file/handle/read/evaluate-range")
+			evalErr = r.evaluateCurrentRange()
+			task.End()
+		} else {
+			evalErr = r.evaluateCurrentRange()
+		}
+		if evalErr != nil {
+			if n > 0 && evalErr == io.EOF {
 				return n, nil
 			}
-			return n, err
+			return n, evalErr
 		}
 
 		idx := r.idx
@@ -157,7 +174,14 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 			continue
 		}
 
-		blobReadN, err := r.currentBlob.Read(p[n : n+readN])
+		var blobReadN int
+		if traceEnabled {
+			_, task := trace.NewTask(readCtx, "db/block/file/handle/read/blob-read")
+			blobReadN, err = r.currentBlob.Read(p[n : n+readN])
+			task.End()
+		} else {
+			blobReadN, err = r.currentBlob.Read(p[n : n+readN])
+		}
 		if blobReadN > 0 {
 			nextIdx := min(r.idx+uint64(blobReadN), readEnd) //nolint:gosec
 			r.idx = nextIdx

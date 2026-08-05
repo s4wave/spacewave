@@ -1,7 +1,9 @@
 package web_fetch
 
 import (
+	"context"
 	"net/http"
+	"runtime/trace"
 	"strconv"
 	"sync"
 
@@ -14,6 +16,7 @@ const maxFetchResponseDataPacketBytes = 16 * 1024
 type FetchResponseWriter struct {
 	strm            SRPCFetchService_FetchStream
 	header          http.Header
+	traceCtx        context.Context
 	writeHeaderOnce sync.Once
 	status          int
 	// declaredLen is the parsed Content-Length header captured when the
@@ -27,6 +30,7 @@ type FetchResponseWriter struct {
 func NewFetchResponseWriter(strm SRPCFetchService_FetchStream) *FetchResponseWriter {
 	return &FetchResponseWriter{
 		strm:        strm,
+		traceCtx:    strm.Context(),
 		header:      http.Header{},
 		declaredLen: -1,
 	}
@@ -55,6 +59,10 @@ func (w *FetchResponseWriter) WriteHeader(statusCode int) {
 
 // Write writes the data to the connection as part of an HTTP reply.
 func (w *FetchResponseWriter) Write(p []byte) (int, error) {
+	if trace.IsEnabled() {
+		_, task := trace.NewTask(w.traceCtx, "bldr/web/fetch/serve-http/write-body")
+		defer task.End()
+	}
 	// write header if not already written
 	w.WriteHeader(200)
 	if w.err != nil {
