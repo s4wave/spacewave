@@ -3305,6 +3305,8 @@ self.BLDR_TINYGO_PROMISE_AWAIT ??= (promise, resolve, reject) => {
 }
 self.__BLDR_TINYGO_OPFS_WRITE_STREAM_ID ??= 1
 self.__BLDR_TINYGO_OPFS_WRITE_STREAMS ??= new Map()
+self.__BLDR_TINYGO_OPFS_READ_SNAPSHOT_ID ??= 1
+self.__BLDR_TINYGO_OPFS_READ_SNAPSHOTS ??= new Map()
 self.__BLDR_TINYGO_ABORT_OPFS_WRITE_STREAM ??= (streamID, strict = false) => {
   const stream = self.__BLDR_TINYGO_OPFS_WRITE_STREAMS.get(streamID)
   if (!stream) {
@@ -3505,6 +3507,9 @@ class OpfsChrometestBridgeClient {
       if (pending.op === 'closeFile') {
         this.handles.delete(pending.args.file)
       }
+      if (pending.op === 'closeReadSnapshot') {
+        this.handles.delete(pending.args.snapshot)
+      }
       if (pending.op === 'streamClose' || pending.op === 'streamAbort') {
         this.handles.delete(pending.args.stream)
       }
@@ -3647,6 +3652,26 @@ self.onmessage = async (event) => {
         .then((handle) => self.__BLDR_TINYGO_OPFS_RESOLVE_REF(opID, handle))
         .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
     }
+    go.importObject.gojs['bldr.opfs.openReadSnapshotRef'] ??= (opID, dirRef, namePtr, nameLen) => {
+      const dir = self.__BLDR_TINYGO_UNBOX_VALUE(go, dirRef)
+      const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
+      const task = dir.getFileHandle(name)
+        .then((handle) => handle.getFile())
+        .then((file) => {
+          if (self.__BLDR_TINYGO_RUNTIME_EXITED) {
+            return
+          }
+          const snapshotID = self.__BLDR_TINYGO_OPFS_READ_SNAPSHOT_ID++
+          self.__BLDR_TINYGO_OPFS_READ_SNAPSHOTS.set(snapshotID, file)
+          self.__BLDR_TINYGO_OPFS_RESOLVE(opID, snapshotID, file.size)
+        })
+        .catch((reason) => {
+          if (!self.__BLDR_TINYGO_RUNTIME_EXITED) {
+            self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason))
+          }
+        })
+      self.__BLDR_TINYGO_TRACK_OPFS_TASK(task)
+    }
     go.importObject.gojs['bldr.opfs.fileExistsRef'] ??= (opID, dirRef, namePtr, nameLen) => {
       const dir = self.__BLDR_TINYGO_UNBOX_VALUE(go, dirRef)
       const name = self.__BLDR_TINYGO_READ_STRING(go, namePtr, nameLen)
@@ -3738,6 +3763,52 @@ self.onmessage = async (event) => {
           self.__BLDR_TINYGO_OPFS_RESOLVE(opID, bytes.byteLength)
         })
         .catch((reason) => self.__BLDR_TINYGO_OPFS_REJECT(opID, self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)))
+    }
+    go.importObject.gojs['bldr.opfs.readSnapshotAtRef'] ??= (opID, snapshotID, dstPtr, dstLen, off) => {
+      const file = self.__BLDR_TINYGO_OPFS_READ_SNAPSHOTS.get(snapshotID)
+      if (!file) {
+        self.__BLDR_TINYGO_OPFS_REJECT(opID, 1)
+        return
+      }
+      const offset = Number(off)
+      const task = (async () => {
+        if (offset >= file.size || dstLen === 0) {
+          self.__BLDR_TINYGO_OPFS_RESOLVE(opID, 0)
+          return
+        }
+        const end = Math.min(offset + dstLen, file.size)
+        const buf = await file.slice(offset, end).arrayBuffer()
+        if (
+          self.__BLDR_TINYGO_RUNTIME_EXITED ||
+          self.__BLDR_TINYGO_OPFS_READ_SNAPSHOTS.get(snapshotID) !== file
+        ) {
+          return
+        }
+        const bytes = new Uint8Array(buf)
+        if (bytes.byteLength !== 0) {
+          self.__BLDR_TINYGO_MEMORY_VIEW(go, dstPtr, bytes.byteLength).set(bytes)
+        }
+        self.__BLDR_TINYGO_OPFS_RESOLVE(opID, bytes.byteLength)
+      })().catch((reason) => {
+        if (
+          !self.__BLDR_TINYGO_RUNTIME_EXITED &&
+          self.__BLDR_TINYGO_OPFS_READ_SNAPSHOTS.get(snapshotID) === file
+        ) {
+          const code = reason?.name === 'NotReadableError'
+            ? 1
+            : self.BLDR_TINYGO_PROMISE_ERROR_CODE(reason)
+          self.__BLDR_TINYGO_OPFS_REJECT(opID, code)
+        }
+      })
+      self.__BLDR_TINYGO_TRACK_OPFS_TASK(task)
+    }
+    go.importObject.gojs['bldr.opfs.closeReadSnapshotRef'] ??= (opID, snapshotID) => {
+      if (!self.__BLDR_TINYGO_OPFS_READ_SNAPSHOTS.has(snapshotID)) {
+        self.__BLDR_TINYGO_OPFS_REJECT(opID, 1)
+        return
+      }
+      self.__BLDR_TINYGO_OPFS_READ_SNAPSHOTS.delete(snapshotID)
+      self.__BLDR_TINYGO_OPFS_RESOLVE(opID, 1)
     }
     go.importObject.gojs['bldr.opfs.listDirectoryRef'] ??= (opID, dirRef) => {
       const dir = self.__BLDR_TINYGO_UNBOX_VALUE(go, dirRef)
@@ -3932,6 +4003,7 @@ self.onmessage = async (event) => {
     for (const [streamID] of self.__BLDR_TINYGO_OPFS_WRITE_STREAMS) {
       void self.__BLDR_TINYGO_ABORT_OPFS_WRITE_STREAM(streamID)
     }
+    self.__BLDR_TINYGO_OPFS_READ_SNAPSHOTS.clear()
     await self.__BLDR_TINYGO_AWAIT_OPFS_TASKS()
   }
 }

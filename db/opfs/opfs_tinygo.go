@@ -28,6 +28,15 @@ func tinyGoOPFSGetDirectoryRef(opID uint32, parentRef uint64, namePtr unsafe.Poi
 //go:wasmimport gojs bldr.opfs.openFileRef
 func tinyGoOPFSOpenFileRef(opID uint32, dirRef uint64, namePtr unsafe.Pointer, nameLen uint32, create uint32)
 
+//go:wasmimport gojs bldr.opfs.openReadSnapshotRef
+func tinyGoOPFSOpenReadSnapshotRef(opID uint32, dirRef uint64, namePtr unsafe.Pointer, nameLen uint32)
+
+//go:wasmimport gojs bldr.opfs.readSnapshotAtRef
+func tinyGoOPFSReadSnapshotAtRef(opID uint32, snapshotID uint32, dstPtr unsafe.Pointer, dstLen uint32, off int64)
+
+//go:wasmimport gojs bldr.opfs.closeReadSnapshotRef
+func tinyGoOPFSCloseReadSnapshotRef(opID uint32, snapshotID uint32)
+
 //go:wasmimport gojs bldr.opfs.fileExistsRef
 func tinyGoOPFSFileExistsRef(opID uint32, dirRef uint64, namePtr unsafe.Pointer, nameLen uint32)
 
@@ -166,6 +175,27 @@ func openAsyncFileWithTinyGoImport(dir js.Value, name string, create bool) (*Asy
 	return &AsyncFile{name: name, handle: handle}, nil
 }
 
+func openReadSnapshotWithTinyGoImport(dir js.Value, name string) (*ReadSnapshot, error) {
+	// Resolve and retain one immutable JavaScript File through the runtime table.
+	nameBytes := []byte(name)
+	values, err := invokeOPFSHelper(func(opID int) {
+		tinyGoOPFSOpenReadSnapshotRef(uint32(opID), tinyGoJSRef(dir), tinyGoBytesPtr(nameBytes), uint32(len(nameBytes)))
+		runtime.KeepAlive(nameBytes)
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(values) < 2 || values[0] == 0 {
+		return nil, errors.New("opfs snapshot helper returned incomplete result")
+	}
+	return &ReadSnapshot{
+		driver:   BrowserDriver{},
+		name:     name,
+		tinyGoID: values[0],
+		size:     int64(values[1]),
+	}, nil
+}
+
 func fileExistsWithTinyGoImport(dir js.Value, name string) (bool, error) {
 	nameBytes := []byte(name)
 	exists, err := invokeOPFSIntHelper(func(opID int) {
@@ -228,6 +258,44 @@ func (f *AsyncFile) readAtWithTinyGoImport(p []byte, off int64) (int, error) {
 		return 0, io.EOF
 	}
 	return n, nil
+}
+
+func (s *ReadSnapshot) readAtWithTinyGoImport(p []byte, off int64) (int, error) {
+	// Copy the requested range from the retained JavaScript File into Go memory.
+	n, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSReadSnapshotAtRef(
+			uint32(opID),
+			uint32(s.tinyGoID),
+			tinyGoBytesPtr(p),
+			uint32(len(p)),
+			off,
+		)
+	})
+	if err != nil {
+		return 0, err
+	}
+	if n > len(p) {
+		return 0, errors.Errorf("read exceeded buffer for snapshot %s: read %d into %d", s.name, n, len(p))
+	}
+	return n, nil
+}
+
+func (s *ReadSnapshot) closeWithTinyGoImport() error {
+	// Release the retained JavaScript File token once.
+	if s.tinyGoID == 0 {
+		return nil
+	}
+	released, err := invokeOPFSIntHelper(func(opID int) {
+		tinyGoOPFSCloseReadSnapshotRef(uint32(opID), uint32(s.tinyGoID))
+	})
+	if err != nil {
+		return err
+	}
+	if released != 1 {
+		return errors.Errorf("close read snapshot %s: snapshot unavailable", s.name)
+	}
+	s.tinyGoID = 0
+	return nil
 }
 
 func (f *AsyncFile) writeAtWithTinyGoImport(p []byte, off int64, keepExisting bool) (int, error) {

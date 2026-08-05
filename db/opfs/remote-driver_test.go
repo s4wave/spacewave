@@ -47,6 +47,36 @@ func TestRemoteDriverInstallPortSwapGeneration(t *testing.T) {
 	}
 }
 
+// TestRemoteReadSnapshotBecomesStaleOnSwap proves a bridge replacement rejects
+// every retained snapshot token from the previous worker.
+func TestRemoteReadSnapshotBecomesStaleOnSwap(t *testing.T) {
+	// Seed one snapshot identity in the first bridge generation.
+	d := NewRemoteDriver(makeBridgePort(t))
+	handle, err := d.newHandle(js.ValueOf(9), remoteHandleKindSnapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := &ReadSnapshot{
+		driver: d,
+		name:   "segment.sst",
+		handle: handle,
+		size:   8,
+	}
+
+	// Swap workers and reject the old token before issuing another request.
+	d.installPort(makeBridgePort(t))
+	if _, err := snapshot.ReadAt(make([]byte, 1), 0); err == nil {
+		t.Fatal("stale snapshot read succeeded after bridge swap")
+	}
+	closeErr := snapshot.Close()
+	if closeErr == nil {
+		t.Fatal("stale snapshot close succeeded after bridge swap")
+	}
+	if retryErr := snapshot.Close(); retryErr != closeErr {
+		t.Fatalf("second close error = %v, want %v", retryErr, closeErr)
+	}
+}
+
 // TestRemoteDriverWaitSwapWakesOnSwap proves a waiter parked before a swap wakes
 // once the bridge port is replaced.
 func TestRemoteDriverWaitSwapWakesOnSwap(t *testing.T) {

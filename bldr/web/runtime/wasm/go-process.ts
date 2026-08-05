@@ -46,6 +46,7 @@ export type TinyGoBrowserBudgetOwner =
   | 'fetch-requests'
   | 'web-lock-requests'
   | 'opfs-write-streams'
+  | 'opfs-read-snapshots'
   | 'opfs-runtime-tasks'
   | 'callback-queue'
   | 'blockshard-storage'
@@ -154,6 +155,15 @@ const tinyGoOPFSWriteStreams = new Map<
     chain: Promise<void>
   }
 >()
+let tinyGoOPFSReadSnapshotID = 1
+const tinyGoOPFSReadSnapshots = new Map<
+  number,
+  {
+    go: TinyGoRuntime
+    file: File
+  }
+>()
+const tinyGoOPFSReadSnapshotCounts = new WeakMap<TinyGoRuntime, number>()
 const tinyGoOPFSRuntimeTasks = new WeakMap<TinyGoRuntime, Set<Promise<void>>>()
 const tinyGoExitedRuntimes = new WeakSet<TinyGoRuntime>()
 const tinyGoCallbackQueue: (() => void)[] = []
@@ -169,6 +179,7 @@ const tinyGoBrowserBudgetOwners: TinyGoBrowserBudgetOwner[] = [
   'fetch-requests',
   'web-lock-requests',
   'opfs-write-streams',
+  'opfs-read-snapshots',
   'opfs-runtime-tasks',
   'callback-queue',
   'blockshard-storage',
@@ -189,6 +200,7 @@ const tinyGoBrowserBudgetReservations: Record<
   'fetch-requests': { reservedCount: 16 },
   'web-lock-requests': { reservedCount: 16 },
   'opfs-write-streams': { reservedBytes: 8 * 1024 * 1024 },
+  'opfs-read-snapshots': {},
   'opfs-runtime-tasks': { reservedCount: 32 },
   'callback-queue': { reservedCount: 256 },
   'blockshard-storage': { reservedBytes: 16 * 1024 * 1024 },
@@ -589,6 +601,23 @@ function rejectTinyGoOPFSOp(
   rejectTinyGoOPFSHelper(go, opID, code)
 }
 
+function rejectTinyGoOPFSReadSnapshotOp(
+  go: TinyGoRuntime,
+  opID: number,
+  reason: unknown,
+): void {
+  const invalidated =
+    typeof reason === 'object' &&
+    reason !== null &&
+    'name' in reason &&
+    reason.name === 'NotReadableError'
+  rejectTinyGoOPFSHelper(
+    go,
+    opID,
+    invalidated ? tinyGoPromiseErrorNotFound : tinyGoPromiseErrorCode(reason),
+  )
+}
+
 async function readTinyGoOPFSFileBytes(file: File): Promise<Uint8Array> {
   if (file.size > tinyGoOPFSReadFileMaxBytes) {
     throw new RangeError(
@@ -745,6 +774,30 @@ function abortTinyGoOPFSWriteStreamsForGo(go: TinyGoRuntime): void {
       void abortTinyGoOPFSWriteStream(id)
     }
   }
+}
+
+function updateTinyGoOPFSReadSnapshotCount(
+  go: TinyGoRuntime,
+  delta: number,
+): void {
+  const count = Math.max(0, (tinyGoOPFSReadSnapshotCounts.get(go) ?? 0) + delta)
+  tinyGoOPFSReadSnapshotCounts.set(go, count)
+  syncTinyGoBudgetOwnerCount(
+    tinyGoRuntimeGeneration(go),
+    'opfs-read-snapshots',
+    count,
+  )
+}
+
+function releaseTinyGoOPFSReadSnapshotsForGo(go: TinyGoRuntime): void {
+  let released = 0
+  for (const [id, snapshot] of tinyGoOPFSReadSnapshots) {
+    if (snapshot.go === go) {
+      tinyGoOPFSReadSnapshots.delete(id)
+      released++
+    }
+  }
+  updateTinyGoOPFSReadSnapshotCount(go, -released)
 }
 
 function copyUint8Array(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
@@ -2167,6 +2220,33 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
       .then((handle) => resolveTinyGoOPFSRef(go, opID, handle))
       .catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
   }
+  gojs['bldr.opfs.openReadSnapshotRef'] ??= (
+    opID: number,
+    dirRef: bigint,
+    namePtr: number,
+    nameLen: number,
+  ) => {
+    const dir = tinyGoUnboxValue(go, dirRef) as FileSystemDirectoryHandle
+    const name = readTinyGoString(go, namePtr, nameLen)
+    const task = dir
+      .getFileHandle(name)
+      .then((handle) => handle.getFile())
+      .then((file) => {
+        if (tinyGoExitedRuntimes.has(go)) {
+          return
+        }
+        const snapshotID = tinyGoOPFSReadSnapshotID++
+        tinyGoOPFSReadSnapshots.set(snapshotID, { go, file })
+        updateTinyGoOPFSReadSnapshotCount(go, 1)
+        resolveTinyGoOPFSHelper(go, opID, snapshotID, file.size)
+      })
+      .catch((reason) => {
+        if (!tinyGoExitedRuntimes.has(go)) {
+          rejectTinyGoOPFSOp(go, opID, reason)
+        }
+      })
+    trackTinyGoOPFSRuntimeTask(go, task)
+  }
   gojs['bldr.opfs.fileExistsRef'] ??= (
     opID: number,
     dirRef: bigint,
@@ -2299,6 +2379,61 @@ export function patchTinyGoRuntimeImports(go: TinyGoRuntime) {
         resolveTinyGoOPFSHelper(go, opID, bytes.byteLength)
       })
       .catch((reason) => rejectTinyGoOPFSOp(go, opID, reason))
+  }
+  gojs['bldr.opfs.readSnapshotAtRef'] ??= (
+    opID: number,
+    snapshotID: number,
+    dstPtr: number,
+    dstLen: number,
+    off: bigint,
+  ) => {
+    const snapshot = tinyGoOPFSReadSnapshots.get(snapshotID)
+    if (!snapshot || snapshot.go !== go) {
+      rejectTinyGoOPFSHelper(go, opID, tinyGoPromiseErrorNotFound)
+      return
+    }
+
+    const offset = Number(off)
+    const task = (async () => {
+      if (offset >= snapshot.file.size || dstLen === 0) {
+        resolveTinyGoOPFSHelper(go, opID, 0)
+        return
+      }
+      const end = Math.min(offset + dstLen, snapshot.file.size)
+      const buf = await snapshot.file.slice(offset, end).arrayBuffer()
+      if (
+        tinyGoExitedRuntimes.has(go) ||
+        tinyGoOPFSReadSnapshots.get(snapshotID) !== snapshot
+      ) {
+        return
+      }
+      const bytes = new Uint8Array(buf)
+      if (bytes.byteLength !== 0) {
+        tinyGoMemoryView(go, dstPtr, bytes.byteLength).set(bytes)
+      }
+      resolveTinyGoOPFSHelper(go, opID, bytes.byteLength)
+    })().catch((reason) => {
+      if (
+        !tinyGoExitedRuntimes.has(go) &&
+        tinyGoOPFSReadSnapshots.get(snapshotID) === snapshot
+      ) {
+        rejectTinyGoOPFSReadSnapshotOp(go, opID, reason)
+      }
+    })
+    trackTinyGoOPFSRuntimeTask(go, task)
+  }
+  gojs['bldr.opfs.closeReadSnapshotRef'] ??= (
+    opID: number,
+    snapshotID: number,
+  ) => {
+    const snapshot = tinyGoOPFSReadSnapshots.get(snapshotID)
+    if (!snapshot || snapshot.go !== go) {
+      rejectTinyGoOPFSHelper(go, opID, tinyGoPromiseErrorNotFound)
+      return
+    }
+    tinyGoOPFSReadSnapshots.delete(snapshotID)
+    updateTinyGoOPFSReadSnapshotCount(go, -1)
+    resolveTinyGoOPFSHelper(go, opID, 1)
   }
   gojs['bldr.opfs.listDirectoryRef'] ??= (opID: number, dirRef: bigint) => {
     const dir = tinyGoUnboxValue(go, dirRef) as FileSystemDirectoryHandle
@@ -2679,6 +2814,7 @@ export class GoWasmProcess {
     } finally {
       tinyGoExitedRuntimes.add(go)
       abortTinyGoOPFSWriteStreamsForGo(go)
+      releaseTinyGoOPFSReadSnapshotsForGo(go)
       await awaitTinyGoOPFSRuntimeTasks(go)
       updateTinyGoRuntimeGenerationMemory(generation)
       finishTinyGoRuntimeGeneration(go)

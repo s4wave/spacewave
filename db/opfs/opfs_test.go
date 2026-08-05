@@ -178,6 +178,71 @@ func TestAsyncFileReadWrite(t *testing.T) {
 	f.Close()
 }
 
+func TestReadSnapshotRetainsImmutableFile(t *testing.T) {
+	// Create one immutable source file and resolve its snapshot.
+	root, err := GetRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer DeleteEntry(root, "test-read-snapshot", true) //nolint
+	dir, err := GetDirectory(root, "test-read-snapshot", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	original := []byte("hello immutable snapshot")
+	if err := WriteFile(dir, "segment.sst", original); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := OpenReadSnapshot(dir, "segment.sst")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Record size once and preserve repeated range and EOF behavior.
+	size, err := snapshot.Size()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if size != int64(len(original)) {
+		t.Fatalf("snapshot size = %d, want %d", size, len(original))
+	}
+	buf := make([]byte, 9)
+	n, err := snapshot.ReadAt(buf, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(buf[:n]); got != "immutable" {
+		t.Fatalf("snapshot range = %q, want immutable", got)
+	}
+	buf = make([]byte, 5)
+	n, err = snapshot.ReadAt(buf, int64(len(original)-3))
+	if n != 3 || err != io.EOF {
+		t.Fatalf("snapshot final read = (%d, %v), want (3, EOF)", n, err)
+	}
+	if got := string(buf[:n]); got != "hot" {
+		t.Fatalf("snapshot final bytes = %q, want hot", got)
+	}
+
+	// Classify browser reclamation as missing for manifest refresh and retry.
+	if err := DeleteEntry(dir, "segment.sst", false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := snapshot.ReadAt(buf, 0); !IsNotFound(err) {
+		t.Fatalf("snapshot read after reclamation = %v, want not found", err)
+	}
+
+	// Release the retained reference once and reject later reads.
+	if err := snapshot.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := snapshot.Close(); err != nil {
+		t.Fatalf("second close: %v", err)
+	}
+	if _, err := snapshot.ReadAt(buf, 0); err == nil {
+		t.Fatal("read after close succeeded")
+	}
+}
+
 func TestSyncFile(t *testing.T) {
 	if !SyncAvailable() {
 		t.Skip("sync access handles not available (SharedWorker context)")

@@ -222,10 +222,10 @@ func (s *Shard) acquireSegment(ctx context.Context, meta *SegmentMeta) (*segment
 		cacheKey{shardID: s.id, filename: meta.Filename},
 		meta,
 		func() (segmentReader, error) {
-			_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/acquire-segment/open-file")
-			file, err := opfs.OpenAsyncFile(s.dir, meta.Filename)
+			_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/acquire-segment/open-snapshot")
+			snapshot, err := opfs.OpenReadSnapshot(s.dir, meta.Filename)
 			subtask.End()
-			return file, err
+			return snapshot, err
 		},
 	)
 }

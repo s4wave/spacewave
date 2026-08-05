@@ -483,6 +483,14 @@ describe('patchTinyGoRuntimeImports', () => {
     const largeReadArrayBuffer = vi.fn(async () => {
       throw new Error('oversized file should not be materialized')
     })
+    const snapshotBytes = new Uint8Array([21, 22, 23, 24])
+    const snapshotGetFile = vi.fn(async () => ({
+      size: snapshotBytes.byteLength,
+      slice: (start: number, end: number) => {
+        const part = snapshotBytes.slice(start, end)
+        return { arrayBuffer: async () => part.buffer }
+      },
+    }))
     const dir = {
       getFileHandle: async (name: string, opts?: { create?: boolean }) => {
         if (name === 'read.bin') {
@@ -501,6 +509,9 @@ describe('patchTinyGoRuntimeImports', () => {
               arrayBuffer: largeReadArrayBuffer,
             }),
           }
+        }
+        if (name === 'snapshot.bin') {
+          return { getFile: snapshotGetFile }
         }
         if (name === 'single.bin' && opts?.create === true) {
           return {
@@ -550,6 +561,26 @@ describe('patchTinyGoRuntimeImports', () => {
     const takeStoredBytes = gojs['bldr.opfs.takeStoredBytes'] as
       | ((bytesID: number, ptr: number, len: number) => number)
       | undefined
+    const openReadSnapshot = gojs['bldr.opfs.openReadSnapshotRef'] as
+      | ((
+          opID: number,
+          dirRef: bigint,
+          namePtr: number,
+          nameLen: number,
+        ) => void)
+      | undefined
+    const readSnapshotAt = gojs['bldr.opfs.readSnapshotAtRef'] as
+      | ((
+          opID: number,
+          snapshotID: number,
+          dstPtr: number,
+          dstLen: number,
+          off: bigint,
+        ) => void)
+      | undefined
+    const closeReadSnapshot = gojs['bldr.opfs.closeReadSnapshotRef'] as
+      | ((opID: number, snapshotID: number) => void)
+      | undefined
     const writeFile = gojs['bldr.opfs.writeFileRef'] as
       | ((
           opID: number,
@@ -585,6 +616,9 @@ describe('patchTinyGoRuntimeImports', () => {
     if (
       !readFile ||
       !takeStoredBytes ||
+      !openReadSnapshot ||
+      !readSnapshotAt ||
+      !closeReadSnapshot ||
       !writeFile ||
       !openWriteStream ||
       !writeStream ||
@@ -604,6 +638,40 @@ describe('patchTinyGoRuntimeImports', () => {
     expect(takeStoredBytes(read.id, 80, read.len)).toBe(1)
     expect(Array.from(mem.subarray(80, 83))).toEqual([4, 5, 6])
     expect(takeStoredBytes(read.id, 80, read.len)).toBe(0)
+    const snapshotNameLen = writeString(256, 'snapshot.bin')
+    const openedSnapshot = await waitOPFS(
+      314,
+      () => openReadSnapshot(314, tinyGoObjectRef(7), 256, snapshotNameLen),
+      ([id = 0, size = 0]) => ({ id, size }),
+    )
+    expect(openedSnapshot.size).toBe(snapshotBytes.byteLength)
+    const firstSnapshotRead = await waitOPFS(
+      315,
+      () => readSnapshotAt(315, openedSnapshot.id, 320, 2, 1n),
+      ([n = 0]) => n,
+    )
+    expect(firstSnapshotRead).toBe(2)
+    expect(Array.from(mem.subarray(320, 322))).toEqual([22, 23])
+    const secondSnapshotRead = await waitOPFS(
+      316,
+      () => readSnapshotAt(316, openedSnapshot.id, 336, 4, 3n),
+      ([n = 0]) => n,
+    )
+    expect(secondSnapshotRead).toBe(1)
+    expect(Array.from(mem.subarray(336, 337))).toEqual([24])
+    expect(snapshotGetFile).toHaveBeenCalledTimes(1)
+    const snapshotClosed = await waitOPFS(
+      317,
+      () => closeReadSnapshot(317, openedSnapshot.id),
+      ([closed = 0]) => closed,
+    )
+    expect(snapshotClosed).toBe(1)
+    const closedSnapshotCode = await waitOPFS(
+      318,
+      () => readSnapshotAt(318, openedSnapshot.id, 320, 1, 0n),
+      ([code = 0]) => -code,
+    )
+    expect(closedSnapshotCode).toBe(1)
 
     const largeReadNameLen = writeString(96, 'large-read.bin')
     const largeReadCode = await waitOPFS(
@@ -1424,6 +1492,7 @@ describe('GoWasmProcess', () => {
           'fetch-requests',
           'web-lock-requests',
           'opfs-write-streams',
+          'opfs-read-snapshots',
           'opfs-runtime-tasks',
           'callback-queue',
           'blockshard-storage',
@@ -1885,7 +1954,7 @@ describe('GoWasmProcess', () => {
     expect(consoleError).toHaveBeenCalledWith('other failure')
   })
 
-  it('aborts TinyGo OPFS write streams when the runtime exits', async () => {
+  it('releases TinyGo OPFS streams and read snapshots when the runtime exits', async () => {
     const opfsResolves = new Map<number, (values: number[]) => void>()
     const opfsRejects = new Map<number, (code: number) => void>()
     const waitOPFS = <T>(
@@ -1903,6 +1972,7 @@ describe('GoWasmProcess', () => {
       aborts: number
       createWritableAfterExit: number
       startRejected: boolean
+      snapshotID: number
       resolveAbortCleanup?: () => void
       rejectPendingWrite?: (reason?: unknown) => void
       resolveLateAbort?: () => void
@@ -1914,6 +1984,7 @@ describe('GoWasmProcess', () => {
       aborts: 0,
       createWritableAfterExit: 0,
       startRejected: false,
+      snapshotID: 0,
     }
     const opfsResolve = (
       opID: number,
@@ -1948,6 +2019,18 @@ describe('GoWasmProcess', () => {
     })
     const dir = {
       getFileHandle: async (name: string, opts?: { create?: boolean }) => {
+        if (name === 'snapshot.bin' && opts?.create !== true) {
+          const bytes = new Uint8Array([1, 2, 3])
+          return {
+            getFile: async () => ({
+              size: bytes.byteLength,
+              slice: (start: number, end: number) => {
+                const part = bytes.slice(start, end)
+                return { arrayBuffer: async () => part.buffer }
+              },
+            }),
+          }
+        }
         if (opts?.create !== true) {
           throw new Error('unexpected file handle request')
         }
@@ -2023,6 +2106,10 @@ describe('GoWasmProcess', () => {
           'after.bin',
           new Uint8Array(memory.buffer, 80, 9),
         )
+        new TextEncoder().encodeInto(
+          'snapshot.bin',
+          new Uint8Array(memory.buffer, 96, 12),
+        )
         const gojs = this.importObject.gojs as Record<string, unknown>
         const openWriteStream = gojs['bldr.opfs.openWriteStreamRef'] as
           | ((
@@ -2040,8 +2127,16 @@ describe('GoWasmProcess', () => {
               dataLen: number,
             ) => void)
           | undefined
-        if (!openWriteStream || !writeStream) {
-          throw new Error('OPFS write stream import bridge was not installed')
+        const openReadSnapshot = gojs['bldr.opfs.openReadSnapshotRef'] as
+          | ((
+              opID: number,
+              dirRef: bigint,
+              namePtr: number,
+              nameLen: number,
+            ) => void)
+          | undefined
+        if (!openWriteStream || !writeStream || !openReadSnapshot) {
+          throw new Error('OPFS import bridge was not installed')
         }
 
         const streamID = await waitOPFS(
@@ -2050,6 +2145,12 @@ describe('GoWasmProcess', () => {
           ([id = 0]) => id,
         )
         expect(streamID).toBeGreaterThan(0)
+        state.snapshotID = await waitOPFS(
+          200,
+          () => openReadSnapshot(200, tinyGoObjectRef(7), 96, 12),
+          ([id = 0]) => id,
+        )
+        expect(state.snapshotID).toBeGreaterThan(0)
         new Uint8Array(memory.buffer).set([1, 2, 3], 48)
         writeStream(202, streamID, 48, 3)
         openWriteStream(203, tinyGoObjectRef(7), 64, 8)
@@ -2102,6 +2203,17 @@ describe('GoWasmProcess', () => {
     await lateAbort
     state.resolveAbortCleanup?.()
     await expect(started).rejects.toThrow('runtime trap')
+    const finalBudget = snapshotTinyGoBrowserBudgetReport()
+    const finalGeneration = finalBudget.generations.at(-1)
+    expect(finalGeneration?.state).toBe('exited')
+    expect(
+      finalGeneration?.owners.find(
+        (owner) => owner.owner === 'opfs-read-snapshots',
+      ),
+    ).toMatchObject({
+      currentCount: 0,
+      highWaterCount: 1,
+    })
     expect(state.aborts).toBe(2)
     expect(state.createWritableAfterExit).toBe(0)
     expect(state.lateCallbacks).toBe(0)

@@ -23,6 +23,7 @@ let nextHandleID = 1
 const directories = new Map<number, FileSystemDirectoryHandle>()
 const files = new Map<number, FileEntry>()
 const writeStreams = new Map<number, FileSystemWritableFileStream>()
+const readSnapshots = new Map<number, File>()
 
 function nextID(): number {
   return nextHandleID++
@@ -109,7 +110,11 @@ function bytesField(args: unknown, name: string): Uint8Array<ArrayBuffer> {
     return new Uint8Array(value)
   }
   if (ArrayBuffer.isView(value)) {
-    const view = new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+    const view = new Uint8Array(
+      value.buffer,
+      value.byteOffset,
+      value.byteLength,
+    )
     const copy = new Uint8Array(view.byteLength)
     copy.set(view)
     return copy
@@ -133,10 +138,21 @@ function getFileEntry(id: number): FileEntry {
   return entry
 }
 
+function getReadSnapshot(id: number): File {
+  const file = readSnapshots.get(id)
+  if (!file) {
+    throw new DOMException(`unknown read snapshot: ${id}`, 'NotFoundError')
+  }
+  return file
+}
+
 function getWriteStream(id: number): FileSystemWritableFileStream {
   const stream = writeStreams.get(id)
   if (!stream) {
-    throw new DOMException(`unknown write stream handle: ${id}`, 'NotFoundError')
+    throw new DOMException(
+      `unknown write stream handle: ${id}`,
+      'NotFoundError',
+    )
   }
   return stream
 }
@@ -283,6 +299,38 @@ async function opOpenFile(
   return { id: storeFile(handle) }
 }
 
+async function opOpenReadSnapshot(
+  args: unknown,
+): Promise<{ id: number; size: number }> {
+  const handle = await fileHandleFromArgs(args, false)
+  const file = await handle.getFile()
+  const id = nextID()
+  readSnapshots.set(id, file)
+  return { id, size: file.size }
+}
+
+async function opReadSnapshotAt(args: unknown): Promise<ArrayBuffer> {
+  const snapshotID = handleField(args, 'snapshot')
+  const offset = numberField(args, 'offset')
+  const length = numberField(args, 'length')
+  if (length <= 0) {
+    return new ArrayBuffer(0)
+  }
+  const file = getReadSnapshot(snapshotID)
+  if (offset >= file.size) {
+    return new ArrayBuffer(0)
+  }
+  const end = Math.min(offset + length, file.size)
+  return file.slice(offset, end).arrayBuffer()
+}
+
+function opCloseReadSnapshot(args: unknown): null {
+  const snapshotID = handleField(args, 'snapshot')
+  getReadSnapshot(snapshotID)
+  readSnapshots.delete(snapshotID)
+  return null
+}
+
 async function opReadAt(args: unknown): Promise<ArrayBuffer> {
   const fileID = handleField(args, 'file')
   const offset = numberField(args, 'offset')
@@ -400,6 +448,12 @@ async function dispatchOp(op: string, args: unknown): Promise<unknown> {
       return opOpenFile(args, false)
     case 'createFile':
       return opOpenFile(args, true)
+    case 'openReadSnapshot':
+      return opOpenReadSnapshot(args)
+    case 'readSnapshotAt':
+      return opReadSnapshotAt(args)
+    case 'closeReadSnapshot':
+      return opCloseReadSnapshot(args)
     case 'readAt':
       return opReadAt(args)
     case 'writeAt':
