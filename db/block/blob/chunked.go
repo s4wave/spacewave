@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"math"
+	"runtime/trace"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -144,7 +145,15 @@ func fetchChunkDataNoCursorCache(
 	if cache != nil && cache.idx == chunkIdx && cache.data != nil {
 		return cache.data, nil
 	}
-	data, err := chunk.FetchDataNoCache(ctx, chunkCursor, false)
+	var data []byte
+	var err error
+	if trace.IsEnabled() {
+		_, task := trace.NewTask(ctx, "db/block/blob/chunk-fetch")
+		data, err = chunk.FetchDataNoCache(ctx, chunkCursor, false)
+		task.End()
+	} else {
+		data, err = chunk.FetchDataNoCache(ctx, chunkCursor, false)
+	}
 	if err != nil {
 		return nil, err
 	}

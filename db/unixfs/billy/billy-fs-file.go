@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"runtime/trace"
 	"sync/atomic"
 	"time"
 
@@ -262,6 +263,10 @@ func (f *BillyFSFile) ReadFrom(r io.Reader) (n int64, err error) {
 
 // Read reads data from the file node, advancing the file handle offset.
 func (f *BillyFSFile) Read(p []byte) (n int, err error) {
+	if trace.IsEnabled() {
+		_, task := trace.NewTask(f.ctx, "db/unixfs/billy/file/read")
+		defer task.End()
+	}
 	idx := f.idx.Load()
 	rn, err := f.h.ReadAt(f.ctx, idx, p)
 	if rn != 0 {

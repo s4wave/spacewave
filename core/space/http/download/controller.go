@@ -8,6 +8,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"runtime/trace"
 	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -74,6 +75,11 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	le := c.GetLogger()
 	b := c.GetBus()
 	ctx := r.Context()
+	if trace.IsEnabled() {
+		var task *trace.Task
+		ctx, task = trace.NewTask(ctx, "core/space-http-download/serve")
+		defer task.End()
+	}
 
 	req, err := space_http_downloadurl.Parse(r.URL.Path)
 	if err != nil {
@@ -99,12 +105,15 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer fsh.Release()
 
+	// Carry the file-server trace context into the Billy filesystem.
+	fileCtx := ctx
+	if trace.IsEnabled() {
+		var fileTask *trace.Task
+		fileCtx, fileTask = trace.NewTask(ctx, "core/space-http-download/serve/file-server")
+		defer fileTask.End()
+	}
 	// Build an http.FileSystem from the FSHandle.
-	hfs := unixfs_access_http.NewFileSystem(ctx, fsh, "", "")
-
-	// Rewrite the request URL to serve the specific file.
-	nr := r.Clone(ctx)
-	nr.URL = &url.URL{Path: "/" + req.ProjectedPath}
+	hfs := unixfs_access_http.NewFileSystem(fileCtx, fsh, "", "")
 
 	// Set Content-Disposition unless inline mode is requested.
 	if r.URL.Query().Get("inline") == "" {
@@ -116,6 +125,8 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Serve the file using the standard http.FileServer.
+	nr := r.Clone(fileCtx)
+	nr.URL = &url.URL{Path: "/" + req.ProjectedPath}
 	handler := unixfs_access_http.NewFileServer(hfs)
 	handler.ServeHTTP(w, nr)
 }
