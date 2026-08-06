@@ -165,7 +165,7 @@ func (i *pluginObjectTypeInvoker) InvokeMethod(serviceID, methodID string, strm 
 		return false, err
 	}
 	found, err := srpc.NewClientInvoker(childClient).InvokeMethod(serviceID, methodID, strm)
-	if err == nil || !isStalePluginResourceError(err) {
+	if err == nil || !i.shouldReconnect(strm.Context(), err) {
 		return found, err
 	}
 	i.reset()
@@ -305,14 +305,17 @@ func (i *pluginObjectTypeInvoker) releaseLocked() {
 	i.childClient = nil
 }
 
-func isStalePluginResourceError(err error) bool {
-	if err == nil {
+func (i *pluginObjectTypeInvoker) shouldReconnect(ctx context.Context, err error) bool {
+	msg := err.Error()
+	if strings.Contains(msg, "resource not found") ||
+		strings.Contains(msg, "invalid resource id") ||
+		strings.Contains(msg, "resource or client was released") {
+		return true
+	}
+	if !errors.Is(err, context.Canceled) {
 		return false
 	}
-	msg := err.Error()
-	return strings.Contains(msg, "resource not found") ||
-		strings.Contains(msg, "invalid resource id") ||
-		strings.Contains(msg, "resource or client was released")
+	return ctx.Err() == nil
 }
 
 // _ is a type assertion

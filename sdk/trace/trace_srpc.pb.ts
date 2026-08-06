@@ -13,7 +13,12 @@ import {
   StopTraceResponse,
 } from './trace.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.trace.TraceService
@@ -94,6 +99,47 @@ export interface TraceService {
   CaptureMemoryProfile(
     request: CaptureMemoryProfileRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<CaptureMemoryProfileResponse>
+}
+
+/**
+ * @generated from service s4wave.trace.TraceService
+ */
+export interface TraceServiceHandler {
+  /**
+   * @generated from rpc s4wave.trace.TraceService.StartTrace
+   */
+  StartTrace(
+    request: StartTraceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StartTraceResponse>
+
+  /**
+   * @generated from rpc s4wave.trace.TraceService.StopTrace
+   */
+  StopTrace(
+    request: StopTraceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<StopTraceResponse>
+
+  /**
+   * @generated from rpc s4wave.trace.TraceService.CaptureCPUProfile
+   */
+  CaptureCPUProfile(
+    request: CaptureCPUProfileRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<CaptureCPUProfileResponse>
+
+  /**
+   * @generated from rpc s4wave.trace.TraceService.CaptureMemoryProfile
+   */
+  CaptureMemoryProfile(
+    request: CaptureMemoryProfileRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<CaptureMemoryProfileResponse>
 }
 

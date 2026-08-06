@@ -94,7 +94,12 @@ import {
   WorldRootSnapshot,
 } from './world.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.world.EngineResourceService
@@ -257,6 +262,92 @@ export interface EngineResourceService {
   AccessWorldState(
     request: AccessWorldStateRequest,
     abortSignal?: AbortSignal,
+  ): Promise<AccessWorldStateResponse>
+}
+
+/**
+ * @generated from service s4wave.world.EngineResourceService
+ */
+export interface EngineResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.GetEngineInfo
+   */
+  GetEngineInfo(
+    request: GetEngineInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetEngineInfoResponse>
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.GetWorldRootSnapshot
+   */
+  GetWorldRootSnapshot(
+    request: GetWorldRootSnapshotRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<WorldRootSnapshot>
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.WatchWorldRootSnapshots
+   */
+  WatchWorldRootSnapshots(
+    request: WatchWorldRootSnapshotsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WorldRootSnapshot>
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.NewTransaction
+   */
+  NewTransaction(
+    request: NewTransactionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<NewTransactionResponse>
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.Sync
+   */
+  Sync(
+    request: SyncRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SyncResponse>
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.GetSeqno
+   */
+  GetSeqno(
+    request: GetSeqnoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetSeqnoResponse>
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.WaitSeqno
+   */
+  WaitSeqno(
+    request: WaitSeqnoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<WaitSeqnoResponse>
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.BuildStorageCursor
+   */
+  BuildStorageCursor(
+    request: BuildStorageCursorRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<BuildStorageCursorResponse>
+
+  /**
+   * @generated from rpc s4wave.world.EngineResourceService.AccessWorldState
+   */
+  AccessWorldState(
+    request: AccessWorldStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<AccessWorldStateResponse>
 }
 
@@ -834,6 +925,218 @@ export interface WorldStateResourceService {
   ): Promise<ApplyWorldOpResponse>
 }
 
+/**
+ * @generated from service s4wave.world.WorldStateResourceService
+ */
+export interface WorldStateResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetReadOnly
+   */
+  GetReadOnly(
+    request: GetReadOnlyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetReadOnlyResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.Sync
+   */
+  Sync(
+    request: SyncRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SyncResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetSeqno
+   */
+  GetSeqno(
+    request: GetSeqnoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetSeqnoResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.WaitSeqno
+   */
+  WaitSeqno(
+    request: WaitSeqnoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<WaitSeqnoResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.BuildStorageCursor
+   */
+  BuildStorageCursor(
+    request: BuildStorageCursorRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<BuildStorageCursorResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.AccessWorldState
+   */
+  AccessWorldState(
+    request: AccessWorldStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessWorldStateResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.CreateObject
+   */
+  CreateObject(
+    request: CreateObjectRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateObjectResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetObject
+   */
+  GetObject(
+    request: GetObjectRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetObjectResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.IterateObjects
+   */
+  IterateObjects(
+    request: IterateObjectsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<IterateObjectsResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.RenameObject
+   */
+  RenameObject(
+    request: RenameObjectRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RenameObjectResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.DeleteObject
+   */
+  DeleteObject(
+    request: DeleteObjectRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DeleteObjectResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.SetGraphQuad
+   */
+  SetGraphQuad(
+    request: SetGraphQuadRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetGraphQuadResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.DeleteGraphQuad
+   */
+  DeleteGraphQuad(
+    request: DeleteGraphQuadRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DeleteGraphQuadResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.LookupGraphQuads
+   */
+  LookupGraphQuads(
+    request: LookupGraphQuadsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LookupGraphQuadsResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.LookupGraphQuadsBatch
+   */
+  LookupGraphQuadsBatch(
+    request: LookupGraphQuadsBatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LookupGraphQuadsBatchResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.ListGraphEdgeBuckets
+   */
+  ListGraphEdgeBuckets(
+    request: ListGraphEdgeBucketsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListGraphEdgeBucketsResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.ListObjectsWithType
+   */
+  ListObjectsWithType(
+    request: ListObjectsWithTypeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListObjectsWithTypeResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectRootRefsBatch
+   */
+  GetObjectRootRefsBatch(
+    request: GetObjectRootRefsBatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetObjectRootRefsBatchResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectMetadataBatch
+   */
+  GetObjectMetadataBatch(
+    request: GetObjectMetadataBatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetObjectMetadataBatchResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.GetObjectBodiesBatch
+   */
+  GetObjectBodiesBatch(
+    request: GetObjectBodiesBatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetObjectBodiesBatchResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.QueryGraphPath
+   */
+  QueryGraphPath(
+    request: QueryGraphPathRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<QueryGraphPathResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.DeleteGraphObject
+   */
+  DeleteGraphObject(
+    request: DeleteGraphObjectRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DeleteGraphObjectResponse>
+
+  /**
+   * @generated from rpc s4wave.world.WorldStateResourceService.ApplyWorldOp
+   */
+  ApplyWorldOp(
+    request: ApplyWorldOpRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApplyWorldOpResponse>
+}
+
 export const WorldStateResourceServiceServiceName =
   WorldStateResourceServiceDefinition.typeName
 
@@ -1289,6 +1592,20 @@ export interface WatchWorldStateResourceService {
   ): MessageStream<WatchWorldStateResponse>
 }
 
+/**
+ * @generated from service s4wave.world.WatchWorldStateResourceService
+ */
+export interface WatchWorldStateResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.world.WatchWorldStateResourceService.WatchWorldState
+   */
+  WatchWorldState(
+    request: WatchWorldStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchWorldStateResponse>
+}
+
 export const WatchWorldStateResourceServiceServiceName =
   WatchWorldStateResourceServiceDefinition.typeName
 
@@ -1362,6 +1679,29 @@ export interface TxResourceService {
   Discard(
     request: DiscardRequest,
     abortSignal?: AbortSignal,
+  ): Promise<DiscardResponse>
+}
+
+/**
+ * @generated from service s4wave.world.TxResourceService
+ */
+export interface TxResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.world.TxResourceService.Commit
+   */
+  Commit(
+    request: CommitRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CommitResponse>
+
+  /**
+   * @generated from rpc s4wave.world.TxResourceService.Discard
+   */
+  Discard(
+    request: DiscardRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<DiscardResponse>
 }
 
@@ -1511,6 +1851,65 @@ export interface ObjectIteratorResourceService {
   Close(
     request: CloseRequest,
     abortSignal?: AbortSignal,
+  ): Promise<CloseResponse>
+}
+
+/**
+ * @generated from service s4wave.world.ObjectIteratorResourceService
+ */
+export interface ObjectIteratorResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.world.ObjectIteratorResourceService.Err
+   */
+  Err(
+    request: ErrRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ErrResponse>
+
+  /**
+   * @generated from rpc s4wave.world.ObjectIteratorResourceService.Valid
+   */
+  Valid(
+    request: ValidRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ValidResponse>
+
+  /**
+   * @generated from rpc s4wave.world.ObjectIteratorResourceService.Key
+   */
+  Key(
+    request: KeyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<KeyResponse>
+
+  /**
+   * @generated from rpc s4wave.world.ObjectIteratorResourceService.Next
+   */
+  Next(
+    request: NextRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<NextResponse>
+
+  /**
+   * @generated from rpc s4wave.world.ObjectIteratorResourceService.Seek
+   */
+  Seek(
+    request: SeekRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SeekResponse>
+
+  /**
+   * @generated from rpc s4wave.world.ObjectIteratorResourceService.Close
+   */
+  Close(
+    request: CloseRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<CloseResponse>
 }
 
@@ -1677,6 +2076,29 @@ export interface GraphPathQueryResourceService {
   Close(
     request: CloseGraphPathQueryRequest,
     abortSignal?: AbortSignal,
+  ): Promise<CloseGraphPathQueryResponse>
+}
+
+/**
+ * @generated from service s4wave.world.GraphPathQueryResourceService
+ */
+export interface GraphPathQueryResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.world.GraphPathQueryResourceService.Next
+   */
+  Next(
+    request: NextGraphPathQueryRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<NextGraphPathQueryResponse>
+
+  /**
+   * @generated from rpc s4wave.world.GraphPathQueryResourceService.Close
+   */
+  Close(
+    request: CloseGraphPathQueryRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<CloseGraphPathQueryResponse>
 }
 
@@ -1859,6 +2281,74 @@ export interface ObjectStateResourceService {
   ): Promise<WaitRevResponse>
 }
 
+/**
+ * @generated from service s4wave.world.ObjectStateResourceService
+ */
+export interface ObjectStateResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.world.ObjectStateResourceService.GetKey
+   */
+  GetKey(
+    request: GetKeyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetKeyResponse>
+
+  /**
+   * @generated from rpc s4wave.world.ObjectStateResourceService.GetRootRef
+   */
+  GetRootRef(
+    request: GetRootRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetRootRefResponse>
+
+  /**
+   * @generated from rpc s4wave.world.ObjectStateResourceService.SetRootRef
+   */
+  SetRootRef(
+    request: SetRootRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetRootRefResponse>
+
+  /**
+   * @generated from rpc s4wave.world.ObjectStateResourceService.AccessWorldState
+   */
+  AccessWorldState(
+    request: AccessWorldStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessWorldStateResponse>
+
+  /**
+   * @generated from rpc s4wave.world.ObjectStateResourceService.ApplyObjectOp
+   */
+  ApplyObjectOp(
+    request: ApplyObjectOpRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApplyObjectOpResponse>
+
+  /**
+   * @generated from rpc s4wave.world.ObjectStateResourceService.IncrementRev
+   */
+  IncrementRev(
+    request: IncrementRevRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<IncrementRevResponse>
+
+  /**
+   * @generated from rpc s4wave.world.ObjectStateResourceService.WaitRev
+   */
+  WaitRev(
+    request: WaitRevRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<WaitRevResponse>
+}
+
 export const ObjectStateResourceServiceServiceName =
   ObjectStateResourceServiceDefinition.typeName
 
@@ -2023,6 +2513,20 @@ export interface TypedObjectResourceService {
   AccessTypedObject(
     request: AccessTypedObjectRequest,
     abortSignal?: AbortSignal,
+  ): Promise<AccessTypedObjectResponse>
+}
+
+/**
+ * @generated from service s4wave.world.TypedObjectResourceService
+ */
+export interface TypedObjectResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.world.TypedObjectResourceService.AccessTypedObject
+   */
+  AccessTypedObject(
+    request: AccessTypedObjectRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<AccessTypedObjectResponse>
 }
 

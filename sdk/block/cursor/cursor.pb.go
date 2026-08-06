@@ -597,7 +597,6 @@ func (x *GetAllRefsRequest) GetExistingOnly() bool {
 type GetAllRefsResponse struct {
 	unknownFields []byte
 	// Refs maps reference field IDs to BlockCursor resource IDs.
-	// @resource-adoption-id
 	Refs map[uint32]uint32 `protobuf:"bytes,1,rep,name=refs,proto3" json:"refs,omitempty" protobuf_key:"varint,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 }
 
@@ -758,7 +757,6 @@ func (*ParentsRequest) ProtoMessage() {}
 type ParentsResponse struct {
 	unknownFields []byte
 	// ParentResourceIds are the resource IDs of parent cursors.
-	// @resource-adoption-id
 	ParentResourceIds []uint32 `protobuf:"varint,1,rep,packed,name=parent_resource_ids,json=parentResourceIds,proto3" json:"parentResourceIds,omitempty"`
 }
 

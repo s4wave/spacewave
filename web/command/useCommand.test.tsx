@@ -67,7 +67,8 @@ const attachedHandlerService: { current: AttachedHandlerService | null } = {
   current: null,
 }
 
-vi.mock('starpc', () => ({
+vi.mock('starpc', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('starpc')>()),
   createHandler: (_definition: unknown, handler: unknown) => handler,
 }))
 

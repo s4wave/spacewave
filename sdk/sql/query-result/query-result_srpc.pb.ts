@@ -7,7 +7,7 @@ import {
   GetResultGridResponse,
 } from './query-result.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * SqlQueryResultResourceService exposes a SQL query result world object.
@@ -45,6 +45,24 @@ export interface SqlQueryResultResourceService {
   GetResultGrid(
     request: GetResultGridRequest,
     abortSignal?: AbortSignal,
+  ): Promise<GetResultGridResponse>
+}
+
+/**
+ * SqlQueryResultResourceService exposes a SQL query result world object.
+ *
+ * @generated from service s4wave.sql.query_result.SqlQueryResultResourceService
+ */
+export interface SqlQueryResultResourceServiceHandler {
+  /**
+   * GetResultGrid returns the persisted result grid.
+   *
+   * @generated from rpc s4wave.sql.query_result.SqlQueryResultResourceService.GetResultGrid
+   */
+  GetResultGrid(
+    request: GetResultGridRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<GetResultGridResponse>
 }
 

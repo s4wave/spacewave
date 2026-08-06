@@ -129,15 +129,15 @@ func TestAcceptCountingListenerKeepsExistingClientAfterPeerDeparts(t *testing.T)
 		}
 		switch methodID {
 		case listenerTestPingMethodID:
-			if err := strm.MsgRecv(new(resource.ResourceRefReleaseRequest)); err != nil {
+			if err := strm.MsgRecv(new(resource.ResourceClientInitRequest)); err != nil {
 				return true, err
 			}
-			return true, strm.MsgSend(new(resource.ResourceRefReleaseResponse))
+			return true, strm.MsgSend(new(resource.ResourceClientInitRequest))
 		case listenerTestWatchMethodID:
-			if err := strm.MsgRecv(new(resource.ResourceRefReleaseRequest)); err != nil {
+			if err := strm.MsgRecv(new(resource.ResourceClientInitRequest)); err != nil {
 				return true, err
 			}
-			if err := strm.MsgSend(new(resource.ResourceRefReleaseResponse)); err != nil {
+			if err := strm.MsgSend(new(resource.ResourceClientInitRequest)); err != nil {
 				return true, err
 			}
 			select {
@@ -145,7 +145,7 @@ func TestAcceptCountingListenerKeepsExistingClientAfterPeerDeparts(t *testing.T)
 			case <-strm.Context().Done():
 				return true, context.Canceled
 			}
-			return true, strm.MsgSend(new(resource.ResourceRefReleaseResponse))
+			return true, strm.MsgSend(new(resource.ResourceClientInitRequest))
 		default:
 			return false, nil
 		}
@@ -177,7 +177,7 @@ func TestAcceptCountingListenerKeepsExistingClientAfterPeerDeparts(t *testing.T)
 		watchCtx,
 		listenerTestServiceID,
 		listenerTestWatchMethodID,
-		new(resource.ResourceRefReleaseRequest),
+		new(resource.ResourceClientInitRequest),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -339,15 +339,16 @@ func pingListenerTestClient(t *testing.T, client srpc.Client) {
 		ctx,
 		listenerTestServiceID,
 		listenerTestPingMethodID,
-		new(resource.ResourceRefReleaseRequest),
-		new(resource.ResourceRefReleaseResponse),
+		new(resource.ResourceClientInitRequest),
+		new(resource.ResourceClientInitRequest),
 	); err != nil {
 		t.Fatalf("listener test ping: %v", err)
 	}
 }
+
 func recvListenerTestWatch(t *testing.T, watch srpc.Stream) {
 	t.Helper()
-	if err := watch.MsgRecv(new(resource.ResourceRefReleaseResponse)); err != nil {
+	if err := watch.MsgRecv(new(resource.ResourceClientInitRequest)); err != nil {
 		t.Fatalf("listener test watch: %v", err)
 	}
 }

@@ -20,7 +20,7 @@ interface DesktopTrayResource {
   QuitDesktopRuntime: DesktopRuntimeResource['QuitDesktopRuntime']
   desktopTrayResource: Pick<
     DesktopRuntimeResource['desktopTrayResource'],
-    'WatchDesktopTray' | 'InvokeDesktopTrayEntry' | 'getState'
+    'watchState' | 'invokeEntry' | 'getState'
   >
 }
 
@@ -84,9 +84,7 @@ export class DesktopTrayController {
 
   private async watchDesktopTray(): Promise<void> {
     try {
-      for await (const resp of this.opts.resource.desktopTrayResource.WatchDesktopTray(
-        {},
-      )) {
+      for await (const resp of this.opts.resource.desktopTrayResource.watchState()) {
         this.rebuildMenu(
           resp.state ?? this.opts.resource.desktopTrayResource.getState(),
         )
@@ -284,7 +282,7 @@ export class DesktopTrayController {
   }
 
   private async invokeAttachedTrayEntry(entryId?: string): Promise<void> {
-    await this.opts.resource.desktopTrayResource.InvokeDesktopTrayEntry({
+    await this.opts.resource.desktopTrayResource.invokeEntry({
       entryId,
     })
   }

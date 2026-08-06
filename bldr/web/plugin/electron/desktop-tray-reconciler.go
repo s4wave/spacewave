@@ -182,16 +182,15 @@ func openPluginHostDesktopTray(ctx context.Context, b bus.Bus) (*pluginHostDeskt
 	}
 
 	rootRef := resources.AccessRootResource()
+	defer rootRef.Release()
 	rootClient, err := rootRef.GetClient()
 	if err != nil {
-		rootRef.Release()
 		resources.Release()
 		return nil, err
 	}
 
 	hostService := sdk_plugin_host.NewSRPCPluginHostResourceServiceClient(rootClient)
 	resp, err := hostService.AccessDesktopTray(ctx, &sdk_plugin_host.AccessDesktopTrayRequest{})
-	rootRef.Release()
 	if err != nil {
 		resources.Release()
 		return nil, err

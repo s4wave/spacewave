@@ -31,6 +31,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -197,6 +198,92 @@ export interface SpaceResourceService {
   RemoveSpacePlugin(
     request: RemoveSpacePluginRequest,
     abortSignal?: AbortSignal,
+  ): Promise<RemoveSpacePluginResponse>
+}
+
+/**
+ * @generated from service s4wave.space.SpaceResourceService
+ */
+export interface SpaceResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceState
+   */
+  WatchSpaceState(
+    request: WatchSpaceStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<SpaceState>
+
+  /**
+   * @generated from rpc s4wave.space.SpaceResourceService.WatchSpaceSharingState
+   */
+  WatchSpaceSharingState(
+    request: WatchSpaceSharingStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<SpaceSharingState>
+
+  /**
+   * @generated from rpc s4wave.space.SpaceResourceService.AccessWorld
+   */
+  AccessWorld(
+    request: AccessWorldRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessWorldResponse>
+
+  /**
+   * @generated from rpc s4wave.space.SpaceResourceService.MountSpaceContents
+   */
+  MountSpaceContents(
+    request: MountSpaceContentsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MountSpaceContentsResponse>
+
+  /**
+   * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
+   */
+  CreateSecret(
+    request: CreateSecretRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateSecretResponse>
+
+  /**
+   * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
+   */
+  ReadSecretPayload(
+    request: ReadSecretPayloadRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReadSecretPayloadResponse>
+
+  /**
+   * @generated from rpc s4wave.space.SpaceResourceService.DeployManifest
+   */
+  DeployManifest(
+    request: MessageStream<DeployManifestMessage>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<DeployManifestMessage>
+
+  /**
+   * @generated from rpc s4wave.space.SpaceResourceService.AddSpacePlugin
+   */
+  AddSpacePlugin(
+    request: AddSpacePluginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AddSpacePluginResponse>
+
+  /**
+   * @generated from rpc s4wave.space.SpaceResourceService.RemoveSpacePlugin
+   */
+  RemoveSpacePlugin(
+    request: RemoveSpacePluginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<RemoveSpacePluginResponse>
 }
 
@@ -416,6 +503,29 @@ export interface SpaceContentsResourceService {
   SetProcessBinding(
     request: SetProcessBindingRequest,
     abortSignal?: AbortSignal,
+  ): Promise<SetProcessBindingResponse>
+}
+
+/**
+ * @generated from service s4wave.space.SpaceContentsResourceService
+ */
+export interface SpaceContentsResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.space.SpaceContentsResourceService.WatchState
+   */
+  WatchState(
+    request: WatchSpaceContentsStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<SpaceContentsState>
+
+  /**
+   * @generated from rpc s4wave.space.SpaceContentsResourceService.SetProcessBinding
+   */
+  SetProcessBinding(
+    request: SetProcessBindingRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<SetProcessBindingResponse>
 }
 

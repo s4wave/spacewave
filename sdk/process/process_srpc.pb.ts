@@ -4,7 +4,12 @@
 
 import { ExecuteRequest, ExecuteStatus } from './process.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.process.PersistentExecutionService
@@ -34,6 +39,20 @@ export interface PersistentExecutionService {
   Execute(
     request: ExecuteRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<ExecuteStatus>
+}
+
+/**
+ * @generated from service s4wave.process.PersistentExecutionService
+ */
+export interface PersistentExecutionServiceHandler {
+  /**
+   * @generated from rpc s4wave.process.PersistentExecutionService.Execute
+   */
+  Execute(
+    request: ExecuteRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<ExecuteStatus>
 }
 

@@ -25,7 +25,7 @@ import {
   SyncResponse,
 } from './block.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * BlockStore wraps a BlockStore interface with a RPC service.
@@ -256,6 +256,126 @@ export interface BlockStore {
    * @generated from rpc block.rpc.BlockStore.Sync
    */
   Sync(request: SyncRequest, abortSignal?: AbortSignal): Promise<SyncResponse>
+}
+
+/**
+ * BlockStore wraps a BlockStore interface with a RPC service.
+ *
+ * @generated from service block.rpc.BlockStore
+ */
+export interface BlockStoreHandler {
+  /**
+   * GetHashType requests the preferred hash type for the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.GetHashType
+   */
+  GetHashType(
+    request: GetHashTypeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetHashTypeResponse>
+
+  /**
+   * GetSupportedFeatures requests the native feature bitmask for the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.GetSupportedFeatures
+   */
+  GetSupportedFeatures(
+    request: GetSupportedFeaturesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetSupportedFeaturesResponse>
+
+  /**
+   * PutBlock requests to put a block into the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.PutBlock
+   */
+  PutBlock(
+    request: PutBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PutBlockResponse>
+
+  /**
+   * PutBlockBatch requests to put blocks into the store as a batch.
+   *
+   * @generated from rpc block.rpc.BlockStore.PutBlockBatch
+   */
+  PutBlockBatch(
+    request: PutBlockBatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PutBlockBatchResponse>
+
+  /**
+   * GetBlock requests to lookup a block from the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.GetBlock
+   */
+  GetBlock(
+    request: GetBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetBlockResponse>
+
+  /**
+   * GetBlockExists requests to check if a block exists in the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.GetBlockExists
+   */
+  GetBlockExists(
+    request: GetBlockExistsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetBlockExistsResponse>
+
+  /**
+   * GetBlockExistsBatch requests to check if blocks exist in the store.
+   *
+   * @generated from rpc block.rpc.BlockStore.GetBlockExistsBatch
+   */
+  GetBlockExistsBatch(
+    request: GetBlockExistsBatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetBlockExistsBatchResponse>
+
+  /**
+   * RmBlock requests to remove a block from the store.
+   * Does not return an error if the block was not present.
+   * In some cases, will return before confirming delete.
+   *
+   * @generated from rpc block.rpc.BlockStore.RmBlock
+   */
+  RmBlock(
+    request: RmBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RmBlockResponse>
+
+  /**
+   * StatBlock requests block metadata without reading block data.
+   *
+   * @generated from rpc block.rpc.BlockStore.StatBlock
+   */
+  StatBlock(
+    request: StatBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StatBlockResponse>
+
+  /**
+   * Sync is the durability barrier: it drains buffered writes and blocks until
+   * every prior write is durable.
+   *
+   * @generated from rpc block.rpc.BlockStore.Sync
+   */
+  Sync(
+    request: SyncRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SyncResponse>
 }
 
 export const BlockStoreServiceName = BlockStoreDefinition.typeName

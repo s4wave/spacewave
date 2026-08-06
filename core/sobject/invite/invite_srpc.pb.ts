@@ -4,7 +4,7 @@
 
 import { AcceptInviteRequest, AcceptInviteResponse } from './invite.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * @generated from service sobject.invite.SOInviteService
@@ -34,6 +34,20 @@ export interface SOInviteService {
   AcceptInvite(
     request: AcceptInviteRequest,
     abortSignal?: AbortSignal,
+  ): Promise<AcceptInviteResponse>
+}
+
+/**
+ * @generated from service sobject.invite.SOInviteService
+ */
+export interface SOInviteServiceHandler {
+  /**
+   * @generated from rpc sobject.invite.SOInviteService.AcceptInvite
+   */
+  AcceptInvite(
+    request: AcceptInviteRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<AcceptInviteResponse>
 }
 

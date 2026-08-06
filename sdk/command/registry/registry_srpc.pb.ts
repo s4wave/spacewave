@@ -19,7 +19,12 @@ import {
   WatchCommandsResponse,
 } from './registry.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.command.registry.CommandRegistryResourceService
@@ -134,6 +139,65 @@ export interface CommandRegistryResourceService {
   InvokeCommand(
     request: InvokeCommandRequest,
     abortSignal?: AbortSignal,
+  ): Promise<InvokeCommandResponse>
+}
+
+/**
+ * @generated from service s4wave.command.registry.CommandRegistryResourceService
+ */
+export interface CommandRegistryResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.command.registry.CommandRegistryResourceService.RegisterCommand
+   */
+  RegisterCommand(
+    request: RegisterCommandRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RegisterCommandResponse>
+
+  /**
+   * @generated from rpc s4wave.command.registry.CommandRegistryResourceService.SetActive
+   */
+  SetActive(
+    request: SetActiveRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetActiveResponse>
+
+  /**
+   * @generated from rpc s4wave.command.registry.CommandRegistryResourceService.SetEnabled
+   */
+  SetEnabled(
+    request: SetEnabledRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetEnabledResponse>
+
+  /**
+   * @generated from rpc s4wave.command.registry.CommandRegistryResourceService.WatchCommands
+   */
+  WatchCommands(
+    request: WatchCommandsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchCommandsResponse>
+
+  /**
+   * @generated from rpc s4wave.command.registry.CommandRegistryResourceService.GetSubItems
+   */
+  GetSubItems(
+    request: GetSubItemsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetSubItemsResponse>
+
+  /**
+   * @generated from rpc s4wave.command.registry.CommandRegistryResourceService.InvokeCommand
+   */
+  InvokeCommand(
+    request: InvokeCommandRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<InvokeCommandResponse>
 }
 
@@ -300,6 +364,29 @@ export interface CommandHandlerService {
   HandleCommand(
     request: HandleCommandRequest,
     abortSignal?: AbortSignal,
+  ): Promise<HandleCommandResponse>
+}
+
+/**
+ * @generated from service s4wave.command.registry.CommandHandlerService
+ */
+export interface CommandHandlerServiceHandler {
+  /**
+   * @generated from rpc s4wave.command.registry.CommandHandlerService.GetSubItems
+   */
+  GetSubItems(
+    request: GetSubItemsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetSubItemsResponse>
+
+  /**
+   * @generated from rpc s4wave.command.registry.CommandHandlerService.HandleCommand
+   */
+  HandleCommand(
+    request: HandleCommandRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<HandleCommandResponse>
 }
 

@@ -21,7 +21,7 @@ import {
   RemoveRefResponse,
 } from './refgraph.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * RefGraph wraps a GC RefGraph with a RPC service.
@@ -206,6 +206,101 @@ export interface RefGraph {
   GetUnreferencedNodes(
     request: GetUnreferencedNodesRequest,
     abortSignal?: AbortSignal,
+  ): Promise<GetUnreferencedNodesResponse>
+}
+
+/**
+ * RefGraph wraps a GC RefGraph with a RPC service.
+ *
+ * @generated from service block.gc.rpc.RefGraph
+ */
+export interface RefGraphHandler {
+  /**
+   * AddRef adds a gc/ref edge from subject to object. Idempotent.
+   *
+   * @generated from rpc block.gc.rpc.RefGraph.AddRef
+   */
+  AddRef(
+    request: AddRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AddRefResponse>
+
+  /**
+   * RemoveRef removes a single gc/ref edge from subject to object.
+   *
+   * @generated from rpc block.gc.rpc.RefGraph.RemoveRef
+   */
+  RemoveRef(
+    request: RemoveRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveRefResponse>
+
+  /**
+   * ApplyRefBatch applies one bounded ownership transition.
+   *
+   * @generated from rpc block.gc.rpc.RefGraph.ApplyRefBatch
+   */
+  ApplyRefBatch(
+    request: ApplyRefBatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApplyRefBatchResponse>
+
+  /**
+   * RemoveNodeRefs removes all outgoing gc/ref edges for a node.
+   *
+   * @generated from rpc block.gc.rpc.RefGraph.RemoveNodeRefs
+   */
+  RemoveNodeRefs(
+    request: RemoveNodeRefsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveNodeRefsResponse>
+
+  /**
+   * HasIncomingRefs checks if a node has any incoming gc/ref edges.
+   *
+   * @generated from rpc block.gc.rpc.RefGraph.HasIncomingRefs
+   */
+  HasIncomingRefs(
+    request: HasIncomingRefsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HasIncomingRefsResponse>
+
+  /**
+   * GetOutgoingRefs returns all targets of gc/ref edges from a node.
+   *
+   * @generated from rpc block.gc.rpc.RefGraph.GetOutgoingRefs
+   */
+  GetOutgoingRefs(
+    request: GetOutgoingRefsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetOutgoingRefsResponse>
+
+  /**
+   * GetIncomingRefs returns all sources with gc/ref edges to a node.
+   *
+   * @generated from rpc block.gc.rpc.RefGraph.GetIncomingRefs
+   */
+  GetIncomingRefs(
+    request: GetIncomingRefsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetIncomingRefsResponse>
+
+  /**
+   * GetUnreferencedNodes returns all nodes linked from "unreferenced".
+   *
+   * @generated from rpc block.gc.rpc.RefGraph.GetUnreferencedNodes
+   */
+  GetUnreferencedNodes(
+    request: GetUnreferencedNodesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<GetUnreferencedNodesResponse>
 }
 

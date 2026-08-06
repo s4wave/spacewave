@@ -13,6 +13,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -80,6 +81,39 @@ export interface ObjectStore {
   DeleteObjectStore(
     request: DeleteObjectStoreRequest,
     abortSignal?: AbortSignal,
+  ): Promise<DeleteObjectStoreResponse>
+}
+
+/**
+ * ObjectStore implements ObjectStore wrapping a object_store.Store.
+ *
+ * @generated from service object.rpc.ObjectStore
+ */
+export interface ObjectStoreHandler {
+  /**
+   * ObjectStoreRpc is a rpc request for an ObjectStore Kvtx service by ID.
+   * Corresponds to a call to BuildObjectStoreAPI.
+   * If the ObjectStore doesn't exist, it will be created.
+   * Exposes service: rpc.kvtx.Kvtx
+   * Component ID: object store ID.
+   *
+   * @generated from rpc object.rpc.ObjectStore.ObjectStoreRpc
+   */
+  ObjectStoreRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<RpcStreamPacket>
+
+  /**
+   * DeleteObjectStore deletes the object store and all contents by ID.
+   *
+   * @generated from rpc object.rpc.ObjectStore.DeleteObjectStore
+   */
+  DeleteObjectStore(
+    request: DeleteObjectStoreRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<DeleteObjectStoreResponse>
 }
 

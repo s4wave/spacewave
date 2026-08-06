@@ -4,7 +4,12 @@
 
 import { PrototypeRequest, PrototypeResponse } from './common.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * PrototypeService is a service for the prototype (regression test).
@@ -46,6 +51,26 @@ export interface PrototypeService {
   Prototype(
     request: PrototypeRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<PrototypeResponse>
+}
+
+/**
+ * PrototypeService is a service for the prototype (regression test).
+ * app1 contacts app2 and starts a streaming rpc.
+ * if app1 cancels the rpc, app2 context should also cancel.
+ *
+ * @generated from service prototype.webworker_rpcstream.common.PrototypeService
+ */
+export interface PrototypeServiceHandler {
+  /**
+   * Prototype is the prototype request.
+   *
+   * @generated from rpc prototype.webworker_rpcstream.common.PrototypeService.Prototype
+   */
+  Prototype(
+    request: PrototypeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<PrototypeResponse>
 }
 

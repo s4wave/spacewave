@@ -23,7 +23,7 @@ import {
   ResolveRefResponse,
 } from './repo.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * @generated from service s4wave.git.GitRepoResourceService
@@ -186,6 +186,92 @@ export interface GitRepoResourceService {
   GetDiffPatch(
     request: GetDiffPatchRequest,
     abortSignal?: AbortSignal,
+  ): Promise<GetDiffPatchResponse>
+}
+
+/**
+ * @generated from service s4wave.git.GitRepoResourceService
+ */
+export interface GitRepoResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.git.GitRepoResourceService.ListRefs
+   */
+  ListRefs(
+    request: ListRefsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListRefsResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitRepoResourceService.ResolveRef
+   */
+  ResolveRef(
+    request: ResolveRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ResolveRefResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitRepoResourceService.GetRepoInfo
+   */
+  GetRepoInfo(
+    request: GetRepoInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetRepoInfoResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitRepoResourceService.GetTreeResource
+   */
+  GetTreeResource(
+    request: GetTreeResourceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetTreeResourceResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitRepoResourceService.GetRepoFilesystemResource
+   */
+  GetRepoFilesystemResource(
+    request: GetRepoFilesystemResourceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetRepoFilesystemResourceResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitRepoResourceService.Log
+   */
+  Log(
+    request: LogRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LogResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitRepoResourceService.GetCommit
+   */
+  GetCommit(
+    request: GetCommitRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetCommitResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitRepoResourceService.GetDiffStat
+   */
+  GetDiffStat(
+    request: GetDiffStatRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetDiffStatResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitRepoResourceService.GetDiffPatch
+   */
+  GetDiffPatch(
+    request: GetDiffPatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<GetDiffPatchResponse>
 }
 

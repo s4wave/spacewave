@@ -19,7 +19,12 @@ import {
   WatchWizardStateResponse,
 } from './wizard.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.wizard.ObjectWizardRegistryResourceService
@@ -83,6 +88,38 @@ export interface ObjectWizardRegistryResourceService {
   WatchWizards(
     request: WatchWizardsRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchWizardsResponse>
+}
+
+/**
+ * @generated from service s4wave.wizard.ObjectWizardRegistryResourceService
+ */
+export interface ObjectWizardRegistryResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.RegisterWizard
+   */
+  RegisterWizard(
+    request: RegisterWizardRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RegisterWizardResponse>
+
+  /**
+   * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.ListWizards
+   */
+  ListWizards(
+    request: ListWizardsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListWizardsResponse>
+
+  /**
+   * @generated from rpc s4wave.wizard.ObjectWizardRegistryResourceService.WatchWizards
+   */
+  WatchWizards(
+    request: WatchWizardsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchWizardsResponse>
 }
 
@@ -230,6 +267,47 @@ export interface WizardResourceService {
   WatchGitCloneProgress(
     request: WatchGitCloneProgressRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchGitCloneProgressResponse>
+}
+
+/**
+ * @generated from service s4wave.wizard.WizardResourceService
+ */
+export interface WizardResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.wizard.WizardResourceService.WatchWizardState
+   */
+  WatchWizardState(
+    request: WatchWizardStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchWizardStateResponse>
+
+  /**
+   * @generated from rpc s4wave.wizard.WizardResourceService.UpdateWizardState
+   */
+  UpdateWizardState(
+    request: UpdateWizardStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UpdateWizardStateResponse>
+
+  /**
+   * @generated from rpc s4wave.wizard.WizardResourceService.StartGitClone
+   */
+  StartGitClone(
+    request: StartGitCloneRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StartGitCloneResponse>
+
+  /**
+   * @generated from rpc s4wave.wizard.WizardResourceService.WatchGitCloneProgress
+   */
+  WatchGitCloneProgress(
+    request: WatchGitCloneProgressRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchGitCloneProgressResponse>
 }
 

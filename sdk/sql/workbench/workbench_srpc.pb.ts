@@ -13,7 +13,7 @@ import {
   SetLayoutResponse,
 } from './workbench.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * SqlWorkbenchResourceService exposes a SQL workbench world object.
@@ -114,6 +114,57 @@ export interface SqlWorkbenchResourceService {
   SetLayout(
     request: SetLayoutRequest,
     abortSignal?: AbortSignal,
+  ): Promise<SetLayoutResponse>
+}
+
+/**
+ * SqlWorkbenchResourceService exposes a SQL workbench world object.
+ *
+ * @generated from service s4wave.sql.workbench.SqlWorkbenchResourceService
+ */
+export interface SqlWorkbenchResourceServiceHandler {
+  /**
+   * GetWorkbench returns the persisted workbench state.
+   *
+   * @generated from rpc s4wave.sql.workbench.SqlWorkbenchResourceService.GetWorkbench
+   */
+  GetWorkbench(
+    request: GetWorkbenchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetWorkbenchResponse>
+
+  /**
+   * AddPin pins a sql/query object.
+   *
+   * @generated from rpc s4wave.sql.workbench.SqlWorkbenchResourceService.AddPin
+   */
+  AddPin(
+    request: AddPinRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AddPinResponse>
+
+  /**
+   * RemovePin removes a pinned sql/query object.
+   *
+   * @generated from rpc s4wave.sql.workbench.SqlWorkbenchResourceService.RemovePin
+   */
+  RemovePin(
+    request: RemovePinRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemovePinResponse>
+
+  /**
+   * SetLayout replaces the open tabs and layout preferences.
+   *
+   * @generated from rpc s4wave.sql.workbench.SqlWorkbenchResourceService.SetLayout
+   */
+  SetLayout(
+    request: SetLayoutRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<SetLayoutResponse>
 }
 

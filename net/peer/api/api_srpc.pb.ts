@@ -9,7 +9,12 @@ import {
   IdentifyResponse,
 } from './api.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * PeerService implements a bifrost peer service.
@@ -68,6 +73,35 @@ export interface PeerService {
   GetPeerInfo(
     request: GetPeerInfoRequest,
     abortSignal?: AbortSignal,
+  ): Promise<GetPeerInfoResponse>
+}
+
+/**
+ * PeerService implements a bifrost peer service.
+ *
+ * @generated from service peer.api.PeerService
+ */
+export interface PeerServiceHandler {
+  /**
+   * Identify loads and manages a private key identity.
+   *
+   * @generated from rpc peer.api.PeerService.Identify
+   */
+  Identify(
+    request: IdentifyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<IdentifyResponse>
+
+  /**
+   * GetPeerInfo returns information about attached peers.
+   *
+   * @generated from rpc peer.api.PeerService.GetPeerInfo
+   */
+  GetPeerInfo(
+    request: GetPeerInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<GetPeerInfoResponse>
 }
 

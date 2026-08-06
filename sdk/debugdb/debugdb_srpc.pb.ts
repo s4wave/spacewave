@@ -13,7 +13,12 @@ import {
   WatchProgressResponse,
 } from './debugdb.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.debugdb.DebugDbResourceService
@@ -60,6 +65,29 @@ export interface DebugDbResourceService {
   StartBenchmark(
     request: StartBenchmarkRequest,
     abortSignal?: AbortSignal,
+  ): Promise<StartBenchmarkResponse>
+}
+
+/**
+ * @generated from service s4wave.debugdb.DebugDbResourceService
+ */
+export interface DebugDbResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.debugdb.DebugDbResourceService.GetStorageInfo
+   */
+  GetStorageInfo(
+    request: GetStorageInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetStorageInfoResponse>
+
+  /**
+   * @generated from rpc s4wave.debugdb.DebugDbResourceService.StartBenchmark
+   */
+  StartBenchmark(
+    request: StartBenchmarkRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<StartBenchmarkResponse>
 }
 
@@ -154,6 +182,29 @@ export interface DebugDbBenchmarkService {
   GetResults(
     request: GetResultsRequest,
     abortSignal?: AbortSignal,
+  ): Promise<GetResultsResponse>
+}
+
+/**
+ * @generated from service s4wave.debugdb.DebugDbBenchmarkService
+ */
+export interface DebugDbBenchmarkServiceHandler {
+  /**
+   * @generated from rpc s4wave.debugdb.DebugDbBenchmarkService.WatchProgress
+   */
+  WatchProgress(
+    request: WatchProgressRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchProgressResponse>
+
+  /**
+   * @generated from rpc s4wave.debugdb.DebugDbBenchmarkService.GetResults
+   */
+  GetResults(
+    request: GetResultsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<GetResultsResponse>
 }
 

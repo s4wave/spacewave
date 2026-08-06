@@ -82,6 +82,7 @@ func (r *ObjectTypeRegistrations) Release() {
 	r.refs = nil
 	if r.client != nil {
 		r.client.Release()
+		<-r.client.Done()
 		r.client = nil
 	}
 }

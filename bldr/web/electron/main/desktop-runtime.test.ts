@@ -758,7 +758,12 @@ describe('DesktopRuntimeResource', () => {
     })
     const controller = new AbortController()
     const iter = resource.resourceServer
-      .ResourceClient({}, controller.signal)
+      .ResourceClient(
+        (async function* () {
+          yield { body: { case: 'init' as const, value: {} } }
+        })(),
+        controller.signal,
+      )
       [Symbol.asyncIterator]()
 
     await expect(iter.next()).resolves.toMatchObject({

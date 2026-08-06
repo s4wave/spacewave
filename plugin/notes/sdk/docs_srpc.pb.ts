@@ -4,7 +4,12 @@
 
 import { WatchDocsRequest, WatchDocsResponse } from './docs.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service notes.DocsResourceService
@@ -34,6 +39,20 @@ export interface DocsResourceService {
   WatchDocs(
     request: WatchDocsRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchDocsResponse>
+}
+
+/**
+ * @generated from service notes.DocsResourceService
+ */
+export interface DocsResourceServiceHandler {
+  /**
+   * @generated from rpc notes.DocsResourceService.WatchDocs
+   */
+  WatchDocs(
+    request: WatchDocsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchDocsResponse>
 }
 

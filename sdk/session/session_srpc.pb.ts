@@ -83,7 +83,12 @@ import {
   WatchTransferProgressResponse,
 } from './session.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.session.SessionResourceService
@@ -759,6 +764,362 @@ export interface SessionResourceService {
   AcceptLocalPairingAnswer(
     request: AcceptLocalPairingAnswerRequest,
     abortSignal?: AbortSignal,
+  ): Promise<AcceptLocalPairingAnswerResponse>
+}
+
+/**
+ * @generated from service s4wave.session.SessionResourceService
+ */
+export interface SessionResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.GetSessionInfo
+   */
+  GetSessionInfo(
+    request: GetSessionInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetSessionInfoResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WatchResourcesList
+   */
+  WatchResourcesList(
+    request: WatchResourcesListRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchResourcesListResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.CreateSpace
+   */
+  CreateSpace(
+    request: CreateSpaceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateSpaceResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.MountSharedObject
+   */
+  MountSharedObject(
+    request: MountSharedObjectRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MountSharedObjectResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WatchSharedObjectHealth
+   */
+  WatchSharedObjectHealth(
+    request: WatchSharedObjectHealthRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSharedObjectHealthResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WatchSyncStatus
+   */
+  WatchSyncStatus(
+    request: WatchSyncStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSyncStatusResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WatchStorageStats
+   */
+  WatchStorageStats(
+    request: WatchStorageStatsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchStorageStatsResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.DeleteSpace
+   */
+  DeleteSpace(
+    request: DeleteSpaceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DeleteSpaceResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.RenameSpace
+   */
+  RenameSpace(
+    request: RenameSpaceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RenameSpaceResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WatchLockState
+   */
+  WatchLockState(
+    request: WatchLockStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchLockStateResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.SetLockMode
+   */
+  SetLockMode(
+    request: SetLockModeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetLockModeResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.SetDirectP2PEnabled
+   */
+  SetDirectP2PEnabled(
+    request: SetDirectP2PEnabledRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetDirectP2PEnabledResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.UnlockSession
+   */
+  UnlockSession(
+    request: UnlockSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UnlockSessionResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.LockSession
+   */
+  LockSession(
+    request: LockSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LockSessionResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.GeneratePairingCode
+   */
+  GeneratePairingCode(
+    request: GeneratePairingCodeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GeneratePairingCodeResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.CompletePairing
+   */
+  CompletePairing(
+    request: CompletePairingRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CompletePairingResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.GetSASEmoji
+   */
+  GetSASEmoji(
+    request: GetSASEmojiRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetSASEmojiResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.ConfirmSASMatch
+   */
+  ConfirmSASMatch(
+    request: ConfirmSASMatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ConfirmSASMatchResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.ConfirmPairing
+   */
+  ConfirmPairing(
+    request: ConfirmPairingRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ConfirmPairingResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.DeleteAccount
+   */
+  DeleteAccount(
+    request: DeleteAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DeleteAccountResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.AccessStateAtom
+   */
+  AccessStateAtom(
+    request: AccessSessionStateAtomRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessSessionStateAtomResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WatchStateAtoms
+   */
+  WatchStateAtoms(
+    request: WatchSessionStateAtomsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSessionStateAtomsResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.GetTransferInventory
+   */
+  GetTransferInventory(
+    request: GetTransferInventoryRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetTransferInventoryResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.StartTransfer
+   */
+  StartTransfer(
+    request: StartTransferRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StartTransferResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WatchTransferProgress
+   */
+  WatchTransferProgress(
+    request: WatchTransferProgressRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchTransferProgressResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.CancelTransfer
+   */
+  CancelTransfer(
+    request: CancelTransferRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CancelTransferResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.GetTransferStatus
+   */
+  GetTransferStatus(
+    request: GetTransferStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetTransferStatusResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WatchPairedDevices
+   */
+  WatchPairedDevices(
+    request: WatchPairedDevicesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchPairedDevicesResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.WatchPairingStatus
+   */
+  WatchPairingStatus(
+    request: WatchPairingStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchPairingStatusResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.UnlinkDevice
+   */
+  UnlinkDevice(
+    request: UnlinkDeviceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UnlinkDeviceResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.CreateSpaceInvite
+   */
+  CreateSpaceInvite(
+    request: CreateSpaceInviteRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateSpaceInviteResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.ListSpaceInvites
+   */
+  ListSpaceInvites(
+    request: ListSpaceInvitesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListSpaceInvitesResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.ListSpaceParticipants
+   */
+  ListSpaceParticipants(
+    request: ListSpaceParticipantsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListSpaceParticipantsResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.RemoveSpaceParticipant
+   */
+  RemoveSpaceParticipant(
+    request: RemoveSpaceParticipantRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveSpaceParticipantResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.RevokeSpaceInvite
+   */
+  RevokeSpaceInvite(
+    request: RevokeSpaceInviteRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RevokeSpaceInviteResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.JoinSpaceViaInvite
+   */
+  JoinSpaceViaInvite(
+    request: JoinSpaceViaInviteRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<JoinSpaceViaInviteResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.CreateLocalPairingOffer
+   */
+  CreateLocalPairingOffer(
+    request: CreateLocalPairingOfferRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateLocalPairingOfferResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.AcceptLocalPairingOffer
+   */
+  AcceptLocalPairingOffer(
+    request: AcceptLocalPairingOfferRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AcceptLocalPairingOfferResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SessionResourceService.AcceptLocalPairingAnswer
+   */
+  AcceptLocalPairingAnswer(
+    request: AcceptLocalPairingAnswerRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<AcceptLocalPairingAnswerResponse>
 }
 

@@ -9,6 +9,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 import {
   CreateWebViewRequest,
@@ -65,6 +66,28 @@ export interface WebDocumentHost {
   WebViewRpc(
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+}
+
+/**
+ * WebDocumentHost is the API exposed by the Go runtime for WebDocument.
+ *
+ * Usually accessed by the TypeScript WebDocument controller.
+ *
+ * @generated from service web.document.WebDocumentHost
+ */
+export interface WebDocumentHostHandler {
+  /**
+   * WebViewRpc opens a stream for a RPC call from a WebView.
+   * Exposes the WebViewHost service.
+   * Id is the webViewId.
+   *
+   * @generated from rpc web.document.WebDocumentHost.WebViewRpc
+   */
+  WebViewRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<RpcStreamPacket>
 }
 
@@ -234,6 +257,76 @@ export interface WebDocument {
   RemoveWebWorker(
     request: RemoveWebWorkerRequest,
     abortSignal?: AbortSignal,
+  ): Promise<RemoveWebWorkerResponse>
+}
+
+/**
+ * WebDocument is the API exposed by the TypeScript WebDocument managing WebViews.
+ * Usually maps to a single Window or Tab.
+ *
+ * @generated from service web.document.WebDocument
+ */
+export interface WebDocumentHandler {
+  /**
+   * WatchWebDocumentStatus returns an initial snapshot of WebViews followed by updates.
+   *
+   * @generated from rpc web.document.WebDocument.WatchWebDocumentStatus
+   */
+  WatchWebDocumentStatus(
+    request: WatchWebDocumentStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WebDocumentStatus>
+
+  /**
+   * CreateWebView requests to create a new WebView at the root level.
+   * Returns created: false if unable to create WebViews.
+   *
+   * @generated from rpc web.document.WebDocument.CreateWebView
+   */
+  CreateWebView(
+    request: CreateWebViewRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateWebViewResponse>
+
+  /**
+   * WebViewRpc opens a stream for a RPC call to a WebView.
+   * ID is the webViewId.
+   *
+   * @generated from rpc web.document.WebDocument.WebViewRpc
+   */
+  WebViewRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<RpcStreamPacket>
+
+  /**
+   * CreateWebWorker requests to spawn a WebWorker with an instance identifier.
+   * If a worker already exists with that ID, it will be terminated before starting the new.
+   * Returns created: false if unable to create WebWorkers.
+   * This usually creates a new SharedWorker.
+   * The worker is expected to close itself if it becomes disconnected or broken.
+   * The worker is passed a MessagePort that can be used to open WebRuntimeClient.
+   *
+   * @generated from rpc web.document.WebDocument.CreateWebWorker
+   */
+  CreateWebWorker(
+    request: CreateWebWorkerRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateWebWorkerResponse>
+
+  /**
+   * RemoveWebWorker requests to terminate a WebWorker with the given id.
+   *
+   * @generated from rpc web.document.WebDocument.RemoveWebWorker
+   */
+  RemoveWebWorker(
+    request: RemoveWebWorkerRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<RemoveWebWorkerResponse>
 }
 

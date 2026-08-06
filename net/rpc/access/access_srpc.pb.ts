@@ -13,6 +13,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -78,6 +79,38 @@ export interface AccessRpcService {
   CallRpcService(
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+}
+
+/**
+ * AccessRpcService exposes services with LookupRpcService via RPC.
+ *
+ * @generated from service bifrost.rpc.access.AccessRpcService
+ */
+export interface AccessRpcServiceHandler {
+  /**
+   * LookupRpcService checks if a RPC service exists with the given info.
+   * Usually translates to accessing the LookupRpcService directive.
+   * If the service was not found (directive is idle) returns empty.
+   *
+   * @generated from rpc bifrost.rpc.access.AccessRpcService.LookupRpcService
+   */
+  LookupRpcService(
+    request: LookupRpcServiceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<LookupRpcServiceResponse>
+
+  /**
+   * CallRpcService forwards an RPC call to the service with the component ID.
+   * Component ID: json encoded LookupRpcServiceRequest.
+   *
+   * @generated from rpc bifrost.rpc.access.AccessRpcService.CallRpcService
+   */
+  CallRpcService(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<RpcStreamPacket>
 }
 

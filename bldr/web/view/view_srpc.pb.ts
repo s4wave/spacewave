@@ -18,6 +18,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
 
@@ -41,6 +42,15 @@ export const WebViewHostDefinition = {
  * @generated from service web.view.WebViewHost
  */
 export interface WebViewHost {}
+
+/**
+ * WebViewHost is the service exposed by the Go runtime.
+ *
+ * Accessed by the WebView renderer.
+ *
+ * @generated from service web.view.WebViewHost
+ */
+export interface WebViewHostHandler {}
 
 export const WebViewHostServiceName = WebViewHostDefinition.typeName
 
@@ -143,6 +153,57 @@ export interface WebView {
   RemoveWebView(
     request: RemoveWebViewRequest,
     abortSignal?: AbortSignal,
+  ): Promise<RemoveWebViewResponse>
+}
+
+/**
+ * WebView exposes a remote WebView via rpc.
+ *
+ * @generated from service web.view.WebView
+ */
+export interface WebViewHandler {
+  /**
+   * SetRenderMode sets the rendering mode of the view.
+   *
+   * @generated from rpc web.view.WebView.SetRenderMode
+   */
+  SetRenderMode(
+    request: SetRenderModeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetRenderModeResponse>
+
+  /**
+   * SetHtmlLinks sets a list of HTML Links (i.e. css bundles) to load.
+   *
+   * @generated from rpc web.view.WebView.SetHtmlLinks
+   */
+  SetHtmlLinks(
+    request: SetHtmlLinksRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetHtmlLinksResponse>
+
+  /**
+   * ResetWebView clears the render mode, links, and contents of a WebView.
+   *
+   * @generated from rpc web.view.WebView.ResetWebView
+   */
+  ResetWebView(
+    request: ResetWebViewRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ResetWebViewResponse>
+
+  /**
+   * RemoveWebView requests to remove a WebView from the root level.
+   *
+   * @generated from rpc web.view.WebView.RemoveWebView
+   */
+  RemoveWebView(
+    request: RemoveWebViewRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<RemoveWebViewResponse>
 }
 
@@ -273,6 +334,25 @@ export interface AccessWebViews {
   WebViewRpc(
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+}
+
+/**
+ * AccessWebViews implements accessing WebViews via RPC.
+ *
+ * @generated from service web.view.AccessWebViews
+ */
+export interface AccessWebViewsHandler {
+  /**
+   * WebViewRpc accesses the WebView service for a view by ID.
+   * Id: web view id
+   *
+   * @generated from rpc web.view.AccessWebViews.WebViewRpc
+   */
+  WebViewRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<RpcStreamPacket>
 }
 

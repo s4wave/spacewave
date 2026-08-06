@@ -9,7 +9,7 @@ import {
   BuildWebPkgResponse,
 } from './vite.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * ViteBundler is a service that runs Vite to compile web assets.
@@ -68,6 +68,35 @@ export interface ViteBundler {
   BuildWebPkg(
     request: BuildWebPkgRequest,
     abortSignal?: AbortSignal,
+  ): Promise<BuildWebPkgResponse>
+}
+
+/**
+ * ViteBundler is a service that runs Vite to compile web assets.
+ *
+ * @generated from service bldr.web.bundler.vite.ViteBundler
+ */
+export interface ViteBundlerHandler {
+  /**
+   * Build runs the Vite compiler with the given configuration.
+   *
+   * @generated from rpc bldr.web.bundler.vite.ViteBundler.Build
+   */
+  Build(
+    request: BuildRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<BuildResponse>
+
+  /**
+   * BuildWebPkg builds a single web package with Vite.
+   *
+   * @generated from rpc bldr.web.bundler.vite.ViteBundler.BuildWebPkg
+   */
+  BuildWebPkg(
+    request: BuildWebPkgRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<BuildWebPkgResponse>
 }
 

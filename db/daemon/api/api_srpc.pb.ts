@@ -15,7 +15,12 @@ import {
 } from './api.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ListBucketsRequest } from '../../volume/volume.pb.js'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * HydraDaemonService is the control service for a daemon, contacted by the CLI.
@@ -137,6 +142,68 @@ export interface HydraDaemonService {
   ObjectStoreOp(
     request: ObjectStoreOpRequest,
     abortSignal?: AbortSignal,
+  ): Promise<ObjectStoreOpResponse>
+}
+
+/**
+ * HydraDaemonService is the control service for a daemon, contacted by the CLI.
+ *
+ * @generated from service hydra.api.HydraDaemonService
+ */
+export interface HydraDaemonServiceHandler {
+  /**
+   * ListVolumes lists volumes by the daemon.
+   *
+   * @generated from rpc hydra.api.HydraDaemonService.ListVolumes
+   */
+  ListVolumes(
+    request: ListVolumesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListVolumesResponse>
+
+  /**
+   * ListBuckets lists buckets by the daemon.
+   *
+   * @generated from rpc hydra.api.HydraDaemonService.ListBuckets
+   */
+  ListBuckets(
+    request: ListBucketsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListBucketsResponse>
+
+  /**
+   * ApplyBucketConfig applies a bucket config to volumes.
+   *
+   * @generated from rpc hydra.api.HydraDaemonService.ApplyBucketConfig
+   */
+  ApplyBucketConfig(
+    request: ApplyBucketConfigRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<ApplyBucketConfigResponse>
+
+  /**
+   * BucketOp performs a bucket operation.
+   *
+   * @generated from rpc hydra.api.HydraDaemonService.BucketOp
+   */
+  BucketOp(
+    request: BucketOpRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<BucketOpResponse>
+
+  /**
+   * ObjectStoreOp performs an object store operation.
+   *
+   * @generated from rpc hydra.api.HydraDaemonService.ObjectStoreOp
+   */
+  ObjectStoreOp(
+    request: ObjectStoreOpRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ObjectStoreOpResponse>
 }
 

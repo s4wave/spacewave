@@ -4,7 +4,7 @@
 
 import { EvalJSRequest, EvalJSResponse } from './saucer.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * SaucerDebugService provides debug access to the saucer webview.
@@ -42,6 +42,24 @@ export interface SaucerDebugService {
   EvalJS(
     request: EvalJSRequest,
     abortSignal?: AbortSignal,
+  ): Promise<EvalJSResponse>
+}
+
+/**
+ * SaucerDebugService provides debug access to the saucer webview.
+ *
+ * @generated from service saucer.SaucerDebugService
+ */
+export interface SaucerDebugServiceHandler {
+  /**
+   * EvalJS evaluates JavaScript code in the webview context.
+   *
+   * @generated from rpc saucer.SaucerDebugService.EvalJS
+   */
+  EvalJS(
+    request: EvalJSRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<EvalJSResponse>
 }
 

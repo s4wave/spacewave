@@ -768,21 +768,18 @@ export interface CreateSpaceResponse {
    * MountedSharedObject is the mounted SharedObject resource created as part of
    * space initialization. Callers may use it instead of immediately remounting
    * the same SharedObject by id.
-   * @resource-adoption-ids
    *
    * @generated from field: s4wave.session.MountSharedObjectResponse mounted_shared_object = 3;
    */
   mountedSharedObject?: MountSharedObjectResponse
   /**
    * SharedObjectBodyResourceId is the resource id of the mounted Space body.
-   * @resource-adoption-id
    *
    * @generated from field: uint32 shared_object_body_resource_id = 4;
    */
   sharedObjectBodyResourceId?: number
   /**
    * SpaceWorldResourceId is the resource id of the mounted Space world engine.
-   * @resource-adoption-id
    *
    * @generated from field: uint32 space_world_resource_id = 5;
    */

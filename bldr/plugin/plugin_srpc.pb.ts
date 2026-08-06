@@ -19,6 +19,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -159,6 +160,77 @@ export interface PluginHost {
   PluginFsRpc(
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+}
+
+/**
+ * PluginHost is the service exposed by the plugin host.
+ *
+ * Available at service ID plugin-host.
+ *
+ * @generated from service bldr.plugin.PluginHost
+ */
+export interface PluginHostHandler {
+  /**
+   * GetPluginInfo returns the information for the current plugin.
+   *
+   * @generated from rpc bldr.plugin.PluginHost.GetPluginInfo
+   */
+  GetPluginInfo(
+    request: GetPluginInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetPluginInfoResponse>
+
+  /**
+   * ExecController executes a controller configuration on the bus.
+   *
+   * @generated from rpc bldr.plugin.PluginHost.ExecController
+   */
+  ExecController(
+    request: ExecControllerRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<ExecControllerResponse>
+
+  /**
+   * LoadPlugin requests to load the plugin with the given ID.
+   * The plugin will remain loaded as long as the RPC is active.
+   * Multiple requests to load the same plugin are de-duplicated.
+   *
+   * @generated from rpc bldr.plugin.PluginHost.LoadPlugin
+   */
+  LoadPlugin(
+    request: LoadPluginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<LoadPluginResponse>
+
+  /**
+   * PluginRpc forwards an RPC call to a remote plugin.
+   * The plugin will remain loaded as long as the RPC is active.
+   * Component ID: plugin id, or plugin id / instance key for instanced plugins.
+   *
+   * @generated from rpc bldr.plugin.PluginHost.PluginRpc
+   */
+  PluginRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<RpcStreamPacket>
+
+  /**
+   * PluginFsRpc accesses a FSCursorService to access plugin assets or dist filesystems.
+   * The plugin will remain loaded as long as the RPC is active.
+   * Component ID: plugin-assets or plugin-dist for current plugin
+   * Component ID: plugin-assets/{plugin-id} or plugin-dist/{plugin-id} for remote plugin
+   *
+   * @generated from rpc bldr.plugin.PluginHost.PluginFsRpc
+   */
+  PluginFsRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<RpcStreamPacket>
 }
 
@@ -314,6 +386,25 @@ export interface Plugin {
   PluginRpc(
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+}
+
+/**
+ * Plugin is the service exposed by the plugin.
+ *
+ * @generated from service bldr.plugin.Plugin
+ */
+export interface PluginHandler {
+  /**
+   * PluginRpc handles an RPC call from a remote plugin.
+   * Component ID: remote plugin id
+   *
+   * @generated from rpc bldr.plugin.Plugin.PluginRpc
+   */
+  PluginRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<RpcStreamPacket>
 }
 

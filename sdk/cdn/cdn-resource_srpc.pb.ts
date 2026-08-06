@@ -11,7 +11,12 @@ import {
   MountCdnSpaceResponse,
 } from './cdn-resource.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.cdn.CdnResourceService
@@ -75,6 +80,38 @@ export interface CdnResourceService {
   CopyV86ImageToSpace(
     request: CopyV86ImageToSpaceRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<CopyV86ImageToSpaceProgress>
+}
+
+/**
+ * @generated from service s4wave.cdn.CdnResourceService
+ */
+export interface CdnResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.cdn.CdnResourceService.GetCdnSpaceId
+   */
+  GetCdnSpaceId(
+    request: GetCdnSpaceIdRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetCdnSpaceIdResponse>
+
+  /**
+   * @generated from rpc s4wave.cdn.CdnResourceService.MountCdnSpace
+   */
+  MountCdnSpace(
+    request: MountCdnSpaceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MountCdnSpaceResponse>
+
+  /**
+   * @generated from rpc s4wave.cdn.CdnResourceService.CopyV86ImageToSpace
+   */
+  CopyV86ImageToSpace(
+    request: CopyV86ImageToSpaceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<CopyV86ImageToSpaceProgress>
 }
 

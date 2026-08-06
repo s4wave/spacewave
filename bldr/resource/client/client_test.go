@@ -3,9 +3,6 @@ package resource_client
 import (
 	"context"
 	"errors"
-	"io"
-	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -15,108 +12,29 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	block_cursor "github.com/s4wave/spacewave/sdk/block/cursor"
-	block_transaction "github.com/s4wave/spacewave/sdk/block/transaction"
-	bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 )
 
-type commitAckRejectingClient struct {
-	srpc.Client
-	onReject func()
-	reject   atomic.Bool
-}
-
-func newCommitAckRejectingClient(client srpc.Client, onReject func()) *commitAckRejectingClient {
-	c := &commitAckRejectingClient{Client: client, onReject: onReject}
-	c.reject.Store(true)
-	return c
-}
-
-func (c *commitAckRejectingClient) NewStream(
-	ctx context.Context,
-	serviceID string,
-	methodID string,
-	firstMsg srpc.Message,
-) (srpc.Stream, error) {
-	strm, err := c.Client.NewStream(ctx, serviceID, methodID, firstMsg)
-	if err != nil {
-		return nil, err
-	}
-	if c.reject.CompareAndSwap(true, false) {
-		return &commitAckRejectingStream{Stream: strm, onReject: c.onReject}, nil
-	}
-	return strm, nil
-}
-
-type commitAckRejectingStream struct {
-	srpc.Stream
-	onReject func()
-	recvs    int
-}
-
-func (s *commitAckRejectingStream) MsgRecv(msg srpc.Message) error {
-	s.recvs++
-	err := s.Stream.MsgRecv(msg)
-	if s.recvs == 2 && err == io.EOF {
-		s.onReject()
-		return nil
-	}
-	return err
-}
-
-type preAdoptionCancelClient struct {
-	srpc.Client
-	cancel context.CancelFunc
-	wrap   atomic.Bool
-}
-
-func (c *preAdoptionCancelClient) NewStream(
-	ctx context.Context,
-	serviceID string,
-	methodID string,
-	firstMsg srpc.Message,
-) (srpc.Stream, error) {
-	strm, err := c.Client.NewStream(ctx, serviceID, methodID, firstMsg)
-	if err != nil {
-		return nil, err
-	}
-	if c.wrap.CompareAndSwap(false, true) {
-		return &preAdoptionCancelStream{
-			Stream: strm,
-			cancel: c.cancel,
-		}, nil
-	}
-	return strm, nil
-}
-
-type preAdoptionCancelStream struct {
-	srpc.Stream
-	cancel context.CancelFunc
-	once   sync.Once
-}
-
-func (s *preAdoptionCancelStream) MsgRecv(msg srpc.Message) error {
-	err := s.Stream.MsgRecv(msg)
-	if err == nil {
-		s.once.Do(s.cancel)
-	}
-	return err
-}
-
 type mockResourceService struct {
-	mu             sync.Mutex
-	attachCalls    int
-	nextResourceID uint32
-	clientEvents   chan *resource.ResourceClientResponse
-	onAttachSend   func(*mockResourceAttachClient, *resource.ResourceAttachRequest)
-	onResourceRPC  func(context.Context) (resource.SRPCResourceService_ResourceRpcClient, error)
-	onRelease      func(context.Context, *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error)
+	mu                sync.Mutex
+	attachCalls       int
+	nextResourceID    uint32
+	clientEvents      chan *resource.ResourceClientResponse
+	onAttachSend      func(*mockResourceAttachClient, *resource.ResourceAttachRequest)
+	onResourceRPC     func(context.Context) (resource.SRPCResourceService_ResourceRpcClient, error)
+	onControl         func(*resource.ResourceClientRequest)
+	onClientCloseSend func()
 }
 
 func (m *mockResourceService) SRPCClient() srpc.Client { return nil }
 
-func (m *mockResourceService) ResourceClient(ctx context.Context, _ *resource.ResourceClientRequest) (resource.SRPCResourceService_ResourceClientClient, error) {
-	return &mockResourceClientClient{ctx: ctx, events: m.clientEvents}, nil
+func (m *mockResourceService) ResourceClient(ctx context.Context) (resource.SRPCResourceService_ResourceClientClient, error) {
+	m.mu.Lock()
+	if m.clientEvents == nil {
+		m.clientEvents = make(chan *resource.ResourceClientResponse, 32)
+	}
+	events := m.clientEvents
+	m.mu.Unlock()
+	return &mockResourceClientClient{ctx: ctx, events: events, service: m}, nil
 }
 
 func (m *mockResourceService) ResourceRpc(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
@@ -124,20 +42,6 @@ func (m *mockResourceService) ResourceRpc(ctx context.Context) (resource.SRPCRes
 		return m.onResourceRPC(ctx)
 	}
 	return nil, errors.New("unused")
-}
-
-func (m *mockResourceService) ResourceRefRelease(ctx context.Context, in *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error) {
-	if m.onRelease != nil {
-		return m.onRelease(ctx, in)
-	}
-	return &resource.ResourceRefReleaseResponse{}, nil
-}
-
-func (m *mockResourceService) ResourceRefAdopt(
-	context.Context,
-	*resource.ResourceRefAdoptRequest,
-) (*resource.ResourceRefAdoptResponse, error) {
-	return &resource.ResourceRefAdoptResponse{}, nil
 }
 
 func (m *mockResourceService) ResourceAttach(ctx context.Context) (resource.SRPCResourceService_ResourceAttachClient, error) {
@@ -171,18 +75,40 @@ func (m *mockResourceService) nextAttachResourceID() uint32 {
 
 type mockResourceClientClient struct {
 	ctx      context.Context
-	events   <-chan *resource.ResourceClientResponse
+	events   chan *resource.ResourceClientResponse
+	service  *mockResourceService
 	initOnce sync.Once
 }
 
 func (m *mockResourceClientClient) Context() context.Context { return m.ctx }
 
-func (m *mockResourceClientClient) CloseSend() error { return nil }
+func (m *mockResourceClientClient) CloseSend() error {
+	if m.service != nil && m.service.onClientCloseSend != nil {
+		m.service.onClientCloseSend()
+	}
+	return nil
+}
 
 func (m *mockResourceClientClient) Close() error { return nil }
 
 func (m *mockResourceClientClient) MsgSend(msg srpc.Message) error {
-	return errors.New("unexpected send")
+	req, ok := msg.(*resource.ResourceClientRequest)
+	if !ok {
+		return errors.New("unexpected msg type")
+	}
+	return m.Send(req)
+}
+
+func (m *mockResourceClientClient) Send(req *resource.ResourceClientRequest) error {
+	if m.service.onControl != nil {
+		m.service.onControl(req)
+	}
+	if controlID := req.GetControlId(); controlID != 0 {
+		m.events <- &resource.ResourceClientResponse{Body: &resource.ResourceClientResponse_ControlAck{
+			ControlAck: &resource.ResourceClientControlAck{ControlId: controlID},
+		}}
+	}
+	return nil
 }
 
 func (m *mockResourceClientClient) MsgRecv(msg srpc.Message) error {
@@ -342,19 +268,16 @@ type errorResourceServer struct {
 }
 
 func (s *errorResourceServer) ResourceClient(
-	*resource.ResourceClientRequest,
 	resource.SRPCResourceService_ResourceClientStream,
 ) error {
 	return s.err
 }
 
-func TestNewClientReturnsResourceClientHandlerError(t *testing.T) {
-	const handlerError = "resource client handler failed"
-
+func TestNewClientReturnsResourceClientStreamError(t *testing.T) {
 	serverMux := srpc.NewMux()
 	server := &errorResourceServer{
 		ResourceServer: resource_server.NewResourceServer(nil),
-		err:            errors.New(handlerError),
+		err:            errors.New("resource client handler failed"),
 	}
 	if err := resource.SRPCRegisterResourceService(serverMux, server); err != nil {
 		t.Fatalf("register resource service: %v", err)
@@ -363,9 +286,8 @@ func TestNewClientReturnsResourceClientHandlerError(t *testing.T) {
 	service := resource.NewSRPCResourceServiceClient(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
 	)
-	_, err := NewClient(t.Context(), service)
-	if err == nil || !strings.Contains(err.Error(), handlerError) {
-		t.Fatalf("NewClient error = %v, want %q", err, handlerError)
+	if _, err := NewClient(t.Context(), service); err == nil {
+		t.Fatal("NewClient succeeded after ResourceClient stream failure")
 	}
 }
 
@@ -396,8 +318,8 @@ func TestResourceRPCHonorsCallerContext(t *testing.T) {
 			callCtx,
 			"test.Service",
 			"Blocked",
-			&resource.ResourceRefReleaseRequest{},
-			&resource.ResourceRefReleaseResponse{},
+			&resource.ResourceClientInitRequest{},
+			&resource.ResourceClientInit{},
 		)
 	}()
 
@@ -498,6 +420,58 @@ func TestAttachResourceReusesSharedSession(t *testing.T) {
 	svc.mu.Unlock()
 	if attachCalls != 1 {
 		t.Fatalf("expected one shared attach session, got %d", attachCalls)
+	}
+}
+
+func TestReleaseDrainsControlsBeforeCancelingGeneration(t *testing.T) {
+	events := make(chan *resource.ResourceClientResponse)
+	closeSend := make(chan struct{})
+	var closeSendOnce sync.Once
+	var releasesMu sync.Mutex
+	var releases []uint32
+	svc := &mockResourceService{
+		clientEvents: events,
+		onControl: func(req *resource.ResourceClientRequest) {
+			if release := req.GetRelease(); release != nil {
+				releasesMu.Lock()
+				releases = append(releases, release.GetResourceId())
+				releasesMu.Unlock()
+			}
+		},
+		onClientCloseSend: func() {
+			closeSendOnce.Do(func() { close(closeSend) })
+		},
+	}
+	client, err := NewClient(context.Background(), svc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	child := client.CreateResourceReference(2)
+	child.Release()
+	client.Release()
+
+	select {
+	case <-closeSend:
+	case <-time.After(time.Second):
+		t.Fatal("ResourceClient controls did not finish")
+	}
+	releasesMu.Lock()
+	got := append([]uint32(nil), releases...)
+	releasesMu.Unlock()
+	if len(got) != 1 || got[0] != 2 {
+		t.Fatalf("release controls = %v, want [2]", got)
+	}
+	select {
+	case <-client.ctx.Done():
+		t.Fatal("generation canceled before the response stream closed")
+	default:
+	}
+
+	close(events)
+	select {
+	case <-client.Done():
+	case <-time.After(time.Second):
+		t.Fatal("generation did not retire after the response stream closed")
 	}
 }
 
@@ -850,101 +824,6 @@ func TestAttachSessionCloseMarksReleasedBeforeTransportClose(t *testing.T) {
 	}
 }
 
-func TestResourceReferenceFinalReleaseNotifiesAfterLastLocalRef(t *testing.T) {
-	releaseCh := make(chan *resource.ResourceRefReleaseRequest, 1)
-	svc := &mockResourceService{
-		onRelease: func(_ context.Context, req *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error) {
-			releaseCh <- req
-			return &resource.ResourceRefReleaseResponse{}, nil
-		},
-	}
-
-	c, err := NewClient(context.Background(), svc)
-	if err != nil {
-		t.Fatalf("NewClient: %v", err)
-	}
-	defer c.Release()
-
-	first := c.CreateResourceReference(42)
-	second := c.CreateResourceReference(42)
-
-	first.Release()
-	select {
-	case req := <-releaseCh:
-		t.Fatalf("first local release notified server: %#v", req)
-	default:
-	}
-
-	second.Release()
-	var req *resource.ResourceRefReleaseRequest
-	select {
-	case req = <-releaseCh:
-	case <-time.After(time.Second):
-		t.Fatal("final local release did not notify server")
-	}
-	if req.GetClientHandleId() != 1 || req.GetResourceId() != 42 {
-		t.Fatalf("unexpected final release request: %#v", req)
-	}
-
-	first.Release()
-	second.Release()
-	select {
-	case req := <-releaseCh:
-		t.Fatalf("duplicate local release notified server: %#v", req)
-	default:
-	}
-}
-
-func TestServerResourceReleaseCancelsRefsWithoutLocalReleaseNotify(t *testing.T) {
-	events := make(chan *resource.ResourceClientResponse, 1)
-	var releaseCalls atomic.Int32
-	svc := &mockResourceService{
-		clientEvents: events,
-		onRelease: func(_ context.Context, _ *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error) {
-			releaseCalls.Add(1)
-			return &resource.ResourceRefReleaseResponse{}, nil
-		},
-	}
-
-	c, err := NewClient(context.Background(), svc)
-	if err != nil {
-		t.Fatalf("NewClient: %v", err)
-	}
-	defer c.Release()
-
-	ref := c.CreateResourceReference(42)
-	if _, err := ref.GetClient(); err != nil {
-		t.Fatalf("GetClient before server release: %v", err)
-	}
-
-	events <- &resource.ResourceClientResponse{
-		Body: &resource.ResourceClientResponse_ResourceReleased{
-			ResourceReleased: &resource.ResourceReleasedResponse{
-				ResourceId: 42,
-			},
-		},
-	}
-
-	waitFor(t, time.Second, func() bool {
-		_, err := ref.GetClient()
-		return errors.Is(err, resource.ErrResourceOrClientReleased)
-	})
-
-	ref.Release()
-	if releaseCalls.Load() != 0 {
-		t.Fatalf("server-initiated release triggered %d local release notifications", releaseCalls.Load())
-	}
-
-	c.resourceLifetime.mtx.Lock()
-	_, hasResource := c.resourceLifetime.resources[42]
-	_, hasClient := c.resourceLifetime.srpcClients[42]
-	_, hasCtx := c.resourceLifetime.resourceContexts[42]
-	c.resourceLifetime.mtx.Unlock()
-	if hasResource || hasClient || hasCtx {
-		t.Fatalf("server release left resource state: resource=%v client=%v ctx=%v", hasResource, hasClient, hasCtx)
-	}
-}
-
 func TestCreateResourceReferenceAfterClientReleaseIsReleased(t *testing.T) {
 	c, err := NewClient(context.Background(), &mockResourceService{})
 	if err != nil {
@@ -1112,6 +991,93 @@ func TestAttachSessionSetReleaseAfterCloseRunsRelease(t *testing.T) {
 	}
 }
 
+func TestResourceCallWaitsForPriorLifecycleControl(t *testing.T) {
+	releaseStarted := make(chan struct{})
+	allowRelease := make(chan struct{})
+	rootCalled := make(chan struct{}, 1)
+	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID != "test.Root" {
+			return false, nil
+		}
+		if err := strm.MsgRecv(&resource.ResourceClientInitRequest{}); err != nil {
+			return true, err
+		}
+		switch methodID {
+		case "CreateChild":
+			owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+			if err != nil {
+				return true, err
+			}
+			childID, err := owner.AddResource(srpc.NewMux(), func() {
+				close(releaseStarted)
+				<-allowRelease
+			})
+			if err != nil {
+				return true, err
+			}
+			return true, strm.MsgSend(&resource.ResourceAttachAddAck{ResourceId: childID})
+		case "AfterRelease":
+			rootCalled <- struct{}{}
+			return true, strm.MsgSend(&resource.ResourceClientInit{})
+		default:
+			return false, nil
+		}
+	}))
+	server := resource_server.NewResourceServer(rootMux)
+	serverMux := srpc.NewMux()
+	if err := server.Register(serverMux); err != nil {
+		t.Fatalf("register resource server: %v", err)
+	}
+	service := resource.NewSRPCResourceServiceClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))))
+	client, err := NewClient(t.Context(), service)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	defer client.Release()
+
+	rootRef := client.AccessRootResource()
+	defer rootRef.Release()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatalf("root client: %v", err)
+	}
+	child := new(resource.ResourceAttachAddAck)
+	if err := rootClient.ExecCall(t.Context(), "test.Root", "CreateChild", &resource.ResourceClientInitRequest{}, child); err != nil {
+		t.Fatalf("CreateChild: %v", err)
+	}
+	childRef := client.CreateResourceReference(child.GetResourceId())
+	childRef.Release()
+	select {
+	case <-releaseStarted:
+	case <-time.After(time.Second):
+		t.Fatal("release callback did not start")
+	}
+
+	callDone := make(chan error, 1)
+	go func() {
+		callDone <- rootClient.ExecCall(t.Context(), "test.Root", "AfterRelease", &resource.ResourceClientInitRequest{}, &resource.ResourceClientInit{})
+	}()
+	select {
+	case <-rootCalled:
+		t.Fatal("ResourceRpc started before the prior release callback completed")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(allowRelease)
+	select {
+	case err := <-callDone:
+		if err != nil {
+			t.Fatalf("AfterRelease: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("ResourceRpc did not start after the release callback completed")
+	}
+	select {
+	case <-rootCalled:
+	case <-time.After(time.Second):
+		t.Fatal("root handler was not called")
+	}
+}
+
 func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 	rootMux := srpc.NewMux()
 	server := resource_server.NewResourceServer(rootMux)
@@ -1131,7 +1097,7 @@ func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 		if serviceID != "test.Root" || methodID != "CreateChild" {
 			return false, nil
 		}
-		if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+		if err := strm.MsgRecv(&resource.ResourceClientInitRequest{}); err != nil {
 			return true, err
 		}
 		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
@@ -1142,10 +1108,10 @@ func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 			if serviceID != "test.Child" || methodID != "Ping" {
 				return false, nil
 			}
-			if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+			if err := strm.MsgRecv(&resource.ResourceClientInitRequest{}); err != nil {
 				return true, err
 			}
-			return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
+			return true, strm.MsgSend(&resource.ResourceClientInit{})
 		}), func() {
 			childReleased <- struct{}{}
 		})
@@ -1165,7 +1131,7 @@ func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 		t.Fatalf("root client: %v", err)
 	}
 	child := new(resource.ResourceAttachAddAck)
-	if err := rootClient.ExecCall(t.Context(), "test.Root", "CreateChild", &resource.ResourceRefReleaseRequest{}, child); err != nil {
+	if err := rootClient.ExecCall(t.Context(), "test.Root", "CreateChild", &resource.ResourceClientInitRequest{}, child); err != nil {
 		t.Fatalf("CreateChild: %v", err)
 	}
 	if child.GetResourceId() == 0 {
@@ -1178,7 +1144,7 @@ func TestAttachedResourceTreeCanPublishCallableChild(t *testing.T) {
 	if err != nil {
 		t.Fatalf("child client: %v", err)
 	}
-	if err := childClient.ExecCall(t.Context(), "test.Child", "Ping", &resource.ResourceRefReleaseRequest{}, &resource.ResourceRefReleaseResponse{}); err != nil {
+	if err := childClient.ExecCall(t.Context(), "test.Child", "Ping", &resource.ResourceClientInitRequest{}, &resource.ResourceClientInit{}); err != nil {
 		t.Fatalf("Ping child: %v", err)
 	}
 
@@ -1213,10 +1179,10 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 		if err != nil {
 			return true, err
 		}
-		if err := rawClient.ExecCall(strm.Context(), "test.Raw", "Ping", &resource.ResourceRefReleaseRequest{}, &resource.ResourceRefReleaseResponse{}); err != nil {
+		if err := rawClient.ExecCall(strm.Context(), "test.Raw", "Ping", &resource.ResourceClientInitRequest{}, &resource.ResourceClientInit{}); err != nil {
 			return true, err
 		}
-		return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
+		return true, strm.MsgSend(&resource.ResourceClientInit{})
 	}))
 	server := resource_server.NewResourceServer(rootMux)
 	serverMux := srpc.NewMux()
@@ -1235,14 +1201,14 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 		if serviceID != "test.Raw" || methodID != "Ping" {
 			return false, nil
 		}
-		if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+		if err := strm.MsgRecv(&resource.ResourceClientInitRequest{}); err != nil {
 			return true, err
 		}
 		select {
 		case rawCalled <- struct{}{}:
 		default:
 		}
-		return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
+		return true, strm.MsgSend(&resource.ResourceClientInit{})
 	}))
 	if err != nil {
 		t.Fatalf("AttachRawInvoker: %v", err)
@@ -1257,7 +1223,7 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 		if serviceID != "test.Tree" || methodID != "CreateChild" {
 			return false, nil
 		}
-		if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+		if err := strm.MsgRecv(&resource.ResourceClientInitRequest{}); err != nil {
 			return true, err
 		}
 		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
@@ -1268,10 +1234,10 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 			if serviceID != "test.Child" || methodID != "Ping" {
 				return false, nil
 			}
-			if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
+			if err := strm.MsgRecv(&resource.ResourceClientInitRequest{}); err != nil {
 				return true, err
 			}
-			return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
+			return true, strm.MsgSend(&resource.ResourceClientInit{})
 		}), func() {
 			childReleased <- struct{}{}
 		})
@@ -1293,7 +1259,7 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 	if err != nil {
 		t.Fatalf("root client: %v", err)
 	}
-	if err := rootClient.ExecCall(t.Context(), "test.Root", "UseRaw", &resource.ResourceAttachAddAck{ResourceId: rawID}, &resource.ResourceRefReleaseResponse{}); err != nil {
+	if err := rootClient.ExecCall(t.Context(), "test.Root", "UseRaw", &resource.ResourceAttachAddAck{ResourceId: rawID}, &resource.ResourceClientInit{}); err != nil {
 		t.Fatalf("UseRaw: %v", err)
 	}
 	select {
@@ -1309,7 +1275,7 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 		t.Fatalf("tree client: %v", err)
 	}
 	child := new(resource.ResourceAttachAddAck)
-	if err := treeClient.ExecCall(t.Context(), "test.Tree", "CreateChild", &resource.ResourceRefReleaseRequest{}, child); err != nil {
+	if err := treeClient.ExecCall(t.Context(), "test.Tree", "CreateChild", &resource.ResourceClientInitRequest{}, child); err != nil {
 		t.Fatalf("CreateChild: %v", err)
 	}
 	if child.GetResourceId() == 0 {
@@ -1322,7 +1288,7 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 	if err != nil {
 		t.Fatalf("child client: %v", err)
 	}
-	if err := childClient.ExecCall(t.Context(), "test.Child", "Ping", &resource.ResourceRefReleaseRequest{}, &resource.ResourceRefReleaseResponse{}); err != nil {
+	if err := childClient.ExecCall(t.Context(), "test.Child", "Ping", &resource.ResourceClientInitRequest{}, &resource.ResourceClientInit{}); err != nil {
 		t.Fatalf("Ping child: %v", err)
 	}
 
@@ -1331,581 +1297,6 @@ func TestAttachRawInvokerAndResourceTreeShareSessionWithDistinctContracts(t *tes
 	case <-childReleased:
 	case <-time.After(time.Second):
 		t.Fatal("attached tree child release callback was not called")
-	}
-}
-
-func TestResourceRPCPreAdoptionCancellationReleasesPendingResource(t *testing.T) {
-	exclusive := make(chan struct{}, 1)
-	exclusive <- struct{}{}
-	released := make(chan struct{}, 2)
-	var releaseCalls atomic.Int32
-	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-		if serviceID != bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID ||
-			methodID != "BuildTransaction" {
-			return false, nil
-		}
-		if err := strm.MsgRecv(&bucket_lookup.BuildTransactionRequest{}); err != nil {
-			return true, err
-		}
-		select {
-		case <-exclusive:
-		case <-strm.Context().Done():
-			return true, strm.Context().Err()
-		}
-		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
-		if err != nil {
-			exclusive <- struct{}{}
-			return true, err
-		}
-		transactionID, err := owner.AddResource(srpc.NewMux(), func() {
-			releaseCalls.Add(1)
-			exclusive <- struct{}{}
-			released <- struct{}{}
-		})
-		if err != nil {
-			exclusive <- struct{}{}
-			return true, err
-		}
-		return true, strm.MsgSend(&bucket_lookup.BuildTransactionResponse{
-			TransactionResourceId: transactionID,
-		})
-	}))
-	server := resource_server.NewResourceServer(rootMux)
-	serverMux := srpc.NewMux()
-	if err := server.Register(serverMux); err != nil {
-		t.Fatalf("register resource server: %v", err)
-	}
-	service := resource.NewSRPCResourceServiceClient(
-		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
-	)
-
-	sessionCtx, cancelSession := context.WithCancel(t.Context())
-	t.Cleanup(cancelSession)
-	session, err := service.ResourceClient(sessionCtx, &resource.ResourceClientRequest{
-		SupportsResourceAdoptionAck: true,
-	})
-	if err != nil {
-		t.Fatalf("start resource client: %v", err)
-	}
-	event, err := session.Recv()
-	if err != nil {
-		t.Fatalf("receive resource client init: %v", err)
-	}
-	init := event.GetInit()
-	if init == nil || !init.GetSupportsResourceAdoptionAck() {
-		t.Fatalf("resource client init did not enable adoption: %#v", init)
-	}
-
-	resourceClient := rpcstream.NewRpcStreamClient(
-		func(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
-			return service.ResourceRpc(ctx)
-		},
-		strconv.FormatUint(uint64(init.GetRootResourceId()), 10),
-		true,
-	)
-	callCtx, cancelCall := context.WithCancel(t.Context())
-	defer cancelCall()
-	client := &adoptingResourceRPCClient{
-		ctx: session.Context(),
-		client: &preAdoptionCancelClient{
-			Client: resourceClient,
-			cancel: cancelCall,
-		},
-		service:        service,
-		clientHandleID: init.GetClientHandleId(),
-	}
-	lookupClient := bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(client)
-
-	resp, err := lookupClient.BuildTransaction(callCtx, &bucket_lookup.BuildTransactionRequest{})
-	if err == nil {
-		t.Fatal("BuildTransaction succeeded after pre-adoption cancellation")
-	}
-	if resp != nil {
-		t.Fatalf("BuildTransaction returned a response after cancellation: %#v", resp)
-	}
-	<-released
-	if got := releaseCalls.Load(); got != 1 {
-		t.Fatalf("release callbacks after cancellation: got %d, want 1", got)
-	}
-	if session.Context().Err() != nil {
-		t.Fatalf("persistent resource client context: %v", session.Context().Err())
-	}
-
-	resp, err = lookupClient.BuildTransaction(t.Context(), &bucket_lookup.BuildTransactionRequest{})
-	if err != nil {
-		t.Fatalf("later exclusive owner operation: %v", err)
-	}
-	if resp.GetTransactionResourceId() == 0 {
-		t.Fatal("later exclusive owner operation returned no resource")
-	}
-	if _, err := service.ResourceRefRelease(t.Context(), &resource.ResourceRefReleaseRequest{
-		ClientHandleId: init.GetClientHandleId(),
-		ResourceId:     resp.GetTransactionResourceId(),
-	}); err != nil {
-		t.Fatalf("release later resource: %v", err)
-	}
-	<-released
-	if got := releaseCalls.Load(); got != 2 {
-		t.Fatalf("release callbacks after later operation: got %d, want 2", got)
-	}
-}
-
-func TestResourceRPCUnknownUnmarkedUnaryPreservesLegacyResourceLifetime(t *testing.T) {
-	childReleased := make(chan struct{}, 1)
-	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-		if serviceID != "downstream.Root" || methodID != "AccessChild" {
-			return false, nil
-		}
-		if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
-			return true, err
-		}
-		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
-		if err != nil {
-			return true, err
-		}
-		childID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-			if serviceID != "downstream.Child" || methodID != "Get" {
-				return false, nil
-			}
-			if err := strm.MsgRecv(&resource.ResourceRefReleaseRequest{}); err != nil {
-				return true, err
-			}
-			return true, strm.MsgSend(&resource.ResourceRefReleaseResponse{})
-		}), func() {
-			childReleased <- struct{}{}
-		})
-		if err != nil {
-			return true, err
-		}
-		return true, strm.MsgSend(&resource.ResourceReleasedResponse{
-			ResourceId: childID,
-		})
-	}))
-	server := resource_server.NewResourceServer(rootMux)
-	serverMux := srpc.NewMux()
-	if err := server.Register(serverMux); err != nil {
-		t.Fatalf("register resource server: %v", err)
-	}
-	service := resource.NewSRPCResourceServiceClient(
-		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
-	)
-	client, err := NewClient(t.Context(), service)
-	if err != nil {
-		t.Fatalf("NewClient: %v", err)
-	}
-	defer client.Release()
-
-	rootRef := client.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatalf("root client: %v", err)
-	}
-	resp := new(resource.ResourceReleasedResponse)
-	if err := rootClient.ExecCall(
-		t.Context(),
-		"downstream.Root",
-		"AccessChild",
-		&resource.ResourceRefReleaseRequest{},
-		resp,
-	); err != nil {
-		t.Fatalf("AccessChild: %v", err)
-	}
-	select {
-	case <-childReleased:
-		t.Fatal("unknown unmarked unary child was released after response")
-	default:
-	}
-
-	childRef := client.CreateResourceReference(resp.GetResourceId())
-	childClient, err := childRef.GetClient()
-	if err != nil {
-		t.Fatalf("child client: %v", err)
-	}
-	if err := childClient.ExecCall(
-		t.Context(),
-		"downstream.Child",
-		"Get",
-		&resource.ResourceRefReleaseRequest{},
-		&resource.ResourceRefReleaseResponse{},
-	); err != nil {
-		t.Fatalf("Get child: %v", err)
-	}
-	childRef.Release()
-	<-childReleased
-}
-
-func TestResourceRPCAdoptsGeneratedBuildTransactionResources(t *testing.T) {
-	released := make(chan string, 2)
-	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-		if serviceID != bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID || methodID != "BuildTransaction" {
-			return false, nil
-		}
-		if err := strm.MsgRecv(&bucket_lookup.BuildTransactionRequest{}); err != nil {
-			return true, err
-		}
-		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
-		if err != nil {
-			return true, err
-		}
-		transactionID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-			if serviceID != block_transaction.SRPCBlockTransactionResourceServiceServiceID || methodID != "Write" {
-				return false, nil
-			}
-			if err := strm.MsgRecv(&block_transaction.WriteRequest{}); err != nil {
-				return true, err
-			}
-			return true, strm.MsgSend(&block_transaction.WriteResponse{})
-		}), func() {
-			released <- "transaction"
-		})
-		if err != nil {
-			return true, err
-		}
-		cursorID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-			if serviceID != block_cursor.SRPCBlockCursorResourceServiceServiceID || methodID != "Fetch" {
-				return false, nil
-			}
-			if err := strm.MsgRecv(&block_cursor.FetchRequest{}); err != nil {
-				return true, err
-			}
-			return true, strm.MsgSend(&block_cursor.FetchResponse{Found: true})
-		}), func() {
-			released <- "cursor"
-		})
-		if err != nil {
-			return true, err
-		}
-		return true, strm.MsgSend(&bucket_lookup.BuildTransactionResponse{
-			TransactionResourceId: transactionID,
-			CursorResourceId:      cursorID,
-		})
-	}))
-	server := resource_server.NewResourceServer(rootMux)
-	serverMux := srpc.NewMux()
-	if err := server.Register(serverMux); err != nil {
-		t.Fatalf("register resource server: %v", err)
-	}
-	service := resource.NewSRPCResourceServiceClient(
-		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
-	)
-	client, err := NewClient(t.Context(), service)
-	if err != nil {
-		t.Fatalf("NewClient: %v", err)
-	}
-	defer client.Release()
-
-	rootRef := client.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatalf("root client: %v", err)
-	}
-	resp, err := bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(rootClient).BuildTransaction(
-		t.Context(),
-		&bucket_lookup.BuildTransactionRequest{},
-	)
-	if err != nil {
-		t.Fatalf("BuildTransaction: %v", err)
-	}
-
-	transactionRef := client.CreateResourceReference(resp.GetTransactionResourceId())
-	defer transactionRef.Release()
-	transactionClient, err := transactionRef.GetClient()
-	if err != nil {
-		t.Fatalf("transaction client: %v", err)
-	}
-	if _, err := block_transaction.NewSRPCBlockTransactionResourceServiceClient(transactionClient).Write(
-		t.Context(),
-		&block_transaction.WriteRequest{},
-	); err != nil {
-		t.Fatalf("transaction Write: %v", err)
-	}
-
-	cursorRef := client.CreateResourceReference(resp.GetCursorResourceId())
-	defer cursorRef.Release()
-	cursorClient, err := cursorRef.GetClient()
-	if err != nil {
-		t.Fatalf("cursor client: %v", err)
-	}
-	fetch, err := block_cursor.NewSRPCBlockCursorResourceServiceClient(cursorClient).Fetch(
-		t.Context(),
-		&block_cursor.FetchRequest{},
-	)
-	if err != nil {
-		t.Fatalf("cursor Fetch: %v", err)
-	}
-	if !fetch.GetFound() {
-		t.Fatal("cursor Fetch returned not found")
-	}
-
-	select {
-	case name := <-released:
-		t.Fatalf("%s resource released before caller references", name)
-	default:
-	}
-}
-
-func TestResourceRPCCommitAckRejectionReleasesAdoptedResources(t *testing.T) {
-	var transactionReleases atomic.Int32
-	var cursorReleases atomic.Int32
-	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-		if serviceID != bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID {
-			return false, nil
-		}
-		switch methodID {
-		case "BuildTransaction":
-			if err := strm.MsgRecv(&bucket_lookup.BuildTransactionRequest{}); err != nil {
-				return true, err
-			}
-			owner, err := resource_server.MustGetResourceClientContext(strm.Context())
-			if err != nil {
-				return true, err
-			}
-			transactionID, err := owner.AddResource(srpc.NewMux(), func() {
-				transactionReleases.Add(1)
-			})
-			if err != nil {
-				return true, err
-			}
-			cursorID, err := owner.AddResource(srpc.NewMux(), func() {
-				cursorReleases.Add(1)
-			})
-			if err != nil {
-				return true, err
-			}
-			return true, strm.MsgSend(&bucket_lookup.BuildTransactionResponse{
-				TransactionResourceId: transactionID,
-				CursorResourceId:      cursorID,
-			})
-		case "Release":
-			if err := strm.MsgRecv(&bucket_lookup.ReleaseRequest{}); err != nil {
-				return true, err
-			}
-			return true, strm.MsgSend(&bucket_lookup.ReleaseResponse{})
-		default:
-			return false, nil
-		}
-	}))
-	server := resource_server.NewResourceServer(rootMux)
-	serverMux := srpc.NewMux()
-	if err := server.Register(serverMux); err != nil {
-		t.Fatalf("register resource server: %v", err)
-	}
-	service := resource.NewSRPCResourceServiceClient(
-		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
-	)
-
-	sessionCtx, cancelSession := context.WithCancel(t.Context())
-	t.Cleanup(cancelSession)
-	session, err := service.ResourceClient(sessionCtx, &resource.ResourceClientRequest{
-		SupportsResourceAdoptionAck: true,
-	})
-	if err != nil {
-		t.Fatalf("start resource client: %v", err)
-	}
-	event, err := session.Recv()
-	if err != nil {
-		t.Fatalf("receive resource client init: %v", err)
-	}
-	init := event.GetInit()
-	if init == nil || !init.GetSupportsResourceAdoptionAck() {
-		t.Fatalf("resource client init did not enable adoption: %#v", init)
-	}
-
-	resourceClient := rpcstream.NewRpcStreamClient(
-		func(ctx context.Context) (resource.SRPCResourceService_ResourceRpcClient, error) {
-			return service.ResourceRpc(ctx)
-		},
-		strconv.FormatUint(uint64(init.GetRootResourceId()), 10),
-		true,
-	)
-	callCtx, cancelCall := context.WithCancel(t.Context())
-	defer cancelCall()
-	client := &adoptingResourceRPCClient{
-		ctx:            session.Context(),
-		client:         newCommitAckRejectingClient(resourceClient, cancelCall),
-		service:        service,
-		clientHandleID: init.GetClientHandleId(),
-	}
-	lookupClient := bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(client)
-
-	resp, err := lookupClient.BuildTransaction(callCtx, &bucket_lookup.BuildTransactionRequest{})
-	if err == nil || !strings.Contains(err.Error(), "unexpected trailing response data") {
-		t.Fatalf("BuildTransaction error = %v, want trailing response rejection", err)
-	}
-	if resp != nil {
-		t.Fatalf("BuildTransaction returned usable response after commit rejection: %#v", resp)
-	}
-	if got := transactionReleases.Load(); got != 1 {
-		t.Fatalf("transaction releases = %d, want 1", got)
-	}
-	if got := cursorReleases.Load(); got != 1 {
-		t.Fatalf("cursor releases = %d, want 1", got)
-	}
-
-	if _, err := lookupClient.Release(t.Context(), &bucket_lookup.ReleaseRequest{}); err != nil {
-		t.Fatalf("subsequent Resource RPC: %v", err)
-	}
-	if session.Context().Err() != nil {
-		t.Fatalf("persistent resource client context: %v", session.Context().Err())
-	}
-	if got := transactionReleases.Load(); got != 1 {
-		t.Fatalf("transaction releases after subsequent RPC = %d, want 1", got)
-	}
-	if got := cursorReleases.Load(); got != 1 {
-		t.Fatalf("cursor releases after subsequent RPC = %d, want 1", got)
-	}
-}
-
-func TestResourceRPCRejectsUnownedReturnedResource(t *testing.T) {
-	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-		if serviceID != bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID ||
-			methodID != "BuildTransaction" {
-			return false, nil
-		}
-		if err := strm.MsgRecv(&bucket_lookup.BuildTransactionRequest{}); err != nil {
-			return true, err
-		}
-		return true, strm.MsgSend(&bucket_lookup.BuildTransactionResponse{
-			TransactionResourceId: 42,
-		})
-	}))
-	server := resource_server.NewResourceServer(rootMux)
-	serverMux := srpc.NewMux()
-	if err := server.Register(serverMux); err != nil {
-		t.Fatalf("register resource server: %v", err)
-	}
-	service := resource.NewSRPCResourceServiceClient(
-		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
-	)
-	client, err := NewClient(t.Context(), service)
-	if err != nil {
-		t.Fatalf("NewClient: %v", err)
-	}
-	defer client.Release()
-
-	rootRef := client.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatalf("root client: %v", err)
-	}
-	_, err = bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(rootClient).
-		BuildTransaction(t.Context(), &bucket_lookup.BuildTransactionRequest{})
-	if err == nil {
-		t.Fatal("BuildTransaction with unowned resource succeeded")
-	}
-}
-
-func TestResourceRPCRejectsResponseWithoutAdoptionMetadata(t *testing.T) {
-	released := make(chan struct{}, 1)
-	rootMux := srpc.NewMux(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-		if serviceID != bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID ||
-			methodID != "BuildTransaction" {
-			return false, nil
-		}
-		if err := strm.MsgRecv(&bucket_lookup.BuildTransactionRequest{}); err != nil {
-			return true, err
-		}
-		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
-		if err != nil {
-			return true, err
-		}
-		transactionID, err := owner.AddResource(srpc.NewMux(), func() {
-			released <- struct{}{}
-		})
-		if err != nil {
-			return true, err
-		}
-		return true, strm.MsgSend(&bucket_lookup.BuildTransactionResponse{
-			TransactionResourceId: transactionID,
-		})
-	}))
-	server := resource_server.NewResourceServer(rootMux)
-	serverMux := srpc.NewMux()
-	if err := server.Register(serverMux); err != nil {
-		t.Fatalf("register resource server: %v", err)
-	}
-	service := resource.NewSRPCResourceServiceClient(
-		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serverMux))),
-	)
-	client, err := NewClient(t.Context(), service)
-	if err != nil {
-		t.Fatalf("NewClient: %v", err)
-	}
-	defer client.Release()
-
-	rootRef := client.AccessRootResource()
-	defer rootRef.Release()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		t.Fatalf("root client: %v", err)
-	}
-	err = rootClient.ExecCall(
-		t.Context(),
-		bucket_lookup.SRPCBucketLookupCursorResourceServiceServiceID,
-		"BuildTransaction",
-		&bucket_lookup.BuildTransactionRequest{},
-		&resource.ResourceRefReleaseResponse{},
-	)
-	if err == nil || !strings.Contains(err.Error(), "response lacks adoption metadata") {
-		t.Fatalf("BuildTransaction metadata error: got %v", err)
-	}
-	<-released
-}
-
-func TestResourceRefReleaseWaitsForServerAck(t *testing.T) {
-	releaseStarted := make(chan *resource.ResourceRefReleaseRequest, 1)
-	releaseUnblock := make(chan struct{})
-	svc := &mockResourceService{
-		onRelease: func(ctx context.Context, req *resource.ResourceRefReleaseRequest) (*resource.ResourceRefReleaseResponse, error) {
-			releaseStarted <- req
-			select {
-			case <-releaseUnblock:
-				return &resource.ResourceRefReleaseResponse{}, nil
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
-		},
-	}
-
-	c, err := NewClient(context.Background(), svc)
-	if err != nil {
-		t.Fatalf("NewClient: %v", err)
-	}
-	defer c.Release()
-
-	ref := c.CreateResourceReference(42)
-	releaseDone := make(chan struct{})
-	go func() {
-		ref.Release()
-		close(releaseDone)
-	}()
-
-	var req *resource.ResourceRefReleaseRequest
-	select {
-	case <-releaseDone:
-		t.Fatal("Release returned before server release ack")
-	case req = <-releaseStarted:
-	case <-time.After(time.Second):
-		t.Fatal("server release was not called")
-	}
-	if req.GetClientHandleId() != 1 || req.GetResourceId() != 42 {
-		t.Fatalf("unexpected release request: %#v", req)
-	}
-
-	select {
-	case <-releaseDone:
-		t.Fatal("Release returned while server release was still blocked")
-	default:
-	}
-
-	close(releaseUnblock)
-	select {
-	case <-releaseDone:
-	case <-time.After(time.Second):
-		t.Fatal("Release did not return after server release ack")
 	}
 }
 
@@ -1929,3 +1320,26 @@ var (
 	_ resource.SRPCResourceService_ResourceRpcClient    = (resource.SRPCResourceService_ResourceRpcClient)(nil)
 	_ rpcstream.RpcStreamPacket
 )
+
+func TestResourceControlQueueRetiresWhenIdleStreamCloses(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	failure := make(chan error, 1)
+	stream := &mockResourceClientClient{ctx: ctx, events: make(chan *resource.ResourceClientResponse)}
+	newResourceControlQueue(stream, func(err error) { failure <- err }, func() { close(done) })
+
+	cancel()
+	select {
+	case err := <-failure:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("queue failure = %v, want context canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("idle queue did not retire after its stream closed")
+	}
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("idle queue did not finish after its stream closed")
+	}
+}

@@ -13,7 +13,12 @@ import {
   WatchLocalDisplayNameResponse,
 } from './local-session.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.session.LocalSessionResourceService
@@ -94,6 +99,47 @@ export interface LocalSessionResourceService {
   WatchDisplayName(
     request: WatchLocalDisplayNameRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchLocalDisplayNameResponse>
+}
+
+/**
+ * @generated from service s4wave.session.LocalSessionResourceService
+ */
+export interface LocalSessionResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.session.LocalSessionResourceService.AddEntityKeypair
+   */
+  AddEntityKeypair(
+    request: AddLocalEntityKeypairRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AddLocalEntityKeypairResponse>
+
+  /**
+   * @generated from rpc s4wave.session.LocalSessionResourceService.RemoveEntityKeypair
+   */
+  RemoveEntityKeypair(
+    request: RemoveLocalEntityKeypairRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveLocalEntityKeypairResponse>
+
+  /**
+   * @generated from rpc s4wave.session.LocalSessionResourceService.SetDisplayName
+   */
+  SetDisplayName(
+    request: SetLocalDisplayNameRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetLocalDisplayNameResponse>
+
+  /**
+   * @generated from rpc s4wave.session.LocalSessionResourceService.WatchDisplayName
+   */
+  WatchDisplayName(
+    request: WatchLocalDisplayNameRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchLocalDisplayNameResponse>
 }
 

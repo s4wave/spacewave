@@ -415,10 +415,8 @@ func (x *BuildTransactionRequest) GetPutOpts() *block.PutOpts {
 type BuildTransactionResponse struct {
 	unknownFields []byte
 	// TransactionResourceId is the ID of the BlockTransaction resource.
-	// @resource-adoption-id
 	TransactionResourceId uint32 `protobuf:"varint,1,opt,name=transaction_resource_id,json=transactionResourceId,proto3" json:"transactionResourceId,omitempty"`
 	// CursorResourceId is the ID of the root BlockCursor resource.
-	// @resource-adoption-id
 	CursorResourceId uint32 `protobuf:"varint,2,opt,name=cursor_resource_id,json=cursorResourceId,proto3" json:"cursorResourceId,omitempty"`
 }
 
@@ -475,10 +473,8 @@ func (x *BuildTransactionAtRefRequest) GetRef() *block.BlockRef {
 type BuildTransactionAtRefResponse struct {
 	unknownFields []byte
 	// TransactionResourceId is the ID of the BlockTransaction resource.
-	// @resource-adoption-id
 	TransactionResourceId uint32 `protobuf:"varint,1,opt,name=transaction_resource_id,json=transactionResourceId,proto3" json:"transactionResourceId,omitempty"`
 	// CursorResourceId is the ID of the root BlockCursor resource.
-	// @resource-adoption-id
 	CursorResourceId uint32 `protobuf:"varint,2,opt,name=cursor_resource_id,json=cursorResourceId,proto3" json:"cursorResourceId,omitempty"`
 }
 

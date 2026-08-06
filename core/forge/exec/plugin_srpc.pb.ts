@@ -4,7 +4,12 @@
 
 import { PluginExecRequest, PluginExecResponse } from './plugin.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * PluginExecService executes plugin-owned Forge execution controllers.
@@ -63,6 +68,35 @@ export interface PluginExecService {
   ExecuteStream(
     request: PluginExecRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<PluginExecResponse>
+}
+
+/**
+ * PluginExecService executes plugin-owned Forge execution controllers.
+ *
+ * @generated from service space.exec.PluginExecService
+ */
+export interface PluginExecServiceHandler {
+  /**
+   * Execute runs a plugin-owned execution controller.
+   *
+   * @generated from rpc space.exec.PluginExecService.Execute
+   */
+  Execute(
+    request: PluginExecRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PluginExecResponse>
+
+  /**
+   * ExecuteStream runs a plugin-owned execution controller and streams logs.
+   *
+   * @generated from rpc space.exec.PluginExecService.ExecuteStream
+   */
+  ExecuteStream(
+    request: PluginExecRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<PluginExecResponse>
 }
 

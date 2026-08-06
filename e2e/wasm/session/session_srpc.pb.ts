@@ -17,6 +17,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -47,6 +48,20 @@ export interface PeerInfoResourceService {
   GetPeerInfo(
     request: GetPeerInfoRequest,
     abortSignal?: AbortSignal,
+  ): Promise<GetPeerInfoResponse>
+}
+
+/**
+ * @generated from service e2e.wasm.session.PeerInfoResourceService
+ */
+export interface PeerInfoResourceServiceHandler {
+  /**
+   * @generated from rpc e2e.wasm.session.PeerInfoResourceService.GetPeerInfo
+   */
+  GetPeerInfo(
+    request: GetPeerInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<GetPeerInfoResponse>
 }
 
@@ -109,6 +124,20 @@ export interface QuicRwcFixtureResourceService {
   ): Promise<RunQuicRwcFixtureResponse>
 }
 
+/**
+ * @generated from service e2e.wasm.session.QuicRwcFixtureResourceService
+ */
+export interface QuicRwcFixtureResourceServiceHandler {
+  /**
+   * @generated from rpc e2e.wasm.session.QuicRwcFixtureResourceService.RunQuicRwcFixture
+   */
+  RunQuicRwcFixture(
+    request: RunQuicRwcFixtureRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RunQuicRwcFixtureResponse>
+}
+
 export const QuicRwcFixtureResourceServiceServiceName =
   QuicRwcFixtureResourceServiceDefinition.typeName
 
@@ -168,6 +197,20 @@ export interface EstablishLinkResourceService {
   ): MessageStream<WatchStateResponse>
 }
 
+/**
+ * @generated from service e2e.wasm.session.EstablishLinkResourceService
+ */
+export interface EstablishLinkResourceServiceHandler {
+  /**
+   * @generated from rpc e2e.wasm.session.EstablishLinkResourceService.WatchState
+   */
+  WatchState(
+    request: WatchStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchStateResponse>
+}
+
 export const EstablishLinkResourceServiceServiceName =
   EstablishLinkResourceServiceDefinition.typeName
 
@@ -224,6 +267,20 @@ export interface SignalRelayService {
   SignalRelay(
     request: MessageStream<SignalRelayMessage>,
     abortSignal?: AbortSignal,
+  ): MessageStream<SignalRelayMessage>
+}
+
+/**
+ * @generated from service e2e.wasm.session.SignalRelayService
+ */
+export interface SignalRelayServiceHandler {
+  /**
+   * @generated from rpc e2e.wasm.session.SignalRelayService.SignalRelay
+   */
+  SignalRelay(
+    request: MessageStream<SignalRelayMessage>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<SignalRelayMessage>
 }
 

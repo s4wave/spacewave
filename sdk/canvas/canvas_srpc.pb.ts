@@ -11,7 +11,12 @@ import {
   WatchCanvasStateResponse,
 } from './canvas.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.canvas.CanvasResourceService
@@ -75,6 +80,38 @@ export interface CanvasResourceService {
   WatchCanvasState(
     request: WatchCanvasStateRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchCanvasStateResponse>
+}
+
+/**
+ * @generated from service s4wave.canvas.CanvasResourceService
+ */
+export interface CanvasResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.canvas.CanvasResourceService.GetCanvasState
+   */
+  GetCanvasState(
+    request: GetCanvasStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetCanvasStateResponse>
+
+  /**
+   * @generated from rpc s4wave.canvas.CanvasResourceService.UpdateCanvas
+   */
+  UpdateCanvas(
+    request: UpdateCanvasRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UpdateCanvasResponse>
+
+  /**
+   * @generated from rpc s4wave.canvas.CanvasResourceService.WatchCanvasState
+   */
+  WatchCanvasState(
+    request: WatchCanvasStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchCanvasStateResponse>
 }
 

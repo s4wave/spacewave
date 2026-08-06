@@ -11,7 +11,12 @@ import {
   WatchStateResponse,
 } from './secret.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.secret.SecretResourceService
@@ -75,6 +80,38 @@ export interface SecretResourceService {
   ReadPayload(
     request: ReadPayloadRequest,
     abortSignal?: AbortSignal,
+  ): Promise<ReadPayloadResponse>
+}
+
+/**
+ * @generated from service s4wave.secret.SecretResourceService
+ */
+export interface SecretResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.secret.SecretResourceService.WatchState
+   */
+  WatchState(
+    request: WatchStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchStateResponse>
+
+  /**
+   * @generated from rpc s4wave.secret.SecretResourceService.BeginReadPayload
+   */
+  BeginReadPayload(
+    request: BeginReadPayloadRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<BeginReadPayloadResponse>
+
+  /**
+   * @generated from rpc s4wave.secret.SecretResourceService.ReadPayload
+   */
+  ReadPayload(
+    request: ReadPayloadRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ReadPayloadResponse>
 }
 

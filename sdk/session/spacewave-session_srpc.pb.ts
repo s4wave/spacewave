@@ -135,7 +135,12 @@ import {
   MountSharedObjectSelfEnrollmentRequest,
   MountSharedObjectSelfEnrollmentResponse,
 } from './spacewave-session.pb.js'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.session.SpacewaveSessionResourceService
@@ -1261,6 +1266,600 @@ export interface SpacewaveSessionResourceService {
   ResetSession(
     request: ResetSessionRequest,
     abortSignal?: AbortSignal,
+  ): Promise<ResetSessionResponse>
+}
+
+/**
+ * @generated from service s4wave.session.SpacewaveSessionResourceService
+ */
+export interface SpacewaveSessionResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOnboardingStatus
+   */
+  WatchOnboardingStatus(
+    request: WatchOnboardingStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchOnboardingStatusResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateLinkedLocalSession
+   */
+  CreateLinkedLocalSession(
+    request: CreateLinkedLocalSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateLinkedLocalSessionResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetLinkedLocalSession
+   */
+  GetLinkedLocalSession(
+    request: GetLinkedLocalSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetLinkedLocalSessionResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UnlinkLocalSession
+   */
+  UnlinkLocalSession(
+    request: UnlinkLocalSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UnlinkLocalSessionResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateCheckoutSession
+   */
+  CreateCheckoutSession(
+    request: CreateCheckoutSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateCheckoutSessionResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CancelCheckoutSession
+   */
+  CancelCheckoutSession(
+    request: CancelCheckoutSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CancelCheckoutSessionResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchSubscriptionStatus
+   */
+  WatchSubscriptionStatus(
+    request: WatchSubscriptionStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSubscriptionStatusResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchBillingState
+   */
+  WatchBillingState(
+    request: WatchBillingStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchBillingStateResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchCheckoutStatus
+   */
+  WatchCheckoutStatus(
+    request: WatchCheckoutStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchCheckoutStatusResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RefreshBillingState
+   */
+  RefreshBillingState(
+    request: RefreshBillingStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RefreshBillingStateResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CancelSubscription
+   */
+  CancelSubscription(
+    request: CancelSubscriptionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CancelSubscriptionResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReactivateSubscription
+   */
+  ReactivateSubscription(
+    request: ReactivateSubscriptionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReactivateSubscriptionResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SwitchBillingInterval
+   */
+  SwitchBillingInterval(
+    request: SwitchBillingIntervalRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SwitchBillingIntervalResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateBillingPortal
+   */
+  CreateBillingPortal(
+    request: CreateBillingPortalRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateBillingPortalResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateBillingAccount
+   */
+  CreateBillingAccount(
+    request: CreateBillingAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateBillingAccountResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListManagedBillingAccounts
+   */
+  ListManagedBillingAccounts(
+    request: ListManagedBillingAccountsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListManagedBillingAccountsResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AssignBillingAccount
+   */
+  AssignBillingAccount(
+    request: AssignBillingAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AssignBillingAccountResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DetachBillingAccount
+   */
+  DetachBillingAccount(
+    request: DetachBillingAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DetachBillingAccountResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RenameBillingAccount
+   */
+  RenameBillingAccount(
+    request: RenameBillingAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RenameBillingAccountResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DeleteBillingAccount
+   */
+  DeleteBillingAccount(
+    request: DeleteBillingAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DeleteBillingAccountResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RequestDeleteNowEmail
+   */
+  RequestDeleteNowEmail(
+    request: RequestDeleteNowEmailRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RequestDeleteNowEmailResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ConfirmDeleteNowCode
+   */
+  ConfirmDeleteNowCode(
+    request: ConfirmDeleteNowCodeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ConfirmDeleteNowCodeResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UndoDeleteNow
+   */
+  UndoDeleteNow(
+    request: UndoDeleteNowRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UndoDeleteNowResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOrganizations
+   */
+  WatchOrganizations(
+    request: WatchOrganizationsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchOrganizationsResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganization
+   */
+  CreateOrganization(
+    request: CreateOrganizationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateOrganizationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOrganizationState
+   */
+  WatchOrganizationState(
+    request: WatchOrganizationStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchOrganizationStateResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DeleteOrganization
+   */
+  DeleteOrganization(
+    request: DeleteOrganizationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DeleteOrganizationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
+   */
+  CreateTargetedInviteDraftByUsername(
+    request: CreateTargetedInviteDraftByUsernameRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateTargetedInviteDraftByUsernameResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResolveUsername
+   */
+  ResolveUsername(
+    request: ResolveUsernameRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ResolveUsernameResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInvitation
+   */
+  CreateTargetedInvitation(
+    request: CreateTargetedInvitationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateTargetedInvitationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateSpaceTargetedInvitationByUsername
+   */
+  CreateSpaceTargetedInvitationByUsername(
+    request: CreateSpaceTargetedInvitationByUsernameRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateSpaceTargetedInvitationByUsernameResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptSpaceTargetedInvitation
+   */
+  AcceptSpaceTargetedInvitation(
+    request: AcceptSpaceTargetedInvitationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AcceptSpaceTargetedInvitationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganizationTargetedInvitationByUsername
+   */
+  CreateOrganizationTargetedInvitationByUsername(
+    request: CreateOrganizationTargetedInvitationByUsernameRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateOrganizationTargetedInvitationByUsernameResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptOrganizationTargetedInvitation
+   */
+  AcceptOrganizationTargetedInvitation(
+    request: AcceptOrganizationTargetedInvitationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AcceptOrganizationTargetedInvitationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListTargetedInvitations
+   */
+  ListTargetedInvitations(
+    request: ListTargetedInvitationsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListTargetedInvitationsResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchTargetedInvitations
+   */
+  WatchTargetedInvitations(
+    request: ListTargetedInvitationsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<ListTargetedInvitationsResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetTargetedInvitation
+   */
+  GetTargetedInvitation(
+    request: GetTargetedInvitationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetTargetedInvitationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeTargetedInvitation
+   */
+  RevokeTargetedInvitation(
+    request: RevokeTargetedInvitationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RevokeTargetedInvitationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessTargetedInvitation
+   */
+  ProcessTargetedInvitation(
+    request: ProcessTargetedInvitationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ProcessTargetedInvitationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrgInvite
+   */
+  CreateOrgInvite(
+    request: CreateOrgInviteRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateOrgInviteResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.JoinOrganization
+   */
+  JoinOrganization(
+    request: JoinOrganizationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<JoinOrganizationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeOrgInvite
+   */
+  RevokeOrgInvite(
+    request: RevokeOrgInviteRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RevokeOrgInviteResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LeaveOrganization
+   */
+  LeaveOrganization(
+    request: LeaveOrganizationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LeaveOrganizationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveOrgMember
+   */
+  RemoveOrgMember(
+    request: RemoveOrgMemberRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveOrgMemberResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UpdateOrganization
+   */
+  UpdateOrganization(
+    request: UpdateOrganizationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UpdateOrganizationResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.TransferResource
+   */
+  TransferResource(
+    request: TransferResourceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<TransferResourceResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RepairSharedObject
+   */
+  RepairSharedObject(
+    request: RepairSharedObjectRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RepairSharedObjectResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReinitializeSharedObject
+   */
+  ReinitializeSharedObject(
+    request: ReinitializeSharedObjectRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReinitializeSharedObjectResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.MountSharedObjectSelfEnrollment
+   */
+  MountSharedObjectSelfEnrollment(
+    request: MountSharedObjectSelfEnrollmentRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MountSharedObjectSelfEnrollmentResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchEmails
+   */
+  WatchEmails(
+    request: WatchEmailsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchEmailsResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SendVerificationEmail
+   */
+  SendVerificationEmail(
+    request: SendVerificationEmailRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SendVerificationEmailResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.VerifyEmailCode
+   */
+  VerifyEmailCode(
+    request: VerifyEmailCodeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<VerifyEmailCodeResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AddEmail
+   */
+  AddEmail(
+    request: AddEmailRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AddEmailResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveEmail
+   */
+  RemoveEmail(
+    request: RemoveEmailRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveEmailResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SetPrimaryEmail
+   */
+  SetPrimaryEmail(
+    request: SetPrimaryEmailRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetPrimaryEmailResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.EnrollSpaceMember
+   */
+  EnrollSpaceMember(
+    request: EnrollSpaceMemberRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<EnrollSpaceMemberResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveSpaceMember
+   */
+  RemoveSpaceMember(
+    request: RemoveSpaceMemberRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveSpaceMemberResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LookupInviteCode
+   */
+  LookupInviteCode(
+    request: LookupInviteCodeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LookupInviteCodeResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessMailboxEntry
+   */
+  ProcessMailboxEntry(
+    request: ProcessMailboxEntryRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ProcessMailboxEntryResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopSSOLink
+   */
+  StartDesktopSSOLink(
+    request: StartDesktopSSOLinkRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StartDesktopSSOLinkResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopPasskeyReauth
+   */
+  StartDesktopPasskeyReauth(
+    request: StartDesktopPasskeyReauthRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StartDesktopPasskeyReauthResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.EncryptForHandoff
+   */
+  EncryptForHandoff(
+    request: EncryptForHandoffRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<EncryptForHandoffResponse>
+
+  /**
+   * PreviewSpaceLink verifies a SpaceLink ticket for trusted UI display.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.PreviewSpaceLink
+   */
+  PreviewSpaceLink(
+    request: PreviewSpaceLinkRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PreviewSpaceLinkResponse>
+
+  /**
+   * ApproveSpaceLink approves a SpaceLink ticket for a target Space.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ApproveSpaceLink
+   */
+  ApproveSpaceLink(
+    request: ApproveSpaceLinkRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApproveSpaceLinkResponse>
+
+  /**
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResetSession
+   */
+  ResetSession(
+    request: ResetSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ResetSessionResponse>
 }
 

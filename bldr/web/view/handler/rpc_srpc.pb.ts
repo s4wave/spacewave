@@ -4,7 +4,7 @@
 
 import { HandleWebViewRequest, HandleWebViewResponse } from './rpc.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * HandleWebViewService implements the HandleWebView directive.
@@ -48,6 +48,27 @@ export interface HandleWebViewService {
   HandleWebView(
     request: HandleWebViewRequest,
     abortSignal?: AbortSignal,
+  ): Promise<HandleWebViewResponse>
+}
+
+/**
+ * HandleWebViewService implements the HandleWebView directive.
+ *
+ * @generated from service web.view.handler.HandleWebViewService
+ */
+export interface HandleWebViewServiceHandler {
+  /**
+   * HandleWebView handles a web view via rpc.
+   * The RPC will be held open while the handler runs.
+   * The RPC is canceled if the WebView is removed.
+   * The handler can access the WebView service via AccessWebViews.
+   *
+   * @generated from rpc web.view.handler.HandleWebViewService.HandleWebView
+   */
+  HandleWebView(
+    request: HandleWebViewRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<HandleWebViewResponse>
 }
 

@@ -1,5 +1,7 @@
 package resource_server
 
+import "context"
+
 // CountTrackedResources returns the number of resource handles currently
 // tracked across all live clients, including root, owned, and attached
 // resources.
@@ -11,13 +13,40 @@ package resource_server
 func (s *ResourceServer) CountTrackedResources() int {
 	var count int
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, c := range s.clients {
-			if c.released {
-				continue
-			}
-			count += len(c.resources)
-			count += len(c.attachedResources)
-		}
+		count = s.countTrackedResourcesLocked()
 	})
+	return count
+}
+
+// WaitTrackedResourceCount waits for the tracked resource count to equal want
+// and returns the last observed count when ctx ends first.
+func (s *ResourceServer) WaitTrackedResourceCount(ctx context.Context, want int) int {
+	for {
+		var count int
+		var waitCh <-chan struct{}
+		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			count = s.countTrackedResourcesLocked()
+			waitCh = getWaitCh()
+		})
+		if count == want {
+			return count
+		}
+		select {
+		case <-ctx.Done():
+			return count
+		case <-waitCh:
+		}
+	}
+}
+
+func (s *ResourceServer) countTrackedResourcesLocked() int {
+	var count int
+	for _, client := range s.clients {
+		if client.released {
+			continue
+		}
+		count += len(client.resources)
+		count += len(client.attachedResources)
+	}
 	return count
 }

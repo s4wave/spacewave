@@ -9,7 +9,7 @@ import {
   GetProviderInfoResponse,
 } from './provider.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * @generated from service s4wave.provider.ProviderResourceService
@@ -56,6 +56,29 @@ export interface ProviderResourceService {
   AccessProviderAccount(
     request: AccessProviderAccountRequest,
     abortSignal?: AbortSignal,
+  ): Promise<AccessProviderAccountResponse>
+}
+
+/**
+ * @generated from service s4wave.provider.ProviderResourceService
+ */
+export interface ProviderResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.provider.ProviderResourceService.GetProviderInfo
+   */
+  GetProviderInfo(
+    request: GetProviderInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetProviderInfoResponse>
+
+  /**
+   * @generated from rpc s4wave.provider.ProviderResourceService.AccessProviderAccount
+   */
+  AccessProviderAccount(
+    request: AccessProviderAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<AccessProviderAccountResponse>
 }
 

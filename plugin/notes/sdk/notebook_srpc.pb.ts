@@ -13,7 +13,12 @@ import {
   WatchNotebookResponse,
 } from './notebook.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service notes.NotebookResourceService
@@ -94,6 +99,47 @@ export interface NotebookResourceService {
   ReorderSources(
     request: ReorderSourcesRequest,
     abortSignal?: AbortSignal,
+  ): Promise<ReorderSourcesResponse>
+}
+
+/**
+ * @generated from service notes.NotebookResourceService
+ */
+export interface NotebookResourceServiceHandler {
+  /**
+   * @generated from rpc notes.NotebookResourceService.WatchNotebook
+   */
+  WatchNotebook(
+    request: WatchNotebookRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchNotebookResponse>
+
+  /**
+   * @generated from rpc notes.NotebookResourceService.AddSource
+   */
+  AddSource(
+    request: AddSourceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AddSourceResponse>
+
+  /**
+   * @generated from rpc notes.NotebookResourceService.RemoveSource
+   */
+  RemoveSource(
+    request: RemoveSourceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveSourceResponse>
+
+  /**
+   * @generated from rpc notes.NotebookResourceService.ReorderSources
+   */
+  ReorderSources(
+    request: ReorderSourcesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ReorderSourcesResponse>
 }
 

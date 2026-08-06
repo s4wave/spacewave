@@ -9,6 +9,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -55,6 +56,28 @@ export interface V86fsService {
   RelayV86fs(
     request: MessageStream<V86fsMessage>,
     abortSignal?: AbortSignal,
+  ): MessageStream<V86fsMessage>
+}
+
+/**
+ * V86fsService relays v86fs operations between a browser VM and FSHandle storage.
+ * Both client and server send V86fsMessage on the stream.
+ * Client sends requests, server sends replies and push notifications.
+ *
+ * @generated from service unixfs.v86fs.V86fsService
+ */
+export interface V86fsServiceHandler {
+  /**
+   * RelayV86fs opens a bidirectional stream for v86fs message relay.
+   * The client sends V86fsMessage requests, the server sends replies
+   * and push notifications (invalidation, mount/umount).
+   *
+   * @generated from rpc unixfs.v86fs.V86fsService.RelayV86fs
+   */
+  RelayV86fs(
+    request: MessageStream<V86fsMessage>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<V86fsMessage>
 }
 

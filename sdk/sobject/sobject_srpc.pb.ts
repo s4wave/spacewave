@@ -9,7 +9,12 @@ import {
   WatchSharedObjectHealthResponse,
 } from './sobject.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.sobject.SharedObjectResourceService
@@ -56,6 +61,29 @@ export interface SharedObjectResourceService {
   MountSharedObjectBody(
     request: MountSharedObjectBodyRequest,
     abortSignal?: AbortSignal,
+  ): Promise<MountSharedObjectBodyResponse>
+}
+
+/**
+ * @generated from service s4wave.sobject.SharedObjectResourceService
+ */
+export interface SharedObjectResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.sobject.SharedObjectResourceService.WatchSharedObjectHealth
+   */
+  WatchSharedObjectHealth(
+    request: WatchSharedObjectHealthRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSharedObjectHealthResponse>
+
+  /**
+   * @generated from rpc s4wave.sobject.SharedObjectResourceService.MountSharedObjectBody
+   */
+  MountSharedObjectBody(
+    request: MountSharedObjectBodyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<MountSharedObjectBodyResponse>
 }
 

@@ -17,6 +17,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -80,6 +81,37 @@ export interface Sql {
   SqlTransactionRpc(
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+}
+
+/**
+ * Sql proxies a SqlStore via RPC.
+ *
+ * @generated from service sql.rpc.Sql
+ */
+export interface SqlHandler {
+  /**
+   * SqlTransaction executes a SQL transaction.
+   *
+   * @generated from rpc sql.rpc.Sql.SqlTransaction
+   */
+  SqlTransaction(
+    request: MessageStream<SqlTransactionRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<SqlTransactionResponse>
+
+  /**
+   * SqlTransactionRpc is a rpcstream request for an ongoing SqlTransaction.
+   * Exposes service: SqlOps.
+   * Component ID: transaction_id from SqlTransaction.
+   *
+   * @generated from rpc sql.rpc.Sql.SqlTransactionRpc
+   */
+  SqlTransactionRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<RpcStreamPacket>
 }
 
@@ -189,6 +221,35 @@ export interface SqlOps {
   Query(
     request: MessageStream<SqlQueryRequest>,
     abortSignal?: AbortSignal,
+  ): MessageStream<SqlQueryResponse>
+}
+
+/**
+ * SqlOps exposes SqlOps for a transaction.
+ *
+ * @generated from service sql.rpc.SqlOps
+ */
+export interface SqlOpsHandler {
+  /**
+   * Exec executes a statement.
+   *
+   * @generated from rpc sql.rpc.SqlOps.Exec
+   */
+  Exec(
+    request: SqlExecRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SqlExecResponse>
+
+  /**
+   * Query executes a query with explicit row iteration control.
+   *
+   * @generated from rpc sql.rpc.SqlOps.Query
+   */
+  Query(
+    request: MessageStream<SqlQueryRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<SqlQueryResponse>
 }
 

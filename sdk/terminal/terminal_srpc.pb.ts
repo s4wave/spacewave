@@ -13,6 +13,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -60,6 +61,29 @@ export interface TerminalResourceService {
   ConnectTerminal(
     request: MessageStream<TerminalFrame>,
     abortSignal?: AbortSignal,
+  ): MessageStream<TerminalFrame>
+}
+
+/**
+ * @generated from service s4wave.terminal.TerminalResourceService
+ */
+export interface TerminalResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.terminal.TerminalResourceService.WatchTerminalState
+   */
+  WatchTerminalState(
+    request: WatchTerminalStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchTerminalStateResponse>
+
+  /**
+   * @generated from rpc s4wave.terminal.TerminalResourceService.ConnectTerminal
+   */
+  ConnectTerminal(
+    request: MessageStream<TerminalFrame>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<TerminalFrame>
 }
 

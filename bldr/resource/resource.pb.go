@@ -14,11 +14,18 @@ import (
 	_ "github.com/aperturerobotics/starpc/rpcstream"
 )
 
-// ResourceClientRequest is the request body for ResourceClient.
+// ResourceClientRequest is a control packet for ResourceClient.
 type ResourceClientRequest struct {
 	unknownFields []byte
-	// SupportsResourceAdoptionAck requests the held ResourceRpc receipt protocol.
-	SupportsResourceAdoptionAck bool `protobuf:"varint,1,opt,name=supports_resource_adoption_ack,json=supportsResourceAdoptionAck,proto3" json:"supportsResourceAdoptionAck,omitempty"`
+	// ControlId orders every lifecycle control within one immutable generation.
+	// Init uses zero; every later control increments the identifier by one.
+	ControlId uint32 `protobuf:"varint,5,opt,name=control_id,json=controlId,proto3" json:"controlId,omitempty"`
+	// Types that are assignable to Body:
+	//
+	//	*ResourceClientRequest_Init
+	//	*ResourceClientRequest_Adopt
+	//	*ResourceClientRequest_Release
+	Body isResourceClientRequest_Body `protobuf_oneof:"body"`
 }
 
 func (x *ResourceClientRequest) Reset() {
@@ -27,11 +34,113 @@ func (x *ResourceClientRequest) Reset() {
 
 func (*ResourceClientRequest) ProtoMessage() {}
 
-func (x *ResourceClientRequest) GetSupportsResourceAdoptionAck() bool {
+func (x *ResourceClientRequest) GetControlId() uint32 {
 	if x != nil {
-		return x.SupportsResourceAdoptionAck
+		return x.ControlId
 	}
-	return false
+	return 0
+}
+
+func (m *ResourceClientRequest) GetBody() isResourceClientRequest_Body {
+	if m != nil {
+		return m.Body
+	}
+	return nil
+}
+
+func (x *ResourceClientRequest) GetInit() *ResourceClientInitRequest {
+	if x, ok := x.GetBody().(*ResourceClientRequest_Init); ok {
+		return x.Init
+	}
+	return nil
+}
+
+func (x *ResourceClientRequest) GetAdopt() *ResourceClientAdopt {
+	if x, ok := x.GetBody().(*ResourceClientRequest_Adopt); ok {
+		return x.Adopt
+	}
+	return nil
+}
+
+func (x *ResourceClientRequest) GetRelease() *ResourceClientRelease {
+	if x, ok := x.GetBody().(*ResourceClientRequest_Release); ok {
+		return x.Release
+	}
+	return nil
+}
+
+type isResourceClientRequest_Body interface {
+	isResourceClientRequest_Body()
+}
+
+type ResourceClientRequest_Init struct {
+	// ResourceClientInitRequest starts a new client generation.
+	Init *ResourceClientInitRequest `protobuf:"bytes,2,opt,name=init,proto3,oneof"`
+}
+
+type ResourceClientRequest_Adopt struct {
+	// ResourceClientAdopt detaches a pending child from its parent.
+	Adopt *ResourceClientAdopt `protobuf:"bytes,3,opt,name=adopt,proto3,oneof"`
+}
+
+type ResourceClientRequest_Release struct {
+	// ResourceClientRelease releases a resource and its pending descendants.
+	Release *ResourceClientRelease `protobuf:"bytes,4,opt,name=release,proto3,oneof"`
+}
+
+func (*ResourceClientRequest_Init) isResourceClientRequest_Body() {}
+
+func (*ResourceClientRequest_Adopt) isResourceClientRequest_Body() {}
+
+func (*ResourceClientRequest_Release) isResourceClientRequest_Body() {}
+
+// ResourceClientInitRequest is sent first on every ResourceClient stream.
+type ResourceClientInitRequest struct {
+	unknownFields []byte
+}
+
+func (x *ResourceClientInitRequest) Reset() {
+	*x = ResourceClientInitRequest{}
+}
+
+func (*ResourceClientInitRequest) ProtoMessage() {}
+
+// ResourceClientAdopt adopts a pending resource.
+type ResourceClientAdopt struct {
+	unknownFields []byte
+	ResourceId    uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+}
+
+func (x *ResourceClientAdopt) Reset() {
+	*x = ResourceClientAdopt{}
+}
+
+func (*ResourceClientAdopt) ProtoMessage() {}
+
+func (x *ResourceClientAdopt) GetResourceId() uint32 {
+	if x != nil {
+		return x.ResourceId
+	}
+	return 0
+}
+
+// ResourceClientRelease releases a resource and its pending descendants.
+type ResourceClientRelease struct {
+	unknownFields []byte
+	ResourceId    uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+}
+
+func (x *ResourceClientRelease) Reset() {
+	*x = ResourceClientRelease{}
+}
+
+func (*ResourceClientRelease) ProtoMessage() {}
+
+func (x *ResourceClientRelease) GetResourceId() uint32 {
+	if x != nil {
+		return x.ResourceId
+	}
+	return 0
 }
 
 // ResourceClientResponse contains a server-client message for a ResourceClient request.
@@ -43,6 +152,7 @@ type ResourceClientResponse struct {
 	//
 	//	*ResourceClientResponse_Init
 	//	*ResourceClientResponse_ResourceReleased
+	//	*ResourceClientResponse_ControlAck
 	Body isResourceClientResponse_Body `protobuf_oneof:"body"`
 }
 
@@ -73,6 +183,13 @@ func (x *ResourceClientResponse) GetResourceReleased() *ResourceReleasedResponse
 	return nil
 }
 
+func (x *ResourceClientResponse) GetControlAck() *ResourceClientControlAck {
+	if x, ok := x.GetBody().(*ResourceClientResponse_ControlAck); ok {
+		return x.ControlAck
+	}
+	return nil
+}
+
 type isResourceClientResponse_Body interface {
 	isResourceClientResponse_Body()
 }
@@ -84,13 +201,40 @@ type ResourceClientResponse_Init struct {
 }
 
 type ResourceClientResponse_ResourceReleased struct {
-	// ResourceRefReleased is returned if a resource was released by the server.
+	// ResourceReleased is returned if a resource was released by the server.
 	ResourceReleased *ResourceReleasedResponse `protobuf:"bytes,2,opt,name=resource_released,json=resourceReleased,proto3,oneof"`
+}
+
+type ResourceClientResponse_ControlAck struct {
+	// ControlAck confirms that one lifecycle control and its callbacks completed.
+	ControlAck *ResourceClientControlAck `protobuf:"bytes,4,opt,name=control_ack,json=controlAck,proto3,oneof"`
 }
 
 func (*ResourceClientResponse_Init) isResourceClientResponse_Body() {}
 
 func (*ResourceClientResponse_ResourceReleased) isResourceClientResponse_Body() {}
+
+func (*ResourceClientResponse_ControlAck) isResourceClientResponse_Body() {}
+
+// ResourceClientControlAck confirms a lifecycle control completed.
+type ResourceClientControlAck struct {
+	unknownFields []byte
+	// ControlId matches ResourceClientRequest.control_id.
+	ControlId uint32 `protobuf:"varint,1,opt,name=control_id,json=controlId,proto3" json:"controlId,omitempty"`
+}
+
+func (x *ResourceClientControlAck) Reset() {
+	*x = ResourceClientControlAck{}
+}
+
+func (*ResourceClientControlAck) ProtoMessage() {}
+
+func (x *ResourceClientControlAck) GetControlId() uint32 {
+	if x != nil {
+		return x.ControlId
+	}
+	return 0
+}
 
 // ResourceReleasedResponse is a message indicating a resource was released.
 type ResourceReleasedResponse struct {
@@ -116,13 +260,9 @@ func (x *ResourceReleasedResponse) GetResourceId() uint32 {
 type ResourceClientInit struct {
 	unknownFields []byte
 	// ClientHandleId is the handle identifier for the client.
-	// The client should use this ID going forward for requests.
 	ClientHandleId uint32 `protobuf:"varint,1,opt,name=client_handle_id,json=clientHandleId,proto3" json:"clientHandleId,omitempty"`
 	// RootResourceId is the ID of the root resource for this client.
 	RootResourceId uint32 `protobuf:"varint,2,opt,name=root_resource_id,json=rootResourceId,proto3" json:"rootResourceId,omitempty"`
-	// SupportsResourceAdoptionAck is true when held ResourceRpc receipts and
-	// per-resource adoption acknowledgments are implemented.
-	SupportsResourceAdoptionAck bool `protobuf:"varint,3,opt,name=supports_resource_adoption_ack,json=supportsResourceAdoptionAck,proto3" json:"supportsResourceAdoptionAck,omitempty"`
 }
 
 func (x *ResourceClientInit) Reset() {
@@ -144,94 +284,6 @@ func (x *ResourceClientInit) GetRootResourceId() uint32 {
 	}
 	return 0
 }
-
-func (x *ResourceClientInit) GetSupportsResourceAdoptionAck() bool {
-	if x != nil {
-		return x.SupportsResourceAdoptionAck
-	}
-	return false
-}
-
-// ResourceRefReleaseRequest is the request for ResourceRefRelease.
-type ResourceRefReleaseRequest struct {
-	unknownFields []byte
-	// ClientHandleId is the handle identifier for the client.
-	ClientHandleId uint32 `protobuf:"varint,1,opt,name=client_handle_id,json=clientHandleId,proto3" json:"clientHandleId,omitempty"`
-	// ResourceId is the ID of the resource reference to release.
-	ResourceId uint32 `protobuf:"varint,2,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
-}
-
-func (x *ResourceRefReleaseRequest) Reset() {
-	*x = ResourceRefReleaseRequest{}
-}
-
-func (*ResourceRefReleaseRequest) ProtoMessage() {}
-
-func (x *ResourceRefReleaseRequest) GetClientHandleId() uint32 {
-	if x != nil {
-		return x.ClientHandleId
-	}
-	return 0
-}
-
-func (x *ResourceRefReleaseRequest) GetResourceId() uint32 {
-	if x != nil {
-		return x.ResourceId
-	}
-	return 0
-}
-
-// ResourceRefReleaseResponse is the response for ResourceRefRelease.
-type ResourceRefReleaseResponse struct {
-	unknownFields []byte
-}
-
-func (x *ResourceRefReleaseResponse) Reset() {
-	*x = ResourceRefReleaseResponse{}
-}
-
-func (*ResourceRefReleaseResponse) ProtoMessage() {}
-
-// ResourceRefAdoptRequest acknowledges adoption of a resource returned by a
-// held ResourceRpc invocation.
-type ResourceRefAdoptRequest struct {
-	unknownFields []byte
-	// ClientHandleId identifies the persistent ResourceClient session.
-	ClientHandleId uint32 `protobuf:"varint,1,opt,name=client_handle_id,json=clientHandleId,proto3" json:"clientHandleId,omitempty"`
-	// ResourceId identifies the pending resource to adopt.
-	ResourceId uint32 `protobuf:"varint,2,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
-}
-
-func (x *ResourceRefAdoptRequest) Reset() {
-	*x = ResourceRefAdoptRequest{}
-}
-
-func (*ResourceRefAdoptRequest) ProtoMessage() {}
-
-func (x *ResourceRefAdoptRequest) GetClientHandleId() uint32 {
-	if x != nil {
-		return x.ClientHandleId
-	}
-	return 0
-}
-
-func (x *ResourceRefAdoptRequest) GetResourceId() uint32 {
-	if x != nil {
-		return x.ResourceId
-	}
-	return 0
-}
-
-// ResourceRefAdoptResponse confirms a pending resource was adopted.
-type ResourceRefAdoptResponse struct {
-	unknownFields []byte
-}
-
-func (x *ResourceRefAdoptResponse) Reset() {
-	*x = ResourceRefAdoptResponse{}
-}
-
-func (*ResourceRefAdoptResponse) ProtoMessage() {}
 
 // ResourceAttachRequest is a client-to-server message on the ResourceAttach stream.
 type ResourceAttachRequest struct {
@@ -484,7 +536,6 @@ type ResourceAttachAddAck struct {
 	// Error is set if the add was rejected.
 	Error string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
 	// ResourceId is the server-assigned ID for the attached resource.
-	// @resource-adoption-id
 	ResourceId uint32 `protobuf:"varint,3,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 }
 
@@ -560,7 +611,12 @@ func (m *ResourceClientRequest) CloneVT() *ResourceClientRequest {
 		return (*ResourceClientRequest)(nil)
 	}
 	r := new(ResourceClientRequest)
-	r.SupportsResourceAdoptionAck = m.SupportsResourceAdoptionAck
+	r.ControlId = m.ControlId
+	if m.Body != nil {
+		r.Body = m.Body.(interface {
+			CloneOneofVT() isResourceClientRequest_Body
+		}).CloneOneofVT()
+	}
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -568,6 +624,92 @@ func (m *ResourceClientRequest) CloneVT() *ResourceClientRequest {
 }
 
 func (m *ResourceClientRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ResourceClientRequest_Init) CloneVT() *ResourceClientRequest_Init {
+	if m == nil {
+		return (*ResourceClientRequest_Init)(nil)
+	}
+	r := new(ResourceClientRequest_Init)
+	r.Init = protobuf_go_lite.CloneVTValue(m.Init)
+	return r
+}
+
+func (m *ResourceClientRequest_Init) CloneOneofVT() isResourceClientRequest_Body {
+	return m.CloneVT()
+}
+
+func (m *ResourceClientRequest_Adopt) CloneVT() *ResourceClientRequest_Adopt {
+	if m == nil {
+		return (*ResourceClientRequest_Adopt)(nil)
+	}
+	r := new(ResourceClientRequest_Adopt)
+	r.Adopt = protobuf_go_lite.CloneVTValue(m.Adopt)
+	return r
+}
+
+func (m *ResourceClientRequest_Adopt) CloneOneofVT() isResourceClientRequest_Body {
+	return m.CloneVT()
+}
+
+func (m *ResourceClientRequest_Release) CloneVT() *ResourceClientRequest_Release {
+	if m == nil {
+		return (*ResourceClientRequest_Release)(nil)
+	}
+	r := new(ResourceClientRequest_Release)
+	r.Release = protobuf_go_lite.CloneVTValue(m.Release)
+	return r
+}
+
+func (m *ResourceClientRequest_Release) CloneOneofVT() isResourceClientRequest_Body {
+	return m.CloneVT()
+}
+
+func (m *ResourceClientInitRequest) CloneVT() *ResourceClientInitRequest {
+	if m == nil {
+		return (*ResourceClientInitRequest)(nil)
+	}
+	r := new(ResourceClientInitRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ResourceClientInitRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ResourceClientAdopt) CloneVT() *ResourceClientAdopt {
+	if m == nil {
+		return (*ResourceClientAdopt)(nil)
+	}
+	r := new(ResourceClientAdopt)
+	r.ResourceId = m.ResourceId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ResourceClientAdopt) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ResourceClientRelease) CloneVT() *ResourceClientRelease {
+	if m == nil {
+		return (*ResourceClientRelease)(nil)
+	}
+	r := new(ResourceClientRelease)
+	r.ResourceId = m.ResourceId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ResourceClientRelease) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -617,6 +759,35 @@ func (m *ResourceClientResponse_ResourceReleased) CloneOneofVT() isResourceClien
 	return m.CloneVT()
 }
 
+func (m *ResourceClientResponse_ControlAck) CloneVT() *ResourceClientResponse_ControlAck {
+	if m == nil {
+		return (*ResourceClientResponse_ControlAck)(nil)
+	}
+	r := new(ResourceClientResponse_ControlAck)
+	r.ControlAck = protobuf_go_lite.CloneVTValue(m.ControlAck)
+	return r
+}
+
+func (m *ResourceClientResponse_ControlAck) CloneOneofVT() isResourceClientResponse_Body {
+	return m.CloneVT()
+}
+
+func (m *ResourceClientControlAck) CloneVT() *ResourceClientControlAck {
+	if m == nil {
+		return (*ResourceClientControlAck)(nil)
+	}
+	r := new(ResourceClientControlAck)
+	r.ControlId = m.ControlId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ResourceClientControlAck) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *ResourceReleasedResponse) CloneVT() *ResourceReleasedResponse {
 	if m == nil {
 		return (*ResourceReleasedResponse)(nil)
@@ -640,7 +811,6 @@ func (m *ResourceClientInit) CloneVT() *ResourceClientInit {
 	r := new(ResourceClientInit)
 	r.ClientHandleId = m.ClientHandleId
 	r.RootResourceId = m.RootResourceId
-	r.SupportsResourceAdoptionAck = m.SupportsResourceAdoptionAck
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -648,70 +818,6 @@ func (m *ResourceClientInit) CloneVT() *ResourceClientInit {
 }
 
 func (m *ResourceClientInit) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *ResourceRefReleaseRequest) CloneVT() *ResourceRefReleaseRequest {
-	if m == nil {
-		return (*ResourceRefReleaseRequest)(nil)
-	}
-	r := new(ResourceRefReleaseRequest)
-	r.ClientHandleId = m.ClientHandleId
-	r.ResourceId = m.ResourceId
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *ResourceRefReleaseRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *ResourceRefReleaseResponse) CloneVT() *ResourceRefReleaseResponse {
-	if m == nil {
-		return (*ResourceRefReleaseResponse)(nil)
-	}
-	r := new(ResourceRefReleaseResponse)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *ResourceRefReleaseResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *ResourceRefAdoptRequest) CloneVT() *ResourceRefAdoptRequest {
-	if m == nil {
-		return (*ResourceRefAdoptRequest)(nil)
-	}
-	r := new(ResourceRefAdoptRequest)
-	r.ClientHandleId = m.ClientHandleId
-	r.ResourceId = m.ResourceId
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *ResourceRefAdoptRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *ResourceRefAdoptResponse) CloneVT() *ResourceRefAdoptResponse {
-	if m == nil {
-		return (*ResourceRefAdoptResponse)(nil)
-	}
-	r := new(ResourceRefAdoptResponse)
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *ResourceRefAdoptResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -964,7 +1070,19 @@ func (this *ResourceClientRequest) EqualVT(that *ResourceClientRequest) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.SupportsResourceAdoptionAck != that.SupportsResourceAdoptionAck {
+	if this.Body == nil && that.Body != nil {
+		return false
+	} else if this.Body != nil {
+		if that.Body == nil {
+			return false
+		}
+		if !this.Body.(interface {
+			EqualVT(isResourceClientRequest_Body) bool
+		}).EqualVT(that.Body) {
+			return false
+		}
+	}
+	if this.ControlId != that.ControlId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -972,6 +1090,114 @@ func (this *ResourceClientRequest) EqualVT(that *ResourceClientRequest) bool {
 
 func (this *ResourceClientRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ResourceClientRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ResourceClientRequest_Init) EqualVT(thatIface isResourceClientRequest_Body) bool {
+	that, ok := thatIface.(*ResourceClientRequest_Init)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Init, that.Init, func() *ResourceClientInitRequest { return &ResourceClientInitRequest{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *ResourceClientRequest_Adopt) EqualVT(thatIface isResourceClientRequest_Body) bool {
+	that, ok := thatIface.(*ResourceClientRequest_Adopt)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Adopt, that.Adopt, func() *ResourceClientAdopt { return &ResourceClientAdopt{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *ResourceClientRequest_Release) EqualVT(thatIface isResourceClientRequest_Body) bool {
+	that, ok := thatIface.(*ResourceClientRequest_Release)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.Release, that.Release, func() *ResourceClientRelease { return &ResourceClientRelease{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *ResourceClientInitRequest) EqualVT(that *ResourceClientInitRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ResourceClientInitRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ResourceClientInitRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ResourceClientAdopt) EqualVT(that *ResourceClientAdopt) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ResourceClientAdopt) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ResourceClientAdopt)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ResourceClientRelease) EqualVT(that *ResourceClientRelease) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ResourceClientRelease) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ResourceClientRelease)
 	if !ok {
 		return false
 	}
@@ -1041,6 +1267,43 @@ func (this *ResourceClientResponse_ResourceReleased) EqualVT(thatIface isResourc
 	return true
 }
 
+func (this *ResourceClientResponse_ControlAck) EqualVT(thatIface isResourceClientResponse_Body) bool {
+	that, ok := thatIface.(*ResourceClientResponse_ControlAck)
+	if !ok {
+		return false
+	}
+	if this == that {
+		return true
+	}
+	if this == nil && that != nil || this != nil && that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTImplicit(this.ControlAck, that.ControlAck, func() *ResourceClientControlAck { return &ResourceClientControlAck{} }) {
+		return false
+	}
+	return true
+}
+
+func (this *ResourceClientControlAck) EqualVT(that *ResourceClientControlAck) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ControlId != that.ControlId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ResourceClientControlAck) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ResourceClientControlAck)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *ResourceReleasedResponse) EqualVT(that *ResourceReleasedResponse) bool {
 	if this == that {
 		return true
@@ -1073,94 +1336,11 @@ func (this *ResourceClientInit) EqualVT(that *ResourceClientInit) bool {
 	if this.RootResourceId != that.RootResourceId {
 		return false
 	}
-	if this.SupportsResourceAdoptionAck != that.SupportsResourceAdoptionAck {
-		return false
-	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *ResourceClientInit) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ResourceClientInit)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *ResourceRefReleaseRequest) EqualVT(that *ResourceRefReleaseRequest) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.ClientHandleId != that.ClientHandleId {
-		return false
-	}
-	if this.ResourceId != that.ResourceId {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ResourceRefReleaseRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ResourceRefReleaseRequest)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *ResourceRefReleaseResponse) EqualVT(that *ResourceRefReleaseResponse) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ResourceRefReleaseResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ResourceRefReleaseResponse)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *ResourceRefAdoptRequest) EqualVT(that *ResourceRefAdoptRequest) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.ClientHandleId != that.ClientHandleId {
-		return false
-	}
-	if this.ResourceId != that.ResourceId {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ResourceRefAdoptRequest) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ResourceRefAdoptRequest)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *ResourceRefAdoptResponse) EqualVT(that *ResourceRefAdoptResponse) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ResourceRefAdoptResponse) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ResourceRefAdoptResponse)
 	if !ok {
 		return false
 	}
@@ -1498,10 +1678,26 @@ func (x *ResourceClientRequest) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.SupportsResourceAdoptionAck || s.HasField("supportsResourceAdoptionAck") {
+	if x.Body != nil {
+		switch ov := x.Body.(type) {
+		case *ResourceClientRequest_Init:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("init")
+			ov.Init.MarshalProtoJSON(s.WithField("init"))
+		case *ResourceClientRequest_Adopt:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("adopt")
+			ov.Adopt.MarshalProtoJSON(s.WithField("adopt"))
+		case *ResourceClientRequest_Release:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("release")
+			ov.Release.MarshalProtoJSON(s.WithField("release"))
+		}
+	}
+	if x.ControlId != 0 || s.HasField("controlId") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("supportsResourceAdoptionAck")
-		s.WriteBool(x.SupportsResourceAdoptionAck)
+		s.WriteObjectField("controlId")
+		s.WriteUint32(x.ControlId)
 	}
 	s.WriteObjectEnd()
 }
@@ -1520,15 +1716,156 @@ func (x *ResourceClientRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "supports_resource_adoption_ack", "supportsResourceAdoptionAck":
-			s.AddField("supports_resource_adoption_ack")
-			x.SupportsResourceAdoptionAck = s.ReadBool()
+		case "init":
+			ov := &ResourceClientRequest_Init{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Init = nil
+				return
+			}
+			ov.Init = &ResourceClientInitRequest{}
+			ov.Init.UnmarshalProtoJSON(s.WithField("init", true))
+		case "adopt":
+			ov := &ResourceClientRequest_Adopt{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Adopt = nil
+				return
+			}
+			ov.Adopt = &ResourceClientAdopt{}
+			ov.Adopt.UnmarshalProtoJSON(s.WithField("adopt", true))
+		case "release":
+			ov := &ResourceClientRequest_Release{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.Release = nil
+				return
+			}
+			ov.Release = &ResourceClientRelease{}
+			ov.Release.UnmarshalProtoJSON(s.WithField("release", true))
+		case "control_id", "controlId":
+			s.AddField("control_id")
+			x.ControlId = s.ReadUint32()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the ResourceClientRequest from JSON.
 func (x *ResourceClientRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ResourceClientInitRequest message to JSON.
+func (x *ResourceClientInitRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ResourceClientInitRequest to JSON.
+func (x *ResourceClientInitRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResourceClientInitRequest message from JSON.
+func (x *ResourceClientInitRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the ResourceClientInitRequest from JSON.
+func (x *ResourceClientInitRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ResourceClientAdopt message to JSON.
+func (x *ResourceClientAdopt) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ResourceId != 0 || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteUint32(x.ResourceId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ResourceClientAdopt to JSON.
+func (x *ResourceClientAdopt) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResourceClientAdopt message from JSON.
+func (x *ResourceClientAdopt) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ResourceClientAdopt from JSON.
+func (x *ResourceClientAdopt) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ResourceClientRelease message to JSON.
+func (x *ResourceClientRelease) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ResourceId != 0 || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteUint32(x.ResourceId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ResourceClientRelease to JSON.
+func (x *ResourceClientRelease) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResourceClientRelease message from JSON.
+func (x *ResourceClientRelease) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ResourceClientRelease from JSON.
+func (x *ResourceClientRelease) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1550,6 +1887,10 @@ func (x *ResourceClientResponse) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("resourceReleased")
 			ov.ResourceReleased.MarshalProtoJSON(s.WithField("resourceReleased"))
+		case *ResourceClientResponse_ControlAck:
+			s.WriteMoreIf(&wroteField)
+			s.WriteObjectField("controlAck")
+			ov.ControlAck.MarshalProtoJSON(s.WithField("controlAck"))
 		}
 	}
 	s.WriteObjectEnd()
@@ -1587,12 +1928,63 @@ func (x *ResourceClientResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.ResourceReleased = &ResourceReleasedResponse{}
 			ov.ResourceReleased.UnmarshalProtoJSON(s.WithField("resource_released", true))
+		case "control_ack", "controlAck":
+			ov := &ResourceClientResponse_ControlAck{}
+			x.Body = ov
+			if s.ReadNil() {
+				ov.ControlAck = nil
+				return
+			}
+			ov.ControlAck = &ResourceClientControlAck{}
+			ov.ControlAck.UnmarshalProtoJSON(s.WithField("control_ack", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the ResourceClientResponse from JSON.
 func (x *ResourceClientResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ResourceClientControlAck message to JSON.
+func (x *ResourceClientControlAck) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ControlId != 0 || s.HasField("controlId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("controlId")
+		s.WriteUint32(x.ControlId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ResourceClientControlAck to JSON.
+func (x *ResourceClientControlAck) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ResourceClientControlAck message from JSON.
+func (x *ResourceClientControlAck) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "control_id", "controlId":
+			s.AddField("control_id")
+			x.ControlId = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ResourceClientControlAck from JSON.
+func (x *ResourceClientControlAck) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1656,11 +2048,6 @@ func (x *ResourceClientInit) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rootResourceId")
 		s.WriteUint32(x.RootResourceId)
 	}
-	if x.SupportsResourceAdoptionAck || s.HasField("supportsResourceAdoptionAck") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("supportsResourceAdoptionAck")
-		s.WriteBool(x.SupportsResourceAdoptionAck)
-	}
 	s.WriteObjectEnd()
 }
 
@@ -1684,175 +2071,12 @@ func (x *ResourceClientInit) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "root_resource_id", "rootResourceId":
 			s.AddField("root_resource_id")
 			x.RootResourceId = s.ReadUint32()
-		case "supports_resource_adoption_ack", "supportsResourceAdoptionAck":
-			s.AddField("supports_resource_adoption_ack")
-			x.SupportsResourceAdoptionAck = s.ReadBool()
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the ResourceClientInit from JSON.
 func (x *ResourceClientInit) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the ResourceRefReleaseRequest message to JSON.
-func (x *ResourceRefReleaseRequest) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.ClientHandleId != 0 || s.HasField("clientHandleId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("clientHandleId")
-		s.WriteUint32(x.ClientHandleId)
-	}
-	if x.ResourceId != 0 || s.HasField("resourceId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("resourceId")
-		s.WriteUint32(x.ResourceId)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ResourceRefReleaseRequest to JSON.
-func (x *ResourceRefReleaseRequest) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ResourceRefReleaseRequest message from JSON.
-func (x *ResourceRefReleaseRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "client_handle_id", "clientHandleId":
-			s.AddField("client_handle_id")
-			x.ClientHandleId = s.ReadUint32()
-		case "resource_id", "resourceId":
-			s.AddField("resource_id")
-			x.ResourceId = s.ReadUint32()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the ResourceRefReleaseRequest from JSON.
-func (x *ResourceRefReleaseRequest) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the ResourceRefReleaseResponse message to JSON.
-func (x *ResourceRefReleaseResponse) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ResourceRefReleaseResponse to JSON.
-func (x *ResourceRefReleaseResponse) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ResourceRefReleaseResponse message from JSON.
-func (x *ResourceRefReleaseResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		// no fields
-	})
-}
-
-// UnmarshalJSON unmarshals the ResourceRefReleaseResponse from JSON.
-func (x *ResourceRefReleaseResponse) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the ResourceRefAdoptRequest message to JSON.
-func (x *ResourceRefAdoptRequest) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.ClientHandleId != 0 || s.HasField("clientHandleId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("clientHandleId")
-		s.WriteUint32(x.ClientHandleId)
-	}
-	if x.ResourceId != 0 || s.HasField("resourceId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("resourceId")
-		s.WriteUint32(x.ResourceId)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ResourceRefAdoptRequest to JSON.
-func (x *ResourceRefAdoptRequest) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ResourceRefAdoptRequest message from JSON.
-func (x *ResourceRefAdoptRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "client_handle_id", "clientHandleId":
-			s.AddField("client_handle_id")
-			x.ClientHandleId = s.ReadUint32()
-		case "resource_id", "resourceId":
-			s.AddField("resource_id")
-			x.ResourceId = s.ReadUint32()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the ResourceRefAdoptRequest from JSON.
-func (x *ResourceRefAdoptRequest) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the ResourceRefAdoptResponse message to JSON.
-func (x *ResourceRefAdoptResponse) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ResourceRefAdoptResponse to JSON.
-func (x *ResourceRefAdoptResponse) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ResourceRefAdoptResponse message from JSON.
-func (x *ResourceRefAdoptResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		// no fields
-	})
-}
-
-// UnmarshalJSON unmarshals the ResourceRefAdoptResponse from JSON.
-func (x *ResourceRefAdoptResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2333,8 +2557,195 @@ func (m *ResourceClientRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.SupportsResourceAdoptionAck {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.SupportsResourceAdoptionAck)
+	if vtmsg, ok := m.Body.(interface {
+		MarshalToSizedBufferVT([]byte) (int, error)
+	}); ok {
+		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+	}
+	if m.ControlId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ControlId))
+		i--
+		dAtA[i] = 0x28
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceClientRequest_Init) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceClientRequest_Init) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Init != nil {
+		size, err := m.Init.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x12
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceClientRequest_Adopt) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceClientRequest_Adopt) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Adopt != nil {
+		size, err := m.Adopt.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x1a
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceClientRequest_Release) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceClientRequest_Release) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.Release != nil {
+		size, err := m.Release.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x22
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceClientInitRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ResourceClientInitRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceClientInitRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceClientAdopt) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ResourceClientAdopt) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceClientAdopt) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceClientRelease) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ResourceClientRelease) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceClientRelease) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -2430,6 +2841,67 @@ func (m *ResourceClientResponse_ResourceReleased) MarshalToSizedBufferVT(dAtA []
 	return len(dAtA) - i, nil
 }
 
+func (m *ResourceClientResponse_ControlAck) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceClientResponse_ControlAck) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	if m.ControlAck != nil {
+		size, err := m.ControlAck.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	} else {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
+		i--
+		dAtA[i] = 0x22
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ResourceClientControlAck) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ResourceClientControlAck) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ResourceClientControlAck) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ControlId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ControlId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *ResourceReleasedResponse) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2496,11 +2968,6 @@ func (m *ResourceClientInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if m.SupportsResourceAdoptionAck {
-		i = protobuf_go_lite.EncodeBool(dAtA, i, m.SupportsResourceAdoptionAck)
-		i--
-		dAtA[i] = 0x18
-	}
 	if m.RootResourceId != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RootResourceId))
 		i--
@@ -2510,154 +2977,6 @@ func (m *ResourceClientInit) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ClientHandleId))
 		i--
 		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *ResourceRefReleaseRequest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ResourceRefReleaseRequest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ResourceRefReleaseRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.ResourceId != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.ClientHandleId != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ClientHandleId))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *ResourceRefReleaseResponse) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ResourceRefReleaseResponse) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ResourceRefReleaseResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *ResourceRefAdoptRequest) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ResourceRefAdoptRequest) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ResourceRefAdoptRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if m.ResourceId != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.ClientHandleId != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ClientHandleId))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *ResourceRefAdoptResponse) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ResourceRefAdoptResponse) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ResourceRefAdoptResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
 	return len(dAtA) - i, nil
 }
@@ -3157,7 +3476,87 @@ func (m *ResourceClientRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.SupportsResourceAdoptionAck)
+	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
+		n += vtmsg.SizeVT()
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ControlId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ResourceClientRequest_Init) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Init != nil {
+		l = m.Init.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *ResourceClientRequest_Adopt) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Adopt != nil {
+		l = m.Adopt.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *ResourceClientRequest_Release) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Release != nil {
+		l = m.Release.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *ResourceClientInitRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ResourceClientAdopt) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ResourceClientRelease) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3205,6 +3604,32 @@ func (m *ResourceClientResponse_ResourceReleased) SizeVT() (n int) {
 	return n
 }
 
+func (m *ResourceClientResponse_ControlAck) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ControlAck != nil {
+		l = m.ControlAck.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	} else {
+		n += 2
+	}
+	return n
+}
+
+func (m *ResourceClientControlAck) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ControlId)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *ResourceReleasedResponse) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3224,51 +3649,6 @@ func (m *ResourceClientInit) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ClientHandleId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.RootResourceId)
-	n += protobuf_go_lite.SizeBoolNonZero(1, m.SupportsResourceAdoptionAck)
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *ResourceRefReleaseRequest) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.ClientHandleId)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *ResourceRefReleaseResponse) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *ResourceRefAdoptRequest) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.ClientHandleId)
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *ResourceRefAdoptResponse) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
 	n += len(m.unknownFields)
 	return n
 }
@@ -3481,14 +3861,75 @@ func (m *ResourceAttachDetachAck) SizeVT() (n int) {
 func (x *ResourceClientRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResourceClientRequest")
-	if x.SupportsResourceAdoptionAck != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "supports_resource_adoption_ack")
-		protobuf_go_lite.TextWriteBool(&sb, x.SupportsResourceAdoptionAck)
+	switch body := x.Body.(type) {
+	case *ResourceClientRequest_Init:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "init")
+		if body.Init == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ResourceClientInitRequest{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Init)
+		}
+	case *ResourceClientRequest_Adopt:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "adopt")
+		if body.Adopt == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ResourceClientAdopt{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Adopt)
+		}
+	case *ResourceClientRequest_Release:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "release")
+		if body.Release == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ResourceClientRelease{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.Release)
+		}
+	}
+	if x.ControlId != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "control_id")
+		protobuf_go_lite.TextWriteUint(&sb, x.ControlId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *ResourceClientRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ResourceClientInitRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "ResourceClientInitRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ResourceClientInitRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ResourceClientAdopt) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResourceClientAdopt")
+	if x.ResourceId != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_id")
+		protobuf_go_lite.TextWriteUint(&sb, x.ResourceId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ResourceClientAdopt) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ResourceClientRelease) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResourceClientRelease")
+	if x.ResourceId != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_id")
+		protobuf_go_lite.TextWriteUint(&sb, x.ResourceId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ResourceClientRelease) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3510,11 +3951,32 @@ func (x *ResourceClientResponse) MarshalProtoText() string {
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.ResourceReleased)
 		}
+	case *ResourceClientResponse_ControlAck:
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "control_ack")
+		if body.ControlAck == nil {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, &ResourceClientControlAck{})
+		} else {
+			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.ControlAck)
+		}
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *ResourceClientResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ResourceClientControlAck) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResourceClientControlAck")
+	if x.ControlId != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "control_id")
+		protobuf_go_lite.TextWriteUint(&sb, x.ControlId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ResourceClientControlAck) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3543,70 +4005,10 @@ func (x *ResourceClientInit) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_resource_id")
 		protobuf_go_lite.TextWriteUint(&sb, x.RootResourceId)
 	}
-	if x.SupportsResourceAdoptionAck != false {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "supports_resource_adoption_ack")
-		protobuf_go_lite.TextWriteBool(&sb, x.SupportsResourceAdoptionAck)
-	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *ResourceClientInit) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *ResourceRefReleaseRequest) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResourceRefReleaseRequest")
-	if x.ClientHandleId != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "client_handle_id")
-		protobuf_go_lite.TextWriteUint(&sb, x.ClientHandleId)
-	}
-	if x.ResourceId != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_id")
-		protobuf_go_lite.TextWriteUint(&sb, x.ResourceId)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *ResourceRefReleaseRequest) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *ResourceRefReleaseResponse) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "ResourceRefReleaseResponse")
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *ResourceRefReleaseResponse) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *ResourceRefAdoptRequest) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ResourceRefAdoptRequest")
-	if x.ClientHandleId != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "client_handle_id")
-		protobuf_go_lite.TextWriteUint(&sb, x.ClientHandleId)
-	}
-	if x.ResourceId != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_id")
-		protobuf_go_lite.TextWriteUint(&sb, x.ResourceId)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *ResourceRefAdoptRequest) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *ResourceRefAdoptResponse) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "ResourceRefAdoptResponse")
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *ResourceRefAdoptResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3798,16 +4200,222 @@ func (m *ResourceClientRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: ResourceClientRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SupportsResourceAdoptionAck", wireType)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Init", wireType)
 			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SupportsResourceAdoptionAck = bool(v)
+			if oneof, ok := m.Body.(*ResourceClientRequest_Init); ok {
+				if err := oneof.Init.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ResourceClientInitRequest{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &ResourceClientRequest_Init{Init: v}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Adopt", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*ResourceClientRequest_Adopt); ok {
+				if err := oneof.Adopt.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ResourceClientAdopt{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &ResourceClientRequest_Adopt{Adopt: v}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Release", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*ResourceClientRequest_Release); ok {
+				if err := oneof.Release.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ResourceClientRelease{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &ResourceClientRequest_Release{Release: v}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ControlId", wireType)
+			}
+			m.ControlId = 0
+			m.ControlId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ResourceClientInitRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResourceClientInitRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResourceClientInitRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ResourceClientAdopt) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResourceClientAdopt: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResourceClientAdopt: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			m.ResourceId = 0
+			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ResourceClientRelease) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResourceClientRelease: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResourceClientRelease: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			m.ResourceId = 0
+			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3891,6 +4499,78 @@ func (m *ResourceClientResponse) UnmarshalVT(dAtA []byte) error {
 				m.Body = &ResourceClientResponse_ResourceReleased{ResourceReleased: v}
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ControlAck", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if oneof, ok := m.Body.(*ResourceClientResponse_ControlAck); ok {
+				if err := oneof.ControlAck.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+			} else {
+				v := &ResourceClientControlAck{}
+				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+					return err
+				}
+				m.Body = &ResourceClientResponse_ControlAck{ControlAck: v}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ResourceClientControlAck) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ResourceClientControlAck: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ResourceClientControlAck: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ControlId", wireType)
+			}
+			m.ControlId = 0
+			m.ControlId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -4004,224 +4684,6 @@ func (m *ResourceClientInit) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SupportsResourceAdoptionAck", wireType)
-			}
-			var v bool
-			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.SupportsResourceAdoptionAck = bool(v)
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *ResourceRefReleaseRequest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ResourceRefReleaseRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ResourceRefReleaseRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ClientHandleId", wireType)
-			}
-			m.ClientHandleId = 0
-			m.ClientHandleId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
-			}
-			m.ResourceId = 0
-			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *ResourceRefReleaseResponse) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ResourceRefReleaseResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ResourceRefReleaseResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *ResourceRefAdoptRequest) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ResourceRefAdoptRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ResourceRefAdoptRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ClientHandleId", wireType)
-			}
-			m.ClientHandleId = 0
-			m.ClientHandleId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
-			}
-			m.ResourceId = 0
-			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *ResourceRefAdoptResponse) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ResourceRefAdoptResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ResourceRefAdoptResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

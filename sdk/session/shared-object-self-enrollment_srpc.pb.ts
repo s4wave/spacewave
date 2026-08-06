@@ -11,7 +11,12 @@ import {
   WatchSharedObjectSelfEnrollmentStateResponse,
 } from './shared-object-self-enrollment.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * SharedObjectSelfEnrollmentResourceService provides the post-sign-in
@@ -93,6 +98,47 @@ export interface SharedObjectSelfEnrollmentResourceService {
   Skip(
     request: SkipSharedObjectSelfEnrollmentRequest,
     abortSignal?: AbortSignal,
+  ): Promise<SkipSharedObjectSelfEnrollmentResponse>
+}
+
+/**
+ * SharedObjectSelfEnrollmentResourceService provides the post-sign-in
+ * self-enrollment flow for the current session peer.
+ *
+ * @generated from service s4wave.session.SharedObjectSelfEnrollmentResourceService
+ */
+export interface SharedObjectSelfEnrollmentResourceServiceHandler {
+  /**
+   * WatchState streams self-enrollment state changes.
+   *
+   * @generated from rpc s4wave.session.SharedObjectSelfEnrollmentResourceService.WatchState
+   */
+  WatchState(
+    request: WatchSharedObjectSelfEnrollmentStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSharedObjectSelfEnrollmentStateResponse>
+
+  /**
+   * Start runs self-enrollment for the current pending set.
+   *
+   * @generated from rpc s4wave.session.SharedObjectSelfEnrollmentResourceService.Start
+   */
+  Start(
+    request: StartSharedObjectSelfEnrollmentRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StartSharedObjectSelfEnrollmentResponse>
+
+  /**
+   * Skip records the user's skip choice for the current generation.
+   *
+   * @generated from rpc s4wave.session.SharedObjectSelfEnrollmentResourceService.Skip
+   */
+  Skip(
+    request: SkipSharedObjectSelfEnrollmentRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<SkipSharedObjectSelfEnrollmentResponse>
 }
 

@@ -9,6 +9,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -49,6 +50,25 @@ export interface PubSubService {
   Subscribe(
     request: MessageStream<SubscribeRequest>,
     abortSignal?: AbortSignal,
+  ): MessageStream<SubscribeResponse>
+}
+
+/**
+ * PubSubService is the bifrost pubsub service.
+ *
+ * @generated from service pubsub.api.PubSubService
+ */
+export interface PubSubServiceHandler {
+  /**
+   * Subscribe subscribes to a channel, allowing the subscriber to publish
+   * messages over the same channel.
+   *
+   * @generated from rpc pubsub.api.PubSubService.Subscribe
+   */
+  Subscribe(
+    request: MessageStream<SubscribeRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<SubscribeResponse>
 }
 

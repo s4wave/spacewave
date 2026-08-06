@@ -17,7 +17,12 @@ import {
   WatchRecoveryStatusResponse,
 } from './status.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.status.SystemStatusService
@@ -132,6 +137,65 @@ export interface SystemStatusService {
   WatchRecoveryStatus(
     request: WatchRecoveryStatusRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchRecoveryStatusResponse>
+}
+
+/**
+ * @generated from service s4wave.status.SystemStatusService
+ */
+export interface SystemStatusServiceHandler {
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.WatchControllers
+   */
+  WatchControllers(
+    request: WatchControllersRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchControllersResponse>
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.WatchDirectives
+   */
+  WatchDirectives(
+    request: WatchDirectivesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchDirectivesResponse>
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.WatchPlugins
+   */
+  WatchPlugins(
+    request: WatchPluginsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchPluginsResponse>
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.WatchNetworkStats
+   */
+  WatchNetworkStats(
+    request: WatchNetworkStatsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchNetworkStatsResponse>
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.ReportRecoveryStatus
+   */
+  ReportRecoveryStatus(
+    request: ReportRecoveryStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReportRecoveryStatusResponse>
+
+  /**
+   * @generated from rpc s4wave.status.SystemStatusService.WatchRecoveryStatus
+   */
+  WatchRecoveryStatus(
+    request: WatchRecoveryStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchRecoveryStatusResponse>
 }
 

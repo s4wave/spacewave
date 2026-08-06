@@ -1,17 +1,23 @@
 package resource_server
 
 import (
+	"time"
+
 	"github.com/aperturerobotics/starpc/srpc"
 )
 
-// trackedResource holds state for an ongoing tracked resource.
 type trackedResource struct {
-	// mux is the srpc mux for the resource
-	mux srpc.Invoker
-	// value is the optional typed resource value.
-	value any
-	// ownerClientID is the client that owns this resource
+	mux           srpc.Invoker
+	value         any
 	ownerClientID uint32
-	// releaseFn is an optional callback when the resource is released
-	releaseFn func()
+	releaseFn     func()
+
+	// ResourceRpc-created resources remain pending until Adopt. The parent and
+	// invocation metadata make leaks diagnosable without coupling lifetime to
+	// invocation completion.
+	parentResourceID uint32
+	serviceID        string
+	methodID         string
+	createdAt        time.Time
+	pending          bool
 }

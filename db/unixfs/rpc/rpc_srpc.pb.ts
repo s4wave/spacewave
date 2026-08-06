@@ -51,7 +51,12 @@ import {
   ReleaseFSCursorResponse,
 } from './rpc.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * FSCursorService exposes an FSCursor and FSCursorOps tree via RPC.
@@ -573,6 +578,277 @@ export interface FSCursorService {
   OpsRemove(
     request: OpsRemoveRequest,
     abortSignal?: AbortSignal,
+  ): Promise<OpsRemoveResponse>
+}
+
+/**
+ * FSCursorService exposes an FSCursor and FSCursorOps tree via RPC.
+ *
+ * The server and client track FSCursor and FSCursorOps handles via integer IDs.
+ * The handle IDs start at 1, a zero ID indicates nil (empty).
+ * This service expects to have a single client access it at a time (calling FSCursorClient).
+ * Wrap the service in FSAccessService to construct one cursor service per client session.
+ *
+ * @generated from service unixfs.rpc.FSCursorService
+ */
+export interface FSCursorServiceHandler {
+  /**
+   * FSCursorClient starts an instance of a client for the FSCursorService,
+   * yielding a new client ID. The client can use that ID for future RPCs
+   * accessing the FSCursor tree. When the streaming RPC ends, references to
+   * cursors opened by the client will be released. The server will send
+   * FSCursorChange for any cursors the client has subscribed to.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.FSCursorClient
+   */
+  FSCursorClient(
+    request: FSCursorClientRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<FSCursorClientResponse>
+
+  /**
+   * GetProxyCursor returns an FSCursor to replace an existing one, if necessary.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.GetProxyCursor
+   */
+  GetProxyCursor(
+    request: GetProxyCursorRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetProxyCursorResponse>
+
+  /**
+   * GetCursorOps resolves the FSCursorOps handle.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.GetCursorOps
+   */
+  GetCursorOps(
+    request: GetCursorOpsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetCursorOpsResponse>
+
+  /**
+   * ReleaseFSCursor releases an FSCursor or FSCursorOps handle.
+   * This is a Fire and Forget RPC which will return instantly.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.ReleaseFSCursor
+   */
+  ReleaseFSCursor(
+    request: ReleaseFSCursorRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReleaseFSCursorResponse>
+
+  /**
+   * OpsGetPermissions returns the permissions bits of the file mode.
+   * The file mode portion of the value is ignored.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsGetPermissions
+   */
+  OpsGetPermissions(
+    request: OpsGetPermissionsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsGetPermissionsResponse>
+
+  /**
+   * OpsSetPermissions updates the permissions bits of the file mode.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsSetPermissions
+   */
+  OpsSetPermissions(
+    request: OpsSetPermissionsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsSetPermissionsResponse>
+
+  /**
+   * OpsGetSize returns the size of the inode (in bytes).
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsGetSize
+   */
+  OpsGetSize(
+    request: OpsGetSizeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsGetSizeResponse>
+
+  /**
+   * OpsGetModTimestamp returns the modification timestamp.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsGetModTimestamp
+   */
+  OpsGetModTimestamp(
+    request: OpsGetModTimestampRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsGetModTimestampResponse>
+
+  /**
+   * OpsSetModTimestamp updates the modification timestamp of the node.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsSetModTimestamp
+   */
+  OpsSetModTimestamp(
+    request: OpsSetModTimestampRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsSetModTimestampResponse>
+
+  /**
+   * OpsReadAt reads from a location in a File node.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsReadAt
+   */
+  OpsReadAt(
+    request: OpsReadAtRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsReadAtResponse>
+
+  /**
+   * OpsGetOptimalWriteSize returns the best write size to use for the Write call.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsGetOptimalWriteSize
+   */
+  OpsGetOptimalWriteSize(
+    request: OpsGetOptimalWriteSizeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsGetOptimalWriteSizeResponse>
+
+  /**
+   * OpsWriteAt writes to a location within a File node synchronously.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsWriteAt
+   */
+  OpsWriteAt(
+    request: OpsWriteAtRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsWriteAtResponse>
+
+  /**
+   * OpsTruncate shrinks or extends a file to the specified size.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsTruncate
+   */
+  OpsTruncate(
+    request: OpsTruncateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsTruncateResponse>
+
+  /**
+   * OpsLookup looks up a child entry in a directory.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsLookup
+   */
+  OpsLookup(
+    request: OpsLookupRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsLookupResponse>
+
+  /**
+   * OpsReaddirAll reads all directory entries.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsReaddirAll
+   */
+  OpsReaddirAll(
+    request: OpsReaddirAllRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<OpsReaddirAllResponse>
+
+  /**
+   * OpsMknod creates child entries in a directory.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsMknod
+   */
+  OpsMknod(
+    request: OpsMknodRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsMknodResponse>
+
+  /**
+   * OpsSymlink creates a symbolic link from a location to a path.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsSymlink
+   */
+  OpsSymlink(
+    request: OpsSymlinkRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsSymlinkResponse>
+
+  /**
+   * OpsReadlink reads a symbolic link contents.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsReadlink
+   */
+  OpsReadlink(
+    request: OpsReadlinkRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsReadlinkResponse>
+
+  /**
+   * OpsCopyTo performs an optimized copy of an dirent inode to another inode.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyTo
+   */
+  OpsCopyTo(
+    request: OpsCopyToRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsCopyToResponse>
+
+  /**
+   * OpsCopyFrom performs an optimized copy from another inode.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsCopyFrom
+   */
+  OpsCopyFrom(
+    request: OpsCopyFromRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsCopyFromResponse>
+
+  /**
+   * OpsMoveTo performs an atomic and optimized move to another inode.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveTo
+   */
+  OpsMoveTo(
+    request: OpsMoveToRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsMoveToResponse>
+
+  /**
+   * OpsMoveFrom performs an atomic and optimized move from another inode.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsMoveFrom
+   */
+  OpsMoveFrom(
+    request: OpsMoveFromRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpsMoveFromResponse>
+
+  /**
+   * OpsRemove deletes entries from a directory.
+   *
+   * @generated from rpc unixfs.rpc.FSCursorService.OpsRemove
+   */
+  OpsRemove(
+    request: OpsRemoveRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<OpsRemoveResponse>
 }
 

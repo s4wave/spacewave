@@ -127,27 +127,27 @@ Client (TypeScript)
     ↓
 1. client.accessRootResource()
     ↓
-2. ResourceClient RPC stream established
+2. Bidirectional ResourceClient stream established
     ↓
 3. Server assigns clientHandleId and rootResourceId
     ↓
-4. Client creates ClientResourceRef wrapper
+4. Client creates ClientResourceRef and sends Adopt
     ↓
 5. Client calls root.createSpace()
     ↓
-6. Server creates Space resource, returns resource_id
+6. Server creates a pending Space child, returns resource_id
     ↓
-7. Client receives resource_id, wraps in Space instance
+7. Client wraps resource_id and sends Adopt on ResourceClient
     ↓
 8. Client calls space.release() (or `using` scope ends)
     ↓
 9. Reference count decrements to zero
     ↓
-10. Client sends ResourceRefRelease RPC
+10. Client sends Release on ResourceClient
     ↓
 11. Server invokes cleanup callback, releases controller
     ↓
-12. Child resources automatically released (cascade)
+12. Pending child resources are released recursively
 ```
 
 ### Resource Server Architecture
@@ -695,9 +695,9 @@ await tx.commit()
 const spaceResource = useResource(
   sharedObjectBodyResource,
   async (parentSharedObjectBody) =>
-    parentSharedObjectBody ?
-      new Space(parentSharedObjectBody.resourceRef)
-    : null,
+    parentSharedObjectBody
+      ? new Space(parentSharedObjectBody.resourceRef)
+      : null,
   [], // deps array is required
 )
 
@@ -728,10 +728,10 @@ root.release() // Releases Root resource (on app exit)
 
 1. TypeScript calls `release()` on resources
 2. Reference count decrements
-3. When count reaches zero, sends `ResourceRefRelease` RPC to server
-4. Server calls release callback
+3. When the count reaches zero, the client appends `Release` to ResourceClient
+4. The server calls the release callback
 5. Go controllers release references
-6. Child resources automatically cascade release
+6. Pending child resources release recursively
 7. Storage connections closed, memory freed
 
 ## Summary

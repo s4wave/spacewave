@@ -15,7 +15,12 @@ import {
   WatchWorldOpsResponse,
 } from './registry.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.worldop.registry.WorldOpRegistryResourceService
@@ -62,6 +67,29 @@ export interface WorldOpRegistryResourceService {
   WatchWorldOps(
     request: WatchWorldOpsRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchWorldOpsResponse>
+}
+
+/**
+ * @generated from service s4wave.worldop.registry.WorldOpRegistryResourceService
+ */
+export interface WorldOpRegistryResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.worldop.registry.WorldOpRegistryResourceService.RegisterWorldOp
+   */
+  RegisterWorldOp(
+    request: RegisterWorldOpRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RegisterWorldOpResponse>
+
+  /**
+   * @generated from rpc s4wave.worldop.registry.WorldOpRegistryResourceService.WatchWorldOps
+   */
+  WatchWorldOps(
+    request: WatchWorldOpsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchWorldOpsResponse>
 }
 
@@ -173,6 +201,38 @@ export interface WorldOpHandlerService {
   ValidateOp(
     request: ValidateOpRequest,
     abortSignal?: AbortSignal,
+  ): Promise<ValidateOpResponse>
+}
+
+/**
+ * @generated from service s4wave.worldop.registry.WorldOpHandlerService
+ */
+export interface WorldOpHandlerServiceHandler {
+  /**
+   * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ApplyWorldOp
+   */
+  ApplyWorldOp(
+    request: ApplyWorldOpRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApplyWorldOpResponse>
+
+  /**
+   * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ApplyWorldObjectOp
+   */
+  ApplyWorldObjectOp(
+    request: ApplyWorldObjectOpRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApplyWorldObjectOpResponse>
+
+  /**
+   * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ValidateOp
+   */
+  ValidateOp(
+    request: ValidateOpRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ValidateOpResponse>
 }
 

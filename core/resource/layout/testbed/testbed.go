@@ -181,30 +181,30 @@ type Setup struct {
 	Engine *s4wave_world.Engine
 	// LayoutResourceID is the resource ID of the created layout.
 	LayoutResourceID uint32
+	// layoutResourceRef keeps LayoutResourceID adopted for the setup lifetime
+	layoutResourceRef resource_client.ResourceRef
 }
 
-// SetupLayoutEngine creates an engine with ObjectLayout type registered and a demo layout created.
-// Returns the setup struct containing engine, tx, and layout resource ID.
+// SetupLayoutEngine creates an engine with ObjectLayout registered and a demo
+// layout resource retained for the returned Setup.
 func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Setup, error) {
 	rootRef := t.ResClient.AccessRootResource()
+	defer rootRef.Release()
 
 	srpcClient, err := rootRef.GetClient()
 	if err != nil {
-		rootRef.Release()
 		return nil, errors.Wrap(err, "get SRPC client")
 	}
 
 	testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
 	createWorldResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
 	if err != nil {
-		rootRef.Release()
 		return nil, errors.Wrap(err, "create world")
 	}
 
 	engineRef := t.ResClient.CreateResourceReference(createWorldResp.ResourceId)
 	engine, err := s4wave_world.NewEngine(t.ResClient, engineRef)
 	if err != nil {
-		rootRef.Release()
 		return nil, errors.Wrap(err, "create engine")
 	}
 
@@ -212,7 +212,6 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 	sdkTx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		engine.Release()
-		rootRef.Release()
 		return nil, errors.Wrap(err, "create transaction")
 	}
 
@@ -221,7 +220,6 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 	if err != nil {
 		sdkTx.Release()
 		engine.Release()
-		rootRef.Release()
 		return nil, errors.Wrap(err, "marshal block")
 	}
 
@@ -229,7 +227,6 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 	if err != nil {
 		sdkTx.Release()
 		engine.Release()
-		rootRef.Release()
 		return nil, errors.Wrap(err, "apply world op")
 	}
 
@@ -237,7 +234,6 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 	if err != nil {
 		sdkTx.Release()
 		engine.Release()
-		rootRef.Release()
 		return nil, errors.Wrap(err, "commit")
 	}
 	sdkTx.Release()
@@ -247,7 +243,6 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 	readTx, err := engine.NewTransaction(ctx, false)
 	if err != nil {
 		engine.Release()
-		rootRef.Release()
 		return nil, errors.Wrap(err, "create read transaction")
 	}
 	defer readTx.Release()
@@ -255,7 +250,6 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 	txSrpcClient, err := readTx.GetResourceRef().GetClient()
 	if err != nil {
 		engine.Release()
-		rootRef.Release()
 		return nil, errors.Wrap(err, "get tx client")
 	}
 
@@ -265,19 +259,25 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 	})
 	if err != nil {
 		engine.Release()
-		rootRef.Release()
 		return nil, errors.Wrap(err, "access typed object")
 	}
 
+	// Adopt the layout before the deferred read transaction and root releases.
+	layoutRef := t.ResClient.CreateResourceReference(resp.ResourceId)
+
 	return &Setup{
-		Testbed:          t,
-		Engine:           engine,
-		LayoutResourceID: resp.ResourceId,
+		Testbed:           t,
+		Engine:            engine,
+		LayoutResourceID:  resp.ResourceId,
+		layoutResourceRef: layoutRef,
 	}, nil
 }
 
 // Release releases the setup resources.
 func (s *Setup) Release() {
+	if s.layoutResourceRef != nil {
+		s.layoutResourceRef.Release()
+	}
 	if s.Engine != nil {
 		s.Engine.Release()
 	}

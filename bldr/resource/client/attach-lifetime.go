@@ -41,8 +41,8 @@ func (l *attachLifetime) ensureSession() (*attachSession, error) {
 			l.mtx.Unlock()
 
 			select {
-			case <-l.client.ctx.Done():
-				return nil, l.client.ctx.Err()
+			case <-l.client.attachCtx.Done():
+				return nil, l.client.attachCtx.Err()
 			case <-initCh:
 				continue
 			}

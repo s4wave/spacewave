@@ -21,7 +21,7 @@ import {
   RegisterObjectTypeResponse,
 } from './host.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * PluginHostResourceService provides resource access for plugins.
@@ -206,6 +206,101 @@ export interface PluginHostResourceService {
   CompleteInitialCapabilityRegistration(
     request: CompleteInitialCapabilityRegistrationRequest,
     abortSignal?: AbortSignal,
+  ): Promise<CompleteInitialCapabilityRegistrationResponse>
+}
+
+/**
+ * PluginHostResourceService provides resource access for plugins.
+ *
+ * @generated from service bldr.plugin.host.PluginHostResourceService
+ */
+export interface PluginHostResourceServiceHandler {
+  /**
+   * AccessAssetsFS returns a resource ID for the plugin's assets filesystem.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.AccessAssetsFS
+   */
+  AccessAssetsFS(
+    request: AccessAssetsFSRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessAssetsFSResponse>
+
+  /**
+   * AccessDistFS returns a resource ID for the plugin's dist filesystem.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.AccessDistFS
+   */
+  AccessDistFS(
+    request: AccessDistFSRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessDistFSResponse>
+
+  /**
+   * AccessVolume returns a resource ID for the plugin's host volume.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.AccessVolume
+   */
+  AccessVolume(
+    request: AccessVolumeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessVolumeResponse>
+
+  /**
+   * AccessStateAtom returns a resource ID for a state atom store.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.AccessStateAtom
+   */
+  AccessStateAtom(
+    request: AccessStateAtomRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessStateAtomResponse>
+
+  /**
+   * AccessDesktopTray returns the process-lifetime desktop tray resource.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.AccessDesktopTray
+   */
+  AccessDesktopTray(
+    request: AccessDesktopTrayRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessDesktopTrayResponse>
+
+  /**
+   * GetPluginInfo returns information about the running plugin.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.GetPluginInfo
+   */
+  GetPluginInfo(
+    request: GetPluginInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetPluginInfoResponse>
+
+  /**
+   * RegisterObjectType registers an ObjectType served by the running plugin.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.RegisterObjectType
+   */
+  RegisterObjectType(
+    request: RegisterObjectTypeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RegisterObjectTypeResponse>
+
+  /**
+   * CompleteInitialCapabilityRegistration marks the plugin's startup capability-registration pass complete.
+   *
+   * @generated from rpc bldr.plugin.host.PluginHostResourceService.CompleteInitialCapabilityRegistration
+   */
+  CompleteInitialCapabilityRegistration(
+    request: CompleteInitialCapabilityRegistrationRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<CompleteInitialCapabilityRegistrationResponse>
 }
 

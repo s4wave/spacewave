@@ -94,11 +94,13 @@ vi.mock('@aptre/bldr-sdk/resource/server/index.js', () => ({
 
     register(_mux: unknown) {}
   },
-  constructChildResource: vi.fn((factory: () => unknown) => {
-    factory()
-    return { resourceId: 9001 }
-  }),
-  getCurrentResourceClient: vi.fn(() => ({
+  getResourceCall: vi.fn(() => ({
+    constructChildResource: vi.fn(
+      (factory: (signal: AbortSignal) => unknown) => {
+        factory(new AbortController().signal)
+        return { resourceId: 9001 }
+      },
+    ),
     getAttachedRef: vi.fn(() => ({ release: vi.fn() })),
   })),
   newResourceMux: vi.fn((...handlers: unknown[]) => ({ handlers })),
@@ -444,7 +446,7 @@ describe('notes backend registration', () => {
     const request = {
       [Symbol.asyncIterator]: vi.fn(() => iterator),
     }
-    const rpcResponse = pluginHandler.PluginRpc(request)
+    const rpcResponse = pluginHandler.PluginRpc(request, abort.signal)
 
     expect(request[Symbol.asyncIterator]).toHaveBeenCalledTimes(1)
     expect(h.handleRpcStream).toHaveBeenCalledTimes(1)

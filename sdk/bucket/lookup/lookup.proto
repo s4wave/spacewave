@@ -121,10 +121,8 @@ message BuildTransactionRequest {
 // BuildTransactionResponse is the response type for BuildTransaction.
 message BuildTransactionResponse {
   // TransactionResourceId is the ID of the BlockTransaction resource.
-  // @resource-adoption-id
   uint32 transaction_resource_id = 1;
   // CursorResourceId is the ID of the root BlockCursor resource.
-  // @resource-adoption-id
   uint32 cursor_resource_id = 2;
 }
 
@@ -139,10 +137,8 @@ message BuildTransactionAtRefRequest {
 // BuildTransactionAtRefResponse is the response type for BuildTransactionAtRef.
 message BuildTransactionAtRefResponse {
   // TransactionResourceId is the ID of the BlockTransaction resource.
-  // @resource-adoption-id
   uint32 transaction_resource_id = 1;
   // CursorResourceId is the ID of the root BlockCursor resource.
-  // @resource-adoption-id
   uint32 cursor_resource_id = 2;
 }
 

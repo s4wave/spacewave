@@ -14,6 +14,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -73,6 +74,35 @@ export interface Signaling {
   Session(
     request: MessageStream<SessionRequest>,
     abortSignal?: AbortSignal,
+  ): MessageStream<SessionResponse>
+}
+
+/**
+ * Signaling is a service which allows peers to signal each other via a RPC server.
+ *
+ * @generated from service signaling.rpc.Signaling
+ */
+export interface SignalingHandler {
+  /**
+   * Listen waits for messages to be available in our inbox from remote peers.
+   *
+   * @generated from rpc signaling.rpc.Signaling.Listen
+   */
+  Listen(
+    request: ListenRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<ListenResponse>
+
+  /**
+   * Session opens a signaling session to send and recv messages from a remote peer.
+   *
+   * @generated from rpc signaling.rpc.Signaling.Session
+   */
+  Session(
+    request: MessageStream<SessionRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<SessionResponse>
 }
 

@@ -9,6 +9,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -51,6 +52,26 @@ export interface ServiceWorkerHost {
   Fetch(
     request: MessageStream<FetchRequest>,
     abortSignal?: AbortSignal,
+  ): MessageStream<FetchResponse>
+}
+
+/**
+ * ServiceWorkerHost is exposed by the Go Runtime for the Worker to call.
+ *
+ * Implements FetchService.
+ *
+ * @generated from service web.runtime.sw.ServiceWorkerHost
+ */
+export interface ServiceWorkerHostHandler {
+  /**
+   * Fetch proxies a Fetch request with a streaming response.
+   *
+   * @generated from rpc web.runtime.sw.ServiceWorkerHost.Fetch
+   */
+  Fetch(
+    request: MessageStream<FetchRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<FetchResponse>
 }
 
