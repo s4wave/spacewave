@@ -326,8 +326,8 @@ func (f *FSCursorService) resolveFSCursorProxy(ctx context.Context, parentCursor
 					parentCursor.proxyHandleID = nil
 				} else {
 					// the proxy cursor is good. add our client & return it
-					if !slices.Contains(parentCursor.clients, clientID) {
-						parentCursor.clients = append(parentCursor.clients, clientID)
+					if !slices.Contains(proxyCursor.clients, clientID) {
+						proxyCursor.clients = append(proxyCursor.clients, clientID)
 						clientObj.cursors = append(clientObj.cursors, uint64(proxyHandleID)) //nolint:gosec
 					}
 					f.mtx.Unlock()

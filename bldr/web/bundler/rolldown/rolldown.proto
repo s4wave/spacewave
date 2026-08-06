@@ -1,0 +1,115 @@
+syntax = "proto3";
+package bldr.web.bundler.rolldown;
+option go_package = "github.com/s4wave/spacewave/bldr/web/bundler/rolldown";
+
+// Entrypoint names one source file to bundle.
+message Entrypoint {
+  string name = 1;
+  // InputPath is an absolute source file path.
+  string input_path = 2;
+}
+
+// GoScriptPolicy controls shared-import handling for GoScript output.
+message GoScriptPolicy {
+  // OutputRoot is the root used for shared GoScript imports.
+  string output_root = 1;
+  bool shared_external_imports = 2;
+  // SharedImportURLPrefix is prepended to shared external import URLs.
+  string shared_import_url_prefix = 3;
+}
+
+// BuildRequest describes one direct Rolldown/Oxc build.
+message BuildRequest {
+  // WorkingDir is the process working directory for path resolution.
+  string working_dir = 1;
+  // SourceRoot and OutputRoot are the input and output path roots.
+  string source_root = 2;
+  string output_root = 3;
+  repeated Entrypoint entrypoints = 4;
+  // Format is one of es, cjs, or iife.
+  string format = 5;
+  // Platform is one of browser, node, or neutral.
+  string platform = 6;
+  string target = 7;
+  // EntryFileNames, ChunkFileNames, and AssetFileNames are output naming policies.
+  string entry_file_names = 8;
+  string chunk_file_names = 9;
+  string asset_file_names = 10;
+  string public_path = 11;
+  bool code_splitting = 12;
+  // Sourcemap is one of none, inline, external, or both.
+  string sourcemap = 13;
+  bool minify = 14;
+  bool tree_shaking = 15;
+  string banner = 16;
+  map<string, string> defines = 17;
+  repeated string external = 18;
+  map<string, string> aliases = 19;
+  // Loaders map extensions to js, jsx, ts, tsx, json, text, dataurl, base64, binary, or asset.
+  map<string, string> loaders = 20;
+  map<string, string> virtual_modules = 21;
+  GoScriptPolicy goscript = 22;
+  repeated string inject = 23;
+  // BldrDistRoot identifies the Bldr distribution source root.
+  string bldr_dist_root = 24;
+  bool clean_output_dir = 25;
+  // ExternalPackages leaves bare package imports for the runtime to resolve.
+  bool external_packages = 26;
+  // SourceOverrides replace absolute input paths before Rolldown transforms them.
+  map<string, string> source_overrides = 27;
+  // PrefixAliases map import-specifier prefixes to absolute source directories.
+  map<string, string> prefix_aliases = 28;
+  // GlobalName names the object that receives exports from an IIFE build.
+  string global_name = 29;
+  // RouteCssImports reports CSS-bearing graphs without attempting to bundle CSS.
+  bool route_css_imports = 30;
+}
+
+// Diagnostic is a structured build warning or error.
+message Diagnostic {
+  // Severity identifies the diagnostic level.
+  string severity = 1;
+  // Message is the human-readable diagnostic text.
+  string message = 2;
+  // Code is the tool diagnostic code, when present.
+  string code = 3;
+  // File identifies the source location, when present.
+  string file = 4;
+  // Line and Column identify the source location, when present.
+  uint32 line = 5;
+  uint32 column = 6;
+  // LineText contains the source line at the diagnostic location.
+  string line_text = 7;
+}
+
+// BuildOutput describes one normalized emitted file.
+message BuildOutput {
+  // Path is output-root-relative and never contains .. segments.
+  string path = 1;
+  // Type classifies the file as javascript, map, or asset.
+  string type = 2;
+  string entrypoint_name = 3;
+  int64 bytes = 4;
+  int64 gzip_bytes = 5;
+  string sha256 = 6;
+}
+
+// ToolIdentity records the exact runner tool versions and host identity.
+message ToolIdentity {
+  string rolldown_version = 1;
+  string bun_version = 2;
+  string platform = 3;
+  string arch = 4;
+}
+
+// BuildResult contains normalized inputs, outputs, tool identity, and diagnostics.
+message BuildResult {
+  // Inputs are normalized absolute paths.
+  repeated string inputs = 1;
+  repeated BuildOutput outputs = 2;
+  map<string, string> entrypoint_outputs = 3;
+  ToolIdentity tool = 4;
+  repeated Diagnostic diagnostics = 5;
+  // HasCssImports reports that route_css_imports found a CSS-family import.
+  bool has_css_imports = 6;
+}

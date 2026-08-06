@@ -13,7 +13,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -298,9 +297,8 @@ func (c *Controller) BundleElectronHook(
 	// TODO: set webStartupSrcPath to control the root component in the WebView.
 	var webStartupSrcPath string
 
-	// build the electron entrypoint to the working entrypoint dir
+	// Build the Electron entrypoint in the working directory.
 	le.Debug("building electron entrypoint")
-	entrypoint_electron_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	distSrcDir := builderConf.GetDistSourcePath()
 	err = entrypoint_electron_bundle.BuildElectronBundle(ctx, le, stateDir, distSrcDir, workingEntrypointDir, webStartupSrcPath, minify, devMode)
 	if err != nil {
@@ -471,7 +469,7 @@ func (c *Controller) BundleSaucerHook(
 
 	// Build JS bundle
 	le.Debug("building saucer JS bundle...")
-	jsBundle, err := entrypoint_saucer_bundle.BuildSaucerJSBundle(le, distSrcDir, buildDir, jsMinification, jsSourcemaps, importMap)
+	jsBundle, err := entrypoint_saucer_bundle.BuildSaucerJSBundle(ctx, le, distSrcDir, buildDir, jsMinification, jsSourcemaps, importMap)
 	if err != nil {
 		return nil, errors.Wrap(err, "build saucer JS bundle")
 	}

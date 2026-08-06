@@ -8,12 +8,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	srpc "github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/keyed"
 	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_web_bundler_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/sirupsen/logrus"
@@ -80,28 +78,18 @@ export function startSocketSender() { return undefined }`),
 		t.Fatal(err)
 	}
 
-	result := esbuild.Build(esbuild.BuildOptions{
-		AbsWorkingDir: distDir,
-		Outfile:       filepath.Join(t.TempDir(), "vite-bootstrap.mjs"),
-		EntryPoints:   []string{bldr_web_bundler_vite.ResolveViteEntrypointPath(distDir)},
-		Target:        esbuild.ES2022,
-		Format:        esbuild.FormatESModule,
-		Platform:      esbuild.PlatformNode,
-		LogLevel:      esbuild.LogLevelSilent,
-		TreeShaking:   esbuild.TreeShakingTrue,
-		Drop:          esbuild.DropDebugger,
-		Define: map[string]string{
-			"BLDR_IS_NODE": "true",
-		},
-		Plugins: []esbuild.Plugin{
-			bldr_esbuild_build.ExternalNodeModulesPlugin(),
-			bldr_esbuild_build.GoVendorTsResolverPlugin(sourceRoot, distDir),
-		},
-		External: []string{"@aptre/protobuf-es-lite", "starpc", "vite"},
-		Bundle:   true,
-		Write:    false,
-	})
-	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
+	outputPath := filepath.Join(t.TempDir(), "vite-bootstrap.mjs")
+	if _, err := bldr_web_bundler_vite.BuildServiceScript(
+		ctx,
+		le,
+		t.TempDir(),
+		sourceRoot,
+		distDir,
+		outputPath,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(outputPath); err != nil {
 		t.Fatal(err)
 	}
 }

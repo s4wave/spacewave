@@ -428,8 +428,16 @@
       ],
       "protoFiles": ["bldr/web/bundler/esbuild/compiler/compiler.proto"]
     },
+    "github.com/s4wave/spacewave/bldr/web/bundler/rolldown": {
+      "hash": "06d51597c2d79922208895953a375367d8dd2e906040f439a58e4c0bf08864e5",
+      "generatedFiles": [
+        "bldr/web/bundler/rolldown/rolldown.pb.go",
+        "bldr/web/bundler/rolldown/rolldown.pb.ts"
+      ],
+      "protoFiles": ["bldr/web/bundler/rolldown/rolldown.proto"]
+    },
     "github.com/s4wave/spacewave/bldr/web/bundler/vite": {
-      "hash": "edc873f8e12b0f18b9b9a6f55c1d872a1f12453b04add1c83183c97df6a2f1b4",
+      "hash": "822e1f2c89e5a56d3b679ab9ff88064999894c12b69924eb90f4e1a9e84ef729",
       "generatedFiles": [
         "bldr/web/bundler/vite/vite.pb.go",
         "bldr/web/bundler/vite/vite.pb.ts",

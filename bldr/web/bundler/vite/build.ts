@@ -436,11 +436,12 @@ export async function buildAndAnalyze(
   webPkgRefs: Map<string, { root: string; subPaths: Set<string> }>,
 ) {
   const buildOptions: InlineConfig = {
+    ...config,
+    configFile: false,
     build: {
       ...config.build,
       watch: null,
     },
-    ...config,
     customLogger: config.customLogger ?? createSilentViteLogger(),
   }
 
@@ -487,12 +488,26 @@ export async function buildAndAnalyze(
 
   const allGlobalCssFiles = new Set<string>()
   analysis.globalCssFiles?.forEach((file) => allGlobalCssFiles.add(file))
+  const outputFiles = new Set<string>()
+  for (const output of outputChunks) {
+    if (
+      output.fileName === '.vite/manifest.json' ||
+      output.fileName === 'manifest.json'
+    ) {
+      continue
+    }
+    outputFiles.add(output.fileName)
+    if (output.type === 'chunk' && output.sourcemapFileName) {
+      outputFiles.add(output.sourcemapFileName)
+    }
+  }
 
   const result = {
     success: true,
     entrypointOutputs,
     inputFiles: Array.from(allInputFiles),
     globalCssFiles: Array.from(allGlobalCssFiles),
+    outputFiles: Array.from(outputFiles),
     webPkgRefs: Array.from(webPkgRefs.entries()).map(([pkgId, entry]) => ({
       pkgId,
       pkgRoot: entry.root,

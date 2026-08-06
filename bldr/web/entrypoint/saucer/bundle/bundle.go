@@ -6,16 +6,15 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
+	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/exec"
 	"github.com/s4wave/spacewave/bldr/util/npm"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
+	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
@@ -28,17 +27,6 @@ func SaucerDefine(devMode bool) map[string]string {
 		"BLDR_SAUCER": "true",
 		"BLDR_DEBUG":  strconv.FormatBool(devMode),
 	}
-}
-
-// EsbuildLogLevel is the log level when bundling the saucer entrypoint.
-var EsbuildLogLevel = esbuild.LogLevelWarning
-
-// SaucerBuildOpts are general options for building for Saucer.
-func SaucerBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildOptions {
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(bldrDistRoot, minify, !minify)
-	opts.Define = SaucerDefine(devMode)
-	opts.LogLevel = EsbuildLogLevel
-	return opts
 }
 
 // SaucerJSBundle contains the bundled JS files for Saucer.
@@ -56,6 +44,7 @@ type SaucerJSBundle struct {
 // importMap contains the web pkg import map (from the web pkg build).
 // Returns the bootstrap HTML and entrypoint JS.
 func BuildSaucerJSBundle(
+	ctx context.Context,
 	le *logrus.Entry,
 	bldrDistRoot,
 	buildDir string,
@@ -66,41 +55,53 @@ func BuildSaucerJSBundle(
 	le.Debug("generating saucer JS runtime bundle")
 
 	devMode := !minify
-
-	// Create build directory
 	saucerBuildDir := filepath.Join(buildDir, "saucer-js")
 	if err := fsutil.CleanCreateDir(saucerBuildDir); err != nil {
 		return nil, err
 	}
-
-	// Build the entrypoint bundle with external packages
-	// These external packages are served via fetch protocol at /b/pkg/
-	entrypointOpts := SaucerBuildOpts(bldrDistRoot, minify, devMode)
-	entrypointOpts.EntryPointsAdvanced = nil
-	entrypointOpts.EntryNames = ""
-	entrypointOpts.EntryPoints = []string{
-		"web/entrypoint/entrypoint.tsx",
-	}
-	entrypointOpts.Outfile = filepath.Join(saucerBuildDir, "entrypoint.mjs")
-	entrypointOpts.Platform = esbuild.PlatformBrowser
-	entrypointOpts.Format = esbuild.FormatESModule
-	entrypointOpts.Write = true
-	entrypointOpts.Bundle = true
-	// Use external packages - they will be loaded via import map from /b/pkg/
-	entrypointOpts.External = slices.Clone(web_pkg_external.BldrExternal)
-
+	sourceMap := "none"
 	if sourcemaps {
-		entrypointOpts.Sourcemap = esbuild.SourceMapInline
-	} else {
-		entrypointOpts.Sourcemap = esbuild.SourceMapNone
+		sourceMap = "inline"
 	}
-
-	entrypointRes := esbuild.Build(entrypointOpts)
-	if err := bldr_esbuild_build.BuildResultToErr(entrypointRes); err != nil {
+	result, err := bldr_web_bundler_rolldown.Build(
+		ctx,
+		le,
+		buildDir,
+		bldrDistRoot,
+		&bldr_web_bundler_rolldown.BuildRequest{
+			WorkingDir:   saucerBuildDir,
+			SourceRoot:   bldrDistRoot,
+			OutputRoot:   saucerBuildDir,
+			BldrDistRoot: bldrDistRoot,
+			Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
+				Name:      "entrypoint",
+				InputPath: bldr.ResolveDistSourcePath(bldrDistRoot, "web", "entrypoint", "entrypoint.tsx"),
+			}},
+			Format:         "es",
+			Platform:       "browser",
+			Target:         "es2024",
+			EntryFileNames: "entrypoint.mjs",
+			ChunkFileNames: "[name]-[hash].mjs",
+			AssetFileNames: "[name]-[hash][extname]",
+			Sourcemap:      sourceMap,
+			Minify:         minify,
+			TreeShaking:    true,
+			Banner:         entrypoint_browser_bundle.DefaultBanner()["js"],
+			Defines:        SaucerDefine(devMode),
+			External:       web_pkg_external.BldrExternal,
+			Loaders: map[string]string{
+				".wasm": "asset", ".woff": "asset", ".woff2": "asset",
+				".png": "asset", ".jpg": "asset", ".jpeg": "asset",
+				".svg": "asset", ".gif": "asset",
+			},
+		},
+	)
+	if err != nil {
 		return nil, errors.Wrap(err, "building entrypoint")
 	}
-
-	// Read the built JS file
+	if result.GetEntrypointOutputs()["entrypoint"] != "entrypoint.mjs" {
+		return nil, errors.Errorf("Saucer entrypoint output is %q", result.GetEntrypointOutputs()["entrypoint"])
+	}
 	entrypointJS, err := os.ReadFile(filepath.Join(saucerBuildDir, "entrypoint.mjs"))
 	if err != nil {
 		return nil, err

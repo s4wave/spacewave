@@ -823,78 +823,6 @@ export const LazyValue = "loaded from public runtime split chunk"
 	runBundledRuntimeEntryModule(t, filepath.Join(workDir, "..", "..", "bun"), outPath, "loaded from public runtime split chunk")
 }
 
-func TestRenderRolldownGoScriptConfigCodeSplittingWritesManualGroups(t *testing.T) {
-	config := compactRenderedGoScriptConfig(string(renderRolldownGoScriptConfig(rolldownGoScriptBundleOptions{
-		EntrypointPath:      "/work/plugin-goscript-entrypoint.ts",
-		BldrDistRoot:        "/dist",
-		SourceRoot:          "/src",
-		GoScriptOutputRoot:  "/goscript",
-		OutPath:             "/out/plugin.mjs",
-		OutDir:              "/out",
-		EntryFileName:       "plugin.mjs",
-		InputsPath:          "/work/inputs.json",
-		UndefinedImportPath: "/work/undefined-import.txt",
-		CodeSplitting:       true,
-	})))
-
-	if !strings.Contains(config, "codeSplitting:{groups:[") {
-		t.Fatalf("rendered config missing manual codeSplitting groups block:\n%s", config)
-	}
-	sharedIndex := strings.Index(config, `name:"shared"`)
-	if sharedIndex < 0 {
-		t.Fatalf("rendered config missing shared codeSplitting group:\n%s", config)
-	}
-	appIndex := strings.Index(config, `name:"app"`)
-	if appIndex < 0 {
-		t.Fatalf("rendered config missing app codeSplitting group:\n%s", config)
-	}
-	if sharedIndex > appIndex {
-		t.Fatalf("shared codeSplitting group must be rendered before app group:\n%s", config)
-	}
-	if !strings.Contains(config, `name:"shared",test:(id)=>isGoScriptModule(id,"")&&!isGoScriptModule(id,"github.com/s4wave/"),priority:1`) {
-		t.Fatalf("rendered config missing prioritized shared GoScript group with app exclusion:\n%s", config)
-	}
-	if !strings.Contains(config, `name:"app",test:(id)=>isGoScriptModule(id,"github.com/s4wave/")`) {
-		t.Fatalf("rendered config missing app GoScript group:\n%s", config)
-	}
-}
-
-func TestRenderRolldownGoScriptConfigCodeSplittingFalseKeepsSingleFileOutput(t *testing.T) {
-	config := compactRenderedGoScriptConfig(string(renderRolldownGoScriptConfig(rolldownGoScriptBundleOptions{
-		EntrypointPath:      "/work/plugin-goscript-entrypoint.ts",
-		BldrDistRoot:        "/dist",
-		SourceRoot:          "/src",
-		GoScriptOutputRoot:  "/goscript",
-		OutPath:             "/out/plugin.mjs",
-		OutDir:              "/out",
-		EntryFileName:       "plugin.mjs",
-		InputsPath:          "/work/inputs.json",
-		UndefinedImportPath: "/work/undefined-import.txt",
-		CodeSplitting:       false,
-	})))
-
-	if !strings.Contains(config, "file:opts.outPath,codeSplitting:false") {
-		t.Fatalf("rendered config missing single-file codeSplitting false output:\n%s", config)
-	}
-	if strings.Contains(config, "codeSplitting:{") || strings.Contains(config, "groups:[") {
-		t.Fatalf("rendered config should not include manual codeSplitting groups when disabled:\n%s", config)
-	}
-	if strings.Contains(config, `name:"app"`) || strings.Contains(config, `name:"shared"`) {
-		t.Fatalf("rendered config should not include app/shared codeSplitting groups when disabled:\n%s", config)
-	}
-}
-
-func compactRenderedGoScriptConfig(config string) string {
-	return strings.Map(func(r rune) rune {
-		switch r {
-		case ' ', '\n', '\r', '\t':
-			return -1
-		default:
-			return r
-		}
-	}, config)
-}
-
 func TestBuildWebGoScriptPluginScriptAppliesRolldownPolicies(t *testing.T) {
 	root := t.TempDir()
 	bldrDistRoot := filepath.Join(root, "dist")
@@ -965,6 +893,22 @@ export const Unused = 2
 		t.Fatalf("minified output should remain browser ESM:\n%s", minOut)
 	}
 	assertBundleReport(t, GoScriptBundleReportPath(minWorkDir), minOutPath, true, true, false, inputs)
+	reportBytes, err := os.ReadFile(GoScriptBundleReportPath(minWorkDir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var reportParser fastjson.Parser
+	report, err := reportParser.ParseBytes(reportBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf(
+		"GoScript Rolldown seed: raw=%d gzip=%d files=%d inputs=%d",
+		report.GetInt64("totalOutputBytes"),
+		report.GetInt64("totalOutputGzipBytes"),
+		report.GetInt("outputFileCount"),
+		report.GetInt("inputCount"),
+	)
 	if _, err := os.Stat(minOutPath + ".goscript-bundle-report.json"); !os.IsNotExist(err) {
 		t.Fatalf("dist report path exists or stat failed: %v", err)
 	}
@@ -1313,30 +1257,71 @@ func runBunModuleScript(t *testing.T, stateDir, script string, args ...string) {
 
 func writeRolldownToolFixture(t *testing.T, bldrDistRoot string) {
 	t.Helper()
-	cliPath := findTestRolldownCLIPath(t)
-	targetPath := filepath.Join(bldrDistRoot, "dist", "deps", filepath.FromSlash(rolldownCLIRelPath))
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
+	packageRoot, runnerPath := findTestRolldownPaths(t)
+	targetPackageRoot := filepath.Join(bldrDistRoot, "dist", "deps", "node_modules", "rolldown")
+	if err := os.MkdirAll(filepath.Dir(targetPackageRoot), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(cliPath, targetPath); err != nil {
+	if err := os.Symlink(packageRoot, targetPackageRoot); err != nil {
 		t.Fatal(err)
 	}
+	installedPackage, err := os.ReadFile(filepath.Join(packageRoot, "package.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parser fastjson.Parser
+	manifest, err := parser.ParseBytes(installedPackage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	installedVersion := string(manifest.GetStringBytes("version"))
+	if installedVersion == "" {
+		t.Fatal("Rolldown test package has no version")
+	}
+	writeTestFile(
+		t,
+		filepath.Join(bldrDistRoot, "dist", "deps", "package.json"),
+		`{"dependencies":{"rolldown":`+strconv.Quote(installedVersion)+`}}`,
+	)
+	runnerBytes, err := os.ReadFile(runnerPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	targetRunnerPath := filepath.Join(bldrDistRoot, "web", "bundler", "rolldown", "run-build.mjs")
+	writeTestFile(t, targetRunnerPath, string(runnerBytes))
 }
 
-func findTestRolldownCLIPath(t *testing.T) string {
+func findTestRolldownPaths(t *testing.T) (string, string) {
 	t.Helper()
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
+	var packageRoot, runnerPath string
 	for {
-		cliPath := filepath.Join(dir, filepath.FromSlash(rolldownCLIRelPath))
-		if info, err := os.Stat(cliPath); err == nil && !info.IsDir() {
-			return cliPath
+		if packageRoot == "" {
+			for _, candidate := range []string{
+				filepath.Join(dir, "dist", "deps", "node_modules", "rolldown"),
+				filepath.Join(dir, "node_modules", "rolldown"),
+			} {
+				if info, err := os.Stat(filepath.Join(candidate, "dist", "index.mjs")); err == nil && !info.IsDir() {
+					packageRoot = candidate
+					break
+				}
+			}
+		}
+		if runnerPath == "" {
+			candidate := filepath.Join(dir, "web", "bundler", "rolldown", "run-build.mjs")
+			if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+				runnerPath = candidate
+			}
+		}
+		if packageRoot != "" && runnerPath != "" {
+			return packageRoot, runnerPath
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			t.Fatal("rolldown test CLI not found")
+			t.Fatal("Rolldown package or direct runner test fixture not found")
 		}
 		dir = parent
 	}

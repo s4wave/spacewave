@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +16,20 @@ import (
 
 // installHashFile is the filename used to cache the install hash.
 const installHashFile = ".bldr-install-hash"
+
+func withInstallLock(ctx context.Context, targetDir string, fn func() error) (retErr error) {
+	if err := os.MkdirAll(filepath.Dir(targetDir), 0o755); err != nil {
+		return err
+	}
+	installLock := newInstallLock(targetDir + ".lock")
+	if err := installLock.Lock(ctx); err != nil {
+		return err
+	}
+	defer func() {
+		retErr = errors.Join(retErr, installLock.Unlock())
+	}()
+	return fn()
+}
 
 // EnsureBunInstall copies srcPackageJson and its sibling bun.lock, when
 // present, to targetDir and runs bun install, skipping the install if the
@@ -30,38 +45,40 @@ func EnsureBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackag
 	}
 
 	hash := bunInstallHash(data, lockData)
-	if installCurrent(targetDir, hash) {
-		le.Debug("bun install cached, skipping")
-		return nil
-	}
+	return withInstallLock(ctx, targetDir, func() error {
+		if installCurrent(targetDir, hash) {
+			le.Debug("bun install cached, skipping")
+			return nil
+		}
 
-	if err := fsutil.CleanCreateDir(targetDir); err != nil {
-		return err
-	}
-	// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
-	if err := os.WriteFile(filepath.Join(targetDir, "package.json"), data, 0o644); err != nil {
-		return err
-	}
-	if lockFound {
-		// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
-		if err := os.WriteFile(filepath.Join(targetDir, "bun.lock"), lockData, 0o644); err != nil {
+		if err := fsutil.CleanCreateDir(targetDir); err != nil {
 			return err
 		}
-	}
+		// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
+		if err := os.WriteFile(filepath.Join(targetDir, "package.json"), data, 0o644); err != nil {
+			return err
+		}
+		if lockFound {
+			// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
+			if err := os.WriteFile(filepath.Join(targetDir, "bun.lock"), lockData, 0o644); err != nil {
+				return err
+			}
+		}
 
-	installArgs := []string{"--cwd", targetDir}
-	if lockFound {
-		installArgs = append(installArgs, "--frozen-lockfile")
-	}
-	cmd, err := BunInstall(ctx, le, stateDir, installArgs...)
-	if err != nil {
-		return err
-	}
-	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
-		return err
-	}
+		installArgs := []string{"--cwd", targetDir}
+		if lockFound {
+			installArgs = append(installArgs, "--frozen-lockfile")
+		}
+		cmd, err := BunInstall(ctx, le, stateDir, installArgs...)
+		if err != nil {
+			return err
+		}
+		if err := exec.StartAndWait(ctx, le, cmd); err != nil {
+			return err
+		}
 
-	return writeInstallHash(targetDir, hash)
+		return writeInstallHash(targetDir, hash)
+	})
 }
 
 func readSiblingBunLock(srcPackageJson string) ([]byte, bool, error) {
@@ -98,31 +115,33 @@ func bunInstallHash(packageJSON, bunLock []byte) string {
 // hash so switching targets between runs triggers a fresh install.
 func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pkg string, extraEnv ...string) error {
 	hash := sha256Hex([]byte(pkg + "\x00" + strings.Join(extraEnv, "\x00")))
-	if installCurrent(targetDir, hash) {
-		le.Debug("bun add cached, skipping")
-		return nil
-	}
+	return withInstallLock(ctx, targetDir, func() error {
+		if installCurrent(targetDir, hash) {
+			le.Debug("bun add cached, skipping")
+			return nil
+		}
 
-	if err := fsutil.CleanCreateDir(targetDir); err != nil {
-		return err
-	}
-	// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
-	if err := os.WriteFile(filepath.Join(targetDir, "package.json"), []byte("{}"), 0o644); err != nil {
-		return err
-	}
+		if err := fsutil.CleanCreateDir(targetDir); err != nil {
+			return err
+		}
+		// #nosec G703 -- targetDir is a managed cache directory created by the caller.
+		if err := os.WriteFile(filepath.Join(targetDir, "package.json"), []byte("{}"), 0o644); err != nil {
+			return err
+		}
 
-	cmd, err := BunAdd(ctx, le, stateDir, "--cwd", targetDir, pkg)
-	if err != nil {
-		return err
-	}
-	if len(extraEnv) > 0 {
-		cmd.Env = append(cmd.Env, extraEnv...)
-	}
-	if err := exec.StartAndWait(ctx, le, cmd); err != nil {
-		return err
-	}
+		cmd, err := BunAdd(ctx, le, stateDir, "--cwd", targetDir, pkg)
+		if err != nil {
+			return err
+		}
+		if len(extraEnv) > 0 {
+			cmd.Env = append(cmd.Env, extraEnv...)
+		}
+		if err := exec.StartAndWait(ctx, le, cmd); err != nil {
+			return err
+		}
 
-	return writeInstallHash(targetDir, hash)
+		return writeInstallHash(targetDir, hash)
+	})
 }
 
 // installCurrent returns true if targetDir has a matching install hash and node_modules exists.

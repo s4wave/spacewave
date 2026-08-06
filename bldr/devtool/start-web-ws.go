@@ -14,7 +14,6 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/go-websocket"
 	"github.com/aperturerobotics/starpc/srpc"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
@@ -210,9 +209,8 @@ func (d *DevtoolBus) ExecuteWebWs(
 	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
 	entrypointToRootPrefix := "../../../../"
 
-	// run esbuild to compile the web entrypoint
+	// Compile the web entrypoint.
 	le.Info("building websocket entrypoint")
-	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	bundleResult, err := entrypoint_browser_bundle.BuildBrowserBundle(
 		ctx,
 		le,

@@ -3,219 +3,193 @@
 package entrypoint_browser_bundle
 
 import (
+	"context"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/fastjson"
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
+	"github.com/sirupsen/logrus"
 )
 
-func TestBrowserBuildOptsResolvesGoVendorImportsFromNestedDir(t *testing.T) {
-	projectRoot := t.TempDir()
-	if err := os.WriteFile(
-		filepath.Join(projectRoot, "tsconfig.json"),
-		[]byte(`{"compilerOptions":{"paths":{"@go/*":["./vendor/*"]}}}`),
-		0o644,
-	); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(projectRoot, "global.d.ts"), nil, 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	vendorDir := filepath.Join(projectRoot, "vendor", "example")
-	if err := os.MkdirAll(vendorDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(
-		filepath.Join(vendorDir, "mod.ts"),
-		[]byte(`export const greeting = "hello"`),
-		0o644,
-	); err != nil {
-		t.Fatal(err)
-	}
-
-	workingDir := filepath.Join(projectRoot, "web", "entrypoint", "browser")
-	if err := os.MkdirAll(workingDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	entryFile := filepath.Join(workingDir, "entry.ts")
-	if err := os.WriteFile(
-		entryFile,
-		[]byte(`import { greeting } from "@go/example/mod.js"; console.log(greeting);`),
-		0o644,
-	); err != nil {
-		t.Fatal(err)
-	}
-
-	outFile := filepath.Join(projectRoot, "out.js")
-	opts := BrowserBuildOpts(workingDir, false, true)
-	opts.EntryPoints = []string{"entry.ts"}
-	opts.Outfile = outFile
-	opts.Write = true
-
-	result := esbuild.Build(opts)
-	if len(result.Errors) != 0 {
-		for _, e := range result.Errors {
-			t.Errorf("esbuild error: %s", e.Text)
-		}
-		t.Fatal("esbuild build failed")
-	}
-
-	out, err := os.ReadFile(outFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(out), "hello") {
-		t.Fatalf("output does not contain expected string: %s", out)
-	}
-}
-
-func TestBrowserEntrypointBuildOptsBuildsDistributedEntrypoint(t *testing.T) {
+func testBldrRoot(t *testing.T) string {
+	t.Helper()
 	testDir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	bldrRoot := filepath.Clean(filepath.Join(testDir, "../../../.."))
-	if _, err := os.Stat(filepath.Join(bldrRoot, "web", "entrypoint", "entrypoint.tsx")); os.IsNotExist(err) {
-		t.Skipf("skipping: bldr entrypoint not found under %s", bldrRoot)
+	root := filepath.Clean(filepath.Join(testDir, "../../../.."))
+	if _, err := os.Stat(filepath.Join(root, "web", "entrypoint", "entrypoint.tsx")); err != nil {
+		t.Fatalf("Bldr source root %s: %v", root, err)
 	}
-
-	outDir := t.TempDir()
-	opts := BrowserEntrypointBuildOpts(bldrRoot, false, false)
-	opts.Outdir = outDir
-	opts.Write = true
-
-	result := esbuild.Build(opts)
-	if len(result.Errors) != 0 {
-		for _, e := range result.Errors {
-			t.Errorf("esbuild error: %s", e.Text)
-		}
-		t.Fatal("esbuild build failed")
-	}
-
-	out, err := os.ReadFile(filepath.Join(outDir, "entrypoint.mjs"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, unexpected := range []string{
-		"@s4wave/web/router/app-path.js",
-		"@s4wave/app/prerender/boot-status.js",
-	} {
-		if strings.Contains(string(out), unexpected) {
-			t.Fatalf("output still contains unresolved import %q", unexpected)
-		}
-	}
+	return root
 }
 
-func TestServiceWorkerBuildOptsBuildsClassicScript(t *testing.T) {
-	opts := ServiceWorkerBuildOpts(t.TempDir(), false, true, true)
-	if opts.Format != esbuild.FormatIIFE {
-		t.Fatalf("service worker format=%v want %v", opts.Format, esbuild.FormatIIFE)
-	}
+func testBuildLogger() *logrus.Entry {
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	return logrus.NewEntry(logger)
 }
 
-func TestRuntimeDistDepsResolverPinsBldrRuntimePackages(t *testing.T) {
+func TestRendererProjectRoot(t *testing.T) {
 	projectRoot := t.TempDir()
-	for _, pkg := range []struct {
-		dir    string
-		symbol string
-		value  string
+	bldrDistRoot := filepath.Join(projectRoot, "bldr")
+	if err := os.MkdirAll(bldrDistRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(projectRoot, "go.mod"), []byte("module github.com/example/app\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := rendererProjectRoot(bldrDistRoot); got != projectRoot {
+		t.Fatalf("rendererProjectRoot() = %q, want %q", got, projectRoot)
+	}
+	if err := os.WriteFile(filepath.Join(bldrDistRoot, "go.mod"), []byte("module github.com/example/dist\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := rendererProjectRoot(bldrDistRoot); got != bldrDistRoot {
+		t.Fatalf("flattened rendererProjectRoot() = %q, want %q", got, bldrDistRoot)
+	}
+}
+
+func TestBrowserWorkerRequestPolicy(t *testing.T) {
+	root := testBldrRoot(t)
+	buildDir := t.TempDir()
+	service := browserScriptRequest(root, buildDir, serviceWorkerSpec(true, true, false))
+	if service.GetFormat() != "iife" || service.GetSourcemap() != "inline" {
+		t.Fatalf("service worker policy format=%q sourcemap=%q", service.GetFormat(), service.GetSourcemap())
+	}
+	if service.GetEntryFileNames() != "sw-[hash].mjs" || service.GetDefines()["BLDR_DEBUG"] != "false" {
+		t.Fatalf("service worker naming/defines = %q %v", service.GetEntryFileNames(), service.GetDefines())
+	}
+	shared := browserScriptRequest(root, buildDir, sharedWorkerSpec(false, false, true))
+	if shared.GetFormat() != "es" || shared.GetEntryFileNames() != "shw.mjs" {
+		t.Fatalf("shared worker policy format=%q name=%q", shared.GetFormat(), shared.GetEntryFileNames())
+	}
+}
+
+func TestBrowserWorkersBuildDistributedEntrypoints(t *testing.T) {
+	root := testBldrRoot(t)
+	for _, test := range []struct {
+		name string
+		spec browserScriptSpec
 	}{
-		{dir: filepath.Join("web", "bldr"), symbol: "runtimeMarker", value: "bldr-runtime"},
-		{dir: filepath.Join("web", "bldr-react"), symbol: "reactMarker", value: "bldr-react-runtime"},
+		{"service", serviceWorkerSpec(false, false, true)},
+		{"shared", sharedWorkerSpec(false, false, true)},
+		{"opfs", opfsWorkerSpec(false, false, true)},
 	} {
-		pkgDir := filepath.Join(projectRoot, pkg.dir)
-		if err := os.MkdirAll(pkgDir, 0o755); err != nil {
-			t.Fatal(err)
-		}
-		src := `export const ` + pkg.symbol + ` = "` + pkg.value + `";`
-		if err := os.WriteFile(filepath.Join(pkgDir, "index.ts"), []byte(src), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			buildDir := t.TempDir()
+			_, result, err := buildWorkerBundle(
+				context.Background(),
+				logrus.NewEntry(logrus.New()),
+				buildDir,
+				root,
+				buildDir,
+				test.spec,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(result.GetInputs()) == 0 || len(result.GetOutputs()) == 0 {
+				t.Fatalf("incomplete worker result: %s", result.String())
+			}
+		})
 	}
-	if err := os.MkdirAll(filepath.Join(projectRoot, "state", "build-web-pkgs"), 0o755); err != nil {
+}
+
+func writeForeignRendererOutput(t *testing.T, buildDir string) string {
+	t.Helper()
+	path := filepath.Join(buildDir, "entrypoint", "pkgs", "runtime", "index.mjs")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(
-		filepath.Join(projectRoot, "entry.ts"),
-		[]byte(`import { runtimeMarker } from "@aptre/bldr";
-import { reactMarker } from "@aptre/bldr-react";
-console.log(runtimeMarker, reactMarker);`),
-		0o644,
-	); err != nil {
+	if err := os.WriteFile(path, []byte("foreign-output"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	return path
+}
 
-	opts := BrowserBuildOpts(projectRoot, false, false)
-	ApplyRuntimeDistDepsResolver(&opts, filepath.Join(projectRoot, "state", "build-web-pkgs"))
-	opts.EntryPoints = []string{"entry.ts"}
-	opts.Outfile = filepath.Join(projectRoot, "out.js")
-	opts.Write = true
-
-	result := esbuild.Build(opts)
-	if len(result.Errors) != 0 {
-		for _, e := range result.Errors {
-			t.Errorf("esbuild error: %s", e.Text)
-		}
-		t.Fatal("esbuild build failed")
-	}
-
-	out, err := os.ReadFile(opts.Outfile)
+func requireForeignRendererOutput(t *testing.T, path string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, marker := range []string{"bldr-runtime", "bldr-react-runtime"} {
-		if !strings.Contains(string(out), marker) {
-			t.Fatalf("output does not contain %s marker: %s", marker, out)
-		}
+	if string(data) != "foreign-output" {
+		t.Fatalf("foreign renderer output changed: %q", data)
 	}
 }
 
-func TestBrowserBuildOptsAppliesReadableJavaScriptPolicy(t *testing.T) {
-	readable := BrowserBuildOpts(t.TempDir(), false, false)
-	if readable.MinifyWhitespace || readable.MinifyIdentifiers || readable.MinifySyntax {
-		t.Fatalf("readable opts minified: whitespace=%v identifiers=%v syntax=%v", readable.MinifyWhitespace, readable.MinifyIdentifiers, readable.MinifySyntax)
+func TestBuildRendererBuildsDistributedEntrypoint(t *testing.T) {
+	root := testBldrRoot(t)
+	stateDir := t.TempDir()
+	buildDir := filepath.Join(t.TempDir(), "build")
+	foreignPath := writeForeignRendererOutput(t, buildDir)
+	result, err := BuildRenderer(
+		context.Background(),
+		testBuildLogger(),
+		stateDir,
+		root,
+		buildDir,
+		ConfigFreeRendererOpts{
+			OutputDir:  filepath.Join(buildDir, "entrypoint"),
+			PublicPath: "/entrypoint/",
+			Defines: map[string]string{
+				"BLDR_IS_BROWSER": "true",
+				"BLDR_DEBUG":      "false",
+			},
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if readable.Sourcemap != esbuild.SourceMapNone {
-		t.Fatalf("readable opts sourcemap=%v want none", readable.Sourcemap)
+	if result.JSPath != filepath.Join("entrypoint", "entrypoint.mjs") {
+		t.Fatalf("renderer JS path = %q", result.JSPath)
 	}
-	if readable.TreeShaking != esbuild.TreeShakingTrue {
-		t.Fatalf("readable opts tree shaking=%v want true", readable.TreeShaking)
+	if len(result.InputFiles) == 0 || len(result.OutputFiles) == 0 {
+		t.Fatalf("incomplete renderer result: %+v", result)
 	}
-
-	minifiedWithMaps := BrowserBuildOpts(t.TempDir(), true, true)
-	if !minifiedWithMaps.MinifyWhitespace || !minifiedWithMaps.MinifyIdentifiers || !minifiedWithMaps.MinifySyntax {
-		t.Fatalf("minified opts not fully minified: whitespace=%v identifiers=%v syntax=%v", minifiedWithMaps.MinifyWhitespace, minifiedWithMaps.MinifyIdentifiers, minifiedWithMaps.MinifySyntax)
+	if _, err := os.Stat(filepath.Join(buildDir, result.JSPath)); err != nil {
+		t.Fatal(err)
 	}
-	if minifiedWithMaps.Sourcemap != esbuild.SourceMapLinked {
-		t.Fatalf("minified opts sourcemap=%v want linked", minifiedWithMaps.Sourcemap)
-	}
-	if minifiedWithMaps.TreeShaking != esbuild.TreeShakingTrue {
-		t.Fatalf("minified opts tree shaking=%v want true", minifiedWithMaps.TreeShaking)
-	}
+	requireForeignRendererOutput(t, foreignPath)
 }
 
-func TestApplyTinyGoNodeFallbacks(t *testing.T) {
-	opts := BrowserBuildOpts(t.TempDir(), false, true)
-	ApplyTinyGoNodeFallbacks(&opts)
-
-	for _, module := range []string{
-		"fs",
-		"crypto",
-		"util",
-		"node:fs",
-		"node:crypto",
-		"node:util",
-	} {
-		if !slices.Contains(opts.External, module) {
-			t.Fatalf("missing TinyGo external %q in %v", module, opts.External)
+func TestBuildRendererRoutesCSSGraphThroughVite(t *testing.T) {
+	root := testBldrRoot(t)
+	buildDir := filepath.Join(t.TempDir(), "build")
+	stateDir := t.TempDir()
+	foreignPath := writeForeignRendererOutput(t, buildDir)
+	result, err := BuildRenderer(
+		context.Background(),
+		testBuildLogger(),
+		stateDir,
+		root,
+		buildDir,
+		ConfigFreeRendererOpts{
+			OutputDir:  filepath.Join(buildDir, "entrypoint"),
+			PublicPath: "/entrypoint/",
+			Defines: map[string]string{
+				"BLDR_IS_BROWSER": "true",
+				"BLDR_DEBUG":      "false",
+				"BLDR_STARTUP_JS": `"../devtool-status/startup.tsx"`,
+			},
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.CSSPaths) == 0 {
+		t.Fatalf("CSS-bearing renderer produced no CSS outputs: %+v", result)
+	}
+	for _, cssPath := range result.CSSPaths {
+		if _, err := os.Stat(filepath.Join(buildDir, cssPath)); err != nil {
+			t.Fatal(err)
 		}
 	}
+	requireForeignRendererOutput(t, foreignPath)
 }
 
 func TestWriteBuildManifestIncludesServiceWorker(t *testing.T) {

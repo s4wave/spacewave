@@ -4,11 +4,12 @@ package plugin_host_wazero_quickjs_test
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	starpc_mock "github.com/aperturerobotics/starpc/mock"
 	"github.com/aperturerobotics/util/promise"
@@ -18,6 +19,7 @@ import (
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_wazero_quickjs "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs"
 	"github.com/s4wave/spacewave/bldr/testbed"
+	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,25 +29,49 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 	log.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(log)
 
-	// Build the TypeScript source to ESM format ES2022
-	result := esbuild_api.Build(esbuild_api.BuildOptions{
-		EntryPoints: []string{"plugin-quickjs_test.ts"},
-		Bundle:      true,
-		Format:      esbuild_api.FormatESModule,
-		Target:      esbuild_api.ES2022,
-		TreeShaking: esbuild_api.TreeShakingTrue,
-		Platform:    esbuild_api.PlatformBrowser,
-	})
-
-	if len(result.Errors) > 0 {
-		t.Fatalf("esbuild errors: %v", result.Errors)
+	// Build the fixture through the direct internal owner.
+	workingDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	if len(result.OutputFiles) == 0 {
-		t.Fatal("no output files from esbuild")
+	bldrRoot := filepath.Clean(filepath.Join(workingDir, "../../.."))
+	outputRoot := t.TempDir()
+	result, err := bldr_web_bundler_rolldown.Build(
+		ctx,
+		le,
+		t.TempDir(),
+		bldrRoot,
+		&bldr_web_bundler_rolldown.BuildRequest{
+			WorkingDir:   workingDir,
+			SourceRoot:   bldrRoot,
+			OutputRoot:   outputRoot,
+			BldrDistRoot: bldrRoot,
+			Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
+				Name:      "plugin-quickjs-test",
+				InputPath: filepath.Join(workingDir, "plugin-quickjs_test.ts"),
+			}},
+			Format:         "es",
+			Platform:       "browser",
+			Target:         "es2022",
+			EntryFileNames: "plugin-quickjs-test.js",
+			ChunkFileNames: "[name]-[hash].js",
+			AssetFileNames: "[name]-[hash][extname]",
+			Sourcemap:      "none",
+			TreeShaking:    true,
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	scriptContents := string(result.OutputFiles[0].Contents)
+	outputPath := result.GetEntrypointOutputs()["plugin-quickjs-test"]
+	if outputPath == "" {
+		t.Fatal("direct owner produced no QuickJS fixture output")
+	}
+	scriptBytes, err := os.ReadFile(filepath.Join(outputRoot, outputPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	scriptContents := string(scriptBytes)
 
 	tb, err := testbed.BuildTestbed(ctx, le)
 	if err != nil {

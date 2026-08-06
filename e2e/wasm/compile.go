@@ -3,27 +3,23 @@
 package wasm
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/pkg/errors"
+	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
+	"github.com/sirupsen/logrus"
 )
 
 // CompiledScripts maps base filenames to their served URL paths.
 // e.g. "navigate-hash.ts" -> "/e2e/navigate-hash.mjs"
 type CompiledScripts map[string]string
 
-// CompileTestScripts discovers *.ts files in dir, compiles each to an ESM
-// module via esbuild, writes the output to outDir, and returns a map of
-// base filename to served URL path.
-//
-// Uses gitroot.FindRepoRoot() to locate the alpha repo root and vendor
-// directory. For cross-repo usage where the alpha source is vendored,
-// use CompileTestScriptsFor instead.
+// CompileTestScripts discovers and bundles *.ts files as ESM modules.
 func CompileTestScripts(dir, outDir string) (CompiledScripts, error) {
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
@@ -32,15 +28,9 @@ func CompileTestScripts(dir, outDir string) (CompiledScripts, error) {
 	return CompileTestScriptsFor(dir, outDir, repoRoot, filepath.Join(repoRoot, "vendor"))
 }
 
-// CompileTestScriptsFor discovers *.ts files in dir, compiles each to an
-// ESM module via esbuild, writes the output to outDir, and returns a map
-// of base filename to served URL path.
-//
-// alphaRoot is the root of the alpha source tree (for @s4wave/* aliases).
-// vendorDir is the Go vendor directory (for @go/* and @aptre/* aliases).
-// For alpha itself, alphaRoot is the repo root and vendorDir is repo/vendor.
-// For downstream repos that vendor alpha, alphaRoot is the vendored alpha
-// path and vendorDir is the downstream repo's vendor directory.
+// CompileTestScriptsFor bundles *.ts files with explicit source aliases.
+// alphaRoot is the Spacewave source root and vendorDir is the caller's Go
+// vendor directory, which may belong to a downstream repository.
 func CompileTestScriptsFor(dir, outDir, alphaRoot, vendorDir string) (CompiledScripts, error) {
 	matches, err := filepath.Glob(filepath.Join(dir, "*.ts"))
 	if err != nil {
@@ -49,29 +39,76 @@ func CompileTestScriptsFor(dir, outDir, alphaRoot, vendorDir string) (CompiledSc
 	if len(matches) == 0 {
 		return CompiledScripts{}, nil
 	}
-
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return nil, errors.Wrap(err, "create output dir")
 	}
 
-	plugin := BuildResolverPlugin(alphaRoot, vendorDir)
-	external := BuildExternalList()
-
+	entrypoints := make([]*bldr_web_bundler_rolldown.Entrypoint, 0, len(matches))
 	scripts := make(CompiledScripts, len(matches))
-	for _, path := range matches {
-		name := filepath.Base(path)
-		outName := strings.TrimSuffix(name, ".ts") + ".mjs"
-		outPath := filepath.Join(outDir, outName)
-		if err := CompileOneScript(path, outPath, plugin, external); err != nil {
-			return nil, errors.Wrapf(err, "compile %s", name)
+	for _, inputPath := range matches {
+		name := filepath.Base(inputPath)
+		entrypointName := strings.TrimSuffix(name, ".ts")
+		absoluteInputPath, err := filepath.Abs(inputPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "resolve %s", name)
 		}
-		scripts[name] = "/e2e/" + outName
+		entrypoints = append(entrypoints, &bldr_web_bundler_rolldown.Entrypoint{
+			Name:      entrypointName,
+			InputPath: absoluteInputPath,
+		})
+		scripts[name] = "/e2e/" + entrypointName + ".mjs"
+	}
+
+	spacewaveVendor := filepath.Join(vendorDir, "github.com", "s4wave", "spacewave")
+	result, err := bldr_web_bundler_rolldown.Build(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		outDir,
+		alphaRoot,
+		&bldr_web_bundler_rolldown.BuildRequest{
+			WorkingDir:     outDir,
+			SourceRoot:     alphaRoot,
+			OutputRoot:     outDir,
+			BldrDistRoot:   alphaRoot,
+			Entrypoints:    entrypoints,
+			Format:         "es",
+			Platform:       "browser",
+			Target:         "es2022",
+			CodeSplitting:  true,
+			EntryFileNames: "[name].mjs",
+			ChunkFileNames: "[name]-[hash].mjs",
+			AssetFileNames: "[name]-[hash][extname]",
+			Sourcemap:      "none",
+			TreeShaking:    true,
+			External:       BuildExternalList(),
+			Aliases: map[string]string{
+				"@s4wave/sdk":     filepath.Join(alphaRoot, "sdk", "index.ts"),
+				"@s4wave/app":     filepath.Join(alphaRoot, "app"),
+				"@s4wave/web":     filepath.Join(alphaRoot, "web"),
+				"@aptre/bldr-sdk": filepath.Join(spacewaveVendor, "bldr", "sdk", "plugin.ts"),
+			},
+			PrefixAliases: map[string]string{
+				"@go/":             vendorDir,
+				"@s4wave/sdk/":     filepath.Join(alphaRoot, "sdk"),
+				"@s4wave/core/":    filepath.Join(alphaRoot, "core"),
+				"@s4wave/app/":     filepath.Join(alphaRoot, "app"),
+				"@s4wave/web/":     filepath.Join(alphaRoot, "web"),
+				"@aptre/bldr-sdk/": filepath.Join(spacewaveVendor, "bldr", "sdk"),
+			},
+		},
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "bundle e2e scripts")
+	}
+	for _, entrypoint := range entrypoints {
+		if got := result.GetEntrypointOutputs()[entrypoint.GetName()]; got != entrypoint.GetName()+".mjs" {
+			return nil, errors.Errorf("e2e output for %q is %q", entrypoint.GetName(), got)
+		}
 	}
 	return scripts, nil
 }
 
-// BuildExternalList returns the list of packages to externalize so the
-// browser resolves them via the app's import map.
+// BuildExternalList returns packages resolved by the app import map.
 func BuildExternalList() []string {
 	external := make([]string, 0, len(web_pkg_external.BldrExternal))
 	for _, pkg := range web_pkg_external.BldrExternal {
@@ -81,114 +118,4 @@ func BuildExternalList() []string {
 		external = append(external, pkg)
 	}
 	return external
-}
-
-// CompileOneScript bundles a single TS file to an ESM module.
-func CompileOneScript(path, outPath string, plugin esbuild.Plugin, external []string) error {
-	result := esbuild.Build(esbuild.BuildOptions{
-		EntryPoints: []string{path},
-		Bundle:      true,
-		Format:      esbuild.FormatESModule,
-		Target:      esbuild.ES2022,
-		TreeShaking: esbuild.TreeShakingTrue,
-		Platform:    esbuild.PlatformBrowser,
-		Outfile:     outPath,
-		Write:       true,
-		Plugins:     []esbuild.Plugin{plugin},
-		External:    external,
-	})
-
-	if len(result.Errors) > 0 {
-		msgs := make([]string, len(result.Errors))
-		for i, e := range result.Errors {
-			msgs[i] = e.Text
-		}
-		return errors.Errorf("esbuild: %s", strings.Join(msgs, "; "))
-	}
-	return nil
-}
-
-// BuildResolverPlugin creates an esbuild plugin that resolves TypeScript
-// path aliases (@go/*, @s4wave/*, @aptre/*) to the appropriate source and
-// vendor directories.
-//
-// alphaRoot is the root of the alpha source tree (sdk/, core/, app/, web/).
-// vendorDir is the Go vendor directory containing @go/* and @aptre/* deps.
-func BuildResolverPlugin(alphaRoot, vendorDir string) esbuild.Plugin {
-	return esbuild.Plugin{
-		Name: "e2e-resolver",
-		Setup: func(build esbuild.PluginBuild) {
-			// @go/* -> vendor/*
-			build.OnResolve(esbuild.OnResolveOptions{Filter: `^@go/`}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-				importPath := strings.TrimPrefix(args.Path, "@go/")
-				return ResolveWithTsFallback(filepath.Join(vendorDir, importPath))
-			})
-
-			// @s4wave/sdk/* -> alphaRoot/sdk/*
-			build.OnResolve(esbuild.OnResolveOptions{Filter: `^@s4wave/sdk`}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-				rest := strings.TrimPrefix(args.Path, "@s4wave/sdk")
-				if rest == "" {
-					return ResolveWithTsFallback(filepath.Join(alphaRoot, "sdk", "index.ts"))
-				}
-				return ResolveWithTsFallback(filepath.Join(alphaRoot, "sdk", strings.TrimPrefix(rest, "/")))
-			})
-
-			// @s4wave/core/* -> alphaRoot/core/*
-			build.OnResolve(esbuild.OnResolveOptions{Filter: `^@s4wave/core/`}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-				rest := strings.TrimPrefix(args.Path, "@s4wave/core/")
-				return ResolveWithTsFallback(filepath.Join(alphaRoot, "core", rest))
-			})
-
-			// @s4wave/app/* -> alphaRoot/app/*
-			build.OnResolve(esbuild.OnResolveOptions{Filter: `^@s4wave/app`}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-				rest := strings.TrimPrefix(args.Path, "@s4wave/app")
-				if rest == "" {
-					return ResolveWithTsFallback(filepath.Join(alphaRoot, "app"))
-				}
-				return ResolveWithTsFallback(filepath.Join(alphaRoot, "app", strings.TrimPrefix(rest, "/")))
-			})
-
-			// @s4wave/web/* -> alphaRoot/web/*
-			build.OnResolve(esbuild.OnResolveOptions{Filter: `^@s4wave/web`}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-				rest := strings.TrimPrefix(args.Path, "@s4wave/web")
-				if rest == "" {
-					return ResolveWithTsFallback(filepath.Join(alphaRoot, "web"))
-				}
-				return ResolveWithTsFallback(filepath.Join(alphaRoot, "web", strings.TrimPrefix(rest, "/")))
-			})
-
-			// @aptre/bldr-sdk -> vendor bldr SDK
-			build.OnResolve(esbuild.OnResolveOptions{Filter: `^@aptre/bldr-sdk`}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-				rest := strings.TrimPrefix(args.Path, "@aptre/bldr-sdk")
-				if rest == "" {
-					rest = "/plugin.ts"
-				}
-				return ResolveWithTsFallback(filepath.Join(vendorDir, "github.com/s4wave/spacewave/bldr/sdk", rest))
-			})
-
-			// @aptre/bldr -> vendor bldr web (externalized, but resolve for type checking)
-			build.OnResolve(esbuild.OnResolveOptions{Filter: `^@aptre/bldr$`}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-				return ResolveWithTsFallback(filepath.Join(vendorDir, "github.com/s4wave/spacewave/bldr/web/bldr/index.js"))
-			})
-
-			// @aptre/bldr-react -> vendor bldr-react (externalized, but resolve for type checking)
-			build.OnResolve(esbuild.OnResolveOptions{Filter: `^@aptre/bldr-react`}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-				return ResolveWithTsFallback(filepath.Join(vendorDir, "github.com/s4wave/spacewave/bldr/web/bldr-react/index.js"))
-			})
-		},
-	}
-}
-
-// ResolveWithTsFallback resolves a path, trying .ts extension if .js was requested.
-func ResolveWithTsFallback(resolved string) (esbuild.OnResolveResult, error) {
-	if before, ok := strings.CutSuffix(resolved, ".js"); ok {
-		tsPath := before + ".ts"
-		if _, err := os.Stat(tsPath); err == nil {
-			return esbuild.OnResolveResult{Path: tsPath}, nil
-		}
-	}
-	if _, err := os.Stat(resolved); err == nil {
-		return esbuild.OnResolveResult{Path: resolved}, nil
-	}
-	return esbuild.OnResolveResult{}, nil
 }

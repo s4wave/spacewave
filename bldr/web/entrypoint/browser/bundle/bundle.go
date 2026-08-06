@@ -6,18 +6,15 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"slices"
 	"strconv"
-	"strings"
 	"time"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	bldr "github.com/s4wave/spacewave/bldr"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/npm"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
+	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
@@ -647,9 +644,6 @@ function startBoot(){
 	return os.WriteFile(filepath.Join(dir, stableBootFilename), []byte(bootAsset), 0o644)
 }
 
-// EsbuildLogLevel is the log level when bundling the bundle.
-var EsbuildLogLevel = esbuild.LogLevelWarning
-
 // DefaultBanner is the default banner applied to code files.
 func DefaultBanner() map[string]string {
 	return map[string]string{
@@ -657,322 +651,126 @@ func DefaultBanner() map[string]string {
 	}
 }
 
-func resolveBrowserBuildRoot(workingDir string) string {
-	dir := workingDir
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "tsconfig.json")); err == nil {
-			return dir
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return workingDir
-		}
-		dir = parent
+func serviceWorkerSpec(minify, sourcemaps, devMode bool) browserScriptSpec {
+	entryFileNames := "sw.mjs"
+	if !devMode {
+		entryFileNames = "sw-[hash].mjs"
+	}
+	return browserScriptSpec{
+		name:           "sw",
+		inputPath:      "web/bldr/service-worker.ts",
+		entryFileNames: entryFileNames,
+		format:         "iife",
+		globalName:     "BldrServiceWorker",
+		minify:         minify,
+		sourcemaps:     sourcemaps,
+		devMode:        devMode,
 	}
 }
 
-func resolveBrowserDistBuildRoot(workingDir string) string {
-	dir := workingDir
-	for {
-		if _, err := os.Stat(filepath.Join(dir, "global.d.ts")); err == nil {
-			return dir
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return workingDir
-		}
-		dir = parent
+func sharedWorkerSpec(minify, sourcemaps, devMode bool) browserScriptSpec {
+	entryFileNames := "shw.mjs"
+	if !devMode {
+		entryFileNames = "shw-[hash].mjs"
+	}
+	return browserScriptSpec{
+		name:           "shw",
+		inputPath:      "web/bldr/shared-worker.ts",
+		entryFileNames: entryFileNames,
+		format:         "es",
+		minify:         minify,
+		sourcemaps:     sourcemaps,
+		devMode:        devMode,
 	}
 }
 
-// BrowserBuildOpts are general options for building for the browser.
-func BrowserBuildOpts(workingDir string, minify, sourcemaps bool) esbuild.BuildOptions {
-	sourceMap := esbuild.SourceMapNone
-	if sourcemaps {
-		sourceMap = esbuild.SourceMapLinked
+func opfsWorkerSpec(minify, sourcemaps, devMode bool) browserScriptSpec {
+	entryFileNames := "opfs-worker.mjs"
+	if !devMode {
+		entryFileNames = "opfs-worker-[hash].mjs"
 	}
-
-	var drop esbuild.Drop
-	if minify {
-		drop = esbuild.DropDebugger
-	}
-
-	projectRoot := resolveBrowserBuildRoot(workingDir)
-	distRoot := resolveBrowserDistBuildRoot(workingDir)
-
-	return esbuild.BuildOptions{
-		AbsWorkingDir: workingDir,
-
-		Target:      esbuild.ES2024,
-		Format:      esbuild.FormatESModule,
-		Platform:    esbuild.PlatformBrowser,
-		LogLevel:    EsbuildLogLevel,
-		TreeShaking: esbuild.TreeShakingTrue,
-		Sourcemap:   sourceMap,
-		Drop:        drop,
-
-		Metafile:  false,
-		Splitting: false,
-
-		Banner: DefaultBanner(),
-		Define: map[string]string{
-			"BLDR_IS_BROWSER": "true",
-		},
-		Plugins: []esbuild.Plugin{
-			bldr_esbuild_build.GoVendorTsResolverPlugin(projectRoot, distRoot),
-		},
-
-		Loader: map[string]esbuild.Loader{
-			".wasm":  esbuild.LoaderFile,
-			".woff":  esbuild.LoaderFile,
-			".woff2": esbuild.LoaderFile,
-			".png":   esbuild.LoaderFile,
-			".jpg":   esbuild.LoaderFile,
-			".jpeg":  esbuild.LoaderFile,
-			".svg":   esbuild.LoaderFile,
-			".gif":   esbuild.LoaderFile,
-		},
-		OutExtension: map[string]string{
-			".js": ".mjs",
-		},
-
-		MinifyWhitespace:  minify,
-		MinifyIdentifiers: minify,
-		MinifySyntax:      minify,
-
-		Bundle: true,
+	return browserScriptSpec{
+		name:           "opfs-worker",
+		inputPath:      "web/bldr/opfs-worker.ts",
+		entryFileNames: entryFileNames,
+		format:         "es",
+		minify:         minify,
+		sourcemaps:     sourcemaps,
+		devMode:        devMode,
 	}
 }
 
-// ApplyTinyGoNodeFallbacks keeps TinyGo's browser wasm_exec.js Node fallbacks
-// external so the injected browser stubs can provide runtime globals instead.
-func ApplyTinyGoNodeFallbacks(opts *esbuild.BuildOptions) {
-	opts.External = append(opts.External,
-		"fs",
-		"crypto",
-		"util",
-		"node:fs",
-		"node:crypto",
-		"node:util",
+func buildWorkerBundle(
+	ctx context.Context,
+	le *logrus.Entry,
+	stateDir,
+	bldrDistRoot,
+	buildDir string,
+	spec browserScriptSpec,
+) (string, *bldr_web_bundler_rolldown.BuildResult, error) {
+	result, err := buildBrowserScript(ctx, le, stateDir, bldrDistRoot, buildDir, spec)
+	if err != nil {
+		return "", nil, err
+	}
+	filename := result.GetEntrypointOutputs()[spec.name]
+	if filepath.Dir(filename) != "." {
+		return "", nil, errors.Errorf("%s output is not at build root: %s", spec.name, filename)
+	}
+	return filename, result, nil
+}
+
+// BuildServiceWorkerBundle builds the service worker through the direct owner.
+func BuildServiceWorkerBundle(
+	ctx context.Context,
+	le *logrus.Entry,
+	stateDir,
+	bldrDistRoot,
+	buildDir string,
+	minify,
+	sourcemaps,
+	devMode bool,
+) (string, error) {
+	filename, _, err := buildWorkerBundle(
+		ctx, le, stateDir, bldrDistRoot, buildDir,
+		serviceWorkerSpec(minify, sourcemaps, devMode),
 	)
+	return filename, err
 }
 
-// BrowserEntrypointBuildOpts creates the BuildOpts for the root browser entrypoint
-func BrowserEntrypointBuildOpts(bldrDistRoot string, minify, sourcemaps bool) esbuild.BuildOptions {
-	buildOpts := BrowserBuildOpts(bldrDistRoot, minify, sourcemaps)
-	buildOpts.External = slices.Clone(web_pkg_external.BldrExternal)
-	buildOpts.External = append(buildOpts.External, "tailwindcss")
-	buildOpts.EntryPointsAdvanced = []esbuild.EntryPoint{{
-		InputPath:  "web/entrypoint/entrypoint.tsx",
-		OutputPath: "entrypoint",
-	}}
-	return buildOpts
+// BuildSharedWorkerBundle builds the shared worker through the direct owner.
+func BuildSharedWorkerBundle(
+	ctx context.Context,
+	le *logrus.Entry,
+	stateDir,
+	bldrDistRoot,
+	buildDir string,
+	minify,
+	sourcemaps,
+	devMode bool,
+) (string, error) {
+	filename, _, err := buildWorkerBundle(
+		ctx, le, stateDir, bldrDistRoot, buildDir,
+		sharedWorkerSpec(minify, sourcemaps, devMode),
+	)
+	return filename, err
 }
 
-func RuntimeDistDepsResolverPlugin(bldrDistRoot string) esbuild.Plugin {
-	return esbuild.Plugin{
-		Name: "bldr-runtime-dist-deps-resolver",
-		Setup: func(build esbuild.PluginBuild) {
-			build.OnResolve(esbuild.OnResolveOptions{
-				Filter: `^@aptre/bldr(?:-react)?(?:/.*)?$`,
-			}, func(args esbuild.OnResolveArgs) (esbuild.OnResolveResult, error) {
-				modulePath, ok := resolveBldrRuntimePackagePath(bldrDistRoot, args.Path)
-				if !ok {
-					return esbuild.OnResolveResult{}, nil
-				}
-				if _, err := os.Stat(modulePath); err != nil {
-					return esbuild.OnResolveResult{}, errors.Wrapf(err, "resolve %s from bldr dist source", args.Path)
-				}
-				return esbuild.OnResolveResult{Path: modulePath}, nil
-			})
-		},
-	}
-}
-
-func ApplyRuntimeDistDepsResolver(opts *esbuild.BuildOptions, buildPkgsDir string) {
-	if buildPkgsDir == "" {
-		return
-	}
-	opts.Plugins = append(opts.Plugins, RuntimeDistDepsResolverPlugin(opts.AbsWorkingDir))
-}
-
-func resolveBldrRuntimePackagePath(bldrDistRoot, importPath string) (string, bool) {
-	for _, pkg := range []struct {
-		id  string
-		dir string
-	}{
-		{id: "@aptre/bldr", dir: filepath.Join("web", "bldr")},
-		{id: "@aptre/bldr-react", dir: filepath.Join("web", "bldr-react")},
-	} {
-		if importPath == pkg.id {
-			return bldr.ResolveDistSourcePath(bldrDistRoot, pkg.dir, "index.ts"), true
-		}
-		if after, ok := strings.CutPrefix(importPath, pkg.id+"/"); ok {
-			return bldr.ResolveDistSourcePath(bldrDistRoot, pkg.dir, after), true
-		}
-	}
-	return "", false
-}
-
-// ServiceWorkerBuildOpts creates the BuildOpts for the service worker
-func ServiceWorkerBuildOpts(bldrDistRoot string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
-	return ServiceWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, "", minify, sourcemaps, hash)
-}
-
-func ServiceWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
-	baseConfig := BrowserBuildOpts(bldrDistRoot, minify, sourcemaps)
-	ApplyRuntimeDistDepsResolver(&baseConfig, buildPkgsDir)
-	baseConfig.Format = esbuild.FormatIIFE
-	if hash {
-		baseConfig.EntryNames = "sw-[hash]"
-	} else {
-		baseConfig.EntryNames = "sw"
-	}
-	baseConfig.EntryPoints = []string{"web/bldr/service-worker.ts"}
-	baseConfig.EntryPointsAdvanced = nil
-	return baseConfig
-}
-
-// SharedWorkerBuildOpts creates the BuildOpts for the shared worker
-func SharedWorkerBuildOpts(bldrDistRoot string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
-	return SharedWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, "", minify, sourcemaps, hash)
-}
-
-func SharedWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
-	baseConfig := BrowserBuildOpts(bldrDistRoot, minify, sourcemaps)
-	ApplyRuntimeDistDepsResolver(&baseConfig, buildPkgsDir)
-	if hash {
-		baseConfig.EntryNames = "shw-[hash]"
-	} else {
-		baseConfig.EntryNames = "shw"
-	}
-	baseConfig.EntryPoints = []string{"web/bldr/shared-worker.ts"}
-	baseConfig.EntryPointsAdvanced = nil
-	return baseConfig
-}
-
-// BuildServiceWorkerBundle builds specifically the service worker files.
-//
-// Returns the filename of the service worker output file (including the hash).
-func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, sourcemaps, devMode bool) (string, error) {
-	return BuildServiceWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, "", minify, sourcemaps, devMode)
-}
-
-func BuildServiceWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
-	le.Debug("generating service-worker bundle")
-	result, _, err := runEsbuildBundle(serviceWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode))
-	if err != nil {
-		return "", err
-	}
-	return singleWorkerOutputName(result)
-}
-
-// serviceWorkerBundleOpts builds the fully configured service worker esbuild
-// options for buildDir.
-func serviceWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) esbuild.BuildOptions {
-	swOpts := ServiceWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir, minify, sourcemaps, !devMode)
-	swOpts.Outdir = buildDir
-	swOpts.Write = true
-	if sourcemaps {
-		swOpts.Sourcemap = esbuild.SourceMapInline
-	}
-	swOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
-	return swOpts
-}
-
-// singleWorkerOutputName returns the base filename of a worker build that must
-// produce exactly one output file.
-func singleWorkerOutputName(result esbuild.BuildResult) (string, error) {
-	if len(result.OutputFiles) != 1 {
-		return "", errors.Errorf("expected %d output files but got %d", 1, len(result.OutputFiles))
-	}
-	return filepath.Base(result.OutputFiles[0].Path), nil
-}
-
-// BuildSharedWorkerBundle builds specifically the shared worker files.
-//
-// Returns the filename of the shared worker output file (including the hash).
-func BuildSharedWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, sourcemaps, devMode bool) (string, error) {
-	return BuildSharedWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, "", minify, sourcemaps, devMode)
-}
-
-func BuildSharedWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
-	le.Debug("generating shared-worker bundle")
-	result, _, err := runEsbuildBundle(sharedWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode))
-	if err != nil {
-		return "", err
-	}
-	return mjsWorkerOutputName(result, "shared worker")
-}
-
-// sharedWorkerBundleOpts builds the fully configured shared worker esbuild
-// options for buildDir.
-func sharedWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) esbuild.BuildOptions {
-	shwOpts := SharedWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir, minify, sourcemaps, !devMode)
-	shwOpts.Outdir = buildDir
-	shwOpts.Write = true
-	if sourcemaps {
-		shwOpts.Sourcemap = esbuild.SourceMapInline
-	}
-	shwOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
-	return shwOpts
-}
-
-// mjsWorkerOutputName returns the base filename of the first .mjs output file.
-func mjsWorkerOutputName(result esbuild.BuildResult, label string) (string, error) {
-	for _, f := range result.OutputFiles {
-		if strings.HasSuffix(f.Path, ".mjs") {
-			return filepath.Base(f.Path), nil
-		}
-	}
-	return "", errors.Errorf("%s build produced no .mjs output", label)
-}
-
-// OpfsWorkerBuildOpts creates the BuildOpts for the OPFS protocol worker.
-func OpfsWorkerBuildOpts(bldrDistRoot string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
-	return OpfsWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, "", minify, sourcemaps, hash)
-}
-
-func OpfsWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir string, minify, sourcemaps, hash bool) esbuild.BuildOptions {
-	baseConfig := BrowserBuildOpts(bldrDistRoot, minify, sourcemaps)
-	ApplyRuntimeDistDepsResolver(&baseConfig, buildPkgsDir)
-	if hash {
-		baseConfig.EntryNames = "opfs-worker-[hash]"
-	} else {
-		baseConfig.EntryNames = "opfs-worker"
-	}
-	baseConfig.EntryPoints = []string{"web/bldr/opfs-worker.ts"}
-	baseConfig.EntryPointsAdvanced = nil
-	return baseConfig
-}
-
-// BuildOpfsWorkerBundle builds the OPFS protocol worker bundle.
-//
-// Returns the filename of the OPFS worker output file (including the hash).
-func BuildOpfsWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, sourcemaps, devMode bool) (string, error) {
-	return BuildOpfsWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, "", minify, sourcemaps, devMode)
-}
-
-func BuildOpfsWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
-	le.Debug("generating OPFS worker bundle")
-	result, _, err := runEsbuildBundle(opfsWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode))
-	if err != nil {
-		return "", err
-	}
-	return mjsWorkerOutputName(result, "OPFS worker")
-}
-
-// opfsWorkerBundleOpts builds the fully configured OPFS worker esbuild options
-// for buildDir.
-func opfsWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) esbuild.BuildOptions {
-	opfsWorkerOpts := OpfsWorkerBuildOptsWithRuntimeDeps(bldrDistRoot, buildPkgsDir, minify, sourcemaps, !devMode)
-	opfsWorkerOpts.Outdir = buildDir
-	opfsWorkerOpts.Write = true
-	if sourcemaps {
-		opfsWorkerOpts.Sourcemap = esbuild.SourceMapInline
-	}
-	opfsWorkerOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
-	return opfsWorkerOpts
+// BuildOpfsWorkerBundle builds the OPFS protocol worker through the direct owner.
+func BuildOpfsWorkerBundle(
+	ctx context.Context,
+	le *logrus.Entry,
+	stateDir,
+	bldrDistRoot,
+	buildDir string,
+	minify,
+	sourcemaps,
+	devMode bool,
+) (string, error) {
+	filename, _, err := buildWorkerBundle(
+		ctx, le, stateDir, bldrDistRoot, buildDir,
+		opfsWorkerSpec(minify, sourcemaps, devMode),
+	)
+	return filename, err
 }
 
 // BuildRendererIndex builds the web renderer index.html.
@@ -998,12 +796,69 @@ func renderIndexHTML(entrypointPath string, importMap web_entrypoint_index.Impor
 	return []byte(indexHTML), nil
 }
 
-// BuildRendererBundle builds the web renderer bundle files.
-//
-// webStartupSrcPath is the path to the startup js module to load for the react app entrypoint (can be empty).
-// entrypointHash, if set, builds into /entrypoint/{entrypointHash}/...
-// BuildRendererBundle builds the web renderer bundle and returns CSS output
-// paths relative to buildDir.
+func browserRendererSpec(
+	sourcesRoot,
+	bldrDistRoot,
+	buildDir,
+	runtimeJsPath,
+	runtimeSwPath,
+	runtimeShwPath,
+	runtimeOpfsWorkerPath,
+	webStartupSrcPath,
+	entrypointHash string,
+	minify,
+	sourcemaps,
+	forceDedicatedWorkers,
+	forceMessagePortWorkerComms,
+	devMode bool,
+) (ConfigFreeRendererOpts, error) {
+	outputDir := filepath.Join(buildDir, "entrypoint")
+	publicPath := "/entrypoint/"
+	if entrypointHash != "" {
+		outputDir = filepath.Join(outputDir, entrypointHash)
+		publicPath = "/entrypoint/" + entrypointHash + "/"
+	}
+	defines := map[string]string{
+		"BLDR_IS_BROWSER": "true",
+		"BLDR_DEBUG":      strconv.FormatBool(devMode),
+	}
+	if runtimeJsPath != "" {
+		defines["BLDR_RUNTIME_JS"] = strconv.Quote(runtimeJsPath)
+	}
+	if runtimeSwPath != "" {
+		defines["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
+	}
+	if runtimeShwPath != "" {
+		defines["BLDR_SHW_JS"] = strconv.Quote(runtimeShwPath)
+	}
+	if runtimeOpfsWorkerPath != "" {
+		defines["BLDR_OPFS_WORKER_JS"] = strconv.Quote(runtimeOpfsWorkerPath)
+	}
+	if webStartupSrcPath != "" {
+		distSourcesDirToSourcesRoot, err := filepath.Rel(bldrDistRoot, sourcesRoot)
+		if err != nil {
+			return ConfigFreeRendererOpts{}, err
+		}
+		defines["BLDR_STARTUP_JS"] = strconv.Quote(
+			filepath.Join(distSourcesDirToSourcesRoot, "../..", webStartupSrcPath),
+		)
+	}
+	if forceDedicatedWorkers {
+		defines["BLDR_FORCE_DEDICATED_WORKERS"] = "true"
+	}
+	if forceMessagePortWorkerComms {
+		defines["BLDR_FORCE_MESSAGEPORT_WORKER_COMMS"] = "true"
+	}
+	return ConfigFreeRendererOpts{
+		OutputDir:  outputDir,
+		PublicPath: publicPath,
+		Defines:    defines,
+		Minify:     minify,
+		Sourcemaps: sourcemaps,
+	}, nil
+}
+
+// BuildRendererBundle builds the browser renderer with config-free Vite.
 func BuildRendererBundle(
 	le *logrus.Entry,
 	sourcesRoot,
@@ -1023,115 +878,41 @@ func BuildRendererBundle(
 	webPkgImportMap web_entrypoint_index.ImportMap,
 ) ([]string, error) {
 	le.Debug("generating web renderer bundle")
-
 	if err := BuildRendererIndex(buildDir, "./"+stableBootFilename, webPkgImportMap); err != nil {
 		return nil, err
 	}
-
-	rendererBuildOpts, err := rendererBundleOpts(
-		sourcesRoot, bldrDistRoot, buildDir,
-		runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath,
-		webStartupSrcPath, entrypointHash,
-		minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode,
+	spec, err := browserRendererSpec(
+		sourcesRoot,
+		bldrDistRoot,
+		buildDir,
+		runtimeJsPath,
+		runtimeSwPath,
+		runtimeShwPath,
+		runtimeOpfsWorkerPath,
+		webStartupSrcPath,
+		entrypointHash,
+		minify,
+		sourcemaps,
+		forceDedicatedWorkers,
+		forceMessagePortWorkerComms,
+		devMode,
 	)
 	if err != nil {
 		return nil, err
 	}
-
-	res := esbuild.Build(rendererBuildOpts)
-	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
+	output, err := BuildRenderer(
+		context.Background(),
+		le,
+		buildDir,
+		bldrDistRoot,
+		buildDir,
+		spec,
+	)
+	if err != nil {
 		return nil, err
 	}
-	return collectRendererCSSPaths(res, buildDir), nil
+	return output.CSSPaths, nil
 }
-
-// rendererBundleOpts builds the fully configured browser renderer esbuild
-// options for buildDir.
-func rendererBundleOpts(
-	sourcesRoot,
-	bldrDistRoot,
-	buildDir,
-	runtimeJsPath,
-	runtimeSwPath,
-	runtimeShwPath,
-	runtimeOpfsWorkerPath,
-	webStartupSrcPath,
-	entrypointHash string,
-	minify,
-	sourcemaps,
-	forceDedicatedWorkers,
-	forceMessagePortWorkerComms,
-	devMode bool,
-) (esbuild.BuildOptions, error) {
-	webEntrypointOut := filepath.Join(buildDir, "entrypoint")
-	if entrypointHash != "" {
-		webEntrypointOut = filepath.Join(webEntrypointOut, entrypointHash)
-	}
-
-	rendererBuildOpts := BrowserEntrypointBuildOpts(bldrDistRoot, minify, sourcemaps)
-	rendererBuildOpts.Outdir = webEntrypointOut
-	rendererBuildOpts.Write = true
-
-	// Set PublicPath so esbuild emits correct URLs for file-loader assets
-	// (images, wasm, fonts). Assets are output to the entrypoint dir which is
-	// served at /entrypoint/ or /entrypoint/{hash}/.
-	assetPublicPath := "/entrypoint/"
-	if entrypointHash != "" {
-		assetPublicPath = "/entrypoint/" + entrypointHash + "/"
-	}
-	rendererBuildOpts.PublicPath = assetPublicPath
-
-	if runtimeJsPath != "" {
-		rendererBuildOpts.Define["BLDR_RUNTIME_JS"] = strconv.Quote(runtimeJsPath)
-	}
-	if runtimeSwPath != "" {
-		rendererBuildOpts.Define["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
-	}
-	if runtimeShwPath != "" {
-		rendererBuildOpts.Define["BLDR_SHW_JS"] = strconv.Quote(runtimeShwPath)
-	}
-	if runtimeOpfsWorkerPath != "" {
-		rendererBuildOpts.Define["BLDR_OPFS_WORKER_JS"] = strconv.Quote(runtimeOpfsWorkerPath)
-	}
-
-	distSourcesDirToSourcesRoot, err := filepath.Rel(bldrDistRoot, sourcesRoot)
-	if err != nil {
-		return esbuild.BuildOptions{}, err
-	}
-	if webStartupSrcPath != "" {
-		// esbuild interprets this path in an import() statement; we need a path
-		// relative to entrypoint.tsx, adding an extra .. for "web/entrypoint".
-		webStartupSrcPathRel := filepath.Join(distSourcesDirToSourcesRoot, "../..", webStartupSrcPath)
-		rendererBuildOpts.Define["BLDR_STARTUP_JS"] = strconv.Quote(webStartupSrcPathRel)
-	}
-
-	rendererBuildOpts.Define["BLDR_DEBUG"] = strconv.FormatBool(devMode)
-	if forceDedicatedWorkers {
-		rendererBuildOpts.Define["BLDR_FORCE_DEDICATED_WORKERS"] = "true"
-	}
-	if forceMessagePortWorkerComms {
-		rendererBuildOpts.Define["BLDR_FORCE_MESSAGEPORT_WORKER_COMMS"] = "true"
-	}
-	return rendererBuildOpts, nil
-}
-
-// collectRendererCSSPaths returns the renderer CSS output paths relative to
-// buildDir.
-func collectRendererCSSPaths(res esbuild.BuildResult, buildDir string) []string {
-	var cssPaths []string
-	for _, f := range res.OutputFiles {
-		if strings.HasSuffix(f.Path, ".css") {
-			rel, relErr := filepath.Rel(buildDir, f.Path)
-			if relErr == nil {
-				cssPaths = append(cssPaths, rel)
-			}
-		}
-	}
-	return cssPaths
-}
-
-// rendererEntrypointRelPath returns the renderer entrypoint output path relative
-// to the build dir.
 
 // BuildBrowserBundle builds and outputs the web & service worker files.
 //
@@ -1185,19 +966,19 @@ func BuildBrowserBundle(
 	workersStart := time.Now()
 
 	// service worker
-	swFilename, err := buildServiceWorkerCached(cache, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
+	swFilename, err := buildServiceWorkerCached(ctx, stateDir, cache, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
 
 	// shared worker
-	shwFilename, err := buildSharedWorkerCached(cache, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
+	shwFilename, err := buildSharedWorkerCached(ctx, stateDir, cache, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
 
 	// OPFS protocol worker
-	opfsWorkerFilename, err := buildOpfsWorkerCached(cache, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
+	opfsWorkerFilename, err := buildOpfsWorkerCached(ctx, stateDir, cache, bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
 	if err != nil {
 		return nil, err
 	}
@@ -1234,7 +1015,7 @@ func BuildBrowserBundle(
 
 	// renderer bundle
 	rendererStart := time.Now()
-	cssPaths, err := buildRendererCached(cache, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, webPkgImportMap)
+	cssPaths, err := buildRendererCached(ctx, stateDir, cache, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, webPkgImportMap)
 	if err != nil {
 		return nil, err
 	}

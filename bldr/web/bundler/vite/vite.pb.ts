@@ -161,6 +161,30 @@ export interface BuildRequest {
    * @generated from field: bool js_sourcemaps = 12;
    */
   jsSourcemaps?: boolean
+  /**
+   * Defines replaces compile-time identifiers in config-free internal builds.
+   *
+   * @generated from field: map<string, string> defines = 13;
+   */
+  defines?: { [key: string]: string }
+  /**
+   * FlatEntryNames emits entrypoint names at OutDir instead of source-relative paths.
+   *
+   * @generated from field: bool flat_entry_names = 14;
+   */
+  flatEntryNames?: boolean
+  /**
+   * SourcemapMode overrides JsSourcemaps with none, inline, or external.
+   *
+   * @generated from field: string sourcemap_mode = 15;
+   */
+  sourcemapMode?: string
+  /**
+   * ProjectRoot is the Go module root used to resolve @go imports.
+   *
+   * @generated from field: string project_root = 16;
+   */
+  projectRoot?: string
 }
 
 export const BuildRequest: MessageType<BuildRequest> =
@@ -203,6 +227,16 @@ export const BuildRequest: MessageType<BuildRequest> =
       },
       { no: 11, name: 'js_minification', kind: 'scalar', T: ScalarType.BOOL },
       { no: 12, name: 'js_sourcemaps', kind: 'scalar', T: ScalarType.BOOL },
+      {
+        no: 13,
+        name: 'defines',
+        kind: 'map',
+        K: ScalarType.STRING,
+        V: { kind: 'scalar', T: ScalarType.STRING },
+      },
+      { no: 14, name: 'flat_entry_names', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 15, name: 'sourcemap_mode', kind: 'scalar', T: ScalarType.STRING },
+      { no: 16, name: 'project_root', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -307,6 +341,12 @@ export interface BuildResponse {
    * @generated from field: repeated bldr.web.bundler.vite.WebPkgRef web_pkg_refs = 6;
    */
   webPkgRefs?: WebPkgRef[]
+  /**
+   * OutputFiles contains every emitted runtime file relative to OutDir.
+   *
+   * @generated from field: repeated string output_files = 7;
+   */
+  outputFiles?: string[]
 }
 
 export const BuildResponse: MessageType<BuildResponse> =
@@ -341,6 +381,13 @@ export const BuildResponse: MessageType<BuildResponse> =
         name: 'web_pkg_refs',
         kind: 'message',
         T: () => WebPkgRef,
+        repeated: true,
+      },
+      {
+        no: 7,
+        name: 'output_files',
+        kind: 'scalar',
+        T: ScalarType.STRING,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],

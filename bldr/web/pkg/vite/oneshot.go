@@ -11,14 +11,12 @@ import (
 	"strings"
 	"time"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/bun"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
 	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	"github.com/s4wave/spacewave/net/util/randstring"
 	"github.com/sirupsen/logrus"
@@ -50,40 +48,21 @@ func RunOneShot(
 	)
 	pipeUuid := "vite-" + strings.ToLower(b58.Encode(pipeUuidBin[:]))[:4] + "-" + randstring.RandomIdentifier(4)
 
-	// Compile the vite service script with esbuild.
+	// Compile the Vite service script through the direct internal owner.
 	if err := os.MkdirAll(workingPath, 0o755); err != nil {
 		return err
 	}
+	bunStateDir := filepath.Join(workingPath, "..", "..", "bun")
 	viteScriptPath := filepath.Join(workingPath, "bldr-"+pipeUuid+".mjs")
-	opts := esbuild.BuildOptions{
-		AbsWorkingDir: distSourcePath,
-		SourceRoot:    workingPath,
-		Outfile:       viteScriptPath,
-		EntryPoints:   []string{bldr_vite.ResolveViteEntrypointPath(distSourcePath)},
-		Target:        esbuild.ES2022,
-		Format:        esbuild.FormatESModule,
-		Platform:      esbuild.PlatformNode,
-		LogLevel:      esbuild.LogLevelWarning,
-		TreeShaking:   esbuild.TreeShakingTrue,
-		Sourcemap:     esbuild.SourceMapLinked,
-		Drop:          esbuild.DropDebugger,
-		Metafile:      false,
-		Splitting:     false,
-		Define: map[string]string{
-			"BLDR_IS_NODE": "true",
-			"NO_COLOR":     "1",
-		},
-		Plugins: []esbuild.Plugin{
-			bldr_esbuild_build.ExternalNodeModulesPlugin(),
-			bldr_esbuild_build.GoVendorTsResolverPlugin(sourcePath, distSourcePath),
-		},
-		External: []string{"starpc", "vite"},
-		Bundle:   true,
-		Write:    true,
-	}
-	result := esbuild.Build(opts)
-	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
-		return errors.Wrap(err, "compile vite script")
+	if _, err := bldr_vite.BuildServiceScript(
+		ctx,
+		le,
+		bunStateDir,
+		sourcePath,
+		distSourcePath,
+		viteScriptPath,
+	); err != nil {
+		return errors.Wrap(err, "compile Vite service script")
 	}
 	defer os.Remove(viteScriptPath)
 	defer os.Remove(viteScriptPath + ".map")
@@ -98,9 +77,6 @@ func RunOneShot(
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx, true)
 	go smc.AcceptPump(pipeListener)
 	defer smc.Close()
-
-	// Derive bun state directory.
-	bunStateDir := filepath.Join(workingPath, "..", "..", "bun")
 
 	// Start the bun process.
 	cmd, err := bun.BunExec(ctx, le, bunStateDir, viteScriptPath, "--bundle-id", bundleID, "--pipe-uuid", pipeUuid, "--pipe-root", pipeListener.GetRootDir())

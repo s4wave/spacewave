@@ -40,6 +40,7 @@ import (
 //go:embed devtool/deps.go devtool/web/entrypoint/web.go devtool/web/entrypoint/startup-trace_js.go
 //go:embed dist/deps/deps.go dist/deps/package.json dist/deps/bun.lock
 //go:embed web/bundler/bundler.pb.ts
+//go:embed web/bundler/rolldown/run-build.mjs web/bundler/rolldown/run-build.ts web/bundler/rolldown/rolldown.pb.ts
 //go:embed web/bundler/vite/build.ts web/bundler/vite/run-build.ts
 //go:embed web/bundler/vite/vite.ts web/bundler/vite/plugin.ts web/bundler/vite/module-preload.ts web/bundler/vite/output-naming.ts web/bundler/vite/web-pkg-naming.ts
 //go:embed web/bundler/vite/vite.pb.ts web/bundler/vite/vite_srpc.pb.ts

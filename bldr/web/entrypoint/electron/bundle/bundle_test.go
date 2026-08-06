@@ -4,7 +4,6 @@ package entrypoint_electron_bundle
 
 import (
 	"context"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,9 +18,17 @@ func TestBuildRendererBundleUsesSelfContainedDistEntrypoint(t *testing.T) {
 	appRoot, distRoot := setupBundleTestApp(t)
 
 	buildDir := filepath.Join(appRoot, "build")
+	stateDir := t.TempDir()
+	if err := BuildPreloadBundle(context.Background(), logrus.NewEntry(logrus.New()), stateDir, distRoot, buildDir, false, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := BuildMainBundle(context.Background(), logrus.NewEntry(logrus.New()), stateDir, distRoot, buildDir, false, true); err != nil {
+		t.Fatal(err)
+	}
 	if err := BuildRendererBundle(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
+		stateDir,
 		distRoot,
 		buildDir,
 		"",
@@ -142,30 +149,22 @@ func setupBundleTestApp(t *testing.T) (string, string) {
 		t.Fatal(err)
 	}
 
-	distRoot := filepath.Join(appRoot, ".bldr", "src")
-	copyDistSources(t, distRoot)
-	return appRoot, distRoot
-}
-
-func copyDistSources(t *testing.T, dest string) {
-	t.Helper()
-	if err := fs.WalkDir(bldr.DistSources, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		target := filepath.Join(dest, filepath.FromSlash(path))
-		if d.IsDir() {
-			return os.MkdirAll(target, 0o755)
-		}
-		data, err := bldr.DistSources.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-			return err
-		}
-		return os.WriteFile(target, data, 0o644)
-	}); err != nil {
+	testDir, err := os.Getwd()
+	if err != nil {
 		t.Fatal(err)
 	}
+	repoRoot := filepath.Clean(filepath.Join(testDir, "../../../../.."))
+	distRoot := filepath.Join(appRoot, ".bldr", "src")
+	if err := bldr.SyncDistSources(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		bldr.DistSourceSyncConfig{
+			RepoRoot:    repoRoot,
+			DistRoot:    distRoot,
+			BldrSrcPath: repoRoot,
+		},
+	); err != nil {
+		t.Fatal(err)
+	}
+	return appRoot, distRoot
 }
