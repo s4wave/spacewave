@@ -93,6 +93,10 @@ func (c *remoteFSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {
 // Returning nil, nil will be corrected to nil, ErrNotExist.
 // Return nil, ErrReleased to indicate this FSCursor was released.
 func (c *remoteFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error) {
+	if c.CheckReleased() || c.c.released.Load() {
+		return nil, unixfs_errors.ErrReleased
+	}
+
 	resp, err := c.c.client.GetCursorOps(ctx, &unixfs_rpc.GetCursorOpsRequest{
 		CursorHandleId: c.cursorHandleID,
 	})
@@ -114,7 +118,7 @@ func (c *remoteFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, 
 	c.c.mtx.Lock()
 	defer c.c.mtx.Unlock()
 
-	if c.c.released.Load() {
+	if c.CheckReleased() || c.c.released.Load() {
 		return nil, unixfs_errors.ErrReleased
 	}
 
@@ -122,7 +126,7 @@ func (c *remoteFSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, 
 	name := resp.GetName()
 
 	retOps, retOpsOk := c.c.ops[opsHandleID]
-	if !retOpsOk || retOps == nil || retOps.released.Load() || retOps.name != name || retOps.nodeType != nodeType {
+	if !retOpsOk || retOps == nil || retOps.CheckReleased() || retOps.name != name || retOps.nodeType != nodeType {
 		retOps = newRemoteFSCursorOps(c, opsHandleID, nodeType, resp.GetName())
 		existingOpsID, existingOpsIDOk := c.c.cursorOps[c.cursorHandleID]
 		if existingOpsIDOk {

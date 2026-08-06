@@ -3,6 +3,7 @@
 package entrypoint_saucer_bundle
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -137,7 +138,7 @@ func TestBuildSaucerJSBundle(t *testing.T) {
 			"react/jsx-runtime": "/b/pkg/react/jsx-runtime.mjs",
 		},
 	}
-	bundle, err := BuildSaucerJSBundle(le, bldrRoot, buildDir, true, false, importMap)
+	bundle, err := BuildSaucerJSBundle(context.Background(), le, bldrRoot, buildDir, true, false, importMap)
 	if err != nil {
 		t.Fatalf("BuildSaucerJSBundle failed: %v", err)
 	}

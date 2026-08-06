@@ -9,12 +9,9 @@ import (
 	"sync/atomic"
 	"testing"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/sirupsen/logrus"
 )
 
-// bundleCacheFixture is a temporary source tree plus build dir used to exercise
-// the bundle cache with real esbuild builds.
 type bundleCacheFixture struct {
 	baseRoot string
 	buildDir string
@@ -27,12 +24,8 @@ func newBundleCacheFixture(t *testing.T) *bundleCacheFixture {
 		baseRoot: filepath.Join(root, "src"),
 		buildDir: filepath.Join(root, "out"),
 	}
-	// renderer bundle graph: renderer.ts imports shared.ts.
-	f.write(t, "renderer.ts", "import {shared} from './shared'\nexport const renderer = shared + 1\n")
-	f.write(t, "shared.ts", "export const shared = 1\n")
-	// worker bundle graph: worker.ts imports worker-impl.ts.
-	f.write(t, "worker.ts", "import {run} from './worker-impl'\nexport const worker = run()\n")
-	f.write(t, "worker-impl.ts", "export function run() { return 2 }\n")
+	f.write(t, "renderer.ts", "export const renderer = 1\n")
+	f.write(t, "worker.ts", "export const worker = 2\n")
 	return f
 }
 
@@ -48,49 +41,55 @@ func (f *bundleCacheFixture) write(t *testing.T, rel, content string) {
 }
 
 func (f *bundleCacheFixture) newCache() *bundleCache {
-	cache := newBundleCache(logrus.NewEntry(logrus.New()), f.buildDir, f.baseRoot)
-	// Test binaries may not carry module build information. The production path
-	// disables reuse in that case; this explicit identity tests cache mechanics.
-	cache.compilerID = "test-esbuild@pinned"
-	return cache
+	return newBundleCache(logrus.NewEntry(logrus.New()), f.buildDir, f.baseRoot)
 }
 
-func (f *bundleCacheFixture) opts(entryRel string) esbuild.BuildOptions {
-	return esbuild.BuildOptions{
-		AbsWorkingDir: f.baseRoot,
-		EntryPoints:   []string{entryRel},
-		Outdir:        f.buildDir,
-		Bundle:        true,
-		Write:         true,
-		Format:        esbuild.FormatESModule,
-		Platform:      esbuild.PlatformBrowser,
-		Target:        esbuild.ES2022,
+func (f *bundleCacheFixture) spec(entryRel, request string) bundleCacheSpec {
+	if request == "" {
+		request = entryRel
+	}
+	return bundleCacheSpec{
+		compilerID:  "rolldown-test@pinned",
+		request:     []byte(request),
+		configFiles: []string{filepath.Join(f.baseRoot, "tsconfig.json")},
 	}
 }
 
-// build runs a single-output bundle through the cache and reports whether it was
-// compiled (a cache miss) rather than reused.
-func (f *bundleCacheFixture) build(t *testing.T, cache *bundleCache, name, entryRel string) (built bool) {
+func (f *bundleCacheFixture) build(t *testing.T, cache *bundleCache, name, entryRel string) bool {
+	t.Helper()
+	return f.buildWith(t, cache, name, entryRel, f.spec(entryRel, ""), nil, nil)
+}
+
+func (f *bundleCacheFixture) buildWith(
+	t *testing.T,
+	cache *bundleCache,
+	name,
+	entryRel string,
+	spec bundleCacheSpec,
+	extra []byte,
+	callbackCount *atomic.Int32,
+) bool {
 	t.Helper()
 	before := cache.Builds()
-	opts := f.opts(entryRel)
-	_, err := cache.build(name, opts, nil, func() (*bundleBuildOutput, error) {
-		result, inputs, err := runEsbuildBundle(opts)
+	_, err := cache.build(name, spec, extra, func() (*bundleBuildOutput, error) {
+		if callbackCount != nil {
+			callbackCount.Add(1)
+		}
+		contents, err := os.ReadFile(filepath.Join(f.baseRoot, entryRel))
 		if err != nil {
 			return nil, err
 		}
-		filename, err := singleWorkerOutputName(result)
-		if err != nil {
+		if err := os.MkdirAll(f.buildDir, 0o755); err != nil {
 			return nil, err
 		}
-		verify, err := resultOutputPaths(result, f.buildDir)
-		if err != nil {
+		outputName := name + ".mjs"
+		if err := os.WriteFile(filepath.Join(f.buildDir, outputName), contents, 0o644); err != nil {
 			return nil, err
 		}
 		return &bundleBuildOutput{
-			inputs: inputs,
-			values: map[string]string{"filename": filename},
-			verify: verify,
+			inputs: []string{entryRel},
+			values: map[string]string{"filename": outputName},
+			verify: []string{outputName},
 		}, nil
 	})
 	if err != nil {
@@ -99,86 +98,51 @@ func (f *bundleCacheFixture) build(t *testing.T, cache *bundleCache, name, entry
 	return cache.Builds() > before
 }
 
-// TestBundleCacheWarmReuseZeroBuilds proves a second build of an unchanged tree
-// performs zero bundle builds, asserted through the cache build counter.
 func TestBundleCacheWarmReuseZeroBuilds(t *testing.T) {
 	f := newBundleCacheFixture(t)
-
 	cold := f.newCache()
-	if !f.build(t, cold, "renderer", "renderer.ts") {
-		t.Fatal("cold renderer build should compile")
+	if !f.build(t, cold, "renderer", "renderer.ts") || !f.build(t, cold, "worker", "worker.ts") {
+		t.Fatal("cold bundles should compile")
 	}
-	if !f.build(t, cold, "worker", "worker.ts") {
-		t.Fatal("cold worker build should compile")
-	}
-	if cold.Builds() != 2 {
-		t.Fatalf("cold builds = %d, want 2", cold.Builds())
-	}
-
 	warm := f.newCache()
-	if f.build(t, warm, "renderer", "renderer.ts") {
-		t.Fatal("warm renderer build should reuse, not compile")
+	if f.build(t, warm, "renderer", "renderer.ts") || f.build(t, warm, "worker", "worker.ts") {
+		t.Fatal("unchanged bundles should reuse")
 	}
-	if f.build(t, warm, "worker", "worker.ts") {
-		t.Fatal("warm worker build should reuse, not compile")
-	}
-	if warm.Builds() != 0 {
-		t.Fatalf("warm builds = %d, want 0", warm.Builds())
-	}
-	if warm.Reuses() != 2 {
-		t.Fatalf("warm reuses = %d, want 2", warm.Reuses())
+	if warm.Builds() != 0 || warm.Reuses() != 2 {
+		t.Fatalf("warm seam counts = built %d reused %d, want 0 and 2", warm.Builds(), warm.Reuses())
 	}
 }
 
-// TestBundleCacheContentKeyedIgnoresModtime proves a rewritten-but-identical
-// source tree still reuses, matching the harness re-syncing its dist sources.
 func TestBundleCacheContentKeyedIgnoresModtime(t *testing.T) {
 	f := newBundleCacheFixture(t)
-	cold := f.newCache()
-	f.build(t, cold, "renderer", "renderer.ts")
-
-	f.write(t, "renderer.ts", "import {shared} from './shared'\nexport const renderer = shared + 1\n")
-	f.write(t, "shared.ts", "export const shared = 1\n")
-
-	warm := f.newCache()
-	if f.build(t, warm, "renderer", "renderer.ts") {
-		t.Fatal("renderer rebuilt after a content-identical rewrite; content keying failed")
+	f.build(t, f.newCache(), "renderer", "renderer.ts")
+	f.write(t, "renderer.ts", "export const renderer = 1\n")
+	if f.build(t, f.newCache(), "renderer", "renderer.ts") {
+		t.Fatal("content-identical source rewrite should reuse")
 	}
 }
 
-// TestBundleCacheFourBundleInvalidation proves one changed graph rebuilds only
-// its own service, shared, OPFS, or renderer bundle kind.
 func TestBundleCacheFourBundleInvalidation(t *testing.T) {
 	f := newBundleCacheFixture(t)
-	entries := []struct {
-		name  string
-		entry string
-	}{
+	entries := []struct{ name, entry string }{
 		{"service-worker", "service.ts"},
 		{"shared-worker", "shared-worker.ts"},
 		{"opfs-worker", "opfs.ts"},
 		{"renderer", "renderer.ts"},
 	}
-	f.write(t, "service.ts", "export const service = 1\n")
-	f.write(t, "shared-worker.ts", "export const sharedWorker = 1\n")
-	f.write(t, "opfs.ts", "export const opfs = 1\n")
-
+	for _, item := range entries[:3] {
+		f.write(t, item.entry, "export const value = 1\n")
+	}
 	cold := f.newCache()
 	for _, item := range entries {
-		if !f.build(t, cold, item.name, item.entry) {
-			t.Fatalf("cold %s build should compile", item.name)
-		}
+		f.build(t, cold, item.name, item.entry)
 	}
-	f.write(t, "service.ts", "export const service = 2\n")
-
+	f.write(t, "service.ts", "export const value = 2\n")
 	warm := f.newCache()
 	for _, item := range entries {
 		built := f.build(t, warm, item.name, item.entry)
-		if item.name == "service-worker" && !built {
-			t.Fatal("service-worker should rebuild after its input changed")
-		}
-		if item.name != "service-worker" && built {
-			t.Fatalf("%s rebuilt after an unrelated service-worker input change", item.name)
+		if built != (item.name == "service-worker") {
+			t.Fatalf("%s built=%t after service-worker change", item.name, built)
 		}
 	}
 	if warm.Builds() != 1 || warm.Reuses() != 3 {
@@ -186,14 +150,41 @@ func TestBundleCacheFourBundleInvalidation(t *testing.T) {
 	}
 }
 
-// TestBundleCacheOutputContentInvalidates proves a damaged output cannot be
-// reused even when its size and modification time are unchanged.
+func TestBundleCacheRebuildRemovesRecordedOutputs(t *testing.T) {
+	f := newBundleCacheFixture(t)
+	spec := f.spec("renderer.ts", "")
+	build := func(outputName string) {
+		_, err := f.newCache().build("renderer", spec, nil, func() (*bundleBuildOutput, error) {
+			if err := os.MkdirAll(f.buildDir, 0o755); err != nil {
+				return nil, err
+			}
+			if err := os.WriteFile(filepath.Join(f.buildDir, outputName), []byte(outputName), 0o644); err != nil {
+				return nil, err
+			}
+			return &bundleBuildOutput{
+				inputs: []string{"renderer.ts"},
+				verify: []string{outputName},
+			}, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	build("renderer-old.mjs")
+	f.write(t, "renderer.ts", "export const renderer = 2\n")
+	build("renderer-new.mjs")
+	if _, err := os.Stat(filepath.Join(f.buildDir, "renderer-old.mjs")); !os.IsNotExist(err) {
+		t.Fatalf("stale cache output survived rebuild: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(f.buildDir, "renderer-new.mjs")); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestBundleCacheOutputContentInvalidates(t *testing.T) {
 	f := newBundleCacheFixture(t)
-	cold := f.newCache()
-	f.build(t, cold, "renderer", "renderer.ts")
-
-	outputPath := filepath.Join(f.buildDir, "renderer.js")
+	f.build(t, f.newCache(), "renderer", "renderer.ts")
+	outputPath := filepath.Join(f.buildDir, "renderer.mjs")
 	info, err := os.Stat(outputPath)
 	if err != nil {
 		t.Fatal(err)
@@ -209,62 +200,72 @@ func TestBundleCacheOutputContentInvalidates(t *testing.T) {
 	if err := os.Chtimes(outputPath, info.ModTime(), info.ModTime()); err != nil {
 		t.Fatal(err)
 	}
-
-	warm := f.newCache()
-	if !f.build(t, warm, "renderer", "renderer.ts") {
-		t.Fatal("renderer should rebuild after output content corruption")
+	if !f.build(t, f.newCache(), "renderer", "renderer.ts") {
+		t.Fatal("corrupt output should rebuild")
 	}
 }
 
-// TestBundleCacheConfigInputsInvalidate proves tsconfig changes invalidate the
-// bundle even though esbuild does not report the config in its input graph.
 func TestBundleCacheConfigInputsInvalidate(t *testing.T) {
 	f := newBundleCacheFixture(t)
 	f.write(t, "tsconfig.json", `{"compilerOptions":{"target":"ES2022"}}`)
-	cold := f.newCache()
-	f.build(t, cold, "renderer", "renderer.ts")
-
+	f.build(t, f.newCache(), "renderer", "renderer.ts")
 	f.write(t, "tsconfig.json", `{"compilerOptions":{"target":"ES2020"}}`)
-	warm := f.newCache()
-	if !f.build(t, warm, "renderer", "renderer.ts") {
-		t.Fatal("renderer should rebuild after tsconfig changed")
+	if !f.build(t, f.newCache(), "renderer", "renderer.ts") {
+		t.Fatal("changed config file should rebuild")
 	}
 }
 
-// TestBundleCacheCompilerIdentityRequired proves a process without a pinned
-// esbuild module identity always builds rather than guessing compatibility.
+func TestBundleCacheViteServiceInputsInvalidate(t *testing.T) {
+	f := newBundleCacheFixture(t)
+	bundlerProtoPath := filepath.Join("bldr", "web", "bundler", "bundler.pb.ts")
+	resolverPath := filepath.Join("bldr", "web", "bundler", "vite", "go-ts-resolver.ts")
+	f.write(t, bundlerProtoPath, "export const bundle = 1\n")
+	f.write(t, resolverPath, "export const resolver = 1\n")
+	spec := f.spec("renderer.ts", "")
+	spec.compilerID = rendererBrowserCompilerID
+	spec.configFiles = browserBundleConfigFiles(f.baseRoot, spec.compilerID)
+	if !f.buildWith(t, f.newCache(), "renderer", "renderer.ts", spec, nil, nil) {
+		t.Fatal("cold renderer should compile")
+	}
+	f.write(t, resolverPath, "export const resolver = 2\n")
+	if !f.buildWith(t, f.newCache(), "renderer", "renderer.ts", spec, nil, nil) {
+		t.Fatal("changed Vite service input should rebuild")
+	}
+	f.write(t, bundlerProtoPath, "export const bundle = 2\n")
+	if !f.buildWith(t, f.newCache(), "renderer", "renderer.ts", spec, nil, nil) {
+		t.Fatal("changed shared bundler RPC input should rebuild")
+	}
+}
+
 func TestBundleCacheCompilerIdentityRequired(t *testing.T) {
 	f := newBundleCacheFixture(t)
 	cache := f.newCache()
-	cache.compilerID = ""
-	if !f.build(t, cache, "renderer", "renderer.ts") {
-		t.Fatal("compiler-unknown build should compile")
+	spec := f.spec("renderer.ts", "")
+	spec.compilerID = ""
+	if !f.buildWith(t, cache, "renderer", "renderer.ts", spec, nil, nil) {
+		t.Fatal("unknown compiler should compile on first request")
 	}
-	if !f.build(t, cache, "renderer", "renderer.ts") {
-		t.Fatal("compiler-unknown build should always compile")
+	if !f.buildWith(t, cache, "renderer", "renderer.ts", spec, nil, nil) {
+		t.Fatal("unknown compiler should compile on repeated request")
 	}
 	if cache.Reuses() != 0 {
-		t.Fatal("compiler-unknown build reused a cache record")
+		t.Fatal("unknown compiler reused a cache record")
 	}
 }
 
-// TestBundleCacheVirtualInputAlwaysBuilds proves an input the cache cannot map
-// to a file is treated as incomplete provenance rather than cached optimistically.
 func TestBundleCacheVirtualInputAlwaysBuilds(t *testing.T) {
 	f := newBundleCacheFixture(t)
-	opts := f.opts("renderer.ts")
 	cache := f.newCache()
+	spec := f.spec("renderer.ts", "virtual")
 	build := func() {
-		_, err := cache.build("virtual", opts, nil, func() (*bundleBuildOutput, error) {
-			result, _, err := runEsbuildBundle(opts)
-			if err != nil {
+		_, err := cache.build("virtual", spec, nil, func() (*bundleBuildOutput, error) {
+			if err := os.MkdirAll(f.buildDir, 0o755); err != nil {
 				return nil, err
 			}
-			verify, err := resultOutputPaths(result, f.buildDir)
-			if err != nil {
+			if err := os.WriteFile(filepath.Join(f.buildDir, "virtual.mjs"), []byte("x"), 0o644); err != nil {
 				return nil, err
 			}
-			return &bundleBuildOutput{inputs: []string{"virtual:generated"}, verify: verify}, nil
+			return &bundleBuildOutput{inputs: []string{"virtual:generated"}, verify: []string{"virtual.mjs"}}, nil
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -273,128 +274,79 @@ func TestBundleCacheVirtualInputAlwaysBuilds(t *testing.T) {
 	build()
 	build()
 	if cache.Builds() != 2 || cache.Reuses() != 0 {
-		t.Fatalf("virtual input seam counts = built %d reused %d, want 2 and 0", cache.Builds(), cache.Reuses())
+		t.Fatalf("virtual seam counts = built %d reused %d, want 2 and 0", cache.Builds(), cache.Reuses())
 	}
 }
 
-// TestBundleCacheConcurrentBuilds proves same-name builds serialize through the
-// shared cache lock and cannot publish competing provenance records.
 func TestBundleCacheConcurrentBuilds(t *testing.T) {
 	f := newBundleCacheFixture(t)
-	opts := f.opts("renderer.ts")
 	var callbackBuilds atomic.Int32
 	start := make(chan struct{})
-	errs := make(chan error, 2)
+	errs := make(chan bool, 2)
 	var wg sync.WaitGroup
 	for range 2 {
 		cache := f.newCache()
 		wg.Go(func() {
 			<-start
-			_, err := cache.build("renderer", opts, nil, func() (*bundleBuildOutput, error) {
-				callbackBuilds.Add(1)
-				result, inputs, err := runEsbuildBundle(opts)
-				if err != nil {
-					return nil, err
-				}
-				verify, err := resultOutputPaths(result, f.buildDir)
-				if err != nil {
-					return nil, err
-				}
-				return &bundleBuildOutput{inputs: inputs, verify: verify}, nil
-			})
-			errs <- err
+			errs <- f.buildWith(t, cache, "renderer", "renderer.ts", f.spec("renderer.ts", ""), nil, &callbackBuilds)
 		})
 	}
 	close(start)
 	wg.Wait()
 	close(errs)
-	for err := range errs {
-		if err != nil {
-			t.Fatal(err)
-		}
+	for range errs {
 	}
 	if callbackBuilds.Load() != 1 {
-		t.Fatalf("concurrent build callbacks = %d, want 1", callbackBuilds.Load())
+		t.Fatalf("concurrent callbacks = %d, want 1", callbackBuilds.Load())
 	}
 }
 
-// TestBundleCacheConfigDigestChangeRebuilds proves a config change unrelated to
-// source files invalidates reuse.
 func TestBundleCacheConfigDigestChangeRebuilds(t *testing.T) {
 	f := newBundleCacheFixture(t)
-	cold := f.newCache()
-	f.build(t, cold, "renderer", "renderer.ts")
-
-	warm := f.newCache()
-	opts := f.opts("renderer.ts")
-	opts.MinifySyntax = true
-	before := warm.Builds()
-	_, err := warm.build("renderer", opts, nil, func() (*bundleBuildOutput, error) {
-		result, inputs, err := runEsbuildBundle(opts)
-		if err != nil {
-			return nil, err
-		}
-		verify, err := resultOutputPaths(result, f.buildDir)
-		if err != nil {
-			return nil, err
-		}
-		return &bundleBuildOutput{inputs: inputs, verify: verify}, nil
-	})
-	if err != nil {
-		t.Fatalf("build: %v", err)
-	}
-	if warm.Builds() == before {
-		t.Fatal("renderer should rebuild after a config digest change")
+	f.build(t, f.newCache(), "renderer", "renderer.ts")
+	if !f.buildWith(t, f.newCache(), "renderer", "renderer.ts", f.spec("renderer.ts", "minify=true"), nil, nil) {
+		t.Fatal("changed request identity should rebuild")
 	}
 }
 
-// TestBundleCacheExtraDigestChangeRebuilds proves a non-esbuild input change,
-// such as the renderer index-map digest, invalidates reuse.
 func TestBundleCacheExtraDigestChangeRebuilds(t *testing.T) {
 	f := newBundleCacheFixture(t)
-	opts := f.opts("renderer.ts")
-	buildOnce := func(cache *bundleCache, extra []byte) bool {
-		before := cache.Builds()
-		_, err := cache.build("renderer", opts, extra, func() (*bundleBuildOutput, error) {
-			result, inputs, err := runEsbuildBundle(opts)
-			if err != nil {
-				return nil, err
-			}
-			verify, err := resultOutputPaths(result, f.buildDir)
-			if err != nil {
-				return nil, err
-			}
-			return &bundleBuildOutput{inputs: inputs, verify: verify}, nil
-		})
-		if err != nil {
-			t.Fatalf("build: %v", err)
-		}
-		return cache.Builds() > before
+	build := func(extra string) bool {
+		return f.buildWith(t, f.newCache(), "renderer", "renderer.ts", f.spec("renderer.ts", ""), []byte(extra), nil)
 	}
-
-	if !buildOnce(f.newCache(), []byte("index-v1")) {
-		t.Fatal("cold build should compile")
-	}
-	if buildOnce(f.newCache(), []byte("index-v1")) {
-		t.Fatal("same extra digest should reuse")
-	}
-	if !buildOnce(f.newCache(), []byte("index-v2")) {
-		t.Fatal("changed extra digest should rebuild")
+	if !build("index-v1") || build("index-v1") || !build("index-v2") {
+		t.Fatal("extra digest did not control reuse")
 	}
 }
 
-// TestBundleCacheMissingOutputRebuilds proves a removed output invalidates reuse.
 func TestBundleCacheMissingOutputRebuilds(t *testing.T) {
 	f := newBundleCacheFixture(t)
-	cold := f.newCache()
-	f.build(t, cold, "renderer", "renderer.ts")
-
-	if err := os.Remove(filepath.Join(f.buildDir, "renderer.js")); err != nil {
-		t.Fatalf("remove output: %v", err)
+	f.build(t, f.newCache(), "renderer", "renderer.ts")
+	if err := os.Remove(filepath.Join(f.buildDir, "renderer.mjs")); err != nil {
+		t.Fatal(err)
 	}
+	if !f.build(t, f.newCache(), "renderer", "renderer.ts") {
+		t.Fatal("missing output should rebuild")
+	}
+}
 
-	warm := f.newCache()
-	if !f.build(t, warm, "renderer", "renderer.ts") {
-		t.Fatal("renderer should rebuild after its output was removed")
+func TestBundleCacheRejectsEsbuildEraFormat(t *testing.T) {
+	f := newBundleCacheFixture(t)
+	f.build(t, f.newCache(), "renderer", "renderer.ts")
+	recordPath := filepath.Join(f.buildDir, bundleCacheDirName, "renderer.json")
+	data, err := os.ReadFile(recordPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err := parseBundleRecord(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record.formatVersion = 2
+	if err := os.WriteFile(recordPath, record.marshal(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !f.build(t, f.newCache(), "renderer", "renderer.ts") {
+		t.Fatal("esbuild-era cache record should rebuild")
 	}
 }

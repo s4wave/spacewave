@@ -4,11 +4,8 @@ package entrypoint_browser_bundle
 
 import (
 	"os"
-	"path/filepath"
-	"regexp"
 	"strings"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/pkg/errors"
 )
 
@@ -44,33 +41,13 @@ const tinyGoWasmDataView = `class TinyGoWasmDataView extends DataView {
 
 `
 
-// ApplyTinyGoWasmExecPatches normalizes wasm32 pointers in TinyGo's injected
-// browser runtime before esbuild bundles it with the host runtime.
-func ApplyTinyGoWasmExecPatches(opts *esbuild.BuildOptions, wasmExecFile string) {
-	pattern := regexp.QuoteMeta(filepath.Base(wasmExecFile)) + "$"
-	opts.Plugins = append(opts.Plugins, esbuild.Plugin{
-		Name: "bldr-patch-tinygo-wasm-exec",
-		Setup: func(build esbuild.PluginBuild) {
-			build.OnLoad(
-				esbuild.OnLoadOptions{Filter: pattern},
-				func(args esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
-					source, err := os.ReadFile(wasmExecFile)
-					if err != nil {
-						return esbuild.OnLoadResult{}, errors.Wrap(err, "read TinyGo wasm_exec.js")
-					}
-					patched, err := patchTinyGoWasmExecSource(string(source))
-					if err != nil {
-						return esbuild.OnLoadResult{}, err
-					}
-					return esbuild.OnLoadResult{
-						Contents:   &patched,
-						Loader:     esbuild.LoaderJS,
-						WatchFiles: []string{filepath.Clean(wasmExecFile)},
-					}, nil
-				},
-			)
-		},
-	})
+// LoadTinyGoWasmExecSource reads and patches TinyGo's browser runtime.
+func LoadTinyGoWasmExecSource(wasmExecFile string) (string, error) {
+	source, err := os.ReadFile(wasmExecFile)
+	if err != nil {
+		return "", errors.Wrap(err, "read TinyGo wasm_exec.js")
+	}
+	return patchTinyGoWasmExecSource(string(source))
 }
 
 func patchTinyGoWasmExecSource(source string) (string, error) {

@@ -10,16 +10,13 @@ import (
 	"strconv"
 	"strings"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/bldr/util/exec"
 	"github.com/s4wave/spacewave/bldr/util/npm"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
-	web_pkg_external "github.com/s4wave/spacewave/bldr/web/pkg/external"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,83 +30,63 @@ func ElectronDefine(devMode bool) map[string]string {
 	}
 }
 
-// EsbuildLogLevel is the log level when bundling the electron entrypoint_browser_bundle.
-var EsbuildLogLevel = esbuild.LogLevelWarning
-
 const (
 	electronStableBootEntrypointPath = "./boot.mjs"
 	electronRendererEntrypointPath   = "entrypoint/entrypoint.mjs"
 )
 
-// ElectronBuildOpts are general options for building for Electron.
-func ElectronBuildOpts(bldrDistRoot string, minify, devMode bool) esbuild.BuildOptions {
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(bldrDistRoot, minify, !minify)
-	opts.Define = ElectronDefine(devMode)
-	opts.External = []string{"electron"}
-	opts.LogLevel = EsbuildLogLevel
-	return opts
-}
-
-// BuildServiceWorkerBundle builds specifically the service worker files.
-//
-// Returns the path to the service worker .mjs file
-func BuildServiceWorkerBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) (string, error) {
-	return BuildServiceWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, "", minify, devMode)
-}
-
-func BuildServiceWorkerBundleWithRuntimeDeps(le *logrus.Entry, bldrDistRoot, buildDir, buildPkgsDir string, minify, devMode bool) (string, error) {
-	return entrypoint_browser_bundle.BuildServiceWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, !minify, devMode)
-}
-
-// BuildPreloadBundle builds the web renderer bundle files.
-func BuildPreloadBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
+// BuildPreloadBundle builds the Electron preload through the direct owner.
+func BuildPreloadBundle(
+	ctx context.Context,
+	le *logrus.Entry,
+	stateDir,
+	bldrDistRoot,
+	buildDir string,
+	minify,
+	devMode bool,
+) error {
 	le.Debug("generating electron preload bundle")
-	opts := ElectronBuildOpts(bldrDistRoot, minify, devMode)
-	opts.Define = ElectronDefine(devMode)
-	opts.EntryPointsAdvanced = nil
-	opts.EntryNames = ""
-	opts.EntryPoints = []string{
+	return buildElectronScript(
+		ctx,
+		le,
+		stateDir,
+		bldrDistRoot,
+		buildDir,
+		"preload",
 		"web/electron/main/preload.ts",
-	}
-	opts.Outfile = filepath.Join(buildDir, "preload.mjs")
-	// https://github.com/electron/electron/blob/ac031b/docs/tutorial/esm-limitations.md#esm-preload-scripts-must-have-the-mjs-extension
-	opts.Format = esbuild.FormatCommonJS
-	opts.Platform = esbuild.PlatformNode
-	opts.Write = true
-	if !minify {
-		opts.Sourcemap = esbuild.SourceMapLinked
-	} else {
-		opts.Sourcemap = esbuild.SourceMapNone
-	}
-
-	res := esbuild.Build(opts)
-	return bldr_esbuild_build.BuildResultToErr(res)
+		"preload.mjs",
+		"cjs",
+		minify,
+		devMode,
+		false,
+	)
 }
 
-// BuildMainBundle builds the electron Main bundle files.
-func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, devMode bool) error {
+// BuildMainBundle builds the Electron main process through the direct owner.
+func BuildMainBundle(
+	ctx context.Context,
+	le *logrus.Entry,
+	stateDir,
+	bldrDistRoot,
+	buildDir string,
+	minify,
+	devMode bool,
+) error {
 	le.Debug("generating electron main bundle")
-
-	opts := ElectronBuildOpts(bldrDistRoot, minify, devMode)
-	opts.Define = ElectronDefine(devMode)
-	opts.EntryPointsAdvanced = nil
-	opts.EntryNames = ""
-	opts.EntryPoints = []string{
+	return buildElectronScript(
+		ctx,
+		le,
+		stateDir,
+		bldrDistRoot,
+		buildDir,
+		"main",
 		"web/electron/main/index.ts",
-	}
-	opts.Outfile = filepath.Join(buildDir, "index.mjs")
-	opts.Platform = esbuild.PlatformNode
-	opts.Write = true
-	if !minify {
-		opts.Sourcemap = esbuild.SourceMapLinked
-	} else {
-		opts.Sourcemap = esbuild.SourceMapNone
-	}
-
-	FixEsbuildIssue1921(&opts)
-
-	res := esbuild.Build(opts)
-	return bldr_esbuild_build.BuildResultToErr(res)
+		"index.mjs",
+		"es",
+		minify,
+		devMode,
+		true,
+	)
 }
 
 // BuildRendererBundle builds the web renderer bundle files.
@@ -120,6 +97,7 @@ func BuildMainBundle(le *logrus.Entry, bldrDistRoot, buildDir string, minify, de
 func BuildRendererBundle(
 	ctx context.Context,
 	le *logrus.Entry,
+	stateDir,
 	bldrDistRoot,
 	buildDir,
 	runtimeJsPath,
@@ -129,47 +107,42 @@ func BuildRendererBundle(
 	minify,
 	devMode bool,
 ) error {
-	le.Debug("generating web renderer bundle")
-
-	// index.html
-	// index.html is rendered after web pkgs are built (import map is post-build).
-	// Placeholder; the actual render happens after BuildWebPkgsBundle below.
-
-	// entrypoint
-	webEntrypointOut := filepath.Join(buildDir, "entrypoint")
-	opts := ElectronBuildOpts(bldrDistRoot, minify, devMode)
-	opts.Outdir = webEntrypointOut
-	opts.EntryPointsAdvanced = nil
-	opts.EntryNames = ""
-	opts.Define = ElectronDefine(devMode)
-	opts.EntryPoints = []string{
-		"web/entrypoint/entrypoint.tsx",
-	}
-	opts.External = append(opts.External, web_pkg_external.BldrExternal...)
-	opts.Write = true
-
+	le.Debug("generating Electron renderer bundle")
+	defines := ElectronDefine(devMode)
 	if runtimeJsPath != "" {
-		opts.Define["BLDR_RUNTIME_JS"] = strconv.Quote(runtimeJsPath)
+		defines["BLDR_RUNTIME_JS"] = strconv.Quote(runtimeJsPath)
 	}
-
 	if runtimeSwPath != "" {
-		opts.Define["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
+		defines["BLDR_SW_JS"] = strconv.Quote(runtimeSwPath)
 	}
-
 	if runtimeShwPath != "" {
-		opts.Define["BLDR_SHW_JS"] = strconv.Quote(runtimeShwPath)
+		defines["BLDR_SHW_JS"] = strconv.Quote(runtimeShwPath)
 	}
-
 	if webStartupSrcPath != "" {
-		opts.Define["BLDR_STARTUP_JS"] = strconv.Quote(webStartupSrcPath)
+		defines["BLDR_STARTUP_JS"] = strconv.Quote(webStartupSrcPath)
 	}
-
-	if !minify {
-		opts.Sourcemap = esbuild.SourceMapLinked
+	result, err := entrypoint_browser_bundle.BuildRenderer(
+		ctx,
+		le,
+		stateDir,
+		bldrDistRoot,
+		buildDir,
+		entrypoint_browser_bundle.ConfigFreeRendererOpts{
+			OutputDir:     filepath.Join(buildDir, "entrypoint"),
+			PublicPath:    "/entrypoint/",
+			Defines:       defines,
+			ExtraExternal: []string{"electron"},
+			Minify:        minify,
+			Sourcemaps:    !minify,
+		},
+	)
+	if err != nil {
+		return err
 	}
-
-	res := esbuild.Build(opts)
-	return bldr_esbuild_build.BuildResultToErr(res)
+	if result.JSPath != electronRendererEntrypointPath {
+		return errors.Errorf("Electron renderer output is %q", result.JSPath)
+	}
+	return nil
 }
 
 func BuildElectronRendererIndex(buildDir string, importMap web_entrypoint_index.ImportMap) error {
@@ -201,26 +174,11 @@ func WriteElectronStableBootFiles(buildDir, serviceWorkerFilename, sharedWorkerF
 	)
 }
 
-// FixEsbuildIssue1921 fixes dynamic esbuild imports failing under node.js.
-//
-// https://github.com/evanw/esbuild/issues/1921
-func FixEsbuildIssue1921(opts *esbuild.BuildOptions) {
-	if opts.Banner == nil {
-		opts.Banner = make(map[string]string, 1)
-	}
-	old := opts.Banner["js"]
-	if len(old) != 0 {
-		old += "\n"
-	}
-	// https://github.com/evanw/esbuild/issues/1921#issuecomment-1710527349
-	opts.Banner["js"] = old + "const require = (await import('node:module')).createRequire(import.meta.url);const __filename = (await import('node:url')).fileURLToPath(import.meta.url);const __dirname = (await import('node:path')).dirname(__filename);"
-}
-
 // BuildElectronBundle builds and outputs the web & service worker files.
 //
 // stateDir is the directory where bun will be downloaded if not found in PATH.
 // startupFilename is the path to the react component to load on startup (can be empty).
-// minify enables file minification in esbuild
+// minify enables JavaScript minification.
 // devMode enables devMode extensions in Electron
 // entrypointHash, if set, uses /entrypoint/{entrypointHash}/pkgs/...
 func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot, buildDir, startupFilename string, minify, devMode bool) error {
@@ -228,31 +186,38 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 	if err != nil {
 		return err
 	}
-
-	buildPkgsDir, err := entrypoint_browser_bundle.EnsureBldrDistDepsInstall(ctx, le, stateDir, bldrDistRoot)
-	if err != nil {
+	if _, err := entrypoint_browser_bundle.EnsureBldrDistDepsInstall(ctx, le, stateDir, bldrDistRoot); err != nil {
 		return err
 	}
 
 	// service worker
-	swFilename, err := BuildServiceWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, devMode)
+	swFilename, err := entrypoint_browser_bundle.BuildServiceWorkerBundle(
+		ctx, le, stateDir, bldrDistRoot, buildDir, minify, !minify, devMode,
+	)
 	if err != nil {
 		return err
 	}
 
 	// shared worker
-	shwFilename, err := entrypoint_browser_bundle.BuildSharedWorkerBundleWithRuntimeDeps(le, bldrDistRoot, buildDir, buildPkgsDir, minify, !minify, devMode)
+	shwFilename, err := entrypoint_browser_bundle.BuildSharedWorkerBundle(
+		ctx, le, stateDir, bldrDistRoot, buildDir, minify, !minify, devMode,
+	)
 	if err != nil {
 		return err
 	}
 
-	// preload
-	if err := BuildPreloadBundle(le, bldrDistRoot, buildDir, minify, devMode); err != nil {
+	if err := buildElectronScript(
+		ctx, le, stateDir, bldrDistRoot, buildDir,
+		"preload", "web/electron/main/preload.ts", "preload.mjs", "cjs",
+		minify, devMode, false,
+	); err != nil {
 		return err
 	}
-
-	// main
-	if err := BuildMainBundle(le, bldrDistRoot, buildDir, minify, devMode); err != nil {
+	if err := buildElectronScript(
+		ctx, le, stateDir, bldrDistRoot, buildDir,
+		"main", "web/electron/main/index.ts", "index.mjs", "es",
+		minify, devMode, true,
+	); err != nil {
 		return err
 	}
 
@@ -297,6 +262,7 @@ func BuildElectronBundle(ctx context.Context, le *logrus.Entry, stateDir, bldrDi
 	if err := BuildRendererBundle(
 		ctx,
 		le,
+		stateDir,
 		bldrDistRoot,
 		buildDir,
 		"",

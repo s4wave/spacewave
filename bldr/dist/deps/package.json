@@ -18,6 +18,9 @@
   "repository": {
     "url": "git@github.com:aperturerobotics/bldr.git"
   },
+  "scripts": {
+    "test:rolldown-capabilities": "bun test ./rolldown-capabilities.bun.ts"
+  },
   "dependencies": {
     "@aptre/protobuf-es-lite": "1.1.1",
     "@radix-ui/react-slot": "^1.3.0",

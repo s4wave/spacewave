@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/bun"
 	"github.com/aperturerobotics/util/pipesock"
@@ -21,7 +20,6 @@ import (
 	"github.com/pkg/errors"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	bldr_web_bundler_vite_compiler "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler"
 	"github.com/s4wave/spacewave/net/util/randstring"
@@ -207,29 +205,20 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 	)
 	pipeUuid := "eval-" + strings.ToLower(b58.Encode(bin[:]))[:4] + "-" + randstring.RandomIdentifier(4)
 
-	// Compile vite.ts with esbuild.
+	// State remains under .bldr/bun, two levels above the debug working path.
+	bunStateDir := filepath.Join(b.workingPath, "..", "..", "bun")
 	viteScriptPath := filepath.Join(b.workingPath, "bldr-"+pipeUuid+".mjs")
-	result := esbuild.Build(esbuild.BuildOptions{
-		AbsWorkingDir: b.distPath,
-		SourceRoot:    b.workingPath,
-		Outfile:       viteScriptPath,
-		EntryPoints:   []string{"./web/bundler/vite/vite.ts"},
-		Target:        esbuild.ES2022,
-		Format:        esbuild.FormatESModule,
-		Platform:      esbuild.PlatformNode,
-		LogLevel:      esbuild.LogLevelWarning,
-		TreeShaking:   esbuild.TreeShakingTrue,
-		Sourcemap:     esbuild.SourceMapLinked,
-		Drop:          esbuild.DropDebugger,
-		Define:        map[string]string{"BLDR_IS_NODE": "true"},
-		Plugins:       []esbuild.Plugin{bldr_esbuild_build.ExternalNodeModulesPlugin()},
-		External:      []string{"starpc", "vite"},
-		Bundle:        true,
-		Write:         true,
-	})
-	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
-		ready <- viteStartResult{err: errors.Wrap(err, "compile vite.ts")}
-		return errors.Wrap(err, "compile vite.ts")
+	if _, err := bldr_vite.BuildServiceScript(
+		viteCtx,
+		b.le,
+		bunStateDir,
+		b.sourcePath,
+		b.distPath,
+		viteScriptPath,
+	); err != nil {
+		err = errors.Wrap(err, "compile vite.ts")
+		ready <- viteStartResult{err: err}
+		return err
 	}
 
 	// Create pipe listener for IPC.
@@ -241,9 +230,6 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(viteCtx, true)
 	go smc.AcceptPump(pipeListener)
-
-	// Bun state dir at .bldr/bun (two levels up from .bldr/debug/eval/).
-	bunStateDir := filepath.Join(b.workingPath, "..", "..", "bun")
 
 	cmd, err := bun.BunExec(viteCtx, b.le, bunStateDir, viteScriptPath, "--bundle-id", "eval", "--pipe-uuid", pipeUuid)
 	if err != nil {

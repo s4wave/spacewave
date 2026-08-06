@@ -14,7 +14,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/starpc/srpc"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	devtool_web "github.com/s4wave/spacewave/bldr/devtool/web"
@@ -161,9 +160,8 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
 	entrypointToRootPrefix := "../../../../"
 
-	// run esbuild to compile the web entrypoint
+	// Compile the web entrypoint.
 	le.Info("building web wasm entrypoint")
-	entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
 	bundleResult, err := entrypoint_browser_bundle.BuildBrowserBundle(
 		ctx,
 		le,

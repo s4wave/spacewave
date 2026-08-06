@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"strconv"
 
-	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
+	"github.com/pkg/errors"
+	bldr "github.com/s4wave/spacewave/bldr"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
+	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	"github.com/sirupsen/logrus"
 )
@@ -44,38 +45,64 @@ func BuildWasmRuntimeEntrypoint(
 		return err
 	}
 
-	// Configure the browser runtime entrypoint and output path.
-	entrypointJsDir := filepath.Join(bldrDistRoot, webEntrypointBrowserDir)
 	runtimeJsOut := filepath.Join(buildDir, "runtime-wasm.mjs")
-
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(entrypointJsDir, minify, sourcemaps)
-	opts.EntryPoints = []string{"runtime-wasm.ts"}
-	opts.Outfile = runtimeJsOut
-	opts.Write = true
-
-	// Apply TinyGo fallbacks when requested.
+	sourceMap := "none"
+	if sourcemaps {
+		sourceMap = "external"
+	}
+	inject := []string{wasmExecFile}
+	var external []string
+	var sourceOverrides map[string]string
 	if useTinygo {
-		nodeStubsLoc := filepath.Join(bldrDistRoot, nodeStubsPath)
-		nodeStubsLoc, err = filepath.Rel(entrypointJsDir, nodeStubsLoc)
+		nodeStubsLoc := bldr.ResolveDistSourcePath(bldrDistRoot, nodeStubsPath)
+		inject = append([]string{nodeStubsLoc}, inject...)
+		external = []string{"fs", "crypto", "util", "node:fs", "node:crypto", "node:util"}
+		patched, err := entrypoint_browser_bundle.LoadTinyGoWasmExecSource(wasmExecFile)
 		if err != nil {
 			return err
 		}
-		opts.Inject = append(opts.Inject, nodeStubsLoc)
-		entrypoint_browser_bundle.ApplyTinyGoNodeFallbacks(&opts)
-		entrypoint_browser_bundle.ApplyTinyGoWasmExecPatches(&opts, wasmExecFile)
+		sourceOverrides = map[string]string{wasmExecFile: patched}
 	}
-
-	// Add the wasm execution shim and optional runtime path define.
-	opts.Inject = append(opts.Inject, wasmExecFile)
-
+	defines := map[string]string{"BLDR_IS_BROWSER": "true"}
 	if runtimeWasmPath != "" {
-		opts.Define["BLDR_RUNTIME_WASM"] = strconv.Quote(runtimeWasmPath)
+		defines["BLDR_RUNTIME_WASM"] = strconv.Quote(runtimeWasmPath)
 	}
-
-	// Build the configured browser runtime bundle.
-	res := esbuild_api.Build(opts)
-	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
+	result, err := bldr_web_bundler_rolldown.Build(
+		ctx,
+		le,
+		buildDir,
+		bldrDistRoot,
+		&bldr_web_bundler_rolldown.BuildRequest{
+			WorkingDir:   buildDir,
+			SourceRoot:   bldrDistRoot,
+			OutputRoot:   buildDir,
+			BldrDistRoot: bldrDistRoot,
+			Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
+				Name:      "runtime-wasm",
+				InputPath: bldr.ResolveDistSourcePath(bldrDistRoot, webEntrypointBrowserDir, "runtime-wasm.ts"),
+			}},
+			Format:          "es",
+			Platform:        "browser",
+			Target:          "es2024",
+			EntryFileNames:  "runtime-wasm.mjs",
+			ChunkFileNames:  "[name]-[hash].mjs",
+			AssetFileNames:  "[name]-[hash][extname]",
+			Sourcemap:       sourceMap,
+			Minify:          minify,
+			TreeShaking:     true,
+			Banner:          entrypoint_browser_bundle.DefaultBanner()["js"],
+			Defines:         defines,
+			External:        external,
+			Loaders:         map[string]string{".wasm": "asset"},
+			Inject:          inject,
+			SourceOverrides: sourceOverrides,
+		},
+	)
+	if err != nil {
 		return err
+	}
+	if result.GetEntrypointOutputs()["runtime-wasm"] != filepath.Base(runtimeJsOut) {
+		return errors.Errorf("Wasm runtime output is %q", result.GetEntrypointOutputs()["runtime-wasm"])
 	}
 	return nil
 }
@@ -85,20 +112,47 @@ func BuildWasmRuntimeEntrypoint(
 // builds to buildDir/runtime-ws.mjs
 func BuildWsRuntime(ctx context.Context, le *logrus.Entry, bldrDistRoot, buildDir string, minify, sourcemaps bool) error {
 	le.Info("building runtime-ws.mjs")
-
-	// Configure the WebSocket runtime entrypoint and output path.
-	entrypointJsDir := filepath.Join(bldrDistRoot, webEntrypointBrowserDir)
-	runtimeJsOut := filepath.Join(buildDir, "runtime-ws.mjs")
-
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(entrypointJsDir, minify, sourcemaps)
-	opts.EntryPoints = []string{"runtime-ws.ts"}
-	opts.Outfile = runtimeJsOut
-	opts.Write = true
-
-	// Build the configured WebSocket runtime bundle.
-	res := esbuild_api.Build(opts)
-	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
+	sourceMap := "none"
+	if sourcemaps {
+		sourceMap = "external"
+	}
+	result, err := bldr_web_bundler_rolldown.Build(
+		ctx,
+		le,
+		buildDir,
+		bldrDistRoot,
+		&bldr_web_bundler_rolldown.BuildRequest{
+			WorkingDir:   buildDir,
+			SourceRoot:   bldrDistRoot,
+			OutputRoot:   buildDir,
+			BldrDistRoot: bldrDistRoot,
+			Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
+				Name:      "runtime-ws",
+				InputPath: bldr.ResolveDistSourcePath(bldrDistRoot, webEntrypointBrowserDir, "runtime-ws.ts"),
+			}},
+			Format:         "es",
+			Platform:       "browser",
+			Target:         "es2024",
+			EntryFileNames: "runtime-ws.mjs",
+			ChunkFileNames: "[name]-[hash].mjs",
+			AssetFileNames: "[name]-[hash][extname]",
+			Sourcemap:      sourceMap,
+			Minify:         minify,
+			TreeShaking:    true,
+			Banner:         entrypoint_browser_bundle.DefaultBanner()["js"],
+			Defines:        map[string]string{"BLDR_IS_BROWSER": "true"},
+			Loaders: map[string]string{
+				".wasm": "asset", ".woff": "asset", ".woff2": "asset",
+				".png": "asset", ".jpg": "asset", ".jpeg": "asset",
+				".svg": "asset", ".gif": "asset",
+			},
+		},
+	)
+	if err != nil {
 		return err
+	}
+	if result.GetEntrypointOutputs()["runtime-ws"] != "runtime-ws.mjs" {
+		return errors.Errorf("WebSocket runtime output is %q", result.GetEntrypointOutputs()["runtime-ws"])
 	}
 	return nil
 }

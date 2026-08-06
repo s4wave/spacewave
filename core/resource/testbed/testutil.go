@@ -15,11 +15,11 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
-	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/go-git/go-billy/v6/memfs"
 	billy_util "github.com/go-git/go-billy/v6/util"
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
@@ -28,6 +28,7 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/bldr/testbed"
+	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
@@ -433,69 +434,56 @@ func RunTypeScriptTest(
 	}
 	vendorDir := filepath.Join(repoRoot, "vendor")
 
-	// Build an esbuild plugin to resolve @go/ and @aptre/ imports via vendor.
-	vendorPlugin := esbuild_api.Plugin{
-		Name: "vendor-resolver",
-		Setup: func(build esbuild_api.PluginBuild) {
-			// Resolve @go/* to vendor/*
-			build.OnResolve(esbuild_api.OnResolveOptions{Filter: `^@go/`}, func(args esbuild_api.OnResolveArgs) (esbuild_api.OnResolveResult, error) {
-				// Strip @go/ prefix, resolve in vendor
-				importPath := strings.TrimPrefix(args.Path, "@go/")
-				resolved := filepath.Join(vendorDir, importPath)
-				// Try .ts extension if .js was requested
-				if before, ok := strings.CutSuffix(resolved, ".js"); ok {
-					tsPath := before + ".ts"
-					if _, err := os.Stat(tsPath); err == nil {
-						return esbuild_api.OnResolveResult{Path: tsPath}, nil
-					}
-				}
-				if _, err := os.Stat(resolved); err == nil {
-					return esbuild_api.OnResolveResult{Path: resolved}, nil
-				}
-				return esbuild_api.OnResolveResult{}, nil
-			})
-			// Resolve @aptre/bldr-sdk/* to vendor bldr SDK
-			build.OnResolve(esbuild_api.OnResolveOptions{Filter: `^@aptre/bldr-sdk`}, func(args esbuild_api.OnResolveArgs) (esbuild_api.OnResolveResult, error) {
-				importPath := strings.TrimPrefix(args.Path, "@aptre/bldr-sdk")
-				if importPath == "" {
-					importPath = "/plugin.ts"
-				}
-				resolved := filepath.Join(vendorDir, "github.com/s4wave/spacewave/bldr/sdk", importPath)
-				if before, ok := strings.CutSuffix(resolved, ".js"); ok {
-					tsPath := before + ".ts"
-					if _, err := os.Stat(tsPath); err == nil {
-						return esbuild_api.OnResolveResult{Path: tsPath}, nil
-					}
-				}
-				if _, err := os.Stat(resolved); err == nil {
-					return esbuild_api.OnResolveResult{Path: resolved}, nil
-				}
-				return esbuild_api.OnResolveResult{}, nil
-			})
+	outputRoot, err := os.MkdirTemp("", "bldr-resource-test-")
+	if err != nil {
+		return false, "", errors.Wrap(err, "create TypeScript build directory")
+	}
+	defer os.RemoveAll(outputRoot)
+	absoluteWrapperPath, err := filepath.Abs(wrapperPath)
+	if err != nil {
+		return false, "", errors.Wrap(err, "resolve wrapper path")
+	}
+	spacewaveVendor := filepath.Join(vendorDir, "github.com", "s4wave", "spacewave")
+	result, err := bldr_web_bundler_rolldown.Build(
+		ctx,
+		le,
+		outputRoot,
+		repoRoot,
+		&bldr_web_bundler_rolldown.BuildRequest{
+			WorkingDir:     outputRoot,
+			SourceRoot:     repoRoot,
+			OutputRoot:     outputRoot,
+			BldrDistRoot:   repoRoot,
+			Entrypoints:    []*bldr_web_bundler_rolldown.Entrypoint{{Name: "test", InputPath: absoluteWrapperPath}},
+			Format:         "es",
+			Platform:       "browser",
+			Target:         "es2022",
+			EntryFileNames: "test.mjs",
+			ChunkFileNames: "[name]-[hash].mjs",
+			AssetFileNames: "[name]-[hash][extname]",
+			Sourcemap:      "none",
+			TreeShaking:    true,
+			Aliases: map[string]string{
+				"@aptre/bldr-sdk": filepath.Join(spacewaveVendor, "bldr", "sdk", "plugin.ts"),
+			},
+			PrefixAliases: map[string]string{
+				"@go/":             vendorDir,
+				"@aptre/bldr-sdk/": filepath.Join(spacewaveVendor, "bldr", "sdk"),
+			},
 		},
+	)
+	if err != nil {
+		return false, "", errors.Wrap(err, "bundle TypeScript test")
 	}
-
-	// Bundle the wrapper (which imports the test file) using esbuild
-	result := esbuild_api.Build(esbuild_api.BuildOptions{
-		EntryPoints: []string{wrapperPath},
-		Bundle:      true,
-		Format:      esbuild_api.FormatESModule,
-		Target:      esbuild_api.ES2022,
-		TreeShaking: esbuild_api.TreeShakingTrue,
-		Platform:    esbuild_api.PlatformBrowser,
-		Write:       false,
-		Plugins:     []esbuild_api.Plugin{vendorPlugin},
-	})
-
-	if len(result.Errors) > 0 {
-		return false, "", fmt.Errorf("esbuild errors: %v", result.Errors)
+	outputPath := result.GetEntrypointOutputs()["test"]
+	if outputPath != "test.mjs" {
+		return false, "", errors.Errorf("TypeScript test output is %q", outputPath)
 	}
-
-	if len(result.OutputFiles) == 0 {
-		return false, "", fmt.Errorf("no output files from esbuild")
+	scriptBytes, err := os.ReadFile(filepath.Join(outputRoot, outputPath))
+	if err != nil {
+		return false, "", errors.Wrap(err, "read bundled TypeScript test")
 	}
-
-	scriptContents := string(result.OutputFiles[0].Contents)
+	scriptContents := string(scriptBytes)
 
 	// Load the bundled script into QuickJS
 	pluginRef, err := tb.LoadQuickJSPlugin(ctx, pluginID, scriptContents)

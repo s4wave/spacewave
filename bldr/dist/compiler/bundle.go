@@ -16,7 +16,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	cbc "github.com/aperturerobotics/controllerbus/core"
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/enabled"
 	"github.com/aperturerobotics/util/fsutil"
@@ -388,7 +387,6 @@ func BuildDistBundle(
 
 		// Compile the bldr entrypoint (js bundle and index.html)
 		le.Debug("building browser bundle")
-		entrypoint_browser_bundle.EsbuildLogLevel = esbuild.LogLevelError
 		bundleResult, err := entrypoint_browser_bundle.BuildBrowserBundle(
 			ctx,
 			le,

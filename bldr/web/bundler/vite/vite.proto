@@ -47,6 +47,14 @@ message BuildRequest {
   bool js_minification = 11;
   // JsSourcemaps controls JavaScript sourcemap output for this build.
   bool js_sourcemaps = 12;
+  // Defines replaces compile-time identifiers in config-free internal builds.
+  map<string, string> defines = 13;
+  // FlatEntryNames emits entrypoint names at OutDir instead of source-relative paths.
+  bool flat_entry_names = 14;
+  // SourcemapMode overrides JsSourcemaps with none, inline, or external.
+  string sourcemap_mode = 15;
+  // ProjectRoot is the Go module root used to resolve @go imports.
+  string project_root = 16;
 }
 
 // ViteBuildRequestEntrypoint defines a single entrypoint for Vite to build.
@@ -73,6 +81,8 @@ message BuildResponse {
   repeated string global_css_files = 5;
   // WebPkgRefs is the list of web packages that were referenced during the build.
   repeated WebPkgRef web_pkg_refs = 6;
+  // OutputFiles contains every emitted runtime file relative to OutDir.
+  repeated string output_files = 7;
 }
 
 // EntrypointOutput contains information about an entrypoint and its outputs.

@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/bun"
 	"github.com/aperturerobotics/util/keyed"
@@ -23,7 +22,6 @@ import (
 	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	web_pkg "github.com/s4wave/spacewave/bldr/web/pkg"
 	"github.com/s4wave/spacewave/net/util/randstring"
@@ -101,46 +99,20 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	// Without this, the old instance's cleanup could delete the new instance's pipe file.
 	pipeUuid := "vite-" + strings.ToLower(b58.Encode(pipeUuidBin[:]))[:4] + "-" + randstring.RandomIdentifier(4)
 
-	// Compile the vite compiler host with esbuild to the working dir.
+	// Working path is typically .bldr/build/..., so state stays under .bldr/bun.
+	bunStateDir := filepath.Join(workingPath, "..", "..", "bun")
 	viteScriptPath := filepath.Join(workingPath, "bldr-"+pipeUuid+".mjs")
-	opts := esbuild.BuildOptions{
-		AbsWorkingDir: distPath,
-		// SourceRoot:    distPath,
-		SourceRoot: workingPath,
-
-		Outfile:     viteScriptPath,
-		EntryPoints: []string{bldr_vite.ResolveViteEntrypointPath(distPath)},
-
-		Target:      esbuild.ES2022,
-		Format:      esbuild.FormatESModule,
-		Platform:    esbuild.PlatformNode,
-		LogLevel:    esbuild.LogLevelWarning,
-		TreeShaking: esbuild.TreeShakingTrue,
-		Sourcemap:   esbuild.SourceMapLinked,
-		Drop:        esbuild.DropDebugger,
-
-		Metafile:  false,
-		Splitting: false,
-
-		Define: map[string]string{
-			"BLDR_IS_NODE": "true",
-			"NO_COLOR":     "1",
-		},
-
-		Plugins: []esbuild.Plugin{
-			// Mark node_modules as external to prevent bundling dependencies unnecessarily.
-			bldr_esbuild_build.ExternalNodeModulesPlugin(),
-			// Resolve app-local @go/... imports from the source tree and Bldr-generated vendor imports from dist sources.
-			bldr_esbuild_build.GoVendorTsResolverPlugin(sourcePath, distPath),
-		},
-
-		External: []string{"starpc", "vite"},
-
-		Bundle: true,
-		Write:  true,
-	}
-	result := esbuild.Build(opts)
-	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
+	if _, err := bldr_vite.BuildServiceScript(
+		ctx,
+		t.le,
+		bunStateDir,
+		sourcePath,
+		distPath,
+		viteScriptPath,
+	); err != nil {
+		if ctx.Err() == nil {
+			t.instancePromiseCtr.SetResult(nil, err)
+		}
 		return err
 	}
 
@@ -157,10 +129,6 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	smc := singleton_muxed_conn.NewSingletonMuxedConn(ctx, true)
 	go smc.AcceptPump(pipeListener)
 	defer smc.Close()
-
-	// Derive the bun state directory from the working path
-	// Working path is typically .bldr/build/..., so we go up to .bldr/bun
-	bunStateDir := filepath.Join(workingPath, "..", "..", "bun")
 
 	// Set up the bun process
 	cmd, err := bun.BunExec(ctx, t.le, bunStateDir, viteScriptPath, "--bundle-id", bundleID, "--pipe-uuid", pipeUuid, "--pipe-root", pipeListener.GetRootDir())
@@ -211,23 +179,41 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 
 	timeoutCtx, timeoutCtxCancel := context.WithTimeoutCause(ctx, time.Second*30, errors.New("timeout waiting for vite to connect"))
 	defer timeoutCtxCancel()
+	connectionResult := make(chan error, 1)
+	go func() {
+		_, waitErr := smc.WaitConn(timeoutCtx)
+		connectionResult <- waitErr
+	}()
+	processResult := make(chan error, 1)
+	go func() {
+		processResult <- cmd.Wait()
+	}()
 
 	t.le.Debug("waiting for vite to connect")
-	_, err = smc.WaitConn(timeoutCtx)
-	if err != nil {
+	select {
+	case err = <-connectionResult:
+		if err != nil {
+			if ctx.Err() == nil {
+				t.instancePromiseCtr.SetResult(nil, err)
+			}
+			return err
+		}
+	case err = <-processResult:
+		if err == nil {
+			err = errors.New("Vite process exited before connecting")
+		}
+		if ctx.Err() == nil {
+			t.instancePromiseCtr.SetResult(nil, err)
+		}
 		return err
 	}
 
-	// Setup the client
 	srpcClient := srpc.NewClientWithMuxedConn(smc)
 	client := bldr_vite.NewSRPCViteBundlerClient(srpcClient)
-
-	// Set the handle to the client
 	t.le.Debug("vite compiler connected")
 	t.instancePromiseCtr.SetResult(client, nil)
 
-	// Wait for the process to exit
-	err = cmd.Wait()
+	err = <-processResult
 	if ctx.Err() != nil {
 		t.instancePromiseCtr.SetPromise(nil)
 		return context.Canceled

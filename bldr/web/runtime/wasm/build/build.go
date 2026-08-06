@@ -4,17 +4,15 @@ package web_runtime_wasm_build
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 
-	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
-	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
+	bldr "github.com/s4wave/spacewave/bldr"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
+	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 	"github.com/sirupsen/logrus"
 )
@@ -63,81 +61,66 @@ func BuildWebWasmPluginScript(ctx context.Context, le *logrus.Entry, bldrDistRoo
 	}
 
 	le.Infof("building plugin-wasm.ts to %v", filepath.Base(outPath))
-
-	pluginJsDir := filepath.Join(bldrDistRoot, webRuntimeWasmDir)
-	opts := entrypoint_browser_bundle.BrowserBuildOpts(pluginJsDir, minify, sourcemaps)
-	opts.EntryPoints = []string{"plugin-wasm.ts"}
-	opts.Outfile = outPath
-	opts.Define["BLDR_IS_PLUGIN"] = "true"
-	opts.Define["BLDR_PLUGIN_ENTRYPOINT"] = strconv.Quote(entrypointPath)
-	opts.Metafile = true
-	opts.Write = true
-
+	outputRoot := filepath.Dir(outPath)
+	outputName := filepath.Base(outPath)
+	entrypointName := strings.TrimSuffix(outputName, filepath.Ext(outputName))
+	sourceMap := "none"
+	if sourcemaps {
+		sourceMap = "both"
+	}
+	inject := []string{wasmExecFile}
+	var external []string
+	var sourceOverrides map[string]string
 	if useTinygo {
-		nodeStubsLoc := filepath.Join(bldrDistRoot, nodeStubsPath)
-		nodeStubsLoc, err = filepath.Rel(pluginJsDir, nodeStubsLoc)
+		nodeStubsLoc := bldr.ResolveDistSourcePath(bldrDistRoot, nodeStubsPath)
+		inject = append([]string{nodeStubsLoc}, inject...)
+		external = []string{"fs", "crypto", "util", "node:fs", "node:crypto", "node:util"}
+		patched, err := entrypoint_browser_bundle.LoadTinyGoWasmExecSource(wasmExecFile)
 		if err != nil {
 			return nil, err
 		}
-		opts.Inject = append(opts.Inject, nodeStubsLoc)
-		entrypoint_browser_bundle.ApplyTinyGoNodeFallbacks(&opts)
-		entrypoint_browser_bundle.ApplyTinyGoWasmExecPatches(&opts, wasmExecFile)
+		sourceOverrides = map[string]string{wasmExecFile: patched}
 	}
-
-	opts.Inject = append(opts.Inject, wasmExecFile)
-
-	if sourcemaps {
-		opts.Sourcemap = esbuild_api.SourceMapInlineAndExternal
-	}
-
-	res := esbuild_api.Build(opts)
-	if err := bldr_esbuild_build.BuildResultToErr(res); err != nil {
-		return nil, err
-	}
-	inputPaths, err := buildInputPathsFromMetafile(pluginJsDir, res.Metafile)
+	result, err := bldr_web_bundler_rolldown.Build(
+		ctx,
+		le,
+		outputRoot,
+		bldrDistRoot,
+		&bldr_web_bundler_rolldown.BuildRequest{
+			WorkingDir:   outputRoot,
+			SourceRoot:   bldrDistRoot,
+			OutputRoot:   outputRoot,
+			BldrDistRoot: bldrDistRoot,
+			Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
+				Name:      entrypointName,
+				InputPath: bldr.ResolveDistSourcePath(bldrDistRoot, webRuntimeWasmDir, "plugin-wasm.ts"),
+			}},
+			Format:         "es",
+			Platform:       "browser",
+			Target:         "es2024",
+			EntryFileNames: outputName,
+			ChunkFileNames: "[name]-[hash].mjs",
+			AssetFileNames: "[name]-[hash][extname]",
+			Sourcemap:      sourceMap,
+			Minify:         minify,
+			TreeShaking:    true,
+			Banner:         entrypoint_browser_bundle.DefaultBanner()["js"],
+			Defines: map[string]string{
+				"BLDR_IS_BROWSER":        "true",
+				"BLDR_IS_PLUGIN":         "true",
+				"BLDR_PLUGIN_ENTRYPOINT": strconv.Quote(entrypointPath),
+			},
+			External:        external,
+			Loaders:         map[string]string{".wasm": "asset"},
+			Inject:          inject,
+			SourceOverrides: sourceOverrides,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
-
-	// build complete
-	return inputPaths, nil
-}
-
-func buildInputPathsFromMetafile(absWorkingDir, metafile string) ([]string, error) {
-	if metafile == "" {
-		return nil, nil
+	if result.GetEntrypointOutputs()[entrypointName] != outputName {
+		return nil, errors.Errorf("Wasm runtime output is %q, expected %q", result.GetEntrypointOutputs()[entrypointName], outputName)
 	}
-	var parser fastjson.Parser
-	value, err := parser.Parse(metafile)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse esbuild metafile")
-	}
-	inputs := value.GetObject("inputs")
-	if inputs == nil {
-		return nil, nil
-	}
-
-	seen := make(map[string]struct{}, inputs.Len())
-	inputPaths := make([]string, 0, inputs.Len())
-	inputs.Visit(func(key []byte, _ *fastjson.Value) {
-		inputPath := string(key)
-		if inputPath == "" || strings.HasPrefix(inputPath, "<") {
-			return
-		}
-		if !filepath.IsAbs(inputPath) {
-			inputPath = filepath.Join(absWorkingDir, inputPath)
-		}
-		inputPath = filepath.Clean(inputPath)
-		if _, ok := seen[inputPath]; ok {
-			return
-		}
-		fileInfo, err := os.Stat(inputPath)
-		if err != nil || fileInfo.IsDir() {
-			return
-		}
-		seen[inputPath] = struct{}{}
-		inputPaths = append(inputPaths, inputPath)
-	})
-	slices.Sort(inputPaths)
-	return inputPaths, nil
+	return slices.Clone(result.GetInputs()), nil
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	esbuild_api "github.com/aperturerobotics/esbuild/pkg/api"
 	protobuf_go_lite_json "github.com/aperturerobotics/protobuf-go-lite/json"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
@@ -26,11 +25,10 @@ import (
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_compiler "github.com/s4wave/spacewave/bldr/plugin/compiler"
-	"github.com/s4wave/spacewave/bldr/util/npm"
 	bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
 	bldr_web_bundler_esbuild "github.com/s4wave/spacewave/bldr/web/bundler/esbuild"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	bldr_web_bundler_esbuild_compiler "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/compiler"
+	bldr_web_bundler_rolldown "github.com/s4wave/spacewave/bldr/web/bundler/rolldown"
 	bldr_web_bundler_vite "github.com/s4wave/spacewave/bldr/web/bundler/vite"
 	bldr_web_bundler_vite_compiler "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
@@ -498,15 +496,8 @@ func (c *Controller) BuildManifest(
 	// Sort collected web package references
 	web_pkg.SortWebPkgRefs(allWebPkgRefs)
 
-	// Install dist deps for the entrypoint build (cached: skips if package.json unchanged).
-	// The entrypoint bundles @aptre/bldr which transitively imports packages
-	// (like workbox-window) that must be resolved via dist/deps/package.json.
-	distDepsDir := filepath.Join(workingPath, "dist-deps")
+	// Record the pinned dist dependency inputs used by the direct owner.
 	distDepsPackagePath := bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json")
-	if err := npm.EnsureBunInstall(ctx, le, workingPath, distDepsPackagePath, distDepsDir); err != nil {
-		return nil, errors.Wrap(err, "failed to install dist deps for entrypoint")
-	}
-	distDepsNodeModules := filepath.Join(distDepsDir, "node_modules")
 
 	// -- Compile the main JS entrypoint (plugin-{hash}.mjs) --
 	le.Info("compiling js plugin entrypoint")
@@ -559,7 +550,7 @@ func (c *Controller) BuildManifest(
 	}
 
 	defines := map[string]string{
-		// Pass JSON array strings to esbuild define
+		// Pass JSON array strings as compile-time definitions.
 		"__BLDR_BACKEND_ENTRYPOINTS__":  backendEpJsonStr,
 		"__BLDR_FRONTEND_ENTRYPOINTS__": frontendEpJsonStr,
 		"__BLDR_HOST_CONFIG_SET__":      hostConfigSetJsonStr,
@@ -567,91 +558,51 @@ func (c *Controller) BuildManifest(
 		"__BLDR_WEB_PLUGIN_ID__":        strconv.Quote(conf.GetWebPluginId()),
 	}
 
-	// Relative path to the entrypoint within the distSourcePath directory.
-	entrypointTsRelativePath, err := filepath.Rel(distSourcePath, entrypointTsSrcPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to derive js plugin entrypoint path")
-	}
-	entrypointTsRelativePath = filepath.ToSlash(entrypointTsRelativePath)
-
-	// Desired output path structure (esbuild will add hash and extension)
-	entrypointOutputBase := "plugin" // plugin-HASH.mjs
-
-	// Configure esbuild options for the plugin entrypoint
-	buildOptions := entrypoint_browser_bundle.BrowserBuildOpts(distSourcePath, jsMinification, jsSourcemaps)
-
-	// Override/set specific fields for this entrypoint build.
-	buildOptions.Outdir = outDistPath         // Write assets to the output directory.
-	buildOptions.EntryNames = "plugin-[hash]" // Use hashed filenames for cache busting.
-	buildOptions.EntryPoints = nil            // Clear any default entrypoints from BrowserBuildOpts.
-	buildOptions.EntryPointsAdvanced = []esbuild_api.EntryPoint{
-		{
-			InputPath:  entrypointTsRelativePath,
-			OutputPath: entrypointOutputBase, // Define the output structure (name part, hash added by EntryNames).
-		},
-	}
-	buildOptions.Define = defines  // Inject backend/frontend entrypoint paths.
-	buildOptions.Metafile = true   // Enable metafile to find the hashed output path.
-	buildOptions.Splitting = false // Do not split code for this simple entrypoint.
+	sourceMap := "none"
 	if jsSourcemaps {
-		buildOptions.Sourcemap = esbuild_api.SourceMapInline // Inline sourcemap for easier debugging.
+		sourceMap = "inline"
 	}
-	buildOptions.Write = true
-	buildOptions.NodePaths = []string{distDepsNodeModules}
-	entrypoint_browser_bundle.ApplyRuntimeDistDepsResolver(&buildOptions, distDepsDir)
-
-	buildOptions.Plugins = append(buildOptions.Plugins,
-		bldr_esbuild_build.GoVendorTsResolverPlugin(builderConf.GetSourcePath(), builderConf.GetDistSourcePath()),
+	result, err := bldr_web_bundler_rolldown.Build(
+		ctx,
+		le,
+		workingPath,
+		distSourcePath,
+		&bldr_web_bundler_rolldown.BuildRequest{
+			WorkingDir:   workingPath,
+			SourceRoot:   builderConf.GetSourcePath(),
+			OutputRoot:   outDistPath,
+			BldrDistRoot: distSourcePath,
+			Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
+				Name:      "plugin",
+				InputPath: entrypointTsSrcPath,
+			}},
+			Format:         "es",
+			Platform:       "browser",
+			Target:         "es2024",
+			EntryFileNames: "plugin-[hash].mjs",
+			ChunkFileNames: "[name]-[hash].mjs",
+			AssetFileNames: "[name]-[hash][extname]",
+			Sourcemap:      sourceMap,
+			Minify:         jsMinification,
+			TreeShaking:    true,
+			Banner:         entrypoint_browser_bundle.DefaultBanner()["js"],
+			Defines:        defines,
+			Loaders: map[string]string{
+				".wasm": "asset", ".woff": "asset", ".woff2": "asset",
+				".png": "asset", ".jpg": "asset", ".jpeg": "asset",
+				".svg": "asset", ".gif": "asset",
+			},
+		},
 	)
-
-	// Run esbuild
-	result := esbuild_api.Build(buildOptions)
-	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
+	if err != nil {
 		return nil, errors.Wrap(err, "failed to compile js plugin entrypoint")
 	}
-
-	// Parse the metafile to find the actual output path for our entrypoint
-	metafileData, err := bldr_esbuild_build.ParseEsbuildMetafile([]byte(result.Metafile))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse esbuild metafile")
+	compiledEntrypointRelPath := path.Clean(filepath.ToSlash(result.GetEntrypointOutputs()["plugin"]))
+	if compiledEntrypointRelPath == "." || compiledEntrypointRelPath == "" {
+		return nil, errors.New("direct owner returned no js plugin entrypoint output")
 	}
-
-	// Find the output corresponding to the entrypoint specified in EntryPointsAdvanced.
-	// The key in the metafileData.Outputs map is the path relative to the Outdir (outAssetsPath).
-	// The EntryPoint in the value should match the InputPath we provided.
-	entrypointOutputPath := ""
-	for outPath, outMeta := range metafileData.Outputs {
-		if outMeta.EntryPoint == entrypointTsRelativePath {
-			entrypointOutputPath = outPath
-			break
-		}
-	}
-	if entrypointOutputPath == "" {
-		return nil, errors.Errorf("unable to find output path for entrypoint %s in esbuild metafile", entrypointTsRelativePath)
-	}
-
-	// Esbuild metafile output paths are absolute or relative to AbsWorkingDir.
-	compiledEntrypointRelPath, err := relativeEntrypointOutputPath(
-		buildOptions.AbsWorkingDir,
-		outDistPath,
-		entrypointOutputPath,
-	)
-	if err != nil {
-		return nil, err
-	}
-	compiledEntrypointRelPath = path.Clean(filepath.ToSlash(compiledEntrypointRelPath))
-
 	le.Debugf("compiled js plugin entrypoint to %s", compiledEntrypointRelPath)
-
-	for inputPath := range metafileData.Inputs {
-		if strings.HasPrefix(inputPath, "<define:") {
-			continue
-		}
-		if !filepath.IsAbs(inputPath) {
-			inputPath = filepath.Join(distSourcePath, filepath.FromSlash(inputPath))
-		}
-		startupInputPaths = append(startupInputPaths, inputPath)
-	}
+	startupInputPaths = append(startupInputPaths, result.GetInputs()...)
 	startupInputPaths = append(startupInputPaths, distDepsPackagePath)
 	distDepsLockPath := filepath.Join(filepath.Dir(distDepsPackagePath), "bun.lock")
 	if _, err := os.Stat(distDepsLockPath); err == nil {
@@ -743,14 +694,6 @@ func (c *Controller) BuildManifest(
 	}
 
 	return builderResult, nil
-}
-
-// relativeEntrypointOutputPath converts an esbuild metafile output path to a path relative to outDistPath.
-func relativeEntrypointOutputPath(workingDir, outDistPath, entrypointOutputPath string) (string, error) {
-	if !filepath.IsAbs(entrypointOutputPath) {
-		entrypointOutputPath = filepath.Join(workingDir, filepath.FromSlash(entrypointOutputPath))
-	}
-	return filepath.Rel(outDistPath, entrypointOutputPath)
 }
 
 // CreateEntrypointsFromViteOutputs matches Vite outputs to JS modules and creates backend/frontend entrypoints.

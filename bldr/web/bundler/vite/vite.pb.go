@@ -79,6 +79,14 @@ type BuildRequest struct {
 	JsMinification bool `protobuf:"varint,11,opt,name=js_minification,json=jsMinification,proto3" json:"jsMinification,omitempty"`
 	// JsSourcemaps controls JavaScript sourcemap output for this build.
 	JsSourcemaps bool `protobuf:"varint,12,opt,name=js_sourcemaps,json=jsSourcemaps,proto3" json:"jsSourcemaps,omitempty"`
+	// Defines replaces compile-time identifiers in config-free internal builds.
+	Defines map[string]string `protobuf:"bytes,13,rep,name=defines,proto3" json:"defines,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// FlatEntryNames emits entrypoint names at OutDir instead of source-relative paths.
+	FlatEntryNames bool `protobuf:"varint,14,opt,name=flat_entry_names,json=flatEntryNames,proto3" json:"flatEntryNames,omitempty"`
+	// SourcemapMode overrides JsSourcemaps with none, inline, or external.
+	SourcemapMode string `protobuf:"bytes,15,opt,name=sourcemap_mode,json=sourcemapMode,proto3" json:"sourcemapMode,omitempty"`
+	// ProjectRoot is the Go module root used to resolve @go imports.
+	ProjectRoot string `protobuf:"bytes,16,opt,name=project_root,json=projectRoot,proto3" json:"projectRoot,omitempty"`
 }
 
 func (x *BuildRequest) Reset() {
@@ -171,6 +179,34 @@ func (x *BuildRequest) GetJsSourcemaps() bool {
 	return false
 }
 
+func (x *BuildRequest) GetDefines() map[string]string {
+	if x != nil {
+		return x.Defines
+	}
+	return nil
+}
+
+func (x *BuildRequest) GetFlatEntryNames() bool {
+	if x != nil {
+		return x.FlatEntryNames
+	}
+	return false
+}
+
+func (x *BuildRequest) GetSourcemapMode() string {
+	if x != nil {
+		return x.SourcemapMode
+	}
+	return ""
+}
+
+func (x *BuildRequest) GetProjectRoot() string {
+	if x != nil {
+		return x.ProjectRoot
+	}
+	return ""
+}
+
 // ViteBuildRequestEntrypoint defines a single entrypoint for Vite to build.
 type ViteBuildRequestEntrypoint struct {
 	unknownFields []byte
@@ -217,6 +253,8 @@ type BuildResponse struct {
 	GlobalCssFiles []string `protobuf:"bytes,5,rep,name=global_css_files,json=globalCssFiles,proto3" json:"globalCssFiles,omitempty"`
 	// WebPkgRefs is the list of web packages that were referenced during the build.
 	WebPkgRefs []*WebPkgRef `protobuf:"bytes,6,rep,name=web_pkg_refs,json=webPkgRefs,proto3" json:"webPkgRefs,omitempty"`
+	// OutputFiles contains every emitted runtime file relative to OutDir.
+	OutputFiles []string `protobuf:"bytes,7,rep,name=output_files,json=outputFiles,proto3" json:"outputFiles,omitempty"`
 }
 
 func (x *BuildResponse) Reset() {
@@ -263,6 +301,13 @@ func (x *BuildResponse) GetGlobalCssFiles() []string {
 func (x *BuildResponse) GetWebPkgRefs() []*WebPkgRef {
 	if x != nil {
 		return x.WebPkgRefs
+	}
+	return nil
+}
+
+func (x *BuildResponse) GetOutputFiles() []string {
+	if x != nil {
+		return x.OutputFiles
 	}
 	return nil
 }
@@ -532,6 +577,32 @@ func (x *ImportMapEntry) GetOutputPath() string {
 	return ""
 }
 
+type BuildRequest_DefinesEntry struct {
+	unknownFields []byte
+	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Value         string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *BuildRequest_DefinesEntry) Reset() {
+	*x = BuildRequest_DefinesEntry{}
+}
+
+func (*BuildRequest_DefinesEntry) ProtoMessage() {}
+
+func (x *BuildRequest_DefinesEntry) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *BuildRequest_DefinesEntry) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
 func (m *WebPkgRef) CloneVT() *WebPkgRef {
 	if m == nil {
 		return (*WebPkgRef)(nil)
@@ -563,10 +634,14 @@ func (m *BuildRequest) CloneVT() *BuildRequest {
 	r.PublicPath = m.PublicPath
 	r.JsMinification = m.JsMinification
 	r.JsSourcemaps = m.JsSourcemaps
+	r.FlatEntryNames = m.FlatEntryNames
+	r.SourcemapMode = m.SourcemapMode
+	r.ProjectRoot = m.ProjectRoot
 	r.ConfigPaths = protobuf_go_lite.CloneSlice(m.ConfigPaths)
 	r.Entrypoints = protobuf_go_lite.CloneVTSlice(m.Entrypoints)
 	r.ExternalPkgs = protobuf_go_lite.CloneSlice(m.ExternalPkgs)
 	r.WebPkgs = protobuf_go_lite.CloneVTSlice(m.WebPkgs)
+	r.Defines = protobuf_go_lite.CloneMap(m.Defines)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -605,6 +680,7 @@ func (m *BuildResponse) CloneVT() *BuildResponse {
 	r.InputFiles = protobuf_go_lite.CloneSlice(m.InputFiles)
 	r.GlobalCssFiles = protobuf_go_lite.CloneSlice(m.GlobalCssFiles)
 	r.WebPkgRefs = protobuf_go_lite.CloneVTSlice(m.WebPkgRefs)
+	r.OutputFiles = protobuf_go_lite.CloneSlice(m.OutputFiles)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -781,6 +857,18 @@ func (this *BuildRequest) EqualVT(that *BuildRequest) bool {
 	if this.JsSourcemaps != that.JsSourcemaps {
 		return false
 	}
+	if !protobuf_go_lite.EqualMap(this.Defines, that.Defines) {
+		return false
+	}
+	if this.FlatEntryNames != that.FlatEntryNames {
+		return false
+	}
+	if this.SourcemapMode != that.SourcemapMode {
+		return false
+	}
+	if this.ProjectRoot != that.ProjectRoot {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -837,6 +925,9 @@ func (this *BuildResponse) EqualVT(that *BuildResponse) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.WebPkgRefs, that.WebPkgRefs, func() *WebPkgRef { return &WebPkgRef{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.OutputFiles, that.OutputFiles) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1066,6 +1157,56 @@ func (x *WebPkgRef) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the BuildRequest_DefinesEntry message to JSON.
+func (x *BuildRequest_DefinesEntry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Key != "" || s.HasField("key") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("key")
+		s.WriteString(x.Key)
+	}
+	if x.Value != "" || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteString(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BuildRequest_DefinesEntry to JSON.
+func (x *BuildRequest_DefinesEntry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BuildRequest_DefinesEntry message from JSON.
+func (x *BuildRequest_DefinesEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "key":
+			s.AddField("key")
+			x.Key = s.ReadString()
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BuildRequest_DefinesEntry from JSON.
+func (x *BuildRequest_DefinesEntry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the BuildRequest message to JSON.
 func (x *BuildRequest) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -1145,6 +1286,33 @@ func (x *BuildRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("jsSourcemaps")
 		s.WriteBool(x.JsSourcemaps)
+	}
+	if x.Defines != nil || s.HasField("defines") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("defines")
+		s.WriteObjectStart()
+		var wroteElement bool
+		for k, v := range x.Defines {
+			s.WriteMoreIf(&wroteElement)
+			s.WriteObjectStringField(k)
+			s.WriteString(v)
+		}
+		s.WriteObjectEnd()
+	}
+	if x.FlatEntryNames || s.HasField("flatEntryNames") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("flatEntryNames")
+		s.WriteBool(x.FlatEntryNames)
+	}
+	if x.SourcemapMode != "" || s.HasField("sourcemapMode") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sourcemapMode")
+		s.WriteString(x.SourcemapMode)
+	}
+	if x.ProjectRoot != "" || s.HasField("projectRoot") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("projectRoot")
+		s.WriteString(x.ProjectRoot)
 	}
 	s.WriteObjectEnd()
 }
@@ -1237,6 +1405,25 @@ func (x *BuildRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "js_sourcemaps", "jsSourcemaps":
 			s.AddField("js_sourcemaps")
 			x.JsSourcemaps = s.ReadBool()
+		case "defines":
+			s.AddField("defines")
+			if s.ReadNil() {
+				x.Defines = nil
+				return
+			}
+			x.Defines = make(map[string]string)
+			s.ReadStringMap(func(key string) {
+				x.Defines[key] = s.ReadString()
+			})
+		case "flat_entry_names", "flatEntryNames":
+			s.AddField("flat_entry_names")
+			x.FlatEntryNames = s.ReadBool()
+		case "sourcemap_mode", "sourcemapMode":
+			s.AddField("sourcemap_mode")
+			x.SourcemapMode = s.ReadString()
+		case "project_root", "projectRoot":
+			s.AddField("project_root")
+			x.ProjectRoot = s.ReadString()
 		}
 	})
 }
@@ -1346,6 +1533,11 @@ func (x *BuildResponse) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if len(x.OutputFiles) > 0 || s.HasField("outputFiles") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("outputFiles")
+		s.WriteStringArray(x.OutputFiles)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1419,6 +1611,13 @@ func (x *BuildResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.WebPkgRefs = append(x.WebPkgRefs, v)
 			})
+		case "output_files", "outputFiles":
+			s.AddField("output_files")
+			if s.ReadNil() {
+				x.OutputFiles = nil
+				return
+			}
+			x.OutputFiles = s.ReadStringArray()
 		}
 	})
 }
@@ -1905,6 +2104,38 @@ func (m *BuildRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.ProjectRoot) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ProjectRoot)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
+	}
+	if len(m.SourcemapMode) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SourcemapMode)
+		i--
+		dAtA[i] = 0x7a
+	}
+	if m.FlatEntryNames {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.FlatEntryNames)
+		i--
+		dAtA[i] = 0x70
+	}
+	if len(m.Defines) > 0 {
+		for k := range m.Defines {
+			v := m.Defines[k]
+			baseI := i
+			i = protobuf_go_lite.EncodeString(dAtA, i, v)
+			i--
+			dAtA[i] = 0x12
+			i = protobuf_go_lite.EncodeString(dAtA, i, k)
+			i--
+			dAtA[i] = 0xa
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0x6a
+		}
+	}
 	if m.JsSourcemaps {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.JsSourcemaps)
 		i--
@@ -2056,6 +2287,13 @@ func (m *BuildResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.OutputFiles) > 0 {
+		for iNdEx := len(m.OutputFiles) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.OutputFiles[iNdEx])
+			i--
+			dAtA[i] = 0x3a
+		}
 	}
 	if len(m.WebPkgRefs) > 0 {
 		for iNdEx := len(m.WebPkgRefs) - 1; iNdEx >= 0; iNdEx-- {
@@ -2439,6 +2677,15 @@ func (m *BuildRequest) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.JsMinification)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.JsSourcemaps)
+	for k, v := range m.Defines {
+		_ = k
+		_ = v
+		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
+		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.FlatEntryNames)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SourcemapMode)
+	n += protobuf_go_lite.SizeStringNonEmpty(2, m.ProjectRoot)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2473,6 +2720,7 @@ func (m *BuildResponse) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringSlice(1, m.OutputFiles)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2579,6 +2827,24 @@ func (x *WebPkgRef) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *BuildRequest_DefinesEntry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DefinesEntry")
+	if x.Key != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
+		protobuf_go_lite.TextWriteString(&sb, x.Key)
+	}
+	if x.Value != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteString(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *BuildRequest_DefinesEntry) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *BuildRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "BuildRequest")
@@ -2654,6 +2920,29 @@ func (x *BuildRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "js_sourcemaps")
 		protobuf_go_lite.TextWriteBool(&sb, x.JsSourcemaps)
 	}
+	if len(x.Defines) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "defines")
+		for _, k := range protobuf_go_lite.TextSortedMapKeys(x.Defines) {
+			v := x.Defines[k]
+			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
+			protobuf_go_lite.TextWriteString(&sb, k)
+			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteMapEnd(&sb)
+	}
+	if x.FlatEntryNames != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "flat_entry_names")
+		protobuf_go_lite.TextWriteBool(&sb, x.FlatEntryNames)
+	}
+	if x.SourcemapMode != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sourcemap_mode")
+		protobuf_go_lite.TextWriteString(&sb, x.SourcemapMode)
+	}
+	if x.ProjectRoot != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "project_root")
+		protobuf_go_lite.TextWriteString(&sb, x.ProjectRoot)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -2727,6 +3016,14 @@ func (x *BuildResponse) MarshalProtoText() string {
 			} else {
 				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
 			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.OutputFiles) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "output_files")
+		for i, v := range x.OutputFiles {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
@@ -3130,6 +3427,78 @@ func (m *BuildRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.JsSourcemaps = bool(v)
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Defines", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			iNdEx = msgStart
+			if m.Defines == nil {
+				m.Defines = make(map[string]string)
+			}
+			var mapkey string
+			var mapvalue string
+			for iNdEx < postIndex {
+				entryPreIndex := iNdEx
+				var wire uint64
+				wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+				if err != nil {
+					return err
+				}
+				fieldNum := int32(wire >> 3)
+				if fieldNum == 1 {
+					mapkey, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else if fieldNum == 2 {
+					mapvalue, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+					if err != nil {
+						return err
+					}
+				} else {
+					iNdEx = entryPreIndex
+					iNdEx, err = protobuf_go_lite.SkipWithin(dAtA, iNdEx, postIndex)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			m.Defines[mapkey] = mapvalue
+			iNdEx = postIndex
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FlatEntryNames", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.FlatEntryNames = bool(v)
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourcemapMode", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SourcemapMode = v
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProjectRoot", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ProjectRoot = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3302,6 +3671,16 @@ func (m *BuildResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OutputFiles", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.OutputFiles = append(m.OutputFiles, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

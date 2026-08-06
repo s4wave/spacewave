@@ -123,6 +123,8 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     const configPaths = request.configPaths || []
     const mode = request.mode || 'development'
     const rootDir = request.rootDir || process.cwd()
+    const projectRoot =
+      request.projectRoot || findNearestGoModRoot(rootDir) || rootDir
     const outDir = request.outDir || resolve(rootDir, 'dist')
     const distDir = request.distDir || resolve(rootDir, '.bldr/src')
     const publicPath = request.publicPath || null
@@ -136,7 +138,7 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     // set env vars to indicate the project root path
     // these are used in vite-base.config.ts
     process.env['BLDR_DIST_ROOT'] = distDir
-    process.env['BLDR_PROJECT_ROOT'] = rootDir
+    process.env['BLDR_PROJECT_ROOT'] = projectRoot
     process.env['BLDR_OUT_ROOT'] = outDir
 
     // set node env
@@ -169,7 +171,20 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     mergedConfig.customLogger = createSilentViteLogger()
     mergedConfig.build.outDir = outDir
     mergedConfig.build.minify = jsMinification ? 'oxc' : false
-    mergedConfig.build.sourcemap = jsSourcemaps ? 'inline' : false
+    mergedConfig.build.sourcemap =
+      request.sourcemapMode === 'external'
+        ? true
+        : request.sourcemapMode === 'inline'
+          ? 'inline'
+          : request.sourcemapMode === 'none'
+            ? false
+            : jsSourcemaps
+              ? 'inline'
+              : false
+    mergedConfig.define = {
+      ...(mergedConfig.define ?? {}),
+      ...(request.defines ?? {}),
+    }
 
     // Set the root dir
     mergedConfig.root = rootDir
@@ -261,6 +276,14 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
     if (!mergedConfig.plugins) {
       mergedConfig.plugins = []
     }
+    if (configPaths.length === 0) {
+      mergedConfig.build.emptyOutDir = false
+      mergedConfig.plugins.push(goTsResolver(projectRoot, distDir))
+      mergedConfig.resolve = {
+        ...(mergedConfig.resolve ?? {}),
+        alias: buildGoAliases(projectRoot, distDir),
+      }
+    }
     mergedConfig.plugins.push(
       createWorkerSafeModulePreloadPlugin(),
       createWebPkgRemapPlugin({
@@ -308,13 +331,15 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
         output: {
           ...(mergedConfig.build.rolldownOptions.output ?? {}),
           format: 'es',
-          entryFileNames: (chunkInfo) => {
-            return buildStableEntryFileName(
-              rootDir,
-              chunkInfo.facadeModuleId,
-              chunkInfo.name,
-            )
-          },
+          comments: false,
+          entryFileNames: (chunkInfo) =>
+            request.flatEntryNames
+              ? `${chunkInfo.name}.mjs`
+              : buildStableEntryFileName(
+                  rootDir,
+                  chunkInfo.facadeModuleId,
+                  chunkInfo.name,
+                ),
           chunkFileNames: '[name]-[hash].mjs',
           assetFileNames: '[name]-[hash][extname]',
         },

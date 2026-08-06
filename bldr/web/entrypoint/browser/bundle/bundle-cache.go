@@ -3,69 +3,53 @@
 package entrypoint_browser_bundle
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
 	"sync/atomic"
 
-	esbuild "github.com/aperturerobotics/esbuild/pkg/api"
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
-	bldr_esbuild_build "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/build"
 	web_entrypoint_index "github.com/s4wave/spacewave/bldr/web/entrypoint/index"
 	"github.com/sirupsen/logrus"
 )
 
-// bundleCacheFormatVersion is bumped when the cache schema or the compiler-owned
-// output policy changes without changing a source file. A bump invalidates every
-// persisted bundle provenance record.
-const bundleCacheFormatVersion = 2
+// bundleCacheFormatVersion is bumped when the cache schema or compiler-owned
+// output policy changes. Version 3 invalidates every esbuild-era record.
+const bundleCacheFormatVersion = 3
 
-// bundleCacheDirName is the sidecar directory (under a build dir) that holds the
-// per-bundle provenance records.
 const bundleCacheDirName = ".bundle-cache"
 
-// esbuildModulePath is the Go module path of the vendored esbuild compiler.
-const esbuildModulePath = "github.com/aperturerobotics/esbuild"
-
-// esbuildPinnedVersion is the module version compiled into this checkout. It
-// must be updated with the dependency and cache format when build info is absent.
-const esbuildPinnedVersion = "v0.24.1-0.20260219011422-6d4b923e2023"
-
-// bundleCache reuses browser bundle outputs only when their complete deterministic
-// provenance and output content are still valid.
+// bundleCache reuses browser bundle outputs only when their complete
+// deterministic provenance and output content are still valid.
 type bundleCache struct {
-	// le is the logger.
-	le *logrus.Entry
-	// dir is the directory holding per-bundle provenance sidecar files.
-	dir string
-	// baseRoot is the esbuild working directory used to resolve metafile paths.
+	le       *logrus.Entry
+	dir      string
 	baseRoot string
-	// buildDir is the directory holding produced bundle outputs.
 	buildDir string
-	// compilerID identifies the esbuild module used by this process. An empty ID
-	// disables reuse because a cache key cannot safely identify the compiler.
-	compilerID string
-	// builds counts bundles that were compiled (cache misses).
-	builds atomic.Int64
-	// reuses counts bundles served from provenance (cache hits).
-	reuses atomic.Int64
+	builds   atomic.Int64
+	reuses   atomic.Int64
+}
+
+type bundleCacheSpec struct {
+	compilerID  string
+	request     []byte
+	configFiles []string
 }
 
 // newBundleCache constructs a bundle cache writing provenance beside buildDir.
 func newBundleCache(le *logrus.Entry, buildDir, baseRoot string) *bundleCache {
 	return &bundleCache{
-		le:         le,
-		dir:        filepath.Join(buildDir, bundleCacheDirName),
-		baseRoot:   baseRoot,
-		buildDir:   buildDir,
-		compilerID: esbuildCompilerID(),
+		le:       le,
+		dir:      filepath.Join(buildDir, bundleCacheDirName),
+		baseRoot: baseRoot,
+		buildDir: buildDir,
 	}
 }
 
@@ -75,19 +59,14 @@ func (bc *bundleCache) Builds() int { return int(bc.builds.Load()) }
 // Reuses returns the number of bundles served from provenance by this cache.
 func (bc *bundleCache) Reuses() int { return int(bc.reuses.Load()) }
 
-// bundleBuildOutput is the result of building or reusing a single bundle.
+// bundleBuildOutput is the result of building or reusing one bundle.
 type bundleBuildOutput struct {
-	// inputs are the source files esbuild consumed, relative to baseRoot.
 	inputs []string
-	// values are named scalar outputs (for example a worker output filename).
 	values map[string]string
-	// list is an ordered list output (for example renderer CSS paths).
-	list []string
-	// verify are output paths, relative to buildDir, whose content is recorded.
+	list   []string
 	verify []string
 }
 
-// value returns the named scalar output, or the empty string if absent.
 func (o *bundleBuildOutput) value(key string) string {
 	if o == nil {
 		return ""
@@ -95,16 +74,13 @@ func (o *bundleBuildOutput) value(key string) string {
 	return o.values[key]
 }
 
-// build reuses the named bundle when its provenance is still valid, otherwise it
-// runs doBuild, records fresh provenance, and returns the produced output.
 func (bc *bundleCache) build(
 	name string,
-	opts esbuild.BuildOptions,
+	spec bundleCacheSpec,
 	extraDigest []byte,
 	doBuild func() (*bundleBuildOutput, error),
 ) (*bundleBuildOutput, error) {
-	// Compute cache provenance and fall back to a direct build when unavailable.
-	configDigest, cacheable := bc.configDigest(opts, extraDigest)
+	configDigest, cacheable := bc.configDigest(spec, extraDigest)
 	if !cacheable {
 		out, err := doBuild()
 		if err == nil {
@@ -113,54 +89,65 @@ func (bc *bundleCache) build(
 		return out, err
 	}
 
-	// Serialize builds for the same bundle name.
 	lock, err := acquireBundleCacheLock(filepath.Join(bc.dir, name+".lock"))
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = lock.Close() }()
 
-	// Reuse a valid cached bundle when provenance still matches.
-	if cached := bc.load(name, configDigest); cached != nil {
+	if cached := bc.load(name, spec.compilerID, configDigest); cached != nil {
 		bc.reuses.Add(1)
 		bc.le.WithField("bundle", name).Debug("reusing cached browser bundle")
 		return cached, nil
 	}
+	bc.removeRecordedOutputs(name)
 
-	// Build the bundle and count the fresh output.
 	out, err := doBuild()
 	if err != nil {
 		return nil, err
 	}
 	bc.builds.Add(1)
-
 	if len(out.inputs) == 0 || len(out.verify) == 0 {
-		// Missing graph or output provenance is incomplete; leave this bundle
-		// rebuilding rather than risk a stale reuse.
 		bc.le.WithField("bundle", name).Debug("not caching browser bundle: incomplete provenance")
 		return out, nil
 	}
-	if err := bc.store(name, opts, configDigest, out); err != nil {
-		// A provenance write failure must not fail an otherwise successful build;
-		// the next run simply rebuilds.
+	if err := bc.store(name, spec, configDigest, out); err != nil {
 		bc.le.WithField("bundle", name).WithError(err).Warn("failed to persist browser bundle provenance")
 	}
 	return out, nil
 }
 
-// configDigest hashes the compiler identity, cache format, esbuild options, and
-// any extra inputs into a single provenance key.
-func (bc *bundleCache) configDigest(opts esbuild.BuildOptions, extraDigest []byte) ([]byte, bool) {
-	optionsDigest, ok := esbuildOptionsDigest(opts)
-	if !ok || bc.compilerID == "" {
+func (bc *bundleCache) removeRecordedOutputs(name string) {
+	data, err := os.ReadFile(bc.recordPath(name))
+	if err != nil {
+		return
+	}
+	record, err := parseBundleRecord(data)
+	if err != nil {
+		return
+	}
+	for _, output := range record.outputs {
+		relativePath := filepath.Clean(output.path)
+		if relativePath == "." ||
+			relativePath == ".." ||
+			filepath.IsAbs(relativePath) ||
+			strings.HasPrefix(relativePath, ".."+string(filepath.Separator)) {
+			continue
+		}
+		_ = os.Remove(filepath.Join(bc.buildDir, relativePath))
+	}
+}
+
+func (bc *bundleCache) configDigest(spec bundleCacheSpec, extraDigest []byte) ([]byte, bool) {
+	if spec.compilerID == "" || len(spec.request) == 0 {
 		return nil, false
 	}
 	h := sha256.New()
 	_, _ = h.Write([]byte("bldr browser bundle cache v" + strconv.Itoa(bundleCacheFormatVersion)))
 	_, _ = h.Write([]byte{0})
-	_, _ = h.Write([]byte(bc.compilerID))
+	_, _ = h.Write([]byte(spec.compilerID))
 	_, _ = h.Write([]byte{0})
-	_, _ = h.Write(optionsDigest)
+	_, _ = h.Write(spec.request)
 	_, _ = h.Write([]byte{0})
 	_, _ = h.Write(extraDigest)
 	return h.Sum(nil), true
@@ -168,7 +155,7 @@ func (bc *bundleCache) configDigest(opts esbuild.BuildOptions, extraDigest []byt
 
 // load returns the reusable output for name, or nil if provenance is missing,
 // stale, incomplete, or its recorded outputs are gone.
-func (bc *bundleCache) load(name string, configDigest []byte) *bundleBuildOutput {
+func (bc *bundleCache) load(name, compilerID string, configDigest []byte) *bundleBuildOutput {
 	data, err := os.ReadFile(bc.recordPath(name))
 	if err != nil {
 		return nil
@@ -178,7 +165,7 @@ func (bc *bundleCache) load(name string, configDigest []byte) *bundleBuildOutput
 		bc.le.WithField("bundle", name).WithError(err).Debug("ignoring unreadable bundle provenance")
 		return nil
 	}
-	if record.formatVersion != bundleCacheFormatVersion || record.compilerID != bc.compilerID {
+	if record.formatVersion != bundleCacheFormatVersion || record.compilerID != compilerID {
 		return nil
 	}
 	if record.configDigest != hex.EncodeToString(configDigest) {
@@ -229,26 +216,30 @@ func (bc *bundleCache) load(name string, configDigest []byte) *bundleBuildOutput
 	}
 }
 
-// store captures source/config/output identities and atomically writes provenance.
-func (bc *bundleCache) store(name string, opts esbuild.BuildOptions, configDigest []byte, out *bundleBuildOutput) error {
+// store captures source, configuration, and output identities atomically.
+func (bc *bundleCache) store(name string, spec bundleCacheSpec, configDigest []byte, out *bundleBuildOutput) error {
 	if err := os.MkdirAll(bc.dir, 0o755); err != nil {
 		return err
 	}
 	record := &bundleRecord{
 		formatVersion: bundleCacheFormatVersion,
-		compilerID:    bc.compilerID,
+		compilerID:    spec.compilerID,
 		configDigest:  hex.EncodeToString(configDigest),
 		values:        out.values,
 		list:          out.list,
 	}
 	for _, inputPath := range out.inputs {
-		identity, err := bldr_manifest_builder.CaptureFileIdentity(filepath.Join(bc.baseRoot, inputPath))
+		relativePath, err := cacheRelativePath(bc.baseRoot, inputPath)
+		if err != nil {
+			return err
+		}
+		identity, err := bldr_manifest_builder.CaptureFileIdentity(filepath.Join(bc.baseRoot, relativePath))
 		if err != nil {
 			return errors.Wrapf(err, "capture identity for bundle input %q", inputPath)
 		}
-		record.inputs = append(record.inputs, bundleInput{path: inputPath, identity: identity})
+		record.inputs = append(record.inputs, bundleInput{path: relativePath, identity: identity})
 	}
-	configInputs, err := captureBundleConfigInputs(opts, out.inputs, bc.baseRoot)
+	configInputs, err := captureBundleConfigInputs(spec.configFiles, bc.baseRoot)
 	if err != nil {
 		return err
 	}
@@ -427,239 +418,93 @@ func parseIdentity(item *fastjson.Value) (*bldr_manifest_builder.InputManifest_F
 	}, nil
 }
 
-// esbuildCompilerID returns the vendored esbuild module version. The pinned
-// fallback keeps cache identity stable for test binaries without build info.
-func esbuildCompilerID() string {
-	fallback := "esbuild@" + esbuildPinnedVersion
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return fallback
+func cacheRelativePath(baseRoot, path string) (string, error) {
+	absolutePath := path
+	if !filepath.IsAbs(absolutePath) {
+		absolutePath = filepath.Join(baseRoot, absolutePath)
 	}
-	for _, dep := range info.Deps {
-		if dep.Path != esbuildModulePath {
+	relativePath, err := filepath.Rel(baseRoot, absolutePath)
+	if err != nil {
+		return "", errors.Wrapf(err, "relativize bundle path %q", path)
+	}
+	return filepath.Clean(relativePath), nil
+}
+
+func captureBundleConfigInputs(configFiles []string, baseRoot string) ([]bundleInput, error) {
+	paths := make([]string, 0, len(configFiles))
+	seen := make(map[string]struct{}, len(configFiles))
+	for _, configFile := range configFiles {
+		relativePath, err := cacheRelativePath(baseRoot, configFile)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := seen[relativePath]; ok {
 			continue
 		}
-		version := dep.Version
-		if dep.Replace != nil {
-			version = dep.Replace.Path + "@" + dep.Replace.Version
-		}
-		if version == "" || version == "(devel)" {
-			return fallback
-		}
-		return "esbuild@" + version
+		seen[relativePath] = struct{}{}
+		paths = append(paths, relativePath)
 	}
-	return fallback
-}
-
-// runEsbuildBundle runs opts with a metafile and returns the consumed input file paths.
-func runEsbuildBundle(opts esbuild.BuildOptions) (esbuild.BuildResult, []string, error) {
-	opts.Metafile = true
-	result := esbuild.Build(opts)
-	if err := bldr_esbuild_build.BuildResultToErr(result); err != nil {
-		return result, nil, err
-	}
-	metafile, err := bldr_esbuild_build.ParseEsbuildMetafile([]byte(result.Metafile))
-	if err != nil {
-		return result, nil, errors.Wrap(err, "parse esbuild metafile")
-	}
-	inputs := make([]string, 0, len(metafile.Inputs))
-	for inputPath := range metafile.Inputs {
-		inputs = append(inputs, inputPath)
-	}
-	slices.Sort(inputs)
-	return result, inputs, nil
-}
-
-// esbuildOptionsDigest hashes every output-affecting BuildOptions field the
-// browser bundle build sets. Unknown typed plugin state is not cacheable.
-func esbuildOptionsDigest(opts esbuild.BuildOptions) ([]byte, bool) {
-	if len(opts.MangleCache) != 0 {
-		return nil, false
-	}
-	h := sha256.New()
-	writeInt := func(label string, value int) {
-		_, _ = h.Write([]byte(label))
-		_, _ = h.Write([]byte{'='})
-		_, _ = h.Write([]byte(strconv.Itoa(value)))
-		_, _ = h.Write([]byte{'\n'})
-	}
-	writeBool := func(label string, value bool) { writeInt(label, boolToInt(value)) }
-	writeStr := func(label, value string) {
-		_, _ = h.Write([]byte(label))
-		_, _ = h.Write([]byte{'='})
-		_, _ = h.Write([]byte(value))
-		_, _ = h.Write([]byte{'\n'})
-	}
-	writeStrings := func(label string, values []string) {
-		for i, value := range values {
-			writeStr(label+":"+strconv.Itoa(i), value)
-		}
-	}
-	writeMap := func(label string, values map[string]string) {
-		for _, key := range sortedStringKeys(values) {
-			writeStr(label+":"+key, values[key])
-		}
-	}
-	writeBoolMap := func(label string, values map[string]bool) {
-		for _, key := range sortedBoolKeys(values) {
-			writeBool(label+":"+key, values[key])
-		}
-	}
-
-	writeInt("absPaths", int(opts.AbsPaths))
-	writeInt("sourcemap", int(opts.Sourcemap))
-	writeStr("sourceRoot", opts.SourceRoot)
-	writeInt("sourcesContent", int(opts.SourcesContent))
-	writeInt("target", int(opts.Target))
-	for i, engine := range opts.Engines {
-		writeInt("engine:"+strconv.Itoa(i), int(engine.Name))
-		writeStr("engineVersion:"+strconv.Itoa(i), engine.Version)
-	}
-	writeBoolMap("supported", opts.Supported)
-	writeStr("mangleProps", opts.MangleProps)
-	writeStr("reserveProps", opts.ReserveProps)
-	writeInt("mangleQuoted", int(opts.MangleQuoted))
-	writeInt("drop", int(opts.Drop))
-	writeStrings("dropLabels", opts.DropLabels)
-	writeBool("minifyWhitespace", opts.MinifyWhitespace)
-	writeBool("minifyIdentifiers", opts.MinifyIdentifiers)
-	writeBool("minifySyntax", opts.MinifySyntax)
-	writeInt("lineLimit", opts.LineLimit)
-	writeInt("charset", int(opts.Charset))
-	writeInt("treeShaking", int(opts.TreeShaking))
-	writeBool("ignoreAnnotations", opts.IgnoreAnnotations)
-	writeInt("legalComments", int(opts.LegalComments))
-	writeInt("jsx", int(opts.JSX))
-	writeStr("jsxFactory", opts.JSXFactory)
-	writeStr("jsxFragment", opts.JSXFragment)
-	writeStr("jsxImportSource", opts.JSXImportSource)
-	writeBool("jsxDev", opts.JSXDev)
-	writeBool("jsxSideEffects", opts.JSXSideEffects)
-	writeMap("define", opts.Define)
-	writeStrings("pure", opts.Pure)
-	writeBool("keepNames", opts.KeepNames)
-	writeStr("globalName", opts.GlobalName)
-	writeBool("bundle", opts.Bundle)
-	writeBool("preserveSymlinks", opts.PreserveSymlinks)
-	writeBool("splitting", opts.Splitting)
-	writeStr("outfile", opts.Outfile)
-	writeStr("outdir", opts.Outdir)
-	writeStr("outbase", opts.Outbase)
-	writeStr("workingDir", opts.AbsWorkingDir)
-	writeInt("platform", int(opts.Platform))
-	writeInt("format", int(opts.Format))
-	writeStrings("external", opts.External)
-	writeInt("packages", int(opts.Packages))
-	writeMap("alias", opts.Alias)
-	writeStrings("mainFields", opts.MainFields)
-	writeStrings("conditions", opts.Conditions)
-	loaders := make(map[string]string, len(opts.Loader))
-	for ext, loader := range opts.Loader {
-		loaders[ext] = strconv.Itoa(int(loader))
-	}
-	writeMap("loader", loaders)
-	writeStrings("resolveExtensions", opts.ResolveExtensions)
-	writeStr("tsconfig", opts.Tsconfig)
-	writeStr("tsconfigRaw", opts.TsconfigRaw)
-	writeMap("outExtension", opts.OutExtension)
-	writeStr("publicPath", opts.PublicPath)
-	writeStrings("inject", opts.Inject)
-	writeMap("banner", opts.Banner)
-	writeMap("footer", opts.Footer)
-	writeStrings("nodePaths", opts.NodePaths)
-	writeStr("entryNames", opts.EntryNames)
-	writeStr("chunkNames", opts.ChunkNames)
-	writeStr("assetNames", opts.AssetNames)
-	writeStrings("entryPoints", opts.EntryPoints)
-	for i, entry := range opts.EntryPointsAdvanced {
-		writeStr("entryPointInput:"+strconv.Itoa(i), entry.InputPath)
-		writeStr("entryPointOutput:"+strconv.Itoa(i), entry.OutputPath)
-	}
-	writeBool("write", opts.Write)
-	writeBool("allowOverwrite", opts.AllowOverwrite)
-	if opts.Stdin != nil {
-		writeStr("stdinContents", opts.Stdin.Contents)
-		writeStr("stdinResolveDir", opts.Stdin.ResolveDir)
-		writeStr("stdinSourcefile", opts.Stdin.Sourcefile)
-		writeInt("stdinLoader", int(opts.Stdin.Loader))
-	}
-	for i, plugin := range opts.Plugins {
-		if plugin.Name == "" {
-			return nil, false
-		}
-		writeStr("plugin:"+strconv.Itoa(i), plugin.Name)
-	}
-	return h.Sum(nil), true
-}
-
-func captureBundleConfigInputs(opts esbuild.BuildOptions, inputPaths []string, baseRoot string) ([]bundleInput, error) {
-	dirs := map[string]struct{}{baseRoot: {}}
-	for _, inputPath := range inputPaths {
-		inputDir := filepath.Dir(filepath.Join(baseRoot, inputPath))
-		for {
-			dirs[inputDir] = struct{}{}
-			if inputDir == baseRoot || filepath.Dir(inputDir) == inputDir {
-				break
-			}
-			inputDir = filepath.Dir(inputDir)
-		}
-	}
-	if opts.Tsconfig != "" {
-		configPath := opts.Tsconfig
-		if !filepath.IsAbs(configPath) {
-			configPath = filepath.Join(baseRoot, configPath)
-		}
-		dirs[filepath.Dir(configPath)] = struct{}{}
-	}
-
-	dirPaths := make([]string, 0, len(dirs))
-	for dir := range dirs {
-		dirPaths = append(dirPaths, dir)
-	}
-	slices.Sort(dirPaths)
-	seen := make(map[string]struct{})
-	var configInputs []bundleInput
-	for _, dir := range dirPaths {
-		for _, name := range []string{"package.json", "tsconfig.json", "jsconfig.json"} {
-			configPath := filepath.Join(dir, name)
-			rel, err := filepath.Rel(baseRoot, configPath)
-			if err != nil {
-				return nil, errors.Wrapf(err, "relativize bundle config %q", configPath)
-			}
-			if _, ok := seen[rel]; ok {
+	slices.Sort(paths)
+	inputs := make([]bundleInput, 0, len(paths))
+	for _, relativePath := range paths {
+		identity, err := bldr_manifest_builder.CaptureFileIdentity(filepath.Join(baseRoot, relativePath))
+		if err != nil {
+			if os.IsNotExist(err) {
+				inputs = append(inputs, bundleInput{path: relativePath})
 				continue
 			}
-			seen[rel] = struct{}{}
-			identity, err := bldr_manifest_builder.CaptureFileIdentity(configPath)
-			if err != nil {
-				if os.IsNotExist(err) {
-					configInputs = append(configInputs, bundleInput{path: rel})
-					continue
-				}
-				return nil, errors.Wrapf(err, "capture bundle config %q", configPath)
-			}
-			configInputs = append(configInputs, bundleInput{path: rel, identity: identity})
+			return nil, errors.Wrapf(err, "capture bundle config %q", relativePath)
 		}
+		inputs = append(inputs, bundleInput{path: relativePath, identity: identity})
 	}
-	if opts.Tsconfig != "" {
-		configPath := opts.Tsconfig
-		if !filepath.IsAbs(configPath) {
-			configPath = filepath.Join(baseRoot, configPath)
-		}
-		rel, err := filepath.Rel(baseRoot, configPath)
-		if err != nil {
-			return nil, errors.Wrapf(err, "relativize explicit bundle config %q", configPath)
-		}
-		if _, ok := seen[rel]; !ok {
-			identity, err := bldr_manifest_builder.CaptureFileIdentity(configPath)
-			if err != nil && !os.IsNotExist(err) {
-				return nil, errors.Wrapf(err, "capture explicit bundle config %q", configPath)
-			}
-			seen[rel] = struct{}{}
-			configInputs = append(configInputs, bundleInput{path: rel, identity: identity})
-		}
+	return inputs, nil
+}
+
+func browserBundleConfigFiles(bldrDistRoot, compilerID string) []string {
+	toolRoot := bldrDistRoot
+	if _, err := os.Stat(filepath.Join(toolRoot, "web", "bundler")); err != nil {
+		toolRoot = filepath.Join(bldrDistRoot, "bldr")
 	}
-	return configInputs, nil
+	files := []string{
+		filepath.Join(bldrDistRoot, "go.mod"),
+		filepath.Join(filepath.Dir(bldrDistRoot), "go.mod"),
+		filepath.Join(bldrDistRoot, "package.json"),
+		filepath.Join(bldrDistRoot, "tsconfig.json"),
+		filepath.Join(bldrDistRoot, "global.d.ts"),
+		filepath.Join(toolRoot, "dist", "deps", "package.json"),
+		filepath.Join(toolRoot, "dist", "deps", "bun.lock"),
+	}
+	switch compilerID {
+	case rolldownBrowserCompilerID:
+		files = append(files,
+			filepath.Join(toolRoot, "web", "bundler", "rolldown", "run-build.mjs"),
+		)
+	case viteBrowserCompilerID:
+		files = append(files, viteBrowserCompilerConfigFiles(toolRoot)...)
+	case rendererBrowserCompilerID:
+		files = append(files,
+			filepath.Join(toolRoot, "web", "bundler", "rolldown", "run-build.mjs"),
+		)
+		files = append(files, viteBrowserCompilerConfigFiles(toolRoot)...)
+	}
+	return files
+}
+
+func viteBrowserCompilerConfigFiles(toolRoot string) []string {
+	bundlerRoot := filepath.Join(toolRoot, "web", "bundler")
+	viteRoot := filepath.Join(bundlerRoot, "vite")
+	return []string{
+		filepath.Join(bundlerRoot, "bundler.pb.ts"),
+		filepath.Join(viteRoot, "build.ts"),
+		filepath.Join(viteRoot, "go-ts-resolver.ts"),
+		filepath.Join(viteRoot, "module-preload.ts"),
+		filepath.Join(viteRoot, "output-naming.ts"),
+		filepath.Join(viteRoot, "plugin.ts"),
+		filepath.Join(viteRoot, "vite.pb.ts"),
+		filepath.Join(viteRoot, "vite_srpc.pb.ts"),
+		filepath.Join(viteRoot, "vite.ts"),
+		filepath.Join(viteRoot, "web-pkg-naming.ts"),
+	}
 }
 
 func writeBundleRecordAtomic(recordPath string, data []byte) error {
@@ -692,13 +537,6 @@ func writeBundleRecordAtomic(recordPath string, data []byte) error {
 	return nil
 }
 
-func boolToInt(value bool) int {
-	if value {
-		return 1
-	}
-	return 0
-}
-
 func sortedStringKeys(values map[string]string) []string {
 	keys := make([]string, 0, len(values))
 	for key := range values {
@@ -708,73 +546,102 @@ func sortedStringKeys(values map[string]string) []string {
 	return keys
 }
 
-func sortedBoolKeys(values map[string]bool) []string {
-	keys := make([]string, 0, len(values))
-	for key := range values {
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
-	return keys
-}
-
-// buildServiceWorkerCached builds the service worker bundle through the cache.
-func buildServiceWorkerCached(cache *bundleCache, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
-	opts := serviceWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
-	return buildSingleFileWorkerCached(cache, "service-worker", opts, singleWorkerOutputName)
-}
-
-// buildSharedWorkerCached builds the shared worker bundle through the cache.
-func buildSharedWorkerCached(cache *bundleCache, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
-	opts := sharedWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
-	return buildSingleFileWorkerCached(cache, "shared-worker", opts, func(result esbuild.BuildResult) (string, error) {
-		return mjsWorkerOutputName(result, "shared worker")
-	})
-}
-
-// buildOpfsWorkerCached builds the OPFS worker bundle through the cache.
-func buildOpfsWorkerCached(cache *bundleCache, bldrDistRoot, buildDir, buildPkgsDir string, minify, sourcemaps, devMode bool) (string, error) {
-	opts := opfsWorkerBundleOpts(bldrDistRoot, buildDir, buildPkgsDir, minify, sourcemaps, devMode)
-	return buildSingleFileWorkerCached(cache, "opfs-worker", opts, func(result esbuild.BuildResult) (string, error) {
-		return mjsWorkerOutputName(result, "OPFS worker")
-	})
-}
-
-// buildSingleFileWorkerCached routes a single-output worker build through the
-// cache, extracting its output filename with extractName.
-func buildSingleFileWorkerCached(
+func buildServiceWorkerCached(
+	ctx context.Context,
+	stateDir string,
 	cache *bundleCache,
-	name string,
-	opts esbuild.BuildOptions,
-	extractName func(esbuild.BuildResult) (string, error),
+	bldrDistRoot,
+	buildDir,
+	_ string,
+	minify,
+	sourcemaps,
+	devMode bool,
 ) (string, error) {
-	out, err := cache.build(name, opts, nil, func() (*bundleBuildOutput, error) {
-		result, inputs, err := runEsbuildBundle(opts)
-		if err != nil {
-			return nil, err
-		}
-		filename, err := extractName(result)
-		if err != nil {
-			return nil, err
-		}
-		verify, err := resultOutputPaths(result, opts.Outdir)
-		if err != nil {
-			return nil, err
-		}
-		return &bundleBuildOutput{
-			inputs: inputs,
-			values: map[string]string{"filename": filename},
-			verify: verify,
-		}, nil
-	})
+	return buildSingleFileWorkerCached(
+		ctx, stateDir, cache, "service-worker", bldrDistRoot, buildDir,
+		serviceWorkerSpec(minify, sourcemaps, devMode),
+	)
+}
+
+func buildSharedWorkerCached(
+	ctx context.Context,
+	stateDir string,
+	cache *bundleCache,
+	bldrDistRoot,
+	buildDir,
+	_ string,
+	minify,
+	sourcemaps,
+	devMode bool,
+) (string, error) {
+	return buildSingleFileWorkerCached(
+		ctx, stateDir, cache, "shared-worker", bldrDistRoot, buildDir,
+		sharedWorkerSpec(minify, sourcemaps, devMode),
+	)
+}
+
+func buildOpfsWorkerCached(
+	ctx context.Context,
+	stateDir string,
+	cache *bundleCache,
+	bldrDistRoot,
+	buildDir,
+	_ string,
+	minify,
+	sourcemaps,
+	devMode bool,
+) (string, error) {
+	return buildSingleFileWorkerCached(
+		ctx, stateDir, cache, "opfs-worker", bldrDistRoot, buildDir,
+		opfsWorkerSpec(minify, sourcemaps, devMode),
+	)
+}
+
+func buildSingleFileWorkerCached(
+	ctx context.Context,
+	stateDir string,
+	cache *bundleCache,
+	name,
+	bldrDistRoot,
+	buildDir string,
+	scriptSpec browserScriptSpec,
+) (string, error) {
+	request := browserScriptRequest(bldrDistRoot, buildDir, scriptSpec)
+	requestJSON, err := request.MarshalJSON()
+	if err != nil {
+		return "", errors.Wrap(err, "marshal browser worker cache request")
+	}
+	out, err := cache.build(
+		name,
+		bundleCacheSpec{
+			compilerID:  rolldownBrowserCompilerID,
+			request:     requestJSON,
+			configFiles: browserBundleConfigFiles(bldrDistRoot, rolldownBrowserCompilerID),
+		},
+		nil,
+		func() (*bundleBuildOutput, error) {
+			filename, result, err := buildWorkerBundle(
+				ctx, cache.le, stateDir, bldrDistRoot, buildDir, scriptSpec,
+			)
+			if err != nil {
+				return nil, err
+			}
+			return &bundleBuildOutput{
+				inputs: result.GetInputs(),
+				values: map[string]string{"filename": filename},
+				verify: resultOutputPaths(result),
+			}, nil
+		},
+	)
 	if err != nil {
 		return "", err
 	}
 	return out.value("filename"), nil
 }
 
-// buildRendererCached builds the web renderer bundle and its index through the
-// cache. The rendered index bytes and every generated output are verified.
 func buildRendererCached(
+	ctx context.Context,
+	stateDir string,
 	cache *bundleCache,
 	sourcesRoot, bldrDistRoot, buildDir,
 	runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath,
@@ -786,7 +653,7 @@ func buildRendererCached(
 	if err != nil {
 		return nil, err
 	}
-	opts, err := rendererBundleOpts(
+	rendererOpts, err := browserRendererSpec(
 		sourcesRoot, bldrDistRoot, buildDir,
 		runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath,
 		webStartupSrcPath, entrypointHash,
@@ -795,47 +662,49 @@ func buildRendererCached(
 	if err != nil {
 		return nil, err
 	}
-
+	directJSON, err := directRendererRequest(bldrDistRoot, buildDir, rendererOpts).MarshalJSON()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal direct renderer cache request")
+	}
+	viteJSON, err := configFreeRendererRequest(
+		bldrDistRoot,
+		filepath.Join(stateDir, "vite-renderer"),
+		rendererOpts,
+	).MarshalJSON()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal Vite renderer cache request")
+	}
+	requestJSON := append(append(directJSON, 0), viteJSON...)
 	indexDigest := sha256.Sum256(indexHTML)
-	out, err := cache.build("renderer", opts, indexDigest[:], func() (*bundleBuildOutput, error) {
-		if err := os.WriteFile(filepath.Join(buildDir, "index.html"), indexHTML, 0o644); err != nil {
-			return nil, err
-		}
-		result, inputs, err := runEsbuildBundle(opts)
-		if err != nil {
-			return nil, err
-		}
-		cssPaths := collectRendererCSSPaths(result, buildDir)
-		verify, err := resultOutputPaths(result, buildDir)
-		if err != nil {
-			return nil, err
-		}
-		verify = append([]string{"index.html"}, verify...)
-		return &bundleBuildOutput{
-			inputs: inputs,
-			list:   cssPaths,
-			verify: uniqueStrings(verify),
-		}, nil
-	})
+	out, err := cache.build(
+		"renderer",
+		bundleCacheSpec{
+			compilerID:  rendererBrowserCompilerID,
+			request:     requestJSON,
+			configFiles: browserBundleConfigFiles(bldrDistRoot, rendererBrowserCompilerID),
+		},
+		indexDigest[:],
+		func() (*bundleBuildOutput, error) {
+			if err := os.WriteFile(filepath.Join(buildDir, "index.html"), indexHTML, 0o644); err != nil {
+				return nil, err
+			}
+			result, err := BuildRenderer(
+				ctx, cache.le, stateDir, bldrDistRoot, buildDir, rendererOpts,
+			)
+			if err != nil {
+				return nil, err
+			}
+			return &bundleBuildOutput{
+				inputs: result.InputFiles,
+				list:   result.CSSPaths,
+				verify: uniqueStrings(append([]string{"index.html"}, result.OutputFiles...)),
+			}, nil
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 	return out.list, nil
-}
-
-func resultOutputPaths(result esbuild.BuildResult, buildDir string) ([]string, error) {
-	paths := make([]string, 0, len(result.OutputFiles))
-	for _, output := range result.OutputFiles {
-		rel, err := filepath.Rel(buildDir, output.Path)
-		if err != nil {
-			return nil, errors.Wrapf(err, "relativize bundle output %q", output.Path)
-		}
-		if rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			return nil, errors.Errorf("bundle output escapes build directory: %s", output.Path)
-		}
-		paths = append(paths, rel)
-	}
-	return paths, nil
 }
 
 func uniqueStrings(values []string) []string {
