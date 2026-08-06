@@ -934,7 +934,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.50.1-0.20260731034932-ebdecfee9c3c",
+      "version": "v0.52.0",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
@@ -1083,7 +1083,7 @@
     },
     {
       "name": "github.com/go-git/go-billy/v6",
-      "version": "v6.0.0-alpha.2.0.20260728104803-133d4f9bfd41",
+      "version": "v6.0.0-alpha.2.0.20260803142020-6c0a968329a1",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/go-git/go-billy",
@@ -2070,7 +2070,7 @@
     },
     {
       "name": "starpc",
-      "version": "0.50.0",
+      "version": "0.52.0",
       "spdx": "MIT",
       "source": "js",
       "copyrightNotice": "Copyright (c) 2022-2025 Aperture Robotics, LLC.\nCopyright (c) 2022-2025 Christian Stewart <christian@cjs.zip>"
