@@ -73,7 +73,12 @@ import {
   WatchWebListenersResponse,
 } from './root.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.root.RootResourceService
@@ -664,6 +669,317 @@ export interface RootResourceService {
   WatchListenerStatus(
     request: WatchListenerStatusRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchListenerStatusResponse>
+}
+
+/**
+ * @generated from service s4wave.root.RootResourceService
+ */
+export interface RootResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.ListProviders
+   */
+  ListProviders(
+    request: ListProvidersRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListProvidersResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.LookupProvider
+   */
+  LookupProvider(
+    request: LookupProviderRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LookupProviderResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.MountSession
+   */
+  MountSession(
+    request: MountSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MountSessionResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.MountSessionByIdx
+   */
+  MountSessionByIdx(
+    request: MountSessionByIdxRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MountSessionByIdxResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.ListSessions
+   */
+  ListSessions(
+    request: ListSessionsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListSessionsResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchSessions
+   */
+  WatchSessions(
+    request: WatchSessionsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSessionsResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchAllAccountStatuses
+   */
+  WatchAllAccountStatuses(
+    request: WatchAllAccountStatusesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchAllAccountStatusesResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.GetSessionMetadata
+   */
+  GetSessionMetadata(
+    request: GetSessionMetadataRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetSessionMetadataResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchSessionMetadata
+   */
+  WatchSessionMetadata(
+    request: WatchSessionMetadataRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSessionMetadataResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.UnlockSession
+   */
+  UnlockSession(
+    request: UnlockSessionByIdxRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UnlockSessionByIdxResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.DeleteSession
+   */
+  DeleteSession(
+    request: DeleteSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DeleteSessionResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.ResetSession
+   */
+  ResetSession(
+    request: ResetSessionByIdxRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ResetSessionByIdxResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.AccessStateAtom
+   */
+  AccessStateAtom(
+    request: AccessStateAtomRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessStateAtomResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchStateAtoms
+   */
+  WatchStateAtoms(
+    request: WatchStateAtomsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchStateAtomsResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.ListSpaceRootAliases
+   */
+  ListSpaceRootAliases(
+    request: ListSpaceRootAliasesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListSpaceRootAliasesResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchSpaceRootAliases
+   */
+  WatchSpaceRootAliases(
+    request: WatchSpaceRootAliasesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSpaceRootAliasesResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.UpsertSpaceRootAlias
+   */
+  UpsertSpaceRootAlias(
+    request: UpsertSpaceRootAliasRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UpsertSpaceRootAliasResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.RemoveSpaceRootAlias
+   */
+  RemoveSpaceRootAlias(
+    request: RemoveSpaceRootAliasRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveSpaceRootAliasResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchSpaceRootRuntime
+   */
+  WatchSpaceRootRuntime(
+    request: WatchSpaceRootRuntimeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSpaceRootRuntimeResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.MarshalHash
+   */
+  MarshalHash(
+    request: MarshalHashRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MarshalHashResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.ParseHash
+   */
+  ParseHash(
+    request: ParseHashRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ParseHashResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.HashSum
+   */
+  HashSum(
+    request: HashSumRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HashSumResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.HashValidate
+   */
+  HashValidate(
+    request: HashValidateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HashValidateResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.GetChangelog
+   */
+  GetChangelog(
+    request: GetChangelogRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetChangelogResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.GetDebugDb
+   */
+  GetDebugDb(
+    request: GetDebugDbRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetDebugDbResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.GetCdn
+   */
+  GetCdn(
+    request: GetCdnRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetCdnResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.AccessWebListener
+   */
+  AccessWebListener(
+    request: AccessWebListenerRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessWebListenerResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchWebListeners
+   */
+  WatchWebListeners(
+    request: WatchWebListenersRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchWebListenersResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.StopWebListener
+   */
+  StopWebListener(
+    request: StopWebListenerRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StopWebListenerResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchListenerYieldPrompts
+   */
+  WatchListenerYieldPrompts(
+    request: WatchListenerYieldPromptsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchListenerYieldPromptsResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.RespondToListenerYieldPrompt
+   */
+  RespondToListenerYieldPrompt(
+    request: RespondToListenerYieldPromptRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RespondToListenerYieldPromptResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchRuntimeHandoff
+   */
+  WatchRuntimeHandoff(
+    request: WatchRuntimeHandoffRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchRuntimeHandoffResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.ReclaimRuntime
+   */
+  ReclaimRuntime(
+    request: ReclaimRuntimeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReclaimRuntimeResponse>
+
+  /**
+   * @generated from rpc s4wave.root.RootResourceService.WatchListenerStatus
+   */
+  WatchListenerStatus(
+    request: WatchListenerStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchListenerStatusResponse>
 }
 

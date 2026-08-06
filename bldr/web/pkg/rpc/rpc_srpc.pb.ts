@@ -10,6 +10,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -73,6 +74,37 @@ export interface AccessWebPkg {
   WebPkgFsRpc(
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+}
+
+/**
+ * AccessWebPkg exposes a WebPkg via an RPC service.
+ *
+ * @generated from service web.pkg.rpc.AccessWebPkg
+ */
+export interface AccessWebPkgHandler {
+  /**
+   * GetWebPkgInfo executes the GetInfo request.
+   *
+   * @generated from rpc web.pkg.rpc.AccessWebPkg.GetWebPkgInfo
+   */
+  GetWebPkgInfo(
+    request: GetInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetInfoResponse>
+
+  /**
+   * WebPkgFsRpc exposes the web pkg fs service via RPC.
+   * Exposes the FSCursorService.
+   * The rpc stream id is ignored.
+   *
+   * @generated from rpc web.pkg.rpc.AccessWebPkg.WebPkgFsRpc
+   */
+  WebPkgFsRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<RpcStreamPacket>
 }
 

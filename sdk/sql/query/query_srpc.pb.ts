@@ -13,7 +13,7 @@ import {
   SetQueryTextResponse,
 } from './query.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * SqlQueryResourceService exposes a SQL query world object.
@@ -114,6 +114,57 @@ export interface SqlQueryResourceService {
   Run(
     request: RunQueryRequest,
     abortSignal?: AbortSignal,
+  ): Promise<RunQueryResponse>
+}
+
+/**
+ * SqlQueryResourceService exposes a SQL query world object.
+ *
+ * @generated from service s4wave.sql.query.SqlQueryResourceService
+ */
+export interface SqlQueryResourceServiceHandler {
+  /**
+   * GetQueryText returns the query text and target metadata.
+   *
+   * @generated from rpc s4wave.sql.query.SqlQueryResourceService.GetQueryText
+   */
+  GetQueryText(
+    request: GetQueryTextRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetQueryTextResponse>
+
+  /**
+   * SetQueryText updates the query text and target metadata.
+   *
+   * @generated from rpc s4wave.sql.query.SqlQueryResourceService.SetQueryText
+   */
+  SetQueryText(
+    request: SetQueryTextRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetQueryTextResponse>
+
+  /**
+   * SetParameters updates the positional bind arguments.
+   *
+   * @generated from rpc s4wave.sql.query.SqlQueryResourceService.SetParameters
+   */
+  SetParameters(
+    request: SetParametersRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetParametersResponse>
+
+  /**
+   * Run executes the query and creates a query result object.
+   *
+   * @generated from rpc s4wave.sql.query.SqlQueryResourceService.Run
+   */
+  Run(
+    request: RunQueryRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<RunQueryResponse>
 }
 

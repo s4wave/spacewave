@@ -11,7 +11,12 @@ import {
   WatchObjectTypesResponse,
 } from './registry.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.objecttype.registry.ObjectTypeRegistryResourceService
@@ -58,6 +63,29 @@ export interface ObjectTypeRegistryResourceService {
   WatchObjectTypes(
     request: WatchObjectTypesRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchObjectTypesResponse>
+}
+
+/**
+ * @generated from service s4wave.objecttype.registry.ObjectTypeRegistryResourceService
+ */
+export interface ObjectTypeRegistryResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.objecttype.registry.ObjectTypeRegistryResourceService.RegisterObjectType
+   */
+  RegisterObjectType(
+    request: RegisterObjectTypeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RegisterObjectTypeResponse>
+
+  /**
+   * @generated from rpc s4wave.objecttype.registry.ObjectTypeRegistryResourceService.WatchObjectTypes
+   */
+  WatchObjectTypes(
+    request: WatchObjectTypesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchObjectTypesResponse>
 }
 
@@ -136,6 +164,20 @@ export interface ObjectTypeHandlerService {
   InvokeObjectType(
     request: InvokeObjectTypeRequest,
     abortSignal?: AbortSignal,
+  ): Promise<InvokeObjectTypeResponse>
+}
+
+/**
+ * @generated from service s4wave.objecttype.registry.ObjectTypeHandlerService
+ */
+export interface ObjectTypeHandlerServiceHandler {
+  /**
+   * @generated from rpc s4wave.objecttype.registry.ObjectTypeHandlerService.InvokeObjectType
+   */
+  InvokeObjectType(
+    request: InvokeObjectTypeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<InvokeObjectTypeResponse>
 }
 

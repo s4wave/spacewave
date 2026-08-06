@@ -7,7 +7,12 @@ import {
   WatchDevtoolStatusResponse,
 } from './status.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * DevtoolStatusService streams the read-only Bldr devtool status projection.
@@ -45,6 +50,24 @@ export interface DevtoolStatusService {
   WatchDevtoolStatus(
     request: WatchDevtoolStatusRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchDevtoolStatusResponse>
+}
+
+/**
+ * DevtoolStatusService streams the read-only Bldr devtool status projection.
+ *
+ * @generated from service bldr.devtool.status.DevtoolStatusService
+ */
+export interface DevtoolStatusServiceHandler {
+  /**
+   * WatchDevtoolStatus emits the current status snapshot and subsequent changes.
+   *
+   * @generated from rpc bldr.devtool.status.DevtoolStatusService.WatchDevtoolStatus
+   */
+  WatchDevtoolStatus(
+    request: WatchDevtoolStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchDevtoolStatusResponse>
 }
 

@@ -15,7 +15,12 @@ import {
   QueryResponse,
 } from './sqlite-bridge.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * SqliteBridge wraps sqlite.wasm with a starpc RPC service.
@@ -138,6 +143,70 @@ export interface SqliteBridge {
   DeleteDb(
     request: DeleteDbRequest,
     abortSignal?: AbortSignal,
+  ): Promise<DeleteDbResponse>
+}
+
+/**
+ * SqliteBridge wraps sqlite.wasm with a starpc RPC service.
+ * Runs in a dedicated Worker with OPFS persistence.
+ *
+ * @generated from service sql.sqlite_wasm.rpc.SqliteBridge
+ */
+export interface SqliteBridgeHandler {
+  /**
+   * OpenDb opens or creates a SQLite database by path.
+   *
+   * @generated from rpc sql.sqlite_wasm.rpc.SqliteBridge.OpenDb
+   */
+  OpenDb(
+    request: OpenDbRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpenDbResponse>
+
+  /**
+   * CloseDb closes an open database by handle.
+   *
+   * @generated from rpc sql.sqlite_wasm.rpc.SqliteBridge.CloseDb
+   */
+  CloseDb(
+    request: CloseDbRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CloseDbResponse>
+
+  /**
+   * Exec executes a DDL/DML statement (CREATE, INSERT, UPDATE, DELETE, BEGIN, COMMIT, ROLLBACK).
+   *
+   * @generated from rpc sql.sqlite_wasm.rpc.SqliteBridge.Exec
+   */
+  Exec(
+    request: ExecRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ExecResponse>
+
+  /**
+   * Query executes a SELECT and streams rows back one at a time.
+   * First response contains column names. Subsequent responses each contain one row.
+   *
+   * @generated from rpc sql.sqlite_wasm.rpc.SqliteBridge.Query
+   */
+  Query(
+    request: QueryRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<QueryResponse>
+
+  /**
+   * DeleteDb deletes a database by path.
+   *
+   * @generated from rpc sql.sqlite_wasm.rpc.SqliteBridge.DeleteDb
+   */
+  DeleteDb(
+    request: DeleteDbRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<DeleteDbResponse>
 }
 

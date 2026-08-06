@@ -9,7 +9,7 @@ import {
   WriteResponse,
 } from './transaction.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * @generated from service s4wave.block.transaction.BlockTransactionResourceService
@@ -56,6 +56,29 @@ export interface BlockTransactionResourceService {
   GetRootCursor(
     request: GetRootCursorRequest,
     abortSignal?: AbortSignal,
+  ): Promise<GetRootCursorResponse>
+}
+
+/**
+ * @generated from service s4wave.block.transaction.BlockTransactionResourceService
+ */
+export interface BlockTransactionResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.block.transaction.BlockTransactionResourceService.Write
+   */
+  Write(
+    request: WriteRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<WriteResponse>
+
+  /**
+   * @generated from rpc s4wave.block.transaction.BlockTransactionResourceService.GetRootCursor
+   */
+  GetRootCursor(
+    request: GetRootCursorRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<GetRootCursorResponse>
 }
 

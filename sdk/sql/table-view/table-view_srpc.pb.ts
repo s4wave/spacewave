@@ -13,7 +13,7 @@ import {
   UpdateRowResponse,
 } from './table-view.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * SqlTableViewResourceService exposes a SQL table view world object.
@@ -114,6 +114,57 @@ export interface SqlTableViewResourceService {
   UpdateRow(
     request: UpdateRowRequest,
     abortSignal?: AbortSignal,
+  ): Promise<UpdateRowResponse>
+}
+
+/**
+ * SqlTableViewResourceService exposes a SQL table view world object.
+ *
+ * @generated from service s4wave.sql.table_view.SqlTableViewResourceService
+ */
+export interface SqlTableViewResourceServiceHandler {
+  /**
+   * GetTableView returns the table view metadata.
+   *
+   * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.GetTableView
+   */
+  GetTableView(
+    request: GetTableViewRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetTableViewResponse>
+
+  /**
+   * GetDriverCapability returns SQL driver operations available to this view.
+   *
+   * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.GetDriverCapability
+   */
+  GetDriverCapability(
+    request: GetDriverCapabilityRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetDriverCapabilityResponse>
+
+  /**
+   * FetchRows executes the table view SELECT.
+   *
+   * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.FetchRows
+   */
+  FetchRows(
+    request: FetchRowsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<FetchRowsResponse>
+
+  /**
+   * UpdateRow applies a typed UPDATE against rows matching the supplied row values.
+   *
+   * @generated from rpc s4wave.sql.table_view.SqlTableViewResourceService.UpdateRow
+   */
+  UpdateRow(
+    request: UpdateRowRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<UpdateRowResponse>
 }
 

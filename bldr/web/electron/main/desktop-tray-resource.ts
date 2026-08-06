@@ -1,17 +1,17 @@
 import { createHandler } from 'starpc'
+import type { ServerContext } from 'starpc'
 import type { MessageStream, Mux } from 'starpc'
 
 import { ItState } from '../../bldr/it-state.js'
-import { constructChildResource } from '../../../sdk/resource/server/construct.js'
-import { getCurrentResourceClient } from '../../../sdk/resource/server/server.js'
+import { getResourceCall } from '../../../sdk/resource/server/context.js'
 import { newResourceMux } from '../../../sdk/resource/server/mux.js'
-import type { RemoteResourceClient } from '../../../sdk/resource/server/tracked-client.js'
+import type { ClientResourceRef } from '../../../sdk/resource/client.js'
 import {
   DesktopTrayEntryResourceServiceDefinition,
   DesktopTrayActionHandlerServiceClient,
   DesktopTrayResourceServiceDefinition,
-  type DesktopTrayEntryResourceService,
-  type DesktopTrayResourceService,
+  type DesktopTrayEntryResourceServiceHandler,
+  type DesktopTrayResourceServiceHandler,
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray_srpc.pb.js'
 import {
   DesktopTrayActionKind,
@@ -36,11 +36,11 @@ interface DesktopTrayRegistration {
   resourceId: number
   entry: DesktopTrayEntry
   attachedActionResourceId: number
-  client: RemoteResourceClient
+  actionHandlerRef?: ClientResourceRef
 }
 
 // DesktopTrayResource owns an Electron-scoped desktop tray entry registry.
-export class DesktopTrayResource implements DesktopTrayResourceService {
+export class DesktopTrayResource implements DesktopTrayResourceServiceHandler {
   private readonly registrations = new Map<number, DesktopTrayRegistration>()
   private readonly stateStream = new ItState<WatchDesktopTrayResponse>(
     () => Promise.resolve(this.buildStateResponse()),
@@ -51,7 +51,8 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
 
   public RegisterDesktopTrayEntry(
     request: RegisterDesktopTrayEntryRequest,
-    _abortSignal?: AbortSignal,
+    _abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<RegisterDesktopTrayEntryResponse> {
     const entry = request.entry
     if (!entry) throw new Error('desktop tray entry is required')
@@ -59,43 +60,56 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
     if (this.hasEntryId(entry.id, 0)) {
       throw new Error('desktop tray entry already registered')
     }
-    const client = getCurrentResourceClient()
+    const call = getResourceCall(context)
+    const attachedActionResourceId = request.attachedActionResourceId ?? 0
+    const actionHandlerRef = attachedActionResourceId
+      ? call.getAttachedRef(attachedActionResourceId)
+      : undefined
 
     const resource = new DesktopTrayEntryResource(this)
     let resourceId = 0
-    const child = constructChildResource(() => ({
+    const child = call.constructChildResource(() => ({
       mux: resource.getMux(),
       result: resource,
-      releaseFn: () => this.unregister(resourceId),
+      releaseFn: () => {
+        actionHandlerRef?.release()
+        this.unregister(resourceId)
+      },
     }))
     resourceId = child.resourceId
     resource.setResourceId(resourceId)
 
-    if (this.hasEntryId(entry.id, 0)) {
-      this.unregister(resourceId)
-      throw new Error('desktop tray entry already registered')
-    }
-
     this.registrations.set(resourceId, {
       resourceId,
       entry: cloneEntry(entry),
-      attachedActionResourceId: request.attachedActionResourceId ?? 0,
-      client,
+      attachedActionResourceId,
+      actionHandlerRef,
     })
     this.pushState()
     return Promise.resolve({ resourceId })
+  }
+
+  public watchState(): MessageStream<WatchDesktopTrayResponse> {
+    return this.stateStream.getIterable()
   }
 
   public WatchDesktopTray(
     _request: WatchDesktopTrayRequest,
     _abortSignal?: AbortSignal,
   ): MessageStream<WatchDesktopTrayResponse> {
-    return this.stateStream.getIterable()
+    return this.watchState()
   }
 
   public InvokeDesktopTrayEntry(
     request: InvokeDesktopTrayEntryRequest,
     abortSignal?: AbortSignal,
+  ): Promise<InvokeDesktopTrayEntryResponse> {
+    return this.invokeEntry(request, abortSignal)
+  }
+
+  public invokeEntry(
+    request: InvokeDesktopTrayEntryRequest,
+    signal?: AbortSignal,
   ): Promise<InvokeDesktopTrayEntryResponse> {
     const entryId = request.entryId || ''
     if (!entryId) throw new Error('desktop tray entry id is required')
@@ -119,15 +133,19 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
       throw new Error('desktop tray action handler is required')
     }
 
-    const client = reg.client.getRawAttachedClient(reg.attachedActionResourceId)
-    const handler = new DesktopTrayActionHandlerServiceClient(client)
+    if (!reg.actionHandlerRef) {
+      throw new Error('desktop tray action handler is required')
+    }
+    const handler = new DesktopTrayActionHandlerServiceClient(
+      reg.actionHandlerRef.client,
+    )
     return handler
       .HandleDesktopTrayAction(
         {
           entryId: entry.id,
           action,
         },
-        abortSignal,
+        signal,
       )
       .then(() => ({}))
   }
@@ -216,7 +234,7 @@ export class DesktopTrayResource implements DesktopTrayResourceService {
   }
 }
 
-class DesktopTrayEntryResource implements DesktopTrayEntryResourceService {
+class DesktopTrayEntryResource implements DesktopTrayEntryResourceServiceHandler {
   private readonly mux: Mux
   private resourceId = 0
 

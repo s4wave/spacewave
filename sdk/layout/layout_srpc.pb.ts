@@ -18,6 +18,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -99,6 +100,47 @@ export interface LayoutHost {
   AddTab(
     request: AddTabRequest,
     abortSignal?: AbortSignal,
+  ): Promise<AddTabResponse>
+}
+
+/**
+ * @generated from service s4wave.layout.LayoutHost
+ */
+export interface LayoutHostHandler {
+  /**
+   * @generated from rpc s4wave.layout.LayoutHost.WatchLayoutModel
+   */
+  WatchLayoutModel(
+    request: MessageStream<WatchLayoutModelRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<LayoutModel>
+
+  /**
+   * @generated from rpc s4wave.layout.LayoutHost.NavigateTab
+   */
+  NavigateTab(
+    request: NavigateTabRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<NavigateTabResponse>
+
+  /**
+   * @generated from rpc s4wave.layout.LayoutHost.ReplaceTab
+   */
+  ReplaceTab(
+    request: ReplaceTabRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReplaceTabResponse>
+
+  /**
+   * @generated from rpc s4wave.layout.LayoutHost.AddTab
+   */
+  AddTab(
+    request: AddTabRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<AddTabResponse>
 }
 

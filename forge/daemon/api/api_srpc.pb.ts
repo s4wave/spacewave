@@ -19,5 +19,12 @@ export const ForgeDaemonServiceDefinition = {
  */
 export interface ForgeDaemonService {}
 
+/**
+ * ForgeDaemonService is the control service for a daemon, contacted by the CLI.
+ *
+ * @generated from service forge.api.ForgeDaemonService
+ */
+export interface ForgeDaemonServiceHandler {}
+
 export const ForgeDaemonServiceServiceName =
   ForgeDaemonServiceDefinition.typeName

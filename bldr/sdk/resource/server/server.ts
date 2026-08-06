@@ -16,36 +16,49 @@ import type {
   ResourceAttachResponse,
   ResourceClientRequest,
   ResourceClientResponse,
-  ResourceRefAdoptRequest,
-  ResourceRefAdoptResponse,
-  ResourceRefReleaseRequest,
-  ResourceRefReleaseResponse,
 } from '../resource.pb.js'
 import { ResourceServiceDefinition } from '../resource_srpc.pb.js'
-import type { ResourceService } from '../resource_srpc.pb.js'
+import type { ResourceServiceHandler } from '../resource_srpc.pb.js'
 import { RemoteResourceClient } from './tracked-client.js'
 
-// _currentRpcClient holds the RemoteResourceClient for the current
-// RPC invocation. Set by the wrapped InvokeFn in ResourceRpc,
-// cleared after dispatch.
-let _currentRpcClient: RemoteResourceClient | undefined
-
-// getCurrentResourceClient returns the RemoteResourceClient for
-// the current RPC invocation. Must be called synchronously
-// (before any await) within an RPC handler dispatched through
-// ResourceRpc.
-function getCurrentResourceClient(): RemoteResourceClient {
-  if (!_currentRpcClient) {
-    throw new Error('no resource client context')
-  }
-  return _currentRpcClient
+import { withResourceCall } from './context.js'
+async function nextResourceClientControl(
+  packetRx: AsyncIterator<ResourceClientRequest>,
+  signal?: AbortSignal,
+): Promise<IteratorResult<ResourceClientRequest>> {
+  if (!signal) return await packetRx.next()
+  if (signal.aborted) return { value: undefined as never, done: true }
+  return await new Promise<IteratorResult<ResourceClientRequest>>(
+    (resolve, reject) => {
+      const cleanup = () => signal.removeEventListener('abort', onAbort)
+      const onAbort = () => {
+        cleanup()
+        resolve({ value: undefined as never, done: true })
+      }
+      signal.addEventListener('abort', onAbort, { once: true })
+      if (signal.aborted) {
+        onAbort()
+        return
+      }
+      void packetRx.next().then(
+        (result) => {
+          cleanup()
+          resolve(result)
+        },
+        (error: unknown) => {
+          cleanup()
+          reject(error)
+        },
+      )
+    },
+  )
 }
 
 // ResourceServer manages a tree of resources accessible over
 // SRPC. Clients connect via ResourceClient, receive a root
 // resource ID, and make RPCs to individual resources via
 // ResourceRpc.
-class ResourceServer implements ResourceService {
+class ResourceServer implements ResourceServiceHandler {
   private rootResourceMux: Mux
   private clientHandleIDCtr = 0
   private resourceIDCtr = 0
@@ -66,60 +79,86 @@ class ResourceServer implements ResourceService {
   }
 
   // ResourceClient implements the server-streaming RPC.
-  // Sends Init, then transmit loop draining txQueue.
-  async *ResourceClient(
-    _request: ResourceClientRequest,
+  // ResourceClient is a bidirectional control stream. The receive loop owns
+  // controls while the returned pushable owns response ordering.
+  ResourceClient(
+    request: MessageStream<ResourceClientRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<ResourceClientResponse> {
-    const clientID = ++this.clientHandleIDCtr
-    const client = new RemoteResourceClient(
-      () => this.nextResourceID(),
-      clientID,
-      abortSignal,
-    )
-    this.clients.set(clientID, client)
-
-    const rootResourceID = client.addResource(this.rootResourceMux, undefined)
-
-    try {
-      yield {
+    const outgoing = pushable<ResourceClientResponse>({ objectMode: true })
+    const packetRx = request[Symbol.asyncIterator]()
+    const run = async () => {
+      const first = await packetRx.next()
+      if (first.done || first.value.body?.case !== 'init') {
+        throw new Error('expected ResourceClient init')
+      }
+      const clientID = ++this.clientHandleIDCtr
+      const client = new RemoteResourceClient(
+        () => this.nextResourceID(),
+        clientID,
+        abortSignal,
+      )
+      this.clients.set(clientID, client)
+      const rootResourceID = client.addResource(this.rootResourceMux)
+      client.setRetainedRootResourceID(rootResourceID)
+      outgoing.push({
         body: {
           case: 'init' as const,
-          value: {
-            clientHandleId: clientID,
-            rootResourceId: rootResourceID,
-            supportsResourceAdoptionAck: false,
-          },
+          value: { clientHandleId: clientID, rootResourceId: rootResourceID },
         },
-      }
-
-      while (!abortSignal?.aborted && !client.released) {
-        await client.waitForNotify(abortSignal)
-        const msgs = client.drainQueue()
-        for (const msg of msgs) {
-          yield msg
+      })
+      const transmitTask = (async () => {
+        for (;;) {
+          await client.waitForNotify(abortSignal)
+          const messages = client.drainQueue()
+          for (const message of messages) outgoing.push(message)
+          if (client.released && messages.length === 0) return
         }
-      }
-    } finally {
-      client.released = true
-      this.clients.delete(clientID)
-      client.controller.abort()
-
-      for (const [, attached] of client.attachedResources) {
-        attached.controller.abort()
-      }
-      client.attachedResources.clear()
-
-      for (const [, resource] of client.resources) {
-        if (resource.releaseFn) {
-          const fn = resource.releaseFn
-          queueMicrotask(() => fn())
+      })()
+      let lastControlID = 0
+      try {
+        while (!client.released) {
+          const next = await nextResourceClientControl(packetRx, abortSignal)
+          if (next.done) break
+          const controlID = next.value.controlId ?? 0
+          if (controlID === 0 || controlID !== lastControlID + 1) {
+            throw new Error(
+              `unexpected ResourceClient control ID ${controlID} after ${lastControlID}`,
+            )
+          }
+          const body = next.value.body
+          if (body?.case === 'adopt') {
+            if (
+              client.adoptResource(body.value.resourceId ?? 0) === 'invalid'
+            ) {
+              throw new Error('invalid resource id')
+            }
+          } else if (body?.case === 'release') {
+            const resourceID = body.value.resourceId ?? 0
+            if (!client.releaseResource(resourceID, false)) {
+              throw new Error('invalid resource id')
+            }
+          } else {
+            throw new Error('invalid ResourceClient control')
+          }
+          lastControlID = controlID
+          client.pushMessage({
+            body: {
+              case: 'controlAck' as const,
+              value: { controlId: controlID },
+            },
+          })
         }
+      } finally {
+        this.clients.delete(clientID)
+        client.releaseAll()
+        await transmitTask
+        outgoing.end()
       }
-      client.resources.clear()
     }
+    void run().catch((error) => outgoing.end(error))
+    return outgoing
   }
-
   // findResource scans all clients for a resource by ID.
   // Resource IDs are globally unique.
   private findResource(
@@ -148,27 +187,22 @@ class ResourceServer implements ResourceService {
         if (isNaN(resourceID) || resourceID <= 0) {
           throw new Error('invalid component id format')
         }
-
         const found = this.findResource(resourceID)
-        if (!found) {
-          throw new Error('resource or client was released')
-        }
-
+        if (!found) throw new Error('resource or client was released')
         const { mux, client } = found
-
         const wrappedLookup: LookupMethod = async (serviceID, methodID) => {
           const invokeFn = await mux.lookupMethod(serviceID, methodID)
           if (!invokeFn) return null
-          return async (dataSource, dataSink) => {
-            _currentRpcClient = client
-            try {
-              await invokeFn(dataSource, dataSink)
-            } finally {
-              _currentRpcClient = undefined
-            }
+          return async (dataSource, dataSink, callContext) => {
+            const resourceContext = withResourceCall(callContext, {
+              client,
+              parentResourceId: resourceID,
+              serviceId: serviceID,
+              methodId: methodID,
+            })
+            await invokeFn(dataSource, dataSink, resourceContext)
           }
         }
-
         const server = new Server(wrappedLookup)
         return server.rpcStreamHandler
       },
@@ -376,49 +410,6 @@ class ResourceServer implements ResourceService {
       cleanup()
     }
   }
-  // ResourceRefAdopt rejects adoption while receipt finalization is unavailable.
-  async ResourceRefAdopt(
-    _request: ResourceRefAdoptRequest,
-    _abortSignal?: AbortSignal,
-  ): Promise<ResourceRefAdoptResponse> {
-    throw new Error('resource adoption unsupported')
-  }
-
-  // ResourceRefRelease handles client-initiated resource release.
-  async ResourceRefRelease(
-    request: ResourceRefReleaseRequest,
-    _abortSignal?: AbortSignal,
-  ): Promise<ResourceRefReleaseResponse> {
-    const clientID = request.clientHandleId ?? 0
-    const resourceID = request.resourceId ?? 0
-
-    if (clientID === 0) {
-      throw new Error('invalid client id')
-    }
-
-    const client = this.clients.get(clientID)
-    if (!client || client.released) {
-      throw new Error('resource not found')
-    }
-
-    const resource = client.resources.get(resourceID)
-    if (!resource) {
-      if (client.releaseResource(resourceID)) {
-        return {}
-      }
-      throw new Error('resource not found')
-    }
-
-    // Root resource (no releaseFn) is never deleted.
-    if (!resource.releaseFn) {
-      return {}
-    }
-
-    client.resources.delete(resourceID)
-    resource.releaseFn()
-
-    return {}
-  }
 }
 
 // createRoutedClient wraps an SRPC client so all calls are prefixed with
@@ -479,4 +470,4 @@ function createRoutedClient(
   } as ReturnType<StreamConn['buildClient']>
 }
 
-export { ResourceServer, getCurrentResourceClient }
+export { ResourceServer }

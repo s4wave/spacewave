@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { build as viteBuild } from "vite";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { build as viteBuild } from 'vite'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ChannelStream,
   Client as SRPCClient,
@@ -12,10 +12,10 @@ import {
   Server,
   StreamConn,
   type PacketStream,
-} from "starpc";
-import { MockClient, MockDefinition, type Mock } from "starpc/mock";
-import { pushable } from "it-pushable";
-import { pipe } from "it-pipe";
+} from 'starpc'
+import { MockClient, MockDefinition, type Mock } from 'starpc/mock'
+import { pushable } from 'it-pushable'
+import { pipe } from 'it-pipe'
 
 import quickJSRunner, {
   addAssetToFileSystem,
@@ -34,707 +34,696 @@ import quickJSRunner, {
   shouldPreferBoundedBackendAssetPreload,
   startQuickJSHostConnectionPipe,
   type BackendAssetCacheEntry,
-} from "./plugin-host-quickjs.js";
-import type { BackendAPI } from "@aptre/bldr-sdk";
-import {
-  getCurrentResourceClient,
-  ResourceServer,
-} from "../../../sdk/resource/server/server.js";
-import { Client as ResourceClient } from "../../../sdk/resource/client.js";
-import { ResourceServiceClient } from "../../../sdk/resource/resource_srpc.pb.js";
-import { PluginHostResourceServiceDefinition } from "../../../sdk/plugin/host/host_srpc.pb.js";
+} from './plugin-host-quickjs.js'
+import type { BackendAPI } from '@aptre/bldr-sdk'
+import { ResourceServer } from '../../../sdk/resource/server/server.js'
+import { Client as ResourceClient } from '../../../sdk/resource/client.js'
+import { ResourceServiceClient } from '../../../sdk/resource/resource_srpc.pb.js'
+import { PluginHostResourceServiceDefinition } from '../../../sdk/plugin/host/host_srpc.pb.js'
 import {
   buildGoAliases,
   goTsResolver,
-} from "../../bundler/vite/go-ts-resolver.js";
+} from '../../bundler/vite/go-ts-resolver.js'
 
-describe("plugin-host-quickjs bridge handlers", () => {
+describe('plugin-host-quickjs bridge handlers', () => {
   afterEach(() => {
-    vi.restoreAllMocks();
-  });
+    vi.restoreAllMocks()
+  })
 
-  it("keeps QuickJS and WebRuntime stream directions separate", async () => {
-    const quickJSStream = buildPacketStream();
-    const webRuntimeStream = buildPacketStream();
-    const webRuntimeTarget = buildPacketStream();
-    const quickJSTarget = buildPacketStream();
-    const openWebRuntimeStream = vi.fn(async () => webRuntimeTarget);
-    const openQuickJSStream = vi.fn(async () => quickJSTarget);
-    const pipeStreams = vi.fn();
+  it('keeps QuickJS and WebRuntime stream directions separate', async () => {
+    const quickJSStream = buildPacketStream()
+    const webRuntimeStream = buildPacketStream()
+    const webRuntimeTarget = buildPacketStream()
+    const quickJSTarget = buildPacketStream()
+    const openWebRuntimeStream = vi.fn(async () => webRuntimeTarget)
+    const openQuickJSStream = vi.fn(async () => quickJSTarget)
+    const pipeStreams = vi.fn()
 
     const handlers = buildQuickJSBridgeHandlers({
       openWebRuntimeStream,
       openQuickJSStream,
       pipeStreams,
-    });
+    })
 
-    await handlers.handleQuickJSStream(quickJSStream);
-    await handlers.handleWebRuntimeStream(webRuntimeStream);
+    await handlers.handleQuickJSStream(quickJSStream)
+    await handlers.handleWebRuntimeStream(webRuntimeStream)
 
-    expect(openWebRuntimeStream).toHaveBeenCalledTimes(1);
-    expect(openQuickJSStream).toHaveBeenCalledTimes(1);
+    expect(openWebRuntimeStream).toHaveBeenCalledTimes(1)
+    expect(openQuickJSStream).toHaveBeenCalledTimes(1)
     expect(pipeStreams).toHaveBeenNthCalledWith(
       1,
       quickJSStream,
       expect.any(Promise),
-      expect.objectContaining({ direction: "quickjs-to-web-runtime" }),
-    );
+      expect.objectContaining({ direction: 'quickjs-to-web-runtime' }),
+    )
     expect(pipeStreams).toHaveBeenNthCalledWith(
       2,
       webRuntimeStream,
       expect.any(Promise),
-      expect.objectContaining({ direction: "web-runtime-to-quickjs" }),
-    );
-    await expect(pipeStreams.mock.calls[0][1]).resolves.toBe(webRuntimeTarget);
-    await expect(pipeStreams.mock.calls[1][1]).resolves.toBe(quickJSTarget);
-  });
+      expect.objectContaining({ direction: 'web-runtime-to-quickjs' }),
+    )
+    await expect(pipeStreams.mock.calls[0][1]).resolves.toBe(webRuntimeTarget)
+    await expect(pipeStreams.mock.calls[1][1]).resolves.toBe(quickJSTarget)
+  })
 
-  it("opens inbound WebRuntime streams before the QuickJS target stream resolves", async () => {
-    const webRuntimeSource = pushable<Uint8Array>({ objectMode: true });
-    const webRuntimeSinkPackets: Uint8Array[] = [];
-    let markWebRuntimeSinkStarted!: () => void;
+  it('opens inbound WebRuntime streams before the QuickJS target stream resolves', async () => {
+    const webRuntimeSource = pushable<Uint8Array>({ objectMode: true })
+    const webRuntimeSinkPackets: Uint8Array[] = []
+    let markWebRuntimeSinkStarted!: () => void
     const webRuntimeSinkStarted = new Promise<void>((resolve) => {
-      markWebRuntimeSinkStarted = resolve;
-    });
+      markWebRuntimeSinkStarted = resolve
+    })
     const webRuntimeStream: PacketStream = {
       source: webRuntimeSource,
       sink: async (packets) => {
-        markWebRuntimeSinkStarted();
+        markWebRuntimeSinkStarted()
         for await (const packet of packets) {
-          webRuntimeSinkPackets.push(packet);
+          webRuntimeSinkPackets.push(packet)
         }
       },
-    };
+    }
 
-    const quickJSTargetSource = pushable<Uint8Array>({ objectMode: true });
-    const quickJSTargetSinkPackets: Uint8Array[] = [];
+    const quickJSTargetSource = pushable<Uint8Array>({ objectMode: true })
+    const quickJSTargetSinkPackets: Uint8Array[] = []
     const quickJSTargetStream: PacketStream = {
       source: quickJSTargetSource,
       sink: async (packets) => {
         for await (const packet of packets) {
-          quickJSTargetSinkPackets.push(packet);
+          quickJSTargetSinkPackets.push(packet)
         }
       },
-    };
-    let resolveQuickJSTarget!: (stream: PacketStream) => void;
+    }
+    let resolveQuickJSTarget!: (stream: PacketStream) => void
     const quickJSTargetReady = new Promise<PacketStream>((resolve) => {
-      resolveQuickJSTarget = resolve;
-    });
+      resolveQuickJSTarget = resolve
+    })
 
     const handlers = buildQuickJSBridgeHandlers({
       openWebRuntimeStream: vi.fn(),
       openQuickJSStream: vi.fn(() => quickJSTargetReady),
-    });
+    })
 
-    void handlers.handleWebRuntimeStream(webRuntimeStream);
-    await webRuntimeSinkStarted;
+    void handlers.handleWebRuntimeStream(webRuntimeStream)
+    await webRuntimeSinkStarted
 
-    const webRuntimePacket = new Uint8Array([1, 2, 3]);
-    webRuntimeSource.push(webRuntimePacket);
-    resolveQuickJSTarget(quickJSTargetStream);
+    const webRuntimePacket = new Uint8Array([1, 2, 3])
+    webRuntimeSource.push(webRuntimePacket)
+    resolveQuickJSTarget(quickJSTargetStream)
 
     await waitFor(
       () => quickJSTargetSinkPackets.length === 1,
-      "QuickJS target did not receive buffered WebRuntime packet",
-    );
-    expect(quickJSTargetSinkPackets[0]).toEqual(webRuntimePacket);
+      'QuickJS target did not receive buffered WebRuntime packet',
+    )
+    expect(quickJSTargetSinkPackets[0]).toEqual(webRuntimePacket)
 
-    const quickJSPacket = new Uint8Array([4, 5, 6]);
-    quickJSTargetSource.push(quickJSPacket);
+    const quickJSPacket = new Uint8Array([4, 5, 6])
+    quickJSTargetSource.push(quickJSPacket)
     await waitFor(
       () => webRuntimeSinkPackets.length === 1,
-      "WebRuntime stream did not receive QuickJS response packet",
-    );
-    expect(webRuntimeSinkPackets[0]).toEqual(quickJSPacket);
+      'WebRuntime stream did not receive QuickJS response packet',
+    )
+    expect(webRuntimeSinkPackets[0]).toEqual(quickJSPacket)
 
-    webRuntimeSource.end();
-    quickJSTargetSource.end();
-  });
+    webRuntimeSource.end()
+    quickJSTargetSource.end()
+  })
 
-  it("forwards WebRuntime streams through the host and QuickJS yamux connection", async () => {
-    const webRuntimeSource = pushable<Uint8Array>({ objectMode: true });
-    const webRuntimeSinkPackets: Uint8Array[] = [];
+  it('forwards WebRuntime streams through the host and QuickJS yamux connection', async () => {
+    const webRuntimeSource = pushable<Uint8Array>({ objectMode: true })
+    const webRuntimeSinkPackets: Uint8Array[] = []
     const webRuntimeStream: PacketStream = {
       source: webRuntimeSource,
       sink: async (packets) => {
         for await (const packet of packets) {
-          webRuntimeSinkPackets.push(packet);
+          webRuntimeSinkPackets.push(packet)
         }
       },
-    };
+    }
 
-    let resolveQuickJSStream!: (stream: PacketStream) => void;
+    let resolveQuickJSStream!: (stream: PacketStream) => void
     const quickJSStreamReady = new Promise<PacketStream>((resolve) => {
-      resolveQuickJSStream = resolve;
-    });
+      resolveQuickJSStream = resolve
+    })
     const quickJSConn = new StreamConn(
       {
         handlePacketStream(stream) {
-          resolveQuickJSStream(stream);
+          resolveQuickJSStream(stream)
         },
       },
       {
-        direction: "inbound",
+        direction: 'inbound',
         yamuxParams: { enableKeepAlive: false, maxMessageSize: 32 * 1024 },
       },
-    );
+    )
 
-    const hostConnRef: { current?: StreamConn } = {};
+    const hostConnRef: { current?: StreamConn } = {}
     const handlers = buildQuickJSBridgeHandlers({
       openWebRuntimeStream: vi.fn(),
       openQuickJSStream: () => {
         if (!hostConnRef.current) {
-          throw new Error("QuickJS host connection is not initialized");
+          throw new Error('QuickJS host connection is not initialized')
         }
-        return hostConnRef.current.openStream();
+        return hostConnRef.current.openStream()
       },
-    });
+    })
     const hostConn = new StreamConn(
       { handlePacketStream: handlers.handleQuickJSStream },
       {
-        direction: "outbound",
+        direction: 'outbound',
         yamuxParams: { enableKeepAlive: false, maxMessageSize: 32 * 1024 },
       },
-    );
-    hostConnRef.current = hostConn;
+    )
+    hostConnRef.current = hostConn
 
     const yamuxPipe = pipe(
       quickJSConn,
       hostConn,
       combineUint8ArrayListTransform(),
       quickJSConn,
-    ) as Promise<unknown>;
+    ) as Promise<unknown>
     yamuxPipe.catch((err: unknown) => {
-      hostConn.close(err instanceof Error ? err : new Error(String(err)));
-    });
+      hostConn.close(err instanceof Error ? err : new Error(String(err)))
+    })
 
-    void handlers.handleWebRuntimeStream(webRuntimeStream);
-    const quickJSStream = await quickJSStreamReady;
-    const quickJSSinkPackets: Uint8Array[] = [];
+    void handlers.handleWebRuntimeStream(webRuntimeStream)
+    const quickJSStream = await quickJSStreamReady
+    const quickJSSinkPackets: Uint8Array[] = []
     void pipe(quickJSStream.source, async (packets) => {
       for await (const packet of packets) {
-        quickJSSinkPackets.push(packet);
+        quickJSSinkPackets.push(packet)
       }
-    });
+    })
 
-    const webRuntimePacket = new Uint8Array([7, 8, 9]);
-    webRuntimeSource.push(webRuntimePacket);
+    const webRuntimePacket = new Uint8Array([7, 8, 9])
+    webRuntimeSource.push(webRuntimePacket)
     await waitFor(
       () => quickJSSinkPackets.length === 1,
-      "QuickJS handler did not receive WebRuntime packet through yamux",
-    );
-    expect(quickJSSinkPackets[0]).toEqual(webRuntimePacket);
+      'QuickJS handler did not receive WebRuntime packet through yamux',
+    )
+    expect(quickJSSinkPackets[0]).toEqual(webRuntimePacket)
 
-    const quickJSPacket = new Uint8Array([10, 11, 12]);
+    const quickJSPacket = new Uint8Array([10, 11, 12])
     await quickJSStream.sink(
       (async function* () {
-        yield quickJSPacket;
+        yield quickJSPacket
       })(),
-    );
+    )
     await waitFor(
       () => webRuntimeSinkPackets.length === 1,
-      "WebRuntime stream did not receive QuickJS packet through yamux",
-    );
-    expect(webRuntimeSinkPackets[0]).toEqual(quickJSPacket);
+      'WebRuntime stream did not receive QuickJS packet through yamux',
+    )
+    expect(webRuntimeSinkPackets[0]).toEqual(quickJSPacket)
 
-    webRuntimeSource.end();
-    hostConn.close();
-    quickJSConn.close();
-  });
+    webRuntimeSource.end()
+    hostConn.close()
+    quickJSConn.close()
+  })
 
-  it("keeps WebRuntime response path open after request source ends", async () => {
-    const webRuntimeSource = pushable<Uint8Array>({ objectMode: true });
-    const webRuntimeSinkPackets: Uint8Array[] = [];
+  it('keeps WebRuntime response path open after request source ends', async () => {
+    const webRuntimeSource = pushable<Uint8Array>({ objectMode: true })
+    const webRuntimeSinkPackets: Uint8Array[] = []
     const webRuntimeStream: PacketStream = {
       source: webRuntimeSource,
       sink: async (packets) => {
         for await (const packet of packets) {
-          webRuntimeSinkPackets.push(packet);
+          webRuntimeSinkPackets.push(packet)
         }
       },
-    };
+    }
 
-    let resolveQuickJSStream!: (stream: PacketStream) => void;
+    let resolveQuickJSStream!: (stream: PacketStream) => void
     const quickJSStreamReady = new Promise<PacketStream>((resolve) => {
-      resolveQuickJSStream = resolve;
-    });
+      resolveQuickJSStream = resolve
+    })
     const quickJSConn = new StreamConn(
       {
         handlePacketStream(stream) {
-          resolveQuickJSStream(stream);
+          resolveQuickJSStream(stream)
         },
       },
       {
-        direction: "inbound",
+        direction: 'inbound',
         yamuxParams: { enableKeepAlive: false, maxMessageSize: 32 * 1024 },
       },
-    );
+    )
 
-    const hostConnRef: { current?: StreamConn } = {};
+    const hostConnRef: { current?: StreamConn } = {}
     const handlers = buildQuickJSBridgeHandlers({
       openWebRuntimeStream: vi.fn(),
       openQuickJSStream: () => {
         if (!hostConnRef.current) {
-          throw new Error("QuickJS host connection is not initialized");
+          throw new Error('QuickJS host connection is not initialized')
         }
-        return hostConnRef.current.openStream();
+        return hostConnRef.current.openStream()
       },
-    });
+    })
     const hostConn = new StreamConn(
       { handlePacketStream: handlers.handleQuickJSStream },
       {
-        direction: "outbound",
+        direction: 'outbound',
         yamuxParams: { enableKeepAlive: false, maxMessageSize: 32 * 1024 },
       },
-    );
-    hostConnRef.current = hostConn;
+    )
+    hostConnRef.current = hostConn
 
     const yamuxPipe = pipe(
       quickJSConn,
       hostConn,
       combineUint8ArrayListTransform(),
       quickJSConn,
-    ) as Promise<unknown>;
+    ) as Promise<unknown>
     yamuxPipe.catch((err: unknown) => {
-      hostConn.close(err instanceof Error ? err : new Error(String(err)));
-    });
+      hostConn.close(err instanceof Error ? err : new Error(String(err)))
+    })
 
-    void handlers.handleWebRuntimeStream(webRuntimeStream);
-    const quickJSStream = await quickJSStreamReady;
-    const quickJSSinkPackets: Uint8Array[] = [];
+    void handlers.handleWebRuntimeStream(webRuntimeStream)
+    const quickJSStream = await quickJSStreamReady
+    const quickJSSinkPackets: Uint8Array[] = []
     void pipe(quickJSStream.source, async (packets) => {
       for await (const packet of packets) {
-        quickJSSinkPackets.push(packet);
+        quickJSSinkPackets.push(packet)
       }
-    });
+    })
 
-    const requestPacket = new Uint8Array([13, 14, 15]);
-    webRuntimeSource.push(requestPacket);
+    const requestPacket = new Uint8Array([13, 14, 15])
+    webRuntimeSource.push(requestPacket)
     await waitFor(
       () => quickJSSinkPackets.length === 1,
-      "QuickJS handler did not receive WebRuntime request packet",
-    );
-    expect(quickJSSinkPackets[0]).toEqual(requestPacket);
+      'QuickJS handler did not receive WebRuntime request packet',
+    )
+    expect(quickJSSinkPackets[0]).toEqual(requestPacket)
 
-    webRuntimeSource.end();
+    webRuntimeSource.end()
 
-    const responsePacket = new Uint8Array([16, 17, 18]);
+    const responsePacket = new Uint8Array([16, 17, 18])
     await quickJSStream.sink(
       (async function* () {
-        yield responsePacket;
+        yield responsePacket
       })(),
-    );
+    )
     await waitFor(
       () => webRuntimeSinkPackets.length === 1,
-      "WebRuntime stream did not receive QuickJS response after request end",
-    );
-    expect(webRuntimeSinkPackets[0]).toEqual(responsePacket);
+      'WebRuntime stream did not receive QuickJS response after request end',
+    )
+    expect(webRuntimeSinkPackets[0]).toEqual(responsePacket)
 
-    hostConn.close();
-    quickJSConn.close();
-  });
+    hostConn.close()
+    quickJSConn.close()
+  })
 
-  it("keeps ChannelStream WebRuntime responses open after request source ends", async () => {
-    const channelName = `quickjs-bridge-${Date.now()}-${Math.random()}`;
-    const callerToWorker = `${channelName}-caller-to-worker`;
-    const workerToCaller = `${channelName}-worker-to-caller`;
-    const webRuntimeCaller = new ChannelStream<Uint8Array>("caller", {
+  it('keeps ChannelStream WebRuntime responses open after request source ends', async () => {
+    const channelName = `quickjs-bridge-${Date.now()}-${Math.random()}`
+    const callerToWorker = `${channelName}-caller-to-worker`
+    const workerToCaller = `${channelName}-worker-to-caller`
+    const webRuntimeCaller = new ChannelStream<Uint8Array>('caller', {
       tx: new BroadcastChannel(callerToWorker),
       rx: new BroadcastChannel(workerToCaller),
-    });
-    const webRuntimeWorker = new ChannelStream<Uint8Array>("worker", {
+    })
+    const webRuntimeWorker = new ChannelStream<Uint8Array>('worker', {
       tx: new BroadcastChannel(workerToCaller),
       rx: new BroadcastChannel(callerToWorker),
-    });
-    const callerWrites = pushable<Uint8Array>({ objectMode: true });
-    const callerResponses: Uint8Array[] = [];
-    const callerSink = webRuntimeCaller.sink(callerWrites);
+    })
+    const callerWrites = pushable<Uint8Array>({ objectMode: true })
+    const callerResponses: Uint8Array[] = []
+    const callerSink = webRuntimeCaller.sink(callerWrites)
     const callerRead = pipe(webRuntimeCaller.source, async (packets) => {
       for await (const packet of packets) {
-        callerResponses.push(packet);
+        callerResponses.push(packet)
       }
-    });
+    })
 
-    let resolveQuickJSStream!: (stream: PacketStream) => void;
+    let resolveQuickJSStream!: (stream: PacketStream) => void
     const quickJSStreamReady = new Promise<PacketStream>((resolve) => {
-      resolveQuickJSStream = resolve;
-    });
+      resolveQuickJSStream = resolve
+    })
     const quickJSConn = new StreamConn(
       {
         handlePacketStream(stream) {
-          resolveQuickJSStream(stream);
+          resolveQuickJSStream(stream)
         },
       },
       {
-        direction: "inbound",
+        direction: 'inbound',
         yamuxParams: { enableKeepAlive: false, maxMessageSize: 32 * 1024 },
       },
-    );
+    )
 
-    const hostConnRef: { current?: StreamConn } = {};
+    const hostConnRef: { current?: StreamConn } = {}
     const handlers = buildQuickJSBridgeHandlers({
       openWebRuntimeStream: vi.fn(),
       openQuickJSStream: () => {
         if (!hostConnRef.current) {
-          throw new Error("QuickJS host connection is not initialized");
+          throw new Error('QuickJS host connection is not initialized')
         }
-        return hostConnRef.current.openStream();
+        return hostConnRef.current.openStream()
       },
-    });
+    })
     const hostConn = new StreamConn(
       { handlePacketStream: handlers.handleQuickJSStream },
       {
-        direction: "outbound",
+        direction: 'outbound',
         yamuxParams: { enableKeepAlive: false, maxMessageSize: 32 * 1024 },
       },
-    );
-    hostConnRef.current = hostConn;
+    )
+    hostConnRef.current = hostConn
 
     const yamuxPipe = pipe(
       quickJSConn,
       hostConn,
       combineUint8ArrayListTransform(),
       quickJSConn,
-    ) as Promise<unknown>;
+    ) as Promise<unknown>
     yamuxPipe.catch((err: unknown) => {
-      hostConn.close(err instanceof Error ? err : new Error(String(err)));
-    });
+      hostConn.close(err instanceof Error ? err : new Error(String(err)))
+    })
 
-    void handlers.handleWebRuntimeStream(webRuntimeWorker);
-    const quickJSStream = await quickJSStreamReady;
-    const quickJSSinkPackets: Uint8Array[] = [];
+    void handlers.handleWebRuntimeStream(webRuntimeWorker)
+    const quickJSStream = await quickJSStreamReady
+    const quickJSSinkPackets: Uint8Array[] = []
     const quickJSRead = pipe(quickJSStream.source, async (packets) => {
       for await (const packet of packets) {
-        quickJSSinkPackets.push(packet);
+        quickJSSinkPackets.push(packet)
       }
-    });
+    })
 
-    const requestPacket = new Uint8Array([19, 20, 21]);
-    callerWrites.push(requestPacket);
+    const requestPacket = new Uint8Array([19, 20, 21])
+    callerWrites.push(requestPacket)
     await waitFor(
       () => quickJSSinkPackets.length === 1,
-      "QuickJS handler did not receive ChannelStream request packet",
-    );
-    expect(quickJSSinkPackets[0]).toEqual(requestPacket);
+      'QuickJS handler did not receive ChannelStream request packet',
+    )
+    expect(quickJSSinkPackets[0]).toEqual(requestPacket)
 
-    callerWrites.end();
-    await expect(callerSink).resolves.toBeUndefined();
+    callerWrites.end()
+    await expect(callerSink).resolves.toBeUndefined()
 
-    const responsePacket = new Uint8Array([22, 23, 24]);
+    const responsePacket = new Uint8Array([22, 23, 24])
     await quickJSStream.sink(
       (async function* () {
-        yield responsePacket;
+        yield responsePacket
       })(),
-    );
+    )
     await waitFor(
       () => callerResponses.length === 1,
-      "WebRuntime caller did not receive ChannelStream response after request end",
-    );
-    expect(callerResponses[0]).toEqual(responsePacket);
+      'WebRuntime caller did not receive ChannelStream response after request end',
+    )
+    expect(callerResponses[0]).toEqual(responsePacket)
 
-    await expect(quickJSRead).resolves.toBeUndefined();
-    await expect(callerRead).resolves.toBeUndefined();
-    hostConn.close();
-    quickJSConn.close();
-    webRuntimeCaller.close();
-    webRuntimeWorker.close();
-  });
+    await expect(quickJSRead).resolves.toBeUndefined()
+    await expect(callerRead).resolves.toBeUndefined()
+    hostConn.close()
+    quickJSConn.close()
+    webRuntimeCaller.close()
+    webRuntimeWorker.close()
+  })
 
-  it("includes remote RPC method details in bridge pipe errors", async () => {
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const remoteError = Object.assign(new Error("context canceled"), {
-      name: "RemoteRPCError",
-      rpcService: "web.runtime.WebRuntimeHost",
-      rpcMethod: "WebWorkerRpc",
-      rpcError: "context canceled",
-    });
+  it('includes remote RPC method details in bridge pipe errors', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const remoteError = Object.assign(new Error('context canceled'), {
+      name: 'RemoteRPCError',
+      rpcService: 'web.runtime.WebRuntimeHost',
+      rpcMethod: 'WebWorkerRpc',
+      rpcError: 'context canceled',
+    })
     const targetStream: PacketStream = {
       source: failingSource(remoteError),
       sink: vi.fn(async () => {}),
-    };
+    }
 
     await pipeQuickJSBridgeStreams(
       buildPacketStream(),
       Promise.resolve(targetStream),
-      { id: 17, direction: "quickjs-to-web-runtime" },
-    );
+      { id: 17, direction: 'quickjs-to-web-runtime' },
+    )
     await waitFor(
       () => consoleError.mock.calls.length > 0,
-      "bridge pipe error was not logged",
-    );
+      'bridge pipe error was not logged',
+    )
 
     expect(consoleError.mock.calls[0]?.[0]).toContain(
-      "quickjs-to-web-runtime#17 target-receive",
-    );
+      'quickjs-to-web-runtime#17 target-receive',
+    )
     expect(consoleError.mock.calls[0]?.[0]).toContain(
-      "web.runtime.WebRuntimeHost/WebWorkerRpc error=context canceled",
-    );
-    expect(consoleError.mock.calls[0]?.[1]).toBe(remoteError);
-  });
+      'web.runtime.WebRuntimeHost/WebWorkerRpc error=context canceled',
+    )
+    expect(consoleError.mock.calls[0]?.[1]).toBe(remoteError)
+  })
 
-  it("treats WebDocument exhaustion shutdown as bridge lifecycle close", async () => {
-    const consoleDebug = vi
-      .spyOn(console, "debug")
-      .mockImplementation(() => {});
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+  it('treats WebDocument exhaustion shutdown as bridge lifecycle close', async () => {
+    const consoleDebug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     const closeError = new Error(
-      "WebDocumentTracker: plugin/spacewave-web: closed while waiting for WebDocument",
-    );
+      'WebDocumentTracker: plugin/spacewave-web: closed while waiting for WebDocument',
+    )
     const targetStream: PacketStream = {
       source: failingSource(closeError),
       sink: vi.fn(async () => {}),
-    };
+    }
 
     await pipeQuickJSBridgeStreams(
       buildPacketStream(),
       Promise.resolve(targetStream),
-      { id: 18, direction: "quickjs-to-web-runtime" },
-    );
+      { id: 18, direction: 'quickjs-to-web-runtime' },
+    )
     await waitFor(
       () => consoleDebug.mock.calls.length > 0,
-      "WebDocument exhaustion bridge close was not logged as debug",
-    );
+      'WebDocument exhaustion bridge close was not logged as debug',
+    )
 
     expect(consoleDebug.mock.calls[0]?.[0]).toContain(
-      "quickjs-to-web-runtime#18 target-receive",
-    );
-    expect(consoleDebug.mock.calls[0]?.[0]).toContain("stream pipe closed");
-    expect(consoleDebug.mock.calls[0]?.[1]).toBe(closeError);
-    expect(consoleError).not.toHaveBeenCalled();
-  });
+      'quickjs-to-web-runtime#18 target-receive',
+    )
+    expect(consoleDebug.mock.calls[0]?.[0]).toContain('stream pipe closed')
+    expect(consoleDebug.mock.calls[0]?.[1]).toBe(closeError)
+    expect(consoleError).not.toHaveBeenCalled()
+  })
 
-  it("treats root QuickJS host connection pipe errors as fatal", async () => {
-    const devOutStream = pushable<Uint8Array>({ objectMode: true });
-    const failure = new Error("root mux broke");
+  it('treats root QuickJS host connection pipe errors as fatal', async () => {
+    const devOutStream = pushable<Uint8Array>({ objectMode: true })
+    const failure = new Error('root mux broke')
     const hostConn = {
       source: failingSource(failure),
-      sink: vi.fn(async (packets: Parameters<PacketStream["sink"]>[0]) => {
+      sink: vi.fn(async (packets: Parameters<PacketStream['sink']>[0]) => {
         for await (const _packet of packets) {
           // drain devOutStream while the host connection source reports failure
         }
       }),
       close: vi.fn(),
-    };
-    const pushStdin = vi.fn();
-    const onFatalError = vi.fn();
+    }
+    const pushStdin = vi.fn()
+    const onFatalError = vi.fn()
 
     startQuickJSHostConnectionPipe(
       devOutStream,
       hostConn,
       pushStdin,
       onFatalError,
-    );
+    )
 
     await waitFor(
       () => onFatalError.mock.calls.length === 1,
-      "root host connection pipe failure was not fatal",
-    );
-    expect(onFatalError).toHaveBeenCalledWith(failure);
-    expect(hostConn.close).toHaveBeenCalledWith(failure);
-    expect(pushStdin).not.toHaveBeenCalled();
+      'root host connection pipe failure was not fatal',
+    )
+    expect(onFatalError).toHaveBeenCalledWith(failure)
+    expect(hostConn.close).toHaveBeenCalledWith(failure)
+    expect(pushStdin).not.toHaveBeenCalled()
 
-    devOutStream.end();
-  });
-});
+    devOutStream.end()
+  })
+})
 
-describe("plugin-host-quickjs runner lifecycle", () => {
-  const originalFetch = globalThis.fetch;
+describe('plugin-host-quickjs runner lifecycle', () => {
+  const originalFetch = globalThis.fetch
 
   afterEach(() => {
-    Object.defineProperty(globalThis, "fetch", {
+    Object.defineProperty(globalThis, 'fetch', {
       value: originalFetch,
       configurable: true,
       writable: true,
-    });
-    vi.restoreAllMocks();
-  });
+    })
+    vi.restoreAllMocks()
+  })
 
-  it("rejects when QuickJS exits nonzero from the reactor loop", async () => {
+  it('rejects when QuickJS exits nonzero from the reactor loop', async () => {
     const wasm = readFileSync(
-      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
-    );
-    const pluginPath = "/b/pd/quickjs-exit-test/plugin.mjs";
+      resolve('node_modules/quickjs-wasi-reactor/qjs-wasi.wasm'),
+    )
+    const pluginPath = '/b/pd/quickjs-exit-test/plugin.mjs'
     const pluginScript = `
       export default async function main() {
         std.exit(1)
       }
-    `;
+    `
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = requestInfoURL(input);
-      if (url === "/b/qjs/qjs-wasi.wasm") {
+      const url = requestInfoURL(input)
+      if (url === '/b/qjs/qjs-wasi.wasm') {
         return new Response(wasm, {
-          headers: { "Content-Type": "application/wasm" },
-        });
+          headers: { 'Content-Type': 'application/wasm' },
+        })
       }
-      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+      if (url === '/b/qjs/plugin-quickjs.esm.js') {
         return new Response(
           readFileSync(
-            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
-            "utf8",
+            resolve('bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js'),
+            'utf8',
           ),
-        );
+        )
       }
       if (url === pluginPath) {
-        return new Response(pluginScript);
+        return new Response(pluginScript)
       }
-      return new Response("", { status: 404 });
-    });
-    Object.defineProperty(globalThis, "fetch", {
+      return new Response('', { status: 404 })
+    })
+    Object.defineProperty(globalThis, 'fetch', {
       value: fetch,
       configurable: true,
       writable: true,
-    });
-    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+    })
+    vi.spyOn(WebAssembly, 'compileStreaming').mockImplementation(async () =>
       WebAssembly.compile(wasm),
-    );
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    )
+    vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const api = {
-      startInfo: { pluginId: "quickjs-exit-test" },
+      startInfo: { pluginId: 'quickjs-exit-test' },
       openStream: vi.fn(async () => buildPacketStream()),
       handleStreamCtr: new HandleStreamCtr(),
       utils: {
         pluginAssetHttpPath(pluginId: string, path: string): string {
-          return `/b/pa/${pluginId}/${path}`;
+          return `/b/pa/${pluginId}/${path}`
         },
       },
-    } as unknown as BackendAPI;
+    } as unknown as BackendAPI
 
     await expect(
       quickJSRunner(api, new AbortController().signal, pluginPath),
-    ).rejects.toThrow("quickjs-runner: Plugin exited with code 1");
-  });
+    ).rejects.toThrow('quickjs-runner: Plugin exited with code 1')
+  })
 
-  it("resolves when QuickJS exits cleanly before readiness", async () => {
+  it('resolves when QuickJS exits cleanly before readiness', async () => {
     const wasm = readFileSync(
-      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
-    );
-    const pluginPath = "/b/pd/quickjs-clean-exit-test/plugin.mjs";
+      resolve('node_modules/quickjs-wasi-reactor/qjs-wasi.wasm'),
+    )
+    const pluginPath = '/b/pd/quickjs-clean-exit-test/plugin.mjs'
     const pluginScript = `
       export default async function main() {
         std.exit(0)
       }
-    `;
+    `
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = requestInfoURL(input);
-      if (url === "/b/qjs/qjs-wasi.wasm") {
+      const url = requestInfoURL(input)
+      if (url === '/b/qjs/qjs-wasi.wasm') {
         return new Response(wasm, {
-          headers: { "Content-Type": "application/wasm" },
-        });
+          headers: { 'Content-Type': 'application/wasm' },
+        })
       }
-      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+      if (url === '/b/qjs/plugin-quickjs.esm.js') {
         return new Response(
           readFileSync(
-            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
-            "utf8",
+            resolve('bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js'),
+            'utf8',
           ),
-        );
+        )
       }
       if (url === pluginPath) {
-        return new Response(pluginScript);
+        return new Response(pluginScript)
       }
-      return new Response("", { status: 404 });
-    });
-    Object.defineProperty(globalThis, "fetch", {
+      return new Response('', { status: 404 })
+    })
+    Object.defineProperty(globalThis, 'fetch', {
       value: fetch,
       configurable: true,
       writable: true,
-    });
-    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+    })
+    vi.spyOn(WebAssembly, 'compileStreaming').mockImplementation(async () =>
       WebAssembly.compile(wasm),
-    );
+    )
 
     const api = {
-      startInfo: { pluginId: "quickjs-clean-exit-test" },
+      startInfo: { pluginId: 'quickjs-clean-exit-test' },
       openStream: vi.fn(async () => buildPacketStream()),
       handleStreamCtr: new HandleStreamCtr(),
       utils: {
         pluginAssetHttpPath(pluginId: string, path: string): string {
-          return `/b/pa/${pluginId}/${path}`;
+          return `/b/pa/${pluginId}/${path}`
         },
       },
-    } as unknown as BackendAPI;
+    } as unknown as BackendAPI
 
     await expect(
       quickJSRunner(api, new AbortController().signal, pluginPath),
-    ).resolves.toBeUndefined();
-  });
+    ).resolves.toBeUndefined()
+  })
 
-  it("logs QuickJS stderr through console.log instead of console.error", async () => {
+  it('logs QuickJS stderr through console.log instead of console.error', async () => {
     const wasm = readFileSync(
-      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
-    );
-    const pluginPath = "/b/pd/quickjs-stderr-test/plugin.mjs";
+      resolve('node_modules/quickjs-wasi-reactor/qjs-wasi.wasm'),
+    )
+    const pluginPath = '/b/pd/quickjs-stderr-test/plugin.mjs'
     const pluginScript = `
       export default async function main() {
         std.err.puts("goscript stderr proof\\n")
         std.exit(0)
       }
-    `;
+    `
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = requestInfoURL(input);
-      if (url === "/b/qjs/qjs-wasi.wasm") {
+      const url = requestInfoURL(input)
+      if (url === '/b/qjs/qjs-wasi.wasm') {
         return new Response(wasm, {
-          headers: { "Content-Type": "application/wasm" },
-        });
+          headers: { 'Content-Type': 'application/wasm' },
+        })
       }
-      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+      if (url === '/b/qjs/plugin-quickjs.esm.js') {
         return new Response(
           readFileSync(
-            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
-            "utf8",
+            resolve('bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js'),
+            'utf8',
           ),
-        );
+        )
       }
       if (url === pluginPath) {
-        return new Response(pluginScript);
+        return new Response(pluginScript)
       }
-      return new Response("", { status: 404 });
-    });
-    Object.defineProperty(globalThis, "fetch", {
+      return new Response('', { status: 404 })
+    })
+    Object.defineProperty(globalThis, 'fetch', {
       value: fetch,
       configurable: true,
       writable: true,
-    });
-    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+    })
+    vi.spyOn(WebAssembly, 'compileStreaming').mockImplementation(async () =>
       WebAssembly.compile(wasm),
-    );
-    const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    )
+    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const api = {
-      startInfo: { pluginId: "quickjs-stderr-test" },
+      startInfo: { pluginId: 'quickjs-stderr-test' },
       openStream: vi.fn(async () => buildPacketStream()),
       handleStreamCtr: new HandleStreamCtr(),
       utils: {
         pluginAssetHttpPath(pluginId: string, path: string): string {
-          return `/b/pa/${pluginId}/${path}`;
+          return `/b/pa/${pluginId}/${path}`
         },
       },
-    } as unknown as BackendAPI;
+    } as unknown as BackendAPI
 
     await expect(
       quickJSRunner(api, new AbortController().signal, pluginPath),
-    ).resolves.toBeUndefined();
+    ).resolves.toBeUndefined()
 
     expect(consoleLog).toHaveBeenCalledWith(
-      "[QuickJS stderr]",
-      "goscript stderr proof",
-    );
-    expect(consoleError).not.toHaveBeenCalled();
-  });
+      '[QuickJS stderr]',
+      'goscript stderr proof',
+    )
+    expect(consoleError).not.toHaveBeenCalled()
+  })
 
-  it("delivers WebRuntime streams through the production runner after ready", async () => {
+  it('delivers WebRuntime streams through the production runner after ready', async () => {
     const wasm = readFileSync(
-      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
-    );
-    const pluginPath = "/b/pd/quickjs-stream-test/plugin.mjs";
+      resolve('node_modules/quickjs-wasi-reactor/qjs-wasi.wasm'),
+    )
+    const pluginPath = '/b/pd/quickjs-stream-test/plugin.mjs'
     const pluginScript = `
       export default function main(api) {
         api.handleStreamCtr.set(async (stream) => {
@@ -752,99 +741,99 @@ describe("plugin-host-quickjs runner lifecycle", () => {
         })
         console.info('__BLDR_QUICKJS_PLUGIN_READY__')
       }
-    `;
+    `
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = requestInfoURL(input);
-      if (url === "/b/qjs/qjs-wasi.wasm") {
+      const url = requestInfoURL(input)
+      if (url === '/b/qjs/qjs-wasi.wasm') {
         return new Response(wasm, {
-          headers: { "Content-Type": "application/wasm" },
-        });
+          headers: { 'Content-Type': 'application/wasm' },
+        })
       }
-      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+      if (url === '/b/qjs/plugin-quickjs.esm.js') {
         return new Response(
           readFileSync(
-            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
-            "utf8",
+            resolve('bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js'),
+            'utf8',
           ),
-        );
+        )
       }
       if (url === pluginPath) {
-        return new Response(pluginScript);
+        return new Response(pluginScript)
       }
-      return new Response("", { status: 404 });
-    });
-    Object.defineProperty(globalThis, "fetch", {
+      return new Response('', { status: 404 })
+    })
+    Object.defineProperty(globalThis, 'fetch', {
       value: fetch,
       configurable: true,
       writable: true,
-    });
-    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+    })
+    vi.spyOn(WebAssembly, 'compileStreaming').mockImplementation(async () =>
       WebAssembly.compile(wasm),
-    );
+    )
 
     const api = {
-      startInfo: { pluginId: "quickjs-stream-test" },
+      startInfo: { pluginId: 'quickjs-stream-test' },
       openStream: vi.fn(async () => buildPacketStream()),
       handleStreamCtr: new HandleStreamCtr(),
       utils: {
         pluginAssetHttpPath(pluginId: string, path: string): string {
-          return `/b/pa/${pluginId}/${path}`;
+          return `/b/pa/${pluginId}/${path}`
         },
       },
-    } as unknown as BackendAPI;
+    } as unknown as BackendAPI
 
-    const controller = new AbortController();
-    let ready = false;
+    const controller = new AbortController()
+    let ready = false
     const runner = quickJSRunner(api, controller.signal, pluginPath, {
       onReady: () => {
-        ready = true;
+        ready = true
       },
-    });
+    })
 
     try {
       await Promise.race([
-        waitFor(() => ready, "QuickJS runner did not report ready"),
+        waitFor(() => ready, 'QuickJS runner did not report ready'),
         runner.then(
           () => {
-            throw new Error("QuickJS runner exited before ready");
+            throw new Error('QuickJS runner exited before ready')
           },
           (err) => {
-            throw err;
+            throw err
           },
         ),
-      ]);
+      ])
 
-      const requestSource = pushable<Uint8Array>({ objectMode: true });
-      const responsePackets: Uint8Array[] = [];
+      const requestSource = pushable<Uint8Array>({ objectMode: true })
+      const responsePackets: Uint8Array[] = []
       const webRuntimeStream: PacketStream = {
         source: requestSource,
         sink: async (packets) => {
           for await (const packet of packets) {
-            responsePackets.push(packet);
+            responsePackets.push(packet)
           }
         },
-      };
+      }
 
-      void api.handleStreamCtr.handleStreamFunc(webRuntimeStream);
-      requestSource.push(new Uint8Array([7, 8, 9]));
-      requestSource.end();
+      void api.handleStreamCtr.handleStreamFunc(webRuntimeStream)
+      requestSource.push(new Uint8Array([7, 8, 9]))
+      requestSource.end()
 
       await waitFor(
         () => responsePackets.length === 1,
-        "QuickJS runner did not return WebRuntime stream response",
-      );
-      expect([...responsePackets[0]]).toEqual([42, 7, 8, 9]);
+        'QuickJS runner did not return WebRuntime stream response',
+      )
+      expect([...responsePackets[0]]).toEqual([42, 7, 8, 9])
     } finally {
-      controller.abort();
-      await runner;
+      controller.abort()
+      await runner
     }
-  });
+  })
 
-  it("delivers QuickJS-originated streams through the production runner before ready", async () => {
+  it('delivers QuickJS-originated streams through the production runner before ready', async () => {
     const wasm = readFileSync(
-      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
-    );
-    const pluginPath = "/b/pd/quickjs-open-stream-test/plugin.mjs";
+      resolve('node_modules/quickjs-wasi-reactor/qjs-wasi.wasm'),
+    )
+    const pluginPath = '/b/pd/quickjs-open-stream-test/plugin.mjs'
     const pluginScript = `
       export default async function main(api) {
         const stream = await api.openStream()
@@ -865,76 +854,76 @@ describe("plugin-host-quickjs runner lifecycle", () => {
         }
         console.info('__BLDR_QUICKJS_PLUGIN_READY__')
       }
-    `;
+    `
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = requestInfoURL(input);
-      if (url === "/b/qjs/qjs-wasi.wasm") {
+      const url = requestInfoURL(input)
+      if (url === '/b/qjs/qjs-wasi.wasm') {
         return new Response(wasm, {
-          headers: { "Content-Type": "application/wasm" },
-        });
+          headers: { 'Content-Type': 'application/wasm' },
+        })
       }
-      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+      if (url === '/b/qjs/plugin-quickjs.esm.js') {
         return new Response(
           readFileSync(
-            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
-            "utf8",
+            resolve('bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js'),
+            'utf8',
           ),
-        );
+        )
       }
       if (url === pluginPath) {
-        return new Response(pluginScript);
+        return new Response(pluginScript)
       }
-      return new Response("", { status: 404 });
-    });
-    Object.defineProperty(globalThis, "fetch", {
+      return new Response('', { status: 404 })
+    })
+    Object.defineProperty(globalThis, 'fetch', {
       value: fetch,
       configurable: true,
       writable: true,
-    });
-    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+    })
+    vi.spyOn(WebAssembly, 'compileStreaming').mockImplementation(async () =>
       WebAssembly.compile(wasm),
-    );
+    )
 
-    const webRuntimeResponseSource = pushable<Uint8Array>({ objectMode: true });
-    const webRuntimeRequestPackets: Uint8Array[] = [];
-    const pluginHost = buildPluginHostResourceFixture();
-    let openStreamCalls = 0;
+    const webRuntimeResponseSource = pushable<Uint8Array>({ objectMode: true })
+    const webRuntimeRequestPackets: Uint8Array[] = []
+    const pluginHost = buildPluginHostResourceFixture()
+    let openStreamCalls = 0
     const api = {
-      startInfo: { pluginId: "quickjs-open-stream-test" },
+      startInfo: { pluginId: 'quickjs-open-stream-test' },
       openStream: vi.fn(async () => {
-        openStreamCalls++;
+        openStreamCalls++
         if (openStreamCalls > 1) {
-          return pluginHost.openStream();
+          return pluginHost.openStream()
         }
         return {
           source: webRuntimeResponseSource,
           sink: async (packets: AsyncIterable<Uint8Array>) => {
             for await (const packet of packets) {
-              webRuntimeRequestPackets.push(packet);
-              const response = new Uint8Array(packet.length + 1);
-              response[0] = 42;
-              response.set(packet, 1);
-              webRuntimeResponseSource.push(response);
+              webRuntimeRequestPackets.push(packet)
+              const response = new Uint8Array(packet.length + 1)
+              response[0] = 42
+              response.set(packet, 1)
+              webRuntimeResponseSource.push(response)
             }
-            webRuntimeResponseSource.end();
+            webRuntimeResponseSource.end()
           },
-        };
+        }
       }),
       handleStreamCtr: new HandleStreamCtr(),
       utils: {
         pluginAssetHttpPath(pluginId: string, path: string): string {
-          return `/b/pa/${pluginId}/${path}`;
+          return `/b/pa/${pluginId}/${path}`
         },
       },
-    } as unknown as BackendAPI;
+    } as unknown as BackendAPI
 
-    const controller = new AbortController();
-    let ready = false;
+    const controller = new AbortController()
+    let ready = false
     const runner = quickJSRunner(api, controller.signal, pluginPath, {
       onReady: () => {
-        ready = true;
+        ready = true
       },
-    });
+    })
 
     try {
       await Promise.race([
@@ -943,37 +932,37 @@ describe("plugin-host-quickjs runner lifecycle", () => {
             ready &&
             pluginHost.completeInitialCapabilityRegistration.mock.calls
               .length === 1,
-          "QuickJS runner did not complete outbound startup",
+          'QuickJS runner did not complete outbound startup',
         ),
         runner.then(
           () => {
-            throw new Error("QuickJS runner exited before outbound ready");
+            throw new Error('QuickJS runner exited before outbound ready')
           },
           (err) => {
-            throw err;
+            throw err
           },
         ),
-      ]);
+      ])
 
-      expect(api.openStream).toHaveBeenCalledTimes(4);
+      expect(api.openStream).toHaveBeenCalledTimes(3)
       expect(webRuntimeRequestPackets.map((packet) => [...packet])).toEqual([
         [7, 8, 9],
-      ]);
-      expect(pluginHost.errors).toEqual([]);
+      ])
+      expect(pluginHost.errors).toEqual([])
       expect(
         pluginHost.completeInitialCapabilityRegistration,
-      ).toHaveBeenCalledOnce();
+      ).toHaveBeenCalledOnce()
     } finally {
-      controller.abort();
-      await runner;
+      controller.abort()
+      await runner
     }
-  });
+  })
 
-  it("runs sequential QuickJS-originated StreamConn RPCs in the production runner", async () => {
+  it('runs sequential QuickJS-originated StreamConn RPCs in the production runner', async () => {
     const wasm = readFileSync(
-      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
-    );
-    const pluginPath = "/b/pd/quickjs-streamconn-sequential-test/plugin.mjs";
+      resolve('node_modules/quickjs-wasi-reactor/qjs-wasi.wasm'),
+    )
+    const pluginPath = '/b/pd/quickjs-streamconn-sequential-test/plugin.mjs'
     const pluginScript = await buildQuickJSPluginScript(`
       import {
         combineUint8ArrayListTransform,
@@ -1007,94 +996,91 @@ describe("plugin-host-quickjs runner lifecycle", () => {
         await connPipe.catch(() => {})
         console.info('__BLDR_QUICKJS_PLUGIN_READY__')
       }
-    `);
+    `)
 
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = requestInfoURL(input);
-      if (url === "/b/qjs/qjs-wasi.wasm") {
+      const url = requestInfoURL(input)
+      if (url === '/b/qjs/qjs-wasi.wasm') {
         return new Response(wasm, {
-          headers: { "Content-Type": "application/wasm" },
-        });
+          headers: { 'Content-Type': 'application/wasm' },
+        })
       }
-      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+      if (url === '/b/qjs/plugin-quickjs.esm.js') {
         return new Response(
           readFileSync(
-            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
-            "utf8",
+            resolve('bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js'),
+            'utf8',
           ),
-        );
+        )
       }
       if (url === pluginPath) {
-        return new Response(pluginScript);
+        return new Response(pluginScript)
       }
-      return new Response("", { status: 404 });
-    });
-    Object.defineProperty(globalThis, "fetch", {
+      return new Response('', { status: 404 })
+    })
+    Object.defineProperty(globalThis, 'fetch', {
       value: fetch,
       configurable: true,
       writable: true,
-    });
-    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+    })
+    vi.spyOn(WebAssembly, 'compileStreaming').mockImplementation(async () =>
       WebAssembly.compile(wasm),
-    );
+    )
 
-    const events: string[] = [];
-    const hostConns: StreamConn[] = [];
-    const hostPipes: Promise<unknown>[] = [];
-    const hostMux = createMux();
+    const events: string[] = []
+    const hostConns: StreamConn[] = []
+    const hostPipes: Promise<unknown>[] = []
+    const hostMux = createMux()
     const hostService: Mock = {
       async MockRequest(request) {
-        const body = request.body ?? "";
-        events.push(body);
-        return { body: `${body}-ok` };
+        const body = request.body ?? ''
+        events.push(body)
+        return { body: `${body}-ok` }
       },
-    };
-    hostMux.register(createHandler(MockDefinition, hostService));
-    const pluginHost = buildPluginHostResourceFixture();
-    let openStreamCalls = 0;
+    }
+    hostMux.register(createHandler(MockDefinition, hostService))
+    const pluginHost = buildPluginHostResourceFixture()
+    let openStreamCalls = 0
     const api = {
-      startInfo: { pluginId: "quickjs-streamconn-sequential-test" },
+      startInfo: { pluginId: 'quickjs-streamconn-sequential-test' },
       openStream: vi.fn(async () => {
-        openStreamCalls++;
+        openStreamCalls++
         if (openStreamCalls > 1) {
-          return pluginHost.openStream();
+          return pluginHost.openStream()
         }
-        const [quickJSStream, hostStream] = buildPacketStreamPair();
-        const hostConn = new StreamConn(
-          new Server(hostMux.lookupMethod),
-          {
-            direction: "inbound",
-            yamuxParams: { enableKeepAlive: false },
-          },
-        );
-        hostConns.push(hostConn);
+        const [quickJSStream, hostStream] = buildPacketStreamPair()
+        const hostConn = new StreamConn(new Server(hostMux.lookupMethod), {
+          direction: 'inbound',
+          yamuxParams: { enableKeepAlive: false },
+        })
+        hostConns.push(hostConn)
         const hostPipe = pipe(
           hostStream.source,
           hostConn,
           combineUint8ArrayListTransform(),
           hostStream.sink,
-        ) as Promise<unknown>;
+        ) as Promise<unknown>
         hostPipe.catch((err: unknown) => {
-          hostConn.close(err instanceof Error ? err : new Error(String(err)));
-        });
-        hostPipes.push(hostPipe);
-        return quickJSStream;
+          hostConn.close(err instanceof Error ? err : new Error(String(err)))
+        })
+        hostPipes.push(hostPipe)
+        return quickJSStream
       }),
       handleStreamCtr: new HandleStreamCtr(),
       utils: {
         pluginAssetHttpPath(pluginId: string, path: string): string {
-          return `/b/pa/${pluginId}/${path}`;
+          return `/b/pa/${pluginId}/${path}`
         },
       },
-    } as unknown as BackendAPI;
+    } as unknown as BackendAPI
 
-    const controller = new AbortController();
-    let ready = false;
+    const controller = new AbortController()
+    let ready = false
     const runner = quickJSRunner(api, controller.signal, pluginPath, {
       onReady: () => {
-        ready = true;
+        ready = true
       },
-    });
+    })
 
     try {
       await Promise.race([
@@ -1103,39 +1089,39 @@ describe("plugin-host-quickjs runner lifecycle", () => {
             ready &&
             pluginHost.completeInitialCapabilityRegistration.mock.calls
               .length === 1,
-          "QuickJS StreamConn sequential RPCs did not finish startup",
+          'QuickJS StreamConn sequential RPCs did not finish startup',
         ),
         runner.then(
           () => {
-            throw new Error("QuickJS runner exited before StreamConn ready");
+            throw new Error('QuickJS runner exited before StreamConn ready')
           },
           (err) => {
-            throw err;
+            throw err
           },
         ),
-      ]);
+      ])
 
-      expect(api.openStream).toHaveBeenCalledTimes(4);
-      expect(events).toEqual(["one", "two"]);
-      expect(pluginHost.errors).toEqual([]);
+      expect(api.openStream).toHaveBeenCalledTimes(3)
+      expect(events).toEqual(['one', 'two'])
+      expect(pluginHost.errors).toEqual([])
       expect(
         pluginHost.completeInitialCapabilityRegistration,
-      ).toHaveBeenCalledOnce();
+      ).toHaveBeenCalledOnce()
     } finally {
-      controller.abort();
+      controller.abort()
       for (const conn of hostConns) {
-        conn.close();
+        conn.close()
       }
-      await Promise.allSettled(hostPipes);
-      await runner;
+      await Promise.allSettled(hostPipes)
+      await runner
     }
-  });
+  })
 
-  it("runs nested QuickJS StreamConn RPCs while handling an inbound stream", async () => {
+  it('runs nested QuickJS StreamConn RPCs while handling an inbound stream', async () => {
     const wasm = readFileSync(
-      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
-    );
-    const pluginPath = "/b/pd/quickjs-streamconn-nested-test/plugin.mjs";
+      resolve('node_modules/quickjs-wasi-reactor/qjs-wasi.wasm'),
+    )
+    const pluginPath = '/b/pd/quickjs-streamconn-nested-test/plugin.mjs'
     const pluginScript = await buildQuickJSPluginScript(`
       import {
         combineUint8ArrayListTransform,
@@ -1180,504 +1166,142 @@ describe("plugin-host-quickjs runner lifecycle", () => {
         })
         console.info('__BLDR_QUICKJS_PLUGIN_READY__')
       }
-    `);
+    `)
 
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = requestInfoURL(input);
-      if (url === "/b/qjs/qjs-wasi.wasm") {
+      const url = requestInfoURL(input)
+      if (url === '/b/qjs/qjs-wasi.wasm') {
         return new Response(wasm, {
-          headers: { "Content-Type": "application/wasm" },
-        });
+          headers: { 'Content-Type': 'application/wasm' },
+        })
       }
-      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+      if (url === '/b/qjs/plugin-quickjs.esm.js') {
         return new Response(
           readFileSync(
-            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
-            "utf8",
+            resolve('bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js'),
+            'utf8',
           ),
-        );
+        )
       }
       if (url === pluginPath) {
-        return new Response(pluginScript);
+        return new Response(pluginScript)
       }
-      return new Response("", { status: 404 });
-    });
-    Object.defineProperty(globalThis, "fetch", {
+      return new Response('', { status: 404 })
+    })
+    Object.defineProperty(globalThis, 'fetch', {
       value: fetch,
       configurable: true,
       writable: true,
-    });
-    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+    })
+    vi.spyOn(WebAssembly, 'compileStreaming').mockImplementation(async () =>
       WebAssembly.compile(wasm),
-    );
+    )
 
-    const events: string[] = [];
-    const hostConns: StreamConn[] = [];
-    const hostPipes: Promise<unknown>[] = [];
-    const hostMux = createMux();
+    const events: string[] = []
+    const hostConns: StreamConn[] = []
+    const hostPipes: Promise<unknown>[] = []
+    const hostMux = createMux()
     const hostService: Mock = {
       async MockRequest(request) {
-        const body = request.body ?? "";
-        events.push(body);
-        return { body: `${body}-ok` };
+        const body = request.body ?? ''
+        events.push(body)
+        return { body: `${body}-ok` }
       },
-    };
-    hostMux.register(createHandler(MockDefinition, hostService));
+    }
+    hostMux.register(createHandler(MockDefinition, hostService))
     const api = {
-      startInfo: { pluginId: "quickjs-streamconn-nested-test" },
+      startInfo: { pluginId: 'quickjs-streamconn-nested-test' },
       openStream: vi.fn(async () => {
-        const [quickJSStream, hostStream] = buildPacketStreamPair();
-        const hostConn = new StreamConn(
-          new Server(hostMux.lookupMethod),
-          {
-            direction: "inbound",
-            yamuxParams: { enableKeepAlive: false },
-          },
-        );
-        hostConns.push(hostConn);
+        const [quickJSStream, hostStream] = buildPacketStreamPair()
+        const hostConn = new StreamConn(new Server(hostMux.lookupMethod), {
+          direction: 'inbound',
+          yamuxParams: { enableKeepAlive: false },
+        })
+        hostConns.push(hostConn)
         const hostPipe = pipe(
           hostStream.source,
           hostConn,
           combineUint8ArrayListTransform(),
           hostStream.sink,
-        ) as Promise<unknown>;
+        ) as Promise<unknown>
         hostPipe.catch((err: unknown) => {
-          hostConn.close(err instanceof Error ? err : new Error(String(err)));
-        });
-        hostPipes.push(hostPipe);
-        return quickJSStream;
+          hostConn.close(err instanceof Error ? err : new Error(String(err)))
+        })
+        hostPipes.push(hostPipe)
+        return quickJSStream
       }),
       handleStreamCtr: new HandleStreamCtr(),
       utils: {
         pluginAssetHttpPath(pluginId: string, path: string): string {
-          return `/b/pa/${pluginId}/${path}`;
+          return `/b/pa/${pluginId}/${path}`
         },
       },
-    } as unknown as BackendAPI;
+    } as unknown as BackendAPI
 
-    const controller = new AbortController();
-    let ready = false;
+    const controller = new AbortController()
+    let ready = false
     const runner = quickJSRunner(api, controller.signal, pluginPath, {
       onReady: () => {
-        ready = true;
+        ready = true
       },
-    });
+    })
 
     try {
       await Promise.race([
-        waitFor(() => ready, "QuickJS nested StreamConn handler did not start"),
+        waitFor(() => ready, 'QuickJS nested StreamConn handler did not start'),
         runner.then(
           () => {
-            throw new Error("QuickJS runner exited before nested handler ready");
+            throw new Error('QuickJS runner exited before nested handler ready')
           },
           (err) => {
-            throw err;
+            throw err
           },
         ),
-      ]);
+      ])
 
-      const requestSource = pushable<Uint8Array>({ objectMode: true });
-      const responses: Uint8Array[] = [];
+      const requestSource = pushable<Uint8Array>({ objectMode: true })
+      const responses: Uint8Array[] = []
       const inbound: PacketStream = {
         source: requestSource,
         sink: async (packets) => {
           for await (const packet of packets) {
-            responses.push(packet);
+            responses.push(packet)
           }
         },
-      };
-      void api.handleStreamCtr.handleStreamFunc(inbound);
-      requestSource.push(new Uint8Array([7]));
+      }
+      void api.handleStreamCtr.handleStreamFunc(inbound)
+      requestSource.push(new Uint8Array([7]))
 
       await waitFor(
         () => responses.length === 1,
-        "QuickJS nested StreamConn handler did not respond",
+        'QuickJS nested StreamConn handler did not respond',
         100,
-      );
-      expect([...responses[0]]).toEqual([7, 42]);
-      expect(events).toEqual(["nested-one", "nested-two"]);
+      )
+      expect([...responses[0]]).toEqual([7, 42])
+      expect(events).toEqual(['nested-one', 'nested-two'])
     } finally {
-      controller.abort();
+      controller.abort()
       for (const conn of hostConns) {
-        conn.close();
+        conn.close()
       }
-      await Promise.allSettled(hostPipes);
-      await runner;
+      await Promise.allSettled(hostPipes)
+      await runner
     }
-  });
+  })
 
-  it("runs Vite-transformed using resource cleanup in the production runner", async () => {
+  it('runs Vite-transformed using attached child cleanup before the next attached parent RPC', async () => {
     const wasm = readFileSync(
-      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
-    );
-    const pluginPath = "/b/pd/quickjs-using-resource-test/plugin.mjs";
-    const pluginScript = await buildQuickJSPluginScript(`
-      import { Client as SRPCClient } from 'starpc'
-      import { Client as ResourceClient } from '@aptre/bldr-sdk/resource/client.js'
-      import { ResourceServiceClient } from '@aptre/bldr-sdk/resource/resource_srpc.pb.js'
-      import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
-
-      class ProbeResource extends Resource {
-        constructor(ref, events) {
-          super(ref)
-          this.events = events
-        }
-
-        [Symbol.dispose]() {
-          this.events.push('dispose:' + this.id)
-          this.release()
-        }
-      }
-
-      export default async function main(api, abortSignal) {
-        const client = new ResourceClient(
-          new ResourceServiceClient(new SRPCClient(api.openStream)),
-          abortSignal,
-        )
-        const events = []
-        try {
-          {
-            using resource = new ProbeResource(
-              await client.accessRootResource(),
-              events,
-            )
-            events.push('entered:' + resource.id)
-            await Promise.resolve()
-            events.push('after await')
-          }
-
-          if (events.join(',') !== 'entered:1,after await,dispose:1') {
-            throw new Error('unexpected using events: ' + events.join(','))
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, 0))
-        } finally {
-          client.dispose()
-        }
-
-        console.info('__BLDR_QUICKJS_PLUGIN_READY__')
-      }
-    `);
-    expect(pluginScript).not.toContain("using resource");
-
-    const resourceMux = createMux();
-    const pluginHost = buildPluginHostResourceFixture(resourceMux);
-    const releaseSpy = pluginHost.resourceRefRelease;
-
-    const fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = requestInfoURL(input);
-      if (url === "/b/qjs/qjs-wasi.wasm") {
-        return new Response(wasm, {
-          headers: { "Content-Type": "application/wasm" },
-        });
-      }
-      if (url === "/b/qjs/plugin-quickjs.esm.js") {
-        return new Response(
-          readFileSync(
-            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
-            "utf8",
-          ),
-        );
-      }
-      if (url === pluginPath) {
-        return new Response(pluginScript);
-      }
-      return new Response("", { status: 404 });
-    });
-    Object.defineProperty(globalThis, "fetch", {
-      value: fetch,
-      configurable: true,
-      writable: true,
-    });
-    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
-      WebAssembly.compile(wasm),
-    );
-
-    const api = {
-      startInfo: { pluginId: "quickjs-using-resource-test" },
-      openStream: vi.fn(pluginHost.openStream),
-      handleStreamCtr: new HandleStreamCtr(),
-      utils: {
-        pluginAssetHttpPath(pluginId: string, path: string): string {
-          return `/b/pa/${pluginId}/${path}`;
-        },
-      },
-    } as unknown as BackendAPI;
-
-    const controller = new AbortController();
-    let ready = false;
-    const runner = quickJSRunner(api, controller.signal, pluginPath, {
-      onReady: () => {
-        ready = true;
-      },
-    });
-
-    try {
-      await Promise.race([
-        waitFor(
-          () =>
-            ready &&
-            pluginHost.completeInitialCapabilityRegistration.mock.calls
-              .length === 1 &&
-            releaseSpy.mock.calls.some(
-              ([request]) =>
-                request.clientHandleId === 1 && request.resourceId === 1,
-            ),
-          "QuickJS using resource repro did not release the resource",
-          100,
-        ),
-        runner.then(
-          () => {
-            throw new Error("QuickJS runner exited before using repro ready");
-          },
-          (err) => {
-            throw err;
-          },
-        ),
-      ]);
-
-      expect(api.openStream).toHaveBeenCalled();
-      expect(pluginHost.errors).toEqual([]);
-      expect(
-        releaseSpy.mock.calls.filter(
-          ([request]) =>
-            request.clientHandleId === 1 && request.resourceId === 1,
-        ),
-      ).toHaveLength(1);
-      expect(
-        pluginHost.completeInitialCapabilityRegistration,
-      ).toHaveBeenCalledOnce();
-      expect(releaseSpy.mock.calls[0]?.[0]).toEqual({
-        clientHandleId: 1,
-        resourceId: 1,
-      });
-    } finally {
-      controller.abort();
-      await runner;
-    }
-  });
-
-  it("runs Vite-transformed using child resource cleanup before the next parent RPC", async () => {
-    const wasm = readFileSync(
-      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
-    );
-    const pluginPath = "/b/pd/quickjs-using-child-resource-test/plugin.mjs";
-    const pluginScript = await buildQuickJSPluginScript(`
-      import { Client as SRPCClient } from 'starpc'
-      import { MockClient } from 'starpc/mock'
-      import { Client as ResourceClient } from '@aptre/bldr-sdk/resource/client.js'
-      import { ResourceServiceClient } from '@aptre/bldr-sdk/resource/resource_srpc.pb.js'
-      import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
-
-      class ProbeResource extends Resource {
-        constructor(ref, events) {
-          super(ref)
-          this.events = events
-          this.service = new MockClient(ref.client)
-        }
-
-        async touch(abortSignal) {
-          const resp = await this.service.MockRequest(
-            { body: 'child' },
-            abortSignal,
-          )
-          this.events.push(resp.body)
-        }
-
-        [Symbol.dispose]() {
-          this.events.push('dispose:' + this.id)
-          this.release()
-        }
-      }
-
-      export default async function main(api, abortSignal) {
-        const client = new ResourceClient(
-          new ResourceServiceClient(new SRPCClient(api.openStream)),
-          abortSignal,
-        )
-        const events = []
-        try {
-          const rootRef = await client.accessRootResource()
-          const root = new MockClient(rootRef.client)
-          const childResp = await root.MockRequest(
-            { body: 'create-child' },
-            abortSignal,
-          )
-          const childId = Number(childResp.body)
-
-          {
-            using child = new ProbeResource(rootRef.createRef(childId), events)
-            events.push('entered:' + child.id)
-            await child.touch(abortSignal)
-          }
-
-          const after = await root.MockRequest(
-            { body: 'after-release' },
-            abortSignal,
-          )
-          events.push(after.body)
-
-          if (
-            events.join(',') !==
-            'entered:2,child-ok,dispose:2,after-ok'
-          ) {
-            throw new Error('unexpected child resource events: ' + events.join(','))
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, 0))
-        } finally {
-          client.dispose()
-        }
-
-        console.info('__BLDR_QUICKJS_PLUGIN_READY__')
-      }
-    `);
-    expect(pluginScript).not.toContain("using child");
-
-    const events: string[] = [];
-    const resourceMux = createMux();
-    const rootService: Mock = {
-      async MockRequest(request) {
-        if (request.body === "create-child") {
-          const owner = getCurrentResourceClient();
-          const childMux = createMux();
-          const childService: Mock = {
-            async MockRequest(childRequest) {
-              events.push(`child:${childRequest.body}`);
-              return { body: "child-ok" };
-            },
-          };
-          childMux.register(createHandler(MockDefinition, childService));
-
-          let resourceId = 0;
-          resourceId = owner.addResource(childMux, () => {
-            events.push(`release:${resourceId}`);
-          });
-          events.push(`create:${resourceId}`);
-          return { body: String(resourceId) };
-        }
-        if (request.body === "after-release") {
-          events.push("after-root");
-          return { body: "after-ok" };
-        }
-        return { body: "root-ok" };
-      },
-    };
-    resourceMux.register(createHandler(MockDefinition, rootService));
-
-    const pluginHost = buildPluginHostResourceFixture(resourceMux);
-    const releaseSpy = pluginHost.resourceRefRelease;
-
-    const fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = requestInfoURL(input);
-      if (url === "/b/qjs/qjs-wasi.wasm") {
-        return new Response(wasm, {
-          headers: { "Content-Type": "application/wasm" },
-        });
-      }
-      if (url === "/b/qjs/plugin-quickjs.esm.js") {
-        return new Response(
-          readFileSync(
-            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
-            "utf8",
-          ),
-        );
-      }
-      if (url === pluginPath) {
-        return new Response(pluginScript);
-      }
-      return new Response("", { status: 404 });
-    });
-    Object.defineProperty(globalThis, "fetch", {
-      value: fetch,
-      configurable: true,
-      writable: true,
-    });
-    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
-      WebAssembly.compile(wasm),
-    );
-
-    const api = {
-      startInfo: { pluginId: "quickjs-using-child-resource-test" },
-      openStream: vi.fn(pluginHost.openStream),
-      handleStreamCtr: new HandleStreamCtr(),
-      utils: {
-        pluginAssetHttpPath(pluginId: string, path: string): string {
-          return `/b/pa/${pluginId}/${path}`;
-        },
-      },
-    } as unknown as BackendAPI;
-
-    const controller = new AbortController();
-    let ready = false;
-    const runner = quickJSRunner(api, controller.signal, pluginPath, {
-      onReady: () => {
-        ready = true;
-      },
-    });
-
-    try {
-      await Promise.race([
-        waitFor(
-          () =>
-            ready &&
-            events.includes("after-root") &&
-            events.includes("release:2") &&
-            pluginHost.completeInitialCapabilityRegistration.mock.calls
-              .length === 1 &&
-            releaseSpy.mock.calls.some(
-              ([request]) =>
-                request.clientHandleId === 1 && request.resourceId === 2,
-            ),
-          "QuickJS using child resource repro did not complete release and next RPC",
-          100,
-        ),
-        runner.then(
-          () => {
-            throw new Error(
-              "QuickJS runner exited before child resource repro ready",
-            );
-          },
-          (err) => {
-            throw err;
-          },
-        ),
-      ]);
-
-      expect(api.openStream).toHaveBeenCalled();
-      expect(pluginHost.errors).toEqual([]);
-      expect(events).toContain("create:2");
-      expect(events).toContain("child:child");
-      expect(events).toContain("after-root");
-      expect(events).toContain("release:2");
-      expect(
-        pluginHost.completeInitialCapabilityRegistration,
-      ).toHaveBeenCalledOnce();
-      expect(
-        releaseSpy.mock.calls.filter(
-          ([request]) =>
-            request.clientHandleId === 1 && request.resourceId === 2,
-        ),
-      ).toHaveLength(1);
-    } finally {
-      controller.abort();
-      await runner;
-    }
-  });
-
-  it("runs Vite-transformed using attached child cleanup before the next attached parent RPC", async () => {
-    const wasm = readFileSync(
-      resolve("node_modules/quickjs-wasi-reactor/qjs-wasi.wasm"),
-    );
-    const pluginPath = "/b/pd/quickjs-using-attached-resource-test/plugin.mjs";
+      resolve('node_modules/quickjs-wasi-reactor/qjs-wasi.wasm'),
+    )
+    const pluginPath = '/b/pd/quickjs-using-attached-resource-test/plugin.mjs'
     const pluginScript = await buildQuickJSPluginScript(`
       import { createHandler, createMux, Server } from 'starpc'
       import { MockClient, MockDefinition } from 'starpc/mock'
       import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
       import {
-        getCurrentResourceClient,
+        getResourceCall,
         ResourceServer,
-      } from '@aptre/bldr-sdk/resource/server/server.js'
+      } from '@aptre/bldr-sdk/resource/server/index.js'
 
       class ProbeResource extends Resource {
         constructor(ref, events) {
@@ -1705,14 +1329,14 @@ describe("plugin-host-quickjs runner lifecycle", () => {
         const rootMux = createMux()
         rootMux.register(
           createHandler(MockDefinition, {
-            async MockRequest(request) {
+            async MockRequest(request, _abortSignal, handlerContext) {
               const [op, id] = (request.body || '').split(':')
               if (op !== 'seed') {
                 return { body: 'root-ok' }
               }
 
-              const owner = getCurrentResourceClient()
-              const engineRef = owner.getAttachedRef(Number(id))
+              const call = getResourceCall(handlerContext)
+              const engineRef = call.getAttachedRef(Number(id))
               const engine = new MockClient(engineRef.client)
               const childResp = await engine.MockRequest(
                 { body: 'access-child' },
@@ -1753,128 +1377,128 @@ describe("plugin-host-quickjs runner lifecycle", () => {
 
         console.info('__BLDR_QUICKJS_PLUGIN_READY__')
       }
-    `);
-    expect(pluginScript).not.toContain("using child");
+    `)
+    expect(pluginScript).not.toContain('using child')
 
     const fetch = vi.fn(async (input: RequestInfo | URL) => {
-      const url = requestInfoURL(input);
-      if (url === "/b/qjs/qjs-wasi.wasm") {
+      const url = requestInfoURL(input)
+      if (url === '/b/qjs/qjs-wasi.wasm') {
         return new Response(wasm, {
-          headers: { "Content-Type": "application/wasm" },
-        });
+          headers: { 'Content-Type': 'application/wasm' },
+        })
       }
-      if (url === "/b/qjs/plugin-quickjs.esm.js") {
+      if (url === '/b/qjs/plugin-quickjs.esm.js') {
         return new Response(
           readFileSync(
-            resolve("bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js"),
-            "utf8",
+            resolve('bldr/plugin/host/wazero-quickjs/plugin-quickjs.esm.js'),
+            'utf8',
           ),
-        );
+        )
       }
       if (url === pluginPath) {
-        return new Response(pluginScript);
+        return new Response(pluginScript)
       }
-      return new Response("", { status: 404 });
-    });
-    Object.defineProperty(globalThis, "fetch", {
+      return new Response('', { status: 404 })
+    })
+    Object.defineProperty(globalThis, 'fetch', {
       value: fetch,
       configurable: true,
       writable: true,
-    });
-    vi.spyOn(WebAssembly, "compileStreaming").mockImplementation(async () =>
+    })
+    vi.spyOn(WebAssembly, 'compileStreaming').mockImplementation(async () =>
       WebAssembly.compile(wasm),
-    );
+    )
 
-    const events: string[] = [];
+    const events: string[] = []
     const api = {
-      startInfo: { pluginId: "quickjs-using-attached-resource-test" },
+      startInfo: { pluginId: 'quickjs-using-attached-resource-test' },
       openStream: vi.fn(async () => buildPacketStream()),
       handleStreamCtr: new HandleStreamCtr(),
       utils: {
         pluginAssetHttpPath(pluginId: string, path: string): string {
-          return `/b/pa/${pluginId}/${path}`;
+          return `/b/pa/${pluginId}/${path}`
         },
       },
-    } as unknown as BackendAPI;
+    } as unknown as BackendAPI
 
-    const controller = new AbortController();
-    let ready = false;
+    const controller = new AbortController()
+    let ready = false
     const runner = quickJSRunner(api, controller.signal, pluginPath, {
       onReady: () => {
-        ready = true;
+        ready = true
       },
-    });
-    let hostClient: ResourceClient | undefined;
-    let seedDone = false;
+    })
+    let hostClient: ResourceClient | undefined
+    let seedDone = false
 
     try {
       await Promise.race([
         waitFor(
           () => ready,
-          "QuickJS attached resource repro did not report ready",
+          'QuickJS attached resource repro did not report ready',
           100,
         ),
         runner.then(
           () => {
             throw new Error(
-              "QuickJS runner exited before attached resource repro ready",
-            );
+              'QuickJS runner exited before attached resource repro ready',
+            )
           },
           (err) => {
-            throw err;
+            throw err
           },
         ),
-      ]);
+      ])
 
       const openPluginResourceStream = async () => {
-        const [clientStream, serverStream] = buildPacketStreamPair();
-        await api.handleStreamCtr.handleStreamFunc(serverStream);
-        return clientStream;
-      };
+        const [clientStream, serverStream] = buildPacketStreamPair()
+        await api.handleStreamCtr.handleStreamFunc(serverStream)
+        return clientStream
+      }
       hostClient = new ResourceClient(
         new ResourceServiceClient(new SRPCClient(openPluginResourceStream)),
         controller.signal,
-      );
-      const rootRef = await hostClient.accessRootResource();
-      const root = new MockClient(rootRef.client);
+      )
+      const rootRef = await hostClient.accessRootResource()
+      const root = new MockClient(rootRef.client)
 
-      const engineMux = createMux();
+      const engineMux = createMux()
       const engineService: Mock = {
         async MockRequest(request) {
-          if (request.body === "access-child") {
-            const childMux = createMux();
+          if (request.body === 'access-child') {
+            const childMux = createMux()
             const childService: Mock = {
               async MockRequest(childRequest) {
-                events.push(`child:${childRequest.body}`);
-                return { body: "child-ok" };
+                events.push(`child:${childRequest.body}`)
+                return { body: 'child-ok' }
               },
-            };
-            childMux.register(createHandler(MockDefinition, childService));
+            }
+            childMux.register(createHandler(MockDefinition, childService))
             const child = await hostClient!.attachResourceTree(
-              "child",
+              'child',
               childMux.lookupMethod,
               controller.signal,
               () => {
-                events.push("release:child");
+                events.push('release:child')
               },
-            );
-            events.push(`attach-child:${child.resourceId}`);
-            return { body: String(child.resourceId) };
+            )
+            events.push(`attach-child:${child.resourceId}`)
+            return { body: String(child.resourceId) }
           }
-          if (request.body === "after-release") {
-            events.push("after-engine");
-            return { body: "after-ok" };
+          if (request.body === 'after-release') {
+            events.push('after-engine')
+            return { body: 'after-ok' }
           }
-          return { body: "engine-ok" };
+          return { body: 'engine-ok' }
         },
-      };
-      engineMux.register(createHandler(MockDefinition, engineService));
+      }
+      engineMux.register(createHandler(MockDefinition, engineService))
       const engine = await hostClient.attachResourceTree(
-        "engine",
+        'engine',
         engineMux.lookupMethod,
         controller.signal,
-      );
-      events.push(`attach-engine:${engine.resourceId}`);
+      )
+      events.push(`attach-engine:${engine.resourceId}`)
 
       const seedResp = await Promise.race([
         root.MockRequest({
@@ -1883,176 +1507,176 @@ describe("plugin-host-quickjs runner lifecycle", () => {
         runner.then(
           () => {
             throw new Error(
-              "QuickJS runner exited before attached seed response; events=" +
-                events.join(","),
-            );
+              'QuickJS runner exited before attached seed response; events=' +
+                events.join(','),
+            )
           },
           (err) => {
             throw new Error(
-              "QuickJS runner failed before attached seed response; events=" +
-                events.join(","),
+              'QuickJS runner failed before attached seed response; events=' +
+                events.join(','),
               { cause: err },
-            );
+            )
           },
         ),
-      ]);
-      seedDone = true;
-      expect(seedResp.body).toBe("seed-ok");
+      ])
+      seedDone = true
+      expect(seedResp.body).toBe('seed-ok')
 
       await waitFor(
         () =>
-          events.includes("after-engine") && events.includes("release:child"),
-        "QuickJS attached child resource repro did not release and continue",
+          events.includes('after-engine') && events.includes('release:child'),
+        'QuickJS attached child resource repro did not release and continue',
         100,
-      );
+      )
 
-      expect(events).toContain("attach-engine:2");
-      expect(events).toContain("attach-child:3");
-      expect(events).toContain("child:child");
-      expect(events).toContain("after-engine");
-      expect(events).toContain("release:child");
+      expect(events).toContain('attach-engine:2')
+      expect(events).toContain('attach-child:3')
+      expect(events).toContain('child:child')
+      expect(events).toContain('after-engine')
+      expect(events).toContain('release:child')
     } finally {
-      hostClient?.dispose();
-      controller.abort();
+      hostClient?.dispose()
+      controller.abort()
       if (seedDone) {
-        await runner;
+        await runner
       } else {
-        await runner.catch(() => {});
+        await runner.catch(() => {})
       }
     }
-  });
-});
+  })
+})
 
-describe("plugin-host-quickjs asset helpers", () => {
-  const originalXMLHttpRequest = globalThis.XMLHttpRequest;
-  const originalFetch = globalThis.fetch;
+describe('plugin-host-quickjs asset helpers', () => {
+  const originalXMLHttpRequest = globalThis.XMLHttpRequest
+  const originalFetch = globalThis.fetch
   const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(
     globalThis,
-    "navigator",
-  );
+    'navigator',
+  )
   const api = {
-    startInfo: { pluginId: "notes" },
+    startInfo: { pluginId: 'notes' },
     utils: {
       pluginAssetHttpPath(pluginId: string, path: string) {
-        return `/asset/${pluginId}/${path}`;
+        return `/asset/${pluginId}/${path}`
       },
     },
-  };
+  }
 
   afterEach(() => {
-    Object.defineProperty(globalThis, "XMLHttpRequest", {
+    Object.defineProperty(globalThis, 'XMLHttpRequest', {
       value: originalXMLHttpRequest,
       configurable: true,
       writable: true,
-    });
-    Object.defineProperty(globalThis, "fetch", {
+    })
+    Object.defineProperty(globalThis, 'fetch', {
       value: originalFetch,
       configurable: true,
       writable: true,
-    });
+    })
     if (originalNavigatorDescriptor) {
       Object.defineProperty(
         globalThis,
-        "navigator",
+        'navigator',
         originalNavigatorDescriptor,
-      );
+      )
     } else {
-      Reflect.deleteProperty(globalThis, "navigator");
+      Reflect.deleteProperty(globalThis, 'navigator')
     }
-    vi.restoreAllMocks();
-  });
+    vi.restoreAllMocks()
+  })
 
-  it("collects bounded static vite manifest asset paths for backend entrypoints", () => {
+  it('collects bounded static vite manifest asset paths for backend entrypoints', () => {
     const paths = collectViteManifestStaticAssetPaths(
       {
-        "plugin/notes/backend.ts": {
-          file: "plugin/notes/backend-abc123.mjs",
-          imports: ["_chunk-shared-1.mjs"],
-          dynamicImports: ["_chunk-lazy-2.mjs"],
-          css: ["assets/backend.css"],
-          assets: ["assets/icon.svg"],
+        'plugin/notes/backend.ts': {
+          file: 'plugin/notes/backend-abc123.mjs',
+          imports: ['_chunk-shared-1.mjs'],
+          dynamicImports: ['_chunk-lazy-2.mjs'],
+          css: ['assets/backend.css'],
+          assets: ['assets/icon.svg'],
         },
-        "_chunk-shared-1.mjs": {
-          file: "chunks/shared-1.mjs",
+        '_chunk-shared-1.mjs': {
+          file: 'chunks/shared-1.mjs',
         },
-        "_chunk-lazy-2.mjs": {
-          file: "chunks/lazy-2.mjs",
+        '_chunk-lazy-2.mjs': {
+          file: 'chunks/lazy-2.mjs',
         },
-        "plugin/v86/backend.ts": {
-          file: "plugin/v86/backend-def456.mjs",
+        'plugin/v86/backend.ts': {
+          file: 'plugin/v86/backend-def456.mjs',
         },
       },
-      ["/assets/v/b/be/plugin/notes/backend-abc123.mjs"],
-    );
+      ['/assets/v/b/be/plugin/notes/backend-abc123.mjs'],
+    )
 
     expect(paths).toEqual([
-      "plugin/notes/backend-abc123.mjs",
-      "assets/backend.css",
-      "assets/icon.svg",
-      "chunks/shared-1.mjs",
-    ]);
-  });
+      'plugin/notes/backend-abc123.mjs',
+      'assets/backend.css',
+      'assets/icon.svg',
+      'chunks/shared-1.mjs',
+    ])
+  })
 
-  it("normalizes backend asset paths into the v/b/be tree", () => {
-    expect(resolveBackendAssetPath("plugin/notes/backend-abc123.mjs")).toBe(
-      "v/b/be/plugin/notes/backend-abc123.mjs",
-    );
+  it('normalizes backend asset paths into the v/b/be tree', () => {
+    expect(resolveBackendAssetPath('plugin/notes/backend-abc123.mjs')).toBe(
+      'v/b/be/plugin/notes/backend-abc123.mjs',
+    )
     expect(
-      resolveBackendAssetPath("b/be/plugin/notes/backend-abc123.mjs"),
-    ).toBe("v/b/be/plugin/notes/backend-abc123.mjs");
+      resolveBackendAssetPath('b/be/plugin/notes/backend-abc123.mjs'),
+    ).toBe('v/b/be/plugin/notes/backend-abc123.mjs')
     expect(
-      resolveBackendAssetPath("v/b/be/plugin/notes/backend-abc123.mjs"),
-    ).toBe("v/b/be/plugin/notes/backend-abc123.mjs");
-  });
+      resolveBackendAssetPath('v/b/be/plugin/notes/backend-abc123.mjs'),
+    ).toBe('v/b/be/plugin/notes/backend-abc123.mjs')
+  })
 
-  it("extracts backend entrypoint asset paths from the plugin wrapper", () => {
+  it('extracts backend entrypoint asset paths from the plugin wrapper', () => {
     const paths = collectBackendEntrypointAssetPaths(`
       const backendEntrypoints = [
         { importPath: "/assets/v/b/be/plugin/notes/backend-abc123.mjs" },
         { importPath: '/assets/v/b/be/plugin/notes/backend-abc123.mjs' },
         { importPath: "/assets/v/b/fe/plugin/notes/App-def456.mjs" },
       ]
-    `);
+    `)
 
-    expect(paths).toEqual(["/assets/v/b/be/plugin/notes/backend-abc123.mjs"]);
-  });
+    expect(paths).toEqual(['/assets/v/b/be/plugin/notes/backend-abc123.mjs'])
+  })
 
-  it("preloads backend assets from wrapper imports without treating /b/pd as an asset", async () => {
-    const requests: string[] = [];
+  it('preloads backend assets from wrapper imports without treating /b/pd as an asset', async () => {
+    const requests: string[] = []
     const manifest = JSON.stringify({
-      "plugin/notes/backend.ts": {
-        file: "plugin/notes/backend-abc123.mjs",
-        imports: ["_chunk-shared-1.mjs"],
-        css: ["assets/backend.css"],
+      'plugin/notes/backend.ts': {
+        file: 'plugin/notes/backend-abc123.mjs',
+        imports: ['_chunk-shared-1.mjs'],
+        css: ['assets/backend.css'],
       },
-      "_chunk-shared-1.mjs": {
-        file: "chunks/shared-1.mjs",
+      '_chunk-shared-1.mjs': {
+        file: 'chunks/shared-1.mjs',
       },
-    });
+    })
     const bodies = new Map<string, string>([
-      ["/asset/notes/v/b/be/.vite/manifest.json", manifest],
+      ['/asset/notes/v/b/be/.vite/manifest.json', manifest],
       [
-        "/asset/notes/v/b/be/plugin/notes/backend-abc123.mjs",
-        "export default function backend() {}",
+        '/asset/notes/v/b/be/plugin/notes/backend-abc123.mjs',
+        'export default function backend() {}',
       ],
-      ["/asset/notes/v/b/be/chunks/shared-1.mjs", "export const shared = true"],
-      ["/asset/notes/v/b/be/backend.css", ".backend{}"],
-    ]);
+      ['/asset/notes/v/b/be/chunks/shared-1.mjs', 'export const shared = true'],
+      ['/asset/notes/v/b/be/backend.css', '.backend{}'],
+    ])
 
     vi.stubGlobal(
-      "fetch",
+      'fetch',
       vi.fn(async (url: string) => {
-        requests.push(url);
-        const body = bodies.get(url);
+        requests.push(url)
+        const body = bodies.get(url)
         if (body == null) {
-          return new Response("missing", { status: 404 });
+          return new Response('missing', { status: 404 })
         }
-        return new Response(body, { status: 200 });
+        return new Response(body, { status: 200 })
       }),
-    );
+    )
 
-    const files = new Map<string, string | Uint8Array>();
-    const cache = new Map<string, BackendAssetCacheEntry>();
+    const files = new Map<string, string | Uint8Array>()
+    const cache = new Map<string, BackendAssetCacheEntry>()
     const loaded = await loadBackendAssets(
       api,
       new AbortController().signal,
@@ -2061,62 +1685,62 @@ describe("plugin-host-quickjs asset helpers", () => {
         'import("/assets/v/b/be/plugin/notes/backend-abc123.mjs")',
       ),
       cache,
-    );
+    )
 
-    expect(loaded).toBe(true);
+    expect(loaded).toBe(true)
     expect(requests).toEqual([
-      "/asset/notes/v/b/be/.vite/manifest.json",
-      "/asset/notes/v/b/be/plugin/notes/backend-abc123.mjs",
-      "/asset/notes/v/b/be/backend.css",
-      "/asset/notes/v/b/be/chunks/shared-1.mjs",
-    ]);
-    expect(requests.some((url) => url.includes("/v/b/pd/"))).toBe(false);
-    expect(files.has("v/b/be/plugin/notes/backend-abc123.mjs")).toBe(true);
-    expect(files.has("v/b/be/chunks/shared-1.mjs")).toBe(true);
-    expect(cache.get("v/b/be/plugin/notes/backend-abc123.mjs")?.ok).toBe(true);
-    expect(cache.get("v/b/be/chunks/shared-1.mjs")?.ok).toBe(true);
-  });
+      '/asset/notes/v/b/be/.vite/manifest.json',
+      '/asset/notes/v/b/be/plugin/notes/backend-abc123.mjs',
+      '/asset/notes/v/b/be/backend.css',
+      '/asset/notes/v/b/be/chunks/shared-1.mjs',
+    ])
+    expect(requests.some((url) => url.includes('/v/b/pd/'))).toBe(false)
+    expect(files.has('v/b/be/plugin/notes/backend-abc123.mjs')).toBe(true)
+    expect(files.has('v/b/be/chunks/shared-1.mjs')).toBe(true)
+    expect(cache.get('v/b/be/plugin/notes/backend-abc123.mjs')?.ok).toBe(true)
+    expect(cache.get('v/b/be/chunks/shared-1.mjs')?.ok).toBe(true)
+  })
 
-  it("does not preload frontend bundle assets into QuickJS", async () => {
-    const requests: string[] = [];
+  it('does not preload frontend bundle assets into QuickJS', async () => {
+    const requests: string[] = []
     const manifest = JSON.stringify({
-      "spacewave-app/backend.ts": {
-        file: "spacewave-app/backend-abc123.mjs",
-        imports: ["_backend-shared.mjs"],
+      'spacewave-app/backend.ts': {
+        file: 'spacewave-app/backend-abc123.mjs',
+        imports: ['_backend-shared.mjs'],
       },
-      "spacewave-app/App.tsx": {
-        file: "v/b/fe/spacewave-app/App-def456.mjs",
-        css: ["v/b/fe/spacewave-app/App-def456.css"],
+      'spacewave-app/App.tsx': {
+        file: 'v/b/fe/spacewave-app/App-def456.mjs',
+        css: ['v/b/fe/spacewave-app/App-def456.css'],
       },
-      "_backend-shared.mjs": {
-        file: "chunks/backend-shared.mjs",
+      '_backend-shared.mjs': {
+        file: 'chunks/backend-shared.mjs',
       },
-    });
+    })
     const bodies = new Map<string, string>([
-      ["/asset/notes/v/b/be/.vite/manifest.json", manifest],
+      ['/asset/notes/v/b/be/.vite/manifest.json', manifest],
       [
-        "/asset/notes/v/b/be/spacewave-app/backend-abc123.mjs",
-        "export default function backend() {}",
+        '/asset/notes/v/b/be/spacewave-app/backend-abc123.mjs',
+        'export default function backend() {}',
       ],
       [
-        "/asset/notes/v/b/be/chunks/backend-shared.mjs",
-        "export const shared = true",
+        '/asset/notes/v/b/be/chunks/backend-shared.mjs',
+        'export const shared = true',
       ],
-    ]);
+    ])
 
     vi.stubGlobal(
-      "fetch",
+      'fetch',
       vi.fn(async (url: string) => {
-        requests.push(url);
-        const body = bodies.get(url);
+        requests.push(url)
+        const body = bodies.get(url)
         if (body == null) {
-          return new Response("missing", { status: 404 });
+          return new Response('missing', { status: 404 })
         }
-        return new Response(body, { status: 200 });
+        return new Response(body, { status: 200 })
       }),
-    );
+    )
 
-    const files = new Map<string, string | Uint8Array>();
+    const files = new Map<string, string | Uint8Array>()
     const entryAssetPaths = collectBackendEntrypointAssetPaths(`
       const backendEntrypoints = [
         { importPath: "/assets/v/b/be/spacewave-app/backend-abc123.mjs" },
@@ -2124,78 +1748,78 @@ describe("plugin-host-quickjs asset helpers", () => {
       const frontendEntrypoints = [
         { setRenderMode: { scriptPath: "v/b/fe/spacewave-app/App-def456.mjs" } },
       ]
-    `);
+    `)
     const loaded = await loadBackendAssets(
       api,
       new AbortController().signal,
       files,
       entryAssetPaths,
-    );
+    )
 
     expect(entryAssetPaths).toEqual([
-      "/assets/v/b/be/spacewave-app/backend-abc123.mjs",
-    ]);
-    expect(loaded).toBe(true);
+      '/assets/v/b/be/spacewave-app/backend-abc123.mjs',
+    ])
+    expect(loaded).toBe(true)
     expect(requests).toEqual([
-      "/asset/notes/v/b/be/.vite/manifest.json",
-      "/asset/notes/v/b/be/spacewave-app/backend-abc123.mjs",
-      "/asset/notes/v/b/be/chunks/backend-shared.mjs",
-    ]);
-    expect(requests.some((url) => url.includes("/v/b/fe/"))).toBe(false);
-    expect(files.has("v/b/be/spacewave-app/backend-abc123.mjs")).toBe(true);
-    expect(files.has("v/b/be/chunks/backend-shared.mjs")).toBe(true);
-    expect(files.has("v/b/fe/spacewave-app/App-def456.mjs")).toBe(false);
-    expect(files.has("v/b/fe/spacewave-app/App-def456.css")).toBe(false);
-  });
+      '/asset/notes/v/b/be/.vite/manifest.json',
+      '/asset/notes/v/b/be/spacewave-app/backend-abc123.mjs',
+      '/asset/notes/v/b/be/chunks/backend-shared.mjs',
+    ])
+    expect(requests.some((url) => url.includes('/v/b/fe/'))).toBe(false)
+    expect(files.has('v/b/be/spacewave-app/backend-abc123.mjs')).toBe(true)
+    expect(files.has('v/b/be/chunks/backend-shared.mjs')).toBe(true)
+    expect(files.has('v/b/fe/spacewave-app/App-def456.mjs')).toBe(false)
+    expect(files.has('v/b/fe/spacewave-app/App-def456.css')).toBe(false)
+  })
 
-  it("does not fall back to whole-manifest preload without backend entrypoints", async () => {
-    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
+  it('does not fall back to whole-manifest preload without backend entrypoints', async () => {
+    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
 
-    const files = new Map<string, string | Uint8Array>();
+    const files = new Map<string, string | Uint8Array>()
     const loaded = await loadBackendAssets(
       api,
       new AbortController().signal,
       files,
       [],
-    );
+    )
 
-    expect(loaded).toBe(false);
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(files.size).toBe(0);
-  });
+    expect(loaded).toBe(false)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(files.size).toBe(0)
+  })
 
-  it("mirrors assets under both asset-relative and /assets paths", () => {
-    const files = new Map<string, string | Uint8Array>();
+  it('mirrors assets under both asset-relative and /assets paths', () => {
+    const files = new Map<string, string | Uint8Array>()
 
     addAssetToFileSystem(
       files,
-      "plugin/notes/backend-abc123.mjs",
-      "export default {}",
-    );
+      'plugin/notes/backend-abc123.mjs',
+      'export default {}',
+    )
 
-    expect(files.get("v/b/be/plugin/notes/backend-abc123.mjs")).toBe(
-      "export default {}",
-    );
-    expect(files.get("/assets/v/b/be/plugin/notes/backend-abc123.mjs")).toBe(
-      "export default {}",
-    );
-  });
+    expect(files.get('v/b/be/plugin/notes/backend-abc123.mjs')).toBe(
+      'export default {}',
+    )
+    expect(files.get('/assets/v/b/be/plugin/notes/backend-abc123.mjs')).toBe(
+      'export default {}',
+    )
+  })
 
-  it("lazily fetches backend assets through synchronous XHR and caches reads", () => {
-    const requests: string[] = [];
-    const enc = new TextEncoder();
+  it('lazily fetches backend assets through synchronous XHR and caches reads', () => {
+    const requests: string[] = []
+    const enc = new TextEncoder()
 
     class MockXMLHttpRequest {
-      status = 0;
-      response: ArrayBuffer | null = null;
-      responseText = "";
-      responseType = "";
-      private url = "";
+      status = 0
+      response: ArrayBuffer | null = null
+      responseText = ''
+      responseType = ''
+      private url = ''
 
       open(_method: string, url: string, async: boolean) {
-        expect(async).toBe(false);
-        this.url = url;
+        expect(async).toBe(false)
+        this.url = url
       }
 
       getResponseHeader() {
@@ -2203,219 +1827,219 @@ describe("plugin-host-quickjs asset helpers", () => {
       }
 
       send() {
-        requests.push(this.url);
-        if (this.url.endsWith("/v/b/be/plugin/app.mjs")) {
-          const data = enc.encode("export const ok = true");
-          this.status = 200;
-          this.response = data.buffer;
-          return;
+        requests.push(this.url)
+        if (this.url.endsWith('/v/b/be/plugin/app.mjs')) {
+          const data = enc.encode('export const ok = true')
+          this.status = 200
+          this.response = data.buffer
+          return
         }
-        this.status = 404;
+        this.status = 404
       }
     }
 
-    Object.defineProperty(globalThis, "XMLHttpRequest", {
+    Object.defineProperty(globalThis, 'XMLHttpRequest', {
       value: MockXMLHttpRequest,
       configurable: true,
       writable: true,
-    });
+    })
 
-    expect(canUseSynchronousBackendAssetFetch()).toBe(true);
-    const mount = createBackendAssetMount(api, new AbortController().signal);
-    expect(mount).not.toBeNull();
-    expect(requests).toEqual([]);
+    expect(canUseSynchronousBackendAssetFetch()).toBe(true)
+    const mount = createBackendAssetMount(api, new AbortController().signal)
+    expect(mount).not.toBeNull()
+    expect(requests).toEqual([])
 
-    const file = mount?.getFile("v/b/be/plugin/app.mjs");
+    const file = mount?.getFile('v/b/be/plugin/app.mjs')
     expect(new TextDecoder().decode(file?.readAt(0n, 64))).toBe(
-      "export const ok = true",
-    );
-    expect(mount?.getFile("v/b/be/plugin/app.mjs")?.size).toBe(22n);
-    expect(mount?.getFile("v/b/be/plugin/missing.mjs")).toBeNull();
-    expect(mount?.getFile("v/b/be/plugin/missing.mjs")).toBeNull();
+      'export const ok = true',
+    )
+    expect(mount?.getFile('v/b/be/plugin/app.mjs')?.size).toBe(22n)
+    expect(mount?.getFile('v/b/be/plugin/missing.mjs')).toBeNull()
+    expect(mount?.getFile('v/b/be/plugin/missing.mjs')).toBeNull()
     expect(requests).toEqual([
-      "/asset/notes/v/b/be/plugin/app.mjs",
-      "/asset/notes/v/b/be/plugin/missing.mjs",
-    ]);
-  });
+      '/asset/notes/v/b/be/plugin/app.mjs',
+      '/asset/notes/v/b/be/plugin/missing.mjs',
+    ])
+  })
 
-  it("selects lazy backend asset loading when sync XHR is available", () => {
-    Object.defineProperty(globalThis, "XMLHttpRequest", {
+  it('selects lazy backend asset loading when sync XHR is available', () => {
+    Object.defineProperty(globalThis, 'XMLHttpRequest', {
       value: undefined,
       configurable: true,
       writable: true,
-    });
-    expect(canUseSynchronousBackendAssetFetch()).toBe(false);
-    expect(selectBackendAssetLoadingMode()).toBe("bounded-preload");
+    })
+    expect(canUseSynchronousBackendAssetFetch()).toBe(false)
+    expect(selectBackendAssetLoadingMode()).toBe('bounded-preload')
 
-    Object.defineProperty(globalThis, "XMLHttpRequest", {
+    Object.defineProperty(globalThis, 'XMLHttpRequest', {
       value: class MockXMLHttpRequest {},
       configurable: true,
       writable: true,
-    });
-    Object.defineProperty(globalThis, "navigator", {
-      value: { userAgent: "Chrome/126.0.0.0" },
+    })
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { userAgent: 'Chrome/126.0.0.0' },
       configurable: true,
       writable: true,
-    });
-    expect(canUseSynchronousBackendAssetFetch()).toBe(true);
-    expect(selectBackendAssetLoadingMode()).toBe("lazy-http");
-  });
+    })
+    expect(canUseSynchronousBackendAssetFetch()).toBe(true)
+    expect(selectBackendAssetLoadingMode()).toBe('lazy-http')
+  })
 
-  it("selects bounded backend asset preload for Firefox workers", () => {
-    Object.defineProperty(globalThis, "XMLHttpRequest", {
+  it('selects bounded backend asset preload for Firefox workers', () => {
+    Object.defineProperty(globalThis, 'XMLHttpRequest', {
       value: class MockXMLHttpRequest {},
       configurable: true,
       writable: true,
-    });
-    Object.defineProperty(globalThis, "navigator", {
-      value: { userAgent: "Mozilla/5.0 Firefox/126.0" },
+    })
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { userAgent: 'Mozilla/5.0 Firefox/126.0' },
       configurable: true,
       writable: true,
-    });
+    })
 
-    expect(canUseSynchronousBackendAssetFetch()).toBe(true);
-    expect(shouldPreferBoundedBackendAssetPreload()).toBe(true);
-    expect(selectBackendAssetLoadingMode()).toBe("bounded-preload");
-  });
+    expect(canUseSynchronousBackendAssetFetch()).toBe(true)
+    expect(shouldPreferBoundedBackendAssetPreload()).toBe(true)
+    expect(selectBackendAssetLoadingMode()).toBe('bounded-preload')
+  })
 
-  it("preloads backend assets only for bounded fallback mode", () => {
-    const entrypoints = ["/assets/v/b/be/plugin/app.mjs"];
+  it('preloads backend assets only for bounded fallback mode', () => {
+    const entrypoints = ['/assets/v/b/be/plugin/app.mjs']
 
-    expect(shouldPreloadBackendAssets("lazy-http", entrypoints)).toBe(false);
-    expect(shouldPreloadBackendAssets("bounded-preload", entrypoints)).toBe(
+    expect(shouldPreloadBackendAssets('lazy-http', entrypoints)).toBe(false)
+    expect(shouldPreloadBackendAssets('bounded-preload', entrypoints)).toBe(
       true,
-    );
-    expect(shouldPreloadBackendAssets("bounded-preload", [])).toBe(false);
-  });
+    )
+    expect(shouldPreloadBackendAssets('bounded-preload', [])).toBe(false)
+  })
 
-  it("serves compiler-emitted backend import paths from lazy preopens", () => {
-    const requests: string[] = [];
-    const enc = new TextEncoder();
+  it('serves compiler-emitted backend import paths from lazy preopens', () => {
+    const requests: string[] = []
+    const enc = new TextEncoder()
 
     class MockXMLHttpRequest {
-      status = 0;
-      response: ArrayBuffer | null = null;
-      responseText = "";
-      responseType = "";
-      private url = "";
+      status = 0
+      response: ArrayBuffer | null = null
+      responseText = ''
+      responseType = ''
+      private url = ''
 
       open(_method: string, url: string, async: boolean) {
-        expect(async).toBe(false);
-        this.url = url;
+        expect(async).toBe(false)
+        this.url = url
       }
 
       send() {
-        requests.push(this.url);
-        const data = enc.encode("export const path = true");
-        this.status = 200;
-        this.response = data.buffer;
+        requests.push(this.url)
+        const data = enc.encode('export const path = true')
+        this.status = 200
+        this.response = data.buffer
       }
     }
 
-    Object.defineProperty(globalThis, "XMLHttpRequest", {
+    Object.defineProperty(globalThis, 'XMLHttpRequest', {
       value: MockXMLHttpRequest,
       configurable: true,
       writable: true,
-    });
+    })
 
     const preopens = createBackendAssetPreopens(
       api,
       new AbortController().signal,
-    );
+    )
 
     const assetsOpen = preopens[0].path_open(
       0,
-      "v/b/be/plugin/app.mjs",
+      'v/b/be/plugin/app.mjs',
       0,
       0n,
       0n,
       0,
-    );
+    )
     const rootVOpen = preopens[1].path_open(
       0,
-      "b/be/plugin/app.mjs",
+      'b/be/plugin/app.mjs',
       0,
       0n,
       0n,
       0,
-    );
+    )
 
-    expect(assetsOpen.ret).toBe(0);
-    expect(rootVOpen.ret).toBe(0);
+    expect(assetsOpen.ret).toBe(0)
+    expect(rootVOpen.ret).toBe(0)
     expect(new TextDecoder().decode(assetsOpen.fd_obj?.fd_read(64).data)).toBe(
-      "export const path = true",
-    );
+      'export const path = true',
+    )
     expect(new TextDecoder().decode(rootVOpen.fd_obj?.fd_read(64).data)).toBe(
-      "export const path = true",
-    );
-    expect(requests).toEqual(["/asset/notes/v/b/be/plugin/app.mjs"]);
-  });
+      'export const path = true',
+    )
+    expect(requests).toEqual(['/asset/notes/v/b/be/plugin/app.mjs'])
+  })
 
-  it("serves warmed backend assets from lazy preopens without sync XHR", () => {
-    const enc = new TextEncoder();
+  it('serves warmed backend assets from lazy preopens without sync XHR', () => {
+    const enc = new TextEncoder()
     const cache = new Map<string, BackendAssetCacheEntry>([
       [
-        "v/b/be/plugin/app.mjs",
-        { ok: true, data: enc.encode("export const warmed = true") },
+        'v/b/be/plugin/app.mjs',
+        { ok: true, data: enc.encode('export const warmed = true') },
       ],
-    ]);
+    ])
 
     class MockXMLHttpRequest {
       open() {}
 
       send() {
-        throw new Error("unexpected XHR");
+        throw new Error('unexpected XHR')
       }
     }
 
-    Object.defineProperty(globalThis, "XMLHttpRequest", {
+    Object.defineProperty(globalThis, 'XMLHttpRequest', {
       value: MockXMLHttpRequest,
       configurable: true,
       writable: true,
-    });
+    })
 
     const preopens = createBackendAssetPreopens(
       api,
       new AbortController().signal,
       cache,
-    );
+    )
 
     const assetsOpen = preopens[0].path_open(
       0,
-      "v/b/be/plugin/app.mjs",
+      'v/b/be/plugin/app.mjs',
       0,
       0n,
       0n,
       0,
-    );
+    )
     const rootVOpen = preopens[1].path_open(
       0,
-      "b/be/plugin/app.mjs",
+      'b/be/plugin/app.mjs',
       0,
       0n,
       0n,
       0,
-    );
+    )
 
-    expect(assetsOpen.ret).toBe(0);
-    expect(rootVOpen.ret).toBe(0);
+    expect(assetsOpen.ret).toBe(0)
+    expect(rootVOpen.ret).toBe(0)
     expect(new TextDecoder().decode(assetsOpen.fd_obj?.fd_read(64).data)).toBe(
-      "export const warmed = true",
-    );
+      'export const warmed = true',
+    )
     expect(new TextDecoder().decode(rootVOpen.fd_obj?.fd_read(64).data)).toBe(
-      "export const warmed = true",
-    );
-  });
+      'export const warmed = true',
+    )
+  })
 
-  it("surfaces lazy backend asset failures without whole-manifest fallback", () => {
+  it('surfaces lazy backend asset failures without whole-manifest fallback', () => {
     class MockXMLHttpRequest {
-      status = 503;
-      response: ArrayBuffer | null = null;
-      responseText = "";
-      responseType = "";
+      status = 503
+      response: ArrayBuffer | null = null
+      responseText = ''
+      responseType = ''
 
       open(_method: string, _url: string, async: boolean) {
-        expect(async).toBe(false);
+        expect(async).toBe(false)
       }
 
       getResponseHeader() {
@@ -2425,11 +2049,11 @@ describe("plugin-host-quickjs asset helpers", () => {
       send() {}
     }
 
-    Object.defineProperty(globalThis, "XMLHttpRequest", {
+    Object.defineProperty(globalThis, 'XMLHttpRequest', {
       value: MockXMLHttpRequest,
       configurable: true,
       writable: true,
-    });
+    })
 
     const mount = createBackendAssetMount(api, new AbortController().signal)
     expect(() => mount?.getFile('v/b/be/plugin/app.mjs')).toThrow(
@@ -2612,8 +2236,8 @@ function buildPacketStream(): PacketStream {
 }
 
 function buildPacketStreamPair(): [PacketStream, PacketStream] {
-  const leftToRight = pushable<Uint8Array>({ objectMode: true });
-  const rightToLeft = pushable<Uint8Array>({ objectMode: true });
+  const leftToRight = pushable<Uint8Array>({ objectMode: true })
+  const rightToLeft = pushable<Uint8Array>({ objectMode: true })
 
   return [
     {
@@ -2621,10 +2245,10 @@ function buildPacketStreamPair(): [PacketStream, PacketStream] {
       sink: async (packets) => {
         try {
           for await (const packet of packets) {
-            leftToRight.push(packet);
+            leftToRight.push(packet)
           }
         } finally {
-          leftToRight.end();
+          leftToRight.end()
         }
       },
     },
@@ -2633,68 +2257,66 @@ function buildPacketStreamPair(): [PacketStream, PacketStream] {
       sink: async (packets) => {
         try {
           for await (const packet of packets) {
-            rightToLeft.push(packet);
+            rightToLeft.push(packet)
           }
         } finally {
-          rightToLeft.end();
+          rightToLeft.end()
         }
       },
     },
-  ];
+  ]
 }
 
 function buildPluginHostResourceFixture(rootResourceMux = createMux()) {
-  const completeInitialCapabilityRegistration = vi.fn(async () => ({}));
+  const completeInitialCapabilityRegistration = vi.fn(async () => ({}))
   rootResourceMux.register(
     createHandler(PluginHostResourceServiceDefinition, {
       CompleteInitialCapabilityRegistration:
         completeInitialCapabilityRegistration,
     }),
-  );
+  )
 
-  const resourceServer = new ResourceServer(rootResourceMux);
-  const resourceRefRelease = vi.spyOn(resourceServer, "ResourceRefRelease");
-  const mux = createMux();
-  resourceServer.register(mux);
-  const server = new Server(mux.lookupMethod);
-  const errors: unknown[] = [];
+  const resourceServer = new ResourceServer(rootResourceMux)
+  const mux = createMux()
+  resourceServer.register(mux)
+  const server = new Server(mux.lookupMethod)
+  const errors: unknown[] = []
   const openStream = async (): Promise<PacketStream> => {
-    const [clientStream, serverStream] = buildPacketStreamPair();
+    const [clientStream, serverStream] = buildPacketStreamPair()
     Promise.resolve(server.handlePacketStream(serverStream)).catch(
       (err: unknown) => {
-        errors.push(err);
+        errors.push(err)
       },
-    );
-    return clientStream;
-  };
+    )
+    return clientStream
+  }
 
   return {
     completeInitialCapabilityRegistration,
     errors,
     openStream,
-    resourceRefRelease,
-  };
+  }
 }
 
 async function buildQuickJSPluginScript(source: string): Promise<string> {
-  const repoRoot = resolve(".");
-  const virtualID = "\0quickjs-using-resource-test.ts";
+  const repoRoot = resolve('.')
+  const virtualID = '\0quickjs-using-resource-test.ts'
   const result = await viteBuild({
     configFile: false,
-    logLevel: "silent",
+    logLevel: 'silent',
     root: repoRoot,
     plugins: [
       goTsResolver(repoRoot),
       {
-        name: "quickjs-using-resource-test",
+        name: 'quickjs-using-resource-test',
         resolveId(id) {
-          if (id === "virtual:quickjs-using-resource-test") {
-            return virtualID;
+          if (id === 'virtual:quickjs-using-resource-test') {
+            return virtualID
           }
         },
         load(id) {
           if (id === virtualID) {
-            return source;
+            return source
           }
         },
       },
@@ -2704,63 +2326,63 @@ async function buildQuickJSPluginScript(source: string): Promise<string> {
         ...buildGoAliases(repoRoot),
         {
           find: /^@aptre\/bldr$/,
-          replacement: resolve(repoRoot, "bldr/web/bldr/index.js"),
+          replacement: resolve(repoRoot, 'bldr/web/bldr/index.js'),
         },
         {
           find: /^@aptre\/bldr-sdk$/,
-          replacement: resolve(repoRoot, "bldr/sdk/plugin.ts"),
+          replacement: resolve(repoRoot, 'bldr/sdk/plugin.ts'),
         },
         {
           find: /^@aptre\/bldr-sdk\/(.*)$/,
-          replacement: resolve(repoRoot, "bldr/sdk/$1"),
+          replacement: resolve(repoRoot, 'bldr/sdk/$1'),
         },
       ],
     },
     build: {
-      target: "es2022",
+      target: 'es2022',
       minify: false,
       sourcemap: false,
       write: false,
       rollupOptions: {
-        input: "virtual:quickjs-using-resource-test",
-        preserveEntrySignatures: "strict",
+        input: 'virtual:quickjs-using-resource-test',
+        preserveEntrySignatures: 'strict',
         output: {
-          format: "es",
+          format: 'es',
           inlineDynamicImports: true,
-          entryFileNames: "plugin.mjs",
+          entryFileNames: 'plugin.mjs',
         },
       },
     },
-  });
+  })
 
-  const outputs = Array.isArray(result) ? result : [result];
+  const outputs = Array.isArray(result) ? result : [result]
   for (const output of outputs) {
-    if (!("output" in output)) {
-      continue;
+    if (!('output' in output)) {
+      continue
     }
     for (const item of output.output) {
-      if (item.type === "chunk" && item.isEntry) {
-        return item.code;
+      if (item.type === 'chunk' && item.isEntry) {
+        return item.code
       }
     }
   }
-  throw new Error("Vite did not produce a QuickJS plugin entry chunk");
+  throw new Error('Vite did not produce a QuickJS plugin entry chunk')
 }
 
 function failingSource(error: Error): AsyncGenerator<Uint8Array> {
   return {
     [Symbol.asyncIterator]() {
-      return this;
+      return this
     },
     next: async () => {
-      throw error;
+      throw error
     },
     return: async () => ({ done: true, value: undefined }),
     throw: async (err?: unknown) => {
-      throw err ?? error;
+      throw err ?? error
     },
     [Symbol.asyncDispose]: async () => {},
-  };
+  }
 }
 
 function requestInfoURL(input: RequestInfo | URL): string {

@@ -13,7 +13,12 @@ import {
   WatchLauncherInfoRequest,
 } from './launcher.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service spacewave.launcher.Launcher
@@ -94,6 +99,47 @@ export interface Launcher {
   ApplyUpdate(
     request: ApplyUpdateRequest,
     abortSignal?: AbortSignal,
+  ): Promise<ApplyUpdateResponse>
+}
+
+/**
+ * @generated from service spacewave.launcher.Launcher
+ */
+export interface LauncherHandler {
+  /**
+   * @generated from rpc spacewave.launcher.Launcher.WatchLauncherInfo
+   */
+  WatchLauncherInfo(
+    request: WatchLauncherInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<LauncherInfo>
+
+  /**
+   * @generated from rpc spacewave.launcher.Launcher.PushDistConfigMsg
+   */
+  PushDistConfigMsg(
+    request: PushDistConfigRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PushDistConfigResponse>
+
+  /**
+   * @generated from rpc spacewave.launcher.Launcher.RecheckDistConfig
+   */
+  RecheckDistConfig(
+    request: RecheckDistConfigRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RecheckDistConfigResponse>
+
+  /**
+   * @generated from rpc spacewave.launcher.Launcher.ApplyUpdate
+   */
+  ApplyUpdate(
+    request: ApplyUpdateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ApplyUpdateResponse>
 }
 

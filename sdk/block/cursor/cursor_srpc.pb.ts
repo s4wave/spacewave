@@ -45,7 +45,7 @@ import {
   UnmarshalResponse,
 } from './cursor.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * @generated from service s4wave.block.cursor.BlockCursorResourceService
@@ -398,6 +398,191 @@ export interface BlockCursorResourceService {
   Parents(
     request: ParentsRequest,
     abortSignal?: AbortSignal,
+  ): Promise<ParentsResponse>
+}
+
+/**
+ * @generated from service s4wave.block.cursor.BlockCursorResourceService
+ */
+export interface BlockCursorResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.Fetch
+   */
+  Fetch(
+    request: FetchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<FetchResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.SetBlock
+   */
+  SetBlock(
+    request: SetBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetBlockResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.FollowRef
+   */
+  FollowRef(
+    request: FollowRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<FollowRefResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.GetRef
+   */
+  GetRef(
+    request: GetRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetRefResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.IsDirty
+   */
+  IsDirty(
+    request: IsDirtyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<IsDirtyResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.MarkDirty
+   */
+  MarkDirty(
+    request: MarkDirtyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MarkDirtyResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.GetBlock
+   */
+  GetBlock(
+    request: GetBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetBlockResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.Unmarshal
+   */
+  Unmarshal(
+    request: UnmarshalRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UnmarshalResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.IsSubBlock
+   */
+  IsSubBlock(
+    request: IsSubBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<IsSubBlockResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.FollowSubBlock
+   */
+  FollowSubBlock(
+    request: FollowSubBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<FollowSubBlockResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.SetAsSubBlock
+   */
+  SetAsSubBlock(
+    request: SetAsSubBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetAsSubBlockResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.ClearRef
+   */
+  ClearRef(
+    request: ClearRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ClearRefResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.ClearAllRefs
+   */
+  ClearAllRefs(
+    request: ClearAllRefsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ClearAllRefsResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.SetRef
+   */
+  SetRef(
+    request: SetRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetRefResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.GetExistingRef
+   */
+  GetExistingRef(
+    request: GetExistingRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetExistingRefResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.GetAllRefs
+   */
+  GetAllRefs(
+    request: GetAllRefsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetAllRefsResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.Detach
+   */
+  Detach(
+    request: DetachRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DetachResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.DetachTransaction
+   */
+  DetachTransaction(
+    request: DetachTransactionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DetachTransactionResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.DetachRecursive
+   */
+  DetachRecursive(
+    request: DetachRecursiveRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DetachRecursiveResponse>
+
+  /**
+   * @generated from rpc s4wave.block.cursor.BlockCursorResourceService.Parents
+   */
+  Parents(
+    request: ParentsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ParentsResponse>
 }
 

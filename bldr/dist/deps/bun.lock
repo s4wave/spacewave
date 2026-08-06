@@ -17,7 +17,7 @@
         "react-icons": "^5.6.0",
         "rolldown": "1.2.3",
         "sonner": "^2.0.7",
-        "starpc": "0.50.0",
+        "starpc": "0.52.0",
         "ulid": "^3.0.2",
         "vite": "8.2.0",
         "workbox-window": "^7.4.1",
@@ -242,7 +242,7 @@
 
     "source-map-js": ["source-map-js@1.2.1", "", {}, "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA=="],
 
-    "starpc": ["starpc@0.50.0", "", { "dependencies": { "@aptre/it-ws": "^1.1.2", "@aptre/protobuf-es-lite": "1.1.1", "@aptre/yamux": "^1.0.3", "event-iterator": "^2.0.0", "isomorphic-ws": "^5.0.0", "it-first": "^3.0.11", "it-pipe": "^3.0.1", "it-pushable": "^3.2.3", "it-stream-types": "^2.0.4", "uint8arraylist": "^3.0.0", "ws": "^8.20.0" }, "bin": { "protoc-gen-es-starpc": "cmd/protoc-gen-es-starpc/protoc-gen-es-starpc" } }, "sha512-qrZGk1LsFch/2lbR+zb2d0qKXIW7uxmP14g4xq5uKsNjDwfKcc2tcPiGdZ5pj9QfvvnkU7fGXpRYKhudVAwsHA=="],
+    "starpc": ["starpc@0.52.0", "", { "dependencies": { "@aptre/it-ws": "^1.1.2", "@aptre/protobuf-es-lite": "1.1.1", "@aptre/yamux": "^1.0.3", "event-iterator": "^2.0.0", "isomorphic-ws": "^5.0.0", "it-first": "^3.0.11", "it-pipe": "^3.0.1", "it-pushable": "^3.2.3", "it-stream-types": "^2.0.4", "uint8arraylist": "^3.0.0", "ws": "^8.20.0" }, "bin": { "protoc-gen-es-starpc": "cmd/protoc-gen-es-starpc/protoc-gen-es-starpc" } }, "sha512-VoJ9zWiC4L5M/ZtZyjjGRqFenqiDJbFsigMVDIJt2OTbpcT7YZ9ugSCwxxqT6Kw/HKq2AwE8dBuA7kt1fprs3A=="],
 
     "supports-color": ["supports-color@10.2.2", "", {}, "sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g=="],
 

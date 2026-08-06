@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -158,6 +159,21 @@ func (s *testWatchStream) SendAndClose(resp *desktop_tray.WatchDesktopTrayRespon
 	return nil
 }
 
+func recvObjectTypeRegistrationCount(
+	t *testing.T,
+	strm s4wave_objecttype_registry.SRPCObjectTypeRegistryResourceService_WatchObjectTypesClient,
+	want int,
+) {
+	t.Helper()
+	resp, err := strm.Recv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := len(resp.GetRegistrations()); got != want {
+		t.Fatalf("ObjectType registrations = %d, want %d", got, want)
+	}
+}
+
 func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 	ctx := t.Context()
 	le := logrus.NewEntry(logrus.New())
@@ -205,23 +221,34 @@ func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 		t.Fatalf("display name = %q, want Test Type", registration.GetMetadata().GetDisplayName())
 	}
 
+	watchCtx, watchCancel := context.WithTimeout(ctx, time.Second)
+	t.Cleanup(watchCancel)
+	registryService := s4wave_objecttype_registry.NewSRPCObjectTypeRegistryResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(registry.GetMux()))),
+	)
+	watch, err := registryService.WatchObjectTypes(
+		watchCtx,
+		&s4wave_objecttype_registry.WatchObjectTypesRequest{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recvObjectTypeRegistrationCount(t, watch, 1)
+
 	if _, err := register(); err == nil {
 		t.Fatal("expected duplicate ObjectType registration to fail")
 	}
 	if !pluginClient.ReleaseResource(resp.GetResourceId()) {
 		t.Fatal("expected registration resource release")
 	}
-	if registration := registry.LookupRegistration("test/type"); registration != nil {
-		t.Fatal("registration remained after resource release")
-	}
+	recvObjectTypeRegistrationCount(t, watch, 0)
 
 	if _, err := register(); err != nil {
 		t.Fatal(err)
 	}
+	recvObjectTypeRegistrationCount(t, watch, 1)
 	pluginRoot.Release()
-	if registration := registry.LookupRegistration("test/type"); registration != nil {
-		t.Fatal("registration remained after plugin root release")
-	}
+	recvObjectTypeRegistrationCount(t, watch, 0)
 }
 
 func TestPluginHostRootReportsInitialCapabilityRegistrationTerminalState(t *testing.T) {

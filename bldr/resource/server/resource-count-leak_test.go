@@ -6,6 +6,7 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	resource "github.com/s4wave/spacewave/bldr/resource"
@@ -28,10 +29,9 @@ import (
 // It exercises the server-side object-state allocation and release owner:
 // WorldStateResource.GetObject allocates a resource through
 // resourceCtx.AddResource (core/resource/world/world-state.go GetObject), and
-// ObjectState.Release triggers ResourceRefRelease, which removes the tracked
-// handle (bldr/resource/server/server.go ResourceRefRelease). A regressed
-// release path would leave CountTrackedResources at baseline+1 after an
-// iteration.
+// ObjectState.Release queues the owning client's final Release control. A
+// regressed release path would leave CountTrackedResources at baseline+1 after
+// an iteration.
 func TestRemoteGetObjectReleaseReturnsServerCountToBaseline(t *testing.T) {
 	ctx := context.Background()
 
@@ -109,14 +109,24 @@ func TestRemoteGetObjectReleaseReturnsServerCountToBaseline(t *testing.T) {
 
 		world.ReleaseObjectState(got)
 
-		released := server.CountTrackedResources()
-		if released != baseline {
-			t.Fatalf("iteration %d: server count after release = %d, want baseline = %d", i, released, baseline)
-		}
+		waitForTrackedResourceCount(t, server, baseline)
 	}
 
 	if final := server.CountTrackedResources(); final != baseline {
 		t.Fatalf("final server count = %d, want baseline = %d", final, baseline)
+	}
+}
+
+func waitForTrackedResourceCount(
+	t *testing.T,
+	server *resource_server.ResourceServer,
+	want int,
+) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	if got := server.WaitTrackedResourceCount(ctx, want); got != want {
+		t.Fatalf("server resource count after release = %d, want %d", got, want)
 	}
 }
 

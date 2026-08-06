@@ -1,15 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createMux, Packet, Server } from 'starpc'
+import { createMux, Packet, Server, type ServerContext } from 'starpc'
 import { RemoteResourceClient } from './tracked-client.js'
 import { ResourceServer } from './server.js'
-import { constructChildResource } from './construct.js'
+import { getResourceCall, withResourceCall } from './context.js'
 import { newResourceMux } from './mux.js'
 import { ResourceServiceDefinition } from '../resource_srpc.pb.js'
-import { ResourceClientResponse } from '../resource.pb.js'
+import {
+  ResourceClientResponse,
+  ResourceClientRequest,
+} from '../resource.pb.js'
 import type {
   ResourceAttachRequest,
   ResourceAttachResponse,
 } from '../resource.pb.js'
+
+function serverContext(signal = new AbortController().signal): ServerContext {
+  return { signal }
+}
 
 describe('RemoteResourceClient', () => {
   let idCtr: number
@@ -170,6 +177,63 @@ describe('RemoteResourceClient', () => {
     const client = new RemoteResourceClient(nextID, 1)
     expect(client.signal).toBe(client.controller.signal)
   })
+
+  it('releases an adopted orphan when the generation disconnects', () => {
+    const client = new RemoteResourceClient(nextID, 1)
+    const rootID = client.addResource(createMux())
+    client.setRetainedRootResourceID(rootID)
+    const parentRelease = vi.fn()
+    const childRelease = vi.fn()
+    const parentID = client.addResource(createMux(), parentRelease, rootID)
+    expect(client.adoptResource(parentID)).toBe('adopted')
+    const childID = client.addResource(createMux(), childRelease, parentID)
+    expect(client.adoptResource(childID)).toBe('adopted')
+
+    expect(client.releaseResource(parentID)).toBe(true)
+    expect(parentRelease).toHaveBeenCalledOnce()
+    expect(childRelease).not.toHaveBeenCalled()
+    expect(client.resources.has(childID)).toBe(true)
+
+    client.releaseAll()
+
+    expect(childRelease).toHaveBeenCalledOnce()
+    expect(client.resources.size).toBe(0)
+  })
+
+  it('schedules one warning at the oldest pending deadline', async () => {
+    vi.useFakeTimers()
+    let now = 0
+    const onPendingWarning = vi.fn()
+    const client = new RemoteResourceClient(nextID, 1, undefined, {
+      now: () => now,
+      onPendingWarning,
+    })
+    try {
+      const rootID = client.addResource(createMux())
+      const firstID = client.addResource(createMux(), undefined, rootID)
+      expect(vi.getTimerCount()).toBe(1)
+
+      now = 5000
+      const secondID = client.addResource(createMux(), undefined, rootID)
+      expect(vi.getTimerCount()).toBe(1)
+      now = 10000
+      await vi.advanceTimersByTimeAsync(5000)
+
+      expect(onPendingWarning).toHaveBeenCalledOnce()
+      expect(onPendingWarning).toHaveBeenCalledWith(
+        expect.objectContaining({ resourceID: firstID, ageMS: 10000 }),
+      )
+      expect(
+        onPendingWarning.mock.calls.some(
+          ([warning]) => warning.resourceID === secondID,
+        ),
+      ).toBe(false)
+      expect(vi.getTimerCount()).toBe(1)
+    } finally {
+      client.releaseAll()
+      vi.useRealTimers()
+    }
+  })
 })
 
 describe('ResourceServer', () => {
@@ -210,8 +274,6 @@ describe('ResourceServer', () => {
                   rpcService: ResourceServiceDefinition.typeName,
                   rpcMethod:
                     ResourceServiceDefinition.methods.ResourceClient.name,
-                  data: new Uint8Array(0),
-                  dataIsZero: true,
                 },
               },
             })
@@ -219,7 +281,9 @@ describe('ResourceServer', () => {
               body: {
                 case: 'callData',
                 value: {
-                  complete: true,
+                  data: ResourceClientRequest.toBinary({
+                    body: { case: 'init', value: {} },
+                  }),
                 },
               },
             })
@@ -262,7 +326,10 @@ describe('ResourceServer', () => {
       const rootMux = createMux()
       const server = new ResourceServer(rootMux)
       const controller = new AbortController()
-      const stream = server.ResourceClient({}, controller.signal)
+      const stream = server.ResourceClient(
+        resourceClientInit(),
+        controller.signal,
+      )
       const iterator = stream[Symbol.asyncIterator]()
 
       const { value: initMsg, done } = await iterator.next()
@@ -282,12 +349,12 @@ describe('ResourceServer', () => {
       const server = new ResourceServer(createMux())
 
       const c1 = new AbortController()
-      const stream1 = server.ResourceClient({}, c1.signal)
+      const stream1 = server.ResourceClient(resourceClientInit(), c1.signal)
       const iter1 = stream1[Symbol.asyncIterator]()
       const { value: msg1 } = await iter1.next()
 
       const c2 = new AbortController()
-      const stream2 = server.ResourceClient({}, c2.signal)
+      const stream2 = server.ResourceClient(resourceClientInit(), c2.signal)
       const iter2 = stream2[Symbol.asyncIterator]()
       const { value: msg2 } = await iter2.next()
 
@@ -310,7 +377,10 @@ describe('ResourceServer', () => {
       const rootMux = createMux()
       const server = new ResourceServer(rootMux)
       const controller = new AbortController()
-      const stream = server.ResourceClient({}, controller.signal)
+      const stream = server.ResourceClient(
+        resourceClientInit(),
+        controller.signal,
+      )
       const iterator = stream[Symbol.asyncIterator]()
 
       await iterator.next()
@@ -341,7 +411,10 @@ describe('ResourceServer', () => {
     it('cleans up client on abort', async () => {
       const server = new ResourceServer(createMux())
       const controller = new AbortController()
-      const stream = server.ResourceClient({}, controller.signal)
+      const stream = server.ResourceClient(
+        resourceClientInit(),
+        controller.signal,
+      )
       const iterator = stream[Symbol.asyncIterator]()
 
       await iterator.next()
@@ -360,7 +433,10 @@ describe('ResourceServer', () => {
     it('calls releaseFn for non-root resources on cleanup', async () => {
       const server = new ResourceServer(createMux())
       const controller = new AbortController()
-      const stream = server.ResourceClient({}, controller.signal)
+      const stream = server.ResourceClient(
+        resourceClientInit(),
+        controller.signal,
+      )
       const iterator = stream[Symbol.asyncIterator]()
 
       await iterator.next()
@@ -384,7 +460,10 @@ describe('ResourceServer', () => {
     it('does NOT call releaseFn for root resource on cleanup', async () => {
       const server = new ResourceServer(createMux())
       const controller = new AbortController()
-      const stream = server.ResourceClient({}, controller.signal)
+      const stream = server.ResourceClient(
+        resourceClientInit(),
+        controller.signal,
+      )
       const iterator = stream[Symbol.asyncIterator]()
 
       await iterator.next()
@@ -413,7 +492,7 @@ describe('ResourceServer', () => {
       for (let i = 0; i < 3; i++) {
         const c = new AbortController()
         controllers.push(c)
-        const stream = server.ResourceClient({}, c.signal)
+        const stream = server.ResourceClient(resourceClientInit(), c.signal)
         const iter = stream[Symbol.asyncIterator]()
         iterators.push(iter)
         const { value } = await iter.next()
@@ -432,158 +511,113 @@ describe('ResourceServer', () => {
     })
   })
 
-  describe('ResourceRefRelease handler', () => {
-    it('rejects with error for clientHandleId === 0', async () => {
-      const server = new ResourceServer(createMux())
-      await expect(
-        server.ResourceRefRelease({ clientHandleId: 0, resourceId: 1 }),
-      ).rejects.toThrow('invalid client id')
-    })
-
-    it('rejects with error for missing clientHandleId', async () => {
-      const server = new ResourceServer(createMux())
-      await expect(
-        server.ResourceRefRelease({ resourceId: 1 }),
-      ).rejects.toThrow('invalid client id')
-    })
-
-    it('rejects unknown client ID', async () => {
-      const server = new ResourceServer(createMux())
-      await expect(
-        server.ResourceRefRelease({ clientHandleId: 99, resourceId: 1 }),
-      ).rejects.toThrow('resource not found')
-    })
-
-    it('rejects unknown resource ID', async () => {
-      const server = new ResourceServer(createMux())
-      const controller = new AbortController()
-      const stream = server.ResourceClient({}, controller.signal)
-      const iterator = stream[Symbol.asyncIterator]()
-      await iterator.next()
-
-      await expect(
-        server.ResourceRefRelease({ clientHandleId: 1, resourceId: 999 }),
-      ).rejects.toThrow('resource not found')
-
-      controller.abort()
-      await iterator.next()
-    })
-
-    it('skips root resource deletion (releaseFn undefined)', async () => {
-      const server = new ResourceServer(createMux())
-      const controller = new AbortController()
-      const stream = server.ResourceClient({}, controller.signal)
-      const iterator = stream[Symbol.asyncIterator]()
-      await iterator.next()
-
-      const clients = (
-        server as unknown as { clients: Map<number, RemoteResourceClient> }
-      ).clients
-      const client = clients.get(1)!
-      const rootResourceId = 1
-      expect(client.resources.has(rootResourceId)).toBe(true)
-
-      const result = await server.ResourceRefRelease({
-        clientHandleId: 1,
-        resourceId: rootResourceId,
-      })
-      expect(result).toEqual({})
-      // Root resource should still exist
-      expect(client.resources.has(rootResourceId)).toBe(true)
-
-      controller.abort()
-      await iterator.next()
-    })
-
-    it('deletes non-root resource and calls releaseFn', async () => {
-      const server = new ResourceServer(createMux())
-      const controller = new AbortController()
-      const stream = server.ResourceClient({}, controller.signal)
-      const iterator = stream[Symbol.asyncIterator]()
-      await iterator.next()
-
-      const clients = (
-        server as unknown as { clients: Map<number, RemoteResourceClient> }
-      ).clients
-      const client = clients.get(1)!
-
-      const releaseFn = vi.fn()
-      const childId = client.addResource(createMux(), releaseFn)
-      expect(client.resources.has(childId)).toBe(true)
-
-      const result = await server.ResourceRefRelease({
-        clientHandleId: 1,
-        resourceId: childId,
-      })
-      expect(result).toEqual({})
-      expect(client.resources.has(childId)).toBe(false)
-      expect(releaseFn).toHaveBeenCalledOnce()
-
-      controller.abort()
-      await iterator.next()
-    })
-
-    it('returns empty response on success', async () => {
-      const server = new ResourceServer(createMux())
-      const controller = new AbortController()
-      const stream = server.ResourceClient({}, controller.signal)
-      const iterator = stream[Symbol.asyncIterator]()
-      await iterator.next()
-
-      const clients = (
-        server as unknown as { clients: Map<number, RemoteResourceClient> }
-      ).clients
-      const client = clients.get(1)!
-      const childId = client.addResource(createMux(), () => {})
-
-      const result = await server.ResourceRefRelease({
-        clientHandleId: 1,
-        resourceId: childId,
-      })
-      expect(result).toEqual({})
-
-      controller.abort()
-      await iterator.next()
-    })
-  })
-})
-
-describe('constructChildResource', () => {
-  it('throws when no current RPC client context', () => {
-    expect(() =>
-      constructChildResource(() => ({
-        mux: createMux(),
-        result: 'x',
-      })),
-    ).toThrow('no resource client context')
-  })
-
-  it('creates child resource with correct mux and releaseFn', async () => {
-    // Test through ResourceServer to get a real client context
-    const rootMux = createMux()
-    const server = new ResourceServer(rootMux)
+  it('transmits ResourceReleased without another inbound control', async () => {
+    const server = new ResourceServer(createMux())
     const controller = new AbortController()
-    const stream = server.ResourceClient({}, controller.signal)
+    const controls = createResourceClientControlStream()
+    const stream = server.ResourceClient(controls.iterable, controller.signal)
     const iterator = stream[Symbol.asyncIterator]()
     await iterator.next()
-
     const clients = (
       server as unknown as { clients: Map<number, RemoteResourceClient> }
     ).clients
     const client = clients.get(1)!
+    const resourceID = client.addResource(createMux())
+    client.releaseResource(resourceID)
+    await expect(iterator.next()).resolves.toMatchObject({
+      value: {
+        body: {
+          case: 'resourceReleased',
+          value: { resourceId: resourceID },
+        },
+      },
+    })
+    controller.abort()
+    controls.end()
+  })
+})
 
-    // Verify we can add resources to the client
+describe('ResourceCall', () => {
+  it('throws when the server context has no resource call', () => {
+    const context = serverContext()
+    expect(() => getResourceCall(context)).toThrow(
+      'no resource call in server context',
+    )
+  })
+
+  it('constructs children under the invoking resource', () => {
+    let resourceId = 0
+    const client = new RemoteResourceClient(
+      () => ++resourceId,
+      1,
+      new AbortController().signal,
+    )
+    const parentResourceId = client.addResource(createMux())
+    const context = withResourceCall(serverContext(), {
+      client,
+      parentResourceId,
+      serviceId: 'test.Service',
+      methodId: 'Construct',
+    })
     const childMux = createMux()
     const releaseFn = vi.fn()
-    const childId = client.addResource(childMux, releaseFn)
 
-    expect(childId).toBeGreaterThan(0)
-    expect(client.resources.has(childId)).toBe(true)
-    const tracked = client.resources.get(childId)!
-    expect(tracked.mux).toBe(childMux)
+    const child = getResourceCall(context).constructChildResource(() => ({
+      mux: childMux,
+      result: 'child',
+      releaseFn,
+    }))
 
-    controller.abort()
-    await iterator.next()
+    expect(child.result).toBe('child')
+    expect(client.resources.get(child.resourceId)).toMatchObject({
+      mux: childMux,
+      parentResourceID: parentResourceId,
+      serviceID: 'test.Service',
+      methodID: 'Construct',
+    })
+    client.releaseAll()
+    expect(releaseFn).toHaveBeenCalledOnce()
+  })
+
+  it('isolates concurrent calls that share an AbortSignal', () => {
+    let resourceId = 0
+    const signal = new AbortController().signal
+    const client1 = new RemoteResourceClient(() => ++resourceId, 1, signal)
+    const client2 = new RemoteResourceClient(() => ++resourceId, 2, signal)
+    const parent1 = client1.addResource(createMux())
+    const parent2 = client2.addResource(createMux())
+    const base = serverContext(signal)
+    const context1 = withResourceCall(base, {
+      client: client1,
+      parentResourceId: parent1,
+      serviceId: 'test.First',
+      methodId: 'Construct',
+    })
+    const context2 = withResourceCall(base, {
+      client: client2,
+      parentResourceId: parent2,
+      serviceId: 'test.Second',
+      methodId: 'Construct',
+    })
+
+    const child1 = getResourceCall(context1).constructChildResource(() => ({
+      mux: createMux(),
+      result: 'first',
+    }))
+    const child2 = getResourceCall(context2).constructChildResource(() => ({
+      mux: createMux(),
+      result: 'second',
+    }))
+
+    expect(client1.resources.has(child1.resourceId)).toBe(true)
+    expect(client1.resources.has(child2.resourceId)).toBe(false)
+    expect(client2.resources.has(child1.resourceId)).toBe(false)
+    expect(client2.resources.has(child2.resourceId)).toBe(true)
+    expect(() => getResourceCall(base)).toThrow(
+      'no resource call in server context',
+    )
+    client1.releaseAll()
+    client2.releaseAll()
   })
 })
 
@@ -602,117 +636,6 @@ describe('newResourceMux', () => {
     }
     const mux = newResourceMux(handler)
     expect(mux).toBeDefined()
-  })
-})
-
-describe('integration: full resource lifecycle', () => {
-  it('client connects, adds child, releases via RPC, disconnects', async () => {
-    const rootMux = createMux()
-    const server = new ResourceServer(rootMux)
-    const controller = new AbortController()
-    const stream = server.ResourceClient({}, controller.signal)
-    const iterator = stream[Symbol.asyncIterator]()
-
-    // Step 1: read init
-    const { value: initMsg } = await iterator.next()
-    expect(initMsg.body?.case).toBe('init')
-    const clientHandleId =
-      initMsg.body?.case === 'init'
-        ? (initMsg.body.value.clientHandleId ?? 0)
-        : 0
-    const rootResourceId =
-      initMsg.body?.case === 'init'
-        ? (initMsg.body.value.rootResourceId ?? 0)
-        : 0
-    expect(clientHandleId).toBe(1)
-    expect(rootResourceId).toBeGreaterThan(0)
-
-    // Step 2: add a child resource via internals
-    const clients = (
-      server as unknown as { clients: Map<number, RemoteResourceClient> }
-    ).clients
-    const client = clients.get(clientHandleId)!
-    const releaseFn = vi.fn()
-    const childMux = createMux()
-    const childId = client.addResource(childMux, releaseFn)
-    expect(childId).toBeGreaterThan(rootResourceId)
-
-    // Step 3: release the child resource via RPC
-    const result = await server.ResourceRefRelease({
-      clientHandleId,
-      resourceId: childId,
-    })
-    expect(result).toEqual({})
-    expect(releaseFn).toHaveBeenCalledOnce()
-    expect(client.resources.has(childId)).toBe(false)
-
-    // Step 4: root resource still exists
-    expect(client.resources.has(rootResourceId)).toBe(true)
-
-    // Step 5: abort to disconnect
-    controller.abort()
-    const { done } = await iterator.next()
-    expect(done).toBe(true)
-
-    // Step 6: client cleaned up
-    expect(clients.has(clientHandleId)).toBe(false)
-  })
-
-  it('server-side release sends notification to client stream', async () => {
-    const server = new ResourceServer(createMux())
-    const controller = new AbortController()
-    const stream = server.ResourceClient({}, controller.signal)
-    const iterator = stream[Symbol.asyncIterator]()
-
-    await iterator.next()
-
-    const clients = (
-      server as unknown as { clients: Map<number, RemoteResourceClient> }
-    ).clients
-    const client = clients.get(1)!
-
-    const releaseFn = vi.fn()
-    const childId = client.addResource(createMux(), releaseFn)
-
-    // Start reading next message before triggering release
-    const nextPromise = iterator.next()
-
-    // Server-side release (e.g., from another controller)
-    client.releaseResource(childId)
-
-    const { value } = await nextPromise
-    expect(value.body?.case).toBe('resourceReleased')
-    if (value.body?.case === 'resourceReleased') {
-      expect(value.body.value.resourceId).toBe(childId)
-    }
-    expect(releaseFn).toHaveBeenCalledOnce()
-
-    controller.abort()
-    await iterator.next()
-  })
-
-  it('released client rejects ResourceRefRelease', async () => {
-    const server = new ResourceServer(createMux())
-    const controller = new AbortController()
-    const stream = server.ResourceClient({}, controller.signal)
-    const iterator = stream[Symbol.asyncIterator]()
-
-    await iterator.next()
-
-    const clients = (
-      server as unknown as { clients: Map<number, RemoteResourceClient> }
-    ).clients
-    const client = clients.get(1)!
-    const childId = client.addResource(createMux(), () => {})
-
-    // Disconnect
-    controller.abort()
-    await iterator.next()
-
-    // Client should be cleaned up, so RPC should fail
-    await expect(
-      server.ResourceRefRelease({ clientHandleId: 1, resourceId: childId }),
-    ).rejects.toThrow('resource not found')
   })
 })
 
@@ -764,11 +687,53 @@ function createControllableStream() {
   return { push, end, iterable }
 }
 
+function createResourceClientControlStream() {
+  const queue: ResourceClientRequest[] = [
+    { body: { case: 'init' as const, value: {} } },
+  ]
+  let resolve:
+    | ((result: IteratorResult<ResourceClientRequest>) => void)
+    | null = null
+  let done = false
+  const end = () => {
+    done = true
+    resolve?.({ value: undefined as never, done: true })
+    resolve = null
+  }
+  const iterable: AsyncIterable<ResourceClientRequest> = {
+    [Symbol.asyncIterator]() {
+      return {
+        next() {
+          if (queue.length) {
+            return Promise.resolve({ value: queue.shift()!, done: false })
+          }
+          if (done)
+            return Promise.resolve({ value: undefined as never, done: true })
+          return new Promise<IteratorResult<ResourceClientRequest>>((r) => {
+            resolve = r
+          })
+        },
+      }
+    },
+  }
+  return { iterable, end }
+}
+
+function resourceClientInit(): AsyncIterable<ResourceClientRequest> {
+  return (async function* () {
+    yield { body: { case: 'init' as const, value: {} } }
+    await new Promise<void>(() => {})
+  })()
+}
+
 // setupClientSession creates a ResourceClient session and returns the
 // client handle ID and the internal RemoteResourceClient instance.
 async function setupClientSession(server: ResourceServer) {
   const clientController = new AbortController()
-  const clientStream = server.ResourceClient({}, clientController.signal)
+  const clientStream = server.ResourceClient(
+    resourceClientInit(),
+    clientController.signal,
+  )
   const clientIter = clientStream[Symbol.asyncIterator]()
   const { value: initMsg } = await clientIter.next()
   const clientHandleId =
@@ -1421,48 +1386,6 @@ describe('ResourceAttach handler', () => {
 
       // The ref captured before detach now reports released.
       expect(ref.released).toBe(true)
-
-      stream.end()
-      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
-        // consume
-      }
-      clientController.abort()
-      await clientIter.next()
-    })
-
-    it('ResourceRefRelease releases attached resource and notifies owner', async () => {
-      const server = new ResourceServer(createMux())
-      const { clientController, clientIter, clientHandleId, client } =
-        await setupClientSession(server)
-
-      const stream = createControllableStream()
-      stream.push({
-        body: {
-          case: 'init' as const,
-          value: { clientHandleId },
-        },
-      })
-
-      const attachGen = server.ResourceAttach(stream.iterable)
-      const attachIter = attachGen[Symbol.asyncIterator]()
-      await attachIter.next()
-
-      const resourceId = await sendAddAndGetResourceId(
-        stream,
-        attachIter,
-        'release-attached',
-      )
-      const attached = client.attachedResources.get(resourceId)!
-      expect(attached.signal.aborted).toBe(false)
-
-      await server.ResourceRefRelease({
-        clientHandleId,
-        resourceId,
-      })
-      const detachAck = await readNextControl(attachIter, 'detachAck')
-      expect(detachAck.body?.case).toBe('detachAck')
-      expect(attached.signal.aborted).toBe(true)
-      expect(client.attachedResources.has(resourceId)).toBe(false)
 
       stream.end()
       for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {

@@ -1,13 +1,28 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Packet } from 'starpc'
+import { ERR_RPC_ABORT, Packet } from 'starpc'
 import type { RpcStreamPacket } from 'starpc'
 
 import type {
   ResourceAttachResponse,
+  ResourceClientRequest,
   ResourceClientResponse,
 } from './resource.pb.js'
 import type { ResourceService } from './resource_srpc.pb.js'
 import { Client } from './client.js'
+
+function setInitializedResourceSession(client: Client): void {
+  Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+  Reflect.set(client, 'resourceSession', {
+    controller: new AbortController(),
+    outgoing: { push: vi.fn(), end: vi.fn() },
+    generation: 1,
+    initialized: true,
+    closed: false,
+    nextControlId: 0,
+    acknowledgedControlId: Number.MAX_SAFE_INTEGER,
+    controlWaiters: new Set(),
+  })
+}
 
 describe('ResourceClient', () => {
   it('clears stale attachSession state on reconnect cleanup', () => {
@@ -196,7 +211,7 @@ describe('ResourceClient', () => {
     }
 
     const client = new Client(service, new AbortController().signal)
-    Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+    setInitializedResourceSession(client)
 
     const release = vi.fn()
     await client.attachResourceTree('tree-handler', vi.fn(), undefined, release)
@@ -236,7 +251,7 @@ describe('ResourceClient', () => {
     const onConnectionLost = vi.fn()
     client.onConnectionLost(onConnectionLost)
     const connectionController = new AbortController()
-    Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+    setInitializedResourceSession(client)
     Reflect.set(client, 'connectionController', connectionController)
     const ref = client.createResourceReference(1)
 
@@ -256,6 +271,69 @@ describe('ResourceClient', () => {
     expect(Reflect.get(client, 'connectionController')).toBe(null)
     expect(Reflect.get(client, 'initState')).toBe(null)
     expect(Reflect.get(client, 'initPromise')).toBe(null)
+  })
+
+  it('waits for prior lifecycle controls before opening ResourceRpc', async () => {
+    const service = buildUnusedService()
+    const controller = new AbortController()
+    let allowAck: (() => void) | undefined
+    const ackAllowed = new Promise<void>((resolve) => {
+      allowAck = resolve
+    })
+    let controlSeen: (() => void) | undefined
+    const sawControl = new Promise<void>((resolve) => {
+      controlSeen = resolve
+    })
+    const rpcError = new Error('ResourceRpc started')
+    const resourceRpc = vi.fn(() => {
+      throw rpcError
+    })
+    service.ResourceRpc = resourceRpc
+    service.ResourceClient = async function* (request, abortSignal) {
+      const incoming = request[Symbol.asyncIterator]()
+      const init = await incoming.next()
+      expect(init.value?.body?.case).toBe('init')
+      yield {
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId: 7, rootResourceId: 1 },
+        },
+      }
+      const control = await incoming.next()
+      expect(control.value?.body?.case).toBe('adopt')
+      controlSeen?.()
+      await ackAllowed
+      yield {
+        body: {
+          case: 'controlAck' as const,
+          value: { controlId: control.value?.controlId ?? 0 },
+        },
+      }
+      await new Promise<void>((resolve) => {
+        abortSignal?.addEventListener('abort', () => resolve(), { once: true })
+      })
+    }
+
+    const client = new Client(service, controller.signal)
+    const root = await client.accessRootResource()
+    const callController = new AbortController()
+    const canceledCall = root.client.request(
+      'test.Service',
+      'Call',
+      new Uint8Array(),
+      callController.signal,
+    )
+    await sawControl
+    expect(resourceRpc).not.toHaveBeenCalled()
+    callController.abort()
+    await expect(canceledCall).rejects.toThrow(ERR_RPC_ABORT)
+    expect(resourceRpc).not.toHaveBeenCalled()
+
+    const call = root.client.request('test.Service', 'Call', new Uint8Array())
+    allowAck?.()
+    await expect(call).rejects.toBe(rpcError)
+    expect(resourceRpc).toHaveBeenCalledOnce()
+    controller.abort()
   })
 
   it('delivers ResourceRpc call data after stream ack', async () => {
@@ -313,7 +391,7 @@ describe('ResourceClient', () => {
     }
 
     const client = new Client(service, new AbortController().signal)
-    Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+    setInitializedResourceSession(client)
 
     const result = await client
       .createResourceReference(51)
@@ -352,7 +430,7 @@ describe('ResourceClient', () => {
     }
 
     const client = new Client(service, new AbortController().signal)
-    Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+    setInitializedResourceSession(client)
     const onResourceReleased = vi.fn()
     client.onResourceReleased(onResourceReleased)
     const ref = client.createResourceReference(51)
@@ -397,7 +475,7 @@ describe('ResourceClient', () => {
       }
 
       const client = new Client(service, new AbortController().signal)
-      Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
+      setInitializedResourceSession(client)
       const onResourceReleased = vi.fn()
       client.onResourceReleased(onResourceReleased)
       const ref = client.createResourceReference(51)
@@ -418,6 +496,90 @@ describe('ResourceClient', () => {
       })
     },
   )
+
+  it('queues one adopt and one final release in FIFO order', async () => {
+    const controls: ResourceClientRequest[] = []
+    const service = buildUnusedService()
+    service.ResourceClient = async function* (request) {
+      let initialized = false
+      for await (const control of request) {
+        controls.push(control)
+        if (!initialized) {
+          initialized = true
+          yield buildResourceClientInit(1)
+        }
+      }
+    }
+
+    const client = new Client(service, new AbortController().signal)
+    const first = await client.accessRootResource()
+    await waitForCondition(() => controls.length === 2)
+    const second = first.createRef(first.resourceId)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    first.release()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(controls).toHaveLength(2)
+
+    second.release()
+    await waitForCondition(() => controls.length === 3)
+    expect(
+      controls.map((control) => [
+        control.body?.case,
+        control.body?.case === 'adopt' || control.body?.case === 'release'
+          ? control.body.value.resourceId
+          : undefined,
+      ]),
+    ).toEqual([
+      ['init', undefined],
+      ['adopt', 1],
+      ['release', 1],
+    ])
+
+    client.dispose()
+  })
+
+  it('drains final releases before a normal ResourceClient close', async () => {
+    const controls: ResourceClientRequest[] = []
+    const streamDone = Promise.withResolvers<void>()
+    const service = buildUnusedService()
+    service.ResourceClient = async function* (request, signal) {
+      try {
+        let initialized = false
+        for await (const control of request) {
+          controls.push(control)
+          if (!initialized) {
+            initialized = true
+            yield buildResourceClientInit(1)
+          }
+          if (control.body?.case === 'release') {
+            expect(signal?.aborted).toBe(false)
+          }
+        }
+      } finally {
+        streamDone.resolve()
+      }
+    }
+
+    const client = new Client(service, new AbortController().signal)
+    await client.accessRootResource()
+    await waitForCondition(() => controls.length === 2)
+
+    client.dispose()
+    await streamDone.promise
+
+    expect(
+      controls.map((control) => [
+        control.body?.case,
+        control.body?.case === 'adopt' || control.body?.case === 'release'
+          ? control.body.value.resourceId
+          : undefined,
+      ]),
+    ).toEqual([
+      ['init', undefined],
+      ['adopt', 1],
+      ['release', 1],
+    ])
+  })
 
   it('retries ResourceClient streams that close after init', async () => {
     vi.useFakeTimers()
@@ -626,88 +788,6 @@ describe('ResourceClient', () => {
     client.dispose()
     vi.useRealTimers()
   })
-
-  it('retries queued resource releases after runtime ack timeouts', async () => {
-    vi.useFakeTimers()
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const service: ResourceService = {
-      ResourceRefRelease: vi
-        .fn()
-        .mockRejectedValueOnce(
-          new Error(
-            'WebRuntimeClient: client: timeout waiting for runtime connected ack',
-          ),
-        )
-        .mockResolvedValue({}),
-      ResourceRefAdopt: vi.fn().mockResolvedValue({}),
-      ResourceClient() {
-        throw new Error('unused')
-      },
-      ResourceRpc() {
-        throw new Error('unused')
-      },
-      ResourceAttach() {
-        throw new Error('unused')
-      },
-    }
-    const client = new Client(service, new AbortController().signal)
-    Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
-
-    const ref = client.createResourceReference(49)
-    ref.release()
-
-    await vi.advanceTimersByTimeAsync(0)
-    expect(service.ResourceRefRelease).toHaveBeenCalledTimes(1)
-    expect(getPendingResourceReleases(client).size).toBe(1)
-    expect(warn).not.toHaveBeenCalled()
-
-    await vi.advanceTimersByTimeAsync(100)
-
-    expect(service.ResourceRefRelease).toHaveBeenCalledTimes(2)
-    expect(service.ResourceRefRelease).toHaveBeenLastCalledWith(
-      { clientHandleId: 7, resourceId: 49 },
-      expect.any(AbortSignal),
-    )
-    expect(getPendingResourceReleases(client).size).toBe(0)
-    expect(warn).not.toHaveBeenCalled()
-
-    warn.mockRestore()
-    vi.useRealTimers()
-  })
-
-  it('does not retry queued resource releases on stream reset', async () => {
-    vi.useFakeTimers()
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const service: ResourceService = {
-      ResourceRefRelease: vi.fn().mockRejectedValue(new Error('stream reset')),
-      ResourceRefAdopt: vi.fn().mockResolvedValue({}),
-      ResourceClient() {
-        throw new Error('unused')
-      },
-      ResourceRpc() {
-        throw new Error('unused')
-      },
-      ResourceAttach() {
-        throw new Error('unused')
-      },
-    }
-    const client = new Client(service, new AbortController().signal)
-    Reflect.set(client, 'initState', { clientHandleId: 7, rootResourceId: 1 })
-
-    try {
-      const ref = client.createResourceReference(49)
-      ref.release()
-
-      await vi.advanceTimersByTimeAsync(1000)
-
-      expect(service.ResourceRefRelease).toHaveBeenCalledTimes(1)
-      expect(getPendingResourceReleases(client).size).toBe(0)
-      expect(warn).toHaveBeenCalledOnce()
-    } finally {
-      warn.mockRestore()
-      vi.useRealTimers()
-    }
-  })
 })
 
 function buildUnusedService(): ResourceService {
@@ -716,12 +796,6 @@ function buildUnusedService(): ResourceService {
       throw new Error('unused')
     },
     ResourceRpc() {
-      throw new Error('unused')
-    },
-    ResourceRefRelease() {
-      throw new Error('unused')
-    },
-    ResourceRefAdopt() {
       throw new Error('unused')
     },
     ResourceAttach() {
@@ -737,14 +811,6 @@ function buildResourceClientInit(resourceId: number): ResourceClientResponse {
       value: { clientHandleId: resourceId, rootResourceId: resourceId },
     },
   }
-}
-
-function getPendingResourceReleases(client: Client) {
-  const pending = Reflect.get(client, 'pendingResourceReleases')
-  if (!(pending instanceof Map)) {
-    throw new Error('expected pendingResourceReleases map')
-  }
-  return pending
 }
 
 async function readResourceRpcPacket(

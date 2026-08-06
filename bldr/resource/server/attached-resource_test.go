@@ -22,17 +22,26 @@ func (m *mockSRPCClient) NewStream(ctx context.Context, service, method string, 
 	return nil, nil
 }
 
-// newTestClient creates a RemoteResourceClient suitable for testing attached resource methods.
+// newTestClient creates a RemoteResourceClient for attached resource tests.
 func newTestClient(t *testing.T) (*RemoteResourceClient, context.CancelFunc) {
 	t.Helper()
 	s := NewResourceServer(nil)
 	ctx, cancel := context.WithCancel(context.Background())
 	client := &RemoteResourceClient{
-		server:    s,
-		clientID:  1,
-		ctx:       ctx,
-		resources: make(map[uint32]*trackedResource),
+		server:         s,
+		clientID:       1,
+		rootResourceID: 1,
+		ctx:            ctx,
+		resources:      make(map[uint32]*trackedResource),
+		children:       make(map[uint32]map[uint32]struct{}),
+		tombstones:     make(map[uint32]struct{}),
 	}
+	client.resources[1] = &trackedResource{
+		mux:           srpc.NewMux(),
+		ownerClientID: 1,
+		createdAt:     s.now(),
+	}
+	s.resourceIDCtr = 1
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		s.clients[1] = client
 	})
@@ -43,15 +52,6 @@ func resourceServerWaitCh(s *ResourceServer) <-chan struct{} {
 	locked := s.bcast.Lock()
 	defer locked.Unlock()
 	return locked.WaitCh()
-}
-
-func assertWaitChOpen(t *testing.T, waitCh <-chan struct{}) {
-	t.Helper()
-	select {
-	case <-waitCh:
-		t.Fatal("resource client queue wait channel was closed unexpectedly")
-	default:
-	}
 }
 
 func assertWaitChClosed(t *testing.T, waitCh <-chan struct{}) {
@@ -86,16 +86,14 @@ func TestAddAttachedResource_InitializesMap(t *testing.T) {
 	client, cancel := newTestClient(t)
 	defer cancel()
 
-	if client.attachedResources != nil {
-		t.Fatal("attachedResources should be nil before first AddAttachedResource")
+	if len(client.attachedResources) != 0 {
+		t.Fatal("attachedResources should be empty before first AddAttachedResource")
 	}
-
 	mc := &mockSRPCClient{id: 1}
-	err := client.AddAttachedResource(1, "label", func() {}, mc, nil)
-	if err != nil {
+	if err := client.AddAttachedResource(1, "label", func() {}, mc, nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.attachedResources == nil {
+	if len(client.attachedResources) == 0 {
 		t.Fatal("attachedResources should be initialized after AddAttachedResource")
 	}
 }
@@ -183,36 +181,15 @@ func TestReleaseResourceRemovesAttachedResource(t *testing.T) {
 	}
 }
 
-func TestAddResourceValueDoesNotWakeClientQueue(t *testing.T) {
+func TestAddResourceValueWakesPendingScanner(t *testing.T) {
 	client, cancel := newTestClient(t)
 	defer cancel()
 
 	waitCh := resourceServerWaitCh(client.server)
-	_, err := client.AddResourceValue(srpc.NewMux(), &mockSRPCClient{id: 2}, nil)
-	if err != nil {
+	if _, err := client.AddResourceValue(srpc.NewMux(), &mockSRPCClient{id: 2}, nil); err != nil {
 		t.Fatalf("AddResourceValue: %v", err)
 	}
-	assertWaitChOpen(t, waitCh)
-}
-
-func TestResourceRefReleaseDoesNotWakeClientQueue(t *testing.T) {
-	client, cancel := newTestClient(t)
-	defer cancel()
-
-	id, err := client.AddResource(srpc.NewMux(), func() {})
-	if err != nil {
-		t.Fatalf("AddResource: %v", err)
-	}
-	waitCh := resourceServerWaitCh(client.server)
-
-	_, err = client.server.ResourceRefRelease(context.Background(), &resource.ResourceRefReleaseRequest{
-		ClientHandleId: client.clientID,
-		ResourceId:     id,
-	})
-	if err != nil {
-		t.Fatalf("ResourceRefRelease: %v", err)
-	}
-	assertWaitChOpen(t, waitCh)
+	assertWaitChClosed(t, waitCh)
 }
 
 func TestReleaseResourceWakesClientQueue(t *testing.T) {
@@ -231,7 +208,7 @@ func TestReleaseResourceWakesClientQueue(t *testing.T) {
 	assertWaitChClosed(t, waitCh)
 }
 
-func TestReleaseAttachedResourceDoesNotWakeClientQueue(t *testing.T) {
+func TestReleaseAttachedResourceWakesClientQueue(t *testing.T) {
 	client, cancel := newTestClient(t)
 	defer cancel()
 
@@ -245,54 +222,10 @@ func TestReleaseAttachedResourceDoesNotWakeClientQueue(t *testing.T) {
 	if !client.ReleaseResource(12) {
 		t.Fatal("expected ReleaseResource to release attached resource")
 	}
-	assertWaitChOpen(t, waitCh)
-}
-
-func TestResourceRefReleaseWaitsForReleaseFn(t *testing.T) {
-	client, cancel := newTestClient(t)
-	defer cancel()
-
-	releaseStarted := make(chan struct{})
-	releaseUnblock := make(chan struct{})
-	id, err := client.AddResource(srpc.NewMux(), func() {
-		close(releaseStarted)
-		<-releaseUnblock
-	})
-	if err != nil {
-		t.Fatalf("AddResource: %v", err)
-	}
-
-	releaseDone := make(chan error, 1)
-	go func() {
-		_, err := client.server.ResourceRefRelease(context.Background(), &resource.ResourceRefReleaseRequest{
-			ClientHandleId: client.clientID,
-			ResourceId:     id,
-		})
-		releaseDone <- err
-	}()
-
-	select {
-	case err := <-releaseDone:
-		t.Fatalf("ResourceRefRelease returned before releaseFn started: %v", err)
-	case <-releaseStarted:
-	case <-time.After(time.Second):
-		t.Fatal("releaseFn was not called")
-	}
-
-	select {
-	case err := <-releaseDone:
-		t.Fatalf("ResourceRefRelease returned while releaseFn was still blocked: %v", err)
-	default:
-	}
-
-	close(releaseUnblock)
-	select {
-	case err := <-releaseDone:
-		if err != nil {
-			t.Fatalf("ResourceRefRelease: %v", err)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("ResourceRefRelease did not return after releaseFn completed")
+	assertWaitChClosed(t, waitCh)
+	if len(client.txQueue) != 1 ||
+		client.txQueue[0].GetResourceReleased().GetResourceId() != 12 {
+		t.Fatalf("attached release notifications = %#v", client.txQueue)
 	}
 }
 

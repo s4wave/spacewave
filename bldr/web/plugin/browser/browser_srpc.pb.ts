@@ -9,6 +9,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -51,6 +52,26 @@ export interface WebPluginBrowserHost {
   PluginRpc(
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+}
+
+/**
+ * WebPluginBrowserHost proxies requests to the web plugin to the plugin host.
+ * accessed by web/plugin/browser/web-plugin-browser.ts
+ *
+ * @generated from service bldr.web.plugin.browser.WebPluginBrowserHost
+ */
+export interface WebPluginBrowserHostHandler {
+  /**
+   * PluginRpc handles an incoming RPC call from a remote plugin for the web plugin.
+   * Id: remote plugin id
+   *
+   * @generated from rpc bldr.web.plugin.browser.WebPluginBrowserHost.PluginRpc
+   */
+  PluginRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<RpcStreamPacket>
 }
 

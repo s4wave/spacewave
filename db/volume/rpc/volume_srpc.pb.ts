@@ -32,6 +32,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -99,6 +100,39 @@ export interface AccessVolumes {
   VolumeRpc(
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+}
+
+/**
+ * AccessVolumes is a service to access available volumes over RPC.
+ *
+ * @generated from service volume.rpc.AccessVolumes
+ */
+export interface AccessVolumesHandler {
+  /**
+   * WatchVolumeInfo watches information about a volume.
+   * The most recent message contains the most recently known state.
+   * If the volume was not found (directive is idle) returns empty.
+   *
+   * @generated from rpc volume.rpc.AccessVolumes.WatchVolumeInfo
+   */
+  WatchVolumeInfo(
+    request: WatchVolumeInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchVolumeInfoResponse>
+
+  /**
+   * VolumeRpc uses the LookupVolume directive access a Volume handle.
+   * Exposes the ProxyVolume service.
+   * Id: volume id
+   *
+   * @generated from rpc volume.rpc.AccessVolumes.VolumeRpc
+   */
+  VolumeRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<RpcStreamPacket>
 }
 
@@ -412,6 +446,140 @@ export interface ProxyVolume {
   GetStorageStats(
     request: GetStorageStatsRequest,
     abortSignal?: AbortSignal,
+  ): Promise<GetStorageStatsResponse>
+}
+
+/**
+ * ProxyVolume is a service exposing a Volume handle via RPC.
+ *
+ * Other available services:
+ *  - rpc.block.BlockStore
+ *  - rpc.bucket.BucketStore
+ *  - rpc.object.ObjectStore
+ *
+ * @generated from service volume.rpc.ProxyVolume
+ */
+export interface ProxyVolumeHandler {
+  /**
+   * GetVolumeInfo returns the basic volume information.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetVolumeInfo
+   */
+  GetVolumeInfo(
+    request: GetVolumeInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetVolumeInfoResponse>
+
+  /**
+   * GetCoordinatorCapability reports direct coordination support for a scoped ObjectStore.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetCoordinatorCapability
+   */
+  GetCoordinatorCapability(
+    request: GetCoordinatorCapabilityRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetCoordinatorCapabilityResponse>
+
+  /**
+   * WatchCoordinatorEvents streams coordination events for a scoped ObjectStore.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.WatchCoordinatorEvents
+   */
+  WatchCoordinatorEvents(
+    request: WatchCoordinatorEventsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchCoordinatorEventsResponse>
+
+  /**
+   * GetCoordinatorSnapshot returns the current remote coordinator snapshot.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetCoordinatorSnapshot
+   */
+  GetCoordinatorSnapshot(
+    request: GetCoordinatorSnapshotRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetCoordinatorSnapshotResponse>
+
+  /**
+   * TryAcquireCoordinatorWriteLease attempts to acquire the remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.TryAcquireCoordinatorWriteLease
+   */
+  TryAcquireCoordinatorWriteLease(
+    request: TryAcquireCoordinatorWriteLeaseRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<AcquireCoordinatorWriteLeaseResponse>
+
+  /**
+   * WaitAcquireCoordinatorWriteLease waits for the remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.WaitAcquireCoordinatorWriteLease
+   */
+  WaitAcquireCoordinatorWriteLease(
+    request: WaitAcquireCoordinatorWriteLeaseRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<AcquireCoordinatorWriteLeaseResponse>
+
+  /**
+   * RefreshCoordinatorWriteLease refreshes a remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.RefreshCoordinatorWriteLease
+   */
+  RefreshCoordinatorWriteLease(
+    request: CoordinatorWriteLeaseRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CoordinatorWriteLeaseSnapshotResponse>
+
+  /**
+   * PublishCoordinatorWriteLease publishes a remote write lease event.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.PublishCoordinatorWriteLease
+   */
+  PublishCoordinatorWriteLease(
+    request: PublishCoordinatorWriteLeaseRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CoordinatorWriteLeaseSnapshotResponse>
+
+  /**
+   * ReleaseCoordinatorWriteLease releases a remote write lease.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.ReleaseCoordinatorWriteLease
+   */
+  ReleaseCoordinatorWriteLease(
+    request: CoordinatorWriteLeaseRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReleaseCoordinatorWriteLeaseResponse>
+
+  /**
+   * GetPeerPriv returns the volume peer private key.
+   * Returns ErrPrivKeyUnavailable if the private key is unavailable.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetPeerPriv
+   */
+  GetPeerPriv(
+    request: GetPeerPrivRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetPeerPrivResponse>
+
+  /**
+   * GetStorageStats returns storage usage statistics for the volume.
+   *
+   * @generated from rpc volume.rpc.ProxyVolume.GetStorageStats
+   */
+  GetStorageStats(
+    request: GetStorageStatsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<GetStorageStatsResponse>
 }
 

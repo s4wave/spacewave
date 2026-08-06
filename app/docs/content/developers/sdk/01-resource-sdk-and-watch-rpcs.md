@@ -13,12 +13,16 @@ references and typed resource classes.
 
 `ResourceService` exposes:
 
-- `ResourceClient` to create a client handle and root resource ID;
-- `ResourceRpc` to route RPC streams to resource handles;
-- `ResourceRefRelease` to release handles;
+- `ResourceClient` to create a generation and carry ordered `Adopt` and
+  `Release` controls;
+- `ResourceRpc` to route RPC streams to resource handles; and
 - `ResourceAttach` to attach client-owned resources to server calls.
 
-Ending the ResourceClient stream releases the resources opened by that client.
+The first local reference sends `Adopt`. The final reference sends `Release` on
+the same `ResourceClient` stream. A returned child remains pending under the
+resource that created it until adoption. Releasing a parent recursively releases
+its pending descendants. Ending the stream releases every resource in that
+generation.
 
 ## TypeScript resources
 

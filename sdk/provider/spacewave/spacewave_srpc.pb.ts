@@ -64,7 +64,7 @@ import {
   WrapWithPasskeyPrfResponse,
 } from './spacewave.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * @generated from service s4wave.provider.spacewave.SpacewaveProviderResourceService
@@ -707,6 +707,341 @@ export interface SpacewaveProviderResourceService {
   RecoverExecute(
     request: RecoverExecuteRequest,
     abortSignal?: AbortSignal,
+  ): Promise<RecoverExecuteResponse>
+}
+
+/**
+ * @generated from service s4wave.provider.spacewave.SpacewaveProviderResourceService
+ */
+export interface SpacewaveProviderResourceServiceHandler {
+  /**
+   * GetCloudProviderConfig returns pre-auth cloud provider configuration.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.GetCloudProviderConfig
+   */
+  GetCloudProviderConfig(
+    request: GetCloudProviderConfigRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CloudProviderConfig>
+
+  /**
+   * GetLinkedCloudSession returns the linked cloud session index when present.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.GetLinkedCloudSession
+   */
+  GetLinkedCloudSession(
+    request: GetLinkedCloudSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetLinkedCloudSessionResponse>
+
+  /**
+   * GenerateAuthKeypairs creates provider-owned account and session identity key material.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.GenerateAuthKeypairs
+   */
+  GenerateAuthKeypairs(
+    request: GenerateAuthKeypairsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GenerateAuthKeypairsResponse>
+
+  /**
+   * WrapPemWithPin wraps an entity PEM with provider-owned PIN encryption.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.WrapPemWithPin
+   */
+  WrapPemWithPin(
+    request: WrapPemWithPinRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<WrapPemWithPinResponse>
+
+  /**
+   * UnwrapPemWithPin unwraps an entity PEM with provider-owned PIN encryption.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.UnwrapPemWithPin
+   */
+  UnwrapPemWithPin(
+    request: UnwrapPemWithPinRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UnwrapPemWithPinResponse>
+
+  /**
+   * GeneratePasskeyPrfSalt creates a provider-owned WebAuthn PRF salt.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.GeneratePasskeyPrfSalt
+   */
+  GeneratePasskeyPrfSalt(
+    request: GeneratePasskeyPrfSaltRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GeneratePasskeyPrfSaltResponse>
+
+  /**
+   * WrapWithPasskeyPrf wraps an auth blob with provider-owned passkey PRF encryption.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.WrapWithPasskeyPrf
+   */
+  WrapWithPasskeyPrf(
+    request: WrapWithPasskeyPrfRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<WrapWithPasskeyPrfResponse>
+
+  /**
+   * UnwrapWithPasskeyPrf unwraps an auth blob with provider-owned passkey PRF encryption.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.UnwrapWithPasskeyPrf
+   */
+  UnwrapWithPasskeyPrf(
+    request: UnwrapWithPasskeyPrfRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UnwrapWithPasskeyPrfResponse>
+
+  /**
+   * CreateAccount creates a Spacewave account with the supplied credential.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.CreateAccount
+   */
+  CreateAccount(
+    request: CreateAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateAccountResponse>
+
+  /**
+   * LoginAccount logs in to an existing Spacewave account with the supplied credential.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.LoginAccount
+   */
+  LoginAccount(
+    request: LoginAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LoginAccountResponse>
+
+  /**
+   * LoginOrCreateAccount logs in or creates an account with username and password.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.LoginOrCreateAccount
+   */
+  LoginOrCreateAccount(
+    request: LoginOrCreateAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LoginOrCreateAccountResponse>
+
+  /**
+   * LoginWithEntityKey logs in using a provider-owned entity private key PEM.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.LoginWithEntityKey
+   */
+  LoginWithEntityKey(
+    request: LoginWithEntityKeyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LoginWithEntityKeyResponse>
+
+  /**
+   * ReauthenticateSession reauthenticates a mounted session with fresh auth material.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.ReauthenticateSession
+   */
+  ReauthenticateSession(
+    request: ReauthenticateSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReauthenticateSessionResponse>
+
+  /**
+   * MountLinkedDeviceSession mounts a SpaceLink-approved DEVICE session.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.MountLinkedDeviceSession
+   */
+  MountLinkedDeviceSession(
+    request: MountLinkedDeviceSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MountLinkedDeviceSessionResponse>
+
+  /**
+   * StartBrowserHandoff starts the external browser auth handoff flow.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.StartBrowserHandoff
+   */
+  StartBrowserHandoff(
+    request: StartBrowserHandoffRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StartBrowserHandoffResponse>
+
+  /**
+   * SSOCodeExchange exchanges an OAuth provider code for SSO account data.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.SSOCodeExchange
+   */
+  SSOCodeExchange(
+    request: SSOCodeExchangeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SSOCodeExchangeResponse>
+
+  /**
+   * SSONonceExchange exchanges an auth-session nonce for stored SSO account data.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.SSONonceExchange
+   */
+  SSONonceExchange(
+    request: SSONonceExchangeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SSOCodeExchangeResponse>
+
+  /**
+   * StartDesktopSSO starts the native desktop SSO handoff flow.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.StartDesktopSSO
+   */
+  StartDesktopSSO(
+    request: StartDesktopSSORequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StartDesktopSSOResponse>
+
+  /**
+   * ConfirmDesktopSSO completes SSO account creation from provider-owned key material.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.ConfirmDesktopSSO
+   */
+  ConfirmDesktopSSO(
+    request: ConfirmDesktopSSORequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ConfirmDesktopSSOResponse>
+
+  /**
+   * PasskeyCheckUsername acknowledges the username-first passkey step.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.PasskeyCheckUsername
+   */
+  PasskeyCheckUsername(
+    request: PasskeyCheckUsernameRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PasskeyCheckUsernameResponse>
+
+  /**
+   * PasskeyRegisterChallenge fetches WebAuthn registration options for signup.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.PasskeyRegisterChallenge
+   */
+  PasskeyRegisterChallenge(
+    request: PasskeyRegisterChallengeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PasskeyRegisterChallengeResponse>
+
+  /**
+   * PasskeyConfirmSignup confirms browser-owned passkey signup.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.PasskeyConfirmSignup
+   */
+  PasskeyConfirmSignup(
+    request: PasskeyConfirmSignupRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PasskeyConfirmSignupResponse>
+
+  /**
+   * PasskeyAuthOptions fetches WebAuthn authentication options for login.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.PasskeyAuthOptions
+   */
+  PasskeyAuthOptions(
+    request: PasskeyAuthOptionsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PasskeyAuthOptionsResponse>
+
+  /**
+   * PasskeyAuthVerify verifies a WebAuthn authentication credential.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.PasskeyAuthVerify
+   */
+  PasskeyAuthVerify(
+    request: PasskeyAuthVerifyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PasskeyAuthVerifyResponse>
+
+  /**
+   * StartDesktopPasskey starts the native desktop passkey handoff flow.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.StartDesktopPasskey
+   */
+  StartDesktopPasskey(
+    request: StartDesktopPasskeyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StartDesktopPasskeyResponse>
+
+  /**
+   * ConfirmDesktopPasskey completes native desktop passkey account creation.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.ConfirmDesktopPasskey
+   */
+  ConfirmDesktopPasskey(
+    request: ConfirmDesktopPasskeyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ConfirmDesktopPasskeyResponse>
+
+  /**
+   * RelayDesktopPasskey relays a browser passkey ceremony result to a native client.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.RelayDesktopPasskey
+   */
+  RelayDesktopPasskey(
+    request: RelayDesktopPasskeyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RelayDesktopPasskeyResponse>
+
+  /**
+   * RequestRecoveryEmail sends an account recovery email.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.RequestRecoveryEmail
+   */
+  RequestRecoveryEmail(
+    request: RequestRecoveryEmailRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RequestRecoveryEmailResponse>
+
+  /**
+   * RecoverVerify verifies a recovery token from email.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.RecoverVerify
+   */
+  RecoverVerify(
+    request: RecoverVerifyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RecoverVerifyResponse>
+
+  /**
+   * RecoverExecute completes account recovery with replacement key material.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.RecoverExecute
+   */
+  RecoverExecute(
+    request: RecoverExecuteRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<RecoverExecuteResponse>
 }
 

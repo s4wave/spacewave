@@ -62,6 +62,7 @@ func (r *objectTypeRegistration) release() {
 			r.ref.Release()
 		}
 		r.resources.Release()
+		<-r.resources.Done()
 		r.serviceRef.Release()
 	})
 }
@@ -147,11 +148,13 @@ func (r *PluginHostRoot) RegisterObjectType(
 	ctx context.Context,
 	req *sdk_plugin_host.RegisterObjectTypeRequest,
 ) (*sdk_plugin_host.RegisterObjectTypeResponse, error) {
+	// Resolve the plugin generation receiving the registration resource.
 	pluginClient, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Connect to the core ObjectType registry Resource service.
 	invokers, _, serviceRef, err := bifrost_rpc.ExLookupRpcService(
 		r.ctx,
 		r.b,
@@ -179,10 +182,12 @@ func (r *PluginHostRoot) RegisterObjectType(
 		resources:  resources,
 		serviceRef: serviceRef,
 	}
+
+	// Register the ObjectType through the core root resource.
 	rootRef := resources.AccessRootResource()
+	defer rootRef.Release()
 	rootClient, err := rootRef.GetClient()
 	if err != nil {
-		rootRef.Release()
 		registration.release()
 		return nil, err
 	}
@@ -192,7 +197,6 @@ func (r *PluginHostRoot) RegisterObjectType(
 		PluginId: r.pluginID,
 		Metadata: req.GetMetadata(),
 	})
-	rootRef.Release()
 	if err != nil {
 		registration.release()
 		return nil, err
@@ -201,7 +205,11 @@ func (r *PluginHostRoot) RegisterObjectType(
 		registration.release()
 		return nil, errors.New("core ObjectType registration returned zero resource id")
 	}
+
+	// Retain the downstream registration beyond the root call.
 	registration.ref = resources.CreateResourceReference(resp.GetResourceId())
+
+	// Track the downstream registration for plugin root cleanup.
 	r.objectTypeMtx.Lock()
 	if r.released {
 		r.objectTypeMtx.Unlock()
@@ -211,6 +219,7 @@ func (r *PluginHostRoot) RegisterObjectType(
 	r.objectTypes[registration] = struct{}{}
 	r.objectTypeMtx.Unlock()
 
+	// Publish a plugin resource that releases the downstream registration.
 	resourceID, err := pluginClient.AddResource(srpc.NewMux(), func() {
 		r.releaseObjectTypeRegistration(registration)
 	})

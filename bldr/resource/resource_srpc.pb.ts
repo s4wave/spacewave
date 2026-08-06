@@ -7,10 +7,6 @@ import {
   ResourceAttachResponse,
   ResourceClientRequest,
   ResourceClientResponse,
-  ResourceRefAdoptRequest,
-  ResourceRefAdoptResponse,
-  ResourceRefReleaseRequest,
-  ResourceRefReleaseResponse,
 } from './resource.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { RpcStreamPacket } from '@go/github.com/aperturerobotics/starpc/rpcstream/rpcstream.pb.js'
@@ -19,6 +15,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -41,7 +38,7 @@ export const ResourceServiceDefinition = {
       name: 'ResourceClient',
       I: ResourceClientRequest,
       O: ResourceClientResponse,
-      kind: MethodKind.ServerStreaming,
+      kind: MethodKind.BiDiStreaming,
     },
     /**
      * ResourceRpc is a rpc request for an open resource handle.
@@ -55,29 +52,6 @@ export const ResourceServiceDefinition = {
       I: RpcStreamPacket,
       O: RpcStreamPacket,
       kind: MethodKind.BiDiStreaming,
-    },
-    /**
-     * ResourceRefRelease releases a resource given a handle ID.
-     * This is called when no references remain to a resource.
-     *
-     * @generated from rpc resource.ResourceService.ResourceRefRelease
-     */
-    ResourceRefRelease: {
-      name: 'ResourceRefRelease',
-      I: ResourceRefReleaseRequest,
-      O: ResourceRefReleaseResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * ResourceRefAdopt acknowledges adoption of a resource created by a held RPC.
-     *
-     * @generated from rpc resource.ResourceService.ResourceRefAdopt
-     */
-    ResourceRefAdopt: {
-      name: 'ResourceRefAdopt',
-      I: ResourceRefAdoptRequest,
-      O: ResourceRefAdoptResponse,
-      kind: MethodKind.Unary,
     },
     /**
      * ResourceAttach allows a client to provide resources that server-side
@@ -111,7 +85,7 @@ export interface ResourceService {
    * @generated from rpc resource.ResourceService.ResourceClient
    */
   ResourceClient(
-    request: ResourceClientRequest,
+    request: MessageStream<ResourceClientRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<ResourceClientResponse>
 
@@ -128,27 +102,6 @@ export interface ResourceService {
   ): MessageStream<RpcStreamPacket>
 
   /**
-   * ResourceRefRelease releases a resource given a handle ID.
-   * This is called when no references remain to a resource.
-   *
-   * @generated from rpc resource.ResourceService.ResourceRefRelease
-   */
-  ResourceRefRelease(
-    request: ResourceRefReleaseRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<ResourceRefReleaseResponse>
-
-  /**
-   * ResourceRefAdopt acknowledges adoption of a resource created by a held RPC.
-   *
-   * @generated from rpc resource.ResourceService.ResourceRefAdopt
-   */
-  ResourceRefAdopt(
-    request: ResourceRefAdoptRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<ResourceRefAdoptResponse>
-
-  /**
    * ResourceAttach allows a client to provide resources that server-side
    * RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
    * then resources registered via Add/AddAck. After Init/Ack, mux_data
@@ -162,6 +115,54 @@ export interface ResourceService {
   ): MessageStream<ResourceAttachResponse>
 }
 
+/**
+ * ResourceService provides a set of stateful resources via an RPC service.
+ *
+ * @generated from service resource.ResourceService
+ */
+export interface ResourceServiceHandler {
+  /**
+   * ResourceClient starts an instance of a client for the ResourceService,
+   * yielding a new client ID. The client can use that ID for future RPCs
+   * accessing the Resource tree. When the streaming RPC ends, references to
+   * resources opened by the client will be released.
+   *
+   * @generated from rpc resource.ResourceService.ResourceClient
+   */
+  ResourceClient(
+    request: MessageStream<ResourceClientRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<ResourceClientResponse>
+
+  /**
+   * ResourceRpc is a rpc request for an open resource handle.
+   * Exposes service(s) depending on the resource type.
+   * Component ID: resource_id from ResourceClient call.
+   *
+   * @generated from rpc resource.ResourceService.ResourceRpc
+   */
+  ResourceRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<RpcStreamPacket>
+
+  /**
+   * ResourceAttach allows a client to provide resources that server-side
+   * RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
+   * then resources registered via Add/AddAck. After Init/Ack, mux_data
+   * carries yamux frames for all attached resources.
+   *
+   * @generated from rpc resource.ResourceService.ResourceAttach
+   */
+  ResourceAttach(
+    request: MessageStream<ResourceAttachRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<ResourceAttachResponse>
+}
+
 export const ResourceServiceServiceName = ResourceServiceDefinition.typeName
 
 export class ResourceServiceClient implements ResourceService {
@@ -172,8 +173,6 @@ export class ResourceServiceClient implements ResourceService {
     this.rpc = rpc
     this.ResourceClient = this.ResourceClient.bind(this)
     this.ResourceRpc = this.ResourceRpc.bind(this)
-    this.ResourceRefRelease = this.ResourceRefRelease.bind(this)
-    this.ResourceRefAdopt = this.ResourceRefAdopt.bind(this)
     this.ResourceAttach = this.ResourceAttach.bind(this)
   }
   /**
@@ -185,14 +184,13 @@ export class ResourceServiceClient implements ResourceService {
    * @generated from rpc resource.ResourceService.ResourceClient
    */
   ResourceClient(
-    request: ResourceClientRequest,
+    request: MessageStream<ResourceClientRequest>,
     abortSignal?: AbortSignal,
   ): MessageStream<ResourceClientResponse> {
-    const requestMsg = ResourceClientRequest.create(request)
-    const result = this.rpc.serverStreamingRequest(
+    const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
       ResourceServiceDefinition.methods.ResourceClient.name,
-      ResourceClientRequest.toBinary(requestMsg),
+      buildEncodeMessageTransform(ResourceClientRequest)(request),
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(ResourceClientResponse)(result)
@@ -216,45 +214,6 @@ export class ResourceServiceClient implements ResourceService {
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(RpcStreamPacket)(result)
-  }
-
-  /**
-   * ResourceRefRelease releases a resource given a handle ID.
-   * This is called when no references remain to a resource.
-   *
-   * @generated from rpc resource.ResourceService.ResourceRefRelease
-   */
-  async ResourceRefRelease(
-    request: ResourceRefReleaseRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<ResourceRefReleaseResponse> {
-    const requestMsg = ResourceRefReleaseRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      ResourceServiceDefinition.methods.ResourceRefRelease.name,
-      ResourceRefReleaseRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return ResourceRefReleaseResponse.fromBinary(result)
-  }
-
-  /**
-   * ResourceRefAdopt acknowledges adoption of a resource created by a held RPC.
-   *
-   * @generated from rpc resource.ResourceService.ResourceRefAdopt
-   */
-  async ResourceRefAdopt(
-    request: ResourceRefAdoptRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<ResourceRefAdoptResponse> {
-    const requestMsg = ResourceRefAdoptRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      ResourceServiceDefinition.methods.ResourceRefAdopt.name,
-      ResourceRefAdoptRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return ResourceRefAdoptResponse.fromBinary(result)
   }
 
   /**

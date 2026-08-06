@@ -11,7 +11,12 @@ import {
   WatchStateResponse,
 } from './state.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * StateAtomResourceService provides access to persisted state atoms.
@@ -93,6 +98,47 @@ export interface StateAtomResourceService {
   WatchState(
     request: WatchStateRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchStateResponse>
+}
+
+/**
+ * StateAtomResourceService provides access to persisted state atoms.
+ *
+ * @generated from service resource.state.StateAtomResourceService
+ */
+export interface StateAtomResourceServiceHandler {
+  /**
+   * GetState returns the current state value.
+   *
+   * @generated from rpc resource.state.StateAtomResourceService.GetState
+   */
+  GetState(
+    request: GetStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetStateResponse>
+
+  /**
+   * SetState updates the state value.
+   *
+   * @generated from rpc resource.state.StateAtomResourceService.SetState
+   */
+  SetState(
+    request: SetStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetStateResponse>
+
+  /**
+   * WatchState watches for state changes.
+   * Streams the current state immediately, then any updates.
+   *
+   * @generated from rpc resource.state.StateAtomResourceService.WatchState
+   */
+  WatchState(
+    request: WatchStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchStateResponse>
 }
 

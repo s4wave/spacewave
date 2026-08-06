@@ -21,6 +21,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -138,6 +139,65 @@ export interface WebRuntimeHost {
   WebWorkerRpc(
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+}
+
+/**
+ * WebRuntimeHost is the API exposed by the Go runtime to the WebRuntime.
+ *
+ * Usually accessed by the WebRuntime.
+ *
+ * @generated from service web.runtime.WebRuntimeHost
+ */
+export interface WebRuntimeHostHandler {
+  /**
+   * RequestRuntimeQuit asks the host runtime to perform a user-initiated quit.
+   *
+   * @generated from rpc web.runtime.WebRuntimeHost.RequestRuntimeQuit
+   */
+  RequestRuntimeQuit(
+    request: RequestRuntimeQuitRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RequestRuntimeQuitResponse>
+
+  /**
+   * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+   * Exposes the WebDocumentHost service.
+   * Id is the webDocumentId.
+   *
+   * @generated from rpc web.runtime.WebRuntimeHost.WebDocumentRpc
+   */
+  WebDocumentRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<RpcStreamPacket>
+
+  /**
+   * ServiceWorkerRpc opens a stream for a RPC call from the ServiceWorker.
+   * Exposes the ServiceWorkerHost service.
+   * Id is the service worker id.
+   *
+   * @generated from rpc web.runtime.WebRuntimeHost.ServiceWorkerRpc
+   */
+  ServiceWorkerRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<RpcStreamPacket>
+
+  /**
+   * WebWorkerRpc opens a stream for a RPC call from a WebWorker.
+   * Exposes the WebWorkerHost service.
+   * Id is the webWorkerId.
+   *
+   * @generated from rpc web.runtime.WebRuntimeHost.WebWorkerRpc
+   */
+  WebWorkerRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<RpcStreamPacket>
 }
 
@@ -398,6 +458,91 @@ export interface WebRuntime {
   FlushIndexCache(
     request: FlushIndexCacheRequest,
     abortSignal?: AbortSignal,
+  ): Promise<FlushIndexCacheResponse>
+}
+
+/**
+ * WebRuntime is the API exposed by the TypeScript WebRuntime managing WebDocument.
+ *
+ * Usually accessed by the WebRuntimeHost.
+ *
+ * @generated from service web.runtime.WebRuntime
+ */
+export interface WebRuntimeHandler {
+  /**
+   * WatchWebRuntimeStatus returns an initial snapshot of documents followed by updates.
+   *
+   * @generated from rpc web.runtime.WebRuntime.WatchWebRuntimeStatus
+   */
+  WatchWebRuntimeStatus(
+    request: WatchWebRuntimeStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WebRuntimeStatus>
+
+  /**
+   * CreateWebDocument requests to create a new WebDocument.
+   * Returns created: false if unable to create WebDocuments.
+   * This usually creates a new Tab or Window.
+   *
+   * @generated from rpc web.runtime.WebRuntime.CreateWebDocument
+   */
+  CreateWebDocument(
+    request: CreateWebDocumentRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateWebDocumentResponse>
+
+  /**
+   * RemoveWebDocument requests to delete a WebDocument.
+   * Returns created: false if unable to create WebDocuments.
+   * This usually creates a new Tab or Window.
+   *
+   * @generated from rpc web.runtime.WebRuntime.RemoveWebDocument
+   */
+  RemoveWebDocument(
+    request: RemoveWebDocumentRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveWebDocumentResponse>
+
+  /**
+   * WebDocumentRpc opens a stream for a RPC call to a WebDocument.
+   * Exposes the WebDocument service.
+   * Id is the webDocumentId.
+   *
+   * @generated from rpc web.runtime.WebRuntime.WebDocumentRpc
+   */
+  WebDocumentRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<RpcStreamPacket>
+
+  /**
+   * WebWorkerRpc opens a stream for a RPC call to a WebWorker.
+   * Contacts the WebWorker via. the associated WebRuntimeClient.
+   * The WebWorker must have registered with the runtime for this to work.
+   * Note: this is on WebRuntime and not WebDocument for performance reasons (fewer context transfers).
+   * Id is the webWorkerId.
+   *
+   * @generated from rpc web.runtime.WebRuntime.WebWorkerRpc
+   */
+  WebWorkerRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<RpcStreamPacket>
+
+  /**
+   * FlushIndexCache refreshes the cached browser index document.
+   *
+   * @generated from rpc web.runtime.WebRuntime.FlushIndexCache
+   */
+  FlushIndexCache(
+    request: FlushIndexCacheRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<FlushIndexCacheResponse>
 }
 

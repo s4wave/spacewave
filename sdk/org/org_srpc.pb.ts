@@ -4,7 +4,12 @@
 
 import { WatchOrgStateRequest, WatchOrgStateResponse } from './org.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.org.OrgResourceService
@@ -34,6 +39,20 @@ export interface OrgResourceService {
   WatchOrgState(
     request: WatchOrgStateRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchOrgStateResponse>
+}
+
+/**
+ * @generated from service s4wave.org.OrgResourceService
+ */
+export interface OrgResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.org.OrgResourceService.WatchOrgState
+   */
+  WatchOrgState(
+    request: WatchOrgStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchOrgStateResponse>
 }
 

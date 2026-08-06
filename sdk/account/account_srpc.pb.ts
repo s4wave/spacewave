@@ -53,7 +53,12 @@ import {
   WatchSessionsResponse,
 } from './account.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.account.AccountResourceService
@@ -474,6 +479,227 @@ export interface AccountResourceService {
   PasskeyRegisterVerify(
     request: PasskeyRegisterVerifyRequest,
     abortSignal?: AbortSignal,
+  ): Promise<PasskeyRegisterVerifyResponse>
+}
+
+/**
+ * @generated from service s4wave.account.AccountResourceService
+ */
+export interface AccountResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.WatchAccountInfo
+   */
+  WatchAccountInfo(
+    request: WatchAccountInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchAccountInfoResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.WatchAuthMethods
+   */
+  WatchAuthMethods(
+    request: WatchAuthMethodsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchAuthMethodsResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.WatchSessions
+   */
+  WatchSessions(
+    request: WatchSessionsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchSessionsResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.WatchKeybindingOverrides
+   */
+  WatchKeybindingOverrides(
+    request: WatchKeybindingOverridesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchKeybindingOverridesResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.UpsertKeybindingOverride
+   */
+  UpsertKeybindingOverride(
+    request: UpsertKeybindingOverrideRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UpsertKeybindingOverrideResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.RemoveKeybindingOverride
+   */
+  RemoveKeybindingOverride(
+    request: RemoveKeybindingOverrideRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveKeybindingOverrideResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.SetKeybindingSettings
+   */
+  SetKeybindingSettings(
+    request: SetKeybindingSettingsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetKeybindingSettingsResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.AddAuthMethod
+   */
+  AddAuthMethod(
+    request: AddAuthMethodRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AddAuthMethodResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.RemoveAuthMethod
+   */
+  RemoveAuthMethod(
+    request: RemoveAuthMethodRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RemoveAuthMethodResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.SetSecurityLevel
+   */
+  SetSecurityLevel(
+    request: SetSecurityLevelRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetSecurityLevelResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.RevokeSession
+   */
+  RevokeSession(
+    request: RevokeSessionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RevokeSessionResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.GenerateBackupKey
+   */
+  GenerateBackupKey(
+    request: GenerateBackupKeyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GenerateBackupKeyResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.ChangePassword
+   */
+  ChangePassword(
+    request: ChangePasswordRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ChangePasswordResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.WatchEntityKeypairs
+   */
+  WatchEntityKeypairs(
+    request: WatchEntityKeypairsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchEntityKeypairsResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.UnlockEntityKeypair
+   */
+  UnlockEntityKeypair(
+    request: UnlockEntityKeypairRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UnlockEntityKeypairResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.SignWithEntityKeypair
+   */
+  SignWithEntityKeypair(
+    request: SignWithEntityKeypairRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SignWithEntityKeypairResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.LockEntityKeypair
+   */
+  LockEntityKeypair(
+    request: LockEntityKeypairRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LockEntityKeypairResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.LockAllEntityKeypairs
+   */
+  LockAllEntityKeypairs(
+    request: LockAllEntityKeypairsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LockAllEntityKeypairsResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.SSOCodeExchange
+   */
+  SSOCodeExchange(
+    request: SSOCodeExchangeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SSOCodeExchangeResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.LinkSSO
+   */
+  LinkSSO(
+    request: LinkSSORequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<LinkSSOResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.StartDesktopPasskeyRegister
+   */
+  StartDesktopPasskeyRegister(
+    request: StartDesktopPasskeyRegisterRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StartDesktopPasskeyRegisterResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.StartDesktopPasskeyRegisterHandoff
+   */
+  StartDesktopPasskeyRegisterHandoff(
+    request: StartDesktopPasskeyRegisterHandoffRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StartDesktopPasskeyRegisterHandoffResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.PasskeyRegisterOptions
+   */
+  PasskeyRegisterOptions(
+    request: PasskeyRegisterOptionsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PasskeyRegisterOptionsResponse>
+
+  /**
+   * @generated from rpc s4wave.account.AccountResourceService.PasskeyRegisterVerify
+   */
+  PasskeyRegisterVerify(
+    request: PasskeyRegisterVerifyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<PasskeyRegisterVerifyResponse>
 }
 

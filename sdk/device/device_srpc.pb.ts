@@ -11,7 +11,12 @@ import {
   WatchDeviceStateResponse,
 } from './device.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.device.DeviceResourceService
@@ -75,6 +80,38 @@ export interface DeviceResourceService {
   AccessCheckoutRoot(
     request: AccessCheckoutRootRequest,
     abortSignal?: AbortSignal,
+  ): Promise<AccessCheckoutRootResponse>
+}
+
+/**
+ * @generated from service s4wave.device.DeviceResourceService
+ */
+export interface DeviceResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.device.DeviceResourceService.WatchDeviceState
+   */
+  WatchDeviceState(
+    request: WatchDeviceStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchDeviceStateResponse>
+
+  /**
+   * @generated from rpc s4wave.device.DeviceResourceService.ReportDeviceStatus
+   */
+  ReportDeviceStatus(
+    request: ReportDeviceStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReportDeviceStatusResponse>
+
+  /**
+   * @generated from rpc s4wave.device.DeviceResourceService.AccessCheckoutRoot
+   */
+  AccessCheckoutRoot(
+    request: AccessCheckoutRootRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<AccessCheckoutRootResponse>
 }
 

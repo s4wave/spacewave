@@ -28,6 +28,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -116,6 +117,50 @@ export interface Kvtx {
   Watch(
     request: KvtxWatchRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<KvtxWatchResponse>
+}
+
+/**
+ * Kvtx proxies a Kvtx store via RPC.
+ *
+ * @generated from service kvtx.rpc.Kvtx
+ */
+export interface KvtxHandler {
+  /**
+   * KvtxTransaction executes a key/value transaction.
+   * Returns a stream of messages about the transaction status.
+   * The transaction will be discarded if this call is canceled before Commit.
+   *
+   * @generated from rpc kvtx.rpc.Kvtx.KvtxTransaction
+   */
+  KvtxTransaction(
+    request: MessageStream<KvtxTransactionRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<KvtxTransactionResponse>
+
+  /**
+   * KvtxTransactionRpc is a rpc request for an ongoing KvtxTransaction.
+   * Exposes service: KvtxOps
+   * Component ID: transaction_id from KvtxTransaction call.
+   *
+   * @generated from rpc kvtx.rpc.Kvtx.KvtxTransactionRpc
+   */
+  KvtxTransactionRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<RpcStreamPacket>
+
+  /**
+   * Watch streams key/value snapshots after committed store changes.
+   *
+   * @generated from rpc kvtx.rpc.Kvtx.Watch
+   */
+  Watch(
+    request: KvtxWatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<KvtxWatchResponse>
 }
 
@@ -362,6 +407,95 @@ export interface KvtxOps {
   Iterate(
     request: MessageStream<KvtxIterateRequest>,
     abortSignal?: AbortSignal,
+  ): MessageStream<KvtxIterateResponse>
+}
+
+/**
+ * KvtxOps exposes a KvtxOps object with a service.
+ * Wraps the kvtx.TxOps interface.
+ *
+ * @generated from service kvtx.rpc.KvtxOps
+ */
+export interface KvtxOpsHandler {
+  /**
+   * KeyCount returns the number of keys in the store.
+   *
+   * @generated from rpc kvtx.rpc.KvtxOps.KeyCount
+   */
+  KeyCount(
+    request: KeyCountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<KeyCountResponse>
+
+  /**
+   * KeyData returns data for a key.
+   *
+   * @generated from rpc kvtx.rpc.KvtxOps.KeyData
+   */
+  KeyData(
+    request: KvtxKeyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<KvtxKeyDataResponse>
+
+  /**
+   * KeyExists checks if a key exists.
+   *
+   * @generated from rpc kvtx.rpc.KvtxOps.KeyExists
+   */
+  KeyExists(
+    request: KvtxKeyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<KvtxKeyExistsResponse>
+
+  /**
+   * SetKey sets the value of a key.
+   *
+   * @generated from rpc kvtx.rpc.KvtxOps.SetKey
+   */
+  SetKey(
+    request: KvtxSetKeyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<KvtxSetKeyResponse>
+
+  /**
+   * DeleteKey removes a key from the store.
+   *
+   * @generated from rpc kvtx.rpc.KvtxOps.DeleteKey
+   */
+  DeleteKey(
+    request: KvtxDeleteKeyRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<KvtxDeleteKeyResponse>
+
+  /**
+   * ScanPrefix scans for key/value pairs with a key prefix.
+   *
+   * @generated from rpc kvtx.rpc.KvtxOps.ScanPrefix
+   */
+  ScanPrefix(
+    request: KvtxScanPrefixRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<KvtxScanPrefixResponse>
+
+  /**
+   * Iterate iterates over the Kvtx store.
+   * Uses a request/reply approach:
+   *  - First message is sent by caller w/ the iterate arguments.
+   *  - Server replies with the Ack message.
+   *  - Subsequent messages are request/reply, one request to one reply.
+   *
+   * @generated from rpc kvtx.rpc.KvtxOps.Iterate
+   */
+  Iterate(
+    request: MessageStream<KvtxIterateRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<KvtxIterateResponse>
 }
 

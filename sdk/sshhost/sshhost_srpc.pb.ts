@@ -7,7 +7,12 @@ import {
   WatchSshHostStateResponse,
 } from './sshhost.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.sshhost.SshHostResourceService
@@ -37,6 +42,20 @@ export interface SshHostResourceService {
   WatchSshHostState(
     request: WatchSshHostStateRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchSshHostStateResponse>
+}
+
+/**
+ * @generated from service s4wave.sshhost.SshHostResourceService
+ */
+export interface SshHostResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.sshhost.SshHostResourceService.WatchSshHostState
+   */
+  WatchSshHostState(
+    request: WatchSshHostStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchSshHostStateResponse>
 }
 

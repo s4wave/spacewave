@@ -11,7 +11,7 @@ import {
   MarkTestResultResponse,
 } from './testbed.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * @generated from service s4wave.testbed.TestbedResourceService
@@ -75,6 +75,38 @@ export interface TestbedResourceService {
   AccessStateAtom(
     request: AccessStateAtomRequest,
     abortSignal?: AbortSignal,
+  ): Promise<AccessStateAtomResponse>
+}
+
+/**
+ * @generated from service s4wave.testbed.TestbedResourceService
+ */
+export interface TestbedResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.testbed.TestbedResourceService.CreateWorld
+   */
+  CreateWorld(
+    request: CreateWorldRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CreateWorldResponse>
+
+  /**
+   * @generated from rpc s4wave.testbed.TestbedResourceService.MarkTestResult
+   */
+  MarkTestResult(
+    request: MarkTestResultRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<MarkTestResultResponse>
+
+  /**
+   * @generated from rpc s4wave.testbed.TestbedResourceService.AccessStateAtom
+   */
+  AccessStateAtom(
+    request: AccessStateAtomRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<AccessStateAtomResponse>
 }
 

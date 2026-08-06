@@ -4,7 +4,12 @@
 
 import { FetchManifestRequest, FetchManifestResponse } from './manifest.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * ManifestFetch is a service that fetches manifests by metadata.
@@ -46,6 +51,26 @@ export interface ManifestFetch {
   FetchManifest(
     request: FetchManifestRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<FetchManifestResponse>
+}
+
+/**
+ * ManifestFetch is a service that fetches manifests by metadata.
+ *
+ * @generated from service bldr.manifest.ManifestFetch
+ */
+export interface ManifestFetchHandler {
+  /**
+   * FetchManifest requests the manifest for the given metadata.
+   * The metadata may not be an exact match.
+   * Returns the stream of values from the FetchManifest directive.
+   *
+   * @generated from rpc bldr.manifest.ManifestFetch.FetchManifest
+   */
+  FetchManifest(
+    request: FetchManifestRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<FetchManifestResponse>
 }
 

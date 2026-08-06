@@ -585,13 +585,10 @@ type CreateSpaceResponse struct {
 	// MountedSharedObject is the mounted SharedObject resource created as part of
 	// space initialization. Callers may use it instead of immediately remounting
 	// the same SharedObject by id.
-	// @resource-adoption-ids
 	MountedSharedObject *MountSharedObjectResponse `protobuf:"bytes,3,opt,name=mounted_shared_object,json=mountedSharedObject,proto3" json:"mountedSharedObject,omitempty"`
 	// SharedObjectBodyResourceId is the resource id of the mounted Space body.
-	// @resource-adoption-id
 	SharedObjectBodyResourceId uint32 `protobuf:"varint,4,opt,name=shared_object_body_resource_id,json=sharedObjectBodyResourceId,proto3" json:"sharedObjectBodyResourceId,omitempty"`
 	// SpaceWorldResourceId is the resource id of the mounted Space world engine.
-	// @resource-adoption-id
 	SpaceWorldResourceId uint32 `protobuf:"varint,5,opt,name=space_world_resource_id,json=spaceWorldResourceId,proto3" json:"spaceWorldResourceId,omitempty"`
 }
 

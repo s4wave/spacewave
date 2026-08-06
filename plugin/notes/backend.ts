@@ -6,6 +6,7 @@ import {
   handleRpcStream,
   type MessageStream,
   type RpcStreamPacket,
+  type ServerContext,
 } from 'starpc'
 import type { BackendAPI, BackendEntrypointLifecycle } from '@aptre/bldr-sdk'
 import {
@@ -15,13 +16,13 @@ import {
 } from '@aptre/bldr-sdk/resource/index.js'
 import {
   ResourceServer,
-  constructChildResource,
-  getCurrentResourceClient,
+  getResourceCall,
   newResourceMux,
 } from '@aptre/bldr-sdk/resource/server/index.js'
 import {
   ObjectTypeHandlerServiceDefinition,
   ObjectTypeRegistryResourceServiceClient,
+  type ObjectTypeHandlerServiceHandler,
 } from '@s4wave/sdk/objecttype/registry/registry_srpc.pb.js'
 import type {
   InvokeObjectTypeRequest,
@@ -30,10 +31,12 @@ import type {
 import {
   WorldOpHandlerServiceDefinition,
   WorldOpRegistryResourceServiceClient,
+  type WorldOpHandlerServiceHandler,
 } from '@s4wave/sdk/worldop/registry/registry_srpc.pb.js'
 import {
   QuickstartHandlerServiceDefinition,
   QuickstartRegistryResourceServiceClient,
+  type QuickstartHandlerServiceHandler,
 } from '@s4wave/sdk/quickstart/registry/registry_srpc.pb.js'
 import { ObjectWizardRegistryResourceServiceClient } from '@s4wave/sdk/world/wizard/wizard_srpc.pb.js'
 import type {
@@ -63,7 +66,7 @@ import { FSCursorServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs
 import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/client/fs-handle.js'
 import {
   PluginDefinition,
-  type Plugin as SRPCPlugin,
+  type PluginHandler,
 } from '@go/github.com/s4wave/spacewave/bldr/plugin/plugin_srpc.pb.js'
 import { NotebookResourceServiceDefinition } from './sdk/notebook_srpc.pb.js'
 import { BlogResourceServiceDefinition } from './sdk/blog_srpc.pb.js'
@@ -95,7 +98,7 @@ type ViteManifestEntry = {
   file?: string
 }
 
-class NotesPlugin implements SRPCPlugin {
+class NotesPlugin implements PluginHandler {
   constructor(private readonly resourceServer: Server) {}
 
   PluginRpc(
@@ -163,10 +166,9 @@ async function resolveAssetPath(
   using _ = manifest
   const size = await manifest.getSize(signal)
   const { data } = await manifest.readAt(signal, 0n, size)
-  const parsed = JSON.parse(new TextDecoder().decode(data)) as Record<
-    string,
-    ViteManifestEntry
-  >
+  const parsed = JSON.parse(
+    new globalThis.TextDecoder().decode(data),
+  ) as Record<string, ViteManifestEntry>
   const entry = parsed[key]
   if (entry?.file) {
     const pluginId = api.startInfo.pluginId
@@ -178,22 +180,21 @@ async function resolveAssetPath(
 // NotesObjectTypeHandler implements ObjectTypeHandlerService for all
 // notes plugin object types (notebook, blog, docs). Dispatches on typeId to
 // create the appropriate resource handler.
-class NotesObjectTypeHandler {
+class NotesObjectTypeHandler implements ObjectTypeHandlerServiceHandler {
   InvokeObjectType(
     request: InvokeObjectTypeRequest,
-    _abortSignal?: AbortSignal,
+    _abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<InvokeObjectTypeResponse> {
+    const call = getResourceCall(context)
     const typeId = request.typeId ?? ''
     const engineId = request.attachedEngineResourceId ?? 0
     const objectKey = request.objectKey ?? ''
-    const { resourceId } = constructChildResource(() => {
+    const { resourceId } = call.constructChildResource(() => {
       // If engineId is provided, get an attached ref to the world engine.
       // The engine ref wraps the yamux-backed srpc.Client for RPCs
       // back to the Go bridge's EngineResource mux.
-      const engineRef =
-        engineId > 0
-          ? getCurrentResourceClient().getAttachedRef(engineId)
-          : undefined
+      const engineRef = engineId > 0 ? call.getAttachedRef(engineId) : undefined
 
       switch (typeId) {
         case 'notes/blog': {
@@ -243,19 +244,20 @@ class NotesObjectTypeHandler {
 
 // NotesWorldOpHandler implements WorldOpHandlerService for the notes plugin.
 // Handles world-level and object-level operations for notes types.
-class NotesWorldOpHandler {
+class NotesWorldOpHandler implements WorldOpHandlerServiceHandler {
   async ApplyWorldOp(
     request: ApplyWorldOpRequest,
-    _abortSignal?: AbortSignal,
+    _abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ApplyWorldOpResponse> {
     const opTypeId = request.operationTypeId ?? ''
     switch (opTypeId) {
       case INIT_NOTEBOOK_OP_ID:
-        return this.applyInitNotebook(request)
+        return this.applyInitNotebook(request, context)
       case CREATE_BLOG_OP_ID:
-        return this.applyCreateBlog(request)
+        return this.applyCreateBlog(request, context)
       case CREATE_DOCS_OP_ID:
-        return this.applyCreateDocs(request)
+        return this.applyCreateDocs(request, context)
       default:
         throw new Error('unhandled world op: ' + opTypeId)
     }
@@ -263,14 +265,16 @@ class NotesWorldOpHandler {
 
   ApplyWorldObjectOp(
     _request: ApplyWorldObjectOpRequest,
-    _abortSignal?: AbortSignal,
+    _abortSignal: AbortSignal,
+    _context: ServerContext,
   ): Promise<ApplyWorldObjectOpResponse> {
     return Promise.reject(new Error('unhandled object op'))
   }
 
   ValidateOp(
     _request: ValidateOpRequest,
-    _abortSignal?: AbortSignal,
+    _abortSignal: AbortSignal,
+    _context: ServerContext,
   ): Promise<ValidateOpResponse> {
     return Promise.resolve({})
   }
@@ -279,6 +283,7 @@ class NotesWorldOpHandler {
   // Creates a UnixFS object with sample files and a Notebook world object.
   private async applyInitNotebook(
     request: ApplyWorldOpRequest,
+    context: ServerContext,
   ): Promise<ApplyWorldOpResponse> {
     const engineId = request.attachedWorldStateResourceId ?? 0
     if (!engineId) {
@@ -294,7 +299,7 @@ class NotesWorldOpHandler {
     }
 
     // Get the WorldState from the attached resource.
-    const wsRef = getCurrentResourceClient().getAttachedRef(engineId)
+    const wsRef = getResourceCall(context).getAttachedRef(engineId)
     const ws = new WorldStateResource(wsRef)
     try {
       // 1. Init UnixFS object via world op.
@@ -348,6 +353,7 @@ class NotesWorldOpHandler {
   // initial post file.
   private async applyCreateBlog(
     request: ApplyWorldOpRequest,
+    context: ServerContext,
   ): Promise<ApplyWorldOpResponse> {
     const engineId = request.attachedWorldStateResourceId ?? 0
     if (!engineId) {
@@ -361,8 +367,7 @@ class NotesWorldOpHandler {
       throw new Error('objectKey is required')
     }
 
-    // Get the WorldState from the attached resource.
-    const wsRef = getCurrentResourceClient().getAttachedRef(engineId)
+    const wsRef = getResourceCall(context).getAttachedRef(engineId)
     const ws = new WorldStateResource(wsRef)
     try {
       const blogName = op.name || 'Blog'
@@ -384,9 +389,9 @@ class NotesWorldOpHandler {
 
   // applyCreateDocs handles the create-docs operation.
   // Creates a Documentation world object with inline source, a UnixFS object
-  // with an initial index.md page, and a companion Notebook.
   private async applyCreateDocs(
     request: ApplyWorldOpRequest,
+    context: ServerContext,
   ): Promise<ApplyWorldOpResponse> {
     const engineId = request.attachedWorldStateResourceId ?? 0
     if (!engineId) {
@@ -405,8 +410,7 @@ class NotesWorldOpHandler {
     // Derive the UnixFS key from the docs key.
     const unixfsKey = docsKey + '-fs'
 
-    // Get the WorldState from the attached resource.
-    const wsRef = getCurrentResourceClient().getAttachedRef(engineId)
+    const wsRef = getResourceCall(context).getAttachedRef(engineId)
     const ws = new WorldStateResource(wsRef)
     try {
       // 1. Init UnixFS object via world op.
@@ -453,7 +457,7 @@ class NotesWorldOpHandler {
   }
 }
 
-class NotesQuickstartHandler {
+class NotesQuickstartHandler implements QuickstartHandlerServiceHandler {
   private readonly pluginId: string
 
   constructor(pluginId: string) {
@@ -476,14 +480,14 @@ class NotesQuickstartHandler {
 
   async SeedQuickstart(
     request: SeedQuickstartRequest,
-    abortSignal?: AbortSignal,
+    _abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<SeedQuickstartResponse> {
     const engineId = request.attachedEngineResourceId ?? 0
     if (!engineId) {
       throw new Error('attachedEngineResourceId is required')
     }
-
-    const engineRef = getCurrentResourceClient().getAttachedRef(engineId)
+    const engineRef = getResourceCall(context).getAttachedRef(engineId)
     const engine = new Engine(engineRef)
     const worldState = new EngineWorldState(engine, true)
     try {
@@ -496,7 +500,7 @@ class NotesQuickstartHandler {
               UNIXFS_OBJECT_KEY,
               'Notes',
               new Date(),
-              abortSignal,
+              context.signal,
             )
           })
           return {
@@ -511,7 +515,7 @@ class NotesQuickstartHandler {
               'Documentation',
               '',
               new Date(),
-              abortSignal,
+              context.signal,
             )
           })
           return {
@@ -527,7 +531,7 @@ class NotesQuickstartHandler {
               '',
               '',
               new Date(),
-              abortSignal,
+              context.signal,
             )
           })
           return {

@@ -9,7 +9,7 @@ import {
   ListTablesResponse,
 } from './schema.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * SqlSchemaResourceService exposes a SQL schema world object.
@@ -68,6 +68,35 @@ export interface SqlSchemaResourceService {
   ListTables(
     request: ListTablesRequest,
     abortSignal?: AbortSignal,
+  ): Promise<ListTablesResponse>
+}
+
+/**
+ * SqlSchemaResourceService exposes a SQL schema world object.
+ *
+ * @generated from service s4wave.sql.schema.SqlSchemaResourceService
+ */
+export interface SqlSchemaResourceServiceHandler {
+  /**
+   * GetSchema returns the schema metadata.
+   *
+   * @generated from rpc s4wave.sql.schema.SqlSchemaResourceService.GetSchema
+   */
+  GetSchema(
+    request: GetSchemaRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetSchemaResponse>
+
+  /**
+   * ListTables lists tables in the target sql/db schema.
+   *
+   * @generated from rpc s4wave.sql.schema.SqlSchemaResourceService.ListTables
+   */
+  ListTables(
+    request: ListTablesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ListTablesResponse>
 }
 

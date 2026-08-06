@@ -13,7 +13,7 @@ import {
   ListBucketInfoResponse,
 } from './bucket.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * BucketStore implements the bucket storage on a ProxyVolume.
@@ -114,6 +114,57 @@ export interface BucketStore {
   ListBucketInfo(
     request: ListBucketInfoRequest,
     abortSignal?: AbortSignal,
+  ): Promise<ListBucketInfoResponse>
+}
+
+/**
+ * BucketStore implements the bucket storage on a ProxyVolume.
+ *
+ * @generated from service bucket.store.rpc.BucketStore
+ */
+export interface BucketStoreHandler {
+  /**
+   * GetBucketConfig gets the bucket config with the highest rev for the ID.
+   *
+   * @generated from rpc bucket.store.rpc.BucketStore.GetBucketConfig
+   */
+  GetBucketConfig(
+    request: GetBucketConfigRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetBucketConfigResponse>
+
+  /**
+   * ApplyBucketConfig requests to apply a bucket config to this volume only.
+   *
+   * @generated from rpc bucket.store.rpc.BucketStore.ApplyBucketConfig
+   */
+  ApplyBucketConfig(
+    request: ApplyBucketConfigRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApplyBucketConfigResponse>
+
+  /**
+   * GetBucketInfo returns bucket information.
+   *
+   * @generated from rpc bucket.store.rpc.BucketStore.GetBucketInfo
+   */
+  GetBucketInfo(
+    request: GetBucketInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetBucketInfoResponse>
+
+  /**
+   * ListBucketInfo returns a list of bucket infos with an optional regex.
+   *
+   * @generated from rpc bucket.store.rpc.BucketStore.ListBucketInfo
+   */
+  ListBucketInfo(
+    request: ListBucketInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ListBucketInfoResponse>
 }
 

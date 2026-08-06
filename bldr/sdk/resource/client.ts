@@ -1,18 +1,18 @@
-import {
-  constantBackoff,
-  createAbortController,
-  retryWithAbort,
-} from '@aptre/bldr'
+import { createAbortController, retryWithAbort } from '@aptre/bldr'
 import type { ResourceService } from './resource_srpc.pb.js'
-import type { ResourceAttachRequest } from './resource.pb.js'
+import type {
+  ResourceAttachRequest,
+  ResourceClientRequest,
+} from './resource.pb.js'
 import {
   Client as SRPCClient,
+  ERR_RPC_ABORT,
   Server,
   StreamConn,
   combineUint8ArrayListTransform,
   openRpcStream,
 } from 'starpc'
-import type { LookupMethod } from 'starpc'
+import type { LookupMethod, OpenStreamFunc } from 'starpc'
 import { pushable } from 'it-pushable'
 import type { Pushable } from 'it-pushable'
 import { pipe } from 'it-pipe'
@@ -209,6 +209,79 @@ interface ClientInitState {
 /**
  * Creates a reference to a remote resource.
  */
+class OrderedSRPCClient extends SRPCClient {
+  constructor(
+    private readonly resourceClient: Client,
+    openStreamFn: OpenStreamFunc,
+  ) {
+    super(openStreamFn)
+  }
+
+  override async request(
+    service: string,
+    method: string,
+    data: Uint8Array,
+    abortSignal?: AbortSignal,
+  ): Promise<Uint8Array> {
+    await this.resourceClient.waitForControls(abortSignal)
+    return super.request(service, method, data, abortSignal)
+  }
+
+  override async clientStreamingRequest(
+    service: string,
+    method: string,
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal,
+  ): Promise<Uint8Array> {
+    await this.resourceClient.waitForControls(abortSignal)
+    return super.clientStreamingRequest(service, method, data, abortSignal)
+  }
+
+  override serverStreamingRequest(
+    service: string,
+    method: string,
+    data: Uint8Array,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<Uint8Array> {
+    const outgoing = pushable<Uint8Array>({ objectMode: true })
+    void (async () => {
+      await this.resourceClient.waitForControls(abortSignal)
+      for await (const value of super.serverStreamingRequest(
+        service,
+        method,
+        data,
+        abortSignal,
+      )) {
+        outgoing.push(value)
+      }
+      outgoing.end()
+    })().catch((error) => outgoing.end(error))
+    return outgoing
+  }
+
+  override bidirectionalStreamingRequest(
+    service: string,
+    method: string,
+    data: AsyncIterable<Uint8Array>,
+    abortSignal?: AbortSignal,
+  ): AsyncIterable<Uint8Array> {
+    const outgoing = pushable<Uint8Array>({ objectMode: true })
+    void (async () => {
+      await this.resourceClient.waitForControls(abortSignal)
+      for await (const value of super.bidirectionalStreamingRequest(
+        service,
+        method,
+        data,
+        abortSignal,
+      )) {
+        outgoing.push(value)
+      }
+      outgoing.end()
+    })().catch((error) => outgoing.end(error))
+    return outgoing
+  }
+}
+
 function createResourceRef(
   id: number,
   client: Client,
@@ -227,8 +300,8 @@ function createResourceRef(
   let srpcClient: SRPCClient | null = null
   const getSrpcClient = (): SRPCClient => {
     if (!srpcClient) {
-      srpcClient = new SRPCClient(async () =>
-        withResourceClientInitTimeout(
+      srpcClient = new OrderedSRPCClient(client, async () => {
+        return withResourceClientInitTimeout(
           openRpcStream(
             id.toString(),
             client.service.ResourceRpc.bind(client.service),
@@ -239,8 +312,8 @@ function createResourceRef(
             onServerRelease(id)
           }
           throw error
-        }),
-      )
+        })
+      })
     }
     return srpcClient
   }
@@ -287,7 +360,6 @@ function createResourceRef(
       released = true
     },
   }
-
   return ref
 }
 
@@ -309,9 +381,19 @@ interface AttachSession {
   >
 }
 
-interface PendingResourceRelease {
-  clientHandleId: number
-  resourceId: number
+interface ResourceClientSession {
+  controller: AbortController
+  outgoing: Pushable<ResourceClientRequest>
+  generation: number
+  initialized: boolean
+  closed: boolean
+  nextControlId: number
+  acknowledgedControlId: number
+  controlWaiters: Set<{
+    target: number
+    resolve: () => void
+    reject: (error: Error) => void
+  }>
 }
 
 /**
@@ -326,10 +408,8 @@ interface PendingResourceRelease {
 export class Client {
   private initState: ClientInitState | null = null
   private connectionController: AbortController | null = null
+  private resourceSession: ResourceClientSession | null = null
   private resources = new Map<number, Set<InternalResourceRef>>()
-  private pendingResourceReleases = new Map<string, PendingResourceRelease>()
-  private pendingResourceReleaseController: AbortController | null = null
-  private pendingResourceReleaseTask: Promise<void> | null = null
   private events = new EventEmitter<ResourceReleasedEvent>()
   private connectionLostEvents = new EventEmitter<void>()
   private initPromise: Promise<ClientInitState> | null = null
@@ -683,25 +763,30 @@ export class Client {
   dispose(reason: ResourceClientErrorCode = 'CLIENT_DISPOSED'): void {
     if (this.disposed) return
     this.disposed = true
-    this.clearPendingResourceReleases()
-    this.clearAttachSession()
 
-    // Cancel the connection
-    if (this.connectionController) {
-      this.connectionController.abort()
+    // A normal close ends the request stream after its final controls. A
+    // failed transport retires the generation without replaying releases.
+    const graceful = reason !== 'CONNECTION_FAILED'
+    if (graceful) {
+      for (const resourceId of this.resources.keys()) {
+        this.queueControl({ case: 'release', value: { resourceId } })
+      }
+    }
+    this.clearAttachSession()
+    if (graceful) {
+      this.finishResourceSession()
+      this.connectionController = null
+    } else {
+      this.retireResourceSession()
+      this.connectionController?.abort()
       this.connectionController = null
     }
 
-    // Mark all resources as released and emit events
-    const releaseReason: ResourceReleaseReason =
-      reason === 'CLIENT_CANCELLED' ? 'client-disposed' : 'client-disposed'
-
+    const releaseReason: ResourceReleaseReason = 'client-disposed'
     for (const [resourceId, refs] of this.resources.entries()) {
       refs.forEach((ref) => ref._markReleased())
       this.events.emit({ resourceId, reason: releaseReason })
     }
-
-    // Clean up state
     this.resources.clear()
     this.events.clear()
     this.connectionLostEvents.clear()
@@ -795,7 +880,7 @@ export class Client {
    */
   private async startConnection(
     onInitialized: (state: ClientInitState) => void,
-    onError: (error: Error) => void,
+    _onError: (error: Error) => void,
     markInitialized: () => void,
   ): Promise<void> {
     const controller = this.connectionController
@@ -820,84 +905,102 @@ export class Client {
           },
           resourceClientInitTimeoutMS,
         )
+        const outgoing = pushable<ResourceClientRequest>({ objectMode: true })
+        const session: ResourceClientSession = {
+          controller: attemptController,
+          outgoing,
+          generation: ++this._connectionGeneration,
+          initialized: false,
+          closed: false,
+          nextControlId: 0,
+          acknowledgedControlId: 0,
+          controlWaiters: new Set(),
+        }
+        this.resourceSession = session
+        const retire = () => {
+          if (session.closed) return
+          session.closed = true
+          outgoing.end()
+          const error = new ResourceClientError(
+            'ResourceClient control stream closed',
+            'CONNECTION_FAILED',
+          )
+          for (const waiter of session.controlWaiters) {
+            waiter.reject(error)
+          }
+          session.controlWaiters.clear()
+          if (this.resourceSession === session) this.resourceSession = null
+        }
         const throwInitTimeout = (): never => {
           throw new ResourceClientError(
             resourceClientInitTimeoutMessage,
             'CONNECTION_FAILED',
           )
         }
-        const clearInitTimeout = () => {
-          if (!initTimeout) return
-          clearTimeout(initTimeout)
-          initTimeout = undefined
-        }
-
         try {
           const stream = this.service.ResourceClient(
-            {},
+            (async function* () {
+              yield* outgoing
+            })(),
             attemptController.signal,
           )
+          // Init is the first control on every generation.
+          outgoing.push({ body: { case: 'init' as const, value: {} } })
           for await (const msg of stream) {
             if (signal.aborted) return
             if (attemptController.signal.aborted) {
               if (initTimedOut) throwInitTimeout()
               return
             }
-
-            // Handle initialization message
             const body = msg.body
             if (body?.case === 'init') {
               initialized = true
-              clearInitTimeout()
-              const clientHandleId = body.value.clientHandleId ?? 0
-              const rootResourceId = body.value.rootResourceId ?? 0
-
-              const state: ClientInitState = { clientHandleId, rootResourceId }
-
+              session.initialized = true
+              if (initTimeout) clearTimeout(initTimeout)
+              initTimeout = undefined
+              const state: ClientInitState = {
+                clientHandleId: body.value.clientHandleId ?? 0,
+                rootResourceId: body.value.rootResourceId ?? 0,
+              }
               if (this._reconnectResolve) {
-                // Reconnected: resolve the reconnect promise so that
-                // accessRootResource() unblocks with the new state.
                 this.initState = state
                 this._reconnectResolve(state)
                 this._reconnectResolve = null
               } else if (!this.initState) {
-                // First init: resolve the initialization promise
                 this.initState = state
                 markInitialized()
                 onInitialized(state)
               } else {
-                // Duplicate init (shouldn't happen): update state
                 this.initState = state
               }
               continue
             }
-
-            // Handle resource release notifications
-            if (msg.body?.case === 'resourceReleased') {
-              const resourceId = msg.body.value.resourceId ?? 0
-              this.handleServerResourceRelease(resourceId)
+            if (body?.case === 'resourceReleased') {
+              this.handleServerResourceRelease(body.value.resourceId ?? 0)
               continue
+            }
+            if (body?.case === 'controlAck') {
+              this.acknowledgeControl(session, body.value.controlId ?? 0)
             }
           }
         } catch (err) {
-          if (!signal.aborted && initTimedOut) {
-            throwInitTimeout()
-          }
+          if (!signal.aborted && initTimedOut) throwInitTimeout()
           throw err
         } finally {
-          clearInitTimeout()
-          // Release all resources when connection ends (disconnect/error/reconnect).
+          if (initTimeout) clearTimeout(initTimeout)
+          initTimeout = undefined
+          retire()
           if (
             this.connectionController === controller &&
-            this.resources.size > 0
+            !this.disposed &&
+            initialized
           ) {
             this.releaseAllResources('connection-lost')
           }
         }
+        if (this.disposed) return
         if (!signal.aborted) {
-          if (initTimedOut) {
-            throwInitTimeout()
-          }
+          if (initTimedOut) throwInitTimeout()
           throw new Error(
             initialized
               ? 'ResourceClient stream closed'
@@ -913,7 +1016,6 @@ export class Client {
       },
     )
   }
-
   /**
    * Throw an error if the client has been disposed.
    */
@@ -931,206 +1033,111 @@ export class Client {
    */
   private createRef(id: number): ClientResourceRef {
     this.throwIfDisposed()
-
-    // Initialize the resource set if it doesn't exist
-    if (!this.resources.has(id)) {
-      this.resources.set(id, new Set())
+    let refs = this.resources.get(id)
+    const firstRef = !refs
+    if (!refs) {
+      refs = new Set()
+      this.resources.set(id, refs)
     }
-
-    // Create the reference
     const ref = createResourceRef(
       id,
       this,
       this.releaseRef.bind(this),
       this.handleServerResourceRelease.bind(this),
     )
-
-    // Track this reference
-    this.resources.get(id)!.add(ref)
+    refs.add(ref)
+    if (firstRef)
+      this.queueControl({ case: 'adopt', value: { resourceId: id } })
     return ref
   }
 
-  /**
-   * Called when a reference is released.
-   * Cleans up the resource if no more references exist.
-   *
-   * Since server handlers may send the same resource ID multiple times and
-   * client code may create multiple references to the same resource ID,
-   * we only notify the server when the last client-side reference is released.
-   */
   private releaseRef(id: number, ref: InternalResourceRef): void {
     const refs = this.resources.get(id)
     if (!refs) return
-
-    // Remove this reference
     refs.delete(ref)
-
-    // If no more references to this resource ID, clean up completely
-    if (refs.size === 0) {
-      this.resources.delete(id)
-
-      // Notify server asynchronously. Queue retries while the runtime reconnects
-      // so last-ref cleanup does not explode into warning spam.
-      this.enqueueServerResourceRelease(id)
-
-      // Emit release event
-      this.events.emit({
-        resourceId: id,
-        reason: 'client-released',
-      })
-    }
+    if (refs.size !== 0) return
+    this.resources.delete(id)
+    this.queueControl({ case: 'release', value: { resourceId: id } })
+    this.events.emit({ resourceId: id, reason: 'client-released' })
   }
 
-  /**
-   * Notify the server that a resource should be released.
-   */
-  private enqueueServerResourceRelease(resourceId: number): void {
-    if (!this.initState || this.disposed) {
-      return
-    }
-    const pending: PendingResourceRelease = {
-      clientHandleId: this.initState.clientHandleId,
-      resourceId,
-    }
-    const key = this.buildPendingResourceReleaseKey(
-      pending.clientHandleId,
-      pending.resourceId,
-    )
-    this.pendingResourceReleases.set(key, pending)
-    this.schedulePendingResourceReleaseFlush()
+  private queueControl(body: NonNullable<ResourceClientRequest['body']>): void {
+    const session = this.resourceSession
+    if (!session || session.closed || !session.initialized) return
+    const controlId = ++session.nextControlId
+    session.outgoing.push({ controlId, body })
   }
 
-  /**
-   * Flush queued server release notifications.
-   */
-  private schedulePendingResourceReleaseFlush(): void {
-    if (
-      this.pendingResourceReleaseTask ||
-      this.disposed ||
-      this.pendingResourceReleases.size === 0
-    ) {
-      return
+  async waitForControls(abortSignal?: AbortSignal): Promise<void> {
+    if (abortSignal?.aborted) throw new Error(ERR_RPC_ABORT)
+    const session = this.resourceSession
+    if (!session || session.closed || !session.initialized) {
+      throw new ResourceClientError(
+        'ResourceClient control stream is unavailable',
+        'CONNECTION_FAILED',
+      )
     }
-    const controller = createAbortController(this.signal)
-    this.pendingResourceReleaseController = controller
-    this.pendingResourceReleaseTask = this.flushPendingResourceReleases(
-      controller.signal,
-    )
-      .catch(() => {})
-      .finally(() => {
-        if (this.pendingResourceReleaseController === controller) {
-          this.pendingResourceReleaseController = null
-        }
-        this.pendingResourceReleaseTask = null
-        if (!this.disposed && this.pendingResourceReleases.size > 0) {
-          this.schedulePendingResourceReleaseFlush()
-        }
-      })
-  }
+    const target = session.nextControlId
+    if (target <= session.acknowledgedControlId) return
 
-  /**
-   * Flush pending releases until the queue is empty or the client is aborted.
-   */
-  private async flushPendingResourceReleases(
-    signal: AbortSignal,
-  ): Promise<void> {
-    while (
-      !signal.aborted &&
-      !this.disposed &&
-      this.pendingResourceReleases.size
-    ) {
-      const entry = this.pendingResourceReleases.entries().next().value
-      if (!entry) {
-        return
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        session.controller.signal.removeEventListener('abort', onSessionAbort)
+        abortSignal?.removeEventListener('abort', onCallAbort)
       }
-      const [key, pending] = entry
-
-      await retryWithAbort(
-        signal,
-        async (retrySignal) => {
-          const result = await this.tryNotifyServerResourceRelease(
-            pending,
-            retrySignal,
-          )
-          if (result === 'retry') {
-            throw new Error('retry pending resource release')
-          }
+      const waiter = {
+        target,
+        resolve: () => {
+          cleanup()
+          resolve()
         },
-        {
-          backoffFn: constantBackoff(100),
-          errorCb: () => {},
+        reject: (error: Error) => {
+          cleanup()
+          reject(error)
         },
-      )
-
-      this.pendingResourceReleases.delete(key)
-    }
-  }
-
-  /**
-   * Notify the server that a resource should be released.
-   */
-  private async tryNotifyServerResourceRelease(
-    pending: PendingResourceRelease,
-    signal: AbortSignal,
-  ): Promise<'done' | 'retry'> {
-    if (this.disposed) {
-      return 'done'
-    }
-
-    try {
-      await this.service.ResourceRefRelease(
-        {
-          clientHandleId: pending.clientHandleId,
-          resourceId: pending.resourceId,
-        },
-        signal,
-      )
-      return 'done'
-    } catch (error) {
-      // Silently ignore RPC abort errors - these are expected during cleanup
-      if (error instanceof Error) {
-        const msg = error.message
-        if (msg.includes('ERR_RPC_ABORT')) {
-          return 'done'
-        }
-        if (
-          msg.includes('resource not found') ||
-          msg.includes('invalid client id')
-        ) {
-          return 'done'
-        }
-        if (this.shouldRetryServerResourceRelease(error)) {
-          return 'retry'
-        }
-        console.warn(
-          `Failed to notify server of resource ${pending.resourceId} release:`,
-          error,
+      }
+      const rejectWaiter = (error: Error) => {
+        if (!session.controlWaiters.delete(waiter)) return
+        waiter.reject(error)
+      }
+      const onSessionAbort = () =>
+        rejectWaiter(
+          new ResourceClientError(
+            'ResourceClient control stream closed',
+            'CONNECTION_FAILED',
+          ),
         )
-        return 'done'
-      }
-      console.warn(
-        `Failed to notify server of resource ${pending.resourceId} release:`,
-        String(error),
+      const onCallAbort = () => rejectWaiter(new Error(ERR_RPC_ABORT))
+      session.controlWaiters.add(waiter)
+      session.controller.signal.addEventListener('abort', onSessionAbort, {
+        once: true,
+      })
+      abortSignal?.addEventListener('abort', onCallAbort, { once: true })
+      if (session.controller.signal.aborted) onSessionAbort()
+      if (abortSignal?.aborted) onCallAbort()
+    })
+  }
+
+  private acknowledgeControl(
+    session: ResourceClientSession,
+    controlId: number,
+  ): void {
+    if (
+      controlId === 0 ||
+      controlId !== session.acknowledgedControlId + 1 ||
+      controlId > session.nextControlId
+    ) {
+      throw new Error(
+        `unexpected ResourceClient control acknowledgment ${controlId} after ${session.acknowledgedControlId}`,
       )
-      return 'done'
+    }
+    session.acknowledgedControlId = controlId
+    for (const waiter of session.controlWaiters) {
+      if (waiter.target > controlId) continue
+      session.controlWaiters.delete(waiter)
+      waiter.resolve()
     }
   }
-
-  /**
-   * Check whether a release error should be retried instead of logged.
-   */
-  private shouldRetryServerResourceRelease(error: Error): boolean {
-    const msg = error.message
-    return (
-      msg.includes('timeout waiting for runtime connected ack') ||
-      msg.includes('timeout opening stream with host') ||
-      msg.includes('unable to open stream with host') ||
-      msg.includes('timed out waiting for ack from WebDocument') ||
-      msg.includes('timed out waiting for next WebDocument to proxy conn') ||
-      msg.includes('WebRuntimeClientInstance is closed')
-    )
-  }
-
   private shouldRetryResourceClientStreamSilently(error: unknown): boolean {
     if (
       error instanceof ResourceClientError &&
@@ -1146,16 +1153,6 @@ export class Client {
     const name = typeof errName === 'string' ? errName : ''
     const message = typeof errMessage === 'string' ? errMessage : ''
     return name === 'StreamResetError' || message === 'stream reset'
-  }
-
-  /**
-   * Build the stable key for a queued server release.
-   */
-  private buildPendingResourceReleaseKey(
-    clientHandleId: number,
-    resourceId: number,
-  ): string {
-    return `${clientHandleId}:${resourceId}`
   }
 
   /**
@@ -1183,33 +1180,22 @@ export class Client {
    * Used when connection is lost and resources are no longer valid.
    */
   private releaseAllResources(reason: ResourceReleaseReason): void {
-    this.clearPendingResourceReleases()
     this.clearAttachSession()
     for (const [resourceId, refs] of this.resources.entries()) {
       refs.forEach((ref) => ref._markReleased())
       this.events.emit({ resourceId, reason })
     }
     this.resources.clear()
-
-    // Clear init state and create a new promise so that accessRootResource()
-    // waits for the retry to establish a new connection before returning.
-    // Without this, React re-creates resources immediately using the old
-    // initState, racing against the retry and hitting "resource not found"
-    // errors because the new Go client doesn't exist yet.
     this.initState = null
     this.initPromise = new Promise<ClientInitState>((resolve) => {
       this._reconnectResolve = resolve
     })
-
-    // Increment generation and notify listeners so React can re-create resources
-    this._connectionGeneration++
     this.connectionLostEvents.emit(undefined)
   }
 
   private restartConnectionAfterStaleAttachClient(): void {
     const controller = this.connectionController
     this.connectionController = null
-    this.clearPendingResourceReleases()
     this.clearAttachSession()
     for (const [resourceId, refs] of this.resources.entries()) {
       refs.forEach((ref) => ref._markReleased())
@@ -1219,9 +1205,27 @@ export class Client {
     this.initState = null
     this.initPromise = null
     this._reconnectResolve = null
+    this.retireResourceSession()
     controller?.abort()
     this._connectionGeneration++
     this.connectionLostEvents.emit(undefined)
+  }
+
+  private finishResourceSession(): void {
+    const session = this.resourceSession
+    if (!session) return
+    session.closed = true
+    session.outgoing.end()
+    this.resourceSession = null
+  }
+
+  private retireResourceSession(): void {
+    const session = this.resourceSession
+    if (!session) return
+    session.closed = true
+    session.outgoing.end()
+    session.controller.abort()
+    this.resourceSession = null
   }
 
   // clearAttachSession tears down any cached ResourceAttach session state.
@@ -1263,12 +1267,5 @@ export class Client {
     for (const releaseFn of releaseFns) {
       releaseFn()
     }
-  }
-
-  // clearPendingResourceReleases aborts any queued release retry work.
-  private clearPendingResourceReleases(): void {
-    this.pendingResourceReleaseController?.abort()
-    this.pendingResourceReleaseController = null
-    this.pendingResourceReleases.clear()
   }
 }

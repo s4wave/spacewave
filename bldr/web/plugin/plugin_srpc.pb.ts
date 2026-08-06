@@ -15,7 +15,12 @@ import {
   HandleWebViewViaPluginResponse,
 } from './plugin.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * WebPlugin implements the bldr web plugin service.
@@ -139,6 +144,69 @@ export interface WebPlugin {
   HandleWebPkgsViaPluginAssets(
     request: HandleWebPkgsViaPluginAssetsRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<HandleWebPkgsViaPluginAssetsResponse>
+}
+
+/**
+ * WebPlugin implements the bldr web plugin service.
+ * The service is used to tell the Web plugin where to forward requests.
+ *
+ * @generated from service bldr.web.plugin.WebPlugin
+ */
+export interface WebPluginHandler {
+  /**
+   * HandleWebViewViaPlugin configures handling web views via a plugin.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaPlugin
+   */
+  HandleWebViewViaPlugin(
+    request: HandleWebViewViaPluginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<HandleWebViewViaPluginResponse>
+
+  /**
+   * HandleWebPkgViaPlugin configures handling web packages via a plugin.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebPkgViaPlugin
+   */
+  HandleWebPkgViaPlugin(
+    request: HandleWebPkgViaPluginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<HandleWebPkgViaPluginResponse>
+
+  /**
+   * HandleRpcViaPlugin configures handling rpcs via a plugin.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.HandleRpcViaPlugin
+   */
+  HandleRpcViaPlugin(
+    request: HandleRpcViaPluginRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<HandleRpcViaPluginResponse>
+
+  /**
+   * HandleWebViewViaHandlers configures web view handlers with filtering.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebViewViaHandlers
+   */
+  HandleWebViewViaHandlers(
+    request: HandleWebViewViaHandlersRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<HandleWebViewViaHandlersResponse>
+
+  /**
+   * HandleWebPkgsViaPluginAssets configures serving web pkgs via a plugin assets fs.
+   *
+   * @generated from rpc bldr.web.plugin.WebPlugin.HandleWebPkgsViaPluginAssets
+   */
+  HandleWebPkgsViaPluginAssets(
+    request: HandleWebPkgsViaPluginAssetsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<HandleWebPkgsViaPluginAssetsResponse>
 }
 

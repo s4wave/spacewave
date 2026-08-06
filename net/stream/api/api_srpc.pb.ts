@@ -18,6 +18,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -127,6 +128,61 @@ export interface StreamService {
   DialStream(
     request: MessageStream<DialStreamRequest>,
     abortSignal?: AbortSignal,
+  ): MessageStream<DialStreamResponse>
+}
+
+/**
+ * StreamService is the bifrost stream service.
+ *
+ * @generated from service stream.api.StreamService
+ */
+export interface StreamServiceHandler {
+  /**
+   * ForwardStreams forwards streams to the target multiaddress.
+   * Handles HandleMountedStream directives by contacting the target.
+   *
+   * @generated from rpc stream.api.StreamService.ForwardStreams
+   */
+  ForwardStreams(
+    request: ForwardStreamsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<ForwardStreamsResponse>
+
+  /**
+   * ListenStreams listens for connections to the multiaddress.
+   * Forwards the connections to a remote peer with a protocol ID.
+   *
+   * @generated from rpc stream.api.StreamService.ListenStreams
+   */
+  ListenStreams(
+    request: ListenStreamsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<ListenStreamsResponse>
+
+  /**
+   * AcceptStream accepts an incoming stream.
+   * Stream data is sent over the request / response streams.
+   *
+   * @generated from rpc stream.api.StreamService.AcceptStream
+   */
+  AcceptStream(
+    request: MessageStream<AcceptStreamRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<AcceptStreamResponse>
+
+  /**
+   * DialStream dials a outgoing stream.
+   * Stream data is sent over the request / response streams.
+   *
+   * @generated from rpc stream.api.StreamService.DialStream
+   */
+  DialStream(
+    request: MessageStream<DialStreamRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<DialStreamResponse>
 }
 

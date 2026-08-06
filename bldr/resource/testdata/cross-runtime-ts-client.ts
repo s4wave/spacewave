@@ -16,8 +16,7 @@ import type { InvokeFn, PacketStream } from 'starpc'
 import { Client as ResourceClient } from '../../sdk/resource/client.js'
 import {
   ResourceAttachAddAck,
-  ResourceRefReleaseRequest,
-  ResourceRefReleaseResponse,
+  ResourceClientInitRequest,
 } from '../resource.pb.js'
 import { ResourceServiceClient } from '../resource_srpc.pb.js'
 
@@ -101,7 +100,7 @@ async function main(): Promise<void> {
     new StaticHandler('test.Child', {
       Ping: async (dataSource, dataSink) => {
         await readOne(dataSource)
-        await dataSink(unaryResponse(ResourceRefReleaseResponse.toBinary({})))
+        await dataSink(unaryResponse(ResourceClientInitRequest.toBinary({})))
       },
     } satisfies Record<string, InvokeFn>),
   )
@@ -133,7 +132,7 @@ async function main(): Promise<void> {
   const childBytes = await rootRef.client.request(
     'test.Root',
     'CreateChild',
-    ResourceRefReleaseRequest.toBinary({}),
+    ResourceClientInitRequest.toBinary({}),
     controller.signal,
   )
   const child = ResourceAttachAddAck.fromBinary(childBytes)
@@ -144,10 +143,10 @@ async function main(): Promise<void> {
   const pingBytes = await childRef.client.request(
     'test.Child',
     'Ping',
-    ResourceRefReleaseRequest.toBinary({}),
+    ResourceClientInitRequest.toBinary({}),
     controller.signal,
   )
-  ResourceRefReleaseResponse.fromBinary(pingBytes)
+  ResourceClientInitRequest.fromBinary(pingBytes)
 
   childRef.release()
   await childReleased

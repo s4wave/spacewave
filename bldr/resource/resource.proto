@@ -11,18 +11,13 @@ service ResourceService {
   // yielding a new client ID. The client can use that ID for future RPCs
   // accessing the Resource tree. When the streaming RPC ends, references to
   // resources opened by the client will be released.
-  rpc ResourceClient(ResourceClientRequest) returns (stream ResourceClientResponse) {};
+  rpc ResourceClient(stream ResourceClientRequest) returns (stream ResourceClientResponse) {};
 
   // ResourceRpc is a rpc request for an open resource handle.
   // Exposes service(s) depending on the resource type.
   // Component ID: resource_id from ResourceClient call.
   rpc ResourceRpc(stream .rpcstream.RpcStreamPacket) returns (stream .rpcstream.RpcStreamPacket);
 
-  // ResourceRefRelease releases a resource given a handle ID.
-  // This is called when no references remain to a resource.
-  rpc ResourceRefRelease(ResourceRefReleaseRequest) returns (ResourceRefReleaseResponse);
-  // ResourceRefAdopt acknowledges adoption of a resource created by a held RPC.
-  rpc ResourceRefAdopt(ResourceRefAdoptRequest) returns (ResourceRefAdoptResponse);
 
   // ResourceAttach allows a client to provide resources that server-side
   // RPC handlers can invoke via getAttachedRef(id). Session-only Init/Ack,
@@ -32,10 +27,36 @@ service ResourceService {
     returns (stream ResourceAttachResponse);
 }
 
-// ResourceClientRequest is the request body for ResourceClient.
+// ResourceClientRequest is a control packet for ResourceClient.
 message ResourceClientRequest {
-  // SupportsResourceAdoptionAck requests the held ResourceRpc receipt protocol.
-  bool supports_resource_adoption_ack = 1;
+  reserved 1;
+  reserved "supports_resource_adoption_ack";
+
+  // ControlId orders every lifecycle control within one immutable generation.
+  // Init uses zero; every later control increments the identifier by one.
+  uint32 control_id = 5;
+
+  oneof body {
+    // ResourceClientInitRequest starts a new client generation.
+    ResourceClientInitRequest init = 2;
+    // ResourceClientAdopt detaches a pending child from its parent.
+    ResourceClientAdopt adopt = 3;
+    // ResourceClientRelease releases a resource and its pending descendants.
+    ResourceClientRelease release = 4;
+  }
+}
+
+// ResourceClientInitRequest is sent first on every ResourceClient stream.
+message ResourceClientInitRequest {}
+
+// ResourceClientAdopt adopts a pending resource.
+message ResourceClientAdopt {
+  uint32 resource_id = 1;
+}
+
+// ResourceClientRelease releases a resource and its pending descendants.
+message ResourceClientRelease {
+  uint32 resource_id = 1;
 }
 
 // ResourceClientResponse contains a server-client message for a ResourceClient request.
@@ -48,9 +69,17 @@ message ResourceClientResponse {
     // ResourceClientInit contains the initialization message for ResourceClient.
     // This is the first message sent on the stream and is only sent once.
     ResourceClientInit init = 1;
-    // ResourceRefReleased is returned if a resource was released by the server.
+    // ResourceReleased is returned if a resource was released by the server.
     ResourceReleasedResponse resource_released = 2;
+    // ControlAck confirms that one lifecycle control and its callbacks completed.
+    ResourceClientControlAck control_ack = 4;
   }
+}
+
+// ResourceClientControlAck confirms a lifecycle control completed.
+message ResourceClientControlAck {
+  // ControlId matches ResourceClientRequest.control_id.
+  uint32 control_id = 1;
 }
 
 // ResourceReleasedResponse is a message indicating a resource was released.
@@ -62,37 +91,11 @@ message ResourceReleasedResponse {
 // ResourceClientInit is the initialization response to ResourceClient.
 message ResourceClientInit {
   // ClientHandleId is the handle identifier for the client.
-  // The client should use this ID going forward for requests.
   uint32 client_handle_id = 1;
   // RootResourceId is the ID of the root resource for this client.
   uint32 root_resource_id = 2;
-  // SupportsResourceAdoptionAck is true when held ResourceRpc receipts and
-  // per-resource adoption acknowledgments are implemented.
-  bool supports_resource_adoption_ack = 3;
 }
 
-// ResourceRefReleaseRequest is the request for ResourceRefRelease.
-message ResourceRefReleaseRequest {
-  // ClientHandleId is the handle identifier for the client.
-  uint32 client_handle_id = 1;
-  // ResourceId is the ID of the resource reference to release.
-  uint32 resource_id = 2;
-}
-
-// ResourceRefReleaseResponse is the response for ResourceRefRelease.
-message ResourceRefReleaseResponse {}
-
-// ResourceRefAdoptRequest acknowledges adoption of a resource returned by a
-// held ResourceRpc invocation.
-message ResourceRefAdoptRequest {
-  // ClientHandleId identifies the persistent ResourceClient session.
-  uint32 client_handle_id = 1;
-  // ResourceId identifies the pending resource to adopt.
-  uint32 resource_id = 2;
-}
-
-// ResourceRefAdoptResponse confirms a pending resource was adopted.
-message ResourceRefAdoptResponse {}
 
 // ResourceAttachRequest is a client-to-server message on the ResourceAttach stream.
 message ResourceAttachRequest {
@@ -151,7 +154,6 @@ message ResourceAttachAddAck {
   // Error is set if the add was rejected.
   string error = 2;
   // ResourceId is the server-assigned ID for the attached resource.
-  // @resource-adoption-id
   uint32 resource_id = 3;
 }
 

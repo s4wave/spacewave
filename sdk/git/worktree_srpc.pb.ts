@@ -19,7 +19,12 @@ import {
   WatchStatusResponse,
 } from './worktree.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.git.GitWorktreeResourceService
@@ -151,6 +156,74 @@ export interface GitWorktreeResourceService {
   CommitFiles(
     request: CommitFilesRequest,
     abortSignal?: AbortSignal,
+  ): Promise<CommitFilesResponse>
+}
+
+/**
+ * @generated from service s4wave.git.GitWorktreeResourceService
+ */
+export interface GitWorktreeResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.git.GitWorktreeResourceService.GetWorktreeInfo
+   */
+  GetWorktreeInfo(
+    request: GetWorktreeInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetWorktreeInfoResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitWorktreeResourceService.GetRepoResource
+   */
+  GetRepoResource(
+    request: GetRepoResourceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetRepoResourceResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitWorktreeResourceService.GetWorkdirResource
+   */
+  GetWorkdirResource(
+    request: GetWorkdirResourceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetWorkdirResourceResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitWorktreeResourceService.WatchStatus
+   */
+  WatchStatus(
+    request: WatchStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchStatusResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitWorktreeResourceService.StageFiles
+   */
+  StageFiles(
+    request: StageFilesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<StageFilesResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitWorktreeResourceService.UnstageFiles
+   */
+  UnstageFiles(
+    request: UnstageFilesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<UnstageFilesResponse>
+
+  /**
+   * @generated from rpc s4wave.git.GitWorktreeResourceService.CommitFiles
+   */
+  CommitFiles(
+    request: CommitFilesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<CommitFilesResponse>
 }
 

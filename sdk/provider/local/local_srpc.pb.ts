@@ -4,7 +4,7 @@
 
 import { CreateAccountRequest, CreateAccountResponse } from './local.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * @generated from service s4wave.provider.local.LocalProviderResourceService
@@ -34,6 +34,20 @@ export interface LocalProviderResourceService {
   CreateAccount(
     request: CreateAccountRequest,
     abortSignal?: AbortSignal,
+  ): Promise<CreateAccountResponse>
+}
+
+/**
+ * @generated from service s4wave.provider.local.LocalProviderResourceService
+ */
+export interface LocalProviderResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.provider.local.LocalProviderResourceService.CreateAccount
+   */
+  CreateAccount(
+    request: CreateAccountRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<CreateAccountResponse>
 }
 

@@ -9,6 +9,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -47,6 +48,24 @@ export interface FetchService {
   Fetch(
     request: MessageStream<FetchRequest>,
     abortSignal?: AbortSignal,
+  ): MessageStream<FetchResponse>
+}
+
+/**
+ * FetchService is a host which can service Fetch requests.
+ *
+ * @generated from service web.fetch.FetchService
+ */
+export interface FetchServiceHandler {
+  /**
+   * Fetch performs a Fetch request with a streaming response.
+   *
+   * @generated from rpc web.fetch.FetchService.Fetch
+   */
+  Fetch(
+    request: MessageStream<FetchRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<FetchResponse>
 }
 

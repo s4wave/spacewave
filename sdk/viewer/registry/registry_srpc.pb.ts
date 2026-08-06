@@ -11,7 +11,12 @@ import {
   WatchViewersResponse,
 } from './registry.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.viewer.registry.ViewerRegistryResourceService
@@ -75,6 +80,38 @@ export interface ViewerRegistryResourceService {
   WatchViewers(
     request: WatchViewersRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchViewersResponse>
+}
+
+/**
+ * @generated from service s4wave.viewer.registry.ViewerRegistryResourceService
+ */
+export interface ViewerRegistryResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.viewer.registry.ViewerRegistryResourceService.RegisterViewer
+   */
+  RegisterViewer(
+    request: RegisterViewerRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RegisterViewerResponse>
+
+  /**
+   * @generated from rpc s4wave.viewer.registry.ViewerRegistryResourceService.ListViewers
+   */
+  ListViewers(
+    request: ListViewersRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListViewersResponse>
+
+  /**
+   * @generated from rpc s4wave.viewer.registry.ViewerRegistryResourceService.WatchViewers
+   */
+  WatchViewers(
+    request: WatchViewersRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchViewersResponse>
 }
 

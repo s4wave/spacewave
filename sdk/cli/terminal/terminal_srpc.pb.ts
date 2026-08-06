@@ -9,6 +9,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -43,6 +44,22 @@ export interface CliTerminalService {
   RunCli(
     request: MessageStream<TerminalFrame>,
     abortSignal?: AbortSignal,
+  ): MessageStream<TerminalFrame>
+}
+
+/**
+ * CliTerminalService runs the browser-safe Spacewave CLI over terminal frames.
+ *
+ * @generated from service s4wave.cli.terminal.CliTerminalService
+ */
+export interface CliTerminalServiceHandler {
+  /**
+   * @generated from rpc s4wave.cli.terminal.CliTerminalService.RunCli
+   */
+  RunCli(
+    request: MessageStream<TerminalFrame>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<TerminalFrame>
 }
 

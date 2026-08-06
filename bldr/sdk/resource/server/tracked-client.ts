@@ -129,133 +129,201 @@ function createAttachedResourceRef(
   return ref
 }
 
-// RemoteResourceClient tracks a connected client.
+interface PendingWarning {
+  clientHandleId: number
+  parentResourceID: number
+  resourceID: number
+  ageMS: number
+  serviceID?: string
+  methodID?: string
+}
+
+interface RemoteResourceClientOptions {
+  now?: () => number
+  onPendingWarning?: (warning: PendingWarning) => void
+}
+
 class RemoteResourceClient {
   readonly clientID: number
   readonly controller: AbortController
   released = false
   resources = new Map<number, TrackedResource>()
   attachedResources = new Map<number, AttachedResource>()
+  // Tombstones retain every released ID until this immutable generation ends
+  // so a late Adopt cannot revive or miss the matching release notification.
+  readonly tombstones = new Set<number>()
+  private retainedRootResourceID: number | undefined
 
   private txQueue: ResourceClientResponse[] = []
   private notifyCallbacks = new Set<() => void>()
   private nextResourceID: () => number
+  private pendingChildren = new Map<number, Set<number>>()
+  private warnedPending = new Set<number>()
+  private warningTimer: ReturnType<typeof setTimeout> | undefined
+  private readonly now: () => number
+  private readonly onPendingWarning: (warning: PendingWarning) => void
 
   constructor(
     nextResourceID: () => number,
     clientID: number,
     parentSignal?: AbortSignal,
+    options: RemoteResourceClientOptions = {},
   ) {
     this.nextResourceID = nextResourceID
     this.clientID = clientID
     this.controller = new AbortController()
-    if (parentSignal) {
-      parentSignal.addEventListener(
-        'abort',
-        () => {
-          this.controller.abort()
-        },
-        { once: true },
-      )
-    }
+    this.now = options.now ?? Date.now
+    this.onPendingWarning =
+      options.onPendingWarning ??
+      ((warning) => console.warn('Resource remains pending adoption', warning))
+    parentSignal?.addEventListener('abort', () => this.controller.abort(), {
+      once: true,
+    })
   }
 
-  // signal returns the client session lifetime signal.
   get signal(): AbortSignal {
     return this.controller.signal
   }
+  setRetainedRootResourceID(resourceID: number): void {
+    this.retainedRootResourceID = resourceID
+  }
 
-  // addResource allocates a globally unique resource ID and
-  // registers the resource with this client.
-  addResource(mux: Mux, releaseFn?: () => void): number {
-    if (this.released) {
-      throw new Error('client was released')
-    }
+  addResource(
+    mux: Mux,
+    releaseFn?: () => void,
+    parentResourceID?: number,
+    serviceID?: string,
+    methodID?: string,
+  ): number {
+    if (this.released) throw new Error('client was released')
     const resourceID = this.nextResourceID()
     this.resources.set(resourceID, {
       mux,
       ownerClientID: this.clientID,
       releaseFn,
+      parentResourceID,
+      pendingSince: parentResourceID === undefined ? undefined : this.now(),
+      serviceID,
+      methodID,
+      adopted: false,
     })
+    if (parentResourceID !== undefined) {
+      let children = this.pendingChildren.get(parentResourceID)
+      if (!children) {
+        children = new Set()
+        this.pendingChildren.set(parentResourceID, children)
+      }
+      children.add(resourceID)
+      this.schedulePendingWarning()
+    }
     return resourceID
   }
 
-  // getAttachedRef returns a ClientResourceRef wrapping an
-  // attached resource's srpc.Client.
+  adoptResource(resourceID: number): 'adopted' | 'released' | 'invalid' {
+    if (this.tombstones.has(resourceID)) {
+      this.pushReleased(resourceID)
+      return 'released'
+    }
+    const resource = this.resources.get(resourceID)
+    if (!resource) {
+      return this.attachedResources.has(resourceID) ? 'adopted' : 'invalid'
+    }
+    resource.adopted = true
+    resource.pendingSince = undefined
+    this.warnedPending.delete(resourceID)
+    this.schedulePendingWarning()
+    return 'adopted'
+  }
+
   getAttachedRef(id: number): ClientResourceRef {
-    const attached = this.attachedResources.get(id)
-    if (!attached) {
+    if (!this.attachedResources.has(id)) {
       throw new Error(`attached resource ${id} not found`)
     }
     return createAttachedResourceRef(id, this)
   }
 
-  // getRawAttachedRef returns a leaf ref for callback-style attached resources.
-  // Raw attached refs cannot create child refs.
   getRawAttachedRef(id: number): ClientResourceRef {
     const attached = this.attachedResources.get(id)
-    if (!attached) {
-      throw new Error(`attached resource ${id} not found`)
-    }
+    if (!attached) throw new Error(`attached resource ${id} not found`)
     return createRawAttachedResourceRef(id, attached)
   }
 
-  // getRawAttachedClient returns the raw SRPC client for a leaf callback.
   getRawAttachedClient(id: number): SRPCClient {
     const attached = this.attachedResources.get(id)
-    if (!attached) {
-      throw new Error(`attached resource ${id} not found`)
-    }
+    if (!attached) throw new Error(`attached resource ${id} not found`)
     return attached.client
   }
 
-  // releaseResource releases a resource server-side and queues
-  // a ResourceReleasedResponse to the client stream.
-  releaseResource(resourceID: number): boolean {
+  releaseResource(resourceID: number, notify = true): boolean {
     if (this.released) return false
     const resource = this.resources.get(resourceID)
     if (!resource) {
       const attached = this.attachedResources.get(resourceID)
-      if (!attached) return false
+      if (!attached) return this.tombstones.has(resourceID)
       this.attachedResources.delete(resourceID)
+      this.tombstones.add(resourceID)
+      if (notify) this.pushReleased(resourceID)
       attached.release?.()
       attached.controller.abort()
       return true
     }
-    this.resources.delete(resourceID)
-    this.pushMessage({
-      body: {
-        case: 'resourceReleased' as const,
-        value: { resourceId: resourceID },
-      },
-    })
-    if (resource.releaseFn) {
-      resource.releaseFn()
+    if (resourceID === this.retainedRootResourceID) {
+      this.releasePendingChildren(resourceID)
+      return true
     }
+    this.releasePendingChildren(resourceID)
+    if (resource.parentResourceID !== undefined) {
+      this.pendingChildren.get(resource.parentResourceID)?.delete(resourceID)
+    }
+    this.resources.delete(resourceID)
+    this.tombstones.add(resourceID)
+    if (notify) this.pushReleased(resourceID)
+    resource.releaseFn?.()
+    this.warnedPending.delete(resourceID)
+    this.schedulePendingWarning()
     return true
   }
 
-  // pushMessage adds a response to the txQueue and notifies
-  // the ResourceClient transmit loop.
+  releaseAll(): void {
+    if (this.warningTimer !== undefined) {
+      clearTimeout(this.warningTimer)
+      this.warningTimer = undefined
+    }
+    for (const [resourceID, resource] of this.resources) {
+      if (resource.parentResourceID === undefined) {
+        this.releaseResourceTree(resourceID)
+      }
+    }
+    // A released parent can leave an adopted child with provenance that no
+    // longer reaches a root. Generation teardown still releases that orphan.
+    while (this.resources.size > 0) {
+      const resourceID = this.resources.keys().next().value
+      if (resourceID === undefined) break
+      this.releaseResourceTree(resourceID)
+    }
+    this.released = true
+    this.resources.clear()
+    this.pendingChildren.clear()
+    this.controller.abort()
+    for (const [, attached] of this.attachedResources)
+      attached.controller.abort()
+    this.attachedResources.clear()
+    this.notify()
+  }
+
   pushMessage(msg: ResourceClientResponse): void {
     this.txQueue.push(msg)
     this.notify()
   }
 
-  // drainQueue returns and clears all queued messages.
   drainQueue(): ResourceClientResponse[] {
-    if (this.txQueue.length === 0) return []
     const msgs = this.txQueue
     this.txQueue = []
     return msgs
   }
 
-  // waitForNotify returns a Promise that resolves when a message
-  // is pushed or the signal aborts.
   waitForNotify(signal?: AbortSignal): Promise<void> {
-    if (this.txQueue.length > 0 || this.released) {
-      return Promise.resolve()
-    }
+    if (this.txQueue.length > 0 || this.released) return Promise.resolve()
     if (signal?.aborted) return Promise.resolve()
     return new Promise<void>((resolve) => {
       const onNotify = () => {
@@ -271,11 +339,96 @@ class RemoteResourceClient {
     })
   }
 
-  // notify wakes the transmit loop.
+  private rootResourceID(): number {
+    for (const [id, resource] of this.resources) {
+      if (resource.parentResourceID === undefined) return id
+    }
+    return 0
+  }
+
+  private releaseResourceTree(resourceID: number): void {
+    for (const childID of this.pendingChildren.get(resourceID) ?? []) {
+      this.releaseResourceTree(childID)
+    }
+    const resource = this.resources.get(resourceID)
+    if (!resource) return
+    this.resources.delete(resourceID)
+    this.tombstones.add(resourceID)
+    resource.releaseFn?.()
+  }
+  private releasePendingChildren(parentID: number): void {
+    const children = [...(this.pendingChildren.get(parentID) ?? [])]
+    for (const childID of children) {
+      const child = this.resources.get(childID)
+      if (child?.adopted) continue
+      this.releaseResource(childID)
+    }
+  }
+
+  private pushReleased(resourceID: number): void {
+    this.pushMessage({
+      body: {
+        case: 'resourceReleased' as const,
+        value: { resourceId: resourceID },
+      },
+    })
+  }
+
+  private scanPending(): void {
+    if (this.released) return
+    const now = this.now()
+    for (const [resourceID, resource] of this.resources) {
+      if (
+        !resource.adopted &&
+        resource.pendingSince !== undefined &&
+        now - resource.pendingSince >= 10000 &&
+        !this.warnedPending.has(resourceID)
+      ) {
+        this.warnedPending.add(resourceID)
+        this.onPendingWarning({
+          clientHandleId: this.clientID,
+          parentResourceID: resource.parentResourceID ?? 0,
+          resourceID,
+          ageMS: now - resource.pendingSince,
+          serviceID: resource.serviceID,
+          methodID: resource.methodID,
+        })
+      }
+    }
+    this.schedulePendingWarning()
+  }
+
+  private schedulePendingWarning(): void {
+    if (this.warningTimer !== undefined) {
+      clearTimeout(this.warningTimer)
+      this.warningTimer = undefined
+    }
+    if (this.released) return
+
+    const now = this.now()
+    let delay: number | undefined
+    for (const [resourceID, resource] of this.resources) {
+      if (
+        resource.adopted ||
+        resource.pendingSince === undefined ||
+        this.warnedPending.has(resourceID)
+      ) {
+        continue
+      }
+      const remaining = Math.max(0, resource.pendingSince + 10000 - now)
+      delay = delay === undefined ? remaining : Math.min(delay, remaining)
+    }
+    if (delay === undefined) return
+    this.warningTimer = setTimeout(() => {
+      this.warningTimer = undefined
+      this.scanPending()
+    }, delay)
+  }
+
   private notify(): void {
-    for (const cb of this.notifyCallbacks) {
-      this.notifyCallbacks.delete(cb)
-      cb()
+    for (const callback of this.notifyCallbacks) {
+      this.notifyCallbacks.delete(callback)
+      callback()
     }
   }
 }

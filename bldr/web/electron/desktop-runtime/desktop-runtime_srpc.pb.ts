@@ -17,7 +17,12 @@ import {
   WatchDesktopStateResponse,
 } from './desktop-runtime.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * DesktopRuntimeResourceService exposes Electron main desktop-shell lifecycle.
@@ -118,6 +123,57 @@ export interface DesktopRuntimeResourceService {
   QuitDesktopRuntime(
     request: QuitDesktopRuntimeRequest,
     abortSignal?: AbortSignal,
+  ): Promise<QuitDesktopRuntimeResponse>
+}
+
+/**
+ * DesktopRuntimeResourceService exposes Electron main desktop-shell lifecycle.
+ *
+ * @generated from service electron.desktop_runtime.DesktopRuntimeResourceService
+ */
+export interface DesktopRuntimeResourceServiceHandler {
+  /**
+   * WatchDesktopState streams the current desktop shell state.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopRuntimeResourceService.WatchDesktopState
+   */
+  WatchDesktopState(
+    request: WatchDesktopStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchDesktopStateResponse>
+
+  /**
+   * SetDesktopState publishes projected desktop runtime status.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopRuntimeResourceService.SetDesktopState
+   */
+  SetDesktopState(
+    request: SetDesktopStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetDesktopStateResponse>
+
+  /**
+   * OpenOrFocusMainWindow opens or focuses the main app window.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopRuntimeResourceService.OpenOrFocusMainWindow
+   */
+  OpenOrFocusMainWindow(
+    request: OpenOrFocusMainWindowRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<OpenOrFocusMainWindowResponse>
+
+  /**
+   * QuitDesktopRuntime requests a clean user-initiated runtime quit.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopRuntimeResourceService.QuitDesktopRuntime
+   */
+  QuitDesktopRuntime(
+    request: QuitDesktopRuntimeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<QuitDesktopRuntimeResponse>
 }
 
@@ -269,6 +325,35 @@ export interface DesktopCLIInstallResourceService {
   InvokeCLIInstallAction(
     request: InvokeCLIInstallActionRequest,
     abortSignal?: AbortSignal,
+  ): Promise<InvokeCLIInstallActionResponse>
+}
+
+/**
+ * DesktopCLIInstallResourceService exposes desktop-owned CLI install state.
+ *
+ * @generated from service electron.desktop_runtime.DesktopCLIInstallResourceService
+ */
+export interface DesktopCLIInstallResourceServiceHandler {
+  /**
+   * WatchCLIInstallState streams detected CLI install state.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopCLIInstallResourceService.WatchCLIInstallState
+   */
+  WatchCLIInstallState(
+    request: WatchCLIInstallStateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchCLIInstallStateResponse>
+
+  /**
+   * InvokeCLIInstallAction invokes a generation-bound CLI install action.
+   *
+   * @generated from rpc electron.desktop_runtime.DesktopCLIInstallResourceService.InvokeCLIInstallAction
+   */
+  InvokeCLIInstallAction(
+    request: InvokeCLIInstallActionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<InvokeCLIInstallActionResponse>
 }
 

@@ -5,7 +5,7 @@
 import { SignedMsg } from '@go/github.com/s4wave/spacewave/net/peer/peer.pb.js'
 import { LookupEntityResp } from './service.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * IdentityDomain implements Entity lookup with a remote service.
@@ -43,6 +43,24 @@ export interface IdentityDomain {
   LookupEntity(
     request: SignedMsg,
     abortSignal?: AbortSignal,
+  ): Promise<LookupEntityResp>
+}
+
+/**
+ * IdentityDomain implements Entity lookup with a remote service.
+ *
+ * @generated from service identity.domain.service.IdentityDomain
+ */
+export interface IdentityDomainHandler {
+  /**
+   * LookupEntity requests the Entity corresponding to an entity_id.
+   *
+   * @generated from rpc identity.domain.service.IdentityDomain.LookupEntity
+   */
+  LookupEntity(
+    request: SignedMsg,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<LookupEntityResp>
 }
 

@@ -15,7 +15,12 @@ import {
   WatchQuickstartsResponse,
 } from './registry.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.quickstart.registry.QuickstartRegistryResourceService
@@ -96,6 +101,47 @@ export interface QuickstartRegistryResourceService {
   ExecuteQuickstart(
     request: ExecuteQuickstartRequest,
     abortSignal?: AbortSignal,
+  ): Promise<ExecuteQuickstartResponse>
+}
+
+/**
+ * @generated from service s4wave.quickstart.registry.QuickstartRegistryResourceService
+ */
+export interface QuickstartRegistryResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.quickstart.registry.QuickstartRegistryResourceService.RegisterQuickstart
+   */
+  RegisterQuickstart(
+    request: RegisterQuickstartRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RegisterQuickstartResponse>
+
+  /**
+   * @generated from rpc s4wave.quickstart.registry.QuickstartRegistryResourceService.ListQuickstarts
+   */
+  ListQuickstarts(
+    request: ListQuickstartsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListQuickstartsResponse>
+
+  /**
+   * @generated from rpc s4wave.quickstart.registry.QuickstartRegistryResourceService.WatchQuickstarts
+   */
+  WatchQuickstarts(
+    request: WatchQuickstartsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchQuickstartsResponse>
+
+  /**
+   * @generated from rpc s4wave.quickstart.registry.QuickstartRegistryResourceService.ExecuteQuickstart
+   */
+  ExecuteQuickstart(
+    request: ExecuteQuickstartRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ExecuteQuickstartResponse>
 }
 
@@ -211,6 +257,20 @@ export interface QuickstartHandlerService {
   SeedQuickstart(
     request: SeedQuickstartRequest,
     abortSignal?: AbortSignal,
+  ): Promise<SeedQuickstartResponse>
+}
+
+/**
+ * @generated from service s4wave.quickstart.registry.QuickstartHandlerService
+ */
+export interface QuickstartHandlerServiceHandler {
+  /**
+   * @generated from rpc s4wave.quickstart.registry.QuickstartHandlerService.SeedQuickstart
+   */
+  SeedQuickstart(
+    request: SeedQuickstartRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<SeedQuickstartResponse>
 }
 

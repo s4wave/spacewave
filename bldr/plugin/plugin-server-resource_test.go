@@ -49,11 +49,18 @@ func TestPluginServerResourceServiceFallsThroughToBus(t *testing.T) {
 	openStream := rpcstream.NewRpcStreamClient(pluginClient.PluginRpc, "spacewave-app", true)
 	resClient := resource.NewSRPCResourceServiceClient(openStream)
 
-	strm, err := resClient.ResourceClient(ctx, &resource.ResourceClientRequest{})
+	strm, err := resClient.ResourceClient(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer strm.Close()
+	if err := strm.Send(&resource.ResourceClientRequest{
+		Body: &resource.ResourceClientRequest_Init{
+			Init: &resource.ResourceClientInitRequest{},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
 	resp, err := strm.Recv()
 	if err != nil {
 		t.Fatal(err)
@@ -70,9 +77,15 @@ func TestPluginServerResourceServiceFallsThroughToBus(t *testing.T) {
 type sentinelResourceService struct{}
 
 func (sentinelResourceService) ResourceClient(
-	req *resource.ResourceClientRequest,
 	strm resource.SRPCResourceService_ResourceClientStream,
 ) error {
+	req, err := strm.Recv()
+	if err != nil {
+		return err
+	}
+	if req.GetInit() == nil {
+		return errors.New("expected resource client init")
+	}
 	if err := strm.Send(&resource.ResourceClientResponse{
 		Body: &resource.ResourceClientResponse_Init{
 			Init: &resource.ResourceClientInit{
@@ -89,20 +102,6 @@ func (sentinelResourceService) ResourceClient(
 
 func (sentinelResourceService) ResourceRpc(resource.SRPCResourceService_ResourceRpcStream) error {
 	return errors.New("unexpected resource rpc")
-}
-
-func (sentinelResourceService) ResourceRefRelease(
-	context.Context,
-	*resource.ResourceRefReleaseRequest,
-) (*resource.ResourceRefReleaseResponse, error) {
-	return &resource.ResourceRefReleaseResponse{}, nil
-}
-
-func (sentinelResourceService) ResourceRefAdopt(
-	context.Context,
-	*resource.ResourceRefAdoptRequest,
-) (*resource.ResourceRefAdoptResponse, error) {
-	return &resource.ResourceRefAdoptResponse{}, nil
 }
 
 func (sentinelResourceService) ResourceAttach(resource.SRPCResourceService_ResourceAttachStream) error {

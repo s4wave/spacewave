@@ -1,8 +1,20 @@
+import { MessageChannel } from 'node:worker_threads'
 import { EventEmitter } from 'events'
-import { createHandler } from 'starpc'
+import {
+  ChannelStream,
+  Client as SRPCClient,
+  Server,
+  StreamConn,
+  combineUint8ArrayListTransform,
+  createHandler,
+  createMux,
+} from 'starpc'
+import { pipe } from 'it-pipe'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Client as ResourceClient } from '../../../sdk/resource/client.js'
+import { ResourceServiceClient } from '../../../sdk/resource/resource_srpc.pb.js'
+import type { ResourceServer } from '../../../sdk/resource/server/server.js'
 import { newResourceMux } from '../../../sdk/resource/server/mux.js'
 import {
   DesktopTrayActionKind,
@@ -15,7 +27,7 @@ import {
 import {
   DesktopTrayActionHandlerServiceDefinition,
   DesktopTrayResourceServiceClient,
-  type DesktopTrayActionHandlerService,
+  type DesktopTrayActionHandlerServiceHandler,
 } from '@go/github.com/s4wave/spacewave/bldr/desktop/tray/tray_srpc.pb.js'
 import {
   DesktopCLIInstallStatus,
@@ -34,6 +46,49 @@ import {
   iconStateForRuntimeHealth,
 } from './desktop-tray-runtime-projection.js'
 
+function openTestResourceService(server: ResourceServer): {
+  service: ResourceServiceClient
+  close(): void
+} {
+  const mux = createMux()
+  server.register(mux)
+  const rpcServer = new Server(mux.lookupMethod)
+  const clientConn = new StreamConn()
+  const serverConn = new StreamConn(rpcServer, { direction: 'inbound' })
+  const { port1, port2 } = new MessageChannel()
+  const clientChannel = new ChannelStream(
+    'client',
+    port1 as unknown as MessagePort,
+  )
+  const serverChannel = new ChannelStream(
+    'server',
+    port2 as unknown as MessagePort,
+  )
+  void pipe(
+    clientChannel,
+    clientConn,
+    combineUint8ArrayListTransform(),
+    clientChannel,
+  ).catch(() => {})
+  void pipe(
+    serverChannel,
+    serverConn,
+    combineUint8ArrayListTransform(),
+    serverChannel,
+  ).catch(() => {})
+  return {
+    service: new ResourceServiceClient(
+      new SRPCClient(clientConn.buildOpenStreamFunc()),
+    ),
+    close() {
+      port1.close()
+      port2.close()
+      clientConn.close()
+      serverConn.close()
+    },
+  }
+}
+
 const platformState = { value: 'linux' }
 const menuTemplates: Electron.MenuItemConstructorOptions[][] = []
 const trayInstances: MockTray[] = []
@@ -49,8 +104,8 @@ const mockResource = {
   OpenOrFocusMainWindow: vi.fn(() => Promise.resolve({})),
   QuitDesktopRuntime: vi.fn(() => Promise.resolve({})),
   desktopTrayResource: {
-    WatchDesktopTray: vi.fn(),
-    InvokeDesktopTrayEntry: vi.fn(() => Promise.resolve({})),
+    watchState: vi.fn(),
+    invokeEntry: vi.fn(() => Promise.resolve({})),
     getState: vi.fn(() => defaultTrayState()),
   },
 }
@@ -133,9 +188,7 @@ describe('DesktopTrayController', () => {
       trayStream.emit({ state })
     }
     mockResource.WatchDesktopState.mockReturnValue(stream)
-    mockResource.desktopTrayResource.WatchDesktopTray.mockReturnValue(
-      trayStream,
-    )
+    mockResource.desktopTrayResource.watchState.mockReturnValue(trayStream)
   })
 
   it('keeps one native tray item for the process lifetime', async () => {
@@ -155,9 +208,7 @@ describe('DesktopTrayController', () => {
       label: 'Spacewave: Running',
       enabled: false,
     })
-    expect(
-      mockResource.desktopTrayResource.WatchDesktopTray,
-    ).toHaveBeenCalledTimes(1)
+    expect(mockResource.desktopTrayResource.watchState).toHaveBeenCalledTimes(1)
     expect(mockResource.WatchDesktopState).not.toHaveBeenCalled()
   })
 
@@ -335,10 +386,8 @@ describe('DesktopTrayController', () => {
     await flushPromises()
 
     const abort = new AbortController()
-    const resourceClient = new ResourceClient(
-      resource.resourceServer,
-      abort.signal,
-    )
+    const endpoint = openTestResourceService(resource.resourceServer)
+    const resourceClient = new ResourceClient(endpoint.service, abort.signal)
     const rootRef = await resourceClient.accessRootResource()
     const tray = new DesktopTrayResourceServiceClient(rootRef.client)
 
@@ -387,6 +436,7 @@ describe('DesktopTrayController', () => {
     rootRef.release()
     resourceClient.dispose()
     abort.abort()
+    endpoint.close()
   })
 
   it('renders healthy menu sections in daemon-console order', async () => {
@@ -801,9 +851,7 @@ describe('DesktopTrayController', () => {
 
     await clickMenuItem('Copy Diagnostics')
 
-    expect(
-      mockResource.desktopTrayResource.InvokeDesktopTrayEntry,
-    ).toHaveBeenCalledWith({
+    expect(mockResource.desktopTrayResource.invokeEntry).toHaveBeenCalledWith({
       entryId: 'copy-diagnostics',
     })
   })
@@ -814,13 +862,11 @@ describe('DesktopTrayController', () => {
       quitDesktopRuntime: vi.fn(),
     })
     const abort = new AbortController()
-    const resourceClient = new ResourceClient(
-      resource.resourceServer,
-      abort.signal,
-    )
+    const endpoint = openTestResourceService(resource.resourceServer)
+    const resourceClient = new ResourceClient(endpoint.service, abort.signal)
     const rootRef = await resourceClient.accessRootResource()
     const tray = new DesktopTrayResourceServiceClient(rootRef.client)
-    const handler: DesktopTrayActionHandlerService = {
+    const handler: DesktopTrayActionHandlerServiceHandler = {
       HandleDesktopTrayAction: vi.fn(async () => ({})),
     }
     const handlerMux = newResourceMux(
@@ -846,18 +892,23 @@ describe('DesktopTrayController', () => {
     })
     await tray.InvokeDesktopTrayEntry({ entryId: 'copy-diagnostics' })
 
-    expect(handler.HandleDesktopTrayAction).toHaveBeenCalledWith({
-      entryId: 'copy-diagnostics',
-      action: {
-        kind: DesktopTrayActionKind.ATTACHED_HANDLER,
-        value: 'diagnostics',
+    expect(handler.HandleDesktopTrayAction).toHaveBeenCalledWith(
+      {
+        entryId: 'copy-diagnostics',
+        action: {
+          kind: DesktopTrayActionKind.ATTACHED_HANDLER,
+          value: 'diagnostics',
+        },
       },
-    })
+      expect.any(AbortSignal),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
 
     attached.cleanup()
     rootRef.release()
     resourceClient.dispose()
     abort.abort()
+    endpoint.close()
   })
 
   it('preserves the entry-backed menu contract for ordering and lifecycle actions', async () => {
@@ -1061,9 +1112,9 @@ describe('DesktopTrayController', () => {
     expect(mockShell.showItemInFolder).toHaveBeenCalledWith(
       '/tmp/spacewave.log',
     )
-    expect(
-      mockResource.desktopTrayResource.InvokeDesktopTrayEntry,
-    ).toHaveBeenCalledWith({ entryId: 'restart-listener' })
+    expect(mockResource.desktopTrayResource.invokeEntry).toHaveBeenCalledWith({
+      entryId: 'restart-listener',
+    })
     expect(mockResource.QuitDesktopRuntime).toHaveBeenCalledTimes(1)
   })
 

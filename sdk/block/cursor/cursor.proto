@@ -173,7 +173,6 @@ message GetAllRefsRequest {
 // GetAllRefsResponse is the response type for GetAllRefs.
 message GetAllRefsResponse {
   // Refs maps reference field IDs to BlockCursor resource IDs.
-  // @resource-adoption-id
   map<uint32, uint32> refs = 1;
 }
 
@@ -220,7 +219,6 @@ message ParentsRequest {}
 // ParentsResponse is the response type for Parents.
 message ParentsResponse {
   // ParentResourceIds are the resource IDs of parent cursors.
-  // @resource-adoption-id
   repeated uint32 parent_resource_ids = 1;
 }
 

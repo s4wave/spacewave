@@ -15,6 +15,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -79,6 +80,38 @@ export interface DebugBridgeService {
   PluginRpc(
     request: MessageStream<RpcStreamPacket>,
     abortSignal?: AbortSignal,
+  ): MessageStream<RpcStreamPacket>
+}
+
+/**
+ * @generated from service s4wave.debug.DebugBridgeService
+ */
+export interface DebugBridgeServiceHandler {
+  /**
+   * @generated from rpc s4wave.debug.DebugBridgeService.EvalJS
+   */
+  EvalJS(
+    request: EvalJSRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<EvalJSResponse>
+
+  /**
+   * @generated from rpc s4wave.debug.DebugBridgeService.GetPageInfo
+   */
+  GetPageInfo(
+    request: GetPageInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetPageInfoResponse>
+
+  /**
+   * @generated from rpc s4wave.debug.DebugBridgeService.PluginRpc
+   */
+  PluginRpc(
+    request: MessageStream<RpcStreamPacket>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<RpcStreamPacket>
 }
 

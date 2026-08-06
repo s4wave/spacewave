@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   Server,
+  type ServerContext,
   StreamConn,
   castToError,
   createHandler,
@@ -14,15 +15,15 @@ import {
 
 import {
   RootResourceServiceDefinition,
-  type RootResourceService,
+  type RootResourceServiceHandler,
 } from '../../../sdk/root/root_srpc.pb.js'
 import { Root } from '../../../sdk/root/root.js'
 import {
   SessionResourceServiceDefinition,
-  type SessionResourceService,
+  type SessionResourceServiceHandler,
 } from '../../../sdk/session/session_srpc.pb.js'
 import { ResourceServer } from './server/server.js'
-import { constructChildResource } from './server/construct.js'
+import { getResourceCall } from './server/context.js'
 import { connectUnixResourceClient } from './unix-client.js'
 
 describe('connectUnixResourceClient', () => {
@@ -37,22 +38,28 @@ describe('connectUnixResourceClient', () => {
             spacesList: [{ spaceMeta: { name: 'Terminal' } }],
           }
         },
-      } satisfies Partial<SessionResourceService>),
+      } satisfies Partial<SessionResourceServiceHandler>),
     )
     const rootMux = createMux()
     rootMux.register(
       createHandler(RootResourceServiceDefinition, {
-        MountSessionByIdx(request) {
-          if (request.sessionIdx !== 4) {
-            throw new Error(`unexpected Session index ${request.sessionIdx}`)
+        MountSessionByIdx(
+          _request,
+          _abortSignal: AbortSignal,
+          context: ServerContext,
+        ) {
+          if (_request.sessionIdx !== 4) {
+            throw new Error(`unexpected Session index ${_request.sessionIdx}`)
           }
-          const { resourceId } = constructChildResource(() => ({
+          const { resourceId } = getResourceCall(
+            context,
+          ).constructChildResource(() => ({
             mux: sessionMux,
             result: undefined,
           }))
           return Promise.resolve({ resourceId })
         },
-      } satisfies Partial<RootResourceService>),
+      } satisfies Partial<RootResourceServiceHandler>),
     )
     const resources = new ResourceServer(rootMux)
     const rpcMux = createMux()

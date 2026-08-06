@@ -4,7 +4,12 @@
 
 import { WatchBlogRequest, WatchBlogResponse } from './blog.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service notes.BlogResourceService
@@ -34,6 +39,20 @@ export interface BlogResourceService {
   WatchBlog(
     request: WatchBlogRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchBlogResponse>
+}
+
+/**
+ * @generated from service notes.BlogResourceService
+ */
+export interface BlogResourceServiceHandler {
+  /**
+   * @generated from rpc notes.BlogResourceService.WatchBlog
+   */
+  WatchBlog(
+    request: WatchBlogRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchBlogResponse>
 }
 

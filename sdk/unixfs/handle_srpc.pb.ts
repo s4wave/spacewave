@@ -46,6 +46,7 @@ import {
   buildEncodeMessageTransform,
   MessageStream,
   ProtoRpc,
+  ServerContext,
 } from 'starpc'
 
 /**
@@ -365,6 +366,173 @@ export interface FSHandleResourceService {
   WatchReaddir(
     request: HandleWatchReaddirRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<HandleWatchReaddirResponse>
+}
+
+/**
+ * @generated from service s4wave.unixfs.FSHandleResourceService
+ */
+export interface FSHandleResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.Lookup
+   */
+  Lookup(
+    request: HandleLookupRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleLookupResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.LookupPath
+   */
+  LookupPath(
+    request: HandleLookupPathRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleLookupPathResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.ReadAt
+   */
+  ReadAt(
+    request: HandleReadAtRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleReadAtResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.WriteAt
+   */
+  WriteAt(
+    request: HandleWriteAtRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleWriteAtResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.Truncate
+   */
+  Truncate(
+    request: HandleTruncateRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleTruncateResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.GetSize
+   */
+  GetSize(
+    request: HandleGetSizeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleGetSizeResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.GetFileInfo
+   */
+  GetFileInfo(
+    request: HandleGetFileInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleGetFileInfoResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.GetNodeType
+   */
+  GetNodeType(
+    request: HandleGetNodeTypeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleGetNodeTypeResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.Readdir
+   */
+  Readdir(
+    request: HandleReaddirRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<HandleReaddirResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.Mknod
+   */
+  Mknod(
+    request: HandleMknodRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleMknodResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.Remove
+   */
+  Remove(
+    request: HandleRemoveRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleRemoveResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.MkdirAll
+   */
+  MkdirAll(
+    request: HandleMkdirAllRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleMkdirAllResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.Rename
+   */
+  Rename(
+    request: HandleRenameRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleRenameResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.Clone
+   */
+  Clone(
+    request: HandleCloneRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleCloneResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.Readlink
+   */
+  Readlink(
+    request: HandleReadlinkRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleReadlinkResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.UploadFile
+   */
+  UploadFile(
+    request: MessageStream<HandleUploadFileRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleUploadFileResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.UploadTree
+   */
+  UploadTree(
+    request: MessageStream<HandleUploadTreeRequest>,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<HandleUploadTreeResponse>
+
+  /**
+   * @generated from rpc s4wave.unixfs.FSHandleResourceService.WatchReaddir
+   */
+  WatchReaddir(
+    request: HandleWatchReaddirRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<HandleWatchReaddirResponse>
 }
 

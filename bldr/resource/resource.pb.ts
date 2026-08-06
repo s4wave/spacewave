@@ -13,28 +13,136 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 export const protobufPackage = 'resource'
 
 /**
- * ResourceClientRequest is the request body for ResourceClient.
+ * ResourceClientInitRequest is sent first on every ResourceClient stream.
+ *
+ * @generated from message resource.ResourceClientInitRequest
+ */
+export interface ResourceClientInitRequest {}
+
+export const ResourceClientInitRequest: MessageType<ResourceClientInitRequest> =
+  /* @__PURE__ */ createEmptyMessageType<ResourceClientInitRequest>(
+    'resource.ResourceClientInitRequest',
+    true,
+  )
+
+/**
+ * ResourceClientAdopt adopts a pending resource.
+ *
+ * @generated from message resource.ResourceClientAdopt
+ */
+export interface ResourceClientAdopt {
+  /**
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+}
+
+export const ResourceClientAdopt: MessageType<ResourceClientAdopt> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'resource.ResourceClientAdopt',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResourceClientRelease releases a resource and its pending descendants.
+ *
+ * @generated from message resource.ResourceClientRelease
+ */
+export interface ResourceClientRelease {
+  /**
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+}
+
+export const ResourceClientRelease: MessageType<ResourceClientRelease> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'resource.ResourceClientRelease',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResourceClientRequest is a control packet for ResourceClient.
  *
  * @generated from message resource.ResourceClientRequest
  */
 export interface ResourceClientRequest {
   /**
-   * SupportsResourceAdoptionAck requests the held ResourceRpc receipt protocol.
+   * ControlId orders every lifecycle control within one immutable generation.
+   * Init uses zero; every later control increments the identifier by one.
    *
-   * @generated from field: bool supports_resource_adoption_ack = 1;
+   * @generated from field: uint32 control_id = 5;
    */
-  supportsResourceAdoptionAck?: boolean
+  controlId?: number
+
+  /**
+   * @generated from oneof resource.ResourceClientRequest.body
+   */
+  body?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * ResourceClientInitRequest starts a new client generation.
+         *
+         * @generated from field: resource.ResourceClientInitRequest init = 2;
+         */
+        value: ResourceClientInitRequest
+        case: 'init'
+      }
+    | {
+        /**
+         * ResourceClientAdopt detaches a pending child from its parent.
+         *
+         * @generated from field: resource.ResourceClientAdopt adopt = 3;
+         */
+        value: ResourceClientAdopt
+        case: 'adopt'
+      }
+    | {
+        /**
+         * ResourceClientRelease releases a resource and its pending descendants.
+         *
+         * @generated from field: resource.ResourceClientRelease release = 4;
+         */
+        value: ResourceClientRelease
+        case: 'release'
+      }
 }
 
 export const ResourceClientRequest: MessageType<ResourceClientRequest> =
   /* @__PURE__ */ createMessageType({
     typeName: 'resource.ResourceClientRequest',
     fields: [
+      { no: 5, name: 'control_id', kind: 'scalar', T: ScalarType.UINT32 },
       {
-        no: 1,
-        name: 'supports_resource_adoption_ack',
-        kind: 'scalar',
-        T: ScalarType.BOOL,
+        no: 2,
+        name: 'init',
+        kind: 'message',
+        T: () => ResourceClientInitRequest,
+        oneof: 'body',
+      },
+      {
+        no: 3,
+        name: 'adopt',
+        kind: 'message',
+        T: () => ResourceClientAdopt,
+        oneof: 'body',
+      },
+      {
+        no: 4,
+        name: 'release',
+        kind: 'message',
+        T: () => ResourceClientRelease,
+        oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -48,7 +156,6 @@ export const ResourceClientRequest: MessageType<ResourceClientRequest> =
 export interface ResourceClientInit {
   /**
    * ClientHandleId is the handle identifier for the client.
-   * The client should use this ID going forward for requests.
    *
    * @generated from field: uint32 client_handle_id = 1;
    */
@@ -59,13 +166,6 @@ export interface ResourceClientInit {
    * @generated from field: uint32 root_resource_id = 2;
    */
   rootResourceId?: number
-  /**
-   * SupportsResourceAdoptionAck is true when held ResourceRpc receipts and
-   * per-resource adoption acknowledgments are implemented.
-   *
-   * @generated from field: bool supports_resource_adoption_ack = 3;
-   */
-  supportsResourceAdoptionAck?: boolean
 }
 
 export const ResourceClientInit: MessageType<ResourceClientInit> =
@@ -74,12 +174,6 @@ export const ResourceClientInit: MessageType<ResourceClientInit> =
     fields: [
       { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 2, name: 'root_resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-      {
-        no: 3,
-        name: 'supports_resource_adoption_ack',
-        kind: 'scalar',
-        T: ScalarType.BOOL,
-      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -103,6 +197,29 @@ export const ResourceReleasedResponse: MessageType<ResourceReleasedResponse> =
     typeName: 'resource.ResourceReleasedResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ResourceClientControlAck confirms a lifecycle control completed.
+ *
+ * @generated from message resource.ResourceClientControlAck
+ */
+export interface ResourceClientControlAck {
+  /**
+   * ControlId matches ResourceClientRequest.control_id.
+   *
+   * @generated from field: uint32 control_id = 1;
+   */
+  controlId?: number
+}
+
+export const ResourceClientControlAck: MessageType<ResourceClientControlAck> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'resource.ResourceClientControlAck',
+    fields: [
+      { no: 1, name: 'control_id', kind: 'scalar', T: ScalarType.UINT32 },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -135,12 +252,21 @@ export interface ResourceClientResponse {
       }
     | {
         /**
-         * ResourceRefReleased is returned if a resource was released by the server.
+         * ResourceReleased is returned if a resource was released by the server.
          *
          * @generated from field: resource.ResourceReleasedResponse resource_released = 2;
          */
         value: ResourceReleasedResponse
         case: 'resourceReleased'
+      }
+    | {
+        /**
+         * ControlAck confirms that one lifecycle control and its callbacks completed.
+         *
+         * @generated from field: resource.ResourceClientControlAck control_ack = 4;
+         */
+        value: ResourceClientControlAck
+        case: 'controlAck'
       }
 }
 
@@ -162,96 +288,16 @@ export const ResourceClientResponse: MessageType<ResourceClientResponse> =
         T: () => ResourceReleasedResponse,
         oneof: 'body',
       },
+      {
+        no: 4,
+        name: 'control_ack',
+        kind: 'message',
+        T: () => ResourceClientControlAck,
+        oneof: 'body',
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
-
-/**
- * ResourceRefReleaseRequest is the request for ResourceRefRelease.
- *
- * @generated from message resource.ResourceRefReleaseRequest
- */
-export interface ResourceRefReleaseRequest {
-  /**
-   * ClientHandleId is the handle identifier for the client.
-   *
-   * @generated from field: uint32 client_handle_id = 1;
-   */
-  clientHandleId?: number
-  /**
-   * ResourceId is the ID of the resource reference to release.
-   *
-   * @generated from field: uint32 resource_id = 2;
-   */
-  resourceId?: number
-}
-
-export const ResourceRefReleaseRequest: MessageType<ResourceRefReleaseRequest> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'resource.ResourceRefReleaseRequest',
-    fields: [
-      { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * ResourceRefReleaseResponse is the response for ResourceRefRelease.
- *
- * @generated from message resource.ResourceRefReleaseResponse
- */
-export interface ResourceRefReleaseResponse {}
-
-export const ResourceRefReleaseResponse: MessageType<ResourceRefReleaseResponse> =
-  /* @__PURE__ */ createEmptyMessageType<ResourceRefReleaseResponse>(
-    'resource.ResourceRefReleaseResponse',
-    true,
-  )
-
-/**
- * ResourceRefAdoptRequest acknowledges adoption of a resource returned by a
- * held ResourceRpc invocation.
- *
- * @generated from message resource.ResourceRefAdoptRequest
- */
-export interface ResourceRefAdoptRequest {
-  /**
-   * ClientHandleId identifies the persistent ResourceClient session.
-   *
-   * @generated from field: uint32 client_handle_id = 1;
-   */
-  clientHandleId?: number
-  /**
-   * ResourceId identifies the pending resource to adopt.
-   *
-   * @generated from field: uint32 resource_id = 2;
-   */
-  resourceId?: number
-}
-
-export const ResourceRefAdoptRequest: MessageType<ResourceRefAdoptRequest> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'resource.ResourceRefAdoptRequest',
-    fields: [
-      { no: 1, name: 'client_handle_id', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * ResourceRefAdoptResponse confirms a pending resource was adopted.
- *
- * @generated from message resource.ResourceRefAdoptResponse
- */
-export interface ResourceRefAdoptResponse {}
-
-export const ResourceRefAdoptResponse: MessageType<ResourceRefAdoptResponse> =
-  /* @__PURE__ */ createEmptyMessageType<ResourceRefAdoptResponse>(
-    'resource.ResourceRefAdoptResponse',
-    true,
-  )
 
 /**
  * ResourceAttachInit is sent by the client to initiate a session.
@@ -462,7 +508,6 @@ export interface ResourceAttachAddAck {
   error?: string
   /**
    * ResourceId is the server-assigned ID for the attached resource.
-   * @resource-adoption-id
    *
    * @generated from field: uint32 resource_id = 3;
    */

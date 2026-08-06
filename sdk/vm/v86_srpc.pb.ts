@@ -7,7 +7,7 @@ import {
   ReportV86RuntimeStatusResponse,
 } from './v86.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * V86RuntimeStatusService reports generation-fenced runtime observations.
@@ -45,6 +45,24 @@ export interface V86RuntimeStatusService {
   ReportStatus(
     request: ReportV86RuntimeStatusRequest,
     abortSignal?: AbortSignal,
+  ): Promise<ReportV86RuntimeStatusResponse>
+}
+
+/**
+ * V86RuntimeStatusService reports generation-fenced runtime observations.
+ *
+ * @generated from service s4wave.vm.V86RuntimeStatusService
+ */
+export interface V86RuntimeStatusServiceHandler {
+  /**
+   * ReportStatus records a runtime status for the owning VM generation.
+   *
+   * @generated from rpc s4wave.vm.V86RuntimeStatusService.ReportStatus
+   */
+  ReportStatus(
+    request: ReportV86RuntimeStatusRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<ReportV86RuntimeStatusResponse>
 }
 

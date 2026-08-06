@@ -93,9 +93,11 @@ func (r *DesktopTray) RegisterDesktopTrayEntry(
 
 	entryResource.SetResourceID(resourceID)
 	reg.resourceID = resourceID
+	var releasedBeforeRegistration bool
 	duplicate = false
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if released {
+			releasedBeforeRegistration = true
 			return
 		}
 		if r.hasEntryIDLocked(entry.GetId(), 0) {
@@ -109,7 +111,7 @@ func (r *DesktopTray) RegisterDesktopTrayEntry(
 		client.ReleaseResource(resourceID)
 		return nil, ErrDesktopTrayEntryDuplicate
 	}
-	if released {
+	if releasedBeforeRegistration {
 		return nil, resource.ErrClientReleased
 	}
 

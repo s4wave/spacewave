@@ -13,7 +13,12 @@ import {
   WatchMessagesResponse,
 } from './rpc.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service spacewave.chat.rpc.ChatResourceService
@@ -94,6 +99,47 @@ export interface ChatResourceService {
   SendMessage(
     request: SendMessageRequest,
     abortSignal?: AbortSignal,
+  ): Promise<SendMessageResponse>
+}
+
+/**
+ * @generated from service spacewave.chat.rpc.ChatResourceService
+ */
+export interface ChatResourceServiceHandler {
+  /**
+   * @generated from rpc spacewave.chat.rpc.ChatResourceService.GetChannelInfo
+   */
+  GetChannelInfo(
+    request: GetChannelInfoRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetChannelInfoResponse>
+
+  /**
+   * @generated from rpc spacewave.chat.rpc.ChatResourceService.ListMessages
+   */
+  ListMessages(
+    request: ListMessagesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ListMessagesResponse>
+
+  /**
+   * @generated from rpc spacewave.chat.rpc.ChatResourceService.WatchMessages
+   */
+  WatchMessages(
+    request: WatchMessagesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchMessagesResponse>
+
+  /**
+   * @generated from rpc spacewave.chat.rpc.ChatResourceService.SendMessage
+   */
+  SendMessage(
+    request: SendMessageRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<SendMessageResponse>
 }
 

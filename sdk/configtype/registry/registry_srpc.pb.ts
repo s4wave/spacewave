@@ -9,7 +9,12 @@ import {
   WatchConfigTypesResponse,
 } from './registry.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service s4wave.configtype.registry.ConfigTypeRegistryResourceService
@@ -56,6 +61,29 @@ export interface ConfigTypeRegistryResourceService {
   WatchConfigTypes(
     request: WatchConfigTypesRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<WatchConfigTypesResponse>
+}
+
+/**
+ * @generated from service s4wave.configtype.registry.ConfigTypeRegistryResourceService
+ */
+export interface ConfigTypeRegistryResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.configtype.registry.ConfigTypeRegistryResourceService.RegisterConfigType
+   */
+  RegisterConfigType(
+    request: RegisterConfigTypeRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RegisterConfigTypeResponse>
+
+  /**
+   * @generated from rpc s4wave.configtype.registry.ConfigTypeRegistryResourceService.WatchConfigTypes
+   */
+  WatchConfigTypes(
+    request: WatchConfigTypesRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<WatchConfigTypesResponse>
 }
 

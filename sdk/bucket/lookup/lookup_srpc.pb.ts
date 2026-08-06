@@ -27,7 +27,7 @@ import {
   UnmarshalResponse,
 } from './lookup.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { ProtoRpc } from 'starpc'
+import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
  * @generated from service s4wave.bucket_lookup.BucketLookupCursorResourceService
@@ -227,6 +227,110 @@ export interface BucketLookupCursorResourceService {
   Unmarshal(
     request: UnmarshalRequest,
     abortSignal?: AbortSignal,
+  ): Promise<UnmarshalResponse>
+}
+
+/**
+ * @generated from service s4wave.bucket_lookup.BucketLookupCursorResourceService
+ */
+export interface BucketLookupCursorResourceServiceHandler {
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.GetRef
+   */
+  GetRef(
+    request: GetRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetRefResponse>
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.FollowRef
+   */
+  FollowRef(
+    request: FollowRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<FollowRefResponse>
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.GetBlock
+   */
+  GetBlock(
+    request: GetBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetBlockResponse>
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.PutBlock
+   */
+  PutBlock(
+    request: PutBlockRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PutBlockResponse>
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.PutBlockBatch
+   */
+  PutBlockBatch(
+    request: PutBlockBatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PutBlockBatchResponse>
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.GetBlockExistsBatch
+   */
+  GetBlockExistsBatch(
+    request: GetBlockExistsBatchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<GetBlockExistsBatchResponse>
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.BuildTransaction
+   */
+  BuildTransaction(
+    request: BuildTransactionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<BuildTransactionResponse>
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.BuildTransactionAtRef
+   */
+  BuildTransactionAtRef(
+    request: BuildTransactionAtRefRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<BuildTransactionAtRefResponse>
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.Clone
+   */
+  Clone(
+    request: CloneRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CloneResponse>
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.Release
+   */
+  Release(
+    request: ReleaseRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ReleaseResponse>
+
+  /**
+   * @generated from rpc s4wave.bucket_lookup.BucketLookupCursorResourceService.Unmarshal
+   */
+  Unmarshal(
+    request: UnmarshalRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<UnmarshalResponse>
 }
 

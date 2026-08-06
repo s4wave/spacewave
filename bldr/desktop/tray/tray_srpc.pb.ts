@@ -19,7 +19,12 @@ import {
   WatchDesktopTrayResponse,
 } from './tray.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * DesktopTrayResourceService exposes a watchable desktop tray tree.
@@ -99,6 +104,46 @@ export interface DesktopTrayResourceService {
   InvokeDesktopTrayEntry(
     request: InvokeDesktopTrayEntryRequest,
     abortSignal?: AbortSignal,
+  ): Promise<InvokeDesktopTrayEntryResponse>
+}
+
+/**
+ * DesktopTrayResourceService exposes a watchable desktop tray tree.
+ *
+ * @generated from service bldr.desktop.tray.DesktopTrayResourceService
+ */
+export interface DesktopTrayResourceServiceHandler {
+  /**
+   * RegisterDesktopTrayEntry registers one resource-backed tray entry.
+   *
+   * @generated from rpc bldr.desktop.tray.DesktopTrayResourceService.RegisterDesktopTrayEntry
+   */
+  RegisterDesktopTrayEntry(
+    request: RegisterDesktopTrayEntryRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<RegisterDesktopTrayEntryResponse>
+
+  /**
+   * WatchDesktopTray streams the full ordered tray tree.
+   *
+   * @generated from rpc bldr.desktop.tray.DesktopTrayResourceService.WatchDesktopTray
+   */
+  WatchDesktopTray(
+    request: WatchDesktopTrayRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<WatchDesktopTrayResponse>
+
+  /**
+   * InvokeDesktopTrayEntry invokes an action entry by id.
+   *
+   * @generated from rpc bldr.desktop.tray.DesktopTrayResourceService.InvokeDesktopTrayEntry
+   */
+  InvokeDesktopTrayEntry(
+    request: InvokeDesktopTrayEntryRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<InvokeDesktopTrayEntryResponse>
 }
 
@@ -254,6 +299,46 @@ export interface DesktopTrayEntryResourceService {
   ): Promise<SetDesktopTrayEntryEnabledResponse>
 }
 
+/**
+ * DesktopTrayEntryResourceService updates one registered tray entry.
+ *
+ * @generated from service bldr.desktop.tray.DesktopTrayEntryResourceService
+ */
+export interface DesktopTrayEntryResourceServiceHandler {
+  /**
+   * SetDesktopTrayEntry replaces the registered entry.
+   *
+   * @generated from rpc bldr.desktop.tray.DesktopTrayEntryResourceService.SetDesktopTrayEntry
+   */
+  SetDesktopTrayEntry(
+    request: SetDesktopTrayEntryRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetDesktopTrayEntryResponse>
+
+  /**
+   * SetDesktopTrayEntryActive updates the entry active flag.
+   *
+   * @generated from rpc bldr.desktop.tray.DesktopTrayEntryResourceService.SetDesktopTrayEntryActive
+   */
+  SetDesktopTrayEntryActive(
+    request: SetDesktopTrayEntryActiveRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetDesktopTrayEntryActiveResponse>
+
+  /**
+   * SetDesktopTrayEntryEnabled updates the entry enabled flag.
+   *
+   * @generated from rpc bldr.desktop.tray.DesktopTrayEntryResourceService.SetDesktopTrayEntryEnabled
+   */
+  SetDesktopTrayEntryEnabled(
+    request: SetDesktopTrayEntryEnabledRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SetDesktopTrayEntryEnabledResponse>
+}
+
 export const DesktopTrayEntryResourceServiceServiceName =
   DesktopTrayEntryResourceServiceDefinition.typeName
 
@@ -363,6 +448,24 @@ export interface DesktopTrayActionHandlerService {
   HandleDesktopTrayAction(
     request: HandleDesktopTrayActionRequest,
     abortSignal?: AbortSignal,
+  ): Promise<HandleDesktopTrayActionResponse>
+}
+
+/**
+ * DesktopTrayActionHandlerService handles caller-owned tray actions.
+ *
+ * @generated from service bldr.desktop.tray.DesktopTrayActionHandlerService
+ */
+export interface DesktopTrayActionHandlerServiceHandler {
+  /**
+   * HandleDesktopTrayAction handles a native tray action invocation.
+   *
+   * @generated from rpc bldr.desktop.tray.DesktopTrayActionHandlerService.HandleDesktopTrayAction
+   */
+  HandleDesktopTrayAction(
+    request: HandleDesktopTrayActionRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): Promise<HandleDesktopTrayActionResponse>
 }
 

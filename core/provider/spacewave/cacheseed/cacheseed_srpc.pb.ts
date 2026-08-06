@@ -4,7 +4,12 @@
 
 import { CacheSeedEntry, GetCacheSeedReasonsRequest } from './cacheseed.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { buildDecodeMessageTransform, MessageStream, ProtoRpc } from 'starpc'
+import {
+  buildDecodeMessageTransform,
+  MessageStream,
+  ProtoRpc,
+  ServerContext,
+} from 'starpc'
 
 /**
  * @generated from service provider.spacewave.cacheseed.CacheSeedInspector
@@ -34,6 +39,20 @@ export interface CacheSeedInspector {
   GetCacheSeedReasons(
     request: GetCacheSeedReasonsRequest,
     abortSignal?: AbortSignal,
+  ): MessageStream<CacheSeedEntry>
+}
+
+/**
+ * @generated from service provider.spacewave.cacheseed.CacheSeedInspector
+ */
+export interface CacheSeedInspectorHandler {
+  /**
+   * @generated from rpc provider.spacewave.cacheseed.CacheSeedInspector.GetCacheSeedReasons
+   */
+  GetCacheSeedReasons(
+    request: GetCacheSeedReasonsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
   ): MessageStream<CacheSeedEntry>
 }
 

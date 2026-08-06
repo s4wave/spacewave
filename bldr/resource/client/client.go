@@ -24,145 +24,156 @@ type ResourceRef interface {
 	Release()
 }
 
-// Client manages connections to remote resources via RPC.
-// Handles resource lifecycle, reference counting, and cleanup.
-//
-// Note: Server-side handlers may send the same resource ID to the client multiple times.
-// Additionally, client code may create multiple references to the same resource ID.
-// We use reference counting to track when all client-side
-// references to a resource have been released before notifying the server.
+// Client manages one immutable remote ResourceClient generation.
+// It serializes lifecycle controls and reference-counts each remote resource.
 type Client struct {
-	// ctx is the context for the client (canceled when client is released)
+	// ctx ends when the generation retires
 	ctx context.Context
-	// cancel cancels the context
+	// cancel retires the generation transport
 	cancel context.CancelFunc
-	// service is the resource service client
+	// attachCtx scopes client-published resource operations.
+	attachCtx    context.Context
+	cancelAttach context.CancelFunc
+	// service opens ResourceRpc and ResourceAttach streams
 	service resource.SRPCResourceServiceClient
-	// clientHandleID is the client handle ID from initialization
+	// done closes after the ResourceClient response stream has ended.
+	done chan struct{}
+
 	clientHandleID uint32
-	// rootResourceID is the root resource ID from initialization
 	rootResourceID uint32
-	// resourceLifetime owns local resource references and cached clients.
+
 	resourceLifetime *resourceLifetime
-	// attach owns attach session readiness and pending AddAck state.
-	attach *attachLifetime
+	attach           *attachLifetime
+	controls         *resourceControlQueue
 }
 
-// NewClient constructs and initializes a new Client.
-// Does not return until the init message is received from the server.
-// The context is used for the persistent client connection.
+// NewClient constructs a ResourceClient generation and waits for its init.
 func NewClient(ctx context.Context, service resource.SRPCResourceServiceClient) (*Client, error) {
+	// Open the immutable generation transport.
 	clientCtx, clientCancel := context.WithCancel(ctx)
-
-	// Start ResourceClient stream
-	stream, err := service.ResourceClient(clientCtx, &resource.ResourceClientRequest{
-		SupportsResourceAdoptionAck: true,
-	})
+	stream, err := service.ResourceClient(clientCtx)
 	if err != nil {
-		ctxErr := clientCtx.Err()
 		clientCancel()
-		if ctxErr != nil {
-			return nil, pkgerrors.Wrap(err, "start resource client stream after context cancellation")
-		}
 		return nil, pkgerrors.Wrap(err, "start resource client stream")
 	}
 
-	// Wait for init message
-	resp, err := stream.Recv()
-	if err != nil {
-		ctxErr := clientCtx.Err()
+	// Start the sole control writer and send Init as its first packet.
+	var client *Client
+	controls := newResourceControlQueue(
+		stream,
+		func(error) {
+			if client != nil {
+				client.retire()
+			}
+		},
+		nil,
+	)
+	if !controls.enqueue(&resource.ResourceClientRequest{Body: &resource.ResourceClientRequest_Init{
+		Init: &resource.ResourceClientInitRequest{},
+	}}) {
 		clientCancel()
-		if ctxErr != nil {
-			return nil, pkgerrors.Wrap(err, "receive resource client init after context cancellation")
+		return nil, errors.New("resource client control queue closed before init")
+	}
+	select {
+	case err := <-controls.firstSent:
+		if err != nil {
+			clientCancel()
+			return nil, pkgerrors.Wrap(err, "send resource client init")
 		}
-		return nil, pkgerrors.Wrap(err, "receive resource client init")
+	case <-clientCtx.Done():
+		clientCancel()
+		return nil, clientCtx.Err()
 	}
 
-	// Handle successful init
+	// Receive and validate the matching generation identity.
+	resp, err := stream.Recv()
+	if err != nil {
+		clientCancel()
+		return nil, pkgerrors.Wrap(err, "receive resource client init")
+	}
 	initMsg, ok := resp.Body.(*resource.ResourceClientResponse_Init)
 	if !ok || initMsg.Init == nil {
 		clientCancel()
 		return nil, errors.New("unexpected non-init msg as first response to ResourceClient")
 	}
-
 	clientHandleID, rootResourceID := initMsg.Init.ClientHandleId, initMsg.Init.RootResourceId
-	if clientHandleID == 0 {
+	if clientHandleID == 0 || rootResourceID == 0 {
 		clientCancel()
-		return nil, errors.New("unexpected empty client handle id in resource client init")
+		return nil, errors.New("resource client init returned an empty handle or root ID")
 	}
-	if rootResourceID == 0 {
-		clientCancel()
-		return nil, errors.New("unexpected empty root resource id in resource client init")
-	}
-
-	client := &Client{
+	attachCtx, cancelAttach := context.WithCancel(clientCtx)
+	client = &Client{
 		ctx:            clientCtx,
 		cancel:         clientCancel,
+		attachCtx:      attachCtx,
+		cancelAttach:   cancelAttach,
 		service:        service,
 		clientHandleID: clientHandleID,
 		rootResourceID: rootResourceID,
-		resourceLifetime: newResourceLifetime(
-			clientCtx,
-			service,
-			clientHandleID,
-			initMsg.Init.GetSupportsResourceAdoptionAck(),
-		),
+		controls:       controls,
+		done:           make(chan struct{}),
 	}
+
+	// Construct the generation-owned resource and attachment lifetimes.
+	client.resourceLifetime = newResourceLifetime(clientCtx, service, controls.enqueue)
 	client.attach = newAttachLifetime(client)
-
-	// Start background goroutine to handle resource notifications
 	go client.execute(stream)
-
 	return client, nil
 }
 
-// execute is the goroutine managing the Client.
-// Handles incoming ResourceClientResponse messages from the server.
+func (c *Client) retire() {
+	c.resourceLifetime.releaseAll()
+	c.cancelAttach()
+	c.cancel()
+}
+
 func (c *Client) execute(stream resource.SRPCResourceService_ResourceClientClient) {
+	defer close(c.done)
 	defer func() {
-		c.Release()
+		c.controls.retire(errors.New("resource client stream closed"))
+		c.retire()
 		_ = stream.Close()
 	}()
-
 	for {
 		msg, err := stream.Recv()
 		if err != nil {
 			return
 		}
-
 		switch body := msg.Body.(type) {
 		case *resource.ResourceClientResponse_ResourceReleased:
 			if body.ResourceReleased != nil {
 				c.resourceLifetime.releaseFromServer(body.ResourceReleased.ResourceId)
 			}
+		case *resource.ResourceClientResponse_ControlAck:
+			if body.ControlAck == nil {
+				return
+			}
+			if err := c.resourceLifetime.acknowledgeControl(body.ControlAck.ControlId); err != nil {
+				return
+			}
 		}
 	}
 }
 
-// AccessRootResource gets a reference to the root resource.
-// The client must already be initialized (via NewClient).
+// AccessRootResource returns a reference to this generation's root resource.
 func (c *Client) AccessRootResource() ResourceRef {
 	return c.CreateResourceReference(c.rootResourceID)
 }
 
-// CreateResourceReference creates a reference to a specific resource by ID.
-// The resource should already exist on the server.
-// Multiple references to the same resource ID are tracked via reference counting.
+// CreateResourceReference acquires a local reference to resourceID.
 func (c *Client) CreateResourceReference(resourceID uint32) ResourceRef {
 	return c.resourceLifetime.createReference(resourceID)
 }
 
-// Release releases the client and all resources.
-// All sub-resources will be automatically released as well.
+// Release queues final releases and closes this ResourceClient generation.
 func (c *Client) Release() {
 	c.resourceLifetime.releaseAll()
-	c.cancel()
+	c.cancelAttach()
+	c.controls.finish()
 }
 
-// Done returns a channel closed when the client connection is released.
-func (c *Client) Done() <-chan struct{} {
-	return c.ctx.Done()
-}
+// Done closes after this ResourceClient generation has drained and retired.
+func (c *Client) Done() <-chan struct{} { return c.done }
 
 // attachSession manages the single ResourceAttach stream + yamux session.
 // One session serves all attached resources.
@@ -316,7 +327,7 @@ type attachedResourceOwner struct {
 }
 
 func (o *attachedResourceOwner) Context() context.Context {
-	return o.client.ctx
+	return o.client.attachCtx
 }
 
 func (o *attachedResourceOwner) AddResource(mux srpc.Invoker, releaseFn func()) (uint32, error) {
@@ -324,7 +335,7 @@ func (o *attachedResourceOwner) AddResource(mux srpc.Invoker, releaseFn func()) 
 }
 
 func (o *attachedResourceOwner) AddResourceValue(mux srpc.Invoker, _ any, releaseFn func()) (uint32, error) {
-	resourceID, sess, err := o.client.attachResource(o.client.ctx, "attached-child", mux)
+	resourceID, sess, err := o.client.attachResource(o.client.attachCtx, "attached-child", mux)
 	if err != nil {
 		return 0, err
 	}
@@ -335,7 +346,7 @@ func (o *attachedResourceOwner) AddResourceValue(mux srpc.Invoker, _ any, releas
 }
 
 func (o *attachedResourceOwner) ReleaseResource(resourceID uint32) bool {
-	return o.client.DetachResource(o.client.ctx, resourceID) == nil
+	return o.client.DetachResource(o.client.attachCtx, resourceID) == nil
 }
 
 func (o *attachedResourceOwner) GetResourceValue(resourceID uint32) (any, error) {
@@ -349,7 +360,7 @@ func (o *attachedResourceOwner) GetAttachedResource(id uint32) (srpc.Client, err
 // openAttachSession opens a new attach session for the client.
 func (c *Client) openAttachSession() (*attachSession, error) {
 	// Open ResourceAttach bidi stream.
-	strm, err := c.service.ResourceAttach(c.ctx)
+	strm, err := c.service.ResourceAttach(c.attachCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +394,7 @@ func (c *Client) openAttachSession() (*attachSession, error) {
 	router := resource.NewRoutedInvokerWithContext(func(ctx context.Context, _ uint32) context.Context {
 		return resource_server.WithResourceClientContext(ctx, owner)
 	})
-	sess := newAttachSession(c.ctx, c.attach, strm, router)
+	sess := newAttachSession(c.attachCtx, c.attach, strm, router)
 	if err := sess.start(); err != nil {
 		return nil, err
 	}
