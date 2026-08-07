@@ -24,6 +24,18 @@ export class SqlWorkbench extends Resource {
     this.service = new SqlWorkbenchResourceServiceClient(resourceRef.client)
   }
 
+  // initialize creates the first workbench root.
+  public async initialize(
+    targetDbObjectKey: string,
+    displayName: string,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.Initialize(
+      { targetDbObjectKey, displayName },
+      abortSignal,
+    )
+  }
+
   // getWorkbench returns persisted workbench state.
   public async getWorkbench(
     abortSignal?: AbortSignal,

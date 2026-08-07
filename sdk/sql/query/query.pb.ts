@@ -68,6 +68,61 @@ export const Query: MessageType<Query> = /* @__PURE__ */ createMessageType({
 })
 
 /**
+ * InitializeQueryRequest contains the first query root values.
+ *
+ * @generated from message s4wave.sql.query.InitializeQueryRequest
+ */
+export interface InitializeQueryRequest {
+  /**
+   * SqlText is the initial SQL text executed by Run.
+   *
+   * @generated from field: string sql_text = 1;
+   */
+  sqlText?: string
+  /**
+   * DialectHint records the SQL dialect expected by the author.
+   *
+   * @generated from field: string dialect_hint = 2;
+   */
+  dialectHint?: string
+  /**
+   * TargetDbObjectKey is the sql/db object this query runs against.
+   *
+   * @generated from field: string target_db_object_key = 3;
+   */
+  targetDbObjectKey?: string
+}
+
+export const InitializeQueryRequest: MessageType<InitializeQueryRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sql.query.InitializeQueryRequest',
+    fields: [
+      { no: 1, name: 'sql_text', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'dialect_hint', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'target_db_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * InitializeQueryResponse is returned after creating the first query root.
+ *
+ * @generated from message s4wave.sql.query.InitializeQueryResponse
+ */
+export interface InitializeQueryResponse {}
+
+export const InitializeQueryResponse: MessageType<InitializeQueryResponse> =
+  /* @__PURE__ */ createEmptyMessageType<InitializeQueryResponse>(
+    's4wave.sql.query.InitializeQueryResponse',
+    true,
+  )
+
+/**
  * GetQueryTextRequest is a request for query text.
  *
  * @generated from message s4wave.sql.query.GetQueryTextRequest

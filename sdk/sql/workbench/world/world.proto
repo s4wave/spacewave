@@ -11,4 +11,6 @@ message SqlWorkbenchSetRootOp {
   string object_key = 1;
   // RootRef is the committed workbench root reference.
   .bucket.ObjectRef root_ref = 2;
+  // InitializeOnly rejects the operation when the object already has a root.
+  bool initialize_only = 3;
 }

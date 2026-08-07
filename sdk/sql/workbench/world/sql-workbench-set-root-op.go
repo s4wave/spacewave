@@ -21,6 +21,11 @@ func NewSqlWorkbenchSetRootOp(objectKey string, rootRef *bucket.ObjectRef) *SqlW
 	return &SqlWorkbenchSetRootOp{ObjectKey: objectKey, RootRef: rootRef.Clone()}
 }
 
+// NewSqlWorkbenchInitializeRootOp constructs a create-once SQL workbench root operation.
+func NewSqlWorkbenchInitializeRootOp(objectKey string, rootRef *bucket.ObjectRef) *SqlWorkbenchSetRootOp {
+	return &SqlWorkbenchSetRootOp{ObjectKey: objectKey, RootRef: rootRef.Clone(), InitializeOnly: true}
+}
+
 // GetOperationTypeId returns the operation type identifier.
 func (o *SqlWorkbenchSetRootOp) GetOperationTypeId() string {
 	return SqlWorkbenchSetRootOpId
@@ -76,6 +81,15 @@ func (o *SqlWorkbenchSetRootOp) ApplyWorldObjectOp(
 	}
 	if os.GetKey() != o.GetObjectKey() {
 		return false, errors.Errorf("sql/workbench: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
+	}
+	if o.GetInitializeOnly() {
+		rootRef, _, err := os.GetRootRef(ctx)
+		if err != nil {
+			return false, err
+		}
+		if rootRef != nil && !rootRef.GetRootRef().GetEmpty() {
+			return false, ErrWorkbenchAlreadyInitialized
+		}
 	}
 	_, err := os.SetRootRef(ctx, o.GetRootRef())
 	return false, err

@@ -3,23 +3,16 @@ import { KvStore, KvStoreTypeID } from '@s4wave/sdk/kv/kv.js'
 import {
   SqlDbTypeID,
   SqlQuery,
-  SqlQueryBlockTypeID,
   SqlQueryResultObject,
   SqlQueryResultTypeID,
   SqlQueryTypeID,
   SqlWorkbench,
-  SqlWorkbenchBlockTypeID,
   SqlWorkbenchTypeID,
 } from '@s4wave/sdk/sql/index.js'
-import { Query } from '@s4wave/sdk/sql/query/query.pb.js'
-import {
-  Workbench,
-  WorkbenchTabKind,
-} from '@s4wave/sdk/sql/workbench/workbench.pb.js'
+import { WorkbenchTabKind } from '@s4wave/sdk/sql/workbench/workbench.pb.js'
 import { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 import { keyToIRI, predToIRI } from '@s4wave/sdk/world/graph-utils.js'
 import { setObjectType } from '@s4wave/sdk/world/types/types.js'
-import { accessObject } from '@s4wave/sdk/world/utils.js'
 
 import { withTimeout } from './test-utils.js'
 
@@ -229,12 +222,10 @@ async function readSeqno(signal: AbortSignal) {
   })
 }
 
-async function createSeededTypedObject(
+async function createEmptyTypedObject(
   world: EngineWorldState,
   objectKey: string,
   typeID: string,
-  blockTypeID: string,
-  data: Uint8Array,
   signal: AbortSignal,
 ): Promise<boolean> {
   const existing = await world.getObject(objectKey, signal)
@@ -243,45 +234,32 @@ async function createSeededTypedObject(
     return false
   }
 
-  const worldCursor = await world.buildStorageCursor(signal)
+  const created = await world.createObject(objectKey, {}, signal)
   try {
-    const objectRef = await accessObject(
-      worldCursor,
-      undefined,
-      (cursor) =>
-        cursor.setBlock(
-          { data, markDirty: true, blockType: blockTypeID },
-          signal,
-        ),
-      signal,
-    )
-    const created = await world.createObject(objectKey, objectRef, signal)
-    try {
-      await setObjectType(world, objectKey, typeID, signal)
-    } finally {
-      created.release()
-    }
-    return true
+    await setObjectType(world, objectKey, typeID, signal)
   } finally {
-    worldCursor.release(signal)
+    created.release()
   }
+  return true
 }
 
 async function prepareSecondQuery(
   world: EngineWorldState,
   signal: AbortSignal,
 ): Promise<boolean> {
-  const created = await createSeededTypedObject(
+  const created = await createEmptyTypedObject(
     world,
     SQL_SECOND_QUERY_KEY,
     SqlQueryTypeID,
-    SqlQueryBlockTypeID,
-    Query.toBinary({}),
     signal,
   )
+  if (!created) {
+    return false
+  }
+
   const query = await accessSqlQuery(world, SQL_SECOND_QUERY_KEY, signal)
   try {
-    await query.setQueryText(
+    await query.initialize(
       'SELECT name, role FROM quickstart.people ORDER BY id',
       'mysql',
       SQL_DB_KEY,
@@ -290,7 +268,7 @@ async function prepareSecondQuery(
   } finally {
     query.release()
   }
-  return created
+  return true
 }
 
 async function prepareWorkbenchPins(signal: AbortSignal) {
@@ -301,15 +279,10 @@ async function prepareWorkbenchPins(signal: AbortSignal) {
     }
 
     const secondQueryCreated = await prepareSecondQuery(writeWorld, signal)
-    const workbenchCreated = await createSeededTypedObject(
+    const workbenchCreated = await createEmptyTypedObject(
       writeWorld,
       SQL_WORKBENCH_KEY,
       SqlWorkbenchTypeID,
-      SqlWorkbenchBlockTypeID,
-      Workbench.toBinary({
-        targetDbObjectKey: SQL_DB_KEY,
-        displayName: 'Browser SQL Workbench',
-      }),
       signal,
     )
 
@@ -319,6 +292,13 @@ async function prepareWorkbenchPins(signal: AbortSignal) {
       signal,
     )
     try {
+      if (workbenchCreated) {
+        await workbench.initialize(
+          SQL_DB_KEY,
+          'Browser SQL Workbench',
+          signal,
+        )
+      }
       await workbench.addPin(SQL_SEED_QUERY_KEY, signal)
       await workbench.addPin(SQL_SECOND_QUERY_KEY, signal)
       await workbench.setLayout(

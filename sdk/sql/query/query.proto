@@ -19,6 +19,8 @@ message Query {
 
 // SqlQueryResourceService exposes a SQL query world object.
 service SqlQueryResourceService {
+  // Initialize creates the first query root.
+  rpc Initialize(InitializeQueryRequest) returns (InitializeQueryResponse);
   // GetQueryText returns the query text and target metadata.
   rpc GetQueryText(GetQueryTextRequest) returns (GetQueryTextResponse);
   // SetQueryText updates the query text and target metadata.
@@ -28,6 +30,19 @@ service SqlQueryResourceService {
   // Run executes the query and creates a query result object.
   rpc Run(RunQueryRequest) returns (RunQueryResponse);
 }
+
+// InitializeQueryRequest contains the first query root values.
+message InitializeQueryRequest {
+  // SqlText is the initial SQL text executed by Run.
+  string sql_text = 1;
+  // DialectHint records the SQL dialect expected by the author.
+  string dialect_hint = 2;
+  // TargetDbObjectKey is the sql/db object this query runs against.
+  string target_db_object_key = 3;
+}
+
+// InitializeQueryResponse is returned after creating the first query root.
+message InitializeQueryResponse {}
 
 // GetQueryTextRequest is a request for query text.
 message GetQueryTextRequest {}

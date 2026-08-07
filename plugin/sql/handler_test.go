@@ -18,6 +18,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_objecttype_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
+	resource_worldop_registry "github.com/s4wave/spacewave/core/resource/worldop/registry"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
@@ -97,8 +98,9 @@ func TestLookupSQLBlockTypeOwnsSQLCursorBlockTypes(t *testing.T) {
 func TestSQLHandlerValidateOpUnmarshalsEverySQLOperation(t *testing.T) {
 	rootRef := testSQLObjectRef(t)
 	for _, tc := range []struct {
-		name string
-		op   world.Operation
+		name           string
+		op             world.Operation
+		wantInitialize bool
 	}{
 		{
 			name: "sql db set root",
@@ -107,6 +109,11 @@ func TestSQLHandlerValidateOpUnmarshalsEverySQLOperation(t *testing.T) {
 		{
 			name: "query set root",
 			op:   s4wave_sql_query_world.NewSqlQuerySetRootOp("sql/query/test", rootRef),
+		},
+		{
+			name:           "query initialize root",
+			op:             s4wave_sql_query_world.NewSqlQueryInitializeRootOp("sql/query/test", rootRef),
+			wantInitialize: true,
 		},
 		{
 			name: "query result set root",
@@ -123,6 +130,11 @@ func TestSQLHandlerValidateOpUnmarshalsEverySQLOperation(t *testing.T) {
 		{
 			name: "workbench set root",
 			op:   s4wave_sql_workbench_world.NewSqlWorkbenchSetRootOp("sql/workbench/test", rootRef),
+		},
+		{
+			name:           "workbench initialize root",
+			op:             s4wave_sql_workbench_world.NewSqlWorkbenchInitializeRootOp("sql/workbench/test", rootRef),
+			wantInitialize: true,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -152,6 +164,16 @@ func TestSQLHandlerValidateOpUnmarshalsEverySQLOperation(t *testing.T) {
 			}
 			if err := decoded.Validate(); err != nil {
 				t.Fatalf("decoded op Validate: %v", err)
+			}
+			switch op := decoded.(type) {
+			case *s4wave_sql_query_world.SqlQuerySetRootOp:
+				if op.GetInitializeOnly() != tc.wantInitialize {
+					t.Fatalf("query initialize_only = %v, want %v", op.GetInitializeOnly(), tc.wantInitialize)
+				}
+			case *s4wave_sql_workbench_world.SqlWorkbenchSetRootOp:
+				if op.GetInitializeOnly() != tc.wantInitialize {
+					t.Fatalf("workbench initialize_only = %v, want %v", op.GetInitializeOnly(), tc.wantInitialize)
+				}
 			}
 		})
 	}
@@ -354,6 +376,109 @@ func TestSQLObjectTypeBridgeAccessTypedObjectReadsQuickstartSchema(t *testing.T)
 	}
 }
 
+func TestSQLObjectTypeBridgeInitializeEmptyQueryAndWorkbench(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	handler := &SQLHandler{le: le, b: tb.Bus}
+	if err := handler.seedSQLQuickstart(ctx, tb.WorldState); err != nil {
+		t.Fatalf("seedSQLQuickstart: %v", err)
+	}
+	queryKey := "sql/query/bridge-initialize"
+	createEmptySQLTypedObject(t, ctx, tb.WorldState, queryKey, s4wave_sql_query.SqlQueryTypeID)
+	workbenchKey := "sql/workbench/bridge-initialize"
+	createEmptySQLTypedObject(t, ctx, tb.WorldState, workbenchKey, s4wave_sql_workbench.SqlWorkbenchTypeID)
+
+	engineClient, typedObjects, cleanupBridge := newSQLObjectTypeBridgeHarness(
+		t,
+		ctx,
+		le,
+		handler,
+		tb,
+		s4wave_sql_query.SqlQueryTypeID,
+		s4wave_sql_workbench.SqlWorkbenchTypeID,
+	)
+	defer cleanupBridge()
+
+	queryAccess, err := typedObjects.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: queryKey})
+	if err != nil {
+		t.Fatalf("AccessTypedObject(%s): %v", queryKey, err)
+	}
+	queryRef := engineClient.CreateResourceReference(queryAccess.GetResourceId())
+	defer queryRef.Release()
+	querySRPC, err := queryRef.GetClient()
+	if err != nil {
+		t.Fatalf("query resource client: %v", err)
+	}
+	queryClient := s4wave_sql_query.NewSRPCSqlQueryResourceServiceClient(querySRPC)
+	if _, err := queryClient.Initialize(ctx, &s4wave_sql_query.InitializeQueryRequest{
+		SqlText:           "SELECT 1",
+		DialectHint:       "mysql",
+		TargetDbObjectKey: sqlQuickstartDBKey,
+	}); err != nil {
+		t.Fatalf("Initialize(%s): %v", queryKey, err)
+	}
+	query, err := queryClient.GetQueryText(ctx, &s4wave_sql_query.GetQueryTextRequest{})
+	if err != nil {
+		t.Fatalf("GetQueryText(%s): %v", queryKey, err)
+	}
+	if query.GetSqlText() != "SELECT 1" || query.GetDialectHint() != "mysql" ||
+		query.GetTargetDbObjectKey() != sqlQuickstartDBKey || len(query.GetParameters()) != 0 {
+		t.Fatalf("bridged initialized query = %#v", query)
+	}
+
+	workbenchAccess, err := typedObjects.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: workbenchKey})
+	if err != nil {
+		t.Fatalf("AccessTypedObject(%s): %v", workbenchKey, err)
+	}
+	workbenchRef := engineClient.CreateResourceReference(workbenchAccess.GetResourceId())
+	defer workbenchRef.Release()
+	workbenchSRPC, err := workbenchRef.GetClient()
+	if err != nil {
+		t.Fatalf("workbench resource client: %v", err)
+	}
+	workbenchClient := s4wave_sql_workbench.NewSRPCSqlWorkbenchResourceServiceClient(workbenchSRPC)
+	if _, err := workbenchClient.Initialize(ctx, &s4wave_sql_workbench.InitializeWorkbenchRequest{
+		TargetDbObjectKey: sqlQuickstartDBKey,
+		DisplayName:       "Bridge Workbench",
+	}); err != nil {
+		t.Fatalf("Initialize(%s): %v", workbenchKey, err)
+	}
+	workbenchResp, err := workbenchClient.GetWorkbench(ctx, &s4wave_sql_workbench.GetWorkbenchRequest{})
+	if err != nil {
+		t.Fatalf("GetWorkbench(%s): %v", workbenchKey, err)
+	}
+	workbench := workbenchResp.GetWorkbench()
+	if workbench.GetTargetDbObjectKey() != sqlQuickstartDBKey || workbench.GetDisplayName() != "Bridge Workbench" ||
+		len(workbench.GetPinnedQueryObjectKeys()) != 0 || len(workbench.GetOpenTabs()) != 0 ||
+		workbench.GetLayout() != nil || workbench.GetDescription() != "" {
+		t.Fatalf("bridged initialized workbench = %#v", workbench)
+	}
+}
+
+func createEmptySQLTypedObject(
+	t *testing.T,
+	ctx context.Context,
+	ws world.WorldState,
+	objectKey string,
+	typeID string,
+) {
+	t.Helper()
+	obj, err := ws.CreateObject(ctx, objectKey, &bucket.ObjectRef{})
+	world.ReleaseObjectState(obj)
+	if err != nil {
+		t.Fatalf("CreateObject(%s): %v", objectKey, err)
+	}
+	if err := world_types.SetObjectType(ctx, ws, objectKey, typeID); err != nil {
+		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
+	}
+}
+
 func TestSQLObjectTypeBridgeRunQuickstartQueryServesResultGrid(t *testing.T) {
 	ctx := context.Background()
 	le := logrus.NewEntry(logrus.New())
@@ -535,6 +660,30 @@ func newSQLObjectTypeBridgeHarness(
 		cleanupFns = append(cleanupFns, regRef.Release)
 	}
 
+	worldOpRegistry := resource_worldop_registry.NewWorldOpRegistryResource()
+	worldOpRegistryClient, worldOpRegistryRootClient, cleanupWorldOpRegistry := newSQLResourceClient(t, worldOpRegistry.GetMux())
+	cleanupFns = append(cleanupFns, cleanupWorldOpRegistry)
+	worldOpRegistryService := s4wave_worldop_registry.NewSRPCWorldOpRegistryResourceServiceClient(worldOpRegistryRootClient)
+	for _, opID := range []string{
+		s4wave_sql_query_world.SqlQuerySetRootOpId,
+		s4wave_sql_workbench_world.SqlWorkbenchSetRootOpId,
+	} {
+		regResp, err := worldOpRegistryService.RegisterWorldOp(ctx, &s4wave_worldop_registry.RegisterWorldOpRequest{
+			OperationTypeId: opID,
+			PluginId:        PluginID,
+		})
+		if err != nil {
+			cleanup()
+			t.Fatalf("RegisterWorldOp(%s): %v", opID, err)
+		}
+		if regResp.GetResourceId() == 0 {
+			cleanup()
+			t.Fatalf("RegisterWorldOp(%s) returned zero resource id", opID)
+		}
+		regRef := worldOpRegistryClient.CreateResourceReference(regResp.GetResourceId())
+		cleanupFns = append(cleanupFns, regRef.Release)
+	}
+
 	pluginClient := newSQLPluginClient(t, handler)
 	pluginRel, err := tb.Bus.AddController(ctx, &sqlPluginLoadTestController{client: pluginClient}, nil)
 	if err != nil {
@@ -550,6 +699,17 @@ func newSQLObjectTypeBridgeHarness(
 	}
 	cleanupFns = append(cleanupFns, bridgeRel)
 
+	worldOpBridgeRel, err := tb.Bus.AddController(
+		ctx,
+		resource_worldop_registry.NewWorldOpRegistryBridgeController(le, tb.Bus, worldOpRegistry),
+		nil,
+	)
+	if err != nil {
+		cleanup()
+		t.Fatalf("AddController(world op bridge): %v", err)
+	}
+	cleanupFns = append(cleanupFns, worldOpBridgeRel)
+
 	engineResource := resource_world.NewEngineResource(le, tb.Bus, tb.BusEngine, nil, nil)
 	engineClient, engineRootClient, cleanupEngine := newSQLResourceClient(t, engineResource.GetMux())
 	cleanupFns = append(cleanupFns, cleanupEngine)
@@ -562,6 +722,9 @@ func newSQLPluginClient(t *testing.T, handler *SQLHandler) srpc.Client {
 	rootMux := srpc.NewMux()
 	if err := s4wave_objecttype_registry.SRPCRegisterObjectTypeHandlerService(rootMux, handler); err != nil {
 		t.Fatalf("register SQL object type handler: %v", err)
+	}
+	if err := s4wave_worldop_registry.SRPCRegisterWorldOpHandlerService(rootMux, handler); err != nil {
+		t.Fatalf("register SQL world op handler: %v", err)
 	}
 	serverMux := srpc.NewMux()
 	if err := resource_server.NewResourceServer(rootMux).Register(serverMux); err != nil {

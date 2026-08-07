@@ -28,6 +28,12 @@ export interface SqlQuerySetRootOp {
    * @generated from field: bucket.ObjectRef root_ref = 2;
    */
   rootRef?: ObjectRef
+  /**
+   * InitializeOnly rejects the operation when the object already has a root.
+   *
+   * @generated from field: bool initialize_only = 3;
+   */
+  initializeOnly?: boolean
 }
 
 export const SqlQuerySetRootOp: MessageType<SqlQuerySetRootOp> =
@@ -36,6 +42,7 @@ export const SqlQuerySetRootOp: MessageType<SqlQuerySetRootOp> =
     fields: [
       { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
+      { no: 3, name: 'initialize_only', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

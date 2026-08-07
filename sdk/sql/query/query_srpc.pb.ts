@@ -5,6 +5,8 @@
 import {
   GetQueryTextRequest,
   GetQueryTextResponse,
+  InitializeQueryRequest,
+  InitializeQueryResponse,
   RunQueryRequest,
   RunQueryResponse,
   SetParametersRequest,
@@ -23,6 +25,17 @@ import { ProtoRpc, ServerContext } from 'starpc'
 export const SqlQueryResourceServiceDefinition = {
   typeName: 's4wave.sql.query.SqlQueryResourceService',
   methods: {
+    /**
+     * Initialize creates the first query root.
+     *
+     * @generated from rpc s4wave.sql.query.SqlQueryResourceService.Initialize
+     */
+    Initialize: {
+      name: 'Initialize',
+      I: InitializeQueryRequest,
+      O: InitializeQueryResponse,
+      kind: MethodKind.Unary,
+    },
     /**
      * GetQueryText returns the query text and target metadata.
      *
@@ -77,6 +90,16 @@ export const SqlQueryResourceServiceDefinition = {
  */
 export interface SqlQueryResourceService {
   /**
+   * Initialize creates the first query root.
+   *
+   * @generated from rpc s4wave.sql.query.SqlQueryResourceService.Initialize
+   */
+  Initialize(
+    request: InitializeQueryRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<InitializeQueryResponse>
+
+  /**
    * GetQueryText returns the query text and target metadata.
    *
    * @generated from rpc s4wave.sql.query.SqlQueryResourceService.GetQueryText
@@ -123,6 +146,17 @@ export interface SqlQueryResourceService {
  * @generated from service s4wave.sql.query.SqlQueryResourceService
  */
 export interface SqlQueryResourceServiceHandler {
+  /**
+   * Initialize creates the first query root.
+   *
+   * @generated from rpc s4wave.sql.query.SqlQueryResourceService.Initialize
+   */
+  Initialize(
+    request: InitializeQueryRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<InitializeQueryResponse>
+
   /**
    * GetQueryText returns the query text and target metadata.
    *
@@ -177,11 +211,31 @@ export class SqlQueryResourceServiceClient implements SqlQueryResourceService {
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
     this.service = opts?.service || SqlQueryResourceServiceServiceName
     this.rpc = rpc
+    this.Initialize = this.Initialize.bind(this)
     this.GetQueryText = this.GetQueryText.bind(this)
     this.SetQueryText = this.SetQueryText.bind(this)
     this.SetParameters = this.SetParameters.bind(this)
     this.Run = this.Run.bind(this)
   }
+  /**
+   * Initialize creates the first query root.
+   *
+   * @generated from rpc s4wave.sql.query.SqlQueryResourceService.Initialize
+   */
+  async Initialize(
+    request: InitializeQueryRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<InitializeQueryResponse> {
+    const requestMsg = InitializeQueryRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SqlQueryResourceServiceDefinition.methods.Initialize.name,
+      InitializeQueryRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return InitializeQueryResponse.fromBinary(result)
+  }
+
   /**
    * GetQueryText returns the query text and target metadata.
    *

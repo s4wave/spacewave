@@ -47,6 +47,40 @@ func (r *SqlWorkbenchResource) GetMux() srpc.Mux {
 // Close releases the resource lifecycle.
 func (r *SqlWorkbenchResource) Close() {}
 
+// Initialize creates the first workbench root.
+func (r *SqlWorkbenchResource) Initialize(
+	ctx context.Context,
+	req *s4wave_sql_workbench.InitializeWorkbenchRequest,
+) (*s4wave_sql_workbench.InitializeWorkbenchResponse, error) {
+	if r.ws == nil {
+		return nil, errors.New("sql/workbench: world state is required")
+	}
+	if err := world_types.CheckObjectType(ctx, r.ws, r.objectKey, s4wave_sql_workbench.SqlWorkbenchTypeID); err != nil {
+		return nil, err
+	}
+	workbench := &s4wave_sql_workbench.Workbench{
+		TargetDbObjectKey: req.GetTargetDbObjectKey(),
+		DisplayName:       req.GetDisplayName(),
+	}
+	if targetKey := workbench.GetTargetDbObjectKey(); targetKey != "" {
+		if err := world_types.CheckObjectType(ctx, r.ws, targetKey, s4wave_sql_world.SqlDbTypeID); err != nil {
+			return nil, err
+		}
+	}
+	rootRef, err := s4wave_sql_workbench.WriteWorkbenchRootRef(ctx, r.ws, workbench)
+	if err != nil {
+		return nil, err
+	}
+	_, sysErr, err := r.ws.ApplyWorldOp(ctx, NewSqlWorkbenchInitializeRootOp(r.objectKey, rootRef), "")
+	if err != nil {
+		return nil, err
+	}
+	if sysErr {
+		return nil, errors.New("sql/workbench: root initialization returned a system error")
+	}
+	return &s4wave_sql_workbench.InitializeWorkbenchResponse{}, nil
+}
+
 // GetWorkbench returns the persisted workbench state.
 func (r *SqlWorkbenchResource) GetWorkbench(
 	ctx context.Context,

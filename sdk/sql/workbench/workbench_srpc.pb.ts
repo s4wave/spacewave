@@ -7,6 +7,8 @@ import {
   AddPinResponse,
   GetWorkbenchRequest,
   GetWorkbenchResponse,
+  InitializeWorkbenchRequest,
+  InitializeWorkbenchResponse,
   RemovePinRequest,
   RemovePinResponse,
   SetLayoutRequest,
@@ -23,6 +25,17 @@ import { ProtoRpc, ServerContext } from 'starpc'
 export const SqlWorkbenchResourceServiceDefinition = {
   typeName: 's4wave.sql.workbench.SqlWorkbenchResourceService',
   methods: {
+    /**
+     * Initialize creates the first workbench root.
+     *
+     * @generated from rpc s4wave.sql.workbench.SqlWorkbenchResourceService.Initialize
+     */
+    Initialize: {
+      name: 'Initialize',
+      I: InitializeWorkbenchRequest,
+      O: InitializeWorkbenchResponse,
+      kind: MethodKind.Unary,
+    },
     /**
      * GetWorkbench returns the persisted workbench state.
      *
@@ -77,6 +90,16 @@ export const SqlWorkbenchResourceServiceDefinition = {
  */
 export interface SqlWorkbenchResourceService {
   /**
+   * Initialize creates the first workbench root.
+   *
+   * @generated from rpc s4wave.sql.workbench.SqlWorkbenchResourceService.Initialize
+   */
+  Initialize(
+    request: InitializeWorkbenchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<InitializeWorkbenchResponse>
+
+  /**
    * GetWorkbench returns the persisted workbench state.
    *
    * @generated from rpc s4wave.sql.workbench.SqlWorkbenchResourceService.GetWorkbench
@@ -123,6 +146,17 @@ export interface SqlWorkbenchResourceService {
  * @generated from service s4wave.sql.workbench.SqlWorkbenchResourceService
  */
 export interface SqlWorkbenchResourceServiceHandler {
+  /**
+   * Initialize creates the first workbench root.
+   *
+   * @generated from rpc s4wave.sql.workbench.SqlWorkbenchResourceService.Initialize
+   */
+  Initialize(
+    request: InitializeWorkbenchRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<InitializeWorkbenchResponse>
+
   /**
    * GetWorkbench returns the persisted workbench state.
    *
@@ -177,11 +211,31 @@ export class SqlWorkbenchResourceServiceClient implements SqlWorkbenchResourceSe
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
     this.service = opts?.service || SqlWorkbenchResourceServiceServiceName
     this.rpc = rpc
+    this.Initialize = this.Initialize.bind(this)
     this.GetWorkbench = this.GetWorkbench.bind(this)
     this.AddPin = this.AddPin.bind(this)
     this.RemovePin = this.RemovePin.bind(this)
     this.SetLayout = this.SetLayout.bind(this)
   }
+  /**
+   * Initialize creates the first workbench root.
+   *
+   * @generated from rpc s4wave.sql.workbench.SqlWorkbenchResourceService.Initialize
+   */
+  async Initialize(
+    request: InitializeWorkbenchRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<InitializeWorkbenchResponse> {
+    const requestMsg = InitializeWorkbenchRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SqlWorkbenchResourceServiceDefinition.methods.Initialize.name,
+      InitializeWorkbenchRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return InitializeWorkbenchResponse.fromBinary(result)
+  }
+
   /**
    * GetWorkbench returns the persisted workbench state.
    *

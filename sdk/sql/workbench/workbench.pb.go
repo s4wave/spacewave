@@ -219,6 +219,46 @@ func (x *WorkbenchLayout) GetActiveTabId() string {
 	return ""
 }
 
+// InitializeWorkbenchRequest contains the first workbench root values.
+type InitializeWorkbenchRequest struct {
+	unknownFields []byte
+	// TargetDbObjectKey is the sql/db object this workbench explores.
+	TargetDbObjectKey string `protobuf:"bytes,1,opt,name=target_db_object_key,json=targetDbObjectKey,proto3" json:"targetDbObjectKey,omitempty"`
+	// DisplayName is an optional user-facing label.
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"displayName,omitempty"`
+}
+
+func (x *InitializeWorkbenchRequest) Reset() {
+	*x = InitializeWorkbenchRequest{}
+}
+
+func (*InitializeWorkbenchRequest) ProtoMessage() {}
+
+func (x *InitializeWorkbenchRequest) GetTargetDbObjectKey() string {
+	if x != nil {
+		return x.TargetDbObjectKey
+	}
+	return ""
+}
+
+func (x *InitializeWorkbenchRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+// InitializeWorkbenchResponse is returned after creating the first workbench root.
+type InitializeWorkbenchResponse struct {
+	unknownFields []byte
+}
+
+func (x *InitializeWorkbenchResponse) Reset() {
+	*x = InitializeWorkbenchResponse{}
+}
+
+func (*InitializeWorkbenchResponse) ProtoMessage() {}
+
 // GetWorkbenchRequest is a request for workbench state.
 type GetWorkbenchRequest struct {
 	unknownFields []byte
@@ -409,6 +449,38 @@ func (m *WorkbenchLayout) CloneVT() *WorkbenchLayout {
 }
 
 func (m *WorkbenchLayout) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *InitializeWorkbenchRequest) CloneVT() *InitializeWorkbenchRequest {
+	if m == nil {
+		return (*InitializeWorkbenchRequest)(nil)
+	}
+	r := new(InitializeWorkbenchRequest)
+	r.TargetDbObjectKey = m.TargetDbObjectKey
+	r.DisplayName = m.DisplayName
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InitializeWorkbenchRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *InitializeWorkbenchResponse) CloneVT() *InitializeWorkbenchResponse {
+	if m == nil {
+		return (*InitializeWorkbenchResponse)(nil)
+	}
+	r := new(InitializeWorkbenchResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InitializeWorkbenchResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -627,6 +699,46 @@ func (this *WorkbenchLayout) EqualVT(that *WorkbenchLayout) bool {
 
 func (this *WorkbenchLayout) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WorkbenchLayout)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *InitializeWorkbenchRequest) EqualVT(that *InitializeWorkbenchRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.TargetDbObjectKey != that.TargetDbObjectKey {
+		return false
+	}
+	if this.DisplayName != that.DisplayName {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InitializeWorkbenchRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InitializeWorkbenchRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *InitializeWorkbenchResponse) EqualVT(that *InitializeWorkbenchResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InitializeWorkbenchResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InitializeWorkbenchResponse)
 	if !ok {
 		return false
 	}
@@ -1072,6 +1184,86 @@ func (x *WorkbenchLayout) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the WorkbenchLayout from JSON.
 func (x *WorkbenchLayout) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InitializeWorkbenchRequest message to JSON.
+func (x *InitializeWorkbenchRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.TargetDbObjectKey != "" || s.HasField("targetDbObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetDbObjectKey")
+		s.WriteString(x.TargetDbObjectKey)
+	}
+	if x.DisplayName != "" || s.HasField("displayName") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("displayName")
+		s.WriteString(x.DisplayName)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InitializeWorkbenchRequest to JSON.
+func (x *InitializeWorkbenchRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InitializeWorkbenchRequest message from JSON.
+func (x *InitializeWorkbenchRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "target_db_object_key", "targetDbObjectKey":
+			s.AddField("target_db_object_key")
+			x.TargetDbObjectKey = s.ReadString()
+		case "display_name", "displayName":
+			s.AddField("display_name")
+			x.DisplayName = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the InitializeWorkbenchRequest from JSON.
+func (x *InitializeWorkbenchRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InitializeWorkbenchResponse message to JSON.
+func (x *InitializeWorkbenchResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InitializeWorkbenchResponse to JSON.
+func (x *InitializeWorkbenchResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InitializeWorkbenchResponse message from JSON.
+func (x *InitializeWorkbenchResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the InitializeWorkbenchResponse from JSON.
+func (x *InitializeWorkbenchResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1585,6 +1777,80 @@ func (m *WorkbenchLayout) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *InitializeWorkbenchRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InitializeWorkbenchRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InitializeWorkbenchRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.DisplayName) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DisplayName)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.TargetDbObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TargetDbObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InitializeWorkbenchResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InitializeWorkbenchResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InitializeWorkbenchResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GetWorkbenchRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1934,6 +2200,28 @@ func (m *WorkbenchLayout) SizeVT() (n int) {
 	return n
 }
 
+func (m *InitializeWorkbenchRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TargetDbObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DisplayName)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *InitializeWorkbenchResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *GetWorkbenchRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2131,6 +2419,34 @@ func (x *WorkbenchLayout) MarshalProtoText() string {
 }
 
 func (x *WorkbenchLayout) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InitializeWorkbenchRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "InitializeWorkbenchRequest")
+	if x.TargetDbObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "target_db_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.TargetDbObjectKey)
+	}
+	if x.DisplayName != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "display_name")
+		protobuf_go_lite.TextWriteString(&sb, x.DisplayName)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *InitializeWorkbenchRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InitializeWorkbenchResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "InitializeWorkbenchResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *InitializeWorkbenchResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -2505,6 +2821,112 @@ func (m *WorkbenchLayout) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ActiveTabId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InitializeWorkbenchRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InitializeWorkbenchRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InitializeWorkbenchRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetDbObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TargetDbObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisplayName", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DisplayName = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InitializeWorkbenchResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InitializeWorkbenchResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InitializeWorkbenchResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

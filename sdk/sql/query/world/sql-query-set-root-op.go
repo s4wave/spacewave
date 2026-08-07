@@ -21,6 +21,11 @@ func NewSqlQuerySetRootOp(objectKey string, rootRef *bucket.ObjectRef) *SqlQuery
 	return &SqlQuerySetRootOp{ObjectKey: objectKey, RootRef: rootRef.Clone()}
 }
 
+// NewSqlQueryInitializeRootOp constructs a create-once SQL query root operation.
+func NewSqlQueryInitializeRootOp(objectKey string, rootRef *bucket.ObjectRef) *SqlQuerySetRootOp {
+	return &SqlQuerySetRootOp{ObjectKey: objectKey, RootRef: rootRef.Clone(), InitializeOnly: true}
+}
+
 // GetOperationTypeId returns the operation type identifier.
 func (o *SqlQuerySetRootOp) GetOperationTypeId() string {
 	return SqlQuerySetRootOpId
@@ -76,6 +81,15 @@ func (o *SqlQuerySetRootOp) ApplyWorldObjectOp(
 	}
 	if os.GetKey() != o.GetObjectKey() {
 		return false, errors.Errorf("sql/query: op target %s does not match object %s", o.GetObjectKey(), os.GetKey())
+	}
+	if o.GetInitializeOnly() {
+		rootRef, _, err := os.GetRootRef(ctx)
+		if err != nil {
+			return false, err
+		}
+		if rootRef != nil && !rootRef.GetRootRef().GetEmpty() {
+			return false, ErrQueryAlreadyInitialized
+		}
 	}
 	_, err := os.SetRootRef(ctx, o.GetRootRef())
 	return false, err
