@@ -61,6 +61,41 @@ func (r *SqlQueryResource) GetMux() srpc.Mux {
 // Close releases the resource lifecycle.
 func (r *SqlQueryResource) Close() {}
 
+// Initialize creates the first query root.
+func (r *SqlQueryResource) Initialize(
+	ctx context.Context,
+	req *s4wave_sql_query.InitializeQueryRequest,
+) (*s4wave_sql_query.InitializeQueryResponse, error) {
+	if r.ws == nil {
+		return nil, errors.New("sql/query: world state is required")
+	}
+	if err := world_types.CheckObjectType(ctx, r.ws, r.objectKey, s4wave_sql_query.SqlQueryTypeID); err != nil {
+		return nil, err
+	}
+	if targetKey := req.GetTargetDbObjectKey(); targetKey != "" {
+		if err := world_types.CheckObjectType(ctx, r.ws, targetKey, s4wave_sql_world.SqlDbTypeID); err != nil {
+			return nil, err
+		}
+	}
+	query := &s4wave_sql_query.Query{
+		SqlText:           req.GetSqlText(),
+		DialectHint:       req.GetDialectHint(),
+		TargetDbObjectKey: req.GetTargetDbObjectKey(),
+	}
+	rootRef, err := s4wave_sql_query.WriteQueryRootRef(ctx, r.ws, query)
+	if err != nil {
+		return nil, err
+	}
+	_, sysErr, err := r.ws.ApplyWorldOp(ctx, NewSqlQueryInitializeRootOp(r.objectKey, rootRef), "")
+	if err != nil {
+		return nil, err
+	}
+	if sysErr {
+		return nil, errors.New("sql/query: root initialization returned a system error")
+	}
+	return &s4wave_sql_query.InitializeQueryResponse{}, nil
+}
+
 // GetQueryText reads the query text and target metadata.
 func (r *SqlQueryResource) GetQueryText(
 	ctx context.Context,

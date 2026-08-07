@@ -21,6 +21,19 @@ export class SqlQuery extends Resource {
     this.service = new SqlQueryResourceServiceClient(resourceRef.client)
   }
 
+  // initialize creates the first query root.
+  public async initialize(
+    sqlText: string,
+    dialectHint: string,
+    targetDbObjectKey: string,
+    abortSignal?: AbortSignal,
+  ): Promise<void> {
+    await this.service.Initialize(
+      { sqlText, dialectHint, targetDbObjectKey },
+      abortSignal,
+    )
+  }
+
   // getQueryText returns query text and target metadata.
   public async getQueryText(
     abortSignal?: AbortSignal,

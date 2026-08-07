@@ -120,6 +120,8 @@ func TestQuickstartSqlWorkbenchPinsPersistAfterReload(t *testing.T) {
 
 	setup := prepareSqlWorkbenchPins(t, harness(t), page)
 	assertSqlWorkbenchPins(t, setup)
+	afterFreshMount := readSqlWorkbenchPins(t, harness(t), page)
+	assertSqlWorkbenchPins(t, afterFreshMount)
 	workbenchKey := stringField(setup, "workbenchObjectKey")
 	NavigateHash(t, harness(t), page, scenario.objectHash(workbenchKey))
 	waitForObjectTypeRoute(t, page, workbenchKey, []string{

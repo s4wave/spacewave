@@ -14,6 +14,8 @@ type SRPCSqlWorkbenchResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// Initialize creates the first workbench root.
+	Initialize(ctx context.Context, in *InitializeWorkbenchRequest) (*InitializeWorkbenchResponse, error)
 	// GetWorkbench returns the persisted workbench state.
 	GetWorkbench(ctx context.Context, in *GetWorkbenchRequest) (*GetWorkbenchResponse, error)
 	// AddPin pins a sql/query object.
@@ -41,6 +43,15 @@ func NewSRPCSqlWorkbenchResourceServiceClientWithServiceID(cc srpc.Client, servi
 }
 
 func (c *srpcSqlWorkbenchResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcSqlWorkbenchResourceServiceClient) Initialize(ctx context.Context, in *InitializeWorkbenchRequest) (*InitializeWorkbenchResponse, error) {
+	out := new(InitializeWorkbenchResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Initialize", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 func (c *srpcSqlWorkbenchResourceServiceClient) GetWorkbench(ctx context.Context, in *GetWorkbenchRequest) (*GetWorkbenchResponse, error) {
 	out := new(GetWorkbenchResponse)
@@ -79,6 +90,8 @@ func (c *srpcSqlWorkbenchResourceServiceClient) SetLayout(ctx context.Context, i
 }
 
 type SRPCSqlWorkbenchResourceServiceServer interface {
+	// Initialize creates the first workbench root.
+	Initialize(context.Context, *InitializeWorkbenchRequest) (*InitializeWorkbenchResponse, error)
 	// GetWorkbench returns the persisted workbench state.
 	GetWorkbench(context.Context, *GetWorkbenchRequest) (*GetWorkbenchResponse, error)
 	// AddPin pins a sql/query object.
@@ -115,6 +128,7 @@ func (d *SRPCSqlWorkbenchResourceServiceHandler) GetServiceID() string { return 
 
 func (SRPCSqlWorkbenchResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
+		"Initialize",
 		"GetWorkbench",
 		"AddPin",
 		"RemovePin",
@@ -131,6 +145,8 @@ func (d *SRPCSqlWorkbenchResourceServiceHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "Initialize":
+		return true, d.InvokeMethod_Initialize(d.impl, strm)
 	case "GetWorkbench":
 		return true, d.InvokeMethod_GetWorkbench(d.impl, strm)
 	case "AddPin":
@@ -142,6 +158,18 @@ func (d *SRPCSqlWorkbenchResourceServiceHandler) InvokeMethod(
 	default:
 		return false, nil
 	}
+}
+
+func (SRPCSqlWorkbenchResourceServiceHandler) InvokeMethod_Initialize(impl SRPCSqlWorkbenchResourceServiceServer, strm srpc.Stream) error {
+	req := new(InitializeWorkbenchRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Initialize(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCSqlWorkbenchResourceServiceHandler) InvokeMethod_GetWorkbench(impl SRPCSqlWorkbenchResourceServiceServer, strm srpc.Stream) error {
@@ -190,6 +218,14 @@ func (SRPCSqlWorkbenchResourceServiceHandler) InvokeMethod_SetLayout(impl SRPCSq
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+type SRPCSqlWorkbenchResourceService_InitializeStream interface {
+	srpc.Stream
+}
+
+type srpcSqlWorkbenchResourceService_InitializeStream struct {
+	srpc.Stream
 }
 
 type SRPCSqlWorkbenchResourceService_GetWorkbenchStream interface {

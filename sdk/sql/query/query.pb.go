@@ -61,6 +61,55 @@ func (x *Query) GetTargetDbObjectKey() string {
 	return ""
 }
 
+// InitializeQueryRequest contains the first query root values.
+type InitializeQueryRequest struct {
+	unknownFields []byte
+	// SqlText is the initial SQL text executed by Run.
+	SqlText string `protobuf:"bytes,1,opt,name=sql_text,json=sqlText,proto3" json:"sqlText,omitempty"`
+	// DialectHint records the SQL dialect expected by the author.
+	DialectHint string `protobuf:"bytes,2,opt,name=dialect_hint,json=dialectHint,proto3" json:"dialectHint,omitempty"`
+	// TargetDbObjectKey is the sql/db object this query runs against.
+	TargetDbObjectKey string `protobuf:"bytes,3,opt,name=target_db_object_key,json=targetDbObjectKey,proto3" json:"targetDbObjectKey,omitempty"`
+}
+
+func (x *InitializeQueryRequest) Reset() {
+	*x = InitializeQueryRequest{}
+}
+
+func (*InitializeQueryRequest) ProtoMessage() {}
+
+func (x *InitializeQueryRequest) GetSqlText() string {
+	if x != nil {
+		return x.SqlText
+	}
+	return ""
+}
+
+func (x *InitializeQueryRequest) GetDialectHint() string {
+	if x != nil {
+		return x.DialectHint
+	}
+	return ""
+}
+
+func (x *InitializeQueryRequest) GetTargetDbObjectKey() string {
+	if x != nil {
+		return x.TargetDbObjectKey
+	}
+	return ""
+}
+
+// InitializeQueryResponse is returned after creating the first query root.
+type InitializeQueryResponse struct {
+	unknownFields []byte
+}
+
+func (x *InitializeQueryResponse) Reset() {
+	*x = InitializeQueryResponse{}
+}
+
+func (*InitializeQueryResponse) ProtoMessage() {}
+
 // GetQueryTextRequest is a request for query text.
 type GetQueryTextRequest struct {
 	unknownFields []byte
@@ -267,6 +316,39 @@ func (m *Query) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *InitializeQueryRequest) CloneVT() *InitializeQueryRequest {
+	if m == nil {
+		return (*InitializeQueryRequest)(nil)
+	}
+	r := new(InitializeQueryRequest)
+	r.SqlText = m.SqlText
+	r.DialectHint = m.DialectHint
+	r.TargetDbObjectKey = m.TargetDbObjectKey
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InitializeQueryRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *InitializeQueryResponse) CloneVT() *InitializeQueryResponse {
+	if m == nil {
+		return (*InitializeQueryResponse)(nil)
+	}
+	r := new(InitializeQueryResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *InitializeQueryResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *GetQueryTextRequest) CloneVT() *GetQueryTextRequest {
 	if m == nil {
 		return (*GetQueryTextRequest)(nil)
@@ -421,6 +503,49 @@ func (this *Query) EqualVT(that *Query) bool {
 
 func (this *Query) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*Query)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *InitializeQueryRequest) EqualVT(that *InitializeQueryRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.SqlText != that.SqlText {
+		return false
+	}
+	if this.DialectHint != that.DialectHint {
+		return false
+	}
+	if this.TargetDbObjectKey != that.TargetDbObjectKey {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InitializeQueryRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InitializeQueryRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *InitializeQueryResponse) EqualVT(that *InitializeQueryResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *InitializeQueryResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*InitializeQueryResponse)
 	if !ok {
 		return false
 	}
@@ -680,6 +805,94 @@ func (x *Query) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the Query from JSON.
 func (x *Query) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InitializeQueryRequest message to JSON.
+func (x *InitializeQueryRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.SqlText != "" || s.HasField("sqlText") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sqlText")
+		s.WriteString(x.SqlText)
+	}
+	if x.DialectHint != "" || s.HasField("dialectHint") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("dialectHint")
+		s.WriteString(x.DialectHint)
+	}
+	if x.TargetDbObjectKey != "" || s.HasField("targetDbObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("targetDbObjectKey")
+		s.WriteString(x.TargetDbObjectKey)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InitializeQueryRequest to JSON.
+func (x *InitializeQueryRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InitializeQueryRequest message from JSON.
+func (x *InitializeQueryRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "sql_text", "sqlText":
+			s.AddField("sql_text")
+			x.SqlText = s.ReadString()
+		case "dialect_hint", "dialectHint":
+			s.AddField("dialect_hint")
+			x.DialectHint = s.ReadString()
+		case "target_db_object_key", "targetDbObjectKey":
+			s.AddField("target_db_object_key")
+			x.TargetDbObjectKey = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the InitializeQueryRequest from JSON.
+func (x *InitializeQueryRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the InitializeQueryResponse message to JSON.
+func (x *InitializeQueryResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the InitializeQueryResponse to JSON.
+func (x *InitializeQueryResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the InitializeQueryResponse message from JSON.
+func (x *InitializeQueryResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the InitializeQueryResponse from JSON.
+func (x *InitializeQueryResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1132,6 +1345,85 @@ func (m *Query) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *InitializeQueryRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InitializeQueryRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InitializeQueryRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.TargetDbObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TargetDbObjectKey)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.DialectHint) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DialectHint)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.SqlText) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SqlText)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *InitializeQueryResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InitializeQueryResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *InitializeQueryResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GetQueryTextRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1474,6 +1766,29 @@ func (m *Query) SizeVT() (n int) {
 	return n
 }
 
+func (m *InitializeQueryRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SqlText)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DialectHint)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TargetDbObjectKey)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *InitializeQueryResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *GetQueryTextRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1602,6 +1917,38 @@ func (x *Query) MarshalProtoText() string {
 }
 
 func (x *Query) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InitializeQueryRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "InitializeQueryRequest")
+	if x.SqlText != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "sql_text")
+		protobuf_go_lite.TextWriteString(&sb, x.SqlText)
+	}
+	if x.DialectHint != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "dialect_hint")
+		protobuf_go_lite.TextWriteString(&sb, x.DialectHint)
+	}
+	if x.TargetDbObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "target_db_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.TargetDbObjectKey)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *InitializeQueryRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *InitializeQueryResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "InitializeQueryResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *InitializeQueryResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1808,6 +2155,122 @@ func (m *Query) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.TargetDbObjectKey = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InitializeQueryRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InitializeQueryRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InitializeQueryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SqlText", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SqlText = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DialectHint", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DialectHint = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TargetDbObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TargetDbObjectKey = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *InitializeQueryResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InitializeQueryResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InitializeQueryResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

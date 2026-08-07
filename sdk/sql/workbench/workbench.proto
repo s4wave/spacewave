@@ -54,6 +54,8 @@ message WorkbenchLayout {
 
 // SqlWorkbenchResourceService exposes a SQL workbench world object.
 service SqlWorkbenchResourceService {
+  // Initialize creates the first workbench root.
+  rpc Initialize(InitializeWorkbenchRequest) returns (InitializeWorkbenchResponse);
   // GetWorkbench returns the persisted workbench state.
   rpc GetWorkbench(GetWorkbenchRequest) returns (GetWorkbenchResponse);
   // AddPin pins a sql/query object.
@@ -63,6 +65,17 @@ service SqlWorkbenchResourceService {
   // SetLayout replaces the open tabs and layout preferences.
   rpc SetLayout(SetLayoutRequest) returns (SetLayoutResponse);
 }
+
+// InitializeWorkbenchRequest contains the first workbench root values.
+message InitializeWorkbenchRequest {
+  // TargetDbObjectKey is the sql/db object this workbench explores.
+  string target_db_object_key = 1;
+  // DisplayName is an optional user-facing label.
+  string display_name = 2;
+}
+
+// InitializeWorkbenchResponse is returned after creating the first workbench root.
+message InitializeWorkbenchResponse {}
 
 // GetWorkbenchRequest is a request for workbench state.
 message GetWorkbenchRequest {}

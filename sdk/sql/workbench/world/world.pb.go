@@ -21,6 +21,8 @@ type SqlWorkbenchSetRootOp struct {
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
 	// RootRef is the committed workbench root reference.
 	RootRef *bucket.ObjectRef `protobuf:"bytes,2,opt,name=root_ref,json=rootRef,proto3" json:"rootRef,omitempty"`
+	// InitializeOnly rejects the operation when the object already has a root.
+	InitializeOnly bool `protobuf:"varint,3,opt,name=initialize_only,json=initializeOnly,proto3" json:"initializeOnly,omitempty"`
 }
 
 func (x *SqlWorkbenchSetRootOp) Reset() {
@@ -43,12 +45,20 @@ func (x *SqlWorkbenchSetRootOp) GetRootRef() *bucket.ObjectRef {
 	return nil
 }
 
+func (x *SqlWorkbenchSetRootOp) GetInitializeOnly() bool {
+	if x != nil {
+		return x.InitializeOnly
+	}
+	return false
+}
+
 func (m *SqlWorkbenchSetRootOp) CloneVT() *SqlWorkbenchSetRootOp {
 	if m == nil {
 		return (*SqlWorkbenchSetRootOp)(nil)
 	}
 	r := new(SqlWorkbenchSetRootOp)
 	r.ObjectKey = m.ObjectKey
+	r.InitializeOnly = m.InitializeOnly
 	r.RootRef = protobuf_go_lite.CloneVTValue(m.RootRef)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -70,6 +80,9 @@ func (this *SqlWorkbenchSetRootOp) EqualVT(that *SqlWorkbenchSetRootOp) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.RootRef, that.RootRef) {
+		return false
+	}
+	if this.InitializeOnly != that.InitializeOnly {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -101,6 +114,11 @@ func (x *SqlWorkbenchSetRootOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("rootRef")
 		x.RootRef.MarshalProtoJSON(s.WithField("rootRef"))
 	}
+	if x.InitializeOnly || s.HasField("initializeOnly") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("initializeOnly")
+		s.WriteBool(x.InitializeOnly)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -128,6 +146,9 @@ func (x *SqlWorkbenchSetRootOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.RootRef = &bucket.ObjectRef{}
 			x.RootRef.UnmarshalProtoJSON(s.WithField("root_ref", true))
+		case "initialize_only", "initializeOnly":
+			s.AddField("initialize_only")
+			x.InitializeOnly = s.ReadBool()
 		}
 	})
 }
@@ -166,6 +187,11 @@ func (m *SqlWorkbenchSetRootOp) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.InitializeOnly {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.InitializeOnly)
+		i--
+		dAtA[i] = 0x18
+	}
 	if m.RootRef != nil {
 		size, err := m.RootRef.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -195,6 +221,7 @@ func (m *SqlWorkbenchSetRootOp) SizeVT() (n int) {
 		l = m.RootRef.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.InitializeOnly)
 	n += len(m.unknownFields)
 	return n
 }
@@ -209,6 +236,10 @@ func (x *SqlWorkbenchSetRootOp) MarshalProtoText() string {
 	if x.RootRef != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "root_ref")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.RootRef)
+	}
+	if x.InitializeOnly != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "initialize_only")
+		protobuf_go_lite.TextWriteBool(&sb, x.InitializeOnly)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -262,6 +293,16 @@ func (m *SqlWorkbenchSetRootOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field InitializeOnly", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.InitializeOnly = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

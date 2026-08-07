@@ -220,6 +220,54 @@ export const Workbench: MessageType<Workbench> =
   })
 
 /**
+ * InitializeWorkbenchRequest contains the first workbench root values.
+ *
+ * @generated from message s4wave.sql.workbench.InitializeWorkbenchRequest
+ */
+export interface InitializeWorkbenchRequest {
+  /**
+   * TargetDbObjectKey is the sql/db object this workbench explores.
+   *
+   * @generated from field: string target_db_object_key = 1;
+   */
+  targetDbObjectKey?: string
+  /**
+   * DisplayName is an optional user-facing label.
+   *
+   * @generated from field: string display_name = 2;
+   */
+  displayName?: string
+}
+
+export const InitializeWorkbenchRequest: MessageType<InitializeWorkbenchRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.sql.workbench.InitializeWorkbenchRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'target_db_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 2, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * InitializeWorkbenchResponse is returned after creating the first workbench root.
+ *
+ * @generated from message s4wave.sql.workbench.InitializeWorkbenchResponse
+ */
+export interface InitializeWorkbenchResponse {}
+
+export const InitializeWorkbenchResponse: MessageType<InitializeWorkbenchResponse> =
+  /* @__PURE__ */ createEmptyMessageType<InitializeWorkbenchResponse>(
+    's4wave.sql.workbench.InitializeWorkbenchResponse',
+    true,
+  )
+
+/**
  * GetWorkbenchRequest is a request for workbench state.
  *
  * @generated from message s4wave.sql.workbench.GetWorkbenchRequest

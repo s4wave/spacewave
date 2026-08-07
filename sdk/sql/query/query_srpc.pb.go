@@ -14,6 +14,8 @@ type SRPCSqlQueryResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// Initialize creates the first query root.
+	Initialize(ctx context.Context, in *InitializeQueryRequest) (*InitializeQueryResponse, error)
 	// GetQueryText returns the query text and target metadata.
 	GetQueryText(ctx context.Context, in *GetQueryTextRequest) (*GetQueryTextResponse, error)
 	// SetQueryText updates the query text and target metadata.
@@ -41,6 +43,15 @@ func NewSRPCSqlQueryResourceServiceClientWithServiceID(cc srpc.Client, serviceID
 }
 
 func (c *srpcSqlQueryResourceServiceClient) SRPCClient() srpc.Client { return c.cc }
+
+func (c *srpcSqlQueryResourceServiceClient) Initialize(ctx context.Context, in *InitializeQueryRequest) (*InitializeQueryResponse, error) {
+	out := new(InitializeQueryResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "Initialize", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 func (c *srpcSqlQueryResourceServiceClient) GetQueryText(ctx context.Context, in *GetQueryTextRequest) (*GetQueryTextResponse, error) {
 	out := new(GetQueryTextResponse)
@@ -79,6 +90,8 @@ func (c *srpcSqlQueryResourceServiceClient) Run(ctx context.Context, in *RunQuer
 }
 
 type SRPCSqlQueryResourceServiceServer interface {
+	// Initialize creates the first query root.
+	Initialize(context.Context, *InitializeQueryRequest) (*InitializeQueryResponse, error)
 	// GetQueryText returns the query text and target metadata.
 	GetQueryText(context.Context, *GetQueryTextRequest) (*GetQueryTextResponse, error)
 	// SetQueryText updates the query text and target metadata.
@@ -115,6 +128,7 @@ func (d *SRPCSqlQueryResourceServiceHandler) GetServiceID() string { return d.se
 
 func (SRPCSqlQueryResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
+		"Initialize",
 		"GetQueryText",
 		"SetQueryText",
 		"SetParameters",
@@ -131,6 +145,8 @@ func (d *SRPCSqlQueryResourceServiceHandler) InvokeMethod(
 	}
 
 	switch methodID {
+	case "Initialize":
+		return true, d.InvokeMethod_Initialize(d.impl, strm)
 	case "GetQueryText":
 		return true, d.InvokeMethod_GetQueryText(d.impl, strm)
 	case "SetQueryText":
@@ -142,6 +158,18 @@ func (d *SRPCSqlQueryResourceServiceHandler) InvokeMethod(
 	default:
 		return false, nil
 	}
+}
+
+func (SRPCSqlQueryResourceServiceHandler) InvokeMethod_Initialize(impl SRPCSqlQueryResourceServiceServer, strm srpc.Stream) error {
+	req := new(InitializeQueryRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.Initialize(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
 }
 
 func (SRPCSqlQueryResourceServiceHandler) InvokeMethod_GetQueryText(impl SRPCSqlQueryResourceServiceServer, strm srpc.Stream) error {
@@ -190,6 +218,14 @@ func (SRPCSqlQueryResourceServiceHandler) InvokeMethod_Run(impl SRPCSqlQueryReso
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+type SRPCSqlQueryResourceService_InitializeStream interface {
+	srpc.Stream
+}
+
+type srpcSqlQueryResourceService_InitializeStream struct {
+	srpc.Stream
 }
 
 type SRPCSqlQueryResourceService_GetQueryTextStream interface {
