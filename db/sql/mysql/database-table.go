@@ -55,7 +55,7 @@ func (d *Database) RenameTable(ctx *sql.Context, oldName, newName string) error 
 
 // _ is a type assertion
 var (
-	_ sql.TableCreator = ((*Database)(nil))
-	_ sql.TableDropper = ((*Database)(nil))
-	_ sql.TableRenamer = ((*Database)(nil))
+	_ sql.TableCreator = (*Database)(nil)
+	_ sql.TableDropper = (*Database)(nil)
+	_ sql.TableRenamer = (*Database)(nil)
 )

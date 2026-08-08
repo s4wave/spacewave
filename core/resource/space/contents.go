@@ -773,4 +773,4 @@ func (r *SpaceContentsResource) listProcessBindingInfos(
 }
 
 // _ is a type assertion
-var _ s4wave_space.SRPCSpaceContentsResourceServiceServer = ((*SpaceContentsResource)(nil))
+var _ s4wave_space.SRPCSpaceContentsResourceServiceServer = (*SpaceContentsResource)(nil)

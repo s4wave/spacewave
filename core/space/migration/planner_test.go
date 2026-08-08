@@ -241,6 +241,7 @@ func TestPlannerRemapsDescendantClosureKeys(t *testing.T) {
 		t.Fatalf("descendant mappings = %#v", mappings)
 	}
 }
+
 func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, typeID string) {
 	t.Helper()
 	var root *bucket.ObjectRef

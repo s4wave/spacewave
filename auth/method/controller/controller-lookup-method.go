@@ -57,4 +57,4 @@ func (c *Controller) resolveAuthLookupMethod(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*authLookupMethodResolver)(nil))
+var _ directive.Resolver = (*authLookupMethodResolver)(nil)

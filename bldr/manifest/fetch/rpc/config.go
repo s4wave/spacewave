@@ -49,4 +49,4 @@ func (c *Config) ParseFetchManifestIdRe() (*regexp.Regexp, error) {
 }
 
 // _ is a type assertion
-var _ manifest_fetch.Config = ((*Config)(nil))
+var _ manifest_fetch.Config = (*Config)(nil)

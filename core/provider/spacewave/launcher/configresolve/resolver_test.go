@@ -2,8 +2,10 @@ package configresolve
 
 import "testing"
 
-const productionDistSigner = "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"
-const overlayDistSigner = "12D3KooWNyn6cNNxHnLc5Nw8b7XkVaAWKB9vbfe921LuysEoY1Cz"
+const (
+	productionDistSigner = "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"
+	overlayDistSigner    = "12D3KooWNyn6cNNxHnLc5Nw8b7XkVaAWKB9vbfe921LuysEoY1Cz"
+)
 
 func TestResolveEndpointsFallsBackToDefault(t *testing.T) {
 	got, err := ResolveEndpoints(false, nil, []string{"https://spacewave.app/api/release/config"})

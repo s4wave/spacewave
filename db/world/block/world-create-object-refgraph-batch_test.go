@@ -278,4 +278,4 @@ func assertStringSet(t *testing.T, label string, got, want []string) {
 	}
 }
 
-var _ worldRefGraph = ((*recordingRefGraph)(nil))
+var _ worldRefGraph = (*recordingRefGraph)(nil)

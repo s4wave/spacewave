@@ -172,4 +172,4 @@ func (o *GitWorktreeCheckoutOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*GitWorktreeCheckoutOp)(nil))
+var _ world.Operation = (*GitWorktreeCheckoutOp)(nil)

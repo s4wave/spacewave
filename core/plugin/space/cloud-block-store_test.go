@@ -274,4 +274,4 @@ func (h *testPluginHost) PluginFsRpc(bldr_plugin.SRPCPluginHost_PluginFsRpcStrea
 }
 
 // _ is a type assertion
-var _ bldr_plugin.SRPCPluginHostServer = ((*testPluginHost)(nil))
+var _ bldr_plugin.SRPCPluginHostServer = (*testPluginHost)(nil)

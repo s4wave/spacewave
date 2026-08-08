@@ -127,4 +127,4 @@ func (r *RootFS) Close() {
 }
 
 // _ is a type assertion
-var _ fs.FS = ((*RootFS)(nil))
+var _ fs.FS = (*RootFS)(nil)

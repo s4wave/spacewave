@@ -360,6 +360,6 @@ func (w *WebRTC) addSessionTrackerRef(peerIDStr string) (*keyed.KeyedRef[string,
 
 // _ is a type assertion.
 var (
-	_ transport.Transport    = ((*WebRTC)(nil))
-	_ dialer.TransportDialer = ((*WebRTC)(nil))
+	_ transport.Transport    = (*WebRTC)(nil)
+	_ dialer.TransportDialer = (*WebRTC)(nil)
 )

@@ -88,4 +88,4 @@ func (t *TxDeleteObject) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxDeleteObject)(nil))
+var _ Transaction = (*TxDeleteObject)(nil)

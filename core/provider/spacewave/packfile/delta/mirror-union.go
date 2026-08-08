@@ -298,4 +298,4 @@ func verifyMirrorRootPointer(spaceDir, spaceID string) error {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*MirrorUnion)(nil))
+var _ block.StoreOps = (*MirrorUnion)(nil)

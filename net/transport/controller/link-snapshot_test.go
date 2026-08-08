@@ -149,6 +149,6 @@ func (l *testLink) Close() error {
 }
 
 var (
-	_ transport.Transport = ((*testTransport)(nil))
-	_ link.Link           = ((*testLink)(nil))
+	_ transport.Transport = (*testTransport)(nil)
+	_ link.Link           = (*testLink)(nil)
 )

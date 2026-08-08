@@ -36,4 +36,4 @@ func NewFactory(b bus.Bus) controller.Factory {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

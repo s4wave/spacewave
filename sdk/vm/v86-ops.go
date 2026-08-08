@@ -132,7 +132,7 @@ func LookupCreateVmV86Op(ctx context.Context, operationTypeID string) (world.Ope
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*CreateVmV86Op)(nil))
+var _ world.Operation = (*CreateVmV86Op)(nil)
 
 // SetV86ConfigOpId is the operation id for SetV86ConfigOp.
 var SetV86ConfigOpId = "vm/v86/set-config"
@@ -244,7 +244,7 @@ func LookupSetV86ConfigOp(ctx context.Context, operationTypeID string) (world.Op
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*SetV86ConfigOp)(nil))
+var _ world.Operation = (*SetV86ConfigOp)(nil)
 
 // SetV86StateOpId is the operation id for SetV86StateOp.
 var SetV86StateOpId = "vm/v86/set-state"
@@ -425,4 +425,4 @@ func LookupSetV86StateOp(ctx context.Context, operationTypeID string) (world.Ope
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*SetV86StateOp)(nil))
+var _ world.Operation = (*SetV86StateOp)(nil)

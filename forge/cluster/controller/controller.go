@@ -160,7 +160,7 @@ func (c *Controller) ProcessState(
 }
 
 // _ is a type assertion
-var _ world_control.WatchLoopHandler = ((*Controller)(nil)).ProcessState
+var _ world_control.WatchLoopHandler = (*Controller)(nil).ProcessState
 
 // HandleDirective asks if the handler can resolve the directive.
 // If it can, it returns a resolver. If not, returns nil.
@@ -181,4 +181,4 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

@@ -83,4 +83,4 @@ func (c *Config) ToPluginCompilerConf() (*bldr_plugin_compiler_go.Config, error)
 }
 
 // _ is a type assertion
-var _ builder.ControllerConfig = ((*Config)(nil))
+var _ builder.ControllerConfig = (*Config)(nil)

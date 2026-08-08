@@ -33,6 +33,7 @@ func TestRedis(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 }
+
 func TestRedisKeyedWriteLease(t *testing.T) {
 	ctx := context.Background()
 	vol, err := NewRedis(ctx, logrus.NewEntry(logrus.New()), &Config{

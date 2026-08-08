@@ -100,7 +100,7 @@ func (s *Spec) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*Spec)(nil))
-	_ block.BlockWithRefs      = ((*Spec)(nil))
-	_ block.BlockWithSubBlocks = ((*Spec)(nil))
+	_ block.Block              = (*Spec)(nil)
+	_ block.BlockWithRefs      = (*Spec)(nil)
+	_ block.BlockWithSubBlocks = (*Spec)(nil)
 )

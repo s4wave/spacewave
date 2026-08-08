@@ -70,6 +70,6 @@ func (p *DriverProvider) NewContext(
 
 // _ is a type assertion
 var (
-	_ gdriver.ProviderWithContextBuilder = ((*DriverProvider)(nil))
-	_ gdriver.ProviderWithSessionBuilder = ((*DriverProvider)(nil))
+	_ gdriver.ProviderWithContextBuilder = (*DriverProvider)(nil)
+	_ gdriver.ProviderWithSessionBuilder = (*DriverProvider)(nil)
 )

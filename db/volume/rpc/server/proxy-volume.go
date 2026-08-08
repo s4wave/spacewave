@@ -350,9 +350,9 @@ func (v *ProxyVolume) GetStorageStats(
 
 // _ is a type assertion
 var (
-	_ volume_rpc.SRPCProxyVolumeServer = ((*ProxyVolume)(nil))
-	_ rpc_block.SRPCBlockStoreServer   = ((*ProxyVolume)(nil))
-	_ rpc_bucket.SRPCBucketStoreServer = ((*ProxyVolume)(nil))
-	_ rpc_object.SRPCObjectStoreServer = ((*ProxyVolume)(nil))
-	_ rpc_gc.SRPCRefGraphServer        = ((*ProxyVolume)(nil))
+	_ volume_rpc.SRPCProxyVolumeServer = (*ProxyVolume)(nil)
+	_ rpc_block.SRPCBlockStoreServer   = (*ProxyVolume)(nil)
+	_ rpc_bucket.SRPCBucketStoreServer = (*ProxyVolume)(nil)
+	_ rpc_object.SRPCObjectStoreServer = (*ProxyVolume)(nil)
+	_ rpc_gc.SRPCRefGraphServer        = (*ProxyVolume)(nil)
 )

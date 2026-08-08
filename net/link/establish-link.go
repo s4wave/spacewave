@@ -103,4 +103,4 @@ func (d *establishLinkWithPeer) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type constraint
-var _ EstablishLinkWithPeer = ((*establishLinkWithPeer)(nil))
+var _ EstablishLinkWithPeer = (*establishLinkWithPeer)(nil)

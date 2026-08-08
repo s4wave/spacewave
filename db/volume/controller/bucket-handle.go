@@ -458,7 +458,7 @@ func (b *bucketHandle) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ bucket.Bucket       = ((*bucketHandle)(nil))
-	_ bucket.BucketHandle = ((*bucketHandle)(nil))
-	_ block.DeferFlusher  = ((*bucketHandle)(nil))
+	_ bucket.Bucket       = (*bucketHandle)(nil)
+	_ bucket.BucketHandle = (*bucketHandle)(nil)
+	_ block.DeferFlusher  = (*bucketHandle)(nil)
 )

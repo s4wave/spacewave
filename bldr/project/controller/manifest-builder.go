@@ -532,4 +532,4 @@ func (c *Controller) getManifestBuilderBuildTargets(key string) []string {
 }
 
 // _ is a type assertion
-var _ manifest_builder_controller.ManifestBuilderLifecycleSink = ((*manifestBuilderTracker)(nil))
+var _ manifest_builder_controller.ManifestBuilderLifecycleSink = (*manifestBuilderTracker)(nil)

@@ -293,7 +293,7 @@ func (c *Controller) ProcessState(
 }
 
 // _ is a type assertion
-var _ world_control.WatchLoopHandler = ((*Controller)(nil)).ProcessState
+var _ world_control.WatchLoopHandler = (*Controller)(nil).ProcessState
 
 // CheckExecControllerConfig checks if the controller config is OK to execute.
 func (c *Controller) CheckExecControllerConfig(ctx context.Context, conf config.Config) error {
@@ -313,4 +313,4 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

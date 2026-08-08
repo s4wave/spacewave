@@ -721,7 +721,7 @@ func (c *testFetchManifestController) Close() error {
 }
 
 // _ is a type assertion
-var _ cb_controller.Controller = ((*testFetchManifestController)(nil))
+var _ cb_controller.Controller = (*testFetchManifestController)(nil)
 
 func newStatusObserverTestBus(t *testing.T, ctx context.Context) bus.Bus {
 	t.Helper()

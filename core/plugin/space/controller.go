@@ -593,4 +593,4 @@ func (c *Controller) runProcess(ctx context.Context, ws world.WorldState, object
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

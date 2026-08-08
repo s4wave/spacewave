@@ -841,8 +841,8 @@ func (s *SharedObject) IncrementInviteUses(ctx context.Context, signerPrivKey cr
 
 // _ is a type assertion
 var (
-	_ sobject.SharedObjectProvider      = ((*ProviderAccount)(nil))
-	_ sobject.SharedObject              = ((*SharedObject)(nil))
-	_ sobject.InviteHost                = ((*SharedObject)(nil))
+	_ sobject.SharedObjectProvider      = (*ProviderAccount)(nil)
+	_ sobject.SharedObject              = (*SharedObject)(nil)
+	_ sobject.InviteHost                = (*SharedObject)(nil)
 	_ sobject.SharedObjectStateSnapshot = (*lsoStateSnapshot)(nil)
 )

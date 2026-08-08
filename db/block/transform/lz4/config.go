@@ -81,4 +81,4 @@ func (c *Config) ToOptions() []lz4.Option {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

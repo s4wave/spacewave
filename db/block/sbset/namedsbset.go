@@ -321,8 +321,8 @@ func (r *NamedSubBlockSet) BlockPreWriteHook() error {
 
 // _ is a type assertion
 var (
-	_ block.SubBlock              = ((*NamedSubBlockSet)(nil))
-	_ block.BlockWithSubBlocks    = ((*NamedSubBlockSet)(nil))
-	_ block.BlockWithPreWriteHook = ((*NamedSubBlockSet)(nil))
-	_ sort.Interface              = ((*NamedSubBlockSet)(nil))
+	_ block.SubBlock              = (*NamedSubBlockSet)(nil)
+	_ block.BlockWithSubBlocks    = (*NamedSubBlockSet)(nil)
+	_ block.BlockWithPreWriteHook = (*NamedSubBlockSet)(nil)
+	_ sort.Interface              = (*NamedSubBlockSet)(nil)
 )

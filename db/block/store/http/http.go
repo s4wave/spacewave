@@ -368,4 +368,4 @@ func (b *HTTPBlock) Sync(context.Context) (bool, error) {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*HTTPBlock)(nil))
+var _ block.StoreOps = (*HTTPBlock)(nil)

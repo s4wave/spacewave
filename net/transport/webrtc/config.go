@@ -69,6 +69,6 @@ func (c *Config) GetDebugVals() config.DebugValues {
 
 // _ is a type assertion
 var (
-	_ transport.Config  = ((*Config)(nil))
-	_ config.Debuggable = ((*Config)(nil))
+	_ transport.Config  = (*Config)(nil)
+	_ config.Debuggable = (*Config)(nil)
 )

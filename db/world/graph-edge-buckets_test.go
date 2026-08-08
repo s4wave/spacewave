@@ -168,4 +168,4 @@ func (g *edgeBucketTestGraph) DeleteGraphObject(ctx context.Context, value strin
 	return nil
 }
 
-var _ world.WorldStateGraph = ((*edgeBucketTestGraph)(nil))
+var _ world.WorldStateGraph = (*edgeBucketTestGraph)(nil)

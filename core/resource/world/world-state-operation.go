@@ -92,6 +92,7 @@ func applyWorldStateResourceOptions(r *WorldStateResource, opts ...WorldStateRes
 		}
 	}
 }
+
 func worldStateResourceSessionPeerID(opts ...WorldStateResourceOption) (peer.ID, bool) {
 	r := new(WorldStateResource)
 	applyWorldStateResourceOptions(r, opts...)

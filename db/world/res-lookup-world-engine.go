@@ -30,4 +30,4 @@ func (r *WorldEngineResolver) Resolve(ctx context.Context, handler directive.Res
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*WorldEngineResolver)(nil))
+var _ directive.Resolver = (*WorldEngineResolver)(nil)

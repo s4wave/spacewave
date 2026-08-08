@@ -202,4 +202,4 @@ func refEdgesToRPC(edges []block_gc.RefEdge) []*block_gc_rpc.RefEdge {
 }
 
 // _ is a type assertion
-var _ block_gc_rpc.SRPCRefGraphServer = ((*RefGraph)(nil))
+var _ block_gc_rpc.SRPCRefGraphServer = (*RefGraph)(nil)

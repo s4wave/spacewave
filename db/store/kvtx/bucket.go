@@ -150,4 +150,4 @@ func (k *KVTx) GetBucketConfig(ctx context.Context, id string) (*bucket.Config, 
 }
 
 // _ is a type assertion
-var _ bucket_store.Store = ((*KVTx)(nil))
+var _ bucket_store.Store = (*KVTx)(nil)

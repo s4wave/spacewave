@@ -137,4 +137,4 @@ func mapTxError(err error) error {
 }
 
 // _ is a type assertion.
-var _ hydra_sql.SqlOps = ((*Ops)(nil))
+var _ hydra_sql.SqlOps = (*Ops)(nil)

@@ -87,4 +87,4 @@ func (o *GitCloneOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*GitCloneOp)(nil))
+var _ world.Operation = (*GitCloneOp)(nil)

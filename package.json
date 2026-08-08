@@ -114,7 +114,7 @@
     "format": "bun run format:js && bun run format:go && bun run format:config",
     "format:js": "oxfmt './{app,web,core,sdk,net}/**/*.{ts,tsx,js,html,css,scss}' && bun run format:config",
     "format:go": "bun run go:aptre -- format && cross-env GOFLAGS=-mod=mod -tags=purego go fix ./...",
-    "format:config": "oxfmt '*.json' '.github/**/*.json' '.github/**/*.yml' '.oxfmtrc.json' '.golangci.yml' 'tsconfig.json' 'tsconfig.net.json'",
+    "format:config": "oxfmt '*.json' '!.protoc-manifest.json' '.github/**/*.json' '.github/**/*.yml' '.oxfmtrc.json' '.golangci.yml' 'tsconfig.json' 'tsconfig.net.json'",
     "vitecheck": "vite build --outDir vite-check",
     "typecheck": "tsgo --noEmit -p tsconfig.json",
     "lint": "bun run lint:js && bun run lint:go",

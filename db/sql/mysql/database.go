@@ -105,8 +105,8 @@ func (d *Database) GetTableNames(ctx *sql.Context) ([]string, error) {
 
 // _ is a type assertion
 var (
-	_ sql.Database         = ((*Database)(nil))
-	_ sql.ReadOnlyDatabase = ((*Database)(nil))
+	_ sql.Database         = (*Database)(nil)
+	_ sql.ReadOnlyDatabase = (*Database)(nil)
 
 	// _ sql.StoredProcedureDatabase = ((*Database)(nil))
 	// _ sql.TableCopierDatabase    = ((*Database)(nil))

@@ -31,4 +31,4 @@ func (i *iterOps) ScanPrefixKeys(ctx context.Context, prefix []byte, cb func(key
 }
 
 // _ is a type assertion
-var _ kvtx_iterator.Ops = ((*iterOps)(nil))
+var _ kvtx_iterator.Ops = (*iterOps)(nil)

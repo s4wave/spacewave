@@ -41,4 +41,4 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (world.Tx, erro
 }
 
 // _ is a type assertion
-var _ world.Engine = ((*Engine)(nil))
+var _ world.Engine = (*Engine)(nil)

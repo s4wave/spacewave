@@ -187,4 +187,4 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 }
 
 // _ is a type assertion
-var _ io.ReaderAt = ((*BufferedReaderAt)(nil))
+var _ io.ReaderAt = (*BufferedReaderAt)(nil)

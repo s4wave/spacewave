@@ -97,4 +97,4 @@ func (m *MockObjectOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*MockObjectOp)(nil))
+var _ block.Block = (*MockObjectOp)(nil)

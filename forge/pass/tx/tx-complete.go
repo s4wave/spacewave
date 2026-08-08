@@ -113,4 +113,4 @@ func (t *TxComplete) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxComplete)(nil))
+var _ Transaction = (*TxComplete)(nil)

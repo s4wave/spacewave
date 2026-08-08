@@ -26,4 +26,4 @@ func (s *Snappy) DecodeBlock(data []byte) ([]byte, error) {
 }
 
 // _ is a type assertion
-var _ block_transform.Step = ((*Snappy)(nil))
+var _ block_transform.Step = (*Snappy)(nil)

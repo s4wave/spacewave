@@ -164,4 +164,4 @@ func waitSharedObjectHealth(
 }
 
 // _ is a type assertion
-var _ s4wave_sobject.SRPCSharedObjectResourceServiceServer = ((*SharedObjectResource)(nil))
+var _ s4wave_sobject.SRPCSharedObjectResourceServiceServer = (*SharedObjectResource)(nil)

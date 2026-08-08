@@ -428,7 +428,6 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 		b.TotalSize = uint64(nsize) //nolint:gosec
 		if oldSize < nsize {
 			b.RawData = b.RawData[:nsize]
-
 		} else if nsize > int64(hwm) { //nolint:gosec
 
 			// create a chunk index with the raw data
@@ -650,6 +649,6 @@ func (b *Blob) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*Blob)(nil))
-	_ block.BlockWithSubBlocks = ((*Blob)(nil))
+	_ block.Block              = (*Blob)(nil)
+	_ block.BlockWithSubBlocks = (*Blob)(nil)
 )

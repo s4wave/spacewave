@@ -108,5 +108,5 @@ func (h *HeadRefStore) ClearSubmoduleStore(bcs *block.Cursor, name string) error
 
 // _ is a type assertion
 var (
-	_ block.NamedSubBlock = ((*HeadRefStore)(nil))
+	_ block.NamedSubBlock = (*HeadRefStore)(nil)
 )

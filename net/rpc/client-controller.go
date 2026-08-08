@@ -92,4 +92,4 @@ func (c *ClientController) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*ClientController)(nil))
+var _ controller.Controller = (*ClientController)(nil)

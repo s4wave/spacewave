@@ -133,4 +133,4 @@ func (d *handleMountedStream) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type constraint
-var _ HandleMountedStream = ((*handleMountedStream)(nil))
+var _ HandleMountedStream = (*handleMountedStream)(nil)

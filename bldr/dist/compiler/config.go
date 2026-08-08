@@ -191,4 +191,4 @@ func embedManifestIndex(s []*EmbedManifest, em *EmbedManifest) int {
 }
 
 // _ is a type assertion
-var _ builder.ControllerConfig = ((*Config)(nil))
+var _ builder.ControllerConfig = (*Config)(nil)

@@ -34,4 +34,4 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return config.EqualsConfig[*Config](c, other)
 }
 
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

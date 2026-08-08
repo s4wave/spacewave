@@ -32,6 +32,7 @@ func (s *sessionLookupTestLower) GetSupportedFeatures() block.StoreFeature { ret
 func (s *sessionLookupTestLower) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
 	return s, func() {}, nil
 }
+
 func (s *sessionLookupTestLower) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	if !s.writable {
 		return nil, false, block_store.ErrReadOnly
@@ -47,9 +48,11 @@ func (s *sessionLookupTestLower) PutBlock(ctx context.Context, data []byte, opts
 	s.putCalls.Add(1)
 	return ref, true, nil
 }
+
 func (s *sessionLookupTestLower) PutBlockBatch(context.Context, []*block.PutBatchEntry) error {
 	return block_store.ErrReadOnly
 }
+
 func (s *sessionLookupTestLower) RmBlock(context.Context, *block.BlockRef) error {
 	return block_store.ErrReadOnly
 }
@@ -70,10 +73,12 @@ func (s *sessionLookupTestLower) GetBlock(_ context.Context, ref *block.BlockRef
 	}
 	return data, true, nil
 }
+
 func (s *sessionLookupTestLower) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	_, found, err := s.GetBlock(ctx, ref)
 	return found, err
 }
+
 func (s *sessionLookupTestLower) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	out := make([]bool, len(refs))
 	for i, ref := range refs {
@@ -85,6 +90,7 @@ func (s *sessionLookupTestLower) GetBlockExistsBatch(ctx context.Context, refs [
 	}
 	return out, nil
 }
+
 func (s *sessionLookupTestLower) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	data, found, err := s.GetBlock(ctx, ref)
 	if err != nil || !found {
@@ -93,7 +99,7 @@ func (s *sessionLookupTestLower) StatBlock(ctx context.Context, ref *block.Block
 	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
 }
 
-var _ block.StoreOps = ((*sessionLookupTestLower)(nil))
+var _ block.StoreOps = (*sessionLookupTestLower)(nil)
 
 func newProductionSessionStore(
 	account *ProviderAccount,
@@ -408,4 +414,4 @@ func TestSessionGetBusFallsBackWhenTransportMissing(t *testing.T) {
 	}
 }
 
-var _ sobject.SharedObject = ((*sessionSharedObject)(nil))
+var _ sobject.SharedObject = (*sessionSharedObject)(nil)

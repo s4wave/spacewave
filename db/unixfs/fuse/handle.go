@@ -492,11 +492,11 @@ func (h *Handle) getOptimalWriteSize(ctx context.Context) (uint64, error) {
 
 // _ is a type assertion
 var (
-	_ fs.Handle = ((*Handle)(nil))
+	_ fs.Handle = (*Handle)(nil)
 
-	_ fs.HandleReadDirAller = ((*Handle)(nil))
-	_ fs.HandleReader       = ((*Handle)(nil))
-	_ fs.HandleWriter       = ((*Handle)((nil)))
-	_ fs.HandleReleaser     = ((*Handle)(nil))
-	_ fs.HandleFlusher      = ((*Handle)(nil))
+	_ fs.HandleReadDirAller = (*Handle)(nil)
+	_ fs.HandleReader       = (*Handle)(nil)
+	_ fs.HandleWriter       = (*Handle)(nil)
+	_ fs.HandleReleaser     = (*Handle)(nil)
+	_ fs.HandleFlusher      = (*Handle)(nil)
 )

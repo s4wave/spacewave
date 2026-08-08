@@ -82,4 +82,4 @@ func (v *BucketStore) ListBucketInfo(ctx context.Context, idRegex *regexp.Regexp
 }
 
 // _ is a type assertion
-var _ bucket_store.Store = ((*BucketStore)(nil))
+var _ bucket_store.Store = (*BucketStore)(nil)

@@ -219,5 +219,7 @@ func TestGetObjectBodiesBatchCarriesObjectRevisions(t *testing.T) {
 	}
 }
 
-var _ world.ObjectBodyPageBatcher = (*objectBodyPageWorld)(nil)
-var _ world.ObjectBodyPageSeqnoBatcher = (*objectBodyPageWorld)(nil)
+var (
+	_ world.ObjectBodyPageBatcher      = (*objectBodyPageWorld)(nil)
+	_ world.ObjectBodyPageSeqnoBatcher = (*objectBodyPageWorld)(nil)
+)

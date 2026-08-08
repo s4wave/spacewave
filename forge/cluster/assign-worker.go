@@ -101,4 +101,4 @@ func (o *ClusterAssignWorkerOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*ClusterAssignWorkerOp)(nil))
+var _ world.Operation = (*ClusterAssignWorkerOp)(nil)

@@ -22,4 +22,4 @@ func (h *solicitedStreamMountedHandler) HandleMountedStream(
 }
 
 // _ is a type assertion
-var _ link.MountedStreamHandler = ((*solicitedStreamMountedHandler)(nil))
+var _ link.MountedStreamHandler = (*solicitedStreamMountedHandler)(nil)

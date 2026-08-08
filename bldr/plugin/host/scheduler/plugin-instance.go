@@ -227,4 +227,4 @@ func (t *pluginInstance) ensureAccessProviders() {
 }
 
 // _ is a type assertion
-var _ bldr_plugin.RunningPluginRef = ((*pluginInstance)(nil))
+var _ bldr_plugin.RunningPluginRef = (*pluginInstance)(nil)

@@ -100,6 +100,6 @@ func (r *EncodedObject) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*EncodedObject)(nil))
-	_ block.BlockWithSubBlocks = ((*EncodedObject)(nil))
+	_ block.Block              = (*EncodedObject)(nil)
+	_ block.BlockWithSubBlocks = (*EncodedObject)(nil)
 )

@@ -133,4 +133,4 @@ func (d *lookupProvider) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupProvider = ((*lookupProvider)(nil))
+var _ LookupProvider = (*lookupProvider)(nil)

@@ -20,4 +20,4 @@ func (r *remoteWebDocumentHost) WebViewRpc(stream SRPCWebDocumentHost_WebViewRpc
 }
 
 // _ is a type assertion
-var _ SRPCWebDocumentHostServer = ((*remoteWebDocumentHost)(nil))
+var _ SRPCWebDocumentHostServer = (*remoteWebDocumentHost)(nil)

@@ -69,4 +69,4 @@ func (r *tableRowColumnSet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.SubBlockContainer = ((*tableRowColumnSet)(nil))
+var _ sbset.SubBlockContainer = (*tableRowColumnSet)(nil)

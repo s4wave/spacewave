@@ -170,4 +170,4 @@ func (o *FsInitOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*FsInitOp)(nil))
+var _ world.Operation = (*FsInitOp)(nil)

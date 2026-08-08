@@ -129,4 +129,4 @@ func (d *buildBucketAPI) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ BuildBucketAPI = ((*buildBucketAPI)(nil))
+var _ BuildBucketAPI = (*buildBucketAPI)(nil)

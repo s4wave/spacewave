@@ -61,4 +61,4 @@ func (s *WebViewServer) RemoveWebView(
 }
 
 // _ is a type assertion
-var _ web_view.SRPCWebViewServer = ((*WebViewServer)(nil))
+var _ web_view.SRPCWebViewServer = (*WebViewServer)(nil)

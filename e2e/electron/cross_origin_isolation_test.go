@@ -96,7 +96,8 @@ func TestElectronRendererReportsCrossOriginIsolatedWorkerComms(t *testing.T) {
 
 func readElectronCOISnapshot(t testing.TB, page interface {
 	Evaluate(expression string, arg ...any) (any, error)
-}, timeout time.Duration) electronCOISnapshot {
+}, timeout time.Duration,
+) electronCOISnapshot {
 	t.Helper()
 
 	raw, err := page.Evaluate(`async (arg) => {

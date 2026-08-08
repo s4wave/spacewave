@@ -27,7 +27,7 @@ func (a *API) RegisterAsSRPCServer(mux srpc.Mux) {
 }
 
 // _ is a type assertion
-var _ SRPCHydraDaemonServiceServer = ((*API)(nil))
+var _ SRPCHydraDaemonServiceServer = (*API)(nil)
 
 // Validate validates the operation code.
 // Unknown is considered valid.

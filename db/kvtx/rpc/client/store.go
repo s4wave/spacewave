@@ -66,7 +66,7 @@ func (s *Store) WatchPrefix(ctx context.Context, prefix []byte, cb func(entries 
 }
 
 // _ is a type assertion
-var _ kvtx.WatchStore = ((*Store)(nil))
+var _ kvtx.WatchStore = (*Store)(nil)
 
 // _ is a type assertion
-var _ kvtx.Store = ((*Store)(nil))
+var _ kvtx.Store = (*Store)(nil)

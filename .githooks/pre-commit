@@ -1,12 +1,24 @@
 #!/bin/sh
 set -e
 
+format_before=$(mktemp)
+format_after=$(mktemp)
+trap 'rm -f "$format_before" "$format_after"' EXIT HUP INT TERM
+git diff --binary --no-ext-diff >"$format_before"
+bun run format
+git diff --binary --no-ext-diff >"$format_after"
+if ! cmp -s "$format_before" "$format_after"; then
+	printf '%s
+' 'bun run format changed the working tree; review and stage those changes, then retry the commit.' >&2
+	exit 1
+fi
+
 files=$(git diff --cached --name-only --diff-filter=ACMR)
 if [ -z "$files" ]; then
 	exit 0
 fi
 
-format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json)$' || true)
+format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json)$' | grep -v '^\.protoc-manifest\.json$' || true)
 if [ -n "$format_files" ]; then
 	printf "%s\n" "$format_files" | xargs node_modules/.bin/oxfmt
 	printf "%s\n" "$format_files" | xargs git add

@@ -21,4 +21,4 @@ func (e *WritableDirEntry) Info() (fs.FileInfo, error) {
 }
 
 // _ is a type assertion
-var _ fs.DirEntry = ((*WritableDirEntry)(nil))
+var _ fs.DirEntry = (*WritableDirEntry)(nil)

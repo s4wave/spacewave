@@ -196,7 +196,6 @@ func copyObjectToBucket(
 		ctx,
 		NewWalkObjectBlocksWithRef(srcRef.GetRootRef(), rootCtor),
 		func(ent *WalkObjectBlocksEntry) (cntu bool, err error) {
-
 			// call the callback if set
 			if cb != nil {
 				cntu, err = cb(ent)

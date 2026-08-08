@@ -86,4 +86,4 @@ func (a *accessHandle) WriteLog(context.Context, string, string) error {
 }
 
 // _ is a type assertion
-var _ ExecControllerHandle = ((*accessHandle)(nil))
+var _ ExecControllerHandle = (*accessHandle)(nil)

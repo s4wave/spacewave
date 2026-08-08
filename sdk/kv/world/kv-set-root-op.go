@@ -218,4 +218,4 @@ func LookupKvSetRootOp(ctx context.Context, operationTypeID string) (world.Opera
 	return nil, nil
 }
 
-var _ world.Operation = ((*KvSetRootOp)(nil))
+var _ world.Operation = (*KvSetRootOp)(nil)

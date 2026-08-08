@@ -379,4 +379,4 @@ func (r *BlockCursorResource) Parents(ctx context.Context, req *s4wave_block_cur
 }
 
 // _ is a type assertion
-var _ s4wave_block_cursor.SRPCBlockCursorResourceServiceServer = ((*BlockCursorResource)(nil))
+var _ s4wave_block_cursor.SRPCBlockCursorResourceServiceServer = (*BlockCursorResource)(nil)

@@ -119,4 +119,4 @@ func (d *lookupSessionController) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupSessionController = ((*lookupSessionController)(nil))
+var _ LookupSessionController = (*lookupSessionController)(nil)

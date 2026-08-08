@@ -79,4 +79,4 @@ func (c *LookupOpController) resolveLookupWorldOp(d LookupWorldOp) (directive.Re
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*LookupOpController)(nil))
+var _ controller.Controller = (*LookupOpController)(nil)

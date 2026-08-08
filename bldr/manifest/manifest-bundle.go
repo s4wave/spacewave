@@ -109,6 +109,6 @@ func (m *ManifestBundle) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*ManifestBundle)(nil))
-	_ block.BlockWithSubBlocks = ((*ManifestBundle)(nil))
+	_ block.Block              = (*ManifestBundle)(nil)
+	_ block.BlockWithSubBlocks = (*ManifestBundle)(nil)
 )

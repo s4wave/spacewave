@@ -133,4 +133,4 @@ func (o *FsTruncateOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*FsTruncateOp)(nil))
+var _ world.Operation = (*FsTruncateOp)(nil)

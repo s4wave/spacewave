@@ -113,4 +113,4 @@ func (a *ProviderAccount) setSyncTelemetryCloudRemoteSequence(bstoreID string, s
 }
 
 // _ is a type assertion
-var _ syncTelemetryFetchStatsProvider = ((*packfile_store.PackfileStore)(nil))
+var _ syncTelemetryFetchStatsProvider = (*packfile_store.PackfileStore)(nil)

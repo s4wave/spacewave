@@ -38,4 +38,4 @@ func (h *bucketHandle) GetBucket() Bucket {
 }
 
 // _ is a type assertion
-var _ BucketHandle = ((*bucketHandle)(nil))
+var _ BucketHandle = (*bucketHandle)(nil)

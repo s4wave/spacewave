@@ -105,4 +105,4 @@ func (o *UpdateBlockStoreStateOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*UpdateBlockStoreStateOp)(nil))
+var _ world.Operation = (*UpdateBlockStoreStateOp)(nil)

@@ -598,6 +598,7 @@ func logicalSizeForRef(ctx context.Context, ws world.WorldState, root *bucket.Ob
 	})
 	return total, err == nil
 }
+
 func owningBlockStoreID(ctx context.Context, ws world.WorldState, objects map[string]*ObjectDescriptor, label string) (string, error) {
 	var ownerID string
 	if err := ws.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {

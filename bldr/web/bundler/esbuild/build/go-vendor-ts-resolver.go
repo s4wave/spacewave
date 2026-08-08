@@ -155,7 +155,6 @@ func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin 
 				var result esbuild.OnResolveResult
 				if args.Importer == "bldr-go-vendor-ts-resolver" {
 					return result, nil
-
 				}
 				if !strings.HasSuffix(args.Path, ".js") {
 					return result, nil
@@ -192,7 +191,6 @@ func GoVendorTsResolverPlugin(sourcePath, distSourcePath string) esbuild.Plugin 
 				}
 				return result, nil
 			})
-
 		},
 	}
 }

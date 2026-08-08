@@ -345,4 +345,4 @@ func (t *Transport) handleLinkLost(addrStr string, lnk *Link) {
 }
 
 // _ is a type assertion
-var _ transport.Transport = ((*Transport)(nil))
+var _ transport.Transport = (*Transport)(nil)

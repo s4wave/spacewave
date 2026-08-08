@@ -39,7 +39,6 @@ func RunSaucer(
 	extraSaucerFlags []string,
 	saucerInit *SaucerInit,
 ) (*Saucer, error) {
-
 	// Create yamux pipe.
 	// C++ acts as the client (opens streams to us).
 	// We act as the server (accept streams from C++).

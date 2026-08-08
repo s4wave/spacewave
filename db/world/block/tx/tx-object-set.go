@@ -85,4 +85,4 @@ func (t *TxObjectSet) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxObjectSet)(nil))
+var _ Transaction = (*TxObjectSet)(nil)

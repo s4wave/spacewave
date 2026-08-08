@@ -10,8 +10,10 @@ import (
 	playwright "github.com/mxschmitt/playwright-go"
 )
 
-const deviceQuickstartWaitMS = 240000
-const deviceQuickstartProbeWaitMS = 120000
+const (
+	deviceQuickstartWaitMS      = 240000
+	deviceQuickstartProbeWaitMS = 120000
+)
 
 // STORY_DEV_001 / STORY_DEV_002: the Device quickstart opens Computers first,
 // then the Add Device control launches the setup wizard.

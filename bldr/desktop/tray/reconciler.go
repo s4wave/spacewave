@@ -189,4 +189,4 @@ func (h *forwardingDesktopTrayActionHandler) HandleDesktopTrayAction(
 	return &HandleDesktopTrayActionResponse{}, nil
 }
 
-var _ SRPCDesktopTrayActionHandlerServiceServer = ((*forwardingDesktopTrayActionHandler)(nil))
+var _ SRPCDesktopTrayActionHandlerServiceServer = (*forwardingDesktopTrayActionHandler)(nil)

@@ -94,4 +94,4 @@ func (e *establishLinkHandler) HandleInstanceDisposed(inst directive.Instance) {
 	})
 }
 
-var _ directive.ReferenceHandler = ((*establishLinkHandler)(nil))
+var _ directive.ReferenceHandler = (*establishLinkHandler)(nil)

@@ -1981,6 +1981,7 @@ func newPeerInfoClient(s *TestSession) e2e_wasm_session.SRPCPeerInfoResourceServ
 	return e2e_wasm_session.NewSRPCPeerInfoResourceServiceClientWithServiceID(
 		s.BrowserClient(), pluginServiceID(e2e_wasm_session.SRPCPeerInfoResourceServiceServiceID))
 }
+
 func newQuicRwcFixtureClient(s *TestSession) e2e_wasm_session.SRPCQuicRwcFixtureResourceServiceClient {
 	return e2e_wasm_session.NewSRPCQuicRwcFixtureResourceServiceClientWithServiceID(
 		s.BrowserClient(), pluginServiceID(e2e_wasm_session.SRPCQuicRwcFixtureResourceServiceServiceID))
@@ -2147,7 +2148,7 @@ func TestForgeWorkerExecution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WatchState Recv: %v", err)
 	}
-	if len(state.GetProcessBindings()) == 0 || !(state.GetProcessBindings()[0].GetApproved()) {
+	if len(state.GetProcessBindings()) == 0 || !state.GetProcessBindings()[0].GetApproved() {
 		t.Fatalf("expected approved worker binding, got %+v", state.GetProcessBindings())
 	}
 

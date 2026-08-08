@@ -187,4 +187,4 @@ func (o *EntityUpdateOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*EntityUpdateOp)(nil))
+var _ world.Operation = (*EntityUpdateOp)(nil)

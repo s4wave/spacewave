@@ -6,9 +6,11 @@ import (
 	"strings"
 )
 
-const friendDmIDDomain = "spacewave/friend-dm/v1"
-const friendDmULIDTimestamp = int64(1262304000000)
-const friendDmCrockfordLower = "0123456789abcdefghjkmnpqrstvwxyz"
+const (
+	friendDmIDDomain       = "spacewave/friend-dm/v1"
+	friendDmULIDTimestamp  = int64(1262304000000)
+	friendDmCrockfordLower = "0123456789abcdefghjkmnpqrstvwxyz"
+)
 
 func encodeFriendDmTimestamp(timestamp int64) string {
 	chars := make([]byte, 10)

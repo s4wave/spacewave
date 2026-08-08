@@ -261,7 +261,7 @@ func (w *WebSocket) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 // _ is a type assertion.
 var (
-	_ transport.Transport    = ((*WebSocket)(nil))
-	_ dialer.TransportDialer = ((*WebSocket)(nil))
-	_ http.Handler           = ((*WebSocket)(nil))
+	_ transport.Transport    = (*WebSocket)(nil)
+	_ dialer.TransportDialer = (*WebSocket)(nil)
+	_ http.Handler           = (*WebSocket)(nil)
 )

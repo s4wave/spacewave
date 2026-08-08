@@ -115,4 +115,4 @@ func (d *dialTptAddr) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type constraint
-var _ DialTptAddr = ((*dialTptAddr)(nil))
+var _ DialTptAddr = (*dialTptAddr)(nil)

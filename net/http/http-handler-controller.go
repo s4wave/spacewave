@@ -120,4 +120,4 @@ func (c *HTTPHandlerController) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*HTTPHandlerController)(nil))
+var _ controller.Controller = (*HTTPHandlerController)(nil)

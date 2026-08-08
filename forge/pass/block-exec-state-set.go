@@ -78,4 +78,4 @@ func (r *execStateSlice) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.NamedSubBlockContainer = ((*execStateSlice)(nil))
+var _ sbset.NamedSubBlockContainer = (*execStateSlice)(nil)

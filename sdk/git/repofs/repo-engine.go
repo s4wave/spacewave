@@ -186,7 +186,7 @@ func (e *Engine) callChangeCbs() {
 }
 
 // _ is a type assertion
-var _ hydra_git.Engine = ((*Engine)(nil))
+var _ hydra_git.Engine = (*Engine)(nil)
 
 type projectionTx struct {
 	*git_block.Store
@@ -221,4 +221,4 @@ func (t *projectionTx) Discard() {
 }
 
 // _ is a type assertion
-var _ hydra_git.Tx = ((*projectionTx)(nil))
+var _ hydra_git.Tx = (*projectionTx)(nil)

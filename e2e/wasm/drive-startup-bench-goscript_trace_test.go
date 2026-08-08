@@ -133,6 +133,7 @@ func TestSummarizeBrowserCPUProfileBucketsSamples(t *testing.T) {
 		t.Fatalf("profile JSON invalid: %v", err)
 	}
 }
+
 func findProfileBucket(t testing.TB, buckets []drivebench.ProfileBucket, name string) drivebench.ProfileBucket {
 	t.Helper()
 	for _, bucket := range buckets {

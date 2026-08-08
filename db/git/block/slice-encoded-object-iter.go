@@ -47,4 +47,4 @@ func (i *sliceEncodedObjectIter) Close() {
 }
 
 // _ is a type assertion
-var _ storer.EncodedObjectIter = ((*sliceEncodedObjectIter)(nil))
+var _ storer.EncodedObjectIter = (*sliceEncodedObjectIter)(nil)

@@ -75,4 +75,4 @@ func (c *Config) ParseLookupTimeoutDur() (time.Duration, error) {
 }
 
 // _ is a type assertion
-var _ lookup.Config = ((*Config)(nil))
+var _ lookup.Config = (*Config)(nil)

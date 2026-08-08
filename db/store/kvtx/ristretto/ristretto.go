@@ -76,4 +76,4 @@ func (s *Store) Close() {
 }
 
 // _ is a type assertion
-var _ kvtx.Store = ((*Store)(nil))
+var _ kvtx.Store = (*Store)(nil)

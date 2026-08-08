@@ -92,4 +92,4 @@ func (c *Config) GetChunkSizeOrDefault() uint32 {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

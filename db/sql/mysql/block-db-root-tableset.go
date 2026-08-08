@@ -64,4 +64,4 @@ func (r *dbRootTablesSetContainer) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ namedsbset.NamedSubBlockContainer = ((*dbRootTablesSetContainer)(nil))
+var _ namedsbset.NamedSubBlockContainer = (*dbRootTablesSetContainer)(nil)

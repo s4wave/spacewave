@@ -159,4 +159,4 @@ func (o *DomainInfoUpdateOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*DomainInfoUpdateOp)(nil))
+var _ world.Operation = (*DomainInfoUpdateOp)(nil)

@@ -114,6 +114,6 @@ func (s *WorldObjectSnapshot) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*WorldObjectSnapshot)(nil))
-	_ block.BlockWithSubBlocks = ((*WorldObjectSnapshot)(nil))
+	_ block.Block              = (*WorldObjectSnapshot)(nil)
+	_ block.BlockWithSubBlocks = (*WorldObjectSnapshot)(nil)
 )

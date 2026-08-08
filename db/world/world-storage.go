@@ -72,4 +72,4 @@ func (s *cursorWorldStorage) AccessWorldState(
 }
 
 // _ is a type assertion
-var _ WorldStorage = ((*cursorWorldStorage)(nil))
+var _ WorldStorage = (*cursorWorldStorage)(nil)

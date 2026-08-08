@@ -301,4 +301,4 @@ func (e *soEngine) updateEngineState(ctx context.Context, headRef *bucket.Object
 }
 
 // _ is a type assertion
-var _ Engine = ((*soEngine)(nil))
+var _ Engine = (*soEngine)(nil)

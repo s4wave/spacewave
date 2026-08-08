@@ -45,4 +45,4 @@ func (s *CliStorage) DeleteVolume(id string) error {
 }
 
 // _ is a type assertion
-var _ storage.Storage = ((*CliStorage)(nil))
+var _ storage.Storage = (*CliStorage)(nil)

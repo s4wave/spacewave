@@ -414,4 +414,4 @@ func validateDirentName(name string) error {
 	return nil
 }
 
-var _ unixfs.FSCursorOps = ((*FSCursorOps)(nil))
+var _ unixfs.FSCursorOps = (*FSCursorOps)(nil)

@@ -25,8 +25,10 @@ import (
 	s4wave_sql_world "github.com/s4wave/spacewave/sdk/sql/world"
 )
 
-const defaultRunMaxRows uint32 = 1_000
-const resultRowBatchSize = 128
+const (
+	defaultRunMaxRows  uint32 = 1_000
+	resultRowBatchSize        = 128
+)
 
 // SqlQueryResource serves SqlQueryResourceService for one SQL query object.
 type SqlQueryResource struct {

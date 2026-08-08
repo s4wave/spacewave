@@ -86,4 +86,4 @@ func (t *TxAppendLog) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxAppendLog)(nil))
+var _ Transaction = (*TxAppendLog)(nil)

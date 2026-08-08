@@ -81,7 +81,7 @@ func (o *kvtxTxOps) Exists(ctx context.Context, key []byte) (bool, error) {
 }
 
 // _ is a type assertion
-var _ kvtx.TxOps = ((*kvtxTxOps)(nil))
+var _ kvtx.TxOps = (*kvtxTxOps)(nil)
 
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
@@ -104,4 +104,4 @@ func (o *kvtxTxOps) Discard() {
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = ((*kvtxTxOps)(nil))
+var _ kvtx.Tx = (*kvtxTxOps)(nil)

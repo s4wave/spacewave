@@ -63,4 +63,4 @@ func (s *FSSymlink) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 }
 
 // _ is a type assertion
-var _ block.BlockWithSubBlocks = ((*FSSymlink)(nil))
+var _ block.BlockWithSubBlocks = (*FSSymlink)(nil)

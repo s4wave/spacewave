@@ -231,6 +231,6 @@ func (m *Manifest) GetBlockRefCtor(id uint32) block.Ctor {
 
 // _ is a type assertion
 var (
-	_ block.Block         = ((*Manifest)(nil))
-	_ block.BlockWithRefs = ((*Manifest)(nil))
+	_ block.Block         = (*Manifest)(nil)
+	_ block.BlockWithRefs = (*Manifest)(nil)
 )

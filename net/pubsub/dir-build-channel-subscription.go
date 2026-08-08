@@ -141,4 +141,4 @@ func (d *buildChannelSubscription) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ BuildChannelSubscription = ((*buildChannelSubscription)(nil))
+var _ BuildChannelSubscription = (*buildChannelSubscription)(nil)

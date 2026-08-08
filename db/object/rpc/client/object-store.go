@@ -53,4 +53,4 @@ func (s *ObjectStore) DeleteObjectStore(ctx context.Context, id string) error {
 }
 
 // _ is a type assertion
-var _ object_store.Store = ((*ObjectStore)(nil))
+var _ object_store.Store = (*ObjectStore)(nil)

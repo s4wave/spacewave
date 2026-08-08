@@ -81,6 +81,6 @@ func sortedMapKeys(vals map[string]string) []string {
 
 // _ is a type assertion
 var (
-	_ config.Config = ((*Config)(nil))
-	_ block.Block   = ((*Config)(nil))
+	_ config.Config = (*Config)(nil)
+	_ block.Block   = (*Config)(nil)
 )

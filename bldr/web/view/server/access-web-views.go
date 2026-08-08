@@ -83,4 +83,4 @@ func (h *AccessWebViewsViaBus) WebViewRpc(strm web_view.SRPCAccessWebViews_WebVi
 }
 
 // _ is a type assertion
-var _ web_view.SRPCAccessWebViewsServer = ((*AccessWebViewsViaBus)(nil))
+var _ web_view.SRPCAccessWebViewsServer = (*AccessWebViewsViaBus)(nil)

@@ -39,4 +39,4 @@ func (b *aeadCipher) Decrypt(alloc AllocFn, src []byte) ([]byte, error) {
 }
 
 // _ is a type assertion
-var _ Method = ((*aeadCipher)(nil))
+var _ Method = (*aeadCipher)(nil)

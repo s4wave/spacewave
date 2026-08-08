@@ -110,4 +110,4 @@ func (r *LookupEntityReq) UnmarshalBlock(data []byte) error {
 	return r.UnmarshalVT(data)
 }
 
-var _ block.Block = ((*LookupEntityReq)(nil))
+var _ block.Block = (*LookupEntityReq)(nil)

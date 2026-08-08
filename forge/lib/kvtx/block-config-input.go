@@ -52,4 +52,4 @@ func (b *ConfigInput) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*ConfigInput)(nil))
+var _ block.Block = (*ConfigInput)(nil)

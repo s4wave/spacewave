@@ -106,4 +106,4 @@ func (s *CoreRootServer) GetDebugDb(
 }
 
 // _ is a type assertion
-var _ s4wave_root.SRPCRootResourceServiceServer = ((*CoreRootServer)(nil))
+var _ s4wave_root.SRPCRootResourceServiceServer = (*CoreRootServer)(nil)

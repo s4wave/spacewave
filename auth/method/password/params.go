@@ -113,4 +113,4 @@ func (p *Parameters) MarshalBlock() ([]byte, error) {
 }
 
 // _ is a type assertion.
-var _ auth_method.Parameters = ((*Parameters)(nil))
+var _ auth_method.Parameters = (*Parameters)(nil)

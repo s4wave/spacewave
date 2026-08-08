@@ -175,4 +175,4 @@ func (t *TxUpdateInputs) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxUpdateInputs)(nil))
+var _ Transaction = (*TxUpdateInputs)(nil)

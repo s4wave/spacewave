@@ -122,4 +122,4 @@ func (d *mountSession) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ MountSession = ((*mountSession)(nil))
+var _ MountSession = (*mountSession)(nil)

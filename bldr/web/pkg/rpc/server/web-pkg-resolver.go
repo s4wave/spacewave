@@ -38,4 +38,4 @@ func (r *webPkgResolver) Resolve(ctx context.Context, handler directive.Resolver
 	return context.Canceled
 }
 
-var _ directive.Resolver = ((*webPkgResolver)(nil))
+var _ directive.Resolver = (*webPkgResolver)(nil)

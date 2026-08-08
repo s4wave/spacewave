@@ -393,6 +393,6 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var (
-	_ web_runtime.WebRuntimeController = ((*Controller)(nil))
-	_ web_runtime.WebRuntimeHandler    = ((*Controller)(nil))
+	_ web_runtime.WebRuntimeController = (*Controller)(nil)
+	_ web_runtime.WebRuntimeHandler    = (*Controller)(nil)
 )

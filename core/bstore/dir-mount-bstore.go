@@ -116,4 +116,4 @@ func (d *mountBlockStore) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ MountBlockStore = ((*mountBlockStore)(nil))
+var _ MountBlockStore = (*mountBlockStore)(nil)

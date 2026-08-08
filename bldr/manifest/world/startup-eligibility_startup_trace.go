@@ -33,6 +33,7 @@ func CollectStartupManifestEligibilityForManifestID(
 	startuptrace.Log(traceCtx, "outcome", "ok")
 	return candidates, nil
 }
+
 func classifyStartupManifestCandidateEligibility(
 	ctx context.Context,
 	ws world.WorldState,

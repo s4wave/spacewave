@@ -156,4 +156,4 @@ func cloudBlockStoreServiceID(spaceID string) string {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*CloudBlockStoreForwarder)(nil))
+var _ controller.Controller = (*CloudBlockStoreForwarder)(nil)

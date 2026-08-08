@@ -142,4 +142,4 @@ func (d *watchLauncherFetchStatus) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ WatchLauncherFetchStatus = ((*watchLauncherFetchStatus)(nil))
+var _ WatchLauncherFetchStatus = (*watchLauncherFetchStatus)(nil)

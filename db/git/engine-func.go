@@ -25,4 +25,4 @@ func (e *funcEngine) NewTransaction(ctx context.Context, write bool) (Tx, error)
 }
 
 // _ is a type assertion
-var _ Engine = ((*funcEngine)(nil))
+var _ Engine = (*funcEngine)(nil)

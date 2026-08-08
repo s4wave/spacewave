@@ -115,4 +115,4 @@ func (n *NetConn) SetWriteDeadline(t time.Time) error {
 }
 
 // _ is a type assertion
-var _ net.Conn = ((*NetConn)(nil))
+var _ net.Conn = (*NetConn)(nil)

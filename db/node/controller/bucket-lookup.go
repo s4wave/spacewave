@@ -87,4 +87,4 @@ func (r *buildBucketLookupResolver) Resolve(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*buildBucketLookupResolver)(nil))
+var _ directive.Resolver = (*buildBucketLookupResolver)(nil)

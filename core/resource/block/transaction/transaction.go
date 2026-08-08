@@ -85,4 +85,4 @@ func (r *BlockTransactionResource) GetRootCursor(ctx context.Context, req *s4wav
 }
 
 // _ is a type assertion
-var _ s4wave_block_transaction.SRPCBlockTransactionResourceServiceServer = ((*BlockTransactionResource)(nil))
+var _ s4wave_block_transaction.SRPCBlockTransactionResourceServiceServer = (*BlockTransactionResource)(nil)

@@ -596,8 +596,8 @@ func (r *Remote) updateStatusSnapshot() {
 
 // _ is a type assertion
 var (
-	_ WebRuntime = ((*Remote)(nil))
+	_ WebRuntime = (*Remote)(nil)
 
-	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetWebDocumentHost
-	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetServiceWorkerHost
+	_ rpcstream.RpcStreamGetter = (*Remote)(nil).GetWebDocumentHost
+	_ rpcstream.RpcStreamGetter = (*Remote)(nil).GetServiceWorkerHost
 )

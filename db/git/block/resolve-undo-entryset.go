@@ -60,4 +60,4 @@ func (r *resolveUndoEntrySet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.SubBlockContainer = ((*resolveUndoEntrySet)(nil))
+var _ sbset.SubBlockContainer = (*resolveUndoEntrySet)(nil)

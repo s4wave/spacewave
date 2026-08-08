@@ -177,4 +177,4 @@ func (e *engineTxObjectIterator) Close() {
 }
 
 // _ is a type assertion
-var _ world.ObjectIterator = ((*engineTxObjectIterator)(nil))
+var _ world.ObjectIterator = (*engineTxObjectIterator)(nil)

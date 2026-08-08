@@ -155,4 +155,4 @@ func (s *promptPassword) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ PromptPassword = ((*promptPassword)(nil))
+var _ PromptPassword = (*promptPassword)(nil)

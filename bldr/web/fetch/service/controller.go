@@ -138,7 +138,7 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var (
-	_ controller.Controller            = ((*Controller)(nil))
-	_ srpc.Invoker                     = ((*Controller)(nil))
-	_ web_fetch.SRPCFetchServiceServer = ((*Controller)(nil))
+	_ controller.Controller            = (*Controller)(nil)
+	_ srpc.Invoker                     = (*Controller)(nil)
+	_ web_fetch.SRPCFetchServiceServer = (*Controller)(nil)
 )

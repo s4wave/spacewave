@@ -101,4 +101,4 @@ func (d *lookupStorage) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupStorage = ((*lookupStorage)(nil))
+var _ LookupStorage = (*lookupStorage)(nil)

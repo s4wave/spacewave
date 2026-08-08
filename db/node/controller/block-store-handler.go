@@ -86,4 +86,4 @@ func (r *blockStoreRefHandler) HandleInstanceDisposed(i directive.Instance) {
 }
 
 // _ is a type assertion
-var _ directive.ReferenceHandler = ((*blockStoreRefHandler)(nil))
+var _ directive.ReferenceHandler = (*blockStoreRefHandler)(nil)

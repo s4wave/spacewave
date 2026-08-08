@@ -185,4 +185,4 @@ func (s *Store) Execute(ctx context.Context) error {
 }
 
 // _ is a type assertion
-var _ kvtx.Store = ((*Store)(nil))
+var _ kvtx.Store = (*Store)(nil)

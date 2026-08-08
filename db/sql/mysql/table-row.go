@@ -45,6 +45,6 @@ func BuildTableRow(
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*TableRow)(nil))
-	_ block.BlockWithSubBlocks = ((*TableRow)(nil))
+	_ block.Block              = (*TableRow)(nil)
+	_ block.BlockWithSubBlocks = (*TableRow)(nil)
 )

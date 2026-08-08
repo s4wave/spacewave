@@ -888,7 +888,7 @@ func recvTrayStateWithActionKind(
 
 // _ is a type assertion
 var (
-	_ resource_server.ResourceClientContext                 = ((*testResourceClientContext)(nil))
-	_ SRPCDesktopTrayResourceService_WatchDesktopTrayStream = ((*testWatchStream)(nil))
-	_ srpc.Client                                           = ((*testActionClient)(nil))
+	_ resource_server.ResourceClientContext                 = (*testResourceClientContext)(nil)
+	_ SRPCDesktopTrayResourceService_WatchDesktopTrayStream = (*testWatchStream)(nil)
+	_ srpc.Client                                           = (*testActionClient)(nil)
 )

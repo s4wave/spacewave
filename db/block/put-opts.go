@@ -90,4 +90,4 @@ func (o *PutOpts) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ Block = ((*PutOpts)(nil))
+var _ Block = (*PutOpts)(nil)

@@ -108,4 +108,4 @@ func (c *Controller) resolveDialTptAddr(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*dialTptAddrResolver)(nil))
+var _ directive.Resolver = (*dialTptAddrResolver)(nil)

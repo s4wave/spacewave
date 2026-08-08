@@ -26,4 +26,4 @@ func NewInmemBlock(
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*InmemBlock)(nil))
+var _ block.StoreOps = (*InmemBlock)(nil)

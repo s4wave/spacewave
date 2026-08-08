@@ -155,4 +155,4 @@ func (s *deriveKeypair) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ DeriveEntityKeypair = ((*deriveKeypair)(nil))
+var _ DeriveEntityKeypair = (*deriveKeypair)(nil)

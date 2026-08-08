@@ -566,4 +566,4 @@ func (c *LookupController) Close() error {
 }
 
 // _ is a type assertion
-var _ lookup.Controller = ((*LookupController)(nil))
+var _ lookup.Controller = (*LookupController)(nil)

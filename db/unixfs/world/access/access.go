@@ -198,4 +198,4 @@ func (c *Controller) resolveWorldEngine(ctx context.Context, released func()) (w
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

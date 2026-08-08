@@ -358,4 +358,4 @@ func (f *FSCursor) handleParentChangedLocked(ch *unixfs.FSCursorChange) bool {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*FSCursor)(nil))
+var _ unixfs.FSCursor = (*FSCursor)(nil)

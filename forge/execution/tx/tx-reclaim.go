@@ -104,4 +104,4 @@ func (t *TxReclaim) ParsePeerID() (peer.ID, error) {
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxReclaim)(nil))
+var _ Transaction = (*TxReclaim)(nil)

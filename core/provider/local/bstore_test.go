@@ -55,8 +55,8 @@ func (s *batchForwardTestStore) GetBlockExistsBatch(ctx context.Context, refs []
 }
 
 var (
-	_ block_store.Store = ((*batchForwardTestStore)(nil))
-	_ block.StoreOps    = ((*batchForwardTestStore)(nil))
+	_ block_store.Store = (*batchForwardTestStore)(nil)
+	_ block.StoreOps    = (*batchForwardTestStore)(nil)
 )
 
 type localDEXTestStore struct {
@@ -69,7 +69,7 @@ func (s *localDEXTestStore) GetBlock(ctx context.Context, ref *block.BlockRef) (
 	return s.StoreOps.GetBlock(ctx, ref)
 }
 
-var _ block.StoreOps = ((*localDEXTestStore)(nil))
+var _ block.StoreOps = (*localDEXTestStore)(nil)
 
 func TestMountedBlockStoreReadUsesPriorSourceDuringReplacement(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)

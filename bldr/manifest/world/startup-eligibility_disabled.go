@@ -22,6 +22,7 @@ func CollectStartupManifestEligibilityForManifestID(
 ) ([]*StartupManifestCandidateEligibility, error) {
 	return collectStartupManifestEligibilityForManifestID(ctx, ws, manifestID, filterPlatformIDs, objKeys...)
 }
+
 func classifyStartupManifestCandidateEligibility(
 	ctx context.Context,
 	ws world.WorldState,

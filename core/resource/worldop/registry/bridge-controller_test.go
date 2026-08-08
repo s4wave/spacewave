@@ -403,5 +403,7 @@ func (c *testWorldOpPluginLoadController) Close() error {
 	return nil
 }
 
-var _ controller.Controller = (*testWorldOpPluginLoadController)(nil)
-var _ s4wave_worldop_registry.SRPCWorldOpHandlerServiceServer = (*testWorldOpHandler)(nil)
+var (
+	_ controller.Controller                                   = (*testWorldOpPluginLoadController)(nil)
+	_ s4wave_worldop_registry.SRPCWorldOpHandlerServiceServer = (*testWorldOpHandler)(nil)
+)

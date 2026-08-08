@@ -31,4 +31,4 @@ func (r *mountedStreamResolver) Resolve(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*mountedStreamResolver)(nil))
+var _ directive.Resolver = (*mountedStreamResolver)(nil)

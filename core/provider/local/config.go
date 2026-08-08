@@ -35,4 +35,4 @@ func (c *Config) ParsePeerID() (peer.ID, error) {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

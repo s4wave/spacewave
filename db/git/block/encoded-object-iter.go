@@ -84,4 +84,4 @@ func (i *EncodedObjectIter) Close() {
 }
 
 // _ is a type assertion
-var _ storer.EncodedObjectIter = ((*EncodedObjectIter)(nil))
+var _ storer.EncodedObjectIter = (*EncodedObjectIter)(nil)

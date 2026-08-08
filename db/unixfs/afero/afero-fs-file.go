@@ -240,4 +240,4 @@ func (f *AferoFSFile) timestamp() time.Time {
 }
 
 // _ is a type assertion
-var _ afero.File = ((*AferoFSFile)(nil))
+var _ afero.File = (*AferoFSFile)(nil)

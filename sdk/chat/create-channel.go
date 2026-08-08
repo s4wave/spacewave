@@ -95,4 +95,4 @@ func LookupCreateChatChannelOp(ctx context.Context, operationTypeID string) (wor
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*CreateChatChannelOp)(nil))
+var _ world.Operation = (*CreateChatChannelOp)(nil)

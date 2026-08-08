@@ -48,7 +48,7 @@ func (s *countingBatchStore) GetBlockExistsBatch(ctx context.Context, refs []*bl
 	return s.StoreOps.GetBlockExistsBatch(ctx, refs)
 }
 
-var _ block.StoreOps = ((*countingBatchStore)(nil))
+var _ block.StoreOps = (*countingBatchStore)(nil)
 
 type countingTxStore struct {
 	db_kvtx.Store
@@ -61,7 +61,7 @@ func (s *countingTxStore) NewTransaction(ctx context.Context, write bool) (db_kv
 	return s.Store.NewTransaction(ctx, write)
 }
 
-var _ db_kvtx.Store = ((*countingTxStore)(nil))
+var _ db_kvtx.Store = (*countingTxStore)(nil)
 
 func TestVolumeForwardsBatchPut(t *testing.T) {
 	ctx := context.Background()

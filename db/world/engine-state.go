@@ -274,4 +274,4 @@ func (e *engineWorldState) performOpOnce(ctx context.Context, write bool, cb fun
 }
 
 // _ is a type assertion
-var _ WorldState = ((*engineWorldState)(nil))
+var _ WorldState = (*engineWorldState)(nil)

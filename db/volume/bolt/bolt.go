@@ -163,6 +163,6 @@ func GetBoltDB(vol volume.Volume) *bdb.DB {
 
 // _ is a type assertion
 var (
-	_ volume.Volume   = ((*Bolt)(nil))
-	_ kvtx.KvtxVolume = ((*Bolt)(nil))
+	_ volume.Volume   = (*Bolt)(nil)
+	_ kvtx.KvtxVolume = (*Bolt)(nil)
 )

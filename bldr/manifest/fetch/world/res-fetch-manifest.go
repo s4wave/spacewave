@@ -136,4 +136,4 @@ func (r *fetchManifestResolver) reconcileManifestsCore(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*fetchManifestResolver)(nil))
+var _ directive.Resolver = (*fetchManifestResolver)(nil)

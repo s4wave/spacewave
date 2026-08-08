@@ -75,4 +75,4 @@ func (t *TxSetGraphQuad) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxSetGraphQuad)(nil))
+var _ Transaction = (*TxSetGraphQuad)(nil)

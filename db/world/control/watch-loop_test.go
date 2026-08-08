@@ -327,6 +327,7 @@ func TestWatchLoopSkipsCanceledShutdownWarning(t *testing.T) {
 		t.Fatalf("warning count = %d, want 0", len(entries))
 	}
 }
+
 func TestWatchLoopSkipsUnhandledOperation(t *testing.T) {
 	ctx := t.Context()
 	ws := setupRemoteWorldState(ctx, t)

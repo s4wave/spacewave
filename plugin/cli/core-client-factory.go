@@ -112,4 +112,4 @@ func (s *coreSession) WatchRecoveryStatus(ctx context.Context) (*s4wave_status.R
 }
 
 // _ is a type assertion.
-var _ runner.ClientFactory = ((*CoreClientFactory)(nil))
+var _ runner.ClientFactory = (*CoreClientFactory)(nil)

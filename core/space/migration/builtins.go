@@ -70,9 +70,11 @@ func BuiltInRegistry() (*Registry, error) {
 }
 
 // Keep imports for built-in world ObjectType packages visible to the registry.
-var _ = s4wave_org_world.OrganizationType
-var _ = s4wave_device_world.DeviceType
-var _ = s4wave_terminal_world.TerminalType
-var _ = s4wave_sshhost_world.SshHostType
-var _ = s4wave_vm_world.VmV86Type
-var _ = spacewave_chat_world.ChatChannelType
+var (
+	_ = s4wave_org_world.OrganizationType
+	_ = s4wave_device_world.DeviceType
+	_ = s4wave_terminal_world.TerminalType
+	_ = s4wave_sshhost_world.SshHostType
+	_ = s4wave_vm_world.VmV86Type
+	_ = spacewave_chat_world.ChatChannelType
+)

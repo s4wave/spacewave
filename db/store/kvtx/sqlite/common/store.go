@@ -331,4 +331,4 @@ func (s *Store[T]) Close() error {
 }
 
 // _ is a type assertion
-var _ kvtx.Store = ((*Store[SQLiteDriverConfig])(nil))
+var _ kvtx.Store = (*Store[SQLiteDriverConfig])(nil)

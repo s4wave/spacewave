@@ -82,4 +82,4 @@ func (p *PasswordMethod) Execute(ctx context.Context) error {
 func (p *PasswordMethod) Close() {}
 
 // _ is a type assertion.
-var _ auth_method.Method = ((*PasswordMethod)(nil))
+var _ auth_method.Method = (*PasswordMethod)(nil)

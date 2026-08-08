@@ -18,4 +18,4 @@ func (e *EngineTx) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([
 }
 
 // _ is a type assertion
-var _ world.ObjectRootRefBatcher = ((*EngineTx)(nil))
+var _ world.ObjectRootRefBatcher = (*EngineTx)(nil)

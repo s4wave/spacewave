@@ -42,4 +42,4 @@ func (l *VLoggerStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx,
 }
 
 // _ is a type assertion
-var _ kvtx.Store = ((*VLoggerStore)(nil))
+var _ kvtx.Store = (*VLoggerStore)(nil)

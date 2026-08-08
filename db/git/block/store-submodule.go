@@ -106,5 +106,5 @@ func (r *Store) Module(name string) (storage.Storer, error) {
 var (
 	// ModuleStorer stores information about submodules.
 	// Submodules are represented as references to other Repo DAGs.
-	_ storage.ModuleStorer = ((*Store)(nil))
+	_ storage.ModuleStorer = (*Store)(nil)
 )

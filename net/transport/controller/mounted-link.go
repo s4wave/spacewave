@@ -102,4 +102,4 @@ func (l *mountedLink) OpenMountedStream(
 }
 
 // _ is a type assertion.
-var _ link.MountedLink = ((*mountedLink)(nil))
+var _ link.MountedLink = (*mountedLink)(nil)

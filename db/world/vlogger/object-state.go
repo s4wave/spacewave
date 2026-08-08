@@ -119,4 +119,4 @@ func (o *ObjectState) WaitRev(ctx context.Context, rev uint64, ignoreNotFound bo
 }
 
 // _ is a type assertion
-var _ world.ObjectState = ((*ObjectState)(nil))
+var _ world.ObjectState = (*ObjectState)(nil)

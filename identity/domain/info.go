@@ -64,4 +64,4 @@ func (d *DomainInfo) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*DomainInfo)(nil))
+var _ block.Block = (*DomainInfo)(nil)

@@ -152,6 +152,7 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 	subtask.End()
 	return nil
 }
+
 func (s *Shard) cleanupWrittenSegments(outputs []writtenSegment) error {
 	var cleanupErr error
 	for i := range outputs {

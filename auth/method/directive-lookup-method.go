@@ -143,4 +143,4 @@ func (d *lookupMethod) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type constraint
-var _ AuthLookupMethod = ((*lookupMethod)(nil))
+var _ AuthLookupMethod = (*lookupMethod)(nil)

@@ -217,4 +217,4 @@ func recvSyncStatusUntil(
 }
 
 // _ is a type assertion
-var _ s4wave_session.SRPCSessionResourceService_WatchSyncStatusStream = ((*syncStatusWatchStream)(nil))
+var _ s4wave_session.SRPCSessionResourceService_WatchSyncStatusStream = (*syncStatusWatchStream)(nil)

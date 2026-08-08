@@ -566,4 +566,4 @@ func rangeCoveredByHigherNonce(ranges []*Range, idx int) bool {
 }
 
 // _ is a type assertion
-var _ io.Writer = ((*Writer)(nil))
+var _ io.Writer = (*Writer)(nil)

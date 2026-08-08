@@ -221,4 +221,4 @@ func (c *Controller) fetchConfigInput(ctx context.Context) (*ConfigInput, error)
 }
 
 // _ is a type assertion
-var _ forge_target.ExecController = ((*Controller)(nil))
+var _ forge_target.ExecController = (*Controller)(nil)

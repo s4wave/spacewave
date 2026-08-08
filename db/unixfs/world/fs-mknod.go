@@ -140,4 +140,4 @@ func (o *FsMknodOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*FsMknodOp)(nil))
+var _ world.Operation = (*FsMknodOp)(nil)

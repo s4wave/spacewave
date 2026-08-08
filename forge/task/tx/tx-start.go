@@ -167,4 +167,4 @@ func (t *TxStart) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxStart)(nil))
+var _ Transaction = (*TxStart)(nil)

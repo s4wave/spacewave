@@ -358,7 +358,7 @@ func (e *Pass) ApplyExecStates(
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*Pass)(nil))
-	_ block.BlockWithSubBlocks = ((*Pass)(nil))
-	_ block.BlockWithRefs      = ((*Pass)(nil))
+	_ block.Block              = (*Pass)(nil)
+	_ block.BlockWithSubBlocks = (*Pass)(nil)
+	_ block.BlockWithRefs      = (*Pass)(nil)
 )

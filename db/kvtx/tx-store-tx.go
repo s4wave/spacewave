@@ -207,4 +207,4 @@ func (t *TxStoreTx) discardOnce() error {
 }
 
 // _ is a type assertion
-var _ Tx = ((*TxStoreTx)(nil))
+var _ Tx = (*TxStoreTx)(nil)

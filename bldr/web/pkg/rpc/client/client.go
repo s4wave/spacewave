@@ -65,4 +65,4 @@ func (r *RemoteWebPkg) Release() {
 }
 
 // _ is a type assertion
-var _ web_pkg.WebPkg = ((*RemoteWebPkg)(nil))
+var _ web_pkg.WebPkg = (*RemoteWebPkg)(nil)

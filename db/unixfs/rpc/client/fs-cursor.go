@@ -65,4 +65,4 @@ func (c *FSCursor) AddChangeCb(cb unixfs.FSCursorChangeCb) {}
 func (c *FSCursor) GetCursorOps(ctx context.Context) (unixfs.FSCursorOps, error) { return nil, nil }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*FSCursor)(nil))
+var _ unixfs.FSCursor = (*FSCursor)(nil)

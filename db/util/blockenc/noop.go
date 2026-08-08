@@ -23,4 +23,4 @@ func (n *noop) Decrypt(alloc AllocFn, src []byte) ([]byte, error) {
 }
 
 // _ is a type assertion
-var _ Method = ((*noop)(nil))
+var _ Method = (*noop)(nil)

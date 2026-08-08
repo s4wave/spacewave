@@ -595,6 +595,6 @@ func (g *GCStoreOps) RemoveGCRef(ctx context.Context, subject, object string) er
 
 // _ is a type assertion
 var (
-	_ block.StoreOps     = ((*GCStoreOps)(nil))
-	_ block.DeferFlusher = ((*GCStoreOps)(nil))
+	_ block.StoreOps     = (*GCStoreOps)(nil)
+	_ block.DeferFlusher = (*GCStoreOps)(nil)
 )

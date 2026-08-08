@@ -303,9 +303,9 @@ func (b *BlockRef) UnmarshalJSON(dat []byte) error {
 
 // _ is a type assertion
 var (
-	_ Block         = ((*BlockRef)(nil))
-	_ BlockWithRefs = ((*BlockRef)(nil))
+	_ Block         = (*BlockRef)(nil)
+	_ BlockWithRefs = (*BlockRef)(nil)
 
-	_ json.Marshaler   = ((*BlockRef)(nil))
-	_ json.Unmarshaler = ((*BlockRef)(nil))
+	_ json.Marshaler   = (*BlockRef)(nil)
+	_ json.Unmarshaler = (*BlockRef)(nil)
 )

@@ -100,4 +100,4 @@ func (c *Config) ParseDistPeerIds() ([]peer.ID, error) {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

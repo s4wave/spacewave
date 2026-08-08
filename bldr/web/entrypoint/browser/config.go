@@ -39,4 +39,4 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 }
 
 // _ is a type assertion
-var _ web_runtime.WebRuntimeConfig = ((*Config)(nil))
+var _ web_runtime.WebRuntimeConfig = (*Config)(nil)

@@ -32,4 +32,4 @@ func (v *VLoggerStore) Execute(ctx context.Context) error {
 }
 
 // _ is a type assertion
-var _ hydra_store_kvtx.Store = ((*VLoggerStore)(nil))
+var _ hydra_store_kvtx.Store = (*VLoggerStore)(nil)

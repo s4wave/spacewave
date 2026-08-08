@@ -130,25 +130,34 @@ func (g *testRefGraph) RemoveRef(context.Context, string, string) error { return
 func (g *testRefGraph) ApplyRefBatch(context.Context, []block_gc.RefEdge, []block_gc.RefEdge) error {
 	return nil
 }
+
 func (g *testRefGraph) RemoveNodeRefs(context.Context, string, bool) ([]string, error) {
 	return nil, nil
 }
+
 func (g *testRefGraph) HasIncomingRefs(_ context.Context, node string) (bool, error) {
 	_, ok := g.live[node]
 	return ok, nil
 }
+
 func (g *testRefGraph) HasIncomingRefsExcluding(context.Context, string, ...string) (bool, error) {
 	return false, nil
 }
+
 func (g *testRefGraph) GetOutgoingRefs(context.Context, string) ([]string, error) { return nil, nil }
+
 func (g *testRefGraph) GetIncomingRefs(context.Context, string) ([]string, error) { return nil, nil }
-func (g *testRefGraph) GetUnreferencedNodes(context.Context) ([]string, error)    { return nil, nil }
+
+func (g *testRefGraph) GetUnreferencedNodes(context.Context) ([]string, error) { return nil, nil }
+
 func (g *testRefGraph) AddBlockRef(context.Context, *block.BlockRef, *block.BlockRef) error {
 	return nil
 }
+
 func (g *testRefGraph) AddObjectRoot(context.Context, string, *block.BlockRef) error {
 	return nil
 }
+
 func (g *testRefGraph) RemoveObjectRoot(context.Context, string, *block.BlockRef) error {
 	return nil
 }

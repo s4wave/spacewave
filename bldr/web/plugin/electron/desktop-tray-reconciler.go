@@ -216,4 +216,4 @@ func (r *pluginHostDesktopTray) Release() {
 }
 
 // _ is a type assertion
-var _ web_runtime.WebRuntime = ((*desktopTrayMirroredRuntime)(nil))
+var _ web_runtime.WebRuntime = (*desktopTrayMirroredRuntime)(nil)

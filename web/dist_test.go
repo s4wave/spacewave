@@ -51,7 +51,6 @@ func TestDistSourcesCoverManifestEntrypoints(t *testing.T) {
 			t.Errorf("DistSources has no source for @s4wave/web/%s", entrypoint)
 		}
 	}
-
 }
 
 func TestDistSourcesAreClosed(t *testing.T) {

@@ -1183,4 +1183,4 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 }
 
 // _ is a type assertion
-var _ s4wave_provider_spacewave.SRPCSpacewaveProviderResourceServiceServer = ((*SpacewaveProviderResource)(nil))
+var _ s4wave_provider_spacewave.SRPCSpacewaveProviderResourceServiceServer = (*SpacewaveProviderResource)(nil)

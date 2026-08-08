@@ -200,7 +200,7 @@ func (w *WorldChangeLL) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*WorldChangeLL)(nil))
-	_ block.BlockWithRefs      = ((*WorldChangeLL)(nil))
-	_ block.BlockWithSubBlocks = ((*WorldChangeLL)(nil))
+	_ block.Block              = (*WorldChangeLL)(nil)
+	_ block.BlockWithRefs      = (*WorldChangeLL)(nil)
+	_ block.BlockWithSubBlocks = (*WorldChangeLL)(nil)
 )

@@ -22,9 +22,11 @@ import (
 
 const largeUploadSize = 8 * 1024 * 1024
 
-const driveUploadFixturePathEnv = "E2E_WASM_DRIVE_UPLOAD_FIXTURE"
-const driveUploadFixtureNameEnv = "E2E_WASM_DRIVE_UPLOAD_NAME"
-const driveUploadExternalWaitTimeoutEnv = "E2E_WASM_DRIVE_UPLOAD_WAIT_TIMEOUT_MS"
+const (
+	driveUploadFixturePathEnv         = "E2E_WASM_DRIVE_UPLOAD_FIXTURE"
+	driveUploadFixtureNameEnv         = "E2E_WASM_DRIVE_UPLOAD_NAME"
+	driveUploadExternalWaitTimeoutEnv = "E2E_WASM_DRIVE_UPLOAD_WAIT_TIMEOUT_MS"
+)
 
 // TestQuickstartDriveUploadTrace writes a runtime trace for the Drive UploadTree
 // path, including the bounded large-file branch used by crash recovery.

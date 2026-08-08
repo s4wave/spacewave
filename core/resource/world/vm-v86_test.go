@@ -1081,4 +1081,4 @@ func (c *testV86PluginLoadController) expectLoad(
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*testV86PluginLoadController)(nil))
+var _ controller.Controller = (*testV86PluginLoadController)(nil)

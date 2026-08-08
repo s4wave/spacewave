@@ -344,4 +344,4 @@ func (r *DesktopTray) hasEntryIDLocked(entryID string, exceptResourceID uint32) 
 }
 
 // _ is a type assertion
-var _ SRPCDesktopTrayResourceServiceServer = ((*DesktopTray)(nil))
+var _ SRPCDesktopTrayResourceServiceServer = (*DesktopTray)(nil)

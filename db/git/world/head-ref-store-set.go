@@ -60,4 +60,4 @@ func (r *headRefStoreSet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.NamedSubBlockContainer = ((*headRefStoreSet)(nil))
+var _ sbset.NamedSubBlockContainer = (*headRefStoreSet)(nil)

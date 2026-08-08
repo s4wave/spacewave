@@ -180,4 +180,4 @@ func (f *countingFactory) GetVersion() controller.Version {
 }
 
 // _ is a type assertion
-var _ controller.Factory = ((*countingFactory)(nil))
+var _ controller.Factory = (*countingFactory)(nil)

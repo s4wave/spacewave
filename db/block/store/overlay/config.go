@@ -69,4 +69,4 @@ func (c *Config) ParseWritebackTimeoutDur() (time.Duration, error) {
 	return confparse.ParseDuration(c.GetWritebackTimeoutDur())
 }
 
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

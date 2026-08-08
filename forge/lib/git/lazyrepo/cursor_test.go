@@ -1045,9 +1045,11 @@ func (d memDirent) GetIsSymlink() bool {
 	return d.node.nodeType.GetIsSymlink()
 }
 
-var _ unixfs.FSCursor = ((*memCursor)(nil))
-var _ unixfs.FSCursorOps = ((*memOps)(nil))
-var _ unixfs.FSCursorDirent = ((*memDirent)(nil))
+var (
+	_ unixfs.FSCursor       = (*memCursor)(nil)
+	_ unixfs.FSCursorOps    = (*memOps)(nil)
+	_ unixfs.FSCursorDirent = (*memDirent)(nil)
+)
 
 func lookupV86fs(t *testing.T, strm v86fs.SRPCV86FsService_RelayV86FsClient, tag uint32, parentID uint64, name string) uint64 {
 	t.Helper()

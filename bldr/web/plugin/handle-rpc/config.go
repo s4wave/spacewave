@@ -60,4 +60,4 @@ func (c *Config) ToForwardConfig() *handle_rpc_viaplugin.Config {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

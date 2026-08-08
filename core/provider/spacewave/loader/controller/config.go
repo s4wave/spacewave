@@ -61,4 +61,4 @@ func (c *Config) ResolvedWatchPluginIDs() []string {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

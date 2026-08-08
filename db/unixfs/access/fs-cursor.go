@@ -56,4 +56,4 @@ func NewAccessUnixFSFuncFSCursorGetter(access AccessUnixFSFunc) func(ctx context
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*FSCursor)(nil))
+var _ unixfs.FSCursor = (*FSCursor)(nil)

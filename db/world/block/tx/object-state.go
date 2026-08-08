@@ -154,4 +154,4 @@ func (t *ObjectState) WaitRev(
 }
 
 // _ is a type assertion
-var _ world.ObjectState = ((*ObjectState)(nil))
+var _ world.ObjectState = (*ObjectState)(nil)

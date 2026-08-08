@@ -124,4 +124,4 @@ func LookupCreateWizardObjectOp(ctx context.Context, operationTypeID string) (wo
 	return nil, nil
 }
 
-var _ world.Operation = ((*CreateWizardObjectOp)(nil))
+var _ world.Operation = (*CreateWizardObjectOp)(nil)

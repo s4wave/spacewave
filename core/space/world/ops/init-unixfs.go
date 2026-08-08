@@ -121,4 +121,4 @@ func LookupInitUnixFSOp(ctx context.Context, operationTypeID string) (world.Oper
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*InitUnixFSOp)(nil))
+var _ world.Operation = (*InitUnixFSOp)(nil)

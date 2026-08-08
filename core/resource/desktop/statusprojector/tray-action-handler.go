@@ -45,4 +45,4 @@ func (h *applyUpdateTrayActionHandler) HandleDesktopTrayAction(
 }
 
 // _ is a type assertion
-var _ desktop_tray.SRPCDesktopTrayActionHandlerServiceServer = ((*applyUpdateTrayActionHandler)(nil))
+var _ desktop_tray.SRPCDesktopTrayActionHandlerServiceServer = (*applyUpdateTrayActionHandler)(nil)

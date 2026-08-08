@@ -68,4 +68,4 @@ func (c *Controller) resolveLookupTransport(_ context.Context, dir transport.Loo
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*lookupTransportResolver)(nil))
+var _ directive.Resolver = (*lookupTransportResolver)(nil)

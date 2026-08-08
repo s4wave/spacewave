@@ -474,6 +474,6 @@ func (k *KVTxBlock) blockKey(ref *block.BlockRef) ([]byte, error) {
 
 // _ is a type assertion
 var (
-	_ block.StoreOps = ((*KVTxBlock)(nil))
-	_ block.StoreOps = ((*readOperation)(nil))
+	_ block.StoreOps = (*KVTxBlock)(nil)
+	_ block.StoreOps = (*readOperation)(nil)
 )

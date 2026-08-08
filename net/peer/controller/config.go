@@ -91,4 +91,4 @@ func (c *Config) ParseToPeer() (peer.Peer, error) {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

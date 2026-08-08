@@ -90,4 +90,4 @@ func (m *MountedStreamHandler) HandleMountedStream(
 }
 
 // _ is a type assertion
-var _ link.MountedStreamHandler = ((*MountedStreamHandler)(nil))
+var _ link.MountedStreamHandler = (*MountedStreamHandler)(nil)

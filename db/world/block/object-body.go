@@ -25,5 +25,7 @@ func (t *WorldState) GetObjectBodiesBatchPageWithSeqno(ctx context.Context, keys
 	return bodies, consumed, seqno, err
 }
 
-var _ world.ObjectBodyPageBatcher = ((*WorldState)(nil))
-var _ world.ObjectBodyPageSeqnoBatcher = ((*WorldState)(nil))
+var (
+	_ world.ObjectBodyPageBatcher      = (*WorldState)(nil)
+	_ world.ObjectBodyPageSeqnoBatcher = (*WorldState)(nil)
+)

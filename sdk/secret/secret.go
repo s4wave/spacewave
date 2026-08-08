@@ -694,4 +694,4 @@ func newSecretPayload(value []byte, contentType string, ts time.Time) *SecretPay
 }
 
 // _ is a type assertion
-var _ SRPCSecretResourceServiceServer = ((*SecretResource)(nil))
+var _ SRPCSecretResourceServiceServer = (*SecretResource)(nil)

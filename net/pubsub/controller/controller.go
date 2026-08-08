@@ -246,4 +246,4 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ pubsub.Controller = ((*Controller)(nil))
+var _ pubsub.Controller = (*Controller)(nil)

@@ -59,4 +59,4 @@ func (c *Config) ParseServerIdRe() (*regexp.Regexp, error) {
 	return confparse.ParseRegexp(c.GetServerIdRe())
 }
 
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

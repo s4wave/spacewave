@@ -149,4 +149,4 @@ func (t *txObjectIterator) Close() {
 }
 
 // _ is a type assertion
-var _ world.ObjectIterator = ((*txObjectIterator)(nil))
+var _ world.ObjectIterator = (*txObjectIterator)(nil)

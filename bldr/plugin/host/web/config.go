@@ -38,4 +38,4 @@ func (c *Config) Validate() error {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

@@ -119,4 +119,4 @@ func (d *mountSharedObject) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ MountSharedObject = ((*mountSharedObject)(nil))
+var _ MountSharedObject = (*mountSharedObject)(nil)

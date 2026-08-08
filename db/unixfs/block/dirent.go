@@ -89,6 +89,6 @@ func (d *Dirent) GetIsSymlink() bool {
 
 // _ is a type assertion
 var (
-	_ block.BlockWithRefs   = ((*Dirent)(nil))
-	_ unixfs.FSCursorDirent = ((*Dirent)(nil))
+	_ block.BlockWithRefs   = (*Dirent)(nil)
+	_ unixfs.FSCursorDirent = (*Dirent)(nil)
 )

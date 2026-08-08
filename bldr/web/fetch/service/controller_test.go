@@ -222,4 +222,4 @@ func (c *fetchServiceHTTPHandlerController) Close() error {
 	return nil
 }
 
-var _ controller.Controller = ((*fetchServiceHTTPHandlerController)(nil))
+var _ controller.Controller = (*fetchServiceHTTPHandlerController)(nil)

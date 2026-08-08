@@ -223,4 +223,4 @@ func waitForBroadcast(t *testing.T, ch <-chan struct{}) {
 }
 
 // _ is a type assertion
-var _ FetchStatsProvider = ((*testFetchStats)(nil))
+var _ FetchStatsProvider = (*testFetchStats)(nil)

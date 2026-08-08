@@ -58,4 +58,4 @@ func (t *TxCancel) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxCancel)(nil))
+var _ Transaction = (*TxCancel)(nil)

@@ -118,4 +118,4 @@ func (i *txScanIterator) getIterator() kvtx.Iterator {
 }
 
 // _ is a type assertion
-var _ kv.Iterator = ((*txScanIterator)(nil))
+var _ kv.Iterator = (*txScanIterator)(nil)

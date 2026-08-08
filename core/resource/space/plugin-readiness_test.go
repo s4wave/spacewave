@@ -184,7 +184,6 @@ func TestSpaceResourceWaitsForDesiredPluginTypeRegistration(t *testing.T) {
 	if unknown != nil {
 		t.Fatalf("unknown typed lookup returned %v", unknown)
 	}
-
 }
 
 func createPluginReadinessManifest(

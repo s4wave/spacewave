@@ -78,4 +78,4 @@ func (w *FSHandleReadWriter) getSize() (uint64, error) {
 }
 
 // _ is a type assertion
-var _ io.ReadWriteSeeker = ((*FSHandleReadWriter)(nil))
+var _ io.ReadWriteSeeker = (*FSHandleReadWriter)(nil)

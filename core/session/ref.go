@@ -45,4 +45,4 @@ func (i *SessionRef) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*SessionRef)(nil))
+var _ block.Block = (*SessionRef)(nil)

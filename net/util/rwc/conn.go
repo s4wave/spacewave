@@ -234,4 +234,4 @@ func (p *Conn) rxPump() (rerr error) {
 }
 
 // _ is a type assertion
-var _ net.Conn = ((*Conn)(nil))
+var _ net.Conn = (*Conn)(nil)

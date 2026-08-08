@@ -178,7 +178,7 @@ func (o *fsCursorOps) MknodWithContent(ctx context.Context, name string, nodeTyp
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorOps = ((*fsCursorOps)(nil))
+var _ unixfs.FSCursorOps = (*fsCursorOps)(nil)
 
 type projectedChild struct {
 	name string
@@ -210,4 +210,4 @@ func (d *projectedDirent) GetIsSymlink() bool {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorDirent = ((*projectedDirent)(nil))
+var _ unixfs.FSCursorDirent = (*projectedDirent)(nil)

@@ -36,4 +36,4 @@ func (n *NetConn) RemoteAddr() net.Addr {
 }
 
 // _ is a type assertion
-var _ net.Conn = ((*NetConn)(nil))
+var _ net.Conn = (*NetConn)(nil)

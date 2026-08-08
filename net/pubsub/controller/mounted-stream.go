@@ -48,4 +48,4 @@ func (c *Controller) handleMountedStream(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*handleMountedStreamResolver)(nil))
+var _ directive.Resolver = (*handleMountedStreamResolver)(nil)

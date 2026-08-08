@@ -85,4 +85,4 @@ func init() {
 }
 
 // _ is a type assertion.
-var _ storage.Storage = ((*OpfsStorage)(nil))
+var _ storage.Storage = (*OpfsStorage)(nil)

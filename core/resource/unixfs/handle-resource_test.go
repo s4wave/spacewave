@@ -1166,7 +1166,6 @@ func TestFSHandleResourceReadAtCapsLargeResponse(t *testing.T) {
 	if !second.GetEof() {
 		t.Fatal("second read did not report EOF")
 	}
-
 }
 
 func uploadTreeFileViaResource(

@@ -47,4 +47,4 @@ func (t *Factory) GetVersion() controller.Version {
 	return Version
 }
 
-var _ controller.Factory = ((*Factory)(nil))
+var _ controller.Factory = (*Factory)(nil)

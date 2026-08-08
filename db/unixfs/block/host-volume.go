@@ -49,4 +49,4 @@ func (n *FSHostVolume) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*FSHostVolume)(nil))
+var _ block.Block = (*FSHostVolume)(nil)

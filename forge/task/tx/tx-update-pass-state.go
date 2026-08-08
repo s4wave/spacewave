@@ -77,4 +77,4 @@ func (t *TxUpdateWithPassState) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxUpdateWithPassState)(nil))
+var _ Transaction = (*TxUpdateWithPassState)(nil)

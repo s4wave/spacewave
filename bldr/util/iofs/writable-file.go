@@ -30,4 +30,4 @@ func (f *WritableFile) Stat() (fs.FileInfo, error) {
 }
 
 // _ is a type assertion
-var _ IoFSFile = ((*WritableFile)(nil))
+var _ IoFSFile = (*WritableFile)(nil)

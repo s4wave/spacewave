@@ -150,4 +150,4 @@ func cloneSshHostKeyPins(pins []*SshHostKeyPin) []*SshHostKeyPin {
 	return slices.Clip(out)
 }
 
-var _ world.Operation = ((*CreateSshHostOp)(nil))
+var _ world.Operation = (*CreateSshHostOp)(nil)

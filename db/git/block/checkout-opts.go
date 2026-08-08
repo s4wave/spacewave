@@ -77,4 +77,4 @@ func (o *CheckoutOpts) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*CheckoutOpts)(nil))
+var _ block.Block = (*CheckoutOpts)(nil)

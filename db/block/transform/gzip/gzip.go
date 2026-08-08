@@ -64,4 +64,4 @@ func (g *Gzip) DecodeBlock(data []byte) ([]byte, error) {
 }
 
 // _ is a type assertion
-var _ block_transform.Step = ((*Gzip)(nil))
+var _ block_transform.Step = (*Gzip)(nil)

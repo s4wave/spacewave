@@ -158,4 +158,4 @@ func (d *signalPeer) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ SignalPeer = ((*signalPeer)(nil))
+var _ SignalPeer = (*signalPeer)(nil)

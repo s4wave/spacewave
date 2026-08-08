@@ -80,7 +80,7 @@ func (v *mountSharedObjectBodyValue[T]) GetSharedObjectBody() T {
 }
 
 // _ is a type assertion
-var _ MountSharedObjectBodyValue[any] = ((*mountSharedObjectBodyValue[any])(nil))
+var _ MountSharedObjectBodyValue[any] = (*mountSharedObjectBodyValue[any])(nil)
 
 // ExMountSharedObjectBody executes a directive to mount the body of a shared object.
 //
@@ -227,4 +227,4 @@ func (d *mountSharedObjectBody) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ MountSharedObjectBody = ((*mountSharedObjectBody)(nil))
+var _ MountSharedObjectBody = (*mountSharedObjectBody)(nil)

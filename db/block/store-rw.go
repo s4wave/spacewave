@@ -129,6 +129,6 @@ func (b *StoreRW) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ StoreOps                   = ((*StoreRW)(nil))
-	_ DecodedBlockCacheFreshener = ((*StoreRW)(nil))
+	_ StoreOps                   = (*StoreRW)(nil)
+	_ DecodedBlockCacheFreshener = (*StoreRW)(nil)
 )

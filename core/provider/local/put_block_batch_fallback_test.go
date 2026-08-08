@@ -43,7 +43,7 @@ func (s *countingBatchStore) PutBlockBatch(ctx context.Context, entries []*block
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*countingBatchStore)(nil))
+var _ block.StoreOps = (*countingBatchStore)(nil)
 
 func TestVolumeBlockStoreOverlayUsesBatchPutBlock(t *testing.T) {
 	ctx := context.Background()

@@ -93,7 +93,7 @@ func (m *ModuleCompiler) GenerateModule(
 	pluginDevInfo := &vardef.PluginDevInfo{PluginVars: goVarDefs}
 	if len(devInfoFile) != 0 && len(goVarDefs) != 0 {
 		outDevInfoFilePath := filepath.Join(m.pluginCodegenPath, devInfoFile)
-		devInfoBin, err := (pluginDevInfo).MarshalVT()
+		devInfoBin, err := pluginDevInfo.MarshalVT()
 		if err != nil {
 			return nil, err
 		}

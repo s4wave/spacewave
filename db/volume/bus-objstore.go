@@ -66,4 +66,4 @@ func (b *BusObjectStore) BuildObjectStore(ctx context.Context, disposeCb func())
 }
 
 // _ is a type assertion
-var _ object.ObjectStore = ((*BusObjectStore)(nil))
+var _ object.ObjectStore = (*BusObjectStore)(nil)

@@ -318,4 +318,4 @@ func (r *LocalSessionResource) syncSessionMetadata(ctx context.Context, displayN
 }
 
 // _ is a type assertion
-var _ s4wave_session.SRPCLocalSessionResourceServiceServer = ((*LocalSessionResource)(nil))
+var _ s4wave_session.SRPCLocalSessionResourceServiceServer = (*LocalSessionResource)(nil)

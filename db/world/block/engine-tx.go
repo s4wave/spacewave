@@ -261,7 +261,7 @@ func (e *EngineTx) Sync(ctx context.Context) (bool, error) {
 
 // _ is a type assertion
 var (
-	_ world.Tx                 = ((*EngineTx)(nil))
-	_ world.WorldState         = ((*EngineTx)(nil))
-	_ world.ForkableWorldState = ((*EngineTx)(nil))
+	_ world.Tx                 = (*EngineTx)(nil)
+	_ world.WorldState         = (*EngineTx)(nil)
+	_ world.ForkableWorldState = (*EngineTx)(nil)
 )

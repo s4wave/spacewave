@@ -134,4 +134,4 @@ func (v *ProxyWebView) Remove(ctx context.Context) error {
 }
 
 // _ is a type assertion
-var _ web_view.WebView = ((*ProxyWebView)(nil))
+var _ web_view.WebView = (*ProxyWebView)(nil)

@@ -49,4 +49,4 @@ func (a *Addr) String() string {
 }
 
 // _ is a type assertion
-var _ net.Addr = ((*Addr)(nil))
+var _ net.Addr = (*Addr)(nil)

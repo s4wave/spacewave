@@ -1201,4 +1201,4 @@ func accountAPIPath(accountID string, elems ...string) string {
 }
 
 // _ is a type assertion
-var _ s4wave_account.SRPCAccountResourceServiceServer = ((*AccountResource)(nil))
+var _ s4wave_account.SRPCAccountResourceServiceServer = (*AccountResource)(nil)

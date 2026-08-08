@@ -94,7 +94,7 @@ func (k *KeyValueStore) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block                 = ((*KeyValueStore)(nil))
-	_ block.DecodedBlockCacheable = ((*KeyValueStore)(nil))
-	_ block.BlockWithSubBlocks    = ((*KeyValueStore)(nil))
+	_ block.Block                 = (*KeyValueStore)(nil)
+	_ block.DecodedBlockCacheable = (*KeyValueStore)(nil)
+	_ block.BlockWithSubBlocks    = (*KeyValueStore)(nil)
 )

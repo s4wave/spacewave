@@ -94,6 +94,6 @@ func (k *KVTx) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ block.StoreOps     = ((*KVTx)(nil))
-	_ block.DeferFlusher = ((*KVTx)(nil))
+	_ block.StoreOps     = (*KVTx)(nil)
+	_ block.DeferFlusher = (*KVTx)(nil)
 )

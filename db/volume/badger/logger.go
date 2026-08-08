@@ -34,4 +34,4 @@ func (l *badgerLogger) Debugf(fmt string, args ...any) {
 }
 
 // _ is a type assertion
-var _ bdb.Logger = ((*badgerLogger)(nil))
+var _ bdb.Logger = (*badgerLogger)(nil)

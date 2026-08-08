@@ -915,6 +915,6 @@ func (t *WorldState) buildGraphTree(ctx context.Context, bcs *block.Cursor) (kvt
 
 // _ is a type assertion
 var (
-	_ world.WorldState         = ((*WorldState)(nil))
-	_ world.ForkableWorldState = ((*WorldState)(nil))
+	_ world.WorldState         = (*WorldState)(nil)
+	_ world.ForkableWorldState = (*WorldState)(nil)
 )

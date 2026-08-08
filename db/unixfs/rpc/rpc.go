@@ -54,4 +54,4 @@ func (d *FSCursorDirent) GetIsSymlink() bool {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorDirent = ((*FSCursorDirent)(nil))
+var _ unixfs.FSCursorDirent = (*FSCursorDirent)(nil)

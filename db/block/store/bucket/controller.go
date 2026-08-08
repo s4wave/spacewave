@@ -145,6 +145,6 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var (
-	_ controller.Controller = ((*Controller)(nil))
-	_ bucket.BucketHandle   = (bucket.BuildBucketAPIValue)(nil)
+	_ controller.Controller = (*Controller)(nil)
+	_ bucket.BucketHandle   = bucket.BuildBucketAPIValue(nil)
 )

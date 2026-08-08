@@ -469,4 +469,4 @@ func graphQuadKey(q world.GraphQuad) string {
 }
 
 // _ is a type assertion
-var _ world.WorldStateObject = ((*WorldState)(nil))
+var _ world.WorldStateObject = (*WorldState)(nil)

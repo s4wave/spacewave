@@ -72,4 +72,4 @@ func (r *signalPeerResolver) Resolve(ctx context.Context, handler directive.Reso
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*signalPeerResolver)(nil))
+var _ directive.Resolver = (*signalPeerResolver)(nil)

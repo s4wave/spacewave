@@ -236,4 +236,4 @@ func (d *Dialector) RollbackTo(tx *gorm.DB, name string) error {
 }
 
 // _ is a type assertion
-var _ gorm.Dialector = ((*Dialector)(nil))
+var _ gorm.Dialector = (*Dialector)(nil)

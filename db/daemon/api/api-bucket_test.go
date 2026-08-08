@@ -84,4 +84,4 @@ func TestApplyBucketConfigResolverError(t *testing.T) {
 }
 
 // _ is a type assertion
-var _ SRPCHydraDaemonService_ApplyBucketConfigStream = ((*applyBucketConfigTestStream)(nil))
+var _ SRPCHydraDaemonService_ApplyBucketConfigStream = (*applyBucketConfigTestStream)(nil)

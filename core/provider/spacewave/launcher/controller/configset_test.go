@@ -242,7 +242,7 @@ func (c *launcherConfigSetTestController) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Factory = ((*launcherConfigSetTestFactory)(nil))
+var _ controller.Factory = (*launcherConfigSetTestFactory)(nil)
 
 // _ is a type assertion
-var _ controller.Controller = ((*launcherConfigSetTestController)(nil))
+var _ controller.Controller = (*launcherConfigSetTestController)(nil)

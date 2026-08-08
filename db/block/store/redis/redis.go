@@ -26,4 +26,4 @@ func NewRedisBlock(
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*RedisBlock)(nil))
+var _ block.StoreOps = (*RedisBlock)(nil)

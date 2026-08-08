@@ -253,9 +253,9 @@ func (v *Value) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*Value)(nil))
-	_ block.SubBlock           = ((*Value)(nil))
-	_ block.BlockWithRefs      = ((*Value)(nil))
-	_ block.BlockWithSubBlocks = ((*Value)(nil))
-	_ sbset.NamedSubBlock      = ((*Value)(nil))
+	_ block.Block              = (*Value)(nil)
+	_ block.SubBlock           = (*Value)(nil)
+	_ block.BlockWithRefs      = (*Value)(nil)
+	_ block.BlockWithSubBlocks = (*Value)(nil)
+	_ sbset.NamedSubBlock      = (*Value)(nil)
 )

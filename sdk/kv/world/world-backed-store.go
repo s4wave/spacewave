@@ -303,5 +303,7 @@ func (t *worldBackedTx) Iterate(ctx context.Context, prefix []byte, sort, revers
 	return t.inner.Iterate(ctx, prefix, sort, reverse)
 }
 
-var _ kvtx.Store = ((*WorldBackedStore)(nil))
-var _ kvtx.Tx = ((*worldBackedTx)(nil))
+var (
+	_ kvtx.Store = (*WorldBackedStore)(nil)
+	_ kvtx.Tx    = (*worldBackedTx)(nil)
+)

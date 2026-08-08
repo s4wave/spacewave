@@ -115,4 +115,4 @@ func (t *taskTracker) processState(
 }
 
 // _ is a type assertion
-var _ world_control.WatchLoopHandler = ((*taskTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = (*taskTracker)(nil).processState

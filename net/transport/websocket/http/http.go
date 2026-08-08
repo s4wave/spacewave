@@ -161,4 +161,4 @@ func (t *WebSocketHttp) ResolveLookupHTTPHandler(ctx context.Context, dir bifros
 }
 
 // _ is a type assertion.
-var _ transport.Controller = ((*WebSocketHttp)(nil))
+var _ transport.Controller = (*WebSocketHttp)(nil)

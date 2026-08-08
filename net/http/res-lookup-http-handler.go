@@ -26,4 +26,4 @@ func (r *LookupHTTPHandlerResolver) Resolve(ctx context.Context, handler directi
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*LookupHTTPHandlerResolver)(nil))
+var _ directive.Resolver = (*LookupHTTPHandlerResolver)(nil)

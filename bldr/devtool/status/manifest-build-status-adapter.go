@@ -90,4 +90,4 @@ func manifestBuildStatusState(
 }
 
 // _ is a type assertion
-var _ bldr_project_controller.ManifestBuilderStatusSink = ((*manifestBuildStatusAdapter)(nil))
+var _ bldr_project_controller.ManifestBuilderStatusSink = (*manifestBuildStatusAdapter)(nil)

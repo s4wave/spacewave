@@ -131,4 +131,4 @@ func (d *listAvailablePlugins) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ ListAvailablePlugins = ((*listAvailablePlugins)(nil))
+var _ ListAvailablePlugins = (*listAvailablePlugins)(nil)

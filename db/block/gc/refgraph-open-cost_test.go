@@ -64,6 +64,7 @@ func TestAddRefDuplicateDoesNotCommit(t *testing.T) {
 		t.Fatal("new AddRef did not commit a transaction")
 	}
 }
+
 func TestAddRefDuplicateReadCostIsIndependentOfEdgeChurn(t *testing.T) {
 	small := addRefDuplicateReadCostForChurn(t, 1)
 	large := addRefDuplicateReadCostForChurn(t, 32)
@@ -120,6 +121,7 @@ func TestAddRefNewEdgeReadCostIsIndependentOfTargetFanIn(t *testing.T) {
 		t.Fatalf("adding a new ref read %d keys at fan-in 1 and %d at fan-in 128", small, large)
 	}
 }
+
 func TestHasRefRejectsSubjectIDPrefixCollision(t *testing.T) {
 	ctx := context.Background()
 	store := store_kvtx_inmem.NewStore()
@@ -173,6 +175,7 @@ func TestHasRefRejectsSubjectIDPrefixCollision(t *testing.T) {
 		t.Fatalf("edge %q -> target was not stored", absent)
 	}
 }
+
 func TestAddRefAbsentEdgeReadCostIsIndependentOfDeletedPrefixCollisions(t *testing.T) {
 	small := addRefReadCostForDeletedPrefixCollisions(t, 1)
 	large := addRefReadCostForDeletedPrefixCollisions(t, 32)

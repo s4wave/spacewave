@@ -102,4 +102,4 @@ func (d *lookupWebPkg) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupWebPkg = ((*lookupWebPkg)(nil))
+var _ LookupWebPkg = (*lookupWebPkg)(nil)

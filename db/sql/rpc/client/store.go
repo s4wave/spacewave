@@ -28,4 +28,4 @@ func (s *Store) NewSqlTransaction(ctx context.Context, write bool, dsn string) (
 }
 
 // _ is a type assertion.
-var _ hydra_sql.SqlStore = ((*Store)(nil))
+var _ hydra_sql.SqlStore = (*Store)(nil)

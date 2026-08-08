@@ -187,4 +187,4 @@ func (w *FSWriter) applyConfirmOp(ctx context.Context, op func(wobj world.Object
 }
 
 // _ is a type assertion
-var _ unixfs.FSWriter = ((*FSWriter)(nil))
+var _ unixfs.FSWriter = (*FSWriter)(nil)

@@ -160,4 +160,4 @@ func (c *DotGitFSCursor) Release() {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*DotGitFSCursor)(nil))
+var _ unixfs.FSCursor = (*DotGitFSCursor)(nil)

@@ -99,4 +99,4 @@ func (o *establishLinkResolver) Resolve(ctx context.Context, handler directive.R
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*establishLinkResolver)(nil))
+var _ directive.Resolver = (*establishLinkResolver)(nil)

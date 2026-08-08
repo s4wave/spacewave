@@ -73,4 +73,4 @@ func (r *DebugDbResource) StartBenchmark(
 }
 
 // _ is a type assertion.
-var _ s4wave_debugdb.SRPCDebugDbResourceServiceServer = ((*DebugDbResource)(nil))
+var _ s4wave_debugdb.SRPCDebugDbResourceServiceServer = (*DebugDbResource)(nil)

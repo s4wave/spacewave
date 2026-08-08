@@ -192,6 +192,6 @@ func LookupLinkForgeDashboardOp(ctx context.Context, operationTypeID string) (wo
 
 // _ is a type assertion
 var (
-	_ world.Operation = ((*CreateForgeDashboardOp)(nil))
-	_ world.Operation = ((*LinkForgeDashboardOp)(nil))
+	_ world.Operation = (*CreateForgeDashboardOp)(nil)
+	_ world.Operation = (*LinkForgeDashboardOp)(nil)
 )

@@ -315,4 +315,4 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ volume.Controller = ((*Controller)(nil))
+var _ volume.Controller = (*Controller)(nil)

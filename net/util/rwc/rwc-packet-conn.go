@@ -62,4 +62,4 @@ func (pc *RwcPacketConn) SetWriteDeadline(t time.Time) error {
 }
 
 // _ is a type assertion
-var _ net.PacketConn = ((*RwcPacketConn)(nil))
+var _ net.PacketConn = (*RwcPacketConn)(nil)

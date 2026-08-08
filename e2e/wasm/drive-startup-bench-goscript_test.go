@@ -392,7 +392,6 @@ func summarizeBrowserCPUProfile(profile any) []drivebench.ProfileBucket {
 		bucket := profileBucket(buckets, name)
 		bucket.Count++
 		bucket.SelfUs += delta
-
 	}
 	addTotal := func(name string, delta int64) {
 		profileBucket(buckets, name).TotalUs += delta

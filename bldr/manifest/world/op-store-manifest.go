@@ -130,4 +130,4 @@ func (o *StoreManifestOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*StoreManifestOp)(nil))
+var _ world.Operation = (*StoreManifestOp)(nil)

@@ -439,8 +439,8 @@ func (i *TableEditor) Close(sqlCtx *sql.Context) error {
 
 // _ is a type assertion
 var (
-	_ sql.AutoIncrementSetter = ((*TableEditor)(nil))
-	_ sql.RowInserter         = ((*TableEditor)(nil))
-	_ sql.RowUpdater          = ((*TableEditor)(nil))
-	_ sql.RowDeleter          = ((*TableEditor)(nil))
+	_ sql.AutoIncrementSetter = (*TableEditor)(nil)
+	_ sql.RowInserter         = (*TableEditor)(nil)
+	_ sql.RowUpdater          = (*TableEditor)(nil)
+	_ sql.RowDeleter          = (*TableEditor)(nil)
 )

@@ -183,6 +183,6 @@ func (s *Server) Close() error {
 
 // _ is a type assertion
 var (
-	_ controller.Controller                            = ((*Server)(nil))
-	_ identity_domain_service.SRPCIdentityDomainServer = ((*Server)(nil))
+	_ controller.Controller                            = (*Server)(nil)
+	_ identity_domain_service.SRPCIdentityDomainServer = (*Server)(nil)
 )

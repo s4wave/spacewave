@@ -134,4 +134,4 @@ func (c *Controller) resolveEstablishLink(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*establishLinkResolver)(nil))
+var _ directive.Resolver = (*establishLinkResolver)(nil)

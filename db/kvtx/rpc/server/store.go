@@ -271,4 +271,4 @@ func (s *Store) GetKvtxOpsMux(ctx context.Context, txID string, released func())
 }
 
 // _ is a type assertion
-var _ kvtx_rpc.SRPCKvtxServer = ((*Store)(nil))
+var _ kvtx_rpc.SRPCKvtxServer = (*Store)(nil)

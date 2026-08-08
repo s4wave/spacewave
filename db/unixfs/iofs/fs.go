@@ -209,4 +209,4 @@ func (f *FS) checkFilePath(name string) error {
 }
 
 // _ is a type assertion
-var _ IoFS = ((*FS)(nil))
+var _ IoFS = (*FS)(nil)

@@ -500,4 +500,4 @@ func (o *BillyFSCursorOps) MknodWithContent(ctx context.Context, name string, no
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorOps = ((*BillyFSCursorOps)(nil))
+var _ unixfs.FSCursorOps = (*BillyFSCursorOps)(nil)

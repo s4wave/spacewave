@@ -121,4 +121,4 @@ func (d *buildBucketLookup) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ BuildBucketLookup = ((*buildBucketLookup)(nil))
+var _ BuildBucketLookup = (*buildBucketLookup)(nil)

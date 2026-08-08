@@ -664,4 +664,4 @@ func splitCommandLine(line string) ([]string, error) {
 }
 
 // _ is a type assertion.
-var _ s4wave_cli_terminal.SRPCCliTerminalServiceServer = ((*TerminalService)(nil))
+var _ s4wave_cli_terminal.SRPCCliTerminalServiceServer = (*TerminalService)(nil)

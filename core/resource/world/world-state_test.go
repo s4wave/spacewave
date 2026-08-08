@@ -757,7 +757,7 @@ func (c *worldStateOperationResourceContext) GetAttachedResource(resourceID uint
 }
 
 // _ is a type assertion
-var _ resource_server.ResourceClientContext = ((*worldStateOperationResourceContext)(nil))
+var _ resource_server.ResourceClientContext = (*worldStateOperationResourceContext)(nil)
 
 type worldStateOwnerBatchTestState struct {
 	world.WorldState

@@ -128,4 +128,4 @@ func (t *Tx) GetSqlOps(ctx context.Context) (hydra_sql.SqlOps, error) {
 }
 
 // _ is a type assertion.
-var _ hydra_sql.SqlTransaction = ((*Tx)(nil))
+var _ hydra_sql.SqlTransaction = (*Tx)(nil)

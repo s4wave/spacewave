@@ -168,7 +168,7 @@ func (b *StdinBuffer) Poll(flag wazero_exp_sys.Pflag, timeoutMillis int32) (read
 
 // _ is a type assertion
 var (
-	_ io.ReadWriter           = ((*StdinBuffer)(nil))
-	_ io.Closer               = ((*StdinBuffer)(nil))
-	_ wazero_exp_sys.Pollable = ((*StdinBuffer)(nil))
+	_ io.ReadWriter           = (*StdinBuffer)(nil)
+	_ io.Closer               = (*StdinBuffer)(nil)
+	_ wazero_exp_sys.Pollable = (*StdinBuffer)(nil)
 )

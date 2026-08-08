@@ -455,4 +455,4 @@ func peerMapToList(peers map[pubsub.PeerLinkTuple]struct{}) []pubsub.PeerLinkTup
 */
 
 // _ is a type assertion
-var _ pubsub.PubSub = ((*FloodSub)(nil))
+var _ pubsub.PubSub = (*FloodSub)(nil)

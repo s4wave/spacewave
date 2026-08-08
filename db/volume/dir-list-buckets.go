@@ -156,4 +156,4 @@ func (d *ListBucketsRequest) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ ListBuckets = ((*ListBucketsRequest)(nil))
+var _ ListBuckets = (*ListBucketsRequest)(nil)

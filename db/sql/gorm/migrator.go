@@ -225,4 +225,4 @@ func (m Migrator) GetTables() (tableList []string, err error) {
 }
 
 // _ is a type assertion
-var _ gorm.Migrator = ((*Migrator)(nil))
+var _ gorm.Migrator = (*Migrator)(nil)

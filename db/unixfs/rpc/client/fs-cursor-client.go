@@ -193,4 +193,4 @@ func (c *FSCursorClient) Release() {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*FSCursor)(nil))
+var _ unixfs.FSCursor = (*FSCursor)(nil)

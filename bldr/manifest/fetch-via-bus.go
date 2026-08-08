@@ -77,4 +77,4 @@ func (f *ManifestFetchViaBus) FetchManifest(
 }
 
 // _ is a type assertion
-var _ SRPCManifestFetchServer = ((*ManifestFetchViaBus)(nil))
+var _ SRPCManifestFetchServer = (*ManifestFetchViaBus)(nil)

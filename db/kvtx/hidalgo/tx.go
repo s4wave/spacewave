@@ -109,4 +109,4 @@ func (t *Tx) Close() error {
 }
 
 // _ is a type assertion
-var _ kv.Tx = ((*Tx)(nil))
+var _ kv.Tx = (*Tx)(nil)

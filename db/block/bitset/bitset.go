@@ -38,4 +38,4 @@ func (b *BitSet) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*BitSet)(nil))
+var _ block.Block = (*BitSet)(nil)

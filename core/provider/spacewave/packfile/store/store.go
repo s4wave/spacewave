@@ -732,4 +732,4 @@ func mergeBloomFilters(a, b *bloom.Filter) *bloom.Filter {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*PackfileStore)(nil))
+var _ block.StoreOps = (*PackfileStore)(nil)

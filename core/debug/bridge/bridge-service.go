@@ -72,4 +72,4 @@ func (s *bridgeService) PluginRpc(strm s4wave_debug.SRPCDebugBridgeService_Plugi
 }
 
 // _ is a type assertion
-var _ s4wave_debug.SRPCDebugBridgeServiceServer = ((*bridgeService)(nil))
+var _ s4wave_debug.SRPCDebugBridgeServiceServer = (*bridgeService)(nil)

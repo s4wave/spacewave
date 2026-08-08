@@ -268,4 +268,4 @@ func (c *Config) FlattenPlatformTypes(buildPlatform bldr_platform.Platform) {
 }
 
 // _ is a type assertion
-var _ builder.ControllerConfig = ((*Config)(nil))
+var _ builder.ControllerConfig = (*Config)(nil)

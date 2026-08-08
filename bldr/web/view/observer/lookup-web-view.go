@@ -64,4 +64,4 @@ func (r *lookupWebViewResolver) Resolve(ctx context.Context, handler directive.R
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*lookupWebViewResolver)(nil))
+var _ directive.Resolver = (*lookupWebViewResolver)(nil)

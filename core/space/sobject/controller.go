@@ -120,4 +120,4 @@ func newSpaceWorldEngineConfig(mountRef *sobject.SharedObjectRef, conf *Config) 
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

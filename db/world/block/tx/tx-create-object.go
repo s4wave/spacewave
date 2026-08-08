@@ -79,4 +79,4 @@ func (t *TxCreateObject) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxCreateObject)(nil))
+var _ Transaction = (*TxCreateObject)(nil)

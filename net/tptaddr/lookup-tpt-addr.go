@@ -108,4 +108,4 @@ func (d *lookupTptAddr) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type constraint
-var _ LookupTptAddr = ((*lookupTptAddr)(nil))
+var _ LookupTptAddr = (*lookupTptAddr)(nil)

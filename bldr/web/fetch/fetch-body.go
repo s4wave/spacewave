@@ -70,4 +70,4 @@ func (r *FetchBodyReader) Read(p []byte) (n int, err error) {
 }
 
 // _ is a type assertion
-var _ io.Reader = ((*FetchBodyReader)(nil))
+var _ io.Reader = (*FetchBodyReader)(nil)

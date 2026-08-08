@@ -86,4 +86,4 @@ func (h *HandleWebViewViaBus) HandleWebView(
 }
 
 // _ is a type assertion
-var _ SRPCHandleWebViewServiceServer = ((*HandleWebViewViaBus)(nil))
+var _ SRPCHandleWebViewServiceServer = (*HandleWebViewViaBus)(nil)

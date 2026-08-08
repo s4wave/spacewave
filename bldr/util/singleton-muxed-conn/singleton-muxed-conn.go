@@ -226,4 +226,4 @@ func (l *SingletonMuxedConn) tryConn(ctx context.Context, cb func(conn srpc.Muxe
 }
 
 // _ is a type assertion
-var _ srpc.MuxedConn = ((*SingletonMuxedConn)(nil))
+var _ srpc.MuxedConn = (*SingletonMuxedConn)(nil)

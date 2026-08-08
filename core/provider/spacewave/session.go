@@ -820,6 +820,6 @@ func (a *ProviderAccount) MountSession(ctx context.Context, ref *session.Session
 
 // _ is a type assertion
 var (
-	_ session.SessionProvider = ((*ProviderAccount)(nil))
-	_ session.Session         = ((*Session)(nil))
+	_ session.SessionProvider = (*ProviderAccount)(nil)
+	_ session.Session         = (*Session)(nil)
 )

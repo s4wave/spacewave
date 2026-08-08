@@ -141,4 +141,4 @@ func (d *accessProviderAccount) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ AccessProviderAccount = ((*accessProviderAccount)(nil))
+var _ AccessProviderAccount = (*accessProviderAccount)(nil)

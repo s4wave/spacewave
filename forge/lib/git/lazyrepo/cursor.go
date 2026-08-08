@@ -332,4 +332,4 @@ func resolveCursorOps(ctx context.Context, cursor unixfs.FSCursor) (unixfs.FSCur
 	return nil, unixfs_errors.ErrInodeUnresolvable
 }
 
-var _ unixfs.FSCursor = ((*FSCursor)(nil))
+var _ unixfs.FSCursor = (*FSCursor)(nil)

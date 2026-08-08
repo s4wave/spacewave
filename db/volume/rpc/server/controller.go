@@ -204,7 +204,7 @@ func (c *Controller) checkVolumeID(volumeID string) bool {
 
 // _ is a type assertion
 var (
-	_ controller.Controller              = ((*Controller)(nil))
-	_ srpc.Invoker                       = ((*Controller)(nil))
-	_ volume_rpc.SRPCAccessVolumesServer = ((*Controller)(nil))
+	_ controller.Controller              = (*Controller)(nil)
+	_ srpc.Invoker                       = (*Controller)(nil)
+	_ volume_rpc.SRPCAccessVolumesServer = (*Controller)(nil)
 )

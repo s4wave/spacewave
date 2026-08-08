@@ -242,7 +242,7 @@ func (r *wsSignalPeerResolver) Resolve(ctx context.Context, handler directive.Re
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*wsSignalingCtrl)(nil))
+var _ controller.Controller = (*wsSignalingCtrl)(nil)
 
 // _ is a type assertion
-var _ directive.Resolver = ((*wsSignalPeerResolver)(nil))
+var _ directive.Resolver = (*wsSignalPeerResolver)(nil)

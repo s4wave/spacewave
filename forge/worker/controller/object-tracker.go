@@ -203,4 +203,4 @@ func (t *objectTracker) pushObjType(objType string) {
 }
 
 // _ is a type assertion
-var _ world_control.WatchLoopHandler = ((*objectTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = (*objectTracker)(nil).processState

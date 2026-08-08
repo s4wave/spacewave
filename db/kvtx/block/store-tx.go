@@ -115,4 +115,4 @@ func (s *storeTx) release() bool {
 }
 
 // _ is a type assertion
-var _ kvtx.BlockTx = ((*storeTx)(nil))
+var _ kvtx.BlockTx = (*storeTx)(nil)

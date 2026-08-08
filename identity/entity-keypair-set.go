@@ -164,4 +164,4 @@ func (e *EntityKeypairSet) Validate(ent *Entity) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*EntityKeypairSet)(nil))
+var _ block.Block = (*EntityKeypairSet)(nil)

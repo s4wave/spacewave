@@ -36,4 +36,4 @@ func (b *BlockIterator) ValueCursor() (rbcs *block.Cursor) {
 }
 
 // _ is a type assertion
-var _ kvtx.BlockIterator = ((*BlockIterator)(nil))
+var _ kvtx.BlockIterator = (*BlockIterator)(nil)

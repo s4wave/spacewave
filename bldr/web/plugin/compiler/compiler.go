@@ -701,7 +701,7 @@ func appendWebPluginInputFile(
 
 // _ is a type assertion
 var (
-	_ plugin_compiler_go.PreBuildHook  = ((*Controller)(nil)).BundleElectronHook
-	_ plugin_compiler_go.PreBuildHook  = ((*Controller)(nil)).BundleSaucerHook
-	_ bldr_manifest_builder.Controller = ((*Controller)(nil))
+	_ plugin_compiler_go.PreBuildHook  = (*Controller)(nil).BundleElectronHook
+	_ plugin_compiler_go.PreBuildHook  = (*Controller)(nil).BundleSaucerHook
+	_ bldr_manifest_builder.Controller = (*Controller)(nil)
 )

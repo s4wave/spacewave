@@ -37,4 +37,4 @@ func (r *DialResolver) Resolve(ctx context.Context, handler directive.ResolverHa
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*DialResolver)(nil))
+var _ directive.Resolver = (*DialResolver)(nil)

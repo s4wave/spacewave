@@ -155,4 +155,4 @@ func (h *execControllerHandle) WriteLog(ctx context.Context, level, message stri
 }
 
 // _ is a type assertion
-var _ forge_target.ExecControllerHandle = ((*execControllerHandle)(nil))
+var _ forge_target.ExecControllerHandle = (*execControllerHandle)(nil)

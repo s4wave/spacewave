@@ -89,4 +89,4 @@ func (d *lookupWorldEngine) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupWorldEngine = ((*lookupWorldEngine)(nil))
+var _ LookupWorldEngine = (*lookupWorldEngine)(nil)

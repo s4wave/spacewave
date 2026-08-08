@@ -110,4 +110,4 @@ func (c *Controller) resolveListBuckets(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*listBucketsResolver)(nil))
+var _ directive.Resolver = (*listBucketsResolver)(nil)

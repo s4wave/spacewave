@@ -287,8 +287,8 @@ func (s *wrapperForwardTestStore) GetBlockExistsBatch(ctx context.Context, refs 
 }
 
 var (
-	_ block_store.Store = ((*wrapperForwardTestStore)(nil))
-	_ block.StoreOps    = ((*wrapperForwardTestStore)(nil))
+	_ block_store.Store = (*wrapperForwardTestStore)(nil)
+	_ block.StoreOps    = (*wrapperForwardTestStore)(nil)
 )
 
 func TestBlockStoreForwardsNativeOperations(t *testing.T) {

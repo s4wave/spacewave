@@ -167,8 +167,8 @@ func (r *Reader) Close() error {
 
 // _ is a type assertion
 var (
-	_ io.Reader = ((*Reader)(nil))
-	_ io.Seeker = ((*Reader)(nil))
-	_ io.Closer = ((*Reader)(nil))
+	_ io.Reader = (*Reader)(nil)
+	_ io.Seeker = (*Reader)(nil)
+	_ io.Closer = (*Reader)(nil)
 	// _ io.WriterTo = ((*Reader)(nil))
 )

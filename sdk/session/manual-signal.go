@@ -39,8 +39,10 @@ type ManualSignalTransport struct {
 	closeErr   error
 }
 
-var errManualSignalDataChannelClosed = errors.New("datachannel closed before link")
-var errManualSignalDataChannelLinked = errors.New("datachannel already linked")
+var (
+	errManualSignalDataChannelClosed = errors.New("datachannel closed before link")
+	errManualSignalDataChannelLinked = errors.New("datachannel already linked")
+)
 
 type manualSignalTransportState struct {
 	bcast    broadcast.Broadcast

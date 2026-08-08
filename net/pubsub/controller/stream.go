@@ -35,4 +35,4 @@ func (s *streamHandler) HandleMountedStream(ctx context.Context, ms link.Mounted
 }
 
 // _ is a type assertion
-var _ link.MountedStreamHandler = ((*streamHandler)(nil))
+var _ link.MountedStreamHandler = (*streamHandler)(nil)

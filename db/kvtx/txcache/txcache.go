@@ -246,4 +246,4 @@ func (t *TXCache) Exists(ctx context.Context, key []byte) (bool, error) {
 }
 
 // _ is a type assertion
-var _ kvtx.TxOps = ((*TXCache)(nil))
+var _ kvtx.TxOps = (*TXCache)(nil)

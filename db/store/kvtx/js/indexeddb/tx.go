@@ -234,4 +234,4 @@ func (t *kvtxTx) Discard() {
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = ((*kvtxTx)(nil))
+var _ kvtx.Tx = (*kvtxTx)(nil)

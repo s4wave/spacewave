@@ -170,4 +170,4 @@ func (r *LookupRpcClientResolver) Resolve(rctx context.Context, handler directiv
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*LookupRpcClientResolver)(nil))
+var _ directive.Resolver = (*LookupRpcClientResolver)(nil)

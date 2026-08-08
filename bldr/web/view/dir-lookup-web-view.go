@@ -126,4 +126,4 @@ func (d *lookupWebView) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupWebView = ((*lookupWebView)(nil))
+var _ LookupWebView = (*lookupWebView)(nil)

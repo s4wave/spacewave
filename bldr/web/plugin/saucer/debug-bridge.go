@@ -209,4 +209,4 @@ func runDebugSocket(ctx context.Context, le *logrus.Entry, mc *singleton_muxed_c
 }
 
 // _ is a type assertion
-var _ SRPCSaucerDebugServiceServer = ((*debugBridge)(nil))
+var _ SRPCSaucerDebugServiceServer = (*debugBridge)(nil)

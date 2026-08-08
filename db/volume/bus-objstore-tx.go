@@ -137,4 +137,4 @@ func (t *busObjectStoreTx) do(f func() error) error {
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = ((*busObjectStoreTx)(nil))
+var _ kvtx.Tx = (*busObjectStoreTx)(nil)

@@ -39,4 +39,4 @@ func (s *S2) DecodeBlock(data []byte) ([]byte, error) {
 }
 
 // _ is a type assertion
-var _ block_transform.Step = ((*S2)(nil))
+var _ block_transform.Step = (*S2)(nil)

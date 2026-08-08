@@ -155,4 +155,4 @@ func LookupInitObjectLayoutOp(ctx context.Context, operationTypeID string) (worl
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*InitObjectLayoutOp)(nil))
+var _ world.Operation = (*InitObjectLayoutOp)(nil)

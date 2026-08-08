@@ -1331,4 +1331,4 @@ func (f *FSCursorService) broadcastLocked() {
 const _ int = 0
 
 // _ is a type assertion
-var _ unixfs_rpc.SRPCFSCursorServiceServer = ((*FSCursorService)(nil))
+var _ unixfs_rpc.SRPCFSCursorServiceServer = (*FSCursorService)(nil)

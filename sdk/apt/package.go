@@ -62,4 +62,4 @@ func (p *AptPackage) Validate() error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*AptPackage)(nil))
+var _ block.Block = (*AptPackage)(nil)

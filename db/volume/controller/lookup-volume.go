@@ -51,4 +51,4 @@ func (c *Controller) resolveLookupVolume(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*lookupVolumeResolver)(nil))
+var _ directive.Resolver = (*lookupVolumeResolver)(nil)

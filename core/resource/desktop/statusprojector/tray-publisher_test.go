@@ -128,4 +128,4 @@ func newTestDesktopTrayPublisher(
 	}, service
 }
 
-var _ desktop_tray.SRPCDesktopTrayActionHandlerServiceServer = ((*recordingTrayActionHandler)(nil))
+var _ desktop_tray.SRPCDesktopTrayActionHandlerServiceServer = (*recordingTrayActionHandler)(nil)

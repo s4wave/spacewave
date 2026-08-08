@@ -176,4 +176,4 @@ func effectiveCreateTerminalOpTargetKind(o *CreateTerminalOp) TerminalTargetKind
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*CreateTerminalOp)(nil))
+var _ world.Operation = (*CreateTerminalOp)(nil)

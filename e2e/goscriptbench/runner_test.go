@@ -409,4 +409,4 @@ func sampleRequestName(request SampleRequest) string {
 }
 
 // _ is a type assertion
-var _ Workload = ((*deterministicWorkload)(nil))
+var _ Workload = (*deterministicWorkload)(nil)

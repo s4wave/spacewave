@@ -107,6 +107,6 @@ func (d *lLookupPluginHost) GetDebugVals() directive.DebugValues {
 
 // _ is a type assertion
 var (
-	_ LookupPluginHost             = ((*lLookupPluginHost)(nil))
-	_ directive.DirectiveWithEquiv = ((*lLookupPluginHost)(nil))
+	_ LookupPluginHost             = (*lLookupPluginHost)(nil)
+	_ directive.DirectiveWithEquiv = (*lLookupPluginHost)(nil)
 )

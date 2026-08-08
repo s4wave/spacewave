@@ -184,6 +184,6 @@ func (r *SubBlockSet) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.SubBlock           = ((*SubBlockSet)(nil))
-	_ block.BlockWithSubBlocks = ((*SubBlockSet)(nil))
+	_ block.SubBlock           = (*SubBlockSet)(nil)
+	_ block.BlockWithSubBlocks = (*SubBlockSet)(nil)
 )

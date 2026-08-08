@@ -357,4 +357,4 @@ func (i *Iterator) inBounds(key []byte) bool {
 }
 
 // _ is a type assertion
-var _ kvtx.BlockIterator = ((*Iterator)(nil))
+var _ kvtx.BlockIterator = (*Iterator)(nil)

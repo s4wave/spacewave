@@ -227,4 +227,4 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 }
 
 // _ is a type assertion
-var _ kvtx_rpc.SRPCKvtxOpsServer = ((*Ops)(nil))
+var _ kvtx_rpc.SRPCKvtxOpsServer = (*Ops)(nil)

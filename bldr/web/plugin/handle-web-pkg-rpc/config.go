@@ -58,4 +58,4 @@ func (c *Config) ToRequest() *bldr_web_plugin.HandleWebPkgViaPluginRequest {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

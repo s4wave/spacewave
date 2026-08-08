@@ -488,4 +488,4 @@ func (w *WorldState) Discard() {
 }
 
 // _ is a type assertion
-var _ world.Tx = ((*WorldState)(nil))
+var _ world.Tx = (*WorldState)(nil)

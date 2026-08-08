@@ -57,4 +57,4 @@ func (c *Controller) resolveLookupBlockStore(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*lookupBlockStoreResolver)(nil))
+var _ directive.Resolver = (*lookupBlockStoreResolver)(nil)

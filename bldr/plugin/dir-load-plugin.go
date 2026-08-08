@@ -243,6 +243,6 @@ func (d *loadPlugin) GetDebugVals() directive.DebugValues {
 
 // _ is a type assertion
 var (
-	_ LoadPlugin                   = ((*loadPlugin)(nil))
-	_ directive.DirectiveWithEquiv = ((*loadPlugin)(nil))
+	_ LoadPlugin                   = (*loadPlugin)(nil)
+	_ directive.DirectiveWithEquiv = (*loadPlugin)(nil)
 )

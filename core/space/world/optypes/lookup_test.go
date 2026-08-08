@@ -134,7 +134,6 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 	if _, ok := op.(*s4wave_kv_world.KvSetRootOp); !ok {
 		t.Fatalf("expected KvSetRootOp, got %T", op)
 	}
-
 }
 
 func TestBuildSpaceLookupOpAndLookupWorldOpResolveForgeQuickstartOps(t *testing.T) {

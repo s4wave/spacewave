@@ -32,4 +32,4 @@ func (r *SqlTx) GetSqlOps(ctx context.Context) (hydra_sql.SqlOps, error) {
 }
 
 // _ is a type assertion
-var _ hydra_sql.SqlTransaction = ((*SqlTx)(nil))
+var _ hydra_sql.SqlTransaction = (*SqlTx)(nil)

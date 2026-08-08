@@ -156,4 +156,4 @@ func sendQueryReqError(strm sql_rpc.SRPCSqlOps_QueryStream, errStr string) error
 }
 
 // _ is a type assertion.
-var _ sql_rpc.SRPCSqlOpsServer = ((*Ops)(nil))
+var _ sql_rpc.SRPCSqlOpsServer = (*Ops)(nil)

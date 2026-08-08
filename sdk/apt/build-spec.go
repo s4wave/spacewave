@@ -51,4 +51,4 @@ func (s *AptBuildSpec) Validate() error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*AptBuildSpec)(nil))
+var _ block.Block = (*AptBuildSpec)(nil)

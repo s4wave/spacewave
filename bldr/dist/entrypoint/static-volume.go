@@ -109,4 +109,4 @@ func (c *StaticBlockStore) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*StaticBlockStore)(nil))
+var _ controller.Controller = (*StaticBlockStore)(nil)

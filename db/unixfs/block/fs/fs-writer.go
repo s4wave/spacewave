@@ -166,4 +166,4 @@ func (f *FSWriter) applyOp(
 }
 
 // _ is a type assertion
-var _ unixfs.FSWriter = ((*FSWriter)(nil))
+var _ unixfs.FSWriter = (*FSWriter)(nil)

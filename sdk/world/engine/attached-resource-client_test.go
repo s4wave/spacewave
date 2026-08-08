@@ -88,4 +88,4 @@ func (c *attachedResourceTestContext) GetAttachedResource(resourceID uint32) (sr
 	return client, nil
 }
 
-var _ resource_server.ResourceClientContext = ((*attachedResourceTestContext)(nil))
+var _ resource_server.ResourceClientContext = (*attachedResourceTestContext)(nil)

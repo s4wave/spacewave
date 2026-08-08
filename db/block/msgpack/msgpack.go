@@ -147,6 +147,6 @@ func (m *MsgpackBlob) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*MsgpackBlob)(nil))
-	_ block.BlockWithSubBlocks = ((*MsgpackBlob)(nil))
+	_ block.Block              = (*MsgpackBlob)(nil)
+	_ block.BlockWithSubBlocks = (*MsgpackBlob)(nil)
 )

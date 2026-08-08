@@ -140,5 +140,7 @@ func (t *faultTx) Attempt() int {
 	return t.attempt
 }
 
-var _ kvtx.Store = (*FaultStore)(nil)
-var _ kvtx.Tx = (*faultTx)(nil)
+var (
+	_ kvtx.Store = (*FaultStore)(nil)
+	_ kvtx.Tx    = (*faultTx)(nil)
+)

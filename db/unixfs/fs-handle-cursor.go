@@ -76,4 +76,4 @@ func (f *FSHandleCursor) GetProxyCursor(ctx context.Context) (FSCursor, error) {
 }
 
 // _ is a type assertion
-var _ FSCursor = ((*FSHandleCursor)(nil))
+var _ FSCursor = (*FSHandleCursor)(nil)

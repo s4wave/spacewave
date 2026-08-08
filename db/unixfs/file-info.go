@@ -59,4 +59,4 @@ func (i *FileInfo) Sys() any {
 }
 
 // _ is a type assertion
-var _ fs.FileInfo = ((*FileInfo)(nil))
+var _ fs.FileInfo = (*FileInfo)(nil)

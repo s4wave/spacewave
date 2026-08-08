@@ -426,6 +426,6 @@ func (v *Volume) Delete() error {
 
 // _ is a type assertion
 var (
-	_ volume.Volume = ((*Volume)(nil))
-	_ KvtxVolume    = ((*Volume)(nil))
+	_ volume.Volume = (*Volume)(nil)
+	_ KvtxVolume    = (*Volume)(nil)
 )

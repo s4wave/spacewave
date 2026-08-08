@@ -99,4 +99,4 @@ func (d *lookupTransport) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupTransport = ((*lookupTransport)(nil))
+var _ LookupTransport = (*lookupTransport)(nil)

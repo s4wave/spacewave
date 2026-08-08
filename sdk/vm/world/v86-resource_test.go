@@ -14,6 +14,7 @@ func TestDefaultVmRuntimePluginID(t *testing.T) {
 		t.Fatalf("defaultVmPluginID = %q, want %q", defaultVmPluginID, "spacewave-v86")
 	}
 }
+
 func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	ctx := t.Context()
 	wtb, err := db_world_testbed.Default(ctx)

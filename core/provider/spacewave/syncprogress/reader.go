@@ -42,4 +42,4 @@ func (p *Reader) Read(buf []byte) (int, error) {
 }
 
 // _ is a type assertion.
-var _ io.Reader = ((*Reader)(nil))
+var _ io.Reader = (*Reader)(nil)

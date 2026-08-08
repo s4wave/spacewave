@@ -2723,4 +2723,4 @@ func unmarshalSpaceLinkAuthTicket(data []byte) (*s4wave_provider_spacewave.Space
 }
 
 // _ is a type assertion
-var _ s4wave_session.SRPCSpacewaveSessionResourceServiceServer = ((*SpacewaveSessionResource)(nil))
+var _ s4wave_session.SRPCSpacewaveSessionResourceServiceServer = (*SpacewaveSessionResource)(nil)

@@ -60,4 +60,4 @@ func (r *treeEntrySet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.SubBlockContainer = ((*treeEntrySet)(nil))
+var _ sbset.SubBlockContainer = (*treeEntrySet)(nil)

@@ -39,4 +39,4 @@ func (c *GetPeerResolver) Resolve(ctx context.Context, valHandler directive.Reso
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*GetPeerResolver)(nil))
+var _ directive.Resolver = (*GetPeerResolver)(nil)

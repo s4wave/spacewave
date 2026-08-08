@@ -116,4 +116,4 @@ func (d *DiscoverRoutesWithPeerIDs) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type constraint
-var _ DiscoverRoutes = ((*DiscoverRoutesWithPeerIDs)(nil))
+var _ DiscoverRoutes = (*DiscoverRoutesWithPeerIDs)(nil)

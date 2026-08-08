@@ -114,6 +114,6 @@ func (r *Reference) UnmarshalBlock(data []byte) error {
 
 // _ is a type assertion
 var (
-	_ block.Block         = ((*Reference)(nil))
-	_ sbset.NamedSubBlock = ((*Reference)(nil))
+	_ block.Block         = (*Reference)(nil)
+	_ sbset.NamedSubBlock = (*Reference)(nil)
 )

@@ -81,4 +81,4 @@ func (r *stepConfigSet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.SubBlockContainer = ((*stepConfigSet)(nil))
+var _ sbset.SubBlockContainer = (*stepConfigSet)(nil)

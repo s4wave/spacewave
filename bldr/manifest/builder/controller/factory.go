@@ -66,4 +66,4 @@ func (t *Factory) GetVersion() controller.Version {
 }
 
 // _ is a type assertion
-var _ controller.Factory = ((*Factory)(nil))
+var _ controller.Factory = (*Factory)(nil)

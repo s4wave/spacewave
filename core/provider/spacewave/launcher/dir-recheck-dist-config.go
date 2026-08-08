@@ -91,4 +91,4 @@ func (d *recheckDistConfig) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ RecheckDistConfig = ((*recheckDistConfig)(nil))
+var _ RecheckDistConfig = (*recheckDistConfig)(nil)

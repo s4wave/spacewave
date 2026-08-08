@@ -235,6 +235,8 @@ func LookupObjectBodies[T block.Block](
 }
 
 // _ is a type assertion.
-var _ ObjectBodyBatcher = ((*engineWorldState)(nil))
-var _ ObjectBodyPageBatcher = ((*engineWorldState)(nil))
-var _ ObjectBodyPageSeqnoBatcher = ((*engineWorldState)(nil))
+var (
+	_ ObjectBodyBatcher          = (*engineWorldState)(nil)
+	_ ObjectBodyPageBatcher      = (*engineWorldState)(nil)
+	_ ObjectBodyPageSeqnoBatcher = (*engineWorldState)(nil)
+)

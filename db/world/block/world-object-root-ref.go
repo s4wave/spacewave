@@ -45,4 +45,4 @@ func (t *WorldState) getObjectRootRef(ctx context.Context, key string) (*Object,
 }
 
 // _ is a type assertion
-var _ world.ObjectRootRefBatcher = ((*WorldState)(nil))
+var _ world.ObjectRootRefBatcher = (*WorldState)(nil)

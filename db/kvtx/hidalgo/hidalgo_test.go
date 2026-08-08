@@ -233,6 +233,6 @@ func (i *lazyScanIterator) Close() {
 
 // _ is a type assertion
 var (
-	_ kvtx.Tx       = ((*lazyScanTx)(nil))
-	_ kvtx.Iterator = ((*lazyScanIterator)(nil))
+	_ kvtx.Tx       = (*lazyScanTx)(nil)
+	_ kvtx.Iterator = (*lazyScanIterator)(nil)
 )

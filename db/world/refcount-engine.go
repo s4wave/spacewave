@@ -139,4 +139,4 @@ func (e *RefCountEngine) WaitSeqno(ctx context.Context, value uint64) (uint64, e
 }
 
 // _ is a type assertion
-var _ Engine = ((*RefCountEngine)(nil))
+var _ Engine = (*RefCountEngine)(nil)

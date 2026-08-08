@@ -82,7 +82,7 @@ func (h *handle) Attributes() []encoding.Attribute {
 	return res
 }
 
-var _ graph.Node = ((*handle)(nil))
+var _ graph.Node = (*handle)(nil)
 
 // refHandle is a block ref handle.
 type refHandle struct {
@@ -148,7 +148,7 @@ func (h *handle) removeParent(oh *handle) []*refHandle {
 }
 
 // _ is a type assertion
-var _ graph.Edge = ((*refHandle)(nil))
+var _ graph.Edge = (*refHandle)(nil)
 
 // _ is a type assertion
-var _ dot.Node = ((*handle)(nil))
+var _ dot.Node = (*handle)(nil)

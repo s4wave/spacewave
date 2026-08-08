@@ -132,4 +132,4 @@ func (d *LookupBlockFromNetworkRequest) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupBlockFromNetwork = ((*LookupBlockFromNetworkRequest)(nil))
+var _ LookupBlockFromNetwork = (*LookupBlockFromNetworkRequest)(nil)

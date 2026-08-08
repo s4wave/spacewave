@@ -238,6 +238,7 @@ func TestParseFriendDmBootstrapAllowsEmptySessions(t *testing.T) {
 		t.Fatalf("unexpected empty sessions: %+v", got.Accounts)
 	}
 }
+
 func TestParseFriendDmBootstrapRejectsDuplicateRecoveryPeers(t *testing.T) {
 	_, err := parseFriendDmBootstrap([]byte(`{
 		"sharedObjectId":"01frienddm",

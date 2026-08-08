@@ -182,4 +182,4 @@ func (s *PluginHostServer) ExecController(
 }
 
 // _ is a type assertion
-var _ bldr_plugin.SRPCPluginHostServer = ((*PluginHostServer)(nil))
+var _ bldr_plugin.SRPCPluginHostServer = (*PluginHostServer)(nil)

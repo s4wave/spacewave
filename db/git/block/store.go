@@ -204,9 +204,9 @@ func (r *Store) setBlockTransaction(btx *block.Transaction, bcs *block.Cursor) e
 
 // _ is a type assertion
 var (
-	_ io.Closer = ((*Store)(nil))
+	_ io.Closer = (*Store)(nil)
 	// this covers all storage interfaces
-	_ storage.Storer = ((*Store)(nil))
+	_ storage.Storer = (*Store)(nil)
 	// covers Hydra git storage interface
-	_ hydra_git.Storer = ((*Store)(nil))
+	_ hydra_git.Storer = (*Store)(nil)
 )

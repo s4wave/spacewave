@@ -57,4 +57,4 @@ func (f *Dir) Close() error {
 }
 
 // _ is a type assertion
-var _ http.File = ((*Dir)(nil))
+var _ http.File = (*Dir)(nil)

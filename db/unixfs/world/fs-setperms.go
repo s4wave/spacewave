@@ -131,4 +131,4 @@ func (o *FsSetPermissionsOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*FsSetPermissionsOp)(nil))
+var _ world.Operation = (*FsSetPermissionsOp)(nil)

@@ -127,4 +127,4 @@ func (o *FsSetModTimestampOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*FsSetModTimestampOp)(nil))
+var _ world.Operation = (*FsSetModTimestampOp)(nil)

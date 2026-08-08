@@ -375,6 +375,6 @@ func mustBuildBlockRef(t *testing.T, data []byte) *block.BlockRef {
 
 // _ is a type assertion
 var (
-	_ kvtx.Store = ((*countingStore)(nil))
-	_ kvtx.Tx    = ((*countingTx)(nil))
+	_ kvtx.Store = (*countingStore)(nil)
+	_ kvtx.Tx    = (*countingTx)(nil)
 )

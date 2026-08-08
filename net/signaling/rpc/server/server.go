@@ -85,4 +85,4 @@ func (s *Server) maybeReleasePeer(pidStr string) bool {
 }
 
 // _ is a type assertion
-var _ signaling.SRPCSignalingServer = ((*Server)(nil))
+var _ signaling.SRPCSignalingServer = (*Server)(nil)

@@ -401,4 +401,4 @@ func (f *FSCursor) watchWorldChanges(nfs *unixfs_block_fs.FS, currRef *bucket.Ob
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*FSCursor)(nil))
+var _ unixfs.FSCursor = (*FSCursor)(nil)

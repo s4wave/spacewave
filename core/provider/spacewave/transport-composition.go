@@ -236,6 +236,7 @@ func (o *transportCompositionOwner) setEnabled(sessionID string, enabled bool) e
 	config.enabled = enabled
 	return o.configureLocked(state, &config)
 }
+
 func (o *transportCompositionOwner) stop(sessionID string) {
 	state := o.findSession(sessionID)
 	if state == nil {
@@ -417,4 +418,4 @@ func (o *transportCompositionOwner) snapshotWithWait(sessionID string) (Transpor
 	return snapshot, waitCh
 }
 
-var _ transportCompositionLinkSource = ((*transport.SessionTransport)(nil))
+var _ transportCompositionLinkSource = (*transport.SessionTransport)(nil)

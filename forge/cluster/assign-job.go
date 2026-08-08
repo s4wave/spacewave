@@ -108,4 +108,4 @@ func (o *ClusterAssignJobOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*ClusterAssignJobOp)(nil))
+var _ world.Operation = (*ClusterAssignJobOp)(nil)

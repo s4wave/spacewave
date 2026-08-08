@@ -121,4 +121,4 @@ func (t *TxSetOutputs) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxSetOutputs)(nil))
+var _ Transaction = (*TxSetOutputs)(nil)

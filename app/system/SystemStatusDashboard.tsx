@@ -101,7 +101,6 @@ type NetworkPeerView = {
   links?: ReadonlyArray<NetworkLinkView>
 }
 
-
 function useCountDeltas(
   counts: Record<StatsKey, number>,
 ): Partial<Record<StatsKey, number>> {
@@ -958,45 +957,49 @@ function StatsRibbon({
   deltas: Partial<Record<StatsKey, number>>
   updatedAt: string
 }) {
-  const stats: { key: StatsKey; count: number; noun: string; icon: ReactNode }[] =
-    [
-      {
-        key: 'acct',
-        count: sessionCount,
-        noun: 'account',
-        icon: <span className="bg-success size-1.5 rounded-full" />,
-      },
-      {
-        key: 'spc',
-        count: spaceCount,
-        noun: 'space',
-        icon: <LuFolderOpen className="text-foreground-alt/30 size-2.5" />,
-      },
-      {
-        key: 'plug',
-        count: pluginCount,
-        noun: 'plugin',
-        icon: <LuPuzzle className="text-foreground-alt/30 size-2.5" />,
-      },
-      {
-        key: 'net',
-        count: networkPeerCount,
-        noun: 'peer',
-        icon: <LuRadar className="text-foreground-alt/30 size-2.5" />,
-      },
-      {
-        key: 'ctrl',
-        count: controllerCount,
-        noun: 'controller',
-        icon: <LuCpu className="text-foreground-alt/30 size-2.5" />,
-      },
-      {
-        key: 'dir',
-        count: directiveCount,
-        noun: 'directive',
-        icon: <LuRadar className="text-foreground-alt/30 size-2.5" />,
-      },
-    ]
+  const stats: {
+    key: StatsKey
+    count: number
+    noun: string
+    icon: ReactNode
+  }[] = [
+    {
+      key: 'acct',
+      count: sessionCount,
+      noun: 'account',
+      icon: <span className="bg-success size-1.5 rounded-full" />,
+    },
+    {
+      key: 'spc',
+      count: spaceCount,
+      noun: 'space',
+      icon: <LuFolderOpen className="text-foreground-alt/30 size-2.5" />,
+    },
+    {
+      key: 'plug',
+      count: pluginCount,
+      noun: 'plugin',
+      icon: <LuPuzzle className="text-foreground-alt/30 size-2.5" />,
+    },
+    {
+      key: 'net',
+      count: networkPeerCount,
+      noun: 'peer',
+      icon: <LuRadar className="text-foreground-alt/30 size-2.5" />,
+    },
+    {
+      key: 'ctrl',
+      count: controllerCount,
+      noun: 'controller',
+      icon: <LuCpu className="text-foreground-alt/30 size-2.5" />,
+    },
+    {
+      key: 'dir',
+      count: directiveCount,
+      noun: 'directive',
+      icon: <LuRadar className="text-foreground-alt/30 size-2.5" />,
+    },
+  ]
   return (
     <div className="border-foreground/6 bg-background-deep/30 flex shrink-0 items-center gap-3 border-b px-4 py-1">
       {stats.map((stat) => (

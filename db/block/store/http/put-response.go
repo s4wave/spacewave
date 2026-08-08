@@ -26,4 +26,4 @@ func (o *PutResponse) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*PutResponse)(nil))
+var _ block.Block = (*PutResponse)(nil)

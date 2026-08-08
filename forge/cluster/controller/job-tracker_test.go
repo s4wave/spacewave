@@ -28,5 +28,4 @@ func TestSkipUnhandledOperation(t *testing.T) {
 	if !waitForChanges {
 		t.Fatal("waitForChanges = false, want true")
 	}
-
 }

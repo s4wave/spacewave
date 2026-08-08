@@ -114,7 +114,7 @@ func (c *StepConfig) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // _ is a type assertion
 var (
-	_ block.Block      = ((*StepConfig)(nil))
-	_ json.Unmarshaler = ((*StepConfig)(nil))
-	_ json.Marshaler   = ((*StepConfig)(nil))
+	_ block.Block      = (*StepConfig)(nil)
+	_ json.Unmarshaler = (*StepConfig)(nil)
+	_ json.Marshaler   = (*StepConfig)(nil)
 )

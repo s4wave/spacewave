@@ -252,4 +252,4 @@ func (o *KeypairUpdateOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*KeypairUpdateOp)(nil))
+var _ world.Operation = (*KeypairUpdateOp)(nil)

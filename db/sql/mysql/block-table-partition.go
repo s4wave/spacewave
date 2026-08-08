@@ -49,6 +49,6 @@ func (r *TablePartitionRoot) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.SubBlock           = ((*TablePartitionRoot)(nil))
-	_ block.BlockWithSubBlocks = ((*TablePartitionRoot)(nil))
+	_ block.SubBlock           = (*TablePartitionRoot)(nil)
+	_ block.BlockWithSubBlocks = (*TablePartitionRoot)(nil)
 )

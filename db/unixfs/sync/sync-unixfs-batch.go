@@ -160,4 +160,4 @@ func (r *fsHandleReader) Read(p []byte) (int, error) {
 }
 
 // _ is a type assertion
-var _ io.Reader = ((*fsHandleReader)(nil))
+var _ io.Reader = (*fsHandleReader)(nil)

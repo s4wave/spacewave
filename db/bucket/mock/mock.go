@@ -111,4 +111,4 @@ func (b *mockBucket) EndDeferFlush(ctx context.Context) error {
 }
 
 // _ is a type assertion
-var _ bucket.Bucket = ((*mockBucket)(nil))
+var _ bucket.Bucket = (*mockBucket)(nil)

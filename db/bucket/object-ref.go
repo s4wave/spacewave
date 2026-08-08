@@ -335,10 +335,10 @@ func (o *ObjectRef) UnmarshalJSON(b []byte) error {
 
 // _ is a type assertion
 var (
-	_ block.Block = ((*ObjectRef)(nil))
+	_ block.Block = (*ObjectRef)(nil)
 	// note: only refs with zero-len bucket id are returned
-	_ block.BlockWithRefs = ((*ObjectRef)(nil))
+	_ block.BlockWithRefs = (*ObjectRef)(nil)
 
-	_ json.Marshaler   = ((*ObjectRef)(nil))
-	_ json.Unmarshaler = ((*ObjectRef)(nil))
+	_ json.Marshaler   = (*ObjectRef)(nil)
+	_ json.Unmarshaler = (*ObjectRef)(nil)
 )

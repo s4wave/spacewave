@@ -32,4 +32,4 @@ func (r *DialStreamClientRPC) Recv() (*stream_api_rpc.Data, error) {
 }
 
 // _ is a type assertion
-var _ stream_api_rpc.RPC = ((*DialStreamClientRPC)(nil))
+var _ stream_api_rpc.RPC = (*DialStreamClientRPC)(nil)

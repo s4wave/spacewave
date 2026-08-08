@@ -53,7 +53,7 @@ func (r *RootDb) GetBlockRefCtor(id uint32) block.Ctor {
 
 // _ is a type assertion
 var (
-	_ block.SubBlock           = ((*RootDb)(nil))
-	_ block.BlockWithRefs      = ((*RootDb)(nil))
-	_ namedsbset.NamedSubBlock = ((*RootDb)(nil))
+	_ block.SubBlock           = (*RootDb)(nil)
+	_ block.BlockWithRefs      = (*RootDb)(nil)
+	_ namedsbset.NamedSubBlock = (*RootDb)(nil)
 )

@@ -37,4 +37,4 @@ func (r *runningPlugin) GetRpcClient() srpc.Client {
 }
 
 // _ is a type assertion
-var _ RunningPlugin = ((*runningPlugin)(nil))
+var _ RunningPlugin = (*runningPlugin)(nil)
