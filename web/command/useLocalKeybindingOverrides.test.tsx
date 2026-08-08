@@ -257,16 +257,25 @@ describe('useLocalKeybindingOverrides', () => {
     })
   })
 
-  it('preserves raw v1 when diagnostics are unresolved', () => {
+  it('migrates durable commands that are not currently mounted', () => {
     const raw = {
       version: 1,
-      overrides: { unmapped: { disabled: true } },
+      overrides: { 'dynamic.unmounted': { disabled: true } },
       settings: {},
     }
     const rootAtom = atom<Record<string, unknown>>({
       keybindings: { local: raw },
     })
     renderWithStore(rootAtom)
-    expect(rootAtom.get()).toEqual({ keybindings: { local: raw } })
+    expect(rootAtom.get()).toMatchObject({
+      keybindings: {
+        local: {
+          version: 2,
+          webOverrides: {
+            overrides: { 'dynamic.unmounted': { disabled: true } },
+          },
+        },
+      },
+    })
   })
 })

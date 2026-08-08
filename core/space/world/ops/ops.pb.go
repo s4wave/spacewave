@@ -14,6 +14,7 @@ import (
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	world "github.com/s4wave/spacewave/core/space/world"
 	canvas "github.com/s4wave/spacewave/sdk/canvas"
+	command "github.com/s4wave/spacewave/sdk/command"
 )
 
 // Config configures the LookupWorldOp controller for common space world ops.
@@ -50,6 +51,8 @@ type SetSpaceSettingsOp struct {
 	Overwrite bool `protobuf:"varint,3,opt,name=overwrite,proto3" json:"overwrite,omitempty"`
 	// Timestamp is the modification time.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// ExpectedKeybindingOverrides enables per-surface conflict detection for keybinding-only writes.
+	ExpectedKeybindingOverrides *command.KeybindingOverrideSet `protobuf:"bytes,5,opt,name=expected_keybinding_overrides,json=expectedKeybindingOverrides,proto3" json:"expectedKeybindingOverrides,omitempty"`
 }
 
 func (x *SetSpaceSettingsOp) Reset() {
@@ -82,6 +85,13 @@ func (x *SetSpaceSettingsOp) GetOverwrite() bool {
 func (x *SetSpaceSettingsOp) GetTimestamp() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *SetSpaceSettingsOp) GetExpectedKeybindingOverrides() *command.KeybindingOverrideSet {
+	if x != nil {
+		return x.ExpectedKeybindingOverrides
 	}
 	return nil
 }
@@ -378,6 +388,7 @@ func (m *SetSpaceSettingsOp) CloneVT() *SetSpaceSettingsOp {
 	r.Overwrite = m.Overwrite
 	r.Settings = protobuf_go_lite.CloneVTValue(m.Settings)
 	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
+	r.ExpectedKeybindingOverrides = protobuf_go_lite.CloneVTValue(m.ExpectedKeybindingOverrides)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -577,6 +588,9 @@ func (this *SetSpaceSettingsOp) EqualVT(that *SetSpaceSettingsOp) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.ExpectedKeybindingOverrides, that.ExpectedKeybindingOverrides) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -867,6 +881,11 @@ func (x *SetSpaceSettingsOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("timestamp")
 		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
 	}
+	if x.ExpectedKeybindingOverrides != nil || s.HasField("expectedKeybindingOverrides") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedKeybindingOverrides")
+		x.ExpectedKeybindingOverrides.MarshalProtoJSON(s.WithField("expectedKeybindingOverrides"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -904,6 +923,13 @@ func (x *SetSpaceSettingsOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Timestamp = &timestamppb.Timestamp{}
 			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "expected_keybinding_overrides", "expectedKeybindingOverrides":
+			if s.ReadNil() {
+				x.ExpectedKeybindingOverrides = nil
+				return
+			}
+			x.ExpectedKeybindingOverrides = &command.KeybindingOverrideSet{}
+			x.ExpectedKeybindingOverrides.UnmarshalProtoJSON(s.WithField("expected_keybinding_overrides", true))
 		}
 	})
 }
@@ -1465,6 +1491,16 @@ func (m *SetSpaceSettingsOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ExpectedKeybindingOverrides != nil {
+		size, err := m.ExpectedKeybindingOverrides.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.Timestamp != nil {
 		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1942,6 +1978,10 @@ func (m *SetSpaceSettingsOp) SizeVT() (n int) {
 		l = m.Timestamp.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	if m.ExpectedKeybindingOverrides != nil {
+		l = m.ExpectedKeybindingOverrides.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2107,6 +2147,10 @@ func (x *SetSpaceSettingsOp) MarshalProtoText() string {
 	if x.Timestamp != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
+	}
+	if x.ExpectedKeybindingOverrides != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expected_keybinding_overrides")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ExpectedKeybindingOverrides)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2405,6 +2449,21 @@ func (m *SetSpaceSettingsOp) UnmarshalVT(dAtA []byte) error {
 				m.Timestamp = &timestamppb.Timestamp{}
 			}
 			if err := m.Timestamp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedKeybindingOverrides", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.ExpectedKeybindingOverrides == nil {
+				m.ExpectedKeybindingOverrides = &command.KeybindingOverrideSet{}
+			}
+			if err := m.ExpectedKeybindingOverrides.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

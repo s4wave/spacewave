@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useAbortSignalEffect } from '@aptre/bldr-react'
 
 import {
@@ -61,6 +61,11 @@ export function useSpaceKeybindingOverrides(
 ): SpaceKeybindingOverridesValue {
   if (surface !== CommandSurface.WEB && surface !== CommandSurface.TUI)
     throw new Error('Space keybindings require WEB or TUI surface')
+  const [writeFailure, setWriteFailure] = useState<{
+    error: Error
+    expected: unknown
+    world: unknown
+  } | null>(null)
   const context = SpaceContainerContext.useContextSafe()
   const rawOverrideSet = context?.spaceState.settings?.keybindingOverrides
   const overrideSet = useMemo(() => {
@@ -93,8 +98,10 @@ export function useSpaceKeybindingOverrides(
       writeSurface: CommandSurface = surface,
     ) => {
       if (!context || readOnly) return Promise.resolve()
+      const expectedOverrideSet = context.spaceState.settings
+        ?.keybindingOverrides ?? { version: 1 }
       const combined = mergeKeybindingOverridePartitions(
-        context.spaceState.settings?.keybindingOverrides,
+        expectedOverrideSet,
         next,
         writeSurface,
       )
@@ -102,11 +109,21 @@ export function useSpaceKeybindingOverrides(
         context.spaceWorld,
         context.spaceState.settings,
         combined,
+        expectedOverrideSet,
         '',
         abortSignal,
       )
+        .then(() => setWriteFailure(null))
+        .catch((error: unknown) => {
+          if (!abortSignal?.aborted)
+            setWriteFailure({
+              error: error instanceof Error ? error : new Error(String(error)),
+              expected: rawOverrideSet,
+              world: context.spaceWorld,
+            })
+        })
     },
-    [context, readOnly, surface],
+    [context, rawOverrideSet, readOnly, surface],
   )
   const migration = useMemo(
     () =>
@@ -206,6 +223,13 @@ export function useSpaceKeybindingOverrides(
     applyOverrideSet(clearKeybindingOverrideSet())
   }, [applyOverrideSet])
 
+  const activeWriteError =
+    writeFailure !== null &&
+    writeFailure.world === context?.spaceWorld &&
+    writeFailure.expected === rawOverrideSet
+      ? writeFailure.error
+      : null
+
   return {
     overrideSet: available ? overrideSet : createEmptyKeybindingOverrideSet(),
     layer,
@@ -214,6 +238,7 @@ export function useSpaceKeybindingOverrides(
     loading: context?.spaceWorldResource.loading ?? false,
     error:
       context?.spaceWorldResource.error ??
+      activeWriteError ??
       keybindingMigrationError(migration.diagnostics),
     setCommandOverride,
     setOverrideSet: (next) => {

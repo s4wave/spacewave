@@ -7,6 +7,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { SpaceSettings } from '../world.pb.js'
+import { KeybindingOverrideSet } from '../../../../sdk/command/command.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import { CanvasEdge, CanvasNode } from '../../../../sdk/canvas/canvas.pb.js'
 
@@ -67,6 +68,12 @@ export interface SetSpaceSettingsOp {
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
   timestamp?: Date
+  /**
+   * ExpectedKeybindingOverrides enables per-surface conflict detection for keybinding-only writes.
+   *
+   * @generated from field: s4wave.command.KeybindingOverrideSet expected_keybinding_overrides = 5;
+   */
+  expectedKeybindingOverrides?: KeybindingOverrideSet
 }
 
 export const SetSpaceSettingsOp: MessageType<SetSpaceSettingsOp> =
@@ -77,6 +84,12 @@ export const SetSpaceSettingsOp: MessageType<SetSpaceSettingsOp> =
       { no: 2, name: 'settings', kind: 'message', T: () => SpaceSettings },
       { no: 3, name: 'overwrite', kind: 'scalar', T: ScalarType.BOOL },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      {
+        no: 5,
+        name: 'expected_keybinding_overrides',
+        kind: 'message',
+        T: () => KeybindingOverrideSet,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

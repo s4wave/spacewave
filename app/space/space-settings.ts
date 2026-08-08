@@ -43,6 +43,7 @@ export async function applySpaceKeybindingOverrides(
   spaceWorld: IWorldState,
   currentSettings: SpaceSettings | undefined,
   overrideSet: ProtoKeybindingOverrideSet,
+  expectedOverrideSet: ProtoKeybindingOverrideSet,
   sender = '',
   abortSignal?: AbortSignal,
 ): Promise<void> {
@@ -57,6 +58,7 @@ export async function applySpaceKeybindingOverrides(
     settings,
     overwrite: true,
     timestamp: new Date(),
+    expectedKeybindingOverrides: expectedOverrideSet,
   }
   const opData = SetSpaceSettingsOp.toBinary(op)
   if (abortSignal) {
