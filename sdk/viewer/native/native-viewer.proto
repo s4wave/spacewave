@@ -90,6 +90,8 @@ message NativeViewerSelectedState {
   map<string, uint32> viewports = 4;
   uint32 selected_view = 5;
   uint32 theme = 6;
+  // SpaceObjectKey is the selected Space restored before child launch.
+  string space_object_key = 7;
 }
 message NativeViewerStateLoadRequest { string state_key = 1; }
 message NativeViewerStateLoadResponse { NativeViewerSelectedState state = 1; string state_key = 2; }

@@ -608,6 +608,8 @@ type NativeViewerSelectedState struct {
 	Viewports     map[string]uint32 `protobuf:"bytes,4,rep,name=viewports,proto3" json:"viewports,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	SelectedView  uint32            `protobuf:"varint,5,opt,name=selected_view,json=selectedView,proto3" json:"selectedView,omitempty"`
 	Theme         uint32            `protobuf:"varint,6,opt,name=theme,proto3" json:"theme,omitempty"`
+	// SpaceObjectKey is the selected Space restored before child launch.
+	SpaceObjectKey string `protobuf:"bytes,7,opt,name=space_object_key,json=spaceObjectKey,proto3" json:"spaceObjectKey,omitempty"`
 }
 
 func (x *NativeViewerSelectedState) Reset() {
@@ -656,6 +658,13 @@ func (x *NativeViewerSelectedState) GetTheme() uint32 {
 		return x.Theme
 	}
 	return 0
+}
+
+func (x *NativeViewerSelectedState) GetSpaceObjectKey() string {
+	if x != nil {
+		return x.SpaceObjectKey
+	}
+	return ""
 }
 
 type NativeViewerStateLoadRequest struct {
@@ -1426,6 +1435,7 @@ func (m *NativeViewerSelectedState) CloneVT() *NativeViewerSelectedState {
 	r.Focused = m.Focused
 	r.SelectedView = m.SelectedView
 	r.Theme = m.Theme
+	r.SpaceObjectKey = m.SpaceObjectKey
 	r.Tabs = protobuf_go_lite.CloneSlice(m.Tabs)
 	r.Drafts = protobuf_go_lite.CloneMap(m.Drafts)
 	r.Viewports = protobuf_go_lite.CloneMap(m.Viewports)
@@ -1984,6 +1994,9 @@ func (this *NativeViewerSelectedState) EqualVT(that *NativeViewerSelectedState) 
 		return false
 	}
 	if this.Theme != that.Theme {
+		return false
+	}
+	if this.SpaceObjectKey != that.SpaceObjectKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -3327,6 +3340,11 @@ func (x *NativeViewerSelectedState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("theme")
 		s.WriteUint32(x.Theme)
 	}
+	if x.SpaceObjectKey != "" || s.HasField("spaceObjectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spaceObjectKey")
+		s.WriteString(x.SpaceObjectKey)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3380,6 +3398,9 @@ func (x *NativeViewerSelectedState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "theme":
 			s.AddField("theme")
 			x.Theme = s.ReadUint32()
+		case "space_object_key", "spaceObjectKey":
+			s.AddField("space_object_key")
+			x.SpaceObjectKey = s.ReadString()
 		}
 	})
 }
@@ -4849,6 +4870,11 @@ func (m *NativeViewerSelectedState) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.SpaceObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceObjectKey)
+		i--
+		dAtA[i] = 0x3a
+	}
 	if m.Theme != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Theme))
 		i--
@@ -5876,6 +5902,7 @@ func (m *NativeViewerSelectedState) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.SelectedView)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Theme)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceObjectKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6446,6 +6473,10 @@ func (x *NativeViewerSelectedState) MarshalProtoText() string {
 	if x.Theme != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "theme")
 		protobuf_go_lite.TextWriteUint(&sb, x.Theme)
+	}
+	if x.SpaceObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.SpaceObjectKey)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -7613,6 +7644,16 @@ func (m *NativeViewerSelectedState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpaceObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SpaceObjectKey = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -570,6 +570,12 @@ export interface NativeViewerSelectedState {
    * @generated from field: uint32 theme = 6;
    */
   theme?: number
+  /**
+   * SpaceObjectKey is the selected Space restored before child launch.
+   *
+   * @generated from field: string space_object_key = 7;
+   */
+  spaceObjectKey?: string
 }
 
 export const NativeViewerSelectedState: MessageType<NativeViewerSelectedState> =
@@ -600,6 +606,7 @@ export const NativeViewerSelectedState: MessageType<NativeViewerSelectedState> =
       },
       { no: 5, name: 'selected_view', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 6, name: 'theme', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 7, name: 'space_object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

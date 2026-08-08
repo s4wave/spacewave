@@ -33,6 +33,9 @@ func ValidateSelectedState(state *NativeViewerSelectedState) error {
 		}
 		seen[tab] = struct{}{}
 	}
+	if state.GetSpaceObjectKey() != "" && !validStateIdentity(state.GetSpaceObjectKey()) {
+		return ErrInvalidSelectedState
+	}
 	if state.GetFocused() != "" {
 		if !validStateIdentity(state.GetFocused()) {
 			return ErrInvalidSelectedState

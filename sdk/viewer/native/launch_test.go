@@ -256,7 +256,7 @@ func TestReadReadinessRecordLiveDoesNotWaitForEOF(t *testing.T) {
 }
 
 func TestValidateSelectedState(t *testing.T) {
-	base := &NativeViewerSelectedState{Tabs: []string{"glados/console", "logs"}, Focused: "glados/console", Drafts: map[string]string{"glados/console": "draft"}, Viewports: map[string]uint32{"glados/console": 42}}
+	base := &NativeViewerSelectedState{SpaceObjectKey: "space/one", Tabs: []string{"glados/console", "logs"}, Focused: "glados/console", Drafts: map[string]string{"glados/console": "draft"}, Viewports: map[string]uint32{"glados/console": 42}}
 	if err := ValidateSelectedState(base); err != nil {
 		t.Fatal(err)
 	}
@@ -269,6 +269,7 @@ func TestValidateSelectedState(t *testing.T) {
 		func(s *NativeViewerSelectedState) { s.Viewports["missing"] = 1 },
 		func(s *NativeViewerSelectedState) { s.SelectedView = 3 },
 		func(s *NativeViewerSelectedState) { s.Theme = 3 },
+		func(s *NativeViewerSelectedState) { s.SpaceObjectKey = "space\x1b" },
 	}
 	for i, mutate := range cases {
 		s := base.CloneVT()
