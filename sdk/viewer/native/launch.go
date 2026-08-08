@@ -176,9 +176,16 @@ func ValidateReadinessRecord(readiness *NativeViewerReadinessRecord, launch *Nat
 	return nil
 }
 
-// ReadReadinessRecord reads one bounded readiness protobuf and verifies the launch echo.
-func ReadReadinessRecord(reader io.Reader, launch *NativeViewerLaunchRecord) (*NativeViewerReadinessRecord, error) {
+// ReadReadinessRecordLive reads exactly one bounded readiness protobuf without
+// waiting for the readiness stream to reach EOF. The caller owns the stream and
+// may subsequently check for another frame.
+func ReadReadinessRecordLive(reader io.Reader, launch *NativeViewerLaunchRecord) (*NativeViewerReadinessRecord, error) {
 	buffered := bufio.NewReader(reader)
+	return ReadReadinessRecordBuffered(buffered, launch)
+}
+
+// ReadReadinessRecordBuffered reads one record from an existing buffered stream.
+func ReadReadinessRecordBuffered(buffered *bufio.Reader, launch *NativeViewerLaunchRecord) (*NativeViewerReadinessRecord, error) {
 	frame, err := readFrame(buffered)
 	if err != nil {
 		return nil, err
@@ -188,6 +195,16 @@ func ReadReadinessRecord(reader io.Reader, launch *NativeViewerLaunchRecord) (*N
 		return nil, err
 	}
 	if err := ValidateReadinessRecord(readiness, launch); err != nil {
+		return nil, err
+	}
+	return readiness, nil
+}
+
+// ReadReadinessRecord reads one readiness protobuf and requires EOF afterwards.
+func ReadReadinessRecord(reader io.Reader, launch *NativeViewerLaunchRecord) (*NativeViewerReadinessRecord, error) {
+	buffered := bufio.NewReader(reader)
+	readiness, err := ReadReadinessRecordBuffered(buffered, launch)
+	if err != nil {
 		return nil, err
 	}
 	if _, err := buffered.Peek(1); err == nil {

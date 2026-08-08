@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func testLaunch() *NativeViewerLaunchRecord {
@@ -231,4 +232,25 @@ func TestReadinessValidationStatusMatrix(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestReadReadinessRecordLiveDoesNotWaitForEOF(t *testing.T) {
+	launch := testLaunch()
+	readiness := &NativeViewerReadinessRecord{WireVersion: NativeViewerWireVersion, ProtocolVersion: NativeViewerProtocolVersion, LaunchId: launch.LaunchId, SessionObjectKey: launch.SessionObjectKey, SpaceObjectKey: launch.SpaceObjectKey, ManifestObjectKey: launch.ManifestObjectKey, ManifestDigest: launch.ManifestDigest, ViewerObjectKey: launch.ViewerObjectKey, ViewerProfile: launch.ViewerProfile, ResourceScopeSessionObjectKey: launch.ResourceScopeSessionObjectKey, SelectedStateKey: launch.SelectedStateKey, Status: NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY, FrameSequence: 1, ResourceRevision: 1, ResourceCursor: 1}
+	pr, pw := io.Pipe()
+	done := make(chan error, 1)
+	go func() { _, err := ReadReadinessRecordLive(pr, launch); done <- err }()
+	if err := WriteReadinessRecord(pw, readiness, launch); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("live readiness read waited for EOF")
+	}
+	_ = pw.Close()
+	_ = pr.Close()
 }
