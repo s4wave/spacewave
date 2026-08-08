@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -49,6 +50,9 @@ func NewHost(c Config) (*Host, error) {
 	if c.Stdin == nil || c.Stdout == nil || c.Stderr == nil {
 		return nil, errors.Errorf("stdin, stdout, and stderr are required")
 	}
+	if err := validateTerminalFiles(c.Stdin, c.Stdout); err != nil {
+		return nil, err
+	}
 	if c.EndpointFactory == nil {
 		return nil, errors.Errorf("endpoint factory is required")
 	}
@@ -57,6 +61,23 @@ func NewHost(c Config) (*Host, error) {
 		return nil, err
 	}
 	return &Host{config: c, launch: b}, nil
+}
+
+func validateTerminalFiles(input, output *os.File) error {
+	if !term.IsTerminal(int(input.Fd())) || !term.IsTerminal(int(output.Fd())) {
+		return errors.New("native viewer input and output must be terminals")
+	}
+	var inputStat, outputStat syscall.Stat_t
+	if err := syscall.Fstat(int(input.Fd()), &inputStat); err != nil {
+		return err
+	}
+	if err := syscall.Fstat(int(output.Fd()), &outputStat); err != nil {
+		return err
+	}
+	if inputStat.Rdev != outputStat.Rdev {
+		return errors.New("native viewer input and output must be the same terminal")
+	}
+	return nil
 }
 
 func (h *Host) Run(ctx context.Context, onReady func()) (runErr error) {
@@ -105,7 +126,8 @@ func validateEndpoints(e *EndpointSet) error {
 	if e.Resource == nil || e.State == nil || e.Control == nil {
 		return errors.Errorf("endpoint set contains nil endpoint")
 	}
-	if e.Resource == e.State || e.Resource == e.Control || e.State == e.Control {
+	resourceFD, stateFD, controlFD := e.Resource.Fd(), e.State.Fd(), e.Control.Fd()
+	if resourceFD == stateFD || resourceFD == controlFD || stateFD == controlFD {
 		return errors.Errorf("endpoint set contains aliased endpoints")
 	}
 	return nil

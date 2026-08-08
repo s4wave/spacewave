@@ -167,20 +167,15 @@ func nativeHostTestExecutable(t *testing.T) string {
 
 func nativeHostFiles(t *testing.T) (*os.File, *os.File, *os.File) {
 	t.Helper()
-	in, err := os.Open(os.DevNull)
+	master, slave, err := pty.Open()
 	if err != nil {
 		t.Fatal(err)
 	}
-	out, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	errFile, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = in.Close(); _ = out.Close(); _ = errFile.Close() })
-	return in, out, errFile
+	t.Cleanup(func() {
+		_ = master.Close()
+		_ = slave.Close()
+	})
+	return slave, slave, slave
 }
 
 func TestHostLifecycleMatrix(t *testing.T) {
@@ -301,5 +296,25 @@ func TestHostRestoresRawTermiosAfterCrash(t *testing.T) {
 	}
 	if !reflect.DeepEqual(before, after) {
 		t.Fatalf("termios not restored")
+	}
+}
+
+func TestNewHostRejectsNonTerminal(t *testing.T) {
+	input, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer input.Close()
+	output, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer output.Close()
+	_, err = NewHost(Config{
+		Executable: nativeHostTestExecutable(t), LaunchRecord: nativeHostTestLaunch(),
+		Stdin: input, Stdout: output, Stderr: output, EndpointFactory: nativeHostEndpointFactory(&endpointEvents{}),
+	})
+	if err == nil || !strings.Contains(err.Error(), "must be terminals") {
+		t.Fatalf("NewHost err=%v", err)
 	}
 }
