@@ -4,6 +4,7 @@ package nativeendpoint
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
 	"sync"
@@ -29,9 +30,6 @@ type endpointTransport struct {
 func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 	if err := validateConfig(c); err != nil {
 		return nil, err
-	}
-	if ctx == nil {
-		ctx = context.Background()
 	}
 	serveCtx, cancel := context.WithCancel(ctx)
 	transports := make([]endpointTransport, 0, 3)
@@ -100,12 +98,18 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 	transports = append(transports, controlTransport)
 
 	var servers sync.WaitGroup
+	var serverErrorsMu sync.Mutex
+	var serverErrors error
 	for _, transport := range transports {
 		server := srpc.NewServer(transport.invoker)
 		servers.Add(1)
 		go func(server *srpc.Server, mux srpc.MuxedConn) {
 			defer servers.Done()
-			_ = server.AcceptMuxedConn(serveCtx, mux)
+			if err := server.AcceptMuxedConn(serveCtx, mux); err != nil && serveCtx.Err() == nil {
+				serverErrorsMu.Lock()
+				serverErrors = errors.Join(serverErrors, err)
+				serverErrorsMu.Unlock()
+			}
 		}(server, transport.mux)
 	}
 
@@ -119,6 +123,9 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 	waitFunc := func() error {
 		waitOnce.Do(func() {
 			servers.Wait()
+			serverErrorsMu.Lock()
+			waitErr = serverErrors
+			serverErrorsMu.Unlock()
 		})
 		return waitErr
 	}

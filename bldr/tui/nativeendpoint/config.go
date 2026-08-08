@@ -48,15 +48,13 @@ func NewEndpointFactory(c Config) (nativehost.EndpointFactory, error) {
 	return f.Open, nil
 }
 
-// EndpointFactory is an alias for NewEndpointFactory.
-func EndpointFactory(c Config) (nativehost.EndpointFactory, error) {
-	return NewEndpointFactory(c)
-}
-
 // Open creates fresh endpoint descriptors for one child attempt.
 func (f *Factory) Open(ctx context.Context) (*nativehost.EndpointSet, error) {
 	if f == nil {
 		return nil, errors.New("native endpoint factory is nil")
+	}
+	if ctx == nil {
+		return nil, errors.New("native endpoint context is nil")
 	}
 	return open(ctx, f.config)
 }

@@ -202,11 +202,8 @@ func TestHostLifecycleMatrix(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			ctx := context.Background()
-			var cancel context.CancelFunc
-			if tc.cancel {
-				ctx, cancel = context.WithCancel(ctx)
-			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 			ready := make(chan struct{}, 2)
 			done := make(chan error, 1)
 			go func() { done <- h.Run(ctx, func() { ready <- struct{}{} }) }()

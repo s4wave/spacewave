@@ -6,11 +6,14 @@ import (
 	"context"
 	"errors"
 	"net"
+	"os"
+	"slices"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/bldr/resource"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	native "github.com/s4wave/spacewave/sdk/viewer/native"
 )
@@ -38,13 +41,24 @@ func (s *testStore) GetStoreID() string                                { return 
 
 var _ resource_state.StateAtomStore = (*testStore)(nil)
 
-type unavailableClient struct{}
+type unavailableClient struct {
+	mu       sync.Mutex
+	services []string
+}
 
-func (unavailableClient) ExecCall(context.Context, string, string, srpc.Message, srpc.Message) error {
+func (c *unavailableClient) ExecCall(context.Context, string, string, srpc.Message, srpc.Message) error {
 	return errors.New("unavailable")
 }
-func (unavailableClient) NewStream(context.Context, string, string, srpc.Message) (srpc.Stream, error) {
-	return nil, errors.New("unavailable")
+func (c *unavailableClient) NewStream(_ context.Context, service, _ string, _ srpc.Message) (srpc.Stream, error) {
+	c.mu.Lock()
+	c.services = append(c.services, service)
+	c.mu.Unlock()
+	return nil, errors.New("upstream marker")
+}
+func (c *unavailableClient) called(service string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return slices.Contains(c.services, service)
 }
 
 func TestStateServiceValidationAndDetachedLoad(t *testing.T) {
@@ -80,7 +94,7 @@ func TestStateServiceValidationAndDetachedLoad(t *testing.T) {
 }
 
 func TestOpenEndpointsCloseAndWait(t *testing.T) {
-	factory, err := NewEndpointFactory(Config{ResourceClient: unavailableClient{}, StateStore: &testStore{}, SelectedStateKey: "state:1"})
+	factory, err := NewEndpointFactory(Config{ResourceClient: &unavailableClient{}, StateStore: &testStore{}, SelectedStateKey: "state:1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,4 +133,103 @@ func TestOpenEndpointsCloseAndWait(t *testing.T) {
 	_ = stateConn.Close()
 	_ = set.CloseFunc()
 	_ = set.WaitFunc()
+}
+
+func TestEndpointServiceIsolation(t *testing.T) {
+	upstream := new(unavailableClient)
+	factory, err := NewEndpointFactory(Config{
+		ResourceClient:   upstream,
+		StateStore:       &testStore{},
+		SelectedStateKey: "state:1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := factory(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = set.CloseFunc()
+		_ = set.WaitFunc()
+	}()
+	openClient := func(file *os.File) (srpc.Client, srpc.MuxedConn) {
+		conn, err := net.FileConn(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		mux, err := srpc.NewMuxedConn(conn, true, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return srpc.NewClientWithMuxedConn(mux), mux
+	}
+	resourceClient, resourceMux := openClient(set.Resource)
+	defer resourceMux.Close()
+	controlClient, controlMux := openClient(set.Control)
+	defer controlMux.Close()
+
+	resourceStream, err := resourceClient.NewStream(t.Context(), resource.SRPCResourceServiceServiceID, "ResourceClient", &resource.ResourceClientRequest{})
+	if err == nil {
+		err = resourceStream.MsgRecv(&resource.ResourceClientResponse{})
+		_ = resourceStream.Close()
+	}
+	if err == nil {
+		t.Fatal("resource probe unexpectedly succeeded")
+	}
+	if !upstream.called(resource.SRPCResourceServiceServiceID) {
+		t.Fatal("resource endpoint did not forward ResourceService")
+	}
+	blockedControl, err := resourceClient.NewStream(t.Context(), native.SRPCControlServiceServiceID, "ListCommands", &native.NativeViewerListCommandsRequest{})
+	if err == nil {
+		err = blockedControl.MsgRecv(&native.NativeViewerListCommandsResponse{})
+		_ = blockedControl.Close()
+	}
+	if err == nil {
+		t.Fatal("blocked control probe unexpectedly succeeded")
+	}
+	if upstream.called(native.SRPCControlServiceServiceID) {
+		t.Fatal("resource endpoint forwarded ControlService")
+	}
+
+	controlStream, err := controlClient.NewStream(t.Context(), native.SRPCControlServiceServiceID, "ListCommands", &native.NativeViewerListCommandsRequest{})
+	if err == nil {
+		err = controlStream.MsgRecv(&native.NativeViewerListCommandsResponse{})
+		_ = controlStream.Close()
+	}
+	if err == nil {
+		t.Fatal("control probe unexpectedly succeeded")
+	}
+	if !upstream.called(native.SRPCControlServiceServiceID) {
+		t.Fatal("control endpoint did not forward ControlService")
+	}
+	blockedResource, err := controlClient.NewStream(t.Context(), resource.SRPCResourceServiceServiceID, "ResourceClient", &resource.ResourceClientRequest{})
+	if err == nil {
+		err = blockedResource.MsgRecv(&resource.ResourceClientResponse{})
+		_ = blockedResource.Close()
+	}
+	if err == nil {
+		t.Fatal("blocked resource probe unexpectedly succeeded")
+	}
+	upstream.mu.Lock()
+	resourceCalls := 0
+	for _, service := range upstream.services {
+		if service == resource.SRPCResourceServiceServiceID {
+			resourceCalls++
+		}
+	}
+	upstream.mu.Unlock()
+	if resourceCalls != 1 {
+		t.Fatalf("resource forwarding calls = %d, want 1", resourceCalls)
+	}
+}
+
+func TestFactoryRejectsNilContext(t *testing.T) {
+	factory, err := New(Config{ResourceClient: new(unavailableClient), StateStore: &testStore{}, SelectedStateKey: "state:1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := factory.Open(nil); err == nil {
+		t.Fatal("accepted nil lifecycle context")
+	}
 }
