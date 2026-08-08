@@ -21,12 +21,10 @@ import {
   PasskeyRegisterVerifyResponse,
   RemoveAuthMethodRequest,
   RemoveAuthMethodResponse,
-  RemoveKeybindingOverrideRequest,
-  RemoveKeybindingOverrideResponse,
+  ReplaceKeybindingOverrideSetRequest,
+  ReplaceKeybindingOverrideSetResponse,
   RevokeSessionRequest,
   RevokeSessionResponse,
-  SetKeybindingSettingsRequest,
-  SetKeybindingSettingsResponse,
   SetSecurityLevelRequest,
   SetSecurityLevelResponse,
   SignWithEntityKeypairRequest,
@@ -39,8 +37,6 @@ import {
   StartDesktopPasskeyRegisterResponse,
   UnlockEntityKeypairRequest,
   UnlockEntityKeypairResponse,
-  UpsertKeybindingOverrideRequest,
-  UpsertKeybindingOverrideResponse,
   WatchAccountInfoRequest,
   WatchAccountInfoResponse,
   WatchAuthMethodsRequest,
@@ -103,30 +99,12 @@ export const AccountResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
-     * @generated from rpc s4wave.account.AccountResourceService.UpsertKeybindingOverride
+     * @generated from rpc s4wave.account.AccountResourceService.ReplaceKeybindingOverrideSet
      */
-    UpsertKeybindingOverride: {
-      name: 'UpsertKeybindingOverride',
-      I: UpsertKeybindingOverrideRequest,
-      O: UpsertKeybindingOverrideResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * @generated from rpc s4wave.account.AccountResourceService.RemoveKeybindingOverride
-     */
-    RemoveKeybindingOverride: {
-      name: 'RemoveKeybindingOverride',
-      I: RemoveKeybindingOverrideRequest,
-      O: RemoveKeybindingOverrideResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * @generated from rpc s4wave.account.AccountResourceService.SetKeybindingSettings
-     */
-    SetKeybindingSettings: {
-      name: 'SetKeybindingSettings',
-      I: SetKeybindingSettingsRequest,
-      O: SetKeybindingSettingsResponse,
+    ReplaceKeybindingOverrideSet: {
+      name: 'ReplaceKeybindingOverrideSet',
+      I: ReplaceKeybindingOverrideSetRequest,
+      O: ReplaceKeybindingOverrideSetResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -322,28 +300,12 @@ export interface AccountResourceService {
   ): MessageStream<WatchKeybindingOverridesResponse>
 
   /**
-   * @generated from rpc s4wave.account.AccountResourceService.UpsertKeybindingOverride
+   * @generated from rpc s4wave.account.AccountResourceService.ReplaceKeybindingOverrideSet
    */
-  UpsertKeybindingOverride(
-    request: UpsertKeybindingOverrideRequest,
+  ReplaceKeybindingOverrideSet(
+    request: ReplaceKeybindingOverrideSetRequest,
     abortSignal?: AbortSignal,
-  ): Promise<UpsertKeybindingOverrideResponse>
-
-  /**
-   * @generated from rpc s4wave.account.AccountResourceService.RemoveKeybindingOverride
-   */
-  RemoveKeybindingOverride(
-    request: RemoveKeybindingOverrideRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<RemoveKeybindingOverrideResponse>
-
-  /**
-   * @generated from rpc s4wave.account.AccountResourceService.SetKeybindingSettings
-   */
-  SetKeybindingSettings(
-    request: SetKeybindingSettingsRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetKeybindingSettingsResponse>
+  ): Promise<ReplaceKeybindingOverrideSetResponse>
 
   /**
    * @generated from rpc s4wave.account.AccountResourceService.AddAuthMethod
@@ -523,31 +485,13 @@ export interface AccountResourceServiceHandler {
   ): MessageStream<WatchKeybindingOverridesResponse>
 
   /**
-   * @generated from rpc s4wave.account.AccountResourceService.UpsertKeybindingOverride
+   * @generated from rpc s4wave.account.AccountResourceService.ReplaceKeybindingOverrideSet
    */
-  UpsertKeybindingOverride(
-    request: UpsertKeybindingOverrideRequest,
+  ReplaceKeybindingOverrideSet(
+    request: ReplaceKeybindingOverrideSetRequest,
     abortSignal: AbortSignal,
     context: ServerContext,
-  ): Promise<UpsertKeybindingOverrideResponse>
-
-  /**
-   * @generated from rpc s4wave.account.AccountResourceService.RemoveKeybindingOverride
-   */
-  RemoveKeybindingOverride(
-    request: RemoveKeybindingOverrideRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<RemoveKeybindingOverrideResponse>
-
-  /**
-   * @generated from rpc s4wave.account.AccountResourceService.SetKeybindingSettings
-   */
-  SetKeybindingSettings(
-    request: SetKeybindingSettingsRequest,
-    abortSignal: AbortSignal,
-    context: ServerContext,
-  ): Promise<SetKeybindingSettingsResponse>
+  ): Promise<ReplaceKeybindingOverrideSetResponse>
 
   /**
    * @generated from rpc s4wave.account.AccountResourceService.AddAuthMethod
@@ -716,9 +660,8 @@ export class AccountResourceServiceClient implements AccountResourceService {
     this.WatchAuthMethods = this.WatchAuthMethods.bind(this)
     this.WatchSessions = this.WatchSessions.bind(this)
     this.WatchKeybindingOverrides = this.WatchKeybindingOverrides.bind(this)
-    this.UpsertKeybindingOverride = this.UpsertKeybindingOverride.bind(this)
-    this.RemoveKeybindingOverride = this.RemoveKeybindingOverride.bind(this)
-    this.SetKeybindingSettings = this.SetKeybindingSettings.bind(this)
+    this.ReplaceKeybindingOverrideSet =
+      this.ReplaceKeybindingOverrideSet.bind(this)
     this.AddAuthMethod = this.AddAuthMethod.bind(this)
     this.RemoveAuthMethod = this.RemoveAuthMethod.bind(this)
     this.SetSecurityLevel = this.SetSecurityLevel.bind(this)
@@ -808,54 +751,21 @@ export class AccountResourceServiceClient implements AccountResourceService {
   }
 
   /**
-   * @generated from rpc s4wave.account.AccountResourceService.UpsertKeybindingOverride
+   * @generated from rpc s4wave.account.AccountResourceService.ReplaceKeybindingOverrideSet
    */
-  async UpsertKeybindingOverride(
-    request: UpsertKeybindingOverrideRequest,
+  async ReplaceKeybindingOverrideSet(
+    request: ReplaceKeybindingOverrideSetRequest,
     abortSignal?: AbortSignal,
-  ): Promise<UpsertKeybindingOverrideResponse> {
-    const requestMsg = UpsertKeybindingOverrideRequest.create(request)
+  ): Promise<ReplaceKeybindingOverrideSetResponse> {
+    const requestMsg = ReplaceKeybindingOverrideSetRequest.create(request)
     const result = await this.rpc.request(
       this.service,
-      AccountResourceServiceDefinition.methods.UpsertKeybindingOverride.name,
-      UpsertKeybindingOverrideRequest.toBinary(requestMsg),
+      AccountResourceServiceDefinition.methods.ReplaceKeybindingOverrideSet
+        .name,
+      ReplaceKeybindingOverrideSetRequest.toBinary(requestMsg),
       abortSignal || undefined,
     )
-    return UpsertKeybindingOverrideResponse.fromBinary(result)
-  }
-
-  /**
-   * @generated from rpc s4wave.account.AccountResourceService.RemoveKeybindingOverride
-   */
-  async RemoveKeybindingOverride(
-    request: RemoveKeybindingOverrideRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<RemoveKeybindingOverrideResponse> {
-    const requestMsg = RemoveKeybindingOverrideRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      AccountResourceServiceDefinition.methods.RemoveKeybindingOverride.name,
-      RemoveKeybindingOverrideRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return RemoveKeybindingOverrideResponse.fromBinary(result)
-  }
-
-  /**
-   * @generated from rpc s4wave.account.AccountResourceService.SetKeybindingSettings
-   */
-  async SetKeybindingSettings(
-    request: SetKeybindingSettingsRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetKeybindingSettingsResponse> {
-    const requestMsg = SetKeybindingSettingsRequest.create(request)
-    const result = await this.rpc.request(
-      this.service,
-      AccountResourceServiceDefinition.methods.SetKeybindingSettings.name,
-      SetKeybindingSettingsRequest.toBinary(requestMsg),
-      abortSignal || undefined,
-    )
-    return SetKeybindingSettingsResponse.fromBinary(result)
+    return ReplaceKeybindingOverrideSetResponse.fromBinary(result)
   }
 
   /**

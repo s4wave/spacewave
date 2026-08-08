@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react'
+import { useAbortSignalEffect } from '@aptre/bldr-react'
 
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
 
@@ -12,6 +13,7 @@ import {
   localKeybindingStoreKey,
   localKeybindingStoreNamespace,
   normalizeKeybindingOverrideSet,
+  migrateLegacyKeybindingOverrideSet,
   removeLocalCommandBindingOverride,
   resetKeybindingCommandOverride,
   setCommandBindingsOverride,
@@ -21,10 +23,15 @@ import {
   type KeybindingOverrideLayer,
   type KeybindingOverrideSet,
   type KeybindingOverrideSettings,
+  keybindingMigrationError,
 } from './keybinding-overrides.js'
-import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
+import {
+  CommandSurface,
+  type CommandBinding,
+} from '@s4wave/sdk/command/command.pb.js'
 
 export interface LocalKeybindingOverridesValue {
+  error: Error | null
   overrideSet: KeybindingOverrideSet
   layer: KeybindingOverrideLayer
   setCommandOverride: (
@@ -45,106 +52,190 @@ export interface LocalKeybindingOverridesValue {
   resetLayer: () => void
 }
 
-export function useLocalKeybindingOverrides(): LocalKeybindingOverridesValue {
+interface LocalStoredKeybindings {
+  version: 2
+  webOverrides: KeybindingOverrideSet
+  tuiOverrides: KeybindingOverrideSet
+}
+
+function emptyLocalStoredKeybindings(): LocalStoredKeybindings {
+  return {
+    version: 2,
+    webOverrides: createEmptyKeybindingOverrideSet(),
+    tuiOverrides: createEmptyKeybindingOverrideSet(),
+  }
+}
+
+export function useLocalKeybindingOverrides(
+  surface: CommandSurface,
+  canonicalCommandIds: ReadonlySet<string>,
+): LocalKeybindingOverridesValue {
+  if (surface !== CommandSurface.WEB && surface !== CommandSurface.TUI)
+    throw new Error('local keybindings require WEB or TUI surface')
   const namespace = useStateNamespace([...localKeybindingStoreNamespace])
   const [rawOverrideSet, setRawOverrideSet] = useStateAtom(
     namespace,
     localKeybindingStoreKey,
-    createEmptyKeybindingOverrideSet(),
+    emptyLocalStoredKeybindings() as unknown,
   )
-  const overrideSet = useMemo(
-    () => normalizeKeybindingOverrideSet(rawOverrideSet),
-    [rawOverrideSet],
+  const migration = useMemo(() => {
+    const raw = rawOverrideSet as Record<string, unknown>
+    if (raw.version === 2 && 'webOverrides' in raw) {
+      return {
+        overrideSet: createEmptyKeybindingOverrideSet(),
+        required: false,
+        diagnostics: [],
+      }
+    }
+    const legacy = normalizeKeybindingOverrideSet(rawOverrideSet)
+    return migrateLegacyKeybindingOverrideSet(
+      {
+        version: 1,
+        overrides: Object.entries(legacy.overrides).map(
+          ([commandId, override]) => ({ commandId, ...override }),
+        ),
+        settings: (raw.settings && typeof raw.settings === 'object'
+          ? raw.settings
+          : undefined) as never,
+      },
+      canonicalCommandIds,
+    )
+  }, [rawOverrideSet, canonicalCommandIds])
+  useAbortSignalEffect(
+    (signal) => {
+      if (!migration.required || migration.diagnostics.length || signal.aborted)
+        return
+      setRawOverrideSet((current: unknown) => {
+        const raw = current as Record<string, unknown>
+        if (raw.version === 2 && 'webOverrides' in raw) return current
+        const legacy = normalizeKeybindingOverrideSet(current)
+        const currentMigration = migrateLegacyKeybindingOverrideSet(
+          {
+            version: 1,
+            overrides: Object.entries(legacy.overrides).map(
+              ([commandId, override]) => ({ commandId, ...override }),
+            ),
+            settings: (raw.settings && typeof raw.settings === 'object'
+              ? raw.settings
+              : undefined) as never,
+          },
+          canonicalCommandIds,
+        )
+        if (currentMigration.diagnostics.length) return current
+        const stored = emptyLocalStoredKeybindings()
+        stored.webOverrides = currentMigration.overrideSet
+        return stored
+      })
+    },
+    [migration, setRawOverrideSet, canonicalCommandIds],
+  )
+  const stored =
+    (rawOverrideSet as LocalStoredKeybindings).version === 2 &&
+    'webOverrides' in (rawOverrideSet as object)
+      ? (rawOverrideSet as LocalStoredKeybindings)
+      : emptyLocalStoredKeybindings()
+  const overrideSet = normalizeKeybindingOverrideSet(
+    surface === CommandSurface.WEB ? stored.webOverrides : stored.tuiOverrides,
   )
   const layer = useMemo(
     () => createKeybindingOverrideLayer('local', 'Local', overrideSet),
     [overrideSet],
   )
+  const replaceSelected = useCallback(
+    (next: KeybindingOverrideSet) => {
+      setRawOverrideSet((current: unknown) => {
+        const value =
+          (current as LocalStoredKeybindings).version === 2 &&
+          'webOverrides' in (current as object)
+            ? (current as LocalStoredKeybindings)
+            : emptyLocalStoredKeybindings()
+        return surface === CommandSurface.WEB
+          ? { ...value, webOverrides: normalizeKeybindingOverrideSet(next) }
+          : { ...value, tuiOverrides: normalizeKeybindingOverrideSet(next) }
+      })
+    },
+    [setRawOverrideSet, surface],
+  )
 
   const setSettings = useCallback(
     (settings: KeybindingOverrideSettings) => {
-      setRawOverrideSet((current) =>
-        setKeybindingOverrideSettings(current, settings),
-      )
+      replaceSelected(setKeybindingOverrideSettings(overrideSet, settings))
     },
-    [setRawOverrideSet],
+    [overrideSet, replaceSelected],
   )
 
   const setOverrideSet = useCallback(
     (next: KeybindingOverrideSet) => {
-      setRawOverrideSet(normalizeKeybindingOverrideSet(next))
+      replaceSelected(normalizeKeybindingOverrideSet(next))
     },
-    [setRawOverrideSet],
+    [replaceSelected],
   )
 
   const setCommandOverride = useCallback(
     (commandId: string, override: KeybindingCommandOverride | null) => {
-      setRawOverrideSet((current) =>
-        setKeybindingCommandOverride(current, commandId, override),
+      replaceSelected(
+        setKeybindingCommandOverride(overrideSet, commandId, override),
       )
     },
-    [setRawOverrideSet],
+    [overrideSet, replaceSelected],
   )
 
   const setCommandBindings = useCallback(
     (commandId: string, bindings: CommandBinding[]) => {
-      setRawOverrideSet((current) =>
-        setCommandBindingsOverride(current, commandId, bindings),
+      replaceSelected(
+        setCommandBindingsOverride(overrideSet, commandId, bindings),
       )
     },
-    [setRawOverrideSet],
+    [overrideSet, replaceSelected],
   )
 
   const addCommandBinding = useCallback(
     (commandId: string, binding: CommandBinding) => {
-      setRawOverrideSet((current) =>
-        addCommandBindingOverride(current, commandId, binding),
+      replaceSelected(
+        addCommandBindingOverride(overrideSet, commandId, binding),
       )
     },
-    [setRawOverrideSet],
+    [overrideSet, replaceSelected],
   )
 
   const clearCommandBindings = useCallback(
     (commandId: string) => {
-      setRawOverrideSet((current) =>
-        clearCommandBindingsOverride(current, commandId),
-      )
+      replaceSelected(clearCommandBindingsOverride(overrideSet, commandId))
     },
-    [setRawOverrideSet],
+    [overrideSet, replaceSelected],
   )
 
   const clearCommandBindingId = useCallback(
     (commandId: string, bindingId: string) => {
-      setRawOverrideSet((current) =>
-        clearCommandBindingIdOverride(current, commandId, bindingId),
+      replaceSelected(
+        clearCommandBindingIdOverride(overrideSet, commandId, bindingId),
       )
     },
-    [setRawOverrideSet],
+    [overrideSet, replaceSelected],
   )
 
   const removeLocalCommandBinding = useCallback(
     (commandId: string, bindingId: string) => {
-      setRawOverrideSet((current) =>
-        removeLocalCommandBindingOverride(current, commandId, bindingId),
+      replaceSelected(
+        removeLocalCommandBindingOverride(overrideSet, commandId, bindingId),
       )
     },
-    [setRawOverrideSet],
+    [overrideSet, replaceSelected],
   )
 
   const resetCommand = useCallback(
     (commandId: string) => {
-      setRawOverrideSet((current) =>
-        resetKeybindingCommandOverride(current, commandId),
-      )
+      replaceSelected(resetKeybindingCommandOverride(overrideSet, commandId))
     },
-    [setRawOverrideSet],
+    [overrideSet, replaceSelected],
   )
 
   const resetLayer = useCallback(() => {
-    setRawOverrideSet(clearKeybindingOverrideSet())
-  }, [setRawOverrideSet])
+    replaceSelected(clearKeybindingOverrideSet())
+  }, [replaceSelected])
 
   return {
+    error: keybindingMigrationError(migration.diagnostics),
     overrideSet,
     layer,
     setCommandOverride,

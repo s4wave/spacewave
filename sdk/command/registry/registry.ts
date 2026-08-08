@@ -25,12 +25,13 @@ export class CommandsManager extends Resource {
 
   constructor(
     resourceRef: ClientResourceRef,
-    surface: CommandSurface = CommandSurface.UNSPECIFIED,
+    surface: CommandSurface = CommandSurface.UNKNOWN,
   ) {
     super(resourceRef)
     this.service = new CommandRegistryResourceServiceClient(resourceRef.client)
-    this.surface =
-      surface === CommandSurface.UNSPECIFIED ? CommandSurface.WEB : surface
+    if (surface !== CommandSurface.WEB && surface !== CommandSurface.TUI)
+      throw new Error('command surface must be WEB or TUI')
+    this.surface = surface
   }
 
   // registerCommand registers a command with an optional handler resource.

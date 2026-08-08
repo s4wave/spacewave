@@ -10,6 +10,7 @@ import {
 } from '@testing-library/react'
 import {
   CommandFocusContext,
+  CommandSurface,
   type CommandBinding,
 } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
@@ -175,11 +176,13 @@ describe('CommandPalette', () => {
     expect(registeredPaletteCommand?.defaultBindings).toEqual([
       {
         id: 'global-palette',
+        surface: CommandSurface.WEB,
         binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
         when: CommandFocusContext.GLOBAL,
       },
       {
         id: 'global-palette-sequence',
+        surface: CommandSurface.WEB,
         binding: { case: 'sequence', value: { steps: ['Leader', 'Space'] } },
         when: CommandFocusContext.GLOBAL,
       },
@@ -192,7 +195,13 @@ describe('CommandPalette', () => {
         command: {
           commandId: 'spacewave.view.help',
           label: 'Open Help',
-          keybinding: 'Ctrl+H',
+          defaultBindings: [
+            {
+              id: 'default',
+              binding: { case: 'combo', value: { combo: 'Ctrl+H' } },
+              surface: CommandSurface.WEB,
+            },
+          ],
           menuPath: 'Help/Open Help',
         },
         active: true,
@@ -218,14 +227,17 @@ describe('CommandPalette', () => {
           defaultBindings: [
             {
               id: 'back-default',
+              surface: CommandSurface.WEB,
               binding: { case: 'combo', value: { combo: 'Alt+ArrowLeft' } },
             },
             {
               id: 'back-browser-alias',
+              surface: CommandSurface.WEB,
               binding: { case: 'combo', value: { combo: 'Alt+ArrowLeft' } },
             },
             {
               id: 'back-platform-alias',
+              surface: CommandSurface.WEB,
               binding: { case: 'combo', value: { combo: 'Alt+ArrowLeft' } },
             },
           ],
@@ -270,10 +282,12 @@ describe('CommandPalette', () => {
           defaultBindings: [
             {
               id: 'open-combo',
+              surface: CommandSurface.WEB,
               binding: { case: 'combo', value: { combo: 'Ctrl+O' } },
             },
             {
               id: 'open-sequence',
+              surface: CommandSurface.WEB,
               binding: {
                 case: 'sequence',
                 value: { steps: ['Leader', 'F', 'O'] },
@@ -307,6 +321,7 @@ describe('CommandPalette', () => {
           defaultBindings: [
             {
               id: 'palette',
+              surface: CommandSurface.WEB,
               binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
               when: CommandFocusContext.GLOBAL,
             },
@@ -323,6 +338,7 @@ describe('CommandPalette', () => {
           defaultBindings: [
             {
               id: 'insert-link',
+              surface: CommandSurface.WEB,
               binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
               when: CommandFocusContext.EDITOR,
             },
@@ -553,6 +569,7 @@ describe('CommandPalette', () => {
           defaultBindings: [
             {
               id: 'open-file',
+              surface: CommandSurface.WEB,
               binding: {
                 case: 'sequence',
                 value: { steps: ['Leader', 'F', 'O'] },
@@ -589,6 +606,7 @@ describe('CommandPalette', () => {
           defaultBindings: [
             {
               id: 'open-file',
+              surface: CommandSurface.WEB,
               binding: { case: 'sequence', value: { steps: ['Leader', 'F'] } },
               when: CommandFocusContext.GLOBAL,
             },
@@ -639,6 +657,7 @@ describe('CommandPalette', () => {
           defaultBindings: [
             {
               id: 'open-file',
+              surface: CommandSurface.WEB,
               binding: { case: 'sequence', value: { steps: ['Leader', 'F'] } },
               when: CommandFocusContext.GLOBAL,
             },
@@ -711,6 +730,7 @@ describe('CommandPalette', () => {
           defaultBindings: [
             {
               id: 'open-file',
+              surface: CommandSurface.WEB,
               binding: {
                 case: 'sequence',
                 value: { steps: ['Leader', 'F', 'O'] },

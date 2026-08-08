@@ -225,63 +225,26 @@ func (r *AccountResource) WatchKeybindingOverrides(
 	)
 }
 
-// UpsertKeybindingOverride adds or replaces one account-scope keybinding override.
-func (r *AccountResource) UpsertKeybindingOverride(
+// ReplaceKeybindingOverrideSet atomically replaces the complete account layer.
+func (r *AccountResource) ReplaceKeybindingOverrideSet(
 	ctx context.Context,
-	req *s4wave_account.UpsertKeybindingOverrideRequest,
-) (*s4wave_account.UpsertKeybindingOverrideResponse, error) {
+	req *s4wave_account.ReplaceKeybindingOverrideSetRequest,
+) (*s4wave_account.ReplaceKeybindingOverrideSetResponse, error) {
 	if r.localAccount == nil {
 		return nil, errors.New("account keybinding overrides require a local account")
 	}
+	if err := account_settings.ValidateKeybindingOverrideSet(req.GetOverrideSet()); err != nil {
+		return nil, err
+	}
 	op := &account_settings.AccountSettingsOp{
-		Op: &account_settings.AccountSettingsOp_UpsertKeybindingOverride{
-			UpsertKeybindingOverride: req.GetOverride(),
+		Op: &account_settings.AccountSettingsOp_ReplaceKeybindingOverrideSet{
+			ReplaceKeybindingOverrideSet: req.GetOverrideSet(),
 		},
 	}
 	if err := r.queueLocalAccountSettingsOp(ctx, op); err != nil {
 		return nil, err
 	}
-	return &s4wave_account.UpsertKeybindingOverrideResponse{}, nil
-}
-
-// RemoveKeybindingOverride removes one account-scope keybinding override.
-func (r *AccountResource) RemoveKeybindingOverride(
-	ctx context.Context,
-	req *s4wave_account.RemoveKeybindingOverrideRequest,
-) (*s4wave_account.RemoveKeybindingOverrideResponse, error) {
-	if r.localAccount == nil {
-		return nil, errors.New("account keybinding overrides require a local account")
-	}
-	op := &account_settings.AccountSettingsOp{
-		Op: &account_settings.AccountSettingsOp_RemoveKeybindingOverride{
-			RemoveKeybindingOverride: &account_settings.RemoveKeybindingOverrideOp{
-				CommandId: req.GetCommandId(),
-			},
-		},
-	}
-	if err := r.queueLocalAccountSettingsOp(ctx, op); err != nil {
-		return nil, err
-	}
-	return &s4wave_account.RemoveKeybindingOverrideResponse{}, nil
-}
-
-// SetKeybindingSettings replaces account-scope keybinding discovery settings.
-func (r *AccountResource) SetKeybindingSettings(
-	ctx context.Context,
-	req *s4wave_account.SetKeybindingSettingsRequest,
-) (*s4wave_account.SetKeybindingSettingsResponse, error) {
-	if r.localAccount == nil {
-		return nil, errors.New("account keybinding overrides require a local account")
-	}
-	op := &account_settings.AccountSettingsOp{
-		Op: &account_settings.AccountSettingsOp_SetKeybindingSettings{
-			SetKeybindingSettings: req.GetSettings(),
-		},
-	}
-	if err := r.queueLocalAccountSettingsOp(ctx, op); err != nil {
-		return nil, err
-	}
-	return &s4wave_account.SetKeybindingSettingsResponse{}, nil
+	return &s4wave_account.ReplaceKeybindingOverrideSetResponse{}, nil
 }
 
 func (r *AccountResource) mountLocalAccountSettingsState(
@@ -332,10 +295,14 @@ func (r *AccountResource) queueLocalAccountSettingsOp(
 	if err != nil {
 		return errors.Wrap(err, "queue account settings op")
 	}
-	if _, rejected, err := so.WaitOperation(ctx, localID); err != nil {
-		if rejected {
-			_ = so.ClearOperationResult(ctx, localID)
+	_, rejected, err := so.WaitOperation(ctx, localID)
+	if rejected {
+		_ = so.ClearOperationResult(ctx, localID)
+		if err == nil {
+			return errors.New("account settings operation rejected")
 		}
+	}
+	if err != nil {
 		return errors.Wrap(err, "wait for account settings op")
 	}
 	return nil

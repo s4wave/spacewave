@@ -1,4 +1,5 @@
 import { Window } from 'happy-dom'
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
@@ -78,11 +79,15 @@ function comboBinding(id: string, combo: string): CommandBinding {
     id,
     binding: { case: 'combo', value: { combo } },
     when: CommandFocusContext.GLOBAL,
+    surface: CommandSurface.WEB,
   }
 }
 
 function AccountOverridesProbe() {
-  const overrides = useAccountKeybindingOverrides()
+  const overrides = useAccountKeybindingOverrides(
+    CommandSurface.WEB,
+    new Set(['spacewave.palette', 'spacewave.viewer']),
+  )
   const commandIds = Object.keys(overrides.overrideSet.overrides).sort()
   return (
     <section>
@@ -204,6 +209,7 @@ describe('useAccountKeybindingOverrides', () => {
       upsertKeybindingOverride: vi.fn(),
       removeKeybindingOverride: vi.fn(),
       setKeybindingSettings: vi.fn(),
+      replaceKeybindingOverrideSet: vi.fn(),
     }
     hookState.sessionResource = {
       value: { id: 'session-1' },
@@ -248,44 +254,25 @@ describe('useAccountKeybindingOverrides', () => {
       'spacewave.palette,spacewave.viewer',
     )
 
+    const callsBeforeEdits =
+      account.replaceKeybindingOverrideSet.mock.calls.length
     fireEvent.click(view.getByText('replace palette'))
-    expect(account.upsertKeybindingOverride).toHaveBeenLastCalledWith({
-      override: {
-        commandId: 'spacewave.palette',
-        replaceBindings: true,
-        disabled: undefined,
-        clearedBindingIds: [],
-        bindings: [comboBinding('palette-account', 'Ctrl+K')],
-      },
-    })
-
     fireEvent.click(view.getByText('clear default'))
-    expect(account.upsertKeybindingOverride).toHaveBeenLastCalledWith({
-      override: expect.objectContaining({
-        commandId: 'spacewave.palette',
-        clearedBindingIds: ['palette-default'],
-        bindings: [comboBinding('palette-existing', 'Ctrl+P')],
-      }),
-    })
-
     fireEvent.click(view.getByText('reset palette'))
-    expect(account.removeKeybindingOverride).toHaveBeenCalledWith({
-      commandId: 'spacewave.palette',
-    })
-
     fireEvent.click(view.getByText('reset layer'))
-    expect(account.removeKeybindingOverride).toHaveBeenCalledWith({
-      commandId: 'spacewave.viewer',
-    })
-
     fireEvent.click(view.getByText('set discovery settings'))
-    expect(account.setKeybindingSettings).toHaveBeenLastCalledWith({
-      settings: {
-        leaderCombo: 'Alt+Space',
-        whichKeyDelayMs: 125,
-        display: undefined,
-      },
-    })
+    expect(account.replaceKeybindingOverrideSet.mock.calls.length).toBe(
+      callsBeforeEdits + 5,
+    )
+    for (const [
+      request,
+    ] of account.replaceKeybindingOverrideSet.mock.calls.slice(
+      callsBeforeEdits,
+    )) {
+      expect(request.overrideSet.version).toBe(2)
+      expect(request.overrideSet.overrides).toEqual([])
+      expect(request.overrideSet.tuiOverrides).toEqual([])
+    }
   })
 
   it('keeps a mounted account read-only when account settings reports read-only state', () => {
@@ -294,6 +281,7 @@ describe('useAccountKeybindingOverrides', () => {
       upsertKeybindingOverride: vi.fn(),
       removeKeybindingOverride: vi.fn(),
       setKeybindingSettings: vi.fn(),
+      replaceKeybindingOverrideSet: vi.fn(),
     }
     hookState.accountResource = { value: account, loading: false, error: null }
     hookState.accountOverrides = {

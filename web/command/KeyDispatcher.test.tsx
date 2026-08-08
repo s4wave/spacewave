@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import {
   CommandFocusContext,
+  CommandSurface,
   type Command,
   type CommandBinding,
 } from '@s4wave/sdk/command/command.pb.js'
@@ -78,6 +79,7 @@ function comboBinding(
     id,
     binding: { case: 'combo', value: { combo } },
     when,
+    surface: CommandSurface.WEB,
   }
 }
 
@@ -90,6 +92,7 @@ function sequenceBinding(
     id,
     binding: { case: 'sequence', value: { steps } },
     when,
+    surface: CommandSurface.WEB,
   }
 }
 
@@ -152,7 +155,13 @@ describe('KeyDispatcher', () => {
     mockCommands = [
       commandState(
         command('spacewave.legacy.open', {
-          keybinding: 'Ctrl+K',
+          defaultBindings: [
+            {
+              id: 'default',
+              binding: { case: 'combo', value: { combo: 'Ctrl+K' } },
+              surface: CommandSurface.WEB,
+            },
+          ],
         }),
       ),
     ]

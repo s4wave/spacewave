@@ -25,8 +25,6 @@ interface UseCommandOpts {
   label: string
   // menuPath is the menu placement path (e.g. "File/Save").
   menuPath?: string
-  // keybinding is the legacy default key combination (e.g. "CmdOrCtrl+S").
-  keybinding?: string
   // defaultBindings are the typed default input bindings.
   defaultBindings?: CommandBinding[]
   // searchAliases adds palette discovery terms without changing commandId.
@@ -141,7 +139,6 @@ export function useCommand(opts: UseCommandOpts): void {
             command: {
               commandId: opts.commandId,
               label: opts.label,
-              keybinding: opts.keybinding,
               defaultBindings: defaultBindingsRef.current,
               searchAliases: searchAliasesRef.current,
               menuPath: opts.menuPath,
@@ -188,7 +185,6 @@ export function useCommand(opts: UseCommandOpts): void {
     releaseResource,
     opts.commandId,
     opts.label,
-    opts.keybinding,
     defaultBindingsSignature,
     searchAliasesSignature,
     opts.menuPath,

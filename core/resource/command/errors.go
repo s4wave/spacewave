@@ -11,6 +11,10 @@ var ErrCommandIdRequired = errors.New("command_id is required")
 // ErrInvalidCommandSurface is returned when command surface is unknown.
 var ErrInvalidCommandSurface = errors.New("invalid command surface")
 
+// ErrInvalidDefaultBindingSurface is returned when a default binding does not
+// match its command registration surface.
+var ErrInvalidDefaultBindingSurface = errors.New("invalid default binding surface")
+
 // ErrResourceIdRequired is returned when resource_id is empty.
 var ErrResourceIdRequired = errors.New("resource_id is required")
 

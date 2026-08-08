@@ -39,18 +39,17 @@ func (r *ViewerRegistryResource) GetMux() srpc.Invoker {
 }
 
 // normalizeViewerSurface resolves the requested surface to a concrete one.
-// An unset surface selects the web surface for legacy callers.
+// UNKNOWN is rejected; callers must select a concrete surface.
 func normalizeViewerSurface(
 	surface s4wave_viewer_registry.ViewerSurface,
 ) (s4wave_viewer_registry.ViewerSurface, error) {
 	switch surface {
-	case s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_UNSPECIFIED,
-		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB:
+	case s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB:
 		return s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB, nil
-	case s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL:
-		return s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL, nil
+	case s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TUI:
+		return s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TUI, nil
 	default:
-		return s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_UNSPECIFIED, ErrInvalidViewerSurface
+		return s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_UNKNOWN, ErrInvalidViewerSurface
 	}
 }
 

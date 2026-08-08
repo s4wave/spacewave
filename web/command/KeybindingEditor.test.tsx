@@ -1,3 +1,4 @@
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { Window } from 'happy-dom'
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -127,6 +128,7 @@ function comboBinding(
     id,
     binding: { case: 'combo', value: { combo } },
     when,
+    surface: CommandSurface.WEB,
   }
 }
 
@@ -135,6 +137,7 @@ function sequenceBinding(id: string, steps: string[]): CommandBinding {
     id,
     binding: { case: 'sequence', value: { steps } },
     when: CommandFocusContext.GLOBAL,
+    surface: CommandSurface.WEB,
   }
 }
 

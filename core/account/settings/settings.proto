@@ -71,6 +71,8 @@ message AccountSettingsOp {
     RemoveKeybindingOverrideOp remove_keybinding_override = 9;
     // SetKeybindingSettings replaces layer-wide keybinding settings.
     .s4wave.command.KeybindingOverrideSettings set_keybinding_settings = 10;
+    // ReplaceKeybindingOverrideSet atomically replaces the complete persisted layer.
+    .s4wave.command.KeybindingOverrideSet replace_keybinding_override_set = 11;
   }
 }
 

@@ -70,7 +70,7 @@ describe('useAllViewers', () => {
     const terminalRegistration: ViewerRegistration = {
       ...webRegistration,
       componentId: 'terminal.workfront.viewer',
-      surface: ViewerSurface.TERMINAL,
+      surface: ViewerSurface.TUI,
     }
     const mappedRegistrations: ViewerRegistration[] = []
 

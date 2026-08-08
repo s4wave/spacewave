@@ -1,4 +1,5 @@
 import { Window } from 'happy-dom'
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
@@ -49,6 +50,7 @@ function comboBinding(id: string, combo: string): CommandBinding {
     id,
     binding: { case: 'combo', value: { combo } },
     when: CommandFocusContext.GLOBAL,
+    surface: CommandSurface.WEB,
   }
 }
 
@@ -59,7 +61,10 @@ function lastSettingsOp(applyWorldOp: { mock: { calls: unknown[][] } }) {
 }
 
 function SpaceOverridesProbe() {
-  const overrides = useSpaceKeybindingOverrides()
+  const overrides = useSpaceKeybindingOverrides(
+    CommandSurface.WEB,
+    new Set(['spacewave.palette', 'spacewave.viewer']),
+  )
   const commandIds = Object.keys(overrides.overrideSet.overrides).sort()
   return (
     <section>
@@ -168,6 +173,8 @@ describe('useSpaceKeybindingOverrides', () => {
       'spacewave.palette,spacewave.viewer',
     )
 
+    await waitFor(() => expect(applyWorldOp).toHaveBeenCalledTimes(1))
+    applyWorldOp.mockClear()
     fireEvent.click(view.getByText('replace palette'))
 
     await waitFor(() => expect(applyWorldOp).toHaveBeenCalledTimes(1))
@@ -182,7 +189,7 @@ describe('useSpaceKeybindingOverrides', () => {
       'spacewave-app',
       'spacewave-terminal',
     ])
-    expect(op.settings?.keybindingOverrides?.overrides).toEqual([
+    expect(op.settings?.keybindingOverrides?.webOverrides).toEqual([
       expect.objectContaining({
         commandId: 'spacewave.palette',
         replaceBindings: true,
@@ -203,7 +210,7 @@ describe('useSpaceKeybindingOverrides', () => {
       'spacewave-app',
       'spacewave-terminal',
     ])
-    expect(op.settings?.keybindingOverrides?.overrides).toEqual([
+    expect(op.settings?.keybindingOverrides?.webOverrides).toEqual([
       expect.objectContaining({
         commandId: 'spacewave.palette',
         clearedBindingIds: ['palette-default'],
@@ -215,7 +222,7 @@ describe('useSpaceKeybindingOverrides', () => {
 
     await waitFor(() => expect(applyWorldOp).toHaveBeenCalledTimes(3))
     op = lastSettingsOp(applyWorldOp)
-    expect(op.settings?.keybindingOverrides?.overrides).toEqual([
+    expect(op.settings?.keybindingOverrides?.webOverrides).toEqual([
       expect.objectContaining({ commandId: 'spacewave.viewer' }),
     ])
 
@@ -230,11 +237,11 @@ describe('useSpaceKeybindingOverrides', () => {
     ])
     expect(op.settings?.keybindingOverrides).toEqual(
       expect.objectContaining({
-        version: 1,
-        settings: {},
+        version: 2,
+        webSettings: {},
       }),
     )
-    expect(op.settings?.keybindingOverrides?.overrides ?? []).toEqual([])
+    expect(op.settings?.keybindingOverrides?.webOverrides ?? []).toEqual([])
   })
 
   it('keeps a Space layer read-only when sharing state does not allow management', () => {

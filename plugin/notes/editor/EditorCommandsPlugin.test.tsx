@@ -3,7 +3,7 @@ import '@s4wave/web/test/happy-dom.js'
 import React from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
-import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
+import { CommandFocusContext, CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import type { Command, CommandBinding } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 import { KeyDispatcher } from '../../../web/command/KeyDispatcher.js'
@@ -151,6 +151,7 @@ describe('EditorCommandsPlugin', () => {
       {
         id: 'editor-insert-link',
         binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
+        surface: CommandSurface.WEB,
         when: CommandFocusContext.EDITOR,
       },
     ])
@@ -163,6 +164,7 @@ describe('EditorCommandsPlugin', () => {
           {
             id: 'global-palette',
             binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
+            surface: CommandSurface.WEB,
             when: CommandFocusContext.GLOBAL,
           },
         ],

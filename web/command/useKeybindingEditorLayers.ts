@@ -1,3 +1,4 @@
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { useMemo } from 'react'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
@@ -13,9 +14,27 @@ import type {
 
 // useKeybindingEditorLayers owns the editable override layers and effective graph.
 export function useKeybindingEditorLayers(commands: CommandState[]) {
-  const local = useLocalKeybindingOverrides()
-  const account = useAccountKeybindingOverrides()
-  const space = useSpaceKeybindingOverrides()
+  const canonicalCommandIds = useMemo(
+    () =>
+      new Set(
+        commands
+          .map((state) => state.command?.commandId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    [commands],
+  )
+  const local = useLocalKeybindingOverrides(
+    CommandSurface.WEB,
+    canonicalCommandIds,
+  )
+  const account = useAccountKeybindingOverrides(
+    CommandSurface.WEB,
+    canonicalCommandIds,
+  )
+  const space = useSpaceKeybindingOverrides(
+    CommandSurface.WEB,
+    canonicalCommandIds,
+  )
   const controllers: Record<KeybindingEditorScope, KeybindingLayerController> =
     {
       local: {
@@ -26,7 +45,7 @@ export function useKeybindingEditorLayers(commands: CommandState[]) {
         available: true,
         readOnly: false,
         loading: false,
-        error: null,
+        error: local.error,
         settingsEditable: true,
         setSettings: local.setSettings,
         setOverrideSet: local.setOverrideSet,
@@ -87,7 +106,11 @@ export function useKeybindingEditorLayers(commands: CommandState[]) {
     [local.layer, account.layer, space.layer],
   )
   const bindingGraph = useMemo(
-    () => resolveKeybindings(commands, { overrideLayers }),
+    () =>
+      resolveKeybindings(commands, {
+        surface: CommandSurface.WEB,
+        overrideLayers,
+      }),
     [commands, overrideLayers],
   )
 

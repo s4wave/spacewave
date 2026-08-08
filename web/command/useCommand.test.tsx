@@ -88,7 +88,6 @@ function TestCommand({
   active = true,
   enabled = true,
   handler = vi.fn(),
-  keybinding,
   defaultBindings,
   subItems,
   searchAliases,
@@ -96,7 +95,6 @@ function TestCommand({
   active?: boolean
   enabled?: boolean
   handler?: (args: Record<string, string>) => void
-  keybinding?: string
   defaultBindings?: CommandBinding[]
   searchAliases?: string[]
   subItems?: (
@@ -110,7 +108,6 @@ function TestCommand({
     active,
     enabled,
     handler,
-    keybinding,
     defaultBindings,
     searchAliases,
     subItems,
@@ -162,7 +159,6 @@ describe('useCommand', () => {
         command: {
           commandId: 'spacewave.session.settings',
           label: 'Session Settings',
-          keybinding: undefined,
           defaultBindings: undefined,
           menuPath: undefined,
           menuGroup: undefined,
@@ -199,46 +195,19 @@ describe('useCommand', () => {
     })
   })
 
-  it('registers legacy keybinding without typed default bindings', async () => {
-    render(<TestCommand keybinding="CmdOrCtrl+," />)
-
-    await waitFor(() => {
-      expect(mockRegisterCommand).toHaveBeenCalled()
-    })
-
-    expect(mockRegisterCommand.mock.lastCall).toEqual([
-      {
-        command: {
-          commandId: 'spacewave.session.settings',
-          label: 'Session Settings',
-          keybinding: 'CmdOrCtrl+,',
-          defaultBindings: undefined,
-          menuPath: undefined,
-          menuGroup: undefined,
-          menuOrder: undefined,
-          icon: undefined,
-          description: undefined,
-          hasSubItems: false,
-          searchAliases: undefined,
-        },
-        handlerResourceId: 11,
-        surface: CommandSurface.WEB,
-      },
-      expect.any(AbortSignal),
-    ])
-  })
-
   it('registers plural typed default bindings', async () => {
     const defaultBindings: CommandBinding[] = [
       {
         id: 'settings.combo',
         binding: { case: 'combo', value: { combo: 'CmdOrCtrl+Shift+,' } },
         sourceLabel: 'Spacewave',
+        surface: CommandSurface.WEB,
       },
       {
         id: 'settings.sequence',
         binding: { case: 'sequence', value: { steps: ['Leader', ','] } },
         sourceLabel: 'Spacewave',
+        surface: CommandSurface.WEB,
       },
     ]
 
@@ -253,48 +222,6 @@ describe('useCommand', () => {
         command: {
           commandId: 'spacewave.session.settings',
           label: 'Session Settings',
-          keybinding: undefined,
-          defaultBindings,
-          menuPath: undefined,
-          menuGroup: undefined,
-          menuOrder: undefined,
-          icon: undefined,
-          description: undefined,
-          hasSubItems: false,
-          searchAliases: undefined,
-        },
-        handlerResourceId: 11,
-        surface: CommandSurface.WEB,
-      },
-      expect.any(AbortSignal),
-    ])
-  })
-
-  it('preserves legacy keybinding and typed default bindings together', async () => {
-    const defaultBindings: CommandBinding[] = [
-      {
-        id: 'settings.combo',
-        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+Alt+,' } },
-      },
-    ]
-
-    render(
-      <TestCommand
-        keybinding="CmdOrCtrl+,"
-        defaultBindings={defaultBindings}
-      />,
-    )
-
-    await waitFor(() => {
-      expect(mockRegisterCommand).toHaveBeenCalled()
-    })
-
-    expect(mockRegisterCommand.mock.lastCall).toEqual([
-      {
-        command: {
-          commandId: 'spacewave.session.settings',
-          label: 'Session Settings',
-          keybinding: 'CmdOrCtrl+,',
           defaultBindings,
           menuPath: undefined,
           menuGroup: undefined,
@@ -327,6 +254,7 @@ describe('useCommand', () => {
         id: 'settings.combo',
         binding: { case: 'combo', value: { combo: 'CmdOrCtrl+,' } },
         sourceLabel: 'Spacewave',
+        surface: CommandSurface.WEB,
       },
     ]
     const makeDefaultBindings = vi.fn(() =>

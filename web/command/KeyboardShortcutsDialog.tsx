@@ -1,3 +1,4 @@
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { useCallback, useMemo, useState } from 'react'
 
 import {
@@ -94,7 +95,9 @@ export function KeyboardShortcutsDialog({
 }: KeyboardShortcutsDialogProps) {
   const commands = useCommands()
   const [query, setQuery] = useState('')
-  const bindingGraph = useKeybindingGraph(commands)
+  const bindingGraph = useKeybindingGraph(commands, {
+    surface: CommandSurface.WEB,
+  })
   const handleFilterRef = useCallback(
     (node: HTMLInputElement | null) => {
       if (open) node?.focus()

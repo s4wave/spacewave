@@ -1,18 +1,22 @@
 import { useCallback, useMemo } from 'react'
+import { useAbortSignalEffect } from '@aptre/bldr-react'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
-import type { CommandBinding } from '@s4wave/sdk/command/command.pb.js'
+import {
+  CommandSurface,
+  type CommandBinding,
+} from '@s4wave/sdk/command/command.pb.js'
 
 import {
   addCommandBindingOverride,
   clearCommandBindingIdOverride,
   clearCommandBindingsOverride,
+  createEmptyKeybindingOverrideSet,
   createKeybindingOverrideLayer,
-  keybindingCommandOverrideToProto,
-  keybindingOverrideSettingsToProto,
+  migrateLegacyKeybindingOverrideSet,
   keybindingOverrideSetFromProto,
   normalizeKeybindingOverrideSet,
   removeLocalCommandBindingOverride,
@@ -24,6 +28,8 @@ import {
   type KeybindingOverrideLayer,
   type KeybindingOverrideSet,
   type KeybindingOverrideSettings,
+  keybindingMigrationError,
+  mergeKeybindingOverridePartitions,
 } from './keybinding-overrides.js'
 
 export interface AccountKeybindingOverridesValue {
@@ -51,7 +57,12 @@ export interface AccountKeybindingOverridesValue {
   resetLayer: () => void
 }
 
-export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue {
+export function useAccountKeybindingOverrides(
+  surface: CommandSurface,
+  canonicalCommandIds: ReadonlySet<string>,
+): AccountKeybindingOverridesValue {
+  if (surface !== CommandSurface.WEB && surface !== CommandSurface.TUI)
+    throw new Error('account keybindings require WEB or TUI surface')
   const sessionResource = SessionContext.useContext()
   const sessionInfo = useSessionInfo(sessionResource.value)
   const accountResource = useMountAccount(
@@ -64,12 +75,52 @@ export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue
     (account, signal) => account.watchKeybindingOverrides({}, signal),
     [],
   )
-  const overrideSet = useMemo(
-    () => keybindingOverrideSetFromProto(accountOverrides.value?.overrideSet),
-    [accountOverrides.value?.overrideSet],
-  )
   const available = Boolean(accountResource.value)
   const readOnly = !available || Boolean(accountOverrides.value?.readOnly)
+  const migration = useMemo(
+    () =>
+      migrateLegacyKeybindingOverrideSet(
+        accountOverrides.value?.overrideSet ?? { version: 2 },
+        canonicalCommandIds,
+      ),
+    [accountOverrides.value?.overrideSet, canonicalCommandIds],
+  )
+  const overrideSet = useMemo(() => {
+    const value = accountOverrides.value?.overrideSet
+    if (value?.version === 1) {
+      return surface === CommandSurface.WEB
+        ? migration.overrideSet
+        : createEmptyKeybindingOverrideSet()
+    }
+    return keybindingOverrideSetFromProto(value, surface)
+  }, [accountOverrides.value?.overrideSet, migration.overrideSet, surface])
+  useAbortSignalEffect(
+    (signal) => {
+      const account = accountResource.value
+      if (
+        !account ||
+        readOnly ||
+        !migration.required ||
+        migration.diagnostics.length
+      )
+        return
+      const combined = mergeKeybindingOverridePartitions(
+        accountOverrides.value?.overrideSet,
+        migration.overrideSet,
+        CommandSurface.WEB,
+      )
+      void account.replaceKeybindingOverrideSet(
+        { overrideSet: combined },
+        signal,
+      )
+    },
+    [
+      accountResource.value,
+      accountOverrides.value?.overrideSet,
+      migration,
+      readOnly,
+    ],
+  )
   const layer = useMemo(
     () =>
       available
@@ -79,22 +130,23 @@ export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue
   )
 
   const setOverrideSet = useCallback(
-    (next: KeybindingOverrideSet, changedCommandIds: string[]) => {
+    (next: KeybindingOverrideSet) => {
       const account = accountResource.value
       if (!account || readOnly) return
       const normalized = normalizeKeybindingOverrideSet(next)
-      for (const commandId of changedCommandIds) {
-        const override = normalized.overrides[commandId]
-        if (!override) {
-          void account.removeKeybindingOverride({ commandId })
-          continue
-        }
-        void account.upsertKeybindingOverride({
-          override: keybindingCommandOverrideToProto(commandId, override),
-        })
-      }
+      const combined = mergeKeybindingOverridePartitions(
+        accountOverrides.value?.overrideSet,
+        normalized,
+        surface,
+      )
+      void account.replaceKeybindingOverrideSet({ overrideSet: combined })
     },
-    [accountResource.value, readOnly],
+    [
+      accountResource.value,
+      accountOverrides.value?.overrideSet,
+      readOnly,
+      surface,
+    ],
   )
 
   const applyOverride = useCallback(
@@ -104,21 +156,16 @@ export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue
         commandId,
         override,
       )
-      setOverrideSet(next, [commandId])
+      setOverrideSet(next)
     },
     [overrideSet, setOverrideSet],
   )
 
   const setSettings = useCallback(
     (settings: KeybindingOverrideSettings) => {
-      const account = accountResource.value
-      if (!account || readOnly) return
-      const next = setKeybindingOverrideSettings(overrideSet, settings)
-      void account.setKeybindingSettings({
-        settings: keybindingOverrideSettingsToProto(next.settings),
-      })
+      setOverrideSet(setKeybindingOverrideSettings(overrideSet, settings))
     },
-    [accountResource.value, overrideSet, readOnly],
+    [overrideSet, setOverrideSet],
   )
 
   const setCommandBindings = useCallback(
@@ -178,15 +225,8 @@ export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue
   )
 
   const resetLayer = useCallback(() => {
-    const account = accountResource.value
-    if (!account || readOnly) return
-    for (const commandId of Object.keys(overrideSet.overrides)) {
-      void account.removeKeybindingOverride({ commandId })
-    }
-    void account.setKeybindingSettings({
-      settings: keybindingOverrideSettingsToProto({}),
-    })
-  }, [accountResource.value, overrideSet.overrides, readOnly])
+    setOverrideSet(createEmptyKeybindingOverrideSet())
+  }, [setOverrideSet])
 
   return {
     overrideSet,
@@ -198,7 +238,10 @@ export function useAccountKeybindingOverrides(): AccountKeybindingOverridesValue
       accountResource.loading ||
       accountOverrides.loading,
     error:
-      sessionResource.error ?? accountResource.error ?? accountOverrides.error,
+      sessionResource.error ??
+      accountResource.error ??
+      accountOverrides.error ??
+      keybindingMigrationError(migration.diagnostics),
     setCommandOverride: applyOverride,
     setOverrideSet,
     setSettings,

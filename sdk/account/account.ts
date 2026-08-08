@@ -22,17 +22,13 @@ import {
   PasskeyRegisterVerifyResponse,
   RemoveAuthMethodRequest,
   RemoveAuthMethodResponse,
-  RemoveKeybindingOverrideRequest,
-  RemoveKeybindingOverrideResponse,
+  ReplaceKeybindingOverrideSetRequest,
+  ReplaceKeybindingOverrideSetResponse,
   RevokeSessionRequest,
   RevokeSessionResponse,
-  SetKeybindingSettingsRequest,
-  SetKeybindingSettingsResponse,
   SetSecurityLevelRequest,
   SetSecurityLevelResponse,
   UnlockEntityKeypairResponse,
-  UpsertKeybindingOverrideRequest,
-  UpsertKeybindingOverrideResponse,
   WatchEntityKeypairsRequest,
   WatchEntityKeypairsResponse,
   WatchAccountInfoRequest,
@@ -86,30 +82,6 @@ export class Account extends Resource {
     abortSignal?: AbortSignal,
   ): AsyncIterable<WatchKeybindingOverridesResponse> {
     return this.service.WatchKeybindingOverrides(req ?? {}, abortSignal)
-  }
-
-  // upsertKeybindingOverride adds or replaces one account-scope keybinding override.
-  public upsertKeybindingOverride(
-    req: UpsertKeybindingOverrideRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<UpsertKeybindingOverrideResponse> {
-    return this.service.UpsertKeybindingOverride(req, abortSignal)
-  }
-
-  // removeKeybindingOverride removes one account-scope keybinding override.
-  public removeKeybindingOverride(
-    req: RemoveKeybindingOverrideRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<RemoveKeybindingOverrideResponse> {
-    return this.service.RemoveKeybindingOverride(req, abortSignal)
-  }
-
-  // setKeybindingSettings replaces account-scope keybinding settings.
-  public setKeybindingSettings(
-    req: SetKeybindingSettingsRequest,
-    abortSignal?: AbortSignal,
-  ): Promise<SetKeybindingSettingsResponse> {
-    return this.service.SetKeybindingSettings(req, abortSignal)
   }
 
   // addAuthMethod adds a new entity keypair (auth method) to the account.
@@ -177,6 +149,14 @@ export class Account extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<ChangePasswordResponse> {
     return this.service.ChangePassword(req, abortSignal)
+  }
+
+  // replaceKeybindingOverrideSet atomically replaces the complete account layer.
+  public replaceKeybindingOverrideSet(
+    req: ReplaceKeybindingOverrideSetRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReplaceKeybindingOverrideSetResponse> {
+    return this.service.ReplaceKeybindingOverrideSet(req, abortSignal)
   }
 
   // watchEntityKeypairs streams entity keypairs with their lock state.

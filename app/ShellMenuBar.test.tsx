@@ -1,5 +1,6 @@
 import { Window } from 'happy-dom'
 import React from 'react'
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 
@@ -176,10 +177,12 @@ describe('ShellMenuBar', () => {
             {
               id: 'home-combo',
               binding: { case: 'combo', value: { combo: 'Ctrl+H' } },
+              surface: CommandSurface.WEB,
             },
             {
               id: 'home-sequence',
               binding: { case: 'sequence', value: { steps: ['Leader', 'H'] } },
+              surface: CommandSurface.WEB,
             },
           ],
         },
@@ -195,6 +198,7 @@ describe('ShellMenuBar', () => {
             {
               id: 'search-sequence',
               binding: { case: 'sequence', value: { steps: ['Leader', 'S'] } },
+              surface: CommandSurface.WEB,
             },
           ],
         },

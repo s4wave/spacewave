@@ -1,3 +1,4 @@
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { Window } from 'happy-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, waitFor } from '@testing-library/react'
@@ -55,6 +56,7 @@ vi.mock('./CommandContext.js', () => ({
 vi.mock('./useKeybindingGraph.js', () => ({
   useKeybindingGraph: (commands: CommandState[]) =>
     resolveKeybindings(commands, {
+      surface: CommandSurface.WEB,
       overrideLayers: [
         {
           scope: 'local',
@@ -93,6 +95,7 @@ function sequenceBinding(id: string, steps: string[]): CommandBinding {
     id,
     binding: { case: 'sequence', value: { steps } },
     when: CommandFocusContext.GLOBAL,
+    surface: CommandSurface.WEB,
   }
 }
 

@@ -1,3 +1,4 @@
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { Window } from 'happy-dom'
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -71,8 +72,14 @@ describe('KeyboardShortcutsDialog', () => {
         command: {
           commandId: 'spacewave.help.shortcuts',
           label: 'Keyboard Shortcuts',
-          keybinding: 'Ctrl+/',
           menuPath: 'Help/Keyboard Shortcuts',
+          defaultBindings: [
+            {
+              id: 'shortcuts',
+              surface: CommandSurface.WEB,
+              binding: { case: 'combo', value: { combo: 'Ctrl+/' } },
+            },
+          ],
         },
         active: true,
         enabled: true,
@@ -97,10 +104,12 @@ describe('KeyboardShortcutsDialog', () => {
           defaultBindings: [
             {
               id: 'open-combo',
+              surface: CommandSurface.WEB,
               binding: { case: 'combo', value: { combo: 'Ctrl+O' } },
             },
             {
               id: 'open-sequence',
+              surface: CommandSurface.WEB,
               binding: {
                 case: 'sequence',
                 value: { steps: ['Leader', 'F', 'O'] },
@@ -131,6 +140,7 @@ describe('KeyboardShortcutsDialog', () => {
           defaultBindings: [
             {
               id: 'palette',
+              surface: CommandSurface.WEB,
               binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
               when: CommandFocusContext.GLOBAL,
             },
@@ -147,6 +157,7 @@ describe('KeyboardShortcutsDialog', () => {
           defaultBindings: [
             {
               id: 'insert-link',
+              surface: CommandSurface.WEB,
               binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
               when: CommandFocusContext.EDITOR,
             },
@@ -177,6 +188,7 @@ describe('KeyboardShortcutsDialog', () => {
           defaultBindings: [
             {
               id: 'open-default',
+              surface: CommandSurface.WEB,
               binding: { case: 'combo', value: { combo: 'Ctrl+O' } },
             },
           ],

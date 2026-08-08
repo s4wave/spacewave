@@ -1,6 +1,7 @@
 import {
   CommandFocusContext,
   type Command,
+  CommandSurface,
   type CommandBinding,
 } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
@@ -11,14 +12,13 @@ import {
   type KeybindingOverrideScope,
 } from './keybinding-overrides.js'
 
-const legacyBindingId = 'legacy-keybinding'
-
 export type KeybindingPlatform = 'mac' | 'other'
 
 export type ResolvedBindingKind = 'combo' | 'sequence'
 
 export interface KeybindingResolverOptions {
   platform?: KeybindingPlatform
+  surface: import('@s4wave/sdk/command/command.pb.js').CommandSurface
   leaderCombo?: string
   overrideLayers?: KeybindingOverrideLayer[]
 }
@@ -69,8 +69,13 @@ export interface KeybindingGraph {
 
 export function resolveKeybindings(
   commands: CommandState[],
-  opts: KeybindingResolverOptions = {},
+  opts: KeybindingResolverOptions,
 ): KeybindingGraph {
+  if (
+    opts.surface !== CommandSurface.WEB &&
+    opts.surface !== CommandSurface.TUI
+  )
+    throw new Error('keybinding resolver requires WEB or TUI surface')
   const platform = opts.platform ?? detectPlatform()
   const overrideLayers = opts.overrideLayers ?? []
   const settings = resolveKeybindingSettings(overrideLayers, {
@@ -83,6 +88,7 @@ export function resolveKeybindings(
     platform,
     leaderCombo,
     overrideLayers,
+    opts.surface,
   )
   const bindingsByCommandId = groupBindingsByCommandId(bindings)
   const comboBuckets = bucketBindings(
@@ -328,6 +334,7 @@ function collectBindings(
   platform: KeybindingPlatform,
   leaderCombo: string,
   overrideLayers: KeybindingOverrideLayer[],
+  surface: import('@s4wave/sdk/command/command.pb.js').CommandSurface,
 ): ResolvedCommandBinding[] {
   const bindings: ResolvedCommandBinding[] = []
   const leaderStep = normalizeKeyCombo(leaderCombo, platform)
@@ -351,7 +358,8 @@ function collectBindings(
         platform,
         leaderStep,
       )
-      if (resolved) bindings.push(resolved)
+      if (resolved && resolved.source.surface === surface)
+        bindings.push(resolved)
     }
   }
 
@@ -359,15 +367,7 @@ function collectBindings(
 }
 
 function commandDefaultBindings(command: Command): CommandBinding[] {
-  if (command.defaultBindings?.length) return command.defaultBindings
-  if (!command.keybinding) return []
-  return [
-    {
-      id: legacyBindingId,
-      binding: { case: 'combo', value: { combo: command.keybinding } },
-      when: CommandFocusContext.GLOBAL,
-    },
-  ]
+  return command.defaultBindings ?? []
 }
 
 function commandEffectiveBindings(

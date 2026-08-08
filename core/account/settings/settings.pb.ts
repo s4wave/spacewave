@@ -407,6 +407,15 @@ export interface AccountSettingsOp {
         value: KeybindingOverrideSettings
         case: 'setKeybindingSettings'
       }
+    | {
+        /**
+         * ReplaceKeybindingOverrideSet atomically replaces the complete persisted layer.
+         *
+         * @generated from field: s4wave.command.KeybindingOverrideSet replace_keybinding_override_set = 11;
+         */
+        value: KeybindingOverrideSet
+        case: 'replaceKeybindingOverrideSet'
+      }
 }
 
 export const AccountSettingsOp: MessageType<AccountSettingsOp> =
@@ -481,6 +490,13 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
         name: 'set_keybinding_settings',
         kind: 'message',
         T: () => KeybindingOverrideSettings,
+        oneof: 'op',
+      },
+      {
+        no: 11,
+        name: 'replace_keybinding_override_set',
+        kind: 'message',
+        T: () => KeybindingOverrideSet,
         oneof: 'op',
       },
     ] satisfies readonly PartialFieldInfo[],

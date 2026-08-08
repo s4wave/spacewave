@@ -24,12 +24,12 @@ enum CommandFocusContext {
 
 // CommandSurface identifies the command front door for one registration.
 enum CommandSurface {
-  // COMMAND_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
-  COMMAND_SURFACE_UNSPECIFIED = 0;
+  // COMMAND_SURFACE_UNKNOWN is not a usable command surface.
+  COMMAND_SURFACE_UNKNOWN = 0;
   // COMMAND_SURFACE_WEB selects the web command surface.
   COMMAND_SURFACE_WEB = 1;
-  // COMMAND_SURFACE_TERMINAL selects the terminal command surface.
-  COMMAND_SURFACE_TERMINAL = 2;
+  // COMMAND_SURFACE_TUI selects the terminal command surface.
+  COMMAND_SURFACE_TUI = 2;
 }
 
 // KeyCombo stores one key event plus modifiers.
@@ -58,6 +58,8 @@ message CommandBinding {
   CommandFocusContext when = 4;
   // SourceLabel is an optional display label for the binding source.
   string source_label = 5;
+  // Surface selects the explicit WEB or TUI default partition.
+  CommandSurface surface = 6;
 }
 
 // KeybindingDisplayMode identifies how bindings are displayed.
@@ -104,10 +106,18 @@ message KeybindingCommandOverride {
 message KeybindingOverrideSet {
   // Version is the override set schema version.
   uint32 version = 1;
-  // Overrides are command-keyed overrides.
+  // Overrides is the historical v1 command-keyed set.
   repeated KeybindingCommandOverride overrides = 2;
-  // Settings stores layer-wide keybinding preferences.
+  // Settings stores historical layer-wide preferences.
   KeybindingOverrideSettings settings = 3;
+  // WebOverrides is the version-2 browser partition.
+  repeated KeybindingCommandOverride web_overrides = 4;
+  // TuiOverrides is the version-2 terminal partition.
+  repeated KeybindingCommandOverride tui_overrides = 5;
+  // WebSettings is the version-2 browser settings partition.
+  KeybindingOverrideSettings web_settings = 6;
+  // TuiSettings is the version-2 terminal settings partition.
+  KeybindingOverrideSettings tui_settings = 7;
 }
 
 // Command is the metadata for a registered command.
@@ -117,10 +127,8 @@ message Command {
   string command_id = 1;
   // Label is the human-readable display name.
   string label = 2;
-  // Keybinding is the legacy default key combination.
-  // Format: "CmdOrCtrl+S", "CmdOrCtrl+Shift+P", "Alt+F4"
-  // CmdOrCtrl resolves to Cmd on macOS, Ctrl elsewhere.
-  string keybinding = 3;
+  reserved 3;
+  reserved "keybinding";
   // MenuPath is the menu placement path.
   // Format: "File/Save", "File/Export/PDF", "View/Toggle Sidebar"
   // Empty means the command is not in any menu.
