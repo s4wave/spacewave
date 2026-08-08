@@ -1069,7 +1069,7 @@ export interface NativeViewerSendInputRequest {
    */
   sessionObjectKey?: string
   /**
-   * DispatchKey identifies the active dispatch within a Session.
+   * DispatchKey identifies the active dispatch within an LlmSession.
    *
    * @generated from field: string dispatch_key = 2;
    */
@@ -1118,7 +1118,7 @@ export interface NativeViewerInterruptRequest {
    */
   sessionObjectKey?: string
   /**
-   * DispatchKey identifies the active dispatch within a Session.
+   * DispatchKey identifies the active dispatch within an LlmSession.
    *
    * @generated from field: string dispatch_key = 2;
    */
@@ -1173,7 +1173,7 @@ export interface NativeViewerControlResponse {
    */
   sessionObjectKey?: string
   /**
-   * DispatchKey identifies the active dispatch within a Session.
+   * DispatchKey identifies the active dispatch within an LlmSession.
    *
    * @generated from field: string dispatch_key = 3;
    */

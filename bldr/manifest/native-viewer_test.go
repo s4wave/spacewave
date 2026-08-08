@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -46,7 +47,7 @@ func TestResolveNativeViewerChecksSelectedIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.PluginID != "plugin" || got.ManifestObjectKey != "plugin/manifest" || got.ManifestDigest == "" || got.ViewerID != "viewer" || got.ViewerTypeID != "glados/console" || got.ViewerProfile != "default" || got.ProtocolVersion != 1 || got.Entrypoint != "bin/viewer" || got.PlatformID != "desktop/darwin/arm64" {
+	if got.PluginID() != "plugin" || got.ManifestObjectKey() != "plugin/manifest" || got.ManifestDigest() == "" || got.ViewerID() != "viewer" || got.ViewerTypeID() != "glados/console" || got.ViewerProfile() != "default" || got.ProtocolVersion() != 1 || got.Entrypoint() != "bin/viewer" || got.PlatformID() != "desktop/darwin/arm64" {
 		t.Fatalf("unexpected resolution: %#v", got)
 	}
 	bad := root.Clone()
@@ -146,20 +147,20 @@ func TestMaterializeNativeViewerArtifactNestedEntrypoint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if lookedUp != resolution.Entrypoint {
-		t.Fatalf("looked up %q, want %q", lookedUp, resolution.Entrypoint)
+	if lookedUp != resolution.Entrypoint() {
+		t.Fatalf("looked up %q, want %q", lookedUp, resolution.Entrypoint())
 	}
-	if !filepath.IsAbs(artifact.Path) {
-		t.Fatalf("artifact path is not absolute: %q", artifact.Path)
+	if !filepath.IsAbs(artifact.Path()) {
+		t.Fatalf("artifact path is not absolute: %q", artifact.Path())
 	}
-	got, err := os.ReadFile(artifact.Path)
+	got, err := os.ReadFile(artifact.Path())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatalf("artifact bytes = %q, want %q", got, want)
 	}
-	info, err := os.Stat(artifact.Path)
+	info, err := os.Stat(artifact.Path())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +176,7 @@ func TestMaterializeNativeViewerArtifactNestedEntrypoint(t *testing.T) {
 	if err := artifact.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(artifact.Path); !stderrors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(artifact.Path()); !stderrors.Is(err, os.ErrNotExist) {
 		t.Fatalf("artifact after cleanup: %v", err)
 	}
 }
@@ -298,3 +299,14 @@ type shortNativeViewerArtifactWriter struct{}
 
 // Write accepts all but the final byte to simulate a short write.
 func (*shortNativeViewerArtifactWriter) Write(p []byte) (int, error) { return len(p) - 1, nil }
+
+// TestNativeViewerResultsKeepCleanupAndResolutionStatePrivate proves callers cannot retarget frozen paths.
+func TestNativeViewerResultsKeepCleanupAndResolutionStatePrivate(t *testing.T) {
+	for _, typ := range []reflect.Type{reflect.TypeOf(NativeViewerArtifact{}), reflect.TypeOf(NativeViewerResolution{})} {
+		for i := range typ.NumField() {
+			if typ.Field(i).IsExported() {
+				t.Fatalf("%s exposes mutable field %s", typ, typ.Field(i).Name)
+			}
+		}
+	}
+}

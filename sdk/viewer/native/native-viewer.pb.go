@@ -999,7 +999,7 @@ type NativeViewerSendInputRequest struct {
 	unknownFields []byte
 	// SessionObjectKey identifies the selected LlmSession object.
 	SessionObjectKey string `protobuf:"bytes,1,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
-	// DispatchKey identifies the active dispatch within a Session.
+	// DispatchKey identifies the active dispatch within an LlmSession.
 	DispatchKey string `protobuf:"bytes,2,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
 	// RequestId identifies one idempotent control request.
 	RequestId string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
@@ -1046,7 +1046,7 @@ type NativeViewerInterruptRequest struct {
 	unknownFields []byte
 	// SessionObjectKey identifies the selected LlmSession object.
 	SessionObjectKey string `protobuf:"bytes,1,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
-	// DispatchKey identifies the active dispatch within a Session.
+	// DispatchKey identifies the active dispatch within an LlmSession.
 	DispatchKey string `protobuf:"bytes,2,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
 	// RequestId identifies one idempotent control request.
 	RequestId string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
@@ -1095,7 +1095,7 @@ type NativeViewerControlResponse struct {
 	Status NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
 	// SessionObjectKey identifies the selected LlmSession object.
 	SessionObjectKey string `protobuf:"bytes,2,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
-	// DispatchKey identifies the active dispatch within a Session.
+	// DispatchKey identifies the active dispatch within an LlmSession.
 	DispatchKey string `protobuf:"bytes,3,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
 	// RequestId identifies one idempotent control request.
 	RequestId string `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`

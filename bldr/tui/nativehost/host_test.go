@@ -333,3 +333,47 @@ func TestNewHostRejectsNonTerminal(t *testing.T) {
 		t.Fatalf("NewHost err=%v", err)
 	}
 }
+
+// TestEndpointSetCleanupErrorsAndOnce proves child, transport, and wait failures are joined once.
+func TestEndpointSetCleanupErrorsAndOnce(t *testing.T) {
+	childR, childW, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer childW.Close()
+	if err := childR.Close(); err != nil {
+		t.Fatal(err)
+	}
+	closeErr := errors.New("transport close")
+	waitErr := errors.New("transport wait")
+	closes, waits := 0, 0
+	set := &EndpointSet{Resource: childR, State: nil, Control: nil,
+		CloseFunc: func() error { closes++; return closeErr },
+		WaitFunc:  func() error { waits++; return waitErr },
+	}
+	got := set.closeAndWait()
+	if !errors.Is(got, os.ErrClosed) || !errors.Is(got, closeErr) || !errors.Is(got, waitErr) {
+		t.Fatalf("cleanup error: %v", got)
+	}
+	if again := set.closeAndWait(); again != got || closes != 1 || waits != 1 {
+		t.Fatalf("repeat=%v closes=%d waits=%d", again, closes, waits)
+	}
+}
+
+// TestNewHostFreezesLaunchRecord proves caller mutation cannot change readiness identity.
+func TestNewHostFreezesLaunchRecord(t *testing.T) {
+	input, output, diagnostic := nativeHostFiles(t)
+	defer input.Close()
+	defer output.Close()
+	defer diagnostic.Close()
+	launch := nativeHostTestLaunch()
+	h, err := NewHost(Config{Executable: nativeHostTestExecutable(t), LaunchRecord: launch, Stdin: input, Stdout: output, Stderr: diagnostic, EndpointFactory: nativeHostEndpointFactory(new(endpointEvents))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := h.record.LaunchId
+	launch.LaunchId = "mutated"
+	if h.record.LaunchId != want {
+		t.Fatalf("frozen launch changed to %q", h.record.LaunchId)
+	}
+}

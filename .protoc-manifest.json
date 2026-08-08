@@ -3887,7 +3887,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/viewer/native": {
-      "hash": "ff953150e162ad2477beb0771e8f06c207f0c0e8954fcd1da1a187e32982473d",
+      "hash": "417f4b1670fd47cd7746f98da0af2387c52f478b270a6dcf26ea00941641be56",
       "generatedFiles": [
         "sdk/viewer/native/native-viewer.pb.go",
         "sdk/viewer/native/native-viewer.pb.ts",

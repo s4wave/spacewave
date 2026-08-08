@@ -19,13 +19,21 @@ const (
 
 // NativeViewerArtifact is one materialized native viewer executable.
 type NativeViewerArtifact struct {
-	// Path is the absolute private executable path.
-	Path string
+	// path is the absolute private executable path.
+	path string
 
 	// cleanupOnce guards cleanupErr and executable removal.
 	cleanupOnce sync.Once
 	// cleanupErr records the first removal result.
 	cleanupErr error
+}
+
+// Path returns the absolute private executable path pinned to Close.
+func (a *NativeViewerArtifact) Path() string {
+	if a == nil {
+		return ""
+	}
+	return a.path
 }
 
 // Close removes the private executable and is safe to call more than once.
@@ -34,7 +42,7 @@ func (a *NativeViewerArtifact) Close() error {
 		return nil
 	}
 	a.cleanupOnce.Do(func() {
-		a.cleanupErr = os.Remove(a.Path)
+		a.cleanupErr = os.Remove(a.path)
 		if os.IsNotExist(a.cleanupErr) {
 			a.cleanupErr = nil
 		}
@@ -97,7 +105,7 @@ func materializeNativeViewerArtifactWithLookup(
 	if lookup == nil {
 		return nil, pkgerrors.New("native viewer lookup is required")
 	}
-	if err := validateNativeEntrypoint(resolution.Entrypoint); err != nil {
+	if err := validateNativeEntrypoint(resolution.entrypoint); err != nil {
 		return nil, pkgerrors.Wrap(err, "entrypoint")
 	}
 
@@ -117,7 +125,7 @@ func materializeNativeViewerArtifactWithLookup(
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	entrypoint, err := lookup(ctx, resolution.Entrypoint)
+	entrypoint, err := lookup(ctx, resolution.entrypoint)
 	if entrypoint != nil {
 		defer entrypoint.Release()
 	}
@@ -197,7 +205,7 @@ func materializeNativeViewerArtifactWithLookup(
 		return nil, pkgerrors.New("native viewer artifact is not a private regular executable")
 	}
 
-	return &NativeViewerArtifact{Path: finalPath}, nil
+	return &NativeViewerArtifact{path: finalPath}, nil
 }
 
 // writeNativeViewerArtifact writes the complete native viewer artifact.

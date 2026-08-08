@@ -262,7 +262,7 @@ message NativeViewerSelectSessionResponse {
 message NativeViewerSendInputRequest {
   // SessionObjectKey identifies the selected LlmSession object.
   string session_object_key = 1;
-  // DispatchKey identifies the active dispatch within a Session.
+  // DispatchKey identifies the active dispatch within an LlmSession.
   string dispatch_key = 2;
   // RequestId identifies one idempotent control request.
   string request_id = 3;
@@ -274,7 +274,7 @@ message NativeViewerSendInputRequest {
 message NativeViewerInterruptRequest {
   // SessionObjectKey identifies the selected LlmSession object.
   string session_object_key = 1;
-  // DispatchKey identifies the active dispatch within a Session.
+  // DispatchKey identifies the active dispatch within an LlmSession.
   string dispatch_key = 2;
   // RequestId identifies one idempotent control request.
   string request_id = 3;
@@ -288,7 +288,7 @@ message NativeViewerControlResponse {
   NativeViewerControlStatus status = 1;
   // SessionObjectKey identifies the selected LlmSession object.
   string session_object_key = 2;
-  // DispatchKey identifies the active dispatch within a Session.
+  // DispatchKey identifies the active dispatch within an LlmSession.
   string dispatch_key = 3;
   // RequestId identifies one idempotent control request.
   string request_id = 4;
@@ -370,7 +370,7 @@ message NativeViewerExecuteCommandResponse {
 
 // ControlService is the native viewer control boundary for the selected resource.
 service ControlService {
-  // AvailableSessions lists LlmSessions available within the selected resource scope.
+  // AvailableSessions lists LlmSessions available within the selected LlmSession resource scope.
   rpc AvailableSessions(NativeViewerAvailableSessionsRequest) returns (NativeViewerAvailableSessionsResponse);
   // SelectSession selects an LlmSession for subsequent viewer controls.
   rpc SelectSession(NativeViewerSelectSessionRequest) returns (NativeViewerSelectSessionResponse);

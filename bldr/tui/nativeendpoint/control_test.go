@@ -23,6 +23,8 @@ type commandRegistryTestServer struct {
 	request command.CommandSurface
 	// invoked records the invoked command.
 	invoked *command_registry.InvokeCommandRequest
+	// invokeErr is returned by InvokeCommand.
+	invokeErr error
 	// snapshot is returned by WatchCommands.
 	snapshot *command_registry.WatchCommandsResponse
 }
@@ -65,8 +67,9 @@ func (s *commandRegistryTestServer) InvokeCommand(_ context.Context, req *comman
 	s.mu.Lock()
 	s.invoked = req.CloneVT()
 	s.request = req.GetSurface()
+	err := s.invokeErr
 	s.mu.Unlock()
-	return &command_registry.InvokeCommandResponse{}, nil
+	return &command_registry.InvokeCommandResponse{}, err
 }
 
 // TestControlBridgeSocketpairCommands proves command projection and invocation across the SRPC transport.
@@ -131,6 +134,13 @@ func TestControlBridgeSocketpairCommands(t *testing.T) {
 	bad, err := control.ExecuteCommand(t.Context(), &native.NativeViewerExecuteCommandRequest{CommandId: "", RequestId: "req:2"})
 	if err != nil || bad.GetStatus() != native.NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_REJECTED || bad.GetRequestId() != "req:2" {
 		t.Fatalf("bad=%v err=%v", bad, err)
+	}
+	backend.mu.Lock()
+	backend.invokeErr = errors.New("internal\nsecret")
+	backend.mu.Unlock()
+	failed, err := control.ExecuteCommand(t.Context(), &native.NativeViewerExecuteCommandRequest{CommandId: "a.command", RequestId: "req:3"})
+	if err != nil || failed.GetDetail() != "command invocation failed" {
+		t.Fatalf("failed=%v err=%v", failed, err)
 	}
 	_ = set.CloseFunc()
 	_ = set.WaitFunc()

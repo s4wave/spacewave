@@ -40,19 +40,17 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 	}
 	serveCtx, cancel := context.WithCancel(ctx)
 	transports := make([]endpointTransport, 0, 3)
-	cleanup := func() {
+	cleanup := func() error {
 		cancel()
+		var closeErr error
 		for _, transport := range transports {
 			if transport.mux != nil {
-				_ = transport.mux.Close()
-			}
-			if transport.conn != nil {
-				_ = transport.conn.Close()
-			}
-			if transport.child != nil {
-				_ = transport.child.Close()
+				closeErr = errors.Join(closeErr, transport.mux.Close())
+			} else if transport.conn != nil {
+				closeErr = errors.Join(closeErr, transport.conn.Close())
 			}
 		}
+		return closeErr
 	}
 	makeTransport := func(name string, invoker srpc.Invoker) (endpointTransport, error) {
 		fds, err := socketPair()
@@ -80,20 +78,17 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 	resourceMux := srpc.NewMux(&serviceFilter{serviceID: resource.SRPCResourceServiceServiceID, invoker: srpc.NewClientInvoker(c.ResourceClient)})
 	resourceTransport, err := makeTransport("resource", resourceMux)
 	if err != nil {
-		cleanup()
-		return nil, err
+		return nil, errors.Join(err, cleanup())
 	}
 	transports = append(transports, resourceTransport)
 
 	stateMux := srpc.NewMux()
 	if err := native.SRPCRegisterStateService(stateMux, newStateService(c.StateStore, c.SelectedStateKey)); err != nil {
-		cleanup()
-		return nil, err
+		return nil, errors.Join(err, cleanup())
 	}
 	stateTransport, err := makeTransport("state", stateMux)
 	if err != nil {
-		cleanup()
-		return nil, err
+		return nil, errors.Join(err, cleanup())
 	}
 	transports = append(transports, stateTransport)
 
@@ -101,13 +96,11 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 	if err := native.SRPCRegisterControlService(controlMux, newControlBridge(
 		native.NewSRPCControlServiceClient(c.ResourceClient), c.CommandRegistryClient,
 	)); err != nil {
-		cleanup()
-		return nil, err
+		return nil, errors.Join(err, cleanup())
 	}
 	controlTransport, err := makeTransport("control", controlMux)
 	if err != nil {
-		cleanup()
-		return nil, err
+		return nil, errors.Join(err, cleanup())
 	}
 	transports = append(transports, controlTransport)
 
@@ -130,11 +123,12 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 
 	// Expose idempotent close and join operations to the endpoint owner.
 	var closeOnce sync.Once
+	var closeErr error
 	var waitOnce sync.Once
 	var waitErr error
 	closeFunc := func() error {
-		closeOnce.Do(func() { cleanup() })
-		return nil
+		closeOnce.Do(func() { closeErr = cleanup() })
+		return closeErr
 	}
 	waitFunc := func() error {
 		waitOnce.Do(func() {

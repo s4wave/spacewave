@@ -27,6 +27,8 @@ const (
 type Host struct {
 	// config is the validated immutable launch configuration.
 	config Config
+	// record is the frozen launch identity used to validate readiness.
+	record *native.NativeViewerLaunchRecord
 	// launch is the encoded launch record written to the child.
 	launch []byte
 }
@@ -61,11 +63,13 @@ func NewHost(c Config) (*Host, error) {
 	if c.EndpointFactory == nil {
 		return nil, errors.Errorf("endpoint factory is required")
 	}
-	b, err := c.LaunchRecord.MarshalVT()
+	record := c.LaunchRecord.CloneVT()
+	b, err := record.MarshalVT()
 	if err != nil {
 		return nil, err
 	}
-	return &Host{config: c, launch: b}, nil
+	c.LaunchRecord = nil
+	return &Host{config: c, record: record, launch: b}, nil
 }
 
 // validateTerminalFiles requires input and output to address the same terminal device.
@@ -178,9 +182,9 @@ func (h *Host) attempt(ctx context.Context, onReady func()) (ret error) {
 	}
 	recordR.Close()
 	readyW.Close()
-	eps.Resource.Close()
-	eps.State.Close()
-	eps.Control.Close()
+	if err := eps.closeChildFiles(); err != nil {
+		return errors.Wrap(err, "close inherited endpoints")
+	}
 	wait := make(chan error, 1)
 	go func() { wait <- cmd.Wait() }()
 	reaped := false
@@ -213,7 +217,7 @@ func (h *Host) attempt(ctx context.Context, onReady func()) (ret error) {
 		err error
 	}, 1)
 	go func() {
-		r, e := native.ReadReadinessRecordLive(readyR, h.config.LaunchRecord)
+		r, e := native.ReadReadinessRecordLive(readyR, h.record)
 		rr <- struct {
 			r   *native.NativeViewerReadinessRecord
 			err error

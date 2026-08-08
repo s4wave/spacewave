@@ -171,7 +171,7 @@ export const ControlServiceDefinition = {
   typeName: 's4wave.viewer.native.ControlService',
   methods: {
     /**
-     * AvailableSessions lists LlmSessions available within the selected resource scope.
+     * AvailableSessions lists LlmSessions available within the selected LlmSession resource scope.
      *
      * @generated from rpc s4wave.viewer.native.ControlService.AvailableSessions
      */
@@ -257,7 +257,7 @@ export const ControlServiceDefinition = {
  */
 export interface ControlService {
   /**
-   * AvailableSessions lists LlmSessions available within the selected resource scope.
+   * AvailableSessions lists LlmSessions available within the selected LlmSession resource scope.
    *
    * @generated from rpc s4wave.viewer.native.ControlService.AvailableSessions
    */
@@ -334,7 +334,7 @@ export interface ControlService {
  */
 export interface ControlServiceHandler {
   /**
-   * AvailableSessions lists LlmSessions available within the selected resource scope.
+   * AvailableSessions lists LlmSessions available within the selected LlmSession resource scope.
    *
    * @generated from rpc s4wave.viewer.native.ControlService.AvailableSessions
    */
@@ -428,7 +428,7 @@ export class ControlServiceClient implements ControlService {
     this.ExecuteCommand = this.ExecuteCommand.bind(this)
   }
   /**
-   * AvailableSessions lists LlmSessions available within the selected resource scope.
+   * AvailableSessions lists LlmSessions available within the selected LlmSession resource scope.
    *
    * @generated from rpc s4wave.viewer.native.ControlService.AvailableSessions
    */

@@ -103,24 +103,96 @@ func validateNativeViewerMetadata(m *Manifest) error {
 
 // NativeViewerResolution is the frozen identity set used to start a native viewer.
 type NativeViewerResolution struct {
-	// PluginID identifies the plugin manifest.
-	PluginID string
-	// ManifestObjectKey identifies the selected manifest object.
-	ManifestObjectKey string
-	// ManifestDigest identifies the selected manifest root digest.
-	ManifestDigest string
-	// ViewerID identifies the native viewer declared by the manifest.
-	ViewerID string
-	// ViewerTypeID identifies the native viewer implementation type.
-	ViewerTypeID string
-	// ViewerProfile selects the native viewer profile.
-	ViewerProfile string
-	// ProtocolVersion identifies the native viewer protocol.
-	ProtocolVersion uint32
-	// Entrypoint is the safe relative viewer executable path.
-	Entrypoint string
-	// PlatformID identifies the canonical host platform.
-	PlatformID string
+	// pluginID identifies the plugin manifest.
+	pluginID string
+	// manifestObjectKey identifies the selected manifest object.
+	manifestObjectKey string
+	// manifestDigest identifies the selected manifest root digest.
+	manifestDigest string
+	// viewerID identifies the native viewer declared by the manifest.
+	viewerID string
+	// viewerTypeID identifies the native viewer implementation type.
+	viewerTypeID string
+	// viewerProfile selects the native viewer profile.
+	viewerProfile string
+	// protocolVersion identifies the native viewer protocol.
+	protocolVersion uint32
+	// entrypoint is the safe relative viewer executable path.
+	entrypoint string
+	// platformID identifies the canonical host platform.
+	platformID string
+}
+
+// PluginID returns the frozen plugin ID.
+func (r *NativeViewerResolution) PluginID() string {
+	if r == nil {
+		return ""
+	}
+	return r.pluginID
+}
+
+// ManifestObjectKey returns the frozen manifest object key.
+func (r *NativeViewerResolution) ManifestObjectKey() string {
+	if r == nil {
+		return ""
+	}
+	return r.manifestObjectKey
+}
+
+// ManifestDigest returns the frozen manifest digest.
+func (r *NativeViewerResolution) ManifestDigest() string {
+	if r == nil {
+		return ""
+	}
+	return r.manifestDigest
+}
+
+// ViewerID returns the frozen viewer ID.
+func (r *NativeViewerResolution) ViewerID() string {
+	if r == nil {
+		return ""
+	}
+	return r.viewerID
+}
+
+// ViewerTypeID returns the frozen viewer type ID.
+func (r *NativeViewerResolution) ViewerTypeID() string {
+	if r == nil {
+		return ""
+	}
+	return r.viewerTypeID
+}
+
+// ViewerProfile returns the frozen viewer profile.
+func (r *NativeViewerResolution) ViewerProfile() string {
+	if r == nil {
+		return ""
+	}
+	return r.viewerProfile
+}
+
+// ProtocolVersion returns the frozen protocol version.
+func (r *NativeViewerResolution) ProtocolVersion() uint32 {
+	if r == nil {
+		return 0
+	}
+	return r.protocolVersion
+}
+
+// Entrypoint returns the frozen entrypoint.
+func (r *NativeViewerResolution) Entrypoint() string {
+	if r == nil {
+		return ""
+	}
+	return r.entrypoint
+}
+
+// PlatformID returns the frozen platform ID.
+func (r *NativeViewerResolution) PlatformID() string {
+	if r == nil {
+		return ""
+	}
+	return r.platformID
 }
 
 // ResolveNativeViewer validates and freezes native viewer identities for a selected manifest reference.
@@ -160,14 +232,14 @@ func ResolveNativeViewer(
 		return nil, errors.New("selected manifest reference has no root digest")
 	}
 	return &NativeViewerResolution{
-		PluginID:          meta.GetManifestId(),
-		ManifestObjectKey: manifestObjectKey,
-		ManifestDigest:    manifestIdentity,
-		ViewerID:          meta.GetViewerId(),
-		ViewerTypeID:      meta.GetViewerTypeId(),
-		ViewerProfile:     meta.GetViewerProfile(),
-		ProtocolVersion:   meta.GetViewerProtocolVersion(),
-		Entrypoint:        manifest.GetEntrypoint(),
-		PlatformID:        manifestPlatform.GetPlatformID(),
+		pluginID:          meta.GetManifestId(),
+		manifestObjectKey: manifestObjectKey,
+		manifestDigest:    manifestIdentity,
+		viewerID:          meta.GetViewerId(),
+		viewerTypeID:      meta.GetViewerTypeId(),
+		viewerProfile:     meta.GetViewerProfile(),
+		protocolVersion:   meta.GetViewerProtocolVersion(),
+		entrypoint:        manifest.GetEntrypoint(),
+		platformID:        manifestPlatform.GetPlatformID(),
 	}, nil
 }

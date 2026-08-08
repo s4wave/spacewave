@@ -97,7 +97,7 @@ func (b *controlBridge) ExecuteCommand(ctx context.Context, req *native.NativeVi
 		Surface:   command.CommandSurface_COMMAND_SURFACE_TUI,
 	})
 	if err != nil {
-		return rejectedCommand(req, err.Error()), nil
+		return rejectedCommand(req, "command invocation failed"), nil
 	}
 	return &native.NativeViewerExecuteCommandResponse{
 		Status:    native.NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED,

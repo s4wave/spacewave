@@ -156,7 +156,7 @@ type SRPCControlServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
-	// AvailableSessions lists LlmSessions available within the selected resource scope.
+	// AvailableSessions lists LlmSessions available within the selected LlmSession resource scope.
 	AvailableSessions(ctx context.Context, in *NativeViewerAvailableSessionsRequest) (*NativeViewerAvailableSessionsResponse, error)
 	// SelectSession selects an LlmSession for subsequent viewer controls.
 	SelectSession(ctx context.Context, in *NativeViewerSelectSessionRequest) (*NativeViewerSelectSessionResponse, error)
@@ -254,7 +254,7 @@ func (c *srpcControlServiceClient) ExecuteCommand(ctx context.Context, in *Nativ
 }
 
 type SRPCControlServiceServer interface {
-	// AvailableSessions lists LlmSessions available within the selected resource scope.
+	// AvailableSessions lists LlmSessions available within the selected LlmSession resource scope.
 	AvailableSessions(context.Context, *NativeViewerAvailableSessionsRequest) (*NativeViewerAvailableSessionsResponse, error)
 	// SelectSession selects an LlmSession for subsequent viewer controls.
 	SelectSession(context.Context, *NativeViewerSelectSessionRequest) (*NativeViewerSelectSessionResponse, error)
