@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	defaultRunMaxRows  uint32 = 1_000
-	resultRowBatchSize        = 128
+	defaultRunMaxRows  = uint32(1_000)
+	resultRowBatchSize = 128
 )
 
 // SqlQueryResource serves SqlQueryResourceService for one SQL query object.
