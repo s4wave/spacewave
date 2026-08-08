@@ -2,7 +2,7 @@ import { Window } from 'happy-dom'
 import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render } from '@testing-library/react'
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import {
   CommandFocusContext,
   type CommandBinding,
@@ -98,6 +98,7 @@ function AccountOverridesProbe() {
       <div data-testid="layer-scope">{overrides.layer?.scope ?? 'null'}</div>
       <div data-testid="layer-label">{overrides.layer?.label ?? 'null'}</div>
       <div data-testid="commands">{commandIds.join(',')}</div>
+      <div data-testid="error">{overrides.error?.message ?? ''}</div>
       <button
         type="button"
         onClick={() =>
@@ -203,13 +204,13 @@ describe('useAccountKeybindingOverrides', () => {
     expect(removeKeybindingOverride).not.toHaveBeenCalled()
   })
 
-  it('publishes an account layer and writes replace, clear, reset, and layer reset through account settings ops', () => {
+  it('publishes an account layer and writes replace, clear, reset, and layer reset through account settings ops', async () => {
     const account = {
       watchKeybindingOverrides: vi.fn(),
       upsertKeybindingOverride: vi.fn(),
       removeKeybindingOverride: vi.fn(),
       setKeybindingSettings: vi.fn(),
-      replaceKeybindingOverrideSet: vi.fn(),
+      replaceKeybindingOverrideSet: vi.fn().mockResolvedValue({}),
     }
     hookState.sessionResource = {
       value: { id: 'session-1' },
@@ -269,10 +270,21 @@ describe('useAccountKeybindingOverrides', () => {
     ] of account.replaceKeybindingOverrideSet.mock.calls.slice(
       callsBeforeEdits,
     )) {
+      expect(request.expectedOverrideSet).toMatchObject({ version: 1 })
       expect(request.overrideSet.version).toBe(2)
       expect(request.overrideSet.overrides).toEqual([])
       expect(request.overrideSet.tuiOverrides).toEqual([])
     }
+
+    account.replaceKeybindingOverrideSet.mockRejectedValueOnce(
+      new Error('account keybinding override set changed'),
+    )
+    fireEvent.click(view.getByText('replace palette'))
+    await waitFor(() => {
+      expect(view.getByTestId('error').textContent).toBe(
+        'account keybinding override set changed',
+      )
+    })
   })
 
   it('keeps a mounted account read-only when account settings reports read-only state', () => {
@@ -281,7 +293,7 @@ describe('useAccountKeybindingOverrides', () => {
       upsertKeybindingOverride: vi.fn(),
       removeKeybindingOverride: vi.fn(),
       setKeybindingSettings: vi.fn(),
-      replaceKeybindingOverrideSet: vi.fn(),
+      replaceKeybindingOverrideSet: vi.fn().mockResolvedValue({}),
     }
     hookState.accountResource = { value: account, loading: false, error: null }
     hookState.accountOverrides = {

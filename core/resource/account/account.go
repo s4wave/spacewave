@@ -225,7 +225,7 @@ func (r *AccountResource) WatchKeybindingOverrides(
 	)
 }
 
-// ReplaceKeybindingOverrideSet atomically replaces the complete account layer.
+// ReplaceKeybindingOverrideSet atomically applies a complete account layer replacement.
 func (r *AccountResource) ReplaceKeybindingOverrideSet(
 	ctx context.Context,
 	req *s4wave_account.ReplaceKeybindingOverrideSetRequest,
@@ -233,12 +233,18 @@ func (r *AccountResource) ReplaceKeybindingOverrideSet(
 	if r.localAccount == nil {
 		return nil, errors.New("account keybinding overrides require a local account")
 	}
+	if req.GetExpectedOverrideSet() == nil {
+		return nil, errors.New("expected account keybinding override set is required")
+	}
 	if err := account_settings.ValidateKeybindingOverrideSet(req.GetOverrideSet()); err != nil {
 		return nil, err
 	}
 	op := &account_settings.AccountSettingsOp{
 		Op: &account_settings.AccountSettingsOp_ReplaceKeybindingOverrideSet{
-			ReplaceKeybindingOverrideSet: req.GetOverrideSet(),
+			ReplaceKeybindingOverrideSet: &account_settings.ReplaceKeybindingOverrideSetOp{
+				ExpectedOverrideSet: req.GetExpectedOverrideSet(),
+				OverrideSet:         req.GetOverrideSet(),
+			},
 		},
 	}
 	if err := r.queueLocalAccountSettingsOp(ctx, op); err != nil {

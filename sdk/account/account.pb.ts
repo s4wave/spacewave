@@ -1587,12 +1587,20 @@ export const PasskeyRegisterVerifyResponse: MessageType<PasskeyRegisterVerifyRes
   })
 
 /**
- * ReplaceKeybindingOverrideSetRequest atomically replaces the account layer.
+ * ReplaceKeybindingOverrideSetRequest atomically applies an account layer replacement.
  *
  * @generated from message s4wave.account.ReplaceKeybindingOverrideSetRequest
  */
 export interface ReplaceKeybindingOverrideSetRequest {
   /**
+   * ExpectedOverrideSet is the watched snapshot used to derive the replacement.
+   *
+   * @generated from field: s4wave.command.KeybindingOverrideSet expected_override_set = 2;
+   */
+  expectedOverrideSet?: KeybindingOverrideSet
+  /**
+   * OverrideSet is the complete replacement value.
+   *
    * @generated from field: s4wave.command.KeybindingOverrideSet override_set = 1;
    */
   overrideSet?: KeybindingOverrideSet
@@ -1602,6 +1610,12 @@ export const ReplaceKeybindingOverrideSetRequest: MessageType<ReplaceKeybindingO
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.account.ReplaceKeybindingOverrideSetRequest',
     fields: [
+      {
+        no: 2,
+        name: 'expected_override_set',
+        kind: 'message',
+        T: () => KeybindingOverrideSet,
+      },
       {
         no: 1,
         name: 'override_set',

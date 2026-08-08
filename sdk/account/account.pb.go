@@ -1503,10 +1503,13 @@ func (x *PasskeyRegisterVerifyResponse) GetCredentialId() string {
 	return ""
 }
 
-// ReplaceKeybindingOverrideSetRequest atomically replaces the account layer.
+// ReplaceKeybindingOverrideSetRequest atomically applies an account layer replacement.
 type ReplaceKeybindingOverrideSetRequest struct {
 	unknownFields []byte
-	OverrideSet   *command.KeybindingOverrideSet `protobuf:"bytes,1,opt,name=override_set,json=overrideSet,proto3" json:"overrideSet,omitempty"`
+	// ExpectedOverrideSet is the watched snapshot used to derive the replacement.
+	ExpectedOverrideSet *command.KeybindingOverrideSet `protobuf:"bytes,2,opt,name=expected_override_set,json=expectedOverrideSet,proto3" json:"expectedOverrideSet,omitempty"`
+	// OverrideSet is the complete replacement value.
+	OverrideSet *command.KeybindingOverrideSet `protobuf:"bytes,1,opt,name=override_set,json=overrideSet,proto3" json:"overrideSet,omitempty"`
 }
 
 func (x *ReplaceKeybindingOverrideSetRequest) Reset() {
@@ -1514,6 +1517,13 @@ func (x *ReplaceKeybindingOverrideSetRequest) Reset() {
 }
 
 func (*ReplaceKeybindingOverrideSetRequest) ProtoMessage() {}
+
+func (x *ReplaceKeybindingOverrideSetRequest) GetExpectedOverrideSet() *command.KeybindingOverrideSet {
+	if x != nil {
+		return x.ExpectedOverrideSet
+	}
+	return nil
+}
 
 func (x *ReplaceKeybindingOverrideSetRequest) GetOverrideSet() *command.KeybindingOverrideSet {
 	if x != nil {
@@ -2350,6 +2360,7 @@ func (m *ReplaceKeybindingOverrideSetRequest) CloneVT() *ReplaceKeybindingOverri
 		return (*ReplaceKeybindingOverrideSetRequest)(nil)
 	}
 	r := new(ReplaceKeybindingOverrideSetRequest)
+	r.ExpectedOverrideSet = protobuf_go_lite.CloneVTValue(m.ExpectedOverrideSet)
 	r.OverrideSet = protobuf_go_lite.CloneVTValue(m.OverrideSet)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -3478,6 +3489,9 @@ func (this *ReplaceKeybindingOverrideSetRequest) EqualVT(that *ReplaceKeybinding
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.OverrideSet, that.OverrideSet) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.ExpectedOverrideSet, that.ExpectedOverrideSet) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6045,6 +6059,11 @@ func (x *ReplaceKeybindingOverrideSetRequest) MarshalProtoJSON(s *json.MarshalSt
 		s.WriteObjectField("overrideSet")
 		x.OverrideSet.MarshalProtoJSON(s.WithField("overrideSet"))
 	}
+	if x.ExpectedOverrideSet != nil || s.HasField("expectedOverrideSet") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedOverrideSet")
+		x.ExpectedOverrideSet.MarshalProtoJSON(s.WithField("expectedOverrideSet"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -6069,6 +6088,13 @@ func (x *ReplaceKeybindingOverrideSetRequest) UnmarshalProtoJSON(s *json.Unmarsh
 			}
 			x.OverrideSet = &command.KeybindingOverrideSet{}
 			x.OverrideSet.UnmarshalProtoJSON(s.WithField("override_set", true))
+		case "expected_override_set", "expectedOverrideSet":
+			if s.ReadNil() {
+				x.ExpectedOverrideSet = nil
+				return
+			}
+			x.ExpectedOverrideSet = &command.KeybindingOverrideSet{}
+			x.ExpectedOverrideSet.UnmarshalProtoJSON(s.WithField("expected_override_set", true))
 		}
 	})
 }
@@ -8236,6 +8262,16 @@ func (m *ReplaceKeybindingOverrideSetRequest) MarshalToSizedBufferVT(dAtA []byte
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ExpectedOverrideSet != nil {
+		size, err := m.ExpectedOverrideSet.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x12
+	}
 	if m.OverrideSet != nil {
 		size, err := m.OverrideSet.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -8916,6 +8952,10 @@ func (m *ReplaceKeybindingOverrideSetRequest) SizeVT() (n int) {
 	_ = l
 	if m.OverrideSet != nil {
 		l = m.OverrideSet.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.ExpectedOverrideSet != nil {
+		l = m.ExpectedOverrideSet.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += len(m.unknownFields)
@@ -9830,6 +9870,10 @@ func (x *ReplaceKeybindingOverrideSetRequest) MarshalProtoText() string {
 	if x.OverrideSet != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "override_set")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.OverrideSet)
+	}
+	if x.ExpectedOverrideSet != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expected_override_set")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.ExpectedOverrideSet)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -12943,6 +12987,21 @@ func (m *ReplaceKeybindingOverrideSetRequest) UnmarshalVT(dAtA []byte) error {
 				m.OverrideSet = &command.KeybindingOverrideSet{}
 			}
 			if err := m.OverrideSet.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedOverrideSet", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.ExpectedOverrideSet == nil {
+				m.ExpectedOverrideSet = &command.KeybindingOverrideSet{}
+			}
+			if err := m.ExpectedOverrideSet.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex

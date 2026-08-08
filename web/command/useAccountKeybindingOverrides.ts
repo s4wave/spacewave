@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useAbortSignalEffect } from '@aptre/bldr-react'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
@@ -63,6 +63,7 @@ export function useAccountKeybindingOverrides(
 ): AccountKeybindingOverridesValue {
   if (surface !== CommandSurface.WEB && surface !== CommandSurface.TUI)
     throw new Error('account keybindings require WEB or TUI surface')
+  const [writeError, setWriteError] = useState<Error | null>(null)
   const sessionResource = SessionContext.useContext()
   const sessionInfo = useSessionInfo(sessionResource.value)
   const accountResource = useMountAccount(
@@ -75,7 +76,7 @@ export function useAccountKeybindingOverrides(
     (account, signal) => account.watchKeybindingOverrides({}, signal),
     [],
   )
-  const available = Boolean(accountResource.value)
+  const available = Boolean(accountResource.value && accountOverrides.value)
   const readOnly = !available || Boolean(accountOverrides.value?.readOnly)
   const migration = useMemo(
     () =>
@@ -109,10 +110,21 @@ export function useAccountKeybindingOverrides(
         migration.overrideSet,
         CommandSurface.WEB,
       )
-      void account.replaceKeybindingOverrideSet(
-        { overrideSet: combined },
-        signal,
-      )
+      void account
+        .replaceKeybindingOverrideSet(
+          {
+            expectedOverrideSet: accountOverrides.value?.overrideSet,
+            overrideSet: combined,
+          },
+          signal,
+        )
+        .then(() => setWriteError(null))
+        .catch((error: unknown) => {
+          if (!signal.aborted)
+            setWriteError(
+              error instanceof Error ? error : new Error(String(error)),
+            )
+        })
     },
     [
       accountResource.value,
@@ -139,7 +151,19 @@ export function useAccountKeybindingOverrides(
         normalized,
         surface,
       )
-      void account.replaceKeybindingOverrideSet({ overrideSet: combined })
+      const expectedOverrideSet = accountOverrides.value?.overrideSet
+      if (!expectedOverrideSet) return
+      void account
+        .replaceKeybindingOverrideSet({
+          expectedOverrideSet,
+          overrideSet: combined,
+        })
+        .then(() => setWriteError(null))
+        .catch((error: unknown) =>
+          setWriteError(
+            error instanceof Error ? error : new Error(String(error)),
+          ),
+        )
     },
     [
       accountResource.value,
@@ -241,6 +265,7 @@ export function useAccountKeybindingOverrides(
       sessionResource.error ??
       accountResource.error ??
       accountOverrides.error ??
+      writeError ??
       keybindingMigrationError(migration.diagnostics),
     setCommandOverride: applyOverride,
     setOverrideSet,

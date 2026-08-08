@@ -645,11 +645,35 @@ func TestReplaceKeybindingOverrideSetAtomicValidation(t *testing.T) {
 		WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "spacewave.palette", Bindings: []*s4wave_command.CommandBinding{{Id: "palette-web", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+K"}}, Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB}}}},
 		TuiOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "spacewave.palette", Bindings: []*s4wave_command.CommandBinding{{Id: "palette-tui", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+K"}}, Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI}}}},
 	}
+	expected := &s4wave_command.KeybindingOverrideSet{Version: 1}
 	for i := range 2 {
-		if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{OverrideSet: valid}); err != nil {
+		if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{
+			ExpectedOverrideSet: expected,
+			OverrideSet:         valid,
+		}); err != nil {
 			t.Fatalf("valid replacement %d: %v", i, err)
 		}
+		expected = valid
 	}
+
+	concurrent := valid.CloneVT()
+	concurrent.WebSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+Space"}
+	if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{
+		ExpectedOverrideSet: valid,
+		OverrideSet:         concurrent,
+	}); err != nil {
+		t.Fatalf("concurrent winner: %v", err)
+	}
+	concurrentTUI := valid.CloneVT()
+	concurrentTUI.TuiSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+B"}
+	if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{
+		ExpectedOverrideSet: valid,
+		OverrideSet:         concurrentTUI,
+	}); err != nil {
+		t.Fatalf("concurrent TUI replacement: %v", err)
+	}
+	merged := concurrent.CloneVT()
+	merged.TuiSettings = concurrentTUI.TuiSettings.CloneVT()
 	invalid := []*s4wave_command.KeybindingOverrideSet{
 		{Version: 1},
 		{Version: 2, Overrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "legacy"}}},
@@ -660,14 +684,14 @@ func TestReplaceKeybindingOverrideSetAtomicValidation(t *testing.T) {
 		{Version: 2, WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "unknown", Bindings: []*s4wave_command.CommandBinding{{Id: "unknown", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "x"}}}}}}},
 	}
 	for i, value := range invalid {
-		if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{OverrideSet: value}); err == nil {
+		if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{ExpectedOverrideSet: merged, OverrideSet: value}); err == nil {
 			t.Fatalf("invalid replacement %d accepted", i)
 		}
 	}
 	rpcCtx, cancel := context.WithCancel(ctx)
 	var got *s4wave_command.KeybindingOverrideSet
 	strm := &testWatchKeybindingOverridesStream{ctx: rpcCtx, onSend: func(resp *s4wave_account.WatchKeybindingOverridesResponse) error {
-		if resp.GetOverrideSet().GetVersion() == 2 {
+		if resp.GetOverrideSet().EqualVT(merged) {
 			got = resp.GetOverrideSet()
 			cancel()
 		}
@@ -676,7 +700,7 @@ func TestReplaceKeybindingOverrideSetAtomicValidation(t *testing.T) {
 	if err := ar.WatchKeybindingOverrides(&s4wave_account.WatchKeybindingOverridesRequest{}, strm); err != nil && rpcCtx.Err() == nil {
 		t.Fatal(err)
 	}
-	if !got.EqualVT(valid) {
+	if !got.EqualVT(merged) {
 		t.Fatalf("rejected operation changed snapshot: %#v", got)
 	}
 }

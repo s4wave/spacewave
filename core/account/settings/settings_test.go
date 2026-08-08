@@ -754,3 +754,63 @@ func TestSetKeybindingSettingsPreservesCommandOverrides(t *testing.T) {
 		t.Fatalf("command override bindings changed: %#v", bindings)
 	}
 }
+
+func TestReplaceKeybindingOverrideSetRejectsConflictingPartition(t *testing.T) {
+	ctx := t.Context()
+	initialSet := &s4wave_command.KeybindingOverrideSet{
+		Version: 2,
+		WebOverrides: []*s4wave_command.KeybindingCommandOverride{{
+			CommandId: "spacewave.palette",
+		}},
+	}
+	initialData, err := (&account_settings.AccountSettings{
+		KeybindingOverrides: initialSet,
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := initialSet.CloneVT()
+	first.WebSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+A"}
+	second := initialSet.CloneVT()
+	second.WebSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+B"}
+	marshalOp := func(replacement *s4wave_command.KeybindingOverrideSet) []byte {
+		t.Helper()
+		data, err := (&account_settings.AccountSettingsOp{
+			Op: &account_settings.AccountSettingsOp_ReplaceKeybindingOverrideSet{
+				ReplaceKeybindingOverrideSet: &account_settings.ReplaceKeybindingOverrideSetOp{
+					ExpectedOverrideSet: initialSet,
+					OverrideSet:         replacement,
+				},
+			},
+		}).MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return data
+	}
+	nextData, results, err := account_settings.ProcessAccountSettingsOps(
+		ctx,
+		nil,
+		initialData,
+		[]*sobject.SOOperationInner{
+			{PeerId: "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW", Nonce: 1, OpData: marshalOp(first)},
+			{PeerId: "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW", Nonce: 2, OpData: marshalOp(second)},
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 2 || !results[0].GetSuccess() || results[1].GetSuccess() {
+		t.Fatalf("expected one accepted replacement and one conflict, got %#v", results)
+	}
+	got := &account_settings.AccountSettings{}
+	if nextData == nil {
+		t.Fatal("expected changed account settings")
+	}
+	if err := got.UnmarshalVT(*nextData); err != nil {
+		t.Fatal(err)
+	}
+	if !got.GetKeybindingOverrides().EqualVT(first) {
+		t.Fatalf("conflicting replacement changed winner: %#v", got.GetKeybindingOverrides())
+	}
+}

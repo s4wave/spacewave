@@ -205,13 +205,24 @@ func ProcessAccountSettingsOps(
 			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
 
 		case *AccountSettingsOp_ReplaceKeybindingOverrideSet:
-			overrideSet := body.ReplaceKeybindingOverrideSet
+			replacement := body.ReplaceKeybindingOverrideSet
+			overrideSet := replacement.GetOverrideSet()
 			if err := ValidateKeybindingOverrideSet(overrideSet); err != nil {
 				results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), false,
 					&sobject.SOOperationRejectionErrorDetails{ErrorMsg: err.Error()}))
 				continue
 			}
-			state.KeybindingOverrides = overrideSet.CloneVT()
+			merged, err := mergeKeybindingOverrideSet(
+				state.GetKeybindingOverrides(),
+				replacement.GetExpectedOverrideSet(),
+				overrideSet,
+			)
+			if err != nil {
+				results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), false,
+					&sobject.SOOperationRejectionErrorDetails{ErrorMsg: err.Error()}))
+				continue
+			}
+			state.KeybindingOverrides = merged
 			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
 
 		case *AccountSettingsOp_SetKeybindingSettings:
@@ -243,6 +254,72 @@ func ProcessAccountSettingsOps(
 		return nil, nil, errors.Wrap(err, "marshal account settings state")
 	}
 	return &nextData, results, nil
+}
+
+func mergeKeybindingOverrideSet(
+	current, expected, replacement *s4wave_command.KeybindingOverrideSet,
+) (*s4wave_command.KeybindingOverrideSet, error) {
+	if expected == nil {
+		return nil, errors.New("expected account keybinding override set is required")
+	}
+	if current == nil {
+		current = &s4wave_command.KeybindingOverrideSet{Version: 1}
+	}
+	if current.EqualVT(expected) {
+		return replacement.CloneVT(), nil
+	}
+	if current.EqualVT(replacement) {
+		return current.CloneVT(), nil
+	}
+	if current.GetVersion() != 2 || expected.GetVersion() != 2 || replacement.GetVersion() != 2 {
+		return nil, errors.New("account keybinding override set changed")
+	}
+
+	merged := current.CloneVT()
+	if keybindingPartitionEqual(current.GetWebOverrides(), current.GetWebSettings(), expected.GetWebOverrides(), expected.GetWebSettings()) {
+		merged.WebOverrides = cloneKeybindingOverrides(replacement.GetWebOverrides())
+		merged.WebSettings = replacement.GetWebSettings().CloneVT()
+	} else if !keybindingPartitionEqual(current.GetWebOverrides(), current.GetWebSettings(), replacement.GetWebOverrides(), replacement.GetWebSettings()) &&
+		!keybindingPartitionEqual(expected.GetWebOverrides(), expected.GetWebSettings(), replacement.GetWebOverrides(), replacement.GetWebSettings()) {
+		return nil, errors.New("account WEB keybinding overrides changed")
+	}
+	if keybindingPartitionEqual(current.GetTuiOverrides(), current.GetTuiSettings(), expected.GetTuiOverrides(), expected.GetTuiSettings()) {
+		merged.TuiOverrides = cloneKeybindingOverrides(replacement.GetTuiOverrides())
+		merged.TuiSettings = replacement.GetTuiSettings().CloneVT()
+	} else if !keybindingPartitionEqual(current.GetTuiOverrides(), current.GetTuiSettings(), replacement.GetTuiOverrides(), replacement.GetTuiSettings()) &&
+		!keybindingPartitionEqual(expected.GetTuiOverrides(), expected.GetTuiSettings(), replacement.GetTuiOverrides(), replacement.GetTuiSettings()) {
+		return nil, errors.New("account TUI keybinding overrides changed")
+	}
+	return merged, nil
+}
+
+func keybindingPartitionEqual(
+	leftOverrides []*s4wave_command.KeybindingCommandOverride,
+	leftSettings *s4wave_command.KeybindingOverrideSettings,
+	rightOverrides []*s4wave_command.KeybindingCommandOverride,
+	rightSettings *s4wave_command.KeybindingOverrideSettings,
+) bool {
+	left := &s4wave_command.KeybindingOverrideSet{
+		Version:      2,
+		WebOverrides: leftOverrides,
+		WebSettings:  leftSettings,
+	}
+	right := &s4wave_command.KeybindingOverrideSet{
+		Version:      2,
+		WebOverrides: rightOverrides,
+		WebSettings:  rightSettings,
+	}
+	return left.EqualVT(right)
+}
+
+func cloneKeybindingOverrides(
+	overrides []*s4wave_command.KeybindingCommandOverride,
+) []*s4wave_command.KeybindingCommandOverride {
+	cloned := make([]*s4wave_command.KeybindingCommandOverride, len(overrides))
+	for i, override := range overrides {
+		cloned[i] = override.CloneVT()
+	}
+	return cloned
 }
 
 func validateKeybindingOverride(override *s4wave_command.KeybindingCommandOverride) error {
