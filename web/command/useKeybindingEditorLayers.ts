@@ -14,27 +14,9 @@ import type {
 
 // useKeybindingEditorLayers owns the editable override layers and effective graph.
 export function useKeybindingEditorLayers(commands: CommandState[]) {
-  const canonicalCommandIds = useMemo(
-    () =>
-      new Set(
-        commands
-          .map((state) => state.command?.commandId)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    [commands],
-  )
-  const local = useLocalKeybindingOverrides(
-    CommandSurface.WEB,
-    canonicalCommandIds,
-  )
-  const account = useAccountKeybindingOverrides(
-    CommandSurface.WEB,
-    canonicalCommandIds,
-  )
-  const space = useSpaceKeybindingOverrides(
-    CommandSurface.WEB,
-    canonicalCommandIds,
-  )
+  const local = useLocalKeybindingOverrides(CommandSurface.WEB)
+  const account = useAccountKeybindingOverrides(CommandSurface.WEB)
+  const space = useSpaceKeybindingOverrides(CommandSurface.WEB)
   const controllers: Record<KeybindingEditorScope, KeybindingLayerController> =
     {
       local: {

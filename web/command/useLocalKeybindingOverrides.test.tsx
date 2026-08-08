@@ -54,10 +54,7 @@ function comboBinding(id: string, combo: string): CommandBinding {
 }
 
 function OverridesProbe({ name }: { name: string }) {
-  const overrides = useLocalKeybindingOverrides(
-    CommandSurface.WEB,
-    new Set(['spacewave.palette']),
-  )
+  const overrides = useLocalKeybindingOverrides(CommandSurface.WEB)
   const commandIds = Object.keys(overrides.overrideSet.overrides).sort()
   const commandOverride = overrides.overrideSet.overrides['spacewave.palette']
   return (
@@ -174,10 +171,8 @@ describe('useLocalKeybindingOverrides', () => {
     expect(rootAtom.get()).toMatchObject({
       keybindings: {
         local: {
-          version: 2,
-          tuiOverrides: { version: 2, overrides: {}, settings: {} },
+          tuiOverrides: { overrides: {}, settings: {} },
           webOverrides: {
-            version: 2,
             overrides: {
               'spacewave.palette': {
                 bindings: [comboBinding('local-palette', 'Ctrl+K')],
@@ -231,51 +226,5 @@ describe('useLocalKeybindingOverrides', () => {
 
     expect(view.getByTestId('reader-commands').textContent).toBe('')
     expect(rootAtom.get()).toEqual({})
-  })
-
-  it('migrates valid v1 into WEB and preserves TUI edits', () => {
-    const rootAtom = atom<Record<string, unknown>>({
-      keybindings: {
-        local: {
-          version: 1,
-          overrides: { 'spacewave.palette': { disabled: true } },
-          settings: {},
-        },
-      },
-    })
-    renderWithStore(rootAtom)
-    expect(rootAtom.get()).toMatchObject({
-      keybindings: {
-        local: {
-          version: 2,
-          webOverrides: {
-            overrides: { 'spacewave.palette': { disabled: true } },
-          },
-          tuiOverrides: { overrides: {} },
-        },
-      },
-    })
-  })
-
-  it('migrates durable commands that are not currently mounted', () => {
-    const raw = {
-      version: 1,
-      overrides: { 'dynamic.unmounted': { disabled: true } },
-      settings: {},
-    }
-    const rootAtom = atom<Record<string, unknown>>({
-      keybindings: { local: raw },
-    })
-    renderWithStore(rootAtom)
-    expect(rootAtom.get()).toMatchObject({
-      keybindings: {
-        local: {
-          version: 2,
-          webOverrides: {
-            overrides: { 'dynamic.unmounted': { disabled: true } },
-          },
-        },
-      },
-    })
   })
 })

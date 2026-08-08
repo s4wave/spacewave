@@ -1,6 +1,4 @@
 import { useCallback, useMemo, useState } from 'react'
-import { useAbortSignalEffect } from '@aptre/bldr-react'
-
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useMountAccount } from '@s4wave/web/hooks/useMountAccount.js'
@@ -16,7 +14,6 @@ import {
   clearCommandBindingsOverride,
   createEmptyKeybindingOverrideSet,
   createKeybindingOverrideLayer,
-  migrateLegacyKeybindingOverrideSet,
   keybindingOverrideSetFromProto,
   normalizeKeybindingOverrideSet,
   removeLocalCommandBindingOverride,
@@ -28,7 +25,6 @@ import {
   type KeybindingOverrideLayer,
   type KeybindingOverrideSet,
   type KeybindingOverrideSettings,
-  keybindingMigrationError,
   mergeKeybindingOverridePartitions,
 } from './keybinding-overrides.js'
 
@@ -59,7 +55,6 @@ export interface AccountKeybindingOverridesValue {
 
 export function useAccountKeybindingOverrides(
   surface: CommandSurface,
-  canonicalCommandIds: ReadonlySet<string>,
 ): AccountKeybindingOverridesValue {
   if (surface !== CommandSurface.WEB && surface !== CommandSurface.TUI)
     throw new Error('account keybindings require WEB or TUI surface')
@@ -81,63 +76,13 @@ export function useAccountKeybindingOverrides(
   )
   const available = Boolean(accountResource.value && accountOverrides.value)
   const readOnly = !available || Boolean(accountOverrides.value?.readOnly)
-  const migration = useMemo(
+  const overrideSet = useMemo(
     () =>
-      migrateLegacyKeybindingOverrideSet(
-        accountOverrides.value?.overrideSet ?? { version: 2 },
-        canonicalCommandIds,
+      keybindingOverrideSetFromProto(
+        accountOverrides.value?.overrideSet,
+        surface,
       ),
-    [accountOverrides.value?.overrideSet, canonicalCommandIds],
-  )
-  const overrideSet = useMemo(() => {
-    const value = accountOverrides.value?.overrideSet
-    if (value?.version === 1) {
-      return surface === CommandSurface.WEB
-        ? migration.overrideSet
-        : createEmptyKeybindingOverrideSet()
-    }
-    return keybindingOverrideSetFromProto(value, surface)
-  }, [accountOverrides.value?.overrideSet, migration.overrideSet, surface])
-  useAbortSignalEffect(
-    (signal) => {
-      const account = accountResource.value
-      if (
-        !account ||
-        readOnly ||
-        !migration.required ||
-        migration.diagnostics.length
-      )
-        return
-      const expectedOverrideSet = accountOverrides.value?.overrideSet
-      if (!expectedOverrideSet) return
-      const combined = mergeKeybindingOverridePartitions(
-        expectedOverrideSet,
-        migration.overrideSet,
-        CommandSurface.WEB,
-      )
-      void account
-        .replaceKeybindingOverrideSet(
-          {
-            expectedOverrideSet,
-            overrideSet: combined,
-          },
-          signal,
-        )
-        .then(() => setWriteFailure(null))
-        .catch((error: unknown) => {
-          if (!signal.aborted)
-            setWriteFailure({
-              error: error instanceof Error ? error : new Error(String(error)),
-              expected: expectedOverrideSet,
-            })
-        })
-    },
-    [
-      accountResource.value,
-      accountOverrides.value?.overrideSet,
-      migration,
-      readOnly,
-    ],
+    [accountOverrides.value?.overrideSet, surface],
   )
   const layer = useMemo(
     () =>
@@ -278,8 +223,7 @@ export function useAccountKeybindingOverrides(
       sessionResource.error ??
       accountResource.error ??
       accountOverrides.error ??
-      activeWriteError ??
-      keybindingMigrationError(migration.diagnostics),
+      activeWriteError,
     setCommandOverride: applyOverride,
     setOverrideSet,
     setSettings,

@@ -6,7 +6,6 @@ import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import {
   CommandFocusContext,
   type CommandBinding,
-  type KeybindingOverrideSet as ProtoKeybindingOverrideSet,
 } from '@s4wave/sdk/command/command.pb.js'
 import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
@@ -62,10 +61,7 @@ function lastSettingsOp(applyWorldOp: { mock: { calls: unknown[][] } }) {
 }
 
 function SpaceOverridesProbe() {
-  const overrides = useSpaceKeybindingOverrides(
-    CommandSurface.WEB,
-    new Set(['spacewave.palette', 'spacewave.viewer']),
-  )
+  const overrides = useSpaceKeybindingOverrides(CommandSurface.WEB)
   const commandIds = Object.keys(overrides.overrideSet.overrides).sort()
   return (
     <section>
@@ -143,8 +139,7 @@ describe('useSpaceKeybindingOverrides', () => {
           indexPath: '/files',
           pluginIds: ['spacewave-app', 'spacewave-terminal'],
           keybindingOverrides: {
-            version: 1,
-            overrides: [
+            webOverrides: [
               {
                 commandId: 'spacewave.palette',
                 bindings: [comboBinding('palette-existing', 'Ctrl+P')],
@@ -175,8 +170,6 @@ describe('useSpaceKeybindingOverrides', () => {
       'spacewave.palette,spacewave.viewer',
     )
 
-    await waitFor(() => expect(applyWorldOp).toHaveBeenCalledTimes(1))
-    applyWorldOp.mockClear()
     fireEvent.click(view.getByText('replace palette'))
 
     await waitFor(() => expect(applyWorldOp).toHaveBeenCalledTimes(1))
@@ -186,7 +179,6 @@ describe('useSpaceKeybindingOverrides', () => {
       '',
     )
     let op = lastSettingsOp(applyWorldOp)
-    expect(op.expectedKeybindingOverrides?.version).toBe(1)
     expect(op.settings?.indexPath).toBe('/files')
     expect(op.settings?.pluginIds).toEqual([
       'spacewave-app',
@@ -240,48 +232,10 @@ describe('useSpaceKeybindingOverrides', () => {
     ])
     expect(op.settings?.keybindingOverrides).toEqual(
       expect.objectContaining({
-        version: 2,
         webSettings: {},
       }),
     )
     expect(op.settings?.keybindingOverrides?.webOverrides ?? []).toEqual([])
-  })
-
-  it('reports automatic migration failures until the Space snapshot advances', async () => {
-    const applyWorldOp = vi.fn(() =>
-      Promise.reject(new Error('Space keybinding override set changed')),
-    )
-    const spaceContext = {
-      spaceState: {
-        settings: {
-          keybindingOverrides: {
-            version: 1,
-            overrides: [{ commandId: 'spacewave.palette', disabled: true }],
-          } as ProtoKeybindingOverrideSet,
-        },
-      },
-      spaceWorld: { applyWorldOp },
-      spaceWorldResource: {
-        value: { applyWorldOp },
-        loading: false,
-        error: null,
-      },
-    }
-    hookState.spaceContext = spaceContext
-
-    const view = render(<SpaceOverridesProbe />)
-    await waitFor(() => {
-      expect(view.getByTestId('error').textContent).toBe(
-        'Space keybinding override set changed',
-      )
-    })
-    spaceContext.spaceState.settings.keybindingOverrides = {
-      version: 2,
-      webOverrides: [],
-      tuiOverrides: [],
-    }
-    view.rerender(<SpaceOverridesProbe />)
-    expect(view.getByTestId('error').textContent).toBe('')
   })
 
   it('keeps a Space layer read-only when sharing state does not allow management', () => {
@@ -292,8 +246,7 @@ describe('useSpaceKeybindingOverrides', () => {
           indexPath: '/files',
           pluginIds: ['spacewave-app'],
           keybindingOverrides: {
-            version: 1,
-            overrides: [
+            webOverrides: [
               {
                 commandId: 'spacewave.palette',
                 bindings: [comboBinding('palette-existing', 'Ctrl+P')],

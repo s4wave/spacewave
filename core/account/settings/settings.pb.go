@@ -190,9 +190,6 @@ type AccountSettingsOp struct {
 	//	*AccountSettingsOp_RemoveEntityKeypair
 	//	*AccountSettingsOp_UpsertSessionPresentation
 	//	*AccountSettingsOp_RemoveSessionPresentation
-	//	*AccountSettingsOp_UpsertKeybindingOverride
-	//	*AccountSettingsOp_RemoveKeybindingOverride
-	//	*AccountSettingsOp_SetKeybindingSettings
 	//	*AccountSettingsOp_ReplaceKeybindingOverrideSet
 	Op isAccountSettingsOp_Op `protobuf_oneof:"op"`
 }
@@ -259,27 +256,6 @@ func (x *AccountSettingsOp) GetRemoveSessionPresentation() *RemoveSessionPresent
 	return nil
 }
 
-func (x *AccountSettingsOp) GetUpsertKeybindingOverride() *command.KeybindingCommandOverride {
-	if x, ok := x.GetOp().(*AccountSettingsOp_UpsertKeybindingOverride); ok {
-		return x.UpsertKeybindingOverride
-	}
-	return nil
-}
-
-func (x *AccountSettingsOp) GetRemoveKeybindingOverride() *RemoveKeybindingOverrideOp {
-	if x, ok := x.GetOp().(*AccountSettingsOp_RemoveKeybindingOverride); ok {
-		return x.RemoveKeybindingOverride
-	}
-	return nil
-}
-
-func (x *AccountSettingsOp) GetSetKeybindingSettings() *command.KeybindingOverrideSettings {
-	if x, ok := x.GetOp().(*AccountSettingsOp_SetKeybindingSettings); ok {
-		return x.SetKeybindingSettings
-	}
-	return nil
-}
-
 func (x *AccountSettingsOp) GetReplaceKeybindingOverrideSet() *ReplaceKeybindingOverrideSetOp {
 	if x, ok := x.GetOp().(*AccountSettingsOp_ReplaceKeybindingOverrideSet); ok {
 		return x.ReplaceKeybindingOverrideSet
@@ -326,24 +302,9 @@ type AccountSettingsOp_RemoveSessionPresentation struct {
 	RemoveSessionPresentation *RemoveSessionPresentationOp `protobuf:"bytes,7,opt,name=remove_session_presentation,json=removeSessionPresentation,proto3,oneof"`
 }
 
-type AccountSettingsOp_UpsertKeybindingOverride struct {
-	// UpsertKeybindingOverride adds or replaces one keybinding override.
-	UpsertKeybindingOverride *command.KeybindingCommandOverride `protobuf:"bytes,8,opt,name=upsert_keybinding_override,json=upsertKeybindingOverride,proto3,oneof"`
-}
-
-type AccountSettingsOp_RemoveKeybindingOverride struct {
-	// RemoveKeybindingOverride removes one keybinding override by command_id.
-	RemoveKeybindingOverride *RemoveKeybindingOverrideOp `protobuf:"bytes,9,opt,name=remove_keybinding_override,json=removeKeybindingOverride,proto3,oneof"`
-}
-
-type AccountSettingsOp_SetKeybindingSettings struct {
-	// SetKeybindingSettings replaces layer-wide keybinding settings.
-	SetKeybindingSettings *command.KeybindingOverrideSettings `protobuf:"bytes,10,opt,name=set_keybinding_settings,json=setKeybindingSettings,proto3,oneof"`
-}
-
 type AccountSettingsOp_ReplaceKeybindingOverrideSet struct {
 	// ReplaceKeybindingOverrideSet atomically replaces the complete persisted layer.
-	ReplaceKeybindingOverrideSet *ReplaceKeybindingOverrideSetOp `protobuf:"bytes,11,opt,name=replace_keybinding_override_set,json=replaceKeybindingOverrideSet,proto3,oneof"`
+	ReplaceKeybindingOverrideSet *ReplaceKeybindingOverrideSetOp `protobuf:"bytes,8,opt,name=replace_keybinding_override_set,json=replaceKeybindingOverrideSet,proto3,oneof"`
 }
 
 func (*AccountSettingsOp_UpdateDisplayName) isAccountSettingsOp_Op() {}
@@ -359,12 +320,6 @@ func (*AccountSettingsOp_RemoveEntityKeypair) isAccountSettingsOp_Op() {}
 func (*AccountSettingsOp_UpsertSessionPresentation) isAccountSettingsOp_Op() {}
 
 func (*AccountSettingsOp_RemoveSessionPresentation) isAccountSettingsOp_Op() {}
-
-func (*AccountSettingsOp_UpsertKeybindingOverride) isAccountSettingsOp_Op() {}
-
-func (*AccountSettingsOp_RemoveKeybindingOverride) isAccountSettingsOp_Op() {}
-
-func (*AccountSettingsOp_SetKeybindingSettings) isAccountSettingsOp_Op() {}
 
 func (*AccountSettingsOp_ReplaceKeybindingOverrideSet) isAccountSettingsOp_Op() {}
 
@@ -473,26 +428,6 @@ func (*RemoveSessionPresentationOp) ProtoMessage() {}
 func (x *RemoveSessionPresentationOp) GetPeerId() string {
 	if x != nil {
 		return x.PeerId
-	}
-	return ""
-}
-
-// RemoveKeybindingOverrideOp removes one keybinding override by command ID.
-type RemoveKeybindingOverrideOp struct {
-	unknownFields []byte
-	// CommandId is the command identifier to remove.
-	CommandId string `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"commandId,omitempty"`
-}
-
-func (x *RemoveKeybindingOverrideOp) Reset() {
-	*x = RemoveKeybindingOverrideOp{}
-}
-
-func (*RemoveKeybindingOverrideOp) ProtoMessage() {}
-
-func (x *RemoveKeybindingOverrideOp) GetCommandId() string {
-	if x != nil {
-		return x.CommandId
 	}
 	return ""
 }
@@ -665,45 +600,6 @@ func (m *AccountSettingsOp_RemoveSessionPresentation) CloneOneofVT() isAccountSe
 	return m.CloneVT()
 }
 
-func (m *AccountSettingsOp_UpsertKeybindingOverride) CloneVT() *AccountSettingsOp_UpsertKeybindingOverride {
-	if m == nil {
-		return (*AccountSettingsOp_UpsertKeybindingOverride)(nil)
-	}
-	r := new(AccountSettingsOp_UpsertKeybindingOverride)
-	r.UpsertKeybindingOverride = protobuf_go_lite.CloneVTValue(m.UpsertKeybindingOverride)
-	return r
-}
-
-func (m *AccountSettingsOp_UpsertKeybindingOverride) CloneOneofVT() isAccountSettingsOp_Op {
-	return m.CloneVT()
-}
-
-func (m *AccountSettingsOp_RemoveKeybindingOverride) CloneVT() *AccountSettingsOp_RemoveKeybindingOverride {
-	if m == nil {
-		return (*AccountSettingsOp_RemoveKeybindingOverride)(nil)
-	}
-	r := new(AccountSettingsOp_RemoveKeybindingOverride)
-	r.RemoveKeybindingOverride = protobuf_go_lite.CloneVTValue(m.RemoveKeybindingOverride)
-	return r
-}
-
-func (m *AccountSettingsOp_RemoveKeybindingOverride) CloneOneofVT() isAccountSettingsOp_Op {
-	return m.CloneVT()
-}
-
-func (m *AccountSettingsOp_SetKeybindingSettings) CloneVT() *AccountSettingsOp_SetKeybindingSettings {
-	if m == nil {
-		return (*AccountSettingsOp_SetKeybindingSettings)(nil)
-	}
-	r := new(AccountSettingsOp_SetKeybindingSettings)
-	r.SetKeybindingSettings = protobuf_go_lite.CloneVTValue(m.SetKeybindingSettings)
-	return r
-}
-
-func (m *AccountSettingsOp_SetKeybindingSettings) CloneOneofVT() isAccountSettingsOp_Op {
-	return m.CloneVT()
-}
-
 func (m *AccountSettingsOp_ReplaceKeybindingOverrideSet) CloneVT() *AccountSettingsOp_ReplaceKeybindingOverrideSet {
 	if m == nil {
 		return (*AccountSettingsOp_ReplaceKeybindingOverrideSet)(nil)
@@ -795,22 +691,6 @@ func (m *RemoveSessionPresentationOp) CloneVT() *RemoveSessionPresentationOp {
 }
 
 func (m *RemoveSessionPresentationOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *RemoveKeybindingOverrideOp) CloneVT() *RemoveKeybindingOverrideOp {
-	if m == nil {
-		return (*RemoveKeybindingOverrideOp)(nil)
-	}
-	r := new(RemoveKeybindingOverrideOp)
-	r.CommandId = m.CommandId
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *RemoveKeybindingOverrideOp) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1055,57 +935,6 @@ func (this *AccountSettingsOp_RemoveSessionPresentation) EqualVT(thatIface isAcc
 	return true
 }
 
-func (this *AccountSettingsOp_UpsertKeybindingOverride) EqualVT(thatIface isAccountSettingsOp_Op) bool {
-	that, ok := thatIface.(*AccountSettingsOp_UpsertKeybindingOverride)
-	if !ok {
-		return false
-	}
-	if this == that {
-		return true
-	}
-	if this == nil && that != nil || this != nil && that == nil {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTImplicit(this.UpsertKeybindingOverride, that.UpsertKeybindingOverride, func() *command.KeybindingCommandOverride { return &command.KeybindingCommandOverride{} }) {
-		return false
-	}
-	return true
-}
-
-func (this *AccountSettingsOp_RemoveKeybindingOverride) EqualVT(thatIface isAccountSettingsOp_Op) bool {
-	that, ok := thatIface.(*AccountSettingsOp_RemoveKeybindingOverride)
-	if !ok {
-		return false
-	}
-	if this == that {
-		return true
-	}
-	if this == nil && that != nil || this != nil && that == nil {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTImplicit(this.RemoveKeybindingOverride, that.RemoveKeybindingOverride, func() *RemoveKeybindingOverrideOp { return &RemoveKeybindingOverrideOp{} }) {
-		return false
-	}
-	return true
-}
-
-func (this *AccountSettingsOp_SetKeybindingSettings) EqualVT(thatIface isAccountSettingsOp_Op) bool {
-	that, ok := thatIface.(*AccountSettingsOp_SetKeybindingSettings)
-	if !ok {
-		return false
-	}
-	if this == that {
-		return true
-	}
-	if this == nil && that != nil || this != nil && that == nil {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTImplicit(this.SetKeybindingSettings, that.SetKeybindingSettings, func() *command.KeybindingOverrideSettings { return &command.KeybindingOverrideSettings{} }) {
-		return false
-	}
-	return true
-}
-
 func (this *AccountSettingsOp_ReplaceKeybindingOverrideSet) EqualVT(thatIface isAccountSettingsOp_Op) bool {
 	that, ok := thatIface.(*AccountSettingsOp_ReplaceKeybindingOverrideSet)
 	if !ok {
@@ -1220,26 +1049,6 @@ func (this *RemoveSessionPresentationOp) EqualVT(that *RemoveSessionPresentation
 
 func (this *RemoveSessionPresentationOp) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*RemoveSessionPresentationOp)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *RemoveKeybindingOverrideOp) EqualVT(that *RemoveKeybindingOverrideOp) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.CommandId != that.CommandId {
-		return false
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *RemoveKeybindingOverrideOp) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*RemoveKeybindingOverrideOp)
 	if !ok {
 		return false
 	}
@@ -1565,18 +1374,6 @@ func (x *AccountSettingsOp) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("removeSessionPresentation")
 			ov.RemoveSessionPresentation.MarshalProtoJSON(s.WithField("removeSessionPresentation"))
-		case *AccountSettingsOp_UpsertKeybindingOverride:
-			s.WriteMoreIf(&wroteField)
-			s.WriteObjectField("upsertKeybindingOverride")
-			ov.UpsertKeybindingOverride.MarshalProtoJSON(s.WithField("upsertKeybindingOverride"))
-		case *AccountSettingsOp_RemoveKeybindingOverride:
-			s.WriteMoreIf(&wroteField)
-			s.WriteObjectField("removeKeybindingOverride")
-			ov.RemoveKeybindingOverride.MarshalProtoJSON(s.WithField("removeKeybindingOverride"))
-		case *AccountSettingsOp_SetKeybindingSettings:
-			s.WriteMoreIf(&wroteField)
-			s.WriteObjectField("setKeybindingSettings")
-			ov.SetKeybindingSettings.MarshalProtoJSON(s.WithField("setKeybindingSettings"))
 		case *AccountSettingsOp_ReplaceKeybindingOverrideSet:
 			s.WriteMoreIf(&wroteField)
 			s.WriteObjectField("replaceKeybindingOverrideSet")
@@ -1663,33 +1460,6 @@ func (x *AccountSettingsOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			ov.RemoveSessionPresentation = &RemoveSessionPresentationOp{}
 			ov.RemoveSessionPresentation.UnmarshalProtoJSON(s.WithField("remove_session_presentation", true))
-		case "upsert_keybinding_override", "upsertKeybindingOverride":
-			ov := &AccountSettingsOp_UpsertKeybindingOverride{}
-			x.Op = ov
-			if s.ReadNil() {
-				ov.UpsertKeybindingOverride = nil
-				return
-			}
-			ov.UpsertKeybindingOverride = &command.KeybindingCommandOverride{}
-			ov.UpsertKeybindingOverride.UnmarshalProtoJSON(s.WithField("upsert_keybinding_override", true))
-		case "remove_keybinding_override", "removeKeybindingOverride":
-			ov := &AccountSettingsOp_RemoveKeybindingOverride{}
-			x.Op = ov
-			if s.ReadNil() {
-				ov.RemoveKeybindingOverride = nil
-				return
-			}
-			ov.RemoveKeybindingOverride = &RemoveKeybindingOverrideOp{}
-			ov.RemoveKeybindingOverride.UnmarshalProtoJSON(s.WithField("remove_keybinding_override", true))
-		case "set_keybinding_settings", "setKeybindingSettings":
-			ov := &AccountSettingsOp_SetKeybindingSettings{}
-			x.Op = ov
-			if s.ReadNil() {
-				ov.SetKeybindingSettings = nil
-				return
-			}
-			ov.SetKeybindingSettings = &command.KeybindingOverrideSettings{}
-			ov.SetKeybindingSettings.UnmarshalProtoJSON(s.WithField("set_keybinding_settings", true))
 		case "replace_keybinding_override_set", "replaceKeybindingOverrideSet":
 			ov := &AccountSettingsOp_ReplaceKeybindingOverrideSet{}
 			x.Op = ov
@@ -1931,48 +1701,6 @@ func (x *RemoveSessionPresentationOp) UnmarshalProtoJSON(s *json.UnmarshalState)
 
 // UnmarshalJSON unmarshals the RemoveSessionPresentationOp from JSON.
 func (x *RemoveSessionPresentationOp) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the RemoveKeybindingOverrideOp message to JSON.
-func (x *RemoveKeybindingOverrideOp) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.CommandId != "" || s.HasField("commandId") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("commandId")
-		s.WriteString(x.CommandId)
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the RemoveKeybindingOverrideOp to JSON.
-func (x *RemoveKeybindingOverrideOp) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the RemoveKeybindingOverrideOp message from JSON.
-func (x *RemoveKeybindingOverrideOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "command_id", "commandId":
-			s.AddField("command_id")
-			x.CommandId = s.ReadString()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the RemoveKeybindingOverrideOp from JSON.
-func (x *RemoveKeybindingOverrideOp) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2377,78 +2105,6 @@ func (m *AccountSettingsOp_RemoveSessionPresentation) MarshalToSizedBufferVT(dAt
 	return len(dAtA) - i, nil
 }
 
-func (m *AccountSettingsOp_UpsertKeybindingOverride) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *AccountSettingsOp_UpsertKeybindingOverride) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	if m.UpsertKeybindingOverride != nil {
-		size, err := m.UpsertKeybindingOverride.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x42
-	} else {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
-		i--
-		dAtA[i] = 0x42
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *AccountSettingsOp_RemoveKeybindingOverride) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *AccountSettingsOp_RemoveKeybindingOverride) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	if m.RemoveKeybindingOverride != nil {
-		size, err := m.RemoveKeybindingOverride.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x4a
-	} else {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
-		i--
-		dAtA[i] = 0x4a
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *AccountSettingsOp_SetKeybindingSettings) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *AccountSettingsOp_SetKeybindingSettings) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	if m.SetKeybindingSettings != nil {
-		size, err := m.SetKeybindingSettings.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x52
-	} else {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
-		i--
-		dAtA[i] = 0x52
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *AccountSettingsOp_ReplaceKeybindingOverrideSet) MarshalToVT(dAtA []byte) (int, error) {
 	size := m.SizeVT()
 	return m.MarshalToSizedBufferVT(dAtA[:size])
@@ -2464,11 +2120,11 @@ func (m *AccountSettingsOp_ReplaceKeybindingOverrideSet) MarshalToSizedBufferVT(
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x5a
+		dAtA[i] = 0x42
 	} else {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, 0)
 		i--
-		dAtA[i] = 0x5a
+		dAtA[i] = 0x42
 	}
 	return len(dAtA) - i, nil
 }
@@ -2673,43 +2329,6 @@ func (m *RemoveSessionPresentationOp) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	return len(dAtA) - i, nil
 }
 
-func (m *RemoveKeybindingOverrideOp) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *RemoveKeybindingOverrideOp) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *RemoveKeybindingOverrideOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if len(m.CommandId) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.CommandId)
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
 func (m *AccountSettings) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2884,51 +2503,6 @@ func (m *AccountSettingsOp_RemoveSessionPresentation) SizeVT() (n int) {
 	return n
 }
 
-func (m *AccountSettingsOp_UpsertKeybindingOverride) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.UpsertKeybindingOverride != nil {
-		l = m.UpsertKeybindingOverride.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	} else {
-		n += 2
-	}
-	return n
-}
-
-func (m *AccountSettingsOp_RemoveKeybindingOverride) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.RemoveKeybindingOverride != nil {
-		l = m.RemoveKeybindingOverride.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	} else {
-		n += 2
-	}
-	return n
-}
-
-func (m *AccountSettingsOp_SetKeybindingSettings) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.SetKeybindingSettings != nil {
-		l = m.SetKeybindingSettings.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	} else {
-		n += 2
-	}
-	return n
-}
-
 func (m *AccountSettingsOp_ReplaceKeybindingOverrideSet) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -3002,17 +2576,6 @@ func (m *RemoveSessionPresentationOp) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *RemoveKeybindingOverrideOp) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CommandId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -3180,27 +2743,6 @@ func (x *AccountSettingsOp) MarshalProtoText() string {
 		} else {
 			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.RemoveSessionPresentation)
 		}
-	case *AccountSettingsOp_UpsertKeybindingOverride:
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "upsert_keybinding_override")
-		if body.UpsertKeybindingOverride == nil {
-			protobuf_go_lite.TextWriteTextMarshaler(&sb, &command.KeybindingCommandOverride{})
-		} else {
-			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.UpsertKeybindingOverride)
-		}
-	case *AccountSettingsOp_RemoveKeybindingOverride:
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "remove_keybinding_override")
-		if body.RemoveKeybindingOverride == nil {
-			protobuf_go_lite.TextWriteTextMarshaler(&sb, &RemoveKeybindingOverrideOp{})
-		} else {
-			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.RemoveKeybindingOverride)
-		}
-	case *AccountSettingsOp_SetKeybindingSettings:
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "set_keybinding_settings")
-		if body.SetKeybindingSettings == nil {
-			protobuf_go_lite.TextWriteTextMarshaler(&sb, &command.KeybindingOverrideSettings{})
-		} else {
-			protobuf_go_lite.TextWriteTextMarshaler(&sb, body.SetKeybindingSettings)
-		}
 	case *AccountSettingsOp_ReplaceKeybindingOverrideSet:
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "replace_keybinding_override_set")
 		if body.ReplaceKeybindingOverrideSet == nil {
@@ -3287,20 +2829,6 @@ func (x *RemoveSessionPresentationOp) MarshalProtoText() string {
 }
 
 func (x *RemoveSessionPresentationOp) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *RemoveKeybindingOverrideOp) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "RemoveKeybindingOverrideOp")
-	if x.CommandId != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "command_id")
-		protobuf_go_lite.TextWriteString(&sb, x.CommandId)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *RemoveKeybindingOverrideOp) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3748,66 +3276,6 @@ func (m *AccountSettingsOp) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UpsertKeybindingOverride", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if oneof, ok := m.Op.(*AccountSettingsOp_UpsertKeybindingOverride); ok {
-				if err := oneof.UpsertKeybindingOverride.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-					return err
-				}
-			} else {
-				v := &command.KeybindingCommandOverride{}
-				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-					return err
-				}
-				m.Op = &AccountSettingsOp_UpsertKeybindingOverride{UpsertKeybindingOverride: v}
-			}
-			iNdEx = postIndex
-		case 9:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RemoveKeybindingOverride", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if oneof, ok := m.Op.(*AccountSettingsOp_RemoveKeybindingOverride); ok {
-				if err := oneof.RemoveKeybindingOverride.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-					return err
-				}
-			} else {
-				v := &RemoveKeybindingOverrideOp{}
-				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-					return err
-				}
-				m.Op = &AccountSettingsOp_RemoveKeybindingOverride{RemoveKeybindingOverride: v}
-			}
-			iNdEx = postIndex
-		case 10:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SetKeybindingSettings", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if oneof, ok := m.Op.(*AccountSettingsOp_SetKeybindingSettings); ok {
-				if err := oneof.SetKeybindingSettings.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-					return err
-				}
-			} else {
-				v := &command.KeybindingOverrideSettings{}
-				if err := v.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-					return err
-				}
-				m.Op = &AccountSettingsOp_SetKeybindingSettings{SetKeybindingSettings: v}
-			}
-			iNdEx = postIndex
-		case 11:
-			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ReplaceKeybindingOverrideSet", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
@@ -4111,59 +3579,6 @@ func (m *RemoveSessionPresentationOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PeerId = v
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *RemoveKeybindingOverrideOp) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: RemoveKeybindingOverrideOp: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: RemoveKeybindingOverrideOp: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CommandId", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.CommandId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -1,6 +1,4 @@
 import { useCallback, useMemo, useState } from 'react'
-import { useAbortSignalEffect } from '@aptre/bldr-react'
-
 import {
   CommandSurface,
   type CommandBinding,
@@ -16,7 +14,6 @@ import {
   createEmptyKeybindingOverrideSet,
   createKeybindingOverrideLayer,
   keybindingOverrideSetFromProto,
-  migrateLegacyKeybindingOverrideSet,
   removeLocalCommandBindingOverride,
   resetKeybindingCommandOverride,
   setCommandBindingsOverride,
@@ -26,7 +23,6 @@ import {
   type KeybindingOverrideLayer,
   type KeybindingOverrideSet,
   type KeybindingOverrideSettings,
-  keybindingMigrationError,
   mergeKeybindingOverridePartitions,
 } from './keybinding-overrides.js'
 
@@ -57,7 +53,6 @@ export interface SpaceKeybindingOverridesValue {
 
 export function useSpaceKeybindingOverrides(
   surface: CommandSurface,
-  canonicalCommandIds: ReadonlySet<string>,
 ): SpaceKeybindingOverridesValue {
   if (surface !== CommandSurface.WEB && surface !== CommandSurface.TUI)
     throw new Error('Space keybindings require WEB or TUI surface')
@@ -68,17 +63,10 @@ export function useSpaceKeybindingOverrides(
   } | null>(null)
   const context = SpaceContainerContext.useContextSafe()
   const rawOverrideSet = context?.spaceState.settings?.keybindingOverrides
-  const overrideSet = useMemo(() => {
-    if (!rawOverrideSet) return createEmptyKeybindingOverrideSet()
-    if (rawOverrideSet.version === 1)
-      return surface === CommandSurface.WEB
-        ? migrateLegacyKeybindingOverrideSet(
-            rawOverrideSet,
-            canonicalCommandIds,
-          ).overrideSet
-        : createEmptyKeybindingOverrideSet()
-    return keybindingOverrideSetFromProto(rawOverrideSet, surface)
-  }, [rawOverrideSet, canonicalCommandIds, surface])
+  const overrideSet = useMemo(
+    () => keybindingOverrideSetFromProto(rawOverrideSet, surface),
+    [rawOverrideSet, surface],
+  )
   const available = Boolean(context?.spaceWorld)
   const readOnly =
     !available ||
@@ -98,8 +86,8 @@ export function useSpaceKeybindingOverrides(
       writeSurface: CommandSurface = surface,
     ) => {
       if (!context || readOnly) return Promise.resolve()
-      const expectedOverrideSet = context.spaceState.settings
-        ?.keybindingOverrides ?? { version: 1 }
+      const expectedOverrideSet =
+        context.spaceState.settings?.keybindingOverrides ?? {}
       const combined = mergeKeybindingOverridePartitions(
         expectedOverrideSet,
         next,
@@ -125,34 +113,6 @@ export function useSpaceKeybindingOverrides(
     },
     [context, rawOverrideSet, readOnly, surface],
   )
-  const migration = useMemo(
-    () =>
-      rawOverrideSet
-        ? migrateLegacyKeybindingOverrideSet(
-            rawOverrideSet,
-            canonicalCommandIds,
-          )
-        : {
-            overrideSet: createEmptyKeybindingOverrideSet(),
-            required: false,
-            diagnostics: [],
-          },
-    [rawOverrideSet, canonicalCommandIds],
-  )
-  useAbortSignalEffect(
-    (signal) => {
-      if (
-        !context ||
-        readOnly ||
-        !migration.required ||
-        migration.diagnostics.length
-      )
-        return
-      void applyOverrideSet(migration.overrideSet, signal, CommandSurface.WEB)
-    },
-    [context, readOnly, migration, applyOverrideSet],
-  )
-
   const setSettings = useCallback(
     (settings: KeybindingOverrideSettings) => {
       applyOverrideSet(setKeybindingOverrideSettings(overrideSet, settings))
@@ -236,10 +196,7 @@ export function useSpaceKeybindingOverrides(
     available,
     readOnly,
     loading: context?.spaceWorldResource.loading ?? false,
-    error:
-      context?.spaceWorldResource.error ??
-      activeWriteError ??
-      keybindingMigrationError(migration.diagnostics),
+    error: context?.spaceWorldResource.error ?? activeWriteError,
     setCommandOverride,
     setOverrideSet: (next) => {
       void applyOverrideSet(next)

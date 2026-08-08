@@ -7,7 +7,10 @@ import { SpaceSettingsEditor } from './SpaceSettingsEditor.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
+import {
+  CommandFocusContext,
+  CommandSurface,
+} from '@s4wave/sdk/command/command.pb.js'
 import type { SpaceState } from '@s4wave/sdk/space/space.pb.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
 
@@ -170,8 +173,7 @@ describe('SpaceSettingsEditor', () => {
         indexPath: 'object-layout/main',
         pluginIds: ['spacewave-app'],
         keybindingOverrides: {
-          version: 1,
-          overrides: [
+          webOverrides: [
             {
               commandId: 'spacewave.palette',
               clearedBindingIds: ['palette-default'],
@@ -180,6 +182,7 @@ describe('SpaceSettingsEditor', () => {
                   id: 'palette-space',
                   binding: { case: 'combo', value: { combo: 'Ctrl+K' } },
                   when: CommandFocusContext.GLOBAL,
+                  surface: CommandSurface.WEB,
                 },
               ],
             },
@@ -198,17 +201,16 @@ describe('SpaceSettingsEditor', () => {
     const op = SetSpaceSettingsOp.fromBinary(opData)
     expect(op.settings?.indexPath).toBe('new/path')
     expect(op.settings?.pluginIds).toEqual(['spacewave-app'])
-    expect(op.settings?.keybindingOverrides?.overrides).toEqual([
+    expect(op.settings?.keybindingOverrides?.webOverrides).toEqual([
       {
         commandId: 'spacewave.palette',
-        replaceBindings: undefined,
-        disabled: undefined,
         clearedBindingIds: ['palette-default'],
         bindings: [
           {
             id: 'palette-space',
             binding: { case: 'combo', value: { combo: 'Ctrl+K' } },
             when: CommandFocusContext.GLOBAL,
+            surface: CommandSurface.WEB,
           },
         ],
       },

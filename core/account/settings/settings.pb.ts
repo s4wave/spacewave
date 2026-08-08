@@ -7,11 +7,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { EntityKeypair } from '../../session/session.pb.js'
-import {
-  KeybindingCommandOverride,
-  KeybindingOverrideSet,
-  KeybindingOverrideSettings,
-} from '../../../sdk/command/command.pb.js'
+import { KeybindingOverrideSet } from '../../../sdk/command/command.pb.js'
 
 export const protobufPackage = 'account.settings'
 
@@ -280,29 +276,6 @@ export const RemoveSessionPresentationOp: MessageType<RemoveSessionPresentationO
   })
 
 /**
- * RemoveKeybindingOverrideOp removes one keybinding override by command ID.
- *
- * @generated from message account.settings.RemoveKeybindingOverrideOp
- */
-export interface RemoveKeybindingOverrideOp {
-  /**
-   * CommandId is the command identifier to remove.
-   *
-   * @generated from field: string command_id = 1;
-   */
-  commandId?: string
-}
-
-export const RemoveKeybindingOverrideOp: MessageType<RemoveKeybindingOverrideOp> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'account.settings.RemoveKeybindingOverrideOp',
-    fields: [
-      { no: 1, name: 'command_id', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
  * ReplaceKeybindingOverrideSetOp applies a complete layer replacement with per-surface conflict detection.
  *
  * @generated from message account.settings.ReplaceKeybindingOverrideSetOp
@@ -422,36 +395,9 @@ export interface AccountSettingsOp {
       }
     | {
         /**
-         * UpsertKeybindingOverride adds or replaces one keybinding override.
-         *
-         * @generated from field: s4wave.command.KeybindingCommandOverride upsert_keybinding_override = 8;
-         */
-        value: KeybindingCommandOverride
-        case: 'upsertKeybindingOverride'
-      }
-    | {
-        /**
-         * RemoveKeybindingOverride removes one keybinding override by command_id.
-         *
-         * @generated from field: account.settings.RemoveKeybindingOverrideOp remove_keybinding_override = 9;
-         */
-        value: RemoveKeybindingOverrideOp
-        case: 'removeKeybindingOverride'
-      }
-    | {
-        /**
-         * SetKeybindingSettings replaces layer-wide keybinding settings.
-         *
-         * @generated from field: s4wave.command.KeybindingOverrideSettings set_keybinding_settings = 10;
-         */
-        value: KeybindingOverrideSettings
-        case: 'setKeybindingSettings'
-      }
-    | {
-        /**
          * ReplaceKeybindingOverrideSet atomically replaces the complete persisted layer.
          *
-         * @generated from field: account.settings.ReplaceKeybindingOverrideSetOp replace_keybinding_override_set = 11;
+         * @generated from field: account.settings.ReplaceKeybindingOverrideSetOp replace_keybinding_override_set = 8;
          */
         value: ReplaceKeybindingOverrideSetOp
         case: 'replaceKeybindingOverrideSet'
@@ -513,27 +459,6 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
       },
       {
         no: 8,
-        name: 'upsert_keybinding_override',
-        kind: 'message',
-        T: () => KeybindingCommandOverride,
-        oneof: 'op',
-      },
-      {
-        no: 9,
-        name: 'remove_keybinding_override',
-        kind: 'message',
-        T: () => RemoveKeybindingOverrideOp,
-        oneof: 'op',
-      },
-      {
-        no: 10,
-        name: 'set_keybinding_settings',
-        kind: 'message',
-        T: () => KeybindingOverrideSettings,
-        oneof: 'op',
-      },
-      {
-        no: 11,
         name: 'replace_keybinding_override_set',
         kind: 'message',
         T: () => ReplaceKeybindingOverrideSetOp,

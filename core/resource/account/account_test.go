@@ -555,97 +555,16 @@ func TestRevokeSessionLocalReturnsUnsupported(t *testing.T) {
 	}
 }
 
-func TestSetKeybindingSettingsHistoricalOpReplayPreservesOverrides(t *testing.T) {
-	ctx := t.Context()
-	peerID := "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"
-	initial := &account_settings.AccountSettings{
-		KeybindingOverrides: &s4wave_command.KeybindingOverrideSet{
-			Version: 1,
-			Overrides: []*s4wave_command.KeybindingCommandOverride{{
-				CommandId:       "spacewave.palette",
-				ReplaceBindings: true,
-				Bindings: []*s4wave_command.CommandBinding{{
-					Id: "palette-account",
-					Binding: &s4wave_command.CommandBinding_Combo{
-						Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+K"},
-					},
-					When: s4wave_command.CommandFocusContext_COMMAND_FOCUS_CONTEXT_GLOBAL,
-				}},
-			}},
-			Settings: &s4wave_command.KeybindingOverrideSettings{
-				LeaderCombo:     "Ctrl+Space",
-				WhichKeyDelayMs: 25,
-			},
-		},
-	}
-	currentData, err := initial.MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-	settingsOp, err := (&account_settings.AccountSettingsOp{
-		Op: &account_settings.AccountSettingsOp_SetKeybindingSettings{
-			SetKeybindingSettings: &s4wave_command.KeybindingOverrideSettings{
-				LeaderCombo:     "Alt+Space",
-				WhichKeyDelayMs: 175,
-			},
-		},
-	}).MarshalVT()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	nextData, results, err := account_settings.ProcessAccountSettingsOps(
-		ctx,
-		nil,
-		currentData,
-		[]*sobject.SOOperationInner{{PeerId: peerID, Nonce: 1, OpData: settingsOp}},
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if nextData == nil {
-		t.Fatal("expected settings write to change account settings")
-	}
-	if len(results) != 1 || !results[0].GetSuccess() {
-		t.Fatalf("expected settings write to succeed, got %#v", results)
-	}
-
-	next := &account_settings.AccountSettings{}
-	if err := next.UnmarshalVT(*nextData); err != nil {
-		t.Fatal(err)
-	}
-	overrideSet := next.GetKeybindingOverrides()
-	settings := overrideSet.GetSettings()
-	if settings.GetLeaderCombo() != "Alt+Space" {
-		t.Fatalf("leader combo = %q", settings.GetLeaderCombo())
-	}
-	if settings.GetWhichKeyDelayMs() != 175 {
-		t.Fatalf("which-key delay = %d", settings.GetWhichKeyDelayMs())
-	}
-	overrides := overrideSet.GetOverrides()
-	if len(overrides) != 1 {
-		t.Fatalf("expected existing command override to remain, got %#v", overrides)
-	}
-	palette := overrides[0]
-	if !palette.GetReplaceBindings() {
-		t.Fatal("command override replace flag was dropped")
-	}
-	if bindings := palette.GetBindings(); len(bindings) != 1 || bindings[0].GetId() != "palette-account" || bindings[0].GetCombo().GetCombo() != "Ctrl+K" {
-		t.Fatalf("command override bindings changed: %#v", bindings)
-	}
-}
-
 func TestReplaceKeybindingOverrideSetAtomicValidation(t *testing.T) {
 	ctx := t.Context()
 	_, _, _, acc, release := setupLocalProviderAccount(ctx, t)
 	defer release()
 	ar := resource_account.NewAccountResource(acc)
 	valid := &s4wave_command.KeybindingOverrideSet{
-		Version:      2,
 		WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "spacewave.palette", Bindings: []*s4wave_command.CommandBinding{{Id: "palette-web", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+K"}}, Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB}}}},
 		TuiOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "spacewave.palette", Bindings: []*s4wave_command.CommandBinding{{Id: "palette-tui", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+K"}}, Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI}}}},
 	}
-	expected := &s4wave_command.KeybindingOverrideSet{Version: 1}
+	expected := &s4wave_command.KeybindingOverrideSet{}
 	for i := range 2 {
 		if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{
 			ExpectedOverrideSet: expected,
@@ -675,13 +594,11 @@ func TestReplaceKeybindingOverrideSetAtomicValidation(t *testing.T) {
 	merged := concurrent.CloneVT()
 	merged.TuiSettings = concurrentTUI.TuiSettings.CloneVT()
 	invalid := []*s4wave_command.KeybindingOverrideSet{
-		{Version: 1},
-		{Version: 2, Overrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "legacy"}}},
-		{Version: 2, WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "dup"}, {CommandId: "dup"}}},
-		{Version: 2, TuiOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "dup"}, {CommandId: "dup"}}},
-		{Version: 2, WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "tui-in-web", Bindings: []*s4wave_command.CommandBinding{{Id: "tui-in-web", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "x"}}, Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI}}}}},
-		{Version: 2, TuiOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "web-in-tui", Bindings: []*s4wave_command.CommandBinding{{Id: "web-in-tui", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "x"}}, Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB}}}}},
-		{Version: 2, WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "unknown", Bindings: []*s4wave_command.CommandBinding{{Id: "unknown", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "x"}}}}}}},
+		{WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "dup"}, {CommandId: "dup"}}},
+		{TuiOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "dup"}, {CommandId: "dup"}}},
+		{WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "tui-in-web", Bindings: []*s4wave_command.CommandBinding{{Id: "tui-in-web", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "x"}}, Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI}}}}},
+		{TuiOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "web-in-tui", Bindings: []*s4wave_command.CommandBinding{{Id: "web-in-tui", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "x"}}, Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB}}}}},
+		{WebOverrides: []*s4wave_command.KeybindingCommandOverride{{CommandId: "unknown", Bindings: []*s4wave_command.CommandBinding{{Id: "unknown", Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "x"}}}}}}},
 	}
 	for i, value := range invalid {
 		if _, err := ar.ReplaceKeybindingOverrideSet(ctx, &s4wave_account.ReplaceKeybindingOverrideSetRequest{ExpectedOverrideSet: merged, OverrideSet: value}); err == nil {

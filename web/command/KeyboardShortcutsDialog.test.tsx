@@ -66,7 +66,7 @@ describe('KeyboardShortcutsDialog', () => {
     vi.clearAllMocks()
   })
 
-  it('shows legacy keybinding display through the resolver migration path', () => {
+  it('shows typed keybinding display through the resolver', () => {
     mockUseCommands.mockReturnValue([
       {
         command: {

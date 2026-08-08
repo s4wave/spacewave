@@ -73,8 +73,7 @@ func TestSetSpaceSettingsKeybindingOverridesPreservesSettingsFields(t *testing.T
 				"spacewave-terminal",
 			},
 			KeybindingOverrides: &s4wave_command.KeybindingOverrideSet{
-				Version: 1,
-				Overrides: []*s4wave_command.KeybindingCommandOverride{{
+				WebOverrides: []*s4wave_command.KeybindingCommandOverride{{
 					CommandId:         "spacewave.palette",
 					ClearedBindingIds: []string{"palette-default"},
 					Bindings: []*s4wave_command.CommandBinding{{
@@ -82,7 +81,8 @@ func TestSetSpaceSettingsKeybindingOverridesPreservesSettingsFields(t *testing.T
 						Binding: &s4wave_command.CommandBinding_Combo{
 							Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+K"},
 						},
-						When: s4wave_command.CommandFocusContext_COMMAND_FOCUS_CONTEXT_GLOBAL,
+						When:    s4wave_command.CommandFocusContext_COMMAND_FOCUS_CONTEXT_GLOBAL,
+						Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
 					}},
 				}},
 			},
@@ -107,7 +107,7 @@ func TestSetSpaceSettingsKeybindingOverridesPreservesSettingsFields(t *testing.T
 	if got := settings.GetPluginIds(); len(got) != 2 || got[0] != "spacewave-app" || got[1] != "spacewave-terminal" {
 		t.Fatalf("plugin_ids = %#v", got)
 	}
-	overrides := settings.GetKeybindingOverrides().GetOverrides()
+	overrides := settings.GetKeybindingOverrides().GetWebOverrides()
 	if len(overrides) != 1 {
 		t.Fatalf("expected one keybinding override, got %d", len(overrides))
 	}
@@ -130,7 +130,7 @@ func TestSetSpaceSettingsKeybindingOverridesMergesConcurrentSurfaces(t *testing.
 	}
 	defer tb.Release()
 
-	initialOverrides := &s4wave_command.KeybindingOverrideSet{Version: 2}
+	initialOverrides := &s4wave_command.KeybindingOverrideSet{}
 	initialSettings := &space_world.SpaceSettings{
 		IndexPath:           "/files",
 		PluginIds:           []string{"spacewave-app"},

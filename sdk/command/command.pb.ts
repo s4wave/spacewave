@@ -438,31 +438,13 @@ export const KeybindingCommandOverride: MessageType<KeybindingCommandOverride> =
  */
 export interface KeybindingOverrideSet {
   /**
-   * Version is the override set schema version.
-   *
-   * @generated from field: uint32 version = 1;
-   */
-  version?: number
-  /**
-   * Overrides is the historical v1 command-keyed set.
-   *
-   * @generated from field: repeated s4wave.command.KeybindingCommandOverride overrides = 2;
-   */
-  overrides?: KeybindingCommandOverride[]
-  /**
-   * Settings stores historical layer-wide preferences.
-   *
-   * @generated from field: s4wave.command.KeybindingOverrideSettings settings = 3;
-   */
-  settings?: KeybindingOverrideSettings
-  /**
-   * WebOverrides is the version-2 browser partition.
+   * WebOverrides is the browser partition.
    *
    * @generated from field: repeated s4wave.command.KeybindingCommandOverride web_overrides = 4;
    */
   webOverrides?: KeybindingCommandOverride[]
   /**
-   * TuiOverrides is the version-2 terminal partition.
+   * TuiOverrides is the terminal partition.
    *
    * @generated from field: repeated s4wave.command.KeybindingCommandOverride tui_overrides = 5;
    */
@@ -485,20 +467,6 @@ export const KeybindingOverrideSet: MessageType<KeybindingOverrideSet> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.command.KeybindingOverrideSet',
     fields: [
-      { no: 1, name: 'version', kind: 'scalar', T: ScalarType.UINT32 },
-      {
-        no: 2,
-        name: 'overrides',
-        kind: 'message',
-        T: () => KeybindingCommandOverride,
-        repeated: true,
-      },
-      {
-        no: 3,
-        name: 'settings',
-        kind: 'message',
-        T: () => KeybindingOverrideSettings,
-      },
       {
         no: 4,
         name: 'web_overrides',

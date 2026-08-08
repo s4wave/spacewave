@@ -56,7 +56,7 @@ let commandStates: CommandState[] = []
 
 const sharedLayerHookState = {
   account: {
-    overrideSet: { version: 1, overrides: {}, settings: {} },
+    overrideSet: { overrides: {}, settings: {} },
     layer: null as unknown,
     available: false,
     readOnly: true,
@@ -74,7 +74,7 @@ const sharedLayerHookState = {
     resetLayer: vi.fn(),
   },
   space: {
-    overrideSet: { version: 1, overrides: {}, settings: {} },
+    overrideSet: { overrides: {}, settings: {} },
     layer: null as unknown,
     available: false,
     readOnly: true,
@@ -186,7 +186,6 @@ describe('KeybindingEditor', () => {
   afterEach(() => {
     commandStates = []
     sharedLayerHookState.account.overrideSet = {
-      version: 1,
       overrides: {},
       settings: {},
     }
@@ -196,7 +195,6 @@ describe('KeybindingEditor', () => {
     sharedLayerHookState.account.loading = false
     sharedLayerHookState.account.error = null
     sharedLayerHookState.space.overrideSet = {
-      version: 1,
       overrides: {},
       settings: {},
     }
@@ -307,7 +305,7 @@ describe('KeybindingEditor', () => {
     sharedLayerHookState.account.layer = {
       scope: 'account',
       label: 'Account',
-      overrideSet: { version: 1, overrides: {}, settings: {} },
+      overrideSet: { overrides: {}, settings: {} },
     }
 
     const view = renderEditor('spacewave.open', 'account')
@@ -412,14 +410,14 @@ describe('KeybindingEditor', () => {
     sharedLayerHookState.account.layer = {
       scope: 'account',
       label: 'Account',
-      overrideSet: { version: 1, overrides: {}, settings: {} },
+      overrideSet: { overrides: {}, settings: {} },
     }
     sharedLayerHookState.space.available = true
     sharedLayerHookState.space.readOnly = false
     sharedLayerHookState.space.layer = {
       scope: 'space',
       label: 'Space',
-      overrideSet: { version: 1, overrides: {}, settings: {} },
+      overrideSet: { overrides: {}, settings: {} },
     }
 
     const view = renderEditor('spacewave.open', 'space')

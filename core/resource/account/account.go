@@ -183,7 +183,7 @@ func (r *AccountResource) WatchKeybindingOverrides(
 ) error {
 	if r.localAccount == nil {
 		return strm.Send(&s4wave_account.WatchKeybindingOverridesResponse{
-			OverrideSet: &s4wave_command.KeybindingOverrideSet{Version: 1},
+			OverrideSet: &s4wave_command.KeybindingOverrideSet{},
 			ReadOnly:    true,
 		})
 	}
@@ -210,7 +210,7 @@ func (r *AccountResource) WatchKeybindingOverrides(
 			}
 			overrideSet := settings.GetKeybindingOverrides()
 			if overrideSet == nil {
-				overrideSet = &s4wave_command.KeybindingOverrideSet{Version: 1}
+				overrideSet = &s4wave_command.KeybindingOverrideSet{}
 			}
 			resp := &s4wave_account.WatchKeybindingOverridesResponse{
 				OverrideSet: overrideSet.CloneVT(),

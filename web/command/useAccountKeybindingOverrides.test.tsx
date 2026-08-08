@@ -84,10 +84,7 @@ function comboBinding(id: string, combo: string): CommandBinding {
 }
 
 function AccountOverridesProbe() {
-  const overrides = useAccountKeybindingOverrides(
-    CommandSurface.WEB,
-    new Set(['spacewave.palette', 'spacewave.viewer']),
-  )
+  const overrides = useAccountKeybindingOverrides(CommandSurface.WEB)
   const commandIds = Object.keys(overrides.overrideSet.overrides).sort()
   return (
     <section>
@@ -177,8 +174,7 @@ describe('useAccountKeybindingOverrides', () => {
       value: {
         readOnly: false,
         overrideSet: {
-          version: 1,
-          overrides: [
+          webOverrides: [
             {
               commandId: 'spacewave.palette',
               bindings: [comboBinding('palette-account', 'Ctrl+K')],
@@ -223,8 +219,7 @@ describe('useAccountKeybindingOverrides', () => {
       value: {
         readOnly: false,
         overrideSet: {
-          version: 1,
-          overrides: [
+          webOverrides: [
             {
               commandId: 'spacewave.palette',
               bindings: [comboBinding('palette-existing', 'Ctrl+P')],
@@ -270,9 +265,7 @@ describe('useAccountKeybindingOverrides', () => {
     ] of account.replaceKeybindingOverrideSet.mock.calls.slice(
       callsBeforeEdits,
     )) {
-      expect(request.expectedOverrideSet).toMatchObject({ version: 1 })
-      expect(request.overrideSet.version).toBe(2)
-      expect(request.overrideSet.overrides).toEqual([])
+      expect(request.expectedOverrideSet).toMatchObject({})
       expect(request.overrideSet.tuiOverrides).toEqual([])
     }
 
@@ -287,7 +280,7 @@ describe('useAccountKeybindingOverrides', () => {
     })
     hookState.accountOverrides.value = {
       readOnly: false,
-      overrideSet: { version: 2, webOverrides: [], tuiOverrides: [] },
+      overrideSet: { webOverrides: [], tuiOverrides: [] },
     }
     view.rerender(<AccountOverridesProbe />)
     expect(view.getByTestId('error').textContent).toBe('')
@@ -306,8 +299,7 @@ describe('useAccountKeybindingOverrides', () => {
       value: {
         readOnly: true,
         overrideSet: {
-          version: 1,
-          overrides: [
+          webOverrides: [
             {
               commandId: 'spacewave.palette',
               bindings: [comboBinding('palette-account', 'Ctrl+K')],

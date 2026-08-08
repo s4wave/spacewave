@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { expect, it } from 'vitest'
 import {
   CommandSurface,
   type KeybindingOverrideSet as ProtoKeybindingOverrideSet,
@@ -7,104 +7,11 @@ import {
   keybindingOverrideSetFromProto,
   keybindingOverrideSetToProto,
   mergeKeybindingOverridePartitions,
-  migrateLegacyKeybindingOverrideSet,
   type KeybindingOverrideSet,
 } from './keybinding-overrides.js'
 
-const canonical = new Set(['spacewave.open'])
-function legacy(
-  overrides: ProtoKeybindingOverrideSet['overrides'] = [],
-): ProtoKeybindingOverrideSet {
-  return {
-    version: 1,
-    overrides,
-    settings: { leaderCombo: 'Ctrl+Space' },
-    webOverrides: [],
-    tuiOverrides: [],
-  }
-}
-
-describe('legacy keybinding migration', () => {
-  it('is a no-op for v2 and preserves explicit TUI state', () => {
-    const value: ProtoKeybindingOverrideSet = {
-      version: 2,
-      overrides: [],
-      webOverrides: [],
-      tuiOverrides: [
-        {
-          commandId: 'spacewave.open',
-          bindings: [
-            {
-              id: 'tui',
-              binding: { case: 'combo', value: { combo: 'q' } },
-              surface: CommandSurface.TUI,
-            },
-          ],
-        },
-      ],
-    }
-    const result = migrateLegacyKeybindingOverrideSet(value, canonical)
-    expect(result.required).toBe(false)
-    expect(result.diagnostics).toEqual([])
-    expect(result.overrideSet.overrides).toEqual({})
-  })
-
-  it('maps v1 into WEB only and is idempotent', () => {
-    const result = migrateLegacyKeybindingOverrideSet(
-      legacy([
-        {
-          commandId: 'spacewave.open',
-          disabled: true,
-          bindings: [
-            {
-              id: 'old',
-              binding: { case: 'combo', value: { combo: 'x' } },
-              surface: CommandSurface.TUI,
-            },
-          ],
-        },
-      ]),
-      canonical,
-    )
-    expect(result).toMatchObject({
-      required: true,
-      diagnostics: [],
-      overrideSet: {
-        version: 2,
-        overrides: { 'spacewave.open': { disabled: true } },
-      },
-    })
-    expect(
-      result.overrideSet.overrides['spacewave.open']?.bindings?.[0]?.surface,
-    ).toBe(CommandSurface.WEB)
-  })
-
-  it('preserves unmounted command IDs while reporting malformed rows', () => {
-    const result = migrateLegacyKeybindingOverrideSet(
-      legacy([
-        { commandId: 'z', disabled: true },
-        { commandId: '' },
-        { commandId: 'spacewave.open', disabled: true },
-        { commandId: 'spacewave.open' },
-      ]),
-      canonical,
-    )
-    expect(
-      result.diagnostics.map((d) => [d.code, d.commandId, d.index]),
-    ).toEqual([
-      ['empty-command-id', '', 1],
-      ['duplicate-command-id', 'spacewave.open', 3],
-    ])
-    expect(Object.keys(result.overrideSet.overrides).sort()).toEqual([
-      'spacewave.open',
-      'z',
-    ])
-  })
-})
-
 it('reads and writes the selected TUI partition without inventing WEB state', () => {
   const value: KeybindingOverrideSet = {
-    version: 2,
     overrides: {
       'spacewave.open': {
         bindings: [
@@ -136,21 +43,8 @@ it('reads and writes the selected TUI partition without inventing WEB state', ()
   expect(read.settings).toEqual(value.settings)
 })
 
-it('keeps legacy reads inside the WEB-only migration owner', () => {
-  const value = legacy([{ commandId: 'spacewave.open', disabled: true }])
-  expect(() =>
-    keybindingOverrideSetFromProto(value, CommandSurface.TUI),
-  ).toThrow(/requires migration/)
-  expect(
-    migrateLegacyKeybindingOverrideSet(value, canonical).overrideSet.overrides,
-  ).toEqual({
-    'spacewave.open': { disabled: true },
-  })
-})
-
 it('rejects UNKNOWN and cross-surface bindings at serialization boundaries', () => {
   const webValue: KeybindingOverrideSet = {
-    version: 2,
     overrides: {
       x: {
         bindings: [
@@ -168,7 +62,6 @@ it('rejects UNKNOWN and cross-surface bindings at serialization boundaries', () 
     keybindingOverrideSetToProto(webValue, CommandSurface.WEB),
   ).toThrow(/surface/)
   const unknownValue: KeybindingOverrideSet = {
-    version: 2,
     overrides: {
       x: {
         bindings: [
@@ -195,8 +88,6 @@ it('rejects UNKNOWN and cross-surface bindings at serialization boundaries', () 
 
 it('preserves the non-selected partition when merging account or Space writes', () => {
   const current: ProtoKeybindingOverrideSet = {
-    version: 2,
-    overrides: [],
     webOverrides: [
       {
         commandId: 'web',
@@ -223,7 +114,6 @@ it('preserves the non-selected partition when merging account or Space writes', 
     ],
   }
   const next: KeybindingOverrideSet = {
-    version: 2,
     overrides: {
       next: {
         bindings: [
