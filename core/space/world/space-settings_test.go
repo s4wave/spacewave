@@ -122,6 +122,58 @@ func TestSetSpaceSettingsKeybindingOverridesPreservesSettingsFields(t *testing.T
 	}
 }
 
+func TestSetSpaceSettingsKeybindingOverridesMergesConcurrentSurfaces(t *testing.T) {
+	ctx := t.Context()
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	initialOverrides := &s4wave_command.KeybindingOverrideSet{Version: 2}
+	initialSettings := &space_world.SpaceSettings{
+		IndexPath:           "/files",
+		PluginIds:           []string{"spacewave-app"},
+		KeybindingOverrides: initialOverrides,
+	}
+	initialOp := space_world_ops.NewSetSpaceSettingsOp("", initialSettings, true, time.Unix(10, 0))
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, initialOp, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	webOverrides := initialOverrides.CloneVT()
+	webOverrides.WebSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+A"}
+	webOp := space_world_ops.NewSetSpaceSettingsOp("", &space_world.SpaceSettings{
+		KeybindingOverrides: webOverrides,
+	}, true, time.Unix(20, 0))
+	webOp.ExpectedKeybindingOverrides = initialOverrides
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, webOp, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	tuiOverrides := initialOverrides.CloneVT()
+	tuiOverrides.TuiSettings = &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+B"}
+	tuiOp := space_world_ops.NewSetSpaceSettingsOp("", &space_world.SpaceSettings{
+		KeybindingOverrides: tuiOverrides,
+	}, true, time.Unix(30, 0))
+	tuiOp.ExpectedKeybindingOverrides = initialOverrides
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, tuiOp, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	got, _, err := space_world.LookupSpaceSettings(ctx, tb.WorldState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.GetIndexPath() != "/files" || len(got.GetPluginIds()) != 1 || got.GetPluginIds()[0] != "spacewave-app" {
+		t.Fatalf("unrelated settings changed: %#v", got)
+	}
+	if got.GetKeybindingOverrides().GetWebSettings().GetLeaderCombo() != "Ctrl+A" ||
+		got.GetKeybindingOverrides().GetTuiSettings().GetLeaderCombo() != "Ctrl+B" {
+		t.Fatalf("surface partitions did not merge: %#v", got.GetKeybindingOverrides())
+	}
+}
+
 // TestLookupSpaceIndexObjectTypeFollowsDurableObjectMetadata verifies index_path
 // resolves the selected root object's type, including through an object subpath.
 func TestLookupSpaceIndexObjectTypeFollowsDurableObjectMetadata(t *testing.T) {

@@ -11,6 +11,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_command "github.com/s4wave/spacewave/sdk/command"
 	"github.com/sirupsen/logrus"
 )
 
@@ -113,6 +114,17 @@ func (o *SetSpaceSettingsOp) ApplyWorldOp(
 		}
 	}
 
+	if o.GetExpectedKeybindingOverrides() != nil {
+		current, _, err := space_world.LookupSpaceSettings(ctx, worldHandle)
+		if err != nil {
+			return false, err
+		}
+		settings, err = o.mergeKeybindingSettings(current, settings)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	// write the settings to the object (creating it if it doesnt exist)
 	_, _, err = world.AccessWorldObject(
 		ctx,
@@ -151,6 +163,20 @@ func (o *SetSpaceSettingsOp) ApplyWorldObjectOp(
 
 	// write the settings to the object
 	_, _, err = world.AccessObjectState(ctx, objectHandle, true, func(bcs *block.Cursor) error {
+		if o.GetExpectedKeybindingOverrides() != nil {
+			currentBlock, err := bcs.Unmarshal(ctx, space_world.NewSpaceSettingsBlock)
+			if err != nil {
+				return err
+			}
+			current, valid := currentBlock.(*space_world.SpaceSettings)
+			if !valid {
+				return ErrInvalidSettings
+			}
+			settings, err = o.mergeKeybindingSettings(current, settings)
+			if err != nil {
+				return err
+			}
+		}
 		bcs.SetBlock(settings.CloneVT(), true)
 		return nil
 	})
@@ -159,6 +185,25 @@ func (o *SetSpaceSettingsOp) ApplyWorldObjectOp(
 	}
 
 	return false, nil
+}
+
+func (o *SetSpaceSettingsOp) mergeKeybindingSettings(
+	current, replacement *space_world.SpaceSettings,
+) (*space_world.SpaceSettings, error) {
+	if current == nil {
+		current = &space_world.SpaceSettings{}
+	}
+	merged, err := s4wave_command.MergeKeybindingOverrideSet(
+		current.GetKeybindingOverrides(),
+		o.GetExpectedKeybindingOverrides(),
+		replacement.GetKeybindingOverrides(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	next := current.CloneVT()
+	next.KeybindingOverrides = merged
+	return next, nil
 }
 
 // MarshalBlock marshals the block to binary.

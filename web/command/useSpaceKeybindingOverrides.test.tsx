@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import {
   CommandFocusContext,
   type CommandBinding,
+  type KeybindingOverrideSet as ProtoKeybindingOverrideSet,
 } from '@s4wave/sdk/command/command.pb.js'
 import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
@@ -75,6 +76,7 @@ function SpaceOverridesProbe() {
       <div data-testid="layer-scope">{overrides.layer?.scope ?? 'null'}</div>
       <div data-testid="layer-label">{overrides.layer?.label ?? 'null'}</div>
       <div data-testid="commands">{commandIds.join(',')}</div>
+      <div data-testid="error">{overrides.error?.message ?? ''}</div>
       <button
         type="button"
         onClick={() =>
@@ -184,6 +186,7 @@ describe('useSpaceKeybindingOverrides', () => {
       '',
     )
     let op = lastSettingsOp(applyWorldOp)
+    expect(op.expectedKeybindingOverrides?.version).toBe(1)
     expect(op.settings?.indexPath).toBe('/files')
     expect(op.settings?.pluginIds).toEqual([
       'spacewave-app',
@@ -242,6 +245,43 @@ describe('useSpaceKeybindingOverrides', () => {
       }),
     )
     expect(op.settings?.keybindingOverrides?.webOverrides ?? []).toEqual([])
+  })
+
+  it('reports automatic migration failures until the Space snapshot advances', async () => {
+    const applyWorldOp = vi.fn(() =>
+      Promise.reject(new Error('Space keybinding override set changed')),
+    )
+    const spaceContext = {
+      spaceState: {
+        settings: {
+          keybindingOverrides: {
+            version: 1,
+            overrides: [{ commandId: 'spacewave.palette', disabled: true }],
+          } as ProtoKeybindingOverrideSet,
+        },
+      },
+      spaceWorld: { applyWorldOp },
+      spaceWorldResource: {
+        value: { applyWorldOp },
+        loading: false,
+        error: null,
+      },
+    }
+    hookState.spaceContext = spaceContext
+
+    const view = render(<SpaceOverridesProbe />)
+    await waitFor(() => {
+      expect(view.getByTestId('error').textContent).toBe(
+        'Space keybinding override set changed',
+      )
+    })
+    spaceContext.spaceState.settings.keybindingOverrides = {
+      version: 2,
+      webOverrides: [],
+      tuiOverrides: [],
+    }
+    view.rerender(<SpaceOverridesProbe />)
+    expect(view.getByTestId('error').textContent).toBe('')
   })
 
   it('keeps a Space layer read-only when sharing state does not allow management', () => {

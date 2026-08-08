@@ -63,7 +63,10 @@ export function useAccountKeybindingOverrides(
 ): AccountKeybindingOverridesValue {
   if (surface !== CommandSurface.WEB && surface !== CommandSurface.TUI)
     throw new Error('account keybindings require WEB or TUI surface')
-  const [writeError, setWriteError] = useState<Error | null>(null)
+  const [writeFailure, setWriteFailure] = useState<{
+    error: Error
+    expected: unknown
+  } | null>(null)
   const sessionResource = SessionContext.useContext()
   const sessionInfo = useSessionInfo(sessionResource.value)
   const accountResource = useMountAccount(
@@ -105,25 +108,28 @@ export function useAccountKeybindingOverrides(
         migration.diagnostics.length
       )
         return
+      const expectedOverrideSet = accountOverrides.value?.overrideSet
+      if (!expectedOverrideSet) return
       const combined = mergeKeybindingOverridePartitions(
-        accountOverrides.value?.overrideSet,
+        expectedOverrideSet,
         migration.overrideSet,
         CommandSurface.WEB,
       )
       void account
         .replaceKeybindingOverrideSet(
           {
-            expectedOverrideSet: accountOverrides.value?.overrideSet,
+            expectedOverrideSet,
             overrideSet: combined,
           },
           signal,
         )
-        .then(() => setWriteError(null))
+        .then(() => setWriteFailure(null))
         .catch((error: unknown) => {
           if (!signal.aborted)
-            setWriteError(
-              error instanceof Error ? error : new Error(String(error)),
-            )
+            setWriteFailure({
+              error: error instanceof Error ? error : new Error(String(error)),
+              expected: expectedOverrideSet,
+            })
         })
     },
     [
@@ -158,11 +164,12 @@ export function useAccountKeybindingOverrides(
           expectedOverrideSet,
           overrideSet: combined,
         })
-        .then(() => setWriteError(null))
+        .then(() => setWriteFailure(null))
         .catch((error: unknown) =>
-          setWriteError(
-            error instanceof Error ? error : new Error(String(error)),
-          ),
+          setWriteFailure({
+            error: error instanceof Error ? error : new Error(String(error)),
+            expected: expectedOverrideSet,
+          }),
         )
     },
     [
@@ -252,6 +259,12 @@ export function useAccountKeybindingOverrides(
     setOverrideSet(createEmptyKeybindingOverrideSet())
   }, [setOverrideSet])
 
+  const activeWriteError =
+    writeFailure !== null &&
+    writeFailure.expected === accountOverrides.value?.overrideSet
+      ? writeFailure.error
+      : null
+
   return {
     overrideSet,
     layer,
@@ -265,7 +278,7 @@ export function useAccountKeybindingOverrides(
       sessionResource.error ??
       accountResource.error ??
       accountOverrides.error ??
-      writeError ??
+      activeWriteError ??
       keybindingMigrationError(migration.diagnostics),
     setCommandOverride: applyOverride,
     setOverrideSet,

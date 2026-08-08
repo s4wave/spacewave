@@ -1108,7 +1108,7 @@
       "protoFiles": ["core/space/world/blocktype/controller.proto"]
     },
     "github.com/s4wave/spacewave/core/space/world/ops": {
-      "hash": "8af62947c4a3670a8c0401a5816633638951f4477980b922812dcc2c6c936936",
+      "hash": "2c80c78c0168911d508c59b9ac53606f61c98753fdd4383e4c0f6aea32f00e4c",
       "generatedFiles": [
         "core/space/world/ops/ops.pb.go",
         "core/space/world/ops/ops.pb.ts"

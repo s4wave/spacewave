@@ -79,12 +79,12 @@ describe('legacy keybinding migration', () => {
     ).toBe(CommandSurface.WEB)
   })
 
-  it('sorts duplicate, empty, and unmapped diagnostics and refuses output', () => {
+  it('preserves unmounted command IDs while reporting malformed rows', () => {
     const result = migrateLegacyKeybindingOverrideSet(
       legacy([
-        { commandId: 'z' },
+        { commandId: 'z', disabled: true },
         { commandId: '' },
-        { commandId: 'spacewave.open' },
+        { commandId: 'spacewave.open', disabled: true },
         { commandId: 'spacewave.open' },
       ]),
       canonical,
@@ -94,13 +94,11 @@ describe('legacy keybinding migration', () => {
     ).toEqual([
       ['empty-command-id', '', 1],
       ['duplicate-command-id', 'spacewave.open', 3],
-      ['unmapped-command-id', 'z', 0],
     ])
-    expect(result.overrideSet).toEqual({
-      version: 2,
-      overrides: {},
-      settings: { leaderCombo: 'Ctrl+Space' },
-    })
+    expect(Object.keys(result.overrideSet.overrides).sort()).toEqual([
+      'spacewave.open',
+      'z',
+    ])
   })
 })
 

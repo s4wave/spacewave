@@ -285,6 +285,12 @@ describe('useAccountKeybindingOverrides', () => {
         'account keybinding override set changed',
       )
     })
+    hookState.accountOverrides.value = {
+      readOnly: false,
+      overrideSet: { version: 2, webOverrides: [], tuiOverrides: [] },
+    }
+    view.rerender(<AccountOverridesProbe />)
+    expect(view.getByTestId('error').textContent).toBe('')
   })
 
   it('keeps a mounted account read-only when account settings reports read-only state', () => {

@@ -814,3 +814,86 @@ func TestReplaceKeybindingOverrideSetRejectsConflictingPartition(t *testing.T) {
 		t.Fatalf("conflicting replacement changed winner: %#v", got.GetKeybindingOverrides())
 	}
 }
+
+func TestHistoricalKeybindingOpsUpdateVersionTwoWebPartition(t *testing.T) {
+	ctx := t.Context()
+	initial := &account_settings.AccountSettings{
+		KeybindingOverrides: &s4wave_command.KeybindingOverrideSet{
+			Version: 2,
+			WebOverrides: []*s4wave_command.KeybindingCommandOverride{{
+				CommandId: "remove-me",
+			}},
+			TuiOverrides: []*s4wave_command.KeybindingCommandOverride{{
+				CommandId: "tui-only",
+			}},
+			TuiSettings: &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+T"},
+		},
+	}
+	initialData, err := initial.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	marshalOp := func(op *account_settings.AccountSettingsOp) []byte {
+		t.Helper()
+		data, err := op.MarshalVT()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return data
+	}
+	peerID := "12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"
+	nextData, results, err := account_settings.ProcessAccountSettingsOps(
+		ctx,
+		nil,
+		initialData,
+		[]*sobject.SOOperationInner{
+			{PeerId: peerID, Nonce: 1, OpData: marshalOp(&account_settings.AccountSettingsOp{
+				Op: &account_settings.AccountSettingsOp_UpsertKeybindingOverride{
+					UpsertKeybindingOverride: &s4wave_command.KeybindingCommandOverride{
+						CommandId: "late-web",
+						Bindings: []*s4wave_command.CommandBinding{{
+							Id:      "legacy",
+							Binding: &s4wave_command.CommandBinding_Combo{Combo: &s4wave_command.KeyCombo{Combo: "Ctrl+L"}},
+						}},
+					},
+				},
+			})},
+			{PeerId: peerID, Nonce: 2, OpData: marshalOp(&account_settings.AccountSettingsOp{
+				Op: &account_settings.AccountSettingsOp_RemoveKeybindingOverride{
+					RemoveKeybindingOverride: &account_settings.RemoveKeybindingOverrideOp{CommandId: "remove-me"},
+				},
+			})},
+			{PeerId: peerID, Nonce: 3, OpData: marshalOp(&account_settings.AccountSettingsOp{
+				Op: &account_settings.AccountSettingsOp_SetKeybindingSettings{
+					SetKeybindingSettings: &s4wave_command.KeybindingOverrideSettings{LeaderCombo: "Ctrl+W"},
+				},
+			})},
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 3 || !results[0].GetSuccess() || !results[1].GetSuccess() || !results[2].GetSuccess() {
+		t.Fatalf("historical v1 operations rejected: %#v", results)
+	}
+	got := &account_settings.AccountSettings{}
+	if nextData == nil {
+		t.Fatal("expected changed account settings")
+	}
+	if err := got.UnmarshalVT(*nextData); err != nil {
+		t.Fatal(err)
+	}
+	overrideSet := got.GetKeybindingOverrides()
+	if overrideSet.GetVersion() != 2 || len(overrideSet.GetOverrides()) != 0 || overrideSet.GetSettings() != nil {
+		t.Fatalf("created hybrid v2 state: %#v", overrideSet)
+	}
+	if len(overrideSet.GetWebOverrides()) != 1 || overrideSet.GetWebOverrides()[0].GetCommandId() != "late-web" ||
+		overrideSet.GetWebOverrides()[0].GetBindings()[0].GetSurface() != s4wave_command.CommandSurface_COMMAND_SURFACE_WEB {
+		t.Fatalf("late upsert did not enter WEB partition: %#v", overrideSet.GetWebOverrides())
+	}
+	if overrideSet.GetWebSettings().GetLeaderCombo() != "Ctrl+W" ||
+		overrideSet.GetTuiSettings().GetLeaderCombo() != "Ctrl+T" ||
+		len(overrideSet.GetTuiOverrides()) != 1 {
+		t.Fatalf("late v1 operation changed TUI or settings: %#v", overrideSet)
+	}
+}

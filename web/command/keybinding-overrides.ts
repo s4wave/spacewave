@@ -71,7 +71,6 @@ export function createKeybindingOverrideLayer(
 export type KeybindingMigrationDiagnosticCode =
   | 'duplicate-command-id'
   | 'empty-command-id'
-  | 'unmapped-command-id'
 export interface KeybindingMigrationDiagnostic {
   code: KeybindingMigrationDiagnosticCode
   commandId: string
@@ -113,7 +112,7 @@ export function keybindingOverrideSetFromProto(
 // migrateLegacyKeybindingOverrideSet is the only reader of the v1 partition.
 export function migrateLegacyKeybindingOverrideSet(
   value: ProtoKeybindingOverrideSet,
-  canonicalCommandIds: ReadonlySet<string>,
+  _canonicalCommandIds: ReadonlySet<string>,
 ): KeybindingMigrationResult {
   if (value.version !== 1) {
     return {
@@ -130,8 +129,6 @@ export function migrateLegacyKeybindingOverrideSet(
       diagnostics.push({ code: 'empty-command-id', commandId: '', index })
     else if (seen.has(commandId))
       diagnostics.push({ code: 'duplicate-command-id', commandId, index })
-    else if (!canonicalCommandIds.has(commandId))
-      diagnostics.push({ code: 'unmapped-command-id', commandId, index })
     seen.add(commandId)
   }
   diagnostics.sort(
