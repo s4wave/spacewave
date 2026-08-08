@@ -158,78 +158,6 @@ func ProcessAccountSettingsOps(
 			})
 			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
 
-		case *AccountSettingsOp_UpsertKeybindingOverride:
-			override := body.UpsertKeybindingOverride
-			if err := validateKeybindingOverride(override); err != nil {
-				results = append(results, sobject.BuildSOOperationResult(
-					peerIDStr, opInner.GetNonce(), false,
-					&sobject.SOOperationRejectionErrorDetails{ErrorMsg: err.Error()},
-				))
-				continue
-			}
-			if state.KeybindingOverrides == nil {
-				state.KeybindingOverrides = &s4wave_command.KeybindingOverrideSet{Version: 1}
-			}
-			if state.KeybindingOverrides.GetVersion() == 2 {
-				override = override.CloneVT()
-				for _, binding := range override.GetBindings() {
-					binding.Surface = s4wave_command.CommandSurface_COMMAND_SURFACE_WEB
-				}
-				state.KeybindingOverrides.WebOverrides = slices.DeleteFunc(
-					state.KeybindingOverrides.GetWebOverrides(),
-					func(existing *s4wave_command.KeybindingCommandOverride) bool {
-						return existing.GetCommandId() == override.GetCommandId()
-					},
-				)
-				state.KeybindingOverrides.WebOverrides = append(
-					state.KeybindingOverrides.GetWebOverrides(),
-					override,
-				)
-			} else {
-				state.KeybindingOverrides.Overrides = slices.DeleteFunc(
-					state.KeybindingOverrides.GetOverrides(),
-					func(existing *s4wave_command.KeybindingCommandOverride) bool {
-						return existing.GetCommandId() == override.GetCommandId()
-					},
-				)
-				state.KeybindingOverrides.Overrides = append(
-					state.KeybindingOverrides.GetOverrides(),
-					override.CloneVT(),
-				)
-			}
-			if state.KeybindingOverrides.GetVersion() == 0 {
-				state.KeybindingOverrides.Version = 1
-			}
-			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
-
-		case *AccountSettingsOp_RemoveKeybindingOverride:
-			commandID := body.RemoveKeybindingOverride.GetCommandId()
-			if commandID == "" {
-				results = append(results, sobject.BuildSOOperationResult(
-					peerIDStr, opInner.GetNonce(), false,
-					&sobject.SOOperationRejectionErrorDetails{ErrorMsg: "command_id is required"},
-				))
-				continue
-			}
-			if state.KeybindingOverrides != nil {
-				if state.KeybindingOverrides.GetVersion() == 2 {
-					state.KeybindingOverrides.WebOverrides = slices.DeleteFunc(
-						state.KeybindingOverrides.GetWebOverrides(),
-						func(existing *s4wave_command.KeybindingCommandOverride) bool {
-							return existing.GetCommandId() == commandID
-						},
-					)
-				} else {
-					state.KeybindingOverrides.Overrides = slices.DeleteFunc(
-						state.KeybindingOverrides.GetOverrides(),
-						func(existing *s4wave_command.KeybindingCommandOverride) bool {
-							return existing.GetCommandId() == commandID
-						},
-					)
-				}
-			}
-			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
-
 		case *AccountSettingsOp_ReplaceKeybindingOverrideSet:
 			replacement := body.ReplaceKeybindingOverrideSet
 			overrideSet := replacement.GetOverrideSet()
@@ -249,20 +177,6 @@ func ProcessAccountSettingsOps(
 				continue
 			}
 			state.KeybindingOverrides = merged
-			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
-
-		case *AccountSettingsOp_SetKeybindingSettings:
-			if state.KeybindingOverrides == nil {
-				state.KeybindingOverrides = &s4wave_command.KeybindingOverrideSet{Version: 1}
-			}
-			if state.KeybindingOverrides.GetVersion() == 2 {
-				state.KeybindingOverrides.WebSettings = body.SetKeybindingSettings.CloneVT()
-			} else {
-				state.KeybindingOverrides.Settings = body.SetKeybindingSettings.CloneVT()
-			}
-			if state.KeybindingOverrides.GetVersion() == 0 {
-				state.KeybindingOverrides.Version = 1
-			}
 			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
 
 		default:
@@ -304,16 +218,10 @@ func validateKeybindingOverride(override *s4wave_command.KeybindingCommandOverri
 	return nil
 }
 
-// ValidateKeybindingOverrideSet validates the complete version 2 account keybinding override set.
+// ValidateKeybindingOverrideSet validates the complete account keybinding override set.
 func ValidateKeybindingOverrideSet(overrideSet *s4wave_command.KeybindingOverrideSet) error {
 	if overrideSet == nil {
 		return errors.New("keybinding override set is required")
-	}
-	if overrideSet.GetVersion() != 2 {
-		return errors.New("keybinding override set version must be 2")
-	}
-	if len(overrideSet.GetOverrides()) != 0 || overrideSet.GetSettings() != nil {
-		return errors.New("version 2 keybinding override set contains legacy fields")
 	}
 	for _, partition := range []struct {
 		name      string

@@ -15,27 +15,9 @@ export function useKeybindingGraph(
   commands: CommandState[],
   opts: Omit<KeybindingResolverOptions, 'overrideLayers'>,
 ): KeybindingGraph {
-  const canonicalCommandIds = useMemo(
-    () =>
-      new Set(
-        commands
-          .map((state) => state.command?.commandId)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    [commands],
-  )
-  const localOverrides = useLocalKeybindingOverrides(
-    opts.surface,
-    canonicalCommandIds,
-  )
-  const accountOverrides = useAccountKeybindingOverrides(
-    opts.surface,
-    canonicalCommandIds,
-  )
-  const spaceOverrides = useSpaceKeybindingOverrides(
-    opts.surface,
-    canonicalCommandIds,
-  )
+  const localOverrides = useLocalKeybindingOverrides(opts.surface)
+  const accountOverrides = useAccountKeybindingOverrides(opts.surface)
+  const spaceOverrides = useSpaceKeybindingOverrides(opts.surface)
   const platform = opts.platform
   const leaderCombo = opts.leaderCombo
   const overrideLayers = useMemo(

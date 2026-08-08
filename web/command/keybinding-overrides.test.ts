@@ -4,7 +4,6 @@ import {
   CommandFocusContext,
   KeybindingDisplayMode,
   type CommandBinding,
-  type KeybindingOverrideSet as ProtoKeybindingOverrideSet,
 } from '@s4wave/sdk/command/command.pb.js'
 
 import {
@@ -79,7 +78,6 @@ describe('keybinding local override schema', () => {
     })
 
     expect(normalized).toEqual({
-      version: 2,
       overrides: {
         'spacewave.palette': {
           replaceBindings: true,
@@ -170,7 +168,6 @@ describe('keybinding local override schema', () => {
       },
     })
     expect(clearKeybindingOverrideSet()).toEqual({
-      version: 2,
       overrides: {},
       settings: {},
     })
@@ -191,7 +188,6 @@ describe('keybinding local override schema', () => {
 
   it('round-trips the shared proto override set without losing command keys, binding ids, disables, clears, or display settings', () => {
     const model: ModelKeybindingOverrideSet = {
-      version: 2,
       overrides: {
         'spacewave.palette': {
           replaceBindings: true,
@@ -222,7 +218,6 @@ describe('keybinding local override schema', () => {
       (a.commandId ?? '').localeCompare(b.commandId ?? ''),
     )
 
-    expect(proto.version).toBe(2)
     expect(proto.webSettings).toEqual({
       leaderCombo: 'Ctrl+Alt+Space',
       whichKeyDelayMs: 275,
@@ -250,7 +245,6 @@ describe('keybinding local override schema', () => {
       }),
     ])
     const roundTripped = keybindingOverrideSetFromProto(proto)
-    expect(roundTripped.version).toBe(2)
     expect(roundTripped.settings).toEqual(model.settings)
     expect(roundTripped.overrides['spacewave.cleared']).toEqual(
       model.overrides['spacewave.cleared'],
@@ -263,39 +257,6 @@ describe('keybinding local override schema', () => {
     )
     expect(roundTripped.overrides['spacewave.palette']).toEqual(
       model.overrides['spacewave.palette'],
-    )
-  })
-
-  it('routes legacy proto overrides through the migration owner', () => {
-    const proto: ProtoKeybindingOverrideSet = {
-      version: 1,
-      overrides: [
-        {
-          commandId: 'spacewave.palette',
-          replaceBindings: true,
-          bindings: [comboBinding('palette-stale', 'Ctrl+P')],
-        },
-        {
-          commandId: '',
-          disabled: true,
-          bindings: [comboBinding('missing-command', 'Ctrl+M')],
-        },
-        {
-          commandId: 'spacewave.palette',
-          disabled: true,
-          clearedBindingIds: ['palette-default'],
-          bindings: [],
-        },
-      ],
-      settings: {
-        leaderCombo: 'Alt+Space',
-        whichKeyDelayMs: 125,
-        display: { mode: KeybindingDisplayMode.SYMBOLS },
-      },
-    }
-
-    expect(() => keybindingOverrideSetFromProto(proto)).toThrow(
-      'legacy keybinding override set requires migration',
     )
   })
 })

@@ -62,7 +62,6 @@ vi.mock('./useKeybindingGraph.js', () => ({
           scope: 'local',
           label: 'Local',
           overrideSet: {
-            version: 1,
             overrides: {},
             settings: localKeybindingSettings,
           },

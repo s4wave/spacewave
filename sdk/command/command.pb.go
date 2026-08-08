@@ -402,15 +402,9 @@ func (x *KeybindingCommandOverride) GetBindings() []*CommandBinding {
 // KeybindingOverrideSet stores one persisted keybinding override layer.
 type KeybindingOverrideSet struct {
 	unknownFields []byte
-	// Version is the override set schema version.
-	Version uint32 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
-	// Overrides is the historical v1 command-keyed set.
-	Overrides []*KeybindingCommandOverride `protobuf:"bytes,2,rep,name=overrides,proto3" json:"overrides,omitempty"`
-	// Settings stores historical layer-wide preferences.
-	Settings *KeybindingOverrideSettings `protobuf:"bytes,3,opt,name=settings,proto3" json:"settings,omitempty"`
-	// WebOverrides is the version-2 browser partition.
+	// WebOverrides is the browser partition.
 	WebOverrides []*KeybindingCommandOverride `protobuf:"bytes,4,rep,name=web_overrides,json=webOverrides,proto3" json:"webOverrides,omitempty"`
-	// TuiOverrides is the version-2 terminal partition.
+	// TuiOverrides is the terminal partition.
 	TuiOverrides []*KeybindingCommandOverride `protobuf:"bytes,5,rep,name=tui_overrides,json=tuiOverrides,proto3" json:"tuiOverrides,omitempty"`
 	// WebSettings is the version-2 browser settings partition.
 	WebSettings *KeybindingOverrideSettings `protobuf:"bytes,6,opt,name=web_settings,json=webSettings,proto3" json:"webSettings,omitempty"`
@@ -423,27 +417,6 @@ func (x *KeybindingOverrideSet) Reset() {
 }
 
 func (*KeybindingOverrideSet) ProtoMessage() {}
-
-func (x *KeybindingOverrideSet) GetVersion() uint32 {
-	if x != nil {
-		return x.Version
-	}
-	return 0
-}
-
-func (x *KeybindingOverrideSet) GetOverrides() []*KeybindingCommandOverride {
-	if x != nil {
-		return x.Overrides
-	}
-	return nil
-}
-
-func (x *KeybindingOverrideSet) GetSettings() *KeybindingOverrideSettings {
-	if x != nil {
-		return x.Settings
-	}
-	return nil
-}
 
 func (x *KeybindingOverrideSet) GetWebOverrides() []*KeybindingCommandOverride {
 	if x != nil {
@@ -720,9 +693,6 @@ func (m *KeybindingOverrideSet) CloneVT() *KeybindingOverrideSet {
 		return (*KeybindingOverrideSet)(nil)
 	}
 	r := new(KeybindingOverrideSet)
-	r.Version = m.Version
-	r.Overrides = protobuf_go_lite.CloneVTSlice(m.Overrides)
-	r.Settings = protobuf_go_lite.CloneVTValue(m.Settings)
 	r.WebOverrides = protobuf_go_lite.CloneVTSlice(m.WebOverrides)
 	r.TuiOverrides = protobuf_go_lite.CloneVTSlice(m.TuiOverrides)
 	r.WebSettings = protobuf_go_lite.CloneVTValue(m.WebSettings)
@@ -959,15 +929,6 @@ func (this *KeybindingOverrideSet) EqualVT(that *KeybindingOverrideSet) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Version != that.Version {
-		return false
-	}
-	if !protobuf_go_lite.EqualVTSliceImplicit(this.Overrides, that.Overrides, func() *KeybindingCommandOverride { return &KeybindingCommandOverride{} }) {
-		return false
-	}
-	if !protobuf_go_lite.IsEqualVT(this.Settings, that.Settings) {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.WebOverrides, that.WebOverrides, func() *KeybindingCommandOverride { return &KeybindingCommandOverride{} }) {
@@ -1555,27 +1516,6 @@ func (x *KeybindingOverrideSet) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.Version != 0 || s.HasField("version") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("version")
-		s.WriteUint32(x.Version)
-	}
-	if len(x.Overrides) > 0 || s.HasField("overrides") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("overrides")
-		s.WriteArrayStart()
-		var wroteElement bool
-		for _, element := range x.Overrides {
-			s.WriteMoreIf(&wroteElement)
-			element.MarshalProtoJSON(s.WithField("overrides"))
-		}
-		s.WriteArrayEnd()
-	}
-	if x.Settings != nil || s.HasField("settings") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("settings")
-		x.Settings.MarshalProtoJSON(s.WithField("settings"))
-	}
 	if len(x.WebOverrides) > 0 || s.HasField("webOverrides") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("webOverrides")
@@ -1625,34 +1565,6 @@ func (x *KeybindingOverrideSet) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "version":
-			s.AddField("version")
-			x.Version = s.ReadUint32()
-		case "overrides":
-			s.AddField("overrides")
-			if s.ReadNil() {
-				x.Overrides = nil
-				return
-			}
-			s.ReadArray(func() {
-				if s.ReadNil() {
-					x.Overrides = append(x.Overrides, nil)
-					return
-				}
-				v := &KeybindingCommandOverride{}
-				v.UnmarshalProtoJSON(s.WithField("overrides", false))
-				if s.Err() != nil {
-					return
-				}
-				x.Overrides = append(x.Overrides, v)
-			})
-		case "settings":
-			if s.ReadNil() {
-				x.Settings = nil
-				return
-			}
-			x.Settings = &KeybindingOverrideSettings{}
-			x.Settings.UnmarshalProtoJSON(s.WithField("settings", true))
 		case "web_overrides", "webOverrides":
 			s.AddField("web_overrides")
 			if s.ReadNil() {
@@ -2264,33 +2176,6 @@ func (m *KeybindingOverrideSet) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 			dAtA[i] = 0x22
 		}
 	}
-	if m.Settings != nil {
-		size, err := m.Settings.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-		i--
-		dAtA[i] = 0x1a
-	}
-	if len(m.Overrides) > 0 {
-		for iNdEx := len(m.Overrides) - 1; iNdEx >= 0; iNdEx-- {
-			size, err := m.Overrides[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x12
-		}
-	}
-	if m.Version != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Version))
-		i--
-		dAtA[i] = 0x8
-	}
 	return len(dAtA) - i, nil
 }
 
@@ -2505,15 +2390,6 @@ func (m *KeybindingOverrideSet) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Version)
-	for _, e := range m.Overrides {
-		l = e.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
-	if m.Settings != nil {
-		l = m.Settings.SizeVT()
-		n += protobuf_go_lite.SizeMessage(1, l)
-	}
 	for _, e := range m.WebOverrides {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
@@ -2724,26 +2600,6 @@ func (x *KeybindingCommandOverride) String() string {
 func (x *KeybindingOverrideSet) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "KeybindingOverrideSet")
-	if x.Version != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "version")
-		protobuf_go_lite.TextWriteUint(&sb, x.Version)
-	}
-	if len(x.Overrides) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "overrides")
-		for i, v := range x.Overrides {
-			protobuf_go_lite.TextWriteListSeparator(&sb, i)
-			if v == nil {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, &KeybindingCommandOverride{})
-			} else {
-				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
-			}
-		}
-		protobuf_go_lite.TextWriteListEnd(&sb)
-	}
-	if x.Settings != nil {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "settings")
-		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Settings)
-	}
 	if len(x.WebOverrides) > 0 {
 		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "web_overrides")
 		for i, v := range x.WebOverrides {
@@ -3323,43 +3179,6 @@ func (m *KeybindingOverrideSet) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: KeybindingOverrideSet: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
-			}
-			m.Version = 0
-			m.Version, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Overrides", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Overrides = append(m.Overrides, &KeybindingCommandOverride{})
-			if err := m.Overrides[len(m.Overrides)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Settings", wireType)
-			}
-			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			if m.Settings == nil {
-				m.Settings = &KeybindingOverrideSettings{}
-			}
-			if err := m.Settings.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field WebOverrides", wireType)

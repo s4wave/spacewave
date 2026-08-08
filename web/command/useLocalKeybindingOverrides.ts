@@ -1,6 +1,4 @@
 import { useCallback, useMemo } from 'react'
-import { useAbortSignalEffect } from '@aptre/bldr-react'
-
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
 
 import {
@@ -13,7 +11,6 @@ import {
   localKeybindingStoreKey,
   localKeybindingStoreNamespace,
   normalizeKeybindingOverrideSet,
-  migrateLegacyKeybindingOverrideSet,
   removeLocalCommandBindingOverride,
   resetKeybindingCommandOverride,
   setCommandBindingsOverride,
@@ -23,7 +20,6 @@ import {
   type KeybindingOverrideLayer,
   type KeybindingOverrideSet,
   type KeybindingOverrideSettings,
-  keybindingMigrationError,
 } from './keybinding-overrides.js'
 import {
   CommandSurface,
@@ -53,14 +49,12 @@ export interface LocalKeybindingOverridesValue {
 }
 
 interface LocalStoredKeybindings {
-  version: 2
   webOverrides: KeybindingOverrideSet
   tuiOverrides: KeybindingOverrideSet
 }
 
 function emptyLocalStoredKeybindings(): LocalStoredKeybindings {
   return {
-    version: 2,
     webOverrides: createEmptyKeybindingOverrideSet(),
     tuiOverrides: createEmptyKeybindingOverrideSet(),
   }
@@ -68,7 +62,6 @@ function emptyLocalStoredKeybindings(): LocalStoredKeybindings {
 
 export function useLocalKeybindingOverrides(
   surface: CommandSurface,
-  canonicalCommandIds: ReadonlySet<string>,
 ): LocalKeybindingOverridesValue {
   if (surface !== CommandSurface.WEB && surface !== CommandSurface.TUI)
     throw new Error('local keybindings require WEB or TUI surface')
@@ -78,62 +71,7 @@ export function useLocalKeybindingOverrides(
     localKeybindingStoreKey,
     emptyLocalStoredKeybindings() as unknown,
   )
-  const migration = useMemo(() => {
-    const raw = rawOverrideSet as Record<string, unknown>
-    if (raw.version === 2 && 'webOverrides' in raw) {
-      return {
-        overrideSet: createEmptyKeybindingOverrideSet(),
-        required: false,
-        diagnostics: [],
-      }
-    }
-    const legacy = normalizeKeybindingOverrideSet(rawOverrideSet)
-    return migrateLegacyKeybindingOverrideSet(
-      {
-        version: 1,
-        overrides: Object.entries(legacy.overrides).map(
-          ([commandId, override]) => ({ commandId, ...override }),
-        ),
-        settings: (raw.settings && typeof raw.settings === 'object'
-          ? raw.settings
-          : undefined) as never,
-      },
-      canonicalCommandIds,
-    )
-  }, [rawOverrideSet, canonicalCommandIds])
-  useAbortSignalEffect(
-    (signal) => {
-      if (!migration.required || migration.diagnostics.length || signal.aborted)
-        return
-      setRawOverrideSet((current: unknown) => {
-        const raw = current as Record<string, unknown>
-        if (raw.version === 2 && 'webOverrides' in raw) return current
-        const legacy = normalizeKeybindingOverrideSet(current)
-        const currentMigration = migrateLegacyKeybindingOverrideSet(
-          {
-            version: 1,
-            overrides: Object.entries(legacy.overrides).map(
-              ([commandId, override]) => ({ commandId, ...override }),
-            ),
-            settings: (raw.settings && typeof raw.settings === 'object'
-              ? raw.settings
-              : undefined) as never,
-          },
-          canonicalCommandIds,
-        )
-        if (currentMigration.diagnostics.length) return current
-        const stored = emptyLocalStoredKeybindings()
-        stored.webOverrides = currentMigration.overrideSet
-        return stored
-      })
-    },
-    [migration, setRawOverrideSet, canonicalCommandIds],
-  )
-  const stored =
-    (rawOverrideSet as LocalStoredKeybindings).version === 2 &&
-    'webOverrides' in (rawOverrideSet as object)
-      ? (rawOverrideSet as LocalStoredKeybindings)
-      : emptyLocalStoredKeybindings()
+  const stored = rawOverrideSet as LocalStoredKeybindings
   const overrideSet = normalizeKeybindingOverrideSet(
     surface === CommandSurface.WEB ? stored.webOverrides : stored.tuiOverrides,
   )
@@ -144,11 +82,7 @@ export function useLocalKeybindingOverrides(
   const replaceSelected = useCallback(
     (next: KeybindingOverrideSet) => {
       setRawOverrideSet((current: unknown) => {
-        const value =
-          (current as LocalStoredKeybindings).version === 2 &&
-          'webOverrides' in (current as object)
-            ? (current as LocalStoredKeybindings)
-            : emptyLocalStoredKeybindings()
+        const value = current as LocalStoredKeybindings
         return surface === CommandSurface.WEB
           ? { ...value, webOverrides: normalizeKeybindingOverrideSet(next) }
           : { ...value, tuiOverrides: normalizeKeybindingOverrideSet(next) }
@@ -235,7 +169,7 @@ export function useLocalKeybindingOverrides(
   }, [replaceSelected])
 
   return {
-    error: keybindingMigrationError(migration.diagnostics),
+    error: null,
     overrideSet,
     layer,
     setCommandOverride,

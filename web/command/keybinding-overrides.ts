@@ -37,7 +37,6 @@ export interface KeybindingCommandOverride {
 }
 
 export interface KeybindingOverrideSet {
-  version: 1 | 2
   overrides: Record<string, KeybindingCommandOverride>
   settings: KeybindingOverrideSettings
 }
@@ -53,7 +52,7 @@ export const localKeybindingStoreKey = 'local'
 export const localKeybindingStoreId = 'keybindings/local'
 
 export function createEmptyKeybindingOverrideSet(): KeybindingOverrideSet {
-  return { version: 2, overrides: {}, settings: {} }
+  return { overrides: {}, settings: {} }
 }
 
 export function createKeybindingOverrideLayer(
@@ -68,33 +67,6 @@ export function createKeybindingOverrideLayer(
   }
 }
 
-export type KeybindingMigrationDiagnosticCode =
-  | 'duplicate-command-id'
-  | 'empty-command-id'
-export interface KeybindingMigrationDiagnostic {
-  code: KeybindingMigrationDiagnosticCode
-  commandId: string
-  index: number
-}
-export interface KeybindingMigrationResult {
-  overrideSet: KeybindingOverrideSet
-  required: boolean
-  diagnostics: KeybindingMigrationDiagnostic[]
-}
-
-export function keybindingMigrationError(
-  diagnostics: readonly KeybindingMigrationDiagnostic[],
-): Error | null {
-  if (!diagnostics.length) return null
-  const detail = diagnostics
-    .map(
-      (diagnostic) =>
-        `${diagnostic.code}:${diagnostic.commandId || '<empty>'}@${diagnostic.index}`,
-    )
-    .join(', ')
-  return new Error(`keybinding migration requires action: ${detail}`)
-}
-
 export function keybindingOverrideSetFromProto(
   value: ProtoKeybindingOverrideSet | null | undefined,
   surface: CommandSurface = CommandSurface.WEB,
@@ -103,50 +75,7 @@ export function keybindingOverrideSetFromProto(
     throw new Error('keybinding override parsing requires WEB or TUI surface')
   }
   if (!value) return createEmptyKeybindingOverrideSet()
-  if (value.version === 1) {
-    throw new Error('legacy keybinding override set requires migration')
-  }
   return readKeybindingOverrideSet(value, surface)
-}
-
-// migrateLegacyKeybindingOverrideSet is the only reader of the v1 partition.
-export function migrateLegacyKeybindingOverrideSet(
-  value: ProtoKeybindingOverrideSet,
-  _canonicalCommandIds: ReadonlySet<string>,
-): KeybindingMigrationResult {
-  if (value.version !== 1) {
-    return {
-      overrideSet: readKeybindingOverrideSet(value, CommandSurface.WEB),
-      required: false,
-      diagnostics: [],
-    }
-  }
-  const diagnostics: KeybindingMigrationDiagnostic[] = []
-  const seen = new Set<string>()
-  for (const [index, row] of (value.overrides ?? []).entries()) {
-    const commandId = row.commandId ?? ''
-    if (!commandId)
-      diagnostics.push({ code: 'empty-command-id', commandId: '', index })
-    else if (seen.has(commandId))
-      diagnostics.push({ code: 'duplicate-command-id', commandId, index })
-    seen.add(commandId)
-  }
-  diagnostics.sort(
-    (a, b) =>
-      a.commandId.localeCompare(b.commandId) ||
-      a.code.localeCompare(b.code) ||
-      a.index - b.index,
-  )
-  return {
-    overrideSet: readOverridePartition(
-      value.overrides ?? [],
-      value.settings,
-      CommandSurface.WEB,
-      true,
-    ),
-    required: true,
-    diagnostics,
-  }
 }
 
 function readKeybindingOverrideSet(
@@ -168,9 +97,8 @@ function readKeybindingOverrideSet(
 
 function readOverridePartition(
   rawOverrides: readonly ProtoKeybindingCommandOverride[],
-  settings: ProtoKeybindingOverrideSet['settings'],
+  settings: ProtoKeybindingOverrideSet['webSettings'],
   surface: CommandSurface,
-  legacy = false,
 ): KeybindingOverrideSet {
   const overrides: Record<string, KeybindingCommandOverride> = {}
   for (const rawOverride of rawOverrides) {
@@ -179,7 +107,6 @@ function readOverridePartition(
     const override = normalizeCommandOverride(rawOverride)
     if (override.bindings) {
       override.bindings = override.bindings.map((binding) => {
-        if (legacy) return { ...binding, surface: CommandSurface.WEB }
         if (binding.surface !== surface)
           throw new Error(
             `binding surface must match ${surface === CommandSurface.WEB ? 'WEB' : 'TUI'}`,
@@ -191,7 +118,6 @@ function readOverridePartition(
       overrides[commandId] = override
   }
   return {
-    version: 2,
     overrides,
     settings: normalizeKeybindingSettings(settings),
   }
@@ -218,9 +144,6 @@ export function keybindingOverrideSetToProto(
     }
   }
   return {
-    version: 2,
-    overrides: [],
-    settings: undefined,
     webOverrides: surface === CommandSurface.WEB ? overrides : [],
     tuiOverrides: surface === CommandSurface.TUI ? overrides : [],
     webSettings:
@@ -241,9 +164,6 @@ export function mergeKeybindingOverridePartitions(
 ): ProtoKeybindingOverrideSet {
   const selected = keybindingOverrideSetToProto(next, surface)
   return {
-    version: 2,
-    overrides: [],
-    settings: undefined,
     webOverrides:
       surface === CommandSurface.WEB
         ? (selected.webOverrides ?? [])
@@ -293,7 +213,6 @@ export function normalizeKeybindingOverrideSet(
   }
 
   return {
-    version: 2,
     overrides,
     settings: normalizeKeybindingSettings(value.settings),
   }
@@ -480,7 +399,7 @@ function normalizeKeybindingSettings(
 
 export function keybindingOverrideSettingsToProto(
   settings: KeybindingOverrideSettings,
-): NonNullable<ProtoKeybindingOverrideSet['settings']> {
+): NonNullable<ProtoKeybindingOverrideSet['webSettings']> {
   const mode = settings.display?.mode
   return {
     leaderCombo: settings.leaderCombo,

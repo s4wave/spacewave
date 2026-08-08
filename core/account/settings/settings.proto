@@ -65,14 +65,8 @@ message AccountSettingsOp {
     SessionPresentation upsert_session_presentation = 6;
     // RemoveSessionPresentation removes a session presentation by peer_id.
     RemoveSessionPresentationOp remove_session_presentation = 7;
-    // UpsertKeybindingOverride adds or replaces one keybinding override.
-    .s4wave.command.KeybindingCommandOverride upsert_keybinding_override = 8;
-    // RemoveKeybindingOverride removes one keybinding override by command_id.
-    RemoveKeybindingOverrideOp remove_keybinding_override = 9;
-    // SetKeybindingSettings replaces layer-wide keybinding settings.
-    .s4wave.command.KeybindingOverrideSettings set_keybinding_settings = 10;
     // ReplaceKeybindingOverrideSet atomically replaces the complete persisted layer.
-    ReplaceKeybindingOverrideSetOp replace_keybinding_override_set = 11;
+    ReplaceKeybindingOverrideSetOp replace_keybinding_override_set = 8;
   }
 }
 
@@ -106,10 +100,4 @@ message RemovePairedDeviceOp {
 message RemoveSessionPresentationOp {
   // PeerId is the peer ID of the session metadata entry to remove.
   string peer_id = 1;
-}
-
-// RemoveKeybindingOverrideOp removes one keybinding override by command ID.
-message RemoveKeybindingOverrideOp {
-  // CommandId is the command identifier to remove.
-  string command_id = 1;
 }

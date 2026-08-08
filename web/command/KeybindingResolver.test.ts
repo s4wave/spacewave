@@ -67,7 +67,7 @@ function sequenceBinding(
 }
 
 describe('KeybindingResolver', () => {
-  it('uses typed default bindings instead of the legacy keybinding when both are present', () => {
+  it('uses typed default bindings', () => {
     const graph = resolveKeybindings(
       [
         commandState(
@@ -511,7 +511,6 @@ describe('KeybindingResolver', () => {
       scope: 'local',
       label: 'Local',
       overrideSet: {
-        version: 1,
         overrides: {
           'spacewave.palette': {
             clearedBindingIds: ['palette-alt'],
@@ -595,7 +594,6 @@ describe('KeybindingResolver', () => {
       scope: 'local',
       label: 'Local',
       overrideSet: {
-        version: 1,
         overrides: {
           'spacewave.palette': {
             replaceBindings: true,
@@ -609,7 +607,6 @@ describe('KeybindingResolver', () => {
       scope: 'account',
       label: 'Account',
       overrideSet: {
-        version: 1,
         overrides: {
           'spacewave.palette': {
             replaceBindings: true,
@@ -623,7 +620,6 @@ describe('KeybindingResolver', () => {
       scope: 'space',
       label: 'Space',
       overrideSet: {
-        version: 1,
         overrides: {
           'spacewave.palette': {
             replaceBindings: true,
@@ -709,7 +705,6 @@ describe('KeybindingResolver', () => {
       scope: 'local',
       label: 'Local',
       overrideSet: {
-        version: 1,
         overrides: {
           'spacewave.account-wins': {
             replaceBindings: true,
@@ -739,7 +734,6 @@ describe('KeybindingResolver', () => {
       scope: 'account',
       label: 'Account',
       overrideSet: {
-        version: 1,
         overrides: {
           'spacewave.account-wins': {
             replaceBindings: true,
@@ -771,7 +765,6 @@ describe('KeybindingResolver', () => {
       scope: 'space',
       label: 'Space',
       overrideSet: {
-        version: 1,
         overrides: {
           'spacewave.space-wins': {
             replaceBindings: true,
@@ -824,7 +817,6 @@ describe('KeybindingResolver', () => {
       scope: 'local',
       label: 'Local',
       overrideSet: {
-        version: 1,
         overrides: {
           'spacewave.first': {
             bindings: [
@@ -883,7 +875,6 @@ describe('KeybindingResolver', () => {
       scope: 'local',
       label: 'Local',
       overrideSet: {
-        version: 1,
         overrides: {},
         settings: {
           leaderCombo: 'Alt+Space',
@@ -895,7 +886,6 @@ describe('KeybindingResolver', () => {
       scope: 'account',
       label: 'Account',
       overrideSet: {
-        version: 1,
         overrides: {},
         settings: {
           leaderCombo: 'Ctrl+Alt+Space',
@@ -906,7 +896,6 @@ describe('KeybindingResolver', () => {
       scope: 'space',
       label: 'Space',
       overrideSet: {
-        version: 1,
         overrides: {},
         settings: {
           whichKeyDelayMs: 125,

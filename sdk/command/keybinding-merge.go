@@ -10,7 +10,7 @@ var (
 	ErrKeybindingOverrideSetExpected = errors.New("expected keybinding override set is required")
 	// ErrKeybindingOverrideSetChanged is returned when a replacement conflicts with persisted state.
 	ErrKeybindingOverrideSetChanged = errors.New("keybinding override set changed")
-	// ErrKeybindingOverrideSetReplacement is returned for a malformed version 2 replacement.
+	// ErrKeybindingOverrideSetReplacement is returned for a malformed replacement.
 	ErrKeybindingOverrideSetReplacement = errors.New("replacement keybinding override set is invalid")
 )
 
@@ -26,16 +26,13 @@ func MergeKeybindingOverrideSet(
 		return nil, ErrKeybindingOverrideSetReplacement
 	}
 	if current == nil {
-		current = &KeybindingOverrideSet{Version: 1}
+		current = &KeybindingOverrideSet{}
 	}
 	if current.EqualVT(expected) {
 		return replacement.CloneVT(), nil
 	}
 	if current.EqualVT(replacement) {
 		return current.CloneVT(), nil
-	}
-	if current.GetVersion() != 2 || expected.GetVersion() != 2 || replacement.GetVersion() != 2 {
-		return nil, ErrKeybindingOverrideSetChanged
 	}
 
 	merged := current.CloneVT()
@@ -57,7 +54,7 @@ func MergeKeybindingOverrideSet(
 }
 
 func validReplacementKeybindingOverrideSet(value *KeybindingOverrideSet) bool {
-	if value == nil || value.GetVersion() != 2 || len(value.GetOverrides()) != 0 || value.GetSettings() != nil {
+	if value == nil {
 		return false
 	}
 	return validKeybindingPartition(value.GetWebOverrides(), CommandSurface_COMMAND_SURFACE_WEB) &&
@@ -93,8 +90,8 @@ func keybindingPartitionEqual(
 	rightOverrides []*KeybindingCommandOverride,
 	rightSettings *KeybindingOverrideSettings,
 ) bool {
-	left := &KeybindingOverrideSet{Version: 2, WebOverrides: leftOverrides, WebSettings: leftSettings}
-	right := &KeybindingOverrideSet{Version: 2, WebOverrides: rightOverrides, WebSettings: rightSettings}
+	left := &KeybindingOverrideSet{WebOverrides: leftOverrides, WebSettings: leftSettings}
+	right := &KeybindingOverrideSet{WebOverrides: rightOverrides, WebSettings: rightSettings}
 	return left.EqualVT(right)
 }
 

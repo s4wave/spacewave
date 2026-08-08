@@ -104,15 +104,10 @@ message KeybindingCommandOverride {
 
 // KeybindingOverrideSet stores one persisted keybinding override layer.
 message KeybindingOverrideSet {
-  // Version is the override set schema version.
-  uint32 version = 1;
-  // Overrides is the historical v1 command-keyed set.
-  repeated KeybindingCommandOverride overrides = 2;
-  // Settings stores historical layer-wide preferences.
-  KeybindingOverrideSettings settings = 3;
-  // WebOverrides is the version-2 browser partition.
+  reserved 1, 2, 3;
+  // WebOverrides is the browser partition.
   repeated KeybindingCommandOverride web_overrides = 4;
-  // TuiOverrides is the version-2 terminal partition.
+  // TuiOverrides is the terminal partition.
   repeated KeybindingCommandOverride tui_overrides = 5;
   // WebSettings is the version-2 browser settings partition.
   KeybindingOverrideSettings web_settings = 6;
