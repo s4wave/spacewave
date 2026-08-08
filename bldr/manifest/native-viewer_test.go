@@ -1,12 +1,19 @@
 package bldr_manifest
 
 import (
+	"bytes"
+	"context"
+	stderrors "errors"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/unixfs"
 	net_hash "github.com/s4wave/spacewave/net/hash"
 )
 
@@ -76,3 +83,198 @@ func TestResolveNativeViewerRejectsManifestObjectKeyAndPlatform(t *testing.T) {
 		t.Fatal("expected unsafe entrypoint rejection")
 	}
 }
+
+type fakeNativeViewerArtifactFile struct {
+	nodeType unixfs.FSCursorNodeType
+	data     []byte
+	size     uint64
+	read     func(context.Context, int64, []byte) (int64, error)
+	released int
+}
+
+func (f *fakeNativeViewerArtifactFile) GetNodeType(context.Context) (unixfs.FSCursorNodeType, error) {
+	return f.nodeType, nil
+}
+
+func (f *fakeNativeViewerArtifactFile) GetSize(context.Context) (uint64, error) {
+	return f.size, nil
+}
+
+func (f *fakeNativeViewerArtifactFile) ReadAt(ctx context.Context, offset int64, p []byte) (int64, error) {
+	if f.read != nil {
+		return f.read(ctx, offset, p)
+	}
+	if offset < 0 || offset >= int64(len(f.data)) {
+		return 0, io.EOF
+	}
+	n := copy(p, f.data[offset:])
+	return int64(n), nil
+}
+
+func (f *fakeNativeViewerArtifactFile) Release() { f.released++ }
+
+func TestMaterializeNativeViewerArtifactNestedEntrypoint(t *testing.T) {
+	m, ref, root, host := nativeViewerFixture()
+	resolution, err := ResolveNativeViewer(m, ref, root, "plugin/manifest", host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []byte("native viewer bytes")
+	file := &fakeNativeViewerArtifactFile{nodeType: unixfs.NewFSCursorNodeType_File(), data: want, size: uint64(len(want))}
+	var lookedUp string
+	destination := t.TempDir()
+	artifact, err := materializeNativeViewerArtifactWithLookup(context.Background(), resolution, destination,
+		func(_ context.Context, entrypoint string) (nativeViewerArtifactFile, error) {
+			lookedUp = entrypoint
+			return file, nil
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lookedUp != resolution.Entrypoint {
+		t.Fatalf("looked up %q, want %q", lookedUp, resolution.Entrypoint)
+	}
+	if !filepath.IsAbs(artifact.Path) {
+		t.Fatalf("artifact path is not absolute: %q", artifact.Path)
+	}
+	got, err := os.ReadFile(artifact.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("artifact bytes = %q, want %q", got, want)
+	}
+	info, err := os.Stat(artifact.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.Mode().IsRegular() || info.Mode().Perm() != 0o700 {
+		t.Fatalf("artifact mode = %s, want regular 0700", info.Mode())
+	}
+	if file.released != 1 {
+		t.Fatalf("entrypoint releases = %d, want 1", file.released)
+	}
+	if err := artifact.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := artifact.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(artifact.Path); !stderrors.Is(err, os.ErrNotExist) {
+		t.Fatalf("artifact after cleanup: %v", err)
+	}
+}
+
+func TestMaterializeNativeViewerArtifactRejectsInvalidFiles(t *testing.T) {
+	m, ref, root, host := nativeViewerFixture()
+	resolution, err := ResolveNativeViewer(m, ref, root, "plugin/manifest", host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, file := range map[string]*fakeNativeViewerArtifactFile{
+		"directory": {nodeType: unixfs.NewFSCursorNodeType_Dir(), data: []byte("x"), size: 1},
+		"symlink":   {nodeType: unixfs.NewFSCursorNodeType_Symlink(), data: []byte("x"), size: 1},
+		"empty":     {nodeType: unixfs.NewFSCursorNodeType_File(), size: 0},
+		"too large": {nodeType: unixfs.NewFSCursorNodeType_File(), size: nativeViewerArtifactMaxBytes + 1},
+	} {
+		t.Run(name, func(t *testing.T) {
+			destination := t.TempDir()
+			_, err := materializeNativeViewerArtifactWithLookup(context.Background(), resolution, destination,
+				func(_ context.Context, _ string) (nativeViewerArtifactFile, error) { return file, nil })
+			if err == nil {
+				t.Fatal("expected rejection")
+			}
+			if file.released != 1 {
+				t.Fatalf("entrypoint releases = %d, want 1", file.released)
+			}
+			entries, readErr := os.ReadDir(destination)
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			if len(entries) != 0 {
+				t.Fatalf("partial artifacts remain: %v", entries)
+			}
+		})
+	}
+}
+
+func TestMaterializeNativeViewerArtifactFailuresCleanPartialFile(t *testing.T) {
+	m, ref, root, host := nativeViewerFixture()
+	resolution, err := ResolveNativeViewer(m, ref, root, "plugin/manifest", host)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := map[string]struct {
+		file *fakeNativeViewerArtifactFile
+		want error
+	}{
+		"missing": {
+			want: os.ErrNotExist,
+		},
+		"short read": {
+			file: &fakeNativeViewerArtifactFile{
+				nodeType: unixfs.NewFSCursorNodeType_File(), size: 3,
+				read: func(context.Context, int64, []byte) (int64, error) { return 2, nil },
+			},
+		},
+		"cancel": {
+			file: &fakeNativeViewerArtifactFile{
+				nodeType: unixfs.NewFSCursorNodeType_File(), data: []byte("abc"), size: 3,
+				read: func(ctx context.Context, _ int64, _ []byte) (int64, error) { return 0, ctx.Err() },
+			},
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			destination := t.TempDir()
+			ctx := context.Background()
+			if name == "cancel" {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithCancel(ctx)
+				cancel()
+			}
+			file := tt.file
+			var lookupErr error
+			if name == "missing" {
+				lookupErr = os.ErrNotExist
+			}
+			_, err := materializeNativeViewerArtifactWithLookup(ctx, resolution, destination,
+				func(_ context.Context, _ string) (nativeViewerArtifactFile, error) {
+					if file == nil {
+						return nil, lookupErr
+					}
+					return file, lookupErr
+				})
+			if err == nil {
+				t.Fatal("expected failure")
+			}
+			wantReleases := 1
+			if name == "cancel" {
+				wantReleases = 0 // cancellation is rejected before UnixFS lookup
+			}
+			if file != nil && file.released != wantReleases {
+				t.Fatalf("entrypoint releases = %d, want %d", file.released, wantReleases)
+			}
+			entries, readErr := os.ReadDir(destination)
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			if len(entries) != 0 {
+				t.Fatalf("partial artifacts remain: %v", entries)
+			}
+		})
+	}
+}
+
+func TestWriteNativeViewerArtifactRejectsShortWrite(t *testing.T) {
+	file := &fakeNativeViewerArtifactFile{nodeType: unixfs.NewFSCursorNodeType_File(), data: []byte("abc"), size: 3}
+	short := shortNativeViewerArtifactWriter{}
+	err := writeNativeViewerArtifact(context.Background(), &short, file, 3)
+	if !stderrors.Is(err, io.ErrShortWrite) {
+		t.Fatalf("error = %v, want io.ErrShortWrite", err)
+	}
+}
+
+type shortNativeViewerArtifactWriter struct{}
+
+func (*shortNativeViewerArtifactWriter) Write(p []byte) (int, error) { return len(p) - 1, nil }
