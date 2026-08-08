@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	"github.com/s4wave/spacewave/bldr/tui/nativehost"
+	command_registry "github.com/s4wave/spacewave/sdk/command/registry"
 	native "github.com/s4wave/spacewave/sdk/viewer/native"
 )
 
@@ -24,6 +25,8 @@ type Config struct {
 	StateStore resource_state.StateAtomStore
 	// SelectedStateKey identifies the state atom served by StateService.
 	SelectedStateKey string
+	// CommandRegistryClient serves the daemon command registry.
+	CommandRegistryClient command_registry.SRPCCommandRegistryResourceServiceClient
 }
 
 // Factory creates one independent set of native viewer endpoints per Open.
@@ -65,6 +68,9 @@ func validateConfig(c Config) error {
 	}
 	if c.StateStore == nil {
 		return errors.New("state store is required")
+	}
+	if c.CommandRegistryClient == nil {
+		return errors.New("command registry client is required")
 	}
 	if !validIdentity(c.SelectedStateKey) {
 		return errors.New("selected state key is invalid")

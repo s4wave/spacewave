@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
+	command_registry "github.com/s4wave/spacewave/sdk/command/registry"
 	native "github.com/s4wave/spacewave/sdk/viewer/native"
 )
 
@@ -29,6 +30,7 @@ func (s *testStore) Get(context.Context) (string, uint64, error) {
 	defer s.mu.Unlock()
 	return s.json, uint64(len(s.setJSON)), nil
 }
+
 func (s *testStore) Set(_ context.Context, value string) (uint64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -46,15 +48,20 @@ type unavailableClient struct {
 	services []string
 }
 
-func (c *unavailableClient) ExecCall(context.Context, string, string, srpc.Message, srpc.Message) error {
+func (c *unavailableClient) ExecCall(_ context.Context, service, _ string, _ srpc.Message, _ srpc.Message) error {
+	c.mu.Lock()
+	c.services = append(c.services, service)
+	c.mu.Unlock()
 	return errors.New("unavailable")
 }
+
 func (c *unavailableClient) NewStream(_ context.Context, service, _ string, _ srpc.Message) (srpc.Stream, error) {
 	c.mu.Lock()
 	c.services = append(c.services, service)
 	c.mu.Unlock()
 	return nil, errors.New("upstream marker")
 }
+
 func (c *unavailableClient) called(service string) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -94,7 +101,7 @@ func TestStateServiceValidationAndDetachedLoad(t *testing.T) {
 }
 
 func TestOpenEndpointsCloseAndWait(t *testing.T) {
-	factory, err := NewEndpointFactory(Config{ResourceClient: &unavailableClient{}, StateStore: &testStore{}, SelectedStateKey: "state:1"})
+	factory, err := NewEndpointFactory(Config{ResourceClient: &unavailableClient{}, StateStore: &testStore{}, SelectedStateKey: "state:1", CommandRegistryClient: command_registry.NewSRPCCommandRegistryResourceServiceClient(new(unavailableClient))})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,9 +145,10 @@ func TestOpenEndpointsCloseAndWait(t *testing.T) {
 func TestEndpointServiceIsolation(t *testing.T) {
 	upstream := new(unavailableClient)
 	factory, err := NewEndpointFactory(Config{
-		ResourceClient:   upstream,
-		StateStore:       &testStore{},
-		SelectedStateKey: "state:1",
+		ResourceClient:        upstream,
+		StateStore:            &testStore{},
+		SelectedStateKey:      "state:1",
+		CommandRegistryClient: command_registry.NewSRPCCommandRegistryResourceServiceClient(new(unavailableClient)),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -192,16 +200,16 @@ func TestEndpointServiceIsolation(t *testing.T) {
 		t.Fatal("resource endpoint forwarded ControlService")
 	}
 
-	controlStream, err := controlClient.NewStream(t.Context(), native.SRPCControlServiceServiceID, "ListCommands", &native.NativeViewerListCommandsRequest{})
+	controlStream, err := controlClient.NewStream(t.Context(), native.SRPCControlServiceServiceID, "AvailableSessions", &native.NativeViewerAvailableSessionsRequest{})
 	if err == nil {
-		err = controlStream.MsgRecv(&native.NativeViewerListCommandsResponse{})
+		err = controlStream.MsgRecv(&native.NativeViewerAvailableSessionsResponse{})
 		_ = controlStream.Close()
 	}
 	if err == nil {
 		t.Fatal("control probe unexpectedly succeeded")
 	}
 	if !upstream.called(native.SRPCControlServiceServiceID) {
-		t.Fatal("control endpoint did not forward ControlService")
+		t.Fatalf("control endpoint did not forward ControlService; calls=%v", upstream.services)
 	}
 	blockedResource, err := controlClient.NewStream(t.Context(), resource.SRPCResourceServiceServiceID, "ResourceClient", &resource.ResourceClientRequest{})
 	if err == nil {
@@ -225,7 +233,7 @@ func TestEndpointServiceIsolation(t *testing.T) {
 }
 
 func TestFactoryRejectsNilContext(t *testing.T) {
-	factory, err := New(Config{ResourceClient: new(unavailableClient), StateStore: &testStore{}, SelectedStateKey: "state:1"})
+	factory, err := New(Config{ResourceClient: new(unavailableClient), StateStore: &testStore{}, SelectedStateKey: "state:1", CommandRegistryClient: command_registry.NewSRPCCommandRegistryResourceServiceClient(new(unavailableClient))})
 	if err != nil {
 		t.Fatal(err)
 	}

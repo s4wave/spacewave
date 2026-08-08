@@ -89,7 +89,13 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 	}
 	transports = append(transports, stateTransport)
 
-	controlMux := srpc.NewMux(&serviceFilter{serviceID: native.SRPCControlServiceServiceID, invoker: srpc.NewClientInvoker(c.ResourceClient)})
+	controlMux := srpc.NewMux()
+	if err := native.SRPCRegisterControlService(controlMux, newControlBridge(
+		native.NewSRPCControlServiceClient(c.ResourceClient), c.CommandRegistryClient,
+	)); err != nil {
+		cleanup()
+		return nil, err
+	}
 	controlTransport, err := makeTransport("control", controlMux)
 	if err != nil {
 		cleanup()
