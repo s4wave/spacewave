@@ -310,3 +310,26 @@ func TestNativeViewerResultsKeepCleanupAndResolutionStatePrivate(t *testing.T) {
 		}
 	}
 }
+
+// TestNativeViewerArtifactConcurrentClose proves removal runs once and publishes one result.
+func TestNativeViewerArtifactConcurrentClose(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "viewer")
+	if err := os.WriteFile(path, []byte("viewer"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	artifact := &NativeViewerArtifact{path: path}
+	start := make(chan struct{})
+	results := make(chan error, 32)
+	for range 32 {
+		go func() { <-start; results <- artifact.Close() }()
+	}
+	close(start)
+	for range 32 {
+		if err := <-results; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := os.Stat(path); !stderrors.Is(err, os.ErrNotExist) {
+		t.Fatalf("artifact remains: %v", err)
+	}
+}

@@ -5,10 +5,12 @@ package nativeendpoint
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"slices"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -259,5 +261,79 @@ func TestFactoryRejectsNilContext(t *testing.T) {
 	}
 	if _, err := factory.Open(nil); err == nil {
 		t.Fatal("accepted nil lifecycle context")
+	}
+}
+
+// TestOpenKeyedServersAggregateFixedMemberExits proves each fixed server starts and exits once.
+func TestOpenKeyedServersAggregateFixedMemberExits(t *testing.T) {
+	oldServe := serveEndpoint
+	defer func() { serveEndpoint = oldServe }()
+	var mtx sync.Mutex
+	calls := make(map[int]int)
+	errs := []error{errors.New("resource exit"), errors.New("state exit"), errors.New("control exit")}
+	serveEndpoint = func(_ context.Context, key int, _ srpc.Invoker, _ srpc.MuxedConn) error {
+		mtx.Lock()
+		calls[key]++
+		mtx.Unlock()
+		return errs[key]
+	}
+	factory, err := NewEndpointFactory(Config{ResourceClient: new(unavailableClient), StateStore: &testStore{}, SelectedStateKey: "state:1", CommandRegistryClient: command_registry.NewSRPCCommandRegistryResourceServiceClient(new(unavailableClient))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	set, err := factory(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitErr := set.WaitFunc()
+	for _, want := range errs {
+		if !errors.Is(waitErr, want) {
+			t.Fatalf("missing %v in %v", want, waitErr)
+		}
+	}
+	if err := set.CloseFunc(); err != nil {
+		t.Fatal(err)
+	}
+	mtx.Lock()
+	defer mtx.Unlock()
+	for key := range 3 {
+		if calls[key] != 1 {
+			t.Fatalf("server %d calls=%d", key, calls[key])
+		}
+	}
+}
+
+// TestOpenPartialFailureClosesAcquiredDescriptors proves failed construction retains all FD custody.
+func TestOpenPartialFailureClosesAcquiredDescriptors(t *testing.T) {
+	for _, failAt := range []int{2, 3} {
+		t.Run(fmt.Sprint(failAt), func(t *testing.T) {
+			oldSocketPair := socketPair
+			defer func() { socketPair = oldSocketPair }()
+			calls := 0
+			var fds []int
+			socketPair = func() ([2]int, error) {
+				calls++
+				if calls == failAt {
+					return [2]int{}, errors.New("socket pair failure")
+				}
+				pair, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+				if err == nil {
+					fds = append(fds, pair[:]...)
+				}
+				return pair, err
+			}
+			factory, err := NewEndpointFactory(Config{ResourceClient: new(unavailableClient), StateStore: &testStore{}, SelectedStateKey: "state:1", CommandRegistryClient: command_registry.NewSRPCCommandRegistryResourceServiceClient(new(unavailableClient))})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := factory(t.Context()); err == nil {
+				t.Fatal("expected construction failure")
+			}
+			for _, fd := range fds {
+				if err := syscall.Close(fd); !errors.Is(err, syscall.EBADF) {
+					t.Fatalf("fd %d remains open: %v", fd, err)
+				}
+			}
+		})
 	}
 }

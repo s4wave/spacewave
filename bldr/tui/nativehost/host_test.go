@@ -377,3 +377,39 @@ func TestNewHostFreezesLaunchRecord(t *testing.T) {
 		t.Fatalf("frozen launch changed to %q", h.record.LaunchId)
 	}
 }
+
+// TestEndpointSetConcurrentCleanup proves simultaneous callers share one transition and result.
+func TestEndpointSetConcurrentCleanup(t *testing.T) {
+	closeErr, waitErr := errors.New("close"), errors.New("wait")
+	closes, waits := 0, 0
+	var mtx sync.Mutex
+	set := &EndpointSet{CloseFunc: func() error { mtx.Lock(); closes++; mtx.Unlock(); return closeErr }, WaitFunc: func() error { mtx.Lock(); waits++; mtx.Unlock(); return waitErr }}
+	start := make(chan struct{})
+	results := make(chan error, 32)
+	for range 16 {
+		go func() { <-start; results <- set.closeChildFiles() }()
+	}
+	for range 16 {
+		go func() { <-start; results <- set.closeAndWait() }()
+	}
+	close(start)
+	joined := 0
+	for range 32 {
+		err := <-results
+		if err == nil {
+			continue
+		}
+		if !errors.Is(err, closeErr) || !errors.Is(err, waitErr) {
+			t.Fatalf("result: %v", err)
+		}
+		joined++
+	}
+	if joined != 16 {
+		t.Fatalf("joined results=%d", joined)
+	}
+	mtx.Lock()
+	defer mtx.Unlock()
+	if closes != 1 || waits != 1 {
+		t.Fatalf("closes=%d waits=%d", closes, waits)
+	}
+}

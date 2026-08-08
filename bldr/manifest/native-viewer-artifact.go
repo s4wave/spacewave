@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sync"
 
+	"github.com/aperturerobotics/util/broadcast"
 	pkgerrors "github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/unixfs"
 )
@@ -22,9 +22,13 @@ type NativeViewerArtifact struct {
 	// path is the absolute private executable path.
 	path string
 
-	// cleanupOnce guards cleanupErr and executable removal.
-	cleanupOnce sync.Once
-	// cleanupErr records the first removal result.
+	// cleanupBcast guards cleanupRunning, cleanupDone, and cleanupErr.
+	cleanupBcast broadcast.Broadcast
+	// cleanupRunning reports that one caller is removing path.
+	cleanupRunning bool
+	// cleanupDone reports that removal finished.
+	cleanupDone bool
+	// cleanupErr records the removal result.
 	cleanupErr error
 }
 
@@ -41,13 +45,34 @@ func (a *NativeViewerArtifact) Close() error {
 	if a == nil {
 		return nil
 	}
-	a.cleanupOnce.Do(func() {
-		a.cleanupErr = os.Remove(a.path)
-		if os.IsNotExist(a.cleanupErr) {
-			a.cleanupErr = nil
+	for {
+		locked := a.cleanupBcast.Lock()
+		if a.cleanupDone {
+			err := a.cleanupErr
+			locked.Unlock()
+			return err
 		}
-	})
-	return a.cleanupErr
+		if a.cleanupRunning {
+			wait := locked.WaitCh()
+			locked.Unlock()
+			<-wait
+			continue
+		}
+		a.cleanupRunning = true
+		locked.Broadcast()
+		locked.Unlock()
+
+		err := os.Remove(a.path)
+		if os.IsNotExist(err) {
+			err = nil
+		}
+		locked = a.cleanupBcast.Lock()
+		a.cleanupRunning = false
+		a.cleanupDone = true
+		a.cleanupErr = err
+		locked.Broadcast()
+		locked.Unlock()
+	}
 }
 
 // nativeViewerArtifactFile exposes the bounded file operations required for materialization.

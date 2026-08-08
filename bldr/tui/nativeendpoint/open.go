@@ -7,10 +7,11 @@ import (
 	"errors"
 	"net"
 	"os"
-	"sync"
 	"syscall"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
+	"github.com/aperturerobotics/util/keyed"
 	"github.com/s4wave/spacewave/bldr/resource"
 	"github.com/s4wave/spacewave/bldr/tui/nativehost"
 	native "github.com/s4wave/spacewave/sdk/viewer/native"
@@ -18,6 +19,9 @@ import (
 
 var socketPair = func() ([2]int, error) {
 	return syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+}
+var serveEndpoint = func(ctx context.Context, _ int, invoker srpc.Invoker, mux srpc.MuxedConn) error {
+	return srpc.NewServer(invoker).AcceptMuxedConn(ctx, mux)
 }
 
 // endpointTransport keeps the child descriptor and parent SRPC transport together.
@@ -30,6 +34,28 @@ type endpointTransport struct {
 	mux srpc.MuxedConn
 	// invoker serves the endpoint API.
 	invoker srpc.Invoker
+}
+
+// endpointServerState publishes fixed-member completion and aggregate errors.
+type endpointServerState struct {
+	// bcast guards exited and err.
+	bcast broadcast.Broadcast
+	// exited records completed server keys.
+	exited map[int]bool
+	// err joins unexpected server failures.
+	err error
+}
+
+// endpointCleanupState publishes idempotent transport cleanup completion.
+type endpointCleanupState struct {
+	// bcast guards running, done, and err.
+	bcast broadcast.Broadcast
+	// running reports transport cleanup in progress.
+	running bool
+	// done reports transport cleanup completion.
+	done bool
+	// err records transport cleanup failures.
+	err error
 }
 
 // open creates and serves one independent endpoint set.
@@ -48,6 +74,15 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 				closeErr = errors.Join(closeErr, transport.mux.Close())
 			} else if transport.conn != nil {
 				closeErr = errors.Join(closeErr, transport.conn.Close())
+			}
+		}
+		return closeErr
+	}
+	cleanupPartial := func() error {
+		closeErr := cleanup()
+		for _, transport := range transports {
+			if transport.child != nil {
+				closeErr = errors.Join(closeErr, transport.child.Close())
 			}
 		}
 		return closeErr
@@ -78,17 +113,17 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 	resourceMux := srpc.NewMux(&serviceFilter{serviceID: resource.SRPCResourceServiceServiceID, invoker: srpc.NewClientInvoker(c.ResourceClient)})
 	resourceTransport, err := makeTransport("resource", resourceMux)
 	if err != nil {
-		return nil, errors.Join(err, cleanup())
+		return nil, errors.Join(err, cleanupPartial())
 	}
 	transports = append(transports, resourceTransport)
 
 	stateMux := srpc.NewMux()
 	if err := native.SRPCRegisterStateService(stateMux, newStateService(c.StateStore, c.SelectedStateKey)); err != nil {
-		return nil, errors.Join(err, cleanup())
+		return nil, errors.Join(err, cleanupPartial())
 	}
 	stateTransport, err := makeTransport("state", stateMux)
 	if err != nil {
-		return nil, errors.Join(err, cleanup())
+		return nil, errors.Join(err, cleanupPartial())
 	}
 	transports = append(transports, stateTransport)
 
@@ -96,48 +131,78 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 	if err := native.SRPCRegisterControlService(controlMux, newControlBridge(
 		native.NewSRPCControlServiceClient(c.ResourceClient), c.CommandRegistryClient,
 	)); err != nil {
-		return nil, errors.Join(err, cleanup())
+		return nil, errors.Join(err, cleanupPartial())
 	}
 	controlTransport, err := makeTransport("control", controlMux)
 	if err != nil {
-		return nil, errors.Join(err, cleanup())
+		return nil, errors.Join(err, cleanupPartial())
 	}
 	transports = append(transports, controlTransport)
 
 	// Serve every parent transport and aggregate failures until shutdown.
-	var servers sync.WaitGroup
-	var serverErrorsMu sync.Mutex
-	var serverErrors error
-	for _, transport := range transports {
-		server := srpc.NewServer(transport.invoker)
-		servers.Add(1)
-		go func(server *srpc.Server, mux srpc.MuxedConn) {
-			defer servers.Done()
-			if err := server.AcceptMuxedConn(serveCtx, mux); err != nil && serveCtx.Err() == nil {
-				serverErrorsMu.Lock()
-				serverErrors = errors.Join(serverErrors, err)
-				serverErrorsMu.Unlock()
+	// Serve the fixed endpoint member set through keyed lifecycle custody.
+	serverState := &endpointServerState{exited: make(map[int]bool, len(transports))}
+	servers := keyed.NewKeyed(func(key int) (keyed.Routine, struct{}) {
+		transport := transports[key]
+		return func(ctx context.Context) error {
+			err := serveEndpoint(ctx, key, transport.invoker, transport.mux)
+			if ctx.Err() != nil {
+				return nil
 			}
-		}(server, transport.mux)
-	}
+			return err
+		}, struct{}{}
+	}, keyed.WithExitCb(func(key int, _ keyed.Routine, _ struct{}, err error) {
+		locked := serverState.bcast.Lock()
+		serverState.exited[key] = true
+		serverState.err = errors.Join(serverState.err, err)
+		locked.Broadcast()
+		locked.Unlock()
+	}))
+	servers.SetContext(serveCtx, false)
+	servers.SyncKeys([]int{0, 1, 2}, false)
 
-	// Expose idempotent close and join operations to the endpoint owner.
-	var closeOnce sync.Once
-	var closeErr error
-	var waitOnce sync.Once
-	var waitErr error
+	// Expose broadcast-guarded transport close and member completion states.
+	cleanupState := new(endpointCleanupState)
 	closeFunc := func() error {
-		closeOnce.Do(func() { closeErr = cleanup() })
-		return closeErr
+		for {
+			locked := cleanupState.bcast.Lock()
+			if cleanupState.done {
+				err := cleanupState.err
+				locked.Unlock()
+				return err
+			}
+			if cleanupState.running {
+				wait := locked.WaitCh()
+				locked.Unlock()
+				<-wait
+				continue
+			}
+			cleanupState.running = true
+			locked.Broadcast()
+			locked.Unlock()
+
+			err := cleanup()
+			locked = cleanupState.bcast.Lock()
+			cleanupState.running = false
+			cleanupState.done = true
+			cleanupState.err = err
+			locked.Broadcast()
+			locked.Unlock()
+		}
 	}
 	waitFunc := func() error {
-		waitOnce.Do(func() {
-			servers.Wait()
-			serverErrorsMu.Lock()
-			waitErr = serverErrors
-			serverErrorsMu.Unlock()
-		})
-		return waitErr
+		for {
+			locked := serverState.bcast.Lock()
+			if len(serverState.exited) == len(transports) {
+				err := serverState.err
+				locked.Unlock()
+				servers.ClearContext()
+				return err
+			}
+			wait := locked.WaitCh()
+			locked.Unlock()
+			<-wait
+		}
 	}
 	return &nativehost.EndpointSet{
 		Resource:  transports[0].child,
