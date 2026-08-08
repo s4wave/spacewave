@@ -129,4 +129,4 @@ func statusAllowsBody(status int) bool {
 }
 
 // _ is a type assertion
-var _ http.ResponseWriter = ((*FetchResponseWriter)(nil))
+var _ http.ResponseWriter = (*FetchResponseWriter)(nil)

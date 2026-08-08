@@ -701,4 +701,4 @@ func (f *File) Close() wazero_sys.Errno {
 }
 
 // _ is a type assertion
-var _ wazero_sys.File = ((*File)(nil))
+var _ wazero_sys.File = (*File)(nil)

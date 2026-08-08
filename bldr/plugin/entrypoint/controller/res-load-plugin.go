@@ -128,6 +128,6 @@ func (r *loadPluginResolver) GetPluginLoadStateCtr() ccontainer.Watchable[bldr_p
 
 // _ is a type assertion
 var (
-	_ directive.Resolver           = ((*loadPluginResolver)(nil))
-	_ bldr_plugin.RunningPluginRef = ((*loadPluginResolver)(nil))
+	_ directive.Resolver           = (*loadPluginResolver)(nil)
+	_ bldr_plugin.RunningPluginRef = (*loadPluginResolver)(nil)
 )

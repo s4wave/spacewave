@@ -25,4 +25,4 @@ func (s *StringAddr) String() string {
 }
 
 // _ is a type assertion
-var _ net.Addr = ((*StringAddr)(nil))
+var _ net.Addr = (*StringAddr)(nil)

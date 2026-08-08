@@ -295,6 +295,6 @@ func (w *storePackfileWriter) Close() error {
 
 // _ is a type assertion
 var (
-	_ storer.PackfileWriter     = ((*Store)(nil))
-	_ storer.PackedObjectStorer = ((*Store)(nil))
+	_ storer.PackfileWriter     = (*Store)(nil)
+	_ storer.PackedObjectStorer = (*Store)(nil)
 )

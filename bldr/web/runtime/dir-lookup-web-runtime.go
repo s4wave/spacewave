@@ -105,4 +105,4 @@ func (d *lookupWebRuntime) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupWebRuntime = ((*lookupWebRuntime)(nil))
+var _ LookupWebRuntime = (*lookupWebRuntime)(nil)

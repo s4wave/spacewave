@@ -77,4 +77,4 @@ func (o *Operation) ApplyWorldObjectOp(
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*Operation)(nil))
+var _ world.Operation = (*Operation)(nil)

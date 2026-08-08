@@ -79,4 +79,4 @@ func (d *SpaceWorldFinalizationDecision) Validate() error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*SOWorldOp)(nil))
+var _ block.Block = (*SOWorldOp)(nil)

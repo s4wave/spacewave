@@ -756,4 +756,4 @@ func newWebSecret() (string, error) {
 }
 
 // _ is a type assertion
-var _ http.Handler = ((*webListener)(nil))
+var _ http.Handler = (*webListener)(nil)

@@ -195,10 +195,10 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 	objKey := "canvas/watch-shared"
 	initial := &CanvasState{
 		Nodes: map[string]*CanvasNode{
-			"initial": &CanvasNode{Id: "initial", TextContent: "initial"},
+			"initial": {Id: "initial", TextContent: "initial"},
 		},
 		LayoutMetadata: map[string]*CanvasLayoutMetadata{
-			"initial": &CanvasLayoutMetadata{
+			"initial": {
 				StableNodeId:    "spell-run:initial",
 				Lane:            "source",
 				Rank:            1,
@@ -240,10 +240,10 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 
 	updated := &CanvasState{
 		Nodes: map[string]*CanvasNode{
-			"updated": &CanvasNode{Id: "updated", TextContent: "updated"},
+			"updated": {Id: "updated", TextContent: "updated"},
 		},
 		LayoutMetadata: map[string]*CanvasLayoutMetadata{
-			"updated": &CanvasLayoutMetadata{
+			"updated": {
 				StableNodeId:    "spell-run:updated",
 				Lane:            "proof",
 				Rank:            7,
@@ -266,12 +266,12 @@ func TestCanvasResourceWatchSharesWorldUpdates(t *testing.T) {
 
 	burstA := &CanvasState{
 		Nodes: map[string]*CanvasNode{
-			"burst-a": &CanvasNode{Id: "burst-a", TextContent: "burst-a"},
+			"burst-a": {Id: "burst-a", TextContent: "burst-a"},
 		},
 	}
 	burstB := &CanvasState{
 		Nodes: map[string]*CanvasNode{
-			"burst-b": &CanvasNode{Id: "burst-b", TextContent: "burst-b"},
+			"burst-b": {Id: "burst-b", TextContent: "burst-b"},
 		},
 	}
 	setCanvasWatchWorldState(t, ctx, ws, objKey, burstA)
@@ -317,7 +317,7 @@ func TestCanvasResourceClosePreventsLateStatePublish(t *testing.T) {
 
 	resource.setCanvasWatchState(&CanvasState{
 		Nodes: map[string]*CanvasNode{
-			"late": &CanvasNode{Id: "late"},
+			"late": {Id: "late"},
 		},
 	})
 	late := newCanvasStateStream(t.Context())
@@ -392,7 +392,7 @@ func TestUpdateCanvasPreservesLayoutMetadata(t *testing.T) {
 	ctx := context.Background()
 	resource := NewCanvasResource(nil, nil, "", &CanvasState{
 		Nodes: map[string]*CanvasNode{
-			"source": &CanvasNode{Id: "source", TextContent: "source"},
+			"source": {Id: "source", TextContent: "source"},
 		},
 		Edges: []*CanvasEdge{
 			{
@@ -410,7 +410,7 @@ func TestUpdateCanvasPreservesLayoutMetadata(t *testing.T) {
 			},
 		},
 		LayoutMetadata: map[string]*CanvasLayoutMetadata{
-			"source": &CanvasLayoutMetadata{
+			"source": {
 				StableNodeId:    "spell-run:source",
 				Lane:            "source",
 				Rank:            1,
@@ -422,7 +422,7 @@ func TestUpdateCanvasPreservesLayoutMetadata(t *testing.T) {
 
 	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
 		SetNodes: map[string]*CanvasNode{
-			"proof": &CanvasNode{Id: "proof", TextContent: "proof"},
+			"proof": {Id: "proof", TextContent: "proof"},
 		},
 		AddEdges: []*CanvasEdge{
 			{
@@ -474,18 +474,18 @@ func TestUpdateCanvasMutatesLayoutMetadata(t *testing.T) {
 	ctx := context.Background()
 	resource := NewCanvasResource(nil, nil, "", &CanvasState{
 		Nodes: map[string]*CanvasNode{
-			"old":  &CanvasNode{Id: "old", TextContent: "old"},
-			"keep": &CanvasNode{Id: "keep", TextContent: "keep"},
+			"old":  {Id: "old", TextContent: "old"},
+			"keep": {Id: "keep", TextContent: "keep"},
 		},
 		LayoutMetadata: map[string]*CanvasLayoutMetadata{
-			"old": &CanvasLayoutMetadata{
+			"old": {
 				StableNodeId:    "spell-run:old",
 				Lane:            "audit",
 				Rank:            1,
 				Group:           "workflow",
 				ProjectionOwner: "glados/workflow",
 			},
-			"keep": &CanvasLayoutMetadata{
+			"keep": {
 				StableNodeId:    "spell-run:keep",
 				Lane:            "proof",
 				Rank:            2,
@@ -497,7 +497,7 @@ func TestUpdateCanvasMutatesLayoutMetadata(t *testing.T) {
 
 	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
 		SetLayoutMetadata: map[string]*CanvasLayoutMetadata{
-			"new": &CanvasLayoutMetadata{
+			"new": {
 				StableNodeId:    "spell-run:new",
 				Lane:            "source",
 				Rank:            0,
@@ -530,13 +530,13 @@ func TestUpdateCanvasAcceptsEmptyLegacyLayoutMetadata(t *testing.T) {
 	ctx := context.Background()
 	resource := NewCanvasResource(nil, nil, "", &CanvasState{
 		Nodes: map[string]*CanvasNode{
-			"manual": &CanvasNode{Id: "manual", TextContent: "manual"},
+			"manual": {Id: "manual", TextContent: "manual"},
 		},
 	})
 
 	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
 		SetLayoutMetadata: map[string]*CanvasLayoutMetadata{
-			"workflow": &CanvasLayoutMetadata{
+			"workflow": {
 				StableNodeId:    "spell-run:workflow",
 				Lane:            "source",
 				Rank:            0,
@@ -564,7 +564,7 @@ func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
 	state := &CanvasState{
 		HiddenGraphLinks: []*HiddenGraphLink{link},
 		LayoutMetadata: map[string]*CanvasLayoutMetadata{
-			"node-a": &CanvasLayoutMetadata{
+			"node-a": {
 				StableNodeId:    "stable-a",
 				Lane:            "audit",
 				Rank:            3,
@@ -590,7 +590,7 @@ func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
 		AddHiddenGraphLinks:    []*HiddenGraphLink{link},
 		RemoveHiddenGraphLinks: []*HiddenGraphLink{link.CloneVT()},
 		SetLayoutMetadata: map[string]*CanvasLayoutMetadata{
-			"node-a": &CanvasLayoutMetadata{
+			"node-a": {
 				StableNodeId:    "stable-a",
 				Lane:            "audit",
 				Rank:            3,

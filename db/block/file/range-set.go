@@ -71,4 +71,4 @@ func (r *rangeSet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.SubBlockContainer = ((*rangeSet)(nil))
+var _ sbset.SubBlockContainer = (*rangeSet)(nil)

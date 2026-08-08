@@ -140,6 +140,6 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var (
-	_ controller.Controller              = ((*Controller)(nil))
-	_ bldr_plugin.LookupRpcClientHandler = ((*Controller)(nil))
+	_ controller.Controller              = (*Controller)(nil)
+	_ bldr_plugin.LookupRpcClientHandler = (*Controller)(nil)
 )

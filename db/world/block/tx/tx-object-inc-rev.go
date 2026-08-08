@@ -79,4 +79,4 @@ func (t *TxObjectIncRev) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxObjectIncRev)(nil))
+var _ Transaction = (*TxObjectIncRev)(nil)

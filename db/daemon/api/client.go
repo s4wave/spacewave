@@ -31,4 +31,4 @@ func NewHydraDaemonClient(cc srpc.Client) HydraDaemonClient {
 func (c *hydraClient) SRPCClient() srpc.Client { return c.cc }
 
 // _ is a type assertion
-var _ bus_api.SRPCControllerBusServiceClient = ((HydraDaemonClient)(nil))
+var _ bus_api.SRPCControllerBusServiceClient = HydraDaemonClient(nil)

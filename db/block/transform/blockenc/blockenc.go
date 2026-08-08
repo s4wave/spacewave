@@ -65,4 +65,4 @@ func (s *BlockEnc) relCrypt(c blockenc.Method) {
 }
 
 // _ is a type assertion
-var _ block_transform.Step = ((*BlockEnc)(nil))
+var _ block_transform.Step = (*BlockEnc)(nil)

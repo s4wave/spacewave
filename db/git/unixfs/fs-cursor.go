@@ -92,7 +92,7 @@ func (c *GitFSCursor) Release() {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*GitFSCursor)(nil))
+var _ unixfs.FSCursor = (*GitFSCursor)(nil)
 
 // GitFSCursorOps implements unixfs.FSCursorOps for git trees.
 type GitFSCursorOps struct {
@@ -420,7 +420,7 @@ func (o *GitFSCursorOps) MknodWithContent(ctx context.Context, name string, node
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorOps = ((*GitFSCursorOps)(nil))
+var _ unixfs.FSCursorOps = (*GitFSCursorOps)(nil)
 
 // gitDirent implements unixfs.FSCursorDirent for git tree entries.
 type gitDirent struct {
@@ -451,4 +451,4 @@ func (d *gitDirent) GetIsSymlink() bool {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorDirent = ((*gitDirent)(nil))
+var _ unixfs.FSCursorDirent = (*gitDirent)(nil)

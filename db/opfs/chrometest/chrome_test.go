@@ -626,6 +626,7 @@ func TestOpfsChromeTinyGoLargeBlockShardBatch(t *testing.T) {
 		shards:     1,
 	})
 }
+
 func TestOpfsChromeBlockShardStorageAmplification(t *testing.T) {
 	requireChromeProfile(t, chromeSmoke)
 
@@ -1898,6 +1899,7 @@ func (s *chromeSession) openPage(t testing.TB, url string) {
 	}
 	s.page = page
 }
+
 func (s *chromeSession) readStorageSnapshot(t testing.TB) storageSnapshot {
 	t.Helper()
 	raw, err := s.page.Evaluate(`async () => {

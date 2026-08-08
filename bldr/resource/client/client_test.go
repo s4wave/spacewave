@@ -1317,7 +1317,7 @@ var (
 	_ resource.SRPCResourceServiceClient                = (*mockResourceService)(nil)
 	_ resource.SRPCResourceService_ResourceClientClient = (*mockResourceClientClient)(nil)
 	_ resource.SRPCResourceService_ResourceAttachClient = (*mockResourceAttachClient)(nil)
-	_ resource.SRPCResourceService_ResourceRpcClient    = (resource.SRPCResourceService_ResourceRpcClient)(nil)
+	_ resource.SRPCResourceService_ResourceRpcClient    = resource.SRPCResourceService_ResourceRpcClient(nil)
 	_ rpcstream.RpcStreamPacket
 )
 

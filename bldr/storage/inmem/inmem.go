@@ -40,4 +40,4 @@ func (s *InmemStorage) DeleteVolume(id string) error {
 }
 
 // _ is a type assertion
-var _ storage.Storage = ((*InmemStorage)(nil))
+var _ storage.Storage = (*InmemStorage)(nil)

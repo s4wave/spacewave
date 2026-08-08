@@ -170,4 +170,4 @@ func (e *engineWorldStateObject) WaitRev(
 }
 
 // _ is a type assertion
-var _ ObjectState = ((*engineWorldStateObject)(nil))
+var _ ObjectState = (*engineWorldStateObject)(nil)

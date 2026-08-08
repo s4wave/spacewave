@@ -70,4 +70,4 @@ func (r *manifestRefSet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.SubBlockContainer = ((*manifestRefSet)(nil))
+var _ sbset.SubBlockContainer = (*manifestRefSet)(nil)

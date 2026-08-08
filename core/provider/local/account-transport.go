@@ -84,8 +84,10 @@ type cloudRelayEndpoint struct {
 	signingEnvPrefix string
 }
 
-var errSessionTransportReplaced = errors.New("session transport replaced before ready")
-var errSessionTransportSuperseded = errors.New("session transport request superseded by newer configuration")
+var (
+	errSessionTransportReplaced   = errors.New("session transport replaced before ready")
+	errSessionTransportSuperseded = errors.New("session transport request superseded by newer configuration")
+)
 
 func sessionTransportReplacementContext(ctx context.Context) (context.Context, context.CancelFunc) {
 	return sessionTransportCleanupContext(ctx)

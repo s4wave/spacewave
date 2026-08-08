@@ -50,4 +50,4 @@ func (i *ProviderInfo) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*ProviderInfo)(nil))
+var _ block.Block = (*ProviderInfo)(nil)

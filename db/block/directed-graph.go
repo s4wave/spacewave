@@ -300,16 +300,16 @@ func (i *edgeSliceIterator) Reset() {
 }
 
 // _ is a type assertion.
-var _ graph.Directed = ((*directedGraph)(nil))
+var _ graph.Directed = (*directedGraph)(nil)
 
 // _ is a type assertion.
-var _ graph.NodeAdder = ((*directedGraph)(nil))
+var _ graph.NodeAdder = (*directedGraph)(nil)
 
 // _ is a type assertion.
-var _ graph.NodeRemover = ((*directedGraph)(nil))
+var _ graph.NodeRemover = (*directedGraph)(nil)
 
 // _ is a type assertion.
-var _ graph.EdgeAdder = ((*directedGraph)(nil))
+var _ graph.EdgeAdder = (*directedGraph)(nil)
 
 // _ is a type assertion.
-var _ graph.EdgeRemover = ((*directedGraph)(nil))
+var _ graph.EdgeRemover = (*directedGraph)(nil)

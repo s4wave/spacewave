@@ -355,4 +355,4 @@ func (s *streamStoreOps) Sync(_ context.Context) (bool, error) {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*streamStoreOps)(nil))
+var _ block.StoreOps = (*streamStoreOps)(nil)

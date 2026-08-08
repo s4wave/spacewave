@@ -513,22 +513,22 @@ var (
 	// new NodeID, causing spurious cache invalidations, extra lookups and
 	// aliasing anomalies. This may not matter for a simple, read-only
 	// filesystem.
-	_ fs.Node = ((*Inode)(nil))
+	_ fs.Node = (*Inode)(nil)
 
-	_ fs.NodeRemover         = ((*Inode)(nil))
-	_ fs.NodeMkdirer         = ((*Inode)(nil))
-	_ fs.NodeMknoder         = ((*Inode)(nil))
-	_ fs.NodeCreater         = ((*Inode)(nil))
-	_ fs.NodeRenamer         = ((*Inode)(nil))
-	_ fs.NodeOpener          = ((*Inode)(nil))
-	_ fs.NodeRequestLookuper = ((*Inode)(nil))
-	_ fs.NodeSetattrer       = ((*Inode)(nil))
-	_ fs.NodeForgetter       = ((*Inode)(nil))
-	_ fs.NodeSymlinker       = ((*Inode)(nil))
-	_ fs.NodeReadlinker      = ((*Inode)(nil))
-	_ fs.NodeFsyncer         = ((*Inode)(nil))
+	_ fs.NodeRemover         = (*Inode)(nil)
+	_ fs.NodeMkdirer         = (*Inode)(nil)
+	_ fs.NodeMknoder         = (*Inode)(nil)
+	_ fs.NodeCreater         = (*Inode)(nil)
+	_ fs.NodeRenamer         = (*Inode)(nil)
+	_ fs.NodeOpener          = (*Inode)(nil)
+	_ fs.NodeRequestLookuper = (*Inode)(nil)
+	_ fs.NodeSetattrer       = (*Inode)(nil)
+	_ fs.NodeForgetter       = (*Inode)(nil)
+	_ fs.NodeSymlinker       = (*Inode)(nil)
+	_ fs.NodeReadlinker      = (*Inode)(nil)
+	_ fs.NodeFsyncer         = (*Inode)(nil)
 
-	_ fs.HandleReadDirAller = ((*Inode)(nil))
+	_ fs.HandleReadDirAller = (*Inode)(nil)
 
-	_ unixfs.FSCursorChangeCb = ((*Inode)(nil)).handleInodeChanged
+	_ unixfs.FSCursorChangeCb = (*Inode)(nil).handleInodeChanged
 )

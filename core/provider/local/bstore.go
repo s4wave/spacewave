@@ -364,7 +364,7 @@ func (a *ProviderAccount) MountBlockStore(ctx context.Context, ref *bstore.Block
 
 // _ is a type assertion
 var (
-	_ bstore.BlockStoreProvider = ((*ProviderAccount)(nil))
-	_ bstore.BlockStore         = ((*BlockStore)(nil))
-	_ block.StoreOps            = ((*BlockStore)(nil))
+	_ bstore.BlockStoreProvider = (*ProviderAccount)(nil)
+	_ bstore.BlockStore         = (*BlockStore)(nil)
+	_ block.StoreOps            = (*BlockStore)(nil)
 )

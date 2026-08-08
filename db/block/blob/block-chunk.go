@@ -148,6 +148,6 @@ func (r *Chunk) GetBlockRefCtor(id uint32) block.Ctor {
 
 // _ is a type assertion
 var (
-	_ block.Block         = ((*Chunk)(nil))
-	_ block.BlockWithRefs = ((*Chunk)(nil))
+	_ block.Block         = (*Chunk)(nil)
+	_ block.BlockWithRefs = (*Chunk)(nil)
 )

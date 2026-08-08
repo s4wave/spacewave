@@ -159,4 +159,4 @@ func (c *remoteFSCursor) Release() {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*remoteFSCursor)(nil))
+var _ unixfs.FSCursor = (*remoteFSCursor)(nil)

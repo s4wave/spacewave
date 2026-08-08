@@ -64,4 +64,4 @@ func (c *Controller) resolveBuildObjectStoreAPI(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*buildObjectStoreAPIResolver)(nil))
+var _ directive.Resolver = (*buildObjectStoreAPIResolver)(nil)

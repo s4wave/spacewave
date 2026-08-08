@@ -87,4 +87,4 @@ func (r *lookupResolver) Resolve(ctx context.Context, handler directive.Resolver
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*lookupResolver)(nil))
+var _ directive.Resolver = (*lookupResolver)(nil)

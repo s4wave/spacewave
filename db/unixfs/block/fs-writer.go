@@ -124,4 +124,4 @@ func (f *FSWriter) MknodWithContent(ctx context.Context, path []string, nodeType
 }
 
 // _ is a type assertion
-var _ unixfs.FSWriter = ((*FSWriter)(nil))
+var _ unixfs.FSWriter = (*FSWriter)(nil)

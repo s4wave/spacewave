@@ -360,5 +360,7 @@ func TestAddFetchManifestBuilderRefWaitsForWebPkgProviders(t *testing.T) {
 }
 
 // _ is a type assertion
-var _ bldr_manifest_builder.Controller = ((*failingFetchManifestBuilder)(nil))
-var _ bldr_manifest_builder.Controller = ((*orderedFetchManifestBuilder)(nil))
+var (
+	_ bldr_manifest_builder.Controller = (*failingFetchManifestBuilder)(nil)
+	_ bldr_manifest_builder.Controller = (*orderedFetchManifestBuilder)(nil)
+)

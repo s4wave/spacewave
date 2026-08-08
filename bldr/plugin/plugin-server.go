@@ -53,4 +53,4 @@ func (s *PluginServer) PluginRpc(rpcStream SRPCPlugin_PluginRpcStream) error {
 }
 
 // _ is a type assertion
-var _ SRPCPluginServer = ((*PluginServer)(nil))
+var _ SRPCPluginServer = (*PluginServer)(nil)

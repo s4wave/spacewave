@@ -37,4 +37,4 @@ func (f *File) Stat() (fs.FileInfo, error) {
 }
 
 // _ is a type assertion
-var _ http.File = ((*File)(nil))
+var _ http.File = (*File)(nil)

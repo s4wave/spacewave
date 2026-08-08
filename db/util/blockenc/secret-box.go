@@ -52,4 +52,4 @@ func (c *secretBox) Decrypt(alloc AllocFn, src []byte) ([]byte, error) {
 }
 
 // _ is a type assertion
-var _ Method = ((*secretBox)(nil))
+var _ Method = (*secretBox)(nil)

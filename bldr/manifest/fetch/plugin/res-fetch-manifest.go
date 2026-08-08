@@ -65,4 +65,4 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*fetchManifestResolver)(nil))
+var _ directive.Resolver = (*fetchManifestResolver)(nil)

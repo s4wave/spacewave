@@ -1143,7 +1143,6 @@ func (h *cloudSOHost) syncConfigChainResponse(
 	resp *sobject.SOConfigChainResponse,
 	newHash []byte,
 ) error {
-
 	entries := resp.GetConfigChanges()
 	if err := sobject.VerifyConfigChain(entries); err != nil {
 		return errors.Wrap(err, "verify config chain")

@@ -75,7 +75,7 @@ func (c *TarFSCursor) Release() {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*TarFSCursor)(nil))
+var _ unixfs.FSCursor = (*TarFSCursor)(nil)
 
 // TarFSCursorOps implements unixfs.FSCursorOps for tar archive nodes.
 type TarFSCursorOps struct {
@@ -335,7 +335,7 @@ func (o *TarFSCursorOps) MknodWithContent(ctx context.Context, name string, node
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorOps = ((*TarFSCursorOps)(nil))
+var _ unixfs.FSCursorOps = (*TarFSCursorOps)(nil)
 
 // tarDirent implements unixfs.FSCursorDirent for tar entries.
 type tarDirent struct {
@@ -365,4 +365,4 @@ func (d *tarDirent) GetIsSymlink() bool {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorDirent = ((*tarDirent)(nil))
+var _ unixfs.FSCursorDirent = (*tarDirent)(nil)

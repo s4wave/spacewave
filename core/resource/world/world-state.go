@@ -752,4 +752,4 @@ func graphEdgeBucketDirectionFromProto(dir s4wave_world.GraphEdgeBucketDirection
 }
 
 // _ is a type assertion
-var _ s4wave_world.SRPCWorldStateResourceServiceServer = ((*WorldStateResource)(nil))
+var _ s4wave_world.SRPCWorldStateResourceServiceServer = (*WorldStateResource)(nil)

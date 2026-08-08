@@ -69,4 +69,4 @@ func (r *ObjectIteratorResource) Close(ctx context.Context, req *s4wave_world.Cl
 }
 
 // _ is a type assertion
-var _ s4wave_world.SRPCObjectIteratorResourceServiceServer = ((*ObjectIteratorResource)(nil))
+var _ s4wave_world.SRPCObjectIteratorResourceServiceServer = (*ObjectIteratorResource)(nil)

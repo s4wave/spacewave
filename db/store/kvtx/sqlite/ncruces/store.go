@@ -83,4 +83,4 @@ func OpenWithMode(ctx context.Context, path string, mode os.FileMode, table stri
 }
 
 // _ is a type assertion
-var _ kvtx.Store = ((*Store)(nil))
+var _ kvtx.Store = (*Store)(nil)

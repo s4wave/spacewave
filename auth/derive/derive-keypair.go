@@ -211,4 +211,4 @@ func (c *Controller) resolveDeriveEntityKeypair(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*deriveKeypairResolver)(nil))
+var _ directive.Resolver = (*deriveKeypairResolver)(nil)

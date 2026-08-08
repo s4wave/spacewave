@@ -96,4 +96,4 @@ func (r *ProviderResource) AccessProviderAccount(ctx context.Context, req *s4wav
 }
 
 // _ is a type assertion
-var _ s4wave_provider.SRPCProviderResourceServiceServer = ((*ProviderResource)(nil))
+var _ s4wave_provider.SRPCProviderResourceServiceServer = (*ProviderResource)(nil)

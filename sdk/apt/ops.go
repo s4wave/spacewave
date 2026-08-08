@@ -495,9 +495,9 @@ func LookupAptOp(ctx context.Context, operationTypeID string) (world.Operation, 
 
 // _ is a type assertion
 var (
-	_ world.Operation = ((*CreateAptRepositoryOp)(nil))
-	_ world.Operation = ((*AddAptPackageOp)(nil))
-	_ world.Operation = ((*AptPublishPackageOp)(nil))
-	_ world.Operation = ((*AptSupersedePackageOp)(nil))
-	_ world.Operation = ((*AddAptBuildSpecOp)(nil))
+	_ world.Operation = (*CreateAptRepositoryOp)(nil)
+	_ world.Operation = (*AddAptPackageOp)(nil)
+	_ world.Operation = (*AptPublishPackageOp)(nil)
+	_ world.Operation = (*AptSupersedePackageOp)(nil)
+	_ world.Operation = (*AddAptBuildSpecOp)(nil)
 )

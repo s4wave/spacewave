@@ -153,4 +153,4 @@ func (jt *jobTracker) processState(
 }
 
 // _ is a type assertion
-var _ world_control.WatchLoopHandler = ((*jobTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = (*jobTracker)(nil).processState

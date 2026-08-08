@@ -117,4 +117,4 @@ func (t *txOps) Exists(ctx context.Context, key []byte) (bool, error) {
 }
 
 // _ is a type assertion
-var _ kvtx.TxOps = ((*txOps)(nil))
+var _ kvtx.TxOps = (*txOps)(nil)

@@ -230,4 +230,4 @@ func (d *fetchManifest) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ FetchManifest = ((*fetchManifest)(nil))
+var _ FetchManifest = (*fetchManifest)(nil)

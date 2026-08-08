@@ -197,6 +197,6 @@ func (s *Server) Close() error {
 
 // _ is a type assertion
 var (
-	_ link.MountedStreamHandler = ((*Server)(nil))
-	_ controller.Controller     = ((*Server)(nil))
+	_ link.MountedStreamHandler = (*Server)(nil)
+	_ controller.Controller     = (*Server)(nil)
 )

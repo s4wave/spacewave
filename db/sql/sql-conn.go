@@ -265,4 +265,4 @@ func (c *Conn) beginTxLocked(ctx context.Context, opts driver.TxOptions) (driver
 }
 
 // _ is a type assertion
-var _ SqlConn = ((*Conn)(nil))
+var _ SqlConn = (*Conn)(nil)

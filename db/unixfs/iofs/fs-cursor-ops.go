@@ -328,4 +328,4 @@ func (f *FSCursorOps) MknodWithContent(ctx context.Context, name string, nodeTyp
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorOps = ((*FSCursorOps)(nil))
+var _ unixfs.FSCursorOps = (*FSCursorOps)(nil)

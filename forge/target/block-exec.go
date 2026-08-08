@@ -35,5 +35,5 @@ func (e *Exec) UnmarshalBlock(data []byte) error {
 
 // _ is a type assertion
 var (
-	_ block.Block = ((*Exec)(nil))
+	_ block.Block = (*Exec)(nil)
 )

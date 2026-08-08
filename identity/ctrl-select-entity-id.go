@@ -46,4 +46,4 @@ func (c *SelectEntityIdController) HandleDirective(ctx context.Context, di direc
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*SelectEntityIdController)(nil))
+var _ controller.Controller = (*SelectEntityIdController)(nil)

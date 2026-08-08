@@ -145,6 +145,6 @@ func (f *File) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*File)(nil))
-	_ block.BlockWithSubBlocks = ((*File)(nil))
+	_ block.Block              = (*File)(nil)
+	_ block.BlockWithSubBlocks = (*File)(nil)
 )

@@ -35,4 +35,4 @@ func (m *Message) GetData() []byte {
 }
 
 // _ is a type assertion
-var _ pubsub.Message = ((*Message)(nil))
+var _ pubsub.Message = (*Message)(nil)

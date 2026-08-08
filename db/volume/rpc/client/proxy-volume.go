@@ -161,6 +161,6 @@ func (v *ProxyVolume) Delete() error {
 
 // _ is a type assertion
 var (
-	_ volume.Volume      = ((*ProxyVolume)(nil))
-	_ volume_store.Store = ((*ProxyVolume)(nil))
+	_ volume.Volume      = (*ProxyVolume)(nil)
+	_ volume_store.Store = (*ProxyVolume)(nil)
 )

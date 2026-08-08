@@ -168,4 +168,4 @@ func (s *BlockStore) Sync(
 }
 
 // _ is a type assertion
-var _ block_rpc.SRPCBlockStoreServer = ((*BlockStore)(nil))
+var _ block_rpc.SRPCBlockStoreServer = (*BlockStore)(nil)

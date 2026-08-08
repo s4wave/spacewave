@@ -34,4 +34,4 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

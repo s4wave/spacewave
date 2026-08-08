@@ -109,6 +109,6 @@ func (d *lookupRoot) GetDebugVals() directive.DebugValues {
 
 // _ is a type assertion
 var (
-	_ LookupRoot                   = ((*lookupRoot)(nil))
-	_ directive.DirectiveWithEquiv = ((*lookupRoot)(nil))
+	_ LookupRoot                   = (*lookupRoot)(nil)
+	_ directive.DirectiveWithEquiv = (*lookupRoot)(nil)
 )

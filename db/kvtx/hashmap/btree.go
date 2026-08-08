@@ -94,4 +94,4 @@ func (m *BTreeMap[V]) Iterate(ctx context.Context, cb func(ctx context.Context, 
 }
 
 // _ is a type assertion
-var _ Hashmap[any] = ((*BTreeMap[any])(nil))
+var _ Hashmap[any] = (*BTreeMap[any])(nil)

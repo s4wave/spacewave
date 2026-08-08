@@ -44,4 +44,4 @@ func (s *Session) Recv(ctx context.Context) ([]byte, error) {
 }
 
 // _ is a type assertion
-var _ signaling.SignalPeerSession = ((*Session)(nil))
+var _ signaling.SignalPeerSession = (*Session)(nil)

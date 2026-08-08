@@ -231,7 +231,6 @@ func TestConfiguredCacheWritebackSurvivesCdnRestart(t *testing.T) {
 	if restartRanges != firstRanges {
 		t.Fatalf("restart cache path attempted CDN Range requests: before=%d after=%d", firstRanges, restartRanges)
 	}
-
 }
 
 func TestReleaseWorldExternalBucketBuildAPIUsesCdnStoreMapping(t *testing.T) {

@@ -34,4 +34,4 @@ func (r *AcceptStreamClientRPC) Recv() (*stream_api_rpc.Data, error) {
 }
 
 // _ is a type assertion
-var _ stream_api_rpc.RPC = ((*AcceptStreamClientRPC)(nil))
+var _ stream_api_rpc.RPC = (*AcceptStreamClientRPC)(nil)

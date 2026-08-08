@@ -109,4 +109,4 @@ func (m *InputManifest) Validate() error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*BuilderResult)(nil))
+var _ block.Block = (*BuilderResult)(nil)

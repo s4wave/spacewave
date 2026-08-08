@@ -140,6 +140,6 @@ func (c *WebRTCSignalHandler) resolveHandleSignalPeer(dir signaling.HandleSignal
 
 // _ is a type assertion
 var (
-	_ controller.Controller = ((*WebRTCSignalHandler)(nil))
-	_ directive.Resolver    = ((*handleSignalPeerResolver)(nil))
+	_ controller.Controller = (*WebRTCSignalHandler)(nil)
+	_ directive.Resolver    = (*handleSignalPeerResolver)(nil)
 )

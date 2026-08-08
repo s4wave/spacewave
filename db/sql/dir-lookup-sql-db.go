@@ -108,4 +108,4 @@ func (d *lookupSqlStore) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupSqlStore = ((*lookupSqlStore)(nil))
+var _ LookupSqlStore = (*lookupSqlStore)(nil)

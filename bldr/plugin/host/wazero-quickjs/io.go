@@ -107,7 +107,7 @@ func (d *devFS) Utimens(name string, atim, mtim int64) wazero_exp_sys.Errno {
 }
 
 // _ is a type assertion
-var _ wazero_exp_sys.FS = ((*devFS)(nil))
+var _ wazero_exp_sys.FS = (*devFS)(nil)
 
 // DevDirFile implements a read-only directory for /dev.
 type DevDirFile struct{}

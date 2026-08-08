@@ -122,4 +122,4 @@ func (t *TxStart) ParsePeerID() (peer.ID, error) {
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxStart)(nil))
+var _ Transaction = (*TxStart)(nil)

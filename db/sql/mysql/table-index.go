@@ -309,4 +309,4 @@ func (idx *tableIndex) expressions() []sql.Expression {
 	return exprs
 }
 
-var _ sql.Index = ((*tableIndex)(nil))
+var _ sql.Index = (*tableIndex)(nil)

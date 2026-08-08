@@ -1032,4 +1032,4 @@ func dotGitReferencePath(ref *plumbing.Reference, kind string) ([]string, bool) 
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorOps = ((*DotGitFSCursorOps)(nil))
+var _ unixfs.FSCursorOps = (*DotGitFSCursorOps)(nil)

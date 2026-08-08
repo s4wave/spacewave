@@ -267,4 +267,4 @@ func (h *HTTPBlockServer) writeResponse(rw http.ResponseWriter, msg block.Block,
 }
 
 // _ is a type assertion
-var _ http.Handler = ((*HTTPBlockServer)(nil))
+var _ http.Handler = (*HTTPBlockServer)(nil)

@@ -55,4 +55,4 @@ func (f *FileSystem) Open(name string) (http.File, error) {
 }
 
 // _ is a type assertion
-var _ http.FileSystem = ((*FileSystem)(nil))
+var _ http.FileSystem = (*FileSystem)(nil)

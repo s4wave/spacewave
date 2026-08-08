@@ -124,8 +124,8 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var (
-	_ controller.Controller = ((*Controller)(nil))
-	_ srpc.Invoker          = ((*Controller)(nil))
+	_ controller.Controller = (*Controller)(nil)
+	_ srpc.Invoker          = (*Controller)(nil)
 
-	_ bldr_web_plugin_browser.SRPCWebPluginBrowserHostServer = ((*Controller)(nil))
+	_ bldr_web_plugin_browser.SRPCWebPluginBrowserHostServer = (*Controller)(nil)
 )

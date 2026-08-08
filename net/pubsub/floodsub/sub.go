@@ -86,4 +86,4 @@ func (s *subscription) Release() {
 }
 
 // _ is a type assertion
-var _ pubsub.Subscription = ((*subscription)(nil))
+var _ pubsub.Subscription = (*subscription)(nil)

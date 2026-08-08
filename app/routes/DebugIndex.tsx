@@ -18,7 +18,7 @@ export function DebugIndex({ links }: DebugIndexProps) {
     <div className="bg-background flex h-full w-full flex-1 overflow-y-auto p-6">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <div>
-          <p className="text-brand text-xs font-semibold uppercase tracking-[0.22em]">
+          <p className="text-brand text-xs font-semibold tracking-[0.22em] uppercase">
             Developer
           </p>
           <h1 className="text-foreground mt-2 text-2xl font-semibold tracking-tight">
@@ -47,7 +47,7 @@ export function DebugIndex({ links }: DebugIndexProps) {
               <span className="text-foreground-alt/65 text-xs leading-relaxed">
                 {link.description}
               </span>
-              <span className="text-brand/80 mt-1 text-xs font-mono">
+              <span className="text-brand/80 mt-1 font-mono text-xs">
                 {link.path}
               </span>
             </a>

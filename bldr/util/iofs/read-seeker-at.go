@@ -103,6 +103,6 @@ func (r *ReadSeekerAt) ReadAt(p []byte, off int64) (n int, err error) {
 
 // _ is a type assertion
 var (
-	_ io.ReaderAt   = ((*ReadSeekerAt)(nil))
-	_ io.ReadSeeker = ((*ReadSeekerAt)(nil))
+	_ io.ReaderAt   = (*ReadSeekerAt)(nil)
+	_ io.ReadSeeker = (*ReadSeekerAt)(nil)
 )

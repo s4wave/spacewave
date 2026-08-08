@@ -307,6 +307,7 @@ func TestHasIncomingRefsExcluding(t *testing.T) {
 		t.Fatal("expected remaining non-excluded incoming ref to be detected")
 	}
 }
+
 func TestHasIncomingRefsExcludingMissingNameDoesNotSuppressIncomingRef(t *testing.T) {
 	ctx := context.Background()
 	rg := newTestRefGraph(t)

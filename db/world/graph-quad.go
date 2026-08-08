@@ -165,4 +165,4 @@ func (g *graphQuad) GetLabel() string {
 }
 
 // _ is a type assertion
-var _ GraphQuad = ((*graphQuad)(nil))
+var _ GraphQuad = (*graphQuad)(nil)

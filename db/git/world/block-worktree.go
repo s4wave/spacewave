@@ -125,7 +125,7 @@ func (r *Worktree) SetIndex(i *index.Index) error {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*Worktree)(nil))
-	_ block.BlockWithSubBlocks = ((*Worktree)(nil))
-	_ storer.IndexStorer       = ((*Worktree)(nil))
+	_ block.Block              = (*Worktree)(nil)
+	_ block.BlockWithSubBlocks = (*Worktree)(nil)
+	_ storer.IndexStorer       = (*Worktree)(nil)
 )

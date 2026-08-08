@@ -109,6 +109,6 @@ func (i *Tree) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*Tree)(nil))
-	_ block.BlockWithSubBlocks = ((*Tree)(nil))
+	_ block.Block              = (*Tree)(nil)
+	_ block.BlockWithSubBlocks = (*Tree)(nil)
 )

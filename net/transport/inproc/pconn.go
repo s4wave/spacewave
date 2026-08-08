@@ -172,4 +172,4 @@ func (c *packetConn) Close() error {
 }
 
 // _ is a type assertion
-var _ net.PacketConn = ((*packetConn)(nil))
+var _ net.PacketConn = (*packetConn)(nil)

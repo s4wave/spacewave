@@ -94,6 +94,6 @@ func (o *FSObject) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*FSObject)(nil))
-	_ block.BlockWithSubBlocks = ((*FSObject)(nil))
+	_ block.Block              = (*FSObject)(nil)
+	_ block.BlockWithSubBlocks = (*FSObject)(nil)
 )

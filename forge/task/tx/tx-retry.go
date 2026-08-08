@@ -142,4 +142,4 @@ func sameInputs(a, b forge_value.ValueSlice) bool {
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxRetry)(nil))
+var _ Transaction = (*TxRetry)(nil)

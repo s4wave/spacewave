@@ -86,7 +86,7 @@ func (c *sessionSharedObjectMountController) HandleDirective(
 
 func (c *sessionSharedObjectMountController) Close() error { return nil }
 
-var _ controller.Controller = ((*sessionSharedObjectMountController)(nil))
+var _ controller.Controller = (*sessionSharedObjectMountController)(nil)
 
 func (a *ProviderAccount) newSessionSharedObject(
 	sessionID string,
@@ -188,7 +188,9 @@ func (s *sessionBlockStore) StatBlock(ctx context.Context, ref *block.BlockRef) 
 	return s.readStore.StatBlock(ctx, ref)
 }
 
-var _ block.StoreOps = ((*block_store.StoreReadThrough)(nil))
-var _ block_store.Store = ((*sessionBlockStore)(nil))
+var (
+	_ block.StoreOps    = (*block_store.StoreReadThrough)(nil)
+	_ block_store.Store = (*sessionBlockStore)(nil)
+)
 
-var _ block_store.Store = ((*sessionBlockStore)(nil))
+var _ block_store.Store = (*sessionBlockStore)(nil)

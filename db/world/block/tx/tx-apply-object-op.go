@@ -134,4 +134,4 @@ func (t *TxApplyObjectOp) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxApplyObjectOp)(nil))
+var _ Transaction = (*TxApplyObjectOp)(nil)

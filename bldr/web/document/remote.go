@@ -813,7 +813,7 @@ func (r *Remote) lookupRemoteWebWorker(id string) (i int, rwv *remoteWebWorker) 
 
 // _ is a type assertion
 var (
-	_ WebDocument = ((*Remote)(nil))
+	_ WebDocument = (*Remote)(nil)
 
-	_ rpcstream.RpcStreamGetter = ((*Remote)(nil)).GetWebViewHost
+	_ rpcstream.RpcStreamGetter = (*Remote)(nil).GetWebViewHost
 )

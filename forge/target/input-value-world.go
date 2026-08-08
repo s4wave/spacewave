@@ -47,4 +47,4 @@ func (i *ivWorld) GetWorldState() world.WorldState {
 }
 
 // _ is a type assertion
-var _ InputValueWorld = ((*ivWorld)(nil))
+var _ InputValueWorld = (*ivWorld)(nil)

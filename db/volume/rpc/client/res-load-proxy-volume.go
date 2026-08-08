@@ -53,4 +53,4 @@ func (r *LoadProxyVolumeResolver) Resolve(ctx context.Context, handler directive
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*LoadProxyVolumeResolver)(nil))
+var _ directive.Resolver = (*LoadProxyVolumeResolver)(nil)

@@ -33,14 +33,12 @@ export function useGitFileEntries(
 
   const fileEntries = useMemo(() => {
     if (!entriesResource.value) return []
-    return entriesResource.value.map(
-      (entry): FileEntry => ({
-        id: entry.id,
-        name: entry.name,
-        isDir: entry.isDir,
-        isSymlink: entry.isSymlink,
-      }),
-    )
+    return entriesResource.value.map((entry): FileEntry => ({
+      id: entry.id,
+      name: entry.name,
+      isDir: entry.isDir,
+      isSymlink: entry.isSymlink,
+    }))
   }, [entriesResource.value])
   return {
     pathHandle,

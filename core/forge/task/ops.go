@@ -102,4 +102,4 @@ func LookupForgeTaskCreateOp(ctx context.Context, operationTypeID string) (world
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*ForgeTaskCreateOp)(nil))
+var _ world.Operation = (*ForgeTaskCreateOp)(nil)

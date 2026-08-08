@@ -109,4 +109,4 @@ func (s *selectEntityId) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ SelectEntityId = ((*selectEntityId)(nil))
+var _ SelectEntityId = (*selectEntityId)(nil)

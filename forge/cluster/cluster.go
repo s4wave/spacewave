@@ -101,4 +101,4 @@ func (e *Cluster) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*Cluster)(nil))
+var _ block.Block = (*Cluster)(nil)

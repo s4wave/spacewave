@@ -309,7 +309,9 @@ func (c *testQuickstartResourceClientContext) GetAttachedResource(uint32) (srpc.
 	return nil, resource.ErrResourceNotFound
 }
 
-var _ controller.Controller = (*testQuickstartPluginLoadController)(nil)
-var _ space_core.SpaceSharedObjectBody = (*testQuickstartSpaceBody)(nil)
-var _ s4wave_quickstart_registry.SRPCQuickstartHandlerServiceServer = (*testQuickstartHandler)(nil)
-var _ resource_server.ResourceClientContext = (*testQuickstartResourceClientContext)(nil)
+var (
+	_ controller.Controller                                         = (*testQuickstartPluginLoadController)(nil)
+	_ space_core.SpaceSharedObjectBody                              = (*testQuickstartSpaceBody)(nil)
+	_ s4wave_quickstart_registry.SRPCQuickstartHandlerServiceServer = (*testQuickstartHandler)(nil)
+	_ resource_server.ResourceClientContext                         = (*testQuickstartResourceClientContext)(nil)
+)

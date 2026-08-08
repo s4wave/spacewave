@@ -67,4 +67,4 @@ func init() {
 }
 
 // _ is a type assertion
-var _ storage.Storage = ((*IndexedDB)(nil))
+var _ storage.Storage = (*IndexedDB)(nil)

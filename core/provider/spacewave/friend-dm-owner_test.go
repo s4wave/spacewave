@@ -190,6 +190,7 @@ func TestOpenFriendDMRejectsNoncanonicalIDBeforeInitialization(t *testing.T) {
 		t.Fatalf("requests = %d, want one Cloud request and no initialization", requests)
 	}
 }
+
 func TestValidateFriendDmBootstrapAllowsEpochZero(t *testing.T) {
 	_, localPeer := generateTestKeypair(t)
 	_, targetPeer := generateTestKeypair(t)

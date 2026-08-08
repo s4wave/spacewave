@@ -259,7 +259,7 @@ func (w *ChangeLogLL) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*ChangeLogLL)(nil))
-	_ block.BlockWithRefs      = ((*ChangeLogLL)(nil))
-	_ block.BlockWithSubBlocks = ((*ChangeLogLL)(nil))
+	_ block.Block              = (*ChangeLogLL)(nil)
+	_ block.BlockWithRefs      = (*ChangeLogLL)(nil)
+	_ block.BlockWithSubBlocks = (*ChangeLogLL)(nil)
 )

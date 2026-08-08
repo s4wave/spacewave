@@ -129,4 +129,4 @@ func (s *KvfileTx) Discard() {
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = ((*KvfileTx)(nil))
+var _ kvtx.Tx = (*KvfileTx)(nil)

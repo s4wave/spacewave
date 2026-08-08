@@ -129,4 +129,4 @@ func (o *WorkerCreateOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*WorkerCreateOp)(nil))
+var _ world.Operation = (*WorkerCreateOp)(nil)

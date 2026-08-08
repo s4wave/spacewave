@@ -15,4 +15,4 @@ func NewTx(le *logrus.Entry, tx kvtx.Tx) *Tx {
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = ((*Tx)(nil))
+var _ kvtx.Tx = (*Tx)(nil)

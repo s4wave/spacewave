@@ -223,8 +223,10 @@ func TestHandleIncomingStreamClosesOnContextCancel(t *testing.T) {
 	}
 }
 
-var _ link.MountedStreamHandler = (*blockingMountedStreamHandler)(nil)
-var _ stream.Stream = (*blockingMountedStream)(nil)
+var (
+	_ link.MountedStreamHandler = (*blockingMountedStreamHandler)(nil)
+	_ stream.Stream             = (*blockingMountedStream)(nil)
+)
 
 type mountedSignalingHandler struct {
 	sessions atomic.Int32

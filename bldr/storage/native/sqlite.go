@@ -69,4 +69,4 @@ func init() {
 }
 
 // _ is a type assertion
-var _ storage.Storage = ((*SqliteDB)(nil))
+var _ storage.Storage = (*SqliteDB)(nil)

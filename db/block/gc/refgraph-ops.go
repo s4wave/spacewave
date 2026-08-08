@@ -69,4 +69,4 @@ type RefGraphOps interface {
 }
 
 // _ is a type assertion
-var _ RefGraphOps = ((*RefGraph)(nil))
+var _ RefGraphOps = (*RefGraph)(nil)

@@ -274,7 +274,7 @@ func (f peerBlockFanout) run(ctx context.Context) ([]byte, bool) {
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*lookupResolver)(nil))
+var _ directive.Resolver = (*lookupResolver)(nil)
 
 // GetControllerInfo returns information about the controller.
 func (c *Controller) GetControllerInfo() *controller.Info {
@@ -291,4 +291,4 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

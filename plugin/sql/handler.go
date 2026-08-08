@@ -383,10 +383,10 @@ func execSQLTx(ctx context.Context, store s4wave_sql.SqlStore, dsn string, state
 }
 
 // _ is a type assertion.
-var _ s4wave_objecttype_registry.SRPCObjectTypeHandlerServiceServer = ((*SQLHandler)(nil))
+var _ s4wave_objecttype_registry.SRPCObjectTypeHandlerServiceServer = (*SQLHandler)(nil)
 
 // _ is a type assertion.
-var _ s4wave_worldop_registry.SRPCWorldOpHandlerServiceServer = ((*SQLHandler)(nil))
+var _ s4wave_worldop_registry.SRPCWorldOpHandlerServiceServer = (*SQLHandler)(nil)
 
 // _ is a type assertion.
-var _ s4wave_quickstart_registry.SRPCQuickstartHandlerServiceServer = ((*SQLHandler)(nil))
+var _ s4wave_quickstart_registry.SRPCQuickstartHandlerServiceServer = (*SQLHandler)(nil)

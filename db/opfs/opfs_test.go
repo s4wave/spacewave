@@ -97,6 +97,7 @@ func TestBrowserDriverReadWriteListDeleteClassify(t *testing.T) {
 		t.Fatalf("ClassifyError(%v) = %v, want ErrorKindNotFound", err, DefaultDriver.ClassifyError(err))
 	}
 }
+
 func TestQuotaExceededErrorClassification(t *testing.T) {
 	err := &JSError{
 		Name:    "QuotaExceededError",

@@ -120,6 +120,6 @@ func (r *rows) Next(dest []driver.Value) error {
 
 // _ is a type assertion.
 var (
-	_ driver.Rows                           = ((*rows)(nil))
-	_ driver.RowsColumnTypeDatabaseTypeName = ((*rows)(nil))
+	_ driver.Rows                           = (*rows)(nil)
+	_ driver.RowsColumnTypeDatabaseTypeName = (*rows)(nil)
 )

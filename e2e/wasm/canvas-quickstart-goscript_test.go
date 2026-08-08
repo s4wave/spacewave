@@ -10,8 +10,10 @@ import (
 	playwright "github.com/mxschmitt/playwright-go"
 )
 
-const canvasQuickstartWaitMS = 240000
-const canvasQuickstartProbeWaitMS = 120000
+const (
+	canvasQuickstartWaitMS      = 240000
+	canvasQuickstartProbeWaitMS = 120000
+)
 
 func TestGoScriptCanvasQuickstartRouteResourceProbe(t *testing.T) {
 	compiler, err := ResolveE2EWasmCompiler()

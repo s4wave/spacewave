@@ -91,4 +91,4 @@ func (t *AVLTree) NewAVLTreeTransaction(ctx context.Context, write bool) (*Tx, e
 }
 
 // _ is a type assertion
-var _ kvtx.Store = ((*AVLTree)(nil))
+var _ kvtx.Store = (*AVLTree)(nil)

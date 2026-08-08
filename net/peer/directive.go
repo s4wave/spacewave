@@ -80,7 +80,7 @@ func (d *getPeer) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type constraint
-var _ GetPeer = ((*getPeer)(nil))
+var _ GetPeer = (*getPeer)(nil)
 
 // _ is a type constraint
-var _ directive.Debuggable = ((*getPeer)(nil))
+var _ directive.Debuggable = (*getPeer)(nil)

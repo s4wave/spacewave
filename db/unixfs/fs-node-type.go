@@ -96,4 +96,4 @@ func (f *fsCursorNodeType) GetIsSymlink() bool {
 }
 
 // _ is a type assertion
-var _ FSCursorNodeType = ((*fsCursorNodeType)(nil))
+var _ FSCursorNodeType = (*fsCursorNodeType)(nil)

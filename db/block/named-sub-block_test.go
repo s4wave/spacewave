@@ -37,7 +37,7 @@ func (t *testNamedSubBlock) Equals(ot ComparableNamedSubBlock) bool {
 }
 
 // _ is a type assertion
-var _ NamedSubBlock = ((*testNamedSubBlock)(nil))
+var _ NamedSubBlock = (*testNamedSubBlock)(nil)
 
 // TestSortNamedSubBlocks tests sorting a set of named sub blocks.
 func TestSortNamedTestBlocks(t *testing.T) {

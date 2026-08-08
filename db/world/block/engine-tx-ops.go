@@ -326,4 +326,4 @@ func isCoordinatedWriteSnapshotError(err error) bool {
 }
 
 // _ is a type assertion
-var _ world.WorldState = ((*EngineTx)(nil))
+var _ world.WorldState = (*EngineTx)(nil)

@@ -4269,7 +4269,7 @@ func (s *writebackLookupBlockStore) GetBlock(
 	return data, true, err
 }
 
-var _ block.StoreOps = ((*writebackLookupBlockStore)(nil))
+var _ block.StoreOps = (*writebackLookupBlockStore)(nil)
 
 type countingBlockStore struct {
 	store block.StoreOps
@@ -4337,7 +4337,7 @@ func (s *countingBlockStore) EndDeferFlush(ctx context.Context) error {
 	return block.EndDeferFlush(ctx, s.store)
 }
 
-var _ block.StoreOps = ((*countingBlockStore)(nil))
+var _ block.StoreOps = (*countingBlockStore)(nil)
 
 func storeTestManifestRefObject(
 	t *testing.T,

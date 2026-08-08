@@ -243,4 +243,4 @@ func (s *Store) GetSqlOpsMux(ctx context.Context, txID string, released func()) 
 }
 
 // _ is a type assertion.
-var _ sql_rpc.SRPCSqlServer = ((*Store)(nil))
+var _ sql_rpc.SRPCSqlServer = (*Store)(nil)

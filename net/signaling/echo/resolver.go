@@ -48,4 +48,4 @@ func (r *EchoResolver) Resolve(ctx context.Context, handler directive.ResolverHa
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*EchoResolver)(nil))
+var _ directive.Resolver = (*EchoResolver)(nil)

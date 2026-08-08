@@ -42,4 +42,4 @@ func (r *BusBridgeResolver) Resolve(ctx context.Context, handler directive.Resol
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*BusBridgeResolver)(nil))
+var _ directive.Resolver = (*BusBridgeResolver)(nil)

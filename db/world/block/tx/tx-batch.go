@@ -157,7 +157,7 @@ func (t *TxBatch) FollowTxSet(bcs *block.Cursor) *sbset.SubBlockSet {
 
 // _ is a type assertion
 var (
-	_ Transaction              = ((*TxBatch)(nil))
-	_ block.Block              = ((*TxBatch)(nil))
-	_ block.BlockWithSubBlocks = ((*TxBatch)(nil))
+	_ Transaction              = (*TxBatch)(nil)
+	_ block.Block              = (*TxBatch)(nil)
+	_ block.BlockWithSubBlocks = (*TxBatch)(nil)
 )

@@ -89,4 +89,4 @@ func LookupCreateGitRepoWizardOp(ctx context.Context, operationTypeID string) (w
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*CreateGitRepoWizardOp)(nil))
+var _ world.Operation = (*CreateGitRepoWizardOp)(nil)

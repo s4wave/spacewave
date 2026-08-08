@@ -85,4 +85,4 @@ func (s *ExecState) Equals(ot *ExecState) bool {
 }
 
 // _ is a type assertion
-var _ block.NamedSubBlock = ((*ExecState)(nil))
+var _ block.NamedSubBlock = (*ExecState)(nil)

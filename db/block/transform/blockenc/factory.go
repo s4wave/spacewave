@@ -54,4 +54,4 @@ func (f *StepFactory) Construct(
 }
 
 // _ is a type assertion
-var _ block_transform.StepFactory = ((*StepFactory)(nil))
+var _ block_transform.StepFactory = (*StepFactory)(nil)

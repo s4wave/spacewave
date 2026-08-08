@@ -49,4 +49,4 @@ func (k *KV) Close() error {
 }
 
 // _ is a type assertion
-var _ kv.KV = ((*KV)(nil))
+var _ kv.KV = (*KV)(nil)

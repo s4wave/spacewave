@@ -121,4 +121,4 @@ func (o *GitFetchOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*GitFetchOp)(nil))
+var _ world.Operation = (*GitFetchOp)(nil)

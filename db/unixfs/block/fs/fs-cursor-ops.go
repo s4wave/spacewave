@@ -611,4 +611,4 @@ func (f *FSCursorOps) release() {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorOps = ((*FSCursorOps)(nil))
+var _ unixfs.FSCursorOps = (*FSCursorOps)(nil)

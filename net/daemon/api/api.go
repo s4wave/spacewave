@@ -118,4 +118,4 @@ func (a *API) RegisterAsSRPCServer(mux srpc.Mux) {
 }
 
 // _ is a type assertion
-var _ BifrostAPIServer = ((*API)(nil))
+var _ BifrostAPIServer = (*API)(nil)

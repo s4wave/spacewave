@@ -827,4 +827,4 @@ func (f *FS) Utimens(path string, atim, mtim int64) wazero_exp_sys.Errno {
 }
 
 // _ is a type assertion
-var _ wazero_exp_sys.FS = ((*FS)(nil))
+var _ wazero_exp_sys.FS = (*FS)(nil)

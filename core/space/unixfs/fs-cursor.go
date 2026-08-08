@@ -284,4 +284,4 @@ func (f *FSCursor) readdirChildren(ctx context.Context, skip uint64, cb func(ent
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*FSCursor)(nil))
+var _ unixfs.FSCursor = (*FSCursor)(nil)

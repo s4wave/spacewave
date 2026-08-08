@@ -57,4 +57,4 @@ func (w *MessagePortPacketStream) Close() error {
 	return w.port.CloseWrite()
 }
 
-var _ srpc.PacketWriter = ((*MessagePortPacketStream)(nil))
+var _ srpc.PacketWriter = (*MessagePortPacketStream)(nil)

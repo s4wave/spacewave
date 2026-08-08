@@ -187,4 +187,4 @@ func (s *StoreReadThrough) StatBlock(ctx context.Context, ref *block.BlockRef) (
 	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
 }
 
-var _ block.StoreOps = ((*StoreReadThrough)(nil))
+var _ block.StoreOps = (*StoreReadThrough)(nil)

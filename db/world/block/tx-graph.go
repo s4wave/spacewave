@@ -124,4 +124,4 @@ func (t *Tx) DeleteGraphObject(ctx context.Context, value string) error {
 }
 
 // _ is a type assertion
-var _ world.WorldStateGraph = ((*Tx)(nil))
+var _ world.WorldStateGraph = (*Tx)(nil)

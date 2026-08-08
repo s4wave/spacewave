@@ -82,4 +82,4 @@ func (l *linkDialer) executeLinkDialer(
 }
 
 // _ is a type assertion
-var _ keyed.Routine = ((*linkDialer)(nil)).executeLinkDialer
+var _ keyed.Routine = (*linkDialer)(nil).executeLinkDialer

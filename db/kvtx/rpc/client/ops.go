@@ -234,4 +234,4 @@ func (o *Ops) err(err error, errStr string) error {
 }
 
 // _ is a type assertion
-var _ kvtx.TxOps = ((*Ops)(nil))
+var _ kvtx.TxOps = (*Ops)(nil)

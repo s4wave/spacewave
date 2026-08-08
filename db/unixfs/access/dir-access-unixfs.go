@@ -120,4 +120,4 @@ func (d *accessUnixFS) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ AccessUnixFS = ((*accessUnixFS)(nil))
+var _ AccessUnixFS = (*accessUnixFS)(nil)

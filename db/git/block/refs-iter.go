@@ -72,4 +72,4 @@ func (i *ReferenceIter) Close() {
 }
 
 // _ is a type assertion
-var _ storer.ReferenceIter = ((*ReferenceIter)(nil))
+var _ storer.ReferenceIter = (*ReferenceIter)(nil)

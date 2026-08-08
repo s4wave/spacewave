@@ -162,4 +162,4 @@ func (l *lookupBucket) Sync(context.Context) (bool, error) {
 }
 
 // _ is a type assertion
-var _ bucket.Bucket = ((*lookupBucket)(nil))
+var _ bucket.Bucket = (*lookupBucket)(nil)

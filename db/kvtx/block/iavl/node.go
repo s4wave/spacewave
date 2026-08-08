@@ -202,9 +202,9 @@ func (n *Node) GetBlockGraphAttributes() []encoding.Attribute {
 
 // _ is a type assertion
 var (
-	_ block.Block                 = ((*Node)(nil))
-	_ block.DecodedBlockCacheable = ((*Node)(nil))
-	_ block.BlockWithAttributes   = ((*Node)(nil))
-	_ block.BlockWithRefs         = ((*Node)(nil))
-	_ block.BlockWithSubBlocks    = ((*Node)(nil))
+	_ block.Block                 = (*Node)(nil)
+	_ block.DecodedBlockCacheable = (*Node)(nil)
+	_ block.BlockWithAttributes   = (*Node)(nil)
+	_ block.BlockWithRefs         = (*Node)(nil)
+	_ block.BlockWithSubBlocks    = (*Node)(nil)
 )

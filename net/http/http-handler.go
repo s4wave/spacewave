@@ -113,7 +113,7 @@ func (h *HTTPHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 // _ is a type assertion
-var _ http.Handler = ((*HTTPHandler)(nil))
+var _ http.Handler = (*HTTPHandler)(nil)
 
 type responseStateWriter struct {
 	rw        http.ResponseWriter
@@ -188,16 +188,16 @@ func (w *responseStateWriter) ReadFrom(r io.Reader) (int64, error) {
 }
 
 // _ is a type assertion
-var _ http.ResponseWriter = ((*responseStateWriter)(nil))
+var _ http.ResponseWriter = (*responseStateWriter)(nil)
 
 // _ is a type assertion
-var _ http.Flusher = ((*responseStateWriter)(nil))
+var _ http.Flusher = (*responseStateWriter)(nil)
 
 // _ is a type assertion
-var _ http.Hijacker = ((*responseStateWriter)(nil))
+var _ http.Hijacker = (*responseStateWriter)(nil)
 
 // _ is a type assertion
-var _ http.Pusher = ((*responseStateWriter)(nil))
+var _ http.Pusher = (*responseStateWriter)(nil)
 
 // _ is a type assertion
-var _ io.ReaderFrom = ((*responseStateWriter)(nil))
+var _ io.ReaderFrom = (*responseStateWriter)(nil)

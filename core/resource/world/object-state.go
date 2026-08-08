@@ -149,4 +149,4 @@ func (r *ObjectStateResource) WaitRev(ctx context.Context, req *s4wave_world.Wai
 }
 
 // _ is a type assertion
-var _ s4wave_world.SRPCObjectStateResourceServiceServer = ((*ObjectStateResource)(nil))
+var _ s4wave_world.SRPCObjectStateResourceServiceServer = (*ObjectStateResource)(nil)

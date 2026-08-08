@@ -71,4 +71,4 @@ func (t *keypairTracker) processState(
 }
 
 // _ is a type assertion
-var _ world_control.WatchLoopHandler = ((*keypairTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = (*keypairTracker)(nil).processState

@@ -176,6 +176,6 @@ func (c *Controller) BuildBucketAPI(ctx context.Context, bucketID string) (bucke
 
 // _ is a type assertion
 var (
-	_ controller.Controller = ((*Controller)(nil))
-	_ volume.Controller     = ((*Controller)(nil))
+	_ controller.Controller = (*Controller)(nil)
+	_ volume.Controller     = (*Controller)(nil)
 )

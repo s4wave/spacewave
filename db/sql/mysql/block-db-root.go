@@ -141,6 +141,6 @@ func (r *DatabaseRoot) InsertTable(name string, ref *block.BlockRef, bcs *block.
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*DatabaseRoot)(nil))
-	_ block.BlockWithSubBlocks = ((*DatabaseRoot)(nil))
+	_ block.Block              = (*DatabaseRoot)(nil)
+	_ block.BlockWithSubBlocks = (*DatabaseRoot)(nil)
 )

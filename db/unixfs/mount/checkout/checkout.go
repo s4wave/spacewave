@@ -124,4 +124,4 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ unixfs_mount.MountController = ((*Controller)(nil))
+var _ unixfs_mount.MountController = (*Controller)(nil)

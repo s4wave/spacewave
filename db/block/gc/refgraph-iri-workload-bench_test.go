@@ -354,6 +354,7 @@ type iriLookupStats struct {
 func (s *iriLookupStats) reset() {
 	*s = iriLookupStats{}
 }
+
 func (s *iriLookupStats) add(other iriLookupStats) {
 	s.lookupInputs += other.lookupInputs
 	s.hits += other.hits
@@ -455,8 +456,10 @@ type iriBatchQuadStore struct {
 	*iriCountingStore
 }
 
-var _ graph.QuadStore = (*iriBatchQuadStore)(nil)
-var _ refs.BatchNamer = (*iriBatchQuadStore)(nil)
+var (
+	_ graph.QuadStore = (*iriBatchQuadStore)(nil)
+	_ refs.BatchNamer = (*iriBatchQuadStore)(nil)
+)
 
 func (s *iriBatchQuadStore) RefsOf(ctx context.Context, nodes []quad.Value) ([]graph.Ref, error) {
 	s.stats.batchCalls++

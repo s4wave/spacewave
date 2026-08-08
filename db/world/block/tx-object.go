@@ -102,4 +102,4 @@ func (t *Tx) HasObject(ctx context.Context, key string) (bool, error) {
 }
 
 // _ is a type assertion
-var _ world.WorldStateObject = ((*Tx)(nil))
+var _ world.WorldStateObject = (*Tx)(nil)

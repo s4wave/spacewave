@@ -14,4 +14,4 @@ func (e *engineWorldState) GetObjectRootRefsBatch(ctx context.Context, keys []st
 }
 
 // _ is a type assertion
-var _ ObjectRootRefBatcher = ((*engineWorldState)(nil))
+var _ ObjectRootRefBatcher = (*engineWorldState)(nil)

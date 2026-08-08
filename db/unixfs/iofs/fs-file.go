@@ -150,4 +150,4 @@ func (f *FSFile) Close() error {
 }
 
 // _ is a type assertion
-var _ IoFSFile = ((*FSFile)(nil))
+var _ IoFSFile = (*FSFile)(nil)

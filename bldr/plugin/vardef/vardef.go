@@ -40,5 +40,5 @@ func (v *PluginVar) GetWebBundlerOutputValue() bldr_web_bundler.WebBundlerOutput
 	if val == nil {
 		return bldr_web_bundler.WebBundlerOutput{}
 	}
-	return *(val.CloneVT())
+	return *val.CloneVT()
 }

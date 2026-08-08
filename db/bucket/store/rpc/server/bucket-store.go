@@ -73,4 +73,4 @@ func (b *BucketStore) ListBucketInfo(ctx context.Context, req *bucket_store_rpc.
 }
 
 // _ is a type assertion
-var _ bucket_store_rpc.SRPCBucketStoreServer = ((*BucketStore)(nil))
+var _ bucket_store_rpc.SRPCBucketStoreServer = (*BucketStore)(nil)

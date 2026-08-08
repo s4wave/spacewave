@@ -191,4 +191,4 @@ func (c *Controller) confFetcherExited(err error) {
 }
 
 // _ is a type assertion
-var _ routine.Routine = ((*Controller)(nil)).fetchDistConfig
+var _ routine.Routine = (*Controller)(nil).fetchDistConfig

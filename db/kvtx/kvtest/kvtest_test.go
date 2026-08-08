@@ -14,6 +14,7 @@ func TestKVTest(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 }
+
 func TestKVTestRetriesThroughFaultStore(t *testing.T) {
 	ctx := context.Background()
 	store := NewFaultStore(sinmem.NewStore(), FaultBeforeCommit)

@@ -180,4 +180,4 @@ func (d *lookupHTTPHandler) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupHTTPHandler = ((*lookupHTTPHandler)(nil))
+var _ LookupHTTPHandler = (*lookupHTTPHandler)(nil)

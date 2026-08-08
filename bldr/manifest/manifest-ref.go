@@ -107,6 +107,6 @@ func (m *ManifestRef) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*ManifestRef)(nil))
-	_ block.BlockWithSubBlocks = ((*ManifestRef)(nil))
+	_ block.Block              = (*ManifestRef)(nil)
+	_ block.BlockWithSubBlocks = (*ManifestRef)(nil)
 )

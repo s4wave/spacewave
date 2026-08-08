@@ -214,4 +214,4 @@ func assertCapturedHostLogEvent(t *testing.T, state *plugin_host_logs.Structured
 }
 
 // _ is a type assertion
-var _ bldr_plugin_host.PluginHost = ((*testPluginHost)(nil))
+var _ bldr_plugin_host.PluginHost = (*testPluginHost)(nil)

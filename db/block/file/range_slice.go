@@ -69,4 +69,4 @@ func (r RangeSlice) LocatePosition(pos int) (*Range, int, bool) {
 }
 
 // _ is a type assertion
-var _ sort.Interface = ((RangeSlice)(nil))
+var _ sort.Interface = RangeSlice(nil)

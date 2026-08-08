@@ -41,4 +41,4 @@ func (r *RelayResolver) Resolve(ctx context.Context, handler directive.ResolverH
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*RelayResolver)(nil))
+var _ directive.Resolver = (*RelayResolver)(nil)

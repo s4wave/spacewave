@@ -653,4 +653,4 @@ func pluginStateString(state bldr_plugin.PluginState) string {
 }
 
 // _ is a type assertion
-var _ s4wave_status.SRPCSystemStatusServiceServer = ((*StatusResource)(nil))
+var _ s4wave_status.SRPCSystemStatusServiceServer = (*StatusResource)(nil)

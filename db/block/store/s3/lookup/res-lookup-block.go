@@ -46,4 +46,4 @@ func (r *lookupBlockFromNetworkResolver) Resolve(ctx context.Context, handler di
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*lookupBlockFromNetworkResolver)(nil))
+var _ directive.Resolver = (*lookupBlockFromNetworkResolver)(nil)

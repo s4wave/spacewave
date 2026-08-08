@@ -45,4 +45,4 @@ func (t *funcTx) Discard() {
 }
 
 // _ is a type assertion
-var _ Tx = ((*funcTx)(nil))
+var _ Tx = (*funcTx)(nil)

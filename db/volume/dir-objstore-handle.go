@@ -110,4 +110,4 @@ func (d *buildObjectStoreAPI) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ BuildObjectStoreAPI = ((*buildObjectStoreAPI)(nil))
+var _ BuildObjectStoreAPI = (*buildObjectStoreAPI)(nil)

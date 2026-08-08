@@ -52,4 +52,4 @@ func (r *HeadRefStoreCursor) ClearSubmoduleStore(name string) error {
 }
 
 // _ is a type assertion
-var _ git_block.ReferenceStore = ((*HeadRefStoreCursor)(nil))
+var _ git_block.ReferenceStore = (*HeadRefStoreCursor)(nil)

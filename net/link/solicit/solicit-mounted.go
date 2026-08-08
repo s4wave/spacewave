@@ -78,4 +78,4 @@ func (s *solicitMountedStream) Close() bool {
 var errSolicitationClosed = errors.New("solicitation closed")
 
 // _ is a type assertion
-var _ SolicitMountedStream = ((*solicitMountedStream)(nil))
+var _ SolicitMountedStream = (*solicitMountedStream)(nil)

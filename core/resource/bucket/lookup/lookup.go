@@ -269,4 +269,4 @@ func (r *BucketLookupCursorResource) Unmarshal(ctx context.Context, req *s4wave_
 }
 
 // _ is a type assertion
-var _ s4wave_bucket_lookup.SRPCBucketLookupCursorResourceServiceServer = ((*BucketLookupCursorResource)(nil))
+var _ s4wave_bucket_lookup.SRPCBucketLookupCursorResourceServiceServer = (*BucketLookupCursorResource)(nil)

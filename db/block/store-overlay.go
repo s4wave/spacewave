@@ -501,5 +501,5 @@ func (o *StoreOverlay) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ StoreOps = ((*StoreOverlay)(nil))
+	_ StoreOps = (*StoreOverlay)(nil)
 )

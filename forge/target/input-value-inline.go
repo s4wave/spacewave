@@ -33,4 +33,4 @@ func (i *ivInline) GetValue() *forge_value.Value {
 }
 
 // _ is a type assertion
-var _ InputValueInline = ((*ivInline)(nil))
+var _ InputValueInline = (*ivInline)(nil)

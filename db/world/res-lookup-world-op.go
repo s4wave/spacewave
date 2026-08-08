@@ -29,4 +29,4 @@ func (r *lookupWorldOpResolver) Resolve(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*lookupWorldOpResolver)(nil))
+var _ directive.Resolver = (*lookupWorldOpResolver)(nil)

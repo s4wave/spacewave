@@ -236,7 +236,7 @@ func (e *Execution) GetBlockRefCtor(id uint32) block.Ctor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*Execution)(nil))
-	_ block.BlockWithSubBlocks = ((*Execution)(nil))
-	_ block.BlockWithRefs      = ((*Execution)(nil))
+	_ block.Block              = (*Execution)(nil)
+	_ block.BlockWithSubBlocks = (*Execution)(nil)
+	_ block.BlockWithRefs      = (*Execution)(nil)
 )

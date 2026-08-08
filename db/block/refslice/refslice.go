@@ -319,8 +319,8 @@ func (d *BlockRefSlice) GetBlockRefCtor(id uint32) block.Ctor {
 
 // _ is a type assertion
 var (
-	_ sort.Interface              = ((*BlockRefSlice)(nil))
-	_ block.SubBlock              = ((*BlockRefSlice)(nil))
-	_ block.BlockWithRefs         = ((*BlockRefSlice)(nil))
-	_ block.BlockWithPreWriteHook = ((*BlockRefSlice)(nil))
+	_ sort.Interface              = (*BlockRefSlice)(nil)
+	_ block.SubBlock              = (*BlockRefSlice)(nil)
+	_ block.BlockWithRefs         = (*BlockRefSlice)(nil)
+	_ block.BlockWithPreWriteHook = (*BlockRefSlice)(nil)
 )

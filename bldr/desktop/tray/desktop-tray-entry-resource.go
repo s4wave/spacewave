@@ -84,4 +84,4 @@ func (r *DesktopTrayEntryResource) SetDesktopTrayEntryEnabled(
 }
 
 // _ is a type assertion
-var _ SRPCDesktopTrayEntryResourceServiceServer = ((*DesktopTrayEntryResource)(nil))
+var _ SRPCDesktopTrayEntryResourceServiceServer = (*DesktopTrayEntryResource)(nil)

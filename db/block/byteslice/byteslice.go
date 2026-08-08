@@ -109,7 +109,7 @@ func (b *ByteSlice) UnmarshalBlock(data []byte) error {
 
 // _ is a type assertion
 var (
-	_ block.Block          = ((*ByteSlice)(nil))
-	_ block.BlockWithClone = ((*ByteSlice)(nil))
-	_ block.SubBlock       = ((*ByteSlice)(nil))
+	_ block.Block          = (*ByteSlice)(nil)
+	_ block.BlockWithClone = (*ByteSlice)(nil)
+	_ block.SubBlock       = (*ByteSlice)(nil)
 )

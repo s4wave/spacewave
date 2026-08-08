@@ -147,4 +147,4 @@ func categorizeSelfEnrollmentError(err error) s4wave_session.SharedObjectSelfEnr
 }
 
 // _ is a type assertion
-var _ s4wave_session.SRPCSharedObjectSelfEnrollmentResourceServiceServer = ((*SharedObjectSelfEnrollmentResource)(nil))
+var _ s4wave_session.SRPCSharedObjectSelfEnrollmentResourceServiceServer = (*SharedObjectSelfEnrollmentResource)(nil)

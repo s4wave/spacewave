@@ -23,7 +23,7 @@ func TestTxGetBatchUsesUnderlyingBatchAndAlignsResults(t *testing.T) {
 		nil,
 		flat.Key("missing"),
 		flat.Key("alpha"),
-		flat.Key{},
+		{},
 		flat.Key("bravo"),
 	})
 	if err != nil {

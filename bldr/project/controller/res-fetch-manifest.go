@@ -73,7 +73,7 @@ func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.R
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*fetchManifestResolver)(nil))
+var _ directive.Resolver = (*fetchManifestResolver)(nil)
 
 // fetchManifestWithMetaResolver resolves FetchManifest with a ManifestMeta.
 type fetchManifestWithMetaResolver struct {
@@ -142,4 +142,4 @@ func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler dir
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*fetchManifestWithMetaResolver)(nil))
+var _ directive.Resolver = (*fetchManifestWithMetaResolver)(nil)

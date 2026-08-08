@@ -151,6 +151,7 @@ func inspectChatMessage(ctx context.Context, object *ObjectDescriptor) (*Inspect
 	}
 	return inspectChatMessagePayload(message)
 }
+
 func inspectCanvasState(ctx context.Context, object *ObjectDescriptor, state *s4wave_canvas.CanvasState) (*Inspection, error) {
 	out := &Inspection{}
 	if state == nil {

@@ -71,6 +71,7 @@ func NewGCGraph(root js.Value, lockPrefix string) (*GCGraph, error) {
 	}
 	return g, nil
 }
+
 func (g *GCGraph) acquireOwnershipLock(ctx context.Context) (func(), error) {
 	return filelock.AcquireWebLockContext(ctx, g.lockPrefix+"/ownership", true)
 }

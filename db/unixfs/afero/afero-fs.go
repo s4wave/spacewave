@@ -256,4 +256,4 @@ func (f *AferoFS) timestamp() time.Time {
 }
 
 // _ is a type assertion
-var _ afero.Fs = ((*AferoFS)(nil))
+var _ afero.Fs = (*AferoFS)(nil)

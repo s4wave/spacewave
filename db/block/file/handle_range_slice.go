@@ -40,4 +40,4 @@ func (r HandleRangeSlice) Swap(i, j int) {
 }
 
 // _ is a type assertion
-var _ sort.Interface = ((*HandleRangeSlice)(nil))
+var _ sort.Interface = (*HandleRangeSlice)(nil)

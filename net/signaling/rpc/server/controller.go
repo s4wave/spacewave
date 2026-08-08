@@ -48,4 +48,4 @@ func NewController(le *logrus.Entry, b bus.Bus, c *Config) (*Controller, error) 
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

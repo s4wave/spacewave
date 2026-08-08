@@ -102,4 +102,4 @@ func (p *databaseProvider) context(ctx *sql.Context) context.Context {
 	return context.Background()
 }
 
-var _ sql.MutableDatabaseProvider = ((*databaseProvider)(nil))
+var _ sql.MutableDatabaseProvider = (*databaseProvider)(nil)

@@ -57,4 +57,4 @@ func (m *mountedStream) GetLink() link.MountedLink {
 }
 
 // _ is a type assertion.
-var _ link.MountedStream = ((*mountedStream)(nil))
+var _ link.MountedStream = (*mountedStream)(nil)

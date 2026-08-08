@@ -92,7 +92,7 @@ func (o *Object) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block                 = ((*Object)(nil))
-	_ block.DecodedBlockCacheable = ((*Object)(nil))
-	_ block.BlockWithSubBlocks    = ((*Object)(nil))
+	_ block.Block                 = (*Object)(nil)
+	_ block.DecodedBlockCacheable = (*Object)(nil)
+	_ block.BlockWithSubBlocks    = (*Object)(nil)
 )

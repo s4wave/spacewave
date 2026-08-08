@@ -83,4 +83,4 @@ func (l *Logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 }
 
 // _ is a type assertion
-var _ logger.Interface = ((*Logger)(nil))
+var _ logger.Interface = (*Logger)(nil)

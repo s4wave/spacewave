@@ -23,8 +23,10 @@ import (
 // VmV86 object gets its own plugin instance keyed by the object key.
 const defaultVmPluginID = "spacewave-v86"
 
-const v86RuntimeV86fsServicePrefix = "vm/v86-runtime/v86fs/"
-const v86RuntimeStatusServicePrefix = "vm/v86-runtime/status/"
+const (
+	v86RuntimeV86fsServicePrefix  = "vm/v86-runtime/v86fs/"
+	v86RuntimeStatusServicePrefix = "vm/v86-runtime/status/"
+)
 
 // v86Resource implements PersistentExecutionService for a VmV86 object.
 type v86Resource struct {

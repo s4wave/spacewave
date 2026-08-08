@@ -22,4 +22,4 @@ func (a *API) RegisterAsSRPCServer(mux srpc.Mux) {
 }
 
 // _ is a type assertion
-var _ SRPCForgeDaemonServiceServer = ((*API)(nil))
+var _ SRPCForgeDaemonServiceServer = (*API)(nil)

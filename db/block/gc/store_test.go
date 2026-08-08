@@ -1067,4 +1067,4 @@ func (r *recordingRefGraph) Close() error {
 }
 
 // _ is a type assertion
-var _ RefGraphOps = ((*recordingRefGraph)(nil))
+var _ RefGraphOps = (*recordingRefGraph)(nil)

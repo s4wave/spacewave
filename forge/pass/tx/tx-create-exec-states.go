@@ -148,4 +148,4 @@ func (t *TxCreateExecSpecs) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxCreateExecSpecs)(nil))
+var _ Transaction = (*TxCreateExecSpecs)(nil)

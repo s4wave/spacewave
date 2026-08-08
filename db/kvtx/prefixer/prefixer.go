@@ -39,4 +39,4 @@ func (p *Prefixer) RefreshForCoordinationLock() error {
 }
 
 // _ is a type assertion
-var _ kvtx.Store = ((*Prefixer)(nil))
+var _ kvtx.Store = (*Prefixer)(nil)

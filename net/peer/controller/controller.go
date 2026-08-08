@@ -86,6 +86,6 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var (
-	_ controller.Controller = ((*Controller)(nil))
-	_ peer.Peer             = ((*Controller)(nil))
+	_ controller.Controller = (*Controller)(nil)
+	_ peer.Peer             = (*Controller)(nil)
 )

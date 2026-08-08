@@ -24,4 +24,3 @@ func LogBrowserCurvePreferenceWarning(le *logrus.Entry) {
 		le.Warn("GoScript browser p2p TLS uses experimental X25519-only curves; post-quantum X25519MLKEM768 is unavailable because SHA3 is unsupported")
 	})
 }
-

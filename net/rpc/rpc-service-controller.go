@@ -142,4 +142,4 @@ func (c *RpcServiceController) Close() error {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*RpcServiceController)(nil))
+var _ controller.Controller = (*RpcServiceController)(nil)

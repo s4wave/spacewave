@@ -227,4 +227,4 @@ func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance)
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

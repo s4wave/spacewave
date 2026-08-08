@@ -118,6 +118,7 @@ func TestWorldStateGetObjectBodiesBatchChunksRequestKeys(t *testing.T) {
 		t.Fatalf("bodies = %+v, want both chunk results in order", bodies)
 	}
 }
+
 func TestChunkObjectBodyKeysIncrementalSizeMatchesRequest(t *testing.T) {
 	const maxStartKeyIndex = ^uint32(0)
 	budget := world.ObjectBodiesBatchByteBudget
@@ -176,6 +177,7 @@ func TestChunkObjectBodyKeysIncrementalSizeMatchesRequest(t *testing.T) {
 		}
 	}
 }
+
 func TestChunkObjectBodyKeysRejectsOversizedSingleKey(t *testing.T) {
 	key := strings.Repeat("z", world.ObjectBodiesBatchByteBudget)
 	_, err := chunkObjectBodyKeys([]string{key})

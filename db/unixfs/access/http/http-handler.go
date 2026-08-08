@@ -30,4 +30,4 @@ func NewHTTPHandler(
 }
 
 // _ is a type assertion
-var _ http.Handler = ((*HTTPHandler)(nil))
+var _ http.Handler = (*HTTPHandler)(nil)

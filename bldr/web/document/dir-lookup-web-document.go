@@ -125,4 +125,4 @@ func (d *lookupWebDocument) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupWebDocument = ((*lookupWebDocument)(nil))
+var _ LookupWebDocument = (*lookupWebDocument)(nil)

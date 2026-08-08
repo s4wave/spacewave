@@ -91,4 +91,4 @@ func (o *GitUnstageOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*GitUnstageOp)(nil))
+var _ world.Operation = (*GitUnstageOp)(nil)

@@ -69,4 +69,4 @@ func (d *sharedObjectRecoveryDecoder) DecryptSharedObjectRecoveryEnvelope(ctx co
 }
 
 // _ is a type assertion
-var _ sobject.SharedObjectRecoveryProvider = ((*ProviderAccount)(nil))
+var _ sobject.SharedObjectRecoveryProvider = (*ProviderAccount)(nil)

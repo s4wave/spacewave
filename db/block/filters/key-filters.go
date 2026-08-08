@@ -94,6 +94,6 @@ func (w *KeyFilters) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*KeyFilters)(nil))
-	_ block.BlockWithSubBlocks = ((*KeyFilters)(nil))
+	_ block.Block              = (*KeyFilters)(nil)
+	_ block.BlockWithSubBlocks = (*KeyFilters)(nil)
 )

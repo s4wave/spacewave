@@ -253,4 +253,4 @@ func (o *ObjectState) GetRoot(ctx context.Context) (*Object, error) {
 }
 
 // _ is a type assertion
-var _ world.ObjectState = ((*ObjectState)(nil))
+var _ world.ObjectState = (*ObjectState)(nil)

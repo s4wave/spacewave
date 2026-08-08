@@ -496,4 +496,4 @@ func controllerRowValues(rows map[string]BldrDevtoolControllerRow) []BldrDevtool
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*BldrDevtoolStatusObserver)(nil))
+var _ controller.Controller = (*BldrDevtoolStatusObserver)(nil)

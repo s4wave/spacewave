@@ -384,4 +384,4 @@ func (s *releaseCDNFallbackWritebackStore) waitPut(ctx context.Context) error {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*releaseCDNFallbackWritebackStore)(nil))
+var _ block.StoreOps = (*releaseCDNFallbackWritebackStore)(nil)

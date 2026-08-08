@@ -68,4 +68,4 @@ func (r *inputSet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.NamedSubBlockContainer = ((*inputSet)(nil))
+var _ sbset.NamedSubBlockContainer = (*inputSet)(nil)

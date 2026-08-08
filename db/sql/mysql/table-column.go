@@ -294,7 +294,7 @@ const (
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*TableColumn)(nil))
-	_ block.BlockWithSubBlocks = ((*TableColumn)(nil))
-	_ block.SubBlock           = ((*TableColumn)(nil))
+	_ block.Block              = (*TableColumn)(nil)
+	_ block.BlockWithSubBlocks = (*TableColumn)(nil)
+	_ block.SubBlock           = (*TableColumn)(nil)
 )

@@ -221,4 +221,4 @@ func LookupInitForgeQuickstartOp(ctx context.Context, operationTypeID string) (w
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*InitForgeQuickstartOp)(nil))
+var _ world.Operation = (*InitForgeQuickstartOp)(nil)

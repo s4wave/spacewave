@@ -173,4 +173,4 @@ func (t *Tx) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*Tx)(nil))
+var _ world.Operation = (*Tx)(nil)

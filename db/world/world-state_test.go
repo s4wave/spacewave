@@ -83,6 +83,7 @@ func TestLookupObjectBodyReleasesObjectState(t *testing.T) {
 		t.Fatalf("expected lookup to release object state once, got %d", wrapped.releases)
 	}
 }
+
 func TestLookupObjectBodiesPreservesKeysAndMissingMarkers(t *testing.T) {
 	ctx := context.Background()
 	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))

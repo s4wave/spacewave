@@ -22,4 +22,4 @@ func (t *Tx) GetObjectRootRefsBatch(ctx context.Context, keys []string) ([]*worl
 }
 
 // _ is a type assertion
-var _ world.ObjectRootRefBatcher = ((*Tx)(nil))
+var _ world.ObjectRootRefBatcher = (*Tx)(nil)

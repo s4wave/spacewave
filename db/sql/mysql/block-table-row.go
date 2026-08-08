@@ -76,6 +76,6 @@ func (r *TableRow) FetchSqlRow(ctx context.Context, bcs *block.Cursor) (sql.Row,
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*TableRow)(nil))
-	_ block.BlockWithSubBlocks = ((*TableRow)(nil))
+	_ block.Block              = (*TableRow)(nil)
+	_ block.BlockWithSubBlocks = (*TableRow)(nil)
 )

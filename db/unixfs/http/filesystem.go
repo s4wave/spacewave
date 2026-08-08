@@ -70,4 +70,4 @@ func (f *FileSystem) Release() {
 }
 
 // _ is a type assertion
-var _ http.FileSystem = ((*FileSystem)(nil))
+var _ http.FileSystem = (*FileSystem)(nil)

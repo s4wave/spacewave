@@ -96,7 +96,7 @@ func (r *resolveBuildChannelSub) Resolve(
 }
 
 // _ is a type assertion
-var _ pubsub.Subscription = ((*emittedSubscription)(nil))
+var _ pubsub.Subscription = (*emittedSubscription)(nil)
 
 // _ is a type assertion
-var _ directive.Resolver = ((*resolveBuildChannelSub)(nil))
+var _ directive.Resolver = (*resolveBuildChannelSub)(nil)

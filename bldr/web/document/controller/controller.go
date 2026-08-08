@@ -136,6 +136,6 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var (
-	_ web_document.WebDocumentController = ((*Controller)(nil))
-	_ web_document.WebDocumentHandler    = ((*Controller)(nil))
+	_ web_document.WebDocumentController = (*Controller)(nil)
+	_ web_document.WebDocumentHandler    = (*Controller)(nil)
 )

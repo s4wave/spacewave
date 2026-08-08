@@ -548,7 +548,7 @@ func (c *recordingResourceClient) blockCursorClient(t *testing.T, resourceID uin
 	return s4wave_block_cursor.NewSRPCBlockCursorResourceServiceClient(client)
 }
 
-var _ resource_server.ResourceClientContext = ((*recordingResourceClient)(nil))
+var _ resource_server.ResourceClientContext = (*recordingResourceClient)(nil)
 
 func (s *recordingBucketOps) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
 	s.putBlockCalls++

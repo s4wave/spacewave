@@ -203,4 +203,4 @@ func NewVolume(
 }
 
 // _ is a type assertion
-var _ volume.Volume = ((*Volume)(nil))
+var _ volume.Volume = (*Volume)(nil)

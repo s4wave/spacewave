@@ -43,4 +43,4 @@ func (p *StaticWebPkg) GetWebPkgFsHandle(ctx context.Context) (*unixfs.FSHandle,
 }
 
 // _ is a type assertion
-var _ web_pkg.WebPkg = ((*StaticWebPkg)(nil))
+var _ web_pkg.WebPkg = (*StaticWebPkg)(nil)

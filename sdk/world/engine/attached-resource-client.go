@@ -71,6 +71,6 @@ func (r *attachedResourceRef) Release() {
 	r.resourceCtx.ReleaseResource(r.resourceID)
 }
 
-var _ ResourceClient = ((*AttachedResourceClient)(nil))
+var _ ResourceClient = (*AttachedResourceClient)(nil)
 
-var _ resource_client.ResourceRef = ((*attachedResourceRef)(nil))
+var _ resource_client.ResourceRef = (*attachedResourceRef)(nil)

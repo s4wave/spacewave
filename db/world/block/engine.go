@@ -372,6 +372,7 @@ func (e *Engine) beginRetirementLocked(retirement engineRetirement) engineRetire
 	}
 	return retirement
 }
+
 func (e *Engine) invalidateHeadReadTxLocked() engineRetirement {
 	if e.head == nil || e.head.readTx == nil {
 		return engineRetirement{}
@@ -1023,4 +1024,4 @@ func (e *Engine) buildWorldStateForRoot(
 }
 
 // _ is a type assertion
-var _ world.Engine = ((*Engine)(nil))
+var _ world.Engine = (*Engine)(nil)

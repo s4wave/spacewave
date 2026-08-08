@@ -403,11 +403,11 @@ func (f *BillyFS) Chroot(p string) (billy.Filesystem, error) {
 
 // _ is a type assertion
 var (
-	_ billy.Basic      = ((*BillyFS)(nil))
-	_ billy.TempFile   = ((*BillyFS)(nil))
-	_ billy.Dir        = ((*BillyFS)(nil))
-	_ billy.Change     = ((*BillyFS)(nil))
-	_ billy.Symlink    = ((*BillyFS)(nil))
-	_ billy.Chroot     = ((*BillyFS)(nil))
-	_ billy.Filesystem = ((*BillyFS)(nil))
+	_ billy.Basic      = (*BillyFS)(nil)
+	_ billy.TempFile   = (*BillyFS)(nil)
+	_ billy.Dir        = (*BillyFS)(nil)
+	_ billy.Change     = (*BillyFS)(nil)
+	_ billy.Symlink    = (*BillyFS)(nil)
+	_ billy.Chroot     = (*BillyFS)(nil)
+	_ billy.Filesystem = (*BillyFS)(nil)
 )

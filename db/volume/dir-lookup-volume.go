@@ -147,4 +147,4 @@ func (d *lookupVolume) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupVolume = ((*lookupVolume)(nil))
+var _ LookupVolume = (*lookupVolume)(nil)

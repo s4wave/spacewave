@@ -132,4 +132,4 @@ func (c *Controller) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

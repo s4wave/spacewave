@@ -18,4 +18,4 @@ func (s *FetchServer) Fetch(strm SRPCFetchService_FetchStream) error {
 }
 
 // _ is a type assertion
-var _ SRPCFetchServiceServer = ((*FetchServer)(nil))
+var _ SRPCFetchServiceServer = (*FetchServer)(nil)

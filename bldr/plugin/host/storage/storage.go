@@ -42,4 +42,4 @@ func (s *PluginHostStorage) DeleteVolume(id string) error {
 }
 
 // _ is a type assertion
-var _ storage.Storage = ((*PluginHostStorage)(nil))
+var _ storage.Storage = (*PluginHostStorage)(nil)

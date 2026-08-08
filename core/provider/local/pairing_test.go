@@ -294,7 +294,6 @@ func TestPairingCreatesTransport(t *testing.T) {
 	if acc.GetSessionTransport() != st {
 		t.Fatal("expected same transport on second call")
 	}
-
 }
 
 // TestCompletePairingWaitsForLink verifies that CompletePairing ensures

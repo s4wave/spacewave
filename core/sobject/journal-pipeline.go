@@ -248,6 +248,7 @@ func authenticateJournalEnvelope(record *SOJournalRecord, crypto *JournalCrypto,
 	}
 	return nil
 }
+
 func authenticateJournalSnapshots(snapshots []*JournalAttemptSnapshot, crypto *JournalCrypto, identity []byte) error {
 	if crypto == nil {
 		return errors.Wrap(ErrJournalKeyUnavailable, "compact journal stages require at-rest key")

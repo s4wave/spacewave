@@ -28,4 +28,4 @@ func NewBusEngineResolver(b bus.Bus, engineID string) EngineResolver {
 }
 
 // _ is a type assertion
-var _ Engine = ((*BusEngine)(nil))
+var _ Engine = (*BusEngine)(nil)

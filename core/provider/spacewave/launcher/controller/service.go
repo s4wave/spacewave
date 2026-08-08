@@ -67,4 +67,4 @@ func (l *LauncherServer) ApplyUpdate(
 }
 
 // _ is a type assertion
-var _ spacewave_launcher.SRPCLauncherServer = ((*LauncherServer)(nil))
+var _ spacewave_launcher.SRPCLauncherServer = (*LauncherServer)(nil)

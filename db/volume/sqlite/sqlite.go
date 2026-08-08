@@ -93,6 +93,6 @@ func NewSqlite(
 
 // _ is a type assertion
 var (
-	_ volume.Volume   = ((*Sqlite)(nil))
-	_ kvtx.KvtxVolume = ((*Sqlite)(nil))
+	_ volume.Volume   = (*Sqlite)(nil)
+	_ kvtx.KvtxVolume = (*Sqlite)(nil)
 )

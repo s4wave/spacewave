@@ -132,6 +132,6 @@ func (r *ProxyInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream
 
 // _ is a type assertion
 var (
-	_ srpc.Invoker                      = ((*ProxyInvoker)(nil))
-	_ bifrost_rpc.LookupRpcServiceValue = ((*ProxyInvoker)(nil))
+	_ srpc.Invoker                      = (*ProxyInvoker)(nil)
+	_ bifrost_rpc.LookupRpcServiceValue = (*ProxyInvoker)(nil)
 )

@@ -110,4 +110,4 @@ func (l *loadedBucketBlockStore) HandleInstanceDisposed(_ directive.Instance) {
 }
 
 // _ is a type assertion
-var _ directive.ReferenceHandler = ((*loadedBucketBlockStore)(nil))
+var _ directive.ReferenceHandler = (*loadedBucketBlockStore)(nil)

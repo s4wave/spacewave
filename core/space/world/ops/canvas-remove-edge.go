@@ -128,4 +128,4 @@ func LookupCanvasRemoveEdgeOp(ctx context.Context, operationTypeID string) (worl
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*CanvasRemoveEdgeOp)(nil))
+var _ world.Operation = (*CanvasRemoveEdgeOp)(nil)

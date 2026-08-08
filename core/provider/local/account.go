@@ -363,7 +363,7 @@ func waitExecVolumeController(
 
 // _ is a type assertion
 var (
-	_ provider.ProviderAccount           = ((*ProviderAccount)(nil))
-	_ provider.StorageStatsProvider      = ((*ProviderAccount)(nil))
-	_ provider.StorageStatsWatchProvider = ((*ProviderAccount)(nil))
+	_ provider.ProviderAccount           = (*ProviderAccount)(nil)
+	_ provider.StorageStatsProvider      = (*ProviderAccount)(nil)
+	_ provider.StorageStatsWatchProvider = (*ProviderAccount)(nil)
 )

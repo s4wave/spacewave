@@ -74,4 +74,4 @@ func (t *TxRenameObject) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxRenameObject)(nil))
+var _ Transaction = (*TxRenameObject)(nil)

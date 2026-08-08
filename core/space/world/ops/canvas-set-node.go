@@ -112,4 +112,4 @@ func LookupCanvasSetNodeOp(ctx context.Context, operationTypeID string) (world.O
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*CanvasSetNodeOp)(nil))
+var _ world.Operation = (*CanvasSetNodeOp)(nil)

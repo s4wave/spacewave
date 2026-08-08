@@ -118,4 +118,4 @@ func (r *listAvailablePluginsResolver) Resolve(ctx context.Context, handler dire
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*listAvailablePluginsResolver)(nil))
+var _ directive.Resolver = (*listAvailablePluginsResolver)(nil)

@@ -274,4 +274,4 @@ func splitStatusList(value string) []string {
 	return out
 }
 
-var _ SRPCDevtoolStatusServiceServer = ((*DevtoolStatusWatchService)(nil))
+var _ SRPCDevtoolStatusServiceServer = (*DevtoolStatusWatchService)(nil)

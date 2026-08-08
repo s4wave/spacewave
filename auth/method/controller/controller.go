@@ -172,7 +172,7 @@ func (c *Controller) Close() error {
 
 var (
 	// _ is a type assertion
-	_ controller.Controller = ((*Controller)(nil))
+	_ controller.Controller = (*Controller)(nil)
 	// _ is a type assertion
-	_ auth_method.Handler = ((*Controller)(nil))
+	_ auth_method.Handler = (*Controller)(nil)
 )

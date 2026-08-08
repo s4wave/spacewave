@@ -35,7 +35,7 @@ func MakeKey(sessionID string, suffix []byte) []byte {
 // ReadLockMode checks ObjectStore to determine lock mode.
 // Returns PIN_ENCRYPTED if lock-params exists, AUTO_UNLOCK otherwise.
 func ReadLockMode(ctx context.Context, objStore object.ObjectStore, sessionID string) (SessionLockMode, error) {
-	var mode = SessionLockMode_AUTO_UNLOCK
+	mode := SessionLockMode_AUTO_UNLOCK
 	err := kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return objStore.NewTransaction(ctx, false)

@@ -44,4 +44,4 @@ func (h *controlStreamMountedHandler) HandleMountedStream(
 }
 
 // _ is a type assertion
-var _ link.MountedStreamHandler = ((*controlStreamMountedHandler)(nil))
+var _ link.MountedStreamHandler = (*controlStreamMountedHandler)(nil)

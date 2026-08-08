@@ -80,4 +80,4 @@ func (c *Config) ApplyVolumeMountAttributes(attrs map[string]string) error {
 }
 
 // _ is a type assertion
-var _ unixfs_mount.MountControllerConfig = ((*Config)(nil))
+var _ unixfs_mount.MountControllerConfig = (*Config)(nil)

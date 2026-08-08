@@ -281,4 +281,4 @@ func (p *PacketConn) rxPump() (rerr error) {
 }
 
 // _ is a type assertion
-var _ net.PacketConn = ((*PacketConn)(nil))
+var _ net.PacketConn = (*PacketConn)(nil)

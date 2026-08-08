@@ -60,4 +60,4 @@ func (r *chunkSet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.SubBlockContainer = ((*chunkSet)(nil))
+var _ sbset.SubBlockContainer = (*chunkSet)(nil)

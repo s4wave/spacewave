@@ -276,9 +276,9 @@ func (r *fakeRows) ColumnTypeDatabaseTypeName(index int) string {
 }
 
 var (
-	_ hydra_sql.SqlStore                    = ((*fakeSqlStore)(nil))
-	_ hydra_sql.SqlTransaction              = ((*fakeSqlTx)(nil))
-	_ hydra_sql.SqlOps                      = ((*fakeSqlOps)(nil))
-	_ driver.Rows                           = ((*fakeRows)(nil))
-	_ driver.RowsColumnTypeDatabaseTypeName = ((*fakeRows)(nil))
+	_ hydra_sql.SqlStore                    = (*fakeSqlStore)(nil)
+	_ hydra_sql.SqlTransaction              = (*fakeSqlTx)(nil)
+	_ hydra_sql.SqlOps                      = (*fakeSqlOps)(nil)
+	_ driver.Rows                           = (*fakeRows)(nil)
+	_ driver.RowsColumnTypeDatabaseTypeName = (*fakeRows)(nil)
 )

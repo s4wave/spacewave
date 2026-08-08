@@ -16,7 +16,7 @@ func escapeKey(key []byte, extraCap int) []byte {
 		if !IsBasicRune(c) {
 			// escape
 			if cap(esc) == 0 {
-				esc = make([]byte, 0, (len(key)-i)+(len(key))+extraCap)
+				esc = make([]byte, 0, (len(key)-i)+len(key)+extraCap)
 				esc = append(esc, key[:i]...)
 			}
 			esc = append(esc, '\\')

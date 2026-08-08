@@ -21,4 +21,4 @@ func (t *Mysql) NewSqlTransaction(ctx context.Context, write bool, dsn string) (
 }
 
 // _ is a type assertion
-var _ sql.SqlStore = ((*Mysql)(nil))
+var _ sql.SqlStore = (*Mysql)(nil)

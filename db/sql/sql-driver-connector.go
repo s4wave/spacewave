@@ -42,4 +42,4 @@ func (d *DriverConnector) Driver() driver.Driver {
 
 // _ is a type assertion
 // these are the sql/driver interfaces DriverConnector implements
-var _ driver.Connector = ((*DriverConnector)(nil))
+var _ driver.Connector = (*DriverConnector)(nil)

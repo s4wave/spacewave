@@ -115,4 +115,4 @@ func (d *lookupBlockType) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupBlockType = ((*lookupBlockType)(nil))
+var _ LookupBlockType = (*lookupBlockType)(nil)

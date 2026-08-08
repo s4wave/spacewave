@@ -59,4 +59,4 @@ func (m *MountedStreamHandler) HandleMountedStream(
 	return nil
 }
 
-var _ link.MountedStreamHandler = ((*MountedStreamHandler)(nil))
+var _ link.MountedStreamHandler = (*MountedStreamHandler)(nil)

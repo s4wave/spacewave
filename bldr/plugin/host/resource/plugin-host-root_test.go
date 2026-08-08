@@ -378,6 +378,6 @@ func snapshotDesktopTray(t *testing.T, tray *desktop_tray.DesktopTray) *desktop_
 
 // _ is a type assertion
 var (
-	_ resource_server.ResourceClientContext                              = ((*testResourceClientContext)(nil))
-	_ desktop_tray.SRPCDesktopTrayResourceService_WatchDesktopTrayStream = ((*testWatchStream)(nil))
+	_ resource_server.ResourceClientContext                              = (*testResourceClientContext)(nil)
+	_ desktop_tray.SRPCDesktopTrayResourceService_WatchDesktopTrayStream = (*testWatchStream)(nil)
 )

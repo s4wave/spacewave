@@ -15,9 +15,11 @@ import (
 	spacewave_chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 )
 
-const defaultMessageListLimit = 50
-const maxMessageListLimit = 50
-const chatMessagePageSize = 64
+const (
+	defaultMessageListLimit = 50
+	maxMessageListLimit     = 50
+	chatMessagePageSize     = 64
+)
 
 // ErrChatAuthorIdentityRequired is returned when a message has no authenticated author.
 var ErrChatAuthorIdentityRequired = errors.New("chat author identity required")

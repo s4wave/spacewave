@@ -27,4 +27,4 @@ func (r *serviceWorkerHost) Fetch(strm SRPCServiceWorkerHost_FetchStream) error 
 }
 
 // _ is a type assertion
-var _ SRPCServiceWorkerHostServer = ((*serviceWorkerHost)(nil))
+var _ SRPCServiceWorkerHostServer = (*serviceWorkerHost)(nil)

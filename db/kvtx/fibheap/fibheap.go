@@ -679,4 +679,4 @@ func (h *FibbonaciHeap) decreaseEntry(
 }
 
 // _ is a type assertion
-var _ hydra_heap.Heap = ((*FibbonaciHeap)(nil))
+var _ hydra_heap.Heap = (*FibbonaciHeap)(nil)

@@ -79,4 +79,4 @@ func (c *Controller) resolveBuildBucketAPI(
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*buildBucketAPIResolver)(nil))
+var _ directive.Resolver = (*buildBucketAPIResolver)(nil)

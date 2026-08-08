@@ -26,4 +26,4 @@ func NewController(storageId string) *storage_controller.StorageController {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

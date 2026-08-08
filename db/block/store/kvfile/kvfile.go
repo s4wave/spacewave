@@ -155,4 +155,4 @@ func (k *KvfileBlock) Sync(context.Context) (bool, error) {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*KvfileBlock)(nil))
+var _ block.StoreOps = (*KvfileBlock)(nil)

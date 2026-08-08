@@ -233,7 +233,7 @@ func (f *BillyFSFile) ReadFrom(r io.Reader) (n int64, err error) {
 	if writeSize < 1024 {
 		writeSize = 1024
 	}
-	writeSizeMax := int64((512e3) * 5)
+	writeSizeMax := int64(512e3 * 5)
 	if writeSize > writeSizeMax {
 		writeSize = writeSizeMax
 	}
@@ -369,7 +369,7 @@ func (f *BillyFSFile) timestamp() time.Time {
 
 // _ is a type assertion
 var (
-	_ billy.File    = ((*BillyFSFile)(nil))
-	_ io.WriterAt   = ((*BillyFSFile)(nil))
-	_ io.ReaderFrom = ((*BillyFSFile)(nil))
+	_ billy.File    = (*BillyFSFile)(nil)
+	_ io.WriterAt   = (*BillyFSFile)(nil)
+	_ io.ReaderFrom = (*BillyFSFile)(nil)
 )

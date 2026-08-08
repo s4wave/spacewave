@@ -69,4 +69,4 @@ func (k *KVTx) Execute(ctx context.Context) error {
 }
 
 // _ is a type assertion
-var _ hstore.Store = ((*KVTx)(nil))
+var _ hstore.Store = (*KVTx)(nil)

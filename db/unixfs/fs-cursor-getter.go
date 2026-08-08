@@ -80,4 +80,4 @@ func (f *FSCursorGetter) Release() {
 func (f *FSCursorGetter) AddChangeCb(cb FSCursorChangeCb) {}
 
 // _ is a type assertion
-var _ FSCursor = ((*FSCursorGetter)(nil))
+var _ FSCursor = (*FSCursorGetter)(nil)

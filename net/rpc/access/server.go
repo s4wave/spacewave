@@ -197,4 +197,4 @@ func (s *AccessRpcServiceServer) CallRpcService(strm SRPCAccessRpcService_CallRp
 }
 
 // _ is a type assertion
-var _ SRPCAccessRpcServiceServer = ((*AccessRpcServiceServer)(nil))
+var _ SRPCAccessRpcServiceServer = (*AccessRpcServiceServer)(nil)

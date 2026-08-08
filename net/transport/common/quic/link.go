@@ -187,4 +187,4 @@ func (l *Link) Close() error {
 }
 
 // _ is a type assertion
-var _ link.Link = ((*Link)(nil))
+var _ link.Link = (*Link)(nil)

@@ -216,4 +216,4 @@ func (d *applyBucketConfig) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ ApplyBucketConfig = ((*applyBucketConfig)(nil))
+var _ ApplyBucketConfig = (*applyBucketConfig)(nil)

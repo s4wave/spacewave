@@ -106,4 +106,4 @@ func (d *lookupWorldOp) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupWorldOp = ((*lookupWorldOp)(nil))
+var _ LookupWorldOp = (*lookupWorldOp)(nil)

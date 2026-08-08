@@ -154,4 +154,4 @@ func (o *FsCopyOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*FsCopyOp)(nil))
+var _ world.Operation = (*FsCopyOp)(nil)

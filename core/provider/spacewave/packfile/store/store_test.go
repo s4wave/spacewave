@@ -124,6 +124,7 @@ func (w *writebackStore) putCount() int {
 	defer w.mu.Unlock()
 	return len(w.puts)
 }
+
 func (t *bytesTransport) callCountAtLeast(want int) (bool, <-chan struct{}) {
 	var ready bool
 	var waitCh <-chan struct{}
@@ -190,6 +191,7 @@ func waitFor(t *testing.T, cond func() (bool, <-chan struct{})) bool {
 		}
 	}
 }
+
 func TestWaitForUsesNotification(t *testing.T) {
 	var ready atomic.Bool
 

@@ -202,4 +202,4 @@ func (c *Controller) checkVolumeID(volumeID string) (string, bool) {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

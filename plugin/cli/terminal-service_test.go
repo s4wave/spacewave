@@ -955,7 +955,9 @@ func (s *terminalFakeLockStateStream) Recv() (*s4wave_session.WatchLockStateResp
 	return resp, nil
 }
 
-var _ s4wave_cli_terminal.SRPCCliTerminalService_RunCliStream = (*terminalStream)(nil)
-var _ runner.ClientFactory = (*terminalFakeFactory)(nil)
-var _ runner.Client = (*terminalFakeClient)(nil)
-var _ runner.Session = (*terminalFakeSession)(nil)
+var (
+	_ s4wave_cli_terminal.SRPCCliTerminalService_RunCliStream = (*terminalStream)(nil)
+	_ runner.ClientFactory                                    = (*terminalFakeFactory)(nil)
+	_ runner.Client                                           = (*terminalFakeClient)(nil)
+	_ runner.Session                                          = (*terminalFakeSession)(nil)
+)

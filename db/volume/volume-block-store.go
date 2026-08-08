@@ -111,6 +111,6 @@ func (v *VolumeBlockStore) GetGCManagerHooks() (block_gc.ManagerHooks, bool) {
 
 // _ is a type assertion
 var (
-	_ Volume            = ((*VolumeBlockStore)(nil))
-	_ block_store.Store = ((*VolumeBlockStore)(nil))
+	_ Volume            = (*VolumeBlockStore)(nil)
+	_ block_store.Store = (*VolumeBlockStore)(nil)
 )

@@ -198,4 +198,4 @@ func CleanupPath(basePath, targetPath string) string {
 }
 
 // _ is a type assertion
-var _ s4wave_layout.SRPCLayoutHostServer = ((*LayoutResource)(nil))
+var _ s4wave_layout.SRPCLayoutHostServer = (*LayoutResource)(nil)

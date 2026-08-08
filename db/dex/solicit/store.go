@@ -87,4 +87,4 @@ func (s *Store) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.Bloc
 	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
 }
 
-var _ block.StoreOps = ((*Store)(nil))
+var _ block.StoreOps = (*Store)(nil)

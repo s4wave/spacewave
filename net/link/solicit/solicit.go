@@ -167,4 +167,4 @@ func ExSolicitProtocol(
 }
 
 // _ is a type assertion
-var _ SolicitProtocol = ((*solicitProtocol)(nil))
+var _ SolicitProtocol = (*solicitProtocol)(nil)

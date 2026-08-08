@@ -112,7 +112,7 @@ func (p *PemParameters) Validate() error {
 }
 
 // _ is a type assertion
-var _ auth_method.Parameters = ((*PemParameters)(nil))
+var _ auth_method.Parameters = (*PemParameters)(nil)
 
 // GenerateBackupKey creates a new Ed25519 keypair for PEM backup.
 // Returns the private key PEM and public key PEM bytes.
@@ -138,4 +138,4 @@ func GenerateBackupKey() (privPem []byte, pubPem []byte, err error) {
 }
 
 // _ is a type assertion
-var _ auth_method.Method = ((*PemMethod)(nil))
+var _ auth_method.Method = (*PemMethod)(nil)

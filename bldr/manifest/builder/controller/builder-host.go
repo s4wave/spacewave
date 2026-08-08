@@ -61,4 +61,4 @@ func (h *buildManifestHost) BuildSubManifest(
 }
 
 // _ is a type assertion
-var _ bldr_manifest_builder.BuildManifestHost = ((*buildManifestHost)(nil))
+var _ bldr_manifest_builder.BuildManifestHost = (*buildManifestHost)(nil)

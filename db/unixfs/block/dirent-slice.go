@@ -352,8 +352,8 @@ func (d *DirentSlice) AppendDirent(nent *Dirent) *block.Cursor {
 
 // _ is a type assertion
 var (
-	_ sort.Interface              = ((*DirentSlice)(nil))
-	_ block.SubBlock              = ((*DirentSlice)(nil))
-	_ block.BlockWithSubBlocks    = ((*DirentSlice)(nil))
-	_ block.BlockWithPreWriteHook = ((*DirentSlice)(nil))
+	_ sort.Interface              = (*DirentSlice)(nil)
+	_ block.SubBlock              = (*DirentSlice)(nil)
+	_ block.BlockWithSubBlocks    = (*DirentSlice)(nil)
+	_ block.BlockWithPreWriteHook = (*DirentSlice)(nil)
 )

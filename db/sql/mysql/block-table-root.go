@@ -165,6 +165,6 @@ func (r *TableRoot) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*TableRoot)(nil))
-	_ block.BlockWithSubBlocks = ((*TableRoot)(nil))
+	_ block.Block              = (*TableRoot)(nil)
+	_ block.BlockWithSubBlocks = (*TableRoot)(nil)
 )

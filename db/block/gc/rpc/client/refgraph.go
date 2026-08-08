@@ -254,4 +254,4 @@ func (r *RefGraph) Close() error {
 }
 
 // _ is a type assertion
-var _ block_gc.RefGraphOps = ((*RefGraph)(nil))
+var _ block_gc.RefGraphOps = (*RefGraph)(nil)

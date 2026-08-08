@@ -166,4 +166,4 @@ func (o *FsWriteAtOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*FsWriteAtOp)(nil))
+var _ world.Operation = (*FsWriteAtOp)(nil)

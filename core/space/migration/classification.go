@@ -20,6 +20,7 @@ const (
 func (c Classification) Proto() MigrationClassification {
 	return MigrationClassification(c)
 }
+
 func validClassification(c Classification) bool {
 	switch c {
 	case ClassificationUnclassified, ClassificationSpaceLocalOpaque, ClassificationRewrite, ClassificationExternalRef, ClassificationNonMigratable:

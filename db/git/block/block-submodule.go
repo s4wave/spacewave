@@ -82,7 +82,7 @@ func (r *Submodule) GetBlockRefCtor(id uint32) block.Ctor {
 
 // _ is a type assertion
 var (
-	_ block.Block         = ((*Submodule)(nil))
-	_ block.BlockWithRefs = ((*Submodule)(nil))
-	_ sbset.NamedSubBlock = ((*Submodule)(nil))
+	_ block.Block         = (*Submodule)(nil)
+	_ block.BlockWithRefs = (*Submodule)(nil)
+	_ sbset.NamedSubBlock = (*Submodule)(nil)
 )

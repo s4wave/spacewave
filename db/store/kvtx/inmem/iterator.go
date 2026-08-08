@@ -230,4 +230,4 @@ func (it *Iterator) Close() {
 }
 
 // _ is a type assertion
-var _ kvtx.Iterator = ((*Iterator)(nil))
+var _ kvtx.Iterator = (*Iterator)(nil)

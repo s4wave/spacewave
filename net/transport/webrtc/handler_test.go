@@ -872,7 +872,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 	}
 }
 
-var _ signaling.SignalPeerSession = ((*testSignalPeerSession)(nil))
+var _ signaling.SignalPeerSession = (*testSignalPeerSession)(nil)
 
 // TestHandleSignalPeerReacquiresAfterSupersedingIngressRetires pins the
 // reacquisition contract: a resolver whose ingress lease was replaced by a

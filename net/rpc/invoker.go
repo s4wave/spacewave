@@ -45,4 +45,4 @@ func (i *Invoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bo
 }
 
 // _ is a type assertion
-var _ srpc.Invoker = ((*Invoker)(nil))
+var _ srpc.Invoker = (*Invoker)(nil)

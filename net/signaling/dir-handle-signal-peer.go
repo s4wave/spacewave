@@ -107,6 +107,6 @@ func (d *handleSignalPeer) GetDebugVals() directive.DebugValues {
 
 // _ is a type assertion
 var (
-	_ HandleSignalPeer     = ((*handleSignalPeer)(nil))
-	_ directive.Debuggable = ((*handleSignalPeer)(nil))
+	_ HandleSignalPeer     = (*handleSignalPeer)(nil)
+	_ directive.Debuggable = (*handleSignalPeer)(nil)
 )

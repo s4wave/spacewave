@@ -669,4 +669,4 @@ func maxTime(a time.Time, b time.Time) time.Time {
 }
 
 // _ is a type assertion
-var _ FetchStatsProvider = ((*packfile_store.PackfileStore)(nil))
+var _ FetchStatsProvider = (*packfile_store.PackfileStore)(nil)

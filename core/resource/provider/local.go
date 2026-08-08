@@ -60,4 +60,4 @@ func (s *LocalProviderResource) CreateAccount(
 }
 
 // _ is a type assertion
-var _ s4wave_provider_local.SRPCLocalProviderResourceServiceServer = ((*LocalProviderResource)(nil))
+var _ s4wave_provider_local.SRPCLocalProviderResourceServiceServer = (*LocalProviderResource)(nil)

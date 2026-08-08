@@ -91,4 +91,4 @@ func (s *selectIdentityDomain) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ SelectIdentityDomain = ((*selectIdentityDomain)(nil))
+var _ SelectIdentityDomain = (*selectIdentityDomain)(nil)

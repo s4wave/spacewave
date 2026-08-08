@@ -53,4 +53,4 @@ func (e *Worker) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*Worker)(nil))
+var _ block.Block = (*Worker)(nil)

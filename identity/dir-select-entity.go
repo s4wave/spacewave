@@ -119,4 +119,4 @@ func (s *selectIdentityEntity) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ SelectIdentityEntity = ((*selectIdentityEntity)(nil))
+var _ SelectIdentityEntity = (*selectIdentityEntity)(nil)

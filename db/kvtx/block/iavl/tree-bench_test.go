@@ -1213,7 +1213,7 @@ func BenchmarkIAVLBadgerBlockStore(b *testing.B) {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*benchBlockStore)(nil))
+var _ block.StoreOps = (*benchBlockStore)(nil)
 
 // _ is a type assertion
-var _ block_gc.RefGraphOps = ((*benchRefGraph)(nil))
+var _ block_gc.RefGraphOps = (*benchRefGraph)(nil)

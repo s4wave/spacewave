@@ -133,6 +133,6 @@ func (n *Root) InsertDatabase(name string, ref *block.BlockRef, bcs *block.Curso
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*Root)(nil))
-	_ block.BlockWithSubBlocks = ((*Root)(nil))
+	_ block.Block              = (*Root)(nil)
+	_ block.BlockWithSubBlocks = (*Root)(nil)
 )

@@ -34,4 +34,4 @@ func NewForgeDaemonClient(cc srpc.Client) ForgeDaemonClient {
 func (c *forgeClient) SRPCClient() srpc.Client { return c.cc }
 
 // _ is a type assertion
-var _ bus_api.SRPCControllerBusServiceClient = ((ForgeDaemonClient)(nil))
+var _ bus_api.SRPCControllerBusServiceClient = ForgeDaemonClient(nil)

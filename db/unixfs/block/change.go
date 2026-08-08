@@ -8,4 +8,4 @@ func (c *FSChange) IsNil() bool {
 }
 
 // _ is a type assertion
-var _ block.SubBlock = ((*FSChange)(nil))
+var _ block.SubBlock = (*FSChange)(nil)

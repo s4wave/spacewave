@@ -127,4 +127,4 @@ func (o *FsSymlinkOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*FsSymlinkOp)(nil))
+var _ world.Operation = (*FsSymlinkOp)(nil)

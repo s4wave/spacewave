@@ -87,6 +87,6 @@ func (c *InvokerController) Close() error {
 
 // _ is a type assertion
 var (
-	_ controller.Controller = ((*InvokerController)(nil))
-	_ srpc.Invoker          = ((*InvokerController)(nil))
+	_ controller.Controller = (*InvokerController)(nil)
+	_ srpc.Invoker          = (*InvokerController)(nil)
 )

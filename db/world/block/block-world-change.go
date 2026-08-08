@@ -95,6 +95,6 @@ func (w *WorldChange) GetBlockRefCtor(id uint32) block.Ctor {
 
 // _ is a type assertion
 var (
-	_ block.Block         = ((*WorldChange)(nil))
-	_ block.BlockWithRefs = ((*WorldChange)(nil))
+	_ block.Block         = (*WorldChange)(nil)
+	_ block.BlockWithRefs = (*WorldChange)(nil)
 )

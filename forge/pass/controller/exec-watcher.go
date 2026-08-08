@@ -130,4 +130,4 @@ func (e *execWatcher) processState(
 }
 
 // _ is a type assertion
-var _ world_control.WatchLoopHandler = ((*execWatcher)(nil)).processState
+var _ world_control.WatchLoopHandler = (*execWatcher)(nil).processState

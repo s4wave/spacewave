@@ -110,4 +110,4 @@ func billyLstat(bfs billy.Basic, fpath string) (os.FileInfo, error) {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*BillyFSCursor)(nil))
+var _ unixfs.FSCursor = (*BillyFSCursor)(nil)

@@ -42,4 +42,4 @@ func (h *PrototypeHost) Prototype(req *common.PrototypeRequest, strm common.SRPC
 }
 
 // _ is a type assertion
-var _ common.SRPCPrototypeServiceServer = ((*PrototypeHost)(nil))
+var _ common.SRPCPrototypeServiceServer = (*PrototypeHost)(nil)

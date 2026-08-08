@@ -127,4 +127,4 @@ func (t *TxApplyWorldOp) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxApplyWorldOp)(nil))
+var _ Transaction = (*TxApplyWorldOp)(nil)

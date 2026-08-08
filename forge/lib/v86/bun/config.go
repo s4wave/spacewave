@@ -40,6 +40,6 @@ func (c *Config) UnmarshalBlock(data []byte) error {
 
 // _ is a type assertion
 var (
-	_ config.Config = ((*Config)(nil))
-	_ block.Block   = ((*Config)(nil))
+	_ config.Config = (*Config)(nil)
+	_ block.Block   = (*Config)(nil)
 )

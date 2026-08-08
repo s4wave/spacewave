@@ -84,6 +84,6 @@ func (e *ResolveUndoEntry) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*ResolveUndoEntry)(nil))
-	_ block.BlockWithSubBlocks = ((*ResolveUndoEntry)(nil))
+	_ block.Block              = (*ResolveUndoEntry)(nil)
+	_ block.BlockWithSubBlocks = (*ResolveUndoEntry)(nil)
 )

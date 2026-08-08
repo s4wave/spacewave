@@ -245,4 +245,4 @@ func (f *FS) buildRootTxLocked() (*unixfs_block.FSTree, *block.Cursor, *block.Tr
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*FS)(nil))
+var _ unixfs.FSCursor = (*FS)(nil)

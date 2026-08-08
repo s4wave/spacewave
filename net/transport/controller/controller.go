@@ -468,4 +468,4 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ transport.Controller = ((*Controller)(nil))
+var _ transport.Controller = (*Controller)(nil)

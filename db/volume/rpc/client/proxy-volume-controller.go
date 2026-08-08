@@ -148,4 +148,4 @@ func (v *ProxyVolumeController) GetObjectStoreClient() rpc_object.SRPCObjectStor
 }
 
 // _ is a type assertion
-var _ volume.Controller = ((*ProxyVolumeController)(nil))
+var _ volume.Controller = (*ProxyVolumeController)(nil)

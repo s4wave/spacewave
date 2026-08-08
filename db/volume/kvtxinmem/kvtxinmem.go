@@ -53,6 +53,6 @@ func NewKVTxInmem(
 
 // _ is a type assertion
 var (
-	_ volume.Volume          = ((*KVTxInmem)(nil))
-	_ common_kvtx.KvtxVolume = ((*KVTxInmem)(nil))
+	_ volume.Volume          = (*KVTxInmem)(nil)
+	_ common_kvtx.KvtxVolume = (*KVTxInmem)(nil)
 )

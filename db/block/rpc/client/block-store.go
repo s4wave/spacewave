@@ -207,4 +207,4 @@ func (v *BlockStore) Sync(ctx context.Context) (bool, error) {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*BlockStore)(nil))
+var _ block.StoreOps = (*BlockStore)(nil)

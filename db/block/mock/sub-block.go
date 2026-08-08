@@ -54,6 +54,6 @@ func (r *SubBlock) GetBlockRefCtor(id uint32) block.Ctor {
 
 // _ is a type assertion
 var (
-	_ block.Block         = ((*SubBlock)(nil))
-	_ block.BlockWithRefs = ((*SubBlock)(nil))
+	_ block.Block         = (*SubBlock)(nil)
+	_ block.BlockWithRefs = (*SubBlock)(nil)
 )

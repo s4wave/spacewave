@@ -694,6 +694,6 @@ func (a *ProviderAccount) ResetPINSession(ctx context.Context, ref *session.Sess
 
 // _ is a type assertion
 var (
-	_ session.SessionProvider = ((*ProviderAccount)(nil))
-	_ session.Session         = ((*Session)(nil))
+	_ session.SessionProvider = (*ProviderAccount)(nil)
+	_ session.Session         = (*Session)(nil)
 )

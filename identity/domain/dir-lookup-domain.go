@@ -80,4 +80,4 @@ func (s *lookupIdentityDomain) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupIdentityDomain = ((*lookupIdentityDomain)(nil))
+var _ LookupIdentityDomain = (*lookupIdentityDomain)(nil)

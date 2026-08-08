@@ -225,4 +225,4 @@ func LookupSetSpaceSettingsOp(ctx context.Context, operationTypeID string) (worl
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*SetSpaceSettingsOp)(nil))
+var _ world.Operation = (*SetSpaceSettingsOp)(nil)

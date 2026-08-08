@@ -106,4 +106,4 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ node.Controller = ((*Controller)(nil))
+var _ node.Controller = (*Controller)(nil)

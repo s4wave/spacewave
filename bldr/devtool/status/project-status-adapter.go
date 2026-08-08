@@ -75,4 +75,4 @@ func sortedMapKeys[T any](m map[string]T) []string {
 	return keys
 }
 
-var _ bldr_project_controller.ProjectConfigStatusSink = ((*projectStatusSink)(nil))
+var _ bldr_project_controller.ProjectConfigStatusSink = (*projectStatusSink)(nil)

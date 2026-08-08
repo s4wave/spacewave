@@ -98,4 +98,4 @@ type ObjectStoreHandle interface {
 }
 
 // this assertion ensure LookupBlockStore matches Volume
-var _ block_store.Store = ((Volume)(nil))
+var _ block_store.Store = Volume(nil)

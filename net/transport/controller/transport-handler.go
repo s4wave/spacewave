@@ -113,4 +113,4 @@ func (h *transportHandler) HandleLinkLost(lnk link.Link) {
 }
 
 // _ is a type assertion
-var _ transport.TransportHandler = ((*transportHandler)(nil))
+var _ transport.TransportHandler = (*transportHandler)(nil)

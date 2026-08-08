@@ -125,7 +125,7 @@ func decodedBlockCacheTransformKeyForConfig(c *Config) (string, error) {
 
 // _ is a type assertion
 var (
-	_ Step                               = ((*Transformer)(nil))
-	_ block.Transformer                  = ((*Transformer)(nil))
-	_ block.DecodedBlockCacheTransformer = ((*Transformer)(nil))
+	_ Step                               = (*Transformer)(nil)
+	_ block.Transformer                  = (*Transformer)(nil)
+	_ block.DecodedBlockCacheTransformer = (*Transformer)(nil)
 )

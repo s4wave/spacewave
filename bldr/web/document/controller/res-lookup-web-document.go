@@ -39,4 +39,4 @@ func (r *lookupWebDocumentResolver) Resolve(ctx context.Context, handler directi
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*lookupWebDocumentResolver)(nil))
+var _ directive.Resolver = (*lookupWebDocumentResolver)(nil)

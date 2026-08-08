@@ -42,4 +42,4 @@ func (c *bucketLookupHandle) GetLookup(
 }
 
 // _ is a type assertion
-var _ bucket_lookup.Handle = ((*bucketLookupHandle)(nil))
+var _ bucket_lookup.Handle = (*bucketLookupHandle)(nil)

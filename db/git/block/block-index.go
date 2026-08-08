@@ -122,6 +122,6 @@ func (i *Index) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block              = ((*Index)(nil))
-	_ block.BlockWithSubBlocks = ((*Index)(nil))
+	_ block.Block              = (*Index)(nil)
+	_ block.BlockWithSubBlocks = (*Index)(nil)
 )

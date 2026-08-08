@@ -64,4 +64,4 @@ func (r *tableRootPartitionSet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.SubBlockContainer = ((*tableRootPartitionSet)(nil))
+var _ sbset.SubBlockContainer = (*tableRootPartitionSet)(nil)

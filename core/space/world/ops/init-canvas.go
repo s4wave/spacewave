@@ -122,4 +122,4 @@ func LookupCanvasInitOp(ctx context.Context, operationTypeID string) (world.Oper
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*CanvasInitOp)(nil))
+var _ world.Operation = (*CanvasInitOp)(nil)

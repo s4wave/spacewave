@@ -137,4 +137,4 @@ func checkBoltPaths(dbPath, lockPath string) error {
 }
 
 // _ is a type assertion
-var _ kvtx.Store = ((*Store)(nil))
+var _ kvtx.Store = (*Store)(nil)

@@ -223,4 +223,4 @@ func releaseRefs(refs []resource_client.ResourceRef) {
 }
 
 // _ is a type assertion.
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

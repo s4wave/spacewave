@@ -115,4 +115,4 @@ ClientLoop:
 }
 
 // _ is a type assertion
-var _ directive.Resolver = ((*LookupRpcServiceResolver)(nil))
+var _ directive.Resolver = (*LookupRpcServiceResolver)(nil)

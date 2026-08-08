@@ -105,4 +105,4 @@ func (a *Domain) IdentityLookupEntity(
 func (a *Domain) Close() {}
 
 // _ is a type assertion
-var _ identity_domain.Domain = ((*Domain)(nil))
+var _ identity_domain.Domain = (*Domain)(nil)

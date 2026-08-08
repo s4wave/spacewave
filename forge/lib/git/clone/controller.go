@@ -197,4 +197,4 @@ func (c *Controller) Close() error {
 }
 
 // _ is a type assertion
-var _ forge_target.ExecController = ((*Controller)(nil))
+var _ forge_target.ExecController = (*Controller)(nil)

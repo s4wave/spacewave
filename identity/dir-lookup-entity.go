@@ -80,7 +80,7 @@ func (v *lookupEntityValue) GetEntity() *Entity {
 }
 
 // _ is a type assertion
-var _ IdentityLookupEntityValue = ((*lookupEntityValue)(nil))
+var _ IdentityLookupEntityValue = (*lookupEntityValue)(nil)
 
 // lookupEntity implements IdentityLookupEntity with a global id constraint.
 type lookupEntity struct {
@@ -181,4 +181,4 @@ func (d *lookupEntity) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type constraint
-var _ IdentityLookupEntity = ((*lookupEntity)(nil))
+var _ IdentityLookupEntity = (*lookupEntity)(nil)

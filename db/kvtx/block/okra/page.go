@@ -194,6 +194,6 @@ func (p *Page) FollowValue(cursor *block.Cursor, index int) *block.Cursor {
 
 // _ is a type assertion
 var (
-	_ block.Block         = ((*Page)(nil))
-	_ block.BlockWithRefs = ((*Page)(nil))
+	_ block.Block         = (*Page)(nil)
+	_ block.BlockWithRefs = (*Page)(nil)
 )

@@ -572,6 +572,7 @@ func (s *memoryJournalStorage) WriteAt(p []byte, offset int64) (int, error) {
 	copy(s.data[offset:], p)
 	return len(p), nil
 }
+
 func (s *memoryJournalStorage) setGenerationFloorFailure(err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

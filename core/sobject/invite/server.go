@@ -194,4 +194,4 @@ func NewInviteController(
 }
 
 // _ is a type assertion
-var _ SRPCSOInviteServiceServer = ((*Server)(nil))
+var _ SRPCSOInviteServiceServer = (*Server)(nil)

@@ -899,4 +899,4 @@ func (r *cursorReader) Read(p []byte) (int, error) {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorOps = ((*OverlayFSCursorOps)(nil))
+var _ unixfs.FSCursorOps = (*OverlayFSCursorOps)(nil)

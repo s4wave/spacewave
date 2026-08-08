@@ -99,4 +99,4 @@ func (t *TxGCSweep) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxGCSweep)(nil))
+var _ Transaction = (*TxGCSweep)(nil)

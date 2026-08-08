@@ -29,4 +29,4 @@ func NewController(storageId string, b bus.Bus, rootDir string) *storage_control
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

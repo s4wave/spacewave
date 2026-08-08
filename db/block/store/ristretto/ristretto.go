@@ -26,4 +26,4 @@ func NewRistrettoBlock(
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*RistrettoBlock)(nil))
+var _ block.StoreOps = (*RistrettoBlock)(nil)

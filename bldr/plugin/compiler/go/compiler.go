@@ -1835,4 +1835,4 @@ func (c *Controller) GetSupportedPlatforms() []string {
 }
 
 // _ is a type assertion
-var _ bldr_manifest_builder.Controller = ((*Controller)(nil))
+var _ bldr_manifest_builder.Controller = (*Controller)(nil)

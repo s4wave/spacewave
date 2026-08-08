@@ -66,4 +66,4 @@ func (s *spaceBody) GetSharedObject() sobject.SharedObject {
 }
 
 // _ is a type assertion
-var _ space.SpaceSharedObjectBody = ((*spaceBody)(nil))
+var _ space.SpaceSharedObjectBody = (*spaceBody)(nil)

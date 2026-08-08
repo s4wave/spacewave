@@ -190,4 +190,4 @@ func (s *iavlStore) Execute(ctx context.Context) error {
 }
 
 // _ is a type assertion
-var _ store_kvtx.Store = ((*iavlStore)(nil))
+var _ store_kvtx.Store = (*iavlStore)(nil)

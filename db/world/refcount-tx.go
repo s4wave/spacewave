@@ -35,4 +35,4 @@ func (r *RefCountTx) Discard() {
 }
 
 // _ is a type assertion
-var _ Tx = ((*RefCountTx)(nil))
+var _ Tx = (*RefCountTx)(nil)

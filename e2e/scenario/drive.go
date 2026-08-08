@@ -9,8 +9,10 @@ import (
 
 const starterFile = "getting-started.md"
 
-const crashRecoveryUploadName = "e2e-upload-recovery.bin"
-const crashRecoveryUploadSize = 8 * 1024 * 1024
+const (
+	crashRecoveryUploadName = "e2e-upload-recovery.bin"
+	crashRecoveryUploadSize = 8 * 1024 * 1024
+)
 
 // DriveScenarios returns the Drive scenario catalog in execution order.
 func DriveScenarios() []Scenario {

@@ -107,4 +107,4 @@ func (r *GraphPathQueryResource) Close(ctx context.Context, req *s4wave_world.Cl
 }
 
 // _ is a type assertion
-var _ s4wave_world.SRPCGraphPathQueryResourceServiceServer = ((*GraphPathQueryResource)(nil))
+var _ s4wave_world.SRPCGraphPathQueryResourceServiceServer = (*GraphPathQueryResource)(nil)

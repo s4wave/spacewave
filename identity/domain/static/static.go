@@ -49,4 +49,4 @@ func (d *Domain) Close() {
 }
 
 // _ is a type assertion
-var _ identity_domain.Domain = ((*Domain)(nil))
+var _ identity_domain.Domain = (*Domain)(nil)

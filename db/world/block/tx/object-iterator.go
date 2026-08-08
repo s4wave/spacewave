@@ -154,4 +154,4 @@ func (o *ObjectIterator) Close() {
 }
 
 // _ is a type assertion
-var _ world.ObjectIterator = ((*ObjectIterator)(nil))
+var _ world.ObjectIterator = (*ObjectIterator)(nil)

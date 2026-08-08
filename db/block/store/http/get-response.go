@@ -15,4 +15,4 @@ func (o *GetResponse) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*GetResponse)(nil))
+var _ block.Block = (*GetResponse)(nil)

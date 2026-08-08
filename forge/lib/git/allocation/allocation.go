@@ -494,4 +494,4 @@ func setAllocationQuads(ctx context.Context, ws world.WorldState, objKey string,
 }
 
 // _ is a type assertion
-var _ block.Block = ((*Allocation)(nil))
+var _ block.Block = (*Allocation)(nil)

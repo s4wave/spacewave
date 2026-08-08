@@ -115,6 +115,6 @@ func (c *Controller) Close() error {
 
 // _ is a type assertion
 var (
-	_ controller.Controller = ((*Controller)(nil))
-	_ http.Handler          = ((*Controller)(nil))
+	_ controller.Controller = (*Controller)(nil)
+	_ http.Handler          = (*Controller)(nil)
 )

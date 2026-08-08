@@ -27,4 +27,4 @@ func NewOverlayBlock(
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*OverlayBlock)(nil))
+var _ block.StoreOps = (*OverlayBlock)(nil)

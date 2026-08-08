@@ -395,6 +395,7 @@ func TestCanceledSessionTransportCreatorStopsPendingState(t *testing.T) {
 		t.Fatal("replacement transport was not usable after readiness")
 	}
 }
+
 func TestEnsureSessionTransportRetriesWhenExistingTransportClearsBeforeReady(t *testing.T) {
 	ctx, ctxCancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer ctxCancel()
@@ -1082,6 +1083,7 @@ func TestSessionTransportReplacementReportsUncooperativeRoutine(t *testing.T) {
 		t.Fatalf("old routine did not exit after release: %v", ctx.Err())
 	}
 }
+
 func TestSupersededSessionTransportCreatorKeepsNewConfiguration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
@@ -1177,6 +1179,7 @@ func stopMountedSessionTransportOwner(t *testing.T, acc *ProviderAccount, sess *
 		t.Fatalf("mounted session owner did not stop: %v", ctx.Err())
 	}
 }
+
 func newBlockedSessionTransportServer(t *testing.T) (*httptest.Server, <-chan struct{}, func()) {
 	t.Helper()
 

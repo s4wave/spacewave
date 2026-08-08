@@ -162,4 +162,4 @@ func (d *lookupRpcService) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ LookupRpcService = ((*lookupRpcService)(nil))
+var _ LookupRpcService = (*lookupRpcService)(nil)

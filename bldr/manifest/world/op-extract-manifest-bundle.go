@@ -109,4 +109,4 @@ func (o *ExtractManifestBundleOp) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ world.Operation = ((*ExtractManifestBundleOp)(nil))
+var _ world.Operation = (*ExtractManifestBundleOp)(nil)

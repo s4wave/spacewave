@@ -657,7 +657,7 @@ func (w *yamuxPacketWriter) Context() context.Context {
 }
 
 // _ is a type assertion
-var _ srpc.PacketWriter = ((*yamuxPacketWriter)(nil))
+var _ srpc.PacketWriter = (*yamuxPacketWriter)(nil)
 
 // parseSaucerPath parses /b/saucer/{docId}/{remainder}.
 func parseSaucerPath(path string) (docID, remainder string, ok bool) {
@@ -762,7 +762,7 @@ func (dm *DocumentManager) WebWorkerRpc(_ web_runtime.SRPCWebRuntime_WebWorkerRp
 }
 
 // _ is a type assertion
-var _ rpcstream.RpcStreamGetter = ((*DocumentManager)(nil)).HandleWebDocumentRpc
+var _ rpcstream.RpcStreamGetter = (*DocumentManager)(nil).HandleWebDocumentRpc
 
 // _ is a type assertion
-var _ web_runtime.SRPCWebRuntimeServer = ((*DocumentManager)(nil))
+var _ web_runtime.SRPCWebRuntimeServer = (*DocumentManager)(nil)

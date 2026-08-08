@@ -59,4 +59,4 @@ func (c *Config) CleanupPluginIds() []string {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

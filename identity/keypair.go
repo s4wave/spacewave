@@ -112,4 +112,4 @@ func (k *Keypair) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*Keypair)(nil))
+var _ block.Block = (*Keypair)(nil)

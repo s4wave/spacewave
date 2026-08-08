@@ -149,6 +149,6 @@ func (c *ClientController) Close() error {
 
 // _ is a type assertion
 var (
-	_ controller.Controller = ((*ClientController)(nil))
-	_ AccessClientFunc      = ((*ClientController)(nil)).AccessClient
+	_ controller.Controller = (*ClientController)(nil)
+	_ AccessClientFunc      = (*ClientController)(nil).AccessClient
 )

@@ -122,7 +122,7 @@ func (s *store) EndDeferFlush(ctx context.Context) error {
 
 // _ is a type assertion
 var (
-	_ Store                            = ((*store)(nil))
-	_ block.DecodedBlockCacheFreshener = ((*store)(nil))
-	_ block.DeferFlusher               = ((*store)(nil))
+	_ Store                            = (*store)(nil)
+	_ block.DecodedBlockCacheFreshener = (*store)(nil)
+	_ block.DeferFlusher               = (*store)(nil)
 )

@@ -45,4 +45,4 @@ func (f *StepFactory) ConstructMockConfig() []config.Config {
 }
 
 // _ is a type assertion
-var _ block_transform.StepFactory = ((*StepFactory)(nil))
+var _ block_transform.StepFactory = (*StepFactory)(nil)

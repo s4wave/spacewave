@@ -84,7 +84,6 @@ func TestCreateSessionTransportCancellationAfterReadyClearsCurrentTransport(t *t
 	if running {
 		t.Fatal("expected canceled transport snapshot to report not running")
 	}
-
 }
 
 type testSessionTransportStatusError struct {

@@ -62,4 +62,4 @@ func (h *BusHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 // _ is a type assertion
-var _ http.Handler = ((*BusHandler)(nil))
+var _ http.Handler = (*BusHandler)(nil)

@@ -123,4 +123,4 @@ func (d *Daemon) Close() {
 }
 
 // _ is a type assertion
-var _ peer.Peer = ((*Daemon)(nil))
+var _ peer.Peer = (*Daemon)(nil)

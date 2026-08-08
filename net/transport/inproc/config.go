@@ -47,4 +47,4 @@ func (c *Config) GetDebugVals() config.DebugValues {
 }
 
 // _ is a type assertion
-var _ transport.Config = ((*Config)(nil))
+var _ transport.Config = (*Config)(nil)

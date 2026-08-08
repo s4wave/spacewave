@@ -183,4 +183,4 @@ func (t *TxUpdateExecStates) ExecuteTx(
 }
 
 // _ is a type assertion
-var _ Transaction = ((*TxUpdateExecStates)(nil))
+var _ Transaction = (*TxUpdateExecStates)(nil)

@@ -17,9 +17,11 @@ import (
 	playwright "github.com/mxschmitt/playwright-go"
 )
 
-const v86SmokeProbeTimeoutMS = 120000
-const v86SmokeStageTimeoutMS = 120000
-const v86SmokeDefaultCdnSpaceID = "01kpn3x0y79yr94ps1yae206vp"
+const (
+	v86SmokeProbeTimeoutMS    = 120000
+	v86SmokeStageTimeoutMS    = 120000
+	v86SmokeDefaultCdnSpaceID = "01kpn3x0y79yr94ps1yae206vp"
+)
 
 func TestQuickstartV86BootSmoke(t *testing.T) {
 	if !strings.EqualFold(strings.TrimSpace(os.Getenv("RUN_V86_E2E")), "true") {
@@ -136,6 +138,7 @@ func TestQuickstartV86BootSmoke(t *testing.T) {
 	serial := waitForV86SerialOutput(t, page)
 	t.Logf("v86 serial output sample: %q", trimSerialSample(serial))
 }
+
 func recordV86SmokeStage(t testing.TB, page playwright.Page, stage string) {
 	t.Helper()
 	raw, err := page.Evaluate(`(stage) => {

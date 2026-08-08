@@ -471,8 +471,8 @@ func (r *Handle) followRootRangeBlobRef(
 
 // _ is a type assertion
 var (
-	_ io.Reader = ((*Handle)(nil))
-	_ io.Seeker = ((*Handle)(nil))
-	_ io.Closer = ((*Handle)(nil))
+	_ io.Reader = (*Handle)(nil)
+	_ io.Seeker = (*Handle)(nil)
+	_ io.Closer = (*Handle)(nil)
 	// _ io.WriterTo = ((*Handle)(nil))
 )

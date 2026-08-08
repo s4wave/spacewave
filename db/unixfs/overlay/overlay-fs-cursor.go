@@ -148,4 +148,4 @@ func (c *OverlayFSCursor) Release() {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursor = ((*OverlayFSCursor)(nil))
+var _ unixfs.FSCursor = (*OverlayFSCursor)(nil)

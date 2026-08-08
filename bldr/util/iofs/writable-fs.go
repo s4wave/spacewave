@@ -74,4 +74,4 @@ func (w *WritableFS) ReadFile(name string) ([]byte, error) {
 }
 
 // _ is a type assertion
-var _ unixfs_iofs.IoFS = ((*WritableFS)(nil))
+var _ unixfs_iofs.IoFS = (*WritableFS)(nil)

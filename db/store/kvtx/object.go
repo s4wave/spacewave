@@ -38,4 +38,4 @@ func purge(ctx context.Context, store kvtx.Store) error {
 }
 
 // _ is a type assertion
-var _ object_store.Store = ((*KVTx)(nil))
+var _ object_store.Store = (*KVTx)(nil)

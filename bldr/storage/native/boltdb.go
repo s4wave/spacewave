@@ -80,4 +80,4 @@ func init() {
 }
 
 // _ is a type assertion
-var _ storage.Storage = ((*BoltDB)(nil))
+var _ storage.Storage = (*BoltDB)(nil)

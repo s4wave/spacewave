@@ -75,4 +75,4 @@ func (s *ObjectStore) GetObjectStoreMux(ctx context.Context, objStoreID string, 
 }
 
 // _ is a type assertion
-var _ object_rpc.SRPCObjectStoreServer = ((*ObjectStore)(nil))
+var _ object_rpc.SRPCObjectStoreServer = (*ObjectStore)(nil)

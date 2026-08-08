@@ -126,7 +126,7 @@ func (w *World) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.Block                 = ((*World)(nil))
-	_ block.DecodedBlockCacheable = ((*World)(nil))
-	_ block.BlockWithSubBlocks    = ((*World)(nil))
+	_ block.Block                 = (*World)(nil)
+	_ block.DecodedBlockCacheable = (*World)(nil)
+	_ block.BlockWithSubBlocks    = (*World)(nil)
 )

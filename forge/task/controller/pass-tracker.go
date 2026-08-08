@@ -103,4 +103,4 @@ func (t *passTracker) processState(
 }
 
 // _ is a type assertion
-var _ world_control.WatchLoopHandler = ((*passTracker)(nil)).processState
+var _ world_control.WatchLoopHandler = (*passTracker)(nil).processState

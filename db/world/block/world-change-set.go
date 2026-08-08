@@ -60,4 +60,4 @@ func (r *worldChangeSet) Truncate(nlen int) {
 }
 
 // _ is a type assertion
-var _ sbset.SubBlockContainer = ((*worldChangeSet)(nil))
+var _ sbset.SubBlockContainer = (*worldChangeSet)(nil)

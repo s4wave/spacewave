@@ -89,4 +89,4 @@ func (r *TxResource) Release() {
 }
 
 // _ is a type assertion
-var _ s4wave_world.SRPCTxResourceServiceServer = ((*TxResource)(nil))
+var _ s4wave_world.SRPCTxResourceServiceServer = (*TxResource)(nil)

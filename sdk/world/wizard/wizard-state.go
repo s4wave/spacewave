@@ -31,4 +31,4 @@ func (s *WizardState) UnmarshalBlock(data []byte) error {
 	return s.UnmarshalVT(data)
 }
 
-var _ block.Block = ((*WizardState)(nil))
+var _ block.Block = (*WizardState)(nil)

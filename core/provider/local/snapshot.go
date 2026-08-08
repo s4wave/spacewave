@@ -88,4 +88,4 @@ func (l *lsoStateSnapshot) ProcessOperations(
 }
 
 // _ is a type assertion
-var _ sobject.SharedObjectStateSnapshot = ((*lsoStateSnapshot)(nil))
+var _ sobject.SharedObjectStateSnapshot = (*lsoStateSnapshot)(nil)

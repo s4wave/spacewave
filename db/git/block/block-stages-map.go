@@ -86,6 +86,6 @@ func (m *StagesMap) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 
 // _ is a type assertion
 var (
-	_ block.SubBlock           = ((*StagesMap)(nil))
-	_ block.BlockWithSubBlocks = ((*StagesMap)(nil))
+	_ block.SubBlock           = (*StagesMap)(nil)
+	_ block.BlockWithSubBlocks = (*StagesMap)(nil)
 )

@@ -606,4 +606,4 @@ func (s *SOState) ClearOperationResult(sharedObjectID string, clearOp *SOClearOp
 }
 
 // _ is a type assertion
-var _ block.Block = ((*SOState)(nil))
+var _ block.Block = (*SOState)(nil)

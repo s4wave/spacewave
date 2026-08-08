@@ -115,7 +115,7 @@ func (b *BloomFilter) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*BloomFilter)(nil))
+var _ block.Block = (*BloomFilter)(nil)
 
 // K returns the number of hash functions.
 func (f *Filter) K() uint {

@@ -44,4 +44,4 @@ func (c *Config) ParseRequestTimeout() (time.Duration, error) {
 }
 
 // _ is a type assertion
-var _ config.Config = ((*Config)(nil))
+var _ config.Config = (*Config)(nil)

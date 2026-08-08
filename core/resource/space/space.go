@@ -372,7 +372,7 @@ func (r *SpaceResource) MountSpaceContents(
 }
 
 // _ is a type assertion
-var _ s4wave_space.SRPCSpaceResourceServiceServer = ((*SpaceResource)(nil))
+var _ s4wave_space.SRPCSpaceResourceServiceServer = (*SpaceResource)(nil)
 
 func bridgeSharingMailbox(
 	ctx context.Context,

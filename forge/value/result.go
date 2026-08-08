@@ -113,4 +113,4 @@ func (r *Result) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*Result)(nil))
+var _ block.Block = (*Result)(nil)

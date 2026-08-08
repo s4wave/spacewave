@@ -61,4 +61,4 @@ func (b *objectStoreHandle) GetNexec() int {
 }
 
 // _ is a type assertion
-var _ volume.ObjectStoreHandle = ((*objectStoreHandle)(nil))
+var _ volume.ObjectStoreHandle = (*objectStoreHandle)(nil)

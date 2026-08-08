@@ -695,4 +695,4 @@ func (o *remoteFSCursorOps) handleErr(err error, lock bool) {
 }
 
 // _ is a type assertion
-var _ unixfs.FSCursorOps = ((*remoteFSCursorOps)(nil))
+var _ unixfs.FSCursorOps = (*remoteFSCursorOps)(nil)

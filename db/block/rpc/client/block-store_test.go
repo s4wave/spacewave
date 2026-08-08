@@ -136,4 +136,4 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 }
 
 // _ is a type assertion
-var _ block_rpc.SRPCBlockStoreClient = ((*testBlockStoreClient)(nil))
+var _ block_rpc.SRPCBlockStoreClient = (*testBlockStoreClient)(nil)

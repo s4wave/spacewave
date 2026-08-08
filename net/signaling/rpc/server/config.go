@@ -33,4 +33,4 @@ func (c *Config) GetDebugVals() config.DebugValues {
 }
 
 // _ is a type assertion
-var _ config.Debuggable = ((*Config)(nil))
+var _ config.Debuggable = (*Config)(nil)

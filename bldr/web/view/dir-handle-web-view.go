@@ -121,4 +121,4 @@ func (d *handleWebView) GetDebugVals() directive.DebugValues {
 }
 
 // _ is a type assertion
-var _ HandleWebView = ((*handleWebView)(nil))
+var _ HandleWebView = (*handleWebView)(nil)

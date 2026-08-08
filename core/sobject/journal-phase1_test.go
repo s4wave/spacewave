@@ -1093,6 +1093,7 @@ func TestPhase1ActivationVerificationBoundary(t *testing.T) {
 		})
 	}
 }
+
 func TestPhase1FileJournalInitializationCuts(t *testing.T) {
 	identity := testDigest("initialization-identity")
 	for _, fixture := range []struct {
@@ -1538,7 +1539,6 @@ func TestPhase1Q3aAndLiveReplayEquality(t *testing.T) {
 	blockedDecoded := testDecodedIntent(t, crypto, blockedIntent, blockedKey, blockedLineage, blockedVersion, 1)
 	blockedEnvelope, err := NewJournalEnvelopeRecord(crypto, 2, blockedDecoded, []byte("blocked-envelope"), journalDefaultIdentity())
 	if err != nil {
-
 		t.Fatal(err)
 	}
 	if err := blocked.appendRecord(blockedEnvelope); err != nil {
@@ -1870,6 +1870,7 @@ func testDigest(value string) []byte {
 	digest := sha256.Sum256([]byte(value))
 	return digest[:]
 }
+
 func testMutationKey(scope []byte, peerID, localID string) *SOMutationKey {
 	key, _ := NewSOMutationKey(scope, "shared-object", peerID, localID)
 	return key

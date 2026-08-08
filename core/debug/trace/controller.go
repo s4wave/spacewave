@@ -179,4 +179,4 @@ func hasDebugPrefix(path string, prefix string) bool {
 }
 
 // _ is a type assertion
-var _ controller.Controller = ((*Controller)(nil))
+var _ controller.Controller = (*Controller)(nil)

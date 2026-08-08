@@ -238,4 +238,4 @@ func (b *S3Block) getKeyExists(ctx context.Context, objectKey string) (bool, err
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*S3Block)(nil))
+var _ block.StoreOps = (*S3Block)(nil)

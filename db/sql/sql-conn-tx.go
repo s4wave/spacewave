@@ -47,4 +47,4 @@ func (c *ConnTx) Rollback() error {
 }
 
 // _ is a type assertion
-var _ driver.Tx = ((*ConnTx)(nil))
+var _ driver.Tx = (*ConnTx)(nil)

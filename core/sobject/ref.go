@@ -62,4 +62,4 @@ func (i *SharedObjectRef) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*SharedObjectRef)(nil))
+var _ block.Block = (*SharedObjectRef)(nil)

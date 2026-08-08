@@ -158,6 +158,6 @@ func (c *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 }
 
 var (
-	_ json.Marshaler   = ((*Config)(nil))
-	_ json.Unmarshaler = ((*Config)(nil))
+	_ json.Marshaler   = (*Config)(nil)
+	_ json.Unmarshaler = (*Config)(nil)
 )

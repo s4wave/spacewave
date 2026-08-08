@@ -43,4 +43,4 @@ func (i *TablePartitionIter) Close(sctx *sql.Context) error {
 }
 
 // _ is a type assertion
-var _ sql.PartitionIter = ((*TablePartitionIter)(nil))
+var _ sql.PartitionIter = (*TablePartitionIter)(nil)

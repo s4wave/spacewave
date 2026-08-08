@@ -34,4 +34,4 @@ func (i *BlockStoreState) UnmarshalBlock(data []byte) error {
 }
 
 // _ is a type assertion
-var _ block.Block = ((*BlockStoreState)(nil))
+var _ block.Block = (*BlockStoreState)(nil)

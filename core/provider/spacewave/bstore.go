@@ -901,8 +901,8 @@ func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID strin
 
 // _ is a type assertion
 var (
-	_ bstore.BlockStoreProvider = ((*ProviderAccount)(nil))
-	_ bstore.BlockStore         = ((*BlockStore)(nil))
-	_ block.StoreOps            = ((*BlockStore)(nil))
-	_ block.StoreOps            = ((*dirtyTrackingStore)(nil))
+	_ bstore.BlockStoreProvider = (*ProviderAccount)(nil)
+	_ bstore.BlockStore         = (*BlockStore)(nil)
+	_ block.StoreOps            = (*BlockStore)(nil)
+	_ block.StoreOps            = (*dirtyTrackingStore)(nil)
 )

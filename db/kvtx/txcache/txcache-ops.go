@@ -39,7 +39,7 @@ func (s *opsSorter) Swap(i, j int) {
 }
 
 // _ is a type assertion
-var _ sort.Interface = ((*opsSorter)(nil))
+var _ sort.Interface = (*opsSorter)(nil)
 
 // BuildOps returns a sorted set of operations.
 func (t *TXCache) BuildOps(ctx context.Context, sorted bool) ([]Op, error) {

@@ -91,5 +91,5 @@ func (p *TablePartition) IterateRows(ctx *sql.Context) (sql.RowIter, error) {
 
 // _ is a type assertion
 var (
-	_ sql.Partition = ((*TablePartition)(nil))
+	_ sql.Partition = (*TablePartition)(nil)
 )

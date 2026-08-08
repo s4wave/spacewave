@@ -217,4 +217,4 @@ func recoverBoltTxPanic(err *error) {
 }
 
 // _ is a type assertion
-var _ kvtx.Tx = ((*Tx)(nil))
+var _ kvtx.Tx = (*Tx)(nil)

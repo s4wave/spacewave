@@ -495,7 +495,7 @@ func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldSt
 
 // _ is a type assertion
 var (
-	_ controller.Controller                = ((*Controller)(nil))
-	_ bldr_plugin.LookupRpcClientHandler   = ((*Controller)(nil))
-	_ bldr_plugin_host.PluginHostScheduler = ((*Controller)(nil))
+	_ controller.Controller                = (*Controller)(nil)
+	_ bldr_plugin.LookupRpcClientHandler   = (*Controller)(nil)
+	_ bldr_plugin_host.PluginHostScheduler = (*Controller)(nil)
 )

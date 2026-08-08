@@ -44,7 +44,7 @@ func (r *remoteWebRuntimeHost) ServiceWorkerRpc(stream SRPCWebRuntimeHost_Servic
 }
 
 // _ is a type assertion
-var _ SRPCWebRuntimeHostServer = ((*remoteWebRuntimeHost)(nil))
+var _ SRPCWebRuntimeHostServer = (*remoteWebRuntimeHost)(nil)
 
 func signalCurrentProcessInterrupt(le *logrus.Entry) {
 	proc, err := os.FindProcess(os.Getpid())

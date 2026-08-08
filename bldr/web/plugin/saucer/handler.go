@@ -302,4 +302,4 @@ func writeFrame(w io.Writer, data []byte) error {
 }
 
 // _ is a type assertion
-var _ http.ResponseWriter = ((*framedResponseWriter)(nil))
+var _ http.ResponseWriter = (*framedResponseWriter)(nil)

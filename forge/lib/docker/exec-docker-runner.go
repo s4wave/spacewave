@@ -47,4 +47,4 @@ func (r *ExecDockerRunner) Run(ctx context.Context, name string, args []string, 
 }
 
 // _ is a type assertion
-var _ DockerRunner = ((*ExecDockerRunner)(nil))
+var _ DockerRunner = (*ExecDockerRunner)(nil)

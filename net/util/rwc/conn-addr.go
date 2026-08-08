@@ -80,4 +80,4 @@ func (c *ConnAddr) RemoteAddr() net.Addr {
 }
 
 // _ is a type assertion
-var _ net.Conn = ((*ConnAddr)(nil))
+var _ net.Conn = (*ConnAddr)(nil)

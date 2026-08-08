@@ -97,4 +97,4 @@ func (r *readOperationCountingStore) BeginReadOperation(ctx context.Context) (bl
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*readOperationCountingStore)(nil))
+var _ block.StoreOps = (*readOperationCountingStore)(nil)

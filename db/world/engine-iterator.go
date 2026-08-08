@@ -174,4 +174,4 @@ func (e *engineObjectIterator) Close() {
 }
 
 // _ is a type assertion
-var _ ObjectIterator = ((*engineObjectIterator)(nil))
+var _ ObjectIterator = (*engineObjectIterator)(nil)

@@ -93,4 +93,4 @@ func TestBlockStoreSyncForwards(t *testing.T) {
 }
 
 // _ is a type assertion
-var _ block.StoreOps = ((*testStore)(nil))
+var _ block.StoreOps = (*testStore)(nil)

@@ -1526,4 +1526,4 @@ func acceptedCloudInviteJoinResponse(
 }
 
 // _ is a type assertion
-var _ s4wave_session.SRPCSessionResourceServiceServer = ((*SessionResource)(nil))
+var _ s4wave_session.SRPCSessionResourceServiceServer = (*SessionResource)(nil)

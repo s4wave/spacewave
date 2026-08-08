@@ -91,8 +91,8 @@ func (u *UDP) MatchTransportType(transportType string) bool {
 
 var (
 	// _ is a type assertion.
-	_ transport.Transport = ((*UDP)(nil))
+	_ transport.Transport = (*UDP)(nil)
 
 	// _ is a type assertion
-	_ dialer.TransportDialer = ((*UDP)(nil))
+	_ dialer.TransportDialer = (*UDP)(nil)
 )

@@ -349,4 +349,4 @@ func (t *Tx) BlockIterate(ctx context.Context, prefix []byte, sort, reverse bool
 }
 
 // _ is a type assertion
-var _ kvtx.BlockTx = ((*Tx)(nil))
+var _ kvtx.BlockTx = (*Tx)(nil)

@@ -492,6 +492,6 @@ func (c *Controller) buildObjectStoreLocked(ctx context.Context) (object.ObjectS
 
 // _ is a type assertion
 var (
-	_ controller.Controller     = ((*Controller)(nil))
-	_ session.SessionController = ((*Controller)(nil))
+	_ controller.Controller     = (*Controller)(nil)
+	_ session.SessionController = (*Controller)(nil)
 )

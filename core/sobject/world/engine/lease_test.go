@@ -66,6 +66,7 @@ func TestWorldEngineLeaseLifecycle(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 }
+
 func TestWorldEngineLeaseLossStopsEngineContext(t *testing.T) {
 	ctx := context.Background()
 	tb, err := alpha_testbed.Default(ctx)

@@ -19,4 +19,4 @@ func (w *webWorkerHostInvoker) InvokeMethod(serviceID, methodID string, strm srp
 }
 
 // _ is a type assertion.
-var _ srpc.Invoker = ((*webWorkerHostInvoker)(nil))
+var _ srpc.Invoker = (*webWorkerHostInvoker)(nil)

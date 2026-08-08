@@ -402,6 +402,6 @@ func (t *WorldState) DeleteGraphObject(ctx context.Context, objKey string) error
 
 // _ is a type assertion
 var (
-	_ world.WorldStateGraph = ((*WorldState)(nil))
-	_ world.WorldStateGraph = ((*graphPathReadOperation)(nil))
+	_ world.WorldStateGraph = (*WorldState)(nil)
+	_ world.WorldStateGraph = (*graphPathReadOperation)(nil)
 )

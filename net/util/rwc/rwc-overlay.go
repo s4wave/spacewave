@@ -97,4 +97,4 @@ func (r *RwcOverlay) SetWriteDeadline(t time.Time) error {
 }
 
 // _ is a type assertion
-var _ net.Conn = ((*RwcOverlay)(nil))
+var _ net.Conn = (*RwcOverlay)(nil)

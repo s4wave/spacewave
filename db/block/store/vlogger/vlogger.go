@@ -188,4 +188,4 @@ func (s *VLoggerStore) EndDeferFlush(ctx context.Context) error {
 }
 
 // _ is a type assertion
-var _ block_store.Store = ((*VLoggerStore)(nil))
+var _ block_store.Store = (*VLoggerStore)(nil)
