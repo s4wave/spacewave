@@ -1,0 +1,130 @@
+syntax = "proto3";
+package s4wave.viewer.native;
+option go_package = "github.com/s4wave/spacewave/sdk/viewer/native;s4wave_viewer_native";
+
+// NativeViewerWireVersion is the versioned inherited native-viewer contract.
+// The record is deliberately independent of the daemon socket protocol.
+enum NativeViewerEndpointKind {
+  NATIVE_VIEWER_ENDPOINT_KIND_UNSPECIFIED = 0;
+  NATIVE_VIEWER_ENDPOINT_KIND_RECORD = 1;
+  NATIVE_VIEWER_ENDPOINT_KIND_READINESS = 2;
+  NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE = 3;
+  NATIVE_VIEWER_ENDPOINT_KIND_STATE = 4;
+  NATIVE_VIEWER_ENDPOINT_KIND_CONTROL = 5;
+}
+enum NativeViewerTransport {
+  NATIVE_VIEWER_TRANSPORT_UNSPECIFIED = 0;
+  NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO = 1;
+  NATIVE_VIEWER_TRANSPORT_SRPC = 2;
+}
+enum NativeViewerFDMode {
+  NATIVE_VIEWER_FD_MODE_UNSPECIFIED = 0;
+  NATIVE_VIEWER_FD_MODE_READ = 1;
+  NATIVE_VIEWER_FD_MODE_WRITE = 2;
+}
+enum NativeViewerReadinessStatus {
+  NATIVE_VIEWER_READINESS_STATUS_UNSPECIFIED = 0;
+  NATIVE_VIEWER_READINESS_STATUS_READY = 1;
+  NATIVE_VIEWER_READINESS_STATUS_FAILED = 2;
+  NATIVE_VIEWER_READINESS_STATUS_CANCELLED = 3;
+}
+
+message NativeViewerEndpointDescriptor {
+  NativeViewerEndpointKind kind = 1;
+  int32 fd = 2;
+  NativeViewerTransport transport = 3;
+  string service_id = 4;
+  uint32 protocol_version = 5;
+  bool required = 6;
+  bool close_on_exit = 7;
+}
+message NativeViewerIODescriptor {
+  int32 input_fd = 1;
+  int32 output_fd = 2;
+  int32 diagnostic_fd = 3;
+  NativeViewerFDMode input_mode = 4;
+  NativeViewerFDMode output_mode = 5;
+}
+message NativeViewerLaunchRecord {
+  uint32 wire_version = 1;
+  uint32 protocol_version = 2;
+  string launch_id = 3;
+  string session_object_key = 4;
+  string space_object_key = 5;
+  string manifest_object_key = 6;
+  string manifest_digest = 7;
+  string viewer_object_key = 8;
+  string viewer_profile = 9;
+  string resource_scope_session_object_key = 10;
+  string selected_state_key = 11;
+  repeated NativeViewerEndpointDescriptor endpoints = 12;
+  NativeViewerIODescriptor io = 13;
+  string launch_nonce = 14;
+}
+message NativeViewerReadinessRecord {
+  uint32 wire_version = 1;
+  uint32 protocol_version = 2;
+  string launch_id = 3;
+  string session_object_key = 4;
+  string space_object_key = 5;
+  string manifest_object_key = 6;
+  string manifest_digest = 7;
+  string viewer_object_key = 8;
+  NativeViewerReadinessStatus status = 9;
+  uint64 resource_revision = 10;
+  uint64 resource_cursor = 11;
+  uint64 frame_sequence = 12;
+  string detail = 13;
+  bool terminal_restore_attempted = 14;
+  bool all_workers_joined = 15;
+  string viewer_profile = 16;
+  string resource_scope_session_object_key = 17;
+  string selected_state_key = 18;
+}
+
+
+message NativeViewerSelectedState {
+  repeated string tabs = 1;
+  string focused = 2;
+  map<string, string> drafts = 3;
+  map<string, uint32> viewports = 4;
+  uint32 selected_view = 5;
+  uint32 theme = 6;
+}
+message NativeViewerStateLoadRequest { string state_key = 1; }
+message NativeViewerStateLoadResponse { NativeViewerSelectedState state = 1; string state_key = 2; }
+message NativeViewerStateSaveRequest { string state_key = 1; NativeViewerSelectedState state = 2; string request_id = 3; }
+message NativeViewerStateSaveResponse { bool accepted = 1; string state_key = 2; string request_id = 3; string detail = 4; }
+service StateService {
+  rpc Load(NativeViewerStateLoadRequest) returns (NativeViewerStateLoadResponse);
+  rpc Save(NativeViewerStateSaveRequest) returns (NativeViewerStateSaveResponse);
+}
+
+enum NativeViewerControlStatus {
+  NATIVE_VIEWER_CONTROL_STATUS_UNSPECIFIED = 0;
+  NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED = 1;
+  NATIVE_VIEWER_CONTROL_STATUS_REJECTED = 2;
+}
+message NativeViewerAvailableSessionsRequest { string scope_session_object_key = 1; }
+message NativeViewerAvailableSessionsResponse { repeated string session_object_keys = 1; }
+message NativeViewerSelectSessionRequest { string session_object_key = 1; string request_id = 2; }
+message NativeViewerSelectSessionResponse { NativeViewerControlStatus status = 1; string session_object_key = 2; string request_id = 3; string detail = 4; }
+message NativeViewerSendInputRequest { string session_object_key = 1; string dispatch_key = 2; string request_id = 3; string text = 4; }
+message NativeViewerInterruptRequest { string session_object_key = 1; string dispatch_key = 2; string request_id = 3; string reason = 4; }
+message NativeViewerControlResponse { NativeViewerControlStatus status = 1; string session_object_key = 2; string dispatch_key = 3; string request_id = 4; string detail = 5; string accepted_delivery_key = 6; uint64 accepted_sequence = 7; }
+message NativeViewerFollowUpRequest { string predecessor_session_object_key = 1; string request_id = 2; string text = 3; }
+message NativeViewerFollowUpResponse { NativeViewerControlStatus status = 1; string predecessor_session_object_key = 2; string request_id = 3; string text = 4; string successor_session_object_key = 5; string detail = 6; }
+message NativeViewerCommand { string id = 1; string label = 2; string binding = 3; uint32 surface = 4; }
+message NativeViewerListCommandsRequest {}
+message NativeViewerListCommandsResponse { repeated NativeViewerCommand commands = 1; }
+message NativeViewerExecuteCommandRequest { string command_id = 1; string request_id = 2; }
+message NativeViewerExecuteCommandResponse { NativeViewerControlStatus status = 1; string command_id = 2; string request_id = 3; string detail = 4; }
+service ControlService {
+  rpc AvailableSessions(NativeViewerAvailableSessionsRequest) returns (NativeViewerAvailableSessionsResponse);
+  rpc SelectSession(NativeViewerSelectSessionRequest) returns (NativeViewerSelectSessionResponse);
+  rpc SendInput(NativeViewerSendInputRequest) returns (NativeViewerControlResponse);
+  rpc Interrupt(NativeViewerInterruptRequest) returns (NativeViewerControlResponse);
+  rpc FollowUp(NativeViewerFollowUpRequest) returns (NativeViewerFollowUpResponse);
+  rpc ListCommands(NativeViewerListCommandsRequest) returns (NativeViewerListCommandsResponse);
+  rpc ExecuteCommand(NativeViewerExecuteCommandRequest) returns (NativeViewerExecuteCommandResponse);
+}

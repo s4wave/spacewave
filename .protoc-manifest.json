@@ -3084,6 +3084,16 @@
       ],
       "protoFiles": ["sdk/unixfs/handle.proto"]
     },
+    "github.com/s4wave/spacewave/sdk/viewer/native": {
+      "hash": "c1b35ccbc6bc222321a3b1d4da5a75ac7fa977e21e125be996182c8eb4e75bf8",
+      "generatedFiles": [
+        "sdk/viewer/native/native-viewer.pb.go",
+        "sdk/viewer/native/native-viewer.pb.ts",
+        "sdk/viewer/native/native-viewer_srpc.pb.go",
+        "sdk/viewer/native/native-viewer_srpc.pb.ts"
+      ],
+      "protoFiles": ["sdk/viewer/native/native-viewer.proto"]
+    },
     "github.com/s4wave/spacewave/sdk/viewer/registry": {
       "hash": "87350cd39b8ebfecfc3ac3325464e765fda03bbb85585662e5466cd749d9a84f",
       "generatedFiles": [

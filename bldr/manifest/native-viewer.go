@@ -9,9 +9,10 @@ import (
 	"github.com/pkg/errors"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/db/block"
+	native_viewer "github.com/s4wave/spacewave/sdk/viewer/native"
 )
 
-const nativeViewerProtocolVersion uint32 = 1
+const nativeViewerProtocolVersion uint32 = native_viewer.NativeViewerProtocolVersion
 
 func validateNativeViewerID(name, value string) error {
 	if value == "" {
@@ -82,26 +83,32 @@ func validateNativeViewerMetadata(m *Manifest) error {
 
 // NativeViewerResolution is the frozen identity set used to start a native viewer.
 type NativeViewerResolution struct {
-	// PluginID identifies the plugin manifest.
+	// pluginID identifies the plugin manifest.
 	PluginID string
-	// ManifestObjectKey identifies the selected manifest object.
+	// manifestObjectKey identifies the selected manifest object.
 	ManifestObjectKey string
-	// ManifestDigest identifies the selected manifest root digest.
+	// manifestDigest identifies the selected manifest root digest.
 	ManifestDigest string
-	// ViewerObjectKey identifies the native viewer object.
+	// viewerObjectKey identifies the native viewer object.
 	ViewerObjectKey string
-	// ViewerProfile selects the native viewer profile.
+	// viewerProfile selects the native viewer profile.
 	ViewerProfile string
-	// ProtocolVersion identifies the native viewer protocol.
+	// protocolVersion identifies the native viewer protocol.
 	ProtocolVersion uint32
-	// Entrypoint is the safe relative viewer executable path.
+	// entrypoint is the safe relative viewer executable path.
 	Entrypoint string
-	// PlatformID identifies the canonical host platform.
+	// platformID identifies the canonical host platform.
 	PlatformID string
 }
 
 // ResolveNativeViewer validates and freezes native viewer identities for a selected manifest reference.
-func ResolveNativeViewer(manifest *Manifest, selected *ManifestRef, root *block.BlockRef, manifestObjectKey string, host bldr_platform.Platform) (*NativeViewerResolution, error) {
+func ResolveNativeViewer(
+	manifest *Manifest,
+	selected *ManifestRef,
+	root *block.BlockRef,
+	manifestObjectKey string,
+	host bldr_platform.Platform,
+) (*NativeViewerResolution, error) {
 	if manifest == nil || selected == nil || root == nil || host == nil {
 		return nil, errors.New("manifest, selected reference, and host platform are required")
 	}
@@ -131,9 +138,13 @@ func ResolveNativeViewer(manifest *Manifest, selected *ManifestRef, root *block.
 		return nil, errors.New("selected manifest reference has no root digest")
 	}
 	return &NativeViewerResolution{
-		PluginID: meta.GetManifestId(), ManifestObjectKey: manifestObjectKey, ManifestDigest: manifestIdentity,
-		ViewerObjectKey: meta.GetViewerId(), ViewerProfile: meta.GetViewerProfile(),
-		ProtocolVersion: meta.GetViewerProtocolVersion(), Entrypoint: manifest.GetEntrypoint(),
-		PlatformID: manifestPlatform.GetPlatformID(),
+		PluginID:          meta.GetManifestId(),
+		ManifestObjectKey: manifestObjectKey,
+		ManifestDigest:    manifestIdentity,
+		ViewerObjectKey:   meta.GetViewerId(),
+		ViewerProfile:     meta.GetViewerProfile(),
+		ProtocolVersion:   meta.GetViewerProtocolVersion(),
+		Entrypoint:        manifest.GetEntrypoint(),
+		PlatformID:        manifestPlatform.GetPlatformID(),
 	}, nil
 }
