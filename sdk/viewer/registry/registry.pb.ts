@@ -17,11 +17,11 @@ export const protobufPackage = 's4wave.viewer.registry'
  */
 export enum ViewerSurface {
   /**
-   * VIEWER_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
+   * VIEWER_SURFACE_UNKNOWN is not a usable viewer surface.
    *
-   * @generated from enum value: VIEWER_SURFACE_UNSPECIFIED = 0;
+   * @generated from enum value: VIEWER_SURFACE_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  UNKNOWN = 0,
 
   /**
    * VIEWER_SURFACE_WEB identifies browser viewers.
@@ -31,19 +31,19 @@ export enum ViewerSurface {
   WEB = 1,
 
   /**
-   * VIEWER_SURFACE_TERMINAL identifies terminal viewers.
+   * VIEWER_SURFACE_TUI identifies terminal viewers.
    *
-   * @generated from enum value: VIEWER_SURFACE_TERMINAL = 2;
+   * @generated from enum value: VIEWER_SURFACE_TUI = 2;
    */
-  TERMINAL = 2,
+  TUI = 2,
 }
 
 export const ViewerSurface_Enum = /* @__PURE__ */ createEnumType(
   's4wave.viewer.registry.ViewerSurface',
   [
-    [0, 'VIEWER_SURFACE_UNSPECIFIED'],
+    [0, 'VIEWER_SURFACE_UNKNOWN'],
     [1, 'VIEWER_SURFACE_WEB'],
-    [2, 'VIEWER_SURFACE_TERMINAL'],
+    [2, 'VIEWER_SURFACE_TUI'],
   ],
 )
 

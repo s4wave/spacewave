@@ -78,25 +78,25 @@ func (x CommandFocusContext) String() string {
 type CommandSurface int32
 
 const (
-	// COMMAND_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
-	CommandSurface_COMMAND_SURFACE_UNSPECIFIED CommandSurface = 0
+	// COMMAND_SURFACE_UNKNOWN is not a usable command surface.
+	CommandSurface_COMMAND_SURFACE_UNKNOWN CommandSurface = 0
 	// COMMAND_SURFACE_WEB selects the web command surface.
 	CommandSurface_COMMAND_SURFACE_WEB CommandSurface = 1
-	// COMMAND_SURFACE_TERMINAL selects the terminal command surface.
-	CommandSurface_COMMAND_SURFACE_TERMINAL CommandSurface = 2
+	// COMMAND_SURFACE_TUI selects the terminal command surface.
+	CommandSurface_COMMAND_SURFACE_TUI CommandSurface = 2
 )
 
 // Enum value maps for CommandSurface.
 var (
 	CommandSurface_name = map[int32]string{
-		0: "COMMAND_SURFACE_UNSPECIFIED",
+		0: "COMMAND_SURFACE_UNKNOWN",
 		1: "COMMAND_SURFACE_WEB",
-		2: "COMMAND_SURFACE_TERMINAL",
+		2: "COMMAND_SURFACE_TUI",
 	}
 	CommandSurface_value = map[string]int32{
-		"COMMAND_SURFACE_UNSPECIFIED": 0,
-		"COMMAND_SURFACE_WEB":         1,
-		"COMMAND_SURFACE_TERMINAL":    2,
+		"COMMAND_SURFACE_UNKNOWN": 0,
+		"COMMAND_SURFACE_WEB":     1,
+		"COMMAND_SURFACE_TUI":     2,
 	}
 )
 
@@ -208,6 +208,8 @@ type CommandBinding struct {
 	When CommandFocusContext `protobuf:"varint,4,opt,name=when,proto3" json:"when,omitempty"`
 	// SourceLabel is an optional display label for the binding source.
 	SourceLabel string `protobuf:"bytes,5,opt,name=source_label,json=sourceLabel,proto3" json:"sourceLabel,omitempty"`
+	// Surface selects the explicit WEB or TUI default partition.
+	Surface CommandSurface `protobuf:"varint,6,opt,name=surface,proto3" json:"surface,omitempty"`
 }
 
 func (x *CommandBinding) Reset() {
@@ -256,6 +258,13 @@ func (x *CommandBinding) GetSourceLabel() string {
 		return x.SourceLabel
 	}
 	return ""
+}
+
+func (x *CommandBinding) GetSurface() CommandSurface {
+	if x != nil {
+		return x.Surface
+	}
+	return CommandSurface_COMMAND_SURFACE_UNKNOWN
 }
 
 type isCommandBinding_Binding interface {
@@ -395,10 +404,18 @@ type KeybindingOverrideSet struct {
 	unknownFields []byte
 	// Version is the override set schema version.
 	Version uint32 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
-	// Overrides are command-keyed overrides.
+	// Overrides is the historical v1 command-keyed set.
 	Overrides []*KeybindingCommandOverride `protobuf:"bytes,2,rep,name=overrides,proto3" json:"overrides,omitempty"`
-	// Settings stores layer-wide keybinding preferences.
+	// Settings stores historical layer-wide preferences.
 	Settings *KeybindingOverrideSettings `protobuf:"bytes,3,opt,name=settings,proto3" json:"settings,omitempty"`
+	// WebOverrides is the version-2 browser partition.
+	WebOverrides []*KeybindingCommandOverride `protobuf:"bytes,4,rep,name=web_overrides,json=webOverrides,proto3" json:"webOverrides,omitempty"`
+	// TuiOverrides is the version-2 terminal partition.
+	TuiOverrides []*KeybindingCommandOverride `protobuf:"bytes,5,rep,name=tui_overrides,json=tuiOverrides,proto3" json:"tuiOverrides,omitempty"`
+	// WebSettings is the version-2 browser settings partition.
+	WebSettings *KeybindingOverrideSettings `protobuf:"bytes,6,opt,name=web_settings,json=webSettings,proto3" json:"webSettings,omitempty"`
+	// TuiSettings is the version-2 terminal settings partition.
+	TuiSettings *KeybindingOverrideSettings `protobuf:"bytes,7,opt,name=tui_settings,json=tuiSettings,proto3" json:"tuiSettings,omitempty"`
 }
 
 func (x *KeybindingOverrideSet) Reset() {
@@ -428,6 +445,34 @@ func (x *KeybindingOverrideSet) GetSettings() *KeybindingOverrideSettings {
 	return nil
 }
 
+func (x *KeybindingOverrideSet) GetWebOverrides() []*KeybindingCommandOverride {
+	if x != nil {
+		return x.WebOverrides
+	}
+	return nil
+}
+
+func (x *KeybindingOverrideSet) GetTuiOverrides() []*KeybindingCommandOverride {
+	if x != nil {
+		return x.TuiOverrides
+	}
+	return nil
+}
+
+func (x *KeybindingOverrideSet) GetWebSettings() *KeybindingOverrideSettings {
+	if x != nil {
+		return x.WebSettings
+	}
+	return nil
+}
+
+func (x *KeybindingOverrideSet) GetTuiSettings() *KeybindingOverrideSettings {
+	if x != nil {
+		return x.TuiSettings
+	}
+	return nil
+}
+
 // Command is the metadata for a registered command.
 type Command struct {
 	unknownFields []byte
@@ -436,10 +481,6 @@ type Command struct {
 	CommandId string `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"commandId,omitempty"`
 	// Label is the human-readable display name.
 	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
-	// Keybinding is the legacy default key combination.
-	// Format: "CmdOrCtrl+S", "CmdOrCtrl+Shift+P", "Alt+F4"
-	// CmdOrCtrl resolves to Cmd on macOS, Ctrl elsewhere.
-	Keybinding string `protobuf:"bytes,3,opt,name=keybinding,proto3" json:"keybinding,omitempty"`
 	// MenuPath is the menu placement path.
 	// Format: "File/Save", "File/Export/PDF", "View/Toggle Sidebar"
 	// Empty means the command is not in any menu.
@@ -478,13 +519,6 @@ func (x *Command) GetCommandId() string {
 func (x *Command) GetLabel() string {
 	if x != nil {
 		return x.Label
-	}
-	return ""
-}
-
-func (x *Command) GetKeybinding() string {
-	if x != nil {
-		return x.Keybinding
 	}
 	return ""
 }
@@ -585,6 +619,7 @@ func (m *CommandBinding) CloneVT() *CommandBinding {
 	r.Id = m.Id
 	r.When = m.When
 	r.SourceLabel = m.SourceLabel
+	r.Surface = m.Surface
 	if m.Binding != nil {
 		r.Binding = m.Binding.(interface {
 			CloneOneofVT() isCommandBinding_Binding
@@ -688,6 +723,10 @@ func (m *KeybindingOverrideSet) CloneVT() *KeybindingOverrideSet {
 	r.Version = m.Version
 	r.Overrides = protobuf_go_lite.CloneVTSlice(m.Overrides)
 	r.Settings = protobuf_go_lite.CloneVTValue(m.Settings)
+	r.WebOverrides = protobuf_go_lite.CloneVTSlice(m.WebOverrides)
+	r.TuiOverrides = protobuf_go_lite.CloneVTSlice(m.TuiOverrides)
+	r.WebSettings = protobuf_go_lite.CloneVTValue(m.WebSettings)
+	r.TuiSettings = protobuf_go_lite.CloneVTValue(m.TuiSettings)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -705,7 +744,6 @@ func (m *Command) CloneVT() *Command {
 	r := new(Command)
 	r.CommandId = m.CommandId
 	r.Label = m.Label
-	r.Keybinding = m.Keybinding
 	r.MenuPath = m.MenuPath
 	r.MenuGroup = m.MenuGroup
 	r.MenuOrder = m.MenuOrder
@@ -789,6 +827,9 @@ func (this *CommandBinding) EqualVT(that *CommandBinding) bool {
 		return false
 	}
 	if this.SourceLabel != that.SourceLabel {
+		return false
+	}
+	if this.Surface != that.Surface {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -929,6 +970,18 @@ func (this *KeybindingOverrideSet) EqualVT(that *KeybindingOverrideSet) bool {
 	if !protobuf_go_lite.IsEqualVT(this.Settings, that.Settings) {
 		return false
 	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.WebOverrides, that.WebOverrides, func() *KeybindingCommandOverride { return &KeybindingCommandOverride{} }) {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.TuiOverrides, that.TuiOverrides, func() *KeybindingCommandOverride { return &KeybindingCommandOverride{} }) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.WebSettings, that.WebSettings) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.TuiSettings, that.TuiSettings) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -950,9 +1003,6 @@ func (this *Command) EqualVT(that *Command) bool {
 		return false
 	}
 	if this.Label != that.Label {
-		return false
-	}
-	if this.Keybinding != that.Keybinding {
 		return false
 	}
 	if this.MenuPath != that.MenuPath {
@@ -1233,6 +1283,11 @@ func (x *CommandBinding) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sourceLabel")
 		s.WriteString(x.SourceLabel)
 	}
+	if x.Surface != 0 || s.HasField("surface") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("surface")
+		x.Surface.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1277,6 +1332,9 @@ func (x *CommandBinding) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "source_label", "sourceLabel":
 			s.AddField("source_label")
 			x.SourceLabel = s.ReadString()
+		case "surface":
+			s.AddField("surface")
+			x.Surface.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1518,6 +1576,38 @@ func (x *KeybindingOverrideSet) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("settings")
 		x.Settings.MarshalProtoJSON(s.WithField("settings"))
 	}
+	if len(x.WebOverrides) > 0 || s.HasField("webOverrides") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("webOverrides")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.WebOverrides {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("webOverrides"))
+		}
+		s.WriteArrayEnd()
+	}
+	if len(x.TuiOverrides) > 0 || s.HasField("tuiOverrides") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("tuiOverrides")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.TuiOverrides {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("tuiOverrides"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.WebSettings != nil || s.HasField("webSettings") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("webSettings")
+		x.WebSettings.MarshalProtoJSON(s.WithField("webSettings"))
+	}
+	if x.TuiSettings != nil || s.HasField("tuiSettings") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("tuiSettings")
+		x.TuiSettings.MarshalProtoJSON(s.WithField("tuiSettings"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1563,6 +1653,56 @@ func (x *KeybindingOverrideSet) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Settings = &KeybindingOverrideSettings{}
 			x.Settings.UnmarshalProtoJSON(s.WithField("settings", true))
+		case "web_overrides", "webOverrides":
+			s.AddField("web_overrides")
+			if s.ReadNil() {
+				x.WebOverrides = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.WebOverrides = append(x.WebOverrides, nil)
+					return
+				}
+				v := &KeybindingCommandOverride{}
+				v.UnmarshalProtoJSON(s.WithField("web_overrides", false))
+				if s.Err() != nil {
+					return
+				}
+				x.WebOverrides = append(x.WebOverrides, v)
+			})
+		case "tui_overrides", "tuiOverrides":
+			s.AddField("tui_overrides")
+			if s.ReadNil() {
+				x.TuiOverrides = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.TuiOverrides = append(x.TuiOverrides, nil)
+					return
+				}
+				v := &KeybindingCommandOverride{}
+				v.UnmarshalProtoJSON(s.WithField("tui_overrides", false))
+				if s.Err() != nil {
+					return
+				}
+				x.TuiOverrides = append(x.TuiOverrides, v)
+			})
+		case "web_settings", "webSettings":
+			if s.ReadNil() {
+				x.WebSettings = nil
+				return
+			}
+			x.WebSettings = &KeybindingOverrideSettings{}
+			x.WebSettings.UnmarshalProtoJSON(s.WithField("web_settings", true))
+		case "tui_settings", "tuiSettings":
+			if s.ReadNil() {
+				x.TuiSettings = nil
+				return
+			}
+			x.TuiSettings = &KeybindingOverrideSettings{}
+			x.TuiSettings.UnmarshalProtoJSON(s.WithField("tui_settings", true))
 		}
 	})
 }
@@ -1589,11 +1729,6 @@ func (x *Command) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("label")
 		s.WriteString(x.Label)
-	}
-	if x.Keybinding != "" || s.HasField("keybinding") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("keybinding")
-		s.WriteString(x.Keybinding)
 	}
 	if x.MenuPath != "" || s.HasField("menuPath") {
 		s.WriteMoreIf(&wroteField)
@@ -1664,9 +1799,6 @@ func (x *Command) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "label":
 			s.AddField("label")
 			x.Label = s.ReadString()
-		case "keybinding":
-			s.AddField("keybinding")
-			x.Keybinding = s.ReadString()
 		case "menu_path", "menuPath":
 			s.AddField("menu_path")
 			x.MenuPath = s.ReadString()
@@ -1832,6 +1964,11 @@ func (m *CommandBinding) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			return 0, err
 		}
 		i -= size
+	}
+	if m.Surface != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Surface))
+		i--
+		dAtA[i] = 0x30
 	}
 	if len(m.SourceLabel) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SourceLabel)
@@ -2083,6 +2220,50 @@ func (m *KeybindingOverrideSet) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.TuiSettings != nil {
+		size, err := m.TuiSettings.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.WebSettings != nil {
+		size, err := m.WebSettings.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x32
+	}
+	if len(m.TuiOverrides) > 0 {
+		for iNdEx := len(m.TuiOverrides) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.TuiOverrides[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2a
+		}
+	}
+	if len(m.WebOverrides) > 0 {
+		for iNdEx := len(m.WebOverrides) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.WebOverrides[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x22
+		}
+	}
 	if m.Settings != nil {
 		size, err := m.Settings.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -2191,11 +2372,6 @@ func (m *Command) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x22
 	}
-	if len(m.Keybinding) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Keybinding)
-		i--
-		dAtA[i] = 0x1a
-	}
 	if len(m.Label) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Label)
 		i--
@@ -2243,6 +2419,7 @@ func (m *CommandBinding) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.When)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SourceLabel)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Surface)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2337,6 +2514,22 @@ func (m *KeybindingOverrideSet) SizeVT() (n int) {
 		l = m.Settings.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	for _, e := range m.WebOverrides {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	for _, e := range m.TuiOverrides {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.WebSettings != nil {
+		l = m.WebSettings.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	if m.TuiSettings != nil {
+		l = m.TuiSettings.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2349,7 +2542,6 @@ func (m *Command) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CommandId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Label)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Keybinding)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.MenuPath)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.MenuGroup)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.MenuOrder)
@@ -2439,6 +2631,10 @@ func (x *CommandBinding) MarshalProtoText() string {
 	if x.SourceLabel != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source_label")
 		protobuf_go_lite.TextWriteString(&sb, x.SourceLabel)
+	}
+	if x.Surface != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "surface")
+		protobuf_go_lite.TextWriteStringer(&sb, CommandSurface(x.Surface))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2548,6 +2744,38 @@ func (x *KeybindingOverrideSet) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "settings")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Settings)
 	}
+	if len(x.WebOverrides) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "web_overrides")
+		for i, v := range x.WebOverrides {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &KeybindingCommandOverride{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if len(x.TuiOverrides) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "tui_overrides")
+		for i, v := range x.TuiOverrides {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &KeybindingCommandOverride{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.WebSettings != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "web_settings")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.WebSettings)
+	}
+	if x.TuiSettings != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "tui_settings")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.TuiSettings)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -2565,10 +2793,6 @@ func (x *Command) MarshalProtoText() string {
 	if x.Label != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "label")
 		protobuf_go_lite.TextWriteString(&sb, x.Label)
-	}
-	if x.Keybinding != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "keybinding")
-		protobuf_go_lite.TextWriteString(&sb, x.Keybinding)
 	}
 	if x.MenuPath != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "menu_path")
@@ -2818,6 +3042,17 @@ func (m *CommandBinding) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SourceLabel = v
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Surface", wireType)
+			}
+			m.Surface = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Surface = CommandSurface(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3125,6 +3360,62 @@ func (m *KeybindingOverrideSet) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebOverrides", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.WebOverrides = append(m.WebOverrides, &KeybindingCommandOverride{})
+			if err := m.WebOverrides[len(m.WebOverrides)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TuiOverrides", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TuiOverrides = append(m.TuiOverrides, &KeybindingCommandOverride{})
+			if err := m.TuiOverrides[len(m.TuiOverrides)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WebSettings", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.WebSettings == nil {
+				m.WebSettings = &KeybindingOverrideSettings{}
+			}
+			if err := m.WebSettings.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TuiSettings", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.TuiSettings == nil {
+				m.TuiSettings = &KeybindingOverrideSettings{}
+			}
+			if err := m.TuiSettings.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3188,16 +3479,6 @@ func (m *Command) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Label = v
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Keybinding", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Keybinding = v
 		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MenuPath", wireType)

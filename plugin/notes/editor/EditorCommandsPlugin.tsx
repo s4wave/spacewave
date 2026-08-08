@@ -15,7 +15,7 @@ import {
 import { TOGGLE_LINK_COMMAND } from '@lexical/link'
 import { INSERT_TABLE_COMMAND } from '@lexical/table'
 import { INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontalRuleNode'
-import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
+import { CommandFocusContext, CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 
 import { useCommand } from '@s4wave/web/command/useCommand.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
@@ -175,6 +175,7 @@ export default function EditorCommandsPlugin() {
       {
         id: 'editor-insert-link',
         binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
+        surface: CommandSurface.WEB,
         when: CommandFocusContext.EDITOR,
       },
     ],

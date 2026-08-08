@@ -10,11 +10,7 @@ import {
 } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
-import {
-  KeybindingCommandOverride,
-  KeybindingOverrideSet,
-  KeybindingOverrideSettings,
-} from '../command/command.pb.js'
+import { KeybindingOverrideSet } from '../command/command.pb.js'
 import type { AccountAuthMethodKind } from '../../core/provider/spacewave/api/api.pb.js'
 import {
   AccountAuthMethod,
@@ -272,124 +268,6 @@ export const WatchKeybindingOverridesResponse: MessageType<WatchKeybindingOverri
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
-
-/**
- * UpsertKeybindingOverrideRequest is the request type for UpsertKeybindingOverride.
- *
- * @generated from message s4wave.account.UpsertKeybindingOverrideRequest
- */
-export interface UpsertKeybindingOverrideRequest {
-  /**
-   * Override is the command override to add or replace.
-   *
-   * @generated from field: s4wave.command.KeybindingCommandOverride override = 1;
-   */
-  override?: KeybindingCommandOverride
-}
-
-export const UpsertKeybindingOverrideRequest: MessageType<UpsertKeybindingOverrideRequest> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.account.UpsertKeybindingOverrideRequest',
-    fields: [
-      {
-        no: 1,
-        name: 'override',
-        kind: 'message',
-        T: () => KeybindingCommandOverride,
-      },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * UpsertKeybindingOverrideResponse is the response type for UpsertKeybindingOverride.
- *
- * @generated from message s4wave.account.UpsertKeybindingOverrideResponse
- */
-export interface UpsertKeybindingOverrideResponse {}
-
-export const UpsertKeybindingOverrideResponse: MessageType<UpsertKeybindingOverrideResponse> =
-  /* @__PURE__ */ createEmptyMessageType<UpsertKeybindingOverrideResponse>(
-    's4wave.account.UpsertKeybindingOverrideResponse',
-    true,
-  )
-
-/**
- * RemoveKeybindingOverrideRequest is the request type for RemoveKeybindingOverride.
- *
- * @generated from message s4wave.account.RemoveKeybindingOverrideRequest
- */
-export interface RemoveKeybindingOverrideRequest {
-  /**
-   * CommandId is the command identifier to remove.
-   *
-   * @generated from field: string command_id = 1;
-   */
-  commandId?: string
-}
-
-export const RemoveKeybindingOverrideRequest: MessageType<RemoveKeybindingOverrideRequest> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.account.RemoveKeybindingOverrideRequest',
-    fields: [
-      { no: 1, name: 'command_id', kind: 'scalar', T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * RemoveKeybindingOverrideResponse is the response type for RemoveKeybindingOverride.
- *
- * @generated from message s4wave.account.RemoveKeybindingOverrideResponse
- */
-export interface RemoveKeybindingOverrideResponse {}
-
-export const RemoveKeybindingOverrideResponse: MessageType<RemoveKeybindingOverrideResponse> =
-  /* @__PURE__ */ createEmptyMessageType<RemoveKeybindingOverrideResponse>(
-    's4wave.account.RemoveKeybindingOverrideResponse',
-    true,
-  )
-
-/**
- * SetKeybindingSettingsRequest is the request type for SetKeybindingSettings.
- *
- * @generated from message s4wave.account.SetKeybindingSettingsRequest
- */
-export interface SetKeybindingSettingsRequest {
-  /**
-   * Settings is the layer-wide account keybinding settings to persist.
-   *
-   * @generated from field: s4wave.command.KeybindingOverrideSettings settings = 1;
-   */
-  settings?: KeybindingOverrideSettings
-}
-
-export const SetKeybindingSettingsRequest: MessageType<SetKeybindingSettingsRequest> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.account.SetKeybindingSettingsRequest',
-    fields: [
-      {
-        no: 1,
-        name: 'settings',
-        kind: 'message',
-        T: () => KeybindingOverrideSettings,
-      },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * SetKeybindingSettingsResponse is the response type for SetKeybindingSettings.
- *
- * @generated from message s4wave.account.SetKeybindingSettingsResponse
- */
-export interface SetKeybindingSettingsResponse {}
-
-export const SetKeybindingSettingsResponse: MessageType<SetKeybindingSettingsResponse> =
-  /* @__PURE__ */ createEmptyMessageType<SetKeybindingSettingsResponse>(
-    's4wave.account.SetKeybindingSettingsResponse',
-    true,
-  )
 
 /**
  * WatchAuthMethodsRequest is the request type for WatchAuthMethods.
@@ -1707,3 +1585,40 @@ export const PasskeyRegisterVerifyResponse: MessageType<PasskeyRegisterVerifyRes
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * ReplaceKeybindingOverrideSetRequest atomically replaces the account layer.
+ *
+ * @generated from message s4wave.account.ReplaceKeybindingOverrideSetRequest
+ */
+export interface ReplaceKeybindingOverrideSetRequest {
+  /**
+   * @generated from field: s4wave.command.KeybindingOverrideSet override_set = 1;
+   */
+  overrideSet?: KeybindingOverrideSet
+}
+
+export const ReplaceKeybindingOverrideSetRequest: MessageType<ReplaceKeybindingOverrideSetRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.account.ReplaceKeybindingOverrideSetRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'override_set',
+        kind: 'message',
+        T: () => KeybindingOverrideSet,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * @generated from message s4wave.account.ReplaceKeybindingOverrideSetResponse
+ */
+export interface ReplaceKeybindingOverrideSetResponse {}
+
+export const ReplaceKeybindingOverrideSetResponse: MessageType<ReplaceKeybindingOverrideSetResponse> =
+  /* @__PURE__ */ createEmptyMessageType<ReplaceKeybindingOverrideSetResponse>(
+    's4wave.account.ReplaceKeybindingOverrideSetResponse',
+    true,
+  )

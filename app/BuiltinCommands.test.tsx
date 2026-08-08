@@ -159,14 +159,12 @@ describe('BuiltinCommands', () => {
 
     expect(findCommand('spacewave.file.close-window')).toMatchObject({
       label: 'Close Window',
-      keybinding: 'CmdOrCtrl+W',
     })
     expect(findCommand('spacewave.file.close-window')).not.toHaveProperty(
       'menuPath',
     )
     expect(findCommand('spacewave.file.quit')).toMatchObject({
       label: 'Quit',
-      keybinding: 'CmdOrCtrl+Q',
     })
     expect(findCommand('spacewave.file.quit')).not.toHaveProperty('menuPath')
   })

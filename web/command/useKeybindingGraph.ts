@@ -13,11 +13,29 @@ import { useSpaceKeybindingOverrides } from './useSpaceKeybindingOverrides.js'
 
 export function useKeybindingGraph(
   commands: CommandState[],
-  opts: Omit<KeybindingResolverOptions, 'overrideLayers'> = {},
+  opts: Omit<KeybindingResolverOptions, 'overrideLayers'>,
 ): KeybindingGraph {
-  const localOverrides = useLocalKeybindingOverrides()
-  const accountOverrides = useAccountKeybindingOverrides()
-  const spaceOverrides = useSpaceKeybindingOverrides()
+  const canonicalCommandIds = useMemo(
+    () =>
+      new Set(
+        commands
+          .map((state) => state.command?.commandId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    [commands],
+  )
+  const localOverrides = useLocalKeybindingOverrides(
+    opts.surface,
+    canonicalCommandIds,
+  )
+  const accountOverrides = useAccountKeybindingOverrides(
+    opts.surface,
+    canonicalCommandIds,
+  )
+  const spaceOverrides = useSpaceKeybindingOverrides(
+    opts.surface,
+    canonicalCommandIds,
+  )
   const platform = opts.platform
   const leaderCombo = opts.leaderCombo
   const overrideLayers = useMemo(
@@ -32,10 +50,11 @@ export function useKeybindingGraph(
   return useMemo(
     () =>
       resolveKeybindings(commands, {
+        surface: opts.surface,
         platform,
         leaderCombo,
         overrideLayers,
       }),
-    [commands, platform, leaderCombo, overrideLayers],
+    [commands, opts.surface, platform, leaderCombo, overrideLayers],
   )
 }

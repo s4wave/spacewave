@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   CommandFocusContext,
+  CommandSurface,
   type Command,
   type CommandBinding,
 } from '@s4wave/sdk/command/command.pb.js'
@@ -48,6 +49,7 @@ function comboBinding(
     id,
     binding: { case: 'combo', value: { combo } },
     when,
+    surface: CommandSurface.WEB,
   }
 }
 
@@ -60,64 +62,23 @@ function sequenceBinding(
     id,
     binding: { case: 'sequence', value: { steps } },
     when,
+    surface: CommandSurface.WEB,
   }
 }
 
 describe('KeybindingResolver', () => {
-  it('migrates a legacy keybinding to one global default combo when typed defaults are empty', () => {
-    const graph = resolveKeybindings(
-      [
-        commandState(
-          command('spacewave.legacy.open', {
-            keybinding: 'CmdOrCtrl+K',
-            defaultBindings: [],
-          }),
-        ),
-      ],
-      { platform: 'mac' },
-    )
-
-    const bindings = graph.bindingsByCommandId.get('spacewave.legacy.open')
-
-    expect(
-      bindings?.map((binding) => ({
-        bindingId: binding.bindingId,
-        combo: binding.combo,
-        context: binding.context,
-        kind: binding.kind,
-      })),
-    ).toEqual([
-      {
-        bindingId: 'legacy-keybinding',
-        combo: 'meta+k',
-        context: CommandFocusContext.GLOBAL,
-        kind: 'combo',
-      },
-    ])
-    expect(
-      graph.comboBindings.get(contextKey(CommandFocusContext.GLOBAL, 'meta+k')),
-    ).toBe(bindings?.[0])
-    expect(bindings?.[0]?.source).toEqual({
-      id: 'legacy-keybinding',
-      binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
-      when: CommandFocusContext.GLOBAL,
-    })
-    expect(graph.conflicts).toEqual([])
-  })
-
   it('uses typed default bindings instead of the legacy keybinding when both are present', () => {
     const graph = resolveKeybindings(
       [
         commandState(
           command('spacewave.precedence.open', {
-            keybinding: 'CmdOrCtrl+K',
             defaultBindings: [
               comboBinding('typed-open', 'Alt+O', CommandFocusContext.EDITOR),
             ],
           }),
         ),
       ],
-      { platform: 'mac' },
+      { surface: CommandSurface.WEB, platform: 'mac' },
     )
 
     const bindings = graph.bindingsByCommandId.get('spacewave.precedence.open')
@@ -154,8 +115,14 @@ describe('KeybindingResolver', () => {
       ),
     ]
 
-    const macGraph = resolveKeybindings(commands, { platform: 'mac' })
-    const otherGraph = resolveKeybindings(commands, { platform: 'other' })
+    const macGraph = resolveKeybindings(commands, {
+      surface: CommandSurface.WEB,
+      platform: 'mac',
+    })
+    const otherGraph = resolveKeybindings(commands, {
+      surface: CommandSurface.WEB,
+      platform: 'other',
+    })
 
     expect(
       macGraph.comboBindings.get(
@@ -192,7 +159,7 @@ describe('KeybindingResolver', () => {
           { enabled: false },
         ),
       ],
-      { platform: 'other' },
+      { surface: CommandSurface.WEB, platform: 'other' },
     )
 
     expect([...graph.bindingsByCommandId.keys()]).toEqual(['spacewave.active'])
@@ -228,7 +195,7 @@ describe('KeybindingResolver', () => {
           }),
         ),
       ],
-      { platform: 'other' },
+      { surface: CommandSurface.WEB, platform: 'other' },
     )
 
     const key = contextKey(CommandFocusContext.EDITOR, 'ctrl+k')
@@ -255,7 +222,7 @@ describe('KeybindingResolver', () => {
           }),
         ),
       ],
-      { platform: 'mac' },
+      { surface: CommandSurface.WEB, platform: 'mac' },
     )
 
     const leaderNode = graph.sequenceTrie.children.get('ctrl+space')
@@ -294,7 +261,7 @@ describe('KeybindingResolver', () => {
           }),
         ),
       ),
-      { platform: 'other' },
+      { surface: CommandSurface.WEB, platform: 'other' },
     )
 
     for (const context of contexts) {
@@ -329,7 +296,7 @@ describe('KeybindingResolver', () => {
           }),
         ),
       ],
-      { platform: 'mac' },
+      { surface: CommandSurface.WEB, platform: 'mac' },
     )
 
     const editorMatch = selectActiveComboMatch(
@@ -369,7 +336,7 @@ describe('KeybindingResolver', () => {
           }),
         ),
       ],
-      { platform: 'mac' },
+      { surface: CommandSurface.WEB, platform: 'mac' },
     )
 
     const match = selectActiveComboMatch(
@@ -405,7 +372,7 @@ describe('KeybindingResolver', () => {
           }),
         ),
       ],
-      { platform: 'other' },
+      { surface: CommandSurface.WEB, platform: 'other' },
     )
 
     const leaderNode = graph.sequenceTrie.children.get('ctrl+space')
@@ -448,7 +415,7 @@ describe('KeybindingResolver', () => {
           }),
         ),
       ],
-      { platform: 'mac' },
+      { surface: CommandSurface.WEB, platform: 'mac' },
     )
 
     expect(getCommandDisplayBindings(graph, 'spacewave.palette')).toEqual([
@@ -486,7 +453,7 @@ describe('KeybindingResolver', () => {
           }),
         ),
       ],
-      { platform: 'mac' },
+      { surface: CommandSurface.WEB, platform: 'mac' },
     )
 
     expect(getCommandMenuBinding(graph, 'spacewave.nav.back')).toBe(
@@ -506,7 +473,7 @@ describe('KeybindingResolver', () => {
           }),
         ),
       ],
-      { platform: 'mac' },
+      { surface: CommandSurface.WEB, platform: 'mac' },
     )
 
     expect(getCommandMenuBinding(graph, 'spacewave.nav.forward')).toBe(
@@ -563,6 +530,7 @@ describe('KeybindingResolver', () => {
     }
 
     const graph = resolveKeybindings(commands, {
+      surface: CommandSurface.WEB,
       platform: 'other',
       overrideLayers: [localLayer],
     })
@@ -668,13 +636,17 @@ describe('KeybindingResolver', () => {
 
     expect(
       getCommandDisplayBindings(
-        resolveKeybindings(commands, { platform: 'other' }),
+        resolveKeybindings(commands, {
+          surface: CommandSurface.WEB,
+          platform: 'other',
+        }),
         'spacewave.palette',
       ),
     ).toEqual(['Ctrl+P'])
     expect(
       getCommandDisplayBindings(
         resolveKeybindings(commands, {
+          surface: CommandSurface.WEB,
           platform: 'other',
           overrideLayers: [localLayer],
         }),
@@ -683,6 +655,7 @@ describe('KeybindingResolver', () => {
     ).toEqual(['Ctrl+L'])
 
     const graph = resolveKeybindings(commands, {
+      surface: CommandSurface.WEB,
       platform: 'other',
       overrideLayers: [localLayer, accountLayer, spaceLayer],
     })
@@ -817,6 +790,7 @@ describe('KeybindingResolver', () => {
     }
 
     const graph = resolveKeybindings(commands, {
+      surface: CommandSurface.WEB,
       platform: 'other',
       overrideLayers: [localLayer, accountLayer, spaceLayer],
     })
@@ -875,7 +849,11 @@ describe('KeybindingResolver', () => {
         commandState(command('spacewave.first')),
         commandState(command('spacewave.second')),
       ],
-      { platform: 'other', overrideLayers: [localLayer] },
+      {
+        surface: CommandSurface.WEB,
+        platform: 'other',
+        overrideLayers: [localLayer],
+      },
     )
     const key = contextKey(CommandFocusContext.EDITOR, 'ctrl+k')
     const conflict = graph.comboConflicts.get(key)
@@ -937,6 +915,7 @@ describe('KeybindingResolver', () => {
     }
 
     const graph = resolveKeybindings(commands, {
+      surface: CommandSurface.WEB,
       platform: 'other',
       overrideLayers: [localLayer, accountLayer, spaceLayer],
     })

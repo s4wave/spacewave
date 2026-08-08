@@ -715,7 +715,7 @@
       "protoFiles": ["bldr/web/view/observer/config.proto"]
     },
     "github.com/s4wave/spacewave/core/account/settings": {
-      "hash": "52c05de97ce4559a3f53471c41e58b6c6c50afca9d874d1e56a7b83a9a14698c",
+      "hash": "70f0ada0cc56bdeb15cdb1b7b66fc3ee9311cde603e2a4a4848e4afe6ef51b31",
       "generatedFiles": [
         "core/account/settings/settings.pb.go",
         "core/account/settings/settings.pb.ts"
@@ -2582,7 +2582,7 @@
       "protoFiles": ["plugin/sql/config.proto"]
     },
     "github.com/s4wave/spacewave/sdk/account": {
-      "hash": "f69ba591db8e8d79e093f73d2480a83157a90033690146d4125a392a39794d9d",
+      "hash": "da13a1aa81c49b110fb099bbb82ad8e403fae08723f1414e305bb043dc174c3f",
       "generatedFiles": [
         "sdk/account/account.pb.go",
         "sdk/account/account.pb.ts",
@@ -2675,7 +2675,7 @@
       "protoFiles": ["sdk/cli/terminal/terminal.proto"]
     },
     "github.com/s4wave/spacewave/sdk/command": {
-      "hash": "1baeda8348468de9438198f6cee2ecab3fa67c8677f0ace42212ddaf77c712a6",
+      "hash": "f193b1993a4292af0b685b94fe1b7f010c704621b3d64b69a30cb8cd0381d2c0",
       "generatedFiles": [
         "sdk/command/command.pb.go",
         "sdk/command/command.pb.ts"
@@ -3085,7 +3085,7 @@
       "protoFiles": ["sdk/unixfs/handle.proto"]
     },
     "github.com/s4wave/spacewave/sdk/viewer/registry": {
-      "hash": "e4bcdb4e4157864c35bcb2446198c80eecfdcd379035490eae0783d535c182ec",
+      "hash": "87350cd39b8ebfecfc3ac3325464e765fda03bbb85585662e5466cd749d9a84f",
       "generatedFiles": [
         "sdk/viewer/registry/registry.pb.go",
         "sdk/viewer/registry/registry.pb.ts",

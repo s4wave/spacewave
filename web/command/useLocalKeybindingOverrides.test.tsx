@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import {
   CommandFocusContext,
+  CommandSurface,
   type CommandBinding,
 } from '@s4wave/sdk/command/command.pb.js'
 
@@ -48,11 +49,15 @@ function comboBinding(id: string, combo: string): CommandBinding {
     id,
     binding: { case: 'combo', value: { combo } },
     when: CommandFocusContext.GLOBAL,
+    surface: CommandSurface.WEB,
   }
 }
 
 function OverridesProbe({ name }: { name: string }) {
-  const overrides = useLocalKeybindingOverrides()
+  const overrides = useLocalKeybindingOverrides(
+    CommandSurface.WEB,
+    new Set(['spacewave.palette']),
+  )
   const commandIds = Object.keys(overrides.overrideSet.overrides).sort()
   const commandOverride = overrides.overrideSet.overrides['spacewave.palette']
   return (
@@ -166,16 +171,20 @@ describe('useLocalKeybindingOverrides', () => {
         bindings: [comboBinding('local-palette', 'Ctrl+K')],
       }),
     )
-    expect(rootAtom.get()).toEqual({
+    expect(rootAtom.get()).toMatchObject({
       keybindings: {
         local: {
-          version: 1,
-          overrides: {
-            'spacewave.palette': {
-              bindings: [comboBinding('local-palette', 'Ctrl+K')],
+          version: 2,
+          tuiOverrides: { version: 2, overrides: {}, settings: {} },
+          webOverrides: {
+            version: 2,
+            overrides: {
+              'spacewave.palette': {
+                bindings: [comboBinding('local-palette', 'Ctrl+K')],
+              },
             },
+            settings: {},
           },
-          settings: {},
         },
       },
     })
@@ -222,5 +231,42 @@ describe('useLocalKeybindingOverrides', () => {
 
     expect(view.getByTestId('reader-commands').textContent).toBe('')
     expect(rootAtom.get()).toEqual({})
+  })
+
+  it('migrates valid v1 into WEB and preserves TUI edits', () => {
+    const rootAtom = atom<Record<string, unknown>>({
+      keybindings: {
+        local: {
+          version: 1,
+          overrides: { 'spacewave.palette': { disabled: true } },
+          settings: {},
+        },
+      },
+    })
+    renderWithStore(rootAtom)
+    expect(rootAtom.get()).toMatchObject({
+      keybindings: {
+        local: {
+          version: 2,
+          webOverrides: {
+            overrides: { 'spacewave.palette': { disabled: true } },
+          },
+          tuiOverrides: { overrides: {} },
+        },
+      },
+    })
+  })
+
+  it('preserves raw v1 when diagnostics are unresolved', () => {
+    const raw = {
+      version: 1,
+      overrides: { unmapped: { disabled: true } },
+      settings: {},
+    }
+    const rootAtom = atom<Record<string, unknown>>({
+      keybindings: { local: raw },
+    })
+    renderWithStore(rootAtom)
+    expect(rootAtom.get()).toEqual({ keybindings: { local: raw } })
   })
 })

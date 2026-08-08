@@ -9,12 +9,12 @@ service ViewerRegistryResourceService {
 
 // ViewerSurface identifies the host surface that can render a viewer.
 enum ViewerSurface {
-  // VIEWER_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
-  VIEWER_SURFACE_UNSPECIFIED = 0;
+  // VIEWER_SURFACE_UNKNOWN is not a usable viewer surface.
+  VIEWER_SURFACE_UNKNOWN = 0;
   // VIEWER_SURFACE_WEB identifies browser viewers.
   VIEWER_SURFACE_WEB = 1;
-  // VIEWER_SURFACE_TERMINAL identifies terminal viewers.
-  VIEWER_SURFACE_TERMINAL = 2;
+  // VIEWER_SURFACE_TUI identifies terminal viewers.
+  VIEWER_SURFACE_TUI = 2;
 }
 
 // ViewerRegistration is a registered viewer.

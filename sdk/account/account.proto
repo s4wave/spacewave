@@ -15,10 +15,7 @@ service AccountResourceService {
 
   rpc WatchKeybindingOverrides(WatchKeybindingOverridesRequest) returns (stream WatchKeybindingOverridesResponse);
 
-  rpc UpsertKeybindingOverride(UpsertKeybindingOverrideRequest) returns (UpsertKeybindingOverrideResponse);
-
-  rpc RemoveKeybindingOverride(RemoveKeybindingOverrideRequest) returns (RemoveKeybindingOverrideResponse);
-  rpc SetKeybindingSettings(SetKeybindingSettingsRequest) returns (SetKeybindingSettingsResponse);
+  rpc ReplaceKeybindingOverrideSet(ReplaceKeybindingOverrideSetRequest) returns (ReplaceKeybindingOverrideSetResponse);
 
   rpc AddAuthMethod(AddAuthMethodRequest) returns (AddAuthMethodResponse);
 
@@ -81,33 +78,6 @@ message WatchKeybindingOverridesResponse {
   // ReadOnly indicates writes are unavailable for this account resource.
   bool read_only = 2;
 }
-
-// UpsertKeybindingOverrideRequest is the request type for UpsertKeybindingOverride.
-message UpsertKeybindingOverrideRequest {
-  // Override is the command override to add or replace.
-  .s4wave.command.KeybindingCommandOverride override = 1;
-}
-
-// UpsertKeybindingOverrideResponse is the response type for UpsertKeybindingOverride.
-message UpsertKeybindingOverrideResponse {}
-
-// RemoveKeybindingOverrideRequest is the request type for RemoveKeybindingOverride.
-message RemoveKeybindingOverrideRequest {
-  // CommandId is the command identifier to remove.
-  string command_id = 1;
-}
-
-// RemoveKeybindingOverrideResponse is the response type for RemoveKeybindingOverride.
-message RemoveKeybindingOverrideResponse {}
-
-// SetKeybindingSettingsRequest is the request type for SetKeybindingSettings.
-message SetKeybindingSettingsRequest {
-  // Settings is the layer-wide account keybinding settings to persist.
-  .s4wave.command.KeybindingOverrideSettings settings = 1;
-}
-
-// SetKeybindingSettingsResponse is the response type for SetKeybindingSettings.
-message SetKeybindingSettingsResponse {}
 
 // WatchAuthMethodsRequest is the request type for WatchAuthMethods.
 message WatchAuthMethodsRequest {}
@@ -493,3 +463,10 @@ message PasskeyRegisterVerifyResponse {
   // CredentialId is the base64url-encoded credential ID.
   string credential_id = 1;
 }
+
+// ReplaceKeybindingOverrideSetRequest atomically replaces the account layer.
+message ReplaceKeybindingOverrideSetRequest {
+  .s4wave.command.KeybindingOverrideSet override_set = 1;
+}
+
+message ReplaceKeybindingOverrideSetResponse {}

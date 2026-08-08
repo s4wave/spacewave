@@ -204,6 +204,16 @@ func ProcessAccountSettingsOps(
 			}
 			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
 
+		case *AccountSettingsOp_ReplaceKeybindingOverrideSet:
+			overrideSet := body.ReplaceKeybindingOverrideSet
+			if err := ValidateKeybindingOverrideSet(overrideSet); err != nil {
+				results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), false,
+					&sobject.SOOperationRejectionErrorDetails{ErrorMsg: err.Error()}))
+				continue
+			}
+			state.KeybindingOverrides = overrideSet.CloneVT()
+			results = append(results, sobject.BuildSOOperationResult(peerIDStr, opInner.GetNonce(), true, nil))
+
 		case *AccountSettingsOp_SetKeybindingSettings:
 			if state.KeybindingOverrides == nil {
 				state.KeybindingOverrides = &s4wave_command.KeybindingOverrideSet{Version: 1}
@@ -248,6 +258,44 @@ func validateKeybindingOverride(override *s4wave_command.KeybindingCommandOverri
 		}
 		if binding.GetBinding() == nil {
 			return errors.New("binding value is required")
+		}
+	}
+	return nil
+}
+
+// ValidateKeybindingOverrideSet validates the complete version 2 account keybinding override set.
+func ValidateKeybindingOverrideSet(overrideSet *s4wave_command.KeybindingOverrideSet) error {
+	if overrideSet == nil {
+		return errors.New("keybinding override set is required")
+	}
+	if overrideSet.GetVersion() != 2 {
+		return errors.New("keybinding override set version must be 2")
+	}
+	if len(overrideSet.GetOverrides()) != 0 || overrideSet.GetSettings() != nil {
+		return errors.New("version 2 keybinding override set contains legacy fields")
+	}
+	for _, partition := range []struct {
+		name      string
+		overrides []*s4wave_command.KeybindingCommandOverride
+		surface   s4wave_command.CommandSurface
+	}{
+		{name: "web", overrides: overrideSet.GetWebOverrides(), surface: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB},
+		{name: "tui", overrides: overrideSet.GetTuiOverrides(), surface: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI},
+	} {
+		seen := make(map[string]struct{}, len(partition.overrides))
+		for _, override := range partition.overrides {
+			if err := validateKeybindingOverride(override); err != nil {
+				return err
+			}
+			if _, ok := seen[override.GetCommandId()]; ok {
+				return errors.New("duplicate command_id in " + partition.name + " partition")
+			}
+			seen[override.GetCommandId()] = struct{}{}
+			for _, binding := range override.GetBindings() {
+				if binding.GetSurface() != partition.surface {
+					return errors.New("binding surface must match " + partition.name + " partition")
+				}
+			}
 		}
 	}
 	return nil

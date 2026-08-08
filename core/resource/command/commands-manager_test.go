@@ -227,6 +227,7 @@ func TestCommandsManagerInvokeCommandUsesActiveRegistration(t *testing.T) {
 
 	_, err := mgr.InvokeCommand(commandClientContext(client), &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.session.settings",
+		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
 		Args: map[string]string{
 			"subItemId": "security",
 		},
@@ -247,6 +248,7 @@ func TestCommandsManagerInvokeCommandRejectsMultipleActiveRegistrationsOnSameSur
 
 	_, err := mgr.InvokeCommand(commandClientContext(client), &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.session.settings",
+		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
 	})
 	if !errors.Is(err, ErrMultipleActiveRegistrations) {
 		t.Fatalf("expected ErrMultipleActiveRegistrations, got %v", err)
@@ -284,6 +286,7 @@ func TestCommandsManagerInvokeCommandScopesRegistrationsByClient(t *testing.T) {
 
 	req := &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.file.close-space",
+		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
 	}
 	if _, err := mgr.InvokeCommand(commandClientContext(clientA), req); err != nil {
 		t.Fatalf("client A InvokeCommand returned error: %v", err)
@@ -321,13 +324,13 @@ func TestCommandsManagerInvokeCommandSelectsRegistrationBySurface(t *testing.T) 
 		mgr,
 		2,
 		"spacewave.object.open",
-		s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL,
+		s4wave_command.CommandSurface_COMMAND_SURFACE_TUI,
 		true,
 		true,
 		client,
 		&fakeCommandHandlerClient{
 			handleCommand: func(req *s4wave_command_registry.HandleCommandRequest) error {
-				invokedSurface = s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL
+				invokedSurface = s4wave_command.CommandSurface_COMMAND_SURFACE_TUI
 				return nil
 			},
 		},
@@ -344,20 +347,20 @@ func TestCommandsManagerInvokeCommandSelectsRegistrationBySurface(t *testing.T) 
 		t.Fatalf("expected web handler, got %v", invokedSurface)
 	}
 
-	invokedSurface = s4wave_command.CommandSurface_COMMAND_SURFACE_UNSPECIFIED
+	invokedSurface = s4wave_command.CommandSurface_COMMAND_SURFACE_UNKNOWN
 	_, err = mgr.InvokeCommand(commandClientContext(client), &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.object.open",
-		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL,
+		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_TUI,
 	})
 	if err != nil {
 		t.Fatalf("terminal InvokeCommand returned error: %v", err)
 	}
-	if invokedSurface != s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL {
+	if invokedSurface != s4wave_command.CommandSurface_COMMAND_SURFACE_TUI {
 		t.Fatalf("expected terminal handler, got %v", invokedSurface)
 	}
 }
 
-func TestCommandsManagerInvokeCommandDefaultsUnspecifiedSurfaceToWeb(t *testing.T) {
+func TestCommandsManagerInvokeCommandSelectsWebSurface(t *testing.T) {
 	mgr := NewCommandsManager()
 	var webInvoked bool
 
@@ -377,7 +380,7 @@ func TestCommandsManagerInvokeCommandDefaultsUnspecifiedSurfaceToWeb(t *testing.
 		mgr,
 		2,
 		"spacewave.object.open",
-		s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL,
+		s4wave_command.CommandSurface_COMMAND_SURFACE_TUI,
 		true,
 		true,
 		client,
@@ -391,6 +394,7 @@ func TestCommandsManagerInvokeCommandDefaultsUnspecifiedSurfaceToWeb(t *testing.
 
 	_, err := mgr.InvokeCommand(commandClientContext(client), &s4wave_command_registry.InvokeCommandRequest{
 		CommandId: "spacewave.object.open",
+		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
 	})
 	if err != nil {
 		t.Fatalf("InvokeCommand returned error: %v", err)
@@ -415,13 +419,13 @@ func TestCommandsManagerRejectsUnknownSurface(t *testing.T) {
 func TestCommandsManagerWatchCommandsFiltersSurface(t *testing.T) {
 	mgr := NewCommandsManager()
 	client := addRegistration(t, mgr, 1, "spacewave.object.open", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, true, true, &fakeCommandHandlerClient{})
-	addRegistrationForClient(mgr, 2, "spacewave.object.open", s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL, true, true, client, &fakeCommandHandlerClient{})
-	addRegistration(t, mgr, 3, "spacewave.object.open", s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL, true, true, &fakeCommandHandlerClient{})
+	addRegistrationForClient(mgr, 2, "spacewave.object.open", s4wave_command.CommandSurface_COMMAND_SURFACE_TUI, true, true, client, &fakeCommandHandlerClient{})
+	addRegistration(t, mgr, 3, "spacewave.object.open", s4wave_command.CommandSurface_COMMAND_SURFACE_TUI, true, true, &fakeCommandHandlerClient{})
 	strm := newFakeWatchCommandsStream(client)
 
 	err := mgr.WatchCommands(
 		&s4wave_command_registry.WatchCommandsRequest{
-			Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL,
+			Surface: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI,
 		},
 		strm,
 	)
@@ -438,7 +442,7 @@ func TestCommandsManagerWatchCommandsFiltersSurface(t *testing.T) {
 	if states[0].GetResourceId() != 2 {
 		t.Fatalf("expected terminal registration, got resource %d", states[0].GetResourceId())
 	}
-	if states[0].GetSurface() != s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL {
+	if states[0].GetSurface() != s4wave_command.CommandSurface_COMMAND_SURFACE_TUI {
 		t.Fatalf("expected terminal state surface, got %v", states[0].GetSurface())
 	}
 }
@@ -461,13 +465,13 @@ func TestCommandsManagerGetSubItemsFiltersSurface(t *testing.T) {
 		mgr,
 		2,
 		"spacewave.object.open",
-		s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL,
+		s4wave_command.CommandSurface_COMMAND_SURFACE_TUI,
 		true,
 		true,
 		client,
 		&fakeCommandHandlerClient{
 			getSubItems: func(req *s4wave_command_registry.GetSubItemsRequest) ([]*s4wave_command_registry.CommandSubItem, error) {
-				if req.GetSurface() != s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL {
+				if req.GetSurface() != s4wave_command.CommandSurface_COMMAND_SURFACE_TUI {
 					t.Fatalf("expected terminal sub-item request, got %v", req.GetSurface())
 				}
 				return []*s4wave_command_registry.CommandSubItem{{
@@ -480,7 +484,7 @@ func TestCommandsManagerGetSubItemsFiltersSurface(t *testing.T) {
 	addRegistration(t, mgr,
 		3,
 		"spacewave.object.open",
-		s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL,
+		s4wave_command.CommandSurface_COMMAND_SURFACE_TUI,
 		true,
 		true,
 		&fakeCommandHandlerClient{
@@ -493,7 +497,7 @@ func TestCommandsManagerGetSubItemsFiltersSurface(t *testing.T) {
 	resp, err := mgr.GetSubItems(commandClientContext(client), &s4wave_command_registry.GetSubItemsRequest{
 		CommandId: "spacewave.object.open",
 		Query:     "terminal",
-		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL,
+		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_TUI,
 	})
 	if err != nil {
 		t.Fatalf("GetSubItems returned error: %v", err)
@@ -539,6 +543,7 @@ func TestCommandsManagerGetSubItemsUsesActiveRegistration(t *testing.T) {
 
 	resp, err := mgr.GetSubItems(commandClientContext(client), &s4wave_command_registry.GetSubItemsRequest{
 		CommandId: "spacewave.nav.go-to-space",
+		Surface:   s4wave_command.CommandSurface_COMMAND_SURFACE_WEB,
 		Query:     "do",
 	})
 	if err != nil {
@@ -601,7 +606,7 @@ func TestCommandsManagerSetActiveDeactivatesMatchingRegistrationsForClient(t *te
 	mgr := NewCommandsManager()
 	client := addRegistration(t, mgr, 7, "spacewave.file.close-space", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, true, true, &fakeCommandHandlerClient{})
 	addRegistrationForClient(mgr, 8, "spacewave.file.close-space", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, false, true, client, &fakeCommandHandlerClient{})
-	addRegistrationForClient(mgr, 9, "spacewave.file.close-space", s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL, true, true, client, &fakeCommandHandlerClient{})
+	addRegistrationForClient(mgr, 9, "spacewave.file.close-space", s4wave_command.CommandSurface_COMMAND_SURFACE_TUI, true, true, client, &fakeCommandHandlerClient{})
 	addRegistration(t, mgr, 10, "spacewave.file.close-space", s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, true, true, &fakeCommandHandlerClient{})
 
 	if _, err := mgr.SetActive(commandClientContext(client), &s4wave_command_registry.SetActiveRequest{
@@ -661,5 +666,28 @@ func TestCommandsManagerGetCommandStatesLocked(t *testing.T) {
 	}
 	if states[1].GetEnabled() {
 		t.Fatalf("expected second state to be disabled")
+	}
+}
+
+func TestValidateCommandDefaultBindingSurfaces(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		registration s4wave_command.CommandSurface
+		binding      s4wave_command.CommandSurface
+		wantErr      bool
+	}{
+		{name: "web", registration: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, binding: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB},
+		{name: "tui", registration: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI, binding: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI},
+		{name: "missing", registration: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, binding: s4wave_command.CommandSurface_COMMAND_SURFACE_UNKNOWN, wantErr: true},
+		{name: "cross", registration: s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, binding: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI, wantErr: true},
+		{name: "invalid", registration: s4wave_command.CommandSurface_COMMAND_SURFACE_TUI, binding: s4wave_command.CommandSurface(99), wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			command := &s4wave_command.Command{DefaultBindings: []*s4wave_command.CommandBinding{{Surface: tc.binding}}}
+			err := validateCommandDefaultBindingSurfaces(command, tc.registration)
+			if got := errors.Is(err, ErrInvalidDefaultBindingSurface); got != tc.wantErr {
+				t.Fatalf("error = %v, want invalid surface = %v", err, tc.wantErr)
+			}
+		})
 	}
 }

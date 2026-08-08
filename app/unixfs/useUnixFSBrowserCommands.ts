@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 
 interface UnixFSBrowserCommandsOptions {
@@ -103,7 +104,13 @@ export function useUnixFSBrowserCommands({
     commandId: 'spacewave.file.rename',
     label: 'Rename',
     description: 'Rename the selected file or directory',
-    keybinding: 'F2',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'F2' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuPath: 'File/Rename',
     menuGroup: 30,
     menuOrder: 1,
@@ -138,7 +145,13 @@ export function useUnixFSBrowserCommands({
   useCommand({
     commandId: 'spacewave.nav.back',
     label: 'Navigate Back',
-    keybinding: 'Alt+ArrowLeft',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'Alt+ArrowLeft' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuPath: 'Go/Navigate Back',
     menuGroup: 10,
     menuOrder: 1,
@@ -150,7 +163,13 @@ export function useUnixFSBrowserCommands({
   useCommand({
     commandId: 'spacewave.nav.forward',
     label: 'Navigate Forward',
-    keybinding: 'Alt+ArrowRight',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'Alt+ArrowRight' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuPath: 'Go/Navigate Forward',
     menuGroup: 10,
     menuOrder: 2,
@@ -162,7 +181,13 @@ export function useUnixFSBrowserCommands({
   useCommand({
     commandId: 'spacewave.nav.up',
     label: 'Navigate Up',
-    keybinding: 'Alt+ArrowUp',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'Alt+ArrowUp' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuPath: 'Go/Navigate Up',
     menuGroup: 10,
     menuOrder: 3,

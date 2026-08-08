@@ -3,6 +3,7 @@ import { isDesktop, quitDesktopRuntime } from '@aptre/bldr'
 
 import { getAppPath, setAppPath } from '@s4wave/web/router/app-path.js'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { KeyboardShortcutsDialog } from '@s4wave/web/command/KeyboardShortcutsDialog.js'
 import {
   KeybindingEditor,
@@ -79,7 +80,13 @@ export function BuiltinCommands() {
   useCommand({
     commandId: 'spacewave.view.fullscreen',
     label: 'Toggle Fullscreen',
-    keybinding: 'F11',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'F11' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuPath: 'View/Fullscreen',
     menuGroup: 20,
     menuOrder: 3,
@@ -239,7 +246,13 @@ function DesktopBuiltinCommands() {
   useCommand({
     commandId: 'spacewave.file.close-window',
     label: 'Close Window',
-    keybinding: 'CmdOrCtrl+W',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+W' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     handler: useCallback(() => {
       window.close()
     }, []),
@@ -248,7 +261,13 @@ function DesktopBuiltinCommands() {
   useCommand({
     commandId: 'spacewave.file.quit',
     label: 'Quit',
-    keybinding: 'CmdOrCtrl+Q',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+Q' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     handler: useCallback(() => {
       quitDesktopRuntime().catch((err: unknown) => {
         console.error('Quit desktop runtime failed:', err)

@@ -1,3 +1,4 @@
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import {
   useCallback,
   useEffect,
@@ -481,7 +482,9 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const commandsRef = useRef(commands)
   const grouped = useMemo(() => groupCommands(commands), [commands])
-  const bindingGraph = useKeybindingGraph(commands)
+  const bindingGraph = useKeybindingGraph(commands, {
+    surface: CommandSurface.WEB,
+  })
   const leaderStep = useMemo(
     () => normalizeKeyCombo(bindingGraph.leaderCombo),
     [bindingGraph.leaderCombo],
@@ -560,11 +563,13 @@ export function CommandPalette() {
     defaultBindings: [
       {
         id: 'global-palette',
+        surface: CommandSurface.WEB,
         binding: { case: 'combo', value: { combo: 'CmdOrCtrl+K' } },
         when: CommandFocusContext.GLOBAL,
       },
       {
         id: 'global-palette-sequence',
+        surface: CommandSurface.WEB,
         binding: { case: 'sequence', value: { steps: ['Leader', 'Space'] } },
         when: CommandFocusContext.GLOBAL,
       },
@@ -798,7 +803,7 @@ export function CommandPalette() {
           onClick={() => !subItemCommandId && enterFilterMode(query)}
           onValueChange={inputChange}
         />
-        <div className="border-foreground/8 text-foreground-alt/60 flex h-7 items-center justify-between gap-3 border-b px-3 font-mono text-[10px]">
+        <div className="border-foreground/8 text-foreground-alt/60 flex h-7 items-center justify-between gap-3 border-b px-3 font-mono text-xs">
           <span>{resultSummary}</span>
           <span className="truncate">
             {subItemCommandId

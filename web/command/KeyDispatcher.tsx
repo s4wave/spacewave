@@ -1,3 +1,4 @@
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import {
   createContext,
   use,
@@ -70,7 +71,7 @@ export function KeyDispatcher({ children }: { children?: ReactNode }) {
   const resolveFocusContexts = useFocusContextResolver()
   const [prefixState, setPrefixState] =
     useState<KeyDispatcherPrefixState>(idlePrefixState)
-  const graph = useKeybindingGraph(commands)
+  const graph = useKeybindingGraph(commands, { surface: CommandSurface.WEB })
   const prefixRef = useRef<PrefixSession | null>(null)
 
   const clearPrefix = useEffectEvent(() => {

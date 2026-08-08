@@ -134,7 +134,7 @@ func TestViewerRegistryFiltersRegistrationsBySurface(t *testing.T) {
 
 	surfaces := []s4wave_viewer_registry.ViewerSurface{
 		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
-		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL,
+		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TUI,
 	}
 	for _, surface := range surfaces {
 		resp, err := svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
@@ -179,13 +179,13 @@ func TestViewerRegistryFiltersRegistrationsBySurface(t *testing.T) {
 func TestViewerRegistryNotifiesOnlyChangedSurface(t *testing.T) {
 	r := NewViewerRegistryResource()
 	webWaitCh := surfaceWaitCh(t, r, s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB)
-	terminalWaitCh := surfaceWaitCh(t, r, s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL)
+	terminalWaitCh := surfaceWaitCh(t, r, s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TUI)
 
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		r.registrations[1] = &s4wave_viewer_registry.ViewerRegistration{
-			Surface: s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL,
+			Surface: s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TUI,
 		}
-		r.broadcastSurfaceLocked(s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TERMINAL)
+		r.broadcastSurfaceLocked(s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_TUI)
 	})
 
 	select {
@@ -218,9 +218,8 @@ func surfaceWaitCh(
 	return waitCh
 }
 
-func TestViewerRegistryDefaultsUnspecifiedSurfaceToWeb(t *testing.T) {
+func TestViewerRegistryRejectsUnspecifiedSurface(t *testing.T) {
 	ctx, client, _ := setupViewerRegistryClient(t)
-
 	rootRef := client.AccessRootResource()
 	t.Cleanup(rootRef.Release)
 	rootClient, err := rootRef.GetClient()
@@ -228,56 +227,12 @@ func TestViewerRegistryDefaultsUnspecifiedSurfaceToWeb(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	svc := s4wave_viewer_registry.NewSRPCViewerRegistryResourceServiceClient(rootClient)
-
-	resp, err := svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
-		Registration: &s4wave_viewer_registry.ViewerRegistration{
-			TypeId:      "spacewave/test",
-			ViewerName:  "Test",
-			ScriptPath:  "/viewer.js",
-			ComponentId: "spacewave.test.viewer",
-		},
+	_, err = svc.RegisterViewer(ctx, &s4wave_viewer_registry.RegisterViewerRequest{
+		Registration: &s4wave_viewer_registry.ViewerRegistration{TypeId: "spacewave/test", ViewerName: "Test"},
 	})
-	if err != nil {
-		t.Fatal(err.Error())
+	if err == nil {
+		t.Fatal("expected unspecified viewer surface rejection")
 	}
-	ref := client.CreateResourceReference(resp.GetResourceId())
-	t.Cleanup(ref.Release)
-
-	web, err := svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{
-		Surface: s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
-	})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	assertViewerSurface(
-		t,
-		web.GetRegistrations(),
-		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
-	)
-
-	unset, err := svc.ListViewers(ctx, &s4wave_viewer_registry.ListViewersRequest{})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	assertViewerSurface(
-		t,
-		unset.GetRegistrations(),
-		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
-	)
-
-	watch, err := svc.WatchViewers(ctx, &s4wave_viewer_registry.WatchViewersRequest{})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	snapshot, err := watch.Recv()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	assertViewerSurface(
-		t,
-		snapshot.GetRegistrations(),
-		s4wave_viewer_registry.ViewerSurface_VIEWER_SURFACE_WEB,
-	)
 }
 
 func TestViewerRegistryRejectsUnknownSurface(t *testing.T) {

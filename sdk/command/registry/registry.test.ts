@@ -1,3 +1,4 @@
+import { CommandSurface } from '../command.pb.js'
 import { describe, expect, it } from 'vitest'
 import type { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
@@ -16,8 +17,14 @@ function createMockRef(): ClientResourceRef {
 }
 
 describe('CommandsManager SDK class', () => {
-  it('constructs without a surface for legacy web callers', () => {
-    const manager = new CommandsManager(createMockRef())
+  it('constructs only with an explicit surface', () => {
+    expect(() => new CommandsManager(createMockRef())).toThrow(
+      'command surface must be WEB or TUI',
+    )
+    expect(
+      () => new CommandsManager(createMockRef(), 99 as CommandSurface),
+    ).toThrow('command surface must be WEB or TUI')
+    const manager = new CommandsManager(createMockRef(), CommandSurface.WEB)
     expect(manager).toBeInstanceOf(Resource)
     expect(manager.id).toBe(42)
   })

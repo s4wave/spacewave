@@ -1,3 +1,4 @@
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { describe, expect, it } from 'vitest'
 import {
   CommandFocusContext,
@@ -31,6 +32,7 @@ function comboBinding(
     id,
     binding: { case: 'combo', value: { combo } },
     when,
+    surface: CommandSurface.WEB,
   }
 }
 
@@ -39,6 +41,7 @@ function sequenceBinding(id: string, steps: string[]): CommandBinding {
     id,
     binding: { case: 'sequence', value: { steps } },
     when: CommandFocusContext.GLOBAL,
+    surface: CommandSurface.WEB,
   }
 }
 
@@ -76,7 +79,7 @@ describe('keybinding local override schema', () => {
     })
 
     expect(normalized).toEqual({
-      version: 1,
+      version: 2,
       overrides: {
         'spacewave.palette': {
           replaceBindings: true,
@@ -167,7 +170,7 @@ describe('keybinding local override schema', () => {
       },
     })
     expect(clearKeybindingOverrideSet()).toEqual({
-      version: 1,
+      version: 2,
       overrides: {},
       settings: {},
     })
@@ -188,7 +191,7 @@ describe('keybinding local override schema', () => {
 
   it('round-trips the shared proto override set without losing command keys, binding ids, disables, clears, or display settings', () => {
     const model: ModelKeybindingOverrideSet = {
-      version: 1,
+      version: 2,
       overrides: {
         'spacewave.palette': {
           replaceBindings: true,
@@ -215,12 +218,12 @@ describe('keybinding local override schema', () => {
     }
 
     const proto = keybindingOverrideSetToProto(model)
-    const sortedOverrides = [...(proto.overrides ?? [])].sort((a, b) =>
+    const sortedOverrides = [...(proto.webOverrides ?? [])].sort((a, b) =>
       (a.commandId ?? '').localeCompare(b.commandId ?? ''),
     )
 
-    expect(proto.version).toBe(1)
-    expect(proto.settings).toEqual({
+    expect(proto.version).toBe(2)
+    expect(proto.webSettings).toEqual({
       leaderCombo: 'Ctrl+Alt+Space',
       whichKeyDelayMs: 275,
       display: { mode: KeybindingDisplayMode.TEXT },
@@ -247,7 +250,7 @@ describe('keybinding local override schema', () => {
       }),
     ])
     const roundTripped = keybindingOverrideSetFromProto(proto)
-    expect(roundTripped.version).toBe(1)
+    expect(roundTripped.version).toBe(2)
     expect(roundTripped.settings).toEqual(model.settings)
     expect(roundTripped.overrides['spacewave.cleared']).toEqual(
       model.overrides['spacewave.cleared'],
@@ -263,7 +266,7 @@ describe('keybinding local override schema', () => {
     )
   })
 
-  it('normalizes proto overrides by command id and lets later duplicate command rows win atomically', () => {
+  it('routes legacy proto overrides through the migration owner', () => {
     const proto: ProtoKeybindingOverrideSet = {
       version: 1,
       overrides: [
@@ -291,20 +294,8 @@ describe('keybinding local override schema', () => {
       },
     }
 
-    expect(keybindingOverrideSetFromProto(proto)).toEqual({
-      version: 1,
-      overrides: {
-        'spacewave.palette': {
-          disabled: true,
-          clearedBindingIds: ['palette-default'],
-          bindings: [],
-        },
-      },
-      settings: {
-        leaderCombo: 'Alt+Space',
-        whichKeyDelayMs: 125,
-        display: { mode: 'symbols' },
-      },
-    })
+    expect(() => keybindingOverrideSetFromProto(proto)).toThrow(
+      'legacy keybinding override set requires migration',
+    )
   })
 })

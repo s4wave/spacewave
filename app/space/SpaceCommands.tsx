@@ -7,6 +7,7 @@ import {
   useSessionNavigate,
 } from '@s4wave/web/contexts/contexts.js'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { useOpenCommand } from '@s4wave/web/command/CommandContext.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -239,7 +240,13 @@ export function SpaceCommands({
     menuPath: 'File/Create Object',
     menuGroup: 10,
     menuOrder: 0,
-    keybinding: 'CmdOrCtrl+N',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+N' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: isTabActive,
     hasSubItems: true,
     subItems: createObjectSubItems,

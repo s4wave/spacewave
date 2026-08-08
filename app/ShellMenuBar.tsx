@@ -1,3 +1,4 @@
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { useMemo, useCallback } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
@@ -207,7 +208,9 @@ export function ShellMenuBar() {
   const commands = useCommands()
   const invokeCommand = useInvokeCommand()
   const openCommand = useOpenCommand()
-  const bindingGraph = useKeybindingGraph(commands)
+  const bindingGraph = useKeybindingGraph(commands, {
+    surface: CommandSurface.WEB,
+  })
 
   const menuTree = useMemo(
     () => buildMenuTree(commands, bindingGraph),

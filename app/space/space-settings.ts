@@ -2,10 +2,7 @@ import { SetSpaceSettingsOp } from '@s4wave/core/space/world/ops/ops.pb.js'
 import { SET_SPACE_SETTINGS_OP_ID } from '@s4wave/core/space/world/ops/set-space-settings.js'
 import { SPACE_SETTINGS_OBJECT_KEY } from '@s4wave/core/space/world/world.js'
 import type { SpaceSettings } from '@s4wave/core/space/world/world.pb.js'
-import {
-  keybindingOverrideSetToProto,
-  type KeybindingOverrideSet,
-} from '@s4wave/web/command/keybinding-overrides.js'
+import { type KeybindingOverrideSet as ProtoKeybindingOverrideSet } from '@s4wave/sdk/command/command.pb.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
 // applySpaceIndexPath updates the default object without dropping other settings.
@@ -45,7 +42,7 @@ export async function applySpaceIndexPath(
 export async function applySpaceKeybindingOverrides(
   spaceWorld: IWorldState,
   currentSettings: SpaceSettings | undefined,
-  overrideSet: KeybindingOverrideSet,
+  overrideSet: ProtoKeybindingOverrideSet,
   sender = '',
   abortSignal?: AbortSignal,
 ): Promise<void> {
@@ -53,7 +50,7 @@ export async function applySpaceKeybindingOverrides(
     ...(currentSettings ?? {}),
     indexPath: currentSettings?.indexPath ?? '',
     pluginIds: [...(currentSettings?.pluginIds ?? [])],
-    keybindingOverrides: keybindingOverrideSetToProto(overrideSet),
+    keybindingOverrides: overrideSet,
   }
   const op: SetSpaceSettingsOp = {
     objectKey: SPACE_SETTINGS_OBJECT_KEY,

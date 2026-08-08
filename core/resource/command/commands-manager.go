@@ -69,6 +69,9 @@ func (r *CommandsManager) RegisterCommand(
 	if err != nil {
 		return nil, err
 	}
+	if err := validateCommandDefaultBindingSurfaces(cmd, surface); err != nil {
+		return nil, err
+	}
 
 	client, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
@@ -430,17 +433,28 @@ func registrationMatchesClient(
 	return reg.clientDone != nil && reg.clientDone == resourceClientDone(client)
 }
 
+func validateCommandDefaultBindingSurfaces(
+	command *s4wave_command.Command,
+	surface s4wave_command.CommandSurface,
+) error {
+	for _, binding := range command.GetDefaultBindings() {
+		if binding.GetSurface() != surface {
+			return ErrInvalidDefaultBindingSurface
+		}
+	}
+	return nil
+}
+
 func normalizeCommandSurface(
 	surface s4wave_command.CommandSurface,
 ) (s4wave_command.CommandSurface, error) {
 	switch surface {
-	case s4wave_command.CommandSurface_COMMAND_SURFACE_UNSPECIFIED,
-		s4wave_command.CommandSurface_COMMAND_SURFACE_WEB:
+	case s4wave_command.CommandSurface_COMMAND_SURFACE_WEB:
 		return s4wave_command.CommandSurface_COMMAND_SURFACE_WEB, nil
-	case s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL:
-		return s4wave_command.CommandSurface_COMMAND_SURFACE_TERMINAL, nil
+	case s4wave_command.CommandSurface_COMMAND_SURFACE_TUI:
+		return s4wave_command.CommandSurface_COMMAND_SURFACE_TUI, nil
 	default:
-		return s4wave_command.CommandSurface_COMMAND_SURFACE_UNSPECIFIED, ErrInvalidCommandSurface
+		return s4wave_command.CommandSurface_COMMAND_SURFACE_UNKNOWN, ErrInvalidCommandSurface
 	}
 }
 

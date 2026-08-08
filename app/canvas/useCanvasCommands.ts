@@ -5,6 +5,7 @@ import {
   useOpenCommand,
 } from '@s4wave/web/command/CommandContext.js'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { useIsTabActive } from '@s4wave/web/contexts/TabActiveContext.js'
 
 import type { UseCanvasActionsResult } from './useCanvasActions.js'
@@ -58,7 +59,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   useCommand({
     commandId: 'canvas.escape',
     label: 'Deselect / Exit Content',
-    keybinding: 'Escape',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'Escape' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: isTabActive,
     handler: useCallback(() => {
       if (contentFocused) {
@@ -75,7 +82,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.copy',
     label: 'Copy',
     menuPath: 'Edit/Copy',
-    keybinding: 'CmdOrCtrl+C',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+C' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 20,
     menuOrder: 2,
     active: isTabActive,
@@ -88,7 +101,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.paste',
     label: 'Paste',
     menuPath: 'Edit/Paste',
-    keybinding: 'CmdOrCtrl+V',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+V' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 20,
     menuOrder: 3,
     active: isTabActive,
@@ -101,7 +120,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.undo',
     label: 'Undo',
     menuPath: 'Edit/Undo',
-    keybinding: 'CmdOrCtrl+Z',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+Z' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 10,
     menuOrder: 1,
     active: isTabActive,
@@ -114,7 +139,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.redo',
     label: 'Redo',
     menuPath: 'Edit/Redo',
-    keybinding: 'CmdOrCtrl+Shift+Z',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+Shift+Z' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 10,
     menuOrder: 2,
     active: isTabActive,
@@ -127,7 +158,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.select-all',
     label: 'Select All',
     menuPath: 'Edit/Select All',
-    keybinding: 'CmdOrCtrl+A',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+A' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 30,
     menuOrder: 1,
     active: isTabActive,
@@ -152,7 +189,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.delete',
     label: 'Delete Selected',
     menuPath: 'Edit/Delete',
-    keybinding: 'Delete',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'Delete' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 40,
     menuOrder: 1,
     active: borderActive,
@@ -164,7 +207,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   useCommand({
     commandId: 'canvas.delete-backspace',
     label: 'Delete Selected',
-    keybinding: 'Backspace',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'Backspace' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: borderActive,
     handler: useCallback(() => {
       actions.delete()
@@ -200,7 +249,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.zoom-in',
     label: 'Zoom In',
     menuPath: 'View/Zoom In',
-    keybinding: '=',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: '=' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 10,
     menuOrder: 1,
     active: borderActive,
@@ -212,7 +267,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   useCommand({
     commandId: 'canvas.zoom-in-plus',
     label: 'Zoom In',
-    keybinding: '+',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: '+' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: borderActive,
     handler: useCallback(() => {
       actions['zoom-in']()
@@ -223,7 +284,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.zoom-out',
     label: 'Zoom Out',
     menuPath: 'View/Zoom Out',
-    keybinding: '-',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: '-' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 10,
     menuOrder: 2,
     active: borderActive,
@@ -236,7 +303,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.fit-view',
     label: 'Fit View',
     menuPath: 'View/Fit View',
-    keybinding: 'CmdOrCtrl+0',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+0' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 10,
     menuOrder: 3,
     active: isTabActive,
@@ -273,7 +346,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   useCommand({
     commandId: 'canvas.move-up',
     label: 'Move Up',
-    keybinding: 'ArrowUp',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'ArrowUp' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: borderActive,
     handler: useCallback(() => {
       moveSelected(0, -ARROW_STEP)
@@ -283,7 +362,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   useCommand({
     commandId: 'canvas.move-down',
     label: 'Move Down',
-    keybinding: 'ArrowDown',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'ArrowDown' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: borderActive,
     handler: useCallback(() => {
       moveSelected(0, ARROW_STEP)
@@ -293,7 +378,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   useCommand({
     commandId: 'canvas.move-left',
     label: 'Move Left',
-    keybinding: 'ArrowLeft',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'ArrowLeft' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: borderActive,
     handler: useCallback(() => {
       moveSelected(-ARROW_STEP, 0)
@@ -303,7 +394,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   useCommand({
     commandId: 'canvas.move-right',
     label: 'Move Right',
-    keybinding: 'ArrowRight',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'ArrowRight' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: borderActive,
     handler: useCallback(() => {
       moveSelected(ARROW_STEP, 0)
@@ -313,7 +410,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   useCommand({
     commandId: 'canvas.move-up-fast',
     label: 'Move Up Fast',
-    keybinding: 'Shift+ArrowUp',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'Shift+ArrowUp' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: borderActive,
     handler: useCallback(() => {
       moveSelected(0, -ARROW_STEP * 5)
@@ -323,7 +426,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   useCommand({
     commandId: 'canvas.move-down-fast',
     label: 'Move Down Fast',
-    keybinding: 'Shift+ArrowDown',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'Shift+ArrowDown' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: borderActive,
     handler: useCallback(() => {
       moveSelected(0, ARROW_STEP * 5)
@@ -333,7 +442,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   useCommand({
     commandId: 'canvas.move-left-fast',
     label: 'Move Left Fast',
-    keybinding: 'Shift+ArrowLeft',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'Shift+ArrowLeft' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: borderActive,
     handler: useCallback(() => {
       moveSelected(-ARROW_STEP * 5, 0)
@@ -343,7 +458,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   useCommand({
     commandId: 'canvas.move-right-fast',
     label: 'Move Right Fast',
-    keybinding: 'Shift+ArrowRight',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'Shift+ArrowRight' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     active: borderActive,
     handler: useCallback(() => {
       moveSelected(ARROW_STEP * 5, 0)
@@ -355,7 +476,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.tool.select',
     label: 'Select Tool',
     menuPath: 'Tools/Select',
-    keybinding: 'v',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'v' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 1,
     menuOrder: 1,
     active: borderActive && !!onToolChange,
@@ -368,7 +495,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.tool.draw',
     label: 'Draw Tool',
     menuPath: 'Tools/Draw',
-    keybinding: 'd',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'd' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 1,
     menuOrder: 2,
     active: borderActive && !!onToolChange,
@@ -381,7 +514,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.tool.line',
     label: 'Line Tool',
     menuPath: 'Tools/Line',
-    keybinding: 'l',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'l' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 1,
     menuOrder: 3,
     active: borderActive && !!onToolChange,
@@ -394,7 +533,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.tool.arrow',
     label: 'Arrow Tool',
     menuPath: 'Tools/Arrow',
-    keybinding: 'a',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'a' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 1,
     menuOrder: 4,
     active: borderActive && !!onToolChange,
@@ -407,7 +552,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.tool.rectangle',
     label: 'Rectangle Tool',
     menuPath: 'Tools/Rectangle',
-    keybinding: 'r',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'r' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 1,
     menuOrder: 5,
     active: borderActive && !!onToolChange,
@@ -420,7 +571,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.tool.ellipse',
     label: 'Ellipse Tool',
     menuPath: 'Tools/Ellipse',
-    keybinding: 'e',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'e' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 1,
     menuOrder: 6,
     active: borderActive && !!onToolChange,
@@ -433,7 +590,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.tool.text',
     label: 'Text Tool',
     menuPath: 'Tools/Text',
-    keybinding: 't',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 't' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 1,
     menuOrder: 3,
     active: borderActive && !!onToolChange,
@@ -446,7 +609,13 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     commandId: 'canvas.tool.object',
     label: 'Object Tool',
     menuPath: 'Tools/Object',
-    keybinding: 'o',
+    defaultBindings: [
+      {
+        id: 'default',
+        binding: { case: 'combo', value: { combo: 'o' } },
+        surface: CommandSurface.WEB,
+      },
+    ],
     menuGroup: 1,
     menuOrder: 4,
     active: borderActive && !!onToolChange,

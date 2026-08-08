@@ -94,11 +94,11 @@ export const CommandFocusContext_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum CommandSurface {
   /**
-   * COMMAND_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
+   * COMMAND_SURFACE_UNKNOWN is not a usable command surface.
    *
-   * @generated from enum value: COMMAND_SURFACE_UNSPECIFIED = 0;
+   * @generated from enum value: COMMAND_SURFACE_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  UNKNOWN = 0,
 
   /**
    * COMMAND_SURFACE_WEB selects the web command surface.
@@ -108,19 +108,19 @@ export enum CommandSurface {
   WEB = 1,
 
   /**
-   * COMMAND_SURFACE_TERMINAL selects the terminal command surface.
+   * COMMAND_SURFACE_TUI selects the terminal command surface.
    *
-   * @generated from enum value: COMMAND_SURFACE_TERMINAL = 2;
+   * @generated from enum value: COMMAND_SURFACE_TUI = 2;
    */
-  TERMINAL = 2,
+  TUI = 2,
 }
 
 export const CommandSurface_Enum = /* @__PURE__ */ createEnumType(
   's4wave.command.CommandSurface',
   [
-    [0, 'COMMAND_SURFACE_UNSPECIFIED'],
+    [0, 'COMMAND_SURFACE_UNKNOWN'],
     [1, 'COMMAND_SURFACE_WEB'],
-    [2, 'COMMAND_SURFACE_TERMINAL'],
+    [2, 'COMMAND_SURFACE_TUI'],
   ],
 )
 
@@ -237,6 +237,12 @@ export interface CommandBinding {
    * @generated from field: string source_label = 5;
    */
   sourceLabel?: string
+  /**
+   * Surface selects the explicit WEB or TUI default partition.
+   *
+   * @generated from field: s4wave.command.CommandSurface surface = 6;
+   */
+  surface?: CommandSurface
 
   /**
    * @generated from oneof s4wave.command.CommandBinding.binding
@@ -287,6 +293,7 @@ export const CommandBinding: MessageType<CommandBinding> =
       },
       { no: 4, name: 'when', kind: 'enum', T: CommandFocusContext_Enum },
       { no: 5, name: 'source_label', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'surface', kind: 'enum', T: CommandSurface_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -437,17 +444,41 @@ export interface KeybindingOverrideSet {
    */
   version?: number
   /**
-   * Overrides are command-keyed overrides.
+   * Overrides is the historical v1 command-keyed set.
    *
    * @generated from field: repeated s4wave.command.KeybindingCommandOverride overrides = 2;
    */
   overrides?: KeybindingCommandOverride[]
   /**
-   * Settings stores layer-wide keybinding preferences.
+   * Settings stores historical layer-wide preferences.
    *
    * @generated from field: s4wave.command.KeybindingOverrideSettings settings = 3;
    */
   settings?: KeybindingOverrideSettings
+  /**
+   * WebOverrides is the version-2 browser partition.
+   *
+   * @generated from field: repeated s4wave.command.KeybindingCommandOverride web_overrides = 4;
+   */
+  webOverrides?: KeybindingCommandOverride[]
+  /**
+   * TuiOverrides is the version-2 terminal partition.
+   *
+   * @generated from field: repeated s4wave.command.KeybindingCommandOverride tui_overrides = 5;
+   */
+  tuiOverrides?: KeybindingCommandOverride[]
+  /**
+   * WebSettings is the version-2 browser settings partition.
+   *
+   * @generated from field: s4wave.command.KeybindingOverrideSettings web_settings = 6;
+   */
+  webSettings?: KeybindingOverrideSettings
+  /**
+   * TuiSettings is the version-2 terminal settings partition.
+   *
+   * @generated from field: s4wave.command.KeybindingOverrideSettings tui_settings = 7;
+   */
+  tuiSettings?: KeybindingOverrideSettings
 }
 
 export const KeybindingOverrideSet: MessageType<KeybindingOverrideSet> =
@@ -465,6 +496,32 @@ export const KeybindingOverrideSet: MessageType<KeybindingOverrideSet> =
       {
         no: 3,
         name: 'settings',
+        kind: 'message',
+        T: () => KeybindingOverrideSettings,
+      },
+      {
+        no: 4,
+        name: 'web_overrides',
+        kind: 'message',
+        T: () => KeybindingCommandOverride,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'tui_overrides',
+        kind: 'message',
+        T: () => KeybindingCommandOverride,
+        repeated: true,
+      },
+      {
+        no: 6,
+        name: 'web_settings',
+        kind: 'message',
+        T: () => KeybindingOverrideSettings,
+      },
+      {
+        no: 7,
+        name: 'tui_settings',
         kind: 'message',
         T: () => KeybindingOverrideSettings,
       },
@@ -491,14 +548,6 @@ export interface Command {
    * @generated from field: string label = 2;
    */
   label?: string
-  /**
-   * Keybinding is the legacy default key combination.
-   * Format: "CmdOrCtrl+S", "CmdOrCtrl+Shift+P", "Alt+F4"
-   * CmdOrCtrl resolves to Cmd on macOS, Ctrl elsewhere.
-   *
-   * @generated from field: string keybinding = 3;
-   */
-  keybinding?: string
   /**
    * MenuPath is the menu placement path.
    * Format: "File/Save", "File/Export/PDF", "View/Toggle Sidebar"
@@ -558,7 +607,6 @@ export const Command: MessageType<Command> = /* @__PURE__ */ createMessageType({
   fields: [
     { no: 1, name: 'command_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'label', kind: 'scalar', T: ScalarType.STRING },
-    { no: 3, name: 'keybinding', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'menu_path', kind: 'scalar', T: ScalarType.STRING },
     { no: 5, name: 'menu_group', kind: 'scalar', T: ScalarType.UINT32 },
     { no: 6, name: 'menu_order', kind: 'scalar', T: ScalarType.UINT32 },

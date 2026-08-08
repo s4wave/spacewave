@@ -18,25 +18,25 @@ import (
 type ViewerSurface int32
 
 const (
-	// VIEWER_SURFACE_UNSPECIFIED selects the web surface for legacy callers.
-	ViewerSurface_VIEWER_SURFACE_UNSPECIFIED ViewerSurface = 0
+	// VIEWER_SURFACE_UNKNOWN is not a usable viewer surface.
+	ViewerSurface_VIEWER_SURFACE_UNKNOWN ViewerSurface = 0
 	// VIEWER_SURFACE_WEB identifies browser viewers.
 	ViewerSurface_VIEWER_SURFACE_WEB ViewerSurface = 1
-	// VIEWER_SURFACE_TERMINAL identifies terminal viewers.
-	ViewerSurface_VIEWER_SURFACE_TERMINAL ViewerSurface = 2
+	// VIEWER_SURFACE_TUI identifies terminal viewers.
+	ViewerSurface_VIEWER_SURFACE_TUI ViewerSurface = 2
 )
 
 // Enum value maps for ViewerSurface.
 var (
 	ViewerSurface_name = map[int32]string{
-		0: "VIEWER_SURFACE_UNSPECIFIED",
+		0: "VIEWER_SURFACE_UNKNOWN",
 		1: "VIEWER_SURFACE_WEB",
-		2: "VIEWER_SURFACE_TERMINAL",
+		2: "VIEWER_SURFACE_TUI",
 	}
 	ViewerSurface_value = map[string]int32{
-		"VIEWER_SURFACE_UNSPECIFIED": 0,
-		"VIEWER_SURFACE_WEB":         1,
-		"VIEWER_SURFACE_TERMINAL":    2,
+		"VIEWER_SURFACE_UNKNOWN": 0,
+		"VIEWER_SURFACE_WEB":     1,
+		"VIEWER_SURFACE_TUI":     2,
 	}
 )
 
@@ -125,7 +125,7 @@ func (x *ViewerRegistration) GetSurface() ViewerSurface {
 	if x != nil {
 		return x.Surface
 	}
-	return ViewerSurface_VIEWER_SURFACE_UNSPECIFIED
+	return ViewerSurface_VIEWER_SURFACE_UNKNOWN
 }
 
 // RegisterViewerRequest is the request type for RegisterViewer.
@@ -185,7 +185,7 @@ func (x *ListViewersRequest) GetSurface() ViewerSurface {
 	if x != nil {
 		return x.Surface
 	}
-	return ViewerSurface_VIEWER_SURFACE_UNSPECIFIED
+	return ViewerSurface_VIEWER_SURFACE_UNKNOWN
 }
 
 // ListViewersResponse is the response type for ListViewers.
@@ -225,7 +225,7 @@ func (x *WatchViewersRequest) GetSurface() ViewerSurface {
 	if x != nil {
 		return x.Surface
 	}
-	return ViewerSurface_VIEWER_SURFACE_UNSPECIFIED
+	return ViewerSurface_VIEWER_SURFACE_UNKNOWN
 }
 
 // WatchViewersResponse is the response type for WatchViewers.

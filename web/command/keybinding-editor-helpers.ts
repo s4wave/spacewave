@@ -1,3 +1,4 @@
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import {
   CommandFocusContext,
   type CommandBinding,
@@ -94,6 +95,7 @@ export function previewPendingConflict(
     : addCommandBindingOverride(currentOverrideSet, commandId, binding)
   const draftLayer = createKeybindingOverrideLayer(scope, label, overrideSet)
   const graph = resolveKeybindings(commands, {
+    surface: CommandSurface.WEB,
     overrideLayers: overrideLayers.map((layer) =>
       layer.scope === scope ? draftLayer : layer,
     ),
@@ -139,6 +141,7 @@ export function bindingFromCombo(
 ): CommandBinding {
   return {
     id: bindingId(commandId, scope, 'combo', combo),
+    surface: CommandSurface.WEB,
     binding: { case: 'combo', value: { combo } },
     when: CommandFocusContext.GLOBAL,
   }
@@ -151,6 +154,7 @@ export function bindingFromSteps(
 ): CommandBinding {
   return {
     id: bindingId(commandId, scope, 'sequence', steps.join(' ')),
+    surface: CommandSurface.WEB,
     binding: { case: 'sequence', value: { steps } },
     when: CommandFocusContext.GLOBAL,
   }
@@ -172,18 +176,22 @@ export function bindingResolves(
 ): boolean {
   const commandId = state.command?.commandId
   if (!commandId) return false
-  const graph = resolveKeybindings([
-    {
-      ...state,
-      command: {
-        ...state.command,
-        defaultBindings: [binding],
-        keybinding: '',
+  const graph = resolveKeybindings(
+    [
+      {
+        ...state,
+        command: {
+          ...state.command,
+          defaultBindings: [
+            { ...binding, surface: binding.surface ?? CommandSurface.WEB },
+          ],
+        },
+        active: true,
+        enabled: true,
       },
-      active: true,
-      enabled: true,
-    },
-  ])
+    ],
+    { surface: CommandSurface.WEB },
+  )
   return Boolean(graph.bindingsByCommandId.get(commandId)?.length)
 }
 
