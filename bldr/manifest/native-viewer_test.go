@@ -11,7 +11,7 @@ import (
 )
 
 func nativeViewerFixture() (*Manifest, *ManifestRef, *block.BlockRef, bldr_platform.Platform) {
-	meta := &ManifestMeta{ManifestId: "plugin", PlatformId: "desktop/darwin/arm64", ViewerId: "viewer", ViewerProfile: "default", ViewerProtocolVersion: 1}
+	meta := &ManifestMeta{ManifestId: "plugin", PlatformId: "desktop/darwin/arm64", ViewerId: "viewer", ViewerTypeId: "glados/console", ViewerProfile: "default", ViewerProtocolVersion: 1}
 	m := NewManifest(meta, "bin/viewer")
 	root := &block.BlockRef{Hash: net_hash.NewHash(net_hash.HashType_HashType_SHA256, []byte(strings.Repeat("x", 32)))}
 	ref := &ManifestRef{Meta: meta.CloneVT(), ManifestRef: &bucket.ObjectRef{RootRef: root.Clone()}}
@@ -36,7 +36,7 @@ func TestResolveNativeViewerChecksSelectedIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.PluginID != "plugin" || got.ManifestObjectKey != "plugin/manifest" || got.ManifestDigest == "" || got.ViewerObjectKey != "viewer" || got.ViewerProfile != "default" || got.ProtocolVersion != 1 || got.Entrypoint != "bin/viewer" || got.PlatformID != "desktop/darwin/arm64" {
+	if got.PluginID != "plugin" || got.ManifestObjectKey != "plugin/manifest" || got.ManifestDigest == "" || got.ViewerID != "viewer" || got.ViewerTypeID != "glados/console" || got.ViewerProfile != "default" || got.ProtocolVersion != 1 || got.Entrypoint != "bin/viewer" || got.PlatformID != "desktop/darwin/arm64" {
 		t.Fatalf("unexpected resolution: %#v", got)
 	}
 	bad := root.Clone()

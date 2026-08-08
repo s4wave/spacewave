@@ -254,3 +254,26 @@ func TestReadReadinessRecordLiveDoesNotWaitForEOF(t *testing.T) {
 	_ = pw.Close()
 	_ = pr.Close()
 }
+
+func TestValidateSelectedState(t *testing.T) {
+	base := &NativeViewerSelectedState{Tabs: []string{"console", "logs"}, Focused: "console", Drafts: map[string]string{"console": "draft"}, Viewports: map[string]uint32{"console": 42}}
+	if err := ValidateSelectedState(base); err != nil {
+		t.Fatal(err)
+	}
+	cases := []func(*NativeViewerSelectedState){
+		func(s *NativeViewerSelectedState) { s.Tabs = append(s.Tabs, "console") },
+		func(s *NativeViewerSelectedState) { s.Focused = "missing" },
+		func(s *NativeViewerSelectedState) { s.Drafts["bad key"] = "x" },
+		func(s *NativeViewerSelectedState) { s.Drafts["console"] = string(make([]byte, MaxDraftBytes+1)) },
+		func(s *NativeViewerSelectedState) { s.Viewports["console"] = MaxTranscriptOffset + 1 },
+		func(s *NativeViewerSelectedState) { s.SelectedView = 3 },
+		func(s *NativeViewerSelectedState) { s.Theme = 3 },
+	}
+	for i, mutate := range cases {
+		s := base.CloneVT()
+		mutate(s)
+		if ValidateSelectedState(s) == nil {
+			t.Errorf("case %d accepted", i)
+		}
+	}
+}

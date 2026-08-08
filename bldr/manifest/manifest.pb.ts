@@ -69,6 +69,12 @@ export interface ManifestMeta {
    * @generated from field: uint32 viewer_protocol_version = 8;
    */
   viewerProtocolVersion?: number
+  /**
+   * ViewerTypeId identifies the native viewer implementation type.
+   *
+   * @generated from field: string viewer_type_id = 9;
+   */
+  viewerTypeId?: string
 }
 
 export const ManifestMeta: MessageType<ManifestMeta> =
@@ -88,6 +94,7 @@ export const ManifestMeta: MessageType<ManifestMeta> =
         kind: 'scalar',
         T: ScalarType.UINT32,
       },
+      { no: 9, name: 'viewer_type_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

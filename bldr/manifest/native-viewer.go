@@ -29,6 +29,18 @@ func validateNativeViewerID(name, value string) error {
 	return nil
 }
 
+func validateNativeViewerTypeID(value string) error {
+	if value == "" || !utf8.ValidString(value) || len(value) > 128 {
+		return errors.New("viewer_type_id must be valid UTF-8 of at most 128 bytes")
+	}
+	for _, r := range value {
+		if unicode.IsControl(r) || unicode.IsSpace(r) {
+			return errors.New("viewer_type_id contains unsafe characters")
+		}
+	}
+	return nil
+}
+
 func validateNativeEntrypoint(entrypoint string) error {
 	if !utf8.ValidString(entrypoint) || strings.ContainsRune(entrypoint, '\x00') || strings.ContainsRune(entrypoint, '\\') {
 		return errors.New("entrypoint is not safe")
@@ -61,11 +73,14 @@ func validateNativeObjectKey(value string) error {
 
 func validateNativeViewerMetadata(m *Manifest) error {
 	meta := m.GetMeta()
-	hasMetadata := meta.GetViewerId() != "" || meta.GetViewerProfile() != "" || meta.GetViewerProtocolVersion() != 0
+	hasMetadata := meta.GetViewerId() != "" || meta.GetViewerTypeId() != "" || meta.GetViewerProfile() != "" || meta.GetViewerProtocolVersion() != 0
 	if !hasMetadata {
 		return nil
 	}
 	if err := validateNativeViewerID("viewer_id", meta.GetViewerId()); err != nil {
+		return err
+	}
+	if err := validateNativeViewerTypeID(meta.GetViewerTypeId()); err != nil {
 		return err
 	}
 	if err := validateNativeViewerID("viewer_profile", meta.GetViewerProfile()); err != nil {
@@ -89,8 +104,10 @@ type NativeViewerResolution struct {
 	ManifestObjectKey string
 	// manifestDigest identifies the selected manifest root digest.
 	ManifestDigest string
-	// viewerObjectKey identifies the native viewer object.
-	ViewerObjectKey string
+	// viewerID identifies the native viewer declared by the manifest.
+	ViewerID string
+	// viewerTypeID identifies the native viewer implementation type.
+	ViewerTypeID string
 	// viewerProfile selects the native viewer profile.
 	ViewerProfile string
 	// protocolVersion identifies the native viewer protocol.
@@ -141,7 +158,8 @@ func ResolveNativeViewer(
 		PluginID:          meta.GetManifestId(),
 		ManifestObjectKey: manifestObjectKey,
 		ManifestDigest:    manifestIdentity,
-		ViewerObjectKey:   meta.GetViewerId(),
+		ViewerID:          meta.GetViewerId(),
+		ViewerTypeID:      meta.GetViewerTypeId(),
 		ViewerProfile:     meta.GetViewerProfile(),
 		ProtocolVersion:   meta.GetViewerProtocolVersion(),
 		Entrypoint:        manifest.GetEntrypoint(),

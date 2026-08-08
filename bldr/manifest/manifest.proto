@@ -26,6 +26,8 @@ message ManifestMeta {
   string viewer_profile = 7;
   // ViewerProtocolVersion is the native viewer protocol version.
   uint32 viewer_protocol_version = 8;
+  // ViewerTypeId identifies the native viewer implementation type.
+  string viewer_type_id = 9;
 }
 
 // Manifest contains metadata and contents.

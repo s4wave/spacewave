@@ -85,7 +85,7 @@
       "protoFiles": ["bldr/example/example.proto"]
     },
     "github.com/s4wave/spacewave/bldr/manifest": {
-      "hash": "f815ae0568b5d39663b9df66cd1fde91ee974571bbe664b02bf0589e6077e1e9",
+      "hash": "91768c07b4ed0c64c012db4cb6532db501a867c18c5fbbd6b08736eecdd8d570",
       "generatedFiles": [
         "bldr/manifest/manifest.pb.go",
         "bldr/manifest/manifest.pb.ts",
