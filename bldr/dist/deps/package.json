@@ -24,7 +24,7 @@
   "dependencies": {
     "@aptre/protobuf-es-lite": "1.1.1",
     "@radix-ui/react-slot": "^1.3.0",
-    "@noble/ciphers": "2.2.0",
+    "@noble/ciphers": "2.3.0",
     "it-pipe": "^3.0.1",
     "class-variance-authority": "^0.7.1",
     "it-pushable": "^3.2.3",
@@ -36,7 +36,7 @@
     "starpc": "0.52.0",
     "sonner": "^2.0.7",
     "ulid": "^3.0.2",
-    "vite": "8.2.0",
+    "vite": "8.2.1",
     "workbox-window": "^7.4.1"
   },
   "overrides": {
