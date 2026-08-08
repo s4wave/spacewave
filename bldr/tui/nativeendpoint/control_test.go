@@ -15,25 +15,34 @@ import (
 	native "github.com/s4wave/spacewave/sdk/viewer/native"
 )
 
+// commandRegistryTestServer records watched and invoked commands while serving a configured snapshot.
 type commandRegistryTestServer struct {
-	mu       sync.Mutex
-	request  command.CommandSurface
-	invoked  *command_registry.InvokeCommandRequest
+	// mu guards request, invoked, and snapshot.
+	mu sync.Mutex
+	// request records the watched command surface.
+	request command.CommandSurface
+	// invoked records the invoked command.
+	invoked *command_registry.InvokeCommandRequest
+	// snapshot is returned by WatchCommands.
 	snapshot *command_registry.WatchCommandsResponse
 }
 
+// RegisterCommand is unused by the command projection fixture.
 func (s *commandRegistryTestServer) RegisterCommand(context.Context, *command_registry.RegisterCommandRequest) (*command_registry.RegisterCommandResponse, error) {
 	return nil, errors.New("not used")
 }
 
+// SetActive is unused by the command projection fixture.
 func (s *commandRegistryTestServer) SetActive(context.Context, *command_registry.SetActiveRequest) (*command_registry.SetActiveResponse, error) {
 	return nil, errors.New("not used")
 }
 
+// SetEnabled is unused by the command projection fixture.
 func (s *commandRegistryTestServer) SetEnabled(context.Context, *command_registry.SetEnabledRequest) (*command_registry.SetEnabledResponse, error) {
 	return nil, errors.New("not used")
 }
 
+// WatchCommands records the requested surface and sends the configured snapshot.
 func (s *commandRegistryTestServer) WatchCommands(_ *command_registry.WatchCommandsRequest, stream command_registry.SRPCCommandRegistryResourceService_WatchCommandsStream) error {
 	s.mu.Lock()
 	snapshot := s.snapshot.CloneVT()
@@ -46,10 +55,12 @@ func (s *commandRegistryTestServer) WatchCommands(_ *command_registry.WatchComma
 	return stream.Context().Err()
 }
 
+// GetSubItems is unused by the command projection fixture.
 func (s *commandRegistryTestServer) GetSubItems(context.Context, *command_registry.GetSubItemsRequest) (*command_registry.GetSubItemsResponse, error) {
 	return nil, errors.New("not used")
 }
 
+// InvokeCommand records the request accepted by the bridge.
 func (s *commandRegistryTestServer) InvokeCommand(_ context.Context, req *command_registry.InvokeCommandRequest) (*command_registry.InvokeCommandResponse, error) {
 	s.mu.Lock()
 	s.invoked = req.CloneVT()
@@ -58,6 +69,7 @@ func (s *commandRegistryTestServer) InvokeCommand(_ context.Context, req *comman
 	return &command_registry.InvokeCommandResponse{}, nil
 }
 
+// TestControlBridgeSocketpairCommands proves command projection and invocation across the SRPC transport.
 func TestControlBridgeSocketpairCommands(t *testing.T) {
 	serverConn, clientConn := net.Pipe()
 	serverMux, err := srpc.NewMuxedConn(serverConn, false, nil)
@@ -130,6 +142,7 @@ func TestControlBridgeSocketpairCommands(t *testing.T) {
 	<-serveDone
 }
 
+// TestProjectCommandsRejectsMalformedSnapshots proves invalid or duplicate registry entries never cross the viewer boundary.
 func TestProjectCommandsRejectsMalformedSnapshots(t *testing.T) {
 	valid := &command_registry.CommandState{Command: &command.Command{CommandId: "a", Label: "A"}, Active: true, Enabled: true, Surface: command.CommandSurface_COMMAND_SURFACE_TUI}
 	for name, states := range map[string][]*command_registry.CommandState{

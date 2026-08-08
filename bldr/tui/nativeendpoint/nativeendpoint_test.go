@@ -19,18 +19,24 @@ import (
 	native "github.com/s4wave/spacewave/sdk/viewer/native"
 )
 
+// testStore records serialized selected-state revisions in memory.
 type testStore struct {
-	mu      sync.Mutex
-	json    string
+	// mu guards json and setJSON.
+	mu sync.Mutex
+	// json is the current serialized state.
+	json string
+	// setJSON records persisted states.
 	setJSON []string
 }
 
+// Get returns the current serialized state and revision.
 func (s *testStore) Get(context.Context) (string, uint64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.json, uint64(len(s.setJSON)), nil
 }
 
+// Set records serialized state updates and advances the revision.
 func (s *testStore) Set(_ context.Context, value string) (uint64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -38,16 +44,24 @@ func (s *testStore) Set(_ context.Context, value string) (uint64, error) {
 	s.setJSON = append(s.setJSON, value)
 	return uint64(len(s.setJSON)), nil
 }
+
+// WaitSeqno returns immediately because these tests do not watch revisions.
 func (s *testStore) WaitSeqno(context.Context, uint64) (uint64, error) { return 0, nil }
-func (s *testStore) GetStoreID() string                                { return "test" }
+
+// GetStoreID identifies the in-memory test store.
+func (s *testStore) GetStoreID() string { return "test" }
 
 var _ resource_state.StateAtomStore = (*testStore)(nil)
 
+// unavailableClient records service routing attempts and rejects every call.
 type unavailableClient struct {
-	mu       sync.Mutex
+	// mu guards services.
+	mu sync.Mutex
+	// services records attempted service calls.
 	services []string
 }
 
+// ExecCall records and rejects the unavailable service call.
 func (c *unavailableClient) ExecCall(_ context.Context, service, _ string, _ srpc.Message, _ srpc.Message) error {
 	c.mu.Lock()
 	c.services = append(c.services, service)
@@ -55,6 +69,7 @@ func (c *unavailableClient) ExecCall(_ context.Context, service, _ string, _ srp
 	return errors.New("unavailable")
 }
 
+// NewStream records and rejects the unavailable service stream.
 func (c *unavailableClient) NewStream(_ context.Context, service, _ string, _ srpc.Message) (srpc.Stream, error) {
 	c.mu.Lock()
 	c.services = append(c.services, service)
@@ -62,12 +77,14 @@ func (c *unavailableClient) NewStream(_ context.Context, service, _ string, _ sr
 	return nil, errors.New("upstream marker")
 }
 
+// called reports whether the unavailable client observed a service call.
 func (c *unavailableClient) called(service string) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return slices.Contains(c.services, service)
 }
 
+// TestStateServiceValidationAndDetachedLoad proves state requests are keyed, validated, and returned as detached copies.
 func TestStateServiceValidationAndDetachedLoad(t *testing.T) {
 	store := &testStore{}
 	service := newStateService(store, "state:1")
@@ -100,6 +117,7 @@ func TestStateServiceValidationAndDetachedLoad(t *testing.T) {
 	}
 }
 
+// TestOpenEndpointsCloseAndWait proves endpoint shutdown closes transports and joins every server.
 func TestOpenEndpointsCloseAndWait(t *testing.T) {
 	factory, err := NewEndpointFactory(Config{ResourceClient: &unavailableClient{}, StateStore: &testStore{}, SelectedStateKey: "state:1", CommandRegistryClient: command_registry.NewSRPCCommandRegistryResourceServiceClient(new(unavailableClient))})
 	if err != nil {
@@ -142,6 +160,7 @@ func TestOpenEndpointsCloseAndWait(t *testing.T) {
 	_ = set.WaitFunc()
 }
 
+// TestEndpointServiceIsolation proves each inherited descriptor exposes only its assigned service.
 func TestEndpointServiceIsolation(t *testing.T) {
 	upstream := new(unavailableClient)
 	factory, err := NewEndpointFactory(Config{
@@ -232,6 +251,7 @@ func TestEndpointServiceIsolation(t *testing.T) {
 	}
 }
 
+// TestFactoryRejectsNilContext proves an endpoint attempt cannot start without cancellation custody.
 func TestFactoryRejectsNilContext(t *testing.T) {
 	factory, err := New(Config{ResourceClient: new(unavailableClient), StateStore: &testStore{}, SelectedStateKey: "state:1", CommandRegistryClient: command_registry.NewSRPCCommandRegistryResourceServiceClient(new(unavailableClient))})
 	if err != nil {

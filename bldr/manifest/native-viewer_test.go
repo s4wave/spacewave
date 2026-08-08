@@ -17,6 +17,7 @@ import (
 	net_hash "github.com/s4wave/spacewave/net/hash"
 )
 
+// nativeViewerFixture constructs a valid native viewer manifest fixture.
 func nativeViewerFixture() (*Manifest, *ManifestRef, *block.BlockRef, bldr_platform.Platform) {
 	meta := &ManifestMeta{ManifestId: "plugin", PlatformId: "desktop/darwin/arm64", ViewerId: "viewer", ViewerTypeId: "glados/console", ViewerProfile: "default", ViewerProtocolVersion: 1}
 	m := NewManifest(meta, "bin/viewer")
@@ -26,6 +27,7 @@ func nativeViewerFixture() (*Manifest, *ManifestRef, *block.BlockRef, bldr_platf
 	return m, ref, root, host
 }
 
+// TestManifestValidateNativeViewerMetadata proves native metadata is all-or-nothing and desktop-only.
 func TestManifestValidateNativeViewerMetadata(t *testing.T) {
 	m, _, _, _ := nativeViewerFixture()
 	if err := m.Validate(); err != nil {
@@ -37,6 +39,7 @@ func TestManifestValidateNativeViewerMetadata(t *testing.T) {
 	}
 }
 
+// TestResolveNativeViewerChecksSelectedIdentity proves resolution freezes the selected root and manifest identities.
 func TestResolveNativeViewerChecksSelectedIdentity(t *testing.T) {
 	m, ref, root, host := nativeViewerFixture()
 	got, err := ResolveNativeViewer(m, ref, root, "plugin/manifest", host)
@@ -57,6 +60,7 @@ func TestResolveNativeViewerChecksSelectedIdentity(t *testing.T) {
 	}
 }
 
+// TestResolveNativeViewerRejectsManifestObjectKeyAndPlatform proves unsafe keys and host mismatches cannot resolve.
 func TestResolveNativeViewerRejectsManifestObjectKeyAndPlatform(t *testing.T) {
 	m, ref, root, host := nativeViewerFixture()
 	for _, key := range []string{"", "bad\x00key", strings.Repeat("x", 1001)} {
@@ -84,22 +88,31 @@ func TestResolveNativeViewerRejectsManifestObjectKeyAndPlatform(t *testing.T) {
 	}
 }
 
+// fakeNativeViewerArtifactFile records bounded file reads and release custody.
 type fakeNativeViewerArtifactFile struct {
+	// nodeType is the reported cursor node type.
 	nodeType unixfs.FSCursorNodeType
-	data     []byte
-	size     uint64
-	read     func(context.Context, int64, []byte) (int64, error)
+	// data contains bytes returned by ReadAt.
+	data []byte
+	// size is the reported artifact size.
+	size uint64
+	// read overrides ReadAt when set.
+	read func(context.Context, int64, []byte) (int64, error)
+	// released counts Release calls.
 	released int
 }
 
+// GetNodeType returns the fixture node type.
 func (f *fakeNativeViewerArtifactFile) GetNodeType(context.Context) (unixfs.FSCursorNodeType, error) {
 	return f.nodeType, nil
 }
 
+// GetSize returns the fixture artifact size.
 func (f *fakeNativeViewerArtifactFile) GetSize(context.Context) (uint64, error) {
 	return f.size, nil
 }
 
+// ReadAt returns fixture bytes or the configured read failure.
 func (f *fakeNativeViewerArtifactFile) ReadAt(ctx context.Context, offset int64, p []byte) (int64, error) {
 	if f.read != nil {
 		return f.read(ctx, offset, p)
@@ -111,8 +124,10 @@ func (f *fakeNativeViewerArtifactFile) ReadAt(ctx context.Context, offset int64,
 	return int64(n), nil
 }
 
+// Release records fixture release.
 func (f *fakeNativeViewerArtifactFile) Release() { f.released++ }
 
+// TestMaterializeNativeViewerArtifactNestedEntrypoint proves nested entrypoints publish private executable bytes.
 func TestMaterializeNativeViewerArtifactNestedEntrypoint(t *testing.T) {
 	m, ref, root, host := nativeViewerFixture()
 	resolution, err := ResolveNativeViewer(m, ref, root, "plugin/manifest", host)
@@ -165,6 +180,7 @@ func TestMaterializeNativeViewerArtifactNestedEntrypoint(t *testing.T) {
 	}
 }
 
+// TestMaterializeNativeViewerArtifactRejectsInvalidFiles proves non-regular, empty, and oversized entrypoints are rejected.
 func TestMaterializeNativeViewerArtifactRejectsInvalidFiles(t *testing.T) {
 	m, ref, root, host := nativeViewerFixture()
 	resolution, err := ResolveNativeViewer(m, ref, root, "plugin/manifest", host)
@@ -198,6 +214,7 @@ func TestMaterializeNativeViewerArtifactRejectsInvalidFiles(t *testing.T) {
 	}
 }
 
+// TestMaterializeNativeViewerArtifactFailuresCleanPartialFile proves every lookup, read, sync, and publish failure removes partial output.
 func TestMaterializeNativeViewerArtifactFailuresCleanPartialFile(t *testing.T) {
 	m, ref, root, host := nativeViewerFixture()
 	resolution, err := ResolveNativeViewer(m, ref, root, "plugin/manifest", host)
@@ -266,6 +283,7 @@ func TestMaterializeNativeViewerArtifactFailuresCleanPartialFile(t *testing.T) {
 	}
 }
 
+// TestWriteNativeViewerArtifactRejectsShortWrite proves incomplete writer progress returns an error.
 func TestWriteNativeViewerArtifactRejectsShortWrite(t *testing.T) {
 	file := &fakeNativeViewerArtifactFile{nodeType: unixfs.NewFSCursorNodeType_File(), data: []byte("abc"), size: 3}
 	short := shortNativeViewerArtifactWriter{}
@@ -275,6 +293,8 @@ func TestWriteNativeViewerArtifactRejectsShortWrite(t *testing.T) {
 	}
 }
 
+// shortNativeViewerArtifactWriter simulates an incomplete artifact write.
 type shortNativeViewerArtifactWriter struct{}
 
+// Write accepts all but the final byte to simulate a short write.
 func (*shortNativeViewerArtifactWriter) Write(p []byte) (int, error) { return len(p) - 1, nil }

@@ -10,20 +10,24 @@ import (
 
 // EndpointSet contains the three endpoint descriptors inherited as fd 5..7.
 type EndpointSet struct {
-	// resource is the resource endpoint.
+	// Resource is the resource endpoint.
 	Resource *os.File
-	// state is the state endpoint.
+	// State is the state endpoint.
 	State *os.File
-	// control is the control endpoint.
+	// Control is the control endpoint.
 	Control *os.File
-	// closeFunc closes the endpoint transport.
+	// CloseFunc closes the endpoint transport.
 	CloseFunc func() error
-	// waitFunc waits for the endpoint transport.
+	// WaitFunc waits for the endpoint transport.
 	WaitFunc func() error
-	once     sync.Once
+
+	// once guards closeErr and endpoint shutdown.
+	once sync.Once
+	// closeErr records the joined shutdown result.
 	closeErr error
 }
 
+// closeAndWait closes endpoint transports and joins their servers once.
 func (e *EndpointSet) closeAndWait() error {
 	if e == nil {
 		return nil

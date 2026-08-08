@@ -14,18 +14,16 @@ const (
 
 var ErrInvalidSelectedState = errors.New("nativeviewer: invalid selected state")
 
-func validStateIdentity(value string) bool {
-	return validIdentity(value)
-}
-
 // ValidateSelectedState validates the bounded persistence boundary for selected UI state.
 func ValidateSelectedState(state *NativeViewerSelectedState) error {
+	// Validate collection bounds before checking cross-field references.
 	if state == nil || len(state.GetTabs()) > MaxSessionTabs || len(state.GetDrafts()) > MaxSessionTabs || len(state.GetViewports()) > MaxSessionTabs {
 		return ErrInvalidSelectedState
 	}
+	// Build the tab identity set used by focus and viewport validation.
 	seen := make(map[string]struct{}, len(state.GetTabs()))
 	for _, tab := range state.GetTabs() {
-		if !validStateIdentity(tab) {
+		if !validIdentity(tab) {
 			return ErrInvalidSelectedState
 		}
 		if _, ok := seen[tab]; ok {
@@ -33,24 +31,25 @@ func ValidateSelectedState(state *NativeViewerSelectedState) error {
 		}
 		seen[tab] = struct{}{}
 	}
-	if state.GetSpaceObjectKey() != "" && !validStateIdentity(state.GetSpaceObjectKey()) {
+	if state.GetSpaceObjectKey() != "" && !validIdentity(state.GetSpaceObjectKey()) {
 		return ErrInvalidSelectedState
 	}
 	if state.GetFocused() != "" {
-		if !validStateIdentity(state.GetFocused()) {
+		if !validIdentity(state.GetFocused()) {
 			return ErrInvalidSelectedState
 		}
 		if _, ok := seen[state.GetFocused()]; !ok {
 			return ErrInvalidSelectedState
 		}
 	}
+	// Validate bounded drafts and viewport offsets against their tab identities.
 	for key, draft := range state.GetDrafts() {
-		if !validStateIdentity(key) || !utf8.ValidString(draft) || len(draft) > MaxDraftBytes {
+		if !validIdentity(key) || !utf8.ValidString(draft) || len(draft) > MaxDraftBytes {
 			return ErrInvalidSelectedState
 		}
 	}
 	for key, offset := range state.GetViewports() {
-		if !validStateIdentity(key) || offset > MaxTranscriptOffset {
+		if !validIdentity(key) || offset > MaxTranscriptOffset {
 			return ErrInvalidSelectedState
 		}
 		if _, ok := seen[key]; !ok {

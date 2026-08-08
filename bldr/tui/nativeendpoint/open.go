@@ -20,14 +20,21 @@ var socketPair = func() ([2]int, error) {
 	return syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
 }
 
+// endpointTransport keeps the child descriptor and parent SRPC transport together.
 type endpointTransport struct {
-	child   *os.File
-	conn    net.Conn
-	mux     srpc.MuxedConn
+	// child is the endpoint inherited by the child process.
+	child *os.File
+	// conn is the parent endpoint connection.
+	conn net.Conn
+	// mux carries SRPC over conn.
+	mux srpc.MuxedConn
+	// invoker serves the endpoint API.
 	invoker srpc.Invoker
 }
 
+// open creates and serves one independent endpoint set.
 func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
+	// Validate dependencies before acquiring sockets or server custody.
 	if err := validateConfig(c); err != nil {
 		return nil, err
 	}
@@ -69,6 +76,7 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 		return endpointTransport{child: child, conn: conn, mux: mc, invoker: invoker}, nil
 	}
 
+	// Build isolated resource, state, and control transports for inheritance.
 	resourceMux := srpc.NewMux(&serviceFilter{serviceID: resource.SRPCResourceServiceServiceID, invoker: srpc.NewClientInvoker(c.ResourceClient)})
 	resourceTransport, err := makeTransport("resource", resourceMux)
 	if err != nil {
@@ -103,6 +111,7 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 	}
 	transports = append(transports, controlTransport)
 
+	// Serve every parent transport and aggregate failures until shutdown.
 	var servers sync.WaitGroup
 	var serverErrorsMu sync.Mutex
 	var serverErrors error
@@ -119,6 +128,7 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 		}(server, transport.mux)
 	}
 
+	// Expose idempotent close and join operations to the endpoint owner.
 	var closeOnce sync.Once
 	var waitOnce sync.Once
 	var waitErr error
@@ -144,11 +154,15 @@ func open(ctx context.Context, c Config) (*nativehost.EndpointSet, error) {
 	}, nil
 }
 
+// serviceFilter exposes exactly one service through a shared resource client.
 type serviceFilter struct {
+	// serviceID is the only service accepted by the filter.
 	serviceID string
-	invoker   srpc.Invoker
+	// invoker handles accepted methods.
+	invoker srpc.Invoker
 }
 
+// InvokeMethod forwards only the selected resource service.
 func (f *serviceFilter) InvokeMethod(serviceID, methodID string, stream srpc.Stream) (bool, error) {
 	if serviceID != f.serviceID {
 		return false, nil

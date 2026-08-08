@@ -25,12 +25,16 @@ import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc, ServerContext } from 'starpc'
 
 /**
+ * StateService is the selected viewer state persistence boundary.
+ *
  * @generated from service s4wave.viewer.native.StateService
  */
 export const StateServiceDefinition = {
   typeName: 's4wave.viewer.native.StateService',
   methods: {
     /**
+     * Load loads the complete selected viewer state.
+     *
      * @generated from rpc s4wave.viewer.native.StateService.Load
      */
     Load: {
@@ -40,6 +44,8 @@ export const StateServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * Save validates and persists the complete selected viewer state.
+     *
      * @generated from rpc s4wave.viewer.native.StateService.Save
      */
     Save: {
@@ -52,10 +58,14 @@ export const StateServiceDefinition = {
 } as const
 
 /**
+ * StateService is the selected viewer state persistence boundary.
+ *
  * @generated from service s4wave.viewer.native.StateService
  */
 export interface StateService {
   /**
+   * Load loads the complete selected viewer state.
+   *
    * @generated from rpc s4wave.viewer.native.StateService.Load
    */
   Load(
@@ -64,6 +74,8 @@ export interface StateService {
   ): Promise<NativeViewerStateLoadResponse>
 
   /**
+   * Save validates and persists the complete selected viewer state.
+   *
    * @generated from rpc s4wave.viewer.native.StateService.Save
    */
   Save(
@@ -73,10 +85,14 @@ export interface StateService {
 }
 
 /**
+ * StateService is the selected viewer state persistence boundary.
+ *
  * @generated from service s4wave.viewer.native.StateService
  */
 export interface StateServiceHandler {
   /**
+   * Load loads the complete selected viewer state.
+   *
    * @generated from rpc s4wave.viewer.native.StateService.Load
    */
   Load(
@@ -86,6 +102,8 @@ export interface StateServiceHandler {
   ): Promise<NativeViewerStateLoadResponse>
 
   /**
+   * Save validates and persists the complete selected viewer state.
+   *
    * @generated from rpc s4wave.viewer.native.StateService.Save
    */
   Save(
@@ -107,6 +125,8 @@ export class StateServiceClient implements StateService {
     this.Save = this.Save.bind(this)
   }
   /**
+   * Load loads the complete selected viewer state.
+   *
    * @generated from rpc s4wave.viewer.native.StateService.Load
    */
   async Load(
@@ -124,6 +144,8 @@ export class StateServiceClient implements StateService {
   }
 
   /**
+   * Save validates and persists the complete selected viewer state.
+   *
    * @generated from rpc s4wave.viewer.native.StateService.Save
    */
   async Save(
@@ -141,12 +163,16 @@ export class StateServiceClient implements StateService {
   }
 }
 /**
+ * ControlService is the native viewer control boundary for the selected resource.
+ *
  * @generated from service s4wave.viewer.native.ControlService
  */
 export const ControlServiceDefinition = {
   typeName: 's4wave.viewer.native.ControlService',
   methods: {
     /**
+     * AvailableSessions lists LlmSessions available within the selected resource scope.
+     *
      * @generated from rpc s4wave.viewer.native.ControlService.AvailableSessions
      */
     AvailableSessions: {
@@ -156,6 +182,8 @@ export const ControlServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * SelectSession selects an LlmSession for subsequent viewer controls.
+     *
      * @generated from rpc s4wave.viewer.native.ControlService.SelectSession
      */
     SelectSession: {
@@ -165,6 +193,8 @@ export const ControlServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * SendInput delivers input to an active LlmSession dispatch.
+     *
      * @generated from rpc s4wave.viewer.native.ControlService.SendInput
      */
     SendInput: {
@@ -174,6 +204,8 @@ export const ControlServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * Interrupt requests interruption of an active LlmSession dispatch.
+     *
      * @generated from rpc s4wave.viewer.native.ControlService.Interrupt
      */
     Interrupt: {
@@ -183,6 +215,8 @@ export const ControlServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * FollowUp continues a predecessor LlmSession in a successor LlmSession.
+     *
      * @generated from rpc s4wave.viewer.native.ControlService.FollowUp
      */
     FollowUp: {
@@ -192,6 +226,8 @@ export const ControlServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ListCommands returns the current bounded TUI command snapshot.
+     *
      * @generated from rpc s4wave.viewer.native.ControlService.ListCommands
      */
     ListCommands: {
@@ -201,6 +237,8 @@ export const ControlServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ExecuteCommand invokes one command on the TUI surface.
+     *
      * @generated from rpc s4wave.viewer.native.ControlService.ExecuteCommand
      */
     ExecuteCommand: {
@@ -213,10 +251,14 @@ export const ControlServiceDefinition = {
 } as const
 
 /**
+ * ControlService is the native viewer control boundary for the selected resource.
+ *
  * @generated from service s4wave.viewer.native.ControlService
  */
 export interface ControlService {
   /**
+   * AvailableSessions lists LlmSessions available within the selected resource scope.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.AvailableSessions
    */
   AvailableSessions(
@@ -225,6 +267,8 @@ export interface ControlService {
   ): Promise<NativeViewerAvailableSessionsResponse>
 
   /**
+   * SelectSession selects an LlmSession for subsequent viewer controls.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.SelectSession
    */
   SelectSession(
@@ -233,6 +277,8 @@ export interface ControlService {
   ): Promise<NativeViewerSelectSessionResponse>
 
   /**
+   * SendInput delivers input to an active LlmSession dispatch.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.SendInput
    */
   SendInput(
@@ -241,6 +287,8 @@ export interface ControlService {
   ): Promise<NativeViewerControlResponse>
 
   /**
+   * Interrupt requests interruption of an active LlmSession dispatch.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.Interrupt
    */
   Interrupt(
@@ -249,6 +297,8 @@ export interface ControlService {
   ): Promise<NativeViewerControlResponse>
 
   /**
+   * FollowUp continues a predecessor LlmSession in a successor LlmSession.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.FollowUp
    */
   FollowUp(
@@ -257,6 +307,8 @@ export interface ControlService {
   ): Promise<NativeViewerFollowUpResponse>
 
   /**
+   * ListCommands returns the current bounded TUI command snapshot.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.ListCommands
    */
   ListCommands(
@@ -265,6 +317,8 @@ export interface ControlService {
   ): Promise<NativeViewerListCommandsResponse>
 
   /**
+   * ExecuteCommand invokes one command on the TUI surface.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.ExecuteCommand
    */
   ExecuteCommand(
@@ -274,10 +328,14 @@ export interface ControlService {
 }
 
 /**
+ * ControlService is the native viewer control boundary for the selected resource.
+ *
  * @generated from service s4wave.viewer.native.ControlService
  */
 export interface ControlServiceHandler {
   /**
+   * AvailableSessions lists LlmSessions available within the selected resource scope.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.AvailableSessions
    */
   AvailableSessions(
@@ -287,6 +345,8 @@ export interface ControlServiceHandler {
   ): Promise<NativeViewerAvailableSessionsResponse>
 
   /**
+   * SelectSession selects an LlmSession for subsequent viewer controls.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.SelectSession
    */
   SelectSession(
@@ -296,6 +356,8 @@ export interface ControlServiceHandler {
   ): Promise<NativeViewerSelectSessionResponse>
 
   /**
+   * SendInput delivers input to an active LlmSession dispatch.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.SendInput
    */
   SendInput(
@@ -305,6 +367,8 @@ export interface ControlServiceHandler {
   ): Promise<NativeViewerControlResponse>
 
   /**
+   * Interrupt requests interruption of an active LlmSession dispatch.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.Interrupt
    */
   Interrupt(
@@ -314,6 +378,8 @@ export interface ControlServiceHandler {
   ): Promise<NativeViewerControlResponse>
 
   /**
+   * FollowUp continues a predecessor LlmSession in a successor LlmSession.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.FollowUp
    */
   FollowUp(
@@ -323,6 +389,8 @@ export interface ControlServiceHandler {
   ): Promise<NativeViewerFollowUpResponse>
 
   /**
+   * ListCommands returns the current bounded TUI command snapshot.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.ListCommands
    */
   ListCommands(
@@ -332,6 +400,8 @@ export interface ControlServiceHandler {
   ): Promise<NativeViewerListCommandsResponse>
 
   /**
+   * ExecuteCommand invokes one command on the TUI surface.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.ExecuteCommand
    */
   ExecuteCommand(
@@ -358,6 +428,8 @@ export class ControlServiceClient implements ControlService {
     this.ExecuteCommand = this.ExecuteCommand.bind(this)
   }
   /**
+   * AvailableSessions lists LlmSessions available within the selected resource scope.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.AvailableSessions
    */
   async AvailableSessions(
@@ -375,6 +447,8 @@ export class ControlServiceClient implements ControlService {
   }
 
   /**
+   * SelectSession selects an LlmSession for subsequent viewer controls.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.SelectSession
    */
   async SelectSession(
@@ -392,6 +466,8 @@ export class ControlServiceClient implements ControlService {
   }
 
   /**
+   * SendInput delivers input to an active LlmSession dispatch.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.SendInput
    */
   async SendInput(
@@ -409,6 +485,8 @@ export class ControlServiceClient implements ControlService {
   }
 
   /**
+   * Interrupt requests interruption of an active LlmSession dispatch.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.Interrupt
    */
   async Interrupt(
@@ -426,6 +504,8 @@ export class ControlServiceClient implements ControlService {
   }
 
   /**
+   * FollowUp continues a predecessor LlmSession in a successor LlmSession.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.FollowUp
    */
   async FollowUp(
@@ -443,6 +523,8 @@ export class ControlServiceClient implements ControlService {
   }
 
   /**
+   * ListCommands returns the current bounded TUI command snapshot.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.ListCommands
    */
   async ListCommands(
@@ -460,6 +542,8 @@ export class ControlServiceClient implements ControlService {
   }
 
   /**
+   * ExecuteCommand invokes one command on the TUI surface.
+   *
    * @generated from rpc s4wave.viewer.native.ControlService.ExecuteCommand
    */
   async ExecuteCommand(

@@ -2,131 +2,386 @@ syntax = "proto3";
 package s4wave.viewer.native;
 option go_package = "github.com/s4wave/spacewave/sdk/viewer/native;s4wave_viewer_native";
 
-// NativeViewerWireVersion is the versioned inherited native-viewer contract.
-// The record is deliberately independent of the daemon socket protocol.
+// NativeViewerEndpointKind classifies fixed inherited child endpoints.
 enum NativeViewerEndpointKind {
-  NATIVE_VIEWER_ENDPOINT_KIND_UNSPECIFIED = 0;
+  // NATIVE_VIEWER_ENDPOINT_KIND_UNKNOWN is the invalid unknown value.
+  NATIVE_VIEWER_ENDPOINT_KIND_UNKNOWN = 0;
+  // NATIVE_VIEWER_ENDPOINT_KIND_RECORD carries the immutable launch record.
   NATIVE_VIEWER_ENDPOINT_KIND_RECORD = 1;
+  // NATIVE_VIEWER_ENDPOINT_KIND_READINESS carries child readiness evidence.
   NATIVE_VIEWER_ENDPOINT_KIND_READINESS = 2;
+  // NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE serves the selected resource API.
   NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE = 3;
+  // NATIVE_VIEWER_ENDPOINT_KIND_STATE serves selected viewer state persistence.
   NATIVE_VIEWER_ENDPOINT_KIND_STATE = 4;
+  // NATIVE_VIEWER_ENDPOINT_KIND_CONTROL serves viewer control operations.
   NATIVE_VIEWER_ENDPOINT_KIND_CONTROL = 5;
 }
+
+// NativeViewerTransport selects an inherited endpoint wire protocol.
 enum NativeViewerTransport {
-  NATIVE_VIEWER_TRANSPORT_UNSPECIFIED = 0;
+  // NATIVE_VIEWER_TRANSPORT_UNKNOWN is the invalid unknown value.
+  NATIVE_VIEWER_TRANSPORT_UNKNOWN = 0;
+  // NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO uses bounded length-delimited protobuf records.
   NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO = 1;
+  // NATIVE_VIEWER_TRANSPORT_SRPC uses the SRPC transport.
   NATIVE_VIEWER_TRANSPORT_SRPC = 2;
 }
+
+// NativeViewerFDMode restricts an inherited descriptor direction.
 enum NativeViewerFDMode {
-  NATIVE_VIEWER_FD_MODE_UNSPECIFIED = 0;
+  // NATIVE_VIEWER_FD_MODE_UNKNOWN is the invalid unknown value.
+  NATIVE_VIEWER_FD_MODE_UNKNOWN = 0;
+  // NATIVE_VIEWER_FD_MODE_READ permits reads from the descriptor.
   NATIVE_VIEWER_FD_MODE_READ = 1;
+  // NATIVE_VIEWER_FD_MODE_WRITE permits writes to the descriptor.
   NATIVE_VIEWER_FD_MODE_WRITE = 2;
 }
+
+// NativeViewerReadinessStatus reports child startup progress or terminal outcome.
 enum NativeViewerReadinessStatus {
-  NATIVE_VIEWER_READINESS_STATUS_UNSPECIFIED = 0;
+  // NATIVE_VIEWER_READINESS_STATUS_UNKNOWN is the invalid unknown value.
+  NATIVE_VIEWER_READINESS_STATUS_UNKNOWN = 0;
+  // NATIVE_VIEWER_READINESS_STATUS_READY reports that the first frame was rendered.
   NATIVE_VIEWER_READINESS_STATUS_READY = 1;
+  // NATIVE_VIEWER_READINESS_STATUS_FAILED reports terminal startup failure after cleanup.
   NATIVE_VIEWER_READINESS_STATUS_FAILED = 2;
+  // NATIVE_VIEWER_READINESS_STATUS_CANCELLED reports startup cancellation after cleanup.
   NATIVE_VIEWER_READINESS_STATUS_CANCELLED = 3;
 }
 
+// NativeViewerEndpointDescriptor describes one fixed inherited child endpoint.
 message NativeViewerEndpointDescriptor {
+  // Kind selects the inherited endpoint role.
   NativeViewerEndpointKind kind = 1;
+  // Fd is the inherited file descriptor number.
   int32 fd = 2;
+  // Transport selects the framing and call protocol.
   NativeViewerTransport transport = 3;
+  // ServiceId identifies the service exposed by the endpoint.
   string service_id = 4;
+  // ProtocolVersion selects the native viewer protocol contract.
   uint32 protocol_version = 5;
+  // Required requires the child to reject a launch when the endpoint is unavailable.
   bool required = 6;
+  // CloseOnExit requires the child to close the endpoint during shutdown.
   bool close_on_exit = 7;
 }
+
+// NativeViewerIODescriptor describes the child terminal stream contract.
 message NativeViewerIODescriptor {
+  // InputFd is the terminal input file descriptor.
   int32 input_fd = 1;
+  // OutputFd is the terminal output file descriptor.
   int32 output_fd = 2;
+  // DiagnosticFd is the diagnostic output file descriptor.
   int32 diagnostic_fd = 3;
+  // InputMode restricts the input descriptor to its permitted direction.
   NativeViewerFDMode input_mode = 4;
+  // OutputMode restricts the output descriptor to its permitted direction.
   NativeViewerFDMode output_mode = 5;
 }
+
+// NativeViewerLaunchRecord freezes the identities and endpoints for one child launch.
 message NativeViewerLaunchRecord {
+  // WireVersion selects the inherited record encoding contract.
   uint32 wire_version = 1;
+  // ProtocolVersion selects the native viewer protocol contract.
   uint32 protocol_version = 2;
+  // LaunchId identifies one supervised child launch.
   string launch_id = 3;
+  // SessionObjectKey identifies the selected LlmSession object.
   string session_object_key = 4;
+  // SpaceObjectKey identifies the selected Space object.
   string space_object_key = 5;
+  // ManifestObjectKey identifies the immutable selected manifest object.
   string manifest_object_key = 6;
+  // ManifestDigest is the selected manifest root digest.
   string manifest_digest = 7;
+  // ViewerObjectKey identifies the selected typed viewer resource object.
   string viewer_object_key = 8;
+  // ViewerProfile selects the viewer profile declared by the manifest.
   string viewer_profile = 9;
+  // ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
   string resource_scope_session_object_key = 10;
+  // SelectedStateKey identifies the state atom persisted for this viewer selection.
   string selected_state_key = 11;
+  // Endpoints describes every inherited endpoint required by the child.
   repeated NativeViewerEndpointDescriptor endpoints = 12;
+  // Io describes the child terminal streams.
   NativeViewerIODescriptor io = 13;
+  // LaunchNonce binds readiness evidence to one launch attempt.
   string launch_nonce = 14;
 }
+
+// NativeViewerReadinessRecord reports the first rendered frame or terminal startup failure.
 message NativeViewerReadinessRecord {
+  // WireVersion selects the inherited record encoding contract.
   uint32 wire_version = 1;
+  // ProtocolVersion selects the native viewer protocol contract.
   uint32 protocol_version = 2;
+  // LaunchId identifies one supervised child launch.
   string launch_id = 3;
+  // SessionObjectKey identifies the selected LlmSession object.
   string session_object_key = 4;
+  // SpaceObjectKey identifies the selected Space object.
   string space_object_key = 5;
+  // ManifestObjectKey identifies the immutable selected manifest object.
   string manifest_object_key = 6;
+  // ManifestDigest is the selected manifest root digest.
   string manifest_digest = 7;
+  // ViewerObjectKey identifies the selected typed viewer resource object.
   string viewer_object_key = 8;
+  // Status reports the outcome of the requested operation.
   NativeViewerReadinessStatus status = 9;
+  // ResourceRevision is the first observed resource revision.
   uint64 resource_revision = 10;
+  // ResourceCursor is the first observed resource event cursor.
   uint64 resource_cursor = 11;
+  // FrameSequence is the first rendered frame sequence.
   uint64 frame_sequence = 12;
+  // Detail explains a rejected, failed, or cancelled operation.
   string detail = 13;
+  // TerminalRestoreAttempted reports that terminal restoration ran before terminal failure readiness.
   bool terminal_restore_attempted = 14;
+  // AllWorkersJoined reports that child workers stopped before terminal failure readiness.
   bool all_workers_joined = 15;
+  // ViewerProfile selects the viewer profile declared by the manifest.
   string viewer_profile = 16;
+  // ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
   string resource_scope_session_object_key = 17;
+  // SelectedStateKey identifies the state atom persisted for this viewer selection.
   string selected_state_key = 18;
 }
 
-
+// NativeViewerSelectedState persists the bounded UI selection state for one viewer.
 message NativeViewerSelectedState {
+  // Tabs orders the bounded set of open LlmSession object keys.
   repeated string tabs = 1;
+  // Focused identifies the focused LlmSession tab.
   string focused = 2;
+  // Drafts maps LlmSession object keys to bounded UTF-8 input drafts.
   map<string, string> drafts = 3;
+  // Viewports maps LlmSession object keys to bounded transcript offsets.
   map<string, uint32> viewports = 4;
+  // SelectedView selects the active viewer pane.
   uint32 selected_view = 5;
+  // Theme selects the viewer color theme.
   uint32 theme = 6;
-  // SpaceObjectKey is the selected Space restored before child launch.
+  // SpaceObjectKey identifies the selected Space object.
   string space_object_key = 7;
 }
-message NativeViewerStateLoadRequest { string state_key = 1; }
-message NativeViewerStateLoadResponse { NativeViewerSelectedState state = 1; string state_key = 2; }
-message NativeViewerStateSaveRequest { string state_key = 1; NativeViewerSelectedState state = 2; string request_id = 3; }
-message NativeViewerStateSaveResponse { bool accepted = 1; string state_key = 2; string request_id = 3; string detail = 4; }
+
+// NativeViewerStateLoadRequest identifies the selected state atom to load.
+message NativeViewerStateLoadRequest {
+  // StateKey identifies the selected state atom.
+  string state_key = 1;
+}
+
+// NativeViewerStateLoadResponse contains the complete selected viewer state.
+message NativeViewerStateLoadResponse {
+  // State contains the complete bounded selected viewer state.
+  NativeViewerSelectedState state = 1;
+  // StateKey identifies the selected state atom.
+  string state_key = 2;
+}
+
+// NativeViewerStateSaveRequest contains one selected viewer state update.
+message NativeViewerStateSaveRequest {
+  // StateKey identifies the selected state atom.
+  string state_key = 1;
+  // State contains the complete bounded selected viewer state.
+  NativeViewerSelectedState state = 2;
+  // RequestId identifies one idempotent state update.
+  string request_id = 3;
+}
+
+// NativeViewerStateSaveResponse reports the selected viewer state update outcome.
+message NativeViewerStateSaveResponse {
+  // Accepted reports whether the state update was persisted.
+  bool accepted = 1;
+  // StateKey identifies the selected state atom.
+  string state_key = 2;
+  // RequestId identifies one idempotent state update.
+  string request_id = 3;
+  // Detail explains a rejected, failed, or cancelled operation.
+  string detail = 4;
+}
+
+// StateService is the selected viewer state persistence boundary.
 service StateService {
+  // Load loads the complete selected viewer state.
   rpc Load(NativeViewerStateLoadRequest) returns (NativeViewerStateLoadResponse);
+  // Save validates and persists the complete selected viewer state.
   rpc Save(NativeViewerStateSaveRequest) returns (NativeViewerStateSaveResponse);
 }
 
+// NativeViewerControlStatus reports whether a control request was accepted.
 enum NativeViewerControlStatus {
-  NATIVE_VIEWER_CONTROL_STATUS_UNSPECIFIED = 0;
+  // NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN is the invalid unknown value.
+  NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN = 0;
+  // NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED reports that the request was accepted.
   NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED = 1;
+  // NATIVE_VIEWER_CONTROL_STATUS_REJECTED reports that the request was rejected.
   NATIVE_VIEWER_CONTROL_STATUS_REJECTED = 2;
 }
-message NativeViewerAvailableSessionsRequest { string scope_session_object_key = 1; }
-message NativeViewerAvailableSessionsResponse { repeated string session_object_keys = 1; }
-message NativeViewerSelectSessionRequest { string session_object_key = 1; string request_id = 2; }
-message NativeViewerSelectSessionResponse { NativeViewerControlStatus status = 1; string session_object_key = 2; string request_id = 3; string detail = 4; }
-message NativeViewerSendInputRequest { string session_object_key = 1; string dispatch_key = 2; string request_id = 3; string text = 4; }
-message NativeViewerInterruptRequest { string session_object_key = 1; string dispatch_key = 2; string request_id = 3; string reason = 4; }
-message NativeViewerControlResponse { NativeViewerControlStatus status = 1; string session_object_key = 2; string dispatch_key = 3; string request_id = 4; string detail = 5; string accepted_delivery_key = 6; uint64 accepted_sequence = 7; }
-message NativeViewerFollowUpRequest { string predecessor_session_object_key = 1; string request_id = 2; string text = 3; }
-message NativeViewerFollowUpResponse { NativeViewerControlStatus status = 1; string predecessor_session_object_key = 2; string request_id = 3; string text = 4; string successor_session_object_key = 5; string detail = 6; }
-message NativeViewerCommand { string id = 1; string label = 2; string binding = 3; uint32 surface = 4; }
-message NativeViewerListCommandsRequest {}
-message NativeViewerListCommandsResponse { repeated NativeViewerCommand commands = 1; }
-message NativeViewerExecuteCommandRequest { string command_id = 1; string request_id = 2; }
-message NativeViewerExecuteCommandResponse { NativeViewerControlStatus status = 1; string command_id = 2; string request_id = 3; string detail = 4; }
+
+// NativeViewerAvailableSessionsRequest identifies the resource scope used for LlmSession discovery.
+message NativeViewerAvailableSessionsRequest {
+  // ScopeSessionObjectKey identifies the LlmSession that bounds discovery.
+  string scope_session_object_key = 1;
+}
+
+// NativeViewerAvailableSessionsResponse contains the LlmSessions available within the resource scope.
+message NativeViewerAvailableSessionsResponse {
+  // SessionObjectKeys lists LlmSession objects available within the resource scope.
+  repeated string session_object_keys = 1;
+}
+
+// NativeViewerSelectSessionRequest selects one LlmSession for the viewer.
+message NativeViewerSelectSessionRequest {
+  // SessionObjectKey identifies the selected LlmSession object.
+  string session_object_key = 1;
+  // RequestId identifies one idempotent control request.
+  string request_id = 2;
+}
+
+// NativeViewerSelectSessionResponse reports the LlmSession selection outcome.
+message NativeViewerSelectSessionResponse {
+  // Status reports the outcome of the requested operation.
+  NativeViewerControlStatus status = 1;
+  // SessionObjectKey identifies the selected LlmSession object.
+  string session_object_key = 2;
+  // RequestId identifies one idempotent control request.
+  string request_id = 3;
+  // Detail explains a rejected, failed, or cancelled operation.
+  string detail = 4;
+}
+
+// NativeViewerSendInputRequest delivers user input to an active LlmSession dispatch.
+message NativeViewerSendInputRequest {
+  // SessionObjectKey identifies the selected LlmSession object.
+  string session_object_key = 1;
+  // DispatchKey identifies the active dispatch within a Session.
+  string dispatch_key = 2;
+  // RequestId identifies one idempotent control request.
+  string request_id = 3;
+  // Text contains the bounded user input or follow-up text.
+  string text = 4;
+}
+
+// NativeViewerInterruptRequest requests interruption of an active LlmSession dispatch.
+message NativeViewerInterruptRequest {
+  // SessionObjectKey identifies the selected LlmSession object.
+  string session_object_key = 1;
+  // DispatchKey identifies the active dispatch within a Session.
+  string dispatch_key = 2;
+  // RequestId identifies one idempotent control request.
+  string request_id = 3;
+  // Reason describes why the active dispatch should be interrupted.
+  string reason = 4;
+}
+
+// NativeViewerControlResponse reports an LlmSession control outcome.
+message NativeViewerControlResponse {
+  // Status reports the outcome of the requested operation.
+  NativeViewerControlStatus status = 1;
+  // SessionObjectKey identifies the selected LlmSession object.
+  string session_object_key = 2;
+  // DispatchKey identifies the active dispatch within a Session.
+  string dispatch_key = 3;
+  // RequestId identifies one idempotent control request.
+  string request_id = 4;
+  // Detail explains a rejected, failed, or cancelled operation.
+  string detail = 5;
+  // AcceptedDeliveryKey identifies the accepted input delivery.
+  string accepted_delivery_key = 6;
+  // AcceptedSequence is the accepted delivery sequence.
+  uint64 accepted_sequence = 7;
+}
+
+// NativeViewerFollowUpRequest continues a predecessor LlmSession with new input.
+message NativeViewerFollowUpRequest {
+  // PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
+  string predecessor_session_object_key = 1;
+  // RequestId identifies one idempotent control request.
+  string request_id = 2;
+  // Text contains the bounded user input or follow-up text.
+  string text = 3;
+}
+
+// NativeViewerFollowUpResponse reports the successor LlmSession created by a follow-up.
+message NativeViewerFollowUpResponse {
+  // Status reports the outcome of the requested operation.
+  NativeViewerControlStatus status = 1;
+  // PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
+  string predecessor_session_object_key = 2;
+  // RequestId identifies one idempotent control request.
+  string request_id = 3;
+  // Text contains the bounded user input or follow-up text.
+  string text = 4;
+  // SuccessorSessionObjectKey identifies the LlmSession created by a follow-up.
+  string successor_session_object_key = 5;
+  // Detail explains a rejected, failed, or cancelled operation.
+  string detail = 6;
+}
+
+// NativeViewerCommand describes one command available on the TUI surface.
+message NativeViewerCommand {
+  // Id identifies the command.
+  string id = 1;
+  // Label is the command label shown to the user.
+  string label = 2;
+  // Binding is the display form of the command binding.
+  string binding = 3;
+  // Surface identifies the command surface.
+  uint32 surface = 4;
+}
+
+// NativeViewerListCommandsRequest requests the current TUI command snapshot.
+message NativeViewerListCommandsRequest {
+}
+
+// NativeViewerListCommandsResponse contains the current bounded TUI command snapshot.
+message NativeViewerListCommandsResponse {
+  // Commands contains the bounded available command snapshot.
+  repeated NativeViewerCommand commands = 1;
+}
+
+// NativeViewerExecuteCommandRequest requests invocation of one TUI command.
+message NativeViewerExecuteCommandRequest {
+  // CommandId identifies the command to invoke.
+  string command_id = 1;
+  // RequestId identifies one idempotent control request.
+  string request_id = 2;
+}
+
+// NativeViewerExecuteCommandResponse reports the TUI command invocation outcome.
+message NativeViewerExecuteCommandResponse {
+  // Status reports the outcome of the requested operation.
+  NativeViewerControlStatus status = 1;
+  // CommandId identifies the command to invoke.
+  string command_id = 2;
+  // RequestId identifies one idempotent control request.
+  string request_id = 3;
+  // Detail explains a rejected, failed, or cancelled operation.
+  string detail = 4;
+}
+
+// ControlService is the native viewer control boundary for the selected resource.
 service ControlService {
+  // AvailableSessions lists LlmSessions available within the selected resource scope.
   rpc AvailableSessions(NativeViewerAvailableSessionsRequest) returns (NativeViewerAvailableSessionsResponse);
+  // SelectSession selects an LlmSession for subsequent viewer controls.
   rpc SelectSession(NativeViewerSelectSessionRequest) returns (NativeViewerSelectSessionResponse);
+  // SendInput delivers input to an active LlmSession dispatch.
   rpc SendInput(NativeViewerSendInputRequest) returns (NativeViewerControlResponse);
+  // Interrupt requests interruption of an active LlmSession dispatch.
   rpc Interrupt(NativeViewerInterruptRequest) returns (NativeViewerControlResponse);
+  // FollowUp continues a predecessor LlmSession in a successor LlmSession.
   rpc FollowUp(NativeViewerFollowUpRequest) returns (NativeViewerFollowUpResponse);
+  // ListCommands returns the current bounded TUI command snapshot.
   rpc ListCommands(NativeViewerListCommandsRequest) returns (NativeViewerListCommandsResponse);
+  // ExecuteCommand invokes one command on the TUI surface.
   rpc ExecuteCommand(NativeViewerExecuteCommandRequest) returns (NativeViewerExecuteCommandResponse);
 }

@@ -12,16 +12,20 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 )
 
-const nativeViewerArtifactMaxBytes uint64 = 512 << 20
-const nativeViewerArtifactMode os.FileMode = 0o700
+const (
+	nativeViewerArtifactMaxBytes uint64      = 512 << 20
+	nativeViewerArtifactMode     os.FileMode = 0o700
+)
 
 // NativeViewerArtifact is one materialized native viewer executable.
 type NativeViewerArtifact struct {
 	// Path is the absolute private executable path.
 	Path string
 
+	// cleanupOnce guards cleanupErr and executable removal.
 	cleanupOnce sync.Once
-	cleanupErr  error
+	// cleanupErr records the first removal result.
+	cleanupErr error
 }
 
 // Close removes the private executable and is safe to call more than once.
@@ -38,6 +42,7 @@ func (a *NativeViewerArtifact) Close() error {
 	return a.cleanupErr
 }
 
+// nativeViewerArtifactFile exposes the bounded file operations required for materialization.
 type nativeViewerArtifactFile interface {
 	GetNodeType(context.Context) (unixfs.FSCursorNodeType, error)
 	GetSize(context.Context) (uint64, error)
@@ -45,6 +50,7 @@ type nativeViewerArtifactFile interface {
 	Release()
 }
 
+// nativeViewerArtifactLookup resolves a validated distribution entrypoint.
 type nativeViewerArtifactLookup func(context.Context, string) (nativeViewerArtifactFile, error)
 
 // MaterializeNativeViewerArtifact looks up the validated viewer entrypoint in
@@ -74,12 +80,14 @@ func MaterializeNativeViewerArtifact(
 	)
 }
 
+// materializeNativeViewerArtifactWithLookup publishes a private executable and removes every partial file on failure.
 func materializeNativeViewerArtifactWithLookup(
 	ctx context.Context,
 	resolution *NativeViewerResolution,
 	destinationDir string,
 	lookup nativeViewerArtifactLookup,
 ) (*NativeViewerArtifact, error) {
+	// Validate the immutable resolution and destination boundary before lookup.
 	if ctx == nil {
 		return nil, pkgerrors.New("context is required")
 	}
@@ -105,6 +113,7 @@ func materializeNativeViewerArtifactWithLookup(
 		return nil, pkgerrors.New("destination must be an existing directory")
 	}
 
+	// Acquire and validate the selected regular file before creating output.
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -140,6 +149,7 @@ func materializeNativeViewerArtifactWithLookup(
 		return nil, err
 	}
 
+	// Write and sync a private temporary file, removing it on every failure.
 	tmp, err := os.CreateTemp(destinationDir, ".native-viewer-tmp-*")
 	if err != nil {
 		return nil, pkgerrors.Wrap(err, "create native viewer artifact")
@@ -166,6 +176,7 @@ func materializeNativeViewerArtifactWithLookup(
 		return nil, pkgerrors.Wrap(err, "make native viewer artifact executable")
 	}
 
+	// Publish atomically, then prove the resulting executable mode and file type.
 	finalPath := tmpPath + ".ready"
 	if err := os.Rename(tmpPath, finalPath); err != nil {
 		_ = os.Remove(tmpPath)
@@ -189,6 +200,7 @@ func materializeNativeViewerArtifactWithLookup(
 	return &NativeViewerArtifact{Path: finalPath}, nil
 }
 
+// writeNativeViewerArtifact writes the complete native viewer artifact.
 func writeNativeViewerArtifact(
 	ctx context.Context,
 	dst io.Writer,

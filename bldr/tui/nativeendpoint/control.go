@@ -25,10 +25,13 @@ var errInvalidCommands = errors.New("native endpoint: invalid command snapshot")
 // controlBridge keeps the selected viewer controls on the selected resource
 // client while translating the command registry into the native control API.
 type controlBridge struct {
+	// selected serves controls for the selected resource.
 	selected native.SRPCControlServiceClient
+	// registry serves commands available to the TUI.
 	registry command_registry.SRPCCommandRegistryResourceServiceClient
 }
 
+// newControlBridge binds selected-resource controls and the TUI command registry.
 func newControlBridge(
 	selected native.SRPCControlServiceClient,
 	registry command_registry.SRPCCommandRegistryResourceServiceClient,
@@ -36,26 +39,32 @@ func newControlBridge(
 	return &controlBridge{selected: selected, registry: registry}
 }
 
+// AvailableSessions forwards Session discovery to the selected resource.
 func (b *controlBridge) AvailableSessions(ctx context.Context, req *native.NativeViewerAvailableSessionsRequest) (*native.NativeViewerAvailableSessionsResponse, error) {
 	return b.selected.AvailableSessions(ctx, req)
 }
 
+// SelectSession forwards Session selection to the selected resource.
 func (b *controlBridge) SelectSession(ctx context.Context, req *native.NativeViewerSelectSessionRequest) (*native.NativeViewerSelectSessionResponse, error) {
 	return b.selected.SelectSession(ctx, req)
 }
 
+// SendInput forwards user input to the selected resource.
 func (b *controlBridge) SendInput(ctx context.Context, req *native.NativeViewerSendInputRequest) (*native.NativeViewerControlResponse, error) {
 	return b.selected.SendInput(ctx, req)
 }
 
+// Interrupt forwards dispatch interruption to the selected resource.
 func (b *controlBridge) Interrupt(ctx context.Context, req *native.NativeViewerInterruptRequest) (*native.NativeViewerControlResponse, error) {
 	return b.selected.Interrupt(ctx, req)
 }
 
+// FollowUp forwards Session continuation to the selected resource.
 func (b *controlBridge) FollowUp(ctx context.Context, req *native.NativeViewerFollowUpRequest) (*native.NativeViewerFollowUpResponse, error) {
 	return b.selected.FollowUp(ctx, req)
 }
 
+// ListCommands returns a validated snapshot of active TUI commands.
 func (b *controlBridge) ListCommands(ctx context.Context, _ *native.NativeViewerListCommandsRequest) (*native.NativeViewerListCommandsResponse, error) {
 	watch, err := b.registry.WatchCommands(ctx, &command_registry.WatchCommandsRequest{
 		Surface: command.CommandSurface_COMMAND_SURFACE_TUI,
@@ -78,6 +87,7 @@ func (b *controlBridge) ListCommands(ctx context.Context, _ *native.NativeViewer
 	return &native.NativeViewerListCommandsResponse{Commands: commands}, nil
 }
 
+// ExecuteCommand invokes one validated TUI command.
 func (b *controlBridge) ExecuteCommand(ctx context.Context, req *native.NativeViewerExecuteCommandRequest) (*native.NativeViewerExecuteCommandResponse, error) {
 	if req == nil || !validIdentity(req.GetCommandId()) || !validRequestID(req.GetRequestId()) {
 		return rejectedCommand(req, "invalid command request"), nil
@@ -96,6 +106,7 @@ func (b *controlBridge) ExecuteCommand(ctx context.Context, req *native.NativeVi
 	}, nil
 }
 
+// rejectedCommand returns a rejection that preserves request identity.
 func rejectedCommand(req *native.NativeViewerExecuteCommandRequest, detail string) *native.NativeViewerExecuteCommandResponse {
 	if req == nil {
 		return &native.NativeViewerExecuteCommandResponse{
@@ -111,6 +122,7 @@ func rejectedCommand(req *native.NativeViewerExecuteCommandRequest, detail strin
 	}
 }
 
+// projectCommands validates and projects commands into the native viewer boundary.
 func projectCommands(states []*command_registry.CommandState) ([]*native.NativeViewerCommand, error) {
 	if len(states) > maxNativeCommands {
 		return nil, errInvalidCommands
@@ -151,6 +163,7 @@ func projectCommands(states []*command_registry.CommandState) ([]*native.NativeV
 	return commands, nil
 }
 
+// commandDisplayBinding returns the lexically first valid TUI binding display.
 func commandDisplayBinding(bindings []*command.CommandBinding) (string, error) {
 	if len(bindings) == 0 {
 		return "", nil
@@ -182,6 +195,7 @@ func commandDisplayBinding(bindings []*command.CommandBinding) (string, error) {
 	return displays[0], nil
 }
 
+// validCommandText accepts non-empty bounded UTF-8 command text without controls.
 func validCommandText(value string) bool {
 	if value == "" || len(value) > maxCommandText || !utf8.ValidString(value) {
 		return false

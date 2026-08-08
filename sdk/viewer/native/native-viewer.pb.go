@@ -14,23 +14,28 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
-// NativeViewerWireVersion is the versioned inherited native-viewer contract.
-// The record is deliberately independent of the daemon socket protocol.
+// NativeViewerEndpointKind classifies fixed inherited child endpoints.
 type NativeViewerEndpointKind int32
 
 const (
-	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_UNSPECIFIED NativeViewerEndpointKind = 0
-	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RECORD      NativeViewerEndpointKind = 1
-	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_READINESS   NativeViewerEndpointKind = 2
-	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE    NativeViewerEndpointKind = 3
-	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_STATE       NativeViewerEndpointKind = 4
-	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_CONTROL     NativeViewerEndpointKind = 5
+	// NATIVE_VIEWER_ENDPOINT_KIND_UNKNOWN is the invalid unknown value.
+	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_UNKNOWN NativeViewerEndpointKind = 0
+	// NATIVE_VIEWER_ENDPOINT_KIND_RECORD carries the immutable launch record.
+	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RECORD NativeViewerEndpointKind = 1
+	// NATIVE_VIEWER_ENDPOINT_KIND_READINESS carries child readiness evidence.
+	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_READINESS NativeViewerEndpointKind = 2
+	// NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE serves the selected resource API.
+	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE NativeViewerEndpointKind = 3
+	// NATIVE_VIEWER_ENDPOINT_KIND_STATE serves selected viewer state persistence.
+	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_STATE NativeViewerEndpointKind = 4
+	// NATIVE_VIEWER_ENDPOINT_KIND_CONTROL serves viewer control operations.
+	NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_CONTROL NativeViewerEndpointKind = 5
 )
 
 // Enum value maps for NativeViewerEndpointKind.
 var (
 	NativeViewerEndpointKind_name = map[int32]string{
-		0: "NATIVE_VIEWER_ENDPOINT_KIND_UNSPECIFIED",
+		0: "NATIVE_VIEWER_ENDPOINT_KIND_UNKNOWN",
 		1: "NATIVE_VIEWER_ENDPOINT_KIND_RECORD",
 		2: "NATIVE_VIEWER_ENDPOINT_KIND_READINESS",
 		3: "NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE",
@@ -38,12 +43,12 @@ var (
 		5: "NATIVE_VIEWER_ENDPOINT_KIND_CONTROL",
 	}
 	NativeViewerEndpointKind_value = map[string]int32{
-		"NATIVE_VIEWER_ENDPOINT_KIND_UNSPECIFIED": 0,
-		"NATIVE_VIEWER_ENDPOINT_KIND_RECORD":      1,
-		"NATIVE_VIEWER_ENDPOINT_KIND_READINESS":   2,
-		"NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE":    3,
-		"NATIVE_VIEWER_ENDPOINT_KIND_STATE":       4,
-		"NATIVE_VIEWER_ENDPOINT_KIND_CONTROL":     5,
+		"NATIVE_VIEWER_ENDPOINT_KIND_UNKNOWN":   0,
+		"NATIVE_VIEWER_ENDPOINT_KIND_RECORD":    1,
+		"NATIVE_VIEWER_ENDPOINT_KIND_READINESS": 2,
+		"NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE":  3,
+		"NATIVE_VIEWER_ENDPOINT_KIND_STATE":     4,
+		"NATIVE_VIEWER_ENDPOINT_KIND_CONTROL":   5,
 	}
 )
 
@@ -61,23 +66,27 @@ func (x NativeViewerEndpointKind) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// NativeViewerTransport selects an inherited endpoint wire protocol.
 type NativeViewerTransport int32
 
 const (
-	NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_UNSPECIFIED            NativeViewerTransport = 0
+	// NATIVE_VIEWER_TRANSPORT_UNKNOWN is the invalid unknown value.
+	NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_UNKNOWN NativeViewerTransport = 0
+	// NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO uses bounded length-delimited protobuf records.
 	NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO NativeViewerTransport = 1
-	NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC                   NativeViewerTransport = 2
+	// NATIVE_VIEWER_TRANSPORT_SRPC uses the SRPC transport.
+	NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC NativeViewerTransport = 2
 )
 
 // Enum value maps for NativeViewerTransport.
 var (
 	NativeViewerTransport_name = map[int32]string{
-		0: "NATIVE_VIEWER_TRANSPORT_UNSPECIFIED",
+		0: "NATIVE_VIEWER_TRANSPORT_UNKNOWN",
 		1: "NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO",
 		2: "NATIVE_VIEWER_TRANSPORT_SRPC",
 	}
 	NativeViewerTransport_value = map[string]int32{
-		"NATIVE_VIEWER_TRANSPORT_UNSPECIFIED":            0,
+		"NATIVE_VIEWER_TRANSPORT_UNKNOWN":                0,
 		"NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO": 1,
 		"NATIVE_VIEWER_TRANSPORT_SRPC":                   2,
 	}
@@ -97,25 +106,29 @@ func (x NativeViewerTransport) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// NativeViewerFDMode restricts an inherited descriptor direction.
 type NativeViewerFDMode int32
 
 const (
-	NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_UNSPECIFIED NativeViewerFDMode = 0
-	NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_READ        NativeViewerFDMode = 1
-	NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE       NativeViewerFDMode = 2
+	// NATIVE_VIEWER_FD_MODE_UNKNOWN is the invalid unknown value.
+	NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_UNKNOWN NativeViewerFDMode = 0
+	// NATIVE_VIEWER_FD_MODE_READ permits reads from the descriptor.
+	NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_READ NativeViewerFDMode = 1
+	// NATIVE_VIEWER_FD_MODE_WRITE permits writes to the descriptor.
+	NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE NativeViewerFDMode = 2
 )
 
 // Enum value maps for NativeViewerFDMode.
 var (
 	NativeViewerFDMode_name = map[int32]string{
-		0: "NATIVE_VIEWER_FD_MODE_UNSPECIFIED",
+		0: "NATIVE_VIEWER_FD_MODE_UNKNOWN",
 		1: "NATIVE_VIEWER_FD_MODE_READ",
 		2: "NATIVE_VIEWER_FD_MODE_WRITE",
 	}
 	NativeViewerFDMode_value = map[string]int32{
-		"NATIVE_VIEWER_FD_MODE_UNSPECIFIED": 0,
-		"NATIVE_VIEWER_FD_MODE_READ":        1,
-		"NATIVE_VIEWER_FD_MODE_WRITE":       2,
+		"NATIVE_VIEWER_FD_MODE_UNKNOWN": 0,
+		"NATIVE_VIEWER_FD_MODE_READ":    1,
+		"NATIVE_VIEWER_FD_MODE_WRITE":   2,
 	}
 )
 
@@ -133,28 +146,33 @@ func (x NativeViewerFDMode) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// NativeViewerReadinessStatus reports child startup progress or terminal outcome.
 type NativeViewerReadinessStatus int32
 
 const (
-	NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_UNSPECIFIED NativeViewerReadinessStatus = 0
-	NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY       NativeViewerReadinessStatus = 1
-	NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_FAILED      NativeViewerReadinessStatus = 2
-	NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_CANCELLED   NativeViewerReadinessStatus = 3
+	// NATIVE_VIEWER_READINESS_STATUS_UNKNOWN is the invalid unknown value.
+	NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_UNKNOWN NativeViewerReadinessStatus = 0
+	// NATIVE_VIEWER_READINESS_STATUS_READY reports that the first frame was rendered.
+	NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY NativeViewerReadinessStatus = 1
+	// NATIVE_VIEWER_READINESS_STATUS_FAILED reports terminal startup failure after cleanup.
+	NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_FAILED NativeViewerReadinessStatus = 2
+	// NATIVE_VIEWER_READINESS_STATUS_CANCELLED reports startup cancellation after cleanup.
+	NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_CANCELLED NativeViewerReadinessStatus = 3
 )
 
 // Enum value maps for NativeViewerReadinessStatus.
 var (
 	NativeViewerReadinessStatus_name = map[int32]string{
-		0: "NATIVE_VIEWER_READINESS_STATUS_UNSPECIFIED",
+		0: "NATIVE_VIEWER_READINESS_STATUS_UNKNOWN",
 		1: "NATIVE_VIEWER_READINESS_STATUS_READY",
 		2: "NATIVE_VIEWER_READINESS_STATUS_FAILED",
 		3: "NATIVE_VIEWER_READINESS_STATUS_CANCELLED",
 	}
 	NativeViewerReadinessStatus_value = map[string]int32{
-		"NATIVE_VIEWER_READINESS_STATUS_UNSPECIFIED": 0,
-		"NATIVE_VIEWER_READINESS_STATUS_READY":       1,
-		"NATIVE_VIEWER_READINESS_STATUS_FAILED":      2,
-		"NATIVE_VIEWER_READINESS_STATUS_CANCELLED":   3,
+		"NATIVE_VIEWER_READINESS_STATUS_UNKNOWN":   0,
+		"NATIVE_VIEWER_READINESS_STATUS_READY":     1,
+		"NATIVE_VIEWER_READINESS_STATUS_FAILED":    2,
+		"NATIVE_VIEWER_READINESS_STATUS_CANCELLED": 3,
 	}
 )
 
@@ -172,25 +190,29 @@ func (x NativeViewerReadinessStatus) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// NativeViewerControlStatus reports whether a control request was accepted.
 type NativeViewerControlStatus int32
 
 const (
-	NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNSPECIFIED NativeViewerControlStatus = 0
-	NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED    NativeViewerControlStatus = 1
-	NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_REJECTED    NativeViewerControlStatus = 2
+	// NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN is the invalid unknown value.
+	NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN NativeViewerControlStatus = 0
+	// NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED reports that the request was accepted.
+	NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED NativeViewerControlStatus = 1
+	// NATIVE_VIEWER_CONTROL_STATUS_REJECTED reports that the request was rejected.
+	NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_REJECTED NativeViewerControlStatus = 2
 )
 
 // Enum value maps for NativeViewerControlStatus.
 var (
 	NativeViewerControlStatus_name = map[int32]string{
-		0: "NATIVE_VIEWER_CONTROL_STATUS_UNSPECIFIED",
+		0: "NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN",
 		1: "NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED",
 		2: "NATIVE_VIEWER_CONTROL_STATUS_REJECTED",
 	}
 	NativeViewerControlStatus_value = map[string]int32{
-		"NATIVE_VIEWER_CONTROL_STATUS_UNSPECIFIED": 0,
-		"NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED":    1,
-		"NATIVE_VIEWER_CONTROL_STATUS_REJECTED":    2,
+		"NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN":  0,
+		"NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED": 1,
+		"NATIVE_VIEWER_CONTROL_STATUS_REJECTED": 2,
 	}
 )
 
@@ -208,15 +230,23 @@ func (x NativeViewerControlStatus) String() string {
 	return strconv.Itoa(int(x))
 }
 
+// NativeViewerEndpointDescriptor describes one fixed inherited child endpoint.
 type NativeViewerEndpointDescriptor struct {
-	unknownFields   []byte
-	Kind            NativeViewerEndpointKind `protobuf:"varint,1,opt,name=kind,proto3" json:"kind,omitempty"`
-	Fd              int32                    `protobuf:"varint,2,opt,name=fd,proto3" json:"fd,omitempty"`
-	Transport       NativeViewerTransport    `protobuf:"varint,3,opt,name=transport,proto3" json:"transport,omitempty"`
-	ServiceId       string                   `protobuf:"bytes,4,opt,name=service_id,json=serviceId,proto3" json:"serviceId,omitempty"`
-	ProtocolVersion uint32                   `protobuf:"varint,5,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocolVersion,omitempty"`
-	Required        bool                     `protobuf:"varint,6,opt,name=required,proto3" json:"required,omitempty"`
-	CloseOnExit     bool                     `protobuf:"varint,7,opt,name=close_on_exit,json=closeOnExit,proto3" json:"closeOnExit,omitempty"`
+	unknownFields []byte
+	// Kind selects the inherited endpoint role.
+	Kind NativeViewerEndpointKind `protobuf:"varint,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Fd is the inherited file descriptor number.
+	Fd int32 `protobuf:"varint,2,opt,name=fd,proto3" json:"fd,omitempty"`
+	// Transport selects the framing and call protocol.
+	Transport NativeViewerTransport `protobuf:"varint,3,opt,name=transport,proto3" json:"transport,omitempty"`
+	// ServiceId identifies the service exposed by the endpoint.
+	ServiceId string `protobuf:"bytes,4,opt,name=service_id,json=serviceId,proto3" json:"serviceId,omitempty"`
+	// ProtocolVersion selects the native viewer protocol contract.
+	ProtocolVersion uint32 `protobuf:"varint,5,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocolVersion,omitempty"`
+	// Required requires the child to reject a launch when the endpoint is unavailable.
+	Required bool `protobuf:"varint,6,opt,name=required,proto3" json:"required,omitempty"`
+	// CloseOnExit requires the child to close the endpoint during shutdown.
+	CloseOnExit bool `protobuf:"varint,7,opt,name=close_on_exit,json=closeOnExit,proto3" json:"closeOnExit,omitempty"`
 }
 
 func (x *NativeViewerEndpointDescriptor) Reset() {
@@ -229,7 +259,7 @@ func (x *NativeViewerEndpointDescriptor) GetKind() NativeViewerEndpointKind {
 	if x != nil {
 		return x.Kind
 	}
-	return NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_UNSPECIFIED
+	return NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_UNKNOWN
 }
 
 func (x *NativeViewerEndpointDescriptor) GetFd() int32 {
@@ -243,7 +273,7 @@ func (x *NativeViewerEndpointDescriptor) GetTransport() NativeViewerTransport {
 	if x != nil {
 		return x.Transport
 	}
-	return NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_UNSPECIFIED
+	return NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_UNKNOWN
 }
 
 func (x *NativeViewerEndpointDescriptor) GetServiceId() string {
@@ -274,13 +304,19 @@ func (x *NativeViewerEndpointDescriptor) GetCloseOnExit() bool {
 	return false
 }
 
+// NativeViewerIODescriptor describes the child terminal stream contract.
 type NativeViewerIODescriptor struct {
 	unknownFields []byte
-	InputFd       int32              `protobuf:"varint,1,opt,name=input_fd,json=inputFd,proto3" json:"inputFd,omitempty"`
-	OutputFd      int32              `protobuf:"varint,2,opt,name=output_fd,json=outputFd,proto3" json:"outputFd,omitempty"`
-	DiagnosticFd  int32              `protobuf:"varint,3,opt,name=diagnostic_fd,json=diagnosticFd,proto3" json:"diagnosticFd,omitempty"`
-	InputMode     NativeViewerFDMode `protobuf:"varint,4,opt,name=input_mode,json=inputMode,proto3" json:"inputMode,omitempty"`
-	OutputMode    NativeViewerFDMode `protobuf:"varint,5,opt,name=output_mode,json=outputMode,proto3" json:"outputMode,omitempty"`
+	// InputFd is the terminal input file descriptor.
+	InputFd int32 `protobuf:"varint,1,opt,name=input_fd,json=inputFd,proto3" json:"inputFd,omitempty"`
+	// OutputFd is the terminal output file descriptor.
+	OutputFd int32 `protobuf:"varint,2,opt,name=output_fd,json=outputFd,proto3" json:"outputFd,omitempty"`
+	// DiagnosticFd is the diagnostic output file descriptor.
+	DiagnosticFd int32 `protobuf:"varint,3,opt,name=diagnostic_fd,json=diagnosticFd,proto3" json:"diagnosticFd,omitempty"`
+	// InputMode restricts the input descriptor to its permitted direction.
+	InputMode NativeViewerFDMode `protobuf:"varint,4,opt,name=input_mode,json=inputMode,proto3" json:"inputMode,omitempty"`
+	// OutputMode restricts the output descriptor to its permitted direction.
+	OutputMode NativeViewerFDMode `protobuf:"varint,5,opt,name=output_mode,json=outputMode,proto3" json:"outputMode,omitempty"`
 }
 
 func (x *NativeViewerIODescriptor) Reset() {
@@ -314,32 +350,47 @@ func (x *NativeViewerIODescriptor) GetInputMode() NativeViewerFDMode {
 	if x != nil {
 		return x.InputMode
 	}
-	return NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_UNSPECIFIED
+	return NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_UNKNOWN
 }
 
 func (x *NativeViewerIODescriptor) GetOutputMode() NativeViewerFDMode {
 	if x != nil {
 		return x.OutputMode
 	}
-	return NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_UNSPECIFIED
+	return NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_UNKNOWN
 }
 
+// NativeViewerLaunchRecord freezes the identities and endpoints for one child launch.
 type NativeViewerLaunchRecord struct {
-	unknownFields                 []byte
-	WireVersion                   uint32                            `protobuf:"varint,1,opt,name=wire_version,json=wireVersion,proto3" json:"wireVersion,omitempty"`
-	ProtocolVersion               uint32                            `protobuf:"varint,2,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocolVersion,omitempty"`
-	LaunchId                      string                            `protobuf:"bytes,3,opt,name=launch_id,json=launchId,proto3" json:"launchId,omitempty"`
-	SessionObjectKey              string                            `protobuf:"bytes,4,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
-	SpaceObjectKey                string                            `protobuf:"bytes,5,opt,name=space_object_key,json=spaceObjectKey,proto3" json:"spaceObjectKey,omitempty"`
-	ManifestObjectKey             string                            `protobuf:"bytes,6,opt,name=manifest_object_key,json=manifestObjectKey,proto3" json:"manifestObjectKey,omitempty"`
-	ManifestDigest                string                            `protobuf:"bytes,7,opt,name=manifest_digest,json=manifestDigest,proto3" json:"manifestDigest,omitempty"`
-	ViewerObjectKey               string                            `protobuf:"bytes,8,opt,name=viewer_object_key,json=viewerObjectKey,proto3" json:"viewerObjectKey,omitempty"`
-	ViewerProfile                 string                            `protobuf:"bytes,9,opt,name=viewer_profile,json=viewerProfile,proto3" json:"viewerProfile,omitempty"`
-	ResourceScopeSessionObjectKey string                            `protobuf:"bytes,10,opt,name=resource_scope_session_object_key,json=resourceScopeSessionObjectKey,proto3" json:"resourceScopeSessionObjectKey,omitempty"`
-	SelectedStateKey              string                            `protobuf:"bytes,11,opt,name=selected_state_key,json=selectedStateKey,proto3" json:"selectedStateKey,omitempty"`
-	Endpoints                     []*NativeViewerEndpointDescriptor `protobuf:"bytes,12,rep,name=endpoints,proto3" json:"endpoints,omitempty"`
-	Io                            *NativeViewerIODescriptor         `protobuf:"bytes,13,opt,name=io,proto3" json:"io,omitempty"`
-	LaunchNonce                   string                            `protobuf:"bytes,14,opt,name=launch_nonce,json=launchNonce,proto3" json:"launchNonce,omitempty"`
+	unknownFields []byte
+	// WireVersion selects the inherited record encoding contract.
+	WireVersion uint32 `protobuf:"varint,1,opt,name=wire_version,json=wireVersion,proto3" json:"wireVersion,omitempty"`
+	// ProtocolVersion selects the native viewer protocol contract.
+	ProtocolVersion uint32 `protobuf:"varint,2,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocolVersion,omitempty"`
+	// LaunchId identifies one supervised child launch.
+	LaunchId string `protobuf:"bytes,3,opt,name=launch_id,json=launchId,proto3" json:"launchId,omitempty"`
+	// SessionObjectKey identifies the selected LlmSession object.
+	SessionObjectKey string `protobuf:"bytes,4,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
+	// SpaceObjectKey identifies the selected Space object.
+	SpaceObjectKey string `protobuf:"bytes,5,opt,name=space_object_key,json=spaceObjectKey,proto3" json:"spaceObjectKey,omitempty"`
+	// ManifestObjectKey identifies the immutable selected manifest object.
+	ManifestObjectKey string `protobuf:"bytes,6,opt,name=manifest_object_key,json=manifestObjectKey,proto3" json:"manifestObjectKey,omitempty"`
+	// ManifestDigest is the selected manifest root digest.
+	ManifestDigest string `protobuf:"bytes,7,opt,name=manifest_digest,json=manifestDigest,proto3" json:"manifestDigest,omitempty"`
+	// ViewerObjectKey identifies the selected typed viewer resource object.
+	ViewerObjectKey string `protobuf:"bytes,8,opt,name=viewer_object_key,json=viewerObjectKey,proto3" json:"viewerObjectKey,omitempty"`
+	// ViewerProfile selects the viewer profile declared by the manifest.
+	ViewerProfile string `protobuf:"bytes,9,opt,name=viewer_profile,json=viewerProfile,proto3" json:"viewerProfile,omitempty"`
+	// ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
+	ResourceScopeSessionObjectKey string `protobuf:"bytes,10,opt,name=resource_scope_session_object_key,json=resourceScopeSessionObjectKey,proto3" json:"resourceScopeSessionObjectKey,omitempty"`
+	// SelectedStateKey identifies the state atom persisted for this viewer selection.
+	SelectedStateKey string `protobuf:"bytes,11,opt,name=selected_state_key,json=selectedStateKey,proto3" json:"selectedStateKey,omitempty"`
+	// Endpoints describes every inherited endpoint required by the child.
+	Endpoints []*NativeViewerEndpointDescriptor `protobuf:"bytes,12,rep,name=endpoints,proto3" json:"endpoints,omitempty"`
+	// Io describes the child terminal streams.
+	Io *NativeViewerIODescriptor `protobuf:"bytes,13,opt,name=io,proto3" json:"io,omitempty"`
+	// LaunchNonce binds readiness evidence to one launch attempt.
+	LaunchNonce string `protobuf:"bytes,14,opt,name=launch_nonce,json=launchNonce,proto3" json:"launchNonce,omitempty"`
 }
 
 func (x *NativeViewerLaunchRecord) Reset() {
@@ -446,26 +497,45 @@ func (x *NativeViewerLaunchRecord) GetLaunchNonce() string {
 	return ""
 }
 
+// NativeViewerReadinessRecord reports the first rendered frame or terminal startup failure.
 type NativeViewerReadinessRecord struct {
-	unknownFields                 []byte
-	WireVersion                   uint32                      `protobuf:"varint,1,opt,name=wire_version,json=wireVersion,proto3" json:"wireVersion,omitempty"`
-	ProtocolVersion               uint32                      `protobuf:"varint,2,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocolVersion,omitempty"`
-	LaunchId                      string                      `protobuf:"bytes,3,opt,name=launch_id,json=launchId,proto3" json:"launchId,omitempty"`
-	SessionObjectKey              string                      `protobuf:"bytes,4,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
-	SpaceObjectKey                string                      `protobuf:"bytes,5,opt,name=space_object_key,json=spaceObjectKey,proto3" json:"spaceObjectKey,omitempty"`
-	ManifestObjectKey             string                      `protobuf:"bytes,6,opt,name=manifest_object_key,json=manifestObjectKey,proto3" json:"manifestObjectKey,omitempty"`
-	ManifestDigest                string                      `protobuf:"bytes,7,opt,name=manifest_digest,json=manifestDigest,proto3" json:"manifestDigest,omitempty"`
-	ViewerObjectKey               string                      `protobuf:"bytes,8,opt,name=viewer_object_key,json=viewerObjectKey,proto3" json:"viewerObjectKey,omitempty"`
-	Status                        NativeViewerReadinessStatus `protobuf:"varint,9,opt,name=status,proto3" json:"status,omitempty"`
-	ResourceRevision              uint64                      `protobuf:"varint,10,opt,name=resource_revision,json=resourceRevision,proto3" json:"resourceRevision,omitempty"`
-	ResourceCursor                uint64                      `protobuf:"varint,11,opt,name=resource_cursor,json=resourceCursor,proto3" json:"resourceCursor,omitempty"`
-	FrameSequence                 uint64                      `protobuf:"varint,12,opt,name=frame_sequence,json=frameSequence,proto3" json:"frameSequence,omitempty"`
-	Detail                        string                      `protobuf:"bytes,13,opt,name=detail,proto3" json:"detail,omitempty"`
-	TerminalRestoreAttempted      bool                        `protobuf:"varint,14,opt,name=terminal_restore_attempted,json=terminalRestoreAttempted,proto3" json:"terminalRestoreAttempted,omitempty"`
-	AllWorkersJoined              bool                        `protobuf:"varint,15,opt,name=all_workers_joined,json=allWorkersJoined,proto3" json:"allWorkersJoined,omitempty"`
-	ViewerProfile                 string                      `protobuf:"bytes,16,opt,name=viewer_profile,json=viewerProfile,proto3" json:"viewerProfile,omitempty"`
-	ResourceScopeSessionObjectKey string                      `protobuf:"bytes,17,opt,name=resource_scope_session_object_key,json=resourceScopeSessionObjectKey,proto3" json:"resourceScopeSessionObjectKey,omitempty"`
-	SelectedStateKey              string                      `protobuf:"bytes,18,opt,name=selected_state_key,json=selectedStateKey,proto3" json:"selectedStateKey,omitempty"`
+	unknownFields []byte
+	// WireVersion selects the inherited record encoding contract.
+	WireVersion uint32 `protobuf:"varint,1,opt,name=wire_version,json=wireVersion,proto3" json:"wireVersion,omitempty"`
+	// ProtocolVersion selects the native viewer protocol contract.
+	ProtocolVersion uint32 `protobuf:"varint,2,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocolVersion,omitempty"`
+	// LaunchId identifies one supervised child launch.
+	LaunchId string `protobuf:"bytes,3,opt,name=launch_id,json=launchId,proto3" json:"launchId,omitempty"`
+	// SessionObjectKey identifies the selected LlmSession object.
+	SessionObjectKey string `protobuf:"bytes,4,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
+	// SpaceObjectKey identifies the selected Space object.
+	SpaceObjectKey string `protobuf:"bytes,5,opt,name=space_object_key,json=spaceObjectKey,proto3" json:"spaceObjectKey,omitempty"`
+	// ManifestObjectKey identifies the immutable selected manifest object.
+	ManifestObjectKey string `protobuf:"bytes,6,opt,name=manifest_object_key,json=manifestObjectKey,proto3" json:"manifestObjectKey,omitempty"`
+	// ManifestDigest is the selected manifest root digest.
+	ManifestDigest string `protobuf:"bytes,7,opt,name=manifest_digest,json=manifestDigest,proto3" json:"manifestDigest,omitempty"`
+	// ViewerObjectKey identifies the selected typed viewer resource object.
+	ViewerObjectKey string `protobuf:"bytes,8,opt,name=viewer_object_key,json=viewerObjectKey,proto3" json:"viewerObjectKey,omitempty"`
+	// Status reports the outcome of the requested operation.
+	Status NativeViewerReadinessStatus `protobuf:"varint,9,opt,name=status,proto3" json:"status,omitempty"`
+	// ResourceRevision is the first observed resource revision.
+	ResourceRevision uint64 `protobuf:"varint,10,opt,name=resource_revision,json=resourceRevision,proto3" json:"resourceRevision,omitempty"`
+	// ResourceCursor is the first observed resource event cursor.
+	ResourceCursor uint64 `protobuf:"varint,11,opt,name=resource_cursor,json=resourceCursor,proto3" json:"resourceCursor,omitempty"`
+	// FrameSequence is the first rendered frame sequence.
+	FrameSequence uint64 `protobuf:"varint,12,opt,name=frame_sequence,json=frameSequence,proto3" json:"frameSequence,omitempty"`
+	// Detail explains a rejected, failed, or cancelled operation.
+	Detail string `protobuf:"bytes,13,opt,name=detail,proto3" json:"detail,omitempty"`
+	// TerminalRestoreAttempted reports that terminal restoration ran before terminal failure readiness.
+	TerminalRestoreAttempted bool `protobuf:"varint,14,opt,name=terminal_restore_attempted,json=terminalRestoreAttempted,proto3" json:"terminalRestoreAttempted,omitempty"`
+	// AllWorkersJoined reports that child workers stopped before terminal failure readiness.
+	AllWorkersJoined bool `protobuf:"varint,15,opt,name=all_workers_joined,json=allWorkersJoined,proto3" json:"allWorkersJoined,omitempty"`
+	// ViewerProfile selects the viewer profile declared by the manifest.
+	ViewerProfile string `protobuf:"bytes,16,opt,name=viewer_profile,json=viewerProfile,proto3" json:"viewerProfile,omitempty"`
+	// ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
+	ResourceScopeSessionObjectKey string `protobuf:"bytes,17,opt,name=resource_scope_session_object_key,json=resourceScopeSessionObjectKey,proto3" json:"resourceScopeSessionObjectKey,omitempty"`
+	// SelectedStateKey identifies the state atom persisted for this viewer selection.
+	SelectedStateKey string `protobuf:"bytes,18,opt,name=selected_state_key,json=selectedStateKey,proto3" json:"selectedStateKey,omitempty"`
 }
 
 func (x *NativeViewerReadinessRecord) Reset() {
@@ -534,7 +604,7 @@ func (x *NativeViewerReadinessRecord) GetStatus() NativeViewerReadinessStatus {
 	if x != nil {
 		return x.Status
 	}
-	return NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_UNSPECIFIED
+	return NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_UNKNOWN
 }
 
 func (x *NativeViewerReadinessRecord) GetResourceRevision() uint64 {
@@ -600,15 +670,22 @@ func (x *NativeViewerReadinessRecord) GetSelectedStateKey() string {
 	return ""
 }
 
+// NativeViewerSelectedState persists the bounded UI selection state for one viewer.
 type NativeViewerSelectedState struct {
 	unknownFields []byte
-	Tabs          []string          `protobuf:"bytes,1,rep,name=tabs,proto3" json:"tabs,omitempty"`
-	Focused       string            `protobuf:"bytes,2,opt,name=focused,proto3" json:"focused,omitempty"`
-	Drafts        map[string]string `protobuf:"bytes,3,rep,name=drafts,proto3" json:"drafts,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	Viewports     map[string]uint32 `protobuf:"bytes,4,rep,name=viewports,proto3" json:"viewports,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
-	SelectedView  uint32            `protobuf:"varint,5,opt,name=selected_view,json=selectedView,proto3" json:"selectedView,omitempty"`
-	Theme         uint32            `protobuf:"varint,6,opt,name=theme,proto3" json:"theme,omitempty"`
-	// SpaceObjectKey is the selected Space restored before child launch.
+	// Tabs orders the bounded set of open LlmSession object keys.
+	Tabs []string `protobuf:"bytes,1,rep,name=tabs,proto3" json:"tabs,omitempty"`
+	// Focused identifies the focused LlmSession tab.
+	Focused string `protobuf:"bytes,2,opt,name=focused,proto3" json:"focused,omitempty"`
+	// Drafts maps LlmSession object keys to bounded UTF-8 input drafts.
+	Drafts map[string]string `protobuf:"bytes,3,rep,name=drafts,proto3" json:"drafts,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// Viewports maps LlmSession object keys to bounded transcript offsets.
+	Viewports map[string]uint32 `protobuf:"bytes,4,rep,name=viewports,proto3" json:"viewports,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	// SelectedView selects the active viewer pane.
+	SelectedView uint32 `protobuf:"varint,5,opt,name=selected_view,json=selectedView,proto3" json:"selectedView,omitempty"`
+	// Theme selects the viewer color theme.
+	Theme uint32 `protobuf:"varint,6,opt,name=theme,proto3" json:"theme,omitempty"`
+	// SpaceObjectKey identifies the selected Space object.
 	SpaceObjectKey string `protobuf:"bytes,7,opt,name=space_object_key,json=spaceObjectKey,proto3" json:"spaceObjectKey,omitempty"`
 }
 
@@ -667,9 +744,11 @@ func (x *NativeViewerSelectedState) GetSpaceObjectKey() string {
 	return ""
 }
 
+// NativeViewerStateLoadRequest identifies the selected state atom to load.
 type NativeViewerStateLoadRequest struct {
 	unknownFields []byte
-	StateKey      string `protobuf:"bytes,1,opt,name=state_key,json=stateKey,proto3" json:"stateKey,omitempty"`
+	// StateKey identifies the selected state atom.
+	StateKey string `protobuf:"bytes,1,opt,name=state_key,json=stateKey,proto3" json:"stateKey,omitempty"`
 }
 
 func (x *NativeViewerStateLoadRequest) Reset() {
@@ -685,10 +764,13 @@ func (x *NativeViewerStateLoadRequest) GetStateKey() string {
 	return ""
 }
 
+// NativeViewerStateLoadResponse contains the complete selected viewer state.
 type NativeViewerStateLoadResponse struct {
 	unknownFields []byte
-	State         *NativeViewerSelectedState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
-	StateKey      string                     `protobuf:"bytes,2,opt,name=state_key,json=stateKey,proto3" json:"stateKey,omitempty"`
+	// State contains the complete bounded selected viewer state.
+	State *NativeViewerSelectedState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+	// StateKey identifies the selected state atom.
+	StateKey string `protobuf:"bytes,2,opt,name=state_key,json=stateKey,proto3" json:"stateKey,omitempty"`
 }
 
 func (x *NativeViewerStateLoadResponse) Reset() {
@@ -711,11 +793,15 @@ func (x *NativeViewerStateLoadResponse) GetStateKey() string {
 	return ""
 }
 
+// NativeViewerStateSaveRequest contains one selected viewer state update.
 type NativeViewerStateSaveRequest struct {
 	unknownFields []byte
-	StateKey      string                     `protobuf:"bytes,1,opt,name=state_key,json=stateKey,proto3" json:"stateKey,omitempty"`
-	State         *NativeViewerSelectedState `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
-	RequestId     string                     `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
+	// StateKey identifies the selected state atom.
+	StateKey string `protobuf:"bytes,1,opt,name=state_key,json=stateKey,proto3" json:"stateKey,omitempty"`
+	// State contains the complete bounded selected viewer state.
+	State *NativeViewerSelectedState `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	// RequestId identifies one idempotent state update.
+	RequestId string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
 }
 
 func (x *NativeViewerStateSaveRequest) Reset() {
@@ -745,12 +831,17 @@ func (x *NativeViewerStateSaveRequest) GetRequestId() string {
 	return ""
 }
 
+// NativeViewerStateSaveResponse reports the selected viewer state update outcome.
 type NativeViewerStateSaveResponse struct {
 	unknownFields []byte
-	Accepted      bool   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
-	StateKey      string `protobuf:"bytes,2,opt,name=state_key,json=stateKey,proto3" json:"stateKey,omitempty"`
-	RequestId     string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
-	Detail        string `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Accepted reports whether the state update was persisted.
+	Accepted bool `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	// StateKey identifies the selected state atom.
+	StateKey string `protobuf:"bytes,2,opt,name=state_key,json=stateKey,proto3" json:"stateKey,omitempty"`
+	// RequestId identifies one idempotent state update.
+	RequestId string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
+	// Detail explains a rejected, failed, or cancelled operation.
+	Detail string `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
 }
 
 func (x *NativeViewerStateSaveResponse) Reset() {
@@ -787,8 +878,10 @@ func (x *NativeViewerStateSaveResponse) GetDetail() string {
 	return ""
 }
 
+// NativeViewerAvailableSessionsRequest identifies the resource scope used for LlmSession discovery.
 type NativeViewerAvailableSessionsRequest struct {
-	unknownFields         []byte
+	unknownFields []byte
+	// ScopeSessionObjectKey identifies the LlmSession that bounds discovery.
 	ScopeSessionObjectKey string `protobuf:"bytes,1,opt,name=scope_session_object_key,json=scopeSessionObjectKey,proto3" json:"scopeSessionObjectKey,omitempty"`
 }
 
@@ -805,8 +898,10 @@ func (x *NativeViewerAvailableSessionsRequest) GetScopeSessionObjectKey() string
 	return ""
 }
 
+// NativeViewerAvailableSessionsResponse contains the LlmSessions available within the resource scope.
 type NativeViewerAvailableSessionsResponse struct {
-	unknownFields     []byte
+	unknownFields []byte
+	// SessionObjectKeys lists LlmSession objects available within the resource scope.
 	SessionObjectKeys []string `protobuf:"bytes,1,rep,name=session_object_keys,json=sessionObjectKeys,proto3" json:"sessionObjectKeys,omitempty"`
 }
 
@@ -823,10 +918,13 @@ func (x *NativeViewerAvailableSessionsResponse) GetSessionObjectKeys() []string 
 	return nil
 }
 
+// NativeViewerSelectSessionRequest selects one LlmSession for the viewer.
 type NativeViewerSelectSessionRequest struct {
-	unknownFields    []byte
+	unknownFields []byte
+	// SessionObjectKey identifies the selected LlmSession object.
 	SessionObjectKey string `protobuf:"bytes,1,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
-	RequestId        string `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
+	// RequestId identifies one idempotent control request.
+	RequestId string `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
 }
 
 func (x *NativeViewerSelectSessionRequest) Reset() {
@@ -849,12 +947,17 @@ func (x *NativeViewerSelectSessionRequest) GetRequestId() string {
 	return ""
 }
 
+// NativeViewerSelectSessionResponse reports the LlmSession selection outcome.
 type NativeViewerSelectSessionResponse struct {
-	unknownFields    []byte
-	Status           NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	SessionObjectKey string                    `protobuf:"bytes,2,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
-	RequestId        string                    `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
-	Detail           string                    `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
+	unknownFields []byte
+	// Status reports the outcome of the requested operation.
+	Status NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	// SessionObjectKey identifies the selected LlmSession object.
+	SessionObjectKey string `protobuf:"bytes,2,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
+	// RequestId identifies one idempotent control request.
+	RequestId string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
+	// Detail explains a rejected, failed, or cancelled operation.
+	Detail string `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
 }
 
 func (x *NativeViewerSelectSessionResponse) Reset() {
@@ -867,7 +970,7 @@ func (x *NativeViewerSelectSessionResponse) GetStatus() NativeViewerControlStatu
 	if x != nil {
 		return x.Status
 	}
-	return NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNSPECIFIED
+	return NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN
 }
 
 func (x *NativeViewerSelectSessionResponse) GetSessionObjectKey() string {
@@ -891,12 +994,17 @@ func (x *NativeViewerSelectSessionResponse) GetDetail() string {
 	return ""
 }
 
+// NativeViewerSendInputRequest delivers user input to an active LlmSession dispatch.
 type NativeViewerSendInputRequest struct {
-	unknownFields    []byte
+	unknownFields []byte
+	// SessionObjectKey identifies the selected LlmSession object.
 	SessionObjectKey string `protobuf:"bytes,1,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
-	DispatchKey      string `protobuf:"bytes,2,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
-	RequestId        string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
-	Text             string `protobuf:"bytes,4,opt,name=text,proto3" json:"text,omitempty"`
+	// DispatchKey identifies the active dispatch within a Session.
+	DispatchKey string `protobuf:"bytes,2,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
+	// RequestId identifies one idempotent control request.
+	RequestId string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
+	// Text contains the bounded user input or follow-up text.
+	Text string `protobuf:"bytes,4,opt,name=text,proto3" json:"text,omitempty"`
 }
 
 func (x *NativeViewerSendInputRequest) Reset() {
@@ -933,12 +1041,17 @@ func (x *NativeViewerSendInputRequest) GetText() string {
 	return ""
 }
 
+// NativeViewerInterruptRequest requests interruption of an active LlmSession dispatch.
 type NativeViewerInterruptRequest struct {
-	unknownFields    []byte
+	unknownFields []byte
+	// SessionObjectKey identifies the selected LlmSession object.
 	SessionObjectKey string `protobuf:"bytes,1,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
-	DispatchKey      string `protobuf:"bytes,2,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
-	RequestId        string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
-	Reason           string `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	// DispatchKey identifies the active dispatch within a Session.
+	DispatchKey string `protobuf:"bytes,2,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
+	// RequestId identifies one idempotent control request.
+	RequestId string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
+	// Reason describes why the active dispatch should be interrupted.
+	Reason string `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
 }
 
 func (x *NativeViewerInterruptRequest) Reset() {
@@ -975,15 +1088,23 @@ func (x *NativeViewerInterruptRequest) GetReason() string {
 	return ""
 }
 
+// NativeViewerControlResponse reports an LlmSession control outcome.
 type NativeViewerControlResponse struct {
-	unknownFields       []byte
-	Status              NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	SessionObjectKey    string                    `protobuf:"bytes,2,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
-	DispatchKey         string                    `protobuf:"bytes,3,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
-	RequestId           string                    `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
-	Detail              string                    `protobuf:"bytes,5,opt,name=detail,proto3" json:"detail,omitempty"`
-	AcceptedDeliveryKey string                    `protobuf:"bytes,6,opt,name=accepted_delivery_key,json=acceptedDeliveryKey,proto3" json:"acceptedDeliveryKey,omitempty"`
-	AcceptedSequence    uint64                    `protobuf:"varint,7,opt,name=accepted_sequence,json=acceptedSequence,proto3" json:"acceptedSequence,omitempty"`
+	unknownFields []byte
+	// Status reports the outcome of the requested operation.
+	Status NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	// SessionObjectKey identifies the selected LlmSession object.
+	SessionObjectKey string `protobuf:"bytes,2,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
+	// DispatchKey identifies the active dispatch within a Session.
+	DispatchKey string `protobuf:"bytes,3,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
+	// RequestId identifies one idempotent control request.
+	RequestId string `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
+	// Detail explains a rejected, failed, or cancelled operation.
+	Detail string `protobuf:"bytes,5,opt,name=detail,proto3" json:"detail,omitempty"`
+	// AcceptedDeliveryKey identifies the accepted input delivery.
+	AcceptedDeliveryKey string `protobuf:"bytes,6,opt,name=accepted_delivery_key,json=acceptedDeliveryKey,proto3" json:"acceptedDeliveryKey,omitempty"`
+	// AcceptedSequence is the accepted delivery sequence.
+	AcceptedSequence uint64 `protobuf:"varint,7,opt,name=accepted_sequence,json=acceptedSequence,proto3" json:"acceptedSequence,omitempty"`
 }
 
 func (x *NativeViewerControlResponse) Reset() {
@@ -996,7 +1117,7 @@ func (x *NativeViewerControlResponse) GetStatus() NativeViewerControlStatus {
 	if x != nil {
 		return x.Status
 	}
-	return NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNSPECIFIED
+	return NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN
 }
 
 func (x *NativeViewerControlResponse) GetSessionObjectKey() string {
@@ -1041,11 +1162,15 @@ func (x *NativeViewerControlResponse) GetAcceptedSequence() uint64 {
 	return 0
 }
 
+// NativeViewerFollowUpRequest continues a predecessor LlmSession with new input.
 type NativeViewerFollowUpRequest struct {
-	unknownFields               []byte
+	unknownFields []byte
+	// PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
 	PredecessorSessionObjectKey string `protobuf:"bytes,1,opt,name=predecessor_session_object_key,json=predecessorSessionObjectKey,proto3" json:"predecessorSessionObjectKey,omitempty"`
-	RequestId                   string `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
-	Text                        string `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	// RequestId identifies one idempotent control request.
+	RequestId string `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
+	// Text contains the bounded user input or follow-up text.
+	Text string `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
 }
 
 func (x *NativeViewerFollowUpRequest) Reset() {
@@ -1075,14 +1200,21 @@ func (x *NativeViewerFollowUpRequest) GetText() string {
 	return ""
 }
 
+// NativeViewerFollowUpResponse reports the successor LlmSession created by a follow-up.
 type NativeViewerFollowUpResponse struct {
-	unknownFields               []byte
-	Status                      NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	PredecessorSessionObjectKey string                    `protobuf:"bytes,2,opt,name=predecessor_session_object_key,json=predecessorSessionObjectKey,proto3" json:"predecessorSessionObjectKey,omitempty"`
-	RequestId                   string                    `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
-	Text                        string                    `protobuf:"bytes,4,opt,name=text,proto3" json:"text,omitempty"`
-	SuccessorSessionObjectKey   string                    `protobuf:"bytes,5,opt,name=successor_session_object_key,json=successorSessionObjectKey,proto3" json:"successorSessionObjectKey,omitempty"`
-	Detail                      string                    `protobuf:"bytes,6,opt,name=detail,proto3" json:"detail,omitempty"`
+	unknownFields []byte
+	// Status reports the outcome of the requested operation.
+	Status NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	// PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
+	PredecessorSessionObjectKey string `protobuf:"bytes,2,opt,name=predecessor_session_object_key,json=predecessorSessionObjectKey,proto3" json:"predecessorSessionObjectKey,omitempty"`
+	// RequestId identifies one idempotent control request.
+	RequestId string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
+	// Text contains the bounded user input or follow-up text.
+	Text string `protobuf:"bytes,4,opt,name=text,proto3" json:"text,omitempty"`
+	// SuccessorSessionObjectKey identifies the LlmSession created by a follow-up.
+	SuccessorSessionObjectKey string `protobuf:"bytes,5,opt,name=successor_session_object_key,json=successorSessionObjectKey,proto3" json:"successorSessionObjectKey,omitempty"`
+	// Detail explains a rejected, failed, or cancelled operation.
+	Detail string `protobuf:"bytes,6,opt,name=detail,proto3" json:"detail,omitempty"`
 }
 
 func (x *NativeViewerFollowUpResponse) Reset() {
@@ -1095,7 +1227,7 @@ func (x *NativeViewerFollowUpResponse) GetStatus() NativeViewerControlStatus {
 	if x != nil {
 		return x.Status
 	}
-	return NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNSPECIFIED
+	return NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN
 }
 
 func (x *NativeViewerFollowUpResponse) GetPredecessorSessionObjectKey() string {
@@ -1133,12 +1265,17 @@ func (x *NativeViewerFollowUpResponse) GetDetail() string {
 	return ""
 }
 
+// NativeViewerCommand describes one command available on the TUI surface.
 type NativeViewerCommand struct {
 	unknownFields []byte
-	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Label         string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
-	Binding       string `protobuf:"bytes,3,opt,name=binding,proto3" json:"binding,omitempty"`
-	Surface       uint32 `protobuf:"varint,4,opt,name=surface,proto3" json:"surface,omitempty"`
+	// Id identifies the command.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Label is the command label shown to the user.
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// Binding is the display form of the command binding.
+	Binding string `protobuf:"bytes,3,opt,name=binding,proto3" json:"binding,omitempty"`
+	// Surface identifies the command surface.
+	Surface uint32 `protobuf:"varint,4,opt,name=surface,proto3" json:"surface,omitempty"`
 }
 
 func (x *NativeViewerCommand) Reset() {
@@ -1175,6 +1312,7 @@ func (x *NativeViewerCommand) GetSurface() uint32 {
 	return 0
 }
 
+// NativeViewerListCommandsRequest requests the current TUI command snapshot.
 type NativeViewerListCommandsRequest struct {
 	unknownFields []byte
 }
@@ -1185,9 +1323,11 @@ func (x *NativeViewerListCommandsRequest) Reset() {
 
 func (*NativeViewerListCommandsRequest) ProtoMessage() {}
 
+// NativeViewerListCommandsResponse contains the current bounded TUI command snapshot.
 type NativeViewerListCommandsResponse struct {
 	unknownFields []byte
-	Commands      []*NativeViewerCommand `protobuf:"bytes,1,rep,name=commands,proto3" json:"commands,omitempty"`
+	// Commands contains the bounded available command snapshot.
+	Commands []*NativeViewerCommand `protobuf:"bytes,1,rep,name=commands,proto3" json:"commands,omitempty"`
 }
 
 func (x *NativeViewerListCommandsResponse) Reset() {
@@ -1203,10 +1343,13 @@ func (x *NativeViewerListCommandsResponse) GetCommands() []*NativeViewerCommand 
 	return nil
 }
 
+// NativeViewerExecuteCommandRequest requests invocation of one TUI command.
 type NativeViewerExecuteCommandRequest struct {
 	unknownFields []byte
-	CommandId     string `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"commandId,omitempty"`
-	RequestId     string `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
+	// CommandId identifies the command to invoke.
+	CommandId string `protobuf:"bytes,1,opt,name=command_id,json=commandId,proto3" json:"commandId,omitempty"`
+	// RequestId identifies one idempotent control request.
+	RequestId string `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
 }
 
 func (x *NativeViewerExecuteCommandRequest) Reset() {
@@ -1229,12 +1372,17 @@ func (x *NativeViewerExecuteCommandRequest) GetRequestId() string {
 	return ""
 }
 
+// NativeViewerExecuteCommandResponse reports the TUI command invocation outcome.
 type NativeViewerExecuteCommandResponse struct {
 	unknownFields []byte
-	Status        NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	CommandId     string                    `protobuf:"bytes,2,opt,name=command_id,json=commandId,proto3" json:"commandId,omitempty"`
-	RequestId     string                    `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
-	Detail        string                    `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
+	// Status reports the outcome of the requested operation.
+	Status NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	// CommandId identifies the command to invoke.
+	CommandId string `protobuf:"bytes,2,opt,name=command_id,json=commandId,proto3" json:"commandId,omitempty"`
+	// RequestId identifies one idempotent control request.
+	RequestId string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
+	// Detail explains a rejected, failed, or cancelled operation.
+	Detail string `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
 }
 
 func (x *NativeViewerExecuteCommandResponse) Reset() {
@@ -1247,7 +1395,7 @@ func (x *NativeViewerExecuteCommandResponse) GetStatus() NativeViewerControlStat
 	if x != nil {
 		return x.Status
 	}
-	return NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNSPECIFIED
+	return NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN
 }
 
 func (x *NativeViewerExecuteCommandResponse) GetCommandId() string {

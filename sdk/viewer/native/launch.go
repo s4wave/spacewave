@@ -30,6 +30,7 @@ var (
 	ErrTrailingFrame    = errors.New("nativeviewer: trailing frame")
 )
 
+// validSafeText accepts non-empty bounded UTF-8 text without control characters.
 func validSafeText(value string, limit int) bool {
 	if value == "" || len(value) > limit || !utf8.ValidString(value) {
 		return false
@@ -42,10 +43,12 @@ func validSafeText(value string, limit int) bool {
 	return true
 }
 
+// validIdentity accepts native viewer identities up to 1000 bytes.
 func validIdentity(value string) bool { return validSafeText(value, 1000) }
 
 // ValidateLaunchRecord validates the frozen identity and fixed inherited FD contract.
 func ValidateLaunchRecord(record *NativeViewerLaunchRecord) error {
+	// Validate versions and every identity before interpreting descriptor authority.
 	if record == nil || record.GetWireVersion() != NativeViewerWireVersion || record.GetProtocolVersion() != NativeViewerProtocolVersion {
 		return ErrInvalidLaunch
 	}
@@ -61,6 +64,7 @@ func ValidateLaunchRecord(record *NativeViewerLaunchRecord) error {
 	if ioDesc == nil || ioDesc.GetInputFd() != 0 || ioDesc.GetOutputFd() != 1 || ioDesc.GetDiagnosticFd() != 2 || ioDesc.GetInputMode() != NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_READ || ioDesc.GetOutputMode() != NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE {
 		return pkgerrors.Wrap(ErrInvalidLaunch, "IO descriptors")
 	}
+	// Match every inherited descriptor against the fixed role and transport table.
 	expected := map[int32]struct {
 		kind      NativeViewerEndpointKind
 		transport NativeViewerTransport
@@ -89,7 +93,9 @@ func ValidateLaunchRecord(record *NativeViewerLaunchRecord) error {
 	return nil
 }
 
+// readFrame reads one non-empty length-delimited frame within MaxRecordBytes.
 func readFrame(reader *bufio.Reader) ([]byte, error) {
+	// Decode the bounded prefix before allocating or reading frame bytes.
 	length, err := binary.ReadUvarint(reader)
 	if err != nil {
 		return nil, err
@@ -103,6 +109,8 @@ func readFrame(reader *bufio.Reader) ([]byte, error) {
 	}
 	return frame, nil
 }
+
+// writeFrame writes the complete frame.
 func writeFrame(writer io.Writer, frame []byte) error {
 	if len(frame) == 0 || len(frame) > MaxRecordBytes {
 		return pkgerrors.Wrapf(ErrFrameTooLarge, "%d", len(frame))
@@ -114,6 +122,8 @@ func writeFrame(writer io.Writer, frame []byte) error {
 	}
 	return writeFull(writer, frame)
 }
+
+// writeFull writes every byte or returns the first writer error.
 func writeFull(writer io.Writer, data []byte) error {
 	for len(data) > 0 {
 		n, err := writer.Write(data)
@@ -155,6 +165,7 @@ func ReadLaunchRecord(reader io.Reader) (*NativeViewerLaunchRecord, error) {
 
 // ValidateReadinessRecord validates readiness semantics and exact launch identity echoes.
 func ValidateReadinessRecord(readiness *NativeViewerReadinessRecord, launch *NativeViewerLaunchRecord) error {
+	// Validate readiness identity and version fields before status-specific evidence.
 	if readiness == nil || readiness.GetWireVersion() != NativeViewerWireVersion || readiness.GetProtocolVersion() != NativeViewerProtocolVersion || !validIdentity(readiness.GetLaunchId()) || !validIdentity(readiness.GetSessionObjectKey()) || !validIdentity(readiness.GetSpaceObjectKey()) || !validIdentity(readiness.GetManifestObjectKey()) || !validIdentity(readiness.GetManifestDigest()) || !validIdentity(readiness.GetViewerObjectKey()) || !validIdentity(readiness.GetViewerProfile()) || !validIdentity(readiness.GetResourceScopeSessionObjectKey()) || !validIdentity(readiness.GetSelectedStateKey()) {
 		return ErrInvalidReadiness
 	}

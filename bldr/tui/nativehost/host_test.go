@@ -24,6 +24,7 @@ import (
 
 const nativeHostHelperEnvironment = "SPACEWAVE_NATIVEHOST_TEST_HELPER"
 
+// nativeHostTestLaunch returns a valid launch record with the fixed inherited descriptor table.
 func nativeHostTestLaunch() *native.NativeViewerLaunchRecord {
 	return &native.NativeViewerLaunchRecord{
 		WireVersion: native.NativeViewerWireVersion, ProtocolVersion: native.NativeViewerProtocolVersion,
@@ -31,9 +32,11 @@ func nativeHostTestLaunch() *native.NativeViewerLaunchRecord {
 		ManifestObjectKey: "manifest:1", ManifestDigest: "sha256:1",
 		ViewerObjectKey: "viewer:1", ViewerProfile: "default",
 		ResourceScopeSessionObjectKey: "session:1", SelectedStateKey: "state:1", LaunchNonce: "nonce:1",
-		Io: &native.NativeViewerIODescriptor{InputFd: 0, OutputFd: 1, DiagnosticFd: 2,
+		Io: &native.NativeViewerIODescriptor{
+			InputFd: 0, OutputFd: 1, DiagnosticFd: 2,
 			InputMode:  native.NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_READ,
-			OutputMode: native.NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE},
+			OutputMode: native.NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE,
+		},
 		Endpoints: []*native.NativeViewerEndpointDescriptor{
 			{Kind: native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RECORD, Fd: native.RecordFD, Transport: native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO, ServiceId: "native.viewer.record", ProtocolVersion: 1, Required: true, CloseOnExit: true},
 			{Kind: native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_READINESS, Fd: native.ReadinessFD, Transport: native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO, ServiceId: "native.viewer.readiness", ProtocolVersion: 1, Required: true, CloseOnExit: true},
@@ -44,6 +47,7 @@ func nativeHostTestLaunch() *native.NativeViewerLaunchRecord {
 	}
 }
 
+// nativeHostReady echoes launch identity into a readiness result with status-specific cleanup evidence.
 func nativeHostReady(launch *native.NativeViewerLaunchRecord, status native.NativeViewerReadinessStatus, detail string) *native.NativeViewerReadinessRecord {
 	r := &native.NativeViewerReadinessRecord{
 		WireVersion: native.NativeViewerWireVersion, ProtocolVersion: native.NativeViewerProtocolVersion,
@@ -61,6 +65,7 @@ func nativeHostReady(launch *native.NativeViewerLaunchRecord, status native.Nati
 	return r
 }
 
+// TestNativeHostHelperProcess models child readiness, failure, cancellation, and terminal mutation.
 func TestNativeHostHelperProcess(t *testing.T) {
 	mode := os.Getenv(nativeHostHelperEnvironment)
 	if mode == "" {
@@ -119,17 +124,22 @@ func TestNativeHostHelperProcess(t *testing.T) {
 	os.Exit(0)
 }
 
+// endpointEvents records endpoint shutdown ordering.
 type endpointEvents struct {
-	mu     sync.Mutex
+	// mu guards events.
+	mu sync.Mutex
+	// events records endpoint lifecycle actions.
 	events []string
 }
 
+// add records one endpoint lifecycle event.
 func (e *endpointEvents) add(event string) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.events = append(e.events, event)
 }
 
+// nativeHostEndpointFactory returns fresh pipe endpoints and records their close-before-wait lifecycle.
 func nativeHostEndpointFactory(events *endpointEvents) EndpointFactory {
 	return func(context.Context) (*EndpointSet, error) {
 		children := make([]*os.File, 0, 3)
@@ -142,7 +152,8 @@ func nativeHostEndpointFactory(events *endpointEvents) EndpointFactory {
 			children = append(children, r)
 			parents = append(parents, w)
 		}
-		return &EndpointSet{Resource: children[0], State: children[1], Control: children[2],
+		return &EndpointSet{
+			Resource: children[0], State: children[1], Control: children[2],
 			CloseFunc: func() error {
 				events.add("close")
 				for _, f := range parents {
@@ -150,10 +161,12 @@ func nativeHostEndpointFactory(events *endpointEvents) EndpointFactory {
 				}
 				return nil
 			},
-			WaitFunc: func() error { events.add("wait"); return nil }}, nil
+			WaitFunc: func() error { events.add("wait"); return nil },
+		}, nil
 	}
 }
 
+// nativeHostTestExecutable resolves the current test binary as the supervised child executable.
 func nativeHostTestExecutable(t *testing.T) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "nativehost-helper")
@@ -165,6 +178,7 @@ func nativeHostTestExecutable(t *testing.T) string {
 	return path
 }
 
+// nativeHostFiles opens one PTY and returns duplicated input, output, and diagnostic handles.
 func nativeHostFiles(t *testing.T) (*os.File, *os.File, *os.File) {
 	t.Helper()
 	master, slave, err := pty.Open()
@@ -178,6 +192,7 @@ func nativeHostFiles(t *testing.T) (*os.File, *os.File, *os.File) {
 	return slave, slave, slave
 }
 
+// TestHostLifecycleMatrix proves readiness, retry, failure, and cancellation preserve endpoint and terminal custody.
 func TestHostLifecycleMatrix(t *testing.T) {
 	for _, tc := range []struct {
 		name, mode, contains string
@@ -249,6 +264,7 @@ func TestHostLifecycleMatrix(t *testing.T) {
 	}
 }
 
+// TestHostRejectsInvalidEndpoints proves nil and aliased child descriptors are closed without launch.
 func TestHostRejectsInvalidEndpoints(t *testing.T) {
 	in, out, errFile := nativeHostFiles(t)
 	f, err := os.Open(os.DevNull)
@@ -267,6 +283,7 @@ func TestHostRejectsInvalidEndpoints(t *testing.T) {
 	}
 }
 
+// TestHostRestoresRawTermiosAfterCrash proves a crashing child cannot leave the shared PTY in raw mode.
 func TestHostRestoresRawTermiosAfterCrash(t *testing.T) {
 	master, slave, err := pty.Open()
 	if err != nil {
@@ -296,6 +313,7 @@ func TestHostRestoresRawTermiosAfterCrash(t *testing.T) {
 	}
 }
 
+// TestNewHostRejectsNonTerminal proves host construction rejects streams without terminal custody.
 func TestNewHostRejectsNonTerminal(t *testing.T) {
 	input, err := os.Open(os.DevNull)
 	if err != nil {

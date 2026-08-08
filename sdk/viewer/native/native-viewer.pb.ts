@@ -14,38 +14,49 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 export const protobufPackage = 's4wave.viewer.native'
 
 /**
- * NativeViewerWireVersion is the versioned inherited native-viewer contract.
- * The record is deliberately independent of the daemon socket protocol.
+ * NativeViewerEndpointKind classifies fixed inherited child endpoints.
  *
  * @generated from enum s4wave.viewer.native.NativeViewerEndpointKind
  */
 export enum NativeViewerEndpointKind {
   /**
-   * @generated from enum value: NATIVE_VIEWER_ENDPOINT_KIND_UNSPECIFIED = 0;
+   * NATIVE_VIEWER_ENDPOINT_KIND_UNKNOWN is the invalid unknown value.
+   *
+   * @generated from enum value: NATIVE_VIEWER_ENDPOINT_KIND_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  UNKNOWN = 0,
 
   /**
+   * NATIVE_VIEWER_ENDPOINT_KIND_RECORD carries the immutable launch record.
+   *
    * @generated from enum value: NATIVE_VIEWER_ENDPOINT_KIND_RECORD = 1;
    */
   RECORD = 1,
 
   /**
+   * NATIVE_VIEWER_ENDPOINT_KIND_READINESS carries child readiness evidence.
+   *
    * @generated from enum value: NATIVE_VIEWER_ENDPOINT_KIND_READINESS = 2;
    */
   READINESS = 2,
 
   /**
+   * NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE serves the selected resource API.
+   *
    * @generated from enum value: NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE = 3;
    */
   RESOURCE = 3,
 
   /**
+   * NATIVE_VIEWER_ENDPOINT_KIND_STATE serves selected viewer state persistence.
+   *
    * @generated from enum value: NATIVE_VIEWER_ENDPOINT_KIND_STATE = 4;
    */
   STATE = 4,
 
   /**
+   * NATIVE_VIEWER_ENDPOINT_KIND_CONTROL serves viewer control operations.
+   *
    * @generated from enum value: NATIVE_VIEWER_ENDPOINT_KIND_CONTROL = 5;
    */
   CONTROL = 5,
@@ -54,7 +65,7 @@ export enum NativeViewerEndpointKind {
 export const NativeViewerEndpointKind_Enum = /* @__PURE__ */ createEnumType(
   's4wave.viewer.native.NativeViewerEndpointKind',
   [
-    [0, 'NATIVE_VIEWER_ENDPOINT_KIND_UNSPECIFIED'],
+    [0, 'NATIVE_VIEWER_ENDPOINT_KIND_UNKNOWN'],
     [1, 'NATIVE_VIEWER_ENDPOINT_KIND_RECORD'],
     [2, 'NATIVE_VIEWER_ENDPOINT_KIND_READINESS'],
     [3, 'NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE'],
@@ -64,20 +75,28 @@ export const NativeViewerEndpointKind_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * NativeViewerTransport selects an inherited endpoint wire protocol.
+ *
  * @generated from enum s4wave.viewer.native.NativeViewerTransport
  */
 export enum NativeViewerTransport {
   /**
-   * @generated from enum value: NATIVE_VIEWER_TRANSPORT_UNSPECIFIED = 0;
+   * NATIVE_VIEWER_TRANSPORT_UNKNOWN is the invalid unknown value.
+   *
+   * @generated from enum value: NATIVE_VIEWER_TRANSPORT_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  UNKNOWN = 0,
 
   /**
+   * NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO uses bounded length-delimited protobuf records.
+   *
    * @generated from enum value: NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO = 1;
    */
   LENGTH_DELIMITED_PROTO = 1,
 
   /**
+   * NATIVE_VIEWER_TRANSPORT_SRPC uses the SRPC transport.
+   *
    * @generated from enum value: NATIVE_VIEWER_TRANSPORT_SRPC = 2;
    */
   SRPC = 2,
@@ -86,27 +105,35 @@ export enum NativeViewerTransport {
 export const NativeViewerTransport_Enum = /* @__PURE__ */ createEnumType(
   's4wave.viewer.native.NativeViewerTransport',
   [
-    [0, 'NATIVE_VIEWER_TRANSPORT_UNSPECIFIED'],
+    [0, 'NATIVE_VIEWER_TRANSPORT_UNKNOWN'],
     [1, 'NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO'],
     [2, 'NATIVE_VIEWER_TRANSPORT_SRPC'],
   ],
 )
 
 /**
+ * NativeViewerFDMode restricts an inherited descriptor direction.
+ *
  * @generated from enum s4wave.viewer.native.NativeViewerFDMode
  */
 export enum NativeViewerFDMode {
   /**
-   * @generated from enum value: NATIVE_VIEWER_FD_MODE_UNSPECIFIED = 0;
+   * NATIVE_VIEWER_FD_MODE_UNKNOWN is the invalid unknown value.
+   *
+   * @generated from enum value: NATIVE_VIEWER_FD_MODE_UNKNOWN = 0;
    */
-  NATIVE_VIEWER_FD_MODE_UNSPECIFIED = 0,
+  NATIVE_VIEWER_FD_MODE_UNKNOWN = 0,
 
   /**
+   * NATIVE_VIEWER_FD_MODE_READ permits reads from the descriptor.
+   *
    * @generated from enum value: NATIVE_VIEWER_FD_MODE_READ = 1;
    */
   NATIVE_VIEWER_FD_MODE_READ = 1,
 
   /**
+   * NATIVE_VIEWER_FD_MODE_WRITE permits writes to the descriptor.
+   *
    * @generated from enum value: NATIVE_VIEWER_FD_MODE_WRITE = 2;
    */
   NATIVE_VIEWER_FD_MODE_WRITE = 2,
@@ -115,32 +142,42 @@ export enum NativeViewerFDMode {
 export const NativeViewerFDMode_Enum = /* @__PURE__ */ createEnumType(
   's4wave.viewer.native.NativeViewerFDMode',
   [
-    [0, 'NATIVE_VIEWER_FD_MODE_UNSPECIFIED'],
+    [0, 'NATIVE_VIEWER_FD_MODE_UNKNOWN'],
     [1, 'NATIVE_VIEWER_FD_MODE_READ'],
     [2, 'NATIVE_VIEWER_FD_MODE_WRITE'],
   ],
 )
 
 /**
+ * NativeViewerReadinessStatus reports child startup progress or terminal outcome.
+ *
  * @generated from enum s4wave.viewer.native.NativeViewerReadinessStatus
  */
 export enum NativeViewerReadinessStatus {
   /**
-   * @generated from enum value: NATIVE_VIEWER_READINESS_STATUS_UNSPECIFIED = 0;
+   * NATIVE_VIEWER_READINESS_STATUS_UNKNOWN is the invalid unknown value.
+   *
+   * @generated from enum value: NATIVE_VIEWER_READINESS_STATUS_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  UNKNOWN = 0,
 
   /**
+   * NATIVE_VIEWER_READINESS_STATUS_READY reports that the first frame was rendered.
+   *
    * @generated from enum value: NATIVE_VIEWER_READINESS_STATUS_READY = 1;
    */
   READY = 1,
 
   /**
+   * NATIVE_VIEWER_READINESS_STATUS_FAILED reports terminal startup failure after cleanup.
+   *
    * @generated from enum value: NATIVE_VIEWER_READINESS_STATUS_FAILED = 2;
    */
   FAILED = 2,
 
   /**
+   * NATIVE_VIEWER_READINESS_STATUS_CANCELLED reports startup cancellation after cleanup.
+   *
    * @generated from enum value: NATIVE_VIEWER_READINESS_STATUS_CANCELLED = 3;
    */
   CANCELLED = 3,
@@ -149,7 +186,7 @@ export enum NativeViewerReadinessStatus {
 export const NativeViewerReadinessStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.viewer.native.NativeViewerReadinessStatus',
   [
-    [0, 'NATIVE_VIEWER_READINESS_STATUS_UNSPECIFIED'],
+    [0, 'NATIVE_VIEWER_READINESS_STATUS_UNKNOWN'],
     [1, 'NATIVE_VIEWER_READINESS_STATUS_READY'],
     [2, 'NATIVE_VIEWER_READINESS_STATUS_FAILED'],
     [3, 'NATIVE_VIEWER_READINESS_STATUS_CANCELLED'],
@@ -157,20 +194,28 @@ export const NativeViewerReadinessStatus_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
+ * NativeViewerControlStatus reports whether a control request was accepted.
+ *
  * @generated from enum s4wave.viewer.native.NativeViewerControlStatus
  */
 export enum NativeViewerControlStatus {
   /**
-   * @generated from enum value: NATIVE_VIEWER_CONTROL_STATUS_UNSPECIFIED = 0;
+   * NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN is the invalid unknown value.
+   *
+   * @generated from enum value: NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  UNKNOWN = 0,
 
   /**
+   * NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED reports that the request was accepted.
+   *
    * @generated from enum value: NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED = 1;
    */
   ACCEPTED = 1,
 
   /**
+   * NATIVE_VIEWER_CONTROL_STATUS_REJECTED reports that the request was rejected.
+   *
    * @generated from enum value: NATIVE_VIEWER_CONTROL_STATUS_REJECTED = 2;
    */
   REJECTED = 2,
@@ -179,41 +224,57 @@ export enum NativeViewerControlStatus {
 export const NativeViewerControlStatus_Enum = /* @__PURE__ */ createEnumType(
   's4wave.viewer.native.NativeViewerControlStatus',
   [
-    [0, 'NATIVE_VIEWER_CONTROL_STATUS_UNSPECIFIED'],
+    [0, 'NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN'],
     [1, 'NATIVE_VIEWER_CONTROL_STATUS_ACCEPTED'],
     [2, 'NATIVE_VIEWER_CONTROL_STATUS_REJECTED'],
   ],
 )
 
 /**
+ * NativeViewerEndpointDescriptor describes one fixed inherited child endpoint.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerEndpointDescriptor
  */
 export interface NativeViewerEndpointDescriptor {
   /**
+   * Kind selects the inherited endpoint role.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerEndpointKind kind = 1;
    */
   kind?: NativeViewerEndpointKind
   /**
+   * Fd is the inherited file descriptor number.
+   *
    * @generated from field: int32 fd = 2;
    */
   fd?: number
   /**
+   * Transport selects the framing and call protocol.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerTransport transport = 3;
    */
   transport?: NativeViewerTransport
   /**
+   * ServiceId identifies the service exposed by the endpoint.
+   *
    * @generated from field: string service_id = 4;
    */
   serviceId?: string
   /**
+   * ProtocolVersion selects the native viewer protocol contract.
+   *
    * @generated from field: uint32 protocol_version = 5;
    */
   protocolVersion?: number
   /**
+   * Required requires the child to reject a launch when the endpoint is unavailable.
+   *
    * @generated from field: bool required = 6;
    */
   required?: boolean
   /**
+   * CloseOnExit requires the child to close the endpoint during shutdown.
+   *
    * @generated from field: bool close_on_exit = 7;
    */
   closeOnExit?: boolean
@@ -235,26 +296,38 @@ export const NativeViewerEndpointDescriptor: MessageType<NativeViewerEndpointDes
   })
 
 /**
+ * NativeViewerIODescriptor describes the child terminal stream contract.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerIODescriptor
  */
 export interface NativeViewerIODescriptor {
   /**
+   * InputFd is the terminal input file descriptor.
+   *
    * @generated from field: int32 input_fd = 1;
    */
   inputFd?: number
   /**
+   * OutputFd is the terminal output file descriptor.
+   *
    * @generated from field: int32 output_fd = 2;
    */
   outputFd?: number
   /**
+   * DiagnosticFd is the diagnostic output file descriptor.
+   *
    * @generated from field: int32 diagnostic_fd = 3;
    */
   diagnosticFd?: number
   /**
+   * InputMode restricts the input descriptor to its permitted direction.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerFDMode input_mode = 4;
    */
   inputMode?: NativeViewerFDMode
   /**
+   * OutputMode restricts the output descriptor to its permitted direction.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerFDMode output_mode = 5;
    */
   outputMode?: NativeViewerFDMode
@@ -274,62 +347,92 @@ export const NativeViewerIODescriptor: MessageType<NativeViewerIODescriptor> =
   })
 
 /**
+ * NativeViewerLaunchRecord freezes the identities and endpoints for one child launch.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerLaunchRecord
  */
 export interface NativeViewerLaunchRecord {
   /**
+   * WireVersion selects the inherited record encoding contract.
+   *
    * @generated from field: uint32 wire_version = 1;
    */
   wireVersion?: number
   /**
+   * ProtocolVersion selects the native viewer protocol contract.
+   *
    * @generated from field: uint32 protocol_version = 2;
    */
   protocolVersion?: number
   /**
+   * LaunchId identifies one supervised child launch.
+   *
    * @generated from field: string launch_id = 3;
    */
   launchId?: string
   /**
+   * SessionObjectKey identifies the selected LlmSession object.
+   *
    * @generated from field: string session_object_key = 4;
    */
   sessionObjectKey?: string
   /**
+   * SpaceObjectKey identifies the selected Space object.
+   *
    * @generated from field: string space_object_key = 5;
    */
   spaceObjectKey?: string
   /**
+   * ManifestObjectKey identifies the immutable selected manifest object.
+   *
    * @generated from field: string manifest_object_key = 6;
    */
   manifestObjectKey?: string
   /**
+   * ManifestDigest is the selected manifest root digest.
+   *
    * @generated from field: string manifest_digest = 7;
    */
   manifestDigest?: string
   /**
+   * ViewerObjectKey identifies the selected typed viewer resource object.
+   *
    * @generated from field: string viewer_object_key = 8;
    */
   viewerObjectKey?: string
   /**
+   * ViewerProfile selects the viewer profile declared by the manifest.
+   *
    * @generated from field: string viewer_profile = 9;
    */
   viewerProfile?: string
   /**
+   * ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
+   *
    * @generated from field: string resource_scope_session_object_key = 10;
    */
   resourceScopeSessionObjectKey?: string
   /**
+   * SelectedStateKey identifies the state atom persisted for this viewer selection.
+   *
    * @generated from field: string selected_state_key = 11;
    */
   selectedStateKey?: string
   /**
+   * Endpoints describes every inherited endpoint required by the child.
+   *
    * @generated from field: repeated s4wave.viewer.native.NativeViewerEndpointDescriptor endpoints = 12;
    */
   endpoints?: NativeViewerEndpointDescriptor[]
   /**
+   * Io describes the child terminal streams.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerIODescriptor io = 13;
    */
   io?: NativeViewerIODescriptor
   /**
+   * LaunchNonce binds readiness evidence to one launch attempt.
+   *
    * @generated from field: string launch_nonce = 14;
    */
   launchNonce?: string
@@ -394,78 +497,116 @@ export const NativeViewerLaunchRecord: MessageType<NativeViewerLaunchRecord> =
   })
 
 /**
+ * NativeViewerReadinessRecord reports the first rendered frame or terminal startup failure.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerReadinessRecord
  */
 export interface NativeViewerReadinessRecord {
   /**
+   * WireVersion selects the inherited record encoding contract.
+   *
    * @generated from field: uint32 wire_version = 1;
    */
   wireVersion?: number
   /**
+   * ProtocolVersion selects the native viewer protocol contract.
+   *
    * @generated from field: uint32 protocol_version = 2;
    */
   protocolVersion?: number
   /**
+   * LaunchId identifies one supervised child launch.
+   *
    * @generated from field: string launch_id = 3;
    */
   launchId?: string
   /**
+   * SessionObjectKey identifies the selected LlmSession object.
+   *
    * @generated from field: string session_object_key = 4;
    */
   sessionObjectKey?: string
   /**
+   * SpaceObjectKey identifies the selected Space object.
+   *
    * @generated from field: string space_object_key = 5;
    */
   spaceObjectKey?: string
   /**
+   * ManifestObjectKey identifies the immutable selected manifest object.
+   *
    * @generated from field: string manifest_object_key = 6;
    */
   manifestObjectKey?: string
   /**
+   * ManifestDigest is the selected manifest root digest.
+   *
    * @generated from field: string manifest_digest = 7;
    */
   manifestDigest?: string
   /**
+   * ViewerObjectKey identifies the selected typed viewer resource object.
+   *
    * @generated from field: string viewer_object_key = 8;
    */
   viewerObjectKey?: string
   /**
+   * Status reports the outcome of the requested operation.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerReadinessStatus status = 9;
    */
   status?: NativeViewerReadinessStatus
   /**
+   * ResourceRevision is the first observed resource revision.
+   *
    * @generated from field: uint64 resource_revision = 10;
    */
   resourceRevision?: bigint
   /**
+   * ResourceCursor is the first observed resource event cursor.
+   *
    * @generated from field: uint64 resource_cursor = 11;
    */
   resourceCursor?: bigint
   /**
+   * FrameSequence is the first rendered frame sequence.
+   *
    * @generated from field: uint64 frame_sequence = 12;
    */
   frameSequence?: bigint
   /**
+   * Detail explains a rejected, failed, or cancelled operation.
+   *
    * @generated from field: string detail = 13;
    */
   detail?: string
   /**
+   * TerminalRestoreAttempted reports that terminal restoration ran before terminal failure readiness.
+   *
    * @generated from field: bool terminal_restore_attempted = 14;
    */
   terminalRestoreAttempted?: boolean
   /**
+   * AllWorkersJoined reports that child workers stopped before terminal failure readiness.
+   *
    * @generated from field: bool all_workers_joined = 15;
    */
   allWorkersJoined?: boolean
   /**
+   * ViewerProfile selects the viewer profile declared by the manifest.
+   *
    * @generated from field: string viewer_profile = 16;
    */
   viewerProfile?: string
   /**
+   * ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
+   *
    * @generated from field: string resource_scope_session_object_key = 17;
    */
   resourceScopeSessionObjectKey?: string
   /**
+   * SelectedStateKey identifies the state atom persisted for this viewer selection.
+   *
    * @generated from field: string selected_state_key = 18;
    */
   selectedStateKey?: string
@@ -543,35 +684,49 @@ export const NativeViewerReadinessRecord: MessageType<NativeViewerReadinessRecor
   })
 
 /**
+ * NativeViewerSelectedState persists the bounded UI selection state for one viewer.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerSelectedState
  */
 export interface NativeViewerSelectedState {
   /**
+   * Tabs orders the bounded set of open LlmSession object keys.
+   *
    * @generated from field: repeated string tabs = 1;
    */
   tabs?: string[]
   /**
+   * Focused identifies the focused LlmSession tab.
+   *
    * @generated from field: string focused = 2;
    */
   focused?: string
   /**
+   * Drafts maps LlmSession object keys to bounded UTF-8 input drafts.
+   *
    * @generated from field: map<string, string> drafts = 3;
    */
   drafts?: { [key: string]: string }
   /**
+   * Viewports maps LlmSession object keys to bounded transcript offsets.
+   *
    * @generated from field: map<string, uint32> viewports = 4;
    */
   viewports?: { [key: string]: number }
   /**
+   * SelectedView selects the active viewer pane.
+   *
    * @generated from field: uint32 selected_view = 5;
    */
   selectedView?: number
   /**
+   * Theme selects the viewer color theme.
+   *
    * @generated from field: uint32 theme = 6;
    */
   theme?: number
   /**
-   * SpaceObjectKey is the selected Space restored before child launch.
+   * SpaceObjectKey identifies the selected Space object.
    *
    * @generated from field: string space_object_key = 7;
    */
@@ -612,10 +767,14 @@ export const NativeViewerSelectedState: MessageType<NativeViewerSelectedState> =
   })
 
 /**
+ * NativeViewerStateLoadRequest identifies the selected state atom to load.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerStateLoadRequest
  */
 export interface NativeViewerStateLoadRequest {
   /**
+   * StateKey identifies the selected state atom.
+   *
    * @generated from field: string state_key = 1;
    */
   stateKey?: string
@@ -631,14 +790,20 @@ export const NativeViewerStateLoadRequest: MessageType<NativeViewerStateLoadRequ
   })
 
 /**
+ * NativeViewerStateLoadResponse contains the complete selected viewer state.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerStateLoadResponse
  */
 export interface NativeViewerStateLoadResponse {
   /**
+   * State contains the complete bounded selected viewer state.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerSelectedState state = 1;
    */
   state?: NativeViewerSelectedState
   /**
+   * StateKey identifies the selected state atom.
+   *
    * @generated from field: string state_key = 2;
    */
   stateKey?: string
@@ -660,18 +825,26 @@ export const NativeViewerStateLoadResponse: MessageType<NativeViewerStateLoadRes
   })
 
 /**
+ * NativeViewerStateSaveRequest contains one selected viewer state update.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerStateSaveRequest
  */
 export interface NativeViewerStateSaveRequest {
   /**
+   * StateKey identifies the selected state atom.
+   *
    * @generated from field: string state_key = 1;
    */
   stateKey?: string
   /**
+   * State contains the complete bounded selected viewer state.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerSelectedState state = 2;
    */
   state?: NativeViewerSelectedState
   /**
+   * RequestId identifies one idempotent state update.
+   *
    * @generated from field: string request_id = 3;
    */
   requestId?: string
@@ -694,22 +867,32 @@ export const NativeViewerStateSaveRequest: MessageType<NativeViewerStateSaveRequ
   })
 
 /**
+ * NativeViewerStateSaveResponse reports the selected viewer state update outcome.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerStateSaveResponse
  */
 export interface NativeViewerStateSaveResponse {
   /**
+   * Accepted reports whether the state update was persisted.
+   *
    * @generated from field: bool accepted = 1;
    */
   accepted?: boolean
   /**
+   * StateKey identifies the selected state atom.
+   *
    * @generated from field: string state_key = 2;
    */
   stateKey?: string
   /**
+   * RequestId identifies one idempotent state update.
+   *
    * @generated from field: string request_id = 3;
    */
   requestId?: string
   /**
+   * Detail explains a rejected, failed, or cancelled operation.
+   *
    * @generated from field: string detail = 4;
    */
   detail?: string
@@ -728,10 +911,14 @@ export const NativeViewerStateSaveResponse: MessageType<NativeViewerStateSaveRes
   })
 
 /**
+ * NativeViewerAvailableSessionsRequest identifies the resource scope used for LlmSession discovery.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerAvailableSessionsRequest
  */
 export interface NativeViewerAvailableSessionsRequest {
   /**
+   * ScopeSessionObjectKey identifies the LlmSession that bounds discovery.
+   *
    * @generated from field: string scope_session_object_key = 1;
    */
   scopeSessionObjectKey?: string
@@ -752,10 +939,14 @@ export const NativeViewerAvailableSessionsRequest: MessageType<NativeViewerAvail
   })
 
 /**
+ * NativeViewerAvailableSessionsResponse contains the LlmSessions available within the resource scope.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerAvailableSessionsResponse
  */
 export interface NativeViewerAvailableSessionsResponse {
   /**
+   * SessionObjectKeys lists LlmSession objects available within the resource scope.
+   *
    * @generated from field: repeated string session_object_keys = 1;
    */
   sessionObjectKeys?: string[]
@@ -777,14 +968,20 @@ export const NativeViewerAvailableSessionsResponse: MessageType<NativeViewerAvai
   })
 
 /**
+ * NativeViewerSelectSessionRequest selects one LlmSession for the viewer.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerSelectSessionRequest
  */
 export interface NativeViewerSelectSessionRequest {
   /**
+   * SessionObjectKey identifies the selected LlmSession object.
+   *
    * @generated from field: string session_object_key = 1;
    */
   sessionObjectKey?: string
   /**
+   * RequestId identifies one idempotent control request.
+   *
    * @generated from field: string request_id = 2;
    */
   requestId?: string
@@ -806,22 +1003,32 @@ export const NativeViewerSelectSessionRequest: MessageType<NativeViewerSelectSes
   })
 
 /**
+ * NativeViewerSelectSessionResponse reports the LlmSession selection outcome.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerSelectSessionResponse
  */
 export interface NativeViewerSelectSessionResponse {
   /**
+   * Status reports the outcome of the requested operation.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerControlStatus status = 1;
    */
   status?: NativeViewerControlStatus
   /**
+   * SessionObjectKey identifies the selected LlmSession object.
+   *
    * @generated from field: string session_object_key = 2;
    */
   sessionObjectKey?: string
   /**
+   * RequestId identifies one idempotent control request.
+   *
    * @generated from field: string request_id = 3;
    */
   requestId?: string
   /**
+   * Detail explains a rejected, failed, or cancelled operation.
+   *
    * @generated from field: string detail = 4;
    */
   detail?: string
@@ -850,22 +1057,32 @@ export const NativeViewerSelectSessionResponse: MessageType<NativeViewerSelectSe
   })
 
 /**
+ * NativeViewerSendInputRequest delivers user input to an active LlmSession dispatch.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerSendInputRequest
  */
 export interface NativeViewerSendInputRequest {
   /**
+   * SessionObjectKey identifies the selected LlmSession object.
+   *
    * @generated from field: string session_object_key = 1;
    */
   sessionObjectKey?: string
   /**
+   * DispatchKey identifies the active dispatch within a Session.
+   *
    * @generated from field: string dispatch_key = 2;
    */
   dispatchKey?: string
   /**
+   * RequestId identifies one idempotent control request.
+   *
    * @generated from field: string request_id = 3;
    */
   requestId?: string
   /**
+   * Text contains the bounded user input or follow-up text.
+   *
    * @generated from field: string text = 4;
    */
   text?: string
@@ -889,22 +1106,32 @@ export const NativeViewerSendInputRequest: MessageType<NativeViewerSendInputRequ
   })
 
 /**
+ * NativeViewerInterruptRequest requests interruption of an active LlmSession dispatch.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerInterruptRequest
  */
 export interface NativeViewerInterruptRequest {
   /**
+   * SessionObjectKey identifies the selected LlmSession object.
+   *
    * @generated from field: string session_object_key = 1;
    */
   sessionObjectKey?: string
   /**
+   * DispatchKey identifies the active dispatch within a Session.
+   *
    * @generated from field: string dispatch_key = 2;
    */
   dispatchKey?: string
   /**
+   * RequestId identifies one idempotent control request.
+   *
    * @generated from field: string request_id = 3;
    */
   requestId?: string
   /**
+   * Reason describes why the active dispatch should be interrupted.
+   *
    * @generated from field: string reason = 4;
    */
   reason?: string
@@ -928,34 +1155,50 @@ export const NativeViewerInterruptRequest: MessageType<NativeViewerInterruptRequ
   })
 
 /**
+ * NativeViewerControlResponse reports an LlmSession control outcome.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerControlResponse
  */
 export interface NativeViewerControlResponse {
   /**
+   * Status reports the outcome of the requested operation.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerControlStatus status = 1;
    */
   status?: NativeViewerControlStatus
   /**
+   * SessionObjectKey identifies the selected LlmSession object.
+   *
    * @generated from field: string session_object_key = 2;
    */
   sessionObjectKey?: string
   /**
+   * DispatchKey identifies the active dispatch within a Session.
+   *
    * @generated from field: string dispatch_key = 3;
    */
   dispatchKey?: string
   /**
+   * RequestId identifies one idempotent control request.
+   *
    * @generated from field: string request_id = 4;
    */
   requestId?: string
   /**
+   * Detail explains a rejected, failed, or cancelled operation.
+   *
    * @generated from field: string detail = 5;
    */
   detail?: string
   /**
+   * AcceptedDeliveryKey identifies the accepted input delivery.
+   *
    * @generated from field: string accepted_delivery_key = 6;
    */
   acceptedDeliveryKey?: string
   /**
+   * AcceptedSequence is the accepted delivery sequence.
+   *
    * @generated from field: uint64 accepted_sequence = 7;
    */
   acceptedSequence?: bigint
@@ -997,18 +1240,26 @@ export const NativeViewerControlResponse: MessageType<NativeViewerControlRespons
   })
 
 /**
+ * NativeViewerFollowUpRequest continues a predecessor LlmSession with new input.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerFollowUpRequest
  */
 export interface NativeViewerFollowUpRequest {
   /**
+   * PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
+   *
    * @generated from field: string predecessor_session_object_key = 1;
    */
   predecessorSessionObjectKey?: string
   /**
+   * RequestId identifies one idempotent control request.
+   *
    * @generated from field: string request_id = 2;
    */
   requestId?: string
   /**
+   * Text contains the bounded user input or follow-up text.
+   *
    * @generated from field: string text = 3;
    */
   text?: string
@@ -1031,30 +1282,44 @@ export const NativeViewerFollowUpRequest: MessageType<NativeViewerFollowUpReques
   })
 
 /**
+ * NativeViewerFollowUpResponse reports the successor LlmSession created by a follow-up.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerFollowUpResponse
  */
 export interface NativeViewerFollowUpResponse {
   /**
+   * Status reports the outcome of the requested operation.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerControlStatus status = 1;
    */
   status?: NativeViewerControlStatus
   /**
+   * PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
+   *
    * @generated from field: string predecessor_session_object_key = 2;
    */
   predecessorSessionObjectKey?: string
   /**
+   * RequestId identifies one idempotent control request.
+   *
    * @generated from field: string request_id = 3;
    */
   requestId?: string
   /**
+   * Text contains the bounded user input or follow-up text.
+   *
    * @generated from field: string text = 4;
    */
   text?: string
   /**
+   * SuccessorSessionObjectKey identifies the LlmSession created by a follow-up.
+   *
    * @generated from field: string successor_session_object_key = 5;
    */
   successorSessionObjectKey?: string
   /**
+   * Detail explains a rejected, failed, or cancelled operation.
+   *
    * @generated from field: string detail = 6;
    */
   detail?: string
@@ -1090,22 +1355,32 @@ export const NativeViewerFollowUpResponse: MessageType<NativeViewerFollowUpRespo
   })
 
 /**
+ * NativeViewerCommand describes one command available on the TUI surface.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerCommand
  */
 export interface NativeViewerCommand {
   /**
+   * Id identifies the command.
+   *
    * @generated from field: string id = 1;
    */
   id?: string
   /**
+   * Label is the command label shown to the user.
+   *
    * @generated from field: string label = 2;
    */
   label?: string
   /**
+   * Binding is the display form of the command binding.
+   *
    * @generated from field: string binding = 3;
    */
   binding?: string
   /**
+   * Surface identifies the command surface.
+   *
    * @generated from field: uint32 surface = 4;
    */
   surface?: number
@@ -1124,6 +1399,8 @@ export const NativeViewerCommand: MessageType<NativeViewerCommand> =
   })
 
 /**
+ * NativeViewerListCommandsRequest requests the current TUI command snapshot.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerListCommandsRequest
  */
 export interface NativeViewerListCommandsRequest {}
@@ -1135,10 +1412,14 @@ export const NativeViewerListCommandsRequest: MessageType<NativeViewerListComman
   )
 
 /**
+ * NativeViewerListCommandsResponse contains the current bounded TUI command snapshot.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerListCommandsResponse
  */
 export interface NativeViewerListCommandsResponse {
   /**
+   * Commands contains the bounded available command snapshot.
+   *
    * @generated from field: repeated s4wave.viewer.native.NativeViewerCommand commands = 1;
    */
   commands?: NativeViewerCommand[]
@@ -1160,14 +1441,20 @@ export const NativeViewerListCommandsResponse: MessageType<NativeViewerListComma
   })
 
 /**
+ * NativeViewerExecuteCommandRequest requests invocation of one TUI command.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerExecuteCommandRequest
  */
 export interface NativeViewerExecuteCommandRequest {
   /**
+   * CommandId identifies the command to invoke.
+   *
    * @generated from field: string command_id = 1;
    */
   commandId?: string
   /**
+   * RequestId identifies one idempotent control request.
+   *
    * @generated from field: string request_id = 2;
    */
   requestId?: string
@@ -1184,22 +1471,32 @@ export const NativeViewerExecuteCommandRequest: MessageType<NativeViewerExecuteC
   })
 
 /**
+ * NativeViewerExecuteCommandResponse reports the TUI command invocation outcome.
+ *
  * @generated from message s4wave.viewer.native.NativeViewerExecuteCommandResponse
  */
 export interface NativeViewerExecuteCommandResponse {
   /**
+   * Status reports the outcome of the requested operation.
+   *
    * @generated from field: s4wave.viewer.native.NativeViewerControlStatus status = 1;
    */
   status?: NativeViewerControlStatus
   /**
+   * CommandId identifies the command to invoke.
+   *
    * @generated from field: string command_id = 2;
    */
   commandId?: string
   /**
+   * RequestId identifies one idempotent control request.
+   *
    * @generated from field: string request_id = 3;
    */
   requestId?: string
   /**
+   * Detail explains a rejected, failed, or cancelled operation.
+   *
    * @generated from field: string detail = 4;
    */
   detail?: string

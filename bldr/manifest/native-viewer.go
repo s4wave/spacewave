@@ -14,6 +14,7 @@ import (
 
 const nativeViewerProtocolVersion uint32 = native_viewer.NativeViewerProtocolVersion
 
+// validateNativeViewerID requires a non-empty bounded UTF-8 ID without whitespace, controls, or path separators.
 func validateNativeViewerID(name, value string) error {
 	if value == "" {
 		return errors.Errorf("%s cannot be empty", name)
@@ -29,6 +30,7 @@ func validateNativeViewerID(name, value string) error {
 	return nil
 }
 
+// validateNativeViewerTypeID requires a non-empty bounded UTF-8 ID without whitespace or controls.
 func validateNativeViewerTypeID(value string) error {
 	if value == "" || !utf8.ValidString(value) || len(value) > 128 {
 		return errors.New("viewer_type_id must be valid UTF-8 of at most 128 bytes")
@@ -41,6 +43,7 @@ func validateNativeViewerTypeID(value string) error {
 	return nil
 }
 
+// validateNativeEntrypoint requires a clean relative path without NULs, backslashes, or traversal components.
 func validateNativeEntrypoint(entrypoint string) error {
 	if !utf8.ValidString(entrypoint) || strings.ContainsRune(entrypoint, '\x00') || strings.ContainsRune(entrypoint, '\\') {
 		return errors.New("entrypoint is not safe")
@@ -56,6 +59,7 @@ func validateNativeEntrypoint(entrypoint string) error {
 	return nil
 }
 
+// validateNativeObjectKey requires a non-empty bounded UTF-8 object key without control characters.
 func validateNativeObjectKey(value string) error {
 	if value == "" {
 		return errors.New("cannot be empty")
@@ -71,6 +75,7 @@ func validateNativeObjectKey(value string) error {
 	return nil
 }
 
+// validateNativeViewerMetadata requires complete native viewer metadata for the current protocol and a desktop platform.
 func validateNativeViewerMetadata(m *Manifest) error {
 	meta := m.GetMeta()
 	hasMetadata := meta.GetViewerId() != "" || meta.GetViewerTypeId() != "" || meta.GetViewerProfile() != "" || meta.GetViewerProtocolVersion() != 0
@@ -98,23 +103,23 @@ func validateNativeViewerMetadata(m *Manifest) error {
 
 // NativeViewerResolution is the frozen identity set used to start a native viewer.
 type NativeViewerResolution struct {
-	// pluginID identifies the plugin manifest.
+	// PluginID identifies the plugin manifest.
 	PluginID string
-	// manifestObjectKey identifies the selected manifest object.
+	// ManifestObjectKey identifies the selected manifest object.
 	ManifestObjectKey string
-	// manifestDigest identifies the selected manifest root digest.
+	// ManifestDigest identifies the selected manifest root digest.
 	ManifestDigest string
-	// viewerID identifies the native viewer declared by the manifest.
+	// ViewerID identifies the native viewer declared by the manifest.
 	ViewerID string
-	// viewerTypeID identifies the native viewer implementation type.
+	// ViewerTypeID identifies the native viewer implementation type.
 	ViewerTypeID string
-	// viewerProfile selects the native viewer profile.
+	// ViewerProfile selects the native viewer profile.
 	ViewerProfile string
-	// protocolVersion identifies the native viewer protocol.
+	// ProtocolVersion identifies the native viewer protocol.
 	ProtocolVersion uint32
-	// entrypoint is the safe relative viewer executable path.
+	// Entrypoint is the safe relative viewer executable path.
 	Entrypoint string
-	// platformID identifies the canonical host platform.
+	// PlatformID identifies the canonical host platform.
 	PlatformID string
 }
 

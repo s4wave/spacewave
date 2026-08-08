@@ -31,6 +31,7 @@ type Config struct {
 
 // Factory creates one independent set of native viewer endpoints per Open.
 type Factory struct {
+	// config is the validated immutable endpoint configuration.
 	config Config
 }
 
@@ -62,6 +63,7 @@ func (f *Factory) Open(ctx context.Context) (*nativehost.EndpointSet, error) {
 	return open(ctx, f.config)
 }
 
+// validateConfig requires every endpoint dependency and a bounded selected state identity.
 func validateConfig(c Config) error {
 	if c.ResourceClient == nil {
 		return errors.New("selected resource client is required")
@@ -78,6 +80,7 @@ func validateConfig(c Config) error {
 	return nil
 }
 
+// validIdentity accepts bounded UTF-8 identities without control characters.
 func validIdentity(value string) bool {
 	if value == "" || len(value) > native.MaxIdentityBytes || !utf8.ValidString(value) {
 		return false

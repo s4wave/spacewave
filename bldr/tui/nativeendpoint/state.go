@@ -15,20 +15,26 @@ const maxRequestIDBytes = native.MaxIdentityBytes
 
 var errInvalidStateRequest = errors.New("native endpoint: invalid state request")
 
+// stateService exposes one selected state atom over SRPC.
 type stateService struct {
-	store    stateStore
+	// store persists the selected viewer state.
+	store stateStore
+	// stateKey identifies the state exposed by this service.
 	stateKey string
 }
 
+// stateStore is the persistence boundary required by stateService.
 type stateStore interface {
 	Get(context.Context) (string, uint64, error)
 	Set(context.Context, string) (uint64, error)
 }
 
+// newStateService binds one state store to its selected state key.
 func newStateService(store stateStore, stateKey string) *stateService {
 	return &stateService{store: store, stateKey: stateKey}
 }
 
+// Load returns the validated selected viewer state.
 func (s *stateService) Load(ctx context.Context, req *native.NativeViewerStateLoadRequest) (*native.NativeViewerStateLoadResponse, error) {
 	if req == nil || req.GetStateKey() != s.stateKey {
 		return nil, errInvalidStateRequest
@@ -49,6 +55,7 @@ func (s *stateService) Load(ctx context.Context, req *native.NativeViewerStateLo
 	return &native.NativeViewerStateLoadResponse{State: state.CloneVT(), StateKey: s.stateKey}, nil
 }
 
+// Save validates and persists the selected viewer state.
 func (s *stateService) Save(ctx context.Context, req *native.NativeViewerStateSaveRequest) (*native.NativeViewerStateSaveResponse, error) {
 	if req == nil || req.GetStateKey() != s.stateKey || !validRequestID(req.GetRequestId()) || req.GetState() == nil {
 		return nil, errInvalidStateRequest
@@ -66,6 +73,7 @@ func (s *stateService) Save(ctx context.Context, req *native.NativeViewerStateSa
 	return &native.NativeViewerStateSaveResponse{Accepted: true, StateKey: s.stateKey, RequestId: req.GetRequestId()}, nil
 }
 
+// validRequestID accepts non-empty bounded UTF-8 request IDs without controls.
 func validRequestID(value string) bool {
 	if value == "" || len(value) > maxRequestIDBytes || !utf8.ValidString(value) {
 		return false

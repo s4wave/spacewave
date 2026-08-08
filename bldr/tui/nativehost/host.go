@@ -18,15 +18,20 @@ import (
 	"golang.org/x/term"
 )
 
-const stopDeadline = 2 * time.Second
-const terminalRestore = "\x1b[0m\x1b[?25h\x1b[?1049l"
+const (
+	stopDeadline    = 2 * time.Second
+	terminalRestore = "\x1b[0m\x1b[?25h\x1b[?1049l"
+)
 
 // Host owns native child attempts and endpoint lifetimes.
 type Host struct {
+	// config is the validated immutable launch configuration.
 	config Config
+	// launch is the encoded launch record written to the child.
 	launch []byte
 }
 
+// NewHost validates the executable, terminal, endpoints, and launch record, then freezes the encoded launch bytes.
 func NewHost(c Config) (*Host, error) {
 	if !filepath.IsAbs(c.Executable) {
 		return nil, errors.Errorf("native viewer executable must be absolute")
@@ -38,7 +43,7 @@ func NewHost(c Config) (*Host, error) {
 	if !st.Mode().IsRegular() {
 		return nil, errors.Errorf("native viewer executable is not regular")
 	}
-	if st.Mode()&0111 == 0 {
+	if st.Mode()&0o111 == 0 {
 		return nil, errors.Errorf("native viewer executable is not executable")
 	}
 	if c.LaunchRecord == nil {
@@ -63,6 +68,7 @@ func NewHost(c Config) (*Host, error) {
 	return &Host{config: c, launch: b}, nil
 }
 
+// validateTerminalFiles requires input and output to address the same terminal device.
 func validateTerminalFiles(input, output *os.File) error {
 	if !term.IsTerminal(int(input.Fd())) || !term.IsTerminal(int(output.Fd())) {
 		return errors.New("native viewer input and output must be terminals")
@@ -80,7 +86,9 @@ func validateTerminalFiles(input, output *os.File) error {
 	return nil
 }
 
+// Run supervises child attempts and restores the terminal before returning.
 func (h *Host) Run(ctx context.Context, onReady func()) (runErr error) {
+	// Freeze readiness notification and terminal state for all child attempts.
 	called := false
 	callback := func() {
 		if !called {
@@ -100,6 +108,7 @@ func (h *Host) Run(ctx context.Context, onReady func()) (runErr error) {
 			runErr = stderrors.Join(runErr, errors.Errorf("native viewer panic: %v", x))
 		}
 	}()
+	// Run bounded attempts, restoring the shared terminal after each exit.
 	var lastErr error
 	for attempt := uint(0); attempt <= h.config.RestartLimit; attempt++ {
 		err := h.attempt(ctx, callback)
@@ -119,6 +128,7 @@ func (h *Host) Run(ctx context.Context, onReady func()) (runErr error) {
 	return stderrors.Join(runErr, lastErr)
 }
 
+// validateEndpoints requires three distinct non-nil inherited endpoint files.
 func validateEndpoints(e *EndpointSet) error {
 	if e == nil {
 		return errors.Errorf("endpoint factory returned nil")
@@ -133,7 +143,9 @@ func validateEndpoints(e *EndpointSet) error {
 	return nil
 }
 
+// attempt runs and reaps one child attempt.
 func (h *Host) attempt(ctx context.Context, onReady func()) (ret error) {
+	// Acquire launch, readiness, and endpoint descriptors before starting the child.
 	recordR, recordW, err := os.Pipe()
 	if err != nil {
 		return err
@@ -156,6 +168,7 @@ func (h *Host) attempt(ctx context.Context, onReady func()) (ret error) {
 		return stderrors.Join(err, eps.closeAndWait())
 	}
 	defer func() { ret = stderrors.Join(ret, eps.closeAndWait()) }()
+	// Start the validated executable with the fixed inherited descriptor table.
 	// #nosec G204: NewHost validates the configured absolute executable.
 	cmd := exec.Command(h.config.Executable)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = h.config.Stdin, h.config.Stdout, h.config.Stderr
@@ -184,6 +197,7 @@ func (h *Host) attempt(ctx context.Context, onReady func()) (ret error) {
 			ret = stderrors.Join(ret, reap(nil))
 		}
 	}()
+	// Deliver the frozen launch record after process custody is established.
 	var prefix [binary.MaxVarintLen64]byte
 	n := binary.PutUvarint(prefix[:], uint64(len(h.launch)))
 	if _, err := recordW.Write(prefix[:n]); err != nil {
@@ -193,6 +207,7 @@ func (h *Host) attempt(ctx context.Context, onReady func()) (ret error) {
 		return reap(err)
 	}
 	recordW.Close()
+	// Race readiness, process exit, and cancellation while preserving reap custody.
 	rr := make(chan struct {
 		r   *native.NativeViewerReadinessRecord
 		err error
@@ -209,7 +224,8 @@ func (h *Host) attempt(ctx context.Context, onReady func()) (ret error) {
 	classify := func(x struct {
 		r   *native.NativeViewerReadinessRecord
 		err error
-	}) error {
+	},
+	) error {
 		if x.err != nil {
 			return errors.Wrap(x.err, "readiness")
 		}
@@ -249,6 +265,7 @@ func (h *Host) attempt(ctx context.Context, onReady func()) (ret error) {
 	}
 }
 
+// stop interrupts the child and kills it after the shutdown deadline.
 func (h *Host) stop(cmd *exec.Cmd, wait <-chan error, cause error) error {
 	if cmd.Process != nil {
 		_ = cmd.Process.Signal(os.Interrupt)
@@ -266,6 +283,7 @@ func (h *Host) stop(cmd *exec.Cmd, wait <-chan error, cause error) error {
 	}
 }
 
+// restoreTerminal restores terminal after a child attempt.
 func restoreTerminal(f *os.File) error {
 	if f == nil {
 		return nil

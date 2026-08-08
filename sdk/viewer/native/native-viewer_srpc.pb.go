@@ -14,8 +14,9 @@ type SRPCStateServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// Load loads the complete selected viewer state.
 	Load(ctx context.Context, in *NativeViewerStateLoadRequest) (*NativeViewerStateLoadResponse, error)
-
+	// Save validates and persists the complete selected viewer state.
 	Save(ctx context.Context, in *NativeViewerStateSaveRequest) (*NativeViewerStateSaveResponse, error)
 }
 
@@ -56,8 +57,9 @@ func (c *srpcStateServiceClient) Save(ctx context.Context, in *NativeViewerState
 }
 
 type SRPCStateServiceServer interface {
+	// Load loads the complete selected viewer state.
 	Load(context.Context, *NativeViewerStateLoadRequest) (*NativeViewerStateLoadResponse, error)
-
+	// Save validates and persists the complete selected viewer state.
 	Save(context.Context, *NativeViewerStateSaveRequest) (*NativeViewerStateSaveResponse, error)
 }
 
@@ -154,18 +156,19 @@ type SRPCControlServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// AvailableSessions lists LlmSessions available within the selected resource scope.
 	AvailableSessions(ctx context.Context, in *NativeViewerAvailableSessionsRequest) (*NativeViewerAvailableSessionsResponse, error)
-
+	// SelectSession selects an LlmSession for subsequent viewer controls.
 	SelectSession(ctx context.Context, in *NativeViewerSelectSessionRequest) (*NativeViewerSelectSessionResponse, error)
-
+	// SendInput delivers input to an active LlmSession dispatch.
 	SendInput(ctx context.Context, in *NativeViewerSendInputRequest) (*NativeViewerControlResponse, error)
-
+	// Interrupt requests interruption of an active LlmSession dispatch.
 	Interrupt(ctx context.Context, in *NativeViewerInterruptRequest) (*NativeViewerControlResponse, error)
-
+	// FollowUp continues a predecessor LlmSession in a successor LlmSession.
 	FollowUp(ctx context.Context, in *NativeViewerFollowUpRequest) (*NativeViewerFollowUpResponse, error)
-
+	// ListCommands returns the current bounded TUI command snapshot.
 	ListCommands(ctx context.Context, in *NativeViewerListCommandsRequest) (*NativeViewerListCommandsResponse, error)
-
+	// ExecuteCommand invokes one command on the TUI surface.
 	ExecuteCommand(ctx context.Context, in *NativeViewerExecuteCommandRequest) (*NativeViewerExecuteCommandResponse, error)
 }
 
@@ -251,18 +254,19 @@ func (c *srpcControlServiceClient) ExecuteCommand(ctx context.Context, in *Nativ
 }
 
 type SRPCControlServiceServer interface {
+	// AvailableSessions lists LlmSessions available within the selected resource scope.
 	AvailableSessions(context.Context, *NativeViewerAvailableSessionsRequest) (*NativeViewerAvailableSessionsResponse, error)
-
+	// SelectSession selects an LlmSession for subsequent viewer controls.
 	SelectSession(context.Context, *NativeViewerSelectSessionRequest) (*NativeViewerSelectSessionResponse, error)
-
+	// SendInput delivers input to an active LlmSession dispatch.
 	SendInput(context.Context, *NativeViewerSendInputRequest) (*NativeViewerControlResponse, error)
-
+	// Interrupt requests interruption of an active LlmSession dispatch.
 	Interrupt(context.Context, *NativeViewerInterruptRequest) (*NativeViewerControlResponse, error)
-
+	// FollowUp continues a predecessor LlmSession in a successor LlmSession.
 	FollowUp(context.Context, *NativeViewerFollowUpRequest) (*NativeViewerFollowUpResponse, error)
-
+	// ListCommands returns the current bounded TUI command snapshot.
 	ListCommands(context.Context, *NativeViewerListCommandsRequest) (*NativeViewerListCommandsResponse, error)
-
+	// ExecuteCommand invokes one command on the TUI surface.
 	ExecuteCommand(context.Context, *NativeViewerExecuteCommandRequest) (*NativeViewerExecuteCommandResponse, error)
 }
 

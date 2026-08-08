@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// testLaunch returns a valid launch record with every fixed endpoint descriptor.
 func testLaunch() *NativeViewerLaunchRecord {
 	return &NativeViewerLaunchRecord{WireVersion: NativeViewerWireVersion, ProtocolVersion: NativeViewerProtocolVersion, LaunchId: "launch:1", SessionObjectKey: "session:1", SpaceObjectKey: "space:1", ManifestObjectKey: "manifest:1", ManifestDigest: "sha256:1", ViewerObjectKey: "viewer:1", ViewerProfile: "default", ResourceScopeSessionObjectKey: "session:1", SelectedStateKey: "state:1", LaunchNonce: "nonce:1", Io: &NativeViewerIODescriptor{InputFd: 0, OutputFd: 1, DiagnosticFd: 2, InputMode: NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_READ, OutputMode: NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE}, Endpoints: []*NativeViewerEndpointDescriptor{
 		{Kind: NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RECORD, Fd: RecordFD, Transport: NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO, ServiceId: "native.viewer.record", ProtocolVersion: NativeViewerProtocolVersion, Required: true, CloseOnExit: true},
@@ -22,6 +23,7 @@ func testLaunch() *NativeViewerLaunchRecord {
 	}}
 }
 
+// TestCanonicalLaunchFixture pins the encoded launch record bytes and digest.
 func TestCanonicalLaunchFixture(t *testing.T) {
 	frame, err := os.ReadFile("canonical-launch-frame.bin")
 	if err != nil {
@@ -36,6 +38,7 @@ func TestCanonicalLaunchFixture(t *testing.T) {
 	}
 }
 
+// TestLaunchValidationAndFraming proves a valid record round-trips and identity mutations are rejected.
 func TestLaunchValidationAndFraming(t *testing.T) {
 	record := testLaunch()
 	if err := ValidateLaunchRecord(record); err != nil {
@@ -68,6 +71,7 @@ func TestLaunchValidationAndFraming(t *testing.T) {
 	}
 }
 
+// TestLaunchFramingBoundsAndTrailingRecord proves empty, oversized, truncated, and concatenated frames are rejected.
 func TestLaunchFramingBoundsAndTrailingRecord(t *testing.T) {
 	var oversized bytes.Buffer
 	oversized.WriteByte(0xff)
@@ -91,6 +95,7 @@ func TestLaunchFramingBoundsAndTrailingRecord(t *testing.T) {
 	}
 }
 
+// TestReadinessEchoValidationAndFraming proves readiness must echo the complete frozen launch identity.
 func TestReadinessEchoValidationAndFraming(t *testing.T) {
 	launch := testLaunch()
 	readiness := &NativeViewerReadinessRecord{WireVersion: NativeViewerWireVersion, ProtocolVersion: NativeViewerProtocolVersion, LaunchId: launch.LaunchId, SessionObjectKey: launch.SessionObjectKey, SpaceObjectKey: launch.SpaceObjectKey, ManifestObjectKey: launch.ManifestObjectKey, ManifestDigest: launch.ManifestDigest, ViewerObjectKey: launch.ViewerObjectKey, ViewerProfile: launch.ViewerProfile, ResourceScopeSessionObjectKey: launch.ResourceScopeSessionObjectKey, SelectedStateKey: launch.SelectedStateKey, Status: NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY, ResourceRevision: 1, ResourceCursor: 1, FrameSequence: 1}
@@ -109,8 +114,10 @@ func TestReadinessEchoValidationAndFraming(t *testing.T) {
 	}
 }
 
+// shortWriter simulates writer progress without completing a frame.
 type shortWriter struct{}
 
+// Write reports a short write after accepting one byte.
 func (shortWriter) Write(data []byte) (int, error) {
 	if len(data) == 0 {
 		return 0, nil
@@ -118,8 +125,10 @@ func (shortWriter) Write(data []byte) (int, error) {
 	return 1, nil
 }
 
+// shortReader returns fixture bytes in deliberately short reads.
 type shortReader struct{ data []byte }
 
+// Read returns fixture bytes in bounded chunks.
 func (r *shortReader) Read(data []byte) (int, error) {
 	if len(r.data) == 0 {
 		return 0, io.EOF
@@ -129,21 +138,39 @@ func (r *shortReader) Read(data []byte) (int, error) {
 	return 1, nil
 }
 
+// TestLaunchValidationEveryDescriptorAndIdentityField proves every inherited descriptor and required identity is validated.
 func TestLaunchValidationEveryDescriptorAndIdentityField(t *testing.T) {
 	fields := []struct {
 		name   string
 		mutate func(*NativeViewerLaunchRecord)
 	}{
-		{"launch", func(v *NativeViewerLaunchRecord) { v.LaunchId = "\n" }}, {"session", func(v *NativeViewerLaunchRecord) { v.SessionObjectKey = "" }}, {"space", func(v *NativeViewerLaunchRecord) { v.SpaceObjectKey = "\xff" }}, {"manifest", func(v *NativeViewerLaunchRecord) { v.ManifestObjectKey = "\x1b" }}, {"digest", func(v *NativeViewerLaunchRecord) { v.ManifestDigest = "" }}, {"viewer", func(v *NativeViewerLaunchRecord) { v.ViewerObjectKey = "\t" }}, {"profile", func(v *NativeViewerLaunchRecord) { v.ViewerProfile = "\n" }}, {"state", func(v *NativeViewerLaunchRecord) { v.SelectedStateKey = "" }}, {"nonce", func(v *NativeViewerLaunchRecord) { v.LaunchNonce = "\u009f" }},
+		{"launch", func(v *NativeViewerLaunchRecord) { v.LaunchId = "\n" }},
+		{"session", func(v *NativeViewerLaunchRecord) { v.SessionObjectKey = "" }},
+		{"space", func(v *NativeViewerLaunchRecord) { v.SpaceObjectKey = "\xff" }},
+		{"manifest", func(v *NativeViewerLaunchRecord) { v.ManifestObjectKey = "\x1b" }},
+		{"digest", func(v *NativeViewerLaunchRecord) { v.ManifestDigest = "" }},
+		{"viewer", func(v *NativeViewerLaunchRecord) { v.ViewerObjectKey = "\t" }},
+		{"profile", func(v *NativeViewerLaunchRecord) { v.ViewerProfile = "\n" }},
+		{"state", func(v *NativeViewerLaunchRecord) { v.SelectedStateKey = "" }},
+		{"nonce", func(v *NativeViewerLaunchRecord) { v.LaunchNonce = "\u009f" }},
 		{"input mode", func(v *NativeViewerLaunchRecord) {
 			v.Io.InputMode = NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE
-		}}, {"output mode", func(v *NativeViewerLaunchRecord) {
+		}},
+		{"output mode", func(v *NativeViewerLaunchRecord) {
 			v.Io.OutputMode = NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_READ
-		}}, {"diagnostic fd", func(v *NativeViewerLaunchRecord) { v.Io.DiagnosticFd = 9 }}, {"close", func(v *NativeViewerLaunchRecord) { v.Endpoints[0].CloseOnExit = false }}, {"required", func(v *NativeViewerLaunchRecord) { v.Endpoints[0].Required = false }}, {"transport", func(v *NativeViewerLaunchRecord) {
+		}},
+		{"diagnostic fd", func(v *NativeViewerLaunchRecord) { v.Io.DiagnosticFd = 9 }},
+		{"close", func(v *NativeViewerLaunchRecord) { v.Endpoints[0].CloseOnExit = false }},
+		{"required", func(v *NativeViewerLaunchRecord) { v.Endpoints[0].Required = false }},
+		{"transport", func(v *NativeViewerLaunchRecord) {
 			v.Endpoints[0].Transport = NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC
-		}}, {"service", func(v *NativeViewerLaunchRecord) { v.Endpoints[0].ServiceId = "native.viewer.record.alias" }}, {"kind", func(v *NativeViewerLaunchRecord) {
+		}},
+		{"service", func(v *NativeViewerLaunchRecord) { v.Endpoints[0].ServiceId = "native.viewer.record.alias" }},
+		{"kind", func(v *NativeViewerLaunchRecord) {
 			v.Endpoints[0].Kind = NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_CONTROL
-		}}, {"protocol", func(v *NativeViewerLaunchRecord) { v.Endpoints[0].ProtocolVersion++ }}, {"unknown fd", func(v *NativeViewerLaunchRecord) { v.Endpoints[0].Fd = 8 }},
+		}},
+		{"protocol", func(v *NativeViewerLaunchRecord) { v.Endpoints[0].ProtocolVersion++ }},
+		{"unknown fd", func(v *NativeViewerLaunchRecord) { v.Endpoints[0].Fd = 8 }},
 	}
 	for _, field := range fields {
 		t.Run(field.name, func(t *testing.T) {
@@ -161,6 +188,7 @@ func TestLaunchValidationEveryDescriptorAndIdentityField(t *testing.T) {
 	}
 }
 
+// TestLaunchShortIOAndMalformedReadiness proves short I/O, malformed varints, and trailing readiness bytes fail safely.
 func TestLaunchShortIOAndMalformedReadiness(t *testing.T) {
 	if err := WriteLaunchRecord(shortWriter{}, testLaunch()); err != nil {
 		t.Fatal(err)
@@ -186,9 +214,13 @@ func TestLaunchShortIOAndMalformedReadiness(t *testing.T) {
 	}
 }
 
+// TestReadinessValidationStatusMatrix proves READY and terminal statuses require their distinct evidence fields.
 func TestReadinessValidationStatusMatrix(t *testing.T) {
 	launch := testLaunch()
 	base := &NativeViewerReadinessRecord{WireVersion: NativeViewerWireVersion, ProtocolVersion: NativeViewerProtocolVersion, LaunchId: launch.LaunchId, SessionObjectKey: launch.SessionObjectKey, SpaceObjectKey: launch.SpaceObjectKey, ManifestObjectKey: launch.ManifestObjectKey, ManifestDigest: launch.ManifestDigest, ViewerObjectKey: launch.ViewerObjectKey, ViewerProfile: launch.ViewerProfile, ResourceScopeSessionObjectKey: launch.ResourceScopeSessionObjectKey, SelectedStateKey: launch.SelectedStateKey}
+	if err := ValidateReadinessRecord(base, launch); err == nil {
+		t.Fatal("accepted unknown readiness status")
+	}
 	ready := base.CloneVT()
 	ready.Status = NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY
 	ready.ResourceRevision, ready.ResourceCursor, ready.FrameSequence = 1, 1, 1
@@ -234,6 +266,7 @@ func TestReadinessValidationStatusMatrix(t *testing.T) {
 	}
 }
 
+// TestReadReadinessRecordLiveDoesNotWaitForEOF proves readiness becomes observable while the child retains the stream.
 func TestReadReadinessRecordLiveDoesNotWaitForEOF(t *testing.T) {
 	launch := testLaunch()
 	readiness := &NativeViewerReadinessRecord{WireVersion: NativeViewerWireVersion, ProtocolVersion: NativeViewerProtocolVersion, LaunchId: launch.LaunchId, SessionObjectKey: launch.SessionObjectKey, SpaceObjectKey: launch.SpaceObjectKey, ManifestObjectKey: launch.ManifestObjectKey, ManifestDigest: launch.ManifestDigest, ViewerObjectKey: launch.ViewerObjectKey, ViewerProfile: launch.ViewerProfile, ResourceScopeSessionObjectKey: launch.ResourceScopeSessionObjectKey, SelectedStateKey: launch.SelectedStateKey, Status: NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY, FrameSequence: 1, ResourceRevision: 1, ResourceCursor: 1}
@@ -255,6 +288,7 @@ func TestReadReadinessRecordLiveDoesNotWaitForEOF(t *testing.T) {
 	_ = pr.Close()
 }
 
+// TestValidateSelectedState proves selected UI state rejects invalid identities, bounds, and cross-tab references.
 func TestValidateSelectedState(t *testing.T) {
 	base := &NativeViewerSelectedState{SpaceObjectKey: "space/one", Tabs: []string{"glados/console", "logs"}, Focused: "glados/console", Drafts: map[string]string{"glados/console": "draft"}, Viewports: map[string]uint32{"glados/console": 42}}
 	if err := ValidateSelectedState(base); err != nil {
