@@ -2,7 +2,6 @@ package s4wave_viewer_native
 
 import (
 	"errors"
-	"unicode"
 	"unicode/utf8"
 )
 
@@ -16,15 +15,7 @@ const (
 var ErrInvalidSelectedState = errors.New("nativeviewer: invalid selected state")
 
 func validStateIdentity(value string) bool {
-	if !validIdentity(value) {
-		return false
-	}
-	for _, r := range value {
-		if unicode.IsSpace(r) || r == '/' || r == '\\' {
-			return false
-		}
-	}
-	return true
+	return validIdentity(value)
 }
 
 // ValidateSelectedState validates the bounded persistence boundary for selected UI state.
@@ -57,6 +48,9 @@ func ValidateSelectedState(state *NativeViewerSelectedState) error {
 	}
 	for key, offset := range state.GetViewports() {
 		if !validStateIdentity(key) || offset > MaxTranscriptOffset {
+			return ErrInvalidSelectedState
+		}
+		if _, ok := seen[key]; !ok {
 			return ErrInvalidSelectedState
 		}
 	}

@@ -256,16 +256,17 @@ func TestReadReadinessRecordLiveDoesNotWaitForEOF(t *testing.T) {
 }
 
 func TestValidateSelectedState(t *testing.T) {
-	base := &NativeViewerSelectedState{Tabs: []string{"console", "logs"}, Focused: "console", Drafts: map[string]string{"console": "draft"}, Viewports: map[string]uint32{"console": 42}}
+	base := &NativeViewerSelectedState{Tabs: []string{"glados/console", "logs"}, Focused: "glados/console", Drafts: map[string]string{"glados/console": "draft"}, Viewports: map[string]uint32{"glados/console": 42}}
 	if err := ValidateSelectedState(base); err != nil {
 		t.Fatal(err)
 	}
 	cases := []func(*NativeViewerSelectedState){
-		func(s *NativeViewerSelectedState) { s.Tabs = append(s.Tabs, "console") },
+		func(s *NativeViewerSelectedState) { s.Tabs = append(s.Tabs, "glados/console") },
 		func(s *NativeViewerSelectedState) { s.Focused = "missing" },
-		func(s *NativeViewerSelectedState) { s.Drafts["bad key"] = "x" },
-		func(s *NativeViewerSelectedState) { s.Drafts["console"] = string(make([]byte, MaxDraftBytes+1)) },
-		func(s *NativeViewerSelectedState) { s.Viewports["console"] = MaxTranscriptOffset + 1 },
+		func(s *NativeViewerSelectedState) { s.Drafts["bad\x1bkey"] = "x" },
+		func(s *NativeViewerSelectedState) { s.Drafts["glados/console"] = string(make([]byte, MaxDraftBytes+1)) },
+		func(s *NativeViewerSelectedState) { s.Viewports["glados/console"] = MaxTranscriptOffset + 1 },
+		func(s *NativeViewerSelectedState) { s.Viewports["missing"] = 1 },
 		func(s *NativeViewerSelectedState) { s.SelectedView = 3 },
 		func(s *NativeViewerSelectedState) { s.Theme = 3 },
 	}
