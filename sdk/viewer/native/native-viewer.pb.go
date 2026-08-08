@@ -360,6 +360,44 @@ func (x *NativeViewerIODescriptor) GetOutputMode() NativeViewerFDMode {
 	return NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_UNKNOWN
 }
 
+// NativeViewerSpacewaveSessionRef snapshots the canonical Spacewave SessionRef tuple for one immutable launch.
+type NativeViewerSpacewaveSessionRef struct {
+	unknownFields []byte
+	// ProviderResourceId identifies the Spacewave Session resource within its provider.
+	ProviderResourceId string `protobuf:"bytes,1,opt,name=provider_resource_id,json=providerResourceId,proto3" json:"providerResourceId,omitempty"`
+	// ProviderId identifies the provider that contains the Spacewave Session resource.
+	ProviderId string `protobuf:"bytes,2,opt,name=provider_id,json=providerId,proto3" json:"providerId,omitempty"`
+	// ProviderAccountId identifies the provider account that contains the Spacewave Session resource.
+	ProviderAccountId string `protobuf:"bytes,3,opt,name=provider_account_id,json=providerAccountId,proto3" json:"providerAccountId,omitempty"`
+}
+
+func (x *NativeViewerSpacewaveSessionRef) Reset() {
+	*x = NativeViewerSpacewaveSessionRef{}
+}
+
+func (*NativeViewerSpacewaveSessionRef) ProtoMessage() {}
+
+func (x *NativeViewerSpacewaveSessionRef) GetProviderResourceId() string {
+	if x != nil {
+		return x.ProviderResourceId
+	}
+	return ""
+}
+
+func (x *NativeViewerSpacewaveSessionRef) GetProviderId() string {
+	if x != nil {
+		return x.ProviderId
+	}
+	return ""
+}
+
+func (x *NativeViewerSpacewaveSessionRef) GetProviderAccountId() string {
+	if x != nil {
+		return x.ProviderAccountId
+	}
+	return ""
+}
+
 // NativeViewerLaunchRecord freezes the identities and endpoints for one child launch.
 type NativeViewerLaunchRecord struct {
 	unknownFields []byte
@@ -369,8 +407,8 @@ type NativeViewerLaunchRecord struct {
 	ProtocolVersion uint32 `protobuf:"varint,2,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocolVersion,omitempty"`
 	// LaunchId identifies one supervised child launch.
 	LaunchId string `protobuf:"bytes,3,opt,name=launch_id,json=launchId,proto3" json:"launchId,omitempty"`
-	// SessionObjectKey identifies the selected LlmSession object.
-	SessionObjectKey string `protobuf:"bytes,4,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
+	// LlmSessionObjectKey identifies the selected LlmSession object.
+	LlmSessionObjectKey string `protobuf:"bytes,4,opt,name=llm_session_object_key,json=llmSessionObjectKey,proto3" json:"llmSessionObjectKey,omitempty"`
 	// SpaceObjectKey identifies the selected Space object.
 	SpaceObjectKey string `protobuf:"bytes,5,opt,name=space_object_key,json=spaceObjectKey,proto3" json:"spaceObjectKey,omitempty"`
 	// ManifestObjectKey identifies the immutable selected manifest object.
@@ -381,8 +419,8 @@ type NativeViewerLaunchRecord struct {
 	ViewerObjectKey string `protobuf:"bytes,8,opt,name=viewer_object_key,json=viewerObjectKey,proto3" json:"viewerObjectKey,omitempty"`
 	// ViewerProfile selects the viewer profile declared by the manifest.
 	ViewerProfile string `protobuf:"bytes,9,opt,name=viewer_profile,json=viewerProfile,proto3" json:"viewerProfile,omitempty"`
-	// ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
-	ResourceScopeSessionObjectKey string `protobuf:"bytes,10,opt,name=resource_scope_session_object_key,json=resourceScopeSessionObjectKey,proto3" json:"resourceScopeSessionObjectKey,omitempty"`
+	// ResourceScopeLlmSessionObjectKey limits resource access to the selected LlmSession object.
+	ResourceScopeLlmSessionObjectKey string `protobuf:"bytes,10,opt,name=resource_scope_llm_session_object_key,json=resourceScopeLlmSessionObjectKey,proto3" json:"resourceScopeLlmSessionObjectKey,omitempty"`
 	// SelectedStateKey identifies the state atom persisted for this viewer selection.
 	SelectedStateKey string `protobuf:"bytes,11,opt,name=selected_state_key,json=selectedStateKey,proto3" json:"selectedStateKey,omitempty"`
 	// Endpoints describes every inherited endpoint required by the child.
@@ -391,6 +429,8 @@ type NativeViewerLaunchRecord struct {
 	Io *NativeViewerIODescriptor `protobuf:"bytes,13,opt,name=io,proto3" json:"io,omitempty"`
 	// LaunchNonce binds readiness evidence to one launch attempt.
 	LaunchNonce string `protobuf:"bytes,14,opt,name=launch_nonce,json=launchNonce,proto3" json:"launchNonce,omitempty"`
+	// SpacewaveSessionRef snapshots the exact Spacewave Session that authorized this launch.
+	SpacewaveSessionRef *NativeViewerSpacewaveSessionRef `protobuf:"bytes,15,opt,name=spacewave_session_ref,json=spacewaveSessionRef,proto3" json:"spacewaveSessionRef,omitempty"`
 }
 
 func (x *NativeViewerLaunchRecord) Reset() {
@@ -420,9 +460,9 @@ func (x *NativeViewerLaunchRecord) GetLaunchId() string {
 	return ""
 }
 
-func (x *NativeViewerLaunchRecord) GetSessionObjectKey() string {
+func (x *NativeViewerLaunchRecord) GetLlmSessionObjectKey() string {
 	if x != nil {
-		return x.SessionObjectKey
+		return x.LlmSessionObjectKey
 	}
 	return ""
 }
@@ -462,9 +502,9 @@ func (x *NativeViewerLaunchRecord) GetViewerProfile() string {
 	return ""
 }
 
-func (x *NativeViewerLaunchRecord) GetResourceScopeSessionObjectKey() string {
+func (x *NativeViewerLaunchRecord) GetResourceScopeLlmSessionObjectKey() string {
 	if x != nil {
-		return x.ResourceScopeSessionObjectKey
+		return x.ResourceScopeLlmSessionObjectKey
 	}
 	return ""
 }
@@ -497,6 +537,13 @@ func (x *NativeViewerLaunchRecord) GetLaunchNonce() string {
 	return ""
 }
 
+func (x *NativeViewerLaunchRecord) GetSpacewaveSessionRef() *NativeViewerSpacewaveSessionRef {
+	if x != nil {
+		return x.SpacewaveSessionRef
+	}
+	return nil
+}
+
 // NativeViewerReadinessRecord reports the first rendered frame or terminal startup failure.
 type NativeViewerReadinessRecord struct {
 	unknownFields []byte
@@ -506,8 +553,8 @@ type NativeViewerReadinessRecord struct {
 	ProtocolVersion uint32 `protobuf:"varint,2,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocolVersion,omitempty"`
 	// LaunchId identifies one supervised child launch.
 	LaunchId string `protobuf:"bytes,3,opt,name=launch_id,json=launchId,proto3" json:"launchId,omitempty"`
-	// SessionObjectKey identifies the selected LlmSession object.
-	SessionObjectKey string `protobuf:"bytes,4,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
+	// LlmSessionObjectKey identifies the selected LlmSession object.
+	LlmSessionObjectKey string `protobuf:"bytes,4,opt,name=llm_session_object_key,json=llmSessionObjectKey,proto3" json:"llmSessionObjectKey,omitempty"`
 	// SpaceObjectKey identifies the selected Space object.
 	SpaceObjectKey string `protobuf:"bytes,5,opt,name=space_object_key,json=spaceObjectKey,proto3" json:"spaceObjectKey,omitempty"`
 	// ManifestObjectKey identifies the immutable selected manifest object.
@@ -532,10 +579,14 @@ type NativeViewerReadinessRecord struct {
 	AllWorkersJoined bool `protobuf:"varint,15,opt,name=all_workers_joined,json=allWorkersJoined,proto3" json:"allWorkersJoined,omitempty"`
 	// ViewerProfile selects the viewer profile declared by the manifest.
 	ViewerProfile string `protobuf:"bytes,16,opt,name=viewer_profile,json=viewerProfile,proto3" json:"viewerProfile,omitempty"`
-	// ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
-	ResourceScopeSessionObjectKey string `protobuf:"bytes,17,opt,name=resource_scope_session_object_key,json=resourceScopeSessionObjectKey,proto3" json:"resourceScopeSessionObjectKey,omitempty"`
+	// ResourceScopeLlmSessionObjectKey limits resource access to the selected LlmSession object.
+	ResourceScopeLlmSessionObjectKey string `protobuf:"bytes,17,opt,name=resource_scope_llm_session_object_key,json=resourceScopeLlmSessionObjectKey,proto3" json:"resourceScopeLlmSessionObjectKey,omitempty"`
 	// SelectedStateKey identifies the state atom persisted for this viewer selection.
 	SelectedStateKey string `protobuf:"bytes,18,opt,name=selected_state_key,json=selectedStateKey,proto3" json:"selectedStateKey,omitempty"`
+	// SpacewaveSessionRef echoes the exact Spacewave Session that authorized the launch.
+	SpacewaveSessionRef *NativeViewerSpacewaveSessionRef `protobuf:"bytes,19,opt,name=spacewave_session_ref,json=spacewaveSessionRef,proto3" json:"spacewaveSessionRef,omitempty"`
+	// LaunchNonce echoes the launch attempt that this readiness evidence describes.
+	LaunchNonce string `protobuf:"bytes,20,opt,name=launch_nonce,json=launchNonce,proto3" json:"launchNonce,omitempty"`
 }
 
 func (x *NativeViewerReadinessRecord) Reset() {
@@ -565,9 +616,9 @@ func (x *NativeViewerReadinessRecord) GetLaunchId() string {
 	return ""
 }
 
-func (x *NativeViewerReadinessRecord) GetSessionObjectKey() string {
+func (x *NativeViewerReadinessRecord) GetLlmSessionObjectKey() string {
 	if x != nil {
-		return x.SessionObjectKey
+		return x.LlmSessionObjectKey
 	}
 	return ""
 }
@@ -656,9 +707,9 @@ func (x *NativeViewerReadinessRecord) GetViewerProfile() string {
 	return ""
 }
 
-func (x *NativeViewerReadinessRecord) GetResourceScopeSessionObjectKey() string {
+func (x *NativeViewerReadinessRecord) GetResourceScopeLlmSessionObjectKey() string {
 	if x != nil {
-		return x.ResourceScopeSessionObjectKey
+		return x.ResourceScopeLlmSessionObjectKey
 	}
 	return ""
 }
@@ -670,23 +721,35 @@ func (x *NativeViewerReadinessRecord) GetSelectedStateKey() string {
 	return ""
 }
 
+func (x *NativeViewerReadinessRecord) GetSpacewaveSessionRef() *NativeViewerSpacewaveSessionRef {
+	if x != nil {
+		return x.SpacewaveSessionRef
+	}
+	return nil
+}
+
+func (x *NativeViewerReadinessRecord) GetLaunchNonce() string {
+	if x != nil {
+		return x.LaunchNonce
+	}
+	return ""
+}
+
 // NativeViewerSelectedState persists the bounded UI selection state for one viewer.
 type NativeViewerSelectedState struct {
 	unknownFields []byte
-	// Tabs orders the bounded set of open LlmSession object keys.
-	Tabs []string `protobuf:"bytes,1,rep,name=tabs,proto3" json:"tabs,omitempty"`
-	// Focused identifies the focused LlmSession tab.
-	Focused string `protobuf:"bytes,2,opt,name=focused,proto3" json:"focused,omitempty"`
-	// Drafts maps LlmSession object keys to bounded UTF-8 input drafts.
-	Drafts map[string]string `protobuf:"bytes,3,rep,name=drafts,proto3" json:"drafts,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// Viewports maps LlmSession object keys to bounded transcript offsets.
-	Viewports map[string]uint32 `protobuf:"bytes,4,rep,name=viewports,proto3" json:"viewports,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	// TabLlmSessionObjectKeys orders the bounded set of open LlmSession object keys.
+	TabLlmSessionObjectKeys []string `protobuf:"bytes,1,rep,name=tab_llm_session_object_keys,json=tabLlmSessionObjectKeys,proto3" json:"tabLlmSessionObjectKeys,omitempty"`
+	// FocusedLlmSessionObjectKey identifies the focused LlmSession tab.
+	FocusedLlmSessionObjectKey string `protobuf:"bytes,2,opt,name=focused_llm_session_object_key,json=focusedLlmSessionObjectKey,proto3" json:"focusedLlmSessionObjectKey,omitempty"`
+	// DraftsByLlmSessionObjectKey maps LlmSession object keys to bounded UTF-8 input drafts.
+	DraftsByLlmSessionObjectKey map[string]string `protobuf:"bytes,3,rep,name=drafts_by_llm_session_object_key,json=draftsByLlmSessionObjectKey,proto3" json:"draftsByLlmSessionObjectKey,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	// ViewportsByLlmSessionObjectKey maps LlmSession object keys to bounded transcript offsets.
+	ViewportsByLlmSessionObjectKey map[string]uint32 `protobuf:"bytes,4,rep,name=viewports_by_llm_session_object_key,json=viewportsByLlmSessionObjectKey,proto3" json:"viewportsByLlmSessionObjectKey,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	// SelectedView selects the active viewer pane.
 	SelectedView uint32 `protobuf:"varint,5,opt,name=selected_view,json=selectedView,proto3" json:"selectedView,omitempty"`
 	// Theme selects the viewer color theme.
 	Theme uint32 `protobuf:"varint,6,opt,name=theme,proto3" json:"theme,omitempty"`
-	// SpaceObjectKey identifies the selected Space object.
-	SpaceObjectKey string `protobuf:"bytes,7,opt,name=space_object_key,json=spaceObjectKey,proto3" json:"spaceObjectKey,omitempty"`
 }
 
 func (x *NativeViewerSelectedState) Reset() {
@@ -695,30 +758,30 @@ func (x *NativeViewerSelectedState) Reset() {
 
 func (*NativeViewerSelectedState) ProtoMessage() {}
 
-func (x *NativeViewerSelectedState) GetTabs() []string {
+func (x *NativeViewerSelectedState) GetTabLlmSessionObjectKeys() []string {
 	if x != nil {
-		return x.Tabs
+		return x.TabLlmSessionObjectKeys
 	}
 	return nil
 }
 
-func (x *NativeViewerSelectedState) GetFocused() string {
+func (x *NativeViewerSelectedState) GetFocusedLlmSessionObjectKey() string {
 	if x != nil {
-		return x.Focused
+		return x.FocusedLlmSessionObjectKey
 	}
 	return ""
 }
 
-func (x *NativeViewerSelectedState) GetDrafts() map[string]string {
+func (x *NativeViewerSelectedState) GetDraftsByLlmSessionObjectKey() map[string]string {
 	if x != nil {
-		return x.Drafts
+		return x.DraftsByLlmSessionObjectKey
 	}
 	return nil
 }
 
-func (x *NativeViewerSelectedState) GetViewports() map[string]uint32 {
+func (x *NativeViewerSelectedState) GetViewportsByLlmSessionObjectKey() map[string]uint32 {
 	if x != nil {
-		return x.Viewports
+		return x.ViewportsByLlmSessionObjectKey
 	}
 	return nil
 }
@@ -735,13 +798,6 @@ func (x *NativeViewerSelectedState) GetTheme() uint32 {
 		return x.Theme
 	}
 	return 0
-}
-
-func (x *NativeViewerSelectedState) GetSpaceObjectKey() string {
-	if x != nil {
-		return x.SpaceObjectKey
-	}
-	return ""
 }
 
 // NativeViewerStateLoadRequest identifies the selected state atom to load.
@@ -881,8 +937,8 @@ func (x *NativeViewerStateSaveResponse) GetDetail() string {
 // NativeViewerAvailableSessionsRequest identifies the resource scope used for LlmSession discovery.
 type NativeViewerAvailableSessionsRequest struct {
 	unknownFields []byte
-	// ScopeSessionObjectKey identifies the LlmSession that bounds discovery.
-	ScopeSessionObjectKey string `protobuf:"bytes,1,opt,name=scope_session_object_key,json=scopeSessionObjectKey,proto3" json:"scopeSessionObjectKey,omitempty"`
+	// ResourceScopeLlmSessionObjectKey identifies the LlmSession that bounds discovery.
+	ResourceScopeLlmSessionObjectKey string `protobuf:"bytes,1,opt,name=resource_scope_llm_session_object_key,json=resourceScopeLlmSessionObjectKey,proto3" json:"resourceScopeLlmSessionObjectKey,omitempty"`
 }
 
 func (x *NativeViewerAvailableSessionsRequest) Reset() {
@@ -891,9 +947,9 @@ func (x *NativeViewerAvailableSessionsRequest) Reset() {
 
 func (*NativeViewerAvailableSessionsRequest) ProtoMessage() {}
 
-func (x *NativeViewerAvailableSessionsRequest) GetScopeSessionObjectKey() string {
+func (x *NativeViewerAvailableSessionsRequest) GetResourceScopeLlmSessionObjectKey() string {
 	if x != nil {
-		return x.ScopeSessionObjectKey
+		return x.ResourceScopeLlmSessionObjectKey
 	}
 	return ""
 }
@@ -901,8 +957,8 @@ func (x *NativeViewerAvailableSessionsRequest) GetScopeSessionObjectKey() string
 // NativeViewerAvailableSessionsResponse contains the LlmSessions available within the resource scope.
 type NativeViewerAvailableSessionsResponse struct {
 	unknownFields []byte
-	// SessionObjectKeys lists LlmSession objects available within the resource scope.
-	SessionObjectKeys []string `protobuf:"bytes,1,rep,name=session_object_keys,json=sessionObjectKeys,proto3" json:"sessionObjectKeys,omitempty"`
+	// LlmSessionObjectKeys lists LlmSession objects available within the resource scope.
+	LlmSessionObjectKeys []string `protobuf:"bytes,1,rep,name=llm_session_object_keys,json=llmSessionObjectKeys,proto3" json:"llmSessionObjectKeys,omitempty"`
 }
 
 func (x *NativeViewerAvailableSessionsResponse) Reset() {
@@ -911,9 +967,9 @@ func (x *NativeViewerAvailableSessionsResponse) Reset() {
 
 func (*NativeViewerAvailableSessionsResponse) ProtoMessage() {}
 
-func (x *NativeViewerAvailableSessionsResponse) GetSessionObjectKeys() []string {
+func (x *NativeViewerAvailableSessionsResponse) GetLlmSessionObjectKeys() []string {
 	if x != nil {
-		return x.SessionObjectKeys
+		return x.LlmSessionObjectKeys
 	}
 	return nil
 }
@@ -921,8 +977,8 @@ func (x *NativeViewerAvailableSessionsResponse) GetSessionObjectKeys() []string 
 // NativeViewerSelectSessionRequest selects one LlmSession for the viewer.
 type NativeViewerSelectSessionRequest struct {
 	unknownFields []byte
-	// SessionObjectKey identifies the selected LlmSession object.
-	SessionObjectKey string `protobuf:"bytes,1,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
+	// LlmSessionObjectKey identifies the selected LlmSession object.
+	LlmSessionObjectKey string `protobuf:"bytes,1,opt,name=llm_session_object_key,json=llmSessionObjectKey,proto3" json:"llmSessionObjectKey,omitempty"`
 	// RequestId identifies one idempotent control request.
 	RequestId string `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
 }
@@ -933,9 +989,9 @@ func (x *NativeViewerSelectSessionRequest) Reset() {
 
 func (*NativeViewerSelectSessionRequest) ProtoMessage() {}
 
-func (x *NativeViewerSelectSessionRequest) GetSessionObjectKey() string {
+func (x *NativeViewerSelectSessionRequest) GetLlmSessionObjectKey() string {
 	if x != nil {
-		return x.SessionObjectKey
+		return x.LlmSessionObjectKey
 	}
 	return ""
 }
@@ -952,8 +1008,8 @@ type NativeViewerSelectSessionResponse struct {
 	unknownFields []byte
 	// Status reports the outcome of the requested operation.
 	Status NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	// SessionObjectKey identifies the selected LlmSession object.
-	SessionObjectKey string `protobuf:"bytes,2,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
+	// LlmSessionObjectKey identifies the selected LlmSession object.
+	LlmSessionObjectKey string `protobuf:"bytes,2,opt,name=llm_session_object_key,json=llmSessionObjectKey,proto3" json:"llmSessionObjectKey,omitempty"`
 	// RequestId identifies one idempotent control request.
 	RequestId string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
 	// Detail explains a rejected, failed, or cancelled operation.
@@ -973,9 +1029,9 @@ func (x *NativeViewerSelectSessionResponse) GetStatus() NativeViewerControlStatu
 	return NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN
 }
 
-func (x *NativeViewerSelectSessionResponse) GetSessionObjectKey() string {
+func (x *NativeViewerSelectSessionResponse) GetLlmSessionObjectKey() string {
 	if x != nil {
-		return x.SessionObjectKey
+		return x.LlmSessionObjectKey
 	}
 	return ""
 }
@@ -997,8 +1053,8 @@ func (x *NativeViewerSelectSessionResponse) GetDetail() string {
 // NativeViewerSendInputRequest delivers user input to an active LlmSession dispatch.
 type NativeViewerSendInputRequest struct {
 	unknownFields []byte
-	// SessionObjectKey identifies the selected LlmSession object.
-	SessionObjectKey string `protobuf:"bytes,1,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
+	// LlmSessionObjectKey identifies the selected LlmSession object.
+	LlmSessionObjectKey string `protobuf:"bytes,1,opt,name=llm_session_object_key,json=llmSessionObjectKey,proto3" json:"llmSessionObjectKey,omitempty"`
 	// DispatchKey identifies the active dispatch within an LlmSession.
 	DispatchKey string `protobuf:"bytes,2,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
 	// RequestId identifies one idempotent control request.
@@ -1013,9 +1069,9 @@ func (x *NativeViewerSendInputRequest) Reset() {
 
 func (*NativeViewerSendInputRequest) ProtoMessage() {}
 
-func (x *NativeViewerSendInputRequest) GetSessionObjectKey() string {
+func (x *NativeViewerSendInputRequest) GetLlmSessionObjectKey() string {
 	if x != nil {
-		return x.SessionObjectKey
+		return x.LlmSessionObjectKey
 	}
 	return ""
 }
@@ -1044,8 +1100,8 @@ func (x *NativeViewerSendInputRequest) GetText() string {
 // NativeViewerInterruptRequest requests interruption of an active LlmSession dispatch.
 type NativeViewerInterruptRequest struct {
 	unknownFields []byte
-	// SessionObjectKey identifies the selected LlmSession object.
-	SessionObjectKey string `protobuf:"bytes,1,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
+	// LlmSessionObjectKey identifies the selected LlmSession object.
+	LlmSessionObjectKey string `protobuf:"bytes,1,opt,name=llm_session_object_key,json=llmSessionObjectKey,proto3" json:"llmSessionObjectKey,omitempty"`
 	// DispatchKey identifies the active dispatch within an LlmSession.
 	DispatchKey string `protobuf:"bytes,2,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
 	// RequestId identifies one idempotent control request.
@@ -1060,9 +1116,9 @@ func (x *NativeViewerInterruptRequest) Reset() {
 
 func (*NativeViewerInterruptRequest) ProtoMessage() {}
 
-func (x *NativeViewerInterruptRequest) GetSessionObjectKey() string {
+func (x *NativeViewerInterruptRequest) GetLlmSessionObjectKey() string {
 	if x != nil {
-		return x.SessionObjectKey
+		return x.LlmSessionObjectKey
 	}
 	return ""
 }
@@ -1093,8 +1149,8 @@ type NativeViewerControlResponse struct {
 	unknownFields []byte
 	// Status reports the outcome of the requested operation.
 	Status NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	// SessionObjectKey identifies the selected LlmSession object.
-	SessionObjectKey string `protobuf:"bytes,2,opt,name=session_object_key,json=sessionObjectKey,proto3" json:"sessionObjectKey,omitempty"`
+	// LlmSessionObjectKey identifies the selected LlmSession object.
+	LlmSessionObjectKey string `protobuf:"bytes,2,opt,name=llm_session_object_key,json=llmSessionObjectKey,proto3" json:"llmSessionObjectKey,omitempty"`
 	// DispatchKey identifies the active dispatch within an LlmSession.
 	DispatchKey string `protobuf:"bytes,3,opt,name=dispatch_key,json=dispatchKey,proto3" json:"dispatchKey,omitempty"`
 	// RequestId identifies one idempotent control request.
@@ -1120,9 +1176,9 @@ func (x *NativeViewerControlResponse) GetStatus() NativeViewerControlStatus {
 	return NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN
 }
 
-func (x *NativeViewerControlResponse) GetSessionObjectKey() string {
+func (x *NativeViewerControlResponse) GetLlmSessionObjectKey() string {
 	if x != nil {
-		return x.SessionObjectKey
+		return x.LlmSessionObjectKey
 	}
 	return ""
 }
@@ -1165,8 +1221,8 @@ func (x *NativeViewerControlResponse) GetAcceptedSequence() uint64 {
 // NativeViewerFollowUpRequest continues a predecessor LlmSession with new input.
 type NativeViewerFollowUpRequest struct {
 	unknownFields []byte
-	// PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
-	PredecessorSessionObjectKey string `protobuf:"bytes,1,opt,name=predecessor_session_object_key,json=predecessorSessionObjectKey,proto3" json:"predecessorSessionObjectKey,omitempty"`
+	// PredecessorLlmSessionObjectKey identifies the LlmSession continued by a follow-up.
+	PredecessorLlmSessionObjectKey string `protobuf:"bytes,1,opt,name=predecessor_llm_session_object_key,json=predecessorLlmSessionObjectKey,proto3" json:"predecessorLlmSessionObjectKey,omitempty"`
 	// RequestId identifies one idempotent control request.
 	RequestId string `protobuf:"bytes,2,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
 	// Text contains the bounded user input or follow-up text.
@@ -1179,9 +1235,9 @@ func (x *NativeViewerFollowUpRequest) Reset() {
 
 func (*NativeViewerFollowUpRequest) ProtoMessage() {}
 
-func (x *NativeViewerFollowUpRequest) GetPredecessorSessionObjectKey() string {
+func (x *NativeViewerFollowUpRequest) GetPredecessorLlmSessionObjectKey() string {
 	if x != nil {
-		return x.PredecessorSessionObjectKey
+		return x.PredecessorLlmSessionObjectKey
 	}
 	return ""
 }
@@ -1205,14 +1261,14 @@ type NativeViewerFollowUpResponse struct {
 	unknownFields []byte
 	// Status reports the outcome of the requested operation.
 	Status NativeViewerControlStatus `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
-	// PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
-	PredecessorSessionObjectKey string `protobuf:"bytes,2,opt,name=predecessor_session_object_key,json=predecessorSessionObjectKey,proto3" json:"predecessorSessionObjectKey,omitempty"`
+	// PredecessorLlmSessionObjectKey identifies the LlmSession continued by a follow-up.
+	PredecessorLlmSessionObjectKey string `protobuf:"bytes,2,opt,name=predecessor_llm_session_object_key,json=predecessorLlmSessionObjectKey,proto3" json:"predecessorLlmSessionObjectKey,omitempty"`
 	// RequestId identifies one idempotent control request.
 	RequestId string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3" json:"requestId,omitempty"`
 	// Text contains the bounded user input or follow-up text.
 	Text string `protobuf:"bytes,4,opt,name=text,proto3" json:"text,omitempty"`
-	// SuccessorSessionObjectKey identifies the LlmSession created by a follow-up.
-	SuccessorSessionObjectKey string `protobuf:"bytes,5,opt,name=successor_session_object_key,json=successorSessionObjectKey,proto3" json:"successorSessionObjectKey,omitempty"`
+	// SuccessorLlmSessionObjectKey identifies the LlmSession created by a follow-up.
+	SuccessorLlmSessionObjectKey string `protobuf:"bytes,5,opt,name=successor_llm_session_object_key,json=successorLlmSessionObjectKey,proto3" json:"successorLlmSessionObjectKey,omitempty"`
 	// Detail explains a rejected, failed, or cancelled operation.
 	Detail string `protobuf:"bytes,6,opt,name=detail,proto3" json:"detail,omitempty"`
 }
@@ -1230,9 +1286,9 @@ func (x *NativeViewerFollowUpResponse) GetStatus() NativeViewerControlStatus {
 	return NativeViewerControlStatus_NATIVE_VIEWER_CONTROL_STATUS_UNKNOWN
 }
 
-func (x *NativeViewerFollowUpResponse) GetPredecessorSessionObjectKey() string {
+func (x *NativeViewerFollowUpResponse) GetPredecessorLlmSessionObjectKey() string {
 	if x != nil {
-		return x.PredecessorSessionObjectKey
+		return x.PredecessorLlmSessionObjectKey
 	}
 	return ""
 }
@@ -1251,9 +1307,9 @@ func (x *NativeViewerFollowUpResponse) GetText() string {
 	return ""
 }
 
-func (x *NativeViewerFollowUpResponse) GetSuccessorSessionObjectKey() string {
+func (x *NativeViewerFollowUpResponse) GetSuccessorLlmSessionObjectKey() string {
 	if x != nil {
-		return x.SuccessorSessionObjectKey
+		return x.SuccessorLlmSessionObjectKey
 	}
 	return ""
 }
@@ -1419,52 +1475,52 @@ func (x *NativeViewerExecuteCommandResponse) GetDetail() string {
 	return ""
 }
 
-type NativeViewerSelectedState_DraftsEntry struct {
+type NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry struct {
 	unknownFields []byte
 	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	Value         string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 }
 
-func (x *NativeViewerSelectedState_DraftsEntry) Reset() {
-	*x = NativeViewerSelectedState_DraftsEntry{}
+func (x *NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry) Reset() {
+	*x = NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry{}
 }
 
-func (*NativeViewerSelectedState_DraftsEntry) ProtoMessage() {}
+func (*NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry) ProtoMessage() {}
 
-func (x *NativeViewerSelectedState_DraftsEntry) GetKey() string {
+func (x *NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry) GetKey() string {
 	if x != nil {
 		return x.Key
 	}
 	return ""
 }
 
-func (x *NativeViewerSelectedState_DraftsEntry) GetValue() string {
+func (x *NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry) GetValue() string {
 	if x != nil {
 		return x.Value
 	}
 	return ""
 }
 
-type NativeViewerSelectedState_ViewportsEntry struct {
+type NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry struct {
 	unknownFields []byte
 	Key           string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
 	Value         uint32 `protobuf:"varint,2,opt,name=value,proto3" json:"value,omitempty"`
 }
 
-func (x *NativeViewerSelectedState_ViewportsEntry) Reset() {
-	*x = NativeViewerSelectedState_ViewportsEntry{}
+func (x *NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry) Reset() {
+	*x = NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry{}
 }
 
-func (*NativeViewerSelectedState_ViewportsEntry) ProtoMessage() {}
+func (*NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry) ProtoMessage() {}
 
-func (x *NativeViewerSelectedState_ViewportsEntry) GetKey() string {
+func (x *NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry) GetKey() string {
 	if x != nil {
 		return x.Key
 	}
 	return ""
 }
 
-func (x *NativeViewerSelectedState_ViewportsEntry) GetValue() uint32 {
+func (x *NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry) GetValue() uint32 {
 	if x != nil {
 		return x.Value
 	}
@@ -1513,6 +1569,24 @@ func (m *NativeViewerIODescriptor) CloneMessageVT() protobuf_go_lite.CloneMessag
 	return m.CloneVT()
 }
 
+func (m *NativeViewerSpacewaveSessionRef) CloneVT() *NativeViewerSpacewaveSessionRef {
+	if m == nil {
+		return (*NativeViewerSpacewaveSessionRef)(nil)
+	}
+	r := new(NativeViewerSpacewaveSessionRef)
+	r.ProviderResourceId = m.ProviderResourceId
+	r.ProviderId = m.ProviderId
+	r.ProviderAccountId = m.ProviderAccountId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *NativeViewerSpacewaveSessionRef) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *NativeViewerLaunchRecord) CloneVT() *NativeViewerLaunchRecord {
 	if m == nil {
 		return (*NativeViewerLaunchRecord)(nil)
@@ -1521,17 +1595,18 @@ func (m *NativeViewerLaunchRecord) CloneVT() *NativeViewerLaunchRecord {
 	r.WireVersion = m.WireVersion
 	r.ProtocolVersion = m.ProtocolVersion
 	r.LaunchId = m.LaunchId
-	r.SessionObjectKey = m.SessionObjectKey
+	r.LlmSessionObjectKey = m.LlmSessionObjectKey
 	r.SpaceObjectKey = m.SpaceObjectKey
 	r.ManifestObjectKey = m.ManifestObjectKey
 	r.ManifestDigest = m.ManifestDigest
 	r.ViewerObjectKey = m.ViewerObjectKey
 	r.ViewerProfile = m.ViewerProfile
-	r.ResourceScopeSessionObjectKey = m.ResourceScopeSessionObjectKey
+	r.ResourceScopeLlmSessionObjectKey = m.ResourceScopeLlmSessionObjectKey
 	r.SelectedStateKey = m.SelectedStateKey
 	r.LaunchNonce = m.LaunchNonce
 	r.Endpoints = protobuf_go_lite.CloneVTSlice(m.Endpoints)
 	r.Io = protobuf_go_lite.CloneVTValue(m.Io)
+	r.SpacewaveSessionRef = protobuf_go_lite.CloneVTValue(m.SpacewaveSessionRef)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1550,7 +1625,7 @@ func (m *NativeViewerReadinessRecord) CloneVT() *NativeViewerReadinessRecord {
 	r.WireVersion = m.WireVersion
 	r.ProtocolVersion = m.ProtocolVersion
 	r.LaunchId = m.LaunchId
-	r.SessionObjectKey = m.SessionObjectKey
+	r.LlmSessionObjectKey = m.LlmSessionObjectKey
 	r.SpaceObjectKey = m.SpaceObjectKey
 	r.ManifestObjectKey = m.ManifestObjectKey
 	r.ManifestDigest = m.ManifestDigest
@@ -1563,8 +1638,10 @@ func (m *NativeViewerReadinessRecord) CloneVT() *NativeViewerReadinessRecord {
 	r.TerminalRestoreAttempted = m.TerminalRestoreAttempted
 	r.AllWorkersJoined = m.AllWorkersJoined
 	r.ViewerProfile = m.ViewerProfile
-	r.ResourceScopeSessionObjectKey = m.ResourceScopeSessionObjectKey
+	r.ResourceScopeLlmSessionObjectKey = m.ResourceScopeLlmSessionObjectKey
 	r.SelectedStateKey = m.SelectedStateKey
+	r.LaunchNonce = m.LaunchNonce
+	r.SpacewaveSessionRef = protobuf_go_lite.CloneVTValue(m.SpacewaveSessionRef)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1580,13 +1657,12 @@ func (m *NativeViewerSelectedState) CloneVT() *NativeViewerSelectedState {
 		return (*NativeViewerSelectedState)(nil)
 	}
 	r := new(NativeViewerSelectedState)
-	r.Focused = m.Focused
+	r.FocusedLlmSessionObjectKey = m.FocusedLlmSessionObjectKey
 	r.SelectedView = m.SelectedView
 	r.Theme = m.Theme
-	r.SpaceObjectKey = m.SpaceObjectKey
-	r.Tabs = protobuf_go_lite.CloneSlice(m.Tabs)
-	r.Drafts = protobuf_go_lite.CloneMap(m.Drafts)
-	r.Viewports = protobuf_go_lite.CloneMap(m.Viewports)
+	r.TabLlmSessionObjectKeys = protobuf_go_lite.CloneSlice(m.TabLlmSessionObjectKeys)
+	r.DraftsByLlmSessionObjectKey = protobuf_go_lite.CloneMap(m.DraftsByLlmSessionObjectKey)
+	r.ViewportsByLlmSessionObjectKey = protobuf_go_lite.CloneMap(m.ViewportsByLlmSessionObjectKey)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1672,7 +1748,7 @@ func (m *NativeViewerAvailableSessionsRequest) CloneVT() *NativeViewerAvailableS
 		return (*NativeViewerAvailableSessionsRequest)(nil)
 	}
 	r := new(NativeViewerAvailableSessionsRequest)
-	r.ScopeSessionObjectKey = m.ScopeSessionObjectKey
+	r.ResourceScopeLlmSessionObjectKey = m.ResourceScopeLlmSessionObjectKey
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1688,7 +1764,7 @@ func (m *NativeViewerAvailableSessionsResponse) CloneVT() *NativeViewerAvailable
 		return (*NativeViewerAvailableSessionsResponse)(nil)
 	}
 	r := new(NativeViewerAvailableSessionsResponse)
-	r.SessionObjectKeys = protobuf_go_lite.CloneSlice(m.SessionObjectKeys)
+	r.LlmSessionObjectKeys = protobuf_go_lite.CloneSlice(m.LlmSessionObjectKeys)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1704,7 +1780,7 @@ func (m *NativeViewerSelectSessionRequest) CloneVT() *NativeViewerSelectSessionR
 		return (*NativeViewerSelectSessionRequest)(nil)
 	}
 	r := new(NativeViewerSelectSessionRequest)
-	r.SessionObjectKey = m.SessionObjectKey
+	r.LlmSessionObjectKey = m.LlmSessionObjectKey
 	r.RequestId = m.RequestId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1722,7 +1798,7 @@ func (m *NativeViewerSelectSessionResponse) CloneVT() *NativeViewerSelectSession
 	}
 	r := new(NativeViewerSelectSessionResponse)
 	r.Status = m.Status
-	r.SessionObjectKey = m.SessionObjectKey
+	r.LlmSessionObjectKey = m.LlmSessionObjectKey
 	r.RequestId = m.RequestId
 	r.Detail = m.Detail
 	if len(m.unknownFields) > 0 {
@@ -1740,7 +1816,7 @@ func (m *NativeViewerSendInputRequest) CloneVT() *NativeViewerSendInputRequest {
 		return (*NativeViewerSendInputRequest)(nil)
 	}
 	r := new(NativeViewerSendInputRequest)
-	r.SessionObjectKey = m.SessionObjectKey
+	r.LlmSessionObjectKey = m.LlmSessionObjectKey
 	r.DispatchKey = m.DispatchKey
 	r.RequestId = m.RequestId
 	r.Text = m.Text
@@ -1759,7 +1835,7 @@ func (m *NativeViewerInterruptRequest) CloneVT() *NativeViewerInterruptRequest {
 		return (*NativeViewerInterruptRequest)(nil)
 	}
 	r := new(NativeViewerInterruptRequest)
-	r.SessionObjectKey = m.SessionObjectKey
+	r.LlmSessionObjectKey = m.LlmSessionObjectKey
 	r.DispatchKey = m.DispatchKey
 	r.RequestId = m.RequestId
 	r.Reason = m.Reason
@@ -1779,7 +1855,7 @@ func (m *NativeViewerControlResponse) CloneVT() *NativeViewerControlResponse {
 	}
 	r := new(NativeViewerControlResponse)
 	r.Status = m.Status
-	r.SessionObjectKey = m.SessionObjectKey
+	r.LlmSessionObjectKey = m.LlmSessionObjectKey
 	r.DispatchKey = m.DispatchKey
 	r.RequestId = m.RequestId
 	r.Detail = m.Detail
@@ -1800,7 +1876,7 @@ func (m *NativeViewerFollowUpRequest) CloneVT() *NativeViewerFollowUpRequest {
 		return (*NativeViewerFollowUpRequest)(nil)
 	}
 	r := new(NativeViewerFollowUpRequest)
-	r.PredecessorSessionObjectKey = m.PredecessorSessionObjectKey
+	r.PredecessorLlmSessionObjectKey = m.PredecessorLlmSessionObjectKey
 	r.RequestId = m.RequestId
 	r.Text = m.Text
 	if len(m.unknownFields) > 0 {
@@ -1819,10 +1895,10 @@ func (m *NativeViewerFollowUpResponse) CloneVT() *NativeViewerFollowUpResponse {
 	}
 	r := new(NativeViewerFollowUpResponse)
 	r.Status = m.Status
-	r.PredecessorSessionObjectKey = m.PredecessorSessionObjectKey
+	r.PredecessorLlmSessionObjectKey = m.PredecessorLlmSessionObjectKey
 	r.RequestId = m.RequestId
 	r.Text = m.Text
-	r.SuccessorSessionObjectKey = m.SuccessorSessionObjectKey
+	r.SuccessorLlmSessionObjectKey = m.SuccessorLlmSessionObjectKey
 	r.Detail = m.Detail
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1990,6 +2066,32 @@ func (this *NativeViewerIODescriptor) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *NativeViewerSpacewaveSessionRef) EqualVT(that *NativeViewerSpacewaveSessionRef) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ProviderResourceId != that.ProviderResourceId {
+		return false
+	}
+	if this.ProviderId != that.ProviderId {
+		return false
+	}
+	if this.ProviderAccountId != that.ProviderAccountId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *NativeViewerSpacewaveSessionRef) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*NativeViewerSpacewaveSessionRef)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *NativeViewerLaunchRecord) EqualVT(that *NativeViewerLaunchRecord) bool {
 	if this == that {
 		return true
@@ -2005,7 +2107,7 @@ func (this *NativeViewerLaunchRecord) EqualVT(that *NativeViewerLaunchRecord) bo
 	if this.LaunchId != that.LaunchId {
 		return false
 	}
-	if this.SessionObjectKey != that.SessionObjectKey {
+	if this.LlmSessionObjectKey != that.LlmSessionObjectKey {
 		return false
 	}
 	if this.SpaceObjectKey != that.SpaceObjectKey {
@@ -2023,7 +2125,7 @@ func (this *NativeViewerLaunchRecord) EqualVT(that *NativeViewerLaunchRecord) bo
 	if this.ViewerProfile != that.ViewerProfile {
 		return false
 	}
-	if this.ResourceScopeSessionObjectKey != that.ResourceScopeSessionObjectKey {
+	if this.ResourceScopeLlmSessionObjectKey != that.ResourceScopeLlmSessionObjectKey {
 		return false
 	}
 	if this.SelectedStateKey != that.SelectedStateKey {
@@ -2036,6 +2138,9 @@ func (this *NativeViewerLaunchRecord) EqualVT(that *NativeViewerLaunchRecord) bo
 		return false
 	}
 	if this.LaunchNonce != that.LaunchNonce {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.SpacewaveSessionRef, that.SpacewaveSessionRef) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2064,7 +2169,7 @@ func (this *NativeViewerReadinessRecord) EqualVT(that *NativeViewerReadinessReco
 	if this.LaunchId != that.LaunchId {
 		return false
 	}
-	if this.SessionObjectKey != that.SessionObjectKey {
+	if this.LlmSessionObjectKey != that.LlmSessionObjectKey {
 		return false
 	}
 	if this.SpaceObjectKey != that.SpaceObjectKey {
@@ -2103,10 +2208,16 @@ func (this *NativeViewerReadinessRecord) EqualVT(that *NativeViewerReadinessReco
 	if this.ViewerProfile != that.ViewerProfile {
 		return false
 	}
-	if this.ResourceScopeSessionObjectKey != that.ResourceScopeSessionObjectKey {
+	if this.ResourceScopeLlmSessionObjectKey != that.ResourceScopeLlmSessionObjectKey {
 		return false
 	}
 	if this.SelectedStateKey != that.SelectedStateKey {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.SpacewaveSessionRef, that.SpacewaveSessionRef) {
+		return false
+	}
+	if this.LaunchNonce != that.LaunchNonce {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2126,25 +2237,22 @@ func (this *NativeViewerSelectedState) EqualVT(that *NativeViewerSelectedState) 
 	} else if this == nil || that == nil {
 		return false
 	}
-	if !protobuf_go_lite.EqualSlice(this.Tabs, that.Tabs) {
+	if !protobuf_go_lite.EqualSlice(this.TabLlmSessionObjectKeys, that.TabLlmSessionObjectKeys) {
 		return false
 	}
-	if this.Focused != that.Focused {
+	if this.FocusedLlmSessionObjectKey != that.FocusedLlmSessionObjectKey {
 		return false
 	}
-	if !protobuf_go_lite.EqualMap(this.Drafts, that.Drafts) {
+	if !protobuf_go_lite.EqualMap(this.DraftsByLlmSessionObjectKey, that.DraftsByLlmSessionObjectKey) {
 		return false
 	}
-	if !protobuf_go_lite.EqualMap(this.Viewports, that.Viewports) {
+	if !protobuf_go_lite.EqualMap(this.ViewportsByLlmSessionObjectKey, that.ViewportsByLlmSessionObjectKey) {
 		return false
 	}
 	if this.SelectedView != that.SelectedView {
 		return false
 	}
 	if this.Theme != that.Theme {
-		return false
-	}
-	if this.SpaceObjectKey != that.SpaceObjectKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2262,7 +2370,7 @@ func (this *NativeViewerAvailableSessionsRequest) EqualVT(that *NativeViewerAvai
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.ScopeSessionObjectKey != that.ScopeSessionObjectKey {
+	if this.ResourceScopeLlmSessionObjectKey != that.ResourceScopeLlmSessionObjectKey {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2282,7 +2390,7 @@ func (this *NativeViewerAvailableSessionsResponse) EqualVT(that *NativeViewerAva
 	} else if this == nil || that == nil {
 		return false
 	}
-	if !protobuf_go_lite.EqualSlice(this.SessionObjectKeys, that.SessionObjectKeys) {
+	if !protobuf_go_lite.EqualSlice(this.LlmSessionObjectKeys, that.LlmSessionObjectKeys) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2302,7 +2410,7 @@ func (this *NativeViewerSelectSessionRequest) EqualVT(that *NativeViewerSelectSe
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.SessionObjectKey != that.SessionObjectKey {
+	if this.LlmSessionObjectKey != that.LlmSessionObjectKey {
 		return false
 	}
 	if this.RequestId != that.RequestId {
@@ -2328,7 +2436,7 @@ func (this *NativeViewerSelectSessionResponse) EqualVT(that *NativeViewerSelectS
 	if this.Status != that.Status {
 		return false
 	}
-	if this.SessionObjectKey != that.SessionObjectKey {
+	if this.LlmSessionObjectKey != that.LlmSessionObjectKey {
 		return false
 	}
 	if this.RequestId != that.RequestId {
@@ -2354,7 +2462,7 @@ func (this *NativeViewerSendInputRequest) EqualVT(that *NativeViewerSendInputReq
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.SessionObjectKey != that.SessionObjectKey {
+	if this.LlmSessionObjectKey != that.LlmSessionObjectKey {
 		return false
 	}
 	if this.DispatchKey != that.DispatchKey {
@@ -2383,7 +2491,7 @@ func (this *NativeViewerInterruptRequest) EqualVT(that *NativeViewerInterruptReq
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.SessionObjectKey != that.SessionObjectKey {
+	if this.LlmSessionObjectKey != that.LlmSessionObjectKey {
 		return false
 	}
 	if this.DispatchKey != that.DispatchKey {
@@ -2415,7 +2523,7 @@ func (this *NativeViewerControlResponse) EqualVT(that *NativeViewerControlRespon
 	if this.Status != that.Status {
 		return false
 	}
-	if this.SessionObjectKey != that.SessionObjectKey {
+	if this.LlmSessionObjectKey != that.LlmSessionObjectKey {
 		return false
 	}
 	if this.DispatchKey != that.DispatchKey {
@@ -2450,7 +2558,7 @@ func (this *NativeViewerFollowUpRequest) EqualVT(that *NativeViewerFollowUpReque
 	} else if this == nil || that == nil {
 		return false
 	}
-	if this.PredecessorSessionObjectKey != that.PredecessorSessionObjectKey {
+	if this.PredecessorLlmSessionObjectKey != that.PredecessorLlmSessionObjectKey {
 		return false
 	}
 	if this.RequestId != that.RequestId {
@@ -2479,7 +2587,7 @@ func (this *NativeViewerFollowUpResponse) EqualVT(that *NativeViewerFollowUpResp
 	if this.Status != that.Status {
 		return false
 	}
-	if this.PredecessorSessionObjectKey != that.PredecessorSessionObjectKey {
+	if this.PredecessorLlmSessionObjectKey != that.PredecessorLlmSessionObjectKey {
 		return false
 	}
 	if this.RequestId != that.RequestId {
@@ -2488,7 +2596,7 @@ func (this *NativeViewerFollowUpResponse) EqualVT(that *NativeViewerFollowUpResp
 	if this.Text != that.Text {
 		return false
 	}
-	if this.SuccessorSessionObjectKey != that.SuccessorSessionObjectKey {
+	if this.SuccessorLlmSessionObjectKey != that.SuccessorLlmSessionObjectKey {
 		return false
 	}
 	if this.Detail != that.Detail {
@@ -2987,6 +3095,64 @@ func (x *NativeViewerIODescriptor) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the NativeViewerSpacewaveSessionRef message to JSON.
+func (x *NativeViewerSpacewaveSessionRef) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ProviderResourceId != "" || s.HasField("providerResourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("providerResourceId")
+		s.WriteString(x.ProviderResourceId)
+	}
+	if x.ProviderId != "" || s.HasField("providerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("providerId")
+		s.WriteString(x.ProviderId)
+	}
+	if x.ProviderAccountId != "" || s.HasField("providerAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("providerAccountId")
+		s.WriteString(x.ProviderAccountId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the NativeViewerSpacewaveSessionRef to JSON.
+func (x *NativeViewerSpacewaveSessionRef) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the NativeViewerSpacewaveSessionRef message from JSON.
+func (x *NativeViewerSpacewaveSessionRef) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "provider_resource_id", "providerResourceId":
+			s.AddField("provider_resource_id")
+			x.ProviderResourceId = s.ReadString()
+		case "provider_id", "providerId":
+			s.AddField("provider_id")
+			x.ProviderId = s.ReadString()
+		case "provider_account_id", "providerAccountId":
+			s.AddField("provider_account_id")
+			x.ProviderAccountId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the NativeViewerSpacewaveSessionRef from JSON.
+func (x *NativeViewerSpacewaveSessionRef) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the NativeViewerLaunchRecord message to JSON.
 func (x *NativeViewerLaunchRecord) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
@@ -3010,10 +3176,10 @@ func (x *NativeViewerLaunchRecord) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("launchId")
 		s.WriteString(x.LaunchId)
 	}
-	if x.SessionObjectKey != "" || s.HasField("sessionObjectKey") {
+	if x.LlmSessionObjectKey != "" || s.HasField("llmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sessionObjectKey")
-		s.WriteString(x.SessionObjectKey)
+		s.WriteObjectField("llmSessionObjectKey")
+		s.WriteString(x.LlmSessionObjectKey)
 	}
 	if x.SpaceObjectKey != "" || s.HasField("spaceObjectKey") {
 		s.WriteMoreIf(&wroteField)
@@ -3040,10 +3206,10 @@ func (x *NativeViewerLaunchRecord) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("viewerProfile")
 		s.WriteString(x.ViewerProfile)
 	}
-	if x.ResourceScopeSessionObjectKey != "" || s.HasField("resourceScopeSessionObjectKey") {
+	if x.ResourceScopeLlmSessionObjectKey != "" || s.HasField("resourceScopeLlmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("resourceScopeSessionObjectKey")
-		s.WriteString(x.ResourceScopeSessionObjectKey)
+		s.WriteObjectField("resourceScopeLlmSessionObjectKey")
+		s.WriteString(x.ResourceScopeLlmSessionObjectKey)
 	}
 	if x.SelectedStateKey != "" || s.HasField("selectedStateKey") {
 		s.WriteMoreIf(&wroteField)
@@ -3071,6 +3237,11 @@ func (x *NativeViewerLaunchRecord) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("launchNonce")
 		s.WriteString(x.LaunchNonce)
 	}
+	if x.SpacewaveSessionRef != nil || s.HasField("spacewaveSessionRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spacewaveSessionRef")
+		x.SpacewaveSessionRef.MarshalProtoJSON(s.WithField("spacewaveSessionRef"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3097,9 +3268,9 @@ func (x *NativeViewerLaunchRecord) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "launch_id", "launchId":
 			s.AddField("launch_id")
 			x.LaunchId = s.ReadString()
-		case "session_object_key", "sessionObjectKey":
-			s.AddField("session_object_key")
-			x.SessionObjectKey = s.ReadString()
+		case "llm_session_object_key", "llmSessionObjectKey":
+			s.AddField("llm_session_object_key")
+			x.LlmSessionObjectKey = s.ReadString()
 		case "space_object_key", "spaceObjectKey":
 			s.AddField("space_object_key")
 			x.SpaceObjectKey = s.ReadString()
@@ -3115,9 +3286,9 @@ func (x *NativeViewerLaunchRecord) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "viewer_profile", "viewerProfile":
 			s.AddField("viewer_profile")
 			x.ViewerProfile = s.ReadString()
-		case "resource_scope_session_object_key", "resourceScopeSessionObjectKey":
-			s.AddField("resource_scope_session_object_key")
-			x.ResourceScopeSessionObjectKey = s.ReadString()
+		case "resource_scope_llm_session_object_key", "resourceScopeLlmSessionObjectKey":
+			s.AddField("resource_scope_llm_session_object_key")
+			x.ResourceScopeLlmSessionObjectKey = s.ReadString()
 		case "selected_state_key", "selectedStateKey":
 			s.AddField("selected_state_key")
 			x.SelectedStateKey = s.ReadString()
@@ -3149,6 +3320,13 @@ func (x *NativeViewerLaunchRecord) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "launch_nonce", "launchNonce":
 			s.AddField("launch_nonce")
 			x.LaunchNonce = s.ReadString()
+		case "spacewave_session_ref", "spacewaveSessionRef":
+			if s.ReadNil() {
+				x.SpacewaveSessionRef = nil
+				return
+			}
+			x.SpacewaveSessionRef = &NativeViewerSpacewaveSessionRef{}
+			x.SpacewaveSessionRef.UnmarshalProtoJSON(s.WithField("spacewave_session_ref", true))
 		}
 	})
 }
@@ -3181,10 +3359,10 @@ func (x *NativeViewerReadinessRecord) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("launchId")
 		s.WriteString(x.LaunchId)
 	}
-	if x.SessionObjectKey != "" || s.HasField("sessionObjectKey") {
+	if x.LlmSessionObjectKey != "" || s.HasField("llmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sessionObjectKey")
-		s.WriteString(x.SessionObjectKey)
+		s.WriteObjectField("llmSessionObjectKey")
+		s.WriteString(x.LlmSessionObjectKey)
 	}
 	if x.SpaceObjectKey != "" || s.HasField("spaceObjectKey") {
 		s.WriteMoreIf(&wroteField)
@@ -3246,15 +3424,25 @@ func (x *NativeViewerReadinessRecord) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("viewerProfile")
 		s.WriteString(x.ViewerProfile)
 	}
-	if x.ResourceScopeSessionObjectKey != "" || s.HasField("resourceScopeSessionObjectKey") {
+	if x.ResourceScopeLlmSessionObjectKey != "" || s.HasField("resourceScopeLlmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("resourceScopeSessionObjectKey")
-		s.WriteString(x.ResourceScopeSessionObjectKey)
+		s.WriteObjectField("resourceScopeLlmSessionObjectKey")
+		s.WriteString(x.ResourceScopeLlmSessionObjectKey)
 	}
 	if x.SelectedStateKey != "" || s.HasField("selectedStateKey") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("selectedStateKey")
 		s.WriteString(x.SelectedStateKey)
+	}
+	if x.SpacewaveSessionRef != nil || s.HasField("spacewaveSessionRef") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("spacewaveSessionRef")
+		x.SpacewaveSessionRef.MarshalProtoJSON(s.WithField("spacewaveSessionRef"))
+	}
+	if x.LaunchNonce != "" || s.HasField("launchNonce") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("launchNonce")
+		s.WriteString(x.LaunchNonce)
 	}
 	s.WriteObjectEnd()
 }
@@ -3282,9 +3470,9 @@ func (x *NativeViewerReadinessRecord) UnmarshalProtoJSON(s *json.UnmarshalState)
 		case "launch_id", "launchId":
 			s.AddField("launch_id")
 			x.LaunchId = s.ReadString()
-		case "session_object_key", "sessionObjectKey":
-			s.AddField("session_object_key")
-			x.SessionObjectKey = s.ReadString()
+		case "llm_session_object_key", "llmSessionObjectKey":
+			s.AddField("llm_session_object_key")
+			x.LlmSessionObjectKey = s.ReadString()
 		case "space_object_key", "spaceObjectKey":
 			s.AddField("space_object_key")
 			x.SpaceObjectKey = s.ReadString()
@@ -3321,12 +3509,22 @@ func (x *NativeViewerReadinessRecord) UnmarshalProtoJSON(s *json.UnmarshalState)
 		case "viewer_profile", "viewerProfile":
 			s.AddField("viewer_profile")
 			x.ViewerProfile = s.ReadString()
-		case "resource_scope_session_object_key", "resourceScopeSessionObjectKey":
-			s.AddField("resource_scope_session_object_key")
-			x.ResourceScopeSessionObjectKey = s.ReadString()
+		case "resource_scope_llm_session_object_key", "resourceScopeLlmSessionObjectKey":
+			s.AddField("resource_scope_llm_session_object_key")
+			x.ResourceScopeLlmSessionObjectKey = s.ReadString()
 		case "selected_state_key", "selectedStateKey":
 			s.AddField("selected_state_key")
 			x.SelectedStateKey = s.ReadString()
+		case "spacewave_session_ref", "spacewaveSessionRef":
+			if s.ReadNil() {
+				x.SpacewaveSessionRef = nil
+				return
+			}
+			x.SpacewaveSessionRef = &NativeViewerSpacewaveSessionRef{}
+			x.SpacewaveSessionRef.UnmarshalProtoJSON(s.WithField("spacewave_session_ref", true))
+		case "launch_nonce", "launchNonce":
+			s.AddField("launch_nonce")
+			x.LaunchNonce = s.ReadString()
 		}
 	})
 }
@@ -3336,8 +3534,8 @@ func (x *NativeViewerReadinessRecord) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the NativeViewerSelectedState_DraftsEntry message to JSON.
-func (x *NativeViewerSelectedState_DraftsEntry) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry message to JSON.
+func (x *NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -3357,13 +3555,13 @@ func (x *NativeViewerSelectedState_DraftsEntry) MarshalProtoJSON(s *json.Marshal
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the NativeViewerSelectedState_DraftsEntry to JSON.
-func (x *NativeViewerSelectedState_DraftsEntry) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry to JSON.
+func (x *NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the NativeViewerSelectedState_DraftsEntry message from JSON.
-func (x *NativeViewerSelectedState_DraftsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry message from JSON.
+func (x *NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -3381,13 +3579,13 @@ func (x *NativeViewerSelectedState_DraftsEntry) UnmarshalProtoJSON(s *json.Unmar
 	})
 }
 
-// UnmarshalJSON unmarshals the NativeViewerSelectedState_DraftsEntry from JSON.
-func (x *NativeViewerSelectedState_DraftsEntry) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry from JSON.
+func (x *NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
-// MarshalProtoJSON marshals the NativeViewerSelectedState_ViewportsEntry message to JSON.
-func (x *NativeViewerSelectedState_ViewportsEntry) MarshalProtoJSON(s *json.MarshalState) {
+// MarshalProtoJSON marshals the NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry message to JSON.
+func (x *NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry) MarshalProtoJSON(s *json.MarshalState) {
 	if x == nil {
 		s.WriteNil()
 		return
@@ -3407,13 +3605,13 @@ func (x *NativeViewerSelectedState_ViewportsEntry) MarshalProtoJSON(s *json.Mars
 	s.WriteObjectEnd()
 }
 
-// MarshalJSON marshals the NativeViewerSelectedState_ViewportsEntry to JSON.
-func (x *NativeViewerSelectedState_ViewportsEntry) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry to JSON.
+func (x *NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry) MarshalJSON() ([]byte, error) {
 	return json.DefaultMarshalerConfig.Marshal(x)
 }
 
-// UnmarshalProtoJSON unmarshals the NativeViewerSelectedState_ViewportsEntry message from JSON.
-func (x *NativeViewerSelectedState_ViewportsEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+// UnmarshalProtoJSON unmarshals the NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry message from JSON.
+func (x *NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 	if s.ReadNil() {
 		return
 	}
@@ -3431,8 +3629,8 @@ func (x *NativeViewerSelectedState_ViewportsEntry) UnmarshalProtoJSON(s *json.Un
 	})
 }
 
-// UnmarshalJSON unmarshals the NativeViewerSelectedState_ViewportsEntry from JSON.
-func (x *NativeViewerSelectedState_ViewportsEntry) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals the NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry from JSON.
+func (x *NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3444,34 +3642,34 @@ func (x *NativeViewerSelectedState) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if len(x.Tabs) > 0 || s.HasField("tabs") {
+	if len(x.TabLlmSessionObjectKeys) > 0 || s.HasField("tabLlmSessionObjectKeys") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("tabs")
-		s.WriteStringArray(x.Tabs)
+		s.WriteObjectField("tabLlmSessionObjectKeys")
+		s.WriteStringArray(x.TabLlmSessionObjectKeys)
 	}
-	if x.Focused != "" || s.HasField("focused") {
+	if x.FocusedLlmSessionObjectKey != "" || s.HasField("focusedLlmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("focused")
-		s.WriteString(x.Focused)
+		s.WriteObjectField("focusedLlmSessionObjectKey")
+		s.WriteString(x.FocusedLlmSessionObjectKey)
 	}
-	if x.Drafts != nil || s.HasField("drafts") {
+	if x.DraftsByLlmSessionObjectKey != nil || s.HasField("draftsByLlmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("drafts")
+		s.WriteObjectField("draftsByLlmSessionObjectKey")
 		s.WriteObjectStart()
 		var wroteElement bool
-		for k, v := range x.Drafts {
+		for k, v := range x.DraftsByLlmSessionObjectKey {
 			s.WriteMoreIf(&wroteElement)
 			s.WriteObjectStringField(k)
 			s.WriteString(v)
 		}
 		s.WriteObjectEnd()
 	}
-	if x.Viewports != nil || s.HasField("viewports") {
+	if x.ViewportsByLlmSessionObjectKey != nil || s.HasField("viewportsByLlmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("viewports")
+		s.WriteObjectField("viewportsByLlmSessionObjectKey")
 		s.WriteObjectStart()
 		var wroteElement bool
-		for k, v := range x.Viewports {
+		for k, v := range x.ViewportsByLlmSessionObjectKey {
 			s.WriteMoreIf(&wroteElement)
 			s.WriteObjectStringField(k)
 			s.WriteUint32(v)
@@ -3487,11 +3685,6 @@ func (x *NativeViewerSelectedState) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("theme")
 		s.WriteUint32(x.Theme)
-	}
-	if x.SpaceObjectKey != "" || s.HasField("spaceObjectKey") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("spaceObjectKey")
-		s.WriteString(x.SpaceObjectKey)
 	}
 	s.WriteObjectEnd()
 }
@@ -3510,35 +3703,35 @@ func (x *NativeViewerSelectedState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "tabs":
-			s.AddField("tabs")
+		case "tab_llm_session_object_keys", "tabLlmSessionObjectKeys":
+			s.AddField("tab_llm_session_object_keys")
 			if s.ReadNil() {
-				x.Tabs = nil
+				x.TabLlmSessionObjectKeys = nil
 				return
 			}
-			x.Tabs = s.ReadStringArray()
-		case "focused":
-			s.AddField("focused")
-			x.Focused = s.ReadString()
-		case "drafts":
-			s.AddField("drafts")
+			x.TabLlmSessionObjectKeys = s.ReadStringArray()
+		case "focused_llm_session_object_key", "focusedLlmSessionObjectKey":
+			s.AddField("focused_llm_session_object_key")
+			x.FocusedLlmSessionObjectKey = s.ReadString()
+		case "drafts_by_llm_session_object_key", "draftsByLlmSessionObjectKey":
+			s.AddField("drafts_by_llm_session_object_key")
 			if s.ReadNil() {
-				x.Drafts = nil
+				x.DraftsByLlmSessionObjectKey = nil
 				return
 			}
-			x.Drafts = make(map[string]string)
+			x.DraftsByLlmSessionObjectKey = make(map[string]string)
 			s.ReadStringMap(func(key string) {
-				x.Drafts[key] = s.ReadString()
+				x.DraftsByLlmSessionObjectKey[key] = s.ReadString()
 			})
-		case "viewports":
-			s.AddField("viewports")
+		case "viewports_by_llm_session_object_key", "viewportsByLlmSessionObjectKey":
+			s.AddField("viewports_by_llm_session_object_key")
 			if s.ReadNil() {
-				x.Viewports = nil
+				x.ViewportsByLlmSessionObjectKey = nil
 				return
 			}
-			x.Viewports = make(map[string]uint32)
+			x.ViewportsByLlmSessionObjectKey = make(map[string]uint32)
 			s.ReadStringMap(func(key string) {
-				x.Viewports[key] = s.ReadUint32()
+				x.ViewportsByLlmSessionObjectKey[key] = s.ReadUint32()
 			})
 		case "selected_view", "selectedView":
 			s.AddField("selected_view")
@@ -3546,9 +3739,6 @@ func (x *NativeViewerSelectedState) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "theme":
 			s.AddField("theme")
 			x.Theme = s.ReadUint32()
-		case "space_object_key", "spaceObjectKey":
-			s.AddField("space_object_key")
-			x.SpaceObjectKey = s.ReadString()
 		}
 	})
 }
@@ -3790,10 +3980,10 @@ func (x *NativeViewerAvailableSessionsRequest) MarshalProtoJSON(s *json.MarshalS
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.ScopeSessionObjectKey != "" || s.HasField("scopeSessionObjectKey") {
+	if x.ResourceScopeLlmSessionObjectKey != "" || s.HasField("resourceScopeLlmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("scopeSessionObjectKey")
-		s.WriteString(x.ScopeSessionObjectKey)
+		s.WriteObjectField("resourceScopeLlmSessionObjectKey")
+		s.WriteString(x.ResourceScopeLlmSessionObjectKey)
 	}
 	s.WriteObjectEnd()
 }
@@ -3812,9 +4002,9 @@ func (x *NativeViewerAvailableSessionsRequest) UnmarshalProtoJSON(s *json.Unmars
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "scope_session_object_key", "scopeSessionObjectKey":
-			s.AddField("scope_session_object_key")
-			x.ScopeSessionObjectKey = s.ReadString()
+		case "resource_scope_llm_session_object_key", "resourceScopeLlmSessionObjectKey":
+			s.AddField("resource_scope_llm_session_object_key")
+			x.ResourceScopeLlmSessionObjectKey = s.ReadString()
 		}
 	})
 }
@@ -3832,10 +4022,10 @@ func (x *NativeViewerAvailableSessionsResponse) MarshalProtoJSON(s *json.Marshal
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if len(x.SessionObjectKeys) > 0 || s.HasField("sessionObjectKeys") {
+	if len(x.LlmSessionObjectKeys) > 0 || s.HasField("llmSessionObjectKeys") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sessionObjectKeys")
-		s.WriteStringArray(x.SessionObjectKeys)
+		s.WriteObjectField("llmSessionObjectKeys")
+		s.WriteStringArray(x.LlmSessionObjectKeys)
 	}
 	s.WriteObjectEnd()
 }
@@ -3854,13 +4044,13 @@ func (x *NativeViewerAvailableSessionsResponse) UnmarshalProtoJSON(s *json.Unmar
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "session_object_keys", "sessionObjectKeys":
-			s.AddField("session_object_keys")
+		case "llm_session_object_keys", "llmSessionObjectKeys":
+			s.AddField("llm_session_object_keys")
 			if s.ReadNil() {
-				x.SessionObjectKeys = nil
+				x.LlmSessionObjectKeys = nil
 				return
 			}
-			x.SessionObjectKeys = s.ReadStringArray()
+			x.LlmSessionObjectKeys = s.ReadStringArray()
 		}
 	})
 }
@@ -3878,10 +4068,10 @@ func (x *NativeViewerSelectSessionRequest) MarshalProtoJSON(s *json.MarshalState
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.SessionObjectKey != "" || s.HasField("sessionObjectKey") {
+	if x.LlmSessionObjectKey != "" || s.HasField("llmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sessionObjectKey")
-		s.WriteString(x.SessionObjectKey)
+		s.WriteObjectField("llmSessionObjectKey")
+		s.WriteString(x.LlmSessionObjectKey)
 	}
 	if x.RequestId != "" || s.HasField("requestId") {
 		s.WriteMoreIf(&wroteField)
@@ -3905,9 +4095,9 @@ func (x *NativeViewerSelectSessionRequest) UnmarshalProtoJSON(s *json.UnmarshalS
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "session_object_key", "sessionObjectKey":
-			s.AddField("session_object_key")
-			x.SessionObjectKey = s.ReadString()
+		case "llm_session_object_key", "llmSessionObjectKey":
+			s.AddField("llm_session_object_key")
+			x.LlmSessionObjectKey = s.ReadString()
 		case "request_id", "requestId":
 			s.AddField("request_id")
 			x.RequestId = s.ReadString()
@@ -3933,10 +4123,10 @@ func (x *NativeViewerSelectSessionResponse) MarshalProtoJSON(s *json.MarshalStat
 		s.WriteObjectField("status")
 		x.Status.MarshalProtoJSON(s)
 	}
-	if x.SessionObjectKey != "" || s.HasField("sessionObjectKey") {
+	if x.LlmSessionObjectKey != "" || s.HasField("llmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sessionObjectKey")
-		s.WriteString(x.SessionObjectKey)
+		s.WriteObjectField("llmSessionObjectKey")
+		s.WriteString(x.LlmSessionObjectKey)
 	}
 	if x.RequestId != "" || s.HasField("requestId") {
 		s.WriteMoreIf(&wroteField)
@@ -3968,9 +4158,9 @@ func (x *NativeViewerSelectSessionResponse) UnmarshalProtoJSON(s *json.Unmarshal
 		case "status":
 			s.AddField("status")
 			x.Status.UnmarshalProtoJSON(s)
-		case "session_object_key", "sessionObjectKey":
-			s.AddField("session_object_key")
-			x.SessionObjectKey = s.ReadString()
+		case "llm_session_object_key", "llmSessionObjectKey":
+			s.AddField("llm_session_object_key")
+			x.LlmSessionObjectKey = s.ReadString()
 		case "request_id", "requestId":
 			s.AddField("request_id")
 			x.RequestId = s.ReadString()
@@ -3994,10 +4184,10 @@ func (x *NativeViewerSendInputRequest) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.SessionObjectKey != "" || s.HasField("sessionObjectKey") {
+	if x.LlmSessionObjectKey != "" || s.HasField("llmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sessionObjectKey")
-		s.WriteString(x.SessionObjectKey)
+		s.WriteObjectField("llmSessionObjectKey")
+		s.WriteString(x.LlmSessionObjectKey)
 	}
 	if x.DispatchKey != "" || s.HasField("dispatchKey") {
 		s.WriteMoreIf(&wroteField)
@@ -4031,9 +4221,9 @@ func (x *NativeViewerSendInputRequest) UnmarshalProtoJSON(s *json.UnmarshalState
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "session_object_key", "sessionObjectKey":
-			s.AddField("session_object_key")
-			x.SessionObjectKey = s.ReadString()
+		case "llm_session_object_key", "llmSessionObjectKey":
+			s.AddField("llm_session_object_key")
+			x.LlmSessionObjectKey = s.ReadString()
 		case "dispatch_key", "dispatchKey":
 			s.AddField("dispatch_key")
 			x.DispatchKey = s.ReadString()
@@ -4060,10 +4250,10 @@ func (x *NativeViewerInterruptRequest) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.SessionObjectKey != "" || s.HasField("sessionObjectKey") {
+	if x.LlmSessionObjectKey != "" || s.HasField("llmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sessionObjectKey")
-		s.WriteString(x.SessionObjectKey)
+		s.WriteObjectField("llmSessionObjectKey")
+		s.WriteString(x.LlmSessionObjectKey)
 	}
 	if x.DispatchKey != "" || s.HasField("dispatchKey") {
 		s.WriteMoreIf(&wroteField)
@@ -4097,9 +4287,9 @@ func (x *NativeViewerInterruptRequest) UnmarshalProtoJSON(s *json.UnmarshalState
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "session_object_key", "sessionObjectKey":
-			s.AddField("session_object_key")
-			x.SessionObjectKey = s.ReadString()
+		case "llm_session_object_key", "llmSessionObjectKey":
+			s.AddField("llm_session_object_key")
+			x.LlmSessionObjectKey = s.ReadString()
 		case "dispatch_key", "dispatchKey":
 			s.AddField("dispatch_key")
 			x.DispatchKey = s.ReadString()
@@ -4131,10 +4321,10 @@ func (x *NativeViewerControlResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("status")
 		x.Status.MarshalProtoJSON(s)
 	}
-	if x.SessionObjectKey != "" || s.HasField("sessionObjectKey") {
+	if x.LlmSessionObjectKey != "" || s.HasField("llmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("sessionObjectKey")
-		s.WriteString(x.SessionObjectKey)
+		s.WriteObjectField("llmSessionObjectKey")
+		s.WriteString(x.LlmSessionObjectKey)
 	}
 	if x.DispatchKey != "" || s.HasField("dispatchKey") {
 		s.WriteMoreIf(&wroteField)
@@ -4181,9 +4371,9 @@ func (x *NativeViewerControlResponse) UnmarshalProtoJSON(s *json.UnmarshalState)
 		case "status":
 			s.AddField("status")
 			x.Status.UnmarshalProtoJSON(s)
-		case "session_object_key", "sessionObjectKey":
-			s.AddField("session_object_key")
-			x.SessionObjectKey = s.ReadString()
+		case "llm_session_object_key", "llmSessionObjectKey":
+			s.AddField("llm_session_object_key")
+			x.LlmSessionObjectKey = s.ReadString()
 		case "dispatch_key", "dispatchKey":
 			s.AddField("dispatch_key")
 			x.DispatchKey = s.ReadString()
@@ -4216,10 +4406,10 @@ func (x *NativeViewerFollowUpRequest) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.PredecessorSessionObjectKey != "" || s.HasField("predecessorSessionObjectKey") {
+	if x.PredecessorLlmSessionObjectKey != "" || s.HasField("predecessorLlmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("predecessorSessionObjectKey")
-		s.WriteString(x.PredecessorSessionObjectKey)
+		s.WriteObjectField("predecessorLlmSessionObjectKey")
+		s.WriteString(x.PredecessorLlmSessionObjectKey)
 	}
 	if x.RequestId != "" || s.HasField("requestId") {
 		s.WriteMoreIf(&wroteField)
@@ -4248,9 +4438,9 @@ func (x *NativeViewerFollowUpRequest) UnmarshalProtoJSON(s *json.UnmarshalState)
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "predecessor_session_object_key", "predecessorSessionObjectKey":
-			s.AddField("predecessor_session_object_key")
-			x.PredecessorSessionObjectKey = s.ReadString()
+		case "predecessor_llm_session_object_key", "predecessorLlmSessionObjectKey":
+			s.AddField("predecessor_llm_session_object_key")
+			x.PredecessorLlmSessionObjectKey = s.ReadString()
 		case "request_id", "requestId":
 			s.AddField("request_id")
 			x.RequestId = s.ReadString()
@@ -4279,10 +4469,10 @@ func (x *NativeViewerFollowUpResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("status")
 		x.Status.MarshalProtoJSON(s)
 	}
-	if x.PredecessorSessionObjectKey != "" || s.HasField("predecessorSessionObjectKey") {
+	if x.PredecessorLlmSessionObjectKey != "" || s.HasField("predecessorLlmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("predecessorSessionObjectKey")
-		s.WriteString(x.PredecessorSessionObjectKey)
+		s.WriteObjectField("predecessorLlmSessionObjectKey")
+		s.WriteString(x.PredecessorLlmSessionObjectKey)
 	}
 	if x.RequestId != "" || s.HasField("requestId") {
 		s.WriteMoreIf(&wroteField)
@@ -4294,10 +4484,10 @@ func (x *NativeViewerFollowUpResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("text")
 		s.WriteString(x.Text)
 	}
-	if x.SuccessorSessionObjectKey != "" || s.HasField("successorSessionObjectKey") {
+	if x.SuccessorLlmSessionObjectKey != "" || s.HasField("successorLlmSessionObjectKey") {
 		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("successorSessionObjectKey")
-		s.WriteString(x.SuccessorSessionObjectKey)
+		s.WriteObjectField("successorLlmSessionObjectKey")
+		s.WriteString(x.SuccessorLlmSessionObjectKey)
 	}
 	if x.Detail != "" || s.HasField("detail") {
 		s.WriteMoreIf(&wroteField)
@@ -4324,18 +4514,18 @@ func (x *NativeViewerFollowUpResponse) UnmarshalProtoJSON(s *json.UnmarshalState
 		case "status":
 			s.AddField("status")
 			x.Status.UnmarshalProtoJSON(s)
-		case "predecessor_session_object_key", "predecessorSessionObjectKey":
-			s.AddField("predecessor_session_object_key")
-			x.PredecessorSessionObjectKey = s.ReadString()
+		case "predecessor_llm_session_object_key", "predecessorLlmSessionObjectKey":
+			s.AddField("predecessor_llm_session_object_key")
+			x.PredecessorLlmSessionObjectKey = s.ReadString()
 		case "request_id", "requestId":
 			s.AddField("request_id")
 			x.RequestId = s.ReadString()
 		case "text":
 			s.AddField("text")
 			x.Text = s.ReadString()
-		case "successor_session_object_key", "successorSessionObjectKey":
-			s.AddField("successor_session_object_key")
-			x.SuccessorSessionObjectKey = s.ReadString()
+		case "successor_llm_session_object_key", "successorLlmSessionObjectKey":
+			s.AddField("successor_llm_session_object_key")
+			x.SuccessorLlmSessionObjectKey = s.ReadString()
 		case "detail":
 			s.AddField("detail")
 			x.Detail = s.ReadString()
@@ -4747,6 +4937,53 @@ func (m *NativeViewerIODescriptor) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	return len(dAtA) - i, nil
 }
 
+func (m *NativeViewerSpacewaveSessionRef) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *NativeViewerSpacewaveSessionRef) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *NativeViewerSpacewaveSessionRef) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ProviderAccountId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ProviderAccountId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.ProviderId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ProviderId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ProviderResourceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ProviderResourceId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *NativeViewerLaunchRecord) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4775,6 +5012,16 @@ func (m *NativeViewerLaunchRecord) MarshalToSizedBufferVT(dAtA []byte) (int, err
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.SpacewaveSessionRef != nil {
+		size, err := m.SpacewaveSessionRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x7a
 	}
 	if len(m.LaunchNonce) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.LaunchNonce)
@@ -4808,8 +5055,8 @@ func (m *NativeViewerLaunchRecord) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i--
 		dAtA[i] = 0x5a
 	}
-	if len(m.ResourceScopeSessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.ResourceScopeSessionObjectKey)
+	if len(m.ResourceScopeLlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ResourceScopeLlmSessionObjectKey)
 		i--
 		dAtA[i] = 0x52
 	}
@@ -4838,8 +5085,8 @@ func (m *NativeViewerLaunchRecord) MarshalToSizedBufferVT(dAtA []byte) (int, err
 		i--
 		dAtA[i] = 0x2a
 	}
-	if len(m.SessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SessionObjectKey)
+	if len(m.LlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LlmSessionObjectKey)
 		i--
 		dAtA[i] = 0x22
 	}
@@ -4890,6 +5137,25 @@ func (m *NativeViewerReadinessRecord) MarshalToSizedBufferVT(dAtA []byte) (int, 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.LaunchNonce) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LaunchNonce)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa2
+	}
+	if m.SpacewaveSessionRef != nil {
+		size, err := m.SpacewaveSessionRef.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x9a
+	}
 	if len(m.SelectedStateKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SelectedStateKey)
 		i--
@@ -4897,8 +5163,8 @@ func (m *NativeViewerReadinessRecord) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i--
 		dAtA[i] = 0x92
 	}
-	if len(m.ResourceScopeSessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.ResourceScopeSessionObjectKey)
+	if len(m.ResourceScopeLlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ResourceScopeLlmSessionObjectKey)
 		i--
 		dAtA[i] = 0x1
 		i--
@@ -4966,8 +5232,8 @@ func (m *NativeViewerReadinessRecord) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i--
 		dAtA[i] = 0x2a
 	}
-	if len(m.SessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SessionObjectKey)
+	if len(m.LlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LlmSessionObjectKey)
 		i--
 		dAtA[i] = 0x22
 	}
@@ -5018,11 +5284,6 @@ func (m *NativeViewerSelectedState) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if len(m.SpaceObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SpaceObjectKey)
-		i--
-		dAtA[i] = 0x3a
-	}
 	if m.Theme != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Theme))
 		i--
@@ -5033,9 +5294,9 @@ func (m *NativeViewerSelectedState) MarshalToSizedBufferVT(dAtA []byte) (int, er
 		i--
 		dAtA[i] = 0x28
 	}
-	if len(m.Viewports) > 0 {
-		for k := range m.Viewports {
-			v := m.Viewports[k]
+	if len(m.ViewportsByLlmSessionObjectKey) > 0 {
+		for k := range m.ViewportsByLlmSessionObjectKey {
+			v := m.ViewportsByLlmSessionObjectKey[k]
 			baseI := i
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(v))
 			i--
@@ -5048,9 +5309,9 @@ func (m *NativeViewerSelectedState) MarshalToSizedBufferVT(dAtA []byte) (int, er
 			dAtA[i] = 0x22
 		}
 	}
-	if len(m.Drafts) > 0 {
-		for k := range m.Drafts {
-			v := m.Drafts[k]
+	if len(m.DraftsByLlmSessionObjectKey) > 0 {
+		for k := range m.DraftsByLlmSessionObjectKey {
+			v := m.DraftsByLlmSessionObjectKey[k]
 			baseI := i
 			i = protobuf_go_lite.EncodeString(dAtA, i, v)
 			i--
@@ -5063,14 +5324,14 @@ func (m *NativeViewerSelectedState) MarshalToSizedBufferVT(dAtA []byte) (int, er
 			dAtA[i] = 0x1a
 		}
 	}
-	if len(m.Focused) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.Focused)
+	if len(m.FocusedLlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.FocusedLlmSessionObjectKey)
 		i--
 		dAtA[i] = 0x12
 	}
-	if len(m.Tabs) > 0 {
-		for iNdEx := len(m.Tabs) - 1; iNdEx >= 0; iNdEx-- {
-			i = protobuf_go_lite.EncodeString(dAtA, i, m.Tabs[iNdEx])
+	if len(m.TabLlmSessionObjectKeys) > 0 {
+		for iNdEx := len(m.TabLlmSessionObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.TabLlmSessionObjectKeys[iNdEx])
 			i--
 			dAtA[i] = 0xa
 		}
@@ -5295,8 +5556,8 @@ func (m *NativeViewerAvailableSessionsRequest) MarshalToSizedBufferVT(dAtA []byt
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if len(m.ScopeSessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.ScopeSessionObjectKey)
+	if len(m.ResourceScopeLlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ResourceScopeLlmSessionObjectKey)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -5332,9 +5593,9 @@ func (m *NativeViewerAvailableSessionsResponse) MarshalToSizedBufferVT(dAtA []by
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
-	if len(m.SessionObjectKeys) > 0 {
-		for iNdEx := len(m.SessionObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
-			i = protobuf_go_lite.EncodeString(dAtA, i, m.SessionObjectKeys[iNdEx])
+	if len(m.LlmSessionObjectKeys) > 0 {
+		for iNdEx := len(m.LlmSessionObjectKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.LlmSessionObjectKeys[iNdEx])
 			i--
 			dAtA[i] = 0xa
 		}
@@ -5376,8 +5637,8 @@ func (m *NativeViewerSelectSessionRequest) MarshalToSizedBufferVT(dAtA []byte) (
 		i--
 		dAtA[i] = 0x12
 	}
-	if len(m.SessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SessionObjectKey)
+	if len(m.LlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LlmSessionObjectKey)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -5423,8 +5684,8 @@ func (m *NativeViewerSelectSessionResponse) MarshalToSizedBufferVT(dAtA []byte) 
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.SessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SessionObjectKey)
+	if len(m.LlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LlmSessionObjectKey)
 		i--
 		dAtA[i] = 0x12
 	}
@@ -5480,8 +5741,8 @@ func (m *NativeViewerSendInputRequest) MarshalToSizedBufferVT(dAtA []byte) (int,
 		i--
 		dAtA[i] = 0x12
 	}
-	if len(m.SessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SessionObjectKey)
+	if len(m.LlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LlmSessionObjectKey)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -5532,8 +5793,8 @@ func (m *NativeViewerInterruptRequest) MarshalToSizedBufferVT(dAtA []byte) (int,
 		i--
 		dAtA[i] = 0x12
 	}
-	if len(m.SessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SessionObjectKey)
+	if len(m.LlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LlmSessionObjectKey)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -5594,8 +5855,8 @@ func (m *NativeViewerControlResponse) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.SessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SessionObjectKey)
+	if len(m.LlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.LlmSessionObjectKey)
 		i--
 		dAtA[i] = 0x12
 	}
@@ -5646,8 +5907,8 @@ func (m *NativeViewerFollowUpRequest) MarshalToSizedBufferVT(dAtA []byte) (int, 
 		i--
 		dAtA[i] = 0x12
 	}
-	if len(m.PredecessorSessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.PredecessorSessionObjectKey)
+	if len(m.PredecessorLlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PredecessorLlmSessionObjectKey)
 		i--
 		dAtA[i] = 0xa
 	}
@@ -5688,8 +5949,8 @@ func (m *NativeViewerFollowUpResponse) MarshalToSizedBufferVT(dAtA []byte) (int,
 		i--
 		dAtA[i] = 0x32
 	}
-	if len(m.SuccessorSessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.SuccessorSessionObjectKey)
+	if len(m.SuccessorLlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SuccessorLlmSessionObjectKey)
 		i--
 		dAtA[i] = 0x2a
 	}
@@ -5703,8 +5964,8 @@ func (m *NativeViewerFollowUpResponse) MarshalToSizedBufferVT(dAtA []byte) (int,
 		i--
 		dAtA[i] = 0x1a
 	}
-	if len(m.PredecessorSessionObjectKey) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.PredecessorSessionObjectKey)
+	if len(m.PredecessorLlmSessionObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PredecessorLlmSessionObjectKey)
 		i--
 		dAtA[i] = 0x12
 	}
@@ -5970,6 +6231,19 @@ func (m *NativeViewerIODescriptor) SizeVT() (n int) {
 	return n
 }
 
+func (m *NativeViewerSpacewaveSessionRef) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ProviderResourceId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ProviderId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ProviderAccountId)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *NativeViewerLaunchRecord) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -5979,13 +6253,13 @@ func (m *NativeViewerLaunchRecord) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WireVersion)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ProtocolVersion)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LaunchId)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ManifestObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ManifestDigest)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ViewerObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ViewerProfile)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ResourceScopeSessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ResourceScopeLlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SelectedStateKey)
 	for _, e := range m.Endpoints {
 		l = e.SizeVT()
@@ -5996,6 +6270,10 @@ func (m *NativeViewerLaunchRecord) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LaunchNonce)
+	if m.SpacewaveSessionRef != nil {
+		l = m.SpacewaveSessionRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -6009,7 +6287,7 @@ func (m *NativeViewerReadinessRecord) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WireVersion)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ProtocolVersion)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LaunchId)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ManifestObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ManifestDigest)
@@ -6022,8 +6300,13 @@ func (m *NativeViewerReadinessRecord) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.TerminalRestoreAttempted)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.AllWorkersJoined)
 	n += protobuf_go_lite.SizeStringNonEmpty(2, m.ViewerProfile)
-	n += protobuf_go_lite.SizeStringNonEmpty(2, m.ResourceScopeSessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(2, m.ResourceScopeLlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(2, m.SelectedStateKey)
+	if m.SpacewaveSessionRef != nil {
+		l = m.SpacewaveSessionRef.SizeVT()
+		n += protobuf_go_lite.SizeMessage(2, l)
+	}
+	n += protobuf_go_lite.SizeStringNonEmpty(2, m.LaunchNonce)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6034,15 +6317,15 @@ func (m *NativeViewerSelectedState) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeStringSlice(1, m.Tabs)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Focused)
-	for k, v := range m.Drafts {
+	n += protobuf_go_lite.SizeStringSlice(1, m.TabLlmSessionObjectKeys)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.FocusedLlmSessionObjectKey)
+	for k, v := range m.DraftsByLlmSessionObjectKey {
 		_ = k
 		_ = v
 		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeStringValue(1, v)
 		n += protobuf_go_lite.SizeMessage(1, mapEntrySize)
 	}
-	for k, v := range m.Viewports {
+	for k, v := range m.ViewportsByLlmSessionObjectKey {
 		_ = k
 		_ = v
 		mapEntrySize := protobuf_go_lite.SizeStringValue(1, k) + protobuf_go_lite.SizeVarintValue(1, v)
@@ -6050,7 +6333,6 @@ func (m *NativeViewerSelectedState) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.SelectedView)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Theme)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SpaceObjectKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6117,7 +6399,7 @@ func (m *NativeViewerAvailableSessionsRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ScopeSessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ResourceScopeLlmSessionObjectKey)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6128,7 +6410,7 @@ func (m *NativeViewerAvailableSessionsResponse) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeStringSlice(1, m.SessionObjectKeys)
+	n += protobuf_go_lite.SizeStringSlice(1, m.LlmSessionObjectKeys)
 	n += len(m.unknownFields)
 	return n
 }
@@ -6139,7 +6421,7 @@ func (m *NativeViewerSelectSessionRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RequestId)
 	n += len(m.unknownFields)
 	return n
@@ -6152,7 +6434,7 @@ func (m *NativeViewerSelectSessionResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Status)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RequestId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Detail)
 	n += len(m.unknownFields)
@@ -6165,7 +6447,7 @@ func (m *NativeViewerSendInputRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DispatchKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RequestId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Text)
@@ -6179,7 +6461,7 @@ func (m *NativeViewerInterruptRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DispatchKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RequestId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Reason)
@@ -6194,7 +6476,7 @@ func (m *NativeViewerControlResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Status)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.LlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DispatchKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RequestId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Detail)
@@ -6210,7 +6492,7 @@ func (m *NativeViewerFollowUpRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PredecessorSessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PredecessorLlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RequestId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Text)
 	n += len(m.unknownFields)
@@ -6224,10 +6506,10 @@ func (m *NativeViewerFollowUpResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Status)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PredecessorSessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PredecessorLlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.RequestId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Text)
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SuccessorSessionObjectKey)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SuccessorLlmSessionObjectKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Detail)
 	n += len(m.unknownFields)
 	return n
@@ -6385,6 +6667,28 @@ func (x *NativeViewerIODescriptor) String() string {
 	return x.MarshalProtoText()
 }
 
+func (x *NativeViewerSpacewaveSessionRef) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NativeViewerSpacewaveSessionRef")
+	if x.ProviderResourceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "provider_resource_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ProviderResourceId)
+	}
+	if x.ProviderId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "provider_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ProviderId)
+	}
+	if x.ProviderAccountId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "provider_account_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ProviderAccountId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *NativeViewerSpacewaveSessionRef) String() string {
+	return x.MarshalProtoText()
+}
+
 func (x *NativeViewerLaunchRecord) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NativeViewerLaunchRecord")
@@ -6400,9 +6704,9 @@ func (x *NativeViewerLaunchRecord) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "launch_id")
 		protobuf_go_lite.TextWriteString(&sb, x.LaunchId)
 	}
-	if x.SessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.SessionObjectKey)
+	if x.LlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.LlmSessionObjectKey)
 	}
 	if x.SpaceObjectKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_object_key")
@@ -6424,9 +6728,9 @@ func (x *NativeViewerLaunchRecord) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "viewer_profile")
 		protobuf_go_lite.TextWriteString(&sb, x.ViewerProfile)
 	}
-	if x.ResourceScopeSessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_scope_session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.ResourceScopeSessionObjectKey)
+	if x.ResourceScopeLlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_scope_llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ResourceScopeLlmSessionObjectKey)
 	}
 	if x.SelectedStateKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "selected_state_key")
@@ -6452,6 +6756,10 @@ func (x *NativeViewerLaunchRecord) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "launch_nonce")
 		protobuf_go_lite.TextWriteString(&sb, x.LaunchNonce)
 	}
+	if x.SpacewaveSessionRef != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "spacewave_session_ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SpacewaveSessionRef)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -6474,9 +6782,9 @@ func (x *NativeViewerReadinessRecord) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "launch_id")
 		protobuf_go_lite.TextWriteString(&sb, x.LaunchId)
 	}
-	if x.SessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.SessionObjectKey)
+	if x.LlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.LlmSessionObjectKey)
 	}
 	if x.SpaceObjectKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_object_key")
@@ -6526,13 +6834,21 @@ func (x *NativeViewerReadinessRecord) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "viewer_profile")
 		protobuf_go_lite.TextWriteString(&sb, x.ViewerProfile)
 	}
-	if x.ResourceScopeSessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_scope_session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.ResourceScopeSessionObjectKey)
+	if x.ResourceScopeLlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_scope_llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ResourceScopeLlmSessionObjectKey)
 	}
 	if x.SelectedStateKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "selected_state_key")
 		protobuf_go_lite.TextWriteString(&sb, x.SelectedStateKey)
+	}
+	if x.SpacewaveSessionRef != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "spacewave_session_ref")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.SpacewaveSessionRef)
+	}
+	if x.LaunchNonce != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "launch_nonce")
+		protobuf_go_lite.TextWriteString(&sb, x.LaunchNonce)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -6541,9 +6857,9 @@ func (x *NativeViewerReadinessRecord) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *NativeViewerSelectedState_DraftsEntry) MarshalProtoText() string {
+func (x *NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DraftsEntry")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DraftsByLlmSessionObjectKeyEntry")
 	if x.Key != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
 		protobuf_go_lite.TextWriteString(&sb, x.Key)
@@ -6555,13 +6871,13 @@ func (x *NativeViewerSelectedState_DraftsEntry) MarshalProtoText() string {
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
-func (x *NativeViewerSelectedState_DraftsEntry) String() string {
+func (x *NativeViewerSelectedState_DraftsByLlmSessionObjectKeyEntry) String() string {
 	return x.MarshalProtoText()
 }
 
-func (x *NativeViewerSelectedState_ViewportsEntry) MarshalProtoText() string {
+func (x *NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ViewportsEntry")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ViewportsByLlmSessionObjectKeyEntry")
 	if x.Key != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
 		protobuf_go_lite.TextWriteString(&sb, x.Key)
@@ -6573,29 +6889,29 @@ func (x *NativeViewerSelectedState_ViewportsEntry) MarshalProtoText() string {
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
-func (x *NativeViewerSelectedState_ViewportsEntry) String() string {
+func (x *NativeViewerSelectedState_ViewportsByLlmSessionObjectKeyEntry) String() string {
 	return x.MarshalProtoText()
 }
 
 func (x *NativeViewerSelectedState) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NativeViewerSelectedState")
-	if len(x.Tabs) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "tabs")
-		for i, v := range x.Tabs {
+	if len(x.TabLlmSessionObjectKeys) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "tab_llm_session_object_keys")
+		for i, v := range x.TabLlmSessionObjectKeys {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
 	}
-	if x.Focused != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "focused")
-		protobuf_go_lite.TextWriteString(&sb, x.Focused)
+	if x.FocusedLlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "focused_llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.FocusedLlmSessionObjectKey)
 	}
-	if len(x.Drafts) > 0 {
-		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "drafts")
-		for _, k := range protobuf_go_lite.TextSortedMapKeys(x.Drafts) {
-			v := x.Drafts[k]
+	if len(x.DraftsByLlmSessionObjectKey) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "drafts_by_llm_session_object_key")
+		for _, k := range protobuf_go_lite.TextSortedMapKeys(x.DraftsByLlmSessionObjectKey) {
+			v := x.DraftsByLlmSessionObjectKey[k]
 			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
 			protobuf_go_lite.TextWriteString(&sb, k)
 			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
@@ -6603,10 +6919,10 @@ func (x *NativeViewerSelectedState) MarshalProtoText() string {
 		}
 		protobuf_go_lite.TextWriteMapEnd(&sb)
 	}
-	if len(x.Viewports) > 0 {
-		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "viewports")
-		for _, k := range protobuf_go_lite.TextSortedMapKeys(x.Viewports) {
-			v := x.Viewports[k]
+	if len(x.ViewportsByLlmSessionObjectKey) > 0 {
+		protobuf_go_lite.TextWriteMapStart(&sb, initialLen, "viewports_by_llm_session_object_key")
+		for _, k := range protobuf_go_lite.TextSortedMapKeys(x.ViewportsByLlmSessionObjectKey) {
+			v := x.ViewportsByLlmSessionObjectKey[k]
 			protobuf_go_lite.TextWriteMapEntryPrefix(&sb)
 			protobuf_go_lite.TextWriteString(&sb, k)
 			protobuf_go_lite.TextWriteMapKeyValueSeparator(&sb)
@@ -6621,10 +6937,6 @@ func (x *NativeViewerSelectedState) MarshalProtoText() string {
 	if x.Theme != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "theme")
 		protobuf_go_lite.TextWriteUint(&sb, x.Theme)
-	}
-	if x.SpaceObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "space_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.SpaceObjectKey)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -6716,9 +7028,9 @@ func (x *NativeViewerStateSaveResponse) String() string {
 func (x *NativeViewerAvailableSessionsRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NativeViewerAvailableSessionsRequest")
-	if x.ScopeSessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "scope_session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.ScopeSessionObjectKey)
+	if x.ResourceScopeLlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_scope_llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ResourceScopeLlmSessionObjectKey)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -6730,9 +7042,9 @@ func (x *NativeViewerAvailableSessionsRequest) String() string {
 func (x *NativeViewerAvailableSessionsResponse) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NativeViewerAvailableSessionsResponse")
-	if len(x.SessionObjectKeys) > 0 {
-		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "session_object_keys")
-		for i, v := range x.SessionObjectKeys {
+	if len(x.LlmSessionObjectKeys) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "llm_session_object_keys")
+		for i, v := range x.LlmSessionObjectKeys {
 			protobuf_go_lite.TextWriteListSeparator(&sb, i)
 			protobuf_go_lite.TextWriteString(&sb, v)
 		}
@@ -6748,9 +7060,9 @@ func (x *NativeViewerAvailableSessionsResponse) String() string {
 func (x *NativeViewerSelectSessionRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NativeViewerSelectSessionRequest")
-	if x.SessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.SessionObjectKey)
+	if x.LlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.LlmSessionObjectKey)
 	}
 	if x.RequestId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "request_id")
@@ -6770,9 +7082,9 @@ func (x *NativeViewerSelectSessionResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "status")
 		protobuf_go_lite.TextWriteStringer(&sb, NativeViewerControlStatus(x.Status))
 	}
-	if x.SessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.SessionObjectKey)
+	if x.LlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.LlmSessionObjectKey)
 	}
 	if x.RequestId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "request_id")
@@ -6792,9 +7104,9 @@ func (x *NativeViewerSelectSessionResponse) String() string {
 func (x *NativeViewerSendInputRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NativeViewerSendInputRequest")
-	if x.SessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.SessionObjectKey)
+	if x.LlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.LlmSessionObjectKey)
 	}
 	if x.DispatchKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "dispatch_key")
@@ -6818,9 +7130,9 @@ func (x *NativeViewerSendInputRequest) String() string {
 func (x *NativeViewerInterruptRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NativeViewerInterruptRequest")
-	if x.SessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.SessionObjectKey)
+	if x.LlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.LlmSessionObjectKey)
 	}
 	if x.DispatchKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "dispatch_key")
@@ -6848,9 +7160,9 @@ func (x *NativeViewerControlResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "status")
 		protobuf_go_lite.TextWriteStringer(&sb, NativeViewerControlStatus(x.Status))
 	}
-	if x.SessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.SessionObjectKey)
+	if x.LlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.LlmSessionObjectKey)
 	}
 	if x.DispatchKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "dispatch_key")
@@ -6882,9 +7194,9 @@ func (x *NativeViewerControlResponse) String() string {
 func (x *NativeViewerFollowUpRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "NativeViewerFollowUpRequest")
-	if x.PredecessorSessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "predecessor_session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.PredecessorSessionObjectKey)
+	if x.PredecessorLlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "predecessor_llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.PredecessorLlmSessionObjectKey)
 	}
 	if x.RequestId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "request_id")
@@ -6908,9 +7220,9 @@ func (x *NativeViewerFollowUpResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "status")
 		protobuf_go_lite.TextWriteStringer(&sb, NativeViewerControlStatus(x.Status))
 	}
-	if x.PredecessorSessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "predecessor_session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.PredecessorSessionObjectKey)
+	if x.PredecessorLlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "predecessor_llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.PredecessorLlmSessionObjectKey)
 	}
 	if x.RequestId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "request_id")
@@ -6920,9 +7232,9 @@ func (x *NativeViewerFollowUpResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "text")
 		protobuf_go_lite.TextWriteString(&sb, x.Text)
 	}
-	if x.SuccessorSessionObjectKey != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "successor_session_object_key")
-		protobuf_go_lite.TextWriteString(&sb, x.SuccessorSessionObjectKey)
+	if x.SuccessorLlmSessionObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "successor_llm_session_object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.SuccessorLlmSessionObjectKey)
 	}
 	if x.Detail != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "detail")
@@ -7242,6 +7554,79 @@ func (m *NativeViewerIODescriptor) UnmarshalVT(dAtA []byte) error {
 	return nil
 }
 
+func (m *NativeViewerSpacewaveSessionRef) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: NativeViewerSpacewaveSessionRef: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: NativeViewerSpacewaveSessionRef: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProviderResourceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ProviderResourceId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProviderId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ProviderId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProviderAccountId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ProviderAccountId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func (m *NativeViewerLaunchRecord) UnmarshalVT(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -7292,14 +7677,14 @@ func (m *NativeViewerLaunchRecord) UnmarshalVT(dAtA []byte) error {
 			m.LaunchId = v
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SessionObjectKey = v
+			m.LlmSessionObjectKey = v
 		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SpaceObjectKey", wireType)
@@ -7352,14 +7737,14 @@ func (m *NativeViewerLaunchRecord) UnmarshalVT(dAtA []byte) error {
 			m.ViewerProfile = v
 		case 10:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ResourceScopeSessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceScopeLlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.ResourceScopeSessionObjectKey = v
+			m.ResourceScopeLlmSessionObjectKey = v
 		case 11:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SelectedStateKey", wireType)
@@ -7408,6 +7793,21 @@ func (m *NativeViewerLaunchRecord) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.LaunchNonce = v
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpacewaveSessionRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.SpacewaveSessionRef == nil {
+				m.SpacewaveSessionRef = &NativeViewerSpacewaveSessionRef{}
+			}
+			if err := m.SpacewaveSessionRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -7481,14 +7881,14 @@ func (m *NativeViewerReadinessRecord) UnmarshalVT(dAtA []byte) error {
 			m.LaunchId = v
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SessionObjectKey = v
+			m.LlmSessionObjectKey = v
 		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SpaceObjectKey", wireType)
@@ -7609,14 +8009,14 @@ func (m *NativeViewerReadinessRecord) UnmarshalVT(dAtA []byte) error {
 			m.ViewerProfile = v
 		case 17:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ResourceScopeSessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceScopeLlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.ResourceScopeSessionObjectKey = v
+			m.ResourceScopeLlmSessionObjectKey = v
 		case 18:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field SelectedStateKey", wireType)
@@ -7627,6 +8027,31 @@ func (m *NativeViewerReadinessRecord) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SelectedStateKey = v
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SpacewaveSessionRef", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.SpacewaveSessionRef == nil {
+				m.SpacewaveSessionRef = &NativeViewerSpacewaveSessionRef{}
+			}
+			if err := m.SpacewaveSessionRef.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 20:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LaunchNonce", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.LaunchNonce = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -7672,35 +8097,35 @@ func (m *NativeViewerSelectedState) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Tabs", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field TabLlmSessionObjectKeys", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.Tabs = append(m.Tabs, v)
+			m.TabLlmSessionObjectKeys = append(m.TabLlmSessionObjectKeys, v)
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Focused", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field FocusedLlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.Focused = v
+			m.FocusedLlmSessionObjectKey = v
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Drafts", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field DraftsByLlmSessionObjectKey", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
 			iNdEx = msgStart
-			if m.Drafts == nil {
-				m.Drafts = make(map[string]string)
+			if m.DraftsByLlmSessionObjectKey == nil {
+				m.DraftsByLlmSessionObjectKey = make(map[string]string)
 			}
 			var mapkey string
 			var mapvalue string
@@ -7730,19 +8155,19 @@ func (m *NativeViewerSelectedState) UnmarshalVT(dAtA []byte) error {
 					}
 				}
 			}
-			m.Drafts[mapkey] = mapvalue
+			m.DraftsByLlmSessionObjectKey[mapkey] = mapvalue
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Viewports", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ViewportsByLlmSessionObjectKey", wireType)
 			}
 			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
 			iNdEx = msgStart
-			if m.Viewports == nil {
-				m.Viewports = make(map[string]uint32)
+			if m.ViewportsByLlmSessionObjectKey == nil {
+				m.ViewportsByLlmSessionObjectKey = make(map[string]uint32)
 			}
 			var mapkey string
 			var mapvalue uint32
@@ -7772,7 +8197,7 @@ func (m *NativeViewerSelectedState) UnmarshalVT(dAtA []byte) error {
 					}
 				}
 			}
-			m.Viewports[mapkey] = mapvalue
+			m.ViewportsByLlmSessionObjectKey[mapkey] = mapvalue
 			iNdEx = postIndex
 		case 5:
 			if wireType != 0 {
@@ -7792,16 +8217,6 @@ func (m *NativeViewerSelectedState) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 7:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SpaceObjectKey", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.SpaceObjectKey = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -8129,14 +8544,14 @@ func (m *NativeViewerAvailableSessionsRequest) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ScopeSessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceScopeLlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.ScopeSessionObjectKey = v
+			m.ResourceScopeLlmSessionObjectKey = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -8182,14 +8597,14 @@ func (m *NativeViewerAvailableSessionsResponse) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SessionObjectKeys", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LlmSessionObjectKeys", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SessionObjectKeys = append(m.SessionObjectKeys, v)
+			m.LlmSessionObjectKeys = append(m.LlmSessionObjectKeys, v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -8235,14 +8650,14 @@ func (m *NativeViewerSelectSessionRequest) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SessionObjectKey = v
+			m.LlmSessionObjectKey = v
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RequestId", wireType)
@@ -8309,14 +8724,14 @@ func (m *NativeViewerSelectSessionResponse) UnmarshalVT(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SessionObjectKey = v
+			m.LlmSessionObjectKey = v
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RequestId", wireType)
@@ -8382,14 +8797,14 @@ func (m *NativeViewerSendInputRequest) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SessionObjectKey = v
+			m.LlmSessionObjectKey = v
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DispatchKey", wireType)
@@ -8465,14 +8880,14 @@ func (m *NativeViewerInterruptRequest) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SessionObjectKey = v
+			m.LlmSessionObjectKey = v
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DispatchKey", wireType)
@@ -8559,14 +8974,14 @@ func (m *NativeViewerControlResponse) UnmarshalVT(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field LlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SessionObjectKey = v
+			m.LlmSessionObjectKey = v
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DispatchKey", wireType)
@@ -8661,14 +9076,14 @@ func (m *NativeViewerFollowUpRequest) UnmarshalVT(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PredecessorSessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field PredecessorLlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.PredecessorSessionObjectKey = v
+			m.PredecessorLlmSessionObjectKey = v
 		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RequestId", wireType)
@@ -8745,14 +9160,14 @@ func (m *NativeViewerFollowUpResponse) UnmarshalVT(dAtA []byte) error {
 			}
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PredecessorSessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field PredecessorLlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.PredecessorSessionObjectKey = v
+			m.PredecessorLlmSessionObjectKey = v
 		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RequestId", wireType)
@@ -8775,14 +9190,14 @@ func (m *NativeViewerFollowUpResponse) UnmarshalVT(dAtA []byte) error {
 			m.Text = v
 		case 5:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field SuccessorSessionObjectKey", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field SuccessorLlmSessionObjectKey", wireType)
 			}
 			var v string
 			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
 			if err != nil {
 				return err
 			}
-			m.SuccessorSessionObjectKey = v
+			m.SuccessorLlmSessionObjectKey = v
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Detail", wireType)

@@ -82,6 +82,16 @@ message NativeViewerIODescriptor {
   NativeViewerFDMode output_mode = 5;
 }
 
+// NativeViewerSpacewaveSessionRef snapshots the canonical Spacewave SessionRef tuple for one immutable launch.
+message NativeViewerSpacewaveSessionRef {
+  // ProviderResourceId identifies the Spacewave Session resource within its provider.
+  string provider_resource_id = 1;
+  // ProviderId identifies the provider that contains the Spacewave Session resource.
+  string provider_id = 2;
+  // ProviderAccountId identifies the provider account that contains the Spacewave Session resource.
+  string provider_account_id = 3;
+}
+
 // NativeViewerLaunchRecord freezes the identities and endpoints for one child launch.
 message NativeViewerLaunchRecord {
   // WireVersion selects the inherited record encoding contract.
@@ -90,8 +100,8 @@ message NativeViewerLaunchRecord {
   uint32 protocol_version = 2;
   // LaunchId identifies one supervised child launch.
   string launch_id = 3;
-  // SessionObjectKey identifies the selected LlmSession object.
-  string session_object_key = 4;
+  // LlmSessionObjectKey identifies the selected LlmSession object.
+  string llm_session_object_key = 4;
   // SpaceObjectKey identifies the selected Space object.
   string space_object_key = 5;
   // ManifestObjectKey identifies the immutable selected manifest object.
@@ -102,8 +112,8 @@ message NativeViewerLaunchRecord {
   string viewer_object_key = 8;
   // ViewerProfile selects the viewer profile declared by the manifest.
   string viewer_profile = 9;
-  // ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
-  string resource_scope_session_object_key = 10;
+  // ResourceScopeLlmSessionObjectKey limits resource access to the selected LlmSession object.
+  string resource_scope_llm_session_object_key = 10;
   // SelectedStateKey identifies the state atom persisted for this viewer selection.
   string selected_state_key = 11;
   // Endpoints describes every inherited endpoint required by the child.
@@ -112,6 +122,8 @@ message NativeViewerLaunchRecord {
   NativeViewerIODescriptor io = 13;
   // LaunchNonce binds readiness evidence to one launch attempt.
   string launch_nonce = 14;
+  // SpacewaveSessionRef snapshots the exact Spacewave Session that authorized this launch.
+  NativeViewerSpacewaveSessionRef spacewave_session_ref = 15;
 }
 
 // NativeViewerReadinessRecord reports the first rendered frame or terminal startup failure.
@@ -122,8 +134,8 @@ message NativeViewerReadinessRecord {
   uint32 protocol_version = 2;
   // LaunchId identifies one supervised child launch.
   string launch_id = 3;
-  // SessionObjectKey identifies the selected LlmSession object.
-  string session_object_key = 4;
+  // LlmSessionObjectKey identifies the selected LlmSession object.
+  string llm_session_object_key = 4;
   // SpaceObjectKey identifies the selected Space object.
   string space_object_key = 5;
   // ManifestObjectKey identifies the immutable selected manifest object.
@@ -148,28 +160,32 @@ message NativeViewerReadinessRecord {
   bool all_workers_joined = 15;
   // ViewerProfile selects the viewer profile declared by the manifest.
   string viewer_profile = 16;
-  // ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
-  string resource_scope_session_object_key = 17;
+  // ResourceScopeLlmSessionObjectKey limits resource access to the selected LlmSession object.
+  string resource_scope_llm_session_object_key = 17;
   // SelectedStateKey identifies the state atom persisted for this viewer selection.
   string selected_state_key = 18;
+  // SpacewaveSessionRef echoes the exact Spacewave Session that authorized the launch.
+  NativeViewerSpacewaveSessionRef spacewave_session_ref = 19;
+  // LaunchNonce echoes the launch attempt that this readiness evidence describes.
+  string launch_nonce = 20;
 }
 
 // NativeViewerSelectedState persists the bounded UI selection state for one viewer.
 message NativeViewerSelectedState {
-  // Tabs orders the bounded set of open LlmSession object keys.
-  repeated string tabs = 1;
-  // Focused identifies the focused LlmSession tab.
-  string focused = 2;
-  // Drafts maps LlmSession object keys to bounded UTF-8 input drafts.
-  map<string, string> drafts = 3;
-  // Viewports maps LlmSession object keys to bounded transcript offsets.
-  map<string, uint32> viewports = 4;
+  // TabLlmSessionObjectKeys orders the bounded set of open LlmSession object keys.
+  repeated string tab_llm_session_object_keys = 1;
+  // FocusedLlmSessionObjectKey identifies the focused LlmSession tab.
+  string focused_llm_session_object_key = 2;
+  // DraftsByLlmSessionObjectKey maps LlmSession object keys to bounded UTF-8 input drafts.
+  map<string, string> drafts_by_llm_session_object_key = 3;
+  // ViewportsByLlmSessionObjectKey maps LlmSession object keys to bounded transcript offsets.
+  map<string, uint32> viewports_by_llm_session_object_key = 4;
   // SelectedView selects the active viewer pane.
   uint32 selected_view = 5;
   // Theme selects the viewer color theme.
   uint32 theme = 6;
-  // SpaceObjectKey identifies the selected Space object.
-  string space_object_key = 7;
+  // Reserved: space_object_key was not carried by the selected-state adapter.
+  reserved 7;
 }
 
 // NativeViewerStateLoadRequest identifies the selected state atom to load.
@@ -228,20 +244,20 @@ enum NativeViewerControlStatus {
 
 // NativeViewerAvailableSessionsRequest identifies the resource scope used for LlmSession discovery.
 message NativeViewerAvailableSessionsRequest {
-  // ScopeSessionObjectKey identifies the LlmSession that bounds discovery.
-  string scope_session_object_key = 1;
+  // ResourceScopeLlmSessionObjectKey identifies the LlmSession that bounds discovery.
+  string resource_scope_llm_session_object_key = 1;
 }
 
 // NativeViewerAvailableSessionsResponse contains the LlmSessions available within the resource scope.
 message NativeViewerAvailableSessionsResponse {
-  // SessionObjectKeys lists LlmSession objects available within the resource scope.
-  repeated string session_object_keys = 1;
+  // LlmSessionObjectKeys lists LlmSession objects available within the resource scope.
+  repeated string llm_session_object_keys = 1;
 }
 
 // NativeViewerSelectSessionRequest selects one LlmSession for the viewer.
 message NativeViewerSelectSessionRequest {
-  // SessionObjectKey identifies the selected LlmSession object.
-  string session_object_key = 1;
+  // LlmSessionObjectKey identifies the selected LlmSession object.
+  string llm_session_object_key = 1;
   // RequestId identifies one idempotent control request.
   string request_id = 2;
 }
@@ -250,8 +266,8 @@ message NativeViewerSelectSessionRequest {
 message NativeViewerSelectSessionResponse {
   // Status reports the outcome of the requested operation.
   NativeViewerControlStatus status = 1;
-  // SessionObjectKey identifies the selected LlmSession object.
-  string session_object_key = 2;
+  // LlmSessionObjectKey identifies the selected LlmSession object.
+  string llm_session_object_key = 2;
   // RequestId identifies one idempotent control request.
   string request_id = 3;
   // Detail explains a rejected, failed, or cancelled operation.
@@ -260,8 +276,8 @@ message NativeViewerSelectSessionResponse {
 
 // NativeViewerSendInputRequest delivers user input to an active LlmSession dispatch.
 message NativeViewerSendInputRequest {
-  // SessionObjectKey identifies the selected LlmSession object.
-  string session_object_key = 1;
+  // LlmSessionObjectKey identifies the selected LlmSession object.
+  string llm_session_object_key = 1;
   // DispatchKey identifies the active dispatch within an LlmSession.
   string dispatch_key = 2;
   // RequestId identifies one idempotent control request.
@@ -272,8 +288,8 @@ message NativeViewerSendInputRequest {
 
 // NativeViewerInterruptRequest requests interruption of an active LlmSession dispatch.
 message NativeViewerInterruptRequest {
-  // SessionObjectKey identifies the selected LlmSession object.
-  string session_object_key = 1;
+  // LlmSessionObjectKey identifies the selected LlmSession object.
+  string llm_session_object_key = 1;
   // DispatchKey identifies the active dispatch within an LlmSession.
   string dispatch_key = 2;
   // RequestId identifies one idempotent control request.
@@ -286,8 +302,8 @@ message NativeViewerInterruptRequest {
 message NativeViewerControlResponse {
   // Status reports the outcome of the requested operation.
   NativeViewerControlStatus status = 1;
-  // SessionObjectKey identifies the selected LlmSession object.
-  string session_object_key = 2;
+  // LlmSessionObjectKey identifies the selected LlmSession object.
+  string llm_session_object_key = 2;
   // DispatchKey identifies the active dispatch within an LlmSession.
   string dispatch_key = 3;
   // RequestId identifies one idempotent control request.
@@ -302,8 +318,8 @@ message NativeViewerControlResponse {
 
 // NativeViewerFollowUpRequest continues a predecessor LlmSession with new input.
 message NativeViewerFollowUpRequest {
-  // PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
-  string predecessor_session_object_key = 1;
+  // PredecessorLlmSessionObjectKey identifies the LlmSession continued by a follow-up.
+  string predecessor_llm_session_object_key = 1;
   // RequestId identifies one idempotent control request.
   string request_id = 2;
   // Text contains the bounded user input or follow-up text.
@@ -314,14 +330,14 @@ message NativeViewerFollowUpRequest {
 message NativeViewerFollowUpResponse {
   // Status reports the outcome of the requested operation.
   NativeViewerControlStatus status = 1;
-  // PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
-  string predecessor_session_object_key = 2;
+  // PredecessorLlmSessionObjectKey identifies the LlmSession continued by a follow-up.
+  string predecessor_llm_session_object_key = 2;
   // RequestId identifies one idempotent control request.
   string request_id = 3;
   // Text contains the bounded user input or follow-up text.
   string text = 4;
-  // SuccessorSessionObjectKey identifies the LlmSession created by a follow-up.
-  string successor_session_object_key = 5;
+  // SuccessorLlmSessionObjectKey identifies the LlmSession created by a follow-up.
+  string successor_llm_session_object_key = 5;
   // Detail explains a rejected, failed, or cancelled operation.
   string detail = 6;
 }

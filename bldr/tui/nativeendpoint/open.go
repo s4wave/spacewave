@@ -20,6 +20,7 @@ import (
 var socketPair = func() ([2]int, error) {
 	return syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
 }
+
 var serveEndpoint = func(ctx context.Context, _ int, invoker srpc.Invoker, mux srpc.MuxedConn) error {
 	return srpc.NewServer(invoker).AcceptMuxedConn(ctx, mux)
 }

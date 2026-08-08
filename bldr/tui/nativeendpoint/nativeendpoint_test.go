@@ -97,10 +97,10 @@ func TestStateServiceValidationAndDetachedLoad(t *testing.T) {
 	if err != nil || loaded.State == nil {
 		t.Fatalf("Load: %v", err)
 	}
-	loaded.State.Tabs = []string{"tab:1"}
-	store.json = `{"tabs":["tab:2"]}`
+	loaded.State.TabLlmSessionObjectKeys = []string{"tab:1"}
+	store.json = `{"tabLlmSessionObjectKeys":["tab:2"]}`
 	again, err := service.Load(context.Background(), &native.NativeViewerStateLoadRequest{StateKey: "state:1"})
-	if err != nil || len(again.State.Tabs) != 1 || again.State.Tabs[0] != "tab:2" {
+	if err != nil || len(again.State.TabLlmSessionObjectKeys) != 1 || again.State.TabLlmSessionObjectKeys[0] != "tab:2" {
 		t.Fatalf("detached Load: %#v, %v", again, err)
 	}
 	if _, err := service.Save(context.Background(), &native.NativeViewerStateSaveRequest{StateKey: "state:1", RequestId: "", State: &native.NativeViewerSelectedState{}}); err == nil {
@@ -109,7 +109,7 @@ func TestStateServiceValidationAndDetachedLoad(t *testing.T) {
 	if len(store.setJSON) != 0 {
 		t.Fatal("invalid Save changed storage")
 	}
-	state := &native.NativeViewerSelectedState{Tabs: []string{"tab:1"}, Focused: "tab:1"}
+	state := &native.NativeViewerSelectedState{TabLlmSessionObjectKeys: []string{"tab:1"}, FocusedLlmSessionObjectKey: "tab:1"}
 	resp, err := service.Save(context.Background(), &native.NativeViewerStateSaveRequest{StateKey: "state:1", RequestId: "request:1", State: state})
 	if err != nil || !resp.Accepted || resp.StateKey != "state:1" || resp.RequestId != "request:1" {
 		t.Fatalf("Save: %#v, %v", resp, err)

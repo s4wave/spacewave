@@ -17,12 +17,12 @@ var ErrInvalidSelectedState = errors.New("nativeviewer: invalid selected state")
 // ValidateSelectedState validates the bounded persistence boundary for selected UI state.
 func ValidateSelectedState(state *NativeViewerSelectedState) error {
 	// Validate collection bounds before checking cross-field references.
-	if state == nil || len(state.GetTabs()) > MaxSessionTabs || len(state.GetDrafts()) > MaxSessionTabs || len(state.GetViewports()) > MaxSessionTabs {
+	if state == nil || len(state.GetTabLlmSessionObjectKeys()) > MaxSessionTabs || len(state.GetDraftsByLlmSessionObjectKey()) > MaxSessionTabs || len(state.GetViewportsByLlmSessionObjectKey()) > MaxSessionTabs {
 		return ErrInvalidSelectedState
 	}
-	// Build the tab identity set used by focus and viewport validation.
-	seen := make(map[string]struct{}, len(state.GetTabs()))
-	for _, tab := range state.GetTabs() {
+	// Build the LlmSession tab identity set used by focus and viewport validation.
+	seen := make(map[string]struct{}, len(state.GetTabLlmSessionObjectKeys()))
+	for _, tab := range state.GetTabLlmSessionObjectKeys() {
 		if !validIdentity(tab) {
 			return ErrInvalidSelectedState
 		}
@@ -31,24 +31,21 @@ func ValidateSelectedState(state *NativeViewerSelectedState) error {
 		}
 		seen[tab] = struct{}{}
 	}
-	if state.GetSpaceObjectKey() != "" && !validIdentity(state.GetSpaceObjectKey()) {
-		return ErrInvalidSelectedState
-	}
-	if state.GetFocused() != "" {
-		if !validIdentity(state.GetFocused()) {
+	if state.GetFocusedLlmSessionObjectKey() != "" {
+		if !validIdentity(state.GetFocusedLlmSessionObjectKey()) {
 			return ErrInvalidSelectedState
 		}
-		if _, ok := seen[state.GetFocused()]; !ok {
+		if _, ok := seen[state.GetFocusedLlmSessionObjectKey()]; !ok {
 			return ErrInvalidSelectedState
 		}
 	}
-	// Validate bounded drafts and viewport offsets against their tab identities.
-	for key, draft := range state.GetDrafts() {
+	// Validate bounded drafts and viewport offsets against their LlmSession tab identities.
+	for key, draft := range state.GetDraftsByLlmSessionObjectKey() {
 		if !validIdentity(key) || !utf8.ValidString(draft) || len(draft) > MaxDraftBytes {
 			return ErrInvalidSelectedState
 		}
 	}
-	for key, offset := range state.GetViewports() {
+	for key, offset := range state.GetViewportsByLlmSessionObjectKey() {
 		if !validIdentity(key) || offset > MaxTranscriptOffset {
 			return ErrInvalidSelectedState
 		}

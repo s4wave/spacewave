@@ -10,11 +10,12 @@ import (
 	"unicode/utf8"
 
 	pkgerrors "github.com/pkg/errors"
+	"github.com/s4wave/spacewave/net/util/labels"
 )
 
 const (
 	NativeViewerWireVersion     uint32 = 1
-	NativeViewerProtocolVersion uint32 = 1
+	NativeViewerProtocolVersion uint32 = 2
 	MaxRecordBytes                     = 64 * 1024
 	RecordFD                           = 3
 	ReadinessFD                        = 4
@@ -46,18 +47,50 @@ func validSafeText(value string, limit int) bool {
 // validIdentity accepts native viewer identities up to 1000 bytes.
 func validIdentity(value string) bool { return validSafeText(value, 1000) }
 
+// ValidateSpacewaveSessionRef validates an immutable canonical Spacewave SessionRef tuple snapshot.
+func ValidateSpacewaveSessionRef(ref *NativeViewerSpacewaveSessionRef) error {
+	if ref == nil {
+		return errors.New("nativeviewer: missing Spacewave SessionRef")
+	}
+	if err := labels.ValidateDNSLabel(ref.GetProviderResourceId()); err != nil {
+		return pkgerrors.Wrap(err, "provider resource id")
+	}
+	if err := labels.ValidateDNSLabel(ref.GetProviderId()); err != nil {
+		return pkgerrors.Wrap(err, "provider id")
+	}
+	if err := labels.ValidateDNSLabel(ref.GetProviderAccountId()); err != nil {
+		return pkgerrors.Wrap(err, "provider account id")
+	}
+	return nil
+}
+
 // ValidateLaunchRecord validates the frozen identity and fixed inherited FD contract.
 func ValidateLaunchRecord(record *NativeViewerLaunchRecord) error {
 	// Validate versions and every identity before interpreting descriptor authority.
 	if record == nil || record.GetWireVersion() != NativeViewerWireVersion || record.GetProtocolVersion() != NativeViewerProtocolVersion {
 		return ErrInvalidLaunch
 	}
-	for _, value := range []string{record.GetLaunchId(), record.GetSessionObjectKey(), record.GetSpaceObjectKey(), record.GetManifestObjectKey(), record.GetManifestDigest(), record.GetViewerObjectKey(), record.GetViewerProfile(), record.GetResourceScopeSessionObjectKey(), record.GetSelectedStateKey(), record.GetLaunchNonce()} {
+	for _, value := range []string{
+		record.GetLaunchId(),
+		record.GetLlmSessionObjectKey(),
+		record.GetSpaceObjectKey(),
+		record.GetManifestObjectKey(),
+		record.GetManifestDigest(),
+		record.GetViewerObjectKey(),
+		record.GetViewerProfile(),
+		record.GetResourceScopeLlmSessionObjectKey(),
+		record.GetSelectedStateKey(),
+		record.GetLaunchNonce(),
+	} {
 		if !validIdentity(value) {
 			return ErrInvalidLaunch
 		}
 	}
-	if record.GetResourceScopeSessionObjectKey() != record.GetSessionObjectKey() {
+
+	if err := ValidateSpacewaveSessionRef(record.GetSpacewaveSessionRef()); err != nil {
+		return pkgerrors.Wrap(ErrInvalidLaunch, "Spacewave SessionRef")
+	}
+	if record.GetResourceScopeLlmSessionObjectKey() != record.GetLlmSessionObjectKey() {
 		return pkgerrors.Wrap(ErrInvalidLaunch, "resource scope")
 	}
 	ioDesc := record.GetIo()
@@ -163,21 +196,74 @@ func ReadLaunchRecord(reader io.Reader) (*NativeViewerLaunchRecord, error) {
 	return record, nil
 }
 
-// ValidateReadinessRecord validates readiness semantics and exact launch identity echoes.
-func ValidateReadinessRecord(readiness *NativeViewerReadinessRecord, launch *NativeViewerLaunchRecord) error {
-	// Validate readiness identity and version fields before status-specific evidence.
-	if readiness == nil || readiness.GetWireVersion() != NativeViewerWireVersion || readiness.GetProtocolVersion() != NativeViewerProtocolVersion || !validIdentity(readiness.GetLaunchId()) || !validIdentity(readiness.GetSessionObjectKey()) || !validIdentity(readiness.GetSpaceObjectKey()) || !validIdentity(readiness.GetManifestObjectKey()) || !validIdentity(readiness.GetManifestDigest()) || !validIdentity(readiness.GetViewerObjectKey()) || !validIdentity(readiness.GetViewerProfile()) || !validIdentity(readiness.GetResourceScopeSessionObjectKey()) || !validIdentity(readiness.GetSelectedStateKey()) {
+// validateReadinessIdentity requires every readiness identity to be structurally safe.
+func validateReadinessIdentity(readiness *NativeViewerReadinessRecord) error {
+	if readiness == nil ||
+		readiness.GetWireVersion() != NativeViewerWireVersion ||
+		readiness.GetProtocolVersion() != NativeViewerProtocolVersion {
 		return ErrInvalidReadiness
 	}
-	if launch != nil && (readiness.GetLaunchId() != launch.GetLaunchId() || readiness.GetSessionObjectKey() != launch.GetSessionObjectKey() || readiness.GetSpaceObjectKey() != launch.GetSpaceObjectKey() || readiness.GetManifestObjectKey() != launch.GetManifestObjectKey() || readiness.GetManifestDigest() != launch.GetManifestDigest() || readiness.GetViewerObjectKey() != launch.GetViewerObjectKey() || readiness.GetViewerProfile() != launch.GetViewerProfile() || readiness.GetResourceScopeSessionObjectKey() != launch.GetResourceScopeSessionObjectKey() || readiness.GetSelectedStateKey() != launch.GetSelectedStateKey()) {
+
+	for _, value := range []string{
+		readiness.GetLaunchId(),
+		readiness.GetLlmSessionObjectKey(),
+		readiness.GetSpaceObjectKey(),
+		readiness.GetManifestObjectKey(),
+		readiness.GetManifestDigest(),
+		readiness.GetViewerObjectKey(),
+		readiness.GetViewerProfile(),
+		readiness.GetResourceScopeLlmSessionObjectKey(),
+		readiness.GetSelectedStateKey(),
+		readiness.GetLaunchNonce(),
+	} {
+		if !validIdentity(value) {
+			return ErrInvalidReadiness
+		}
+	}
+
+	if err := ValidateSpacewaveSessionRef(readiness.GetSpacewaveSessionRef()); err != nil {
+		return pkgerrors.Wrap(ErrInvalidReadiness, "Spacewave SessionRef")
+	}
+	return nil
+}
+
+// readinessIdentityMatches reports whether readiness echoes every frozen launch identity.
+func readinessIdentityMatches(readiness *NativeViewerReadinessRecord, launch *NativeViewerLaunchRecord) bool {
+	return readiness.GetLaunchId() == launch.GetLaunchId() &&
+		readiness.GetLlmSessionObjectKey() == launch.GetLlmSessionObjectKey() &&
+		readiness.GetSpaceObjectKey() == launch.GetSpaceObjectKey() &&
+		readiness.GetManifestObjectKey() == launch.GetManifestObjectKey() &&
+		readiness.GetManifestDigest() == launch.GetManifestDigest() &&
+		readiness.GetViewerObjectKey() == launch.GetViewerObjectKey() &&
+		readiness.GetViewerProfile() == launch.GetViewerProfile() &&
+		readiness.GetResourceScopeLlmSessionObjectKey() == launch.GetResourceScopeLlmSessionObjectKey() &&
+		readiness.GetSelectedStateKey() == launch.GetSelectedStateKey() &&
+		readiness.GetLaunchNonce() == launch.GetLaunchNonce() &&
+		readiness.GetSpacewaveSessionRef().EqualVT(launch.GetSpacewaveSessionRef())
+}
+
+// ValidateReadinessRecord validates readiness semantics and exact launch identity echoes.
+func ValidateReadinessRecord(readiness *NativeViewerReadinessRecord, launch *NativeViewerLaunchRecord) error {
+	// Validate both sides before comparing the complete frozen identity set.
+	if err := validateReadinessIdentity(readiness); err != nil {
+		return err
+	}
+	if launch == nil || ValidateLaunchRecord(launch) != nil {
+		return pkgerrors.Wrap(ErrInvalidReadiness, "launch")
+	}
+	if !readinessIdentityMatches(readiness, launch) {
 		return pkgerrors.Wrap(ErrInvalidReadiness, "readiness identity echo")
 	}
+
+	// READY requires first-projection and first-frame evidence without cleanup state.
 	if readiness.GetStatus() == NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY {
 		if readiness.GetFrameSequence() == 0 || readiness.GetResourceRevision() == 0 || readiness.GetResourceCursor() == 0 || readiness.GetTerminalRestoreAttempted() || readiness.GetAllWorkersJoined() || readiness.GetDetail() != "" {
 			return pkgerrors.Wrap(ErrInvalidReadiness, "READY semantics")
 		}
 		return nil
 	}
+
+	// Terminal readiness requires complete cleanup evidence and a bounded explanation.
 	if readiness.GetStatus() != NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_FAILED && readiness.GetStatus() != NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_CANCELLED {
 		return pkgerrors.Wrap(ErrInvalidReadiness, "readiness status")
 	}
@@ -187,9 +273,8 @@ func ValidateReadinessRecord(readiness *NativeViewerReadinessRecord, launch *Nat
 	return nil
 }
 
-// ReadReadinessRecordLive reads exactly one bounded readiness protobuf without
-// waiting for the readiness stream to reach EOF. The caller owns the stream and
-// may subsequently check for another frame.
+// ReadReadinessRecordLive reads one bounded readiness frame without waiting for
+// the stream to reach EOF. The caller retains the stream for later frames.
 func ReadReadinessRecordLive(reader io.Reader, launch *NativeViewerLaunchRecord) (*NativeViewerReadinessRecord, error) {
 	buffered := bufio.NewReader(reader)
 	return ReadReadinessRecordBuffered(buffered, launch)

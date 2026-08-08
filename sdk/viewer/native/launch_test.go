@@ -12,15 +12,78 @@ import (
 	"time"
 )
 
+// testEndpoint returns one required child-owned descriptor for the current protocol.
+func testEndpoint(kind NativeViewerEndpointKind, fd int32, transport NativeViewerTransport, service string) *NativeViewerEndpointDescriptor {
+	return &NativeViewerEndpointDescriptor{
+		Kind:            kind,
+		Fd:              fd,
+		Transport:       transport,
+		ServiceId:       service,
+		ProtocolVersion: NativeViewerProtocolVersion,
+		Required:        true,
+		CloseOnExit:     true,
+	}
+}
+
 // testLaunch returns a valid launch record with every fixed endpoint descriptor.
 func testLaunch() *NativeViewerLaunchRecord {
-	return &NativeViewerLaunchRecord{WireVersion: NativeViewerWireVersion, ProtocolVersion: NativeViewerProtocolVersion, LaunchId: "launch:1", SessionObjectKey: "session:1", SpaceObjectKey: "space:1", ManifestObjectKey: "manifest:1", ManifestDigest: "sha256:1", ViewerObjectKey: "viewer:1", ViewerProfile: "default", ResourceScopeSessionObjectKey: "session:1", SelectedStateKey: "state:1", LaunchNonce: "nonce:1", Io: &NativeViewerIODescriptor{InputFd: 0, OutputFd: 1, DiagnosticFd: 2, InputMode: NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_READ, OutputMode: NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE}, Endpoints: []*NativeViewerEndpointDescriptor{
-		{Kind: NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RECORD, Fd: RecordFD, Transport: NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO, ServiceId: "native.viewer.record", ProtocolVersion: NativeViewerProtocolVersion, Required: true, CloseOnExit: true},
-		{Kind: NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_READINESS, Fd: ReadinessFD, Transport: NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO, ServiceId: "native.viewer.readiness", ProtocolVersion: NativeViewerProtocolVersion, Required: true, CloseOnExit: true},
-		{Kind: NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE, Fd: ResourceFD, Transport: NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, ServiceId: "resource.ResourceService", ProtocolVersion: NativeViewerProtocolVersion, Required: true, CloseOnExit: true},
-		{Kind: NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_STATE, Fd: StateFD, Transport: NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, ServiceId: "s4wave.viewer.native.StateService", ProtocolVersion: NativeViewerProtocolVersion, Required: true, CloseOnExit: true},
-		{Kind: NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_CONTROL, Fd: ControlFD, Transport: NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, ServiceId: "s4wave.viewer.native.ControlService", ProtocolVersion: NativeViewerProtocolVersion, Required: true, CloseOnExit: true},
-	}}
+	return &NativeViewerLaunchRecord{
+		WireVersion:     NativeViewerWireVersion,
+		ProtocolVersion: NativeViewerProtocolVersion,
+		LaunchId:        "launch:1",
+
+		LlmSessionObjectKey:              "session:1",
+		SpaceObjectKey:                   "space:1",
+		ResourceScopeLlmSessionObjectKey: "session:1",
+		SelectedStateKey:                 "state:1",
+		SpacewaveSessionRef: &NativeViewerSpacewaveSessionRef{
+			ProviderResourceId: "resource-1",
+			ProviderId:         "provider-1",
+			ProviderAccountId:  "account-1",
+		},
+
+		ManifestObjectKey: "manifest:1",
+		ManifestDigest:    "sha256:1",
+		ViewerObjectKey:   "viewer:1",
+		ViewerProfile:     "default",
+		LaunchNonce:       "nonce:1",
+
+		Io: &NativeViewerIODescriptor{
+			InputFd:      0,
+			OutputFd:     1,
+			DiagnosticFd: 2,
+			InputMode:    NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_READ,
+			OutputMode:   NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE,
+		},
+		Endpoints: []*NativeViewerEndpointDescriptor{
+			testEndpoint(NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RECORD, RecordFD, NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO, "native.viewer.record"),
+			testEndpoint(NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_READINESS, ReadinessFD, NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO, "native.viewer.readiness"),
+			testEndpoint(NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE, ResourceFD, NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, "resource.ResourceService"),
+			testEndpoint(NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_STATE, StateFD, NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, SRPCStateServiceServiceID),
+			testEndpoint(NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_CONTROL, ControlFD, NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, SRPCControlServiceServiceID),
+		},
+	}
+}
+
+// testReadiness returns readiness identity that exactly echoes one valid launch.
+func testReadiness(launch *NativeViewerLaunchRecord) *NativeViewerReadinessRecord {
+	return &NativeViewerReadinessRecord{
+		WireVersion:     NativeViewerWireVersion,
+		ProtocolVersion: NativeViewerProtocolVersion,
+		LaunchId:        launch.GetLaunchId(),
+		LaunchNonce:     launch.GetLaunchNonce(),
+
+		LlmSessionObjectKey:              launch.GetLlmSessionObjectKey(),
+		SpaceObjectKey:                   launch.GetSpaceObjectKey(),
+		ResourceScopeLlmSessionObjectKey: launch.GetResourceScopeLlmSessionObjectKey(),
+		SelectedStateKey:                 launch.GetSelectedStateKey(),
+		SpacewaveSessionRef:              launch.GetSpacewaveSessionRef().CloneVT(),
+
+		ManifestObjectKey: launch.GetManifestObjectKey(),
+		ManifestDigest:    launch.GetManifestDigest(),
+		ViewerObjectKey:   launch.GetViewerObjectKey(),
+		ViewerProfile:     launch.GetViewerProfile(),
+	}
 }
 
 // TestCanonicalLaunchFixture pins the encoded launch record bytes and digest.
@@ -30,7 +93,7 @@ func TestCanonicalLaunchFixture(t *testing.T) {
 		t.Fatal(err)
 	}
 	digest := sha256.Sum256(frame)
-	if got := fmt.Sprintf("%x", digest); got != "d18fa1934a448c72d58ef9f31cc14333d97e63a19f2cbc33d2419b1bd8ecd5ca" {
+	if got := fmt.Sprintf("%x", digest); got != "9984534549e9fd0b4e3bbddb93cd693e8ce9417d718159ddb47d3214d4b51c53" {
 		t.Fatalf("digest=%s", got)
 	}
 	if _, err := ReadLaunchRecord(bytes.NewReader(frame)); err != nil {
@@ -57,7 +120,7 @@ func TestLaunchValidationAndFraming(t *testing.T) {
 	}
 	for name, mutate := range map[string]func(*NativeViewerLaunchRecord){
 		"version":         func(v *NativeViewerLaunchRecord) { v.WireVersion++ },
-		"scope":           func(v *NativeViewerLaunchRecord) { v.ResourceScopeSessionObjectKey = "session:other" },
+		"scope":           func(v *NativeViewerLaunchRecord) { v.ResourceScopeLlmSessionObjectKey = "session:other" },
 		"duplicate fd":    func(v *NativeViewerLaunchRecord) { v.Endpoints[1].Fd = RecordFD },
 		"daemon endpoint": func(v *NativeViewerLaunchRecord) { v.Endpoints[0].ServiceId = "spacewave.socket" },
 	} {
@@ -98,7 +161,9 @@ func TestLaunchFramingBoundsAndTrailingRecord(t *testing.T) {
 // TestReadinessEchoValidationAndFraming proves readiness must echo the complete frozen launch identity.
 func TestReadinessEchoValidationAndFraming(t *testing.T) {
 	launch := testLaunch()
-	readiness := &NativeViewerReadinessRecord{WireVersion: NativeViewerWireVersion, ProtocolVersion: NativeViewerProtocolVersion, LaunchId: launch.LaunchId, SessionObjectKey: launch.SessionObjectKey, SpaceObjectKey: launch.SpaceObjectKey, ManifestObjectKey: launch.ManifestObjectKey, ManifestDigest: launch.ManifestDigest, ViewerObjectKey: launch.ViewerObjectKey, ViewerProfile: launch.ViewerProfile, ResourceScopeSessionObjectKey: launch.ResourceScopeSessionObjectKey, SelectedStateKey: launch.SelectedStateKey, Status: NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY, ResourceRevision: 1, ResourceCursor: 1, FrameSequence: 1}
+	readiness := testReadiness(launch)
+	readiness.Status = NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY
+	readiness.ResourceRevision, readiness.ResourceCursor, readiness.FrameSequence = 1, 1, 1
 	var buffer bytes.Buffer
 	if err := WriteReadinessRecord(&buffer, readiness, launch); err != nil {
 		t.Fatal(err)
@@ -108,7 +173,7 @@ func TestReadinessEchoValidationAndFraming(t *testing.T) {
 		t.Fatalf("readiness=%v err=%v", got, err)
 	}
 	stale := readiness.CloneVT()
-	stale.SessionObjectKey = "session:other"
+	stale.LlmSessionObjectKey = "session:other"
 	if err := ValidateReadinessRecord(stale, launch); err == nil {
 		t.Fatal("accepted stale readiness")
 	}
@@ -145,7 +210,7 @@ func TestLaunchValidationEveryDescriptorAndIdentityField(t *testing.T) {
 		mutate func(*NativeViewerLaunchRecord)
 	}{
 		{"launch", func(v *NativeViewerLaunchRecord) { v.LaunchId = "\n" }},
-		{"session", func(v *NativeViewerLaunchRecord) { v.SessionObjectKey = "" }},
+		{"session", func(v *NativeViewerLaunchRecord) { v.LlmSessionObjectKey = "" }},
 		{"space", func(v *NativeViewerLaunchRecord) { v.SpaceObjectKey = "\xff" }},
 		{"manifest", func(v *NativeViewerLaunchRecord) { v.ManifestObjectKey = "\x1b" }},
 		{"digest", func(v *NativeViewerLaunchRecord) { v.ManifestDigest = "" }},
@@ -153,6 +218,12 @@ func TestLaunchValidationEveryDescriptorAndIdentityField(t *testing.T) {
 		{"profile", func(v *NativeViewerLaunchRecord) { v.ViewerProfile = "\n" }},
 		{"state", func(v *NativeViewerLaunchRecord) { v.SelectedStateKey = "" }},
 		{"nonce", func(v *NativeViewerLaunchRecord) { v.LaunchNonce = "\u009f" }},
+		{"protocol version", func(v *NativeViewerLaunchRecord) { v.ProtocolVersion++ }},
+		{"legacy protocol version", func(v *NativeViewerLaunchRecord) { v.ProtocolVersion = 1 }},
+		{"missing Spacewave SessionRef", func(v *NativeViewerLaunchRecord) { v.SpacewaveSessionRef = nil }},
+		{"invalid provider resource DNS label", func(v *NativeViewerLaunchRecord) { v.SpacewaveSessionRef.ProviderResourceId = "Resource" }},
+		{"invalid provider DNS label", func(v *NativeViewerLaunchRecord) { v.SpacewaveSessionRef.ProviderId = "provider_1" }},
+		{"invalid provider account DNS label", func(v *NativeViewerLaunchRecord) { v.SpacewaveSessionRef.ProviderAccountId = "account-" }},
 		{"input mode", func(v *NativeViewerLaunchRecord) {
 			v.Io.InputMode = NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE
 		}},
@@ -188,6 +259,42 @@ func TestLaunchValidationEveryDescriptorAndIdentityField(t *testing.T) {
 	}
 }
 
+// TestValidateSpacewaveSessionRef pins every member of the provider tuple to DNS-label syntax and capacity.
+func TestValidateSpacewaveSessionRef(t *testing.T) {
+	valid := testLaunch().GetSpacewaveSessionRef()
+	if err := ValidateSpacewaveSessionRef(valid); err != nil {
+		t.Fatal(err)
+	}
+
+	long := strings.Repeat("a", 64)
+	cases := []struct {
+		name   string
+		mutate func(*NativeViewerSpacewaveSessionRef)
+	}{
+		{name: "empty provider resource", mutate: func(ref *NativeViewerSpacewaveSessionRef) { ref.ProviderResourceId = "" }},
+		{name: "long provider resource", mutate: func(ref *NativeViewerSpacewaveSessionRef) { ref.ProviderResourceId = long }},
+		{name: "controlled provider resource", mutate: func(ref *NativeViewerSpacewaveSessionRef) { ref.ProviderResourceId = "resource\n" }},
+		{name: "empty provider", mutate: func(ref *NativeViewerSpacewaveSessionRef) { ref.ProviderId = "" }},
+		{name: "long provider", mutate: func(ref *NativeViewerSpacewaveSessionRef) { ref.ProviderId = long }},
+		{name: "controlled provider", mutate: func(ref *NativeViewerSpacewaveSessionRef) { ref.ProviderId = "provider\n" }},
+		{name: "empty provider account", mutate: func(ref *NativeViewerSpacewaveSessionRef) { ref.ProviderAccountId = "" }},
+		{name: "long provider account", mutate: func(ref *NativeViewerSpacewaveSessionRef) { ref.ProviderAccountId = long }},
+		{name: "controlled provider account", mutate: func(ref *NativeViewerSpacewaveSessionRef) { ref.ProviderAccountId = "account\n" }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ref := valid.CloneVT()
+			tc.mutate(ref)
+			if err := ValidateSpacewaveSessionRef(ref); err == nil {
+				t.Fatal("accepted invalid Spacewave SessionRef")
+			}
+		})
+	}
+	if err := ValidateSpacewaveSessionRef(nil); err == nil {
+		t.Fatal("accepted missing Spacewave SessionRef")
+	}
+}
+
 // TestLaunchShortIOAndMalformedReadiness proves short I/O, malformed varints, and trailing readiness bytes fail safely.
 func TestLaunchShortIOAndMalformedReadiness(t *testing.T) {
 	if err := WriteLaunchRecord(shortWriter{}, testLaunch()); err != nil {
@@ -203,13 +310,17 @@ func TestLaunchShortIOAndMalformedReadiness(t *testing.T) {
 	if _, err := ReadReadinessRecord(bytes.NewBuffer([]byte{0x80}), testLaunch()); err == nil {
 		t.Fatal("accepted malformed varint")
 	}
-	readiness := &NativeViewerReadinessRecord{WireVersion: NativeViewerWireVersion, ProtocolVersion: NativeViewerProtocolVersion, LaunchId: "launch:1", SessionObjectKey: "session:1", SpaceObjectKey: "space:1", ManifestObjectKey: "manifest:1", ManifestDigest: "sha256:1", ViewerObjectKey: "viewer:1", ViewerProfile: "default", ResourceScopeSessionObjectKey: "session:1", SelectedStateKey: "state:1", Status: NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_FAILED, Detail: "failed", TerminalRestoreAttempted: true, AllWorkersJoined: true}
+	launch := testLaunch()
+	readiness := testReadiness(launch)
+	readiness.Status = NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_FAILED
+	readiness.Detail = "failed"
+	readiness.TerminalRestoreAttempted, readiness.AllWorkersJoined = true, true
 	var ready bytes.Buffer
-	if err := WriteReadinessRecord(&ready, readiness, testLaunch()); err != nil {
+	if err := WriteReadinessRecord(&ready, readiness, launch); err != nil {
 		t.Fatal(err)
 	}
 	ready.WriteByte(0)
-	if _, err := ReadReadinessRecord(&ready, testLaunch()); err == nil || !strings.Contains(err.Error(), "trailing") {
+	if _, err := ReadReadinessRecord(&ready, launch); err == nil || !strings.Contains(err.Error(), "trailing") {
 		t.Fatalf("trailing readiness err=%v", err)
 	}
 }
@@ -217,7 +328,7 @@ func TestLaunchShortIOAndMalformedReadiness(t *testing.T) {
 // TestReadinessValidationStatusMatrix proves READY and terminal statuses require their distinct evidence fields.
 func TestReadinessValidationStatusMatrix(t *testing.T) {
 	launch := testLaunch()
-	base := &NativeViewerReadinessRecord{WireVersion: NativeViewerWireVersion, ProtocolVersion: NativeViewerProtocolVersion, LaunchId: launch.LaunchId, SessionObjectKey: launch.SessionObjectKey, SpaceObjectKey: launch.SpaceObjectKey, ManifestObjectKey: launch.ManifestObjectKey, ManifestDigest: launch.ManifestDigest, ViewerObjectKey: launch.ViewerObjectKey, ViewerProfile: launch.ViewerProfile, ResourceScopeSessionObjectKey: launch.ResourceScopeSessionObjectKey, SelectedStateKey: launch.SelectedStateKey}
+	base := testReadiness(launch)
 	if err := ValidateReadinessRecord(base, launch); err == nil {
 		t.Fatal("accepted unknown readiness status")
 	}
@@ -227,15 +338,28 @@ func TestReadinessValidationStatusMatrix(t *testing.T) {
 	if err := ValidateReadinessRecord(ready, launch); err != nil {
 		t.Fatal(err)
 	}
+	if err := ValidateReadinessRecord(ready, nil); err == nil {
+		t.Fatal("accepted readiness without launch")
+	}
 	for name, mutate := range map[string]func(*NativeViewerReadinessRecord){
 		"ready frame zero":    func(v *NativeViewerReadinessRecord) { v.FrameSequence = 0 },
 		"ready revision zero": func(v *NativeViewerReadinessRecord) { v.ResourceRevision = 0 },
 		"ready cursor zero":   func(v *NativeViewerReadinessRecord) { v.ResourceCursor = 0 },
 		"ready detail":        func(v *NativeViewerReadinessRecord) { v.Detail = "detail" },
 		"ready cleanup":       func(v *NativeViewerReadinessRecord) { v.AllWorkersJoined = true },
+		"launch echo":         func(v *NativeViewerReadinessRecord) { v.LaunchId = "launch:other" },
+		"LlmSession echo":     func(v *NativeViewerReadinessRecord) { v.LlmSessionObjectKey = "session:other" },
+		"Space echo":          func(v *NativeViewerReadinessRecord) { v.SpaceObjectKey = "space:other" },
+		"manifest echo":       func(v *NativeViewerReadinessRecord) { v.ManifestObjectKey = "manifest:other" },
+		"digest echo":         func(v *NativeViewerReadinessRecord) { v.ManifestDigest = "sha256:other" },
+		"viewer echo":         func(v *NativeViewerReadinessRecord) { v.ViewerObjectKey = "viewer:other" },
 		"profile echo":        func(v *NativeViewerReadinessRecord) { v.ViewerProfile = "other" },
-		"scope echo":          func(v *NativeViewerReadinessRecord) { v.ResourceScopeSessionObjectKey = "session:other" },
+		"scope echo":          func(v *NativeViewerReadinessRecord) { v.ResourceScopeLlmSessionObjectKey = "session:other" },
 		"state echo":          func(v *NativeViewerReadinessRecord) { v.SelectedStateKey = "state:other" },
+		"nonce echo":          func(v *NativeViewerReadinessRecord) { v.LaunchNonce = "nonce:other" },
+		"resource tuple echo": func(v *NativeViewerReadinessRecord) { v.SpacewaveSessionRef.ProviderResourceId = "resource-2" },
+		"provider tuple echo": func(v *NativeViewerReadinessRecord) { v.SpacewaveSessionRef.ProviderId = "provider-2" },
+		"account tuple echo":  func(v *NativeViewerReadinessRecord) { v.SpacewaveSessionRef.ProviderAccountId = "account-2" },
 	} {
 		t.Run(name, func(t *testing.T) {
 			value := ready.CloneVT()
@@ -269,7 +393,9 @@ func TestReadinessValidationStatusMatrix(t *testing.T) {
 // TestReadReadinessRecordLiveDoesNotWaitForEOF proves readiness becomes observable while the child retains the stream.
 func TestReadReadinessRecordLiveDoesNotWaitForEOF(t *testing.T) {
 	launch := testLaunch()
-	readiness := &NativeViewerReadinessRecord{WireVersion: NativeViewerWireVersion, ProtocolVersion: NativeViewerProtocolVersion, LaunchId: launch.LaunchId, SessionObjectKey: launch.SessionObjectKey, SpaceObjectKey: launch.SpaceObjectKey, ManifestObjectKey: launch.ManifestObjectKey, ManifestDigest: launch.ManifestDigest, ViewerObjectKey: launch.ViewerObjectKey, ViewerProfile: launch.ViewerProfile, ResourceScopeSessionObjectKey: launch.ResourceScopeSessionObjectKey, SelectedStateKey: launch.SelectedStateKey, Status: NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY, FrameSequence: 1, ResourceRevision: 1, ResourceCursor: 1}
+	readiness := testReadiness(launch)
+	readiness.Status = NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY
+	readiness.ResourceRevision, readiness.ResourceCursor, readiness.FrameSequence = 1, 1, 1
 	pr, pw := io.Pipe()
 	done := make(chan error, 1)
 	go func() { _, err := ReadReadinessRecordLive(pr, launch); done <- err }()
@@ -290,20 +416,25 @@ func TestReadReadinessRecordLiveDoesNotWaitForEOF(t *testing.T) {
 
 // TestValidateSelectedState proves selected UI state rejects invalid identities, bounds, and cross-tab references.
 func TestValidateSelectedState(t *testing.T) {
-	base := &NativeViewerSelectedState{SpaceObjectKey: "space/one", Tabs: []string{"glados/console", "logs"}, Focused: "glados/console", Drafts: map[string]string{"glados/console": "draft"}, Viewports: map[string]uint32{"glados/console": 42}}
+	base := &NativeViewerSelectedState{TabLlmSessionObjectKeys: []string{"glados/console", "logs"}, FocusedLlmSessionObjectKey: "glados/console", DraftsByLlmSessionObjectKey: map[string]string{"glados/console": "draft"}, ViewportsByLlmSessionObjectKey: map[string]uint32{"glados/console": 42}}
 	if err := ValidateSelectedState(base); err != nil {
 		t.Fatal(err)
 	}
 	cases := []func(*NativeViewerSelectedState){
-		func(s *NativeViewerSelectedState) { s.Tabs = append(s.Tabs, "glados/console") },
-		func(s *NativeViewerSelectedState) { s.Focused = "missing" },
-		func(s *NativeViewerSelectedState) { s.Drafts["bad\x1bkey"] = "x" },
-		func(s *NativeViewerSelectedState) { s.Drafts["glados/console"] = string(make([]byte, MaxDraftBytes+1)) },
-		func(s *NativeViewerSelectedState) { s.Viewports["glados/console"] = MaxTranscriptOffset + 1 },
-		func(s *NativeViewerSelectedState) { s.Viewports["missing"] = 1 },
+		func(s *NativeViewerSelectedState) {
+			s.TabLlmSessionObjectKeys = append(s.TabLlmSessionObjectKeys, "glados/console")
+		},
+		func(s *NativeViewerSelectedState) { s.FocusedLlmSessionObjectKey = "missing" },
+		func(s *NativeViewerSelectedState) { s.DraftsByLlmSessionObjectKey["bad\x1bkey"] = "x" },
+		func(s *NativeViewerSelectedState) {
+			s.DraftsByLlmSessionObjectKey["glados/console"] = string(make([]byte, MaxDraftBytes+1))
+		},
+		func(s *NativeViewerSelectedState) {
+			s.ViewportsByLlmSessionObjectKey["glados/console"] = MaxTranscriptOffset + 1
+		},
+		func(s *NativeViewerSelectedState) { s.ViewportsByLlmSessionObjectKey["missing"] = 1 },
 		func(s *NativeViewerSelectedState) { s.SelectedView = 3 },
 		func(s *NativeViewerSelectedState) { s.Theme = 3 },
-		func(s *NativeViewerSelectedState) { s.SpaceObjectKey = "space\x1b" },
 	}
 	for i, mutate := range cases {
 		s := base.CloneVT()
