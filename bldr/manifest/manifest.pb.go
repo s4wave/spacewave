@@ -32,6 +32,12 @@ type ManifestMeta struct {
 	Rev uint64 `protobuf:"varint,4,opt,name=rev,proto3" json:"rev,omitempty"`
 	// Description is a short human-readable description of the manifest.
 	Description string `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	// ViewerId identifies the native viewer plugin.
+	ViewerId string `protobuf:"bytes,6,opt,name=viewer_id,json=viewerId,proto3" json:"viewerId,omitempty"`
+	// ViewerProfile selects the viewer profile.
+	ViewerProfile string `protobuf:"bytes,7,opt,name=viewer_profile,json=viewerProfile,proto3" json:"viewerProfile,omitempty"`
+	// ViewerProtocolVersion is the native viewer protocol version.
+	ViewerProtocolVersion uint32 `protobuf:"varint,8,opt,name=viewer_protocol_version,json=viewerProtocolVersion,proto3" json:"viewerProtocolVersion,omitempty"`
 }
 
 func (x *ManifestMeta) Reset() {
@@ -73,6 +79,27 @@ func (x *ManifestMeta) GetDescription() string {
 		return x.Description
 	}
 	return ""
+}
+
+func (x *ManifestMeta) GetViewerId() string {
+	if x != nil {
+		return x.ViewerId
+	}
+	return ""
+}
+
+func (x *ManifestMeta) GetViewerProfile() string {
+	if x != nil {
+		return x.ViewerProfile
+	}
+	return ""
+}
+
+func (x *ManifestMeta) GetViewerProtocolVersion() uint32 {
+	if x != nil {
+		return x.ViewerProtocolVersion
+	}
+	return 0
 }
 
 // Manifest contains metadata and contents.
@@ -343,6 +370,9 @@ func (m *ManifestMeta) CloneVT() *ManifestMeta {
 	r.PlatformId = m.PlatformId
 	r.Rev = m.Rev
 	r.Description = m.Description
+	r.ViewerId = m.ViewerId
+	r.ViewerProfile = m.ViewerProfile
+	r.ViewerProtocolVersion = m.ViewerProtocolVersion
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -496,6 +526,15 @@ func (this *ManifestMeta) EqualVT(that *ManifestMeta) bool {
 		return false
 	}
 	if this.Description != that.Description {
+		return false
+	}
+	if this.ViewerId != that.ViewerId {
+		return false
+	}
+	if this.ViewerProfile != that.ViewerProfile {
+		return false
+	}
+	if this.ViewerProtocolVersion != that.ViewerProtocolVersion {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -718,6 +757,21 @@ func (x *ManifestMeta) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("description")
 		s.WriteString(x.Description)
 	}
+	if x.ViewerId != "" || s.HasField("viewerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("viewerId")
+		s.WriteString(x.ViewerId)
+	}
+	if x.ViewerProfile != "" || s.HasField("viewerProfile") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("viewerProfile")
+		s.WriteString(x.ViewerProfile)
+	}
+	if x.ViewerProtocolVersion != 0 || s.HasField("viewerProtocolVersion") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("viewerProtocolVersion")
+		s.WriteUint32(x.ViewerProtocolVersion)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -750,6 +804,15 @@ func (x *ManifestMeta) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "description":
 			s.AddField("description")
 			x.Description = s.ReadString()
+		case "viewer_id", "viewerId":
+			s.AddField("viewer_id")
+			x.ViewerId = s.ReadString()
+		case "viewer_profile", "viewerProfile":
+			s.AddField("viewer_profile")
+			x.ViewerProfile = s.ReadString()
+		case "viewer_protocol_version", "viewerProtocolVersion":
+			s.AddField("viewer_protocol_version")
+			x.ViewerProtocolVersion = s.ReadUint32()
 		}
 	})
 }
@@ -1264,6 +1327,21 @@ func (m *ManifestMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.ViewerProtocolVersion != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ViewerProtocolVersion))
+		i--
+		dAtA[i] = 0x40
+	}
+	if len(m.ViewerProfile) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ViewerProfile)
+		i--
+		dAtA[i] = 0x3a
+	}
+	if len(m.ViewerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ViewerId)
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.Description) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Description)
 		i--
@@ -1685,6 +1763,9 @@ func (m *ManifestMeta) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PlatformId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Rev)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Description)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ViewerId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ViewerProfile)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ViewerProtocolVersion)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1833,6 +1914,18 @@ func (x *ManifestMeta) MarshalProtoText() string {
 	if x.Description != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "description")
 		protobuf_go_lite.TextWriteString(&sb, x.Description)
+	}
+	if x.ViewerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "viewer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ViewerId)
+	}
+	if x.ViewerProfile != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "viewer_profile")
+		protobuf_go_lite.TextWriteString(&sb, x.ViewerProfile)
+	}
+	if x.ViewerProtocolVersion != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "viewer_protocol_version")
+		protobuf_go_lite.TextWriteUint(&sb, x.ViewerProtocolVersion)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2080,6 +2173,35 @@ func (m *ManifestMeta) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Description = v
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ViewerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ViewerId = v
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ViewerProfile", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ViewerProfile = v
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ViewerProtocolVersion", wireType)
+			}
+			m.ViewerProtocolVersion = 0
+			m.ViewerProtocolVersion, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

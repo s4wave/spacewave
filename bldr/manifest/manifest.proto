@@ -20,6 +20,12 @@ message ManifestMeta {
   uint64 rev = 4;
   // Description is a short human-readable description of the manifest.
   string description = 5;
+  // ViewerId identifies the native viewer plugin.
+  string viewer_id = 6;
+  // ViewerProfile selects the viewer profile.
+  string viewer_profile = 7;
+  // ViewerProtocolVersion is the native viewer protocol version.
+  uint32 viewer_protocol_version = 8;
 }
 
 // Manifest contains metadata and contents.

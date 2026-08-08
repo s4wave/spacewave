@@ -85,7 +85,7 @@
       "protoFiles": ["bldr/example/example.proto"]
     },
     "github.com/s4wave/spacewave/bldr/manifest": {
-      "hash": "40e9c2562128f19fd1eaf7f65bccf1e0c4671a2f7d81eafe88f535f4e1837a88",
+      "hash": "f815ae0568b5d39663b9df66cd1fde91ee974571bbe664b02bf0589e6077e1e9",
       "generatedFiles": [
         "bldr/manifest/manifest.pb.go",
         "bldr/manifest/manifest.pb.ts",
@@ -715,7 +715,7 @@
       "protoFiles": ["bldr/web/view/observer/config.proto"]
     },
     "github.com/s4wave/spacewave/core/account/settings": {
-      "hash": "2417d36609e158c61bc77674a9815b8cacb3cc9e4abbca9befa9f17defdcdc70",
+      "hash": "1af76fbc3c912306359da754ce9c7c78c666d86eba042fad5441aec84a1e42fb",
       "generatedFiles": [
         "core/account/settings/settings.pb.go",
         "core/account/settings/settings.pb.ts"

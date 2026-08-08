@@ -172,6 +172,9 @@ func (m *Manifest) Validate() error {
 	if m.GetEntrypoint() == "" {
 		return ErrEmptyEntrypoint
 	}
+	if err := validateNativeViewerMetadata(m); err != nil {
+		return err
+	}
 	return nil
 }
 

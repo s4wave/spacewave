@@ -51,6 +51,24 @@ export interface ManifestMeta {
    * @generated from field: string description = 5;
    */
   description?: string
+  /**
+   * ViewerId identifies the native viewer plugin.
+   *
+   * @generated from field: string viewer_id = 6;
+   */
+  viewerId?: string
+  /**
+   * ViewerProfile selects the viewer profile.
+   *
+   * @generated from field: string viewer_profile = 7;
+   */
+  viewerProfile?: string
+  /**
+   * ViewerProtocolVersion is the native viewer protocol version.
+   *
+   * @generated from field: uint32 viewer_protocol_version = 8;
+   */
+  viewerProtocolVersion?: number
 }
 
 export const ManifestMeta: MessageType<ManifestMeta> =
@@ -62,6 +80,14 @@ export const ManifestMeta: MessageType<ManifestMeta> =
       { no: 3, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 5, name: 'description', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'viewer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 7, name: 'viewer_profile', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 8,
+        name: 'viewer_protocol_version',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
