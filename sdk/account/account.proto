@@ -464,8 +464,11 @@ message PasskeyRegisterVerifyResponse {
   string credential_id = 1;
 }
 
-// ReplaceKeybindingOverrideSetRequest atomically replaces the account layer.
+// ReplaceKeybindingOverrideSetRequest atomically applies an account layer replacement.
 message ReplaceKeybindingOverrideSetRequest {
+  // ExpectedOverrideSet is the watched snapshot used to derive the replacement.
+  .s4wave.command.KeybindingOverrideSet expected_override_set = 2;
+  // OverrideSet is the complete replacement value.
   .s4wave.command.KeybindingOverrideSet override_set = 1;
 }
 

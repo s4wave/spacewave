@@ -715,7 +715,7 @@
       "protoFiles": ["bldr/web/view/observer/config.proto"]
     },
     "github.com/s4wave/spacewave/core/account/settings": {
-      "hash": "70f0ada0cc56bdeb15cdb1b7b66fc3ee9311cde603e2a4a4848e4afe6ef51b31",
+      "hash": "00fe68758b258b9ea31b4defcd919d43a99ec23d6ad2c27fdded1c61fb577b2c",
       "generatedFiles": [
         "core/account/settings/settings.pb.go",
         "core/account/settings/settings.pb.ts"
@@ -2582,7 +2582,7 @@
       "protoFiles": ["plugin/sql/config.proto"]
     },
     "github.com/s4wave/spacewave/sdk/account": {
-      "hash": "da13a1aa81c49b110fb099bbb82ad8e403fae08723f1414e305bb043dc174c3f",
+      "hash": "4b5f3c2574e4f0a7a8ce7774ed67cf28c9379605b784ab96d0d9bd9848d16bc7",
       "generatedFiles": [
         "sdk/account/account.pb.go",
         "sdk/account/account.pb.ts",

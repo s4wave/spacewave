@@ -303,6 +303,46 @@ export const RemoveKeybindingOverrideOp: MessageType<RemoveKeybindingOverrideOp>
   })
 
 /**
+ * ReplaceKeybindingOverrideSetOp applies a complete layer replacement with per-surface conflict detection.
+ *
+ * @generated from message account.settings.ReplaceKeybindingOverrideSetOp
+ */
+export interface ReplaceKeybindingOverrideSetOp {
+  /**
+   * ExpectedOverrideSet is the snapshot used to derive the replacement.
+   *
+   * @generated from field: s4wave.command.KeybindingOverrideSet expected_override_set = 1;
+   */
+  expectedOverrideSet?: KeybindingOverrideSet
+  /**
+   * OverrideSet is the complete replacement value.
+   *
+   * @generated from field: s4wave.command.KeybindingOverrideSet override_set = 2;
+   */
+  overrideSet?: KeybindingOverrideSet
+}
+
+export const ReplaceKeybindingOverrideSetOp: MessageType<ReplaceKeybindingOverrideSetOp> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'account.settings.ReplaceKeybindingOverrideSetOp',
+    fields: [
+      {
+        no: 1,
+        name: 'expected_override_set',
+        kind: 'message',
+        T: () => KeybindingOverrideSet,
+      },
+      {
+        no: 2,
+        name: 'override_set',
+        kind: 'message',
+        T: () => KeybindingOverrideSet,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * AccountSettingsOp is an operation on the account settings SharedObject.
  * Stored as SOOperationInner.OpData.
  *
@@ -411,9 +451,9 @@ export interface AccountSettingsOp {
         /**
          * ReplaceKeybindingOverrideSet atomically replaces the complete persisted layer.
          *
-         * @generated from field: s4wave.command.KeybindingOverrideSet replace_keybinding_override_set = 11;
+         * @generated from field: account.settings.ReplaceKeybindingOverrideSetOp replace_keybinding_override_set = 11;
          */
-        value: KeybindingOverrideSet
+        value: ReplaceKeybindingOverrideSetOp
         case: 'replaceKeybindingOverrideSet'
       }
 }
@@ -496,7 +536,7 @@ export const AccountSettingsOp: MessageType<AccountSettingsOp> =
         no: 11,
         name: 'replace_keybinding_override_set',
         kind: 'message',
-        T: () => KeybindingOverrideSet,
+        T: () => ReplaceKeybindingOverrideSetOp,
         oneof: 'op',
       },
     ] satisfies readonly PartialFieldInfo[],
