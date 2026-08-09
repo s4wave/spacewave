@@ -17,10 +17,10 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 
 import {
   SHELL_TAB_PATH_COMMITTED_EVENT,
-  ShellTabStateProvider,
-  ShellTabsProvider,
   useShellTabs,
 } from './ShellTabContext.js'
+import { ShellTabsProvider } from './ShellTabsProvider.js'
+import { ShellTabStateProvider } from './ShellTabStateProvider.js'
 import {
   BROWSER_SHELL_TABS_STORAGE_KEY,
   BrowserShellTabsStore,

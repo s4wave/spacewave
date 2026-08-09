@@ -18,6 +18,7 @@ import {
   TooltipTrigger,
 } from '@s4wave/web/ui/tooltip.js'
 import { BillingStatus } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+
 import { deleteBillingAccountDisabledReason } from './billing-utils.js'
 
 export interface DeleteBillingAccountSectionProps {

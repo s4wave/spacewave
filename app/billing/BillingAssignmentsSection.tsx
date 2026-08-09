@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
 import { LuCheck, LuLink, LuX } from 'react-icons/lu'
+import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
-import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type {
   ManagedBillingAccount,
   OrganizationInfo,
@@ -21,6 +21,7 @@ import {
 } from '@s4wave/web/ui/DropdownMenu.js'
 import { DropdownTriggerButton } from '@s4wave/web/ui/DropdownTriggerButton.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+
 import { ORG_ROLE_OWNER } from '../org/org-constants.js'
 import {
   DetachAssignmentDialog,

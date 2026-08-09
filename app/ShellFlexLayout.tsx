@@ -36,12 +36,9 @@ import {
   type TabContextValue,
 } from '@s4wave/web/object/TabContext.js'
 
-import {
-  ShellTabStateProvider,
-  ShellTabsProvider,
-  useShellTabs,
-  type OpenShellTabOptions,
-} from './ShellTabContext.js'
+import { useShellTabs, type OpenShellTabOptions } from './ShellTabContext.js'
+import { ShellTabsProvider } from './ShellTabsProvider.js'
+import { ShellTabStateProvider } from './ShellTabStateProvider.js'
 import type { ShellDocumentEntry } from './ShellDocumentEntry.js'
 import {
   addAndSelectShellModelTab,

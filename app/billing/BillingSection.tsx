@@ -6,6 +6,7 @@ import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 import { useStateNamespace, useStateAtom } from '@s4wave/web/state/persist.js'
 import { BillingStatus } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+
 import { useBillingStateContextSafe } from './BillingStateProvider.js'
 import { isStatusActive } from './billing-utils.js'
 import { BillingAccountCard } from './BillingAccountCard.js'

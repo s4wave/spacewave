@@ -18,13 +18,13 @@ import { BldrContext, type IBldrContext } from '@aptre/bldr-react'
 import type { OpenStreamFunc } from 'starpc'
 
 import '@s4wave/web/style/app.css'
-
-import { App } from './App.js'
 import {
   createE2EClient,
   getTestServerPort,
   type E2ETestClient,
 } from '@s4wave/web/test/e2e-client.js'
+
+import { App } from './App.js'
 
 describe('User Story: Create Drive and View File', () => {
   let e2eClient: E2ETestClient | undefined

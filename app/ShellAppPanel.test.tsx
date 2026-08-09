@@ -11,7 +11,8 @@ import {
 import { getAppPath, setAppPath } from '@s4wave/web/router/app-path.js'
 
 import { ShellAppPanel } from './ShellAppPanel.js'
-import { ShellTabsProvider, useShellTabs } from './ShellTabContext.js'
+import { useShellTabs } from './ShellTabContext.js'
+import { ShellTabsProvider } from './ShellTabsProvider.js'
 import {
   installShellTabTestBrowser,
   readShellTabsSnapshot,

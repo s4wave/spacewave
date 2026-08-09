@@ -43,7 +43,7 @@ export function hasStoredHandoffRequest(): boolean {
   return getStoredHandoffRequest() != null
 }
 
-async function encryptForHandoffViaSession(
+export async function encryptForHandoffViaSession(
   root: Root,
   sessionIdx: number,
   devicePublicKey: Uint8Array | undefined,

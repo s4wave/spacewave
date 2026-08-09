@@ -1,7 +1,9 @@
 import { useCallback, useState } from 'react'
 import { LuExternalLink } from 'react-icons/lu'
+
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
+
 import { useBillingStateContext } from './BillingStateProvider.js'
 
 // StripePortalLink opens the Stripe billing portal in a new tab.

@@ -12,6 +12,7 @@ import {
 import { getAppPath } from '@s4wave/web/router/app-path.js'
 import { APP_DRAG_MIME } from '@s4wave/web/dnd/app-drag.js'
 import type * as WebState from '@s4wave/web/state/index.js'
+
 import {
   getBrowserShellTabsStore,
   resetBrowserShellTabsStoreForTests,

@@ -16,7 +16,8 @@ import {
 } from '@s4wave/web/dnd/app-drag.js'
 
 import { ShellGridLayout } from './ShellGridLayout.js'
-import { ShellTabsProvider, useShellTabs } from './ShellTabContext.js'
+import { useShellTabs } from './ShellTabContext.js'
+import { ShellTabsProvider } from './ShellTabsProvider.js'
 import {
   installShellTabTestBrowser,
   readShellTabsSnapshot,
@@ -27,6 +28,7 @@ import {
   buildUnixFSEntryAppDragEnvelope,
   buildUnixFSSelectionAppDragEnvelope,
 } from './unixfs/unixfs-app-drag.js'
+
 const continuationEntry: ShellDocumentEntry = {
   kind: 'continuation',
   path: '/',

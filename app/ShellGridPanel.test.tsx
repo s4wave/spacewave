@@ -9,12 +9,13 @@ import {
 } from '@testing-library/react'
 
 import { ShellGridPanel } from './ShellGridPanel.js'
-import { ShellTabsProvider } from './ShellTabContext.js'
+import { ShellTabsProvider } from './ShellTabsProvider.js'
 import {
   installShellTabTestBrowser,
   seedShellTabs,
 } from './ShellTabTestHarness.js'
 import type { ShellDocumentEntry } from './ShellDocumentEntry.js'
+
 const continuationEntry: ShellDocumentEntry = {
   kind: 'continuation',
   path: '/',

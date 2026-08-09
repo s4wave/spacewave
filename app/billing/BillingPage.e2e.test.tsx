@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { page } from 'vitest/browser'
 import { cleanup, render } from 'vitest-browser-react'
 
+import { BillingPage } from './BillingPage.js'
+
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockSession = vi.hoisted(() => ({
   spacewave: {
@@ -86,8 +88,6 @@ vi.mock('./PlanControls.js', () => ({
 vi.mock('./StripePortalLink.js', () => ({
   StripePortalLink: () => <div>portal-link</div>,
 }))
-
-import { BillingPage } from './BillingPage.js'
 
 // BillingPageSurface fills the viewport and applies the bg-background-primary
 // token so the screenshot captures the billing detail page over its real

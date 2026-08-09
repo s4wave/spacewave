@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { LuRefreshCw, LuX } from 'react-icons/lu'
+
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useNavigate, usePath } from '@s4wave/web/router/router.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
-import { LuRefreshCw, LuX } from 'react-icons/lu'
 import { BillingStatus } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+
 import { useBillingAccountCheckout } from '../provider/spacewave/useBillingAccountCheckout.js'
 import { useBillingStateContext } from './BillingStateProvider.js'
 import { isStatusActive } from './billing-utils.js'

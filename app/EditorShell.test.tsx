@@ -228,13 +228,19 @@ vi.mock('./ShellMenuBar.js', () => ({
 }))
 
 vi.mock('./ShellTabContext.js', () => ({
+  useShellTabs: () => h.shellTabs,
+}))
+
+vi.mock('./ShellTabsProvider.js', () => ({
   ShellTabsProvider: ({ children }: { children?: ReactNode }) => (
     <>{children}</>
   ),
+}))
+
+vi.mock('./ShellTabStateProvider.js', () => ({
   ShellTabStateProvider: ({ children }: { children?: ReactNode }) => (
     <>{children}</>
   ),
-  useShellTabs: () => h.shellTabs,
 }))
 
 function setActiveTabPath(path: string) {

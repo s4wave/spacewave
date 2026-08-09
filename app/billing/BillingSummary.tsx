@@ -1,8 +1,10 @@
 import { useCallback } from 'react'
 import { LuCreditCard } from 'react-icons/lu'
+
 import { cn } from '@s4wave/web/style/utils.js'
 import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 import { BillingStatus } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
+
 import { useBillingStateContext } from './BillingStateProvider.js'
 import {
   statusLabel,

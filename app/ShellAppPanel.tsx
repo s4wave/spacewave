@@ -19,11 +19,8 @@ import { ObjectLayoutTab } from '@s4wave/sdk/layout/world/world.pb.js'
 import type { AddTabRequest } from '@s4wave/sdk/layout/layout.pb.js'
 
 import { AppRoutes } from './routes/AppRoutes.js'
-import {
-  ShellTabStateProvider,
-  useShellTabs,
-  useTabId,
-} from './ShellTabContext.js'
+import { useShellTabs, useTabId } from './ShellTabContext.js'
+import { ShellTabStateProvider } from './ShellTabStateProvider.js'
 import { buildPathTab } from './shell-layout-tab-utils.js'
 
 // ShellAppPanelProps are the props for ShellAppPanel.
