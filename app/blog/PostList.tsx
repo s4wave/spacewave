@@ -1,40 +1,37 @@
-import { useCallback } from 'react'
-import { useNavigate } from '@s4wave/web/router/router.js'
-import { TagChip } from './TagChip.js'
+import { useCallback, type MouseEvent } from 'react'
 import { LuArrowRight } from 'react-icons/lu'
+
+import { useNavigate } from '@s4wave/web/router/router.js'
+
+import { shouldNavigateInApp } from './link-click.js'
+import { TagChip } from './TagChip.js'
 import type { BlogPost } from './types.js'
 
-// PostListItemProps defines the props for PostListItem.
 interface PostListItemProps {
   post: BlogPost
 }
 
-// PostListItem renders a compact post row with title, date, and tags.
 function PostListItem({ post }: PostListItemProps) {
   const navigate = useNavigate()
 
-  const handlePostSelect = useCallback(() => {
-    navigate({ path: post.url })
-  }, [navigate, post.url])
-
-  const handlePostRowKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLElement>) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      e.preventDefault()
-      handlePostSelect()
+  const handlePostSelect = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      if (!shouldNavigateInApp(event)) return
+      event.preventDefault()
+      navigate({ path: post.url })
     },
-    [handlePostSelect],
+    [navigate, post.url],
   )
 
   return (
-    <article
-      role="link"
-      tabIndex={0}
-      onClick={handlePostSelect}
-      onKeyDown={handlePostRowKeyDown}
-      className="border-foreground/6 hover:bg-background-card/30 group flex cursor-pointer items-start gap-5 border-b p-5 transition duration-200 last:border-b-0 @lg:items-center"
-    >
-      <div className="min-w-0 flex-1">
+    <article className="border-foreground/6 hover:bg-background-card/30 group relative flex items-start gap-5 border-b p-5 transition duration-200 last:border-b-0 @lg:items-center">
+      <a
+        href={post.url}
+        aria-label={post.title}
+        onClick={handlePostSelect}
+        className="focus-visible:ring-brand/50 absolute inset-0 z-0 cursor-pointer focus-visible:ring-2 focus-visible:outline-none"
+      />
+      <div className="pointer-events-none relative z-10 min-w-0 flex-1">
         <h3 className="text-foreground group-hover:text-brand mb-1.5 text-sm font-semibold transition-colors duration-200 @lg:text-base">
           {post.title}
         </h3>
@@ -42,12 +39,12 @@ function PostListItem({ post }: PostListItemProps) {
           {post.summary}
         </p>
       </div>
-      <div className="hidden shrink-0 items-center gap-1.5 @md:flex">
+      <div className="pointer-events-none relative z-10 hidden shrink-0 items-center gap-1.5 @md:flex">
         {post.tags.map((tag) => (
           <TagChip key={tag} tag={tag} />
         ))}
       </div>
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="pointer-events-none relative z-10 flex shrink-0 items-center gap-3">
         <time className="text-foreground-alt/50 text-xs tabular-nums">
           {post.date}
         </time>
@@ -57,12 +54,10 @@ function PostListItem({ post }: PostListItemProps) {
   )
 }
 
-// PostListProps defines the props for PostList.
 interface PostListProps {
   posts: BlogPost[]
 }
 
-// PostList renders a compact list of blog posts.
 export function PostList({ posts }: PostListProps) {
   return (
     <div className="border-foreground/6 bg-background-card/10 overflow-hidden rounded-xl border backdrop-blur-sm">

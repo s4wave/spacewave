@@ -1,13 +1,14 @@
-import { useEffect, useCallback } from 'react'
-import { useNavigate } from '@s4wave/web/router/router.js'
-import { LuArrowLeft, LuArrowRight } from 'react-icons/lu'
-import { LuGithub } from 'react-icons/lu'
-import { BlogLayout } from './BlogLayout.js'
-import { BlogCta } from './BlogCta.js'
-import { BlogMarkdown } from './BlogMarkdown.js'
-import { TagChip } from './TagChip.js'
-import { safeHref } from './safe-href.js'
+import { useCallback, useEffect } from 'react'
+import { LuArrowLeft, LuArrowRight, LuGithub } from 'react-icons/lu'
+
 import { GITHUB_REPO_URL } from '@s4wave/app/github.js'
+import { useNavigate } from '@s4wave/web/router/router.js'
+
+import { BlogCta } from './BlogCta.js'
+import { BlogLayout } from './BlogLayout.js'
+import { BlogMarkdown } from './BlogMarkdown.js'
+import { safeHref } from './safe-href.js'
+import { TagChip } from './TagChip.js'
 import type { BlogPost as BlogPostType } from './types.js'
 import './blog-prose.css'
 
@@ -22,7 +23,6 @@ export interface BlogPostPageProps {
   nextPost?: BlogPostNavLink
 }
 
-// BlogPostPage renders a single blog post in clean reading mode.
 export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
   const navigate = useNavigate()
 
@@ -34,7 +34,6 @@ export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
     if (nextPost) navigate({ path: nextPost.url })
   }, [navigate, nextPost])
 
-  // Inject JSON-LD structured data into document head.
   useEffect(() => {
     const script = document.createElement('script')
     script.type = 'application/ld+json'
@@ -59,7 +58,6 @@ export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
   return (
     <BlogLayout>
       <article className="relative z-10 mx-auto w-full max-w-3xl px-4 pt-6 pb-20 @lg:px-8 @lg:pt-10">
-        {/* Post header */}
         <header className="mb-8">
           <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
             <time className="text-foreground-alt/50 text-xs tabular-nums">
@@ -102,14 +100,12 @@ export function BlogPostPage({ post, prevPost, nextPost }: BlogPostPageProps) {
           </div>
         </header>
 
-        {/* Post body */}
         <div className="blog-prose">
           <BlogMarkdown>{post.body}</BlogMarkdown>
         </div>
 
         <BlogCta />
 
-        {/* Post navigation */}
         {(prevPost || nextPost) && (
           <nav className="mt-12 grid grid-cols-2 gap-4">
             {prevPost ? (

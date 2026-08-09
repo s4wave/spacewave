@@ -1,10 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-
-import { renderToStaticMarkup } from 'react-dom/server'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import Markdown from 'markdown-to-jsx'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { blogMarkdownOptions } from './BlogMarkdown.js'
 

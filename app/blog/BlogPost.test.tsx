@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { RouterProvider } from '@s4wave/web/router/router.js'
 
 import { authors } from './authors.js'

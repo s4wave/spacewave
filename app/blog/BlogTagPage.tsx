@@ -1,17 +1,17 @@
 import { useCallback } from 'react'
-import { useNavigate } from '@s4wave/web/router/router.js'
 import { LuArrowLeft } from 'react-icons/lu'
+
 import { LegalFooter } from '@s4wave/app/landing/LegalFooter.js'
+import { useNavigate } from '@s4wave/web/router/router.js'
+
 import { PostList } from './PostList.js'
 import type { BlogPost } from './types.js'
 
-// BlogTagPageProps defines the props for BlogTagPage.
 export interface BlogTagPageProps {
   tag: string
   posts: BlogPost[]
 }
 
-// BlogTagPage renders a filtered listing of posts for a specific tag.
 export function BlogTagPage({ tag, posts }: BlogTagPageProps) {
   const navigate = useNavigate()
 
@@ -43,7 +43,7 @@ export function BlogTagPage({ tag, posts }: BlogTagPageProps) {
         </p>
       </header>
 
-      <div className="via-foreground/8 relative z-10 mx-auto h-px w-full max-w-5xl bg-gradient-to-r from-transparent to-transparent" />
+      <div className="bg-foreground/8 relative z-10 mx-auto h-px w-full max-w-5xl" />
 
       <main className="relative z-10 mx-auto w-full max-w-5xl px-4 pt-10 pb-20 @lg:px-8">
         {posts.length > 0 ? (

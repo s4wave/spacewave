@@ -24,7 +24,6 @@ export interface AuthorInfo {
 export type AuthorRegistry = Record<string, AuthorInfo>
 
 // parseAuthorRegistry parses YAML content into an AuthorRegistry.
-// Uses gray-matter to parse YAML by wrapping content in frontmatter delimiters.
 export function parseAuthorRegistry(yamlContent: string): AuthorRegistry {
   const parsed: unknown = parseYaml(yamlContent)
   if (!parsed || typeof parsed !== 'object') return {}

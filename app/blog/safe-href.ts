@@ -7,7 +7,6 @@ export function safeHref(url: string | undefined): string {
   if (!url) return '#'
   const trimmed = url.trim()
   if (!trimmed) return '#'
-  // Relative URLs (no scheme) are safe.
   if (!/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return trimmed
   let parsed: URL
   try {

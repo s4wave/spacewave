@@ -67,7 +67,7 @@ export function getAppBuildInfo(): AppBuildInfo {
   return readBuildInfo()
 }
 
-// useAppBuildInfo reads build info after mount to avoid prerender hydration mismatch.
+// useAppBuildInfo snapshots build information during its first render.
 export function useAppBuildInfo(): AppBuildInfo {
   const [info] = useState(readBuildInfo)
   return info

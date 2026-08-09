@@ -1,47 +1,42 @@
-import { useCallback } from 'react'
-import { useNavigate } from '@s4wave/web/router/router.js'
-import { TagChip } from './TagChip.js'
+import { useCallback, type MouseEvent } from 'react'
 import { LuArrowRight } from 'react-icons/lu'
+
+import { useNavigate } from '@s4wave/web/router/router.js'
+
+import { shouldNavigateInApp } from './link-click.js'
 import { safeHref } from './safe-href.js'
+import { TagChip } from './TagChip.js'
 import type { BlogPost } from './types.js'
 
-// HeroCardProps defines the props for HeroCard.
 interface HeroCardProps {
   post: BlogPost
 }
 
-// HeroCard renders the featured hero card for the latest blog post.
 export function HeroCard({ post }: HeroCardProps) {
   const navigate = useNavigate()
 
-  const handleHeroCardSelect = useCallback(() => {
-    navigate({ path: post.url })
-  }, [navigate, post.url])
-
-  const handleHeroCardKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLElement>) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      e.preventDefault()
-      handleHeroCardSelect()
+  const handlePostSelect = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      if (!shouldNavigateInApp(event)) return
+      event.preventDefault()
+      navigate({ path: post.url })
     },
-    [handleHeroCardSelect],
+    [navigate, post.url],
   )
 
   return (
-    <article
-      role="link"
-      tabIndex={0}
-      onClick={handleHeroCardSelect}
-      onKeyDown={handleHeroCardKeyDown}
-      className="border-foreground/8 bg-background-card/20 group relative cursor-pointer overflow-hidden rounded-2xl border backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-white/12"
-    >
-      {/* Subtle gradient glow on hover */}
-      <div className="from-brand/5 pointer-events-none absolute inset-0 bg-gradient-to-br via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+    <article className="border-foreground/8 bg-background-card/20 group relative overflow-hidden rounded-2xl border backdrop-blur-sm transition duration-300 hover:-translate-y-0.5 hover:border-white/12">
+      <a
+        href={post.url}
+        aria-label={post.title}
+        onClick={handlePostSelect}
+        className="focus-visible:ring-brand/50 absolute inset-0 z-0 cursor-pointer rounded-2xl focus-visible:ring-2 focus-visible:outline-none"
+      />
+      <div className="bg-brand/5 pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
-      <div className="relative flex flex-col gap-6 p-6 @lg:flex-row @lg:items-start @lg:gap-10 @lg:p-10">
-        {/* Content */}
+      <div className="pointer-events-none relative z-10 flex flex-col gap-6 p-6 @lg:flex-row @lg:items-start @lg:gap-10 @lg:p-10">
         <div className="flex-1">
-          <div className="mb-4 flex flex-wrap gap-2">
+          <div className="pointer-events-none mb-4 flex flex-wrap gap-2">
             {post.tags.map((tag) => (
               <TagChip key={tag} tag={tag} />
             ))}
@@ -61,7 +56,6 @@ export function HeroCard({ post }: HeroCardProps) {
           </div>
         </div>
 
-        {/* Author + date sidebar */}
         <div className="@lg:border-foreground/6 flex shrink-0 items-center gap-3 @lg:flex-col @lg:items-end @lg:gap-3 @lg:border-l @lg:pl-10">
           <img
             src={post.author.avatar}
@@ -74,8 +68,7 @@ export function HeroCard({ post }: HeroCardProps) {
               href={safeHref(post.author.url)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-foreground text-sm font-medium hover:underline"
-              onClick={(e) => e.stopPropagation()}
+              className="text-foreground pointer-events-auto text-sm font-medium hover:underline"
             >
               {post.author.name}
             </a>

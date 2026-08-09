@@ -1,17 +1,16 @@
-import { useState, useCallback, useRef, type FormEvent } from 'react'
+import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { isDesktop } from '@aptre/bldr'
-import { useNavigate } from '@s4wave/web/router/router.js'
-import { LuCheck, LuArrowRight, LuGithub } from 'react-icons/lu'
+import { LuArrowRight, LuCheck, LuGithub } from 'react-icons/lu'
 
+import { useNavigate } from '@s4wave/web/router/router.js'
 import {
-  Turnstile,
   TURNSTILE_PROD_SITE_KEY,
+  Turnstile,
   type TurnstileInstance,
 } from '@s4wave/web/ui/turnstile.js'
 
 type FormState = 'idle' | 'submitting' | 'success' | 'error'
 
-// parseErrorMessage maps API error responses to user-facing messages.
 function parseErrorMessage(status: number, code?: string): string {
   if (status === 403 && code === 'turnstile_failed') {
     return 'Verification failed. Please try again.'
@@ -25,7 +24,6 @@ function parseErrorMessage(status: number, code?: string): string {
   return 'Something went wrong. Please try again.'
 }
 
-// BlogCta renders the bottom-of-post call-to-action section.
 export function BlogCta() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')

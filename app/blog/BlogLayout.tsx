@@ -1,15 +1,14 @@
-import { useCallback } from 'react'
+import { useCallback, type ReactNode } from 'react'
 import { LuArrowLeft } from 'react-icons/lu'
-import { useNavigate } from '@s4wave/web/router/router.js'
-import { LegalFooter } from '@s4wave/app/landing/LegalFooter.js'
 
-// BlogLayoutProps defines the props for BlogLayout.
+import { LegalFooter } from '@s4wave/app/landing/LegalFooter.js'
+import { useNavigate } from '@s4wave/web/router/router.js'
+
 interface BlogLayoutProps {
-  children: React.ReactNode
+  children: ReactNode
   showBack?: boolean
 }
 
-// BlogLayout renders the premium layout for blog reading pages.
 export function BlogLayout({ children, showBack = true }: BlogLayoutProps) {
   const navigate = useNavigate()
 

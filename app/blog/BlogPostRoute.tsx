@@ -1,10 +1,11 @@
 import { useMemo } from 'react'
+
+import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
 import { useParams } from '@s4wave/web/router/router.js'
+
 import { BlogPostPage } from './BlogPost.js'
 import { loadPosts } from './load-posts.js'
-import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
 
-// BlogPostRoute renders a single blog post, loading it by route params.
 export function BlogPostRoute() {
   const params = useParams()
   const year = params['year']

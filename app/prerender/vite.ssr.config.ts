@@ -55,7 +55,7 @@ export default defineConfig({
     // Bundle everything into a single file for portability.
     noExternal: true,
     // Keep node builtins external. Also externalize heavy blog deps
-    // (shiki, gray-matter) so bun resolves them from node_modules at
+    // (shiki, yaml) so bun resolves them from node_modules at
     // runtime, keeping the SSR bundle small.
     external: [
       'fs',
@@ -69,7 +69,7 @@ export default defineConfig({
       'buffer',
       'process',
       'shiki',
-      'gray-matter',
+      'yaml',
     ],
   },
 
