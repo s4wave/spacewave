@@ -1,6 +1,8 @@
 import { useMemo, useCallback } from 'react'
+
 import { useParams, useNavigate } from '@s4wave/web/router/router.js'
 import { NavigatePath } from '@s4wave/web/router/NavigatePath.js'
+
 import { DocsLayout } from './DocsLayout.js'
 import { DocsSidebar } from './DocsSidebar.js'
 import { DocsSearch } from './DocsSearch.js'

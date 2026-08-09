@@ -1,4 +1,4 @@
-import { PreBlock } from './CodeBlock.js'
+import { PreBlock } from './PreBlock.js'
 import { MarkdownLink } from './MarkdownLink.js'
 
 // DocsTable wraps rendered markdown tables in a horizontal scroll container so a

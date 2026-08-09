@@ -1,6 +1,8 @@
 import { useState, useCallback, useMemo, useRef } from 'react'
 import { LuSearch } from 'react-icons/lu'
+
 import { cn } from '@s4wave/web/style/utils.js'
+
 import type { DocPage } from './types.js'
 
 // DocsSearchProps defines the props for DocsSearch.

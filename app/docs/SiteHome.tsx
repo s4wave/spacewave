@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from 'react'
 import { LuArrowRight, LuBookOpen, LuArrowLeft } from 'react-icons/lu'
+
 import { useNavigate } from '@s4wave/web/router/router.js'
+
 import { siteDefs } from './sections.js'
 import type { DocSection } from './types.js'
 

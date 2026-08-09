@@ -1,6 +1,8 @@
 import { useCallback } from 'react'
 import { LuArrowRight, LuBookOpen } from 'react-icons/lu'
+
 import { useNavigate } from '@s4wave/web/router/router.js'
+
 import type { DocSection } from './types.js'
 
 // DocsIndexProps defines the props for DocsIndex.
@@ -21,7 +23,6 @@ export function DocsIndex({ sections }: DocsIndexProps) {
 
   return (
     <div>
-      {/* Hero header */}
       <header className="mb-10">
         <h1 className="text-foreground mb-3 text-2xl font-semibold tracking-tight @lg:text-3xl">
           Documentation
@@ -30,8 +31,6 @@ export function DocsIndex({ sections }: DocsIndexProps) {
           Learn how to build and manage your spaces with Spacewave.
         </p>
       </header>
-
-      {/* Section cards */}
       <div className="grid gap-5 @lg:grid-cols-2 @5xl:grid-cols-3">
         {sections.map((section) => {
           const firstPage = section.pages[0]

@@ -90,9 +90,9 @@ export function resolvePrimaryEntry(
 // desktop installers and standalone CLI binaries ship for the same host
 // matrix from the same release tag. URLs point at the latest GitHub
 // release. Windows installer entries carry unsigned: true during the
-// Azure Trusted Signing identity-validation period (tracked in company
-// shipyard/alpha.org); flip to .msix and drop the flag once signing
-// clears. CLI artifacts are signed where platform signing is available
+// Windows code-signing identity-validation period; replace the archives
+// with .msix installers and drop the flag once signing is available. CLI
+// artifacts are signed where platform signing is available
 // (macOS zip, Windows zip); Linux CLI artifacts ship as tar.gz archives.
 export const DOWNLOAD_MANIFEST: readonly DownloadEntry[] = [
   {

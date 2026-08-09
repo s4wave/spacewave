@@ -9,6 +9,7 @@ import {
   LuSparkles,
   LuChevronDown,
 } from 'react-icons/lu'
+
 import { cn } from '@s4wave/web/style/utils.js'
 import {
   DropdownMenu,
@@ -18,6 +19,7 @@ import {
 } from '@s4wave/web/ui/DropdownMenu.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { ExternalLink } from '@s4wave/app/landing/ExternalLink.js'
+
 import { docsMarkdownOverrides } from './markdown-overrides.js'
 import { getSectionLabel, siteDefs } from './sections.js'
 import { getRawMarkdownUrl } from './source-url.js'
@@ -89,7 +91,6 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
 
   return (
     <article>
-      {/* Header bar: breadcrumb + utility actions */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <div className="text-foreground-alt/50 flex min-w-0 flex-1 items-center gap-2 text-xs">
           <span className="hidden @2xl:inline">
@@ -159,8 +160,6 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
           </DropdownMenu>
         </div>
       </div>
-
-      {/* Page header */}
       <header className="mb-8">
         <h1 className="text-foreground mb-3 text-2xl leading-snug font-semibold tracking-tight @2xl:text-3xl @2xl:leading-snug">
           {doc.title}
@@ -169,13 +168,9 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
           {doc.summary}
         </p>
       </header>
-
-      {/* Page body */}
       <div className="docs-prose">
         <Markdown options={docsMarkdownOverrides}>{doc.body}</Markdown>
       </div>
-
-      {/* Previous / Next navigation */}
       {(prevDoc || nextDoc) && (
         <nav className="mt-12 grid grid-cols-1 gap-3 @sm:grid-cols-2 @sm:gap-4">
           {prevDoc ? (

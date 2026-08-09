@@ -1,14 +1,13 @@
-
 import {
   isValidElement,
   type HTMLAttributes,
   type ReactElement,
   type ReactNode,
-  useEffect,
   useMemo,
-  useState,
 } from 'react'
 import type { BundledLanguage, Highlighter } from 'shiki'
+
+import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 let highlighterPromise: Promise<Highlighter> | null = null
 let highlighterInstance: Highlighter | null = null
@@ -16,18 +15,14 @@ let highlighterInstance: Highlighter | null = null
 // getHighlighter returns a cached Shiki highlighter singleton.
 async function getHighlighter(): Promise<Highlighter> {
   if (highlighterInstance) return highlighterInstance
-  if (!highlighterPromise) {
-    highlighterPromise = import('shiki').then((mod) =>
-      mod.createHighlighter({
-        themes: ['vesper'],
-        langs: [],
-      }),
-    )
-    void highlighterPromise.then((h) => {
-      highlighterInstance = h
-    })
-  }
-  return highlighterPromise
+  highlighterPromise ??= import('shiki').then((mod) =>
+    mod.createHighlighter({
+      themes: ['vesper'],
+      langs: [],
+    }),
+  )
+  highlighterInstance = await highlighterPromise
+  return highlighterInstance
 }
 
 // CodeBlockProps defines the props for CodeBlock.
@@ -37,48 +32,34 @@ interface CodeBlockProps {
   className?: string
 }
 
-// CodeBlock renders syntax-highlighted code using Shiki.
-// Falls back to plain preformatted text while the highlighter loads.
+// CodeBlock renders highlighted code and keeps plain text visible while its
+// Resource loads or when Shiki does not support the requested language.
 export function CodeBlock({ code, language, className }: CodeBlockProps) {
-  const [html, setHtml] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!code) return
-    let cancelled = false
-    const lang = language || 'text'
-
-    void getHighlighter()
-      .then(async (h) => {
-        if (cancelled) return
-        const loadedLangs = h.getLoadedLanguages()
-        if (!loadedLangs.includes(lang)) {
-          try {
-            await h.loadLanguage(lang as BundledLanguage)
-          } catch {
-            // Language not supported, render as plain text.
-            if (!cancelled) setHtml(null)
-            return
-          }
+  const highlighted = useResource(
+    async (signal) => {
+      if (!code) return null
+      const highlighter = await getHighlighter()
+      if (signal.aborted) return null
+      const lang = language || 'text'
+      if (!highlighter.getLoadedLanguages().includes(lang)) {
+        try {
+          await highlighter.loadLanguage(lang as BundledLanguage)
+        } catch {
+          return null
         }
-        if (cancelled) return
-        const result = h.codeToHtml(code, {
-          lang,
-          theme: 'vesper',
-        })
-        setHtml(result)
-      })
-      .catch(() => {
-        if (!cancelled) setHtml(null)
-      })
+      }
+      if (signal.aborted) return null
+      return highlighter.codeToHtml(code, { lang, theme: 'vesper' })
+    },
+    [code, language],
+  )
 
-    return () => {
-      cancelled = true
-    }
-  }, [code, language])
-
-  if (html) {
+  if (highlighted.value) {
     return (
-      <div className={className} dangerouslySetInnerHTML={{ __html: html }} />
+      <div
+        className={className}
+        dangerouslySetInnerHTML={{ __html: highlighted.value }}
+      />
     )
   }
 

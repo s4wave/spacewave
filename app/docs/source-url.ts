@@ -1,4 +1,5 @@
 import { GITHUB_REPO_URL } from '@s4wave/app/github.js'
+
 import type { DocPage } from './types.js'
 
 // getRawMarkdownUrl returns the canonical raw source URL for a docs page.

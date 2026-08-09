@@ -22,7 +22,7 @@ import {
 
 import { MessageInput } from '@s4wave/app/chat/MessageInput.js'
 import { MessageList } from '@s4wave/app/chat/MessageList.js'
-import { PreBlock } from '@s4wave/app/docs/CodeBlock.js'
+import { PreBlock } from '@s4wave/app/docs/PreBlock.js'
 import type { ChatMessageInfo } from '@s4wave/sdk/chat/rpc/rpc.pb.js'
 import { FileList } from '@s4wave/web/editors/file-browser/FileList.js'
 import type {

@@ -1,6 +1,8 @@
 import { useCallback } from 'react'
 import { LuArrowRight, LuUser, LuServer, LuCode } from 'react-icons/lu'
+
 import { useNavigate } from '@s4wave/web/router/router.js'
+
 import { siteDefs } from './sections.js'
 
 const siteIcons: Record<string, React.ComponentType<{ className?: string }>> = {

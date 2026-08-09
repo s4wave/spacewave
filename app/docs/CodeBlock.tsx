@@ -1,74 +1,63 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { LuCopy, LuCheck } from 'react-icons/lu'
-import { cn } from '@s4wave/web/style/utils.js'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { LuCheck, LuCopy } from 'react-icons/lu'
 import type { Highlighter } from 'shiki'
 
-// highlighterPromise is a lazy singleton for the Shiki highlighter instance.
+import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { cn } from '@s4wave/web/style/utils.js'
+
 let highlighterPromise: Promise<Highlighter> | null = null
 
-// getHighlighter returns the shared Shiki highlighter, creating it on first call.
 function getHighlighter(): Promise<Highlighter> {
-  if (!highlighterPromise) {
-    highlighterPromise = import('shiki').then((shiki) =>
-      shiki.createHighlighter({
-        themes: ['vesper'],
-        langs: [
-          'typescript',
-          'javascript',
-          'go',
-          'bash',
-          'json',
-          'yaml',
-          'html',
-          'css',
-          'markdown',
-          'proto',
-          'toml',
-          'shell',
-          'tsx',
-          'jsx',
-        ],
-      }),
-    )
-  }
+  highlighterPromise ??= import('shiki').then((shiki) =>
+    shiki.createHighlighter({
+      themes: ['vesper'],
+      langs: [
+        'typescript',
+        'javascript',
+        'go',
+        'bash',
+        'json',
+        'yaml',
+        'html',
+        'css',
+        'markdown',
+        'proto',
+        'toml',
+        'shell',
+        'tsx',
+        'jsx',
+      ],
+    }),
+  )
   return highlighterPromise
 }
 
-// CodeBlockProps defines the props for CodeBlock.
 interface CodeBlockProps {
   lang: string
   code: string
 }
 
-// CodeBlock renders syntax-highlighted code using Shiki with vitesse-dark theme.
+// CodeBlock renders syntax-highlighted code and keeps plain text visible while
+// the highlighter Resource is pending or unavailable.
 export function CodeBlock({ lang, code }: CodeBlockProps) {
-  const [html, setHtml] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    void getHighlighter().then((highlighter) => {
-      if (cancelled) return
-      const trimmed = code.replace(/\n$/, '')
+  const highlighted = useResource(
+    async (signal) => {
+      const highlighter = await getHighlighter()
+      if (signal.aborted) return null
       const language = highlighter.getLoadedLanguages().includes(lang)
         ? lang
         : 'text'
-      setHtml(
-        highlighter.codeToHtml(trimmed, {
-          lang: language,
-          theme: 'vesper',
-        }),
-      )
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [code, lang])
-
+      return highlighter.codeToHtml(code.replace(/\n$/, ''), {
+        lang: language,
+        theme: 'vesper',
+      })
+    },
+    [code, lang],
+  )
+  const [copied, setCopied] = useState(false)
   const copyTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  useEffect(() => {
-    return () => clearTimeout(copyTimer.current)
-  }, [])
+
+  useEffect(() => () => clearTimeout(copyTimer.current), [])
 
   const handleCopy = useCallback(() => {
     void navigator.clipboard.writeText(code.replace(/\n$/, ''))
@@ -96,8 +85,8 @@ export function CodeBlock({ lang, code }: CodeBlockProps) {
           <LuCopy className="size-3.5" />
         )}
       </button>
-      {html ? (
-        <div dangerouslySetInnerHTML={{ __html: html }} />
+      {highlighted.value ? (
+        <div dangerouslySetInnerHTML={{ __html: highlighted.value }} />
       ) : (
         <pre>
           <code>{code}</code>
@@ -105,31 +94,4 @@ export function CodeBlock({ lang, code }: CodeBlockProps) {
       )}
     </div>
   )
-}
-
-// PreBlock is the markdown-to-jsx override for <pre> elements.
-// It detects fenced code blocks and routes them through CodeBlock.
-export function PreBlock({
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLPreElement> & { children?: React.ReactNode }) {
-  if (
-    children &&
-    typeof children === 'object' &&
-    'props' in (children as React.ReactElement)
-  ) {
-    const child = children as React.ReactElement<{
-      className?: string
-      children?: React.ReactNode
-    }>
-    const className = child.props?.className || ''
-    const langMatch = className.match(/(?:^|\s)(?:language-|lang-)(\S+)/)
-    if (langMatch) {
-      const lang = langMatch[1].replace(/^language-|^lang-/, '')
-      const code =
-        typeof child.props.children === 'string' ? child.props.children : ''
-      return <CodeBlock lang={lang} code={code} />
-    }
-  }
-  return <pre {...props}>{children}</pre>
 }
