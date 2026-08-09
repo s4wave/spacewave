@@ -243,7 +243,7 @@
     "oxc-parser": "^0.143.0",
     "oxfmt": "0.62.0",
     "oxlint": "^1.77.0",
-    "oxlint-plugin-react-doctor": "0.9.7",
+    "oxlint-plugin-react-doctor": "0.9.10",
     "oxlint-tsgolint": "^7.0.0",
     "playwright": "^1.62.1",
     "react-doctor": "^0.9.5",
