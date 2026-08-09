@@ -9,6 +9,7 @@ import (
 
 	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 )
 
 // distEntrypointTemplate contains the generated distribution main package.
@@ -26,7 +27,7 @@ __IMPORTS__	dist_entrypoint "github.com/s4wave/spacewave/bldr/dist/entrypoint"
 var DistMeta = __META__
 
 // LogLevel is the logging level to use.
-var LogLevel = logrus.DebugLevel
+var LogLevel = logrus.__LOG_LEVEL__
 
 // AssetsFS contains embedded static assets.
 //
@@ -44,9 +45,15 @@ func FormatDistEntrypoint(
 	meta *bldr_dist.DistMeta,
 	embedAssetsFS []string,
 	cliImports map[string]bldr_cli_compiler.CliImport,
+	buildType bldr_manifest.BuildType,
 	nativeBuild bool,
 	nativeRunnerPackage string,
 ) string {
+	logLevel := "DebugLevel"
+	if buildType.IsRelease() {
+		logLevel = "WarnLevel"
+	}
+
 	var goEmbedLine string
 	if len(embedAssetsFS) != 0 {
 		goEmbedLine = "go:embed " + strings.Join(embedAssetsFS, " ")
@@ -110,6 +117,7 @@ func FormatDistEntrypoint(
 	return strings.NewReplacer(
 		"__IMPORTS__", importLines.String(),
 		"__META__", strconv.Quote(meta.MarshalB58()),
+		"__LOG_LEVEL__", logLevel,
 		"__EMBED__", goEmbedLine,
 		"__COMMANDS__", cliCommandsDecl,
 		"__MAIN__", mainCall,

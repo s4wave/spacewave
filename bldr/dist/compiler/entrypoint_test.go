@@ -23,6 +23,7 @@ func TestFormatDistEntrypointNativeCLI(t *testing.T) {
 		map[string]bldr_cli_compiler.CliImport{
 			"github.com/s4wave/spacewave/cmd/spacewave/cli": {Alias: "spacewave_cli", TakesYieldBroker: true},
 		},
+		bldr_manifest.BuildType_DEV,
 		true,
 		"",
 	)
@@ -39,11 +40,21 @@ func TestFormatDistEntrypointNativeCLI(t *testing.T) {
 	if !strings.Contains(src, `dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, cliCommands)`) {
 		t.Fatalf("expected native main call to pass cliCommands, got:\n%s", src)
 	}
+	if !strings.Contains(src, `var LogLevel = logrus.DebugLevel`) {
+		t.Fatalf("expected development entrypoint to retain debug logging, got:\n%s", src)
+	}
 }
 
 func TestFormatDistEntrypointWeb(t *testing.T) {
 	meta := bldr_dist.NewDistMeta("spacewave", "web/js/wasm", nil, nil, "dist")
-	src := FormatDistEntrypoint(meta, []string{"assets.url"}, nil, false, "example.com/native")
+	src := FormatDistEntrypoint(
+		meta,
+		[]string{"assets.url"},
+		nil,
+		bldr_manifest.BuildType_RELEASE,
+		false,
+		"example.com/native",
+	)
 
 	if strings.Contains(src, "cli_entrypoint") {
 		t.Fatalf("did not expect CLI imports in web entrypoint, got:\n%s", src)
@@ -57,11 +68,21 @@ func TestFormatDistEntrypointWeb(t *testing.T) {
 	if !strings.Contains(src, `dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS)`) {
 		t.Fatalf("expected web main call without cliCommands, got:\n%s", src)
 	}
+	if !strings.Contains(src, `var LogLevel = logrus.WarnLevel`) {
+		t.Fatalf("expected release web entrypoint to suppress routine logs, got:\n%s", src)
+	}
 }
 
 func TestFormatDistEntrypointNativeRunner(t *testing.T) {
 	meta := bldr_dist.NewDistMeta("spacewave", "desktop/linux/amd64", nil, nil, "dist")
-	src := FormatDistEntrypoint(meta, []string{"assets.kvfile"}, nil, true, "example.com/app/tray")
+	src := FormatDistEntrypoint(
+		meta,
+		[]string{"assets.kvfile"},
+		nil,
+		bldr_manifest.BuildType_DEV,
+		true,
+		"example.com/app/tray",
+	)
 	if !strings.Contains(src, `native_runner "example.com/app/tray"`) ||
 		!strings.Contains(src, "dist_entrypoint.MainWithRunner(DistMeta, LogLevel, AssetsFS, cliCommands, native_runner.Run)") {
 		t.Fatalf("native runner must retain distribution setup and assets:\n%s", src)

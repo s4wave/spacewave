@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
 	bldr_plugin_vardef_ast "github.com/s4wave/spacewave/bldr/plugin/vardef/ast"
@@ -233,6 +234,11 @@ func CodegenPluginWrapperFromAnalysis(
 		},
 	})
 
+	logLevel := "DebugLevel"
+	if bldr_manifest.ToBuildType(pluginMeta.GetBuildType()).IsRelease() {
+		logLevel = "WarnLevel"
+	}
+
 	// LogLevel is the default logging level.
 	allDecls = append(allDecls, &gast.GenDecl{
 		Doc: &gast.CommentGroup{
@@ -247,7 +253,7 @@ func CodegenPluginWrapperFromAnalysis(
 				Values: []gast.Expr{
 					&gast.SelectorExpr{
 						X:   gast.NewIdent("logrus"),
-						Sel: gast.NewIdent("DebugLevel"),
+						Sel: gast.NewIdent(logLevel),
 					},
 				},
 			},

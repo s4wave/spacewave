@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 )
 
 // TestNativeAssetPackageCache measures the real Go package archive generated
@@ -41,7 +42,7 @@ func TestNativeAssetPackageCache(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(dir, "assets.kvfile"), asset, 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte(FormatDistEntrypoint(meta, files, nil, true, "")), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte(FormatDistEntrypoint(meta, files, nil, bldr_manifest.BuildType_DEV, true, "")), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		cmd := exec.CommandContext(t.Context(), "go", "list", "-mod=mod", "-export", "-f", "{{.Export}}", ".")

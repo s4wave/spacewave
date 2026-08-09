@@ -209,4 +209,24 @@ func TestCodegen(t *testing.T) {
 			t.Fatal(dmp.DiffPrettyText(diffs))
 		}
 	}
+
+	releaseMeta := bldr_plugin.NewPluginMeta("test-project", "test-plugin", "js", "release")
+	genFile, err := CodegenPluginWrapperFromAnalysis(
+		le,
+		an,
+		releaseMeta,
+		[]string{"config-set.bin"},
+		goVarDefs,
+		"",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	formatDat, err := FormatFile(genFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if output := string(formatDat); !strings.Contains(output, "var LogLevel = logrus.WarnLevel") {
+		t.Fatalf("expected release plugin to suppress routine logs, got:\n%s", output)
+	}
 }

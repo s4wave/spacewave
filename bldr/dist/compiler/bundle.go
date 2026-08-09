@@ -362,7 +362,7 @@ func BuildDistBundle(
 	// Generate the entrypoint after its embedded file set is final.
 	writeDistEntrypoint := func(embedAssets bool) error {
 		le.Debug("writing dist entrypoint")
-		entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS, cliImports, embedAssets, nativeRunnerPackage)
+		entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS, cliImports, buildType, embedAssets, nativeRunnerPackage)
 		entrypointMainPath := filepath.Join(entrypointBuildDir, "main.go")
 		return os.WriteFile(entrypointMainPath, []byte(entrypointSrc), 0o644)
 	}
