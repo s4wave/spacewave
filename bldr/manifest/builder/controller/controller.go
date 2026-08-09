@@ -281,16 +281,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 					WithField("resolved-refs", len(buildManifestDepRefs)).
 					Debug("resolved manifest dep refs for watching")
 			}
-			existingBuilderResult := c.c.GetStartupBuilderResult()
-			if buildOwner.prevResult != nil {
-				existingBuilderResult = buildOwner.prevResult
-			}
-			buildCtx := bldr_manifest_builder.WithManifestCommitIdentity(
-				attempt.ctx,
-				existingBuilderResult,
-				buildManifestDeps,
-			)
-
 			// construct the builder host which will set the restartFn when necessary
 			builderHost := newBuildManifestHost(c, builderConfig, attempt.restart)
 
@@ -301,7 +291,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 
 			pluginBuildPermit, acquireErr := c.pluginBuildLimiter.Acquire(
-				buildCtx,
+				attempt.ctx,
 				pconf.GetConfigID(),
 			)
 			if acquireErr != nil {
@@ -310,7 +300,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			}
 
 			// Call the builder controller BuildManifest function.
-			result, err = builderCtrl.BuildManifest(buildCtx, args, builderHost)
+			result, err = builderCtrl.BuildManifest(attempt.ctx, args, builderHost)
 			pluginBuildPermit.Release()
 			if ctx.Err() != nil {
 				attempt.release()
