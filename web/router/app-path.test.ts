@@ -6,6 +6,7 @@ import {
   isPathnameAppRoute,
   normalizeAppPath,
   setAppPath,
+  subscribeAppPath,
 } from './app-path.js'
 
 describe('app path helpers', () => {
@@ -162,5 +163,161 @@ describe('app path helpers', () => {
 
     expect(afterWrite).toBe(start + 1)
     expect(getAppNavigationGeneration()).toBe(afterWrite)
+  })
+  it('completes a two-subscriber fanout before callback navigation', () => {
+    const notifications: string[] = []
+    const unsubscribeFirst = subscribeAppPath(() => {
+      notifications.push('first')
+      if (notifications.length === 1) setAppPath('/second')
+    })
+    const unsubscribeSecond = subscribeAppPath(() => {
+      notifications.push('second')
+    })
+
+    setAppPath('/first')
+
+    expect(getAppPath()).toBe('/second')
+    expect(notifications).toEqual(['first', 'second', 'first', 'second'])
+    unsubscribeFirst()
+    unsubscribeSecond()
+  })
+
+  it('coalesces multiple nested paths into one follow-up fanout', () => {
+    const notifications: string[] = []
+    const unsubscribeFirst = subscribeAppPath(() => {
+      notifications.push('first')
+      if (notifications.length !== 1) return
+      setAppPath('/second')
+      setAppPath('/third')
+      setAppPath('/fourth')
+    })
+    const unsubscribeSecond = subscribeAppPath(() => {
+      notifications.push('second')
+    })
+
+    setAppPath('/first')
+
+    expect(getAppPath()).toBe('/fourth')
+    expect(notifications).toEqual(['first', 'second', 'first', 'second'])
+    unsubscribeFirst()
+    unsubscribeSecond()
+  })
+
+  it('applies subscription changes after the current fanout', () => {
+    const notifications: string[] = []
+    let unsubscribeThird = () => {}
+    let changedSubscriptions = false
+    const unsubscribeFirst = subscribeAppPath(() => {
+      notifications.push('first')
+      if (changedSubscriptions) return
+      changedSubscriptions = true
+      unsubscribeSecond()
+      unsubscribeThird = subscribeAppPath(() => notifications.push('third'))
+    })
+    const unsubscribeSecond = subscribeAppPath(() => {
+      notifications.push('second')
+    })
+
+    setAppPath('/first')
+    expect(notifications).toEqual(['first', 'second'])
+
+    setAppPath('/second')
+    expect(notifications).toEqual(['first', 'second', 'first', 'third'])
+    unsubscribeFirst()
+    unsubscribeThird()
+  })
+
+  it('ignores duplicate native events for an observed path', () => {
+    let notifications = 0
+    const unsubscribe = subscribeAppPath(() => notifications++)
+
+    setAppPath('/first')
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+    window.dispatchEvent(new PopStateEvent('popstate'))
+
+    expect(notifications).toBe(1)
+    unsubscribe()
+  })
+
+  it('resets its observed path after the final subscriber leaves', () => {
+    const paths: string[] = []
+    const unsubscribeFirst = subscribeAppPath(() => paths.push(getAppPath()))
+    setAppPath('/first')
+    unsubscribeFirst()
+
+    setAppPath('/second')
+    const unsubscribeSecond = subscribeAppPath(() => paths.push(getAppPath()))
+    setAppPath('/third')
+
+    expect(paths).toEqual(['/first', '/third'])
+    unsubscribeSecond()
+  })
+
+  it('completes fanout and remains usable when a subscriber throws', () => {
+    const failure = new Error('subscriber failed')
+    let shouldThrow = true
+    const notifications: string[] = []
+    const unsubscribeFirst = subscribeAppPath(() => {
+      notifications.push('first')
+      if (shouldThrow) {
+        shouldThrow = false
+        throw failure
+      }
+    })
+    const unsubscribeSecond = subscribeAppPath(() => {
+      notifications.push('second')
+    })
+
+    expect(() => setAppPath('/first')).toThrow(failure)
+    expect(notifications).toEqual(['first', 'second'])
+
+    setAppPath('/second')
+    expect(notifications).toEqual(['first', 'second', 'first', 'second'])
+    unsubscribeFirst()
+    unsubscribeSecond()
+  })
+
+  it('notifies each subscriber once per logical path transition', async () => {
+    window.history.replaceState({}, '', '/login')
+    const paths: string[] = []
+    const unsubscribe = subscribeAppPath(() => paths.push(getAppPath()))
+
+    setAppPath('/g/layout')
+    expect(paths).toEqual(['/g/layout'])
+
+    setAppPath('/files')
+    expect(paths).toEqual(['/g/layout', '/files'])
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(paths).toEqual(['/g/layout', '/files'])
+
+    window.location.hash = '#/docs'
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(paths).toEqual(['/g/layout', '/files', '/docs'])
+
+    window.history.back()
+    expect(paths).toEqual(['/g/layout', '/files', '/docs', '/files'])
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(paths).toEqual(['/g/layout', '/files', '/docs', '/files'])
+
+    window.history.replaceState({}, '', '/index.html?document=test')
+    setAppPath('/display')
+    expect(paths).toEqual([
+      '/g/layout',
+      '/files',
+      '/docs',
+      '/files',
+      '/display',
+    ])
+
+    unsubscribe()
+    window.location.hash = '#/ignored'
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(paths).toEqual([
+      '/g/layout',
+      '/files',
+      '/docs',
+      '/files',
+      '/display',
+    ])
   })
 })

@@ -1,8 +1,7 @@
-/* eslint-disable react-doctor/rerender-state-only-in-handlers */
-import { useState, useEffect, useMemo, type ReactNode } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
-import { getAppPath } from '@s4wave/web/router/app-path.js'
+import { useAppPath } from '@s4wave/web/router/useAppPath.js'
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 import { useStateAtom, useStateNamespace } from '@s4wave/web/state/index.js'
 import { KeyDispatcher } from '@s4wave/web/command/KeyDispatcher.js'
@@ -119,19 +118,7 @@ function EditorShellContent() {
     '',
   )
 
-  // Track grid mode state with proper reactivity to hash changes
-  const [isGridMode, setIsGridMode] = useState(() => {
-    return getAppPath().startsWith('/g/')
-  })
-
-  // Listen for hash changes to update grid mode state
-  useEffect(() => {
-    const handleHashChange = () => {
-      setIsGridMode(getAppPath().startsWith('/g/'))
-    }
-    window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
-  }, [])
+  const isGridMode = useAppPath().startsWith('/g/')
 
   // Keep ShellTabStrip (and the single OptimizedLayout it renders) mounted for
   // both URL modes. Its model handoff preserves FlexLayout's tab nodes and

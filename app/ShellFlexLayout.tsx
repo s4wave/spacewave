@@ -1,29 +1,30 @@
-/* eslint-disable react-doctor/no-giant-component */
 import {
-  type DragEvent as ReactDragEvent,
   useCallback,
   useEffect,
   useEffectEvent,
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from 'react'
 import {
   OptimizedLayout,
   Actions,
   BorderNode,
   ITabRenderValues,
-  ITabSetRenderValues,
   IJsonModel,
   Model,
   TabNode,
   TabSetNode,
 } from '@aptre/flex-layout'
-import { LuExternalLink, LuPlus, LuX } from 'react-icons/lu'
+import { LuX } from 'react-icons/lu'
 
 import { BASE_MODEL } from '@s4wave/web/layout/layout.js'
-import { getAppPath, setAppPath } from '@s4wave/web/router/app-path.js'
+import {
+  getAppPath,
+  setAppPath,
+  subscribeAppPath,
+} from '@s4wave/web/router/app-path.js'
+import { useAppPath } from '@s4wave/web/router/useAppPath.js'
 import {
   ShellTab,
   getTabDisplayName,
@@ -45,12 +46,9 @@ import type { ShellDocumentEntry } from './ShellDocumentEntry.js'
 import {
   addAndSelectShellModelTab,
   addShellModelTab,
-  buildContextualShellTab,
   buildPathTab,
-  cloneShellTab,
   countShellModelTabs,
   findShellTab,
-  getShellTabsetId,
 } from './shell-layout-tab-utils.js'
 import {
   ShellTabContextMenu,
@@ -70,35 +68,13 @@ import {
   applyLocalStateToModel,
   SHELL_GRID_BASE_MODEL,
 } from './shell-grid-utils.js'
-import { buildShellExternalDrag } from './shell-app-drag.js'
-import { openShellTabInNewTab } from './shell-popout.js'
+import { useShellExternalAppDrag } from './useShellExternalAppDrag.js'
+import { useShellMenuMeasurement } from './useShellMenuMeasurement.js'
+import { useShellTabActions } from './useShellTabActions.js'
+import { useShellTabToolbar } from './useShellTabToolbar.js'
 
 function isTabNode(node: { getType(): string } | undefined): node is TabNode {
   return node?.getType() === 'tab'
-}
-
-// MENU_COLLAPSE_WIDTH is the top-left tabset width below which the menu bar
-// collapses to the logo. Mirrors the page-width `narrow` breakpoint (640px),
-// re-based onto the overlay's container instead of the viewport.
-const MENU_COLLAPSE_WIDTH = 640
-
-// findTopLeftStrip returns the top-left tab strip element in the shell layout,
-// which is the container the menu-bar overlay sits over. Nested FlexLayouts
-// inside tab content are excluded. Returns null when no strip is present yet.
-function findTopLeftStrip(container: HTMLElement): HTMLElement | null {
-  const strips = Array.from(
-    container.querySelectorAll<HTMLElement>(
-      '.flexlayout__tabset_tabbar_outer_top',
-    ),
-  ).filter((el) => !el.closest('.flexlayout__tab'))
-  if (strips.length === 0) return null
-  return strips.reduce((best, el) => {
-    const a = el.getBoundingClientRect()
-    const b = best.getBoundingClientRect()
-    if (a.top < b.top - 2) return el
-    if (a.top <= b.top + 2 && a.left < b.left) return el
-    return best
-  })
 }
 
 // noop stubs for TabContextValue in the shell overlay scope.
@@ -272,9 +248,7 @@ export function ShellTabStrip({ children, entry }: ShellTabStripProps) {
   )
 }
 
-function ShellTabStripInner({
-  children,
-}: Pick<ShellTabStripProps, 'children'>) {
+function useShellTabStripController(children: ShellTabStripProps['children']) {
   const {
     tabs,
     activeTabId,
@@ -295,23 +269,10 @@ function ShellTabStripInner({
     setHasEngaged(true)
   }, [setHasEngaged])
 
-  // Ref to access latest tabs without causing re-renders.
-  // Assigned directly (not in useEffect) to avoid one-frame stale reads.
-  const tabsRef = useRef(tabs)
-  // eslint-disable-next-line react-hooks/refs
-  tabsRef.current = tabs
-
   const isGridMode = useCallback(() => {
     return getAppPath().startsWith('/g/')
   }, [])
-  const routePath = useSyncExternalStore(
-    (onChange) => {
-      window.addEventListener('hashchange', onChange)
-      return () => window.removeEventListener('hashchange', onChange)
-    },
-    getAppPath,
-    getAppPath,
-  )
+  const routePath = useAppPath()
 
   // Initialize model from storage or default, and perform URL sync during
   // initialization. This avoids calling setState in the sync effect. A grid
@@ -361,9 +322,7 @@ function ShellTabStripInner({
     const path = getAppPath()
     if (!path.startsWith('/g/')) {
       if (gridPathRef.current !== null) {
-        const next = Model.fromJson(
-          buildDefaultModel(tabsRef.current, activeTabId),
-        )
+        const next = Model.fromJson(buildDefaultModel(tabs, activeTabId))
         // Normal mode configures the layout as one fixed tabset. The default
         // model does not carry those attributes, so a rebuild that skipped
         // them would leave FlexLayout's draggable tabsets on in a mode that
@@ -372,7 +331,7 @@ function ShellTabStripInner({
           Actions.updateModelAttributes({
             tabSetEnableDeleteWhenEmpty: false,
             tabSetEnableDrag: false,
-            tabEnableDrag: tabsRef.current.length >= 2,
+            tabEnableDrag: tabs.length >= 2,
           }),
         )
         gridPathRef.current = null
@@ -389,9 +348,7 @@ function ShellTabStripInner({
       queueMicrotask(() => setAppPath('/'))
       return
     }
-    const next = Model.fromJson(
-      reconcileModelWithTabs(decoded.model, tabsRef.current),
-    )
+    const next = Model.fromJson(reconcileModelWithTabs(decoded.model, tabs))
     applyLocalStateToModel(next, decoded.localState)
     gridPathRef.current = path
     gridStructureRef.current = encodeGridLayoutStructure(next)
@@ -418,9 +375,7 @@ function ShellTabStripInner({
         ? (getActiveTabsetId(model) ?? 'shell-tabset')
         : 'shell-tabset'
       const existingTab = options.focusExisting
-        ? tabsRef.current.find(
-            (tab) => tab.path === path && model.getNodeById(tab.id),
-          )
+        ? tabs.find((tab) => tab.path === path && model.getNodeById(tab.id))
         : undefined
 
       if (existingTab) {
@@ -449,7 +404,7 @@ function ShellTabStripInner({
       })
       return newTab.id
     },
-    [addShellTab, isGridMode, model, selectShellTab],
+    [addShellTab, isGridMode, model, selectShellTab, tabs],
   )
 
   useEffect(
@@ -501,11 +456,11 @@ function ShellTabStripInner({
     if (lastSyncedActiveTabIdRef.current === activeTabId) return
     lastSyncedActiveTabIdRef.current = activeTabId
 
-    const activeTab = findShellTab(tabsRef.current, activeTabId)
+    const activeTab = findShellTab(tabs, activeTabId)
     if (activeTab && activeTab.path !== getAppPath()) {
       setAppPath(activeTab.path)
     }
-  }, [activeTabId, isGridMode])
+  }, [activeTabId, isGridMode, tabs])
 
   const handleHashChange = useEffectEvent(() => {
     if (!initializedRef.current) return
@@ -518,6 +473,13 @@ function ShellTabStripInner({
     }
     const activeTab = tabs.find((t) => t.id === activeTabId)
     if (!activeTab || activeTab.path === currentPath) return
+    const pendingLocalPath = pendingLocalHashIntentRef.current
+    if (
+      pendingLocalPath?.tabId === activeTabId &&
+      pendingLocalPath.path === currentPath
+    ) {
+      return
+    }
 
     const tabNode = model.getNodeById(activeTabId)
     if (!isTabNode(tabNode)) return
@@ -541,7 +503,7 @@ function ShellTabStripInner({
         return
       }
       pendingLocalHashIntentRef.current = null
-      const committedTab = tabsRef.current.find((tab) => tab.id === activeTabId)
+      const committedTab = tabs.find((tab) => tab.id === activeTabId)
       if (!committedTab || committedTab.path === getAppPath()) return
       suppressedHashPathRef.current = committedTab.path
       setAppPath(committedTab.path)
@@ -559,35 +521,32 @@ function ShellTabStripInner({
     markShellEngaged()
   })
 
-  useEffect(() => {
-    const onHashChange = () => {
-      handleHashChange()
-    }
-    window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
-  }, [])
+  useEffect(() => subscribeAppPath(handleHashChange), [])
 
   // onRenderTab customizes the tab button label with inline rename support.
   // Uses display name (custom or auto-derived) from tabs state.
   const onRenderTab = useCallback(
     (node: TabNode, renderValues: ITabRenderValues) => {
       const tabId = node.getId()
-      const tab = findShellTab(tabsRef.current, tabId)
+      const tab = findShellTab(tabs, tabId)
       if (tab) {
         renderValues.content = <ShellTabLabel tab={tab} />
       }
     },
-    [],
+    [tabs],
   )
 
   // Grid mode is not passed down: the content survives the mode transition, so
   // it reads the live mode from the shell context itself.
-  const renderTab = useCallback((node: TabNode) => {
-    const tabId = node.getId()
-    const tab = findShellTab(tabsRef.current, tabId)
-    const path = tab?.path ?? '/'
-    return <ShellTabContent tabId={tabId} path={path} />
-  }, [])
+  const renderTab = useCallback(
+    (node: TabNode) => {
+      const tabId = node.getId()
+      const tab = findShellTab(tabs, tabId)
+      const path = tab?.path ?? '/'
+      return <ShellTabContent tabId={tabId} path={path} />
+    },
+    [tabs],
+  )
 
   const handleModelChange = useCallback(
     (newModel: Model) => {
@@ -608,7 +567,7 @@ function ShellTabStripInner({
       // Shell Tab record. External drops add the model node before their
       // serialized store mutation commits.
       if (hasGridLayout(newModel)) {
-        const committedTabIds = new Set(tabsRef.current.map((tab) => tab.id))
+        const committedTabIds = new Set(tabs.map((tab) => tab.id))
         if (
           !getTabIdsFromModel(newModel).every((id) => committedTabIds.has(id))
         ) {
@@ -625,7 +584,7 @@ function ShellTabStripInner({
         if (
           selectedId &&
           selectedId !== activeTabId &&
-          tabsRef.current.some((tab) => tab.id === selectedId)
+          tabs.some((tab) => tab.id === selectedId)
         ) {
           selectShellTab(selectedId)
           markShellEngaged()
@@ -710,123 +669,29 @@ function ShellTabStripInner({
     [],
   )
 
-  const appendAndSelectTab = useCallback(
-    (tab: ShellTab, tabsetId = 'shell-tabset') => {
-      addShellTab(tab, {
-        select: true,
-        onCommitted: () =>
-          addAndSelectShellModelTab(model, tabsetId, tab, 'shell-content'),
-      })
-    },
-    [model, addShellTab],
-  )
+  const {
+    closeOtherTabs: handleCloseOtherTabs,
+    closeTab: handleCloseTab,
+    closeTabById: handleCloseTabById,
+    duplicateTab: handleDuplicateTab,
+    newTab: handleNewTab,
+    newTabAt: handleNewTabAtTab,
+    popoutTab: handlePopoutTab,
+    popoutTabById: handlePopoutTabById,
+  } = useShellTabActions({
+    activeTabId,
+    addShellTab,
+    closeShellTab,
+    model,
+    tabs,
+  })
 
-  const handleNewTabAtTab = useCallback(
-    (tabId: string) => {
-      const sourceTab = findShellTab(tabs, tabId)
-      const tabsetId = getShellTabsetId(model, tabId) ?? 'shell-tabset'
-      appendAndSelectTab(buildContextualShellTab(sourceTab?.path), tabsetId)
-    },
-    [tabs, model, appendAndSelectTab],
-  )
-
-  const handleNewTab = useCallback(() => {
-    handleNewTabAtTab(activeTabId)
-  }, [activeTabId, handleNewTabAtTab])
-
-  const handlePopoutTab = useCallback(() => {
-    const activeTab = findShellTab(tabs, activeTabId)
-    if (!activeTab) return
-    openShellTabInNewTab(activeTab.path, activeTab.id)
-  }, [tabs, activeTabId])
-
-  // Explicit Shell close removes the shared record; local model pruning follows.
-  const handleCloseTab = useCallback(() => {
-    if (tabs.length <= 1) return
-    closeShellTab(activeTabId)
-  }, [tabs.length, activeTabId, closeShellTab])
-
-  const handleCloseTabById = useCallback(
-    (tabId: string) => {
-      if (tabs.length <= 1) return
-      closeShellTab(tabId)
-    },
-    [tabs.length, closeShellTab],
-  )
-
-  const handleDuplicateTab = useCallback(
-    (tabId: string) => {
-      const tab = findShellTab(tabs, tabId)
-      if (!tab) return
-
-      const tabsetId = getShellTabsetId(model, tabId) ?? 'shell-tabset'
-      appendAndSelectTab(cloneShellTab(tab), tabsetId)
-    },
-    [tabs, model, appendAndSelectTab],
-  )
-
-  const handleCloseOtherTabs = useCallback(
-    (keepTabId: string) => {
-      tabs.forEach((tab) => {
-        if (tab.id !== keepTabId) closeShellTab(tab.id)
-      })
-    },
-    [tabs, closeShellTab],
-  )
-
-  const handlePopoutTabById = useCallback(
-    (tabId: string) => {
-      const tab = findShellTab(tabs, tabId)
-      if (!tab) return
-      openShellTabInNewTab(tab.path, tab.id)
-    },
-    [tabs],
-  )
-
-  const handleExternalAppDrag = useCallback(
-    (event: ReactDragEvent<HTMLElement>) =>
-      buildShellExternalDrag(event, (draggedTabs, droppedNode) => {
-        const [firstTab, ...remainingTabs] = draggedTabs
-        if (!firstTab) return
-
-        const droppedTabId = droppedNode?.getId()
-        const droppedTab = droppedTabId ? model.getNodeById(droppedTabId) : null
-        const tabsetId =
-          droppedTabId && droppedTab
-            ? (getShellTabsetId(model, droppedTabId) ?? 'shell-tabset')
-            : 'shell-tabset'
-        const activeTab =
-          droppedTabId && droppedTab
-            ? { ...firstTab, id: droppedTabId }
-            : firstTab
-
-        const commitFirst = () => {
-          if (!droppedTab) {
-            addAndSelectShellModelTab(
-              model,
-              tabsetId,
-              activeTab,
-              'shell-content',
-            )
-          }
-          // A drop that created a split leaves the route on the grid URL.
-          // Writing the dropped tab's own path there would collapse the split
-          // the drop just made.
-          if (!isGridMode()) setAppPath(activeTab.path)
-          model.doAction(Actions.selectTab(activeTab.id))
-          markShellEngaged()
-        }
-        addShellTab(activeTab, { select: true, onCommitted: commitFirst })
-
-        for (const tab of remainingTabs) {
-          addShellTab(tab, {
-            onCommitted: () =>
-              addShellModelTab(model, tabsetId, tab, 'shell-content'),
-          })
-        }
-      }),
-    [addShellTab, isGridMode, markShellEngaged, model],
-  )
+  const handleExternalAppDrag = useShellExternalAppDrag({
+    addShellTab,
+    isGridMode,
+    markShellEngaged,
+    model,
+  })
 
   const [contextMenu, setContextMenu] =
     useState<ShellTabContextMenuState | null>(null)
@@ -844,73 +709,14 @@ function ShellTabStripInner({
     [],
   )
 
-  const onRenderTabSet = useCallback(
-    (node: TabSetNode | BorderNode, renderValues: ITabSetRenderValues) => {
-      if (node.getType() !== 'tabset') return
-      renderValues.stickyButtons.push(
-        <button
-          key="close-tab"
-          className="flexlayout__tab_toolbar_button"
-          onClick={handleCloseTab}
-          title="Close tab"
-          disabled={tabs.length <= 1}
-        >
-          <LuX className="size-2.5" />
-        </button>,
-        <button
-          key="add-tab"
-          className="flexlayout__tab_toolbar_button"
-          onClick={handleNewTab}
-          title="New tab"
-        >
-          <LuPlus className="size-2.5" />
-        </button>,
-        <button
-          key="popout-tab"
-          className="flexlayout__tab_toolbar_button"
-          onClick={handlePopoutTab}
-          title="Open in new tab"
-        >
-          <LuExternalLink className="size-2.5" />
-        </button>,
-      )
-    },
-    [handleCloseTab, handleNewTab, handlePopoutTab, tabs.length],
-  )
+  const onRenderTabSet = useShellTabToolbar({
+    canClose: tabs.length > 1,
+    onClose: handleCloseTab,
+    onNew: handleNewTab,
+    onPopout: handlePopoutTab,
+  })
 
-  const menuBarRef = useRef<HTMLDivElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  // Track the menu bar width (for the top-left strip's overlay clearance) and
-  // the top-left tabset width (to collapse the menu when its container, not the
-  // viewport, is too narrow). Re-found per model so splits re-target the
-  // top-left strip; the observer catches splitter-drag and window resizes.
-  useEffect(() => {
-    const menuBar = menuBarRef.current
-    const container = containerRef.current
-    if (!menuBar || !container) return
-
-    const topLeftStrip = findTopLeftStrip(container)
-
-    const update = () => {
-      container.style.setProperty(
-        '--menu-bar-width',
-        `${menuBar.offsetWidth}px`,
-      )
-      const width =
-        topLeftStrip?.getBoundingClientRect().width ??
-        container.getBoundingClientRect().width
-      menuBar.dataset.menuCollapsed = String(width < MENU_COLLAPSE_WIDTH)
-    }
-
-    update()
-
-    const observer = new ResizeObserver(update)
-    observer.observe(menuBar)
-    observer.observe(container)
-    if (topLeftStrip) observer.observe(topLeftStrip)
-    return () => observer.disconnect()
-  }, [model])
+  const { containerRef, menuBarRef } = useShellMenuMeasurement(model)
 
   const overlayTabContext = useMemo<TabContextValue>(
     () => ({
@@ -921,36 +727,66 @@ function ShellTabStripInner({
     [activeTabId],
   )
 
+  return {
+    activeTabId,
+    children,
+    containerRef,
+    contextMenu,
+    handleCloseOtherTabs,
+    handleCloseTabById,
+    handleContextMenu,
+    handleDuplicateTab,
+    handleExternalAppDrag,
+    handleModelChange,
+    handleNewTabAtTab,
+    handlePopoutTabById,
+    icons,
+    menuBarRef,
+    model,
+    onRenderTab,
+    onRenderTabSet,
+    overlayTabContext,
+    renderTab,
+    setContextMenu,
+    startRenaming,
+  }
+}
+
+function ShellTabStripInner({
+  children,
+}: Pick<ShellTabStripProps, 'children'>) {
+  const controller = useShellTabStripController(children)
+
   return (
-    <ShellTabStateProvider tabId={activeTabId}>
-      <TabContextProvider value={overlayTabContext}>
+    <ShellTabStateProvider tabId={controller.activeTabId}>
+      <TabContextProvider value={controller.overlayTabContext}>
         <div
-          ref={containerRef}
+          ref={controller.containerRef}
           className="shell-flexlayout shell-flexlayout--with-menu flex flex-1 flex-col overflow-hidden"
         >
-          <div ref={menuBarRef} className="shell-menu-bar-overlay">
-            {children}
+          <div ref={controller.menuBarRef} className="shell-menu-bar-overlay">
+            {controller.children}
           </div>
           <OptimizedLayout
-            model={model}
-            renderTab={renderTab}
-            onModelChange={handleModelChange}
-            onContextMenu={handleContextMenu}
-            onExternalDrag={handleExternalAppDrag}
-            onRenderTab={onRenderTab}
-            onRenderTabSet={onRenderTabSet}
-            icons={icons}
+            model={controller.model}
+            renderTab={controller.renderTab}
+            onModelChange={controller.handleModelChange}
+            onContextMenu={controller.handleContextMenu}
+            onExternalDrag={controller.handleExternalAppDrag}
+            onRenderTab={controller.onRenderTab}
+            onRenderTabSet={controller.onRenderTabSet}
+            icons={controller.icons}
           />
           <ShellTabContextMenu
-            state={contextMenu}
-            canCloseTabs={countShellModelTabs(model) > 1}
-            onClose={() => setContextMenu(null)}
-            onNewTab={handleNewTabAtTab}
-            onRenameTab={startRenaming}
-            onDuplicateTab={handleDuplicateTab}
-            onPopoutTab={handlePopoutTabById}
-            onCloseOtherTabs={handleCloseOtherTabs}
-            onCloseTab={handleCloseTabById}
+            state={controller.contextMenu}
+            canCloseTabs={countShellModelTabs(controller.model) > 1}
+            onClose={() => controller.setContextMenu(null)}
+            onNewTab={controller.handleNewTabAtTab}
+            onRenameTab={controller.startRenaming}
+            onDuplicateTab={controller.handleDuplicateTab}
+            onPopoutTab={controller.handlePopoutTabById}
+            onCloseOtherTabs={controller.handleCloseOtherTabs}
+            onCloseTab={controller.handleCloseTabById}
           />
         </div>
       </TabContextProvider>

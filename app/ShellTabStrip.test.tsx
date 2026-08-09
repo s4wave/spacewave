@@ -13,7 +13,6 @@ import { getAppPath } from '@s4wave/web/router/app-path.js'
 import { APP_DRAG_MIME } from '@s4wave/web/dnd/app-drag.js'
 import type * as WebState from '@s4wave/web/state/index.js'
 import {
-  BROWSER_SHELL_TABS_STORAGE_KEY,
   getBrowserShellTabsStore,
   resetBrowserShellTabsStoreForTests,
 } from './BrowserShellTabsStore.js'
@@ -45,6 +44,10 @@ const mockOptimizedLayoutProps = vi.hoisted(() =>
   vi.fn<(props: OptimizedLayoutProbeProps) => void>(),
 )
 const mockCreateSpace = vi.hoisted(() => vi.fn())
+const mockTabProjection = vi.hoisted(() => ({
+  expectedPaths: new Map<string, string>(),
+  mismatches: [] as Array<{ actual: string; expected: string; tabId: string }>,
+}))
 const continuationEntry: ShellDocumentEntry = {
   kind: 'continuation',
   path: '/',
@@ -90,6 +93,10 @@ vi.mock('@s4wave/web/state/index.js', async () => {
 
 vi.mock('./ShellTabContent.js', () => {
   function ShellTabContent({ tabId, path }: { tabId: string; path: string }) {
+    const expected = mockTabProjection.expectedPaths.get(tabId)
+    if (expected !== undefined && expected !== path) {
+      mockTabProjection.mismatches.push({ actual: path, expected, tabId })
+    }
     useEffect(() => {
       if (path === '/quickstart/drive') mockCreateSpace()
     }, [path])
@@ -473,6 +480,8 @@ describe('ShellTabStrip', () => {
     restoreTestBrowser = undefined
     vi.unstubAllGlobals()
     mockOptimizedLayoutProps.mockReset()
+    mockTabProjection.expectedPaths.clear()
+    mockTabProjection.mismatches = []
   })
   it('materializes and selects a state-only docs tab in the flex layout model', async () => {
     seedShellTabs([{ id: 'home', name: 'Home', path: '/' }])
@@ -638,7 +647,7 @@ describe('ShellTabStrip', () => {
     window.removeEventListener('hashchange', onHashChange)
     expect(navigations).not.toContain('/files')
   })
-  it('keeps the document hash when a shared active record path changes', async () => {
+  it('renders the current shared tab path without mutating the document hash', async () => {
     seedShellTabs([{ id: 'active', name: 'Active', path: '/a-only' }])
     window.location.hash = '#/a-only'
 
@@ -650,28 +659,12 @@ describe('ShellTabStrip', () => {
 
     await waitFor(() => expect(getAppPath()).toBe('/a-only'))
 
-    act(() => {
-      window.dispatchEvent(
-        new StorageEvent('storage', {
-          key: BROWSER_SHELL_TABS_STORAGE_KEY,
-          newValue: JSON.stringify({
-            schemaVersion: 1,
-            epoch: 0,
-            revision: 1,
-            records: [
-              {
-                id: 'active',
-                name: 'Home',
-                path: '/',
-                creationSequence: 1,
-              },
-            ],
-          }),
-        }),
-      )
-    })
+    mockTabProjection.expectedPaths.set('active', '/')
+    await act(() => getBrowserShellTabsStore().updatePath('active', '/'))
 
     expect(getAppPath()).toBe('/a-only')
+    expect(mockTabProjection.mismatches).toEqual([])
+    expect(screen.getByTestId('tab-content-active').textContent).toBe('/')
   })
 
   it('preserves every shared record while projecting an empty stored model', async () => {

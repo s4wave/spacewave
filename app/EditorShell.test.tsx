@@ -1,7 +1,7 @@
 import { Window } from 'happy-dom'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 
 import { EditorShell } from './EditorShell.js'
 
@@ -30,6 +30,7 @@ const h = vi.hoisted(() => {
   const session = { id: 'session-1' }
   return {
     appPath: '/',
+    appPathSubscribers: new Set<() => void>(),
     currentSessionResource: null as MockResource | null,
     mountedSessionResource: {
       value: session,
@@ -44,6 +45,7 @@ const h = vi.hoisted(() => {
     },
     session,
     sessionProviderResources: [] as MockResource[],
+    shellGridModes: [] as boolean[],
   }
 })
 
@@ -83,6 +85,10 @@ if (typeof document === 'undefined') {
 vi.mock('@s4wave/web/router/app-path.js', () => ({
   getAppPath: () => h.appPath,
   getAppNavigation: () => ({ path: h.appPath, params: {} }),
+  subscribeAppPath: (onChange: () => void) => {
+    h.appPathSubscribers.add(onChange)
+    return () => h.appPathSubscribers.delete(onChange)
+  },
 }))
 vi.mock('@s4wave/web/state/index.js', () => ({
   useStateAtom: <T,>(_: unknown, __: string, initialValue: T) => [
@@ -195,7 +201,16 @@ vi.mock('@s4wave/web/object/TabContext.js', () => ({
 }))
 
 vi.mock('./ShellContext.js', () => ({
-  ShellProvider: ({ children }: { children?: ReactNode }) => <>{children}</>,
+  ShellProvider: ({
+    children,
+    isGridMode,
+  }: {
+    children?: ReactNode
+    isGridMode: boolean
+  }) => {
+    h.shellGridModes.push(isGridMode)
+    return children
+  },
 }))
 
 vi.mock('./ShellFlexLayout.js', () => ({
@@ -232,11 +247,13 @@ function setActiveTabPath(path: string) {
 describe('EditorShell command session scope', () => {
   beforeEach(() => {
     h.appPath = '/'
+    h.appPathSubscribers.clear()
     h.currentSessionResource = null
     h.mountSessionByIdx.mockReset()
     h.mountSessionByIdx.mockResolvedValue({ session: h.session })
     h.sessionProviderResources = []
     h.setOpenMenu.mockReset()
+    h.shellGridModes = []
     h.shellTabs = {
       tabs: [{ id: 'tab-active', name: 'Home', path: '/' }],
       activeTabId: 'tab-active',
@@ -283,5 +300,17 @@ describe('EditorShell command session scope', () => {
     view.rerender(<EditorShell />)
 
     await waitFor(() => expect(document.title).toBe('Pricing - Spacewave'))
+  })
+  it('tracks a programmatic login-to-grid transition immediately', async () => {
+    h.appPath = '/login'
+    render(<EditorShell />)
+    expect(h.shellGridModes.at(-1)).toBe(false)
+
+    act(() => {
+      h.appPath = '/g/split-layout'
+      for (const subscriber of h.appPathSubscribers) subscriber()
+    })
+
+    await waitFor(() => expect(h.shellGridModes.at(-1)).toBe(true))
   })
 })

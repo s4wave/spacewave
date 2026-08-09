@@ -1,4 +1,5 @@
 import { isStaticRoute } from './static-routes.js'
+
 export interface AppPathNavigation {
   path: string
   params: Record<string, string>
@@ -90,6 +91,67 @@ export function getAppPath(): string {
   return getAppNavigation().path
 }
 
+const appPathSubscribers = new Set<() => void>()
+let observedAppPath: string | undefined
+let appPathChangedDuringNotification = false
+let notifyingAppPath = false
+
+function observeAppPathChange(): void {
+  if (appPathSubscribers.size === 0) return
+  const path = getAppPath()
+  if (path === observedAppPath) return
+  observedAppPath = path
+  if (notifyingAppPath) {
+    appPathChangedDuringNotification = true
+    return
+  }
+
+  notifyingAppPath = true
+  let firstError: unknown
+  let subscriberThrew = false
+  try {
+    do {
+      appPathChangedDuringNotification = false
+      // A fanout has fixed membership. Subscription changes take effect on
+      // the next observed state, and synchronous intermediate paths coalesce
+      // into one follow-up invalidation for useSyncExternalStore readers.
+      const subscribers = [...appPathSubscribers]
+      for (const subscriber of subscribers) {
+        try {
+          subscriber()
+        } catch (error) {
+          if (!subscriberThrew) firstError = error
+          subscriberThrew = true
+        }
+      }
+    } while (appPathChangedDuringNotification && appPathSubscribers.size !== 0)
+  } finally {
+    notifyingAppPath = false
+    appPathChangedDuringNotification = false
+  }
+  if (subscriberThrew) throw firstError
+}
+
+// subscribeAppPath observes every route source used by getAppPath. The module
+// completes each subscriber fanout before notifying the next stable route.
+export function subscribeAppPath(onChange: () => void): () => void {
+  const subscriber = () => onChange()
+  appPathSubscribers.add(subscriber)
+  if (appPathSubscribers.size === 1) {
+    observedAppPath = getAppPath()
+    window.addEventListener('hashchange', observeAppPathChange)
+    window.addEventListener('popstate', observeAppPathChange)
+  }
+  return () => {
+    appPathSubscribers.delete(subscriber)
+    if (appPathSubscribers.size !== 0) return
+    window.removeEventListener('hashchange', observeAppPathChange)
+    window.removeEventListener('popstate', observeAppPathChange)
+    observedAppPath = undefined
+    appPathChangedDuringNotification = false
+  }
+}
+
 interface NavigationState {
   generation: number
   tracked: boolean
@@ -171,13 +233,16 @@ export function setAppPath(
       `${window.location.pathname}${window.location.search}#${nextHash}`,
     )
     observeNavigation()
+    observeAppPathChange()
     return
   }
   if (window.location.pathname !== '/') {
     window.history.replaceState({}, '', `/#${nextHash}`)
     observeNavigation()
+    observeAppPathChange()
     return
   }
   window.location.hash = nextHash
   observeNavigation()
+  observeAppPathChange()
 }
