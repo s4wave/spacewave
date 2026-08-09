@@ -1,98 +1,94 @@
-/* eslint-disable react-doctor/rerender-state-only-in-handlers */
-import { useState, useCallback, useRef, useEffect, KeyboardEvent } from 'react'
+import { useCallback, useState, type KeyboardEvent } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { getTabDisplayName, type ShellTab } from '@s4wave/app/shell-tab.js'
+import { cn } from '@s4wave/web/style/utils.js'
 
 import { useShellTabs } from './ShellTabContext.js'
 
-// ShellTabLabelProps are the props for ShellTabLabel.
 interface ShellTabLabelProps {
   tab: ShellTab
 }
 
+interface ShellTabNameEditorProps {
+  displayName: string
+  onCancel: () => void
+  onSave: (name: string) => void
+}
+
+function ShellTabNameEditor({
+  displayName,
+  onCancel,
+  onSave,
+}: ShellTabNameEditorProps) {
+  const [value, setValue] = useState(displayName)
+  const inputRef = useCallback((input: HTMLInputElement | null) => {
+    input?.focus()
+    input?.select()
+  }, [])
+  const save = useCallback(() => onSave(value.trim()), [onSave, value])
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      event.stopPropagation()
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        save()
+      } else if (event.key === 'Escape') {
+        event.preventDefault()
+        onCancel()
+      }
+    },
+    [onCancel, save],
+  )
+
+  return (
+    <input
+      ref={inputRef}
+      className={cn(
+        'bg-background-secondary text-foreground rounded-menu-button',
+        'border-none outline-none',
+        'text-[0.6875rem] leading-5 font-medium tracking-[-0.01em]',
+        'w-full max-w-64 min-w-12 px-1 py-0',
+      )}
+      value={value}
+      onChange={(event) => setValue(event.target.value)}
+      onBlur={save}
+      onKeyDown={handleKeyDown}
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+    />
+  )
+}
+
 // ShellTabLabel renders a tab label that supports inline rename.
-// Double-click the label or use "Rename Tab" from the context menu to enter edit mode.
-// Press Enter or blur to save. Press Escape to cancel.
-// Clearing the input reverts to the auto-derived default name.
 export function ShellTabLabel({ tab }: ShellTabLabelProps) {
   const { updateTabName, renamingTabId, stopRenaming } = useShellTabs()
-  const [editing, setEditing] = useState(false)
-  const [editValue, setEditValue] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
-
+  const [localRename, setLocalRename] = useState(false)
   const displayName = getTabDisplayName(tab)
+  const renaming = localRename || renamingTabId === tab.id
 
-  // Enter edit mode when this tab is targeted for renaming via context menu.
-  // Defer stopRenaming so editing state commits and input mounts before the
-  // renamingTabId is cleared.
-  useEffect(() => {
-    if (renamingTabId === tab.id) {
-      const timer = window.setTimeout(() => {
-        setEditValue(displayName)
-        setEditing(true)
-        stopRenaming()
-      }, 0)
-      return () => window.clearTimeout(timer)
-    }
-  }, [renamingTabId, tab.id, displayName, stopRenaming])
-
-  // Focus input when entering edit mode
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus()
-      inputRef.current.select()
-    }
-  }, [editing])
-
-  const handleDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      setEditValue(displayName)
-      setEditing(true)
+  const finishRename = useCallback(() => {
+    setLocalRename(false)
+    stopRenaming(tab.id)
+  }, [stopRenaming, tab.id])
+  const handleSave = useCallback(
+    (name: string) => {
+      updateTabName(tab.id, name)
+      finishRename()
     },
-    [displayName],
+    [finishRename, tab.id, updateTabName],
   )
+  const handleDoubleClick = useCallback((event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setLocalRename(true)
+  }, [])
 
-  const handleSave = useCallback(() => {
-    const trimmed = editValue.trim()
-    // Empty string clears custom name, reverting to default
-    updateTabName(tab.id, trimmed)
-    setEditing(false)
-  }, [editValue, tab.id, updateTabName])
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      e.stopPropagation()
-      if (e.key === 'Enter') {
-        e.preventDefault()
-        handleSave()
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        setEditing(false)
-      }
-    },
-    [handleSave],
-  )
-
-  if (editing) {
+  if (renaming) {
     return (
-      <input
-        ref={inputRef}
-        className={cn(
-          'bg-background-secondary text-foreground rounded-menu-button',
-          'border-none outline-none',
-          'text-[0.6875rem] leading-5 font-medium tracking-[-0.01em]',
-          'w-full max-w-64 min-w-12 px-1 py-0',
-        )}
-        value={editValue}
-        onChange={(e) => setEditValue(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={handleKeyDown}
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
+      <ShellTabNameEditor
+        displayName={displayName}
+        onCancel={finishRename}
+        onSave={handleSave}
       />
     )
   }

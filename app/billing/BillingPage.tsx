@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import {
   LuCreditCard,
   LuPencil,
@@ -90,12 +90,6 @@ export function BillingPage() {
     : !managedBillingAccount
       ? 'Only the billing account creator can delete it.'
       : null
-
-  useEffect(() => {
-    if (!renaming) {
-      queueMicrotask(() => setRenameValue(displayName))
-    }
-  }, [displayName, renaming])
 
   const handleBack = useCallback(() => {
     navigate({ path: '../' })

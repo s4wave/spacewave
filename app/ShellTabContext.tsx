@@ -154,7 +154,7 @@ export interface ShellTabsContextValue {
   updateTabAutoName: (tabId: string, name: string) => void
   renamingTabId: string | null
   startRenaming: (tabId: string) => void
-  stopRenaming: () => void
+  stopRenaming: (tabId: string) => void
   mutationError: BrowserShellTabsStoreError | null
 }
 
@@ -650,7 +650,11 @@ export function useShellTabsContextValue(
     (tabId: string) => setRenamingTabId(tabId),
     [],
   )
-  const stopRenaming = useCallback(() => setRenamingTabId(null), [])
+  const stopRenaming = useCallback(
+    (tabId: string) =>
+      setRenamingTabId((current) => (current === tabId ? null : current)),
+    [],
+  )
 
   const value = useMemo<ShellTabsContextValue>(
     () => ({

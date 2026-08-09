@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, PropsWithChildren, ReactNode } from 'react'
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -123,10 +124,34 @@ describe('BillingPage', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
     mockRefreshBillingState.mockReset()
+    mockBillingState.response.billingAccount.displayName = 'Billing Account'
   })
 
   afterEach(() => {
     cleanup()
+  })
+
+  it('keeps a rename draft when the billing snapshot changes', () => {
+    const { rerender } = render(<BillingPage />)
+    const queued: VoidFunction[] = []
+    const queueMicrotaskSpy = vi
+      .spyOn(globalThis, 'queueMicrotask')
+      .mockImplementation((callback) => queued.push(callback))
+    try {
+      mockBillingState.response.billingAccount.displayName = 'Updated Account'
+      rerender(<BillingPage />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
+      const input = screen.getByRole('textbox', {
+        name: 'Billing account name',
+      }) as HTMLInputElement
+      fireEvent.change(input, { target: { value: 'My Draft' } })
+      act(() => queued.forEach((callback) => callback()))
+
+      expect(input.value).toBe('My Draft')
+    } finally {
+      queueMicrotaskSpy.mockRestore()
+    }
   })
 
   it('refreshes the billing snapshot when the usage refresh button is clicked', async () => {

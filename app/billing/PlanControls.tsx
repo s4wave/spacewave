@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { LuRefreshCw, LuX } from 'react-icons/lu'
+import { useAbortSignalEffect } from '@aptre/bldr-react'
 
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { useNavigate, usePath } from '@s4wave/web/router/router.js'
@@ -23,25 +24,146 @@ function clearAutoReactivateIntent(
   navigate({ path: cleanPath || '/', replace: true })
 }
 
+interface ReactivationContext {
+  billingAccountId: string
+  path: string
+  session: NonNullable<ReturnType<typeof SessionContext.useContext>['value']>
+}
+
+interface ReactivationState {
+  action: 'idle' | 'reactivating'
+  context?: ReactivationContext
+  error: string | null
+}
+
+function usePlanReactivation(
+  billingAccountId: string | undefined,
+  autoReactivate: boolean,
+  path: string,
+) {
+  const session = SessionContext.useContext().value
+  const navigate = useNavigate()
+  const checkout = useBillingAccountCheckout()
+  const { startCheckout } = checkout
+  const initialIntent = useRef(hasAutoReactivateIntent(path))
+  const initialPath = useRef(path)
+  const consumed = useRef(false)
+  const generation = useRef<
+    { pending: boolean; signal: AbortSignal } | undefined
+  >(undefined)
+  const routePath = path.split('?')[0] ?? ''
+  const [state, setState] = useState<ReactivationState>({
+    action: 'idle',
+    error: null,
+  })
+
+  const reactivate = useCallback(
+    async (signal = generation.current?.signal) => {
+      const current = generation.current
+      if (
+        !signal ||
+        signal.aborted ||
+        !current ||
+        current.signal !== signal ||
+        current.pending ||
+        !session ||
+        !billingAccountId
+      ) {
+        return
+      }
+
+      const context = { billingAccountId, path: routePath, session }
+      current.pending = true
+      signal.throwIfAborted()
+      setState({ action: 'reactivating', context, error: null })
+      try {
+        const response = await session.spacewave.reactivateSubscription(
+          billingAccountId,
+          signal,
+        )
+        signal.throwIfAborted()
+        if (response.needsCheckout) {
+          await startCheckout(billingAccountId)
+        }
+        signal.throwIfAborted()
+        setState({ action: 'idle', context, error: null })
+      } catch (cause) {
+        if (!signal.aborted) {
+          signal.throwIfAborted()
+          setState({
+            action: 'idle',
+            context,
+            error: cause instanceof Error ? cause.message : 'Reactivate failed',
+          })
+        }
+      } finally {
+        current.pending = false
+      }
+    },
+    [billingAccountId, routePath, session, startCheckout],
+  )
+
+  useAbortSignalEffect(
+    (signal) => {
+      const current = { pending: false, signal }
+      generation.current = current
+      if (
+        initialIntent.current &&
+        !consumed.current &&
+        autoReactivate &&
+        session &&
+        billingAccountId
+      ) {
+        consumed.current = true
+        clearAutoReactivateIntent(initialPath.current, navigate)
+        void reactivate(signal)
+      }
+      return () => {
+        if (generation.current === current) generation.current = undefined
+      }
+    },
+    [
+      autoReactivate,
+      billingAccountId,
+      navigate,
+      reactivate,
+      routePath,
+      session,
+    ],
+  )
+
+  const currentState =
+    state.context?.billingAccountId === billingAccountId &&
+    state.context?.path === routePath &&
+    state.context?.session === session
+      ? state
+      : { action: 'idle' as const, error: null }
+
+  return {
+    action: currentState.action,
+    checkout,
+    error: currentState.error,
+    reactivate,
+  }
+}
+
 // PlanControls provides cancel and reactivate actions.
 export function PlanControls(props: {
   status?: BillingStatus
   cancelAt?: bigint | number
   showSelfService?: boolean
 }) {
-  const session = SessionContext.useContext().value
   const billingState = useBillingStateContext()
   const navigate = useNavigate()
   const path = usePath()
-  const checkout = useBillingAccountCheckout()
-  const autoReactivate = useRef(hasAutoReactivateIntent(path))
-  const autoTriggered = useRef(false)
-
-  const [action, setAction] = useState<'idle' | 'reactivating'>('idle')
-  const [error, setError] = useState<string | null>(null)
-
   const isActive = isStatusActive(props.status)
   const isCanceled = props.status === BillingStatus.BillingStatus_CANCELED
+  const { action, checkout, error, reactivate } = usePlanReactivation(
+    billingState.billingAccountId,
+    !!props.showSelfService && isCanceled,
+    path,
+  )
+
   const isCancelScheduled = isActive && !!props.cancelAt
   const cancelLabel = props.cancelAt
     ? new Date(Number(props.cancelAt)).toLocaleDateString()
@@ -50,44 +172,6 @@ export function PlanControls(props: {
   const handleCancel = useCallback(() => {
     navigate({ path: './cancel' })
   }, [navigate])
-
-  const handleReactivate = useCallback(async () => {
-    const baId = billingState.billingAccountId
-    if (!session || !baId || action !== 'idle') return
-    setAction('reactivating')
-    setError(null)
-    try {
-      const resp = await session.spacewave.reactivateSubscription(baId)
-      if (resp.needsCheckout) {
-        await checkout.startCheckout(baId)
-        return
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Reactivate failed')
-    } finally {
-      setAction('idle')
-    }
-  }, [session, action, billingState.billingAccountId, checkout])
-
-  useEffect(() => {
-    if (!autoReactivate.current || autoTriggered.current) return
-    if (!props.showSelfService || !isCanceled) return
-    if (!session || !billingState.billingAccountId || action !== 'idle') return
-    autoTriggered.current = true
-    clearAutoReactivateIntent(path, navigate)
-    queueMicrotask(() => {
-      void handleReactivate()
-    })
-  }, [
-    action,
-    billingState.billingAccountId,
-    handleReactivate,
-    isCanceled,
-    navigate,
-    path,
-    props.showSelfService,
-    session,
-  ])
 
   if (!props.showSelfService) {
     return null
@@ -111,7 +195,7 @@ export function PlanControls(props: {
         {isCancelScheduled && (
           <DashboardButton
             icon={<LuRefreshCw className="size-3" />}
-            onClick={() => void handleReactivate()}
+            onClick={() => void reactivate()}
             disabled={action !== 'idle' || checkout.polling}
           >
             {action === 'reactivating'
@@ -122,7 +206,7 @@ export function PlanControls(props: {
         {isCanceled && (
           <DashboardButton
             icon={<LuRefreshCw className="size-3" />}
-            onClick={() => void handleReactivate()}
+            onClick={() => void reactivate()}
             disabled={action !== 'idle' || checkout.polling}
           >
             {action === 'reactivating'
