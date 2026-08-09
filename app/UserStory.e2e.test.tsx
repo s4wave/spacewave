@@ -1,16 +1,3 @@
-/**
- * User Story E2E Test
- *
- * Tests the main user flow for spacewave-app using the full App component:
- * 1. Load the app (see landing page)
- * 2. Click "Create a Drive" (quickstart option)
- * 3. Complete the Drive intro wizard
- * 4. Confirm getting-started guidance and expected files are visible
- * 5. Double-click on getting-started.md
- * 6. Confirm file contents are shown
- *
- * To run: bun run test:browser
- */
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import { page } from 'vitest/browser'
 import { render, cleanup } from 'vitest-browser-react'
@@ -54,9 +41,7 @@ describe('User Story: Create Drive and View File', () => {
     async ({ skip }) => {
       skip(!openStreamFunc, 'No backend available')
 
-      // Create mock BldrContext that provides our E2E WebSocket connection.
-      // AppAPI only uses webDocument.buildWebViewHostOpenStream() and webView.getUuid()
-      // so we only need to mock those methods. Cast through unknown to satisfy TypeScript.
+      // AppAPI uses only the E2E stream and WebView UUID across the window boundary.
       const mockBldrContext = {
         webDocument: {
           buildWebViewHostOpenStream: () => openStreamFunc!,
@@ -68,14 +53,12 @@ describe('User Story: Create Drive and View File', () => {
         },
       } as unknown as IBldrContext
 
-      // Step 1: Load the full App with mocked BldrContext
       await render(
         <BldrContext.Provider value={mockBldrContext}>
           <App />
         </BldrContext.Provider>,
       )
 
-      // Wait for app to initialize (loading overlay should disappear)
       await expect
         .poll(
           () => {
@@ -89,14 +72,12 @@ describe('User Story: Create Drive and View File', () => {
         )
         .toBe(true)
 
-      // Verify landing page shows [SPACEWAVE] title
       await expect
         .poll(() => page.getByText('[SPACEWAVE]').element() !== null, {
           timeout: 10000,
         })
         .toBe(true)
 
-      // Step 2: Click "Create a Drive"
       await expect
         .poll(
           () => {
@@ -113,7 +94,6 @@ describe('User Story: Create Drive and View File', () => {
       ) as HTMLElement
       driveItem.click()
 
-      // Wait for quickstart to complete - URL should contain /u/ and /so/
       await expect
         .poll(
           () => {
@@ -124,7 +104,6 @@ describe('User Story: Create Drive and View File', () => {
         )
         .toBe(true)
 
-      // Step 3: Complete the Drive intro wizard.
       await expect
         .poll(
           async () => {
@@ -159,8 +138,7 @@ describe('User Story: Create Drive and View File', () => {
         )
         .toBe(true)
 
-      // Step 4: Verify file browser is visible with the starter guide.
-      // Note: The file browser may take time to load after wizard completion.
+      // The file browser can finish loading after the wizard closes.
       await expect
         .poll(
           () => {
@@ -179,8 +157,6 @@ describe('User Story: Create Drive and View File', () => {
         document.querySelector('[data-testid="drive-welcome"]'),
       ).toBeTruthy()
 
-      // Step 5: Double-click on getting-started.md
-      // File rows have role="row" attribute
       await expect
         .poll(
           () => {
@@ -200,7 +176,6 @@ describe('User Story: Create Drive and View File', () => {
         row.textContent?.includes('getting-started.md'),
       ) as HTMLElement
 
-      // Dispatch double-click event
       const dblClickEvent = new MouseEvent('dblclick', {
         bubbles: true,
         cancelable: true,
@@ -208,8 +183,6 @@ describe('User Story: Create Drive and View File', () => {
       })
       fileRow.dispatchEvent(dblClickEvent)
 
-      // Step 6: Verify file contents are shown
-      // The file content should include the welcome message from getting-started.md
       await expect
         .poll(
           () => {
@@ -218,17 +191,11 @@ describe('User Story: Create Drive and View File', () => {
             )
             if (!browser) return false
             const text = browser.textContent ?? ''
-            // getting-started.md contains "Welcome to your new drive"
             return text.includes('Welcome to your new drive')
           },
           { timeout: 15000 },
         )
         .toBe(true)
-
-      // Steps 7-9 (maximize/restore) removed: flexlayout's canMaximize()
-      // returns false when root has a single tabset child, which is the
-      // default quickstart layout. The maximize button only renders when
-      // there are 2+ tabsets in the layout.
     },
   )
 })
