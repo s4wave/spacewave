@@ -787,10 +787,12 @@ describe('SessionContainer', () => {
       },
     )
     mockConsumePendingJoin.mockReturnValue(null)
-    const acceptSpaceTargetedInvitation = vi.fn(async () => ({
-      sharedObjectId: 'space-1',
-      joinResult: 'accepted',
-    }))
+    const acceptSpaceTargetedInvitation = vi.fn(() =>
+      Promise.resolve({
+        sharedObjectId: 'space-1',
+        joinResult: 'accepted',
+      }),
+    )
     const session = {
       spacewave: {
         watchOnboardingStatus: vi.fn(),

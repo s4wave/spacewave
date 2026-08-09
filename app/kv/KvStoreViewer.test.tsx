@@ -21,18 +21,23 @@ class FakeKvStore {
     }
   }
 
-  async scanKeys(): Promise<KvKeyEntry[]> {
+  scanKeys(): Promise<KvKeyEntry[]> {
     const encoder = new TextEncoder()
-    return [...this.store.entries()].map(([key, value]) => ({
-      key: encoder.encode(key),
-      byteLength: value.length,
-    }))
+    return Promise.resolve(
+      [...this.store.entries()].map(([key, value]) => ({
+        key: encoder.encode(key),
+        byteLength: value.length,
+      })),
+    )
   }
 
-  async get(key: Uint8Array): Promise<{ data: Uint8Array; found: boolean }> {
+  get(key: Uint8Array): Promise<{ data: Uint8Array; found: boolean }> {
     const label = new TextDecoder().decode(key)
     const data = this.store.get(label)
-    return { data: data ?? new Uint8Array(), found: data != null }
+    return Promise.resolve({
+      data: data ?? new Uint8Array(),
+      found: data != null,
+    })
   }
 
   async withTransaction<T>(
@@ -59,11 +64,13 @@ class FakeKvStore {
 
 class FakeTx {
   constructor(private readonly owner: FakeKvStore) {}
-  async set(key: Uint8Array, value: Uint8Array) {
+  set(key: Uint8Array, value: Uint8Array): Promise<void> {
     this.owner.setKey(key, value)
+    return Promise.resolve()
   }
-  async delete(key: Uint8Array) {
+  delete(key: Uint8Array): Promise<void> {
     this.owner.deleteKey(key)
+    return Promise.resolve()
   }
 }
 
@@ -131,9 +138,7 @@ vi.mock('@s4wave/web/object/object.js', () => ({
 import { KvStoreViewer } from './KvStoreViewer.js'
 
 function renderViewer() {
-  return render(
-    <KvStoreViewer objectInfo={{} as never} worldState={{} as never} />,
-  )
+  return render(<KvStoreViewer objectInfo={{}} worldState={{} as never} />)
 }
 
 describe('KvStoreViewer', () => {
@@ -185,9 +190,7 @@ describe('KvStoreViewer', () => {
       expect((editor as HTMLTextAreaElement).value).toContain('"a": 1'),
     )
     expect(
-      (screen.getByRole('radio', { name: 'JSON' }) as HTMLElement).getAttribute(
-        'aria-checked',
-      ),
+      screen.getByRole('radio', { name: 'JSON' }).getAttribute('aria-checked'),
     ).toBe('true')
   })
 

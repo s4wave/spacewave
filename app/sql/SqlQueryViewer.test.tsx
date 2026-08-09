@@ -22,26 +22,37 @@ class FakeQuery {
     public parameters: SqlValue[] = [],
   ) {}
 
-  async getQueryText() {
-    return {
+  getQueryText(): Promise<{
+    sqlText: string
+    dialectHint: string
+    targetDbObjectKey: string
+    parameters: SqlValue[]
+  }> {
+    return Promise.resolve({
       sqlText: this.sqlText,
       dialectHint: this.dialectHint,
       targetDbObjectKey: this.targetDbObjectKey,
       parameters: this.parameters,
-    }
+    })
   }
 
-  async setQueryText(sqlText: string, dialectHint: string, targetDb: string) {
+  setQueryText(
+    sqlText: string,
+    dialectHint: string,
+    targetDb: string,
+  ): Promise<void> {
     this.savedText = { sql: sqlText, dialect: dialectHint, targetDb }
+    return Promise.resolve()
   }
 
-  async setParameters(parameters: SqlValue[]) {
+  setParameters(parameters: SqlValue[]): Promise<void> {
     this.savedParams = parameters
+    return Promise.resolve()
   }
 
-  async run(maxRows: number) {
+  run(maxRows: number): Promise<{ error: string; resultObjectKey: string }> {
     this.runMaxRows = maxRows
-    return this.runResult
+    return Promise.resolve(this.runResult)
   }
 }
 
@@ -63,7 +74,7 @@ function useResourceMock<P, T>(
   useEffect(() => {
     let cancelled = false
     if (parentValue == null) return
-    factory(parentValue, new AbortController().signal).then((result) => {
+    void factory(parentValue, new AbortController().signal).then((result) => {
       if (cancelled) return
       setValue(result)
       setLoading(false)
@@ -109,9 +120,13 @@ function renderViewer({
   const worldState =
     databaseKeys == null
       ? {}
-      : { value: { listObjectsWithType: vi.fn(async () => databaseKeys) } }
+      : {
+          value: {
+            listObjectsWithType: vi.fn(() => Promise.resolve(databaseKeys)),
+          },
+        }
   const viewer = (
-    <SqlQueryViewer objectInfo={{} as never} worldState={worldState as never} />
+    <SqlQueryViewer objectInfo={{}} worldState={worldState as never} />
   )
   return render(
     workbenchTargetDbObjectKey ? (
@@ -134,13 +149,13 @@ describe('SqlQueryViewer', () => {
     fakeQuery = new FakeQuery('SELECT 1', 'mysql', 'sql/db')
     renderViewer()
     await waitFor(() =>
-      expect(
-        (screen.getByLabelText('SQL text') as HTMLTextAreaElement).value,
-      ).toBe('SELECT 1'),
+      expect(screen.getByLabelText<HTMLTextAreaElement>('SQL text').value).toBe(
+        'SELECT 1',
+      ),
     )
-    expect(
-      (screen.getByLabelText('Dialect hint') as HTMLInputElement).value,
-    ).toBe('mysql')
+    expect(screen.getByLabelText<HTMLInputElement>('Dialect hint').value).toBe(
+      'mysql',
+    )
   })
 
   it('hydrates persisted parameters without marking them dirty until edited', async () => {
@@ -158,26 +173,31 @@ describe('SqlQueryViewer', () => {
 
     await waitFor(() =>
       expect(
-        (screen.getByLabelText('Parameter 1 value') as HTMLInputElement).value,
+        screen.getByLabelText<HTMLInputElement>('Parameter 1 value').value,
       ).toBe('7'),
     )
     expect(
-      (screen.getByLabelText('Parameter 1 type') as HTMLSelectElement).value,
+      screen.getByLabelText<HTMLSelectElement>('Parameter 1 type').value,
     ).toBe('int')
     expect(
-      (screen.getByLabelText('Parameter 2 type') as HTMLSelectElement).value,
+      screen.getByLabelText<HTMLSelectElement>('Parameter 2 type').value,
     ).toBe('blob')
     expect(
-      (screen.getByLabelText('Parameter 2 value') as HTMLInputElement).value,
+      screen.getByLabelText<HTMLInputElement>('Parameter 2 value').value,
     ).toBe('0x0a0b')
-    expect((screen.getByText('Save') as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByText<HTMLButtonElement>('Save').disabled).toBe(true)
     expect(fakeQuery.savedParams).toBeUndefined()
 
-    await user.clear(screen.getByLabelText('Parameter 1 value'))
-    await user.type(screen.getByLabelText('Parameter 1 value'), '8')
+    await user.clear(
+      screen.getByLabelText<HTMLInputElement>('Parameter 1 value'),
+    )
+    await user.type(
+      screen.getByLabelText<HTMLInputElement>('Parameter 1 value'),
+      '8',
+    )
 
-    expect((screen.getByText('Save') as HTMLButtonElement).disabled).toBe(false)
-    await user.click(screen.getByText('Save'))
+    expect(screen.getByText<HTMLButtonElement>('Save').disabled).toBe(false)
+    await user.click(screen.getByText<HTMLButtonElement>('Save'))
 
     await waitFor(() =>
       expect(fakeQuery.savedParams).toEqual([
@@ -193,12 +213,16 @@ describe('SqlQueryViewer', () => {
     const user = userEvent.setup()
     renderViewer()
 
-    await waitFor(() => expect(screen.getByLabelText('SQL text')).toBeTruthy())
-    const textarea = screen.getByLabelText('SQL text')
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText<HTMLTextAreaElement>('SQL text'),
+      ).toBeTruthy(),
+    )
+    const textarea = screen.getByLabelText<HTMLTextAreaElement>('SQL text')
     await user.clear(textarea)
     await user.type(textarea, 'SELECT 2')
 
-    await user.click(screen.getByText('Run'))
+    await user.click(screen.getByText<HTMLButtonElement>('Run'))
 
     await waitFor(() => expect(fakeQuery.runMaxRows).toBe(0))
     expect(fakeQuery.savedText?.sql).toBe('SELECT 2')
@@ -212,14 +236,11 @@ describe('SqlQueryViewer', () => {
 
     await waitFor(() =>
       expect(
-        (
-          screen.getByLabelText(
-            'Target database object key',
-          ) as HTMLInputElement
-        ).value,
+        screen.getByLabelText<HTMLInputElement>('Target database object key')
+          .value,
       ).toBe('sql/db'),
     )
-    await user.click(screen.getByText('Run'))
+    await user.click(screen.getByText<HTMLButtonElement>('Run'))
 
     await waitFor(() => expect(fakeQuery.runMaxRows).toBe(0))
     expect(fakeQuery.savedText?.targetDb).toBe('sql/db')
@@ -233,14 +254,11 @@ describe('SqlQueryViewer', () => {
 
     await waitFor(() =>
       expect(
-        (
-          screen.getByLabelText(
-            'Target database object key',
-          ) as HTMLInputElement
-        ).value,
+        screen.getByLabelText<HTMLInputElement>('Target database object key')
+          .value,
       ).toBe('sql/db'),
     )
-    await user.click(screen.getByText('Run'))
+    await user.click(screen.getByText<HTMLButtonElement>('Run'))
 
     await waitFor(() => expect(fakeQuery.runMaxRows).toBe(0))
     expect(fakeQuery.savedText?.targetDb).toBe('sql/db')
@@ -255,7 +273,7 @@ describe('SqlQueryViewer', () => {
         screen.getByText(/Multiple SQL databases are available/),
       ).toBeTruthy(),
     )
-    expect((screen.getByText('Run') as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByText<HTMLButtonElement>('Run').disabled).toBe(true)
   })
 
   it('blocks run on a malformed integer parameter', async () => {
@@ -265,10 +283,16 @@ describe('SqlQueryViewer', () => {
 
     await waitFor(() => expect(screen.getByText('Add')).toBeTruthy())
     await user.click(screen.getByText('Add'))
-    await user.selectOptions(screen.getByLabelText('Parameter 1 type'), 'int')
-    await user.type(screen.getByLabelText('Parameter 1 value'), 'abc')
+    await user.selectOptions(
+      screen.getByLabelText<HTMLSelectElement>('Parameter 1 type'),
+      'int',
+    )
+    await user.type(
+      screen.getByLabelText<HTMLInputElement>('Parameter 1 value'),
+      'abc',
+    )
 
-    expect((screen.getByText('Run') as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByText<HTMLButtonElement>('Run').disabled).toBe(true)
     expect(screen.getByText(/invalid integer/)).toBeTruthy()
   })
 })

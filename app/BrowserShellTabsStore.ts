@@ -453,7 +453,7 @@ export class BrowserShellTabsStore {
       )
     }
 
-    return locks.request(this.lockName, { mode: 'exclusive' }, async (lock) => {
+    return locks.request(this.lockName, { mode: 'exclusive' }, (lock) => {
       if (!lock) {
         throw new BrowserShellTabsStoreError(
           'web-lock-unavailable',

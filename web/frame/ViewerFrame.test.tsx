@@ -13,6 +13,7 @@ import userEvent from '@testing-library/user-event'
 import { BottomBarLevel } from './bottom-bar-level.js'
 import { BottomBarRoot } from './bottom-bar-root.js'
 import { BottomBarItem } from './bottom-bar-item.js'
+import type { BottomBarContextMenuActionContext } from './bottom-bar-context.js'
 import { ViewerFrame } from './ViewerFrame.js'
 
 function button(label: string) {
@@ -229,7 +230,9 @@ describe('ViewerFrame', () => {
   it('opens a visible item context menu on right-click without toggling the primary overlay', async () => {
     const user = userEvent.setup()
     const setOpenMenu = vi.fn()
-    const onSelect = vi.fn((context) => context.openPrimaryOverlay())
+    const onSelect = vi.fn((context: BottomBarContextMenuActionContext) => {
+      context.openPrimaryOverlay()
+    })
 
     render(
       <BottomBarRoot openMenu="" setOpenMenu={setOpenMenu}>
@@ -393,7 +396,7 @@ describe('ViewerFrame', () => {
     })
   })
 
-  it('opens a context menu from long-press and suppresses the primary overlay click', async () => {
+  it('opens a context menu from long-press and suppresses the primary overlay click', () => {
     vi.useFakeTimers()
     const setOpenMenu = vi.fn()
 

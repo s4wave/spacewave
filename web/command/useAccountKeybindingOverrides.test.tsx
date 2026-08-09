@@ -8,6 +8,8 @@ import {
   type CommandBinding,
 } from '@s4wave/sdk/command/command.pb.js'
 
+import type { Account } from '@s4wave/sdk/account/account.js'
+
 import { useAccountKeybindingOverrides } from './useAccountKeybindingOverrides.js'
 
 if (typeof document === 'undefined') {
@@ -33,6 +35,17 @@ if (typeof document === 'undefined') {
   })
 }
 
+interface HookResource {
+  value: unknown
+  loading: boolean
+  error: Error | null
+}
+
+interface HookSessionInfo {
+  providerId: string
+  accountId: string
+}
+
 const hookState = {
   sessionResource: {
     value: null as unknown,
@@ -50,9 +63,12 @@ const hookState = {
     loading: false,
     error: null as Error | null,
   },
-  useSessionInfo: vi.fn(),
-  useMountAccount: vi.fn(),
-  useStreamingResource: vi.fn(),
+  useSessionInfo: vi.fn<() => HookSessionInfo>(),
+  useMountAccount:
+    vi.fn<
+      (providerId: string, accountId: string, enabled: boolean) => HookResource
+    >(),
+  useStreamingResource: vi.fn<() => HookResource>(),
 }
 
 vi.mock('@s4wave/web/contexts/contexts.js', () => ({
@@ -206,7 +222,9 @@ describe('useAccountKeybindingOverrides', () => {
       upsertKeybindingOverride: vi.fn(),
       removeKeybindingOverride: vi.fn(),
       setKeybindingSettings: vi.fn(),
-      replaceKeybindingOverrideSet: vi.fn().mockResolvedValue({}),
+      replaceKeybindingOverrideSet: vi
+        .fn<Account['replaceKeybindingOverrideSet']>()
+        .mockResolvedValue({}),
     }
     hookState.sessionResource = {
       value: { id: 'session-1' },
@@ -266,6 +284,8 @@ describe('useAccountKeybindingOverrides', () => {
       callsBeforeEdits,
     )) {
       expect(request.expectedOverrideSet).toMatchObject({})
+      if (!request.overrideSet)
+        throw new Error('replacement omitted override set')
       expect(request.overrideSet.tuiOverrides).toEqual([])
     }
 
@@ -292,7 +312,9 @@ describe('useAccountKeybindingOverrides', () => {
       upsertKeybindingOverride: vi.fn(),
       removeKeybindingOverride: vi.fn(),
       setKeybindingSettings: vi.fn(),
-      replaceKeybindingOverrideSet: vi.fn().mockResolvedValue({}),
+      replaceKeybindingOverrideSet: vi
+        .fn<Account['replaceKeybindingOverrideSet']>()
+        .mockResolvedValue({}),
     }
     hookState.accountResource = { value: account, loading: false, error: null }
     hookState.accountOverrides = {

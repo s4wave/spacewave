@@ -268,7 +268,9 @@ describe('useCommand', () => {
         <>
           <TestCommand
             defaultBindings={defaultBindings}
-            handler={(args) => handled({ args, version })}
+            handler={(args) => {
+              handled({ args, version })
+            }}
           />
           <button
             type="button"

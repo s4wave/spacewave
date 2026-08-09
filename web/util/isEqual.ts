@@ -254,8 +254,15 @@ function deepEqual(value: unknown, other: unknown, seen: SeenPairs): boolean {
         seen,
       )
     case '[object RegExp]':
+      return (
+        RegExp.prototype.toString.call(value) ===
+        RegExp.prototype.toString.call(other)
+      )
     case '[object String]':
-      return String(value) === String(other)
+      return (
+        String.prototype.valueOf.call(value) ===
+        String.prototype.valueOf.call(other)
+      )
     case '[object Set]':
       return compareSets(
         value as ReadonlySet<unknown>,

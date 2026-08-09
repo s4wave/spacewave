@@ -26,17 +26,6 @@ interface MockResource {
   error: Error | null
 }
 
-interface MockShellTab {
-  id: string
-  name: string
-  path: string
-}
-
-interface MockShellTabsState {
-  tabs: MockShellTab[]
-  activeTabId: string
-}
-
 const h = vi.hoisted(() => {
   const session = { id: 'session-1' }
   return {
@@ -46,13 +35,13 @@ const h = vi.hoisted(() => {
       value: session,
       loading: false,
       error: null,
-    } as MockResource,
+    },
     mountSessionByIdx: vi.fn<MockRootResource['mountSessionByIdx']>(),
     setOpenMenu: vi.fn(),
     shellTabs: {
       tabs: [{ id: 'tab-active', name: 'Home', path: '/' }],
       activeTabId: 'tab-active',
-    } as MockShellTabsState,
+    },
     session,
     sessionProviderResources: [] as MockResource[],
   }

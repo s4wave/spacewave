@@ -177,7 +177,7 @@ function KvKeyEditorPane({
         <Button
           variant="outline"
           size="sm"
-          onClick={handleSave}
+          onClick={() => void handleSave()}
           disabled={!dirty || busy || parseError != null}
           className="h-7 gap-1 text-xs"
         >
@@ -201,7 +201,7 @@ function KvKeyEditorPane({
             <Button
               variant="destructive"
               size="sm"
-              onClick={handleConfirmDelete}
+              onClick={() => void handleConfirmDelete()}
               disabled={busy}
               className="h-7 gap-1 text-xs"
             >

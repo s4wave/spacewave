@@ -106,7 +106,7 @@ export function KvCreateKeyForm({
         <Button
           variant="outline"
           size="sm"
-          onClick={handleCreate}
+          onClick={() => void handleCreate()}
           disabled={!canCreate}
           className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 h-7 gap-1 text-xs"
         >

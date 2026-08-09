@@ -90,7 +90,9 @@ export function installShellTabTestBrowser(): ShellTabTestBrowser {
         try {
           result = previous ? previous.then(invoke) : invoke()
         } catch (error) {
-          result = Promise.reject(error)
+          result = Promise.reject(
+            new Error('The test Web Locks callback failed.', { cause: error }),
+          )
         }
         return Promise.resolve(result).then(
           (value) => {

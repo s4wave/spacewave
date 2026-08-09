@@ -28,7 +28,22 @@ import { ShellTabStrip } from './ShellFlexLayout.js'
 import type { ShellDocumentEntry } from './ShellDocumentEntry.js'
 import { buildUnixFSEntryAppDragEnvelope } from './unixfs/unixfs-app-drag.js'
 
-const mockOptimizedLayoutProps = vi.hoisted(() => vi.fn())
+interface OptimizedLayoutProbeModel {
+  tabs: unknown[]
+  selectedTabId: string | null
+  doAction: (action: { type: string; tabId?: string }) => void
+}
+
+interface OptimizedLayoutProbeProps {
+  model: OptimizedLayoutProbeModel
+  onExternalDrag?: unknown
+  onModelChange?: (model: OptimizedLayoutProbeModel) => void
+  renderTab?: unknown
+}
+
+const mockOptimizedLayoutProps = vi.hoisted(() =>
+  vi.fn<(props: OptimizedLayoutProbeProps) => void>(),
+)
 const mockCreateSpace = vi.hoisted(() => vi.fn())
 const continuationEntry: ShellDocumentEntry = {
   kind: 'continuation',
@@ -173,7 +188,7 @@ vi.mock('@aptre/flex-layout', () => {
       node?: { id: string; name: string }
       select?: boolean
     }>
-    onModelChange?: (model: MockModel) => void
+    onModelChange?: (model: OptimizedLayoutProbeModel) => void
 
     constructor(json: {
       layout: {
@@ -321,7 +336,7 @@ vi.mock('@aptre/flex-layout', () => {
   }: {
     model: MockModel
     onExternalDrag?: (event: unknown) => unknown
-    onModelChange?: (model: MockModel) => void
+    onModelChange?: (model: OptimizedLayoutProbeModel) => void
     renderTab?: (node: MockTabNode) => React.ReactNode
   }) {
     model.onModelChange = onModelChange
@@ -555,6 +570,7 @@ describe('ShellTabStrip', () => {
     expect(created).toBeDefined()
     await waitFor(() => {
       const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+      if (!props) throw new Error('optimized layout did not render')
       expect(props.model.tabs).toHaveLength(2)
       expect(props.model.selectedTabId).toBe(created?.id)
       expect(screen.getByTestId('active-tab').textContent).toBe(created?.id)
@@ -583,22 +599,13 @@ describe('ShellTabStrip', () => {
     await waitFor(() => {
       expect(screen.getByTestId('active-tab').textContent).toBe('other')
     })
-    const initialCall = mockOptimizedLayoutProps.mock.calls[0] as
-      | [
-          {
-            model: {
-              doAction: (action: { type: string; tabId?: string }) => void
-            }
-            onModelChange?: (model: unknown) => void
-          },
-        ]
-      | undefined
+    const initialCall = mockOptimizedLayoutProps.mock.calls[0]
     const staleModelChange = initialCall?.[0].onModelChange
     const model = initialCall?.[0].model
     expect(staleModelChange).toBeTypeOf('function')
     expect(model).toBeDefined()
 
-    await act(async () => {
+    act(() => {
       model?.doAction({ type: 'selectTab', tabId: 'files' })
     })
     await waitFor(() => {
@@ -615,7 +622,7 @@ describe('ShellTabStrip', () => {
     })
     await blockedMutation
 
-    await act(async () => {
+    act(() => {
       staleModelChange?.(model)
     })
     expect(getAppPath()).toBe('/docs')

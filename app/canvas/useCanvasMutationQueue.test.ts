@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { renderHook, cleanup, act } from '@testing-library/react'
 
-import { useCanvasMutationQueue } from './useCanvasMutationQueue.js'
+import {
+  useCanvasMutationQueue,
+  type SendMutationFn,
+} from './useCanvasMutationQueue.js'
 import type {
   CanvasStateData,
   CanvasNodeData,
@@ -240,7 +243,7 @@ describe('useCanvasMutationQueue', () => {
 
   it('applies layout metadata change mutation', () => {
     const state = makeState([['a', makeNode({ id: 'a' })]])
-    const send = vi.fn().mockResolvedValue(undefined)
+    const send = vi.fn<SendMutationFn>().mockResolvedValue(undefined)
     const { result } = renderHook(() => useCanvasMutationQueue(state, send))
 
     act(() => {
@@ -268,9 +271,8 @@ describe('useCanvasMutationQueue', () => {
       group: 'workflow',
       projectionOwner: 'glados/workflow',
     })
-    expect(send).toHaveBeenCalledWith({
-      setLayoutMetadata: expect.any(Map),
-    })
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(send.mock.calls[0]?.[0].setLayoutMetadata).toBeInstanceOf(Map)
   })
 
   it('removes layout metadata explicitly and when removing a node', () => {

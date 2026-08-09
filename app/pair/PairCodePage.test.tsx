@@ -25,6 +25,8 @@ vi.mock('@s4wave/app/quickstart/create.js', () => ({
   createLocalSession: vi.fn(),
 }))
 
+import { asyncValues } from '@s4wave/web/test/async-values.js'
+
 import { PairCodePage } from './PairCodePage.js'
 
 describe('PairCodePage', () => {
@@ -36,11 +38,13 @@ describe('PairCodePage', () => {
   it('shows the missing or expired message for a rejected pairing code', async () => {
     mockUseParams.mockReturnValue({ code: '' })
     const session = {
-      completePairing: vi.fn(async () => {
-        throw new Error(
-          'pairing relay returned 404: {"code":"not_found","message":"Pairing code not found or expired"}',
-        )
-      }),
+      completePairing: vi.fn(() =>
+        Promise.reject(
+          new Error(
+            'pairing relay returned 404: {"code":"not_found","message":"Pairing code not found or expired"}',
+          ),
+        ),
+      ),
     }
 
     render(<PairCodePage session={session as never} />)
@@ -61,11 +65,13 @@ describe('PairCodePage', () => {
   it('shows the fallback for an unmapped relay failure', async () => {
     mockUseParams.mockReturnValue({ code: '' })
     const session = {
-      completePairing: vi.fn(async () => {
-        throw new Error(
-          'pairing relay returned 418: {"code":"teapot","message":"Unexpected relay response"}',
-        )
-      }),
+      completePairing: vi.fn(() =>
+        Promise.reject(
+          new Error(
+            'pairing relay returned 418: {"code":"teapot","message":"Unexpected relay response"}',
+          ),
+        ),
+      ),
     }
 
     render(<PairCodePage session={session as never} />)
@@ -85,22 +91,22 @@ describe('PairCodePage', () => {
   it('surfaces PAIRING_FAILED from the PairVerifyStep status watch', async () => {
     let watchCount = 0
     const session = {
-      acceptLocalPairingOffer: vi.fn(async () => ({
-        answerPayload: 'answer-payload',
-      })),
-      watchPairingStatus: vi.fn(async function* () {
-        if (watchCount++ === 0) {
-          yield {
-            status: PairingStatus.PairingStatus_PEER_CONNECTED,
-            remotePeerId: 'remote-peer',
-          }
-          return
-        }
-        yield {
-          status: PairingStatus.PairingStatus_FAILED,
-          errorMessage: 'unsupported cross-NAT topology',
-        }
-      }),
+      acceptLocalPairingOffer: vi.fn(() =>
+        Promise.resolve({ answerPayload: 'answer-payload' }),
+      ),
+      watchPairingStatus: vi.fn(() =>
+        asyncValues(
+          watchCount++ === 0
+            ? {
+                status: PairingStatus.PairingStatus_PEER_CONNECTED,
+                remotePeerId: 'remote-peer',
+              }
+            : {
+                status: PairingStatus.PairingStatus_FAILED,
+                errorMessage: 'unsupported cross-NAT topology',
+              },
+        ),
+      ),
     }
 
     render(<PairCodePage session={session as never} />)

@@ -21,10 +21,11 @@ describe('loadCdnV86ImagesFromSpace', () => {
       tags: ['default'],
     })
     const unmarshal = vi.fn(
-      async (_req: { blockType?: string }, _signal: AbortSignal) => ({
-        found: true,
-        data: typedData,
-      }),
+      (_req: { blockType?: string }, _signal: AbortSignal) =>
+        Promise.resolve({
+          found: true,
+          data: typedData,
+        }),
     )
     const cursor = {
       unmarshal,
@@ -50,12 +51,9 @@ describe('loadCdnV86ImagesFromSpace', () => {
       signal,
     )
     expect(world[Symbol.dispose]).toHaveBeenCalledOnce()
-    expect(entries).toEqual([
-      expect.objectContaining({
-        objectKey: 'v86image-default',
-        image: expect.objectContaining({ name: 'Aperture Linux' }),
-      }),
-    ])
+    expect(entries).toHaveLength(1)
+    expect(entries[0]?.objectKey).toBe('v86image-default')
+    expect(entries[0]?.image.name).toBe('Aperture Linux')
   })
 })
 

@@ -18,7 +18,7 @@ describe('space object navigation actions', () => {
     expect(targets.map((target) => target.label)).toEqual(['files', 'main'])
   })
 
-  it('creates only navigation-focused bottom-bar actions', () => {
+  it('creates only navigation-focused bottom-bar actions', async () => {
     const openDetails = vi.fn()
     const openObject = vi.fn()
     const switchObjectHere = vi.fn()
@@ -52,7 +52,7 @@ describe('space object navigation actions', () => {
     expect(detailsAction.type).toBe('action')
     if (detailsAction.type !== 'action') return
     const openPrimaryOverlay = vi.fn()
-    detailsAction.onSelect({
+    await detailsAction.onSelect({
       itemId: 'sharedObject',
       openKind: 'mouse',
       closeMenu: vi.fn(),
@@ -78,7 +78,7 @@ describe('space object navigation actions', () => {
     const switchAction = switchGroup.items[1]
     expect(switchAction.type).toBe('action')
     if (switchAction.type !== 'action') return
-    switchAction.onSelect({
+    await switchAction.onSelect({
       itemId: 'sharedObject',
       openKind: 'mouse',
       closeMenu: vi.fn(),

@@ -50,7 +50,7 @@ function fakeResourceRef(resourceId: number): ClientResourceRef {
     [Symbol.dispose]: vi.fn(),
   }
 
-  return ref as unknown as ClientResourceRef
+  return ref
 }
 
 describe('useAccessTypedHandle released-resource retry contract', () => {

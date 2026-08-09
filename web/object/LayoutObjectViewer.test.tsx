@@ -158,8 +158,18 @@ interface MockObjectLayoutTabConfig {
   enableClose?: boolean
 }
 
+interface MockLayoutAction {
+  type?: string
+  data?: {
+    toNode?: string
+    index?: number
+    select?: boolean
+    node?: string
+  }
+}
+
 function createMockObjectLayoutModel(tabs: MockObjectLayoutTabConfig[]) {
-  const actions: unknown[] = []
+  const actions: MockLayoutAction[] = []
   let nodes: Array<{
     getType: () => string
     getId: () => string
@@ -178,7 +188,7 @@ function createMockObjectLayoutModel(tabs: MockObjectLayoutTabConfig[]) {
     }
   }> = []
   const model = {
-    doAction: vi.fn((action: unknown) => {
+    doAction: vi.fn((action: MockLayoutAction) => {
       actions.push(action)
       return undefined
     }),
@@ -457,7 +467,7 @@ describe('LayoutObjectViewer', () => {
       throw new Error('LayoutObjectViewer did not pass onContextMenu')
     }
 
-    const { model, nodes } = createMockObjectLayoutModel([
+    const { actions, nodes } = createMockObjectLayoutModel([
       { id: 'tab-a', name: 'Alpha' },
       { id: 'tab-b', name: 'Beta' },
     ])
@@ -480,28 +490,19 @@ describe('LayoutObjectViewer', () => {
     fireEvent.click(screen.getByRole('button', { name: /^close tab$/i }))
 
     await waitFor(() => {
-      expect(model.doAction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'FlexLayout_AddNode',
-          data: expect.objectContaining({
-            toNode: 'tabset-1',
-            index: 1,
-            select: true,
-          }),
-        }),
+      const addAction = actions.find(
+        (action) => action.type === 'FlexLayout_AddNode',
       )
-      expect(model.doAction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'FlexLayout_DeleteTab',
-          data: { node: 'tab-b' },
-        }),
-      )
-      expect(model.doAction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'FlexLayout_DeleteTab',
-          data: { node: 'tab-a' },
-        }),
-      )
+      expect(addAction?.data).toMatchObject({
+        toNode: 'tabset-1',
+        index: 1,
+        select: true,
+      })
+      expect(
+        actions
+          .filter((action) => action.type === 'FlexLayout_DeleteTab')
+          .map((action) => action.data?.node),
+      ).toEqual(['tab-b', 'tab-a'])
     })
   })
 

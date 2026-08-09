@@ -49,6 +49,8 @@ import { INIT_FORGE_QUICKSTART_OP_ID } from '@s4wave/sdk/forge/dashboard/init-fo
 import { V86WizardConfig } from '@s4wave/sdk/vm/v86-wizard.pb.js'
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 
+import { asyncValues } from '@s4wave/web/test/async-values.js'
+
 import type { QuickstartSpaceCreateId } from './options.js'
 import {
   buildQuickstartSpaceRoutePath,
@@ -110,7 +112,7 @@ const kvStoreMocks = vi.hoisted(() => ({
   withTransaction: vi.fn(),
   release: vi.fn(),
   tx: {
-    set: vi.fn(),
+    set: vi.fn<(key: Uint8Array, value: Uint8Array) => void>(),
   },
 }))
 
@@ -237,11 +239,11 @@ function loadedSpaceContents(...pluginIds: string[]) {
   return {
     release,
     [Symbol.dispose]: release,
-    watchState: vi.fn(async function* () {
-      yield {
+    watchState: vi.fn(() =>
+      asyncValues({
         plugins: pluginIds.map((pluginId) => ({ pluginId, loaded: true })),
-      }
-    }),
+      }),
+    ),
   }
 }
 
@@ -332,12 +334,12 @@ function mockNotesQuickstart(quickstartId: string, indexPath: string): void {
   })
 }
 
-async function* watchObjectTypeRegistrations(
+function watchObjectTypeRegistrations(
   ...registrations: Array<Array<{ typeId: string }>>
-) {
-  for (const batch of registrations) {
-    yield { registrations: batch }
-  }
+): AsyncIterable<{ registrations: Array<{ typeId: string }> }> {
+  return asyncValues(
+    ...registrations.map((batch) => ({ registrations: batch })),
+  )
 }
 
 const SQL_QUICKSTART_TYPE_IDS = [
@@ -1219,7 +1221,7 @@ to try first.
         (call) => call[0] === CREATE_WIZARD_OBJECT_OP_ID,
       )
       const wizardKey = CreateWizardObjectOp.fromBinary(
-        wizardCall?.[1] as Uint8Array,
+        wizardCall?.[1],
       ).objectKey
       expect(getSettingsIndexPath(applyWorldOp)).toBe(wizardKey)
       const unixfsCall = applyWorldOp.mock.calls.find(

@@ -10,14 +10,16 @@ class FakeWorkbench {
   public removed: string[] = []
   public layouts: unknown[] = []
   constructor(private readonly state: unknown) {}
-  async getWorkbench() {
-    return { workbench: this.state }
+  getWorkbench(): Promise<{ workbench: unknown }> {
+    return Promise.resolve({ workbench: this.state })
   }
-  async removePin(key: string) {
+  removePin(key: string): Promise<void> {
     this.removed.push(key)
+    return Promise.resolve()
   }
-  async setLayout(tabs: unknown, layout: unknown) {
+  setLayout(tabs: unknown, layout: unknown): Promise<void> {
     this.layouts.push({ tabs, layout })
+    return Promise.resolve()
   }
 }
 
@@ -34,7 +36,7 @@ function useResourceMock<P, T>(
   useEffect(() => {
     let cancelled = false
     if (parentValue == null) return
-    factory(parentValue, new AbortController().signal).then((result) => {
+    void factory(parentValue, new AbortController().signal).then((result) => {
       if (cancelled) return
       setValue(result)
       setLoading(false)
@@ -81,9 +83,7 @@ vi.mock('@s4wave/web/object/ObjectViewer.js', () => ({
 import { SqlWorkbenchViewer } from './SqlWorkbenchViewer.js'
 
 function renderViewer() {
-  return render(
-    <SqlWorkbenchViewer objectInfo={{} as never} worldState={{} as never} />,
-  )
+  return render(<SqlWorkbenchViewer objectInfo={{}} worldState={{} as never} />)
 }
 
 describe('SqlWorkbenchViewer', () => {

@@ -55,7 +55,7 @@ function NoopPathUpdateProbe() {
 
   useEffect(() => {
     if (tabs.length === 0) return
-    updateTabPath(tabs[0].id, tabs[0].path)
+    void updateTabPath(tabs[0].id, tabs[0].path)
   }, [tabs, updateTabPath])
 
   return <div data-testid="tab-count">{tabs.length}</div>
@@ -113,7 +113,7 @@ function ReplaceActiveTabPathProbe({ path }: { path: string }) {
   const { activeTabId, tabs, updateTabPath } = useShellTabs()
 
   useEffect(() => {
-    updateTabPath(activeTabId, path)
+    void updateTabPath(activeTabId, path)
   }, [activeTabId, path, updateTabPath])
 
   return (
@@ -369,7 +369,7 @@ describe('ShellTabContext', () => {
   })
 
   it('emits an event after the active tab path commits', async () => {
-    const listener = vi.fn()
+    const listener = vi.fn<(event: Event) => void>()
     window.addEventListener(SHELL_TAB_PATH_COMMITTED_EVENT, listener)
     try {
       seedShellTabs([
@@ -422,10 +422,9 @@ describe('ShellTabContext', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open Docs' }))
 
     await waitFor(() => {
-      const tabs = JSON.parse(
-        screen.getByTestId('tabs-json').textContent ?? '[]',
-      )
-      const docsTab = tabs.find((tab: { path: string }) => tab.path === '/docs')
+      const tabs = readShellTabsSnapshot().records
+      const docsTab = tabs.find((tab) => tab.path === '/docs')
+      if (!docsTab) throw new Error('docs tab was not opened')
       expect(docsTab).toMatchObject({ name: 'Docs', path: '/docs' })
       expect(screen.getByTestId('active-tab-id').textContent).toBe(docsTab.id)
     })
@@ -451,9 +450,7 @@ describe('ShellTabContext', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open Docs' }))
 
     await waitFor(() => {
-      const tabs = JSON.parse(
-        screen.getByTestId('tabs-json').textContent ?? '[]',
-      )
+      const tabs = readShellTabsSnapshot().records
       expect(tabs).toHaveLength(2)
       expect(tabs[1]).toMatchObject({
         id: 'docs-tab',
@@ -479,12 +476,11 @@ describe('ShellTabContext', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open CLI terminal' }))
 
     await waitFor(() => {
-      const tabs = JSON.parse(
-        screen.getByTestId('tabs-json').textContent ?? '[]',
-      )
+      const tabs = readShellTabsSnapshot().records
       const terminalTab = tabs.find(
-        (tab: { path: string }) => tab.path === '/u/7/settings/cli/terminal',
+        (tab) => tab.path === '/u/7/settings/cli/terminal',
       )
+      if (!terminalTab) throw new Error('terminal tab was not opened')
       expect(tabs).toHaveLength(2)
       expect(terminalTab).toMatchObject({
         name: 'Terminal',
@@ -943,9 +939,11 @@ describe('ShellTabContext', () => {
   it('keeps Shell tab state local despite an inherited backend accessor', () => {
     seedShellTabs([{ id: 'tab-1', name: 'Home', path: '/' }])
     const inheritedAccessor: StateAtomAccessor = {
-      value: vi.fn(async () => {
-        throw new Error('inherited backend accessor must not be used')
-      }),
+      value: vi.fn(() =>
+        Promise.reject(
+          new Error('inherited backend accessor must not be used'),
+        ),
+      ),
       loading: false,
       error: null,
       retry: vi.fn(),

@@ -6,11 +6,21 @@ import {
   getProductObjectViewers,
 } from './viewers.js'
 
+function componentID(viewer: unknown): string {
+  if (
+    typeof viewer !== 'object' ||
+    viewer == null ||
+    !('componentID' in viewer) ||
+    typeof viewer.componentID !== 'string'
+  ) {
+    throw new Error('viewer catalog entry has no component identifier')
+  }
+  return viewer.componentID
+}
+
 describe('viewer catalog split', () => {
   it('keeps base viewers out of the product catalog', () => {
-    const productIDs = getProductObjectViewers().map(
-      (viewer) => viewer.componentID,
-    )
+    const productIDs = getProductObjectViewers().map(componentID)
 
     expect(productIDs).not.toContain('spacewave.object-layout.viewer')
     expect(productIDs).not.toContain('spacewave.debug.viewer')
@@ -25,9 +35,7 @@ describe('viewer catalog split', () => {
       component: () => null,
     }
 
-    const viewerIDs = getAllObjectViewers([downstreamViewer]).map(
-      (viewer) => viewer.componentID,
-    )
+    const viewerIDs = getAllObjectViewers([downstreamViewer]).map(componentID)
 
     expect(viewerIDs.slice(0, 2)).toEqual([
       'spacewave.object-layout.viewer',

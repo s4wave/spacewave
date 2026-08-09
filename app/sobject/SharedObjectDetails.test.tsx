@@ -60,7 +60,7 @@ class DensityResizeObserver {
       contentBoxSize: [{ inlineSize: observedWidth, blockSize: 100 }],
       devicePixelContentBoxSize: [],
     } as unknown as ResizeObserverEntry
-    this.callback([entry], this as unknown as ResizeObserver)
+    this.callback([entry], this)
   }
 
   unobserve() {}

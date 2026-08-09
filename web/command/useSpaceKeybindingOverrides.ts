@@ -115,14 +115,16 @@ export function useSpaceKeybindingOverrides(
   )
   const setSettings = useCallback(
     (settings: KeybindingOverrideSettings) => {
-      applyOverrideSet(setKeybindingOverrideSettings(overrideSet, settings))
+      void applyOverrideSet(
+        setKeybindingOverrideSettings(overrideSet, settings),
+      )
     },
     [applyOverrideSet, overrideSet],
   )
 
   const setCommandOverride = useCallback(
     (commandId: string, override: KeybindingCommandOverride | null) => {
-      applyOverrideSet(
+      void applyOverrideSet(
         setKeybindingCommandOverride(overrideSet, commandId, override),
       )
     },
@@ -131,7 +133,7 @@ export function useSpaceKeybindingOverrides(
 
   const setCommandBindings = useCallback(
     (commandId: string, bindings: CommandBinding[]) => {
-      applyOverrideSet(
+      void applyOverrideSet(
         setCommandBindingsOverride(overrideSet, commandId, bindings),
       )
     },
@@ -140,7 +142,7 @@ export function useSpaceKeybindingOverrides(
 
   const addCommandBinding = useCallback(
     (commandId: string, binding: CommandBinding) => {
-      applyOverrideSet(
+      void applyOverrideSet(
         addCommandBindingOverride(overrideSet, commandId, binding),
       )
     },
@@ -149,14 +151,16 @@ export function useSpaceKeybindingOverrides(
 
   const clearCommandBindings = useCallback(
     (commandId: string) => {
-      applyOverrideSet(clearCommandBindingsOverride(overrideSet, commandId))
+      void applyOverrideSet(
+        clearCommandBindingsOverride(overrideSet, commandId),
+      )
     },
     [applyOverrideSet, overrideSet],
   )
 
   const clearCommandBindingId = useCallback(
     (commandId: string, bindingId: string) => {
-      applyOverrideSet(
+      void applyOverrideSet(
         clearCommandBindingIdOverride(overrideSet, commandId, bindingId),
       )
     },
@@ -165,7 +169,7 @@ export function useSpaceKeybindingOverrides(
 
   const removeCommandBinding = useCallback(
     (commandId: string, bindingId: string) => {
-      applyOverrideSet(
+      void applyOverrideSet(
         removeLocalCommandBindingOverride(overrideSet, commandId, bindingId),
       )
     },
@@ -174,13 +178,15 @@ export function useSpaceKeybindingOverrides(
 
   const resetCommand = useCallback(
     (commandId: string) => {
-      applyOverrideSet(resetKeybindingCommandOverride(overrideSet, commandId))
+      void applyOverrideSet(
+        resetKeybindingCommandOverride(overrideSet, commandId),
+      )
     },
     [applyOverrideSet, overrideSet],
   )
 
   const resetLayer = useCallback(() => {
-    applyOverrideSet(clearKeybindingOverrideSet())
+    void applyOverrideSet(clearKeybindingOverrideSet())
   }, [applyOverrideSet])
 
   const activeWriteError =

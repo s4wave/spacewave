@@ -43,7 +43,7 @@ function createResourceRef(
       return released
     },
     client: {
-      async request() {
+      request() {
         throw new Error('unexpected RPC request from unit-test resource')
       },
     } as unknown as ClientResourceRef['client'],
@@ -93,19 +93,18 @@ describe('accessObject', () => {
       })
     const buildTransaction = vi
       .spyOn(worldState, 'buildTransaction')
-      .mockImplementation(async () => {
+      .mockImplementation(() => {
         events.push('buildTransaction')
-        return { transaction, cursor }
+        return Promise.resolve({ transaction, cursor })
       })
-    const write = vi
-      .spyOn(transaction, 'write')
-      .mockImplementation(async () => {
-        events.push('write')
-        return { rootRef: writtenRootRef }
-      })
-    const callback = vi.fn(async (actualCursor: BlockCursor) => {
+    const write = vi.spyOn(transaction, 'write').mockImplementation(() => {
+      events.push('write')
+      return Promise.resolve({ rootRef: writtenRootRef })
+    })
+    const callback = vi.fn((actualCursor: BlockCursor) => {
       events.push('callback')
       expect(actualCursor).toBe(cursor)
+      return Promise.resolve()
     })
 
     const resultPromise = accessObject(
@@ -151,31 +150,27 @@ describe('accessObject', () => {
     const cursor = new BlockCursor(createResourceRef(3, events))
     const writtenRootRef = blockRef([7, 8, 9])
 
-    const getRef = vi
-      .spyOn(worldState, 'getRef')
-      .mockImplementation(async () => {
-        throw new Error('new object path must not look up an existing ref')
-      })
+    const getRef = vi.spyOn(worldState, 'getRef').mockImplementation(() => {
+      throw new Error('new object path must not look up an existing ref')
+    })
     const buildTransaction = vi
       .spyOn(worldState, 'buildTransaction')
-      .mockImplementation(async () => {
+      .mockImplementation(() => {
         events.push('buildTransaction')
-        return { transaction, cursor }
+        return Promise.resolve({ transaction, cursor })
       })
-    const markDirty = vi
-      .spyOn(cursor, 'markDirty')
-      .mockImplementation(async () => {
-        events.push('markDirty')
-      })
-    const write = vi
-      .spyOn(transaction, 'write')
-      .mockImplementation(async () => {
-        events.push('write')
-        return { rootRef: writtenRootRef }
-      })
-    const callback = vi.fn(async (actualCursor: BlockCursor) => {
+    const markDirty = vi.spyOn(cursor, 'markDirty').mockImplementation(() => {
+      events.push('markDirty')
+      return Promise.resolve()
+    })
+    const write = vi.spyOn(transaction, 'write').mockImplementation(() => {
+      events.push('write')
+      return Promise.resolve({ rootRef: writtenRootRef })
+    })
+    const callback = vi.fn((actualCursor: BlockCursor) => {
       events.push('callback')
       expect(actualCursor).toBe(cursor)
+      return Promise.resolve()
     })
 
     await expect(

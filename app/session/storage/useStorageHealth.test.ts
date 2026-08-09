@@ -49,16 +49,19 @@ describe('useStorageHealth', () => {
 
   it('re-reads protection state after an explicit request', async () => {
     vi.stubGlobal('navigator', {
-      storage: { estimate: async () => ({ usage: 1_024, quota: 4_096 }) },
+      storage: {
+        estimate: () => Promise.resolve({ usage: 1_024, quota: 4_096 }),
+      },
       userAgent: 'Mozilla/5.0 Chrome/136.0.0.0 Safari/537.36',
     })
     mockWebDocument.readStoragePersistenceStatus.mockResolvedValue(
       'not-persisted',
     )
-    mockWebDocument.requestStoragePersistence.mockImplementation(async () => {
+    mockWebDocument.requestStoragePersistence.mockImplementation(() => {
       mockWebDocument.readStoragePersistenceStatus.mockResolvedValue(
         'persisted',
       )
+      return Promise.resolve()
     })
 
     const { result } = renderHook(() => useStorageHealth())
@@ -79,10 +82,8 @@ describe('storage health state', () => {
   it('keeps an available estimate when the persistence query fails', async () => {
     const snapshot = await readBrowserStorageHealth(
       {
-        estimate: vi.fn(async () => ({ usage: 4_096, quota: 16_384 })),
-        persisted: vi.fn(async () => {
-          throw new Error('denied')
-        }),
+        estimate: vi.fn(() => Promise.resolve({ usage: 4_096, quota: 16_384 })),
+        persisted: vi.fn(() => Promise.reject(new Error('denied'))),
       },
       new AbortController().signal,
     )

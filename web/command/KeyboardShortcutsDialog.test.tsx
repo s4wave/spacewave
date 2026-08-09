@@ -4,6 +4,7 @@ import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { CommandFocusContext } from '@s4wave/sdk/command/command.pb.js'
+import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog.js'
 
@@ -35,7 +36,7 @@ if (typeof document === 'undefined') {
   })
 }
 
-const mockUseCommands = vi.fn()
+const mockUseCommands = vi.fn<() => CommandState[]>()
 const mockOnOpenChange = vi.fn()
 
 vi.mock('./CommandContext.js', () => ({

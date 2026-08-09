@@ -26,7 +26,9 @@ vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: () => mockNavigate,
 }))
 vi.mock('@s4wave/web/router/app-path.js', () => ({
-  setAppPath: (path: string) => mockNavigate({ path }),
+  setAppPath: (path: string) => {
+    mockNavigate({ path })
+  },
 }))
 
 vi.mock('@s4wave/web/router/NavigatePath.js', () => ({

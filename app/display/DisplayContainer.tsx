@@ -9,7 +9,6 @@ import { useWatchStateRpc } from '@aptre/bldr-react'
 import {
   useResource,
   useResourceValue,
-  type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import { useSessionList } from '@s4wave/app/hooks/useSessionList.js'
@@ -611,9 +610,7 @@ function DisplayContent({ controller }: { controller: DisplayController }) {
                   <SpaceContainerContext.Provider
                     spaceId={sharedObjectId}
                     spaceState={spaceState}
-                    spaceWorldResource={
-                      spaceWorldResource as Resource<EngineWorldState>
-                    }
+                    spaceWorldResource={spaceWorldResource}
                     spaceWorld={spaceWorld as EngineWorldState}
                     navigateToRoot={navigateToRoot}
                     navigateToObjects={navigateToObjects}

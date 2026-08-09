@@ -25,6 +25,28 @@ import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 const cliTerminalServiceId =
   'plugin/spacewave-cli-plugin/' + CliTerminalServiceServiceName
 
+// singleTerminalFrame routes a local connection failure through the same stream
+// lifecycle as terminal RPC output.
+function singleTerminalFrame(
+  frame: TerminalFrame,
+): MessageStream<TerminalFrame> {
+  return {
+    [Symbol.asyncIterator](): AsyncIterator<TerminalFrame> {
+      let pendingFrame: TerminalFrame | null = frame
+      return {
+        next(): Promise<IteratorResult<TerminalFrame>> {
+          if (pendingFrame) {
+            const value = pendingFrame
+            pendingFrame = null
+            return Promise.resolve({ done: false, value })
+          }
+          return Promise.resolve({ done: true, value: undefined })
+        },
+      }
+    },
+  }
+}
+
 // CliTerminalPage renders the session-local browser CLI terminal in the shell frame.
 export function CliTerminalPage() {
   const sessionIndex = useSessionIndex()
@@ -44,12 +66,11 @@ export function CliTerminalPage() {
 
   const openTerminal = useMemo<TerminalPaneConnector>(() => {
     if (!cliTerminal) {
-      return async function* (): MessageStream<TerminalFrame> {
-        yield {
+      return () =>
+        singleTerminalFrame({
           kind: TerminalFrameKind.ERROR,
           error: 'runtime-unavailable',
-        }
-      }
+        })
     }
     return (frames, signal) => cliTerminal.RunCli(frames, signal)
   }, [cliTerminal])

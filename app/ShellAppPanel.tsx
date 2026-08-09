@@ -112,7 +112,7 @@ function ShellAppPanelInner({
   const navigateTab = useCallback(
     (path: string) => {
       if (tabId) {
-        updateTabPath(
+        void updateTabPath(
           tabId,
           path,
           syncAppPath ? beginAppPathCommit(path) : undefined,
@@ -139,7 +139,7 @@ function ShellAppPanelInner({
       if (!tabId) return
       if (syncAppPath && tabId !== activeTabId) return
       const newPath = resolvePath(path, to)
-      updateTabPath(
+      void updateTabPath(
         tabId,
         newPath,
         syncAppPath ? beginAppPathCommit(newPath) : undefined,

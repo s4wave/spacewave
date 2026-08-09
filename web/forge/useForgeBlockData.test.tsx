@@ -48,7 +48,7 @@ describe('useForgeBlockData', () => {
       typeFragment.length,
       ...typeFragment,
     ])
-    const unmarshal = vi.fn(async (req: { blockType?: string }) => ({
+    const unmarshal = vi.fn((req: { blockType?: string }) => ({
       found: true,
       data:
         req.blockType === dashboardBlockTypeID

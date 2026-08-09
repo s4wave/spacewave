@@ -16,19 +16,19 @@ class FakeDb {
     this.tablesBySchema = tablesBySchema
   }
 
-  async listSchemas(): Promise<string[]> {
-    return this.schemas
+  listSchemas(): Promise<string[]> {
+    return Promise.resolve(this.schemas)
   }
 
-  async listTables(schema: string): Promise<string[]> {
+  listTables(schema: string): Promise<string[]> {
     this.listTablesCalls.push(schema)
-    return this.tablesBySchema[schema] ?? []
+    return Promise.resolve(this.tablesBySchema[schema] ?? [])
   }
 }
 
 let fakeDb: FakeDb
-const createObject = vi.fn(async () => ({ release: vi.fn() }))
-const navigateToObjects = vi.fn()
+const createObject = vi.fn(() => Promise.resolve({ release: vi.fn() }))
+const navigateToObjects = vi.fn<(keys: string[]) => void>()
 
 function useResourceMock<P, T>(
   parent: { value: P | null },
@@ -43,7 +43,7 @@ function useResourceMock<P, T>(
     let cancelled = false
     if (parentValue == null) return
     setLoading(true)
-    factory(parentValue, new AbortController().signal).then((result) => {
+    void factory(parentValue, new AbortController().signal).then((result) => {
       if (cancelled) return
       setValue(result)
       setLoading(false)
@@ -90,9 +90,7 @@ vi.mock('@s4wave/sdk/world/types/types.js', () => ({
 import { SqlDbViewer } from './SqlDbViewer.js'
 
 function renderViewer() {
-  return render(
-    <SqlDbViewer objectInfo={{} as never} worldState={{} as never} />,
-  )
+  return render(<SqlDbViewer objectInfo={{}} worldState={{} as never} />)
 }
 
 describe('SqlDbViewer', () => {

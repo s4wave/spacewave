@@ -116,15 +116,17 @@ describe('useObjectViewerSetup route transitions', () => {
       rootRef: 'root://previous',
     })
 
+    const initialProps: {
+      objectKey: string
+      typeIDHint: string | undefined
+    } = {
+      objectKey: 'world/object-a',
+      typeIDHint: undefined,
+    }
     const { result, rerender } = renderHook(
       ({ objectKey, typeIDHint }: { objectKey: string; typeIDHint?: string }) =>
         useObjectViewerSetup(worldState, objectKey, { typeIDHint }),
-      {
-        initialProps: {
-          objectKey: 'world/object-a',
-          typeIDHint: undefined,
-        } as { objectKey: string; typeIDHint: string | undefined },
-      },
+      { initialProps },
     )
 
     expect(result.current.objectState.value).toBe(previousObject)

@@ -12,24 +12,24 @@ const strVal = (s: string): SqlValue => ({
 class FakeTableView {
   public readonly id = 1
   public fetchCalls = 0
-  async getTableView() {
-    return {
+  getTableView(): Promise<unknown> {
+    return Promise.resolve({
       tableView: {
         targetTableName: 'people',
         whereExpression: 'role = ?',
         rowLimit: 100,
         projectedColumns: ['name'],
       },
-    }
+    })
   }
-  async fetchRows() {
+  fetchRows(): Promise<unknown> {
     this.fetchCalls++
-    return {
+    return Promise.resolve({
       columns: [{ name: 'name' }],
       rowBatches: [{ rows: [{ values: [strVal('ada')] }] }],
       rowCount: 1n,
       truncated: false,
-    }
+    })
   }
 }
 
@@ -46,7 +46,7 @@ function useResourceMock<P, T>(
   useEffect(() => {
     let cancelled = false
     if (parentValue == null) return
-    factory(parentValue, new AbortController().signal).then((result) => {
+    void factory(parentValue, new AbortController().signal).then((result) => {
       if (cancelled) return
       setValue(result)
       setLoading(false)
@@ -85,9 +85,7 @@ vi.mock('@s4wave/web/object/object.js', () => ({
 import { SqlTableViewViewer } from './SqlTableViewViewer.js'
 
 function renderViewer() {
-  return render(
-    <SqlTableViewViewer objectInfo={{} as never} worldState={{} as never} />,
-  )
+  return render(<SqlTableViewViewer objectInfo={{}} worldState={{} as never} />)
 }
 
 describe('SqlTableViewViewer', () => {

@@ -80,18 +80,17 @@ describe('BottomBarItem', () => {
       )
 
       const item = container.firstChild as HTMLElement
-      item.getBoundingClientRect = () =>
-        ({
-          left: 10,
-          top: 20,
-          width: 80,
-          height: 20,
-          right: 90,
-          bottom: 40,
-          x: 10,
-          y: 20,
-          toJSON: () => {},
-        }) as DOMRect
+      item.getBoundingClientRect = () => ({
+        left: 10,
+        top: 20,
+        width: 80,
+        height: 20,
+        right: 90,
+        bottom: 40,
+        x: 10,
+        y: 20,
+        toJSON: () => {},
+      })
       fireEvent.keyDown(item, { key: 'ContextMenu' })
 
       expect(onClick).not.toHaveBeenCalled()

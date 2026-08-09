@@ -724,7 +724,7 @@ describe('UnixFSBrowser drag gating', () => {
     expect(h.mockNavigate).toHaveBeenCalledWith({ path: '/docs' })
   })
 
-  it('renders owner-provided directory headers above the file list', async () => {
+  it('renders owner-provided directory headers above the file list', () => {
     h.mockFileEntries = [
       { id: 'guide', name: 'getting-started.md', isDir: false },
       { id: 'docs', name: 'docs', isDir: true },

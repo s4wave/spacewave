@@ -18,6 +18,7 @@ import {
 } from '@s4wave/sdk/command/command.pb.js'
 import type { CommandState } from '@s4wave/sdk/command/registry/registry.pb.js'
 
+import type { KeybindingOverrideSettings } from '@s4wave/sdk/command/command.pb.js'
 import { StateNamespaceProvider, atom } from '@s4wave/web/state/index.js'
 import {
   KeybindingEditor,
@@ -63,7 +64,7 @@ const sharedLayerHookState = {
     loading: false,
     error: null as Error | null,
     setCommandOverride: vi.fn(),
-    setSettings: vi.fn(),
+    setSettings: vi.fn<(settings: KeybindingOverrideSettings) => void>(),
     setOverrideSet: vi.fn(),
     setCommandBindings: vi.fn(),
     addCommandBinding: vi.fn(),
@@ -81,7 +82,7 @@ const sharedLayerHookState = {
     loading: false,
     error: null as Error | null,
     setCommandOverride: vi.fn(),
-    setSettings: vi.fn(),
+    setSettings: vi.fn<(settings: KeybindingOverrideSettings) => void>(),
     setOverrideSet: vi.fn(),
     setCommandBindings: vi.fn(),
     addCommandBinding: vi.fn(),
@@ -257,15 +258,13 @@ describe('KeybindingEditor', () => {
 
     const search = view.getByPlaceholderText('Search commands…')
 
-    await act(async () =>
-      fireEvent.input(search, { target: { value: 'brush' } }),
-    )
+    await act(() => fireEvent.input(search, { target: { value: 'brush' } }))
     await waitFor(() => {
       expect(view.getAllByText('Paint Brush').length).toBeGreaterThan(0)
       expect(view.queryAllByText('Open Terminal')).toHaveLength(0)
     })
 
-    await act(async () =>
+    await act(() =>
       fireEvent.input(search, { target: { value: 'spacewave.terminal' } }),
     )
     await waitFor(() => {
@@ -273,7 +272,7 @@ describe('KeybindingEditor', () => {
       expect(view.queryByText('Paint Brush')).toBeNull()
     })
 
-    await act(async () =>
+    await act(() =>
       fireEvent.input(search, { target: { value: 'Help/Special' } }),
     )
     await waitFor(() => {
@@ -281,9 +280,7 @@ describe('KeybindingEditor', () => {
       expect(view.queryByText('Open Terminal')).toBeNull()
     })
 
-    await act(async () =>
-      fireEvent.input(search, { target: { value: 'Ctrl+B' } }),
-    )
+    await act(() => fireEvent.input(search, { target: { value: 'Ctrl+B' } }))
     await waitFor(() => {
       expect(view.getAllByText('Paint Brush').length).toBeGreaterThan(0)
       expect(view.queryByText('Special Command')).toBeNull()
@@ -465,7 +462,7 @@ describe('KeybindingEditor', () => {
     expect(sharedLayerHookState.space.resetLayer).toHaveBeenCalled()
   })
 
-  it('captures without recorder focus, suppresses the combo, and cancels with Escape or click-away', () => {
+  it('captures without recorder focus, suppresses the combo, and cancels with Escape or click-away', async () => {
     commandStates = [
       commandState(
         command('spacewave.open', {
@@ -491,7 +488,7 @@ describe('KeybindingEditor', () => {
       bubbles: true,
       cancelable: true,
     })
-    act(() => document.dispatchEvent(comboEvent))
+    await act(() => document.dispatchEvent(comboEvent))
     expect(comboEvent.defaultPrevented).toBe(true)
     expect(view.getByText(/Pending replacement:/).textContent).toContain(
       'Ctrl+Shift+K',

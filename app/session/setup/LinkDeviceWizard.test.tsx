@@ -66,6 +66,8 @@ vi.mock('./SetupPageLayout.js', () => ({
   ),
 }))
 
+import { asyncValues } from '@s4wave/web/test/async-values.js'
+
 import { LinkDeviceWizard } from './LinkDeviceWizard.js'
 
 describe('LinkDeviceWizard', () => {
@@ -247,18 +249,18 @@ describe('LinkDeviceWizard', () => {
 
   it('surfaces PAIRING_FAILED from the VerifyStep status watch', async () => {
     const session = {
-      createLocalPairingOffer: vi.fn(async () => ({
-        offerPayload: 'offer-payload',
-      })),
-      acceptLocalPairingAnswer: vi.fn(async () => ({
-        remotePeerId: 'remote-peer',
-      })),
-      watchPairingStatus: vi.fn(async function* () {
-        yield {
+      createLocalPairingOffer: vi.fn(() =>
+        Promise.resolve({ offerPayload: 'offer-payload' }),
+      ),
+      acceptLocalPairingAnswer: vi.fn(() =>
+        Promise.resolve({ remotePeerId: 'remote-peer' }),
+      ),
+      watchPairingStatus: vi.fn(() =>
+        asyncValues({
           status: PairingStatus.PairingStatus_FAILED,
           errorMessage: 'unsupported cross-NAT topology',
-        }
-      }),
+        }),
+      ),
     }
     mockUseResourceValue.mockReturnValue(session)
 

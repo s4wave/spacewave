@@ -46,7 +46,7 @@ function openableItem(id: string, label: string, path: string) {
 
 describe('buildShellExternalDrag', () => {
   it('builds a shell tab drop adapter from an openable app drag', () => {
-    const onAddTabs = vi.fn()
+    const onAddTabs = vi.fn<Parameters<typeof buildShellExternalDrag>[1]>()
     const externalDrag = buildShellExternalDrag(
       createDragEvent([openableItem('report', 'report.md', '/docs/report.md')]),
       onAddTabs,
@@ -74,7 +74,7 @@ describe('buildShellExternalDrag', () => {
   })
 
   it('preserves every openable item in selection order', () => {
-    const onAddTabs = vi.fn()
+    const onAddTabs = vi.fn<Parameters<typeof buildShellExternalDrag>[1]>()
     const externalDrag = buildShellExternalDrag(
       createDragEvent([
         openableItem('docs', 'docs', '/docs'),
@@ -86,26 +86,23 @@ describe('buildShellExternalDrag', () => {
 
     externalDrag?.onDrop({ getId: () => 'dropped-tab' } as never)
 
-    expect(onAddTabs.mock.calls[0]?.[0]).toEqual(
-      [
-        {
-          id: 'dropped-tab',
-          name: 'docs',
-          path: '/u/7/so/space-1/-/files/-/docs',
-        },
-        {
-          name: 'report.md',
-          path: '/u/7/so/space-1/-/files/-/docs/report.md',
-        },
-        {
-          name: 'image.png',
-          path: '/u/7/so/space-1/-/files/-/docs/image.png',
-        },
-      ].map((tab, index) => ({
-        ...tab,
-        ...(index === 0 ? {} : { id: expect.any(String) }),
-      })),
-    )
+    const addedTabs = onAddTabs.mock.calls[0]?.[0]
+    expect(addedTabs?.map(({ id: _id, ...tab }) => tab)).toEqual([
+      {
+        name: 'docs',
+        path: '/u/7/so/space-1/-/files/-/docs',
+      },
+      {
+        name: 'report.md',
+        path: '/u/7/so/space-1/-/files/-/docs/report.md',
+      },
+      {
+        name: 'image.png',
+        path: '/u/7/so/space-1/-/files/-/docs/image.png',
+      },
+    ])
+    expect(addedTabs?.[0]?.id).toBe('dropped-tab')
+    expect(addedTabs?.every((tab) => typeof tab.id === 'string')).toBe(true)
   })
 
   it('rejects app drags without a shell route hint', () => {

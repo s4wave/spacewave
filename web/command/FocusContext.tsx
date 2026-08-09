@@ -160,7 +160,7 @@ function readDomFocusContexts(target: HTMLElement): CommandFocusContext[] {
   while (node) {
     const raw = node.getAttribute(focusContextAttribute)
     if (raw != null) {
-      const context = Number(raw) as CommandFocusContext
+      const context = Number(raw)
       if (Number.isFinite(context)) contexts.unshift(context)
     }
     node = node.parentElement

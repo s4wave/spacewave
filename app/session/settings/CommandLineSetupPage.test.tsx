@@ -140,17 +140,17 @@ describe('DesktopCLIInstallCard', () => {
     expect(screen.queryByText('unimplemented')).toBeNull()
   })
 
-  it('changes an unresolved install check to the timeout presentation at 15 seconds', () => {
+  it('changes an unresolved install check to the timeout presentation at 15 seconds', async () => {
     vi.useFakeTimers()
     render(<DesktopCLIInstallCard loading />)
 
     expect(screen.getByText('Checking command line tool')).toBeDefined()
 
-    act(() => vi.advanceTimersByTime(14_999))
+    await act(() => vi.advanceTimersByTime(14_999))
     expect(screen.getByText('Checking command line tool')).toBeDefined()
     expect(screen.queryByText('Install state check timed out')).toBeNull()
 
-    act(() => vi.advanceTimersByTime(1))
+    await act(() => vi.advanceTimersByTime(1))
     expect(screen.getByText('Install state check timed out')).toBeDefined()
     expect(
       screen.getByText(
@@ -159,11 +159,11 @@ describe('DesktopCLIInstallCard', () => {
     ).toBeDefined()
   })
 
-  it('cancels the pending timeout when state arrives before starting a fresh check', () => {
+  it('cancels the pending timeout when state arrives before starting a fresh check', async () => {
     vi.useFakeTimers()
     const { rerender } = render(<DesktopCLIInstallCard loading />)
 
-    act(() => vi.advanceTimersByTime(10_000))
+    await act(() => vi.advanceTimersByTime(10_000))
     rerender(
       <DesktopCLIInstallCard
         state={state({
@@ -175,11 +175,11 @@ describe('DesktopCLIInstallCard', () => {
     expect(screen.getByText('Command line tool installed')).toBeDefined()
 
     rerender(<DesktopCLIInstallCard loading />)
-    act(() => vi.advanceTimersByTime(5_000))
+    await act(() => vi.advanceTimersByTime(5_000))
     expect(screen.getByText('Checking command line tool')).toBeDefined()
     expect(screen.queryByText('Install state check timed out')).toBeNull()
 
-    act(() => vi.advanceTimersByTime(10_000))
+    await act(() => vi.advanceTimersByTime(10_000))
     expect(screen.getByText('Install state check timed out')).toBeDefined()
   })
 
@@ -347,7 +347,7 @@ describe('DesktopCLIInstallCard', () => {
       const copyButtons = screen.getAllByRole('button', {
         name: 'Copy command',
       })
-      fireEvent.click(copyButtons[0]!)
+      fireEvent.click(copyButtons[0])
 
       expect(writeText).toHaveBeenCalledWith(
         "spacewave --socket-path '/run/spacewave-session-4.sock' --session-index 4 status",

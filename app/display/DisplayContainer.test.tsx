@@ -45,7 +45,7 @@ const h = vi.hoisted(() => ({
   sessionList: undefined as TestResource | undefined,
   useObjectViewer: vi.fn(),
   objectViewerContent: vi.fn(),
-  historyRouter: vi.fn(),
+  historyRouter: vi.fn<(props: HistoryRouterProps) => void>(),
 }))
 
 vi.mock('@aptre/bldr-react', () => ({

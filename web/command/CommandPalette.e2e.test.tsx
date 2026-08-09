@@ -10,7 +10,7 @@ vi.mock('./CommandContext.js', () => ({
   useCommands: () => [],
   useInvokeCommand: () => () => {},
   useCommandContext: () => ({
-    getSubItems: async () => [],
+    getSubItems: () => Promise.resolve([]),
     registerOpenCommand: () => () => {},
   }),
 }))

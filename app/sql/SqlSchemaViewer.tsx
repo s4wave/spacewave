@@ -167,7 +167,7 @@ interface TableRowProps {
   schemaName: string
   dbHandle: ReturnType<typeof useAccessTypedHandle<SqlDatabase>>
   canOpen: boolean
-  onOpen: (tableName: string) => void
+  onOpen: (tableName: string) => Promise<void>
 }
 
 // TableRow renders one table with a row count queried from the target database
@@ -198,7 +198,10 @@ function TableRow({
     [tableName, schemaName],
   )
 
-  const handleOpen = useCallback(() => onOpen(tableName), [onOpen, tableName])
+  const handleOpen = useCallback(
+    () => void onOpen(tableName),
+    [onOpen, tableName],
+  )
 
   const count = countResource.value
 

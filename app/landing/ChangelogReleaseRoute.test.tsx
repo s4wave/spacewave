@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ChangelogReleaseRoute } from './ChangelogReleaseRoute.js'
 
-const mockParams = vi.hoisted(() => vi.fn())
+const mockParams = vi.hoisted(() => vi.fn<() => { version?: string }>())
 const mockUseResource = vi.hoisted(() => vi.fn())
 
 vi.mock('@s4wave/web/router/router.js', () => ({

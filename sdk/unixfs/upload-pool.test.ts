@@ -25,7 +25,7 @@ function deferredHandle(
   listing?: Set<string>,
 ): Pick<IFSHandle, 'uploadTree'> {
   return {
-    uploadTree: vi.fn(async ([entry]) => {
+    uploadTree: vi.fn<IFSHandle['uploadTree']>(async ([entry]) => {
       active.add(entry.path)
       maxActive.value = Math.max(maxActive.value, active.size)
       const deferred = Promise.withResolvers<void>()

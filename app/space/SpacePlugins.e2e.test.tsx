@@ -72,7 +72,7 @@ describe('SpacePlugins panel screenshots', () => {
       res === spaceResource ? spaceMock : {},
     )
     mocks.useWatchStateRpc.mockImplementation(() => contentsState)
-    cleanup()
+    void cleanup()
   })
 
   it('captures the installed plugin list', async () => {
@@ -94,13 +94,13 @@ describe('SpacePlugins panel screenshots', () => {
       ],
     }
 
-    render(<PanelFrame />)
+    await render(<PanelFrame />)
     await expect.element(page.getByText('spacewave-notes')).toBeInTheDocument()
     await page.screenshot({ path: 'spaceplugins-01-installed.png' })
   })
 
   it('captures the empty state', async () => {
-    render(<PanelFrame />)
+    await render(<PanelFrame />)
     await expect
       .element(page.getByText('No plugins installed'))
       .toBeInTheDocument()
@@ -108,7 +108,7 @@ describe('SpacePlugins panel screenshots', () => {
   })
 
   it('captures the add form with suggestions', async () => {
-    render(<PanelFrame />)
+    await render(<PanelFrame />)
     await userEvent.click(page.getByLabelText('Add plugin'))
     await expect
       .element(page.getByText('Available plugins'))
@@ -126,7 +126,7 @@ describe('SpacePlugins panel screenshots', () => {
       ],
     }
 
-    render(<PanelFrame />)
+    await render(<PanelFrame />)
     await userEvent.click(page.getByLabelText('Remove spacewave-notes'))
     await expect
       .element(page.getByText('Remove spacewave-notes?'))

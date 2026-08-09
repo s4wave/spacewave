@@ -19,7 +19,7 @@ function buildLayoutHost(replaceTab: LayoutHost['ReplaceTab']): LayoutHost {
   return {
     WatchLayoutModel: () => emptyLayoutStream() as never,
     NavigateTab: () => Promise.resolve({}),
-    ReplaceTab: replaceTab as LayoutHost['ReplaceTab'],
+    ReplaceTab: replaceTab,
     AddTab: (request) => Promise.resolve({ tabId: request.tab?.id ?? '' }),
   }
 }

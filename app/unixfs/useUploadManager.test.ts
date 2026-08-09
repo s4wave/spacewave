@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import type { FSHandle, TreeUploadEntry } from '@s4wave/sdk/unixfs/handle.js'
+import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { useUploadManager } from './useUploadManager.js'
 
 function buildFile(name: string, content: string, relativePath?: string): File {
@@ -39,9 +39,7 @@ describe('useUploadManager', () => {
       expect(uploadTree).toHaveBeenCalledTimes(3)
     })
 
-    const entries = uploadTree.mock.calls.map(
-      ([entry]) => (entry as TreeUploadEntry[])[0],
-    )
+    const entries = uploadTree.mock.calls.map(([entry]) => entry[0])
     expect(entries).toMatchObject([
       { kind: 'file', path: 'nested/child.txt' },
       { kind: 'file', path: 'top.txt' },
@@ -125,13 +123,15 @@ describe('useUploadManager', () => {
   it('projects one file failure without stopping its siblings', async () => {
     const uploadTree = vi
       .fn<FSHandle['uploadTree']>()
-      .mockImplementation(async ([entry]) => {
-        if (entry.path === 'broken.txt') throw new Error('broken file')
-        return {
+      .mockImplementation(([entry]) => {
+        if (entry.path === 'broken.txt') {
+          return Promise.reject(new Error('broken file'))
+        }
+        return Promise.resolve({
           bytesWritten: 2n,
           filesWritten: 1n,
           directoriesWritten: 0n,
-        }
+        })
       })
     const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
 
@@ -173,9 +173,7 @@ describe('useUploadManager', () => {
       expect(uploadTree).toHaveBeenCalledTimes(2)
     })
 
-    expect(
-      uploadTree.mock.calls.map(([entry]) => (entry as TreeUploadEntry[])[0]),
-    ).toEqual([
+    expect(uploadTree.mock.calls.map(([entry]) => entry[0])).toEqual([
       { kind: 'directory', path: 'nested' },
       { kind: 'directory', path: 'nested/empty' },
     ])

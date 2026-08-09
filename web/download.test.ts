@@ -37,14 +37,16 @@ describe('downloadURL', () => {
       },
       createElement: vi.fn(() => anchor),
     } as unknown as Document
-    globalThis.fetch = vi.fn(async () => {
-      return new Response(new Blob(['hello'], { type: 'text/plain' }), {
-        headers: {
-          'content-disposition': 'attachment; filename="server.txt"',
-        },
-        status: 200,
-      })
-    }) as typeof fetch
+    globalThis.fetch = vi.fn(() => {
+      return Promise.resolve(
+        new Response(new Blob(['hello'], { type: 'text/plain' }), {
+          headers: {
+            'content-disposition': 'attachment; filename="server.txt"',
+          },
+          status: 200,
+        }),
+      )
+    })
     URL.createObjectURL = vi.fn(() => 'blob:download')
     URL.revokeObjectURL = vi.fn()
 
@@ -78,14 +80,16 @@ describe('downloadURL', () => {
       },
       createElement: vi.fn(() => anchor),
     } as unknown as Document
-    globalThis.fetch = vi.fn(async () => {
-      return new Response(new Blob(['hello']), {
-        headers: {
-          'content-disposition': "attachment; filename*=UTF-8''server.txt",
-        },
-        status: 200,
-      })
-    }) as typeof fetch
+    globalThis.fetch = vi.fn(() => {
+      return Promise.resolve(
+        new Response(new Blob(['hello']), {
+          headers: {
+            'content-disposition': "attachment; filename*=UTF-8''server.txt",
+          },
+          status: 200,
+        }),
+      )
+    })
     URL.createObjectURL = vi.fn(() => 'blob:explicit')
     URL.revokeObjectURL = vi.fn()
 
@@ -107,7 +111,7 @@ describe('downloadURL', () => {
       },
       createElement: vi.fn(() => anchor),
     } as unknown as Document
-    globalThis.fetch = vi.fn() as unknown as typeof fetch
+    globalThis.fetch = vi.fn()
 
     await downloadURL('https://downloads.example.test/file.zip', 'file.zip')
 
@@ -130,9 +134,7 @@ describe('downloadURL', () => {
       },
       createElement: vi.fn(() => anchor),
     } as unknown as Document
-    globalThis.fetch = vi.fn(async () => {
-      throw new Error('offline')
-    }) as typeof fetch
+    globalThis.fetch = vi.fn(() => Promise.reject(new Error('offline')))
 
     await downloadURL('/downloads/missing.zip', 'missing.txt')
 
@@ -158,9 +160,7 @@ describe('downloadURL', () => {
       },
       createElement,
     } as unknown as Document
-    globalThis.fetch = vi.fn(async () => {
-      throw new Error('offline')
-    }) as typeof fetch
+    globalThis.fetch = vi.fn(() => Promise.reject(new Error('offline')))
 
     await expect(
       downloadURL('/p/spacewave-core/fs/missing', 'missing.txt'),
@@ -190,12 +190,14 @@ describe('downloadURL', () => {
       },
       createElement,
     } as unknown as Document
-    globalThis.fetch = vi.fn(async () => {
-      return new Response('missing', {
-        status: 503,
-        statusText: 'Service Unavailable',
-      })
-    }) as typeof fetch
+    globalThis.fetch = vi.fn(() => {
+      return Promise.resolve(
+        new Response('missing', {
+          status: 503,
+          statusText: 'Service Unavailable',
+        }),
+      )
+    })
 
     await expect(
       downloadURL('/p/spacewave-core/fs/missing', 'missing.txt'),
@@ -224,14 +226,16 @@ describe('downloadURL', () => {
       },
       createElement: vi.fn(() => anchor),
     } as unknown as Document
-    globalThis.fetch = vi.fn(async () => {
-      return new Response(null, {
-        headers: {
-          'content-length': String(65 * 1024 * 1024),
-        },
-        status: 200,
-      })
-    }) as typeof fetch
+    globalThis.fetch = vi.fn(() => {
+      return Promise.resolve(
+        new Response(null, {
+          headers: {
+            'content-length': String(65 * 1024 * 1024),
+          },
+          status: 200,
+        }),
+      )
+    })
     URL.createObjectURL = vi.fn(() => 'blob:large')
 
     await downloadURL('/p/spacewave-core/export/large.zip', 'large.zip')
@@ -255,17 +259,19 @@ describe('downloadURL', () => {
       },
       createElement: vi.fn(() => anchor),
     } as unknown as Document
-    globalThis.fetch = vi.fn(async () => {
-      return new Response(
-        new ReadableStream({
-          start(controller) {
-            controller.enqueue(new Uint8Array(65 * 1024 * 1024))
-            controller.close()
-          },
-        }),
-        { status: 200 },
+    globalThis.fetch = vi.fn(() => {
+      return Promise.resolve(
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(new Uint8Array(65 * 1024 * 1024))
+              controller.close()
+            },
+          }),
+          { status: 200 },
+        ),
       )
-    }) as typeof fetch
+    })
     URL.createObjectURL = vi.fn(() => 'blob:oversized')
 
     await downloadURL('/p/spacewave-core/export/unknown.zip', 'unknown.zip')

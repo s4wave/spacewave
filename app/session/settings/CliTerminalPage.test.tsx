@@ -67,6 +67,8 @@ vi.mock('@s4wave/web/router/router.js', () => ({
   useNavigate: () => cliPageMocks.navigate,
 }))
 
+import { asyncValues } from '@s4wave/web/test/async-values.js'
+
 import { CliTerminalPage } from './CliTerminalPage.js'
 
 function waitForAbort(signal: AbortSignal): Promise<void> {
@@ -132,16 +134,11 @@ describe('CliTerminalPage', () => {
       kind: TerminalFrameKind.INPUT,
       data: new Uint8Array([104, 105]),
     }
-    async function* inputFrames() {
-      yield inputFrame
-    }
+    const inputFrames = asyncValues(inputFrame)
 
     const controller = new AbortController()
     const outputFrames: TerminalFrame[] = []
-    for await (const frame of connectTerminal(
-      inputFrames(),
-      controller.signal,
-    )) {
+    for await (const frame of connectTerminal(inputFrames, controller.signal)) {
       outputFrames.push(frame)
       controller.abort()
     }
@@ -271,16 +268,15 @@ describe('CliTerminalPage', () => {
   })
 
   it('replaces a terminal stream that ended before a pane reattaches', async () => {
-    cliPageMocks.runCli.mockImplementationOnce(async function* (
-      _frames: AsyncIterable<TerminalFrame>,
-      signal: AbortSignal,
-    ) {
-      cliPageMocks.runCliSignals.push(signal)
-      yield {
-        kind: TerminalFrameKind.ERROR,
-        error: 'first-stream-ended',
-      }
-    })
+    cliPageMocks.runCli.mockImplementationOnce(
+      (_frames: AsyncIterable<TerminalFrame>, signal: AbortSignal) => {
+        cliPageMocks.runCliSignals.push(signal)
+        return asyncValues<TerminalFrame>({
+          kind: TerminalFrameKind.ERROR,
+          error: 'first-stream-ended',
+        })
+      },
+    )
 
     function Harness({ showPane }: { showPane: boolean }) {
       return (
@@ -322,14 +318,11 @@ describe('CliTerminalPage', () => {
       kind: TerminalFrameKind.INPUT,
       data: new Uint8Array([114, 101, 116, 114, 121]),
     }
-    async function* secondInputFrames() {
-      yield secondInput
-    }
+    const secondInputFrames = asyncValues(secondInput)
     const secondPane = new AbortController()
-    const secondOutput = secondConnector(
-      secondInputFrames(),
-      secondPane.signal,
-    )[Symbol.asyncIterator]()
+    const secondOutput = secondConnector(secondInputFrames, secondPane.signal)[
+      Symbol.asyncIterator
+    ]()
 
     expect(await secondOutput.next()).toEqual({
       done: false,

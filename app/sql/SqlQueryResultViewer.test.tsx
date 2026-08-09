@@ -12,8 +12,8 @@ const strVal = (s: string): SqlValue => ({
 class FakeResult {
   public readonly id = 1
   constructor(private readonly grid: unknown) {}
-  async getResultGrid() {
-    return this.grid
+  getResultGrid(): Promise<unknown> {
+    return Promise.resolve(this.grid)
   }
 }
 
@@ -30,7 +30,7 @@ function useResourceMock<P, T>(
   useEffect(() => {
     let cancelled = false
     if (parentValue == null) return
-    factory(parentValue, new AbortController().signal).then((result) => {
+    void factory(parentValue, new AbortController().signal).then((result) => {
       if (cancelled) return
       setValue(result)
       setLoading(false)
@@ -71,7 +71,7 @@ import { SqlQueryResultViewer } from './SqlQueryResultViewer.js'
 
 function renderViewer() {
   return render(
-    <SqlQueryResultViewer objectInfo={{} as never} worldState={{} as never} />,
+    <SqlQueryResultViewer objectInfo={{}} worldState={{} as never} />,
   )
 }
 

@@ -11,30 +11,37 @@ const intVal = (n: bigint): SqlValue => ({
 
 class FakeSchema {
   public readonly id = 1
-  async getSchema() {
-    return {
+  getSchema(): Promise<{
+    schema: { schemaName: string; targetDbObjectKey: string }
+  }> {
+    return Promise.resolve({
       schema: { schemaName: 'main', targetDbObjectKey: 'sql/db' },
-    }
+    })
   }
-  async listTables() {
-    return { tables: [{ name: 'people' }, { name: 'projects' }] }
+  listTables(): Promise<{ tables: Array<{ name: string }> }> {
+    return Promise.resolve({
+      tables: [{ name: 'people' }, { name: 'projects' }],
+    })
   }
 }
 
 class FakeDb {
   public readonly id = 2
   public counts: Record<string, bigint> = { people: 2n, projects: 5n }
-  async query(sql: string) {
+  query(sql: string): Promise<{
+    columns: never[]
+    rows: Array<{ values: SqlValue[] }>
+  }> {
     const match = /FROM `(?:[^`]+`\.`)?([^`]+)`/.exec(sql)
     const table = match?.[1] ?? ''
-    return {
+    return Promise.resolve({
       columns: [],
       rows: [{ values: [intVal(this.counts[table] ?? 0n)] }],
-    }
+    })
   }
 }
 
-const navigateToObjects = vi.fn()
+const navigateToObjects = vi.fn<(keys: string[]) => void>()
 const setBlock = vi.fn()
 const createObjectCursor = { release: vi.fn() }
 
@@ -50,7 +57,7 @@ function useResourceMock<P, T>(
   useEffect(() => {
     let cancelled = false
     if (parentValue == null) return
-    factory(parentValue, new AbortController().signal).then((result) => {
+    void factory(parentValue, new AbortController().signal).then((result) => {
       if (cancelled) return
       setValue(result)
       setLoading(false)
@@ -92,9 +99,10 @@ vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
   SpaceContainerContext: {
     useContextSafe: () => ({
       spaceWorld: {
-        buildStorageCursor: async () => ({
-          [Symbol.dispose]() {},
-        }),
+        buildStorageCursor: () =>
+          Promise.resolve({
+            [Symbol.dispose]() {},
+          }),
         createObject: vi.fn(),
       },
       navigateToObjects,
@@ -103,14 +111,14 @@ vi.mock('@s4wave/web/contexts/SpaceContainerContext.js', () => ({
 }))
 
 vi.mock('@s4wave/sdk/world/utils.js', () => ({
-  createWorldObject: async (
+  createWorldObject: (
     _world: never,
     _cursor: never,
     _key: string,
     cb: (cursor: { setBlock: typeof setBlock }) => void,
   ) => {
     cb({ setBlock })
-    return { objectState: createObjectCursor }
+    return Promise.resolve({ objectState: createObjectCursor })
   },
 }))
 
@@ -127,9 +135,7 @@ vi.mock('@s4wave/sdk/sql/sql.js', () => ({
 import { SqlSchemaViewer } from './SqlSchemaViewer.js'
 
 function renderViewer() {
-  return render(
-    <SqlSchemaViewer objectInfo={{} as never} worldState={{} as never} />,
-  )
+  return render(<SqlSchemaViewer objectInfo={{}} worldState={{} as never} />)
 }
 
 describe('SqlSchemaViewer', () => {

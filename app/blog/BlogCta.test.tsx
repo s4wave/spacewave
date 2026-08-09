@@ -54,6 +54,15 @@ vi.mock('@s4wave/web/ui/turnstile.js', () => ({
 
 const originalFetch = globalThis.fetch
 
+function parseJsonBody(init: RequestInit | undefined): unknown {
+  const body = init?.body
+  if (typeof body !== 'string') {
+    throw new Error('expected a JSON string request body')
+  }
+  const value: unknown = JSON.parse(body)
+  return value
+}
+
 describe('BlogCta', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
@@ -90,7 +99,7 @@ describe('BlogCta', () => {
       }
       return Promise.resolve(new Response(null, { status: 404 }))
     })
-    globalThis.fetch = fetchMock as typeof fetch
+    globalThis.fetch = fetchMock
     turnstileHarness.getResponsePromise.mockReturnValue(turnstileToken)
 
     render(<BlogCta />)
@@ -107,7 +116,7 @@ describe('BlogCta', () => {
     const [captureUrl, captureInit] = fetchMock.mock.calls[0]
     expect(captureUrl).toBe('/api/email/capture')
     expect(captureInit?.method).toBe('POST')
-    expect(JSON.parse(String(captureInit?.body))).toEqual({
+    expect(parseJsonBody(captureInit)).toEqual({
       email,
       source: 'blog',
     })
@@ -128,15 +137,15 @@ describe('BlogCta', () => {
     const [upgradeUrl, upgradeInit] = fetchMock.mock.calls[1]
     expect(upgradeUrl).toBe('/api/email/capture/capture-123/upgrade')
     expect(upgradeInit?.method).toBe('POST')
-    expect(JSON.parse(String(upgradeInit?.body))).toEqual({
+    expect(parseJsonBody(upgradeInit)).toEqual({
       turnstile_token: 'turnstile-token-123',
     })
 
-    expect(fetchMock.mock.invocationCallOrder[0]!).toBeLessThan(
-      turnstileHarness.getResponsePromise.mock.invocationCallOrder[0]!,
+    expect(fetchMock.mock.invocationCallOrder[0]).toBeLessThan(
+      turnstileHarness.getResponsePromise.mock.invocationCallOrder[0],
     )
     expect(
-      turnstileHarness.getResponsePromise.mock.invocationCallOrder[0]!,
-    ).toBeLessThan(fetchMock.mock.invocationCallOrder[1]!)
+      turnstileHarness.getResponsePromise.mock.invocationCallOrder[0],
+    ).toBeLessThan(fetchMock.mock.invocationCallOrder[1])
   })
 })

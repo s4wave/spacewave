@@ -493,7 +493,7 @@ function useSpaceContainerController() {
   const redirectTab = useCallback(
     (nextPath: string) => {
       if (tabId) {
-        updateTabPath(tabId, nextPath)
+        void updateTabPath(tabId, nextPath)
       }
       setAppPath(nextPath)
     },

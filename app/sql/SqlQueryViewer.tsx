@@ -322,7 +322,7 @@ function SqlQueryEditor({
         <Button
           variant="default"
           size="sm"
-          onClick={handleRun}
+          onClick={() => void handleRun()}
           disabled={!canRun}
           className="h-7 gap-1 text-xs"
         >
@@ -332,7 +332,7 @@ function SqlQueryEditor({
         <Button
           variant="outline"
           size="sm"
-          onClick={handleSave}
+          onClick={() => void handleSave()}
           disabled={busy || paramError != null || !(textDirty || paramsDirty)}
           className="h-7 gap-1 text-xs"
         >

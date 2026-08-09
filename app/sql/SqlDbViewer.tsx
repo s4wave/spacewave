@@ -90,7 +90,7 @@ export function SqlDbViewer({
         </div>
         <DashboardButton
           icon={<LuPlus className="size-3.5" />}
-          onClick={handleOpenQueryEditor}
+          onClick={() => void handleOpenQueryEditor()}
           disabled={!container || creating}
         >
           Query Editor
