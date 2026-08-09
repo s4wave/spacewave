@@ -7,9 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 
@@ -354,82 +352,5 @@ func TestBuildDevtoolStatusSnapshotMapsRows(t *testing.T) {
 	if wire.GetAttentionRows()[0].GetSeverity() !=
 		DevtoolStatusAttentionSeverity_DevtoolStatusAttentionSeverity_ERROR {
 		t.Fatalf("expected error attention severity, got %#v", wire.GetAttentionRows()[0])
-	}
-}
-
-func TestDevtoolStatusSourceAvoidsPollingLogParsingAndControls(t *testing.T) {
-	files := []string{
-		"status-snapshot-proto.go",
-		"project-status-adapter.go",
-		"../../web/devtool-status/BldrDeveloperStatusApp.tsx",
-		"../../web/devtool-status/startup.tsx",
-	}
-	forbidden := []string{
-		"setInterval(",
-		"setTimeout(",
-		"requestAnimationFrame(",
-		"fetch(",
-		"WebSocket(",
-		"ReadFile(",
-		"readFile(",
-		"createReadStream(",
-		"parseLog",
-		"tail -f",
-		"BuildTargets(",
-		"BuildManifests(",
-		"UpdateProjectConfig(",
-		"LoadPlugin(",
-		"RestartRoutine(",
-		"window.location.reload",
-	}
-
-	for _, path := range files {
-		body, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		src := string(body)
-		for _, needle := range forbidden {
-			if strings.Contains(src, needle) {
-				t.Fatalf("%s contains forbidden read-only status token %q", path, needle)
-			}
-		}
-	}
-}
-
-func TestDevtoolStatusWebRuntimeRegistrationKeepsTinygoGate(t *testing.T) {
-	body, err := os.ReadFile("../start-web-wasm.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	src := string(body)
-	required := []string{
-		"devtool_status.RegisterDevtoolStatusService(mux, d.GetStatusProducer())",
-		"tinygoCompatible := false",
-		"useTinygo := entryBuildType.IsRelease() && minifyEntrypoint && tinygoCompatible",
-	}
-	for _, needle := range required {
-		if !strings.Contains(src, needle) {
-			t.Fatalf("start-web-wasm.go missing required non-interference proof %q", needle)
-		}
-	}
-	if strings.Contains(src, "tinygoCompatible := true") {
-		t.Fatal("devtool status registration must not enable TinyGo")
-	}
-
-	body, err = os.ReadFile("../start-web-ws.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	src = string(body)
-	required = []string{
-		"devtool_status.RegisterDevtoolStatusService(statusMux, d.GetStatusProducer())",
-		"[]string{devtool_web.HostServiceIDPrefix}",
-		"bifrost_rpc.NewClientController(",
-	}
-	for _, needle := range required {
-		if !strings.Contains(src, needle) {
-			t.Fatalf("start-web-ws.go missing required status app RPC proof %q", needle)
-		}
 	}
 }

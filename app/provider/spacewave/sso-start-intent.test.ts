@@ -46,6 +46,15 @@ describe('SSO start intent', () => {
     })
   })
 
+  it('does not authorize malformed persisted intents', () => {
+    sessionStorage.setItem(
+      'spacewave-sso-start-provider',
+      JSON.stringify({ provider: 'google', returnTo: 7 }),
+    )
+
+    expect(consumeSSOStartIntent('google').authorized).toBe(false)
+  })
+
   it('does not restore executable SSO routes as return targets', () => {
     setSSOStartIntent('google', '/auth/sso/google')
 

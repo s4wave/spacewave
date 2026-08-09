@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
@@ -19,6 +18,7 @@ import (
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	manifest_fetch_world "github.com/s4wave/spacewave/bldr/manifest/fetch/world"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
@@ -474,9 +474,8 @@ func newDistStorageVolumeConfig(storageID, projectID string) *storage_volume.Con
 }
 
 func isWebDistPlatform(platformID string) bool {
-	return platformID == "js" ||
-		platformID == "web/js/wasm" ||
-		strings.HasPrefix(platformID, "desktop/js/")
+	platform, err := bldr_platform.ParsePlatform(platformID)
+	return err == nil && bldr_platform.IsWebPlatform(platform)
 }
 
 // GetContext returns the context.

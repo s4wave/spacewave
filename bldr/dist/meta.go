@@ -6,6 +6,7 @@ import (
 	"github.com/klauspost/compress/s2"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/util/labels"
@@ -73,6 +74,9 @@ func UnmarshalDistMetaB58(str string) (*DistMeta, error) {
 func (m *DistMeta) Validate() error {
 	if err := labels.ValidateDNSLabel(m.GetProjectId()); err != nil {
 		return errors.Wrap(err, "project_id")
+	}
+	if _, err := bldr_platform.ParsePlatform(m.GetPlatformId()); err != nil {
+		return errors.Wrap(err, "platform_id")
 	}
 	if err := m.GetDistWorldRef().Validate(); err != nil {
 		return errors.Wrap(err, "dist_world_ref")

@@ -23,6 +23,7 @@ import (
 	manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
 	"github.com/s4wave/spacewave/bldr/manifest/builder/resultworld"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
@@ -119,6 +120,9 @@ func (m *ManifestBuilderConfig) Validate() error {
 	}
 	if m.GetPlatformId() == "" {
 		return bldr_manifest.ErrEmptyPlatformID
+	}
+	if _, err := bldr_platform.ParsePlatform(m.GetPlatformId()); err != nil {
+		return errors.Wrap(err, "platform_id")
 	}
 	if m.GetRemoteId() == "" {
 		return bldr_project.ErrEmptyRemoteID

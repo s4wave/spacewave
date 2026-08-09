@@ -115,20 +115,6 @@ func (b *Broker) defaultNextID() string {
 	return strconv.FormatUint(b.promptID, 10)
 }
 
-// SetClock replaces the clock function. For tests only.
-func (b *Broker) SetClock(nowFn func() time.Time) {
-	b.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		b.nowFn = nowFn
-	})
-}
-
-// SetIDFunc replaces the prompt id generator. For tests only.
-func (b *Broker) SetIDFunc(next func() string) {
-	b.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		b.nextID = next
-	})
-}
-
 // MakePolicy returns a Policy suitable for registering with the
 // daemon-control handler. requesterName and socketPath describe the
 // caller for display to the user.

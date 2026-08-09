@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/controller"
 	cb_controller "github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/core"
@@ -691,7 +690,7 @@ func TestBldrDevtoolStatusObserverDisposeCallbackRemovesKeyedDirective(t *testin
 type testFetchManifestController struct{}
 
 func (c *testFetchManifestController) GetControllerInfo() *cb_controller.Info {
-	return cb_controller.NewInfo("bldr/devtool/status/test-fetch-manifest", controller.MustParseVersion("0.0.1"), "test")
+	return cb_controller.NewInfo("bldr/devtool/status/test-fetch-manifest", cb_controller.MustParseVersion("0.0.1"), "test")
 }
 
 func (c *testFetchManifestController) Execute(ctx context.Context) error {

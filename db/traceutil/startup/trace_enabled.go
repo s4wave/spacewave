@@ -8,8 +8,6 @@ import (
 	"runtime/trace"
 )
 
-const buildTagged = true
-
 // Task is a startup attribution trace task.
 type Task struct {
 	task *trace.Task
