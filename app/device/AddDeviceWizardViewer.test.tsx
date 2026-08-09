@@ -308,6 +308,7 @@ describe('AddDeviceWizardViewer', () => {
           port: 2222,
           username: 'ubuntu',
           authMode: 'password',
+          setupMode: 'host',
           hostKeyAlgorithm: 'ssh-ed25519',
           hostKeyFingerprint: 'SHA256:trusted-host',
         },
@@ -574,7 +575,7 @@ describe('AddDeviceWizardViewer', () => {
     )
   })
 
-  it('opens an SSH installer terminal without creating a Device object', async () => {
+  it('rejects direct Install Agent selection without side effects', () => {
     h.currentStep = 1
     h.configData = new TextEncoder().encode(
       JSON.stringify({
@@ -584,67 +585,73 @@ describe('AddDeviceWizardViewer', () => {
           port: 22,
           username: 'root',
           authMode: 'password',
-          setupMode: 'install-agent',
-          hostKeyAlgorithm: 'ssh-ed25519',
-          hostKeyFingerprint: 'SHA256:installer-host',
+          setupMode: 'host',
         },
       }),
     )
     renderViewer()
 
-    expect(screen.getByText('Remote setup')).toBeTruthy()
-    expect(screen.getByText(/spacewave device setup/)).toBeTruthy()
-    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
-      target: { value: 'installer-secret' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: /open installer/i }))
+    const install = screen.getByRole('button', { name: 'Install Agent' })
+    expect(install).toHaveProperty('disabled', true)
+    fireEvent.click(install)
 
-    await waitFor(() =>
-      expect(h.applyWorldOp).toHaveBeenCalledWith(
-        CREATE_TERMINAL_OP_ID,
-        expect.any(Uint8Array),
-        '12D3KooWSession',
-      ),
-    )
-    const terminalCall = h.applyWorldOp.mock.calls.find(
-      ([opId]) => opId === CREATE_TERMINAL_OP_ID,
-    ) as [string, unknown, string?] | undefined
-    if (!terminalCall) throw new Error('expected installer terminal create op')
-    const terminalOpData: unknown = terminalCall[1]
-    if (!(terminalOpData instanceof Uint8Array)) {
-      throw new Error('expected terminal op bytes')
-    }
-    const terminalOp = CreateTerminalOp.fromBinary(terminalOpData)
-    expect(terminalOp.targetKind).toBe(TerminalTargetKind.SSH_HOST)
-    expect(terminalOp.command).toContain('spacewave device setup')
-    expect(terminalOp.command).toContain('--target-hint space-1')
-    expect(terminalOp.deviceObjectKey ?? '').toBe('')
-    expect(terminalOp.devicePeerId ?? '').toBe('')
-
-    expect(h.deleteObject).not.toHaveBeenCalled()
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
-    const update = h.updateState.mock.calls.at(-1)?.[0] as
-      | { configData?: Uint8Array; step?: number }
-      | undefined
-    if (!update?.configData) {
-      throw new Error('expected installer status update')
-    }
-    expect(update.step).toBeUndefined()
-    const config = JSON.parse(new TextDecoder().decode(update.configData)) as {
-      ssh?: { setupStatus?: { state?: string; terminalObjectKey?: string } }
-    }
-    expect(config.ssh?.setupStatus).toEqual({
-      state: 'terminal_created',
-      hostObjectKey: 'build-host-1',
-      terminalObjectKey: 'build-host-terminal-1',
-      message: 'installer terminal opened',
-    })
     expect(
-      h.applyWorldOp.mock.calls.some(
-        ([opId]) => typeof opId === 'string' && opId.includes('/device'),
-      ),
-    ).toBe(false)
+      screen
+        .getByRole('button', { name: 'Add SSH Host' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(h.toastError).not.toHaveBeenCalled()
+    expectNoInstallAgentSideEffects()
   })
+
+  it.each(['spacewave', 'local'])(
+    'rejects a restored Install Agent mode without %s side effects',
+    (providerId) => {
+      h.currentStep = 1
+      h.providerId = providerId
+      h.configData = new TextEncoder().encode(
+        JSON.stringify({
+          mode: 'ssh',
+          ticket: 'persisted-ticket',
+          completion: 'persisted-completion',
+          ssh: {
+            host: 'install.example.com',
+            port: 22,
+            username: 'root',
+            authMode: 'password',
+            setupMode: 'install-agent',
+            setupStatus: {
+              state: 'terminal_created',
+              hostObjectKey: 'persisted-host',
+              terminalObjectKey: 'persisted-terminal',
+            },
+          },
+        }),
+      )
+      renderViewer()
+
+      expect(screen.queryByText('Remote setup')).toBeNull()
+      expect(screen.queryByText('Complete setup')).toBeNull()
+      expect(
+        screen.queryByPlaceholderText(/paste the base64 ticket/i),
+      ).toBeNull()
+      expect(screen.queryByRole('button', { name: /^approve$/i })).toBeNull()
+      expect(
+        screen.queryByRole('button', { name: 'Sign in or create account' }),
+      ).toBeNull()
+      const finalize = screen.getByRole('button', {
+        name: 'Install Agent unavailable',
+      })
+      expect(finalize).toHaveProperty('disabled', true)
+      fireEvent.click(finalize)
+
+      expect(screen.getByRole('alert').textContent).toContain(
+        'Install Agent is not available until secure bootstrap is configured.',
+      )
+      expect(h.toastError).not.toHaveBeenCalled()
+      expectNoInstallAgentSideEffects()
+    },
+  )
 })
 
 function renderViewer() {
@@ -659,6 +666,21 @@ function renderViewer() {
       }}
     />,
   )
+}
+
+function expectNoInstallAgentSideEffects() {
+  expect(h.applyWorldOp).not.toHaveBeenCalled()
+  expect(h.createSecret).not.toHaveBeenCalled()
+  expect(h.deleteObject).not.toHaveBeenCalled()
+  expect(h.navigateToObjects).not.toHaveBeenCalled()
+  expect(h.navigate).not.toHaveBeenCalled()
+  expect(h.previewSpaceLink).not.toHaveBeenCalled()
+  expect(h.approveSpaceLink).not.toHaveBeenCalled()
+  expect(h.persistDraftState).not.toHaveBeenCalled()
+  expect(h.handleConfigDataChange).not.toHaveBeenCalled()
+  expect(h.updateState).not.toHaveBeenCalled()
+  expect(h.setCreating).not.toHaveBeenCalled()
+  expect(h.toastSuccess).not.toHaveBeenCalled()
 }
 
 function bytesToBase64(bytes: Uint8Array): string {

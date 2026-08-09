@@ -61,17 +61,12 @@ import { buildCreateSshHostTerminalOpData } from './terminal-action.js'
 const DEFAULT_SSH_PORT = 22
 const DEVICE_APPROVAL_CLOUD_REQUIRED =
   'Device linking requires a Spacewave Cloud session. Sign in or create an account to continue.'
+const INSTALL_AGENT_UNAVAILABLE =
+  'Install Agent is unavailable until secure bootstrap is configured.'
 
 type AddDeviceWizardMode = 'spacelink' | 'ssh'
 type SshAuthMode = 'password' | 'private-key'
 type SshSetupMode = 'host' | 'install-agent'
-
-interface SshSetupStatus {
-  state?: 'terminal_created' | 'failed'
-  hostObjectKey?: string
-  terminalObjectKey?: string
-  message?: string
-}
 
 interface SshHostWizardConfig {
   host?: string
@@ -82,9 +77,6 @@ interface SshHostWizardConfig {
   hostKeyAlgorithm?: string
   hostKeyFingerprint?: string
   hostKeyPublicKey?: string
-  hostObjectKey?: string
-  terminalObjectKey?: string
-  setupStatus?: SshSetupStatus
 }
 
 interface SshCredentialDraft {
@@ -146,10 +138,6 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   const sshConfig = useMemo(() => config.ssh ?? {}, [config.ssh])
   const sshAuthMode = sshConfig.authMode ?? 'password'
   const sshSetupMode = sshConfig.setupMode ?? 'host'
-  const sshInstallCommand = buildSshInstallCommand(
-    ws.localName || 'Device',
-    sharedObjectId,
-  )
   const isSshInstallMode = mode === 'ssh' && sshSetupMode === 'install-agent'
   const ticket = config.ticket ?? ''
   const completion = config.completion ?? ''
@@ -207,6 +195,11 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
 
   const handleSshConfigChange = useCallback(
     (patch: Partial<SshHostWizardConfig>) => {
+      if (patch.setupMode && patch.setupMode !== 'host') {
+        setOperationError(INSTALL_AGENT_UNAVAILABLE)
+        toast.error(INSTALL_AGENT_UNAVAILABLE)
+        return
+      }
       ws.handleConfigDataChange(
         encodeConfig({
           ...config,
@@ -384,70 +377,18 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     ws,
   ])
 
-  const handleOpenSshInstaller = useCallback(async () => {
-    if (!state || ws.creating) return
-    const error = getSshCreateError(sshConfig, sshCredentialDraft)
-    if (error) {
-      setOperationError(error)
-      toast.error(error)
+  const handleFinalize = useCallback(() => {
+    if (isSshInstallMode) {
+      setOperationError(INSTALL_AGENT_UNAVAILABLE)
+      toast.error(INSTALL_AGENT_UNAVAILABLE)
       return
     }
-
-    setOperationError('')
-    ws.setCreating(true)
-    try {
-      const { hostObjectKey, terminalObjectKey } =
-        await createSshHostTerminalObjects(sshInstallCommand)
-      await handleConfigUpdate({
-        ...config,
-        mode: 'ssh',
-        ssh: {
-          ...sshConfig,
-          setupMode: 'install-agent',
-          setupStatus: {
-            state: 'terminal_created',
-            hostObjectKey,
-            terminalObjectKey,
-            message: 'installer terminal opened',
-          },
-        },
-      })
-      toast.success('SSH installer opened')
-      ws.navigateToObjects([terminalObjectKey || hostObjectKey])
-    } catch {
-      const message =
-        'SSH installer could not be opened. Check the connection and try again.'
-      try {
-        await handleConfigUpdate({
-          ...config,
-          mode: 'ssh',
-          ssh: {
-            ...sshConfig,
-            setupMode: 'install-agent',
-            setupStatus: {
-              state: 'failed',
-              message,
-            },
-          },
-        })
-      } catch {
-        // Preserve the primary setup failure as the visible error.
-      }
-      setOperationError(message)
-      toast.error(message)
-    } finally {
-      ws.setCreating(false)
+    if (mode === 'ssh') {
+      void handleCreateSshHost()
+      return
     }
-  }, [
-    config,
-    createSshHostTerminalObjects,
-    handleConfigUpdate,
-    sshConfig,
-    sshCredentialDraft,
-    sshInstallCommand,
-    state,
-    ws,
-  ])
+    void handleFinishSpaceLink()
+  }, [handleCreateSshHost, handleFinishSpaceLink, isSshInstallMode, mode])
 
   const handleCancel = useCallback(() => {
     void ws.handleCancel()
@@ -463,11 +404,9 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     deviceObjects,
     handleCancel,
     handleConfigUpdate,
-    handleCreateSshHost,
-    handleFinishSpaceLink,
+    handleFinalize,
     handleModeChange,
     handleNameNext,
-    handleOpenSshInstaller,
     handleSignIn,
     handleSshConfigChange,
     handleTicketChange,
@@ -487,7 +426,6 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     sshAuthMode,
     sshConfig,
     sshCredentialDraft,
-    sshInstallCommand,
     sshSetupMode,
     state,
     supportsDeviceApproval,
@@ -509,7 +447,6 @@ function AddDeviceWizardSteps({
     approvalError,
     busy,
     completeCommand,
-    completion,
     config,
     currentStep,
     deviceObjects,
@@ -519,7 +456,6 @@ function AddDeviceWizardSteps({
     handleSshConfigChange,
     handleTicketChange,
     isOpeningStep,
-    isSshInstallMode,
     mode,
     operationError,
     session,
@@ -532,7 +468,6 @@ function AddDeviceWizardSteps({
     sshAuthMode,
     sshConfig,
     sshCredentialDraft,
-    sshInstallCommand,
     sshSetupMode,
     supportsDeviceApproval,
     ticket,
@@ -619,49 +554,6 @@ function AddDeviceWizardSteps({
                   setSshCredentialDraft((prev) => ({ ...prev, ...patch }))
                 }
               />
-              {isSshInstallMode && (
-                <>
-                  <CommandPanel
-                    title="Remote setup"
-                    command={sshInstallCommand}
-                    icon={<LuTerminal className="size-3.5" />}
-                  />
-                  <SpaceLinkApprovalPanel
-                    supported={supportsDeviceApproval}
-                    loading={sessionInfoLoading}
-                    onSignIn={handleSignIn}
-                    config={config}
-                    ticket={ticket}
-                    busy={busy}
-                    error={approvalError}
-                    onTicketChange={(value) => {
-                      setApprovalError('')
-                      handleTicketChange(value)
-                    }}
-                    onApprove={() => {
-                      setApprovalError('')
-                      void approveTicket({
-                        ws,
-                        sharedObjectId,
-                        ticket,
-                        config,
-                        session,
-                        setBusy,
-                        setError: setApprovalError,
-                        persist: handleConfigUpdate,
-                        nextStep: 1,
-                      })
-                    }}
-                  />
-                  {completion && (
-                    <CommandPanel
-                      title="Complete setup"
-                      command={completeCommand}
-                      icon={<LuTerminal className="size-3.5" />}
-                    />
-                  )}
-                </>
-              )}
             </section>
           )}
         </>
@@ -736,10 +628,8 @@ function AddDeviceWizardContent({
     completion,
     currentStep,
     handleCancel,
-    handleCreateSshHost,
-    handleFinishSpaceLink,
+    handleFinalize,
     handleNameNext,
-    handleOpenSshInstaller,
     isOpeningStep,
     isSshInstallMode,
     mode,
@@ -801,28 +691,23 @@ function AddDeviceWizardContent({
       creating={ws.creating}
       createLabel={
         isSshInstallMode
-          ? 'Open installer'
+          ? 'Install Agent unavailable'
           : mode === 'ssh'
             ? 'Add SSH Host and open terminal'
             : 'Open Device'
       }
       creatingLabel={
         isSshInstallMode
-          ? 'Opening installer…'
+          ? 'Install Agent unavailable'
           : mode === 'ssh'
             ? 'Adding SSH Host and opening terminal…'
             : 'Opening Device…'
       }
-      onFinalize={() =>
-        void (isSshInstallMode
-          ? handleOpenSshInstaller()
-          : mode === 'ssh'
-            ? handleCreateSshHost()
-            : handleFinishSpaceLink())
-      }
+      onFinalize={handleFinalize}
       canFinalize={
         mode === 'ssh'
-          ? !getSshCreateError(sshConfig, sshCredentialDraft)
+          ? !isSshInstallMode &&
+            !getSshCreateError(sshConfig, sshCredentialDraft)
           : !!completion
       }
       onNext={currentStep === 0 ? () => void handleNameNext() : undefined}
@@ -1077,7 +962,10 @@ function SshHostSetupForm({
             disabled
           />
         </div>
-        <p className="text-foreground-alt/70 mt-2 text-xs leading-relaxed">
+        <p
+          className="text-foreground-alt/70 mt-2 text-xs leading-relaxed"
+          role={setupMode === 'install-agent' ? 'alert' : undefined}
+        >
           Install Agent is not available until secure bootstrap is configured.
           Add the SSH Host to keep on-demand terminal access.
         </p>
@@ -1616,18 +1504,6 @@ function buildSetupCommand(label: string, sharedObjectId: string): string {
     parts.push('--target-hint', quoteShellArg(sharedObjectId))
   }
   return parts.join(' ')
-}
-
-function buildSshInstallCommand(label: string, sharedObjectId: string): string {
-  const setupCommand = buildSetupCommand(label, sharedObjectId)
-  return [
-    'if command -v spacewave >/dev/null 2>&1; then',
-    `  ${setupCommand}`,
-    'else',
-    "  echo 'spacewave CLI not found on remote host' >&2",
-    '  exit 127',
-    'fi',
-  ].join('\n')
 }
 
 function quoteShellArg(value: string): string {
