@@ -133,13 +133,14 @@ function SessionRootRouter(props: { metadata?: SessionMetadata }) {
   return <SessionDashboardContainer />
 }
 
-// SessionContainer is the top level entrypoint for URL routing for a Session.
-// It wraps routes with BottomBarLevel to register the account menu item.
-// Nested routes register their own items, creating a hierarchical bottom bar.
-export function SessionContainer(props: {
+interface SessionContainerProps {
   sessionResource: Resource<Session>
   metadata?: SessionMetadata
-}) {
+}
+
+// useSessionContainerController owns Session status, account overlays,
+// document state access, and navigation callbacks.
+function useSessionContainerController(props: SessionContainerProps) {
   const session = props.sessionResource.value
 
   // Signal to bootstrap.ts that this user has product state to return to.
@@ -344,6 +345,64 @@ export function SessionContainer(props: {
   const handleGoHome = useCallback(() => {
     navigate({ path: currentLevelPath, replace: true })
   }, [navigate, currentLevelPath])
+
+  return {
+    accountButton,
+    accountButtonKey,
+    accountLabel,
+    currentLevelPath,
+    handleAccountBreadcrumb,
+    handleChangeAccount,
+    handleCloseDetails,
+    handleGoHome,
+    handleMountedUnlock,
+    handleReauth,
+    handleRemoveSession,
+    handleReset,
+    isCloudProvider,
+    isDeleted,
+    isDormant,
+    isMountedPinLocked,
+    isUnauthenticated,
+    onboardingState,
+    path,
+    session,
+    sessionIdx,
+    sessionStateAccessor,
+    spacewaveSessionResource,
+    stateNamespace,
+  }
+}
+
+// SessionContainer is the top-level URL router for a Session. Nested routes
+// register their own items under the account bottom-bar level.
+export function SessionContainer(props: SessionContainerProps) {
+  const {
+    accountButton,
+    accountButtonKey,
+    accountLabel,
+    currentLevelPath,
+    handleAccountBreadcrumb,
+    handleChangeAccount,
+    handleCloseDetails,
+    handleGoHome,
+    handleMountedUnlock,
+    handleReauth,
+    handleRemoveSession,
+    handleReset,
+    isCloudProvider,
+    isDeleted,
+    isDormant,
+    isMountedPinLocked,
+    isUnauthenticated,
+    onboardingState,
+    path,
+    session,
+    sessionIdx,
+    sessionStateAccessor,
+    spacewaveSessionResource,
+    stateNamespace,
+  } = useSessionContainerController(props)
 
   // Show full-page overlays for deleted or unauthenticated accounts.
   if (isDeleted && props.metadata) {

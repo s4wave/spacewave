@@ -220,14 +220,13 @@ export interface ShellTabsProviderProps {
   entry?: ShellDocumentEntry
 }
 
-// ShellTabsProvider owns only this document's active ID, visible order, URL,
-// focus/rename interaction, and layout projection. BrowserShellTabsStore owns
-// shared record identity, membership, paths, and names.
-export function ShellTabsProvider({
-  children,
-  store: providedStore,
-  entry: providedEntry,
-}: ShellTabsProviderProps) {
+// useShellTabsContextValue owns this document's active ID, visible order,
+// URL, focus/rename interaction, and layout projection. BrowserShellTabsStore
+// owns shared record identity, membership, paths, and names.
+function useShellTabsContextValue(
+  providedStore: BrowserShellTabsStore | undefined,
+  providedEntry: ShellDocumentEntry | undefined,
+): ShellTabsContextValue {
   const store = providedStore ?? getBrowserShellTabsStore()
   const snapshot = useProviderStore(store)
   const entry = useMemo(
@@ -724,6 +723,16 @@ export function ShellTabsProvider({
     ],
   )
 
+  return value
+}
+
+// ShellTabsProvider publishes the document-local Shell Tab owner.
+export function ShellTabsProvider({
+  children,
+  store,
+  entry,
+}: ShellTabsProviderProps) {
+  const value = useShellTabsContextValue(store, entry)
   return (
     <ShellTabsContext.Provider value={value}>
       {children}

@@ -150,8 +150,9 @@ function ObjectLayoutTabLabel({
   )
 }
 
-// LayoutObjectViewer renders an ObjectLayout world object using BaseLayout.
-export function LayoutObjectViewer({
+// useObjectLayoutController owns persisted layout state and the tab actions
+// that mutate the current FlexLayout model.
+function useObjectLayoutController({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
@@ -417,6 +418,36 @@ export function LayoutObjectViewer({
       icons,
     ],
   )
+
+  return {
+    contextMenu,
+    contextMenuItems,
+    flexLayoutProps,
+    focusedTabId,
+    handleLocalStateChange,
+    layoutHost,
+    memoizedLocalState,
+    renderTab,
+    setContextMenu,
+  }
+}
+
+// LayoutObjectViewer renders an ObjectLayout world object using BaseLayout.
+export function LayoutObjectViewer({
+  objectInfo,
+  worldState,
+}: ObjectViewerComponentProps) {
+  const {
+    contextMenu,
+    contextMenuItems,
+    flexLayoutProps,
+    focusedTabId,
+    handleLocalStateChange,
+    layoutHost,
+    memoizedLocalState,
+    renderTab,
+    setContextMenu,
+  } = useObjectLayoutController({ objectInfo, worldState })
 
   if (layoutHost === null) {
     return (

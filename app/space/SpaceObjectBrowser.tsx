@@ -47,8 +47,8 @@ interface ContextMenuState {
   node: TreeNode<ObjectTreeNode>
 }
 
-// SpaceObjectBrowser renders the object tree for a space with context menu actions.
-export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
+// useSpaceObjectBrowserController owns tree projection and object mutations.
+function useSpaceObjectBrowserController() {
   const {
     spaceState,
     navigateToObjects,
@@ -296,6 +296,81 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
   const handleCreateObject = useCallback(() => {
     openCommand('spacewave.create-object')
   }, [openCommand])
+  return {
+    canDeleteObjects,
+    handleContextMenu,
+    handleCopyKey,
+    handleCreateObject,
+    handleDeleteClick,
+    handleDeleteConfirmClick,
+    handleIndexConfirmClick,
+    handleMenuOpen,
+    handleOpen,
+    handleOpenChange,
+    handleRenameCancel,
+    handleRenameClick,
+    handleRenameConfirm,
+    handleRenameConfirmClick,
+    handleRenameInputRef,
+    handleSetAsIndex,
+    menuState,
+    objectCount,
+    openCommand,
+    pendingDelete,
+    pendingIndex,
+    pendingRename,
+    renameInputId,
+    renameSaving,
+    renameValue,
+    setMenuState,
+    setRenameValue,
+    treeNodes,
+  }
+}
+
+type SpaceObjectBrowserController = ReturnType<
+  typeof useSpaceObjectBrowserController
+>
+
+// SpaceObjectBrowserView renders the tree and its context-menu states.
+function SpaceObjectBrowserView({
+  controller,
+  embedded,
+}: {
+  controller: SpaceObjectBrowserController
+  embedded: boolean | undefined
+}) {
+  const {
+    canDeleteObjects,
+    handleContextMenu,
+    handleCopyKey,
+    handleCreateObject,
+    handleDeleteClick,
+    handleDeleteConfirmClick,
+    handleIndexConfirmClick,
+    handleMenuOpen,
+    handleOpen,
+    handleOpenChange,
+    handleRenameCancel,
+    handleRenameClick,
+    handleRenameConfirm,
+    handleRenameConfirmClick,
+    handleRenameInputRef,
+    handleSetAsIndex,
+    menuState,
+    objectCount,
+    openCommand,
+    pendingDelete,
+    pendingIndex,
+    pendingRename,
+    renameInputId,
+    renameSaving,
+    renameValue,
+    setMenuState,
+    setRenameValue,
+    treeNodes,
+  } = controller
+
   const treeCard = (
     <InfoCard>
       <div className="max-h-[300px] overflow-auto">
@@ -486,6 +561,13 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
       {menu}
     </section>
   )
+}
+
+// SpaceObjectBrowser renders the object tree for a Space with context-menu
+// actions.
+export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
+  const controller = useSpaceObjectBrowserController()
+  return <SpaceObjectBrowserView controller={controller} embedded={embedded} />
 }
 
 function rewriteLocalObjectReference(

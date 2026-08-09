@@ -460,10 +460,9 @@ function CommandChordItem({
   )
 }
 
-// CommandPalette renders a searchable command palette dialog.
-// Supports sub-item navigation: selecting a command with has_sub_items
-// replaces the command list with a filtered sub-item list.
-export function CommandPalette() {
+// useCommandPaletteController owns palette mode, chord traversal, sub-item
+// loading, query projection, and command invocation.
+function useCommandPaletteController() {
   const [open, setOpen] = useState(false)
   const commands = useCommands()
   const invokeCommand = useInvokeCommand()
@@ -787,6 +786,60 @@ export function CommandPalette() {
       : `${visibleCommandCount} ${
           visibleCommandCount === 1 ? 'match' : 'matches'
         }`
+
+  return {
+    activeSubItemCommand,
+    bindingGraph,
+    chordContinuations,
+    chordPath,
+    enterFilterMode,
+    filteredGrouped,
+    handleBack,
+    handleOpenChange,
+    handlePaletteKeyDown,
+    handleSelect,
+    handleSubItemSelect,
+    inputChange,
+    inputRef,
+    inputValue,
+    open,
+    paletteMode,
+    placeholder,
+    query,
+    resultSummary,
+    selectChordContinuation,
+    subItemCommandId,
+    subItems,
+  }
+}
+
+// CommandPalette renders a searchable command palette dialog with chord and
+// sub-item navigation modes.
+export function CommandPalette() {
+  const {
+    activeSubItemCommand,
+    bindingGraph,
+    chordContinuations,
+    chordPath,
+    enterFilterMode,
+    filteredGrouped,
+    handleBack,
+    handleOpenChange,
+    handlePaletteKeyDown,
+    handleSelect,
+    handleSubItemSelect,
+    inputChange,
+    inputRef,
+    inputValue,
+    open,
+    paletteMode,
+    placeholder,
+    query,
+    resultSummary,
+    selectChordContinuation,
+    subItemCommandId,
+    subItems,
+  } = useCommandPaletteController()
 
   return (
     <CommandDialog

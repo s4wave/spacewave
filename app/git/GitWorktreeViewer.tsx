@@ -46,9 +46,9 @@ import { useGitNavigation } from './useGitNavigation.js'
 // GitWorktreeTypeID is the type identifier for git/worktree objects.
 export const GitWorktreeTypeID = 'git/worktree'
 
-// GitWorktreeViewer renders a git worktree object with repo context,
-// working directory browser, and magit-style changes view.
-export function GitWorktreeViewer({
+// useGitWorktreeController owns worktree resources, status projection, and
+// navigation callbacks independently from presentation.
+function useGitWorktreeController({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
@@ -281,330 +281,392 @@ export function GitWorktreeViewer({
       : undefined,
   }
 
-  function renderSizeFallback() {
-    return (
-      <GitViewerCenteredState
-        title="Git Worktree"
-        subtitle={objectKey}
-        detail="Make panel larger to view"
-      />
-    )
+  return {
+    availableModes,
+    displayPath,
+    effectiveRef,
+    files,
+    filesInlineFileURL,
+    handleChangesFileClick,
+    nav,
+    navigate,
+    objectKey,
+    pendingName,
+    readmePath,
+    refBarProps,
+    renderEntry,
+    repoHandleResource,
+    rootHandleResource,
+    route,
+    staleEntries,
+    statusEntries,
+    toolbarProps,
+    workdirFiles,
+    workdirHandleResource,
+    workdirInlineFileURL,
+    workdirPath,
+    worktreeResource,
+  }
+}
+
+type GitWorktreeController = ReturnType<typeof useGitWorktreeController>
+
+// GitWorktreeReadyContent renders file, workdir, change, README, log, and
+// commit routes after the worktree handle is available.
+function GitWorktreeReadyContent({
+  controller,
+}: {
+  controller: GitWorktreeController
+}) {
+  const {
+    availableModes,
+    displayPath,
+    effectiveRef,
+    files,
+    filesInlineFileURL,
+    handleChangesFileClick,
+    nav,
+    navigate,
+    objectKey,
+    pendingName,
+    readmePath,
+    refBarProps,
+    renderEntry,
+    repoHandleResource,
+    rootHandleResource,
+    route,
+    staleEntries,
+    statusEntries,
+    toolbarProps,
+    workdirFiles,
+    workdirHandleResource,
+    workdirInlineFileURL,
+    workdirPath,
+    worktreeResource,
+  } = controller
+  const viewerFrameProps = {
+    toolbarProps,
+    refBarProps,
   }
 
-  function renderContent() {
-    const viewerFrameProps = {
-      toolbarProps,
-      refBarProps,
-    }
-
-    if (worktreeResource.loading) {
-      return (
-        <GitViewerCenteredState
-          title={
-            <span className="text-foreground-alt text-xs">
-              Loading worktree…
-            </span>
-          }
-        />
-      )
-    }
-
-    if (worktreeResource.error) {
-      return (
-        <GitViewerCenteredState
-          title={
-            <span className="text-destructive text-xs">
-              Error loading worktree
-            </span>
-          }
-          detail={worktreeResource.error.message}
-          action={
-            <button
-              className="text-brand mt-2 text-xs underline"
-              onClick={worktreeResource.retry}
-            >
-              Retry
-            </button>
-          }
-        />
-      )
-    }
-
-    if (!worktreeResource.value) {
-      return (
-        <GitViewerCenteredState
-          title={
-            <span className="text-foreground-alt text-xs">
-              Git worktree not found
-            </span>
-          }
-          detail={`Object: ${objectKey || 'none'}`}
-        />
-      )
-    }
-
-    if (
-      !effectiveRef &&
-      (route.mode === 'files' ||
-        route.mode === 'readme' ||
-        route.mode === 'log')
-    ) {
-      return (
-        <GitViewerFrame
-          {...viewerFrameProps}
-          mode={route.mode}
-          onModeChange={nav.handleModeChange}
-          hasReadme={!!readmePath}
-          availableModes={availableModes}
-        >
-          <GitViewerCenteredState
-            title="Empty Repository"
-            subtitle={objectKey}
-            detail="This repository has no commits yet."
-          />
-        </GitViewerFrame>
-      )
-    }
-
-    if (
-      route.mode === 'files' &&
-      files.isDir === false &&
-      files.statResource.value
-    ) {
-      return (
-        <GitViewerFrame
-          {...viewerFrameProps}
-          mode={route.mode}
-          onModeChange={nav.handleModeChange}
-          hasReadme={!!readmePath}
-          availableModes={availableModes}
-        >
-          <FileViewer
-            path={displayPath}
-            stat={files.statResource.value}
-            rootHandle={rootHandleResource}
-            inlineFileURL={filesInlineFileURL}
-          />
-        </GitViewerFrame>
-      )
-    }
-
-    if (
-      route.mode === 'workdir' &&
-      workdirFiles.isDir === false &&
-      workdirFiles.statResource.value
-    ) {
-      return (
-        <GitViewerFrame
-          {...viewerFrameProps}
-          mode={route.mode}
-          onModeChange={nav.handleModeChange}
-          hasReadme={!!readmePath}
-          availableModes={availableModes}
-        >
-          <FileViewer
-            path={workdirPath}
-            stat={workdirFiles.statResource.value}
-            rootHandle={workdirHandleResource}
-            inlineFileURL={workdirInlineFileURL}
-          />
-        </GitViewerFrame>
-      )
-    }
-
-    const isFileLoading =
-      route.mode === 'files' &&
-      (rootHandleResource.loading ||
-        files.pathHandle.loading ||
-        files.statResource.loading ||
-        (files.isDir === true && files.entriesResource.loading))
-    const isWorkdirLoading =
-      route.mode === 'workdir' &&
-      (workdirHandleResource.loading ||
-        workdirFiles.pathHandle.loading ||
-        workdirFiles.statResource.loading ||
-        (workdirFiles.isDir === true && workdirFiles.entriesResource.loading))
-    const isContentLoading = isFileLoading || isWorkdirLoading
-
-    if (
-      route.mode !== 'commit' &&
-      route.mode !== 'changes' &&
-      isContentLoading &&
-      staleEntries.length > 0
-    ) {
-      return (
-        <GitViewerFrame {...viewerFrameProps}>
-          <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
-            <FileTree
-              entries={staleEntries}
-              onOpen={nav.handleOpen}
-              loadingId={pendingName}
-              renderEntry={route.mode === 'workdir' ? renderEntry : undefined}
-              currentPath={route.mode === 'workdir' ? workdirPath : undefined}
-            />
-          </div>
-        </GitViewerFrame>
-      )
-    }
-
-    if (
-      route.mode !== 'commit' &&
-      route.mode !== 'changes' &&
-      isContentLoading
-    ) {
-      return (
-        <GitViewerFrame {...viewerFrameProps}>
-          <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
-            <div className="text-foreground-alt text-xs">Loading files…</div>
-          </div>
-        </GitViewerFrame>
-      )
-    }
-
-    const fileError =
-      route.mode === 'commit' || route.mode === 'changes'
-        ? null
-        : route.mode === 'workdir'
-          ? (workdirHandleResource.error ??
-            workdirFiles.pathHandle.error ??
-            workdirFiles.statResource.error ??
-            workdirFiles.entriesResource.error)
-          : (rootHandleResource.error ??
-            files.pathHandle.error ??
-            files.statResource.error ??
-            files.entriesResource.error)
-    if (fileError) {
-      function handleRetry() {
-        if (route.mode === 'workdir') {
-          if (workdirHandleResource.error) {
-            workdirHandleResource.retry()
-            return
-          }
-          if (workdirFiles.pathHandle.error) {
-            workdirFiles.pathHandle.retry()
-            return
-          }
-          if (workdirFiles.statResource.error) {
-            workdirFiles.statResource.retry()
-            return
-          }
-          if (workdirFiles.entriesResource.error) {
-            workdirFiles.entriesResource.retry()
-          }
-          return
-        }
-        if (rootHandleResource.error) {
-          rootHandleResource.retry()
-          return
-        }
-        if (files.pathHandle.error) {
-          files.pathHandle.retry()
-          return
-        }
-        if (files.statResource.error) {
-          files.statResource.retry()
-          return
-        }
-        if (files.entriesResource.error) {
-          files.entriesResource.retry()
-        }
-      }
-
-      return (
-        <GitViewerFrame {...viewerFrameProps}>
-          <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
-            <div className="text-destructive text-xs">Error loading files</div>
-            <div className="text-foreground-alt/70 mt-1 text-xs">
-              {fileError.message}
-            </div>
-            <button
-              className="text-brand mt-2 text-xs underline"
-              onClick={handleRetry}
-            >
-              Retry
-            </button>
-          </div>
-        </GitViewerFrame>
-      )
-    }
-
-    const isRoot =
-      route.mode === 'workdir' ? workdirPath === '/' : displayPath === '/'
-
+  if (
+    !effectiveRef &&
+    (route.mode === 'files' || route.mode === 'readme' || route.mode === 'log')
+  ) {
     return (
       <GitViewerFrame
         {...viewerFrameProps}
-        mode={route.mode === 'commit' ? undefined : route.mode}
-        onModeChange={
-          route.mode === 'commit' ? undefined : nav.handleModeChange
-        }
+        mode={route.mode}
+        onModeChange={nav.handleModeChange}
         hasReadme={!!readmePath}
         availableModes={availableModes}
       >
-        <div className="bg-file-back min-h-0 flex-1 overflow-auto">
-          {route.mode === 'files' && (
-            <FileTree
-              entries={files.fileEntries}
-              onOpen={nav.handleOpen}
-              autoHeight={isRoot}
-            />
-          )}
-          {route.mode === 'workdir' && (
-            <FileTree
-              entries={workdirFiles.fileEntries}
-              onOpen={nav.handleOpen}
-              autoHeight={isRoot}
-              renderEntry={renderEntry}
-              currentPath={workdirPath}
-            />
-          )}
-          {route.mode === 'changes' && worktreeResource.value && (
-            <ChangesView
-              entries={statusEntries}
-              handle={worktreeResource.value}
-              onFileClick={handleChangesFileClick}
-            />
-          )}
-          {isRoot && route.mode === 'readme' && (
-            <ReadmeSection
-              readmePath={readmePath ?? ''}
-              content={files.readmeContent.value}
-              loading={files.readmeContent.loading}
-            />
-          )}
-          {isRoot &&
-            route.mode === 'log' &&
-            repoHandleResource.value &&
-            effectiveRef && (
-              <CommitLog
-                handle={repoHandleResource.value}
-                refName={effectiveRef}
-                onCommitClick={(hash) => navigate({ path: '/commit/' + hash })}
-              />
-            )}
-          {isRoot &&
-            route.mode === 'commit' &&
-            repoHandleResource.value &&
-            route.commitHash && (
-              <CommitDetail
-                handle={repoHandleResource.value}
-                commitHash={route.commitHash}
-                onNavigateCommit={(hash) =>
-                  navigate({ path: '/commit/' + hash })
-                }
-              />
-            )}
+        <GitViewerCenteredState
+          title="Empty Repository"
+          subtitle={objectKey}
+          detail="This repository has no commits yet."
+        />
+      </GitViewerFrame>
+    )
+  }
+
+  if (
+    route.mode === 'files' &&
+    files.isDir === false &&
+    files.statResource.value
+  ) {
+    return (
+      <GitViewerFrame
+        {...viewerFrameProps}
+        mode={route.mode}
+        onModeChange={nav.handleModeChange}
+        hasReadme={!!readmePath}
+        availableModes={availableModes}
+      >
+        <FileViewer
+          path={displayPath}
+          stat={files.statResource.value}
+          rootHandle={rootHandleResource}
+          inlineFileURL={filesInlineFileURL}
+        />
+      </GitViewerFrame>
+    )
+  }
+
+  if (
+    route.mode === 'workdir' &&
+    workdirFiles.isDir === false &&
+    workdirFiles.statResource.value
+  ) {
+    return (
+      <GitViewerFrame
+        {...viewerFrameProps}
+        mode={route.mode}
+        onModeChange={nav.handleModeChange}
+        hasReadme={!!readmePath}
+        availableModes={availableModes}
+      >
+        <FileViewer
+          path={workdirPath}
+          stat={workdirFiles.statResource.value}
+          rootHandle={workdirHandleResource}
+          inlineFileURL={workdirInlineFileURL}
+        />
+      </GitViewerFrame>
+    )
+  }
+
+  const isFileLoading =
+    route.mode === 'files' &&
+    (rootHandleResource.loading ||
+      files.pathHandle.loading ||
+      files.statResource.loading ||
+      (files.isDir === true && files.entriesResource.loading))
+  const isWorkdirLoading =
+    route.mode === 'workdir' &&
+    (workdirHandleResource.loading ||
+      workdirFiles.pathHandle.loading ||
+      workdirFiles.statResource.loading ||
+      (workdirFiles.isDir === true && workdirFiles.entriesResource.loading))
+  const isContentLoading = isFileLoading || isWorkdirLoading
+
+  if (
+    route.mode !== 'commit' &&
+    route.mode !== 'changes' &&
+    isContentLoading &&
+    staleEntries.length > 0
+  ) {
+    return (
+      <GitViewerFrame {...viewerFrameProps}>
+        <div className="bg-file-back flex min-h-0 flex-1 flex-col overflow-hidden">
+          <FileTree
+            entries={staleEntries}
+            onOpen={nav.handleOpen}
+            loadingId={pendingName}
+            renderEntry={route.mode === 'workdir' ? renderEntry : undefined}
+            currentPath={route.mode === 'workdir' ? workdirPath : undefined}
+          />
         </div>
       </GitViewerFrame>
     )
   }
 
-  const sizeFallback = renderSizeFallback()
-  const content = renderContent()
+  if (route.mode !== 'commit' && route.mode !== 'changes' && isContentLoading) {
+    return (
+      <GitViewerFrame {...viewerFrameProps}>
+        <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
+          <div className="text-foreground-alt text-xs">Loading files…</div>
+        </div>
+      </GitViewerFrame>
+    )
+  }
+
+  const fileError =
+    route.mode === 'commit' || route.mode === 'changes'
+      ? null
+      : route.mode === 'workdir'
+        ? (workdirHandleResource.error ??
+          workdirFiles.pathHandle.error ??
+          workdirFiles.statResource.error ??
+          workdirFiles.entriesResource.error)
+        : (rootHandleResource.error ??
+          files.pathHandle.error ??
+          files.statResource.error ??
+          files.entriesResource.error)
+  if (fileError) {
+    function handleRetry() {
+      if (route.mode === 'workdir') {
+        if (workdirHandleResource.error) {
+          workdirHandleResource.retry()
+          return
+        }
+        if (workdirFiles.pathHandle.error) {
+          workdirFiles.pathHandle.retry()
+          return
+        }
+        if (workdirFiles.statResource.error) {
+          workdirFiles.statResource.retry()
+          return
+        }
+        if (workdirFiles.entriesResource.error) {
+          workdirFiles.entriesResource.retry()
+        }
+        return
+      }
+      if (rootHandleResource.error) {
+        rootHandleResource.retry()
+        return
+      }
+      if (files.pathHandle.error) {
+        files.pathHandle.retry()
+        return
+      }
+      if (files.statResource.error) {
+        files.statResource.retry()
+        return
+      }
+      if (files.entriesResource.error) {
+        files.entriesResource.retry()
+      }
+    }
+
+    return (
+      <GitViewerFrame {...viewerFrameProps}>
+        <div className="bg-file-back flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden">
+          <div className="text-destructive text-xs">Error loading files</div>
+          <div className="text-foreground-alt/70 mt-1 text-xs">
+            {fileError.message}
+          </div>
+          <button
+            className="text-brand mt-2 text-xs underline"
+            onClick={handleRetry}
+          >
+            Retry
+          </button>
+        </div>
+      </GitViewerFrame>
+    )
+  }
+
+  const isRoot =
+    route.mode === 'workdir' ? workdirPath === '/' : displayPath === '/'
 
   return (
-    <PanelSizeGate minWidth={400} fallback={sizeFallback}>
-      {content}
+    <GitViewerFrame
+      {...viewerFrameProps}
+      mode={route.mode === 'commit' ? undefined : route.mode}
+      onModeChange={route.mode === 'commit' ? undefined : nav.handleModeChange}
+      hasReadme={!!readmePath}
+      availableModes={availableModes}
+    >
+      <div className="bg-file-back min-h-0 flex-1 overflow-auto">
+        {route.mode === 'files' && (
+          <FileTree
+            entries={files.fileEntries}
+            onOpen={nav.handleOpen}
+            autoHeight={isRoot}
+          />
+        )}
+        {route.mode === 'workdir' && (
+          <FileTree
+            entries={workdirFiles.fileEntries}
+            onOpen={nav.handleOpen}
+            autoHeight={isRoot}
+            renderEntry={renderEntry}
+            currentPath={workdirPath}
+          />
+        )}
+        {route.mode === 'changes' && worktreeResource.value && (
+          <ChangesView
+            entries={statusEntries}
+            handle={worktreeResource.value}
+            onFileClick={handleChangesFileClick}
+          />
+        )}
+        {isRoot && route.mode === 'readme' && (
+          <ReadmeSection
+            readmePath={readmePath ?? ''}
+            content={files.readmeContent.value}
+            loading={files.readmeContent.loading}
+          />
+        )}
+        {isRoot &&
+          route.mode === 'log' &&
+          repoHandleResource.value &&
+          effectiveRef && (
+            <CommitLog
+              handle={repoHandleResource.value}
+              refName={effectiveRef}
+              onCommitClick={(hash) => navigate({ path: '/commit/' + hash })}
+            />
+          )}
+        {isRoot &&
+          route.mode === 'commit' &&
+          repoHandleResource.value &&
+          route.commitHash && (
+            <CommitDetail
+              handle={repoHandleResource.value}
+              commitHash={route.commitHash}
+              onNavigateCommit={(hash) => navigate({ path: '/commit/' + hash })}
+            />
+          )}
+      </div>
+    </GitViewerFrame>
+  )
+}
+
+// GitWorktreeContent selects loading and failure states before rendering the
+// ready worktree routes.
+function GitWorktreeContent({
+  controller,
+}: {
+  controller: GitWorktreeController
+}) {
+  const { objectKey, worktreeResource } = controller
+  if (worktreeResource.loading) {
+    return (
+      <GitViewerCenteredState
+        title={
+          <span className="text-foreground-alt text-xs">Loading worktree…</span>
+        }
+      />
+    )
+  }
+
+  if (worktreeResource.error) {
+    return (
+      <GitViewerCenteredState
+        title={
+          <span className="text-destructive text-xs">
+            Error loading worktree
+          </span>
+        }
+        detail={worktreeResource.error.message}
+        action={
+          <button
+            className="text-brand mt-2 text-xs underline"
+            onClick={worktreeResource.retry}
+          >
+            Retry
+          </button>
+        }
+      />
+    )
+  }
+
+  if (!worktreeResource.value) {
+    return (
+      <GitViewerCenteredState
+        title={
+          <span className="text-foreground-alt text-xs">
+            Git worktree not found
+          </span>
+        }
+        detail={`Object: ${objectKey || 'none'}`}
+      />
+    )
+  }
+
+  return <GitWorktreeReadyContent controller={controller} />
+}
+
+// GitWorktreeViewer renders a Git worktree object with repository metadata,
+// working directory browser, and magit-style changes view.
+export function GitWorktreeViewer(props: ObjectViewerComponentProps) {
+  const controller = useGitWorktreeController(props)
+
+  return (
+    <PanelSizeGate
+      minWidth={400}
+      fallback={
+        <GitViewerCenteredState
+          title="Git Worktree"
+          subtitle={controller.objectKey}
+          detail="Make panel larger to view"
+        />
+      }
+    >
+      <GitWorktreeContent controller={controller} />
     </PanelSizeGate>
   )
 }

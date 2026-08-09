@@ -129,8 +129,9 @@ function logQuickstartSpaceDiagnostic(
   console.log(message + ': ' + JSON.stringify(fields))
 }
 
-// SpaceContainer renders a space shared object body.
-export function SpaceContainer() {
+// useSpaceContainerController owns Space mounting, route projection, object
+// navigation, sharing policy, and destructive mutations.
+function useSpaceContainerController() {
   const rootResource = RootContext.useContext()
   const root = useResourceValue(rootResource)
 
@@ -712,6 +713,106 @@ export function SpaceContainer() {
   const handleSharedObjectBreadcrumb = useCallback(() => {
     navigate({ path: currentLevelPath })
   }, [navigate, currentLevelPath])
+
+  return {
+    buildExportUrl,
+    buildObjectUrls,
+    canDeleteObjects,
+    canManageSharing,
+    canRename,
+    deleteOpen,
+    handleDeleteConfirm,
+    handleRenameConfirm,
+    handleRenameStart,
+    handleSharedObjectBreadcrumb,
+    handleSharingClick,
+    navigate,
+    navigateToObjects,
+    navigateToRoot,
+    navigateToSubPath,
+    objectKey,
+    objectPath,
+    providerId,
+    ready,
+    renameOpen,
+    root,
+    routeSpaceState,
+    setDeleteOpen,
+    setRenameOpen,
+    setSharingOpen,
+    sharedObjectButton,
+    sharedObjectContextMenuItems,
+    sharedObjectContextMenuKey,
+    sharedObjectDisplayKey,
+    sharedObjectId,
+    sharedObjectOverlay,
+    sharingOpen,
+    space,
+    spaceContentsResource,
+    spaceNamespace,
+    spaceName,
+    spaceOrgId,
+    spaceOrgState,
+    spaceResource,
+    spaceSharingState,
+    spaceState,
+    spaceWorld,
+    spaceWorldResource,
+    switchObjectAtCurrentPosition,
+    titleSpaceName,
+  }
+}
+
+// SpaceContainer renders a Space shared-object body from the mount and route
+// controller projection.
+export function SpaceContainer() {
+  const {
+    buildExportUrl,
+    buildObjectUrls,
+    canDeleteObjects,
+    canManageSharing,
+    canRename,
+    deleteOpen,
+    handleDeleteConfirm,
+    handleRenameConfirm,
+    handleRenameStart,
+    handleSharedObjectBreadcrumb,
+    handleSharingClick,
+    navigate,
+    navigateToObjects,
+    navigateToRoot,
+    navigateToSubPath,
+    objectKey,
+    objectPath,
+    providerId,
+    ready,
+    renameOpen,
+    root,
+    routeSpaceState,
+    setDeleteOpen,
+    setRenameOpen,
+    setSharingOpen,
+    sharedObjectButton,
+    sharedObjectContextMenuItems,
+    sharedObjectContextMenuKey,
+    sharedObjectDisplayKey,
+    sharedObjectId,
+    sharedObjectOverlay,
+    sharingOpen,
+    space,
+    spaceContentsResource,
+    spaceNamespace,
+    spaceName,
+    spaceOrgId,
+    spaceOrgState,
+    spaceResource,
+    spaceSharingState,
+    spaceState,
+    spaceWorld,
+    spaceWorldResource,
+    switchObjectAtCurrentPosition,
+    titleSpaceName,
+  } = useSpaceContainerController()
 
   return (
     <StateNamespaceProvider namespace={spaceNamespace}>

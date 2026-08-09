@@ -57,9 +57,9 @@ import {
 import { getTabDisplayName, type ShellTab } from '@s4wave/app/shell-tab.js'
 import { buildShellExternalDrag } from './shell-app-drag.js'
 
-// ShellGridLayout renders the shell in grid mode.
-// Decodes layout from URL parameter and renders FlexLayout with shell styling.
-export function ShellGridLayout() {
+// useShellGridController owns the FlexLayout model, URL synchronization, and
+// shared Shell Tab mutations for grid mode.
+function useShellGridController() {
   const { layoutData } = useParams()
   const navigate = useNavigate()
   const {
@@ -438,6 +438,46 @@ export function ShellGridLayout() {
       }),
     [addShellTab, model, selectShellTab],
   )
+
+  return {
+    contextMenu,
+    handleAddTabAtTab,
+    handleCloseOtherTabs,
+    handleCloseTab,
+    handleContextMenu,
+    handleDuplicateTab,
+    handleExternalAppDrag,
+    handleModelChange,
+    handlePopoutTab,
+    model,
+    onRenderTab,
+    onRenderTabSet,
+    renderTab,
+    setContextMenu,
+    startRenaming,
+  }
+}
+
+// ShellGridLayout renders the shell in grid mode.
+// It decodes layout from the URL and renders FlexLayout with shell styling.
+export function ShellGridLayout() {
+  const {
+    contextMenu,
+    handleAddTabAtTab,
+    handleCloseOtherTabs,
+    handleCloseTab,
+    handleContextMenu,
+    handleDuplicateTab,
+    handleExternalAppDrag,
+    handleModelChange,
+    handlePopoutTab,
+    model,
+    onRenderTab,
+    onRenderTabSet,
+    renderTab,
+    setContextMenu,
+    startRenaming,
+  } = useShellGridController()
 
   if (!model) {
     return null

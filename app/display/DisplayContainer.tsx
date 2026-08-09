@@ -196,8 +196,9 @@ function useDisplayLocation(): [DisplayLocation, () => void] {
   return [displayLocation, syncDisplayLocation]
 }
 
-// DisplayContainer renders the kiosk display route outside the session tree.
-export function DisplayContainer() {
+// useDisplayController owns kiosk resource mounting, URL projection, and
+// navigation callbacks.
+function useDisplayController() {
   const rootResource = useRootResource()
   const sessionList = useSessionList()
   const firstSession = sessionList.value?.sessions?.[0]
@@ -449,6 +450,76 @@ export function DisplayContainer() {
     [displayTarget.componentID, displayTarget.routePathTarget],
   )
   const buildExportUrl = useCallback(() => exportUrl ?? '', [exportUrl])
+  return {
+    buildExportUrl,
+    buildObjectUrls,
+    displayTarget,
+    exportUrl,
+    hasMountError,
+    mountError,
+    navigateToObjects,
+    navigateToRoot,
+    navigateToSubPath,
+    navigateViewerPath,
+    objectEntry,
+    objectInfo,
+    parsedPath,
+    renderMissingDisplayComponent,
+    resourcesList,
+    retryDisplay,
+    selectedSessionIndex,
+    sessionList,
+    sessionResource,
+    sharedObjectBodyResource,
+    sharedObjectId,
+    sharedObjectResource,
+    spaceContentsResource,
+    spaceResource,
+    spaceState,
+    spaceWorld,
+    spaceWorldResource,
+    stateNamespace,
+    viewerPath,
+  }
+}
+
+type DisplayController = ReturnType<typeof useDisplayController>
+
+// DisplayContent selects mount states and provides the mounted Space resources
+// to the requested object viewer.
+function DisplayContent({ controller }: { controller: DisplayController }) {
+  const {
+    buildExportUrl,
+    buildObjectUrls,
+    displayTarget,
+    exportUrl,
+    hasMountError,
+    mountError,
+    navigateToObjects,
+    navigateToRoot,
+    navigateToSubPath,
+    navigateViewerPath,
+    objectEntry,
+    objectInfo,
+    parsedPath,
+    renderMissingDisplayComponent,
+    resourcesList,
+    retryDisplay,
+    selectedSessionIndex,
+    sessionList,
+    sessionResource,
+    sharedObjectBodyResource,
+    sharedObjectId,
+    sharedObjectResource,
+    spaceContentsResource,
+    spaceResource,
+    spaceState,
+    spaceWorld,
+    spaceWorldResource,
+    stateNamespace,
+    viewerPath,
+  } = controller
+
   let content: ReactNode
   if (hasMountError) {
     content = (
@@ -579,5 +650,15 @@ export function DisplayContainer() {
     )
   }
 
-  return <div className="bg-background-primary h-full w-full">{content}</div>
+  return content
+}
+
+// DisplayContainer renders the kiosk display route outside the session tree.
+export function DisplayContainer() {
+  const controller = useDisplayController()
+  return (
+    <div className="bg-background-primary h-full w-full">
+      <DisplayContent controller={controller} />
+    </div>
+  )
 }

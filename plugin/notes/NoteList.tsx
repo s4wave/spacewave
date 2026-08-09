@@ -70,8 +70,8 @@ interface NoteListProps {
   renderEntryExtra?: (name: string) => React.ReactNode
 }
 
-// NoteList lists notebook directories and note files for the selected source.
-function NoteList({
+// useNoteListController owns UnixFS resources, filtering, and note mutations.
+function useNoteListController({
   source,
   worldState,
   selectedNote,
@@ -291,6 +291,91 @@ function NoteList({
     !searchQuery &&
     dirEntries.length === 0 &&
     fileEntries.length === 0
+
+  return {
+    canCreateOrg,
+    closeDeleteDialog,
+    closeRenameDialog,
+    currentPath,
+    deleteTarget,
+    entriesResource,
+    fileEntries,
+    filterStatus,
+    filterTag,
+    filteredDirEntries,
+    filteredNoteEntries,
+    folderDialogOpen,
+    handleConfirmCreateFolder,
+    handleConfirmDeleteNote,
+    handleConfirmRenameNote,
+    handleCreateFolder,
+    handleCreateNote,
+    handleCreateNoteDefault,
+    handleDeleteNote,
+    handleRenameNote,
+    hasFilter,
+    isEmptyDirectory,
+    noteEntries,
+    objectKey,
+    onChangePath,
+    onFilterStatusChange,
+    onFilterTagChange,
+    onSelectNote,
+    renameDefaultValue,
+    renameTarget,
+    renderEntryExtra,
+    searchQuery,
+    selectedNote,
+    setFolderDialogOpen,
+    setSearchQuery,
+    showEmptyState,
+    source,
+  }
+}
+
+type NoteListController = ReturnType<typeof useNoteListController>
+
+// NoteListView selects resource states and renders note navigation and dialogs.
+function NoteListView({ controller }: { controller: NoteListController }) {
+  const {
+    canCreateOrg,
+    closeDeleteDialog,
+    closeRenameDialog,
+    currentPath,
+    deleteTarget,
+    entriesResource,
+    fileEntries,
+    filterStatus,
+    filterTag,
+    filteredDirEntries,
+    filteredNoteEntries,
+    folderDialogOpen,
+    handleConfirmCreateFolder,
+    handleConfirmDeleteNote,
+    handleConfirmRenameNote,
+    handleCreateFolder,
+    handleCreateNote,
+    handleCreateNoteDefault,
+    handleDeleteNote,
+    handleRenameNote,
+    hasFilter,
+    isEmptyDirectory,
+    noteEntries,
+    objectKey,
+    onChangePath,
+    onFilterStatusChange,
+    onFilterTagChange,
+    onSelectNote,
+    renameDefaultValue,
+    renameTarget,
+    renderEntryExtra,
+    searchQuery,
+    selectedNote,
+    setFolderDialogOpen,
+    setSearchQuery,
+    showEmptyState,
+    source,
+  } = controller
 
   if (!source) {
     return (
@@ -541,6 +626,12 @@ function NoteList({
       />
     </>
   )
+}
+
+// NoteList lists notebook directories and note files for the selected source.
+function NoteList(props: NoteListProps) {
+  const controller = useNoteListController(props)
+  return <NoteListView controller={controller} />
 }
 
 function joinNotePath(parent: string, name: string): string {

@@ -108,7 +108,9 @@ interface AddDeviceWizardConfig {
 
 export { AddDeviceWizardTypeID } from './add-device-wizard.js'
 
-export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
+// useAddDeviceWizardController owns wizard persistence, approval, and SSH
+// object creation.
+function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   const ws = useWizardState(props, undefined)
   const { state } = ws
   const currentStep = state?.step ?? 0
@@ -451,89 +453,94 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
     void ws.handleCancel()
   }, [ws])
 
-  if (!state) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-sm">
-          <LoadingCard
-            view={{
-              state: 'active',
-              title: 'Loading Add Device',
-              detail: 'Preparing the Device setup wizard.',
-            }}
-          />
-        </div>
-      </div>
-    )
+  return {
+    approvalError,
+    busy,
+    completeCommand,
+    completion,
+    config,
+    currentStep,
+    deviceObjects,
+    handleCancel,
+    handleConfigUpdate,
+    handleCreateSshHost,
+    handleFinishSpaceLink,
+    handleModeChange,
+    handleNameNext,
+    handleOpenSshInstaller,
+    handleSignIn,
+    handleSshConfigChange,
+    handleTicketChange,
+    isOpeningStep,
+    isSshInstallMode,
+    mode,
+    operationError,
+    session,
+    sessionInfoLoading,
+    setApprovalError,
+    setBusy,
+    setOpeningStep,
+    setOperationError,
+    setSshCredentialDraft,
+    setupCommand,
+    sharedObjectId,
+    sshAuthMode,
+    sshConfig,
+    sshCredentialDraft,
+    sshInstallCommand,
+    sshSetupMode,
+    state,
+    supportsDeviceApproval,
+    ticket,
+    ws,
   }
+}
 
-  const totalSteps = currentStep === 0 ? 3 : mode === 'ssh' ? 2 : 3
-  const stepName =
-    currentStep === 0
-      ? 'Choose connection'
-      : mode === 'ssh'
-        ? 'Configure SSH'
-        : currentStep === 1
-          ? 'Set up Device'
-          : 'Finish'
+type AddDeviceWizardController = ReturnType<typeof useAddDeviceWizardController>
+
+// AddDeviceWizardSteps renders the connection-specific step bodies from the
+// controller projection.
+function AddDeviceWizardSteps({
+  controller,
+}: {
+  controller: AddDeviceWizardController
+}) {
+  const {
+    approvalError,
+    busy,
+    completeCommand,
+    completion,
+    config,
+    currentStep,
+    deviceObjects,
+    handleConfigUpdate,
+    handleModeChange,
+    handleSignIn,
+    handleSshConfigChange,
+    handleTicketChange,
+    isOpeningStep,
+    isSshInstallMode,
+    mode,
+    operationError,
+    session,
+    sessionInfoLoading,
+    setApprovalError,
+    setBusy,
+    setSshCredentialDraft,
+    setupCommand,
+    sharedObjectId,
+    sshAuthMode,
+    sshConfig,
+    sshCredentialDraft,
+    sshInstallCommand,
+    sshSetupMode,
+    supportsDeviceApproval,
+    ticket,
+    ws,
+  } = controller
+
   return (
-    <WizardShell
-      title={
-        <>
-          <LuHardDrive className="mr-2 size-4 shrink-0" />
-          Add Device
-        </>
-      }
-      step={currentStep}
-      totalSteps={totalSteps}
-      stepName={stepName}
-      localName={ws.localName || 'Device'}
-      onUpdateName={ws.handleUpdateName}
-      onBack={() => {
-        setOpeningStep(false)
-        setOperationError('')
-        void ws.handleBack()
-      }}
-      onCancel={handleCancel}
-      nameLabel={mode === 'ssh' ? 'Host Name' : 'Device Name'}
-      namePlaceholder="Build server"
-      nameStep={0}
-      creating={ws.creating}
-      createLabel={
-        isSshInstallMode
-          ? 'Open installer'
-          : mode === 'ssh'
-            ? 'Add SSH Host and open terminal'
-            : 'Open Device'
-      }
-      creatingLabel={
-        isSshInstallMode
-          ? 'Opening installer…'
-          : mode === 'ssh'
-            ? 'Adding SSH Host and opening terminal…'
-            : 'Opening Device…'
-      }
-      onFinalize={() =>
-        void (isSshInstallMode
-          ? handleOpenSshInstaller()
-          : mode === 'ssh'
-            ? handleCreateSshHost()
-            : handleFinishSpaceLink())
-      }
-      canFinalize={
-        mode === 'ssh'
-          ? !getSshCreateError(sshConfig, sshCredentialDraft)
-          : !!completion
-      }
-      onNext={currentStep === 0 ? () => void handleNameNext() : undefined}
-      nextBusyLabel={
-        mode === 'ssh' ? 'Opening SSH setup…' : 'Preparing Device setup…'
-      }
-      nextBusy={isOpeningStep}
-      canNext={!!ws.localName.trim() && !isOpeningStep}
-      finalizeStep={mode === 'ssh' ? 1 : 2}
-      width={mode === 'ssh' ? 'wide' : 'default'}
-    >
+    <>
       {currentStep === 0 && (
         <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <ModeButton
@@ -714,8 +721,127 @@ export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
             (mode === 'ssh' ? 'Opening SSH setup…' : 'Preparing Device setup…')}
         </div>
       )}
+    </>
+  )
+}
+
+// AddDeviceWizardContent selects the loading state and configures the shared
+// wizard shell.
+function AddDeviceWizardContent({
+  controller,
+}: {
+  controller: AddDeviceWizardController
+}) {
+  const {
+    completion,
+    currentStep,
+    handleCancel,
+    handleCreateSshHost,
+    handleFinishSpaceLink,
+    handleNameNext,
+    handleOpenSshInstaller,
+    isOpeningStep,
+    isSshInstallMode,
+    mode,
+    setOpeningStep,
+    setOperationError,
+    sshConfig,
+    sshCredentialDraft,
+    state,
+    ws,
+  } = controller
+
+  if (!state) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-6">
+        <div className="w-full max-w-sm">
+          <LoadingCard
+            view={{
+              state: 'active',
+              title: 'Loading Add Device',
+              detail: 'Preparing the Device setup wizard.',
+            }}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  const totalSteps = currentStep === 0 ? 3 : mode === 'ssh' ? 2 : 3
+  const stepName =
+    currentStep === 0
+      ? 'Choose connection'
+      : mode === 'ssh'
+        ? 'Configure SSH'
+        : currentStep === 1
+          ? 'Set up Device'
+          : 'Finish'
+  return (
+    <WizardShell
+      title={
+        <>
+          <LuHardDrive className="mr-2 size-4 shrink-0" />
+          Add Device
+        </>
+      }
+      step={currentStep}
+      totalSteps={totalSteps}
+      stepName={stepName}
+      localName={ws.localName || 'Device'}
+      onUpdateName={ws.handleUpdateName}
+      onBack={() => {
+        setOpeningStep(false)
+        setOperationError('')
+        void ws.handleBack()
+      }}
+      onCancel={handleCancel}
+      nameLabel={mode === 'ssh' ? 'Host Name' : 'Device Name'}
+      namePlaceholder="Build server"
+      nameStep={0}
+      creating={ws.creating}
+      createLabel={
+        isSshInstallMode
+          ? 'Open installer'
+          : mode === 'ssh'
+            ? 'Add SSH Host and open terminal'
+            : 'Open Device'
+      }
+      creatingLabel={
+        isSshInstallMode
+          ? 'Opening installer…'
+          : mode === 'ssh'
+            ? 'Adding SSH Host and opening terminal…'
+            : 'Opening Device…'
+      }
+      onFinalize={() =>
+        void (isSshInstallMode
+          ? handleOpenSshInstaller()
+          : mode === 'ssh'
+            ? handleCreateSshHost()
+            : handleFinishSpaceLink())
+      }
+      canFinalize={
+        mode === 'ssh'
+          ? !getSshCreateError(sshConfig, sshCredentialDraft)
+          : !!completion
+      }
+      onNext={currentStep === 0 ? () => void handleNameNext() : undefined}
+      nextBusyLabel={
+        mode === 'ssh' ? 'Opening SSH setup…' : 'Preparing Device setup…'
+      }
+      nextBusy={isOpeningStep}
+      canNext={!!ws.localName.trim() && !isOpeningStep}
+      finalizeStep={mode === 'ssh' ? 1 : 2}
+      width={mode === 'ssh' ? 'wide' : 'default'}
+    >
+      <AddDeviceWizardSteps controller={controller} />
     </WizardShell>
   )
+}
+
+export function AddDeviceWizardViewer(props: ObjectViewerComponentProps) {
+  const controller = useAddDeviceWizardController(props)
+  return <AddDeviceWizardContent controller={controller} />
 }
 
 function ModeButton({

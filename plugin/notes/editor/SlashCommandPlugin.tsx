@@ -12,6 +12,7 @@ import {
   KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND,
   KEY_TAB_COMMAND,
+  type LexicalEditor,
 } from 'lexical'
 import { $setBlocksType } from '@lexical/selection'
 import { $createHeadingNode, $createQuoteNode } from '@lexical/rich-text'
@@ -34,37 +35,12 @@ type SlashMenuItem = {
   action: () => void
 }
 
-// SlashCommandPlugin provides a / menu for inserting block elements.
-function SlashCommandPlugin() {
-  const [editor] = useLexicalComposerContext()
-  const [isOpen, setIsOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const [position, setPosition] = useState({ top: 0, left: 0 })
-  const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  const insertEmbed = useCallback(
-    (path: string) => {
-      if (!path) return
-      editor.update(() => {
-        const selection = $getSelection()
-        if ($isRangeSelection(selection)) {
-          const node = selection.anchor.getNode()
-          const topLevel = node.getTopLevelElementOrThrow()
-          const embedNode = new SpacewaveEmbedNode(path)
-          topLevel.insertAfter(embedNode)
-          const paragraph = $createParagraphNode()
-          embedNode.insertAfter(paragraph)
-          paragraph.selectStart()
-        }
-      })
-      setEmbedDialogOpen(false)
-    },
-    [editor],
-  )
-
-  const menuItems: SlashMenuItem[] = useMemo(
+// useSlashMenuItems defines the editor mutations represented by the slash menu.
+function useSlashMenuItems(
+  editor: LexicalEditor,
+  onInsertEmbed: () => void,
+): SlashMenuItem[] {
+  return useMemo(
     () => [
       {
         title: 'Heading 1',
@@ -191,12 +167,48 @@ function SlashCommandPlugin() {
         description: 'Embed a Space object',
         icon: '\u25C6',
         action: () => {
-          setEmbedDialogOpen(true)
+          onInsertEmbed()
         },
       },
     ],
+    [editor, onInsertEmbed],
+  )
+}
+
+// SlashCommandPlugin provides a / menu for inserting block elements.
+function SlashCommandPlugin() {
+  const [editor] = useLexicalComposerContext()
+  const [isOpen, setIsOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [position, setPosition] = useState({ top: 0, left: 0 })
+  const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const insertEmbed = useCallback(
+    (path: string) => {
+      if (!path) return
+      editor.update(() => {
+        const selection = $getSelection()
+        if ($isRangeSelection(selection)) {
+          const node = selection.anchor.getNode()
+          const topLevel = node.getTopLevelElementOrThrow()
+          const embedNode = new SpacewaveEmbedNode(path)
+          topLevel.insertAfter(embedNode)
+          const paragraph = $createParagraphNode()
+          embedNode.insertAfter(paragraph)
+          paragraph.selectStart()
+        }
+      })
+      setEmbedDialogOpen(false)
+    },
     [editor],
   )
+
+  const openEmbedDialog = useCallback(() => {
+    setEmbedDialogOpen(true)
+  }, [])
+  const menuItems = useSlashMenuItems(editor, openEmbedDialog)
 
   const filteredItems = useMemo(() => {
     if (!query) return menuItems

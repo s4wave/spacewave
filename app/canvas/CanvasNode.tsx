@@ -96,8 +96,9 @@ function ResizeHandle({ direction, scale, onResizeDelta }: ResizeHandleProps) {
   )
 }
 
-// CanvasNode renders a single positioned node on the canvas.
-export const CanvasNode = memo(function CanvasNode({
+// useCanvasNodeController owns visibility debounce, drag selection, and resize
+// projection for one canvas node.
+function useCanvasNodeController({
   node,
   scale,
   selected,
@@ -339,6 +340,53 @@ export const CanvasNode = memo(function CanvasNode({
     }),
     [node.x, node.y, node.width, node.height, node.zIndex, resizeOverride],
   )
+
+  return {
+    callbacks,
+    handleNodeKeyDown,
+    handleNodeSelect,
+    handleResizeDelta,
+    handleTextChange,
+    hasInteractiveContent,
+    internalScale,
+    isCompact,
+    isContentFocused,
+    isOutlineOnly,
+    mountedAfterHide,
+    node,
+    scale,
+    selected,
+    showsBorderDragHandles,
+    style,
+    visible,
+    wasVisible,
+    wrappedBind,
+  }
+}
+
+// CanvasNode renders a single positioned node on the canvas.
+export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
+  const {
+    callbacks,
+    handleNodeKeyDown,
+    handleNodeSelect,
+    handleResizeDelta,
+    handleTextChange,
+    hasInteractiveContent,
+    internalScale,
+    isCompact,
+    isContentFocused,
+    isOutlineOnly,
+    mountedAfterHide,
+    node,
+    scale,
+    selected,
+    showsBorderDragHandles,
+    style,
+    visible,
+    wasVisible,
+    wrappedBind,
+  } = useCanvasNodeController(props)
 
   if (!visible && !mountedAfterHide && !wasVisible.current) return null
 

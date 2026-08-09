@@ -649,6 +649,252 @@ interface DashboardCommandPaletteProps {
   canCreate: boolean
 }
 
+// DashboardJoinGroup owns navigation to the two non-creation entry points.
+function DashboardJoinGroup() {
+  const navigate = useNavigate()
+  const setOpenMenu = useBottomBarSetOpenMenu()
+  const namespace = useStateNamespace(['session-settings'])
+  const [, setDetailsPath] = useStateAtom<string>(
+    namespace,
+    'details-path',
+    '/',
+  )
+
+  const handleLinkDevice = useCallback(() => {
+    setDetailsPath('/link-device')
+    setOpenMenu?.('account')
+  }, [setDetailsPath, setOpenMenu])
+
+  return (
+    <>
+      <CommandGroup heading="Join" className="py-1">
+        <DashboardItem
+          value="join-space"
+          icon={LuLogIn}
+          iconTone="muted"
+          label="Join Space"
+          sublabel="Join a shared space via invite code or link"
+          onSelect={() => navigate({ path: './join' })}
+        />
+        <DashboardItem
+          value="join-link-device"
+          icon={LuLink}
+          iconTone="muted"
+          label="Link a device"
+          sublabel="Link to an existing device via pairing code"
+          onSelect={handleLinkDevice}
+        />
+      </CommandGroup>
+      <CommandSeparator className="bg-foreground/8" />
+    </>
+  )
+}
+
+interface DashboardQuickstartGroupsProps {
+  primaryQuickstart: QuickstartOption | undefined
+  blankSpaceQuickstart: QuickstartOption | undefined
+  browseQuickstartOptions: QuickstartOption[]
+  onSelect: (option: QuickstartOption) => void
+}
+
+// DashboardQuickstartGroups renders the guided starts shown before any Space
+// exists in the session.
+function DashboardQuickstartGroups({
+  primaryQuickstart,
+  blankSpaceQuickstart,
+  browseQuickstartOptions,
+  onSelect,
+}: DashboardQuickstartGroupsProps) {
+  return (
+    <>
+      {primaryQuickstart && (
+        <CommandGroup heading="Continue" className="py-1">
+          <DashboardItem
+            value={`continue-${primaryQuickstart.id}`}
+            icon={primaryQuickstart.icon}
+            iconTone="brand"
+            label={primaryQuickstart.name}
+            sublabel={primaryQuickstart.description}
+            experimental={
+              'experimental' in primaryQuickstart &&
+              !!primaryQuickstart.experimental
+            }
+            onSelect={() => onSelect(primaryQuickstart)}
+          />
+        </CommandGroup>
+      )}
+
+      {blankSpaceQuickstart &&
+        blankSpaceQuickstart.id !== primaryQuickstart?.id && (
+          <CommandGroup heading="Other starts" className="py-1">
+            <DashboardItem
+              value={`create-${blankSpaceQuickstart.id}`}
+              icon={blankSpaceQuickstart.icon}
+              iconTone="muted"
+              label={blankSpaceQuickstart.name}
+              sublabel={blankSpaceQuickstart.description}
+              experimental={
+                'experimental' in blankSpaceQuickstart &&
+                !!blankSpaceQuickstart.experimental
+              }
+              onSelect={() => onSelect(blankSpaceQuickstart)}
+            />
+          </CommandGroup>
+        )}
+
+      {browseQuickstartOptions.length > 0 && (
+        <CommandGroup heading="Browse templates" className="py-1">
+          {browseQuickstartOptions.map((option) => (
+            <DashboardItem
+              key={option.id}
+              value={`create-${option.id}`}
+              icon={option.icon}
+              iconTone="muted"
+              label={option.name}
+              sublabel={option.description}
+              experimental={'experimental' in option && !!option.experimental}
+              onSelect={() => onSelect(option)}
+            />
+          ))}
+        </CommandGroup>
+      )}
+    </>
+  )
+}
+
+interface DashboardSpaceGroupsProps {
+  hasSpaces: boolean
+  personalSpaces: DashboardSpace[]
+  orgSections: Array<{ org: DashboardOrg; spaces: DashboardSpace[] }>
+  createQuickstartOptions: QuickstartOption[]
+  objectTypeMetadataById: ObjectTypeMetadataById | undefined
+  onSpaceSelect: (space: DashboardSpace) => void
+  onQuickstartSelect: (option: QuickstartOption) => void
+}
+
+// DashboardSpaceGroups renders personal, organization, and creation sections
+// after the session contains at least one Space.
+function DashboardSpaceGroups({
+  hasSpaces,
+  personalSpaces,
+  orgSections,
+  createQuickstartOptions,
+  objectTypeMetadataById,
+  onSpaceSelect,
+  onQuickstartSelect,
+}: DashboardSpaceGroupsProps) {
+  const navigate = useNavigate()
+  const hasOrgs = orgSections.length > 0
+
+  return (
+    <>
+      {hasSpaces && personalSpaces.length > 0 && (
+        <CommandGroup
+          heading={
+            <SectionHeading
+              label={hasOrgs ? 'Personal' : 'Spaces'}
+              count={personalSpaces.length}
+            />
+          }
+          className="py-1"
+        >
+          {personalSpaces.map((space) => (
+            <DashboardSpaceItem
+              key={space.id}
+              space={space}
+              objectTypeMetadataById={objectTypeMetadataById}
+              onSelect={onSpaceSelect}
+            />
+          ))}
+        </CommandGroup>
+      )}
+
+      {orgSections.map(({ org, spaces }) => (
+        <CommandGroup
+          key={org.id}
+          heading={
+            <SectionHeading
+              label={org.displayName}
+              count={spaces.length}
+              onLabelClick={() => navigate({ path: `./org/${org.id}` })}
+            />
+          }
+          className="py-1"
+        >
+          {spaces.length === 0 ? (
+            <div className="text-foreground-alt/40 px-2 py-3 text-center text-xs">
+              No spaces yet
+            </div>
+          ) : (
+            spaces.map((space) => (
+              <DashboardSpaceItem
+                key={space.id}
+                space={space}
+                objectTypeMetadataById={objectTypeMetadataById}
+                orgName={org.displayName}
+                onSelect={onSpaceSelect}
+              />
+            ))
+          )}
+        </CommandGroup>
+      ))}
+
+      {createQuickstartOptions.length > 0 && (
+        <CommandGroup heading="Create" className="py-1">
+          {createQuickstartOptions.map((option) => (
+            <DashboardItem
+              key={option.id}
+              value={`create-${option.id}`}
+              icon={option.icon}
+              iconTone="muted"
+              label={option.name}
+              sublabel={option.description}
+              experimental={'experimental' in option && !!option.experimental}
+              onSelect={() => onQuickstartSelect(option)}
+            />
+          ))}
+        </CommandGroup>
+      )}
+    </>
+  )
+}
+
+interface DashboardSpaceItemProps {
+  space: DashboardSpace
+  objectTypeMetadataById: ObjectTypeMetadataById | undefined
+  orgName?: string
+  onSelect: (space: DashboardSpace) => void
+}
+
+// DashboardSpaceItem applies object-type presentation to one selectable Space.
+function DashboardSpaceItem({
+  space,
+  objectTypeMetadataById,
+  orgName,
+  onSelect,
+}: DashboardSpaceItemProps) {
+  return (
+    <DashboardItem
+      value={`space-${space.name}-${space.id}`}
+      icon={
+        space.objectType
+          ? getObjectTypeIconComponent(
+              space.objectType,
+              objectTypeMetadataById,
+              LuLayers,
+            )
+          : LuLayers
+      }
+      iconTone="brand"
+      label={space.name}
+      sublabel={getSpaceSourceLabel(space.source)}
+      identifier={space.id}
+      orgName={orgName}
+      onSelect={() => onSelect(space)}
+    />
+  )
+}
+
 function DashboardCommandPalette({
   spaces,
   orgs,
@@ -662,9 +908,6 @@ function DashboardCommandPalette({
 }: DashboardCommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
-  const setOpenMenu = useBottomBarSetOpenMenu()
-  const ns = useStateNamespace(['session-settings'])
-  const [, setDetailsPath] = useStateAtom<string>(ns, 'details-path', '/')
 
   const createQuickstartOptions = useMemo(
     () =>
@@ -713,32 +956,6 @@ function DashboardCommandPalette({
     [navigate, onQuickstartClick],
   )
 
-  const handleLinkDevice = useCallback(() => {
-    setDetailsPath('/link-device')
-    setOpenMenu?.('account')
-  }, [setDetailsPath, setOpenMenu])
-
-  const joinItems = (
-    <>
-      <DashboardItem
-        value="join-space"
-        icon={LuLogIn}
-        iconTone="muted"
-        label="Join Space"
-        sublabel="Join a shared space via invite code or link"
-        onSelect={() => navigate({ path: './join' })}
-      />
-      <DashboardItem
-        value="join-link-device"
-        icon={LuLink}
-        iconTone="muted"
-        label="Link a device"
-        sublabel="Link to an existing device via pairing code"
-        onSelect={handleLinkDevice}
-      />
-    </>
-  )
-
   const { personalSpaces, orgSections } = useMemo(() => {
     const personal: DashboardSpace[] = []
     const orgMap = new Map<string, DashboardSpace[]>()
@@ -762,8 +979,6 @@ function DashboardCommandPalette({
     }
     return { personalSpaces: personal, orgSections: sections }
   }, [recentSpaces, orgs])
-
-  const hasOrgs = orgSections.length > 0
 
   return (
     <Command
@@ -790,161 +1005,25 @@ function DashboardCommandPalette({
           )}
         </CommandEmpty>
 
-        <CommandGroup heading="Join" className="py-1">
-          {joinItems}
-        </CommandGroup>
-        <CommandSeparator className="bg-foreground/8" />
+        <DashboardJoinGroup />
 
         {isEmpty ? (
-          <>
-            {primaryQuickstart && (
-              <CommandGroup heading="Continue" className="py-1">
-                <DashboardItem
-                  value={`continue-${primaryQuickstart.id}`}
-                  icon={primaryQuickstart.icon}
-                  iconTone="brand"
-                  label={primaryQuickstart.name}
-                  sublabel={primaryQuickstart.description}
-                  experimental={
-                    'experimental' in primaryQuickstart &&
-                    !!primaryQuickstart.experimental
-                  }
-                  onSelect={() => handleQuickstartSelect(primaryQuickstart)}
-                />
-              </CommandGroup>
-            )}
-
-            {blankSpaceQuickstart &&
-              blankSpaceQuickstart.id !== primaryQuickstart?.id && (
-                <CommandGroup heading="Other starts" className="py-1">
-                  <DashboardItem
-                    value={`create-${blankSpaceQuickstart.id}`}
-                    icon={blankSpaceQuickstart.icon}
-                    iconTone="muted"
-                    label={blankSpaceQuickstart.name}
-                    sublabel={blankSpaceQuickstart.description}
-                    experimental={
-                      'experimental' in blankSpaceQuickstart &&
-                      !!blankSpaceQuickstart.experimental
-                    }
-                    onSelect={() =>
-                      handleQuickstartSelect(blankSpaceQuickstart)
-                    }
-                  />
-                </CommandGroup>
-              )}
-
-            {browseQuickstartOptions.length > 0 && (
-              <CommandGroup heading="Browse templates" className="py-1">
-                {browseQuickstartOptions.map((opt) => (
-                  <DashboardItem
-                    key={opt.id}
-                    value={`create-${opt.id}`}
-                    icon={opt.icon}
-                    iconTone="muted"
-                    label={opt.name}
-                    sublabel={opt.description}
-                    experimental={'experimental' in opt && !!opt.experimental}
-                    onSelect={() => handleQuickstartSelect(opt)}
-                  />
-                ))}
-              </CommandGroup>
-            )}
-          </>
+          <DashboardQuickstartGroups
+            primaryQuickstart={primaryQuickstart}
+            blankSpaceQuickstart={blankSpaceQuickstart}
+            browseQuickstartOptions={browseQuickstartOptions}
+            onSelect={handleQuickstartSelect}
+          />
         ) : (
-          <>
-            {hasSpaces && personalSpaces.length > 0 && (
-              <CommandGroup
-                heading={
-                  <SectionHeading
-                    label={hasOrgs ? 'Personal' : 'Spaces'}
-                    count={personalSpaces.length}
-                  />
-                }
-                className="py-1"
-              >
-                {personalSpaces.map((space) => (
-                  <DashboardItem
-                    key={space.id}
-                    value={`space-${space.name}-${space.id}`}
-                    icon={
-                      space.objectType
-                        ? getObjectTypeIconComponent(
-                            space.objectType,
-                            objectTypeMetadataById,
-                            LuLayers,
-                          )
-                        : LuLayers
-                    }
-                    iconTone="brand"
-                    label={space.name}
-                    sublabel={getSpaceSourceLabel(space.source)}
-                    identifier={space.id}
-                    onSelect={() => handleSpaceSelect(space)}
-                  />
-                ))}
-              </CommandGroup>
-            )}
-
-            {orgSections.map(({ org, spaces: orgSpaces }) => (
-              <CommandGroup
-                key={org.id}
-                heading={
-                  <SectionHeading
-                    label={org.displayName}
-                    count={orgSpaces.length}
-                    onLabelClick={() => navigate({ path: `./org/${org.id}` })}
-                  />
-                }
-                className="py-1"
-              >
-                {orgSpaces.length === 0 ? (
-                  <div className="text-foreground-alt/40 px-2 py-3 text-center text-xs">
-                    No spaces yet
-                  </div>
-                ) : (
-                  orgSpaces.map((space) => (
-                    <DashboardItem
-                      key={space.id}
-                      value={`space-${space.name}-${space.id}`}
-                      icon={
-                        space.objectType
-                          ? getObjectTypeIconComponent(
-                              space.objectType,
-                              objectTypeMetadataById,
-                              LuLayers,
-                            )
-                          : LuLayers
-                      }
-                      iconTone="brand"
-                      label={space.name}
-                      sublabel={getSpaceSourceLabel(space.source)}
-                      identifier={space.id}
-                      orgName={org.displayName}
-                      onSelect={() => handleSpaceSelect(space)}
-                    />
-                  ))
-                )}
-              </CommandGroup>
-            ))}
-
-            {createQuickstartOptions.length > 0 && (
-              <CommandGroup heading="Create" className="py-1">
-                {createQuickstartOptions.map((opt) => (
-                  <DashboardItem
-                    key={opt.id}
-                    value={`create-${opt.id}`}
-                    icon={opt.icon}
-                    iconTone="muted"
-                    label={opt.name}
-                    sublabel={opt.description}
-                    experimental={'experimental' in opt && !!opt.experimental}
-                    onSelect={() => handleQuickstartSelect(opt)}
-                  />
-                ))}
-              </CommandGroup>
-            )}
-          </>
+          <DashboardSpaceGroups
+            hasSpaces={hasSpaces}
+            personalSpaces={personalSpaces}
+            orgSections={orgSections}
+            createQuickstartOptions={createQuickstartOptions}
+            objectTypeMetadataById={objectTypeMetadataById}
+            onSpaceSelect={handleSpaceSelect}
+            onQuickstartSelect={handleQuickstartSelect}
+          />
         )}
       </CommandList>
       {showScrollCue && (

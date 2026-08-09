@@ -31,6 +31,236 @@ interface CatalogEntry {
   revision: string
 }
 
+interface SpacePluginAddPanelProps {
+  draftId: string
+  draftError: string | null
+  pending: string
+  canSubmitDraft: boolean
+  trimmedDraft: string
+  suggestions: CatalogEntry[]
+  onDraftChange: (value: string) => void
+  onAdd: (pluginId: string) => void
+}
+
+// SpacePluginAddPanel renders manifest entry and catalog suggestions while the
+// parent retains mutation and lifecycle state.
+function SpacePluginAddPanel({
+  draftId,
+  draftError,
+  pending,
+  canSubmitDraft,
+  trimmedDraft,
+  suggestions,
+  onDraftChange,
+  onAdd,
+}: SpacePluginAddPanelProps) {
+  return (
+    <div className="border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3.5">
+      <div className="space-y-1.5">
+        <label
+          htmlFor="space-plugin-id"
+          className="text-foreground text-xs font-medium select-none"
+        >
+          Plugin manifest ID
+        </label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="space-plugin-id"
+            value={draftId}
+            onChange={(event) => onDraftChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && canSubmitDraft) onAdd(trimmedDraft)
+            }}
+            aria-invalid={draftError != null}
+            placeholder="spacewave-notes"
+            disabled={!!pending}
+            className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-8 flex-1 font-mono text-xs"
+          />
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => onAdd(trimmedDraft)}
+            disabled={!canSubmitDraft}
+            className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-8 rounded-md border px-3 text-xs"
+          >
+            {pending !== '' && pending === trimmedDraft ? (
+              <LuLoaderCircle className="size-3.5 animate-spin" />
+            ) : (
+              'Add'
+            )}
+          </Button>
+        </div>
+        {draftError && (
+          <p className="text-destructive/80 text-xs">{draftError}</p>
+        )}
+      </div>
+
+      {suggestions.length > 0 && (
+        <div className="space-y-1.5">
+          <span className="text-foreground-alt/50 text-[0.6rem] font-medium tracking-widest uppercase select-none">
+            Available plugins
+          </span>
+          <div className="flex flex-col gap-1.5">
+            {suggestions.map((plugin) => {
+              const Icon = plugin.icon
+              const isPending = pending === plugin.id
+              return (
+                <button
+                  key={plugin.id}
+                  type="button"
+                  onClick={() => onAdd(plugin.id)}
+                  disabled={!!pending}
+                  className={cn(
+                    'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-2.5 text-left transition-all duration-150',
+                    !!pending && 'cursor-not-allowed opacity-50',
+                  )}
+                >
+                  <span className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md">
+                    {isPending ? (
+                      <LuLoaderCircle className="text-brand size-4 animate-spin" />
+                    ) : (
+                      <Icon className="text-brand size-4" />
+                    )}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-foreground text-xs font-medium">
+                        {plugin.name}
+                      </span>
+                      {plugin.revision && (
+                        <span className="text-foreground-alt/50 text-[0.6rem] tabular-nums">
+                          rev {plugin.revision}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-foreground-alt/70 truncate text-[0.6rem]">
+                      {plugin.description}
+                    </span>
+                  </span>
+                  <LuPlus className="text-foreground-alt/50 size-3.5 shrink-0" />
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface InstalledPluginListProps {
+  plugins: NonNullable<SpaceContentsState['plugins']>
+  pending: string
+  confirmingRemoveId: string
+  onRequestRemove: (pluginId: string) => void
+  onCancelRemove: () => void
+  onConfirmRemove: (pluginId: string) => void
+}
+
+// InstalledPluginList renders plugin lifecycle state and the inline removal
+// confirmation without owning mutation state.
+function InstalledPluginList({
+  plugins,
+  pending,
+  confirmingRemoveId,
+  onRequestRemove,
+  onCancelRemove,
+  onConfirmRemove,
+}: InstalledPluginListProps) {
+  if (plugins.length === 0) {
+    return (
+      <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
+        <LuPuzzle className="size-3.5 shrink-0" />
+        <span className="select-none">No plugins installed</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {plugins.map((plugin) => {
+        const id = plugin.pluginId ?? ''
+        const meta = knownSpacePlugin(id)
+        const desc = plugin.description || meta.description
+        const detail = plugin.detail ?? ''
+        const confirming = confirmingRemoveId === id
+        const isPending = pending === id
+
+        if (confirming) {
+          return (
+            <div
+              key={id}
+              className="border-destructive/30 bg-destructive/5 flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
+            >
+              <span className="text-destructive/90 min-w-0 flex-1 truncate text-xs select-none">
+                Remove {id}?
+              </span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => onConfirmRemove(id)}
+                  disabled={isPending}
+                >
+                  {isPending ? (
+                    <LuLoaderCircle className="size-3.5 animate-spin" />
+                  ) : (
+                    'Confirm'
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onCancelRemove}
+                  disabled={isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )
+        }
+
+        return (
+          <div
+            key={id}
+            className="border-foreground/8 flex items-center justify-between gap-2 rounded-lg border bg-transparent px-3 py-2"
+          >
+            <div className="flex min-w-0 flex-col">
+              <span className="text-foreground truncate text-sm">{id}</span>
+              {desc && (
+                <span className="text-foreground-alt truncate text-xs">
+                  {desc}
+                </span>
+              )}
+              {detail && (
+                <span className="text-foreground-alt/70 truncate text-xs">
+                  {detail}
+                </span>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <PluginLifecycleBadge plugin={plugin} />
+              <button
+                type="button"
+                onClick={() => onRequestRemove(id)}
+                disabled={!!pending}
+                aria-label={`Remove ${id}`}
+                className={cn(
+                  'text-foreground-alt/50 hover:text-destructive flex size-6 items-center justify-center rounded-md transition-colors',
+                  !!pending && 'cursor-not-allowed opacity-50',
+                )}
+              >
+                <LuTrash2 className="size-3.5" />
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // SpacePlugins renders the plugin management UI for a space: the installed
 // plugins with lifecycle badges, an add-by-manifest-ID flow with known-plugin
 // suggestions, and a per-row remove with inline confirmation.
@@ -166,188 +396,26 @@ export function SpacePlugins() {
       </div>
 
       {adding && (
-        <div className="border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3.5">
-          <div className="space-y-1.5">
-            <label
-              htmlFor="space-plugin-id"
-              className="text-foreground text-xs font-medium select-none"
-            >
-              Plugin manifest ID
-            </label>
-            <div className="flex items-center gap-2">
-              <Input
-                id="space-plugin-id"
-                value={draftId}
-                onChange={(e) => setDraftId(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && canSubmitDraft) {
-                    void handleAdd(trimmedDraft)
-                  }
-                }}
-                aria-invalid={draftError != null}
-                placeholder="spacewave-notes"
-                disabled={!!pending}
-                className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-8 flex-1 font-mono text-xs"
-              />
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => void handleAdd(trimmedDraft)}
-                disabled={!canSubmitDraft}
-                className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground h-8 rounded-md border px-3 text-xs"
-              >
-                {pending !== '' && pending === trimmedDraft ? (
-                  <LuLoaderCircle className="size-3.5 animate-spin" />
-                ) : (
-                  'Add'
-                )}
-              </Button>
-            </div>
-            {draftError && (
-              <p className="text-destructive/80 text-xs">{draftError}</p>
-            )}
-          </div>
-
-          {suggestions.length > 0 && (
-            <div className="space-y-1.5">
-              <span className="text-foreground-alt/50 text-[0.6rem] font-medium tracking-widest uppercase select-none">
-                Available plugins
-              </span>
-              <div className="flex flex-col gap-1.5">
-                {suggestions.map((plugin) => {
-                  const Icon = plugin.icon
-                  const isPending = pending === plugin.id
-                  return (
-                    <button
-                      key={plugin.id}
-                      type="button"
-                      onClick={() => void handleAdd(plugin.id)}
-                      disabled={!!pending}
-                      className={cn(
-                        'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-2.5 text-left transition-all duration-150',
-                        !!pending && 'cursor-not-allowed opacity-50',
-                      )}
-                    >
-                      <span className="bg-brand/10 flex size-8 shrink-0 items-center justify-center rounded-md">
-                        {isPending ? (
-                          <LuLoaderCircle className="text-brand size-4 animate-spin" />
-                        ) : (
-                          <Icon className="text-brand size-4" />
-                        )}
-                      </span>
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="flex items-center gap-1.5">
-                          <span className="text-foreground text-xs font-medium">
-                            {plugin.name}
-                          </span>
-                          {plugin.revision && (
-                            <span className="text-foreground-alt/50 text-[0.6rem] tabular-nums">
-                              rev {plugin.revision}
-                            </span>
-                          )}
-                        </span>
-                        <span className="text-foreground-alt/70 truncate text-[0.6rem]">
-                          {plugin.description}
-                        </span>
-                      </span>
-                      <LuPlus className="text-foreground-alt/50 size-3.5 shrink-0" />
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+        <SpacePluginAddPanel
+          draftId={draftId}
+          draftError={draftError}
+          pending={pending}
+          canSubmitDraft={canSubmitDraft}
+          trimmedDraft={trimmedDraft}
+          suggestions={suggestions}
+          onDraftChange={setDraftId}
+          onAdd={(pluginId) => void handleAdd(pluginId)}
+        />
       )}
 
-      {plugins.length === 0 ? (
-        <div className="text-foreground-alt/40 flex items-center gap-2 p-1 text-xs">
-          <LuPuzzle className="size-3.5 shrink-0" />
-          <span className="select-none">No plugins installed</span>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {plugins.map((plugin) => {
-            const id = plugin.pluginId ?? ''
-            const meta = knownSpacePlugin(id)
-            const desc = plugin.description || meta.description
-            const detail = plugin.detail ?? ''
-            const confirming = confirmingRemoveId === id
-            const isPending = pending === id
-
-            if (confirming) {
-              return (
-                <div
-                  key={id}
-                  className="border-destructive/30 bg-destructive/5 flex items-center justify-between gap-2 rounded-lg border px-3 py-2"
-                >
-                  <span className="text-destructive/90 min-w-0 flex-1 truncate text-xs select-none">
-                    Remove {id}?
-                  </span>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => void handleRemove(id)}
-                      disabled={isPending}
-                    >
-                      {isPending ? (
-                        <LuLoaderCircle className="size-3.5 animate-spin" />
-                      ) : (
-                        'Confirm'
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setConfirmingRemoveId('')}
-                      disabled={isPending}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )
-            }
-
-            return (
-              <div
-                key={id}
-                className="border-foreground/8 flex items-center justify-between gap-2 rounded-lg border bg-transparent px-3 py-2"
-              >
-                <div className="flex min-w-0 flex-col">
-                  <span className="text-foreground truncate text-sm">{id}</span>
-                  {desc && (
-                    <span className="text-foreground-alt truncate text-xs">
-                      {desc}
-                    </span>
-                  )}
-                  {detail && (
-                    <span className="text-foreground-alt/70 truncate text-xs">
-                      {detail}
-                    </span>
-                  )}
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <PluginLifecycleBadge plugin={plugin} />
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingRemoveId(id)}
-                    disabled={!!pending}
-                    aria-label={`Remove ${id}`}
-                    className={cn(
-                      'text-foreground-alt/50 hover:text-destructive flex size-6 items-center justify-center rounded-md transition-colors',
-                      !!pending && 'cursor-not-allowed opacity-50',
-                    )}
-                  >
-                    <LuTrash2 className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+      <InstalledPluginList
+        plugins={plugins}
+        pending={pending}
+        confirmingRemoveId={confirmingRemoveId}
+        onRequestRemove={setConfirmingRemoveId}
+        onCancelRemove={() => setConfirmingRemoveId('')}
+        onConfirmRemove={(pluginId) => void handleRemove(pluginId)}
+      />
     </div>
   )
 }
