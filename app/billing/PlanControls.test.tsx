@@ -20,6 +20,10 @@ const mockSession = vi.hoisted(() => ({
     | undefined,
 }))
 const mockStartCheckout = vi.hoisted(() => vi.fn())
+const mockManagedStore = vi.hoisted(() => ({
+  reactivate: mockReactivateSubscription,
+  refresh: vi.fn(),
+}))
 const mockBillingState = vi.hoisted(() => ({
   billingAccountId: 'ba_test',
 }))
@@ -46,6 +50,10 @@ vi.mock('../provider/spacewave/useBillingAccountCheckout.js', () => ({
     showRetry: false,
     startCheckout: mockStartCheckout,
   }),
+}))
+
+vi.mock('./useManagedBillingAccounts.js', () => ({
+  useManagedBillingAccounts: () => ({ store: mockManagedStore }),
 }))
 
 vi.mock('./BillingStateProvider.js', () => ({

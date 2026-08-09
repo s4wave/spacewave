@@ -2,11 +2,7 @@ import { useCallback, useState } from 'react'
 import { LuCheck, LuCreditCard, LuX } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
-import {
-  SessionContext,
-  useSessionNavigate,
-} from '@s4wave/web/contexts/contexts.js'
-import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
+import { useSessionNavigate } from '@s4wave/web/contexts/contexts.js'
 import { CollapsibleSection } from '@s4wave/web/ui/CollapsibleSection.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
@@ -27,10 +23,10 @@ import {
   DropdownMenuTrigger,
 } from '@s4wave/web/ui/DropdownMenu.js'
 import { DropdownTriggerButton } from '@s4wave/web/ui/DropdownTriggerButton.js'
-import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { BillingStatus } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
 import { BillingAccountCard } from '../billing/BillingAccountCard.js'
+import { useManagedBillingAccounts } from '../billing/useManagedBillingAccounts.js'
 import {
   BillingStateProvider,
   useBillingStateContext,
@@ -143,19 +139,10 @@ function OrgBillingAccountPicker({
   orgId: string
   currentBaId?: string
 }) {
-  const sessionResource = SessionContext.useContext()
-  const session = useResourceValue(sessionResource)
+  const { data, session, store } = useManagedBillingAccounts()
   const [assigning, setAssigning] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { data } = usePromise(
-    useCallback(
-      (signal: AbortSignal) =>
-        session?.spacewave.listManagedBillingAccounts(signal) ??
-        Promise.resolve(null),
-      [session],
-    ),
-  )
   const bas = data?.accounts ?? []
 
   const handleAssign = useCallback(
@@ -164,18 +151,14 @@ function OrgBillingAccountPicker({
       setAssigning(true)
       setError(null)
       try {
-        await session.spacewave.assignBillingAccount(
-          baId,
-          'organization',
-          orgId,
-        )
+        await store?.assign(baId, 'organization', orgId)
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e))
       } finally {
         setAssigning(false)
       }
     },
-    [session, assigning, orgId, currentBaId],
+    [session, store, assigning, orgId, currentBaId],
   )
 
   if (bas.length === 0) return null
@@ -226,8 +209,7 @@ function OrgBillingAccountPicker({
 }
 
 function OrgBillingDetachAction({ orgId }: { orgId: string }) {
-  const sessionResource = SessionContext.useContext()
-  const session = useResourceValue(sessionResource)
+  const { session, store } = useManagedBillingAccounts()
   const [open, setOpen] = useState(false)
   const [detaching, setDetaching] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -243,14 +225,14 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
     setDetaching(true)
     setError(null)
     try {
-      await session.spacewave.detachBillingAccount('organization', orgId)
+      await store?.detach('organization', orgId)
       setOpen(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setDetaching(false)
     }
-  }, [session, detaching, orgId])
+  }, [session, store, detaching, orgId])
 
   return (
     <div className="flex flex-col items-start gap-1">

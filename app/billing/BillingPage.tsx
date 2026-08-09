@@ -6,18 +6,16 @@ import {
   LuSave,
   LuX,
 } from 'react-icons/lu'
-import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { SessionContext } from '@s4wave/web/contexts/contexts.js'
-import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { BillingStatus } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { useBillingStateContext } from './BillingStateProvider.js'
+import { useManagedBillingAccounts } from './useManagedBillingAccounts.js'
 import { UsageBars } from './UsageBars.js'
 import { PlanControls } from './PlanControls.js'
 import { StripePortalLink } from './StripePortalLink.js'
@@ -47,8 +45,12 @@ function formatBillingDate(timestampMs: number | string | bigint): string {
 export function BillingPage() {
   const billingState = useBillingStateContext()
   const navigate = useNavigate()
-  const sessionResource = SessionContext.useContext()
-  const session = useResourceValue(sessionResource)
+  const {
+    data: managedData,
+    loading: managedBillingLoading,
+    session,
+    store,
+  } = useManagedBillingAccounts()
 
   const billing = billingState.response?.billingAccount
   const baId = billingState.billingAccountId ?? ''
@@ -66,24 +68,8 @@ export function BillingPage() {
   const [renameError, setRenameError] = useState<string | null>(null)
   const [refreshingUsage, setRefreshingUsage] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
-  const [reloadKey, setReloadKey] = useState(0)
-
-  const { data: managedData } = usePromise(
-    useCallback(
-      (signal: AbortSignal) => {
-        void reloadKey
-        return (
-          session?.spacewave.listManagedBillingAccounts(signal) ??
-          Promise.resolve(null)
-        )
-      },
-      [session, reloadKey],
-    ),
-  )
-
   const managedBillingAccount =
     (managedData?.accounts ?? []).find((row) => row.id === baId) ?? null
-  const managedBillingLoading = !!session && managedData == null
   const assigneeCount = managedBillingAccount?.assignees?.length ?? 0
   const deleteDisabledReason = managedBillingLoading
     ? 'Loading billing account assignments...'
@@ -120,14 +106,15 @@ export function BillingPage() {
     setRenameSaving(true)
     setRenameError(null)
     try {
-      await session.spacewave.renameBillingAccount(baId, next)
+      if (!store) return
+      await store.rename(baId, next)
       setRenaming(false)
     } catch (e) {
       setRenameError(e instanceof Error ? e.message : String(e))
     } finally {
       setRenameSaving(false)
     }
-  }, [session, baId, renameValue, displayName, renameSaving])
+  }, [session, store, baId, renameValue, displayName, renameSaving])
 
   const handleRefreshUsage = useCallback(async () => {
     if (!session || refreshingUsage) return
@@ -288,7 +275,6 @@ export function BillingPage() {
                 baId={baId}
                 managedBillingAccount={managedBillingAccount}
                 loading={managedBillingLoading}
-                onChanged={() => setReloadKey((k) => k + 1)}
               />
             )}
             <PlanControls

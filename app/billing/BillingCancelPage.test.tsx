@@ -55,6 +55,17 @@ vi.mock('../provider/spacewave/useBillingAccountCheckout.js', () => ({
   },
 }))
 
+vi.mock('./useManagedBillingAccounts.js', () => ({
+  useManagedBillingAccounts: () => ({
+    session: {},
+    store: {
+      cancel: vi.fn(),
+      reactivate: mockReactivateSubscription,
+      refresh: vi.fn(),
+    },
+  }),
+}))
+
 vi.mock('./BillingStateProvider.js', () => ({
   useBillingStateContext: () => mockBillingState,
 }))

@@ -41,6 +41,26 @@ vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
   useResourceValue: mockUseResourceValue,
 }))
 
+vi.mock('@s4wave/app/billing/useManagedBillingAccounts.js', () => ({
+  useManagedBillingAccounts: () => {
+    const result = mockUsePromise()
+    const session = mockUseResourceValue()
+    return {
+      ...result,
+      session,
+      store: session
+        ? {
+            assign: (...args: unknown[]) =>
+              session.spacewave.assignBillingAccount(...args),
+            create: (...args: unknown[]) =>
+              session.spacewave.createBillingAccount(...args),
+            refresh: vi.fn(),
+          }
+        : null,
+    }
+  },
+}))
+
 vi.mock('@aptre/bldr-sdk/hooks/useStreamingResource.js', () => ({
   useStreamingResource: mockUseStreamingResource,
 }))

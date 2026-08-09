@@ -10,6 +10,7 @@ import { BillingStatus } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { useBillingAccountCheckout } from '../provider/spacewave/useBillingAccountCheckout.js'
 import { useBillingStateContext } from './BillingStateProvider.js'
 import { isStatusActive } from './billing-utils.js'
+import { useManagedBillingAccounts } from './useManagedBillingAccounts.js'
 
 function hasAutoReactivateIntent(path: string): boolean {
   const query = path.split('?')[1] ?? ''
@@ -43,7 +44,10 @@ function usePlanReactivation(
 ) {
   const session = SessionContext.useContext().value
   const navigate = useNavigate()
-  const checkout = useBillingAccountCheckout()
+  const { store } = useManagedBillingAccounts()
+  const checkout = useBillingAccountCheckout({
+    onCompleted: () => void store?.refresh(),
+  })
   const { startCheckout } = checkout
   const initialIntent = useRef(hasAutoReactivateIntent(path))
   const initialPath = useRef(path)
@@ -77,12 +81,9 @@ function usePlanReactivation(
       signal.throwIfAborted()
       setState({ action: 'reactivating', context, error: null })
       try {
-        const response = await session.spacewave.reactivateSubscription(
-          billingAccountId,
-          signal,
-        )
+        const response = await store?.reactivate(billingAccountId, signal)
         signal.throwIfAborted()
-        if (response.needsCheckout) {
+        if (response?.needsCheckout) {
           await startCheckout(billingAccountId)
         }
         signal.throwIfAborted()
@@ -100,7 +101,7 @@ function usePlanReactivation(
         current.pending = false
       }
     },
-    [billingAccountId, routePath, session, startCheckout],
+    [billingAccountId, routePath, session, startCheckout, store],
   )
 
   useAbortSignalEffect(

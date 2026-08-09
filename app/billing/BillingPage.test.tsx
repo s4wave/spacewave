@@ -60,6 +60,16 @@ vi.mock('@s4wave/web/hooks/usePromise.js', () => ({
   usePromise: () => ({ data: { accounts: [] } }),
 }))
 
+vi.mock('./useManagedBillingAccounts.js', () => ({
+  useManagedBillingAccounts: () => ({
+    data: { accounts: [] },
+    loading: false,
+    error: null,
+    session: mockSession,
+    store: { rename: mockSession.spacewave.renameBillingAccount },
+  }),
+}))
+
 vi.mock('./BillingStateProvider.js', () => ({
   useBillingStateContext: () => mockBillingState,
 }))

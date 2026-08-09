@@ -1,14 +1,8 @@
-import { useCallback, useMemo, useState } from 'react'
 import { LuCheck, LuLink, LuX } from 'react-icons/lu'
-import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import { cn } from '@s4wave/web/style/utils.js'
-import { SessionContext } from '@s4wave/web/contexts/contexts.js'
-import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'
-import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import type {
   ManagedBillingAccount,
-  OrganizationInfo,
   PrincipalAssignment,
 } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import {
@@ -22,23 +16,13 @@ import {
 import { DropdownTriggerButton } from '@s4wave/web/ui/DropdownTriggerButton.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
-import { ORG_ROLE_OWNER } from '../org/org-constants.js'
-import {
-  DetachAssignmentDialog,
-  type DetachAssignmentTarget,
-} from './DetachAssignmentDialog.js'
-
-interface AssignTarget {
-  ownerType: 'account' | 'organization'
-  ownerId: string
-  label: string
-}
+import { useBillingAssignments } from './useBillingAssignments.js'
+import { DetachAssignmentDialog } from './DetachAssignmentDialog.js'
 
 export interface BillingAssignmentsSectionProps {
   baId: string
   managedBillingAccount: ManagedBillingAccount | null
   loading?: boolean
-  onChanged?: () => void
 }
 
 // BillingAssignmentsSection lets the viewer assign the given billing account
@@ -48,95 +32,17 @@ export function BillingAssignmentsSection({
   baId,
   managedBillingAccount,
   loading,
-  onChanged,
 }: BillingAssignmentsSectionProps) {
-  const sessionResource = SessionContext.useContext()
-  const session = useResourceValue(sessionResource)
-  const orgList = SpacewaveOrgListContext.useContext()
-  const { accountId: callerAccountId } = useSessionInfo(session)
-
-  const [assigning, setAssigning] = useState(false)
-  const [assignError, setAssignError] = useState<string | null>(null)
-  const [detachTarget, setDetachTarget] =
-    useState<DetachAssignmentTarget | null>(null)
-  const [detaching, setDetaching] = useState(false)
-  const [detachError, setDetachError] = useState<string | null>(null)
+  const assignments = useBillingAssignments()
 
   const assignees: PrincipalAssignment[] =
     managedBillingAccount?.assignees ?? []
 
-  const ownedOrgs: OrganizationInfo[] = useMemo(
-    () => orgList.organizations.filter((o) => o.role === ORG_ROLE_OWNER),
-    [orgList.organizations],
-  )
-
-  const assignTargets: AssignTarget[] = useMemo(() => {
-    const list: AssignTarget[] = []
-    if (callerAccountId) {
-      list.push({
-        ownerType: 'account',
-        ownerId: callerAccountId,
-        label: 'Personal account',
-      })
-    }
-    for (const o of ownedOrgs) {
-      if (!o.id) continue
-      list.push({
-        ownerType: 'organization',
-        ownerId: o.id,
-        label: o.displayName || o.id,
-      })
-    }
-    return list
-  }, [callerAccountId, ownedOrgs])
-
-  const handleAssign = useCallback(
-    async (target: AssignTarget) => {
-      if (!session || !baId || assigning) return
-      setAssigning(true)
-      setAssignError(null)
-      try {
-        await session.spacewave.assignBillingAccount(
-          baId,
-          target.ownerType,
-          target.ownerId,
-        )
-        onChanged?.()
-      } catch (e) {
-        setAssignError(e instanceof Error ? e.message : String(e))
-      } finally {
-        setAssigning(false)
-      }
-    },
-    [session, baId, assigning, onChanged],
-  )
-
-  const handleDetachConfirm = useCallback(async () => {
-    if (!session || !detachTarget || detaching) return
-    setDetaching(true)
-    setDetachError(null)
-    try {
-      await session.spacewave.detachBillingAccount(
-        detachTarget.ownerType,
-        detachTarget.ownerId,
-      )
-      setDetachTarget(null)
-      onChanged?.()
-    } catch (e) {
-      setDetachError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setDetaching(false)
-    }
-  }, [session, detachTarget, detaching, onChanged])
-
-  const handleDetachCancel = useCallback(() => {
-    if (detaching) return
-    setDetachTarget(null)
-    setDetachError(null)
-  }, [detaching])
-
-  const noTargets = assignTargets.length === 0
-  const menuDisabled = !session || assigning || noTargets
+  const noTargets = assignments.assignTargets.length === 0
+  const menuDisabled =
+    assignments.actionsDisabled ||
+    assignments.assigningBillingAccountId === baId ||
+    noTargets
 
   return (
     <div className="space-y-3">
@@ -155,7 +61,8 @@ export function BillingAssignmentsSection({
         <div className="flex flex-wrap items-center gap-1.5">
           {assignees.map((a) => {
             const isPersonal =
-              a.ownerType === 'account' && a.ownerId === callerAccountId
+              a.ownerType === 'account' &&
+              a.ownerId === assignments.callerAccountId
             const label = isPersonal
               ? 'Personal'
               : a.displayName || a.ownerId || ''
@@ -167,7 +74,7 @@ export function BillingAssignmentsSection({
                 <span>{label}</span>
                 <button
                   onClick={() =>
-                    setDetachTarget({
+                    assignments.requestDetach({
                       ownerType: a.ownerType as 'account' | 'organization',
                       ownerId: a.ownerId ?? '',
                       label,
@@ -187,20 +94,24 @@ export function BillingAssignmentsSection({
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={menuDisabled}>
             <DropdownTriggerButton icon={<LuLink className="size-3" />}>
-              {assigning ? 'Assigning…' : 'Assign to…'}
+              {assignments.assigningBillingAccountId === baId
+                ? 'Assigning…'
+                : 'Assign to…'}
             </DropdownTriggerButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             <DropdownMenuLabel>Assign this BA to</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {assignTargets.map((t) => {
+            {assignments.assignTargets.map((t) => {
               const isSelected = assignees.some(
                 (a) => a.ownerType === t.ownerType && a.ownerId === t.ownerId,
               )
               return (
                 <DropdownMenuItem
                   key={`${t.ownerType}:${t.ownerId}`}
-                  onSelect={() => void handleAssign(t)}
+                  onSelect={() => {
+                    if (baId) void assignments.assign(baId, t)
+                  }}
                 >
                   <LuCheck
                     className={cn(
@@ -220,21 +131,21 @@ export function BillingAssignmentsSection({
           </span>
         )}
       </div>
-      {assignError && (
+      {assignments.assignError && (
         <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-xs">
-          {assignError}
+          {assignments.assignError}
         </div>
       )}
-      {detachError && (
+      {assignments.detachError && (
         <div className="border-destructive/20 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-xs">
-          {detachError}
+          {assignments.detachError}
         </div>
       )}
       <DetachAssignmentDialog
-        target={detachTarget}
-        busy={detaching}
-        onCancel={handleDetachCancel}
-        onConfirm={() => void handleDetachConfirm()}
+        target={assignments.detachTarget}
+        busy={assignments.detaching}
+        onCancel={assignments.cancelDetach}
+        onConfirm={() => void assignments.confirmDetach()}
       />
     </div>
   )

@@ -6,7 +6,6 @@ import {
   useSessionNavigate,
 } from '@s4wave/web/contexts/contexts.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { SpacewaveOrgListContext } from '@s4wave/web/contexts/SpacewaveOrgListContext.js'
 import { Redirect } from '@s4wave/web/router/Redirect.js'
@@ -14,6 +13,7 @@ import { usePath } from '@s4wave/web/router/router.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
 import type { ManagedBillingAccount } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { isStatusActive } from '@s4wave/app/billing/billing-utils.js'
+import { useManagedBillingAccounts } from '@s4wave/app/billing/useManagedBillingAccounts.js'
 import { useBillingAccountCheckout } from './useBillingAccountCheckout.js'
 import { NoActiveBillingAccountContent } from './NoActiveBillingAccountContent.js'
 
@@ -64,19 +64,13 @@ export function NoActiveBillingAccountPage() {
   const [activatingBaId, setActivatingBaId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
-  const [reloadKey, setReloadKey] = useState(0)
+  const { data, loading, error, store } = useManagedBillingAccounts()
   const checkout = useBillingAccountCheckout({
-    onCompleted: () => navigateSession({ path: 'setup' }),
+    onCompleted: () => {
+      void store?.refresh()
+      navigateSession({ path: 'setup' })
+    },
   })
-
-  const { data, loading, error } = usePromise(
-    useCallback(
-      (signal: AbortSignal) =>
-        session?.spacewave.listManagedBillingAccounts(signal) ??
-        Promise.resolve(null),
-      [session, reloadKey], // eslint-disable-line react-hooks/exhaustive-deps -- reloadKey triggers re-fetch
-    ),
-  )
 
   const accounts = useMemo<ManagedBillingAccount[]>(
     () => data?.accounts ?? [],
@@ -139,11 +133,7 @@ export function NoActiveBillingAccountPage() {
       try {
         if (isStatusActive(ba.subscriptionStatus)) {
           if (!isAssignedToTarget(ba, target)) {
-            await session.spacewave.assignBillingAccount(
-              baId,
-              target.ownerType,
-              target.ownerId,
-            )
+            await store?.assign(baId, target.ownerType, target.ownerId)
           }
           navigateSession({ path: 'setup' })
           return
@@ -155,23 +145,22 @@ export function NoActiveBillingAccountPage() {
         setActivatingBaId(null)
       }
     },
-    [activatingBaId, checkout, navigateSession, session, target],
+    [activatingBaId, checkout, navigateSession, session, store, target],
   )
 
   const handleCreate = useCallback(async () => {
     if (!session || creating || checkout.polling) return
     setCreating(true)
     try {
-      const sw = session.spacewave
-      const baId = await sw.createBillingAccount('Billing Account')
-      setReloadKey((k) => k + 1)
+      const baId = await store?.create('Billing Account')
+      if (!baId) return
       await checkout.startCheckout(baId)
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e))
     } finally {
       setCreating(false)
     }
-  }, [checkout, creating, session])
+  }, [checkout, creating, session, store])
 
   const handleManage = useCallback(
     (baId: string) => {
