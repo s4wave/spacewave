@@ -125,9 +125,7 @@ function Variant({ label, note, children }: VariantProps) {
         <span className="text-foreground text-xs font-medium tracking-wide select-none">
           {label}
         </span>
-        {note && (
-          <span className="text-foreground-alt/50 text-[0.6rem]">{note}</span>
-        )}
+        {note && <span className="text-foreground-alt/50 text-xs">{note}</span>}
       </div>
       <div className="border-foreground/6 bg-background/40 rounded-md border p-3">
         {children}
@@ -358,7 +356,7 @@ function GlassRow({ sample }: { sample: RowSample }) {
           <div className="text-foreground truncate text-xs font-medium">
             {sample.name}
           </div>
-          <div className="text-foreground-alt/50 truncate text-[0.6rem]">
+          <div className="text-foreground-alt/50 truncate text-xs">
             {sample.meta}
           </div>
         </div>
@@ -375,7 +373,7 @@ function DenseRow({ sample }: { sample: RowSample }) {
       <span className="text-foreground min-w-0 flex-1 truncate text-xs font-medium">
         {sample.name}
       </span>
-      <span className="text-foreground-alt/50 hidden truncate text-[0.6rem] sm:block">
+      <span className="text-foreground-alt/50 hidden truncate text-xs sm:block">
         {sample.meta}
       </span>
       <DotBadge {...sample.state} />
@@ -480,7 +478,7 @@ function CompactStat({
       <div className="text-foreground text-2xl font-semibold tracking-tight">
         {value}
       </div>
-      <div className="text-foreground-alt/50 text-[0.6rem]">{detail}</div>
+      <div className="text-foreground-alt/50 text-xs">{detail}</div>
     </div>
   )
 }

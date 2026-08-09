@@ -57,7 +57,7 @@ export function SpaceSettingsEditor({
       <InfoCard>
         <div className="space-y-2">
           <div>
-            <span className="text-foreground-alt mb-1 block text-[0.6rem] select-none">
+            <span className="text-foreground-alt mb-1 block text-xs select-none">
               Display Name
             </span>
             {canRename && onRenameStart ? (
@@ -90,7 +90,7 @@ export function SpaceSettingsEditor({
             )}
           </div>
           <div>
-            <span className="text-foreground-alt mb-1 block text-[0.6rem] select-none">
+            <span className="text-foreground-alt mb-1 block text-xs select-none">
               Index Path
             </span>
             {canEdit ? (

@@ -89,7 +89,7 @@ export function SqlTableViewViewer({
       </div>
 
       {view ? (
-        <div className="border-foreground/8 text-foreground-alt/70 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b px-4 py-1.5 text-[0.65rem]">
+        <div className="border-foreground/8 text-foreground-alt/70 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b px-4 py-1.5 text-xs">
           <span>
             columns:{' '}
             <span className="text-foreground font-mono">

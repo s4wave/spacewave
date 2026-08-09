@@ -77,7 +77,7 @@ export function SqlResultGrid({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-foreground/8 flex shrink-0 items-center gap-2 border-b px-3 py-1.5">
-        <span className="text-foreground-alt/60 text-[0.6rem] tabular-nums">
+        <span className="text-foreground-alt/60 text-xs tabular-nums">
           {data.rows.length === 0
             ? '0 rows'
             : `${firstRow}–${lastRow} of ${data.rows.length}`}
@@ -95,7 +95,7 @@ export function SqlResultGrid({
             >
               Prev
             </Button>
-            <span className="text-foreground-alt/60 text-[0.6rem] tabular-nums">
+            <span className="text-foreground-alt/60 text-xs tabular-nums">
               {safePage + 1}/{pageCount}
             </span>
             <Button

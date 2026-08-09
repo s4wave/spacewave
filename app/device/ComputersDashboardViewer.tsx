@@ -296,7 +296,7 @@ function InventoryPanel({
                   <span className="text-foreground block truncate text-sm font-medium">
                     {entry.kind}
                   </span>
-                  <span className="text-foreground-alt/50 mt-0.5 block truncate font-mono text-[0.6rem]">
+                  <span className="text-foreground-alt/50 mt-0.5 block truncate font-mono text-xs">
                     {entry.objectKey}
                   </span>
                 </span>

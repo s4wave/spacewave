@@ -141,11 +141,11 @@ function BinaryFileViewer({ mimeType }: { mimeType: string }) {
             <p className="text-foreground text-xs font-medium select-none">
               Preview not available
             </p>
-            <p className="text-foreground-alt/60 mt-0.5 text-[11px] leading-relaxed">
+            <p className="text-foreground-alt/60 mt-0.5 text-xs leading-relaxed">
               This file type can't be rendered inline. Download it to open in
               another app.
             </p>
-            <p className="text-foreground-alt/40 mt-1 font-mono text-[10px]">
+            <p className="text-foreground-alt/40 mt-1 font-mono text-xs">
               {mimeType}
             </p>
           </div>
@@ -195,11 +195,11 @@ function SymlinkViewer({
               Symbolic link
             </p>
             {loading ? (
-              <p className="text-foreground-alt/60 mt-0.5 text-[11px]">
+              <p className="text-foreground-alt/60 mt-0.5 text-xs">
                 Reading target…
               </p>
             ) : (
-              <p className="text-foreground-alt/70 mt-1 truncate font-mono text-[11px]">
+              <p className="text-foreground-alt/70 mt-1 truncate font-mono text-xs">
                 {target}
               </p>
             )}

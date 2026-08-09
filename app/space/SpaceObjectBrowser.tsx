@@ -358,7 +358,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
                 </div>
               </div>
               <div className="space-y-3 p-3.5">
-                <div className="text-foreground-alt/50 flex items-center gap-2 text-[0.6rem]">
+                <div className="text-foreground-alt/50 flex items-center gap-2 text-xs">
                   <span className="border-foreground/6 bg-background/20 min-w-0 truncate rounded-md border px-2 py-1 font-mono">
                     {pendingRename}
                   </span>
@@ -387,7 +387,7 @@ export function SpaceObjectBrowser({ embedded }: SpaceObjectBrowserProps) {
                     aria-label="New object key"
                     className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9 font-mono text-xs"
                   />
-                  <p className="text-foreground-alt/40 text-[0.6rem]">
+                  <p className="text-foreground-alt/40 text-xs">
                     Press Enter to rename, or Escape to cancel.
                   </p>
                 </div>

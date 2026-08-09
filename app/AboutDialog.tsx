@@ -46,7 +46,7 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
           />
           <h2 className="text-xl font-semibold tracking-tight">Spacewave</h2>
           {buildInfo.runtimeLabel && (
-            <p className="text-foreground-alt/40 mt-1 text-[10px]">
+            <p className="text-foreground-alt/40 mt-1 text-xs">
               {buildInfo.runtimeLabel}
             </p>
           )}
@@ -97,7 +97,7 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
               onClick={() => window.open('https://cjs.zip', '_blank')}
               className="bg-muted/30 border-border block cursor-pointer border-t px-6 py-3 text-center"
             >
-              <p className="text-foreground-alt/50 text-[10px]">
+              <p className="text-foreground-alt/50 text-xs">
                 Created by Christian Stewart
               </p>
             </button>

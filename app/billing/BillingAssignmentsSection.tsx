@@ -161,7 +161,7 @@ export function BillingAssignmentsSection({
             return (
               <span
                 key={`${a.ownerType}:${a.ownerId}`}
-                className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]"
+                className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
               >
                 <span>{label}</span>
                 <button
@@ -214,7 +214,7 @@ export function BillingAssignmentsSection({
           </DropdownMenuContent>
         </DropdownMenu>
         {noTargets && (
-          <span className="text-foreground-alt/50 text-[11px]">
+          <span className="text-foreground-alt/50 text-xs">
             No owned organizations. Create one to assign.
           </span>
         )}

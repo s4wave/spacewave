@@ -387,13 +387,13 @@ export function SessionDetails({
                   <span className="block min-w-0 truncate tracking-tight">
                     {headerTitle}
                   </span>
-                  <span className="text-foreground-alt/50 block truncate text-[11px] leading-tight font-normal">
+                  <span className="text-foreground-alt/50 block truncate text-xs leading-tight font-normal">
                     {headerSubtitle}
                   </span>
                 </div>
                 {headerPeerId && (
                   <span
-                    className="border-foreground/8 bg-background-card/40 text-foreground-alt/45 ml-1 hidden max-w-36 min-w-0 items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-[10px] font-normal opacity-0 transition-opacity group-focus-within/header:opacity-100 group-hover/header:opacity-100 md:flex"
+                    className="border-foreground/8 bg-background-card/40 text-foreground-alt/45 ml-1 hidden max-w-36 min-w-0 items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-xs font-normal opacity-0 transition-opacity group-focus-within/header:opacity-100 group-hover/header:opacity-100 md:flex"
                     title={headerPeerId}
                   >
                     <span className="truncate">
@@ -493,7 +493,7 @@ export function SessionDetails({
                         <div>
                           <label
                             htmlFor={displayNameInputId}
-                            className="text-foreground-alt mb-1 block text-[0.6rem] select-none"
+                            className="text-foreground-alt mb-1 block text-xs select-none"
                           >
                             Display Name
                           </label>
@@ -839,7 +839,7 @@ export function SessionDetails({
                 type="button"
                 aria-label="Scroll down for more settings"
                 onClick={handleScrollMoreSettings}
-                className="border-foreground/10 bg-background-card/90 text-foreground-alt hover:text-foreground absolute right-3 bottom-2 z-10 flex h-7 items-center gap-1 rounded-full border px-2.5 text-[10px] shadow-md transition-colors"
+                className="border-foreground/10 bg-background-card/90 text-foreground-alt hover:text-foreground absolute right-3 bottom-2 z-10 flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs shadow-md transition-colors"
               >
                 More settings
                 <LuChevronDown className="size-3" />

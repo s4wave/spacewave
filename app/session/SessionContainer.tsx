@@ -658,7 +658,7 @@ function TargetedInvitationInbox(props: {
               <div className="text-foreground truncate text-xs font-medium">
                 {targetedInvitationTitle(inv)}
               </div>
-              <div className="text-foreground-alt/60 truncate text-[11px]">
+              <div className="text-foreground-alt/60 truncate text-xs">
                 {inv.role || 'reader'} from {inv.actorAccountId}
               </div>
               <div className="mt-2 flex gap-2">

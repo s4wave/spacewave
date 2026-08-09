@@ -75,7 +75,7 @@ function OrgMemberRow(props: {
           {getOrgMemberPrimaryLabel(member)}
         </div>
         {getOrgMemberSecondaryLabel(member) && (
-          <div className="text-foreground-alt/50 truncate font-mono text-[10px] select-all">
+          <div className="text-foreground-alt/50 truncate font-mono text-xs select-all">
             {getOrgMemberSecondaryLabel(member)}
           </div>
         )}

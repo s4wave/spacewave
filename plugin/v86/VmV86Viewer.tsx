@@ -538,7 +538,7 @@ function VmInfoBar({
   vmStateValue: VmState | undefined
 }) {
   return (
-    <div className="border-foreground/8 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-1 text-[11px]">
+    <div className="border-foreground/8 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-t px-4 py-1 text-xs">
       <span className="text-muted-foreground">
         mem{' '}
         <span className="text-foreground font-medium">{memoryMb || '-'}MB</span>
@@ -569,7 +569,7 @@ function VmSettingsPanel({
   onOverrideChange: (slot: OverrideSlot, nextKey: string) => Promise<void>
 }) {
   return (
-    <div className="border-foreground/8 shrink-0 border-t px-4 py-2 text-[11px]">
+    <div className="border-foreground/8 shrink-0 border-t px-4 py-2 text-xs">
       <div className="text-muted-foreground mb-1 tracking-wide uppercase">
         Asset Overrides
       </div>
@@ -595,7 +595,7 @@ function VmSettingsPanel({
                   onChange={(e) => {
                     void onOverrideChange(slot, e.target.value)
                   }}
-                  className="bg-muted/40 text-foreground min-w-0 flex-1 rounded px-1 py-0.5 font-mono text-[11px]"
+                  className="bg-muted/40 text-foreground min-w-0 flex-1 rounded px-1 py-0.5 font-mono text-xs"
                 >
                   <option value="">(use V86Image default)</option>
                   {current && !unixfsKeys.includes(current) && (
@@ -618,7 +618,7 @@ function VmSettingsPanel({
 
 function VmMountList({ mounts }: { mounts: VmMount[] }) {
   return (
-    <div className="border-foreground/8 shrink-0 border-t px-4 py-1 text-[11px]">
+    <div className="border-foreground/8 shrink-0 border-t px-4 py-1 text-xs">
       <div className="text-muted-foreground mb-0.5 tracking-wide uppercase">
         Mounts
       </div>

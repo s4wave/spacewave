@@ -199,11 +199,11 @@ function ProgressBar({
         )}
       </div>
       {rate ? (
-        <span className="text-foreground-alt/70 font-mono text-[0.65rem] tabular-nums">
+        <span className="text-foreground-alt/70 font-mono text-xs tabular-nums">
           {rate}
         </span>
       ) : !indeterminate ? (
-        <span className="text-foreground-alt/70 w-8 text-right font-mono text-[0.65rem] tabular-nums">
+        <span className="text-foreground-alt/70 w-8 text-right font-mono text-xs tabular-nums">
           {pct}%
         </span>
       ) : null}
@@ -321,12 +321,12 @@ function LoadingCard({ view }: { view: LoadingView }) {
             </div>
           ) : null}
           {view.lastActivity ? (
-            <div className="text-foreground-alt/40 mt-2 text-[0.65rem]">
+            <div className="text-foreground-alt/40 mt-2 text-xs">
               {view.lastActivity}
             </div>
           ) : null}
           {view.error ? (
-            <div className="bg-destructive/5 border-destructive/15 text-destructive mt-2 rounded-md border px-2 py-1 text-[0.65rem] leading-relaxed">
+            <div className="bg-destructive/5 border-destructive/15 text-destructive mt-2 rounded-md border px-2 py-1 text-xs leading-relaxed">
               {view.error}
             </div>
           ) : null}
@@ -336,7 +336,7 @@ function LoadingCard({ view }: { view: LoadingView }) {
                 <button
                   type="button"
                   onClick={view.onRetry}
-                  className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground rounded-md border px-2 py-1 text-[0.65rem] font-medium transition duration-150"
+                  className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground rounded-md border px-2 py-1 text-xs font-medium transition duration-150"
                 >
                   Retry
                 </button>
@@ -345,7 +345,7 @@ function LoadingCard({ view }: { view: LoadingView }) {
                 <button
                   type="button"
                   onClick={view.onCancel}
-                  className="text-foreground-alt/60 hover:text-foreground-alt rounded-md px-2 py-1 text-[0.65rem] font-medium transition-colors"
+                  className="text-foreground-alt/60 hover:text-foreground-alt rounded-md px-2 py-1 text-xs font-medium transition-colors"
                 >
                   Cancel
                 </button>

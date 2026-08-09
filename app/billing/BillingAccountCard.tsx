@@ -54,9 +54,7 @@ export function BillingAccountCard({
           </span>
         </div>
         {detail && (
-          <p className="text-foreground-alt/50 mt-0.5 text-[0.6rem]">
-            {detail}
-          </p>
+          <p className="text-foreground-alt/50 mt-0.5 text-xs">{detail}</p>
         )}
       </div>
       <span className="text-brand/60 shrink-0 self-center text-xs">Manage</span>

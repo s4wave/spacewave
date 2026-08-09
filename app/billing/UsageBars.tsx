@@ -88,13 +88,13 @@ export function UsageBars(props: { actions?: ReactNode }) {
         {props.actions}
       </div>
       {meteredThroughAt > 0 && (
-        <div className="text-foreground-alt/45 -mt-2 text-[0.6rem]">
+        <div className="text-foreground-alt/45 -mt-2 text-xs">
           Usage metered through {formatMeteredThrough(meteredThroughAt)}
         </div>
       )}
       {softAlerts.length > 0 && (
-        <div className="rounded-md border border-yellow-400/20 bg-yellow-400/10 px-2.5 py-2 text-[0.6rem] leading-relaxed">
-          <div className="text-foreground text-[0.65rem] font-medium">
+        <div className="rounded-md border border-yellow-400/20 bg-yellow-400/10 px-2.5 py-2 text-xs leading-relaxed">
+          <div className="text-foreground text-xs font-medium">
             Included usage alert
           </div>
           <div className="text-foreground-alt/60 mt-1 space-y-0.5">
@@ -115,7 +115,7 @@ export function UsageBars(props: { actions?: ReactNode }) {
           barClassName="bg-blue-500"
         />
         {extraStorageBytes > 0 && (
-          <div className="rounded-md border border-blue-400/10 bg-blue-400/5 px-2.5 py-1.5 text-[0.6rem]">
+          <div className="rounded-md border border-blue-400/10 bg-blue-400/5 px-2.5 py-1.5 text-xs">
             <div className="flex items-center justify-between gap-2">
               <div className="text-foreground-alt/60 flex min-w-0 items-center gap-1.5">
                 <span className="size-1 shrink-0 rounded-full bg-blue-400/80" />

@@ -288,14 +288,14 @@ export function DesktopCLIInstallCard({
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="min-w-0">
-          <p className="text-foreground-alt mb-1 text-[0.7rem] font-medium uppercase">
+          <p className="text-foreground-alt mb-1 text-xs font-medium uppercase">
             Selected target
           </p>
           <code className="text-foreground-alt/90 bg-foreground/5 block max-w-full truncate rounded px-1.5 py-1 font-mono text-[0.7rem]">
             {selectedTarget?.path || 'Not selected'}
           </code>
           {selectedTarget && (
-            <p className="text-foreground-alt mt-1 text-[0.7rem]">
+            <p className="text-foreground-alt mt-1 text-xs">
               {selectedTarget.detail ||
                 (selectedTarget.writable
                   ? 'Writable user target'
@@ -305,7 +305,7 @@ export function DesktopCLIInstallCard({
         </div>
 
         <div className="min-w-0">
-          <p className="text-foreground-alt mb-1 text-[0.7rem] font-medium uppercase">
+          <p className="text-foreground-alt mb-1 text-xs font-medium uppercase">
             Release identity
           </p>
           <p className="text-foreground text-xs">
@@ -313,7 +313,7 @@ export function DesktopCLIInstallCard({
               'Waiting for release metadata'}
           </p>
           {state?.installed?.manifestId && (
-            <p className="text-foreground-alt mt-1 text-[0.7rem]">
+            <p className="text-foreground-alt mt-1 text-xs">
               Installed {formatCLIIdentity(state.installed)}
             </p>
           )}
@@ -355,7 +355,7 @@ function TargetOptions({
   if (targets.length <= 1) return null
   return (
     <div className="border-foreground/10 mt-3 border-t pt-3">
-      <p className="text-foreground-alt mb-2 text-[0.7rem] font-medium uppercase">
+      <p className="text-foreground-alt mb-2 text-xs font-medium uppercase">
         Install target
       </p>
       <div className="grid gap-2">
@@ -753,7 +753,7 @@ function ListenerStatusChip() {
     )
   } else {
     socketRow = (
-      <span className="text-foreground-alt text-[0.7rem]">
+      <span className="text-foreground-alt text-xs">
         Socket path not yet resolved.
       </span>
     )

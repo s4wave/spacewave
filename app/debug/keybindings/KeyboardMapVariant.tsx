@@ -136,7 +136,7 @@ export function KeyboardMapVariant({
               </div>
             ))}
           </div>
-          <div className="text-foreground-alt/45 mt-5 flex flex-wrap items-center gap-4 text-[11px]">
+          <div className="text-foreground-alt/45 mt-5 flex flex-wrap items-center gap-4 text-xs">
             <span className="flex items-center gap-1.5">
               <span className="border-brand/30 bg-brand/8 size-3 rounded border" />
               Assigned

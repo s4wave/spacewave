@@ -223,7 +223,7 @@ function AuthMethodsSectionContent({
         onOpenChange={handleOpenChange}
         badge={
           keypairCount > 0 ? (
-            <span className="text-foreground-alt/50 text-[0.55rem]">
+            <span className="text-foreground-alt/50 text-xs">
               {keypairCount}
             </span>
           ) : undefined
@@ -280,7 +280,7 @@ function AuthMethodsSectionContent({
                           {secondary}
                         </p>
                       )}
-                      <p className="text-foreground-alt/50 font-mono text-[0.6rem]">
+                      <p className="text-foreground-alt/50 font-mono text-xs">
                         {truncated}
                       </p>
                     </div>

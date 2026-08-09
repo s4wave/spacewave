@@ -115,7 +115,7 @@ function UnixFSLoadingDiagnostics({
 }) {
   return (
     <div
-      className="text-foreground-alt/60 max-w-xl space-y-1 text-center font-mono text-[0.68rem] leading-relaxed"
+      className="text-foreground-alt/60 max-w-xl space-y-1 text-center font-mono text-xs leading-relaxed"
       data-testid="unixfs-loading-diagnostics"
     >
       <div>Stage: {stageLabel}</div>

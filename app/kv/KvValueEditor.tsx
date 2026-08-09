@@ -61,7 +61,7 @@ export function KvValueEditor({
         )}
       />
       {parseError ? (
-        <p className="text-destructive text-[0.6rem]">{parseError}</p>
+        <p className="text-destructive text-xs">{parseError}</p>
       ) : null}
     </div>
   )

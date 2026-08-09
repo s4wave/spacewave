@@ -350,7 +350,7 @@ function DangerZoneSection({
             <h4 className="text-destructive text-xs font-medium select-none">
               Delete Object
             </h4>
-            <p className="text-destructive/80 text-[0.6rem] select-none">
+            <p className="text-destructive/80 text-xs select-none">
               Permanently remove this object and all its data
             </p>
           </div>

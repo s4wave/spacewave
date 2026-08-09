@@ -71,7 +71,7 @@ export function TerminalViewer({
           {formatTerminalState(state?.state)}
         </span>
       </div>
-      <div className="border-foreground/8 flex h-8 shrink-0 items-center gap-4 border-b px-4 text-[11px]">
+      <div className="border-foreground/8 flex h-8 shrink-0 items-center gap-4 border-b px-4 text-xs">
         <span className="text-muted-foreground min-w-0 truncate">
           {formatTerminalTargetLabel(state)}{' '}
           <span className="text-foreground font-mono">

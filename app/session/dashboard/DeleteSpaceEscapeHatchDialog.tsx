@@ -419,7 +419,7 @@ function SelectedSpaceSummary({ space, health }: SelectedSpaceSummaryProps) {
       <div className="text-foreground mt-0.5 truncate text-sm font-medium">
         {space.hasName ? space.name : 'Unnamed space'}
       </div>
-      <div className="text-foreground-alt/70 mt-0.5 font-mono text-[0.65rem] break-all select-text">
+      <div className="text-foreground-alt/70 mt-0.5 font-mono text-xs break-all select-text">
         {space.id}
       </div>
       <HealthBadge health={health} />
@@ -437,7 +437,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   const status = health.status ?? SharedObjectHealthStatus.UNKNOWN
   if (status === SharedObjectHealthStatus.READY) {
     return (
-      <div className="text-foreground-alt/70 mt-2 flex items-center gap-1.5 text-[0.65rem] select-none">
+      <div className="text-foreground-alt/70 mt-2 flex items-center gap-1.5 text-xs select-none">
         <LuCircleCheck className="text-foreground-alt/50 size-3" />
         Space is reachable.
       </div>
@@ -445,7 +445,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   }
   if (status === SharedObjectHealthStatus.LOADING) {
     return (
-      <div className="text-foreground-alt/70 mt-2 flex items-center gap-1.5 text-[0.65rem] select-none">
+      <div className="text-foreground-alt/70 mt-2 flex items-center gap-1.5 text-xs select-none">
         <LuCircleAlert className="text-foreground-alt/50 size-3" />
         Checking status…
       </div>
@@ -453,7 +453,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   }
   if (status === SharedObjectHealthStatus.DEGRADED) {
     return (
-      <div className="text-warning mt-2 flex items-center gap-1.5 text-[0.65rem] select-none">
+      <div className="text-warning mt-2 flex items-center gap-1.5 text-xs select-none">
         <LuTriangleAlert className="size-3" />
         Degraded. Some data may be partially available.
       </div>
@@ -461,7 +461,7 @@ function HealthBadge({ health }: HealthBadgeProps) {
   }
   if (status === SharedObjectHealthStatus.CLOSED) {
     return (
-      <div className="text-destructive mt-2 flex items-center gap-1.5 text-[0.65rem] select-none">
+      <div className="text-destructive mt-2 flex items-center gap-1.5 text-xs select-none">
         <LuShieldAlert className="size-3" />
         Cannot mount. This space is broken and must be deleted from here.
       </div>

@@ -133,9 +133,7 @@ function Variant({ label, note, children }: VariantProps) {
         <span className="text-foreground text-xs font-medium tracking-wide select-none">
           {label}
         </span>
-        {note && (
-          <span className="text-foreground-alt/50 text-[0.6rem]">{note}</span>
-        )}
+        {note && <span className="text-foreground-alt/50 text-xs">{note}</span>}
       </div>
       <div className="border-foreground/6 bg-background/40 overflow-hidden rounded-md border">
         {children}
@@ -516,7 +514,7 @@ function ModernToolbar() {
       </div>
       <div className="border-foreground/8 hover:border-foreground/15 mx-1 flex h-6 flex-1 items-center gap-1.5 rounded-md border bg-transparent px-2 transition-colors">
         <LuFolderOpen className="text-foreground-alt/60 size-3 shrink-0" />
-        <span className="text-foreground-alt/80 truncate text-[11px]">
+        <span className="text-foreground-alt/80 truncate text-xs">
           /photos/2026/april
         </span>
       </div>
@@ -604,10 +602,10 @@ function EmptyStateSection() {
                 <p className="text-foreground text-xs font-medium select-none">
                   UnixFS object not found
                 </p>
-                <p className="text-foreground-alt/60 mt-0.5 text-[11px] leading-relaxed">
+                <p className="text-foreground-alt/60 mt-0.5 text-xs leading-relaxed">
                   Create a drive via quickstart to initialize demo content.
                 </p>
-                <p className="text-foreground-alt/40 mt-1 font-mono text-[10px]">
+                <p className="text-foreground-alt/40 mt-1 font-mono text-xs">
                   0x0a1b2c3d4e5f…
                 </p>
               </div>
@@ -673,7 +671,7 @@ function DragOverlaySection() {
                 <p className="text-foreground text-xs font-medium select-none">
                   Drop files to upload
                 </p>
-                <p className="text-foreground-alt/60 text-[11px]">
+                <p className="text-foreground-alt/60 text-xs">
                   to /photos/2026/april
                 </p>
               </div>
@@ -739,7 +737,7 @@ function ErrorStateSection() {
                 <p className="text-foreground text-xs font-medium select-none">
                   Error loading files
                 </p>
-                <p className="text-foreground-alt/70 mt-0.5 text-[11px] leading-relaxed">
+                <p className="text-foreground-alt/70 mt-0.5 text-xs leading-relaxed">
                   failed to read directory: permission denied
                 </p>
               </div>

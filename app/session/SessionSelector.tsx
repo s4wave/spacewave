@@ -224,7 +224,7 @@ function SpaceRootAliasCard(props: {
           <span className="text-foreground truncate text-sm font-medium">
             {record.displayName || record.aliasId}
           </span>
-          <span className="bg-foreground/6 text-foreground-alt/75 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+          <span className="bg-foreground/6 text-foreground-alt/75 rounded-full px-1.5 py-0.5 text-xs font-medium">
             State root
           </span>
         </div>

@@ -128,11 +128,7 @@ export function SessionsSection({
 
   const badge = useMemo(() => {
     if (rows.length === 0) return undefined
-    return (
-      <span className="text-foreground-alt/50 text-[0.55rem]">
-        {rows.length}
-      </span>
-    )
+    return <span className="text-foreground-alt/50 text-xs">{rows.length}</span>
   }, [rows.length])
 
   return (
@@ -280,12 +276,12 @@ function SessionRow({ row, pending, onAction }: SessionRowProps) {
             {/* The local session's default label is already "This device";
                 skip the badge there so the row shows one, not two. */}
             {row.currentSession && label !== 'This device' && (
-              <span className="border-success/20 bg-success/10 text-success rounded-full border px-1.5 py-0.5 text-[0.55rem] font-medium">
+              <span className="border-success/20 bg-success/10 text-success rounded-full border px-1.5 py-0.5 text-xs font-medium">
                 This device
               </span>
             )}
             {!row.currentSession && isLocalRow && (
-              <span className="border-foreground/10 bg-foreground/5 text-foreground-alt rounded-full border px-1.5 py-0.5 text-[0.55rem] font-medium">
+              <span className="border-foreground/10 bg-foreground/5 text-foreground-alt rounded-full border px-1.5 py-0.5 text-xs font-medium">
                 Linked
               </span>
             )}

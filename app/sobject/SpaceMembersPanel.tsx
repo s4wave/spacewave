@@ -340,20 +340,20 @@ function MemberRow(props: {
           )}
         </div>
         {props.secondaryLabel && (
-          <div className="text-foreground-alt/50 truncate font-mono text-[10px]">
+          <div className="text-foreground-alt/50 truncate font-mono text-xs">
             {props.secondaryLabel}
           </div>
         )}
       </div>
       {props.deviceCount > 1 && (
         <span
-          className="text-foreground-alt/40 border-foreground/10 rounded-full border px-1.5 py-0.5 text-[0.55rem]"
+          className="text-foreground-alt/40 border-foreground/10 rounded-full border px-1.5 py-0.5 text-xs"
           data-testid="space-member-device-count"
         >
           {props.deviceCount} devices
         </span>
       )}
-      <span className="text-foreground-alt/50 text-[0.6rem]">
+      <span className="text-foreground-alt/50 text-xs">
         {roleName(props.role)}
       </span>
       {props.canRemove && (
@@ -386,10 +386,10 @@ function InviteRow(props: {
       <span className="text-foreground-alt/60 min-w-0 flex-1 truncate font-mono text-xs">
         {truncatePeerId(inv.inviteId ?? '')}
       </span>
-      <span className="text-foreground-alt/40 text-[0.6rem]">
+      <span className="text-foreground-alt/40 text-xs">
         {roleName(inv.role ?? SOParticipantRole.SOParticipantRole_UNKNOWN)}
       </span>
-      <span className="text-foreground-alt/30 text-[0.6rem]">{usageText}</span>
+      <span className="text-foreground-alt/30 text-xs">{usageText}</span>
       {props.canRevoke && (
         <button
           onClick={props.onRevoke}
@@ -427,15 +427,13 @@ function PendingRequestRow(props: {
           {primaryLabel}
         </div>
         {secondaryLabel && (
-          <div className="text-foreground-alt/50 truncate font-mono text-[10px]">
+          <div className="text-foreground-alt/50 truncate font-mono text-xs">
             {secondaryLabel}
           </div>
         )}
       </div>
       {inviteLabel && (
-        <span className="text-foreground-alt/40 text-[0.6rem]">
-          {inviteLabel}
-        </span>
+        <span className="text-foreground-alt/40 text-xs">{inviteLabel}</span>
       )}
       {props.processing ? (
         <Spinner size="sm" className="text-foreground-alt/40" />

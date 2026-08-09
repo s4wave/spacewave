@@ -27,11 +27,11 @@ export function ProgressBar({ value, indeterminate, rate }: ProgressBarProps) {
         )}
       </div>
       {rate ? (
-        <span className="text-foreground-alt/70 font-mono text-[0.65rem] tabular-nums">
+        <span className="text-foreground-alt/70 font-mono text-xs tabular-nums">
           {rate}
         </span>
       ) : !indeterminate ? (
-        <span className="text-foreground-alt/70 w-8 text-right font-mono text-[0.65rem] tabular-nums">
+        <span className="text-foreground-alt/70 w-8 text-right font-mono text-xs tabular-nums">
           {pct}%
         </span>
       ) : null}

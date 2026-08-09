@@ -129,7 +129,7 @@ export function EmailSection({ open, onOpenChange }: EmailSectionProps) {
       onOpenChange={handleOpenChange}
       badge={
         count > 0 ? (
-          <span className="text-foreground-alt/50 text-[0.55rem]">{count}</span>
+          <span className="text-foreground-alt/50 text-xs">{count}</span>
         ) : undefined
       }
     >
@@ -267,7 +267,7 @@ function AddEmailForm({
       {error && (
         <p
           id="add-email-error"
-          className="text-destructive text-[0.65rem] leading-tight"
+          className="text-destructive text-xs leading-tight"
         >
           {error}
         </p>
@@ -383,7 +383,7 @@ function EmailRow({
                 </span>
               )}
             </div>
-            <div className="text-foreground-alt/50 flex items-center gap-1.5 text-[0.6rem]">
+            <div className="text-foreground-alt/50 flex items-center gap-1.5 text-xs">
               <span>{verified ? 'Verified' : 'Not yet verified'}</span>
               {source && (
                 <>

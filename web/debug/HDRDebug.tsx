@@ -29,7 +29,7 @@ function Swatch({
         className={cn('h-10 w-16 rounded border border-white/10', className)}
         style={style}
       />
-      <span className="text-text-muted max-w-16 truncate text-center font-mono text-[9px]">
+      <span className="text-text-muted max-w-16 truncate text-center font-mono text-xs">
         {label}
       </span>
     </div>
@@ -71,7 +71,7 @@ function BrightnessStrip({ color, label }: { color: string; label: string }) {
   const levels = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0]
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-text-muted font-mono text-[10px]">{label}</span>
+      <span className="text-text-muted font-mono text-xs">{label}</span>
       <div className="flex gap-1">
         {levels.map((b) => (
           <div
@@ -98,8 +98,8 @@ function TextContrast({ bg, bgLabel }: { bg: string; bgLabel: string }) {
       className="flex flex-col gap-2 rounded-lg p-3"
       style={{ backgroundColor: bg }}
     >
-      <span className="font-mono text-[9px] opacity-60">{bgLabel}</span>
-      <span className="text-[10px]" style={{ color: 'white' }}>
+      <span className="font-mono text-xs opacity-60">{bgLabel}</span>
+      <span className="text-xs" style={{ color: 'white' }}>
         White 10px: The quick brown fox jumps over the lazy dog
       </span>
       <span className="text-xs" style={{ color: 'white' }}>
@@ -198,13 +198,13 @@ export function HDRDebug() {
                 <span className="text-text-secondary text-xs">
                   Wide Gamut (P3)
                 </span>
-                <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+                <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400">
                   NO
                 </span>
                 <span className="cap-yes hidden rounded bg-green-500/20 px-2 py-0.5 text-[10px] font-semibold text-green-400">
                   YES
                 </span>
-                <span className="text-text-muted font-mono text-[9px]">
+                <span className="text-text-muted font-mono text-xs">
                   @media (color-gamut: p3)
                 </span>
               </div>
@@ -212,13 +212,13 @@ export function HDRDebug() {
                 <span className="text-text-secondary text-xs">
                   Ultra Wide Gamut (Rec.2020)
                 </span>
-                <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+                <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400">
                   NO
                 </span>
                 <span className="cap-yes hidden rounded bg-green-500/20 px-2 py-0.5 text-[10px] font-semibold text-green-400">
                   YES
                 </span>
-                <span className="text-text-muted font-mono text-[9px]">
+                <span className="text-text-muted font-mono text-xs">
                   @media (color-gamut: rec2020)
                 </span>
               </div>
@@ -226,13 +226,13 @@ export function HDRDebug() {
                 <span className="text-text-secondary text-xs">
                   HDR Dynamic Range
                 </span>
-                <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+                <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400">
                   NO
                 </span>
                 <span className="cap-yes hidden rounded bg-green-500/20 px-2 py-0.5 text-[10px] font-semibold text-green-400">
                   YES
                 </span>
-                <span className="text-text-muted font-mono text-[9px]">
+                <span className="text-text-muted font-mono text-xs">
                   @media (dynamic-range: high)
                 </span>
               </div>
@@ -240,13 +240,13 @@ export function HDRDebug() {
                 <span className="text-text-secondary text-xs">
                   SDR Dynamic Range
                 </span>
-                <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+                <span className="cap-no rounded bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-400">
                   NO
                 </span>
                 <span className="cap-yes hidden rounded bg-green-500/20 px-2 py-0.5 text-[10px] font-semibold text-green-400">
                   YES
                 </span>
-                <span className="text-text-muted font-mono text-[9px]">
+                <span className="text-text-muted font-mono text-xs">
                   @media (dynamic-range: standard)
                 </span>
               </div>
@@ -756,7 +756,7 @@ export function HDRDebug() {
             </p>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <h3 className="text-text-muted mb-2 text-center text-[10px] font-semibold uppercase">
+                <h3 className="text-text-muted mb-2 text-center text-xs font-semibold uppercase">
                   SDR Chroma
                 </h3>
                 <div className="flex flex-col gap-1">
@@ -774,7 +774,7 @@ export function HDRDebug() {
                         className="h-6 w-12 rounded"
                         style={{ backgroundColor: color }}
                       />
-                      <span className="text-text-muted font-mono text-[9px]">
+                      <span className="text-text-muted font-mono text-xs">
                         {name}
                       </span>
                     </div>
@@ -782,7 +782,7 @@ export function HDRDebug() {
                 </div>
               </div>
               <div>
-                <h3 className="text-text-muted mb-2 text-center text-[10px] font-semibold uppercase">
+                <h3 className="text-text-muted mb-2 text-center text-xs font-semibold uppercase">
                   P3 Chroma (boosted)
                 </h3>
                 <div className="flex flex-col gap-1">
@@ -800,7 +800,7 @@ export function HDRDebug() {
                         className="h-6 w-12 rounded"
                         style={{ backgroundColor: color }}
                       />
-                      <span className="text-text-muted font-mono text-[9px]">
+                      <span className="text-text-muted font-mono text-xs">
                         {name}
                       </span>
                     </div>
@@ -890,9 +890,7 @@ function StatusFlashDemoInner() {
           {status.toUpperCase()}
         </button>
       ))}
-      <span className="text-text-muted text-[10px]">
-        Click to trigger flash
-      </span>
+      <span className="text-text-muted text-xs">Click to trigger flash</span>
     </div>
   )
 }

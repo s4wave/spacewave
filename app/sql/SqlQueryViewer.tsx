@@ -549,7 +549,7 @@ function ParamEditorRow({
 }: ParamEditorRowProps) {
   return (
     <div className="flex items-center gap-2 px-3 py-1.5">
-      <span className="text-foreground-alt/50 w-6 shrink-0 text-right text-[0.6rem] tabular-nums">
+      <span className="text-foreground-alt/50 w-6 shrink-0 text-right text-xs tabular-nums">
         {index + 1}
       </span>
       <select

@@ -308,7 +308,7 @@ export function BillingAccountsPage() {
                   <div className="border-foreground/5 flex items-center justify-between gap-2 border-t px-3 py-2">
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
                       {assignees.length === 0 && (
-                        <span className="text-foreground-alt/60 text-[11px]">
+                        <span className="text-foreground-alt/60 text-xs">
                           Unassigned
                         </span>
                       )}
@@ -322,7 +322,7 @@ export function BillingAccountsPage() {
                         return (
                           <span
                             key={`${a.ownerType}:${a.ownerId}`}
-                            className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px]"
+                            className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
                           >
                             <span>{label}</span>
                             <button

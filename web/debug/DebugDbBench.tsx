@@ -95,25 +95,25 @@ function SuiteTable({ suite }: { suite: BenchmarkSuite }) {
         <table className="w-full">
           <thead>
             <tr className="text-text-muted border-b border-white/10">
-              <th className="pr-4 pb-1 text-left font-mono text-[10px] font-normal uppercase">
+              <th className="pr-4 pb-1 text-left font-mono text-xs font-normal uppercase">
                 Metric
               </th>
-              <th className="pr-4 pb-1 text-right font-mono text-[10px] font-normal uppercase">
+              <th className="pr-4 pb-1 text-right font-mono text-xs font-normal uppercase">
                 Count
               </th>
-              <th className="pr-4 pb-1 text-right font-mono text-[10px] font-normal uppercase">
+              <th className="pr-4 pb-1 text-right font-mono text-xs font-normal uppercase">
                 Total (ms)
               </th>
-              <th className="pr-4 pb-1 text-right font-mono text-[10px] font-normal uppercase">
+              <th className="pr-4 pb-1 text-right font-mono text-xs font-normal uppercase">
                 Min
               </th>
-              <th className="pr-4 pb-1 text-right font-mono text-[10px] font-normal uppercase">
+              <th className="pr-4 pb-1 text-right font-mono text-xs font-normal uppercase">
                 P50
               </th>
-              <th className="pr-4 pb-1 text-right font-mono text-[10px] font-normal uppercase">
+              <th className="pr-4 pb-1 text-right font-mono text-xs font-normal uppercase">
                 P99
               </th>
-              <th className="pb-1 text-right font-mono text-[10px] font-normal uppercase">
+              <th className="pb-1 text-right font-mono text-xs font-normal uppercase">
                 Max
               </th>
             </tr>
@@ -244,7 +244,7 @@ function ProgressBar({ progress }: { progress: WatchProgressResponse }) {
         />
       </div>
       {progress.metricName ? (
-        <span className="text-text-muted font-mono text-[10px]">
+        <span className="text-text-muted font-mono text-xs">
           {progress.metricName}
         </span>
       ) : null}

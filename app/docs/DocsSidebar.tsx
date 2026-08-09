@@ -73,7 +73,7 @@ export function DocsSidebar({ sections, currentDoc }: DocsSidebarProps) {
 
         {categories.map((cat) => (
           <div key={cat.name} className="mb-5">
-            <h2 className="text-foreground-alt/40 mb-2 text-[10px] font-semibold tracking-widest uppercase">
+            <h2 className="text-foreground-alt/40 mb-2 text-xs font-semibold tracking-widest uppercase">
               {cat.name}
             </h2>
             {cat.sections.map((section) => (

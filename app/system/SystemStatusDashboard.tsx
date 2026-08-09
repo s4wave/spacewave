@@ -716,7 +716,7 @@ function LiveIndicator({
     <span
       aria-label={`${label} live`}
       data-updated-at={updatedAt}
-      className="text-foreground-alt/35 inline-flex items-center gap-1 text-[0.55rem]"
+      className="text-foreground-alt/35 inline-flex items-center gap-1 text-xs"
     >
       <span
         key={updatedAt}
@@ -879,10 +879,10 @@ function LogPanel({ namespace }: { namespace: StateNamespace }) {
           aria-label={collapsed ? 'Expand logs' : 'Collapse logs'}
         >
           <LuTerminal className="text-foreground-alt/30 size-3" />
-          <span className="text-foreground-alt/50 text-[0.6rem] font-medium">
+          <span className="text-foreground-alt/50 text-xs font-medium">
             Logs
           </span>
-          <span className="bg-foreground/5 text-foreground-alt/40 rounded px-1 py-0.5 font-mono text-[0.45rem] tracking-wider uppercase">
+          <span className="bg-foreground/5 text-foreground-alt/40 rounded px-1 py-0.5 font-mono text-xs tracking-wider uppercase">
             sample
           </span>
           <LuChevronDown
@@ -911,7 +911,7 @@ function LogPanel({ namespace }: { namespace: StateNamespace }) {
             ))}
           </div>
         )}
-        <span className="text-foreground-alt/15 ml-2 font-mono text-[0.5rem]">
+        <span className="text-foreground-alt/15 ml-2 font-mono text-xs">
           {filtered.length} entries
         </span>
       </div>
@@ -1953,11 +1953,11 @@ function SessionDetail({
     <div className="space-y-2 p-4">
       <div className="flex items-center gap-2">
         <div className="bg-brand/10 flex size-6 items-center justify-center rounded-full">
-          <span className="text-brand text-[0.5rem] font-bold">{initials}</span>
+          <span className="text-brand text-xs font-bold">{initials}</span>
         </div>
         <div>
           <span className="text-foreground text-sm font-medium">{name}</span>
-          <span className="text-foreground-alt/30 ml-2 font-mono text-[0.6rem]">
+          <span className="text-foreground-alt/30 ml-2 font-mono text-xs">
             /u/{sessionIndex}
           </span>
         </div>
@@ -2071,7 +2071,7 @@ function SpacesDetail({
       <div className="border-foreground/6 min-h-0 flex-1 overflow-auto rounded-md border">
         {spaces.length === 0 && (
           <div className="px-3 py-2">
-            <span className="text-foreground-alt/30 text-[0.6rem]">
+            <span className="text-foreground-alt/30 text-xs">
               No spaces mounted.
             </span>
           </div>
@@ -2091,10 +2091,10 @@ function SpacesDetail({
             >
               <span className="bg-brand size-1.5 shrink-0 rounded-full" />
               <div className="min-w-0 flex-1">
-                <span className="text-foreground/80 block truncate text-[0.65rem]">
+                <span className="text-foreground/80 block truncate text-xs">
                   {name}
                 </span>
-                <span className="text-foreground-alt/25 block truncate font-mono text-[0.55rem]">
+                <span className="text-foreground-alt/25 block truncate font-mono text-xs">
                   {id || 'unknown'}
                 </span>
               </div>
@@ -2216,7 +2216,7 @@ function PluginsDetail({
       <div className="border-foreground/6 min-h-0 flex-1 overflow-auto rounded-md border">
         {plugins.length === 0 && (
           <div className="px-3 py-2">
-            <span className="text-foreground-alt/30 text-[0.6rem]">
+            <span className="text-foreground-alt/30 text-xs">
               No plugins active.
             </span>
           </div>
@@ -2239,14 +2239,14 @@ function PluginsDetail({
                 )}
               />
               <div className="min-w-0 flex-1">
-                <span className="text-foreground/80 block truncate text-[0.65rem]">
+                <span className="text-foreground/80 block truncate text-xs">
                   {id || 'unknown'}
                 </span>
-                <span className="text-foreground-alt/25 block truncate font-mono text-[0.55rem]">
+                <span className="text-foreground-alt/25 block truncate font-mono text-xs">
                   {instanceKey || 'shared'}
                 </span>
               </div>
-              <span className="bg-foreground/5 text-foreground-alt/45 rounded px-1.5 py-0.5 font-mono text-[0.5rem]">
+              <span className="bg-foreground/5 text-foreground-alt/45 rounded px-1.5 py-0.5 font-mono text-xs">
                 {state}
               </span>
             </button>
@@ -2316,7 +2316,7 @@ function NetworkDetail({
       <div className="border-foreground/6 min-h-0 flex-1 overflow-auto rounded-md border">
         {peers.length === 0 && (
           <div className="px-3 py-2">
-            <span className="text-foreground-alt/30 text-[0.6rem]">
+            <span className="text-foreground-alt/30 text-xs">
               No active network links.
             </span>
           </div>
@@ -2331,10 +2331,10 @@ function NetworkDetail({
             >
               <div className="mb-1 flex items-center gap-2">
                 <span className="bg-success size-1.5 shrink-0 rounded-full" />
-                <span className="text-foreground/80 min-w-0 flex-1 truncate font-mono text-[0.65rem]">
+                <span className="text-foreground/80 min-w-0 flex-1 truncate font-mono text-xs">
                   {peerId}
                 </span>
-                <span className="bg-foreground/5 text-foreground-alt/45 rounded px-1.5 py-0.5 font-mono text-[0.5rem]">
+                <span className="bg-foreground/5 text-foreground-alt/45 rounded px-1.5 py-0.5 font-mono text-xs">
                   {peer.linkCount ?? links.length} link
                   {(peer.linkCount ?? links.length) === 1 ? '' : 's'}
                 </span>
@@ -2348,7 +2348,7 @@ function NetworkDetail({
                     )}
                     className="bg-foreground/[0.02] rounded px-2 py-1"
                   >
-                    <div className="text-foreground-alt/40 mb-0.5 font-mono text-[0.55rem]">
+                    <div className="text-foreground-alt/40 mb-0.5 font-mono text-xs">
                       link {formatNetworkId(link.linkId)}
                     </div>
                     <div className="grid gap-x-3 gap-y-0.5 md:grid-cols-2">
@@ -2548,7 +2548,7 @@ function ControllersDetail({
         ))}
         {controllerCount > controllers.length && (
           <div className="border-foreground/4 border-t px-3 py-1.5">
-            <span className="text-foreground-alt/20 text-[0.55rem]">
+            <span className="text-foreground-alt/20 text-xs">
               {controllerCount - controllers.length} more not shown
             </span>
           </div>
@@ -2637,7 +2637,7 @@ function DirectivesDetail({
         <span className="text-foreground-alt/30 font-mono text-xs">
           {directiveCount}
         </span>
-        <span className="text-foreground-alt/20 text-[0.55rem]">
+        <span className="text-foreground-alt/20 text-xs">
           {grouped.length} types
         </span>
         <LiveIndicator updatedAt={updatedAt} label="Directives" />
@@ -2720,7 +2720,7 @@ function DirectiveRow({
               className="flex items-center gap-1.5 py-0.5 pr-3 pl-9"
             >
               <span className="bg-warning/20 size-1 shrink-0 rounded-full" />
-              <span className="text-foreground-alt/50 truncate font-mono text-[0.55rem]">
+              <span className="text-foreground-alt/50 truncate font-mono text-xs">
                 {ident}
               </span>
             </div>
@@ -2785,7 +2785,7 @@ function DirectiveGroupDetail({
               className="border-foreground/4 flex items-center gap-2 border-b px-3 py-1 last:border-b-0"
             >
               <span className="bg-warning/20 size-1.5 shrink-0 rounded-full" />
-              <span className="text-foreground-alt/60 truncate font-mono text-[0.6rem]">
+              <span className="text-foreground-alt/60 truncate font-mono text-xs">
                 {ident}
               </span>
             </div>

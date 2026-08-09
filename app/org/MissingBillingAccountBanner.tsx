@@ -18,7 +18,7 @@ export function MissingBillingAccountBanner(props: {
           <LuTriangleAlert className="text-warning size-3.5 shrink-0" />
           <div className="min-w-0">
             <p className="text-foreground/80 text-xs font-medium">{message}</p>
-            <p className="text-foreground-alt/60 mt-0.5 text-[11px]">
+            <p className="text-foreground-alt/60 mt-0.5 text-xs">
               Ask an organization admin to assign a billing account.
             </p>
           </div>
@@ -37,7 +37,7 @@ export function MissingBillingAccountBanner(props: {
         <LuTriangleAlert className="text-warning size-3.5 shrink-0" />
         <div className="min-w-0">
           <p className="text-foreground/80 text-xs font-medium">{message}</p>
-          <p className="text-foreground-alt/60 mt-0.5 text-[11px]">
+          <p className="text-foreground-alt/60 mt-0.5 text-xs">
             Assign one of your managed billing accounts to keep cloud features
             available.
           </p>

@@ -144,9 +144,7 @@ export function SubscriptionLapseBanner() {
           <LuTriangleAlert className="text-destructive size-3.5 shrink-0" />
           <div className="min-w-0">
             <p className="text-foreground/80 text-xs font-medium">{message}</p>
-            {error && (
-              <p className="text-destructive mt-1 text-[11px]">{error}</p>
-            )}
+            {error && <p className="text-destructive mt-1 text-xs">{error}</p>}
           </div>
         </div>
       </div>
@@ -166,9 +164,7 @@ export function SubscriptionLapseBanner() {
         <LuTriangleAlert className="text-destructive size-3.5 shrink-0" />
         <div className="min-w-0">
           <p className="text-foreground/80 text-xs font-medium">{message}</p>
-          {error && (
-            <p className="text-destructive mt-1 text-[11px]">{error}</p>
-          )}
+          {error && <p className="text-destructive mt-1 text-xs">{error}</p>}
         </div>
       </div>
       <div className="group flex shrink-0 items-center gap-1 px-3 py-1.5 transition-colors">

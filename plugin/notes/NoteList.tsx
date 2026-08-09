@@ -376,7 +376,7 @@ function NoteList({
           {canCreateOrg && (
             <button
               type="button"
-              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded px-1.5 py-1 text-[10px] font-medium"
+              className="text-foreground-alt hover:bg-list-hover-background hover:text-foreground flex items-center justify-center rounded px-1.5 py-1 text-xs font-medium"
               onClick={() => void handleCreateNoteDefault('org')}
               title="New Org note"
             >

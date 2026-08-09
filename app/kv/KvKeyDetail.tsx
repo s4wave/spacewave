@@ -55,7 +55,7 @@ export function KvKeyDetail({
         <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
           {row.label}
         </span>
-        <span className="text-foreground-alt/50 shrink-0 text-[0.6rem] tabular-nums">
+        <span className="text-foreground-alt/50 shrink-0 text-xs tabular-nums">
           {row.byteLength} B
         </span>
       </div>
@@ -197,9 +197,7 @@ function KvKeyEditorPane({
         <div className="flex-1" />
         {confirmingDelete ? (
           <div className="flex items-center gap-2">
-            <span className="text-destructive/80 text-[0.6rem]">
-              Delete key?
-            </span>
+            <span className="text-destructive/80 text-xs">Delete key?</span>
             <Button
               variant="destructive"
               size="sm"

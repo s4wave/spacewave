@@ -75,7 +75,7 @@ function OrgBillingBadge() {
   const hasActive = billing && isStatusActive(billing.status)
   if (!hasActive) return null
   return (
-    <span className="border-brand/15 text-brand/60 rounded-full border px-1.5 py-0.5 text-[0.55rem] font-medium">
+    <span className="border-brand/15 text-brand/60 rounded-full border px-1.5 py-0.5 text-xs font-medium">
       Active
     </span>
   )
@@ -220,7 +220,7 @@ function OrgBillingAccountPicker({
           })}
         </DropdownMenuContent>
       </DropdownMenu>
-      {error && <span className="text-destructive text-[11px]">{error}</span>}
+      {error && <span className="text-destructive text-xs">{error}</span>}
     </div>
   )
 }
@@ -257,12 +257,12 @@ function OrgBillingDetachAction({ orgId }: { orgId: string }) {
       <button
         onClick={() => setOpen(true)}
         disabled={!session}
-        className="text-foreground-alt hover:text-destructive flex cursor-pointer items-center gap-1 text-[11px] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        className="text-foreground-alt hover:text-destructive flex cursor-pointer items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50"
       >
         <LuX className="size-3" />
         <span>Detach billing</span>
       </button>
-      {error && <span className="text-destructive text-[11px]">{error}</span>}
+      {error && <span className="text-destructive text-xs">{error}</span>}
       <Dialog
         open={open}
         onOpenChange={(next) => {

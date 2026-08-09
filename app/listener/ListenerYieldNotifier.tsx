@@ -256,7 +256,7 @@ function RuntimeHandoffBanner({
           <p className="text-foreground/80 text-xs font-medium select-none">
             Runtime handed off
           </p>
-          <p className="text-foreground-alt/60 mt-0.5 text-[11px]">
+          <p className="text-foreground-alt/60 mt-0.5 text-xs">
             {requesterName} is running against{' '}
             <code className="bg-foreground/5 rounded px-1 py-0.5 font-mono text-[10px]">
               {socketPath}

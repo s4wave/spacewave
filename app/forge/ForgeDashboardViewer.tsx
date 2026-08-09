@@ -486,7 +486,7 @@ export function ForgeDashboardViewer({
                   <div className="text-foreground-alt/50 truncate text-xs">
                     {entry.detail}
                   </div>
-                  <div className="text-foreground-alt/50 text-[0.6rem]">
+                  <div className="text-foreground-alt/50 text-xs">
                     {entry.timestamp.toISOString()}
                   </div>
                 </div>

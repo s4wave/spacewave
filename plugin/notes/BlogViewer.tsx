@@ -140,7 +140,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     (name: string) => {
       if (!draftNames.has(name)) return null
       return (
-        <span className="bg-brand/10 text-brand shrink-0 rounded px-1.5 py-0.5 text-[10px] leading-none font-medium">
+        <span className="bg-brand/10 text-brand shrink-0 rounded px-1.5 py-0.5 text-xs leading-none font-medium">
           Draft
         </span>
       )

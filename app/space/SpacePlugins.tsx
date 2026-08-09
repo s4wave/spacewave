@@ -204,7 +204,7 @@ export function SpacePlugins() {
               </Button>
             </div>
             {draftError && (
-              <p className="text-destructive/80 text-[0.6rem]">{draftError}</p>
+              <p className="text-destructive/80 text-xs">{draftError}</p>
             )}
           </div>
 

@@ -40,7 +40,7 @@ function OrgSpaceRow(props: { orgId: string; space: OrgSpaceInfo }) {
         </div>
       </div>
       {space.objectType && (
-        <span className="text-foreground-alt/40 text-[10px]">
+        <span className="text-foreground-alt/40 text-xs">
           {space.objectType}
         </span>
       )}

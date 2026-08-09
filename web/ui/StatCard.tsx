@@ -20,9 +20,7 @@ export function StatCard({ icon: Icon, label, value, detail }: StatCardProps) {
           {value}
         </p>
         {detail && (
-          <p className="text-foreground-alt/50 text-[0.6rem] select-none">
-            {detail}
-          </p>
+          <p className="text-foreground-alt/50 text-xs select-none">{detail}</p>
         )}
       </div>
     </div>

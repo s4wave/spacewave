@@ -63,7 +63,7 @@ export function BillingSection({
       onOpenChange={handleOpenChange}
       badge={
         hasActive ? (
-          <span className="border-brand/15 text-brand/60 rounded-full border px-1.5 py-0.5 text-[0.55rem] font-medium">
+          <span className="border-brand/15 text-brand/60 rounded-full border px-1.5 py-0.5 text-xs font-medium">
             Active
           </span>
         ) : undefined
@@ -93,7 +93,7 @@ export function BillingSection({
             <span className="text-foreground text-xs font-medium">
               Upgrade to Cloud
             </span>
-            <p className="text-foreground-alt/50 mt-0.5 text-[0.6rem]">
+            <p className="text-foreground-alt/50 mt-0.5 text-xs">
               Subscribe to enable cloud sync and backup
             </p>
           </button>

@@ -103,7 +103,7 @@ export function CommandFinderVariant({
             }
             className="h-auto border-0 bg-transparent px-0 py-1 text-base shadow-none focus-visible:ring-0"
           />
-          <span className="border-foreground/10 text-foreground-alt/45 hidden rounded border px-2 py-1 text-[10px] sm:inline-flex">
+          <span className="border-foreground/10 text-foreground-alt/45 hidden rounded border px-2 py-1 text-xs sm:inline-flex">
             ↑↓ navigate
           </span>
         </div>
@@ -169,7 +169,7 @@ export function CommandFinderVariant({
                 </div>
 
                 <div className="border-foreground/8 bg-background-card-alt/50 mt-8 rounded-lg border p-4">
-                  <label className="text-foreground-alt/50 text-[10px] font-semibold tracking-wider uppercase">
+                  <label className="text-foreground-alt/50 text-xs font-semibold tracking-wider uppercase">
                     Active shortcut
                   </label>
                   <BindingCapture

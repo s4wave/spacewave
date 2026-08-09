@@ -614,7 +614,7 @@ export function SpaceContainer() {
                     onClick={() =>
                       navigate({ path: `../../org/${spaceOrgId}` })
                     }
-                    className="bg-brand/10 text-brand hover:bg-brand/20 flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[0.6rem] font-medium transition-colors"
+                    className="bg-brand/10 text-brand hover:bg-brand/20 flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium transition-colors"
                   >
                     <LuBuilding2 className="size-2.5" />
                     <span className="max-w-20 truncate">
@@ -626,7 +626,7 @@ export function SpaceContainer() {
               orgInfoSection={
                 spaceOrgId && spaceOrgState?.organization ? (
                   <div className="space-y-1">
-                    <div className="text-foreground-alt mb-0.5 text-[0.6rem] select-none">
+                    <div className="text-foreground-alt mb-0.5 text-xs select-none">
                       Organization
                     </div>
                     <div className="text-foreground flex items-center gap-1.5 text-xs">
@@ -634,7 +634,7 @@ export function SpaceContainer() {
                       <span className="truncate">
                         {spaceOrgState.organization.displayName || spaceOrgId}
                       </span>
-                      <span className="text-foreground-alt/50 text-[0.6rem]">
+                      <span className="text-foreground-alt/50 text-xs">
                         {spaceOrgState.organization.role === 'org:owner'
                           ? 'Owner'
                           : 'Member'}
@@ -644,7 +644,7 @@ export function SpaceContainer() {
                 ) : undefined
               }
               objectsBadge={
-                <span className="text-foreground-alt/50 text-[0.55rem]">
+                <span className="text-foreground-alt/50 text-xs">
                   {objectCount}
                 </span>
               }

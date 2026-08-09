@@ -216,7 +216,7 @@ function TableRow({
       {countResource.loading && count == null ? (
         <span className="text-foreground-alt/40 text-[0.6rem]">…</span>
       ) : count != null ? (
-        <span className="text-foreground-alt/50 shrink-0 text-[0.6rem] tabular-nums">
+        <span className="text-foreground-alt/50 shrink-0 text-xs tabular-nums">
           {count.toString()} rows
         </span>
       ) : null}

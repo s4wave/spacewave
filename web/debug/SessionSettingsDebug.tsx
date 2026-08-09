@@ -170,19 +170,19 @@ function PlaceholderCard({ title, detail }: { title: string; detail: string }) {
         <span className="text-foreground text-xs font-medium">{title}</span>
         <span className="text-brand/60 text-xs">Manage</span>
       </div>
-      <span className="text-foreground-alt/50 text-[0.6rem]">{detail}</span>
+      <span className="text-foreground-alt/50 text-xs">{detail}</span>
     </div>
   )
 }
 
 function StatusBadge({ label }: { label: string }) {
   return (
-    <span className="border-brand/15 text-brand/60 rounded-full border px-1.5 py-0.5 text-[0.55rem] font-medium">
+    <span className="border-brand/15 text-brand/60 rounded-full border px-1.5 py-0.5 text-xs font-medium">
       {label}
     </span>
   )
 }
 
 function CountBadge({ count }: { count: number }) {
-  return <span className="text-foreground-alt/50 text-[0.55rem]">{count}</span>
+  return <span className="text-foreground-alt/50 text-xs">{count}</span>
 }

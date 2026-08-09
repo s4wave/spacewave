@@ -504,7 +504,7 @@ export function OrganizationDetails({
                     <div className="text-foreground-alt/45 text-[0.58rem] font-medium tracking-widest uppercase">
                       Remediation
                     </div>
-                    <p className="text-foreground-alt/65 mt-1 text-[0.72rem]">
+                    <p className="text-foreground-alt/65 mt-1 text-xs">
                       This works in place on the canonical organization root
                       shared object at the current org-owned id.
                     </p>
@@ -541,7 +541,7 @@ export function OrganizationDetails({
                         <div className="text-destructive/80 text-[0.58rem] font-medium tracking-widest uppercase">
                           Confirm Reinitialize
                         </div>
-                        <p className="text-foreground-alt/70 mt-1 text-[0.72rem]">
+                        <p className="text-foreground-alt/70 mt-1 text-xs">
                           Reinitialize is destructive. It rewrites the
                           organization root shared object in place on the same
                           shared object id and canonical org route.
@@ -570,11 +570,11 @@ export function OrganizationDetails({
                       </div>
                     )}
                     {mutationError && (
-                      <p className="text-destructive mt-2 text-[0.68rem]">
+                      <p className="text-destructive mt-2 text-xs">
                         {mutationError}
                       </p>
                     )}
-                    <p className="text-foreground-alt/55 mt-2 text-[0.68rem]">
+                    <p className="text-foreground-alt/55 mt-2 text-xs">
                       Shared object ID: {rootSharedObjectId}
                     </p>
                   </div>
@@ -589,7 +589,7 @@ export function OrganizationDetails({
               open={openSection === 'members'}
               onOpenChange={handleSectionOpenChange('members')}
               badge={
-                <span className="text-foreground-alt/40 text-[0.6rem]">
+                <span className="text-foreground-alt/40 text-xs">
                   {members.length}
                 </span>
               }
@@ -614,7 +614,7 @@ export function OrganizationDetails({
               onOpenChange={handleSectionOpenChange('invites')}
               badge={
                 invites.length > 0 ? (
-                  <span className="text-foreground-alt/40 text-[0.6rem]">
+                  <span className="text-foreground-alt/40 text-xs">
                     {invites.length}
                   </span>
                 ) : undefined
@@ -635,7 +635,7 @@ export function OrganizationDetails({
               <div className="border-foreground/8 bg-background-card/20 mb-3 rounded-md border px-3 py-2">
                 <label
                   htmlFor={usernameInviteId}
-                  className="text-foreground-alt mb-1.5 block text-[0.6rem] select-none"
+                  className="text-foreground-alt mb-1.5 block text-xs select-none"
                 >
                   Spacewave username
                 </label>
@@ -689,7 +689,7 @@ export function OrganizationDetails({
                   <div>
                     <label
                       htmlFor={renameInputId}
-                      className="text-foreground-alt mb-1 block text-[0.6rem] select-none"
+                      className="text-foreground-alt mb-1 block text-xs select-none"
                     >
                       Display Name
                     </label>

@@ -245,7 +245,7 @@ function SampleContent({ node }: { node: TabNode }) {
     <div className="bg-background flex h-full w-full items-center justify-center opacity-25">
       <div className="flex flex-col items-center gap-1">
         <LuFile className="size-5" />
-        <span className="text-[10px] font-medium">{node.getName()}</span>
+        <span className="text-xs font-medium">{node.getName()}</span>
       </div>
     </div>
   )
@@ -383,7 +383,7 @@ function SwatchRow({ scheme }: { scheme: ColorScheme }) {
               className="size-8 rounded border border-white/10"
               style={{ backgroundColor: value || `var(${s.key})` }}
             />
-            <span className="text-foreground-alt text-[10px]">{s.label}</span>
+            <span className="text-foreground-alt text-xs">{s.label}</span>
           </div>
         )
       })}

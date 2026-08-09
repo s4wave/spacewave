@@ -70,7 +70,7 @@ function GalleryTile({
         >
           {item.label}
         </div>
-        <div className="text-foreground-alt/50 truncate text-[0.6rem]">
+        <div className="text-foreground-alt/50 truncate text-xs">
           {item.mimeType}
         </div>
       </div>
@@ -160,19 +160,19 @@ function UnixFSGalleryBody({
       className="relative h-full w-full overflow-auto px-4 py-3"
     >
       <div className="mb-3 flex min-h-6 items-center justify-between gap-3">
-        <div className="text-foreground-alt/60 min-w-0 truncate text-[0.6rem]">
+        <div className="text-foreground-alt/60 min-w-0 truncate text-xs">
           {previewItems.length} image
           {previewItems.length === 1 ? '' : 's'} under {scopePath}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {galleryErrors.length > 0 && (
-            <div className="border-destructive/20 bg-destructive/10 text-destructive rounded-full border px-2 py-0.5 text-[0.6rem] font-medium">
+            <div className="border-destructive/20 bg-destructive/10 text-destructive rounded-full border px-2 py-0.5 text-xs font-medium">
               {galleryErrors.length} issue
               {galleryErrors.length === 1 ? '' : 's'}
             </div>
           )}
           {isScanning && (
-            <div className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[0.6rem] font-medium">
+            <div className="border-foreground/10 bg-foreground/5 text-foreground-alt flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium">
               <Spinner size="sm" />
               Scanning
             </div>
@@ -286,13 +286,13 @@ function UnixFSGalleryBody({
           </PhotoProvider>
         )}
         {!galleryState.error && galleryErrors.length > 0 && (
-          <div className="text-foreground-alt/60 mt-3 text-[0.6rem]">
+          <div className="text-foreground-alt/60 mt-3 text-xs">
             Some descendants could not be scanned. Discovered images remain
             visible.
           </div>
         )}
         {!galleryState.error && !sessionIndex && (
-          <div className="text-foreground-alt/60 mt-3 text-[0.6rem]">
+          <div className="text-foreground-alt/60 mt-3 text-xs">
             Inline previews require a mounted session context.
           </div>
         )}

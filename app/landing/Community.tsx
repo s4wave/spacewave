@@ -325,7 +325,7 @@ export function Community() {
                   >
                     {category.id === 'internal' ? 'Our Stack' : category.label}
                   </h3>
-                  <span className="text-foreground-alt/40 text-[0.55rem]">
+                  <span className="text-foreground-alt/40 text-xs">
                     {entries.length}
                   </span>
                 </div>

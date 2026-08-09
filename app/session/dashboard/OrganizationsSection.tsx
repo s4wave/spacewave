@@ -90,7 +90,7 @@ export function OrganizationsSection({
       onOpenChange={handleOpenChange}
       badge={
         count > 0 ? (
-          <span className="text-foreground-alt/50 text-[0.55rem]">{count}</span>
+          <span className="text-foreground-alt/50 text-xs">{count}</span>
         ) : undefined
       }
     >
@@ -138,7 +138,7 @@ export function OrganizationsSection({
               }}
             />
             {creating && (
-              <div className="text-foreground-alt flex items-center gap-1.5 text-[11px]">
+              <div className="text-foreground-alt flex items-center gap-1.5 text-xs">
                 <Spinner size="sm" />
                 <span>Creating organization…</span>
               </div>

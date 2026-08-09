@@ -215,7 +215,7 @@ function NavLink({ text, onClick }: { text: string; onClick?: () => void }) {
     <button
       type="button"
       onClick={handleNavSelect}
-      className="text-foreground-alt/40 hover:text-foreground-alt bg-transparent px-2 py-1 text-[11px] font-medium tracking-wide uppercase transition-colors"
+      className="text-foreground-alt/40 hover:text-foreground-alt bg-transparent px-2 py-1 text-xs font-medium tracking-wide uppercase transition-colors"
     >
       {text}
     </button>
@@ -1009,7 +1009,7 @@ function SectionHeading(props: {
             e.stopPropagation()
             props.onAction?.()
           }}
-          className="text-brand/70 hover:text-brand cursor-pointer text-[10px] font-medium tracking-normal normal-case transition-colors"
+          className="text-brand/70 hover:text-brand cursor-pointer text-xs font-medium tracking-normal normal-case transition-colors"
         >
           + {props.actionLabel}
         </button>
@@ -1089,7 +1089,7 @@ function DashboardItem({
             {label}
           </div>
           {orgName && (
-            <span className="bg-foreground/8 text-foreground-alt/50 shrink-0 rounded px-1 py-0.5 text-[10px] leading-none font-medium">
+            <span className="bg-foreground/8 text-foreground-alt/50 shrink-0 rounded px-1 py-0.5 text-xs leading-none font-medium">
               {orgName}
             </span>
           )}
@@ -1109,7 +1109,7 @@ function DashboardItem({
                 onClick={(event) => event.stopPropagation()}
                 onMouseDown={(event) => event.stopPropagation()}
               >
-                <span className="text-foreground-alt/40 max-w-28 truncate font-mono text-[10px]">
+                <span className="text-foreground-alt/40 max-w-28 truncate font-mono text-xs">
                   {identifier}
                 </span>
                 <CopyButton

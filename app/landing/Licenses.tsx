@@ -30,7 +30,7 @@ function getLicenseEntryKey(entry: AnnotatedLicenseEntry): string {
 function SourceBadge({ source }: { source: string }) {
   const label = source === 'both' ? 'JS + Go' : source === 'js' ? 'JS' : 'Go'
   return (
-    <span className="bg-foreground/8 text-foreground-alt rounded px-1.5 py-0.5 text-[10px] font-medium uppercase">
+    <span className="bg-foreground/8 text-foreground-alt rounded px-1.5 py-0.5 text-xs font-medium uppercase">
       {label}
     </span>
   )
@@ -38,7 +38,7 @@ function SourceBadge({ source }: { source: string }) {
 
 function SpdxBadge({ spdx }: { spdx: string }) {
   return (
-    <span className="border-foreground/10 text-foreground-alt rounded border px-1.5 py-0.5 text-[10px] font-medium">
+    <span className="border-foreground/10 text-foreground-alt rounded border px-1.5 py-0.5 text-xs font-medium">
       {spdx}
     </span>
   )

@@ -66,7 +66,7 @@ export function GetStartedSection({
 
       {/* Footer content pinned to bottom - fades out on short screens to avoid overlap */}
       <div className="short:opacity-0 mt-auto flex flex-shrink-0 flex-col items-center pt-4 text-center transition-opacity duration-300 @lg:pt-6">
-        <div className="text-foreground-alt/60 flex flex-wrap items-center justify-center gap-x-1 text-[10px]">
+        <div className="text-foreground-alt/60 flex flex-wrap items-center justify-center gap-x-1 text-xs">
           <span>
             Made by{' '}
             <button

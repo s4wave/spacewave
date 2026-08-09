@@ -320,7 +320,7 @@ function GraphLinkPreview({
         {hidden ? 'hidden' : fixture.state}
       </span>
       {hidden && (
-        <span className="border-foreground/8 bg-background-card/50 text-foreground-alt/50 absolute right-3 bottom-3 rounded-md border px-1.5 py-0.5 text-[0.55rem] font-medium">
+        <span className="border-foreground/8 bg-background-card/50 text-foreground-alt/50 absolute right-3 bottom-3 rounded-md border px-1.5 py-0.5 text-xs font-medium">
           hidden on canvas
         </span>
       )}
@@ -339,11 +339,9 @@ function VariantPreview({ variant }: { variant: PillVariantFixture }) {
           <h2 className="text-foreground text-xs font-medium">
             {variant.name}
           </h2>
-          <p className="text-foreground-alt/50 text-[0.6rem]">
-            {variant.detail}
-          </p>
+          <p className="text-foreground-alt/50 text-xs">{variant.detail}</p>
         </div>
-        <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded-md border px-1.5 py-0.5 text-[0.55rem] font-medium">
+        <span className="border-foreground/8 bg-foreground/5 text-foreground-alt/50 rounded-md border px-1.5 py-0.5 text-xs font-medium">
           {variant.id}
         </span>
       </div>
@@ -365,7 +363,7 @@ function StateCoverage() {
     <section className="flex flex-col gap-3">
       <div>
         <h2 className="text-foreground text-xs font-medium">State Coverage</h2>
-        <p className="text-foreground-alt/50 text-[0.6rem]">
+        <p className="text-foreground-alt/50 text-xs">
           Balanced pills with edge cases the production graph model must carry.
         </p>
       </div>

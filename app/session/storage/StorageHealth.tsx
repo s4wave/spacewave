@@ -159,7 +159,7 @@ export function StorageHealth({
             <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs font-medium">
               Technical details
             </summary>
-            <p className="text-foreground-alt/60 mt-2 text-[0.6rem] leading-relaxed">
+            <p className="text-foreground-alt/60 mt-2 text-xs leading-relaxed">
               {Number(health.blockCount).toLocaleString()} block entries are
               currently reported by the local store. Entries are a storage
               measurement, not proof of a complete backup.
@@ -183,7 +183,7 @@ export function StorageHealth({
           <summary className="text-foreground-alt hover:text-foreground cursor-pointer text-xs font-medium">
             Technical details
           </summary>
-          <div className="text-foreground-alt/60 mt-2 space-y-1 text-[0.6rem] leading-relaxed">
+          <div className="text-foreground-alt/60 mt-2 space-y-1 text-xs leading-relaxed">
             <p>{health.sync.detailLabel}</p>
             <p>Upload waiting: {health.sync.pendingUploadLabel}</p>
             <p>Download waiting: {health.sync.pendingDownloadLabel}</p>

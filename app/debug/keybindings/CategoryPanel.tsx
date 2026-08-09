@@ -64,7 +64,7 @@ export function CategoryPanel({
             {contexts.map((context) => (
               <span
                 key={context}
-                className="bg-foreground/5 text-foreground-alt/55 rounded px-1.5 py-0.5 text-[10px] font-normal"
+                className="bg-foreground/5 text-foreground-alt/55 rounded px-1.5 py-0.5 text-xs font-normal"
               >
                 {context}
               </span>

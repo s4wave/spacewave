@@ -99,7 +99,7 @@ export function OrganizationDashboard() {
               <p className="text-foreground/80 text-xs font-medium">
                 Organization root unavailable.
               </p>
-              <p className="text-foreground-alt/60 mt-0.5 text-[11px]">
+              <p className="text-foreground-alt/60 mt-0.5 text-xs">
                 Spaces stay available from the session inventory while you
                 review remediation options.
               </p>
