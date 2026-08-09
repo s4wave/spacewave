@@ -84,11 +84,10 @@ func TestUpdateCanvasAcceptsBoundedGeometryAndDualWritesLegacyField(t *testing.T
 	}
 }
 
-func TestUpdateCanvasAcceptsLegacyAndCurrentEdgeStyles(t *testing.T) {
+func TestUpdateCanvasAcceptsReleasedEdgeStyles(t *testing.T) {
 	for _, style := range []EdgeStyle{
-		EdgeStyle_EDGE_STYLE_LEGACY_BEZIER,
-		EdgeStyle_EDGE_STYLE_STRAIGHT,
 		EdgeStyle_EDGE_STYLE_BEZIER,
+		EdgeStyle_EDGE_STYLE_STRAIGHT,
 	} {
 		resource := NewCanvasResource(nil, nil, "", &CanvasState{})
 		_, err := resource.UpdateCanvas(context.Background(), &UpdateCanvasRequest{
@@ -97,6 +96,16 @@ func TestUpdateCanvasAcceptsLegacyAndCurrentEdgeStyles(t *testing.T) {
 		if err != nil {
 			t.Fatalf("style %v: %v", style, err)
 		}
+	}
+}
+
+func TestUpdateCanvasRejectsUndeployedEdgeStyleWireTwo(t *testing.T) {
+	resource := NewCanvasResource(nil, nil, "", &CanvasState{})
+	_, err := resource.UpdateCanvas(context.Background(), &UpdateCanvasRequest{
+		AddEdges: []*CanvasEdge{{Id: "edge", Style: EdgeStyle(2)}},
+	})
+	if err == nil {
+		t.Fatal("expected undeployed edge style wire value 2 to be rejected")
 	}
 }
 

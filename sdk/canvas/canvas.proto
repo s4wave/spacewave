@@ -55,17 +55,17 @@ enum CanvasClipboardVersion {
 enum EdgeStyle {
   option allow_alias = true;
 
-  // EDGE_STYLE_UNKNOWN is not written by current clients; readers render wire value zero as legacy bezier.
+  // EDGE_STYLE_UNKNOWN is the required zero declaration; released wire value zero renders as bezier.
   EDGE_STYLE_UNKNOWN = 0;
 
-  // EDGE_STYLE_LEGACY_BEZIER aliases old field-5 zero values and is retained for wire compatibility.
-  EDGE_STYLE_LEGACY_BEZIER = 0 [deprecated = true];
+  // EDGE_STYLE_BEZIER renders a bezier curve; its deprecated zero alias is the UNKNOWN-first compatibility exception.
+  EDGE_STYLE_BEZIER = 0 [deprecated = true];
 
-  // EDGE_STYLE_STRAIGHT renders a straight line and retains its original wire value.
+  // EDGE_STYLE_STRAIGHT renders a straight line and retains its released wire value.
   EDGE_STYLE_STRAIGHT = 1;
 
-  // EDGE_STYLE_BEZIER renders the default bezier curve for new writes.
-  EDGE_STYLE_BEZIER = 2;
+  // Wire value 2 was never deployed and must not be reused.
+  reserved 2;
 }
 
 // CanvasNode contains the persisted position, content, and presentation of one Canvas node.
@@ -154,7 +154,7 @@ message CanvasEdge {
   // Label is optional user-visible edge text.
   string label = 4;
 
-  // Style selects the visual renderer; zero remains legacy bezier for wire compatibility.
+  // Style selects the visual renderer; writers encode bezier as released wire zero and straight as wire one.
   EdgeStyle style = 5;
 }
 

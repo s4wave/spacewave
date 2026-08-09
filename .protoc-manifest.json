@@ -3334,7 +3334,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/canvas": {
-      "hash": "061536ce8f969337008a72552f47a705b51388eb3adf2d6a7e749a6c1c90fc44",
+      "hash": "b8b8e0c35cccad79e6d6bec49b2a02de61b327627d5710477fb9e44c4ad71453",
       "generatedFiles": [
         "sdk/canvas/canvas.pb.go",
         "sdk/canvas/canvas.pb.ts",

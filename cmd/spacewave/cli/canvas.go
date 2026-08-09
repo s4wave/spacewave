@@ -212,7 +212,8 @@ func nodeTypeDisplay(t s4wave_canvas.NodeType) string {
 // edgeStyleDisplay returns a short display name for an EdgeStyle.
 func edgeStyleDisplay(s s4wave_canvas.EdgeStyle) string {
 	switch s {
-	case s4wave_canvas.EdgeStyle_EDGE_STYLE_BEZIER:
+	// EdgeStyle(0) is the released deprecated BEZIER alias.
+	case s4wave_canvas.EdgeStyle(0):
 		return "bezier"
 	case s4wave_canvas.EdgeStyle_EDGE_STYLE_STRAIGHT:
 		return "straight"
@@ -614,7 +615,8 @@ func parseEdgeStyle(s string) s4wave_canvas.EdgeStyle {
 	case "straight":
 		return s4wave_canvas.EdgeStyle_EDGE_STYLE_STRAIGHT
 	default:
-		return s4wave_canvas.EdgeStyle_EDGE_STYLE_BEZIER
+		// EdgeStyle(0) is the released deprecated BEZIER alias.
+		return s4wave_canvas.EdgeStyle(0)
 	}
 }
 

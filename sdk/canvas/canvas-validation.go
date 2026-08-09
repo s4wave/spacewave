@@ -125,7 +125,7 @@ func validateCanvasUpdate(req *UpdateCanvasRequest) (map[string]*CanvasNode, err
 			return nil, errors.New("canvas edge is nil")
 		}
 		switch edge.GetStyle() {
-		case EdgeStyle_EDGE_STYLE_UNKNOWN, EdgeStyle_EDGE_STYLE_STRAIGHT, EdgeStyle_EDGE_STYLE_BEZIER:
+		case EdgeStyle_EDGE_STYLE_BEZIER, EdgeStyle_EDGE_STYLE_STRAIGHT:
 		default:
 			return nil, errors.New("canvas edge style is unsupported")
 		}

@@ -163,42 +163,34 @@ export const CanvasClipboardVersion_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum EdgeStyle {
   /**
-   * EDGE_STYLE_UNKNOWN is not written by current clients; readers render wire value zero as legacy bezier.
+   * EDGE_STYLE_UNKNOWN is the required zero declaration; released wire value zero renders as bezier.
    *
    * @generated from enum value: EDGE_STYLE_UNKNOWN = 0;
    */
   UNKNOWN = 0,
 
   /**
-   * EDGE_STYLE_LEGACY_BEZIER aliases old field-5 zero values and is retained for wire compatibility.
+   * EDGE_STYLE_BEZIER renders a bezier curve; its deprecated zero alias is the UNKNOWN-first compatibility exception.
    *
-   * @generated from enum value: EDGE_STYLE_LEGACY_BEZIER = 0 [deprecated = true];
+   * @generated from enum value: EDGE_STYLE_BEZIER = 0 [deprecated = true];
    * @deprecated
    */
-  LEGACY_BEZIER = 0,
+  BEZIER = 0,
 
   /**
-   * EDGE_STYLE_STRAIGHT renders a straight line and retains its original wire value.
+   * EDGE_STYLE_STRAIGHT renders a straight line and retains its released wire value.
    *
    * @generated from enum value: EDGE_STYLE_STRAIGHT = 1;
    */
   STRAIGHT = 1,
-
-  /**
-   * EDGE_STYLE_BEZIER renders the default bezier curve for new writes.
-   *
-   * @generated from enum value: EDGE_STYLE_BEZIER = 2;
-   */
-  BEZIER = 2,
 }
 
 export const EdgeStyle_Enum = /* @__PURE__ */ createEnumType(
   's4wave.canvas.EdgeStyle',
   [
     [0, 'EDGE_STYLE_UNKNOWN'],
-    [0, 'EDGE_STYLE_LEGACY_BEZIER'],
+    [0, 'EDGE_STYLE_BEZIER'],
     [1, 'EDGE_STYLE_STRAIGHT'],
-    [2, 'EDGE_STYLE_BEZIER'],
   ],
 )
 
@@ -450,7 +442,7 @@ export interface CanvasEdge {
    */
   label?: string
   /**
-   * Style selects the visual renderer; zero remains legacy bezier for wire compatibility.
+   * Style selects the visual renderer; writers encode bezier as released wire zero and straight as wire one.
    *
    * @generated from field: s4wave.canvas.EdgeStyle style = 5;
    */

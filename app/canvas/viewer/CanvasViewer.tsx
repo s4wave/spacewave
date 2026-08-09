@@ -60,7 +60,7 @@ function isAbortError(err: unknown): boolean {
 }
 
 // protoEdgeStyleToCanvas converts proto EdgeStyle to canvas EdgeStyle.
-function protoEdgeStyleToCanvas(s: EdgeStyle): CanvasEdgeStyle {
+export function protoEdgeStyleToCanvas(s: EdgeStyle): CanvasEdgeStyle {
   switch (s) {
     case EdgeStyle.STRAIGHT:
       return 'straight'

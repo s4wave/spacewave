@@ -155,31 +155,27 @@ func (x CanvasClipboardVersion) String() string {
 type EdgeStyle int32
 
 const (
-	// EDGE_STYLE_UNKNOWN is not written by current clients; readers render wire value zero as legacy bezier.
+	// EDGE_STYLE_UNKNOWN is the required zero declaration; released wire value zero renders as bezier.
 	EdgeStyle_EDGE_STYLE_UNKNOWN EdgeStyle = 0
-	// EDGE_STYLE_LEGACY_BEZIER aliases old field-5 zero values and is retained for wire compatibility.
+	// EDGE_STYLE_BEZIER renders a bezier curve; its deprecated zero alias is the UNKNOWN-first compatibility exception.
 	//
 	// Deprecated: Marked as deprecated in github.com/s4wave/spacewave/sdk/canvas/canvas.proto.
-	EdgeStyle_EDGE_STYLE_LEGACY_BEZIER EdgeStyle = 0
-	// EDGE_STYLE_STRAIGHT renders a straight line and retains its original wire value.
+	EdgeStyle_EDGE_STYLE_BEZIER EdgeStyle = 0
+	// EDGE_STYLE_STRAIGHT renders a straight line and retains its released wire value.
 	EdgeStyle_EDGE_STYLE_STRAIGHT EdgeStyle = 1
-	// EDGE_STYLE_BEZIER renders the default bezier curve for new writes.
-	EdgeStyle_EDGE_STYLE_BEZIER EdgeStyle = 2
 )
 
 // Enum value maps for EdgeStyle.
 var (
 	EdgeStyle_name = map[int32]string{
 		0: "EDGE_STYLE_UNKNOWN",
-		// Duplicate value: 0: "EDGE_STYLE_LEGACY_BEZIER",
+		// Duplicate value: 0: "EDGE_STYLE_BEZIER",
 		1: "EDGE_STYLE_STRAIGHT",
-		2: "EDGE_STYLE_BEZIER",
 	}
 	EdgeStyle_value = map[string]int32{
-		"EDGE_STYLE_UNKNOWN":       0,
-		"EDGE_STYLE_LEGACY_BEZIER": 0,
-		"EDGE_STYLE_STRAIGHT":      1,
-		"EDGE_STYLE_BEZIER":        2,
+		"EDGE_STYLE_UNKNOWN":  0,
+		"EDGE_STYLE_BEZIER":   0,
+		"EDGE_STYLE_STRAIGHT": 1,
 	}
 )
 
@@ -435,7 +431,7 @@ type CanvasEdge struct {
 	TargetNodeId string `protobuf:"bytes,3,opt,name=target_node_id,json=targetNodeId,proto3" json:"targetNodeId,omitempty"`
 	// Label is optional user-visible edge text.
 	Label string `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
-	// Style selects the visual renderer; zero remains legacy bezier for wire compatibility.
+	// Style selects the visual renderer; writers encode bezier as released wire zero and straight as wire one.
 	Style EdgeStyle `protobuf:"varint,5,opt,name=style,proto3" json:"style,omitempty"`
 }
 

@@ -64,3 +64,15 @@ func flagFloat64Default(flags []cli.Flag, name string) float64 {
 	}
 	return -1
 }
+
+func TestEdgeStyleCompatibility(t *testing.T) {
+	if got := int32(parseEdgeStyle("bezier")); got != 0 {
+		t.Fatalf("parse bezier wire value = %d, want 0", got)
+	}
+	if got := edgeStyleDisplay(s4wave_canvas.EdgeStyle(0)); got != "bezier" {
+		t.Fatalf("display released wire zero = %q, want bezier", got)
+	}
+	if got := edgeStyleDisplay(s4wave_canvas.EdgeStyle_EDGE_STYLE_STRAIGHT); got != "straight" {
+		t.Fatalf("display released wire one = %q, want straight", got)
+	}
+}

@@ -68,6 +68,14 @@ const legacyEdgeStyle = createEnumType('s4wave.canvas.EdgeStyle', [
   [0, 'EDGE_STYLE_BEZIER'],
   [1, 'EDGE_STYLE_STRAIGHT'],
 ])
+
+// legacyEdgeStyleToCanvas reproduces the released wire-zero bezier renderer.
+function legacyEdgeStyleToCanvas(
+  style: number | undefined,
+): 'bezier' | 'straight' {
+  return style === 1 ? 'straight' : 'bezier'
+}
+
 const legacyCanvasEdgeDescriptor = createMessageType<LegacyCanvasEdge>({
   typeName: 's4wave.canvas.CanvasEdge',
   fields: [
@@ -149,24 +157,37 @@ describe('Canvas schema compatibility', () => {
     ).toBe('pen')
   })
 
-  it('preserves old zero-value bezier while new writers use additive value 2', () => {
-    const oldWire = legacyCanvasEdgeDescriptor.toBinary({
-      id: 'old',
+  it('keeps released and current bezier on wire zero for released readers', () => {
+    const releasedWire = legacyCanvasEdgeDescriptor.toBinary({
+      id: 'released',
       sourceNodeId: 'a',
       targetNodeId: 'b',
       style: 0,
     })
-    expect(
-      CanvasEdge.fromBinary(oldWire).style ?? EdgeStyle.LEGACY_BEZIER,
-    ).toBe(EdgeStyle.LEGACY_BEZIER)
+    expect(CanvasEdge.fromBinary(releasedWire).style ?? EdgeStyle.BEZIER).toBe(
+      EdgeStyle.BEZIER,
+    )
 
-    const newWire = CanvasEdge.toBinary({
-      id: 'new',
+    const currentWire = CanvasEdge.toBinary({
+      id: 'current',
       sourceNodeId: 'a',
       targetNodeId: 'b',
       style: EdgeStyle.BEZIER,
     })
-    expect(legacyCanvasEdgeDescriptor.fromBinary(newWire).style).toBe(2)
-    expect(CanvasEdge.fromBinary(newWire).style).toBe(EdgeStyle.BEZIER)
+    const releasedRead = legacyCanvasEdgeDescriptor.fromBinary(currentWire)
+    expect(releasedRead.style ?? 0).toBe(0)
+    expect(legacyEdgeStyleToCanvas(releasedRead.style)).toBe('bezier')
+  })
+
+  it('keeps straight on released wire one', () => {
+    const currentWire = CanvasEdge.toBinary({
+      id: 'straight',
+      sourceNodeId: 'a',
+      targetNodeId: 'b',
+      style: EdgeStyle.STRAIGHT,
+    })
+    const releasedRead = legacyCanvasEdgeDescriptor.fromBinary(currentWire)
+    expect(releasedRead.style).toBe(1)
+    expect(legacyEdgeStyleToCanvas(releasedRead.style)).toBe('straight')
   })
 })
