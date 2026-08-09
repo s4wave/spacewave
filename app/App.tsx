@@ -1,10 +1,12 @@
 import React from 'react'
 import { isDesktop } from '@aptre/bldr'
-import { AppShell } from './AppShell.js'
-import { EditorShell } from './EditorShell.js'
-import { AppAPI } from './AppAPI.js'
 
 import { DebugBridgeProvider } from '@s4wave/web/debug/DebugBridgeProvider.js'
+
+import { AppAPI } from './AppAPI.js'
+import { AppShell } from './AppShell.js'
+import { EditorShell } from './EditorShell.js'
+import { FileDropGuard } from './FileDropGuard.js'
 
 import './debug/spacewave-global.js'
 import '@s4wave/web/style/app.css'
@@ -18,6 +20,7 @@ export const App: React.FC = () => {
         topBar: { hidden: !isDesktop },
       }}
     >
+      <FileDropGuard />
       {import.meta.env?.DEV && <DebugBridgeProvider />}
       <AppAPI>
         <EditorShell />
