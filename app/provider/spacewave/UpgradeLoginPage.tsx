@@ -5,7 +5,7 @@ import { LoginForm } from '@s4wave/web/ui/login-form.js'
 import { LuArrowLeft } from 'react-icons/lu'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
-import { PageFooter } from './CloudConfirmationPage.js'
+import { PageFooter } from './PageFooter.js'
 import { useSpacewaveAuth } from './useSpacewaveAuth.js'
 
 // UpgradeLoginPage renders a login form for non-cloud sessions upgrading to cloud.

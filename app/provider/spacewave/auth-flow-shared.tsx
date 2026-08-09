@@ -92,11 +92,16 @@ export async function withSpacewaveProvider<T>(
 export async function loginWithEntityPem(
   root: Root,
   pemPrivateKey: Uint8Array,
+  abortSignal?: AbortSignal,
 ): Promise<number> {
-  return await withSpacewaveProvider(root, async (spacewave) => {
-    const loginResp = await spacewave.loginWithEntityKey(pemPrivateKey)
-    return loginResp.sessionListEntry?.sessionIndex ?? 0
-  })
+  return await withSpacewaveProvider(
+    root,
+    (spacewave) =>
+      abortSignal
+        ? spacewave.loginWithEntityKey(pemPrivateKey, abortSignal)
+        : spacewave.loginWithEntityKey(pemPrivateKey),
+    abortSignal,
+  ).then((response) => response.sessionListEntry?.sessionIndex ?? 0)
 }
 
 export function AuthCard({

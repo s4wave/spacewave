@@ -25,13 +25,11 @@ import {
   useSessionIndex,
 } from '@s4wave/web/contexts/contexts.js'
 import { CheckoutStatus } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
-import {
-  CloudConfirmationPage,
-  FaqAccordion,
-  FeatureGrid,
-  PageFooter,
-  PageWrapper,
-} from './CloudConfirmationPage.js'
+import { CloudConfirmationPage } from './CloudConfirmationPage.js'
+import { FaqAccordion } from './FaqAccordion.js'
+import { FeatureGrid } from './FeatureGrid.js'
+import { PageFooter } from './PageFooter.js'
+import { PageWrapper } from './PageWrapper.js'
 import { getCheckoutResultBaseUrl } from './checkout-url.js'
 import { useCloudProviderConfig } from './useSpacewaveAuth.js'
 import type { Session } from '@s4wave/sdk/session/session.js'

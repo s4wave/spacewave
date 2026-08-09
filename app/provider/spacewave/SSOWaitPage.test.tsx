@@ -132,6 +132,22 @@ describe('SSOWaitPage', () => {
     vi.clearAllMocks()
   })
 
+  it('aborts the desktop SSO request on unmount', async () => {
+    mockStartDesktopSSO.mockImplementation(
+      (_request: unknown, _signal: AbortSignal) => new Promise(() => {}),
+    )
+
+    const view = render(<SSOWaitPage />)
+    await waitFor(() => {
+      expect(mockStartDesktopSSO).toHaveBeenCalled()
+    })
+    const signal = mockStartDesktopSSO.mock.calls[0]?.[1] as AbortSignal
+    expect(signal.aborted).toBe(false)
+
+    view.unmount()
+    expect(signal.aborted).toBe(true)
+  })
+
   it('logs in immediately for a linked desktop SSO result with plaintext PEM', async () => {
     const pem = new Uint8Array([1, 2, 3])
     mockStartDesktopSSO.mockResolvedValue({
@@ -147,7 +163,10 @@ describe('SSOWaitPage', () => {
     render(<SSOWaitPage />)
 
     await waitFor(() => {
-      expect(mockLoginWithEntityKey).toHaveBeenCalledWith(pem)
+      expect(mockLoginWithEntityKey).toHaveBeenCalledWith(
+        pem,
+        expect.any(AbortSignal),
+      )
     })
     expect(mockNavigate).toHaveBeenCalledWith({ path: '/u/7' })
   })

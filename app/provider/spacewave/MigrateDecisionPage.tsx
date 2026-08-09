@@ -13,12 +13,10 @@ import { useNavigate } from '@s4wave/web/router/router.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
-import {
-  CLOUD_FAQ,
-  FaqAccordion,
-  PageFooter,
-  PageWrapper,
-} from './CloudConfirmationPage.js'
+import { CLOUD_FAQ } from './CloudConfirmationPage.js'
+import { FaqAccordion } from './FaqAccordion.js'
+import { PageFooter } from './PageFooter.js'
+import { PageWrapper } from './PageWrapper.js'
 
 // MigrateDecisionPage renders the migration decision UI at /plan/migrate.
 // Shown when the user has an active subscription and a linked local session

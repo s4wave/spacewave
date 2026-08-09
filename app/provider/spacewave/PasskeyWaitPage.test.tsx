@@ -132,6 +132,22 @@ describe('PasskeyWaitPage', () => {
     vi.clearAllMocks()
   })
 
+  it('aborts the desktop passkey request on unmount', async () => {
+    mockStartDesktopPasskey.mockImplementation(
+      (_request: unknown, _signal: AbortSignal) => new Promise(() => {}),
+    )
+
+    const view = render(<PasskeyWaitPage />)
+    await waitFor(() => {
+      expect(mockStartDesktopPasskey).toHaveBeenCalled()
+    })
+    const signal = mockStartDesktopPasskey.mock.calls[0]?.[1] as AbortSignal
+    expect(signal.aborted).toBe(false)
+
+    view.unmount()
+    expect(signal.aborted).toBe(true)
+  })
+
   it('logs in immediately for a linked desktop passkey result', async () => {
     mockStartDesktopPasskey.mockResolvedValue({
       result: {

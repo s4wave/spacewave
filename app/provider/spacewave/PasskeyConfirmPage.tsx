@@ -1,26 +1,16 @@
-/* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useMemo, useState } from 'react'
-import {
-  LuArrowLeft,
-  LuCircleAlert,
-  LuFingerprint,
-  LuUserPlus,
-} from 'react-icons/lu'
+import { LuArrowLeft, LuCircleAlert, LuFingerprint } from 'react-icons/lu'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
+import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { cn } from '@s4wave/web/style/utils.js'
 
 import {
-  AuthCard,
   AuthPrimaryActionButton,
   AuthSecondaryActionButton,
   AuthStatusPanel,
-  authInputClassName,
   getErrorMessage,
   isUsernameTakenError,
   loginWithEntityPem,
@@ -38,16 +28,14 @@ import {
   generateAuthKeypairs,
   wrapPemWithPin,
 } from './keypair-utils.js'
-import { OptionalPinLock } from './OptionalPinLock.js'
 import { wrapPemWithPasskeyPrf } from './passkey-prf.js'
+import { PasskeyConfirmForm } from './PasskeyConfirmForm.js'
 
 type PasskeyConfirmState =
   | { step: 'form' }
   | { step: 'creating' }
   | { step: 'logging_in' }
   | { step: 'error'; message: string }
-
-const HIGHLIGHTS = ['End-to-end encrypted', 'Passkey-protected', 'Local-first']
 
 // PasskeyConfirmPage completes new-account desktop passkey signup after browser registration.
 // Route: /auth/passkey/confirm
@@ -263,98 +251,21 @@ export function PasskeyConfirmPage() {
         : ''
 
   return (
-    <AuthScreenLayout
-      intro={
-        <>
-          <AnimatedLogo followMouse={false} />
-          <div className="flex items-center gap-2">
-            <div className="bg-brand/10 border-brand/30 flex size-11 items-center justify-center rounded-full border">
-              <LuFingerprint className="text-brand size-5" />
-            </div>
-            <div className="text-left">
-              <h2 className="text-foreground text-lg font-semibold">
-                Finish passkey setup
-              </h2>
-              <p className="text-foreground-alt text-sm">
-                Choose your Spacewave username to finish desktop sign-in.
-              </p>
-            </div>
-          </div>
-        </>
-      }
-    >
-      <div className="flex w-full flex-col gap-6">
-        <div className="grid gap-2 sm:grid-cols-3">
-          {HIGHLIGHTS.map((item) => (
-            <div
-              key={item}
-              className="border-foreground/10 bg-background/20 text-foreground-alt rounded-md border px-3 py-2 text-xs"
-            >
-              {item}
-            </div>
-          ))}
-        </div>
-
-        <AuthCard className="flex flex-col gap-6">
-          <div className="flex w-full flex-col gap-2">
-            <label
-              htmlFor="desktop-passkey-username"
-              className="text-foreground text-sm font-medium"
-            >
-              Username
-            </label>
-            <input
-              ref={handleUsernameInputRef}
-              id="desktop-passkey-username"
-              type="text"
-              value={username}
-              onChange={handleUsernameChange}
-              placeholder={pendingState.username || 'your-username'}
-              disabled={isBusy}
-              className={cn(
-                authInputClassName,
-                usernameError && 'border-destructive',
-              )}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !isBusy) {
-                  void handleCreateAccount()
-                }
-              }}
-            />
-            {usernameError && (
-              <p className="text-destructive text-xs">{usernameError}</p>
-            )}
-          </div>
-
-          <OptionalPinLock
-            pin={pin}
-            confirmPin={confirmPin}
-            pinError={pinError}
-            onPinChange={handlePinChange}
-            onConfirmPinChange={handleConfirmPinChange}
-            onSubmit={() => void handleCreateAccount()}
-            disabled={isBusy}
-            pinInputId="desktop-passkey-pin"
-          />
-
-          <div className="flex w-full flex-col gap-2">
-            <AuthPrimaryActionButton
-              onClick={() => void handleCreateAccount()}
-              disabled={isBusy || !username || !!usernameError}
-              icon={isBusy ? <Spinner /> : <LuUserPlus className="size-4" />}
-            >
-              {isBusy ? statusMessage : 'Create account'}
-            </AuthPrimaryActionButton>
-            <AuthSecondaryActionButton
-              onClick={handleCancel}
-              className="flex items-center justify-center gap-2"
-            >
-              <LuArrowLeft className="size-4" />
-              Back to login
-            </AuthSecondaryActionButton>
-          </div>
-        </AuthCard>
-      </div>
-    </AuthScreenLayout>
+    <PasskeyConfirmForm
+      username={username}
+      placeholderUsername={pendingState.username}
+      usernameError={usernameError}
+      usernameInputRef={handleUsernameInputRef}
+      pin={pin}
+      confirmPin={confirmPin}
+      pinError={pinError}
+      isBusy={isBusy}
+      statusMessage={statusMessage}
+      onUsernameChange={handleUsernameChange}
+      onPinChange={handlePinChange}
+      onConfirmPinChange={handleConfirmPinChange}
+      onCreateAccount={() => void handleCreateAccount()}
+      onCancel={handleCancel}
+    />
   )
 }

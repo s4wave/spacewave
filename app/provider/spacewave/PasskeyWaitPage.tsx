@@ -1,6 +1,4 @@
-/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useEffect, useState } from 'react'
-import { isDesktop } from '@aptre/bldr'
 import { LuArrowLeft, LuCircleAlert, LuFingerprint } from 'react-icons/lu'
 
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -16,15 +14,11 @@ import {
   AuthStatusPanel,
   authInputClassName,
   getErrorMessage,
-  loginWithEntityPem,
   withSpacewaveProvider,
 } from './auth-flow-shared.js'
 import { setPendingDesktopPasskeyState } from './desktop-passkey-state.js'
-import { base64ToBytes, unwrapPemWithPin } from './keypair-utils.js'
-import {
-  isPasskeyPrfPinWrapped,
-  unwrapPemWithPasskeyPrf,
-} from './passkey-prf.js'
+import { unwrapPemWithPin } from './keypair-utils.js'
+import { useDesktopPasskeyOutcome } from './useDesktopPasskeyOutcome.js'
 
 type PasskeyWaitState =
   | { step: 'waiting' }
@@ -46,115 +40,41 @@ export function PasskeyWaitPage() {
     node?.focus()
   }, [])
 
-  const loginWithPem = useCallback(
-    async (pemPrivateKey: Uint8Array) => {
-      if (!root) {
-        throw new Error('Not connected to server')
-      }
-      const sessionIndex = await loginWithEntityPem(root, pemPrivateKey)
-      navigate({ path: `/u/${sessionIndex}` })
-    },
-    [navigate, root],
-  )
+  const handleLoginStart = useCallback(() => {
+    setState({ step: 'logging_in' })
+  }, [])
+  const outcome = useDesktopPasskeyOutcome(root, retryCount, handleLoginStart)
 
   useEffect(() => {
-    if (!isDesktop || !root) return
-    const controller = new AbortController()
-    queueMicrotask(() => {
-      setState({ step: 'waiting' })
-      setPin('')
-      setPinError('')
-    })
-
-    const run = async () => {
-      try {
-        // eslint-disable-next-line react-doctor/async-defer-await -- the abort guard belongs after the desktop passkey RPC returns.
-        const resp = await withSpacewaveProvider(
-          root,
-          async (spacewave) =>
-            await spacewave.startDesktopPasskey({}, controller.signal),
-          controller.signal,
-        )
-        if (controller.signal.aborted) return
-
-        switch (resp.result?.case) {
-          case 'linked': {
-            const result = resp.result.value
-            const encryptedBlob = result?.encryptedBlob ?? ''
-            if (!encryptedBlob) {
-              throw new Error('Desktop passkey did not return an entity key')
-            }
-            if (result?.prfCapable) {
-              const authParams = result.authParams ?? ''
-              const prfOutput = result.prfOutput ?? ''
-              if (!prfOutput || !authParams) {
-                throw new Error(
-                  'Desktop passkey did not return PRF unwrap data',
-                )
-              }
-              const unwrapped = await withSpacewaveProvider(
-                root,
-                (spacewave) =>
-                  unwrapPemWithPasskeyPrf(
-                    spacewave,
-                    encryptedBlob,
-                    authParams,
-                    base64ToBytes(prfOutput),
-                    controller.signal,
-                  ),
-                controller.signal,
-              )
-              if (isPasskeyPrfPinWrapped(authParams)) {
-                setState({
-                  step: 'pin_prompt',
-                  encryptedBlob: new TextDecoder().decode(unwrapped),
-                })
-                return
-              }
-              setState({ step: 'logging_in' })
-              await loginWithPem(unwrapped)
-              return
-            }
-            if (result?.pinWrapped) {
-              setState({ step: 'pin_prompt', encryptedBlob })
-              return
-            }
-            setState({ step: 'logging_in' })
-            await loginWithPem(base64ToBytes(encryptedBlob))
-            return
-          }
-          case 'newAccount': {
-            const result = resp.result.value
-            setPendingDesktopPasskeyState({
-              nonce: result?.nonce ?? '',
-              username: result?.username ?? '',
-              credentialJson: result?.credentialJson ?? '',
-              prfCapable: !!result?.prfCapable,
-              prfSalt: result?.prfSalt ?? '',
-              prfOutput: result?.prfOutput ?? '',
-            })
-            navigate({ path: '/auth/passkey/confirm' })
-            return
-          }
-          default:
-            throw new Error('Desktop passkey did not return a result')
-        }
-      } catch (err) {
-        if (controller.signal.aborted) return
-        const message = getErrorMessage(err, 'Passkey sign-in failed')
-        if (message.includes('abort') || message.includes('cancel')) return
-        setState({ step: 'error', message })
-      }
+    if (outcome.error) {
+      const message = getErrorMessage(outcome.error, 'Passkey sign-in failed')
+      if (message.includes('abort') || message.includes('cancel')) return
+      setState({ step: 'error', message })
+      return
     }
+    if (!outcome.data) return
 
-    void run()
-    return () => {
-      controller.abort()
+    if (outcome.data.kind === 'pin') {
+      setState({
+        step: 'pin_prompt',
+        encryptedBlob: outcome.data.encryptedBlob,
+      })
+      return
     }
-  }, [loginWithPem, navigate, retryCount, root])
+    if (outcome.data.kind === 'new-account') {
+      const { kind: _, ...pendingState } = outcome.data
+      setPendingDesktopPasskeyState(pendingState)
+      navigate({ path: '/auth/passkey/confirm' })
+      return
+    }
+    navigate({ path: `/u/${outcome.data.sessionIndex}` })
+  }, [navigate, outcome.data, outcome.error])
 
   const handleRetry = useCallback(() => {
-    setRetryCount((c) => c + 1)
+    setState({ step: 'waiting' })
+    setPin('')
+    setPinError('')
+    setRetryCount((count) => count + 1)
   }, [])
 
   const handleCancel = useCallback(() => {
@@ -177,12 +97,17 @@ export function PasskeyWaitPage() {
       const pemBytes = await withSpacewaveProvider(root, (spacewave) =>
         unwrapPemWithPin(spacewave, state.encryptedBlob, pin),
       )
-      await loginWithPem(pemBytes)
+      const sessionOutcome = await withSpacewaveProvider(root, (spacewave) =>
+        spacewave.loginWithEntityKey(pemBytes),
+      )
+      navigate({
+        path: `/u/${sessionOutcome.sessionListEntry?.sessionIndex ?? 0}`,
+      })
     } catch {
       setPinError('Incorrect PIN')
       setState({ step: 'pin_prompt', encryptedBlob: state.encryptedBlob })
     }
-  }, [loginWithPem, pin, root, state])
+  }, [navigate, pin, root, state])
 
   if (state.step === 'error') {
     return (

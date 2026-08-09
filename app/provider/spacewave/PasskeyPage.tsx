@@ -1,15 +1,9 @@
-/* eslint-disable react-doctor/no-giant-component */
 import { useCallback, useMemo, useState } from 'react'
-import { LuCheck, LuCircleAlert, LuFingerprint } from 'react-icons/lu'
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 
-import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
-import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
-import { cn } from '@s4wave/web/style/utils.js'
-import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import {
   clearStoredHandoffPayload,
   completeStoredHandoff,
@@ -17,7 +11,6 @@ import {
 } from '@s4wave/app/auth/handoff-state.js'
 import { base64ToBytes, generateAuthKeypairs } from './keypair-utils.js'
 import {
-  authInputClassName,
   getErrorMessage,
   isUsernameTakenError,
   loginWithEntityPem,
@@ -25,6 +18,10 @@ import {
   validateUsername,
   withSpacewaveProvider,
 } from './auth-flow-shared.js'
+import { PasskeyChoice } from './PasskeyChoice.js'
+import { PasskeyError } from './PasskeyError.js'
+import { PasskeyProgress } from './PasskeyProgress.js'
+import { PasskeyUsernameForm } from './PasskeyUsernameForm.js'
 import {
   addAuthenticationPrfInputs,
   addRegistrationPrfInput,
@@ -280,179 +277,54 @@ export function PasskeyPage() {
 
   if (state.step === 'error') {
     return (
-      <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
-        <div className="relative z-10 flex flex-col items-center gap-4 text-center">
-          <LuCircleAlert className="text-destructive size-12" />
-          <h2 className="text-foreground text-lg font-semibold">
-            Passkey sign-in failed
-          </h2>
-          <p className="text-foreground-alt max-w-sm text-sm">
-            {state.message}
-          </p>
-          <button
-            onClick={() => {
-              clearStoredHandoffPayload()
-              setState({ step: 'username' })
-              setUsernameError('')
-            }}
-            className="text-brand hover:text-brand/80 mt-2 text-sm underline"
-          >
-            Try again
-          </button>
-          <button
-            onClick={() => {
-              clearStoredHandoffPayload()
-              navigate({ path: '/login' })
-            }}
-            className="text-foreground-alt hover:text-foreground text-xs transition-colors"
-          >
-            Back to login
-          </button>
-        </div>
-      </div>
+      <PasskeyError
+        message={state.message}
+        onRetry={() => {
+          clearStoredHandoffPayload()
+          setState({ step: 'username' })
+          setUsernameError('')
+        }}
+        onBack={() => {
+          clearStoredHandoffPayload()
+          navigate({ path: '/login' })
+        }}
+      />
     )
   }
 
   if (state.step === 'choice') {
     return (
-      <AuthScreenLayout
-        intro={
-          <>
-            <AnimatedLogo followMouse={false} />
-            <h2 className="text-foreground text-lg font-semibold">
-              Continue with passkey
-            </h2>
-            <p className="text-foreground-alt max-w-sm text-sm">
-              Choose how to continue for{' '}
-              <span className="text-foreground font-medium">{username}</span>.
-            </p>
-          </>
-        }
-      >
-        <div className="flex w-full flex-col gap-4">
-          {choiceMessage && (
-            <div className="border-warning/20 bg-warning/10 rounded-md border px-3 py-2">
-              <p className="text-foreground-alt text-xs">{choiceMessage}</p>
-            </div>
-          )}
-          <button
-            onClick={() => void handleExistingPasskey()}
-            className={cn(
-              'flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-              'bg-brand text-brand-foreground hover:bg-brand/90',
-            )}
-          >
-            <LuFingerprint className="size-4" />
-            Sign in with Passkey
-          </button>
-          <button
-            onClick={() => void handleCreateAccount()}
-            className={cn(
-              'border-foreground/20 text-foreground hover:border-foreground/30 hover:bg-background/40',
-              'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors',
-            )}
-          >
-            <LuFingerprint className="size-4" />
-            Create New Passkey Account
-          </button>
-          <button
-            onClick={() => {
-              setChoiceMessage('')
-              setState({ step: 'username' })
-            }}
-            className="text-brand hover:text-brand/80 text-sm underline"
-          >
-            Use a different username
-          </button>
-          <button
-            onClick={() => navigate({ path: '/login' })}
-            className="text-foreground-alt hover:text-foreground text-xs transition-colors"
-          >
-            Back to login
-          </button>
-        </div>
-      </AuthScreenLayout>
+      <PasskeyChoice
+        username={username}
+        message={choiceMessage}
+        onExistingPasskey={() => void handleExistingPasskey()}
+        onCreateAccount={() => void handleCreateAccount()}
+        onChangeUsername={() => {
+          setChoiceMessage('')
+          setState({ step: 'username' })
+        }}
+        onBack={() => navigate({ path: '/login' })}
+      />
     )
   }
 
   if (state.step === 'username') {
     return (
-      <AuthScreenLayout
-        intro={
-          <>
-            <AnimatedLogo followMouse={false} />
-            <h2 className="text-foreground text-lg font-semibold">
-              Continue with passkey
-            </h2>
-          </>
-        }
-      >
-        <div className="flex w-full flex-col gap-6">
-          <div className="flex w-full flex-col gap-2">
-            <label
-              htmlFor="passkey-username"
-              className="text-foreground text-sm font-medium"
-            >
-              Username
-            </label>
-            <input
-              ref={handleUsernameInputRef}
-              id="passkey-username"
-              type="text"
-              value={username}
-              onChange={handleUsernameChange}
-              placeholder="your-username"
-              autoComplete="username webauthn"
-              className={cn(
-                authInputClassName,
-                usernameError && 'border-destructive',
-              )}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  void handleContinue()
-                }
-              }}
-            />
-            {usernameError && (
-              <p className="text-destructive text-xs">{usernameError}</p>
-            )}
-          </div>
-
-          <button
-            onClick={() => void handleContinue()}
-            disabled={!username || !!usernameError}
-            className={cn(
-              'flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors',
-              'bg-brand text-brand-foreground hover:bg-brand/90',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-            )}
-          >
-            <LuFingerprint className="size-4" />
-            Continue
-          </button>
-
-          <button
-            onClick={() => navigate({ path: '/login' })}
-            className="text-foreground-alt hover:text-foreground text-xs transition-colors"
-          >
-            Back to login
-          </button>
-        </div>
-      </AuthScreenLayout>
+      <PasskeyUsernameForm
+        username={username}
+        usernameError={usernameError}
+        usernameInputRef={handleUsernameInputRef}
+        onUsernameChange={handleUsernameChange}
+        onContinue={() => void handleContinue()}
+        onBack={() => navigate({ path: '/login' })}
+      />
     )
   }
 
   return (
-    <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center p-6">
-      <div className="relative z-10 flex flex-col items-center gap-4 text-center">
-        <AnimatedLogo followMouse={false} />
-        {state.step === 'complete' ? (
-          <LuCheck className="text-brand size-6" />
-        ) : (
-          <Spinner size="md" className="text-foreground-alt" />
-        )}
-        <p className="text-foreground-alt text-sm">{statusMessage}</p>
-      </div>
-    </div>
+    <PasskeyProgress
+      complete={state.step === 'complete'}
+      message={statusMessage}
+    />
   )
 }

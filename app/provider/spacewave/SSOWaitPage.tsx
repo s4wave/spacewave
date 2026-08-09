@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/rerender-state-only-in-handlers */
 import { useCallback, useEffect, useState } from 'react'
 import { isDesktop } from '@aptre/bldr'
 import { LuArrowLeft } from 'react-icons/lu'
@@ -15,14 +14,14 @@ import {
   AuthSecondaryActionButton,
   getErrorMessage,
   getProviderLabel,
-  loginWithEntityPem,
   ProviderIcon,
   withSpacewaveProvider,
 } from './auth-flow-shared.js'
-import { bytesToBase64, unwrapPemWithPin } from './keypair-utils.js'
+import { unwrapPemWithPin } from './keypair-utils.js'
 import { consumeSSOStartIntent } from './sso-start-intent.js'
 import { setPendingSSOState } from './sso-state.js'
 import { SSOUnlockCard } from './SSOUnlockCard.js'
+import { useDesktopSSOOutcome } from './useDesktopSSOOutcome.js'
 import { useCloudProviderConfig } from './useSpacewaveAuth.js'
 
 type SSOWaitState =
@@ -49,72 +48,45 @@ export function SSOWaitPage() {
   const [pinError, setPinError] = useState('')
   const providerLabel = getProviderLabel(provider)
 
+  const handleLoginStart = useCallback(() => {
+    setState({ step: 'logging_in' })
+  }, [])
+  const outcome = useDesktopSSOOutcome(
+    root,
+    provider,
+    retryCount,
+    handleLoginStart,
+  )
+
   useEffect(() => {
-    if (!isDesktop || !root || !provider) return
-    const controller = new AbortController()
-    queueMicrotask(() => setState({ step: 'waiting' }))
-
-    const run = async () => {
-      try {
-        // eslint-disable-next-line react-doctor/async-defer-await -- the abort guard belongs after the desktop SSO RPC returns.
-        const resp = await withSpacewaveProvider(
-          root,
-          async (spacewave) =>
-            await spacewave.startDesktopSSO(
-              { ssoProvider: provider },
-              controller.signal,
-            ),
-          controller.signal,
-        )
-        if (controller.signal.aborted) return
-
-        switch (resp.result?.case) {
-          case 'linked': {
-            const result = resp.result.value
-            const pemPrivateKey = result?.pemPrivateKey
-            if (!pemPrivateKey || pemPrivateKey.length === 0) {
-              throw new Error('Desktop SSO did not return an entity key')
-            }
-            if (result?.pinWrapped) {
-              setState({
-                step: 'pin_prompt',
-                encryptedBlob: bytesToBase64(pemPrivateKey),
-                username: result?.username ?? '',
-              })
-              return
-            }
-            setState({ step: 'logging_in' })
-            const sessionIndex = await loginWithEntityPem(root, pemPrivateKey)
-            navigate({ path: `/u/${sessionIndex}` })
-            return
-          }
-          case 'newAccount': {
-            const result = resp.result.value
-            setPendingSSOState({
-              provider,
-              email: result?.email ?? '',
-              nonce: result?.nonce ?? '',
-              isDesktop: true,
-            })
-            navigate({ path: `/auth/sso/${provider}/confirm` })
-            return
-          }
-          default:
-            throw new Error('Desktop SSO did not return a result')
-        }
-      } catch (err) {
-        if (controller.signal.aborted) return
-        const message = getErrorMessage(err, 'Sign-in failed')
-        if (message.includes('abort') || message.includes('cancel')) return
-        setState({ step: 'error', message })
-      }
+    if (outcome.error) {
+      const message = getErrorMessage(outcome.error, 'Sign-in failed')
+      if (message.includes('abort') || message.includes('cancel')) return
+      setState({ step: 'error', message })
+      return
     }
+    if (!outcome.data) return
 
-    void run()
-    return () => {
-      controller.abort()
+    if (outcome.data.kind === 'pin') {
+      setState({
+        step: 'pin_prompt',
+        encryptedBlob: outcome.data.encryptedBlob,
+        username: outcome.data.username,
+      })
+      return
     }
-  }, [navigate, provider, retryCount, root])
+    if (outcome.data.kind === 'new-account') {
+      setPendingSSOState({
+        provider,
+        email: outcome.data.email,
+        nonce: outcome.data.nonce,
+        isDesktop: true,
+      })
+      navigate({ path: `/auth/sso/${provider}/confirm` })
+      return
+    }
+    navigate({ path: `/u/${outcome.data.sessionIndex}` })
+  }, [navigate, outcome.data, outcome.error, provider])
 
   useEffect(() => {
     if (isDesktop || !provider) return
@@ -131,7 +103,10 @@ export function SSOWaitPage() {
   }, [cloudProviderConfig, navigate, provider])
 
   const handleRetry = useCallback(() => {
-    setRetryCount((c) => c + 1)
+    setState({ step: 'waiting' })
+    setPin('')
+    setPinError('')
+    setRetryCount((count) => count + 1)
   }, [])
 
   const handleCancel = useCallback(() => {
@@ -154,8 +129,12 @@ export function SSOWaitPage() {
       const pemBytes = await withSpacewaveProvider(root, (spacewave) =>
         unwrapPemWithPin(spacewave, state.encryptedBlob, pin),
       )
-      const sessionIndex = await loginWithEntityPem(root, pemBytes)
-      navigate({ path: `/u/${sessionIndex}` })
+      const sessionOutcome = await withSpacewaveProvider(root, (spacewave) =>
+        spacewave.loginWithEntityKey(pemBytes),
+      )
+      navigate({
+        path: `/u/${sessionOutcome.sessionListEntry?.sessionIndex ?? 0}`,
+      })
     } catch {
       setPinError('Incorrect PIN')
       setState({
