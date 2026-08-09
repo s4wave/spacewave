@@ -279,6 +279,8 @@ type WebWorkerStatus struct {
 	FailureReason string `protobuf:"bytes,6,opt,name=failure_reason,json=failureReason,proto3" json:"failureReason,omitempty"`
 	// GenerationState is the typed lifecycle state for the worker generation.
 	GenerationState WebWorkerGenerationState `protobuf:"varint,7,opt,name=generation_state,json=generationState,proto3" json:"generationState,omitempty"`
+	// Generation identifies the execution that created this worker.
+	Generation string `protobuf:"bytes,8,opt,name=generation,proto3" json:"generation,omitempty"`
 }
 
 func (x *WebWorkerStatus) Reset() {
@@ -334,6 +336,13 @@ func (x *WebWorkerStatus) GetGenerationState() WebWorkerGenerationState {
 		return x.GenerationState
 	}
 	return WebWorkerGenerationState_WEB_WORKER_GENERATION_STATE_UNKNOWN
+}
+
+func (x *WebWorkerStatus) GetGeneration() string {
+	if x != nil {
+		return x.Generation
+	}
+	return ""
 }
 
 // CreateWebViewRequest is a request to create a new web view.
@@ -393,6 +402,8 @@ type CreateWebWorkerRequest struct {
 	//
 	// Usually a WebWorkerWasmPluginInit.
 	InitData []byte `protobuf:"bytes,4,opt,name=init_data,json=initData,proto3" json:"initData,omitempty"`
+	// Generation identifies the execution creating this worker.
+	Generation string `protobuf:"bytes,6,opt,name=generation,proto3" json:"generation,omitempty"`
 }
 
 func (x *CreateWebWorkerRequest) Reset() {
@@ -427,6 +438,13 @@ func (x *CreateWebWorkerRequest) GetInitData() []byte {
 		return x.InitData
 	}
 	return nil
+}
+
+func (x *CreateWebWorkerRequest) GetGeneration() string {
+	if x != nil {
+		return x.Generation
+	}
+	return ""
 }
 
 // CreateWebWorkerResponse is the response to the CreateWebWorker request.
@@ -465,6 +483,8 @@ type RemoveWebWorkerRequest struct {
 	unknownFields []byte
 	// Id is the identifier for the removed WebWorker.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Generation removes the worker only when it matches the current execution.
+	Generation string `protobuf:"bytes,2,opt,name=generation,proto3" json:"generation,omitempty"`
 }
 
 func (x *RemoveWebWorkerRequest) Reset() {
@@ -476,6 +496,13 @@ func (*RemoveWebWorkerRequest) ProtoMessage() {}
 func (x *RemoveWebWorkerRequest) GetId() string {
 	if x != nil {
 		return x.Id
+	}
+	return ""
+}
+
+func (x *RemoveWebWorkerRequest) GetGeneration() string {
+	if x != nil {
+		return x.Generation
 	}
 	return ""
 }
@@ -567,6 +594,7 @@ func (m *WebWorkerStatus) CloneVT() *WebWorkerStatus {
 	r.Failed = m.Failed
 	r.FailureReason = m.FailureReason
 	r.GenerationState = m.GenerationState
+	r.Generation = m.Generation
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -617,6 +645,7 @@ func (m *CreateWebWorkerRequest) CloneVT() *CreateWebWorkerRequest {
 	r.Id = m.Id
 	r.Path = m.Path
 	r.WorkerMode = m.WorkerMode
+	r.Generation = m.Generation
 	r.InitData = protobuf_go_lite.CloneBytes(m.InitData)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -651,6 +680,7 @@ func (m *RemoveWebWorkerRequest) CloneVT() *RemoveWebWorkerRequest {
 	}
 	r := new(RemoveWebWorkerRequest)
 	r.Id = m.Id
+	r.Generation = m.Generation
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -782,6 +812,9 @@ func (this *WebWorkerStatus) EqualVT(that *WebWorkerStatus) bool {
 	if this.GenerationState != that.GenerationState {
 		return false
 	}
+	if this.Generation != that.Generation {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -851,6 +884,9 @@ func (this *CreateWebWorkerRequest) EqualVT(that *CreateWebWorkerRequest) bool {
 	if !protobuf_go_lite.EqualBytes(this.InitData, that.InitData) {
 		return false
 	}
+	if this.Generation != that.Generation {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -892,6 +928,9 @@ func (this *RemoveWebWorkerRequest) EqualVT(that *RemoveWebWorkerRequest) bool {
 		return false
 	}
 	if this.Id != that.Id {
+		return false
+	}
+	if this.Generation != that.Generation {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1260,6 +1299,11 @@ func (x *WebWorkerStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("generationState")
 		x.GenerationState.MarshalProtoJSON(s)
 	}
+	if x.Generation != "" || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteString(x.Generation)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1298,6 +1342,9 @@ func (x *WebWorkerStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "generation_state", "generationState":
 			s.AddField("generation_state")
 			x.GenerationState.UnmarshalProtoJSON(s)
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadString()
 		}
 	})
 }
@@ -1419,6 +1466,11 @@ func (x *CreateWebWorkerRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("initData")
 		s.WriteBytes(x.InitData)
 	}
+	if x.Generation != "" || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteString(x.Generation)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1448,6 +1500,9 @@ func (x *CreateWebWorkerRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "init_data", "initData":
 			s.AddField("init_data")
 			x.InitData = s.ReadBytes()
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadString()
 		}
 	})
 }
@@ -1520,6 +1575,11 @@ func (x *RemoveWebWorkerRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("id")
 		s.WriteString(x.Id)
 	}
+	if x.Generation != "" || s.HasField("generation") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("generation")
+		s.WriteString(x.Generation)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1540,6 +1600,9 @@ func (x *RemoveWebWorkerRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "id":
 			s.AddField("id")
 			x.Id = s.ReadString()
+		case "generation":
+			s.AddField("generation")
+			x.Generation = s.ReadString()
 		}
 	})
 }
@@ -1775,6 +1838,11 @@ func (m *WebWorkerStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Generation) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Generation)
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.GenerationState != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.GenerationState))
 		i--
@@ -1916,6 +1984,11 @@ func (m *CreateWebWorkerRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.Generation) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Generation)
+		i--
+		dAtA[i] = 0x32
+	}
 	if len(m.InitData) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.InitData)
 		i--
@@ -2009,6 +2082,11 @@ func (m *RemoveWebWorkerRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Generation) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Generation)
+		i--
+		dAtA[i] = 0x12
 	}
 	if len(m.Id) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Id)
@@ -2113,6 +2191,7 @@ func (m *WebWorkerStatus) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Failed)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.FailureReason)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.GenerationState)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Generation)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2149,6 +2228,7 @@ func (m *CreateWebWorkerRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Path)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WorkerMode)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.InitData)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Generation)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2172,6 +2252,7 @@ func (m *RemoveWebWorkerRequest) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Id)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Generation)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2308,6 +2389,10 @@ func (x *WebWorkerStatus) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "generation_state")
 		protobuf_go_lite.TextWriteStringer(&sb, WebWorkerGenerationState(x.GenerationState))
 	}
+	if x.Generation != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "generation")
+		protobuf_go_lite.TextWriteString(&sb, x.Generation)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -2362,6 +2447,10 @@ func (x *CreateWebWorkerRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "init_data")
 		protobuf_go_lite.TextWriteBytes(&sb, x.InitData)
 	}
+	if x.Generation != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "generation")
+		protobuf_go_lite.TextWriteString(&sb, x.Generation)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -2393,6 +2482,10 @@ func (x *RemoveWebWorkerRequest) MarshalProtoText() string {
 	if x.Id != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "id")
 		protobuf_go_lite.TextWriteString(&sb, x.Id)
+	}
+	if x.Generation != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "generation")
+		protobuf_go_lite.TextWriteString(&sb, x.Generation)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2731,6 +2824,16 @@ func (m *WebWorkerStatus) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Generation = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2919,6 +3022,16 @@ func (m *CreateWebWorkerRequest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Generation = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -3035,6 +3148,16 @@ func (m *RemoveWebWorkerRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Id = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Generation", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Generation = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

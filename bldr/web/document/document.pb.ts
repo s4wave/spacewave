@@ -279,6 +279,12 @@ export interface WebWorkerStatus {
    * @generated from field: web.document.WebWorkerGenerationState generation_state = 7;
    */
   generationState?: WebWorkerGenerationState
+  /**
+   * Generation identifies the execution that created this worker.
+   *
+   * @generated from field: string generation = 8;
+   */
+  generation?: string
 }
 
 export const WebWorkerStatus: MessageType<WebWorkerStatus> =
@@ -297,6 +303,7 @@ export const WebWorkerStatus: MessageType<WebWorkerStatus> =
         kind: 'enum',
         T: WebWorkerGenerationState_Enum,
       },
+      { no: 8, name: 'generation', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -448,6 +455,12 @@ export interface CreateWebWorkerRequest {
    * @generated from field: bytes init_data = 4;
    */
   initData?: Uint8Array
+  /**
+   * Generation identifies the execution creating this worker.
+   *
+   * @generated from field: string generation = 6;
+   */
+  generation?: string
 }
 
 export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
@@ -458,6 +471,7 @@ export const CreateWebWorkerRequest: MessageType<CreateWebWorkerRequest> =
       { no: 2, name: 'path', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'worker_mode', kind: 'enum', T: WebWorkerMode_Enum },
       { no: 4, name: 'init_data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 6, name: 'generation', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -506,6 +520,12 @@ export interface RemoveWebWorkerRequest {
    * @generated from field: string id = 1;
    */
   id?: string
+  /**
+   * Generation removes the worker only when it matches the current execution.
+   *
+   * @generated from field: string generation = 2;
+   */
+  generation?: string
 }
 
 export const RemoveWebWorkerRequest: MessageType<RemoveWebWorkerRequest> =
@@ -513,6 +533,7 @@ export const RemoveWebWorkerRequest: MessageType<RemoveWebWorkerRequest> =
     typeName: 'web.document.RemoveWebWorkerRequest',
     fields: [
       { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'generation', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -87,6 +87,8 @@ message WebWorkerStatus {
   string failure_reason = 6;
   // GenerationState is the typed lifecycle state for the worker generation.
   WebWorkerGenerationState generation_state = 7;
+  // Generation identifies the execution that created this worker.
+  string generation = 8;
 }
 
 // WebWorkerGenerationState is the browser plugin worker generation lifecycle.
@@ -170,6 +172,8 @@ message CreateWebWorkerRequest {
   // Removed worker_type field; the browser has one plugin worker harness.
   reserved 5;
   reserved "worker_type";
+  // Generation identifies the execution creating this worker.
+  string generation = 6;
 }
 
 // CreateWebWorkerResponse is the response to the CreateWebWorker request.
@@ -186,6 +190,8 @@ message CreateWebWorkerResponse {
 message RemoveWebWorkerRequest {
   // Id is the identifier for the removed WebWorker.
   string id = 1;
+  // Generation removes the worker only when it matches the current execution.
+  string generation = 2;
 }
 
 // RemoveWebWorkerResponse is the response to the RemoveWebWorker request.

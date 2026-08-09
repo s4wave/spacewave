@@ -285,8 +285,9 @@ func (r *Remote) CreateWebWorker(ctx context.Context, req *CreateWebWorkerReques
 		}
 
 		dirty, err = r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
-			Id:     webWorkerID,
-			Shared: resp.GetShared(),
+			Id:         webWorkerID,
+			Generation: req.GetGeneration(),
+			Shared:     resp.GetShared(),
 		}})
 		if err != nil {
 			return dirty, err
@@ -517,6 +518,7 @@ func (r *Remote) updateStatusSnapshot() {
 				Failed:          remoteWebWorker.failed,
 				FailureReason:   remoteWebWorker.failureReason,
 				GenerationState: remoteWebWorker.generationState,
+				Generation:      remoteWebWorker.generation,
 			})
 		}
 		status.WebWorkers = append(status.WebWorkers, r.remoteWebWorkerDeleted...)
@@ -614,10 +616,12 @@ func (r *Remote) handleWebWorkerStatuses(snapshot bool, statuses []*WebWorkerSta
 				Failed:          status.GetFailed(),
 				FailureReason:   status.GetFailureReason(),
 				GenerationState: status.GetGenerationState(),
+				Generation:      status.GetGeneration(),
 			})
 			dirty = true
-			if r.removeRemoteWebWorker(webWorkerID) != nil {
-				dirty = true
+			_, current := r.lookupRemoteWebWorker(webWorkerID)
+			if current != nil && current.generation == status.GetGeneration() {
+				r.removeRemoteWebWorker(webWorkerID)
 			}
 			continue
 		}
@@ -716,6 +720,10 @@ func (r *Remote) upsertRemoteWebWorker(status *WebWorkerStatus) (*remoteWebWorke
 	var inserted, changed bool
 	webWorkerID := status.GetId()
 	insertIdx, rwv := r.lookupRemoteWebWorker(webWorkerID)
+	if rwv != nil && rwv.generation != status.GetGeneration() {
+		r.removeRemoteWebWorker(webWorkerID)
+		insertIdx, rwv = r.lookupRemoteWebWorker(webWorkerID)
+	}
 	if rwv == nil {
 		rwv = r.buildRemoteWebWorker(r.documentID, status)
 		r.insertRemoteWebWorker(insertIdx, rwv)
@@ -741,6 +749,10 @@ func (r *Remote) upsertRemoteWebWorker(status *WebWorkerStatus) (*remoteWebWorke
 		}
 		if rwv.generationState != status.GetGenerationState() {
 			rwv.generationState = status.GetGenerationState()
+			changed = true
+		}
+		if rwv.generation != status.GetGeneration() {
+			rwv.generation = status.GetGeneration()
 			changed = true
 		}
 	}
