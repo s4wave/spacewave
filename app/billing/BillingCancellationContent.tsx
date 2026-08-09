@@ -1,4 +1,3 @@
-import type { BillingAccountInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import {
   LuArrowLeft,
   LuClock3,
@@ -16,6 +15,7 @@ import { PageWrapper } from '@s4wave/app/provider/spacewave/PageWrapper.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
+import type { BillingAccountInfo } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 
 const CANCEL_FAQ = [
   {

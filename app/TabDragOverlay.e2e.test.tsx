@@ -120,7 +120,7 @@ describe('Tab Drag Overlay', () => {
     expect(outlineRectAtTabBar).not.toBeNull()
     expect(outlineRectAtTabBar.style.visibility).toBe('visible')
 
-    const contentY = startY + 100 // 100px below the tab button
+    const contentY = startY + 100
 
     const dragOverContent = new DragEvent('dragover', {
       bubbles: true,
