@@ -1,5 +1,4 @@
-/* eslint-disable react-doctor/rerender-state-only-in-handlers */
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useReducer } from 'react'
 import { LuMonitor, LuTerminal, LuCheck } from 'react-icons/lu'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
@@ -36,8 +35,37 @@ function parseHandoffRouteHints(): HandoffRouteHints {
   }
 }
 
-// HandoffState tracks the handoff page lifecycle.
-type HandoffState = 'auth' | 'completing' | 'complete'
+// HandoffState tracks the handoff page lifecycle and preserves completion
+// failures after the login form remounts.
+type HandoffState =
+  | { phase: 'auth'; completionError: string | null }
+  | { phase: 'completing' }
+  | { phase: 'complete' }
+
+type HandoffAction =
+  | { type: 'start-completing' }
+  | { type: 'finish-completing' }
+  | { type: 'fail-completing'; error: string }
+
+function reduceHandoffState(
+  state: HandoffState,
+  action: HandoffAction,
+): HandoffState {
+  if (state.phase === 'auth' && action.type === 'start-completing') {
+    return { phase: 'completing' }
+  }
+  if (state.phase === 'completing' && action.type === 'finish-completing') {
+    return { phase: 'complete' }
+  }
+  if (state.phase === 'completing' && action.type === 'fail-completing') {
+    return { phase: 'auth', completionError: action.error }
+  }
+  return state
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Handoff encryption failed'
+}
 
 // clientTypeLabel returns a display label for the client type.
 function clientTypeLabel(clientType: string): string {
@@ -67,7 +95,10 @@ export function HandoffPage() {
   const rootResource = useRootResource()
   const root = useResourceValue(rootResource)
   const cloudProviderConfig = useCloudProviderConfig()
-  const [state, setState] = useState<HandoffState>('auth')
+  const [state, dispatch] = useReducer(reduceHandoffState, {
+    phase: 'auth',
+    completionError: null,
+  })
 
   const handoffPayload = params.payload ?? ''
   const request = useMemo(
@@ -106,14 +137,19 @@ export function HandoffPage() {
       switch (resp.result?.case) {
         case 'session': {
           const idx = resp.result.value?.sessionIndex ?? 0
-          setState('completing')
-          await encryptForHandoffViaSession(
-            root,
-            idx,
-            request.devicePublicKey,
-            request.sessionNonce,
-          )
-          setState('complete')
+          dispatch({ type: 'start-completing' })
+          try {
+            await encryptForHandoffViaSession(
+              root,
+              idx,
+              request.devicePublicKey,
+              request.sessionNonce,
+            )
+          } catch (error) {
+            dispatch({ type: 'fail-completing', error: errorMessage(error) })
+            throw error
+          }
+          dispatch({ type: 'finish-completing' })
           return { type: 'session', sessionIndex: idx }
         }
         case 'isNewAccount':
@@ -151,14 +187,19 @@ export function HandoffPage() {
       })
       const sessionIndex = resp.sessionListEntry?.sessionIndex ?? 0
 
-      setState('completing')
-      await encryptForHandoffViaSession(
-        root,
-        sessionIndex,
-        request.devicePublicKey,
-        request.sessionNonce,
-      )
-      setState('complete')
+      dispatch({ type: 'start-completing' })
+      try {
+        await encryptForHandoffViaSession(
+          root,
+          sessionIndex,
+          request.devicePublicKey,
+          request.sessionNonce,
+        )
+      } catch (error) {
+        dispatch({ type: 'fail-completing', error: errorMessage(error) })
+        throw error
+      }
+      dispatch({ type: 'finish-completing' })
 
       return { sessionIndex }
     },
@@ -190,7 +231,7 @@ export function HandoffPage() {
     )
   }
 
-  if (state === 'completing') {
+  if (state.phase === 'completing') {
     return (
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
         <div className="relative z-10 flex flex-col items-center gap-4">
@@ -206,7 +247,7 @@ export function HandoffPage() {
     )
   }
 
-  if (state === 'complete') {
+  if (state.phase === 'complete') {
     return (
       <div className="bg-background-landing relative flex flex-1 flex-col items-center justify-center gap-6 p-6">
         <div className="relative z-10 flex flex-col items-center gap-4">
@@ -259,6 +300,11 @@ export function HandoffPage() {
         </>
       }
     >
+      {state.completionError && (
+        <p role="alert" className="text-destructive mb-4 text-sm">
+          {state.completionError}
+        </p>
+      )}
       <LoginForm
         initialUsername={routeHints.username}
         cloudProviderConfig={cloudProviderConfig}

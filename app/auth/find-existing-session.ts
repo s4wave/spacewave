@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/async-await-in-loop */
 import type { Root } from '@s4wave/sdk/root/root.js'
 
 type SessionLookupRoot = Pick<Root, 'listSessions' | 'getSessionMetadata'>
@@ -15,6 +14,10 @@ export async function findExistingSessionIndexByUsername(
   for (const session of resp.sessions ?? []) {
     const sessionIndex = session.sessionIndex ?? 0
     if (!sessionIndex) continue
+
+    // Metadata reads are serialized by the Go owner mutex; awaiting each read
+    // avoids an unbounded queue and stops immediately on cancellation or error.
+    // eslint-disable-next-line react-doctor/async-await-in-loop
     const metadataResp = await root.getSessionMetadata(
       sessionIndex,
       abortSignal,
