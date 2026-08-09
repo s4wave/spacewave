@@ -32,7 +32,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260705021747-c5ec5d20d2b6 // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
-	github.com/aperturerobotics/common v0.35.0 // master
+	github.com/aperturerobotics/common v0.35.1 // master
 	github.com/aperturerobotics/controllerbus v0.53.5-0.20260726091303-7b91a295eab0 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -44,7 +44,7 @@ require (
 	github.com/aperturerobotics/go-multiaddr v0.17.1-0.20260514224402-c193991c3ce5
 	github.com/aperturerobotics/go-multibase v0.4.0 // indirect
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260705010911-9f53feac967b // indirect
-	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260712054757-d8078c296c17 // indirect
+	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260808023521-7b1595380c3f // indirect
 	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.1
 	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260705010951-74676ff0da98
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260619192713-a096778f08c1

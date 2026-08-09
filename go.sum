@@ -28,8 +28,8 @@ github.com/aperturerobotics/circl v1.6.4-0.20260621010139-e3e5c81ebc40 h1:ItJbWW
 github.com/aperturerobotics/circl v1.6.4-0.20260621010139-e3e5c81ebc40/go.mod h1:2eXP6Qfat4O/Yhh8BznvKnJ+uzEoTQ6jVKJRn81BiS4=
 github.com/aperturerobotics/cli v1.1.0 h1:7a+YRC+EY3npAnTzhHV5gLCiw91KS0Ts3XwLILGOsT8=
 github.com/aperturerobotics/cli v1.1.0/go.mod h1:M7BFP9wow5ytTzMyJQOOO991fGfsUqdTI7gGEsHfTQ8=
-github.com/aperturerobotics/common v0.35.0 h1:VU4OPMXJyqT37lTOtNEMa3QLW5tR8YIBAKbjgxSzuZs=
-github.com/aperturerobotics/common v0.35.0/go.mod h1:xnb1VBRs3x2o1PaKg0OlP7SqDaC9Hmrmt9xH85rOS+A=
+github.com/aperturerobotics/common v0.35.1 h1:R8e/8Fphp3KqRZQB/5fLSVfRnQNL0fQtJ6XQfBHrlZ4=
+github.com/aperturerobotics/common v0.35.1/go.mod h1:V4QjgrnP0yXjg6/XdVfEoH6LrxsWpCbC/UxQ92EnnqE=
 github.com/aperturerobotics/controllerbus v0.53.5-0.20260726091303-7b91a295eab0 h1:ctb4jaNnn2+G6ke2tY/nr3zgP3ZBTsvdShLFZ+e0Rhc=
 github.com/aperturerobotics/controllerbus v0.53.5-0.20260726091303-7b91a295eab0/go.mod h1:OHgZR7AioQtFHeGAiBNV4/92FzZh7e52jK65RidRGsQ=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d h1:TVae+YDmMmtutvNKC5d64yXx5Woa3QIq3Ndn11J1IPQ=
@@ -56,8 +56,8 @@ github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260621171526-1e2167d387d
 github.com/aperturerobotics/go-mysql-server v0.20.1-0.20260621171526-1e2167d387d8/go.mod h1:VzjLRT/YIHyvdzYI+RE1960ge7HvrjOZp523m6vyLiw=
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260705010911-9f53feac967b h1:MMk+AbWPCMfqc2Lm2bJl8lCCsuvlM2+C0CP10fpE3bc=
 github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260705010911-9f53feac967b/go.mod h1:OBb/beWmr/pDIZAUfi86j/4tBh2v5ctTxKMqSnh9c/4=
-github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260712054757-d8078c296c17 h1:WT1YmZjJf8fUF1zKbeNNKXFA+t8Wtbr8AVMAmdKcrUU=
-github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260712054757-d8078c296c17/go.mod h1:vEq8i7EKb32+KXGtIEZjjhNns+BdsL2dUMw4uhy3578=
+github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260808023521-7b1595380c3f h1:UszdpmKBfQd0LdOZjypeRGrHz2tcPpmKpw6SV3DYyN0=
+github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260808023521-7b1595380c3f/go.mod h1:vEq8i7EKb32+KXGtIEZjjhNns+BdsL2dUMw4uhy3578=
 github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.1 h1:wd9OPxKi81Co1Bv6l56c1xP2IVVlskOfr2GQrKSRd90=
 github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.1/go.mod h1:tv9gTeRdrIQIsLeXQK+bsc7VrN5YHepfWsQ++/sALRQ=
 github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260705010951-74676ff0da98 h1:CRo/EgPdLCl4MMvCxhNG2uJAkb4FkXZ0gD8TsMglNRU=
@@ -210,8 +210,6 @@ github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 h1:Z9n2FFNU
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51/go.mod h1:CzGEWj7cYgsdH8dAjBGEr58BoE7ScuLd+fwFZ44+/x8=
 github.com/kevinburke/ssh_config v1.6.0 h1:J1FBfmuVosPHf5GRdltRLhPJtJpTlMdKTBjRgTaQBFY=
 github.com/kevinburke/ssh_config v1.6.0/go.mod h1:q2RIzfka+BXARoNexmF9gkxEX7DmvbW9P4hIVx2Kg4M=
-github.com/klauspost/compress v1.19.1 h1:VsB4HPswih7mmZ8WleSFQ75c/Ui1M4trX5oAsJnhSlk=
-github.com/klauspost/compress v1.19.1/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
 github.com/klauspost/compress v1.19.2 h1:hMRETovs/pu/dVWN7zIT1PGG8t509MwT6bO7XSi26R8=
 github.com/klauspost/compress v1.19.2/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
 github.com/klauspost/cpuid/v2 v2.3.0 h1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzhA9Y=
