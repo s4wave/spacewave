@@ -42,6 +42,11 @@ func Main(
 	var logLevel string
 	var logFiles cli.StringSlice
 	var logFileCleanup func()
+	defer func() {
+		if logFileCleanup != nil {
+			logFileCleanup()
+		}
+	}()
 	var configSetRefs []directive.Reference
 	var busInitErr error
 	var busInitOnce sync.Once
@@ -126,6 +131,15 @@ func Main(
 	app.Name = appName
 	app.HideVersion = true
 	app.Usage = appName + " CLI"
+	var terminalCommand string
+	app.ExitErrHandler = func(c *cli.Context, err error) {
+		if err == nil || c == nil || c.Command == nil || c.Command.Name == "" {
+			return
+		}
+		if terminalCommand == "" || c.Command.Name != appName {
+			terminalCommand = c.Command.HelpName
+		}
+	}
 	envPrefix := strings.ToUpper(strings.ReplaceAll(appName, "-", "_"))
 	defaultStatePath := DefaultStatePath(projectID)
 	statePathEnvVars := StatePathEnvVars(projectID)
@@ -232,10 +246,6 @@ func Main(
 			dtBus.Release()
 			dtBus = nil
 		}
-		if logFileCleanup != nil {
-			logFileCleanup()
-			logFileCleanup = nil
-		}
 		return nil
 	}
 
@@ -292,7 +302,20 @@ func Main(
 		app.Commands = append(app.Commands, builder(getBus)...)
 	}
 
-	if err := app.RunContext(ctx, os.Args); err != nil {
+	err := app.RunContext(ctx, os.Args)
+	if err != nil && le != nil {
+		command := terminalCommand
+		if command == "" {
+			command = appName
+		}
+		le.WithError(err).Error(command + " stopped")
+	}
+	if logFileCleanup != nil {
+		logFileCleanup()
+		logFileCleanup = nil
+	}
+	cli.HandleExitCoder(err)
+	if err != nil {
 		os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(1)
 	}
