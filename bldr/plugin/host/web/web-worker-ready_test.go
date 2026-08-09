@@ -327,6 +327,10 @@ func (w *testWebWorker) GetDocumentId() string {
 	return ""
 }
 
+func (w *testWebWorker) GetGeneration() string {
+	return ""
+}
+
 func (w *testWebWorker) GetShared() bool {
 	return false
 }

@@ -11,6 +11,7 @@ type remoteWebWorker struct {
 	r               *Remote
 	id              string
 	document        string
+	generation      string
 	shared          bool
 	ready           bool
 	failed          bool
@@ -24,6 +25,7 @@ func (r *Remote) buildRemoteWebWorker(document string, status *WebWorkerStatus) 
 		r:               r,
 		id:              status.GetId(),
 		document:        document,
+		generation:      status.GetGeneration(),
 		shared:          status.GetShared(),
 		ready:           status.GetReady(),
 		failed:          status.GetFailed(),
@@ -43,6 +45,11 @@ func (r *remoteWebWorker) GetDocumentId() string {
 	return r.document
 }
 
+// GetGeneration returns the execution generation that created the worker.
+func (r *remoteWebWorker) GetGeneration() string {
+	return r.generation
+}
+
 // GetShared indicates this is a shared worker.
 func (r *remoteWebWorker) GetShared() bool {
 	return r.shared
@@ -53,7 +60,8 @@ func (r *remoteWebWorker) GetShared() bool {
 // Returns nil if the worker was not found.
 func (r *remoteWebWorker) Remove(ctx context.Context) (bool, error) {
 	resp, err := r.r.webDocument.RemoveWebWorker(ctx, &RemoveWebWorkerRequest{
-		Id: r.id,
+		Id:         r.id,
+		Generation: r.generation,
 	})
 	if err != nil {
 		return false, err

@@ -9,6 +9,8 @@ type WebWorker interface {
 	// GetDocumentId returns the id of the parent WebDocument.
 	// May be empty.
 	GetDocumentId() string
+	// GetGeneration returns the execution generation that created the worker.
+	GetGeneration() string
 	// GetShared indicates this is a shared worker.
 	GetShared() bool
 

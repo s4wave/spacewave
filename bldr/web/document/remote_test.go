@@ -114,3 +114,49 @@ func TestRemoteWebWorkerStatusPreservesDeletedGenerationEventOnce(t *testing.T) 
 		t.Fatalf("deleted worker event should be one-shot: got %d workers", got)
 	}
 }
+
+func TestRemoteWebWorkerStaleGenerationDoesNotReplaceOrDeleteCurrentHandle(t *testing.T) {
+	r := &Remote{
+		documentID:  "document-1",
+		le:          logrus.NewEntry(logrus.New()),
+		ready:       true,
+		snapshotCtr: ccontainer.NewCContainer[*WebDocumentStatus](nil),
+	}
+
+	if _, err := r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
+		Id:         "worker-1",
+		Generation: "generation-a",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	_, stale := r.lookupRemoteWebWorker("worker-1")
+
+	if _, err := r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
+		Id:         "worker-1",
+		Generation: "generation-b",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	_, current := r.lookupRemoteWebWorker("worker-1")
+	if current == stale {
+		t.Fatal("replacement generation reused the stale worker handle")
+	}
+	if got, want := stale.GetGeneration(), "generation-a"; got != want {
+		t.Fatalf("stale handle generation = %q, want %q", got, want)
+	}
+	if got, want := current.GetGeneration(), "generation-b"; got != want {
+		t.Fatalf("current handle generation = %q, want %q", got, want)
+	}
+
+	if _, err := r.handleWebWorkerStatuses(false, []*WebWorkerStatus{{
+		Id:         "worker-1",
+		Generation: "generation-a",
+		Deleted:    true,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	_, retained := r.lookupRemoteWebWorker("worker-1")
+	if retained != current {
+		t.Fatal("stale generation deletion removed the current worker handle")
+	}
+}

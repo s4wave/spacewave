@@ -9,7 +9,9 @@
         "auth/derive/derive.pb.go",
         "auth/derive/derive.pb.ts"
       ],
-      "protoFiles": ["auth/derive/derive.proto"]
+      "protoFiles": [
+        "auth/derive/derive.proto"
+      ]
     },
     "github.com/s4wave/spacewave/auth/method/controller": {
       "hash": "b88f10684c042a791bdbbcc20c7cf7fe2965a5ff96b8e00e650a15be64de1495",
@@ -17,7 +19,9 @@
         "auth/method/controller/controller.pb.go",
         "auth/method/controller/controller.pb.ts"
       ],
-      "protoFiles": ["auth/method/controller/controller.proto"]
+      "protoFiles": [
+        "auth/method/controller/controller.proto"
+      ]
     },
     "github.com/s4wave/spacewave/auth/method/password": {
       "hash": "21ee91433fcb103c6b034d6f54852686f8f14d8fdba6ae3973090bc21593e0f6",
@@ -25,7 +29,9 @@
         "auth/method/password/password.pb.go",
         "auth/method/password/password.pb.ts"
       ],
-      "protoFiles": ["auth/method/password/password.proto"]
+      "protoFiles": [
+        "auth/method/password/password.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/cli/compiler": {
       "hash": "164ae3e5a40130d19a143c2a2d40aa13ff23b52a6d56a35c0e4c74d56a1e2688",
@@ -33,7 +39,9 @@
         "bldr/cli/compiler/compiler.pb.go",
         "bldr/cli/compiler/compiler.pb.ts"
       ],
-      "protoFiles": ["bldr/cli/compiler/compiler.proto"]
+      "protoFiles": [
+        "bldr/cli/compiler/compiler.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/desktop/tray": {
       "hash": "83c55210ab3bbcd6d68b394730ca231b0794a13008242d32e105bfe07ebcbb9b",
@@ -43,7 +51,9 @@
         "bldr/desktop/tray/tray_srpc.pb.go",
         "bldr/desktop/tray/tray_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/desktop/tray/tray.proto"]
+      "protoFiles": [
+        "bldr/desktop/tray/tray.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/devtool/status": {
       "hash": "ba0e3bf51464cdaa03f8b59f8c9fa50426dc12b704720a651e43be735723c787",
@@ -53,7 +63,9 @@
         "bldr/devtool/status/status_srpc.pb.go",
         "bldr/devtool/status/status_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/devtool/status/status.proto"]
+      "protoFiles": [
+        "bldr/devtool/status/status.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/devtool/web": {
       "hash": "5c769040e039f1ffb10193454ee1ee6d8c732be26cdaaf2236be7dc0fb27208a",
@@ -61,12 +73,19 @@
         "bldr/devtool/web/web.pb.go",
         "bldr/devtool/web/web.pb.ts"
       ],
-      "protoFiles": ["bldr/devtool/web/web.proto"]
+      "protoFiles": [
+        "bldr/devtool/web/web.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/dist": {
       "hash": "1ae5c11222438d5788187e69954b6e9b8f3e4a1808d1b7b7fd593adecccb0f5f",
-      "generatedFiles": ["bldr/dist/dist.pb.go", "bldr/dist/dist.pb.ts"],
-      "protoFiles": ["bldr/dist/dist.proto"]
+      "generatedFiles": [
+        "bldr/dist/dist.pb.go",
+        "bldr/dist/dist.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/dist/dist.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/dist/compiler": {
       "hash": "1ec82cc342dbb61903b4dd8a0bbd2f46501ed6d0f166dd512002b7074f4fb292",
@@ -74,7 +93,9 @@
         "bldr/dist/compiler/config.pb.go",
         "bldr/dist/compiler/config.pb.ts"
       ],
-      "protoFiles": ["bldr/dist/compiler/config.proto"]
+      "protoFiles": [
+        "bldr/dist/compiler/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/example": {
       "hash": "842597efe94512f2cbc5bbbd4df6aa1d5e16ea9a1b5c194bc8e2c34054a11845",
@@ -82,7 +103,9 @@
         "bldr/example/example.pb.go",
         "bldr/example/example.pb.ts"
       ],
-      "protoFiles": ["bldr/example/example.proto"]
+      "protoFiles": [
+        "bldr/example/example.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/manifest": {
       "hash": "40e9c2562128f19fd1eaf7f65bccf1e0c4671a2f7d81eafe88f535f4e1837a88",
@@ -92,7 +115,9 @@
         "bldr/manifest/manifest_srpc.pb.go",
         "bldr/manifest/manifest_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/manifest/manifest.proto"]
+      "protoFiles": [
+        "bldr/manifest/manifest.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/build": {
       "hash": "f417a6a5108266ea1d6c1d71ef96491c6cf2784bfbb9a7431e6fec92a8689a6a",
@@ -100,7 +125,9 @@
         "bldr/manifest/build/policy.pb.go",
         "bldr/manifest/build/policy.pb.ts"
       ],
-      "protoFiles": ["bldr/manifest/build/policy.proto"]
+      "protoFiles": [
+        "bldr/manifest/build/policy.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/builder": {
       "hash": "84d8b6275c383e0828a1467ac218f1aaa2970406727c5ceab7880576211c5814",
@@ -108,7 +135,9 @@
         "bldr/manifest/builder/builder.pb.go",
         "bldr/manifest/builder/builder.pb.ts"
       ],
-      "protoFiles": ["bldr/manifest/builder/builder.proto"]
+      "protoFiles": [
+        "bldr/manifest/builder/builder.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/builder/controller": {
       "hash": "323a43448021e48307448f54dc0d616adbf66e90cb477107b0b794cb9bbe6203",
@@ -116,7 +145,9 @@
         "bldr/manifest/builder/controller/config.pb.go",
         "bldr/manifest/builder/controller/config.pb.ts"
       ],
-      "protoFiles": ["bldr/manifest/builder/controller/config.proto"]
+      "protoFiles": [
+        "bldr/manifest/builder/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/fetch/plugin": {
       "hash": "32d55e0fb72d648c0b6b1a6df209d692e58d125e87d68d5888c7c7c74fc96379",
@@ -124,7 +155,9 @@
         "bldr/manifest/fetch/plugin/config.pb.go",
         "bldr/manifest/fetch/plugin/config.pb.ts"
       ],
-      "protoFiles": ["bldr/manifest/fetch/plugin/config.proto"]
+      "protoFiles": [
+        "bldr/manifest/fetch/plugin/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/fetch/rpc": {
       "hash": "4d23d92582603f022c9672ff482c3c637e476454f088bb481d03ef19aed4f7df",
@@ -132,7 +165,9 @@
         "bldr/manifest/fetch/rpc/config.pb.go",
         "bldr/manifest/fetch/rpc/config.pb.ts"
       ],
-      "protoFiles": ["bldr/manifest/fetch/rpc/config.proto"]
+      "protoFiles": [
+        "bldr/manifest/fetch/rpc/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/fetch/world": {
       "hash": "e47753c24d180e1056e0b9418793c156882254aed761cf71df4c7f63cdf341c1",
@@ -140,7 +175,9 @@
         "bldr/manifest/fetch/world/config.pb.go",
         "bldr/manifest/fetch/world/config.pb.ts"
       ],
-      "protoFiles": ["bldr/manifest/fetch/world/config.proto"]
+      "protoFiles": [
+        "bldr/manifest/fetch/world/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/pack": {
       "hash": "fcb522142c11ec696baca5d8aedcba93eab742bc3bfb9889b58e75651a5d0c4c",
@@ -148,7 +185,9 @@
         "bldr/manifest/pack/metadata.pb.go",
         "bldr/manifest/pack/metadata.pb.ts"
       ],
-      "protoFiles": ["bldr/manifest/pack/metadata.proto"]
+      "protoFiles": [
+        "bldr/manifest/pack/metadata.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/world": {
       "hash": "fcb092bcea518a47c5ab4fdc92a05dd5096920b6360618a74120df95a2d010d8",
@@ -156,7 +195,9 @@
         "bldr/manifest/world/world.pb.go",
         "bldr/manifest/world/world.pb.ts"
       ],
-      "protoFiles": ["bldr/manifest/world/world.proto"]
+      "protoFiles": [
+        "bldr/manifest/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin": {
       "hash": "0d8c46e08af376ce9592dee7e6810298a640cf5d1c7b0052160542eede9f4264",
@@ -166,7 +207,9 @@
         "bldr/plugin/plugin_srpc.pb.go",
         "bldr/plugin/plugin_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/plugin.proto"]
+      "protoFiles": [
+        "bldr/plugin/plugin.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/assets/http": {
       "hash": "75bcb9120da6b47bf8694ad9ae54824bebe75534b3ffc378797232c986f99a25",
@@ -174,7 +217,9 @@
         "bldr/plugin/assets/http/config.pb.go",
         "bldr/plugin/assets/http/config.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/assets/http/config.proto"]
+      "protoFiles": [
+        "bldr/plugin/assets/http/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/compiler/go": {
       "hash": "1938fc258a2e921e0cceebc80047f966b65d4cbe05c6e1b486d665f32f11457b",
@@ -182,7 +227,9 @@
         "bldr/plugin/compiler/go/compiler.pb.go",
         "bldr/plugin/compiler/go/compiler.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/compiler/go/compiler.proto"]
+      "protoFiles": [
+        "bldr/plugin/compiler/go/compiler.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/compiler/js": {
       "hash": "510010b3bb7f3fbd2d1b7aa4b9cc506e90a98b0c89dcb1828edd4bdc963c5de7",
@@ -190,7 +237,9 @@
         "bldr/plugin/compiler/js/compiler.pb.go",
         "bldr/plugin/compiler/js/compiler.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/compiler/js/compiler.proto"]
+      "protoFiles": [
+        "bldr/plugin/compiler/js/compiler.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/forward-lookup-block": {
       "hash": "db2fff282591f30b03caed95210bfcf3467940c553454f19ea68f08fbe33df95",
@@ -198,7 +247,9 @@
         "bldr/plugin/forward-lookup-block/config.pb.go",
         "bldr/plugin/forward-lookup-block/config.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/forward-lookup-block/config.proto"]
+      "protoFiles": [
+        "bldr/plugin/forward-lookup-block/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/forward-rpc-service": {
       "hash": "555f43989fae22a7901168fa1790ef5a06eef8e5f9f92bd391d813eeb24121d8",
@@ -206,7 +257,9 @@
         "bldr/plugin/forward-rpc-service/config.pb.go",
         "bldr/plugin/forward-rpc-service/config.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/forward-rpc-service/config.proto"]
+      "protoFiles": [
+        "bldr/plugin/forward-rpc-service/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/handle-web-view": {
       "hash": "df2807f9e9d948aed534c68ce5c94d7d371d8f1de12154c70da2ff0bbeae59d0",
@@ -214,7 +267,9 @@
         "bldr/plugin/handle-web-view/config.pb.go",
         "bldr/plugin/handle-web-view/config.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/handle-web-view/config.proto"]
+      "protoFiles": [
+        "bldr/plugin/handle-web-view/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/configset": {
       "hash": "9609ec6dbe478499f92cac61b7a22f1825c1b120b27e5e2108abbafb3bdf9fbc",
@@ -222,7 +277,9 @@
         "bldr/plugin/host/configset/config.pb.go",
         "bldr/plugin/host/configset/config.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/host/configset/config.proto"]
+      "protoFiles": [
+        "bldr/plugin/host/configset/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/logs": {
       "hash": "3214612d49d35f92b13e311e00a337752f62f6c19137a694a532ef1045523bc4",
@@ -230,7 +287,9 @@
         "bldr/plugin/host/logs/logs.pb.go",
         "bldr/plugin/host/logs/logs.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/host/logs/logs.proto"]
+      "protoFiles": [
+        "bldr/plugin/host/logs/logs.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/process": {
       "hash": "777f640773172648118f4515536376e9bca7efe88948bd86d2e627f18b909b56",
@@ -238,7 +297,9 @@
         "bldr/plugin/host/process/config.pb.go",
         "bldr/plugin/host/process/config.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/host/process/config.proto"]
+      "protoFiles": [
+        "bldr/plugin/host/process/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/scheduler": {
       "hash": "95d5e1c13103d5176131cb2c612c493b33af46154228fb8380d9117e5e78dc75",
@@ -246,7 +307,9 @@
         "bldr/plugin/host/scheduler/config.pb.go",
         "bldr/plugin/host/scheduler/config.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/host/scheduler/config.proto"]
+      "protoFiles": [
+        "bldr/plugin/host/scheduler/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/storage/volume": {
       "hash": "51002cccd69a7e9c352e2dab0d0558bcf63c7485b753faf29bdccf904c8def3c",
@@ -254,7 +317,9 @@
         "bldr/plugin/host/storage/volume/config.pb.go",
         "bldr/plugin/host/storage/volume/config.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/host/storage/volume/config.proto"]
+      "protoFiles": [
+        "bldr/plugin/host/storage/volume/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/wazero-quickjs": {
       "hash": "87b6a455ad439d51a7f208fe5828665fa52803afdb6156762bdca0a1cd710761",
@@ -262,7 +327,9 @@
         "bldr/plugin/host/wazero-quickjs/config.pb.go",
         "bldr/plugin/host/wazero-quickjs/config.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/host/wazero-quickjs/config.proto"]
+      "protoFiles": [
+        "bldr/plugin/host/wazero-quickjs/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/web": {
       "hash": "f2f9fffbb2958baa269398b58ed14817d53810c1fb564ece538ee7d3b6031b04",
@@ -270,7 +337,9 @@
         "bldr/plugin/host/web/config.pb.go",
         "bldr/plugin/host/web/config.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/host/web/config.proto"]
+      "protoFiles": [
+        "bldr/plugin/host/web/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/load": {
       "hash": "52774f58155e02f5d6da952f2962c57cd4407629027e89d2a0963ba54c81e6b6",
@@ -278,7 +347,9 @@
         "bldr/plugin/load/config.pb.go",
         "bldr/plugin/load/config.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/load/config.proto"]
+      "protoFiles": [
+        "bldr/plugin/load/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/vardef": {
       "hash": "11fc63019a50adde683cea403d4ceef8655ac5cda8cc31f157154305d6ddd5d3",
@@ -286,7 +357,9 @@
         "bldr/plugin/vardef/vardef.pb.go",
         "bldr/plugin/vardef/vardef.pb.ts"
       ],
-      "protoFiles": ["bldr/plugin/vardef/vardef.proto"]
+      "protoFiles": [
+        "bldr/plugin/vardef/vardef.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/project": {
       "hash": "20b11a2abe357fdb0aa12a5798c24090916e9b8fc40e44bcc0f78e2647d9eb3c",
@@ -294,7 +367,9 @@
         "bldr/project/project.pb.go",
         "bldr/project/project.pb.ts"
       ],
-      "protoFiles": ["bldr/project/project.proto"]
+      "protoFiles": [
+        "bldr/project/project.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/project/controller": {
       "hash": "2c30f73e47cf49779c7f1c21537b2c527d321272eb33b92ad6e5640e7aa867ea",
@@ -302,7 +377,9 @@
         "bldr/project/controller/config.pb.go",
         "bldr/project/controller/config.pb.ts"
       ],
-      "protoFiles": ["bldr/project/controller/config.proto"]
+      "protoFiles": [
+        "bldr/project/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/project/watcher": {
       "hash": "d5512405dc7e19374f75c2d38e2ef20c5aee6b224ff0e55c4d3304351258a226",
@@ -310,7 +387,9 @@
         "bldr/project/watcher/watcher.pb.go",
         "bldr/project/watcher/watcher.pb.ts"
       ],
-      "protoFiles": ["bldr/project/watcher/watcher.proto"]
+      "protoFiles": [
+        "bldr/project/watcher/watcher.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/prototypes/simple/app": {
       "hash": "911b75c8b67a49225806bdc3da0b9337bbe543939968a891988b4b0b91e3c44d",
@@ -318,7 +397,9 @@
         "bldr/prototypes/simple/app/app.pb.go",
         "bldr/prototypes/simple/app/app.pb.ts"
       ],
-      "protoFiles": ["bldr/prototypes/simple/app/app.proto"]
+      "protoFiles": [
+        "bldr/prototypes/simple/app/app.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/prototypes/webworker-rpcstream/app1": {
       "hash": "f5a8f3d426826f2c1d2b52137f9d8b44557c403dd1a7cca4f573db331f52427a",
@@ -326,7 +407,9 @@
         "bldr/prototypes/webworker-rpcstream/app1/app1.pb.go",
         "bldr/prototypes/webworker-rpcstream/app1/app1.pb.ts"
       ],
-      "protoFiles": ["bldr/prototypes/webworker-rpcstream/app1/app1.proto"]
+      "protoFiles": [
+        "bldr/prototypes/webworker-rpcstream/app1/app1.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/prototypes/webworker-rpcstream/app2": {
       "hash": "761a90d4571c6dd773be0199314c7c7f51ded2417a783705a8fbc82db8a9ed19",
@@ -334,7 +417,9 @@
         "bldr/prototypes/webworker-rpcstream/app2/app2.pb.go",
         "bldr/prototypes/webworker-rpcstream/app2/app2.pb.ts"
       ],
-      "protoFiles": ["bldr/prototypes/webworker-rpcstream/app2/app2.proto"]
+      "protoFiles": [
+        "bldr/prototypes/webworker-rpcstream/app2/app2.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/prototypes/webworker-rpcstream/common": {
       "hash": "0c0eb1bf6d3c64fd9a70b1a8a5ae6a31b251009ee5750e82bf6299d9e61d2629",
@@ -344,7 +429,9 @@
         "bldr/prototypes/webworker-rpcstream/common/common_srpc.pb.go",
         "bldr/prototypes/webworker-rpcstream/common/common_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/prototypes/webworker-rpcstream/common/common.proto"]
+      "protoFiles": [
+        "bldr/prototypes/webworker-rpcstream/common/common.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/resource": {
       "hash": "4e475f2d096e0e5489fde0827ced5f3f475b14ca324ad3a12816da0b9624c3a4",
@@ -354,7 +441,9 @@
         "bldr/resource/resource_srpc.pb.go",
         "bldr/resource/resource_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/resource/resource.proto"]
+      "protoFiles": [
+        "bldr/resource/resource.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/resource/state": {
       "hash": "ce4e11ad2570425c9b43857850ee38ed0f00625773308dd6d9d9e9df8a6d7f25",
@@ -364,7 +453,9 @@
         "bldr/resource/state/state_srpc.pb.go",
         "bldr/resource/state/state_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/resource/state/state.proto"]
+      "protoFiles": [
+        "bldr/resource/state/state.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/sdk/plugin/host": {
       "hash": "d9b0c7555d2c74157360ccea6c6db5f15fa5992f339b458c2bab01154a794b51",
@@ -374,7 +465,9 @@
         "bldr/sdk/plugin/host/host_srpc.pb.go",
         "bldr/sdk/plugin/host/host_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/sdk/plugin/host/host.proto"]
+      "protoFiles": [
+        "bldr/sdk/plugin/host/host.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/storage": {
       "hash": "b82cf006e731e1578779799a75e8730af6914b939f0702447420742fdb8a4277",
@@ -382,7 +475,9 @@
         "bldr/storage/runtime.pb.go",
         "bldr/storage/runtime.pb.ts"
       ],
-      "protoFiles": ["bldr/storage/runtime.proto"]
+      "protoFiles": [
+        "bldr/storage/runtime.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/storage/default": {
       "hash": "833ff35170eaf2170447ba2be9163206513ad27570d47355c19dc2f7bd8259ad",
@@ -390,7 +485,9 @@
         "bldr/storage/default/config.pb.go",
         "bldr/storage/default/config.pb.ts"
       ],
-      "protoFiles": ["bldr/storage/default/config.proto"]
+      "protoFiles": [
+        "bldr/storage/default/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/storage/volume": {
       "hash": "bc0ac8b77cdc43adb9fa3a1c6981eb8aa38d46d6e9aaf7eea1551347977a58f1",
@@ -398,7 +495,9 @@
         "bldr/storage/volume/config.pb.go",
         "bldr/storage/volume/config.pb.ts"
       ],
-      "protoFiles": ["bldr/storage/volume/config.proto"]
+      "protoFiles": [
+        "bldr/storage/volume/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/bundler": {
       "hash": "a1427fd54fcf839f2fdd0eb6525aca8974363fcd96404fa6eaf18208972a7e0c",
@@ -406,7 +505,9 @@
         "bldr/web/bundler/bundler.pb.go",
         "bldr/web/bundler/bundler.pb.ts"
       ],
-      "protoFiles": ["bldr/web/bundler/bundler.proto"]
+      "protoFiles": [
+        "bldr/web/bundler/bundler.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/bundler/esbuild": {
       "hash": "8702f23e985f5cf8ad9a2d20f5b05f238f95ade5f637feb3bc3ff4caa963eaf0",
@@ -414,7 +515,9 @@
         "bldr/web/bundler/esbuild/esbuild.pb.go",
         "bldr/web/bundler/esbuild/esbuild.pb.ts"
       ],
-      "protoFiles": ["bldr/web/bundler/esbuild/esbuild.proto"]
+      "protoFiles": [
+        "bldr/web/bundler/esbuild/esbuild.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/bundler/esbuild/compiler": {
       "hash": "b8d6206716413bb644f7eaa3f4b2804d68b79f66327387ba095bd3626b6b83cb",
@@ -422,7 +525,9 @@
         "bldr/web/bundler/esbuild/compiler/compiler.pb.go",
         "bldr/web/bundler/esbuild/compiler/compiler.pb.ts"
       ],
-      "protoFiles": ["bldr/web/bundler/esbuild/compiler/compiler.proto"]
+      "protoFiles": [
+        "bldr/web/bundler/esbuild/compiler/compiler.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/bundler/rolldown": {
       "hash": "06d51597c2d79922208895953a375367d8dd2e906040f439a58e4c0bf08864e5",
@@ -430,7 +535,9 @@
         "bldr/web/bundler/rolldown/rolldown.pb.go",
         "bldr/web/bundler/rolldown/rolldown.pb.ts"
       ],
-      "protoFiles": ["bldr/web/bundler/rolldown/rolldown.proto"]
+      "protoFiles": [
+        "bldr/web/bundler/rolldown/rolldown.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/bundler/vite": {
       "hash": "822e1f2c89e5a56d3b679ab9ff88064999894c12b69924eb90f4e1a9e84ef729",
@@ -440,7 +547,9 @@
         "bldr/web/bundler/vite/vite_srpc.pb.go",
         "bldr/web/bundler/vite/vite_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/bundler/vite/vite.proto"]
+      "protoFiles": [
+        "bldr/web/bundler/vite/vite.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/bundler/vite/compiler": {
       "hash": "17f258710775e45c8d34137aab7f56c66dca2adf00356782412d8293953686f8",
@@ -448,17 +557,21 @@
         "bldr/web/bundler/vite/compiler/compiler.pb.go",
         "bldr/web/bundler/vite/compiler/compiler.pb.ts"
       ],
-      "protoFiles": ["bldr/web/bundler/vite/compiler/compiler.proto"]
+      "protoFiles": [
+        "bldr/web/bundler/vite/compiler/compiler.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/document": {
-      "hash": "9ca801db48dec38b8c166f33335ee9af77348ee222f14829d415e3eb4cffa0d4",
+      "hash": "3be0081b1f2799ebac7f7138049f911eb7564cf3692c32f674dd356410a66051",
       "generatedFiles": [
         "bldr/web/document/document.pb.go",
         "bldr/web/document/document.pb.ts",
         "bldr/web/document/document_srpc.pb.go",
         "bldr/web/document/document_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/document/document.proto"]
+      "protoFiles": [
+        "bldr/web/document/document.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/electron/desktop-runtime": {
       "hash": "ff97834d197ae82e0e3df89eef874304ae4fe8d1bf7d1953eb5aadd0a3ada88b",
@@ -468,7 +581,9 @@
         "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.go",
         "bldr/web/electron/desktop-runtime/desktop-runtime_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/electron/desktop-runtime/desktop-runtime.proto"]
+      "protoFiles": [
+        "bldr/web/electron/desktop-runtime/desktop-runtime.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/entrypoint/browser": {
       "hash": "6db81bbd7cf2834896cfea4fb88fff90292cefd42ae0c76e216b73492d149ed8",
@@ -476,7 +591,9 @@
         "bldr/web/entrypoint/browser/browser.pb.go",
         "bldr/web/entrypoint/browser/browser.pb.ts"
       ],
-      "protoFiles": ["bldr/web/entrypoint/browser/browser.proto"]
+      "protoFiles": [
+        "bldr/web/entrypoint/browser/browser.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/fetch": {
       "hash": "a6af469ad4130039cbaaec92d8e92cee37917f24bd8cc702eec6bee56e5b5ce6",
@@ -486,7 +603,9 @@
         "bldr/web/fetch/fetch_srpc.pb.go",
         "bldr/web/fetch/fetch_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/fetch/fetch.proto"]
+      "protoFiles": [
+        "bldr/web/fetch/fetch.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/fetch/service": {
       "hash": "7384b6be4b8437b6ff781bd0ddd01655cd5ce0e51f5cf755a05c6109794f580a",
@@ -494,12 +613,19 @@
         "bldr/web/fetch/service/config.pb.go",
         "bldr/web/fetch/service/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/fetch/service/config.proto"]
+      "protoFiles": [
+        "bldr/web/fetch/service/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/pkg": {
       "hash": "b86c32fb4388d21b81181fbebfbef06a90a4914f20de73e10f41b03b233f4ffe",
-      "generatedFiles": ["bldr/web/pkg/pkg.pb.go", "bldr/web/pkg/pkg.pb.ts"],
-      "protoFiles": ["bldr/web/pkg/pkg.proto"]
+      "generatedFiles": [
+        "bldr/web/pkg/pkg.pb.go",
+        "bldr/web/pkg/pkg.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/web/pkg/pkg.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/pkg/compiler": {
       "hash": "867c73a301ad34f89f692bebc4ee19490bf0344d1b253c0929ace50fa32924d5",
@@ -507,7 +633,9 @@
         "bldr/web/pkg/compiler/config.pb.go",
         "bldr/web/pkg/compiler/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/pkg/compiler/config.proto"]
+      "protoFiles": [
+        "bldr/web/pkg/compiler/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/pkg/fs/controller": {
       "hash": "74202e4de8dd43e572e7f0010d5f74712fbc7b6bd9d79061e74488605de2e5c0",
@@ -515,7 +643,9 @@
         "bldr/web/pkg/fs/controller/config.pb.go",
         "bldr/web/pkg/fs/controller/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/pkg/fs/controller/config.proto"]
+      "protoFiles": [
+        "bldr/web/pkg/fs/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/pkg/rpc": {
       "hash": "84cc3d9edc1a9cd52db81f48f533791ee9c7c49386718b744b646eb953566e5c",
@@ -525,7 +655,9 @@
         "bldr/web/pkg/rpc/rpc_srpc.pb.go",
         "bldr/web/pkg/rpc/rpc_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/pkg/rpc/rpc.proto"]
+      "protoFiles": [
+        "bldr/web/pkg/rpc/rpc.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/pkg/rpc/client": {
       "hash": "06df7b688a267fbcd2d81f2402b3e1a644576704b4f75b156d21ecc87dc5832a",
@@ -533,7 +665,9 @@
         "bldr/web/pkg/rpc/client/config.pb.go",
         "bldr/web/pkg/rpc/client/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/pkg/rpc/client/config.proto"]
+      "protoFiles": [
+        "bldr/web/pkg/rpc/client/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/pkg/rpc/server": {
       "hash": "039039caedf2327e7a52da4e49f01dadfef5b9fbe32b08f2c05200268d687684",
@@ -541,7 +675,9 @@
         "bldr/web/pkg/rpc/server/config.pb.go",
         "bldr/web/pkg/rpc/server/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/pkg/rpc/server/config.proto"]
+      "protoFiles": [
+        "bldr/web/pkg/rpc/server/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin": {
       "hash": "3672aedc3b745a567350c232cebf04856906dea5a2e113500879ce295d194b94",
@@ -551,7 +687,9 @@
         "bldr/web/plugin/plugin_srpc.pb.go",
         "bldr/web/plugin/plugin_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/plugin/plugin.proto"]
+      "protoFiles": [
+        "bldr/web/plugin/plugin.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/browser": {
       "hash": "329c7f9ed8dfa321d859c0b89773c71b88a2795e1d5075a6a252893661ceac82",
@@ -561,7 +699,9 @@
         "bldr/web/plugin/browser/browser_srpc.pb.go",
         "bldr/web/plugin/browser/browser_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/plugin/browser/browser.proto"]
+      "protoFiles": [
+        "bldr/web/plugin/browser/browser.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/browser/controller": {
       "hash": "3e6a43625f5d3d13ccac0d6242fb4efe906f13032063856b61fc5d41c194b38d",
@@ -569,7 +709,9 @@
         "bldr/web/plugin/browser/controller/config.pb.go",
         "bldr/web/plugin/browser/controller/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/plugin/browser/controller/config.proto"]
+      "protoFiles": [
+        "bldr/web/plugin/browser/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/compiler": {
       "hash": "b9261c6635ee4bf2cf71669c98ea01fa994d81d7b1adc7bcdf913ad9d952d7fc",
@@ -577,7 +719,9 @@
         "bldr/web/plugin/compiler/config.pb.go",
         "bldr/web/plugin/compiler/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/plugin/compiler/config.proto"]
+      "protoFiles": [
+        "bldr/web/plugin/compiler/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/controller": {
       "hash": "8e3517bae21a139aac2ebcee7e1cadbed3e5b7adbf8e90b9c9bcd7c559c3ee67",
@@ -585,7 +729,9 @@
         "bldr/web/plugin/controller/config.pb.go",
         "bldr/web/plugin/controller/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/plugin/controller/config.proto"]
+      "protoFiles": [
+        "bldr/web/plugin/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/electron": {
       "hash": "b0094817d815c20ec58ca34b5a70a6c35eca50595f60a2d0e105394d2d139fef",
@@ -593,7 +739,9 @@
         "bldr/web/plugin/electron/electron.pb.go",
         "bldr/web/plugin/electron/electron.pb.ts"
       ],
-      "protoFiles": ["bldr/web/plugin/electron/electron.proto"]
+      "protoFiles": [
+        "bldr/web/plugin/electron/electron.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/handle-rpc": {
       "hash": "9a2e6e26e30858c508b7cb93f073dfbe7437f07a6df43161b2362b73accd35ca",
@@ -601,7 +749,9 @@
         "bldr/web/plugin/handle-rpc/config.pb.go",
         "bldr/web/plugin/handle-rpc/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/plugin/handle-rpc/config.proto"]
+      "protoFiles": [
+        "bldr/web/plugin/handle-rpc/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/handle-web-pkg-assets": {
       "hash": "ffa45d670a96c6e5d60fca8c1e997e3df5107e6469bf749f0d91ff128d888815",
@@ -609,7 +759,9 @@
         "bldr/web/plugin/handle-web-pkg-assets/config.pb.go",
         "bldr/web/plugin/handle-web-pkg-assets/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/plugin/handle-web-pkg-assets/config.proto"]
+      "protoFiles": [
+        "bldr/web/plugin/handle-web-pkg-assets/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/handle-web-pkg-rpc": {
       "hash": "e35fd704f3a9300fa7d52d1c849e90603b960c89aed00bc540347b867b8a806f",
@@ -617,7 +769,9 @@
         "bldr/web/plugin/handle-web-pkg-rpc/config.pb.go",
         "bldr/web/plugin/handle-web-pkg-rpc/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/plugin/handle-web-pkg-rpc/config.proto"]
+      "protoFiles": [
+        "bldr/web/plugin/handle-web-pkg-rpc/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/handle-web-view-rpc": {
       "hash": "55fb1028b2e6a123eac3fb357010e81910366bbb3a9ff6ef6d8a8f850f83a415",
@@ -625,7 +779,9 @@
         "bldr/web/plugin/handle-web-view-rpc/config.pb.go",
         "bldr/web/plugin/handle-web-view-rpc/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/plugin/handle-web-view-rpc/config.proto"]
+      "protoFiles": [
+        "bldr/web/plugin/handle-web-view-rpc/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/plugin/saucer": {
       "hash": "ae571ce0d32d6dd8b9668ffa163d05fde215c218538b11356113f9dcbfb716be",
@@ -635,7 +791,9 @@
         "bldr/web/plugin/saucer/saucer_srpc.pb.go",
         "bldr/web/plugin/saucer/saucer_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/plugin/saucer/saucer.proto"]
+      "protoFiles": [
+        "bldr/web/plugin/saucer/saucer.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/runtime": {
       "hash": "82c1f498c9d02df52d2aaf8cc4983c387a4f43401b925dc74cf8c9e8d1dd3a11",
@@ -645,7 +803,9 @@
         "bldr/web/runtime/runtime_srpc.pb.go",
         "bldr/web/runtime/runtime_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/runtime/runtime.proto"]
+      "protoFiles": [
+        "bldr/web/runtime/runtime.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/runtime/sw": {
       "hash": "e26b464f88b116c9e2f54d9a1bf4a661ed13d48a4c562cc5643c9f855f95b587",
@@ -655,7 +815,9 @@
         "bldr/web/runtime/sw/sw_srpc.pb.go",
         "bldr/web/runtime/sw/sw_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/runtime/sw/sw.proto"]
+      "protoFiles": [
+        "bldr/web/runtime/sw/sw.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/runtime/wasm": {
       "hash": "b17d993fabfcff4c163967645ee38578641891a42c9c3cedf767a89494f00179",
@@ -663,7 +825,9 @@
         "bldr/web/runtime/wasm/wasm.pb.go",
         "bldr/web/runtime/wasm/wasm.pb.ts"
       ],
-      "protoFiles": ["bldr/web/runtime/wasm/wasm.proto"]
+      "protoFiles": [
+        "bldr/web/runtime/wasm/wasm.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/view": {
       "hash": "1f67e25171b39faf6c762b35a71a8433d73f3b504c6d8084fdff938ad85de982",
@@ -673,7 +837,9 @@
         "bldr/web/view/view_srpc.pb.go",
         "bldr/web/view/view_srpc.pb.ts"
       ],
-      "protoFiles": ["bldr/web/view/view.proto"]
+      "protoFiles": [
+        "bldr/web/view/view.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/view/handler": {
       "hash": "f94a29b6e7617a82cdbef6f6cbbd272ffb35178ae7b1c93ab5e5498df0382601",
@@ -696,7 +862,9 @@
         "bldr/web/view/handler/controller/config.pb.go",
         "bldr/web/view/handler/controller/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/view/handler/controller/config.proto"]
+      "protoFiles": [
+        "bldr/web/view/handler/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/view/handler/server": {
       "hash": "5dd7c7d4d66b23762ab681491a73822936fadf60fa53e1b20b22b027f5644200",
@@ -704,7 +872,9 @@
         "bldr/web/view/handler/server/config.pb.go",
         "bldr/web/view/handler/server/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/view/handler/server/config.proto"]
+      "protoFiles": [
+        "bldr/web/view/handler/server/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/bldr/web/view/observer": {
       "hash": "253acd525c0816b442b4b409c849a4d1904be9983029eb4861562b9551f3c286",
@@ -712,15 +882,19 @@
         "bldr/web/view/observer/config.pb.go",
         "bldr/web/view/observer/config.pb.ts"
       ],
-      "protoFiles": ["bldr/web/view/observer/config.proto"]
+      "protoFiles": [
+        "bldr/web/view/observer/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/account/settings": {
-      "hash": "2417d36609e158c61bc77674a9815b8cacb3cc9e4abbca9befa9f17defdcdc70",
+      "hash": "1af76fbc3c912306359da754ce9c7c78c666d86eba042fad5441aec84a1e42fb",
       "generatedFiles": [
         "core/account/settings/settings.pb.go",
         "core/account/settings/settings.pb.ts"
       ],
-      "protoFiles": ["core/account/settings/settings.proto"]
+      "protoFiles": [
+        "core/account/settings/settings.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/bstore": {
       "hash": "961e3bfad2a3f3e1cfc936bc227c50160ee1c52ddffcfd06182bc1baca2bd26c",
@@ -728,7 +902,9 @@
         "core/bstore/bstore.pb.go",
         "core/bstore/bstore.pb.ts"
       ],
-      "protoFiles": ["core/bstore/bstore.proto"]
+      "protoFiles": [
+        "core/bstore/bstore.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/bstore/world": {
       "hash": "bff914c004294c4b0248b0faa06366e4eaea7768744d5b8b19a2ec72242d0c40",
@@ -736,12 +912,19 @@
         "core/bstore/world/world.pb.go",
         "core/bstore/world/world.pb.ts"
       ],
-      "protoFiles": ["core/bstore/world/world.proto"]
+      "protoFiles": [
+        "core/bstore/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/cdn": {
       "hash": "1676801b8370249512ea0af55c9e85e7cd87f756ac2f1e8782fffb231a420ffc",
-      "generatedFiles": ["core/cdn/cdn.pb.go", "core/cdn/cdn.pb.ts"],
-      "protoFiles": ["core/cdn/cdn.proto"]
+      "generatedFiles": [
+        "core/cdn/cdn.pb.go",
+        "core/cdn/cdn.pb.ts"
+      ],
+      "protoFiles": [
+        "core/cdn/cdn.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/cdn/bstore/controller": {
       "hash": "b1ad3ce7433986b2d68ed5d6baf93222ccf1b12e4294e3db6bcebd2b1a87e02b",
@@ -749,7 +932,9 @@
         "core/cdn/bstore/controller/controller.pb.go",
         "core/cdn/bstore/controller/controller.pb.ts"
       ],
-      "protoFiles": ["core/cdn/bstore/controller/controller.proto"]
+      "protoFiles": [
+        "core/cdn/bstore/controller/controller.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/cdn/world/controller": {
       "hash": "41a2075ad6d843e2042c58bbd601b5a51f54b77e33578753e567535b529f0551",
@@ -757,7 +942,9 @@
         "core/cdn/world/controller/controller.pb.go",
         "core/cdn/world/controller/controller.pb.ts"
       ],
-      "protoFiles": ["core/cdn/world/controller/controller.proto"]
+      "protoFiles": [
+        "core/cdn/world/controller/controller.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/changelog": {
       "hash": "9d399103924a5a2e2b242a214b99d19e18ac6cb1e15b9fd5d7e2926d55000f80",
@@ -765,7 +952,9 @@
         "core/changelog/changelog.pb.go",
         "core/changelog/changelog.pb.ts"
       ],
-      "protoFiles": ["core/changelog/changelog.proto"]
+      "protoFiles": [
+        "core/changelog/changelog.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/debug/bridge": {
       "hash": "240bfaabed961e9bb83212846449749a1eb789a0b8c1694b090f00dcc5305e6d",
@@ -773,7 +962,9 @@
         "core/debug/bridge/config.pb.go",
         "core/debug/bridge/config.pb.ts"
       ],
-      "protoFiles": ["core/debug/bridge/config.proto"]
+      "protoFiles": [
+        "core/debug/bridge/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/debug/trace": {
       "hash": "317034f906d55ef744eca5534900159a188f4bb88c34207ac0002ae6a71d5a18",
@@ -781,7 +972,9 @@
         "core/debug/trace/config.pb.go",
         "core/debug/trace/config.pb.ts"
       ],
-      "protoFiles": ["core/debug/trace/config.proto"]
+      "protoFiles": [
+        "core/debug/trace/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/device/policy": {
       "hash": "44bf242cf4ff4a6ac21d7bc5c1c199ea99d390a1dd7f27d8a88238d283a40f41",
@@ -789,7 +982,9 @@
         "core/device/policy/policy.pb.go",
         "core/device/policy/policy.pb.ts"
       ],
-      "protoFiles": ["core/device/policy/policy.proto"]
+      "protoFiles": [
+        "core/device/policy/policy.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/forge/dashboard": {
       "hash": "c99502560a151928f2a0394a26fac3846a7ee8993b27d1db5028ca69940bbfd8",
@@ -797,7 +992,9 @@
         "core/forge/dashboard/dashboard.pb.go",
         "core/forge/dashboard/dashboard.pb.ts"
       ],
-      "protoFiles": ["core/forge/dashboard/dashboard.proto"]
+      "protoFiles": [
+        "core/forge/dashboard/dashboard.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/forge/exec": {
       "hash": "3228ae0dc700bd344c19e61283ba9e844822ead6914e4e788798fd6089035c87",
@@ -807,7 +1004,9 @@
         "core/forge/exec/plugin_srpc.pb.go",
         "core/forge/exec/plugin_srpc.pb.ts"
       ],
-      "protoFiles": ["core/forge/exec/plugin.proto"]
+      "protoFiles": [
+        "core/forge/exec/plugin.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/forge/job": {
       "hash": "68ed41193d8bdb37d0b7738cec1c6c1db6acf5d53e3a4e6696e8eec6b9ae8b37",
@@ -815,7 +1014,9 @@
         "core/forge/job/job.pb.go",
         "core/forge/job/job.pb.ts"
       ],
-      "protoFiles": ["core/forge/job/job.proto"]
+      "protoFiles": [
+        "core/forge/job/job.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/forge/task": {
       "hash": "68a062c97de23753ed60b721eda3bf072843409880bbfee9fafb21eca878b854",
@@ -823,12 +1024,19 @@
         "core/forge/task/task.pb.go",
         "core/forge/task/task.pb.ts"
       ],
-      "protoFiles": ["core/forge/task/task.proto"]
+      "protoFiles": [
+        "core/forge/task/task.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/git": {
       "hash": "94a4798a2e993ddbce6202817a3fc6a8fc774251985757f2e82c2b3643849fae",
-      "generatedFiles": ["core/git/git.pb.go", "core/git/git.pb.ts"],
-      "protoFiles": ["core/git/git.proto"]
+      "generatedFiles": [
+        "core/git/git.pb.go",
+        "core/git/git.pb.ts"
+      ],
+      "protoFiles": [
+        "core/git/git.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/launcher/helper": {
       "hash": "33403362074735d879e78de3adfd33eaf391c5b1f634de81654a1a422c42dd2c",
@@ -836,7 +1044,9 @@
         "core/launcher/helper/helper.pb.go",
         "core/launcher/helper/helper.pb.ts"
       ],
-      "protoFiles": ["core/launcher/helper/helper.proto"]
+      "protoFiles": [
+        "core/launcher/helper/helper.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/node/world": {
       "hash": "942482bab0085a6a63369e18029f2d01e91b705e8fa45edbc3cb35bf58dfdaba",
@@ -844,7 +1054,9 @@
         "core/node/world/world.pb.go",
         "core/node/world/world.pb.ts"
       ],
-      "protoFiles": ["core/node/world/world.proto"]
+      "protoFiles": [
+        "core/node/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/plugin/list": {
       "hash": "834c7e539cbe0a10752998980754176effa75e0ee09c1a6c3883f3a92ac6b3c7",
@@ -852,7 +1064,9 @@
         "core/plugin/list/list.pb.go",
         "core/plugin/list/list.pb.ts"
       ],
-      "protoFiles": ["core/plugin/list/list.proto"]
+      "protoFiles": [
+        "core/plugin/list/list.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/plugin/space": {
       "hash": "6de06b652970c3073b62f87556f1b0140494a082b07cda52d26fbb68f0af6d1a",
@@ -860,7 +1074,9 @@
         "core/plugin/space/config.pb.go",
         "core/plugin/space/config.pb.ts"
       ],
-      "protoFiles": ["core/plugin/space/config.proto"]
+      "protoFiles": [
+        "core/plugin/space/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/provider": {
       "hash": "61b102930ceaf9896412f50b2d26497e000d20ab0fe8e6acc15dedac3cc1a14b",
@@ -868,7 +1084,9 @@
         "core/provider/provider.pb.go",
         "core/provider/provider.pb.ts"
       ],
-      "protoFiles": ["core/provider/provider.proto"]
+      "protoFiles": [
+        "core/provider/provider.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/provider/local": {
       "hash": "d0ce6674f5d2867a238f696fc0ece00a400e35c3e9e31fbd9b6ac457356eba1b",
@@ -876,7 +1094,9 @@
         "core/provider/local/local.pb.go",
         "core/provider/local/local.pb.ts"
       ],
-      "protoFiles": ["core/provider/local/local.proto"]
+      "protoFiles": [
+        "core/provider/local/local.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave": {
       "hash": "d53023978a8314f741f55054ec4d62cc205a49a87a2e2840442b1831c2c4c3d1",
@@ -897,7 +1117,9 @@
         "core/provider/spacewave/api/api.pb.go",
         "core/provider/spacewave/api/api.pb.ts"
       ],
-      "protoFiles": ["core/provider/spacewave/api/api.proto"]
+      "protoFiles": [
+        "core/provider/spacewave/api/api.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/cacheseed": {
       "hash": "a1f8f621606375510bb4a80fd7a39bdcea7c32c9bbdcbb6957ac59d7a85847fe",
@@ -907,7 +1129,9 @@
         "core/provider/spacewave/cacheseed/cacheseed_srpc.pb.go",
         "core/provider/spacewave/cacheseed/cacheseed_srpc.pb.ts"
       ],
-      "protoFiles": ["core/provider/spacewave/cacheseed/cacheseed.proto"]
+      "protoFiles": [
+        "core/provider/spacewave/cacheseed/cacheseed.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/launcher": {
       "hash": "5d8cc05d6180e69fa143b243a514c3870b100094baabde691e7dd2eda411a373",
@@ -917,7 +1141,9 @@
         "core/provider/spacewave/launcher/launcher_srpc.pb.go",
         "core/provider/spacewave/launcher/launcher_srpc.pb.ts"
       ],
-      "protoFiles": ["core/provider/spacewave/launcher/launcher.proto"]
+      "protoFiles": [
+        "core/provider/spacewave/launcher/launcher.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller": {
       "hash": "85b826ae10ada3ba51882f5bf663fc745efacf7bcbdb82372a45a19d6d35ecc6",
@@ -925,7 +1151,9 @@
         "core/provider/spacewave/launcher/controller/config.pb.go",
         "core/provider/spacewave/launcher/controller/config.pb.ts"
       ],
-      "protoFiles": ["core/provider/spacewave/launcher/controller/config.proto"]
+      "protoFiles": [
+        "core/provider/spacewave/launcher/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/loader/controller": {
       "hash": "62c530974d8a49434eb0a16ee2ee17a049ae2b5b8d220735d9788a148ff58e20",
@@ -933,7 +1161,9 @@
         "core/provider/spacewave/loader/controller/config.pb.go",
         "core/provider/spacewave/loader/controller/config.pb.ts"
       ],
-      "protoFiles": ["core/provider/spacewave/loader/controller/config.proto"]
+      "protoFiles": [
+        "core/provider/spacewave/loader/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/packfile": {
       "hash": "d5f9becfbbf6e772836ade8174846d76fa108d8df1eb51862c2029028f423720",
@@ -941,7 +1171,9 @@
         "core/provider/spacewave/packfile/packfile.pb.go",
         "core/provider/spacewave/packfile/packfile.pb.ts"
       ],
-      "protoFiles": ["core/provider/spacewave/packfile/packfile.proto"]
+      "protoFiles": [
+        "core/provider/spacewave/packfile/packfile.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/packfile/order": {
       "hash": "b21b2db0d44fb1d3b358da72e041052e5bdb5ad8471e56dc0950cc9d4a8bc713",
@@ -949,7 +1181,9 @@
         "core/provider/spacewave/packfile/order/order.pb.go",
         "core/provider/spacewave/packfile/order/order.pb.ts"
       ],
-      "protoFiles": ["core/provider/spacewave/packfile/order/order.proto"]
+      "protoFiles": [
+        "core/provider/spacewave/packfile/order/order.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/provider/transfer": {
       "hash": "03c61d4fe8572de99642e96c26a40a740d2589f99f9f14d0eca1ece9d467e054",
@@ -957,12 +1191,19 @@
         "core/provider/transfer/transfer.pb.go",
         "core/provider/transfer/transfer.pb.ts"
       ],
-      "protoFiles": ["core/provider/transfer/transfer.proto"]
+      "protoFiles": [
+        "core/provider/transfer/transfer.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/rbac": {
       "hash": "d979c6757c7dd5f6dbd3e62bb1a53a5b87096e063cc88bfc042d9b1b866d2bf1",
-      "generatedFiles": ["core/rbac/rbac.pb.go", "core/rbac/rbac.pb.ts"],
-      "protoFiles": ["core/rbac/rbac.proto"]
+      "generatedFiles": [
+        "core/rbac/rbac.pb.go",
+        "core/rbac/rbac.pb.ts"
+      ],
+      "protoFiles": [
+        "core/rbac/rbac.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/release": {
       "hash": "e059ae17072032c35b66f9e13bb50a0bb94a693dc44b21c726d11f3ba6bf9075",
@@ -970,7 +1211,9 @@
         "core/release/release.pb.go",
         "core/release/release.pb.ts"
       ],
-      "protoFiles": ["core/release/release.proto"]
+      "protoFiles": [
+        "core/release/release.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/resource/desktop/statusprojector": {
       "hash": "82d01b51d5ec0182f9aac5e5a92b5ab3f148f019f1717666616cbe097425abbc",
@@ -978,7 +1221,9 @@
         "core/resource/desktop/statusprojector/config.pb.go",
         "core/resource/desktop/statusprojector/config.pb.ts"
       ],
-      "protoFiles": ["core/resource/desktop/statusprojector/config.proto"]
+      "protoFiles": [
+        "core/resource/desktop/statusprojector/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/resource/listener": {
       "hash": "8a6d54b944a2eddb756ebd93777c947dbc833c51aadea479f59f175a5b6aab68",
@@ -986,7 +1231,9 @@
         "core/resource/listener/config.pb.go",
         "core/resource/listener/config.pb.ts"
       ],
-      "protoFiles": ["core/resource/listener/config.proto"]
+      "protoFiles": [
+        "core/resource/listener/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/resource/root/controller": {
       "hash": "8d3ec1f91e0c66cc6b7a159f4b42499fc3ef12498aa97ac493626b2b75b5757a",
@@ -994,7 +1241,9 @@
         "core/resource/root/controller/config.pb.go",
         "core/resource/root/controller/config.pb.ts"
       ],
-      "protoFiles": ["core/resource/root/controller/config.proto"]
+      "protoFiles": [
+        "core/resource/root/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/session": {
       "hash": "93cf21953f762a88c5a30f7f1972f936cefe5416167a05af5f3d69deb5313a84",
@@ -1002,7 +1251,9 @@
         "core/session/session.pb.go",
         "core/session/session.pb.ts"
       ],
-      "protoFiles": ["core/session/session.proto"]
+      "protoFiles": [
+        "core/session/session.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/session/controller": {
       "hash": "45a86ee9e72e55268de31144ab7897068e792e3b25671b53d82a1fce8d99475e",
@@ -1010,7 +1261,9 @@
         "core/session/controller/config.pb.go",
         "core/session/controller/config.pb.ts"
       ],
-      "protoFiles": ["core/session/controller/config.proto"]
+      "protoFiles": [
+        "core/session/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/session/handoff": {
       "hash": "fb7339442f52c2ede8e0883947293a79f035a87ab1b78367cbce9b04870be289",
@@ -1018,7 +1271,9 @@
         "core/session/handoff/handoff.pb.go",
         "core/session/handoff/handoff.pb.ts"
       ],
-      "protoFiles": ["core/session/handoff/handoff.proto"]
+      "protoFiles": [
+        "core/session/handoff/handoff.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/sobject": {
       "hash": "fa5895f6018937523748b446f72a765eff9958a36fa4e01cdd80c32bdc7c49d8",
@@ -1026,7 +1281,9 @@
         "core/sobject/sobject.pb.go",
         "core/sobject/sobject.pb.ts"
       ],
-      "protoFiles": ["core/sobject/sobject.proto"]
+      "protoFiles": [
+        "core/sobject/sobject.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/sobject/invite": {
       "hash": "980d8b2b717748577bc604f6c0134a25c618244c60da8e63aff850192525b14a",
@@ -1036,7 +1293,9 @@
         "core/sobject/invite/invite_srpc.pb.go",
         "core/sobject/invite/invite_srpc.pb.ts"
       ],
-      "protoFiles": ["core/sobject/invite/invite.proto"]
+      "protoFiles": [
+        "core/sobject/invite/invite.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/sobject/sync": {
       "hash": "6f15498689badf5e4e1058464e1403b7bc52f6d5d988a9c0495a7b319b8cbffb",
@@ -1044,7 +1303,9 @@
         "core/sobject/sync/sync.pb.go",
         "core/sobject/sync/sync.pb.ts"
       ],
-      "protoFiles": ["core/sobject/sync/sync.proto"]
+      "protoFiles": [
+        "core/sobject/sync/sync.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/sobject/world/engine": {
       "hash": "bf6526f418a58e97fdf57eb47f565a5a5fcf3f7361155f369c937ad6a395db44",
@@ -1052,12 +1313,19 @@
         "core/sobject/world/engine/engine.pb.go",
         "core/sobject/world/engine/engine.pb.ts"
       ],
-      "protoFiles": ["core/sobject/world/engine/engine.proto"]
+      "protoFiles": [
+        "core/sobject/world/engine/engine.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/space": {
       "hash": "639b744ddbf93b8219573990c0bd1ea3098610ca84cdcbdd03630be01bb7b251",
-      "generatedFiles": ["core/space/space.pb.go", "core/space/space.pb.ts"],
-      "protoFiles": ["core/space/space.proto"]
+      "generatedFiles": [
+        "core/space/space.pb.go",
+        "core/space/space.pb.ts"
+      ],
+      "protoFiles": [
+        "core/space/space.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/space/http/download": {
       "hash": "13c559129a6148090a3fed45e619f68992e4e290f5962e6555592552b4e3bd2a",
@@ -1065,7 +1333,9 @@
         "core/space/http/download/config.pb.go",
         "core/space/http/download/config.pb.ts"
       ],
-      "protoFiles": ["core/space/http/download/config.proto"]
+      "protoFiles": [
+        "core/space/http/download/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/space/http/export": {
       "hash": "f2b408f281c05ffade648ae8c3c990614f792e7011332b28c5b23c083b7b27ab",
@@ -1073,7 +1343,9 @@
         "core/space/http/export/config.pb.go",
         "core/space/http/export/config.pb.ts"
       ],
-      "protoFiles": ["core/space/http/export/config.proto"]
+      "protoFiles": [
+        "core/space/http/export/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/space/migration": {
       "hash": "1aade0fccb6af357e644a0fac4e52ad3ff7589d9c638736c098556e2e928d29f",
@@ -1081,7 +1353,9 @@
         "core/space/migration/migration.pb.go",
         "core/space/migration/migration.pb.ts"
       ],
-      "protoFiles": ["core/space/migration/migration.proto"]
+      "protoFiles": [
+        "core/space/migration/migration.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/space/sobject": {
       "hash": "c47a015ba0304c3a3a3dd6ec453c2eb6c77105ead743450a31f8de0c9ac8c1be",
@@ -1089,7 +1363,9 @@
         "core/space/sobject/config.pb.go",
         "core/space/sobject/config.pb.ts"
       ],
-      "protoFiles": ["core/space/sobject/config.proto"]
+      "protoFiles": [
+        "core/space/sobject/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/space/world": {
       "hash": "5c4a209a5a8db64ab97b62a5d6e3dee5df432c646af58f88346187965d21bc2e",
@@ -1097,7 +1373,9 @@
         "core/space/world/world.pb.go",
         "core/space/world/world.pb.ts"
       ],
-      "protoFiles": ["core/space/world/world.proto"]
+      "protoFiles": [
+        "core/space/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/space/world/blocktype": {
       "hash": "e433ccc8e4dcaf1a12449d0bd486d60591ec0478d63a950ff2cb92d6e51b3038",
@@ -1105,7 +1383,9 @@
         "core/space/world/blocktype/controller.pb.go",
         "core/space/world/blocktype/controller.pb.ts"
       ],
-      "protoFiles": ["core/space/world/blocktype/controller.proto"]
+      "protoFiles": [
+        "core/space/world/blocktype/controller.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/space/world/ops": {
       "hash": "2c80c78c0168911d508c59b9ac53606f61c98753fdd4383e4c0f6aea32f00e4c",
@@ -1113,7 +1393,9 @@
         "core/space/world/ops/ops.pb.go",
         "core/space/world/ops/ops.pb.ts"
       ],
-      "protoFiles": ["core/space/world/ops/ops.proto"]
+      "protoFiles": [
+        "core/space/world/ops/ops.proto"
+      ]
     },
     "github.com/s4wave/spacewave/core/trace/service": {
       "hash": "08cc1227c38d118eaa335009abc0d940e509700ae6e1c4c29ad9f479c1766529",
@@ -1121,12 +1403,19 @@
         "core/trace/service/config.pb.go",
         "core/trace/service/config.pb.ts"
       ],
-      "protoFiles": ["core/trace/service/config.proto"]
+      "protoFiles": [
+        "core/trace/service/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block": {
       "hash": "ff03ea24f2baefd634d19c240106dfd0af80053bdd40cd7f23dad95cd2c7a2f5",
-      "generatedFiles": ["db/block/block.pb.go", "db/block/block.pb.ts"],
-      "protoFiles": ["db/block/block.proto"]
+      "generatedFiles": [
+        "db/block/block.pb.go",
+        "db/block/block.pb.ts"
+      ],
+      "protoFiles": [
+        "db/block/block.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/bitset": {
       "hash": "a1cda932b8b42714e52bc6c8a8b742ea327da856ba46d6fba725ec9ec6e1fd53",
@@ -1134,7 +1423,9 @@
         "db/block/bitset/bitset.pb.go",
         "db/block/bitset/bitset.pb.ts"
       ],
-      "protoFiles": ["db/block/bitset/bitset.proto"]
+      "protoFiles": [
+        "db/block/bitset/bitset.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/blob": {
       "hash": "fc534802cf2ea6197185cd92a6a8c21f0a8437c3495c26dfdacd802973f608d1",
@@ -1142,7 +1433,9 @@
         "db/block/blob/blob.pb.go",
         "db/block/blob/blob.pb.ts"
       ],
-      "protoFiles": ["db/block/blob/blob.proto"]
+      "protoFiles": [
+        "db/block/blob/blob.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/bloom": {
       "hash": "7a9dda41bd1b3572c4b05fac4822768baf105bde519a89a87a0e47c41ef854c1",
@@ -1150,7 +1443,9 @@
         "db/block/bloom/bloom.pb.go",
         "db/block/bloom/bloom.pb.ts"
       ],
-      "protoFiles": ["db/block/bloom/bloom.proto"]
+      "protoFiles": [
+        "db/block/bloom/bloom.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/file": {
       "hash": "9c5e0aa901e2c9ef26a9bf8c91faf958e0655b9ecaec497c9d0341dc5d03f122",
@@ -1158,7 +1453,9 @@
         "db/block/file/file.pb.go",
         "db/block/file/file.pb.ts"
       ],
-      "protoFiles": ["db/block/file/file.proto"]
+      "protoFiles": [
+        "db/block/file/file.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/filters": {
       "hash": "94b8256ea64f9d8696a6014af8b284229856785123459174f857b0c86f7a70da",
@@ -1166,7 +1463,9 @@
         "db/block/filters/filters.pb.go",
         "db/block/filters/filters.pb.ts"
       ],
-      "protoFiles": ["db/block/filters/filters.proto"]
+      "protoFiles": [
+        "db/block/filters/filters.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/gc/rpc": {
       "hash": "2f4517a94895ae318ca2c27b397d53bf6bb440ba9198989d14b570682fab7c21",
@@ -1176,7 +1475,9 @@
         "db/block/gc/rpc/refgraph_srpc.pb.go",
         "db/block/gc/rpc/refgraph_srpc.pb.ts"
       ],
-      "protoFiles": ["db/block/gc/rpc/refgraph.proto"]
+      "protoFiles": [
+        "db/block/gc/rpc/refgraph.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/gc/wal": {
       "hash": "823fa611fa27745b60f9804bd7df013d833bba4b603634babe3079ff246b84cb",
@@ -1184,7 +1485,9 @@
         "db/block/gc/wal/wal.pb.go",
         "db/block/gc/wal/wal.pb.ts"
       ],
-      "protoFiles": ["db/block/gc/wal/wal.proto"]
+      "protoFiles": [
+        "db/block/gc/wal/wal.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/mock": {
       "hash": "bad57a79760d0b54d399ebc14ce8b75fb025105498dfed4ec810c55d728022e9",
@@ -1192,7 +1495,9 @@
         "db/block/mock/mock.pb.go",
         "db/block/mock/mock.pb.ts"
       ],
-      "protoFiles": ["db/block/mock/mock.proto"]
+      "protoFiles": [
+        "db/block/mock/mock.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/msgpack": {
       "hash": "50c80967340d79fed596620cb8c4d3f5ef8a5cf7c9018928ddc5015b31563f90",
@@ -1200,7 +1505,9 @@
         "db/block/msgpack/msgpack.pb.go",
         "db/block/msgpack/msgpack.pb.ts"
       ],
-      "protoFiles": ["db/block/msgpack/msgpack.proto"]
+      "protoFiles": [
+        "db/block/msgpack/msgpack.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/quad": {
       "hash": "86e37f56f4809d1b7455a592370ad636db2a1b188fa10c4daa16165435938a39",
@@ -1208,7 +1515,9 @@
         "db/block/quad/quad.pb.go",
         "db/block/quad/quad.pb.ts"
       ],
-      "protoFiles": ["db/block/quad/quad.proto"]
+      "protoFiles": [
+        "db/block/quad/quad.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/rpc": {
       "hash": "bfdb9bb2883252f93e9e4aae899612db32bdc6dee6b08dd7c005b8aa8d582842",
@@ -1218,7 +1527,9 @@
         "db/block/rpc/block_srpc.pb.go",
         "db/block/rpc/block_srpc.pb.ts"
       ],
-      "protoFiles": ["db/block/rpc/block.proto"]
+      "protoFiles": [
+        "db/block/rpc/block.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/bucket": {
       "hash": "47cb87f159c3dca8cc44b677f96a69c80992409eb58b694407c32a01b41473e6",
@@ -1226,7 +1537,9 @@
         "db/block/store/bucket/config.pb.go",
         "db/block/store/bucket/config.pb.ts"
       ],
-      "protoFiles": ["db/block/store/bucket/config.proto"]
+      "protoFiles": [
+        "db/block/store/bucket/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/http": {
       "hash": "97b64d13e6ad1be7c9852ba83930df3b6c22d798744ea21956f147e3be18f3f7",
@@ -1234,7 +1547,9 @@
         "db/block/store/http/http.pb.go",
         "db/block/store/http/http.pb.ts"
       ],
-      "protoFiles": ["db/block/store/http/http.proto"]
+      "protoFiles": [
+        "db/block/store/http/http.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/http/lookup": {
       "hash": "555d41c1bd3350628a22fa6804838c2d5fb2c28ad3f142dfbeec5408a3955c41",
@@ -1242,7 +1557,9 @@
         "db/block/store/http/lookup/lookup.pb.go",
         "db/block/store/http/lookup/lookup.pb.ts"
       ],
-      "protoFiles": ["db/block/store/http/lookup/lookup.proto"]
+      "protoFiles": [
+        "db/block/store/http/lookup/lookup.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/http/server": {
       "hash": "14a64f4ff6cbbf6934b1d72a3e4682be2f64b34bba0134cba033941f9cf5e79a",
@@ -1250,7 +1567,9 @@
         "db/block/store/http/server/config.pb.go",
         "db/block/store/http/server/config.pb.ts"
       ],
-      "protoFiles": ["db/block/store/http/server/config.proto"]
+      "protoFiles": [
+        "db/block/store/http/server/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/inmem": {
       "hash": "b7ab0753986e42d79c3fabe0a48c1c572c752c661d549ebb1a11586a0e2c422b",
@@ -1258,7 +1577,9 @@
         "db/block/store/inmem/inmem.pb.go",
         "db/block/store/inmem/inmem.pb.ts"
       ],
-      "protoFiles": ["db/block/store/inmem/inmem.proto"]
+      "protoFiles": [
+        "db/block/store/inmem/inmem.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/kvfile/http": {
       "hash": "410affb79d5b058c13a76448f1bf1502a806d88c6352f48ff14a2cba4667108f",
@@ -1266,7 +1587,9 @@
         "db/block/store/kvfile/http/http.pb.go",
         "db/block/store/kvfile/http/http.pb.ts"
       ],
-      "protoFiles": ["db/block/store/kvfile/http/http.proto"]
+      "protoFiles": [
+        "db/block/store/kvfile/http/http.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/overlay": {
       "hash": "233d491bcbb02a6ac8977bb8ac8c6256c1dc12774babe1003ce83d940192104a",
@@ -1274,7 +1597,9 @@
         "db/block/store/overlay/overlay.pb.go",
         "db/block/store/overlay/overlay.pb.ts"
       ],
-      "protoFiles": ["db/block/store/overlay/overlay.proto"]
+      "protoFiles": [
+        "db/block/store/overlay/overlay.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/redis": {
       "hash": "9fcc9a13a901b8af3c8e7bf97541fb04ccd4a61071d5adb53373793777e7f699",
@@ -1282,7 +1607,9 @@
         "db/block/store/redis/redis.pb.go",
         "db/block/store/redis/redis.pb.ts"
       ],
-      "protoFiles": ["db/block/store/redis/redis.proto"]
+      "protoFiles": [
+        "db/block/store/redis/redis.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/ristretto": {
       "hash": "9c7d28b381f093af518646f29a8b250a49e28612ee6ea8d79e6c7c9390aa7ff1",
@@ -1290,7 +1617,9 @@
         "db/block/store/ristretto/ristretto.pb.go",
         "db/block/store/ristretto/ristretto.pb.ts"
       ],
-      "protoFiles": ["db/block/store/ristretto/ristretto.proto"]
+      "protoFiles": [
+        "db/block/store/ristretto/ristretto.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/rpc": {
       "hash": "b77e689b3f3b74a70f3213317ecbf4cdf1667fd4dd1b834d686c8f1ac2bdd409",
@@ -1298,7 +1627,9 @@
         "db/block/store/rpc/rpc.pb.go",
         "db/block/store/rpc/rpc.pb.ts"
       ],
-      "protoFiles": ["db/block/store/rpc/rpc.proto"]
+      "protoFiles": [
+        "db/block/store/rpc/rpc.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/rpc/lookup": {
       "hash": "f3d56dacfcded21d78713db47c4086200b331bb7a823087ecb23d244b9451441",
@@ -1306,7 +1637,9 @@
         "db/block/store/rpc/lookup/lookup.pb.go",
         "db/block/store/rpc/lookup/lookup.pb.ts"
       ],
-      "protoFiles": ["db/block/store/rpc/lookup/lookup.proto"]
+      "protoFiles": [
+        "db/block/store/rpc/lookup/lookup.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/rpc/server": {
       "hash": "48737e21312733adf50a4d9f55a37e1fad39b3b1e3ac1e33158e95177bda40d7",
@@ -1314,7 +1647,9 @@
         "db/block/store/rpc/server/config.pb.go",
         "db/block/store/rpc/server/config.pb.ts"
       ],
-      "protoFiles": ["db/block/store/rpc/server/config.proto"]
+      "protoFiles": [
+        "db/block/store/rpc/server/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/rpc/server/bucket": {
       "hash": "ca1451bdd6543037838622711e62b0bc9fd65ac80cfdd30375cce4dee31d360f",
@@ -1322,7 +1657,9 @@
         "db/block/store/rpc/server/bucket/config.pb.go",
         "db/block/store/rpc/server/bucket/config.pb.ts"
       ],
-      "protoFiles": ["db/block/store/rpc/server/bucket/config.proto"]
+      "protoFiles": [
+        "db/block/store/rpc/server/bucket/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/s3": {
       "hash": "b7231d148e41d2f425144d20d2120182239203e6b8e1fc79b2c3e566f0167efc",
@@ -1330,7 +1667,9 @@
         "db/block/store/s3/s3.pb.go",
         "db/block/store/s3/s3.pb.ts"
       ],
-      "protoFiles": ["db/block/store/s3/s3.proto"]
+      "protoFiles": [
+        "db/block/store/s3/s3.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/store/s3/lookup": {
       "hash": "a26a6ee8ebfe3bb7965b7fec49cec1af39301ca9b589cd7121904ccf7f186e10",
@@ -1338,7 +1677,9 @@
         "db/block/store/s3/lookup/lookup.pb.go",
         "db/block/store/s3/lookup/lookup.pb.ts"
       ],
-      "protoFiles": ["db/block/store/s3/lookup/lookup.proto"]
+      "protoFiles": [
+        "db/block/store/s3/lookup/lookup.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/transform": {
       "hash": "2ed62cdc77c7a9cc8f3667ba01115d10254e11fd64f4398d0ef9a2fa66eef84d",
@@ -1346,7 +1687,9 @@
         "db/block/transform/transform.pb.go",
         "db/block/transform/transform.pb.ts"
       ],
-      "protoFiles": ["db/block/transform/transform.proto"]
+      "protoFiles": [
+        "db/block/transform/transform.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/transform/blockenc": {
       "hash": "cbd62e42f6bef5e23f29ce4207e93bf50a262d65e052b846606316209ff7ddcd",
@@ -1354,7 +1697,9 @@
         "db/block/transform/blockenc/blockenc.pb.go",
         "db/block/transform/blockenc/blockenc.pb.ts"
       ],
-      "protoFiles": ["db/block/transform/blockenc/blockenc.proto"]
+      "protoFiles": [
+        "db/block/transform/blockenc/blockenc.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/transform/chksum": {
       "hash": "dbd4bb56f6d77a5edc38b12e08b436322421b52a180f8d1311b715e88181014c",
@@ -1362,7 +1707,9 @@
         "db/block/transform/chksum/chksum.pb.go",
         "db/block/transform/chksum/chksum.pb.ts"
       ],
-      "protoFiles": ["db/block/transform/chksum/chksum.proto"]
+      "protoFiles": [
+        "db/block/transform/chksum/chksum.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/transform/gzip": {
       "hash": "74d8692b642d83f9b0a4f13bacb7e7a431e01f519f82e76b20eb172d252e44d6",
@@ -1370,7 +1717,9 @@
         "db/block/transform/gzip/gzip.pb.go",
         "db/block/transform/gzip/gzip.pb.ts"
       ],
-      "protoFiles": ["db/block/transform/gzip/gzip.proto"]
+      "protoFiles": [
+        "db/block/transform/gzip/gzip.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/transform/lz4": {
       "hash": "9a9fa00f78ba013a50e306e38714e5160cf24de8ce432b5994cb9c8f57e52f79",
@@ -1378,7 +1727,9 @@
         "db/block/transform/lz4/lz4.pb.go",
         "db/block/transform/lz4/lz4.pb.ts"
       ],
-      "protoFiles": ["db/block/transform/lz4/lz4.proto"]
+      "protoFiles": [
+        "db/block/transform/lz4/lz4.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/transform/s2": {
       "hash": "ef1ce938d2480a69ccb53594c26102ed44e68bffbcb8a4876f3a0da408d9b6b8",
@@ -1386,7 +1737,9 @@
         "db/block/transform/s2/s2.pb.go",
         "db/block/transform/s2/s2.pb.ts"
       ],
-      "protoFiles": ["db/block/transform/s2/s2.proto"]
+      "protoFiles": [
+        "db/block/transform/s2/s2.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/block/transform/snappy": {
       "hash": "edd2723c72e80be5080e60324c54b8925cc8feb110cb7d79f62f01b839193619",
@@ -1394,12 +1747,19 @@
         "db/block/transform/snappy/snappy.pb.go",
         "db/block/transform/snappy/snappy.pb.ts"
       ],
-      "protoFiles": ["db/block/transform/snappy/snappy.proto"]
+      "protoFiles": [
+        "db/block/transform/snappy/snappy.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/bucket": {
       "hash": "ae7306e4efaf7d01b2f88d93b71ffa18440ea926fb04cfa3cb3d9eee4c62fa6f",
-      "generatedFiles": ["db/bucket/bucket.pb.go", "db/bucket/bucket.pb.ts"],
-      "protoFiles": ["db/bucket/bucket.proto"]
+      "generatedFiles": [
+        "db/bucket/bucket.pb.go",
+        "db/bucket/bucket.pb.ts"
+      ],
+      "protoFiles": [
+        "db/bucket/bucket.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/bucket/event": {
       "hash": "a28c5f6204de10b6049e48874141df70813f1423dd4195b39b512b4d1442c2dc",
@@ -1407,7 +1767,9 @@
         "db/bucket/event/event.pb.go",
         "db/bucket/event/event.pb.ts"
       ],
-      "protoFiles": ["db/bucket/event/event.proto"]
+      "protoFiles": [
+        "db/bucket/event/event.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/bucket/http/server": {
       "hash": "38da8b82b71719599966d331fa37fe474db9da3d1a981a91d0c5a416c0272a94",
@@ -1415,7 +1777,9 @@
         "db/bucket/http/server/config.pb.go",
         "db/bucket/http/server/config.pb.ts"
       ],
-      "protoFiles": ["db/bucket/http/server/config.proto"]
+      "protoFiles": [
+        "db/bucket/http/server/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/bucket/lookup/concurrent": {
       "hash": "070b07586da8367be91065ba8b709fcffe0ef5030f6821bee95957f4212e7c50",
@@ -1423,7 +1787,9 @@
         "db/bucket/lookup/concurrent/concurrent.pb.go",
         "db/bucket/lookup/concurrent/concurrent.pb.ts"
       ],
-      "protoFiles": ["db/bucket/lookup/concurrent/concurrent.proto"]
+      "protoFiles": [
+        "db/bucket/lookup/concurrent/concurrent.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/bucket/mock": {
       "hash": "b5dddf81eaac278fdb5701eb1ebeb1def4533629bc3f0f42bf0feac395db67f9",
@@ -1431,7 +1797,9 @@
         "db/bucket/mock/mock.pb.go",
         "db/bucket/mock/mock.pb.ts"
       ],
-      "protoFiles": ["db/bucket/mock/mock.proto"]
+      "protoFiles": [
+        "db/bucket/mock/mock.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/bucket/setup": {
       "hash": "efdb53b64f53f29bbf91a7187383625bb5fb265f4e09303f661672311ec784c2",
@@ -1439,7 +1807,9 @@
         "db/bucket/setup/config.pb.go",
         "db/bucket/setup/config.pb.ts"
       ],
-      "protoFiles": ["db/bucket/setup/config.proto"]
+      "protoFiles": [
+        "db/bucket/setup/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/bucket/store/rpc": {
       "hash": "04cb7d2ccc88e8ea42ac79892cccc0111282f3158ad7c5193cc81af48aa0bfa9",
@@ -1449,7 +1819,9 @@
         "db/bucket/store/rpc/bucket_srpc.pb.go",
         "db/bucket/store/rpc/bucket_srpc.pb.ts"
       ],
-      "protoFiles": ["db/bucket/store/rpc/bucket.proto"]
+      "protoFiles": [
+        "db/bucket/store/rpc/bucket.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/daemon/api": {
       "hash": "b9ff90f3a219199f4eed4af63004c82bc5868fd54b875e3166423c7ec47c4ded",
@@ -1459,7 +1831,9 @@
         "db/daemon/api/api_srpc.pb.go",
         "db/daemon/api/api_srpc.pb.ts"
       ],
-      "protoFiles": ["db/daemon/api/api.proto"]
+      "protoFiles": [
+        "db/daemon/api/api.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/daemon/api/controller": {
       "hash": "e74fef85ed2d4373cdd02cdb49bab0e02777a9c1346db1944c1e539b0f5d7045",
@@ -1467,12 +1841,19 @@
         "db/daemon/api/controller/controller.pb.go",
         "db/daemon/api/controller/controller.pb.ts"
       ],
-      "protoFiles": ["db/daemon/api/controller/controller.proto"]
+      "protoFiles": [
+        "db/daemon/api/controller/controller.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/dex": {
       "hash": "daff3cad0f8d8a9ba9066ab96c53e1bfcf29cf0b949ed20e46e16f218562f273",
-      "generatedFiles": ["db/dex/directive.pb.go", "db/dex/directive.pb.ts"],
-      "protoFiles": ["db/dex/directive.proto"]
+      "generatedFiles": [
+        "db/dex/directive.pb.go",
+        "db/dex/directive.pb.ts"
+      ],
+      "protoFiles": [
+        "db/dex/directive.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/dex/psecho": {
       "hash": "66c72bc2059cb2d87dd460745b4fcb096908453e2b73a22824ef1a17f0b38df6",
@@ -1496,7 +1877,9 @@
         "db/dex/session/session.pb.go",
         "db/dex/session/session.pb.ts"
       ],
-      "protoFiles": ["db/dex/session/session.proto"]
+      "protoFiles": [
+        "db/dex/session/session.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/dex/solicit": {
       "hash": "ac70ce4a8ab6ab22d783d4973e567b3081866c8044adc74f49d8c3f846ce1ff2",
@@ -1506,17 +1889,30 @@
         "db/dex/solicit/dex.pb.go",
         "db/dex/solicit/dex.pb.ts"
       ],
-      "protoFiles": ["db/dex/solicit/config.proto", "db/dex/solicit/dex.proto"]
+      "protoFiles": [
+        "db/dex/solicit/config.proto",
+        "db/dex/solicit/dex.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/git/block": {
       "hash": "1104a1c3423843a40d92f0a876acf5e766d3b3e3f751459af3b080a1261173f7",
-      "generatedFiles": ["db/git/block/git.pb.go", "db/git/block/git.pb.ts"],
-      "protoFiles": ["db/git/block/git.proto"]
+      "generatedFiles": [
+        "db/git/block/git.pb.go",
+        "db/git/block/git.pb.ts"
+      ],
+      "protoFiles": [
+        "db/git/block/git.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/git/world": {
       "hash": "fecadd0e55dad31fb220aaa6aca50032f8e7da75418c4eafbb85fc4cd9d9015a",
-      "generatedFiles": ["db/git/world/git.pb.go", "db/git/world/git.pb.ts"],
-      "protoFiles": ["db/git/world/git.proto"]
+      "generatedFiles": [
+        "db/git/world/git.pb.go",
+        "db/git/world/git.pb.ts"
+      ],
+      "protoFiles": [
+        "db/git/world/git.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/kvtx/block": {
       "hash": "1e91fc6571a9f257dc74a621295586ad96a031c48536ceb99d9ea50feac37fe6",
@@ -1524,7 +1920,9 @@
         "db/kvtx/block/kvtx.pb.go",
         "db/kvtx/block/kvtx.pb.ts"
       ],
-      "protoFiles": ["db/kvtx/block/kvtx.proto"]
+      "protoFiles": [
+        "db/kvtx/block/kvtx.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/kvtx/block/iavl": {
       "hash": "4c7445086d9675f29c57d05306cd4ba12b53d17f01a4efe813f54df176d9ec9a",
@@ -1532,7 +1930,9 @@
         "db/kvtx/block/iavl/iavl.pb.go",
         "db/kvtx/block/iavl/iavl.pb.ts"
       ],
-      "protoFiles": ["db/kvtx/block/iavl/iavl.proto"]
+      "protoFiles": [
+        "db/kvtx/block/iavl/iavl.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/kvtx/block/okra": {
       "hash": "e110ffa74d657473ffc283a46e2410e71b4801040efb43b0d0e9793ea1da6b52",
@@ -1540,7 +1940,9 @@
         "db/kvtx/block/okra/okra.pb.go",
         "db/kvtx/block/okra/okra.pb.ts"
       ],
-      "protoFiles": ["db/kvtx/block/okra/okra.proto"]
+      "protoFiles": [
+        "db/kvtx/block/okra/okra.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/kvtx/fibheap": {
       "hash": "b3a929ac5a557196de94890bacfc1508085de05c20b057e50e33a7cba0cf4841",
@@ -1548,7 +1950,9 @@
         "db/kvtx/fibheap/fibheap.pb.go",
         "db/kvtx/fibheap/fibheap.pb.ts"
       ],
-      "protoFiles": ["db/kvtx/fibheap/fibheap.proto"]
+      "protoFiles": [
+        "db/kvtx/fibheap/fibheap.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/kvtx/rpc": {
       "hash": "c2fad52a437b1dec16c7100ea6d3f684460c6f457205b4521260ce8fd7425602",
@@ -1558,7 +1962,9 @@
         "db/kvtx/rpc/kvtx_srpc.pb.go",
         "db/kvtx/rpc/kvtx_srpc.pb.ts"
       ],
-      "protoFiles": ["db/kvtx/rpc/kvtx.proto"]
+      "protoFiles": [
+        "db/kvtx/rpc/kvtx.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/node/controller": {
       "hash": "a4f650fbd8196b2a269bc75038120b2d161709bacd3e136ab7878373960987e9",
@@ -1566,7 +1972,9 @@
         "db/node/controller/config.pb.go",
         "db/node/controller/config.pb.ts"
       ],
-      "protoFiles": ["db/node/controller/config.proto"]
+      "protoFiles": [
+        "db/node/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/object/peer": {
       "hash": "e95585fd3b81a1b771281274de75255b324f2bee902171eadd3fb611ef3c4fd6",
@@ -1574,7 +1982,9 @@
         "db/object/peer/peer.pb.go",
         "db/object/peer/peer.pb.ts"
       ],
-      "protoFiles": ["db/object/peer/peer.proto"]
+      "protoFiles": [
+        "db/object/peer/peer.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/object/rpc": {
       "hash": "8d5454ff6475ba6a1f4fd12c40fd9a5821ec842b8ad775c5d5e1eea70970bf33",
@@ -1584,12 +1994,19 @@
         "db/object/rpc/object_srpc.pb.go",
         "db/object/rpc/object_srpc.pb.ts"
       ],
-      "protoFiles": ["db/object/rpc/object.proto"]
+      "protoFiles": [
+        "db/object/rpc/object.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/sql": {
       "hash": "e4b59ae5f23148e39ca3551e1b181e4c5e198ebde7eac532f56e46b7145f81bd",
-      "generatedFiles": ["db/sql/sql.pb.go", "db/sql/sql.pb.ts"],
-      "protoFiles": ["db/sql/sql.proto"]
+      "generatedFiles": [
+        "db/sql/sql.pb.go",
+        "db/sql/sql.pb.ts"
+      ],
+      "protoFiles": [
+        "db/sql/sql.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/sql/mysql": {
       "hash": "1dc4b58bea6fb58b94a922b82d0f660e5f477c8e3b6f39711f4cfc080a7cde7a",
@@ -1597,7 +2014,9 @@
         "db/sql/mysql/mysql.pb.go",
         "db/sql/mysql/mysql.pb.ts"
       ],
-      "protoFiles": ["db/sql/mysql/mysql.proto"]
+      "protoFiles": [
+        "db/sql/mysql/mysql.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/sql/mysql/controller": {
       "hash": "22bda978e3b310e1bfa10f30f8e619f495134b755e18d4b5970a6b93c9925f1b",
@@ -1605,7 +2024,9 @@
         "db/sql/mysql/controller/config.pb.go",
         "db/sql/mysql/controller/config.pb.ts"
       ],
-      "protoFiles": ["db/sql/mysql/controller/config.proto"]
+      "protoFiles": [
+        "db/sql/mysql/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/sql/rpc": {
       "hash": "6f8ab9edefab13e976576f5e6766cc8eefded6d1cfc7053e9acbbabfab276537",
@@ -1615,7 +2036,9 @@
         "db/sql/rpc/sql_srpc.pb.go",
         "db/sql/rpc/sql_srpc.pb.ts"
       ],
-      "protoFiles": ["db/sql/rpc/sql.proto"]
+      "protoFiles": [
+        "db/sql/rpc/sql.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/sql/sqlite-wasm/rpc": {
       "hash": "700bc9f262d8a437a85be52f73c23db30922b2d8d5bed0c1ff5986cba06ef299",
@@ -1625,7 +2048,9 @@
         "db/sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.go",
         "db/sql/sqlite-wasm/rpc/sqlite-bridge_srpc.pb.ts"
       ],
-      "protoFiles": ["db/sql/sqlite-wasm/rpc/sqlite-bridge.proto"]
+      "protoFiles": [
+        "db/sql/sqlite-wasm/rpc/sqlite-bridge.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/store/kvkey": {
       "hash": "82600508c21b871a3600e379842e2df39ae83b6b691a7b39ae33371df138cbd8",
@@ -1633,7 +2058,9 @@
         "db/store/kvkey/kvkey.pb.go",
         "db/store/kvkey/kvkey.pb.ts"
       ],
-      "protoFiles": ["db/store/kvkey/kvkey.proto"]
+      "protoFiles": [
+        "db/store/kvkey/kvkey.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/store/kvtx": {
       "hash": "f348ffe29f5e51136cca5f4e40575144b4c0a7ece8cce8e26625ea4d13f98a8a",
@@ -1641,7 +2068,9 @@
         "db/store/kvtx/kvtx.pb.go",
         "db/store/kvtx/kvtx.pb.ts"
       ],
-      "protoFiles": ["db/store/kvtx/kvtx.proto"]
+      "protoFiles": [
+        "db/store/kvtx/kvtx.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/store/kvtx/redis": {
       "hash": "738f1c85152317e7dc79b670e178005ff0108de6b84e950ba141f902b81729c6",
@@ -1649,7 +2078,9 @@
         "db/store/kvtx/redis/redis.pb.go",
         "db/store/kvtx/redis/redis.pb.ts"
       ],
-      "protoFiles": ["db/store/kvtx/redis/redis.proto"]
+      "protoFiles": [
+        "db/store/kvtx/redis/redis.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/store/kvtx/ristretto": {
       "hash": "cd854b4980ed6f8e82cf12b1713c259be778dffb9f701e25d02346d5b9539be1",
@@ -1657,7 +2088,9 @@
         "db/store/kvtx/ristretto/ristretto.pb.go",
         "db/store/kvtx/ristretto/ristretto.pb.ts"
       ],
-      "protoFiles": ["db/store/kvtx/ristretto/ristretto.proto"]
+      "protoFiles": [
+        "db/store/kvtx/ristretto/ristretto.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/unixfs/access/http": {
       "hash": "8371331b742f2e5be2053bdb79975b1184bec32394281db7cc07bcc088234eba",
@@ -1665,7 +2098,9 @@
         "db/unixfs/access/http/config.pb.go",
         "db/unixfs/access/http/config.pb.ts"
       ],
-      "protoFiles": ["db/unixfs/access/http/config.proto"]
+      "protoFiles": [
+        "db/unixfs/access/http/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/unixfs/block": {
       "hash": "6f170e25b008209c1be4bb03862c6e44e743af0c536091d3fe6226ec8943dbc6",
@@ -1673,7 +2108,9 @@
         "db/unixfs/block/fstree.pb.go",
         "db/unixfs/block/fstree.pb.ts"
       ],
-      "protoFiles": ["db/unixfs/block/fstree.proto"]
+      "protoFiles": [
+        "db/unixfs/block/fstree.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/unixfs/errors": {
       "hash": "08501ba0f4cee216bb06f902dd805c26d44a442b77a783b9b8d5fa6219d45c8a",
@@ -1681,7 +2118,9 @@
         "db/unixfs/errors/errors.pb.go",
         "db/unixfs/errors/errors.pb.ts"
       ],
-      "protoFiles": ["db/unixfs/errors/errors.proto"]
+      "protoFiles": [
+        "db/unixfs/errors/errors.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/unixfs/mount/checkout": {
       "hash": "88d2c22370fb6d062d724a27a651523eb891865ae67f492e397abcb1cd5eb3af",
@@ -1689,7 +2128,9 @@
         "db/unixfs/mount/checkout/checkout.pb.go",
         "db/unixfs/mount/checkout/checkout.pb.ts"
       ],
-      "protoFiles": ["db/unixfs/mount/checkout/checkout.proto"]
+      "protoFiles": [
+        "db/unixfs/mount/checkout/checkout.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/unixfs/mount/fuse": {
       "hash": "e8d50fbfc3f3e6cb9d5121a0dd789077d356fadb7e0858a79ab3c580f589e171",
@@ -1697,7 +2138,9 @@
         "db/unixfs/mount/fuse/fuse.pb.go",
         "db/unixfs/mount/fuse/fuse.pb.ts"
       ],
-      "protoFiles": ["db/unixfs/mount/fuse/fuse.proto"]
+      "protoFiles": [
+        "db/unixfs/mount/fuse/fuse.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/unixfs/rpc": {
       "hash": "0868e804514e59e5bab2b3cdf77b4c8cce1924dd77fa8e717730ec9ecc28f25c",
@@ -1707,7 +2150,9 @@
         "db/unixfs/rpc/rpc_srpc.pb.go",
         "db/unixfs/rpc/rpc_srpc.pb.ts"
       ],
-      "protoFiles": ["db/unixfs/rpc/rpc.proto"]
+      "protoFiles": [
+        "db/unixfs/rpc/rpc.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/unixfs/sync": {
       "hash": "0450ce3b3c543a59d6a9ff0a88ccd5f9a3d2de4c7d1c6380cda7d5f9d3e42ef2",
@@ -1715,7 +2160,9 @@
         "db/unixfs/sync/sync.pb.go",
         "db/unixfs/sync/sync.pb.ts"
       ],
-      "protoFiles": ["db/unixfs/sync/sync.proto"]
+      "protoFiles": [
+        "db/unixfs/sync/sync.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/unixfs/v86fs": {
       "hash": "6ffe25beae311bdb6aa4efd581c8fb11aa2025118cedfa5a2422209319602667",
@@ -1725,7 +2172,9 @@
         "db/unixfs/v86fs/v86fs_srpc.pb.go",
         "db/unixfs/v86fs/v86fs_srpc.pb.ts"
       ],
-      "protoFiles": ["db/unixfs/v86fs/v86fs.proto"]
+      "protoFiles": [
+        "db/unixfs/v86fs/v86fs.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/unixfs/world": {
       "hash": "4538a6f1a3fb176f234c55d33addfc342114bd092249960777905e3033ec2026",
@@ -1733,7 +2182,9 @@
         "db/unixfs/world/unixfs.pb.go",
         "db/unixfs/world/unixfs.pb.ts"
       ],
-      "protoFiles": ["db/unixfs/world/unixfs.proto"]
+      "protoFiles": [
+        "db/unixfs/world/unixfs.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/unixfs/world/access": {
       "hash": "c7a69b4abc1c65cfcc6df17c2e801f843524ca3b468bd99d8221cd15fd12c854",
@@ -1741,7 +2192,9 @@
         "db/unixfs/world/access/access.pb.go",
         "db/unixfs/world/access/access.pb.ts"
       ],
-      "protoFiles": ["db/unixfs/world/access/access.proto"]
+      "protoFiles": [
+        "db/unixfs/world/access/access.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/unixfs/world/e2e": {
       "hash": "f1ed834f37cb3bb7db0fe3562408a3647008f90031daee3c8ec6be35309a9e7f",
@@ -1749,7 +2202,9 @@
         "db/unixfs/world/e2e/init_unixfs_demo.pb.go",
         "db/unixfs/world/e2e/init_unixfs_demo.pb.ts"
       ],
-      "protoFiles": ["db/unixfs/world/e2e/init_unixfs_demo.proto"]
+      "protoFiles": [
+        "db/unixfs/world/e2e/init_unixfs_demo.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/util/blockenc": {
       "hash": "3a18b69be602ce8b24f8cf6b857ff50e3e0918e015a030380235cdbe8462faa0",
@@ -1757,12 +2212,19 @@
         "db/util/blockenc/blockenc.pb.go",
         "db/util/blockenc/blockenc.pb.ts"
       ],
-      "protoFiles": ["db/util/blockenc/blockenc.proto"]
+      "protoFiles": [
+        "db/util/blockenc/blockenc.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume": {
       "hash": "8afe95688f59467578e48a6fad63847c6a8f0b570194a6cc3de6b0125b674d74",
-      "generatedFiles": ["db/volume/volume.pb.go", "db/volume/volume.pb.ts"],
-      "protoFiles": ["db/volume/volume.proto"]
+      "generatedFiles": [
+        "db/volume/volume.pb.go",
+        "db/volume/volume.pb.ts"
+      ],
+      "protoFiles": [
+        "db/volume/volume.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/badger": {
       "hash": "12af54a02640193fcf79d0b86987371c4f9758f439364907a5bd6616fb247d15",
@@ -1770,7 +2232,9 @@
         "db/volume/badger/badger.pb.go",
         "db/volume/badger/badger.pb.ts"
       ],
-      "protoFiles": ["db/volume/badger/badger.proto"]
+      "protoFiles": [
+        "db/volume/badger/badger.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/block": {
       "hash": "c0a8e14226fe6aaf7340b1ebd95a05e08e0e101423e82edf343bc3304b37c654",
@@ -1778,7 +2242,9 @@
         "db/volume/block/volume.pb.go",
         "db/volume/block/volume.pb.ts"
       ],
-      "protoFiles": ["db/volume/block/volume.proto"]
+      "protoFiles": [
+        "db/volume/block/volume.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/bolt": {
       "hash": "4d66ae5d509d8158aeb2ca5cc8d2887da0219b50712ed5ce1bad421a4a7c6841",
@@ -1786,7 +2252,9 @@
         "db/volume/bolt/bolt.pb.go",
         "db/volume/bolt/bolt.pb.ts"
       ],
-      "protoFiles": ["db/volume/bolt/bolt.proto"]
+      "protoFiles": [
+        "db/volume/bolt/bolt.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/controller": {
       "hash": "9d5210effc74524d7c9ad499ac32d5544117bce9a5537b19a0dabee2ea384e67",
@@ -1794,7 +2262,9 @@
         "db/volume/controller/controller.pb.go",
         "db/volume/controller/controller.pb.ts"
       ],
-      "protoFiles": ["db/volume/controller/controller.proto"]
+      "protoFiles": [
+        "db/volume/controller/controller.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/js/indexeddb": {
       "hash": "f8c656b2e56c773ed4bb0e5a13167df0424b427d5b861a13c27bc0e94ce17c84",
@@ -1802,7 +2272,9 @@
         "db/volume/js/indexeddb/indexeddb.pb.go",
         "db/volume/js/indexeddb/indexeddb.pb.ts"
       ],
-      "protoFiles": ["db/volume/js/indexeddb/indexeddb.proto"]
+      "protoFiles": [
+        "db/volume/js/indexeddb/indexeddb.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/js/opfs": {
       "hash": "f4c073f32ba06b9aa971f1ef5684fb95da0e66ee472541c0e12474b4417bb8ca",
@@ -1810,7 +2282,9 @@
         "db/volume/js/opfs/opfs.pb.go",
         "db/volume/js/opfs/opfs.pb.ts"
       ],
-      "protoFiles": ["db/volume/js/opfs/opfs.proto"]
+      "protoFiles": [
+        "db/volume/js/opfs/opfs.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/kvfile": {
       "hash": "2e5553b294a83f437a60ceeb9e963fac1df6e8c3a642d9d727173f9d13dc4e32",
@@ -1818,7 +2292,9 @@
         "db/volume/kvfile/kvfile.pb.go",
         "db/volume/kvfile/kvfile.pb.ts"
       ],
-      "protoFiles": ["db/volume/kvfile/kvfile.proto"]
+      "protoFiles": [
+        "db/volume/kvfile/kvfile.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/kvtxinmem": {
       "hash": "d913200f2eecb83be3d38f8526769014167f5f040a0ab3a38fc130fb1e584793",
@@ -1826,7 +2302,9 @@
         "db/volume/kvtxinmem/kvtxinmem.pb.go",
         "db/volume/kvtxinmem/kvtxinmem.pb.ts"
       ],
-      "protoFiles": ["db/volume/kvtxinmem/kvtxinmem.proto"]
+      "protoFiles": [
+        "db/volume/kvtxinmem/kvtxinmem.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/redis": {
       "hash": "b76321b44bc0fb3d85070bc9dd44fc9c1b45d1c958502f32b8501d07d1cebee2",
@@ -1834,7 +2312,9 @@
         "db/volume/redis/redis.pb.go",
         "db/volume/redis/redis.pb.ts"
       ],
-      "protoFiles": ["db/volume/redis/redis.proto"]
+      "protoFiles": [
+        "db/volume/redis/redis.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/rpc": {
       "hash": "dae1913e594e7249325a21d691af5c11dc077e849e0b6d03b54eaadc7dcd2802",
@@ -1844,7 +2324,9 @@
         "db/volume/rpc/volume_srpc.pb.go",
         "db/volume/rpc/volume_srpc.pb.ts"
       ],
-      "protoFiles": ["db/volume/rpc/volume.proto"]
+      "protoFiles": [
+        "db/volume/rpc/volume.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/rpc/client": {
       "hash": "c654fca43212b8647b9b8967beddcccf6b286d410aef7e516c1ca3903f8d816f",
@@ -1852,7 +2334,9 @@
         "db/volume/rpc/client/config.pb.go",
         "db/volume/rpc/client/config.pb.ts"
       ],
-      "protoFiles": ["db/volume/rpc/client/config.proto"]
+      "protoFiles": [
+        "db/volume/rpc/client/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/rpc/server": {
       "hash": "9deca876c35d11a6b80c7b6725f80a62a61cefaf5fb841c1ff6ce9c571843734",
@@ -1860,7 +2344,9 @@
         "db/volume/rpc/server/config.pb.go",
         "db/volume/rpc/server/config.pb.ts"
       ],
-      "protoFiles": ["db/volume/rpc/server/config.proto"]
+      "protoFiles": [
+        "db/volume/rpc/server/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/sqlite": {
       "hash": "75b27dbd647620e5c5f21e604593e441ff75eecf9f39cb8ac92bf96355aaedfc",
@@ -1868,7 +2354,9 @@
         "db/volume/sqlite/sqlite.pb.go",
         "db/volume/sqlite/sqlite.pb.ts"
       ],
-      "protoFiles": ["db/volume/sqlite/sqlite.proto"]
+      "protoFiles": [
+        "db/volume/sqlite/sqlite.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/volume/world": {
       "hash": "caad70bbe5d0068c0c0f3f467250f45298954bd1c40bf873baf608494039f6f0",
@@ -1876,7 +2364,9 @@
         "db/volume/world/volume.pb.go",
         "db/volume/world/volume.pb.ts"
       ],
-      "protoFiles": ["db/volume/world/volume.proto"]
+      "protoFiles": [
+        "db/volume/world/volume.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/world/block": {
       "hash": "5af4364419532810cf908600b41bae2bef6405c100c8366891cd3045137fd6e1",
@@ -1884,7 +2374,9 @@
         "db/world/block/world.pb.go",
         "db/world/block/world.pb.ts"
       ],
-      "protoFiles": ["db/world/block/world.proto"]
+      "protoFiles": [
+        "db/world/block/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/world/block/engine": {
       "hash": "6aa20271840786406b41db931c238eea9d276ba14f8bfc9e85dcf0cd4058a6c3",
@@ -1892,7 +2384,9 @@
         "db/world/block/engine/engine.pb.go",
         "db/world/block/engine/engine.pb.ts"
       ],
-      "protoFiles": ["db/world/block/engine/engine.proto"]
+      "protoFiles": [
+        "db/world/block/engine/engine.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/world/block/tx": {
       "hash": "063ddcf67bb30d501241651c240ab5f5230d3e68f56d6fd284ab6f43d4ac0457",
@@ -1900,7 +2394,9 @@
         "db/world/block/tx/tx.pb.go",
         "db/world/block/tx/tx.pb.ts"
       ],
-      "protoFiles": ["db/world/block/tx/tx.proto"]
+      "protoFiles": [
+        "db/world/block/tx/tx.proto"
+      ]
     },
     "github.com/s4wave/spacewave/db/world/mock": {
       "hash": "f237fe126bd6def27e4a8045d27dc56e518cc69e9b91c3dfe07949dfe7ea7a39",
@@ -1908,7 +2404,9 @@
         "db/world/mock/mock.pb.go",
         "db/world/mock/mock.pb.ts"
       ],
-      "protoFiles": ["db/world/mock/mock.proto"]
+      "protoFiles": [
+        "db/world/mock/mock.proto"
+      ]
     },
     "github.com/s4wave/spacewave/e2e/wasm/session": {
       "hash": "2dc06dc204a31cdced455e188ceb9ad07fab23da74fd534af3c4a7f6d63d83c6",
@@ -1931,7 +2429,9 @@
         "forge/cluster/cluster.pb.go",
         "forge/cluster/cluster.pb.ts"
       ],
-      "protoFiles": ["forge/cluster/cluster.proto"]
+      "protoFiles": [
+        "forge/cluster/cluster.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/cluster/controller": {
       "hash": "eed0d68e49f0586faa52503082e341108411e4a4c5bff2850292baaea3944ecd",
@@ -1939,7 +2439,9 @@
         "forge/cluster/controller/config.pb.go",
         "forge/cluster/controller/config.pb.ts"
       ],
-      "protoFiles": ["forge/cluster/controller/config.proto"]
+      "protoFiles": [
+        "forge/cluster/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/cluster/tx": {
       "hash": "bf2ac680a861a4ed6dd1c466a8be2bc6a25e618b823e56179a916173e197b8a4",
@@ -1947,7 +2449,9 @@
         "forge/cluster/tx/tx.pb.go",
         "forge/cluster/tx/tx.pb.ts"
       ],
-      "protoFiles": ["forge/cluster/tx/tx.proto"]
+      "protoFiles": [
+        "forge/cluster/tx/tx.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/daemon/api": {
       "hash": "4b7562763d6a3fcfb8bbe2b217491fc2825da609240c2658a9d2cf2749602c7e",
@@ -1957,7 +2461,9 @@
         "forge/daemon/api/api_srpc.pb.go",
         "forge/daemon/api/api_srpc.pb.ts"
       ],
-      "protoFiles": ["forge/daemon/api/api.proto"]
+      "protoFiles": [
+        "forge/daemon/api/api.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/daemon/api/controller": {
       "hash": "b65da413f11e2ad51d345bfab970403bd3092c824cfa6a295f6319cfa5c6f3ba",
@@ -1965,7 +2471,9 @@
         "forge/daemon/api/controller/controller.pb.go",
         "forge/daemon/api/controller/controller.pb.ts"
       ],
-      "protoFiles": ["forge/daemon/api/controller/controller.proto"]
+      "protoFiles": [
+        "forge/daemon/api/controller/controller.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/execution": {
       "hash": "968a70f891dbda775a0bfddc0fdcdae7ef16332129cd1ec8a12825699bbf5d4d",
@@ -1973,7 +2481,9 @@
         "forge/execution/execution.pb.go",
         "forge/execution/execution.pb.ts"
       ],
-      "protoFiles": ["forge/execution/execution.proto"]
+      "protoFiles": [
+        "forge/execution/execution.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/execution/controller": {
       "hash": "62775bf9700e4ad285efa4e67db39e83da9c178e5eedafcbe1829e8698b7b3c3",
@@ -1981,7 +2491,9 @@
         "forge/execution/controller/config.pb.go",
         "forge/execution/controller/config.pb.ts"
       ],
-      "protoFiles": ["forge/execution/controller/config.proto"]
+      "protoFiles": [
+        "forge/execution/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/execution/tx": {
       "hash": "b012516dcd142bd8b116284c035879a3839e5d81a9a9070cab6cd07568270a7c",
@@ -1989,12 +2501,19 @@
         "forge/execution/tx/tx.pb.go",
         "forge/execution/tx/tx.pb.ts"
       ],
-      "protoFiles": ["forge/execution/tx/tx.proto"]
+      "protoFiles": [
+        "forge/execution/tx/tx.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/job": {
       "hash": "215586a49a74458014b91900531898c3c32b093b8760063f4316ea23c68d4c6b",
-      "generatedFiles": ["forge/job/job.pb.go", "forge/job/job.pb.ts"],
-      "protoFiles": ["forge/job/job.proto"]
+      "generatedFiles": [
+        "forge/job/job.pb.go",
+        "forge/job/job.pb.ts"
+      ],
+      "protoFiles": [
+        "forge/job/job.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/lib/docker": {
       "hash": "c16d3c5ffb37c7d864f73dc3839248a1b68e4e0196686190e0ba708ba7551b2c",
@@ -2002,7 +2521,9 @@
         "forge/lib/docker/config.pb.go",
         "forge/lib/docker/config.pb.ts"
       ],
-      "protoFiles": ["forge/lib/docker/config.proto"]
+      "protoFiles": [
+        "forge/lib/docker/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/lib/git/clone": {
       "hash": "dacd57a37858e38b08cedfd2027e576a0b57cb25d68ab6da8c662e3bce5ca06e",
@@ -2010,7 +2531,9 @@
         "forge/lib/git/clone/config.pb.go",
         "forge/lib/git/clone/config.pb.ts"
       ],
-      "protoFiles": ["forge/lib/git/clone/config.proto"]
+      "protoFiles": [
+        "forge/lib/git/clone/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/lib/kvtx": {
       "hash": "59e850c914d79adc08983a26d666b8e61c0886bdb9eba4b10dd1a17ebe50c8b9",
@@ -2018,7 +2541,9 @@
         "forge/lib/kvtx/config.pb.go",
         "forge/lib/kvtx/config.pb.ts"
       ],
-      "protoFiles": ["forge/lib/kvtx/config.proto"]
+      "protoFiles": [
+        "forge/lib/kvtx/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/lib/util/wait": {
       "hash": "4c407676c0c7a654195662d02258a4cba1bc8d9877805cc03bdbef70f8412f88",
@@ -2026,7 +2551,9 @@
         "forge/lib/util/wait/config.pb.go",
         "forge/lib/util/wait/config.pb.ts"
       ],
-      "protoFiles": ["forge/lib/util/wait/config.proto"]
+      "protoFiles": [
+        "forge/lib/util/wait/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/lib/v86/bun": {
       "hash": "7133ba2955470859a1f3c5d0e33ec46d675731cfbb4691c6fa75f42df287a5d7",
@@ -2034,12 +2561,19 @@
         "forge/lib/v86/bun/config.pb.go",
         "forge/lib/v86/bun/config.pb.ts"
       ],
-      "protoFiles": ["forge/lib/v86/bun/config.proto"]
+      "protoFiles": [
+        "forge/lib/v86/bun/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/pass": {
       "hash": "65e3cb8634dee08b2c82775587df23d74890d1858456e6761c00190b02422ca5",
-      "generatedFiles": ["forge/pass/pass.pb.go", "forge/pass/pass.pb.ts"],
-      "protoFiles": ["forge/pass/pass.proto"]
+      "generatedFiles": [
+        "forge/pass/pass.pb.go",
+        "forge/pass/pass.pb.ts"
+      ],
+      "protoFiles": [
+        "forge/pass/pass.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/pass/controller": {
       "hash": "65c6cd4bb2d191f27c0abdd277f9d7f8929fc5e796d1338de7048ab37f73387d",
@@ -2047,12 +2581,19 @@
         "forge/pass/controller/config.pb.go",
         "forge/pass/controller/config.pb.ts"
       ],
-      "protoFiles": ["forge/pass/controller/config.proto"]
+      "protoFiles": [
+        "forge/pass/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/pass/tx": {
       "hash": "9f2092830402e87597d631dad63d63058d2f2ffbaa00512473d7a43373a4dac5",
-      "generatedFiles": ["forge/pass/tx/tx.pb.go", "forge/pass/tx/tx.pb.ts"],
-      "protoFiles": ["forge/pass/tx/tx.proto"]
+      "generatedFiles": [
+        "forge/pass/tx/tx.pb.go",
+        "forge/pass/tx/tx.pb.ts"
+      ],
+      "protoFiles": [
+        "forge/pass/tx/tx.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/target": {
       "hash": "8de8d1a73e849518b50166924fa2442a0a0fb5382e0c9af31945e226011bcac4",
@@ -2060,12 +2601,19 @@
         "forge/target/target.pb.go",
         "forge/target/target.pb.ts"
       ],
-      "protoFiles": ["forge/target/target.proto"]
+      "protoFiles": [
+        "forge/target/target.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/task": {
       "hash": "2b2f792f78c9bba00ed714c5cc89425af2fab7b58fb84ef4bd3b3813ef67f4fe",
-      "generatedFiles": ["forge/task/task.pb.go", "forge/task/task.pb.ts"],
-      "protoFiles": ["forge/task/task.proto"]
+      "generatedFiles": [
+        "forge/task/task.pb.go",
+        "forge/task/task.pb.ts"
+      ],
+      "protoFiles": [
+        "forge/task/task.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/task/controller": {
       "hash": "67b454aed9abe97ca94950074b1e174cfeb0787fc93ef6098335c0783b74debc",
@@ -2073,17 +2621,29 @@
         "forge/task/controller/config.pb.go",
         "forge/task/controller/config.pb.ts"
       ],
-      "protoFiles": ["forge/task/controller/config.proto"]
+      "protoFiles": [
+        "forge/task/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/task/tx": {
       "hash": "deb4f3cecd636b2be0beb4af9ad7c76343e757fe35949e7cef926dff5063287e",
-      "generatedFiles": ["forge/task/tx/tx.pb.go", "forge/task/tx/tx.pb.ts"],
-      "protoFiles": ["forge/task/tx/tx.proto"]
+      "generatedFiles": [
+        "forge/task/tx/tx.pb.go",
+        "forge/task/tx/tx.pb.ts"
+      ],
+      "protoFiles": [
+        "forge/task/tx/tx.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/value": {
       "hash": "d97e23be1c53d24d3bf78203fd3fa85b6a94d2c58452dc9da933a93c00c26d95",
-      "generatedFiles": ["forge/value/value.pb.go", "forge/value/value.pb.ts"],
-      "protoFiles": ["forge/value/value.proto"]
+      "generatedFiles": [
+        "forge/value/value.pb.go",
+        "forge/value/value.pb.ts"
+      ],
+      "protoFiles": [
+        "forge/value/value.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/worker": {
       "hash": "e10088236530261febe1765c112a286075d880e2b5c6a5194cf5a30352ef0cd5",
@@ -2091,7 +2651,9 @@
         "forge/worker/worker.pb.go",
         "forge/worker/worker.pb.ts"
       ],
-      "protoFiles": ["forge/worker/worker.proto"]
+      "protoFiles": [
+        "forge/worker/worker.proto"
+      ]
     },
     "github.com/s4wave/spacewave/forge/worker/controller": {
       "hash": "989f5b72991ba528a8027e041878cc4f91468e19610f14790795ebd2a013e244",
@@ -2099,12 +2661,19 @@
         "forge/worker/controller/config.pb.go",
         "forge/worker/controller/config.pb.ts"
       ],
-      "protoFiles": ["forge/worker/controller/config.proto"]
+      "protoFiles": [
+        "forge/worker/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/identity": {
       "hash": "85f02e1d0a08c32b101b666fd9bad9a7715f3eba38bc680e62af0f0a396669c8",
-      "generatedFiles": ["identity/identity.pb.go", "identity/identity.pb.ts"],
-      "protoFiles": ["identity/identity.proto"]
+      "generatedFiles": [
+        "identity/identity.pb.go",
+        "identity/identity.pb.ts"
+      ],
+      "protoFiles": [
+        "identity/identity.proto"
+      ]
     },
     "github.com/s4wave/spacewave/identity/domain": {
       "hash": "a5c438808e98d8d4abaea79924391d666c0019914fff100ae1a14271c6b9346b",
@@ -2112,7 +2681,9 @@
         "identity/domain/domain.pb.go",
         "identity/domain/domain.pb.ts"
       ],
-      "protoFiles": ["identity/domain/domain.proto"]
+      "protoFiles": [
+        "identity/domain/domain.proto"
+      ]
     },
     "github.com/s4wave/spacewave/identity/domain/service": {
       "hash": "f4b5e4ad5733faee5d1ef9b863dc94ea26103ad99f7391113b22122c8d0a3b60",
@@ -2122,7 +2693,9 @@
         "identity/domain/service/service_srpc.pb.go",
         "identity/domain/service/service_srpc.pb.ts"
       ],
-      "protoFiles": ["identity/domain/service/service.proto"]
+      "protoFiles": [
+        "identity/domain/service/service.proto"
+      ]
     },
     "github.com/s4wave/spacewave/identity/domain/service/client": {
       "hash": "273c541cdf8d2a485179ef8bf10e56cd94808663b2284c507c0309b50328e22d",
@@ -2130,7 +2703,9 @@
         "identity/domain/service/client/client.pb.go",
         "identity/domain/service/client/client.pb.ts"
       ],
-      "protoFiles": ["identity/domain/service/client/client.proto"]
+      "protoFiles": [
+        "identity/domain/service/client/client.proto"
+      ]
     },
     "github.com/s4wave/spacewave/identity/domain/service/server": {
       "hash": "cc5ef104e9e00beb89b45dccb9ed77503a6d247829c0a8f3e0984faba8ced6ee",
@@ -2138,7 +2713,9 @@
         "identity/domain/service/server/server.pb.go",
         "identity/domain/service/server/server.pb.ts"
       ],
-      "protoFiles": ["identity/domain/service/server/server.proto"]
+      "protoFiles": [
+        "identity/domain/service/server/server.proto"
+      ]
     },
     "github.com/s4wave/spacewave/identity/domain/static": {
       "hash": "857b79da83170b094a064f9a451587138d75acc78f1692f6b89eb6093e6df2f8",
@@ -2146,7 +2723,9 @@
         "identity/domain/static/static.pb.go",
         "identity/domain/static/static.pb.ts"
       ],
-      "protoFiles": ["identity/domain/static/static.proto"]
+      "protoFiles": [
+        "identity/domain/static/static.proto"
+      ]
     },
     "github.com/s4wave/spacewave/identity/world": {
       "hash": "2ab06aef2cb50820f0ac90275c59867054a154af184f9456d70a2da2d6817b8b",
@@ -2154,12 +2733,19 @@
         "identity/world/world.pb.go",
         "identity/world/world.pb.ts"
       ],
-      "protoFiles": ["identity/world/world.proto"]
+      "protoFiles": [
+        "identity/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/crypto": {
       "hash": "faec094f89ce61ecd3d9aa7f43aae69aa48a33893fbe0d46ac958c5cf2304e08",
-      "generatedFiles": ["net/crypto/crypto.pb.go", "net/crypto/crypto.pb.ts"],
-      "protoFiles": ["net/crypto/crypto.proto"]
+      "generatedFiles": [
+        "net/crypto/crypto.pb.go",
+        "net/crypto/crypto.pb.ts"
+      ],
+      "protoFiles": [
+        "net/crypto/crypto.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/daemon/api": {
       "hash": "7460ffa41b91f326e25ed25fd915a3e6161e6c04d3e2ff1d341c897868d31c20",
@@ -2167,7 +2753,9 @@
         "net/daemon/api/api.pb.go",
         "net/daemon/api/api.pb.ts"
       ],
-      "protoFiles": ["net/daemon/api/api.proto"]
+      "protoFiles": [
+        "net/daemon/api/api.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/daemon/api/controller": {
       "hash": "e99e28d80ebaf3d92751bb9060a6c8be159164a15ea7f439744d73f4ba9b624b",
@@ -2175,7 +2763,9 @@
         "net/daemon/api/controller/controller.pb.go",
         "net/daemon/api/controller/controller.pb.ts"
       ],
-      "protoFiles": ["net/daemon/api/controller/controller.proto"]
+      "protoFiles": [
+        "net/daemon/api/controller/controller.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/envelope": {
       "hash": "9bfd0c45e1e4c919eee92c54e1db76c16847555d85213565fb3999bb7c2d1308",
@@ -2183,12 +2773,19 @@
         "net/envelope/envelope.pb.go",
         "net/envelope/envelope.pb.ts"
       ],
-      "protoFiles": ["net/envelope/envelope.proto"]
+      "protoFiles": [
+        "net/envelope/envelope.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/hash": {
       "hash": "7821cabc28f3cbd73f00096d85d5291591b4430315e6138cd6d25b2b32ff3262",
-      "generatedFiles": ["net/hash/hash.pb.go", "net/hash/hash.pb.ts"],
-      "protoFiles": ["net/hash/hash.proto"]
+      "generatedFiles": [
+        "net/hash/hash.pb.go",
+        "net/hash/hash.pb.ts"
+      ],
+      "protoFiles": [
+        "net/hash/hash.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/http/listener": {
       "hash": "6ed30b40772af143c291efd1b5c40e20fead7b876df1ebbca412842db33480e9",
@@ -2196,7 +2793,9 @@
         "net/http/listener/config.pb.go",
         "net/http/listener/config.pb.ts"
       ],
-      "protoFiles": ["net/http/listener/config.proto"]
+      "protoFiles": [
+        "net/http/listener/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/link/establish": {
       "hash": "3867a07d382c63f6a0221ca464fef49fd90ce138b09614bfba1470b069f1ccf2",
@@ -2204,7 +2803,9 @@
         "net/link/establish/config.pb.go",
         "net/link/establish/config.pb.ts"
       ],
-      "protoFiles": ["net/link/establish/config.proto"]
+      "protoFiles": [
+        "net/link/establish/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/link/hold-open": {
       "hash": "6ff0ba85bc63c48eba78cbec67410ac62af232ff31350c1449fdf5b93b0d46f7",
@@ -2212,7 +2813,9 @@
         "net/link/hold-open/config.pb.go",
         "net/link/hold-open/config.pb.ts"
       ],
-      "protoFiles": ["net/link/hold-open/config.proto"]
+      "protoFiles": [
+        "net/link/hold-open/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/link/solicit": {
       "hash": "78e9d5dcabd1de669bf8ab750e79af172016e20a2eb591469c78408ad39aba28",
@@ -2220,7 +2823,9 @@
         "net/link/solicit/solicit.pb.go",
         "net/link/solicit/solicit.pb.ts"
       ],
-      "protoFiles": ["net/link/solicit/solicit.proto"]
+      "protoFiles": [
+        "net/link/solicit/solicit.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/link/solicit/controller": {
       "hash": "ff241394127f59ccfd8586de328620fc92b3eef574b7a47e90f4b8544541cb15",
@@ -2228,12 +2833,19 @@
         "net/link/solicit/controller/config.pb.go",
         "net/link/solicit/controller/config.pb.ts"
       ],
-      "protoFiles": ["net/link/solicit/controller/config.proto"]
+      "protoFiles": [
+        "net/link/solicit/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/peer": {
       "hash": "2346cf06eeabfee6965d5986c7ffe3923380988ba8f7c557ee48a9741f92c26c",
-      "generatedFiles": ["net/peer/peer.pb.go", "net/peer/peer.pb.ts"],
-      "protoFiles": ["net/peer/peer.proto"]
+      "generatedFiles": [
+        "net/peer/peer.pb.go",
+        "net/peer/peer.pb.ts"
+      ],
+      "protoFiles": [
+        "net/peer/peer.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/peer/api": {
       "hash": "f55dd9d3f6f987b26ea967ab221beb761849b76e0d1a1aec6294fbfd120d9fd9",
@@ -2243,7 +2855,9 @@
         "net/peer/api/api_srpc.pb.go",
         "net/peer/api/api_srpc.pb.ts"
       ],
-      "protoFiles": ["net/peer/api/api.proto"]
+      "protoFiles": [
+        "net/peer/api/api.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/peer/controller": {
       "hash": "bef5f1329d9eb5695065660e8289d9655b34264780343d958377b09195b7f878",
@@ -2251,7 +2865,9 @@
         "net/peer/controller/config.pb.go",
         "net/peer/controller/config.pb.ts"
       ],
-      "protoFiles": ["net/peer/controller/config.proto"]
+      "protoFiles": [
+        "net/peer/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/pubsub/api": {
       "hash": "5644a36cdb635d613b33fe269ead7d302d7912a9634d7bc24ae9d9e51e82c5ca",
@@ -2261,7 +2877,9 @@
         "net/pubsub/api/api_srpc.pb.go",
         "net/pubsub/api/api_srpc.pb.ts"
       ],
-      "protoFiles": ["net/pubsub/api/api.proto"]
+      "protoFiles": [
+        "net/pubsub/api/api.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/pubsub/floodsub": {
       "hash": "aea7d0225e6e0906a9a8e8c5f399ceaaafd5dd6f7506aed47d9612e68f51a852",
@@ -2269,7 +2887,9 @@
         "net/pubsub/floodsub/floodsub.pb.go",
         "net/pubsub/floodsub/floodsub.pb.ts"
       ],
-      "protoFiles": ["net/pubsub/floodsub/floodsub.proto"]
+      "protoFiles": [
+        "net/pubsub/floodsub/floodsub.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/pubsub/floodsub/controller": {
       "hash": "23cc67daee645830d7a3d88e89cc1cbdd94b94dcaa32f419925acf9e61670dfa",
@@ -2277,7 +2897,9 @@
         "net/pubsub/floodsub/controller/config.pb.go",
         "net/pubsub/floodsub/controller/config.pb.ts"
       ],
-      "protoFiles": ["net/pubsub/floodsub/controller/config.proto"]
+      "protoFiles": [
+        "net/pubsub/floodsub/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/pubsub/relay": {
       "hash": "03b8efb0212176d191f5edd375c5e8e3ac1e20efa72ca197f0e678dae82c643d",
@@ -2285,7 +2907,9 @@
         "net/pubsub/relay/config.pb.go",
         "net/pubsub/relay/config.pb.ts"
       ],
-      "protoFiles": ["net/pubsub/relay/config.proto"]
+      "protoFiles": [
+        "net/pubsub/relay/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/pubsub/util/pubmessage": {
       "hash": "3d7134063da5c9e5d94c8afd45237000f35b1f40a073ca9cfc47d35c80121506",
@@ -2293,7 +2917,9 @@
         "net/pubsub/util/pubmessage/pubmessage.pb.go",
         "net/pubsub/util/pubmessage/pubmessage.pb.ts"
       ],
-      "protoFiles": ["net/pubsub/util/pubmessage/pubmessage.proto"]
+      "protoFiles": [
+        "net/pubsub/util/pubmessage/pubmessage.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/rpc/access": {
       "hash": "996ee28514cab12c93c227de8d7ac5aa533efc16541fcb9ff6e029029c4dd92e",
@@ -2303,7 +2929,9 @@
         "net/rpc/access/access_srpc.pb.go",
         "net/rpc/access/access_srpc.pb.ts"
       ],
-      "protoFiles": ["net/rpc/access/access.proto"]
+      "protoFiles": [
+        "net/rpc/access/access.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/signaling/echo": {
       "hash": "00783efaa9542efc121b6e3a53e8c2fd6877f6b974f711ca2f48051db4e7a4d7",
@@ -2311,7 +2939,9 @@
         "net/signaling/echo/echo.pb.go",
         "net/signaling/echo/echo.pb.ts"
       ],
-      "protoFiles": ["net/signaling/echo/echo.proto"]
+      "protoFiles": [
+        "net/signaling/echo/echo.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/signaling/rpc": {
       "hash": "9f167198e1573a55de38f16c75307efc05eaf49f550b92cee2d75162c63d5307",
@@ -2321,7 +2951,9 @@
         "net/signaling/rpc/signaling_srpc.pb.go",
         "net/signaling/rpc/signaling_srpc.pb.ts"
       ],
-      "protoFiles": ["net/signaling/rpc/signaling.proto"]
+      "protoFiles": [
+        "net/signaling/rpc/signaling.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/signaling/rpc/client": {
       "hash": "42db435a66197ffa107a6a266ec556b4f00a3ef08206c62b7f75c3c535a4753f",
@@ -2329,7 +2961,9 @@
         "net/signaling/rpc/client/config.pb.go",
         "net/signaling/rpc/client/config.pb.ts"
       ],
-      "protoFiles": ["net/signaling/rpc/client/config.proto"]
+      "protoFiles": [
+        "net/signaling/rpc/client/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/signaling/rpc/server": {
       "hash": "c1faee12801d403d7c1c661e52727965998c398229b62ac9310cf11c779add6c",
@@ -2337,7 +2971,9 @@
         "net/signaling/rpc/server/server.pb.go",
         "net/signaling/rpc/server/server.pb.ts"
       ],
-      "protoFiles": ["net/signaling/rpc/server/server.proto"]
+      "protoFiles": [
+        "net/signaling/rpc/server/server.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/api": {
       "hash": "34663fea3889d810211e6f047bb9bf7c1333b3ac5e99d423a205642e473d15a5",
@@ -2347,7 +2983,9 @@
         "net/stream/api/api_srpc.pb.go",
         "net/stream/api/api_srpc.pb.ts"
       ],
-      "protoFiles": ["net/stream/api/api.proto"]
+      "protoFiles": [
+        "net/stream/api/api.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/api/accept": {
       "hash": "aeacaf707aa228052bfbac082d5fc9f1eb181103029861e806b23e696ceb2493",
@@ -2355,7 +2993,9 @@
         "net/stream/api/accept/accept.pb.go",
         "net/stream/api/accept/accept.pb.ts"
       ],
-      "protoFiles": ["net/stream/api/accept/accept.proto"]
+      "protoFiles": [
+        "net/stream/api/accept/accept.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/api/dial": {
       "hash": "77f821ca322e878db33534607c080720fbef47a1dc62f06700d5b26295a0e5ae",
@@ -2363,7 +3003,9 @@
         "net/stream/api/dial/dial.pb.go",
         "net/stream/api/dial/dial.pb.ts"
       ],
-      "protoFiles": ["net/stream/api/dial/dial.proto"]
+      "protoFiles": [
+        "net/stream/api/dial/dial.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/api/rpc": {
       "hash": "6d3ee1ef1106786d5e0dfa514d8fa94bc31398809344fc6b9bb98a02b03ea087",
@@ -2371,7 +3013,9 @@
         "net/stream/api/rpc/rpc.pb.go",
         "net/stream/api/rpc/rpc.pb.ts"
       ],
-      "protoFiles": ["net/stream/api/rpc/rpc.proto"]
+      "protoFiles": [
+        "net/stream/api/rpc/rpc.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/echo": {
       "hash": "8265aae27ff725831784b30fb71e9b34b0d80b46fac5e3f94febf163a45fafe8",
@@ -2379,7 +3023,9 @@
         "net/stream/echo/echo.pb.go",
         "net/stream/echo/echo.pb.ts"
       ],
-      "protoFiles": ["net/stream/echo/echo.proto"]
+      "protoFiles": [
+        "net/stream/echo/echo.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/forwarding": {
       "hash": "5cf54efb5fe44a94bee4cfd7efa8e2ea11712f3ceca0269ae5301ecb9fd82f5b",
@@ -2387,7 +3033,9 @@
         "net/stream/forwarding/forwarding.pb.go",
         "net/stream/forwarding/forwarding.pb.ts"
       ],
-      "protoFiles": ["net/stream/forwarding/forwarding.proto"]
+      "protoFiles": [
+        "net/stream/forwarding/forwarding.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/listening": {
       "hash": "fcc5b3d38d528a7632f14d90284b2bf95b854fe613473be399f64296712f2ccb",
@@ -2395,7 +3043,9 @@
         "net/stream/listening/listening.pb.go",
         "net/stream/listening/listening.pb.ts"
       ],
-      "protoFiles": ["net/stream/listening/listening.proto"]
+      "protoFiles": [
+        "net/stream/listening/listening.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/relay": {
       "hash": "8a96fb3e832db5930dbd83f404964ab14707a51543f2f1c3e62b2717cf9f9f40",
@@ -2403,7 +3053,9 @@
         "net/stream/relay/relay.pb.go",
         "net/stream/relay/relay.pb.ts"
       ],
-      "protoFiles": ["net/stream/relay/relay.proto"]
+      "protoFiles": [
+        "net/stream/relay/relay.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/srpc/client": {
       "hash": "fa742733261c07f5c2f25f6802e8b3ccb36a3c10d1403f952624f44baa2dd9a8",
@@ -2411,7 +3063,9 @@
         "net/stream/srpc/client/client.pb.go",
         "net/stream/srpc/client/client.pb.ts"
       ],
-      "protoFiles": ["net/stream/srpc/client/client.proto"]
+      "protoFiles": [
+        "net/stream/srpc/client/client.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/srpc/client/controller": {
       "hash": "9139f27f22df378c1063bc858640bd6f598af8189d521e07593ffe1fa70ea402",
@@ -2419,7 +3073,9 @@
         "net/stream/srpc/client/controller/config.pb.go",
         "net/stream/srpc/client/controller/config.pb.ts"
       ],
-      "protoFiles": ["net/stream/srpc/client/controller/config.proto"]
+      "protoFiles": [
+        "net/stream/srpc/client/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/srpc/server": {
       "hash": "79898099620ab4b430cbc153874883068db18989f17e417b27f38303bf71ef47",
@@ -2427,7 +3083,9 @@
         "net/stream/srpc/server/server.pb.go",
         "net/stream/srpc/server/server.pb.ts"
       ],
-      "protoFiles": ["net/stream/srpc/server/server.proto"]
+      "protoFiles": [
+        "net/stream/srpc/server/server.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/stream/srpc/server/lookup": {
       "hash": "943ef86d8a910275258cf9198bf62876ba24f97aa9fb4b27eb5e9415fa6eee04",
@@ -2435,7 +3093,9 @@
         "net/stream/srpc/server/lookup/lookup.pb.go",
         "net/stream/srpc/server/lookup/lookup.pb.ts"
       ],
-      "protoFiles": ["net/stream/srpc/server/lookup/lookup.proto"]
+      "protoFiles": [
+        "net/stream/srpc/server/lookup/lookup.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/tptaddr/controller": {
       "hash": "dfe61e2111af539f2d8e9924c507ed8f0cd1682c604c5eaefcd1fe06863d0f89",
@@ -2443,7 +3103,9 @@
         "net/tptaddr/controller/config.pb.go",
         "net/tptaddr/controller/config.pb.ts"
       ],
-      "protoFiles": ["net/tptaddr/controller/config.proto"]
+      "protoFiles": [
+        "net/tptaddr/controller/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/tptaddr/static": {
       "hash": "6c12470098a27b5cce4ae99019c4cd8eea33e41e92c9f2ff2ae2e3207d0b94d5",
@@ -2451,7 +3113,9 @@
         "net/tptaddr/static/static.pb.go",
         "net/tptaddr/static/static.pb.ts"
       ],
-      "protoFiles": ["net/tptaddr/static/static.proto"]
+      "protoFiles": [
+        "net/tptaddr/static/static.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/transport/common/conn": {
       "hash": "d08173827d0a6b556f01acaa35a9e5fbf82c7d40067ab03a947d2b3f21fae452",
@@ -2459,7 +3123,9 @@
         "net/transport/common/conn/conn.pb.go",
         "net/transport/common/conn/conn.pb.ts"
       ],
-      "protoFiles": ["net/transport/common/conn/conn.proto"]
+      "protoFiles": [
+        "net/transport/common/conn/conn.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/transport/common/dialer": {
       "hash": "0dcbd20a5e6b0298f64acff7e70d3e2936b9d2677f61ba7402fbb756f92ba704",
@@ -2467,7 +3133,9 @@
         "net/transport/common/dialer/dialer.pb.go",
         "net/transport/common/dialer/dialer.pb.ts"
       ],
-      "protoFiles": ["net/transport/common/dialer/dialer.proto"]
+      "protoFiles": [
+        "net/transport/common/dialer/dialer.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/transport/common/pconn": {
       "hash": "41660109cdb9caac1264b1c48719548a3650f289f785692ef68cecd26cad54f1",
@@ -2475,7 +3143,9 @@
         "net/transport/common/pconn/pconn.pb.go",
         "net/transport/common/pconn/pconn.pb.ts"
       ],
-      "protoFiles": ["net/transport/common/pconn/pconn.proto"]
+      "protoFiles": [
+        "net/transport/common/pconn/pconn.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/transport/common/quic": {
       "hash": "740e04057545916392ca9eef0fa7cad03204c4a0eda9cfcf2a91eced89d7695d",
@@ -2483,7 +3153,9 @@
         "net/transport/common/quic/quic.pb.go",
         "net/transport/common/quic/quic.pb.ts"
       ],
-      "protoFiles": ["net/transport/common/quic/quic.proto"]
+      "protoFiles": [
+        "net/transport/common/quic/quic.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/transport/controller": {
       "hash": "7d3f1d85d22b518cdab8ef0c5e742162d1af1ff78fdda815558fd40071a5eb05",
@@ -2491,7 +3163,9 @@
         "net/transport/controller/controller.pb.go",
         "net/transport/controller/controller.pb.ts"
       ],
-      "protoFiles": ["net/transport/controller/controller.proto"]
+      "protoFiles": [
+        "net/transport/controller/controller.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/transport/inproc": {
       "hash": "815f351bffe4b30d42abce423abffcf7c0fe998883e1ab9eec994bea262201da",
@@ -2499,7 +3173,9 @@
         "net/transport/inproc/inproc.pb.go",
         "net/transport/inproc/inproc.pb.ts"
       ],
-      "protoFiles": ["net/transport/inproc/inproc.proto"]
+      "protoFiles": [
+        "net/transport/inproc/inproc.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/transport/udp": {
       "hash": "1a49fd08d0fe677a493b7f7447cc1d9e2496a14e9c0e423ab80f7eb546daae60",
@@ -2507,7 +3183,9 @@
         "net/transport/udp/udp.pb.go",
         "net/transport/udp/udp.pb.ts"
       ],
-      "protoFiles": ["net/transport/udp/udp.proto"]
+      "protoFiles": [
+        "net/transport/udp/udp.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/transport/webrtc": {
       "hash": "950f9dbddcb36675295910f527bd0dbf77af7f7d082a46dff7fddd937f7d0907",
@@ -2515,7 +3193,9 @@
         "net/transport/webrtc/webrtc.pb.go",
         "net/transport/webrtc/webrtc.pb.ts"
       ],
-      "protoFiles": ["net/transport/webrtc/webrtc.proto"]
+      "protoFiles": [
+        "net/transport/webrtc/webrtc.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/transport/websocket": {
       "hash": "0b5cfa0c101017e7371ea92f7a995ff5571097ecc79904f52bbb5bc8ff6f2458",
@@ -2523,7 +3203,9 @@
         "net/transport/websocket/websocket.pb.go",
         "net/transport/websocket/websocket.pb.ts"
       ],
-      "protoFiles": ["net/transport/websocket/websocket.proto"]
+      "protoFiles": [
+        "net/transport/websocket/websocket.proto"
+      ]
     },
     "github.com/s4wave/spacewave/net/transport/websocket/http": {
       "hash": "57291338ec118539ac73f2e1de1a1a74360438dbd04ca0a5f12f799ba94762f5",
@@ -2531,12 +3213,19 @@
         "net/transport/websocket/http/http.pb.go",
         "net/transport/websocket/http/http.pb.ts"
       ],
-      "protoFiles": ["net/transport/websocket/http/http.proto"]
+      "protoFiles": [
+        "net/transport/websocket/http/http.proto"
+      ]
     },
     "github.com/s4wave/spacewave/plugin/cli": {
       "hash": "f490b6db60121269dd0cae1f27c9c156d2e19dca2f8f744931a98ebb5d857be0",
-      "generatedFiles": ["plugin/cli/config.pb.go", "plugin/cli/config.pb.ts"],
-      "protoFiles": ["plugin/cli/config.proto"]
+      "generatedFiles": [
+        "plugin/cli/config.pb.go",
+        "plugin/cli/config.pb.ts"
+      ],
+      "protoFiles": [
+        "plugin/cli/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/plugin/notes/proto": {
       "hash": "89b74d7830aa2c6b7d62c47ff1d7a01e37592a821dd0d80a88a8d7a4c77dd415",
@@ -2578,8 +3267,13 @@
     },
     "github.com/s4wave/spacewave/plugin/sql": {
       "hash": "7e5db3b08140dcf53405c8553ee3014525af1d2d0495779bed7d5d23afc46feb",
-      "generatedFiles": ["plugin/sql/config.pb.go", "plugin/sql/config.pb.ts"],
-      "protoFiles": ["plugin/sql/config.proto"]
+      "generatedFiles": [
+        "plugin/sql/config.pb.go",
+        "plugin/sql/config.pb.ts"
+      ],
+      "protoFiles": [
+        "plugin/sql/config.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/account": {
       "hash": "4b5f3c2574e4f0a7a8ce7774ed67cf28c9379605b784ab96d0d9bd9848d16bc7",
@@ -2589,7 +3283,9 @@
         "sdk/account/account_srpc.pb.go",
         "sdk/account/account_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/account/account.proto"]
+      "protoFiles": [
+        "sdk/account/account.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/apt": {
       "hash": "586f1dc9f2da9830fc7518d629da9697a9b3a3a8138dd3b8ba4fcbe4ff81ac80",
@@ -2597,7 +3293,9 @@
         "sdk/apt/repository.pb.go",
         "sdk/apt/repository.pb.ts"
       ],
-      "protoFiles": ["sdk/apt/repository.proto"]
+      "protoFiles": [
+        "sdk/apt/repository.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/block/cursor": {
       "hash": "9122bdfbbf1f87c289478917a1b02c7635a563c42826c076368b3a528db469aa",
@@ -2607,7 +3305,9 @@
         "sdk/block/cursor/cursor_srpc.pb.go",
         "sdk/block/cursor/cursor_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/block/cursor/cursor.proto"]
+      "protoFiles": [
+        "sdk/block/cursor/cursor.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/block/transaction": {
       "hash": "230f3b2bb21776b31e8d0cf6ee56734dafae5270f88fbbbff4a415eabd658e06",
@@ -2617,7 +3317,9 @@
         "sdk/block/transaction/transaction_srpc.pb.go",
         "sdk/block/transaction/transaction_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/block/transaction/transaction.proto"]
+      "protoFiles": [
+        "sdk/block/transaction/transaction.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/bucket/lookup": {
       "hash": "3e7bd84ba599dc2209493c98ed9e8d04396979005db197ae3d577f8d05c08518",
@@ -2627,7 +3329,9 @@
         "sdk/bucket/lookup/lookup_srpc.pb.go",
         "sdk/bucket/lookup/lookup_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/bucket/lookup/lookup.proto"]
+      "protoFiles": [
+        "sdk/bucket/lookup/lookup.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/canvas": {
       "hash": "ea5a28557460e75539709c74e599aab779fe128ccd6391b74e7af7b707f21d44",
@@ -2637,7 +3341,9 @@
         "sdk/canvas/canvas_srpc.pb.go",
         "sdk/canvas/canvas_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/canvas/canvas.proto"]
+      "protoFiles": [
+        "sdk/canvas/canvas.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/cdn": {
       "hash": "27254c78b2cb50478d15eeb0668f7b0140e6cbcab8833cb889fb2d6b206085ac",
@@ -2647,12 +3353,19 @@
         "sdk/cdn/cdn-resource_srpc.pb.go",
         "sdk/cdn/cdn-resource_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/cdn/cdn-resource.proto"]
+      "protoFiles": [
+        "sdk/cdn/cdn-resource.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/chat": {
       "hash": "2aa8ab5b6f97c3ccd63289ad1301b5352ab005844503ce1e0ade58296438005b",
-      "generatedFiles": ["sdk/chat/chat.pb.go", "sdk/chat/chat.pb.ts"],
-      "protoFiles": ["sdk/chat/chat.proto"]
+      "generatedFiles": [
+        "sdk/chat/chat.pb.go",
+        "sdk/chat/chat.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/chat/chat.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/chat/rpc": {
       "hash": "eb01384a052236f845acad9a9c29a4624d2b4a33cb92b98b7a95c8dd5d8ff075",
@@ -2662,7 +3375,9 @@
         "sdk/chat/rpc/rpc_srpc.pb.go",
         "sdk/chat/rpc/rpc_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/chat/rpc/rpc.proto"]
+      "protoFiles": [
+        "sdk/chat/rpc/rpc.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/cli/terminal": {
       "hash": "17388b21c791b477d18b5d89a683c42c010224d3773a5d544ba19b888b57d096",
@@ -2672,7 +3387,9 @@
         "sdk/cli/terminal/terminal_srpc.pb.go",
         "sdk/cli/terminal/terminal_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/cli/terminal/terminal.proto"]
+      "protoFiles": [
+        "sdk/cli/terminal/terminal.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/command": {
       "hash": "7ef6a2929a5b3141c49cde1bf3489dd2d03c037c6079a552d7a0fa77669a08f6",
@@ -2680,7 +3397,9 @@
         "sdk/command/command.pb.go",
         "sdk/command/command.pb.ts"
       ],
-      "protoFiles": ["sdk/command/command.proto"]
+      "protoFiles": [
+        "sdk/command/command.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/command/registry": {
       "hash": "39fda424f5ee310162c6acbd6cc2513ee5fcf4f6f160de4ae1dc362d0ccea4d5",
@@ -2690,7 +3409,9 @@
         "sdk/command/registry/registry_srpc.pb.go",
         "sdk/command/registry/registry_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/command/registry/registry.proto"]
+      "protoFiles": [
+        "sdk/command/registry/registry.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/configtype/registry": {
       "hash": "93ca3eaa5144cd4b284ed5691be7cb441ae5de4f9e12393e45fa01926387012c",
@@ -2700,7 +3421,9 @@
         "sdk/configtype/registry/registry_srpc.pb.go",
         "sdk/configtype/registry/registry_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/configtype/registry/registry.proto"]
+      "protoFiles": [
+        "sdk/configtype/registry/registry.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/debug": {
       "hash": "147382c90138d2b6b999e6657f8a3e66b2164624030799bd78fec979629f0251",
@@ -2710,7 +3433,9 @@
         "sdk/debug/debug_srpc.pb.go",
         "sdk/debug/debug_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/debug/debug.proto"]
+      "protoFiles": [
+        "sdk/debug/debug.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/debugdb": {
       "hash": "db72c24d6b91dd4c052ad2671551e07b1dfbb29e4f64dfc16d83fef1850e8770",
@@ -2720,7 +3445,9 @@
         "sdk/debugdb/debugdb_srpc.pb.go",
         "sdk/debugdb/debugdb_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/debugdb/debugdb.proto"]
+      "protoFiles": [
+        "sdk/debugdb/debugdb.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/deploy": {
       "hash": "4acfff8eb0ff430160d820c0b9068528ebfd26be3a555ec5533d18426d41111a",
@@ -2730,7 +3457,9 @@
         "sdk/deploy/deploy_srpc.pb.go",
         "sdk/deploy/deploy_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/deploy/deploy.proto"]
+      "protoFiles": [
+        "sdk/deploy/deploy.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/device": {
       "hash": "96476b4e7dc443cb922b11aefea8ad72145740326afd7108f9d01d3250478ebb",
@@ -2740,12 +3469,19 @@
         "sdk/device/device_srpc.pb.go",
         "sdk/device/device_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/device/device.proto"]
+      "protoFiles": [
+        "sdk/device/device.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/docs": {
       "hash": "ffe537eb3f7a941e18dab9eef69d044a97aaf4d9e4debff5382a045d41881550",
-      "generatedFiles": ["sdk/docs/docs.pb.go", "sdk/docs/docs.pb.ts"],
-      "protoFiles": ["sdk/docs/docs.proto"]
+      "generatedFiles": [
+        "sdk/docs/docs.pb.go",
+        "sdk/docs/docs.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/docs/docs.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/git": {
       "hash": "b9933af8f863cb71fc9c844f9e462d98f8c4002692a67a44818ddcb7744f855b",
@@ -2759,7 +3495,10 @@
         "sdk/git/worktree_srpc.pb.go",
         "sdk/git/worktree_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/git/repo.proto", "sdk/git/worktree.proto"]
+      "protoFiles": [
+        "sdk/git/repo.proto",
+        "sdk/git/worktree.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/kv/world": {
       "hash": "0f1a4dfdcd9557d249f80773cdaaa9a7eb8e463af58332439d7f292aacb39656",
@@ -2767,7 +3506,9 @@
         "sdk/kv/world/world.pb.go",
         "sdk/kv/world/world.pb.ts"
       ],
-      "protoFiles": ["sdk/kv/world/world.proto"]
+      "protoFiles": [
+        "sdk/kv/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/layout": {
       "hash": "fd38937e5b59a969428fb01baf22851bd16ff7bfa036896f46f47fd0988e365a",
@@ -2777,7 +3518,9 @@
         "sdk/layout/layout_srpc.pb.go",
         "sdk/layout/layout_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/layout/layout.proto"]
+      "protoFiles": [
+        "sdk/layout/layout.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/layout/world": {
       "hash": "df4e1a4662be3a4cc6bcdc417dfb2c7df8a5423c2c86ad5e89b4949d5effb182",
@@ -2785,7 +3528,9 @@
         "sdk/layout/world/world.pb.go",
         "sdk/layout/world/world.pb.ts"
       ],
-      "protoFiles": ["sdk/layout/world/world.proto"]
+      "protoFiles": [
+        "sdk/layout/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/objecttype/registry": {
       "hash": "5bcea4a33d7f43aaed84bf86f2d272e7b7f51b487ef06587ed041ade5a81d5a8",
@@ -2795,7 +3540,9 @@
         "sdk/objecttype/registry/registry_srpc.pb.go",
         "sdk/objecttype/registry/registry_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/objecttype/registry/registry.proto"]
+      "protoFiles": [
+        "sdk/objecttype/registry/registry.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/org": {
       "hash": "c5dd58831885b6eaf7304987e5eed975b954c01747aa34d79296bd46f41516fc",
@@ -2805,7 +3552,9 @@
         "sdk/org/org_srpc.pb.go",
         "sdk/org/org_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/org/org.proto"]
+      "protoFiles": [
+        "sdk/org/org.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/process": {
       "hash": "ac0035e41b71286f582b5695193712e33e9be718330eac2cedbb1c9f91af8bfa",
@@ -2817,7 +3566,10 @@
         "sdk/process/process_srpc.pb.go",
         "sdk/process/process_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/process/binding.proto", "sdk/process/process.proto"]
+      "protoFiles": [
+        "sdk/process/binding.proto",
+        "sdk/process/process.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/provider": {
       "hash": "73593cb1345abc82415e699a256180c5fa57505be878351d988baf2ffe7f29af",
@@ -2827,7 +3579,9 @@
         "sdk/provider/provider_srpc.pb.go",
         "sdk/provider/provider_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/provider/provider.proto"]
+      "protoFiles": [
+        "sdk/provider/provider.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/provider/local": {
       "hash": "0df6122cfbc51aa414ac4bd82c6e0cd52e499606a85c4473191e6f9d425cc2c3",
@@ -2837,7 +3591,9 @@
         "sdk/provider/local/local_srpc.pb.go",
         "sdk/provider/local/local_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/provider/local/local.proto"]
+      "protoFiles": [
+        "sdk/provider/local/local.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/provider/spacewave": {
       "hash": "787b168151e9ea1684afe35e689a13db5623433615806c9c80a025799f399e2b",
@@ -2847,7 +3603,9 @@
         "sdk/provider/spacewave/spacewave_srpc.pb.go",
         "sdk/provider/spacewave/spacewave_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/provider/spacewave/spacewave.proto"]
+      "protoFiles": [
+        "sdk/provider/spacewave/spacewave.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/quickstart/registry": {
       "hash": "e8841a98c09529d7267e0679b391ce42921116c05adbcc7a3cb63770253d9611",
@@ -2857,7 +3615,9 @@
         "sdk/quickstart/registry/registry_srpc.pb.go",
         "sdk/quickstart/registry/registry_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/quickstart/registry/registry.proto"]
+      "protoFiles": [
+        "sdk/quickstart/registry/registry.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/root": {
       "hash": "5aeebb71216eceb3652cf73233461310579c3b61b55a062f9857d93958cda37e",
@@ -2867,7 +3627,9 @@
         "sdk/root/root_srpc.pb.go",
         "sdk/root/root_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/root/root.proto"]
+      "protoFiles": [
+        "sdk/root/root.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/secret": {
       "hash": "0017714fe83010bd9a944bf6213dd1623ed4f55e29ca02e9463a0c0d09c75777",
@@ -2877,7 +3639,9 @@
         "sdk/secret/secret_srpc.pb.go",
         "sdk/secret/secret_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/secret/secret.proto"]
+      "protoFiles": [
+        "sdk/secret/secret.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/session": {
       "hash": "3f6cf63d532e9d3c1e89542dc2f56c2637a1a85ef65304be0609c5b8271089c4",
@@ -2914,7 +3678,9 @@
         "sdk/sobject/sobject_srpc.pb.go",
         "sdk/sobject/sobject_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/sobject/sobject.proto"]
+      "protoFiles": [
+        "sdk/sobject/sobject.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/space": {
       "hash": "88ecf14150812c0f6ecdd6685a925b0f22732726c7881c93f9ca115cb37672bf",
@@ -2924,7 +3690,9 @@
         "sdk/space/space_srpc.pb.go",
         "sdk/space/space_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/space/space.proto"]
+      "protoFiles": [
+        "sdk/space/space.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sql/query": {
       "hash": "798bd44ee664c23c35e0a158ec3dd20ed1bb856128857b4702c5384f5bce3eb5",
@@ -2934,7 +3702,9 @@
         "sdk/sql/query/query_srpc.pb.go",
         "sdk/sql/query/query_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/sql/query/query.proto"]
+      "protoFiles": [
+        "sdk/sql/query/query.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sql/query-result": {
       "hash": "3e59406297e6dcc9dc8b476e28225a6fd8b512a507c4a4d38ca1839f773d13d7",
@@ -2944,7 +3714,9 @@
         "sdk/sql/query-result/query-result_srpc.pb.go",
         "sdk/sql/query-result/query-result_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/sql/query-result/query-result.proto"]
+      "protoFiles": [
+        "sdk/sql/query-result/query-result.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sql/query-result/world": {
       "hash": "df781769f7734c63fa8261678cab34fad56debe9307c519a4cd3f1363fdb3fbf",
@@ -2952,7 +3724,9 @@
         "sdk/sql/query-result/world/world.pb.go",
         "sdk/sql/query-result/world/world.pb.ts"
       ],
-      "protoFiles": ["sdk/sql/query-result/world/world.proto"]
+      "protoFiles": [
+        "sdk/sql/query-result/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sql/query/world": {
       "hash": "74715e4c8b3b9a0babb54d3227d435d04f7d8a8f6221f9e62e09cb20f3e44fd0",
@@ -2960,7 +3734,9 @@
         "sdk/sql/query/world/world.pb.go",
         "sdk/sql/query/world/world.pb.ts"
       ],
-      "protoFiles": ["sdk/sql/query/world/world.proto"]
+      "protoFiles": [
+        "sdk/sql/query/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sql/schema": {
       "hash": "a29770e87d9542ff77d034ce4b8b78b58d140e6fdcd68086cdca73a3109e1c79",
@@ -2970,7 +3746,9 @@
         "sdk/sql/schema/schema_srpc.pb.go",
         "sdk/sql/schema/schema_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/sql/schema/schema.proto"]
+      "protoFiles": [
+        "sdk/sql/schema/schema.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sql/schema/world": {
       "hash": "28da4df20da60dcf4a4fbb5ee24057e0ea36207f890fee24cff457491a5f4e8a",
@@ -2978,7 +3756,9 @@
         "sdk/sql/schema/world/world.pb.go",
         "sdk/sql/schema/world/world.pb.ts"
       ],
-      "protoFiles": ["sdk/sql/schema/world/world.proto"]
+      "protoFiles": [
+        "sdk/sql/schema/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sql/table-view": {
       "hash": "2f3da559eccff52e59eac6686b07e9625610747bf094645eaa639310e0d7f3e0",
@@ -2988,7 +3768,9 @@
         "sdk/sql/table-view/table-view_srpc.pb.go",
         "sdk/sql/table-view/table-view_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/sql/table-view/table-view.proto"]
+      "protoFiles": [
+        "sdk/sql/table-view/table-view.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sql/table-view/world": {
       "hash": "7febd0f235cc34690312145508935e089b3103abfa211424ad230b5286e2dfff",
@@ -2996,7 +3778,9 @@
         "sdk/sql/table-view/world/world.pb.go",
         "sdk/sql/table-view/world/world.pb.ts"
       ],
-      "protoFiles": ["sdk/sql/table-view/world/world.proto"]
+      "protoFiles": [
+        "sdk/sql/table-view/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sql/workbench": {
       "hash": "6eebb398b7ee42a1a503d0a9b6c794aef40d20637a8a8424c9e4fe8281ccd09f",
@@ -3006,7 +3790,9 @@
         "sdk/sql/workbench/workbench_srpc.pb.go",
         "sdk/sql/workbench/workbench_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/sql/workbench/workbench.proto"]
+      "protoFiles": [
+        "sdk/sql/workbench/workbench.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sql/workbench/world": {
       "hash": "fe2ec0178bc8b16868e7679135a372bbd37be64c3bd1c79a60b03e76e507e4b8",
@@ -3014,7 +3800,9 @@
         "sdk/sql/workbench/world/world.pb.go",
         "sdk/sql/workbench/world/world.pb.ts"
       ],
-      "protoFiles": ["sdk/sql/workbench/world/world.proto"]
+      "protoFiles": [
+        "sdk/sql/workbench/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sql/world": {
       "hash": "4e92d51c8a67dca5b0c52781be527357bddd80942bb8c909503b4cd30e8246aa",
@@ -3022,7 +3810,9 @@
         "sdk/sql/world/world.pb.go",
         "sdk/sql/world/world.pb.ts"
       ],
-      "protoFiles": ["sdk/sql/world/world.proto"]
+      "protoFiles": [
+        "sdk/sql/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/sshhost": {
       "hash": "6485936bc9a4bca3763ab6162a25cd72c9fdb80e39d2ad15609c2883f69633df",
@@ -3032,7 +3822,9 @@
         "sdk/sshhost/sshhost_srpc.pb.go",
         "sdk/sshhost/sshhost_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/sshhost/sshhost.proto"]
+      "protoFiles": [
+        "sdk/sshhost/sshhost.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/status": {
       "hash": "16bf10b99bb17fc63b6066380f7939a9ae51f3759b617b43af82e672ca2070c2",
@@ -3042,7 +3834,9 @@
         "sdk/status/status_srpc.pb.go",
         "sdk/status/status_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/status/status.proto"]
+      "protoFiles": [
+        "sdk/status/status.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/terminal": {
       "hash": "8631d8a557a41406a1f4c63bd93374c369229b1c7aca81a15f2dc4cbfa180e8d",
@@ -3052,7 +3846,9 @@
         "sdk/terminal/terminal_srpc.pb.go",
         "sdk/terminal/terminal_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/terminal/terminal.proto"]
+      "protoFiles": [
+        "sdk/terminal/terminal.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/testbed": {
       "hash": "6fdb236d08f006ec029563383861b6a7cdd1c0ba79030f3cc544e10365264c56",
@@ -3062,7 +3858,9 @@
         "sdk/testbed/testbed_srpc.pb.go",
         "sdk/testbed/testbed_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/testbed/testbed.proto"]
+      "protoFiles": [
+        "sdk/testbed/testbed.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/trace": {
       "hash": "3fa94a40da16f0d249a26b7c934cf3e69d60313f896d4db4d6897fc62570910c",
@@ -3072,7 +3870,9 @@
         "sdk/trace/trace_srpc.pb.go",
         "sdk/trace/trace_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/trace/trace.proto"]
+      "protoFiles": [
+        "sdk/trace/trace.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/unixfs": {
       "hash": "e0ebda8355be81ee17b710173375a3796af230d798da9c0c83fa2c374daa859e",
@@ -3082,7 +3882,9 @@
         "sdk/unixfs/handle_srpc.pb.go",
         "sdk/unixfs/handle_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/unixfs/handle.proto"]
+      "protoFiles": [
+        "sdk/unixfs/handle.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/viewer/registry": {
       "hash": "87350cd39b8ebfecfc3ac3325464e765fda03bbb85585662e5466cd749d9a84f",
@@ -3092,7 +3894,9 @@
         "sdk/viewer/registry/registry_srpc.pb.go",
         "sdk/viewer/registry/registry_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/viewer/registry/registry.proto"]
+      "protoFiles": [
+        "sdk/viewer/registry/registry.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/vm": {
       "hash": "9e685d76405e22c4670ed34371cc75c70540afd5c34dece9dc2940f8402147f7",
@@ -3106,7 +3910,10 @@
         "sdk/vm/v86_srpc.pb.go",
         "sdk/vm/v86_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/vm/v86-wizard.proto", "sdk/vm/v86.proto"]
+      "protoFiles": [
+        "sdk/vm/v86-wizard.proto",
+        "sdk/vm/v86.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/world": {
       "hash": "128bc54b56c53960409a950773d76e75ba973db2144fc7440d4148ded769d5a3",
@@ -3116,7 +3923,9 @@
         "sdk/world/world_srpc.pb.go",
         "sdk/world/world_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/world/world.proto"]
+      "protoFiles": [
+        "sdk/world/world.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/world/wizard": {
       "hash": "733f85459f3396d9603acc7201c9caf7a6e71056265f93454bb62a44e8cead17",
@@ -3126,7 +3935,9 @@
         "sdk/world/wizard/wizard_srpc.pb.go",
         "sdk/world/wizard/wizard_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/world/wizard/wizard.proto"]
+      "protoFiles": [
+        "sdk/world/wizard/wizard.proto"
+      ]
     },
     "github.com/s4wave/spacewave/sdk/worldop/registry": {
       "hash": "9e3c7a0bd1f04b4660f36f4d1944a02322d06d2fc87beef64efc1d346d1330a9",
@@ -3136,12 +3947,19 @@
         "sdk/worldop/registry/registry_srpc.pb.go",
         "sdk/worldop/registry/registry_srpc.pb.ts"
       ],
-      "protoFiles": ["sdk/worldop/registry/registry.proto"]
+      "protoFiles": [
+        "sdk/worldop/registry/registry.proto"
+      ]
     },
     "github.com/s4wave/spacewave/web/object": {
       "hash": "053f755915426494b49ed7c785d86528a8421cc8fa414e217d66a03b98c07640",
-      "generatedFiles": ["web/object/object.pb.go", "web/object/object.pb.ts"],
-      "protoFiles": ["web/object/object.proto"]
+      "generatedFiles": [
+        "web/object/object.pb.go",
+        "web/object/object.pb.ts"
+      ],
+      "protoFiles": [
+        "web/object/object.proto"
+      ]
     }
   }
 }

@@ -81,7 +81,10 @@ type TestWebDocument = {
     init: Uint8Array,
     port: MessagePort,
   ): Promise<void>
-  removeWebWorker(request: { id: string }): Promise<unknown>
+  removeWebWorker(request: {
+    id: string
+    generation?: string
+  }): Promise<unknown>
   taskEnsureWebRuntimeConn(): void
   webDocumentLivenessLockState?: 'idle' | 'pending' | 'held'
   webRuntimeClient: {
@@ -196,6 +199,7 @@ function buildTestWorker(port: MessagePort = {} as MessagePort): Record<
   ready: boolean
   plugin: boolean
   generationState: WebWorkerGenerationState
+  generation: string
   failureReason?: string
   setGenerationState(
     generationState: WebWorkerGenerationState,
@@ -209,6 +213,7 @@ function buildTestWorker(port: MessagePort = {} as MessagePort): Record<
     ready: false,
     plugin: true,
     generationState: WebWorkerGenerationState.STARTUP_RUNNING,
+    generation: '',
     setGenerationState(
       generationState: WebWorkerGenerationState,
       failureReason?: string,
@@ -896,6 +901,7 @@ describe('WebDocument plugin generation state', () => {
       false,
       undefined,
       WebWorkerGenerationState.FRONTEND_READY,
+      '',
     )
     expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
       'worker-1',
@@ -904,6 +910,7 @@ describe('WebDocument plugin generation state', () => {
       false,
       undefined,
       WebWorkerGenerationState.CAPABILITY_READY,
+      '',
     )
     expect(doc.notifyWebWorkerUpdated).toHaveBeenCalledWith(
       'worker-1',
@@ -912,6 +919,7 @@ describe('WebDocument plugin generation state', () => {
       true,
       undefined,
       WebWorkerGenerationState.RUNNING,
+      '',
     )
   })
 
@@ -940,6 +948,7 @@ describe('WebDocument plugin generation state', () => {
       false,
       'fatal wasm exit',
       WebWorkerGenerationState.TERMINAL_FAILURE,
+      '',
     )
   })
 
@@ -966,6 +975,7 @@ describe('WebDocument plugin generation state', () => {
       false,
       'StreamResetError: stream reset',
       WebWorkerGenerationState.CONTROLLED_STREAM_RESET,
+      '',
     )
   })
 
@@ -992,6 +1002,7 @@ describe('WebDocument plugin generation state', () => {
       false,
       'startup timeout waiting for capability',
       WebWorkerGenerationState.STARTUP_TIMEOUT,
+      '',
     )
   })
 
@@ -1017,6 +1028,7 @@ describe('WebDocument plugin generation state', () => {
       true,
       undefined,
       WebWorkerGenerationState.RUNNING,
+      '',
     )
   })
 
@@ -1270,7 +1282,29 @@ describe('WebDocument plugin generation state', () => {
       true,
       undefined,
       WebWorkerGenerationState.NORMAL_STOP,
+      '',
     )
+  })
+
+  it('does not remove a replacement worker through a stale generation', async () => {
+    const doc = buildTestWebDocument()
+    const replacement = buildTestWorker()
+    replacement.generation = 'generation-b'
+    doc.webWorkers = {
+      'worker-1': replacement,
+    }
+
+    await expect(
+      doc.removeWebWorker({ id: 'worker-1', generation: 'generation-a' }),
+    ).resolves.toEqual({ removed: false })
+
+    expect(doc.webWorkers['worker-1']).toBe(replacement)
+    expect(replacement.close).not.toHaveBeenCalled()
+
+    await expect(
+      doc.removeWebWorker({ id: 'worker-1', generation: 'generation-b' }),
+    ).resolves.toEqual({ removed: true })
+    expect(replacement.close).toHaveBeenCalledOnce()
   })
 
   it('retains the SharedWorker construction path behind the hard-disable', async () => {
@@ -1574,6 +1608,7 @@ describe('WebDocument plugin generation state', () => {
   it('includes generation state and failure classification in status snapshots', async () => {
     const doc = buildTestWebDocument()
     const worker = buildTestWorker()
+    worker.generation = 'generation-a'
     worker.setGenerationState(
       WebWorkerGenerationState.TERMINAL_FAILURE,
       'fatal wasm exit',
@@ -1589,6 +1624,7 @@ describe('WebDocument plugin generation state', () => {
           failed: true,
           failureReason: 'fatal wasm exit',
           generationState: WebWorkerGenerationState.TERMINAL_FAILURE,
+          generation: 'generation-a',
         },
       ],
     })
@@ -1695,6 +1731,7 @@ describe('WebDocument SAB pair broker', () => {
       true,
       undefined,
       WebWorkerGenerationState.RUNNING,
+      '',
     )
   })
 
@@ -1872,6 +1909,7 @@ describe('WebDocument SAB pair broker', () => {
       true,
       'fatal wasm exit',
       WebWorkerGenerationState.TERMINAL_FAILURE,
+      '',
     )
   })
 })

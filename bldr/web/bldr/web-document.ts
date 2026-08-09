@@ -195,6 +195,7 @@ class WebDocumentWebWorker {
 
   constructor(
     public readonly id: string,
+    public readonly generation: string,
     // path is the path to the user's worker script.
     public readonly path: string,
     // sharedWorkerPath is the path to the bldr shared worker script (shw.mjs).
@@ -1392,6 +1393,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         shared: this.webWorkers[id].isShared,
         ready: this.webWorkers[id].ready,
         generationState: this.webWorkers[id].generationState,
+        generation: this.webWorkers[id].generation,
         failed: isFailedWorkerGenerationState(
           this.webWorkers[id].generationState,
         ),
@@ -1518,6 +1520,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       false,
       undefined,
       WebWorkerGenerationState.WORKER_REQUESTED,
+      request.generation ?? '',
     )
 
     markStartupBoundary('worker.create-dispatch-start', {
@@ -1535,6 +1538,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     })
     const worker = new WebDocumentWebWorker(
       request.id,
+      request.generation ?? '',
       request.path,
       this.sharedWorkerPath,
       this.webDocumentUuid,
@@ -1555,6 +1559,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       false,
       undefined,
       worker.generationState,
+      worker.generation,
     )
     worker.setGenerationState(WebWorkerGenerationState.STARTUP_RUNNING)
     this.notifyWebWorkerUpdated(
@@ -1564,6 +1569,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       false,
       undefined,
       worker.generationState,
+      worker.generation,
     )
     markStartupBoundary('worker.create-ready', {
       source: 'browser',
@@ -1587,7 +1593,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     if (!request.id) {
       throw new Error('web worker id is required')
     }
-    const old = this.webWorkers[request.id]
+    const current = this.webWorkers[request.id]
+    const old =
+      current?.generation === (request.generation ?? '') ? current : undefined
     const activeWorkerCountBefore = Object.keys(this.webWorkers).length
     markStartupBoundary('worker.remove-request-received', {
       source: 'browser',
@@ -1613,6 +1621,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         old.ready,
         undefined,
         old.generationState,
+        old.generation,
       )
     }
     markStartupBoundary('worker.remove-ready', {
@@ -1889,6 +1898,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     ready: boolean,
     failureReason?: string,
     generationState = WebWorkerGenerationState.UNKNOWN,
+    generation = '',
   ) {
     if (this.closed) {
       return
@@ -1908,6 +1918,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           failed,
           failureReason,
           generationState,
+          generation,
         },
       ],
     }
@@ -2258,6 +2269,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         worker.ready,
         failureReason,
         worker.generationState,
+        worker.generation,
       )
       return
     }
@@ -2276,6 +2288,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           false,
           undefined,
           worker.generationState,
+          worker.generation,
         )
         this.markPluginStartupBoundary(
           workerID,
@@ -2296,6 +2309,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           false,
           undefined,
           worker.generationState,
+          worker.generation,
         )
         this.markPluginStartupBoundary(
           workerID,
@@ -2341,6 +2355,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         true,
         undefined,
         worker.generationState,
+        worker.generation,
       )
       return
     }

@@ -304,6 +304,7 @@ func (h *WebHost) ExecutePlugin(
 			Path:       pluginWebWorkerPath,
 			WorkerMode: workerMode,
 			InitData:   pluginStartInfoBin,
+			Generation: pluginInstanceID,
 		})
 		if err != nil {
 			workerOwner.observeCreateFailed(webDocumentID)
@@ -351,7 +352,7 @@ func (h *WebHost) ExecutePlugin(
 		return nil
 	}
 
-	removeWorkerInstances := func(ctx context.Context, doc web_document.WebDocument) (map[string]web_worker.WebWorker, error) {
+	removeWorkerInstances := func(ctx context.Context, doc web_document.WebDocument, generation string) (map[string]web_worker.WebWorker, error) {
 		// Remove any old instances of the web worker.
 		docWebWorkers, err := doc.GetWebWorkers(ctx)
 		if err != nil {
@@ -360,7 +361,8 @@ func (h *WebHost) ExecutePlugin(
 
 		docWebWorkers = maps.Clone(docWebWorkers)
 		for id, worker := range docWebWorkers {
-			if worker.GetId() != pluginWebWorkerID {
+			if worker.GetId() != pluginWebWorkerID ||
+				(generation != "" && worker.GetGeneration() != generation) {
 				delete(docWebWorkers, id)
 				continue
 			}
@@ -394,7 +396,7 @@ func (h *WebHost) ExecutePlugin(
 		defer cleanupCtxCancel()
 
 		for cleanupCtx.Err() == nil {
-			removedInstances, err := removeWorkerInstances(ctx, doc)
+			removedInstances, err := removeWorkerInstances(ctx, doc, "")
 			if err != nil {
 				return err
 			}
@@ -457,7 +459,7 @@ func (h *WebHost) ExecutePlugin(
 					if worker.GetDeleted() {
 						continue
 					}
-					if worker.GetId() == pluginWebWorkerID {
+					if worker.GetId() == pluginWebWorkerID && worker.GetGeneration() == pluginInstanceID {
 						workerInstance = worker
 						break
 					}
@@ -493,7 +495,7 @@ func (h *WebHost) ExecutePlugin(
 			var retErr error
 			var nOldInstances int
 			for _, doc := range docs {
-				oldInstances, err := removeWorkerInstances(ctx, doc)
+				oldInstances, err := removeWorkerInstances(ctx, doc, pluginInstanceID)
 				if err != nil {
 					retErr = err
 				}
