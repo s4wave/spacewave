@@ -30,8 +30,7 @@ describe('CanvasTextNode', () => {
     const pre = screen.getByText('Edit me')
     await user.dblClick(pre)
 
-    // Should now show a textarea.
-    const textarea = document.querySelector('textarea')
+    const textarea = screen.getByLabelText('Canvas text') as HTMLTextAreaElement
     expect(textarea).toBeTruthy()
     expect(textarea?.value).toBe('Edit me')
   })
@@ -43,7 +42,6 @@ describe('CanvasTextNode', () => {
     const pre = screen.getByText('Read only')
     await user.dblClick(pre)
 
-    // Should still be a pre, not a textarea.
     const textarea = document.querySelector('textarea')
     expect(textarea).toBeFalsy()
   })
@@ -53,16 +51,13 @@ describe('CanvasTextNode', () => {
     const onChange = vi.fn()
     render(<CanvasTextNode content="Original" onChange={onChange} />)
 
-    // Enter edit mode.
     const pre = screen.getByText('Original')
     await user.dblClick(pre)
 
-    // Type new content.
     const textarea = document.querySelector('textarea') as HTMLTextAreaElement
     await user.clear(textarea)
     await user.type(textarea, 'Updated')
 
-    // Blur to commit.
     fireEvent.blur(textarea)
 
     expect(onChange).toHaveBeenCalledWith('Updated')
@@ -80,13 +75,10 @@ describe('CanvasTextNode', () => {
     await user.clear(textarea)
     await user.type(textarea, 'Changed')
 
-    // Press Escape to cancel.
     await user.keyboard('{Escape}')
 
-    // onChange should NOT be called (escape cancels).
     expect(onChange).not.toHaveBeenCalled()
 
-    // Should return to view mode.
     expect(document.querySelector('textarea')).toBeFalsy()
     expect(screen.getByText('Original')).toBeTruthy()
   })
@@ -103,7 +95,6 @@ describe('CanvasTextNode', () => {
     await user.clear(textarea)
     await user.type(textarea, 'New text')
 
-    // Ctrl+Enter to commit.
     await user.keyboard('{Control>}{Enter}{/Control}')
 
     expect(onChange).toHaveBeenCalledWith('New text')
@@ -117,7 +108,6 @@ describe('CanvasTextNode', () => {
     const pre = screen.getByText('Same')
     await user.dblClick(pre)
 
-    // Blur without changing.
     const textarea = document.querySelector('textarea') as HTMLTextAreaElement
     fireEvent.blur(textarea)
 

@@ -11,8 +11,6 @@ function makeActions(): Record<CanvasAction, () => void> {
     delete: vi.fn(),
     copy: vi.fn(),
     paste: vi.fn(),
-    undo: vi.fn(),
-    redo: vi.fn(),
     'select-all': vi.fn(),
     deselect: vi.fn(),
     'zoom-in': vi.fn(),
@@ -162,7 +160,6 @@ describe('CanvasToolbar', () => {
         actions={makeActions()}
       />,
     )
-    // Separator is a div with bg-foreground/6 class.
     const separator = document.querySelector('.bg-foreground\\/6')
     expect(separator).toBeTruthy()
   })

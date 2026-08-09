@@ -4,7 +4,6 @@ import { startTransition, useCallback, useMemo, useState } from 'react'
 import { useAbortSignalEffect } from '@aptre/bldr-react'
 import { CanvasHandle } from '@s4wave/sdk/canvas/canvas.js'
 import {
-  NodeType,
   EdgeStyle,
   type CanvasNode as ProtoCanvasNode,
   type CanvasEdge as ProtoCanvasEdge,
@@ -31,7 +30,6 @@ import type {
   CanvasLayoutMetadataData,
   CanvasCallbacks,
   EphemeralEdge,
-  NodeType as CanvasNodeType,
   EdgeStyle as CanvasEdgeStyle,
 } from '../types.js'
 import {
@@ -47,6 +45,10 @@ import { deleteCanvasGraphLink } from './graphLinkActions.js'
 import { isCanvasInsertableObject } from './object-picker.js'
 import { CanvasTypeID } from '../type.js'
 import { getUnixFSImageSubItems } from '../unixfs-image-sub-items.js'
+import {
+  canvasNodeFromPersistedProto,
+  canvasNodeToProto,
+} from '../canvas-node-proto.js'
 
 export { CanvasTypeID }
 
@@ -55,36 +57,6 @@ const graphLinkLookupLimit = 100
 function isAbortError(err: unknown): boolean {
   if (!(err instanceof Error)) return false
   return err.name === 'AbortError' || err.message === 'ERR_RPC_ABORT'
-}
-
-// protoNodeTypeToCanvas converts proto NodeType to canvas NodeType.
-function protoNodeTypeToCanvas(t: NodeType): CanvasNodeType {
-  switch (t) {
-    case NodeType.TEXT:
-      return 'text'
-    case NodeType.SHAPE:
-      return 'shape'
-    case NodeType.WORLD_OBJECT:
-      return 'world_object'
-    case NodeType.DRAWING:
-      return 'drawing'
-    default:
-      return 'text'
-  }
-}
-
-// canvasNodeTypeToProto converts canvas NodeType to proto NodeType.
-function canvasNodeTypeToProto(t: CanvasNodeType): NodeType {
-  switch (t) {
-    case 'text':
-      return NodeType.TEXT
-    case 'shape':
-      return NodeType.SHAPE
-    case 'world_object':
-      return NodeType.WORLD_OBJECT
-    case 'drawing':
-      return NodeType.DRAWING
-  }
 }
 
 // protoEdgeStyleToCanvas converts proto EdgeStyle to canvas EdgeStyle.
@@ -105,21 +77,8 @@ function protoToCanvasState(
   layoutMetadata: Record<string, ProtoCanvasLayoutMetadata>,
 ): CanvasStateData {
   const nodeMap = new Map<string, CanvasNodeData>()
-  for (const [id, n] of Object.entries(nodes)) {
-    nodeMap.set(id, {
-      id,
-      x: n.x ?? 0,
-      y: n.y ?? 0,
-      width: n.width ?? 200,
-      height: n.height ?? 150,
-      zIndex: n.zIndex ?? 0,
-      type: protoNodeTypeToCanvas(n.type ?? NodeType.UNKNOWN),
-      textContent: n.textContent || undefined,
-      shapeData: n.shapeData?.length ? n.shapeData : undefined,
-      objectKey: n.objectKey || undefined,
-      pinned: n.pinned,
-      viewPath: n.viewPath || undefined,
-    })
+  for (const [id, node] of Object.entries(nodes)) {
+    nodeMap.set(id, canvasNodeFromPersistedProto(node, id))
   }
   const edgeList: CanvasEdgeData[] = edges.map((e) => ({
     id: e.id ?? '',
@@ -151,24 +110,6 @@ function protoToCanvasState(
     edges: edgeList,
     hiddenGraphLinks: hiddenLinkList,
     layoutMetadata: layoutMetadataMap,
-  }
-}
-
-// canvasNodeToProto converts a canvas node to proto format.
-function canvasNodeToProto(n: CanvasNodeData): ProtoCanvasNode {
-  return {
-    id: n.id,
-    x: n.x,
-    y: n.y,
-    width: n.width,
-    height: n.height,
-    zIndex: n.zIndex,
-    type: canvasNodeTypeToProto(n.type),
-    textContent: n.textContent ?? '',
-    shapeData: n.shapeData ?? new Uint8Array(),
-    objectKey: n.objectKey ?? '',
-    pinned: n.pinned ?? false,
-    viewPath: n.viewPath ?? '',
   }
 }
 

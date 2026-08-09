@@ -1,37 +1,30 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react'
 import { useGesture } from '@use-gesture/react'
+
+import gridPattern from '@s4wave/web/images/patterns/grid.png'
 
 import type { Viewport, CanvasTool } from './types.js'
 import { MIN_SCALE, MAX_SCALE } from './types.js'
-import gridPattern from '@s4wave/web/images/patterns/grid.png'
 
-// PAN_THROTTLE_MS is how often React state is flushed during pan-only
-// gestures. DOM transforms are applied immediately; this controls how
-// often culling (useVisibleNodes) and other React-dependent consumers
-// re-evaluate.
 const PAN_THROTTLE_MS = 150
 
-// SETTLE_MS is the idle delay after the last viewport update before
-// will-change is removed from the transform layer. Removing will-change
-// forces the browser to re-rasterize at the current scale, producing
-// crisp text. During active gestures will-change stays on for smooth
-// GPU-composited animation.
 const SETTLE_MS = 200
 
-// clampScale clamps a scale value to the allowed range.
 function clampScale(s: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, s))
 }
 
-// GRID_TILE_PX is the grid tile size in pixels at scale 1.
 const GRID_TILE_PX = 24
 
-// GRID_BKG_IMAGE is the tiling grid pattern.
 const GRID_BKG_IMAGE = `url(${gridPattern})`
 
-// computeGridStyle computes the grid background properties for a viewport.
-// The grid PNG tiles at GRID_TILE_PX scaled by the viewport zoom factor
-// so dots track the canvas transform layer exactly.
 export function computeGridStyle(v: Viewport): {
   backgroundColor: string
   backgroundImage: string
@@ -49,32 +42,27 @@ export function computeGridStyle(v: Viewport): {
   }
 }
 
-// DragSelectHandler is called during shift+drag for box selection.
 export interface DragSelectHandler {
   onStart: (x: number, y: number) => void
   onMove: (x: number, y: number) => void
   onEnd: () => void
 }
 
-// UseCanvasViewportOptions are options for useCanvasViewport.
 export interface UseCanvasViewportOptions {
   tool?: CanvasTool
   dragSelect?: DragSelectHandler
-  containerRef?: React.RefObject<HTMLDivElement | null>
+  containerRef?: RefObject<HTMLDivElement | null>
 }
 
-// UseCanvasViewportResult is the return type of useCanvasViewport.
 export interface UseCanvasViewportResult {
   viewport: Viewport
   setViewport: (v: Viewport) => void
-  containerRef: React.RefObject<HTMLDivElement | null>
-  gestureLayerRef: React.RefObject<HTMLDivElement | null>
-  transformLayerRef: React.RefObject<HTMLDivElement | null>
-  gridLayerRef: React.RefObject<HTMLDivElement | null>
+  containerRef: RefObject<HTMLDivElement | null>
+  gestureLayerRef: RefObject<HTMLDivElement | null>
+  transformLayerRef: RefObject<HTMLDivElement | null>
+  gridLayerRef: RefObject<HTMLDivElement | null>
 }
 
-// applyDomTransform writes viewport transform and grid style directly
-// to the DOM, bypassing React renders for smooth pan/zoom.
 function applyDomTransform(
   v: Viewport,
   transformLayer: HTMLDivElement | null,
@@ -92,7 +80,6 @@ function applyDomTransform(
   }
 }
 
-// useCanvasViewport manages viewport pan/zoom state with gesture bindings.
 export function useCanvasViewport(
   options?: UseCanvasViewportOptions,
 ): UseCanvasViewportResult {
@@ -163,7 +150,6 @@ export function useCanvasViewport(
       const scaleChanged = v.scale !== viewportRef.current.scale
       viewportRef.current = v
 
-      // Enable GPU compositing during active gestures.
       const tl = transformLayerRef.current
       if (tl && !tl.style.willChange) {
         tl.style.willChange = 'transform'
@@ -177,8 +163,6 @@ export function useCanvasViewport(
         schedulePanFlush(v)
       }
 
-      // Reset the settle timer. When it fires, remove will-change to
-      // force re-rasterization at the current scale (crisp text).
       if (settleTimerRef.current) clearTimeout(settleTimerRef.current)
       settleTimerRef.current = setTimeout(() => {
         settleTimerRef.current = null
@@ -208,7 +192,6 @@ export function useCanvasViewport(
       const prev = viewportRef.current
       const clamped = clampScale(newScale)
 
-      // Zoom toward the pointer position.
       const nx = px - ((px - prev.x) / prev.scale) * clamped
       const ny = py - ((py - prev.y) / prev.scale) * clamped
 
@@ -228,7 +211,6 @@ export function useCanvasViewport(
   useGesture(
     {
       onDrag: ({ delta: [dx, dy], first, last, event, xy: [x, y] }) => {
-        // Only pan when using the select tool.
         if (toolRef.current !== 'select') return
 
         const shiftKey =
@@ -236,7 +218,6 @@ export function useCanvasViewport(
             ? event.shiftKey
             : false
 
-        // Shift+drag starts box selection instead of panning.
         if (first && shiftKey && options?.dragSelect) {
           dragSelectRef.current = true
           const rect = containerRef.current?.getBoundingClientRect()
@@ -279,13 +260,9 @@ export function useCanvasViewport(
     },
   )
 
-  // Wheel and pinch gestures on the main container (works everywhere
-  // including over nodes since wheel/pinch events bubble normally).
   useGesture(
     {
       onWheel: ({ event, delta: [, dy] }) => {
-        // Let scroll pass through to interactive content (e.g. ObjectViewer
-        // inside canvas nodes) instead of zooming the viewport.
         const target = event.target
         if (
           target instanceof Element &&

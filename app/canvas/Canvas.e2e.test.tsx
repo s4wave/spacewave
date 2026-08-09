@@ -11,7 +11,6 @@ import type {
   CanvasCallbacks,
 } from './types.js'
 
-// makeNode creates a CanvasNodeData with sensible defaults.
 function makeNode(
   overrides: Partial<CanvasNodeData> & { id: string },
 ): CanvasNodeData {
@@ -27,7 +26,6 @@ function makeNode(
   }
 }
 
-// TestCanvas wraps Canvas with mutable state so mutations are reflected.
 function TestCanvas({ initialNodes }: { initialNodes: CanvasNodeData[] }) {
   const [state, setState] = useState<CanvasStateData>(() => ({
     nodes: new Map(initialNodes.map((n) => [n.id, n])),
@@ -60,7 +58,6 @@ function TestCanvas({ initialNodes }: { initialNodes: CanvasNodeData[] }) {
   )
 }
 
-// pointerDrag dispatches a pointerdown, multiple pointermove, and pointerup sequence.
 function pointerDrag(
   el: Element,
   from: { x: number; y: number },
@@ -113,25 +110,20 @@ describe('Canvas node drag does not pan viewport', () => {
     const nodeA = makeNode({ id: 'a', x: 100, y: 100, width: 200, height: 150 })
     await render(<TestCanvas initialNodes={[nodeA]} />)
 
-    // Wait for node to render.
     const nodeEl = await vi.waitFor(() => {
       const el = document.querySelector('[data-canvas-node="a"]')
       expect(el).toBeTruthy()
       return el!
     })
 
-    // Get the transform container (parent of nodes).
     const viewport = document.querySelector('[data-testid="canvas-viewport"]')!
     const transformDiv = viewport.querySelector('[style*="transform"]')!
     const initialTransform = (transformDiv as HTMLElement).style.transform
 
-    // Drag the node 50px right and 30px down.
     pointerDrag(nodeEl, { x: 100, y: 75 }, { x: 150, y: 105 })
 
-    // Wait a tick for any state updates.
     await new Promise((r) => setTimeout(r, 100))
 
-    // The viewport transform should not have changed.
     const afterTransform = (transformDiv as HTMLElement).style.transform
     expect(afterTransform).toBe(initialTransform)
   })
@@ -151,7 +143,6 @@ describe('Canvas node drag does not pan viewport', () => {
     const transformDiv = viewport.querySelector('[style*="transform"]')!
     const initialTransform = (transformDiv as HTMLElement).style.transform
 
-    // Drag node A a significant distance.
     pointerDrag(nodeEl, { x: 100, y: 75 }, { x: 200, y: 175 }, 10)
 
     await new Promise((r) => setTimeout(r, 100))

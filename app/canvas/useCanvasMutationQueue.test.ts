@@ -134,7 +134,6 @@ describe('useCanvasMutationQueue', () => {
       result.current.enqueueEdgesAdd([edge])
     })
 
-    // Should not duplicate the edge.
     expect(result.current.effectiveState.edges).toHaveLength(1)
   })
 
@@ -422,7 +421,6 @@ describe('useCanvasMutationQueue', () => {
       { initialProps: { serverState: state1 } },
     )
 
-    // Enqueue a mutation.
     act(() => {
       result.current.enqueueNodesChange(
         new Map([['a', makeNode({ id: 'a', x: 50 })]]),
@@ -430,19 +428,15 @@ describe('useCanvasMutationQueue', () => {
     })
     expect(result.current.pending).toBe(1)
 
-    // Server confirms (RPC success).
     await act(async () => {
       resolveSend!()
       await Promise.resolve()
     })
-    // Still pending until server state updates.
     expect(result.current.pending).toBe(1)
 
-    // Server state updates (streaming).
     const state2 = makeState([['a', makeNode({ id: 'a', x: 50 })]])
     rerender({ serverState: state2 })
 
-    // Now the confirmed mutation should be dropped.
     expect(result.current.pending).toBe(0)
     expect(result.current.effectiveState.nodes.get('a')?.x).toBe(50)
   })
@@ -552,13 +546,11 @@ describe('useCanvasMutationQueue', () => {
     expect(result.current.pending).toBe(1)
     expect(result.current.effectiveState.nodes.get('a')?.x).toBe(50)
 
-    // RPC fails.
     await act(async () => {
       rejectSend!(new Error('network error'))
       await Promise.resolve()
     })
 
-    // Mutation removed, reverts to server state.
     expect(result.current.pending).toBe(0)
     expect(result.current.effectiveState.nodes.get('a')?.x).toBe(10)
     expect(onError).toHaveBeenCalledOnce()
@@ -574,7 +566,6 @@ describe('useCanvasMutationQueue', () => {
       )
     })
 
-    // Should not enqueue when no send function.
     expect(result.current.pending).toBe(0)
     expect(result.current.effectiveState.nodes.get('a')?.x).toBe(10)
   })
@@ -588,11 +579,9 @@ describe('useCanvasMutationQueue', () => {
     const { result } = renderHook(() => useCanvasMutationQueue(state, send))
 
     act(() => {
-      // Move node a.
       result.current.enqueueNodesChange(
         new Map([['a', makeNode({ id: 'a', x: 50 })]]),
       )
-      // Remove node b.
       result.current.enqueueNodesRemove(['b'])
     })
 

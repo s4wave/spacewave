@@ -57,7 +57,6 @@ describe('CanvasMinimap', () => {
         onViewportChange={vi.fn()}
       />,
     )
-    // Node rects have bg-foreground-alt/25 class.
     const rects = document.querySelectorAll('.bg-foreground-alt\\/25')
     expect(rects.length).toBe(2)
   })
@@ -73,7 +72,6 @@ describe('CanvasMinimap', () => {
         onViewportChange={vi.fn()}
       />,
     )
-    // Viewport indicator has border-brand/30 class.
     const vpIndicator = document.querySelector('.border-brand\\/30')
     expect(vpIndicator).toBeTruthy()
   })
@@ -93,7 +91,6 @@ describe('CanvasMinimap', () => {
     const minimap = document.querySelector(
       '[style*="width: 200px"]',
     ) as HTMLElement
-    // We need to mock getBoundingClientRect for the click handler.
     minimap.getBoundingClientRect = () => ({
       left: 0,
       top: 0,
@@ -156,7 +153,6 @@ describe('CanvasMinimap', () => {
     })
     fireEvent.click(minimap, { clientX: 50, clientY: 50 })
     expect(onViewportChange).toHaveBeenCalled()
-    // Scale should be preserved from the current viewport.
     expect(onViewportChange.mock.calls[0]?.[0]?.scale).toBe(2)
   })
 })

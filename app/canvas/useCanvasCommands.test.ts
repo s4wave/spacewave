@@ -36,8 +36,6 @@ describe('useCanvasCommands', () => {
           delete: vi.fn(),
           copy: vi.fn(),
           paste: vi.fn(),
-          undo: vi.fn(),
-          redo: vi.fn(),
           'select-all': vi.fn(),
           deselect: vi.fn(),
           'zoom-in': vi.fn(),
@@ -65,6 +63,8 @@ describe('useCanvasCommands', () => {
     expect(commandIds).toContain('canvas.organize-nodes')
     expect(commandIds).toContain('canvas.add-text')
     expect(commandIds).toContain('canvas.add-object')
+    expect(commandIds).not.toContain('canvas.undo')
+    expect(commandIds).not.toContain('canvas.redo')
 
     const addObjectCommand = registeredCommands.find(
       (cmd) => cmd.commandId === 'canvas.add-object',

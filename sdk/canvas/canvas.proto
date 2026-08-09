@@ -3,156 +3,273 @@ package s4wave.canvas;
 
 option go_package = "github.com/s4wave/spacewave/sdk/canvas;s4wave_canvas";
 
-service CanvasResourceService {
-  rpc GetCanvasState(GetCanvasStateRequest) returns (GetCanvasStateResponse);
-  rpc UpdateCanvas(UpdateCanvasRequest) returns (UpdateCanvasResponse);
-  rpc WatchCanvasState(WatchCanvasStateRequest) returns (stream WatchCanvasStateResponse);
-}
-
-// NodeType is the type of a canvas node.
+// NodeType identifies the persisted Canvas node presentation.
 enum NodeType {
-  // NODE_TYPE_UNKNOWN is unknown.
+  // NODE_TYPE_UNKNOWN is not a persistable Canvas node type.
   NODE_TYPE_UNKNOWN = 0;
-  // NODE_TYPE_TEXT is a markdown text node.
+
+  // NODE_TYPE_TEXT renders Markdown text.
   NODE_TYPE_TEXT = 1;
-  // NODE_TYPE_SHAPE is a shape node.
+
+  // NODE_TYPE_SHAPE renders bounded geometric primitives.
   NODE_TYPE_SHAPE = 2;
-  // NODE_TYPE_WORLD_OBJECT is an embedded world object node.
+
+  // NODE_TYPE_WORLD_OBJECT embeds a World object viewer.
   NODE_TYPE_WORLD_OBJECT = 3;
-  // NODE_TYPE_DRAWING is a freeform drawing node.
+
+  // NODE_TYPE_DRAWING renders a freeform stroke.
   NODE_TYPE_DRAWING = 4;
 }
 
-// EdgeStyle is the visual style of a canvas edge.
+// CanvasGeometryKind identifies a persisted Canvas geometry renderer.
+enum CanvasGeometryKind {
+  // CANVAS_GEOMETRY_KIND_UNKNOWN is not a renderable geometry kind.
+  CANVAS_GEOMETRY_KIND_UNKNOWN = 0;
+
+  // CANVAS_GEOMETRY_KIND_PEN renders a freeform stroke.
+  CANVAS_GEOMETRY_KIND_PEN = 1;
+
+  // CANVAS_GEOMETRY_KIND_LINE renders a straight line.
+  CANVAS_GEOMETRY_KIND_LINE = 2;
+
+  // CANVAS_GEOMETRY_KIND_ARROW renders a straight line with an arrowhead.
+  CANVAS_GEOMETRY_KIND_ARROW = 3;
+
+  // CANVAS_GEOMETRY_KIND_RECTANGLE renders a rectangle.
+  CANVAS_GEOMETRY_KIND_RECTANGLE = 4;
+
+  // CANVAS_GEOMETRY_KIND_ELLIPSE renders an ellipse.
+  CANVAS_GEOMETRY_KIND_ELLIPSE = 5;
+}
+
+// CanvasClipboardVersion identifies a supported Canvas clipboard schema.
+enum CanvasClipboardVersion {
+  // CANVAS_CLIPBOARD_VERSION_UNKNOWN is not a supported clipboard schema.
+  CANVAS_CLIPBOARD_VERSION_UNKNOWN = 0;
+
+  // CANVAS_CLIPBOARD_VERSION_V1 carries at most 1,000 validated Canvas nodes in a 4 MiB base64 envelope.
+  CANVAS_CLIPBOARD_VERSION_V1 = 1;
+}
+
+// EdgeStyle identifies the persisted visual style of a Canvas edge.
 enum EdgeStyle {
-  // EDGE_STYLE_BEZIER is the default bezier curve style.
-  EDGE_STYLE_BEZIER = 0;
-  // EDGE_STYLE_STRAIGHT is a straight line.
+  option allow_alias = true;
+
+  // EDGE_STYLE_UNKNOWN is not written by current clients; readers render wire value zero as legacy bezier.
+  EDGE_STYLE_UNKNOWN = 0;
+
+  // EDGE_STYLE_LEGACY_BEZIER aliases old field-5 zero values and is retained for wire compatibility.
+  EDGE_STYLE_LEGACY_BEZIER = 0 [deprecated = true];
+
+  // EDGE_STYLE_STRAIGHT renders a straight line and retains its original wire value.
   EDGE_STYLE_STRAIGHT = 1;
+
+  // EDGE_STYLE_BEZIER renders the default bezier curve for new writes.
+  EDGE_STYLE_BEZIER = 2;
 }
 
-// CanvasNode is a node on the canvas.
+// CanvasNode contains the persisted position, content, and presentation of one Canvas node.
 message CanvasNode {
-  // Id is the unique identifier for the node.
+  // Id identifies the node and contains at most 1,024 bytes.
   string id = 1;
-  // X is the x position in canvas space.
+
+  // X is the finite horizontal position in Canvas space within +/-1,000,000,000.
   double x = 2;
-  // Y is the y position in canvas space.
+
+  // Y is the finite vertical position in Canvas space within +/-1,000,000,000.
   double y = 3;
-  // Width is the width in canvas space.
+
+  // Width is a finite positive Canvas-space dimension no greater than 1,000,000.
   double width = 4;
-  // Height is the height in canvas space.
+
+  // Height is a finite positive Canvas-space dimension no greater than 1,000,000.
   double height = 5;
-  // ZIndex is the rendering order (higher = front).
+
+  // ZIndex orders rendering, with larger values in front.
   int32 z_index = 6;
-  // Type is the node type.
+
+  // Type selects the node presentation and must not be UNKNOWN.
   NodeType type = 7;
-  // TextContent is the markdown source (TEXT nodes).
+
+  // TextContent is Markdown source containing at most 1 MiB.
   string text_content = 8;
-  // ShapeData is shape/drawing data (SHAPE/DRAWING nodes).
-  bytes shape_data = 9;
-  // ObjectKey is the world object key (WORLD_OBJECT nodes).
+
+  // ShapeData is legacy JSON geometry dual-written until all supported clients read Geometry and stored nodes are backfilled.
+  bytes shape_data = 9 [deprecated = true];
+
+  // ObjectKey identifies an embedded World object and contains at most 4,096 bytes.
   string object_key = 10;
-  // Pinned indicates the node was manually added to canvas.
+
+  // Pinned indicates that a user manually added the node to the Canvas.
   bool pinned = 11;
-  // ViewPath is the navigation path within the embedded viewer (WORLD_OBJECT nodes).
+
+  // ViewPath selects a path within the embedded viewer and contains at most 4,096 bytes.
   string view_path = 12;
+
+  // Geometry is the authoritative generated geometry for SHAPE and DRAWING nodes.
+  CanvasGeometry geometry = 13;
 }
 
-// CanvasEdge is a user-drawn visual-only edge.
+// CanvasPoint contains one finite point relative to a Canvas node's origin.
+message CanvasPoint {
+  // X is the finite horizontal offset in Canvas space within +/-1,000,000,000.
+  double x = 1;
+
+  // Y is the finite vertical offset in Canvas space within +/-1,000,000,000.
+  double y = 2;
+}
+
+// CanvasGeometry contains validated geometry for a shape or drawing node.
+message CanvasGeometry {
+  // Kind selects the renderer and must not be UNKNOWN.
+  CanvasGeometryKind kind = 1;
+
+  // Color is currentColor or a six-digit hexadecimal CSS color.
+  string color = 2;
+
+  // Points contains between 2 and 10,000 node-relative Canvas points.
+  repeated CanvasPoint points = 3;
+}
+
+// CanvasClipboardPayload carries bounded Canvas nodes through the system clipboard.
+message CanvasClipboardPayload {
+  // Version identifies the payload schema and must be V1.
+  CanvasClipboardVersion version = 1;
+
+  // Nodes contains between 1 and 1,000 nodes whose text, paths, colors, and geometry use CanvasNode bounds.
+  repeated CanvasNode nodes = 2;
+}
+
+// CanvasEdge contains a user-drawn visual-only connection between two Canvas nodes.
 message CanvasEdge {
-  // Id is the unique identifier for the edge.
+  // Id identifies the edge.
   string id = 1;
-  // SourceNodeId is the source node.
+
+  // SourceNodeId identifies the source Canvas node.
   string source_node_id = 2;
-  // TargetNodeId is the target node.
+
+  // TargetNodeId identifies the target Canvas node.
   string target_node_id = 3;
-  // Label is an optional edge label.
+
+  // Label is optional user-visible edge text.
   string label = 4;
-  // Style is the edge visual style.
+
+  // Style selects the visual renderer; zero remains legacy bezier for wire compatibility.
   EdgeStyle style = 5;
 }
 
-// HiddenGraphLink is a canvas-scoped hidden world graph link identity.
+// HiddenGraphLink contains a Canvas-scoped hidden World graph link identity.
 message HiddenGraphLink {
   // Subject is the graph link subject IRI.
   string subject = 1;
+
   // Predicate is the graph link predicate IRI.
   string predicate = 2;
+
   // Object is the graph link object IRI.
   string object = 3;
-  // Label is the optional graph link label.
+
+  // Label is optional graph link text that participates in link identity.
   string label = 4;
 }
 
-// CanvasLayoutMetadata stores reusable projection layout metadata for a node.
+// CanvasLayoutMetadata contains reusable projection layout metadata for one node.
 message CanvasLayoutMetadata {
-  // StableNodeId is the projection-stable node identity across reruns.
+  // StableNodeId identifies the projected node across projection runs.
   string stable_node_id = 1;
-  // Lane is the visual swimlane for the projected node.
+
+  // Lane selects the visual swimlane for the projected node.
   string lane = 2;
+
   // Rank is the deterministic dependency layer inside the projection.
   int32 rank = 3;
-  // Group is the visual grouping key for related projected nodes.
+
+  // Group relates projected nodes for visual grouping.
   string group = 4;
-  // ProjectionOwner names the writer that owns this visual projection.
+
+  // ProjectionOwner identifies the writer that updates this projection.
   string projection_owner = 5;
 }
 
-// CanvasState is the full canvas state stored as a world object block.
+// CanvasState contains the complete persisted state of one Canvas World object.
 message CanvasState {
-  // Nodes is the set of canvas nodes keyed by ID.
+  // Nodes maps Canvas node IDs to their bodies.
   map<string, CanvasNode> nodes = 1;
-  // Edges is the list of user-drawn edges.
+
+  // Edges contains user-drawn Canvas edges.
   repeated CanvasEdge edges = 2;
-  // StrokeTreeRef is the block ref to the freeform stroke tree.
+
+  // StrokeTreeRef identifies the block-backed freeform stroke tree.
   bytes stroke_tree_ref = 3;
-  // HiddenGraphLinks is the set of canvas-scoped hidden world graph links.
+
+  // HiddenGraphLinks contains Canvas-scoped World graph links hidden from rendering.
   repeated HiddenGraphLink hidden_graph_links = 4;
-  // LayoutMetadata is projection layout metadata keyed by canvas node ID.
+
+  // LayoutMetadata maps Canvas node IDs to reusable projection layout metadata.
   map<string, CanvasLayoutMetadata> layout_metadata = 5;
 }
 
-// GetCanvasStateRequest is the request for GetCanvasState.
-message GetCanvasStateRequest {}
+// GetCanvasStateRequest selects the Canvas bound to the resource service.
+message GetCanvasStateRequest {
+}
 
-// GetCanvasStateResponse is the response for GetCanvasState.
+// GetCanvasStateResponse contains the selected Canvas state.
 message GetCanvasStateResponse {
-  // State is the current canvas state.
+  // State is the complete current Canvas state.
   CanvasState state = 1;
 }
 
-// UpdateCanvasRequest applies mutations to the canvas.
+// UpdateCanvasRequest contains one validated atomic Canvas mutation.
 message UpdateCanvasRequest {
-  // SetNodes contains nodes to add or update (keyed by ID).
+  // SetNodes maps IDs to Canvas nodes to add or replace.
   map<string, CanvasNode> set_nodes = 1;
-  // RemoveNodeIds contains node IDs to remove.
+
+  // RemoveNodeIds identifies Canvas nodes to remove.
   repeated string remove_node_ids = 2;
-  // AddEdges contains edges to add.
+
+  // AddEdges contains Canvas edges to append.
   repeated CanvasEdge add_edges = 3;
-  // RemoveEdgeIds contains edge IDs to remove.
+
+  // RemoveEdgeIds identifies Canvas edges to remove.
   repeated string remove_edge_ids = 4;
-  // AddHiddenGraphLinks contains graph links to hide.
+
+  // AddHiddenGraphLinks contains World graph links to hide.
   repeated HiddenGraphLink add_hidden_graph_links = 5;
-  // RemoveHiddenGraphLinks contains graph links to show again.
+
+  // RemoveHiddenGraphLinks contains World graph links to show again.
   repeated HiddenGraphLink remove_hidden_graph_links = 6;
-  // SetLayoutMetadata contains layout metadata to add or update by node ID.
+
+  // SetLayoutMetadata maps Canvas node IDs to projection metadata to add or replace.
   map<string, CanvasLayoutMetadata> set_layout_metadata = 7;
-  // RemoveLayoutMetadataNodeIds contains node IDs whose layout metadata is removed.
+
+  // RemoveLayoutMetadataNodeIds identifies Canvas nodes whose projection metadata is removed.
   repeated string remove_layout_metadata_node_ids = 8;
 }
 
-// UpdateCanvasResponse is the response for UpdateCanvas.
+// UpdateCanvasResponse contains the complete Canvas state after mutation.
 message UpdateCanvasResponse {
-  // State is the updated canvas state.
+  // State is the complete updated Canvas state.
   CanvasState state = 1;
 }
 
-// WatchCanvasStateRequest is the request for WatchCanvasState.
-message WatchCanvasStateRequest {}
+// WatchCanvasStateRequest selects the Canvas bound to the resource service.
+message WatchCanvasStateRequest {
+}
 
-// WatchCanvasStateResponse is a stream response with canvas state.
+// WatchCanvasStateResponse contains one complete watched Canvas state.
 message WatchCanvasStateResponse {
-  // State is the current canvas state.
+  // State is the complete current Canvas state.
   CanvasState state = 1;
+}
+
+// CanvasResourceService reads, mutates, and watches one Canvas World object.
+service CanvasResourceService {
+  // GetCanvasState reads the complete current Canvas state.
+  rpc GetCanvasState(GetCanvasStateRequest) returns (GetCanvasStateResponse);
+
+  // UpdateCanvas validates and atomically persists one Canvas mutation.
+  rpc UpdateCanvas(UpdateCanvasRequest) returns (UpdateCanvasResponse);
+
+  // WatchCanvasState streams complete Canvas states after changes.
+  rpc WatchCanvasState(WatchCanvasStateRequest) returns (stream WatchCanvasStateResponse);
 }

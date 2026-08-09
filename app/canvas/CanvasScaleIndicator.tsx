@@ -2,15 +2,12 @@ import { useEffect, useReducer, useRef } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
-// CanvasScaleIndicatorProps are the props for CanvasScaleIndicator.
 interface CanvasScaleIndicatorProps {
   scale: number
 }
 
-// VISIBLE_MS is how long the indicator stays fully visible after a scale change.
 const VISIBLE_MS = 800
 
-// FADE_MS is the CSS fade-out duration.
 const FADE_MS = 500
 
 interface ScaleIndicatorState {
@@ -37,7 +34,6 @@ function scaleIndicatorReducer(
   }
 }
 
-// CanvasScaleIndicator shows the current zoom level during scale changes.
 export function CanvasScaleIndicator({ scale }: CanvasScaleIndicatorProps) {
   const [state, dispatch] = useReducer(scaleIndicatorReducer, {
     visible: false,
@@ -48,7 +44,6 @@ export function CanvasScaleIndicator({ scale }: CanvasScaleIndicatorProps) {
   const initialRef = useRef(true)
 
   useEffect(() => {
-    // Skip the initial mount render.
     if (initialRef.current) {
       initialRef.current = false
       return

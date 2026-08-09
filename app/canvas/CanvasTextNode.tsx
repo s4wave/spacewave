@@ -1,9 +1,15 @@
-/* eslint-disable react-doctor/rerender-state-only-in-handlers */
-import { useState, useCallback, useRef, useEffect } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
-// CanvasTextNodeProps are the props for CanvasTextNode.
 interface CanvasTextNodeProps {
   content: string
   autoEdit?: boolean
@@ -12,89 +18,95 @@ interface CanvasTextNodeProps {
   className?: string
 }
 
-// CanvasTextNode renders a text node with view/edit modes.
-// Double-click to enter edit mode, Escape or blur to exit.
+interface CanvasTextEditorProps extends CanvasTextNodeProps {
+  onFinish: () => void
+}
+
+function CanvasTextEditor({
+  content,
+  onChange,
+  onCancel,
+  onFinish,
+  className,
+}: CanvasTextEditorProps) {
+  const [draft, setDraft] = useState(content)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => textareaRef.current?.focus(), 0)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  const commit = useCallback(() => {
+    onFinish()
+    if (!draft.trim() && !content) {
+      onCancel?.()
+    } else if (draft !== content) {
+      onChange?.(draft)
+    }
+  }, [content, draft, onCancel, onChange, onFinish])
+
+  const updateDraft = useCallback((event: ChangeEvent<HTMLTextAreaElement>) => {
+    setDraft(event.target.value)
+  }, [])
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation()
+        onFinish()
+        if (!content && !draft.trim()) onCancel?.()
+      } else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        event.stopPropagation()
+        commit()
+      }
+    },
+    [commit, content, draft, onCancel, onFinish],
+  )
+
+  return (
+    <textarea
+      ref={textareaRef}
+      aria-label="Canvas text"
+      className={cn(
+        'h-full w-full resize-none border-none bg-transparent p-2 text-sm outline-none',
+        'font-[family-name:var(--font-display)]',
+        className,
+      )}
+      value={draft}
+      onChange={updateDraft}
+      onBlur={commit}
+      onKeyDown={handleKeyDown}
+    />
+  )
+}
+
+// CanvasTextNode renders a text node and confines draft state to its editor.
 export function CanvasTextNode({
   content,
-  autoEdit,
+  autoEdit = false,
   onChange,
   onCancel,
   className,
 }: CanvasTextNodeProps) {
-  const [editing, setEditing] = useState(autoEdit ?? false)
-  const initialContentRef = useRef(content)
-  const [draft, setDraft] = useState(() => initialContentRef.current)
-  const draftRef = useRef(draft)
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
-
-  useEffect(() => {
-    draftRef.current = draft
-  }, [draft])
-
-  useEffect(() => {
-    if (editing && textareaRef.current) {
-      const el = textareaRef.current
-      const timer = window.setTimeout(() => {
-        el.focus()
-      }, 0)
-      return () => {
-        window.clearTimeout(timer)
-      }
-    }
-  }, [editing])
-
+  const [editing, setEditing] = useState(autoEdit)
+  const finishEditing = useCallback(() => setEditing(false), [])
   const handleDoubleClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      if (!onChange) return
-      setDraft(content)
-      setEditing(true)
+    (event: MouseEvent) => {
+      event.stopPropagation()
+      if (onChange) setEditing(true)
     },
-    [content, onChange],
-  )
-
-  const commitEdit = useCallback(() => {
-    setEditing(false)
-    const current = draftRef.current
-    const trimmed = current.trim()
-    if (!trimmed && !content) {
-      onCancel?.()
-      return
-    }
-    if (current !== content) {
-      onChange?.(current)
-    }
-  }, [content, onChange, onCancel])
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        if (!content && !draftRef.current.trim()) {
-          onCancel?.()
-        }
-        setEditing(false)
-      } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        e.stopPropagation()
-        commitEdit()
-      }
-    },
-    [commitEdit, content, onCancel],
+    [onChange],
   )
 
   if (editing) {
     return (
-      <textarea
-        ref={textareaRef}
-        className={cn(
-          'h-full w-full resize-none border-none bg-transparent p-2 text-sm outline-none',
-          'font-[family-name:var(--font-display)]',
-          className,
-        )}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commitEdit}
-        onKeyDown={handleKeyDown}
+      <CanvasTextEditor
+        content={content}
+        onChange={onChange}
+        onCancel={onCancel}
+        onFinish={finishEditing}
+        className={className}
       />
     )
   }

@@ -14,10 +14,11 @@ type SRPCCanvasResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// GetCanvasState reads the complete current Canvas state.
 	GetCanvasState(ctx context.Context, in *GetCanvasStateRequest) (*GetCanvasStateResponse, error)
-
+	// UpdateCanvas validates and atomically persists one Canvas mutation.
 	UpdateCanvas(ctx context.Context, in *UpdateCanvasRequest) (*UpdateCanvasResponse, error)
-
+	// WatchCanvasState streams complete Canvas states after changes.
 	WatchCanvasState(ctx context.Context, in *WatchCanvasStateRequest) (SRPCCanvasResourceService_WatchCanvasStateClient, error)
 }
 
@@ -92,10 +93,11 @@ func (x *srpcCanvasResourceService_WatchCanvasStateClient) RecvTo(m *WatchCanvas
 }
 
 type SRPCCanvasResourceServiceServer interface {
+	// GetCanvasState reads the complete current Canvas state.
 	GetCanvasState(context.Context, *GetCanvasStateRequest) (*GetCanvasStateResponse, error)
-
+	// UpdateCanvas validates and atomically persists one Canvas mutation.
 	UpdateCanvas(context.Context, *UpdateCanvasRequest) (*UpdateCanvasResponse, error)
-
+	// WatchCanvasState streams complete Canvas states after changes.
 	WatchCanvasState(*WatchCanvasStateRequest, SRPCCanvasResourceService_WatchCanvasStateStream) error
 }
 

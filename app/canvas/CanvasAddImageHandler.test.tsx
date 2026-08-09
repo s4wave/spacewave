@@ -8,6 +8,9 @@ const { capturedCommands } = vi.hoisted(() => ({
   },
 }))
 
+import { Canvas } from './Canvas.js'
+import type { CanvasCallbacks, CanvasStateData } from './types.js'
+
 vi.mock('./useCanvasCommands.js', () => ({
   useCanvasCommands: (params: { onAddImage?: (path: string) => void }) => {
     capturedCommands.current = params
@@ -17,9 +20,6 @@ vi.mock('./useCanvasCommands.js', () => ({
 vi.mock('./CanvasContextMenu.js', () => ({
   CanvasContextMenu: () => null,
 }))
-
-import { Canvas } from './Canvas.js'
-import type { CanvasCallbacks, CanvasStateData } from './types.js'
 
 const emptyState: CanvasStateData = {
   nodes: new Map(),

@@ -5,7 +5,6 @@ import { render, cleanup, fireEvent } from '@testing-library/react'
 import { CanvasDrawingLayer } from './CanvasDrawingLayer.js'
 import { CanvasGeometryNode } from './CanvasGeometryNode.js'
 import type { CanvasNodeData } from './types.js'
-import { decodeCanvasGeometry } from './geometry.js'
 
 const defaultViewport = { x: 0, y: 0, scale: 1 }
 
@@ -92,7 +91,7 @@ describe('CanvasDrawingLayer', () => {
     expect(context.strokeStyle).toBe('#dc2626')
     const node = onStrokeComplete.mock.calls[0]?.[0]
     if (!node) throw new Error('drawing did not commit a canvas node')
-    expect(decodeCanvasGeometry(node.shapeData)?.color).toBe('#dc2626')
+    expect(node.geometry?.color).toBe('#dc2626')
 
     rerender(<CanvasGeometryNode node={node} />)
     expect(document.querySelector('path')?.getAttribute('stroke')).toBe(

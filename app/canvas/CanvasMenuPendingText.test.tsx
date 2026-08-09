@@ -9,16 +9,16 @@ import {
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-vi.mock('./CanvasTextNode.js', () => ({
-  CanvasTextNode: () => <div data-testid="pending-text-editor" />,
-}))
-
 import { Canvas } from './Canvas.js'
 import type {
   CanvasCallbacks,
   CanvasNodeData,
   CanvasStateData,
 } from './types.js'
+
+vi.mock('./CanvasTextNode.js', () => ({
+  CanvasTextNode: () => <div data-testid="pending-text-editor" />,
+}))
 
 function makeState(nodes: CanvasNodeData[] = []): CanvasStateData {
   const nodeMap = new Map<string, CanvasNodeData>()

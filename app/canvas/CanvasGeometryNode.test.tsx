@@ -3,7 +3,7 @@ import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { CanvasGeometryNode } from './CanvasGeometryNode.js'
-import { encodeCanvasGeometry, type CanvasGeometryKind } from './geometry.js'
+import type { CanvasGeometryKind } from './geometry.js'
 import type { CanvasNodeData } from './types.js'
 
 function makeNode(kind: CanvasGeometryKind): CanvasNodeData {
@@ -15,14 +15,14 @@ function makeNode(kind: CanvasGeometryKind): CanvasNodeData {
     height: 80,
     zIndex: 0,
     type: kind === 'pen' ? 'drawing' : 'shape',
-    shapeData: encodeCanvasGeometry({
+    geometry: {
       kind,
       color: '#16a34a',
       points: [
         { x: 8, y: 8 },
         { x: 112, y: 72 },
       ],
-    }),
+    },
   }
 }
 

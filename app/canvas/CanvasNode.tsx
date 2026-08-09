@@ -1,13 +1,17 @@
-import { useCallback, useMemo, useRef, useState, useEffect, memo } from 'react'
+import {
+  memo,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react'
 import { useDrag } from '@use-gesture/react'
 
 import { cn } from '@s4wave/web/style/utils.js'
-
-// MIN_NODE_WIDTH is the minimum width a node can be resized to.
-const MIN_NODE_WIDTH = 80
-
-// MIN_NODE_HEIGHT is the minimum height a node can be resized to.
-const MIN_NODE_HEIGHT = 60
 
 import type { CanvasNodeData, CanvasCallbacks } from './types.js'
 import type { SelectionFocus } from './useCanvasSelection.js'
@@ -20,10 +24,12 @@ import {
 import { CanvasTextNode } from './CanvasTextNode.js'
 import { CanvasGeometryNode } from './CanvasGeometryNode.js'
 
-// ResizeDirection indicates which corner is being dragged for resize.
+const MIN_NODE_WIDTH = 80
+
+const MIN_NODE_HEIGHT = 60
+
 type ResizeDirection = 'nw' | 'ne' | 'sw' | 'se'
 
-// CanvasNodeProps are the props for CanvasNode.
 interface CanvasNodeProps {
   node: CanvasNodeData
   scale: number
@@ -37,7 +43,6 @@ interface CanvasNodeProps {
   onResize?: (id: string, node: CanvasNodeData) => void
 }
 
-// ResizeHandleProps are the props for ResizeHandle.
 interface ResizeHandleProps {
   direction: ResizeDirection
   scale: number
@@ -49,7 +54,6 @@ interface ResizeHandleProps {
   ) => void
 }
 
-// DragEdgeHandle renders a thin invisible border strip that can initiate node drag.
 function DragEdgeHandle({ className }: { className: string }) {
   return (
     <div
@@ -60,7 +64,6 @@ function DragEdgeHandle({ className }: { className: string }) {
   )
 }
 
-// ResizeHandle renders an interactive corner resize handle.
 function ResizeHandle({ direction, scale, onResizeDelta }: ResizeHandleProps) {
   const bind = useDrag(
     ({ delta: [dx, dy], last, event }) => {
@@ -79,7 +82,7 @@ function ResizeHandle({ direction, scale, onResizeDelta }: ResizeHandleProps) {
 
   const handlers = bind()
   const origPointerDown = handlers.onPointerDown
-  handlers.onPointerDown = (e: React.PointerEvent) => {
+  handlers.onPointerDown = (e: PointerEvent) => {
     e.stopPropagation()
     origPointerDown?.(e)
   }
@@ -96,8 +99,6 @@ function ResizeHandle({ direction, scale, onResizeDelta }: ResizeHandleProps) {
   )
 }
 
-// useCanvasNodeController owns visibility debounce, drag selection, and resize
-// projection for one canvas node.
 function useCanvasNodeController({
   node,
   scale,
@@ -176,15 +177,11 @@ function useCanvasNodeController({
   const wrappedBind = useCallback(() => {
     const handlers = bind()
     if (!hasInteractiveContent) return handlers
-    // Remove the capture-phase click handler that @use-gesture adds for
-    // filterTaps. It fires before children and would block their onClick.
     delete (handlers as Record<string, unknown>).onClickCapture
     const origPointerDown = handlers.onPointerDown
-    handlers.onPointerDown = (e: React.PointerEvent) => {
+    handlers.onPointerDown = (e: PointerEvent) => {
       const target = e.target
       if (target instanceof Element) {
-        // Drag handles always initiate drag, even inside interactive content,
-        // unless the target is an interactive element (button, input, etc.).
         const dragHandle = target.closest('[data-drag-handle]')
         if (
           dragHandle &&
@@ -193,7 +190,6 @@ function useCanvasNodeController({
           origPointerDown?.(e)
           return
         }
-        // Don't start drag inside interactive content.
         if (target.closest('[data-interactive-content]')) {
           return
         }
@@ -204,7 +200,7 @@ function useCanvasNodeController({
   }, [bind, hasInteractiveContent])
 
   const handleNodeSelect = useCallback(
-    (e: React.MouseEvent) => {
+    (e: MouseEvent) => {
       e.stopPropagation()
       const target = e.target
       const isContent =
@@ -218,7 +214,7 @@ function useCanvasNodeController({
   )
 
   const handleNodeKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: KeyboardEvent) => {
       if (e.key !== 'Enter' && e.key !== ' ') return
       e.preventDefault()
       e.stopPropagation()
@@ -248,7 +244,6 @@ function useCanvasNodeController({
     [node, callbacks],
   )
 
-  // Local resize state accumulates deltas during drag.
   const resizeRef = useRef<{
     dx: number
     dy: number
@@ -364,8 +359,7 @@ function useCanvasNodeController({
   }
 }
 
-// CanvasNode renders a single positioned node on the canvas.
-export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
+function CanvasNode(props: CanvasNodeProps) {
   const {
     callbacks,
     handleNodeKeyDown,
@@ -390,7 +384,6 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
 
   if (!visible && !mountedAfterHide && !wasVisible.current) return null
 
-  // labelText is the short label shown in outline-only mode.
   const labelText = node.objectKey ?? node.type
 
   const content = (() => {
@@ -413,7 +406,7 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
       )
     }
 
-    if ((node.type === 'drawing' || node.type === 'shape') && node.shapeData) {
+    if ((node.type === 'drawing' || node.type === 'shape') && node.geometry) {
       return <CanvasGeometryNode node={node} />
     }
 
@@ -463,8 +456,6 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
           'pointer-events-none',
       )}
     >
-      {/* Invisible hit area extending outward from the border for easier clicking.
-          z-[-1] keeps it behind node content so it doesn't steal clicks. */}
       <div className="pointer-events-auto absolute -inset-1.5 -z-1 rounded-lg" />
       {showsBorderDragHandles && (
         <>
@@ -533,4 +524,8 @@ export const CanvasNode = memo(function CanvasNode(props: CanvasNodeProps) {
       )}
     </div>
   )
-})
+}
+
+const MemoizedCanvasNode = memo(CanvasNode)
+
+export { MemoizedCanvasNode as CanvasNode }

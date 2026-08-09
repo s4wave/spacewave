@@ -15,19 +15,19 @@ import (
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 )
 
-// NodeType is the type of a canvas node.
+// NodeType identifies the persisted Canvas node presentation.
 type NodeType int32
 
 const (
-	// NODE_TYPE_UNKNOWN is unknown.
+	// NODE_TYPE_UNKNOWN is not a persistable Canvas node type.
 	NodeType_NODE_TYPE_UNKNOWN NodeType = 0
-	// NODE_TYPE_TEXT is a markdown text node.
+	// NODE_TYPE_TEXT renders Markdown text.
 	NodeType_NODE_TYPE_TEXT NodeType = 1
-	// NODE_TYPE_SHAPE is a shape node.
+	// NODE_TYPE_SHAPE renders bounded geometric primitives.
 	NodeType_NODE_TYPE_SHAPE NodeType = 2
-	// NODE_TYPE_WORLD_OBJECT is an embedded world object node.
+	// NODE_TYPE_WORLD_OBJECT embeds a World object viewer.
 	NodeType_NODE_TYPE_WORLD_OBJECT NodeType = 3
-	// NODE_TYPE_DRAWING is a freeform drawing node.
+	// NODE_TYPE_DRAWING renders a freeform stroke.
 	NodeType_NODE_TYPE_DRAWING NodeType = 4
 )
 
@@ -63,25 +63,123 @@ func (x NodeType) String() string {
 	return strconv.Itoa(int(x))
 }
 
-// EdgeStyle is the visual style of a canvas edge.
+// CanvasGeometryKind identifies a persisted Canvas geometry renderer.
+type CanvasGeometryKind int32
+
+const (
+	// CANVAS_GEOMETRY_KIND_UNKNOWN is not a renderable geometry kind.
+	CanvasGeometryKind_CANVAS_GEOMETRY_KIND_UNKNOWN CanvasGeometryKind = 0
+	// CANVAS_GEOMETRY_KIND_PEN renders a freeform stroke.
+	CanvasGeometryKind_CANVAS_GEOMETRY_KIND_PEN CanvasGeometryKind = 1
+	// CANVAS_GEOMETRY_KIND_LINE renders a straight line.
+	CanvasGeometryKind_CANVAS_GEOMETRY_KIND_LINE CanvasGeometryKind = 2
+	// CANVAS_GEOMETRY_KIND_ARROW renders a straight line with an arrowhead.
+	CanvasGeometryKind_CANVAS_GEOMETRY_KIND_ARROW CanvasGeometryKind = 3
+	// CANVAS_GEOMETRY_KIND_RECTANGLE renders a rectangle.
+	CanvasGeometryKind_CANVAS_GEOMETRY_KIND_RECTANGLE CanvasGeometryKind = 4
+	// CANVAS_GEOMETRY_KIND_ELLIPSE renders an ellipse.
+	CanvasGeometryKind_CANVAS_GEOMETRY_KIND_ELLIPSE CanvasGeometryKind = 5
+)
+
+// Enum value maps for CanvasGeometryKind.
+var (
+	CanvasGeometryKind_name = map[int32]string{
+		0: "CANVAS_GEOMETRY_KIND_UNKNOWN",
+		1: "CANVAS_GEOMETRY_KIND_PEN",
+		2: "CANVAS_GEOMETRY_KIND_LINE",
+		3: "CANVAS_GEOMETRY_KIND_ARROW",
+		4: "CANVAS_GEOMETRY_KIND_RECTANGLE",
+		5: "CANVAS_GEOMETRY_KIND_ELLIPSE",
+	}
+	CanvasGeometryKind_value = map[string]int32{
+		"CANVAS_GEOMETRY_KIND_UNKNOWN":   0,
+		"CANVAS_GEOMETRY_KIND_PEN":       1,
+		"CANVAS_GEOMETRY_KIND_LINE":      2,
+		"CANVAS_GEOMETRY_KIND_ARROW":     3,
+		"CANVAS_GEOMETRY_KIND_RECTANGLE": 4,
+		"CANVAS_GEOMETRY_KIND_ELLIPSE":   5,
+	}
+)
+
+func (x CanvasGeometryKind) Enum() *CanvasGeometryKind {
+	p := new(CanvasGeometryKind)
+	*p = x
+	return p
+}
+
+func (x CanvasGeometryKind) String() string {
+	name, valid := CanvasGeometryKind_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// CanvasClipboardVersion identifies a supported Canvas clipboard schema.
+type CanvasClipboardVersion int32
+
+const (
+	// CANVAS_CLIPBOARD_VERSION_UNKNOWN is not a supported clipboard schema.
+	CanvasClipboardVersion_CANVAS_CLIPBOARD_VERSION_UNKNOWN CanvasClipboardVersion = 0
+	// CANVAS_CLIPBOARD_VERSION_V1 carries at most 1,000 validated Canvas nodes in a 4 MiB base64 envelope.
+	CanvasClipboardVersion_CANVAS_CLIPBOARD_VERSION_V1 CanvasClipboardVersion = 1
+)
+
+// Enum value maps for CanvasClipboardVersion.
+var (
+	CanvasClipboardVersion_name = map[int32]string{
+		0: "CANVAS_CLIPBOARD_VERSION_UNKNOWN",
+		1: "CANVAS_CLIPBOARD_VERSION_V1",
+	}
+	CanvasClipboardVersion_value = map[string]int32{
+		"CANVAS_CLIPBOARD_VERSION_UNKNOWN": 0,
+		"CANVAS_CLIPBOARD_VERSION_V1":      1,
+	}
+)
+
+func (x CanvasClipboardVersion) Enum() *CanvasClipboardVersion {
+	p := new(CanvasClipboardVersion)
+	*p = x
+	return p
+}
+
+func (x CanvasClipboardVersion) String() string {
+	name, valid := CanvasClipboardVersion_name[int32(x)]
+	if valid {
+		return name
+	}
+	return strconv.Itoa(int(x))
+}
+
+// EdgeStyle identifies the persisted visual style of a Canvas edge.
 type EdgeStyle int32
 
 const (
-	// EDGE_STYLE_BEZIER is the default bezier curve style.
-	EdgeStyle_EDGE_STYLE_BEZIER EdgeStyle = 0
-	// EDGE_STYLE_STRAIGHT is a straight line.
+	// EDGE_STYLE_UNKNOWN is not written by current clients; readers render wire value zero as legacy bezier.
+	EdgeStyle_EDGE_STYLE_UNKNOWN EdgeStyle = 0
+	// EDGE_STYLE_LEGACY_BEZIER aliases old field-5 zero values and is retained for wire compatibility.
+	//
+	// Deprecated: Marked as deprecated in github.com/s4wave/spacewave/sdk/canvas/canvas.proto.
+	EdgeStyle_EDGE_STYLE_LEGACY_BEZIER EdgeStyle = 0
+	// EDGE_STYLE_STRAIGHT renders a straight line and retains its original wire value.
 	EdgeStyle_EDGE_STYLE_STRAIGHT EdgeStyle = 1
+	// EDGE_STYLE_BEZIER renders the default bezier curve for new writes.
+	EdgeStyle_EDGE_STYLE_BEZIER EdgeStyle = 2
 )
 
 // Enum value maps for EdgeStyle.
 var (
 	EdgeStyle_name = map[int32]string{
-		0: "EDGE_STYLE_BEZIER",
+		0: "EDGE_STYLE_UNKNOWN",
+		// Duplicate value: 0: "EDGE_STYLE_LEGACY_BEZIER",
 		1: "EDGE_STYLE_STRAIGHT",
+		2: "EDGE_STYLE_BEZIER",
 	}
 	EdgeStyle_value = map[string]int32{
-		"EDGE_STYLE_BEZIER":   0,
-		"EDGE_STYLE_STRAIGHT": 1,
+		"EDGE_STYLE_UNKNOWN":       0,
+		"EDGE_STYLE_LEGACY_BEZIER": 0,
+		"EDGE_STYLE_STRAIGHT":      1,
+		"EDGE_STYLE_BEZIER":        2,
 	}
 )
 
@@ -99,33 +197,37 @@ func (x EdgeStyle) String() string {
 	return strconv.Itoa(int(x))
 }
 
-// CanvasNode is a node on the canvas.
+// CanvasNode contains the persisted position, content, and presentation of one Canvas node.
 type CanvasNode struct {
 	unknownFields []byte
-	// Id is the unique identifier for the node.
+	// Id identifies the node and contains at most 1,024 bytes.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// X is the x position in canvas space.
+	// X is the finite horizontal position in Canvas space within +/-1,000,000,000.
 	X float64 `protobuf:"fixed64,2,opt,name=x,proto3" json:"x,omitempty"`
-	// Y is the y position in canvas space.
+	// Y is the finite vertical position in Canvas space within +/-1,000,000,000.
 	Y float64 `protobuf:"fixed64,3,opt,name=y,proto3" json:"y,omitempty"`
-	// Width is the width in canvas space.
+	// Width is a finite positive Canvas-space dimension no greater than 1,000,000.
 	Width float64 `protobuf:"fixed64,4,opt,name=width,proto3" json:"width,omitempty"`
-	// Height is the height in canvas space.
+	// Height is a finite positive Canvas-space dimension no greater than 1,000,000.
 	Height float64 `protobuf:"fixed64,5,opt,name=height,proto3" json:"height,omitempty"`
-	// ZIndex is the rendering order (higher = front).
+	// ZIndex orders rendering, with larger values in front.
 	ZIndex int32 `protobuf:"varint,6,opt,name=z_index,json=zIndex,proto3" json:"zIndex,omitempty"`
-	// Type is the node type.
+	// Type selects the node presentation and must not be UNKNOWN.
 	Type NodeType `protobuf:"varint,7,opt,name=type,proto3" json:"type,omitempty"`
-	// TextContent is the markdown source (TEXT nodes).
+	// TextContent is Markdown source containing at most 1 MiB.
 	TextContent string `protobuf:"bytes,8,opt,name=text_content,json=textContent,proto3" json:"textContent,omitempty"`
-	// ShapeData is shape/drawing data (SHAPE/DRAWING nodes).
+	// ShapeData is legacy JSON geometry dual-written until all supported clients read Geometry and stored nodes are backfilled.
+	//
+	// Deprecated: Marked as deprecated in github.com/s4wave/spacewave/sdk/canvas/canvas.proto.
 	ShapeData []byte `protobuf:"bytes,9,opt,name=shape_data,json=shapeData,proto3" json:"shapeData,omitempty"`
-	// ObjectKey is the world object key (WORLD_OBJECT nodes).
+	// ObjectKey identifies an embedded World object and contains at most 4,096 bytes.
 	ObjectKey string `protobuf:"bytes,10,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
-	// Pinned indicates the node was manually added to canvas.
+	// Pinned indicates that a user manually added the node to the Canvas.
 	Pinned bool `protobuf:"varint,11,opt,name=pinned,proto3" json:"pinned,omitempty"`
-	// ViewPath is the navigation path within the embedded viewer (WORLD_OBJECT nodes).
+	// ViewPath selects a path within the embedded viewer and contains at most 4,096 bytes.
 	ViewPath string `protobuf:"bytes,12,opt,name=view_path,json=viewPath,proto3" json:"viewPath,omitempty"`
+	// Geometry is the authoritative generated geometry for SHAPE and DRAWING nodes.
+	Geometry *CanvasGeometry `protobuf:"bytes,13,opt,name=geometry,proto3" json:"geometry,omitempty"`
 }
 
 func (x *CanvasNode) Reset() {
@@ -190,6 +292,7 @@ func (x *CanvasNode) GetTextContent() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in github.com/s4wave/spacewave/sdk/canvas/canvas.proto.
 func (x *CanvasNode) GetShapeData() []byte {
 	if x != nil {
 		return x.ShapeData
@@ -218,18 +321,121 @@ func (x *CanvasNode) GetViewPath() string {
 	return ""
 }
 
-// CanvasEdge is a user-drawn visual-only edge.
+func (x *CanvasNode) GetGeometry() *CanvasGeometry {
+	if x != nil {
+		return x.Geometry
+	}
+	return nil
+}
+
+// CanvasPoint contains one finite point relative to a Canvas node's origin.
+type CanvasPoint struct {
+	unknownFields []byte
+	// X is the finite horizontal offset in Canvas space within +/-1,000,000,000.
+	X float64 `protobuf:"fixed64,1,opt,name=x,proto3" json:"x,omitempty"`
+	// Y is the finite vertical offset in Canvas space within +/-1,000,000,000.
+	Y float64 `protobuf:"fixed64,2,opt,name=y,proto3" json:"y,omitempty"`
+}
+
+func (x *CanvasPoint) Reset() {
+	*x = CanvasPoint{}
+}
+
+func (*CanvasPoint) ProtoMessage() {}
+
+func (x *CanvasPoint) GetX() float64 {
+	if x != nil {
+		return x.X
+	}
+	return 0
+}
+
+func (x *CanvasPoint) GetY() float64 {
+	if x != nil {
+		return x.Y
+	}
+	return 0
+}
+
+// CanvasGeometry contains validated geometry for a shape or drawing node.
+type CanvasGeometry struct {
+	unknownFields []byte
+	// Kind selects the renderer and must not be UNKNOWN.
+	Kind CanvasGeometryKind `protobuf:"varint,1,opt,name=kind,proto3" json:"kind,omitempty"`
+	// Color is currentColor or a six-digit hexadecimal CSS color.
+	Color string `protobuf:"bytes,2,opt,name=color,proto3" json:"color,omitempty"`
+	// Points contains between 2 and 10,000 node-relative Canvas points.
+	Points []*CanvasPoint `protobuf:"bytes,3,rep,name=points,proto3" json:"points,omitempty"`
+}
+
+func (x *CanvasGeometry) Reset() {
+	*x = CanvasGeometry{}
+}
+
+func (*CanvasGeometry) ProtoMessage() {}
+
+func (x *CanvasGeometry) GetKind() CanvasGeometryKind {
+	if x != nil {
+		return x.Kind
+	}
+	return CanvasGeometryKind_CANVAS_GEOMETRY_KIND_UNKNOWN
+}
+
+func (x *CanvasGeometry) GetColor() string {
+	if x != nil {
+		return x.Color
+	}
+	return ""
+}
+
+func (x *CanvasGeometry) GetPoints() []*CanvasPoint {
+	if x != nil {
+		return x.Points
+	}
+	return nil
+}
+
+// CanvasClipboardPayload carries bounded Canvas nodes through the system clipboard.
+type CanvasClipboardPayload struct {
+	unknownFields []byte
+	// Version identifies the payload schema and must be V1.
+	Version CanvasClipboardVersion `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	// Nodes contains between 1 and 1,000 nodes whose text, paths, colors, and geometry use CanvasNode bounds.
+	Nodes []*CanvasNode `protobuf:"bytes,2,rep,name=nodes,proto3" json:"nodes,omitempty"`
+}
+
+func (x *CanvasClipboardPayload) Reset() {
+	*x = CanvasClipboardPayload{}
+}
+
+func (*CanvasClipboardPayload) ProtoMessage() {}
+
+func (x *CanvasClipboardPayload) GetVersion() CanvasClipboardVersion {
+	if x != nil {
+		return x.Version
+	}
+	return CanvasClipboardVersion_CANVAS_CLIPBOARD_VERSION_UNKNOWN
+}
+
+func (x *CanvasClipboardPayload) GetNodes() []*CanvasNode {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
+// CanvasEdge contains a user-drawn visual-only connection between two Canvas nodes.
 type CanvasEdge struct {
 	unknownFields []byte
-	// Id is the unique identifier for the edge.
+	// Id identifies the edge.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// SourceNodeId is the source node.
+	// SourceNodeId identifies the source Canvas node.
 	SourceNodeId string `protobuf:"bytes,2,opt,name=source_node_id,json=sourceNodeId,proto3" json:"sourceNodeId,omitempty"`
-	// TargetNodeId is the target node.
+	// TargetNodeId identifies the target Canvas node.
 	TargetNodeId string `protobuf:"bytes,3,opt,name=target_node_id,json=targetNodeId,proto3" json:"targetNodeId,omitempty"`
-	// Label is an optional edge label.
+	// Label is optional user-visible edge text.
 	Label string `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
-	// Style is the edge visual style.
+	// Style selects the visual renderer; zero remains legacy bezier for wire compatibility.
 	Style EdgeStyle `protobuf:"varint,5,opt,name=style,proto3" json:"style,omitempty"`
 }
 
@@ -271,10 +477,10 @@ func (x *CanvasEdge) GetStyle() EdgeStyle {
 	if x != nil {
 		return x.Style
 	}
-	return EdgeStyle_EDGE_STYLE_BEZIER
+	return EdgeStyle_EDGE_STYLE_UNKNOWN
 }
 
-// HiddenGraphLink is a canvas-scoped hidden world graph link identity.
+// HiddenGraphLink contains a Canvas-scoped hidden World graph link identity.
 type HiddenGraphLink struct {
 	unknownFields []byte
 	// Subject is the graph link subject IRI.
@@ -283,7 +489,7 @@ type HiddenGraphLink struct {
 	Predicate string `protobuf:"bytes,2,opt,name=predicate,proto3" json:"predicate,omitempty"`
 	// Object is the graph link object IRI.
 	Object string `protobuf:"bytes,3,opt,name=object,proto3" json:"object,omitempty"`
-	// Label is the optional graph link label.
+	// Label is optional graph link text that participates in link identity.
 	Label string `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
 }
 
@@ -321,18 +527,18 @@ func (x *HiddenGraphLink) GetLabel() string {
 	return ""
 }
 
-// CanvasLayoutMetadata stores reusable projection layout metadata for a node.
+// CanvasLayoutMetadata contains reusable projection layout metadata for one node.
 type CanvasLayoutMetadata struct {
 	unknownFields []byte
-	// StableNodeId is the projection-stable node identity across reruns.
+	// StableNodeId identifies the projected node across projection runs.
 	StableNodeId string `protobuf:"bytes,1,opt,name=stable_node_id,json=stableNodeId,proto3" json:"stableNodeId,omitempty"`
-	// Lane is the visual swimlane for the projected node.
+	// Lane selects the visual swimlane for the projected node.
 	Lane string `protobuf:"bytes,2,opt,name=lane,proto3" json:"lane,omitempty"`
 	// Rank is the deterministic dependency layer inside the projection.
 	Rank int32 `protobuf:"varint,3,opt,name=rank,proto3" json:"rank,omitempty"`
-	// Group is the visual grouping key for related projected nodes.
+	// Group relates projected nodes for visual grouping.
 	Group string `protobuf:"bytes,4,opt,name=group,proto3" json:"group,omitempty"`
-	// ProjectionOwner names the writer that owns this visual projection.
+	// ProjectionOwner identifies the writer that updates this projection.
 	ProjectionOwner string `protobuf:"bytes,5,opt,name=projection_owner,json=projectionOwner,proto3" json:"projectionOwner,omitempty"`
 }
 
@@ -377,18 +583,18 @@ func (x *CanvasLayoutMetadata) GetProjectionOwner() string {
 	return ""
 }
 
-// CanvasState is the full canvas state stored as a world object block.
+// CanvasState contains the complete persisted state of one Canvas World object.
 type CanvasState struct {
 	unknownFields []byte
-	// Nodes is the set of canvas nodes keyed by ID.
+	// Nodes maps Canvas node IDs to their bodies.
 	Nodes map[string]*CanvasNode `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// Edges is the list of user-drawn edges.
+	// Edges contains user-drawn Canvas edges.
 	Edges []*CanvasEdge `protobuf:"bytes,2,rep,name=edges,proto3" json:"edges,omitempty"`
-	// StrokeTreeRef is the block ref to the freeform stroke tree.
+	// StrokeTreeRef identifies the block-backed freeform stroke tree.
 	StrokeTreeRef []byte `protobuf:"bytes,3,opt,name=stroke_tree_ref,json=strokeTreeRef,proto3" json:"strokeTreeRef,omitempty"`
-	// HiddenGraphLinks is the set of canvas-scoped hidden world graph links.
+	// HiddenGraphLinks contains Canvas-scoped World graph links hidden from rendering.
 	HiddenGraphLinks []*HiddenGraphLink `protobuf:"bytes,4,rep,name=hidden_graph_links,json=hiddenGraphLinks,proto3" json:"hiddenGraphLinks,omitempty"`
-	// LayoutMetadata is projection layout metadata keyed by canvas node ID.
+	// LayoutMetadata maps Canvas node IDs to reusable projection layout metadata.
 	LayoutMetadata map[string]*CanvasLayoutMetadata `protobuf:"bytes,5,rep,name=layout_metadata,json=layoutMetadata,proto3" json:"layoutMetadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
@@ -433,7 +639,7 @@ func (x *CanvasState) GetLayoutMetadata() map[string]*CanvasLayoutMetadata {
 	return nil
 }
 
-// GetCanvasStateRequest is the request for GetCanvasState.
+// GetCanvasStateRequest selects the Canvas bound to the resource service.
 type GetCanvasStateRequest struct {
 	unknownFields []byte
 }
@@ -444,10 +650,10 @@ func (x *GetCanvasStateRequest) Reset() {
 
 func (*GetCanvasStateRequest) ProtoMessage() {}
 
-// GetCanvasStateResponse is the response for GetCanvasState.
+// GetCanvasStateResponse contains the selected Canvas state.
 type GetCanvasStateResponse struct {
 	unknownFields []byte
-	// State is the current canvas state.
+	// State is the complete current Canvas state.
 	State *CanvasState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
 }
 
@@ -464,24 +670,24 @@ func (x *GetCanvasStateResponse) GetState() *CanvasState {
 	return nil
 }
 
-// UpdateCanvasRequest applies mutations to the canvas.
+// UpdateCanvasRequest contains one validated atomic Canvas mutation.
 type UpdateCanvasRequest struct {
 	unknownFields []byte
-	// SetNodes contains nodes to add or update (keyed by ID).
+	// SetNodes maps IDs to Canvas nodes to add or replace.
 	SetNodes map[string]*CanvasNode `protobuf:"bytes,1,rep,name=set_nodes,json=setNodes,proto3" json:"setNodes,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// RemoveNodeIds contains node IDs to remove.
+	// RemoveNodeIds identifies Canvas nodes to remove.
 	RemoveNodeIds []string `protobuf:"bytes,2,rep,name=remove_node_ids,json=removeNodeIds,proto3" json:"removeNodeIds,omitempty"`
-	// AddEdges contains edges to add.
+	// AddEdges contains Canvas edges to append.
 	AddEdges []*CanvasEdge `protobuf:"bytes,3,rep,name=add_edges,json=addEdges,proto3" json:"addEdges,omitempty"`
-	// RemoveEdgeIds contains edge IDs to remove.
+	// RemoveEdgeIds identifies Canvas edges to remove.
 	RemoveEdgeIds []string `protobuf:"bytes,4,rep,name=remove_edge_ids,json=removeEdgeIds,proto3" json:"removeEdgeIds,omitempty"`
-	// AddHiddenGraphLinks contains graph links to hide.
+	// AddHiddenGraphLinks contains World graph links to hide.
 	AddHiddenGraphLinks []*HiddenGraphLink `protobuf:"bytes,5,rep,name=add_hidden_graph_links,json=addHiddenGraphLinks,proto3" json:"addHiddenGraphLinks,omitempty"`
-	// RemoveHiddenGraphLinks contains graph links to show again.
+	// RemoveHiddenGraphLinks contains World graph links to show again.
 	RemoveHiddenGraphLinks []*HiddenGraphLink `protobuf:"bytes,6,rep,name=remove_hidden_graph_links,json=removeHiddenGraphLinks,proto3" json:"removeHiddenGraphLinks,omitempty"`
-	// SetLayoutMetadata contains layout metadata to add or update by node ID.
+	// SetLayoutMetadata maps Canvas node IDs to projection metadata to add or replace.
 	SetLayoutMetadata map[string]*CanvasLayoutMetadata `protobuf:"bytes,7,rep,name=set_layout_metadata,json=setLayoutMetadata,proto3" json:"setLayoutMetadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// RemoveLayoutMetadataNodeIds contains node IDs whose layout metadata is removed.
+	// RemoveLayoutMetadataNodeIds identifies Canvas nodes whose projection metadata is removed.
 	RemoveLayoutMetadataNodeIds []string `protobuf:"bytes,8,rep,name=remove_layout_metadata_node_ids,json=removeLayoutMetadataNodeIds,proto3" json:"removeLayoutMetadataNodeIds,omitempty"`
 }
 
@@ -547,10 +753,10 @@ func (x *UpdateCanvasRequest) GetRemoveLayoutMetadataNodeIds() []string {
 	return nil
 }
 
-// UpdateCanvasResponse is the response for UpdateCanvas.
+// UpdateCanvasResponse contains the complete Canvas state after mutation.
 type UpdateCanvasResponse struct {
 	unknownFields []byte
-	// State is the updated canvas state.
+	// State is the complete updated Canvas state.
 	State *CanvasState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
 }
 
@@ -567,7 +773,7 @@ func (x *UpdateCanvasResponse) GetState() *CanvasState {
 	return nil
 }
 
-// WatchCanvasStateRequest is the request for WatchCanvasState.
+// WatchCanvasStateRequest selects the Canvas bound to the resource service.
 type WatchCanvasStateRequest struct {
 	unknownFields []byte
 }
@@ -578,10 +784,10 @@ func (x *WatchCanvasStateRequest) Reset() {
 
 func (*WatchCanvasStateRequest) ProtoMessage() {}
 
-// WatchCanvasStateResponse is a stream response with canvas state.
+// WatchCanvasStateResponse contains one complete watched Canvas state.
 type WatchCanvasStateResponse struct {
 	unknownFields []byte
-	// State is the current canvas state.
+	// State is the complete current Canvas state.
 	State *CanvasState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
 }
 
@@ -719,6 +925,7 @@ func (m *CanvasNode) CloneVT() *CanvasNode {
 	r.Pinned = m.Pinned
 	r.ViewPath = m.ViewPath
 	r.ShapeData = protobuf_go_lite.CloneBytes(m.ShapeData)
+	r.Geometry = protobuf_go_lite.CloneVTValue(m.Geometry)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -726,6 +933,58 @@ func (m *CanvasNode) CloneVT() *CanvasNode {
 }
 
 func (m *CanvasNode) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CanvasPoint) CloneVT() *CanvasPoint {
+	if m == nil {
+		return (*CanvasPoint)(nil)
+	}
+	r := new(CanvasPoint)
+	r.X = m.X
+	r.Y = m.Y
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CanvasPoint) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CanvasGeometry) CloneVT() *CanvasGeometry {
+	if m == nil {
+		return (*CanvasGeometry)(nil)
+	}
+	r := new(CanvasGeometry)
+	r.Kind = m.Kind
+	r.Color = m.Color
+	r.Points = protobuf_go_lite.CloneVTSlice(m.Points)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CanvasGeometry) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CanvasClipboardPayload) CloneVT() *CanvasClipboardPayload {
+	if m == nil {
+		return (*CanvasClipboardPayload)(nil)
+	}
+	r := new(CanvasClipboardPayload)
+	r.Version = m.Version
+	r.Nodes = protobuf_go_lite.CloneVTSlice(m.Nodes)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CanvasClipboardPayload) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -951,11 +1210,86 @@ func (this *CanvasNode) EqualVT(that *CanvasNode) bool {
 	if this.ViewPath != that.ViewPath {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Geometry, that.Geometry) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
 func (this *CanvasNode) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*CanvasNode)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CanvasPoint) EqualVT(that *CanvasPoint) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.X != that.X {
+		return false
+	}
+	if this.Y != that.Y {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CanvasPoint) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CanvasPoint)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CanvasGeometry) EqualVT(that *CanvasGeometry) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Kind != that.Kind {
+		return false
+	}
+	if this.Color != that.Color {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Points, that.Points, func() *CanvasPoint { return &CanvasPoint{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CanvasGeometry) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CanvasGeometry)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CanvasClipboardPayload) EqualVT(that *CanvasClipboardPayload) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Version != that.Version {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Nodes, that.Nodes, func() *CanvasNode { return &CanvasNode{} }) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CanvasClipboardPayload) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CanvasClipboardPayload)
 	if !ok {
 		return false
 	}
@@ -1262,6 +1596,86 @@ func (x *NodeType) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the CanvasGeometryKind to JSON.
+func (x CanvasGeometryKind) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), CanvasGeometryKind_name)
+}
+
+// MarshalText marshals the CanvasGeometryKind to text.
+func (x CanvasGeometryKind) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), CanvasGeometryKind_name)), nil
+}
+
+// MarshalJSON marshals the CanvasGeometryKind to JSON.
+func (x CanvasGeometryKind) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CanvasGeometryKind from JSON.
+func (x *CanvasGeometryKind) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(CanvasGeometryKind_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read CanvasGeometryKind enum: %v", err)
+		return
+	}
+	*x = CanvasGeometryKind(v)
+}
+
+// UnmarshalText unmarshals the CanvasGeometryKind from text.
+func (x *CanvasGeometryKind) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), CanvasGeometryKind_value)
+	if err != nil {
+		return err
+	}
+	*x = CanvasGeometryKind(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the CanvasGeometryKind from JSON.
+func (x *CanvasGeometryKind) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CanvasClipboardVersion to JSON.
+func (x CanvasClipboardVersion) MarshalProtoJSON(s *json.MarshalState) {
+	s.WriteEnum(int32(x), CanvasClipboardVersion_name)
+}
+
+// MarshalText marshals the CanvasClipboardVersion to text.
+func (x CanvasClipboardVersion) MarshalText() ([]byte, error) {
+	return []byte(json.GetEnumString(int32(x), CanvasClipboardVersion_name)), nil
+}
+
+// MarshalJSON marshals the CanvasClipboardVersion to JSON.
+func (x CanvasClipboardVersion) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CanvasClipboardVersion from JSON.
+func (x *CanvasClipboardVersion) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	v := s.ReadEnum(CanvasClipboardVersion_value)
+	if err := s.Err(); err != nil {
+		s.SetErrorf("could not read CanvasClipboardVersion enum: %v", err)
+		return
+	}
+	*x = CanvasClipboardVersion(v)
+}
+
+// UnmarshalText unmarshals the CanvasClipboardVersion from text.
+func (x *CanvasClipboardVersion) UnmarshalText(b []byte) error {
+	i, err := json.ParseEnumString(string(b), CanvasClipboardVersion_value)
+	if err != nil {
+		return err
+	}
+	*x = CanvasClipboardVersion(i)
+	return nil
+}
+
+// UnmarshalJSON unmarshals the CanvasClipboardVersion from JSON.
+func (x *CanvasClipboardVersion) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 // MarshalProtoJSON marshals the EdgeStyle to JSON.
 func (x EdgeStyle) MarshalProtoJSON(s *json.MarshalState) {
 	s.WriteEnum(int32(x), EdgeStyle_name)
@@ -1370,6 +1784,11 @@ func (x *CanvasNode) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("viewPath")
 		s.WriteString(x.ViewPath)
 	}
+	if x.Geometry != nil || s.HasField("geometry") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("geometry")
+		x.Geometry.MarshalProtoJSON(s.WithField("geometry"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1423,12 +1842,219 @@ func (x *CanvasNode) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "view_path", "viewPath":
 			s.AddField("view_path")
 			x.ViewPath = s.ReadString()
+		case "geometry":
+			if s.ReadNil() {
+				x.Geometry = nil
+				return
+			}
+			x.Geometry = &CanvasGeometry{}
+			x.Geometry.UnmarshalProtoJSON(s.WithField("geometry", true))
 		}
 	})
 }
 
 // UnmarshalJSON unmarshals the CanvasNode from JSON.
 func (x *CanvasNode) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CanvasPoint message to JSON.
+func (x *CanvasPoint) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.X != 0 || s.HasField("x") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("x")
+		s.WriteFloat64(x.X)
+	}
+	if x.Y != 0 || s.HasField("y") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("y")
+		s.WriteFloat64(x.Y)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CanvasPoint to JSON.
+func (x *CanvasPoint) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CanvasPoint message from JSON.
+func (x *CanvasPoint) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "x":
+			s.AddField("x")
+			x.X = s.ReadFloat64()
+		case "y":
+			s.AddField("y")
+			x.Y = s.ReadFloat64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CanvasPoint from JSON.
+func (x *CanvasPoint) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CanvasGeometry message to JSON.
+func (x *CanvasGeometry) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Kind != 0 || s.HasField("kind") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("kind")
+		x.Kind.MarshalProtoJSON(s)
+	}
+	if x.Color != "" || s.HasField("color") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("color")
+		s.WriteString(x.Color)
+	}
+	if len(x.Points) > 0 || s.HasField("points") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("points")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Points {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("points"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CanvasGeometry to JSON.
+func (x *CanvasGeometry) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CanvasGeometry message from JSON.
+func (x *CanvasGeometry) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "kind":
+			s.AddField("kind")
+			x.Kind.UnmarshalProtoJSON(s)
+		case "color":
+			s.AddField("color")
+			x.Color = s.ReadString()
+		case "points":
+			s.AddField("points")
+			if s.ReadNil() {
+				x.Points = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Points = append(x.Points, nil)
+					return
+				}
+				v := &CanvasPoint{}
+				v.UnmarshalProtoJSON(s.WithField("points", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Points = append(x.Points, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CanvasGeometry from JSON.
+func (x *CanvasGeometry) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CanvasClipboardPayload message to JSON.
+func (x *CanvasClipboardPayload) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Version != 0 || s.HasField("version") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("version")
+		x.Version.MarshalProtoJSON(s)
+	}
+	if len(x.Nodes) > 0 || s.HasField("nodes") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nodes")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Nodes {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("nodes"))
+		}
+		s.WriteArrayEnd()
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CanvasClipboardPayload to JSON.
+func (x *CanvasClipboardPayload) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CanvasClipboardPayload message from JSON.
+func (x *CanvasClipboardPayload) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "version":
+			s.AddField("version")
+			x.Version.UnmarshalProtoJSON(s)
+		case "nodes":
+			s.AddField("nodes")
+			if s.ReadNil() {
+				x.Nodes = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Nodes = append(x.Nodes, nil)
+					return
+				}
+				v := &CanvasNode{}
+				v.UnmarshalProtoJSON(s.WithField("nodes", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Nodes = append(x.Nodes, v)
+			})
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CanvasClipboardPayload from JSON.
+func (x *CanvasClipboardPayload) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -2442,6 +3068,16 @@ func (m *CanvasNode) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Geometry != nil {
+		size, err := m.Geometry.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x6a
+	}
 	if len(m.ViewPath) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ViewPath)
 		i--
@@ -2501,6 +3137,151 @@ func (m *CanvasNode) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Id)
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CanvasPoint) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CanvasPoint) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CanvasPoint) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Y != 0 {
+		i = protobuf_go_lite.EncodeFixed64(dAtA, i, uint64(math.Float64bits(float64(m.Y))))
+		i--
+		dAtA[i] = 0x11
+	}
+	if m.X != 0 {
+		i = protobuf_go_lite.EncodeFixed64(dAtA, i, uint64(math.Float64bits(float64(m.X))))
+		i--
+		dAtA[i] = 0x9
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CanvasGeometry) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CanvasGeometry) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CanvasGeometry) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Points) > 0 {
+		for iNdEx := len(m.Points) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Points[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1a
+		}
+	}
+	if len(m.Color) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Color)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Kind != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Kind))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CanvasClipboardPayload) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CanvasClipboardPayload) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CanvasClipboardPayload) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Nodes) > 0 {
+		for iNdEx := len(m.Nodes) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Nodes[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if m.Version != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Version))
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -3109,6 +3890,53 @@ func (m *CanvasNode) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Pinned)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ViewPath)
+	if m.Geometry != nil {
+		l = m.Geometry.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CanvasPoint) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeFixed64NonZero(1, m.X)
+	n += protobuf_go_lite.SizeFixed64NonZero(1, m.Y)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CanvasGeometry) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Kind)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Color)
+	for _, e := range m.Points {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CanvasClipboardPayload) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Version)
+	for _, e := range m.Nodes {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -3307,6 +4135,14 @@ func (x NodeType) MarshalProtoText() string {
 	return x.String()
 }
 
+func (x CanvasGeometryKind) MarshalProtoText() string {
+	return x.String()
+}
+
+func (x CanvasClipboardVersion) MarshalProtoText() string {
+	return x.String()
+}
+
 func (x EdgeStyle) MarshalProtoText() string {
 	return x.String()
 }
@@ -3362,10 +4198,88 @@ func (x *CanvasNode) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "view_path")
 		protobuf_go_lite.TextWriteString(&sb, x.ViewPath)
 	}
+	if x.Geometry != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "geometry")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Geometry)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
 func (x *CanvasNode) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CanvasPoint) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CanvasPoint")
+	if x.X != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "x")
+		protobuf_go_lite.TextWriteFloat64(&sb, x.X)
+	}
+	if x.Y != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "y")
+		protobuf_go_lite.TextWriteFloat64(&sb, x.Y)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CanvasPoint) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CanvasGeometry) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CanvasGeometry")
+	if x.Kind != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "kind")
+		protobuf_go_lite.TextWriteStringer(&sb, CanvasGeometryKind(x.Kind))
+	}
+	if x.Color != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "color")
+		protobuf_go_lite.TextWriteString(&sb, x.Color)
+	}
+	if len(x.Points) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "points")
+		for i, v := range x.Points {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &CanvasPoint{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CanvasGeometry) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CanvasClipboardPayload) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CanvasClipboardPayload")
+	if x.Version != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "version")
+		protobuf_go_lite.TextWriteStringer(&sb, CanvasClipboardVersion(x.Version))
+	}
+	if len(x.Nodes) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "nodes")
+		for i, v := range x.Nodes {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &CanvasNode{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CanvasClipboardPayload) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3903,6 +4817,232 @@ func (m *CanvasNode) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ViewPath = v
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Geometry", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Geometry == nil {
+				m.Geometry = &CanvasGeometry{}
+			}
+			if err := m.Geometry.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CanvasPoint) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CanvasPoint: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CanvasPoint: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field X", wireType)
+			}
+			var v uint64
+			var _v64 uint64
+			_v64, iNdEx, err = protobuf_go_lite.DecodeFixed64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			v = uint64(_v64)
+			m.X = float64(math.Float64frombits(v))
+		case 2:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Y", wireType)
+			}
+			var v uint64
+			var _v64 uint64
+			_v64, iNdEx, err = protobuf_go_lite.DecodeFixed64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			v = uint64(_v64)
+			m.Y = float64(math.Float64frombits(v))
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CanvasGeometry) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CanvasGeometry: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CanvasGeometry: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Kind", wireType)
+			}
+			m.Kind = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Kind = CanvasGeometryKind(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Color", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Color = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Points", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Points = append(m.Points, &CanvasPoint{})
+			if err := m.Points[len(m.Points)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CanvasClipboardPayload) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CanvasClipboardPayload: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CanvasClipboardPayload: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Version", wireType)
+			}
+			m.Version = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Version = CanvasClipboardVersion(_v)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nodes", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Nodes = append(m.Nodes, &CanvasNode{})
+			if err := m.Nodes[len(m.Nodes)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -1,18 +1,14 @@
-import { useMemo, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 import type { CanvasNodeData } from './types.js'
-import { decodeCanvasGeometry } from './geometry.js'
 
 interface CanvasGeometryNodeProps {
   node: CanvasNodeData
 }
 
-// CanvasGeometryNode renders drawing and primitive-shape nodes from shapeData.
+// CanvasGeometryNode renders generated drawing and primitive-shape geometry.
 export function CanvasGeometryNode({ node }: CanvasGeometryNodeProps) {
-  const geometry = useMemo(
-    () => decodeCanvasGeometry(node.shapeData),
-    [node.shapeData],
-  )
+  const geometry = node.geometry
   if (!geometry) return null
 
   const [start, end] = geometry.points

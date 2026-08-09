@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import type { CanvasGeometry } from './geometry.js'
+
 // NodeType matches proto NodeType enum.
 export type NodeType = 'text' | 'shape' | 'world_object' | 'drawing'
 
@@ -16,7 +18,7 @@ export interface CanvasNodeData {
   zIndex: number
   type: NodeType
   textContent?: string
-  shapeData?: Uint8Array
+  geometry?: CanvasGeometry
   objectKey?: string
   pinned?: boolean
   viewPath?: string
@@ -110,8 +112,6 @@ export type CanvasAction =
   | 'delete'
   | 'copy'
   | 'paste'
-  | 'undo'
-  | 'redo'
   | 'select-all'
   | 'deselect'
   | 'zoom-in'

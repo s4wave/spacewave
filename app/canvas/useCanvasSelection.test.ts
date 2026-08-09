@@ -128,7 +128,6 @@ describe('useCanvasSelection', () => {
   it('drag rect lifecycle: start, update, end selects nodes', () => {
     const { result } = renderHook(() => useCanvasSelection())
 
-    // Nodes at known positions.
     const nodes = new Map([
       [
         'inside',
@@ -140,20 +139,17 @@ describe('useCanvasSelection', () => {
       ],
     ])
 
-    // Start drag rect at screen coords with viewport at origin, scale 1.
     act(() => {
       result.current.startDragRect(0, 0)
     })
     expect(result.current.dragRect).toBeTruthy()
 
-    // Update drag rect to cover the "inside" node.
     act(() => {
       result.current.updateDragRect(200, 200)
     })
     expect(result.current.dragRect?.endX).toBe(200)
     expect(result.current.dragRect?.endY).toBe(200)
 
-    // End drag rect - should select "inside" but not "outside".
     act(() => {
       result.current.endDragRect(nodes, 0, 0, 1)
     })
@@ -166,16 +162,10 @@ describe('useCanvasSelection', () => {
   it('drag rect accounts for viewport offset and scale', () => {
     const { result } = renderHook(() => useCanvasSelection())
 
-    // Node at canvas position (200, 200).
     const nodes = new Map([
       ['n1', makeNode({ id: 'n1', x: 200, y: 200, width: 50, height: 50 })],
     ])
 
-    // Viewport offset: x=100, y=100, scale=2.
-    // Screen rect (0,0)-(250,250) maps to canvas rect:
-    // left = (0 - 100) / 2 = -50, top = -50
-    // right = (250 - 100) / 2 = 75, bottom = 75
-    // Node at (200, 200) is outside this range.
     act(() => {
       result.current.startDragRect(0, 0)
     })
@@ -188,8 +178,6 @@ describe('useCanvasSelection', () => {
 
     expect(result.current.selectedNodeIds.has('n1')).toBe(false)
 
-    // Now with a rect that covers (200, 200) in canvas coords.
-    // Canvas (200, 200) at scale=2, offset=(100,100): screen = 200*2+100 = 500
     act(() => {
       result.current.startDragRect(400, 400)
     })

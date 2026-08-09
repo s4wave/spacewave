@@ -12,7 +12,6 @@ const hiddenTypePredicate = '<type>'
 const protectedPredicates = new Set([hiddenTypePredicate])
 const ownerManagedPredicates = new Set(['<parent>', '<workdir>'])
 
-// GraphLinkPredicatePolicy classifies world graph links for Canvas actions.
 export class GraphLinkPredicatePolicy {
   classify(
     link: Pick<HiddenGraphLinkData, 'predicate'>,
@@ -27,8 +26,6 @@ export class GraphLinkPredicatePolicy {
       }
     }
 
-    // TODO: Replace this TypeScript predicate table with ObjectType metadata
-    // once object types declare their owner-managed graph edges.
     if (ownerManagedPredicates.has(link.predicate)) {
       return {
         viewable: true,

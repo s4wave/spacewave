@@ -3,13 +3,11 @@ import { useMemo } from 'react'
 import type { CanvasNodeData, Viewport } from './types.js'
 import { VIEWPORT_MARGIN } from './types.js'
 
-// ContainerSize represents the pixel dimensions of the canvas container.
 export interface ContainerSize {
   width: number
   height: number
 }
 
-// useVisibleNodes returns the set of node IDs that are visible in the current viewport.
 export function useVisibleNodes(
   nodes: Map<string, CanvasNodeData>,
   viewport: Viewport,
@@ -18,7 +16,6 @@ export function useVisibleNodes(
   return useMemo(() => {
     const visible = new Set<string>()
 
-    // Viewport bounds in canvas coordinates.
     const vLeft =
       -viewport.x / viewport.scale - VIEWPORT_MARGIN / viewport.scale
     const vTop = -viewport.y / viewport.scale - VIEWPORT_MARGIN / viewport.scale
@@ -33,7 +30,6 @@ export function useVisibleNodes(
       const nodeRight = node.x + node.width
       const nodeBottom = node.y + node.height
 
-      // AABB intersection test.
       if (
         node.x <= vRight &&
         nodeRight >= vLeft &&

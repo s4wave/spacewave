@@ -9,6 +9,14 @@ import {
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
+import { Canvas } from './Canvas.js'
+import type {
+  CanvasStateData,
+  CanvasNodeData,
+  CanvasCallbacks,
+  CanvasEdgeData,
+} from './types.js'
+
 vi.mock('./CanvasContextMenu.js', () => ({
   CanvasContextMenu: ({
     state,
@@ -23,14 +31,6 @@ vi.mock('./CanvasContextMenu.js', () => ({
       />
     ) : null,
 }))
-
-import { Canvas } from './Canvas.js'
-import type {
-  CanvasStateData,
-  CanvasNodeData,
-  CanvasCallbacks,
-  CanvasEdgeData,
-} from './types.js'
 
 function makeNode(overrides: Partial<CanvasNodeData> = {}): CanvasNodeData {
   return {
@@ -82,7 +82,6 @@ describe('Canvas', () => {
     const state = makeState()
     const callbacks = makeCallbacks()
     render(<Canvas state={state} callbacks={callbacks} />)
-    // Canvas root should be present (has tabIndex).
     const root = document.querySelector('[tabindex="0"]')
     expect(root).toBeTruthy()
   })
@@ -146,7 +145,6 @@ describe('Canvas', () => {
     expect(el).toBeTruthy()
     await user.click(el)
 
-    // onNodeSelect should have been called with a set containing the node id.
     expect(onNodeSelect).toHaveBeenCalled()
     const lastCall = onNodeSelect.mock.lastCall
     expect(lastCall).toBeDefined()
@@ -173,11 +171,9 @@ describe('Canvas', () => {
     const callbacks = makeCallbacks()
     render(<Canvas state={state} callbacks={callbacks} />)
 
-    // SVG should be present.
     const svg = document.querySelector('svg')
     expect(svg).toBeTruthy()
 
-    // Path for the edge should exist.
     const paths = svg?.querySelectorAll('path')
     expect(paths && paths.length > 0).toBe(true)
   })
@@ -188,7 +184,6 @@ describe('Canvas', () => {
     const callbacks = makeCallbacks()
     render(<Canvas state={state} callbacks={callbacks} />)
 
-    // Minimap is a div with specific dimensions.
     const minimaps = document.querySelectorAll('[style*="width: 200px"]')
     expect(minimaps.length).toBeGreaterThan(0)
   })
@@ -206,11 +201,9 @@ describe('Canvas', () => {
     ) as HTMLElement
     await user.click(el)
 
-    // Click the viewport background to clear selection.
     const root = document.querySelector('[tabindex="0"]') as HTMLElement
     await user.click(root)
 
-    // The last call should be with an empty set.
     const lastCall = onNodeSelect.mock.calls[onNodeSelect.mock.calls.length - 1]
     const selected = lastCall[0] as Set<string>
     expect(selected.size).toBe(0)
@@ -295,21 +288,13 @@ describe('Canvas', () => {
       '[data-canvas-node="drag-test"]',
     ) as HTMLElement
 
-    // Simulate drag start.
     fireEvent.pointerDown(el, { clientX: 150, clientY: 150, pointerId: 1 })
-    // Simulate drag move.
     fireEvent.pointerMove(el, { clientX: 170, clientY: 160, pointerId: 1 })
     fireEvent.pointerMove(el, { clientX: 190, clientY: 170, pointerId: 1 })
 
-    // During drag, onNodesChange should NOT have been called.
     expect(onNodesChange).not.toHaveBeenCalled()
 
-    // Simulate drop.
     fireEvent.pointerUp(el, { clientX: 190, clientY: 170, pointerId: 1 })
-
-    // After drop, positions should be persisted.
-    // Note: @use-gesture may not fire in happy-dom, so this test verifies
-    // the architecture - that the callback only fires on pointer up.
   })
 
   it('viewport transform is applied to the content layer', () => {
@@ -317,7 +302,6 @@ describe('Canvas', () => {
     const callbacks = makeCallbacks()
     render(<Canvas state={state} callbacks={callbacks} />)
 
-    // The transform div should exist with default viewport transform.
     const transformDiv = document.querySelector(
       '[style*="translate3d(0px, 0px, 0) scale(1)"]',
     )
@@ -329,7 +313,6 @@ describe('Canvas', () => {
     const callbacks = makeCallbacks()
     render(<Canvas state={state} callbacks={callbacks} />)
 
-    // The viewport container has overflow-hidden and touch-none for gesture handling.
     const container = document.querySelector('.overflow-hidden.touch-none')
     expect(container).toBeTruthy()
   })

@@ -81,6 +81,11 @@ func (r *CanvasResource) GetCanvasState(_ context.Context, _ *GetCanvasStateRequ
 
 // UpdateCanvas applies a batch update to the canvas.
 func (r *CanvasResource) UpdateCanvas(ctx context.Context, req *UpdateCanvasRequest) (*UpdateCanvasResponse, error) {
+	setNodes, err := validateCanvasUpdate(req)
+	if err != nil {
+		return nil, err
+	}
+
 	// Apply mutations to a clone of the current state.
 	var updated *CanvasState
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -92,7 +97,7 @@ func (r *CanvasResource) UpdateCanvas(ctx context.Context, req *UpdateCanvasRequ
 	}
 
 	// Set/update nodes.
-	maps.Copy(updated.Nodes, req.GetSetNodes())
+	maps.Copy(updated.Nodes, setNodes)
 
 	// Remove nodes.
 	for _, id := range req.GetRemoveNodeIds() {

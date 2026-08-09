@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo } from 'react'
 
 import type { CanvasNodeData } from './types.js'
 
-// DragRect represents a selection rectangle in screen coordinates.
 export interface DragRect {
   startX: number
   startY: number
@@ -10,12 +9,8 @@ export interface DragRect {
   endY: number
 }
 
-// SelectionFocus indicates whether the selection is content-focused or
-// border-focused. Content-focused passes keyboard events to embedded
-// content. Border-focused routes them to the canvas movement system.
 export type SelectionFocus = 'content' | 'border'
 
-// UseCanvasSelectionResult is the return type of useCanvasSelection.
 export interface UseCanvasSelectionResult {
   selectedNodeIds: Set<string>
   focus: SelectionFocus
@@ -36,7 +31,6 @@ export interface UseCanvasSelectionResult {
   ) => void
 }
 
-// useCanvasSelection manages selection state for canvas nodes.
 export function useCanvasSelection(): UseCanvasSelectionResult {
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(
     () => new Set(),
@@ -110,7 +104,6 @@ export function useCanvasSelection(): UseCanvasSelectionResult {
         return
       }
 
-      // Convert screen rect to canvas coordinates.
       const left = Math.min(rect.startX, rect.endX)
       const top = Math.min(rect.startY, rect.endY)
       const right = Math.max(rect.startX, rect.endX)

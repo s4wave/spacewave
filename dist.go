@@ -5,7 +5,7 @@ import "embed"
 // DistSources contains the TypeScript source closure that downstream apps use
 // to resolve Spacewave package imports without a sibling checkout.
 //
-//go:embed app/canvas/GraphLinkPill.tsx app/canvas/type.ts app/canvas/types.ts app/creator-visibility.ts
+//go:embed app/canvas/GraphLinkPill.tsx app/canvas/geometry.ts app/canvas/type.ts app/canvas/types.ts app/creator-visibility.ts
 //go:embed app/device/add-device-wizard.ts app/quickstart/create.ts app/quickstart/options.ts
 //go:embed app/quickstart/perf-test.ts app/quickstart/startup-boundary.ts app/space/create-op-builders.ts
 //go:embed app/space/space-settings.ts app/space/space.ts app/urls.ts app/vm/v86-wizard-config.ts

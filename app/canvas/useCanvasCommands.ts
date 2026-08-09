@@ -12,7 +12,6 @@ import type { UseCanvasActionsResult } from './useCanvasActions.js'
 import type { CanvasTool } from './types.js'
 import type { SelectionFocus } from './useCanvasSelection.js'
 
-// UseCanvasCommandsParams are the parameters for useCanvasCommands.
 interface UseCanvasCommandsParams {
   actions: UseCanvasActionsResult['actions']
   moveSelected: UseCanvasActionsResult['moveSelected']
@@ -28,12 +27,8 @@ interface UseCanvasCommandsParams {
   addImageSubItems?: SubItemsCallback
 }
 
-// ARROW_STEP is the number of canvas units to move per arrow key press.
 const ARROW_STEP = 10
 
-// useCanvasCommands registers all canvas keyboard shortcuts as commands
-// via the command system. Commands are scoped to the active canvas tab
-// using useIsTabActive().
 export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   const {
     actions,
@@ -55,7 +50,6 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   const contentFocused = selectionFocus === 'content' && hasSelection
   const borderActive = isTabActive && !contentFocused
 
-  // Escape: content-focused switches to border, otherwise deselect.
   useCommand({
     commandId: 'canvas.escape',
     label: 'Deselect / Exit Content',
@@ -77,7 +71,6 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     }, [contentFocused, onSetFocus, onCancelDrag, actions]),
   })
 
-  // Edit actions.
   useCommand({
     commandId: 'canvas.copy',
     label: 'Copy',
@@ -113,44 +106,6 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     active: isTabActive,
     handler: useCallback(() => {
       actions.paste()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.undo',
-    label: 'Undo',
-    menuPath: 'Edit/Undo',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+Z' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 10,
-    menuOrder: 1,
-    active: isTabActive,
-    handler: useCallback(() => {
-      actions.undo()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.redo',
-    label: 'Redo',
-    menuPath: 'Edit/Redo',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+Shift+Z' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 10,
-    menuOrder: 2,
-    active: isTabActive,
-    handler: useCallback(() => {
-      actions.redo()
     }, [actions]),
   })
 
@@ -244,7 +199,6 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     }, [actions]),
   })
 
-  // View actions.
   useCommand({
     commandId: 'canvas.zoom-in',
     label: 'Zoom In',
@@ -342,7 +296,6 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     }, [actions]),
   })
 
-  // Arrow key movement.
   useCommand({
     commandId: 'canvas.move-up',
     label: 'Move Up',
@@ -471,7 +424,6 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
     }, [moveSelected]),
   })
 
-  // Tool switches (only when onToolChange is provided).
   useCommand({
     commandId: 'canvas.tool.select',
     label: 'Select Tool',

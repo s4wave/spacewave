@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { renderHook, cleanup, act } from '@testing-library/react'
 
+import { encodeCanvasClipboard } from './clipboard.js'
 import { useCanvasActions } from './useCanvasActions.js'
 import { useCanvasSelection } from './useCanvasSelection.js'
 import type {
@@ -73,6 +74,7 @@ function getViewportCall(
 describe('useCanvasActions', () => {
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
   })
 
   it('provides all action functions', () => {
@@ -81,8 +83,8 @@ describe('useCanvasActions', () => {
     expect(actionKeys).toContain('delete')
     expect(actionKeys).toContain('copy')
     expect(actionKeys).toContain('paste')
-    expect(actionKeys).toContain('undo')
-    expect(actionKeys).toContain('redo')
+    expect(actionKeys).not.toContain('undo')
+    expect(actionKeys).not.toContain('redo')
     expect(actionKeys).toContain('select-all')
     expect(actionKeys).toContain('deselect')
     expect(actionKeys).toContain('zoom-in')
@@ -108,12 +110,10 @@ describe('useCanvasActions', () => {
     ])
     const { result, onNodesRemove } = setup({ nodes })
 
-    // Select node 'a'.
     act(() => {
       result.current.selection.toggleSelect('a', false)
     })
 
-    // Delete selected.
     act(() => {
       result.current.actions.delete()
     })
@@ -259,7 +259,6 @@ describe('useCanvasActions', () => {
       string,
       CanvasNodeData
     >
-    // Only the changed node is passed, not the full map.
     expect(updated.size).toBe(1)
     expect(updated.get('a')?.zIndex).toBe(6)
   })
@@ -286,7 +285,6 @@ describe('useCanvasActions', () => {
       string,
       CanvasNodeData
     >
-    // Only the changed node is passed, not the full map.
     expect(updated.size).toBe(1)
     expect(updated.get('a')?.zIndex).toBe(-1)
   })
@@ -350,5 +348,89 @@ describe('useCanvasActions', () => {
     })
 
     expect(onNodesChange).not.toHaveBeenCalled()
+  })
+
+  it('copies and pastes ordinary nodes with stable suffix, offset, dimensions, and geometry', async () => {
+    let clipboardText = ''
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn(async (text: string) => {
+          clipboardText = text
+        }),
+        readText: vi.fn(async () => clipboardText),
+      },
+    })
+    vi.spyOn(Date, 'now').mockReturnValue(1234)
+    const drawing = makeNode({
+      id: 'drawing',
+      x: 7,
+      y: 9,
+      width: 321,
+      height: 123,
+      type: 'drawing',
+      geometry: {
+        kind: 'pen',
+        color: '#dc2626',
+        points: [
+          { x: 1, y: 2 },
+          { x: 30, y: 40 },
+        ],
+      },
+    })
+    const source = setup({ nodes: new Map([[drawing.id, drawing]]) })
+    act(() => source.result.current.selection.toggleSelect(drawing.id, false))
+
+    await act(async () => source.result.current.actions.copy())
+
+    const destination = setup()
+    await act(async () => {
+      destination.result.current.actions.paste()
+      await Promise.resolve()
+    })
+    const pasted = destination.onNodesChange.mock.calls[0]?.[0] as
+      | Map<string, CanvasNodeData>
+      | undefined
+    expect(pasted).toEqual(
+      new Map([
+        [
+          'drawing-copy-1234-0',
+          {
+            ...drawing,
+            id: 'drawing-copy-1234-0',
+            x: 27,
+            y: 29,
+          },
+        ],
+      ]),
+    )
+    expect(destination.result.current.selection.selectedNodeIds).toEqual(
+      new Set(['drawing-copy-1234-0']),
+    )
+  })
+
+  it('rejects the final translated paste before mutation or selection change', async () => {
+    const unsafe = makeNode({ id: 'x'.repeat(1024), x: 999_999_990 })
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        readText: vi.fn(async () => encodeCanvasClipboard([unsafe])),
+      },
+    })
+    const existing = makeNode({ id: 'existing' })
+    const destination = setup({ nodes: new Map([[existing.id, existing]]) })
+    act(() =>
+      destination.result.current.selection.toggleSelect(existing.id, false),
+    )
+
+    await act(async () => {
+      destination.result.current.actions.paste()
+      await Promise.resolve()
+    })
+
+    expect(destination.onNodesChange).not.toHaveBeenCalled()
+    expect(destination.result.current.selection.selectedNodeIds).toEqual(
+      new Set(['existing']),
+    )
   })
 })

@@ -11,8 +11,11 @@ import { MIN_SCALE, MAX_SCALE, ZOOM_STEPS } from './types.js'
 import type { UseCanvasSelectionResult } from './useCanvasSelection.js'
 import type { ContainerSize } from './useVisibleNodes.js'
 import { organizeCanvasNodes } from './canvasLayout.js'
+import {
+  decodeCanvasClipboardPaste,
+  encodeCanvasClipboard,
+} from './clipboard.js'
 
-// UseCanvasActionsParams are the parameters for useCanvasActions.
 interface UseCanvasActionsParams {
   selection: UseCanvasSelectionResult
   nodes: Map<string, CanvasNodeData>
@@ -23,13 +26,11 @@ interface UseCanvasActionsParams {
   containerSize: ContainerSize
 }
 
-// UseCanvasActionsResult is the return type of useCanvasActions.
 export interface UseCanvasActionsResult {
   actions: Record<CanvasAction, () => void>
   moveSelected: (dx: number, dy: number) => void
 }
 
-// useCanvasActions provides an action map for canvas operations.
 export function useCanvasActions(
   params: UseCanvasActionsParams,
 ): UseCanvasActionsResult {
@@ -51,43 +52,26 @@ export function useCanvasActions(
   }, [selection, callbacks])
 
   const copy = useCallback(() => {
-    // Copy selected node IDs to a custom clipboard format on the global clipboard.
-    const ids = Array.from(selection.selectedNodeIds)
-    if (ids.length === 0) return
-    const data = JSON.stringify(
-      ids.flatMap((id) => {
+    const selectedNodes = Array.from(selection.selectedNodeIds).flatMap(
+      (id) => {
         const node = nodes.get(id)
         return node ? [node] : []
-      }),
+      },
     )
-    navigator.clipboard.writeText(data).catch(() => {
-      // Clipboard write may fail in some environments.
-    })
+    if (selectedNodes.length === 0) return
+    void navigator.clipboard.writeText(encodeCanvasClipboard(selectedNodes))
   }, [selection.selectedNodeIds, nodes])
 
   const paste = useCallback(() => {
-    navigator.clipboard
+    void navigator.clipboard
       .readText()
       .then((text) => {
-        try {
-          const parsed = JSON.parse(text) as CanvasNodeData[]
-          if (!Array.isArray(parsed)) return
-          const newNodes = new Map<string, CanvasNodeData>()
-          const newIds = new Set<string>()
-          for (const node of parsed) {
-            const id = `${node.id}-copy-${Date.now()}`
-            newNodes.set(id, { ...node, id, x: node.x + 20, y: node.y + 20 })
-            newIds.add(id)
-          }
-          callbacks.onNodesChange?.(newNodes)
-          selection.setSelection(newIds)
-        } catch {
-          // Ignore non-JSON clipboard content.
-        }
+        const newNodes = decodeCanvasClipboardPaste(text, Date.now())
+        if (!newNodes) return
+        callbacks.onNodesChange?.(newNodes)
+        selection.setSelection(new Set(newNodes.keys()))
       })
-      .catch(() => {
-        // Clipboard read may fail in some environments.
-      })
+      .catch(() => {})
   }, [callbacks, selection])
 
   const selectAll = useCallback(() => {
@@ -212,9 +196,6 @@ export function useCanvasActions(
       delete: deleteSelected,
       copy,
       paste,
-      // Undo/redo are no-ops until a history system is added.
-      undo: () => {},
-      redo: () => {},
       'select-all': selectAll,
       deselect,
       'zoom-in': zoomIn,

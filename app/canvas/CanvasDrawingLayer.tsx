@@ -5,7 +5,6 @@ import { cn } from '@s4wave/web/style/utils.js'
 import type { CanvasNodeData, Viewport } from './types.js'
 import {
   DEFAULT_CANVAS_COLOR,
-  encodeCanvasGeometry,
   type CanvasGeometryKind,
   type CanvasPoint,
 } from './geometry.js'
@@ -236,7 +235,7 @@ export function CanvasDrawingLayer({
       height,
       zIndex: 0,
       type: geometry.kind === 'pen' ? 'drawing' : 'shape',
-      shapeData: encodeCanvasGeometry(geometry),
+      geometry,
     })
     redraw()
   }, [redraw])

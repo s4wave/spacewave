@@ -36,13 +36,11 @@ describe('CanvasSelectionOverlay', () => {
   })
 
   it('handles inverted (dragged backwards) coordinates', () => {
-    // End coordinates smaller than start (drag up-left).
     const rect = { startX: 200, startY: 180, endX: 50, endY: 30 }
     render(<CanvasSelectionOverlay dragRect={rect} />)
     const overlay = document.querySelector(
       '.pointer-events-none',
     ) as HTMLElement
-    // Math.min picks the smaller coordinate for left/top.
     expect(overlay.style.left).toBe('50px')
     expect(overlay.style.top).toBe('30px')
     expect(overlay.style.width).toBe('150px')

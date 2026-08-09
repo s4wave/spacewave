@@ -105,7 +105,6 @@ describe('CanvasEdgeLayer', () => {
     )
     const paths = document.querySelectorAll('path')
     expect(paths.length).toBeGreaterThan(0)
-    // Bezier paths contain C (cubic bezier command).
     const d = paths[0].getAttribute('d') ?? ''
     expect(d).toContain('C')
   })
@@ -132,7 +131,6 @@ describe('CanvasEdgeLayer', () => {
     )
     const paths = document.querySelectorAll('path')
     expect(paths.length).toBeGreaterThan(0)
-    // Straight paths contain L (line-to command) and no C.
     const d = paths[0].getAttribute('d') ?? ''
     expect(d).toContain('L')
     expect(d).not.toContain('C')
@@ -154,7 +152,6 @@ describe('CanvasEdgeLayer', () => {
         callbacks={makeCallbacks()}
       />,
     )
-    // No edge paths should be rendered (only the defs markers exist).
     const paths = document.querySelectorAll('path')
     expect(paths.length).toBe(0)
   })

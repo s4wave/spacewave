@@ -13,6 +13,13 @@ const { onAddTextClick } = vi.hoisted(() => ({
   onAddTextClick: vi.fn(),
 }))
 
+import { Canvas } from './Canvas.js'
+import type {
+  CanvasCallbacks,
+  CanvasNodeData,
+  CanvasStateData,
+} from './types.js'
+
 vi.mock('./CanvasContextMenu.js', () => ({
   CanvasContextMenu: ({
     state,
@@ -37,13 +44,6 @@ vi.mock('./CanvasContextMenu.js', () => ({
 vi.mock('./CanvasTextNode.js', () => ({
   CanvasTextNode: () => <div data-testid="pending-text-editor" />,
 }))
-
-import { Canvas } from './Canvas.js'
-import type {
-  CanvasCallbacks,
-  CanvasNodeData,
-  CanvasStateData,
-} from './types.js'
 
 function makeState(nodes: CanvasNodeData[] = []): CanvasStateData {
   const nodeMap = new Map<string, CanvasNodeData>()

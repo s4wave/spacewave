@@ -2,15 +2,12 @@ import { useEffect, useReducer, useRef } from 'react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
-// CanvasSyncStatusProps are the props for CanvasSyncStatus.
 interface CanvasSyncStatusProps {
   pending: number
 }
 
-// DONE_VISIBLE_MS is how long "Sync complete" stays fully visible before fading.
 const DONE_VISIBLE_MS = 1200
 
-// FADE_DURATION_MS is the CSS fade-out duration.
 const FADE_DURATION_MS = 500
 
 interface SyncStatusState {
@@ -37,7 +34,6 @@ function syncStatusReducer(
   }
 }
 
-// CanvasSyncStatus renders a subtle sync indicator at the bottom-left of the canvas.
 export function CanvasSyncStatus({ pending }: CanvasSyncStatusProps) {
   const [state, dispatch] = useReducer(syncStatusReducer, {
     showDone: false,
@@ -51,7 +47,6 @@ export function CanvasSyncStatus({ pending }: CanvasSyncStatusProps) {
 
     if (!wasSyncing || pending > 0) return
 
-    // Transitioned from syncing to idle: show "Sync complete" then fade.
     dispatch({ type: 'show-done' })
 
     const fadeTimer = setTimeout(

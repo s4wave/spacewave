@@ -68,7 +68,6 @@ describe('useVisibleNodes', () => {
         'margin',
         makeNode({
           id: 'margin',
-          // Place just outside the visible area but within the margin.
           x: 800 + VIEWPORT_MARGIN / 2,
           y: 100,
           width: 200,
@@ -89,7 +88,6 @@ describe('useVisibleNodes', () => {
     const nodes = new Map<string, CanvasNodeData>([
       ['a', makeNode({ id: 'a', x: 2000, y: 2000, width: 200, height: 150 })],
     ])
-    // Pan the viewport to center on the node.
     const viewport: Viewport = { x: -1800, y: -1800, scale: 1 }
     const containerSize = { width: 800, height: 600 }
 
@@ -103,7 +101,6 @@ describe('useVisibleNodes', () => {
     const nodes = new Map<string, CanvasNodeData>([
       ['a', makeNode({ id: 'a', x: 3000, y: 3000, width: 200, height: 150 })],
     ])
-    // At scale 0.1, the visible area spans 8000x6000 canvas units.
     const viewport: Viewport = { x: 0, y: 0, scale: 0.1 }
     const containerSize = { width: 800, height: 600 }
 

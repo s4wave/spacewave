@@ -27,8 +27,6 @@ describe('useCanvasViewport', () => {
 
   it('attaches gestures via target ref (no bind function needed)', () => {
     const { result } = renderHook(() => useCanvasViewport())
-    // When using target-based gesture binding, there is no bind function.
-    // Gestures are attached directly to the containerRef target via effects.
     expect(result.current.containerRef).toBeDefined()
     expect('bind' in result.current).toBe(false)
   })

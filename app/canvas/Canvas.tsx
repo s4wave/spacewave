@@ -1,5 +1,13 @@
-/* eslint-disable react-doctor/no-giant-component */
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react'
 
 import {
   type SubItemsCallback,
@@ -35,25 +43,20 @@ import { CanvasScaleIndicator } from './CanvasScaleIndicator.js'
 import { CanvasSyncStatus } from './CanvasSyncStatus.js'
 import { DEFAULT_CANVAS_COLOR, type CanvasGeometryKind } from './geometry.js'
 
-// XL_BREAKPOINT is the container width threshold for the xl tailwind breakpoint.
 const XL_BREAKPOINT = 1280
 
-// DEFAULT_TEXT_NODE_WIDTH is the default width for new text nodes.
 const DEFAULT_TEXT_NODE_WIDTH = 200
 
-// MIN_TEXT_NODE_HEIGHT is the minimum height for a text node (single line + padding).
 const MIN_TEXT_NODE_HEIGHT = 32
 
 // PENDING_OBJECT_INSERT_TTL_MS bounds how long a context-menu placement hint
 // stays valid while the user picks an object from the command palette.
 const PENDING_OBJECT_INSERT_TTL_MS = 5000
 
-// generateNodeId creates a unique node ID.
 function generateNodeId(): string {
   return `node-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-// CanvasProps are the props for the Canvas component.
 interface CanvasProps {
   state: CanvasStateData
   ephemeralEdges?: EphemeralEdge[]
@@ -67,8 +70,7 @@ interface CanvasProps {
   className?: string
 }
 
-// Canvas is the main canvas container that composes all canvas sub-components.
-export function Canvas({
+function useCanvasController({
   state,
   ephemeralEdges,
   tool: toolProp,
@@ -173,7 +175,6 @@ export function Canvas({
     setViewport,
   ])
 
-  // Observe container size.
   useEffect(() => {
     const el = viewportContainerRef.current
     if (!el) return
@@ -189,7 +190,6 @@ export function Canvas({
     return () => observer.disconnect()
   }, [])
 
-  // Ephemeral text editor state (text tool click before commit).
   const [pendingText, setPendingText] = useState<{
     x: number
     y: number
@@ -228,13 +228,11 @@ export function Canvas({
     setPendingText(null)
   }, [])
 
-  // Local node overrides during drag (not persisted until drop).
   const [dragOffsets, setDragOffsets] = useState<Map<
     string,
     { dx: number; dy: number }
   > | null>(null)
 
-  // Merge server state with local drag offsets.
   const effectiveNodes = useMemo(() => {
     if (!dragOffsets) return state.nodes
     const merged = new Map(state.nodes)
@@ -268,14 +266,12 @@ export function Canvas({
     containerSize,
   })
 
-  // Notify consumer of selection changes.
   useEffect(() => {
     callbacks.onNodeSelect?.(selection.selectedNodeIds)
   }, [selection.selectedNodeIds, callbacks])
 
   const handleNodeMove = useCallback(
     (id: string, dx: number, dy: number) => {
-      // Accumulate local drag offsets without firing RPC.
       const idsToMove = selection.selectedNodeIds.has(id)
         ? selection.selectedNodeIds
         : new Set([id])
@@ -295,7 +291,6 @@ export function Canvas({
   const handleNodeMoveEnd = useCallback(() => {
     if (!dragOffsets || dragOffsets.size === 0) return
 
-    // Apply accumulated offsets and persist via callback.
     const next = new Map<
       string,
       typeof state.nodes extends Map<string, infer V> ? V : never
@@ -313,13 +308,12 @@ export function Canvas({
   }, [dragOffsets, state, callbacks])
 
   const handleNodeResize = useCallback(
-    (id: string, resized: import('./types.js').CanvasNodeData) => {
+    (id: string, resized: CanvasNodeData) => {
       callbacks.onNodesChange?.(new Map([[id, resized]]))
     },
     [callbacks],
   )
 
-  // screenToCanvas converts screen-relative coords to canvas space.
   const screenToCanvas = useCallback(
     (sx: number, sy: number) => ({
       x: (sx - viewport.x) / viewport.scale,
@@ -432,8 +426,6 @@ export function Canvas({
     openCommand('canvas.add-object')
   }, [closeContextMenu, openCommand])
 
-  // handleToolbarAddObject opens the object picker without a pinned position
-  // so the chosen object lands at the current viewport center.
   const handleToolbarAddObject = useCallback(() => {
     pendingObjectInsertRef.current = null
     openCommand('canvas.add-object')
@@ -477,7 +469,7 @@ export function Canvas({
   })
 
   const handleBackgroundClick = useCallback(
-    (e: React.MouseEvent) => {
+    (e: MouseEvent) => {
       const target = e.target as HTMLElement
       if (target.closest('[data-canvas-node]')) return
 
@@ -496,7 +488,7 @@ export function Canvas({
   )
 
   const handleBackgroundContextMenu = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+    (e: MouseEvent<HTMLDivElement>) => {
       const target = e.target as HTMLElement
       if (target.closest('[data-canvas-node]')) return
       const rect = viewportContainerRef.current?.getBoundingClientRect()
@@ -516,7 +508,7 @@ export function Canvas({
   )
 
   const handleBackgroundKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
+    (e: KeyboardEvent<HTMLDivElement>) => {
       if (e.currentTarget !== e.target) return
       if (e.key === 'Escape') {
         e.preventDefault()
@@ -531,7 +523,6 @@ export function Canvas({
     [tool, selection, addTextAt],
   )
 
-  // Object tool: drag on background to create a world_object node.
   const objectDragRef = useRef<{ startX: number; startY: number } | null>(null)
   const [objectDragRect, setObjectDragRect] = useState<{
     x: number
@@ -541,7 +532,7 @@ export function Canvas({
   } | null>(null)
 
   const handleBackgroundPointerDown = useCallback(
-    (e: React.PointerEvent) => {
+    (e: PointerEvent) => {
       if (tool !== 'object') return
       const target = e.target as HTMLElement
       if (target.closest('[data-canvas-node]')) return
@@ -557,7 +548,7 @@ export function Canvas({
   )
 
   const handleBackgroundPointerMove = useCallback(
-    (e: React.PointerEvent) => {
+    (e: PointerEvent) => {
       if (!objectDragRef.current) return
       const rect = viewportContainerRef.current?.getBoundingClientRect()
       if (!rect) return
@@ -599,9 +590,6 @@ export function Canvas({
     setToolInternal('select')
   }, [objectDragRect, callbacks, selection])
 
-  // Transform and grid styles are initial values for React rendering.
-  // During gestures, useCanvasViewport applies these directly to the
-  // DOM via transformLayerRef/gridLayerRef for zero-cost panning.
   const transformStyle = useMemo(
     () => ({
       transform: `translate3d(${viewport.x}px, ${viewport.y}px, 0) scale(${viewport.scale})`,
@@ -640,6 +628,118 @@ export function Canvas({
         ? tool
         : null
 
+  return {
+    actions,
+    callbacks,
+    canAddImage,
+    canAddObject,
+    className,
+    closeContextMenu,
+    containerSize,
+    contextMenuState,
+    drawingColor,
+    drawingKind,
+    effectiveNodes,
+    ephemeralEdges,
+    gridLayerRef,
+    gridStyle,
+    handleBackgroundClick,
+    handleBackgroundContextMenu,
+    handleBackgroundKeyDown,
+    handleBackgroundPointerDown,
+    handleBackgroundPointerMove,
+    handleBackgroundPointerUp,
+    handleContextMenuAddObject,
+    handleContextMenuAddText,
+    handleContextMenuFitView,
+    handleContextMenuPaste,
+    handleContextMenuSelectAll,
+    handleContextMenuZoomReset,
+    handleNodeMove,
+    handleNodeMoveEnd,
+    handleNodeResize,
+    handlePendingTextCancel,
+    handlePendingTextCommit,
+    handleStrokeComplete,
+    handleToolbarAddImage,
+    handleToolbarAddObject,
+    nodeEntries,
+    objectDragRect,
+    onToolChange,
+    pendingMutations,
+    pendingText,
+    pendingTextRef,
+    selection,
+    setContextMenuState,
+    setDrawingColor,
+    setViewport,
+    state,
+    tool,
+    transformLayerRef,
+    transformStyle,
+    viewport,
+    viewportContainerRef,
+    visibleNodeIds,
+    gestureLayerRef,
+  }
+}
+
+type CanvasController = ReturnType<typeof useCanvasController>
+
+function CanvasView({
+  actions,
+  callbacks,
+  canAddImage,
+  canAddObject,
+  className,
+  closeContextMenu,
+  containerSize,
+  contextMenuState,
+  drawingColor,
+  drawingKind,
+  effectiveNodes,
+  ephemeralEdges,
+  gestureLayerRef,
+  gridLayerRef,
+  gridStyle,
+  handleBackgroundClick,
+  handleBackgroundContextMenu,
+  handleBackgroundKeyDown,
+  handleBackgroundPointerDown,
+  handleBackgroundPointerMove,
+  handleBackgroundPointerUp,
+  handleContextMenuAddObject,
+  handleContextMenuAddText,
+  handleContextMenuFitView,
+  handleContextMenuPaste,
+  handleContextMenuSelectAll,
+  handleContextMenuZoomReset,
+  handleNodeMove,
+  handleNodeMoveEnd,
+  handleNodeResize,
+  handlePendingTextCancel,
+  handlePendingTextCommit,
+  handleStrokeComplete,
+  handleToolbarAddImage,
+  handleToolbarAddObject,
+  nodeEntries,
+  objectDragRect,
+  onToolChange,
+  pendingMutations,
+  pendingText,
+  pendingTextRef,
+  selection,
+  setContextMenuState,
+  setDrawingColor,
+  setViewport,
+  state,
+  tool,
+  transformLayerRef,
+  transformStyle,
+  viewport,
+  viewportContainerRef,
+  visibleNodeIds,
+}: CanvasController) {
   return (
     <div className={cn('flex h-full outline-none', className)}>
       <CanvasToolbar
@@ -677,9 +777,6 @@ export function Canvas({
           className="pointer-events-none absolute inset-0"
           style={gridStyle}
         />
-        {/* Gesture layer for viewport pan/drag-select. Sits below the
-            transform layer so canvas nodes receive pointer events directly
-            without viewport gesture interference. */}
         <div
           ref={gestureLayerRef}
           className="absolute inset-0"
@@ -791,4 +888,8 @@ export function Canvas({
       />
     </div>
   )
+}
+
+export function Canvas(props: CanvasProps) {
+  return <CanvasView {...useCanvasController(props)} />
 }

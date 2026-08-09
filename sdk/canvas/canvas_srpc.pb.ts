@@ -19,12 +19,16 @@ import {
 } from 'starpc'
 
 /**
+ * CanvasResourceService reads, mutates, and watches one Canvas World object.
+ *
  * @generated from service s4wave.canvas.CanvasResourceService
  */
 export const CanvasResourceServiceDefinition = {
   typeName: 's4wave.canvas.CanvasResourceService',
   methods: {
     /**
+     * GetCanvasState reads the complete current Canvas state.
+     *
      * @generated from rpc s4wave.canvas.CanvasResourceService.GetCanvasState
      */
     GetCanvasState: {
@@ -34,6 +38,8 @@ export const CanvasResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * UpdateCanvas validates and atomically persists one Canvas mutation.
+     *
      * @generated from rpc s4wave.canvas.CanvasResourceService.UpdateCanvas
      */
     UpdateCanvas: {
@@ -43,6 +49,8 @@ export const CanvasResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * WatchCanvasState streams complete Canvas states after changes.
+     *
      * @generated from rpc s4wave.canvas.CanvasResourceService.WatchCanvasState
      */
     WatchCanvasState: {
@@ -55,10 +63,14 @@ export const CanvasResourceServiceDefinition = {
 } as const
 
 /**
+ * CanvasResourceService reads, mutates, and watches one Canvas World object.
+ *
  * @generated from service s4wave.canvas.CanvasResourceService
  */
 export interface CanvasResourceService {
   /**
+   * GetCanvasState reads the complete current Canvas state.
+   *
    * @generated from rpc s4wave.canvas.CanvasResourceService.GetCanvasState
    */
   GetCanvasState(
@@ -67,6 +79,8 @@ export interface CanvasResourceService {
   ): Promise<GetCanvasStateResponse>
 
   /**
+   * UpdateCanvas validates and atomically persists one Canvas mutation.
+   *
    * @generated from rpc s4wave.canvas.CanvasResourceService.UpdateCanvas
    */
   UpdateCanvas(
@@ -75,6 +89,8 @@ export interface CanvasResourceService {
   ): Promise<UpdateCanvasResponse>
 
   /**
+   * WatchCanvasState streams complete Canvas states after changes.
+   *
    * @generated from rpc s4wave.canvas.CanvasResourceService.WatchCanvasState
    */
   WatchCanvasState(
@@ -84,10 +100,14 @@ export interface CanvasResourceService {
 }
 
 /**
+ * CanvasResourceService reads, mutates, and watches one Canvas World object.
+ *
  * @generated from service s4wave.canvas.CanvasResourceService
  */
 export interface CanvasResourceServiceHandler {
   /**
+   * GetCanvasState reads the complete current Canvas state.
+   *
    * @generated from rpc s4wave.canvas.CanvasResourceService.GetCanvasState
    */
   GetCanvasState(
@@ -97,6 +117,8 @@ export interface CanvasResourceServiceHandler {
   ): Promise<GetCanvasStateResponse>
 
   /**
+   * UpdateCanvas validates and atomically persists one Canvas mutation.
+   *
    * @generated from rpc s4wave.canvas.CanvasResourceService.UpdateCanvas
    */
   UpdateCanvas(
@@ -106,6 +128,8 @@ export interface CanvasResourceServiceHandler {
   ): Promise<UpdateCanvasResponse>
 
   /**
+   * WatchCanvasState streams complete Canvas states after changes.
+   *
    * @generated from rpc s4wave.canvas.CanvasResourceService.WatchCanvasState
    */
   WatchCanvasState(
@@ -129,6 +153,8 @@ export class CanvasResourceServiceClient implements CanvasResourceService {
     this.WatchCanvasState = this.WatchCanvasState.bind(this)
   }
   /**
+   * GetCanvasState reads the complete current Canvas state.
+   *
    * @generated from rpc s4wave.canvas.CanvasResourceService.GetCanvasState
    */
   async GetCanvasState(
@@ -146,6 +172,8 @@ export class CanvasResourceServiceClient implements CanvasResourceService {
   }
 
   /**
+   * UpdateCanvas validates and atomically persists one Canvas mutation.
+   *
    * @generated from rpc s4wave.canvas.CanvasResourceService.UpdateCanvas
    */
   async UpdateCanvas(
@@ -163,6 +191,8 @@ export class CanvasResourceServiceClient implements CanvasResourceService {
   }
 
   /**
+   * WatchCanvasState streams complete Canvas states after changes.
+   *
    * @generated from rpc s4wave.canvas.CanvasResourceService.WatchCanvasState
    */
   WatchCanvasState(

@@ -422,7 +422,7 @@ func TestUpdateCanvasPreservesLayoutMetadata(t *testing.T) {
 
 	resp, err := resource.UpdateCanvas(ctx, &UpdateCanvasRequest{
 		SetNodes: map[string]*CanvasNode{
-			"proof": {Id: "proof", TextContent: "proof"},
+			"proof": {Id: "proof", Width: 200, Height: 150, Type: NodeType_NODE_TYPE_TEXT, TextContent: "proof"},
 		},
 		AddEdges: []*CanvasEdge{
 			{

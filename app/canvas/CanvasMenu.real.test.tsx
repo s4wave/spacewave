@@ -48,8 +48,6 @@ describe('Canvas real context-menu interactions', () => {
 
   it('adds a text node from the real background context menu', async () => {
     const user = userEvent.setup()
-    const setTimeoutSpy = vi.spyOn(window, 'setTimeout')
-
     render(<Canvas state={makeState()} callbacks={makeCallbacks()} />)
 
     fireEvent.contextMenu(screen.getByTestId('canvas-viewport'), {
@@ -58,7 +56,6 @@ describe('Canvas real context-menu interactions', () => {
     })
 
     await user.click(screen.getByText('Add Text Node Here'))
-    expect(setTimeoutSpy).toHaveBeenCalled()
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toBeTruthy()
     })

@@ -14,41 +14,41 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 export const protobufPackage = 's4wave.canvas'
 
 /**
- * NodeType is the type of a canvas node.
+ * NodeType identifies the persisted Canvas node presentation.
  *
  * @generated from enum s4wave.canvas.NodeType
  */
 export enum NodeType {
   /**
-   * NODE_TYPE_UNKNOWN is unknown.
+   * NODE_TYPE_UNKNOWN is not a persistable Canvas node type.
    *
    * @generated from enum value: NODE_TYPE_UNKNOWN = 0;
    */
   UNKNOWN = 0,
 
   /**
-   * NODE_TYPE_TEXT is a markdown text node.
+   * NODE_TYPE_TEXT renders Markdown text.
    *
    * @generated from enum value: NODE_TYPE_TEXT = 1;
    */
   TEXT = 1,
 
   /**
-   * NODE_TYPE_SHAPE is a shape node.
+   * NODE_TYPE_SHAPE renders bounded geometric primitives.
    *
    * @generated from enum value: NODE_TYPE_SHAPE = 2;
    */
   SHAPE = 2,
 
   /**
-   * NODE_TYPE_WORLD_OBJECT is an embedded world object node.
+   * NODE_TYPE_WORLD_OBJECT embeds a World object viewer.
    *
    * @generated from enum value: NODE_TYPE_WORLD_OBJECT = 3;
    */
   WORLD_OBJECT = 3,
 
   /**
-   * NODE_TYPE_DRAWING is a freeform drawing node.
+   * NODE_TYPE_DRAWING renders a freeform stroke.
    *
    * @generated from enum value: NODE_TYPE_DRAWING = 4;
    */
@@ -67,112 +67,299 @@ export const NodeType_Enum = /* @__PURE__ */ createEnumType(
 )
 
 /**
- * EdgeStyle is the visual style of a canvas edge.
+ * CanvasGeometryKind identifies a persisted Canvas geometry renderer.
+ *
+ * @generated from enum s4wave.canvas.CanvasGeometryKind
+ */
+export enum CanvasGeometryKind {
+  /**
+   * CANVAS_GEOMETRY_KIND_UNKNOWN is not a renderable geometry kind.
+   *
+   * @generated from enum value: CANVAS_GEOMETRY_KIND_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * CANVAS_GEOMETRY_KIND_PEN renders a freeform stroke.
+   *
+   * @generated from enum value: CANVAS_GEOMETRY_KIND_PEN = 1;
+   */
+  PEN = 1,
+
+  /**
+   * CANVAS_GEOMETRY_KIND_LINE renders a straight line.
+   *
+   * @generated from enum value: CANVAS_GEOMETRY_KIND_LINE = 2;
+   */
+  LINE = 2,
+
+  /**
+   * CANVAS_GEOMETRY_KIND_ARROW renders a straight line with an arrowhead.
+   *
+   * @generated from enum value: CANVAS_GEOMETRY_KIND_ARROW = 3;
+   */
+  ARROW = 3,
+
+  /**
+   * CANVAS_GEOMETRY_KIND_RECTANGLE renders a rectangle.
+   *
+   * @generated from enum value: CANVAS_GEOMETRY_KIND_RECTANGLE = 4;
+   */
+  RECTANGLE = 4,
+
+  /**
+   * CANVAS_GEOMETRY_KIND_ELLIPSE renders an ellipse.
+   *
+   * @generated from enum value: CANVAS_GEOMETRY_KIND_ELLIPSE = 5;
+   */
+  ELLIPSE = 5,
+}
+
+export const CanvasGeometryKind_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.canvas.CanvasGeometryKind',
+  [
+    [0, 'CANVAS_GEOMETRY_KIND_UNKNOWN'],
+    [1, 'CANVAS_GEOMETRY_KIND_PEN'],
+    [2, 'CANVAS_GEOMETRY_KIND_LINE'],
+    [3, 'CANVAS_GEOMETRY_KIND_ARROW'],
+    [4, 'CANVAS_GEOMETRY_KIND_RECTANGLE'],
+    [5, 'CANVAS_GEOMETRY_KIND_ELLIPSE'],
+  ],
+)
+
+/**
+ * CanvasClipboardVersion identifies a supported Canvas clipboard schema.
+ *
+ * @generated from enum s4wave.canvas.CanvasClipboardVersion
+ */
+export enum CanvasClipboardVersion {
+  /**
+   * CANVAS_CLIPBOARD_VERSION_UNKNOWN is not a supported clipboard schema.
+   *
+   * @generated from enum value: CANVAS_CLIPBOARD_VERSION_UNKNOWN = 0;
+   */
+  UNKNOWN = 0,
+
+  /**
+   * CANVAS_CLIPBOARD_VERSION_V1 carries at most 1,000 validated Canvas nodes in a 4 MiB base64 envelope.
+   *
+   * @generated from enum value: CANVAS_CLIPBOARD_VERSION_V1 = 1;
+   */
+  V1 = 1,
+}
+
+export const CanvasClipboardVersion_Enum = /* @__PURE__ */ createEnumType(
+  's4wave.canvas.CanvasClipboardVersion',
+  [
+    [0, 'CANVAS_CLIPBOARD_VERSION_UNKNOWN'],
+    [1, 'CANVAS_CLIPBOARD_VERSION_V1'],
+  ],
+)
+
+/**
+ * EdgeStyle identifies the persisted visual style of a Canvas edge.
  *
  * @generated from enum s4wave.canvas.EdgeStyle
  */
 export enum EdgeStyle {
   /**
-   * EDGE_STYLE_BEZIER is the default bezier curve style.
+   * EDGE_STYLE_UNKNOWN is not written by current clients; readers render wire value zero as legacy bezier.
    *
-   * @generated from enum value: EDGE_STYLE_BEZIER = 0;
+   * @generated from enum value: EDGE_STYLE_UNKNOWN = 0;
    */
-  BEZIER = 0,
+  UNKNOWN = 0,
 
   /**
-   * EDGE_STYLE_STRAIGHT is a straight line.
+   * EDGE_STYLE_LEGACY_BEZIER aliases old field-5 zero values and is retained for wire compatibility.
+   *
+   * @generated from enum value: EDGE_STYLE_LEGACY_BEZIER = 0 [deprecated = true];
+   * @deprecated
+   */
+  LEGACY_BEZIER = 0,
+
+  /**
+   * EDGE_STYLE_STRAIGHT renders a straight line and retains its original wire value.
    *
    * @generated from enum value: EDGE_STYLE_STRAIGHT = 1;
    */
   STRAIGHT = 1,
+
+  /**
+   * EDGE_STYLE_BEZIER renders the default bezier curve for new writes.
+   *
+   * @generated from enum value: EDGE_STYLE_BEZIER = 2;
+   */
+  BEZIER = 2,
 }
 
 export const EdgeStyle_Enum = /* @__PURE__ */ createEnumType(
   's4wave.canvas.EdgeStyle',
   [
-    [0, 'EDGE_STYLE_BEZIER'],
+    [0, 'EDGE_STYLE_UNKNOWN'],
+    [0, 'EDGE_STYLE_LEGACY_BEZIER'],
     [1, 'EDGE_STYLE_STRAIGHT'],
+    [2, 'EDGE_STYLE_BEZIER'],
   ],
 )
 
 /**
- * CanvasNode is a node on the canvas.
+ * CanvasPoint contains one finite point relative to a Canvas node's origin.
+ *
+ * @generated from message s4wave.canvas.CanvasPoint
+ */
+export interface CanvasPoint {
+  /**
+   * X is the finite horizontal offset in Canvas space within +/-1,000,000,000.
+   *
+   * @generated from field: double x = 1;
+   */
+  x?: number
+  /**
+   * Y is the finite vertical offset in Canvas space within +/-1,000,000,000.
+   *
+   * @generated from field: double y = 2;
+   */
+  y?: number
+}
+
+export const CanvasPoint: MessageType<CanvasPoint> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.canvas.CanvasPoint',
+    fields: [
+      { no: 1, name: 'x', kind: 'scalar', T: ScalarType.DOUBLE },
+      { no: 2, name: 'y', kind: 'scalar', T: ScalarType.DOUBLE },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CanvasGeometry contains validated geometry for a shape or drawing node.
+ *
+ * @generated from message s4wave.canvas.CanvasGeometry
+ */
+export interface CanvasGeometry {
+  /**
+   * Kind selects the renderer and must not be UNKNOWN.
+   *
+   * @generated from field: s4wave.canvas.CanvasGeometryKind kind = 1;
+   */
+  kind?: CanvasGeometryKind
+  /**
+   * Color is currentColor or a six-digit hexadecimal CSS color.
+   *
+   * @generated from field: string color = 2;
+   */
+  color?: string
+  /**
+   * Points contains between 2 and 10,000 node-relative Canvas points.
+   *
+   * @generated from field: repeated s4wave.canvas.CanvasPoint points = 3;
+   */
+  points?: CanvasPoint[]
+}
+
+export const CanvasGeometry: MessageType<CanvasGeometry> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.canvas.CanvasGeometry',
+    fields: [
+      { no: 1, name: 'kind', kind: 'enum', T: CanvasGeometryKind_Enum },
+      { no: 2, name: 'color', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'points',
+        kind: 'message',
+        T: () => CanvasPoint,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CanvasNode contains the persisted position, content, and presentation of one Canvas node.
  *
  * @generated from message s4wave.canvas.CanvasNode
  */
 export interface CanvasNode {
   /**
-   * Id is the unique identifier for the node.
+   * Id identifies the node and contains at most 1,024 bytes.
    *
    * @generated from field: string id = 1;
    */
   id?: string
   /**
-   * X is the x position in canvas space.
+   * X is the finite horizontal position in Canvas space within +/-1,000,000,000.
    *
    * @generated from field: double x = 2;
    */
   x?: number
   /**
-   * Y is the y position in canvas space.
+   * Y is the finite vertical position in Canvas space within +/-1,000,000,000.
    *
    * @generated from field: double y = 3;
    */
   y?: number
   /**
-   * Width is the width in canvas space.
+   * Width is a finite positive Canvas-space dimension no greater than 1,000,000.
    *
    * @generated from field: double width = 4;
    */
   width?: number
   /**
-   * Height is the height in canvas space.
+   * Height is a finite positive Canvas-space dimension no greater than 1,000,000.
    *
    * @generated from field: double height = 5;
    */
   height?: number
   /**
-   * ZIndex is the rendering order (higher = front).
+   * ZIndex orders rendering, with larger values in front.
    *
    * @generated from field: int32 z_index = 6;
    */
   zIndex?: number
   /**
-   * Type is the node type.
+   * Type selects the node presentation and must not be UNKNOWN.
    *
    * @generated from field: s4wave.canvas.NodeType type = 7;
    */
   type?: NodeType
   /**
-   * TextContent is the markdown source (TEXT nodes).
+   * TextContent is Markdown source containing at most 1 MiB.
    *
    * @generated from field: string text_content = 8;
    */
   textContent?: string
   /**
-   * ShapeData is shape/drawing data (SHAPE/DRAWING nodes).
+   * ShapeData is legacy JSON geometry dual-written until all supported clients read Geometry and stored nodes are backfilled.
    *
-   * @generated from field: bytes shape_data = 9;
+   * @generated from field: bytes shape_data = 9 [deprecated = true];
+   * @deprecated
    */
   shapeData?: Uint8Array
   /**
-   * ObjectKey is the world object key (WORLD_OBJECT nodes).
+   * ObjectKey identifies an embedded World object and contains at most 4,096 bytes.
    *
    * @generated from field: string object_key = 10;
    */
   objectKey?: string
   /**
-   * Pinned indicates the node was manually added to canvas.
+   * Pinned indicates that a user manually added the node to the Canvas.
    *
    * @generated from field: bool pinned = 11;
    */
   pinned?: boolean
   /**
-   * ViewPath is the navigation path within the embedded viewer (WORLD_OBJECT nodes).
+   * ViewPath selects a path within the embedded viewer and contains at most 4,096 bytes.
    *
    * @generated from field: string view_path = 12;
    */
   viewPath?: string
+  /**
+   * Geometry is the authoritative generated geometry for SHAPE and DRAWING nodes.
+   *
+   * @generated from field: s4wave.canvas.CanvasGeometry geometry = 13;
+   */
+  geometry?: CanvasGeometry
 }
 
 export const CanvasNode: MessageType<CanvasNode> =
@@ -191,42 +378,79 @@ export const CanvasNode: MessageType<CanvasNode> =
       { no: 10, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 11, name: 'pinned', kind: 'scalar', T: ScalarType.BOOL },
       { no: 12, name: 'view_path', kind: 'scalar', T: ScalarType.STRING },
+      { no: 13, name: 'geometry', kind: 'message', T: () => CanvasGeometry },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
 /**
- * CanvasEdge is a user-drawn visual-only edge.
+ * CanvasClipboardPayload carries bounded Canvas nodes through the system clipboard.
+ *
+ * @generated from message s4wave.canvas.CanvasClipboardPayload
+ */
+export interface CanvasClipboardPayload {
+  /**
+   * Version identifies the payload schema and must be V1.
+   *
+   * @generated from field: s4wave.canvas.CanvasClipboardVersion version = 1;
+   */
+  version?: CanvasClipboardVersion
+  /**
+   * Nodes contains between 1 and 1,000 nodes whose text, paths, colors, and geometry use CanvasNode bounds.
+   *
+   * @generated from field: repeated s4wave.canvas.CanvasNode nodes = 2;
+   */
+  nodes?: CanvasNode[]
+}
+
+export const CanvasClipboardPayload: MessageType<CanvasClipboardPayload> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.canvas.CanvasClipboardPayload',
+    fields: [
+      { no: 1, name: 'version', kind: 'enum', T: CanvasClipboardVersion_Enum },
+      {
+        no: 2,
+        name: 'nodes',
+        kind: 'message',
+        T: () => CanvasNode,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CanvasEdge contains a user-drawn visual-only connection between two Canvas nodes.
  *
  * @generated from message s4wave.canvas.CanvasEdge
  */
 export interface CanvasEdge {
   /**
-   * Id is the unique identifier for the edge.
+   * Id identifies the edge.
    *
    * @generated from field: string id = 1;
    */
   id?: string
   /**
-   * SourceNodeId is the source node.
+   * SourceNodeId identifies the source Canvas node.
    *
    * @generated from field: string source_node_id = 2;
    */
   sourceNodeId?: string
   /**
-   * TargetNodeId is the target node.
+   * TargetNodeId identifies the target Canvas node.
    *
    * @generated from field: string target_node_id = 3;
    */
   targetNodeId?: string
   /**
-   * Label is an optional edge label.
+   * Label is optional user-visible edge text.
    *
    * @generated from field: string label = 4;
    */
   label?: string
   /**
-   * Style is the edge visual style.
+   * Style selects the visual renderer; zero remains legacy bezier for wire compatibility.
    *
    * @generated from field: s4wave.canvas.EdgeStyle style = 5;
    */
@@ -247,7 +471,7 @@ export const CanvasEdge: MessageType<CanvasEdge> =
   })
 
 /**
- * HiddenGraphLink is a canvas-scoped hidden world graph link identity.
+ * HiddenGraphLink contains a Canvas-scoped hidden World graph link identity.
  *
  * @generated from message s4wave.canvas.HiddenGraphLink
  */
@@ -271,7 +495,7 @@ export interface HiddenGraphLink {
    */
   object?: string
   /**
-   * Label is the optional graph link label.
+   * Label is optional graph link text that participates in link identity.
    *
    * @generated from field: string label = 4;
    */
@@ -291,19 +515,19 @@ export const HiddenGraphLink: MessageType<HiddenGraphLink> =
   })
 
 /**
- * CanvasLayoutMetadata stores reusable projection layout metadata for a node.
+ * CanvasLayoutMetadata contains reusable projection layout metadata for one node.
  *
  * @generated from message s4wave.canvas.CanvasLayoutMetadata
  */
 export interface CanvasLayoutMetadata {
   /**
-   * StableNodeId is the projection-stable node identity across reruns.
+   * StableNodeId identifies the projected node across projection runs.
    *
    * @generated from field: string stable_node_id = 1;
    */
   stableNodeId?: string
   /**
-   * Lane is the visual swimlane for the projected node.
+   * Lane selects the visual swimlane for the projected node.
    *
    * @generated from field: string lane = 2;
    */
@@ -315,13 +539,13 @@ export interface CanvasLayoutMetadata {
    */
   rank?: number
   /**
-   * Group is the visual grouping key for related projected nodes.
+   * Group relates projected nodes for visual grouping.
    *
    * @generated from field: string group = 4;
    */
   group?: string
   /**
-   * ProjectionOwner names the writer that owns this visual projection.
+   * ProjectionOwner identifies the writer that updates this projection.
    *
    * @generated from field: string projection_owner = 5;
    */
@@ -342,37 +566,37 @@ export const CanvasLayoutMetadata: MessageType<CanvasLayoutMetadata> =
   })
 
 /**
- * CanvasState is the full canvas state stored as a world object block.
+ * CanvasState contains the complete persisted state of one Canvas World object.
  *
  * @generated from message s4wave.canvas.CanvasState
  */
 export interface CanvasState {
   /**
-   * Nodes is the set of canvas nodes keyed by ID.
+   * Nodes maps Canvas node IDs to their bodies.
    *
    * @generated from field: map<string, s4wave.canvas.CanvasNode> nodes = 1;
    */
   nodes?: { [key: string]: CanvasNode }
   /**
-   * Edges is the list of user-drawn edges.
+   * Edges contains user-drawn Canvas edges.
    *
    * @generated from field: repeated s4wave.canvas.CanvasEdge edges = 2;
    */
   edges?: CanvasEdge[]
   /**
-   * StrokeTreeRef is the block ref to the freeform stroke tree.
+   * StrokeTreeRef identifies the block-backed freeform stroke tree.
    *
    * @generated from field: bytes stroke_tree_ref = 3;
    */
   strokeTreeRef?: Uint8Array
   /**
-   * HiddenGraphLinks is the set of canvas-scoped hidden world graph links.
+   * HiddenGraphLinks contains Canvas-scoped World graph links hidden from rendering.
    *
    * @generated from field: repeated s4wave.canvas.HiddenGraphLink hidden_graph_links = 4;
    */
   hiddenGraphLinks?: HiddenGraphLink[]
   /**
-   * LayoutMetadata is projection layout metadata keyed by canvas node ID.
+   * LayoutMetadata maps Canvas node IDs to reusable projection layout metadata.
    *
    * @generated from field: map<string, s4wave.canvas.CanvasLayoutMetadata> layout_metadata = 5;
    */
@@ -417,7 +641,7 @@ export const CanvasState: MessageType<CanvasState> =
   })
 
 /**
- * GetCanvasStateRequest is the request for GetCanvasState.
+ * GetCanvasStateRequest selects the Canvas bound to the resource service.
  *
  * @generated from message s4wave.canvas.GetCanvasStateRequest
  */
@@ -430,13 +654,13 @@ export const GetCanvasStateRequest: MessageType<GetCanvasStateRequest> =
   )
 
 /**
- * GetCanvasStateResponse is the response for GetCanvasState.
+ * GetCanvasStateResponse contains the selected Canvas state.
  *
  * @generated from message s4wave.canvas.GetCanvasStateResponse
  */
 export interface GetCanvasStateResponse {
   /**
-   * State is the current canvas state.
+   * State is the complete current Canvas state.
    *
    * @generated from field: s4wave.canvas.CanvasState state = 1;
    */
@@ -453,55 +677,55 @@ export const GetCanvasStateResponse: MessageType<GetCanvasStateResponse> =
   })
 
 /**
- * UpdateCanvasRequest applies mutations to the canvas.
+ * UpdateCanvasRequest contains one validated atomic Canvas mutation.
  *
  * @generated from message s4wave.canvas.UpdateCanvasRequest
  */
 export interface UpdateCanvasRequest {
   /**
-   * SetNodes contains nodes to add or update (keyed by ID).
+   * SetNodes maps IDs to Canvas nodes to add or replace.
    *
    * @generated from field: map<string, s4wave.canvas.CanvasNode> set_nodes = 1;
    */
   setNodes?: { [key: string]: CanvasNode }
   /**
-   * RemoveNodeIds contains node IDs to remove.
+   * RemoveNodeIds identifies Canvas nodes to remove.
    *
    * @generated from field: repeated string remove_node_ids = 2;
    */
   removeNodeIds?: string[]
   /**
-   * AddEdges contains edges to add.
+   * AddEdges contains Canvas edges to append.
    *
    * @generated from field: repeated s4wave.canvas.CanvasEdge add_edges = 3;
    */
   addEdges?: CanvasEdge[]
   /**
-   * RemoveEdgeIds contains edge IDs to remove.
+   * RemoveEdgeIds identifies Canvas edges to remove.
    *
    * @generated from field: repeated string remove_edge_ids = 4;
    */
   removeEdgeIds?: string[]
   /**
-   * AddHiddenGraphLinks contains graph links to hide.
+   * AddHiddenGraphLinks contains World graph links to hide.
    *
    * @generated from field: repeated s4wave.canvas.HiddenGraphLink add_hidden_graph_links = 5;
    */
   addHiddenGraphLinks?: HiddenGraphLink[]
   /**
-   * RemoveHiddenGraphLinks contains graph links to show again.
+   * RemoveHiddenGraphLinks contains World graph links to show again.
    *
    * @generated from field: repeated s4wave.canvas.HiddenGraphLink remove_hidden_graph_links = 6;
    */
   removeHiddenGraphLinks?: HiddenGraphLink[]
   /**
-   * SetLayoutMetadata contains layout metadata to add or update by node ID.
+   * SetLayoutMetadata maps Canvas node IDs to projection metadata to add or replace.
    *
    * @generated from field: map<string, s4wave.canvas.CanvasLayoutMetadata> set_layout_metadata = 7;
    */
   setLayoutMetadata?: { [key: string]: CanvasLayoutMetadata }
   /**
-   * RemoveLayoutMetadataNodeIds contains node IDs whose layout metadata is removed.
+   * RemoveLayoutMetadataNodeIds identifies Canvas nodes whose projection metadata is removed.
    *
    * @generated from field: repeated string remove_layout_metadata_node_ids = 8;
    */
@@ -573,13 +797,13 @@ export const UpdateCanvasRequest: MessageType<UpdateCanvasRequest> =
   })
 
 /**
- * UpdateCanvasResponse is the response for UpdateCanvas.
+ * UpdateCanvasResponse contains the complete Canvas state after mutation.
  *
  * @generated from message s4wave.canvas.UpdateCanvasResponse
  */
 export interface UpdateCanvasResponse {
   /**
-   * State is the updated canvas state.
+   * State is the complete updated Canvas state.
    *
    * @generated from field: s4wave.canvas.CanvasState state = 1;
    */
@@ -596,7 +820,7 @@ export const UpdateCanvasResponse: MessageType<UpdateCanvasResponse> =
   })
 
 /**
- * WatchCanvasStateRequest is the request for WatchCanvasState.
+ * WatchCanvasStateRequest selects the Canvas bound to the resource service.
  *
  * @generated from message s4wave.canvas.WatchCanvasStateRequest
  */
@@ -609,13 +833,13 @@ export const WatchCanvasStateRequest: MessageType<WatchCanvasStateRequest> =
   )
 
 /**
- * WatchCanvasStateResponse is a stream response with canvas state.
+ * WatchCanvasStateResponse contains one complete watched Canvas state.
  *
  * @generated from message s4wave.canvas.WatchCanvasStateResponse
  */
 export interface WatchCanvasStateResponse {
   /**
-   * State is the current canvas state.
+   * State is the complete current Canvas state.
    *
    * @generated from field: s4wave.canvas.CanvasState state = 1;
    */

@@ -8,7 +8,6 @@ import type {
   CanvasLayoutMetadataData,
 } from './types.js'
 
-// CanvasMutation represents a pending canvas state change.
 interface CanvasMutation {
   seq: number
   setNodes?: Map<string, CanvasNodeData>
@@ -21,7 +20,6 @@ interface CanvasMutation {
   removeLayoutMetadataNodeIds?: string[]
 }
 
-// SendMutationFn sends a mutation to the backend. Resolves on success.
 export type SendMutationFn = (mutation: {
   setNodes?: Map<string, CanvasNodeData>
   removeNodeIds?: string[]
@@ -37,16 +35,6 @@ function graphLinkKey(link: HiddenGraphLinkData): string {
   return `${link.subject}\n${link.predicate}\n${link.object}\n${link.label ?? ''}`
 }
 
-function bytesEqual(a?: Uint8Array, b?: Uint8Array): boolean {
-  if (!a || a.length === 0) return !b || b.length === 0
-  if (!b) return false
-  if (a.length !== b.length) return false
-  for (const [index, value] of a.entries()) {
-    if (value !== b[index]) return false
-  }
-  return true
-}
-
 function nodesEqual(a: CanvasNodeData, b: CanvasNodeData): boolean {
   return (
     a.id === b.id &&
@@ -60,7 +48,7 @@ function nodesEqual(a: CanvasNodeData, b: CanvasNodeData): boolean {
     (a.objectKey ?? '') === (b.objectKey ?? '') &&
     (a.pinned ?? false) === (b.pinned ?? false) &&
     (a.viewPath ?? '') === (b.viewPath ?? '') &&
-    bytesEqual(a.shapeData, b.shapeData)
+    JSON.stringify(a.geometry) === JSON.stringify(b.geometry)
   )
 }
 
@@ -148,7 +136,6 @@ function mutationApplied(
   return true
 }
 
-// applyMutations applies pending mutations on top of server state.
 function applyMutations(
   base: CanvasStateData,
   mutations: CanvasMutation[],
@@ -223,29 +210,18 @@ function applyMutations(
   return { nodes, edges, hiddenGraphLinks, layoutMetadata }
 }
 
-// MutationQueueResult is the return type of useCanvasMutationQueue.
 export interface MutationQueueResult {
-  // effectiveState is the server state with pending mutations applied.
   effectiveState: CanvasStateData
-  // enqueueNodesChange queues a node set/update mutation.
   enqueueNodesChange: (nodes: Map<string, CanvasNodeData>) => void
-  // enqueueNodesRemove queues a node removal mutation.
   enqueueNodesRemove: (nodeIds: string[]) => void
-  // enqueueEdgesAdd queues an edge addition mutation.
   enqueueEdgesAdd: (edges: CanvasEdgeData[]) => void
-  // enqueueEdgesRemove queues an edge removal mutation.
   enqueueEdgesRemove: (edgeIds: string[]) => void
-  // enqueueHiddenGraphLinksAdd queues graph links to hide.
   enqueueHiddenGraphLinksAdd: (links: HiddenGraphLinkData[]) => void
-  // enqueueHiddenGraphLinksRemove queues graph links to show again.
   enqueueHiddenGraphLinksRemove: (links: HiddenGraphLinkData[]) => void
-  // enqueueLayoutMetadataChange queues layout metadata set/update changes.
   enqueueLayoutMetadataChange: (
     layoutMetadata: Map<string, CanvasLayoutMetadataData>,
   ) => void
-  // enqueueLayoutMetadataRemove queues layout metadata removal by node ID.
   enqueueLayoutMetadataRemove: (nodeIds: string[]) => void
-  // pending is the number of pending mutations in the queue.
   pending: number
 }
 
@@ -283,7 +259,6 @@ export function useCanvasMutationQueue(
     })
   }, [serverState])
 
-  // Ref for sendMutation so the enqueue callback stays stable.
   useEffect(() => {
     sendRef.current = sendMutation
   }, [sendMutation])
@@ -315,7 +290,6 @@ export function useCanvasMutationQueue(
           })
         },
         (err) => {
-          // On failure, remove this mutation from queue.
           setQueue((prev) => prev.filter((m) => m.seq !== seq))
           onError?.(err)
         },

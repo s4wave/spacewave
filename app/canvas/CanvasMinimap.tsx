@@ -5,16 +5,12 @@ import { cn } from '@s4wave/web/style/utils.js'
 import type { CanvasNodeData, Viewport } from './types.js'
 import type { ContainerSize } from './useVisibleNodes.js'
 
-// DEFAULT_MINIMAP_WIDTH is the default width of the minimap in pixels.
 export const DEFAULT_MINIMAP_WIDTH = 200
 
-// DEFAULT_MINIMAP_HEIGHT is the default height of the minimap in pixels.
 export const DEFAULT_MINIMAP_HEIGHT = 150
 
-// MINIMAP_PADDING is the padding around content in the minimap.
 const MINIMAP_PADDING = 10
 
-// CanvasMinimapProps are the props for CanvasMinimap.
 interface CanvasMinimapProps {
   nodes: Map<string, CanvasNodeData>
   viewport: Viewport
@@ -25,7 +21,6 @@ interface CanvasMinimapProps {
   className?: string
 }
 
-// CanvasMinimap renders a small overview of all nodes with a viewport indicator.
 export function CanvasMinimap({
   nodes,
   viewport,
@@ -37,7 +32,6 @@ export function CanvasMinimap({
 }: CanvasMinimapProps) {
   const minimapRef = useRef<HTMLDivElement | null>(null)
 
-  // Compute the bounding box of all nodes.
   const bounds = useMemo(() => {
     if (nodes.size === 0) {
       return { minX: 0, minY: 0, maxX: 100, maxY: 100 }
@@ -55,7 +49,6 @@ export function CanvasMinimap({
       maxY = Math.max(maxY, node.y + node.height)
     }
 
-    // Include the current viewport area in the bounds.
     const vpLeft = -viewport.x / viewport.scale
     const vpTop = -viewport.y / viewport.scale
     const vpRight = vpLeft + containerSize.width / viewport.scale
@@ -69,7 +62,6 @@ export function CanvasMinimap({
     return { minX, minY, maxX, maxY }
   }, [nodes, viewport, containerSize])
 
-  // Scale from canvas space to minimap space.
   const contentWidth = bounds.maxX - bounds.minX
   const contentHeight = bounds.maxY - bounds.minY
 
@@ -77,7 +69,6 @@ export function CanvasMinimap({
   const scaleY = (MINIMAP_HEIGHT - MINIMAP_PADDING * 2) / (contentHeight || 1)
   const minimapScale = Math.min(scaleX, scaleY)
 
-  // Convert canvas coordinates to minimap coordinates.
   const toMinimap = useCallback(
     (cx: number, cy: number) => ({
       mx: (cx - bounds.minX) * minimapScale + MINIMAP_PADDING,
@@ -86,7 +77,6 @@ export function CanvasMinimap({
     [bounds.minX, bounds.minY, minimapScale],
   )
 
-  // Viewport rectangle in minimap space.
   const vpRect = useMemo(() => {
     const vpLeft = -viewport.x / viewport.scale
     const vpTop = -viewport.y / viewport.scale

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -38,7 +38,7 @@ describe('CanvasContextMenu real interactions', () => {
     const onAddText = vi.fn()
 
     function Wrapper() {
-      const [state, setState] = React.useState<{
+      const [state, setState] = useState<{
         position: { x: number; y: number }
       } | null>({
         position: { x: 10, y: 20 },
