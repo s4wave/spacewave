@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   getAppNavigationGeneration,
@@ -136,6 +136,27 @@ describe('app path helpers', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(getAppNavigationGeneration()).toBe(start)
+  })
+
+  it('scopes navigation generations to each document', () => {
+    const frame = document.createElement('iframe')
+    document.body.append(frame)
+    const frameWindow = frame.contentWindow
+    if (!frameWindow) throw new Error('iframe window is unavailable')
+
+    const ownerGeneration = getAppNavigationGeneration()
+    try {
+      vi.stubGlobal('window', frameWindow)
+      const frameGeneration = getAppNavigationGeneration()
+      frameWindow.location.hash = '#/frame-only'
+
+      expect(getAppNavigationGeneration()).toBe(frameGeneration + 1)
+    } finally {
+      vi.unstubAllGlobals()
+      frame.remove()
+    }
+
+    expect(getAppNavigationGeneration()).toBe(ownerGeneration)
   })
 
   it('advances the navigation generation on a raw hash write, before hashchange runs', async () => {
