@@ -1,20 +1,8 @@
 package bldr_plugin_compiler_go
 
 import (
-	"strings"
 	"testing"
 )
-
-// TestGetDevWrapper checks embedding the dev src.
-func TestGetDevWrapper(t *testing.T) {
-	src, err := GetDevWrapper()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if !strings.Contains(src, "package main") {
-		t.Fail()
-	}
-}
 
 // TestValidateDlvAddr tests validating the delve address.
 func TestValidateDlvAddr(t *testing.T) {

@@ -22,8 +22,6 @@ export interface OutputPanelProps {
   error?: string | null
   // className is an optional CSS class for the container.
   className?: string
-  // testId is an optional data-testid attribute.
-  testId?: string
 }
 
 const defaultRules: OutputLineRule[] = [
@@ -41,7 +39,6 @@ export function OutputPanel({
   placeholder = 'No output',
   error,
   className,
-  testId,
 }: OutputPanelProps) {
   const getLineClassName = (line: string): string => {
     for (const rule of rules) {
@@ -64,7 +61,6 @@ export function OutputPanel({
         'border-ui-outline',
         className,
       )}
-      data-testid={testId}
     >
       {error && (
         <div className="text-error mb-2 font-medium">Error: {error}</div>

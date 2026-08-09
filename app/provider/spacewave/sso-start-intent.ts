@@ -1,9 +1,11 @@
 const SSO_START_INTENT_KEY = 'spacewave-sso-start-provider'
 const SSO_RETURN_TO_KEY = 'spacewave-sso-return-to'
 
+type ReturnPath = string & { readonly returnPath: unique symbol }
+
 interface SSOStartIntent {
   provider: string
-  returnTo: string
+  returnTo: ReturnPath
 }
 
 export interface ConsumedSSOStartIntent {
@@ -12,25 +14,26 @@ export interface ConsumedSSOStartIntent {
 }
 
 let memoryIntent: SSOStartIntent | null = null
-let memoryReturnTo = '/login'
+let memoryReturnTo = '/login' as ReturnPath
 
-function validReturnPath(path: string): boolean {
-  return path.startsWith('/') && !path.startsWith('/auth/sso/')
-}
-
-function normalizeReturnPath(path: string): string {
-  return validReturnPath(path) ? path : '/login'
+function parseReturnPath(path: string): ReturnPath {
+  return (
+    path.startsWith('/') && !path.startsWith('/auth/sso/') ? path : '/login'
+  ) as ReturnPath
 }
 
 function parseIntent(serialized: string | null): SSOStartIntent | null {
   if (!serialized) return null
   try {
-    const parsed = JSON.parse(serialized) as Partial<SSOStartIntent>
-    if (typeof parsed.provider !== 'string') return null
-    if (typeof parsed.returnTo !== 'string') return null
+    const parsed: unknown = JSON.parse(serialized)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+      return null
+    const intent = parsed as Record<string, unknown>
+    if (typeof intent.provider !== 'string') return null
+    if (typeof intent.returnTo !== 'string') return null
     return {
-      provider: parsed.provider,
-      returnTo: normalizeReturnPath(parsed.returnTo),
+      provider: intent.provider,
+      returnTo: parseReturnPath(intent.returnTo),
     }
   } catch {
     return null
@@ -40,7 +43,7 @@ function parseIntent(serialized: string | null): SSOStartIntent | null {
 function readReturnTo(): string {
   try {
     const stored = sessionStorage.getItem(SSO_RETURN_TO_KEY)
-    if (stored) return normalizeReturnPath(stored)
+    if (stored) return parseReturnPath(stored)
   } catch {
     // Session storage may be unavailable in restricted browser modes.
   }
@@ -48,7 +51,7 @@ function readReturnTo(): string {
 }
 
 function writeReturnTo(returnTo: string): void {
-  const normalized = normalizeReturnPath(returnTo)
+  const normalized = parseReturnPath(returnTo)
   memoryReturnTo = normalized
   try {
     sessionStorage.setItem(SSO_RETURN_TO_KEY, normalized)
@@ -60,7 +63,7 @@ function writeReturnTo(returnTo: string): void {
 export function setSSOStartIntent(provider: string, returnTo: string): void {
   const intent = {
     provider,
-    returnTo: normalizeReturnPath(returnTo),
+    returnTo: parseReturnPath(returnTo),
   }
   memoryIntent = intent
   writeReturnTo(intent.returnTo)

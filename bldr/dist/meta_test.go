@@ -26,13 +26,18 @@ func TestDistMetaValidate(t *testing.T) {
 	// mostly checking to make sure the dist entrypoint doesn't fail with a reasonable meta
 	input := &DistMeta{
 		ProjectId:      "project",
-		PlatformId:     "dist-platform",
+		PlatformId:     "desktop/darwin/arm64",
 		StartupPlugins: []string{"test-plugin"},
 		DistWorldRef:   &bucket.ObjectRef{},
 		DistObjectKey:  "dist",
 	}
 	if err := input.Validate(); err != nil {
 		t.Fatal(err.Error())
+	}
+
+	input.PlatformId = "dist-platform"
+	if err := input.Validate(); err == nil || !strings.Contains(err.Error(), "platform_id") {
+		t.Fatalf("expected platform error, got %v", err)
 	}
 }
 

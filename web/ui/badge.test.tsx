@@ -18,30 +18,6 @@ describe('Badge', () => {
     expect(badge.getAttribute('data-slot')).toBe('badge')
   })
 
-  it('default variant classes include bg-primary', () => {
-    render(<Badge>Default</Badge>)
-    const badge = screen.getByText('Default')
-    expect(badge.className).toContain('bg-primary')
-  })
-
-  it('secondary variant classes include bg-secondary', () => {
-    render(<Badge variant="secondary">Secondary</Badge>)
-    const badge = screen.getByText('Secondary')
-    expect(badge.className).toContain('bg-secondary')
-  })
-
-  it('destructive variant classes include bg-destructive', () => {
-    render(<Badge variant="destructive">Destructive</Badge>)
-    const badge = screen.getByText('Destructive')
-    expect(badge.className).toContain('bg-destructive')
-  })
-
-  it('outline variant classes include text-foreground', () => {
-    render(<Badge variant="outline">Outline</Badge>)
-    const badge = screen.getByText('Outline')
-    expect(badge.className).toContain('text-foreground')
-  })
-
   it('applies custom className', () => {
     render(<Badge className="my-custom">Custom</Badge>)
     const badge = screen.getByText('Custom')

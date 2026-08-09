@@ -17,7 +17,7 @@ func (c *SessionClient) ApplyPackMetadataRepair(
 	if req == nil {
 		return nil, errors.New("pack metadata repair request is nil")
 	}
-	body, err := adminrepair.MarshalRequest(req)
+	body, err := req.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal pack metadata repair request")
 	}
@@ -31,8 +31,8 @@ func (c *SessionClient) ApplyPackMetadataRepair(
 	if err != nil {
 		return nil, err
 	}
-	resp, err := adminrepair.ParseResponse(respBody)
-	if err != nil {
+	resp := &api.PackMetadataRepairResponse{}
+	if err := resp.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "unmarshal pack metadata repair response")
 	}
 	return resp, nil

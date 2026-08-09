@@ -82,11 +82,6 @@ describe('OutputPanel', () => {
     ).toBe(true)
   })
 
-  it('applies testId attribute', () => {
-    render(<OutputPanel lines={[]} testId="my-output" />)
-    expect(screen.getByTestId('my-output')).toBeDefined()
-  })
-
   it('applies custom className', () => {
     const { container } = render(
       <OutputPanel lines={[]} className="my-output-panel" />,

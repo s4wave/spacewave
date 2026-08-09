@@ -5,8 +5,6 @@ package startuptrace
 
 import "context"
 
-const buildTagged = false
-
 // Task is a no-op startup attribution trace task.
 type Task struct{}
 
