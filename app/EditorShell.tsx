@@ -19,6 +19,7 @@ import {
 import { BuiltinCommands } from '@s4wave/app/BuiltinCommands.js'
 import { CliTerminalSessionProvider } from '@s4wave/app/terminal/CliTerminalSessionProvider.js'
 import { DebugCommands } from '@s4wave/app/DebugCommands.js'
+
 import { getTabDisplayName } from './shell-tab.js'
 import { ShellTabStrip } from './ShellFlexLayout.js'
 import { ShellMenuBar } from './ShellMenuBar.js'

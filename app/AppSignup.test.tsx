@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, cleanup } from '@testing-library/react'
+
 import { AppSignup } from './AppSignup.js'
 
 const mockNavigate = vi.fn()

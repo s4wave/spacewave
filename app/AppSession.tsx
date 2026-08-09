@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react'
+import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import {
   resolvePath,
@@ -6,7 +7,6 @@ import {
   useParams,
   type To,
 } from '@s4wave/web/router/router.js'
-import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { markInteracted } from '@s4wave/web/state/interaction.js'
@@ -15,13 +15,14 @@ import {
   SessionRouteContext,
 } from '@s4wave/web/contexts/contexts.js'
 import { useSessionMetadata } from '@s4wave/app/hooks/useSessionMetadata.js'
-import { SessionContainer } from './session/SessionContainer.js'
-import { PinUnlockOverlay } from './session/PinUnlockOverlay.js'
 import {
   SessionLockMode,
   type EntityCredential,
 } from '@s4wave/core/session/session.pb.js'
 import type { Root } from '@s4wave/sdk/root/root.js'
+
+import { SessionContainer } from './session/SessionContainer.js'
+import { PinUnlockOverlay } from './session/PinUnlockOverlay.js'
 import { consumeQuickstartSessionHandoff } from './quickstart/session-handoff.js'
 import { markQuickstartStartupBoundary } from './quickstart/startup-boundary.js'
 

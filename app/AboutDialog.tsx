@@ -18,7 +18,6 @@ interface AboutDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-// AboutDialog renders a Photoshop-style about modal with app branding.
 export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
   const buildInfo = useAppBuildInfo()
 
@@ -37,7 +36,6 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
           {buildInfo.version}
         </p>
 
-        {/* Header with logo */}
         <div className="flex flex-col items-center px-6 pt-8 pb-2">
           <AppLogo
             className="mb-4 size-20"
@@ -52,7 +50,6 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
           )}
         </div>
 
-        {/* Description */}
         <div className="px-6 pb-4 text-center">
           <p className="text-foreground-alt py-2 text-sm leading-relaxed">
             Free, open-source, local-first platform for file sync,
@@ -61,7 +58,6 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
           </p>
         </div>
 
-        {/* Links */}
         <div className="border-border flex items-center justify-center gap-4 border-t px-6 py-3">
           <a
             href={GITHUB_REPO_URL}
@@ -89,7 +85,6 @@ export function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
           </a>
         </div>
 
-        {/* Footer */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button

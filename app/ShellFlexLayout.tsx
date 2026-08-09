@@ -34,6 +34,7 @@ import {
   TabContextProvider,
   type TabContextValue,
 } from '@s4wave/web/object/TabContext.js'
+
 import {
   ShellTabStateProvider,
   ShellTabsProvider,
@@ -160,8 +161,6 @@ function loadModelFromStorage(
       if (typeof parsed === 'object' && parsed !== null) {
         const parsedObj = parsed as Record<string, unknown>
         if (Number(parsedObj.nonce) === SHELL_TABS_NONCE) {
-          // Check if stored model has grid layout - if so, don't use it
-          // ShellTabStrip is for single-tabset mode only
           const model = parsedObj.model as IJsonModel | undefined
           if (model) {
             let tabsetCount = 0
@@ -302,7 +301,6 @@ function ShellTabStripInner({
   // eslint-disable-next-line react-hooks/refs
   tabsRef.current = tabs
 
-  // Check if we're currently in grid mode (URL starts with /g/)
   const isGridMode = useCallback(() => {
     return getAppPath().startsWith('/g/')
   }, [])
@@ -470,7 +468,6 @@ function ShellTabStripInner({
     }
   }, [model, tabs, activeTabId])
 
-  // Only enable tab dragging when there are at least 2 tabs (can't create splits with 1 tab)
   const canDrag = tabs.length >= 2
   useEffect(() => {
     if (model.toJson().global?.tabEnableDrag === canDrag) return
@@ -500,7 +497,6 @@ function ShellTabStripInner({
     } else if (pendingLocalPath.path === getAppPath()) {
       return
     }
-    // Don't sync URL in grid mode
     if (isGridMode()) return
     if (lastSyncedActiveTabIdRef.current === activeTabId) return
     lastSyncedActiveTabIdRef.current = activeTabId
@@ -511,10 +507,8 @@ function ShellTabStripInner({
     }
   }, [activeTabId, isGridMode])
 
-  // Listen for hash changes (back/forward navigation)
   const handleHashChange = useEffectEvent(() => {
     if (!initializedRef.current) return
-    // Don't handle hash changes in grid mode
     if (isGridMode()) return
 
     const currentPath = getAppPath()
@@ -525,11 +519,9 @@ function ShellTabStripInner({
     const activeTab = tabs.find((t) => t.id === activeTabId)
     if (!activeTab || activeTab.path === currentPath) return
 
-    // Check if the node still exists in the model before updating
     const tabNode = model.getNodeById(activeTabId)
     if (!isTabNode(tabNode)) return
 
-    // Update the current tab's path in tabs state (model doesn't store paths)
     const updated = {
       ...activeTab,
       path: currentPath,
@@ -588,9 +580,6 @@ function ShellTabStripInner({
     [],
   )
 
-  // renderTab function - renders content for each tab
-  // Path comes from tabs state via ref (single source of truth)
-  // Using ref ensures stable callback identity to prevent FlexLayout re-renders
   // Grid mode is not passed down: the content survives the mode transition, so
   // it reads the live mode from the shell context itself.
   const renderTab = useCallback((node: TabNode) => {
@@ -600,12 +589,10 @@ function ShellTabStripInner({
     return <ShellTabContent tabId={tabId} path={path} />
   }, [])
 
-  // Handle model changes - sync tabs state, check for grid mode transition
   const handleModelChange = useCallback(
     (newModel: Model) => {
       setModel(newModel)
 
-      // Save to sessionStorage.
       saveModelToStorage(newModel.toJson())
 
       // The provider owns state-to-model projection. FlexLayout reports each
@@ -660,7 +647,6 @@ function ShellTabStripInner({
         return
       }
 
-      // Extract tab IDs and names from model (paths come from tabs state)
       const modelTabs: { id: string; name: string }[] = []
       let newActiveId: string | null = null
 
@@ -698,9 +684,7 @@ function ShellTabStripInner({
         tabs.some((tab) => tab.id === newActiveId)
       ) {
         selectShellTab(newActiveId)
-        // Update URL to match selected tab (only if not in grid mode)
         if (!isGridMode()) {
-          // Get path from current tabs state
           const selectedTab = tabs.find((tab) => tab.id === newActiveId)
           if (selectedTab) {
             setAppPath(selectedTab.path)
@@ -719,7 +703,6 @@ function ShellTabStripInner({
     ],
   )
 
-  // Custom icons for close button
   const icons = useMemo(
     () => ({
       close: <LuX className="size-2.5" />,
@@ -747,14 +730,10 @@ function ShellTabStripInner({
     [tabs, model, appendAndSelectTab],
   )
 
-  // Handle creating a new blank tab.
-  // If the current tab is in a session (/u/{idx}/...), opens to that session's dashboard.
-  // Otherwise opens to home.
   const handleNewTab = useCallback(() => {
     handleNewTabAtTab(activeTabId)
   }, [activeTabId, handleNewTabAtTab])
 
-  // Handle popping out current tab to a new browser tab
   const handlePopoutTab = useCallback(() => {
     const activeTab = findShellTab(tabs, activeTabId)
     if (!activeTab) return
@@ -775,7 +754,6 @@ function ShellTabStripInner({
     [tabs.length, closeShellTab],
   )
 
-  // Handle duplicating a specific tab by ID
   const handleDuplicateTab = useCallback(
     (tabId: string) => {
       const tab = findShellTab(tabs, tabId)
@@ -853,7 +831,6 @@ function ShellTabStripInner({
   const [contextMenu, setContextMenu] =
     useState<ShellTabContextMenuState | null>(null)
 
-  // Handle right-click on tab via FlexLayout's onContextMenu
   const handleContextMenu = useCallback(
     (node: TabNode | TabSetNode | BorderNode, event: React.MouseEvent) => {
       if (node.getType() !== 'tab') return
@@ -867,7 +844,6 @@ function ShellTabStripInner({
     [],
   )
 
-  // Render tabset toolbar with add button
   const onRenderTabSet = useCallback(
     (node: TabSetNode | BorderNode, renderValues: ITabSetRenderValues) => {
       if (node.getType() !== 'tabset') return
@@ -902,7 +878,6 @@ function ShellTabStripInner({
     [handleCloseTab, handleNewTab, handlePopoutTab, tabs.length],
   )
 
-  // Ref for measuring menu bar width
   const menuBarRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -937,7 +912,6 @@ function ShellTabStripInner({
     return () => observer.disconnect()
   }, [model])
 
-  // Provide TabContext for command components in the shell overlay.
   const overlayTabContext = useMemo<TabContextValue>(
     () => ({
       tabId: activeTabId,
@@ -983,6 +957,3 @@ function ShellTabStripInner({
     </ShellTabStateProvider>
   )
 }
-
-// SHELL_TAB_STRIP_CONTAINER_ID is kept for backwards compatibility.
-export const SHELL_TAB_STRIP_CONTAINER_ID = 'shell-tab-strip-container'

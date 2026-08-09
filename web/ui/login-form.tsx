@@ -91,7 +91,10 @@ interface LoginFormProps extends React.ComponentPropsWithoutRef<'div'> {
   onLoginWithPem?: (pemPrivateKey: Uint8Array) => Promise<{
     sessionIndex: number
   }>
-  onNavigateToSession?: (sessionIndex: number, isNew: boolean) => void
+  onNavigateToSession?: (
+    sessionIndex: number,
+    isNew: boolean,
+  ) => void | Promise<void>
   onContinueWithPasskey?: (abortSignal?: AbortSignal) => void | Promise<void>
   onBrowserAuth?: (abortSignal?: AbortSignal) => void | Promise<void>
   onSignInWithSSO?: (
@@ -420,13 +423,13 @@ export function LoginForm({
           password,
           token,
         )
-        if (result) onNavigateToSession?.(result.sessionIndex, true)
+        if (result) await onNavigateToSession?.(result.sessionIndex, true)
       } else {
         const result = await onLoginWithPassword?.(username, password, token)
         if (result) {
           switch (result.type) {
             case 'session':
-              onNavigateToSession?.(result.sessionIndex, false)
+              await onNavigateToSession?.(result.sessionIndex, false)
               break
             case 'new_account':
               setMode('confirm_create')
@@ -520,7 +523,7 @@ export function LoginForm({
         void handleAction('pem', async () => {
           const login = await onLoginWithPem?.(new Uint8Array(result))
           if (!login) return
-          onNavigateToSession?.(login.sessionIndex, false)
+          await onNavigateToSession?.(login.sessionIndex, false)
         })
       }
       reader.onerror = () => {

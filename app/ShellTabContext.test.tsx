@@ -9,6 +9,13 @@ import {
 } from '@testing-library/react'
 
 import {
+  StateNamespaceProvider,
+  useStateAtom,
+  type StateAtomAccessor,
+} from '@s4wave/web/state/index.js'
+import { toast } from '@s4wave/web/ui/toaster.js'
+
+import {
   SHELL_TAB_PATH_COMMITTED_EVENT,
   ShellTabStateProvider,
   ShellTabsProvider,
@@ -30,12 +37,6 @@ import {
   shellTabStateStorageKey,
   writeShellDocumentState,
 } from './ShellDocumentState.js'
-import {
-  StateNamespaceProvider,
-  useStateAtom,
-  type StateAtomAccessor,
-} from '@s4wave/web/state/index.js'
-import { toast } from '@s4wave/web/ui/toaster.js'
 
 vi.mock('@s4wave/web/ui/toaster.js', () => ({
   toast: {

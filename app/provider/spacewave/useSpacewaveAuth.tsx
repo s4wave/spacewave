@@ -39,7 +39,10 @@ export function useCloudProviderConfig(): CloudProviderConfig | null {
 // spacewave session. The navigateToSession callback controls where the
 // user goes after successful auth (e.g. dashboard vs /plan/upgrade).
 export function useSpacewaveAuth(
-  navigateToSession: (sessionIndex: number, isNew: boolean) => void,
+  navigateToSession: (
+    sessionIndex: number,
+    isNew: boolean,
+  ) => void | Promise<void>,
 ) {
   const rootResource = RootContext.useContext()
   const root = useResourceValue(rootResource)
@@ -161,7 +164,7 @@ export function useSpacewaveAuth(
 
   const handleContinueInBrowser = useCallback(
     async (abortSignal?: AbortSignal) => {
-      navigateToSession(await startBrowserHandoff(abortSignal), false)
+      await navigateToSession(await startBrowserHandoff(abortSignal), false)
     },
     [navigateToSession, startBrowserHandoff],
   )

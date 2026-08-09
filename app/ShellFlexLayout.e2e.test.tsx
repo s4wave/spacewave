@@ -21,7 +21,6 @@ import {
 
 import '@s4wave/web/style/app.css'
 
-// Simple model for testing OptimizedLayout directly
 const simpleModel: IJsonModel = {
   global: {
     tabEnableClose: false,
@@ -48,7 +47,6 @@ const simpleModel: IJsonModel = {
   },
 }
 
-// Model with two tabs to test tab switching
 const twoTabModel: IJsonModel = {
   global: {
     tabEnableClose: false,
@@ -82,7 +80,6 @@ const twoTabModel: IJsonModel = {
   },
 }
 
-// Helper to wait for a tab panel with valid pixel dimensions
 async function waitForTabPanelWithDimensions(
   selector = '[role="tabpanel"]',
   timeout = 2000,
@@ -94,7 +91,6 @@ async function waitForTabPanelWithDimensions(
         if (!panel) return null
         const height = panel.style.height
         const width = panel.style.width
-        // Return dimensions only if they're valid pixels (not 100% fallback)
         if (height && height !== '100%' && width && width !== '100%') {
           return { width, height }
         }
@@ -105,7 +101,6 @@ async function waitForTabPanelWithDimensions(
     .not.toBeNull()
 }
 
-// Helper to wait for element to exist
 async function waitForElement(
   selector: string,
   timeout = 2000,
@@ -116,7 +111,6 @@ async function waitForElement(
   return document.querySelector(selector) as HTMLElement
 }
 
-// Helper to wait for N elements
 async function waitForElements(
   selector: string,
   count: number,
@@ -154,7 +148,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
         />,
       )
 
-      // Wait for tab panel with valid dimensions
       await waitForTabPanelWithDimensions()
 
       const tabPanel = document.querySelector(
@@ -165,11 +158,9 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
       const width = tabPanel.style.width
       const height = tabPanel.style.height
 
-      // Verify we got pixel dimensions, not percentage fallback
       expect(height).not.toBe('100%')
       expect(width).not.toBe('100%')
 
-      // Verify dimensions are valid pixel values
       if (height.includes('px')) {
         const heightValue = parseFloat(height)
         expect(heightValue).toBeGreaterThan(0)
@@ -194,7 +185,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
         />,
       )
 
-      // Wait for layout to have valid contentRect
       interface ContentRect {
         width: number
         height: number
@@ -248,7 +238,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
         />,
       )
 
-      // Wait for TabNode.rect to have valid dimensions
       await expect
         .poll(() => {
           let rect: { width: number; height: number } | null = null
@@ -307,7 +296,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
         />,
       )
 
-      // Wait for both tabs to exist
       await waitForElements('[data-tab-id]', 2)
 
       const tab1 = document.querySelector('[data-tab-id="tab1"]') as HTMLElement
@@ -316,12 +304,10 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
       expect(tab1).not.toBeNull()
       expect(tab2).not.toBeNull()
 
-      // Tab 1 should be visible (no visibility:hidden set)
       expect(tab1.style.visibility).not.toBe('hidden')
       expect(tab1.style.height).not.toBe('100%')
       expect(tab1.style.height).not.toBe('0px')
 
-      // Tab 2 should be hidden (visibility: hidden)
       expect(tab2.style.visibility).toBe('hidden')
     })
   })
@@ -341,10 +327,8 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
         />,
       )
 
-      // Wait for initial tabs
       await waitForElements('[role="tabpanel"]', 2)
 
-      // Add a new tab dynamically
       model.doAction(
         Actions.addNode(
           {
@@ -359,13 +343,11 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
         ),
       )
 
-      // Wait for new tab to appear
       await waitForElement('[data-tab-id="dynamic-tab"]')
 
       const newTabPanel = document.querySelector('[data-tab-id="dynamic-tab"]')
       expect(newTabPanel).not.toBeNull()
 
-      // Total panels should now be 3
       await waitForElements('[role="tabpanel"]', 3)
     })
 
@@ -385,7 +367,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
 
       await waitForElement('[role="tabpanel"]')
 
-      // Add a new tab and select it (last param true = select)
       model.doAction(
         Actions.addNode(
           {
@@ -401,7 +382,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
         ),
       )
 
-      // Wait for new tab panel to exist first
       await expect
         .poll(() => {
           const panel = document.querySelector(
@@ -411,7 +391,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
         })
         .toBe(true)
 
-      // Then verify it's visible (no visibility:hidden)
       const newTabPanel = document.querySelector(
         '[data-tab-id="selected-dynamic"]',
       ) as HTMLElement
@@ -435,7 +414,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
 
       await waitForElement('[role="tabpanel"]')
 
-      // Add a new tab (not selected initially)
       model.doAction(
         Actions.addNode(
           {
@@ -451,7 +429,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
         ),
       )
 
-      // Wait for the tab button to appear
       await expect
         .poll(() => {
           const buttons = Array.from(
@@ -464,7 +441,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
         })
         .not.toBeNull()
 
-      // Find and click the tab button
       const tabButtons = document.querySelectorAll('.flexlayout__tab_button')
       let newTabButton: HTMLElement | null = null
       tabButtons.forEach((btn) => {
@@ -477,7 +453,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
       expect(newTabButton).not.toBeNull()
       newTabButton!.click()
 
-      // Wait for tab panel to become visible (no visibility:hidden)
       await expect
         .poll(() => {
           const panel = document.querySelector('[data-tab-id="click-me-tab"]')
@@ -491,7 +466,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
       expect(tabPanel).not.toBeNull()
       expect(tabPanel.style.visibility).not.toBe('hidden')
 
-      // Content should be rendered
       const content = tabPanel.querySelector(
         '[data-testid="content-click-me-tab"]',
       )
@@ -514,7 +488,6 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
 
       await waitForElement('[role="tabpanel"]')
 
-      // Add multiple tabs dynamically
       for (let i = 0; i < 5; i++) {
         model.doAction(
           Actions.addNode(
@@ -531,10 +504,8 @@ describe('ShellFlexLayout OptimizedLayout E2E', () => {
         )
       }
 
-      // Wait for all tabs to appear (initial 1 + 5 dynamic = 6)
       await waitForElements('[role="tabpanel"]', 6)
 
-      // Verify all dynamic tabs exist
       for (let i = 0; i < 5; i++) {
         const panel = document.querySelector(`[data-tab-id="dynamic-${i}"]`)
         expect(panel).not.toBeNull()

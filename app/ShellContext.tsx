@@ -1,4 +1,5 @@
 import { createContext, use, ReactNode } from 'react'
+
 import { useIsStaticMode } from '@s4wave/app/prerender/StaticContext.js'
 
 // ShellContextValue provides shell-level state to descendant components.

@@ -3,8 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import type { RegisterCleanup } from '@aptre/bldr-sdk/hooks/useResource.js'
 
-import { AppSession } from './AppSession.js'
 import { SessionLockMode } from '@s4wave/core/session/session.pb.js'
+
+import { AppSession } from './AppSession.js'
 import {
   releaseQuickstartSessionHandoffsForTests,
   stageQuickstartSessionHandoff,

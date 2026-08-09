@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
-
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Client as ResourceClient } from '@aptre/bldr-sdk/resource/index.js'
-import type { Root } from '@s4wave/sdk/root'
+
+import type { Root } from '@s4wave/sdk/root/index.js'
 import {
   clearDebugContext,
   setDebugContext,

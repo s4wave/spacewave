@@ -1,9 +1,9 @@
 import { isElectron as bldrIsElectron, isMac as bldrIsMac } from '@aptre/bldr'
+
 import { TooltipProvider } from '@s4wave/web/ui/tooltip.js'
 import { Toaster } from '@s4wave/web/ui/toaster.js'
 import { StateNamespaceProvider } from '@s4wave/web/state/index.js'
 import { localStateAtom } from '@s4wave/web/state/global.js'
-
 import {
   WindowFrame,
   IWindowFrameProps,

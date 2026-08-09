@@ -1,6 +1,6 @@
-import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { useMemo, useCallback } from 'react'
 
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { AppLogo } from '@s4wave/web/images/AppLogo.js'
 import {

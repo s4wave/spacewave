@@ -1,5 +1,6 @@
 import { getAppNavigation } from '@s4wave/web/router/app-path.js'
 import { parseHashNavigation } from '@s4wave/web/router/hash.js'
+
 import { readShellDocumentState } from './ShellDocumentState.js'
 
 export type ShellDocumentEntryKind = 'fresh' | 'continuation' | 'handoff'

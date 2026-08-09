@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { LuFolderOpen, LuLink } from 'react-icons/lu'
+import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useAddSpaceRootAlias } from '@s4wave/app/hooks/useAddSpaceRootAlias.js'
@@ -10,7 +11,6 @@ import { BackButton } from '@s4wave/web/ui/BackButton.js'
 import { LoginForm } from '@s4wave/web/ui/login-form.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
-import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useSpacewaveAuth } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
@@ -59,32 +59,31 @@ export function AppLogin({
   }, [navigate])
 
   const handleNavigateToSession = useCallback(
-    (sessionIndex: number, _isNew: boolean) => {
-      void (async () => {
-        // If a session with the same providerAccountId is already mounted
-        // at a different (earlier) index, redirect there to avoid duplicates.
-        if (root) {
-          const resp = await root.listSessions()
-          const sessions = resp.sessions ?? []
-          const target = sessions.find((s) => s.sessionIndex === sessionIndex)
-          const accountId =
-            target?.sessionRef?.providerResourceRef?.providerAccountId
-          if (accountId) {
-            for (const s of sessions) {
-              const sid = s.sessionRef?.providerResourceRef?.providerAccountId
-              if (
-                sid === accountId &&
-                s.sessionIndex != null &&
-                s.sessionIndex !== sessionIndex
-              ) {
-                navigate({ path: `/u/${s.sessionIndex}` })
-                return
-              }
+    async (sessionIndex: number, _isNew: boolean) => {
+      // A provider account has one mounted session, even when authentication
+      // returns a later duplicate entry.
+      if (root) {
+        const resp = await root.listSessions()
+        const sessions = resp.sessions ?? []
+        const target = sessions.find((s) => s.sessionIndex === sessionIndex)
+        const accountId =
+          target?.sessionRef?.providerResourceRef?.providerAccountId
+        if (accountId) {
+          for (const session of sessions) {
+            const mountedAccountId =
+              session.sessionRef?.providerResourceRef?.providerAccountId
+            if (
+              mountedAccountId === accountId &&
+              session.sessionIndex != null &&
+              session.sessionIndex !== sessionIndex
+            ) {
+              navigate({ path: `/u/${session.sessionIndex}` })
+              return
             }
           }
         }
-        navigate({ path: `/u/${sessionIndex}` })
-      })()
+      }
+      navigate({ path: `/u/${sessionIndex}` })
     },
     [navigate, root],
   )

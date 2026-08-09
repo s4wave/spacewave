@@ -10,6 +10,7 @@ import {
 
 import type { KeybindingEditorProps } from '@s4wave/web/command/KeybindingEditor.js'
 import type { KeyboardShortcutsDialogProps } from '@s4wave/web/command/KeyboardShortcutsDialog.js'
+
 import { BuiltinCommands } from './BuiltinCommands.js'
 
 interface RegisteredCommand {

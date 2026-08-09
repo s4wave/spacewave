@@ -1,8 +1,9 @@
 import { Window } from 'happy-dom'
 import React from 'react'
-import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
+
+import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
 
 import { ShellMenuBar } from './ShellMenuBar.js'
 

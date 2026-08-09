@@ -1,7 +1,7 @@
-import React from 'react'
 import { isDesktop } from '@aptre/bldr'
 
 import { DebugBridgeProvider } from '@s4wave/web/debug/DebugBridgeProvider.js'
+import '@s4wave/web/style/app.css'
 
 import { AppAPI } from './AppAPI.js'
 import { AppShell } from './AppShell.js'
@@ -9,10 +9,9 @@ import { EditorShell } from './EditorShell.js'
 import { FileDropGuard } from './FileDropGuard.js'
 
 import './debug/spacewave-global.js'
-import '@s4wave/web/style/app.css'
 
-// App is the primary entrypoint for the web app..
-export const App: React.FC = () => {
+// App is the primary entrypoint for the web app.
+export function App() {
   return (
     <AppShell
       windowFrame={{
@@ -29,5 +28,4 @@ export const App: React.FC = () => {
   )
 }
 
-// App will be loaded to a WebView when the plugin is loaded.
-export default () => <App />
+export default App
