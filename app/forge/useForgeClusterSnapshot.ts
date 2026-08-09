@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
-
+import { useMemo, useState } from 'react'
 import {
   useResource,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
+
 import { Execution } from '@go/github.com/s4wave/spacewave/forge/execution/execution.pb.js'
 import { Job } from '@go/github.com/s4wave/spacewave/forge/job/job.pb.js'
 import { Pass } from '@go/github.com/s4wave/spacewave/forge/pass/pass.pb.js'
@@ -98,6 +98,14 @@ async function listOutgoingEdgeBuckets(
       abortSignal: signal,
     },
   )
+  const truncatedBucket = response.buckets?.find(
+    (bucket) => bucket.outgoingTruncated,
+  )
+  if (truncatedBucket) {
+    throw new Error(
+      `Forge graph snapshot exceeds the ${forgeEdgeLookupLimit}-edge limit for ${truncatedBucket.originObjectKey ?? 'an object'}.`,
+    )
+  }
   return new Map(
     (response.buckets ?? []).map((bucket) => [
       bucket.originObjectKey ?? '',
@@ -347,7 +355,10 @@ export async function buildForgeClusterSnapshot(
 export function useForgeClusterSnapshot(
   worldState: Resource<IWorldState>,
   clusterKeys: string[],
-): { snapshot: ForgeClusterSnapshot; loading: boolean } {
+): { snapshot: ForgeClusterSnapshot; loading: boolean; error: Error | null } {
+  const [publishedSnapshot, setPublishedSnapshot] = useState(
+    emptyForgeClusterSnapshot,
+  )
   const resource = useResource(
     worldState,
     async (world, signal) => {
@@ -358,13 +369,15 @@ export function useForgeClusterSnapshot(
       return buildForgeClusterSnapshot(world, clusterKeys, signal)
     },
     [clusterKeys],
+    { onSuccess: setPublishedSnapshot },
   )
 
   return useMemo(
     () => ({
-      snapshot: resource.value ?? emptyForgeClusterSnapshot(),
+      snapshot: resource.value ?? publishedSnapshot,
       loading: resource.loading,
+      error: resource.error,
     }),
-    [resource.loading, resource.value],
+    [publishedSnapshot, resource.error, resource.loading, resource.value],
   )
 }

@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
-
 import {
   useResource,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
+
 import { Execution } from '@go/github.com/s4wave/spacewave/forge/execution/execution.pb.js'
 import { Job } from '@go/github.com/s4wave/spacewave/forge/job/job.pb.js'
 import { Pass } from '@go/github.com/s4wave/spacewave/forge/pass/pass.pb.js'

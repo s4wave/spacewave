@@ -6,7 +6,6 @@ import type { CommitInfo, DiffFileStat } from '@s4wave/sdk/git/repo.pb.js'
 import { formatRelativeTime } from '../util.js'
 import { DiffStatSection } from './DiffStatSection.js'
 
-// CommitRowProps are props for the CommitRow component.
 export interface CommitRowProps {
   commit: CommitInfo
   expanded: boolean

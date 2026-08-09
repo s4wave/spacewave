@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import type {
   CommitInfo,
@@ -6,13 +7,10 @@ import type {
   LogResponse,
 } from '@s4wave/sdk/git/repo.pb.js'
 import type { GitRepoHandle } from '@s4wave/sdk/git/repo.js'
-
-import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { LoadingInline } from '@s4wave/web/ui/loading/LoadingInline.js'
 
 import { CommitRow } from './CommitRow.js'
 
-// CommitLogProps are props for the CommitLog component.
 export interface CommitLogProps {
   handle: GitRepoHandle
   refName: string

@@ -10,7 +10,6 @@ import {
   Pass,
   State as PassState,
 } from '@go/github.com/s4wave/spacewave/forge/pass/pass.pb.js'
-
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
@@ -25,6 +24,7 @@ import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { StatCard } from '@s4wave/web/ui/StatCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+
 import { ForgeValueSetDisplay } from './ForgeValueSetDisplay.js'
 import { useForgeDecodedLinkedEntities } from './useForgeDecodedLinkedEntities.js'
 

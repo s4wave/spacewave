@@ -1,13 +1,11 @@
 import { LuChevronLeft, LuChevronRight, LuChevronUp } from 'react-icons/lu'
 
 import type { ListRefsResponse } from '@s4wave/sdk/git/repo.pb.js'
-
 import { Toolbar } from '@s4wave/web/editors/file-browser/Toolbar.js'
 import { cn } from '@s4wave/web/style/utils.js'
 
 import { RefSelector } from '../refs/RefSelector.js'
 
-// GitToolbarProps are props for the GitToolbar component.
 export interface GitToolbarProps {
   effectiveRef: string | null
   refsResponse: ListRefsResponse | null

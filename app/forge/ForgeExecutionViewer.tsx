@@ -5,7 +5,6 @@ import {
   Execution,
   State,
 } from '@go/github.com/s4wave/spacewave/forge/execution/execution.pb.js'
-
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
@@ -15,6 +14,7 @@ import {
 } from '@s4wave/web/forge/ForgeViewerShell.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+
 import { ForgeValueSetDisplay } from './ForgeValueSetDisplay.js'
 
 export const ForgeExecutionTypeID = 'forge/execution'

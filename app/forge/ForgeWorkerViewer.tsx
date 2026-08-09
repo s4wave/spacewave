@@ -1,13 +1,12 @@
 import { useCallback, useMemo } from 'react'
 import { LuActivity, LuCpu, LuServer } from 'react-icons/lu'
-
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
+
 import { State as ExecutionState } from '@go/github.com/s4wave/spacewave/forge/execution/execution.pb.js'
 import { Worker } from '@go/github.com/s4wave/spacewave/forge/worker/worker.pb.js'
 import type { ProcessBindingInfo } from '@s4wave/sdk/space/space.pb.js'
 import { SpaceContentsContext } from '@s4wave/web/contexts/contexts.js'
-
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useForgeBlockData } from '@s4wave/web/forge/useForgeBlockData.js'
@@ -22,6 +21,7 @@ import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { StatCard } from '@s4wave/web/ui/StatCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+
 import { useForgeClusterSnapshot } from './useForgeClusterSnapshot.js'
 
 export const ForgeWorkerTypeID = 'forge/worker'

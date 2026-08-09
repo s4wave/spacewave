@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
-
+import { useMemo, useState } from 'react'
 import {
   useResource,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
+
 import { iriToKey } from '@s4wave/sdk/world/graph-utils.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { GraphEdgeBucketDirection } from '@s4wave/sdk/world/world.pb.js'
@@ -55,6 +55,14 @@ async function loadDependencyBuckets(
       abortSignal: signal,
     },
   )
+  const truncatedBucket = response.buckets?.find(
+    (bucket) => bucket.outgoingTruncated,
+  )
+  if (truncatedBucket) {
+    throw new Error(
+      `Forge dependency graph exceeds the ${forgeTaskDependencyLimit}-edge limit for ${truncatedBucket.originObjectKey ?? 'a task'}.`,
+    )
+  }
   return new Map(
     (response.buckets ?? []).map((bucket) => [
       bucket.originObjectKey ?? '',
@@ -92,7 +100,10 @@ export async function loadForgeTaskDependencyGraph(
 export function useForgeTaskDependencyGraph(
   worldState: Resource<IWorldState>,
   tasks: ForgeLinkedEntity[],
-): { edges: ForgeTaskDependencyEdge[]; loading: boolean } {
+): { edges: ForgeTaskDependencyEdge[]; loading: boolean; error: Error | null } {
+  const [publishedEdges, setPublishedEdges] = useState<
+    ForgeTaskDependencyEdge[]
+  >([])
   const resource = useResource(
     worldState,
     async (world, signal) => {
@@ -100,13 +111,15 @@ export function useForgeTaskDependencyGraph(
       return loadForgeTaskDependencyGraph(world, tasks, signal)
     },
     [tasks],
+    { onSuccess: setPublishedEdges },
   )
 
   return useMemo(
     () => ({
-      edges: resource.value ?? [],
+      edges: resource.value ?? publishedEdges,
       loading: resource.loading,
+      error: resource.error,
     }),
-    [resource.loading, resource.value],
+    [publishedEdges, resource.error, resource.loading, resource.value],
   )
 }

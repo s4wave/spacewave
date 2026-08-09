@@ -7,6 +7,7 @@ import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+
 import { ForgeDashboardViewer } from './ForgeDashboardViewer.js'
 
 const mockVisibleWizardTypeSet = new Set(['forge/cluster', 'forge/job'])

@@ -1,11 +1,10 @@
-import type { GitRepoHandle } from '@s4wave/sdk/git/repo.js'
-
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 
-import { formatRelativeTime } from '../util.js'
-import { GitDiffPatchFiles } from './GitDiffPatch.js'
+import type { GitRepoHandle } from '@s4wave/sdk/git/repo.js'
 
-// CommitDetailProps are props for the CommitDetail component.
+import { formatRelativeTime } from '../util.js'
+import { GitDiffPatchFiles } from './GitDiffPatchFiles.js'
+
 export interface CommitDetailProps {
   handle: GitRepoHandle
   commitHash: string

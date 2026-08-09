@@ -1,16 +1,20 @@
 import { useMemo } from 'react'
 
-import type { ValueSet } from '@go/github.com/s4wave/spacewave/forge/target/target.pb.js'
-import type { Value } from '@go/github.com/s4wave/spacewave/forge/value/value.pb.js'
+import { Value } from '@go/github.com/s4wave/spacewave/forge/value/value.pb.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 
 type ForgeValueLike = Value
-type ForgeValueSetLike = Pick<ValueSet, 'inputs' | 'outputs'>
 
 interface ForgeValueSetDisplayProps {
   title: string
   values?: ForgeValueLike[]
   emptyLabel: string
+}
+
+function valueIdentity(value: ForgeValueLike): string {
+  return Array.from(Value.toBinary(value), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('')
 }
 
 function describeValue(value: ForgeValueLike): string {
@@ -29,6 +33,15 @@ export function ForgeValueSetDisplay({
   emptyLabel,
 }: ForgeValueSetDisplayProps) {
   const rows = useMemo(() => values ?? [], [values])
+  const keyedRows = useMemo(() => {
+    const occurrences = new Map<string, number>()
+    return rows.map((value) => {
+      const identity = valueIdentity(value)
+      const occurrence = occurrences.get(identity) ?? 0
+      occurrences.set(identity, occurrence + 1)
+      return { value, key: `${identity}:${occurrence}` }
+    })
+  }, [rows])
 
   return (
     <InfoCard title={title}>
@@ -37,9 +50,9 @@ export function ForgeValueSetDisplay({
       )}
       {rows.length > 0 && (
         <div className="space-y-2">
-          {rows.map((value, index) => (
+          {keyedRows.map(({ value, key }, index) => (
             <div
-              key={value.name || JSON.stringify(value)}
+              key={key}
               className="border-foreground/6 bg-background-card/20 flex items-center justify-between rounded border px-3 py-2"
             >
               <div className="text-foreground text-xs font-medium">
@@ -53,36 +66,5 @@ export function ForgeValueSetDisplay({
         </div>
       )}
     </InfoCard>
-  )
-}
-
-interface ForgeValueSetPanelsProps {
-  valueSet?: ForgeValueSetLike
-  inputsTitle?: string
-  outputsTitle?: string
-  emptyInputsLabel?: string
-  emptyOutputsLabel?: string
-}
-
-export function ForgeValueSetPanels({
-  valueSet,
-  inputsTitle = 'Inputs',
-  outputsTitle = 'Outputs',
-  emptyInputsLabel = 'No inputs',
-  emptyOutputsLabel = 'No outputs',
-}: ForgeValueSetPanelsProps) {
-  return (
-    <div className="space-y-3">
-      <ForgeValueSetDisplay
-        title={inputsTitle}
-        values={valueSet?.inputs}
-        emptyLabel={emptyInputsLabel}
-      />
-      <ForgeValueSetDisplay
-        title={outputsTitle}
-        values={valueSet?.outputs}
-        emptyLabel={emptyOutputsLabel}
-      />
-    </div>
   )
 }

@@ -1,6 +1,5 @@
 import type { DiffFileStat } from '@s4wave/sdk/git/repo.pb.js'
 
-// DiffStatSectionProps are props for the DiffStatSection component.
 export interface DiffStatSectionProps {
   files: DiffFileStat[] | undefined
   loading: boolean

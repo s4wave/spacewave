@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
-
 import {
   useResource,
   type Resource,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { Message, MessageType } from '@aptre/protobuf-es-lite'
+
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { ForgeLinkedEntity } from '@s4wave/web/forge/useForgeLinkedEntities.js'
 

@@ -1,4 +1,3 @@
-// ReadmeSectionProps are props for the ReadmeSection component.
 export interface ReadmeSectionProps {
   readmePath: string
   content: string | null

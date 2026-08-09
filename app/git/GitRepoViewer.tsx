@@ -1,6 +1,6 @@
 import { useDeferredValue, useState } from 'react'
-
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
+
 import { GitRepoHandle } from '@s4wave/sdk/git/repo.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
@@ -10,14 +10,14 @@ import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useHistory } from '@s4wave/web/router/HistoryRouter.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { PanelSizeGate } from '@s4wave/web/ui/PanelSizeGate.js'
-
 import { buildProjectedFileInlineURL } from '@s4wave/app/space/projected-url.js'
 
 import { CommitDetail } from './commits/CommitDetail.js'
 import { CommitLog } from './commits/CommitLog.js'
 import { FileTree } from './files/FileTree.js'
 import { FileViewer } from './files/FileViewer.js'
-import { GitViewerCenteredState, GitViewerFrame } from './GitViewerShell.js'
+import { GitViewerCenteredState } from './GitViewerCenteredState.js'
+import { GitViewerFrame } from './GitViewerFrame.js'
 import { ReadmeSection } from './layout/ReadmeSection.js'
 import { useGitBrowsingState } from './useGitBrowsingState.js'
 import { useGitFileEntries } from './useGitFileEntries.js'

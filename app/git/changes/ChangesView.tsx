@@ -1,10 +1,11 @@
 import { useCallback, useMemo } from 'react'
+
 import type { StatusEntry } from '@s4wave/sdk/git/worktree.pb.js'
 import { FileStatusCode } from '@s4wave/sdk/git/worktree.pb.js'
 import type { GitWorktreeHandle } from '@s4wave/sdk/git/worktree.js'
+
 import { StatusSection } from './StatusSection.js'
 
-// ChangesViewProps are props for the ChangesView component.
 export interface ChangesViewProps {
   entries: StatusEntry[]
   handle: GitWorktreeHandle

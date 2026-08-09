@@ -2,7 +2,6 @@ import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 import { FileList } from '@s4wave/web/editors/file-browser/FileList.js'
 import type { RenderEntryCallback } from '@s4wave/web/editors/file-browser/FileListEntry.js'
 
-// FileTreeProps are props for the FileTree component.
 export interface FileTreeProps {
   entries: FileEntry[]
   onOpen: (entries: FileEntry[]) => void

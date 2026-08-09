@@ -5,9 +5,9 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-
 import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
+
 import { GitWorktreeHandle } from '@s4wave/sdk/git/worktree.js'
 import {
   FileStatusCode,
@@ -23,7 +23,6 @@ import { useHistory } from '@s4wave/web/router/HistoryRouter.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { PanelSizeGate } from '@s4wave/web/ui/PanelSizeGate.js'
-
 import { buildProjectedFileInlineURL } from '@s4wave/app/space/projected-url.js'
 
 import { ChangesView } from './changes/ChangesView.js'
@@ -35,7 +34,8 @@ import { CommitDetail } from './commits/CommitDetail.js'
 import { CommitLog } from './commits/CommitLog.js'
 import { FileTree } from './files/FileTree.js'
 import { FileViewer } from './files/FileViewer.js'
-import { GitViewerCenteredState, GitViewerFrame } from './GitViewerShell.js'
+import { GitViewerCenteredState } from './GitViewerCenteredState.js'
+import { GitViewerFrame } from './GitViewerFrame.js'
 import { getGitWorktreeInlinePreviewObjectKey } from './inline-preview.js'
 import { ReadmeSection } from './layout/ReadmeSection.js'
 import type { ViewMode } from './layout/route.js'

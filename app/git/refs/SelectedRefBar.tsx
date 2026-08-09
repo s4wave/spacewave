@@ -4,7 +4,6 @@ import type { CommitInfo } from '@s4wave/sdk/git/repo.pb.js'
 
 import { formatRelativeTime } from '../util.js'
 
-// SelectedRefBarProps are props for the SelectedRefBar component.
 export interface SelectedRefBarProps {
   lastCommit: CommitInfo | undefined
   loading: boolean

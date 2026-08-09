@@ -1,7 +1,6 @@
 import { LuChevronDown, LuGitBranch, LuTag } from 'react-icons/lu'
 
 import type { ListRefsResponse } from '@s4wave/sdk/git/repo.pb.js'
-
 import { cn } from '@s4wave/web/style/utils.js'
 import {
   DropdownMenu,
@@ -13,7 +12,6 @@ import {
   DropdownMenuSeparator,
 } from '@s4wave/web/ui/DropdownMenu.js'
 
-// RefSelectorProps are props for the RefSelector component.
 export interface RefSelectorProps {
   effectiveRef: string | null
   refsResponse: ListRefsResponse | null

@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
+
 import { cn } from '@s4wave/web/style/utils.js'
 
 import type { ViewMode } from './route.js'
 
-// ViewModeSelectorProps are props for the ViewModeSelector component.
 export interface ViewModeSelectorProps {
   mode: ViewMode
   onModeChange: (mode: ViewMode) => void

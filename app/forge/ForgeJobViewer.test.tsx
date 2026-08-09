@@ -7,22 +7,39 @@ import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
 import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+
 import { ForgeJobViewer } from './ForgeJobViewer.js'
 
 const mockVisibleWizardTypeSet = new Set(['forge/task'])
+const mockDependencyGraph = {
+  edges: [
+    { from: 'forge/task/a', to: 'forge/task/b', kind: 'subtask' as const },
+  ],
+  loading: false,
+  error: null as Error | null,
+}
 
 vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
   ForgeViewerShell: ({
     tabs,
+    headerStatus,
   }: {
-    tabs?: Array<{ id: string; content: React.ReactNode }>
-  }) => (
-    <div data-testid="forge-viewer-shell">
-      {tabs?.map((tab) => (
-        <div key={tab.id}>{tab.content}</div>
-      ))}
-    </div>
-  ),
+    tabs?: Array<{ id: string; label: string; content: React.ReactNode }>
+    headerStatus?: React.ReactNode
+  }) => {
+    const [activeTab, setActiveTab] = React.useState(tabs?.[0]?.id)
+    return (
+      <div data-testid="forge-viewer-shell">
+        {tabs?.map((tab) => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}>
+            {tab.label}
+          </button>
+        ))}
+        {headerStatus}
+        {tabs?.find((tab) => tab.id === activeTab)?.content}
+      </div>
+    )
+  },
 }))
 
 vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
@@ -77,16 +94,7 @@ vi.mock('./useForgeDecodedLinkedEntities.js', () => ({
 }))
 
 vi.mock('./useForgeTaskDependencyGraph.js', () => ({
-  useForgeTaskDependencyGraph: () => ({
-    edges: [
-      {
-        from: 'forge/task/a',
-        to: 'forge/task/b',
-        kind: 'subtask',
-      },
-    ],
-    loading: false,
-  }),
+  useForgeTaskDependencyGraph: () => mockDependencyGraph,
 }))
 
 vi.mock('../space/useVisibleObjectWizardTypeSet.js', () => ({
@@ -149,6 +157,7 @@ describe('ForgeJobViewer', () => {
 
   afterEach(() => {
     cleanup()
+    mockDependencyGraph.error = null
     mockVisibleWizardTypeSet.clear()
     mockVisibleWizardTypeSet.add('forge/task')
     vi.clearAllMocks()
@@ -158,6 +167,7 @@ describe('ForgeJobViewer', () => {
     const user = userEvent.setup()
     renderViewer()
 
+    await user.click(screen.getByRole('button', { name: 'Tasks' }))
     await user.click(screen.getByRole('button', { name: /add task/i }))
 
     expect(mockSpaceWorld.applyWorldOp).toHaveBeenCalledTimes(1)
@@ -185,6 +195,7 @@ describe('ForgeJobViewer', () => {
 
     expect(screen.getAllByText('1/2').length).toBeGreaterThan(0)
     expect(screen.getAllByText('50% complete').length).toBeGreaterThan(0)
+    await user.click(screen.getByRole('button', { name: 'Tasks' }))
     expect(screen.getAllByText('Build input').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Ship output').length).toBeGreaterThan(0)
 
@@ -197,10 +208,30 @@ describe('ForgeJobViewer', () => {
     expect(screen.getAllByText('subtask').length).toBeGreaterThan(0)
   })
 
-  it('hides the add-task affordance when forge tasks are experimental', () => {
+  it('keeps a published dependency truncation alert visible across tabs', async () => {
+    const user = userEvent.setup()
+    mockDependencyGraph.error = new Error(
+      'Forge dependency graph exceeds the 50-edge limit for forge/task/a.',
+    )
+
+    renderViewer()
+
+    expect(screen.getByRole('alert').textContent).toContain(
+      'exceeds the 50-edge limit',
+    )
+    expect(screen.getByText('1/2')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Tasks' }))
+    expect(screen.getByText('Build input')).toBeTruthy()
+    expect(screen.getByRole('alert').textContent).toContain(
+      'exceeds the 50-edge limit',
+    )
+  })
+
+  it('hides the add-task affordance when forge tasks are experimental', async () => {
     mockVisibleWizardTypeSet.clear()
 
     renderViewer()
+    await userEvent.click(screen.getByRole('button', { name: 'Tasks' }))
 
     expect(screen.queryByRole('button', { name: /add task/i })).toBeNull()
   })

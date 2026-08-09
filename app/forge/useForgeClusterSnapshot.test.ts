@@ -29,6 +29,7 @@ import {
   PRED_PASS_TO_EXECUTION,
   PRED_TASK_TO_PASS,
 } from '@s4wave/web/forge/predicates.js'
+
 import { buildForgeClusterSnapshot } from './useForgeClusterSnapshot.js'
 
 interface TestEdge {
@@ -204,5 +205,29 @@ describe('buildForgeClusterSnapshot', () => {
       200,
       { direction: GraphEdgeBucketDirection.OUT, abortSignal: signal },
     )
+  })
+
+  it('rejects a truncated graph snapshot', async () => {
+    const world = {
+      listGraphEdgeBuckets: vi.fn(() =>
+        Promise.resolve({
+          buckets: [
+            {
+              originObjectKey: 'forge/cluster/main',
+              outgoing: [],
+              outgoingTruncated: true,
+            },
+          ],
+        }),
+      ),
+    } as unknown as IWorldState
+
+    await expect(
+      buildForgeClusterSnapshot(
+        world,
+        ['forge/cluster/main'],
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow('exceeds the 200-edge limit')
   })
 })

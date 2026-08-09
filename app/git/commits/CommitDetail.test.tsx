@@ -34,9 +34,9 @@ describe('CommitDetail', () => {
       }),
       getDiffPatch: vi.fn().mockResolvedValue({
         patch: [
-          'diff --git a/README.md b/README.md',
-          '--- a/README.md',
-          '+++ b/README.md',
+          'diff --git i/README.md w/README.md',
+          '--- i/README.md',
+          '+++ w/README.md',
           '@@ -1 +1 @@',
           '-old',
           '+new',
@@ -72,9 +72,9 @@ describe('CommitDetail', () => {
       }),
       getDiffPatch: vi.fn().mockResolvedValue({
         patch: [
-          'diff --git a/README.md b/README.md',
-          '--- a/README.md',
-          '+++ b/README.md',
+          'diff --git i/README.md w/README.md',
+          '--- i/README.md',
+          '+++ w/README.md',
           '@@ -1 +1 @@',
           '-old',
           '+new',

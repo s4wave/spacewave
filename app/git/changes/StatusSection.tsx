@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import { LuChevronDown, LuChevronRight } from 'react-icons/lu'
+
 import { cn } from '@s4wave/web/style/utils.js'
 import type { StatusEntry } from '@s4wave/sdk/git/worktree.pb.js'
 import { FileStatusCode } from '@s4wave/sdk/git/worktree.pb.js'
@@ -48,7 +49,6 @@ function statusCodeToColor(code: FileStatusCode): string {
   }
 }
 
-// StatusSectionProps are props for the StatusSection component.
 export interface StatusSectionProps {
   title: string
   entries: StatusEntry[]
