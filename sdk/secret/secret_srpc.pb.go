@@ -14,10 +14,11 @@ type SRPCSecretResourceServiceClient interface {
 	// SRPCClient returns the underlying SRPC client.
 	SRPCClient() srpc.Client
 
+	// WatchState streams the current redacted Secret state.
 	WatchState(ctx context.Context, in *WatchStateRequest) (SRPCSecretResourceService_WatchStateClient, error)
-
+	// BeginReadPayload creates a peer-bound payload-read challenge.
 	BeginReadPayload(ctx context.Context, in *BeginReadPayloadRequest) (*BeginReadPayloadResponse, error)
-
+	// ReadPayload verifies a challenge signature and returns the granted payload.
 	ReadPayload(ctx context.Context, in *ReadPayloadRequest) (*ReadPayloadResponse, error)
 }
 
@@ -92,10 +93,11 @@ func (c *srpcSecretResourceServiceClient) ReadPayload(ctx context.Context, in *R
 }
 
 type SRPCSecretResourceServiceServer interface {
+	// WatchState streams the current redacted Secret state.
 	WatchState(*WatchStateRequest, SRPCSecretResourceService_WatchStateStream) error
-
+	// BeginReadPayload creates a peer-bound payload-read challenge.
 	BeginReadPayload(context.Context, *BeginReadPayloadRequest) (*BeginReadPayloadResponse, error)
-
+	// ReadPayload verifies a challenge signature and returns the granted payload.
 	ReadPayload(context.Context, *ReadPayloadRequest) (*ReadPayloadResponse, error)
 }
 

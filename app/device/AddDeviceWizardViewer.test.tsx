@@ -18,6 +18,7 @@ import {
 import {
   SecretKindSSHPassword,
   SecretKindSSHPrivateKey,
+  SecretKindSSHPassphrase,
   SSHPrivateKeyContentType,
   SSHTextCredentialContentType,
 } from '@s4wave/sdk/secret/secret.js'
@@ -29,6 +30,7 @@ import {
   TerminalTargetKind,
 } from '@s4wave/sdk/terminal/terminal.pb.js'
 
+import { AddDeviceWizardConfig } from './add-device-wizard.pb.js'
 import { ComputersDashboardTypeID } from './computers.js'
 
 const h = vi.hoisted(() => ({
@@ -37,12 +39,67 @@ const h = vi.hoisted(() => ({
   navigateToObjects: vi.fn(),
   navigate: vi.fn(),
   updateState: vi.fn().mockResolvedValue(undefined),
+  compareAndSetConfigData: vi.fn().mockImplementation((_expected, configData) =>
+    Promise.resolve({
+      state: { configData },
+      applied: true,
+    }),
+  ),
   persistDraftState: vi.fn().mockResolvedValue(undefined),
   handleConfigDataChange: vi.fn(),
+  handleCancel: vi.fn().mockResolvedValue(undefined),
   setCreating: vi.fn(),
   previewSpaceLink: vi.fn(),
   approveSpaceLink: vi.fn(),
   createSecret: vi.fn().mockResolvedValue({ secret: {} }),
+  readSecretPayload: vi.fn().mockImplementation(({ expectedKind }) => {
+    const config = h.configData
+      ? AddDeviceWizardConfig.fromBinary(h.configData)
+      : undefined
+    const nestedSharedObjectId =
+      expectedKind === SecretKindSSHPrivateKey
+        ? config?.privateKeySecretSharedObjectId
+        : config?.passwordSecretSharedObjectId
+    const timestamp = config?.sshSetupTimestamp
+      ? new Date(config.sshSetupTimestamp)
+      : undefined
+    return Promise.resolve({
+      secret: {
+        displayName:
+          expectedKind === SecretKindSSHPrivateKey
+            ? 'Build Host SSH private key'
+            : expectedKind === SecretKindSSHPassphrase
+              ? 'Build Host SSH passphrase'
+              : 'Build Host SSH password',
+        kind: expectedKind,
+        creationToken: config?.sshSetupToken,
+        nestedSharedObjectId,
+        payloadIdentity:
+          expectedKind === SecretKindSSHPrivateKey
+            ? config?.privateKeySecretPayloadIdentity
+            : config?.passwordSecretPayloadIdentity,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      payload: {
+        contentType:
+          expectedKind === SecretKindSSHPrivateKey
+            ? SSHPrivateKeyContentType
+            : SSHTextCredentialContentType,
+        value: new Uint8Array(),
+        version: 1n,
+        updatedAt: timestamp,
+        payloadIdentity:
+          expectedKind === SecretKindSSHPrivateKey
+            ? config?.privateKeySecretPayloadIdentity
+            : config?.passwordSecretPayloadIdentity,
+      },
+    })
+  }),
+  deleteSecret: vi.fn().mockResolvedValue({ deleted: true }),
+  commit: vi.fn().mockResolvedValue(undefined),
+  discard: vi.fn().mockResolvedValue(undefined),
+  releaseEngine: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
   currentStep: 1,
@@ -64,6 +121,7 @@ vi.mock('../wizard/useWizardState.js', () => ({
       targetTypeId: 'spacewave/device',
       targetKeyPrefix: 'devices/',
       name: 'Build Host',
+      configData: h.configData,
     },
     localName: 'Build Host',
     creating: false,
@@ -79,14 +137,19 @@ vi.mock('../wizard/useWizardState.js', () => ({
     },
     existingObjectKeys: h.worldObjects.map((obj) => obj.objectKey),
     navigateToObjects: h.navigateToObjects,
-    wizardResource: { value: { updateState: h.updateState } },
+    wizardResource: {
+      value: {
+        updateState: h.updateState,
+        compareAndSetConfigData: h.compareAndSetConfigData,
+      },
+    },
     configEditor: { element: null, value: undefined },
     configData: h.configData,
     persistDraftState: h.persistDraftState,
     handleConfigDataChange: h.handleConfigDataChange,
     handleUpdateName: vi.fn(),
     handleBack: vi.fn(),
-    handleCancel: vi.fn(),
+    handleCancel: h.handleCancel,
   }),
 }))
 
@@ -109,6 +172,17 @@ vi.mock('@s4wave/web/contexts/contexts.js', () => ({
     useContext: () => ({
       value: {
         createSecret: h.createSecret,
+        readSecretPayload: h.readSecretPayload,
+        deleteSecret: h.deleteSecret,
+        accessWorld: vi.fn().mockResolvedValue({
+          newTransaction: vi.fn().mockResolvedValue({
+            applyWorldOp: h.applyWorldOp,
+            deleteObject: h.deleteObject,
+            commit: h.commit,
+            discard: h.discard,
+          }),
+          release: h.releaseEngine,
+        }),
       },
     }),
   },
@@ -215,10 +289,7 @@ describe('AddDeviceWizardViewer', () => {
       throw new Error('expected wizard state update')
     }
     expect(update.step).toBe(2)
-    const config = JSON.parse(new TextDecoder().decode(update.configData)) as {
-      ticket?: string
-      completion?: string
-    }
+    const config = AddDeviceWizardConfig.fromBinary(update.configData)
     expect(config.ticket).toBe(ticket)
     if (!config.completion) {
       throw new Error('expected completion')
@@ -323,7 +394,9 @@ describe('AddDeviceWizardViewer', () => {
 
     await waitFor(() => expect(h.createSecret).toHaveBeenCalled())
     expect(h.createSecret).toHaveBeenCalledWith({
-      objectKey: 'build-host-ssh-password-1',
+      objectKey: expect.stringMatching(
+        /^build-host-ssh-password-[a-f0-9]{32}-1$/,
+      ),
       displayName: 'Build Host SSH password',
       kind: SecretKindSSHPassword,
       contentType: SSHTextCredentialContentType,
@@ -331,6 +404,11 @@ describe('AddDeviceWizardViewer', () => {
       readerPublicKeyPem: new TextEncoder().encode(
         '-----BEGIN PUBLIC KEY-----\nmock\n-----END PUBLIC KEY-----',
       ),
+      reconcileExisting: true,
+      creationToken: expect.any(Uint8Array),
+      nestedSharedObjectId: expect.stringMatching(/^secret-[a-f0-9]{56}$/),
+      timestamp: expect.any(Date),
+      payloadIdentity: expect.any(Uint8Array),
     })
 
     const hostCall = h.applyWorldOp.mock.calls.find(
@@ -342,14 +420,16 @@ describe('AddDeviceWizardViewer', () => {
       throw new Error('expected SSH Host op bytes')
     }
     const hostOp = CreateSshHostOp.fromBinary(hostOpData)
-    expect(hostOp.objectKey).toBe('build-host-1')
+    expect(hostOp.objectKey).toMatch(/^build-host-[a-f0-9]{32}-1$/)
     expect(hostOp.endpoint).toEqual({
       host: 'build.example.com',
       port: 2222,
       username: 'ubuntu',
     })
     expect(hostOp.credentials).toEqual({
-      passwordSecretObjectKey: 'build-host-ssh-password-1',
+      passwordSecretObjectKey: expect.stringMatching(
+        /^build-host-ssh-password-[a-f0-9]{32}-1$/,
+      ),
     })
     expect(JSON.stringify(hostOp)).not.toContain('raw-secret-value')
 
@@ -363,7 +443,7 @@ describe('AddDeviceWizardViewer', () => {
     }
     const terminalOp = CreateTerminalOp.fromBinary(terminalOpData)
     expect(terminalOp.targetKind).toBe(TerminalTargetKind.SSH_HOST)
-    expect(terminalOp.sshHostObjectKey).toBe('build-host-1')
+    expect(terminalOp.sshHostObjectKey).toBe(hostOp.objectKey)
     expect(terminalOp.deviceObjectKey ?? '').toBe('')
     expect(terminalOp.devicePeerId ?? '').toBe('')
     expect(JSON.stringify(terminalOp)).not.toContain('raw-secret-value')
@@ -374,7 +454,416 @@ describe('AddDeviceWizardViewer', () => {
       ),
     ).toBe(false)
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/device-setup')
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
+    expect(h.commit).toHaveBeenCalledTimes(1)
+    expect(h.discard).toHaveBeenCalledTimes(1)
+    expect(h.navigateToObjects).toHaveBeenCalledWith([
+      expect.stringMatching(/^build-host-terminal-[a-f0-9]{32}-1$/),
+    ])
+  })
+
+  it.each(['secret', 'host', 'terminal', 'index', 'wizard', 'commit'] as const)(
+    'rolls back and converges after an injected %s step failure',
+    async (failureStep) => {
+      h.currentStep = 1
+      h.configData = new TextEncoder().encode(
+        JSON.stringify({
+          mode: 'ssh',
+          ssh: {
+            host: 'build.example.com',
+            username: 'ubuntu',
+            authMode: 'password',
+            setupMode: 'host',
+          },
+        }),
+      )
+      if (failureStep === 'secret') {
+        h.createSecret.mockRejectedValueOnce(
+          new Error('injected secret failure'),
+        )
+      } else if (failureStep === 'host') {
+        h.applyWorldOp.mockRejectedValueOnce(new Error('injected host failure'))
+      } else if (failureStep === 'terminal') {
+        h.applyWorldOp
+          .mockResolvedValueOnce({ seqno: 1n, sysErr: false })
+          .mockRejectedValueOnce(new Error('injected terminal failure'))
+      } else if (failureStep === 'index') {
+        h.applyWorldOp
+          .mockResolvedValueOnce({ seqno: 1n, sysErr: false })
+          .mockResolvedValueOnce({ seqno: 1n, sysErr: false })
+          .mockRejectedValueOnce(new Error('injected index failure'))
+      } else if (failureStep === 'wizard') {
+        h.deleteObject.mockRejectedValueOnce(
+          new Error('injected wizard failure'),
+        )
+      } else {
+        h.commit.mockRejectedValueOnce(new Error('injected commit failure'))
+      }
+
+      const first = renderViewer()
+      fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+      await waitFor(() =>
+        expect(screen.getByRole('alert').textContent).toContain(
+          'SSH Host could not be added',
+        ),
+      )
+      expect(h.navigateToObjects).not.toHaveBeenCalled()
+      expect(h.discard).toHaveBeenCalledTimes(failureStep === 'secret' ? 0 : 1)
+      expect(h.commit).toHaveBeenCalledTimes(failureStep === 'commit' ? 1 : 0)
+      const firstCreateOps = new Map(
+        h.applyWorldOp.mock.calls
+          .filter(
+            ([opId]) =>
+              opId === CREATE_SSH_HOST_OP_ID || opId === CREATE_TERMINAL_OP_ID,
+          )
+          .map(([opId, opData]) => [opId, opData as Uint8Array]),
+      )
+
+      const desiredConfigData = h.compareAndSetConfigData.mock.calls.findLast(
+        ([, configData]) => configData instanceof Uint8Array,
+      )?.[1] as Uint8Array | undefined
+      if (!desiredConfigData) throw new Error('expected persisted setup')
+      const desired = AddDeviceWizardConfig.fromBinary(desiredConfigData)
+      expect(desired.sshSetupToken).toHaveLength(32)
+      expect(desired.sshSetupTimestamp).toBeInstanceOf(Date)
+
+      first.unmount()
+      cleanup()
+      h.configData = desiredConfigData
+      h.createSecret.mockReset().mockResolvedValue({ secret: {} })
+      h.applyWorldOp.mockReset().mockResolvedValue({ seqno: 1n, sysErr: false })
+      h.deleteObject.mockReset().mockResolvedValue({ deleted: true })
+      h.commit.mockReset().mockResolvedValue(undefined)
+      h.discard.mockClear()
+      h.navigateToObjects.mockClear()
+      renderViewer()
+      fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+      await waitFor(() => expect(h.navigateToObjects).toHaveBeenCalled())
+
+      expect(h.commit).toHaveBeenCalledTimes(1)
+      expect(h.deleteObject).toHaveBeenCalledTimes(1)
+      expect(h.createSecret).not.toHaveBeenCalled()
+      expect(h.readSecretPayload).toHaveBeenCalledTimes(1)
+      expect(h.applyWorldOp.mock.calls.map(([opId]) => opId)).toEqual([
+        CREATE_SSH_HOST_OP_ID,
+        CREATE_TERMINAL_OP_ID,
+        SET_SPACE_SETTINGS_OP_ID,
+      ])
+      if (failureStep === 'commit') {
+        for (const [opId, firstOpData] of firstCreateOps) {
+          const retryOpData = h.applyWorldOp.mock.calls.find(
+            ([retryOpId]) => retryOpId === opId,
+          )?.[1] as Uint8Array | undefined
+          expect(retryOpData).toEqual(firstOpData)
+        }
+      }
+    },
+  )
+
+  it('resumes the persisted SSH target keys after a host creation failure', async () => {
+    h.currentStep = 1
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({
+        mode: 'ssh',
+        ssh: {
+          host: 'build.example.com',
+          username: 'ubuntu',
+          authMode: 'password',
+          setupMode: 'host',
+        },
+      }),
+    )
+    h.applyWorldOp.mockRejectedValueOnce(new Error('injected host failure'))
+    const first = renderViewer()
+    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+    await waitFor(() => expect(h.createSecret).toHaveBeenCalledTimes(1))
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toContain(
+        'SSH Host could not be added',
+      ),
+    )
+    expect(h.commit).not.toHaveBeenCalled()
+    expect(h.discard).toHaveBeenCalledTimes(1)
+    const desiredConfigData = h.compareAndSetConfigData.mock.calls.findLast(
+      ([, configData]) => configData instanceof Uint8Array,
+    )?.[1] as Uint8Array | undefined
+    if (!desiredConfigData) throw new Error('expected persisted targets')
+    const desired = AddDeviceWizardConfig.fromBinary(desiredConfigData)
+    expect(desired.passwordSecretObjectKey).toMatch(
+      /^build-host-ssh-password-[a-f0-9]{32}-1$/,
+    )
+    expect(desired.sshHostObjectKey).toMatch(/^build-host-[a-f0-9]{32}-1$/)
+    expect(desired.terminalObjectKey).toMatch(
+      /^build-host-terminal-[a-f0-9]{32}-1$/,
+    )
+
+    first.unmount()
+    h.configData = desiredConfigData
+    h.worldObjects.push({
+      objectKey: desired.passwordSecretObjectKey ?? '',
+      objectType: 'spacewave/secret',
+    })
+    h.createSecret.mockClear()
+    h.applyWorldOp.mockReset().mockResolvedValue({ seqno: 1n, sysErr: false })
+    renderViewer()
+    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+    await waitFor(() => expect(h.navigateToObjects).toHaveBeenCalled())
+
+    expect(h.createSecret).not.toHaveBeenCalled()
+    expect(h.readSecretPayload).toHaveBeenCalledWith({
+      objectKey: desired.passwordSecretObjectKey,
+      expectedKind: SecretKindSSHPassword,
+    })
+    const opIds = h.applyWorldOp.mock.calls.map(([opId]) => opId)
+    expect(opIds.filter((opId) => opId === CREATE_SSH_HOST_OP_ID)).toHaveLength(
+      1,
+    )
+    expect(opIds.filter((opId) => opId === CREATE_TERMINAL_OP_ID)).toHaveLength(
+      1,
+    )
+  })
+
+  it('rereads the winning setup journal without creating an unreferenced Secret', async () => {
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({
+        mode: 'ssh',
+        ssh: {
+          host: 'stale.example.com',
+          username: 'stale',
+          authMode: 'password',
+          setupMode: 'host',
+        },
+      }),
+    )
+    const token = crypto.getRandomValues(new Uint8Array(32))
+    const payloadIdentity = crypto.getRandomValues(new Uint8Array(32))
+    const timestamp = new Date(100_000)
+    const winner = AddDeviceWizardConfig.toBinary({
+      mode: 2,
+      ssh: {
+        host: 'winner.example.com',
+        username: 'winner',
+        authMode: 1,
+        setupMode: 1,
+      },
+      sshHostObjectKey: 'ssh-host/winner',
+      terminalObjectKey: 'terminal/winner',
+      passwordSecretObjectKey: 'secret/winner',
+      passwordSecretSharedObjectId: 'secret-nested-winner',
+      passwordSecretPayloadIdentity: payloadIdentity,
+      sshSetupToken: token,
+      sshSetupTimestamp: timestamp,
+    })
+    h.compareAndSetConfigData.mockResolvedValueOnce({
+      state: { configData: winner },
+      applied: false,
+    })
+    h.readSecretPayload.mockResolvedValueOnce({
+      secret: {
+        displayName: 'Build Host SSH password',
+        kind: SecretKindSSHPassword,
+        creationToken: token,
+        nestedSharedObjectId: 'secret-nested-winner',
+        payloadIdentity,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      payload: {
+        contentType: SSHTextCredentialContentType,
+        value: new Uint8Array(),
+        version: 1n,
+        updatedAt: timestamp,
+        payloadIdentity,
+      },
+    })
+    renderViewer()
+
+    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+    await waitFor(() => expect(h.navigateToObjects).toHaveBeenCalled())
+
+    expect(h.createSecret).not.toHaveBeenCalled()
+    expect(h.readSecretPayload).toHaveBeenCalledWith({
+      objectKey: 'secret/winner',
+      expectedKind: SecretKindSSHPassword,
+    })
+    const hostCall = h.applyWorldOp.mock.calls.find(
+      ([opId]) => opId === CREATE_SSH_HOST_OP_ID,
+    )
+    const host = CreateSshHostOp.fromBinary(hostCall?.[1] as Uint8Array)
+    expect(host.objectKey).toBe('ssh-host/winner')
+    expect(host.credentials?.passwordSecretObjectKey).toBe('secret/winner')
+    expect(h.navigateToObjects).toHaveBeenCalledWith(['terminal/winner'])
+  })
+
+  it.each([
+    {
+      authMode: 1,
+      inputPlaceholder: 'SSH password',
+      staleValue: 'stale-loser-password',
+      objectKey: 'secret/winning-password',
+      nestedSharedObjectId: 'secret-nested-winning-password',
+      kind: SecretKindSSHPassword,
+      contentType: SSHTextCredentialContentType,
+    },
+    {
+      authMode: 2,
+      inputPlaceholder: '-----BEGIN OPENSSH PRIVATE KEY-----',
+      staleValue:
+        '-----BEGIN OPENSSH PRIVATE KEY-----\nstale-loser-key\n-----END OPENSSH PRIVATE KEY-----',
+      objectKey: 'secret/winning-private-key',
+      nestedSharedObjectId: 'secret-nested-winning-private-key',
+      kind: SecretKindSSHPrivateKey,
+      contentType: SSHPrivateKeyContentType,
+    },
+  ])(
+    'never initializes the winning $kind payload from a losing local draft',
+    async ({
+      authMode,
+      inputPlaceholder,
+      staleValue,
+      objectKey,
+      nestedSharedObjectId,
+      kind,
+      contentType,
+    }) => {
+      h.configData = AddDeviceWizardConfig.toBinary({
+        mode: 2,
+        ssh: {
+          host: 'stale.example.com',
+          username: 'stale',
+          authMode,
+          setupMode: 1,
+        },
+      })
+      const token = crypto.getRandomValues(new Uint8Array(32))
+      const payloadIdentity = crypto.getRandomValues(new Uint8Array(32))
+      const timestamp = new Date(200_000)
+      const winnerConfig = {
+        mode: 2,
+        ssh: {
+          host: 'winner.example.com',
+          username: 'winner',
+          authMode,
+          setupMode: 1,
+        },
+        sshHostObjectKey: 'ssh-host/winner',
+        terminalObjectKey: 'terminal/winner',
+        sshSetupToken: token,
+        sshSetupTimestamp: timestamp,
+        ...(kind === SecretKindSSHPrivateKey
+          ? {
+              privateKeySecretObjectKey: objectKey,
+              privateKeySecretSharedObjectId: nestedSharedObjectId,
+              privateKeySecretPayloadIdentity: payloadIdentity,
+            }
+          : {
+              passwordSecretObjectKey: objectKey,
+              passwordSecretSharedObjectId: nestedSharedObjectId,
+              passwordSecretPayloadIdentity: payloadIdentity,
+            }),
+      }
+      const winner = AddDeviceWizardConfig.toBinary(winnerConfig)
+      h.compareAndSetConfigData.mockResolvedValueOnce({
+        state: { configData: winner },
+        applied: false,
+      })
+      h.readSecretPayload.mockResolvedValueOnce({
+        secret: {
+          displayName:
+            kind === SecretKindSSHPrivateKey
+              ? 'Build Host SSH private key'
+              : 'Build Host SSH password',
+          kind,
+          creationToken: token,
+          nestedSharedObjectId,
+          payloadIdentity,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        payload: {
+          contentType,
+          value: new TextEncoder().encode('winning-payload'),
+          version: 1n,
+          updatedAt: timestamp,
+          payloadIdentity,
+        },
+      })
+      renderViewer()
+      fireEvent.change(screen.getByPlaceholderText(inputPlaceholder), {
+        target: { value: staleValue },
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+      await waitFor(() => expect(h.navigateToObjects).toHaveBeenCalled())
+
+      expect(h.createSecret).not.toHaveBeenCalled()
+      expect(h.readSecretPayload).toHaveBeenCalledWith({
+        objectKey,
+        expectedKind: kind,
+      })
+      expect(h.navigateToObjects).toHaveBeenCalledWith(['terminal/winner'])
+    },
+  )
+
+  it('uses the original password input to initialize an observed crash-resume journal', async () => {
+    const token = crypto.getRandomValues(new Uint8Array(32))
+    const payloadIdentity = crypto.getRandomValues(new Uint8Array(32))
+    const timestamp = new Date(300_000)
+    h.configData = AddDeviceWizardConfig.toBinary({
+      mode: 2,
+      ssh: {
+        host: 'resume.example.com',
+        username: 'resume',
+        authMode: 1,
+        setupMode: 1,
+      },
+      sshHostObjectKey: 'ssh-host/resume',
+      terminalObjectKey: 'terminal/resume',
+      passwordSecretObjectKey: 'secret/resume-password',
+      passwordSecretSharedObjectId: 'secret-nested-resume-password',
+      passwordSecretPayloadIdentity: payloadIdentity,
+      sshSetupToken: token,
+      sshSetupTimestamp: timestamp,
+    })
+    renderViewer()
+    fireEvent.change(screen.getByPlaceholderText('SSH password'), {
+      target: { value: 'original-crash-resume-password' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+    await waitFor(() => expect(h.createSecret).toHaveBeenCalledTimes(1))
+
+    expect(h.createSecret).toHaveBeenCalledWith(
+      expect.objectContaining({
+        objectKey: 'secret/resume-password',
+        creationToken: token,
+        nestedSharedObjectId: 'secret-nested-resume-password',
+        payloadIdentity,
+        value: new TextEncoder().encode('original-crash-resume-password'),
+      }),
+    )
+    expect(h.readSecretPayload).not.toHaveBeenCalled()
+  })
+
+  it('rejects an explicit SSH port zero instead of defaulting it', () => {
+    h.currentStep = 1
+    h.configData = new TextEncoder().encode(
+      JSON.stringify({
+        mode: 'ssh',
+        ssh: {
+          host: 'build.example.com',
+          port: 0,
+          username: 'ubuntu',
+          authMode: 'password',
+          setupMode: 'host',
+        },
+      }),
+    )
+    renderViewer()
+
+    expect(screen.getByText('Port must be between 1 and 65535.')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: /open terminal/i }),
+    ).toHaveProperty('disabled', true)
   })
 
   it('allows a blank SSH password for empty-password or no-auth hosts', async () => {
@@ -413,7 +902,9 @@ describe('AddDeviceWizardViewer', () => {
         ([opId]) => opId === CREATE_SSH_HOST_OP_ID,
       ),
     ).toBe(true)
-    expect(h.navigateToObjects).toHaveBeenCalledWith(['build-host-terminal-1'])
+    expect(h.navigateToObjects).toHaveBeenCalledWith([
+      expect.stringMatching(/^build-host-terminal-[a-f0-9]{32}-1$/),
+    ])
   })
 
   it('allows private-key auth without passphrase or prefilled host key trust', async () => {
@@ -446,7 +937,9 @@ describe('AddDeviceWizardViewer', () => {
 
     await waitFor(() => expect(h.createSecret).toHaveBeenCalledTimes(1))
     expect(h.createSecret).toHaveBeenCalledWith({
-      objectKey: 'build-host-ssh-private-key-1',
+      objectKey: expect.stringMatching(
+        /^build-host-ssh-private-key-[a-f0-9]{32}-1$/,
+      ),
       displayName: 'Build Host SSH private key',
       kind: SecretKindSSHPrivateKey,
       contentType: SSHPrivateKeyContentType,
@@ -454,6 +947,11 @@ describe('AddDeviceWizardViewer', () => {
       readerPublicKeyPem: new TextEncoder().encode(
         '-----BEGIN PUBLIC KEY-----\nmock\n-----END PUBLIC KEY-----',
       ),
+      reconcileExisting: true,
+      creationToken: expect.any(Uint8Array),
+      nestedSharedObjectId: expect.stringMatching(/^secret-[a-f0-9]{56}$/),
+      timestamp: expect.any(Date),
+      payloadIdentity: expect.any(Uint8Array),
     })
 
     const hostCall = h.applyWorldOp.mock.calls.find(
@@ -471,7 +969,9 @@ describe('AddDeviceWizardViewer', () => {
       username: 'root',
     })
     expect(hostOp.credentials).toEqual({
-      privateKeySecretObjectKey: 'build-host-ssh-private-key-1',
+      privateKeySecretObjectKey: expect.stringMatching(
+        /^build-host-ssh-private-key-[a-f0-9]{32}-1$/,
+      ),
     })
     expect(hostOp.hostKeyPins ?? []).toHaveLength(0)
   })
@@ -604,6 +1104,74 @@ describe('AddDeviceWizardViewer', () => {
     expectNoInstallAgentSideEffects()
   })
 
+  it('retries Secret cleanup before deleting the wizard', async () => {
+    const token = crypto.getRandomValues(new Uint8Array(32))
+    h.configData = AddDeviceWizardConfig.toBinary({
+      mode: 2,
+      ssh: {
+        host: 'build.example.com',
+        username: 'ubuntu',
+        authMode: 1,
+        setupMode: 1,
+      },
+      sshSetupToken: token,
+      sshSetupTimestamp: new Date(100_000),
+      passwordSecretObjectKey: 'secret/password-key',
+      passwordSecretSharedObjectId: 'secret-nested-id',
+    })
+    h.deleteSecret.mockRejectedValueOnce(new Error('injected cleanup failure'))
+    renderViewer()
+
+    fireEvent.click(screen.getByRole('button', { name: /delete wizard/i }))
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toContain(
+        'cleanup could not be completed',
+      ),
+    )
+    expect(h.handleCancel).not.toHaveBeenCalled()
+    expect(h.deleteSecret).toHaveBeenLastCalledWith({
+      objectKey: 'secret/password-key',
+      creationToken: token,
+      nestedSharedObjectId: 'secret-nested-id',
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /delete wizard/i }))
+    await waitFor(() => expect(h.handleCancel).toHaveBeenCalledTimes(1))
+    expect(h.deleteSecret).toHaveBeenCalledTimes(2)
+  })
+
+  it('requires original input when a persisted credential was not created', async () => {
+    h.configData = AddDeviceWizardConfig.toBinary({
+      mode: 2,
+      ssh: {
+        host: 'build.example.com',
+        username: 'ubuntu',
+        authMode: 2,
+        setupMode: 1,
+      },
+      sshSetupToken: crypto.getRandomValues(new Uint8Array(32)),
+      sshSetupTimestamp: new Date(100_000),
+      sshHostObjectKey: 'ssh-host/build',
+      terminalObjectKey: 'terminal/build',
+      privateKeySecretObjectKey: 'secret/private-key',
+      privateKeySecretSharedObjectId: 'secret-nested-private-key',
+      privateKeySecretPayloadIdentity: crypto.getRandomValues(
+        new Uint8Array(32),
+      ),
+    })
+    h.readSecretPayload.mockRejectedValueOnce(new Error('not found'))
+    renderViewer()
+
+    fireEvent.click(screen.getByRole('button', { name: /open terminal/i }))
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toContain(
+        'Original credential input is required to resume',
+      ),
+    )
+    expect(h.createSecret).not.toHaveBeenCalled()
+    expect(h.applyWorldOp).not.toHaveBeenCalled()
+  })
+
   it.each(['spacewave', 'local'])(
     'rejects a restored Install Agent mode without %s side effects',
     (providerId) => {
@@ -655,7 +1223,7 @@ describe('AddDeviceWizardViewer', () => {
 })
 
 function renderViewer() {
-  render(
+  return render(
     <AddDeviceWizardViewer
       objectInfo={{}}
       worldState={{

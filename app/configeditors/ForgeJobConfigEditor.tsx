@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/async-await-in-loop */
 import { useCallback, useMemo, useRef } from 'react'
 import { LuPlus, LuServer, LuTrash } from 'react-icons/lu'
 
@@ -21,6 +20,39 @@ interface ClusterInfo {
 const inputClassName =
   'border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9'
 
+export async function loadForgeClusters(
+  world: IWorldState,
+  signal: AbortSignal,
+): Promise<ClusterInfo[]> {
+  const keys = await listObjectsWithType(world, 'forge/cluster', signal)
+  const results: ClusterInfo[] = []
+  for (const key of keys) {
+    // Cluster handles must release before the next ordered world lookup.
+    // eslint-disable-next-line react-doctor/async-await-in-loop
+    const obj = await world.getObject(key, signal)
+    if (!obj) {
+      results.push({ key, name: key })
+      continue
+    }
+    try {
+      using cursor = await obj.accessWorldState(undefined, signal)
+      const response = await cursor.unmarshal(
+        { blockType: 'forge/cluster' },
+        signal,
+      )
+      if (response.found && response.data?.length) {
+        const cluster = Cluster.fromBinary(response.data)
+        results.push({ key, name: cluster.name || key })
+      } else {
+        results.push({ key, name: key })
+      }
+    } finally {
+      obj.release()
+    }
+  }
+  return results
+}
+
 // ForgeJobConfigEditor edits the config-specific fields of a ForgeJobCreateOp.
 // Renders a cluster picker and task definitions list.
 export function ForgeJobConfigEditor({
@@ -31,33 +63,7 @@ export function ForgeJobConfigEditor({
 
   const clustersResource = useResource(
     spaceWorldResource,
-    async (world: IWorldState, signal: AbortSignal) => {
-      const keys = await listObjectsWithType(world, 'forge/cluster', signal)
-      const results: ClusterInfo[] = []
-      for (const key of keys) {
-        const obj = await world.getObject(key, signal)
-        if (!obj) {
-          results.push({ key, name: key })
-          continue
-        }
-        try {
-          using cursor = await obj.accessWorldState(undefined, signal)
-          const resp = await cursor.unmarshal(
-            { blockType: 'forge/cluster' },
-            signal,
-          )
-          if (resp.found && resp.data?.length) {
-            const cluster = Cluster.fromBinary(resp.data)
-            results.push({ key, name: cluster.name || key })
-          } else {
-            results.push({ key, name: key })
-          }
-        } finally {
-          obj.release()
-        }
-      }
-      return results
-    },
+    loadForgeClusters,
     [],
   )
   const clusters = useMemo(

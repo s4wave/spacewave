@@ -9,6 +9,8 @@ import {
   AddSpacePluginResponse,
   CreateSecretRequest,
   CreateSecretResponse,
+  DeleteSecretRequest,
+  DeleteSecretResponse,
   MountSpaceContentsRequest,
   MountSpaceContentsResponse,
   ReadSecretPayloadRequest,
@@ -77,6 +79,8 @@ export const SpaceResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CreateSecret creates or reconciles a Secret and its nested payload.
+     *
      * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
      */
     CreateSecret: {
@@ -86,6 +90,19 @@ export const SpaceResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * DeleteSecret deletes an exact token-owned Secret payload and parent.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.DeleteSecret
+     */
+    DeleteSecret: {
+      name: 'DeleteSecret',
+      I: DeleteSecretRequest,
+      O: DeleteSecretResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ReadSecretPayload reads a granted Secret payload under the mounted session authority.
+     *
      * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
      */
     ReadSecretPayload: {
@@ -161,6 +178,8 @@ export interface SpaceResourceService {
   ): Promise<MountSpaceContentsResponse>
 
   /**
+   * CreateSecret creates or reconciles a Secret and its nested payload.
+   *
    * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
    */
   CreateSecret(
@@ -169,6 +188,18 @@ export interface SpaceResourceService {
   ): Promise<CreateSecretResponse>
 
   /**
+   * DeleteSecret deletes an exact token-owned Secret payload and parent.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.DeleteSecret
+   */
+  DeleteSecret(
+    request: DeleteSecretRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<DeleteSecretResponse>
+
+  /**
+   * ReadSecretPayload reads a granted Secret payload under the mounted session authority.
+   *
    * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
    */
   ReadSecretPayload(
@@ -242,6 +273,8 @@ export interface SpaceResourceServiceHandler {
   ): Promise<MountSpaceContentsResponse>
 
   /**
+   * CreateSecret creates or reconciles a Secret and its nested payload.
+   *
    * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
    */
   CreateSecret(
@@ -251,6 +284,19 @@ export interface SpaceResourceServiceHandler {
   ): Promise<CreateSecretResponse>
 
   /**
+   * DeleteSecret deletes an exact token-owned Secret payload and parent.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.DeleteSecret
+   */
+  DeleteSecret(
+    request: DeleteSecretRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<DeleteSecretResponse>
+
+  /**
+   * ReadSecretPayload reads a granted Secret payload under the mounted session authority.
+   *
    * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
    */
   ReadSecretPayload(
@@ -301,6 +347,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.AccessWorld = this.AccessWorld.bind(this)
     this.MountSpaceContents = this.MountSpaceContents.bind(this)
     this.CreateSecret = this.CreateSecret.bind(this)
+    this.DeleteSecret = this.DeleteSecret.bind(this)
     this.ReadSecretPayload = this.ReadSecretPayload.bind(this)
     this.DeployManifest = this.DeployManifest.bind(this)
     this.AddSpacePlugin = this.AddSpacePlugin.bind(this)
@@ -375,6 +422,8 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   }
 
   /**
+   * CreateSecret creates or reconciles a Secret and its nested payload.
+   *
    * @generated from rpc s4wave.space.SpaceResourceService.CreateSecret
    */
   async CreateSecret(
@@ -392,6 +441,27 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   }
 
   /**
+   * DeleteSecret deletes an exact token-owned Secret payload and parent.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.DeleteSecret
+   */
+  async DeleteSecret(
+    request: DeleteSecretRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<DeleteSecretResponse> {
+    const requestMsg = DeleteSecretRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.DeleteSecret.name,
+      DeleteSecretRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return DeleteSecretResponse.fromBinary(result)
+  }
+
+  /**
+   * ReadSecretPayload reads a granted Secret payload under the mounted session authority.
+   *
    * @generated from rpc s4wave.space.SpaceResourceService.ReadSecretPayload
    */
   async ReadSecretPayload(

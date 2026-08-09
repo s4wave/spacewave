@@ -293,6 +293,12 @@ export interface SshHost {
    * @generated from field: google.protobuf.Timestamp updated_at = 7;
    */
   updatedAt?: Date
+  /**
+   * CreationToken is the opaque identity of the authorized creation request.
+   *
+   * @generated from field: bytes creation_token = 8;
+   */
+  creationToken?: Uint8Array
 }
 
 export const SshHost: MessageType<SshHost> = /* @__PURE__ */ createMessageType({
@@ -316,6 +322,7 @@ export const SshHost: MessageType<SshHost> = /* @__PURE__ */ createMessageType({
     { no: 5, name: 'last_status', kind: 'message', T: () => SshHostStatus },
     { no: 6, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 7, name: 'updated_at', kind: 'message', T: () => Timestamp },
+    { no: 8, name: 'creation_token', kind: 'scalar', T: ScalarType.BYTES },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -362,6 +369,18 @@ export interface CreateSshHostOp {
    * @generated from field: google.protobuf.Timestamp timestamp = 6;
    */
   timestamp?: Date
+  /**
+   * ReconcileExisting accepts the SSH Host already at ObjectKey when its desired fields match.
+   *
+   * @generated from field: bool reconcile_existing = 7;
+   */
+  reconcileExisting?: boolean
+  /**
+   * CreationToken is the unpredictable identity reused only for this desired SSH Host.
+   *
+   * @generated from field: bytes creation_token = 8;
+   */
+  creationToken?: Uint8Array
 }
 
 export const CreateSshHostOp: MessageType<CreateSshHostOp> =
@@ -385,6 +404,8 @@ export const CreateSshHostOp: MessageType<CreateSshHostOp> =
         repeated: true,
       },
       { no: 6, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      { no: 7, name: 'reconcile_existing', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 8, name: 'creation_token', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

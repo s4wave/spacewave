@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 
 import {
   MOCK_KEYBINDING_COMMANDS,
+  contextsOverlap,
   type KeybindingCommand,
 } from './keybindings-model.js'
 import { chordComparisonKey } from './keyboard-utils.js'
@@ -40,22 +41,27 @@ export function useKeybindingsPrototype(): KeybindingsPrototypeState {
   )
 
   const conflictCommandIds = useMemo(() => {
-    const commandsByBinding = new Map<string, KeybindingCommand[]>()
-
-    for (const command of commands) {
-      if (!command.binding) continue
-      const bindingKey = `${command.context}:${chordComparisonKey(command.binding)}`
-      const matches = commandsByBinding.get(bindingKey)
-      if (matches) matches.push(command)
-      else commandsByBinding.set(bindingKey, [command])
-    }
-
     const conflicts = new Set<string>()
-    for (const matches of commandsByBinding.values()) {
-      if (matches.length < 2) continue
-      for (const command of matches) conflicts.add(command.id)
+    for (let leftIndex = 0; leftIndex < commands.length; leftIndex++) {
+      const left = commands[leftIndex]
+      if (!left.binding) continue
+      for (
+        let rightIndex = leftIndex + 1;
+        rightIndex < commands.length;
+        rightIndex++
+      ) {
+        const right = commands[rightIndex]
+        if (
+          right.binding &&
+          chordComparisonKey(left.binding) ===
+            chordComparisonKey(right.binding) &&
+          contextsOverlap(left.context, right.context)
+        ) {
+          conflicts.add(left.id)
+          conflicts.add(right.id)
+        }
+      }
     }
-
     return conflicts
   }, [commands])
 

@@ -3,6 +3,16 @@
   "protocFlagsHash": "c2b9eaf6c65b4296e7b4a75c44d79b8bb3a2d54e441f80c1ed15011e01b2d7c4",
   "toolVersions": "protoc=embedded,protobuf-go-lite=v0.16.0,starpc=v0.49.21,protobuf-es-lite=1.1.1",
   "packages": {
+    "github.com/s4wave/spacewave/app/device": {
+      "hash": "d367bb0c94af370d5ff92256750093cf7276a0f7f2caafbc97829d311f18f1b8",
+      "generatedFiles": [
+        "app/device/add-device-wizard.pb.go",
+        "app/device/add-device-wizard.pb.ts"
+      ],
+      "protoFiles": [
+        "app/device/add-device-wizard.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/auth/derive": {
       "hash": "b151ca9704cbadf4e0cf0a5f55e57d006ba858f63ba47a9bf2f9a92eb52a78c2",
       "generatedFiles": [
@@ -3632,7 +3642,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/secret": {
-      "hash": "0017714fe83010bd9a944bf6213dd1623ed4f55e29ca02e9463a0c0d09c75777",
+      "hash": "3e6d809014848dd025d2ea017d6d7112e63d1a2444600c37efab7a59c8726c58",
       "generatedFiles": [
         "sdk/secret/secret.pb.go",
         "sdk/secret/secret.pb.ts",
@@ -3683,7 +3693,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/space": {
-      "hash": "88ecf14150812c0f6ecdd6685a925b0f22732726c7881c93f9ca115cb37672bf",
+      "hash": "601746a823494c779e9664d4984cb01690c5faac3d9bbeb658faafd0066a79db",
       "generatedFiles": [
         "sdk/space/space.pb.go",
         "sdk/space/space.pb.ts",
@@ -3815,7 +3825,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/sshhost": {
-      "hash": "6485936bc9a4bca3763ab6162a25cd72c9fdb80e39d2ad15609c2883f69633df",
+      "hash": "ffe07ad6973d985dcae2f6324b73b21d9f60a4cb5ff22e88adb59c5a68584c59",
       "generatedFiles": [
         "sdk/sshhost/sshhost.pb.go",
         "sdk/sshhost/sshhost.pb.ts",
@@ -3839,7 +3849,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/terminal": {
-      "hash": "8631d8a557a41406a1f4c63bd93374c369229b1c7aca81a15f2dc4cbfa180e8d",
+      "hash": "7eb136dbfba9d0daa192e9d81c1453b597c9b749e941434429affb0b85034f96",
       "generatedFiles": [
         "sdk/terminal/terminal.pb.go",
         "sdk/terminal/terminal.pb.ts",
@@ -3928,7 +3938,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/world/wizard": {
-      "hash": "733f85459f3396d9603acc7201c9caf7a6e71056265f93454bb62a44e8cead17",
+      "hash": "667dfb3936710c8d16fe62475df1f0a3ee2b4d1e78bab8196c2deb7f6b68a9e7",
       "generatedFiles": [
         "sdk/world/wizard/wizard.pb.go",
         "sdk/world/wizard/wizard.pb.ts",

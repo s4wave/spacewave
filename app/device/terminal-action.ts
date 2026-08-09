@@ -61,15 +61,18 @@ export function buildCreateSshHostTerminalOpData({
   hostObjectKey,
   existingObjectKeys,
   command,
+  objectKey: desiredObjectKey,
 }: {
   host: SshHost
   hostObjectKey: string
   existingObjectKeys?: Iterable<string | undefined>
   command?: string
+  objectKey?: string
 }): { objectKey: string; opData: Uint8Array } | undefined {
   if (!hostObjectKey) return undefined
   const name = `${host.label || 'SSH Host'} Terminal`
-  const objectKey = buildObjectKey('terminal/', name, existingObjectKeys)
+  const objectKey =
+    desiredObjectKey || buildObjectKey('terminal/', name, existingObjectKeys)
   return {
     objectKey,
     opData: CreateTerminalOp.toBinary({
@@ -80,7 +83,8 @@ export function buildCreateSshHostTerminalOpData({
       command,
       cols: 80,
       rows: 24,
-      timestamp: new Date(),
+      timestamp: host.createdAt,
+      reconcileExisting: true,
     }),
   }
 }

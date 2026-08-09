@@ -45,8 +45,16 @@ import {
   type SshHostKeyPin,
 } from '@s4wave/sdk/sshhost/sshhost.pb.js'
 import { CREATE_TERMINAL_OP_ID } from '@s4wave/sdk/terminal/create-terminal.js'
+import { CreateTerminalOp } from '@s4wave/sdk/terminal/terminal.pb.js'
 import { useSessionInfo } from '@s4wave/web/hooks/useSessionInfo.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
+
+import {
+  AddDeviceSshAuthMode,
+  AddDeviceSshSetupMode,
+  AddDeviceWizardConfig as PersistedAddDeviceWizardConfig,
+  AddDeviceWizardMode as PersistedAddDeviceWizardMode,
+} from './add-device-wizard.pb.js'
 
 import { applySpaceIndexPath } from '../space/space-settings.js'
 import { buildObjectKey } from '../space/create-op-builders.js'
@@ -96,6 +104,19 @@ interface AddDeviceWizardConfig {
     expiresAt?: string
   }
   ssh?: SshHostWizardConfig
+  sshHostObjectKey?: string
+  terminalObjectKey?: string
+  passwordSecretObjectKey?: string
+  privateKeySecretObjectKey?: string
+  passphraseSecretObjectKey?: string
+  passwordSecretSharedObjectId?: string
+  privateKeySecretSharedObjectId?: string
+  passphraseSecretSharedObjectId?: string
+  sshSetupToken?: Uint8Array
+  sshSetupTimestamp?: Date
+  passwordSecretPayloadIdentity?: Uint8Array
+  privateKeySecretPayloadIdentity?: Uint8Array
+  passphraseSecretPayloadIdentity?: Uint8Array
 }
 
 export { AddDeviceWizardTypeID } from './add-device-wizard.js'
@@ -264,32 +285,113 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
       }
 
       const label = (ws.localName || state.name || 'SSH Host').trim()
-      const timestamp = new Date()
-      const existingObjectKeys = new Set(ws.existingObjectKeys)
-      const hostObjectKey = buildObjectKey(
-        'ssh-host/',
-        label,
-        existingObjectKeys,
-      )
-      existingObjectKeys.add(hostObjectKey)
+      let desiredConfig = config
+      let initializedHere = false
+      let lostInitialization = false
+      if (!desiredConfig.sshSetupToken) {
+        const handle = ws.wizardResource.value
+        if (!handle) throw new Error('Wizard resource is not ready')
+        const existingObjectKeys = new Set(ws.existingObjectKeys)
+        const sshSetupToken = crypto.getRandomValues(new Uint8Array(32))
+        const timestamp = new Date()
+        const hostObjectKey = buildObjectKey(
+          'ssh-host/',
+          `${label} ${randomObjectIdentity()}`,
+          existingObjectKeys,
+        )
+        existingObjectKeys.add(hostObjectKey)
+        const credentials = buildSshCredentialRefs(
+          label,
+          sshConfig,
+          sshCredentialDraft,
+          existingObjectKeys,
+          desiredConfig,
+        )
+        const terminalObjectKey = buildObjectKey(
+          'terminal/',
+          `${label} Terminal ${randomObjectIdentity()}`,
+          existingObjectKeys,
+        )
+        const candidate: AddDeviceWizardConfig = {
+          ...desiredConfig,
+          sshHostObjectKey: hostObjectKey,
+          terminalObjectKey,
+          passwordSecretObjectKey: credentials.passwordSecretObjectKey,
+          privateKeySecretObjectKey: credentials.privateKeySecretObjectKey,
+          passphraseSecretObjectKey: credentials.passphraseSecretObjectKey,
+          passwordSecretSharedObjectId: credentials.passwordSecretObjectKey
+            ? await secretNestedSharedObjectId(
+                sshSetupToken,
+                credentials.passwordSecretObjectKey,
+              )
+            : undefined,
+          privateKeySecretSharedObjectId: credentials.privateKeySecretObjectKey
+            ? await secretNestedSharedObjectId(
+                sshSetupToken,
+                credentials.privateKeySecretObjectKey,
+              )
+            : undefined,
+          passphraseSecretSharedObjectId: credentials.passphraseSecretObjectKey
+            ? await secretNestedSharedObjectId(
+                sshSetupToken,
+                credentials.passphraseSecretObjectKey,
+              )
+            : undefined,
+          passwordSecretPayloadIdentity: credentials.passwordSecretObjectKey
+            ? crypto.getRandomValues(new Uint8Array(32))
+            : undefined,
+          privateKeySecretPayloadIdentity: credentials.privateKeySecretObjectKey
+            ? crypto.getRandomValues(new Uint8Array(32))
+            : undefined,
+          passphraseSecretPayloadIdentity: credentials.passphraseSecretObjectKey
+            ? crypto.getRandomValues(new Uint8Array(32))
+            : undefined,
+          sshSetupToken,
+          sshSetupTimestamp: timestamp,
+        }
+        const initialized = await handle.compareAndSetConfigData(
+          state.configData ?? new Uint8Array(),
+          encodeConfig(candidate),
+        )
+        if (!initialized.state?.configData) {
+          throw new Error('Persisted SSH setup journal is missing')
+        }
+        ws.handleConfigDataChange(initialized.state.configData)
+        desiredConfig = decodeConfig(initialized.state.configData)
+        initializedHere = initialized.applied ?? false
+        lostInitialization = !initializedHere
+        if (!desiredConfig.sshSetupToken) {
+          throw new Error('SSH setup journal changed before initialization')
+        }
+      }
 
-      const credentials = await createSshCredentialSecrets({
-        space,
-        label,
-        config: sshConfig,
-        draft: sshCredentialDraft,
-        existingObjectKeys,
-        readerPublicKeyPem,
-      })
+      const timestamp = desiredConfig.sshSetupTimestamp
+      const sshSetupToken = desiredConfig.sshSetupToken
+      const hostObjectKey = desiredConfig.sshHostObjectKey
+      const terminalObjectKey = desiredConfig.terminalObjectKey
+      if (
+        !timestamp ||
+        !sshSetupToken ||
+        !hostObjectKey ||
+        !terminalObjectKey
+      ) {
+        throw new Error('Persisted SSH setup journal is incomplete')
+      }
+      const setupSshConfig = desiredConfig.ssh ?? sshConfig
+      const credentials: SshHostCredentialRefs = {
+        passwordSecretObjectKey: desiredConfig.passwordSecretObjectKey,
+        privateKeySecretObjectKey: desiredConfig.privateKeySecretObjectKey,
+        passphraseSecretObjectKey: desiredConfig.passphraseSecretObjectKey,
+      }
       const hostKeyPins = buildSshHostKeyPins(
-        sshConfig,
+        setupSshConfig,
         ws.sessionPeerId,
         timestamp,
       )
       const endpoint = {
-        host: sshConfig.host?.trim(),
-        port: normalizeSshPort(sshConfig.port),
-        username: sshConfig.username?.trim(),
+        host: setupSshConfig.host?.trim(),
+        port: normalizeSshPort(setupSshConfig.port),
+        username: setupSshConfig.username?.trim(),
       }
       const host: SshHost = {
         label,
@@ -299,39 +401,55 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
         createdAt: timestamp,
         updatedAt: timestamp,
       }
-      await ws.spaceWorld.applyWorldOp(
-        CREATE_SSH_HOST_OP_ID,
-        CreateSshHostOp.toBinary({
+      const terminal = buildCreateSshHostTerminalOpData({
+        host,
+        hostObjectKey,
+        existingObjectKeys: ws.existingObjectKeys,
+        command: terminalCommand,
+        objectKey: terminalObjectKey,
+      })
+      const terminalOpData = terminal
+        ? CreateTerminalOp.toBinary({
+            ...CreateTerminalOp.fromBinary(terminal.opData),
+            creationToken: sshSetupToken,
+          })
+        : undefined
+      await createSshCredentialSecrets({
+        space,
+        label,
+        draft: sshCredentialDraft,
+        credentials,
+        readerPublicKeyPem,
+        creationToken: sshSetupToken,
+        setupTimestamp: timestamp,
+        desiredConfig,
+        allowCreateWithoutValue: initializedHere,
+        verifyOnly: lostInitialization,
+      })
+      await commitSshHostSetupWorld({
+        space,
+        hostOpData: CreateSshHostOp.toBinary({
           objectKey: hostObjectKey,
           label,
           endpoint,
           credentials,
           hostKeyPins,
           timestamp,
+          reconcileExisting: true,
+          creationToken: sshSetupToken,
         }),
-        ws.sessionPeerId,
-      )
-
-      const terminal = buildCreateSshHostTerminalOpData({
-        host,
-        hostObjectKey,
-        existingObjectKeys,
-        command: terminalCommand,
+        terminalOpData,
+        dashboardKey,
+        ws,
       })
-      if (terminal) {
-        existingObjectKeys.add(terminal.objectKey)
-        await ws.spaceWorld.applyWorldOp(
-          CREATE_TERMINAL_OP_ID,
-          terminal.opData,
-          ws.sessionPeerId,
-        )
-      }
       return {
         hostObjectKey,
         terminalObjectKey: terminal?.objectKey ?? '',
       }
     },
     [
+      config,
+      dashboardKey,
       sessionInfo?.cryptoInfo?.publicKeyPem,
       space,
       sshConfig,
@@ -343,7 +461,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
 
   const handleCreateSshHost = useCallback(async () => {
     if (!state || ws.creating) return
-    const error = getSshCreateError(sshConfig, sshCredentialDraft)
+    const error = getSshCreateError(sshConfig, sshCredentialDraft, config)
     if (error) {
       setOperationError(error)
       toast.error(error)
@@ -355,22 +473,22 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     try {
       const { hostObjectKey, terminalObjectKey } =
         await createSshHostTerminalObjects()
-      if (dashboardKey) {
-        await replaceSpaceIndexIfWizardIsCurrent(ws, dashboardKey)
-      }
-      await ws.spaceWorld.deleteObject(ws.objectKey)
       toast.success('SSH Host added')
       ws.navigateToObjects([terminalObjectKey || hostObjectKey])
-    } catch {
-      const message = 'SSH Host could not be added. Try again.'
+    } catch (error) {
+      const message =
+        error instanceof Error &&
+        error.message === 'Original credential input is required to resume'
+          ? error.message
+          : 'SSH Host could not be added. Try again.'
       setOperationError(message)
       toast.error(message)
     } finally {
       ws.setCreating(false)
     }
   }, [
+    config,
     createSshHostTerminalObjects,
-    dashboardKey,
     sshConfig,
     sshCredentialDraft,
     state,
@@ -391,8 +509,44 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
   }, [handleCreateSshHost, handleFinishSpaceLink, isSshInstallMode, mode])
 
   const handleCancel = useCallback(() => {
-    void ws.handleCancel()
-  }, [ws])
+    void (async () => {
+      try {
+        if (space && config.sshSetupToken) {
+          await Promise.all(
+            [
+              [
+                config.passwordSecretObjectKey,
+                config.passwordSecretSharedObjectId,
+              ],
+              [
+                config.privateKeySecretObjectKey,
+                config.privateKeySecretSharedObjectId,
+              ],
+              [
+                config.passphraseSecretObjectKey,
+                config.passphraseSecretSharedObjectId,
+              ],
+            ]
+              .filter(
+                (entry): entry is [string, string] => !!entry[0] && !!entry[1],
+              )
+              .map(([objectKey, nestedSharedObjectId]) =>
+                space.deleteSecret({
+                  objectKey,
+                  creationToken: config.sshSetupToken,
+                  nestedSharedObjectId,
+                }),
+              ),
+          )
+        }
+        await ws.handleCancel()
+      } catch {
+        setOperationError(
+          'Device setup cleanup could not be completed. Try again.',
+        )
+      }
+    })()
+  }, [config, space, ws])
 
   return {
     approvalError,
@@ -626,6 +780,7 @@ function AddDeviceWizardContent({
 }) {
   const {
     completion,
+    config,
     currentStep,
     handleCancel,
     handleFinalize,
@@ -707,7 +862,7 @@ function AddDeviceWizardContent({
       canFinalize={
         mode === 'ssh'
           ? !isSshInstallMode &&
-            !getSshCreateError(sshConfig, sshCredentialDraft)
+            !getSshCreateError(sshConfig, sshCredentialDraft, config)
           : !!completion
       }
       onNext={currentStep === 0 ? () => void handleNameNext() : undefined}
@@ -1305,96 +1460,265 @@ async function replaceSpaceIndexIfWizardIsCurrent(
   )
 }
 
+async function commitSshHostSetupWorld({
+  space,
+  hostOpData,
+  terminalOpData,
+  dashboardKey,
+  ws,
+}: {
+  space: Space
+  hostOpData: Uint8Array
+  terminalOpData?: Uint8Array
+  dashboardKey: string
+  ws: UseWizardStateResult
+}): Promise<void> {
+  const engine = await space.accessWorld()
+  try {
+    const tx = await engine.newTransaction(true)
+    try {
+      await tx.applyWorldOp(CREATE_SSH_HOST_OP_ID, hostOpData, ws.sessionPeerId)
+      if (terminalOpData) {
+        await tx.applyWorldOp(
+          CREATE_TERMINAL_OP_ID,
+          terminalOpData,
+          ws.sessionPeerId,
+        )
+      }
+      if (
+        dashboardKey &&
+        parseObjectUri(ws.spaceSettings?.indexPath ?? '').objectKey ===
+          ws.objectKey
+      ) {
+        await applySpaceIndexPath(
+          tx,
+          ws.spaceSettings,
+          dashboardKey,
+          ws.sessionPeerId,
+        )
+      }
+      await tx.deleteObject(ws.objectKey)
+      await tx.commit()
+    } finally {
+      await tx.discard().catch(() => undefined)
+    }
+  } finally {
+    engine.release()
+  }
+}
+
+function buildSshCredentialRefs(
+  label: string,
+  sshConfig: SshHostWizardConfig,
+  draft: SshCredentialDraft,
+  existingObjectKeys: Set<string>,
+  persistedConfig: AddDeviceWizardConfig,
+): SshHostCredentialRefs {
+  const nextKey = (persisted: string | undefined, suffix: string) => {
+    const objectKey =
+      persisted ||
+      buildObjectKey(
+        'secret/',
+        `${label} SSH ${suffix} ${randomObjectIdentity()}`,
+        existingObjectKeys,
+      )
+    existingObjectKeys.add(objectKey)
+    return objectKey
+  }
+  if ((sshConfig.authMode ?? 'password') === 'private-key') {
+    return {
+      privateKeySecretObjectKey: nextKey(
+        persistedConfig.privateKeySecretObjectKey,
+        'private key',
+      ),
+      passphraseSecretObjectKey: draft.passphrase.trim()
+        ? nextKey(persistedConfig.passphraseSecretObjectKey, 'passphrase')
+        : undefined,
+    }
+  }
+  return {
+    passwordSecretObjectKey: nextKey(
+      persistedConfig.passwordSecretObjectKey,
+      'password',
+    ),
+  }
+}
+
 async function createSshCredentialSecrets({
   space,
   label,
-  config,
   draft,
-  existingObjectKeys,
+  credentials,
   readerPublicKeyPem,
+  creationToken,
+  setupTimestamp,
+  desiredConfig,
+  allowCreateWithoutValue,
+  verifyOnly,
 }: {
   space: Space
   label: string
-  config: SshHostWizardConfig
   draft: SshCredentialDraft
-  existingObjectKeys: Set<string>
+  credentials: SshHostCredentialRefs
   readerPublicKeyPem: string
-}): Promise<SshHostCredentialRefs> {
-  const authMode = config.authMode ?? 'password'
-  const credentials: SshHostCredentialRefs = {}
-  if (authMode === 'private-key') {
-    credentials.privateKeySecretObjectKey = await createSshCredentialSecret({
+  creationToken: Uint8Array
+  setupTimestamp: Date
+  desiredConfig: AddDeviceWizardConfig
+  allowCreateWithoutValue: boolean
+  verifyOnly: boolean
+}): Promise<void> {
+  if (credentials.privateKeySecretObjectKey) {
+    await createSshCredentialSecret({
       space,
-      label,
-      suffix: 'private key',
+      objectKey: credentials.privateKeySecretObjectKey,
+      displayName: `${label} SSH private key`,
       kind: SecretKindSSHPrivateKey,
       contentType: SSHPrivateKeyContentType,
       value: draft.privateKey,
-      existingObjectKeys,
       readerPublicKeyPem,
+      creationToken,
+      nestedSharedObjectId: desiredConfig.privateKeySecretSharedObjectId,
+      payloadIdentity: desiredConfig.privateKeySecretPayloadIdentity,
+      setupTimestamp,
+      allowCreateWithoutValue,
+      verifyOnly,
     })
-    if (draft.passphrase.trim()) {
-      credentials.passphraseSecretObjectKey = await createSshCredentialSecret({
-        space,
-        label,
-        suffix: 'passphrase',
-        kind: SecretKindSSHPassphrase,
-        contentType: SSHTextCredentialContentType,
-        value: draft.passphrase,
-        existingObjectKeys,
-        readerPublicKeyPem,
-      })
-    }
-    return credentials
   }
-
-  credentials.passwordSecretObjectKey = await createSshCredentialSecret({
-    space,
-    label,
-    suffix: 'password',
-    kind: SecretKindSSHPassword,
-    contentType: SSHTextCredentialContentType,
-    value: draft.password,
-    existingObjectKeys,
-    readerPublicKeyPem,
-  })
-  return credentials
+  if (credentials.passphraseSecretObjectKey) {
+    await createSshCredentialSecret({
+      space,
+      objectKey: credentials.passphraseSecretObjectKey,
+      displayName: `${label} SSH passphrase`,
+      kind: SecretKindSSHPassphrase,
+      contentType: SSHTextCredentialContentType,
+      value: draft.passphrase,
+      readerPublicKeyPem,
+      creationToken,
+      nestedSharedObjectId: desiredConfig.passphraseSecretSharedObjectId,
+      payloadIdentity: desiredConfig.passphraseSecretPayloadIdentity,
+      setupTimestamp,
+      allowCreateWithoutValue,
+      verifyOnly,
+    })
+  }
+  if (credentials.passwordSecretObjectKey) {
+    await createSshCredentialSecret({
+      space,
+      objectKey: credentials.passwordSecretObjectKey,
+      displayName: `${label} SSH password`,
+      kind: SecretKindSSHPassword,
+      contentType: SSHTextCredentialContentType,
+      value: draft.password,
+      readerPublicKeyPem,
+      creationToken,
+      nestedSharedObjectId: desiredConfig.passwordSecretSharedObjectId,
+      payloadIdentity: desiredConfig.passwordSecretPayloadIdentity,
+      setupTimestamp,
+      allowCreateWithoutValue,
+      verifyOnly,
+    })
+  }
 }
 
 async function createSshCredentialSecret({
   space,
-  label,
-  suffix,
+  objectKey,
+  displayName,
   kind,
   contentType,
   value,
-  existingObjectKeys,
   readerPublicKeyPem,
+  creationToken,
+  nestedSharedObjectId,
+  payloadIdentity,
+  setupTimestamp,
+  allowCreateWithoutValue,
+  verifyOnly,
 }: {
   space: Space
-  label: string
-  suffix: string
+  objectKey: string
+  displayName: string
   kind: string
   contentType: string
   value: string
-  existingObjectKeys: Set<string>
   readerPublicKeyPem: string
-}): Promise<string> {
-  const objectKey = buildObjectKey(
-    'secret/',
-    `${label} SSH ${suffix}`,
-    existingObjectKeys,
-  )
-  existingObjectKeys.add(objectKey)
+  creationToken: Uint8Array
+  nestedSharedObjectId?: string
+  payloadIdentity?: Uint8Array
+  setupTimestamp: Date
+  allowCreateWithoutValue: boolean
+  verifyOnly: boolean
+}): Promise<void> {
+  if (!nestedSharedObjectId || !payloadIdentity)
+    throw new Error('Secret payload identity is missing')
+  if (verifyOnly || (!value && !allowCreateWithoutValue)) {
+    try {
+      const existing = await space.readSecretPayload({
+        objectKey,
+        expectedKind: kind,
+      })
+      if (
+        existing.secret?.displayName !== displayName ||
+        existing.secret?.kind !== kind ||
+        !equalBytes(existing.secret.creationToken, creationToken) ||
+        existing.secret.nestedSharedObjectId !== nestedSharedObjectId ||
+        !equalBytes(existing.secret.payloadIdentity, payloadIdentity) ||
+        existing.secret.createdAt?.getTime() !== setupTimestamp.getTime() ||
+        existing.secret.updatedAt?.getTime() !== setupTimestamp.getTime() ||
+        existing.payload?.contentType !== contentType ||
+        !equalBytes(existing.payload.payloadIdentity, payloadIdentity) ||
+        existing.payload.version !== 1n ||
+        existing.payload.updatedAt?.getTime() !== setupTimestamp.getTime()
+      ) {
+        throw new Error('Existing Secret does not match setup')
+      }
+      return
+    } catch (error) {
+      throw new Error('Original credential input is required to resume', {
+        cause: error,
+      })
+    }
+  }
   await space.createSecret({
     objectKey,
-    displayName: `${label} SSH ${suffix}`,
+    displayName,
     kind,
     contentType,
     value: new TextEncoder().encode(value),
     readerPublicKeyPem: new TextEncoder().encode(readerPublicKeyPem),
+    reconcileExisting: true,
+    creationToken,
+    nestedSharedObjectId,
+    timestamp: setupTimestamp,
+    payloadIdentity,
   })
-  return objectKey
+}
+
+function equalBytes(left?: Uint8Array, right?: Uint8Array): boolean {
+  if (!left || !right || left.length !== right.length) return false
+  return left.every((value, index) => value === right[index])
+}
+
+function randomObjectIdentity(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (value) =>
+    value.toString(16).padStart(2, '0'),
+  ).join('')
+}
+
+async function secretNestedSharedObjectId(
+  creationToken: Uint8Array,
+  objectKey: string,
+): Promise<string> {
+  const objectKeyBytes = new TextEncoder().encode(objectKey)
+  const identity = new Uint8Array(
+    creationToken.length + 1 + objectKeyBytes.length,
+  )
+  identity.set(creationToken)
+  identity.set(objectKeyBytes, creationToken.length + 1)
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', identity))
+  return `secret-${Array.from(digest.subarray(0, 28), (value) =>
+    value.toString(16).padStart(2, '0'),
+  ).join('')}`
 }
 
 function buildSshHostKeyPins(
@@ -1421,13 +1745,20 @@ function buildSshHostKeyPins(
 function getSshCreateError(
   config: SshHostWizardConfig,
   draft: SshCredentialDraft,
+  persistedConfig: AddDeviceWizardConfig,
 ): string {
   if (!config.host?.trim()) return 'SSH host is required'
   if (!config.username?.trim()) return 'SSH username is required'
   const port = normalizeSshPort(config.port)
   if (port < 1 || port > 65535) return 'SSH port is invalid'
   const authMode = config.authMode ?? 'password'
-  if (authMode === 'private-key' && !draft.privateKey.trim()) {
+  if (
+    authMode === 'private-key' &&
+    !draft.privateKey.trim() &&
+    !(
+      persistedConfig.privateKeySecretObjectKey && persistedConfig.sshSetupToken
+    )
+  ) {
     return 'SSH private key is required'
   }
   const publicKey = normalizeSshHostPublicKey(config.hostKeyPublicKey)
@@ -1469,7 +1800,7 @@ function isSshPublicKeyAlgorithm(value: string): boolean {
 }
 
 function normalizeSshPort(port: number | undefined): number {
-  if (!Number.isFinite(port) || !port) return DEFAULT_SSH_PORT
+  if (port === undefined || !Number.isFinite(port)) return DEFAULT_SSH_PORT
   return Math.trunc(port)
 }
 
@@ -1479,18 +1810,194 @@ function parsePortInput(value: string): number | undefined {
   return parsed
 }
 
-function decodeConfig(data: Uint8Array | undefined): AddDeviceWizardConfig {
+export function decodeAddDeviceWizardConfig(
+  data: Uint8Array | undefined,
+): AddDeviceWizardConfig {
   if (!data?.length) return {}
+  if (data[0] === 0x7b) return decodeLegacyJsonConfig(data)
   try {
-    return JSON.parse(new TextDecoder().decode(data)) as AddDeviceWizardConfig
+    const config = PersistedAddDeviceWizardConfig.fromBinary(data)
+    return {
+      mode:
+        config.mode === PersistedAddDeviceWizardMode.SSH
+          ? 'ssh'
+          : config.mode === PersistedAddDeviceWizardMode.SPACELINK
+            ? 'spacelink'
+            : undefined,
+      ticket: config.ticket || undefined,
+      completion: config.completion || undefined,
+      preview: config.preview,
+      sshHostObjectKey: config.sshHostObjectKey || undefined,
+      terminalObjectKey: config.terminalObjectKey || undefined,
+      passwordSecretObjectKey: config.passwordSecretObjectKey || undefined,
+      privateKeySecretObjectKey: config.privateKeySecretObjectKey || undefined,
+      passphraseSecretObjectKey: config.passphraseSecretObjectKey || undefined,
+      passwordSecretSharedObjectId:
+        config.passwordSecretSharedObjectId || undefined,
+      privateKeySecretSharedObjectId:
+        config.privateKeySecretSharedObjectId || undefined,
+      passphraseSecretSharedObjectId:
+        config.passphraseSecretSharedObjectId || undefined,
+      sshSetupToken: config.sshSetupToken?.length
+        ? config.sshSetupToken
+        : undefined,
+      sshSetupTimestamp: config.sshSetupTimestamp,
+      passwordSecretPayloadIdentity: config.passwordSecretPayloadIdentity
+        ?.length
+        ? config.passwordSecretPayloadIdentity
+        : undefined,
+      privateKeySecretPayloadIdentity: config.privateKeySecretPayloadIdentity
+        ?.length
+        ? config.privateKeySecretPayloadIdentity
+        : undefined,
+      passphraseSecretPayloadIdentity: config.passphraseSecretPayloadIdentity
+        ?.length
+        ? config.passphraseSecretPayloadIdentity
+        : undefined,
+      ssh: config.ssh
+        ? {
+            host: config.ssh.host || undefined,
+            port: config.ssh.port,
+            username: config.ssh.username || undefined,
+            authMode:
+              config.ssh.authMode === AddDeviceSshAuthMode.PRIVATE_KEY
+                ? 'private-key'
+                : config.ssh.authMode === AddDeviceSshAuthMode.PASSWORD
+                  ? 'password'
+                  : undefined,
+            setupMode:
+              config.ssh.setupMode === AddDeviceSshSetupMode.INSTALL_AGENT
+                ? 'install-agent'
+                : config.ssh.setupMode === AddDeviceSshSetupMode.HOST
+                  ? 'host'
+                  : undefined,
+            hostKeyAlgorithm: config.ssh.hostKeyAlgorithm || undefined,
+            hostKeyFingerprint: config.ssh.hostKeyFingerprint || undefined,
+            hostKeyPublicKey: config.ssh.hostKeyPublicKey || undefined,
+          }
+        : undefined,
+    }
   } catch {
     return {}
   }
 }
 
-function encodeConfig(config: AddDeviceWizardConfig): Uint8Array {
-  return new TextEncoder().encode(JSON.stringify(config))
+export function encodeAddDeviceWizardConfig(
+  config: AddDeviceWizardConfig,
+): Uint8Array {
+  return PersistedAddDeviceWizardConfig.toBinary({
+    mode:
+      config.mode === 'ssh'
+        ? PersistedAddDeviceWizardMode.SSH
+        : config.mode === 'spacelink'
+          ? PersistedAddDeviceWizardMode.SPACELINK
+          : PersistedAddDeviceWizardMode.UNKNOWN,
+    ticket: config.ticket,
+    completion: config.completion,
+    preview: config.preview,
+    sshHostObjectKey: config.sshHostObjectKey,
+    terminalObjectKey: config.terminalObjectKey,
+    passwordSecretObjectKey: config.passwordSecretObjectKey,
+    privateKeySecretObjectKey: config.privateKeySecretObjectKey,
+    passphraseSecretObjectKey: config.passphraseSecretObjectKey,
+    passwordSecretSharedObjectId: config.passwordSecretSharedObjectId,
+    privateKeySecretSharedObjectId: config.privateKeySecretSharedObjectId,
+    passphraseSecretSharedObjectId: config.passphraseSecretSharedObjectId,
+    sshSetupToken: config.sshSetupToken,
+    sshSetupTimestamp: config.sshSetupTimestamp,
+    passwordSecretPayloadIdentity: config.passwordSecretPayloadIdentity,
+    privateKeySecretPayloadIdentity: config.privateKeySecretPayloadIdentity,
+    passphraseSecretPayloadIdentity: config.passphraseSecretPayloadIdentity,
+    ssh: config.ssh
+      ? {
+          host: config.ssh.host,
+          port: config.ssh.port,
+          username: config.ssh.username,
+          authMode:
+            config.ssh.authMode === 'private-key'
+              ? AddDeviceSshAuthMode.PRIVATE_KEY
+              : config.ssh.authMode === 'password'
+                ? AddDeviceSshAuthMode.PASSWORD
+                : AddDeviceSshAuthMode.UNKNOWN,
+          setupMode:
+            config.ssh.setupMode === 'install-agent'
+              ? AddDeviceSshSetupMode.INSTALL_AGENT
+              : config.ssh.setupMode === 'host'
+                ? AddDeviceSshSetupMode.HOST
+                : AddDeviceSshSetupMode.UNKNOWN,
+          hostKeyAlgorithm: config.ssh.hostKeyAlgorithm,
+          hostKeyFingerprint: config.ssh.hostKeyFingerprint,
+          hostKeyPublicKey: config.ssh.hostKeyPublicKey,
+        }
+      : undefined,
+  })
 }
+
+function decodeLegacyJsonConfig(data: Uint8Array): AddDeviceWizardConfig {
+  try {
+    const value: unknown = JSON.parse(new TextDecoder().decode(data))
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+    const raw = value as Record<string, unknown>
+    const rawSsh =
+      raw.ssh && typeof raw.ssh === 'object' && !Array.isArray(raw.ssh)
+        ? (raw.ssh as Record<string, unknown>)
+        : undefined
+    return {
+      mode:
+        raw.mode === 'ssh' || raw.mode === 'spacelink' ? raw.mode : undefined,
+      ticket: typeof raw.ticket === 'string' ? raw.ticket : undefined,
+      completion:
+        typeof raw.completion === 'string' ? raw.completion : undefined,
+      preview: decodeLegacyPreview(raw.preview),
+      ssh: rawSsh
+        ? {
+            host: legacyString(rawSsh.host),
+            port: typeof rawSsh.port === 'number' ? rawSsh.port : undefined,
+            username: legacyString(rawSsh.username),
+            authMode:
+              rawSsh.authMode === 'password' ||
+              rawSsh.authMode === 'private-key'
+                ? rawSsh.authMode
+                : undefined,
+            setupMode:
+              rawSsh.setupMode === 'host' ||
+              rawSsh.setupMode === 'install-agent'
+                ? rawSsh.setupMode
+                : undefined,
+            hostKeyAlgorithm: legacyString(rawSsh.hostKeyAlgorithm),
+            hostKeyFingerprint: legacyString(rawSsh.hostKeyFingerprint),
+            hostKeyPublicKey: legacyString(rawSsh.hostKeyPublicKey),
+          }
+        : undefined,
+      sshHostObjectKey: legacyString(raw.sshHostObjectKey),
+      terminalObjectKey: legacyString(raw.terminalObjectKey),
+      passwordSecretObjectKey: legacyString(raw.passwordSecretObjectKey),
+      privateKeySecretObjectKey: legacyString(raw.privateKeySecretObjectKey),
+      passphraseSecretObjectKey: legacyString(raw.passphraseSecretObjectKey),
+    }
+  } catch {
+    return {}
+  }
+}
+
+function decodeLegacyPreview(value: unknown): AddDeviceWizardConfig['preview'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    return undefined
+  const preview = value as Record<string, unknown>
+  return {
+    label: legacyString(preview.label),
+    agentPeerId: legacyString(preview.agentPeerId),
+    targetHint: legacyString(preview.targetHint),
+    expiresAt: legacyString(preview.expiresAt),
+  }
+}
+
+function legacyString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+const decodeConfig = decodeAddDeviceWizardConfig
+const encodeConfig = encodeAddDeviceWizardConfig
 
 function buildSetupCommand(label: string, sharedObjectId: string): string {
   const parts = [

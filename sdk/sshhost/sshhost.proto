@@ -77,6 +77,8 @@ message SshHost {
   .google.protobuf.Timestamp created_at = 6;
   // UpdatedAt is when this SSH Host object was last updated.
   .google.protobuf.Timestamp updated_at = 7;
+  // CreationToken is the opaque identity of the authorized creation request.
+  bytes creation_token = 8;
 }
 
 // CreateSshHostOp creates an SSH Host world object.
@@ -93,6 +95,10 @@ message CreateSshHostOp {
   repeated SshHostKeyPin host_key_pins = 5;
   // Timestamp is the creation timestamp.
   .google.protobuf.Timestamp timestamp = 6;
+  // ReconcileExisting accepts the SSH Host already at ObjectKey when its desired fields match.
+  bool reconcile_existing = 7;
+  // CreationToken is the unpredictable identity reused only for this desired SSH Host.
+  bytes creation_token = 8;
 }
 
 service SshHostResourceService {

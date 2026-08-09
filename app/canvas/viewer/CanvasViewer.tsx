@@ -1,144 +1,31 @@
-/* eslint-disable react-doctor/no-giant-component, react-doctor/rerender-state-only-in-handlers */
 import { startTransition, useCallback, useMemo, useState } from 'react'
 
-import { useAbortSignalEffect } from '@aptre/bldr-react'
-import { CanvasHandle } from '@s4wave/sdk/canvas/canvas.js'
-import {
-  EdgeStyle,
-  type CanvasNode as ProtoCanvasNode,
-  type CanvasEdge as ProtoCanvasEdge,
-  type HiddenGraphLink as ProtoHiddenGraphLink,
-  type CanvasLayoutMetadata as ProtoCanvasLayoutMetadata,
-} from '@s4wave/sdk/canvas/canvas.pb.js'
-
-import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
 import type { SubItemsCallback } from '@s4wave/web/command/CommandContext.js'
-import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
+import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+import { useUnixFSRootHandle } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
-import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { getObjectTypeLabel } from '@s4wave/web/space/object-tree.js'
-import { useUnixFSRootHandle } from '@s4wave/web/hooks/useUnixFSHandle.js'
 import { UnixFSTypeID } from '@s4wave/sdk/unixfs/type.js'
 
 import { Canvas } from '../Canvas.js'
 import type {
-  CanvasStateData,
-  CanvasNodeData,
-  CanvasEdgeData,
-  HiddenGraphLinkData,
-  CanvasLayoutMetadataData,
   CanvasCallbacks,
+  CanvasNodeData,
   EphemeralEdge,
-  EdgeStyle as CanvasEdgeStyle,
 } from '../types.js'
-import {
-  useCanvasMutationQueue,
-  type SendMutationFn,
-} from '../useCanvasMutationQueue.js'
-import {
-  buildGraphLinkViewModel,
-  getSelectedGraphNodes,
-} from '../graphLinkViewModel.js'
-import { CanvasObjectNode } from './CanvasObjectNode.js'
-import { deleteCanvasGraphLink } from './graphLinkActions.js'
-import { isCanvasInsertableObject } from './object-picker.js'
 import { CanvasTypeID } from '../type.js'
 import { getUnixFSImageSubItems } from '../unixfs-image-sub-items.js'
-import {
-  canvasNodeFromPersistedProto,
-  canvasNodeToProto,
-} from '../canvas-node-proto.js'
+import { CanvasObjectNode } from './CanvasObjectNode.js'
+import { protoEdgeStyleToCanvas } from './canvas-state-codec.js'
+import { deleteCanvasGraphLink } from './graphLinkActions.js'
+import { isCanvasInsertableObject } from './object-picker.js'
+import { useCanvasGraphLinks } from './useCanvasGraphLinks.js'
+import { useCanvasResourceController } from './useCanvasResourceController.js'
 
-export { CanvasTypeID }
+export { CanvasTypeID, protoEdgeStyleToCanvas }
 
-const graphLinkLookupLimit = 100
-
-function isAbortError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false
-  return err.name === 'AbortError' || err.message === 'ERR_RPC_ABORT'
-}
-
-// protoEdgeStyleToCanvas converts proto EdgeStyle to canvas EdgeStyle.
-export function protoEdgeStyleToCanvas(s: EdgeStyle): CanvasEdgeStyle {
-  switch (s) {
-    case EdgeStyle.STRAIGHT:
-      return 'straight'
-    default:
-      return 'bezier'
-  }
-}
-
-// protoToCanvasState converts proto CanvasState to the canvas module's data types.
-function protoToCanvasState(
-  nodes: Record<string, ProtoCanvasNode>,
-  edges: ProtoCanvasEdge[],
-  hiddenGraphLinks: ProtoHiddenGraphLink[],
-  layoutMetadata: Record<string, ProtoCanvasLayoutMetadata>,
-): CanvasStateData {
-  const nodeMap = new Map<string, CanvasNodeData>()
-  for (const [id, node] of Object.entries(nodes)) {
-    nodeMap.set(id, canvasNodeFromPersistedProto(node, id))
-  }
-  const edgeList: CanvasEdgeData[] = edges.map((e) => ({
-    id: e.id ?? '',
-    sourceNodeId: e.sourceNodeId ?? '',
-    targetNodeId: e.targetNodeId ?? '',
-    label: e.label || undefined,
-    style: protoEdgeStyleToCanvas(e.style ?? EdgeStyle.BEZIER),
-  }))
-  const hiddenLinkList: HiddenGraphLinkData[] = hiddenGraphLinks.map(
-    (link) => ({
-      subject: link.subject ?? '',
-      predicate: link.predicate ?? '',
-      object: link.object ?? '',
-      label: link.label || undefined,
-    }),
-  )
-  const layoutMetadataMap = new Map<string, CanvasLayoutMetadataData>()
-  for (const [id, metadata] of Object.entries(layoutMetadata)) {
-    layoutMetadataMap.set(id, {
-      stableNodeId: metadata.stableNodeId || undefined,
-      lane: metadata.lane || undefined,
-      rank: metadata.rank ?? undefined,
-      group: metadata.group || undefined,
-      projectionOwner: metadata.projectionOwner || undefined,
-    })
-  }
-  return {
-    nodes: nodeMap,
-    edges: edgeList,
-    hiddenGraphLinks: hiddenLinkList,
-    layoutMetadata: layoutMetadataMap,
-  }
-}
-
-// hiddenGraphLinkToProto converts a hidden graph link to proto format.
-function hiddenGraphLinkToProto(
-  link: HiddenGraphLinkData,
-): ProtoHiddenGraphLink {
-  return {
-    subject: link.subject,
-    predicate: link.predicate,
-    object: link.object,
-    label: link.label ?? '',
-  }
-}
-
-// layoutMetadataToProto converts layout metadata to proto format.
-function layoutMetadataToProto(
-  metadata: CanvasLayoutMetadataData,
-): ProtoCanvasLayoutMetadata {
-  return {
-    stableNodeId: metadata.stableNodeId ?? '',
-    lane: metadata.lane ?? '',
-    rank: metadata.rank ?? 0,
-    group: metadata.group ?? '',
-    projectionOwner: metadata.projectionOwner ?? '',
-  }
-}
-
-// CanvasViewer is the ObjectType viewer for canvas objects.
+// CanvasViewer composes the canvas stream, graph query, and rendering owners.
 export function CanvasViewer({
   objectInfo,
   worldState,
@@ -148,10 +35,19 @@ export function CanvasViewer({
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null)
   const [graphLinkRefreshTick, setGraphLinkRefreshTick] = useState(0)
-  const [graphLinkActionError, setGraphLinkActionError] = useState<
-    string | null
-  >(null)
-
+  const [actionError, setActionError] = useState('')
+  const resource = useCanvasResourceController(worldState, objectKey, () => {
+    setActionError(
+      'Canvas graph-link update failed. The optimistic change was rolled back.',
+    )
+  })
+  const {
+    effectiveState,
+    enqueueEdgesAdd,
+    enqueueHiddenGraphLinksAdd,
+    enqueueNodesChange,
+    enqueueNodesRemove,
+  } = resource
   const unixfsObjectKey =
     spaceContainer?.spaceState.worldContents?.objects?.find(
       (object) => object.objectType === UnixFSTypeID,
@@ -164,202 +60,43 @@ export function CanvasViewer({
         : Promise.resolve([]),
     [unixfsRoot.value],
   )
-  // Access the SRPC resource for this canvas object.
-  const canvasResource = useAccessTypedHandle(
-    worldState,
-    objectKey,
-    CanvasHandle,
-  )
-
-  // Watch canvas state via streaming RPC.
-  const canvasStateResource = useStreamingResource(
-    canvasResource,
-    (handle, signal) => handle.watchState(signal),
-    [],
-  )
-
-  const canvasStateData = useMemo(
-    () =>
-      canvasStateResource.value
-        ? protoToCanvasState(
-            canvasStateResource.value.nodes ?? {},
-            canvasStateResource.value.edges ?? [],
-            canvasStateResource.value.hiddenGraphLinks ?? [],
-            canvasStateResource.value.layoutMetadata ?? {},
-          )
-        : null,
-    [canvasStateResource.value],
-  )
-
-  // Pre-index canvas nodes by objectKey for O(1) lookup.
   const nodesByObjectKey = useMemo(() => {
-    if (!canvasStateData) return new Map<string, string>()
-    const m = new Map<string, string>()
-    for (const [nid, n] of canvasStateData.nodes) {
-      if (n.objectKey) m.set(n.objectKey, nid)
+    const nodes = new Map<string, string>()
+    for (const [nodeId, node] of resource.canvasState?.nodes ?? []) {
+      if (node.objectKey) nodes.set(node.objectKey, nodeId)
     }
-    return m
-  }, [canvasStateData])
-
+    return nodes
+  }, [resource.canvasState])
   const graphLinkObjectMetadata = useMemo(() => {
-    const m = new Map<
+    const metadata = new Map<
       string,
       { label: string; type?: string; typeLabel?: string }
     >()
-    for (const obj of spaceContainer?.spaceState.worldContents?.objects ?? []) {
-      const key = obj.objectKey ?? ''
+    for (const object of spaceContainer?.spaceState.worldContents?.objects ??
+      []) {
+      const key = object.objectKey ?? ''
       if (!key) continue
-      const type = obj.objectType ?? ''
-      m.set(key, {
+      const type = object.objectType ?? ''
+      metadata.set(key, {
         label: key,
         type: type || undefined,
         typeLabel: type ? getObjectTypeLabel(type) : undefined,
       })
     }
-    return m
+    return metadata
   }, [spaceContainer?.spaceState.worldContents?.objects])
-
-  const sendMutation = useCallback<SendMutationFn>(
-    async (mutation) => {
-      const handle = canvasResource.value
-      if (!handle) throw new Error('no canvas handle')
-
-      const setNodes: Record<string, ProtoCanvasNode> | undefined =
-        mutation.setNodes
-          ? Object.fromEntries(
-              [...mutation.setNodes].map(([id, n]) => [
-                id,
-                canvasNodeToProto(n),
-              ]),
-            )
-          : undefined
-
-      const addEdges: ProtoCanvasEdge[] | undefined = mutation.addEdges?.map(
-        (e) => ({
-          id: e.id,
-          sourceNodeId: e.sourceNodeId,
-          targetNodeId: e.targetNodeId,
-          label: e.label ?? '',
-          style: e.style === 'straight' ? EdgeStyle.STRAIGHT : EdgeStyle.BEZIER,
-        }),
-      )
-
-      await handle.update({
-        setNodes,
-        removeNodeIds: mutation.removeNodeIds,
-        addEdges,
-        removeEdgeIds: mutation.removeEdgeIds,
-        addHiddenGraphLinks: mutation.addHiddenGraphLinks?.map(
-          hiddenGraphLinkToProto,
-        ),
-        removeHiddenGraphLinks: mutation.removeHiddenGraphLinks?.map(
-          hiddenGraphLinkToProto,
-        ),
-        setLayoutMetadata: mutation.setLayoutMetadata
-          ? Object.fromEntries(
-              [...mutation.setLayoutMetadata].map(([id, metadata]) => [
-                id,
-                layoutMetadataToProto(metadata),
-              ]),
-            )
-          : undefined,
-        removeLayoutMetadataNodeIds: mutation.removeLayoutMetadataNodeIds,
-      })
-    },
-    [canvasResource.value],
-  )
-
-  const {
-    effectiveState,
-    enqueueNodesChange,
-    enqueueNodesRemove,
-    enqueueEdgesAdd,
-    enqueueHiddenGraphLinksAdd,
-    pending,
-  } = useCanvasMutationQueue(
-    canvasStateData,
-    canvasResource.value ? sendMutation : null,
-    () => {
-      setGraphLinkActionError(
-        'Canvas graph-link update failed. The optimistic change was rolled back.',
-      )
-    },
-  )
-
-  // Query ephemeral edges for selected world_object nodes.
-  const [ephemeralEdges, setEphemeralEdges] = useState<EphemeralEdge[]>([])
-  useAbortSignalEffect(
-    (signal) => {
-      const world = worldState.value
-      if (!world || !canvasStateData || selectedNodeIds.size === 0) {
-        startTransition(() => {
-          setEphemeralEdges([])
-        })
-        return
-      }
-      void (async () => {
-        const selectedNodes = getSelectedGraphNodes(
-          selectedNodeIds,
-          canvasStateData.nodes,
-        )
-        if (selectedNodes.length === 0) {
-          startTransition(() => {
-            setEphemeralEdges([])
-          })
-          return
-        }
-
-        // eslint-disable-next-line react-doctor/async-defer-await
-        const bucketResponse = await world.listGraphEdgeBuckets(
-          selectedNodes.map((selected) => selected.node.objectKey ?? ''),
-          graphLinkLookupLimit,
-          { abortSignal: signal },
-        )
-        if (signal.aborted) return
-        const buckets = bucketResponse.buckets ?? []
-        const perNodeResults = selectedNodes.map((selected, index) => {
-          const bucket = buckets[index]
-          return {
-            selected,
-            outgoing: bucket.outgoing ?? [],
-            incoming: bucket.incoming ?? [],
-            outgoingTruncated: bucket.outgoingTruncated ?? false,
-            incomingTruncated: bucket.incomingTruncated ?? false,
-          }
-        })
-
-        const edges = buildGraphLinkViewModel(
-          perNodeResults,
-          nodesByObjectKey,
-          {
-            hiddenGraphLinks: effectiveState.hiddenGraphLinks,
-            objectMetadata: graphLinkObjectMetadata,
-          },
-        )
-        if (!signal.aborted) {
-          startTransition(() => {
-            setEphemeralEdges(edges)
-          })
-        }
-      })().catch((err: unknown) => {
-        if (signal.aborted || isAbortError(err)) return
-        throw err
-      })
-    },
-    [
-      worldState.value,
-      canvasStateData,
-      effectiveState.hiddenGraphLinks,
-      selectedNodeIds,
-      nodesByObjectKey,
-      graphLinkObjectMetadata,
-      graphLinkRefreshTick,
-    ],
-  )
-
+  const graphLinks = useCanvasGraphLinks({
+    canvasState: resource.canvasState,
+    graphLinkObjectMetadata,
+    hiddenGraphLinks: effectiveState.hiddenGraphLinks,
+    nodesByObjectKey,
+    refreshToken: graphLinkRefreshTick,
+    selectedNodeIds,
+    worldState,
+  })
   const handlePinObject = useCallback(
     (linkedObjectKey: string, x: number, y: number) => {
-      setGraphLinkActionError(null)
+      setActionError('')
       const nodeId = `node-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       enqueueNodesChange(
         new Map([
@@ -382,28 +119,22 @@ export function CanvasViewer({
     },
     [enqueueNodesChange],
   )
-
-  const handleNodeSelect = useCallback((nodeIds: Set<string>) => {
-    setSelectedNodeIds(nodeIds)
-  }, [])
-
   const handleFocusObject = useCallback(
     (_objectKey: string, nodeId: string) => {
       if (!effectiveState.nodes.has(nodeId)) {
-        setGraphLinkActionError(
+        setActionError(
           'Cannot focus graph target because it is no longer on this canvas.',
         )
         return
       }
-      setGraphLinkActionError(null)
+      setActionError('')
       setFocusNodeId(nodeId)
     },
     [effectiveState.nodes],
   )
-
   const handleHideGraphLink = useCallback(
     (link: EphemeralEdge) => {
-      setGraphLinkActionError(null)
+      setActionError('')
       enqueueHiddenGraphLinksAdd([
         {
           subject: link.subject,
@@ -415,54 +146,44 @@ export function CanvasViewer({
     },
     [enqueueHiddenGraphLinksAdd],
   )
-
   const handleDeleteGraphLink = useCallback(
     (link: EphemeralEdge) => {
-      setGraphLinkActionError(null)
+      setActionError('')
       void deleteCanvasGraphLink({
         link,
         world: worldState.value,
-        onError: setGraphLinkActionError,
-        onDeleted: () => {
-          startTransition(() => {
-            setGraphLinkRefreshTick((v) => v + 1)
-          })
-        },
+        onError: setActionError,
+        onDeleted: () =>
+          startTransition(() => setGraphLinkRefreshTick((value) => value + 1)),
       })
     },
     [worldState.value],
   )
-
-  const objectSubItems: SubItemsCallback | undefined = useCallback(
+  const objectSubItems: SubItemsCallback = useCallback(
     (query: string) => {
-      const objects = spaceContainer?.spaceState.worldContents?.objects ?? []
-      const q = query.toLowerCase()
-
+      const normalizedQuery = query.toLowerCase()
       return Promise.resolve(
-        objects.flatMap((obj) => {
-          const key = obj.objectKey ?? ''
-          const type = obj.objectType ?? ''
-          const label = getObjectTypeLabel(type).toLowerCase()
-          if (
-            !isCanvasInsertableObject(key, type, objectKey) ||
-            (q && !key.toLowerCase().includes(q) && !label.includes(q))
-          ) {
-            return []
-          }
-          return [
-            {
-              id: key,
-              label: key,
-              description: getObjectTypeLabel(type),
-            },
-          ]
-        }),
+        (spaceContainer?.spaceState.worldContents?.objects ?? []).flatMap(
+          (object) => {
+            const key = object.objectKey ?? ''
+            const type = object.objectType ?? ''
+            const label = getObjectTypeLabel(type).toLowerCase()
+            if (
+              !isCanvasInsertableObject(key, type, objectKey) ||
+              (normalizedQuery &&
+                !key.toLowerCase().includes(normalizedQuery) &&
+                !label.includes(normalizedQuery))
+            )
+              return []
+            return [
+              { id: key, label: key, description: getObjectTypeLabel(type) },
+            ]
+          },
+        ),
       )
     },
-    [spaceContainer, objectKey],
+    [objectKey, spaceContainer?.spaceState.worldContents?.objects],
   )
-
-  // Handle view path changes within embedded object nodes.
   const handleViewPathChange = useCallback(
     (nodeId: string, node: CanvasNodeData, path: string) => {
       if (path === (node.viewPath || '/')) return
@@ -470,13 +191,9 @@ export function CanvasViewer({
     },
     [enqueueNodesChange],
   )
-
-  // Render world_object nodes via CanvasObjectNode.
   const renderNodeContent = useCallback(
     (node: CanvasNodeData) => {
       if (node.type !== 'world_object' || !node.objectKey) return null
-
-      // Block self-embedding.
       if (node.objectKey === objectKey) {
         return (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
@@ -484,7 +201,6 @@ export function CanvasViewer({
           </div>
         )
       }
-
       return (
         <CanvasObjectNode
           objectKey={node.objectKey}
@@ -496,15 +212,14 @@ export function CanvasViewer({
         />
       )
     },
-    [objectKey, worldState, handleViewPathChange],
+    [handleViewPathChange, objectKey, worldState],
   )
-
   const callbacks: CanvasCallbacks = useMemo(
     () => ({
       onNodesChange: enqueueNodesChange,
       onNodesRemove: enqueueNodesRemove,
       onEdgesChange: enqueueEdgesAdd,
-      onNodeSelect: handleNodeSelect,
+      onNodeSelect: setSelectedNodeIds,
       onPinObject: handlePinObject,
       onFocusObject: handleFocusObject,
       onHideGraphLink: handleHideGraphLink,
@@ -512,38 +227,67 @@ export function CanvasViewer({
       renderNodeContent,
     }),
     [
-      enqueueNodesChange,
-      enqueueNodesRemove,
-      enqueueEdgesAdd,
-      handleNodeSelect,
-      handlePinObject,
+      handleDeleteGraphLink,
       handleFocusObject,
       handleHideGraphLink,
-      handleDeleteGraphLink,
+      handlePinObject,
       renderNodeContent,
+      enqueueEdgesAdd,
+      enqueueNodesChange,
+      enqueueNodesRemove,
     ],
   )
-
-  if (canvasResource.loading || !canvasStateData) {
+  if (resource.error && !resource.canvasState) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+        <div className="text-destructive text-sm" role="alert">
+          Canvas could not be loaded. {resource.error.message}
+        </div>
+        <button
+          type="button"
+          onClick={resource.retry}
+          className="border-foreground/15 bg-background-card hover:bg-foreground/5 rounded-md border px-3 py-1.5 text-xs"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+  if (resource.loading || !resource.canvasState) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center">
         Loading canvas…
       </div>
     )
   }
-
+  const error =
+    actionError ||
+    graphLinks.error ||
+    (resource.error ? `Canvas updates stopped. ${resource.error.message}` : '')
   return (
     <div className="relative h-full w-full">
-      {graphLinkActionError && (
-        <div className="border-destructive/20 bg-background-card/90 text-destructive pointer-events-none absolute top-3 left-1/2 z-20 -translate-x-1/2 rounded-md border px-3 py-2 text-xs shadow-lg backdrop-blur-sm">
-          {graphLinkActionError}
+      {error && (
+        <div
+          role="alert"
+          className="border-destructive/20 bg-background-card/90 text-destructive absolute top-3 left-1/2 z-20 -translate-x-1/2 rounded-md border px-3 py-2 text-xs shadow-lg backdrop-blur-sm"
+        >
+          {error}
+          {resource.error && (
+            <button
+              type="button"
+              onClick={resource.retry}
+              className="ml-2 underline underline-offset-2"
+            >
+              Retry
+            </button>
+          )}
         </div>
       )}
       <Canvas
         state={effectiveState}
-        ephemeralEdges={ephemeralEdges.length > 0 ? ephemeralEdges : undefined}
+        ephemeralEdges={graphLinks.edges.length ? graphLinks.edges : undefined}
         callbacks={callbacks}
-        pendingMutations={pending}
+        pendingMutations={resource.pending}
         objectSubItems={spaceContainer ? objectSubItems : undefined}
         imageObjectKey={
           unixfsRoot.value ? (unixfsObjectKey ?? undefined) : undefined

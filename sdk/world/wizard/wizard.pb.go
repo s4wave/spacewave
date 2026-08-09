@@ -206,6 +206,64 @@ func (x *UpdateWizardStateResponse) GetState() *WizardState {
 	return nil
 }
 
+// CompareAndSetConfigDataRequest carries one exact observed-to-desired config transition.
+type CompareAndSetConfigDataRequest struct {
+	unknownFields []byte
+	// ExpectedConfigData is the complete persisted config observed by the caller.
+	ExpectedConfigData []byte `protobuf:"bytes,1,opt,name=expected_config_data,json=expectedConfigData,proto3" json:"expectedConfigData,omitempty"`
+	// ConfigData is the complete desired config to persist when the expectation still matches.
+	ConfigData []byte `protobuf:"bytes,2,opt,name=config_data,json=configData,proto3" json:"configData,omitempty"`
+}
+
+func (x *CompareAndSetConfigDataRequest) Reset() {
+	*x = CompareAndSetConfigDataRequest{}
+}
+
+func (*CompareAndSetConfigDataRequest) ProtoMessage() {}
+
+func (x *CompareAndSetConfigDataRequest) GetExpectedConfigData() []byte {
+	if x != nil {
+		return x.ExpectedConfigData
+	}
+	return nil
+}
+
+func (x *CompareAndSetConfigDataRequest) GetConfigData() []byte {
+	if x != nil {
+		return x.ConfigData
+	}
+	return nil
+}
+
+// CompareAndSetConfigDataResponse returns the serialized winner.
+type CompareAndSetConfigDataResponse struct {
+	unknownFields []byte
+	// State is the current persisted wizard state after the transition attempt.
+	State *WizardState `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`
+	// Applied reports whether ConfigData won the compare-and-set transition.
+	Applied bool `protobuf:"varint,2,opt,name=applied,proto3" json:"applied,omitempty"`
+}
+
+func (x *CompareAndSetConfigDataResponse) Reset() {
+	*x = CompareAndSetConfigDataResponse{}
+}
+
+func (*CompareAndSetConfigDataResponse) ProtoMessage() {}
+
+func (x *CompareAndSetConfigDataResponse) GetState() *WizardState {
+	if x != nil {
+		return x.State
+	}
+	return nil
+}
+
+func (x *CompareAndSetConfigDataResponse) GetApplied() bool {
+	if x != nil {
+		return x.Applied
+	}
+	return false
+}
+
 // StartGitCloneRequest is the request for StartGitClone.
 type StartGitCloneRequest struct {
 	unknownFields []byte
@@ -875,6 +933,40 @@ func (m *UpdateWizardStateResponse) CloneMessageVT() protobuf_go_lite.CloneMessa
 	return m.CloneVT()
 }
 
+func (m *CompareAndSetConfigDataRequest) CloneVT() *CompareAndSetConfigDataRequest {
+	if m == nil {
+		return (*CompareAndSetConfigDataRequest)(nil)
+	}
+	r := new(CompareAndSetConfigDataRequest)
+	r.ExpectedConfigData = protobuf_go_lite.CloneBytes(m.ExpectedConfigData)
+	r.ConfigData = protobuf_go_lite.CloneBytes(m.ConfigData)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CompareAndSetConfigDataRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CompareAndSetConfigDataResponse) CloneVT() *CompareAndSetConfigDataResponse {
+	if m == nil {
+		return (*CompareAndSetConfigDataResponse)(nil)
+	}
+	r := new(CompareAndSetConfigDataResponse)
+	r.Applied = m.Applied
+	r.State = protobuf_go_lite.CloneVTValue(m.State)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CompareAndSetConfigDataResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *StartGitCloneRequest) CloneVT() *StartGitCloneRequest {
 	if m == nil {
 		return (*StartGitCloneRequest)(nil)
@@ -1242,6 +1334,52 @@ func (this *UpdateWizardStateResponse) EqualVT(that *UpdateWizardStateResponse) 
 
 func (this *UpdateWizardStateResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*UpdateWizardStateResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CompareAndSetConfigDataRequest) EqualVT(that *CompareAndSetConfigDataRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ExpectedConfigData, that.ExpectedConfigData) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ConfigData, that.ConfigData) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CompareAndSetConfigDataRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CompareAndSetConfigDataRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CompareAndSetConfigDataResponse) EqualVT(that *CompareAndSetConfigDataResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.State, that.State) {
+		return false
+	}
+	if this.Applied != that.Applied {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CompareAndSetConfigDataResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CompareAndSetConfigDataResponse)
 	if !ok {
 		return false
 	}
@@ -1926,6 +2064,110 @@ func (x *UpdateWizardStateResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the UpdateWizardStateResponse from JSON.
 func (x *UpdateWizardStateResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CompareAndSetConfigDataRequest message to JSON.
+func (x *CompareAndSetConfigDataRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.ExpectedConfigData) > 0 || s.HasField("expectedConfigData") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedConfigData")
+		s.WriteBytes(x.ExpectedConfigData)
+	}
+	if len(x.ConfigData) > 0 || s.HasField("configData") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("configData")
+		s.WriteBytes(x.ConfigData)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CompareAndSetConfigDataRequest to JSON.
+func (x *CompareAndSetConfigDataRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CompareAndSetConfigDataRequest message from JSON.
+func (x *CompareAndSetConfigDataRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "expected_config_data", "expectedConfigData":
+			s.AddField("expected_config_data")
+			x.ExpectedConfigData = s.ReadBytes()
+		case "config_data", "configData":
+			s.AddField("config_data")
+			x.ConfigData = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CompareAndSetConfigDataRequest from JSON.
+func (x *CompareAndSetConfigDataRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the CompareAndSetConfigDataResponse message to JSON.
+func (x *CompareAndSetConfigDataResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.State != nil || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s.WithField("state"))
+	}
+	if x.Applied || s.HasField("applied") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("applied")
+		s.WriteBool(x.Applied)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CompareAndSetConfigDataResponse to JSON.
+func (x *CompareAndSetConfigDataResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CompareAndSetConfigDataResponse message from JSON.
+func (x *CompareAndSetConfigDataResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "state":
+			if s.ReadNil() {
+				x.State = nil
+				return
+			}
+			x.State = &WizardState{}
+			x.State.UnmarshalProtoJSON(s.WithField("state", true))
+		case "applied":
+			s.AddField("applied")
+			x.Applied = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CompareAndSetConfigDataResponse from JSON.
+func (x *CompareAndSetConfigDataResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3084,6 +3326,95 @@ func (m *UpdateWizardStateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	return len(dAtA) - i, nil
 }
 
+func (m *CompareAndSetConfigDataRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CompareAndSetConfigDataRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CompareAndSetConfigDataRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ConfigData) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ConfigData)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ExpectedConfigData) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ExpectedConfigData)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *CompareAndSetConfigDataResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CompareAndSetConfigDataResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CompareAndSetConfigDataResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Applied {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Applied)
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.State != nil {
+		size, err := m.State.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *StartGitCloneRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -3924,6 +4255,33 @@ func (m *UpdateWizardStateResponse) SizeVT() (n int) {
 	return n
 }
 
+func (m *CompareAndSetConfigDataRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ExpectedConfigData)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ConfigData)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CompareAndSetConfigDataResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.State != nil {
+		l = m.State.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Applied)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *StartGitCloneRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -4221,6 +4579,42 @@ func (x *UpdateWizardStateResponse) MarshalProtoText() string {
 }
 
 func (x *UpdateWizardStateResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CompareAndSetConfigDataRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CompareAndSetConfigDataRequest")
+	if len(x.ExpectedConfigData) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expected_config_data")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ExpectedConfigData)
+	}
+	if len(x.ConfigData) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "config_data")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ConfigData)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CompareAndSetConfigDataRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CompareAndSetConfigDataResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CompareAndSetConfigDataResponse")
+	if x.State != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.State)
+	}
+	if x.Applied != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "applied")
+		protobuf_go_lite.TextWriteBool(&sb, x.Applied)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CompareAndSetConfigDataResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -4812,6 +5206,133 @@ func (m *UpdateWizardStateResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CompareAndSetConfigDataRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CompareAndSetConfigDataRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CompareAndSetConfigDataRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedConfigData", wireType)
+			}
+			m.ExpectedConfigData, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ExpectedConfigData, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ConfigData", wireType)
+			}
+			m.ConfigData, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ConfigData, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CompareAndSetConfigDataResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CompareAndSetConfigDataResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CompareAndSetConfigDataResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.State == nil {
+				m.State = &WizardState{}
+			}
+			if err := m.State.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Applied", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Applied = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

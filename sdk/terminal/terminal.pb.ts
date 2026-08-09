@@ -303,6 +303,12 @@ export interface Terminal {
    * @generated from field: string ssh_host_object_key = 14;
    */
   sshHostObjectKey?: string
+  /**
+   * CreationToken is the opaque identity of the authorized creation request.
+   *
+   * @generated from field: bytes creation_token = 15;
+   */
+  creationToken?: Uint8Array
 }
 
 export const Terminal: MessageType<Terminal> =
@@ -339,6 +345,7 @@ export const Terminal: MessageType<Terminal> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
+      { no: 15, name: 'creation_token', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -548,6 +555,18 @@ export interface CreateTerminalOp {
    * @generated from field: string ssh_host_object_key = 11;
    */
   sshHostObjectKey?: string
+  /**
+   * ReconcileExisting accepts the Terminal already at ObjectKey when its desired fields match.
+   *
+   * @generated from field: bool reconcile_existing = 12;
+   */
+  reconcileExisting?: boolean
+  /**
+   * CreationToken is the unpredictable identity reused only for this desired Terminal.
+   *
+   * @generated from field: bytes creation_token = 13;
+   */
+  creationToken?: Uint8Array
 }
 
 export const CreateTerminalOp: MessageType<CreateTerminalOp> =
@@ -581,6 +600,13 @@ export const CreateTerminalOp: MessageType<CreateTerminalOp> =
         kind: 'scalar',
         T: ScalarType.STRING,
       },
+      {
+        no: 12,
+        name: 'reconcile_existing',
+        kind: 'scalar',
+        T: ScalarType.BOOL,
+      },
+      { no: 13, name: 'creation_token', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

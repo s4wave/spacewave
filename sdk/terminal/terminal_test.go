@@ -12,9 +12,12 @@ import (
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	world_types "github.com/s4wave/spacewave/db/world/types"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
+	s4wave_sshhost "github.com/s4wave/spacewave/sdk/sshhost"
 )
 
 func TestTerminalValidatePinsDeviceTarget(t *testing.T) {
@@ -104,6 +107,150 @@ func TestCreateSshHostTerminalOpValidate(t *testing.T) {
 	op.SshHostObjectKey = ""
 	if err := op.Validate(); err == nil {
 		t.Fatal("expected missing SSH Host object key to fail validation")
+	}
+}
+
+func TestCreateTerminalOpReconcilesMatchingTarget(t *testing.T) {
+	ctx := t.Context()
+	tb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	op := NewCreateSshHostTerminalOp(
+		"terminal/prod-ssh-1",
+		"Prod SSH Shell",
+		"hosts/prod",
+		time.Unix(10, 0),
+	)
+	op.CreationToken = []byte("0123456789abcdef0123456789abcdef")
+	op.ReconcileExisting = true
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, op, tb.Volume.GetPeerID()); err != nil {
+		t.Fatalf("first ApplyWorldOp: %v", err)
+	}
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, op, tb.Volume.GetPeerID()); err != nil {
+		t.Fatalf("reconcile ApplyWorldOp: %v", err)
+	}
+	op.Command = "uptime"
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, op, tb.Volume.GetPeerID()); err != world.ErrObjectExists {
+		t.Fatalf("mismatched reconcile error = %v, want %v", err, world.ErrObjectExists)
+	}
+}
+
+func TestCreateTerminalOpRejectsMatchingBodyWithWrongObjectType(t *testing.T) {
+	ctx := t.Context()
+	tb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	op := NewCreateSshHostTerminalOp(
+		"terminal/wrong-type",
+		"Wrong Type",
+		"hosts/prod",
+		time.Unix(10, 0),
+	)
+	op.CreationToken = []byte("0123456789abcdef0123456789abcdef")
+	op.ReconcileExisting = true
+	terminal := op.buildTerminal()
+	if _, _, err := world.CreateWorldObject(ctx, tb.WorldState, op.GetObjectKey(), func(bcs *block.Cursor) error {
+		bcs.SetBlock(terminal, true)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := world_types.SetObjectType(ctx, tb.WorldState, op.GetObjectKey(), "wrong/type"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, op, tb.Volume.GetPeerID()); err == nil {
+		t.Fatal("matching body with the wrong ObjectType was accepted")
+	}
+}
+
+func TestSshHostTerminalWorldTransactionIsAtomic(t *testing.T) {
+	ctx := t.Context()
+	tb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	createWizard := func(objectKey string) {
+		t.Helper()
+		if _, _, err := world.CreateWorldObject(ctx, tb.WorldState, objectKey, func(bcs *block.Cursor) error {
+			bcs.SetBlock(&Terminal{Name: "wizard"}, true)
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	newHostOp := func(objectKey string) *s4wave_sshhost.CreateSshHostOp {
+		op := s4wave_sshhost.NewCreateSshHostOp(
+			objectKey,
+			"Build Host",
+			&s4wave_sshhost.SshHostEndpoint{Host: "build.example.com", Username: "ubuntu"},
+			&s4wave_sshhost.SshHostCredentialRefs{PasswordSecretObjectKey: "secret/password"},
+			nil,
+			time.Unix(100, 0),
+		)
+		op.ReconcileExisting = true
+		op.CreationToken = []byte("0123456789abcdef0123456789abcdef")
+		return op
+	}
+	newTerminalOp := func(objectKey, hostKey string) *CreateTerminalOp {
+		op := NewCreateSshHostTerminalOp(objectKey, "Build Host Terminal", hostKey, time.Unix(100, 0))
+		op.ReconcileExisting = true
+		op.CreationToken = []byte("0123456789abcdef0123456789abcdef")
+		return op
+	}
+
+	createWizard("wizard/success")
+	tx, err := tb.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := tx.ApplyWorldOp(ctx, newHostOp("ssh-host/success"), tb.Volume.GetPeerID()); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := tx.ApplyWorldOp(ctx, newTerminalOp("terminal/success", "ssh-host/success"), tb.Volume.GetPeerID()); err != nil {
+		t.Fatal(err)
+	}
+	if deleted, err := tx.DeleteObject(ctx, "wizard/success"); err != nil || !deleted {
+		t.Fatalf("delete wizard: deleted=%v err=%v", deleted, err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	tx.Discard()
+	for _, objectKey := range []string{"ssh-host/success", "terminal/success"} {
+		if _, found, err := tb.WorldState.GetObject(ctx, objectKey); err != nil || !found {
+			t.Fatalf("%s: found=%v err=%v", objectKey, found, err)
+		}
+	}
+	if _, found, err := tb.WorldState.GetObject(ctx, "wizard/success"); err != nil || found {
+		t.Fatalf("wizard after commit: found=%v err=%v", found, err)
+	}
+
+	createWizard("wizard/failure")
+	tx, err = tb.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := tx.ApplyWorldOp(ctx, newHostOp("ssh-host/failure"), tb.Volume.GetPeerID()); err != nil {
+		t.Fatal(err)
+	}
+	invalidTerminal := newTerminalOp("terminal/failure", "")
+	if _, _, err := tx.ApplyWorldOp(ctx, invalidTerminal, tb.Volume.GetPeerID()); err == nil {
+		t.Fatal("invalid terminal operation succeeded")
+	}
+	tx.Discard()
+	if _, found, err := tb.WorldState.GetObject(ctx, "ssh-host/failure"); err != nil || found {
+		t.Fatalf("host escaped discarded transaction: found=%v err=%v", found, err)
+	}
+	if _, found, err := tb.WorldState.GetObject(ctx, "wizard/failure"); err != nil || !found {
+		t.Fatalf("wizard changed by discarded transaction: found=%v err=%v", found, err)
 	}
 }
 

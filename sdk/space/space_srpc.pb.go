@@ -22,9 +22,11 @@ type SRPCSpaceResourceServiceClient interface {
 	AccessWorld(ctx context.Context, in *AccessWorldRequest) (*AccessWorldResponse, error)
 
 	MountSpaceContents(ctx context.Context, in *MountSpaceContentsRequest) (*MountSpaceContentsResponse, error)
-
+	// CreateSecret creates or reconciles a Secret and its nested payload.
 	CreateSecret(ctx context.Context, in *CreateSecretRequest) (*CreateSecretResponse, error)
-
+	// DeleteSecret deletes an exact token-owned Secret payload and parent.
+	DeleteSecret(ctx context.Context, in *DeleteSecretRequest) (*DeleteSecretResponse, error)
+	// ReadSecretPayload reads a granted Secret payload under the mounted session authority.
 	ReadSecretPayload(ctx context.Context, in *ReadSecretPayloadRequest) (*ReadSecretPayloadResponse, error)
 
 	DeployManifest(ctx context.Context) (SRPCSpaceResourceService_DeployManifestClient, error)
@@ -147,6 +149,15 @@ func (c *srpcSpaceResourceServiceClient) CreateSecret(ctx context.Context, in *C
 	return out, nil
 }
 
+func (c *srpcSpaceResourceServiceClient) DeleteSecret(ctx context.Context, in *DeleteSecretRequest) (*DeleteSecretResponse, error) {
+	out := new(DeleteSecretResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "DeleteSecret", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSpaceResourceServiceClient) ReadSecretPayload(ctx context.Context, in *ReadSecretPayloadRequest) (*ReadSecretPayloadResponse, error) {
 	out := new(ReadSecretPayloadResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "ReadSecretPayload", in, out)
@@ -221,9 +232,11 @@ type SRPCSpaceResourceServiceServer interface {
 	AccessWorld(context.Context, *AccessWorldRequest) (*AccessWorldResponse, error)
 
 	MountSpaceContents(context.Context, *MountSpaceContentsRequest) (*MountSpaceContentsResponse, error)
-
+	// CreateSecret creates or reconciles a Secret and its nested payload.
 	CreateSecret(context.Context, *CreateSecretRequest) (*CreateSecretResponse, error)
-
+	// DeleteSecret deletes an exact token-owned Secret payload and parent.
+	DeleteSecret(context.Context, *DeleteSecretRequest) (*DeleteSecretResponse, error)
+	// ReadSecretPayload reads a granted Secret payload under the mounted session authority.
 	ReadSecretPayload(context.Context, *ReadSecretPayloadRequest) (*ReadSecretPayloadResponse, error)
 
 	DeployManifest(SRPCSpaceResourceService_DeployManifestStream) error
@@ -264,6 +277,7 @@ func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 		"AccessWorld",
 		"MountSpaceContents",
 		"CreateSecret",
+		"DeleteSecret",
 		"ReadSecretPayload",
 		"DeployManifest",
 		"AddSpacePlugin",
@@ -290,6 +304,8 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_MountSpaceContents(d.impl, strm)
 	case "CreateSecret":
 		return true, d.InvokeMethod_CreateSecret(d.impl, strm)
+	case "DeleteSecret":
+		return true, d.InvokeMethod_DeleteSecret(d.impl, strm)
 	case "ReadSecretPayload":
 		return true, d.InvokeMethod_ReadSecretPayload(d.impl, strm)
 	case "DeployManifest":
@@ -351,6 +367,18 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_CreateSecret(impl SRPCSpaceR
 		return err
 	}
 	out, err := impl.CreateSecret(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_DeleteSecret(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(DeleteSecretRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.DeleteSecret(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -465,6 +493,14 @@ type SRPCSpaceResourceService_CreateSecretStream interface {
 }
 
 type srpcSpaceResourceService_CreateSecretStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceResourceService_DeleteSecretStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceResourceService_DeleteSecretStream struct {
 	srpc.Stream
 }
 

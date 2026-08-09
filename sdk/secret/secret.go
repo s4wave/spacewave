@@ -1,7 +1,9 @@
 package s4wave_secret
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
 	"sync"
 	"time"
 
@@ -70,6 +72,10 @@ type CreateSecretOptions struct {
 	Timestamp time.Time
 	// NestedSharedObjectId optionally fixes the nested SharedObject id.
 	NestedSharedObjectId string
+	// CreationToken is the opaque identity of the authorized creation request.
+	CreationToken []byte
+	// PayloadIdentity is an opaque identity shared by the parent and exact payload.
+	PayloadIdentity []byte
 }
 
 type secretPayloadStoreOperation struct {
@@ -83,6 +89,7 @@ type secretPayloadStoreOperation struct {
 	localID    string
 	stored     bool
 	waitDone   bool
+	initialize bool
 	err        error
 	processErr error
 }
@@ -182,7 +189,7 @@ func (r *SecretResource) WatchState(
 	)
 }
 
-// CreateSecret creates a parent World object plus nested SharedObject payload.
+// CreateSecret creates or reconciles a parent World object and its stable nested payload.
 func CreateSecret(
 	ctx context.Context,
 	b bus.Bus,
@@ -196,56 +203,160 @@ func CreateSecret(
 	if opts.Timestamp.IsZero() {
 		opts.Timestamp = time.Now()
 	}
+	if opts.Kind == "" {
+		return nil, errors.New("kind cannot be empty")
+	}
 	if opts.ContentType == "" {
 		opts.ContentType = "application/octet-stream"
+	}
+	if len(opts.PayloadIdentity) == 0 {
+		opts.PayloadIdentity = make([]byte, 32)
+		if _, err := rand.Read(opts.PayloadIdentity); err != nil {
+			return nil, errors.Wrap(err, "generate payload identity")
+		}
 	}
 	nestedID := opts.NestedSharedObjectId
 	if nestedID == "" {
 		nestedID = "secret-" + sobject.NewSOOperationLocalID()
 	}
-
-	nestedRef, err := soProvider.CreateSharedObject(ctx, nestedID, NewSharedObjectMeta(), "", "")
+	meta := NewSharedObjectMeta()
+	meta.BodyMeta = append([]byte(nil), opts.CreationToken...)
+	nestedRef, err := soProvider.CreateSharedObject(ctx, nestedID, meta, "", "")
+	createdNested := err == nil
+	if errors.Is(err, sobject.ErrSharedObjectExists) {
+		nestedRef, err = lookupSecretSharedObjectRef(ctx, soProvider, nestedID, opts.CreationToken)
+	}
 	if err != nil {
-		return nil, errors.Wrap(err, "create nested shared object")
+		return nil, errors.Wrap(err, "create or adopt nested shared object")
 	}
+
 	payload := &SecretPayload{
-		Value:       append([]byte(nil), opts.Value...),
-		ContentType: opts.ContentType,
-		Version:     1,
-		UpdatedAt:   timestamppb.New(opts.Timestamp),
+		Value:           append([]byte(nil), opts.Value...),
+		ContentType:     opts.ContentType,
+		Version:         1,
+		UpdatedAt:       timestamppb.New(opts.Timestamp),
+		PayloadIdentity: append([]byte(nil), opts.PayloadIdentity...),
 	}
-	if err := StoreSecretPayload(ctx, b, nestedRef, payload); err != nil {
-		return nil, errors.Wrap(err, "store secret payload")
+	if createdNested {
+		if err := storeOrVerifySecretPayload(ctx, b, nestedRef, payload); err != nil {
+			return nil, errors.Wrap(err, "store secret payload")
+		}
+	} else {
+		existingPayload, err := ReadSecretPayload(ctx, b, &Secret{Ref: nestedRef})
+		if err != nil {
+			return nil, errors.Wrap(err, "read adopted secret payload")
+		}
+		if existingPayload.EqualVT(&SecretPayload{}) {
+			if err := storeOrVerifySecretPayload(ctx, b, nestedRef, payload); err != nil {
+				return nil, errors.Wrap(err, "store adopted secret payload")
+			}
+		} else if !existingPayload.EqualVT(payload) {
+			return nil, errors.New("existing nested secret payload does not match creation request")
+		}
 	}
 
 	secret := &Secret{
 		DisplayName:          opts.DisplayName,
 		Kind:                 opts.Kind,
-		NestedSharedObjectId: nestedRef.GetProviderResourceRef().GetId(),
+		NestedSharedObjectId: nestedID,
 		Ref:                  nestedRef.CloneVT(),
 		CreatedAt:            timestamppb.New(opts.Timestamp),
 		UpdatedAt:            timestamppb.New(opts.Timestamp),
+		CreationToken:        append([]byte(nil), opts.CreationToken...),
+		PayloadIdentity:      append([]byte(nil), opts.PayloadIdentity...),
 	}
-
 	wtx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}
-	if _, _, err := world.CreateWorldObject(ctx, wtx, opts.ObjectKey, func(bcs *block.Cursor) error {
+	defer wtx.Discard()
+	createdState, _, err := world.CreateWorldObject(ctx, wtx, opts.ObjectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(secret, true)
 		return nil
-	}); err != nil {
+	})
+	world.ReleaseObjectState(createdState)
+	if err == nil {
+		err = world_types.SetObjectType(ctx, wtx, opts.ObjectKey, SecretTypeID)
+	}
+	if err == nil {
+		err = wtx.Commit(ctx)
+	} else {
 		wtx.Discard()
+	}
+	if err == nil {
+		return secret, nil
+	}
+	if !errors.Is(err, world.ErrObjectExists) {
 		return nil, err
 	}
-	if err := world_types.SetObjectType(ctx, wtx, opts.ObjectKey, SecretTypeID); err != nil {
-		wtx.Discard()
+
+	// A concurrent identical retry may have committed while this call prepared
+	// the same stable nested object. Read and verify the winner.
+	readTx, txErr := engine.NewTransaction(ctx, false)
+	if txErr != nil {
+		return nil, txErr
+	}
+	defer readTx.Discard()
+	existing, objRef, txErr := world.LookupObject[*Secret](ctx, readTx, opts.ObjectKey, NewSecretBlock)
+	world.ReleaseObjectState(objRef)
+	if txErr != nil {
+		return nil, txErr
+	}
+	if txErr = world_types.CheckObjectType(ctx, readTx, opts.ObjectKey, SecretTypeID); txErr != nil {
+		return nil, txErr
+	}
+	if !existing.EqualVT(secret) {
+		return nil, world.ErrObjectExists
+	}
+	return existing, nil
+}
+
+func lookupSecretSharedObjectRef(
+	ctx context.Context,
+	provider sobject.SharedObjectProvider,
+	nestedID string,
+	creationToken []byte,
+) (*sobject.SharedObjectRef, error) {
+	ctr, release, err := provider.AccessSharedObjectList(ctx, nil)
+	if err != nil {
 		return nil, err
 	}
-	if err := wtx.Commit(ctx); err != nil {
+	defer release()
+	list, err := ctr.WaitValue(ctx, nil)
+	if err != nil {
 		return nil, err
 	}
-	return secret, nil
+	for _, entry := range list.GetSharedObjects() {
+		if entry.GetRef().GetProviderResourceRef().GetId() != nestedID {
+			continue
+		}
+		if entry.GetMeta().GetBodyType() != SecretBodyType ||
+			!bytes.Equal(entry.GetMeta().GetBodyMeta(), creationToken) {
+			return nil, sobject.ErrSharedObjectExists
+		}
+		return entry.GetRef().CloneVT(), nil
+	}
+	return nil, sobject.ErrSharedObjectExists
+}
+
+func storeOrVerifySecretPayload(
+	ctx context.Context,
+	b bus.Bus,
+	ref *sobject.SharedObjectRef,
+	payload *SecretPayload,
+) error {
+	var storeErr error
+	for range 3 {
+		storeErr = initializeSecretPayload(ctx, b, ref, payload)
+		if storeErr == nil {
+			return nil
+		}
+		existing, readErr := ReadSecretPayload(ctx, b, &Secret{Ref: ref})
+		if readErr == nil && existing.EqualVT(payload) {
+			return nil
+		}
+	}
+	return storeErr
 }
 
 // StoreSecretPayload replaces the payload in the nested SharedObject.
@@ -274,6 +385,29 @@ func StoreSecretPayload(ctx context.Context, b bus.Bus, ref *sobject.SharedObjec
 	defer relStateCtr()
 
 	op := newSecretPayloadStoreOperation(so, stateCtr, payload)
+	return op.Store(ctx, data)
+}
+
+func initializeSecretPayload(ctx context.Context, b bus.Bus, ref *sobject.SharedObjectRef, payload *SecretPayload) error {
+	if ref == nil {
+		return ErrMissingSecretRef
+	}
+	data, err := payload.MarshalVT()
+	if err != nil {
+		return err
+	}
+	so, soRef, err := sobject.ExMountSharedObject(ctx, b, ref, false, nil)
+	if err != nil {
+		return err
+	}
+	defer soRef.Release()
+	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer relStateCtr()
+	op := newSecretPayloadStoreOperation(so, stateCtr, payload)
+	op.initialize = true
 	return op.Store(ctx, data)
 }
 
@@ -483,11 +617,56 @@ func replaceSecretPayload(
 		}
 		nextStateData = append([]byte(nil), op.GetOpData()...)
 		opResults = append(opResults, sobject.BuildSOOperationResult(
-			op.GetPeerId(),
-			op.GetNonce(),
-			true,
-			nil,
+			op.GetPeerId(), op.GetNonce(), true, nil,
 		))
+	}
+	return &nextStateData, opResults, nil
+}
+
+func initializeSecretPayloadState(
+	ctx context.Context,
+	snap sobject.SharedObjectStateSnapshot,
+	currentStateData []byte,
+	ops []*sobject.SOOperationInner,
+) (*[]byte, []*sobject.SOOperationResult, error) {
+	nextStateData := currentStateData
+	changed := false
+	opResults := make([]*sobject.SOOperationResult, 0, len(ops))
+	for _, op := range ops {
+		payload := &SecretPayload{}
+		if err := payload.UnmarshalVT(op.GetOpData()); err != nil {
+			return nil, nil, err
+		}
+		if len(payload.GetPayloadIdentity()) < 16 {
+			return nil, nil, errors.New("payload identity is missing")
+		}
+		if len(nextStateData) == 0 {
+			nextStateData = append([]byte(nil), op.GetOpData()...)
+			changed = true
+			opResults = append(opResults, sobject.BuildSOOperationResult(
+				op.GetPeerId(), op.GetNonce(), true, nil,
+			))
+			continue
+		}
+		existing := &SecretPayload{}
+		if err := existing.UnmarshalVT(nextStateData); err != nil {
+			return nil, nil, err
+		}
+		if existing.EqualVT(payload) {
+			opResults = append(opResults, sobject.BuildSOOperationResult(
+				op.GetPeerId(), op.GetNonce(), true, nil,
+			))
+			continue
+		}
+		opResults = append(opResults, sobject.BuildSOOperationResult(
+			op.GetPeerId(), op.GetNonce(), false,
+			&sobject.SOOperationRejectionErrorDetails{
+				ErrorMsg: "secret payload already initialized by a different request",
+			},
+		))
+	}
+	if !changed {
+		return nil, opResults, nil
 	}
 	return &nextStateData, opResults, nil
 }
@@ -538,7 +717,11 @@ func (op *secretPayloadStoreOperation) processOperations(ctx context.Context) (e
 		}
 		op.setProcessDone(err)
 	}()
-	return op.so.ProcessOperations(ctx, true, replaceSecretPayload)
+	processor := replaceSecretPayload
+	if op.initialize {
+		processor = initializeSecretPayloadState
+	}
+	return op.so.ProcessOperations(ctx, true, processor)
 }
 
 func (op *secretPayloadStoreOperation) waitOperation(ctx context.Context) (err error) {
@@ -586,9 +769,15 @@ func (op *secretPayloadStoreOperation) watchPayload(ctx context.Context) (err er
 		}
 		current = next
 		payload, err := ReadSecretPayloadFromSnapshot(ctx, next)
-		if err == nil && payload.EqualVT(op.expected) {
+		if err != nil {
+			continue
+		}
+		if payload.EqualVT(op.expected) {
 			op.setStored()
 			return nil
+		}
+		if op.initialize && len(payload.GetPayloadIdentity()) != 0 {
+			return errors.New("secret payload already initialized by a different request")
 		}
 	}
 }

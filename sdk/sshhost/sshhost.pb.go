@@ -251,6 +251,8 @@ type SshHost struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
 	// UpdatedAt is when this SSH Host object was last updated.
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updatedAt,omitempty"`
+	// CreationToken is the opaque identity of the authorized creation request.
+	CreationToken []byte `protobuf:"bytes,8,opt,name=creation_token,json=creationToken,proto3" json:"creationToken,omitempty"`
 }
 
 func (x *SshHost) Reset() {
@@ -308,6 +310,13 @@ func (x *SshHost) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *SshHost) GetCreationToken() []byte {
+	if x != nil {
+		return x.CreationToken
+	}
+	return nil
+}
+
 // CreateSshHostOp creates an SSH Host world object.
 type CreateSshHostOp struct {
 	unknownFields []byte
@@ -323,6 +332,10 @@ type CreateSshHostOp struct {
 	HostKeyPins []*SshHostKeyPin `protobuf:"bytes,5,rep,name=host_key_pins,json=hostKeyPins,proto3" json:"hostKeyPins,omitempty"`
 	// Timestamp is the creation timestamp.
 	Timestamp *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// ReconcileExisting accepts the SSH Host already at ObjectKey when its desired fields match.
+	ReconcileExisting bool `protobuf:"varint,7,opt,name=reconcile_existing,json=reconcileExisting,proto3" json:"reconcileExisting,omitempty"`
+	// CreationToken is the unpredictable identity reused only for this desired SSH Host.
+	CreationToken []byte `protobuf:"bytes,8,opt,name=creation_token,json=creationToken,proto3" json:"creationToken,omitempty"`
 }
 
 func (x *CreateSshHostOp) Reset() {
@@ -369,6 +382,20 @@ func (x *CreateSshHostOp) GetHostKeyPins() []*SshHostKeyPin {
 func (x *CreateSshHostOp) GetTimestamp() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *CreateSshHostOp) GetReconcileExisting() bool {
+	if x != nil {
+		return x.ReconcileExisting
+	}
+	return false
+}
+
+func (x *CreateSshHostOp) GetCreationToken() []byte {
+	if x != nil {
+		return x.CreationToken
 	}
 	return nil
 }
@@ -491,6 +518,7 @@ func (m *SshHost) CloneVT() *SshHost {
 	r.LastStatus = protobuf_go_lite.CloneVTValue(m.LastStatus)
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	r.UpdatedAt = protobuf_go_lite.CloneVTValue(m.UpdatedAt)
+	r.CreationToken = protobuf_go_lite.CloneBytes(m.CreationToken)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -508,10 +536,12 @@ func (m *CreateSshHostOp) CloneVT() *CreateSshHostOp {
 	r := new(CreateSshHostOp)
 	r.ObjectKey = m.ObjectKey
 	r.Label = m.Label
+	r.ReconcileExisting = m.ReconcileExisting
 	r.Endpoint = protobuf_go_lite.CloneVTValue(m.Endpoint)
 	r.Credentials = protobuf_go_lite.CloneVTValue(m.Credentials)
 	r.HostKeyPins = protobuf_go_lite.CloneVTSlice(m.HostKeyPins)
 	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
+	r.CreationToken = protobuf_go_lite.CloneBytes(m.CreationToken)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -693,6 +723,9 @@ func (this *SshHost) EqualVT(that *SshHost) bool {
 	if !protobuf_go_lite.IsEqualVT(this.UpdatedAt, that.UpdatedAt) {
 		return false
 	}
+	if !protobuf_go_lite.EqualBytes(this.CreationToken, that.CreationToken) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -726,6 +759,12 @@ func (this *CreateSshHostOp) EqualVT(that *CreateSshHostOp) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
+		return false
+	}
+	if this.ReconcileExisting != that.ReconcileExisting {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.CreationToken, that.CreationToken) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1129,6 +1168,11 @@ func (x *SshHost) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("updatedAt")
 		x.UpdatedAt.MarshalProtoJSON(s.WithField("updatedAt"))
 	}
+	if len(x.CreationToken) > 0 || s.HasField("creationToken") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("creationToken")
+		s.WriteBytes(x.CreationToken)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1202,6 +1246,9 @@ func (x *SshHost) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.UpdatedAt = &timestamppb.Timestamp{}
 			x.UpdatedAt.UnmarshalProtoJSON(s.WithField("updated_at", true))
+		case "creation_token", "creationToken":
+			s.AddField("creation_token")
+			x.CreationToken = s.ReadBytes()
 		}
 	})
 }
@@ -1254,6 +1301,16 @@ func (x *CreateSshHostOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("timestamp")
 		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
+	if x.ReconcileExisting || s.HasField("reconcileExisting") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reconcileExisting")
+		s.WriteBool(x.ReconcileExisting)
+	}
+	if len(x.CreationToken) > 0 || s.HasField("creationToken") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("creationToken")
+		s.WriteBytes(x.CreationToken)
 	}
 	s.WriteObjectEnd()
 }
@@ -1317,6 +1374,12 @@ func (x *CreateSshHostOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Timestamp = &timestamppb.Timestamp{}
 			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "reconcile_existing", "reconcileExisting":
+			s.AddField("reconcile_existing")
+			x.ReconcileExisting = s.ReadBool()
+		case "creation_token", "creationToken":
+			s.AddField("creation_token")
+			x.CreationToken = s.ReadBytes()
 		}
 	})
 }
@@ -1644,6 +1707,11 @@ func (m *SshHost) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.CreationToken) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.CreationToken)
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.UpdatedAt != nil {
 		size, err := m.UpdatedAt.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1742,6 +1810,16 @@ func (m *CreateSshHostOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.CreationToken) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.CreationToken)
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.ReconcileExisting {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ReconcileExisting)
+		i--
+		dAtA[i] = 0x38
 	}
 	if m.Timestamp != nil {
 		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
@@ -1964,6 +2042,7 @@ func (m *SshHost) SizeVT() (n int) {
 		l = m.UpdatedAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CreationToken)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1992,6 +2071,8 @@ func (m *CreateSshHostOp) SizeVT() (n int) {
 		l = m.Timestamp.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ReconcileExisting)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CreationToken)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2163,6 +2244,10 @@ func (x *SshHost) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "updated_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UpdatedAt)
 	}
+	if len(x.CreationToken) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "creation_token")
+		protobuf_go_lite.TextWriteBytes(&sb, x.CreationToken)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -2204,6 +2289,14 @@ func (x *CreateSshHostOp) MarshalProtoText() string {
 	if x.Timestamp != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
+	}
+	if x.ReconcileExisting != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reconcile_existing")
+		protobuf_go_lite.TextWriteBool(&sb, x.ReconcileExisting)
+	}
+	if len(x.CreationToken) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "creation_token")
+		protobuf_go_lite.TextWriteBytes(&sb, x.CreationToken)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2686,6 +2779,14 @@ func (m *SshHost) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreationToken", wireType)
+			}
+			m.CreationToken, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.CreationToken, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2807,6 +2908,24 @@ func (m *CreateSshHostOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReconcileExisting", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ReconcileExisting = bool(v)
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreationToken", wireType)
+			}
+			m.CreationToken, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.CreationToken, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

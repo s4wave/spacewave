@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -1059,6 +1060,93 @@ func TestWizardResourcePersistsState(t *testing.T) {
 	}
 	if persistedState.GetTargetKeyPrefix() != "canvas/" {
 		t.Fatalf("expected persisted key prefix canvas/, got %q", persistedState.GetTargetKeyPrefix())
+	}
+}
+
+func TestWizardResourceCompareAndSetConfigDataSerializesStaleControllers(t *testing.T) {
+	ctx := t.Context()
+	resClient, engine, cleanup := setupWizardWorldEngine(ctx, t)
+	defer cleanup()
+
+	const objectKey = "wizard/device/cas"
+	create := s4wave_wizard.NewCreateWizardObjectOp(
+		objectKey, "wizard/test", "device", "device/", "Device", time.Unix(100, 0),
+	)
+	data, err := create.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := tx.ApplyWorldOp(ctx, s4wave_wizard.CreateWizardObjectOpId, data, ""); err != nil {
+		tx.Discard(ctx)
+		t.Fatal(err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	tx.Release()
+
+	readTxA, wizardRefA, serviceA := accessWizardResource(ctx, t, resClient, engine, objectKey)
+	defer readTxA.Release()
+	defer wizardRefA.Release()
+	readTxB, wizardRefB, serviceB := accessWizardResource(ctx, t, resClient, engine, objectKey)
+	defer readTxB.Release()
+	defer wizardRefB.Release()
+	candidates := [][]byte{[]byte("setup-journal-alpha"), []byte("setup-journal-bravo")}
+	responses := make([]*s4wave_wizard.CompareAndSetConfigDataResponse, 2)
+	errs := make([]error, 2)
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		<-start
+		responses[0], errs[0] = serviceA.CompareAndSetConfigData(ctx, &s4wave_wizard.CompareAndSetConfigDataRequest{
+			ExpectedConfigData: nil,
+			ConfigData:         candidates[0],
+		})
+	}()
+	go func() {
+		defer wg.Done()
+		<-start
+		responses[1], errs[1] = serviceB.CompareAndSetConfigData(ctx, &s4wave_wizard.CompareAndSetConfigDataRequest{
+			ExpectedConfigData: nil,
+			ConfigData:         candidates[1],
+		})
+	}()
+	close(start)
+	wg.Wait()
+
+	winner := -1
+	for i, err := range errs {
+		if err != nil {
+			t.Fatalf("CompareAndSetConfigData[%d]: %v", i, err)
+		}
+		if responses[i].GetApplied() {
+			if winner != -1 {
+				t.Fatal("both stale controllers applied different setup journals")
+			}
+			winner = i
+		}
+	}
+	if winner == -1 {
+		t.Fatal("no setup journal won")
+	}
+	for i, response := range responses {
+		if string(response.GetState().GetConfigData()) != string(candidates[winner]) {
+			t.Fatalf("controller %d returned %q, want winner %q", i, response.GetState().GetConfigData(), candidates[winner])
+		}
+	}
+
+	verifyTx, verifyRef, verifyService := accessWizardResource(ctx, t, resClient, engine, objectKey)
+	defer verifyTx.Release()
+	defer verifyRef.Release()
+	persisted := recvWizardState(ctx, t, verifyService)
+	if string(persisted.GetConfigData()) != string(candidates[winner]) {
+		t.Fatalf("persisted config = %q, want %q", persisted.GetConfigData(), candidates[winner])
 	}
 }
 

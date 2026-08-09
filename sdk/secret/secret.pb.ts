@@ -68,6 +68,18 @@ export interface Secret {
    * @generated from field: google.protobuf.Timestamp updated_at = 7;
    */
   updatedAt?: Date
+  /**
+   * CreationToken is the opaque identity of the authorized creation request.
+   *
+   * @generated from field: bytes creation_token = 8;
+   */
+  creationToken?: Uint8Array
+  /**
+   * PayloadIdentity is an opaque request identity shared with the exact nested payload.
+   *
+   * @generated from field: bytes payload_identity = 9;
+   */
+  payloadIdentity?: Uint8Array
 }
 
 export const Secret: MessageType<Secret> = /* @__PURE__ */ createMessageType({
@@ -85,6 +97,8 @@ export const Secret: MessageType<Secret> = /* @__PURE__ */ createMessageType({
     { no: 5, name: 'value_hash', kind: 'scalar', T: ScalarType.STRING },
     { no: 6, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 7, name: 'updated_at', kind: 'message', T: () => Timestamp },
+    { no: 8, name: 'creation_token', kind: 'scalar', T: ScalarType.BYTES },
+    { no: 9, name: 'payload_identity', kind: 'scalar', T: ScalarType.BYTES },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
@@ -119,6 +133,12 @@ export interface SecretPayload {
    * @generated from field: google.protobuf.Timestamp updated_at = 4;
    */
   updatedAt?: Date
+  /**
+   * PayloadIdentity binds this exact payload to its redacted parent without revealing a value verifier.
+   *
+   * @generated from field: bytes payload_identity = 5;
+   */
+  payloadIdentity?: Uint8Array
 }
 
 export const SecretPayload: MessageType<SecretPayload> =
@@ -129,6 +149,7 @@ export const SecretPayload: MessageType<SecretPayload> =
       { no: 2, name: 'content_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'version', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 4, name: 'updated_at', kind: 'message', T: () => Timestamp },
+      { no: 5, name: 'payload_identity', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

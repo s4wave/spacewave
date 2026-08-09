@@ -210,6 +210,8 @@ type Terminal struct {
 	TargetKind TerminalTargetKind `protobuf:"varint,13,opt,name=target_kind,json=targetKind,proto3" json:"targetKind,omitempty"`
 	// SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
 	SshHostObjectKey string `protobuf:"bytes,14,opt,name=ssh_host_object_key,json=sshHostObjectKey,proto3" json:"sshHostObjectKey,omitempty"`
+	// CreationToken is the opaque identity of the authorized creation request.
+	CreationToken []byte `protobuf:"bytes,15,opt,name=creation_token,json=creationToken,proto3" json:"creationToken,omitempty"`
 }
 
 func (x *Terminal) Reset() {
@@ -314,6 +316,13 @@ func (x *Terminal) GetSshHostObjectKey() string {
 		return x.SshHostObjectKey
 	}
 	return ""
+}
+
+func (x *Terminal) GetCreationToken() []byte {
+	if x != nil {
+		return x.CreationToken
+	}
+	return nil
 }
 
 // TerminalFrame carries terminal data and control frames.
@@ -469,6 +478,10 @@ type CreateTerminalOp struct {
 	TargetKind TerminalTargetKind `protobuf:"varint,10,opt,name=target_kind,json=targetKind,proto3" json:"targetKind,omitempty"`
 	// SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
 	SshHostObjectKey string `protobuf:"bytes,11,opt,name=ssh_host_object_key,json=sshHostObjectKey,proto3" json:"sshHostObjectKey,omitempty"`
+	// ReconcileExisting accepts the Terminal already at ObjectKey when its desired fields match.
+	ReconcileExisting bool `protobuf:"varint,12,opt,name=reconcile_existing,json=reconcileExisting,proto3" json:"reconcileExisting,omitempty"`
+	// CreationToken is the unpredictable identity reused only for this desired Terminal.
+	CreationToken []byte `protobuf:"bytes,13,opt,name=creation_token,json=creationToken,proto3" json:"creationToken,omitempty"`
 }
 
 func (x *CreateTerminalOp) Reset() {
@@ -554,6 +567,20 @@ func (x *CreateTerminalOp) GetSshHostObjectKey() string {
 	return ""
 }
 
+func (x *CreateTerminalOp) GetReconcileExisting() bool {
+	if x != nil {
+		return x.ReconcileExisting
+	}
+	return false
+}
+
+func (x *CreateTerminalOp) GetCreationToken() []byte {
+	if x != nil {
+		return x.CreationToken
+	}
+	return nil
+}
+
 // WatchTerminalStateRequest is a request to watch Terminal state.
 type WatchTerminalStateRequest struct {
 	unknownFields []byte
@@ -604,6 +631,7 @@ func (m *Terminal) CloneVT() *Terminal {
 	r.Environment = protobuf_go_lite.CloneSlice(m.Environment)
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	r.UpdatedAt = protobuf_go_lite.CloneVTValue(m.UpdatedAt)
+	r.CreationToken = protobuf_go_lite.CloneBytes(m.CreationToken)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -656,8 +684,10 @@ func (m *CreateTerminalOp) CloneVT() *CreateTerminalOp {
 	r.Rows = m.Rows
 	r.TargetKind = m.TargetKind
 	r.SshHostObjectKey = m.SshHostObjectKey
+	r.ReconcileExisting = m.ReconcileExisting
 	r.Environment = protobuf_go_lite.CloneSlice(m.Environment)
 	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
+	r.CreationToken = protobuf_go_lite.CloneBytes(m.CreationToken)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -745,6 +775,9 @@ func (this *Terminal) EqualVT(that *Terminal) bool {
 		return false
 	}
 	if this.SshHostObjectKey != that.SshHostObjectKey {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.CreationToken, that.CreationToken) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -851,6 +884,12 @@ func (this *CreateTerminalOp) EqualVT(that *CreateTerminalOp) bool {
 		return false
 	}
 	if this.SshHostObjectKey != that.SshHostObjectKey {
+		return false
+	}
+	if this.ReconcileExisting != that.ReconcileExisting {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.CreationToken, that.CreationToken) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1099,6 +1138,11 @@ func (x *Terminal) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sshHostObjectKey")
 		s.WriteString(x.SshHostObjectKey)
 	}
+	if len(x.CreationToken) > 0 || s.HasField("creationToken") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("creationToken")
+		s.WriteBytes(x.CreationToken)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1170,6 +1214,9 @@ func (x *Terminal) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "ssh_host_object_key", "sshHostObjectKey":
 			s.AddField("ssh_host_object_key")
 			x.SshHostObjectKey = s.ReadString()
+		case "creation_token", "creationToken":
+			s.AddField("creation_token")
+			x.CreationToken = s.ReadBytes()
 		}
 	})
 }
@@ -1384,6 +1431,16 @@ func (x *CreateTerminalOp) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sshHostObjectKey")
 		s.WriteString(x.SshHostObjectKey)
 	}
+	if x.ReconcileExisting || s.HasField("reconcileExisting") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reconcileExisting")
+		s.WriteBool(x.ReconcileExisting)
+	}
+	if len(x.CreationToken) > 0 || s.HasField("creationToken") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("creationToken")
+		s.WriteBytes(x.CreationToken)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1442,6 +1499,12 @@ func (x *CreateTerminalOp) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "ssh_host_object_key", "sshHostObjectKey":
 			s.AddField("ssh_host_object_key")
 			x.SshHostObjectKey = s.ReadString()
+		case "reconcile_existing", "reconcileExisting":
+			s.AddField("reconcile_existing")
+			x.ReconcileExisting = s.ReadBool()
+		case "creation_token", "creationToken":
+			s.AddField("creation_token")
+			x.CreationToken = s.ReadBytes()
 		}
 	})
 }
@@ -1555,6 +1618,11 @@ func (m *Terminal) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.CreationToken) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.CreationToken)
+		i--
+		dAtA[i] = 0x7a
 	}
 	if len(m.SshHostObjectKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SshHostObjectKey)
@@ -1769,6 +1837,16 @@ func (m *CreateTerminalOp) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.CreationToken) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.CreationToken)
+		i--
+		dAtA[i] = 0x6a
+	}
+	if m.ReconcileExisting {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ReconcileExisting)
+		i--
+		dAtA[i] = 0x60
+	}
 	if len(m.SshHostObjectKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SshHostObjectKey)
 		i--
@@ -1934,6 +2012,7 @@ func (m *Terminal) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.TargetKind)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SshHostObjectKey)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CreationToken)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1981,6 +2060,8 @@ func (m *CreateTerminalOp) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.TargetKind)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SshHostObjectKey)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ReconcileExisting)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CreationToken)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2083,6 +2164,10 @@ func (x *Terminal) MarshalProtoText() string {
 	if x.SshHostObjectKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ssh_host_object_key")
 		protobuf_go_lite.TextWriteString(&sb, x.SshHostObjectKey)
+	}
+	if len(x.CreationToken) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "creation_token")
+		protobuf_go_lite.TextWriteBytes(&sb, x.CreationToken)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2207,6 +2292,14 @@ func (x *CreateTerminalOp) MarshalProtoText() string {
 	if x.SshHostObjectKey != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ssh_host_object_key")
 		protobuf_go_lite.TextWriteString(&sb, x.SshHostObjectKey)
+	}
+	if x.ReconcileExisting != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reconcile_existing")
+		protobuf_go_lite.TextWriteBool(&sb, x.ReconcileExisting)
+	}
+	if len(x.CreationToken) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "creation_token")
+		protobuf_go_lite.TextWriteBytes(&sb, x.CreationToken)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2409,6 +2502,14 @@ func (m *Terminal) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SshHostObjectKey = v
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreationToken", wireType)
+			}
+			m.CreationToken, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.CreationToken, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2735,6 +2836,24 @@ func (m *CreateTerminalOp) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SshHostObjectKey = v
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReconcileExisting", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ReconcileExisting = bool(v)
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreationToken", wireType)
+			}
+			m.CreationToken, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.CreationToken, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -87,6 +87,8 @@ message Terminal {
   TerminalTargetKind target_kind = 13;
   // SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
   string ssh_host_object_key = 14;
+  // CreationToken is the opaque identity of the authorized creation request.
+  bytes creation_token = 15;
 }
 
 // TerminalFrame carries terminal data and control frames.
@@ -143,6 +145,10 @@ message CreateTerminalOp {
   TerminalTargetKind target_kind = 10;
   // SshHostObjectKey is the linked SSH Host object key for SSH Host terminals.
   string ssh_host_object_key = 11;
+  // ReconcileExisting accepts the Terminal already at ObjectKey when its desired fields match.
+  bool reconcile_existing = 12;
+  // CreationToken is the unpredictable identity reused only for this desired Terminal.
+  bytes creation_token = 13;
 }
 
 service TerminalResourceService {

@@ -1,0 +1,108 @@
+syntax = "proto3";
+package s4wave.app.device;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/app/device;s4wave_app_device";
+
+// AddDeviceWizardMode selects the durable device setup flow.
+enum AddDeviceWizardMode {
+  // ADD_DEVICE_WIZARD_MODE_UNKNOWN is invalid.
+  ADD_DEVICE_WIZARD_MODE_UNKNOWN = 0;
+  // ADD_DEVICE_WIZARD_MODE_SPACELINK configures a managed Device.
+  ADD_DEVICE_WIZARD_MODE_SPACELINK = 1;
+  // ADD_DEVICE_WIZARD_MODE_SSH configures an SSH Host.
+  ADD_DEVICE_WIZARD_MODE_SSH = 2;
+}
+
+// AddDeviceSshAuthMode selects the SSH credential kind.
+enum AddDeviceSshAuthMode {
+  // ADD_DEVICE_SSH_AUTH_MODE_UNKNOWN is invalid.
+  ADD_DEVICE_SSH_AUTH_MODE_UNKNOWN = 0;
+  // ADD_DEVICE_SSH_AUTH_MODE_PASSWORD uses a password Secret.
+  ADD_DEVICE_SSH_AUTH_MODE_PASSWORD = 1;
+  // ADD_DEVICE_SSH_AUTH_MODE_PRIVATE_KEY uses a private-key Secret.
+  ADD_DEVICE_SSH_AUTH_MODE_PRIVATE_KEY = 2;
+}
+
+// AddDeviceSshSetupMode selects the SSH Host setup result.
+enum AddDeviceSshSetupMode {
+  // ADD_DEVICE_SSH_SETUP_MODE_UNKNOWN is invalid.
+  ADD_DEVICE_SSH_SETUP_MODE_UNKNOWN = 0;
+  // ADD_DEVICE_SSH_SETUP_MODE_HOST creates an SSH Host and Terminal.
+  ADD_DEVICE_SSH_SETUP_MODE_HOST = 1;
+  // ADD_DEVICE_SSH_SETUP_MODE_INSTALL_AGENT installs a managed Device agent.
+  ADD_DEVICE_SSH_SETUP_MODE_INSTALL_AGENT = 2;
+}
+
+// AddDeviceWizardPreview records the approved SpaceLink ticket preview.
+message AddDeviceWizardPreview {
+  // Label is the Device label supplied by the ticket.
+  string label = 1;
+  // AgentPeerId is the ticket's display-form peer identifier.
+  string agent_peer_id = 2;
+  // TargetHint identifies the requested SpaceLink target.
+  string target_hint = 3;
+  // ExpiresAt is the ticket expiration timestamp in decimal form.
+  string expires_at = 4;
+}
+
+// AddDeviceSshConfig records non-secret SSH Host setup fields.
+message AddDeviceSshConfig {
+  // Host is the DNS name, IP address, or SSH config alias.
+  string host = 1;
+  // Port is the explicit SSH port; zero means absent and defaults to 22.
+  optional uint32 port = 2;
+  // Username is the SSH login user.
+  string username = 3;
+  // AuthMode selects the required credential Secret.
+  AddDeviceSshAuthMode auth_mode = 4;
+  // SetupMode selects the Host-only or managed-agent result.
+  AddDeviceSshSetupMode setup_mode = 5;
+  // HostKeyAlgorithm is the accepted SSH host-key algorithm.
+  string host_key_algorithm = 6;
+  // HostKeyFingerprint is the accepted SHA256 host-key fingerprint.
+  string host_key_fingerprint = 7;
+  // HostKeyPublicKey is the accepted public key in authorized-key form.
+  string host_key_public_key = 8;
+}
+
+// AddDeviceWizardConfig is the generated config_data storage schema.
+message AddDeviceWizardConfig {
+  // Mode selects the managed Device or SSH Host flow.
+  AddDeviceWizardMode mode = 1;
+  // Ticket is the pending SpaceLink ticket.
+  string ticket = 2;
+  // Completion is the base64 CLI SpaceLink completion packet.
+  string completion = 3;
+  // Preview is the approved SpaceLink ticket preview.
+  AddDeviceWizardPreview preview = 4;
+  // Ssh contains non-secret SSH Host setup fields.
+  AddDeviceSshConfig ssh = 5;
+  // SshHostObjectKey is the stable target key for resumable SSH setup.
+  string ssh_host_object_key = 6;
+  // TerminalObjectKey is the stable SSH Terminal target key.
+  string terminal_object_key = 7;
+  // PasswordSecretObjectKey is the stable password Secret target key.
+  string password_secret_object_key = 8;
+  // PrivateKeySecretObjectKey is the stable private-key Secret target key.
+  string private_key_secret_object_key = 9;
+  // PassphraseSecretObjectKey is the stable passphrase Secret target key.
+  string passphrase_secret_object_key = 10;
+  // SshSetupToken is the unpredictable identity of this SSH setup request.
+  bytes ssh_setup_token = 11;
+  // SshSetupTimestamp is the immutable setup timestamp for all setup objects.
+  .google.protobuf.Timestamp ssh_setup_timestamp = 12;
+  // PasswordSecretSharedObjectId is the stable nested password payload identity.
+  string password_secret_shared_object_id = 13;
+  // PrivateKeySecretSharedObjectId is the stable nested private-key payload identity.
+  string private_key_secret_shared_object_id = 14;
+  // PassphraseSecretSharedObjectId is the stable nested passphrase payload identity.
+  string passphrase_secret_shared_object_id = 15;
+  // PasswordSecretPayloadIdentity binds the exact password payload without revealing a value verifier.
+  bytes password_secret_payload_identity = 16;
+  // PrivateKeySecretPayloadIdentity binds the exact private-key payload without revealing a value verifier.
+  bytes private_key_secret_payload_identity = 17;
+  // PassphraseSecretPayloadIdentity binds the exact passphrase payload without revealing a value verifier.
+  bytes passphrase_secret_payload_identity = 18;
+}

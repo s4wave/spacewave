@@ -514,5 +514,5 @@ export function contextsOverlap(
   left: KeybindingContext,
   right: KeybindingContext,
 ): boolean {
-  return left === right
+  return left === right || left === 'Global' || right === 'Global'
 }

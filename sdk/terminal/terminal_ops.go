@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -83,6 +84,9 @@ func (o *CreateTerminalOp) Validate() error {
 	if err := o.GetTimestamp().Validate(false); err != nil {
 		return err
 	}
+	if o.GetReconcileExisting() && len(o.GetCreationToken()) < 16 {
+		return world.ErrEmptyOp
+	}
 	return nil
 }
 
@@ -97,21 +101,22 @@ func (o *CreateTerminalOp) ApplyWorldOp(
 		return false, err
 	}
 
-	cols, rows := NormalizeTerminalFrameSize(o.GetCols(), o.GetRows())
-	terminal := &Terminal{
-		Name:             o.GetName(),
-		DeviceObjectKey:  o.GetDeviceObjectKey(),
-		DevicePeerId:     o.GetDevicePeerId(),
-		SshHostObjectKey: o.GetSshHostObjectKey(),
-		TargetKind:       effectiveCreateTerminalOpTargetKind(o),
-		Command:          o.GetCommand(),
-		Environment:      slices.Clone(o.GetEnvironment()),
-		Cols:             cols,
-		Rows:             rows,
-		State:            TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED,
-		Status:           "not connected",
-		CreatedAt:        o.GetTimestamp(),
-		UpdatedAt:        o.GetTimestamp(),
+	terminal := o.buildTerminal()
+	if o.GetReconcileExisting() {
+		existing, objRef, lookupErr := world.LookupObject[*Terminal](ctx, ws, o.GetObjectKey(), NewTerminalBlock)
+		world.ReleaseObjectState(objRef)
+		if lookupErr == nil {
+			if err := world_types.CheckObjectType(ctx, ws, o.GetObjectKey(), TerminalTypeID); err != nil {
+				return false, err
+			}
+			if terminalMatchesDesired(existing, terminal) {
+				return false, nil
+			}
+			return false, world.ErrObjectExists
+		}
+		if !errors.Is(lookupErr, world.ErrObjectNotFound) {
+			return false, lookupErr
+		}
 	}
 
 	_, _, err = world.CreateWorldObject(ctx, ws, o.GetObjectKey(), func(bcs *block.Cursor) error {
@@ -155,6 +160,30 @@ func LookupCreateTerminalOp(ctx context.Context, operationTypeID string) (world.
 		return &CreateTerminalOp{}, nil
 	}
 	return nil, nil
+}
+
+func (o *CreateTerminalOp) buildTerminal() *Terminal {
+	cols, rows := NormalizeTerminalFrameSize(o.GetCols(), o.GetRows())
+	return &Terminal{
+		Name:             o.GetName(),
+		DeviceObjectKey:  o.GetDeviceObjectKey(),
+		DevicePeerId:     o.GetDevicePeerId(),
+		SshHostObjectKey: o.GetSshHostObjectKey(),
+		TargetKind:       effectiveCreateTerminalOpTargetKind(o),
+		Command:          o.GetCommand(),
+		Environment:      slices.Clone(o.GetEnvironment()),
+		Cols:             cols,
+		Rows:             rows,
+		State:            TerminalSessionState_TERMINAL_SESSION_STATE_DISCONNECTED,
+		Status:           "not connected",
+		CreatedAt:        o.GetTimestamp(),
+		UpdatedAt:        o.GetTimestamp(),
+		CreationToken:    slices.Clone(o.GetCreationToken()),
+	}
+}
+
+func terminalMatchesDesired(existing, desired *Terminal) bool {
+	return existing != nil && desired != nil && existing.EqualVT(desired)
 }
 
 func effectiveCreateTerminalOpTargetKind(o *CreateTerminalOp) TerminalTargetKind {

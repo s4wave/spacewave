@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
@@ -8,9 +8,9 @@ import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 
 import { useRenderDelay } from '@s4wave/app/loading/useRenderDelay.js'
 import { ChatHandle, ChatChannelTypeID } from '@s4wave/sdk/chat/chat.js'
-import type { ChatMessageInfo } from '@s4wave/sdk/chat/rpc/rpc.pb.js'
 import { MessageList } from './MessageList.js'
 import { MessageInput } from './MessageInput.js'
+import { accumulateChatMessages } from './chat-message-stream.js'
 
 export { ChatChannelTypeID }
 
@@ -29,35 +29,16 @@ export function ChatChannelViewer({
     ChatChannelTypeID,
   )
 
-  // Accumulate streamed message batches in state.
-  // Each yield from watchMessages is a delta (new messages only).
-  const [messages, setMessages] = useState<ChatMessageInfo[]>([])
-
-  const streamFactory = useCallback((h: ChatHandle, signal: AbortSignal) => {
-    setMessages([])
-    return h.watchMessages(signal)
-  }, [])
-
+  const streamFactory = useCallback(
+    (chatHandle: ChatHandle, signal: AbortSignal) =>
+      accumulateChatMessages(chatHandle.watchMessages(signal)),
+    [],
+  )
   const messagesResource = useStreamingResource(handle, streamFactory, [])
+  const messages = messagesResource.value ?? []
 
   // 300 ms render delay so fast history loads do not flash the card.
   const showLoadingCard = useRenderDelay(300)
-
-  // Merge each new batch into the accumulator.
-  // This is a synchronous state derivation from streamed values, not async data loading.
-  useEffect(() => {
-    const batch = messagesResource.value
-    if (!batch || batch.length === 0) return
-    const timer = window.setTimeout(() => {
-      setMessages((prev) => {
-        const existing = new Set(prev.map((m) => m.objectKey))
-        const newMsgs = batch.filter((m) => !existing.has(m.objectKey))
-        if (newMsgs.length === 0) return prev
-        return [...prev, ...newMsgs]
-      })
-    }, 0)
-    return () => window.clearTimeout(timer)
-  }, [messagesResource.value])
 
   const handleSend = useCallback(
     async (text: string) => {

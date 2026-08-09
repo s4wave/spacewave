@@ -274,6 +274,71 @@ export const UpdateWizardStateResponse: MessageType<UpdateWizardStateResponse> =
   })
 
 /**
+ * CompareAndSetConfigDataRequest carries one exact observed-to-desired config transition.
+ *
+ * @generated from message s4wave.wizard.CompareAndSetConfigDataRequest
+ */
+export interface CompareAndSetConfigDataRequest {
+  /**
+   * ExpectedConfigData is the complete persisted config observed by the caller.
+   *
+   * @generated from field: bytes expected_config_data = 1;
+   */
+  expectedConfigData?: Uint8Array
+  /**
+   * ConfigData is the complete desired config to persist when the expectation still matches.
+   *
+   * @generated from field: bytes config_data = 2;
+   */
+  configData?: Uint8Array
+}
+
+export const CompareAndSetConfigDataRequest: MessageType<CompareAndSetConfigDataRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.wizard.CompareAndSetConfigDataRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'expected_config_data',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      { no: 2, name: 'config_data', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CompareAndSetConfigDataResponse returns the serialized winner.
+ *
+ * @generated from message s4wave.wizard.CompareAndSetConfigDataResponse
+ */
+export interface CompareAndSetConfigDataResponse {
+  /**
+   * State is the current persisted wizard state after the transition attempt.
+   *
+   * @generated from field: s4wave.wizard.WizardState state = 1;
+   */
+  state?: WizardState
+  /**
+   * Applied reports whether ConfigData won the compare-and-set transition.
+   *
+   * @generated from field: bool applied = 2;
+   */
+  applied?: boolean
+}
+
+export const CompareAndSetConfigDataResponse: MessageType<CompareAndSetConfigDataResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.wizard.CompareAndSetConfigDataResponse',
+    fields: [
+      { no: 1, name: 'state', kind: 'message', T: () => WizardState },
+      { no: 2, name: 'applied', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * StartGitCloneRequest is the request for StartGitClone.
  *
  * @generated from message s4wave.wizard.StartGitCloneRequest

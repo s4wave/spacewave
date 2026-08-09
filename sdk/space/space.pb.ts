@@ -22,8 +22,8 @@ import {
   SOParticipantRole_Enum,
 } from '../../core/sobject/sobject.pb.js'
 import { MailboxEntryInfo } from '../provider/spacewave/spacewave.pb.js'
-import { Secret, SecretPayload } from '../secret/secret.pb.js'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
+import { Secret, SecretPayload } from '../secret/secret.pb.js'
 
 export const protobufPackage = 's4wave.space'
 
@@ -481,6 +481,36 @@ export interface CreateSecretRequest {
    * @generated from field: bytes reader_public_key_pem = 6;
    */
   readerPublicKeyPem?: Uint8Array
+  /**
+   * ReconcileExisting accepts an existing Secret only after complete desired-state validation.
+   *
+   * @generated from field: bool reconcile_existing = 7;
+   */
+  reconcileExisting?: boolean
+  /**
+   * CreationToken is an unpredictable identity reused only for this desired Secret.
+   *
+   * @generated from field: bytes creation_token = 8;
+   */
+  creationToken?: Uint8Array
+  /**
+   * NestedSharedObjectId is the stable payload object identity for reconciliation.
+   *
+   * @generated from field: string nested_shared_object_id = 9;
+   */
+  nestedSharedObjectId?: string
+  /**
+   * Timestamp is the immutable setup timestamp used by parent and payload state.
+   *
+   * @generated from field: google.protobuf.Timestamp timestamp = 10;
+   */
+  timestamp?: Date
+  /**
+   * PayloadIdentity is an unpredictable opaque identity reused only for this exact payload.
+   *
+   * @generated from field: bytes payload_identity = 11;
+   */
+  payloadIdentity?: Uint8Array
 }
 
 export const CreateSecretRequest: MessageType<CreateSecretRequest> =
@@ -498,6 +528,16 @@ export const CreateSecretRequest: MessageType<CreateSecretRequest> =
         kind: 'scalar',
         T: ScalarType.BYTES,
       },
+      { no: 7, name: 'reconcile_existing', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 8, name: 'creation_token', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 9,
+        name: 'nested_shared_object_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 10, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      { no: 11, name: 'payload_identity', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -521,6 +561,71 @@ export const CreateSecretResponse: MessageType<CreateSecretResponse> =
     typeName: 's4wave.space.CreateSecretResponse',
     fields: [
       { no: 1, name: 'secret', kind: 'message', T: () => Secret },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DeleteSecretRequest deletes a Secret only when its creation identity matches.
+ *
+ * @generated from message s4wave.space.DeleteSecretRequest
+ */
+export interface DeleteSecretRequest {
+  /**
+   * ObjectKey is the parent Secret object key.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * CreationToken is the setup identity recorded by the Secret.
+   *
+   * @generated from field: bytes creation_token = 2;
+   */
+  creationToken?: Uint8Array
+  /**
+   * NestedSharedObjectId is the config-owned payload identity.
+   *
+   * @generated from field: string nested_shared_object_id = 3;
+   */
+  nestedSharedObjectId?: string
+}
+
+export const DeleteSecretRequest: MessageType<DeleteSecretRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.DeleteSecretRequest',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'creation_token', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 3,
+        name: 'nested_shared_object_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * DeleteSecretResponse reports whether the parent object existed.
+ *
+ * @generated from message s4wave.space.DeleteSecretResponse
+ */
+export interface DeleteSecretResponse {
+  /**
+   * Deleted is true when the parent existed and was deleted.
+   *
+   * @generated from field: bool deleted = 1;
+   */
+  deleted?: boolean
+}
+
+export const DeleteSecretResponse: MessageType<DeleteSecretResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.DeleteSecretResponse',
+    fields: [
+      { no: 1, name: 'deleted', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

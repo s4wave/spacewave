@@ -1,6 +1,7 @@
 package s4wave_wizard
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -11,6 +12,7 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	space_uri "github.com/s4wave/spacewave/sdk/space"
@@ -249,6 +251,72 @@ func (r *WizardResource) UpdateWizardState(ctx context.Context, req *UpdateWizar
 	r.setWizardStateWatchState(updated, rev)
 
 	return &UpdateWizardStateResponse{State: updated.CloneVT()}, nil
+}
+
+// CompareAndSetConfigData atomically persists one observed-to-desired config transition.
+func (r *WizardResource) CompareAndSetConfigData(
+	ctx context.Context,
+	req *CompareAndSetConfigDataRequest,
+) (*CompareAndSetConfigDataResponse, error) {
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		state, rev, applied, err := r.compareAndSetConfigData(ctx, req)
+		if errors.Is(err, coord.ErrStaleGeneration) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		r.setWizardStateWatchState(state, rev)
+		return &CompareAndSetConfigDataResponse{
+			State:   state.CloneVT(),
+			Applied: applied,
+		}, nil
+	}
+}
+
+func (r *WizardResource) compareAndSetConfigData(
+	ctx context.Context,
+	req *CompareAndSetConfigDataRequest,
+) (*WizardState, uint64, bool, error) {
+	wtx, err := r.engine.NewTransaction(ctx, true)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	defer wtx.Discard()
+	writeState, found, err := wtx.GetObject(ctx, r.objKey)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	if !found {
+		return nil, 0, false, world.ErrObjectNotFound
+	}
+	current, err := r.readWizardWorldState(ctx, writeState)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	if !bytes.Equal(current.GetConfigData(), req.GetExpectedConfigData()) {
+		_, rev, err := writeState.GetRootRef(ctx)
+		return current, rev, false, err
+	}
+	current.ConfigData = append([]byte(nil), req.GetConfigData()...)
+	_, _, err = world.AccessObjectState(ctx, writeState, true, func(bcs *block.Cursor) error {
+		bcs.SetBlock(current, true)
+		return nil
+	})
+	if err != nil {
+		return nil, 0, false, err
+	}
+	_, rev, err := writeState.GetRootRef(ctx)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	if err := wtx.Commit(ctx); err != nil {
+		return nil, 0, false, err
+	}
+	return current, rev, true, nil
 }
 
 // StartGitClone starts the Git repository clone workflow for this wizard.

@@ -19,8 +19,12 @@ service SpaceResourceService {
 
   rpc MountSpaceContents(MountSpaceContentsRequest) returns (MountSpaceContentsResponse) {}
 
+  // CreateSecret creates or reconciles a Secret and its nested payload.
   rpc CreateSecret(CreateSecretRequest) returns (CreateSecretResponse) {}
+  // DeleteSecret deletes an exact token-owned Secret payload and parent.
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse) {}
 
+  // ReadSecretPayload reads a granted Secret payload under the mounted session authority.
   rpc ReadSecretPayload(ReadSecretPayloadRequest) returns (ReadSecretPayloadResponse) {}
 
   rpc DeployManifest(stream .s4wave.deploy.DeployManifestMessage) returns (stream .s4wave.deploy.DeployManifestMessage) {}
@@ -127,12 +131,38 @@ message CreateSecretRequest {
   bytes value = 5;
   // ReaderPublicKeyPem optionally grants read access to this peer key.
   bytes reader_public_key_pem = 6;
+  // ReconcileExisting accepts an existing Secret only after complete desired-state validation.
+  bool reconcile_existing = 7;
+  // CreationToken is an unpredictable identity reused only for this desired Secret.
+  bytes creation_token = 8;
+  // NestedSharedObjectId is the stable payload object identity for reconciliation.
+  string nested_shared_object_id = 9;
+  // Timestamp is the immutable setup timestamp used by parent and payload state.
+  .google.protobuf.Timestamp timestamp = 10;
+  // PayloadIdentity is an unpredictable opaque identity reused only for this exact payload.
+  bytes payload_identity = 11;
 }
 
 // CreateSecretResponse returns the redacted Secret parent metadata.
 message CreateSecretResponse {
   // Secret is the created parent Secret object metadata.
   .s4wave.secret.Secret secret = 1;
+}
+
+// DeleteSecretRequest deletes a Secret only when its creation identity matches.
+message DeleteSecretRequest {
+  // ObjectKey is the parent Secret object key.
+  string object_key = 1;
+  // CreationToken is the setup identity recorded by the Secret.
+  bytes creation_token = 2;
+  // NestedSharedObjectId is the config-owned payload identity.
+  string nested_shared_object_id = 3;
+}
+
+// DeleteSecretResponse reports whether the parent object existed.
+message DeleteSecretResponse {
+  // Deleted is true when the parent existed and was deleted.
+  bool deleted = 1;
 }
 
 // ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.

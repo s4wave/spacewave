@@ -7,6 +7,7 @@ import (
 	"time"
 
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -61,6 +62,9 @@ func (o *CreateSshHostOp) Validate() error {
 	if err := o.GetTimestamp().Validate(false); err != nil {
 		return err
 	}
+	if o.GetReconcileExisting() && len(o.GetCreationToken()) < 16 {
+		return world.ErrEmptyOp
+	}
 	return nil
 }
 
@@ -76,6 +80,22 @@ func (o *CreateSshHostOp) ApplyWorldOp(
 	}
 
 	host := o.buildSshHost()
+	if o.GetReconcileExisting() {
+		existing, objRef, lookupErr := world.LookupObject[*SshHost](ctx, ws, o.GetObjectKey(), NewSshHostBlock)
+		world.ReleaseObjectState(objRef)
+		if lookupErr == nil {
+			if err := world_types.CheckObjectType(ctx, ws, o.GetObjectKey(), SshHostTypeID); err != nil {
+				return false, err
+			}
+			if sshHostMatchesDesired(existing, host) {
+				return false, nil
+			}
+			return false, world.ErrObjectExists
+		}
+		if !errors.Is(lookupErr, world.ErrObjectNotFound) {
+			return false, lookupErr
+		}
+	}
 	_, _, err = world.CreateWorldObject(ctx, ws, o.GetObjectKey(), func(bcs *block.Cursor) error {
 		bcs.SetBlock(host, true)
 		return nil
@@ -131,9 +151,14 @@ func (o *CreateSshHostOp) buildSshHost() *SshHost {
 			Message:    "not probed",
 			ObservedAt: ts,
 		},
-		CreatedAt: ts,
-		UpdatedAt: ts,
+		CreatedAt:     ts,
+		UpdatedAt:     ts,
+		CreationToken: slices.Clone(o.GetCreationToken()),
 	}
+}
+
+func sshHostMatchesDesired(existing, desired *SshHost) bool {
+	return existing != nil && desired != nil && existing.EqualVT(desired)
 }
 
 func cloneSshHostKeyPins(pins []*SshHostKeyPin) []*SshHostKeyPin {

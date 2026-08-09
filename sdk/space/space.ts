@@ -20,6 +20,10 @@ import type {
 import {
   CreateSecretRequest,
   CreateSecretResponse,
+  DeleteSecretRequest,
+  DeleteSecretResponse,
+  ReadSecretPayloadRequest,
+  ReadSecretPayloadResponse,
   SpaceSharingState,
   SpaceState,
   WatchSpaceSharingStateRequest,
@@ -102,6 +106,22 @@ export class Space extends Resource {
     abortSignal?: AbortSignal,
   ): Promise<CreateSecretResponse> {
     return await this.service.CreateSecret(request, abortSignal)
+  }
+
+  // deleteSecret removes the token-owned nested payload before its parent Secret.
+  public async deleteSecret(
+    request: DeleteSecretRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<DeleteSecretResponse> {
+    return await this.service.DeleteSecret(request, abortSignal)
+  }
+
+  // readSecretPayload reads an exact Secret payload under the mounted session authority.
+  public async readSecretPayload(
+    request: ReadSecretPayloadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ReadSecretPayloadResponse> {
+    return await this.service.ReadSecretPayload(request, abortSignal)
   }
 
   // accessWorldState accesses the Engine as a WorldState-like interface.

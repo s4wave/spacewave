@@ -33,6 +33,10 @@ type Secret struct {
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
 	// UpdatedAt is when the Secret metadata was last updated.
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updatedAt,omitempty"`
+	// CreationToken is the opaque identity of the authorized creation request.
+	CreationToken []byte `protobuf:"bytes,8,opt,name=creation_token,json=creationToken,proto3" json:"creationToken,omitempty"`
+	// PayloadIdentity is an opaque request identity shared with the exact nested payload.
+	PayloadIdentity []byte `protobuf:"bytes,9,opt,name=payload_identity,json=payloadIdentity,proto3" json:"payloadIdentity,omitempty"`
 }
 
 func (x *Secret) Reset() {
@@ -90,6 +94,20 @@ func (x *Secret) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Secret) GetCreationToken() []byte {
+	if x != nil {
+		return x.CreationToken
+	}
+	return nil
+}
+
+func (x *Secret) GetPayloadIdentity() []byte {
+	if x != nil {
+		return x.PayloadIdentity
+	}
+	return nil
+}
+
 // SecretPayload is stored only inside the nested SharedObject body.
 type SecretPayload struct {
 	unknownFields []byte
@@ -101,6 +119,8 @@ type SecretPayload struct {
 	Version uint64 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
 	// UpdatedAt is when Value was last replaced.
 	UpdatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updatedAt,omitempty"`
+	// PayloadIdentity binds this exact payload to its redacted parent without revealing a value verifier.
+	PayloadIdentity []byte `protobuf:"bytes,5,opt,name=payload_identity,json=payloadIdentity,proto3" json:"payloadIdentity,omitempty"`
 }
 
 func (x *SecretPayload) Reset() {
@@ -133,6 +153,13 @@ func (x *SecretPayload) GetVersion() uint64 {
 func (x *SecretPayload) GetUpdatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.UpdatedAt
+	}
+	return nil
+}
+
+func (x *SecretPayload) GetPayloadIdentity() []byte {
+	if x != nil {
+		return x.PayloadIdentity
 	}
 	return nil
 }
@@ -482,6 +509,8 @@ func (m *Secret) CloneVT() *Secret {
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	r.UpdatedAt = protobuf_go_lite.CloneVTValue(m.UpdatedAt)
+	r.CreationToken = protobuf_go_lite.CloneBytes(m.CreationToken)
+	r.PayloadIdentity = protobuf_go_lite.CloneBytes(m.PayloadIdentity)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -501,6 +530,7 @@ func (m *SecretPayload) CloneVT() *SecretPayload {
 	r.Version = m.Version
 	r.Value = protobuf_go_lite.CloneBytes(m.Value)
 	r.UpdatedAt = protobuf_go_lite.CloneVTValue(m.UpdatedAt)
+	r.PayloadIdentity = protobuf_go_lite.CloneBytes(m.PayloadIdentity)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -699,6 +729,12 @@ func (this *Secret) EqualVT(that *Secret) bool {
 	if !protobuf_go_lite.IsEqualVT(this.UpdatedAt, that.UpdatedAt) {
 		return false
 	}
+	if !protobuf_go_lite.EqualBytes(this.CreationToken, that.CreationToken) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.PayloadIdentity, that.PayloadIdentity) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -726,6 +762,9 @@ func (this *SecretPayload) EqualVT(that *SecretPayload) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.UpdatedAt, that.UpdatedAt) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.PayloadIdentity, that.PayloadIdentity) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1013,6 +1052,16 @@ func (x *Secret) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("updatedAt")
 		x.UpdatedAt.MarshalProtoJSON(s.WithField("updatedAt"))
 	}
+	if len(x.CreationToken) > 0 || s.HasField("creationToken") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("creationToken")
+		s.WriteBytes(x.CreationToken)
+	}
+	if len(x.PayloadIdentity) > 0 || s.HasField("payloadIdentity") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payloadIdentity")
+		s.WriteBytes(x.PayloadIdentity)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1063,6 +1112,12 @@ func (x *Secret) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.UpdatedAt = &timestamppb.Timestamp{}
 			x.UpdatedAt.UnmarshalProtoJSON(s.WithField("updated_at", true))
+		case "creation_token", "creationToken":
+			s.AddField("creation_token")
+			x.CreationToken = s.ReadBytes()
+		case "payload_identity", "payloadIdentity":
+			s.AddField("payload_identity")
+			x.PayloadIdentity = s.ReadBytes()
 		}
 	})
 }
@@ -1100,6 +1155,11 @@ func (x *SecretPayload) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("updatedAt")
 		x.UpdatedAt.MarshalProtoJSON(s.WithField("updatedAt"))
 	}
+	if len(x.PayloadIdentity) > 0 || s.HasField("payloadIdentity") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payloadIdentity")
+		s.WriteBytes(x.PayloadIdentity)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1133,6 +1193,9 @@ func (x *SecretPayload) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.UpdatedAt = &timestamppb.Timestamp{}
 			x.UpdatedAt.UnmarshalProtoJSON(s.WithField("updated_at", true))
+		case "payload_identity", "payloadIdentity":
+			s.AddField("payload_identity")
+			x.PayloadIdentity = s.ReadBytes()
 		}
 	})
 }
@@ -1717,6 +1780,16 @@ func (m *Secret) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.PayloadIdentity) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.PayloadIdentity)
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.CreationToken) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.CreationToken)
+		i--
+		dAtA[i] = 0x42
+	}
 	if m.UpdatedAt != nil {
 		size, err := m.UpdatedAt.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1798,6 +1871,11 @@ func (m *SecretPayload) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PayloadIdentity) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.PayloadIdentity)
+		i--
+		dAtA[i] = 0x2a
 	}
 	if m.UpdatedAt != nil {
 		size, err := m.UpdatedAt.MarshalToSizedBufferVT(dAtA[:i])
@@ -2312,6 +2390,8 @@ func (m *Secret) SizeVT() (n int) {
 		l = m.UpdatedAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CreationToken)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.PayloadIdentity)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2329,6 +2409,7 @@ func (m *SecretPayload) SizeVT() (n int) {
 		l = m.UpdatedAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.PayloadIdentity)
 	n += len(m.unknownFields)
 	return n
 }
@@ -2507,6 +2588,14 @@ func (x *Secret) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "updated_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UpdatedAt)
 	}
+	if len(x.CreationToken) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "creation_token")
+		protobuf_go_lite.TextWriteBytes(&sb, x.CreationToken)
+	}
+	if len(x.PayloadIdentity) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "payload_identity")
+		protobuf_go_lite.TextWriteBytes(&sb, x.PayloadIdentity)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -2532,6 +2621,10 @@ func (x *SecretPayload) MarshalProtoText() string {
 	if x.UpdatedAt != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "updated_at")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.UpdatedAt)
+	}
+	if len(x.PayloadIdentity) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "payload_identity")
+		protobuf_go_lite.TextWriteBytes(&sb, x.PayloadIdentity)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2839,6 +2932,22 @@ func (m *Secret) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreationToken", wireType)
+			}
+			m.CreationToken, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.CreationToken, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PayloadIdentity", wireType)
+			}
+			m.PayloadIdentity, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.PayloadIdentity, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2924,6 +3033,14 @@ func (m *SecretPayload) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PayloadIdentity", wireType)
+			}
+			m.PayloadIdentity, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.PayloadIdentity, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

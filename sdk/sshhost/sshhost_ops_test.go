@@ -29,9 +29,20 @@ func TestCreateSshHostOpCreatesTypedHostWithoutCredentialPayload(t *testing.T) {
 		}},
 		time.Unix(100, 0),
 	)
+	op.CreationToken = []byte("0123456789abcdef0123456789abcdef")
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, op, ""); err != nil {
 		t.Fatalf("ApplyWorldOp: %v", err)
 	}
+
+	op.ReconcileExisting = true
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, op, ""); err != nil {
+		t.Fatalf("reconcile ApplyWorldOp: %v", err)
+	}
+	op.Endpoint.Host = "other.example.com"
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, op, ""); err != world.ErrObjectExists {
+		t.Fatalf("mismatched reconcile error = %v, want %v", err, world.ErrObjectExists)
+	}
+	op.Endpoint.Host = "prod.example.com"
 
 	typeID, err := world_types.GetObjectType(ctx, tb.WorldState, "hosts/prod")
 	if err != nil {
@@ -66,5 +77,38 @@ func TestCreateSshHostOpCreatesTypedHostWithoutCredentialPayload(t *testing.T) {
 	}
 	if host.GetCredentials().GetPasswordSecretObjectKey() != "" {
 		t.Fatal("ssh host should not contain raw password payload")
+	}
+}
+
+func TestCreateSshHostOpRejectsMatchingBodyWithWrongObjectType(t *testing.T) {
+	ctx := t.Context()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	op := NewCreateSshHostOp(
+		"hosts/wrong-type",
+		"Wrong Type",
+		&SshHostEndpoint{Host: "host.example.com", Username: "user"},
+		nil,
+		nil,
+		time.Unix(100, 0),
+	)
+	op.CreationToken = []byte("0123456789abcdef0123456789abcdef")
+	op.ReconcileExisting = true
+	host := op.buildSshHost()
+	if _, _, err := world.CreateWorldObject(ctx, tb.WorldState, op.GetObjectKey(), func(bcs *block.Cursor) error {
+		bcs.SetBlock(host, true)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := world_types.SetObjectType(ctx, tb.WorldState, op.GetObjectKey(), "wrong/type"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, op, ""); err == nil {
+		t.Fatal("matching body with the wrong ObjectType was accepted")
 	}
 }

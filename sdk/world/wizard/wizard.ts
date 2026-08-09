@@ -9,6 +9,7 @@ import type {
   WatchGitCloneProgressResponse,
   WatchWizardStateResponse,
   UpdateWizardStateResponse,
+  CompareAndSetConfigDataResponse,
 } from './wizard.pb.js'
 
 // WizardHandle represents a handle to a wizard resource.
@@ -46,6 +47,18 @@ export class WizardHandle extends Resource {
         configData: opts.configData,
         hasConfigData: opts.configData !== undefined,
       },
+      abortSignal,
+    )
+  }
+
+  // compareAndSetConfigData replaces config data only when the persisted bytes still match expectedConfigData.
+  public async compareAndSetConfigData(
+    expectedConfigData: Uint8Array,
+    configData: Uint8Array,
+    abortSignal?: AbortSignal,
+  ): Promise<CompareAndSetConfigDataResponse> {
+    return this.service.CompareAndSetConfigData(
+      { expectedConfigData, configData },
       abortSignal,
     )
   }

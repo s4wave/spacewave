@@ -14,6 +14,8 @@ service ObjectWizardRegistryResourceService {
 service WizardResourceService {
   rpc WatchWizardState(WatchWizardStateRequest) returns (stream WatchWizardStateResponse);
   rpc UpdateWizardState(UpdateWizardStateRequest) returns (UpdateWizardStateResponse);
+  // CompareAndSetConfigData atomically replaces the persisted config when it still matches the caller's observation.
+  rpc CompareAndSetConfigData(CompareAndSetConfigDataRequest) returns (CompareAndSetConfigDataResponse);
   rpc StartGitClone(StartGitCloneRequest) returns (StartGitCloneResponse);
   rpc WatchGitCloneProgress(WatchGitCloneProgressRequest) returns (stream WatchGitCloneProgressResponse);
 }
@@ -43,6 +45,22 @@ message UpdateWizardStateRequest {
 message UpdateWizardStateResponse {
   // State is the updated wizard state.
   WizardState state = 1;
+}
+
+// CompareAndSetConfigDataRequest carries one exact observed-to-desired config transition.
+message CompareAndSetConfigDataRequest {
+  // ExpectedConfigData is the complete persisted config observed by the caller.
+  bytes expected_config_data = 1;
+  // ConfigData is the complete desired config to persist when the expectation still matches.
+  bytes config_data = 2;
+}
+
+// CompareAndSetConfigDataResponse returns the serialized winner.
+message CompareAndSetConfigDataResponse {
+  // State is the current persisted wizard state after the transition attempt.
+  WizardState state = 1;
+  // Applied reports whether ConfigData won the compare-and-set transition.
+  bool applied = 2;
 }
 
 // StartGitCloneRequest is the request for StartGitClone.

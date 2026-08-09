@@ -3,6 +3,8 @@
 /* eslint-disable */
 
 import {
+  CompareAndSetConfigDataRequest,
+  CompareAndSetConfigDataResponse,
   ListWizardsRequest,
   ListWizardsResponse,
   RegisterWizardRequest,
@@ -213,6 +215,17 @@ export const WizardResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CompareAndSetConfigData atomically replaces the persisted config when it still matches the caller's observation.
+     *
+     * @generated from rpc s4wave.wizard.WizardResourceService.CompareAndSetConfigData
+     */
+    CompareAndSetConfigData: {
+      name: 'CompareAndSetConfigData',
+      I: CompareAndSetConfigDataRequest,
+      O: CompareAndSetConfigDataResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc s4wave.wizard.WizardResourceService.StartGitClone
      */
     StartGitClone: {
@@ -254,6 +267,16 @@ export interface WizardResourceService {
   ): Promise<UpdateWizardStateResponse>
 
   /**
+   * CompareAndSetConfigData atomically replaces the persisted config when it still matches the caller's observation.
+   *
+   * @generated from rpc s4wave.wizard.WizardResourceService.CompareAndSetConfigData
+   */
+  CompareAndSetConfigData(
+    request: CompareAndSetConfigDataRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CompareAndSetConfigDataResponse>
+
+  /**
    * @generated from rpc s4wave.wizard.WizardResourceService.StartGitClone
    */
   StartGitClone(
@@ -293,6 +316,17 @@ export interface WizardResourceServiceHandler {
   ): Promise<UpdateWizardStateResponse>
 
   /**
+   * CompareAndSetConfigData atomically replaces the persisted config when it still matches the caller's observation.
+   *
+   * @generated from rpc s4wave.wizard.WizardResourceService.CompareAndSetConfigData
+   */
+  CompareAndSetConfigData(
+    request: CompareAndSetConfigDataRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CompareAndSetConfigDataResponse>
+
+  /**
    * @generated from rpc s4wave.wizard.WizardResourceService.StartGitClone
    */
   StartGitClone(
@@ -322,6 +356,7 @@ export class WizardResourceServiceClient implements WizardResourceService {
     this.rpc = rpc
     this.WatchWizardState = this.WatchWizardState.bind(this)
     this.UpdateWizardState = this.UpdateWizardState.bind(this)
+    this.CompareAndSetConfigData = this.CompareAndSetConfigData.bind(this)
     this.StartGitClone = this.StartGitClone.bind(this)
     this.WatchGitCloneProgress = this.WatchGitCloneProgress.bind(this)
   }
@@ -357,6 +392,25 @@ export class WizardResourceServiceClient implements WizardResourceService {
       abortSignal || undefined,
     )
     return UpdateWizardStateResponse.fromBinary(result)
+  }
+
+  /**
+   * CompareAndSetConfigData atomically replaces the persisted config when it still matches the caller's observation.
+   *
+   * @generated from rpc s4wave.wizard.WizardResourceService.CompareAndSetConfigData
+   */
+  async CompareAndSetConfigData(
+    request: CompareAndSetConfigDataRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CompareAndSetConfigDataResponse> {
+    const requestMsg = CompareAndSetConfigDataRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      WizardResourceServiceDefinition.methods.CompareAndSetConfigData.name,
+      CompareAndSetConfigDataRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CompareAndSetConfigDataResponse.fromBinary(result)
   }
 
   /**

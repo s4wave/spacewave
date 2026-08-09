@@ -230,6 +230,8 @@ type SRPCWizardResourceServiceClient interface {
 	WatchWizardState(ctx context.Context, in *WatchWizardStateRequest) (SRPCWizardResourceService_WatchWizardStateClient, error)
 
 	UpdateWizardState(ctx context.Context, in *UpdateWizardStateRequest) (*UpdateWizardStateResponse, error)
+	// CompareAndSetConfigData atomically replaces the persisted config when it still matches the caller's observation.
+	CompareAndSetConfigData(ctx context.Context, in *CompareAndSetConfigDataRequest) (*CompareAndSetConfigDataResponse, error)
 
 	StartGitClone(ctx context.Context, in *StartGitCloneRequest) (*StartGitCloneResponse, error)
 
@@ -297,6 +299,15 @@ func (c *srpcWizardResourceServiceClient) UpdateWizardState(ctx context.Context,
 	return out, nil
 }
 
+func (c *srpcWizardResourceServiceClient) CompareAndSetConfigData(ctx context.Context, in *CompareAndSetConfigDataRequest) (*CompareAndSetConfigDataResponse, error) {
+	out := new(CompareAndSetConfigDataResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "CompareAndSetConfigData", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcWizardResourceServiceClient) StartGitClone(ctx context.Context, in *StartGitCloneRequest) (*StartGitCloneResponse, error) {
 	out := new(StartGitCloneResponse)
 	err := c.cc.ExecCall(ctx, c.serviceID, "StartGitClone", in, out)
@@ -344,6 +355,8 @@ type SRPCWizardResourceServiceServer interface {
 	WatchWizardState(*WatchWizardStateRequest, SRPCWizardResourceService_WatchWizardStateStream) error
 
 	UpdateWizardState(context.Context, *UpdateWizardStateRequest) (*UpdateWizardStateResponse, error)
+	// CompareAndSetConfigData atomically replaces the persisted config when it still matches the caller's observation.
+	CompareAndSetConfigData(context.Context, *CompareAndSetConfigDataRequest) (*CompareAndSetConfigDataResponse, error)
 
 	StartGitClone(context.Context, *StartGitCloneRequest) (*StartGitCloneResponse, error)
 
@@ -378,6 +391,7 @@ func (SRPCWizardResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchWizardState",
 		"UpdateWizardState",
+		"CompareAndSetConfigData",
 		"StartGitClone",
 		"WatchGitCloneProgress",
 	}
@@ -396,6 +410,8 @@ func (d *SRPCWizardResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchWizardState(d.impl, strm)
 	case "UpdateWizardState":
 		return true, d.InvokeMethod_UpdateWizardState(d.impl, strm)
+	case "CompareAndSetConfigData":
+		return true, d.InvokeMethod_CompareAndSetConfigData(d.impl, strm)
 	case "StartGitClone":
 		return true, d.InvokeMethod_StartGitClone(d.impl, strm)
 	case "WatchGitCloneProgress":
@@ -420,6 +436,18 @@ func (SRPCWizardResourceServiceHandler) InvokeMethod_UpdateWizardState(impl SRPC
 		return err
 	}
 	out, err := impl.UpdateWizardState(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCWizardResourceServiceHandler) InvokeMethod_CompareAndSetConfigData(impl SRPCWizardResourceServiceServer, strm srpc.Stream) error {
+	req := new(CompareAndSetConfigDataRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.CompareAndSetConfigData(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -475,6 +503,14 @@ type SRPCWizardResourceService_UpdateWizardStateStream interface {
 }
 
 type srpcWizardResourceService_UpdateWizardStateStream struct {
+	srpc.Stream
+}
+
+type SRPCWizardResourceService_CompareAndSetConfigDataStream interface {
+	srpc.Stream
+}
+
+type srpcWizardResourceService_CompareAndSetConfigDataStream struct {
 	srpc.Stream
 }
 

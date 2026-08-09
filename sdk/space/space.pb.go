@@ -387,6 +387,16 @@ type CreateSecretRequest struct {
 	Value []byte `protobuf:"bytes,5,opt,name=value,proto3" json:"value,omitempty"`
 	// ReaderPublicKeyPem optionally grants read access to this peer key.
 	ReaderPublicKeyPem []byte `protobuf:"bytes,6,opt,name=reader_public_key_pem,json=readerPublicKeyPem,proto3" json:"readerPublicKeyPem,omitempty"`
+	// ReconcileExisting accepts an existing Secret only after complete desired-state validation.
+	ReconcileExisting bool `protobuf:"varint,7,opt,name=reconcile_existing,json=reconcileExisting,proto3" json:"reconcileExisting,omitempty"`
+	// CreationToken is an unpredictable identity reused only for this desired Secret.
+	CreationToken []byte `protobuf:"bytes,8,opt,name=creation_token,json=creationToken,proto3" json:"creationToken,omitempty"`
+	// NestedSharedObjectId is the stable payload object identity for reconciliation.
+	NestedSharedObjectId string `protobuf:"bytes,9,opt,name=nested_shared_object_id,json=nestedSharedObjectId,proto3" json:"nestedSharedObjectId,omitempty"`
+	// Timestamp is the immutable setup timestamp used by parent and payload state.
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// PayloadIdentity is an unpredictable opaque identity reused only for this exact payload.
+	PayloadIdentity []byte `protobuf:"bytes,11,opt,name=payload_identity,json=payloadIdentity,proto3" json:"payloadIdentity,omitempty"`
 }
 
 func (x *CreateSecretRequest) Reset() {
@@ -437,6 +447,41 @@ func (x *CreateSecretRequest) GetReaderPublicKeyPem() []byte {
 	return nil
 }
 
+func (x *CreateSecretRequest) GetReconcileExisting() bool {
+	if x != nil {
+		return x.ReconcileExisting
+	}
+	return false
+}
+
+func (x *CreateSecretRequest) GetCreationToken() []byte {
+	if x != nil {
+		return x.CreationToken
+	}
+	return nil
+}
+
+func (x *CreateSecretRequest) GetNestedSharedObjectId() string {
+	if x != nil {
+		return x.NestedSharedObjectId
+	}
+	return ""
+}
+
+func (x *CreateSecretRequest) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *CreateSecretRequest) GetPayloadIdentity() []byte {
+	if x != nil {
+		return x.PayloadIdentity
+	}
+	return nil
+}
+
 // CreateSecretResponse returns the redacted Secret parent metadata.
 type CreateSecretResponse struct {
 	unknownFields []byte
@@ -455,6 +500,64 @@ func (x *CreateSecretResponse) GetSecret() *secret.Secret {
 		return x.Secret
 	}
 	return nil
+}
+
+// DeleteSecretRequest deletes a Secret only when its creation identity matches.
+type DeleteSecretRequest struct {
+	unknownFields []byte
+	// ObjectKey is the parent Secret object key.
+	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
+	// CreationToken is the setup identity recorded by the Secret.
+	CreationToken []byte `protobuf:"bytes,2,opt,name=creation_token,json=creationToken,proto3" json:"creationToken,omitempty"`
+	// NestedSharedObjectId is the config-owned payload identity.
+	NestedSharedObjectId string `protobuf:"bytes,3,opt,name=nested_shared_object_id,json=nestedSharedObjectId,proto3" json:"nestedSharedObjectId,omitempty"`
+}
+
+func (x *DeleteSecretRequest) Reset() {
+	*x = DeleteSecretRequest{}
+}
+
+func (*DeleteSecretRequest) ProtoMessage() {}
+
+func (x *DeleteSecretRequest) GetObjectKey() string {
+	if x != nil {
+		return x.ObjectKey
+	}
+	return ""
+}
+
+func (x *DeleteSecretRequest) GetCreationToken() []byte {
+	if x != nil {
+		return x.CreationToken
+	}
+	return nil
+}
+
+func (x *DeleteSecretRequest) GetNestedSharedObjectId() string {
+	if x != nil {
+		return x.NestedSharedObjectId
+	}
+	return ""
+}
+
+// DeleteSecretResponse reports whether the parent object existed.
+type DeleteSecretResponse struct {
+	unknownFields []byte
+	// Deleted is true when the parent existed and was deleted.
+	Deleted bool `protobuf:"varint,1,opt,name=deleted,proto3" json:"deleted,omitempty"`
+}
+
+func (x *DeleteSecretResponse) Reset() {
+	*x = DeleteSecretResponse{}
+}
+
+func (*DeleteSecretResponse) ProtoMessage() {}
+
+func (x *DeleteSecretResponse) GetDeleted() bool {
+	if x != nil {
+		return x.Deleted
+	}
+	return false
 }
 
 // ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.
@@ -1025,8 +1128,13 @@ func (m *CreateSecretRequest) CloneVT() *CreateSecretRequest {
 	r.DisplayName = m.DisplayName
 	r.Kind = m.Kind
 	r.ContentType = m.ContentType
+	r.ReconcileExisting = m.ReconcileExisting
+	r.NestedSharedObjectId = m.NestedSharedObjectId
 	r.Value = protobuf_go_lite.CloneBytes(m.Value)
 	r.ReaderPublicKeyPem = protobuf_go_lite.CloneBytes(m.ReaderPublicKeyPem)
+	r.CreationToken = protobuf_go_lite.CloneBytes(m.CreationToken)
+	r.Timestamp = protobuf_go_lite.CloneVTValue(m.Timestamp)
+	r.PayloadIdentity = protobuf_go_lite.CloneBytes(m.PayloadIdentity)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1050,6 +1158,40 @@ func (m *CreateSecretResponse) CloneVT() *CreateSecretResponse {
 }
 
 func (m *CreateSecretResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DeleteSecretRequest) CloneVT() *DeleteSecretRequest {
+	if m == nil {
+		return (*DeleteSecretRequest)(nil)
+	}
+	r := new(DeleteSecretRequest)
+	r.ObjectKey = m.ObjectKey
+	r.NestedSharedObjectId = m.NestedSharedObjectId
+	r.CreationToken = protobuf_go_lite.CloneBytes(m.CreationToken)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DeleteSecretRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *DeleteSecretResponse) CloneVT() *DeleteSecretResponse {
+	if m == nil {
+		return (*DeleteSecretResponse)(nil)
+	}
+	r := new(DeleteSecretResponse)
+	r.Deleted = m.Deleted
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *DeleteSecretResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -1529,6 +1671,21 @@ func (this *CreateSecretRequest) EqualVT(that *CreateSecretRequest) bool {
 	if !protobuf_go_lite.EqualBytes(this.ReaderPublicKeyPem, that.ReaderPublicKeyPem) {
 		return false
 	}
+	if this.ReconcileExisting != that.ReconcileExisting {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.CreationToken, that.CreationToken) {
+		return false
+	}
+	if this.NestedSharedObjectId != that.NestedSharedObjectId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Timestamp, that.Timestamp) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.PayloadIdentity, that.PayloadIdentity) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1554,6 +1711,52 @@ func (this *CreateSecretResponse) EqualVT(that *CreateSecretResponse) bool {
 
 func (this *CreateSecretResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*CreateSecretResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DeleteSecretRequest) EqualVT(that *DeleteSecretRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ObjectKey != that.ObjectKey {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.CreationToken, that.CreationToken) {
+		return false
+	}
+	if this.NestedSharedObjectId != that.NestedSharedObjectId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DeleteSecretRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DeleteSecretRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *DeleteSecretResponse) EqualVT(that *DeleteSecretResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Deleted != that.Deleted {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *DeleteSecretResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*DeleteSecretResponse)
 	if !ok {
 		return false
 	}
@@ -2545,6 +2748,31 @@ func (x *CreateSecretRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("readerPublicKeyPem")
 		s.WriteBytes(x.ReaderPublicKeyPem)
 	}
+	if x.ReconcileExisting || s.HasField("reconcileExisting") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("reconcileExisting")
+		s.WriteBool(x.ReconcileExisting)
+	}
+	if len(x.CreationToken) > 0 || s.HasField("creationToken") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("creationToken")
+		s.WriteBytes(x.CreationToken)
+	}
+	if x.NestedSharedObjectId != "" || s.HasField("nestedSharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nestedSharedObjectId")
+		s.WriteString(x.NestedSharedObjectId)
+	}
+	if x.Timestamp != nil || s.HasField("timestamp") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("timestamp")
+		x.Timestamp.MarshalProtoJSON(s.WithField("timestamp"))
+	}
+	if len(x.PayloadIdentity) > 0 || s.HasField("payloadIdentity") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("payloadIdentity")
+		s.WriteBytes(x.PayloadIdentity)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2580,6 +2808,25 @@ func (x *CreateSecretRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "reader_public_key_pem", "readerPublicKeyPem":
 			s.AddField("reader_public_key_pem")
 			x.ReaderPublicKeyPem = s.ReadBytes()
+		case "reconcile_existing", "reconcileExisting":
+			s.AddField("reconcile_existing")
+			x.ReconcileExisting = s.ReadBool()
+		case "creation_token", "creationToken":
+			s.AddField("creation_token")
+			x.CreationToken = s.ReadBytes()
+		case "nested_shared_object_id", "nestedSharedObjectId":
+			s.AddField("nested_shared_object_id")
+			x.NestedSharedObjectId = s.ReadString()
+		case "timestamp":
+			if s.ReadNil() {
+				x.Timestamp = nil
+				return
+			}
+			x.Timestamp = &timestamppb.Timestamp{}
+			x.Timestamp.UnmarshalProtoJSON(s.WithField("timestamp", true))
+		case "payload_identity", "payloadIdentity":
+			s.AddField("payload_identity")
+			x.PayloadIdentity = s.ReadBytes()
 		}
 	})
 }
@@ -2632,6 +2879,106 @@ func (x *CreateSecretResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the CreateSecretResponse from JSON.
 func (x *CreateSecretResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DeleteSecretRequest message to JSON.
+func (x *DeleteSecretRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ObjectKey != "" || s.HasField("objectKey") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("objectKey")
+		s.WriteString(x.ObjectKey)
+	}
+	if len(x.CreationToken) > 0 || s.HasField("creationToken") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("creationToken")
+		s.WriteBytes(x.CreationToken)
+	}
+	if x.NestedSharedObjectId != "" || s.HasField("nestedSharedObjectId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nestedSharedObjectId")
+		s.WriteString(x.NestedSharedObjectId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DeleteSecretRequest to JSON.
+func (x *DeleteSecretRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DeleteSecretRequest message from JSON.
+func (x *DeleteSecretRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "object_key", "objectKey":
+			s.AddField("object_key")
+			x.ObjectKey = s.ReadString()
+		case "creation_token", "creationToken":
+			s.AddField("creation_token")
+			x.CreationToken = s.ReadBytes()
+		case "nested_shared_object_id", "nestedSharedObjectId":
+			s.AddField("nested_shared_object_id")
+			x.NestedSharedObjectId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DeleteSecretRequest from JSON.
+func (x *DeleteSecretRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the DeleteSecretResponse message to JSON.
+func (x *DeleteSecretResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Deleted || s.HasField("deleted") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("deleted")
+		s.WriteBool(x.Deleted)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the DeleteSecretResponse to JSON.
+func (x *DeleteSecretResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the DeleteSecretResponse message from JSON.
+func (x *DeleteSecretResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "deleted":
+			s.AddField("deleted")
+			x.Deleted = s.ReadBool()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the DeleteSecretResponse from JSON.
+func (x *DeleteSecretResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -3853,6 +4200,36 @@ func (m *CreateSecretRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.PayloadIdentity) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.PayloadIdentity)
+		i--
+		dAtA[i] = 0x5a
+	}
+	if m.Timestamp != nil {
+		size, err := m.Timestamp.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.NestedSharedObjectId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.NestedSharedObjectId)
+		i--
+		dAtA[i] = 0x4a
+	}
+	if len(m.CreationToken) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.CreationToken)
+		i--
+		dAtA[i] = 0x42
+	}
+	if m.ReconcileExisting {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.ReconcileExisting)
+		i--
+		dAtA[i] = 0x38
+	}
 	if len(m.ReaderPublicKeyPem) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ReaderPublicKeyPem)
 		i--
@@ -3924,6 +4301,90 @@ func (m *CreateSecretResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DeleteSecretRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DeleteSecretRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DeleteSecretRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.NestedSharedObjectId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.NestedSharedObjectId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.CreationToken) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.CreationToken)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ObjectKey) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ObjectKey)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *DeleteSecretResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DeleteSecretResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *DeleteSecretResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Deleted {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Deleted)
+		i--
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -4671,6 +5132,14 @@ func (m *CreateSecretRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ContentType)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Value)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ReaderPublicKeyPem)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.ReconcileExisting)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CreationToken)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NestedSharedObjectId)
+	if m.Timestamp != nil {
+		l = m.Timestamp.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.PayloadIdentity)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4685,6 +5154,30 @@ func (m *CreateSecretResponse) SizeVT() (n int) {
 		l = m.Secret.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DeleteSecretRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ObjectKey)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.CreationToken)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.NestedSharedObjectId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *DeleteSecretResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Deleted)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5119,6 +5612,26 @@ func (x *CreateSecretRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reader_public_key_pem")
 		protobuf_go_lite.TextWriteBytes(&sb, x.ReaderPublicKeyPem)
 	}
+	if x.ReconcileExisting != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "reconcile_existing")
+		protobuf_go_lite.TextWriteBool(&sb, x.ReconcileExisting)
+	}
+	if len(x.CreationToken) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "creation_token")
+		protobuf_go_lite.TextWriteBytes(&sb, x.CreationToken)
+	}
+	if x.NestedSharedObjectId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "nested_shared_object_id")
+		protobuf_go_lite.TextWriteString(&sb, x.NestedSharedObjectId)
+	}
+	if x.Timestamp != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "timestamp")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Timestamp)
+	}
+	if len(x.PayloadIdentity) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "payload_identity")
+		protobuf_go_lite.TextWriteBytes(&sb, x.PayloadIdentity)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -5137,6 +5650,42 @@ func (x *CreateSecretResponse) MarshalProtoText() string {
 }
 
 func (x *CreateSecretResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DeleteSecretRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DeleteSecretRequest")
+	if x.ObjectKey != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "object_key")
+		protobuf_go_lite.TextWriteString(&sb, x.ObjectKey)
+	}
+	if len(x.CreationToken) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "creation_token")
+		protobuf_go_lite.TextWriteBytes(&sb, x.CreationToken)
+	}
+	if x.NestedSharedObjectId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "nested_shared_object_id")
+		protobuf_go_lite.TextWriteString(&sb, x.NestedSharedObjectId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *DeleteSecretRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *DeleteSecretResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "DeleteSecretResponse")
+	if x.Deleted != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "deleted")
+		protobuf_go_lite.TextWriteBool(&sb, x.Deleted)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *DeleteSecretResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -6136,6 +6685,57 @@ func (m *CreateSecretRequest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReconcileExisting", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ReconcileExisting = bool(v)
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreationToken", wireType)
+			}
+			m.CreationToken, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.CreationToken, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NestedSharedObjectId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.NestedSharedObjectId = v
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Timestamp", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Timestamp == nil {
+				m.Timestamp = &timestamppb.Timestamp{}
+			}
+			if err := m.Timestamp.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PayloadIdentity", wireType)
+			}
+			m.PayloadIdentity, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.PayloadIdentity, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -6194,6 +6794,130 @@ func (m *CreateSecretResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DeleteSecretRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DeleteSecretRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DeleteSecretRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectKey", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ObjectKey = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CreationToken", wireType)
+			}
+			m.CreationToken, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.CreationToken, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NestedSharedObjectId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.NestedSharedObjectId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *DeleteSecretResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DeleteSecretResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DeleteSecretResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Deleted", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Deleted = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

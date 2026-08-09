@@ -19,12 +19,16 @@ import {
 } from 'starpc'
 
 /**
+ * SecretResourceService exposes redacted Secret state and authenticated payload reads.
+ *
  * @generated from service s4wave.secret.SecretResourceService
  */
 export const SecretResourceServiceDefinition = {
   typeName: 's4wave.secret.SecretResourceService',
   methods: {
     /**
+     * WatchState streams the current redacted Secret state.
+     *
      * @generated from rpc s4wave.secret.SecretResourceService.WatchState
      */
     WatchState: {
@@ -34,6 +38,8 @@ export const SecretResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * BeginReadPayload creates a peer-bound payload-read challenge.
+     *
      * @generated from rpc s4wave.secret.SecretResourceService.BeginReadPayload
      */
     BeginReadPayload: {
@@ -43,6 +49,8 @@ export const SecretResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ReadPayload verifies a challenge signature and returns the granted payload.
+     *
      * @generated from rpc s4wave.secret.SecretResourceService.ReadPayload
      */
     ReadPayload: {
@@ -55,10 +63,14 @@ export const SecretResourceServiceDefinition = {
 } as const
 
 /**
+ * SecretResourceService exposes redacted Secret state and authenticated payload reads.
+ *
  * @generated from service s4wave.secret.SecretResourceService
  */
 export interface SecretResourceService {
   /**
+   * WatchState streams the current redacted Secret state.
+   *
    * @generated from rpc s4wave.secret.SecretResourceService.WatchState
    */
   WatchState(
@@ -67,6 +79,8 @@ export interface SecretResourceService {
   ): MessageStream<WatchStateResponse>
 
   /**
+   * BeginReadPayload creates a peer-bound payload-read challenge.
+   *
    * @generated from rpc s4wave.secret.SecretResourceService.BeginReadPayload
    */
   BeginReadPayload(
@@ -75,6 +89,8 @@ export interface SecretResourceService {
   ): Promise<BeginReadPayloadResponse>
 
   /**
+   * ReadPayload verifies a challenge signature and returns the granted payload.
+   *
    * @generated from rpc s4wave.secret.SecretResourceService.ReadPayload
    */
   ReadPayload(
@@ -84,10 +100,14 @@ export interface SecretResourceService {
 }
 
 /**
+ * SecretResourceService exposes redacted Secret state and authenticated payload reads.
+ *
  * @generated from service s4wave.secret.SecretResourceService
  */
 export interface SecretResourceServiceHandler {
   /**
+   * WatchState streams the current redacted Secret state.
+   *
    * @generated from rpc s4wave.secret.SecretResourceService.WatchState
    */
   WatchState(
@@ -97,6 +117,8 @@ export interface SecretResourceServiceHandler {
   ): MessageStream<WatchStateResponse>
 
   /**
+   * BeginReadPayload creates a peer-bound payload-read challenge.
+   *
    * @generated from rpc s4wave.secret.SecretResourceService.BeginReadPayload
    */
   BeginReadPayload(
@@ -106,6 +128,8 @@ export interface SecretResourceServiceHandler {
   ): Promise<BeginReadPayloadResponse>
 
   /**
+   * ReadPayload verifies a challenge signature and returns the granted payload.
+   *
    * @generated from rpc s4wave.secret.SecretResourceService.ReadPayload
    */
   ReadPayload(
@@ -129,6 +153,8 @@ export class SecretResourceServiceClient implements SecretResourceService {
     this.ReadPayload = this.ReadPayload.bind(this)
   }
   /**
+   * WatchState streams the current redacted Secret state.
+   *
    * @generated from rpc s4wave.secret.SecretResourceService.WatchState
    */
   WatchState(
@@ -146,6 +172,8 @@ export class SecretResourceServiceClient implements SecretResourceService {
   }
 
   /**
+   * BeginReadPayload creates a peer-bound payload-read challenge.
+   *
    * @generated from rpc s4wave.secret.SecretResourceService.BeginReadPayload
    */
   async BeginReadPayload(
@@ -163,6 +191,8 @@ export class SecretResourceServiceClient implements SecretResourceService {
   }
 
   /**
+   * ReadPayload verifies a challenge signature and returns the granted payload.
+   *
    * @generated from rpc s4wave.secret.SecretResourceService.ReadPayload
    */
   async ReadPayload(
