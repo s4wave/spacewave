@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -44,10 +45,9 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 	if err := distConf.UnmarshalJSON(browserOverride.GetConfig()); err != nil {
 		t.Fatalf("decode browser fixture dist config: %v", err)
 	}
-	for _, embed := range distConf.GetEmbedManifests() {
-		if embed.GetManifestId() == "spacewave-cli-plugin" {
-			t.Fatalf("lazy fixture embeds terminal plugin: %#v", embed)
-		}
+	embeds := distConf.GetEmbedManifests()
+	if len(embeds) != 1 || embeds[0].GetManifestId() != "spacewave-launcher" || embeds[0].GetPlatformId() != "js" {
+		t.Fatalf("browser release embeds = %#v, want spacewave-launcher@js only", embeds)
 	}
 	if !slices.Contains(distConf.GetLoadPlugins(), "spacewave-cli-plugin") {
 		t.Fatal("lazy fixture does not request terminal plugin through LoadPlugin")
@@ -164,6 +164,87 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 	if publish == nil || !slices.Contains(publish.GetManifests(), "spacewave-cli-plugin") {
 		t.Fatal("Release World publication omits the lazy terminal plugin")
 	}
+
+	pluginRelease := result.Config.GetBuild()["plugin-release-browser"]
+	if pluginRelease == nil {
+		t.Fatal("missing plugin-release-browser build")
+	}
+	for _, manifestID := range []string{"spacewave-core", "spacewave-web", "spacewave-app", "web"} {
+		if !slices.Contains(distConf.GetLoadPlugins(), manifestID) {
+			t.Fatalf("browser release does not request ordinary startup plugin %s", manifestID)
+		}
+		if !slices.Contains(publish.GetManifests(), manifestID) ||
+			!slices.Contains(pluginRelease.GetManifests(), manifestID) {
+			t.Fatalf("Release World omits ordinary startup plugin %s", manifestID)
+		}
+	}
+	for _, embed := range distConf.GetEmbedManifests() {
+		manifestID := embed.GetManifestId()
+		if !slices.Contains(publish.GetManifests(), manifestID) ||
+			!slices.Contains(pluginRelease.GetManifests(), manifestID) {
+			continue
+		}
+		manifest := result.Config.GetManifests()[manifestID]
+		if manifest == nil {
+			t.Fatalf("missing manifest config for embedded tuple %s@%s", manifestID, embed.GetPlatformId())
+		}
+		t.Fatalf(
+			"release tuple %s@%s#%d has independent embedded and Release World root producers",
+			manifestID,
+			embed.GetPlatformId(),
+			manifest.GetRev(),
+		)
+	}
+}
+
+func TestReleaseWorkflowsSeparateEntrypointAndPluginProducers(t *testing.T) {
+	entrypointWorkflow, err := os.ReadFile(filepath.Join("..", "..", "..", ".github", "workflows", "entrypoint-release.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	entrypointSource := string(entrypointWorkflow)
+	forbiddenEntrypointProducers := []string{
+		"build-browser-plugin.sh",
+		"release-remote-web",
+		"release-remote-js",
+		"entrypoint-manifest-pack-spacewave-web",
+		"entrypoint-manifest-pack-spacewave-app",
+	}
+	for _, forbidden := range forbiddenEntrypointProducers {
+		if strings.Contains(entrypointSource, forbidden) {
+			t.Fatalf("entrypoint release retains ordinary plugin producer %q", forbidden)
+		}
+	}
+
+	desktopGate, err := os.ReadFile(filepath.Join("..", "..", "..", "e2e", "installedapp", "desktop_distribution_gate_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range forbiddenEntrypointProducers {
+		if strings.Contains(string(desktopGate), forbidden) {
+			t.Fatalf("desktop distribution gate retains ordinary plugin producer %q", forbidden)
+		}
+	}
+	if !strings.Contains(entrypointSource, "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)") {
+		t.Fatal("entrypoint release does not derive SOURCE_DATE_EPOCH from the checked-out commit")
+	}
+
+	pluginWorkflow, err := os.ReadFile(filepath.Join("..", "..", "..", ".github", "workflows", "plugin-release.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pluginSource := string(pluginWorkflow)
+	for _, required := range []string{
+		"build-browser-plugin.sh spacewave-core",
+		"build-browser-plugin.sh spacewave-web",
+		"build-browser-plugin.sh spacewave-app",
+		"build-browser-plugin.sh web",
+		"SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)",
+	} {
+		if !strings.Contains(pluginSource, required) {
+			t.Fatalf("plugin release missing ordinary plugin authority %q", required)
+		}
+	}
 }
 
 func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
@@ -251,47 +332,58 @@ func TestBrowserReleasePublishedWorldFetchManifestPreflight(t *testing.T) {
 		t.Fatalf("get Release World engine: %v", err)
 	}
 
-	val, _, valueRef, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
-		ctx, b,
-		bldr_manifest.NewFetchManifest("spacewave-cli-plugin", nil, []string{"js"}, 0),
-		bus.ReturnWhenIdle(), nil,
-		func(v *bldr_manifest.FetchManifestValue) (bool, error) {
-			return len(v.GetManifestRefs()) != 0, nil
-		},
-	)
-	if err != nil {
-		t.Fatalf("FetchManifest spacewave-cli-plugin@js: %v", err)
-	}
-	if valueRef != nil {
-		defer valueRef.Release()
-	}
-	if val == nil {
-		t.Fatal("Release World preflight rejected tuple spacewave-cli-plugin@js after root/head ready: no provider value; first root block unavailable")
-	}
-	if len(val.GetManifestRefs()) != 1 {
-		t.Fatalf("FetchManifest spacewave-cli-plugin@js returned %d refs", len(val.GetManifestRefs()))
-	}
-	manifestRef := val.GetManifestRefs()[0]
-	if manifestRef.GetMeta().GetManifestId() != "spacewave-cli-plugin" ||
-		manifestRef.GetMeta().GetPlatformId() != "js" {
-		t.Fatalf("unexpected fetched metadata: %#v", manifestRef.GetMeta())
-	}
-	ref := manifestRef.GetManifestRef()
-	if ref.GetEmpty() || ref.GetBucketId() == "" {
-		t.Fatalf("FetchManifest returned non-external ref: %#v", ref)
-	}
-	err = engine.AccessWorldState(ctx, ref, func(cursor *bucket_lookup.Cursor) error {
-		_, found, err := cursor.GetBlock(ctx, ref.GetRootRef())
+	for _, tuple := range []struct {
+		manifestID string
+		platformID string
+	}{
+		{manifestID: "spacewave-core", platformID: "js"},
+		{manifestID: "spacewave-web", platformID: "js"},
+		{manifestID: "spacewave-app", platformID: "js"},
+		{manifestID: "web", platformID: "web/js/wasm"},
+		{manifestID: "spacewave-cli-plugin", platformID: "js"},
+	} {
+		val, _, valueRef, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
+			ctx, b,
+			bldr_manifest.NewFetchManifest(tuple.manifestID, nil, []string{tuple.platformID}, 0),
+			bus.ReturnWhenIdle(), nil,
+			func(v *bldr_manifest.FetchManifestValue) (bool, error) {
+				return len(v.GetManifestRefs()) != 0, nil
+			},
+		)
 		if err != nil {
-			return err
+			t.Fatalf("FetchManifest %s@%s: %v", tuple.manifestID, tuple.platformID, err)
 		}
-		if !found {
-			return errors.New("first manifest root block not found")
+		if valueRef != nil {
+			defer valueRef.Release()
 		}
-		return nil
-	})
-	if err != nil {
-		t.Fatalf("read first lazy manifest block: %v", err)
+		if val == nil {
+			t.Fatalf("Release World preflight rejected tuple %s@%s: no provider value", tuple.manifestID, tuple.platformID)
+		}
+		if len(val.GetManifestRefs()) != 1 {
+			t.Fatalf("FetchManifest %s@%s returned %d refs", tuple.manifestID, tuple.platformID, len(val.GetManifestRefs()))
+		}
+		manifestRef := val.GetManifestRefs()[0]
+		if manifestRef.GetMeta().GetManifestId() != tuple.manifestID ||
+			manifestRef.GetMeta().GetPlatformId() != tuple.platformID {
+			t.Fatalf("unexpected fetched metadata for %s@%s: %#v", tuple.manifestID, tuple.platformID, manifestRef.GetMeta())
+		}
+		ref := manifestRef.GetManifestRef()
+		if ref.GetEmpty() || ref.GetBucketId() == "" {
+			t.Fatalf("FetchManifest %s@%s returned non-external ref: %#v", tuple.manifestID, tuple.platformID, ref)
+		}
+		err = engine.AccessWorldState(ctx, ref, func(cursor *bucket_lookup.Cursor) error {
+			_, found, err := cursor.GetBlock(ctx, ref.GetRootRef())
+			if err != nil {
+				return err
+			}
+			if !found {
+				return errors.New("first manifest root block not found")
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("read first %s@%s manifest block: %v", tuple.manifestID, tuple.platformID, err)
+		}
+		t.Logf("Release World FetchManifest preflight passed tuple=%s@%s root=%s", tuple.manifestID, tuple.platformID, ref.GetRootRef().String())
 	}
-	t.Logf("Release World FetchManifest preflight passed tuple=spacewave-cli-plugin@js root=%s", ref.GetRootRef().String())
 }

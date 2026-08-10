@@ -304,14 +304,6 @@ func runDesktopDistributionPackaging(t *testing.T, repoRoot string, artifactDir 
 			args: []string{"bash", "scripts/release/build-helper.sh", "darwin", runtime.GOARCH},
 		},
 		{
-			name: "build remote web entrypoint",
-			args: []string{"go", "run", "github.com/s4wave/spacewave/bldr/cmd/bldr", "--build-type=release", "build", "-b", "release-remote-web"},
-		},
-		{
-			name: "build remote js entrypoint",
-			args: []string{"go", "run", "github.com/s4wave/spacewave/bldr/cmd/bldr", "--build-type=release", "build", "-b", "release-remote-js"},
-		},
-		{
 			name: "build desktop entrypoint",
 			args: []string{"go", "run", "github.com/s4wave/spacewave/bldr/cmd/bldr", "--build-type=release", "build", "-b", "release-desktop-darwin-" + runtime.GOARCH},
 			env:  signingEnv,

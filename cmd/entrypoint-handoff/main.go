@@ -41,8 +41,6 @@ func main() {
 		&appcli.BoolFlag{Name: "skip-build", Usage: "skip helper and entrypoint builds and package existing artifacts", Destination: &args.SkipBuild},
 		&appcli.BoolFlag{Name: "skip-package", Usage: "skip installer packaging", Destination: &args.SkipPackage},
 		&appcli.BoolFlag{Name: "stage-build-inputs", Usage: "stage raw dist/helper/icon inputs into out-dir", Destination: &args.StageBuildInputs},
-		&appcli.BoolFlag{Name: "remote-only", Usage: "build only shared remote entrypoint outputs", Destination: &args.RemoteOnly},
-		&appcli.StringFlag{Name: "remote-handoff-dir", Usage: "validated shared remote entrypoint handoff input dir", Destination: &args.RemoteHandoffDir},
 		&appcli.BoolFlag{Name: "manifest-pack-produce", Usage: "produce one manifest-pack artifact and exit", Destination: &args.ManifestPackProduce},
 		&appcli.StringFlag{Name: "manifest-pack-import-dirs", Usage: "comma-separated manifest-pack artifact dirs to import before building", Destination: &args.ManifestPackImportDirsCSV},
 		&appcli.StringFlag{Name: "manifest-id", Usage: "manifest-pack manifest id", Destination: &args.ManifestID},

@@ -275,29 +275,23 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		if got := build.GetPlatformIds(); !slices.Equal(got, []string{host.platformID}) {
 			t.Fatalf("%s platform ids: got %v, want [%s]", releaseName, got, host.platformID)
 		}
-		if !slices.Contains(build.GetManifests(), "spacewave-cli-plugin") {
-			t.Fatalf("%s manifests missing spacewave-cli-plugin: %v", releaseName, build.GetManifests())
+		if got := build.GetManifests(); !slices.Equal(got, []string{"spacewave-launcher", "spacewave-dist"}) {
+			t.Fatalf("%s manifests: got %v, want launcher and shell", releaseName, got)
 		}
 		override := build.GetManifestOverrides()["spacewave-dist"]
 		if override == nil {
 			t.Fatalf("%s override for spacewave-dist not found", releaseName)
 		}
 		distConf := mustDistConfig(t, override.GetConfig())
-		cliPluginEmbeds := 0
-		for _, embed := range distConf.GetEmbedManifests() {
-			if embed.GetManifestId() != "spacewave-cli-plugin" {
-				continue
-			}
-			cliPluginEmbeds++
-			if got := embed.GetPlatformId(); got != host.platformID {
-				t.Fatalf("%s embeds spacewave-cli-plugin platform: got %q, want %q", releaseName, got, host.platformID)
-			}
-		}
-		if cliPluginEmbeds != 1 {
-			t.Fatalf("%s spacewave-cli-plugin embed count: got %d, want 1; embeds: %v", releaseName, cliPluginEmbeds, distEmbedManifestTuples(distConf.GetEmbedManifests()))
-		}
-		if slices.Contains(distConf.GetLoadPlugins(), "spacewave-cli-plugin") {
-			t.Fatalf("%s load plugins unexpectedly include spacewave-cli-plugin: %v", releaseName, distConf.GetLoadPlugins())
+		assertDistEmbedManifests(t, releaseName, distConf, []distEmbedManifestWant{{
+			manifestID: "spacewave-launcher",
+			platformID: host.platformID,
+		}})
+
+		pluginReleaseName := "plugin-release-" + host.name
+		pluginRelease := result.Config.GetBuild()[pluginReleaseName]
+		if pluginRelease == nil || !slices.Contains(pluginRelease.GetManifests(), "spacewave-loader") {
+			t.Fatalf("%s does not provide native loader through Release World: %v", pluginReleaseName, pluginRelease)
 		}
 	}
 
@@ -423,11 +417,6 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if len(platformIDs) != 1 || platformIDs[0] != "desktop/darwin/arm64" {
 		t.Fatalf("release desktop platform ids: got %v, want [desktop/darwin/arm64]", platformIDs)
 	}
-	for _, want := range []string{"spacewave-notes", "spacewave-v86"} {
-		if !slices.Contains(bc.GetManifests(), want) {
-			t.Fatalf("release desktop manifests missing %s: %v", want, bc.GetManifests())
-		}
-	}
 
 	override := bc.GetManifestOverrides()["spacewave-dist"]
 	if override == nil {
@@ -441,7 +430,6 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		`"platformId":"desktop/darwin/arm64"`,
 		`"spacewave-web"`,
 		`"spacewave-app"`,
-		`"platformId":"js"`,
 	} {
 		if !strings.Contains(cfg, want) {
 			t.Fatalf("release desktop override config missing %s: %s", want, cfg)
@@ -457,11 +445,8 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if cliRelease == nil {
 		t.Fatal("build target 'release-cli-darwin-arm64' not found")
 	}
-	if slices.Contains(cliRelease.GetManifests(), "spacewave-dist") {
-		t.Fatalf("release cli manifests should not build desktop entrypoint: %v", cliRelease.GetManifests())
-	}
-	if !slices.Contains(cliRelease.GetManifests(), "spacewave-cli") {
-		t.Fatalf("release cli manifests missing spacewave-cli: %v", cliRelease.GetManifests())
+	if got := cliRelease.GetManifests(); !slices.Equal(got, []string{"spacewave-launcher", "spacewave-cli"}) {
+		t.Fatalf("release cli manifests: got %v, want launcher and shell", got)
 	}
 	cliOverride := cliRelease.GetManifestOverrides()["spacewave-cli"]
 	if cliOverride == nil {
@@ -495,18 +480,12 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if slices.Contains(browserRelease.GetManifests(), "spacewave-dist") {
 		t.Fatalf("browser release manifests unexpectedly include spacewave-dist: %v", browserRelease.GetManifests())
 	}
-	for _, want := range []string{"spacewave-notes", "spacewave-v86", "spacewave-cli-plugin", "spacewave-browser"} {
-		if !slices.Contains(browserRelease.GetManifests(), want) {
-			t.Fatalf("browser release manifests missing %s: %v", want, browserRelease.GetManifests())
-		}
+	if got := browserRelease.GetManifests(); !slices.Equal(got, []string{"spacewave-launcher", "spacewave-browser"}) {
+		t.Fatalf("browser release manifests: got %v, want launcher and shell", got)
 	}
 	browserLauncherOverride := browserRelease.GetManifestOverrides()["spacewave-launcher"]
 	if browserLauncherOverride == nil {
 		t.Fatal("production browser release should override spacewave-launcher compiler")
-	}
-	browserCoreOverride := browserRelease.GetManifestOverrides()["spacewave-core"]
-	if browserCoreOverride == nil {
-		t.Fatal("production browser release should override spacewave-core compiler")
 	}
 	browserOverride := browserRelease.GetManifestOverrides()["spacewave-browser"]
 	if browserOverride == nil {
@@ -514,24 +493,11 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	}
 	for name, override := range map[string]string{
 		"spacewave-launcher": string(browserLauncherOverride.GetConfig()),
-		"spacewave-core":     string(browserCoreOverride.GetConfig()),
 		"spacewave-browser":  string(browserOverride.GetConfig()),
 	} {
 		if !strings.Contains(override, `"goCompiler":"GO_COMPILER_GOSCRIPT"`) {
 			t.Fatalf("production browser release %s override should use GoScript: %s", name, override)
 		}
-	}
-	browserCoreCfg := string(browserCoreOverride.GetConfig())
-	for _, want := range []string{
-		`"endpoint":"/"`,
-		`"goCompiler":"GO_COMPILER_GOSCRIPT"`,
-	} {
-		if !strings.Contains(browserCoreCfg, want) {
-			t.Fatalf("production/staging browser core config missing %s: %s", want, browserCoreCfg)
-		}
-	}
-	if strings.Contains(browserCoreCfg, `"endpoint":"https://spacewave.app"`) {
-		t.Fatalf("production/staging browser core config uses dev fallback endpoint: %s", browserCoreCfg)
 	}
 	browserCfg := string(browserOverride.GetConfig())
 	if strings.Contains(browserCfg, `"spacewave-loader"`) {
@@ -711,31 +677,9 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		t.Fatalf("plugin-release-browser core config uses dev fallback endpoint: %s", pluginReleaseCoreCfg)
 	}
 
-	webBuild := result.Config.GetBuild()["release-remote-web"]
-	if webBuild == nil {
-		t.Fatal("build target 'release-remote-web' not found")
-	}
-	webPlatformIDs := webBuild.GetPlatformIds()
-	if len(webPlatformIDs) != 1 || webPlatformIDs[0] != "web/js/wasm" {
-		t.Fatalf("release remote web platform ids: got %v, want [web/js/wasm]", webPlatformIDs)
-	}
-	webManifests := strings.Join(webBuild.GetManifests(), ",")
-	if !strings.Contains(webManifests, "web") {
-		t.Fatalf("release remote web manifests missing web: %v", webBuild.GetManifests())
-	}
-
-	jsBuild := result.Config.GetBuild()["release-remote-js"]
-	if jsBuild == nil {
-		t.Fatal("build target 'release-remote-js' not found")
-	}
-	jsPlatformIDs := jsBuild.GetPlatformIds()
-	if len(jsPlatformIDs) != 1 || jsPlatformIDs[0] != "js" {
-		t.Fatalf("release remote js platform ids: got %v, want [js]", jsPlatformIDs)
-	}
-	jsManifests := strings.Join(jsBuild.GetManifests(), ",")
-	for _, want := range []string{"spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86"} {
-		if !strings.Contains(jsManifests, want) {
-			t.Fatalf("release remote js manifests missing %s: %v", want, jsBuild.GetManifests())
+	for _, obsolete := range []string{"release-remote-web", "release-remote-js"} {
+		if result.Config.GetBuild()[obsolete] != nil {
+			t.Fatalf("entrypoint configuration retains ordinary plugin producer %s", obsolete)
 		}
 	}
 
@@ -743,7 +687,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if publish == nil {
 		t.Fatal("publish target 'spacewave-release' not found")
 	}
-	for _, want := range []string{"spacewave-notes", "spacewave-v86"} {
+	for _, want := range []string{"spacewave-loader", "spacewave-notes", "spacewave-v86"} {
 		if !slices.Contains(publish.GetManifests(), want) {
 			t.Fatalf("spacewave-release publish manifests missing %s: %v", want, publish.GetManifests())
 		}
@@ -935,11 +879,6 @@ func assertDistBrowserStartupClosure(
 
 	wantEmbedManifests := []distEmbedManifestWant{
 		{manifestID: "spacewave-launcher", platformID: goPlatformID},
-		{manifestID: "spacewave-core", platformID: goPlatformID},
-		{manifestID: "web", platformID: "web/js/wasm"},
-		{manifestID: "spacewave-web", platformID: "js"},
-		{manifestID: "spacewave-app", platformID: "js"},
-		{manifestID: "spacewave-cli-plugin", platformID: "js"},
 	}
 	wantEmbedManifests = append(wantEmbedManifests, additionalEmbeds...)
 	for _, want := range wantEmbedManifests {

@@ -517,12 +517,7 @@ DEV_MANIFESTS = [
     "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql", "spacewave-cli-plugin", "spacewave-debug",
 ]
 BROWSER_RELEASE_MANIFESTS = [
-    # The browser release should not even build spacewave-loader: it is a
-    # native helper-window plugin, and loading it in WASM shows up as an
-    # extra shared worker that exits after helper lookup fails.
     "spacewave-launcher",
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
-    "spacewave-cli-plugin", "web",
     "spacewave-browser",
 ]
 BROWSER_RELEASE_E2E_MANIFESTS = [
@@ -531,13 +526,11 @@ BROWSER_RELEASE_E2E_MANIFESTS = [
     "spacewave-browser",
 ]
 DESKTOP_RELEASE_MANIFESTS = [
-    "spacewave-launcher", "spacewave-loader",
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql", "spacewave-cli-plugin", "web",
+    "spacewave-launcher",
     "spacewave-dist",
 ]
 CLI_RELEASE_MANIFESTS = [
     "spacewave-launcher",
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql", "web",
     "spacewave-cli",
 ]
 # REMOTE_WORLD_MANIFESTS are the manifests that ship in the R2-hosted plugin
@@ -545,46 +538,25 @@ CLI_RELEASE_MANIFESTS = [
 # reliable first boot; plugin-promote can replace them after launch by updating
 # the remote plugin world.
 REMOTE_WORLD_MANIFESTS = [
+    "spacewave-loader", "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
+    "spacewave-cli-plugin", "web",
+]
+PLUGIN_RELEASE_BROWSER_MANIFESTS = [
     "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql",
     "spacewave-cli-plugin", "web",
 ]
 
-# Browser release intentionally embeds the full startup app closure:
-# spacewave-launcher, spacewave-core, web, spacewave-web, and spacewave-app.
-# The embedded Manifest world is the first FetchManifest source available to the
-# dist host, so these startup plugins must be resolvable before the launcher has
-# mounted the Release World. Launcher-only embedding can replace this list only
-# after a non-circular Release World FetchManifest path is owned by the host or
-# launcher and release preflight proves the Release World contains those
-# non-launcher startup tuples.
+# The launcher mounts and verifies Release World before the scheduler resolves
+# ordinary startup plugins. Entrypoint artifacts therefore embed no desired
+# plugin state besides the launcher itself.
 def browser_release_embed_manifests(go_platform_id):
     return [
         {"manifestId": "spacewave-launcher",
          "platformId": go_platform_id},
-        {"manifestId": "spacewave-core",
-         "platformId": go_platform_id},
-        {"manifestId": "web",
-         "platformId": "web/js/wasm"},
-        {"manifestId": "spacewave-web",
-         "platformId": "js"},
-        {"manifestId": "spacewave-app",
-         "platformId": "js"},
-        {"manifestId": "spacewave-cli-plugin",
-         "platformId": "js"},
     ]
 
-# This release-shaped fixture deliberately requests the terminal plugin through
-# FetchManifest while leaving it out of EmbedManifests. The published Release
-# World tuple is checked below; production embeds remain unchanged.
-def browser_release_lazy_plugin_fixture_embed_manifests(go_platform_id):
-    embeds = []
-    for embed in browser_release_embed_manifests(go_platform_id):
-        if embed["manifestId"] != "spacewave-cli-plugin":
-            embeds.append(embed)
-    return embeds
 
-
-BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_EMBEDS = browser_release_lazy_plugin_fixture_embed_manifests("js")
+BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_EMBEDS = browser_release_embed_manifests("js")
 BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_LOAD_PLUGINS = BROWSER_RELEASE_LOAD_PLUGINS + [
     "spacewave-cli-plugin",
 ]
@@ -751,13 +723,13 @@ def plugin_release_browser_manifest_platform_ids(manifest_id):
 
 
 build("plugin-release-browser",
-    manifests=REMOTE_WORLD_MANIFESTS,
+    manifests=PLUGIN_RELEASE_BROWSER_MANIFESTS,
     targets=["browser"],
     manifestOverrides=PLUGIN_RELEASE_BROWSER_MANIFEST_OVERRIDES,
 )
 
 build("plugin-release-browser-tinygo",
-    manifests=REMOTE_WORLD_MANIFESTS,
+    manifests=PLUGIN_RELEASE_BROWSER_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
         "spacewave-core": browser_spacewave_core_config("GO_COMPILER_TINYGO"),
@@ -781,18 +753,6 @@ RELEASE_HOSTS = [
 def define_release_build(host_key, platform_id):
     desktop_embed_manifests = [
         {"manifestId": "spacewave-launcher",
-         "platformId": platform_id},
-        {"manifestId": "spacewave-loader",
-         "platformId": platform_id},
-        {"manifestId": "spacewave-core",
-         "platformId": platform_id},
-        {"manifestId": "web",
-         "platformId": platform_id},
-        {"manifestId": "spacewave-web",
-         "platformId": "js"},
-        {"manifestId": "spacewave-app",
-         "platformId": "js"},
-        {"manifestId": "spacewave-cli-plugin",
          "platformId": platform_id},
     ]
     build("release-" + host_key,
@@ -819,14 +779,6 @@ for host_key, platform_id in RELEASE_HOSTS:
     cli_embed_manifests = [
         {"manifestId": "spacewave-launcher",
          "platformId": platform_id},
-        {"manifestId": "spacewave-core",
-         "platformId": platform_id},
-        {"manifestId": "web",
-         "platformId": platform_id},
-        {"manifestId": "spacewave-web",
-         "platformId": "js"},
-        {"manifestId": "spacewave-app",
-         "platformId": "js"},
     ]
     build("release-cli-" + cli_host_key,
         manifests=CLI_RELEASE_MANIFESTS,
@@ -845,20 +797,9 @@ for host_key, platform_id in RELEASE_HOSTS:
 # manifests are built once by plugin-release-browser.
 for host_key, platform_id in RELEASE_HOSTS:
     build("plugin-release-" + host_key,
-        manifests=["spacewave-core", "spacewave-sql"],
+        manifests=["spacewave-loader", "spacewave-core", "spacewave-sql"],
         platform_ids=[platform_id],
     )
-
-# Build browser-side manifests once per release run. The per-host release
-# targets stay native-only so they do not try to build spacewave-dist for JS.
-build("release-remote-web",
-    manifests=["web"],
-    platform_ids=["web/js/wasm"],
-)
-build("release-remote-js",
-    manifests=["spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql"],
-    platform_ids=["js"],
-)
 
 # -- Publish --
 #
