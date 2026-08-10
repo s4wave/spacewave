@@ -38,6 +38,7 @@ func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
 		newFsCommand(getBus),
 		newGitCommand(getBus),
 		newCanvasCommand(getBus),
+		newAptCommand(getBus),
 		newForgeCommand(getBus),
 		newVmCommand(getBus),
 		newPluginCommand(getBus),
