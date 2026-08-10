@@ -223,7 +223,7 @@
     "bldr:vendor": "go mod vendor"
   },
   "devDependencies": {
-    "@aptre/common": "0.35.0",
+    "@aptre/common": "0.35.1",
     "@google/design.md": "^0.4.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.3",
@@ -240,10 +240,10 @@
     "cross-env": "^10.1.0",
     "eslint-plugin-react-compiler": "19.1.0-rc.2",
     "happy-dom": "^20.11.1",
-    "oxc-parser": "^0.143.0",
-    "oxfmt": "0.62.0",
+    "oxc-parser": "^0.144.0",
+    "oxfmt": "0.63.0",
     "oxlint": "^1.77.0",
-    "oxlint-plugin-react-doctor": "0.9.10",
+    "oxlint-plugin-react-doctor": "0.9.11",
     "oxlint-tsgolint": "^7.0.0",
     "playwright": "^1.62.1",
     "react-doctor": "^0.9.5",

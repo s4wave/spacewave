@@ -64,7 +64,7 @@ require (
 
 require (
 	golang.org/x/crypto v0.54.0
-	golang.org/x/mod v0.38.0 // latest
+	golang.org/x/mod v0.39.0 // latest
 	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/term v0.45.0
@@ -78,7 +78,7 @@ require (
 	github.com/pion/logging v0.2.4
 	github.com/pion/transport/v4 v4.1.0
 	go.starlark.net v0.0.0-20260708150628-5395d018f003
-	golang.org/x/exp v0.0.0-20260727155853-b88d891fe743
+	golang.org/x/exp v0.0.0-20260810151157-a8b543ca52da
 	gonum.org/v1/gonum v0.17.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
@@ -125,7 +125,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
-	github.com/sirupsen/logrus v1.9.5-0.20260629095817-a23d315dfebb
+	github.com/sirupsen/logrus v1.9.5-0.20260810194048-0f08b84da767
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
 	github.com/tetratelabs/wazero v1.12.0
