@@ -186,8 +186,15 @@ func TestPluginCompilerJs(t *testing.T) {
 			foundDistDepsInput,
 		)
 	}
-	if _, err := os.Stat(staleEntryPath); !os.IsNotExist(err) {
-		t.Fatalf("stale plugin entrypoint survived rebuild: %v", err)
+	staleEntry, err := os.ReadFile(staleEntryPath)
+	if err != nil {
+		t.Fatalf("caller-owned stale entrypoint: %v", err)
+	}
+	if string(staleEntry) != "stale" {
+		t.Fatalf("caller-owned stale entrypoint = %q, want stale", staleEntry)
+	}
+	if got := buildResult.GetManifest().GetEntrypoint(); got == filepath.Base(staleEntryPath) {
+		t.Fatalf("builder reused caller-owned stale entrypoint %q", got)
 	}
 	jdat, err := buildResult.GetManifest().MarshalJSON()
 	if err != nil {
@@ -220,58 +227,133 @@ func TestPluginCompilerJs(t *testing.T) {
 }
 
 func TestPluginCompilerJsOwnsWorkingPathDuringBuild(t *testing.T) {
-	ctrl, err := bldr_plugin_compiler_js.NewController(logrus.NewEntry(logrus.New()), nil, &bldr_plugin_compiler_js.Config{})
+	for _, test := range []struct {
+		name   string
+		cancel bool
+	}{
+		{name: "failure"},
+		{name: "cancellation", cancel: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctrl, err := bldr_plugin_compiler_js.NewController(logrus.NewEntry(logrus.New()), nil, &bldr_plugin_compiler_js.Config{})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			workDir := t.TempDir()
+			if err := os.Chmod(workDir, 0o750); err != nil {
+				t.Fatal(err)
+			}
+			callerMarkerPath := filepath.Join(workDir, "caller-marker")
+			callerMarker := []byte("caller-owned content")
+			if err := os.WriteFile(callerMarkerPath, callerMarker, 0o640); err != nil {
+				t.Fatal(err)
+			}
+			args := &bldr_manifest_builder.BuildManifestArgs{
+				BuilderConfig: &bldr_manifest_builder.BuilderConfig{
+					ManifestMeta:   bldr_manifest.NewManifestMeta("test-plugin", bldr_manifest.BuildType_DEV, "js", 1),
+					SourcePath:     t.TempDir(),
+					DistSourcePath: t.TempDir(),
+					WorkingPath:    workDir,
+				},
+			}
+			buildStarted := make(chan string, 1)
+			continueBuild := make(chan struct{})
+			sentinelErr := errors.New("stop after working-directory ownership check")
+			ctrl.AddPreBuildHook(func(
+				ctx context.Context,
+				builderConf *bldr_manifest_builder.BuilderConfig,
+				_ world.Engine,
+			) (*bldr_plugin_compiler_js.PreBuildHookResult, error) {
+				workingPath := builderConf.GetWorkingPath()
+				buildStarted <- workingPath
+				if workingPath == workDir {
+					return nil, errors.New("js compiler used caller-owned working path")
+				}
+				if _, err := os.Stat(filepath.Join(workingPath, "caller-marker")); !os.IsNotExist(err) {
+					return nil, errors.New("js compiler copied caller content into its workspace")
+				}
+				if err := os.WriteFile(filepath.Join(workingPath, "builder-marker"), []byte("builder-owned"), 0o644); err != nil {
+					return nil, err
+				}
+				if test.cancel {
+					<-ctx.Done()
+					return nil, ctx.Err()
+				}
+				<-continueBuild
+				return nil, sentinelErr
+			})
+
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			buildErr := make(chan error, 1)
+			go func() {
+				_, err := ctrl.BuildManifest(ctx, args, nil)
+				buildErr <- err
+			}()
+
+			workingPath := <-buildStarted
+			assertWorkingPathUnchanged(t, workDir, callerMarkerPath, callerMarker)
+			if test.cancel {
+				cancel()
+			} else {
+				close(continueBuild)
+			}
+
+			select {
+			case err := <-buildErr:
+				wantErr := sentinelErr
+				if test.cancel {
+					wantErr = context.Canceled
+				}
+				if !errors.Is(err, wantErr) {
+					t.Fatalf("BuildManifest error = %v, want %v after builder-owned write", err, wantErr)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("BuildManifest did not finish after releasing the build seam")
+			}
+			assertWorkingPathUnchanged(t, workDir, callerMarkerPath, callerMarker)
+			if got := args.GetBuilderConfig().GetWorkingPath(); got != workDir {
+				t.Fatalf("caller BuilderConfig working path = %q, want %q", got, workDir)
+			}
+			if _, err := os.Stat(filepath.Join(workingPath, "builder-marker")); err != nil {
+				t.Fatalf("builder workspace before Close: %v", err)
+			}
+
+			if err := ctrl.Close(); err != nil {
+				t.Fatal(err)
+			}
+			assertWorkingPathUnchanged(t, workDir, callerMarkerPath, callerMarker)
+			if _, err := os.Stat(filepath.Dir(workingPath)); !os.IsNotExist(err) {
+				t.Fatalf("builder workspace after Close: error = %v, want not exist", err)
+			}
+		})
+	}
+}
+
+func assertWorkingPathUnchanged(t *testing.T, workDir, markerPath string, marker []byte) {
+	t.Helper()
+
+	workInfo, err := os.Stat(workDir)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("caller working path: %v", err)
 	}
-
-	workDir := t.TempDir()
-	args := &bldr_manifest_builder.BuildManifestArgs{
-		BuilderConfig: &bldr_manifest_builder.BuilderConfig{
-			ManifestMeta:   bldr_manifest.NewManifestMeta("test-plugin", bldr_manifest.BuildType_DEV, "js", 1),
-			SourcePath:     t.TempDir(),
-			DistSourcePath: t.TempDir(),
-			WorkingPath:    workDir,
-		},
+	if got := workInfo.Mode().Perm(); got != 0o750 {
+		t.Fatalf("caller working path mode = %o, want 750", got)
 	}
-	buildStarted := make(chan struct{})
-	continueBuild := make(chan struct{})
-	sentinelErr := errors.New("stop after working-directory ownership check")
-	ctrl.AddPreBuildHook(func(
-		_ context.Context,
-		builderConf *bldr_manifest_builder.BuilderConfig,
-		_ world.Engine,
-	) (*bldr_plugin_compiler_js.PreBuildHookResult, error) {
-		close(buildStarted)
-		<-continueBuild
-		if err := os.WriteFile(filepath.Join(builderConf.GetWorkingPath(), "marker"), []byte("builder-owned"), 0o644); err != nil {
-			return nil, err
-		}
-		return nil, sentinelErr
-	})
-
-	buildErr := make(chan error, 1)
-	go func() {
-		_, err := ctrl.BuildManifest(context.Background(), args, nil)
-		buildErr <- err
-	}()
-
-	<-buildStarted
-	if err := os.RemoveAll(workDir); err != nil {
-		t.Fatal(err)
+	gotMarker, err := os.ReadFile(markerPath)
+	if err != nil {
+		t.Fatalf("caller marker: %v", err)
 	}
-	close(continueBuild)
-
-	select {
-	case err := <-buildErr:
-		if !errors.Is(err, sentinelErr) {
-			t.Fatalf("BuildManifest error = %v, want sentinel after builder-owned write", err)
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("BuildManifest did not finish after releasing the build seam")
+	if string(gotMarker) != string(marker) {
+		t.Fatalf("caller marker = %q, want %q", gotMarker, marker)
 	}
-	if err := ctrl.Close(); err != nil {
-		t.Fatal(err)
+	markerInfo, err := os.Stat(markerPath)
+	if err != nil {
+		t.Fatalf("caller marker mode: %v", err)
+	}
+	if got := markerInfo.Mode().Perm(); got != 0o640 {
+		t.Fatalf("caller marker mode = %o, want 640", got)
 	}
 }
 

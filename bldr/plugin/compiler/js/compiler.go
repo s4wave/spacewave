@@ -79,14 +79,7 @@ func (c *Controller) acquireWorkingPath(originalWorkingPath string) (string, fun
 			return "", nil, errors.Wrap(err, "create js builder working directory")
 		}
 		workingPath = filepath.Join(workingRoot, "work")
-		if filepath.IsAbs(originalWorkingPath) {
-			err = os.Rename(originalWorkingPath, workingPath)
-			if err != nil && !os.IsNotExist(err) {
-				_ = os.RemoveAll(workingRoot)
-				return "", nil, errors.Wrap(err, "take ownership of js builder working directory")
-			}
-		}
-		if err := os.MkdirAll(workingPath, 0o755); err != nil {
+		if err := os.Mkdir(workingPath, 0o755); err != nil {
 			_ = os.RemoveAll(workingRoot)
 			return "", nil, errors.Wrap(err, "create js builder working directory")
 		}
