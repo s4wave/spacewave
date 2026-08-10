@@ -30,8 +30,9 @@ var chunkImportPattern = regexp.MustCompile(`(?:\./)?chunks/[^"'` + "`" + `)]+\.
 // BuildProfileAccessOrderCommand builds the profile-access-order command.
 func (a *DevtoolArgs) BuildProfileAccessOrderCommand() *cli.Command {
 	return &cli.Command{
-		Name:  "profile-access-order",
-		Usage: "record manifest startup file access order",
+		Name:   "profile-access-order",
+		Usage:  "record manifest startup file access order",
+		Before: a.validateCommand,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "manifest",

@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -45,52 +46,52 @@ var devtoolTransformConf = []config.Config{
 
 // DevtoolBus contains a built devtool bus.
 type DevtoolBus struct {
-	// ctx contains the context
+	// ctx bounds all work performed by the devtool bus.
 	ctx context.Context
-	// b contains the bus
+	// b dispatches controllers for the devtool bus.
 	b bus.Bus
-	// le contains the root logger
+	// le records devtool bus events.
 	le *logrus.Entry
-	// sr contains the static resolver
+	// sr resolves statically registered controllers.
 	sr *static.Resolver
-	// watch enables watching for changes
+	// watch enables project change detection.
 	watch bool
-	// storageID is the storage engine id
+	// storageID identifies the storage engine.
 	storageID string
-	// worldEngineID is the world engine id for the devtool world
+	// worldEngineID identifies the devtool world engine.
 	worldEngineID string
-	// engineBucketID is the bucket used for world engine state storage
+	// engineBucketID identifies the bucket containing world engine state.
 	engineBucketID string
-	// engineObjectStoreID is the bucket used for root world engine state ref
+	// engineObjectStoreID identifies the bucket containing the root world engine reference.
 	engineObjectStoreID string
-	// pluginHostObjectKey is the object key used for the PluginHost
+	// pluginHostObjectKey identifies the PluginHost object.
 	pluginHostObjectKey string
-	// repoRoot is the project root containing the live module files.
+	// repoRoot contains the live project module files.
 	repoRoot string
-	// stateRoot is the .bldr state root dir.
+	// stateRoot contains persistent devtool working state.
 	stateRoot string
-	// distSrcRoot is the path to the web entrypoint sources.
+	// distSrcRoot contains the web entrypoint sources.
 	distSrcRoot string
-	// pluginsDistRoot is the path to the plugins dist dir.
+	// pluginsDistRoot contains built plugin distributions.
 	pluginsDistRoot string
-	// pluginsStateRoot is the path to the plugins state dir.
+	// pluginsStateRoot contains plugin working state.
 	pluginsStateRoot string
-	// vol is the volume used for state
+	// vol stores devtool state.
 	vol volume.Volume
-	// volInfo is the volume info for the vol used for state
+	// volInfo describes vol.
 	volInfo *volume.VolumeInfo
-	// volCtrl is the volume controller used for state
+	// volCtrl controls vol.
 	volCtrl volume.Controller
-	// peerID is the peerID to use for operations.
+	// peerID identifies the storage peer used for devtool operations.
 	peerID peer.ID
-	// worldEngine is the world engine instance.
+	// worldEngine stores the devtool world.
 	worldEngine world.Engine
-	// worldState is the world state instance.
+	// worldState provides access to worldEngine state.
 	worldState world.WorldState
 	// statusProducer publishes devtool status snapshots.
 	statusProducer *devtool_status.BldrDevtoolStatusProducer
-	// rels are the release funcs
-	rels []func()
+	// release cancels work, joins controllers, and releases the state lock exactly once.
+	release func()
 }
 
 // BuildDevtoolBus builds the storage and bus for the devtool.
@@ -104,16 +105,11 @@ func BuildDevtoolBus(
 	ctx, ctxCancel := context.WithCancel(rctx)
 	var rels []func()
 	var stateLock *stateLock
-	rel := func() {
-		for _, fn := range rels {
-			fn()
-		}
+	rel := newDevtoolBusRelease(ctxCancel, &rels, func() {
 		if stateLock != nil {
 			stateLock.release()
-			stateLock = nil
 		}
-		ctxCancel()
-	}
+	})
 
 	var err error
 	stateLock, err = acquireStateLock(ctx, le, stateRoot)
@@ -179,7 +175,7 @@ func BuildDevtoolBus(
 	// ensure there is at least one storage method
 	storageMethods := storageCtrl.GetStorage()
 	if len(storageMethods) == 0 {
-		ctxCancel()
+		rel()
 		return nil, errors.New("no available storage methods")
 	}
 
@@ -362,8 +358,22 @@ func BuildDevtoolBus(
 		worldEngine:         eng,
 		worldState:          worldState,
 		statusProducer:      statusProducer,
-		rels:                rels,
+		release:             rel,
 	}, nil
+}
+
+func newDevtoolBusRelease(
+	cancel context.CancelFunc,
+	rels *[]func(),
+	releaseStateLock func(),
+) func() {
+	return sync.OnceFunc(func() {
+		cancel()
+		for i := len(*rels) - 1; i >= 0; i-- {
+			(*rels)[i]()
+		}
+		releaseStateLock()
+	})
 }
 
 // SyncDistSources syncs the bldr sources and runs npm i and go mod vendor.
@@ -601,7 +611,7 @@ func (d *DevtoolBus) StartProjectControllerWithStartup(
 
 // Release releases the devtool bus.
 func (d *DevtoolBus) Release() {
-	for _, rel := range d.rels {
-		rel()
+	if d.release != nil {
+		d.release()
 	}
 }

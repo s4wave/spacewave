@@ -5,19 +5,35 @@ package devtool
 import (
 	"context"
 	"os"
-	"os/exec"
 	"runtime"
+	"sync"
 
+	"github.com/aperturerobotics/util/routine"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 	"github.com/s4wave/spacewave/bldr/util/logfile"
 	"github.com/s4wave/spacewave/bldr/util/termui"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
 )
 
 type devtoolTUIRunner struct {
-	input   *os.File
-	output  *os.File
+	// input receives terminal key events.
+	input *os.File
+	// output receives the rendered dashboard.
+	output *os.File
+	// openURL is opened by the browser launcher.
 	openURL string
+	// le records browser-launch failures.
+	le *logrus.Entry
+
+	// browserMtx guards browserRunning.
+	browserMtx sync.Mutex
+	// browserRunning prevents concurrent browser-launch subprocesses.
+	browserRunning bool
+	// browserProcess supervises the active browser-launch subprocess.
+	browserProcess *routine.RoutineContainer
+	// newBrowserProcess constructs the platform browser launcher.
+	newBrowserProcess func(context.Context, *logrus.Entry, string) *CLIProcessSupervisor
 }
 
 func (a *DevtoolArgs) startDevtoolTUI(
@@ -29,9 +45,12 @@ func (a *DevtoolArgs) startDevtoolTUI(
 		return ctx, func() {}
 	}
 	runner := &devtoolTUIRunner{
-		input:   os.Stdin,
-		output:  os.Stderr,
-		openURL: openURL,
+		input:             os.Stdin,
+		output:            os.Stderr,
+		openURL:           openURL,
+		le:                a.Logger,
+		browserProcess:    routine.NewRoutineContainer(),
+		newBrowserProcess: newDevtoolBrowserProcess,
 	}
 	logfile.DiscardConsoleOutput(a.Logger.Logger)
 	return runner.start(ctx, producer)
@@ -42,6 +61,7 @@ func (r *devtoolTUIRunner) start(
 	producer *devtool_status.BldrDevtoolStatusProducer,
 ) (context.Context, func()) {
 	uiCtx, cancel := context.WithCancel(ctx)
+	r.browserProcess.SetContext(uiCtx, false)
 	updates := make(chan *devtool_status.BldrDevtoolStatus, 16)
 	done := make(chan struct{}, 1)
 
@@ -74,15 +94,14 @@ func (r *devtoolTUIRunner) start(
 			producer.GetStatus(),
 			updates,
 			r.render,
-			r.handleKey(cancel),
+			r.handleKey(uiCtx, cancel),
 		)
 	}()
 
 	return uiCtx, func() {
-		if !producer.GetStatus().GetCommand().IsTerminal() {
-			cancel()
-		}
+		cancel()
 		<-done
+		r.stopBrowserProcess()
 	}
 }
 
@@ -102,31 +121,92 @@ func tuiColorEnabled() bool {
 	return os.Getenv("NO_COLOR") == ""
 }
 
-func (r *devtoolTUIRunner) handleKey(cancel context.CancelFunc) termui.KeyHandler[*devtool_status.BldrDevtoolStatus] {
+func (r *devtoolTUIRunner) handleKey(
+	ctx context.Context,
+	cancel context.CancelFunc,
+) termui.KeyHandler[*devtool_status.BldrDevtoolStatus] {
 	return func(_ *devtool_status.BldrDevtoolStatus, key byte) {
 		switch key {
 		case 3:
 			cancel()
 		case 'o', 'O':
-			if r.openURL != "" {
-				go openDevtoolBrowser(r.openURL)
-			}
+			r.launchBrowser(ctx)
 		}
 	}
 }
 
-func openDevtoolBrowser(url string) {
-	if url == "" {
+func (r *devtoolTUIRunner) launchBrowser(ctx context.Context) {
+	if r.openURL == "" || ctx.Err() != nil {
 		return
 	}
-	var cmd *exec.Cmd
+
+	r.browserMtx.Lock()
+	if r.browserRunning {
+		r.browserMtx.Unlock()
+		return
+	}
+	proc := r.newBrowserProcess(ctx, r.le, r.openURL)
+	if proc == nil {
+		r.browserMtx.Unlock()
+		return
+	}
+	r.browserRunning = true
+	r.browserMtx.Unlock()
+
+	r.browserProcess.SetRoutine(func(ctx context.Context) error {
+		defer func() {
+			r.browserMtx.Lock()
+			r.browserRunning = false
+			r.browserMtx.Unlock()
+		}()
+
+		if err := proc.Start(); err != nil {
+			if r.le != nil {
+				r.le.WithError(err).Warn("open browser")
+			}
+			return nil
+		}
+
+		select {
+		case <-proc.Done():
+			err := proc.Wait()
+			if err != nil && ctx.Err() == nil && r.le != nil {
+				r.le.WithError(err).Warn("open browser")
+			}
+		case <-ctx.Done():
+			_ = proc.Terminate()
+		}
+		return nil
+	})
+}
+
+func (r *devtoolTUIRunner) stopBrowserProcess() {
+	wait, _ := r.browserProcess.SetRoutine(nil)
+	if wait != nil {
+		<-wait
+	}
+}
+
+func newDevtoolBrowserProcess(
+	ctx context.Context,
+	le *logrus.Entry,
+	url string,
+) *CLIProcessSupervisor {
+	if url == "" {
+		return nil
+	}
+	var binaryPath string
+	var args []string
 	switch runtime.GOOS {
 	case "darwin":
-		cmd = exec.Command("open", url)
+		binaryPath = "open"
+		args = []string{url}
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+		binaryPath = "rundll32"
+		args = []string{"url.dll,FileProtocolHandler", url}
 	default:
-		cmd = exec.Command("xdg-open", url)
+		binaryPath = "xdg-open"
+		args = []string{url}
 	}
-	_ = cmd.Start()
+	return NewCLIProcessSupervisor(ctx, le, binaryPath, args)
 }

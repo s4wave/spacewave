@@ -19,13 +19,13 @@ import (
 )
 
 func TestCliSubprocessSupervisorWaitReturnsExitError(t *testing.T) {
-	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
+	supervisor := NewCLIProcessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
 	cmd := cliSubprocessSupervisorTestCommand(t, "exit", "7")
 	if err := supervisor.startCommand(cmd); err != nil {
 		t.Fatalf("start helper: %v", err)
 	}
 
-	err := <-supervisor.wait()
+	err := supervisor.Wait()
 	var exitErr *exec.ExitError
 	if !errors.As(err, &exitErr) {
 		t.Fatalf("wait error = %T %[1]v, want exec.ExitError", err)
@@ -40,21 +40,21 @@ func TestCliSubprocessSupervisorStartContextCancelUsesTerminatePath(t *testing.T
 
 	ctx, cancel := context.WithCancel(context.Background())
 	readyPath := filepath.Join(t.TempDir(), "ready")
-	supervisor := newCliSubprocessSupervisor(
+	supervisor := NewCLIProcessSupervisor(
 		ctx,
 		logrus.NewEntry(logrus.New()),
 		cliSubprocessSupervisorTestExecutable(t),
 		cliSubprocessSupervisorTestArgs("term-exit", readyPath),
 	)
-	if err := supervisor.start(); err != nil {
+	if err := supervisor.Start(); err != nil {
 		t.Fatalf("start helper: %v", err)
 	}
 	waitForCliSubprocessHelperReady(t, readyPath)
 
 	cancel()
 	select {
-	case err := <-supervisor.wait():
-		t.Fatalf("context cancel ended process before supervisor termination: %v", err)
+	case <-supervisor.Done():
+		t.Fatalf("context cancel ended process before supervisor termination: %v", supervisor.Wait())
 	case <-time.After(100 * time.Millisecond):
 	}
 
@@ -64,22 +64,22 @@ func TestCliSubprocessSupervisorStartContextCancelUsesTerminatePath(t *testing.T
 }
 
 func TestCliSubprocessSupervisorClosesStderrAfterWait(t *testing.T) {
-	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
-	stderr := newCliSubprocessSupervisorCloseRecorder()
+	supervisor := NewCLIProcessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
+	stderr := newCLIProcessSupervisorCloseRecorder()
 	supervisor.stderr = stderr
 	cmd := cliSubprocessSupervisorTestCommand(t, "exit", "0")
 	if err := supervisor.startCommand(cmd); err != nil {
 		t.Fatalf("start helper: %v", err)
 	}
-	if err := <-supervisor.wait(); err != nil {
+	if err := supervisor.Wait(); err != nil {
 		t.Fatalf("wait helper: %v", err)
 	}
 	stderr.expectClosed(t)
 }
 
 func TestCliSubprocessSupervisorClosesStderrAfterStartError(t *testing.T) {
-	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
-	stderr := newCliSubprocessSupervisorCloseRecorder()
+	supervisor := NewCLIProcessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
+	stderr := newCLIProcessSupervisorCloseRecorder()
 	supervisor.stderr = stderr
 	err := supervisor.startCommand(exec.Command(filepath.Join(t.TempDir(), "missing"))) //nolint:gosec // G204: test path is a temp dir under test control
 	if err == nil {
@@ -89,7 +89,7 @@ func TestCliSubprocessSupervisorClosesStderrAfterStartError(t *testing.T) {
 }
 
 func TestCliSubprocessSupervisorTerminateWaitsForSignalExit(t *testing.T) {
-	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
+	supervisor := NewCLIProcessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
 	readyPath := filepath.Join(t.TempDir(), "ready")
 	cmd := cliSubprocessSupervisorTestCommand(t, "term-exit", readyPath)
 	if err := supervisor.startCommand(cmd); err != nil {
@@ -103,7 +103,7 @@ func TestCliSubprocessSupervisorTerminateWaitsForSignalExit(t *testing.T) {
 }
 
 func TestCliSubprocessSupervisorTerminateKillsAfterTimeout(t *testing.T) {
-	supervisor := newCliSubprocessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
+	supervisor := NewCLIProcessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
 	readyPath := filepath.Join(t.TempDir(), "ready")
 	cmd := cliSubprocessSupervisorTestCommand(t, "ignore-term", readyPath)
 	if err := supervisor.startCommand(cmd); err != nil {
@@ -122,6 +122,173 @@ func TestCliSubprocessSupervisorTerminateKillsAfterTimeout(t *testing.T) {
 	var exitErr *exec.ExitError
 	if !errors.As(err, &exitErr) {
 		t.Fatalf("terminate error = %T %[1]v, want exec.ExitError", err)
+	}
+	if waitErr := supervisor.Wait(); waitErr != err {
+		t.Fatalf("Wait error = %v, want stable kill error %v", waitErr, err)
+	}
+	if terminateErr := supervisor.Terminate(); terminateErr != err {
+		t.Fatalf("repeated Terminate error = %v, want stable kill error %v", terminateErr, err)
+	}
+}
+
+func TestCLIProcessSupervisorRejectsConcurrentStart(t *testing.T) {
+	t.Setenv("BLDR_DEVTOOL_CLI_PROCESS_HELPER", "1")
+
+	readyPath := filepath.Join(t.TempDir(), "ready")
+	supervisor := NewCLIProcessSupervisor(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		cliSubprocessSupervisorTestExecutable(t),
+		cliSubprocessSupervisorTestArgs("term-exit", readyPath),
+	)
+
+	const callers = 16
+	results := make(chan error, callers)
+	var ready sync.WaitGroup
+	ready.Add(callers)
+	start := make(chan struct{})
+	for range callers {
+		go func() {
+			ready.Done()
+			<-start
+			results <- supervisor.Start()
+		}()
+	}
+	ready.Wait()
+	close(start)
+
+	started := 0
+	for range callers {
+		err := <-results
+		switch {
+		case err == nil:
+			started++
+		case errors.Is(err, ErrCLIProcessAlreadyStarted):
+		default:
+			t.Fatalf("Start error = %v, want nil or ErrCLIProcessAlreadyStarted", err)
+		}
+	}
+	if started != 1 {
+		t.Fatalf("successful starts = %d, want 1", started)
+	}
+	waitForCliSubprocessHelperReady(t, readyPath)
+	if err := supervisor.Terminate(); err != nil {
+		t.Fatalf("terminate: %v", err)
+	}
+	if err := supervisor.Start(); !errors.Is(err, ErrCLIProcessAlreadyStarted) {
+		t.Fatalf("repeat Start error = %v, want ErrCLIProcessAlreadyStarted", err)
+	}
+}
+
+func TestCLIProcessSupervisorWaitThenTerminateReturnsNaturalExit(t *testing.T) {
+	supervisor := NewCLIProcessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
+	if err := supervisor.startCommand(cliSubprocessSupervisorTestCommand(t, "exit", "7")); err != nil {
+		t.Fatalf("start helper: %v", err)
+	}
+
+	waitErr := supervisor.Wait()
+	terminateErr := supervisor.Terminate()
+	var waitExitErr, terminateExitErr *exec.ExitError
+	if !errors.As(waitErr, &waitExitErr) || !errors.As(terminateErr, &terminateExitErr) {
+		t.Fatalf("results = (%T %v, %T %v), want exit errors", waitErr, waitErr, terminateErr, terminateErr)
+	}
+	if waitExitErr != terminateExitErr || waitExitErr.ExitCode() != 7 {
+		t.Fatalf("results are not the stable exit error: (%p, %p)", waitExitErr, terminateExitErr)
+	}
+}
+
+func TestCLIProcessSupervisorBroadcastsResultToWaitAndTerminate(t *testing.T) {
+	supervisor := NewCLIProcessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
+	readyPath := filepath.Join(t.TempDir(), "ready")
+	if err := supervisor.startCommand(cliSubprocessSupervisorTestCommand(t, "term-exit", readyPath)); err != nil {
+		t.Fatalf("start helper: %v", err)
+	}
+	waitForCliSubprocessHelperReady(t, readyPath)
+
+	const waiters = 12
+	results := make(chan error, waiters)
+	for i := range waiters {
+		go func() {
+			if i%2 == 0 {
+				results <- supervisor.Wait()
+				return
+			}
+			results <- supervisor.terminateAfter(5 * time.Second)
+		}()
+	}
+	for range waiters {
+		if err := <-results; err != nil {
+			t.Fatalf("completion result: %v", err)
+		}
+	}
+	for range 3 {
+		if err := supervisor.Terminate(); err != nil {
+			t.Fatalf("repeated Terminate: %v", err)
+		}
+	}
+}
+
+func TestCLIProcessSupervisorStartFailureIsStableCompletion(t *testing.T) {
+	supervisor := NewCLIProcessSupervisor(
+		context.Background(),
+		logrus.NewEntry(logrus.New()),
+		filepath.Join(t.TempDir(), "missing"),
+		nil,
+	)
+	startErr := supervisor.Start()
+	if startErr == nil {
+		t.Fatal("Start returned nil, want missing executable error")
+	}
+	if waitErr := supervisor.Wait(); waitErr != startErr {
+		t.Fatalf("Wait error = %v, want stable Start error %v", waitErr, startErr)
+	}
+	if terminateErr := supervisor.Terminate(); terminateErr != startErr {
+		t.Fatalf("Terminate error = %v, want stable Start error %v", terminateErr, startErr)
+	}
+}
+
+func TestCLIProcessSupervisorCanceledStartIsStableCompletion(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	supervisor := NewCLIProcessSupervisor(ctx, logrus.NewEntry(logrus.New()), "unused", nil)
+
+	startErr := supervisor.Start()
+	if !errors.Is(startErr, context.Canceled) {
+		t.Fatalf("Start error = %v, want context.Canceled", startErr)
+	}
+	if waitErr := supervisor.Wait(); waitErr != startErr {
+		t.Fatalf("Wait error = %v, want stable Start error %v", waitErr, startErr)
+	}
+	if terminateErr := supervisor.Terminate(); terminateErr != startErr {
+		t.Fatalf("Terminate error = %v, want stable Start error %v", terminateErr, startErr)
+	}
+}
+
+func TestCLIProcessSupervisorWaitBeforeStartReceivesCompletion(t *testing.T) {
+	supervisor := NewCLIProcessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "", nil)
+	result := make(chan error, 1)
+	go func() {
+		result <- supervisor.Wait()
+	}()
+
+	if err := supervisor.startCommand(cliSubprocessSupervisorTestCommand(t, "exit", "0")); err != nil {
+		t.Fatalf("start helper: %v", err)
+	}
+	if err := <-result; err != nil {
+		t.Fatalf("Wait: %v", err)
+	}
+}
+
+func TestCLIProcessSupervisorTerminateBeforeStartCompletesLifecycle(t *testing.T) {
+	supervisor := NewCLIProcessSupervisor(context.Background(), logrus.NewEntry(logrus.New()), "unused", nil)
+	if err := supervisor.Terminate(); err != nil {
+		t.Fatalf("Terminate: %v", err)
+	}
+	if err := supervisor.Wait(); err != nil {
+		t.Fatalf("Wait: %v", err)
+	}
+	if err := supervisor.Start(); !errors.Is(err, ErrCLIProcessAlreadyStarted) {
+		t.Fatalf("Start error = %v, want ErrCLIProcessAlreadyStarted", err)
 	}
 }
 
@@ -205,7 +372,7 @@ type cliSubprocessSupervisorCloseRecorder struct {
 	closed chan struct{}
 }
 
-func newCliSubprocessSupervisorCloseRecorder() *cliSubprocessSupervisorCloseRecorder {
+func newCLIProcessSupervisorCloseRecorder() *cliSubprocessSupervisorCloseRecorder {
 	return &cliSubprocessSupervisorCloseRecorder{closed: make(chan struct{})}
 }
 

@@ -136,8 +136,8 @@ func (a *DevtoolArgs) runCliSubprocess(
 
 	for {
 		runCtx, cancelRun := context.WithCancel(ctx)
-		proc := newCliSubprocessSupervisor(runCtx, le, binaryPath, args)
-		if err := proc.start(); err != nil {
+		proc := NewCLIProcessSupervisor(runCtx, le, binaryPath, args)
+		if err := proc.Start(); err != nil {
 			cancelRun()
 			return err
 		}
@@ -165,7 +165,8 @@ func (a *DevtoolArgs) runCliSubprocess(
 		}
 
 		select {
-		case err := <-proc.wait():
+		case <-proc.Done():
+			err := proc.Wait()
 			// subprocess exited on its own (not killed by us)
 			// propagate exit code to parent
 			cancelRun()
@@ -174,17 +175,17 @@ func (a *DevtoolArgs) runCliSubprocess(
 		case watchErr := <-rebuildCh:
 			if watchErr != nil {
 				cancelRun()
-				_ = proc.terminate()
+				_ = proc.Terminate()
 				return watchErr
 			}
 			// manifest rebuilt, kill subprocess and restart
 			le.Info("manifest rebuilt, restarting CLI...")
 			cancelRun()
-			_ = proc.terminate()
+			_ = proc.Terminate()
 
 		case <-ctx.Done():
 			cancelRun()
-			return exitWithChildCode(proc.terminate())
+			return exitWithChildCode(proc.Terminate())
 		}
 
 		// collect the updated manifest ref from the world

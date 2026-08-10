@@ -4,9 +4,11 @@ package devtool
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"os/exec"
+	"sync"
 	"syscall"
 	"time"
 
@@ -15,99 +17,185 @@ import (
 
 const cliSubprocessKillTimeout = 3 * time.Second
 
-type cliSubprocessSupervisor struct {
-	ctx        context.Context
-	le         *logrus.Entry
-	binaryPath string
-	args       []string
+// ErrCLIProcessAlreadyStarted is returned when Start is called more than once
+// or after the supervisor has been terminated.
+var ErrCLIProcessAlreadyStarted = errors.New("CLI process supervisor already started")
 
+type cliProcessState uint8
+
+const (
+	cliProcessReady cliProcessState = iota
+	cliProcessStarted
+	cliProcessDone
+)
+
+// CLIProcessSupervisor runs one CLI subprocess and owns its completion and termination.
+type CLIProcessSupervisor struct {
+	// ctx prevents a subprocess from starting after its caller is canceled.
+	ctx context.Context
+	// le receives the subprocess stderr stream.
+	le *logrus.Entry
+	// binaryPath is the configured executable path.
+	binaryPath string
+	// args are the configured executable arguments.
+	args []string
+
+	// killTimeout bounds graceful termination before a forced kill.
 	killTimeout time.Duration
-	cmd         *exec.Cmd
-	stderr      io.Closer
-	done        chan error
+	// mtx guards the subprocess lifecycle and result.
+	mtx sync.Mutex
+	// state records the single start attempt and its completion.
+	state cliProcessState
+	// cmd is the running subprocess after Start succeeds.
+	cmd *exec.Cmd
+	// stderr is closed after start failure or subprocess exit.
+	stderr io.Closer
+	// result is stable after done closes.
+	result error
+	// done closes when the start attempt or subprocess completes.
+	done chan struct{}
+	// terminateOnce sends at most one graceful signal and forced kill.
+	terminateOnce sync.Once
 }
 
-func newCliSubprocessSupervisor(
+// NewCLIProcessSupervisor constructs a supervisor for one configured CLI subprocess.
+func NewCLIProcessSupervisor(
 	ctx context.Context,
 	le *logrus.Entry,
 	binaryPath string,
 	args []string,
-) *cliSubprocessSupervisor {
-	return &cliSubprocessSupervisor{
+) *CLIProcessSupervisor {
+	return &CLIProcessSupervisor{
 		ctx:         ctx,
 		le:          le,
 		binaryPath:  binaryPath,
 		args:        args,
 		killTimeout: cliSubprocessKillTimeout,
+		done:        make(chan struct{}),
 	}
 }
 
-func (s *cliSubprocessSupervisor) start() error {
+// Start launches the subprocess. The supervisor accepts exactly one start attempt.
+func (s *CLIProcessSupervisor) Start() error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	if s.state != cliProcessReady {
+		return ErrCLIProcessAlreadyStarted
+	}
+	s.state = cliProcessStarted
 	if err := s.ctx.Err(); err != nil {
+		s.completeLocked(err)
 		return err
 	}
+
 	// The supervisor launches the devtool-configured CLI binary with its own
 	// configured arguments, not caller-supplied input.
 	cmd := exec.Command(s.binaryPath, s.args...) //nolint:gosec // G204: binary path and args are devtool-owned config
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = s.newStderrWriter()
-	return s.startCommand(cmd)
+	cmd.Stderr = s.newStderrWriterLocked()
+	return s.startCommandLocked(cmd)
 }
 
-func (s *cliSubprocessSupervisor) startCommand(cmd *exec.Cmd) error {
+func (s *CLIProcessSupervisor) startCommand(cmd *exec.Cmd) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	if s.state != cliProcessReady {
+		return ErrCLIProcessAlreadyStarted
+	}
+	s.state = cliProcessStarted
+	if err := s.ctx.Err(); err != nil {
+		s.completeLocked(err)
+		return err
+	}
+	return s.startCommandLocked(cmd)
+}
+
+func (s *CLIProcessSupervisor) startCommandLocked(cmd *exec.Cmd) error {
 	if err := cmd.Start(); err != nil {
-		s.closeStderr()
+		s.completeLocked(err)
 		return err
 	}
 
 	s.cmd = cmd
-	s.done = make(chan error, 1)
 	go func() {
-		err := cmd.Wait()
-		s.closeStderr()
-		s.done <- err
+		s.complete(cmd.Wait())
 	}()
 	return nil
 }
 
-func (s *cliSubprocessSupervisor) wait() <-chan error {
+// Done closes when the start attempt or subprocess completes.
+func (s *CLIProcessSupervisor) Done() <-chan struct{} {
 	return s.done
 }
 
-func (s *cliSubprocessSupervisor) terminate() error {
+// Wait blocks until completion and returns the stable start or subprocess result.
+func (s *CLIProcessSupervisor) Wait() error {
+	<-s.done
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.result
+}
+
+// Terminate requests graceful termination, kills after the configured timeout, and waits.
+func (s *CLIProcessSupervisor) Terminate() error {
 	return s.terminateAfter(s.killTimeout)
 }
 
-func (s *cliSubprocessSupervisor) terminateAfter(timeout time.Duration) error {
-	if s.cmd == nil || s.cmd.Process == nil {
-		return nil
-	}
+func (s *CLIProcessSupervisor) terminateAfter(timeout time.Duration) error {
+	s.terminateOnce.Do(func() {
+		s.mtx.Lock()
+		if s.state == cliProcessReady {
+			s.state = cliProcessDone
+			close(s.done)
+			s.mtx.Unlock()
+			return
+		}
+		if s.state == cliProcessDone {
+			s.mtx.Unlock()
+			return
+		}
+		cmd := s.cmd
+		s.mtx.Unlock()
 
-	_ = s.cmd.Process.Signal(syscall.SIGTERM)
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
-
-	select {
-	case err := <-s.done:
-		return err
-	case <-timer.C:
-		_ = s.cmd.Process.Kill()
-		return <-s.done
-	}
+		_ = cmd.Process.Signal(syscall.SIGTERM)
+		timer := time.NewTimer(timeout)
+		defer timer.Stop()
+		select {
+		case <-s.done:
+		case <-timer.C:
+			_ = cmd.Process.Kill()
+			<-s.done
+		}
+	})
+	return s.Wait()
 }
 
-func (s *cliSubprocessSupervisor) newStderrWriter() io.Writer {
+func (s *CLIProcessSupervisor) newStderrWriterLocked() io.Writer {
 	stderr := s.le.WriterLevel(logrus.DebugLevel)
 	s.stderr = stderr
 	return stderr
 }
 
-func (s *cliSubprocessSupervisor) closeStderr() {
+func (s *CLIProcessSupervisor) complete(err error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.completeLocked(err)
+}
+
+func (s *CLIProcessSupervisor) completeLocked(err error) {
+	if s.state == cliProcessDone {
+		return
+	}
+	s.state = cliProcessDone
+	s.result = err
 	if s.stderr != nil {
 		_ = s.stderr.Close()
 		s.stderr = nil
 	}
+	close(s.done)
 }
 
 // exitWithChildCode propagates a CLI subprocess exit to the devtool process.
