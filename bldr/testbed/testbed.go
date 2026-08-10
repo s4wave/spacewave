@@ -70,9 +70,23 @@ type Testbed struct {
 	rels []func()
 }
 
+// SchedulerConfigBuilder constructs the plugin scheduler configuration after the
+// testbed has created its engine and volume.
+type SchedulerConfigBuilder func(engineID, objectKey, volumeID, peerID string) *plugin_host_scheduler.Config
+
 // BuildTestbed builds the testbed constructing an in-memory volume and plugin host.
 // Returns a set of functions to call to release the controllers.
 func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
+	return BuildTestbedWithSchedulerConfig(rctx, le, nil)
+}
+
+// BuildTestbedWithSchedulerConfig builds a testbed with a caller-supplied
+// scheduler configuration.
+func BuildTestbedWithSchedulerConfig(
+	rctx context.Context,
+	le *logrus.Entry,
+	buildSchedulerConfig SchedulerConfigBuilder,
+) (*Testbed, error) {
 	ctx, ctxCancel := context.WithCancel(rctx)
 	var rels []func()
 	rel := func() {
@@ -209,18 +223,27 @@ func BuildTestbed(rctx context.Context, le *logrus.Entry) (*Testbed, error) {
 	}
 
 	// load the plugin scheduler
-	sched, _, schedRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_scheduler.Controller](
-		ctx,
-		b,
-		resolver.NewLoadControllerWithConfig(plugin_host_scheduler.NewConfig(
+	schedConf := plugin_host_scheduler.NewConfig(
+		engineID,
+		pluginHostObjKey,
+		vol.GetID(),
+		vol.GetPeerID().String(),
+		true,
+		false,
+		false,
+	)
+	if buildSchedulerConfig != nil {
+		schedConf = buildSchedulerConfig(
 			engineID,
 			pluginHostObjKey,
 			vol.GetID(),
 			vol.GetPeerID().String(),
-			true,
-			false,
-			false,
-		)),
+		)
+	}
+	sched, _, schedRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_scheduler.Controller](
+		ctx,
+		b,
+		resolver.NewLoadControllerWithConfig(schedConf),
 		nil,
 	)
 	if err != nil {
