@@ -2,6 +2,7 @@ package dist_entrypoint
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -28,6 +29,20 @@ func TestIsWebDistPlatform(t *testing.T) {
 		if got := isWebDistPlatform(tt.platformID); got != tt.want {
 			t.Fatalf("isWebDistPlatform(%q) = %v, want %v", tt.platformID, got, tt.want)
 		}
+	}
+}
+
+func TestReleaseSchedulerConfigKeepsReleaseWorldExternal(t *testing.T) {
+	conf := newReleaseSchedulerConfig(
+		"project",
+		"engine",
+		"plugin-host",
+		"volume",
+		"peer",
+	)
+
+	if !slices.Contains(conf.GetNoCopyBucketIds(), "spacewave-release") {
+		t.Fatalf("release scheduler no-copy bucket IDs = %v, want spacewave-release", conf.GetNoCopyBucketIds())
 	}
 }
 
