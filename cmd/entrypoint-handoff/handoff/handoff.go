@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	bldr_devtool "github.com/s4wave/spacewave/bldr/devtool"
 	bldr_manifest_pack "github.com/s4wave/spacewave/bldr/manifest/pack"
@@ -59,8 +58,6 @@ type Args struct {
 	SkipBuild                 bool
 	SkipPackage               bool
 	StageBuildInputs          bool
-	RemoteOnly                bool
-	RemoteHandoffDir          string
 	ManifestPackProduce       bool
 	ManifestPackImportDirsCSV string
 	ManifestID                string
@@ -126,7 +123,7 @@ func Run(ctx context.Context, args *Args) error {
 	if args.Version == "" || args.OutDir == "" {
 		return errors.New(usageText)
 	}
-	if !args.BrowserOnly && !args.RemoteOnly && !args.ManifestPackProduce && args.PlatformsCSV == "" {
+	if !args.BrowserOnly && !args.ManifestPackProduce && args.PlatformsCSV == "" {
 		return errors.New(usageText)
 	}
 	if args.BrowserOnly && args.PlatformsCSV != "" {
@@ -135,18 +132,12 @@ func Run(ctx context.Context, args *Args) error {
 	if args.BrowserOnly && args.IncludeBrowser {
 		return errors.New("--browser-only and --include-browser cannot be combined")
 	}
-	if args.RemoteOnly && args.PlatformsCSV != "" {
-		return errors.New("--remote-only does not accept --platforms")
-	}
-	if args.RemoteOnly && (args.BrowserOnly || args.IncludeBrowser || args.SkipBuild || args.SkipPackage || args.StageBuildInputs) {
-		return errors.New("--remote-only cannot be combined with browser/platform packaging flags")
-	}
-	if args.ManifestPackProduce && (args.RemoteOnly || args.BrowserOnly || args.IncludeBrowser || args.SkipBuild || args.SkipPackage || args.StageBuildInputs || args.RemoteHandoffDir != "" || args.PlatformsCSV != "") {
+	if args.ManifestPackProduce && (args.BrowserOnly || args.IncludeBrowser || args.SkipBuild || args.SkipPackage || args.StageBuildInputs || args.PlatformsCSV != "") {
 		return errors.New("--manifest-pack-produce cannot be combined with remote/browser/platform packaging flags")
 	}
 
 	platforms := splitCSV(args.PlatformsCSV)
-	if !args.BrowserOnly && !args.RemoteOnly && !args.ManifestPackProduce && len(platforms) == 0 {
+	if !args.BrowserOnly && !args.ManifestPackProduce && len(platforms) == 0 {
 		return errors.New("at least one platform is required")
 	}
 
@@ -174,34 +165,7 @@ func Run(ctx context.Context, args *Args) error {
 			)
 		})
 	}
-	if args.RemoteOnly {
-		if err := runPhase(le, "build-remote-entrypoints", func() error {
-			return buildRemoteEntrypoints(ctx, repoDir)
-		}); err != nil {
-			return err
-		}
-		if err := runPhase(le, "stage-remote-handoff", func() error {
-			return stageRemoteHandoff(ctx, repoDir, args.OutDir, args.ReactDev)
-		}); err != nil {
-			return err
-		}
-		return nil
-	}
-	if args.RemoteHandoffDir != "" {
-		if err := runPhase(le, "restore-remote-handoff", func() error {
-			return restoreRemoteHandoff(ctx, repoDir, args.RemoteHandoffDir, args.ReactDev)
-		}); err != nil {
-			return err
-		}
-	}
 	if args.BrowserOnly {
-		if args.RemoteHandoffDir == "" {
-			if err := runPhase(le, "build-remote-entrypoints", func() error {
-				return buildRemoteEntrypoints(ctx, repoDir)
-			}); err != nil {
-				return err
-			}
-		}
 		if err := runPhase(le, "build-browser", func() error {
 			return buildBrowser(ctx, repoDir, args.ReactDev)
 		}); err != nil {
@@ -434,11 +398,6 @@ func buildHelpers(repoDir string, platforms []string) error {
 }
 
 func buildEntrypoints(ctx context.Context, repoDir string, platforms []string) error {
-	if strings.TrimSpace(os.Getenv("ENTRYPOINT_HANDOFF_REMOTE_RESTORED")) != "1" {
-		if err := buildRemoteEntrypoints(ctx, repoDir); err != nil {
-			return err
-		}
-	}
 	for _, platform := range platforms {
 		goos, goarch := splitPlatform(platform)
 		buildID := "release-desktop-" + goos + "-" + goarch
@@ -469,16 +428,6 @@ func buildEntrypoints(ctx context.Context, repoDir string, platforms []string) e
 	return nil
 }
 
-func buildRemoteEntrypoints(ctx context.Context, repoDir string) error {
-	if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", "release-remote-web"); err != nil {
-		return errors.Wrap(err, "run bldr release-remote-web")
-	}
-	if err := runBldr(ctx, repoDir, "--build-type=release", "build", "-b", "release-remote-js"); err != nil {
-		return errors.Wrap(err, "run bldr release-remote-js")
-	}
-	return nil
-}
-
 func produceManifestPack(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -495,7 +444,7 @@ func produceManifestPack(
 	if manifestID == "" || platformID == "" || objectKey == "" || producerTarget == "" {
 		return errors.New("--manifest-pack-produce requires --manifest-id, --manifest-platform, --manifest-object-key, and --manifest-producer-target")
 	}
-	identity, err := currentRemoteHandoffIdentity(ctx, reactDev)
+	gitSHA, err := currentGitSHA(ctx)
 	if err != nil {
 		return err
 	}
@@ -540,7 +489,7 @@ func produceManifestPack(
 			LinkObjectKeys: linkObjectKeys,
 		},
 		BuildType:      "release",
-		GitSHA:         identity.GitSHA,
+		GitSHA:         gitSHA,
 		ProducerTarget: producerTarget,
 		ReactDev:       reactDev,
 		CacheSchema:    cacheSchema,
@@ -662,203 +611,16 @@ func startDevtoolBus(
 	return busHandle, nil
 }
 
-var remoteHandoffTargets = []string{"release-remote-web", "release-remote-js"}
-
-type remoteHandoffIdentity struct {
-	GitSHA             string
-	ReleaseEnv         string
-	ReactDev           bool
-	RemoteTargetNames  []string
-	RemoteFileMetadata []remoteHandoffFile
-}
-
-type remoteHandoffFile struct {
-	Path   string
-	SHA256 string
-	Size   int64
-}
-
-func stageRemoteHandoff(ctx context.Context, repoDir, outDir string, reactDev bool) error {
-	identity, err := currentRemoteHandoffIdentity(ctx, reactDev)
-	if err != nil {
-		return err
-	}
-	root := filepath.Join(outDir, "root")
-	for _, rel := range []string{
-		filepath.Join(".bldr", "build", "js", "spacewave-app", "dist"),
-		filepath.Join(".bldr", "build", "js", "spacewave-app", "dist-deps"),
-		filepath.Join(".bldr", "build", "js", "spacewave-app", "assets"),
-		filepath.Join(".bldr", "build", "js", "spacewave-web", "dist"),
-		filepath.Join(".bldr", "build", "js", "spacewave-web", "dist-deps"),
-		filepath.Join(".bldr", "build", "js", "spacewave-web", "assets"),
-		filepath.Join(".bldr", "src", "sdk"),
-		filepath.Join(".bldr", "src", "web"),
-		".bldr-dist",
-	} {
-		src := filepath.Join(repoDir, rel)
-		if _, err := os.Stat(src); err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return errors.Wrap(err, "stat "+rel)
-		}
-		if err := copyTree(src, filepath.Join(root, rel)); err != nil {
-			return errors.Wrap(err, "stage remote "+rel)
-		}
-	}
-	files, err := hashTree(root)
-	if err != nil {
-		return err
-	}
-	if len(files) == 0 {
-		return errors.New("remote handoff contains no files")
-	}
-	identity.RemoteFileMetadata = files
-	if err := os.WriteFile(
-		filepath.Join(outDir, "remote-manifest.json"),
-		marshalRemoteHandoffManifest(identity),
-		0o644,
-	); err != nil {
-		return errors.Wrap(err, "write remote manifest")
-	}
-	return nil
-}
-
-func restoreRemoteHandoff(ctx context.Context, repoDir, handoffDir string, reactDev bool) error {
-	expected, err := currentRemoteHandoffIdentity(ctx, reactDev)
-	if err != nil {
-		return err
-	}
-	if err := validateRemoteHandoffManifest(handoffDir, expected); err != nil {
-		return err
-	}
-	root := filepath.Join(handoffDir, "root")
-	for _, rel := range []string{".bldr", ".bldr-dist"} {
-		src := filepath.Join(root, rel)
-		if _, err := os.Stat(src); err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return errors.Wrap(err, "stat remote "+rel)
-		}
-		if err := copyTree(src, filepath.Join(repoDir, rel)); err != nil {
-			return errors.Wrap(err, "restore remote "+rel)
-		}
-	}
-	return os.Setenv("ENTRYPOINT_HANDOFF_REMOTE_RESTORED", "1")
-}
-
-func currentRemoteHandoffIdentity(ctx context.Context, reactDev bool) (remoteHandoffIdentity, error) {
+func currentGitSHA(ctx context.Context) (string, error) {
 	sha := strings.TrimSpace(os.Getenv("GITHUB_SHA"))
-	if sha == "" {
-		out, err := exec.CommandContext(ctx, "git", "rev-parse", "HEAD").Output()
-		if err != nil {
-			return remoteHandoffIdentity{}, errors.Wrap(err, "resolve git sha")
-		}
-		sha = strings.TrimSpace(string(out))
+	if sha != "" {
+		return sha, nil
 	}
-	return remoteHandoffIdentity{
-		GitSHA:            sha,
-		ReleaseEnv:        strings.TrimSpace(os.Getenv("SPACEWAVE_RELEASE_ENV")),
-		ReactDev:          reactDev,
-		RemoteTargetNames: append([]string(nil), remoteHandoffTargets...),
-	}, nil
-}
-
-func validateRemoteHandoffManifest(handoffDir string, expected remoteHandoffIdentity) error {
-	data, err := os.ReadFile(filepath.Join(handoffDir, "remote-manifest.json"))
+	out, err := exec.CommandContext(ctx, "git", "rev-parse", "HEAD").Output()
 	if err != nil {
-		return errors.Wrap(err, "read remote manifest")
+		return "", errors.Wrap(err, "resolve git sha")
 	}
-	var p fastjson.Parser
-	v, err := p.ParseBytes(data)
-	if err != nil {
-		return errors.Wrap(err, "parse remote manifest")
-	}
-	if got := string(v.GetStringBytes("format")); got != "entrypoint-remote-handoff.v1" {
-		return errors.Errorf("remote manifest format mismatch: %s", got)
-	}
-	if got := string(v.GetStringBytes("git_sha")); got != expected.GitSHA {
-		return errors.Errorf("remote manifest git sha mismatch: %s", got)
-	}
-	if got := string(v.GetStringBytes("release_environment")); got != expected.ReleaseEnv {
-		return errors.Errorf("remote manifest release environment mismatch: %s", got)
-	}
-	if got := v.GetBool("react_dev"); got != expected.ReactDev {
-		return errors.Errorf("remote manifest react_dev mismatch: %v", got)
-	}
-	targets := v.GetArray("remote_targets")
-	if len(targets) != len(expected.RemoteTargetNames) {
-		return errors.New("remote manifest target count mismatch")
-	}
-	for i, target := range targets {
-		if got := string(target.GetStringBytes()); got != expected.RemoteTargetNames[i] {
-			return errors.Errorf("remote manifest target mismatch: %s", got)
-		}
-	}
-	files := v.GetArray("files")
-	if len(files) == 0 {
-		return errors.New("remote manifest has no files")
-	}
-	for _, file := range files {
-		rel := string(file.GetStringBytes("path"))
-		if rel == "" || filepath.IsAbs(rel) || strings.Contains(rel, "..") {
-			return errors.Errorf("remote manifest has invalid path: %s", rel)
-		}
-		path := filepath.Join(handoffDir, "root", filepath.FromSlash(rel))
-		info, err := os.Stat(path)
-		if err != nil {
-			return errors.Wrap(err, "stat remote file "+rel)
-		}
-		if info.Size() != file.GetInt64("size") {
-			return errors.Errorf("remote file size mismatch: %s", rel)
-		}
-		digest, err := fileSHA256(path)
-		if err != nil {
-			return err
-		}
-		if digest != string(file.GetStringBytes("sha256")) {
-			return errors.Errorf("remote file sha256 mismatch: %s", rel)
-		}
-	}
-	return nil
-}
-
-func hashTree(root string) ([]remoteHandoffFile, error) {
-	var out []remoteHandoffFile
-	if err := filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return errors.Wrap(err, "walk "+path)
-		}
-		if info.IsDir() {
-			return nil
-		}
-		rel, err := filepath.Rel(root, path)
-		if err != nil {
-			return errors.Wrap(err, "rel remote file")
-		}
-		digest, err := fileSHA256(path)
-		if err != nil {
-			return err
-		}
-		size := info.Size()
-		if info.Mode()&os.ModeSymlink != 0 {
-			targetInfo, err := os.Stat(path)
-			if err != nil {
-				return errors.Wrap(err, "stat remote symlink target "+path)
-			}
-			size = targetInfo.Size()
-		}
-		out = append(out, remoteHandoffFile{
-			Path:   filepath.ToSlash(rel),
-			SHA256: digest,
-			Size:   size,
-		})
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-	return out, nil
+	return strings.TrimSpace(string(out)), nil
 }
 
 func fileSHA256(path string) (string, error) {
@@ -872,58 +634,6 @@ func fileSHA256(path string) (string, error) {
 		return "", errors.Wrap(err, "hash "+path)
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
-}
-
-func marshalRemoteHandoffManifest(identity remoteHandoffIdentity) []byte {
-	var b strings.Builder
-	b.WriteString("{\n")
-	writeJSONField(&b, "format", "entrypoint-remote-handoff.v1", true)
-	writeJSONField(&b, "git_sha", identity.GitSHA, true)
-	writeJSONField(&b, "release_environment", identity.ReleaseEnv, true)
-	b.WriteString("  \"react_dev\": ")
-	if identity.ReactDev {
-		b.WriteString("true,\n")
-	} else {
-		b.WriteString("false,\n")
-	}
-	b.WriteString("  \"remote_targets\": [\n")
-	for i, target := range identity.RemoteTargetNames {
-		b.WriteString("    ")
-		b.WriteString(strconv.Quote(target))
-		if i+1 != len(identity.RemoteTargetNames) {
-			b.WriteByte(',')
-		}
-		b.WriteByte('\n')
-	}
-	b.WriteString("  ],\n")
-	b.WriteString("  \"files\": [\n")
-	for i, file := range identity.RemoteFileMetadata {
-		b.WriteString("    {\"path\": ")
-		b.WriteString(strconv.Quote(file.Path))
-		b.WriteString(", \"sha256\": ")
-		b.WriteString(strconv.Quote(file.SHA256))
-		b.WriteString(", \"size\": ")
-		b.WriteString(strconv.FormatInt(file.Size, 10))
-		b.WriteByte('}')
-		if i+1 != len(identity.RemoteFileMetadata) {
-			b.WriteByte(',')
-		}
-		b.WriteByte('\n')
-	}
-	b.WriteString("  ]\n")
-	b.WriteString("}\n")
-	return []byte(b.String())
-}
-
-func writeJSONField(b *strings.Builder, key, value string, comma bool) {
-	b.WriteString("  ")
-	b.WriteString(strconv.Quote(key))
-	b.WriteString(": ")
-	b.WriteString(strconv.Quote(value))
-	if comma {
-		b.WriteByte(',')
-	}
-	b.WriteByte('\n')
 }
 
 // buildCliEntrypoints cross-compiles the standalone spacewave binary
