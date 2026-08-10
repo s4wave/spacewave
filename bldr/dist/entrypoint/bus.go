@@ -386,21 +386,13 @@ func BuildDistBus(
 	}
 
 	// build the plugin scheduler
-	pluginSchedConf := plugin_host_default.NewSchedulerConfig(
+	pluginSchedConf := newReleaseSchedulerConfig(
+		projectID,
 		engineID,
 		pluginHostObjectKey,
 		vol.GetID(),
 		vol.GetPeerID().String(),
-		true,  // Watch FetchManifest on the bus so we can do auto-update via plugins.
-		false, // Enable storing the manifest root in the plugin host world.
-
-		// Dynamic providers can exit before a dependent plugin restarts, so
-		// their manifest contents still need a complete local copy.
-		false,
 	)
-	// The embedded distribution bucket remains mounted for the entrypoint
-	// lifetime and stays authoritative without a complete local copy.
-	pluginSchedConf.NoCopyBucketIds = []string{bldr_dist.GetDistBucketID(projectID)}
 	pluginSchedCtrl, _, pluginSchedCtrlRef, err := loader.WaitExecControllerRunningTyped[*plugin_host_scheduler.Controller](
 		ctx,
 		b,
@@ -457,6 +449,34 @@ func BuildDistBus(
 	distBus.worldEngine = eng
 	distBus.worldState = worldState
 	return distBus, nil
+}
+
+func newReleaseSchedulerConfig(
+	projectID,
+	engineID,
+	pluginHostObjectKey,
+	volID,
+	peerID string,
+) *plugin_host_scheduler.Config {
+	pluginSchedConf := plugin_host_default.NewSchedulerConfig(
+		engineID,
+		pluginHostObjectKey,
+		volID,
+		peerID,
+		true,  // Watch FetchManifest on the bus so we can do auto-update via plugins.
+		false, // Enable storing the manifest root in the plugin host world.
+
+		// Dynamic providers can exit before a dependent plugin restarts, so
+		// their manifest contents still need a complete local copy.
+		false,
+	)
+	// The embedded distribution and Release World buckets remain mounted for
+	// the entrypoint lifetime and stay authoritative without complete local copies.
+	pluginSchedConf.NoCopyBucketIds = []string{
+		bldr_dist.GetDistBucketID(projectID),
+		"spacewave-release",
+	}
+	return pluginSchedConf
 }
 
 func newDistStorageVolumeConfig(storageID, projectID string) *storage_volume.Config {
