@@ -36,7 +36,7 @@ type Method interface {
 	// Authenticate authenticates with existing auth parameters.
 	// Parameters are generated with either UnmarshalParameters or Register.
 	// Generates the private key.
-	Authenticate(params Parameters, authSecretData []byte) (crypto.PrivKey, error)
+	Authenticate(ctx context.Context, params Parameters, authSecretData []byte) (crypto.PrivKey, error)
 	// Close closes all resources related to the auth method.
 	Close()
 }

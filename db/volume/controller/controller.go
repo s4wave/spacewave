@@ -107,12 +107,20 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 		return err
 	}
-	defer v.Close()
 
 	// Prepare readiness diagnostics and the volume execution error channel.
 	le := c.le.WithField("peer-id", v.GetPeerID().String())
 	le.Debug("volume constructed, initializing")
 	errCh := make(chan error, 1)
+	executeDone := make(chan error, 1)
+	var executeFinished bool
+	defer func() {
+		volCtxCancel()
+		if !executeFinished {
+			<-executeDone
+		}
+		_ = v.Close()
+	}()
 	pushErr := func(err error) {
 		if err == nil {
 			return
@@ -123,9 +131,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 	}
 	go func() {
-		if err := v.Execute(volCtx); err != nil {
-			pushErr(err)
-		}
+		executeDone <- v.Execute(volCtx)
 	}()
 
 	// Wrap the volume with the configured block-store overlay.
@@ -200,14 +206,33 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}()
 
 	// Start garbage collection and wait for shutdown or execution failure.
-	select {
-	case <-ctx.Done():
-		err = ctx.Err()
-	case err = <-errCh:
+wait:
+	for {
+		select {
+		case <-ctx.Done():
+			err = ctx.Err()
+			break wait
+		case err = <-errCh:
+			break wait
+		case err = <-executeDone:
+			executeFinished = true
+			if err != nil {
+				break wait
+			}
+			executeDone = nil
+		}
 	}
 
-	// Disable bucket-handle activity before returning the terminal error.
+	// Stop volume work and join Execute before the deferred Close runs.
 	c.bucketHandles.SetContext(nil, false)
+	volCtxCancel()
+	if !executeFinished {
+		executeErr := <-executeDone
+		executeFinished = true
+		if err == nil {
+			err = executeErr
+		}
+	}
 	return err
 }
 

@@ -7,6 +7,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -674,7 +675,7 @@ func applySessionPresentation(
 // ResolveEntityKey resolves the entity private key from an EntityCredential.
 func (r *AccountResource) ResolveEntityKey(ctx context.Context, cred *session.EntityCredential) (bifrost_crypto.PrivKey, peer.ID, error) {
 	if r.localAccount != nil {
-		return r.resolveLocalEntityKey(cred)
+		return r.resolveLocalEntityKey(ctx, cred)
 	}
 	if cred == nil {
 		return nil, "", errors.New("credential is required")
@@ -690,7 +691,7 @@ func (r *AccountResource) ResolveEntityKey(ctx context.Context, cred *session.En
 		if err != nil {
 			return nil, "", errors.Wrap(err, "fetch account info")
 		}
-		return derivePasswordEntityKey(info.EntityId, []byte(password))
+		return derivePasswordEntityKey(ctx, r.account.GetBus(), info.EntityId, []byte(password))
 	}
 	if len(pemPrivateKey) > 0 {
 		return parsePemEntityKey(pemPrivateKey)
@@ -698,14 +699,14 @@ func (r *AccountResource) ResolveEntityKey(ctx context.Context, cred *session.En
 	return nil, "", errors.New("password or pem_private_key is required")
 }
 
-func (r *AccountResource) resolveLocalEntityKey(cred *session.EntityCredential) (bifrost_crypto.PrivKey, peer.ID, error) {
+func (r *AccountResource) resolveLocalEntityKey(ctx context.Context, cred *session.EntityCredential) (bifrost_crypto.PrivKey, peer.ID, error) {
 	if cred == nil {
 		return nil, "", errors.New("credential is required")
 	}
 	password := cred.GetPassword()
 	pemPrivateKey := cred.GetPemPrivateKey()
 	if password != "" {
-		return derivePasswordEntityKey(r.localAccount.GetAccountID(), []byte(password))
+		return derivePasswordEntityKey(ctx, r.localAccount.GetBus(), r.localAccount.GetAccountID(), []byte(password))
 	}
 	if len(pemPrivateKey) > 0 {
 		return parsePemEntityKey(pemPrivateKey)
@@ -713,8 +714,8 @@ func (r *AccountResource) resolveLocalEntityKey(cred *session.EntityCredential) 
 	return nil, "", errors.New("password or pem_private_key is required")
 }
 
-func derivePasswordEntityKey(username string, password []byte) (bifrost_crypto.PrivKey, peer.ID, error) {
-	_, entityPriv, err := auth_password.BuildParametersWithUsernamePassword(username, password)
+func derivePasswordEntityKey(ctx context.Context, b bus.Bus, username string, password []byte) (bifrost_crypto.PrivKey, peer.ID, error) {
+	_, entityPriv, err := auth_password.ExBuildParametersWithUsernamePassword(ctx, b, username, password)
 	if err != nil {
 		return nil, "", errors.Wrap(err, "derive entity key")
 	}
@@ -1059,7 +1060,7 @@ func (r *AccountResource) ChangePassword(
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch account info")
 	}
-	newPriv, newPeerID, err := derivePasswordEntityKey(info.EntityId, []byte(newPassword))
+	newPriv, newPeerID, err := derivePasswordEntityKey(ctx, r.account.GetBus(), info.EntityId, []byte(newPassword))
 	if err != nil {
 		return nil, errors.Wrap(err, "derive new entity key")
 	}

@@ -37,17 +37,19 @@ var cliTransformConf = []config.Config{
 
 // CliBusImpl implements the CliBus interface for CLI binaries.
 type CliBusImpl struct {
-	ctx           context.Context
-	b             bus.Bus
-	le            *logrus.Entry
-	sr            *static.Resolver
-	storageID     string
-	worldEngineID string
-	vol           volume.Volume
-	worldEngine   world.Engine
-	worldState    world.WorldState
-	rels          []func()
-	releaseOnce   sync.Once
+	ctx            context.Context
+	b              bus.Bus
+	le             *logrus.Entry
+	sr             *static.Resolver
+	storageID      string
+	worldEngineID  string
+	vol            volume.Volume
+	worldEngine    world.Engine
+	worldState     world.WorldState
+	cancel         context.CancelFunc
+	busReleases    []func()
+	callerReleases []func()
+	releaseOnce    sync.Once
 }
 
 // _ is a type assertion
@@ -56,12 +58,9 @@ var _ CliBus = (*CliBusImpl)(nil)
 // BuildCliBus builds a lightweight bus for CLI binaries.
 func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*CliBusImpl, error) {
 	ctx, ctxCancel := context.WithCancel(rctx)
-	var rels []func()
+	var busReleases []func()
 	rel := func() {
-		for _, fn := range rels {
-			fn()
-		}
-		ctxCancel()
+		releaseBusResources(ctxCancel, busReleases)
 	}
 
 	b, sr, err := cbc.NewCoreBus(ctx, le)
@@ -85,7 +84,7 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 		rel()
 		return nil, err
 	}
-	rels = append(rels, relConfigSetCtrl)
+	busReleases = append(busReleases, relConfigSetCtrl)
 
 	// attach the default storage controller
 	storageID := default_storage.StorageID
@@ -95,7 +94,7 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 		rel()
 		return nil, err
 	}
-	rels = append(rels, relStorageCtrl)
+	busReleases = append(busReleases, relStorageCtrl)
 
 	// ensure there is at least one storage method
 	storageMethods := storageCtrl.GetStorage()
@@ -121,7 +120,7 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 		rel()
 		return nil, err
 	}
-	rels = append(rels, volCtrlRef.Release)
+	busReleases = append(busReleases, volCtrlRef.Release)
 
 	vol, err := volCtrl.GetVolume(ctx)
 	if err != nil {
@@ -136,7 +135,7 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 		rel()
 		return nil, err
 	}
-	rels = append(rels, nodeCtrlRef.Release)
+	busReleases = append(busReleases, nodeCtrlRef.Release)
 
 	// start the world engine
 	engineBucketID := "bldr/cli"
@@ -178,7 +177,7 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 		rel()
 		return nil, err
 	}
-	rels = append(rels, worldCtrlRef.Release)
+	busReleases = append(busReleases, worldCtrlRef.Release)
 
 	eng, err := worldCtrl.GetWorldEngine(ctx)
 	if err != nil {
@@ -197,7 +196,8 @@ func BuildCliBus(rctx context.Context, le *logrus.Entry, stateRoot string) (*Cli
 		vol:           vol,
 		worldEngine:   eng,
 		worldState:    worldState,
-		rels:          rels,
+		cancel:        ctxCancel,
+		busReleases:   busReleases,
 	}, nil
 }
 
@@ -250,15 +250,24 @@ func (c *CliBusImpl) GetPluginHostObjectKey() string {
 // Callers register cleanup before Release begins.
 func (c *CliBusImpl) AddRelease(release func()) {
 	if release != nil {
-		c.rels = append(c.rels, release)
+		c.callerReleases = append(c.callerReleases, release)
 	}
 }
 
-// Release releases all resources held by the bus.
+// Release cancels bus work, releases bus-owned resources in reverse acquisition
+// order, then runs caller-owned cleanup. Concurrent calls perform teardown once.
 func (c *CliBusImpl) Release() {
 	c.releaseOnce.Do(func() {
-		for _, rel := range c.rels {
-			rel()
+		releaseBusResources(c.cancel, c.busReleases)
+		for i := len(c.callerReleases) - 1; i >= 0; i-- {
+			c.callerReleases[i]()
 		}
 	})
+}
+
+func releaseBusResources(cancel context.CancelFunc, releases []func()) {
+	cancel()
+	for i := len(releases) - 1; i >= 0; i-- {
+		releases[i]()
+	}
 }

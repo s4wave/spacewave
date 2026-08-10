@@ -168,7 +168,7 @@ func loginDormantCloudSession(
 	username := "dormant-" + ulid.NewULID()
 	password := []byte("test-password-" + ulid.NewULID())
 
-	params, privKey, err := auth_method_password.BuildParametersWithUsernamePassword(
+	params, privKey, err := buildPasswordParameters(t,
 		username,
 		password,
 	)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/util/broadcast"
@@ -769,6 +770,11 @@ func (a *ProviderAccount) GetVolume() volume.Volume {
 // GetStepFactorySet returns the block transform step factory set.
 func (a *ProviderAccount) GetStepFactorySet() *block_transform.StepFactorySet {
 	return a.sfs
+}
+
+// GetBus returns the runtime controller bus.
+func (a *ProviderAccount) GetBus() bus.Bus {
+	return a.p.b
 }
 
 // GetAccountID returns the account identifier.

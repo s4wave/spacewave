@@ -94,6 +94,11 @@ func (a *ProviderAccount) GetVolume() volume.Volume {
 	return a.vol
 }
 
+// GetBus returns the runtime controller bus.
+func (a *ProviderAccount) GetBus() bus.Bus {
+	return a.t.p.b
+}
+
 // GetAccountID returns the provider account identifier.
 func (a *ProviderAccount) GetAccountID() string {
 	return a.t.accountInfo.GetProviderAccountId()

@@ -13,7 +13,6 @@ import (
 	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/auth/core"
-	auth_method "github.com/s4wave/spacewave/auth/method"
 	auth_method_password "github.com/s4wave/spacewave/auth/method/password"
 	"github.com/s4wave/spacewave/identity"
 	identity_domain "github.com/s4wave/spacewave/identity/domain"
@@ -65,11 +64,8 @@ func runAuthTester(c *cli.Context) error {
 	le := logrus.NewEntry(log)
 
 	// Construct the password authentication method.
-	var handler auth_method.Handler // TODO
-	authMethod, err := auth_method_password.NewMethod(ctx, le, handler)
-	if err != nil {
-		return err
-	}
+	authMethod := auth_method_password.NewPasswordMethod(ctx)
+	defer authMethod.Close()
 
 	// Define the test entity and domain identifiers.
 	entityID := "testuser"
@@ -79,7 +75,8 @@ func runAuthTester(c *cli.Context) error {
 	entityUUID := uuid.NewV4().String()
 
 	// Derive the test entity keypair from its password.
-	paramsSrc, userPrivKey, err := auth_method_password.BuildParametersWithUsernamePassword(
+	paramsSrc, userPrivKey, err := authMethod.BuildParametersWithUsernamePassword(
+		ctx,
 		entityID,
 		[]byte(hardcodedPassword),
 	)
@@ -326,7 +323,7 @@ func runAuthTester(c *cli.Context) error {
 	}
 
 	// Authenticate the password and derive the peer identity.
-	derivedPrivKey, err := authMethod.Authenticate(selectedParams, []byte(password))
+	derivedPrivKey, err := authMethod.Authenticate(ctx, selectedParams, []byte(password))
 	if err != nil {
 		return err
 	}

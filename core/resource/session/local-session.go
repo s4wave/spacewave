@@ -31,7 +31,7 @@ func NewLocalSessionResource(b bus.Bus, sess session.Session) *LocalSessionResou
 // resolveEntityKey resolves the entity private key from an EntityCredential.
 // For password credentials, derives the key from the provider account ID + password.
 // For PEM credentials, parses the raw PEM bytes.
-func (r *LocalSessionResource) resolveEntityKey(cred *session.EntityCredential) (peer.ID, error) {
+func (r *LocalSessionResource) resolveEntityKey(ctx context.Context, cred *session.EntityCredential) (peer.ID, error) {
 	if cred == nil {
 		return "", errors.New("credential is required")
 	}
@@ -39,7 +39,7 @@ func (r *LocalSessionResource) resolveEntityKey(cred *session.EntityCredential) 
 	pemPrivateKey := cred.GetPemPrivateKey()
 	if password != "" {
 		accountID := r.session.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
-		_, entityPriv, err := auth_password.BuildParametersWithUsernamePassword(accountID, []byte(password))
+		_, entityPriv, err := auth_password.ExBuildParametersWithUsernamePassword(ctx, r.b, accountID, []byte(password))
 		if err != nil {
 			return "", errors.Wrap(err, "derive entity key")
 		}
@@ -88,7 +88,7 @@ func (r *LocalSessionResource) AddEntityKeypair(
 	ctx context.Context,
 	req *s4wave_session.AddLocalEntityKeypairRequest,
 ) (*s4wave_session.AddLocalEntityKeypairResponse, error) {
-	entityPeerID, err := r.resolveEntityKey(req.GetCredential())
+	entityPeerID, err := r.resolveEntityKey(ctx, req.GetCredential())
 	if err != nil {
 		return nil, err
 	}

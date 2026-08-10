@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -280,11 +281,20 @@ func TestResolveEntityKeyLocalPasswordUsesAccountID(t *testing.T) {
 
 	ctx := t.Context()
 
-	_, _, accountID, acc, release := setupLocalProviderAccount(ctx, t)
+	tb, _, accountID, acc, release := setupLocalProviderAccount(ctx, t)
 	defer release()
 
+	lookupCtx, cancelLookup := context.WithTimeout(ctx, 2*time.Second)
+	_, releaseMethod, err := auth_password.ExAcquirePasswordMethod(lookupCtx, tb.Bus)
+	if err != nil {
+		cancelLookup()
+		t.Fatalf("acquire password method from local testbed: %v", err)
+	}
+	releaseMethod()
+	cancelLookup()
+
 	password := "local-resolve-password"
-	_, expectedPriv, err := auth_password.BuildParametersWithUsernamePassword(accountID, []byte(password))
+	_, expectedPriv, err := buildPasswordTestParameters(t, accountID, []byte(password))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -634,6 +644,7 @@ func setupLocalProviderAccount(
 	}
 
 	peerID := tb.Volume.GetPeerID()
+	tb.StaticResolver.AddFactory(auth_password.NewFactory(tb.Bus))
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
 		ProviderId: "local",
@@ -806,7 +817,7 @@ func generateTestPeerID(t *testing.T) string {
 func derivePasswordPeerID(t *testing.T, accountID string, password string) string {
 	t.Helper()
 
-	_, priv, err := auth_password.BuildParametersWithUsernamePassword(accountID, []byte(password))
+	_, priv, err := buildPasswordTestParameters(t, accountID, []byte(password))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -891,4 +902,11 @@ func (s *testWatchEntityKeypairsStream) Send(resp *s4wave_account.WatchEntityKey
 
 func (s *testWatchEntityKeypairsStream) SendAndClose(resp *s4wave_account.WatchEntityKeypairsResponse) error {
 	return s.onSend(resp)
+}
+
+func buildPasswordTestParameters(t *testing.T, username string, password []byte) (*auth_password.Parameters, bifrost_crypto.PrivKey, error) {
+	t.Helper()
+	method := auth_password.NewPasswordMethod(context.Background())
+	defer method.Close()
+	return method.BuildParametersWithUsernamePassword(context.Background(), username, password)
 }

@@ -89,12 +89,12 @@ var (
 )
 
 // newAuthCommand builds the top-level auth command group.
-func newAuthCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
+func newAuthCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 	return &cli.Command{
 		Name:  "auth",
 		Usage: "manage authentication, locking, and credentials",
 		Subcommands: []*cli.Command{
-			newAuthMethodCommand(),
+			newAuthMethodCommand(getBus),
 			newAuthPasswdCommand(),
 			newAuthLockCommand(),
 			newAuthUnlockCommand(),
@@ -272,13 +272,13 @@ func pemFileFlag(dest *string) cli.Flag {
 // --- account auth method ---
 
 // newAuthMethodCommand builds the auth method command group.
-func newAuthMethodCommand() *cli.Command {
+func newAuthMethodCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 	return &cli.Command{
 		Name:  "method",
 		Usage: "manage auth methods (entity keypairs)",
 		Subcommands: []*cli.Command{
 			newAuthMethodListCommand(),
-			newAuthMethodAddCommand(),
+			newAuthMethodAddCommand(getBus),
 			newAuthMethodRemoveCommand(),
 		},
 	}
@@ -367,12 +367,12 @@ func runAuthMethodList(c *cli.Context, statePath, outputFormat string, sessionId
 }
 
 // newAuthMethodAddCommand builds the auth method add command group.
-func newAuthMethodAddCommand() *cli.Command {
+func newAuthMethodAddCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 	return &cli.Command{
 		Name:  "add",
 		Usage: "add an authentication method",
 		Subcommands: []*cli.Command{
-			newAuthMethodAddPasswordCommand(),
+			newAuthMethodAddPasswordCommand(getBus),
 			newAuthMethodAddPemCommand(),
 			newAuthMethodAddBackupCommand(),
 		},
@@ -380,7 +380,7 @@ func newAuthMethodAddCommand() *cli.Command {
 }
 
 // newAuthMethodAddPasswordCommand builds the auth method add password command.
-func newAuthMethodAddPasswordCommand() *cli.Command {
+func newAuthMethodAddPasswordCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 	var statePath string
 	var sessionIdx uint
 	var pemFile string
@@ -389,13 +389,13 @@ func newAuthMethodAddPasswordCommand() *cli.Command {
 		Usage: "add a new password-derived keypair",
 		Flags: append(clientFlags(&statePath, &sessionIdx), pemFileFlag(&pemFile)),
 		Action: func(c *cli.Context) error {
-			return runAuthMethodAddPassword(c, statePath, uint32(sessionIdx), pemFile)
+			return runAuthMethodAddPassword(c, getBus, statePath, uint32(sessionIdx), pemFile)
 		},
 	}
 }
 
 // runAuthMethodAddPassword implements the auth method add password command.
-func runAuthMethodAddPassword(c *cli.Context, statePath string, sessionIdx uint32, pemFile string) error {
+func runAuthMethodAddPassword(c *cli.Context, getBus func() cli_entrypoint.CliBus, statePath string, sessionIdx uint32, pemFile string) error {
 	cred, err := promptCredential(pemFile)
 	if err != nil {
 		return err
@@ -406,7 +406,16 @@ func runAuthMethodAddPassword(c *cli.Context, statePath string, sessionIdx uint3
 	}
 	return addAuthMethodFlow(c, statePath, sessionIdx, cred,
 		func(acctInfo *s4wave_account.WatchAccountInfoResponse) (*session_pb.EntityKeypair, string, error) {
-			_, newPriv, err := auth_password.BuildParametersWithUsernamePassword(acctInfo.GetEntityId(), []byte(newPassword))
+			cliBus := getBus()
+			if cliBus == nil {
+				return nil, "", errors.New("bus not initialized")
+			}
+			_, newPriv, err := auth_password.ExBuildParametersWithUsernamePassword(
+				c.Context,
+				cliBus.GetBus(),
+				acctInfo.GetEntityId(),
+				[]byte(newPassword),
+			)
 			if err != nil {
 				return nil, "", errors.Wrap(err, "derive new entity key")
 			}

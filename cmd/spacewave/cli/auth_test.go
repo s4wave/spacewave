@@ -23,7 +23,7 @@ import (
 // flags of the password/pem/backup add-method subcommands so the shared
 // addAuthMethodFlow refactor preserves the user-facing CLI surface.
 func TestNewAuthMethodAddSubcommandShape(t *testing.T) {
-	cmd := newAuthMethodAddCommand()
+	cmd := newAuthMethodAddCommand(nil)
 	if cmd.Name != "add" {
 		t.Fatalf("add command name = %q, want %q", cmd.Name, "add")
 	}

@@ -1,6 +1,7 @@
 package auth_method_pem
 
 import (
+	"context"
 	"testing"
 
 	"github.com/s4wave/spacewave/net/keypem"
@@ -24,7 +25,7 @@ func TestPemMethod_Authenticate_Success(t *testing.T) {
 		t.Fatalf("UnmarshalParameters: %v", err)
 	}
 
-	privKey, err := method.Authenticate(params, privPem)
+	privKey, err := method.Authenticate(context.Background(), params, privPem)
 	if err != nil {
 		t.Fatalf("Authenticate: %v", err)
 	}
@@ -63,13 +64,13 @@ func TestPemMethod_Authenticate_InvalidPEM(t *testing.T) {
 	}
 
 	// Empty secret data.
-	_, err = method.Authenticate(params, nil)
+	_, err = method.Authenticate(context.Background(), params, nil)
 	if err == nil {
 		t.Fatal("expected error for nil auth secret data")
 	}
 
 	// Invalid PEM bytes.
-	_, err = method.Authenticate(params, []byte("not-a-pem-file"))
+	_, err = method.Authenticate(context.Background(), params, []byte("not-a-pem-file"))
 	if err == nil {
 		t.Fatal("expected error for invalid PEM data")
 	}
@@ -150,5 +151,45 @@ func TestGenerateBackupKey(t *testing.T) {
 	}
 	if string(pubPem) == string(pubPem2) {
 		t.Fatal("two calls produced identical public keys")
+	}
+}
+
+func TestPemMethodAuthenticateRejectsUnregisteredPrivateKey(t *testing.T) {
+	_, registeredPub, err := GenerateBackupKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	unregisteredPriv, _, err := GenerateBackupKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	params, err := NewPemMethod().UnmarshalParameters(registeredPub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := NewPemMethod().Authenticate(context.Background(), params, unregisteredPriv); err == nil {
+		t.Fatal("accepted a private key that does not match the registered public key")
+	}
+}
+
+func TestPemMethodAuthenticateRejectsMissingOrMalformedRegisteredKey(t *testing.T) {
+	priv, _, err := GenerateBackupKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name string
+		pem  []byte
+	}{
+		{name: "missing"},
+		{name: "malformed", pem: []byte("not a pem")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			params := &PemParameters{PubKeyPem: tc.pem}
+			if _, err := NewPemMethod().Authenticate(context.Background(), params, priv); err == nil {
+				t.Fatal("accepted invalid registered public key")
+			}
+		})
 	}
 }

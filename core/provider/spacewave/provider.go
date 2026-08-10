@@ -240,9 +240,6 @@ func (p *Provider) AccessProviderAccount(ctx context.Context, accountID string, 
 
 // CreateSpacewaveAccountAndSession derives an entity keypair from username and password,
 // registers the account with the cloud, and mounts a session.
-//
-// TODO: use DeriveEntityKeypair directive via the bus instead of calling
-// BuildParametersWithUsernamePassword directly (requires auth controllers on the bus).
 func (p *Provider) CreateSpacewaveAccountAndSession(
 	ctx context.Context,
 	username string,
@@ -250,7 +247,7 @@ func (p *Provider) CreateSpacewaveAccountAndSession(
 	turnstileToken string,
 	sessionCtrl session.SessionController,
 ) (*session.SessionListEntry, error) {
-	params, privKey, err := auth_method_password.BuildParametersWithUsernamePassword(username, password)
+	params, privKey, err := auth_method_password.ExBuildParametersWithUsernamePassword(ctx, p.b, username, password)
 	if err != nil {
 		return nil, errors.Wrap(err, "derive entity keypair")
 	}
@@ -354,7 +351,7 @@ func (p *Provider) LoginOrCreateAccount(
 	password []byte,
 	sessionCtrl session.SessionController,
 ) (*session.SessionListEntry, bool, error) {
-	params, privKey, err := auth_method_password.BuildParametersWithUsernamePassword(username, password)
+	params, privKey, err := auth_method_password.ExBuildParametersWithUsernamePassword(ctx, p.b, username, password)
 	if err != nil {
 		return nil, false, errors.Wrap(err, "derive entity keypair")
 	}

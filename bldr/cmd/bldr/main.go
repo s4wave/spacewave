@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"io"
 	"os"
 
 	"github.com/aperturerobotics/cli"
@@ -34,7 +34,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Println(err.Error())
+		_, _ = io.WriteString(app.ErrWriter, err.Error()+"\n")
 		os.Exit(1)
 	}
 }

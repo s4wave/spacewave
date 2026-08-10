@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/scrub"
 	"github.com/pkg/errors"
@@ -23,11 +24,11 @@ import (
 // resolveEntityPrivKey derives the entity private key from an EntityCredential.
 // For password credentials, uses the provider account ID as the username.
 // For PEM credentials, parses the raw PEM bytes.
-func resolveEntityPrivKey(providerAccountID string, cred *session.EntityCredential) (bifrost_crypto.PrivKey, error) {
+func resolveEntityPrivKey(ctx context.Context, b bus.Bus, providerAccountID string, cred *session.EntityCredential) (bifrost_crypto.PrivKey, error) {
 	password := cred.GetPassword()
 	pemPrivateKey := cred.GetPemPrivateKey()
 	if password != "" {
-		_, entityPriv, err := auth_password.BuildParametersWithUsernamePassword(providerAccountID, []byte(password))
+		_, entityPriv, err := auth_password.ExBuildParametersWithUsernamePassword(ctx, b, providerAccountID, []byte(password))
 		if err != nil {
 			return nil, errors.Wrap(err, "derive entity key")
 		}

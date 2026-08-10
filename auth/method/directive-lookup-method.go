@@ -22,36 +22,26 @@ type AuthLookupMethod interface {
 // AuthLookupMethodValue is the result of the AuthLookupMethod directive.
 type AuthLookupMethodValue = Method
 
-// ExAuthLookupMethod looks up a single instance of the auth method.
-// if !returnIfIdle: waits for the auth method to exist.
-func ExAuthLookupMethod(
+// ExAuthLookupMethodRef looks up one authentication method and returns the
+// reference that keeps its controller lifecycle active. The caller releases
+// the reference after it finishes using the method.
+func ExAuthLookupMethodRef(
 	ctx context.Context,
 	b bus.Bus,
 	methodID string,
 	returnIfIdle bool,
-) (AuthLookupMethodValue, error) {
-	// Execute the lookup directive with the requested idle behavior.
-	val, _, valRef, err := bus.ExecOneOff(ctx, b, NewAuthLookupMethod(methodID), bus.ReturnIfIdle(returnIfIdle), nil)
+) (AuthLookupMethodValue, directive.Reference, error) {
+	methods, _, ref, err := ExAuthLookupMethods(ctx, b, methodID, !returnIfIdle, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	// Release the lookup reference before inspecting the returned value.
-	if valRef != nil {
-		valRef.Release()
+	if len(methods) == 0 {
+		if ref != nil {
+			ref.Release()
+		}
+		return nil, nil, nil
 	}
-
-	// Return an empty result when the lookup found no value.
-	if val == nil {
-		return nil, nil
-	}
-
-	// Validate and return the resolved authentication method.
-	v, vOk := val.GetValue().(AuthLookupMethodValue)
-	if !vOk {
-		return nil, errors.New("lookup auth method returned invalid type")
-	}
-	return v, nil
+	return methods[0], ref, nil
 }
 
 // ExAuthLookupMethods executes the LookupMethod directive.

@@ -60,6 +60,11 @@ func (c *Controller) HandleDirective(
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case identity.DeriveEntityKeypair:
+		// Leave interactive derivation unresolved when prompts are disabled.
+		if c.c.GetDisablePromptPassword() {
+			return nil, nil
+		}
+
 		// Return a resolver for keypair derivation requests.
 		return directive.R(c.resolveDeriveEntityKeypair(ctx, di, d))
 	}

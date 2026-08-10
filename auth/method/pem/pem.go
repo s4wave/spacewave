@@ -60,10 +60,18 @@ func (p *PemMethod) UnmarshalParameters(data []byte) (auth_method.Parameters, er
 
 // Authenticate authenticates with existing auth parameters.
 // authSecretData is the full PEM private key file bytes.
-func (p *PemMethod) Authenticate(paramsi auth_method.Parameters, authSecretData []byte) (crypto.PrivKey, error) {
-	// Require PEM parameters before parsing the private key.
-	if _, ok := paramsi.(*PemParameters); !ok {
+func (p *PemMethod) Authenticate(ctx context.Context, paramsi auth_method.Parameters, authSecretData []byte) (crypto.PrivKey, error) {
+	// Require and validate the registered public key parameters.
+	params, ok := paramsi.(*PemParameters)
+	if !ok {
 		return nil, errors.New("params object not recognized")
+	}
+	pubKey, err := keypem.ParsePubKeyPem(params.PubKeyPem)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse registered pem public key")
+	}
+	if pubKey == nil {
+		return nil, errors.New("no registered public key found in pem data")
 	}
 
 	// Require private-key data for authentication.
@@ -78,6 +86,9 @@ func (p *PemMethod) Authenticate(paramsi auth_method.Parameters, authSecretData 
 	}
 	if privKey == nil {
 		return nil, errors.New("no private key found in pem data")
+	}
+	if !privKey.GetPublic().Equals(pubKey) {
+		return nil, errors.New("private key does not match registered public key")
 	}
 	return privKey, nil
 }

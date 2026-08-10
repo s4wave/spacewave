@@ -7,7 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
-	auth_method "github.com/s4wave/spacewave/auth/method"
+	auth_method_password "github.com/s4wave/spacewave/auth/method/password"
 	"github.com/s4wave/spacewave/identity"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -67,7 +67,7 @@ KeypairLoop:
 		}
 
 		// Resolve the authentication method for this keypair.
-		authMethod, err := auth_method.ExAuthLookupMethod(ctx, b, methodID, true)
+		authMethod, releaseAuthMethod, err := auth_method_password.ExAcquirePasswordMethod(ctx, b)
 		if err == nil && authMethod == nil {
 			err = errors.Errorf("auth method not found: %s", methodID)
 		}
@@ -84,6 +84,7 @@ KeypairLoop:
 		// Decode and validate the stored authentication parameters.
 		params, err := authMethod.UnmarshalParameters(kp.GetAuthMethodParams())
 		if err != nil {
+			releaseAuthMethod()
 			le.
 				WithError(err).
 				Warnf("keypairs[%d]: unable to unmarshal auth params", kpi)
@@ -140,6 +141,7 @@ KeypairLoop:
 			)
 			if err != nil {
 				if err == context.Canceled {
+					releaseAuthMethod()
 					return nil, err
 				}
 				le.
@@ -149,12 +151,13 @@ KeypairLoop:
 				lastErr = err
 			}
 			if passwordTxt == "" {
+				releaseAuthMethod()
 				continue KeypairLoop
 			}
 
 			// Authenticate the password and verify the resulting peer identity.
 			var incorrectPw bool
-			privKey, err := authMethod.Authenticate(params, []byte(passwordTxt))
+			privKey, err := authMethod.Authenticate(ctx, params, []byte(passwordTxt))
 			if err == nil {
 				var derivPeerID peer.ID
 				derivPeerID, err = peer.IDFromPrivateKey(privKey)
@@ -192,8 +195,10 @@ KeypairLoop:
 					Warnf("keypairs[%d]: failed to build peer: %s", kpi, reason[:len(reason)-1])
 				err = errors.Wrapf(err, "keypairs[%d]: failed to build peer", kpi)
 				lastErr = err
+				releaseAuthMethod()
 				continue KeypairLoop
 			}
+			releaseAuthMethod()
 			return npeer, nil
 		}
 	}

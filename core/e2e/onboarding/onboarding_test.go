@@ -1446,7 +1446,7 @@ func createCloudSessionWithKey(ctx context.Context, t *testing.T) (*session.Sess
 	}
 
 	// Re-derive the entity key from the same credentials.
-	_, privKey, err := auth_method_password.BuildParametersWithUsernamePassword(username, password)
+	_, privKey, err := buildPasswordParameters(t, username, password)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2052,3 +2052,10 @@ func TestInvalidAccountManagementTokenRedirectsToEntryPage(t *testing.T) {
 
 // Compile-time check that block.BlockRef has MarshalString.
 var _ = (*block.BlockRef).MarshalString
+
+func buildPasswordParameters(t *testing.T, username string, password []byte) (*auth_method_password.Parameters, bifcrypto.PrivKey, error) {
+	t.Helper()
+	method := auth_method_password.NewPasswordMethod(context.Background())
+	defer method.Close()
+	return method.BuildParametersWithUsernamePassword(context.Background(), username, password)
+}

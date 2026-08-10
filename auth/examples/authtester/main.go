@@ -9,7 +9,6 @@ import (
 	"github.com/aperturerobotics/cli"
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/s4wave/spacewave/auth/examples/common"
-	auth_method "github.com/s4wave/spacewave/auth/method"
 	auth_method_password "github.com/s4wave/spacewave/auth/method/password"
 	"github.com/s4wave/spacewave/net/peer"
 	uuid "github.com/satori/go.uuid"
@@ -46,18 +45,16 @@ func runAuthTester(c *cli.Context) error {
 	// Construct the password method and derive its parameters.
 	le.Info("scrypt...")
 
-	var handler auth_method.Handler // TODO
-	authMethod, err := auth_method_password.NewMethod(ctx, le, handler)
-	if err != nil {
-		return err
-	}
-	params, _, err := auth_method_password.BuildParametersWithUsernamePassword(username, []byte(password))
+	authMethod := auth_method_password.NewPasswordMethod(ctx)
+	defer authMethod.Close()
+	params, _, err := authMethod.BuildParametersWithUsernamePassword(ctx, username, []byte(password))
 	if err != nil {
 		return err
 	}
 
 	// Authenticate and derive the peer identity.
 	privKey, err := authMethod.Authenticate(
+		ctx,
 		params,
 		[]byte(password),
 	)

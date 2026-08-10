@@ -123,7 +123,7 @@ func (s *SpacewaveProviderResource) LoginAccount(
 			return nil, errors.New("password is required")
 		}
 		var err error
-		_, privKey, err = auth_method_password.BuildParametersWithUsernamePassword(entityID, []byte(password))
+		_, privKey, err = auth_method_password.ExBuildParametersWithUsernamePassword(ctx, s.b, entityID, []byte(password))
 		if err != nil {
 			return nil, errors.Wrap(err, "derive entity keypair")
 		}
@@ -822,7 +822,7 @@ func (s *SpacewaveProviderResource) RecoverExecute(
 		return nil, errors.New("new_password is required")
 	}
 
-	params, privKey, err := auth_method_password.BuildParametersWithUsernamePassword(username, []byte(newPassword))
+	params, privKey, err := auth_method_password.ExBuildParametersWithUsernamePassword(ctx, s.b, username, []byte(newPassword))
 	if err != nil {
 		return nil, errors.Wrap(err, "derive entity keypair")
 	}
@@ -1036,7 +1036,7 @@ func (s *SpacewaveProviderResource) ReauthenticateSession(ctx context.Context, r
 		if entityID == "" {
 			return nil, errors.New("entity_id is required for password credential")
 		}
-		_, entityPriv, err = auth_method_password.BuildParametersWithUsernamePassword(entityID, []byte(password))
+		_, entityPriv, err = auth_method_password.ExBuildParametersWithUsernamePassword(ctx, s.b, entityID, []byte(password))
 		if err != nil {
 			return nil, errors.Wrap(err, "derive entity keypair")
 		}

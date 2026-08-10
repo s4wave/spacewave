@@ -4,10 +4,15 @@ package bldr_cli_compiler
 
 import (
 	"context"
+	"go/token"
 	"go/types"
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
+	"strconv"
+	"strings"
+	"unicode"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -151,10 +156,8 @@ func (c *Controller) BuildManifest(
 	cliPkgs, _ := plugin_compiler_go.UpdateRelativeGoPackagePaths(
 		conf.GetCliPkgs(), rootModule,
 	)
-	cliImports := make(map[string]string)
-	for _, pkg := range cliPkgs {
-		cliImports[pkg] = path.Base(pkg)
-	}
+	allocatedFactories, cliImports := allocateGoImports(factoryImports, cliPkgs)
+	factoryImports = allocatedFactories
 
 	// serialize config set
 	configSetPath := filepath.Join(entrypointBuildDir, "configset.bin")
@@ -241,6 +244,71 @@ func (c *Controller) BuildManifest(
 		committedManifestRef,
 		bldr_manifest_builder.NewInputManifest(nil, nil),
 	), nil
+}
+
+// allocateGoImports assigns every generated import through one deterministic
+// identifier namespace. Factory packages take precedence because CLI packages
+// can reuse the same package and alias.
+func allocateGoImports(
+	factoryImports map[string]FactoryImport,
+	cliPkgs []string,
+) (map[string]FactoryImport, map[string]string) {
+	reserved := map[string]struct{}{
+		"bus": {}, "cliCommands": {}, "cli_entrypoint": {}, "configSetFS": {},
+		"configSets": {}, "controller": {}, "embed": {}, "factories": {}, "main": {},
+	}
+	aliases := make(map[string]string, len(factoryImports)+len(cliPkgs))
+	allocate := func(pkg, preferred string) string {
+		if alias, ok := aliases[pkg]; ok {
+			return alias
+		}
+
+		var identifier strings.Builder
+		for i, r := range preferred {
+			if r == '_' || unicode.IsLetter(r) || i != 0 && unicode.IsDigit(r) {
+				identifier.WriteRune(r)
+			} else {
+				identifier.WriteByte('_')
+			}
+		}
+		alias := identifier.String()
+		if alias == "" || alias == "_" {
+			alias = "pkg"
+		}
+		if token.Lookup(alias).IsKeyword() {
+			alias = "pkg_" + alias
+		}
+		base := alias
+		for suffix := 2; ; suffix++ {
+			if _, exists := reserved[alias]; !exists {
+				break
+			}
+			alias = base + "_" + strconv.Itoa(suffix)
+		}
+		reserved[alias] = struct{}{}
+		aliases[pkg] = alias
+		return alias
+	}
+
+	factoryPkgs := make([]string, 0, len(factoryImports))
+	for pkg := range factoryImports {
+		factoryPkgs = append(factoryPkgs, pkg)
+	}
+	slices.Sort(factoryPkgs)
+	allocatedFactories := make(map[string]FactoryImport, len(factoryImports))
+	for _, pkg := range factoryPkgs {
+		fi := factoryImports[pkg]
+		fi.Alias = allocate(pkg, fi.Alias)
+		allocatedFactories[pkg] = fi
+	}
+
+	pkgs := slices.Clone(cliPkgs)
+	slices.Sort(pkgs)
+	cliImports := make(map[string]string, len(pkgs))
+	for _, pkg := range pkgs {
+		cliImports[pkg] = allocate(pkg, path.Base(pkg))
+	}
+	return allocatedFactories, cliImports
 }
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.

@@ -18,10 +18,6 @@ type MethodConstructor = auth_method.Constructor
 //
 // The controller contains an authentication method and provides it on a bus.
 type Controller struct {
-	// ctx is the controller context
-	// set in the execute() function
-	// ensure not used before execute sets it.
-	ctx context.Context
 	// le is the logger
 	le *logrus.Entry
 	// bus is the controller bus
@@ -81,9 +77,6 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
-	// Bind the execution context used by method lookups.
-	c.ctx = ctx
-
 	// Log the start of authentication method loading.
 	c.le.Debug("loading authentication method")
 
@@ -97,29 +90,22 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// Publish the method while the controller keeps it active.
-	defer tpt.Close()
+	// Publish the method for exactly this controller execution.
 	c.methodCh <- tpt
-
-	// Run the method and wait for cancellation when it completes cleanly.
-	err = tpt.Execute(ctx)
-	if err == nil {
+	defer func() {
 		select {
-		case <-ctx.Done():
-			err = ctx.Err()
+		case <-c.methodCh:
 		default:
-			// Keep the method open until the execution context is canceled.
-			<-ctx.Done()
-			return nil
 		}
-	}
+		tpt.Close()
+	}()
 
-	// Remove the method from the publication channel before returning.
-	select {
-	case <-c.methodCh:
-	default:
+	// Run the method and keep a cleanly completed method available until shutdown.
+	if err = tpt.Execute(ctx); err != nil {
+		return err
 	}
-	return err
+	<-ctx.Done()
+	return nil
 }
 
 // GetAuthMethod returns the controlled method.

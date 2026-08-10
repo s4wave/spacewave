@@ -645,7 +645,7 @@ func (a *ProviderAccount) ResetPINSession(ctx context.Context, ref *session.Sess
 	objStore := objStoreHandle.GetObjectStore()
 
 	// Derive entity private key from credential.
-	entityPrivKey, err := resolveEntityPrivKey(providerAccountID, cred)
+	entityPrivKey, err := resolveEntityPrivKey(ctx, a.t.p.b, providerAccountID, cred)
 	if err != nil {
 		return err
 	}
