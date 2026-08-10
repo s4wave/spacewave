@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { V86ImageTypeID } from '@s4wave/sdk/vm/v86image.js'
 
+import { V86ImageTypeID } from '@s4wave/sdk/vm/v86image.js'
 import type { Space } from '@s4wave/sdk/space/space.js'
 import { V86Image } from '@s4wave/sdk/vm/v86.pb.js'
 

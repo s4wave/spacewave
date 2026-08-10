@@ -1,28 +1,19 @@
-/* eslint-disable react-doctor/async-await-in-loop, react-doctor/no-giant-component */
 import { useCallback, use, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  LuCloud,
-  LuCpu,
-  LuHardDrive,
-  LuMonitor,
-  LuRefreshCcw,
-} from 'react-icons/lu'
-
-import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
+import { LuCloud, LuMonitor } from 'react-icons/lu'
 import {
   useResource,
   useResourceValue,
 } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
+
+import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { SessionIndexContext } from '@s4wave/web/contexts/contexts.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
-import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
-
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import { keyToIRI, iriToKey } from '@s4wave/sdk/world/graph-utils.js'
 import type { EngineWorldState } from '@s4wave/sdk/world/engine-state.js'
@@ -37,6 +28,7 @@ import {
 import { CREATE_VM_V86_OP_ID } from '@s4wave/sdk/vm/create-vm-v86.js'
 import { V86ImageTypeID } from '@s4wave/sdk/vm/v86image.js'
 import { Root } from '@s4wave/sdk/root/root.js'
+
 import { buildObjectKey } from '../space/create-op-builders.js'
 import { markQuickstartStartupBoundary } from '../quickstart/startup-boundary.js'
 import {
@@ -47,11 +39,12 @@ import {
   seedV86WizardConfig,
   V86_USER_IMAGE_OBJECT_KEY,
 } from '../vm/v86-wizard-config.js'
-
 import {
   type VmCreationProgress,
   VmCreationProgressScreen,
 } from './VmCreationProgressScreen.js'
+import { V86ConfigStep } from './V86ConfigStep.js'
+import { V86SourcePickerStep } from './V86SourcePickerStep.js'
 import { WizardShell } from './WizardShell.js'
 import { useWizardState } from './useWizardState.js'
 
@@ -63,8 +56,6 @@ const VmV86TypeID = 'vm/v86'
 
 // V86_IMAGE_PRED mirrors sdk/vm/v86.go PredV86Image; keep aligned.
 const V86_IMAGE_PRED = '<v86/image>'
-
-const MEMORY_OPTIONS: readonly number[] = [64, 128, 256, 512, 1024]
 
 interface InSpaceV86ImageEntry {
   objectKey: string
@@ -148,6 +139,8 @@ export async function loadCdnV86ImagesFromSpace(
   const keys = await listObjectsWithType(world, V86ImageTypeID, signal)
   const out: CdnV86ImageEntry[] = []
   for (const key of keys) {
+    // Each catalog cursor is released before the next SDK object is opened.
+    // eslint-disable-next-line react-doctor/async-await-in-loop
     using obj = await world.getObject(key, signal)
     if (!obj) continue
     using cursor = await obj.accessWorldState(undefined, signal)
@@ -263,6 +256,8 @@ async function loadInSpaceV86Images(
   const keys = await listObjectsWithType(ws, V86ImageTypeID, signal)
   const out: InSpaceV86ImageEntry[] = []
   for (const key of keys) {
+    // Each image cursor is released before the next SDK object is opened.
+    // eslint-disable-next-line react-doctor/async-await-in-loop
     using obj = await ws.getObject(key, signal)
     if (!obj) continue
     using cursor = await obj.accessWorldState(undefined, signal)
@@ -285,6 +280,8 @@ async function loadExistingVms(
   const keys = await listObjectsWithType(ws, VmV86TypeID, signal)
   const out: ExistingVmInfo[] = []
   for (const key of keys) {
+    // Each VM cursor is released before the next SDK object is opened.
+    // eslint-disable-next-line react-doctor/async-await-in-loop
     using obj = await ws.getObject(key, signal)
     if (!obj) continue
     using cursor = await obj.accessWorldState(undefined, signal)
@@ -429,12 +426,8 @@ async function* runVmCreation(
   yield { stage: 'ready' }
 }
 
-// VmV86WizardViewer is the custom wizard viewer for creating V86 VMs.
-// Step 0: image source selection (existing in-space V86Image, inherit from
-// existing VmV86, or copy default from CDN). Step 1: VM name and memory
-// configuration. Finalize runs the CDN copy (when selected) and then
-// CreateVmV86Op with the resolved image_object_key.
-export function VmV86WizardViewer({
+// useVmV86WizardController coordinates wizard resources and transitions.
+function useVmV86WizardController({
   objectInfo,
   worldState,
 }: ObjectViewerComponentProps) {
@@ -464,6 +457,10 @@ export function VmV86WizardViewer({
   const [creating, setCreating] = useState(false)
   const [cdnPickerOpen, setCdnPickerOpen] = useState(false)
   const [operationError, setOperationError] = useState('')
+  const [failedSelection, setFailedSelection] = useState<
+    V86WizardConfig | undefined
+  >(undefined)
+  const selectionTransitionRef = useRef(false)
   const [creationRequest, setCreationRequest] =
     useState<VmCreationRequest | null>(null)
   const existingObjectKeys = useMemo(
@@ -536,42 +533,39 @@ export function VmV86WizardViewer({
     [handleConfigDataChange],
   )
 
-  const persistConfig = useCallback(
-    async (next: V86WizardConfig) => {
-      const handle = wizardResource.value
-      if (!handle) return
-      const data = V86WizardConfig.toBinary(next)
-      handleConfigDataChange(data)
-      await handle.updateState({ configData: data })
-    },
-    [handleConfigDataChange, wizardResource],
-  )
-
-  // Compute an intelligent default once the world listings are loaded and the
-  // wizard has no source yet. Prefers inheriting from the newest existing VM,
-  // falls back to the newest in-space V86Image, falls back to COPY_FROM_CDN
-  // (the quickstart pre-seed also sets COPY_FROM_CDN explicitly).
-  const seededRef = useRef(false)
-  useEffect(() => {
-    if (seededRef.current) return
-    if (!state) return
-    if (inSpaceImagesResource.loading || existingVmsResource.loading) return
-    if (cfg.source !== V86WizardConfig_Source.SOURCE_UNSPECIFIED) {
-      seededRef.current = true
-      return
+  const seedConfig = useMemo(() => {
+    if (
+      !state ||
+      inSpaceImagesResource.loading ||
+      existingVmsResource.loading ||
+      cfg.source !== V86WizardConfig_Source.SOURCE_UNSPECIFIED
+    ) {
+      return undefined
     }
-    seededRef.current = true
-    const next = seedV86WizardConfig(cfg, existingDefault, inSpaceImages)
-    void persistConfig(next)
+    return seedV86WizardConfig(cfg, existingDefault, inSpaceImages)
   }, [
-    state,
     cfg,
     existingDefault,
+    existingVmsResource.loading,
     inSpaceImages,
     inSpaceImagesResource.loading,
-    existingVmsResource.loading,
-    persistConfig,
+    state,
   ])
+  const seedConfigResource = useResource(
+    wizardResource,
+    async (handle, signal) => {
+      if (!seedConfig) return false
+      const data = V86WizardConfig.toBinary(seedConfig)
+      const response = await handle.compareAndSetConfigData(
+        state?.configData ?? new Uint8Array(),
+        data,
+        signal,
+      )
+      if (response.applied) handleConfigDataChange(data)
+      return response.applied
+    },
+    [seedConfig, handleConfigDataChange, state?.configData],
+  )
 
   const defaultCdnImageResource = useResource(
     rootResource,
@@ -619,18 +613,36 @@ export function VmV86WizardViewer({
     defaultCdnImageResource.value,
   ])
 
-  useEffect(() => {
-    if (cfg.source !== V86WizardConfig_Source.COPY_FROM_CDN) return
-    if (cfg.cdnSourceObjectKey) return
-    const entry = defaultCdnImageResource.value
-    if (!entry) return
-    void persistConfig({
+  const catalogConfig = useMemo(() => {
+    if (
+      cfg.source !== V86WizardConfig_Source.COPY_FROM_CDN ||
+      cfg.cdnSourceObjectKey ||
+      !defaultCdnImageResource.value
+    ) {
+      return undefined
+    }
+    return {
       ...cfg,
       imageObjectKey: cfg.imageObjectKey || V86_USER_IMAGE_OBJECT_KEY,
-      cdnSourceObjectKey: entry.objectKey,
+      cdnSourceObjectKey: defaultCdnImageResource.value.objectKey,
       cdnId: cfg.cdnId ?? '',
-    })
-  }, [cfg, defaultCdnImageResource.value, persistConfig])
+    }
+  }, [cfg, defaultCdnImageResource.value])
+  const catalogConfigResource = useResource(
+    wizardResource,
+    async (handle, signal) => {
+      if (!catalogConfig) return false
+      const data = V86WizardConfig.toBinary(catalogConfig)
+      const response = await handle.compareAndSetConfigData(
+        state?.configData ?? new Uint8Array(),
+        data,
+        signal,
+      )
+      if (response.applied) handleConfigDataChange(data)
+      return response.applied
+    },
+    [catalogConfig, handleConfigDataChange, state?.configData],
+  )
   const nameStageRef = useRef(false)
   useEffect(() => {
     if (nameStageRef.current || state?.step !== 1) return
@@ -660,6 +672,33 @@ export function VmV86WizardViewer({
     return entry.image
   }, [cfg.cdnSourceObjectKey, cfg.source, defaultCdnImageResource.value])
 
+  const persistSelection = useCallback(
+    async (next: V86WizardConfig) => {
+      const handle = wizardResource.value
+      if (!handle || selectionTransitionRef.current) return
+      selectionTransitionRef.current = true
+      const data = V86WizardConfig.toBinary(next)
+      handleConfigDataChange(data)
+      try {
+        await handle.updateState({ configData: data, step: 1 })
+        setFailedSelection(undefined)
+        setOperationError('')
+      } catch (err) {
+        setFailedSelection(next)
+        setOperationError(
+          err instanceof Error ? err.message : 'Failed to select VM image',
+        )
+      } finally {
+        selectionTransitionRef.current = false
+      }
+    },
+    [handleConfigDataChange, wizardResource],
+  )
+
+  const handleRetrySelection = useCallback(() => {
+    if (failedSelection) void persistSelection(failedSelection)
+  }, [failedSelection, persistSelection])
+
   const handleSelectInSpaceImage = useCallback(
     (imageKey: string) => {
       setOperationError('')
@@ -667,13 +706,9 @@ export function VmV86WizardViewer({
       next.source = V86WizardConfig_Source.EXISTING_IN_SPACE
       next.imageObjectKey = imageKey
       next.cdnSourceObjectKey = ''
-      void (async () => {
-        await persistConfig(next)
-        const handle = wizardResource.value
-        if (handle) await handle.updateState({ step: 1 })
-      })()
+      void persistSelection(next)
     },
-    [cfg, persistConfig, wizardResource],
+    [cfg, persistSelection],
   )
 
   const handlePickCdnEntry = useCallback(
@@ -685,13 +720,9 @@ export function VmV86WizardViewer({
       next.cdnSourceObjectKey = cdnSrcKey
       next.cdnId = next.cdnId ?? ''
       setCdnPickerOpen(false)
-      void (async () => {
-        await persistConfig(next)
-        const handle = wizardResource.value
-        if (handle) await handle.updateState({ step: 1 })
-      })()
+      void persistSelection(next)
     },
-    [cfg, persistConfig, wizardResource],
+    [cfg, persistSelection],
   )
 
   const handleOpenCdnPicker = useCallback(() => {
@@ -787,6 +818,67 @@ export function VmV86WizardViewer({
     void handleFinalize()
   }, [handleFinalize])
 
+  return {
+    catalogConfigResource,
+    cdnPickerOpen,
+    cfg,
+    creating,
+    creationRequest,
+    creationResource,
+    existingDefault,
+    existingVmsResource,
+    handleBack,
+    handleCancelClick,
+    handleCloseCdnPicker,
+    handleFinalizeClick,
+    handleMemoryChange,
+    handleOpenCdnPicker,
+    handlePickCdnEntry,
+    handleRetrySelection: failedSelection ? handleRetrySelection : undefined,
+    handleSelectInSpaceImage,
+    handleUpdateName,
+    inSpaceImages,
+    inSpaceImagesResource,
+    localName,
+    operationError,
+    seedConfigResource,
+    selectedCdnImage,
+    selectedImage,
+    state,
+  }
+}
+
+// VmV86WizardViewer renders image selection, VM configuration, and creation progress.
+export function VmV86WizardViewer(props: ObjectViewerComponentProps) {
+  const {
+    catalogConfigResource,
+    cdnPickerOpen,
+    cfg,
+    creating,
+    creationRequest,
+    creationResource,
+    existingDefault,
+    existingVmsResource,
+    handleBack,
+    handleCancelClick,
+    handleCloseCdnPicker,
+    handleFinalizeClick,
+    handleMemoryChange,
+    handleOpenCdnPicker,
+    handlePickCdnEntry,
+    handleRetrySelection,
+    handleSelectInSpaceImage,
+    handleUpdateName,
+    inSpaceImages,
+    inSpaceImagesResource,
+    localName,
+    operationError,
+    seedConfigResource,
+    selectedCdnImage,
+    selectedImage,
+    state,
+  } = useVmV86WizardController(props)
+
   if (creationRequest) {
     const progress =
       creationResource.value ??
@@ -860,7 +952,7 @@ export function VmV86WizardViewer({
         finalizeStep={1}
       >
         {step === 0 && (
-          <SourcePickerStep
+          <V86SourcePickerStep
             cfg={cfg}
             existingDefault={existingDefault}
             inSpaceImages={inSpaceImages}
@@ -872,7 +964,7 @@ export function VmV86WizardViewer({
           />
         )}
         {step === 1 && (
-          <ConfigStep
+          <V86ConfigStep
             cfg={cfg}
             memoryMb={memoryMb}
             onMemoryChange={handleMemoryChange}
@@ -881,13 +973,42 @@ export function VmV86WizardViewer({
             existingDefault={existingDefault}
           />
         )}
+        {(seedConfigResource.error || catalogConfigResource.error) && (
+          <div
+            className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs"
+            role="alert"
+          >
+            <div>VM configuration could not be saved.</div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2"
+              onClick={() => {
+                if (seedConfigResource.error) seedConfigResource.retry()
+                if (catalogConfigResource.error) catalogConfigResource.retry()
+              }}
+            >
+              Retry
+            </Button>
+          </div>
+        )}
         {operationError && (
           <div
             className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs leading-relaxed"
             role="alert"
           >
-            <div className="font-medium">VM could not be created</div>
+            <div className="font-medium">VM operation failed</div>
             <div className="mt-0.5">{operationError}</div>
+            {handleRetrySelection && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2"
+                onClick={handleRetrySelection}
+              >
+                Retry
+              </Button>
+            )}
           </div>
         )}
       </WizardShell>
@@ -899,222 +1020,6 @@ export function VmV86WizardViewer({
         />
       )}
     </>
-  )
-}
-
-interface SourcePickerStepProps {
-  cfg: V86WizardConfig
-  existingDefault: ExistingVmInfo | undefined
-  inSpaceImages: InSpaceV86ImageEntry[]
-  onSelectInSpace: (imageKey: string) => void
-  onOpenCdnPicker: () => void
-  pending: boolean
-}
-
-function SourcePickerStep({
-  cfg,
-  existingDefault,
-  inSpaceImages,
-  onSelectInSpace,
-  onOpenCdnPicker,
-  pending,
-}: SourcePickerStepProps) {
-  const shortcutRow = existingDefault?.imageKey ? (
-    <button
-      type="button"
-      className={cn(
-        'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
-        cfg.source === V86WizardConfig_Source.EXISTING_IN_SPACE &&
-          cfg.imageObjectKey === existingDefault.imageKey &&
-          'border-brand/30 bg-brand/10',
-      )}
-      onClick={() => onSelectInSpace(existingDefault.imageKey)}
-    >
-      <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
-        <LuRefreshCcw className="text-foreground-alt/50 size-3.5" />
-      </span>
-      <div className="min-w-0">
-        <div className="text-foreground text-sm font-medium">
-          Use same image as {existingDefault.name}
-        </div>
-        <div className="text-foreground-alt/50 text-xs">
-          Inherit the V86Image from the newest existing VM in this Space.
-        </div>
-      </div>
-    </button>
-  ) : null
-
-  return (
-    <section>
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-          <LuMonitor className="size-3.5" />
-          Choose a VM image
-        </h3>
-      </div>
-      <div className="space-y-2">
-        {pending &&
-          inSpaceImages.length === 0 &&
-          !existingDefault?.imageKey && (
-            <LoadingCard
-              view={{
-                state: 'active',
-                title: 'Looking for VM images in this Space…',
-                detail: 'Reading images that are ready to use.',
-              }}
-            />
-          )}
-        {shortcutRow}
-        {inSpaceImages.map((entry) => (
-          <button
-            type="button"
-            key={entry.objectKey}
-            className={cn(
-              'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
-              cfg.source === V86WizardConfig_Source.EXISTING_IN_SPACE &&
-                cfg.imageObjectKey === entry.objectKey &&
-                'border-brand/30 bg-brand/10',
-            )}
-            onClick={() => onSelectInSpace(entry.objectKey)}
-          >
-            <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
-              <LuHardDrive className="text-foreground-alt/50 size-3.5" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-foreground text-sm font-medium">
-                {formatImageLabel(entry.image)}
-              </div>
-              <div className="text-foreground-alt/50 truncate text-xs">
-                {entry.image.distro || entry.objectKey}
-              </div>
-            </div>
-          </button>
-        ))}
-        {!pending &&
-          (inSpaceImages.length > 0 || existingDefault?.imageKey) && (
-            <button
-              type="button"
-              className={cn(
-                'border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all duration-150',
-                cfg.source === V86WizardConfig_Source.COPY_FROM_CDN &&
-                  'border-brand/30 bg-brand/5',
-              )}
-              onClick={onOpenCdnPicker}
-            >
-              <span className="bg-brand/10 flex size-7 shrink-0 items-center justify-center rounded-md">
-                <LuCloud className="text-brand size-3.5" />
-              </span>
-              <div className="min-w-0">
-                <div className="text-foreground text-sm font-medium">
-                  Add image from catalog
-                </div>
-                <div className="text-foreground-alt/70 text-xs leading-relaxed">
-                  Copy a published VM image into this Space.
-                </div>
-              </div>
-            </button>
-          )}
-      </div>
-      {!pending && inSpaceImages.length === 0 && !existingDefault?.imageKey && (
-        <InfoCard
-          icon={<LuHardDrive className="text-foreground-alt/60 size-3.5" />}
-          title="No VM images in this Space"
-        >
-          <p className="text-foreground-alt/70 text-xs leading-relaxed">
-            Copy a published image from the catalog to continue.
-          </p>
-          <Button
-            size="sm"
-            onClick={onOpenCdnPicker}
-            className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs"
-          >
-            Browse image catalog
-          </Button>
-        </InfoCard>
-      )}
-    </section>
-  )
-}
-
-interface ConfigStepProps {
-  cfg: V86WizardConfig
-  memoryMb: number
-  onMemoryChange: (memoryMb: number) => void
-  selectedImage: V86Image | undefined
-  selectedCdnImage: V86Image | undefined
-  existingDefault: ExistingVmInfo | undefined
-}
-
-function ConfigStep({
-  cfg,
-  memoryMb,
-  onMemoryChange,
-  selectedImage,
-  selectedCdnImage,
-  existingDefault,
-}: ConfigStepProps) {
-  const isCdn = cfg.source === V86WizardConfig_Source.COPY_FROM_CDN
-  const imageSummary = isCdn
-    ? selectedCdnImage
-      ? `Will copy from catalog: ${formatImageLabel(selectedCdnImage)}`
-      : `Catalog image: ${cfg.cdnSourceObjectKey || 'Not selected'}`
-    : selectedImage
-      ? formatImageLabel(selectedImage)
-      : existingDefault?.imageKey
-        ? `Using ${existingDefault.imageKey} from ${existingDefault.name}`
-        : cfg.imageObjectKey || 'Not selected'
-
-  return (
-    <div className="space-y-3">
-      <div className="border-foreground/6 bg-background-card/30 space-y-3 rounded-lg border p-3.5">
-        <section>
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-foreground flex items-center gap-1.5 text-xs font-medium select-none">
-              <LuCpu className="size-3.5" />
-              Memory
-            </h3>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {MEMORY_OPTIONS.map((mb) => (
-              <button
-                type="button"
-                key={mb}
-                className={cn(
-                  'border-foreground/10 bg-background/20 text-foreground-alt hover:border-foreground/20 hover:bg-background/30 rounded-md border px-3 py-2 text-left text-xs transition-all duration-150 select-none',
-                  memoryMb === mb &&
-                    'border-brand/30 bg-brand/10 text-foreground',
-                )}
-                onClick={() => onMemoryChange(mb)}
-              >
-                {mb} MB
-              </button>
-            ))}
-          </div>
-        </section>
-        <section className="border-foreground/8 border-t pt-3">
-          <div className="text-foreground mb-2 flex items-center gap-1.5 text-xs font-medium">
-            <LuHardDrive className="size-3.5" />
-            Image
-          </div>
-          <div className="text-foreground text-sm font-medium">
-            {imageSummary}
-          </div>
-          <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
-            {isCdn
-              ? 'The image is copied into this Space before the VM opens.'
-              : 'The VM uses an image already stored in this Space.'}
-          </p>
-        </section>
-      </div>
-      {!cfg.imageObjectKey && (
-        <div
-          className="border-destructive/15 bg-destructive/5 text-destructive rounded-lg border p-3 text-xs leading-relaxed"
-          role="alert"
-        >
-          Choose a VM image before creating the VM.
-        </div>
-      )}
-    </div>
   )
 }
 

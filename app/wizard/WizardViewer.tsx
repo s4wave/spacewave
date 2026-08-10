@@ -1,19 +1,19 @@
 import { useCallback, useMemo } from 'react'
+import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
-import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { SpaceContext } from '@s4wave/web/contexts/contexts.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { useConfigEditor } from '@s4wave/web/configtype/useConfigEditor.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
+
 import {
   lookupCreateOpBuilder,
   buildObjectKey,
 } from '../space/create-op-builders.js'
 import { useExperimentalCreatorsEnabled } from '../creator-visibility.js'
 import { normalizeObjectWizards } from '../space/object-wizards.js'
-
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
 

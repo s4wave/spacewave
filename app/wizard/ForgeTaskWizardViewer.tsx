@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { cloneElement, useCallback, useRef, useState } from 'react'
 import { LuListTodo } from 'react-icons/lu'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
+import { Button } from '@s4wave/web/ui/button.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
-import { buildObjectKey } from '../space/create-op-builders.js'
 
+import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
 
@@ -20,21 +21,42 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
 
   const config = configEditor.value as ForgeTaskCreateOp | undefined
   const selectedJob = config?.jobKey ?? ''
+  const [failedTransition, setFailedTransition] = useState<
+    ForgeTaskCreateOp | undefined
+  >(undefined)
+  const [transitionError, setTransitionError] = useState('')
+  const transitioningRef = useRef(false)
 
-  // Auto-advance to step 1 when a job is selected.
-  const prevJobRef = useRef(selectedJob)
-  useEffect(() => {
-    if (selectedJob && selectedJob !== prevJobRef.current) {
+  const handleJobSelection = useCallback(
+    async (next: ForgeTaskCreateOp) => {
       const handle = ws.wizardResource.value
-      if (handle) {
-        void (async () => {
-          await ws.persistDraftState()
-          await handle.updateState({ step: 1 })
-        })()
+      if (!handle || !next.jobKey || transitioningRef.current) return
+      transitioningRef.current = true
+      const configData = ForgeTaskCreateOp.toBinary(next)
+      ws.handleConfigDataChange(configData)
+      try {
+        await handle.updateState({ configData, step: 1 })
+        setFailedTransition(undefined)
+        setTransitionError('')
+      } catch (err) {
+        setFailedTransition(next)
+        setTransitionError(
+          err instanceof Error ? err.message : 'Failed to select Forge job',
+        )
+      } finally {
+        transitioningRef.current = false
       }
-    }
-    prevJobRef.current = selectedJob
-  }, [selectedJob, ws])
+    },
+    [ws],
+  )
+
+  const configElement = configEditor.element
+    ? cloneElement(configEditor.element, {
+        onValueChange: (next: ForgeTaskCreateOp) => {
+          void handleJobSelection(next)
+        },
+      } as never)
+    : null
 
   const handleFinalize = useCallback(async () => {
     if (!state || ws.creating || !selectedJob || !ws.localName.trim()) return
@@ -113,7 +135,26 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
       onFinalize={handleFinalizeClick}
       finalizeStep={1}
     >
-      {(state.step ?? 0) === 0 && configEditor.element}
+      {(state.step ?? 0) === 0 && (
+        <>
+          {configElement}
+          {transitionError && failedTransition && (
+            <div
+              className="text-destructive flex items-center gap-2 text-xs"
+              role="alert"
+            >
+              <span>{transitionError}</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void handleJobSelection(failedTransition)}
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </WizardShell>
   )
 }

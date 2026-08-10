@@ -1,6 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
+
 import { useUploadManager } from './useUploadManager.js'
 
 function buildFile(name: string, content: string, relativePath?: string): File {
@@ -177,5 +179,92 @@ describe('useUploadManager', () => {
       { kind: 'directory', path: 'nested' },
       { kind: 'directory', path: 'nested/empty' },
     ])
+  })
+  it('clears terminal errors once without contaminating a later completion', async () => {
+    vi.useFakeTimers()
+    try {
+      const uploadTree = vi
+        .fn<FSHandle['uploadTree']>()
+        .mockRejectedValueOnce(new Error('first upload failed'))
+        .mockResolvedValue({
+          bytesWritten: 2n,
+          filesWritten: 1n,
+          directoriesWritten: 0n,
+        })
+      const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
+      const { result } = renderHook(() => useUploadManager())
+
+      act(() => {
+        result.current.addFiles(handle, [buildFile('broken.txt', 'no')])
+      })
+      await act(async () => {
+        await Promise.resolve()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+      expect(result.current.lastEvent).toMatchObject({
+        kind: 'completed',
+        fileCount: 0,
+        errorCount: 1,
+      })
+
+      act(() => {
+        vi.advanceTimersByTime(3000)
+      })
+      expect(result.current.items).toEqual([])
+      act(() => {
+        vi.advanceTimersByTime(6000)
+      })
+      expect(result.current.items).toEqual([])
+
+      act(() => {
+        result.current.addFiles(handle, [buildFile('good.txt', 'ok')])
+      })
+      await act(async () => {
+        await Promise.resolve()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+      expect(result.current.lastEvent).toMatchObject({
+        kind: 'completed',
+        fileCount: 1,
+        errorCount: 0,
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+  it('excludes prior terminal failures when a new burst starts immediately', async () => {
+    const uploadTree = vi
+      .fn<FSHandle['uploadTree']>()
+      .mockRejectedValueOnce(new Error('first upload failed'))
+      .mockResolvedValueOnce({
+        bytesWritten: 2n,
+        filesWritten: 1n,
+        directoriesWritten: 0n,
+      })
+    const handle = { uploadTree } as Pick<FSHandle, 'uploadTree'> as FSHandle
+    const { result } = renderHook(() => useUploadManager())
+
+    act(() => {
+      result.current.addFiles(handle, [buildFile('broken.txt', 'no')])
+    })
+    await waitFor(() => {
+      expect(result.current.lastEvent).toMatchObject({
+        kind: 'completed',
+        errorCount: 1,
+      })
+    })
+
+    act(() => {
+      result.current.addFiles(handle, [buildFile('good.txt', 'ok')])
+    })
+    await waitFor(() => {
+      expect(result.current.lastEvent).toMatchObject({
+        kind: 'completed',
+        fileCount: 1,
+        errorCount: 0,
+      })
+    })
   })
 })

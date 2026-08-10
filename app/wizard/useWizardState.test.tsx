@@ -4,6 +4,7 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
+
 import { useWizardState } from './useWizardState.js'
 
 const h = vi.hoisted(() => ({

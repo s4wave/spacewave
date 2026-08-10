@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
-
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { useMappedResource } from '@aptre/bldr-sdk/hooks/useMappedResource.js'
+
 import { getUnixFSFileInfoKind } from '@s4wave/sdk/unixfs/file-kind.js'
 import { normalizeUnixFSLookupPath } from '@s4wave/sdk/unixfs/path.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'

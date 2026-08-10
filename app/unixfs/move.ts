@@ -43,7 +43,6 @@ export {
   splitUnixFSPath,
 }
 
-// buildUnixFSMoveItems maps browser entries in one directory into move items.
 export function buildUnixFSMoveItems(
   currentPath: string,
   entries: Pick<FileEntry, 'id' | 'name' | 'isDir'>[],
@@ -57,7 +56,6 @@ export function buildUnixFSMoveItems(
   }))
 }
 
-// validateUnixFSMove checks whether the items can move into the destination path.
 export function validateUnixFSMove(
   items: UnixFSMoveItem[],
   destinationPath: string,
@@ -87,7 +85,6 @@ export function validateUnixFSMove(
   return { accepted: true, reason: null }
 }
 
-// describeUnixFSMoveValidation formats a validation result for move UI feedback.
 export function describeUnixFSMoveValidation(
   validation: UnixFSMoveValidation,
 ): string | null {
@@ -146,7 +143,6 @@ async function collectUnixFSDirectories(
   dirs.push(...childDirectories.flat())
 }
 
-// listUnixFSDirectories returns the root and all descendant directories for move selection.
 export async function listUnixFSDirectories(
   rootHandle: FSHandle,
   abortSignal?: AbortSignal,
@@ -170,7 +166,6 @@ async function lookupUnixFSMoveHandle(
   return handle
 }
 
-// moveUnixFSItems moves the items into the destination directory within one UnixFS root.
 export async function moveUnixFSItems(
   rootHandle: FSHandle,
   items: UnixFSMoveItem[],

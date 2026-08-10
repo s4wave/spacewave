@@ -5,8 +5,8 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
-import { buildObjectKey } from '../space/create-op-builders.js'
 
+import { buildObjectKey } from '../space/create-op-builders.js'
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
 

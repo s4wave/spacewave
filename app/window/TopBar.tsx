@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback, useEffectEvent } from 'react'
-import { cn } from '@s4wave/web/style/utils.js'
 import { LuChevronLeft, LuChevronRight, LuX } from 'react-icons/lu'
+
+import { cn } from '@s4wave/web/style/utils.js'
 import { AppLogo } from '@s4wave/web/images/AppLogo.js'
 import {
   DropdownMenu,

@@ -16,15 +16,11 @@ export interface IWindowFrameProps {
   onMaximize?: (e: React.MouseEvent) => void
   onClose?: (e: React.MouseEvent) => void
 
-  // children is the children render function
   children?: React.ReactNode | React.JSX.Element
 
-  // topBar contains overrides for the top bar
   topBar?: IBarProps
-  // bottomBar contains overrides for the top bar
   bottomBar?: IBarProps
 
-  // centerTopBar puts the top bar header on the center
   centerTopBar?: boolean
 }
 
@@ -90,15 +86,3 @@ export function WindowFrame(props: IWindowFrameProps) {
     </Frame>
   )
 }
-
-/*
-  <button
-    onClick={this.handleMinimize}
-    className="window-frame-button"> &#x2012;
-  </button>
-  <button
-    onClick={this.handleMaximize}
-    className="window-frame-button">
-      &#9633;
-  </button>
-*/

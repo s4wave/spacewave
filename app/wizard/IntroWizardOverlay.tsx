@@ -6,6 +6,7 @@ import {
   LuSparkles,
 } from 'react-icons/lu'
 
+import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import {
   IntroWizardRegion,
@@ -79,11 +80,12 @@ export function IntroWizardOverlay({
             {callouts.map((callout, index) => (
               <span
                 key={callout.title || index}
-                className={
+                className={cn(
+                  'h-1.5 rounded-full transition-[width,background-color]',
                   index === activeStep
-                    ? 'bg-brand h-1.5 w-4 rounded-full transition-[width,background-color]'
-                    : 'bg-foreground/20 h-1.5 w-1.5 rounded-full transition-[width,background-color]'
-                }
+                    ? 'bg-brand w-4'
+                    : 'bg-foreground/20 w-1.5',
+                )}
               />
             ))}
           </div>

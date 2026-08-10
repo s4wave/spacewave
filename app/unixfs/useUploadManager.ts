@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FSHandle, TreeUploadEntry } from '@s4wave/sdk/unixfs/handle.js'
 
+import type { FSHandle, TreeUploadEntry } from '@s4wave/sdk/unixfs/handle.js'
 import { TreeUploadPool } from '@s4wave/sdk/unixfs/upload-pool.js'
 
 // UploadStatus, UploadItem, UploadEvent, and UploadManager form the durable
@@ -112,7 +112,13 @@ export function useUploadManager(): UploadManager {
     if (!allFinished) return
 
     const timer = setTimeout(() => {
-      setItems((prev) => prev.filter((item) => item.status !== 'done'))
+      setItems((prev) =>
+        prev.some(
+          (item) => item.status === 'queued' || item.status === 'uploading',
+        )
+          ? prev
+          : [],
+      )
     }, 3000)
     return () => clearTimeout(timer)
   }, [items])
@@ -150,7 +156,12 @@ export function useUploadManager(): UploadManager {
       }
       if (newItems.length === 0) return
 
-      setItems((prev) => [...prev, ...newItems])
+      setItems((prev) => [
+        ...prev.filter(
+          (item) => item.status === 'queued' || item.status === 'uploading',
+        ),
+        ...newItems,
+      ])
       const fileCount = files.length || (directories?.length ?? 0)
       setLastEvent({
         id: ++eventSeqRef.current,

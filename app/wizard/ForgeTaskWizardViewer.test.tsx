@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
+
 import { ForgeTaskWizardViewer } from './ForgeTaskWizardViewer.js'
 
 const h = vi.hoisted(() => ({
@@ -20,6 +21,23 @@ const h = vi.hoisted(() => ({
 }))
 
 let currentStep = 1
+
+function JobEditorStub({
+  onValueChange,
+}: {
+  onValueChange?: (value: ForgeTaskCreateOp) => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() =>
+        onValueChange?.(ForgeTaskCreateOp.create({ jobKey: 'forge/job/retry' }))
+      }
+    >
+      Select job
+    </button>
+  )
+}
 
 vi.mock('./useWizardState.js', () => ({
   useWizardState: () => ({
@@ -45,7 +63,7 @@ vi.mock('./useWizardState.js', () => ({
       },
     },
     configEditor: {
-      element: <div>Forge Task Config</div>,
+      element: <JobEditorStub />,
       value: {
         jobKey: 'forge/job/main',
       },
@@ -72,6 +90,7 @@ describe('ForgeTaskWizardViewer', () => {
 
   beforeEach(() => {
     currentStep = 1
+    h.updateState.mockReset().mockResolvedValue(undefined)
   })
 
   it('finalizes a forge task linked to the selected job', async () => {
@@ -106,5 +125,34 @@ describe('ForgeTaskWizardViewer', () => {
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/forge/task/test')
     expect(h.navigateToObjects).toHaveBeenCalledWith([decoded.taskKey])
     expect(h.toastSuccess).toHaveBeenCalledWith('Created task Compile Task')
+  })
+  it('retries a failed job-selection transition', async () => {
+    currentStep = 0
+    h.updateState
+      .mockRejectedValueOnce(new Error('temporary persistence failure'))
+      .mockResolvedValueOnce(undefined)
+    const user = userEvent.setup()
+    render(
+      <ForgeTaskWizardViewer
+        objectInfo={{}}
+        worldState={{
+          value: {} as never,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Select job' }))
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'temporary persistence failure',
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(h.updateState).toHaveBeenCalledTimes(2)
+    expect(h.updateState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ step: 1 }),
+    )
   })
 })

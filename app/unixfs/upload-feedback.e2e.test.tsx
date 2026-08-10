@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { describe, expect, it } from 'vitest'
 import { page } from 'vitest/browser'
 import { cleanup, render } from 'vitest-browser-react'
-import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 
+import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { BottomBarRoot } from '@s4wave/web/frame/bottom-bar-root.js'
 import { SessionRouteContext } from '@s4wave/web/contexts/contexts.js'
 import { ViewerFrame } from '@s4wave/web/frame/ViewerFrame.js'
@@ -203,7 +203,6 @@ describe('upload feedback popovers', () => {
       <UploadFeedbackSurface handle={handle} showViewer={true} />,
     )
 
-    // Upload is in flight: the indicator reports the active count.
     await expect.element(page.getByText('Uploading 2/2')).toBeInTheDocument()
     expect(signals).toHaveLength(2)
 

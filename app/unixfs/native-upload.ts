@@ -67,6 +67,7 @@ async function walkNativeUploadEntry(
     }
     const reader = entry.createReader()
     while (true) {
+      // WebkitDirectoryReader advances mutable batch state with each sequential read.
       // eslint-disable-next-line react-doctor/async-await-in-loop
       const entries = await readNativeDirectoryEntries(reader)
       if (entries.length === 0) {

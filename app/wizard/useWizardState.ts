@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
+import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 
 import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { getObjectKey } from '@s4wave/web/object/object.js'
 import { useAccessTypedHandle } from '@s4wave/web/hooks/useAccessTypedHandle.js'
-import { useStreamingResource } from '@aptre/bldr-sdk/hooks/useStreamingResource.js'
-import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { WizardHandle } from '@s4wave/sdk/world/wizard/wizard.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
