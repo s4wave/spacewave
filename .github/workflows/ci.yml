@@ -37,7 +37,7 @@ jobs:
             build_script: ''
             check_script: typecheck
             lint_go_script: lint:go:alpha
-            lint_js_script: ''
+            lint_js_script: lint:js:alpha
             test_go_script: test:go:alpha
             test_js_script: test:js:alpha
           - name: auth
