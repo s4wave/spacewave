@@ -21,14 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type manifestCommitIdentityContextKey struct{}
-
 type manifestCommitTimestampContextKey struct{}
-
-type manifestCommitIdentity struct {
-	existingBuilderResult *BuilderResult
-	manifestDeps          []*InputManifest_ManifestDep
-}
 
 // Validate validates the configuration.
 func (c *BuilderConfig) Validate() error {
@@ -60,26 +53,6 @@ func (c *BuilderConfig) Validate() error {
 		return errors.New("working path must be absolute")
 	}
 	return nil
-}
-
-// WithManifestCommitIdentity attaches the previous manifest and current watched
-// manifest refs used to decide whether a commit publishes a new revision.
-func WithManifestCommitIdentity(
-	ctx context.Context,
-	existingBuilderResult *BuilderResult,
-	manifestDeps []*InputManifest_ManifestDep,
-) context.Context {
-	if existingBuilderResult == nil && len(manifestDeps) == 0 {
-		return ctx
-	}
-	var existingBuilderResultClone *BuilderResult
-	if existingBuilderResult != nil {
-		existingBuilderResultClone = existingBuilderResult.CloneVT()
-	}
-	return context.WithValue(ctx, manifestCommitIdentityContextKey{}, &manifestCommitIdentity{
-		existingBuilderResult: existingBuilderResultClone,
-		manifestDeps:          cloneManifestDeps(manifestDeps),
-	})
 }
 
 func withManifestCommitTimestamp(ctx context.Context, ts *timestamp.Timestamp) context.Context {
@@ -126,10 +99,6 @@ func (c *BuilderConfig) CommitManifest(
 	})
 	if err != nil {
 		return nil, manifestRef, err
-	}
-
-	if existingManifest, existingRef := reuseManifestCommit(ctx, manifestValue); existingManifest != nil {
-		return existingManifest, existingRef, nil
 	}
 
 	manifestValue.GetMeta().Logger(le).
@@ -208,89 +177,4 @@ func manifestCommitTimestamp(ctx context.Context) *timestamp.Timestamp {
 		return ts.CloneVT()
 	}
 	return timestamp.Now()
-}
-
-func reuseManifestCommit(
-	ctx context.Context,
-	manifestValue *manifest.Manifest,
-) (*manifest.Manifest, *bucket.ObjectRef) {
-	identity, ok := ctx.Value(manifestCommitIdentityContextKey{}).(*manifestCommitIdentity)
-	if !ok || identity == nil {
-		return nil, nil
-	}
-	existingResult := identity.existingBuilderResult
-	if existingResult == nil {
-		return nil, nil
-	}
-	existingManifest := existingResult.GetManifest()
-	if !manifestCommitOutputsEqual(existingManifest, manifestValue) {
-		return nil, nil
-	}
-	if !manifestDepsEqual(existingResult.GetInputManifest().GetManifestDeps(), identity.manifestDeps) {
-		return nil, nil
-	}
-	return existingManifest.CloneVT(), existingResult.GetManifestRef().GetManifestRef().Clone()
-}
-
-func manifestCommitOutputsEqual(existingManifest, manifestValue *manifest.Manifest) bool {
-	if existingManifest == nil || manifestValue == nil {
-		return false
-	}
-	existingMeta := existingManifest.GetMeta()
-	meta := manifestValue.GetMeta()
-	if existingMeta.GetManifestId() != meta.GetManifestId() {
-		return false
-	}
-	if existingMeta.GetBuildType() != meta.GetBuildType() {
-		return false
-	}
-	if existingMeta.GetPlatformId() != meta.GetPlatformId() {
-		return false
-	}
-	if existingMeta.GetDescription() != meta.GetDescription() {
-		return false
-	}
-	if existingManifest.GetEntrypoint() != manifestValue.GetEntrypoint() {
-		return false
-	}
-	if !existingManifest.GetDistFsRef().EqualVT(manifestValue.GetDistFsRef()) {
-		return false
-	}
-	return existingManifest.GetAssetsFsRef().EqualVT(manifestValue.GetAssetsFsRef())
-}
-
-func manifestDepsEqual(
-	cachedDeps []*InputManifest_ManifestDep,
-	currentDeps []*InputManifest_ManifestDep,
-) bool {
-	if len(cachedDeps) != len(currentDeps) {
-		return false
-	}
-	cachedByID := make(map[string]*InputManifest_ManifestDep, len(cachedDeps))
-	for _, dep := range cachedDeps {
-		cachedByID[dep.GetManifestId()] = dep
-	}
-	for _, dep := range currentDeps {
-		cachedDep, ok := cachedByID[dep.GetManifestId()]
-		if !ok {
-			return false
-		}
-		if !cachedDep.GetManifestRef().EqualVT(dep.GetManifestRef()) {
-			return false
-		}
-	}
-	return true
-}
-
-func cloneManifestDeps(deps []*InputManifest_ManifestDep) []*InputManifest_ManifestDep {
-	if len(deps) == 0 {
-		return nil
-	}
-	cloned := make([]*InputManifest_ManifestDep, len(deps))
-	for i, dep := range deps {
-		if dep != nil {
-			cloned[i] = dep.CloneVT()
-		}
-	}
-	return cloned
 }
