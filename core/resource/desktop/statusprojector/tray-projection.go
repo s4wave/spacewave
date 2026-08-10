@@ -64,7 +64,7 @@ func desktopTrayEntryKindFromProjection(
 	case projection_tray.DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_SUBMENU:
 		return desktop_tray.DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_SUBMENU
 	default:
-		return desktop_tray.DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED
+		return desktop_tray.DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_UNKNOWN
 	}
 }
 
@@ -85,7 +85,7 @@ func desktopTrayActionKindFromProjection(
 	case projection_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_QUIT:
 		return desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_QUIT
 	default:
-		return desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED
+		return desktop_tray.DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_UNKNOWN
 	}
 }
 
@@ -104,7 +104,7 @@ func desktopTrayIconStateFromProjection(
 	case projection_tray.DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_QUITTING:
 		return desktop_tray.DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_QUITTING
 	default:
-		return desktop_tray.DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_UNSPECIFIED
+		return desktop_tray.DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_UNKNOWN
 	}
 }
 
@@ -119,6 +119,6 @@ func desktopTraySeverityFromProjection(
 	case projection_tray.DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_CRITICAL:
 		return desktop_tray.DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_CRITICAL
 	default:
-		return desktop_tray.DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_UNSPECIFIED
+		return desktop_tray.DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_UNKNOWN
 	}
 }

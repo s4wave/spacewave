@@ -309,8 +309,8 @@ function statusEntry(
     kind: DesktopTrayEntryKind.STATUS,
     label,
     active: opts?.active ?? false,
-    iconState: opts?.iconState ?? DesktopTrayIconState.UNSPECIFIED,
-    severity: opts?.severity ?? DesktopTraySeverity.UNSPECIFIED,
+    iconState: opts?.iconState ?? DesktopTrayIconState.UNKNOWN,
+    severity: opts?.severity ?? DesktopTraySeverity.UNKNOWN,
   }
 }
 
@@ -343,7 +343,7 @@ function actionEntry(
     label,
     active: opts?.active ?? false,
     enabled: opts?.enabled ?? true,
-    severity: opts?.severity ?? DesktopTraySeverity.UNSPECIFIED,
+    severity: opts?.severity ?? DesktopTraySeverity.UNKNOWN,
     action: {
       kind,
       route: opts?.route,
@@ -389,7 +389,7 @@ function severityFromRuntimeSeverity(
     case DesktopRuntimeSeverity.INFO:
       return DesktopTraySeverity.INFO
     default:
-      return DesktopTraySeverity.UNSPECIFIED
+      return DesktopTraySeverity.UNKNOWN
   }
 }
 
@@ -419,7 +419,7 @@ function cliInstallSeverity(
     case DesktopCLIInstallStatus.DESKTOP_CLI_INSTALL_STATUS_ERROR:
       return DesktopTraySeverity.CRITICAL
     default:
-      return DesktopTraySeverity.UNSPECIFIED
+      return DesktopTraySeverity.UNKNOWN
   }
 }
 
@@ -455,7 +455,7 @@ function actionKindFromRuntimeActionKind(
     case DesktopRuntimeActionKind.QUIT:
       return DesktopTrayActionKind.QUIT
     default:
-      return DesktopTrayActionKind.UNSPECIFIED
+      return DesktopTrayActionKind.UNKNOWN
   }
 }
 

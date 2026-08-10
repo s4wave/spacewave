@@ -54,7 +54,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/desktop/tray": {
-      "hash": "83c55210ab3bbcd6d68b394730ca231b0794a13008242d32e105bfe07ebcbb9b",
+      "hash": "a82f272a22ce2e1ea054ffe94c8cdb5df2aa8b43985a9d6e40c24203e9ca313f",
       "generatedFiles": [
         "bldr/desktop/tray/tray.pb.go",
         "bldr/desktop/tray/tray.pb.ts",

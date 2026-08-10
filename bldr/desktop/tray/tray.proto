@@ -100,7 +100,8 @@ message RegisterDesktopTrayEntryResponse {
 }
 
 // WatchDesktopTrayRequest is the request for WatchDesktopTray.
-message WatchDesktopTrayRequest {}
+message WatchDesktopTrayRequest {
+}
 
 // WatchDesktopTrayResponse is the response for WatchDesktopTray.
 message WatchDesktopTrayResponse {
@@ -115,7 +116,8 @@ message InvokeDesktopTrayEntryRequest {
 }
 
 // InvokeDesktopTrayEntryResponse is the response for InvokeDesktopTrayEntry.
-message InvokeDesktopTrayEntryResponse {}
+message InvokeDesktopTrayEntryResponse {
+}
 
 // SetDesktopTrayEntryRequest is the request for SetDesktopTrayEntry.
 message SetDesktopTrayEntryRequest {
@@ -124,7 +126,8 @@ message SetDesktopTrayEntryRequest {
 }
 
 // SetDesktopTrayEntryResponse is the response for SetDesktopTrayEntry.
-message SetDesktopTrayEntryResponse {}
+message SetDesktopTrayEntryResponse {
+}
 
 // SetDesktopTrayEntryActiveRequest is the request for SetDesktopTrayEntryActive.
 message SetDesktopTrayEntryActiveRequest {
@@ -133,7 +136,8 @@ message SetDesktopTrayEntryActiveRequest {
 }
 
 // SetDesktopTrayEntryActiveResponse is the response for SetDesktopTrayEntryActive.
-message SetDesktopTrayEntryActiveResponse {}
+message SetDesktopTrayEntryActiveResponse {
+}
 
 // SetDesktopTrayEntryEnabledRequest is the request for SetDesktopTrayEntryEnabled.
 message SetDesktopTrayEntryEnabledRequest {
@@ -142,7 +146,8 @@ message SetDesktopTrayEntryEnabledRequest {
 }
 
 // SetDesktopTrayEntryEnabledResponse is the response for SetDesktopTrayEntryEnabled.
-message SetDesktopTrayEntryEnabledResponse {}
+message SetDesktopTrayEntryEnabledResponse {
+}
 
 // HandleDesktopTrayActionRequest is the request for HandleDesktopTrayAction.
 message HandleDesktopTrayActionRequest {
@@ -153,12 +158,13 @@ message HandleDesktopTrayActionRequest {
 }
 
 // HandleDesktopTrayActionResponse is the response for HandleDesktopTrayAction.
-message HandleDesktopTrayActionResponse {}
+message HandleDesktopTrayActionResponse {
+}
 
 // DesktopTrayEntryKind describes native menu mapping semantics.
 enum DesktopTrayEntryKind {
-  // DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED leaves row semantics unset.
-  DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED = 0;
+  // DESKTOP_TRAY_ENTRY_KIND_UNKNOWN leaves row semantics unknown.
+  DESKTOP_TRAY_ENTRY_KIND_UNKNOWN = 0;
   // DESKTOP_TRAY_ENTRY_KIND_SECTION renders a disabled section heading.
   DESKTOP_TRAY_ENTRY_KIND_SECTION = 1;
   // DESKTOP_TRAY_ENTRY_KIND_SEPARATOR renders a native separator.
@@ -173,8 +179,8 @@ enum DesktopTrayEntryKind {
 
 // DesktopTrayActionKind describes selectable action semantics.
 enum DesktopTrayActionKind {
-  // DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED leaves action semantics unset.
-  DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED = 0;
+  // DESKTOP_TRAY_ACTION_KIND_UNKNOWN leaves action semantics unknown.
+  DESKTOP_TRAY_ACTION_KIND_UNKNOWN = 0;
   // DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE opens or focuses an app route.
   DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE = 1;
   // DESKTOP_TRAY_ACTION_KIND_NEW_WINDOW opens an app route in a new window.
@@ -191,8 +197,8 @@ enum DesktopTrayActionKind {
 
 // DesktopTrayIconState describes collapsed tray icon status.
 enum DesktopTrayIconState {
-  // DESKTOP_TRAY_ICON_STATE_UNSPECIFIED leaves icon status unset.
-  DESKTOP_TRAY_ICON_STATE_UNSPECIFIED = 0;
+  // DESKTOP_TRAY_ICON_STATE_UNKNOWN leaves icon status unknown.
+  DESKTOP_TRAY_ICON_STATE_UNKNOWN = 0;
   // DESKTOP_TRAY_ICON_STATE_NORMAL indicates steady healthy state.
   DESKTOP_TRAY_ICON_STATE_NORMAL = 1;
   // DESKTOP_TRAY_ICON_STATE_ACTIVE indicates useful background activity.
@@ -207,8 +213,8 @@ enum DesktopTrayIconState {
 
 // DesktopTraySeverity describes row urgency.
 enum DesktopTraySeverity {
-  // DESKTOP_TRAY_SEVERITY_UNSPECIFIED leaves severity unset.
-  DESKTOP_TRAY_SEVERITY_UNSPECIFIED = 0;
+  // DESKTOP_TRAY_SEVERITY_UNKNOWN leaves severity unknown.
+  DESKTOP_TRAY_SEVERITY_UNKNOWN = 0;
   // DESKTOP_TRAY_SEVERITY_INFO marks informational status.
   DESKTOP_TRAY_SEVERITY_INFO = 1;
   // DESKTOP_TRAY_SEVERITY_WARNING marks a recoverable warning.

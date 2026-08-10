@@ -20,11 +20,11 @@ export const protobufPackage = 'bldr.desktop.tray'
  */
 export enum DesktopTrayEntryKind {
   /**
-   * DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED leaves row semantics unset.
+   * DESKTOP_TRAY_ENTRY_KIND_UNKNOWN leaves row semantics unknown.
    *
-   * @generated from enum value: DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED = 0;
+   * @generated from enum value: DESKTOP_TRAY_ENTRY_KIND_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  UNKNOWN = 0,
 
   /**
    * DESKTOP_TRAY_ENTRY_KIND_SECTION renders a disabled section heading.
@@ -65,7 +65,7 @@ export enum DesktopTrayEntryKind {
 export const DesktopTrayEntryKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTrayEntryKind',
   [
-    [0, 'DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED'],
+    [0, 'DESKTOP_TRAY_ENTRY_KIND_UNKNOWN'],
     [1, 'DESKTOP_TRAY_ENTRY_KIND_SECTION'],
     [2, 'DESKTOP_TRAY_ENTRY_KIND_SEPARATOR'],
     [3, 'DESKTOP_TRAY_ENTRY_KIND_STATUS'],
@@ -81,11 +81,11 @@ export const DesktopTrayEntryKind_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum DesktopTrayActionKind {
   /**
-   * DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED leaves action semantics unset.
+   * DESKTOP_TRAY_ACTION_KIND_UNKNOWN leaves action semantics unknown.
    *
-   * @generated from enum value: DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED = 0;
+   * @generated from enum value: DESKTOP_TRAY_ACTION_KIND_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  UNKNOWN = 0,
 
   /**
    * DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE opens or focuses an app route.
@@ -133,7 +133,7 @@ export enum DesktopTrayActionKind {
 export const DesktopTrayActionKind_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTrayActionKind',
   [
-    [0, 'DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED'],
+    [0, 'DESKTOP_TRAY_ACTION_KIND_UNKNOWN'],
     [1, 'DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE'],
     [2, 'DESKTOP_TRAY_ACTION_KIND_NEW_WINDOW'],
     [3, 'DESKTOP_TRAY_ACTION_KIND_COPY_TEXT'],
@@ -150,11 +150,11 @@ export const DesktopTrayActionKind_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum DesktopTrayIconState {
   /**
-   * DESKTOP_TRAY_ICON_STATE_UNSPECIFIED leaves icon status unset.
+   * DESKTOP_TRAY_ICON_STATE_UNKNOWN leaves icon status unknown.
    *
-   * @generated from enum value: DESKTOP_TRAY_ICON_STATE_UNSPECIFIED = 0;
+   * @generated from enum value: DESKTOP_TRAY_ICON_STATE_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  UNKNOWN = 0,
 
   /**
    * DESKTOP_TRAY_ICON_STATE_NORMAL indicates steady healthy state.
@@ -195,7 +195,7 @@ export enum DesktopTrayIconState {
 export const DesktopTrayIconState_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTrayIconState',
   [
-    [0, 'DESKTOP_TRAY_ICON_STATE_UNSPECIFIED'],
+    [0, 'DESKTOP_TRAY_ICON_STATE_UNKNOWN'],
     [1, 'DESKTOP_TRAY_ICON_STATE_NORMAL'],
     [2, 'DESKTOP_TRAY_ICON_STATE_ACTIVE'],
     [3, 'DESKTOP_TRAY_ICON_STATE_ATTENTION'],
@@ -211,11 +211,11 @@ export const DesktopTrayIconState_Enum = /* @__PURE__ */ createEnumType(
  */
 export enum DesktopTraySeverity {
   /**
-   * DESKTOP_TRAY_SEVERITY_UNSPECIFIED leaves severity unset.
+   * DESKTOP_TRAY_SEVERITY_UNKNOWN leaves severity unknown.
    *
-   * @generated from enum value: DESKTOP_TRAY_SEVERITY_UNSPECIFIED = 0;
+   * @generated from enum value: DESKTOP_TRAY_SEVERITY_UNKNOWN = 0;
    */
-  UNSPECIFIED = 0,
+  UNKNOWN = 0,
 
   /**
    * DESKTOP_TRAY_SEVERITY_INFO marks informational status.
@@ -242,7 +242,7 @@ export enum DesktopTraySeverity {
 export const DesktopTraySeverity_Enum = /* @__PURE__ */ createEnumType(
   'bldr.desktop.tray.DesktopTraySeverity',
   [
-    [0, 'DESKTOP_TRAY_SEVERITY_UNSPECIFIED'],
+    [0, 'DESKTOP_TRAY_SEVERITY_UNKNOWN'],
     [1, 'DESKTOP_TRAY_SEVERITY_INFO'],
     [2, 'DESKTOP_TRAY_SEVERITY_WARNING'],
     [3, 'DESKTOP_TRAY_SEVERITY_CRITICAL'],

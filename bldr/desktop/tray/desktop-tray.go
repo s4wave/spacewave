@@ -1,8 +1,9 @@
 package desktop_tray
 
 import (
+	"cmp"
 	"context"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -160,23 +161,26 @@ func (r *DesktopTray) InvokeDesktopTrayEntry(
 		return nil, ErrDesktopTrayEntryIdRequired
 	}
 
-	var reg *desktopTrayRegistration
+	var entry *DesktopTrayEntry
+	var attachedActionResourceID uint32
+	var registrationClient resource_server.ResourceClientContext
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, candidate := range r.registrations {
 			if candidate == nil || candidate.entry == nil {
 				continue
 			}
 			if candidate.entry.GetId() == entryID {
-				reg = candidate
+				entry = candidate.entry.CloneVT()
+				attachedActionResourceID = candidate.attachedActionResourceID
+				registrationClient = candidate.client
 				return
 			}
 		}
 	})
-	if reg == nil {
+	if entry == nil {
 		return nil, ErrDesktopTrayEntryNotFound
 	}
 
-	entry := reg.entry.CloneVT()
 	if entry.GetKind() != DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_ACTION || !entry.GetEnabled() {
 		return nil, ErrDesktopTrayEntryNotInvokable
 	}
@@ -184,11 +188,11 @@ func (r *DesktopTray) InvokeDesktopTrayEntry(
 	if action == nil || action.GetKind() != DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_ATTACHED_HANDLER {
 		return nil, ErrDesktopTrayEntryNotInvokable
 	}
-	if reg.attachedActionResourceID == 0 {
+	if attachedActionResourceID == 0 {
 		return nil, ErrDesktopTrayActionHandlerRequired
 	}
 
-	client, err := reg.client.GetAttachedResource(reg.attachedActionResourceID)
+	client, err := registrationClient.GetAttachedResource(attachedActionResourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -287,24 +291,22 @@ func (r *DesktopTray) snapshotLocked() *DesktopTrayState {
 		}
 		regs = append(regs, reg)
 	}
-	sort.Slice(regs, func(i, j int) bool {
-		left := regs[i].entry
-		right := regs[j].entry
-		leftPath := strings.Join(left.GetPath(), "\x00")
-		rightPath := strings.Join(right.GetPath(), "\x00")
-		if leftPath != rightPath {
-			return leftPath < rightPath
+	slices.SortStableFunc(regs, func(leftReg, rightReg *desktopTrayRegistration) int {
+		left := leftReg.entry
+		right := rightReg.entry
+		if order := cmp.Compare(strings.Join(left.GetPath(), "\x00"), strings.Join(right.GetPath(), "\x00")); order != 0 {
+			return order
 		}
-		if left.GetGroup() != right.GetGroup() {
-			return left.GetGroup() < right.GetGroup()
+		if order := cmp.Compare(left.GetGroup(), right.GetGroup()); order != 0 {
+			return order
 		}
-		if left.GetOrder() != right.GetOrder() {
-			return left.GetOrder() < right.GetOrder()
+		if order := cmp.Compare(left.GetOrder(), right.GetOrder()); order != 0 {
+			return order
 		}
-		if left.GetId() != right.GetId() {
-			return left.GetId() < right.GetId()
+		if order := cmp.Compare(left.GetId(), right.GetId()); order != 0 {
+			return order
 		}
-		return regs[i].resourceID < regs[j].resourceID
+		return cmp.Compare(leftReg.resourceID, rightReg.resourceID)
 	})
 
 	entries := make([]*DesktopTrayEntry, 0, len(regs))

@@ -312,8 +312,8 @@ function maxIconState(
 ): DesktopTrayIconState {
   let state = initial
   for (const entry of entries) {
-    if ((entry.iconState ?? DesktopTrayIconState.UNSPECIFIED) > state) {
-      state = entry.iconState ?? DesktopTrayIconState.UNSPECIFIED
+    if ((entry.iconState ?? DesktopTrayIconState.UNKNOWN) > state) {
+      state = entry.iconState ?? DesktopTrayIconState.UNKNOWN
     }
   }
   return state
@@ -327,7 +327,7 @@ function titleStatusText(entries: DesktopTrayEntry[]): string {
 function cloneEntry(entry: DesktopTrayEntry): DesktopTrayEntry {
   return {
     ...entry,
-    kind: entry.kind ?? DesktopTrayEntryKind.UNSPECIFIED,
+    kind: entry.kind ?? DesktopTrayEntryKind.UNKNOWN,
     path: [...(entry.path ?? [])],
     action: entry.action ? { ...entry.action } : undefined,
   }

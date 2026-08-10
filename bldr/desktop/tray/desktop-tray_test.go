@@ -3,6 +3,7 @@ package desktop_tray
 import (
 	"context"
 	"io"
+	"sync"
 	"testing"
 	"time"
 
@@ -335,6 +336,103 @@ func TestDesktopTrayRegistryInvokesAttachedActionHandlers(t *testing.T) {
 	}
 	if actionClient.requests[0].GetAction().GetRoute() != "/spaces" {
 		t.Fatalf("unexpected route: %s", actionClient.requests[0].GetAction().GetRoute())
+	}
+}
+
+func TestDesktopTrayRegistryInvokesCompleteSnapshotDuringConcurrentUpdates(t *testing.T) {
+	ctx := context.Background()
+	client := newTestResourceClientContext(ctx)
+	actionClient := &testActionClient{}
+	client.attached[7] = actionClient
+	reqCtx := resource_server.WithResourceClientContext(ctx, client)
+	tray := NewDesktopTray()
+
+	resp, err := tray.RegisterDesktopTrayEntry(reqCtx, &RegisterDesktopTrayEntryRequest{
+		AttachedActionResourceId: 7,
+		Entry: &DesktopTrayEntry{
+			Id:      "concurrent",
+			Kind:    DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_ACTION,
+			Enabled: true,
+			Action: &DesktopTrayAction{
+				Kind:  DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_ATTACHED_HANDLER,
+				Route: "/a",
+				Value: "/a",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	value, err := client.GetResourceValue(resp.GetResourceId())
+	if err != nil {
+		t.Fatal(err)
+	}
+	entryResource := value.(*DesktopTrayEntryResource)
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 2)
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		for i := range 1000 {
+			variant := "/a"
+			if i%2 != 0 {
+				variant = "/b"
+			}
+			_, err := entryResource.SetDesktopTrayEntry(ctx, &SetDesktopTrayEntryRequest{
+				Entry: &DesktopTrayEntry{
+					Id:      "concurrent",
+					Kind:    DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_ACTION,
+					Enabled: true,
+					Action: &DesktopTrayAction{
+						Kind:  DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_ATTACHED_HANDLER,
+						Route: variant,
+						Value: variant,
+					},
+				},
+			})
+			if err != nil {
+				errCh <- err
+				return
+			}
+			if _, err := entryResource.SetDesktopTrayEntryActive(ctx, &SetDesktopTrayEntryActiveRequest{Active: i%2 == 0}); err != nil {
+				errCh <- err
+				return
+			}
+			if _, err := entryResource.SetDesktopTrayEntryEnabled(ctx, &SetDesktopTrayEntryEnabledRequest{Enabled: i%3 != 0}); err != nil {
+				errCh <- err
+				return
+			}
+		}
+		if _, err := entryResource.SetDesktopTrayEntryEnabled(ctx, &SetDesktopTrayEntryEnabledRequest{Enabled: true}); err != nil {
+			errCh <- err
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for range 1000 {
+			_, err := tray.InvokeDesktopTrayEntry(ctx, &InvokeDesktopTrayEntryRequest{EntryId: "concurrent"})
+			if err != nil && err != ErrDesktopTrayEntryNotInvokable {
+				errCh <- err
+				return
+			}
+		}
+	}()
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		t.Fatal(err)
+	}
+
+	if len(actionClient.requests) == 0 {
+		t.Fatal("expected at least one attached action invocation")
+	}
+	for _, req := range actionClient.requests {
+		action := req.GetAction()
+		if action.GetRoute() != action.GetValue() {
+			t.Fatalf("invoked torn action snapshot: route %q, value %q", action.GetRoute(), action.GetValue())
+		}
 	}
 }
 

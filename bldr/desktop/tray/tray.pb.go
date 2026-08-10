@@ -18,8 +18,8 @@ import (
 type DesktopTrayEntryKind int32
 
 const (
-	// DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED leaves row semantics unset.
-	DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED DesktopTrayEntryKind = 0
+	// DESKTOP_TRAY_ENTRY_KIND_UNKNOWN leaves row semantics unknown.
+	DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_UNKNOWN DesktopTrayEntryKind = 0
 	// DESKTOP_TRAY_ENTRY_KIND_SECTION renders a disabled section heading.
 	DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_SECTION DesktopTrayEntryKind = 1
 	// DESKTOP_TRAY_ENTRY_KIND_SEPARATOR renders a native separator.
@@ -35,7 +35,7 @@ const (
 // Enum value maps for DesktopTrayEntryKind.
 var (
 	DesktopTrayEntryKind_name = map[int32]string{
-		0: "DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED",
+		0: "DESKTOP_TRAY_ENTRY_KIND_UNKNOWN",
 		1: "DESKTOP_TRAY_ENTRY_KIND_SECTION",
 		2: "DESKTOP_TRAY_ENTRY_KIND_SEPARATOR",
 		3: "DESKTOP_TRAY_ENTRY_KIND_STATUS",
@@ -43,12 +43,12 @@ var (
 		5: "DESKTOP_TRAY_ENTRY_KIND_SUBMENU",
 	}
 	DesktopTrayEntryKind_value = map[string]int32{
-		"DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED": 0,
-		"DESKTOP_TRAY_ENTRY_KIND_SECTION":     1,
-		"DESKTOP_TRAY_ENTRY_KIND_SEPARATOR":   2,
-		"DESKTOP_TRAY_ENTRY_KIND_STATUS":      3,
-		"DESKTOP_TRAY_ENTRY_KIND_ACTION":      4,
-		"DESKTOP_TRAY_ENTRY_KIND_SUBMENU":     5,
+		"DESKTOP_TRAY_ENTRY_KIND_UNKNOWN":   0,
+		"DESKTOP_TRAY_ENTRY_KIND_SECTION":   1,
+		"DESKTOP_TRAY_ENTRY_KIND_SEPARATOR": 2,
+		"DESKTOP_TRAY_ENTRY_KIND_STATUS":    3,
+		"DESKTOP_TRAY_ENTRY_KIND_ACTION":    4,
+		"DESKTOP_TRAY_ENTRY_KIND_SUBMENU":   5,
 	}
 )
 
@@ -70,8 +70,8 @@ func (x DesktopTrayEntryKind) String() string {
 type DesktopTrayActionKind int32
 
 const (
-	// DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED leaves action semantics unset.
-	DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED DesktopTrayActionKind = 0
+	// DESKTOP_TRAY_ACTION_KIND_UNKNOWN leaves action semantics unknown.
+	DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_UNKNOWN DesktopTrayActionKind = 0
 	// DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE opens or focuses an app route.
 	DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE DesktopTrayActionKind = 1
 	// DESKTOP_TRAY_ACTION_KIND_NEW_WINDOW opens an app route in a new window.
@@ -89,7 +89,7 @@ const (
 // Enum value maps for DesktopTrayActionKind.
 var (
 	DesktopTrayActionKind_name = map[int32]string{
-		0: "DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED",
+		0: "DESKTOP_TRAY_ACTION_KIND_UNKNOWN",
 		1: "DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE",
 		2: "DESKTOP_TRAY_ACTION_KIND_NEW_WINDOW",
 		3: "DESKTOP_TRAY_ACTION_KIND_COPY_TEXT",
@@ -98,7 +98,7 @@ var (
 		6: "DESKTOP_TRAY_ACTION_KIND_ATTACHED_HANDLER",
 	}
 	DesktopTrayActionKind_value = map[string]int32{
-		"DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED":      0,
+		"DESKTOP_TRAY_ACTION_KIND_UNKNOWN":          0,
 		"DESKTOP_TRAY_ACTION_KIND_OPEN_ROUTE":       1,
 		"DESKTOP_TRAY_ACTION_KIND_NEW_WINDOW":       2,
 		"DESKTOP_TRAY_ACTION_KIND_COPY_TEXT":        3,
@@ -126,8 +126,8 @@ func (x DesktopTrayActionKind) String() string {
 type DesktopTrayIconState int32
 
 const (
-	// DESKTOP_TRAY_ICON_STATE_UNSPECIFIED leaves icon status unset.
-	DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_UNSPECIFIED DesktopTrayIconState = 0
+	// DESKTOP_TRAY_ICON_STATE_UNKNOWN leaves icon status unknown.
+	DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_UNKNOWN DesktopTrayIconState = 0
 	// DESKTOP_TRAY_ICON_STATE_NORMAL indicates steady healthy state.
 	DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_NORMAL DesktopTrayIconState = 1
 	// DESKTOP_TRAY_ICON_STATE_ACTIVE indicates useful background activity.
@@ -143,7 +143,7 @@ const (
 // Enum value maps for DesktopTrayIconState.
 var (
 	DesktopTrayIconState_name = map[int32]string{
-		0: "DESKTOP_TRAY_ICON_STATE_UNSPECIFIED",
+		0: "DESKTOP_TRAY_ICON_STATE_UNKNOWN",
 		1: "DESKTOP_TRAY_ICON_STATE_NORMAL",
 		2: "DESKTOP_TRAY_ICON_STATE_ACTIVE",
 		3: "DESKTOP_TRAY_ICON_STATE_ATTENTION",
@@ -151,7 +151,7 @@ var (
 		5: "DESKTOP_TRAY_ICON_STATE_QUITTING",
 	}
 	DesktopTrayIconState_value = map[string]int32{
-		"DESKTOP_TRAY_ICON_STATE_UNSPECIFIED":  0,
+		"DESKTOP_TRAY_ICON_STATE_UNKNOWN":      0,
 		"DESKTOP_TRAY_ICON_STATE_NORMAL":       1,
 		"DESKTOP_TRAY_ICON_STATE_ACTIVE":       2,
 		"DESKTOP_TRAY_ICON_STATE_ATTENTION":    3,
@@ -178,8 +178,8 @@ func (x DesktopTrayIconState) String() string {
 type DesktopTraySeverity int32
 
 const (
-	// DESKTOP_TRAY_SEVERITY_UNSPECIFIED leaves severity unset.
-	DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_UNSPECIFIED DesktopTraySeverity = 0
+	// DESKTOP_TRAY_SEVERITY_UNKNOWN leaves severity unknown.
+	DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_UNKNOWN DesktopTraySeverity = 0
 	// DESKTOP_TRAY_SEVERITY_INFO marks informational status.
 	DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_INFO DesktopTraySeverity = 1
 	// DESKTOP_TRAY_SEVERITY_WARNING marks a recoverable warning.
@@ -191,16 +191,16 @@ const (
 // Enum value maps for DesktopTraySeverity.
 var (
 	DesktopTraySeverity_name = map[int32]string{
-		0: "DESKTOP_TRAY_SEVERITY_UNSPECIFIED",
+		0: "DESKTOP_TRAY_SEVERITY_UNKNOWN",
 		1: "DESKTOP_TRAY_SEVERITY_INFO",
 		2: "DESKTOP_TRAY_SEVERITY_WARNING",
 		3: "DESKTOP_TRAY_SEVERITY_CRITICAL",
 	}
 	DesktopTraySeverity_value = map[string]int32{
-		"DESKTOP_TRAY_SEVERITY_UNSPECIFIED": 0,
-		"DESKTOP_TRAY_SEVERITY_INFO":        1,
-		"DESKTOP_TRAY_SEVERITY_WARNING":     2,
-		"DESKTOP_TRAY_SEVERITY_CRITICAL":    3,
+		"DESKTOP_TRAY_SEVERITY_UNKNOWN":  0,
+		"DESKTOP_TRAY_SEVERITY_INFO":     1,
+		"DESKTOP_TRAY_SEVERITY_WARNING":  2,
+		"DESKTOP_TRAY_SEVERITY_CRITICAL": 3,
 	}
 )
 
@@ -246,7 +246,7 @@ func (x *DesktopTrayState) GetIconState() DesktopTrayIconState {
 	if x != nil {
 		return x.IconState
 	}
-	return DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_UNSPECIFIED
+	return DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_UNKNOWN
 }
 
 func (x *DesktopTrayState) GetStatusText() string {
@@ -306,7 +306,7 @@ func (x *DesktopTrayEntry) GetKind() DesktopTrayEntryKind {
 	if x != nil {
 		return x.Kind
 	}
-	return DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_UNSPECIFIED
+	return DesktopTrayEntryKind_DESKTOP_TRAY_ENTRY_KIND_UNKNOWN
 }
 
 func (x *DesktopTrayEntry) GetPath() []string {
@@ -362,14 +362,14 @@ func (x *DesktopTrayEntry) GetIconState() DesktopTrayIconState {
 	if x != nil {
 		return x.IconState
 	}
-	return DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_UNSPECIFIED
+	return DesktopTrayIconState_DESKTOP_TRAY_ICON_STATE_UNKNOWN
 }
 
 func (x *DesktopTrayEntry) GetSeverity() DesktopTraySeverity {
 	if x != nil {
 		return x.Severity
 	}
-	return DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_UNSPECIFIED
+	return DesktopTraySeverity_DESKTOP_TRAY_SEVERITY_UNKNOWN
 }
 
 func (x *DesktopTrayEntry) GetActive() bool {
@@ -414,7 +414,7 @@ func (x *DesktopTrayAction) GetKind() DesktopTrayActionKind {
 	if x != nil {
 		return x.Kind
 	}
-	return DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_UNSPECIFIED
+	return DesktopTrayActionKind_DESKTOP_TRAY_ACTION_KIND_UNKNOWN
 }
 
 func (x *DesktopTrayAction) GetRoute() string {
