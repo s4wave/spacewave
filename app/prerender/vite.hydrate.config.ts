@@ -38,6 +38,7 @@ function staticAssetPlugin(): Plugin {
 
 export default defineConfig({
   root: projectRoot,
+  base: '/static/',
 
   build: {
     outDir: resolve(__dirname, 'dist'),
