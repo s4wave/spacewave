@@ -6,6 +6,8 @@
 
 import { hydrateRoot, type Root } from 'react-dom/client'
 
+import '@s4wave/web/style/app.css'
+
 declare global {
   var __swEntry: string | undefined
   var __swGenerationId: string | undefined

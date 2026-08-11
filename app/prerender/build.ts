@@ -8,14 +8,7 @@
 
 import { createElement } from 'react'
 import { prerender } from 'react-dom/static'
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  writeFileSync,
-} from 'fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { dirname, join, resolve } from 'path'
 
 import { RouterProvider } from '@s4wave/web/router/router.js'
@@ -31,7 +24,7 @@ import { buildBootstrapScript } from './bootstrap.js'
 import { buildPageHtml } from './html-template.js'
 import {
   collectRequiredStaticAssetUrls,
-  selectAppCssFile,
+  preparePrerenderStaticAssets,
   selectViteEntryAssets,
   type ViteManifest,
 } from './static-assets.js'
@@ -136,104 +129,6 @@ function validateMetadata(path: string, meta: PageMetadata) {
   }
 }
 
-// VITE_ASSET_PREFIX is the bldr plugin asset URL prefix used in Vite CSS output.
-const VITE_ASSET_PREFIX = '/b/pa/spacewave-app/v/b/fe/'
-// STATIC_ASSET_PREFIX is where we serve these assets from R2.
-const STATIC_ASSET_PREFIX = '/static/assets/'
-
-// extractViteCss finds the processed app stylesheet, rewrites asset URLs to
-// the static serving path, copies its referenced assets, and returns the URL
-// to link from prerendered HTML.
-function extractViteCss(log: (msg: string) => void): {
-  cssUrl: string
-  iconUrl: string
-} {
-  // Walk up from DIST_DIR (spacewave-browser/dist) to the js build root
-  const jsBuildRoot = resolve(DIST_DIR, '../..')
-  const viteAssetsDir = join(jsBuildRoot, 'spacewave-app/sub/vite/assets/b/fe')
-  const viteManifestPath = join(viteAssetsDir, '.vite/manifest.json')
-  if (!existsSync(viteManifestPath)) {
-    console.error(`Vite manifest not found at ${viteManifestPath}`)
-    process.exit(1)
-  }
-
-  const viteManifest = JSON.parse(
-    readFileSync(viteManifestPath, 'utf-8'),
-  ) as ViteManifest
-  const cssFile = selectAppCssFile(viteManifest)
-  if (!cssFile) {
-    const entryKeys = Object.keys(viteManifest).filter(
-      (key) => viteManifest[key].isEntry,
-    )
-    const cssKeys = Object.keys(viteManifest).filter(
-      (key) => (viteManifest[key].css ?? []).length > 0,
-    )
-    console.error(
-      `No app CSS found in Vite manifest ${viteManifestPath}.\n` +
-        `  entry keys: ${entryKeys.join(', ') || '(none)'}\n` +
-        `  keys with css: ${cssKeys.join(', ') || '(none)'}`,
-    )
-    process.exit(1)
-  }
-
-  const viteCssPath = join(viteAssetsDir, cssFile)
-  if (!existsSync(viteCssPath)) {
-    console.error(`Vite CSS not found at ${viteCssPath}`)
-    process.exit(1)
-  }
-
-  // Read CSS and rewrite asset URLs from bldr plugin paths to static paths.
-  const cssContent = readFileSync(viteCssPath, 'utf-8').replaceAll(
-    VITE_ASSET_PREFIX,
-    STATIC_ASSET_PREFIX,
-  )
-  const outputCssPath = join(OUTPUT_DIR, cssFile)
-  mkdirSync(dirname(outputCssPath), { recursive: true })
-  writeFileSync(outputCssPath, cssContent)
-  log(`Wrote CSS to ${outputCssPath} (${cssContent.length} bytes)`)
-
-  // Copy referenced assets (fonts, images) to the output dir.
-  const assetsOutDir = join(OUTPUT_DIR, 'assets')
-  mkdirSync(assetsOutDir, { recursive: true })
-  let assetCount = 0
-  let iconFile: string | undefined
-  for (const file of readdirSync(viteAssetsDir)) {
-    if (file.endsWith('.woff2') || file.endsWith('.png')) {
-      copyFileSync(join(viteAssetsDir, file), join(assetsOutDir, file))
-      assetCount++
-      if (file.startsWith('spacewave-icon-')) {
-        iconFile = file
-      }
-    }
-  }
-  // Also copy source images referenced by components (unhashed names).
-  // The bun preload plugin resolves these to /static/assets/<basename>.
-  const srcImagesDir = join(projectRoot, 'web/images')
-  for (const file of readdirSync(srcImagesDir)) {
-    if (
-      file.endsWith('.png') ||
-      file.endsWith('.svg') ||
-      file.endsWith('.ico')
-    ) {
-      if (!existsSync(join(assetsOutDir, file))) {
-        copyFileSync(join(srcImagesDir, file), join(assetsOutDir, file))
-        assetCount++
-      }
-    }
-  }
-  log(`Copied ${assetCount} assets to ${assetsOutDir}`)
-
-  if (!iconFile) {
-    console.error('spacewave-icon PNG not found in Vite assets')
-    process.exit(1)
-  }
-
-  return {
-    cssUrl: '/static/' + cssFile,
-    iconUrl: STATIC_ASSET_PREFIX + iconFile,
-  }
-}
-
 // buildPrerenderContext reads bldr manifest, extracts CSS, importmap,
 // bootstrap script, and hydration script. Returns a PrerenderContext
 // shared by both static page and blog pipelines.
@@ -279,12 +174,8 @@ export function buildPrerenderContext(
     process.exit(1)
   }
 
-  // Extract processed CSS from the Vite build (spacewave-app plugin).
-  const { cssUrl: mainCssUrl, iconUrl } = extractViteCss(log)
-
-  // Resolve the hydration entry and its component styles from the manifest
-  // emitted by vite.hydrate.config.ts. The hydration bundle directly imports
-  // every prerendered route component, so this CSS is part of the HTML contract.
+  // Resolve the hydration entry and all static page styles from the manifest
+  // emitted by vite.hydrate.config.ts.
   const hydrateManifestPath = join(OUTPUT_DIR, '.vite/manifest.json')
   if (!existsSync(hydrateManifestPath)) {
     console.error(
@@ -306,16 +197,14 @@ export function buildPrerenderContext(
     )
     process.exit(1)
   }
-  for (const file of [hydrateAssets.file, ...hydrateAssets.css]) {
-    if (!existsSync(join(OUTPUT_DIR, file))) {
-      console.error(`Hydration asset not found at ${join(OUTPUT_DIR, file)}`)
-      process.exit(1)
-    }
-  }
+  const staticAssets = preparePrerenderStaticAssets(
+    OUTPUT_DIR,
+    join(projectRoot, 'web/images'),
+    hydrateAssets,
+  )
   const hydrateScriptTag = `<script type="module" src="/static/${hydrateAssets.file}"></script>`
-  const hydrateCssUrls = hydrateAssets.css.map((file) => '/static/' + file)
   log(`Hydration script: ${hydrateAssets.file}`)
-  log(`Hydration styles: ${hydrateAssets.css.join(', ') || '(none)'}`)
+  log(`Hydration styles: ${hydrateAssets.css.join(', ')}`)
 
   const browserRelease = buildBrowserReleaseDescriptor(
     {
@@ -342,9 +231,9 @@ export function buildPrerenderContext(
   return {
     bldrManifest: manifest,
     browserGenerationId: browserRelease.generationId,
-    mainCssUrl,
-    hydrateCssUrls,
-    iconUrl,
+    mainCssUrl: staticAssets.mainCssUrl,
+    hydrateCssUrls: staticAssets.additionalCssUrls,
+    iconUrl: staticAssets.iconUrl,
     importMap,
     bootstrapScript,
     hydrateScriptTag,
