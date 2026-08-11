@@ -6,17 +6,22 @@ import (
 	"context"
 	"strings"
 
+	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 )
 
 // PublishProject publishes a bundle to a repository.
 func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
-	// init repo root and storage directories
-	le := a.Logger
+	targets, err := parsePublishTargets(a.PublishCsv)
+	if err != nil {
+		return err
+	}
 
-	a.Watch = false                                       // explicitly disable watching during dist
-	a.BuildType = string(bldr_manifest.BuildType_RELEASE) // explicitly set release build type
-	a.MinifyEntrypoint = true                             // explicitly minify entrypoint during dist
+	a.Watch = false
+	a.BuildType = string(bldr_manifest.BuildType_RELEASE)
+	a.MinifyEntrypoint = true
+
+	le := a.Logger
 
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
@@ -24,17 +29,14 @@ func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 	}
 	le.Infof("starting with state dir: %s", stateDir)
 
-	// initialize the storage + bus
 	b, err := BuildDevtoolBus(ctx, le, repoRoot, stateDir, a.Watch)
 	if err != nil {
 		return err
 	}
 	defer b.Release()
 
-	// write the banner
 	writeBanner()
 
-	// execute the project controller
 	projWatcher, projWatcherRef, err := b.StartProjectController(
 		ctx,
 		b.GetBus(),
@@ -48,17 +50,29 @@ func (a *DevtoolArgs) PublishProject(ctx context.Context) error {
 	}
 	defer projWatcherRef.Release()
 
-	// get the project controller from the watcher
 	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	// publish
 	return projCtrl.PublishTargets(
 		ctx,
 		a.Remote,
-		strings.Split(a.PublishCsv, ","),
+		targets,
 		bldr_manifest.BuildType(a.BuildType),
 	)
+}
+
+// parsePublishTargets returns a non-empty normalized target selection.
+func parsePublishTargets(value string) ([]string, error) {
+	parts := strings.Split(value, ",")
+	targets := make([]string, 0, len(parts))
+	for _, part := range parts {
+		target := strings.TrimSpace(part)
+		if target == "" {
+			return nil, errors.New("publish target must not be empty")
+		}
+		targets = append(targets, target)
+	}
+	return targets, nil
 }

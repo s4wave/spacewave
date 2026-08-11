@@ -117,6 +117,107 @@ func TestWrapTextCapsLinesAndKeepsSubstance(t *testing.T) {
 	}
 }
 
+func TestTerminalCellMeasurementAndTruncation(t *testing.T) {
+	tests := []struct {
+		name  string
+		value string
+		width int
+		want  string
+	}{
+		{name: "narrow exact", value: "abcd", width: 4, want: "abcd"},
+		{name: "narrow one cell short", value: "abcd", width: 3, want: "ab…"},
+		{name: "wide exact", value: "界界", width: 4, want: "界界"},
+		{name: "wide one cell short", value: "界界", width: 3, want: "界…"},
+		{name: "combining exact", value: "e\u0301x", width: 2, want: "e\u0301x"},
+		{name: "combining one cell short", value: "e\u0301x", width: 1, want: "…"},
+		{name: "emoji variation selector exact", value: "❤️x", width: 3, want: "❤️x"},
+		{name: "emoji variation selector one cell short", value: "❤️x", width: 2, want: "…"},
+		{name: "emoji sequence exact", value: "👩‍💻x", width: 3, want: "👩‍💻x"},
+		{name: "emoji sequence one cell short", value: "👩‍💻x", width: 2, want: "…"},
+		{name: "ANSI styled exact", value: "\x1b[31m界界\x1b[0m", width: 4, want: "\x1b[31m界界\x1b[0m"},
+		{name: "ANSI styled one cell short", value: "\x1b[31m界界\x1b[0m", width: 3, want: "\x1b[31m界…\x1b[0m"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			got := truncateDisplay(test.value, test.width)
+			if got != test.want {
+				t.Fatalf("truncateDisplay(%q, %d) = %q, want %q", test.value, test.width, got, test.want)
+			}
+			if gotWidth := visibleWidth(got); gotWidth > test.width {
+				t.Fatalf("visible width = %d, want <= %d", gotWidth, test.width)
+			}
+		})
+	}
+
+	for _, test := range []struct {
+		value string
+		want  int
+	}{
+		{value: "界", want: 2},
+		{value: "e\u0301", want: 1},
+		{value: "👩‍💻", want: 2},
+		{value: "\x1b[32m界\x1b[0m", want: 2},
+	} {
+		if got := visibleWidth(test.value); got != test.want {
+			t.Errorf("visibleWidth(%q) = %d, want %d", test.value, got, test.want)
+		}
+	}
+}
+
+func TestRenderDevtoolTUIDashboardRespectsTerminalCellWidth(t *testing.T) {
+	const width = 40
+	snapshot := devtool_status.NewBldrDevtoolStatus(
+		devtool_status.BldrDevtoolCommandStatus{
+			Name:    "界界界",
+			State:   devtool_status.BldrDevtoolCommandStateError,
+			Summary: strings.Repeat("界", width),
+			Error:   strings.Repeat("e\u0301", width),
+		},
+		nil,
+		[]devtool_status.BldrDevtoolManifestBuildRow{{
+			ManifestID: strings.Repeat("👩‍💻", width),
+			PlatformID: "web/js/wasm",
+			BuildType:  "dev",
+			State:      devtool_status.BldrDevtoolManifestStateError,
+		}},
+		nil,
+		nil,
+		nil,
+	)
+	dashboard := renderDevtoolTUIDashboard(snapshot, "https://界界界.example", width, true)
+	for line := range strings.SplitSeq(strings.TrimSuffix(dashboard, "\n"), "\n") {
+		if got := visibleWidth(line); got > width {
+			t.Fatalf("line exceeds width %d: got %d cells in %q", width, got, line)
+		}
+	}
+}
+
+func TestRenderDevtoolTUIDashboardTargetsPreserveStableUrgencyOrder(t *testing.T) {
+	snapshot := devtool_status.NewBldrDevtoolStatus(
+		devtool_status.BldrDevtoolCommandStatus{},
+		nil,
+		[]devtool_status.BldrDevtoolManifestBuildRow{
+			{ManifestID: "ready-first", State: devtool_status.BldrDevtoolManifestStateReady},
+			{ManifestID: "error", State: devtool_status.BldrDevtoolManifestStateError},
+			{ManifestID: "ready-second", State: devtool_status.BldrDevtoolManifestStateReady},
+			{ManifestID: "active", State: devtool_status.BldrDevtoolManifestStateRunning},
+		},
+		nil,
+		nil,
+		nil,
+	)
+	dashboard := renderDevtoolTUIDashboard(snapshot, "", 100, false)
+
+	previous := -1
+	for _, manifestID := range []string{"error", "active", "ready-first", "ready-second"} {
+		current := strings.Index(dashboard, manifestID)
+		if current < 0 || current <= previous {
+			t.Fatalf("target %q is out of stable urgency order in:\n%s", manifestID, dashboard)
+		}
+		previous = current
+	}
+}
+
 func representativeDevtoolTUIStatus() *devtool_status.BldrDevtoolStatus {
 	return devtool_status.NewBldrDevtoolStatus(
 		devtool_status.BldrDevtoolCommandStatus{

@@ -3,8 +3,7 @@
 package devtool
 
 import (
-	"strings"
-	"unicode/utf8"
+	"github.com/charmbracelet/x/ansi"
 
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 )
@@ -202,23 +201,7 @@ func attentionStatusKind(severity devtool_status.BldrDevtoolAttentionSeverity) t
 	}
 }
 
-// visibleWidth returns the number of terminal cells a string occupies,
-// ignoring ANSI escape sequences. Used by tests to assert width bounds.
+// visibleWidth returns the number of terminal cells occupied by value.
 func visibleWidth(value string) int {
-	count := 0
-	for i := 0; i < len(value); {
-		if value[i] == 0x1b {
-			if end := strings.IndexByte(value[i:], 'm'); end >= 0 {
-				i += end + 1
-				continue
-			}
-		}
-		_, size := utf8.DecodeRuneInString(value[i:])
-		if size == 0 {
-			break
-		}
-		i += size
-		count++
-	}
-	return count
+	return ansi.StringWidth(value)
 }

@@ -32,8 +32,16 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 	conf := c.GetConfig()
 	projConfig := conf.GetProjectConfig()
 	publishTargets := projConfig.GetPublish()
+	for _, target := range targets {
+		target = strings.TrimSpace(target)
+		if target == "" {
+			return errors.New("publish target must not be empty")
+		}
+		if _, ok := publishTargets[target]; !ok {
+			return errors.Errorf("unknown publish target: %s", target)
+		}
+	}
 
-	// add a reference to the source remote
 	remoteWorld, remoteRef, err := c.WaitRemote(ctx, remote)
 	if err != nil {
 		return err
@@ -43,9 +51,6 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 	remoteObjKey := remoteRef.GetRemoteConfig().GetObjectKey()
 	for _, target := range targets {
 		target = strings.TrimSpace(target)
-		if target == "" {
-			continue
-		}
 
 		le := c.le.WithFields(logrus.Fields{
 			"target":     target,

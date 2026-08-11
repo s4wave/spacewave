@@ -51,17 +51,111 @@ import("chunks/not-js.css");
 	}
 
 	entries := recorder.entries
-	if len(entries) != 8 {
-		t.Fatalf("got %d entries, want 8", len(entries))
+	if len(entries) != 7 {
+		t.Fatalf("got %d entries, want 7", len(entries))
 	}
 	assertProfileAccessEntry(t, entries[0], 0, "entrypoint.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_ENTRYPOINT, "startup", 1)
-	assertProfileAccessEntry(t, entries[1], 1, "chunks/dot.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "./chunks/dot.mjs", 1)
-	assertProfileAccessEntry(t, entries[2], 2, "chunks/zeta.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/zeta.mjs", 3)
-	assertProfileAccessEntry(t, entries[3], 3, "chunks/alpha.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/alpha.mjs", 2)
-	assertProfileAccessEntry(t, entries[4], 4, "entrypoint/abc123/runtime-goscript.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_ENTRYPOINT, "worker", 1)
-	assertProfileAccessEntry(t, entries[5], 5, "entrypoint/abc123/chunks/main.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "./chunks/main.mjs", 2)
-	assertProfileAccessEntry(t, entries[6], 6, "entrypoint/abc123/chunks/worker-extra.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/worker-extra.mjs", 2)
-	assertProfileAccessEntry(t, entries[7], 7, "chunks/beta.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/beta.mjs", 1)
+	assertProfileAccessEntry(t, entries[1], 1, "chunks/zeta.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/zeta.mjs", 3)
+	assertProfileAccessEntry(t, entries[2], 2, "chunks/alpha.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/alpha.mjs", 2)
+	assertProfileAccessEntry(t, entries[3], 3, "entrypoint/abc123/runtime-goscript.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_ENTRYPOINT, "worker", 1)
+	assertProfileAccessEntry(t, entries[4], 4, "entrypoint/abc123/chunks/main.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "./chunks/main.mjs", 2)
+	assertProfileAccessEntry(t, entries[5], 5, "entrypoint/abc123/chunks/worker-extra.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/worker-extra.mjs", 2)
+	assertProfileAccessEntry(t, entries[6], 6, "chunks/beta.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/beta.mjs", 1)
+}
+
+func TestRecordDynamicImportsNormalizesExistingPaths(t *testing.T) {
+	ctx := context.Background()
+	tests := []struct {
+		name, filePath, specifier, targetPath, wantPath string
+	}{
+		{
+			name:       "parent query",
+			filePath:   "entrypoint/a/runtime.mjs",
+			specifier:  "../chunks/one.mjs?worker",
+			targetPath: "entrypoint/chunks/one.mjs",
+			wantPath:   "entrypoint/chunks/one.mjs",
+		},
+		{
+			name:       "multiple parents fragment",
+			filePath:   "entrypoint/a/runtime.mjs",
+			specifier:  "../../chunks/two.mjs#main",
+			targetPath: "chunks/two.mjs",
+			wantPath:   "chunks/two.mjs",
+		},
+		{
+			name:       "local",
+			filePath:   "entrypoint/a/runtime.mjs",
+			specifier:  "./chunks/local.mjs",
+			targetPath: "entrypoint/a/chunks/local.mjs",
+			wantPath:   "entrypoint/a/chunks/local.mjs",
+		},
+		{
+			name:       "bare",
+			filePath:   "entrypoint/a/runtime.mjs",
+			specifier:  "chunks/bare.mjs",
+			targetPath: "entrypoint/a/chunks/bare.mjs",
+			wantPath:   "entrypoint/a/chunks/bare.mjs",
+		},
+		{
+			name:       "root",
+			filePath:   "runtime.mjs",
+			specifier:  "./chunks/root.mjs",
+			targetPath: "chunks/root.mjs",
+			wantPath:   "chunks/root.mjs",
+		},
+		{
+			name:       "nonchunk",
+			filePath:   "entrypoint/a/runtime.mjs",
+			specifier:  "../assets/chunks/not-supported.mjs",
+			targetPath: "entrypoint/assets/chunks/not-supported.mjs",
+		},
+		{
+			name:      "parent escape",
+			filePath:  "entrypoint/a/runtime.mjs",
+			specifier: "../../../chunks/escape.mjs",
+		},
+		{
+			name:       "absolute escape",
+			filePath:   "entrypoint/a/runtime.mjs",
+			specifier:  "/chunks/absolute.mjs",
+			targetPath: "chunks/absolute.mjs",
+		},
+		{
+			name:      "missing target",
+			filePath:  "entrypoint/a/runtime.mjs",
+			specifier: "./chunks/missing.mjs",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			files := map[string][]byte{
+				test.filePath: []byte(`import("` + test.specifier + `")`),
+			}
+			if test.targetPath != "" {
+				files[test.targetPath] = []byte("module")
+			}
+			distFS := newProfileAccessOrderTestFS(t, files)
+			defer distFS.Release()
+
+			recorder := newStartupAccessRecorder()
+			if err := recordDynamicImportsFromFile(ctx, recorder, distFS, test.filePath); err != nil {
+				t.Fatal(err)
+			}
+			if test.wantPath == "" {
+				if len(recorder.entries) != 0 {
+					t.Fatalf("entries = %v, want none", recorder.entries)
+				}
+				return
+			}
+			if len(recorder.entries) != 1 {
+				t.Fatalf("entries = %d, want 1: %v", len(recorder.entries), recorder.entries)
+			}
+			entry := recorder.entries[0]
+			if entry.GetPath() != test.wantPath || entry.GetReasonDetail() != test.specifier {
+				t.Fatalf("entry = (%q, %q), want (%q, %q)", entry.GetPath(), entry.GetReasonDetail(), test.wantPath, test.specifier)
+			}
+		})
+	}
 }
 
 func TestResolveStartupAccessRefsPopulatesResolvedRefsForRecordedDistAndAssetsEntries(t *testing.T) {

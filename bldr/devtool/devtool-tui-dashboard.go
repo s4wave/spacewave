@@ -3,10 +3,11 @@
 package devtool
 
 import (
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/x/ansi"
 	devtool_status "github.com/s4wave/spacewave/bldr/devtool/status"
 )
 
@@ -92,7 +93,7 @@ func renderDevtoolTUIDashboard(
 	return out.String()
 }
 
-// headerSection renders the title line with the command name and live state.
+// headerSection returns the title line with the command name and live state.
 func headerSection(th tuiTheme, snapshot *devtool_status.BldrDevtoolStatus, width int) []string {
 	command := snapshot.GetCommand()
 	kind := commandStatusKind(command.State)
@@ -119,7 +120,7 @@ func headerSection(th tuiTheme, snapshot *devtool_status.BldrDevtoolStatus, widt
 	return lines
 }
 
-// servingSection renders the address the devtool serves, when it serves one.
+// servingSection returns the address the devtool serves, when it serves one.
 func servingSection(
 	th tuiTheme,
 	snapshot *devtool_status.BldrDevtoolStatus,
@@ -251,14 +252,14 @@ type tuiTarget struct {
 	kind     tuiStatusKind
 }
 
-// targetSection renders the unified per-target build table, active work first.
+// targetSection returns the unified per-target build table, active work first.
 func targetSection(th tuiTheme, snapshot *devtool_status.BldrDevtoolStatus, width int) []string {
 	targets := collectTargets(snapshot)
 	if len(targets) == 0 {
 		return nil
 	}
-	sort.SliceStable(targets, func(i, j int) bool {
-		return targets[i].kind.rank() < targets[j].kind.rank()
+	slices.SortStableFunc(targets, func(a, b tuiTarget) int {
+		return a.kind.rank() - b.kind.rank()
 	})
 
 	lines := []string{sectionTitle(th, "TARGETS · "+strconv.Itoa(len(targets)), width)}
@@ -395,7 +396,7 @@ func runtimeSection(th tuiTheme, snapshot *devtool_status.BldrDevtoolStatus, wid
 	return lines
 }
 
-// footerSection renders the keyboard and log hints.
+// footerSection returns the keyboard and log hints.
 func footerSection(th tuiTheme, width int) []string {
 	return []string{th.paint(ansiDim, fit("ctrl-c quit · o open browser · logs .bldr/logs/", width))}
 }
@@ -432,7 +433,7 @@ func countSummary(counts map[tuiStatusKind]int) string {
 func targetNameWidth(targets []tuiTarget) int {
 	width := 8
 	for _, target := range targets {
-		if n := len(target.manifest); n > width {
+		if n := visibleWidth(target.manifest); n > width {
 			width = n
 		}
 	}
@@ -504,14 +505,7 @@ func truncateDisplay(value string, width int) string {
 	if width <= 0 {
 		return ""
 	}
-	if visibleWidth(value) <= width {
-		return value
-	}
-	runes := []rune(value)
-	if width == 1 {
-		return string(runes[:1])
-	}
-	return string(runes[:width-1]) + "…"
+	return ansi.Truncate(value, width, "…")
 }
 
 func padRight(value string, width int) string {

@@ -19,7 +19,6 @@ import (
 
 // ExecuteNativeProject starts the project as a native app.
 func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
-	// init repo root and storage directories
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
@@ -27,8 +26,8 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	}
 	le.Infof("starting with state dir: %s", stateDir)
 
-	// Set web renderer env var if specified (non-empty).
-	// This is read by the web plugin compiler to decide which runtime to bundle.
+	// WebRenderer selects the runtime that the web plugin compiler reads from
+	// its process environment.
 	if a.WebRenderer != "" {
 		renderer, err := web_runtime.ParseWebRenderer(a.WebRenderer)
 		if err != nil {
@@ -41,7 +40,6 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 		}
 	}
 
-	// initialize the storage + bus
 	b, err := BuildDevtoolBus(ctx, le, repoRoot, stateDir, a.Watch)
 	if err != nil {
 		return err
@@ -55,16 +53,13 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 		stopTUI()
 	}()
 
-	// sync dist sources
 	err = b.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath)
 	if err != nil {
 		return err
 	}
 
-	// write the banner
 	a.writeBannerTo(os.Stderr)
 
-	// start the plugin storage volume
 	pluginVolumeID := bldr_plugin.PluginVolumeID
 	_, pluginStorageCtrlRef, err := b.StartStorageVolume(ctx, "plugins", &volume_controller.Config{
 		VolumeIdAlias: []string{bldr_plugin.PluginVolumeID},
@@ -74,8 +69,6 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	}
 	defer pluginStorageCtrlRef.Release()
 
-	// execute the project controller
-	// the web plugin will start the appropriate runtime based on BLDR_WEB_RENDERER
 	projWatcher, projCtrlRef, err := b.StartProjectControllerWithStartup(
 		ctx,
 		b.GetBus(),
@@ -114,7 +107,6 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 		}
 	}
 
-	// build the plugin scheduler
 	sched, relSched, err := plugin_host_default.StartNativeDesktopPluginScheduler(
 		ctx,
 		b.GetBus(),
@@ -133,7 +125,6 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	devtool_status.AttachPluginStatus(ctx, b.GetStatusProducer(), sched)
 	defer relSched()
 
-	// build the plugin host controller
 	_, relPluginHost, err := plugin_host_default.StartPluginHost(
 		ctx,
 		b.GetBus(),

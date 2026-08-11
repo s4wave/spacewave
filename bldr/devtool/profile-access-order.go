@@ -25,7 +25,8 @@ import (
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 )
 
-var chunkImportPattern = regexp.MustCompile(`(?:\./)?chunks/[^"'` + "`" + `)]+\.mjs`)
+// chunkImportPattern finds chunk-module specifiers for dist-root normalization.
+var chunkImportPattern = regexp.MustCompile(`["'` + "`" + `]((?:(?:\.\.?/)*|/)chunks/[^"'` + "`" + `)]+?\.mjs(?:[?#][^"'` + "`" + `)]*)?)["'` + "`" + `]`)
 
 // BuildProfileAccessOrderCommand builds the profile-access-order command.
 func (a *DevtoolArgs) BuildProfileAccessOrderCommand() *cli.Command {
@@ -317,6 +318,9 @@ func recordDynamicImports(ctx context.Context, r *startupAccessRecorder, distFS 
 func recordDynamicImportsFromFile(ctx context.Context, r *startupAccessRecorder, distFS *unixfs.FSHandle, filePath string) error {
 	fileHandle, _, err := distFS.LookupPath(ctx, filePath)
 	if err != nil {
+		if fileHandle != nil {
+			fileHandle.Release()
+		}
 		if stderrors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
@@ -329,8 +333,45 @@ func recordDynamicImportsFromFile(ctx context.Context, r *startupAccessRecorder,
 		return errors.Wrap(err, "read startup module")
 	}
 	baseDir := path.Dir(filePath)
-	for _, match := range chunkImportPattern.FindAllString(string(dat), -1) {
-		r.add(packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, path.Join(baseDir, match), packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, match)
+	for _, match := range chunkImportPattern.FindAllStringSubmatch(string(dat), -1) {
+		specifier := match[1]
+		modulePath := specifier
+		if suffix := strings.IndexAny(modulePath, "?#"); suffix >= 0 {
+			modulePath = modulePath[:suffix]
+		}
+		if path.IsAbs(modulePath) {
+			continue
+		}
+		modulePath = path.Join(baseDir, modulePath)
+		if modulePath == ".." || strings.HasPrefix(modulePath, "../") {
+			continue
+		}
+
+		moduleHandle, _, err := distFS.LookupPath(ctx, modulePath)
+		if err != nil {
+			if moduleHandle != nil {
+				moduleHandle.Release()
+			}
+			if stderrors.Is(err, fs.ErrNotExist) {
+				continue
+			}
+			return errors.Wrap(err, "lookup dynamic import")
+		}
+		nodeType, err := moduleHandle.GetNodeType(ctx)
+		moduleHandle.Release()
+		if err != nil {
+			return errors.Wrap(err, "get dynamic import node type")
+		}
+		if !nodeType.GetIsFile() {
+			continue
+		}
+
+		r.add(
+			packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST,
+			modulePath,
+			packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT,
+			specifier,
+		)
 	}
 	return nil
 }

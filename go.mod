@@ -73,6 +73,7 @@ require (
 
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
+	github.com/charmbracelet/x/ansi v0.8.0
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/libp2p/go-yamux/v5 v5.1.0
 	github.com/pion/logging v0.2.4
@@ -88,6 +89,9 @@ require (
 
 require (
 	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 )
 
