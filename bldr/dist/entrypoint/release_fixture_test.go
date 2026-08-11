@@ -72,6 +72,9 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 			t.Fatalf("launcher host config set missing %q", id)
 		}
 	}
+	if launcherConf.GetConfigSet()["release-world-fetch"] != nil {
+		t.Fatal("launcher plugin config set mounts a second release-world-fetch resolver")
+	}
 	var pluginReleaseWorldConf cdn_world_controller.Config
 	pluginReleaseWorld := launcherConf.GetConfigSet()["release-world"]
 	if pluginReleaseWorld == nil {

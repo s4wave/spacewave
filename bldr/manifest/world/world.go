@@ -142,7 +142,30 @@ func ResetManifestStores(ctx context.Context, ws world.WorldState, objKeys ...st
 	return nil
 }
 
-// CollectManifestsForManifestIDResettingUnsupportedHash collects manifests and clears stale stores.
+// CollectManifestsResettingUnsupportedHash collects manifests and clears stale stores.
+//
+// The returned map is suitable for selecting more than one manifest ID from one
+// graph traversal. A successful reset returns no manifests or manifest errors.
+func CollectManifestsResettingUnsupportedHash(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	filterPlatformIDs []string,
+	objKeys ...string,
+) (map[string][]*CollectedManifest, []error, error) {
+	manifests, manifestErrs, err := CollectManifests(ctx, ws, filterPlatformIDs, objKeys...)
+	if !hasUnsupportedHashError(err, manifestErrs) {
+		return manifests, manifestErrs, err
+	}
+	logUnsupportedHashManifestStoreReset(le, objKeys, err, manifestErrs)
+	if resetErr := ResetManifestStores(ctx, ws, objKeys...); resetErr != nil {
+		return nil, manifestErrs, resetErr
+	}
+	return nil, nil, nil
+}
+
+// CollectManifestsForManifestIDResettingUnsupportedHash collects manifests for
+// one ID and clears stale stores.
 func CollectManifestsForManifestIDResettingUnsupportedHash(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -151,15 +174,17 @@ func CollectManifestsForManifestIDResettingUnsupportedHash(
 	filterPlatformIDs []string,
 	objKeys ...string,
 ) ([]*CollectedManifest, []error, error) {
-	out, manifestErrs, err := CollectManifestsForManifestID(ctx, ws, manifestID, filterPlatformIDs, objKeys...)
-	if !hasUnsupportedHashError(err, manifestErrs) {
-		return out, manifestErrs, err
+	manifests, manifestErrs, err := CollectManifestsResettingUnsupportedHash(
+		ctx,
+		le,
+		ws,
+		filterPlatformIDs,
+		objKeys...,
+	)
+	if err != nil {
+		return nil, manifestErrs, err
 	}
-	logUnsupportedHashManifestStoreReset(le, objKeys, err, manifestErrs)
-	if resetErr := ResetManifestStores(ctx, ws, objKeys...); resetErr != nil {
-		return nil, manifestErrs, resetErr
-	}
-	return nil, nil, nil
+	return manifests[manifestID], manifestErrs, nil
 }
 
 func hasUnsupportedHashError(err error, manifestErrs []error) bool {

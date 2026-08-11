@@ -165,8 +165,9 @@ def spacewave_launcher_controller_config(
 def release_world_config_set(
         space_id="01kqjmfxd44r7ggrq78efad3d2",
         cdn_base_url="https://cdn.spacewave.app",
-        cache_block_store_id="dist"):
-    return {
+        cache_block_store_id="dist",
+        include_fetch=True):
+    configs = {
         "release-world": config_entry("spacewave/cdn/world", 1, {
             "engineId": "spacewave-release-world",
             "spaceId": space_id,
@@ -176,11 +177,13 @@ def release_world_config_set(
         "release-world-ops": config_entry("space/world/ops", 1, {
             "engineId": "spacewave-release-world",
         }),
-        "release-world-fetch": config_entry("bldr/manifest/fetch/world", 1, {
+    }
+    if include_fetch:
+        configs["release-world-fetch"] = config_entry("bldr/manifest/fetch/world", 1, {
             "engineId": "spacewave-release-world",
             "objectKeys": ["spacewave/release/manifests"],
-        }),
-    }
+        })
+    return configs
 
 def release_world_cdn_config_set(
         space_id="01kqjmfxd44r7ggrq78efad3d2",
@@ -224,7 +227,10 @@ def spacewave_launcher_config(
         }),
     }
     if include_release_world:
-        config_set.update(release_world_config_set(cache_block_store_id="plugin-host"))
+        config_set.update(release_world_config_set(
+            cache_block_store_id="plugin-host",
+            include_fetch=False,
+        ))
         config_set.update(release_world_cdn_config_set(
             cache_block_store_id="plugin-host",
         ))
