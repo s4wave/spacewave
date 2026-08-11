@@ -1693,7 +1693,7 @@
     },
     {
       "name": "golang.org/x/exp",
-      "version": "v0.0.0-20260727155853-b88d891fe743",
+      "version": "v0.0.0-20260810151157-a8b543ca52da",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/exp",
@@ -1701,7 +1701,7 @@
     },
     {
       "name": "golang.org/x/mod",
-      "version": "v0.38.0",
+      "version": "v0.39.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/mod",
