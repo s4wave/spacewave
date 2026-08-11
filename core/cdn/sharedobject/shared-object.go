@@ -29,7 +29,7 @@ type CdnSharedObject struct {
 	spaceID string
 	bus     bus.Bus
 	peerID  peer.ID
-	bs      *cdn_bstore.CdnBlockStore
+	bs      cdn_bstore.RootBlockStore
 
 	meta   *sobject.SharedObjectMeta
 	snap   *cdnStateSnapshot
@@ -46,8 +46,10 @@ type CdnSharedObjectOptions struct {
 	// PeerID is the local peer id. An empty value is allowed for anonymous
 	// mounts on local-only bootstraps where no session identity exists yet.
 	PeerID peer.ID
-	// BlockStore is the CDN-backed block store produced by NewCdnBlockStore.
-	BlockStore *cdn_bstore.CdnBlockStore
+	// BlockStore reads the CDN Space and tracks its root pointer. It is
+	// either the transport-owning CdnBlockStore or a SuppliedBlockStore reading
+	// through a process that already owns that transport.
+	BlockStore cdn_bstore.RootBlockStore
 }
 
 // NewCdnSharedObject constructs a new CdnSharedObject. The caller is expected

@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"sort"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/go-kvfile"
@@ -55,6 +56,10 @@ const (
 // exposes higher-level GetBlock operations keyed by kvfile index entries.
 type PackReader struct {
 	// Immutable after construction.
+	ctx        context.Context
+	cancel     context.CancelFunc
+	closeDone  chan struct{}
+	workWg     sync.WaitGroup
 	packID     string
 	size       int64
 	transport  Transport
@@ -62,7 +67,8 @@ type PackReader struct {
 	blockCount uint64
 
 	// bcast guards all mutable state below.
-	bcast broadcast.Broadcast
+	bcast  broadcast.Broadcast
+	closed bool
 
 	// Tuning (mutable via setters, guarded by bcast).
 	pageSize               int
@@ -133,7 +139,11 @@ type PackReader struct {
 
 // NewPackReader builds a per-pack access engine wrapping a transport.
 func NewPackReader(packID string, size int64, transport Transport, hashType hash.HashType) *PackReader {
+	ctx, cancel := newPackReaderContext()
 	return &PackReader{
+		ctx:                    ctx,
+		cancel:                 cancel,
+		closeDone:              make(chan struct{}),
 		packID:                 packID,
 		size:                   size,
 		transport:              transport,
@@ -155,6 +165,41 @@ func NewPackReader(packID string, size int64, transport Transport, hashType hash
 	}
 }
 
+// Close cancels and drains every job admitted by the engine.
+func (e *PackReader) Close() {
+	var closeOwner bool
+	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if !e.closed {
+			e.closed = true
+			e.cancel()
+			closeOwner = true
+			broadcast()
+		}
+	})
+	if !closeOwner {
+		<-e.closeDone
+		return
+	}
+
+	e.workWg.Wait()
+	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		e.transport = nil
+		e.indexCache = nil
+		e.writebackCtx = nil
+		e.writebackTarget = nil
+		e.verifyQueue = nil
+		e.entriesByOff = nil
+		e.entriesByKey = nil
+		e.blocks = nil
+		e.spans = nil
+		e.loading = nil
+		e.statsChanged = nil
+		e.residentBytes = 0
+		broadcast()
+	})
+	close(e.closeDone)
+}
+
 // SetMaxBytes sets the resident byte budget.
 func (e *PackReader) SetMaxBytes(maxBytes int64) {
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -174,6 +219,9 @@ func (e *PackReader) SetWriteback(ctx context.Context, target block.StoreOps, wi
 		windowBytes = defaultWritebackWindow
 	}
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed {
+			return
+		}
 		e.writebackCtx = ctx
 		e.writebackTarget = target
 		e.writebackWindow = windowBytes
@@ -197,6 +245,9 @@ func (e *PackReader) SetExpectedBlockCount(blockCount uint64) {
 // SetIndexCache configures persistent storage for raw kvfile index-tail bytes.
 func (e *PackReader) SetIndexCache(cache IndexCache) {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed {
+			return
+		}
 		e.indexCache = cache
 	})
 }
@@ -209,6 +260,9 @@ func (e *PackReader) SetIndexCache(cache IndexCache) {
 // satisfies the verifyExecutor interface.
 func (e *PackReader) SetVerifyQueue(q verifyExecutor) {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed {
+			return
+		}
 		e.verifyQueue = q
 		e.ownVerifyQueue = false
 	})
@@ -217,6 +271,9 @@ func (e *PackReader) SetVerifyQueue(q verifyExecutor) {
 // SetStatsChangedCallback sets a callback invoked after observable stats change.
 func (e *PackReader) SetStatsChangedCallback(fn func()) {
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed {
+			return
+		}
 		e.statsChanged = fn
 	})
 }
@@ -234,20 +291,20 @@ func (e *PackReader) ReaderAt(ctx context.Context) io.ReaderAt {
 // Must be called with bcast held; the returned jobs must be enqueued after the
 // caller releases bcast.
 func (e *PackReader) prepareVerifyJobsLocked(jobs ...func()) []func() {
-	if len(jobs) == 0 {
+	if len(jobs) == 0 || e.closed {
 		return nil
 	}
 	if e.verifyQueue == nil {
 		e.verifyQueue = newDefaultVerifyExecutor(defaultVerifyConcurrency())
 		e.ownVerifyQueue = true
 	}
-	e.verifyQueued += len(jobs)
 	wrapped := make([]func(), 0, len(jobs))
 	for _, job := range jobs {
 		if job == nil {
-			e.verifyQueued--
 			continue
 		}
+		e.verifyQueued++
+		e.workWg.Add(1)
 		wrapped = append(wrapped, e.wrapVerifyJob(job))
 	}
 	return wrapped
@@ -262,6 +319,7 @@ func (e *PackReader) enqueueVerifyJobs(jobs []func()) {
 
 func (e *PackReader) wrapVerifyJob(job func()) func() {
 	return func() {
+		defer e.workWg.Done()
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			if e.verifyQueued > 0 {
 				e.verifyQueued--

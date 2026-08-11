@@ -19,9 +19,10 @@ import (
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 	default_storage "github.com/s4wave/spacewave/bldr/storage/default"
-	cdn_bstore_controller "github.com/s4wave/spacewave/core/cdn/bstore/controller"
 	cdn_world_controller "github.com/s4wave/spacewave/core/cdn/world/controller"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
+	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
+	block_store_rpc_server "github.com/s4wave/spacewave/db/block/store/rpc/server"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/sirupsen/logrus"
 )
@@ -65,57 +66,19 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 		"release-world",
 		"release-world-ops",
 		"release-world-fetch",
-		"release-world-cdn-store",
 		"release-world-cdn-bucket",
 	} {
 		if launcherConf.GetHostConfigSet()[id] == nil {
 			t.Fatalf("launcher host config set missing %q", id)
 		}
 	}
-	if launcherConf.GetConfigSet()["release-world-fetch"] != nil {
-		t.Fatal("launcher plugin config set mounts a second release-world-fetch resolver")
+	for id := range launcherConf.GetConfigSet() {
+		if strings.HasPrefix(id, "release-world") {
+			t.Fatalf("browser launcher worker mounts independent Release World config %q", id)
+		}
 	}
-	var pluginReleaseWorldConf cdn_world_controller.Config
-	pluginReleaseWorld := launcherConf.GetConfigSet()["release-world"]
-	if pluginReleaseWorld == nil {
-		t.Fatal("launcher config set missing release-world")
-	}
-	if err := pluginReleaseWorldConf.UnmarshalJSON(pluginReleaseWorld.GetConfig()); err != nil {
-		t.Fatalf("decode plugin-bus release-world config: %v", err)
-	}
-	if pluginReleaseWorldConf.GetCacheBlockStoreId() != "plugin-host" {
-		t.Fatalf("plugin-bus release-world cache block store = %q, want plugin-host", pluginReleaseWorldConf.GetCacheBlockStoreId())
-	}
-	var pluginCdnConf cdn_bstore_controller.Config
-	pluginCdnStore := launcherConf.GetConfigSet()["release-world-cdn-store"]
-	if pluginCdnStore == nil {
-		t.Fatal("launcher config set missing release-world-cdn-store")
-	}
-	if err := pluginCdnConf.UnmarshalJSON(pluginCdnStore.GetConfig()); err != nil {
-		t.Fatalf("decode plugin-bus release-world-cdn-store config: %v", err)
-	}
-	if pluginCdnConf.GetBlockStoreId() != "spacewave-release-cdn" ||
-		pluginCdnConf.GetCacheBlockStoreId() != "plugin-host" ||
-		len(pluginCdnConf.GetBucketIds()) != 1 ||
-		!slices.Contains(pluginCdnConf.GetBucketIds(), "spacewave-release") {
-		t.Fatalf("plugin-bus release CDN config = store %q cache %q buckets %v",
-			pluginCdnConf.GetBlockStoreId(), pluginCdnConf.GetCacheBlockStoreId(),
-			pluginCdnConf.GetBucketIds())
-	}
-	var pluginCdnBucketConf block_store_bucket.Config
-	pluginCdnBucket := launcherConf.GetConfigSet()["release-world-cdn-bucket"]
-	if pluginCdnBucket == nil {
-		t.Fatal("launcher config set missing release-world-cdn-bucket")
-	}
-	if err := pluginCdnBucketConf.UnmarshalJSON(pluginCdnBucket.GetConfig()); err != nil {
-		t.Fatalf("decode plugin-bus release-world-cdn-bucket config: %v", err)
-	}
-	if pluginCdnBucketConf.GetBlockStoreId() != pluginCdnConf.GetBlockStoreId() ||
-		pluginCdnBucketConf.GetBucketStoreId() != pluginCdnConf.GetBlockStoreId() ||
-		pluginCdnBucketConf.GetBucketConfig().GetId() != "spacewave-release" {
-		t.Fatalf("plugin-bus release CDN bucket config = store %q bucket-store %q bucket %q",
-			pluginCdnBucketConf.GetBlockStoreId(), pluginCdnBucketConf.GetBucketStoreId(),
-			pluginCdnBucketConf.GetBucketConfig().GetId())
+	if launcherConf.GetHostConfigSet()["release-world-cdn-store"] != nil {
+		t.Fatal("launcher page host mounts an independent Release World CDN block store")
 	}
 	var releaseWorldConf cdn_world_controller.Config
 	if err := releaseWorldConf.UnmarshalJSON(launcherConf.GetHostConfigSet()["release-world"].GetConfig()); err != nil {
@@ -124,39 +87,12 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 	if releaseWorldConf.GetCacheBlockStoreId() != "dist" {
 		t.Fatalf("release-world cache block store = %q, want dist", releaseWorldConf.GetCacheBlockStoreId())
 	}
-	var cdnStoreConf cdn_bstore_controller.Config
-	cdnStore := launcherConf.GetHostConfigSet()["release-world-cdn-store"]
-	if cdnStore == nil {
-		t.Fatal("launcher host config set missing release-world-cdn-store")
-	}
-	if err := cdnStoreConf.UnmarshalJSON(cdnStore.GetConfig()); err != nil {
-		t.Fatalf("decode release-world-cdn-store config: %v", err)
-	}
-	if cdnStoreConf.GetBlockStoreId() != "spacewave-release-cdn" {
-		t.Fatalf("release CDN block store id = %q, want spacewave-release-cdn", cdnStoreConf.GetBlockStoreId())
-	}
-	if cdnStoreConf.GetSpaceId() != releaseWorldConf.GetSpaceId() ||
-		cdnStoreConf.GetCdnBaseUrl() != releaseWorldConf.GetCdnBaseUrl() {
-		t.Fatalf("release CDN store origin = (%q, %q), want (%q, %q)",
-			cdnStoreConf.GetSpaceId(), cdnStoreConf.GetCdnBaseUrl(),
-			releaseWorldConf.GetSpaceId(), releaseWorldConf.GetCdnBaseUrl())
-	}
-	if cdnStoreConf.GetCacheBlockStoreId() != "dist" {
-		t.Fatalf("release CDN cache block store = %q, want dist", cdnStoreConf.GetCacheBlockStoreId())
-	}
-	if len(cdnStoreConf.GetBucketIds()) != 1 || !slices.Contains(cdnStoreConf.GetBucketIds(), "spacewave-release") {
-		t.Fatalf("release CDN bucket ids = %v, want [spacewave-release]", cdnStoreConf.GetBucketIds())
-	}
 	var cdnBucketConf block_store_bucket.Config
-	cdnBucket := launcherConf.GetHostConfigSet()["release-world-cdn-bucket"]
-	if cdnBucket == nil {
-		t.Fatal("launcher host config set missing release-world-cdn-bucket")
-	}
-	if err := cdnBucketConf.UnmarshalJSON(cdnBucket.GetConfig()); err != nil {
+	if err := cdnBucketConf.UnmarshalJSON(launcherConf.GetHostConfigSet()["release-world-cdn-bucket"].GetConfig()); err != nil {
 		t.Fatalf("decode release-world-cdn-bucket config: %v", err)
 	}
-	if cdnBucketConf.GetBlockStoreId() != cdnStoreConf.GetBlockStoreId() ||
-		cdnBucketConf.GetBucketStoreId() != cdnStoreConf.GetBlockStoreId() ||
+	if cdnBucketConf.GetBlockStoreId() != cdn_world_controller.ReleaseBlockStoreID ||
+		cdnBucketConf.GetBucketStoreId() != cdn_world_controller.ReleaseBlockStoreID ||
 		cdnBucketConf.GetBucketConfig().GetId() != "spacewave-release" {
 		t.Fatalf("release CDN bucket config = store %q bucket-store %q bucket %q",
 			cdnBucketConf.GetBlockStoreId(), cdnBucketConf.GetBucketStoreId(),
@@ -197,6 +133,96 @@ func TestBrowserReleaseLazyPluginFixtureIsNonEmbeddedAndPublished(t *testing.T) 
 			embed.GetPlatformId(),
 			manifest.GetRev(),
 		)
+	}
+}
+
+func TestReleaseLauncherBrowserAndNativeAuthorityComposition(t *testing.T) {
+	result, err := bldr_project_starlark.Evaluate(filepath.Join("..", "..", "..", "bldr.star"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		build    string
+		platform string
+		compiler bldr_plugin_compiler_go.GoCompiler
+	}{
+		{"release-web", "js", bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT},
+		{"release-web-tinygo", "web", bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO},
+	} {
+		t.Run(tc.build, func(t *testing.T) {
+			build := result.Config.GetBuild()[tc.build]
+			if tc.build == "release-web-tinygo" && !slices.Equal(build.GetPlatformIds(), []string{"web/js/wasm"}) {
+				t.Fatalf("TinyGo release platforms = %v, want web/js/wasm only", build.GetPlatformIds())
+			}
+			override := build.GetManifestOverrides()["spacewave-launcher"]
+			if override == nil {
+				t.Fatal("missing browser launcher override")
+			}
+			var conf bldr_plugin_compiler_go.Config
+			if err := conf.UnmarshalJSON(override.GetConfig()); err != nil {
+				t.Fatal(err)
+			}
+			for id := range conf.GetConfigSet() {
+				if strings.HasPrefix(id, "release-world") {
+					t.Fatalf("browser worker mounts Release World config %q", id)
+				}
+			}
+			for _, id := range []string{"release-world", "release-world-ops", "release-world-fetch", "release-world-cdn-bucket"} {
+				if conf.GetHostConfigSet()[id] == nil {
+					t.Fatalf("browser host config missing %q", id)
+				}
+			}
+			if conf.GetHostConfigSet()["release-world-cdn-store"] != nil || conf.GetHostConfigSet()["release-world-cdn-server"] != nil {
+				t.Fatal("browser host creates a duplicate CDN store or unused RPC bridge")
+			}
+			platform := conf.GetPlatformTypes()[tc.platform]
+			if platform == nil {
+				t.Fatalf("launcher platform %q is missing", tc.platform)
+			}
+			if platform.GetGoCompiler() != tc.compiler {
+				t.Fatalf("launcher platform %q compiler = %v, want %v", tc.platform, platform.GetGoCompiler(), tc.compiler)
+			}
+		})
+	}
+
+	launcher := result.Config.GetManifests()["spacewave-launcher"]
+	if launcher == nil {
+		t.Fatal("missing native launcher manifest")
+	}
+	var native bldr_plugin_compiler_go.Config
+	if err := native.UnmarshalJSON(launcher.GetBuilder().GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if native.GetConfigSet()["release-world-fetch"] != nil {
+		t.Fatal("native plugin bus mounts a second Release World fetcher")
+	}
+	var readerConf cdn_world_controller.Config
+	if err := readerConf.UnmarshalJSON(native.GetConfigSet()["release-world"].GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if readerConf.GetSuppliedBlockStoreId() != cdn_world_controller.ReleaseBlockStoreID || readerConf.GetCacheBlockStoreId() != "" {
+		t.Fatalf("native reader supplied=%q cache=%q", readerConf.GetSuppliedBlockStoreId(), readerConf.GetCacheBlockStoreId())
+	}
+	var clientConf block_store_rpc.Config
+	if err := clientConf.UnmarshalJSON(native.GetConfigSet()["release-world-cdn-store"].GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if clientConf.GetBlockStoreId() != cdn_world_controller.ReleaseBlockStoreID ||
+		clientConf.GetServiceId() != "plugin-host/"+cdn_world_controller.ReleaseBlockStoreID+"/block.rpc.BlockStore" ||
+		!clientConf.GetLookupOnStart() {
+		t.Fatalf("native RPC client alias=%q service=%q lookupOnStart=%v", clientConf.GetBlockStoreId(), clientConf.GetServiceId(), clientConf.GetLookupOnStart())
+	}
+	if native.GetHostConfigSet()["release-world-cdn-store"] != nil {
+		t.Fatal("native host config creates a block-store alias collision")
+	}
+	var serverConf block_store_rpc_server.Config
+	if err := serverConf.UnmarshalJSON(native.GetHostConfigSet()["release-world-cdn-server"].GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if serverConf.GetBlockStoreId() != cdn_world_controller.ReleaseBlockStoreID ||
+		serverConf.GetServiceId() != cdn_world_controller.ReleaseBlockStoreID+"/block.rpc.BlockStore" {
+		t.Fatalf("native RPC server alias=%q service=%q", serverConf.GetBlockStoreId(), serverConf.GetServiceId())
 	}
 }
 

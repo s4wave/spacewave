@@ -30,6 +30,14 @@ type Config struct {
 	CacheBlockStoreId string `protobuf:"bytes,5,opt,name=cache_block_store_id,json=cacheBlockStoreId,proto3" json:"cacheBlockStoreId,omitempty"`
 	// WritebackWindowBytes sets the semantic co-block writeback window.
 	WritebackWindowBytes int64 `protobuf:"varint,6,opt,name=writeback_window_bytes,json=writebackWindowBytes,proto3" json:"writebackWindowBytes,omitempty"`
+	// SuppliedBlockStoreId reads every block from that block store on the bus
+	// instead of opening a CDN transport for this mount. Set it where another
+	// process already owns the CDN transport, pack readers, index cache, and
+	// durable writeback for this Space and supplies that store over the block
+	// store RPC. The controller fetches the root pointer independently to build
+	// its world head. It resolves no LookupBlockStore because it owns no store.
+	// Mutually exclusive with cache_block_store_id.
+	SuppliedBlockStoreId string `protobuf:"bytes,7,opt,name=supplied_block_store_id,json=suppliedBlockStoreId,proto3" json:"suppliedBlockStoreId,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -80,6 +88,13 @@ func (x *Config) GetWritebackWindowBytes() int64 {
 	return 0
 }
 
+func (x *Config) GetSuppliedBlockStoreId() string {
+	if x != nil {
+		return x.SuppliedBlockStoreId
+	}
+	return ""
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -91,6 +106,7 @@ func (m *Config) CloneVT() *Config {
 	r.PointerTtlDur = m.PointerTtlDur
 	r.CacheBlockStoreId = m.CacheBlockStoreId
 	r.WritebackWindowBytes = m.WritebackWindowBytes
+	r.SuppliedBlockStoreId = m.SuppliedBlockStoreId
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -123,6 +139,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.WritebackWindowBytes != that.WritebackWindowBytes {
+		return false
+	}
+	if this.SuppliedBlockStoreId != that.SuppliedBlockStoreId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -174,6 +193,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("writebackWindowBytes")
 		s.WriteInt64(x.WritebackWindowBytes)
 	}
+	if x.SuppliedBlockStoreId != "" || s.HasField("suppliedBlockStoreId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("suppliedBlockStoreId")
+		s.WriteString(x.SuppliedBlockStoreId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -209,6 +233,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "writeback_window_bytes", "writebackWindowBytes":
 			s.AddField("writeback_window_bytes")
 			x.WritebackWindowBytes = s.ReadInt64()
+		case "supplied_block_store_id", "suppliedBlockStoreId":
+			s.AddField("supplied_block_store_id")
+			x.SuppliedBlockStoreId = s.ReadString()
 		}
 	})
 }
@@ -246,6 +273,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.SuppliedBlockStoreId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SuppliedBlockStoreId)
+		i--
+		dAtA[i] = 0x3a
 	}
 	if m.WritebackWindowBytes != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.WritebackWindowBytes))
@@ -292,6 +324,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PointerTtlDur)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CacheBlockStoreId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.WritebackWindowBytes)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SuppliedBlockStoreId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -322,6 +355,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.WritebackWindowBytes != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "writeback_window_bytes")
 		protobuf_go_lite.TextWriteInt(&sb, x.WritebackWindowBytes)
+	}
+	if x.SuppliedBlockStoreId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "supplied_block_store_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SuppliedBlockStoreId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -409,6 +446,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SuppliedBlockStoreId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SuppliedBlockStoreId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -11,6 +11,7 @@ import (
 	_ "github.com/s4wave/spacewave/core/cdn/world/controller"
 	_ "github.com/s4wave/spacewave/core/space/world/optypes"
 	_ "github.com/s4wave/spacewave/db/block/store/overlay"
+	_ "github.com/s4wave/spacewave/db/block/store/rpc"
 	_ "github.com/s4wave/spacewave/db/block/store/rpc/server"
 	_ "github.com/s4wave/spacewave/db/object/peer"
 )

@@ -3,6 +3,7 @@ package cdn_world_controller
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -14,20 +15,27 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
+	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
 	packedmsg "github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/core/cdn"
 	cdn_bstore "github.com/s4wave/spacewave/core/cdn/bstore"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
+	"github.com/s4wave/spacewave/core/sobject"
+	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_store_bucket "github.com/s4wave/spacewave/db/block/store/bucket"
 	block_store_controller "github.com/s4wave/spacewave/db/block/store/controller"
+	block_store_rpc "github.com/s4wave/spacewave/db/block/store/rpc"
+	block_store_rpc_server "github.com/s4wave/spacewave/db/block/store/rpc/server"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/testbed"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	volume_kvtxinmem "github.com/s4wave/spacewave/db/volume/kvtxinmem"
 	"github.com/s4wave/spacewave/net/hash"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -328,5 +336,320 @@ func TestReleaseWorldExternalBucketBuildAPIUsesCdnStoreMapping(t *testing.T) {
 	}
 	if got := rootRequests.Load(); got != 1 {
 		t.Fatalf("CDN store mapping made %d CDN root requests, want one", got)
+	}
+}
+
+type retryingWorldController struct {
+	*Controller
+	firstErr chan error
+}
+
+func (c *retryingWorldController) Execute(ctx context.Context) error {
+	err := c.Controller.Execute(ctx)
+	c.firstErr <- err
+	if err == nil {
+		return nil
+	}
+	return c.Controller.Execute(ctx)
+}
+
+type observedContext struct {
+	context.Context
+	done chan struct{}
+	once sync.Once
+}
+
+func (c *observedContext) Done() <-chan struct{} {
+	c.once.Do(func() { close(c.done) })
+	return c.Context.Done()
+}
+
+func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T) {
+	const (
+		spaceID   = "01ksharedreleaseworld00000001"
+		cacheID   = "dist"
+		packID    = "01ksharedreleasepack00000001"
+		serviceID = ReleaseBlockStoreID + "/block.rpc.BlockStore"
+	)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	data := []byte("shared release world block")
+	blockHash, err := hash.Sum(hash.HashType_HashType_SHA256, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var packData bytes.Buffer
+	packResult, err := writer.PackBlocks(&packData, func() (*hash.Hash, []byte, error) {
+		if packData.Len() != 0 {
+			return nil, nil, nil
+		}
+		return blockHash, data, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	packEntry := &packfile.PackfileEntry{
+		Id:          packID,
+		BloomFilter: packResult.BloomFilter,
+		BlockCount:  1,
+		SizeBytes:   uint64(packData.Len()),
+	}
+	invalidPointer, err := (&cdn.CdnRootPointer{
+		SpaceId: spaceID,
+		Root: &sobject.SORoot{
+			Inner:      []byte("invalid root inner"),
+			InnerSeqno: 1,
+		},
+		Packs: []*packfile.PackfileEntry{packEntry},
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	innerState, err := (&sobject_world_engine.InnerState{HeadRef: &bucket.ObjectRef{}}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootInner, err := (&sobject.SORootInner{Seqno: 1, StateData: innerState}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	validPointer, err := (&cdn.CdnRootPointer{
+		SpaceId: spaceID,
+		Root: &sobject.SORoot{
+			Inner:      rootInner,
+			InnerSeqno: 1,
+		},
+		Packs: []*packfile.PackfileEntry{packEntry},
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	invalidPointer = []byte(packedmsg.EncodePackedMessage(invalidPointer))
+	validPointer = []byte(packedmsg.EncodePackedMessage(validPointer))
+
+	firstRoot := make(chan struct{})
+	releaseFirstRoot := make(chan struct{})
+	rangeStarted := make(chan struct{})
+	releaseRange := make(chan struct{})
+	var rootRequests atomic.Int32
+	var rangeRequests atomic.Int32
+	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/"+spaceID+"/root.packedmsg" {
+			if rootRequests.Add(1) == 1 {
+				close(firstRoot)
+				<-releaseFirstRoot
+				_, _ = w.Write(invalidPointer)
+				return
+			}
+			_, _ = w.Write(validPointer)
+			return
+		}
+		if !strings.HasSuffix(r.URL.Path, "/"+packID+".kvf") {
+			http.NotFound(w, r)
+			return
+		}
+		if rangeRequests.Add(1) == 1 {
+			close(rangeStarted)
+			<-releaseRange
+		}
+		parts := strings.SplitN(strings.TrimPrefix(r.Header.Get("Range"), "bytes="), "-", 2)
+		off, _ := strconv.Atoi(parts[0])
+		end := len(packData.Bytes()) - 1
+		if len(parts) == 2 && parts[1] != "" {
+			end, _ = strconv.Atoi(parts[1])
+		}
+		if end >= packData.Len() {
+			end = packData.Len() - 1
+		}
+		w.Header().Set("Content-Range", "bytes "+strconv.Itoa(off)+"-"+strconv.Itoa(end)+"/"+strconv.Itoa(packData.Len()))
+		w.WriteHeader(http.StatusPartialContent)
+		_, _ = w.Write(packData.Bytes()[off : end+1])
+	}))
+	defer hs.Close()
+
+	le := logrus.NewEntry(logrus.New())
+	host, err := testbed.NewTestbed(ctx, le, testbed.WithVolumeConfig(
+		&volume_kvtxinmem.Config{VolumeConfig: &volume_controller.Config{
+			VolumeIdAlias:           []string{cacheID},
+			DisableLookupBlockStore: true,
+		}},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer host.Release()
+	pluginBus, _, err := controllerbus_core.NewCoreBus(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cacheStore := &notifyingBlockStore{StoreOps: host.Volume, putCh: make(chan struct{}, 1)}
+	cacheCtrl := block_store_controller.NewController(
+		le,
+		controller.NewInfo("test/shared-cache", controller.MustParseVersion("0.0.1"), "test shared cache"),
+		func(context.Context, func()) (block_store.Store, func(), error) {
+			return block_store.NewStore(cacheID, cacheStore), nil, nil
+		},
+		[]string{cacheID}, true, nil, false, false,
+	)
+	releaseCache, err := host.Bus.AddController(ctx, cacheCtrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseCache()
+
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(bifrost_rpc.NewInvoker(host.Bus, "", false))))
+	clientCtrl := bifrost_rpc.NewClientController(
+		le,
+		pluginBus,
+		controller.NewInfo("test/plugin-rpc-client", controller.MustParseVersion("0.0.1"), "test plugin RPC client"),
+		client,
+		[]string{"plugin-host/"},
+	)
+	releaseClient, err := pluginBus.AddController(ctx, clientCtrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseClient()
+
+	wrongConf := block_store_rpc.NewConfig("wrong-prefix", serviceID, true, nil)
+	wrongConf.LookupOnStart = true
+	wrongCtrl := block_store_rpc.NewController(pluginBus, le, wrongConf)
+	releaseWrong, err := pluginBus.AddController(ctx, wrongCtrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrongCtx, wrongCancel := context.WithTimeout(ctx, 50*time.Millisecond)
+	_, _, wrongRef, wrongErr := block_store.ExLookupFirstBlockStore(wrongCtx, pluginBus, "wrong-prefix", false, nil)
+	if wrongRef != nil {
+		wrongRef.Release()
+	}
+	wrongCancel()
+	releaseWrong()
+	if wrongErr == nil || !errors.Is(wrongCtx.Err(), context.DeadlineExceeded) {
+		t.Fatalf("unprefixed RPC service lookup error = %v context = %v, want deadline", wrongErr, wrongCtx.Err())
+	}
+
+	rpcConf := block_store_rpc.NewConfig(ReleaseBlockStoreID, "plugin-host/"+serviceID, true, []string{"spacewave-release"})
+	rpcConf.LookupOnStart = true
+	rpcCtrl := block_store_rpc.NewController(pluginBus, le, rpcConf)
+	releaseRPC, err := pluginBus.AddController(ctx, rpcCtrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseRPC()
+	pluginStore, _, pluginStoreRef, err := block_store.ExLookupFirstBlockStore(ctx, pluginBus, ReleaseBlockStoreID, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pluginStoreRef.Release()
+
+	serverCtrl := block_store_rpc_server.NewController(host.Bus, block_store_rpc_server.NewConfig(
+		ReleaseBlockStoreID, false, serviceID, "", hash.HashType_HashType_UNKNOWN,
+	))
+	releaseServer, err := host.Bus.AddController(ctx, serverCtrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseServer()
+
+	serviceAdded := make(chan srpc.Invoker, 4)
+	serviceRemoved := make(chan srpc.Invoker, 4)
+	_, serviceRef, err := host.Bus.AddDirective(
+		bifrost_rpc.NewLookupRpcService(serviceID, "test-held-demand"),
+		directive.NewCallbackHandler(
+			func(v directive.AttachedValue) { serviceAdded <- v.GetValue().(srpc.Invoker) },
+			func(v directive.AttachedValue) { serviceRemoved <- v.GetValue().(srpc.Invoker) },
+			nil,
+		),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer serviceRef.Release()
+
+	conf := NewConfig(releaseWorldEngineID, spaceID, hs.URL)
+	conf.CacheBlockStoreId = cacheID
+	conf.WritebackWindowBytes = 1 << 20
+	worldCtrl := NewController(le, host.Bus, conf)
+	retryingCtrl := &retryingWorldController{Controller: worldCtrl, firstErr: make(chan error, 1)}
+	releaseWorld, err := host.Bus.AddController(ctx, retryingCtrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-firstRoot
+	firstService := <-serviceAdded
+	close(releaseFirstRoot)
+	if err := <-retryingCtrl.firstErr; err == nil {
+		t.Fatal("invalid first root did not fail the first Execute attempt")
+	}
+	if removed := <-serviceRemoved; removed != firstService {
+		t.Fatal("RPC server withdrew a different first authority")
+	}
+	secondService := <-serviceAdded
+	if secondService == firstService {
+		t.Fatal("RPC server retained its first authority across Execute retry")
+	}
+
+	hostStore, _, hostStoreRef, err := block_store.ExLookupFirstBlockStore(ctx, host.Bus, ReleaseBlockStoreID, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := &block.BlockRef{Hash: blockHash}
+	pluginCtx, cancelPlugin := context.WithCancel(ctx)
+	pluginDone := make(chan error, 1)
+	go func() {
+		_, _, err := pluginStore.GetBlock(pluginCtx, ref)
+		pluginDone <- err
+	}()
+	<-rangeStarted
+
+	hostCtx := &observedContext{Context: ctx, done: make(chan struct{})}
+	hostDone := make(chan error, 1)
+	var hostData []byte
+	var hostFound bool
+	go func() {
+		hostData, hostFound, err = hostStore.GetBlock(hostCtx, ref)
+		hostDone <- err
+	}()
+	<-hostCtx.done
+	cancelPlugin()
+	if err := <-pluginDone; err == nil {
+		t.Fatal("canceled plugin RPC read returned no error")
+	}
+	close(releaseRange)
+	if err := <-hostDone; err != nil {
+		t.Fatal(err)
+	}
+	if !hostFound || !bytes.Equal(hostData, data) {
+		t.Fatalf("host read found=%v data=%q, want %q", hostFound, hostData, data)
+	}
+	if got := rangeRequests.Load(); got != 1 {
+		t.Fatalf("joined host and plugin reads made %d Range requests, want one", got)
+	}
+	cached, found, err := cacheStore.GetBlock(ctx, ref)
+	if err != nil || !found || !bytes.Equal(cached, data) {
+		t.Fatalf("durable writeback found=%v err=%v data=%q", found, err, cached)
+	}
+	hostStoreRef.Release()
+
+	releaseWorld()
+	if removed := <-serviceRemoved; removed != secondService {
+		t.Fatal("RPC server withdrew a different teardown authority")
+	}
+	worldCtrl = NewController(le, host.Bus, conf)
+	releaseReplacement, err := host.Bus.AddController(ctx, worldCtrl, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseReplacement()
+	thirdService := <-serviceAdded
+	if thirdService == secondService {
+		t.Fatal("RPC server retained its closed authority after controller replacement")
+	}
+	got, found, err := pluginStore.GetBlock(ctx, ref)
+	if err != nil || !found || !bytes.Equal(got, data) {
+		t.Fatalf("retained plugin client after replacement found=%v err=%v data=%q", found, err, got)
 	}
 }
