@@ -432,6 +432,123 @@ func TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines(t *testing
 	}
 }
 
+func TestPackfileStoreUpdateManifestPrefersNewestSequence(t *testing.T) {
+	ctx := t.Context()
+	historicalBytes, historicalBloom := buildTestPackOrdered(t, []struct{ Name, Data string }{
+		{"target", "alpha"},
+		{"historical", "historical"},
+	})
+	compactBytes, compactBloom := buildTestPackOrdered(t, []struct{ Name, Data string }{
+		{"target", "alpha"},
+		{"compact", "compact"},
+	})
+	supersededBytes, supersededBloom := buildTestPackOrdered(t, []struct{ Name, Data string }{
+		{"target", "alpha"},
+		{"superseded", "superseded"},
+	})
+	packs := map[string][]byte{
+		"historical": historicalBytes,
+		"compact":    compactBytes,
+		"superseded": supersededBytes,
+	}
+	var opened []string
+	store := NewPackfileStore(func(packID string, size int64) (*PackReader, error) {
+		data, ok := packs[packID]
+		if !ok {
+			t.Fatalf("unexpected opener pack=%q size=%d", packID, size)
+		}
+		opened = append(opened, packID)
+		return NewPackReader(packID, size, &bytesTransport{data: data}, hash.HashType_HashType_SHA256), nil
+	}, newMemIndexCache())
+	store.UpdateManifest([]*packfile.PackfileEntry{
+		{
+			Id:          "historical",
+			BloomFilter: historicalBloom,
+			BlockCount:  2,
+			SizeBytes:   uint64(len(historicalBytes)),
+			Sequence:    7,
+		},
+		{
+			Id:           "superseded",
+			BloomFilter:  supersededBloom,
+			BlockCount:   2,
+			SizeBytes:    uint64(len(supersededBytes)),
+			Sequence:     9,
+			SupersededBy: "compact",
+		},
+		{
+			Id:          "compact",
+			BloomFilter: compactBloom,
+			BlockCount:  2,
+			SizeBytes:   uint64(len(compactBytes)),
+			Sequence:    8,
+		},
+	})
+
+	store.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if len(store.manifest) != 2 {
+			t.Fatalf("active manifest entries=%d, want 2", len(store.manifest))
+		}
+		if store.manifest[0].GetId() != "compact" || store.manifest[1].GetId() != "historical" {
+			t.Fatalf(
+				"active manifest order=%q,%q, want compact,historical",
+				store.manifest[0].GetId(),
+				store.manifest[1].GetId(),
+			)
+		}
+	})
+
+	target, err := hash.Sum(hash.HashType_HashType_SHA256, []byte("alpha"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, found, err := store.GetBlock(ctx, &block.BlockRef{Hash: target})
+	if err != nil {
+		t.Fatalf("GetBlock: %v", err)
+	}
+	if !found || !bytes.Equal(data, []byte("alpha")) {
+		t.Fatalf("GetBlock(alpha): found=%v data=%q", found, string(data))
+	}
+	if len(opened) != 1 || opened[0] != "compact" {
+		t.Fatalf("opened packs=%q, want [compact]", opened)
+	}
+
+	stats := store.SnapshotStats()
+	if stats.LastCandidatePacks != 2 || stats.LastOpenedPacks != 1 || stats.LastNegativePacks != 0 || !stats.LastTargetHit {
+		t.Fatalf(
+			"last lookup candidates=%d opened=%d negative=%d hit=%v, want 2/1/0/true",
+			stats.LastCandidatePacks,
+			stats.LastOpenedPacks,
+			stats.LastNegativePacks,
+			stats.LastTargetHit,
+		)
+	}
+}
+
+func TestPackfileStoreUpdateManifestOrdersCloudAndLocalEntries(t *testing.T) {
+	store := NewPackfileStore(nil, nil)
+	store.UpdateManifest([]*packfile.PackfileEntry{
+		{Id: "local-z"},
+		{Id: "cloud-z", Sequence: 7},
+		{Id: "cloud-a", Sequence: 7},
+		{Id: "cloud-old", Sequence: 2},
+		{Id: "local-a"},
+		{Id: "cloud-new", Sequence: 9},
+	})
+
+	want := []string{"cloud-new", "cloud-a", "cloud-z", "cloud-old", "local-a", "local-z"}
+	store.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if len(store.manifest) != len(want) {
+			t.Fatalf("active manifest entries=%d, want %d", len(store.manifest), len(want))
+		}
+		for i, entry := range store.manifest {
+			if entry.GetId() != want[i] {
+				t.Fatalf("active manifest[%d]=%q, want %q", i, entry.GetId(), want[i])
+			}
+		}
+	})
+}
+
 func TestPackfileStoreGetBlockExistsBatchUsesIndexes(t *testing.T) {
 	ctx := t.Context()
 	filler := bytes.Repeat([]byte("x"), defaultIndexTailInitialWindow+4096)
