@@ -42,6 +42,8 @@ type Controller struct {
 	collectionCancel context.CancelFunc
 	// collectionClosed prevents new collection work after Close.
 	collectionClosed bool
+	// resolvers is the active FetchManifest resolver set.
+	resolvers map[*fetchManifestResolver]struct{}
 	// collection is the current manifest graph traversal, if any.
 	collection *manifestCollection
 	// collectionSnapshot is the successful traversal for its world sequence.
@@ -53,6 +55,8 @@ type manifestCollectionKey struct {
 	seqno uint64
 	// objectKeys is the sorted, duplicate-free collection root set.
 	objectKeys []string
+	// manifestIDs is the sorted, duplicate-free active manifest ID set.
+	manifestIDs []string
 }
 
 type manifestCollection struct {
@@ -87,6 +91,7 @@ func NewController(
 		fetchManifestIdRe: manifestIdRe,
 		collectionCtx:     collectionCtx,
 		collectionCancel:  collectionCancel,
+		resolvers:         make(map[*fetchManifestResolver]struct{}),
 	}
 }
 
@@ -132,9 +137,9 @@ func (c *Controller) resolveFetchManifest(
 	return &fetchManifestResolver{c: c, dir: dir}, nil
 }
 
-// collectManifests returns the immutable manifest map for the current world
-// sequence and configured object-key set. One traversal serves all concurrent
-// FetchManifest resolvers for that collection.
+// collectManifests returns the immutable manifest map for the current World
+// sequence, configured object keys, and active FetchManifest ID union. One
+// controller-owned traversal serves all resolvers without tying it to a waiter.
 func (c *Controller) collectManifests(
 	ctx context.Context,
 	ws world.WorldState,
@@ -144,12 +149,7 @@ func (c *Controller) collectManifests(
 		if err != nil {
 			return nil, err
 		}
-		key := manifestCollectionKey{
-			seqno:      seqno,
-			objectKeys: slices.Clone(c.conf.GetObjectKeys()),
-		}
-		slices.Sort(key.objectKeys)
-		key.objectKeys = slices.Compact(key.objectKeys)
+		key := c.collectionKey(seqno)
 
 		var snapshot *manifestCollectionSnapshot
 		c.mtx.Lock()
@@ -161,7 +161,6 @@ func (c *Controller) collectManifests(
 			snapshot = cached
 			c.mtx.Unlock()
 		} else {
-			c.collectionSnapshot = nil
 			collection := c.collection
 			if collection == nil || !collection.key.equal(key) {
 				collection = &manifestCollection{
@@ -179,31 +178,68 @@ func (c *Controller) collectManifests(
 			}
 		}
 
-		// Confirm the traversal did not span a world revision. A sequence
-		// advance re-enters the loop with a new key, where one caller starts the
-		// replacement traversal and concurrent callers await the same promise.
+		// A World update or resolver lifecycle change re-enters the loop with
+		// a new key. The completed snapshot never leaks across either fence.
 		seqno, err = ws.GetSeqno(ctx)
 		if err != nil {
 			return nil, err
 		}
-		if snapshot.key.seqno == seqno {
+		if snapshot.key.equal(c.collectionKey(seqno)) {
 			return snapshot, nil
 		}
 	}
 }
 
-// collectManifestsAsync collects one manifest graph and publishes only its
-// successful result. The controller context, rather than any one waiter,
+func (c *Controller) collectionKey(seqno uint64) manifestCollectionKey {
+	key := manifestCollectionKey{
+		seqno:      seqno,
+		objectKeys: slices.Clone(c.conf.GetObjectKeys()),
+	}
+	slices.Sort(key.objectKeys)
+	key.objectKeys = slices.Compact(key.objectKeys)
+
+	c.mtx.Lock()
+	key.manifestIDs = c.activeManifestIDsLocked()
+	c.mtx.Unlock()
+	return key
+}
+
+func (c *Controller) activeManifestIDsLocked() []string {
+	manifestIDs := make([]string, 0, len(c.resolvers))
+	for resolver := range c.resolvers {
+		if manifestID := resolver.dir.GetManifestId(); manifestID != "" {
+			manifestIDs = append(manifestIDs, manifestID)
+		}
+	}
+	slices.Sort(manifestIDs)
+	return slices.Compact(manifestIDs)
+}
+
+func (c *Controller) addResolver(resolver *fetchManifestResolver) {
+	c.mtx.Lock()
+	c.resolvers[resolver] = struct{}{}
+	c.mtx.Unlock()
+}
+
+func (c *Controller) removeResolver(resolver *fetchManifestResolver) {
+	c.mtx.Lock()
+	delete(c.resolvers, resolver)
+	c.mtx.Unlock()
+}
+
+// collectManifestsAsync collects one selected manifest graph and publishes only
+// its successful result. The controller context, rather than any one waiter,
 // controls the traversal lifetime.
 func (c *Controller) collectManifestsAsync(
 	ctx context.Context,
 	ws world.WorldState,
 	collection *manifestCollection,
 ) {
-	manifests, manifestErrs, err := bldr_manifest_world.CollectManifestsResettingUnsupportedHash(
+	manifests, manifestErrs, err := bldr_manifest_world.CollectStartupManifestsForManifestIDsResettingUnsupportedHash(
 		ctx,
 		c.le,
 		ws,
+		collection.key.manifestIDs,
 		nil,
 		collection.key.objectKeys...,
 	)
@@ -229,7 +265,9 @@ func (c *Controller) collectManifestsAsync(
 }
 
 func (k manifestCollectionKey) equal(other manifestCollectionKey) bool {
-	return k.seqno == other.seqno && slices.Equal(k.objectKeys, other.objectKeys)
+	return k.seqno == other.seqno &&
+		slices.Equal(k.objectKeys, other.objectKeys) &&
+		slices.Equal(k.manifestIDs, other.manifestIDs)
 }
 
 // Close releases any resources used by the controller.
