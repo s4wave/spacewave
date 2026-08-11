@@ -307,6 +307,7 @@ func (s *cdnStateSnapshot) GetRootInner(_ context.Context) (*sobject.SORootInner
 	return s.so.GetPlainRootInner()
 }
 
+// GetRootState returns a copy of the current signed CDN root.
 func (s *cdnStateSnapshot) GetRootState(_ context.Context) (*sobject.SORoot, error) {
 	root := s.so.GetSORoot()
 	if root == nil {

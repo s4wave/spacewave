@@ -2,9 +2,9 @@ package cdn_world_controller
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 )
@@ -12,67 +12,91 @@ import (
 // blockStoreAuthority keeps a published store open until every resolver has
 // withdrawn it. The Controller creates one authority for each Execute attempt.
 type blockStoreAuthority struct {
+	// store is the block-store value published to resolvers.
 	store block_store.Store
 
-	mtx       sync.Mutex
+	// bcast guards acceptance and resolver leases.
+	bcast broadcast.Broadcast
+	// accepting allows new resolver leases until Execute withdraws the store.
 	accepting bool
-	refs      int
-	drained   chan struct{}
+	// leases are active resolver references to store.
+	leases map[*blockStoreLease]struct{}
+}
+
+// blockStoreLease keeps one resolver's published store value alive.
+type blockStoreLease struct {
+	// authority records and releases this resolver lease.
+	authority *blockStoreAuthority
 }
 
 func newBlockStoreAuthority(store block_store.Store) *blockStoreAuthority {
 	return &blockStoreAuthority{
 		store:     store,
 		accepting: true,
-		drained:   make(chan struct{}),
+		leases:    make(map[*blockStoreLease]struct{}),
 	}
 }
 
-func (a *blockStoreAuthority) acquire() bool {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-	if !a.accepting {
-		return false
-	}
-	a.refs++
-	return true
+func (a *blockStoreAuthority) acquire() *blockStoreLease {
+	var lease *blockStoreLease
+	a.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if !a.accepting {
+			return
+		}
+		lease = &blockStoreLease{authority: a}
+		a.leases[lease] = struct{}{}
+	})
+	return lease
 }
 
-func (a *blockStoreAuthority) release() {
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-	if a.refs == 0 {
-		return
-	}
-	a.refs--
-	if !a.accepting && a.refs == 0 {
-		close(a.drained)
-	}
+func (l *blockStoreLease) release() {
+	l.authority.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if _, ok := l.authority.leases[l]; !ok {
+			return
+		}
+		delete(l.authority.leases, l)
+		broadcast()
+	})
 }
 
 func (a *blockStoreAuthority) withdraw() {
-	a.mtx.Lock()
-	if a.accepting {
-		a.accepting = false
-		if a.refs == 0 {
-			close(a.drained)
+	a.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if !a.accepting {
+			return
 		}
-	}
-	a.mtx.Unlock()
+		a.accepting = false
+		broadcast()
+	})
 }
 
 func (a *blockStoreAuthority) wait() {
-	<-a.drained
+	for {
+		var done bool
+		var waitCh <-chan struct{}
+		a.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			done = !a.accepting && len(a.leases) == 0
+			if !done {
+				waitCh = getWaitCh()
+			}
+		})
+		if done {
+			return
+		}
+		<-waitCh
+	}
 }
 
 type blockStoreResolver struct {
+	// ctr publishes the current store authority for the controller attempt.
 	ctr *ccontainer.CContainer[*blockStoreAuthority]
 }
 
+// Resolve publishes each controller-owned block store until it is withdrawn.
 func (r *blockStoreResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	var current *blockStoreAuthority
+	var lease *blockStoreLease
 	var valueID uint32
-	var release, clearCallback func()
+	var clearCallback func()
 	clearValue := func() {
 		if clearCallback != nil {
 			clearCallback()
@@ -82,9 +106,9 @@ func (r *blockStoreResolver) Resolve(ctx context.Context, handler directive.Reso
 			_, _ = handler.RemoveValue(valueID)
 			valueID = 0
 		}
-		if release != nil {
-			release()
-			release = nil
+		if lease != nil {
+			lease.release()
+			lease = nil
 		}
 	}
 	defer func() {
@@ -93,24 +117,30 @@ func (r *blockStoreResolver) Resolve(ctx context.Context, handler directive.Reso
 	}()
 
 	for {
+		// Replace the published value when the controller begins a new attempt.
 		next, err := r.ctr.WaitValueChange(ctx, current, nil)
 		if err != nil {
 			return err
 		}
 		clearValue()
 		current = next
-		if current == nil || !current.acquire() {
+		if current == nil {
 			continue
 		}
-		release = sync.OnceFunc(current.release)
+		lease = current.acquire()
+		if lease == nil {
+			continue
+		}
+
+		// One idempotent lease covers explicit cleanup and handler removal.
 		id, accepted := handler.AddValue(current.store)
 		if !accepted {
-			release()
-			release = nil
+			lease.release()
+			lease = nil
 			continue
 		}
 		valueID = id
-		clearCallback = handler.AddValueRemovedCallback(valueID, release)
+		clearCallback = handler.AddValueRemovedCallback(valueID, lease.release)
 		handler.MarkIdle(true)
 	}
 }

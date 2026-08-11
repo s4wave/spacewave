@@ -25,8 +25,10 @@ import (
 // bytesTransport serves Fetch calls from a fixed byte slice, optionally
 // counting and gating calls for fault-injection style tests.
 type bytesTransport struct {
-	data  []byte
-	mu    sync.Mutex
+	data []byte
+	// mtx guards calls and the injected Fetch hooks.
+	mtx sync.Mutex
+	// bcast wakes tests waiting for another Fetch call.
 	bcast broadcast.Broadcast
 	// calls records each (off, len) pair.
 	calls []fetchCall
@@ -46,12 +48,12 @@ func (t *bytesTransport) Fetch(_ context.Context, off int64, length int) ([]byte
 	var fn func()
 	var rewrite func(call int, off int64, data []byte) []byte
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		t.mu.Lock()
+		t.mtx.Lock()
 		t.calls = append(t.calls, fetchCall{off: off, length: length})
 		call = len(t.calls)
 		fn = t.blockFn
 		rewrite = t.rewriteFn
-		t.mu.Unlock()
+		t.mtx.Unlock()
 		broadcast()
 	})
 	if fn != nil {
@@ -69,21 +71,23 @@ func (t *bytesTransport) Fetch(_ context.Context, off int64, length int) ([]byte
 }
 
 func (t *bytesTransport) callCount() int {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
 	return len(t.calls)
 }
 
 func (t *bytesTransport) callAt(i int) fetchCall {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
 	return t.calls[i]
 }
 
 // writebackStore records PutBlock calls for testing co-block writeback.
 type writebackStore struct {
 	block.StoreOps
-	mu    sync.Mutex
+	// mtx guards puts.
+	mtx sync.Mutex
+	// bcast wakes tests waiting for another PutBlock call.
 	bcast broadcast.Broadcast
 	puts  []*block.PutBatchEntry
 	// blockFn optionally gates PutBlock for concurrency tests.
@@ -110,9 +114,9 @@ func (w *writebackStore) PutBlock(ctx context.Context, data []byte, opts *block.
 	if err != nil {
 		return nil, false, err
 	}
-	w.mu.Lock()
+	w.mtx.Lock()
 	w.puts = append(w.puts, &block.PutBatchEntry{Ref: ref, Data: bytes.Clone(data)})
-	w.mu.Unlock()
+	w.mtx.Unlock()
 	w.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
 	})
@@ -120,8 +124,8 @@ func (w *writebackStore) PutBlock(ctx context.Context, data []byte, opts *block.
 }
 
 func (w *writebackStore) putCount() int {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
 	return len(w.puts)
 }
 
@@ -129,9 +133,9 @@ func (t *bytesTransport) callCountAtLeast(want int) (bool, <-chan struct{}) {
 	var ready bool
 	var waitCh <-chan struct{}
 	t.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		t.mu.Lock()
+		t.mtx.Lock()
 		ready = len(t.calls) >= want
-		t.mu.Unlock()
+		t.mtx.Unlock()
 		if !ready {
 			waitCh = getWaitCh()
 		}
@@ -143,9 +147,9 @@ func (w *writebackStore) putCountAtLeast(want int) (bool, <-chan struct{}) {
 	var ready bool
 	var waitCh <-chan struct{}
 	w.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-		w.mu.Lock()
+		w.mtx.Lock()
 		ready = len(w.puts) >= want
-		w.mu.Unlock()
+		w.mtx.Unlock()
 		if !ready {
 			waitCh = getWaitCh()
 		}
@@ -415,8 +419,8 @@ func TestPackfileStoreUpdateManifestFiltersSupersededAndEvictsEngines(t *testing
 			t.Fatalf("active manifest id=%q want pack-b", store.manifest[0].GetId())
 		}
 	})
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mtx.Lock()
+	defer store.mtx.Unlock()
 	if _, ok := store.engines["pack-b"]; !ok {
 		t.Fatal("active engine pack-b was evicted")
 	}
@@ -1191,8 +1195,8 @@ func TestPackfileStoreCoBlockWriteback(t *testing.T) {
 		t.Fatalf("expected %d co-block writebacks, got %d", len(ordered), wb.putCount())
 	}
 
-	wb.mu.Lock()
-	defer wb.mu.Unlock()
+	wb.mtx.Lock()
+	defer wb.mtx.Unlock()
 	gotKeys := make(map[string][]byte, len(wb.puts))
 	for _, p := range wb.puts {
 		gotKeys[p.Ref.GetHash().MarshalString()] = p.Data
@@ -1784,9 +1788,9 @@ func TestPackfileStoreCloseDrainsVerificationBeforeReleasingReferences(t *testin
 
 	store := NewPackfileStore(nil, cache)
 	store.SetWriteback(t.Context(), writeback, 64)
-	store.mu.Lock()
+	store.mtx.Lock()
 	store.engines[eng.packID] = eng
-	store.mu.Unlock()
+	store.mtx.Unlock()
 
 	closeDone := make(chan struct{})
 	go func() {
@@ -1816,8 +1820,8 @@ func TestPackfileStoreCloseDrainsVerificationBeforeReleasingReferences(t *testin
 			t.Fatalf("engine retained work or references after Close: queued=%d running=%d", eng.verifyQueued, eng.verifyRunning)
 		}
 	})
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.mtx.Lock()
+	defer store.mtx.Unlock()
 	if store.cache != nil || store.writebackTarget != nil || store.verifyQueue != nil || store.engines != nil {
 		t.Fatal("store retained cache, writeback, queue, or engine references after Close")
 	}

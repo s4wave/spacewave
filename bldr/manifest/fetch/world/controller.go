@@ -24,15 +24,14 @@ var Version = controller.MustParseVersion("0.0.1")
 
 // Controller fetches Manifests via world lookups.
 type Controller struct {
-	// le is the root logger
+	// le is the controller logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus resolves the configured World engine.
 	bus bus.Bus
-	// conf is the config
+	// conf selects manifest roots and IDs.
 	conf *Config
-	// fetchManifestIdRe is the parsed regex to filter manifest by.
-	// if nil, accepts any
-	fetchManifestIdRe *regexp.Regexp
+	// fetchManifestIDRe filters requested manifest IDs; nil accepts every ID.
+	fetchManifestIDRe *regexp.Regexp
 
 	// mtx guards the collection lifecycle and snapshot.
 	mtx sync.Mutex
@@ -81,14 +80,13 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) *Controller {
-	// note: checked in Validate()
-	manifestIdRe, _ := conf.ParseFetchManifestIdRe()
+	manifestIDRe, _ := conf.ParseFetchManifestIdRe()
 	collectionCtx, collectionCancel := context.WithCancel(context.Background())
 	return &Controller{
 		le:                le,
 		bus:               bus,
 		conf:              conf,
-		fetchManifestIdRe: manifestIdRe,
+		fetchManifestIDRe: manifestIDRe,
 		collectionCtx:     collectionCtx,
 		collectionCancel:  collectionCancel,
 		resolvers:         make(map[*fetchManifestResolver]struct{}),
@@ -106,35 +104,24 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the controller.
 // Returning nil ends execution.
-func (c *Controller) Execute(rctx context.Context) (rerr error) {
+func (c *Controller) Execute(context.Context) error {
 	return nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
 func (c *Controller) HandleDirective(
-	ctx context.Context,
+	_ context.Context,
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
-	switch d := inst.GetDirective().(type) {
+	switch dir := inst.GetDirective().(type) {
 	case manifest.FetchManifest:
-		return directive.R(c.resolveFetchManifest(ctx, inst, d))
-	}
-	return nil, nil
-}
-
-// resolveFetchManifest resolves a FetchManifest directive.
-func (c *Controller) resolveFetchManifest(
-	ctx context.Context,
-	di directive.Instance,
-	dir manifest.FetchManifest,
-) (directive.Resolver, error) {
-	if c.fetchManifestIdRe != nil && dir.GetManifestId() != "" {
-		if !c.fetchManifestIdRe.MatchString(dir.GetManifestId()) {
+		if c.fetchManifestIDRe != nil && dir.GetManifestId() != "" &&
+			!c.fetchManifestIDRe.MatchString(dir.GetManifestId()) {
 			return nil, nil
 		}
+		return directive.R(&fetchManifestResolver{c: c, dir: dir}, nil)
 	}
-
-	return &fetchManifestResolver{c: c, dir: dir}, nil
+	return nil, nil
 }
 
 // collectManifests returns the immutable manifest map for the current World

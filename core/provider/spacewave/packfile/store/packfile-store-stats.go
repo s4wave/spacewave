@@ -94,14 +94,14 @@ const bloomFalsePositiveRiskThreshold = 0.01
 
 // SnapshotStats returns aggregate store state across all open engines.
 func (s *PackfileStore) SnapshotStats() PackfileStoreStats {
-	s.mu.Lock()
+	s.mtx.Lock()
 	engines := s.snapshotEnginesLocked()
 	writebackWindow := s.writebackWindow
 	residentByteBudget := s.maxBytes
 	indexPromotionSet := s.tuningOverrides.indexPromotionSet
 	indexPromotionValue := s.tuningOverrides.indexPromotion
 	stats := s.stats
-	s.mu.Unlock()
+	s.mtx.Unlock()
 
 	var entries []*packfile.PackfileEntry
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -244,10 +244,10 @@ func manifestEntryBloomFilter(entry *packfile.PackfileEntry) *bloom.Filter {
 
 // SnapshotEngineStats returns per-engine stats keyed by manifest pack id.
 func (s *PackfileStore) SnapshotEngineStats() map[string]PackReaderStats {
-	s.mu.Lock()
+	s.mtx.Lock()
 	engines := make(map[string]*PackReader, len(s.engines))
 	maps.Copy(engines, s.engines)
-	s.mu.Unlock()
+	s.mtx.Unlock()
 
 	stats := make(map[string]PackReaderStats, len(engines))
 	for id, e := range engines {

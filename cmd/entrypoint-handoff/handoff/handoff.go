@@ -33,39 +33,70 @@ const (
 	manifestPackMetadataFilename = "manifest-pack.bin"
 )
 
-// Args contains entrypoint handoff command flags.
+// Args configures the entrypoint-handoff command.
 type Args struct {
-	Version                   string
-	Rev                       string
-	Tag                       string
-	ReleaseEnvironment        string
-	GitSHA                    string
-	RunID                     string
-	RunAttempt                string
-	SourceRepo                string
-	Workflow                  string
-	PlatformsCSV              string
-	OutDir                    string
-	BrowserStagingDir         string
-	StaticManifestPath        string
-	CLIArtifactsDir           string
-	ReactDev                  bool
-	SkipNotarize              bool
-	IncludeBrowser            bool
-	BrowserOnly               bool
-	WriteHandoffManifest      bool
-	WriteCLIHandoffManifest   bool
-	SkipBuild                 bool
-	SkipPackage               bool
-	StageBuildInputs          bool
-	ManifestPackProduce       bool
+	// Version is the release version recorded in staged handoff manifests.
+	Version string
+	// Rev is the release revision recorded in staged handoff manifests.
+	Rev string
+	// Tag is the release tag recorded in staged handoff manifests.
+	Tag string
+	// ReleaseEnvironment identifies the target release environment.
+	ReleaseEnvironment string
+	// GitSHA identifies the source revision recorded in staged artifacts.
+	GitSHA string
+	// RunID identifies the release workflow run.
+	RunID string
+	// RunAttempt identifies the attempt within the release workflow run.
+	RunAttempt string
+	// SourceRepo identifies the source repository for the release.
+	SourceRepo string
+	// Workflow identifies the release workflow.
+	Workflow string
+	// PlatformsCSV lists desktop target platforms separated by commas.
+	PlatformsCSV string
+	// OutDir is the directory receiving staged handoff artifacts.
+	OutDir string
+	// BrowserStagingDir is the browser staging tree recorded in a handoff manifest.
+	BrowserStagingDir string
+	// StaticManifestPath is the static-manifest.ts path recorded in a handoff manifest.
+	StaticManifestPath string
+	// CLIArtifactsDir is the public CLI artifact directory for a CLI handoff manifest.
+	CLIArtifactsDir string
+	// ReactDev builds browser entrypoints in development mode.
+	ReactDev bool
+	// SkipNotarize skips Apple notarization during desktop packaging.
+	SkipNotarize bool
+	// IncludeBrowser includes browser outputs in a desktop handoff.
+	IncludeBrowser bool
+	// BrowserOnly builds and stages only browser outputs.
+	BrowserOnly bool
+	// WriteHandoffManifest writes an entrypoint-handoff manifest and exits.
+	WriteHandoffManifest bool
+	// WriteCLIHandoffManifest writes a CLI handoff manifest and exits.
+	WriteCLIHandoffManifest bool
+	// SkipBuild packages existing helper and entrypoint artifacts.
+	SkipBuild bool
+	// SkipPackage leaves built artifacts unpackaged.
+	SkipPackage bool
+	// StageBuildInputs stages raw build inputs in OutDir.
+	StageBuildInputs bool
+	// ManifestPackProduce produces one manifest-pack artifact and exits.
+	ManifestPackProduce bool
+	// ManifestPackImportDirsCSV lists manifest-pack artifact directories separated by commas.
 	ManifestPackImportDirsCSV string
-	ManifestID                string
-	ManifestPlatformID        string
-	ManifestObjectKey         string
+	// ManifestID identifies the produced manifest-pack manifest.
+	ManifestID string
+	// ManifestPlatformID identifies the produced manifest-pack platform.
+	ManifestPlatformID string
+	// ManifestObjectKey identifies the produced manifest-pack bundle object.
+	ManifestObjectKey string
+	// ManifestLinkObjectKeysCSV lists produced manifest-pack link object keys separated by commas.
 	ManifestLinkObjectKeysCSV string
-	ManifestProducerTarget    string
-	ManifestCacheSchema       string
+	// ManifestProducerTarget identifies the producer build target.
+	ManifestProducerTarget string
+	// ManifestCacheSchema identifies the producer cache schema.
+	ManifestCacheSchema string
 }
 
 // FillDefaults fills default argument values.

@@ -38,24 +38,24 @@ const ControllerID = "bldr/manifest/builder/controller"
 
 // Controller is the builder controller.
 type Controller struct {
-	// le is the root logger
+	// le is the controller logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus loads the configured manifest builder.
 	bus bus.Bus
-	// c is the controller config
+	// c selects the manifest builder configuration.
 	c *Config
-	// pluginBuildLimiter bounds concurrent whole-plugin build attempts
+	// pluginBuildLimiter bounds whole-plugin build attempts.
 	pluginBuildLimiter *PluginBuildLimiter
-	// resultPromise contains the result of the compilation.
+	// resultPromise reports the current build result.
 	resultPromise *promise.PromiseContainer[*bldr_manifest_builder.BuilderResult]
-	// subManifestBuilderTrackers track building sub-manifests
+	// subManifestBuilderTrackers manage watched sub-manifest builders.
 	subManifestBuilderTrackers *keyed.Keyed[string, *subManifestBuilderTracker]
 
-	// lifecycleMtx guards lifecycle status fields
-	lifecycleMtx sync.Mutex
-	// lifecycleSink consumes lifecycle status events
+	// mtx guards lifecycleSink and lifecycleStatus.
+	mtx sync.Mutex
+	// lifecycleSink receives the latest lifecycle status.
 	lifecycleSink ManifestBuilderLifecycleSink
-	// lifecycleStatus is the last lifecycle status
+	// lifecycleStatus is the latest lifecycle status.
 	lifecycleStatus ManifestBuilderLifecycleStatus
 }
 
@@ -102,10 +102,10 @@ func (c *Controller) GetResultPromise() *promise.PromiseContainer[*bldr_manifest
 
 // SetManifestBuilderLifecycleSink sets the lifecycle status sink.
 func (c *Controller) SetManifestBuilderLifecycleSink(sink ManifestBuilderLifecycleSink) {
-	c.lifecycleMtx.Lock()
+	c.mtx.Lock()
 	c.lifecycleSink = sink
 	status := c.lifecycleStatus
-	c.lifecycleMtx.Unlock()
+	c.mtx.Unlock()
 	if sink != nil {
 		sink.SetManifestBuilderLifecycleStatus(status)
 	}
@@ -224,8 +224,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Passed as an immutable snapshot to the watcher goroutine.
 	var manifestDepSnapshot map[string]*bucket.ObjectRef
 
-	// TODO: We do not increment the manifest revision when hot reloading.
-	// TODO: Should that be done here?
 	watchManifestIDs := c.c.GetWatchManifestIds()
 
 	for {
@@ -292,10 +290,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 					WithField("resolved-refs", len(buildManifestDepRefs)).
 					Debug("resolved manifest dep refs for watching")
 			}
-			// construct the builder host which will set the restartFn when necessary
+			// The restart callback binds every nested manifest tracker to this attempt.
 			builderHost := newBuildManifestHost(c, builderConfig, attempt.restart)
-
-			// update restartFn on any existing manifest trackers
 			for _, prevSubManifestTracker := range c.subManifestBuilderTrackers.GetKeysWithData() {
 				tkr := prevSubManifestTracker.Data
 				tkr.build.prepareParentAttempt(attempt.restart)
@@ -384,7 +380,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 			return err
 		}
 
-		// NOTE: prevResult is the most recent result iif err == nil
+		// publishResult preserves prevResult after a successful build.
 		inputFiles := buildOwner.prevResult.GetInputManifest().GetFiles()
 		if err == nil {
 			le.Debugf("input manifest returned with %d files", len(inputFiles))
@@ -716,10 +712,10 @@ func (c *Controller) Close() error {
 var _ controller.Controller = (*Controller)(nil)
 
 func (c *Controller) setLifecycleStatus(status ManifestBuilderLifecycleStatus) {
-	c.lifecycleMtx.Lock()
+	c.mtx.Lock()
 	c.lifecycleStatus = status
 	sink := c.lifecycleSink
-	c.lifecycleMtx.Unlock()
+	c.mtx.Unlock()
 	if sink != nil {
 		sink.SetManifestBuilderLifecycleStatus(status)
 	}

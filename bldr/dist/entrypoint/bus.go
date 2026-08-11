@@ -144,7 +144,7 @@ func BuildDistBus(
 	pluginsDistRoot := filepath.Join(pluginsRoot, "d")
 	pluginsStateRoot := filepath.Join(pluginsRoot, "s")
 
-	// HACK: we cannot create paths on the web platform
+	// Web distribution platforms do not create local plugin-state paths.
 	if !isWebDistPlatform(platformID) {
 		if err := os.MkdirAll(pluginsDistRoot, 0o755); err != nil {
 			rel()
@@ -252,8 +252,8 @@ func BuildDistBus(
 		return nil, err
 	}
 
-	// apply the dist bucket config to the node storage
-	// note: make sure this matches dist compiler at create the embedded manifests world part
+	// NewDistBucketConfig and the distribution compiler share the embedded
+	// manifest bucket schema.
 	distBundleBucketConf, err := bldr_dist.NewDistBucketConfig(projectID)
 	if err != nil {
 		rel()
@@ -451,6 +451,7 @@ func BuildDistBus(
 	return distBus, nil
 }
 
+// newReleaseSchedulerConfig keeps entrypoint-mounted buckets authoritative.
 func newReleaseSchedulerConfig(
 	projectID,
 	engineID,

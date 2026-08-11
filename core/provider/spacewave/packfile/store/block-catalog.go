@@ -110,7 +110,7 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 		e.indexLoadCh = make(chan struct{})
 		waitCh = e.indexLoadCh
 		cache = e.indexCache
-		e.workWg.Add(1)
+		e.workCount++
 		started = true
 	})
 	if closed {
@@ -140,7 +140,7 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 // startIndexLoad loads and publishes the pack index under the PackReader lifetime.
 func (e *PackReader) startIndexLoad(cache IndexCache) {
 	startOwnerWork(func() {
-		defer e.workWg.Done()
+		defer e.finishOwnerWork()
 
 		var tail []byte
 		var entries []*kvfile.IndexEntry

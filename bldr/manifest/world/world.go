@@ -66,7 +66,6 @@ func CreateManifestStore(ctx context.Context, ws world.WorldState, objKey string
 		return false, nil
 	}
 
-	// TODO: manifest store object contents ?
 	_, err = ws.CreateObject(ctx, objKey, nil)
 	if err != nil {
 		return false, err
@@ -1373,10 +1372,8 @@ func CollectManifestsForManifestID(
 	filterPlatformIDs []string,
 	objKeys ...string,
 ) ([]*CollectedManifest, []error, error) {
-	// TODO: How do we filter properly for a label?
-	// - Use FilterContext to filter for label: empty string and/or manifest ID.
-	// - Unsure how to implement this with cayley currently.
-	// - For now, just filter after the fact.
+	// CollectManifests traverses every reachable manifest before this lookup
+	// selects one manifest ID from its result map.
 	manifests, manifestErrs, err := CollectManifests(ctx, ws, filterPlatformIDs, objKeys...)
 	if err != nil {
 		return nil, manifestErrs, err

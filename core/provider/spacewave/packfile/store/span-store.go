@@ -58,7 +58,7 @@ func (e *PackReader) fetchMiss(ctx context.Context, off, readEnd int64) error {
 			}
 			load = &fetchLoad{done: make(chan struct{})}
 			e.loading[key] = load
-			e.workWg.Add(1)
+			e.workCount++
 			started = true
 			notifyStart = e.statsChanged
 		})
@@ -171,7 +171,7 @@ func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
 			}
 			load = &fetchLoad{done: make(chan struct{})}
 			e.loading[key] = load
-			e.workWg.Add(1)
+			e.workCount++
 			started = true
 			notifyStart = e.statsChanged
 		})
@@ -224,7 +224,7 @@ func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
 // startFetch runs one transport request under the PackReader lifetime.
 func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, indexTail bool) {
 	startOwnerWork(func() {
-		defer e.workWg.Done()
+		defer e.finishOwnerWork()
 
 		data, err := e.transport.Fetch(e.ctx, key.off, key.size)
 		var sp *span
