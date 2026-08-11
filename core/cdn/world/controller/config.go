@@ -37,6 +37,9 @@ func (c *Config) Validate() error {
 	if c.GetWritebackWindowBytes() < 0 {
 		return errors.New("writeback_window_bytes cannot be negative")
 	}
+	if c.GetSuppliedBlockStoreId() != "" && c.GetCacheBlockStoreId() != "" {
+		return errors.New("supplied_block_store_id and cache_block_store_id are mutually exclusive")
+	}
 	return nil
 }
 

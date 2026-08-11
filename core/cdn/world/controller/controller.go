@@ -29,22 +29,30 @@ var Version = controller.MustParseVersion("0.0.1")
 
 const missingHeadRetryDelay = time.Second
 
+const releaseWorldEngineID = "spacewave-release-world"
+
+// ReleaseBlockStoreID identifies the block store shared by Release World
+// metadata reads and release-manifest bucket reads.
+const ReleaseBlockStoreID = "spacewave-release-cdn"
+
 // Controller exposes a read-only CDN-backed world engine.
 type Controller struct {
-	le     *logrus.Entry
-	b      bus.Bus
-	conf   *Config
-	engine *cdn_sharedobject.WorldEngine
-	ctr    *ccontainer.CContainer[world.Engine]
+	le       *logrus.Entry
+	b        bus.Bus
+	conf     *Config
+	engine   *cdn_sharedobject.WorldEngine
+	ctr      *ccontainer.CContainer[world.Engine]
+	storeCtr *ccontainer.CContainer[*blockStoreAuthority]
 }
 
 // NewController builds a new CDN world controller.
 func NewController(le *logrus.Entry, b bus.Bus, conf *Config) *Controller {
 	return &Controller{
-		le:   le.WithField("engine-id", conf.GetEngineId()),
-		b:    b,
-		conf: conf,
-		ctr:  ccontainer.NewCContainer[world.Engine](nil),
+		le:       le.WithField("engine-id", conf.GetEngineId()),
+		b:        b,
+		conf:     conf,
+		ctr:      ccontainer.NewCContainer[world.Engine](nil),
+		storeCtr: ccontainer.NewCContainer[*blockStoreAuthority](nil),
 	}
 }
 
@@ -53,7 +61,36 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(ControllerID, Version, "CDN world controller: "+c.conf.GetEngineId())
 }
 
-func (c *Controller) newBlockStore(ctx context.Context) (*cdn_bstore.CdnBlockStore, func(), error) {
+// ownsBlockStore reports whether this controller holds the CDN transport and
+// therefore the LookupBlockStore authority for its Space.
+func (c *Controller) ownsBlockStore() bool {
+	return c.conf.GetSuppliedBlockStoreId() == ""
+}
+
+// newBlockStore builds the Release World block read path.
+//
+// With supplied_block_store_id set the reads traverse that bus block store and
+// no CDN transport is opened here; the root pointer is still fetched so the
+// mount can build its world head.
+func (c *Controller) newBlockStore(ctx context.Context) (cdn_bstore.RootBlockStore, func(), error) {
+	if suppliedID := c.conf.GetSuppliedBlockStoreId(); suppliedID != "" {
+		suppliedStore, _, suppliedRef, err := block_store.ExLookupFirstBlockStore(ctx, c.b, suppliedID, false, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		store, err := cdn_bstore.NewSuppliedBlockStore(cdn_bstore.SuppliedOptions{
+			CdnBaseURL: c.conf.GetCdnBaseUrl(),
+			SpaceID:    c.conf.GetSpaceId(),
+			HttpClient: http.DefaultClient,
+			Store:      suppliedStore,
+		})
+		if err != nil {
+			suppliedRef.Release()
+			return nil, nil, err
+		}
+		return store, suppliedRef.Release, nil
+	}
+
 	pointerTTL, _ := c.conf.ParsePointerTTLDur()
 	cacheID := c.conf.GetCacheBlockStoreId()
 	var indexCache packfile_store.IndexCache
@@ -119,6 +156,19 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 	defer releaseStore()
+	if c.ownsBlockStore() {
+		storeID := c.conf.GetSpaceId()
+		if c.conf.GetEngineId() == releaseWorldEngineID {
+			storeID = ReleaseBlockStoreID
+		}
+		authority := newBlockStoreAuthority(block_store.NewStore(storeID, store))
+		c.storeCtr.SetValue(authority)
+		defer func() {
+			authority.withdraw()
+			c.storeCtr.SetValue(nil)
+			authority.wait()
+		}()
+	}
 	so, err := cdn_sharedobject.NewCdnSharedObject(cdn_sharedobject.CdnSharedObjectOptions{
 		SpaceID:    c.conf.GetSpaceId(),
 		BlockStore: store,
@@ -153,14 +203,27 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 // HandleDirective asks if the handler can resolve the directive.
 func (c *Controller) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
-	dir, ok := di.GetDirective().(world.LookupWorldEngine)
-	if !ok {
+	switch dir := di.GetDirective().(type) {
+	case world.LookupWorldEngine:
+		if id := dir.LookupWorldEngineID(); id != "" && id != c.conf.GetEngineId() {
+			return nil, nil
+		}
+		return directive.R(world.NewWorldEngineResolver(c))
+	case block_store.LookupBlockStore:
+		// A supplied-store mount reads through another owner's block store, so
+		// answering here would publish a second provider for the same id.
+		if !c.ownsBlockStore() {
+			return nil, nil
+		}
+		id := dir.LookupBlockStoreId()
+		if id != "" && id != c.conf.GetSpaceId() &&
+			(id != ReleaseBlockStoreID || c.conf.GetEngineId() != releaseWorldEngineID) {
+			return nil, nil
+		}
+		return directive.R(&blockStoreResolver{ctr: c.storeCtr}, nil)
+	default:
 		return nil, nil
 	}
-	if id := dir.LookupWorldEngineID(); id != "" && id != c.conf.GetEngineId() {
-		return nil, nil
-	}
-	return directive.R(world.NewWorldEngineResolver(c))
 }
 
 // GetWorldEngine waits for the engine to be built.

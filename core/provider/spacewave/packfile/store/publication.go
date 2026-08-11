@@ -37,6 +37,9 @@ retry:
 		var invalidated bool
 
 		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if e.closed {
+				return
+			}
 			rec = e.lookupBlockLocked(keyStr)
 			if rec == nil {
 				return
@@ -79,6 +82,8 @@ retry:
 			select {
 			case <-ctx.Done():
 				return nil, false, ctx.Err()
+			case <-e.ctx.Done():
+				return nil, false, context.Canceled
 			case <-readyCh:
 				continue
 			}
@@ -122,6 +127,9 @@ retry:
 	var verifyBeforeServe bool
 	var verifyJobs []func()
 	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if e.closed {
+			return
+		}
 		for _, entry := range contained {
 			off := int64(entry.GetOffset())
 			end := off + int64(entry.GetSize())
@@ -178,6 +186,8 @@ retry:
 	case <-readyCh:
 	case <-ctx.Done():
 		return nil, false, ctx.Err()
+	case <-e.ctx.Done():
+		return nil, false, context.Canceled
 	}
 	goto retry
 }
@@ -221,6 +231,15 @@ func (e *PackReader) statBlock(ctx context.Context, key []byte, ref *block.Block
 // is enabled. On mismatch the record transitions to Failed and is removed
 // from the catalog so a later read can retry transport.
 func (e *PackReader) verifyBlock(rec *blockRecord) {
+	var closed bool
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		closed = e.closed
+	})
+	if closed {
+		e.finishVerify(rec, context.Canceled, nil)
+		return
+	}
+
 	data, err := rec.readBytes()
 	if err != nil {
 		e.finishVerify(rec, err, nil)
@@ -243,8 +262,10 @@ func (e *PackReader) verifyBlock(rec *blockRecord) {
 	var target block.StoreOps
 	var wbCtx context.Context
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		target = e.writebackTarget
-		wbCtx = e.writebackCtx
+		if !e.closed {
+			target = e.writebackTarget
+			wbCtx = e.writebackCtx
+		}
 	})
 	if target != nil && wbCtx != nil {
 		_, _, writeErr = target.PutBlock(wbCtx, data, &block.PutOpts{

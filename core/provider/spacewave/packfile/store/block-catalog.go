@@ -87,11 +87,20 @@ func (b *blockRecord) readBytes() ([]byte, error) {
 // After a successful load any block already fully covered by resident spans is
 // promoted into the block catalog and enqueued for verification.
 func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
-	var leader bool
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	var loaded, closed, started bool
 	var waitCh chan struct{}
 	var cache IndexCache
 	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if e.closed {
+			closed = true
+			return
+		}
 		if e.indexLoaded {
+			loaded = true
 			return
 		}
 		if e.indexLoadCh != nil {
@@ -99,74 +108,91 @@ func (e *PackReader) ensureIndexLoaded(ctx context.Context) error {
 			return
 		}
 		e.indexLoadCh = make(chan struct{})
-		leader = true
+		waitCh = e.indexLoadCh
 		cache = e.indexCache
+		e.workWg.Add(1)
+		started = true
 	})
-
-	if !leader {
-		if waitCh == nil {
-			return nil
-		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-waitCh:
-		}
-		var err error
-		e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			err = e.indexLoadErr
-		})
-		return err
+	if closed {
+		return context.Canceled
+	}
+	if loaded {
+		return nil
+	}
+	if started {
+		e.startIndexLoad(cache)
 	}
 
-	var tail []byte
-	var entries []*kvfile.IndexEntry
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-e.ctx.Done():
+		return context.Canceled
+	case <-waitCh:
+	}
 	var err error
-	if cache != nil {
-		cached, ok, cacheErr := cache.Get(ctx, e.packID)
-		if cacheErr != nil {
-			e.recordIndexCacheReadError()
-		} else if ok {
-			entries, cacheErr = e.parseIndexTail(cached)
+	e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		err = e.indexLoadErr
+	})
+	return err
+}
+
+// startIndexLoad loads and publishes the pack index under the PackReader lifetime.
+func (e *PackReader) startIndexLoad(cache IndexCache) {
+	startOwnerWork(func() {
+		defer e.workWg.Done()
+
+		var tail []byte
+		var entries []*kvfile.IndexEntry
+		var err error
+		if cache != nil {
+			cached, ok, cacheErr := cache.Get(e.ctx, e.packID)
 			if cacheErr != nil {
 				e.recordIndexCacheReadError()
-			}
-			if cacheErr == nil {
-				e.recordIndexCacheHit()
-			}
-		} else {
-			e.recordIndexCacheMiss()
-		}
-	}
-	if entries == nil {
-		before := e.snapshotFetchedBytes()
-		tail, entries, err = e.readIndexTailEntries(ctx)
-		e.recordRemoteIndexLoad(e.snapshotFetchedBytes() - before)
-		if err == nil && cache != nil {
-			if cacheErr := cache.Set(ctx, e.packID, tail); cacheErr != nil {
-				e.recordIndexCacheWriteError()
+			} else if ok {
+				entries, cacheErr = e.parseIndexTail(cached)
+				if cacheErr != nil {
+					e.recordIndexCacheReadError()
+				}
+				if cacheErr == nil {
+					e.recordIndexCacheHit()
+				}
+			} else {
+				e.recordIndexCacheMiss()
 			}
 		}
-	}
+		if entries == nil {
+			before := e.snapshotFetchedBytes()
+			tail, entries, err = e.readIndexTailEntries(e.ctx)
+			e.recordRemoteIndexLoad(e.snapshotFetchedBytes() - before)
+			if err == nil && cache != nil {
+				if cacheErr := cache.Set(e.ctx, e.packID, tail); cacheErr != nil {
+					e.recordIndexCacheWriteError()
+				}
+			}
+		}
 
-	var verifyJobs []func()
-	e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		loadCh := e.indexLoadCh
-		if err == nil {
-			verifyJobs = e.setIndexEntriesLocked(entries)
-			e.indexLoaded = true
-		} else {
-			e.indexLoaded = false
-		}
-		e.indexLoadErr = err
-		e.indexLoadCh = nil
-		if loadCh != nil {
-			close(loadCh)
-		}
-		broadcast()
+		var verifyJobs []func()
+		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			loadCh := e.indexLoadCh
+			if e.closed {
+				err = context.Canceled
+			}
+			if err == nil {
+				verifyJobs = e.setIndexEntriesLocked(entries)
+				e.indexLoaded = true
+			} else {
+				e.indexLoaded = false
+			}
+			e.indexLoadErr = err
+			e.indexLoadCh = nil
+			if loadCh != nil {
+				close(loadCh)
+			}
+			broadcast()
+		})
+		e.enqueueVerifyJobs(verifyJobs)
 	})
-	e.enqueueVerifyJobs(verifyJobs)
-	return err
 }
 
 func (e *PackReader) snapshotFetchedBytes() int64 {

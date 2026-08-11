@@ -22,6 +22,7 @@ import (
 	packedmsg "github.com/s4wave/spacewave/bldr/util/packedmsg"
 	"github.com/s4wave/spacewave/core/cdn"
 	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/core/provider/spacewave/packfile/writer"
 )
 
@@ -471,6 +472,92 @@ func TestCdnBlockStoreOwnsDecodedBlockCache(t *testing.T) {
 	bs.Close()
 	if bs.GetDecodedBlockCache() != nil {
 		t.Fatal("expected Close to release decoded-block cache")
+	}
+}
+
+func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
+	pack := buildSinglePack(t, "01kcdnpack0000000000000008", map[string][]byte{"b1": []byte("close refresh")})
+	ptr := &cdn.CdnRootPointer{
+		SpaceId: testSpaceID,
+		Packs: []*packfile.PackfileEntry{{
+			Id:          pack.id,
+			BloomFilter: pack.bloom,
+			BlockCount:  1,
+			SizeBytes:   uint64(len(pack.data)),
+		}},
+	}
+	refreshStarted := make(chan struct{})
+	releaseRefresh := make(chan struct{})
+	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/"+testSpaceID+"/root.packedmsg" {
+			http.NotFound(w, r)
+			return
+		}
+		close(refreshStarted)
+		<-releaseRefresh
+		_, _ = w.Write(encodePointer(t, ptr))
+	}))
+	defer hs.Close()
+
+	bs, err := NewCdnBlockStore(Options{
+		CdnBaseURL: hs.URL,
+		SpaceID:    testSpaceID,
+		HttpClient: hs.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(bs.Close)
+
+	type refreshResult struct {
+		ptr *cdn.CdnRootPointer
+		err error
+	}
+	refreshDone := make(chan refreshResult, 1)
+	go func() {
+		ptr, err := bs.Refresh(t.Context())
+		refreshDone <- refreshResult{ptr: ptr, err: err}
+	}()
+	select {
+	case <-refreshStarted:
+	case <-t.Context().Done():
+		t.Fatalf("Refresh did not reach the root pointer request: %v", t.Context().Err())
+	}
+
+	closeDone := make(chan struct{})
+	go func() {
+		bs.Close()
+		close(closeDone)
+	}()
+	select {
+	case <-closeDone:
+	case <-t.Context().Done():
+		t.Fatalf("Close did not fence blocked Refresh: %v", t.Context().Err())
+	}
+	if bs.Pointer() != nil {
+		t.Fatal("blocked Refresh published a root pointer after Close")
+	}
+	if got := bs.pfs.SnapshotStats().ManifestEntries; got != 0 {
+		t.Fatalf("manifest entries after Close = %d, want 0", got)
+	}
+
+	close(releaseRefresh)
+	select {
+	case result := <-refreshDone:
+		if !errors.Is(result.err, packfile_store.ErrPackfileStoreClosed) {
+			t.Fatalf("Refresh after Close error = %v, want %v", result.err, packfile_store.ErrPackfileStoreClosed)
+		}
+		if result.ptr != nil {
+			t.Fatalf("Refresh after Close pointer = %#v, want nil", result.ptr)
+		}
+	case <-t.Context().Done():
+		t.Fatalf("blocked Refresh did not complete: %v", t.Context().Err())
+	}
+	if bs.Pointer() != nil {
+		t.Fatal("completed Refresh republished a root pointer after Close")
+	}
+	if _, err := bs.Refresh(t.Context()); !errors.Is(err, packfile_store.ErrPackfileStoreClosed) {
+		t.Fatalf("direct Refresh after Close error = %v, want %v", err, packfile_store.ErrPackfileStoreClosed)
 	}
 }
 

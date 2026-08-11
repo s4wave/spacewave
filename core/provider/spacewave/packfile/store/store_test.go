@@ -1722,3 +1722,119 @@ func TestPackfileStoreKeepsPinnedBlocksResident(t *testing.T) {
 	_ = transport
 	close(blocked)
 }
+
+func TestPackfileStoreCloseDrainsVerificationBeforeReleasingReferences(t *testing.T) {
+	firstPut := make(chan struct{})
+	releasePut := make(chan struct{})
+	var putCalls atomic.Int32
+	writeback := newWritebackStore(func() {
+		if putCalls.Add(1) == 1 {
+			close(firstPut)
+			<-releasePut
+		}
+	})
+	cache := newMemIndexCache()
+	eng := NewPackReader("close-verify", 64, &bytesTransport{}, hash.HashType_HashType_SHA256)
+	eng.SetIndexCache(cache)
+	eng.SetWriteback(t.Context(), writeback, 64)
+	eng.SetVerifyQueue(newDefaultVerifyExecutor(1))
+
+	var jobs []func()
+	eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for i, data := range [][]byte{[]byte("first"), []byte("second")} {
+			ref, err := block.BuildBlockRef(data, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sp := newSpan(int64(i*16), defaultTransportPageBytes, data)
+			eng.insertSpanLocked(sp)
+			eng.retainSpansLocked([]*span{sp})
+			rec := &blockRecord{
+				key:       ref.GetHash().MarshalString(),
+				ref:       ref,
+				off:       sp.off,
+				size:      int64(len(data)),
+				spans:     []*span{sp},
+				state:     blockStateVerifying,
+				readyCh:   make(chan struct{}),
+				queued:    true,
+				enqueueAt: time.Now(),
+			}
+			eng.blocks[rec.key] = rec
+			jobs = append(jobs, func() { eng.verifyBlock(rec) })
+		}
+		jobs = eng.prepareVerifyJobsLocked(jobs...)
+	})
+	eng.enqueueVerifyJobs(jobs)
+	<-firstPut
+
+	if !waitFor(t, func() (bool, <-chan struct{}) {
+		var ready bool
+		var waitCh <-chan struct{}
+		eng.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			ready = eng.verifyRunning == 1 && eng.verifyQueued == 1
+			if !ready {
+				waitCh = getWaitCh()
+			}
+		})
+		return ready, waitCh
+	}) {
+		t.Fatal("verification jobs did not reach one running and one queued")
+	}
+
+	store := NewPackfileStore(nil, cache)
+	store.SetWriteback(t.Context(), writeback, 64)
+	store.mu.Lock()
+	store.engines[eng.packID] = eng
+	store.mu.Unlock()
+
+	closeDone := make(chan struct{})
+	go func() {
+		store.Close()
+		close(closeDone)
+	}()
+	<-eng.ctx.Done()
+	select {
+	case <-closeDone:
+		t.Fatal("Close returned while PutBlock was running")
+	default:
+	}
+	eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if eng.indexCache == nil || eng.writebackTarget == nil || eng.verifyQueue == nil {
+			t.Fatal("engine released references before verification drained")
+		}
+	})
+
+	close(releasePut)
+	<-closeDone
+	if got := putCalls.Load(); got != 1 {
+		t.Fatalf("PutBlock calls = %d, want one running job and no queued write after Close", got)
+	}
+	eng.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if eng.verifyQueued != 0 || eng.verifyRunning != 0 || eng.indexCache != nil ||
+			eng.writebackTarget != nil || eng.verifyQueue != nil || eng.blocks != nil || eng.spans != nil {
+			t.Fatalf("engine retained work or references after Close: queued=%d running=%d", eng.verifyQueued, eng.verifyRunning)
+		}
+	})
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	if store.cache != nil || store.writebackTarget != nil || store.verifyQueue != nil || store.engines != nil {
+		t.Fatal("store retained cache, writeback, queue, or engine references after Close")
+	}
+}
+
+func TestPackfileStoreUpdateManifestAfterCloseIgnoresValidBloom(t *testing.T) {
+	_, bloomBytes := buildTestPack(t, map[string][]byte{"block": []byte("data")})
+	store := NewPackfileStore(nil, newMemIndexCache())
+	store.Close()
+
+	store.UpdateManifest([]*packfile.PackfileEntry{{
+		Id:          "closed-pack",
+		BloomFilter: bloomBytes,
+		BlockCount:  1,
+		SizeBytes:   1,
+	}})
+	if got := store.SnapshotStats().ManifestEntries; got != 0 {
+		t.Fatalf("manifest entries after Close = %d, want 0", got)
+	}
+}

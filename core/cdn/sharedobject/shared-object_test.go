@@ -49,6 +49,18 @@ func newTestSharedObject(t *testing.T, seed *sobject.SORoot) *CdnSharedObject {
 	return so
 }
 
+// setTestPointer publishes a root pointer on the shared object's CDN block
+// store. The tests build the shared object over a CdnBlockStore, which owns
+// the pointer; SuppliedBlockStore mounts read the pointer from the CDN.
+func setTestPointer(t *testing.T, so *CdnSharedObject, ptr *alpha_cdn.CdnRootPointer) {
+	t.Helper()
+	bs, ok := so.bs.(*cdn_bstore.CdnBlockStore)
+	if !ok {
+		t.Fatalf("test shared object block store = %T", so.bs)
+	}
+	bs.SetPointer(ptr)
+}
+
 func TestMetadataSurface(t *testing.T) {
 	so := newTestSharedObject(t, nil)
 	if got := so.GetSharedObjectID(); got != testSpaceID {
@@ -130,7 +142,7 @@ func TestSnapshotBeforeAndAfterPointer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	so.bs.SetPointer(&alpha_cdn.CdnRootPointer{
+	setTestPointer(t, so, &alpha_cdn.CdnRootPointer{
 		SpaceId: testSpaceID,
 		Root:    &sobject.SORoot{Inner: soriBytes, InnerSeqno: 7},
 	})
@@ -284,7 +296,7 @@ func TestWorldEnginesBorrowBlockStoreDecodedCache(t *testing.T) {
 
 func TestPackedPointerRejectsUndecodableRoot(t *testing.T) {
 	so := newTestSharedObject(t, nil)
-	so.bs.SetPointer(&alpha_cdn.CdnRootPointer{
+	setTestPointer(t, so, &alpha_cdn.CdnRootPointer{
 		SpaceId: testSpaceID,
 		Root: &sobject.SORoot{
 			Inner:      []byte("not a plaintext SORootInner"),
@@ -388,7 +400,7 @@ func TestHealthSurfaceTracksPointerLifecycle(t *testing.T) {
 		t.Fatalf("expected loading health, got %v", initial.GetStatus())
 	}
 
-	so.bs.SetPointer(&alpha_cdn.CdnRootPointer{
+	setTestPointer(t, so, &alpha_cdn.CdnRootPointer{
 		SpaceId: testSpaceID,
 		Root:    &sobject.SORoot{},
 	})
@@ -415,7 +427,7 @@ func TestHealthSurfaceTracksPointerLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	so.bs.SetPointer(&alpha_cdn.CdnRootPointer{
+	setTestPointer(t, so, &alpha_cdn.CdnRootPointer{
 		SpaceId: testSpaceID,
 		Root:    &sobject.SORoot{Inner: soriBytes, InnerSeqno: 1},
 	})

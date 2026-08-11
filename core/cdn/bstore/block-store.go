@@ -51,8 +51,12 @@ type CdnBlockStore struct {
 	memCache *memIndexCache
 	pfs      *packfile_store.PackfileStore
 
-	decodedBlocks   *block.DecodedBlockCache
-	bcast           broadcast.Broadcast
+	decodedBlocks *block.DecodedBlockCache
+
+	// bcast guards pointer, decoded-cache, writeback, and shutdown state.
+	bcast broadcast.Broadcast
+	// closed prevents a fetched root pointer from publishing after Close.
+	closed          bool
 	pointer         *cdn.CdnRootPointer
 	pointerTime     time.Time
 	pointerEpoch    uint64
@@ -128,23 +132,45 @@ func (s *CdnBlockStore) BeginReadOperation(context.Context) (block.StoreOps, fun
 	return s, func() {}, nil
 }
 
-// Close releases the decoded-block cache owned by this block store.
+// Close fences root publication, then cancels pack transport work and releases
+// the decoded-block cache.
 func (s *CdnBlockStore) Close() {
-	if s.decodedBlocks == nil {
-		return
-	}
-	s.decodedBlocks.Close()
-	s.decodedBlocks = nil
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if s.closed {
+			return
+		}
+		s.closed = true
+		if s.memCache != nil {
+			s.memCache.reset()
+		}
+		s.pointer = nil
+		s.pointerTime = time.Time{}
+		s.pointerEpoch++
+		s.writebackTarget = nil
+		if s.decodedBlocks != nil {
+			s.decodedBlocks.Close()
+			s.decodedBlocks = nil
+		}
+		broadcast()
+	})
+	s.pfs.Close()
 }
 
 // SetWriteback enables local co-block persistence through the underlying
 // packfile store.
 func (s *CdnBlockStore) SetWriteback(ctx context.Context, target block.StoreOps, windowBytes int64) {
-	// Publish writeback configuration and update packfile verification.
+	configured := false
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		if s.closed {
+			return
+		}
 		s.writebackTarget = target
+		configured = true
 		broadcastFn()
 	})
+	if !configured {
+		return
+	}
 	s.pfs.SetWriteback(ctx, target, windowBytes)
 	s.pfs.SetVerifyBeforeServe(target != nil)
 }
@@ -241,18 +267,30 @@ func (s *CdnBlockStore) Pointer() *cdn.CdnRootPointer {
 // Refresh forces a re-fetch of the root pointer and updates the manifest.
 // Returns the new pointer (nil if the CDN Space is empty).
 func (s *CdnBlockStore) Refresh(ctx context.Context) (*cdn.CdnRootPointer, error) {
-	// Fetch and publish the current CDN root pointer.
+	var closed bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		closed = s.closed
+	})
+	if closed {
+		return nil, packfile_store.ErrPackfileStoreClosed
+	}
+
 	ptr, err := FetchRootPointer(ctx, s.cli, s.opts.CdnBaseURL, s.opts.SpaceID)
 	if err != nil {
 		return nil, err
 	}
-	s.setPointer(ctx, ptr)
+	if _, published := s.setPointer(ctx, ptr); !published {
+		return nil, packfile_store.ErrPackfileStoreClosed
+	}
 	return ptr, nil
 }
 
 // Invalidate drops the cached pointer so the next read re-fetches.
 func (s *CdnBlockStore) Invalidate() {
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		if s.closed {
+			return
+		}
 		if s.memCache != nil {
 			s.memCache.reset()
 		}
@@ -280,9 +318,13 @@ func (s *CdnBlockStore) EnsureDecodedBlockCacheFresh(ctx context.Context) error 
 	return err
 }
 
-func (s *CdnBlockStore) setPointer(ctx context.Context, ptr *cdn.CdnRootPointer) uint64 {
+func (s *CdnBlockStore) setPointer(ctx context.Context, ptr *cdn.CdnRootPointer) (uint64, bool) {
 	var epoch uint64
+	var published bool
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
+		if s.closed {
+			return
+		}
 		if s.memCache != nil {
 			s.memCache.reset()
 		}
@@ -300,9 +342,10 @@ func (s *CdnBlockStore) setPointer(ctx context.Context, ptr *cdn.CdnRootPointer)
 		s.pointerTime = time.Now()
 		s.pointerEpoch++
 		epoch = s.pointerEpoch
+		published = true
 		broadcastFn()
 	})
-	return epoch
+	return epoch, published
 }
 
 // ensurePointer returns the cached pointer if fresh, otherwise refreshes.
@@ -316,11 +359,16 @@ func (s *CdnBlockStore) ensurePointer(ctx context.Context) (*cdn.CdnRootPointer,
 	var cached *cdn.CdnRootPointer
 	var fetchedAt time.Time
 	var epoch uint64
+	var closed bool
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		closed = s.closed
 		cached = s.pointer
 		fetchedAt = s.pointerTime
 		epoch = s.pointerEpoch
 	})
+	if closed {
+		return nil, 0, packfile_store.ErrPackfileStoreClosed
+	}
 	if !fetchedAt.IsZero() && (ttl < 0 || time.Since(fetchedAt) < ttl) {
 		return cached, epoch, nil
 	}
@@ -328,7 +376,10 @@ func (s *CdnBlockStore) ensurePointer(ctx context.Context) (*cdn.CdnRootPointer,
 	if err != nil {
 		return nil, 0, err
 	}
-	epoch = s.setPointer(ctx, ptr)
+	epoch, published := s.setPointer(ctx, ptr)
+	if !published {
+		return nil, 0, packfile_store.ErrPackfileStoreClosed
+	}
 	return ptr, epoch, nil
 }
 
