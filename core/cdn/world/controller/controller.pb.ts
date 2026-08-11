@@ -53,6 +53,18 @@ export interface Config {
    * @generated from field: int64 writeback_window_bytes = 6;
    */
   writebackWindowBytes?: bigint
+  /**
+   * SuppliedBlockStoreId reads every block from that block store on the bus
+   * instead of opening a CDN transport for this mount. Set it where another
+   * process already owns the CDN transport, pack readers, index cache, and
+   * durable writeback for this Space and supplies that store over the block
+   * store RPC. The controller fetches the root pointer independently to build
+   * its world head. It resolves no LookupBlockStore because it owns no store.
+   * Mutually exclusive with cache_block_store_id.
+   *
+   * @generated from field: string supplied_block_store_id = 7;
+   */
+  suppliedBlockStoreId?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -73,6 +85,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       name: 'writeback_window_bytes',
       kind: 'scalar',
       T: ScalarType.INT64,
+    },
+    {
+      no: 7,
+      name: 'supplied_block_store_id',
+      kind: 'scalar',
+      T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,

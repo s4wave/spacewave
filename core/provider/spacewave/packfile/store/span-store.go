@@ -13,7 +13,8 @@ import (
 // It returns once the requested offset is resident or an error occurs. Other
 // concurrent callers for overlapping offsets fold onto the same in-flight
 // fetch via the loading map, guaranteeing one transport call per uncovered
-// span.
+// span. Transport work belongs to the PackReader, so canceling the caller
+// that starts a fetch does not cancel another caller waiting for it.
 func (e *PackReader) fetchMiss(ctx context.Context, off, readEnd int64) error {
 	ctx, task := trace.NewTask(ctx, "provider/spacewave/packfile/range-fetch")
 	defer task.End()
@@ -22,12 +23,20 @@ func (e *PackReader) fetchMiss(ctx context.Context, off, readEnd int64) error {
 	trace.Logf(ctx, "target-end", "%d", readEnd)
 
 	for {
-		var leader, resident bool
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		var resident, closed, started bool
 		var key fetchKey
 		var load *fetchLoad
 		var notifyStart func()
 
 		e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if e.closed {
+				closed = true
+				return
+			}
 			if e.findCoveringSpanLocked(off) != nil {
 				resident = true
 				return
@@ -49,12 +58,16 @@ func (e *PackReader) fetchMiss(ctx context.Context, off, readEnd int64) error {
 			}
 			load = &fetchLoad{done: make(chan struct{})}
 			e.loading[key] = load
-			leader = true
+			e.workWg.Add(1)
+			started = true
 			notifyStart = e.statsChanged
 		})
 
 		if notifyStart != nil {
 			notifyStart()
+		}
+		if closed {
+			return context.Canceled
 		}
 		if resident {
 			trace.Log(ctx, "result", "resident")
@@ -64,58 +77,22 @@ func (e *PackReader) fetchMiss(ctx context.Context, off, readEnd int64) error {
 			trace.Log(ctx, "result", "empty-plan")
 			return io.EOF
 		}
-
-		if leader {
+		if started {
 			trace.Log(ctx, "role", "leader")
 			trace.Logf(ctx, "range-offset", "%d", key.off)
 			trace.Logf(ctx, "range-size", "%d", key.size)
-			data, err := e.transport.Fetch(ctx, key.off, key.size)
-			var sp *span
-			if len(data) != 0 {
-				sp = newSpan(key.off, e.pageSize, data)
-			}
-			var notifyDone func()
-			var verifyJobs []func()
-			e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				if e.loading != nil {
-					if lod := e.loading[key]; lod != nil {
-						lod.sp = sp
-						lod.err = err
-						delete(e.loading, key)
-						close(lod.done)
-					}
-				}
-				if err == nil && sp != nil {
-					e.insertSpanLocked(sp)
-					notifyDone = e.recordFetchLocked(key, len(data))
-					verifyJobs = e.promoteBlocksInSpanLocked(sp)
-				}
-				if notifyDone == nil {
-					notifyDone = e.statsChanged
-				}
-				broadcast()
-			})
-			e.enqueueVerifyJobs(verifyJobs)
-			if notifyDone != nil {
-				notifyDone()
-			}
-			if err != nil {
-				trace.Log(ctx, "result", "transport-error")
-				return err
-			}
-			if sp == nil {
-				trace.Log(ctx, "result", "empty-response")
-				return io.EOF
-			}
-			trace.Log(ctx, "result", "fetched")
-			return nil
+			e.startFetch(key, load, false)
+		} else {
+			trace.Log(ctx, "role", "waiter")
 		}
 
-		trace.Log(ctx, "role", "waiter")
 		select {
 		case <-ctx.Done():
 			trace.Log(ctx, "result", "wait-canceled")
 			return ctx.Err()
+		case <-e.ctx.Done():
+			trace.Log(ctx, "result", "owner-canceled")
+			return context.Canceled
 		case <-load.done:
 			if load.err != nil {
 				trace.Log(ctx, "result", "wait-error")
@@ -159,12 +136,20 @@ func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
 	trace.Logf(ctx, "target-end", "%d", readEnd)
 
 	for {
-		var leader, resident bool
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		var resident, closed, started bool
 		var key fetchKey
 		var load *fetchLoad
 		var notifyStart func()
 
 		e.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if e.closed {
+				closed = true
+				return
+			}
 			if e.findCoveringSpanLocked(off) != nil {
 				resident = true
 				return
@@ -186,12 +171,16 @@ func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
 			}
 			load = &fetchLoad{done: make(chan struct{})}
 			e.loading[key] = load
-			leader = true
+			e.workWg.Add(1)
+			started = true
 			notifyStart = e.statsChanged
 		})
 
 		if notifyStart != nil {
 			notifyStart()
+		}
+		if closed {
+			return context.Canceled
 		}
 		if resident {
 			trace.Log(ctx, "result", "resident")
@@ -201,58 +190,22 @@ func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
 			trace.Log(ctx, "result", "empty-plan")
 			return io.EOF
 		}
-
-		if leader {
+		if started {
 			trace.Log(ctx, "role", "leader")
 			trace.Logf(ctx, "range-offset", "%d", key.off)
 			trace.Logf(ctx, "range-size", "%d", key.size)
-			data, err := e.transport.Fetch(ctx, key.off, key.size)
-			var sp *span
-			if len(data) != 0 {
-				sp = newSpan(key.off, e.pageSize, data)
-			}
-			var notifyDone func()
-			var verifyJobs []func()
-			e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				if e.loading != nil {
-					if lod := e.loading[key]; lod != nil {
-						lod.sp = sp
-						lod.err = err
-						delete(e.loading, key)
-						close(lod.done)
-					}
-				}
-				if err == nil && sp != nil {
-					e.insertSpanLocked(sp)
-					notifyDone = e.recordIndexTailFetchLocked(key, len(data))
-					verifyJobs = e.promoteBlocksInSpanLocked(sp)
-				}
-				if notifyDone == nil {
-					notifyDone = e.statsChanged
-				}
-				broadcast()
-			})
-			e.enqueueVerifyJobs(verifyJobs)
-			if notifyDone != nil {
-				notifyDone()
-			}
-			if err != nil {
-				trace.Log(ctx, "result", "transport-error")
-				return err
-			}
-			if sp == nil {
-				trace.Log(ctx, "result", "empty-response")
-				return io.EOF
-			}
-			trace.Log(ctx, "result", "fetched")
-			return nil
+			e.startFetch(key, load, true)
+		} else {
+			trace.Log(ctx, "role", "waiter")
 		}
 
-		trace.Log(ctx, "role", "waiter")
 		select {
 		case <-ctx.Done():
 			trace.Log(ctx, "result", "wait-canceled")
 			return ctx.Err()
+		case <-e.ctx.Done():
+			trace.Log(ctx, "result", "owner-canceled")
+			return context.Canceled
 		case <-load.done:
 			if load.err != nil {
 				trace.Log(ctx, "result", "wait-error")
@@ -266,6 +219,54 @@ func (e *PackReader) fetchExact(ctx context.Context, off, readEnd int64) error {
 			return nil
 		}
 	}
+}
+
+// startFetch runs one transport request under the PackReader lifetime.
+func (e *PackReader) startFetch(key fetchKey, load *fetchLoad, indexTail bool) {
+	startOwnerWork(func() {
+		defer e.workWg.Done()
+
+		data, err := e.transport.Fetch(e.ctx, key.off, key.size)
+		var sp *span
+		if len(data) != 0 {
+			sp = newSpan(key.off, e.pageSize, data)
+		}
+
+		var notifyDone func()
+		var verifyJobs []func()
+		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if e.closed {
+				sp = nil
+				err = context.Canceled
+			}
+			if err == nil && sp != nil {
+				e.insertSpanLocked(sp)
+				if indexTail {
+					notifyDone = e.recordIndexTailFetchLocked(key, len(data))
+				} else {
+					notifyDone = e.recordFetchLocked(key, len(data))
+				}
+				verifyJobs = e.promoteBlocksInSpanLocked(sp)
+			}
+			if notifyDone == nil {
+				notifyDone = e.statsChanged
+			}
+			broadcast()
+		})
+		e.enqueueVerifyJobs(verifyJobs)
+		e.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			load.sp = sp
+			load.err = err
+			if e.loading[key] == load {
+				delete(e.loading, key)
+			}
+			close(load.done)
+			broadcast()
+		})
+		if notifyDone != nil {
+			notifyDone()
+		}
+	})
 }
 
 // planFetchLocked decides what transport window to fetch for a miss at off.

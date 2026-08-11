@@ -296,6 +296,113 @@ func TestHTTPRangeReaderDedupesConcurrentFetch(t *testing.T) {
 	}
 }
 
+type observedDoneContext struct {
+	context.Context
+	done chan struct{}
+	once sync.Once
+}
+
+func (c *observedDoneContext) Done() <-chan struct{} {
+	c.once.Do(func() { close(c.done) })
+	return c.Context.Done()
+}
+
+func TestPackReaderCanceledLeaderDoesNotPoisonWaiter(t *testing.T) {
+	data := []byte("abcdefgh")
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var calls atomic.Int32
+	eng := NewPackReader("cancel-leader", int64(len(data)), TransportFunc(func(ctx context.Context, off int64, length int) ([]byte, error) {
+		if calls.Add(1) == 1 {
+			close(started)
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-release:
+			return bytes.Clone(data[off : off+int64(length)]), nil
+		}
+	}), hash.HashType_HashType_SHA256)
+	t.Cleanup(eng.Close)
+	eng.SetTransportMinWindow(len(data))
+	eng.SetTransportQuantum(len(data))
+	eng.SetTransportMaxWindow(len(data))
+
+	leaderCtx, cancelLeader := context.WithCancel(t.Context())
+	leaderDone := make(chan error, 1)
+	go func() {
+		buf := make([]byte, len(data))
+		_, err := eng.ReaderAt(leaderCtx).ReadAt(buf, 0)
+		leaderDone <- err
+	}()
+	<-started
+
+	waitCtx := &observedDoneContext{Context: t.Context(), done: make(chan struct{})}
+	waiterDone := make(chan error, 1)
+	var waiterData []byte
+	go func() {
+		waiterData = make([]byte, len(data))
+		_, err := eng.ReaderAt(waitCtx).ReadAt(waiterData, 0)
+		waiterDone <- err
+	}()
+	<-waitCtx.done
+
+	cancelLeader()
+	if err := <-leaderDone; !errors.Is(err, context.Canceled) {
+		t.Fatalf("leader error = %v, want context canceled", err)
+	}
+	select {
+	case err := <-waiterDone:
+		t.Fatalf("waiter returned before transport completed: %v", err)
+	default:
+	}
+	if got := calls.Load(); got != 1 {
+		t.Fatalf("transport calls after leader cancellation = %d, want one", got)
+	}
+
+	close(release)
+	if err := <-waiterDone; err != nil {
+		t.Fatalf("waiter error = %v", err)
+	}
+	if !bytes.Equal(waiterData, data) {
+		t.Fatalf("waiter data = %q, want %q", waiterData, data)
+	}
+	if got := calls.Load(); got != 1 {
+		t.Fatalf("transport calls = %d, want one", got)
+	}
+}
+
+func TestPackReaderCloseCancelsTransport(t *testing.T) {
+	started := make(chan struct{})
+	transportDone := make(chan struct{})
+	var calls atomic.Int32
+	eng := NewPackReader("close", 8, TransportFunc(func(ctx context.Context, _ int64, _ int) ([]byte, error) {
+		calls.Add(1)
+		close(started)
+		<-ctx.Done()
+		close(transportDone)
+		return nil, ctx.Err()
+	}), hash.HashType_HashType_SHA256)
+	eng.SetTransportMinWindow(8)
+	eng.SetTransportQuantum(8)
+	eng.SetTransportMaxWindow(8)
+
+	readDone := make(chan error, 1)
+	go func() {
+		_, err := eng.ReaderAt(t.Context()).ReadAt(make([]byte, 8), 0)
+		readDone <- err
+	}()
+	<-started
+	eng.Close()
+	<-transportDone
+	if err := <-readDone; !errors.Is(err, context.Canceled) {
+		t.Fatalf("read error = %v, want context canceled", err)
+	}
+	if got := calls.Load(); got != 1 {
+		t.Fatalf("transport calls = %d, want one", got)
+	}
+}
+
 func TestHTTPRangeReaderRetainsMultipleRanges(t *testing.T) {
 	data := bytes.Repeat([]byte("0123456789abcdef"), 8192)
 	var reqs int

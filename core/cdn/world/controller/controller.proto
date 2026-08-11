@@ -17,4 +17,12 @@ message Config {
   string cache_block_store_id = 5;
   // WritebackWindowBytes sets the semantic co-block writeback window.
   int64 writeback_window_bytes = 6;
+  // SuppliedBlockStoreId reads every block from that block store on the bus
+  // instead of opening a CDN transport for this mount. Set it where another
+  // process already owns the CDN transport, pack readers, index cache, and
+  // durable writeback for this Space and supplies that store over the block
+  // store RPC. The controller fetches the root pointer independently to build
+  // its world head. It resolves no LookupBlockStore because it owns no store.
+  // Mutually exclusive with cache_block_store_id.
+  string supplied_block_store_id = 7;
 }

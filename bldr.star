@@ -31,8 +31,8 @@ LAUNCHER_GO_PKGS = [
     "./core/provider/spacewave/launcher/controller",
     "github.com/s4wave/spacewave/bldr/manifest/fetch/world",
     "github.com/s4wave/spacewave/core/cdn/world/controller",
-    "github.com/s4wave/spacewave/core/cdn/bstore/controller",
     "github.com/s4wave/spacewave/db/block/store/bucket",
+    "github.com/s4wave/spacewave/db/block/store/rpc",
     "github.com/s4wave/spacewave/core/space/world/optypes",
     "github.com/s4wave/spacewave/db/block/store/overlay",
     "github.com/s4wave/spacewave/db/block/store/rpc/server",
@@ -162,52 +162,90 @@ def spacewave_launcher_controller_config(
     return conf
 
 
+# Release World identifiers. One process per composition owns the Release World
+# CDN transport, pack readers, index cache, decoded cache, and the durable dist
+# writeback; every other bus reads the same blocks through it over the block
+# store RPC. Keeping the ids here stops the owning and reading sides from
+# drifting apart.
+RELEASE_WORLD_ENGINE_ID = "spacewave-release-world"
+RELEASE_WORLD_SPACE_ID = "01kqjmfxd44r7ggrq78efad3d2"
+RELEASE_WORLD_CDN_BASE_URL = "https://cdn.spacewave.app"
+RELEASE_WORLD_BLOCK_STORE_ID = "spacewave-release-cdn"
+RELEASE_WORLD_BUCKET_ID = "spacewave-release"
+RELEASE_WORLD_BLOCK_STORE_SERVICE_ID = RELEASE_WORLD_BLOCK_STORE_ID + "/block.rpc.BlockStore"
+
+
 def release_world_config_set(
-        space_id="01kqjmfxd44r7ggrq78efad3d2",
-        cdn_base_url="https://cdn.spacewave.app",
+        space_id=RELEASE_WORLD_SPACE_ID,
+        cdn_base_url=RELEASE_WORLD_CDN_BASE_URL,
         cache_block_store_id="dist",
         include_fetch=True):
     configs = {
         "release-world": config_entry("spacewave/cdn/world", 1, {
-            "engineId": "spacewave-release-world",
+            "engineId": RELEASE_WORLD_ENGINE_ID,
             "spaceId": space_id,
             "cdnBaseUrl": cdn_base_url,
             "cacheBlockStoreId": cache_block_store_id,
         }),
         "release-world-ops": config_entry("space/world/ops", 1, {
-            "engineId": "spacewave-release-world",
+            "engineId": RELEASE_WORLD_ENGINE_ID,
         }),
     }
     if include_fetch:
         configs["release-world-fetch"] = config_entry("bldr/manifest/fetch/world", 1, {
-            "engineId": "spacewave-release-world",
+            "engineId": RELEASE_WORLD_ENGINE_ID,
             "objectKeys": ["spacewave/release/manifests"],
         })
     return configs
 
-def release_world_cdn_config_set(
-        space_id="01kqjmfxd44r7ggrq78efad3d2",
-        cdn_base_url="https://cdn.spacewave.app",
-        cache_block_store_id="dist",
-        bucket_store_id=""):
-    cdn_block_store_id = "spacewave-release-cdn"
+def release_world_cdn_config_set(bucket_store_id=""):
+    cdn_block_store_id = RELEASE_WORLD_BLOCK_STORE_ID
     if bucket_store_id == "":
         bucket_store_id = cdn_block_store_id
     return {
-        "release-world-cdn-store": config_entry("spacewave/cdn/bstore", 1, {
-            "blockStoreId": cdn_block_store_id,
-            "spaceId": space_id,
-            "cdnBaseUrl": cdn_base_url,
-            "cacheBlockStoreId": cache_block_store_id,
-            "bucketIds": ["spacewave-release"],
-        }),
         "release-world-cdn-bucket": config_entry("hydra/block/store/bucket", 1, {
             "blockStoreId": cdn_block_store_id,
             "bucketStoreId": bucket_store_id,
             "bucketConfig": {
-                "id": "spacewave-release",
+                "id": RELEASE_WORLD_BUCKET_ID,
                 "rev": 1,
             },
+        }),
+    }
+
+def release_world_serve_config_set():
+    # Serves the owning bus's Release World block store to plugin buses. The
+    # plugin reader below is the only consumer.
+    return {
+        "release-world-cdn-server": config_entry("hydra/block/store/rpc/server", 1, {
+            "blockStoreId": RELEASE_WORLD_BLOCK_STORE_ID,
+            "serviceId": RELEASE_WORLD_BLOCK_STORE_SERVICE_ID,
+        }),
+    }
+
+def release_world_reader_config_set(
+        space_id=RELEASE_WORLD_SPACE_ID,
+        cdn_base_url=RELEASE_WORLD_CDN_BASE_URL):
+    # Reads the Release World through the plugin host's authority: every block
+    # read traverses the host block store rpc, so this bus opens no CDN
+    # transport, no pack reader, and no writeback cache of its own. Only the
+    # CDN root pointer is fetched here so the reader can build its world head.
+    return {
+        "release-world-cdn-store": config_entry("hydra/block/store/rpc", 1, {
+            "blockStoreId": RELEASE_WORLD_BLOCK_STORE_ID,
+            "serviceId": "plugin-host/" + RELEASE_WORLD_BLOCK_STORE_SERVICE_ID,
+            "readOnly": True,
+            "bucketIds": [RELEASE_WORLD_BUCKET_ID],
+            "lookupOnStart": True,
+        }),
+        "release-world": config_entry("spacewave/cdn/world", 1, {
+            "engineId": RELEASE_WORLD_ENGINE_ID,
+            "spaceId": space_id,
+            "cdnBaseUrl": cdn_base_url,
+            "suppliedBlockStoreId": RELEASE_WORLD_BLOCK_STORE_ID,
+        }),
+        "release-world-ops": config_entry("space/world/ops", 1, {
+            "engineId": RELEASE_WORLD_ENGINE_ID,
         }),
     }
 
@@ -227,13 +265,11 @@ def spacewave_launcher_config(
         }),
     }
     if include_release_world:
-        config_set.update(release_world_config_set(
-            cache_block_store_id="plugin-host",
-            include_fetch=False,
-        ))
-        config_set.update(release_world_cdn_config_set(
-            cache_block_store_id="plugin-host",
-        ))
+        # The native launcher resolves release metadata and stages updates from
+        # the Release World, so it mounts a world engine, but reads every block
+        # through the plugin host's authority instead of a second CDN transport.
+        config_set.update(release_world_reader_config_set())
+        config_set.update(release_world_cdn_config_set())
     conf = {
         "goPkgs": LAUNCHER_GO_PKGS if include_release_world else LAUNCHER_BROWSER_GO_PKGS,
         "configSet": config_set,
@@ -242,9 +278,8 @@ def spacewave_launcher_config(
         # Release World providers must be applied to the plugin-host bus as
         # host configuration so they mount before plugin startup begins.
         conf["hostConfigSet"] = release_world_config_set(cache_block_store_id="dist")
-        conf["hostConfigSet"].update(release_world_cdn_config_set(
-            cache_block_store_id="dist",
-        ))
+        conf["hostConfigSet"].update(release_world_cdn_config_set())
+        conf["hostConfigSet"].update(release_world_serve_config_set())
     if web_go_compiler:
         conf["platformTypes"] = {
             browser_go_compiler_platform(web_go_compiler): {
@@ -254,10 +289,16 @@ def spacewave_launcher_config(
     return conf
 
 def browser_release_launcher_config(web_go_compiler=None):
-    return spacewave_launcher_config(
+    # The browser launcher worker never reads the Release World: js and goscript
+    # builds skip native release staging entirely. The page host mounts the sole
+    # authority and needs no block store rpc server for the worker.
+    conf = spacewave_launcher_config(
         web_go_compiler=web_go_compiler,
         include_release_world=False,
     )
+    conf["hostConfigSet"] = release_world_config_set(cache_block_store_id="dist")
+    conf["hostConfigSet"].update(release_world_cdn_config_set())
+    return conf
 
 def e2e_release_wasm_launcher_config(web_go_compiler=None):
     return spacewave_launcher_config(
@@ -587,7 +628,7 @@ build("release-web",
     manifests=BROWSER_RELEASE_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-launcher": spacewave_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
+        "spacewave-launcher": browser_release_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
         "spacewave-core": browser_spacewave_core_config("GO_COMPILER_GOSCRIPT"),
         "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_EMBED_MANIFESTS,
@@ -601,7 +642,7 @@ build("release-web-lazy-plugin-fixture",
     manifests=BROWSER_RELEASE_MANIFESTS,
     targets=["browser"],
     manifestOverrides={
-        "spacewave-launcher": spacewave_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
+        "spacewave-launcher": browser_release_launcher_config(web_go_compiler="GO_COMPILER_GOSCRIPT"),
         "spacewave-core": browser_spacewave_core_config("GO_COMPILER_GOSCRIPT"),
         "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_EMBEDS,
@@ -668,8 +709,9 @@ build("release-web-e2e-tinygo-assets",
 )
 build("release-web-tinygo",
     manifests=BROWSER_RELEASE_MANIFESTS,
-    targets=["browser"],
+    platformIds=["web/js/wasm"],
     manifestOverrides={
+        "spacewave-launcher": browser_release_launcher_config(web_go_compiler="GO_COMPILER_TINYGO"),
         "spacewave-core": browser_spacewave_core_config("GO_COMPILER_TINYGO"),
         "spacewave-browser": dist_release_config(
             BROWSER_RELEASE_WASM_EMBED_MANIFESTS,

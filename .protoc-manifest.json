@@ -937,7 +937,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/cdn/world/controller": {
-      "hash": "41a2075ad6d843e2042c58bbd601b5a51f54b77e33578753e567535b529f0551",
+      "hash": "552db5aacb56a7df71bd126110fb89a9d231546ba61988634719184163279fcb",
       "generatedFiles": [
         "core/cdn/world/controller/controller.pb.go",
         "core/cdn/world/controller/controller.pb.ts"
