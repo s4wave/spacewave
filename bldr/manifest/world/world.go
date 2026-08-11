@@ -187,6 +187,33 @@ func CollectManifestsForManifestIDResettingUnsupportedHash(
 	return manifests[manifestID], manifestErrs, nil
 }
 
+// CollectStartupManifestsForManifestIDsResettingUnsupportedHash collects
+// selected startup manifests and clears stale stores with unsupported hashes.
+func CollectStartupManifestsForManifestIDsResettingUnsupportedHash(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	manifestIDs []string,
+	filterPlatformIDs []string,
+	objKeys ...string,
+) (map[string][]*CollectedManifest, []error, error) {
+	manifests, manifestErrs, err := CollectStartupManifestsForManifestIDs(
+		ctx,
+		ws,
+		manifestIDs,
+		filterPlatformIDs,
+		objKeys...,
+	)
+	if !hasUnsupportedHashError(err, manifestErrs) {
+		return manifests, manifestErrs, err
+	}
+	logUnsupportedHashManifestStoreReset(le, objKeys, err, manifestErrs)
+	if resetErr := ResetManifestStores(ctx, ws, objKeys...); resetErr != nil {
+		return nil, manifestErrs, resetErr
+	}
+	return nil, nil, nil
+}
+
 func hasUnsupportedHashError(err error, manifestErrs []error) bool {
 	if stderrors.Is(err, hash.ErrHashTypeUnsupported) {
 		return true
@@ -408,6 +435,107 @@ func ListStartupManifestCandidatesWithID(ctx context.Context, w world.WorldState
 		quad.IRI(manifestID).String(),
 		"",
 	}, startObjKeys...)
+}
+
+type startupManifestSelectionCandidate struct {
+	// objectKey is a selected or legacy manifest candidate.
+	objectKey string
+	// exactManifestIDs are the selected IDs named by concrete graph labels.
+	exactManifestIDs []string
+	// legacy reports an empty graph label on a path to this candidate.
+	legacy bool
+}
+
+// listStartupManifestCandidatesForManifestIDs follows selected manifest labels
+// and retained empty-label paths. Empty labels can name a direct legacy
+// candidate or a store/bundle frontier, so every empty edge remains traversable.
+func listStartupManifestCandidatesForManifestIDs(
+	ctx context.Context,
+	ws world.WorldState,
+	manifestIDs []string,
+	startObjKeys ...string,
+) ([]startupManifestSelectionCandidate, error) {
+	if len(startObjKeys) == 0 {
+		return nil, nil
+	}
+
+	labels := make(map[string]string, len(manifestIDs))
+	for _, manifestID := range manifestIDs {
+		labels[quad.IRI(manifestID).String()] = manifestID
+	}
+
+	seen := make(map[string]struct{}, len(startObjKeys))
+	frontier := make([]string, 0, len(startObjKeys))
+	for _, objKey := range startObjKeys {
+		if objKey == "" {
+			continue
+		}
+		if _, ok := seen[objKey]; ok {
+			continue
+		}
+		seen[objKey] = struct{}{}
+		frontier = append(frontier, objKey)
+	}
+	slices.Sort(frontier)
+
+	candidates := make(map[string]*startupManifestSelectionCandidate)
+	for depth := 0; depth < 50 && len(frontier) != 0; depth++ {
+		filters := make([]world.GraphQuad, len(frontier))
+		for i, objKey := range frontier {
+			filters[i] = world.NewGraphQuadWithKeys(objKey, PredManifest.String(), "", "")
+		}
+		results, err := ws.LookupGraphQuadsBatch(ctx, filters, 0)
+		if err != nil {
+			return nil, err
+		}
+		if len(results) != len(frontier) {
+			return nil, errors.Errorf("manifest graph lookup returned %d results for %d filters", len(results), len(frontier))
+		}
+
+		next := make([]string, 0)
+		for _, quads := range results {
+			for _, q := range quads {
+				manifestID, exact := labels[q.GetLabel()]
+				legacy := q.GetLabel() == ""
+				if !exact && !legacy {
+					continue
+				}
+				objKey, err := world.GraphValueToKey(q.GetObj())
+				if err != nil {
+					return nil, err
+				}
+				candidate := candidates[objKey]
+				if candidate == nil {
+					candidate = &startupManifestSelectionCandidate{objectKey: objKey}
+					candidates[objKey] = candidate
+				}
+				if exact && !slices.Contains(candidate.exactManifestIDs, manifestID) {
+					candidate.exactManifestIDs = append(candidate.exactManifestIDs, manifestID)
+				}
+				candidate.legacy = candidate.legacy || legacy
+				if _, ok := seen[objKey]; ok {
+					continue
+				}
+				seen[objKey] = struct{}{}
+				next = append(next, objKey)
+			}
+		}
+		slices.Sort(next)
+		frontier = next
+	}
+
+	keys := make([]string, 0, len(candidates))
+	for key := range candidates {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	out := make([]startupManifestSelectionCandidate, 0, len(keys))
+	for _, key := range keys {
+		candidate := candidates[key]
+		slices.Sort(candidate.exactManifestIDs)
+		out = append(out, *candidate)
+	}
+	return out, nil
 }
 
 func listManifestCandidatesByLabels(
@@ -647,6 +775,165 @@ func CollectStartupManifests(
 		return nil, nil, err
 	}
 	return collectStartupManifestsFromCandidates(ctx, ws, manifestObjKeys, "", filterPlatformIDs)
+}
+
+// CollectStartupManifestsForManifestIDs collects startup manifests for selected
+// IDs. An empty ID list retains the full traversal used by catalog callers.
+func CollectStartupManifestsForManifestIDs(
+	ctx context.Context,
+	ws world.WorldState,
+	manifestIDs []string,
+	filterPlatformIDs []string,
+	objKeys ...string,
+) (map[string][]*CollectedManifest, []error, error) {
+	manifestIDs = slices.Clone(manifestIDs)
+	for i := 0; i < len(manifestIDs); i++ {
+		if manifestIDs[i] == "" {
+			manifestIDs = slices.Delete(manifestIDs, i, i+1)
+			i--
+		}
+	}
+	slices.Sort(manifestIDs)
+	manifestIDs = slices.Compact(manifestIDs)
+	if len(manifestIDs) == 0 {
+		return CollectStartupManifests(ctx, ws, filterPlatformIDs, objKeys...)
+	}
+
+	candidates, err := listStartupManifestCandidatesForManifestIDs(ctx, ws, manifestIDs, objKeys...)
+	if err != nil {
+		return nil, nil, err
+	}
+	selected := make(map[string]struct{}, len(manifestIDs))
+	for _, manifestID := range manifestIDs {
+		selected[manifestID] = struct{}{}
+	}
+	return collectStartupManifestsForSelectedCandidates(ctx, ws, candidates, selected, filterPlatformIDs)
+}
+
+func collectStartupManifestsForSelectedCandidates(
+	ctx context.Context,
+	ws world.WorldState,
+	candidates []startupManifestSelectionCandidate,
+	selected map[string]struct{},
+	filterPlatformIDs []string,
+) (map[string][]*CollectedManifest, []error, error) {
+	var manifestErrors []error
+	manifestMap := make(map[string][]*CollectedManifest)
+
+	for _, candidate := range candidates {
+		objType, err := world_types.GetObjectType(ctx, ws, candidate.objectKey)
+		if err != nil {
+			if ctxErr := startupContextError(err); ctxErr != nil {
+				return nil, manifestErrors, ctxErr
+			}
+			manifestErrors = append(manifestErrors, newStartupManifestSkipError(candidate.objectKey, nil, err))
+			continue
+		}
+		if objType == ManifestStoreTypeID || objType == ManifestBundleTypeID {
+			continue
+		}
+
+		manifest, manifestRef, skip, err := collectStartupManifestSelectionCandidate(
+			ctx,
+			ws,
+			candidate,
+			objType,
+			selected,
+			filterPlatformIDs,
+		)
+		if skip {
+			continue
+		}
+		if err != nil {
+			if ctxErr := startupContextError(err); ctxErr != nil {
+				return nil, manifestErrors, ctxErr
+			}
+			manifestErrors = append(manifestErrors, newStartupManifestSkipError(candidate.objectKey, manifestRef, err))
+			continue
+		}
+		if err := manifest.Validate(); err != nil {
+			manifestErrors = append(manifestErrors, newStartupManifestSkipError(candidate.objectKey, manifestRef, err))
+			continue
+		}
+		manifestID := manifest.GetMeta().GetManifestId()
+		if !candidate.matches(manifestID, selected) {
+			continue
+		}
+		platformID := manifest.GetMeta().GetPlatformId()
+		if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, platformID) {
+			continue
+		}
+		manifestList := append(manifestMap[manifestID], &CollectedManifest{
+			Manifest:    manifest,
+			ManifestRef: manifestRef,
+			ManifestKey: candidate.objectKey,
+		})
+		slices.SortStableFunc(manifestList, func(a, b *CollectedManifest) int {
+			return cmp.Compare(b.GetRev(), a.GetRev())
+		})
+		manifestMap[manifestID] = manifestList
+	}
+
+	return manifestMap, manifestErrors, nil
+}
+
+func (c startupManifestSelectionCandidate) matches(manifestID string, selected map[string]struct{}) bool {
+	if slices.Contains(c.exactManifestIDs, manifestID) {
+		return true
+	}
+	if !c.legacy {
+		return false
+	}
+	_, ok := selected[manifestID]
+	return ok
+}
+
+func collectStartupManifestSelectionCandidate(
+	ctx context.Context,
+	ws world.WorldState,
+	candidate startupManifestSelectionCandidate,
+	objType string,
+	selected map[string]struct{},
+	filterPlatformIDs []string,
+) (*bldr_manifest.Manifest, *bucket.ObjectRef, bool, error) {
+	if objType == ManifestTypeID {
+		manifest, manifestRef, err := LookupManifest(ctx, ws, candidate.objectKey)
+		return manifest, manifestRef, false, err
+	}
+
+	manifestRef, candidateRef, err := LookupManifestRef(ctx, ws, candidate.objectKey)
+	if err != nil {
+		if objType == "" {
+			manifest, directRef, manifestErr := LookupManifest(ctx, ws, candidate.objectKey)
+			if manifestErr == nil && manifest != nil && manifest.Validate() == nil {
+				return manifest, directRef, false, nil
+			}
+			if _, _, bundleErr := LookupManifestBundle(ctx, ws, candidate.objectKey); bundleErr == nil {
+				return nil, nil, true, nil
+			}
+		}
+		return nil, candidateRef, false, err
+	}
+	manifestObjRef := manifestRef.GetManifestRef()
+	if err := manifestRef.Validate(); err != nil {
+		return nil, manifestObjRef, false, err
+	}
+	refMeta := manifestRef.GetMeta()
+	if !candidate.matches(refMeta.GetManifestId(), selected) {
+		return nil, manifestObjRef, true, nil
+	}
+	if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, refMeta.GetPlatformId()) {
+		return nil, manifestObjRef, true, nil
+	}
+
+	manifest, err := lookupStartupManifestObjectRefLocal(ctx, ws, manifestObjRef)
+	if err != nil {
+		return nil, manifestObjRef, false, err
+	}
+	if !manifest.GetMeta().EqualVT(manifestRef.GetMeta()) {
+		return nil, manifestObjRef, false, errors.New("manifest ref meta does not match manifest meta")
+	}
+	return manifest, manifestObjRef, false, nil
 }
 
 func collectStartupManifestsFromCandidates(
@@ -1105,11 +1392,13 @@ func CollectStartupManifestsForManifestID(
 	filterPlatformIDs []string,
 	objKeys ...string,
 ) ([]*CollectedManifest, []error, error) {
-	manifestObjKeys, err := ListStartupManifestCandidatesWithID(ctx, ws, manifestID, objKeys...)
-	if err != nil {
-		return nil, nil, err
-	}
-	manifests, manifestErrs, err := collectStartupManifestsFromCandidates(ctx, ws, manifestObjKeys, manifestID, filterPlatformIDs)
+	manifests, manifestErrs, err := CollectStartupManifestsForManifestIDs(
+		ctx,
+		ws,
+		[]string{manifestID},
+		filterPlatformIDs,
+		objKeys...,
+	)
 	if err != nil {
 		return nil, manifestErrs, err
 	}

@@ -3,7 +3,9 @@ package manifest_fetch_world
 import (
 	"context"
 	stderrors "errors"
+	"slices"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -46,6 +49,11 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 		DisableWatch: true,
 	})
 	defer func() { _ = ctrl.Close() }()
+	for _, id := range ids {
+		resolver := &fetchManifestResolver{c: ctrl, dir: manifest.NewFetchManifest(id, nil, []string{"js"}, 0)}
+		ctrl.addResolver(resolver)
+		defer ctrl.removeResolver(resolver)
+	}
 
 	// The leader begins sequence one and cannot return until the blocked graph
 	// traversal completes. It therefore proves a later sequence re-key happens
@@ -128,14 +136,14 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 			t.Fatal(ctx.Err())
 		}
 	}
-	if got := countedWS.traversals(); got != 2 {
-		t.Fatalf("manifest graph traversals across sequence advance = %d, want 2", got)
+	if got := countedWS.traversals(); got != 4 {
+		t.Fatalf("manifest graph traversals across sequence advance = %d, want 4", got)
 	}
 	ctrl.mtx.Lock()
 	snapshot := ctrl.collectionSnapshot
 	ctrl.mtx.Unlock()
-	if snapshot == nil || snapshot.key.seqno != 2 {
-		t.Fatalf("published manifest snapshot = %#v, want sequence 2", snapshot)
+	if snapshot == nil || snapshot.key.seqno != 2 || !slices.Equal(snapshot.key.manifestIDs, []string{"app", "cli", "core", "notes", "web"}) {
+		t.Fatalf("published manifest snapshot = %#v, want sequence 2 sorted active IDs", snapshot)
 	}
 
 	// Reuse the same immutable snapshot for sequential IDs.
@@ -150,8 +158,8 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 		}
 		assertCollectionTestManifest(t, handler, id, "js", 2)
 	}
-	if got := countedWS.traversals(); got != 2 {
-		t.Fatalf("sequential manifest graph traversals = %d, want 2", got)
+	if got := countedWS.traversals(); got != 4 {
+		t.Fatalf("sequential manifest graph traversals = %d, want 4", got)
 	}
 
 	// A world sequence advance invalidates the snapshot and traverses again.
@@ -165,8 +173,57 @@ func TestControllerCoalescesManifestCollection(t *testing.T) {
 		t.Fatalf("FetchManifest after sequence advance: %v", err)
 	}
 	assertCollectionTestManifest(t, handler, ids[0], "js", 2)
-	if got := countedWS.traversals(); got != 3 {
-		t.Fatalf("manifest graph traversals after sequence advance = %d, want 3", got)
+	if got := countedWS.traversals(); got != 6 {
+		t.Fatalf("manifest graph traversals after sequence advance = %d, want 6", got)
+	}
+}
+
+func TestControllerSelectedManifestCollectionBoundsReleaseReads(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	const storeKey = "release/manifests"
+	manifestIDs := []string{
+		"spacewave-app",
+		"spacewave-cli",
+		"spacewave-core",
+		"spacewave-devtool",
+		"spacewave-docs",
+		"spacewave-forge",
+		"spacewave-gateway",
+		"spacewave-host",
+		"spacewave-identity",
+		"spacewave-notes",
+		"spacewave-shell",
+		"spacewave-web",
+		"spacewave-world",
+	}
+	ws, tb := buildCollectionTestWorld(t, ctx, storeKey)
+	for i, manifestID := range manifestIDs {
+		storeCollectionTestManifest(t, ctx, tb, ws, storeKey, manifestID, "js", uint64(i+1))
+	}
+
+	countedWS := &collectionCountingWorldState{WorldState: ws, seqno: 1}
+	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, &Config{ObjectKeys: []string{storeKey}})
+	t.Cleanup(func() { _ = ctrl.Close() })
+	for _, manifestID := range []string{"spacewave-web", "spacewave-core", "spacewave-web"} {
+		resolver := &fetchManifestResolver{c: ctrl, dir: manifest.NewFetchManifest(manifestID, nil, nil, 0)}
+		ctrl.addResolver(resolver)
+		t.Cleanup(func() { ctrl.removeResolver(resolver) })
+	}
+
+	snapshot, err := ctrl.collectManifests(ctx, countedWS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(snapshot.key.manifestIDs, []string{"spacewave-core", "spacewave-web"}) {
+		t.Fatalf("selected manifest IDs = %v", snapshot.key.manifestIDs)
+	}
+	if len(snapshot.manifests) != 2 || len(snapshot.manifests["spacewave-core"]) != 1 || len(snapshot.manifests["spacewave-web"]) != 1 {
+		t.Fatalf("selected manifests = %#v", snapshot.manifests)
+	}
+	if got := countedWS.manifestReads.Load(); got != 2 {
+		t.Fatalf("selected manifest reads = %d, want 2 of 13 release refs", got)
 	}
 }
 
@@ -197,6 +254,9 @@ func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
 	}
 	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, &Config{ObjectKeys: []string{storeKey}})
 	defer func() { _ = ctrl.Close() }()
+	resolver := &fetchManifestResolver{c: ctrl, dir: manifest.NewFetchManifest("core", nil, nil, 0)}
+	ctrl.addResolver(resolver)
+	defer ctrl.removeResolver(resolver)
 
 	snapshot, err := ctrl.collectManifests(ctx, countedWS)
 	if err != nil {
@@ -205,10 +265,10 @@ func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
 	if snapshot.key.seqno != 2 || len(snapshot.manifests) != 0 {
 		t.Fatalf("manifest snapshot after reset = %#v, want empty sequence 2", snapshot)
 	}
-	// Reset traverses candidates once, then the sequence-two collection traverses
-	// the empty replacement store once more.
-	if got := countedWS.traversals(); got != 3 {
-		t.Fatalf("manifest graph traversals across reset = %d, want 3", got)
+	// Selected traversal reads the stale candidate and its empty replacement;
+	// resetting still performs one full candidate traversal.
+	if got := countedWS.traversals(); got != 4 {
+		t.Fatalf("manifest graph traversals across reset = %d, want 4", got)
 	}
 	if err := bldr_manifest_world.CheckManifestStoreType(ctx, ws, storeKey); err != nil {
 		t.Fatalf("reset manifest store: %v", err)
@@ -217,8 +277,8 @@ func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
 	if _, err := ctrl.collectManifests(ctx, countedWS); err != nil {
 		t.Fatalf("cached post-reset manifest collection: %v", err)
 	}
-	if got := countedWS.traversals(); got != 3 {
-		t.Fatalf("post-reset manifest graph traversals = %d, want 3", got)
+	if got := countedWS.traversals(); got != 4 {
+		t.Fatalf("post-reset manifest graph traversals = %d, want 4", got)
 	}
 }
 
@@ -235,6 +295,9 @@ func TestControllerRetriesFailedAndCanceledManifestCollections(t *testing.T) {
 	}
 	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, &Config{ObjectKeys: []string{storeKey}})
 	defer func() { _ = ctrl.Close() }()
+	resolver := &fetchManifestResolver{c: ctrl, dir: manifest.NewFetchManifest("core", nil, nil, 0)}
+	ctrl.addResolver(resolver)
+	defer ctrl.removeResolver(resolver)
 
 	if _, err := ctrl.collectManifests(ctx, countedWS); !stderrors.Is(err, countedWS.getTraversalErr()) {
 		t.Fatalf("failed collection error = %v, want graph error", err)
@@ -262,6 +325,45 @@ func TestControllerRetriesFailedAndCanceledManifestCollections(t *testing.T) {
 	ctrl.mtx.Unlock()
 	if snapshot != nil {
 		t.Fatal("controller close retained manifest collection snapshot")
+	}
+}
+
+func TestControllerRekeysManifestCollectionAfterResolverRemoval(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	const storeKey = "release/manifests"
+	ws, tb := buildCollectionTestWorld(t, ctx, storeKey)
+	storeCollectionTestManifest(t, ctx, tb, ws, storeKey, "core", "js", 2)
+	storeCollectionTestManifest(t, ctx, tb, ws, storeKey, "web", "js", 2)
+	countedWS := &collectionCountingWorldState{WorldState: ws, seqno: 1}
+	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, &Config{ObjectKeys: []string{storeKey}})
+	defer func() { _ = ctrl.Close() }()
+
+	core := &fetchManifestResolver{c: ctrl, dir: manifest.NewFetchManifest("core", nil, nil, 0)}
+	web := &fetchManifestResolver{c: ctrl, dir: manifest.NewFetchManifest("web", nil, nil, 0)}
+	ctrl.addResolver(core)
+	ctrl.addResolver(web)
+	defer ctrl.removeResolver(core)
+
+	snapshot, err := ctrl.collectManifests(ctx, countedWS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(snapshot.key.manifestIDs, []string{"core", "web"}) || len(snapshot.manifests) != 2 {
+		t.Fatalf("initial manifest snapshot = %#v", snapshot)
+	}
+
+	ctrl.removeResolver(web)
+	snapshot, err = ctrl.collectManifests(ctx, countedWS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(snapshot.key.manifestIDs, []string{"core"}) || len(snapshot.manifests) != 1 || len(snapshot.manifests["core"]) != 1 {
+		t.Fatalf("post-removal manifest snapshot = %#v", snapshot)
+	}
+	if got := countedWS.traversals(); got != 4 {
+		t.Fatalf("manifest traversals after resolver removal = %d, want 4", got)
 	}
 }
 
@@ -368,11 +470,26 @@ type collectionCountingWorldState struct {
 	mtx              sync.Mutex
 	seqno            uint64
 	traversalCount   int
+	manifestReads    atomic.Int64
 	traversalErr     error
 	seqnoAfterDelete uint64
 	started          chan struct{}
 	startedOnce      sync.Once
 	release          <-chan struct{}
+}
+
+func (w *collectionCountingWorldState) GetObject(
+	ctx context.Context,
+	key string,
+) (world.ObjectState, bool, error) {
+	obj, ok, err := w.WorldState.GetObject(ctx, key)
+	if obj == nil {
+		return nil, ok, err
+	}
+	return &collectionCountingObjectState{
+		ObjectState:   obj,
+		manifestReads: &w.manifestReads,
+	}, ok, err
 }
 
 func (w *collectionCountingWorldState) GetSeqno(context.Context) (uint64, error) {
@@ -381,12 +498,55 @@ func (w *collectionCountingWorldState) GetSeqno(context.Context) (uint64, error)
 	return w.seqno, nil
 }
 
+type collectionCountingObjectState struct {
+	world.ObjectState
+
+	manifestReads *atomic.Int64
+}
+
+func (s *collectionCountingObjectState) AccessWorldState(
+	ctx context.Context,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	s.manifestReads.Add(1)
+	return s.ObjectState.AccessWorldState(ctx, ref, cb)
+}
+
 func (w *collectionCountingWorldState) DeleteObject(ctx context.Context, key string) (bool, error) {
 	deleted, err := w.WorldState.DeleteObject(ctx, key)
 	if err == nil && w.seqnoAfterDelete != 0 {
 		w.setSeqno(w.seqnoAfterDelete)
 	}
 	return deleted, err
+}
+
+func (w *collectionCountingWorldState) LookupGraphQuadsBatch(
+	ctx context.Context,
+	filters []world.GraphQuad,
+	limitPerFilter uint32,
+) ([][]world.GraphQuad, error) {
+	w.mtx.Lock()
+	w.traversalCount++
+	traversalErr := w.traversalErr
+	release := w.release
+	started := w.started
+	w.mtx.Unlock()
+
+	if started != nil {
+		w.startedOnce.Do(func() { close(started) })
+	}
+	if release != nil {
+		select {
+		case <-ctx.Done():
+			return nil, context.Canceled
+		case <-release:
+		}
+	}
+	if traversalErr != nil {
+		return nil, traversalErr
+	}
+	return w.WorldState.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
 }
 
 func (w *collectionCountingWorldState) AccessCayleyGraph(

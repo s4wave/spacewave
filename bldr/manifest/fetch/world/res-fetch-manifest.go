@@ -25,6 +25,8 @@ type fetchManifestResolver struct {
 
 // Resolve resolves the values, emitting them to the handler.
 func (r *fetchManifestResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
+	r.c.addResolver(r)
+	defer r.c.removeResolver(r)
 	_ = handler.ClearValues()
 
 	// Watch the world state and re-check the manifests list when it changes.

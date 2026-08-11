@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -128,6 +129,152 @@ func TestCollectReleaseWorldManifestsForManifestID(t *testing.T) {
 	if !got[0].ManifestRef.EqualVT(ref.GetManifestRef()) {
 		t.Fatalf("manifest ref was not preserved")
 	}
+}
+
+func TestCollectStartupManifestsForManifestIDsBoundsReleaseReads(t *testing.T) {
+	ctx := context.Background()
+	le := logrus.NewEntry(logrus.New())
+
+	tb, err := testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer tb.Release()
+
+	ocs, err := tb.BuildEmptyCursor(ctx)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer ocs.Release()
+
+	ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	const storeKey = "release/manifests"
+	if _, err := CreateManifestStore(ctx, ws, storeKey); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	manifestIDs := []string{
+		"spacewave-app",
+		"spacewave-cli",
+		"spacewave-core",
+		"spacewave-devtool",
+		"spacewave-docs",
+		"spacewave-forge",
+		"spacewave-gateway",
+		"spacewave-host",
+		"spacewave-identity",
+		"spacewave-notes",
+		"spacewave-shell",
+		"spacewave-web",
+		"spacewave-world",
+	}
+	for i, manifestID := range manifestIDs {
+		ref := createTestManifestRef(t, ctx, tb, manifestID, "js", uint64(i+1))
+		if err := ExStoreManifestOp(
+			ctx,
+			ws,
+			peer.ID("test"),
+			"release/manifests/"+manifestID,
+			[]string{storeKey},
+			ref,
+		); err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	counted := &manifestSelectionCountingWorldState{WorldState: ws}
+	manifests, manifestErrs, err := CollectStartupManifestsForManifestIDs(
+		ctx,
+		counted,
+		[]string{"spacewave-core", "spacewave-web"},
+		nil,
+		storeKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(manifestErrs) != 0 {
+		t.Fatalf("manifest errors = %v", manifestErrs)
+	}
+	if len(manifests) != 2 || len(manifests["spacewave-core"]) != 1 || len(manifests["spacewave-web"]) != 1 {
+		t.Fatalf("selected manifests = %#v", manifests)
+	}
+	if got := counted.manifestReads.Load(); got != 2 {
+		t.Fatalf("selected manifest reads = %d, want 2 of 13 release refs", got)
+	}
+	if got := counted.batchLookups.Load(); got == 0 {
+		t.Fatal("selected manifest traversal did not use LookupGraphQuadsBatch")
+	}
+	if got := counted.cayleyTraversals.Load(); got != 0 {
+		t.Fatalf("selected manifest traversal used %d complete Cayley traversals", got)
+	}
+
+	all, allErrs, err := CollectStartupManifestsForManifestIDs(ctx, ws, []string{""}, nil, storeKey)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(allErrs) != 0 || len(all) != len(manifestIDs) {
+		t.Fatalf("empty-ID full traversal manifests=%d errors=%v", len(all), allErrs)
+	}
+}
+
+type manifestSelectionCountingWorldState struct {
+	world.WorldState
+
+	manifestReads    atomic.Int64
+	batchLookups     atomic.Int64
+	cayleyTraversals atomic.Int64
+}
+
+func (w *manifestSelectionCountingWorldState) GetObject(
+	ctx context.Context,
+	key string,
+) (world.ObjectState, bool, error) {
+	obj, ok, err := w.WorldState.GetObject(ctx, key)
+	if obj == nil {
+		return nil, ok, err
+	}
+	return &manifestSelectionCountingObjectState{
+		ObjectState:   obj,
+		manifestReads: &w.manifestReads,
+	}, ok, err
+}
+
+func (w *manifestSelectionCountingWorldState) LookupGraphQuadsBatch(
+	ctx context.Context,
+	filters []world.GraphQuad,
+	limitPerFilter uint32,
+) ([][]world.GraphQuad, error) {
+	w.batchLookups.Add(1)
+	return w.WorldState.LookupGraphQuadsBatch(ctx, filters, limitPerFilter)
+}
+
+func (w *manifestSelectionCountingWorldState) AccessCayleyGraph(
+	ctx context.Context,
+	write bool,
+	cb func(context.Context, world.CayleyHandle) error,
+) error {
+	w.cayleyTraversals.Add(1)
+	return w.WorldState.AccessCayleyGraph(ctx, write, cb)
+}
+
+type manifestSelectionCountingObjectState struct {
+	world.ObjectState
+
+	manifestReads *atomic.Int64
+}
+
+func (s *manifestSelectionCountingObjectState) AccessWorldState(
+	ctx context.Context,
+	ref *bucket.ObjectRef,
+	cb func(*bucket_lookup.Cursor) error,
+) error {
+	s.manifestReads.Add(1)
+	return s.ObjectState.AccessWorldState(ctx, ref, cb)
 }
 
 func TestCollectManifestsResetsStoreWithUnsupportedHashRef(t *testing.T) {
