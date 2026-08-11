@@ -2,6 +2,7 @@ package manifest_fetch_world
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/directive"
 	manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -63,25 +64,20 @@ func (r *fetchManifestResolver) reconcileManifestsCore(
 	// Skip marking as not-idle as it doesn't help and causes unnecessary churn.
 	// handler.MarkIdle(false)
 
-	// collect manifests for the manifest ID and the desired platform IDs.
-	// note that GetPlatformIds may be empty which is OK (collects for all platforms).
-	var manifests []*bldr_manifest_world.CollectedManifest
-	var manifestErrs []error
-	var err error
-	// empty means match any platform
-	manifests, manifestErrs, err = bldr_manifest_world.CollectManifestsForManifestIDResettingUnsupportedHash(
-		ctx,
-		r.c.le,
-		ws,
-		r.dir.GetManifestId(),
-		r.dir.GetPlatformIds(),
-		r.c.conf.GetObjectKeys()...,
-	)
+	// Collect the graph once for all resolver IDs and copy this ID's slice before
+	// the filtering helpers remove or reorder entries.
+	snapshot, err := r.c.collectManifests(ctx, ws)
 	if err != nil {
 		return true, err
 	}
-	for _, err := range manifestErrs {
-		r.c.le.WithError(err).Warn("ignoring invalid manifest")
+	manifests := slices.Clone(snapshot.manifests[r.dir.GetManifestId()])
+	for _, manifestErr := range snapshot.manifestErrs {
+		r.c.le.WithError(manifestErr).Warn("ignoring invalid manifest")
+	}
+
+	// Filter by platform IDs when the directive restricts them.
+	if platformIDs := r.dir.GetPlatformIds(); len(platformIDs) != 0 {
+		manifests = bldr_manifest_world.FilterCollectedManifestsByPlatformID(manifests, platformIDs)
 	}
 
 	// filter by build types if specified

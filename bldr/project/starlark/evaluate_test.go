@@ -316,6 +316,13 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		t.Fatal("spacewave-launcher manifest not found")
 	}
 	launcherCfg := string(launcher.GetBuilder().GetConfig())
+	launcherConf := mustGoPluginConfig(t, launcher.GetBuilder().GetConfig())
+	if launcherConf.GetConfigSet()["release-world-fetch"] != nil {
+		t.Fatal("spacewave-launcher plugin config set mounts release-world-fetch")
+	}
+	if launcherConf.GetHostConfigSet()["release-world-fetch"] == nil {
+		t.Fatal("spacewave-launcher host config set omits release-world-fetch")
+	}
 	for _, want := range []string{
 		`"distPeerIds":["12D3KooWL2DEcvqSXXrrCmUxMdPbqFcqzhHBvqseZWHwjAt7aXfW"]`,
 		`"url":"https://spacewave.app/api/release/config"`,
