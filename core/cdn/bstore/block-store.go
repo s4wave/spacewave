@@ -304,8 +304,7 @@ func (s *CdnBlockStore) Invalidate() {
 }
 
 // SetPointer replaces the cached pointer without issuing a network request.
-// Used by callers that receive a pointer via an external channel (for example
-// the cdn-root-changed session WS frame which will land in Phase F).
+// Callers use it after receiving a CDN root-change signal on an external channel.
 func (s *CdnBlockStore) SetPointer(ptr *cdn.CdnRootPointer) {
 	s.setPointer(context.Background(), ptr)
 }

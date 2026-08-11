@@ -310,10 +310,8 @@ func TestPackedPointerRejectsUndecodableRoot(t *testing.T) {
 	}
 }
 
-// TestRefreshSnapshotEmitsOnWatch covers the Phase H iter 2 contract: after
-// RefreshSnapshot() succeeds, the watchable returned by AccessSharedObjectState
-// surfaces a fresh cdnStateSnapshot pointer so downstream consumers (engine
-// refresh loop, session resource) can react to CDN root changes.
+// TestRefreshSnapshotEmitsOnWatch verifies that RefreshSnapshot publishes a new
+// snapshot through AccessSharedObjectState after a CDN root change.
 func TestRefreshSnapshotEmitsOnWatch(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

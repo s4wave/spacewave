@@ -63,11 +63,7 @@ func (r *fetchManifestResolver) reconcileManifestsCore(
 	handler directive.ResolverHandler,
 	ws world.WorldState,
 ) (bool, error) {
-	// Skip marking as not-idle as it doesn't help and causes unnecessary churn.
-	// handler.MarkIdle(false)
-
-	// Collect the graph once for all resolver IDs and copy this ID's slice before
-	// the filtering helpers remove or reorder entries.
+	// A private slice lets this directive narrow the shared collection independently.
 	snapshot, err := r.c.collectManifests(ctx, ws)
 	if err != nil {
 		return true, err
@@ -77,22 +73,15 @@ func (r *fetchManifestResolver) reconcileManifestsCore(
 		r.c.le.WithError(manifestErr).Warn("ignoring invalid manifest")
 	}
 
-	// Filter by platform IDs when the directive restricts them.
+	// Directive constraints select the latest eligible manifest for each platform.
 	if platformIDs := r.dir.GetPlatformIds(); len(platformIDs) != 0 {
 		manifests = bldr_manifest_world.FilterCollectedManifestsByPlatformID(manifests, platformIDs)
 	}
-
-	// filter by build types if specified
 	manifests = bldr_manifest_world.FilterCollectedManifestsByBuildTypes(manifests, r.dir.GetBuildTypes())
-
-	// filter by minimum revision if specified
 	manifests = bldr_manifest_world.FilterCollectedManifestsByMinRev(manifests, r.dir.GetRev())
-
-	// filter to latest revision for each ManifestID+PlatformID combination.
-	// this sorts the slice as well.
 	manifests = bldr_manifest_world.FilterCollectedManifestsByLatestRev(manifests)
 
-	// transform to a list of ManifestRef
+	// Resolver values expose immutable references rather than collection records.
 	manifestRefs := make([]*manifest.ManifestRef, len(manifests))
 	for i, m := range manifests {
 		manifestRefs[i] = &manifest.ManifestRef{
@@ -121,15 +110,11 @@ func (r *fetchManifestResolver) reconcileManifestsCore(
 		}
 	}
 
-	// we are done
+	// Idle marks this snapshot as settled before an optional World watch.
 	handler.MarkIdle(true)
-
-	// if DisableWatch is true exit the resolver.
 	if r.c.conf.GetDisableWatch() {
 		return false, nil
 	}
-
-	// otherwise wait for changes.
 	return true, nil
 }
 

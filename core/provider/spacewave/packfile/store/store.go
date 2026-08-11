@@ -57,15 +57,18 @@ type PackfileStore struct {
 	cache       IndexCache
 	verifyQueue verifyExecutor
 
-	mu        sync.Mutex
-	closed    bool
-	closeDone chan struct{}
-	engines   map[string]*PackReader
-	stats     packLookupStats
-	notify    func()
+	// mtx guards store construction, configuration, and shutdown.
+	mtx sync.Mutex
+	// closed rejects operations after Close begins draining open readers.
+	closed  bool
+	engines map[string]*PackReader
+	stats   packLookupStats
+	notify  func()
 
-	// bcast guards manifest/bloom state.
+	// bcast guards manifest, bloom, and close-completion state.
 	bcast broadcast.Broadcast
+	// closeComplete records that Close has released the store state.
+	closeComplete bool
 
 	// writebackCtx is the long-lived ctx used for async writebacks.
 	// nil disables writeback.
@@ -93,7 +96,6 @@ func NewPackfileStore(opener Opener, cache IndexCache) *PackfileStore {
 		opener:          opener,
 		cache:           cache,
 		verifyQueue:     newDefaultVerifyExecutor(defaultVerifyConcurrency()),
-		closeDone:       make(chan struct{}),
 		engines:         make(map[string]*PackReader),
 		writebackCtx:    context.Background(),
 		writebackWindow: defaultWritebackWindow,
@@ -105,11 +107,11 @@ func NewPackfileStore(opener Opener, cache IndexCache) *PackfileStore {
 
 // Close cancels transport work and releases every open pack reader.
 func (s *PackfileStore) Close() {
-	s.mu.Lock()
+	// Fence new operations and detach the reader registry.
+	s.mtx.Lock()
 	if s.closed {
-		closeDone := s.closeDone
-		s.mu.Unlock()
-		<-closeDone
+		s.mtx.Unlock()
+		s.waitCloseComplete()
 		return
 	}
 	s.closed = true
@@ -118,29 +120,48 @@ func (s *PackfileStore) Close() {
 		engines = append(engines, engine)
 	}
 	s.engines = nil
-	s.mu.Unlock()
+	s.mtx.Unlock()
 
+	// Drain every reader outside the store mutex.
 	for _, engine := range engines {
 		if engine != nil {
 			engine.Close()
 		}
 	}
 
-	s.mu.Lock()
+	// Release store dependencies and publish close completion to waiting callers.
+	s.mtx.Lock()
 	s.opener = nil
 	s.cache = nil
 	s.verifyQueue = nil
 	s.writebackCtx = nil
 	s.writebackTarget = nil
 	s.notify = nil
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		s.manifest = nil
 		s.blooms = nil
 		s.tree = nil
+		s.closeComplete = true
 		broadcast()
 	})
-	close(s.closeDone)
+}
+
+func (s *PackfileStore) waitCloseComplete() {
+	for {
+		var complete bool
+		var waitCh <-chan struct{}
+		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			complete = s.closeComplete
+			if !complete {
+				waitCh = getWaitCh()
+			}
+		})
+		if complete {
+			return
+		}
+		<-waitCh
+	}
 }
 
 // SetWriteback enables co-block persistence to a target store.
@@ -154,9 +175,9 @@ func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps,
 	if windowBytes <= 0 {
 		windowBytes = defaultWritebackWindow
 	}
-	s.mu.Lock()
+	s.mtx.Lock()
 	if s.closed {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return
 	}
 	s.writebackCtx = ctx
@@ -166,7 +187,7 @@ func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps,
 	for _, e := range s.engines {
 		engines = append(engines, e)
 	}
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetWriteback(ctx, target, windowBytes)
 	}
@@ -174,9 +195,9 @@ func (s *PackfileStore) SetWriteback(ctx context.Context, target block.StoreOps,
 
 // SetVerifyBeforeServe makes miss-path reads wait for hash verification before serving bytes.
 func (s *PackfileStore) SetVerifyBeforeServe(enabled bool) {
-	s.mu.Lock()
+	s.mtx.Lock()
 	if s.closed {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return
 	}
 	s.verifyBeforeServe = enabled
@@ -184,7 +205,7 @@ func (s *PackfileStore) SetVerifyBeforeServe(enabled bool) {
 	for _, e := range s.engines {
 		engines = append(engines, e)
 	}
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetVerifyBeforeServe(enabled)
 	}
@@ -192,9 +213,9 @@ func (s *PackfileStore) SetVerifyBeforeServe(enabled bool) {
 
 // SetRangeCacheMaxBytes sets the resident-byte budget applied to each engine.
 func (s *PackfileStore) SetRangeCacheMaxBytes(maxBytes int64) {
-	s.mu.Lock()
+	s.mtx.Lock()
 	if s.closed {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return
 	}
 	s.maxBytes = maxBytes
@@ -202,7 +223,7 @@ func (s *PackfileStore) SetRangeCacheMaxBytes(maxBytes int64) {
 	for _, e := range s.engines {
 		engines = append(engines, e)
 	}
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetMaxBytes(maxBytes)
 	}
@@ -213,25 +234,25 @@ func (s *PackfileStore) SetRangeCacheMaxBytes(maxBytes int64) {
 // Must be called before any reads begin; changing the queue while
 // engines are servicing verify jobs is not supported.
 func (s *PackfileStore) SetVerifyConcurrency(maxConcurrency int) error {
-	s.mu.Lock()
+	s.mtx.Lock()
 	if s.closed {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return ErrPackfileStoreClosed
 	}
 	if len(s.engines) != 0 {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return errors.New("SetVerifyConcurrency must be called before reads begin")
 	}
 	s.verifyQueue = newDefaultVerifyExecutor(maxConcurrency)
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	return nil
 }
 
 // SetStatsChangedCallback sets a callback invoked after observable stats change.
 func (s *PackfileStore) SetStatsChangedCallback(fn func()) {
-	s.mu.Lock()
+	s.mtx.Lock()
 	if s.closed {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return
 	}
 	s.notify = fn
@@ -239,7 +260,7 @@ func (s *PackfileStore) SetStatsChangedCallback(fn func()) {
 	for _, e := range s.engines {
 		engines = append(engines, e)
 	}
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetStatsChangedCallback(fn)
 	}
@@ -336,7 +357,7 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 
 func (s *PackfileStore) recordLookupStats(candidateCount, openedCount, negativeCount int, targetHit bool) {
 	var notify func()
-	s.mu.Lock()
+	s.mtx.Lock()
 	s.stats.LookupCount++
 	s.stats.CandidatePacks += uint64(candidateCount)
 	s.stats.OpenedPacks += uint64(openedCount)
@@ -349,7 +370,7 @@ func (s *PackfileStore) recordLookupStats(candidateCount, openedCount, negativeC
 	s.stats.LastNegativePacks = negativeCount
 	s.stats.LastTargetHit = targetHit
 	notify = s.notify
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	if notify != nil {
 		notify()
 	}
@@ -596,10 +617,10 @@ func (s *PackfileStore) UpdateManifest(entries []*packfile.PackfileEntry) {
 		active = append(active, entry)
 	}
 
-	// mu fences manifest publication before Close clears the bloom state.
-	s.mu.Lock()
+	// mtx fences manifest publication before Close clears the bloom state.
+	s.mtx.Lock()
 	if s.closed {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return
 	}
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
@@ -607,7 +628,7 @@ func (s *PackfileStore) UpdateManifest(entries []*packfile.PackfileEntry) {
 		s.tree = buildBloomTree(active, s.blooms)
 		broadcast()
 	})
-	s.mu.Unlock()
+	s.mtx.Unlock()
 
 	s.evictInactiveEngines(active)
 	s.notifyStatsChanged()
@@ -619,14 +640,14 @@ func (s *PackfileStore) evictInactiveEngines(entries []*packfile.PackfileEntry) 
 		active[entry.GetId()] = true
 	}
 	var removed []*PackReader
-	s.mu.Lock()
+	s.mtx.Lock()
 	for id, engine := range s.engines {
 		if !active[id] {
 			delete(s.engines, id)
 			removed = append(removed, engine)
 		}
 	}
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, engine := range removed {
 		if engine != nil {
 			engine.Close()
@@ -635,9 +656,9 @@ func (s *PackfileStore) evictInactiveEngines(entries []*packfile.PackfileEntry) 
 }
 
 func (s *PackfileStore) notifyStatsChanged() {
-	s.mu.Lock()
+	s.mtx.Lock()
 	notify := s.notify
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	if notify != nil {
 		notify()
 	}
@@ -646,13 +667,13 @@ func (s *PackfileStore) notifyStatsChanged() {
 // getOrOpenEngine returns the engine for a pack, opening and configuring
 // it via the opener on the first request.
 func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount uint64) (*PackReader, error) {
-	s.mu.Lock()
+	s.mtx.Lock()
 	if s.closed {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return nil, ErrPackfileStoreClosed
 	}
 	if eng, ok := s.engines[packID]; ok {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return eng, nil
 	}
 	opener := s.opener
@@ -665,7 +686,7 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	verifyBeforeServe := s.verifyBeforeServe
 	overrides := s.tuningOverrides
 	notify := s.notify
-	s.mu.Unlock()
+	s.mtx.Unlock()
 
 	eng, err := opener(packID, size)
 	if err != nil {
@@ -683,20 +704,20 @@ func (s *PackfileStore) getOrOpenEngine(packID string, size int64, blockCount ui
 	eng.SetStatsChangedCallback(notify)
 	overrides.apply(eng)
 
-	s.mu.Lock()
+	s.mtx.Lock()
 	if s.closed {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		eng.Close()
 		return nil, ErrPackfileStoreClosed
 	}
 	if existing, ok := s.engines[packID]; ok {
 		// Raced with another opener; discard ours.
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		eng.Close()
 		return existing, nil
 	}
 	s.engines[packID] = eng
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	return eng, nil
 }
 

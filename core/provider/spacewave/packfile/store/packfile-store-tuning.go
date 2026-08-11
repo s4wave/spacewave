@@ -53,11 +53,11 @@ func (s *PackfileStore) SetTransportPageSize(pageSize int) {
 	if pageSize <= 0 {
 		return
 	}
-	s.mu.Lock()
+	s.mtx.Lock()
 	s.tuningOverrides.pageSizeSet = true
 	s.tuningOverrides.pageSize = pageSize
 	engines := s.snapshotEnginesLocked()
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetTransportPageSize(pageSize)
 	}
@@ -68,11 +68,11 @@ func (s *PackfileStore) SetTransportMinWindow(minWindow int) {
 	if minWindow <= 0 {
 		return
 	}
-	s.mu.Lock()
+	s.mtx.Lock()
 	s.tuningOverrides.minWindowSet = true
 	s.tuningOverrides.minWindow = minWindow
 	engines := s.snapshotEnginesLocked()
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetTransportMinWindow(minWindow)
 	}
@@ -83,11 +83,11 @@ func (s *PackfileStore) SetTransportQuantum(quantum int) {
 	if quantum <= 0 {
 		return
 	}
-	s.mu.Lock()
+	s.mtx.Lock()
 	s.tuningOverrides.transportQuantumSet = true
 	s.tuningOverrides.transportQuantum = quantum
 	engines := s.snapshotEnginesLocked()
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetTransportQuantum(quantum)
 	}
@@ -98,11 +98,11 @@ func (s *PackfileStore) SetTransportMaxWindow(maxWindow int) {
 	if maxWindow <= 0 {
 		return
 	}
-	s.mu.Lock()
+	s.mtx.Lock()
 	s.tuningOverrides.maxWindowSet = true
 	s.tuningOverrides.maxWindow = maxWindow
 	engines := s.snapshotEnginesLocked()
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetTransportMaxWindow(maxWindow)
 	}
@@ -113,11 +113,11 @@ func (s *PackfileStore) SetTransportTargetRequestHz(targetHz float64) {
 	if targetHz <= 0 {
 		return
 	}
-	s.mu.Lock()
+	s.mtx.Lock()
 	s.tuningOverrides.targetHzSet = true
 	s.tuningOverrides.targetHz = targetHz
 	engines := s.snapshotEnginesLocked()
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetTransportTargetRequestHz(targetHz)
 	}
@@ -125,11 +125,11 @@ func (s *PackfileStore) SetTransportTargetRequestHz(targetHz float64) {
 
 // SetTransportWindowSmoothing sets the upward growth smoothing factor on all engines.
 func (s *PackfileStore) SetTransportWindowSmoothing(smoothing float64) {
-	s.mu.Lock()
+	s.mtx.Lock()
 	s.tuningOverrides.smoothingSet = true
 	s.tuningOverrides.smoothing = smoothing
 	engines := s.snapshotEnginesLocked()
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetTransportWindowSmoothing(smoothing)
 	}
@@ -137,13 +137,13 @@ func (s *PackfileStore) SetTransportWindowSmoothing(smoothing float64) {
 
 // SetSparseReadTuning configures first-touch sparse range planning on all engines.
 func (s *PackfileStore) SetSparseReadTuning(enabled bool, coldWindow int, localityDistance int64) {
-	s.mu.Lock()
+	s.mtx.Lock()
 	s.tuningOverrides.sparseReadsSet = true
 	s.tuningOverrides.sparseReads = enabled
 	s.tuningOverrides.sparseColdWindow = coldWindow
 	s.tuningOverrides.sparseLocalityDistance = localityDistance
 	engines := s.snapshotEnginesLocked()
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetSparseReadTuning(enabled, coldWindow, localityDistance)
 	}
@@ -151,11 +151,11 @@ func (s *PackfileStore) SetSparseReadTuning(enabled bool, coldWindow int, locali
 
 // SetIndexPromotionEnabled sets whether resident spans auto-promote covered blocks.
 func (s *PackfileStore) SetIndexPromotionEnabled(enabled bool) {
-	s.mu.Lock()
+	s.mtx.Lock()
 	s.tuningOverrides.indexPromotionSet = true
 	s.tuningOverrides.indexPromotion = enabled
 	engines := s.snapshotEnginesLocked()
-	s.mu.Unlock()
+	s.mtx.Unlock()
 	for _, e := range engines {
 		e.SetIndexPromotionEnabled(enabled)
 	}
