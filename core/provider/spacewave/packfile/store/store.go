@@ -1,7 +1,9 @@
 package store
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -607,7 +609,9 @@ func (s *PackfileStore) Sync(_ context.Context) (bool, error) {
 	return true, nil
 }
 
-// UpdateManifest replaces the manifest and rebuilds the bloom tree.
+// UpdateManifest filters superseded entries, orders cloud entries by descending
+// sequence with an ascending pack-ID tie-break, then places zero-sequence local
+// entries after them.
 func (s *PackfileStore) UpdateManifest(entries []*packfile.PackfileEntry) {
 	active := make([]*packfile.PackfileEntry, 0, len(entries))
 	for _, entry := range entries {
@@ -616,6 +620,23 @@ func (s *PackfileStore) UpdateManifest(entries []*packfile.PackfileEntry) {
 		}
 		active = append(active, entry)
 	}
+	slices.SortStableFunc(active, func(a, b *packfile.PackfileEntry) int {
+		aSequence := a.GetSequence()
+		bSequence := b.GetSequence()
+		if aSequence == 0 {
+			if bSequence == 0 {
+				return cmp.Compare(a.GetId(), b.GetId())
+			}
+			return 1
+		}
+		if bSequence == 0 {
+			return -1
+		}
+		if result := cmp.Compare(bSequence, aSequence); result != 0 {
+			return result
+		}
+		return cmp.Compare(a.GetId(), b.GetId())
+	})
 
 	// mtx fences manifest publication before Close clears the bloom state.
 	s.mtx.Lock()
