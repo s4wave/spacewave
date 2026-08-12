@@ -15,14 +15,27 @@ vi.mock('@s4wave/web/forge/ForgeViewerShell.js', () => ({
   ForgeViewerShell: ({
     tabs,
   }: {
-    tabs?: Array<{ id: string; content: React.ReactNode }>
-  }) => (
-    <div data-testid="forge-viewer-shell">
-      {tabs?.map((tab) => (
-        <div key={tab.id}>{tab.content}</div>
-      ))}
-    </div>
-  ),
+    tabs?: Array<{ id: string; label: string; content: React.ReactNode }>
+  }) => {
+    const [activeTab, setActiveTab] = React.useState(tabs?.[0]?.id)
+    return (
+      <div data-testid="forge-viewer-shell">
+        <div role="tablist">
+          {tabs?.map((tab) => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {tabs?.find((tab) => tab.id === activeTab)?.content}
+      </div>
+    )
+  },
 }))
 
 vi.mock('@s4wave/web/forge/useForgeBlockData.js', () => ({
@@ -36,6 +49,24 @@ vi.mock('@s4wave/web/forge/useForgeLinkedEntities.js', () => ({
   useForgeLinkedEntities: () => ({
     entities: [],
     loading: false,
+  }),
+}))
+
+const mockRetrySnapshot = vi.fn()
+let mockSnapshotError: Error | null = null
+
+vi.mock('./useForgeClusterSnapshot.js', () => ({
+  useForgeClusterSnapshot: () => ({
+    snapshot: {
+      jobs: [],
+      tasks: [],
+      passes: [],
+      executions: [],
+      workers: [],
+    },
+    loading: false,
+    error: mockSnapshotError,
+    retry: mockRetrySnapshot,
   }),
 }))
 
@@ -90,6 +121,7 @@ describe('ForgeClusterViewer', () => {
 
   afterEach(() => {
     cleanup()
+    mockSnapshotError = null
     mockVisibleWizardTypeSet.clear()
     mockVisibleWizardTypeSet.add('forge/job')
     vi.clearAllMocks()
@@ -99,6 +131,7 @@ describe('ForgeClusterViewer', () => {
     const user = userEvent.setup()
     renderViewer()
 
+    await user.click(screen.getByRole('tab', { name: 'Jobs' }))
     await user.click(screen.getByRole('button', { name: /create job/i }))
 
     expect(mockSpaceWorld.applyWorldOp).toHaveBeenCalledTimes(1)
@@ -119,10 +152,52 @@ describe('ForgeClusterViewer', () => {
     expect(mockNavigateToObjects).toHaveBeenCalledWith([decoded.objectKey])
   })
 
-  it('hides the create-job affordance when forge jobs are experimental', () => {
+  it('settles a new empty cluster across each interactive tab', async () => {
+    const user = userEvent.setup()
+    renderViewer()
+
+    expect(screen.queryByText(/Loading task breakdown/i)).toBeNull()
+    expect(screen.getByText('No tasks assigned yet')).toBeTruthy()
+
+    await user.click(screen.getByRole('tab', { name: 'Workers' }))
+    expect(screen.queryByText(/Loading workers/i)).toBeNull()
+    expect(screen.getByText('No workers assigned')).toBeTruthy()
+
+    await user.click(screen.getByRole('tab', { name: 'Jobs' }))
+    expect(screen.queryByText(/Loading jobs/i)).toBeNull()
+    expect(screen.getByText('No jobs in cluster')).toBeTruthy()
+
+    await user.click(screen.getByRole('tab', { name: 'Settings' }))
+    expect(screen.getByText('Cluster identity')).toBeTruthy()
+    expect(screen.getByText('Object Key')).toBeTruthy()
+    expect(screen.getByText('forge/cluster/main')).toBeTruthy()
+  })
+
+  it('shows snapshot failures before empty states and retries from each data tab', async () => {
+    const user = userEvent.setup()
+    mockSnapshotError = new Error('graph unavailable')
+    renderViewer()
+
+    expect(screen.getByText('Task states unavailable')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: /retry/i }))
+
+    await user.click(screen.getByRole('tab', { name: 'Workers' }))
+    expect(screen.getByText('Workers unavailable')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: /retry/i }))
+
+    await user.click(screen.getByRole('tab', { name: 'Jobs' }))
+    expect(screen.getByText('Jobs unavailable')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: /retry/i }))
+
+    expect(mockRetrySnapshot).toHaveBeenCalledTimes(3)
+  })
+
+  it('hides the create-job affordance when forge jobs are experimental', async () => {
     mockVisibleWizardTypeSet.clear()
 
+    const user = userEvent.setup()
     renderViewer()
+    await user.click(screen.getByRole('tab', { name: 'Jobs' }))
 
     expect(screen.queryByRole('button', { name: /create job/i })).toBeNull()
   })

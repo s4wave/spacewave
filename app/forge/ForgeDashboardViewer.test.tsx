@@ -218,6 +218,7 @@ describe('ForgeDashboardViewer', () => {
     expect(clusterOp.wizardTypeId).toBe('wizard/forge/cluster')
     expect(clusterOp.targetTypeId).toBe('forge/cluster')
     expect(clusterOp.targetKeyPrefix).toBe('forge/cluster/')
+    expect(clusterOp.name).toBe('cluster')
 
     const [jobOpTypeId, jobOpData] = mockSpaceWorld.applyWorldOp.mock
       .calls[1] as [string, Uint8Array]

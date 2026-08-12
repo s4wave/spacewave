@@ -1,6 +1,5 @@
-/* eslint-disable react-doctor/async-await-in-loop */
 import { useCallback, useMemo, useRef } from 'react'
-import { LuPlus, LuServer, LuTrash } from 'react-icons/lu'
+import { LuCheck, LuPlus, LuServer, LuTrash } from 'react-icons/lu'
 
 import type { ConfigEditorProps } from '@s4wave/web/configtype/configtype.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
@@ -8,14 +7,39 @@ import { useResource } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { Input } from '@s4wave/web/ui/input.js'
+import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import type { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
 import { Cluster } from '@go/github.com/s4wave/spacewave/forge/cluster/cluster.pb.js'
 import { listObjectsWithType } from '@s4wave/sdk/world/types/types.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 
-interface ClusterInfo {
+export interface ForgeClusterOption {
   key: string
   name: string
+}
+
+export async function loadForgeClusterOptions(
+  world: IWorldState,
+  signal: AbortSignal,
+): Promise<ForgeClusterOption[]> {
+  const keys = await listObjectsWithType(world, 'forge/cluster', signal)
+  return Promise.all(
+    keys.map(async (key) => {
+      const obj = await world.getObject(key, signal)
+      if (!obj) return { key, name: key }
+      try {
+        using cursor = await obj.accessWorldState(undefined, signal)
+        const resp = await cursor.unmarshal(
+          { blockType: 'forge/cluster' },
+          signal,
+        )
+        if (!resp.found || !resp.data?.length) return { key, name: key }
+        return { key, name: Cluster.fromBinary(resp.data).name || key }
+      } finally {
+        obj.release()
+      }
+    }),
+  )
 }
 
 const inputClassName =
@@ -31,33 +55,8 @@ export function ForgeJobConfigEditor({
 
   const clustersResource = useResource(
     spaceWorldResource,
-    async (world: IWorldState, signal: AbortSignal) => {
-      const keys = await listObjectsWithType(world, 'forge/cluster', signal)
-      const results: ClusterInfo[] = []
-      for (const key of keys) {
-        const obj = await world.getObject(key, signal)
-        if (!obj) {
-          results.push({ key, name: key })
-          continue
-        }
-        try {
-          using cursor = await obj.accessWorldState(undefined, signal)
-          const resp = await cursor.unmarshal(
-            { blockType: 'forge/cluster' },
-            signal,
-          )
-          if (resp.found && resp.data?.length) {
-            const cluster = Cluster.fromBinary(resp.data)
-            results.push({ key, name: cluster.name || key })
-          } else {
-            results.push({ key, name: key })
-          }
-        } finally {
-          obj.release()
-        }
-      }
-      return results
-    },
+    (world: IWorldState, signal: AbortSignal) =>
+      loadForgeClusterOptions(world, signal),
     [],
   )
   const clusters = useMemo(
@@ -66,9 +65,16 @@ export function ForgeJobConfigEditor({
   )
 
   const taskDefs = useMemo(() => value.taskDefs ?? [], [value.taskDefs])
-  const taskKeyMapRef = useRef(new WeakMap<object, string>())
-  const taskKeyCounterRef = useRef(0)
-
+  const displayedTaskDefs = useMemo(
+    () => (taskDefs.length > 0 ? taskDefs : [{ name: '' }]),
+    [taskDefs],
+  )
+  const nextTaskKeyRef = useRef(1)
+  const taskKeysRef = useRef<string[]>([])
+  while (taskKeysRef.current.length < displayedTaskDefs.length) {
+    taskKeysRef.current.push(`task-${nextTaskKeyRef.current++}`)
+  }
+  taskKeysRef.current.length = displayedTaskDefs.length
   const handleSelectCluster = useCallback(
     (clusterKey: string) => {
       onValueChange({ ...value, clusterKey })
@@ -86,12 +92,14 @@ export function ForgeJobConfigEditor({
   )
 
   const handleAddTask = useCallback(() => {
+    taskKeysRef.current.push(`task-${nextTaskKeyRef.current++}`)
     onValueChange({ ...value, taskDefs: [...taskDefs, { name: '' }] })
   }, [taskDefs, value, onValueChange])
 
   const handleRemoveTask = useCallback(
     (index: number) => {
       if (taskDefs.length <= 1) return
+      taskKeysRef.current.splice(index, 1)
       onValueChange({
         ...value,
         taskDefs: taskDefs.filter((_, i) => i !== index),
@@ -99,14 +107,6 @@ export function ForgeJobConfigEditor({
     },
     [taskDefs, value, onValueChange],
   )
-
-  const getTaskKey = useCallback((task: object) => {
-    const existing = taskKeyMapRef.current.get(task)
-    if (existing) return existing
-    const next = `task-${taskKeyCounterRef.current++}`
-    taskKeyMapRef.current.set(task, next)
-    return next
-  }, [])
 
   return (
     <div className="space-y-3">
@@ -117,13 +117,33 @@ export function ForgeJobConfigEditor({
             Target Cluster
           </h3>
         </div>
-        {clusters.length === 0 && (
-          <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/40 flex items-center gap-2 rounded-lg border px-3.5 py-3 text-xs">
-            <LuServer className="size-3.5 shrink-0" />
-            {clustersResource.loading
-              ? 'Loading clusters…'
-              : 'No clusters found. Create a cluster first.'}
+        {clustersResource.error ? (
+          <LoadingCard
+            view={{
+              state: 'error',
+              title: 'Clusters unavailable',
+              detail: 'Forge could not load the available clusters.',
+              error: 'Try again to choose where this Job will run.',
+              onRetry: clustersResource.retry,
+            }}
+          />
+        ) : clustersResource.loading && clusters.length === 0 ? (
+          <LoadingCard
+            view={{
+              state: 'loading',
+              title: 'Loading clusters…',
+              detail: 'Reading the available Forge Clusters.',
+              progressIndeterminate: true,
+            }}
+          />
+        ) : clusters.length === 0 ? (
+          <div className="border-foreground/6 bg-background-card/30 text-foreground-alt/60 rounded-lg border px-3.5 py-3 text-xs leading-relaxed">
+            No Clusters are available. Create a Cluster before creating a Job.
           </div>
+        ) : (
+          <p className="text-foreground-alt/60 mb-2 text-xs leading-relaxed">
+            Choose the Cluster that will schedule this Job.
+          </p>
         )}
         <div className="space-y-2">
           {clusters.map((cluster) => (
@@ -136,13 +156,25 @@ export function ForgeJobConfigEditor({
                   'border-brand/30 bg-brand/5',
               )}
               onClick={() => handleSelectCluster(cluster.key)}
+              aria-pressed={value.clusterKey === cluster.key}
             >
               <span className="bg-foreground/5 flex size-7 shrink-0 items-center justify-center rounded-md">
                 <LuServer className="text-foreground-alt/50 size-3.5" />
               </span>
-              <span className="text-foreground text-xs font-medium">
-                {cluster.name}
+              <span className="min-w-0 flex-1">
+                <span className="text-foreground block truncate text-xs font-medium">
+                  {cluster.name}
+                </span>
+                <span className="text-foreground-alt/50 block truncate text-xs">
+                  {cluster.key}
+                </span>
               </span>
+              {value.clusterKey === cluster.key && (
+                <LuCheck
+                  className="text-brand size-4 shrink-0"
+                  aria-label="Selected"
+                />
+              )}
             </button>
           ))}
         </div>
@@ -164,16 +196,23 @@ export function ForgeJobConfigEditor({
             Add Task
           </Button>
         </div>
+        <p className="text-foreground-alt/60 mb-2 text-xs leading-relaxed">
+          Add at least one named task. Tasks run in the order shown.
+        </p>
         <div className="border-foreground/6 bg-background-card/30 space-y-2 rounded-lg border p-3.5">
-          {taskDefs.map((task, i) => (
-            <div key={getTaskKey(task)} className="flex items-center gap-2">
+          {displayedTaskDefs.map((task, i) => (
+            <div
+              key={taskKeysRef.current[i]}
+              className="flex items-center gap-2"
+            >
               <Input
                 value={task.name ?? ''}
                 onChange={(e) => handleUpdateTaskDef(i, e.target.value)}
                 placeholder={`Task ${i + 1} name...`}
+                aria-label={`Task ${i + 1} name`}
                 className={inputClassName}
               />
-              {taskDefs.length > 1 && (
+              {displayedTaskDefs.length > 1 && (
                 <Button
                   variant="outline"
                   size="sm"

@@ -211,7 +211,7 @@ export function ForgeDashboardViewer({
         'wizard/forge/cluster',
         'forge/cluster',
         'forge/cluster/',
-        'Cluster',
+        'cluster',
       )
     } catch {
       const message = 'Cluster creation is unavailable. Try again.'

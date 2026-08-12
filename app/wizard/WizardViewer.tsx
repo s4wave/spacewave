@@ -9,6 +9,7 @@ import { useConfigEditor } from '@s4wave/web/configtype/useConfigEditor.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import {
   lookupCreateOpBuilder,
+  buildForgeObjectKey,
   buildObjectKey,
 } from '../space/create-op-builders.js'
 import { useExperimentalCreatorsEnabled } from '../creator-visibility.js'
@@ -18,6 +19,15 @@ import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
 
 export const WizardTypePrefix = 'wizard/'
+
+const dns1123NamePattern = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/
+
+function validateTargetName(targetTypeId: string | undefined, name: string) {
+  if (targetTypeId !== 'forge/cluster' || dns1123NamePattern.test(name)) {
+    return ''
+  }
+  return 'Use 1–63 lowercase letters, numbers, or hyphens; start and end with a letter or number.'
+}
 
 export function WizardViewer(props: ObjectViewerComponentProps) {
   const spaceResource = SpaceContext.useContext()
@@ -51,6 +61,11 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
     const name = ws.localName || state.name
     const targetKeyPrefix = state.targetKeyPrefix ?? ''
     if (!name) return
+    const nameError = validateTargetName(state.targetTypeId, name)
+    if (nameError) {
+      toast.error(nameError)
+      return
+    }
 
     const builder = lookupCreateOpBuilder(targetWizard.createOpId)
     if (!builder) {
@@ -61,11 +76,11 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
     ws.setCreating(true)
     try {
       await ws.persistDraftState()
-      const targetKey = buildObjectKey(
-        targetKeyPrefix,
-        name,
-        ws.existingObjectKeys,
-      )
+      const targetKey = (
+        state.targetTypeId?.startsWith('forge/')
+          ? buildForgeObjectKey
+          : buildObjectKey
+      )(targetKeyPrefix, name, ws.existingObjectKeys)
       const opData = builder(targetKey, name, state.configData)
       await ws.spaceWorld.applyWorldOp(
         targetWizard.createOpId,
@@ -109,6 +124,7 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
   }
 
   const displayName = targetWizard?.displayName ?? state.targetTypeId
+  const nameError = validateTargetName(state.targetTypeId, ws.localName)
 
   return (
     <WizardShell
@@ -116,10 +132,12 @@ export function WizardViewer(props: ObjectViewerComponentProps) {
       step={state.step ?? 0}
       localName={ws.localName}
       onUpdateName={ws.handleUpdateName}
+      nameError={nameError}
       onBack={() => void ws.handleBack()}
       onCancel={handleCancel}
       creating={ws.creating}
       onFinalize={handleFinalizeClick}
+      canFinalize={!nameError}
     >
       {configEditor.element}
     </WizardShell>

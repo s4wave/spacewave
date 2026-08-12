@@ -34,6 +34,7 @@ import { StateBadge } from '@s4wave/web/forge/StateBadge.js'
 import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import { StatCard } from '@s4wave/web/ui/StatCard.js'
 import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
@@ -86,10 +87,12 @@ export function ForgeClusterViewer({
     objectKey,
     PRED_CLUSTER_TO_JOB,
   )
-  const { snapshot, loading: snapshotLoading } = useForgeClusterSnapshot(
-    worldState,
-    [objectKey],
-  )
+  const {
+    snapshot,
+    loading: snapshotLoading,
+    error: snapshotError,
+    retry: retrySnapshot,
+  } = useForgeClusterSnapshot(worldState, [objectKey])
   const taskStateCounts = useMemo(() => {
     const counts: Record<number, number> = {}
     for (const task of snapshot.tasks) {
@@ -178,16 +181,18 @@ export function ForgeClusterViewer({
         label: 'Overview',
         content: (
           <div className="space-y-3">
-            <InfoCard>
-              <div className="space-y-2">
-                {cluster?.name && (
-                  <CopyableField label="Name" value={cluster.name} />
-                )}
-                {cluster?.peerId && (
-                  <CopyableField label="Peer ID" value={cluster.peerId} />
-                )}
-              </div>
-            </InfoCard>
+            {(cluster?.name || cluster?.peerId) && (
+              <InfoCard title="Cluster identity">
+                <div className="space-y-2">
+                  {cluster.name && (
+                    <CopyableField label="Name" value={cluster.name} />
+                  )}
+                  {cluster.peerId && (
+                    <CopyableField label="Peer ID" value={cluster.peerId} />
+                  )}
+                </div>
+              </InfoCard>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <StatCard
                 icon={LuCpu}
@@ -204,17 +209,25 @@ export function ForgeClusterViewer({
               icon={<LuListTodo className="text-foreground-alt/60 size-3.5" />}
               title="Task States"
             >
-              {snapshotLoading && (
+              {snapshotError ? (
+                <LoadingCard
+                  view={{
+                    state: 'error',
+                    title: 'Task states unavailable',
+                    detail: 'Forge could not read this Cluster snapshot.',
+                    error: snapshotError.message,
+                    onRetry: retrySnapshot,
+                  }}
+                />
+              ) : snapshotLoading ? (
                 <div className="text-foreground-alt/50 text-xs">
                   Loading task breakdown…
                 </div>
-              )}
-              {!snapshotLoading && snapshot.tasks.length === 0 && (
+              ) : snapshot.tasks.length === 0 ? (
                 <div className="text-foreground-alt/50 text-xs">
                   No tasks assigned yet
                 </div>
-              )}
-              {!snapshotLoading && snapshot.tasks.length > 0 && (
+              ) : (
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(taskStateLabels).map(([state, label]) => (
                     <div
@@ -238,41 +251,50 @@ export function ForgeClusterViewer({
       {
         id: 'workers',
         label: 'Workers',
-        content:
-          snapshot.workers.length === 0 ? (
-            <ForgeEntityList
-              entities={workers}
-              loading={workersLoading || snapshotLoading}
-              icon={<LuCpu className="size-3 shrink-0" />}
-              loadingLabel="Loading workers..."
-              emptyLabel="No workers assigned"
-            />
-          ) : (
-            <div className="space-y-2">
-              {snapshot.workers.map((worker) => (
-                <div
-                  key={worker.objectKey}
-                  className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <ForgeEntityLink
-                      objectKey={worker.objectKey}
-                      className="text-foreground min-w-0 text-sm font-medium"
-                    >
-                      {worker.data.name || worker.objectKey}
-                    </ForgeEntityLink>
-                    <div className="text-foreground-alt/50 text-xs">
-                      {workerExecutionCounts.get(worker.objectKey) ?? 0} active
-                    </div>
-                  </div>
-                  <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
-                    <span>{worker.peerIds.length} peer IDs</span>
-                    <span>{worker.clusterKeys.length} cluster links</span>
+        content: snapshotError ? (
+          <LoadingCard
+            view={{
+              state: 'error',
+              title: 'Workers unavailable',
+              detail: 'Forge could not read this Cluster snapshot.',
+              error: snapshotError.message,
+              onRetry: retrySnapshot,
+            }}
+          />
+        ) : snapshot.workers.length === 0 ? (
+          <ForgeEntityList
+            entities={workers}
+            loading={workersLoading || snapshotLoading}
+            icon={<LuCpu className="size-3 shrink-0" />}
+            loadingLabel="Loading workers..."
+            emptyLabel="No workers assigned"
+          />
+        ) : (
+          <div className="space-y-2">
+            {snapshot.workers.map((worker) => (
+              <div
+                key={worker.objectKey}
+                className="border-foreground/6 bg-background-card/30 hover:border-foreground/12 hover:bg-background-card/50 space-y-2 rounded-lg border px-3.5 py-2.5 transition duration-150"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <ForgeEntityLink
+                    objectKey={worker.objectKey}
+                    className="text-foreground min-w-0 text-sm font-medium"
+                  >
+                    {worker.data.name || worker.objectKey}
+                  </ForgeEntityLink>
+                  <div className="text-foreground-alt/50 text-xs">
+                    {workerExecutionCounts.get(worker.objectKey) ?? 0} active
                   </div>
                 </div>
-              ))}
-            </div>
-          ),
+                <div className="text-foreground-alt/50 flex flex-wrap gap-3 text-xs">
+                  <span>{worker.peerIds.length} peer IDs</span>
+                  <span>{worker.clusterKeys.length} cluster links</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ),
       },
       {
         id: 'jobs',
@@ -292,7 +314,17 @@ export function ForgeClusterViewer({
                 </DashboardButton>
               </div>
             )}
-            {snapshot.jobs.length === 0 ? (
+            {snapshotError ? (
+              <LoadingCard
+                view={{
+                  state: 'error',
+                  title: 'Jobs unavailable',
+                  detail: 'Forge could not read this Cluster snapshot.',
+                  error: snapshotError.message,
+                  onRetry: retrySnapshot,
+                }}
+              />
+            ) : snapshot.jobs.length === 0 ? (
               <ForgeEntityList
                 entities={jobs}
                 loading={jobsLoading || snapshotLoading}
@@ -366,11 +398,22 @@ export function ForgeClusterViewer({
         id: 'settings',
         label: 'Settings',
         content: (
-          <InfoCard>
+          <InfoCard title="Cluster identity">
             <div className="space-y-2">
+              <p className="text-foreground-alt/60 text-xs leading-relaxed">
+                The object key identifies this Cluster in the Space graph.
+              </p>
+              {cluster?.name && (
+                <CopyableField label="Name" value={cluster.name} />
+              )}
               <CopyableField label="Object Key" value={objectKey} />
-              {cluster?.peerId && (
+              {cluster?.peerId ? (
                 <CopyableField label="Peer ID" value={cluster.peerId} />
+              ) : (
+                <p className="text-foreground-alt/60 text-xs leading-relaxed">
+                  No peer ID is assigned. Workers can join this Cluster without
+                  a Cluster peer identity.
+                </p>
               )}
             </div>
           </InfoCard>
@@ -386,6 +429,8 @@ export function ForgeClusterViewer({
       jobs,
       jobsLoading,
       objectKey,
+      retrySnapshot,
+      snapshotError,
       snapshot.jobs,
       snapshot.tasks,
       snapshot.workers,

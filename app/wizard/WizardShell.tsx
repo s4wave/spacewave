@@ -28,6 +28,7 @@ export interface WizardShellProps {
   nameLabel?: string
   namePlaceholder?: string
   nameHelp?: string
+  nameError?: string
   // Which step shows the name input. Defaults to 0.
   nameStep?: number
   // Selects the existing default name when the name input receives focus.
@@ -66,6 +67,7 @@ export function WizardShell({
   nameLabel = 'Name',
   namePlaceholder = 'Enter a name...',
   nameHelp,
+  nameError,
   nameStep = 0,
   selectNameOnFocus = false,
   creating,
@@ -146,8 +148,21 @@ export function WizardShell({
                     onChange={(e) => onUpdateName(e.target.value)}
                     placeholder={namePlaceholder}
                     help={nameHelp}
+                    aria-invalid={nameError ? true : undefined}
+                    aria-describedby={
+                      nameError ? 'wizard-name-error' : undefined
+                    }
+                    className={nameError ? 'border-destructive/50' : undefined}
                     onFocus={handleNameFocus}
                   />
+                  {nameError && (
+                    <p
+                      id="wizard-name-error"
+                      className="text-destructive mt-1.5 text-xs"
+                    >
+                      {nameError}
+                    </p>
+                  )}
                 </div>
               </section>
             )}

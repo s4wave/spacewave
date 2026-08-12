@@ -219,7 +219,7 @@ describe('WizardViewer', () => {
       step: 0,
       targetTypeId: 'forge/cluster',
       targetKeyPrefix: 'forge/cluster/',
-      name: 'Test Cluster',
+      name: 'test-cluster',
     }
     currentWizards = [
       {
@@ -245,12 +245,42 @@ describe('WizardViewer', () => {
     expect(sender).toBe(currentPeerId)
 
     const decoded = ClusterCreateOp.fromBinary(opData)
-    expect(decoded.clusterKey).toBe('test-cluster-1')
-    expect(decoded.name).toBe('Test Cluster')
+    expect(decoded.clusterKey).toBe('test-cluster')
+    expect(decoded.name).toBe('test-cluster')
     expect(decoded.peerId ?? '').toBe('')
     expect(mocks.deleteObject).toHaveBeenCalledWith('wizard/test-canvas')
     expect(mocks.navigateToObjects).toHaveBeenCalledWith([decoded.clusterKey])
-    expect(mocks.toastSuccess).toHaveBeenCalledWith('Created Test Cluster')
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Created test-cluster')
+  })
+
+  it('blocks an invalid Forge Cluster DNS-1123 name with actionable guidance', async () => {
+    currentState = {
+      step: 0,
+      targetTypeId: 'forge/cluster',
+      targetKeyPrefix: 'forge/cluster/',
+      name: 'Invalid Cluster',
+    }
+    currentWizards = [
+      {
+        typeId: 'forge/cluster',
+        displayName: 'Forge Cluster',
+        createOpId: 'forge/cluster/create',
+        keyPrefix: 'forge/cluster/',
+      },
+    ]
+
+    renderViewer()
+
+    expect(
+      screen.getByText(
+        'Use 1–63 lowercase letters, numbers, or hyphens; start and end with a letter or number.',
+      ),
+    ).toBeTruthy()
+    expect(
+      (screen.getByRole('button', { name: /create/i }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+    expect(mocks.applyWorldOp).not.toHaveBeenCalled()
   })
 
   it('does not finalize an experimental target wizard before browser opt-in', async () => {

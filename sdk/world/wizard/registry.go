@@ -119,7 +119,7 @@ var ObjectWizards = []*ObjectWizard{
 		Category:           "Forge",
 		IconName:           "LuServer",
 		CreateOpId:         "forge/cluster/create",
-		DefaultNamePattern: "Cluster",
+		DefaultNamePattern: "cluster",
 		KeyPrefix:          "forge/cluster/",
 		Persistent:         true,
 		WizardTypeId:       "wizard/forge/cluster",

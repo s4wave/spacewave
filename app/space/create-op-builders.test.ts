@@ -1,24 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildForgeObjectKey,
   buildObjectKey,
   buildWizardObjectKey,
   lookupCreateOpBuilder,
 } from './create-op-builders.js'
 
 describe('buildObjectKey', () => {
-  it('uses simple name-based numbered keys', () => {
+  it('preserves the established numbered convention for non-Forge callers', () => {
     expect(buildObjectKey('canvas/', 'Canvas')).toBe('canvas-1')
-    expect(buildObjectKey('forge/cluster/', 'Forge Cluster')).toBe(
-      'forge-cluster-1',
-    )
-  })
-
-  it('selects the next available numbered key', () => {
     expect(buildObjectKey('canvas/', 'Canvas', ['canvas-1'])).toBe('canvas-2')
-  })
-
-  it('uses the prefix only when the name is empty', () => {
     expect(buildObjectKey('object-layout/', '')).toBe('object-layout-1')
   })
 
@@ -29,6 +21,29 @@ describe('buildObjectKey', () => {
     expect(
       buildWizardObjectKey('Git Repository', ['wizard/git-repository-1']),
     ).toBe('wizard/git-repository-2')
+  })
+})
+
+describe('buildForgeObjectKey', () => {
+  it('uses the normalized requested key when it is free', () => {
+    expect(buildForgeObjectKey('forge/cluster/', 'cluster-1')).toBe('cluster-1')
+    expect(buildForgeObjectKey('forge/job/', 'Build Job')).toBe('build-job')
+  })
+
+  it('numbers only a colliding bare key and tolerates historical numbered keys', () => {
+    expect(
+      buildForgeObjectKey('forge/cluster/', 'cluster', [
+        'cluster',
+        'cluster-1',
+        'cluster-2',
+      ]),
+    ).toBe('cluster-3')
+  })
+
+  it('does not confuse hierarchical graph keys with the bare create key', () => {
+    expect(
+      buildForgeObjectKey('forge/task/', 'compile', ['forge/task/compile']),
+    ).toBe('compile')
   })
 })
 

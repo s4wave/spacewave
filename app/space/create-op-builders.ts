@@ -156,6 +156,23 @@ export function buildObjectKey(
   return candidates.find((key) => !existing.has(key)) ?? `${base}-1`
 }
 
+// buildForgeObjectKey preserves a requested Forge key unless it collides.
+export function buildForgeObjectKey(
+  prefix: string,
+  name: string,
+  existingKeys?: Iterable<string | undefined>,
+): string {
+  const base = slugObjectKeySegment(name) || buildObjectKeyBase(prefix)
+  const existing = new Set(existingKeys ?? [])
+  if (!existing.has(base)) return base
+
+  const candidates = Array.from(
+    { length: existing.size + 2 },
+    (_, index) => `${base}-${index + 2}`,
+  )
+  return candidates.find((key) => !existing.has(key)) ?? `${base}-2`
+}
+
 export function buildWizardObjectKey(
   name: string,
   existingKeys?: Iterable<string | undefined>,
