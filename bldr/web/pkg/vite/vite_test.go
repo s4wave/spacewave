@@ -62,10 +62,11 @@ func TestBuildWebPkgsViteKeepsRelativeSourceFiles(t *testing.T) {
 		},
 	}
 
-	_, srcFiles, _, err := BuildWebPkgsVite(
+	_, srcFiles, _, err := BuildWebPkgsViteWithManagedRoot(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
 		codeRootPath,
+		filepath.Join(codeRootPath, ".state"),
 		[]*web_pkg.WebPkgRef{{
 			WebPkgId:   "@aptre/it-ws",
 			WebPkgRoot: pkgRoot,
@@ -102,7 +103,11 @@ func TestBuildWebPkgsViteUsesOneAbsoluteWrapperIdentity(t *testing.T) {
 	if err := os.Chdir(workingDir); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = os.Chdir(oldWorkingDir) })
+	t.Cleanup(func() {
+		if err := os.Chdir(oldWorkingDir); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
 
 	pkgRoot := filepath.Join(codeRootPath, "node_modules", "stable-cjs")
 	if err := os.MkdirAll(pkgRoot, 0o755); err != nil {
@@ -117,8 +122,8 @@ func TestBuildWebPkgsViteUsesOneAbsoluteWrapperIdentity(t *testing.T) {
 		wrapperPath = req.GetImports()[0]
 		return &bldr_vite.BuildWebPkgResponse{Success: true, SourceFiles: []string{wrapperPath}}
 	}}
-	_, sourceFiles, _, err := BuildWebPkgsVite(
-		context.Background(), logrus.NewEntry(logrus.New()), codeRootPath,
+	_, sourceFiles, _, err := BuildWebPkgsViteWithManagedRoot(
+		context.Background(), logrus.NewEntry(logrus.New()), codeRootPath, filepath.Join(codeRootPath, ".state"),
 		[]*web_pkg.WebPkgRef{{WebPkgId: "stable-cjs", WebPkgRoot: pkgRoot, Imports: []string{"index.cjs"}}},
 		outputPath, "/b/pkg/", true, false, true, client, filepath.Join(t.TempDir(), "cache"),
 	)
@@ -151,7 +156,11 @@ func TestBuildWebPkgsViteIgnoresGeneratedOutputSources(t *testing.T) {
 	if err := os.Chdir(codeRootPath); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = os.Chdir(oldWorkingDir) })
+	t.Cleanup(func() {
+		if err := os.Chdir(oldWorkingDir); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
 	pkgRoot := filepath.Join(codeRootPath, "node_modules", "stable-pkg")
 	stableSource := filepath.Join(pkgRoot, "index.cjs")
 	if err := os.MkdirAll(pkgRoot, 0o755); err != nil {
@@ -207,10 +216,11 @@ func TestBuildWebPkgsViteIgnoresGeneratedOutputSources(t *testing.T) {
 				}
 			},
 		}
-		_, sourceFiles, _, err := BuildWebPkgsVite(
+		_, sourceFiles, _, err := BuildWebPkgsViteWithManagedRoot(
 			context.Background(),
 			logrus.NewEntry(logrus.New()),
 			codeRootPath,
+			filepath.Join(codeRootPath, ".state"),
 			[]*web_pkg.WebPkgRef{{
 				WebPkgId:   "stable-pkg",
 				WebPkgRoot: pkgRoot,
@@ -247,6 +257,80 @@ func TestBuildWebPkgsViteIgnoresGeneratedOutputSources(t *testing.T) {
 	}
 }
 
+func TestBuildWebPkgsViteLegacyCall(t *testing.T) {
+	client := &fakeViteBundlerClient{resp: &bldr_vite.BuildWebPkgResponse{Success: true}}
+	_, _, _, err := BuildWebPkgsVite(
+		context.Background(), logrus.NewEntry(logrus.New()), t.TempDir(), nil,
+		t.TempDir(), "/b/pkg/", false, false, true, client, t.TempDir(),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestBuildWebPkgsViteIgnoresManagedStateSources(t *testing.T) {
+	const managedSuffix = "build/js/spacewave-app/sub/vite/build/web-pkgs/node_modules/@aptre/protobuf-es-lite/dist/assert.js"
+
+	run := func(t *testing.T, codeRootPath, managedRootPath, managedSource string) {
+		pkgRoot := filepath.Join(codeRootPath, "node_modules", "stable-pkg")
+		stableSource := filepath.Join(pkgRoot, "index.js")
+		for _, source := range []string{stableSource, managedSource} {
+			if err := os.MkdirAll(filepath.Dir(source), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(source, []byte("export {}\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		client := &fakeViteBundlerClient{resp: &bldr_vite.BuildWebPkgResponse{
+			Success:     true,
+			SourceFiles: []string{stableSource, managedSource},
+		}}
+		_, sourceFiles, _, err := BuildWebPkgsViteWithManagedRoot(
+			context.Background(), logrus.NewEntry(logrus.New()), codeRootPath, managedRootPath,
+			[]*web_pkg.WebPkgRef{{WebPkgId: "stable-pkg", WebPkgRoot: pkgRoot}},
+			filepath.Join(t.TempDir(), "assets"),
+			"/b/pkg/", true, false, true, client, filepath.Join(t.TempDir(), "cache"),
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := []string{"node_modules/stable-pkg/index.js"}; !slices.Equal(sourceFiles, want) {
+			t.Fatalf("source files = %v, want %v", sourceFiles, want)
+		}
+	}
+
+	t.Run("default", func(t *testing.T) {
+		codeRootPath := t.TempDir()
+		managedRootPath := filepath.Join(codeRootPath, ".bldr")
+		run(t, codeRootPath, managedRootPath, filepath.Join(managedRootPath, managedSuffix))
+	})
+
+	t.Run("custom-relative", func(t *testing.T) {
+		codeRootPath := t.TempDir()
+		oldWorkingDir, err := os.Getwd()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chdir(codeRootPath); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if err := os.Chdir(oldWorkingDir); err != nil {
+				t.Errorf("restore working directory: %v", err)
+			}
+		})
+		run(t, codeRootPath, ".state", filepath.Join(codeRootPath, ".state", managedSuffix))
+	})
+
+	t.Run("absolute", func(t *testing.T) {
+		codeRootPath := t.TempDir()
+		managedRootPath := t.TempDir()
+		run(t, codeRootPath, managedRootPath, filepath.Join(managedRootPath, managedSuffix))
+	})
+}
+
 func TestBuildWebPkgsViteTracksConditionalReexportSources(t *testing.T) {
 	codeRootPath := t.TempDir()
 	pkgRoot := filepath.Join(codeRootPath, "node_modules", "conditional-pkg")
@@ -279,8 +363,8 @@ if (process.env.NODE_ENV === "production") {
 	client := &fakeViteBundlerClient{buildResp: func(req *bldr_vite.BuildWebPkgRequest) *bldr_vite.BuildWebPkgResponse {
 		return &bldr_vite.BuildWebPkgResponse{Success: true, SourceFiles: req.GetImports()}
 	}}
-	_, sourceFiles, _, err := BuildWebPkgsVite(
-		context.Background(), logrus.NewEntry(logrus.New()), codeRootPath,
+	_, sourceFiles, _, err := BuildWebPkgsViteWithManagedRoot(
+		context.Background(), logrus.NewEntry(logrus.New()), codeRootPath, filepath.Join(codeRootPath, ".state"),
 		[]*web_pkg.WebPkgRef{{WebPkgId: "conditional-pkg", WebPkgRoot: pkgRoot, Imports: []string{"index.js"}}},
 		filepath.Join(codeRootPath, ".bldr", "output"), "/b/pkg/", true, false, true,
 		client, filepath.Join(t.TempDir(), "cache"),
@@ -318,10 +402,11 @@ func TestBuildWebPkgsViteKeepsCjsWrappersOutsideOutDir(t *testing.T) {
 		resp: &bldr_vite.BuildWebPkgResponse{Success: true},
 	}
 
-	_, _, _, err := BuildWebPkgsVite(
+	_, _, _, err := BuildWebPkgsViteWithManagedRoot(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
 		codeRootPath,
+		filepath.Join(codeRootPath, ".state"),
 		[]*web_pkg.WebPkgRef{{
 			WebPkgId:   "cjs-pkg",
 			WebPkgRoot: pkgRoot,
@@ -378,10 +463,11 @@ func TestBuildWebPkgsVitePropagatesJavaScriptPolicy(t *testing.T) {
 		resp: &bldr_vite.BuildWebPkgResponse{Success: true},
 	}
 
-	_, _, _, err := BuildWebPkgsVite(
+	_, _, _, err := BuildWebPkgsViteWithManagedRoot(
 		context.Background(),
 		logrus.NewEntry(logrus.New()),
 		codeRootPath,
+		filepath.Join(codeRootPath, ".state"),
 		[]*web_pkg.WebPkgRef{{
 			WebPkgId:   "policy-pkg",
 			WebPkgRoot: pkgRoot,

@@ -68,10 +68,11 @@ func BuildDirectWebPkgs(
 	var importMapEntries []web_pkg_vite.ImportMapEntry
 	var srcFiles []string
 	err = web_pkg_vite.RunOneShot(ctx, le, distSourcePath, sourcePath, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
-		_, builtSrcFiles, entries, buildErr := web_pkg_vite.BuildWebPkgsVite(
+		_, builtSrcFiles, entries, buildErr := web_pkg_vite.BuildWebPkgsViteWithManagedRoot(
 			ctx,
 			le,
 			sourcePath,
+			workingPath,
 			refs,
 			outWebPkgsPath,
 			bldr_plugin.PluginWebPkgHttpPrefix,
