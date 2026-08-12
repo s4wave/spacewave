@@ -787,6 +787,22 @@ async function setupClientSession(server: ResourceServer) {
   return { clientController, clientIter, clientHandleId, client }
 }
 
+async function setupAttachSession(server: ResourceServer) {
+  const clientSession = await setupClientSession(server)
+  const stream = createControllableStream()
+  stream.push({
+    body: {
+      case: 'init' as const,
+      value: { clientHandleId: clientSession.clientHandleId },
+    },
+  })
+  const attach = server.ResourceAttach(stream.iterable)
+  const attachIter = attach[Symbol.asyncIterator]()
+  const ack = await attachIter.next()
+  expect(ack.value.body?.case).toBe('ack')
+  return { ...clientSession, stream, attachIter }
+}
+
 // sendAddAndGetResourceId pushes an Add message and reads the addAck,
 // returning the server-assigned resourceId.
 async function sendAddAndGetResourceId(
@@ -1139,6 +1155,110 @@ describe('ResourceAttach handler', () => {
 
       clientController.abort()
       await clientIter.next()
+    })
+
+    it('drains an Add accepted immediately before generation release once', async () => {
+      const { clientController, clientIter, client, stream, attachIter } =
+        await setupAttachSession(new ResourceServer(createMux()))
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'before-release',
+      )
+      const attached = client.attachedResources.get(resourceId)!
+      const release = vi.fn(attached.release)
+      const abort = vi.fn()
+      attached.release = release
+      attached.signal.addEventListener('abort', abort)
+
+      clientController.abort()
+      await clientIter.next()
+
+      expect(attached.signal.aborted).toBe(true)
+      expect(abort).toHaveBeenCalledOnce()
+      expect(release).toHaveBeenCalledOnce()
+      expect(client.attachedResources.has(resourceId)).toBe(false)
+
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+      expect(release).toHaveBeenCalledOnce()
+    })
+
+    it('rejects Add after the ResourceClient generation ends', async () => {
+      const server = new ResourceServer(createMux())
+      const { clientController, clientIter, client, stream, attachIter } =
+        await setupAttachSession(server)
+      const add = vi.spyOn(client.attachedResources, 'set')
+      const resourceIDCounter = Reflect.get(server, 'resourceIDCtr') as number
+
+      clientController.abort()
+      await clientIter.next()
+      stream.push({
+        body: {
+          case: 'add' as const,
+          value: { attachId: 1, label: 'after-release' },
+        },
+      })
+
+      for (;;) {
+        const outcome = await attachIter.next().then(
+          (result) => ({ result }),
+          (error: unknown) => ({ error }),
+        )
+        if ('error' in outcome) {
+          expect(outcome.error).toEqual(
+            new Error('resource client generation was released'),
+          )
+          break
+        }
+        if (outcome.result.done) break
+        expect(outcome.result.value.body?.case).toBe('muxData')
+      }
+      expect(add).not.toHaveBeenCalled()
+      expect(client.attachedResources.size).toBe(0)
+      expect(Reflect.get(server, 'resourceIDCtr')).toBe(resourceIDCounter)
+      stream.end()
+    })
+
+    it('keeps attach cleanup idempotent after generation release', async () => {
+      const attachController = new AbortController()
+      const server = new ResourceServer(createMux())
+      const clientSession = await setupClientSession(server)
+      const stream = createControllableStream()
+      stream.push({
+        body: {
+          case: 'init' as const,
+          value: { clientHandleId: clientSession.clientHandleId },
+        },
+      })
+      const attach = server.ResourceAttach(
+        stream.iterable,
+        attachController.signal,
+      )
+      const attachIter = attach[Symbol.asyncIterator]()
+      await attachIter.next()
+      const resourceId = await sendAddAndGetResourceId(
+        stream,
+        attachIter,
+        'cleanup-after-release',
+      )
+      const attached = clientSession.client.attachedResources.get(resourceId)!
+      const release = vi.fn(attached.release)
+      attached.release = release
+
+      clientSession.clientController.abort()
+      await clientSession.clientIter.next()
+      attachController.abort()
+      stream.end()
+      for await (const _ of { [Symbol.asyncIterator]: () => attachIter }) {
+        // consume
+      }
+
+      expect(release).toHaveBeenCalledOnce()
+      expect(attached.signal.aborted).toBe(true)
+      expect(clientSession.client.attachedResources.size).toBe(0)
     })
   })
 

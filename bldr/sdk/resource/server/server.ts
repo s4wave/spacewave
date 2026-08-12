@@ -296,6 +296,9 @@ class ResourceServer implements ResourceServiceHandler {
 
     // 5. onControl handles Add and Detach messages.
     const onControl = (req: ResourceAttachRequest) => {
+      if (client.released) {
+        throw new Error('resource client generation was released')
+      }
       const body = req.body
       if (body?.case === 'add') {
         const attachId = body.value.attachId ?? 0
