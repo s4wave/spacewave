@@ -119,6 +119,9 @@ export class WebDocumentTracker {
     // the bridge. Removing a non-host WebDocument does not fire it, so an
     // unrelated tab close never invalidates a healthy mounted volume's handles.
     private readonly onOpfsBridgeLost?: (() => Promise<void> | void) | null,
+    private readonly onTerminalWebDocumentClose?:
+      | (() => Promise<void> | void)
+      | null,
   ) {
     this.clientUuid = clientUuid
     this.clientType = clientType
@@ -164,6 +167,9 @@ export class WebDocumentTracker {
       }
 
       if (data.close) {
+        if (data.terminal === true) {
+          void this.onTerminalWebDocumentClose?.()
+        }
         const closeErr = new Error(
           `WebDocumentTracker: ${this.clientUuid}: WebDocument ${webDocumentId} closed`,
         )

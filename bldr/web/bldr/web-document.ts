@@ -244,7 +244,12 @@ class WebDocumentWebWorker {
 
       const workerParams = buildWorkerParams(path, !!initData)
       const workerURL = buildWorkerURL(sharedWorkerPath, workerParams)
-      const workerName = `${id}?${workerParams}`
+      // SharedWorker identity includes a runtime-issued generation so a
+      // replacement cannot reconnect to the terminally closing predecessor.
+      // Generation-less requests retain their legacy identity across upgrades.
+      const workerName = generation
+        ? `${id}?${workerParams}&g=${encodeURIComponent(generation)}`
+        : `${id}?${workerParams}`
 
       if (typeof SharedWorker !== 'undefined') {
         this.sharedWorker = new SharedWorker(workerURL.toString(), {

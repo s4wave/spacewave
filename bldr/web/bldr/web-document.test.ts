@@ -1307,7 +1307,7 @@ describe('WebDocument plugin generation state', () => {
     expect(replacement.close).toHaveBeenCalledOnce()
   })
 
-  it('retains the SharedWorker construction path behind the hard-disable', async () => {
+  it('scopes SharedWorker identity only when a generation is present', async () => {
     const sharedWorkers = installFakeSharedWorker()
     const doc = buildTestWebDocument()
     doc.forceDedicatedWorkers = false
@@ -1319,14 +1319,49 @@ describe('WebDocument plugin generation state', () => {
         workerMode: WebWorkerMode.WORKER_MODE_SHARED,
       }),
     ).resolves.toEqual({ created: true, shared: true })
+    await expect(
+      WebDocument.prototype.createWebWorker.call(doc, {
+        id: 'worker-shared',
+        generation: 'generation-a',
+        path: '/b/pd/web/web.mjs',
+        workerMode: WebWorkerMode.WORKER_MODE_SHARED,
+      }),
+    ).resolves.toEqual({ created: true, shared: true })
+    await expect(
+      WebDocument.prototype.createWebWorker.call(doc, {
+        id: 'worker-shared',
+        generation: 'generation-a',
+        path: '/b/pd/web/web.mjs',
+        workerMode: WebWorkerMode.WORKER_MODE_SHARED,
+      }),
+    ).resolves.toEqual({ created: true, shared: true })
+    await expect(
+      WebDocument.prototype.createWebWorker.call(doc, {
+        id: 'worker-shared',
+        generation: 'generation-b',
+        path: '/b/pd/web/web.mjs',
+        workerMode: WebWorkerMode.WORKER_MODE_SHARED,
+      }),
+    ).resolves.toEqual({ created: true, shared: true })
 
-    const [worker] = sharedWorkers
-    if (!worker) {
-      throw new Error('expected SharedWorker construction')
+    const [legacyWorker, firstWorker, sameGenerationWorker, replacementWorker] =
+      sharedWorkers
+    if (
+      !legacyWorker ||
+      !firstWorker ||
+      !sameGenerationWorker ||
+      !replacementWorker
+    ) {
+      throw new Error('expected SharedWorker generations')
     }
-    expect(String(worker.url)).toContain('/shw.mjs')
-    expect(worker.options).toMatchObject({ type: 'module' })
-    expect(worker.port.postMessage).toHaveBeenCalledWith(
+    expect(String(firstWorker.url)).toContain('/shw.mjs')
+    expect(firstWorker.options).toMatchObject({ type: 'module' })
+    expect(legacyWorker.options?.name).toBe('worker-shared?s=/b/pd/web/web.mjs')
+    expect(firstWorker.options?.name).toContain('g=generation-a')
+    expect(sameGenerationWorker.options?.name).toBe(firstWorker.options?.name)
+    expect(replacementWorker.options?.name).toContain('g=generation-b')
+    expect(firstWorker.options?.name).not.toBe(replacementWorker.options?.name)
+    expect(replacementWorker.port.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         from: 'document-1',
         initPort: expect.any(Object),
