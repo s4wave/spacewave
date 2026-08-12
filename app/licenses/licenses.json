@@ -1527,7 +1527,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.25",
+      "version": "v0.2.26",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
