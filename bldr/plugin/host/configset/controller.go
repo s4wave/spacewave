@@ -75,6 +75,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		}
 		return err
 	}
+	defer status.Close()
 	for {
 		resp, err := status.Recv()
 		if err != nil {
@@ -85,6 +86,9 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 		}
 		if logStr := resp.FormatLogString(); logStr != "" {
 			le.Debug(logStr)
+		}
+		if err := resp.GetError(); err != nil {
+			return err
 		}
 	}
 }
