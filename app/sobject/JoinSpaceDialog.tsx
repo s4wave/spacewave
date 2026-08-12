@@ -1,4 +1,11 @@
-import { useCallback, useReducer } from 'react'
+import { useCallback, useEffect, useId, useReducer, useRef } from 'react'
+import {
+  LuCheck,
+  LuLogIn,
+  LuShieldCheck,
+  LuTriangleAlert,
+} from 'react-icons/lu'
+
 import { Spinner } from '@s4wave/web/ui/loading/Spinner.js'
 
 import { SOInviteMessage } from '@s4wave/core/sobject/sobject.pb.js'
@@ -66,7 +73,13 @@ function reducer(state: JoinState, action: JoinAction): JoinState {
     case 'reset':
       return initialState
     case 'set_code':
-      return { ...state, code: action.code, error: undefined }
+      return {
+        ...state,
+        code: action.code,
+        phase: 'input',
+        error: undefined,
+        spaceId: undefined,
+      }
     case 'resolving':
       return { ...state, phase: 'resolving', error: undefined }
     case 'connecting':
@@ -102,6 +115,8 @@ export function JoinSpaceDialog({
   onAccepted,
   initialCode,
 }: JoinSpaceDialogProps) {
+  const inputId = useId()
+  const submitGenerationRef = useRef(0)
   const session = useResourceValue(SessionContext.useContext())
   const { isCloud } = useSessionInfo(session)
   const [state, dispatch] = useReducer(reducer, {
@@ -109,9 +124,22 @@ export function JoinSpaceDialog({
     code: initialCode ?? '',
   })
 
+  useEffect(() => {
+    if (!open) {
+      submitGenerationRef.current += 1
+      dispatch({ type: 'reset' })
+    }
+    return () => {
+      submitGenerationRef.current += 1
+    }
+  }, [open])
+
   const handleOpenChange = useCallback(
     (next: boolean) => {
-      if (!next) dispatch({ type: 'reset' })
+      if (!next) {
+        submitGenerationRef.current += 1
+        dispatch({ type: 'reset' })
+      }
       onOpenChange(next)
     },
     [onOpenChange],
@@ -120,12 +148,15 @@ export function JoinSpaceDialog({
   const handleSubmit = useCallback(async () => {
     if (!session || !state.code.trim()) return
     const input = state.code.trim()
+    const generation = ++submitGenerationRef.current
 
     dispatch({ type: 'resolving' })
     try {
       const inviteMsg = await resolveInvite(session, input, isCloud)
+      if (generation !== submitGenerationRef.current) return
       dispatch({ type: 'connecting' })
       const resp = await session.joinSpaceViaInvite(inviteMsg)
+      if (generation !== submitGenerationRef.current) return
       switch (
         resp.result ??
         JoinSpaceViaInviteResult.JoinSpaceViaInviteResult_UNSPECIFIED
@@ -151,6 +182,7 @@ export function JoinSpaceDialog({
           throw new Error('Invite join returned an unknown result')
       }
     } catch (err) {
+      if (generation !== submitGenerationRef.current) return
       dispatch({
         type: 'error',
         message: err instanceof Error ? err.message : 'Failed to join space',
@@ -162,36 +194,66 @@ export function JoinSpaceDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Join Space</DialogTitle>
-          <DialogDescription>
-            {isCloud
-              ? 'Enter an invite code or paste an invite link.'
-              : 'Paste an invite link to join a space.'}
-          </DialogDescription>
+      <DialogContent className="border-foreground/10 bg-background-get-started max-w-md overflow-hidden border p-0">
+        <DialogHeader className="border-foreground/8 border-b px-6 py-5 text-left">
+          <div className="flex items-start gap-3">
+            <div className="bg-brand/10 text-brand flex size-10 shrink-0 items-center justify-center rounded-lg">
+              <LuLogIn className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <DialogTitle>Join Space</DialogTitle>
+              <DialogDescription className="mt-1.5 leading-relaxed">
+                {isCloud
+                  ? 'Enter an invite code or paste an invite link.'
+                  : 'Paste an invite link to continue.'}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-3 pt-2">
-          <input
-            value={state.code}
-            onChange={(e) =>
-              dispatch({ type: 'set_code', code: e.target.value })
-            }
-            placeholder={isCloud ? 'Invite code or link' : 'Invite link'}
-            disabled={busy || state.phase === 'enrolled'}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !busy) void handleSubmit()
-            }}
-            className={cn(
-              'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 font-mono text-sm transition-colors outline-none',
-              'focus:border-foreground/40',
-              'disabled:opacity-50',
-            )}
-          />
+        <form
+          className="space-y-4 px-6 py-5"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (!busy) void handleSubmit()
+          }}
+        >
+          <div>
+            <label
+              htmlFor={inputId}
+              className="text-foreground mb-1.5 block text-xs font-medium"
+            >
+              {isCloud ? 'Invite code or link' : 'Invite link'}
+            </label>
+            <input
+              id={inputId}
+              value={state.code}
+              onChange={(e) =>
+                dispatch({ type: 'set_code', code: e.target.value })
+              }
+              placeholder={isCloud ? 'Invite code or link' : 'Invite link'}
+              disabled={busy || state.phase === 'enrolled'}
+              aria-invalid={state.phase === 'error'}
+              aria-describedby={`${inputId}-guidance${state.error ? ` ${inputId}-error` : ''}`}
+              className={cn(
+                'border-foreground/20 bg-background/30 text-foreground placeholder:text-foreground-alt/50 w-full rounded-md border px-3 py-2 font-mono text-sm transition-colors outline-none',
+                'focus:border-brand/50 focus:ring-brand/20 focus:ring-2',
+                'disabled:opacity-50',
+              )}
+            />
+            <p
+              id={`${inputId}-guidance`}
+              className="text-foreground-alt/50 mt-2 flex items-start gap-1.5 text-xs leading-relaxed"
+            >
+              <LuShieldCheck className="mt-0.5 size-3.5 shrink-0" />
+              The invite determines which Space you can access. It does not link
+              devices or accounts.
+            </p>
+          </div>
 
           {state.phase === 'enrolled' ? (
-            <div className="text-center">
+            <div className="border-success/20 bg-success/5 rounded-lg border p-4 text-center">
+              <LuCheck className="text-success mx-auto mb-2 size-5" />
               <p className="text-foreground text-sm font-medium">
                 Joined successfully!
               </p>
@@ -199,6 +261,7 @@ export function JoinSpaceDialog({
                 Your shared Space is ready.
               </p>
               <button
+                type="button"
                 onClick={() => {
                   if (state.spaceId) onAccepted(state.spaceId)
                 }}
@@ -220,6 +283,7 @@ export function JoinSpaceDialog({
                 shared Space. Return here to retry after approval.
               </p>
               <button
+                type="button"
                 onClick={() => handleOpenChange(false)}
                 className={cn(
                   'mt-3 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
@@ -240,6 +304,7 @@ export function JoinSpaceDialog({
                 link again.
               </p>
               <button
+                type="button"
                 onClick={() => handleOpenChange(false)}
                 className={cn(
                   'mt-3 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
@@ -258,6 +323,7 @@ export function JoinSpaceDialog({
                 This invite was denied or is no longer valid.
               </p>
               <button
+                type="button"
                 onClick={() => handleOpenChange(false)}
                 className={cn(
                   'mt-3 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
@@ -279,24 +345,32 @@ export function JoinSpaceDialog({
               )}
               {!busy && (
                 <button
-                  onClick={() => void handleSubmit()}
+                  type="submit"
                   disabled={!state.code.trim() || !session}
                   className={cn(
                     'flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm transition-all',
-                    'border-foreground/20 hover:border-foreground/40 hover:bg-foreground/5',
+                    'border-brand/30 bg-brand/10 text-foreground hover:border-brand/40 hover:bg-brand/15',
+                    'focus-visible:ring-brand/40 focus-visible:ring-2 focus-visible:outline-none',
                     'disabled:cursor-not-allowed disabled:opacity-50',
                   )}
                 >
-                  Join Space
+                  {state.phase === 'error' ? 'Try again' : 'Join Space'}
                 </button>
               )}
             </>
           )}
 
           {state.error && (
-            <p className="text-destructive text-xs">{state.error}</p>
+            <div
+              id={`${inputId}-error`}
+              role="alert"
+              className="border-destructive/20 bg-destructive/5 text-destructive flex items-start gap-2 rounded-md border px-3 py-2.5 text-xs leading-relaxed"
+            >
+              <LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+              <span>{state.error}</span>
+            </div>
           )}
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   )

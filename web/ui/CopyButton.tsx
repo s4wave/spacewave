@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { LuCheck, LuCopy } from 'react-icons/lu'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+} from 'react'
+import { LuCheck, LuCopy, LuTriangleAlert } from 'react-icons/lu'
 
 import { cn } from '@s4wave/web/style/utils.js'
 
@@ -27,23 +33,41 @@ export function CopyButton({
   label = 'Copy',
   size = 'sm',
 }: CopyButtonProps) {
-  const [copied, setCopied] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const generationRef = useRef(0)
+  const mountedRef = useRef(true)
 
-  const handleCopy = useCallback(() => {
-    void navigator.clipboard.writeText(text)
-    setCopied(true)
-    if (timerRef.current != null) {
-      clearTimeout(timerRef.current)
-    }
-    timerRef.current = setTimeout(() => {
-      setCopied(false)
-      timerRef.current = null
-    }, COPIED_RESET_MS)
-  }, [text])
+  const handleCopy = useCallback(
+    async (event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+      const generation = ++generationRef.current
+      if (timerRef.current != null) {
+        clearTimeout(timerRef.current)
+      }
+      try {
+        await navigator.clipboard.writeText(text)
+        if (!mountedRef.current || generation !== generationRef.current) return
+        setStatus('copied')
+      } catch {
+        if (!mountedRef.current || generation !== generationRef.current) return
+        setStatus('error')
+      }
+      timerRef.current = setTimeout(() => {
+        if (!mountedRef.current || generation !== generationRef.current) return
+        setStatus('idle')
+        timerRef.current = null
+      }, COPIED_RESET_MS)
+    },
+    [text],
+  )
 
   useEffect(() => {
+    mountedRef.current = true
     return () => {
+      mountedRef.current = false
+      generationRef.current += 1
       if (timerRef.current != null) {
         clearTimeout(timerRef.current)
         timerRef.current = null
@@ -58,15 +82,34 @@ export function CopyButton({
     <button
       type="button"
       onClick={handleCopy}
-      aria-label={copied ? 'Copied' : label}
+      onMouseDown={(event) => event.stopPropagation()}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') event.stopPropagation()
+      }}
+      aria-label={
+        status === 'copied'
+          ? 'Copied'
+          : status === 'error'
+            ? 'Copy failed'
+            : label
+      }
       className={cn(
         'text-foreground-alt hover:text-foreground flex shrink-0 items-center justify-center rounded transition-colors',
         boxCls,
         className,
       )}
     >
-      {copied ? (
+      <span className="sr-only" role="status" aria-live="polite">
+        {status === 'copied'
+          ? 'Copied'
+          : status === 'error'
+            ? 'Copy failed'
+            : ''}
+      </span>
+      {status === 'copied' ? (
         <LuCheck className={cn(iconCls, 'text-emerald-500')} />
+      ) : status === 'error' ? (
+        <LuTriangleAlert className={cn(iconCls, 'text-destructive')} />
       ) : (
         <LuCopy className={iconCls} />
       )}
