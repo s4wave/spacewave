@@ -1,3 +1,16 @@
+import { spawnSync } from 'child_process'
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
+
 import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -153,6 +166,16 @@ vi.mock('@s4wave/web/ui/toaster.js', () => ({
 
 import { AddDeviceWizardViewer } from './AddDeviceWizardViewer.js'
 
+function installSetupCommand(): string {
+  return `tmp=$(mktemp) || exit; trap 'rm -f "$tmp"' 0 HUP INT TERM; curl -fsSL --output "$tmp" https://raw.githubusercontent.com/s4wave/spacewave/master/scripts/spacewave.sh || exit; sh "$tmp" device setup --label 'Build Host' --target-hint space-1`
+}
+
+function renderedInstallSetupCommand(): string {
+  const command = screen.getByText(installSetupCommand()).textContent
+  if (!command) throw new Error('expected the install setup command')
+  return command
+}
+
 describe('AddDeviceWizardViewer', () => {
   afterEach(() => {
     cleanup()
@@ -168,13 +191,117 @@ describe('AddDeviceWizardViewer', () => {
     ]
   })
 
-  it('renders one setup command when the CLI and container command are identical', () => {
+  it('shows direct and bootstrap setup commands before the Device ticket is available', () => {
     renderViewer()
 
     expect(screen.getByText('Add Device')).toBeTruthy()
     expect(screen.queryByText('Link My Device')).toBeNull()
-    expect(screen.getAllByText(/spacewave device setup/)).toHaveLength(1)
-    expect(screen.getAllByText(/--target-hint space-1/)).toHaveLength(1)
+    expect(screen.getByText('Spacewave already installed')).toBeTruthy()
+    expect(screen.getByText('Install and run')).toBeTruthy()
+    expect(
+      screen.getByText(
+        /^spacewave device setup --label 'Build Host' --target-hint space-1$/,
+      ),
+    ).toBeTruthy()
+    expect(screen.getByText(installSetupCommand())).toBeTruthy()
+    expect(screen.getByText('2. Paste the Device ticket')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^approve$/i })).toBeNull()
+  })
+
+  it('does not execute a truncated bootstrap when curl fails', () => {
+    renderViewer()
+    const dir = mkdtempSync(join(tmpdir(), 'spacewave-device-bootstrap-'))
+    const bin = join(dir, 'bin')
+    const marker = join(dir, 'script-ran')
+    const curl = join(bin, 'curl')
+    try {
+      mkdirSync(bin)
+      writeFileSync(
+        curl,
+        `#!/bin/sh
+set -eu
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "--output" ]; then
+    output="$2"
+    break
+  fi
+  shift
+done
+printf '%s\\n' 'printf "%s\\n" script-ran > "$SPACEWAVE_TEST_MARKER"' > "\${output:?}"
+printf '%s' 'truncated' >> "\${output:?}"
+exit 22
+`,
+      )
+      chmodSync(curl, 0o755)
+
+      const result = spawnSync('sh', ['-c', renderedInstallSetupCommand()], {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          SPACEWAVE_TEST_MARKER: marker,
+        },
+      })
+
+      expect(result.error).toBeUndefined()
+      expect(result.status).not.toBe(0)
+      expect(existsSync(marker)).toBe(false)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('runs the downloaded bootstrap with the displayed setup arguments', () => {
+    renderViewer()
+    const dir = mkdtempSync(join(tmpdir(), 'spacewave-device-bootstrap-'))
+    const bin = join(dir, 'bin')
+    const args = join(dir, 'args')
+    const curl = join(bin, 'curl')
+    try {
+      mkdirSync(bin)
+      writeFileSync(
+        curl,
+        `#!/bin/sh
+set -eu
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "--output" ]; then
+    output="$2"
+    break
+  fi
+  shift
+done
+printf '%s\\n' '#!/bin/sh' 'printf "%s\\n" "$@" > "$SPACEWAVE_TEST_ARGS"' > "\${output:?}"
+`,
+      )
+      chmodSync(curl, 0o755)
+
+      const result = spawnSync('sh', ['-c', renderedInstallSetupCommand()], {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          SPACEWAVE_TEST_ARGS: args,
+        },
+      })
+
+      expect(result.error).toBeUndefined()
+      expect(result.status).toBe(0)
+      expect(readFileSync(args, 'utf8')).toBe(
+        'device\nsetup\n--label\nBuild Host\n--target-hint\nspace-1\n',
+      )
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('uses the shared compact input class for the Device name', () => {
+    h.currentStep = 0
+    renderViewer()
+
+    const name = screen.getByLabelText('Device Name')
+    expect(name.className).toContain('text-xs')
+    expect(name.className).not.toMatch(/(^|\s)text-base($|\s)/)
+    expect(name.className).not.toMatch(/(^|\s)text-sm($|\s)/)
   })
 
   it('approves a CLI SpaceLink ticket and persists the completion command', async () => {
@@ -198,6 +325,9 @@ describe('AddDeviceWizardViewer', () => {
     expect(
       screen.getByPlaceholderText(/paste the base64 ticket/i),
     ).toHaveProperty('value', ticket)
+    expect(screen.getByText('Approve Device ticket')).toBeTruthy()
+    expect(screen.queryByText('Spacewave already installed')).toBeNull()
+    expect(screen.queryByText('Install and run')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: /approve/i }))
 
     await waitFor(() => expect(h.updateState).toHaveBeenCalled())
@@ -242,6 +372,12 @@ describe('AddDeviceWizardViewer', () => {
       ),
     ).toBeTruthy()
     expect(screen.queryByPlaceholderText(/paste the base64 ticket/i)).toBeNull()
+    expect(screen.queryByText('Spacewave already installed')).toBeNull()
+    expect(screen.queryByText('Install and run')).toBeNull()
+    expect(screen.queryByText(/^spacewave device setup/)).toBeNull()
+    expect(
+      screen.queryByText(/raw\.githubusercontent\.com\/s4wave\/spacewave/),
+    ).toBeNull()
     expect(screen.queryByRole('button', { name: /^approve$/i })).toBeNull()
 
     fireEvent.click(

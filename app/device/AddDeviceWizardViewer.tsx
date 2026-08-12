@@ -145,6 +145,10 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     ws.localName || 'Device',
     sharedObjectId,
   )
+  const installSetupCommand = buildInstallSetupCommand(
+    ws.localName || 'Device',
+    sharedObjectId,
+  )
   const completeCommand = completion
     ? `spacewave device complete --completion ${quoteShellArg(completion)}`
     : 'spacewave device complete --completion <completion>'
@@ -412,6 +416,7 @@ function useAddDeviceWizardController(props: ObjectViewerComponentProps) {
     handleTicketChange,
     isOpeningStep,
     isSshInstallMode,
+    installSetupCommand,
     mode,
     operationError,
     session,
@@ -456,6 +461,7 @@ function AddDeviceWizardSteps({
     handleSshConfigChange,
     handleTicketChange,
     isOpeningStep,
+    installSetupCommand,
     mode,
     operationError,
     session,
@@ -504,6 +510,8 @@ function AddDeviceWizardSteps({
                 onSignIn={handleSignIn}
                 config={config}
                 ticket={ticket}
+                setupCommand={setupCommand}
+                installSetupCommand={installSetupCommand}
                 busy={busy}
                 error={approvalError}
                 onTicketChange={(value) => {
@@ -524,22 +532,6 @@ function AddDeviceWizardSteps({
                   })
                 }}
               />
-              <div className="space-y-2">
-                <div>
-                  <h3 className="text-foreground text-xs font-medium">
-                    Get a ticket on the Device
-                  </h3>
-                  <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
-                    Run this command with the installed Local CLI or Container
-                    daemon, then paste the ticket above.
-                  </p>
-                </div>
-                <CommandPanel
-                  title="Device setup command"
-                  command={setupCommand}
-                  icon={<LuTerminal className="size-3.5" />}
-                />
-              </div>
             </section>
           )}
           {mode === 'ssh' && (
@@ -1073,6 +1065,8 @@ function CommandPanel({
 function SpaceLinkApprovalPanel({
   config,
   ticket,
+  setupCommand,
+  installSetupCommand,
   busy,
   error,
   supported,
@@ -1083,6 +1077,8 @@ function SpaceLinkApprovalPanel({
 }: {
   config: AddDeviceWizardConfig
   ticket: string
+  setupCommand: string
+  installSetupCommand: string
   busy: boolean
   error?: string
   supported: boolean
@@ -1124,55 +1120,84 @@ function SpaceLinkApprovalPanel({
     )
   }
 
+  const ticketReady = ticket.trim().length > 0
+
   return (
-    <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
-      <label className="text-foreground text-xs font-medium select-none">
-        SpaceLink Ticket
-      </label>
-      <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
-        Paste the ticket created by the Device setup command to prepare
-        enrollment.
-      </p>
-      <textarea
-        value={ticket}
-        onChange={(e) => onTicketChange(e.target.value)}
-        placeholder="Paste the base64 ticket from spacewave device setup"
-        disabled={busy}
-        className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 mt-2 min-h-24 w-full rounded-md border p-2 font-mono text-xs outline-none disabled:opacity-60"
-      />
-      {config.preview && (
-        <div className="text-foreground-alt/60 mt-2 grid gap-1 text-xs">
-          <span>{config.preview.label || 'Device'}</span>
-          {config.preview.agentPeerId && (
-            <span className="truncate font-mono">
-              {config.preview.agentPeerId}
-            </span>
-          )}
+    <div className="space-y-3">
+      {!ticketReady && (
+        <div>
+          <h3 className="text-foreground text-xs font-medium">
+            1. Run setup on the Device
+          </h3>
+          <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+            Choose the command that matches the Device. Both print a ticket.
+          </p>
+          <div className="mt-2 space-y-2">
+            <CommandPanel
+              title="Spacewave already installed"
+              command={setupCommand}
+              icon={<LuTerminal className="size-3.5" />}
+            />
+            <CommandPanel
+              title="Install and run"
+              command={installSetupCommand}
+              icon={<LuTerminal className="size-3.5" />}
+            />
+          </div>
         </div>
       )}
-      {busy && (
-        <p className="text-foreground-alt/80 mt-2 text-xs leading-relaxed">
-          Checking ticket and preparing enrollment…
+      <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
+        <label className="text-foreground text-xs font-medium select-none">
+          {ticketReady ? 'Approve Device ticket' : '2. Paste the Device ticket'}
+        </label>
+        <p className="text-foreground-alt/70 mt-1 text-xs leading-relaxed">
+          {ticketReady
+            ? 'The ticket is ready. Approve it to create the completion command.'
+            : 'Paste the base64 ticket printed by the Device setup command.'}
         </p>
-      )}
-      {error && (
-        <div
-          className="border-destructive/15 bg-destructive/5 text-destructive mt-2 rounded-md border p-2 text-xs leading-relaxed"
-          role="alert"
-        >
-          <div className="font-medium">Ticket could not be approved</div>
-          <div className="mt-0.5">{error}</div>
-        </div>
-      )}
-      <Button
-        size="sm"
-        onClick={onApprove}
-        disabled={busy || !ticket.trim()}
-        className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs transition duration-150"
-      >
-        <LuClipboardCheck className="size-3.5" />
-        {busy ? 'Checking ticket…' : 'Approve'}
-      </Button>
+        <textarea
+          value={ticket}
+          onChange={(e) => onTicketChange(e.target.value)}
+          placeholder="Paste the base64 ticket from spacewave device setup"
+          disabled={busy}
+          className="border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 mt-2 min-h-24 w-full rounded-md border p-2 font-mono text-xs outline-none disabled:opacity-60"
+        />
+        {config.preview && (
+          <div className="text-foreground-alt/60 mt-2 grid gap-1 text-xs">
+            <span>{config.preview.label || 'Device'}</span>
+            {config.preview.agentPeerId && (
+              <span className="truncate font-mono">
+                {config.preview.agentPeerId}
+              </span>
+            )}
+          </div>
+        )}
+        {busy && (
+          <p className="text-foreground-alt/80 mt-2 text-xs leading-relaxed">
+            Checking ticket and preparing enrollment…
+          </p>
+        )}
+        {error && (
+          <div
+            className="border-destructive/15 bg-destructive/5 text-destructive mt-2 rounded-md border p-2 text-xs leading-relaxed"
+            role="alert"
+          >
+            <div className="font-medium">Ticket could not be approved</div>
+            <div className="mt-0.5">{error}</div>
+          </div>
+        )}
+        {ticketReady && (
+          <Button
+            size="sm"
+            onClick={onApprove}
+            disabled={busy}
+            className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs transition duration-150"
+          >
+            <LuClipboardCheck className="size-3.5" />
+            {busy ? 'Checking ticket…' : 'Approve'}
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
@@ -1493,13 +1518,21 @@ function encodeConfig(config: AddDeviceWizardConfig): Uint8Array {
 }
 
 function buildSetupCommand(label: string, sharedObjectId: string): string {
-  const parts = [
-    'spacewave',
-    'device',
-    'setup',
-    '--label',
-    quoteShellArg(label),
-  ]
+  return ['spacewave', buildDeviceSetupArgs(label, sharedObjectId)].join(' ')
+}
+
+function buildInstallSetupCommand(
+  label: string,
+  sharedObjectId: string,
+): string {
+  return [
+    `tmp=$(mktemp) || exit; trap 'rm -f "$tmp"' 0 HUP INT TERM; curl -fsSL --output "$tmp" https://raw.githubusercontent.com/s4wave/spacewave/master/scripts/spacewave.sh || exit; sh "$tmp"`,
+    buildDeviceSetupArgs(label, sharedObjectId),
+  ].join(' ')
+}
+
+function buildDeviceSetupArgs(label: string, sharedObjectId: string): string {
+  const parts = ['device', 'setup', '--label', quoteShellArg(label)]
   if (sharedObjectId) {
     parts.push('--target-hint', quoteShellArg(sharedObjectId))
   }

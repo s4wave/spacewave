@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react'
-import { resolvePath, type To } from '@s4wave/web/router/router.js'
+import { resolvePath, type To, useNavigate } from '@s4wave/web/router/router.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import {
   SpaceContentsContext,
@@ -22,19 +22,24 @@ export function SpaceObjectContainer() {
     navigateToSubPath,
   } = SpaceContainerContext.useContext()
   const sessionIndex = useSessionIndex()
+  const navigate = useNavigate()
   const spaceContentsResource = SpaceContentsContext.useContext()
 
   const routerPath = '/' + (objectPath || '')
 
   const handleViewerNavigate = useCallback(
     (to: To) => {
+      if (to.path.startsWith('/')) {
+        navigate(to)
+        return
+      }
       const resolved = resolvePath(routerPath, to)
       const stripped = resolved.replace(/^\//, '')
       const key = objectKey ?? ''
       const full = stripped ? key + '/-/' + stripped : key
       navigateToSubPath(full)
     },
-    [routerPath, objectKey, navigateToSubPath],
+    [navigate, routerPath, objectKey, navigateToSubPath],
   )
 
   const objectType = useMemo(() => {

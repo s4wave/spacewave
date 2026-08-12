@@ -21,6 +21,7 @@ interface CapturedObjectViewerProps {
 
 const h = vi.hoisted(() => ({
   objectViewer: vi.fn((_props: CapturedObjectViewerProps) => null),
+  navigate: vi.fn(),
   navigateToRoot: vi.fn(),
   navigateToSubPath: vi.fn(),
   getQuickstartInitialObjectHandoff: vi.fn(),
@@ -41,6 +42,14 @@ const h = vi.hoisted(() => ({
     error: null,
     retry: vi.fn(),
   },
+}))
+
+vi.mock('@s4wave/web/router/router.js', () => ({
+  resolvePath: (currentPath: string, to: { path: string }) =>
+    to.path.startsWith('/')
+      ? to.path
+      : `${currentPath.replace(/\/$/, '')}/${to.path}`,
+  useNavigate: () => h.navigate,
 }))
 
 vi.mock('@s4wave/web/object/ObjectViewer.js', () => ({
@@ -74,6 +83,7 @@ vi.mock('@s4wave/app/quickstart/session-handoff.js', () => ({
 describe('SpaceObjectContainer', () => {
   beforeEach(() => {
     h.objectViewer.mockClear()
+    h.navigate.mockClear()
     h.navigateToRoot.mockClear()
     h.navigateToSubPath.mockClear()
     h.getQuickstartInitialObjectHandoff.mockReset()
@@ -138,5 +148,15 @@ describe('SpaceObjectContainer', () => {
     expect(h.navigateToSubPath).toHaveBeenCalledWith(
       'repo/demo/-/docs/readme.md',
     )
+  })
+
+  it('forwards absolute viewer routes to the app router', () => {
+    render(<SpaceObjectContainer />)
+
+    const props = h.objectViewer.mock.calls[0]?.[0]
+    props?.onNavigate?.({ path: '/login' })
+
+    expect(h.navigate).toHaveBeenCalledWith({ path: '/login' })
+    expect(h.navigateToSubPath).not.toHaveBeenCalled()
   })
 })
