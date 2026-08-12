@@ -118,6 +118,7 @@ func (r *ChatResource) WatchMessages(
 ) error {
 	ctx := strm.Context()
 	nextIndex := uint64(0)
+	initialized := false
 
 	for {
 		if err := ctx.Err(); err != nil {
@@ -136,6 +137,12 @@ func (r *ChatResource) WatchMessages(
 		if nextIndex > messageCount {
 			nextIndex = messageCount
 		}
+		if !initialized && messageCount == 0 {
+			if err := strm.Send(&spacewave_chat_rpc.WatchMessagesResponse{}); err != nil {
+				return err
+			}
+		}
+		initialized = true
 		for nextIndex < messageCount {
 			endIndex := min(nextIndex+defaultMessageListLimit, messageCount)
 			keys, err := r.readMessageKeys(ctx, nextIndex, endIndex)
