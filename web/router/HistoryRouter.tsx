@@ -31,10 +31,20 @@ interface HistoryContextType {
 
 const HistoryContext = createContext<HistoryContextType | null>(null)
 
+// LocalHistoryNavigation identifies a target restored from this router's private stack.
+export interface LocalHistoryNavigation extends To {
+  history: 'local'
+}
+
+// isLocalHistoryNavigation reports whether navigation restores private router history.
+export function isLocalHistoryNavigation(to: To): to is LocalHistoryNavigation {
+  return (to as Partial<LocalHistoryNavigation>).history === 'local'
+}
+
 interface HistoryRouterProps {
   children: ReactNode
   path: string
-  onNavigate: (to: To) => void
+  onNavigate: (to: To | LocalHistoryNavigation) => void
 }
 
 // HistoryRouter wraps RouterProvider with back/forward history tracking.
@@ -99,7 +109,7 @@ export function HistoryRouter({
     isHistoryNavRef.current = true
     setCanGoBack(newIndex > 0)
     setCanGoForward(newIndex < history.stack.length - 1)
-    onNavigateRef.current({ path: targetPath })
+    onNavigateRef.current({ path: targetPath, history: 'local' })
   }, [])
 
   const goBackTo = useCallback((targetPath: string) => {
@@ -111,7 +121,11 @@ export function HistoryRouter({
       stack[history.index] = targetPath
       historyRef.current = { stack, index: history.index }
       isHistoryNavRef.current = true
-      onNavigateRef.current({ path: targetPath, replace: true })
+      onNavigateRef.current({
+        path: targetPath,
+        replace: true,
+        history: 'local',
+      })
       return
     }
 
@@ -119,7 +133,7 @@ export function HistoryRouter({
     isHistoryNavRef.current = true
     setCanGoBack(newIndex > 0)
     setCanGoForward(newIndex < history.stack.length - 1)
-    onNavigateRef.current({ path: targetPath })
+    onNavigateRef.current({ path: targetPath, history: 'local' })
   }, [])
 
   const enterFlow = useCallback(
@@ -157,7 +171,7 @@ export function HistoryRouter({
     isHistoryNavRef.current = true
     setCanGoBack(newIndex > 0)
     setCanGoForward(newIndex < history.stack.length - 1)
-    onNavigateRef.current({ path: targetPath })
+    onNavigateRef.current({ path: targetPath, history: 'local' })
   }, [])
 
   const historyValue = useMemo(
