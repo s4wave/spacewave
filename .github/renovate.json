@@ -10,39 +10,25 @@
   "branchConcurrentLimit": 0,
   "packageRules": [
     {
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchDepTypes": [
-        "replace"
-      ],
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["replace"],
       "enabled": false
     },
     {
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchDepTypes": [
-        "golang"
-      ],
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["golang"],
       "enabled": false
     },
     {
       "description": "Keep quickjs-wasi-reactor on 0.14.0-rev.* until 0.15.0 is available.",
-      "matchPackageNames": [
-        "quickjs-wasi-reactor"
-      ],
+      "matchPackageNames": ["quickjs-wasi-reactor"],
       "allowedVersions": "/^(0\\.14\\.0-rev\\..*|0\\.(1[5-9]|[2-9][0-9])\\..*|[1-9][0-9]*\\..*)$/"
     },
     {
-      "description": "Keep the Python Resource project compatible with Python 3.11 through 3.15.",
-      "matchManagers": [
-        "pep621"
-      ],
-      "matchPackageNames": [
-        "python"
-      ],
-      "allowedVersions": ">=3.11,<3.16"
+      "description": "Keep the Python Resource project compatible with Python 3.11.",
+      "matchManagers": ["pep621"],
+      "matchPackageNames": ["python"],
+      "allowedVersions": ">=3.11,<3.12"
     }
   ]
 }
