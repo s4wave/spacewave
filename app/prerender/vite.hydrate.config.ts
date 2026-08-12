@@ -13,7 +13,8 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(__dirname, '../../')
-const goAliases = buildGoAliases(projectRoot)
+const bldrDistRoot = resolve(projectRoot, '.bldr-dist/src')
+const goAliases = buildGoAliases(projectRoot, bldrDistRoot)
 
 // Resolves image imports to /static/assets/<basename> so the hydrate
 // bundle produces the same URLs as the SSR prerender build.
@@ -74,18 +75,15 @@ export default defineConfig({
     alias: [
       {
         find: '@aptre/bldr',
-        replacement: resolve(projectRoot, './.bldr/src/web/bldr/index.js'),
+        replacement: resolve(bldrDistRoot, 'web/bldr/index.js'),
       },
       {
         find: '@aptre/bldr-react',
-        replacement: resolve(
-          projectRoot,
-          './.bldr/src/web/bldr-react/index.js',
-        ),
+        replacement: resolve(bldrDistRoot, 'web/bldr-react/index.js'),
       },
       {
         find: /^@aptre\/bldr-sdk\/(.*)$/,
-        replacement: resolve(projectRoot, './.bldr/src/sdk/$1'),
+        replacement: resolve(bldrDistRoot, 'sdk/$1'),
       },
       ...goAliases,
       {
@@ -123,6 +121,6 @@ export default defineConfig({
     staticAssetPlugin(),
     react(),
     tailwindcss(),
-    goTsResolver(projectRoot),
+    goTsResolver(projectRoot, bldrDistRoot),
   ],
 })
