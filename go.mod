@@ -53,7 +53,7 @@ require (
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.17.0 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
-	github.com/aperturerobotics/starpc v0.52.1-0.20260812032401-b78c815f1e13
+	github.com/aperturerobotics/starpc v0.52.1-0.20260809072151-672438b66c69
 	github.com/aperturerobotics/util v1.34.10-0.20260802062101-496aab6cefd2 // master
 )
 
@@ -63,7 +63,7 @@ require (
 )
 
 require (
-	golang.org/x/crypto v0.54.0
+	golang.org/x/crypto v0.55.0
 	golang.org/x/mod v0.39.0 // latest
 	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0
@@ -78,7 +78,7 @@ require (
 	github.com/pion/logging v0.2.4
 	github.com/pion/transport/v4 v4.1.0
 	go.starlark.net v0.0.0-20260708150628-5395d018f003
-	golang.org/x/exp v0.0.0-20260810151157-a8b543ca52da
+	golang.org/x/exp v0.0.0-20260811152304-ee035b5b010f
 	gonum.org/v1/gonum v0.17.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
@@ -125,7 +125,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
-	github.com/sirupsen/logrus v1.9.5-0.20260810194048-0f08b84da767
+	github.com/sirupsen/logrus v1.9.5-0.20260811112848-ed957d512a86
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
 	github.com/tetratelabs/wazero v1.12.0
@@ -195,7 +195,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260708182218-49f421fb7959 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
