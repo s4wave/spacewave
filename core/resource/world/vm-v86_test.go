@@ -250,6 +250,129 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 	})
 
+	t.Run("ConcurrentExecuteStreamsShareHomeMount", func(t *testing.T) {
+		resClient, engine, cleanup := setupVmV86WorldEngineWithClient(ctx, t, tb)
+		defer cleanup()
+
+		pluginCtrl := newTestV86PluginLoadController()
+		releasePluginCtrl, err := tb.Bus.AddController(ctx, pluginCtrl, nil)
+		if err != nil {
+			t.Fatalf("AddController(plugin load): %v", err)
+		}
+		defer releasePluginCtrl()
+
+		vmKey := "vm-v86-test-home-mount/vm"
+		rootfsKey := "vm-v86-test-home-mount/rootfs"
+		createVmV86WithRootfs(ctx, t, engine, vmKey, rootfsKey)
+
+		readTx, err := engine.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatalf("NewTransaction failed: %v", err)
+		}
+		defer readTx.Release()
+		srpcClient, err := readTx.GetResourceRef().GetClient()
+		if err != nil {
+			t.Fatalf("GetClient failed: %v", err)
+		}
+		typedSvc := s4wave_world.NewSRPCTypedObjectResourceServiceClient(srpcClient)
+		resp, err := typedSvc.AccessTypedObject(ctx, &s4wave_world.AccessTypedObjectRequest{ObjectKey: vmKey})
+		if err != nil {
+			t.Fatalf("AccessTypedObject failed: %v", err)
+		}
+		vmRef := resClient.CreateResourceReference(resp.ResourceId)
+		defer vmRef.Release()
+		vmClient, err := vmRef.GetClient()
+		if err != nil {
+			t.Fatalf("GetClient for vm resource failed: %v", err)
+		}
+
+		v86fsSvc := unixfs_v86fs.NewSRPCV86FsServiceClient(vmClient)
+		v86fsCtx, v86fsCancel := context.WithTimeout(ctx, 10*time.Second)
+		defer v86fsCancel()
+		v86fsStream, err := v86fsSvc.RelayV86Fs(v86fsCtx)
+		if err != nil {
+			t.Fatalf("RelayV86Fs failed: %v", err)
+		}
+		mountHome := func(tag uint32) {
+			t.Helper()
+			if err := v86fsStream.Send(&unixfs_v86fs.V86FsMessage{
+				Tag: tag,
+				Body: &unixfs_v86fs.V86FsMessage_MountRequest{
+					MountRequest: &unixfs_v86fs.V86FsMountRequest{Name: "home"},
+				},
+			}); err != nil {
+				t.Fatalf("Send MOUNT home failed: %v", err)
+			}
+			reply, err := v86fsStream.Recv()
+			if err != nil {
+				t.Fatalf("Recv MOUNT home reply failed: %v", err)
+			}
+			if reply.GetTag() != tag || reply.GetMountReply() == nil || reply.GetMountReply().GetStatus() != 0 {
+				t.Fatalf("MOUNT home reply = %#v, want successful tag %d reply", reply, tag)
+			}
+		}
+
+		applySetV86State(ctx, t, engine, vmKey, s4wave_vm.VmState_VmState_STARTING, "")
+		execSvc := s4wave_process.NewSRPCPersistentExecutionServiceClient(vmClient)
+		firstCtx, cancelFirst := context.WithCancel(ctx)
+		firstStream, err := execSvc.Execute(firstCtx, &s4wave_process.ExecuteRequest{})
+		if err != nil {
+			t.Fatalf("first Execute failed: %v", err)
+		}
+		expectStatusSequence(t, firstStream, s4wave_process.ExecutionState_ExecutionState_STARTING)
+
+		notify, err := v86fsStream.Recv()
+		if err != nil {
+			t.Fatalf("Recv first-start home MOUNT_NOTIFY failed: %v", err)
+		}
+		if home := notify.GetMountNotify(); home == nil || home.GetName() != "home" || home.GetMountPath() != "/home" {
+			t.Fatalf("first-start notification = %#v, want home /home MOUNT_NOTIFY", notify)
+		}
+		pluginCtrl.expectLoad(t, ctx)
+
+		secondCtx, cancelSecond := context.WithCancel(ctx)
+		secondStream, err := execSvc.Execute(secondCtx, &s4wave_process.ExecuteRequest{})
+		if err != nil {
+			t.Fatalf("second Execute failed: %v", err)
+		}
+		expectStatusSequence(t, secondStream, s4wave_process.ExecutionState_ExecutionState_STARTING)
+		mountHome(1)
+
+		cancelFirst()
+		if _, err := firstStream.Recv(); err == nil {
+			t.Fatal("first Execute remained open after cancellation")
+		}
+		mountHome(2)
+
+		cancelSecond()
+		if _, err := secondStream.Recv(); err == nil {
+			t.Fatal("second Execute remained open after cancellation")
+		}
+		unmount, err := v86fsStream.Recv()
+		if err != nil {
+			t.Fatalf("Recv final home UMOUNT_NOTIFY failed: %v", err)
+		}
+		if home := unmount.GetUmountNotify(); home == nil || home.GetMountPath() != "/home" {
+			t.Fatalf("final notification = %#v, want /home UMOUNT_NOTIFY", unmount)
+		}
+
+		restartCtx, cancelRestart := context.WithCancel(ctx)
+		defer cancelRestart()
+		restartStream, err := execSvc.Execute(restartCtx, &s4wave_process.ExecuteRequest{})
+		if err != nil {
+			t.Fatalf("restart Execute failed: %v", err)
+		}
+		expectStatusSequence(t, restartStream, s4wave_process.ExecutionState_ExecutionState_STARTING)
+		restartNotify, err := v86fsStream.Recv()
+		if err != nil {
+			t.Fatalf("Recv restarted home MOUNT_NOTIFY failed: %v", err)
+		}
+		if home := restartNotify.GetMountNotify(); home == nil || home.GetName() != "home" || home.GetMountPath() != "/home" {
+			t.Fatalf("restart notification = %#v, want home /home MOUNT_NOTIFY", restartNotify)
+		}
+		pluginCtrl.expectLoad(t, ctx)
+	})
+
 	t.Run("SetV86ConfigOpApplies", func(t *testing.T) {
 		engine, cleanup := setupVmV86WorldEngine(ctx, t, tb)
 		defer cleanup()

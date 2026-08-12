@@ -3,6 +3,7 @@ package s4wave_vm_world
 import (
 	"context"
 	"regexp"
+	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -34,12 +35,47 @@ type v86Resource struct {
 	objectKey   string
 	ws          world.WorldState
 	b           bus.Bus
-	v86fsServer unixfs_v86fs.SRPCV86FsServiceServer
+	v86fsServer *unixfs_v86fs.Server
+
+	homeMountMtx     sync.Mutex
+	homeMountRefs    uint
+	homeMountCleanup func()
 }
 
 // newV86Resource constructs a new v86Resource.
-func newV86Resource(le *logrus.Entry, objectKey string, ws world.WorldState, b bus.Bus, v86fsServer unixfs_v86fs.SRPCV86FsServiceServer) *v86Resource {
+func newV86Resource(le *logrus.Entry, objectKey string, ws world.WorldState, b bus.Bus, v86fsServer *unixfs_v86fs.Server) *v86Resource {
 	return &v86Resource{le: le, objectKey: objectKey, ws: ws, b: b, v86fsServer: v86fsServer}
+}
+
+// acquireHomeMount keeps the run-scoped home mount registered until every
+// Execute stream using the runtime releases it.
+func (r *v86Resource) acquireHomeMount(ctx context.Context) (func(), error) {
+	r.homeMountMtx.Lock()
+	defer r.homeMountMtx.Unlock()
+
+	if r.homeMountRefs == 0 {
+		cleanup, err := ensureHomeMount(ctx, r.le, r.ws, r.objectKey, r.v86fsServer)
+		if err != nil {
+			return nil, err
+		}
+		r.homeMountCleanup = cleanup
+	}
+	r.homeMountRefs++
+
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			r.homeMountMtx.Lock()
+			defer r.homeMountMtx.Unlock()
+
+			r.homeMountRefs--
+			if r.homeMountRefs != 0 {
+				return
+			}
+			r.homeMountCleanup()
+			r.homeMountCleanup = nil
+		})
+	}, nil
 }
 
 // Execute reconciles desired VM state with the instanced runtime plugin.
@@ -57,6 +93,7 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 	var rpRef directive.Reference
 	var v86fsRouteRelease func()
 	var statusRouteRelease func()
+	var homeMountRelease func()
 	releaseRuntime := func() {
 		if rpRef != nil {
 			rpRef.Release()
@@ -69,6 +106,10 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 		if v86fsRouteRelease != nil {
 			v86fsRouteRelease()
 			v86fsRouteRelease = nil
+		}
+		if homeMountRelease != nil {
+			homeMountRelease()
+			homeMountRelease = nil
 		}
 	}
 	defer releaseRuntime()
@@ -172,38 +213,51 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 					continue
 				}
 			}
-			if err := emit(mapVmState(observed), ""); err != nil {
-				return err
-			}
 			if rpRef == nil {
 				if mountErr := r.verifyBootMounts(ctx); mountErr != nil {
+					if err := emit(mapVmState(observed), ""); err != nil {
+						return err
+					}
 					_, _, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, mountErr.Error())
 					if err != nil {
 						return err
 					}
 					continue
 				}
-				if homeErr := ensureHomeMount(ctx, r.ws, r.objectKey); homeErr != nil {
-					_, _, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, homeErr.Error())
+				var mountErr error
+				homeMountRelease, mountErr = r.acquireHomeMount(ctx)
+				if mountErr != nil {
+					if err := emit(mapVmState(observed), ""); err != nil {
+						return err
+					}
+					_, _, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, mountErr.Error())
 					if err != nil {
 						return err
 					}
 					continue
 				}
-				newV86fsRouteRelease, routeErr := r.exposeV86fsToRuntimePlugin(ctx, runtimePluginID)
-				if routeErr != nil {
-					_, _, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, routeErr.Error())
-					if err != nil {
-						return err
+
+				v86fsRouteRelease, err = r.exposeV86fsToRuntimePlugin(ctx, runtimePluginID)
+				if err != nil {
+					releaseRuntime()
+					if emitErr := emit(mapVmState(observed), ""); emitErr != nil {
+						return emitErr
+					}
+					_, _, updateErr := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, err.Error())
+					if updateErr != nil {
+						return updateErr
 					}
 					continue
 				}
-				newStatusRouteRelease, statusErr := r.exposeV86RuntimeStatus(ctx, runtimePluginID, generation)
-				if statusErr != nil {
-					newV86fsRouteRelease()
-					_, _, err := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, statusErr.Error())
-					if err != nil {
-						return err
+				statusRouteRelease, err = r.exposeV86RuntimeStatus(ctx, runtimePluginID, generation)
+				if err != nil {
+					releaseRuntime()
+					if emitErr := emit(mapVmState(observed), ""); emitErr != nil {
+						return emitErr
+					}
+					_, _, updateErr := r.updateObservedState(ctx, generation, s4wave_vm.VmState_VmState_ERROR, err.Error())
+					if updateErr != nil {
+						return updateErr
 					}
 					continue
 				}
@@ -213,8 +267,10 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 					if newRef != nil {
 						newRef.Release()
 					}
-					newStatusRouteRelease()
-					newV86fsRouteRelease()
+					releaseRuntime()
+					if emitErr := emit(mapVmState(observed), ""); emitErr != nil {
+						return emitErr
+					}
 					errMsg := "v86 runtime plugin unavailable"
 					if loadErr != nil {
 						errMsg = loadErr.Error()
@@ -226,9 +282,8 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 					continue
 				}
 				rpRef = newRef
-				v86fsRouteRelease = newV86fsRouteRelease
-				statusRouteRelease = newStatusRouteRelease
 			}
+
 			if err := emit(mapVmState(observed), ""); err != nil {
 				return err
 			}

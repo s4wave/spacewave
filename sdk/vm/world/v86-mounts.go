@@ -22,7 +22,8 @@ import (
 const homeMountPath = "/home"
 
 // registerV86ConfigMounts reads V86Config.Mounts on the VmV86 at objectKey
-// and registers each mount on the v86fs server. The guest is notified of the
+// and registers each non-home mount on the v86fs server. The v86 resource
+// registers /home only while a runtime uses it. The guest is notified of the
 // mount set via MOUNT_NOTIFY frames on session join (seeded by the server).
 //
 // Returns a cleanup closure that releases every opened FSHandle. Callers must
@@ -78,6 +79,9 @@ func registerV86ConfigMounts(
 	for _, mnt := range cfg.GetMounts() {
 		path := mnt.GetPath()
 		objKey := mnt.GetObjectKey()
+		if path == homeMountPath {
+			continue
+		}
 		if path == "" || objKey == "" {
 			continue
 		}
@@ -113,31 +117,26 @@ func deriveV86MountName(path string) string {
 }
 
 // ensureHomeMount guarantees the VmV86 at =vmObjectKey= carries a writable
-// home mount. If the stored V86Config.Mounts list already contains an entry
-// for =/home=, nothing happens. Otherwise a fresh empty UnixFS FS-node world
-// object is created at a deterministic key (=<vm>-home=), registered as
-// =unixfs/fs-node=, and appended to Mounts via SetV86ConfigOp so the host
-// factory picks it up on the next boot and subsequent boots reuse the same
-// object so writes persist across VM restarts.
-//
-// Intended to run once per VM start, before the plugin backend is loaded.
-// Returns nil on success (including the already-provisioned case) and
-// propagates any error from the backing world state.
+// home mount and registers it on the current v86fs server before runtime load.
+// Repeated starts reuse the deterministic =<vm>-home= UnixFS object. The
+// caller keeps the returned registration for the shared runtime lifetime.
 func ensureHomeMount(
 	ctx context.Context,
+	le *logrus.Entry,
 	ws world.WorldState,
 	vmObjectKey string,
-) error {
+	srv *unixfs_v86fs.Server,
+) (func(), error) {
 	if vmObjectKey == "" {
-		return errors.New("vm object key is required")
+		return nil, errors.New("vm object key is required")
 	}
 
 	vmObjState, found, err := ws.GetObject(ctx, vmObjectKey)
 	if err != nil {
-		return errors.Wrap(err, "get vm object")
+		return nil, errors.Wrap(err, "get vm object")
 	}
 	if !found {
-		return errors.Errorf("vm-v86 object %q not found", vmObjectKey)
+		return nil, errors.Errorf("vm-v86 object %q not found", vmObjectKey)
 	}
 
 	var cfg *s4wave_vm.V86Config
@@ -154,33 +153,46 @@ func ensureHomeMount(
 		return nil
 	})
 	if err != nil {
-		return errors.Wrap(err, "read v86 config")
+		return nil, errors.Wrap(err, "read v86 config")
 	}
 	if cfg == nil {
 		cfg = &s4wave_vm.V86Config{}
 	}
-	for _, mnt := range cfg.GetMounts() {
-		if mnt.GetPath() == homeMountPath {
-			return nil
+
+	homeObjectKey := ""
+	for _, mount := range cfg.GetMounts() {
+		if mount.GetPath() == homeMountPath {
+			homeObjectKey = mount.GetObjectKey()
+			break
+		}
+	}
+	if homeObjectKey == "" {
+		homeObjectKey = vmObjectKey + "-home"
+		if err := ensureEmptyFSNodeObject(ctx, ws, homeObjectKey); err != nil {
+			return nil, errors.Wrap(err, "provision home unixfs object")
+		}
+
+		cfg.Mounts = append(cfg.GetMounts(), &s4wave_vm.VmMount{
+			Path:      homeMountPath,
+			ObjectKey: homeObjectKey,
+			Writable:  true,
+		})
+		op := s4wave_vm.NewSetV86ConfigOp(vmObjectKey, cfg)
+		if _, _, err := ws.ApplyWorldOp(ctx, op, ""); err != nil {
+			return nil, errors.Wrap(err, "apply set-config op with home mount")
 		}
 	}
 
-	homeObjectKey := vmObjectKey + "-home"
-	if err := ensureEmptyFSNodeObject(ctx, ws, homeObjectKey); err != nil {
-		return errors.Wrap(err, "provision home unixfs object")
+	mountName := deriveV86MountName(homeMountPath)
+	handle, err := openFSHandleForObject(ctx, le, ws, homeObjectKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "open v86 home mount")
 	}
-
-	cfg.Mounts = append(cfg.GetMounts(), &s4wave_vm.VmMount{
-		Path:      homeMountPath,
-		ObjectKey: homeObjectKey,
-		Writable:  true,
-	})
-
-	op := s4wave_vm.NewSetV86ConfigOp(vmObjectKey, cfg)
-	if _, _, err := ws.ApplyWorldOp(ctx, op, ""); err != nil {
-		return errors.Wrap(err, "apply set-config op with home mount")
-	}
-	return nil
+	srv.AddMount(mountName, homeMountPath, handle)
+	return func() {
+		srv.RemoveMount(mountName)
+		handle.Release()
+	}, nil
 }
 
 // ensureEmptyFSNodeObject creates an empty UnixFS FS-node world object at
