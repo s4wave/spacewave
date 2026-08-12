@@ -42,10 +42,19 @@ export function assetUrl(filename: string): string {
   return `${GITHUB_RELEASES_URL}/download/${filename}`
 }
 
-// releaseAssetUrl builds the asset URL for a specific release tag. The
+// isReleaseVersion reports whether version matches the changelog producer's
+// major.minor.patch contract.
+export function isReleaseVersion(version: string): boolean {
+  return /^\d+\.\d+\.\d+$/.test(version)
+}
+
+// releaseAssetUrl builds the asset URL for a validated release tag. The
 // default DOWNLOAD_MANIFEST urls resolve the latest release; the changelog
 // per-release page repoints them at the exact tag through this helper.
 export function releaseAssetUrl(filename: string, version: string): string {
+  if (!isReleaseVersion(version)) {
+    throw new Error(`invalid release version: ${version}`)
+  }
   return `${GITHUB_REPO_URL}/releases/download/v${version}/${filename}`
 }
 
