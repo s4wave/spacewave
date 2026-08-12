@@ -126,6 +126,42 @@ describe('applyPolyfills', () => {
     expect(combined.reason).toBe('later-second')
   })
 
+  it('aborts every AbortSignal.any consumer of one source', () => {
+    const polyfilled = applyPolyfills(buildPolyfillTarget())
+    const source = new polyfilled.AbortController()
+    const combined = Array.from({ length: 6 }, () =>
+      polyfilled.AbortSignal.any([source.signal]),
+    )
+
+    source.abort('shared-reason')
+
+    for (const signal of combined) {
+      expect(signal.aborted).toBe(true)
+      expect(signal.reason).toBe('shared-reason')
+    }
+  })
+
+  it('dispatches a stable listener snapshot without duplicate calls', () => {
+    const polyfilled = applyPolyfills(buildPolyfillTarget())
+    const controller = new polyfilled.AbortController()
+    const calls: string[] = []
+    const removed = () => calls.push('removed')
+    const removing = () => {
+      calls.push('removing')
+      controller.signal.removeEventListener('abort', removing)
+      controller.signal.removeEventListener('abort', removed)
+    }
+    const remaining = () => calls.push('remaining')
+    controller.signal.addEventListener('abort', removing)
+    controller.signal.addEventListener('abort', removing)
+    controller.signal.addEventListener('abort', removed)
+    controller.signal.addEventListener('abort', remaining)
+
+    controller.abort('stopped')
+
+    expect(calls).toEqual(['removing', 'remaining'])
+  })
+
   it('removes AbortSignal.any listeners after the first abort', () => {
     const polyfilled = applyPolyfills(buildPolyfillTarget())
     const first = new polyfilled.AbortController()
