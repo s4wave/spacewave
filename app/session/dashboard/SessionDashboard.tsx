@@ -890,6 +890,12 @@ function DashboardSpaceItem({
       sublabel={getSpaceSourceLabel(space.source)}
       identifier={space.id}
       orgName={orgName}
+      keywords={[
+        space.id,
+        space.source ?? '',
+        space.objectType ?? '',
+        orgName ?? '',
+      ]}
       onSelect={() => onSelect(space)}
     />
   )
@@ -1142,6 +1148,7 @@ interface DashboardItemProps {
   identifier?: string
   orgName?: string
   onSelect: () => void
+  keywords?: string[]
 }
 
 function DashboardItem({
@@ -1154,11 +1161,16 @@ function DashboardItem({
   experimental,
   orgName,
   onSelect,
+  keywords,
 }: DashboardItemProps) {
-  return (
+  const item = (
     <CommandItem
       value={value}
-      className="group hover:!bg-background-card/30 focus:!bg-background-card/30 focus-visible:!bg-background-card/30 data-[selected=true]:hover:!bg-background-card/30 data-[selected=true]:focus:!bg-background-card/30 data-[selected=true]:focus-visible:!bg-background-card/30 mx-1 flex cursor-pointer items-center gap-3 rounded-md bg-transparent px-3 py-2.5 data-[selected=true]:!bg-transparent"
+      keywords={keywords}
+      className={cn(
+        'group hover:!bg-background-card/30 focus:!bg-background-card/30 focus-visible:!bg-background-card/30 data-[selected=true]:hover:!bg-background-card/30 data-[selected=true]:focus:!bg-background-card/30 data-[selected=true]:focus-visible:!bg-background-card/30 flex cursor-pointer items-center gap-3 rounded-md bg-transparent px-3 py-2.5 data-[selected=true]:!bg-transparent',
+        identifier ? 'mx-0 pr-16' : 'mx-1',
+      )}
       onSelect={onSelect}
     >
       <IconButton icon={icon} tone={iconTone} />
@@ -1183,19 +1195,10 @@ function DashboardItem({
             )}
             {identifier && (
               <span
-                className="flex min-w-0 items-center gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 group-data-[selected=true]:opacity-100"
+                className="text-foreground-alt/40 max-w-28 truncate font-mono text-xs"
                 title={identifier}
-                onClick={(event) => event.stopPropagation()}
-                onMouseDown={(event) => event.stopPropagation()}
               >
-                <span className="text-foreground-alt/40 max-w-28 truncate font-mono text-xs">
-                  {identifier}
-                </span>
-                <CopyButton
-                  text={identifier}
-                  label={`Copy ${label} ID`}
-                  className="hover:bg-foreground/5 size-5"
-                />
+                {identifier}
               </span>
             )}
           </div>
@@ -1203,5 +1206,18 @@ function DashboardItem({
       </div>
       <LuChevronRight className="text-foreground-alt/40 group-data-[selected=true]:text-foreground-alt size-4 shrink-0 transition-colors" />
     </CommandItem>
+  )
+
+  if (!identifier) return item
+
+  return (
+    <div className="relative mx-1 hidden has-[[cmdk-item]]:block">
+      {item}
+      <CopyButton
+        text={identifier}
+        label={`Copy ${label} ID`}
+        className="hover:bg-foreground/5 absolute right-8 bottom-2 size-6"
+      />
+    </div>
   )
 }

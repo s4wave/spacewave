@@ -1,5 +1,13 @@
 /* eslint-disable react-doctor/no-giant-component */
-import { useCallback, useId, useMemo, useReducer, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from 'react'
 import {
   LuBuilding2,
   LuCheck,
@@ -66,6 +74,7 @@ type InviteAction =
   | { type: 'error'; message: string }
   | { type: 'copied' }
   | { type: 'uncopied' }
+  | { type: 'copy_error' }
   | { type: 'username'; value: string }
   | { type: 'usernameSent' }
 
@@ -89,9 +98,15 @@ function reducer(state: InviteState, action: InviteAction): InviteState {
     case 'error':
       return { ...state, creating: false, error: action.message }
     case 'copied':
-      return { ...state, copied: true }
+      return { ...state, copied: true, error: undefined }
     case 'uncopied':
       return { ...state, copied: false }
+    case 'copy_error':
+      return {
+        ...state,
+        copied: false,
+        error: 'Could not copy to the clipboard',
+      }
     case 'username':
       return {
         ...state,
@@ -130,6 +145,18 @@ export function AddUserDialog({
   const inviteCodeId = useId()
   const usernameInputId = useId()
   const inviteLinkId = useId()
+  const copyGenerationRef = useRef(0)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      copyGenerationRef.current += 1
+      if (copyTimerRef.current != null) clearTimeout(copyTimerRef.current)
+    }
+  }, [])
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
@@ -186,10 +213,25 @@ export function AddUserDialog({
     return buildInviteLink(cloudProviderConfig?.publicBaseUrl, encoded)
   }, [state.inviteResp, cloudProviderConfig?.publicBaseUrl])
 
-  const handleCopy = useCallback((text: string) => {
-    void navigator.clipboard.writeText(text)
-    dispatch({ type: 'copied' })
-    setTimeout(() => dispatch({ type: 'uncopied' }), 2000)
+  const handleCopy = useCallback(async (text: string) => {
+    const generation = ++copyGenerationRef.current
+    if (copyTimerRef.current != null) clearTimeout(copyTimerRef.current)
+    try {
+      await navigator.clipboard.writeText(text)
+      if (!mountedRef.current || generation !== copyGenerationRef.current)
+        return
+      dispatch({ type: 'copied' })
+      copyTimerRef.current = setTimeout(() => {
+        if (!mountedRef.current || generation !== copyGenerationRef.current)
+          return
+        dispatch({ type: 'uncopied' })
+        copyTimerRef.current = null
+      }, 2000)
+    } catch {
+      if (!mountedRef.current || generation !== copyGenerationRef.current)
+        return
+      dispatch({ type: 'copy_error' })
+    }
   }, [])
 
   const effectiveOrgId = orgId ?? ''
@@ -287,7 +329,7 @@ export function AddUserDialog({
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
                 <button
-                  onClick={() => handleCopy(shortCode)}
+                  onClick={() => void handleCopy(shortCode)}
                   className={cn(
                     actionButtonClass,
                     state.copied && successActionClass,
@@ -366,15 +408,29 @@ export function AddUserDialog({
             </TabsContent>
           )}
 
-          <TabsContent value="link" className="space-y-3 pt-2">
+          <TabsContent value="link" className="space-y-4 pt-3">
+            <div className="border-foreground/8 bg-background-card/20 rounded-lg border p-3">
+              <div className="text-foreground text-sm font-medium">
+                Share a Space invite
+              </div>
+              <p className="text-foreground-alt/60 mt-1 text-xs leading-relaxed">
+                Create one link for this Space, then send it through a trusted
+                channel. The recipient uses Join Space to accept it.
+              </p>
+            </div>
             {state.inviteResp?.inviteMessage ? (
               <div className="space-y-2">
-                <label
-                  htmlFor={inviteLinkId}
-                  className="text-foreground-alt mb-1.5 block text-xs select-none"
-                >
-                  Invite link
-                </label>
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor={inviteLinkId}
+                    className="text-foreground-alt text-xs select-none"
+                  >
+                    Invite link
+                  </label>
+                  <span className="bg-success/10 text-success rounded-full px-2 py-0.5 text-xs font-medium">
+                    Ready to share
+                  </span>
+                </div>
                 <input
                   id={inviteLinkId}
                   value={inviteLink}
@@ -383,7 +439,7 @@ export function AddUserDialog({
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
                 <button
-                  onClick={() => handleCopy(inviteLink)}
+                  onClick={() => void handleCopy(inviteLink)}
                   className={cn(
                     actionButtonClass,
                     state.copied && successActionClass,
@@ -408,14 +464,18 @@ export function AddUserDialog({
                 disabled={state.creating || !session}
                 className={actionButtonClass}
               >
-                {state.creating ? 'Creating…' : 'Create Invite Link'}
+                {state.creating
+                  ? 'Creating secure link…'
+                  : 'Create Invite Link'}
               </button>
             )}
           </TabsContent>
         </Tabs>
 
         {state.error && (
-          <p className="text-destructive text-xs">{state.error}</p>
+          <p role="alert" className="text-destructive text-xs">
+            {state.error}
+          </p>
         )}
       </DialogContent>
     </Dialog>

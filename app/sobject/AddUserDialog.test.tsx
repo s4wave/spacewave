@@ -1,6 +1,12 @@
 import React from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 
 import { SessionContext } from '@s4wave/web/contexts/contexts.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
@@ -37,6 +43,8 @@ vi.mock('@s4wave/web/ui/tabs.js', () => ({
     <div>{children}</div>
   ),
 }))
+
+const mockClipboard = { writeText: vi.fn() }
 
 const mockSession = {
   spacewave: {
@@ -104,6 +112,17 @@ function renderDialog({ isCloudProvider = true } = {}) {
 }
 
 describe('AddUserDialog', () => {
+  beforeEach(() => {
+    mockClipboard.writeText.mockReset()
+    mockClipboard.writeText.mockResolvedValue(undefined)
+  })
+
+  Object.defineProperty(navigator, 'clipboard', {
+    value: mockClipboard,
+    writable: true,
+    configurable: true,
+  })
+
   afterEach(() => {
     cleanup()
     vi.clearAllMocks()
@@ -165,6 +184,74 @@ describe('AddUserDialog', () => {
     expect(
       mockSession.spacewave.createSpaceTargetedInvitationByUsername,
     ).toHaveBeenCalledWith('casey', 'space-1', 'writer')
+  })
+
+  it('reports clipboard rejection without showing copied success', async () => {
+    mockSession.createSpaceInvite = vi.fn().mockResolvedValue({
+      shortCode: 'ABC123',
+      inviteMessage: {},
+    }) as never
+    mockClipboard.writeText.mockRejectedValue(new Error('denied'))
+    renderDialog()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create Invite Code' }))
+    await waitFor(() => expect(screen.getByText('Copy Code')).toBeDefined())
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Code' }))
+
+    expect(await screen.findByRole('alert')).toBeDefined()
+    expect(screen.getByRole('alert').textContent).toContain(
+      'Could not copy to the clipboard',
+    )
+    expect(screen.queryByText('Copied')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Link' }))
+    await waitFor(() =>
+      expect(mockClipboard.writeText).toHaveBeenCalledTimes(2),
+    )
+    expect(screen.queryByText('Copied')).toBeNull()
+  })
+
+  it('keeps the latest copy result and ignores completion after unmount', async () => {
+    mockSession.createSpaceInvite = vi.fn().mockResolvedValue({
+      shortCode: 'ABC123',
+      inviteMessage: {},
+    }) as never
+    let rejectFirst: ((error: Error) => void) | undefined
+    mockClipboard.writeText
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((_, reject) => {
+            rejectFirst = reject
+          }),
+      )
+      .mockResolvedValueOnce(undefined)
+    const { unmount } = renderDialog()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create Invite Code' }))
+    await waitFor(() => expect(screen.getByText('Copy Code')).toBeDefined())
+    const copyLink = screen.getByRole('button', { name: 'Copy Link' })
+    fireEvent.click(copyLink)
+    fireEvent.click(copyLink)
+    await waitFor(() =>
+      expect(screen.getAllByText('Copied').length).toBeGreaterThan(0),
+    )
+    rejectFirst?.(new Error('stale denied'))
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(screen.queryByRole('alert')).toBeNull()
+
+    let resolveUnmounted: (() => void) | undefined
+    mockClipboard.writeText.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveUnmounted = resolve
+        }),
+    )
+    fireEvent.click(screen.getAllByText('Copied')[0]!.closest('button')!)
+    unmount()
+    resolveUnmounted?.()
+    await Promise.resolve()
+    await Promise.resolve()
   })
 
   it('hides username invites for local provider sessions', () => {

@@ -5,6 +5,7 @@ import {
   screen,
   within,
 } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ObjectTypeRegistration } from '@s4wave/sdk/objecttype/registry/registry.pb.js'
 
@@ -120,7 +121,8 @@ describe('SessionDashboard', () => {
       writable: true,
       configurable: true,
     })
-    mockClipboard.writeText.mockClear()
+    mockClipboard.writeText.mockReset()
+    mockClipboard.writeText.mockResolvedValue(undefined)
     mockUseVisibleQuickstartOptions.mockReturnValue([
       {
         id: 'account',
@@ -226,6 +228,161 @@ describe('SessionDashboard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy Beta Space ID' }))
     expect(mockClipboard.writeText).toHaveBeenCalledWith(sharedSpaceId)
+  })
+
+  it('opens a Space from its primary row and visible ID', () => {
+    const onSpaceClick = vi.fn()
+    const space = { id: 'space-1', name: 'Alpha Space' }
+    const { rerender } = render(
+      <SessionDashboard spaces={[space]} onSpaceClick={onSpaceClick} />,
+    )
+
+    fireEvent.click(screen.getByText('Alpha Space'))
+    expect(onSpaceClick).toHaveBeenLastCalledWith(space)
+
+    onSpaceClick.mockClear()
+    fireEvent.click(screen.getByText('space-1'))
+    expect(onSpaceClick).toHaveBeenLastCalledWith(space)
+
+    onSpaceClick.mockClear()
+    rerender(<SessionDashboard spaces={[space]} onSpaceClick={onSpaceClick} />)
+    fireEvent.keyDown(screen.getByText('Alpha Space').closest('[cmdk-item]')!, {
+      key: 'Enter',
+    })
+    expect(onSpaceClick).toHaveBeenCalledWith(space)
+  })
+
+  it('copies from the explicit icon without opening the Space', async () => {
+    const onSpaceClick = vi.fn()
+    render(
+      <SessionDashboard
+        spaces={[{ id: 'space-1', name: 'Alpha Space' }]}
+        onSpaceClick={onSpaceClick}
+      />,
+    )
+
+    const copyButton = screen.getByRole('button', {
+      name: 'Copy Alpha Space ID',
+    })
+    expect(copyButton.closest('[cmdk-item]')).toBeNull()
+    expect(copyButton.className).toContain('size-6')
+    copyButton.focus()
+    await userEvent.keyboard('{Enter}')
+    expect(mockClipboard.writeText).toHaveBeenCalledWith('space-1')
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeDefined()
+    expect(screen.getByRole('status').textContent).toBe('Copied')
+    expect(onSpaceClick).not.toHaveBeenCalled()
+  })
+
+  it('reports clipboard rejection without opening the Space', async () => {
+    mockClipboard.writeText.mockRejectedValueOnce(new Error('denied'))
+    const onSpaceClick = vi.fn()
+    render(
+      <SessionDashboard
+        spaces={[{ id: 'space-1', name: 'Alpha Space' }]}
+        onSpaceClick={onSpaceClick}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Alpha Space ID' }))
+
+    expect(
+      await screen.findByRole('button', { name: 'Copy failed' }),
+    ).toBeDefined()
+    expect(screen.queryByRole('button', { name: 'Copied' })).toBeNull()
+    expect(onSpaceClick).not.toHaveBeenCalled()
+  })
+
+  it('uses cmdk filtering for Space rows and sibling copy actions', async () => {
+    const onSpaceClick = vi.fn()
+    const { unmount } = render(
+      <SessionDashboard
+        spaces={[
+          { id: 'space-alpha', name: 'Alpha Space' },
+          { id: 'space-beta', name: 'Beta Drive', orgId: 'org-beta' },
+          { id: 'space-gamma', name: 'Gamma Doc', orgId: 'org-gamma' },
+        ]}
+        orgs={[
+          { id: 'org-beta', displayName: 'Builders' },
+          { id: 'org-gamma', displayName: 'Unrelated' },
+        ]}
+        onSpaceClick={onSpaceClick}
+      />,
+    )
+    const input = screen.getByPlaceholderText('Search spaces...')
+
+    await userEvent.type(input, 'Builders')
+    expect(screen.queryByText('Alpha Space')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Unrelated/ })).toBeNull()
+    expect(screen.queryByText('No results')).toBeNull()
+    expect(screen.getByText('Beta Drive')).toBeDefined()
+    expect(
+      screen.getByRole('button', { name: 'Copy Beta Drive ID' }),
+    ).toBeDefined()
+
+    unmount()
+    render(
+      <SessionDashboard
+        spaces={[
+          { id: 'space-alpha', name: 'Alpha Space' },
+          { id: 'space-beta', name: 'Beta Drive' },
+        ]}
+        onSpaceClick={onSpaceClick}
+      />,
+    )
+    const freshInput = screen.getByPlaceholderText('Search spaces...')
+    await userEvent.type(freshInput, 'AS')
+    expect(screen.getByText('Alpha Space')).toBeDefined()
+    expect(
+      screen.getByRole('button', { name: 'Copy Alpha Space ID' }),
+    ).toBeDefined()
+    await userEvent.keyboard('{ArrowDown}{Enter}')
+    expect(onSpaceClick).toHaveBeenCalledWith({
+      id: 'space-beta',
+      name: 'Beta Drive',
+    })
+  })
+
+  it('keeps only the latest clipboard result and ignores unmount completion', async () => {
+    let resolveFirst: (() => void) | undefined
+    mockClipboard.writeText
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveFirst = resolve
+          }),
+      )
+      .mockRejectedValueOnce(new Error('latest denied'))
+    const { unmount } = render(
+      <SessionDashboard
+        spaces={[{ id: 'space-1', name: 'Alpha Space' }]}
+        onSpaceClick={vi.fn()}
+      />,
+    )
+    const copy = screen.getByRole('button', { name: 'Copy Alpha Space ID' })
+
+    fireEvent.click(copy)
+    fireEvent.click(copy)
+    expect(
+      await screen.findByRole('button', { name: 'Copy failed' }),
+    ).toBeDefined()
+    resolveFirst?.()
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(screen.getByRole('button', { name: 'Copy failed' })).toBeDefined()
+
+    let resolveUnmounted: (() => void) | undefined
+    mockClipboard.writeText.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveUnmounted = resolve
+        }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Copy failed' }))
+    unmount()
+    resolveUnmounted?.()
+    await Promise.resolve()
+    await Promise.resolve()
   })
 
   it('shows an overflow cue and the owner-provided source for every space row', () => {
