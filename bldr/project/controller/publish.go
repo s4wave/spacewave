@@ -242,6 +242,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 							le,
 							remoteWorld.AccessWorldState,
 							manifest.ManifestRef,
+							nil,
 							destRemoteTx,
 							accessDestManifest,
 							destManifestObjKey,

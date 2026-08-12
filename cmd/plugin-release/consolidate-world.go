@@ -326,6 +326,7 @@ func copyWorldManifests(
 				le,
 				src.AccessWorldState,
 				manifest.ManifestRef,
+				nil,
 				dest,
 				dest.AccessWorldState,
 				manifest.ManifestKey,
