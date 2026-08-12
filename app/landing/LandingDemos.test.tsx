@@ -40,7 +40,7 @@ describe('landing demos', () => {
   it('lets the chat demo send a local message through the shared chat widgets', async () => {
     render(<ChatLandingDemo />)
 
-    const input = screen.getByPlaceholderText('Type a message…')
+    const input = screen.getByPlaceholderText('Message this channel')
     fireEvent.change(input, { target: { value: 'Ship the docs update next.' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 

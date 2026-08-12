@@ -114,6 +114,19 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        if: ${{ matrix.member.name == 'alpha' }}
+        with:
+          python-version: '3.11'
+
+      - name: Install uv for Python Session journey
+        if: ${{ matrix.member.name == 'alpha' }}
+        run: python -m pip install uv==0.12.3
+
+      - name: Install Python Resource environment
+        if: ${{ matrix.member.name == 'alpha' }}
+        run: uv sync --frozen --all-groups
+
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
@@ -125,6 +138,10 @@ jobs:
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
+
+      - name: Setup alpha production-source fixture
+        if: ${{ matrix.member.name == 'alpha' }}
+        run: bun run bldr -- --state-path=.bldr-dist setup
 
       - name: Build Javascript
         if: ${{ matrix.member.build_script != '' }}
@@ -168,7 +185,12 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        run: python -m pip install uv==0.12.3
 
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
@@ -176,53 +198,29 @@ jobs:
       - name: Install Python Resource environment
         run: uv sync --frozen --all-groups
 
+      - name: Prepare generation dependencies
+        run: go mod vendor
+
       - name: Generate Resource bindings
         run: bun run gen
 
       - name: Verify generated Resource bindings
         run: |
-          paths=(
-            .protoc-manifest.json
+          manifests=(
             .protoc-python-resource-manifest.json
             .protoc-python-session-journey-manifest.json
+          )
+          mapfile -t python_generated < <(
+            jq -r '.packages[].generatedFiles[]' "${manifests[@]}"
+          )
+          paths=(
+            .protoc-manifest.json
+            "${manifests[@]}"
             bldr/resource/resource.pb.go
             bldr/resource/resource.pb.ts
             bldr/resource/resource_srpc.pb.go
             bldr/resource/resource_srpc.pb.ts
-            bldr/resource/resource_pb2.py
-            bldr/resource/resource_pb2.pyi
-            bldr/resource/resource_srpc.py
-            bldr/resource/resource_srpc.pyi
-            core/account/settings/settings_pb2.py
-            core/account/settings/settings_pb2.pyi
-            core/changelog/changelog_pb2.py
-            core/changelog/changelog_pb2.pyi
-            core/provider/provider_pb2.py
-            core/provider/provider_pb2.pyi
-            core/provider/transfer/transfer_pb2.py
-            core/provider/transfer/transfer_pb2.pyi
-            core/session/session_pb2.py
-            core/session/session_pb2.pyi
-            core/sobject/sobject_pb2.py
-            core/sobject/sobject_pb2.pyi
-            core/space/space_pb2.py
-            core/space/space_pb2.pyi
-            db/block/transform/transform_pb2.py
-            db/block/transform/transform_pb2.pyi
-            net/hash/hash_pb2.py
-            net/hash/hash_pb2.pyi
-            net/peer/peer_pb2.py
-            net/peer/peer_pb2.pyi
-            sdk/command/command_pb2.py
-            sdk/command/command_pb2.pyi
-            sdk/root/root_pb2.py
-            sdk/root/root_pb2.pyi
-            sdk/root/root_srpc.py
-            sdk/root/root_srpc.pyi
-            sdk/session/session_pb2.py
-            sdk/session/session_pb2.pyi
-            sdk/session/session_srpc.py
-            sdk/session/session_srpc.pyi
+            "${python_generated[@]}"
           )
           if ! git diff --exit-code -- "${paths[@]}" ||
             [ -n "$(git status --porcelain -- "${paths[@]}")" ]; then
@@ -260,59 +258,38 @@ jobs:
         run: |
           uv build --wheel --out-dir .tmp/python-resource-wheel
           uv run python - <<'PY'
+          import json
           from pathlib import Path
           from zipfile import ZipFile
 
-          wheel = next(Path(".tmp/python-resource-wheel").glob("*.whl"))
+          manifests = (
+              Path(".protoc-python-resource-manifest.json"),
+              Path(".protoc-python-session-journey-manifest.json"),
+          )
           expected = {
-              "bldr/resource/py.typed",
-              "bldr/resource/resource_pb2.py",
-              "bldr/resource/resource_pb2.pyi",
-              "bldr/resource/resource_srpc.py",
-              "bldr/resource/resource_srpc.pyi",
-              "core/account/settings/settings_pb2.py",
-              "core/account/settings/settings_pb2.pyi",
-              "core/changelog/changelog_pb2.py",
-              "core/changelog/changelog_pb2.pyi",
-              "core/provider/provider_pb2.py",
-              "core/provider/provider_pb2.pyi",
-              "core/provider/transfer/transfer_pb2.py",
-              "core/provider/transfer/transfer_pb2.pyi",
-              "core/py.typed",
-              "core/session/session_pb2.py",
-              "core/session/session_pb2.pyi",
-              "core/sobject/sobject_pb2.py",
-              "core/sobject/sobject_pb2.pyi",
-              "core/space/space_pb2.py",
-              "core/space/space_pb2.pyi",
-              "db/block/transform/transform_pb2.py",
-              "db/block/transform/transform_pb2.pyi",
-              "db/py.typed",
-              "net/hash/hash_pb2.py",
-              "net/hash/hash_pb2.pyi",
-              "net/peer/peer_pb2.py",
-              "net/peer/peer_pb2.pyi",
-              "net/py.typed",
-              "sdk/command/command_pb2.py",
-              "sdk/command/command_pb2.pyi",
-              "sdk/py.typed",
-              "sdk/root/root_pb2.py",
-              "sdk/root/root_pb2.pyi",
-              "sdk/root/root_srpc.py",
-              "sdk/root/root_srpc.pyi",
-              "sdk/session/session_pb2.py",
-              "sdk/session/session_pb2.pyi",
-              "sdk/session/session_srpc.py",
-              "sdk/session/session_srpc.pyi",
-              "spacewave_resource/__init__.py",
-              "spacewave_resource/client.py",
-              "spacewave_resource/errors.py",
-              "spacewave_resource/py.typed",
-              "spacewave_resource/resource.py",
-              "spacewave_resource/root.py",
-              "spacewave_resource/server.py",
-              "spacewave_resource/session.py",
+              generated
+              for manifest in manifests
+              for package in json.loads(manifest.read_text())["packages"].values()
+              for generated in package["generatedFiles"]
           }
+          expected.update(
+              {
+                  "bldr/resource/py.typed",
+                  "core/py.typed",
+                  "db/py.typed",
+                  "net/py.typed",
+                  "sdk/py.typed",
+                  "spacewave_resource/__init__.py",
+                  "spacewave_resource/client.py",
+                  "spacewave_resource/errors.py",
+                  "spacewave_resource/py.typed",
+                  "spacewave_resource/resource.py",
+                  "spacewave_resource/root.py",
+                  "spacewave_resource/server.py",
+                  "spacewave_resource/session.py",
+              }
+          )
+          wheel = next(Path(".tmp/python-resource-wheel").glob("*.whl"))
           with ZipFile(wheel) as archive:
               payload = {
                   name
