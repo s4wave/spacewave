@@ -398,7 +398,7 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 	server.waitExit(t, ctx)
 }
 
-func TestGoAttachedResourceTreeLifetimeAgainstTypeScriptServer(t *testing.T) {
+func TestGoAttachedResourceTwoHopLifecycleAgainstTypeScriptServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), crossRuntimeFixtureTimeout)
 	defer cancel()
 	server := startCrossRuntimeProcess(
@@ -419,59 +419,70 @@ func TestGoAttachedResourceTreeLifetimeAgainstTypeScriptServer(t *testing.T) {
 		t.Fatalf("start Go ResourceClient: %v", err)
 	}
 
-	var childInvoked atomic.Bool
 	var childReleaseCount atomic.Int32
+	var childAbortCount atomic.Int32
+	childIDCh := make(chan uint32, 1)
+	blockActive := make(chan struct{}, 1)
+	childAborted := make(chan struct{}, 1)
 	childReleased := make(chan struct{}, 1)
-	releaseOrder := make(chan error, 1)
 	attachedMux := srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-		if serviceID == "test.AttachedEngine" && methodID == "Construct" {
+		if serviceID != "test.AttachedEngine" || methodID != "Construct" {
+			return false, nil
+		}
+		request := srpc.NewRawMessage(nil, true)
+		if err := strm.MsgRecv(request); err != nil {
+			return true, err
+		}
+		if string(request.GetData()) != "construct" {
+			return true, errors.New("attached construct request mismatch")
+		}
+		owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+		if err != nil {
+			return true, err
+		}
+		childID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+			if serviceID != "test.AttachedChild" {
+				return false, nil
+			}
 			request := srpc.NewRawMessage(nil, true)
 			if err := strm.MsgRecv(request); err != nil {
 				return true, err
 			}
-			if string(request.GetData()) != "construct" {
-				return true, errors.New("attached construct request mismatch")
-			}
-			owner, err := resource_server.MustGetResourceClientContext(strm.Context())
-			if err != nil {
-				return true, err
-			}
-			childID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-				if serviceID != "test.AttachedChild" || methodID != "Invoke" {
-					return false, nil
-				}
-				request := srpc.NewRawMessage(nil, true)
-				if err := strm.MsgRecv(request); err != nil {
-					return true, err
-				}
+			switch methodID {
+			case "Invoke":
 				if string(request.GetData()) != "invoke" {
 					return true, errors.New("attached child invoke request mismatch")
 				}
-				childInvoked.Store(true)
+				return true, strm.MsgSend(srpc.NewRawMessage([]byte("nested-success"), true))
+			case "Block":
+				if string(request.GetData()) != "block" {
+					return true, errors.New("attached child block request mismatch")
+				}
 				if err := strm.MsgSend(srpc.NewRawMessage([]byte("active"), true)); err != nil {
 					return true, err
 				}
+				blockActive <- struct{}{}
 				<-strm.Context().Done()
+				childAbortCount.Add(1)
+				childAborted <- struct{}{}
 				return true, context.Cause(strm.Context())
-			}), func() {
-				if !childInvoked.Load() {
-					releaseOrder <- errors.New("attached child released before invocation started")
-				}
-				childReleaseCount.Add(1)
-				childReleased <- struct{}{}
-			})
-			if err != nil {
-				return true, err
+			default:
+				return false, nil
 			}
-			return true, strm.MsgSend(srpc.NewRawMessage(encodeCrossRuntimeID(childID), true))
+		}), func() {
+			childReleaseCount.Add(1)
+			childReleased <- struct{}{}
+		})
+		if err != nil {
+			return true, err
 		}
-		return false, nil
+		childIDCh <- childID
+		return true, strm.MsgSend(srpc.NewRawMessage(encodeCrossRuntimeID(childID), true))
 	})
 	attachedRootID, err := client.AttachResourceTree(ctx, "fake-engine", attachedMux)
 	if err != nil {
 		t.Fatalf("attach fake Engine tree: %v\n%s", err, server.logs())
 	}
-
 	if attachedRootID == 0 {
 		t.Fatal("AddAck returned an empty attached root ID")
 	}
@@ -481,96 +492,118 @@ func TestGoAttachedResourceTreeLifetimeAgainstTypeScriptServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get TypeScript root client: %v", err)
 	}
-	callResult := make(chan struct {
-		data []byte
-		err  error
-	}, 1)
-	go func() {
-		data, callErr := crossRuntimeCall(
-			ctx,
-			rootClient,
-			"test.Root",
-			"UseAttached",
-			encodeCrossRuntimeID(attachedRootID),
-		)
-		callResult <- struct {
-			data []byte
-			err  error
-		}{data, callErr}
-	}()
+	objectData, err := crossRuntimeCall(
+		ctx,
+		rootClient,
+		"test.Root",
+		"ConstructAttachedObject",
+		encodeCrossRuntimeID(attachedRootID),
+	)
+	if err != nil {
+		t.Fatalf("construct TypeScript ObjectType-like child: %v\n%s", err, server.logs())
+	}
+	if len(objectData) != 4 {
+		t.Fatalf("object ID length = %d, want 4", len(objectData))
+	}
+	objectID := binary.BigEndian.Uint32(objectData)
+	addAck := server.waitLine(t, ctx, "ATTACHED_ADD_ACK ")
+	if strings.TrimPrefix(addAck, "ATTACHED_ADD_ACK ") != strconv.FormatUint(uint64(attachedRootID), 10) {
+		t.Fatalf("TypeScript AddAck ID marker = %q, Go AddAck ID = %d", addAck, attachedRootID)
+	}
+	childMarker := server.waitLine(t, ctx, "ATTACHED_CHILD_ADDED ")
+	var childID uint32
+	select {
+	case childID = <-childIDCh:
+	case <-ctx.Done():
+		t.Fatalf("timed out receiving attached child ID after %q", childMarker)
+	}
+	if strings.TrimPrefix(childMarker, "ATTACHED_CHILD_ADDED ") != strconv.FormatUint(uint64(childID), 10) {
+		t.Fatalf("TypeScript child ID marker = %q, Go child ID = %d", childMarker, childID)
+	}
+	object := client.CreateResourceReference(objectID)
+	objectClient, err := object.GetClient()
+	if err != nil {
+		t.Fatalf("get constructed object client: %v", err)
+	}
+	data, err := crossRuntimeCall(ctx, objectClient, "test.AttachedObject", "Use", []byte("use"))
+	if err != nil {
+		t.Fatalf("use nested attached Go child after construction: %v\n%s", err, server.logs())
+	}
+	if string(data) != "nested-success" {
+		t.Fatalf("nested response = %q, want nested-success", data)
+	}
+	server.waitLine(t, ctx, "ATTACHED_USE_COMPLETE")
+	if got := childReleaseCount.Load(); got != 0 {
+		t.Fatalf("attached child detached before response: release count = %d", got)
+	}
+	server.send(t, "CHECK_LIVE")
+	server.waitLine(t, ctx, "ATTACHED_LIVE_NO_CANCEL")
+	select {
+	case <-client.Done():
+		t.Fatal("ResourceClient generation retired after successful two-hop call")
+	default:
+	}
 
-	generation := server.waitLine(t, ctx, "ATTACHED_GENERATION ")
-	fields := strings.Fields(generation)
-	if len(fields) != 3 || fields[1] == "0" {
-		t.Fatalf("invalid attached generation marker %q", generation)
+	blockResult := make(chan error, 1)
+	go func() {
+		_, callErr := crossRuntimeCall(ctx, objectClient, "test.AttachedObject", "Block", []byte("block"))
+		blockResult <- callErr
+	}()
+	select {
+	case <-blockActive:
+	case <-ctx.Done():
+		t.Fatalf("nested attached method did not become active\n%s", server.logs())
 	}
-	if fields[2] != strconv.FormatUint(uint64(attachedRootID), 10) {
-		t.Fatalf("TypeScript AddAck ID = %s, Go AddAck ID = %d", fields[2], attachedRootID)
-	}
-	server.waitLine(t, ctx, "ATTACHED_CHILD_ADDED ")
-	server.waitLine(t, ctx, "ATTACHED_CHILD_INVOKE_ACTIVE")
+	server.send(t, "DETACH_ATTACHED_CHILD")
 	server.waitLine(t, ctx, "ATTACHED_CHILD_DETACHED")
 	select {
 	case <-childReleased:
 	case <-ctx.Done():
-		t.Fatal("attached child detach was not acknowledged")
+		t.Fatal("nested attached child detach was not acknowledged")
 	}
-	server.send(t, "ASSERT_ABORT")
-	callCompleted := false
-invokeLoop:
-	for {
-		select {
-		case line := <-server.lines:
-			if line == "ATTACHED_CHILD_INVOKE_ABORTED" {
-				break invokeLoop
-			}
-		case result := <-callResult:
-			if result.err != nil {
-				t.Fatalf("attached child detach did not abort invocation: %q/%v\n%s", result.data, result.err, server.logs())
-			}
-			if string(result.data) != "attached-complete" {
-				t.Fatalf("attached result = %q, want attached-complete", result.data)
-			}
-			callCompleted = true
-		case <-server.done:
-			t.Fatalf("TypeScript fixture exited before attached invocation aborted: %v\n%s", server.err, server.logs())
-		case <-ctx.Done():
-			t.Fatalf("timed out waiting for attached invocation abort\n%s", server.logs())
+	server.waitLine(t, ctx, "ATTACHED_BLOCK_ABORTED")
+	select {
+	case <-childAborted:
+	case <-ctx.Done():
+		t.Fatal("nested attached Go handler did not observe detach")
+	}
+	select {
+	case err := <-blockResult:
+		if err == nil {
+			t.Fatal("detached nested attached method returned success")
 		}
+	case <-ctx.Done():
+		t.Fatal("detached nested attached method did not return")
 	}
-
-	server.waitLine(t, ctx, "ATTACHED_ROOT_DETACHED")
-	if !callCompleted {
-		select {
-		case result := <-callResult:
-			if result.err != nil {
-				t.Fatalf("invoke attached Resource tree: %v", result.err)
-			}
-			if string(result.data) != "attached-complete" {
-				t.Fatalf("attached result = %q, want attached-complete", result.data)
-			}
-		case <-ctx.Done():
-			t.Fatal("timed out invoking attached Resource tree")
-		}
+	if got := childAbortCount.Load(); got != 1 {
+		t.Fatalf("attached child abort count = %d, want 1", got)
 	}
+	if got := childReleaseCount.Load(); got != 1 {
+		t.Fatalf("attached child release count = %d, want 1", got)
+	}
+	server.send(t, "CHECK_ABORT_ONCE")
+	server.waitLine(t, ctx, "ATTACHED_ABORT_ONCE")
 
+	object.Release()
+	root.Release()
 	client.Release()
 	select {
 	case <-client.Done():
 	case <-ctx.Done():
 		t.Fatal("timed out ending Go ResourceClient generation")
 	}
-	select {
-	case err := <-releaseOrder:
-		t.Fatal(err)
-	default:
-	}
 	if got := childReleaseCount.Load(); got != 1 {
-		t.Fatalf("attached child release count = %d, want 1", got)
+		t.Fatalf("attached child release count after client Done = %d, want 1", got)
 	}
-	root.Release()
+	server.send(t, "CHECK_CLEAN")
 	server.waitLine(t, ctx, "TS_SERVER_OWNER_ZERO")
+	if got := childReleaseCount.Load(); got != 1 {
+		t.Fatalf("attached child release count after TypeScript owner zero = %d, want 1", got)
+	}
 	server.waitExit(t, ctx)
+	if got := childReleaseCount.Load(); got != 1 {
+		t.Fatalf("attached child release count after server exit = %d, want 1", got)
+	}
 }
 
 func encodeCrossRuntimeID(id uint32) []byte {

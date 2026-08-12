@@ -27,8 +27,11 @@ type FixtureState = {
   routeBeforeAdoptAck: boolean
   resolveAdopt: () => void
   adoptAllowedPromise: Promise<void>
-  assertAbort: () => void
-  assertAbortPromise: Promise<void>
+  callCancelsFromClient: number
+  callCancelsFromServer: number
+  attachedBlockAborts: number
+  attachedObjectReleases: number
+  detachAttachedChild?: () => void
 }
 
 function report(marker: string): void {
@@ -69,23 +72,42 @@ function waitForAbort(signal: AbortSignal): Promise<void> {
   })
 }
 
-function tcpPacketStream(socket: net.Socket): PacketStream {
+function tcpPacketStream(
+  socket: net.Socket,
+  state?: FixtureState,
+): PacketStream {
   const source = (async function* (): AsyncGenerator<Uint8Array> {
     const packets = pushable<Uint8Array>({ objectMode: true })
     socket.on('data', (data: Buffer) => packets.push(new Uint8Array(data)))
     socket.on('end', () => packets.end())
     socket.on('error', (error) => packets.end(error))
     socket.on('close', () => packets.end())
-    yield* pipe(
+    for await (const data of pipe(
       packets,
       parseLengthPrefixTransform(),
       combineUint8ArrayListTransform(),
-    )
+    )) {
+      if (state && Packet.fromBinary(data).body?.case === 'callCancel') {
+        state.callCancelsFromClient++
+      }
+      yield data
+    }
   })()
   return {
     source,
     sink: async (input: Source<Uint8Array>): Promise<void> => {
-      for await (const chunk of pipe(input, prependLengthPrefixTransform())) {
+      const observed = (async function* (): AsyncGenerator<Uint8Array> {
+        for await (const data of input) {
+          if (state && Packet.fromBinary(data).body?.case === 'callCancel') {
+            state.callCancelsFromServer++
+          }
+          yield data
+        }
+      })()
+      for await (const chunk of pipe(
+        observed,
+        prependLengthPrefixTransform(),
+      )) {
         const data =
           chunk instanceof Uint8Array
             ? chunk
@@ -137,32 +159,27 @@ function delayedResourceClientStream(
 }
 
 class AttachedChild extends Resource {
-  async invokeUntilDetached(assertAbort: Promise<void>): Promise<void> {
+  async invoke(): Promise<Uint8Array> {
+    return await this.client.request(
+      'test.AttachedChild',
+      'Invoke',
+      bytes('invoke'),
+    )
+  }
+
+  async block(): Promise<void> {
     const responses = this.client
-      .serverStreamingRequest('test.AttachedChild', 'Invoke', bytes('invoke'))
+      .serverStreamingRequest('test.AttachedChild', 'Block', bytes('block'))
       [Symbol.asyncIterator]()
     const active = await responses.next()
     if (active.done || new TextDecoder().decode(active.value) !== 'active') {
-      throw new Error('attached child did not enter invocation')
+      throw new Error('attached child did not enter blocking invocation')
     }
-    report('ATTACHED_CHILD_INVOKE_ACTIVE')
-    this.release()
-    report('ATTACHED_CHILD_DETACHED')
     try {
-      const result = await Promise.race([
-        responses.next(),
-        assertAbort.then(() => {
-          throw new Error('attached child invocation was not aborted by detach')
-        }),
-      ])
-      throw new Error(
-        `attached child invocation completed after detach: done=${result.done}`,
-      )
+      await responses.next()
+      throw new Error('attached child invocation completed without detach')
     } catch (error) {
-      if (error instanceof Error && error.message.includes('RPC_ABORT')) {
-        report('ATTACHED_CHILD_INVOKE_ABORTED')
-        return
-      }
+      if (error instanceof Error && error.message.includes('RPC_ABORT')) return
       throw error
     }
   }
@@ -189,22 +206,11 @@ function rootMux(state: FixtureState) {
         )
         await sink(single(encodeID(child.resourceId)))
       },
-      UseAttached: async (source, sink, context: ServerContext) => {
+      ConstructAttachedObject: async (source, sink, context: ServerContext) => {
         const attachedRootID = decodeID(await readOne(source))
         const resourceCall = getResourceCall(context)
-        const init = Reflect.get(resourceCall, 'init') as {
-          client: {
-            clientID: number
-            attachedResources: Map<number, unknown>
-          }
-        }
-        if (!init.client.attachedResources.has(attachedRootID)) {
-          throw new Error(
-            `attached AddAck ID ${attachedRootID} missing from client ${init.client.clientID}`,
-          )
-        }
-        report(`ATTACHED_GENERATION ${init.client.clientID} ${attachedRootID}`)
         const attachedRoot = resourceCall.getAttachedRef(attachedRootID)
+        report(`ATTACHED_ADD_ACK ${attachedRootID}`)
         const childID = decodeID(
           await attachedRoot.client.request(
             'test.AttachedEngine',
@@ -214,10 +220,57 @@ function rootMux(state: FixtureState) {
         )
         report(`ATTACHED_CHILD_ADDED ${childID}`)
         const child = attachedRoot.createResource(childID, AttachedChild)
-        await child.invokeUntilDetached(state.assertAbortPromise)
-        attachedRoot.release()
-        report('ATTACHED_ROOT_DETACHED')
-        await sink(single(bytes('attached-complete')))
+        state.detachAttachedChild = () => {
+          state.detachAttachedChild = undefined
+          child.release()
+          report('ATTACHED_CHILD_DETACHED')
+        }
+        const object = resourceCall.constructChildResource(() => {
+          const mux = createMux()
+          mux.register(
+            new StaticHandler('test.AttachedObject', {
+              Use: async (objectSource, objectSink) => {
+                if (
+                  new TextDecoder().decode(await readOne(objectSource)) !==
+                  'use'
+                ) {
+                  throw new Error('attached object use request mismatch')
+                }
+                await objectSink(single(await child.invoke()))
+                report('ATTACHED_USE_COMPLETE')
+              },
+              Block: async (objectSource) => {
+                if (
+                  new TextDecoder().decode(await readOne(objectSource)) !==
+                  'block'
+                ) {
+                  throw new Error('attached object block request mismatch')
+                }
+                try {
+                  await child.block()
+                  throw new Error(
+                    'attached object block returned without detach',
+                  )
+                } catch (error) {
+                  state.attachedBlockAborts++
+                  report('ATTACHED_BLOCK_ABORTED')
+                  throw error
+                }
+              },
+            } satisfies Record<string, InvokeFn>),
+          )
+          return {
+            mux,
+            result: undefined,
+            releaseFn: () => {
+              state.attachedObjectReleases++
+              child.release()
+              attachedRoot.release()
+            },
+          }
+        })
+        await sink(single(encodeID(object.resourceId)))
+        report(`ATTACHED_OBJECT_CONSTRUCTED ${object.resourceId}`)
       },
       Echo: async (source, sink) => {
         await sink(single(await readOne(source)))
@@ -277,7 +330,6 @@ async function main(): Promise<void> {
     throw new Error(`invalid address: ${requested}`)
   }
   let resolveAdopt!: () => void
-  let resolveAssertAbort!: () => void
   const state: FixtureState = {
     adoptAllowed: false,
     releaseCount: 0,
@@ -287,10 +339,10 @@ async function main(): Promise<void> {
     adoptAllowedPromise: new Promise<void>((resolve) => {
       resolveAdopt = resolve
     }),
-    assertAbort: () => resolveAssertAbort(),
-    assertAbortPromise: new Promise<void>((resolve) => {
-      resolveAssertAbort = resolve
-    }),
+    callCancelsFromClient: 0,
+    callCancelsFromServer: 0,
+    attachedBlockAborts: 0,
+    attachedObjectReleases: 0,
   }
   const resources = new ResourceServer(rootMux(state))
   const outerMux = createMux()
@@ -302,31 +354,18 @@ async function main(): Promise<void> {
     resolveClean = resolve
   })
   let cleaned = false
+  let cleanRequested = false
   const verifyClean = () => {
-    if (cleaned) return
-    const clients = Reflect.get(resources, 'clients') as Map<
-      number,
-      {
-        released: boolean
-        resources: Map<number, unknown>
-        attachedResources: Map<number, unknown>
-      }
-    >
-    if (
-      state.activeHandlers !== 0 ||
-      [...clients.values()].some(
-        (client) =>
-          !client.released ||
-          client.resources.size !== 0 ||
-          client.attachedResources.size !== 0,
-      )
-    ) {
-      return
-    }
+    if (cleaned || state.activeHandlers !== 0) return
     const expectedReleaseCount = fixtureMode === 'attached' ? 0 : 1
     if (state.releaseCount !== expectedReleaseCount) {
       throw new Error(
         `release count = ${state.releaseCount}, want ${expectedReleaseCount}`,
+      )
+    }
+    if (fixtureMode === 'attached' && state.attachedObjectReleases !== 1) {
+      throw new Error(
+        `attached object releases = ${state.attachedObjectReleases}, want 1`,
       )
     }
     if (state.routeBeforeAdoptAck) {
@@ -340,11 +379,11 @@ async function main(): Promise<void> {
     sockets.add(socket)
     socket.once('close', () => {
       sockets.delete(socket)
-      queueMicrotask(verifyClean)
+      if (cleanRequested && sockets.size === 0) queueMicrotask(verifyClean)
     })
     rpcServer.handlePacketStream(
       fixtureMode === 'attached'
-        ? tcpPacketStream(socket)
+        ? tcpPacketStream(socket, state)
         : delayedResourceClientStream(socket, state),
     )
   })
@@ -365,16 +404,55 @@ async function main(): Promise<void> {
       state.resolveAdopt()
       return
     }
-    if (line === 'ASSERT_ABORT') {
-      state.assertAbort()
+    if (line === 'CHECK_LIVE') {
+      if (
+        state.callCancelsFromClient !== 0 ||
+        state.callCancelsFromServer !== 0
+      ) {
+        throw new Error(
+          `two-hop lifecycle canceled before detach: client-to-server=${state.callCancelsFromClient} server-to-client=${state.callCancelsFromServer}`,
+        )
+      }
+      report('ATTACHED_LIVE_NO_CANCEL')
+      return
+    }
+    if (line === 'CHECK_CLEAN') {
+      verifyClean()
+      if (!cleaned) {
+        throw new Error(
+          `server still has ${state.activeHandlers} active handlers after ResourceClient completion`,
+        )
+      }
+      return
+    }
+    if (line === 'DETACH_ATTACHED_CHILD') {
+      if (!state.detachAttachedChild) {
+        throw new Error('no retained attached child is available to detach')
+      }
+      state.detachAttachedChild()
+      return
+    }
+    if (line === 'CHECK_ABORT_ONCE') {
+      if (state.callCancelsFromClient !== 0) {
+        throw new Error(
+          `retained child detach emitted ${state.callCancelsFromClient} unexpected client-to-server outer CallCancel packets`,
+        )
+      }
+      if (state.callCancelsFromServer !== 0) {
+        throw new Error(
+          `retained child detach emitted ${state.callCancelsFromServer} unexpected server-to-client outer CallCancel packets`,
+        )
+      }
+      if (state.attachedBlockAborts !== 1) {
+        throw new Error(
+          `attached block aborts = ${state.attachedBlockAborts}, want 1`,
+        )
+      }
+      report('ATTACHED_ABORT_ONCE')
       return
     }
     if (line === 'INVALIDATE') {
-      const clients = Reflect.get(resources, 'clients') as Map<
-        number,
-        { releaseAll(): void }
-      >
-      for (const client of clients.values()) client.releaseAll()
+      cleanRequested = true
       for (const socket of sockets) socket.destroy()
       queueMicrotask(verifyClean)
       return
