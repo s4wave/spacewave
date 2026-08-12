@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
@@ -156,9 +157,9 @@ func (r *PluginHostRoot) RegisterObjectType(
 
 	// Connect to the core ObjectType registry Resource service.
 	invokers, _, serviceRef, err := bifrost_rpc.ExLookupRpcService(
-		r.ctx,
+		ctx,
 		r.b,
-		resource.SRPCResourceServiceServiceID,
+		bldr_plugin.PluginServiceID("spacewave-core", resource.SRPCResourceServiceServiceID),
 		"",
 		true,
 		nil,

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"testing"
-	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -83,8 +82,13 @@ func (c *testResourceClientContext) GetAttachedResource(id uint32) (srpc.Client,
 	return nil, resource.ErrResourceNotFound
 }
 
+var errUnexpectedCoreResourceServiceLookup = errors.New("unexpected core Resource service lookup")
+
 type coreResourceController struct {
-	mux srpc.Invoker
+	mux                    srpc.Invoker
+	lookupServiceIDs       chan<- string
+	waitForQualifiedLookup bool
+	qualifiedLookupExited  chan<- error
 }
 
 func (c *coreResourceController) GetControllerInfo() *controller.Info {
@@ -100,22 +104,51 @@ func (c *coreResourceController) HandleDirective(
 	ctx context.Context,
 	inst directive.Instance,
 ) ([]directive.Resolver, error) {
-	switch dir := inst.GetDirective().(type) {
-	case bifrost_rpc.LookupRpcService:
-		if dir.LookupRpcServiceID() == resource.SRPCResourceServiceServiceID &&
-			dir.LookupRpcServerID() == "" {
-			return directive.R(bifrost_rpc.NewLookupRpcServiceResolver(c.mux), nil)
-		}
-	case bldr_plugin.LoadPlugin:
-		if dir.LoadPluginID() == "spacewave-core" {
-			return nil, errors.New("unexpected core plugin load")
+	dir, ok := inst.GetDirective().(bifrost_rpc.LookupRpcService)
+	if !ok {
+		return nil, nil
+	}
+	if c.lookupServiceIDs != nil {
+		select {
+		case c.lookupServiceIDs <- dir.LookupRpcServiceID():
+		default:
 		}
 	}
-	return nil, nil
+	if dir.LookupRpcServiceID() != bldr_plugin.PluginServiceID(
+		"spacewave-core",
+		resource.SRPCResourceServiceServiceID,
+	) || dir.LookupRpcServerID() != "" {
+		return directive.R(coreResourceLookupErrorResolver{}, nil)
+	}
+	if c.waitForQualifiedLookup {
+		return directive.R(coreResourceLookupWaitResolver{exited: c.qualifiedLookupExited}, nil)
+	}
+	return directive.R(
+		bifrost_rpc.NewLookupRpcServiceResolver(srpc.InvokerFunc(c.mux.InvokeMethod)),
+		nil,
+	)
 }
 
 func (c *coreResourceController) Close() error {
 	return nil
+}
+
+type coreResourceLookupErrorResolver struct{}
+
+func (coreResourceLookupErrorResolver) Resolve(context.Context, directive.ResolverHandler) error {
+	return errUnexpectedCoreResourceServiceLookup
+}
+
+type coreResourceLookupWaitResolver struct {
+	exited chan<- error
+}
+
+func (r coreResourceLookupWaitResolver) Resolve(ctx context.Context, _ directive.ResolverHandler) error {
+	<-ctx.Done()
+	if r.exited != nil {
+		r.exited <- context.Canceled
+	}
+	return context.Canceled
 }
 
 type testWatchStream struct {
@@ -184,7 +217,11 @@ func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 	if err := resource_server.NewResourceServer(registry.GetMux()).Register(coreMux); err != nil {
 		t.Fatal(err)
 	}
-	coreController := &coreResourceController{mux: coreMux}
+	lookupServiceIDs := make(chan string, 1)
+	coreController := &coreResourceController{
+		mux:              coreMux,
+		lookupServiceIDs: lookupServiceIDs,
+	}
 	releaseCoreController, err := b.AddController(ctx, coreController, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -207,6 +244,14 @@ func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 	}
 
 	resp, err := register()
+	gotServiceID := <-lookupServiceIDs
+	wantServiceID := bldr_plugin.PluginServiceID("spacewave-core", resource.SRPCResourceServiceServiceID)
+	if gotServiceID != wantServiceID {
+		if !errors.Is(err, errUnexpectedCoreResourceServiceLookup) {
+			t.Fatalf("bare core Resource lookup error = %v, want %v", err, errUnexpectedCoreResourceServiceLookup)
+		}
+		t.Fatalf("core Resource service lookup = %q, want %q", gotServiceID, wantServiceID)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +266,7 @@ func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 		t.Fatalf("display name = %q, want Test Type", registration.GetMetadata().GetDisplayName())
 	}
 
-	watchCtx, watchCancel := context.WithTimeout(ctx, time.Second)
+	watchCtx, watchCancel := context.WithCancel(ctx)
 	t.Cleanup(watchCancel)
 	registryService := s4wave_objecttype_registry.NewSRPCObjectTypeRegistryResourceServiceClient(
 		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(registry.GetMux()))),
@@ -249,6 +294,60 @@ func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 	recvObjectTypeRegistrationCount(t, watch, 1)
 	pluginRoot.Release()
 	recvObjectTypeRegistrationCount(t, watch, 0)
+}
+
+func TestPluginHostRootRegisterObjectTypeCancelsCoreLookup(t *testing.T) {
+	rootCtx, rootCancel := context.WithCancel(t.Context())
+	t.Cleanup(rootCancel)
+	le := logrus.NewEntry(logrus.New())
+	b := inmem.NewBus(directive_controller.NewController(rootCtx, le))
+
+	lookupServiceIDs := make(chan string, 1)
+	lookupExited := make(chan error, 1)
+	coreController := &coreResourceController{
+		lookupServiceIDs:       lookupServiceIDs,
+		waitForQualifiedLookup: true,
+		qualifiedLookupExited:  lookupExited,
+	}
+	releaseCoreController, err := b.AddController(rootCtx, coreController, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseCoreController)
+
+	hostRoot := plugin_host_root.NewRoot()
+	pluginRoot := NewPluginHostRoot(rootCtx, le, b, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume", nil)
+	t.Cleanup(pluginRoot.Release)
+	pluginClient := newTestResourceClientContext(rootCtx)
+	callCtx, callCancel := context.WithCancel(resource_server.WithResourceClientContext(rootCtx, pluginClient))
+	t.Cleanup(callCancel)
+
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := pluginRoot.RegisterObjectType(callCtx, &sdk_plugin_host.RegisterObjectTypeRequest{
+			TypeId: "test/type",
+		})
+		errCh <- err
+	}()
+
+	wantServiceID := bldr_plugin.PluginServiceID("spacewave-core", resource.SRPCResourceServiceServiceID)
+	if gotServiceID := <-lookupServiceIDs; gotServiceID != wantServiceID {
+		t.Fatalf("core Resource service lookup = %q, want %q", gotServiceID, wantServiceID)
+	}
+	if err := rootCtx.Err(); err != nil {
+		t.Fatalf("root context ended before request cancellation: %v", err)
+	}
+	callCancel()
+
+	if err := <-errCh; !errors.Is(err, context.Canceled) {
+		t.Fatalf("RegisterObjectType error = %v, want context.Canceled", err)
+	}
+	if err := <-lookupExited; !errors.Is(err, context.Canceled) {
+		t.Fatalf("core Resource lookup exit = %v, want context.Canceled", err)
+	}
+	if err := rootCtx.Err(); err != nil {
+		t.Fatalf("root context ended after request cancellation: %v", err)
+	}
 }
 
 func TestPluginHostRootReportsInitialCapabilityRegistrationTerminalState(t *testing.T) {
