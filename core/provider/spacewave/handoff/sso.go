@@ -23,7 +23,10 @@ import (
 )
 
 // deviceEncryptInfo is the HKDF info string matching the TS implementation.
-const deviceEncryptInfo = "spacewave-desktop-sso-v1"
+const (
+	deviceEncryptInfo        = "spacewave-desktop-sso-v1"
+	deviceEncryptedKeyMaxLen = 1024 * 1024
+)
 
 // SSOResult is the SSO result received from the Worker via WS relay.
 type SSOResult struct {
@@ -38,13 +41,6 @@ type SSOResult struct {
 	PinWrapped      bool   `json:"pinWrapped,omitempty"`
 	DeviceEncrypted bool   `json:"deviceEncrypted,omitempty"`
 	Error           string `json:"error,omitempty"`
-}
-
-// encryptedForDevice matches the TS EncryptedForDevice structure.
-type encryptedForDevice struct {
-	EphemeralPublicKey string `json:"ephemeralPublicKey"`
-	IV                 string `json:"iv"`
-	Ciphertext         string `json:"ciphertext"`
 }
 
 // ssoProviderHosts lists the authorization hosts that StartSSOHandoff will
@@ -203,7 +199,7 @@ func StartSSOHandoff(
 
 	// 6. If linked and device-encrypted, decrypt the entity key.
 	if result.Linked && result.DeviceEncrypted && result.EncryptedBlob != "" {
-		entityKeyPEM, decErr := decryptDeviceEncrypted(x25519Priv, result.EncryptedBlob)
+		entityKeyPEM, decErr := decryptDesktopDeviceEncrypted(x25519Priv.Bytes(), result.EncryptedBlob)
 		if decErr != nil {
 			return &result, nil, nonce, errors.Wrap(decErr, "decrypt entity key")
 		}
@@ -226,60 +222,101 @@ func StartSSOHandoff(
 	return &result, nil, nonce, nil
 }
 
-// decryptDeviceEncrypted decrypts an entity key that was encrypted
-// by the Worker using X25519 ECDH + HKDF-SHA256 + AES-256-GCM.
-func decryptDeviceEncrypted(privKey *ecdh.PrivateKey, encryptedJSON string) ([]byte, error) {
-	enc, err := parseEncryptedForDevice(encryptedJSON)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse encrypted structure")
+// DecryptDeviceEncrypted decrypts a protobuf browser device-key envelope.
+func DecryptDeviceEncrypted(privateKeyRaw []byte, encryptedBlob string) ([]byte, error) {
+	if base64.StdEncoding.DecodedLen(len(encryptedBlob)) > deviceEncryptedKeyMaxLen {
+		return nil, errors.New("encrypted device key exceeds maximum size")
 	}
+	encoded, err := base64.StdEncoding.DecodeString(encryptedBlob)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode encrypted device key")
+	}
+	var encrypted api.DeviceEncryptedKey
+	if err := encrypted.UnmarshalVT(encoded); err != nil {
+		return nil, errors.Wrap(err, "parse encrypted device key")
+	}
+	return decryptDeviceKey(
+		privateKeyRaw,
+		encrypted.GetEphemeralPublicKey(),
+		encrypted.GetNonce(),
+		encrypted.GetCiphertext(),
+	)
+}
 
-	ephPubRaw, err := base64.StdEncoding.DecodeString(enc.EphemeralPublicKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "decode ephemeral public key")
+func decryptDesktopDeviceEncrypted(privateKeyRaw []byte, encryptedBlob string) ([]byte, error) {
+	if len(encryptedBlob) > base64.StdEncoding.EncodedLen(deviceEncryptedKeyMaxLen)+256 {
+		return nil, errors.New("desktop encrypted device key exceeds maximum size")
 	}
-	iv, err := base64.StdEncoding.DecodeString(enc.IV)
+	var parser fastjson.Parser
+	value, err := parser.Parse(encryptedBlob)
 	if err != nil {
-		return nil, errors.Wrap(err, "decode IV")
+		return nil, errors.Wrap(err, "parse desktop encrypted device key")
 	}
-	ciphertext, err := base64.StdEncoding.DecodeString(enc.Ciphertext)
+	ephemeralPublicKeyBase64 := value.GetStringBytes("ephemeralPublicKey")
+	if len(ephemeralPublicKeyBase64) > base64.StdEncoding.EncodedLen(32) {
+		return nil, errors.New("desktop ephemeral public key exceeds maximum size")
+	}
+	ephemeralPublicKey, err := base64.StdEncoding.DecodeString(string(ephemeralPublicKeyBase64))
 	if err != nil {
-		return nil, errors.Wrap(err, "decode ciphertext")
+		return nil, errors.Wrap(err, "decode desktop ephemeral public key")
 	}
+	nonceBase64 := value.GetStringBytes("iv")
+	if len(nonceBase64) > base64.StdEncoding.EncodedLen(12) {
+		return nil, errors.New("desktop nonce exceeds maximum size")
+	}
+	nonce, err := base64.StdEncoding.DecodeString(string(nonceBase64))
+	if err != nil {
+		return nil, errors.Wrap(err, "decode desktop nonce")
+	}
+	ciphertextBase64 := value.GetStringBytes("ciphertext")
+	if len(ciphertextBase64) > base64.StdEncoding.EncodedLen(deviceEncryptedKeyMaxLen) {
+		return nil, errors.New("desktop ciphertext exceeds maximum size")
+	}
+	ciphertext, err := base64.StdEncoding.DecodeString(string(ciphertextBase64))
+	if err != nil {
+		return nil, errors.Wrap(err, "decode desktop ciphertext")
+	}
+	return decryptDeviceKey(privateKeyRaw, ephemeralPublicKey, nonce, ciphertext)
+}
 
-	// Import the ephemeral public key.
-	ephPubKey, err := ecdh.X25519().NewPublicKey(ephPubRaw)
+func decryptDeviceKey(privateKeyRaw, ephemeralPublicKey, nonce, ciphertext []byte) ([]byte, error) {
+	if len(ephemeralPublicKey) != 32 {
+		return nil, errors.New("encrypted device key has invalid ephemeral public key")
+	}
+	if len(nonce) != 12 {
+		return nil, errors.New("encrypted device key has invalid nonce")
+	}
+	if len(ciphertext) < 16 || len(ciphertext) > deviceEncryptedKeyMaxLen {
+		return nil, errors.New("encrypted device key has invalid ciphertext")
+	}
+	privateKey, err := ecdh.X25519().NewPrivateKey(privateKeyRaw)
 	if err != nil {
-		return nil, errors.Wrap(err, "import ephemeral public key")
+		return nil, errors.Wrap(err, "parse device private key")
 	}
-
-	// ECDH to derive shared secret.
-	sharedSecret, err := privKey.ECDH(ephPubKey)
+	ephemeralKey, err := ecdh.X25519().NewPublicKey(ephemeralPublicKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "ECDH key exchange")
+		return nil, errors.Wrap(err, "parse ephemeral public key")
 	}
-
-	// HKDF-SHA256 to derive AES-256 key.
-	hkdfReader := hkdf.New(sha256.New, sharedSecret, make([]byte, 32), []byte(deviceEncryptInfo))
-	aesKey := make([]byte, 32)
-	if _, err := io.ReadFull(hkdfReader, aesKey); err != nil {
-		return nil, errors.Wrap(err, "HKDF derive key")
+	sharedSecret, err := privateKey.ECDH(ephemeralKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "derive shared secret")
 	}
-
-	// AES-256-GCM decrypt.
-	block, err := aes.NewCipher(aesKey)
+	key := make([]byte, 32)
+	if _, err := io.ReadFull(hkdf.New(sha256.New, sharedSecret, make([]byte, 32), []byte(deviceEncryptInfo)), key); err != nil {
+		return nil, errors.Wrap(err, "derive encryption key")
+	}
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, errors.Wrap(err, "create AES cipher")
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return nil, errors.Wrap(err, "create GCM")
+		return nil, errors.Wrap(err, "create AES-GCM")
 	}
-	plaintext, err := gcm.Open(nil, iv, ciphertext, nil)
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "AES-GCM decrypt")
+		return nil, errors.Wrap(err, "decrypt AES-GCM ciphertext")
 	}
-
 	return plaintext, nil
 }
 
@@ -324,19 +361,6 @@ func parseSSOResult(dat []byte) (*SSOResult, error) {
 		PinWrapped:      v.GetPinWrapped(),
 		DeviceEncrypted: v.GetDeviceEncrypted(),
 		Error:           v.GetError(),
-	}, nil
-}
-
-func parseEncryptedForDevice(dat string) (*encryptedForDevice, error) {
-	var p fastjson.Parser
-	v, err := p.Parse(dat)
-	if err != nil {
-		return nil, err
-	}
-	return &encryptedForDevice{
-		EphemeralPublicKey: string(v.GetStringBytes("ephemeralPublicKey")),
-		IV:                 string(v.GetStringBytes("iv")),
-		Ciphertext:         string(v.GetStringBytes("ciphertext")),
 	}, nil
 }
 

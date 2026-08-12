@@ -540,6 +540,16 @@ message SSOLinkAction {
   bytes auth_params = 6;
 }
 
+// DeviceEncryptedKey carries an entity key encrypted to an ephemeral X25519 device key.
+message DeviceEncryptedKey {
+  // EphemeralPublicKey is the sender's 32-byte X25519 public key.
+  bytes ephemeral_public_key = 1;
+  // Nonce is the 12-byte AES-GCM nonce.
+  bytes nonce = 2;
+  // Ciphertext is the AES-GCM ciphertext followed by its authentication tag.
+  bytes ciphertext = 3;
+}
+
 // SSOCodeExchangeResponse is returned by POST /api/auth/sso/code/exchange.
 message SSOCodeExchangeResponse {
   // Linked indicates whether an account was found for this OAuth identity.
@@ -1963,6 +1973,8 @@ message AuthSessionCreateResponse {
 message AuthSessionResultExchangeRequest {
   // Nonce is the auth-session nonce to exchange for the stored SSO result.
   string nonce = 1;
+  // Verifier is the initiating browser-flow secret committed by OAuth state.
+  bytes verifier = 2;
 }
 
 // DesktopSSOStartRequest is the request body for POST /auth/sso/start.

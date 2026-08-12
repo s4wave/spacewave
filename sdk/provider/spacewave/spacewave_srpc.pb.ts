@@ -35,6 +35,8 @@ import {
   PasskeyConfirmSignupResponse,
   PasskeyRegisterChallengeRequest,
   PasskeyRegisterChallengeResponse,
+  PrepareBrowserSSORequest,
+  PrepareBrowserSSOResponse,
   ReauthenticateSessionRequest,
   ReauthenticateSessionResponse,
   RecoverExecuteRequest,
@@ -246,6 +248,17 @@ export const SpacewaveProviderResourceServiceDefinition = {
       name: 'SSOCodeExchange',
       I: SSOCodeExchangeRequest,
       O: SSOCodeExchangeResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * PrepareBrowserSSO creates the browser-flow verifier and device key binding.
+     *
+     * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.PrepareBrowserSSO
+     */
+    PrepareBrowserSSO: {
+      name: 'PrepareBrowserSSO',
+      I: PrepareBrowserSSORequest,
+      O: PrepareBrowserSSOResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -570,6 +583,16 @@ export interface SpacewaveProviderResourceService {
   ): Promise<SSOCodeExchangeResponse>
 
   /**
+   * PrepareBrowserSSO creates the browser-flow verifier and device key binding.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.PrepareBrowserSSO
+   */
+  PrepareBrowserSSO(
+    request: PrepareBrowserSSORequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PrepareBrowserSSOResponse>
+
+  /**
    * SSONonceExchange exchanges an auth-session nonce for stored SSO account data.
    *
    * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.SSONonceExchange
@@ -891,6 +914,17 @@ export interface SpacewaveProviderResourceServiceHandler {
   ): Promise<SSOCodeExchangeResponse>
 
   /**
+   * PrepareBrowserSSO creates the browser-flow verifier and device key binding.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.PrepareBrowserSSO
+   */
+  PrepareBrowserSSO(
+    request: PrepareBrowserSSORequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<PrepareBrowserSSOResponse>
+
+  /**
    * SSONonceExchange exchanges an auth-session nonce for stored SSO account data.
    *
    * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.SSONonceExchange
@@ -1070,6 +1104,7 @@ export class SpacewaveProviderResourceServiceClient implements SpacewaveProvider
     this.MountLinkedDeviceSession = this.MountLinkedDeviceSession.bind(this)
     this.StartBrowserHandoff = this.StartBrowserHandoff.bind(this)
     this.SSOCodeExchange = this.SSOCodeExchange.bind(this)
+    this.PrepareBrowserSSO = this.PrepareBrowserSSO.bind(this)
     this.SSONonceExchange = this.SSONonceExchange.bind(this)
     this.StartDesktopSSO = this.StartDesktopSSO.bind(this)
     this.ConfirmDesktopSSO = this.ConfirmDesktopSSO.bind(this)
@@ -1398,6 +1433,25 @@ export class SpacewaveProviderResourceServiceClient implements SpacewaveProvider
       abortSignal || undefined,
     )
     return SSOCodeExchangeResponse.fromBinary(result)
+  }
+
+  /**
+   * PrepareBrowserSSO creates the browser-flow verifier and device key binding.
+   *
+   * @generated from rpc s4wave.provider.spacewave.SpacewaveProviderResourceService.PrepareBrowserSSO
+   */
+  async PrepareBrowserSSO(
+    request: PrepareBrowserSSORequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PrepareBrowserSSOResponse> {
+    const requestMsg = PrepareBrowserSSORequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveProviderResourceServiceDefinition.methods.PrepareBrowserSSO.name,
+      PrepareBrowserSSORequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return PrepareBrowserSSOResponse.fromBinary(result)
   }
 
   /**

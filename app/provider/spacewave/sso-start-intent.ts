@@ -1,5 +1,8 @@
 const SSO_START_INTENT_KEY = 'spacewave-sso-start-provider'
 const SSO_RETURN_TO_KEY = 'spacewave-sso-return-to'
+// The binding blocks finish URLs opened in independent contexts. Same-origin
+// opener clones, XSS, and extension-equivalent access can inherit or read it.
+const SSO_BROWSER_BINDING_KEY = 'spacewave-sso-browser-binding'
 
 type ReturnPath = string & { readonly returnPath: unique symbol }
 
@@ -8,12 +11,20 @@ interface SSOStartIntent {
   returnTo: ReturnPath
 }
 
+export interface SSOBrowserBinding {
+  verifier: string
+  verifierHash: string
+  devicePublicKey: string
+  devicePrivateKey: string
+}
+
 export interface ConsumedSSOStartIntent {
   authorized: boolean
   returnTo: string
 }
 
 let memoryIntent: SSOStartIntent | null = null
+let memoryBinding: SSOBrowserBinding | null = null
 let memoryReturnTo = '/login' as ReturnPath
 
 function parseReturnPath(path: string): ReturnPath {
@@ -95,4 +106,53 @@ export function consumeSSOStartIntent(
     return { authorized: true, returnTo: stored.returnTo }
   }
   return { authorized: false, returnTo: readReturnTo() }
+}
+
+function parseBinding(serialized: string | null): SSOBrowserBinding | null {
+  if (!serialized) return null
+  try {
+    const parsed: unknown = JSON.parse(serialized)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+      return null
+    const binding = parsed as Record<string, unknown>
+    if (
+      typeof binding.verifier !== 'string' ||
+      typeof binding.verifierHash !== 'string' ||
+      typeof binding.devicePublicKey !== 'string' ||
+      typeof binding.devicePrivateKey !== 'string'
+    )
+      return null
+    return binding as unknown as SSOBrowserBinding
+  } catch {
+    return null
+  }
+}
+
+export function setSSOBrowserBinding(binding: SSOBrowserBinding): void {
+  memoryBinding = binding
+  try {
+    sessionStorage.setItem(SSO_BROWSER_BINDING_KEY, JSON.stringify(binding))
+  } catch {
+    // Session storage may be unavailable in restricted browser modes.
+  }
+}
+
+export function getSSOBrowserBinding(): SSOBrowserBinding | null {
+  let binding = memoryBinding
+  try {
+    const stored = parseBinding(sessionStorage.getItem(SSO_BROWSER_BINDING_KEY))
+    if (stored) binding = stored
+  } catch {
+    // Session storage may be unavailable in restricted browser modes.
+  }
+  return binding
+}
+
+export function clearSSOBrowserBinding(): void {
+  memoryBinding = null
+  try {
+    sessionStorage.removeItem(SSO_BROWSER_BINDING_KEY)
+  } catch {
+    // Session storage may be unavailable in restricted browser modes.
+  }
 }

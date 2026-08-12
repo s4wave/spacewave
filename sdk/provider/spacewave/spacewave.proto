@@ -42,6 +42,8 @@ service SpacewaveProviderResourceService {
 
   // SSOCodeExchange exchanges an OAuth provider code for SSO account data.
   rpc SSOCodeExchange(SSOCodeExchangeRequest) returns (SSOCodeExchangeResponse);
+  // PrepareBrowserSSO creates the browser-flow verifier and device key binding.
+  rpc PrepareBrowserSSO(PrepareBrowserSSORequest) returns (PrepareBrowserSSOResponse);
   // SSONonceExchange exchanges an auth-session nonce for stored SSO account data.
   rpc SSONonceExchange(SSONonceExchangeRequest) returns (SSOCodeExchangeResponse);
   // StartDesktopSSO starts the native desktop SSO handoff flow.
@@ -505,11 +507,31 @@ message SSOCodeExchangeRequest {
   string redirect_uri = 3;
 }
 
+// PrepareBrowserSSORequest starts browser SSO binding preparation.
+message PrepareBrowserSSORequest {
+}
+
+// PrepareBrowserSSOResponse carries an ephemeral binding retained by one tab.
+message PrepareBrowserSSOResponse {
+  // Verifier is the high-entropy secret required at result exchange.
+  bytes verifier = 1;
+  // VerifierHash is the SHA-256 commitment carried in signed OAuth state.
+  bytes verifier_hash = 2;
+  // DevicePublicKey is the ephemeral X25519 public key committed by OAuth state.
+  bytes device_public_key = 3;
+  // DevicePrivateKey is the ephemeral X25519 private key retained by the tab.
+  bytes device_private_key = 4;
+}
+
 // SSONonceExchangeRequest exchanges an auth-session nonce for the stored SSO
 // result.
 message SSONonceExchangeRequest {
   // Nonce is the auth-session nonce to exchange.
   string nonce = 1;
+  // Verifier is the browser-flow secret committed by signed OAuth state.
+  bytes verifier = 2;
+  // DevicePrivateKey decrypts the device-bound entity key result locally.
+  bytes device_private_key = 3;
 }
 
 // SSOCodeExchangeResponse is the response after exchanging an OAuth code.

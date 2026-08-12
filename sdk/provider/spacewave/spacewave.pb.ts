@@ -2279,6 +2279,68 @@ export const SSOCodeExchangeRequest: MessageType<SSOCodeExchangeRequest> =
   })
 
 /**
+ * PrepareBrowserSSORequest starts browser SSO binding preparation.
+ *
+ * @generated from message s4wave.provider.spacewave.PrepareBrowserSSORequest
+ */
+export interface PrepareBrowserSSORequest {}
+
+export const PrepareBrowserSSORequest: MessageType<PrepareBrowserSSORequest> =
+  /* @__PURE__ */ createEmptyMessageType<PrepareBrowserSSORequest>(
+    's4wave.provider.spacewave.PrepareBrowserSSORequest',
+    true,
+  )
+
+/**
+ * PrepareBrowserSSOResponse carries an ephemeral binding retained by one tab.
+ *
+ * @generated from message s4wave.provider.spacewave.PrepareBrowserSSOResponse
+ */
+export interface PrepareBrowserSSOResponse {
+  /**
+   * Verifier is the high-entropy secret required at result exchange.
+   *
+   * @generated from field: bytes verifier = 1;
+   */
+  verifier?: Uint8Array
+  /**
+   * VerifierHash is the SHA-256 commitment carried in signed OAuth state.
+   *
+   * @generated from field: bytes verifier_hash = 2;
+   */
+  verifierHash?: Uint8Array
+  /**
+   * DevicePublicKey is the ephemeral X25519 public key committed by OAuth state.
+   *
+   * @generated from field: bytes device_public_key = 3;
+   */
+  devicePublicKey?: Uint8Array
+  /**
+   * DevicePrivateKey is the ephemeral X25519 private key retained by the tab.
+   *
+   * @generated from field: bytes device_private_key = 4;
+   */
+  devicePrivateKey?: Uint8Array
+}
+
+export const PrepareBrowserSSOResponse: MessageType<PrepareBrowserSSOResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.spacewave.PrepareBrowserSSOResponse',
+    fields: [
+      { no: 1, name: 'verifier', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'verifier_hash', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'device_public_key', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 4,
+        name: 'device_private_key',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * SSONonceExchangeRequest exchanges an auth-session nonce for the stored SSO
  * result.
  *
@@ -2291,6 +2353,18 @@ export interface SSONonceExchangeRequest {
    * @generated from field: string nonce = 1;
    */
   nonce?: string
+  /**
+   * Verifier is the browser-flow secret committed by signed OAuth state.
+   *
+   * @generated from field: bytes verifier = 2;
+   */
+  verifier?: Uint8Array
+  /**
+   * DevicePrivateKey decrypts the device-bound entity key result locally.
+   *
+   * @generated from field: bytes device_private_key = 3;
+   */
+  devicePrivateKey?: Uint8Array
 }
 
 export const SSONonceExchangeRequest: MessageType<SSONonceExchangeRequest> =
@@ -2298,6 +2372,13 @@ export const SSONonceExchangeRequest: MessageType<SSONonceExchangeRequest> =
     typeName: 's4wave.provider.spacewave.SSONonceExchangeRequest',
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'verifier', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 3,
+        name: 'device_private_key',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

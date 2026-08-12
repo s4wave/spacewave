@@ -5,7 +5,9 @@ import (
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/ecdh"
 	crand "crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"io"
 
@@ -709,6 +711,28 @@ func (s *SpacewaveProviderResource) SSOCodeExchange(
 	}, nil
 }
 
+// PrepareBrowserSSO creates the verifier and ephemeral device key retained by one browser flow.
+func (s *SpacewaveProviderResource) PrepareBrowserSSO(
+	_ context.Context,
+	_ *s4wave_provider_spacewave.PrepareBrowserSSORequest,
+) (*s4wave_provider_spacewave.PrepareBrowserSSOResponse, error) {
+	verifier := make([]byte, 32)
+	if _, err := crand.Read(verifier); err != nil {
+		return nil, errors.Wrap(err, "generate browser sso verifier")
+	}
+	privateKey, err := ecdh.X25519().GenerateKey(crand.Reader)
+	if err != nil {
+		return nil, errors.Wrap(err, "generate browser sso device key")
+	}
+	commitment := sha256.Sum256(verifier)
+	return &s4wave_provider_spacewave.PrepareBrowserSSOResponse{
+		Verifier:         verifier,
+		VerifierHash:     commitment[:],
+		DevicePublicKey:  privateKey.PublicKey().Bytes(),
+		DevicePrivateKey: privateKey.Bytes(),
+	}, nil
+}
+
 // SSONonceExchange exchanges an auth-session nonce for the stored SSO result.
 func (s *SpacewaveProviderResource) SSONonceExchange(
 	ctx context.Context,
@@ -719,6 +743,8 @@ func (s *SpacewaveProviderResource) SSONonceExchange(
 		s.provider.GetHTTPClient(),
 		s.provider.GetEndpoint(),
 		req.GetNonce(),
+		req.GetVerifier(),
+		req.GetDevicePrivateKey(),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "sso nonce exchange")
