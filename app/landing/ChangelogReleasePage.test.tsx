@@ -42,7 +42,7 @@ describe('ChangelogReleasePage', () => {
       screen.getByRole('heading', { name: 'Download the desktop app' }),
     ).toBeTruthy()
     expect(
-      screen.getByLabelText(/Download this exact version \(v0\.53\.1\)/),
+      screen.getByRole('radio', { name: /This release · v0\.53\.1/ }),
     ).toBeTruthy()
   })
 })

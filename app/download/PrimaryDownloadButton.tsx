@@ -7,12 +7,16 @@ import type { DownloadEntry } from './manifest.js'
 
 interface PrimaryDownloadButtonProps {
   entry: DownloadEntry | null
+  releaseLabel?: string
 }
 
 // PrimaryDownloadButton renders the hero download CTA for the detected
 // platform. Falls back to a "Pick a build below." headline when detection
 // missed or the detected tuple is absent from the manifest.
-export function PrimaryDownloadButton({ entry }: PrimaryDownloadButtonProps) {
+export function PrimaryDownloadButton({
+  entry,
+  releaseLabel,
+}: PrimaryDownloadButtonProps) {
   if (!entry) {
     return (
       <p className="text-foreground-alt text-center text-base select-none @lg:text-lg">
@@ -33,7 +37,8 @@ export function PrimaryDownloadButton({ entry }: PrimaryDownloadButtonProps) {
     >
       <LuDownload className="size-5" />
       <span>
-        Download for {entry.osLabel} ({entry.archLabel})
+        Download{releaseLabel ? ` ${releaseLabel}` : ''} for {entry.osLabel} (
+        {entry.archLabel}) · {entry.ext}
       </span>
     </ExternalLink>
   )

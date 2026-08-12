@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DOWNLOAD_MANIFEST,
+  isReleaseVersion,
   releaseAssetUrl,
   resolveInstallerEntries,
   resolvePrimaryEntry,
@@ -87,11 +88,26 @@ describe('resolvePrimaryEntry', () => {
   })
 })
 
+describe('isReleaseVersion', () => {
+  it('accepts only the changelog major.minor.patch contract', () => {
+    expect(isReleaseVersion('0.53.1')).toBe(true)
+    for (const version of [' 0.53.1', '0.53.1 ', 'v0.53.1', 'garbage']) {
+      expect(isReleaseVersion(version)).toBe(false)
+    }
+  })
+})
+
 describe('releaseAssetUrl', () => {
   it('points at the exact release tag download path', () => {
     expect(releaseAssetUrl('spacewave-macos-arm64.dmg', '0.53.1')).toBe(
       'https://github.com/s4wave/spacewave/releases/download/v0.53.1/spacewave-macos-arm64.dmg',
     )
+  })
+
+  it('rejects an invalid version instead of creating a malformed URL', () => {
+    expect(() =>
+      releaseAssetUrl('spacewave-macos-arm64.dmg', 'v0.53.1'),
+    ).toThrow('invalid release version')
   })
 })
 
