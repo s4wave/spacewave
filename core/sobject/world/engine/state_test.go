@@ -13,9 +13,11 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
+	transform_blockenc "github.com/s4wave/spacewave/db/block/transform/blockenc"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/kvtx"
+	"github.com/s4wave/spacewave/db/util/blockenc"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/net/peer"
@@ -292,6 +294,10 @@ func (s *testSharedObjectSnapshot) ProcessOperations(
 
 func newStateTestTransformConfig(t *testing.T, steps ...config.Config) *block_transform.Config {
 	t.Helper()
+	steps = append(steps, &transform_blockenc.Config{
+		BlockEnc: blockenc.DefaultBlockEnc,
+		Key:      make([]byte, 32),
+	})
 	transformConf, err := block_transform.NewConfig(steps)
 	if err != nil {
 		t.Fatal(err.Error())
