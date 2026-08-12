@@ -50,6 +50,7 @@ export function parsePluginWorkerName(name: string): string {
 // PluginStartOpts contains start info and worker communication detection.
 export interface PluginStartOpts {
   startInfo: PluginStartInfo
+  signal: AbortSignal
   workerCommsDetect?: WorkerCommsDetectResult
   runtimeWasmEnv?: Record<string, string>
 }
@@ -86,6 +87,8 @@ export class PluginWorker {
   private pluginStarted?: true
   // startPluginPromise tracks the in-flight startup sequence.
   private startPluginPromise?: Promise<void>
+  // pluginAbortController binds plugin entrypoint work to this worker lifecycle.
+  private readonly pluginAbortController = new AbortController()
   // lockAbortController aborts the worker liveness lock on shutdown.
   private lockAbortController?: AbortController
   // failureCloseReported records that this worker has already published a fatal close.
@@ -115,6 +118,7 @@ export class PluginWorker {
       null,
       undefined,
       this.refreshOpfsBridge.bind(this),
+      this.shutdown.bind(this),
     )
     this.armWorkerLock()
 
@@ -189,6 +193,7 @@ export class PluginWorker {
       return
     }
     this.shuttingDown = true
+    this.pluginAbortController.abort()
     this.lockAbortController?.abort()
     this.lockAbortController = undefined
     this.webDocumentTracker.close()
@@ -278,6 +283,7 @@ export class PluginWorker {
     this.notifyStartupMark('plugin.entrypoint-start')
     await this.startPlugin({
       startInfo,
+      signal: this.pluginAbortController.signal,
       workerCommsDetect,
       runtimeWasmEnv,
     })

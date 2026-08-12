@@ -86,14 +86,11 @@ if (isPlugin) {
       ),
     })
 
-    const abortController = new AbortController()
-    const abortSignal = abortController.signal
-
     const backendAPI = new BackendApiImpl(
       startInfo,
       transport.openStream,
       handleIncomingStreamCtr,
-      abortSignal,
+      opts.signal,
     )
 
     console.log('shared-worker: starting plugin:', scriptPath)
@@ -115,7 +112,7 @@ if (isPlugin) {
     await startWorkerPluginEntrypoint(
       pluginModule.default,
       backendAPI,
-      abortSignal,
+      opts.signal,
       opts.runtimeWasmEnv,
       (err) => {
         console.warn('shared-worker: plugin runtime failed:', err)

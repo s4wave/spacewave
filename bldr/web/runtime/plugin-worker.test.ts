@@ -76,6 +76,85 @@ describe('PluginWorker startup shutdown', () => {
     expect(consoleWarn).not.toHaveBeenCalled()
   })
 
+  test('aborts plugin work before terminal close tears down runtime streams', async () => {
+    vi.useFakeTimers()
+    const global = new FakeDedicatedWorkerGlobal()
+    vi.stubGlobal('navigator', {})
+    const events: string[] = []
+    let pluginSignal: AbortSignal | undefined
+    let pluginStarted: (() => void) | undefined
+    const started = new Promise<void>((resolve) => {
+      pluginStarted = resolve
+    })
+    const worker = new PluginWorker(
+      global as unknown as DedicatedWorkerGlobalScope,
+      vi.fn(async (opts) => {
+        pluginSignal = opts.signal
+        opts.signal.addEventListener('abort', () => events.push('abort'))
+        pluginStarted?.()
+      }),
+      null,
+    )
+    vi.spyOn(worker.webDocumentTracker, 'waitConn').mockResolvedValue(undefined)
+    vi.spyOn(
+      worker.webDocumentTracker,
+      'requestWebRtcBridge',
+    ).mockResolvedValue(null)
+    vi.spyOn(worker.webDocumentTracker, 'requestOpfsWorker').mockResolvedValue(
+      null,
+    )
+    vi.spyOn(worker.webDocumentTracker, 'close').mockImplementation(() => {
+      if (!pluginSignal?.aborted) {
+        events.push('retry-error')
+      }
+      events.push('tracker-close')
+    })
+
+    const documentChannel = new MessageChannel()
+    global.dispatchMessage({
+      from: 'document-1',
+      initData: new TextEncoder().encode(btoa('{}')),
+      initPort: documentChannel.port1,
+    })
+    await started
+
+    documentChannel.port2.postMessage({
+      from: 'document-1',
+      close: true,
+      terminal: true,
+    })
+    await vi.waitFor(() => expect(pluginSignal?.aborted).toBe(true))
+
+    expect(events).toEqual(['abort', 'tracker-close'])
+    await vi.runAllTimersAsync()
+    expect(global.close).toHaveBeenCalledOnce()
+  })
+
+  test('keeps plugin work alive across non-terminal WebDocument reloads', async () => {
+    const global = new FakeDedicatedWorkerGlobal()
+    vi.stubGlobal('navigator', {})
+    const worker = new PluginWorker(
+      global as unknown as DedicatedWorkerGlobalScope,
+      vi.fn(),
+      null,
+    )
+    const close = vi.spyOn(worker.webDocumentTracker, 'close')
+
+    const documentChannel = new MessageChannel()
+    worker.webDocumentTracker.handleWebDocumentMessage({
+      from: 'document-1',
+      initPort: documentChannel.port1,
+    })
+    documentChannel.port2.postMessage({
+      from: 'document-1',
+      close: true,
+    })
+    await Promise.resolve()
+
+    expect(close).not.toHaveBeenCalled()
+    expect(global.close).not.toHaveBeenCalled()
+  })
+
   test('reports one runtime failure close before idempotent shutdown', async () => {
     vi.useFakeTimers()
     const global = new FakeDedicatedWorkerGlobal()
