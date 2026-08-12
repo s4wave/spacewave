@@ -1,6 +1,7 @@
 package webrtc
 
 import (
+	"errors"
 	"testing"
 
 	pion_webrtc "github.com/pion/webrtc/v4"
@@ -122,5 +123,56 @@ func TestCreateDataChannelRegistersNegotiationCallbackFirst(t *testing.T) {
 	}
 	if signals[0].GetRequestOffer() != 1 {
 		t.Fatalf("request_offer sequence %d, want 1", signals[0].GetRequestOffer())
+	}
+}
+
+func TestRemoteICECandidateApplierStopsAtCompletion(t *testing.T) {
+	mlineIndex := uint16(0)
+	candidates := []pion_webrtc.ICECandidateInit{
+		{Candidate: "candidate:1 1 udp 2130706431 192.0.2.1 5000 typ host"},
+		{SDPMLineIndex: &mlineIndex},
+		{Candidate: "candidate:2 1 udp 2130706431 192.0.2.2 5001 typ host"},
+	}
+	var applied []pion_webrtc.ICECandidateInit
+	applier := remoteICECandidateApplier{add: func(candidate pion_webrtc.ICECandidateInit) error {
+		applied = append(applied, candidate)
+		return nil
+	}}
+	err := applier.apply(candidates)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(applied) != 2 {
+		t.Fatalf("applied candidate count %d, want 2", len(applied))
+	}
+	if applied[0].Candidate == "" {
+		t.Fatal("end-of-candidates applied before the candidate")
+	}
+	if applied[1].Candidate != "" {
+		t.Fatal("final application was not end-of-candidates")
+	}
+}
+
+func TestRemoteICECandidateApplierPropagatesFailure(t *testing.T) {
+	wantErr := errors.New("candidate rejected")
+	candidates := []pion_webrtc.ICECandidateInit{
+		{Candidate: "candidate:1 1 udp 2130706431 192.0.2.1 5000 typ host"},
+		{},
+		{Candidate: "candidate:2 1 udp 2130706431 192.0.2.2 5001 typ host"},
+	}
+	var calls int
+	applier := remoteICECandidateApplier{add: func(candidate pion_webrtc.ICECandidateInit) error {
+		calls++
+		if candidate.Candidate == "" {
+			return wantErr
+		}
+		return nil
+	}}
+	err := applier.apply(candidates)
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("error %v, want %v", err, wantErr)
+	}
+	if calls != 2 {
+		t.Fatalf("AddICECandidate calls %d, want 2", calls)
 	}
 }

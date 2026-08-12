@@ -729,6 +729,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	// candidates are lost and the offerer rides a peer-reflexive-only pair.
 	// Buffered candidates are flushed immediately after SetRemoteDescription.
 	var pendingRemoteIce []webrtc.ICECandidateInit
+	remoteICE := remoteICECandidateApplier{add: sess.pc.AddICECandidate}
 
 	for {
 		phase = "wait for session change"
@@ -888,10 +889,9 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 				lastAppliedRemoteSdp = currRxSdp.GetSdp()
 
 				// Flush any candidates that arrived before the remote description.
-				for i := range pendingRemoteIce {
-					if err := sess.pc.AddICECandidate(pendingRemoteIce[i]); err != nil {
-						return pkgerrors.Wrap(err, "add buffered remote ice candidate")
-					}
+				remoteICE.complete = false
+				if err := remoteICE.apply(pendingRemoteIce); err != nil {
+					return pkgerrors.Wrap(err, "add buffered remote ice candidate")
 				}
 				pendingRemoteIce = nil
 
@@ -929,7 +929,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			// the answer SDP lands.
 			if ice != nil {
 				if sess.pc.RemoteDescription() != nil {
-					if err := sess.pc.AddICECandidate(*ice); err != nil {
+					if err := remoteICE.apply([]webrtc.ICECandidateInit{*ice}); err != nil {
 						return pkgerrors.Wrap(err, "add remote ice candidate")
 					}
 				} else {
@@ -1025,6 +1025,27 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			recheckNext()
 		}
 	}
+}
+
+// remoteICECandidateApplier applies one signaling generation in order.
+type remoteICECandidateApplier struct {
+	add      func(webrtc.ICECandidateInit) error
+	complete bool
+}
+
+func (a *remoteICECandidateApplier) apply(candidates []webrtc.ICECandidateInit) error {
+	for i := range candidates {
+		if a.complete {
+			return nil
+		}
+		if err := a.add(candidates[i]); err != nil {
+			return err
+		}
+		if candidates[i].Candidate == "" {
+			a.complete = true
+		}
+	}
+	return nil
 }
 
 // isOfferer checks if peer ID A is the offerer or answerer.
