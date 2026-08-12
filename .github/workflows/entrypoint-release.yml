@@ -112,7 +112,6 @@ jobs:
         shell: bash
         run: echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)" >> "${GITHUB_ENV}"
 
-
       - name: Cache Linux handoff part
         id: linux_handoff_cache
         uses: actions/cache@v6
@@ -268,7 +267,6 @@ jobs:
         shell: bash
         run: echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)" >> "${GITHUB_ENV}"
 
-
       - name: Cache browser handoff part
         id: browser_handoff_cache
         uses: actions/cache@v6
@@ -402,7 +400,6 @@ jobs:
       - name: Set reproducible build timestamp
         shell: bash
         run: echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)" >> "${GITHUB_ENV}"
-
 
       - name: Cache Windows handoff part
         id: windows_handoff_cache
@@ -701,7 +698,6 @@ jobs:
       - name: Set reproducible build timestamp
         shell: bash
         run: echo "SOURCE_DATE_EPOCH=$(git show -s --format=%ct HEAD)" >> "${GITHUB_ENV}"
-
 
       - name: Cache macOS handoff part
         id: macos_handoff_cache
