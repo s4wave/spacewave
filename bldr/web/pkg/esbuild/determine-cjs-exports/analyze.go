@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/aperturerobotics/esbuild/pkg/cjsexports"
@@ -149,37 +150,61 @@ type requireItem struct {
 // nodeEnv controls which branch is followed for conditional require() calls
 // (e.g., "production" or "development").
 func AnalyzeCjsExports(codeRootPath, importPath string, nodePaths []string, nodeEnv string) (*CjsExportsResult, error) {
+	result, _, err := AnalyzeCjsExportsWithProvenance(codeRootPath, importPath, nodePaths, nodeEnv)
+	return result, err
+}
+
+// AnalyzeCjsExportsWithProvenance analyzes CJS exports and reports every file
+// consulted while resolving and parsing the selected module.
+func AnalyzeCjsExportsWithProvenance(codeRootPath, importPath string, nodePaths []string, nodeEnv string) (*CjsExportsResult, []string, error) {
 	// Resolve the entry file.
-	entry, err := ResolveModuleWithNodePaths(codeRootPath, importPath, nodePaths)
+	entry, resolutionFiles, err := ResolveModuleWithProvenance(codeRootPath, importPath, nodePaths)
 	if err != nil {
-		return nil, errors.Wrap(err, "resolve "+importPath)
+		return nil, nil, errors.Wrap(err, "resolve "+importPath)
 	}
 
 	// Handle JSON files: extract top-level object keys.
 	if strings.HasSuffix(entry, ".json") {
 		keys, err := getJSONKeys(entry)
 		if err != nil {
-			return nil, errors.Wrap(err, "read json "+entry)
+			return nil, nil, errors.Wrap(err, "read json "+entry)
 		}
-		return verifyExports(keys), nil
+		result := verifyExports(keys)
+		return result, append(resolutionFiles, entry), nil
 	}
 
 	// Only process .js, .cjs, .mjs files.
 	if !strings.HasSuffix(entry, ".js") && !strings.HasSuffix(entry, ".cjs") && !strings.HasSuffix(entry, ".mjs") {
-		return verifyExports(nil), nil
+		result := verifyExports(nil)
+		return result, append(resolutionFiles, entry), nil
 	}
 
 	// Process the requires queue.
 	var collected []string
+	sourceFiles := slices.Clone(resolutionFiles)
+	visited := make(map[requireItem]struct{})
 	requires := []requireItem{{path: entry, callMode: false}}
 	for len(requires) > 0 {
 		// Pop from queue.
 		req := requires[len(requires)-1]
 		requires = requires[:len(requires)-1]
+		canonicalPath, canonicalErr := filepath.EvalSymlinks(req.path)
+		if canonicalErr != nil {
+			canonicalPath, canonicalErr = filepath.Abs(req.path)
+			if canonicalErr != nil {
+				return nil, nil, canonicalErr
+			}
+		}
+		identity := requireItem{path: canonicalPath, callMode: req.callMode}
+		if _, ok := visited[identity]; ok {
+			continue
+		}
+		visited[identity] = struct{}{}
 
+		sourceFiles = append(sourceFiles, canonicalPath)
 		code, readErr := os.ReadFile(req.path)
 		if readErr != nil {
-			return nil, errors.Wrap(readErr, "read "+req.path)
+			return nil, nil, errors.Wrap(readErr, "read "+req.path)
 		}
 
 		result, parseErr := cjsexports.Parse(string(code), req.path, cjsexports.Options{
@@ -187,7 +212,7 @@ func AnalyzeCjsExports(codeRootPath, importPath string, nodePaths []string, node
 			CallMode: req.callMode,
 		})
 		if parseErr != nil {
-			return nil, errors.Wrap(parseErr, "parse "+req.path)
+			return nil, nil, errors.Wrap(parseErr, "parse "+req.path)
 		}
 
 		// Optimization: single reexport with no local exports and nothing collected yet.
@@ -199,11 +224,12 @@ func AnalyzeCjsExports(codeRootPath, importPath string, nodePaths []string, node
 				!builtinNodeModules[reexp] &&
 				len(reexp) > 0 &&
 				(reexp[0] >= 'a' && reexp[0] <= 'z' || reexp[0] >= 'A' && reexp[0] <= 'Z' || reexp[0] == '@') {
+				slices.Sort(sourceFiles)
 				return &CjsExportsResult{
 					Reexport:      reexp,
 					ExportDefault: false,
 					Exports:       []string{},
-				}, nil
+				}, slices.Compact(sourceFiles), nil
 			}
 		}
 
@@ -220,16 +246,18 @@ func AnalyzeCjsExports(codeRootPath, importPath string, nodePaths []string, node
 				continue
 			}
 
-			resolved, resolveErr := ResolveModuleWithNodePaths(filepath.Dir(req.path), reexp, nodePaths)
+			resolved, resolutionFiles, resolveErr := ResolveModuleWithProvenance(filepath.Dir(req.path), reexp, nodePaths)
+			sourceFiles = append(sourceFiles, resolutionFiles...)
 			if resolveErr != nil {
-				return nil, errors.Wrap(resolveErr, "resolve reexport "+reexp)
+				return nil, nil, errors.Wrap(resolveErr, "resolve reexport "+reexp)
 			}
 
 			if strings.HasSuffix(resolved, ".json") {
 				keys, jsonErr := getJSONKeys(resolved)
 				if jsonErr != nil {
-					return nil, errors.Wrap(jsonErr, "read json "+resolved)
+					return nil, nil, errors.Wrap(jsonErr, "read json "+resolved)
 				}
+				sourceFiles = append(sourceFiles, resolved)
 				collected = append(collected, keys...)
 				continue
 			}
@@ -238,7 +266,9 @@ func AnalyzeCjsExports(codeRootPath, importPath string, nodePaths []string, node
 		}
 	}
 
-	return verifyExports(collected), nil
+	result := verifyExports(collected)
+	slices.Sort(sourceFiles)
+	return result, slices.Compact(sourceFiles), nil
 }
 
 // verifyExports filters and deduplicates export names.

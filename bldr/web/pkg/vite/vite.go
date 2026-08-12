@@ -42,6 +42,14 @@ func BuildWebPkgsVite(
 	viteBundler bldr_vite.SRPCViteBundlerClient,
 	cacheDir string,
 ) (webPkgIDs, sourcePaths []string, importMapEntries []ImportMapEntry, err error) {
+	canonicalCodeRoot, err := filepath.Abs(codeRootPath)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if resolvedRoot, resolveErr := filepath.EvalSymlinks(canonicalCodeRoot); resolveErr == nil {
+		canonicalCodeRoot = resolvedRoot
+	}
+
 	// Build list of web pkg IDs.
 	for _, ref := range webPkgsRefs {
 		webPkgIDs = append(webPkgIDs, ref.GetWebPkgId())
@@ -70,7 +78,7 @@ func BuildWebPkgsVite(
 		pkgRoot := webPkgRef.GetWebPkgRoot()
 		imports := webPkgRef.GetImports()
 		wrapperDir := filepath.Join(outputPath, ".cjs-wrappers")
-		imports, wrapperErr := generateCjsWrappers(le, pkgRoot, imports, wrapperDir, isRelease)
+		imports, wrapperSources, generatedWrappers, wrapperErr := generateCjsWrappers(le, pkgRoot, imports, wrapperDir, isRelease)
 		if wrapperErr != nil {
 			return nil, nil, nil, errors.Wrapf(wrapperErr, "generate cjs wrappers for %s", webPkgID)
 		}
@@ -97,15 +105,20 @@ func BuildWebPkgsVite(
 			return nil, nil, nil, errors.Errorf("vite build web pkg %s failed: %s", webPkgID, resp.GetError())
 		}
 
-		// Collect source files, making paths relative to codeRootPath.
-		for _, srcFile := range resp.GetSourceFiles() {
-			relPath := srcFile
-			if filepath.IsAbs(srcFile) {
-				var relErr error
-				relPath, relErr = filepath.Rel(codeRootPath, srcFile)
-				if relErr != nil {
-					continue
-				}
+		// Collect stable source inputs without recording generated CJS wrappers.
+		// Wrapper provenance remains cache input even when Vite reports only the
+		// generated module that imported it.
+		for _, srcFile := range append(resp.GetSourceFiles(), wrapperSources...) {
+			canonicalPath, pathErr := canonicalSourcePath(canonicalCodeRoot, srcFile)
+			if pathErr != nil {
+				continue
+			}
+			if _, generated := generatedWrappers[canonicalPath]; generated {
+				continue
+			}
+			relPath, relErr := filepath.Rel(canonicalCodeRoot, canonicalPath)
+			if relErr != nil {
+				continue
 			}
 			sourceFilesList = append(sourceFilesList, relPath)
 		}
@@ -128,6 +141,28 @@ func BuildWebPkgsVite(
 	return webPkgIDs, sourceFilesList, importMapEntries, nil
 }
 
+func canonicalSourcePath(rootPath, sourcePath string) (string, error) {
+	rootAbs, err := filepath.Abs(rootPath)
+	if err != nil {
+		return "", err
+	}
+	if canonicalRoot, canonicalErr := filepath.EvalSymlinks(rootAbs); canonicalErr == nil {
+		rootAbs = canonicalRoot
+	}
+	path := sourcePath
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(rootAbs, path)
+	}
+	path, err = filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	if canonicalPath, canonicalErr := filepath.EvalSymlinks(path); canonicalErr == nil {
+		path = canonicalPath
+	}
+	return path, nil
+}
+
 // generateCjsWrappers analyzes each import file and generates ESM wrappers
 // for CJS modules. Returns a new imports list where CJS entries point to
 // wrapper .mjs files with named re-exports.
@@ -137,8 +172,10 @@ func generateCjsWrappers(
 	imports []string,
 	wrapperDir string,
 	isRelease bool,
-) ([]string, error) {
+) ([]string, []string, map[string]struct{}, error) {
 	result := make([]string, len(imports))
+	var sources []string
+	generated := make(map[string]struct{})
 	copy(result, imports)
 
 	for i, imp := range imports {
@@ -152,11 +189,12 @@ func generateCjsWrappers(
 		if isRelease {
 			nodeEnv = "production"
 		}
-		cjsResult, err := determine_cjs_exports.AnalyzeCjsExports(pkgRoot, "./"+imp, nil, nodeEnv)
+		cjsResult, analysisSources, err := determine_cjs_exports.AnalyzeCjsExportsWithProvenance(pkgRoot, "./"+imp, nil, nodeEnv)
 		if err != nil {
 			le.WithError(err).WithField("file", absPath).Debug("skipping cjs analysis")
 			continue
 		}
+		sources = append(sources, analysisSources...)
 		if len(cjsResult.Exports) == 0 && !cjsResult.ExportDefault && cjsResult.Reexport == "" {
 			continue
 		}
@@ -167,17 +205,21 @@ func generateCjsWrappers(
 		// Rolldown encountering require() calls in the conditional entry.
 		wrapperImportPath := absPath
 		if cjsResult.Reexport != "" {
-			resolved, resolveErr := determine_cjs_exports.ResolveModuleWithNodePaths(
+			resolved, resolutionFiles, resolveErr := determine_cjs_exports.ResolveModuleWithProvenance(
 				filepath.Dir(absPath), cjsResult.Reexport, nil,
 			)
+			sources = append(sources, resolutionFiles...)
 			if resolveErr == nil {
 				wrapperImportPath = resolved
 				// Re-analyze the resolved file for its actual exports.
-				resolvedResult, reErr := determine_cjs_exports.AnalyzeCjsExports(
+				resolvedResult, resolvedSources, reErr := determine_cjs_exports.AnalyzeCjsExportsWithProvenance(
 					filepath.Dir(resolved), "./"+filepath.Base(resolved), nil, nodeEnv,
 				)
-				if reErr == nil && (len(resolvedResult.Exports) > 0 || resolvedResult.ExportDefault) {
-					cjsResult = resolvedResult
+				if reErr == nil {
+					sources = append(sources, resolvedSources...)
+					if len(resolvedResult.Exports) > 0 || resolvedResult.ExportDefault {
+						cjsResult = resolvedResult
+					}
 				}
 			}
 		}
@@ -193,11 +235,17 @@ func generateCjsWrappers(
 		}
 
 		if err := os.MkdirAll(filepath.Dir(wrapperPath), 0o755); err != nil {
-			return nil, err
+			return nil, nil, nil, err
 		}
 		if err := os.WriteFile(wrapperPath, []byte(wrapperContent), 0o644); err != nil {
-			return nil, err
+			return nil, nil, nil, err
 		}
+		canonicalWrapper, err := canonicalSourcePath("", wrapperPath)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		wrapperPath = canonicalWrapper
+		generated[wrapperPath] = struct{}{}
 
 		le.WithFields(logrus.Fields{
 			"file":    imp,
@@ -209,5 +257,5 @@ func generateCjsWrappers(
 		result[i] = wrapperPath
 	}
 
-	return result, nil
+	return result, sources, generated, nil
 }
