@@ -106,14 +106,7 @@ export function ObjectViewerDetails({
 
                 <InfoCard>
                   <div className="space-y-3">
-                    <div className="min-w-0">
-                      <p className="text-foreground-alt text-xs select-none">
-                        Object key
-                      </p>
-                      <p className="text-foreground text-sm font-medium break-all select-none">
-                        {objectKey}
-                      </p>
-                    </div>
+                    <CopyableField label="Object key" value={objectKey} />
                     {missingComponentID && (
                       <CopyableField
                         label="Missing Component ID"
