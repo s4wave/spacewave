@@ -18,7 +18,7 @@ replace (
 	github.com/dolthub/jsonpath => github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260628002426-ab1c68c3a83d // aperture-7
 	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260620031345-da32192f9c83
-	github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260620023100-dab2ab5b7c65
+	github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260812073402-46b0606ba62e
 	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d
 
 	// https://github.com/wazero/wazero/pull/2479
@@ -33,7 +33,7 @@ require (
 	github.com/aperturerobotics/cayley v0.15.1-0.20260705021747-c5ec5d20d2b6 // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
 	github.com/aperturerobotics/common v0.35.2-0.20260812032156-a170e5b6fbdd // master
-	github.com/aperturerobotics/controllerbus v0.53.5-0.20260812015719-e33a57b61119 // master
+	github.com/aperturerobotics/controllerbus v0.53.5-0.20260812083451-7bd9dce82687 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
@@ -102,7 +102,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260810103312-ac60dc4baf74 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20260811102426-7cf4f60d92ac // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20260812092507-e63910ab7739 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
@@ -170,17 +170,17 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
-	github.com/pion/dtls/v3 v3.1.4 // indirect
-	github.com/pion/ice/v4 v4.2.7 // indirect
-	github.com/pion/interceptor v0.1.45 // indirect
+	github.com/pion/dtls/v3 v3.1.5 // indirect
+	github.com/pion/ice/v4 v4.4.0 // indirect
+	github.com/pion/interceptor v0.1.47 // indirect
 	github.com/pion/mdns/v2 v2.1.0 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
-	github.com/pion/rtcp v1.2.16 // indirect
-	github.com/pion/rtp v1.10.2 // indirect
-	github.com/pion/sctp v1.10.0 // indirect
-	github.com/pion/srtp/v3 v3.0.11 // indirect
-	github.com/pion/stun/v3 v3.1.5 // indirect
-	github.com/pion/turn/v5 v5.0.9 // indirect
+	github.com/pion/rtcp v1.2.17 // indirect
+	github.com/pion/rtp v1.10.5 // indirect
+	github.com/pion/sctp v1.11.1 // indirect
+	github.com/pion/srtp/v3 v3.0.13 // indirect
+	github.com/pion/stun/v3 v3.1.6 // indirect
+	github.com/pion/turn/v5 v5.0.12 // indirect
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
