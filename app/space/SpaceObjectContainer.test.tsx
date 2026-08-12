@@ -15,7 +15,7 @@ interface CapturedObjectViewerProps {
     }
   }
   path?: string
-  onNavigate?: (to: { path: string }) => void
+  onNavigate?: (to: { path: string; history?: 'local' }) => void
   stateNamespace?: string[]
 }
 
@@ -149,6 +149,22 @@ describe('SpaceObjectContainer', () => {
       'repo/demo/-/docs/readme.md',
     )
   })
+
+  it.each([
+    ['/', 'repo/demo'],
+    ['/docs/readme.md', 'repo/demo/-/docs/readme.md'],
+  ])(
+    'keeps local history target %s scoped under the current object key',
+    (path, expectedSubpath) => {
+      render(<SpaceObjectContainer />)
+
+      const props = h.objectViewer.mock.calls[0]?.[0]
+      props?.onNavigate?.({ path, history: 'local' })
+
+      expect(h.navigateToSubPath).toHaveBeenCalledWith(expectedSubpath)
+      expect(h.navigate).not.toHaveBeenCalled()
+    },
+  )
 
   it('forwards absolute viewer routes to the app router', () => {
     render(<SpaceObjectContainer />)
