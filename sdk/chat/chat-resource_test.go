@@ -137,6 +137,42 @@ func TestChatResourceSendsListsAndWatchesMessages(t *testing.T) {
 	}
 }
 
+func TestChatResourceWatchMessagesSettlesEmptyChannel(t *testing.T) {
+	ctx := t.Context()
+	wtb, err := db_world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(wtb.Release)
+
+	ws := world.NewEngineWorldState(wtb.Engine, true)
+	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
+	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+
+	watchCtx, cancel := context.WithCancel(ctx)
+	t.Cleanup(cancel)
+	stream := newChatMessageStream(watchCtx)
+	done := make(chan error, 1)
+	go func() {
+		done <- resource.WatchMessages(&spacewave_chat_rpc.WatchMessagesRequest{}, stream)
+	}()
+
+	watchResp := recvChatWatchValue(t, stream.sent)
+	if len(watchResp.GetMessages()) != 0 {
+		t.Fatalf("initial watch response has %d messages, want empty snapshot", len(watchResp.GetMessages()))
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil && err != context.Canceled {
+			t.Fatalf("WatchMessages returned %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for WatchMessages to stop")
+	}
+}
+
 func TestChatResourceListMessagesBeforeKeyUsesSortedMessageSet(t *testing.T) {
 	ctx := t.Context()
 	wtb, err := db_world_testbed.Default(ctx)

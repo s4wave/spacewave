@@ -57,9 +57,7 @@ export class ChatHandle extends Resource implements IChatHandle {
   ): AsyncIterable<ChatMessageInfo[]> {
     const stream = this.service.WatchMessages({}, abortSignal)
     for await (const resp of stream as AsyncIterable<WatchMessagesResponse>) {
-      if (resp.messages && resp.messages.length > 0) {
-        yield resp.messages
-      }
+      yield resp.messages ?? []
     }
   }
 
