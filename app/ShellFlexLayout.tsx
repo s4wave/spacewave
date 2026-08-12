@@ -603,6 +603,18 @@ function ShellTabStripInner({
   // Handle model changes - sync tabs state, check for grid mode transition
   const handleModelChange = useCallback(
     (newModel: Model) => {
+      // A drag starts in the pinned single-tabset model. Once it creates a
+      // grid, empty tabsets must collapse so later model projection cannot
+      // target a stale pane.
+      if (
+        hasGridLayout(newModel) &&
+        newModel.toJson().global?.tabSetEnableDeleteWhenEmpty === false
+      ) {
+        newModel.doAction(
+          Actions.updateModelAttributes({ tabSetEnableDeleteWhenEmpty: true }),
+        )
+      }
+
       setModel(newModel)
 
       // Save to sessionStorage.
