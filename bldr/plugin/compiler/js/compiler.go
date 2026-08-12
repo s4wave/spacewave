@@ -10,13 +10,13 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	protobuf_go_lite_json "github.com/aperturerobotics/protobuf-go-lite/json"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
 	bldr "github.com/s4wave/spacewave/bldr"
@@ -54,73 +54,44 @@ type Controller struct {
 	*bus.BusController[*Config]
 	preBuildHooks []preBuildHookEntry
 
-	workDirMtx    sync.Mutex
-	ownedWorkDirs map[string]string
-	buildWg       sync.WaitGroup
-	closing       bool
+	// bcast guards build admission and completion.
+	bcast broadcast.Broadcast
+	// activeBuilds is the number of admitted builds that have not returned.
+	activeBuilds int
+	// closing rejects new builds after Close starts.
+	closing bool
 }
 
-func (c *Controller) acquireWorkingPath(originalWorkingPath string) (string, func(), error) {
-	c.workDirMtx.Lock()
-	defer c.workDirMtx.Unlock()
-
+func (c *Controller) admitBuild() (func(), error) {
+	locked := c.bcast.Lock()
 	if c.closing {
-		return "", nil, errors.New("js compiler is closed")
+		locked.Unlock()
+		return nil, errors.New("js compiler is closed")
 	}
-	if c.ownedWorkDirs == nil {
-		c.ownedWorkDirs = make(map[string]string)
-	}
+	c.activeBuilds++
+	locked.Unlock()
 
-	originalWorkingPath = filepath.Clean(originalWorkingPath)
-	workingPath := c.ownedWorkDirs[originalWorkingPath]
-	if workingPath == "" {
-		workingRoot, err := os.MkdirTemp("", "spacewave-js-build-")
-		if err != nil {
-			return "", nil, errors.Wrap(err, "create js builder working directory")
-		}
-		workingPath = filepath.Join(workingRoot, "work")
-		if filepath.IsAbs(originalWorkingPath) {
-			err = os.Rename(originalWorkingPath, workingPath)
-			if err != nil && !os.IsNotExist(err) {
-				_ = os.RemoveAll(workingRoot)
-				return "", nil, errors.Wrap(err, "take ownership of js builder working directory")
-			}
-		}
-		if err := os.MkdirAll(workingPath, 0o755); err != nil {
-			_ = os.RemoveAll(workingRoot)
-			return "", nil, errors.Wrap(err, "create js builder working directory")
-		}
-		c.ownedWorkDirs[originalWorkingPath] = workingPath
-	}
-	c.buildWg.Add(1)
-	return workingPath, c.buildWg.Done, nil
+	return func() {
+		locked := c.bcast.Lock()
+		c.activeBuilds--
+		locked.Broadcast()
+		locked.Unlock()
+	}, nil
 }
 
-// Close releases owned build directories after active builds have stopped.
+// Close rejects new builds and waits for admitted builds to finish.
 func (c *Controller) Close() error {
-	c.workDirMtx.Lock()
-	if c.closing {
-		c.workDirMtx.Unlock()
-		return nil
-	}
-	c.closing = true
-	c.workDirMtx.Unlock()
-
-	c.buildWg.Wait()
-
-	c.workDirMtx.Lock()
-	workingPaths := make([]string, 0, len(c.ownedWorkDirs))
-	for originalWorkingPath, workingPath := range c.ownedWorkDirs {
-		workingPaths = append(workingPaths, workingPath)
-		delete(c.ownedWorkDirs, originalWorkingPath)
-	}
-	c.workDirMtx.Unlock()
-	for _, workingPath := range workingPaths {
-		if err := os.RemoveAll(filepath.Dir(workingPath)); err != nil {
-			return err
+	for {
+		locked := c.bcast.Lock()
+		c.closing = true
+		if c.activeBuilds == 0 {
+			locked.Unlock()
+			return nil
 		}
+		waitCh := locked.WaitCh()
+		locked.Unlock()
+		<-waitCh
 	}
-	return nil
 }
 
 // preBuildHookEntry pairs a pre-build hook with its optional provenance declaration.
@@ -252,18 +223,15 @@ func (c *Controller) BuildManifest(
 		le.Warnf("skipping build for non-js platform: %v", buildPlatform.GetInputPlatformID())
 		return nil, nil
 	}
-	// BuildManifest may outlive the controller reference that supplied the
-	// workspace, so mutable outputs live under a builder-owned root.
-	builderConf = builderConf.CloneVT()
-	workingPath, releaseWorkingPath, err := c.acquireWorkingPath(builderConf.GetWorkingPath())
+	releaseBuild, err := c.admitBuild()
 	if err != nil {
 		return nil, err
 	}
-	defer releaseWorkingPath()
-	builderConf.WorkingPath = workingPath
+	defer releaseBuild()
 	le.Debug("building js plugin")
 
 	// output paths, dist is unused for JS compiler
+	workingPath := builderConf.GetWorkingPath()
 	// Note: outDistPath is not typically used by the JS compiler itself,
 	// but we create it for consistency and potential future use.
 	outDistPath := filepath.Join(workingPath, "dist")
