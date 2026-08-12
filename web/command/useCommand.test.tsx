@@ -40,6 +40,7 @@ if (typeof document === 'undefined') {
 const mockRegisterCommand = vi.fn()
 const mockSetActive = vi.fn()
 const mockSetEnabled = vi.fn()
+const mockAdoptResource = vi.fn(() => mockReleaseResource)
 const mockReleaseResource = vi.fn()
 const mockAttachResource = vi.fn()
 const mockCleanup = vi.fn()
@@ -49,7 +50,7 @@ const mockContextValue = {
     SetActive: mockSetActive,
     SetEnabled: mockSetEnabled,
   },
-  releaseResource: mockReleaseResource,
+  adoptResource: mockAdoptResource,
   attachResource: mockAttachResource,
 }
 type AttachedHandlerService = {
@@ -174,10 +175,12 @@ describe('useCommand', () => {
       expect.any(AbortSignal),
     ])
 
+    expect(mockAdoptResource).toHaveBeenCalledWith(41)
+
     view.unmount()
 
     expect(mockCleanup).toHaveBeenCalled()
-    expect(mockReleaseResource).toHaveBeenCalledWith(41)
+    expect(mockReleaseResource).toHaveBeenCalledOnce()
   })
 
   it('registers search aliases on the web surface', async () => {
