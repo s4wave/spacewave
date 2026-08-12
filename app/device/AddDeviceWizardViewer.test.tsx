@@ -298,7 +298,7 @@ describe('AddDeviceWizardViewer', () => {
     expect(h.navigateToObjects).toHaveBeenCalledWith(['devices/build-host'])
   })
 
-  it('creates an SSH-only Host with Secret refs and an SSH Host terminal', async () => {
+  it('creates an SSH-only Host without unavailable-install or runtime review copy', async () => {
     h.currentStep = 1
     h.configData = new TextEncoder().encode(
       JSON.stringify({
@@ -315,6 +315,22 @@ describe('AddDeviceWizardViewer', () => {
       }),
     )
     renderViewer()
+
+    expect(screen.getByPlaceholderText('host.example.com')).toHaveProperty(
+      'value',
+      'build.example.com',
+    )
+    expect(screen.getByPlaceholderText('SSH password')).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: /add ssh host and open terminal/i }),
+    ).toHaveProperty('disabled', false)
+    expect(screen.queryByText('Runtime')).toBeNull()
+    expect(screen.queryByText('Native SSH connector required')).toBeNull()
+    expect(
+      screen.queryByText(
+        'Install Agent is not available until secure bootstrap is configured.',
+      ),
+    ).toBeNull()
 
     fireEvent.change(screen.getByPlaceholderText('SSH password'), {
       target: { value: 'raw-secret-value' },
@@ -645,9 +661,11 @@ describe('AddDeviceWizardViewer', () => {
       expect(finalize).toHaveProperty('disabled', true)
       fireEvent.click(finalize)
 
-      expect(screen.getByRole('alert').textContent).toContain(
-        'Install Agent is not available until secure bootstrap is configured.',
-      )
+      expect(
+        screen.queryByText(
+          'Install Agent is not available until secure bootstrap is configured.',
+        ),
+      ).toBeNull()
       expect(h.toastError).not.toHaveBeenCalled()
       expectNoInstallAgentSideEffects()
     },

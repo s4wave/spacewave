@@ -962,13 +962,6 @@ function SshHostSetupForm({
             disabled
           />
         </div>
-        <p
-          className="text-foreground-alt/70 mt-2 text-xs leading-relaxed"
-          role={setupMode === 'install-agent' ? 'alert' : undefined}
-        >
-          Install Agent is not available until secure bootstrap is configured.
-          Add the SSH Host to keep on-demand terminal access.
-        </p>
       </div>
 
       <div className="border-foreground/6 bg-background-card/30 rounded-lg border p-3.5">
@@ -985,7 +978,6 @@ function SshHostSetupForm({
           />
           <ReviewRow label="Credential" value={credentialKind} />
           <ReviewRow label="Trust mode" value={trustMode} />
-          <ReviewRow label="Runtime" value="Native SSH connector required" />
         </dl>
       </div>
     </section>
