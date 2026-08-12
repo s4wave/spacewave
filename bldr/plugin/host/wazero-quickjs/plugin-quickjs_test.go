@@ -24,6 +24,20 @@ import (
 )
 
 func TestPluginHostWazeroQuickjs(t *testing.T) {
+	t.Run("without web packages", func(t *testing.T) {
+		testPluginHostWazeroQuickjs(t, "plugin-quickjs_test.ts", nil, false)
+	})
+	t.Run("with web package", func(t *testing.T) {
+		testPluginHostWazeroQuickjs(
+			t,
+			"plugin-quickjs-web-pkg_test.ts",
+			[]string{"/b/pkg/@aptre/protobuf-es-lite/message.mjs"},
+			true,
+		)
+	})
+}
+
+func testPluginHostWazeroQuickjs(t *testing.T, inputFile string, external []string, withWebPkg bool) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
@@ -48,7 +62,7 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 			BldrDistRoot: bldrRoot,
 			Entrypoints: []*bldr_web_bundler_rolldown.Entrypoint{{
 				Name:      "plugin-quickjs-test",
-				InputPath: filepath.Join(workingDir, "plugin-quickjs_test.ts"),
+				InputPath: filepath.Join(workingDir, inputFile),
 			}},
 			Format:         "es",
 			Platform:       "browser",
@@ -58,6 +72,7 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 			AssetFileNames: "[name]-[hash][extname]",
 			Sourcemap:      "none",
 			TreeShaking:    true,
+			External:       external,
 		},
 	)
 	if err != nil {
@@ -124,6 +139,17 @@ func TestPluginHostWazeroQuickjs(t *testing.T) {
 	err = billy_util.WriteFile(distFS, scriptPath, []byte(scriptContents), 0o644)
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	if withWebPkg {
+		const webPkgPath = "bldr-web-pkgs/@aptre/protobuf-es-lite/message.mjs"
+		if err := billy_util.WriteFile(
+			assetsFS,
+			webPkgPath,
+			[]byte("export class Counter { constructor() { this.value = 0 } next() { return ++this.value } }"),
+			0o644,
+		); err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	// create a basic plugin manifest
