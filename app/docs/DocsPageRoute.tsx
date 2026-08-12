@@ -60,7 +60,7 @@ export function DocsPageRoute() {
   )
 
   return (
-    <DocsLayout sidebar={sidebar} currentSlug={slug}>
+    <DocsLayout sidebar={sidebar} currentSlug={slug} mobileTitle={doc.title}>
       <DocsPage doc={doc} prevDoc={prevDoc} nextDoc={nextDoc} />
     </DocsLayout>
   )

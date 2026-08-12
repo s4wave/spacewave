@@ -100,7 +100,9 @@ export function DocsPage({ doc, prevDoc, nextDoc }: DocsPageProps) {
             {getSectionLabel(doc.site, doc.section)}
           </span>
           <span className="text-foreground-alt/30 hidden @2xl:inline">/</span>
-          <span className="text-foreground-alt truncate">{doc.title}</span>
+          <span className="text-foreground-alt hidden truncate @2xl:inline">
+            {doc.title}
+          </span>
         </div>
 
         <div className="flex shrink-0 items-center gap-1">

@@ -15,6 +15,7 @@ interface DocsLayoutProps {
   sidebar: React.ReactNode
   children: React.ReactNode
   currentSlug?: string
+  mobileTitle?: string
   // contentWidth selects the content column measure. 'reading' is the prose
   // measure for article pages; 'wide' is the card-grid measure so hub and
   // section index pages fill a desktop viewport instead of stranding a gutter.
@@ -24,34 +25,41 @@ interface DocsLayoutProps {
 interface DocsMobileNavProps {
   portalContainer: HTMLDivElement | null
   sidebar: React.ReactNode
+  title: string
 }
 
 // DocsMobileNav renders the full-width top bar with the hamburger trigger and
 // the slide-in navigation drawer. It occupies its own row above the content so
 // the trigger spans the viewport rather than sitting beside the content column.
-function DocsMobileNav({ portalContainer, sidebar }: DocsMobileNavProps) {
+function DocsMobileNav({
+  portalContainer,
+  sidebar,
+  title,
+}: DocsMobileNavProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-      <div className="border-b border-white/10 px-4 py-2.5 @2xl:hidden">
+      <div className="bg-topbar-back flex h-12 min-w-0 items-center gap-1 border-b border-white/10 px-2 @2xl:hidden">
         <SheetTrigger asChild>
           <button
             type="button"
             aria-label="Open documentation navigation"
-            className="text-foreground-alt hover:text-foreground hover:border-foreground/20 inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm font-medium transition-colors"
+            className="text-foreground-alt hover:bg-foreground/5 hover:text-foreground focus-visible:ring-brand/30 inline-flex size-11 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-1 focus-visible:outline-none"
           >
             <LuMenu className="size-4" />
-            <span>Navigation</span>
           </button>
         </SheetTrigger>
+        <span className="text-foreground min-w-0 truncate text-sm font-semibold">
+          {title}
+        </span>
       </div>
       <SheetContent
         side="left"
         position="absolute"
         portalContainer={portalContainer}
         showCloseButton={false}
-        className="w-[264px] max-w-[85%] gap-0 p-0"
+        className="w-[280px] max-w-[calc(100%_-_32px)] gap-0 p-0"
       >
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
@@ -62,7 +70,7 @@ function DocsMobileNav({ portalContainer, sidebar }: DocsMobileNavProps) {
               <button
                 type="button"
                 aria-label="Close documentation navigation"
-                className="text-foreground-alt hover:text-foreground rounded-md p-2 transition-colors"
+                className="text-foreground-alt hover:bg-foreground/5 hover:text-foreground focus-visible:ring-brand/30 inline-flex size-11 items-center justify-center rounded-md transition-colors focus-visible:ring-1 focus-visible:outline-none"
               >
                 <LuX className="size-4" />
               </button>
@@ -83,6 +91,7 @@ export function DocsLayout({
   sidebar,
   children,
   currentSlug,
+  mobileTitle = 'Documentation',
   contentWidth = 'reading',
 }: DocsLayoutProps) {
   const [portalContainer, setPortalContainer] = useState<HTMLDivElement | null>(
@@ -100,11 +109,12 @@ export function DocsLayout({
         key={currentSlug ?? 'docs-root'}
         portalContainer={portalContainer}
         sidebar={sidebar}
+        title={mobileTitle}
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Sidebar - wide widths only */}
-        <aside className="hidden w-[216px] shrink-0 overflow-y-auto border-r border-white/10 @2xl:block">
+        <aside className="hidden w-[232px] shrink-0 overflow-y-auto border-r border-white/10 @2xl:block">
           {sidebar}
         </aside>
 
