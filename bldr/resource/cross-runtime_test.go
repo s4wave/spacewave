@@ -11,14 +11,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 )
 
 const crossRuntimeFixtureTimeout = 20 * time.Second
@@ -393,6 +396,187 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 	}
 	server.waitLine(t, ctx, "PY_SERVER_OWNER_ZERO")
 	server.waitExit(t, ctx)
+}
+
+func TestGoAttachedResourceTreeLifetimeAgainstTypeScriptServer(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), crossRuntimeFixtureTimeout)
+	defer cancel()
+	server := startCrossRuntimeProcess(
+		t,
+		ctx,
+		"bun",
+		"run",
+		"./bldr/resource/testdata/cross-runtime-ts-core-server.ts",
+		"127.0.0.1:0",
+		"attached",
+	)
+	ready := server.waitLine(t, ctx, "READY ")
+	service := resource.NewSRPCResourceServiceClient(
+		newCrossRuntimeTCPClient(strings.TrimPrefix(ready, "READY ")),
+	)
+	client, err := resource_client.NewClient(ctx, service)
+	if err != nil {
+		t.Fatalf("start Go ResourceClient: %v", err)
+	}
+
+	var childInvoked atomic.Bool
+	var childReleaseCount atomic.Int32
+	childReleased := make(chan struct{}, 1)
+	releaseOrder := make(chan error, 1)
+	attachedMux := srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+		if serviceID == "test.AttachedEngine" && methodID == "Construct" {
+			request := srpc.NewRawMessage(nil, true)
+			if err := strm.MsgRecv(request); err != nil {
+				return true, err
+			}
+			if string(request.GetData()) != "construct" {
+				return true, errors.New("attached construct request mismatch")
+			}
+			owner, err := resource_server.MustGetResourceClientContext(strm.Context())
+			if err != nil {
+				return true, err
+			}
+			childID, err := owner.AddResource(srpc.InvokerFunc(func(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+				if serviceID != "test.AttachedChild" || methodID != "Invoke" {
+					return false, nil
+				}
+				request := srpc.NewRawMessage(nil, true)
+				if err := strm.MsgRecv(request); err != nil {
+					return true, err
+				}
+				if string(request.GetData()) != "invoke" {
+					return true, errors.New("attached child invoke request mismatch")
+				}
+				childInvoked.Store(true)
+				if err := strm.MsgSend(srpc.NewRawMessage([]byte("active"), true)); err != nil {
+					return true, err
+				}
+				<-strm.Context().Done()
+				return true, context.Cause(strm.Context())
+			}), func() {
+				if !childInvoked.Load() {
+					releaseOrder <- errors.New("attached child released before invocation started")
+				}
+				childReleaseCount.Add(1)
+				childReleased <- struct{}{}
+			})
+			if err != nil {
+				return true, err
+			}
+			return true, strm.MsgSend(srpc.NewRawMessage(encodeCrossRuntimeID(childID), true))
+		}
+		return false, nil
+	})
+	attachedRootID, err := client.AttachResourceTree(ctx, "fake-engine", attachedMux)
+	if err != nil {
+		t.Fatalf("attach fake Engine tree: %v\n%s", err, server.logs())
+	}
+
+	if attachedRootID == 0 {
+		t.Fatal("AddAck returned an empty attached root ID")
+	}
+
+	root := client.AccessRootResource()
+	rootClient, err := root.GetClient()
+	if err != nil {
+		t.Fatalf("get TypeScript root client: %v", err)
+	}
+	callResult := make(chan struct {
+		data []byte
+		err  error
+	}, 1)
+	go func() {
+		data, callErr := crossRuntimeCall(
+			ctx,
+			rootClient,
+			"test.Root",
+			"UseAttached",
+			encodeCrossRuntimeID(attachedRootID),
+		)
+		callResult <- struct {
+			data []byte
+			err  error
+		}{data, callErr}
+	}()
+
+	generation := server.waitLine(t, ctx, "ATTACHED_GENERATION ")
+	fields := strings.Fields(generation)
+	if len(fields) != 3 || fields[1] == "0" {
+		t.Fatalf("invalid attached generation marker %q", generation)
+	}
+	if fields[2] != strconv.FormatUint(uint64(attachedRootID), 10) {
+		t.Fatalf("TypeScript AddAck ID = %s, Go AddAck ID = %d", fields[2], attachedRootID)
+	}
+	server.waitLine(t, ctx, "ATTACHED_CHILD_ADDED ")
+	server.waitLine(t, ctx, "ATTACHED_CHILD_INVOKE_ACTIVE")
+	server.waitLine(t, ctx, "ATTACHED_CHILD_DETACHED")
+	select {
+	case <-childReleased:
+	case <-ctx.Done():
+		t.Fatal("attached child detach was not acknowledged")
+	}
+	server.send(t, "ASSERT_ABORT")
+	callCompleted := false
+invokeLoop:
+	for {
+		select {
+		case line := <-server.lines:
+			if line == "ATTACHED_CHILD_INVOKE_ABORTED" {
+				break invokeLoop
+			}
+		case result := <-callResult:
+			if result.err != nil {
+				t.Fatalf("attached child detach did not abort invocation: %q/%v\n%s", result.data, result.err, server.logs())
+			}
+			if string(result.data) != "attached-complete" {
+				t.Fatalf("attached result = %q, want attached-complete", result.data)
+			}
+			callCompleted = true
+		case <-server.done:
+			t.Fatalf("TypeScript fixture exited before attached invocation aborted: %v\n%s", server.err, server.logs())
+		case <-ctx.Done():
+			t.Fatalf("timed out waiting for attached invocation abort\n%s", server.logs())
+		}
+	}
+
+	server.waitLine(t, ctx, "ATTACHED_ROOT_DETACHED")
+	if !callCompleted {
+		select {
+		case result := <-callResult:
+			if result.err != nil {
+				t.Fatalf("invoke attached Resource tree: %v", result.err)
+			}
+			if string(result.data) != "attached-complete" {
+				t.Fatalf("attached result = %q, want attached-complete", result.data)
+			}
+		case <-ctx.Done():
+			t.Fatal("timed out invoking attached Resource tree")
+		}
+	}
+
+	client.Release()
+	select {
+	case <-client.Done():
+	case <-ctx.Done():
+		t.Fatal("timed out ending Go ResourceClient generation")
+	}
+	select {
+	case err := <-releaseOrder:
+		t.Fatal(err)
+	default:
+	}
+	if got := childReleaseCount.Load(); got != 1 {
+		t.Fatalf("attached child release count = %d, want 1", got)
+	}
+	root.Release()
+	server.waitLine(t, ctx, "TS_SERVER_OWNER_ZERO")
+	server.waitExit(t, ctx)
+}
+
+func encodeCrossRuntimeID(id uint32) []byte {
+	data := make([]byte, 4)
+	binary.BigEndian.PutUint32(data, id)
+	return data
 }
 
 func newCrossRuntimeTCPClient(address string) srpc.Client {

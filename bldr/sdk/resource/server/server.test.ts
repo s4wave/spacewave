@@ -71,6 +71,48 @@ describe('RemoteResourceClient', () => {
     }
   })
 
+  it('aborts an attached invocation before notifying its release once', () => {
+    const client = new RemoteResourceClient(nextID, 1)
+    const controller = new AbortController()
+    const release = vi.fn(() => {
+      expect(controller.signal.aborted).toBe(true)
+    })
+    client.attachedResources.set(50, {
+      label: 'attached',
+      client: buildMockSRPCClient(),
+      signal: controller.signal,
+      controller,
+      release,
+    })
+
+    expect(client.releaseResource(50, false)).toBe(true)
+    expect(client.releaseResource(50, false)).toBe(true)
+    client.releaseAll()
+
+    expect(release).toHaveBeenCalledOnce()
+  })
+
+  it('aborts and releases each attachment once when its generation ends', () => {
+    const client = new RemoteResourceClient(nextID, 1)
+    const controller = new AbortController()
+    const release = vi.fn(() => {
+      expect(controller.signal.aborted).toBe(true)
+    })
+    client.attachedResources.set(50, {
+      label: 'attached',
+      client: buildMockSRPCClient(),
+      signal: controller.signal,
+      controller,
+      release,
+    })
+
+    client.releaseAll()
+    client.releaseAll()
+
+    expect(release).toHaveBeenCalledOnce()
+    expect(client.attachedResources.size).toBe(0)
+  })
+
   it('releaseResource returns false for missing resource ID', () => {
     const client = new RemoteResourceClient(nextID, 1)
     expect(client.releaseResource(999)).toBe(false)

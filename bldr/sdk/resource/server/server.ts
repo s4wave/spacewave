@@ -302,11 +302,13 @@ class ResourceServer implements ResourceServiceHandler {
         const label = body.value.label ?? ''
         const resourceId = this.nextResourceID()
 
-        // Create routed client for this resource.
-        const resClient = createRoutedClient(baseClient, resourceId)
-
         // Per-resource controller linked to the session controller.
         const resController = new AbortController()
+        const resClient = createRoutedClient(
+          baseClient,
+          resourceId,
+          resController.signal,
+        )
         attachController.signal.addEventListener(
           'abort',
           () => resController.abort(),
@@ -337,20 +339,18 @@ class ResourceServer implements ResourceServiceHandler {
         })
       } else if (body?.case === 'detach') {
         const resourceId = body.value.resourceId ?? 0
-        const existing = client.attachedResources.get(resourceId)
-        if (existing) {
-          existing.controller.abort()
-        }
-        client.attachedResources.delete(resourceId)
+        const existing = client.attachedResources.has(resourceId)
+        client.releaseResource(resourceId, false)
         const idx = attachedIds.indexOf(resourceId)
         if (idx >= 0) attachedIds.splice(idx, 1)
-
-        outgoing.push({
-          body: {
-            case: 'detachAck' as const,
-            value: { resourceId },
-          },
-        })
+        if (!existing) {
+          outgoing.push({
+            body: {
+              case: 'detachAck' as const,
+              value: { resourceId },
+            },
+          })
+        }
       }
     }
 
@@ -397,7 +397,7 @@ class ResourceServer implements ResourceServiceHandler {
       attachController.abort()
       conn.close()
       for (const id of attachedIds) {
-        client.attachedResources.delete(id)
+        client.releaseResource(id, false)
       }
     }
     setCleanup(cleanup)
@@ -417,8 +417,11 @@ class ResourceServer implements ResourceServiceHandler {
 function createRoutedClient(
   inner: ReturnType<StreamConn['buildClient']>,
   resourceId: number,
+  resourceSignal: AbortSignal,
 ): ReturnType<StreamConn['buildClient']> {
   const prefix = `${resourceId}/`
+  const callSignal = (signal?: AbortSignal) =>
+    signal ? AbortSignal.any([resourceSignal, signal]) : resourceSignal
   return {
     request(
       service: string,
@@ -426,7 +429,7 @@ function createRoutedClient(
       data: Uint8Array,
       signal?: AbortSignal,
     ) {
-      return inner.request(prefix + service, method, data, signal)
+      return inner.request(prefix + service, method, data, callSignal(signal))
     },
     clientStreamingRequest(
       service: string,
@@ -438,7 +441,7 @@ function createRoutedClient(
         prefix + service,
         method,
         data,
-        signal,
+        callSignal(signal),
       )
     },
     serverStreamingRequest(
@@ -451,7 +454,7 @@ function createRoutedClient(
         prefix + service,
         method,
         data,
-        signal,
+        callSignal(signal),
       )
     },
     bidirectionalStreamingRequest(
@@ -464,7 +467,7 @@ function createRoutedClient(
         prefix + service,
         method,
         data,
-        signal,
+        callSignal(signal),
       )
     },
   } as ReturnType<StreamConn['buildClient']>

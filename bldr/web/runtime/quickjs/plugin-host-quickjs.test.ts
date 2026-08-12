@@ -1289,7 +1289,7 @@ describe('plugin-host-quickjs runner lifecycle', () => {
     }
   })
 
-  it('runs Vite-transformed using attached child cleanup before the next attached parent RPC', async () => {
+  it('runs Vite-transformed attached calls with caller signals through child cleanup', async () => {
     const wasm = readFileSync(
       resolve('node_modules/quickjs-wasi-reactor/qjs-wasi.wasm'),
     )

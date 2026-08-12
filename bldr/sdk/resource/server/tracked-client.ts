@@ -262,9 +262,9 @@ class RemoteResourceClient {
       if (!attached) return this.tombstones.has(resourceID)
       this.attachedResources.delete(resourceID)
       this.tombstones.add(resourceID)
+      attached.controller.abort()
       if (notify) this.pushReleased(resourceID)
       attached.release?.()
-      attached.controller.abort()
       return true
     }
     if (resourceID === this.retainedRootResourceID) {
@@ -301,13 +301,13 @@ class RemoteResourceClient {
       if (resourceID === undefined) break
       this.releaseResourceTree(resourceID)
     }
+    for (const resourceID of [...this.attachedResources.keys()]) {
+      this.releaseResource(resourceID, false)
+    }
     this.released = true
     this.resources.clear()
     this.pendingChildren.clear()
     this.controller.abort()
-    for (const [, attached] of this.attachedResources)
-      attached.controller.abort()
-    this.attachedResources.clear()
     this.notify()
   }
 
