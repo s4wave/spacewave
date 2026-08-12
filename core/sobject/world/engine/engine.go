@@ -76,11 +76,11 @@ func (c *Controller) buildBlkEngine(
 	}
 
 	// construct the transformer
-	var xfrm *block_transform.Transformer
+	var xfrm block.Transformer
 	{
 		_, task := trace.NewTask(ctx, "alpha/so-engine/build-block-engine/new-transformer")
 		var err error
-		xfrm, err = block_transform.NewTransformer(
+		xfrm, err = newWorldTransformer(
 			controller.ConstructOpts{Logger: le},
 			c.sfs,
 			transformConf,
