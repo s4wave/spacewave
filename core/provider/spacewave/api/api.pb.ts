@@ -2566,6 +2566,48 @@ export const SSOLinkAction: MessageType<SSOLinkAction> =
   })
 
 /**
+ * DeviceEncryptedKey carries an entity key encrypted to an ephemeral X25519 device key.
+ *
+ * @generated from message provider.spacewave.api.DeviceEncryptedKey
+ */
+export interface DeviceEncryptedKey {
+  /**
+   * EphemeralPublicKey is the sender's 32-byte X25519 public key.
+   *
+   * @generated from field: bytes ephemeral_public_key = 1;
+   */
+  ephemeralPublicKey?: Uint8Array
+  /**
+   * Nonce is the 12-byte AES-GCM nonce.
+   *
+   * @generated from field: bytes nonce = 2;
+   */
+  nonce?: Uint8Array
+  /**
+   * Ciphertext is the AES-GCM ciphertext followed by its authentication tag.
+   *
+   * @generated from field: bytes ciphertext = 3;
+   */
+  ciphertext?: Uint8Array
+}
+
+export const DeviceEncryptedKey: MessageType<DeviceEncryptedKey> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.DeviceEncryptedKey',
+    fields: [
+      {
+        no: 1,
+        name: 'ephemeral_public_key',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      { no: 2, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'ciphertext', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * SSOCodeExchangeResponse is returned by POST /api/auth/sso/code/exchange.
  *
  * @generated from message provider.spacewave.api.SSOCodeExchangeResponse
@@ -7544,6 +7586,12 @@ export interface AuthSessionResultExchangeRequest {
    * @generated from field: string nonce = 1;
    */
   nonce?: string
+  /**
+   * Verifier is the initiating browser-flow secret committed by OAuth state.
+   *
+   * @generated from field: bytes verifier = 2;
+   */
+  verifier?: Uint8Array
 }
 
 export const AuthSessionResultExchangeRequest: MessageType<AuthSessionResultExchangeRequest> =
@@ -7551,6 +7599,7 @@ export const AuthSessionResultExchangeRequest: MessageType<AuthSessionResultExch
     typeName: 'provider.spacewave.api.AuthSessionResultExchangeRequest',
     fields: [
       { no: 1, name: 'nonce', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'verifier', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

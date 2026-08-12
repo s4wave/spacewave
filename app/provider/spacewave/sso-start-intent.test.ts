@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { consumeSSOStartIntent, setSSOStartIntent } from './sso-start-intent.js'
+import {
+  clearSSOBrowserBinding,
+  getSSOBrowserBinding,
+  consumeSSOStartIntent,
+  setSSOBrowserBinding,
+  setSSOStartIntent,
+} from './sso-start-intent.js'
 
 describe('SSO start intent', () => {
   beforeEach(() => {
@@ -66,5 +72,35 @@ describe('SSO start intent', () => {
       authorized: false,
       returnTo: '/login',
     })
+  })
+
+  it('retains the browser verifier until exchange succeeds', () => {
+    const binding = {
+      verifier: 'verifier',
+      verifierHash: 'commitment',
+      devicePublicKey: 'public-key',
+      devicePrivateKey: 'private-key',
+    }
+    setSSOBrowserBinding(binding)
+
+    expect(getSSOBrowserBinding()).toEqual(binding)
+    expect(getSSOBrowserBinding()).toEqual(binding)
+    clearSSOBrowserBinding()
+    expect(getSSOBrowserBinding()).toBeNull()
+  })
+
+  it('treats inherited same-origin session storage as browser-flow state', () => {
+    const binding = {
+      verifier: 'inherited-verifier',
+      verifierHash: 'inherited-commitment',
+      devicePublicKey: 'inherited-public-key',
+      devicePrivateKey: 'inherited-private-key',
+    }
+    sessionStorage.setItem(
+      'spacewave-sso-browser-binding',
+      JSON.stringify(binding),
+    )
+
+    expect(getSSOBrowserBinding()).toEqual(binding)
   })
 })

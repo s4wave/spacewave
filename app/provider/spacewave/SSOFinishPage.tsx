@@ -10,6 +10,10 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { SSOCodeExchangeResponse } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import { setPendingSSOState } from './sso-state.js'
+import {
+  clearSSOBrowserBinding,
+  getSSOBrowserBinding,
+} from './sso-start-intent.js'
 import { base64ToBytes, unwrapPemWithPin } from './keypair-utils.js'
 import { getErrorMessage, withSpacewaveProvider } from './auth-flow-shared.js'
 import { SSOUnlockCard } from './SSOUnlockCard.js'
@@ -34,6 +38,7 @@ export function SSOFinishPage() {
   const rootResource = useRootResource()
   const root = useResourceValue(rootResource)
   const [state, setState] = useState<SSOFinishState>({ step: 'exchanging' })
+  const [binding] = useState(getSSOBrowserBinding)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
   const linkedResult = state.step === 'linked' ? state.result : null
@@ -42,15 +47,30 @@ export function SSOFinishPage() {
   const exchangeResult = usePromise(
     useCallback(
       (signal) => {
-        if (!nonce) return Promise.reject(new Error('Missing SSO nonce'))
         if (!root || state.step !== 'exchanging') return undefined
+        if (!nonce) return Promise.reject(new Error('Missing SSO nonce'))
+        if (!binding) {
+          return Promise.reject(
+            new Error(
+              'This sign-in link requires the browser state created when sign-in started',
+            ),
+          )
+        }
         return withSpacewaveProvider(
           root,
-          (spacewave) => spacewave.ssoNonceExchange({ nonce }, signal),
+          (spacewave) =>
+            spacewave.ssoNonceExchange(
+              {
+                nonce,
+                verifier: base64ToBytes(binding.verifier),
+                devicePrivateKey: base64ToBytes(binding.devicePrivateKey),
+              },
+              signal,
+            ),
           signal,
         )
       },
-      [nonce, root, state.step],
+      [binding, nonce, root, state.step],
     ),
   )
 
@@ -61,10 +81,10 @@ export function SSOFinishPage() {
       queueMicrotask(() => {
         setState({
           step: 'error',
-          message: getErrorMessage(
+          message: `${getErrorMessage(
             exchangeResult.error,
-            'SSO nonce expired or invalid',
-          ),
+            'SSO nonce expired, consumed, or invalid',
+          )}. Start sign-in again; a successful response cannot be replayed.`,
         })
       })
       return
@@ -88,6 +108,7 @@ export function SSOFinishPage() {
       nonce,
       isDesktop: false,
     })
+    clearSSOBrowserBinding()
     navigate({ path: `/auth/sso/${provider}/confirm` })
   }, [exchangeResult.data, exchangeResult.error, nonce, navigate, state.step])
 
@@ -124,6 +145,7 @@ export function SSOFinishPage() {
         if (controller.signal.aborted) return
 
         const sessionIndex = loginResp.sessionListEntry?.sessionIndex ?? 0
+        clearSSOBrowserBinding()
         navigate({ path: `/u/${sessionIndex}` })
       } catch (e) {
         if (!controller.signal.aborted) {
@@ -161,6 +183,7 @@ export function SSOFinishPage() {
       })
       const sessionIndex = loginResp.sessionListEntry?.sessionIndex ?? 0
 
+      clearSSOBrowserBinding()
       setState({ step: 'complete' })
       navigate({ path: `/u/${sessionIndex}` })
     } catch {
@@ -208,11 +231,12 @@ export function SSOFinishPage() {
           </p>
           <button
             onClick={() => {
+              clearSSOBrowserBinding()
               navigate({ path: '/login' })
             }}
             className="text-brand hover:text-brand/80 mt-2 text-sm underline"
           >
-            Back to login
+            Start sign-in again
           </button>
         </div>
       </div>

@@ -20,7 +20,10 @@ import {
   withSpacewaveProvider,
 } from './auth-flow-shared.js'
 import { bytesToBase64, unwrapPemWithPin } from './keypair-utils.js'
-import { consumeSSOStartIntent } from './sso-start-intent.js'
+import {
+  consumeSSOStartIntent,
+  setSSOBrowserBinding,
+} from './sso-start-intent.js'
 import { setPendingSSOState } from './sso-state.js'
 import { SSOUnlockCard } from './SSOUnlockCard.js'
 import { useCloudProviderConfig } from './useSpacewaveAuth.js'
@@ -117,7 +120,7 @@ export function SSOWaitPage() {
   }, [navigate, provider, retryCount, root])
 
   useEffect(() => {
-    if (isDesktop || !provider) return
+    if (isDesktop || !provider || !root) return
     const ssoBaseUrl = cloudProviderConfig?.ssoBaseUrl
     if (!ssoBaseUrl) return
     const intent = consumeSSOStartIntent(provider)
@@ -125,10 +128,51 @@ export function SSOWaitPage() {
       navigate({ path: intent.returnTo, replace: true })
       return
     }
-    queueMicrotask(() => setState({ step: 'redirecting' }))
-    const origin = encodeURIComponent(window.location.origin)
-    window.location.replace(`${ssoBaseUrl}/${provider}?origin=${origin}`)
-  }, [cloudProviderConfig, navigate, provider])
+    const controller = new AbortController()
+    const run = async () => {
+      try {
+        const binding = await withSpacewaveProvider(
+          root,
+          (spacewave) => spacewave.prepareBrowserSSO({}, controller.signal),
+          controller.signal,
+        )
+        if (controller.signal.aborted) return
+        if (
+          binding.verifier?.length !== 32 ||
+          binding.verifierHash?.length !== 32 ||
+          binding.devicePublicKey?.length !== 32 ||
+          binding.devicePrivateKey?.length !== 32
+        ) {
+          throw new Error('Browser SSO binding is invalid')
+        }
+        const verifier = bytesToBase64(binding.verifier)
+        const verifierHash = bytesToBase64(binding.verifierHash)
+        const devicePublicKey = bytesToBase64(binding.devicePublicKey)
+        const devicePrivateKey = bytesToBase64(binding.devicePrivateKey)
+        setSSOBrowserBinding({
+          verifier,
+          verifierHash,
+          devicePublicKey,
+          devicePrivateKey,
+        })
+        queueMicrotask(() => setState({ step: 'redirecting' }))
+        const authorizeUrl = new URL(`${ssoBaseUrl}/${provider}`)
+        authorizeUrl.searchParams.set('origin', window.location.origin)
+        authorizeUrl.searchParams.set('verifier_hash', verifierHash)
+        authorizeUrl.searchParams.set('device_public_key', devicePublicKey)
+        window.location.replace(authorizeUrl.toString())
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          setState({
+            step: 'error',
+            message: getErrorMessage(err, 'Sign-in failed'),
+          })
+        }
+      }
+    }
+    void run()
+    return () => controller.abort()
+  }, [cloudProviderConfig, navigate, provider, root])
 
   const handleRetry = useCallback(() => {
     setRetryCount((c) => c + 1)

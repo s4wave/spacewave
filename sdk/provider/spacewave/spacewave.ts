@@ -36,6 +36,8 @@ import type {
   ReauthenticateSessionRequest,
   ReauthenticateSessionResponse,
   RecoverExecuteRequest,
+  PrepareBrowserSSORequest,
+  PrepareBrowserSSOResponse,
   SSONonceExchangeRequest,
   SSOCodeExchangeRequest,
   SSOCodeExchangeResponse,
@@ -203,6 +205,14 @@ export class SpacewaveProvider extends Provider {
     abortSignal?: AbortSignal,
   ): Promise<SSOCodeExchangeResponse> {
     return await this.swService.SSOCodeExchange(request, abortSignal)
+  }
+
+  // prepareBrowserSSO creates the tab-local verifier and device key binding.
+  public async prepareBrowserSSO(
+    request: PrepareBrowserSSORequest,
+    abortSignal?: AbortSignal,
+  ): Promise<PrepareBrowserSSOResponse> {
+    return await this.swService.PrepareBrowserSSO(request, abortSignal)
   }
 
   // ssoNonceExchange exchanges an auth-session nonce for stored SSO result.

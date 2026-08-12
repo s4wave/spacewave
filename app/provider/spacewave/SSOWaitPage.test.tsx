@@ -12,6 +12,8 @@ import { SSOWaitPage } from './SSOWaitPage.js'
 const mockNavigate = vi.hoisted(() => vi.fn())
 const mockLookupProvider = vi.hoisted(() => vi.fn())
 const mockStartDesktopSSO = vi.hoisted(() => vi.fn())
+const mockPrepareBrowserSSO = vi.hoisted(() => vi.fn())
+const mockSetSSOBrowserBinding = vi.hoisted(() => vi.fn())
 const mockLoginWithEntityKey = vi.hoisted(() => vi.fn())
 const mockUnwrapPemWithPin = vi.hoisted(() => vi.fn())
 const mockBytesToBase64 = vi.hoisted(() => vi.fn())
@@ -47,6 +49,7 @@ vi.mock('@s4wave/sdk/provider/spacewave/spacewave.js', () => ({
     constructor(_resourceRef: unknown) {}
 
     startDesktopSSO = mockStartDesktopSSO
+    prepareBrowserSSO = mockPrepareBrowserSSO
     loginWithEntityKey = mockLoginWithEntityKey
   },
 }))
@@ -69,6 +72,8 @@ vi.mock('./sso-state.js', () => ({
 vi.mock('./sso-start-intent.js', () => ({
   consumeSSOStartIntent: (provider: string): unknown =>
     mockConsumeSSOStartIntent(provider),
+  setSSOBrowserBinding: (binding: unknown): void =>
+    mockSetSSOBrowserBinding(binding),
 }))
 
 vi.mock('./useSpacewaveAuth.js', () => ({
@@ -110,6 +115,8 @@ describe('SSOWaitPage', () => {
     mockLookupProvider.mockReset()
     mockLookupProvider.mockResolvedValue(makeProviderRef())
     mockStartDesktopSSO.mockReset()
+    mockPrepareBrowserSSO.mockReset()
+    mockSetSSOBrowserBinding.mockReset()
     mockLoginWithEntityKey.mockReset()
     mockUnwrapPemWithPin.mockReset()
     mockBytesToBase64.mockReset()
@@ -118,6 +125,12 @@ describe('SSOWaitPage', () => {
     mockConsumeSSOStartIntent.mockReturnValue({
       authorized: true,
       returnTo: '/login',
+    })
+    mockPrepareBrowserSSO.mockResolvedValue({
+      verifier: new Uint8Array(32).fill(1),
+      verifierHash: new Uint8Array(32).fill(2),
+      devicePublicKey: new Uint8Array(32).fill(3),
+      devicePrivateKey: new Uint8Array(32).fill(4),
     })
     mockRuntime.isDesktop = true
     mockParams.provider = 'github'
@@ -201,7 +214,7 @@ describe('SSOWaitPage', () => {
     await waitFor(() => {
       expect(mockConsumeSSOStartIntent).toHaveBeenCalledWith('google')
       expect(replace).toHaveBeenCalledWith(
-        'https://account.test/auth/sso/google?origin=http%3A%2F%2Flocalhost%3A3000',
+        'https://account.test/auth/sso/google?origin=http%3A%2F%2Flocalhost%3A3000&verifier_hash=wrapped-blob&device_public_key=wrapped-blob',
       )
     })
     expect(mockStartDesktopSSO).not.toHaveBeenCalled()

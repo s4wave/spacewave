@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/base64"
 	"net/http"
 	"net/url"
 	"path"
@@ -11,6 +12,7 @@ import (
 	"filippo.io/age"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	provider_spacewave_handoff "github.com/s4wave/spacewave/core/provider/spacewave/handoff"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
@@ -80,8 +82,10 @@ func SSONonceExchange(
 	httpCli *http.Client,
 	endpoint string,
 	nonce string,
+	verifier []byte,
+	devicePrivateKey []byte,
 ) (*api.SSOCodeExchangeResponse, error) {
-	req := &api.AuthSessionResultExchangeRequest{Nonce: nonce}
+	req := &api.AuthSessionResultExchangeRequest{Nonce: nonce, Verifier: verifier}
 	body, err := req.MarshalVT()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal sso nonce exchange request")
@@ -117,6 +121,17 @@ func SSONonceExchange(
 	var result api.SSOCodeExchangeResponse
 	if err := result.UnmarshalVT(respBody); err != nil {
 		return nil, errors.Wrap(err, "unmarshal sso nonce exchange response")
+	}
+	if result.GetLinked() && result.GetEncryptedBlob() != "" {
+		if !result.GetDeviceEncrypted() {
+			return nil, errors.New("sso result entity key is not device encrypted")
+		}
+		plaintext, err := provider_spacewave_handoff.DecryptDeviceEncrypted(devicePrivateKey, result.GetEncryptedBlob())
+		if err != nil {
+			return nil, errors.Wrap(err, "decrypt browser sso result")
+		}
+		result.EncryptedBlob = base64.StdEncoding.EncodeToString(plaintext)
+		result.DeviceEncrypted = false
 	}
 	return &result, nil
 }
