@@ -16,17 +16,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// DeepCopyManifest copies a manifest by fully re-creating the manifest using filesystem copies.
-// Completely re-encodes the manifest with a new underlying block graph.
-// Useful when copying between two locations with different transform configs.
-//
-// note: the transform config and object ref will be based on the reference
-// contained within the cursor after calling destAccess(nil)
+// DeepCopyManifest re-encodes a Manifest into a destination World. The
+// destination access function determines its transform and object reference.
+// destManifestMeta overrides the copied metadata when non-nil.
 func DeepCopyManifest(
 	ctx context.Context,
 	le *logrus.Entry,
 	accessSrcManifest world.AccessWorldStateFunc,
 	srcManifestRef *bucket.ObjectRef,
+	destManifestMeta *bldr_manifest.ManifestMeta,
 	destWorldState world.WorldState,
 	destAccess world.AccessWorldStateFunc,
 	destObjectKey string,
@@ -49,8 +47,13 @@ func DeepCopyManifest(
 			distFS *unixfs.FSHandle,
 			assetsFS *unixfs.FSHandle,
 		) error {
-			// distIoFS := unixfs_iofs.NewFS(ctx, distFS)
-			// assetsIoFS := unixfs_iofs.NewFS(ctx, assetsFS)
+			// Select destination metadata while preserving source metadata by default.
+			manifestMeta := destManifestMeta
+			if manifestMeta == nil {
+				manifestMeta = manifest.GetMeta()
+			}
+
+			// Adapt both source filesystems to the destination commit interface.
 			writeTs := ts.AsTime()
 			if writeTs.IsZero() {
 				writeTs = time.Now()
@@ -59,15 +62,14 @@ func DeepCopyManifest(
 			distBfs := unixfs_billy.NewBillyFilesystem(ctx, distFS, "", writeTs)
 			assetsBfs := unixfs_billy.NewBillyFilesystem(ctx, assetsFS, "", writeTs)
 
-			// note: the transform config and object ref will be based on the
-			// reference contained within the cursor after calling destAccess(nil)
+			// Re-encode the logical content into the destination World.
 			var err error
 			outManifest, outRef, err = CommitManifest(
 				ctx,
 				le,
 				destWorldState,
 				destAccess,
-				manifest.GetMeta(),
+				manifestMeta,
 				manifest.GetEntrypoint(),
 				distBfs,
 				assetsBfs,

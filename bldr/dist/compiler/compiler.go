@@ -369,6 +369,7 @@ func (c *Controller) BuildManifest(
 				le,
 				ws.AccessWorldState,
 				embedManifestInfo.ManifestRef,
+				nil,
 				embedTx,
 				embedTx.AccessWorldState,
 				manifestObjKey,
