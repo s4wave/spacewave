@@ -72,6 +72,18 @@ func (t *TxRetry) ExecuteTx(
 		nextInputs = forge_target.NewValueSet()
 	}
 
+	// A retry starts only from a failed terminal Task. A pending Task is
+	// accepted solely to make replay of the same retry idempotent below.
+	switch root.GetTaskState() {
+	case forge_task.State_TaskState_COMPLETE:
+		if root.GetResult() == nil || root.GetResult().GetSuccess() {
+			return errors.New("task did not fail")
+		}
+	case forge_task.State_TaskState_PENDING:
+	default:
+		return errors.Errorf("task state %s cannot be retried", root.GetTaskState().String())
+	}
+
 	expectedNonce := t.GetExpectedPassNonce()
 	passes, _, passKeys, err := forge_task.CollectTaskPasses(ctx, worldState, objKey)
 	if err != nil {
@@ -131,6 +143,9 @@ func (t *TxRetry) ExecuteTx(
 	valueSet.Outputs = nil
 	valueSet.SortValues()
 	root.ValueSet = valueSet
+	// Result describes the terminal attempt and is invalid on a pending Task.
+	// The failed predecessor retains its Result in the graph history.
+	root.Result = nil
 	root.TaskState = forge_task.State_TaskState_PENDING
 	bcs.SetBlock(root, true)
 	return nil
