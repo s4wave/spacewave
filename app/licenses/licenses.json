@@ -934,7 +934,7 @@
     },
     {
       "name": "github.com/aperturerobotics/starpc",
-      "version": "v0.52.1-0.20260812032401-b78c815f1e13",
+      "version": "v0.52.1-0.20260809072151-672438b66c69",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/starpc",
@@ -1685,7 +1685,7 @@
     },
     {
       "name": "golang.org/x/crypto",
-      "version": "v0.54.0",
+      "version": "v0.55.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/crypto",
@@ -1693,7 +1693,7 @@
     },
     {
       "name": "golang.org/x/exp",
-      "version": "v0.0.0-20260810151157-a8b543ca52da",
+      "version": "v0.0.0-20260811152304-ee035b5b010f",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/exp",
@@ -1741,7 +1741,7 @@
     },
     {
       "name": "golang.org/x/text",
-      "version": "v0.40.0",
+      "version": "v0.41.0",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/golang/text",
