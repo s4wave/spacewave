@@ -32,6 +32,8 @@ export const ResourceClientInitRequest: MessageType<ResourceClientInitRequest> =
  */
 export interface ResourceClientAdopt {
   /**
+   * ResourceId identifies the pending resource to adopt.
+   *
    * @generated from field: uint32 resource_id = 1;
    */
   resourceId?: number
@@ -53,6 +55,8 @@ export const ResourceClientAdopt: MessageType<ResourceClientAdopt> =
  */
 export interface ResourceClientRelease {
   /**
+   * ResourceId identifies the resource to release.
+   *
    * @generated from field: uint32 resource_id = 1;
    */
   resourceId?: number
@@ -91,7 +95,7 @@ export interface ResourceClientRequest {
       }
     | {
         /**
-         * ResourceClientInitRequest starts a new client generation.
+         * Init starts a new client generation.
          *
          * @generated from field: resource.ResourceClientInitRequest init = 2;
          */
@@ -100,7 +104,7 @@ export interface ResourceClientRequest {
       }
     | {
         /**
-         * ResourceClientAdopt detaches a pending child from its parent.
+         * Adopt detaches a pending child from its parent.
          *
          * @generated from field: resource.ResourceClientAdopt adopt = 3;
          */
@@ -109,7 +113,7 @@ export interface ResourceClientRequest {
       }
     | {
         /**
-         * ResourceClientRelease releases a resource and its pending descendants.
+         * Release releases a resource and its pending descendants.
          *
          * @generated from field: resource.ResourceClientRelease release = 4;
          */
@@ -242,7 +246,7 @@ export interface ResourceClientResponse {
       }
     | {
         /**
-         * ResourceClientInit contains the initialization message for ResourceClient.
+         * Init contains the initialization message for ResourceClient.
          * This is the first message sent on the stream and is only sent once.
          *
          * @generated from field: resource.ResourceClientInit init = 1;

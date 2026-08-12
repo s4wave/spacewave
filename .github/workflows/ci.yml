@@ -153,6 +153,123 @@ jobs:
         if: ${{ matrix.member.lint_go_script != '' }}
         run: bun run ${{ matrix.member.lint_go_script }}
 
+  python-resource:
+    name: Python Resource
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff # v6
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Install Python Resource environment
+        run: uv sync --frozen --all-groups
+
+      - name: Generate Resource bindings
+        run: bun run gen
+
+      - name: Verify generated Resource bindings
+        run: |
+          paths=(
+            .protoc-manifest.json
+            .protoc-python-resource-manifest.json
+            bldr/resource/resource.pb.go
+            bldr/resource/resource.pb.ts
+            bldr/resource/resource_srpc.pb.go
+            bldr/resource/resource_srpc.pb.ts
+            bldr/resource/resource_pb2.py
+            bldr/resource/resource_pb2.pyi
+            bldr/resource/resource_srpc.py
+            bldr/resource/resource_srpc.pyi
+          )
+          if ! git diff --exit-code -- "${paths[@]}" ||
+            [ -n "$(git status --porcelain -- "${paths[@]}")" ]; then
+            echo 'Resource generation changed a committed binding or manifest.'
+            exit 1
+          fi
+
+      - name: Test Python Resource package
+        run: uv run python -m unittest discover -s python/tests -v
+
+      - name: Check Python Resource package
+        run: |
+          paths=(
+            spacewave_resource
+            python/tests
+            bldr/resource/testdata/cross-runtime-python-client.py
+            bldr/resource/testdata/cross-runtime-python-server.py
+          )
+          uv run mypy "${paths[@]}"
+          uv run ruff check "${paths[@]}"
+          uv run ruff format --check "${paths[@]}"
+
+      - name: Test reciprocal Resource lifecycle
+        run: >-
+          go test -timeout=30s ./bldr/resource ./bldr/resource/server
+          -run 'Test(PythonClientResourceLifecycleAgainstGoServer|PythonClientResourceLifecycleAgainstTypeScriptServer|TypeScriptClientResourceLifecycleAgainstPythonServer|GoClientResourceLifecycleAgainstPythonServer)$'
+
+      - name: Verify Python Resource wheel
+        run: |
+          uv build --wheel --out-dir .tmp/python-resource-wheel
+          uv run python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          wheel = next(Path(".tmp/python-resource-wheel").glob("*.whl"))
+          expected = {
+              "bldr/resource/py.typed",
+              "bldr/resource/resource_pb2.py",
+              "bldr/resource/resource_pb2.pyi",
+              "bldr/resource/resource_srpc.py",
+              "bldr/resource/resource_srpc.pyi",
+              "spacewave_resource/__init__.py",
+              "spacewave_resource/client.py",
+              "spacewave_resource/errors.py",
+              "spacewave_resource/py.typed",
+              "spacewave_resource/server.py",
+          }
+          with ZipFile(wheel) as archive:
+              payload = {
+                  name
+                  for name in archive.namelist()
+                  if not name.endswith("/") and ".dist-info/" not in name
+              }
+          if payload != expected:
+              raise SystemExit(
+                  f"wheel payload = {sorted(payload)!r}, want {sorted(expected)!r}"
+              )
+          PY
+          python=.tmp/python-resource-wheel/venv/bin/python
+          uv venv .tmp/python-resource-wheel/venv
+          uv pip install --python "$python" .tmp/python-resource-wheel/*.whl
+          "$python" -I - <<'PY'
+          from bldr.resource import resource_pb2, resource_srpc
+          from rpcstream import rpcstream_pb2
+          import spacewave_resource
+
+          assert hasattr(spacewave_resource, "ResourceClient")
+          assert hasattr(resource_pb2, "ResourceClientRequest")
+          assert hasattr(resource_srpc, "ResourceServiceClient")
+          rpc = next(
+              method
+              for method in resource_srpc.RESOURCESERVICE_SERVICE.methods
+              if method.name == "ResourceRpc"
+          )
+          assert rpc.input_type is rpcstream_pb2.RpcStreamPacket
+          assert rpc.output_type is rpcstream_pb2.RpcStreamPacket
+          PY
+
   licenses:
     name: Licenses
     runs-on: ubuntu-latest

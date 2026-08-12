@@ -74,17 +74,17 @@ type isResourceClientRequest_Body interface {
 }
 
 type ResourceClientRequest_Init struct {
-	// ResourceClientInitRequest starts a new client generation.
+	// Init starts a new client generation.
 	Init *ResourceClientInitRequest `protobuf:"bytes,2,opt,name=init,proto3,oneof"`
 }
 
 type ResourceClientRequest_Adopt struct {
-	// ResourceClientAdopt detaches a pending child from its parent.
+	// Adopt detaches a pending child from its parent.
 	Adopt *ResourceClientAdopt `protobuf:"bytes,3,opt,name=adopt,proto3,oneof"`
 }
 
 type ResourceClientRequest_Release struct {
-	// ResourceClientRelease releases a resource and its pending descendants.
+	// Release releases a resource and its pending descendants.
 	Release *ResourceClientRelease `protobuf:"bytes,4,opt,name=release,proto3,oneof"`
 }
 
@@ -108,7 +108,8 @@ func (*ResourceClientInitRequest) ProtoMessage() {}
 // ResourceClientAdopt adopts a pending resource.
 type ResourceClientAdopt struct {
 	unknownFields []byte
-	ResourceId    uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+	// ResourceId identifies the pending resource to adopt.
+	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 }
 
 func (x *ResourceClientAdopt) Reset() {
@@ -127,7 +128,8 @@ func (x *ResourceClientAdopt) GetResourceId() uint32 {
 // ResourceClientRelease releases a resource and its pending descendants.
 type ResourceClientRelease struct {
 	unknownFields []byte
-	ResourceId    uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+	// ResourceId identifies the resource to release.
+	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
 }
 
 func (x *ResourceClientRelease) Reset() {
@@ -195,7 +197,7 @@ type isResourceClientResponse_Body interface {
 }
 
 type ResourceClientResponse_Init struct {
-	// ResourceClientInit contains the initialization message for ResourceClient.
+	// Init contains the initialization message for ResourceClient.
 	// This is the first message sent on the stream and is only sent once.
 	Init *ResourceClientInit `protobuf:"bytes,1,opt,name=init,proto3,oneof"`
 }
