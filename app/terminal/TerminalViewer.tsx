@@ -18,6 +18,7 @@ import {
 } from '@s4wave/sdk/terminal/terminal.js'
 import {
   TerminalPane,
+  safeTerminalFailureDetail,
   type TerminalPaneConnector,
   type TerminalPaneTrustChallengeRenderer,
 } from './TerminalPane.js'
@@ -95,9 +96,9 @@ export function TerminalViewer({
           />
         </div>
       )}
-      {state?.error && (
+      {state?.error && !connectTerminal && (
         <div className="border-destructive/30 bg-destructive/10 text-destructive border-b px-4 py-2 text-sm">
-          {state.error}
+          {safeTerminalFailureDetail(state.error)}
         </div>
       )}
       <TerminalPane

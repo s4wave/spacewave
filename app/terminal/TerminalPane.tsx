@@ -1,6 +1,13 @@
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal as XTerm } from '@xterm/xterm'
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import type { MessageStream } from 'starpc'
 
 import { terminalStatusToLoadingView } from '@s4wave/app/loading/status/terminal.js'
@@ -60,88 +67,115 @@ export function TerminalPane({
 }: TerminalPaneProps) {
   const terminalHostRef = useRef<HTMLDivElement | null>(null)
   const terminalQueueRef = useRef<TerminalFrameQueue | null>(null)
+  const stopTerminalRef = useRef<(() => Promise<void>) | null>(null)
   const [trustChallenge, setTrustChallenge] = useState<TerminalFrame | null>(
     null,
   )
   const [status, setStatus] = useState<TerminalPaneStatus>(connectingStatus)
+  const [connectionAttempt, retryConnection] = useReducer(
+    (attempt: number) => attempt + 1,
+    0,
+  )
+
+  const handleLocalRetry = useCallback(async () => {
+    await stopTerminalRef.current?.()
+    retryConnection()
+  }, [])
 
   useEffect(() => {
-    const host = terminalHostRef.current
-    if (!host) return
-    setStatus(connectingStatus)
-    setTrustChallenge(null)
-    if (!connectTerminal) return
+    let cancelled = false
+    let stopAttempt = async () => {}
+    const previousStopped = stopTerminalRef.current?.() ?? Promise.resolve()
 
-    const rpcAbort = new AbortController()
-    const renderAbort = new AbortController()
-    const queue = createTerminalFrameQueue()
-    terminalQueueRef.current = queue
-    const term = new XTerm({
-      cursorBlink: true,
-      screenReaderMode: true,
-      ...resolveTerminalTheme(host),
-    })
-    const fit = new FitAddon()
-    term.loadAddon(fit)
-    const fitAndReportSize = () => {
-      try {
-        fit.fit()
-      } catch {
-        return
+    void previousStopped.then(() => {
+      if (cancelled) return
+      const host = terminalHostRef.current
+      if (!host) return
+      setStatus(connectingStatus)
+      setTrustChallenge(null)
+      if (!connectTerminal) return
+
+      const rpcAbort = new AbortController()
+      const renderAbort = new AbortController()
+      const queue = createTerminalFrameQueue()
+      terminalQueueRef.current = queue
+      const term = new XTerm({
+        cursorBlink: true,
+        screenReaderMode: true,
+        ...resolveTerminalTheme(host),
+      })
+      const fit = new FitAddon()
+      term.loadAddon(fit)
+      const fitAndReportSize = () => {
+        try {
+          fit.fit()
+        } catch {
+          return
+        }
+        queue.push({
+          kind: TerminalFrameKind.RESIZE,
+          cols: term.cols,
+          rows: term.rows,
+        })
       }
-      queue.push({
-        kind: TerminalFrameKind.RESIZE,
-        cols: term.cols,
-        rows: term.rows,
-      })
-    }
-    term.open(host)
-    fitAndReportSize()
+      term.open(host)
+      fitAndReportSize()
 
-    const disposeInput = term.onData((chunk) => {
-      if (!chunk) return
-      queue.push({
-        kind: TerminalFrameKind.INPUT,
-        data: terminalEncoder.encode(chunk),
+      const disposeInput = term.onData((chunk) => {
+        if (!chunk) return
+        queue.push({
+          kind: TerminalFrameKind.INPUT,
+          data: terminalEncoder.encode(chunk),
+        })
       })
+
+      const resizeObserver =
+        typeof ResizeObserver === 'undefined'
+          ? null
+          : new ResizeObserver(() => fitAndReportSize())
+      resizeObserver?.observe(host)
+
+      const terminalDone = readTerminalFrames(
+        connectTerminal(queue.stream(), rpcAbort.signal),
+        term,
+        renderAbort.signal,
+        setTrustChallenge,
+        {
+          onOutput: () => setStatus({ kind: 'ready' }),
+          onFailure: (detail) => setStatus({ kind: 'failed', detail }),
+          onClosed: () => setStatus({ kind: 'closed' }),
+        },
+      )
+
+      let stopping: Promise<void> | null = null
+      stopAttempt = () => {
+        if (stopping) return stopping
+        stopping = (async () => {
+          renderAbort.abort()
+          if (terminalQueueRef.current === queue) {
+            terminalQueueRef.current = null
+          }
+          const closeDelivered = queue.close()
+          if (queue.started()) {
+            await closeDelivered
+            await terminalDone
+          }
+          rpcAbort.abort()
+          resizeObserver?.disconnect()
+          disposeInput.dispose()
+          term.dispose()
+        })()
+        return stopping
+      }
+      stopTerminalRef.current = stopAttempt
+      if (cancelled) void stopAttempt()
     })
-
-    const resizeObserver =
-      typeof ResizeObserver === 'undefined'
-        ? null
-        : new ResizeObserver(() => fitAndReportSize())
-    resizeObserver?.observe(host)
-
-    const terminalDone = readTerminalFrames(
-      connectTerminal(queue.stream(), rpcAbort.signal),
-      term,
-      renderAbort.signal,
-      setTrustChallenge,
-      {
-        onOutput: () => setStatus({ kind: 'ready' }),
-        onFailure: (detail) => setStatus({ kind: 'failed', detail }),
-        onClosed: () => setStatus({ kind: 'closed' }),
-      },
-    )
 
     return () => {
-      renderAbort.abort()
-      if (terminalQueueRef.current === queue) {
-        terminalQueueRef.current = null
-      }
-      const closeDelivered = queue.close()
-      if (!queue.started()) {
-        rpcAbort.abort()
-      } else {
-        void closeDelivered
-          .then(() => terminalDone)
-          .finally(() => rpcAbort.abort())
-      }
-      resizeObserver?.disconnect()
-      disposeInput.dispose()
-      term.dispose()
+      cancelled = true
+      void stopAttempt()
     }
-  }, [connectTerminal])
+  }, [connectTerminal, connectionAttempt])
 
   const respondToSshTrust = useCallback((accepted: boolean) => {
     const queue = terminalQueueRef.current
@@ -172,7 +206,9 @@ export function TerminalPane({
           <TerminalPaneStatusLayer
             status={status}
             cliSession={!renderTrustChallenge}
-            onRetry={onRetry}
+            onRetry={
+              connectTerminal ? (onRetry ?? handleLocalRetry) : undefined
+            }
             onBackToSettings={onBackToSettings}
           />
         ) : null}
@@ -259,25 +295,61 @@ async function readTerminalFrames(
     if (!signal.aborted && !receivedOutput) {
       handlers.onFailure(safeTerminalFailureDetail())
     }
-  } catch {
+  } catch (error) {
     if (!signal.aborted) {
-      handlers.onFailure(safeTerminalFailureDetail())
+      handlers.onFailure(safeTerminalFailureDetail(errorMessage(error)))
     }
   }
 }
 
-function safeTerminalFailureDetail(rawError?: string): string {
+function errorMessage(error: unknown): string | undefined {
+  return error instanceof Error ? error.message : undefined
+}
+
+export function safeTerminalFailureDetail(rawError?: string): string {
   const normalized = rawError?.toLowerCase() ?? ''
   if (normalized.includes('native runtime')) {
-    return 'SSH needs a native connector. Open this terminal in the desktop/native runtime or use a managed Device.'
+    return 'SSH needs a native connector. Open this terminal in the desktop app or use a managed Device.'
   }
   if (
     normalized.includes('runtime context') ||
     normalized.includes('runtime-unavailable')
   ) {
-    return 'The Spacewave runtime is unavailable in this session. Try again or return to Settings.'
+    return 'The Spacewave runtime is unavailable in this session. Try again.'
   }
-  return 'The terminal session could not start. Try again from the owning surface.'
+  if (
+    normalized.includes('ssh: unable to authenticate') ||
+    normalized.includes('ssh: handshake failed: unable to authenticate')
+  ) {
+    return 'The SSH host rejected the username or credentials. Check the host settings, then retry.'
+  }
+  if (
+    normalized.includes('connection refused') ||
+    normalized.includes('actively refused')
+  ) {
+    return 'The SSH host refused the connection. Check that SSH is running and the host and port are correct.'
+  }
+  if (
+    normalized.includes('no route to host') ||
+    normalized.includes('network is unreachable') ||
+    normalized.includes('i/o timeout') ||
+    normalized.includes('timed out')
+  ) {
+    return 'The SSH host could not be reached. Check its address and network connection, then retry.'
+  }
+  if (
+    normalized.includes('host key') &&
+    (normalized.includes('not pinned') || normalized.includes('not trusted'))
+  ) {
+    return 'The SSH host key was not trusted. Verify the host identity before trying again.'
+  }
+  if (
+    normalized.includes('parse ssh private key') ||
+    (normalized.includes('private key') && normalized.includes('invalid'))
+  ) {
+    return 'The SSH private key could not be used. Check the key and passphrase in the host settings.'
+  }
+  return 'The terminal session could not start. Check the host settings, then retry.'
 }
 
 function createTerminalFrameQueue(): TerminalFrameQueue {
