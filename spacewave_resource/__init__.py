@@ -8,9 +8,13 @@ from .errors import (
     ResourceTerminalError,
     ResourceUnsupportedError,
 )
+from .resource import Resource
+from .root import Root
 from .server import ResourceCall, ResourceFactory, ResourceServer
+from .session import Session
 
 __all__ = [
+    "Resource",
     "ResourceCall",
     "ResourceClient",
     "ResourceError",
@@ -21,4 +25,6 @@ __all__ = [
     "ResourceServer",
     "ResourceTerminalError",
     "ResourceUnsupportedError",
+    "Root",
+    "Session",
 ]

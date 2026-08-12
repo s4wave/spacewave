@@ -1,7 +1,7 @@
 [project]
 name = "spacewave-resource"
 version = "0.0.0"
-requires-python = ">=3.14,<3.15"
+requires-python = ">=3.11,<3.12"
 dependencies = [
     "starpc @ git+https://github.com/aperturerobotics/starpc.git@b78c815f1e13b4a2d8e7f602658d6c695fa26e53",
 ]
@@ -19,16 +19,37 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["spacewave_resource*", "bldr.resource"]
+include = ["spacewave_resource*", "bldr.resource", "core*", "db*", "net*", "sdk*"]
 namespaces = true
 
 [tool.setuptools.package-data]
 spacewave_resource = ["py.typed"]
 "bldr.resource" = ["py.typed"]
+core = ["py.typed"]
+db = ["py.typed"]
+net = ["py.typed"]
+sdk = ["py.typed"]
 
 [tool.mypy]
 strict = true
 
+# The generated message stubs annotate map fields as a bare Mapping.
 [[tool.mypy.overrides]]
-module = ["bldr.resource.resource_pb2", "rpcstream.rpcstream_pb2"]
+module = [
+    "bldr.resource.resource_pb2",
+    "core.account.settings.settings_pb2",
+    "core.changelog.changelog_pb2",
+    "core.provider.provider_pb2",
+    "core.provider.transfer.transfer_pb2",
+    "core.session.session_pb2",
+    "core.sobject.sobject_pb2",
+    "core.space.space_pb2",
+    "db.block.transform.transform_pb2",
+    "net.hash.hash_pb2",
+    "net.peer.peer_pb2",
+    "rpcstream.rpcstream_pb2",
+    "sdk.command.command_pb2",
+    "sdk.root.root_pb2",
+    "sdk.session.session_pb2",
+]
 disable_error_code = ["type-arg"]
