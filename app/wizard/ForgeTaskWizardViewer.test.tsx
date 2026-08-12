@@ -100,7 +100,7 @@ describe('ForgeTaskWizardViewer', () => {
     expect(sender).toBe('12D3KooWTaskPeer')
 
     const decoded = ForgeTaskCreateOp.fromBinary(opData)
-    expect(decoded.taskKey).toBe('compile-task-1')
+    expect(decoded.taskKey).toBe('compile-task')
     expect(decoded.name).toBe('Compile Task')
     expect(decoded.jobKey).toBe('forge/job/main')
     expect(h.deleteObject).toHaveBeenCalledWith('wizard/forge/task/test')

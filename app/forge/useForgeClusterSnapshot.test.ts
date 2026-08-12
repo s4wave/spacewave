@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { renderHook, waitFor } from '@testing-library/react'
 
 import {
   Execution,
@@ -29,7 +30,10 @@ import {
   PRED_PASS_TO_EXECUTION,
   PRED_TASK_TO_PASS,
 } from '@s4wave/web/forge/predicates.js'
-import { buildForgeClusterSnapshot } from './useForgeClusterSnapshot.js'
+import {
+  buildForgeClusterSnapshot,
+  useForgeClusterSnapshot,
+} from './useForgeClusterSnapshot.js'
 
 interface TestEdge {
   predicate: string
@@ -41,6 +45,72 @@ function disposable<T extends object>(value: T): T & Disposable {
     [Symbol.dispose]() {},
   })
 }
+
+describe('useForgeClusterSnapshot', () => {
+  it('settles an empty snapshot when callers recreate an equivalent key list', async () => {
+    const world = {
+      listGraphEdgeBuckets: vi.fn((originObjectKeys: string[]) =>
+        Promise.resolve({
+          buckets: originObjectKeys.map((originObjectKey) => ({
+            originObjectKey,
+            outgoing: [],
+          })),
+        }),
+      ),
+    } as unknown as IWorldState
+    const worldState = {
+      value: world,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    }
+
+    const { result, rerender } = renderHook(() =>
+      useForgeClusterSnapshot(worldState, ['forge/cluster/empty']),
+    )
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.snapshot).toEqual({
+      jobs: [],
+      tasks: [],
+      passes: [],
+      executions: [],
+      workers: [],
+    })
+    expect(world.listGraphEdgeBuckets).toHaveBeenCalledTimes(1)
+
+    rerender()
+    expect(result.current.loading).toBe(false)
+    expect(world.listGraphEdgeBuckets).toHaveBeenCalledTimes(1)
+  })
+
+  it('exposes a rejected graph read and retries it', async () => {
+    const graphError = new Error('graph unavailable')
+    const listGraphEdgeBuckets = vi
+      .fn()
+      .mockRejectedValueOnce(graphError)
+      .mockResolvedValueOnce({
+        buckets: [{ originObjectKey: 'forge/cluster/error', outgoing: [] }],
+      })
+    const worldState = {
+      value: { listGraphEdgeBuckets } as unknown as IWorldState,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    }
+
+    const { result } = renderHook(() =>
+      useForgeClusterSnapshot(worldState, ['forge/cluster/error']),
+    )
+
+    await waitFor(() => expect(result.current.error).toBe(graphError))
+    expect(result.current.loading).toBe(false)
+    result.current.retry()
+    await waitFor(() => expect(result.current.error).toBeNull())
+    expect(result.current.snapshot.jobs).toEqual([])
+    expect(listGraphEdgeBuckets).toHaveBeenCalledTimes(2)
+  })
+})
 
 describe('buildForgeClusterSnapshot', () => {
   it('uses grouped edge buckets for the first cluster snapshot', async () => {

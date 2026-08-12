@@ -5,7 +5,7 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { ForgeJobCreateOp } from '@s4wave/core/forge/job/job.pb.js'
-import { buildObjectKey } from '../space/create-op-builders.js'
+import { buildForgeObjectKey } from '../space/create-op-builders.js'
 
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
@@ -32,13 +32,16 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
   const handleFinalize = useCallback(async () => {
     if (!state || ws.creating || !selectedCluster || !ws.localName.trim())
       return
-    const validTasks = taskDefs.filter((td) => td.name)
+    const validTasks = taskDefs.flatMap((task) => {
+      const name = task.name?.trim()
+      return name ? [{ ...task, name }] : []
+    })
     if (validTasks.length === 0) return
 
     ws.setCreating(true)
     try {
       await ws.persistDraftState()
-      const jobKey = buildObjectKey(
+      const jobKey = buildForgeObjectKey(
         'forge/job/',
         ws.localName,
         ws.existingObjectKeys,
@@ -97,17 +100,24 @@ export function ForgeJobWizardViewer(props: ObjectViewerComponentProps) {
       }
       step={state.step ?? 0}
       totalSteps={2}
+      stepName={(state.step ?? 0) === 0 ? 'Cluster and tasks' : 'Job identity'}
       localName={ws.localName}
       onUpdateName={ws.handleUpdateName}
       onBack={() => void ws.handleBack()}
       onCancel={handleCancel}
       nameLabel="Job Name"
       namePlaceholder="Enter job name..."
+      nameHelp="This display name is separate from the stable Job object key."
       nameStep={1}
       creating={ws.creating}
       onFinalize={handleFinalizeClick}
       onNext={() => void handleNext()}
-      canNext={!!selectedCluster && taskDefs.some((td) => td.name)}
+      canNext={
+        !!selectedCluster && taskDefs.some((task) => !!task.name?.trim())
+      }
+      canFinalize={
+        !!selectedCluster && taskDefs.some((task) => !!task.name?.trim())
+      }
       finalizeStep={1}
     >
       {(state.step ?? 0) === 0 && configEditor.element}

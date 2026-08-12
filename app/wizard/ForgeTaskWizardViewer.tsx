@@ -5,7 +5,7 @@ import type { ObjectViewerComponentProps } from '@s4wave/web/object/object.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { ForgeTaskCreateOp } from '@s4wave/core/forge/task/task.pb.js'
-import { buildObjectKey } from '../space/create-op-builders.js'
+import { buildForgeObjectKey } from '../space/create-op-builders.js'
 
 import { useWizardState } from './useWizardState.js'
 import { WizardShell } from './WizardShell.js'
@@ -42,7 +42,7 @@ export function ForgeTaskWizardViewer(props: ObjectViewerComponentProps) {
     ws.setCreating(true)
     try {
       await ws.persistDraftState()
-      const taskKey = buildObjectKey(
+      const taskKey = buildForgeObjectKey(
         'forge/task/',
         ws.localName,
         ws.existingObjectKeys,

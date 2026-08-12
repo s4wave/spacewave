@@ -347,24 +347,35 @@ export async function buildForgeClusterSnapshot(
 export function useForgeClusterSnapshot(
   worldState: Resource<IWorldState>,
   clusterKeys: string[],
-): { snapshot: ForgeClusterSnapshot; loading: boolean } {
+): {
+  snapshot: ForgeClusterSnapshot
+  loading: boolean
+  error: Error | null
+  retry: () => void
+} {
+  const clusterKeySignature = JSON.stringify([
+    ...new Set(clusterKeys.filter(Boolean)),
+  ])
   const resource = useResource(
     worldState,
     async (world, signal) => {
-      if (!world || clusterKeys.length === 0) {
+      const stableClusterKeys = JSON.parse(clusterKeySignature) as string[]
+      if (!world || stableClusterKeys.length === 0) {
         return emptyForgeClusterSnapshot()
       }
 
-      return buildForgeClusterSnapshot(world, clusterKeys, signal)
+      return buildForgeClusterSnapshot(world, stableClusterKeys, signal)
     },
-    [clusterKeys],
+    [clusterKeySignature],
   )
 
   return useMemo(
     () => ({
       snapshot: resource.value ?? emptyForgeClusterSnapshot(),
       loading: resource.loading,
+      error: resource.error,
+      retry: resource.retry,
     }),
-    [resource.loading, resource.value],
+    [resource.error, resource.loading, resource.retry, resource.value],
   )
 }
