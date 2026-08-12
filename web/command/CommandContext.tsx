@@ -55,9 +55,8 @@ interface CommandContextValue {
   openCommand: (commandId: string) => void
   // service is the command registry service client.
   service: CommandRegistryResourceService | null
-  // releaseResource releases a server-side resource by ID.
-  // Used to unregister commands when useCommand unmounts.
-  releaseResource: (resourceId: number) => void
+  // adoptResource adopts a pending server resource and returns its release.
+  adoptResource: (resourceId: number) => (() => void) | null
   // attachResource attaches a client-side handler resource to the root client.
   attachResource: (
     label: string,
@@ -127,11 +126,11 @@ export function CommandProvider({
     return new CommandRegistryResourceServiceClient(root.client)
   }, [root])
 
-  const releaseResource = useCallback(
-    (resourceId: number) => {
-      if (!root || resourceId === 0 || root.resourceRef.released) return
+  const adoptResource = useCallback(
+    (resourceId: number): (() => void) | null => {
+      if (!root || resourceId === 0 || root.resourceRef.released) return null
       const ref = root.resourceRef.createRef(resourceId)
-      ref.release()
+      return () => ref.release()
     },
     [root],
   )
@@ -218,7 +217,7 @@ export function CommandProvider({
       invokeCommand,
       openCommand,
       service,
-      releaseResource,
+      adoptResource,
       attachResource,
       getSubItems,
       registerOpenCommand,
@@ -228,7 +227,7 @@ export function CommandProvider({
       invokeCommand,
       openCommand,
       service,
-      releaseResource,
+      adoptResource,
       attachResource,
       getSubItems,
       registerOpenCommand,
@@ -247,7 +246,7 @@ const emptyCommandContext: CommandContextValue = {
   invokeCommand: () => {},
   openCommand: () => {},
   service: null,
-  releaseResource: () => {},
+  adoptResource: () => null,
   attachResource: () => Promise.resolve({ resourceId: 0, cleanup: () => {} }),
   getSubItems: () => Promise.resolve([]),
   registerOpenCommand: () => () => {},

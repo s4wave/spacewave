@@ -55,7 +55,7 @@ interface UseCommandOpts {
 // useCommand registers a command with the command registry and sets up
 // a client-side handler. Manages registration, activation, and cleanup.
 export function useCommand(opts: UseCommandOpts): void {
-  const { service, releaseResource, attachResource } = useCommandContext()
+  const { service, adoptResource, attachResource } = useCommandContext()
   const registrationResourceIdRef = useRef(0)
   const defaultBindingsRef = useRef(opts.defaultBindings)
   defaultBindingsRef.current = opts.defaultBindings
@@ -106,6 +106,7 @@ export function useCommand(opts: UseCommandOpts): void {
     const abort = new AbortController()
     let registrationId = 0
     let detachHandlerResource: (() => void) | null = null
+    let releaseRegistrationResource: (() => void) | null = null
 
     const handlerService: CommandHandlerService = {
       GetSubItems: async (req, signal) => {
@@ -154,8 +155,11 @@ export function useCommand(opts: UseCommandOpts): void {
           abort.signal,
         )
         registrationId = resp.resourceId ?? 0
+        if (registrationId !== 0) {
+          releaseRegistrationResource = adoptResource(registrationId)
+        }
         if (abort.signal.aborted) {
-          if (registrationId !== 0) releaseResource(registrationId)
+          releaseRegistrationResource?.()
           return
         }
 
@@ -177,12 +181,12 @@ export function useCommand(opts: UseCommandOpts): void {
       if (registrationResourceIdRef.current === registrationId) {
         registrationResourceIdRef.current = 0
       }
-      if (registrationId !== 0) releaseResource(registrationId)
+      releaseRegistrationResource?.()
     }
   }, [
     attachResource,
     service,
-    releaseResource,
+    adoptResource,
     opts.commandId,
     opts.label,
     defaultBindingsSignature,
