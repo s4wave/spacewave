@@ -17,6 +17,7 @@ import type { InvokeFn, PacketStream, ServerContext } from 'starpc'
 
 import { ResourceClientResponse } from '../resource.pb.js'
 import { ResourceServer } from '../../sdk/resource/server/server.js'
+import { Resource } from '../../sdk/resource/resource.js'
 import { getResourceCall } from '../../sdk/resource/server/context.js'
 
 type FixtureState = {
@@ -26,6 +27,8 @@ type FixtureState = {
   routeBeforeAdoptAck: boolean
   resolveAdopt: () => void
   adoptAllowedPromise: Promise<void>
+  assertAbort: () => void
+  assertAbortPromise: Promise<void>
 }
 
 function report(marker: string): void {
@@ -34,6 +37,13 @@ function report(marker: string): void {
 
 function bytes(value: string): Uint8Array {
   return new TextEncoder().encode(value)
+}
+
+function decodeID(data: Uint8Array): number {
+  if (data.length !== 4) throw new Error(`resource ID length = ${data.length}`)
+  return new DataView(data.buffer, data.byteOffset, data.byteLength).getUint32(
+    0,
+  )
 }
 
 function encodeID(id: number): Uint8Array {
@@ -126,6 +136,38 @@ function delayedResourceClientStream(
   }
 }
 
+class AttachedChild extends Resource {
+  async invokeUntilDetached(assertAbort: Promise<void>): Promise<void> {
+    const responses = this.client
+      .serverStreamingRequest('test.AttachedChild', 'Invoke', bytes('invoke'))
+      [Symbol.asyncIterator]()
+    const active = await responses.next()
+    if (active.done || new TextDecoder().decode(active.value) !== 'active') {
+      throw new Error('attached child did not enter invocation')
+    }
+    report('ATTACHED_CHILD_INVOKE_ACTIVE')
+    this.release()
+    report('ATTACHED_CHILD_DETACHED')
+    try {
+      const result = await Promise.race([
+        responses.next(),
+        assertAbort.then(() => {
+          throw new Error('attached child invocation was not aborted by detach')
+        }),
+      ])
+      throw new Error(
+        `attached child invocation completed after detach: done=${result.done}`,
+      )
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('RPC_ABORT')) {
+        report('ATTACHED_CHILD_INVOKE_ABORTED')
+        return
+      }
+      throw error
+    }
+  }
+}
+
 function rootMux(state: FixtureState) {
   const mux = createMux()
   mux.register(
@@ -146,6 +188,36 @@ function rootMux(state: FixtureState) {
           }),
         )
         await sink(single(encodeID(child.resourceId)))
+      },
+      UseAttached: async (source, sink, context: ServerContext) => {
+        const attachedRootID = decodeID(await readOne(source))
+        const resourceCall = getResourceCall(context)
+        const init = Reflect.get(resourceCall, 'init') as {
+          client: {
+            clientID: number
+            attachedResources: Map<number, unknown>
+          }
+        }
+        if (!init.client.attachedResources.has(attachedRootID)) {
+          throw new Error(
+            `attached AddAck ID ${attachedRootID} missing from client ${init.client.clientID}`,
+          )
+        }
+        report(`ATTACHED_GENERATION ${init.client.clientID} ${attachedRootID}`)
+        const attachedRoot = resourceCall.getAttachedRef(attachedRootID)
+        const childID = decodeID(
+          await attachedRoot.client.request(
+            'test.AttachedEngine',
+            'Construct',
+            bytes('construct'),
+          ),
+        )
+        report(`ATTACHED_CHILD_ADDED ${childID}`)
+        const child = attachedRoot.createResource(childID, AttachedChild)
+        await child.invokeUntilDetached(state.assertAbortPromise)
+        attachedRoot.release()
+        report('ATTACHED_ROOT_DETACHED')
+        await sink(single(bytes('attached-complete')))
       },
       Echo: async (source, sink) => {
         await sink(single(await readOne(source)))
@@ -195,6 +267,7 @@ function childMux(state: FixtureState, resourceSignal: AbortSignal) {
 
 async function main(): Promise<void> {
   const requested = process.argv[2]
+  const fixtureMode = process.argv[3] ?? 'lifecycle'
   if (!requested) {
     throw new Error('usage: cross-runtime-ts-core-server <host:port>')
   }
@@ -204,6 +277,7 @@ async function main(): Promise<void> {
     throw new Error(`invalid address: ${requested}`)
   }
   let resolveAdopt!: () => void
+  let resolveAssertAbort!: () => void
   const state: FixtureState = {
     adoptAllowed: false,
     releaseCount: 0,
@@ -212,6 +286,10 @@ async function main(): Promise<void> {
     resolveAdopt: () => resolveAdopt(),
     adoptAllowedPromise: new Promise<void>((resolve) => {
       resolveAdopt = resolve
+    }),
+    assertAbort: () => resolveAssertAbort(),
+    assertAbortPromise: new Promise<void>((resolve) => {
+      resolveAssertAbort = resolve
     }),
   }
   const resources = new ResourceServer(rootMux(state))
@@ -245,8 +323,11 @@ async function main(): Promise<void> {
     ) {
       return
     }
-    if (state.releaseCount !== 1) {
-      throw new Error(`release count = ${state.releaseCount}, want 1`)
+    const expectedReleaseCount = fixtureMode === 'attached' ? 0 : 1
+    if (state.releaseCount !== expectedReleaseCount) {
+      throw new Error(
+        `release count = ${state.releaseCount}, want ${expectedReleaseCount}`,
+      )
     }
     if (state.routeBeforeAdoptAck) {
       throw new Error('ResourceRpc opened before delayed Adopt acknowledgement')
@@ -261,7 +342,11 @@ async function main(): Promise<void> {
       sockets.delete(socket)
       queueMicrotask(verifyClean)
     })
-    rpcServer.handlePacketStream(delayedResourceClientStream(socket, state))
+    rpcServer.handlePacketStream(
+      fixtureMode === 'attached'
+        ? tcpPacketStream(socket)
+        : delayedResourceClientStream(socket, state),
+    )
   })
   await new Promise<void>((resolve, reject) => {
     listener.once('error', reject)
@@ -278,6 +363,10 @@ async function main(): Promise<void> {
     if (line === 'ALLOW_ADOPT') {
       state.adoptAllowed = true
       state.resolveAdopt()
+      return
+    }
+    if (line === 'ASSERT_ABORT') {
+      state.assertAbort()
       return
     }
     if (line === 'INVALIDATE') {
