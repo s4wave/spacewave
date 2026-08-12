@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"io"
+	"io/fs"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -301,6 +302,21 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 		fsConfig := wazero.NewFSConfig().
 			WithFSMount(pluginDistIofs, DistFsMount).
 			WithFSMount(pluginAssetsIoFs, AssetsFsMount)
+
+		webPkgsInfo, err := fs.Stat(pluginAssetsIoFs, plugin.PluginAssetsWebPkgsDir)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return errors.Wrap(err, "stat project plugin web packages")
+		}
+		if err == nil {
+			if !webPkgsInfo.IsDir() {
+				return errors.Errorf("project plugin web packages %q is not a directory", plugin.PluginAssetsWebPkgsDir)
+			}
+			pluginWebPkgsIoFs, err := fs.Sub(pluginAssetsIoFs, plugin.PluginAssetsWebPkgsDir)
+			if err != nil {
+				return errors.Wrap(err, "project plugin web packages")
+			}
+			fsConfig = fsConfig.WithFSMount(pluginWebPkgsIoFs, path.Join(BDirMount, BDirWebPkgsMount))
+		}
 
 		// script is within dist
 		scriptPath := path.Join(DistFsMount, entrypoint)
