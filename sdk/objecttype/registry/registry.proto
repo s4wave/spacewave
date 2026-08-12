@@ -1,14 +1,21 @@
 syntax = "proto3";
 package s4wave.objecttype.registry;
 
+import "github.com/s4wave/spacewave/sdk/space/invoke/invoke.proto";
+
+// ObjectTypeRegistryResourceService registers and watches available ObjectTypes.
 service ObjectTypeRegistryResourceService {
+  // RegisterObjectType registers one ObjectType for the lifetime of the returned Resource.
   rpc RegisterObjectType(RegisterObjectTypeRequest)
     returns (RegisterObjectTypeResponse);
+  // WatchObjectTypes streams the current registered ObjectTypes.
   rpc WatchObjectTypes(WatchObjectTypesRequest)
     returns (stream WatchObjectTypesResponse);
 }
 
+// ObjectTypeHandlerService opens typed Resources for registered ObjectTypes.
 service ObjectTypeHandlerService {
+  // InvokeObjectType opens one typed Resource for the requested World object.
   rpc InvokeObjectType(InvokeObjectTypeRequest)
     returns (InvokeObjectTypeResponse);
 }
@@ -66,7 +73,8 @@ message RegisterObjectTypeResponse {
 }
 
 // WatchObjectTypesRequest is the request for WatchObjectTypes.
-message WatchObjectTypesRequest {}
+message WatchObjectTypesRequest {
+}
 
 // WatchObjectTypesResponse is the response for WatchObjectTypes.
 message WatchObjectTypesResponse {
@@ -82,6 +90,8 @@ message InvokeObjectTypeRequest {
   string object_key = 2;
   // AttachedEngineResourceId gives World Engine access to the handler.
   uint32 attached_engine_resource_id = 3;
+  // Envelope carries the host-issued Space grant and invocation lease.
+  s4wave.space.invoke.SpaceInvocationEnvelope envelope = 4;
 }
 
 // InvokeObjectTypeResponse is the response for InvokeObjectType.

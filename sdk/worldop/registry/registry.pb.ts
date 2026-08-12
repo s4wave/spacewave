@@ -9,6 +9,7 @@ import {
 } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { SpaceInvocationEnvelope } from '../../space/invoke/invoke.pb.js'
 
 export const protobufPackage = 's4wave.worldop.registry'
 
@@ -178,6 +179,12 @@ export interface ApplyWorldOpRequest {
    * @generated from field: uint32 attached_world_state_resource_id = 3;
    */
   attachedWorldStateResourceId?: number
+  /**
+   * Envelope carries the host-issued Space grant and invocation lease.
+   *
+   * @generated from field: s4wave.space.invoke.SpaceInvocationEnvelope envelope = 4;
+   */
+  envelope?: SpaceInvocationEnvelope
 }
 
 export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
@@ -196,6 +203,12 @@ export const ApplyWorldOpRequest: MessageType<ApplyWorldOpRequest> =
         name: 'attached_world_state_resource_id',
         kind: 'scalar',
         T: ScalarType.UINT32,
+      },
+      {
+        no: 4,
+        name: 'envelope',
+        kind: 'message',
+        T: () => SpaceInvocationEnvelope,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -254,6 +267,12 @@ export interface ApplyWorldObjectOpRequest {
    * @generated from field: uint32 attached_object_state_resource_id = 4;
    */
   attachedObjectStateResourceId?: number
+  /**
+   * Envelope carries the host-issued Space grant and invocation lease.
+   *
+   * @generated from field: s4wave.space.invoke.SpaceInvocationEnvelope envelope = 5;
+   */
+  envelope?: SpaceInvocationEnvelope
 }
 
 export const ApplyWorldObjectOpRequest: MessageType<ApplyWorldObjectOpRequest> =
@@ -273,6 +292,12 @@ export const ApplyWorldObjectOpRequest: MessageType<ApplyWorldObjectOpRequest> =
         name: 'attached_object_state_resource_id',
         kind: 'scalar',
         T: ScalarType.UINT32,
+      },
+      {
+        no: 5,
+        name: 'envelope',
+        kind: 'message',
+        T: () => SpaceInvocationEnvelope,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,

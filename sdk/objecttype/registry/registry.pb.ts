@@ -10,6 +10,7 @@ import {
 } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { SpaceInvocationEnvelope } from '../../space/invoke/invoke.pb.js'
 
 export const protobufPackage = 's4wave.objecttype.registry'
 
@@ -272,6 +273,12 @@ export interface InvokeObjectTypeRequest {
    * @generated from field: uint32 attached_engine_resource_id = 3;
    */
   attachedEngineResourceId?: number
+  /**
+   * Envelope carries the host-issued Space grant and invocation lease.
+   *
+   * @generated from field: s4wave.space.invoke.SpaceInvocationEnvelope envelope = 4;
+   */
+  envelope?: SpaceInvocationEnvelope
 }
 
 export const InvokeObjectTypeRequest: MessageType<InvokeObjectTypeRequest> =
@@ -285,6 +292,12 @@ export const InvokeObjectTypeRequest: MessageType<InvokeObjectTypeRequest> =
         name: 'attached_engine_resource_id',
         kind: 'scalar',
         T: ScalarType.UINT32,
+      },
+      {
+        no: 4,
+        name: 'envelope',
+        kind: 'message',
+        T: () => SpaceInvocationEnvelope,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,

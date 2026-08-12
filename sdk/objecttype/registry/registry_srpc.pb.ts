@@ -19,12 +19,16 @@ import {
 } from 'starpc'
 
 /**
+ * ObjectTypeRegistryResourceService registers and watches available ObjectTypes.
+ *
  * @generated from service s4wave.objecttype.registry.ObjectTypeRegistryResourceService
  */
 export const ObjectTypeRegistryResourceServiceDefinition = {
   typeName: 's4wave.objecttype.registry.ObjectTypeRegistryResourceService',
   methods: {
     /**
+     * RegisterObjectType registers one ObjectType for the lifetime of the returned Resource.
+     *
      * @generated from rpc s4wave.objecttype.registry.ObjectTypeRegistryResourceService.RegisterObjectType
      */
     RegisterObjectType: {
@@ -34,6 +38,8 @@ export const ObjectTypeRegistryResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * WatchObjectTypes streams the current registered ObjectTypes.
+     *
      * @generated from rpc s4wave.objecttype.registry.ObjectTypeRegistryResourceService.WatchObjectTypes
      */
     WatchObjectTypes: {
@@ -46,10 +52,14 @@ export const ObjectTypeRegistryResourceServiceDefinition = {
 } as const
 
 /**
+ * ObjectTypeRegistryResourceService registers and watches available ObjectTypes.
+ *
  * @generated from service s4wave.objecttype.registry.ObjectTypeRegistryResourceService
  */
 export interface ObjectTypeRegistryResourceService {
   /**
+   * RegisterObjectType registers one ObjectType for the lifetime of the returned Resource.
+   *
    * @generated from rpc s4wave.objecttype.registry.ObjectTypeRegistryResourceService.RegisterObjectType
    */
   RegisterObjectType(
@@ -58,6 +68,8 @@ export interface ObjectTypeRegistryResourceService {
   ): Promise<RegisterObjectTypeResponse>
 
   /**
+   * WatchObjectTypes streams the current registered ObjectTypes.
+   *
    * @generated from rpc s4wave.objecttype.registry.ObjectTypeRegistryResourceService.WatchObjectTypes
    */
   WatchObjectTypes(
@@ -67,10 +79,14 @@ export interface ObjectTypeRegistryResourceService {
 }
 
 /**
+ * ObjectTypeRegistryResourceService registers and watches available ObjectTypes.
+ *
  * @generated from service s4wave.objecttype.registry.ObjectTypeRegistryResourceService
  */
 export interface ObjectTypeRegistryResourceServiceHandler {
   /**
+   * RegisterObjectType registers one ObjectType for the lifetime of the returned Resource.
+   *
    * @generated from rpc s4wave.objecttype.registry.ObjectTypeRegistryResourceService.RegisterObjectType
    */
   RegisterObjectType(
@@ -80,6 +96,8 @@ export interface ObjectTypeRegistryResourceServiceHandler {
   ): Promise<RegisterObjectTypeResponse>
 
   /**
+   * WatchObjectTypes streams the current registered ObjectTypes.
+   *
    * @generated from rpc s4wave.objecttype.registry.ObjectTypeRegistryResourceService.WatchObjectTypes
    */
   WatchObjectTypes(
@@ -102,6 +120,8 @@ export class ObjectTypeRegistryResourceServiceClient implements ObjectTypeRegist
     this.WatchObjectTypes = this.WatchObjectTypes.bind(this)
   }
   /**
+   * RegisterObjectType registers one ObjectType for the lifetime of the returned Resource.
+   *
    * @generated from rpc s4wave.objecttype.registry.ObjectTypeRegistryResourceService.RegisterObjectType
    */
   async RegisterObjectType(
@@ -120,6 +140,8 @@ export class ObjectTypeRegistryResourceServiceClient implements ObjectTypeRegist
   }
 
   /**
+   * WatchObjectTypes streams the current registered ObjectTypes.
+   *
    * @generated from rpc s4wave.objecttype.registry.ObjectTypeRegistryResourceService.WatchObjectTypes
    */
   WatchObjectTypes(
@@ -137,12 +159,16 @@ export class ObjectTypeRegistryResourceServiceClient implements ObjectTypeRegist
   }
 }
 /**
+ * ObjectTypeHandlerService opens typed Resources for registered ObjectTypes.
+ *
  * @generated from service s4wave.objecttype.registry.ObjectTypeHandlerService
  */
 export const ObjectTypeHandlerServiceDefinition = {
   typeName: 's4wave.objecttype.registry.ObjectTypeHandlerService',
   methods: {
     /**
+     * InvokeObjectType opens one typed Resource for the requested World object.
+     *
      * @generated from rpc s4wave.objecttype.registry.ObjectTypeHandlerService.InvokeObjectType
      */
     InvokeObjectType: {
@@ -155,10 +181,14 @@ export const ObjectTypeHandlerServiceDefinition = {
 } as const
 
 /**
+ * ObjectTypeHandlerService opens typed Resources for registered ObjectTypes.
+ *
  * @generated from service s4wave.objecttype.registry.ObjectTypeHandlerService
  */
 export interface ObjectTypeHandlerService {
   /**
+   * InvokeObjectType opens one typed Resource for the requested World object.
+   *
    * @generated from rpc s4wave.objecttype.registry.ObjectTypeHandlerService.InvokeObjectType
    */
   InvokeObjectType(
@@ -168,10 +198,14 @@ export interface ObjectTypeHandlerService {
 }
 
 /**
+ * ObjectTypeHandlerService opens typed Resources for registered ObjectTypes.
+ *
  * @generated from service s4wave.objecttype.registry.ObjectTypeHandlerService
  */
 export interface ObjectTypeHandlerServiceHandler {
   /**
+   * InvokeObjectType opens one typed Resource for the requested World object.
+   *
    * @generated from rpc s4wave.objecttype.registry.ObjectTypeHandlerService.InvokeObjectType
    */
   InvokeObjectType(
@@ -193,6 +227,8 @@ export class ObjectTypeHandlerServiceClient implements ObjectTypeHandlerService 
     this.InvokeObjectType = this.InvokeObjectType.bind(this)
   }
   /**
+   * InvokeObjectType opens one typed Resource for the requested World object.
+   *
    * @generated from rpc s4wave.objecttype.registry.ObjectTypeHandlerService.InvokeObjectType
    */
   async InvokeObjectType(

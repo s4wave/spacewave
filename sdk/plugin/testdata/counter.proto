@@ -1,0 +1,32 @@
+syntax = "proto3";
+package s4wave.plugin.testdata.counter;
+
+option go_package = "github.com/s4wave/spacewave/sdk/plugin/testdata;s4wave_plugin_testdata";
+
+// CounterResourceService initializes and reads one custom ObjectType value.
+service CounterResourceService {
+  // Initialize stores the counter's first value.
+  rpc Initialize(InitializeRequest) returns (InitializeResponse);
+  // GetCounter returns the stored counter value.
+  rpc GetCounter(GetCounterRequest) returns (GetCounterResponse);
+}
+
+// InitializeRequest contains the counter's first value.
+message InitializeRequest {
+  // Value is the counter's first value.
+  int64 value = 1;
+}
+
+// InitializeResponse acknowledges counter initialization.
+message InitializeResponse {
+}
+
+// GetCounterRequest selects the counter served by the current Resource.
+message GetCounterRequest {
+}
+
+// GetCounterResponse contains the stored counter value.
+message GetCounterResponse {
+  // Value is the stored counter value.
+  int64 value = 1;
+}

@@ -3533,7 +3533,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/objecttype/registry": {
-      "hash": "5bcea4a33d7f43aaed84bf86f2d272e7b7f51b487ef06587ed041ade5a81d5a8",
+      "hash": "747d3da7011ec1cc68967783fc55ffd50da1c7962518ff8696401369d6277683",
       "generatedFiles": [
         "sdk/objecttype/registry/registry.pb.go",
         "sdk/objecttype/registry/registry.pb.ts",
@@ -3554,6 +3554,18 @@
       ],
       "protoFiles": [
         "sdk/org/org.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/sdk/plugin/testdata": {
+      "hash": "a39487db255719fb3424db0a5cc7f677dabe75ce4e7f24d2092212497dc908ae",
+      "generatedFiles": [
+        "sdk/plugin/testdata/counter.pb.go",
+        "sdk/plugin/testdata/counter.pb.ts",
+        "sdk/plugin/testdata/counter_srpc.pb.go",
+        "sdk/plugin/testdata/counter_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/plugin/testdata/counter.proto"
       ]
     },
     "github.com/s4wave/spacewave/sdk/process": {
@@ -3692,6 +3704,18 @@
       ],
       "protoFiles": [
         "sdk/space/space.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/sdk/space/invoke": {
+      "hash": "85fcc5d5d31b9fc1ff0dd7bcc8f78772f7142f0a22276328b0c2953efc63520e",
+      "generatedFiles": [
+        "sdk/space/invoke/invoke.pb.go",
+        "sdk/space/invoke/invoke.pb.ts",
+        "sdk/space/invoke/invoke_srpc.pb.go",
+        "sdk/space/invoke/invoke_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/space/invoke/invoke.proto"
       ]
     },
     "github.com/s4wave/spacewave/sdk/sql/query": {
@@ -3940,7 +3964,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/worldop/registry": {
-      "hash": "9e3c7a0bd1f04b4660f36f4d1944a02322d06d2fc87beef64efc1d346d1330a9",
+      "hash": "baf1a7220098da3afb80c47c76c127fbe59a7873a5fc1c0bd60628f609bd737b",
       "generatedFiles": [
         "sdk/worldop/registry/registry.pb.go",
         "sdk/worldop/registry/registry.pb.ts",

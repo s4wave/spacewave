@@ -23,12 +23,16 @@ import {
 } from 'starpc'
 
 /**
+ * WorldOpRegistryResourceService registers and watches available World operations.
+ *
  * @generated from service s4wave.worldop.registry.WorldOpRegistryResourceService
  */
 export const WorldOpRegistryResourceServiceDefinition = {
   typeName: 's4wave.worldop.registry.WorldOpRegistryResourceService',
   methods: {
     /**
+     * RegisterWorldOp registers one World operation for the lifetime of the returned Resource.
+     *
      * @generated from rpc s4wave.worldop.registry.WorldOpRegistryResourceService.RegisterWorldOp
      */
     RegisterWorldOp: {
@@ -38,6 +42,8 @@ export const WorldOpRegistryResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * WatchWorldOps streams the current registered World operations.
+     *
      * @generated from rpc s4wave.worldop.registry.WorldOpRegistryResourceService.WatchWorldOps
      */
     WatchWorldOps: {
@@ -50,10 +56,14 @@ export const WorldOpRegistryResourceServiceDefinition = {
 } as const
 
 /**
+ * WorldOpRegistryResourceService registers and watches available World operations.
+ *
  * @generated from service s4wave.worldop.registry.WorldOpRegistryResourceService
  */
 export interface WorldOpRegistryResourceService {
   /**
+   * RegisterWorldOp registers one World operation for the lifetime of the returned Resource.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpRegistryResourceService.RegisterWorldOp
    */
   RegisterWorldOp(
@@ -62,6 +72,8 @@ export interface WorldOpRegistryResourceService {
   ): Promise<RegisterWorldOpResponse>
 
   /**
+   * WatchWorldOps streams the current registered World operations.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpRegistryResourceService.WatchWorldOps
    */
   WatchWorldOps(
@@ -71,10 +83,14 @@ export interface WorldOpRegistryResourceService {
 }
 
 /**
+ * WorldOpRegistryResourceService registers and watches available World operations.
+ *
  * @generated from service s4wave.worldop.registry.WorldOpRegistryResourceService
  */
 export interface WorldOpRegistryResourceServiceHandler {
   /**
+   * RegisterWorldOp registers one World operation for the lifetime of the returned Resource.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpRegistryResourceService.RegisterWorldOp
    */
   RegisterWorldOp(
@@ -84,6 +100,8 @@ export interface WorldOpRegistryResourceServiceHandler {
   ): Promise<RegisterWorldOpResponse>
 
   /**
+   * WatchWorldOps streams the current registered World operations.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpRegistryResourceService.WatchWorldOps
    */
   WatchWorldOps(
@@ -106,6 +124,8 @@ export class WorldOpRegistryResourceServiceClient implements WorldOpRegistryReso
     this.WatchWorldOps = this.WatchWorldOps.bind(this)
   }
   /**
+   * RegisterWorldOp registers one World operation for the lifetime of the returned Resource.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpRegistryResourceService.RegisterWorldOp
    */
   async RegisterWorldOp(
@@ -123,6 +143,8 @@ export class WorldOpRegistryResourceServiceClient implements WorldOpRegistryReso
   }
 
   /**
+   * WatchWorldOps streams the current registered World operations.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpRegistryResourceService.WatchWorldOps
    */
   WatchWorldOps(
@@ -140,12 +162,16 @@ export class WorldOpRegistryResourceServiceClient implements WorldOpRegistryReso
   }
 }
 /**
+ * WorldOpHandlerService applies and validates registered World operations.
+ *
  * @generated from service s4wave.worldop.registry.WorldOpHandlerService
  */
 export const WorldOpHandlerServiceDefinition = {
   typeName: 's4wave.worldop.registry.WorldOpHandlerService',
   methods: {
     /**
+     * ApplyWorldOp applies one operation to the attached WorldState.
+     *
      * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ApplyWorldOp
      */
     ApplyWorldOp: {
@@ -155,6 +181,8 @@ export const WorldOpHandlerServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ApplyWorldObjectOp applies one operation to the attached ObjectState.
+     *
      * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ApplyWorldObjectOp
      */
     ApplyWorldObjectOp: {
@@ -164,6 +192,8 @@ export const WorldOpHandlerServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ValidateOp validates serialized operation data without applying it.
+     *
      * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ValidateOp
      */
     ValidateOp: {
@@ -176,10 +206,14 @@ export const WorldOpHandlerServiceDefinition = {
 } as const
 
 /**
+ * WorldOpHandlerService applies and validates registered World operations.
+ *
  * @generated from service s4wave.worldop.registry.WorldOpHandlerService
  */
 export interface WorldOpHandlerService {
   /**
+   * ApplyWorldOp applies one operation to the attached WorldState.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ApplyWorldOp
    */
   ApplyWorldOp(
@@ -188,6 +222,8 @@ export interface WorldOpHandlerService {
   ): Promise<ApplyWorldOpResponse>
 
   /**
+   * ApplyWorldObjectOp applies one operation to the attached ObjectState.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ApplyWorldObjectOp
    */
   ApplyWorldObjectOp(
@@ -196,6 +232,8 @@ export interface WorldOpHandlerService {
   ): Promise<ApplyWorldObjectOpResponse>
 
   /**
+   * ValidateOp validates serialized operation data without applying it.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ValidateOp
    */
   ValidateOp(
@@ -205,10 +243,14 @@ export interface WorldOpHandlerService {
 }
 
 /**
+ * WorldOpHandlerService applies and validates registered World operations.
+ *
  * @generated from service s4wave.worldop.registry.WorldOpHandlerService
  */
 export interface WorldOpHandlerServiceHandler {
   /**
+   * ApplyWorldOp applies one operation to the attached WorldState.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ApplyWorldOp
    */
   ApplyWorldOp(
@@ -218,6 +260,8 @@ export interface WorldOpHandlerServiceHandler {
   ): Promise<ApplyWorldOpResponse>
 
   /**
+   * ApplyWorldObjectOp applies one operation to the attached ObjectState.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ApplyWorldObjectOp
    */
   ApplyWorldObjectOp(
@@ -227,6 +271,8 @@ export interface WorldOpHandlerServiceHandler {
   ): Promise<ApplyWorldObjectOpResponse>
 
   /**
+   * ValidateOp validates serialized operation data without applying it.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ValidateOp
    */
   ValidateOp(
@@ -250,6 +296,8 @@ export class WorldOpHandlerServiceClient implements WorldOpHandlerService {
     this.ValidateOp = this.ValidateOp.bind(this)
   }
   /**
+   * ApplyWorldOp applies one operation to the attached WorldState.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ApplyWorldOp
    */
   async ApplyWorldOp(
@@ -267,6 +315,8 @@ export class WorldOpHandlerServiceClient implements WorldOpHandlerService {
   }
 
   /**
+   * ApplyWorldObjectOp applies one operation to the attached ObjectState.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ApplyWorldObjectOp
    */
   async ApplyWorldObjectOp(
@@ -284,6 +334,8 @@ export class WorldOpHandlerServiceClient implements WorldOpHandlerService {
   }
 
   /**
+   * ValidateOp validates serialized operation data without applying it.
+   *
    * @generated from rpc s4wave.worldop.registry.WorldOpHandlerService.ValidateOp
    */
   async ValidateOp(

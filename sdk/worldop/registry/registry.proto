@@ -1,18 +1,27 @@
 syntax = "proto3";
 package s4wave.worldop.registry;
 
+import "github.com/s4wave/spacewave/sdk/space/invoke/invoke.proto";
+
+// WorldOpRegistryResourceService registers and watches available World operations.
 service WorldOpRegistryResourceService {
+  // RegisterWorldOp registers one World operation for the lifetime of the returned Resource.
   rpc RegisterWorldOp(RegisterWorldOpRequest)
     returns (RegisterWorldOpResponse);
+  // WatchWorldOps streams the current registered World operations.
   rpc WatchWorldOps(WatchWorldOpsRequest)
     returns (stream WatchWorldOpsResponse);
 }
 
+// WorldOpHandlerService applies and validates registered World operations.
 service WorldOpHandlerService {
+  // ApplyWorldOp applies one operation to the attached WorldState.
   rpc ApplyWorldOp(ApplyWorldOpRequest)
     returns (ApplyWorldOpResponse);
+  // ApplyWorldObjectOp applies one operation to the attached ObjectState.
   rpc ApplyWorldObjectOp(ApplyWorldObjectOpRequest)
     returns (ApplyWorldObjectOpResponse);
+  // ValidateOp validates serialized operation data without applying it.
   rpc ValidateOp(ValidateOpRequest)
     returns (ValidateOpResponse);
 }
@@ -42,7 +51,8 @@ message RegisterWorldOpResponse {
 }
 
 // WatchWorldOpsRequest is the request for WatchWorldOps.
-message WatchWorldOpsRequest {}
+message WatchWorldOpsRequest {
+}
 
 // WatchWorldOpsResponse is the response for WatchWorldOps.
 message WatchWorldOpsResponse {
@@ -58,6 +68,8 @@ message ApplyWorldOpRequest {
   bytes op_data = 2;
   // AttachedWorldStateResourceId gives WorldState access to the handler.
   uint32 attached_world_state_resource_id = 3;
+  // Envelope carries the host-issued Space grant and invocation lease.
+  s4wave.space.invoke.SpaceInvocationEnvelope envelope = 4;
 }
 
 // ApplyWorldOpResponse is the response for ApplyWorldOp.
@@ -76,6 +88,8 @@ message ApplyWorldObjectOpRequest {
   string object_key = 3;
   // AttachedObjectStateResourceId gives ObjectState access to the handler.
   uint32 attached_object_state_resource_id = 4;
+  // Envelope carries the host-issued Space grant and invocation lease.
+  s4wave.space.invoke.SpaceInvocationEnvelope envelope = 5;
 }
 
 // ApplyWorldObjectOpResponse is the response for ApplyWorldObjectOp.
