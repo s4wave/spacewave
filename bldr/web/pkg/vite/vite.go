@@ -42,12 +42,41 @@ func BuildWebPkgsVite(
 	viteBundler bldr_vite.SRPCViteBundlerClient,
 	cacheDir string,
 ) (webPkgIDs, sourcePaths []string, importMapEntries []ImportMapEntry, err error) {
+	return BuildWebPkgsViteWithManagedRoot(
+		ctx, le, codeRootPath, "", webPkgsRefs, outputPath, webPkgBasePath,
+		isRelease, jsMinification, jsSourcemaps, viteBundler, cacheDir,
+	)
+}
+
+// BuildWebPkgsViteWithManagedRoot builds web packages without retaining
+// compiler-managed files as durable source provenance.
+func BuildWebPkgsViteWithManagedRoot(
+	ctx context.Context,
+	le *logrus.Entry,
+	codeRootPath string,
+	managedRootPath string,
+	webPkgsRefs []*web_pkg.WebPkgRef,
+	outputPath string,
+	webPkgBasePath string,
+	isRelease bool,
+	jsMinification bool,
+	jsSourcemaps bool,
+	viteBundler bldr_vite.SRPCViteBundlerClient,
+	cacheDir string,
+) (webPkgIDs, sourcePaths []string, importMapEntries []ImportMapEntry, err error) {
 	canonicalCodeRoot, err := filepath.Abs(codeRootPath)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 	if resolvedRoot, resolveErr := filepath.EvalSymlinks(canonicalCodeRoot); resolveErr == nil {
 		canonicalCodeRoot = resolvedRoot
+	}
+	var managedRoot *managedSourceRoot
+	if managedRootPath != "" {
+		managedRoot, err = newManagedSourceRoot(canonicalCodeRoot, managedRootPath)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 
 	// Build list of web pkg IDs.
@@ -120,7 +149,10 @@ func BuildWebPkgsVite(
 			if relErr != nil {
 				continue
 			}
-			sourceFilesList = append(sourceFilesList, relPath)
+			if managedRoot != nil && managedRoot.Contains(canonicalPath) {
+				continue
+			}
+			sourceFilesList = append(sourceFilesList, filepath.ToSlash(relPath))
 		}
 
 		// Collect import map entries, prefixing output paths with the web pkg base path.

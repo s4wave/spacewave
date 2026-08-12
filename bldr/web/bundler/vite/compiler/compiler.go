@@ -817,10 +817,11 @@ func (c *Controller) performFullRebuild(
 			return nil, errors.Wrap(awaitErr, "await vite bundler for web pkgs")
 		}
 
-		_, webPkgSrcFiles, _, err = web_pkg_vite.BuildWebPkgsVite(
+		_, webPkgSrcFiles, _, err = web_pkg_vite.BuildWebPkgsViteWithManagedRoot(
 			ctx,
 			le,
 			sourcePath,
+			workingPath,
 			buildableWebPkgRefs,
 			outWebPkgsPath,
 			bldr_plugin.PluginWebPkgHttpPrefix,

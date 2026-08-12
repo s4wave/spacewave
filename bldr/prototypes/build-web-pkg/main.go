@@ -57,10 +57,11 @@ func run(ctx context.Context, le *logrus.Entry) error {
 	distSourcePath := filepath.Join(rootDir, ".bldr", "src")
 
 	return web_pkg_vite.RunOneShot(ctx, le, distSourcePath, rootDir, workingDir, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
-		webPkgIds, srcPaths, importMapEntries, buildErr := web_pkg_vite.BuildWebPkgsVite(
+		webPkgIds, srcPaths, importMapEntries, buildErr := web_pkg_vite.BuildWebPkgsViteWithManagedRoot(
 			ctx,
 			le,
 			rootDir,
+			workingDir,
 			refs,
 			outDir,
 			bldr_plugin.PluginWebPkgHttpPrefix,

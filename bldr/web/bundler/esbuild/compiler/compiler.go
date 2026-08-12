@@ -325,10 +325,11 @@ func (c *Controller) BuildManifest(
 		if len(buildableWebPkgRefs) != 0 {
 			viteWorkingPath := filepath.Join(workingPath, "vite-web-pkgs")
 			err = web_pkg_vite.RunOneShot(ctx, le, distSourcePath, sourcePath, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
-				_, srcFiles, _, buildErr := web_pkg_vite.BuildWebPkgsVite(
+				_, srcFiles, _, buildErr := web_pkg_vite.BuildWebPkgsViteWithManagedRoot(
 					ctx,
 					le,
 					sourcePath,
+					workingPath,
 					buildableWebPkgRefs,
 					outWebPkgsPath,
 					bldr_plugin.PluginWebPkgHttpPrefix,

@@ -1082,10 +1082,11 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 	var importMap web_entrypoint_index.ImportMap
 	viteWorkingPath := filepath.Join(stateDir, "vite-web-pkgs")
 	err = web_pkg_vite.RunOneShot(ctx, le, bldrDistRoot, bldrDistRoot, viteWorkingPath, func(ctx context.Context, client bldr_vite.SRPCViteBundlerClient) error {
-		_, _, mapEntries, buildErr := web_pkg_vite.BuildWebPkgsVite(
+		_, _, mapEntries, buildErr := web_pkg_vite.BuildWebPkgsViteWithManagedRoot(
 			ctx,
 			le,
 			buildDir,
+			stateDir,
 			refs,
 			outDir,
 			pathPrefix+"/pkgs/",
