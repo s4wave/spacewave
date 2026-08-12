@@ -9,13 +9,32 @@ import {
   getTabNameFromPath,
 } from '@s4wave/app/shell-tab.js'
 
-// addShellModelTab adds a shell tab node to a FlexLayout model.
+// addShellModelTab projects a Shell Tab into its requested FlexLayout tabset.
 export function addShellModelTab(
   model: Model,
   tabsetId: string,
   tab: ShellTab,
   component: string,
 ): void {
+  // Store hydration and a committed tab callback can report the same tab.
+  // Preserve that node and move it to the requested tabset instead of
+  // duplicating it.
+  const existing = model.getNodeById(tab.id)
+  if (existing) {
+    if (existing.getType() !== 'tab') {
+      throw new Error(
+        `Shell tab ID collides with ${existing.getType()} node: ${tab.id}`,
+      )
+    }
+    const parent = existing.getParent()
+    if (parent?.getType() !== 'tabset' || parent.getId() !== tabsetId) {
+      model.doAction(
+        Actions.moveNode(tab.id, tabsetId, DockLocation.CENTER, -1, false),
+      )
+    }
+    return
+  }
+
   model.doAction(
     Actions.addNode(
       {

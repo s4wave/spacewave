@@ -257,6 +257,9 @@ vi.mock('@aptre/flex-layout', () => {
 
     toJson() {
       return {
+        global: {
+          tabSetEnableDeleteWhenEmpty: this.tabSetEnableDeleteWhenEmpty,
+        },
         layout: {
           children: [
             {
@@ -521,6 +524,35 @@ describe('ShellTabStrip', () => {
             action.type === 'selectTab' && action.tabId === activeTabId,
         ),
       ).toBe(true)
+    })
+  })
+
+  it('enables empty-tabset deletion when a drag creates a grid', () => {
+    seedShellTabs([{ id: 'home', name: 'Home', path: '/' }])
+
+    render(<ShellTabStrip entry={continuationEntry} />)
+
+    const props = mockOptimizedLayoutProps.mock.calls.at(-1)?.[0]
+    if (!props) throw new Error('shell layout did not render')
+    const model = props.model as unknown as {
+      actions: Array<{
+        attributes?: { tabSetEnableDeleteWhenEmpty?: boolean }
+        type: string
+      }>
+      addExternalSplit: (node: { id: string; name: string }) => void
+      tabSetEnableDeleteWhenEmpty: boolean
+    }
+
+    expect(model.tabSetEnableDeleteWhenEmpty).toBe(false)
+
+    act(() => {
+      model.addExternalSplit({ id: 'right-tab', name: 'Right' })
+    })
+
+    expect(model.tabSetEnableDeleteWhenEmpty).toBe(true)
+    expect(model.actions).toContainEqual({
+      type: 'updateModelAttributes',
+      attributes: { tabSetEnableDeleteWhenEmpty: true },
     })
   })
 
