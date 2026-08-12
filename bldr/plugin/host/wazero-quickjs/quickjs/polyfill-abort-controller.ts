@@ -94,7 +94,11 @@ export function createAbortController(): AbortControllerPolyfillConstructor {
       listener: (event: Event) => void,
       _options?: AddEventListenerOptions | boolean,
     ): void {
-      if (type === 'abort' && typeof listener === 'function') {
+      if (
+        type === 'abort' &&
+        typeof listener === 'function' &&
+        !this._listeners.includes(listener)
+      ) {
         this._listeners.push(listener)
       }
     }
@@ -118,8 +122,11 @@ export function createAbortController(): AbortControllerPolyfillConstructor {
         if (this._onabort) {
           this._onabort(event)
         }
-        // Call all addEventListener listeners
-        this._listeners.forEach((listener) => listener(event))
+        // Dispatch a stable snapshot while honoring removals made by an
+        // earlier listener before a later listener's turn.
+        for (const listener of [...this._listeners]) {
+          if (this._listeners.includes(listener)) listener(event)
+        }
       }
       return true
     }
