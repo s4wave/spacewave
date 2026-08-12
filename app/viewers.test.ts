@@ -190,4 +190,15 @@ describe('getObjectViewersForType', () => {
       ),
     ).toEqual(['V86', 'Debug Viewer'])
   })
+  it('registers the redacted Secret viewer ahead of the debug fallback', () => {
+    expect(
+      getObjectViewersForType('spacewave/secret').map((viewer) => [
+        viewer.componentID,
+        viewer.name,
+      ]),
+    ).toEqual([
+      ['spacewave.secret.viewer', 'Secret'],
+      ['spacewave.debug.viewer', 'Debug Viewer'],
+    ])
+  })
 })

@@ -122,10 +122,14 @@ describe('ObjectViewerContent', () => {
     )
 
     expect(screen.getByText("Can't open this object yet")).toBeDefined()
+    expect(screen.getByText('About this object')).toBeDefined()
+    expect(screen.getByText('Object key')).toBeDefined()
+    expect(screen.getByText('glados/bootstrap/llm-session')).toBeDefined()
+    expect(screen.getByText('Object type')).toBeDefined()
     expect(screen.getByText('glados/missing')).toBeDefined()
     expect(screen.getByText(/glados\.custom\.viewer/)).toBeDefined()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open Debug Viewer' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open raw object' }))
 
     expect(onSelectComponent).toHaveBeenCalledWith(debugComponent)
   })

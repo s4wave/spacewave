@@ -73,6 +73,7 @@ import {
   TerminalTypeID,
 } from '@s4wave/app/terminal/TerminalViewer.js'
 import { OrgViewer, OrganizationTypeID } from '@s4wave/app/org/OrgViewer.js'
+import { SecretViewer, SecretTypeID } from '@s4wave/app/secret/SecretViewer.js'
 import { KvStoreViewer, KvStoreTypeID } from '@s4wave/app/kv/KvStoreViewer.js'
 import { SqlDbViewer, SqlDbTypeID } from '@s4wave/app/sql/SqlDbViewer.js'
 import {
@@ -234,6 +235,13 @@ const productObjectViewers: ObjectViewerComponent[] = [
     name: 'Organization',
     category: 'Management',
     component: OrgViewer,
+  },
+  {
+    componentID: 'spacewave.secret.viewer',
+    typeID: SecretTypeID,
+    name: 'Secret',
+    category: 'Management',
+    component: SecretViewer,
   },
   {
     componentID: 'spacewave.kv.store',

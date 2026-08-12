@@ -49,6 +49,26 @@ describe('ObjectViewerDetails', () => {
     vi.clearAllMocks()
   })
 
+  it('copies the object key with the shared click-to-copy field', () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    })
+
+    render(
+      <ObjectViewerDetails
+        objectKey="glados/workfront/1"
+        typeID="glados/workfront"
+        availableComponents={[]}
+        onComponentSelect={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Click to copy' }))
+    expect(writeText).toHaveBeenCalledWith('glados/workfront/1')
+  })
+
   it('exposes missing requested component IDs in the object internals panel', () => {
     render(
       <ObjectViewerDetails

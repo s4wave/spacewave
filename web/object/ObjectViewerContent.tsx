@@ -3,6 +3,8 @@ import { WebViewErrorBoundary } from '@aptre/bldr-react'
 
 import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
+import { CopyableField } from '@s4wave/web/ui/CopyableField.js'
+import { InfoCard } from '@s4wave/web/ui/InfoCard.js'
 import type { IObjectState } from '@s4wave/sdk/world/object-state.js'
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import type { Resource } from '@aptre/bldr-sdk/hooks/useResource.js'
@@ -59,33 +61,44 @@ export function ObjectViewerContent({
           ) : !typeID ? (
             <span>Object has no type</span>
           ) : (
-            <div className="flex max-w-md flex-col items-center gap-3">
-              <div>
+            <div className="flex w-full max-w-lg flex-col gap-4 text-left">
+              <div className="text-center">
                 <h2 className="text-foreground text-sm font-semibold">
                   Can't open this object yet
                 </h2>
-                <p className="mt-1 text-xs">
-                  No installed viewer handles this object type.
+                <p className="mt-1 text-xs leading-relaxed">
+                  No installed viewer handles this object type. You can inspect
+                  its object record when the raw viewer is available.
                 </p>
               </div>
-              <div className="border-border bg-background/60 text-foreground rounded-md border px-3 py-2 font-mono text-xs">
-                {typeID}
-              </div>
-              {missingComponentID && missingComponentID !== typeID ? (
-                <p className="text-xs">
-                  The requested viewer is not available: {missingComponentID}
-                </p>
-              ) : null}
+              <InfoCard title="About this object">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <CopyableField label="Object key" value={objectKey} />
+                  <CopyableField label="Object type" value={typeID} />
+                </div>
+                {missingComponentID && missingComponentID !== typeID ? (
+                  <p className="text-foreground-alt/60 mt-3 text-xs leading-relaxed">
+                    Requested viewer unavailable:{' '}
+                    <span className="font-mono">{missingComponentID}</span>
+                  </p>
+                ) : null}
+              </InfoCard>
               {debugComponent ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOpenDebugViewer}
-                >
-                  Open Debug Viewer
-                </Button>
-              ) : null}
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenDebugViewer}
+                  >
+                    Open raw object
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-center text-xs leading-relaxed">
+                  No raw object viewer is installed.
+                </p>
+              )}
             </div>
           )}
         </div>
