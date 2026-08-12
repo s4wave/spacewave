@@ -29,6 +29,7 @@ const h = vi.hoisted(() => {
     closeSeen: closeWaiter.promise,
     resolveClose: closeWaiter.resolve,
     abortObservedBeforeExit: true,
+    connectCalls: 0,
   }
 })
 
@@ -106,6 +107,7 @@ vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => ({
       watchTerminalState: vi.fn(),
       connectTerminal: vi.fn(
         (frames: AsyncIterable<TerminalFrame>, signal?: AbortSignal) => {
+          h.connectCalls += 1
           void (async () => {
             for await (const frame of frames) {
               if (signal?.aborted) return
@@ -113,7 +115,7 @@ vi.mock('@s4wave/web/hooks/useAccessTypedHandle.js', () => ({
               if (frame.kind === TerminalFrameKind.CLOSE) {
                 h.abortObservedBeforeExit = signal?.aborted === true
                 h.resolveClose()
-                return
+                continue
               }
             }
           })()
@@ -148,6 +150,7 @@ describe('TerminalViewer', () => {
       h.resolveClose = resolve
     })
     h.abortObservedBeforeExit = true
+    h.connectCalls = 0
     currentState = {
       name: 'Build Host Terminal',
       deviceObjectKey: 'devices/build-host',
@@ -184,7 +187,7 @@ describe('TerminalViewer', () => {
     expect(screen.getByText('Build Host Terminal')).toBeTruthy()
     expect(screen.getByText('Disconnected')).toBeTruthy()
     expect(screen.getByText('devices/build-host')).toBeTruthy()
-    expect(h.open).toHaveBeenCalled()
+    await vi.waitFor(() => expect(h.open).toHaveBeenCalled())
     await vi.waitFor(() => expect(h.write).toHaveBeenCalledWith('ready\n'))
     await vi.waitFor(() =>
       expect(h.clientFrames[0]?.kind).toBe(TerminalFrameKind.RESIZE),
@@ -339,6 +342,62 @@ describe('TerminalViewer', () => {
         ),
       ).toBe(true),
     )
+    unmount()
+  })
+  it('shows a safe SSH failure cause and Retry starts a new terminal attempt', async () => {
+    currentState = {
+      name: 'Prod SSH Terminal',
+      sshHostObjectKey: 'hosts/prod',
+      targetKind: TerminalTargetKind.SSH_HOST,
+      state: TerminalSessionState.FAILED,
+      status: 'failed to connect',
+      error:
+        'ssh: handshake failed: unable to authenticate, attempted methods [none password]',
+      cols: 80,
+      rows: 24,
+    }
+    h.serverFrames = [
+      {
+        kind: TerminalFrameKind.ERROR,
+        error:
+          'ssh: handshake failed: unable to authenticate, attempted methods [none password]',
+      },
+    ]
+
+    const { unmount } = render(
+      <TerminalViewer
+        objectInfo={{
+          info: {
+            case: 'worldObjectInfo',
+            value: {
+              objectKey: 'terminal/prod-ssh',
+              objectType: 'spacewave/terminal',
+            },
+          },
+        }}
+        worldState={{
+          value: null,
+          loading: false,
+          error: null,
+          retry: vi.fn(),
+        }}
+      />,
+    )
+
+    await screen.findByText('Terminal session failed')
+    expect(
+      screen.getAllByText(
+        'The SSH host rejected the username or credentials. Check the host settings, then retry.',
+      ),
+    ).toHaveLength(1)
+    expect(screen.queryByText(/unable to authenticate/i)).toBeNull()
+    expect(h.connectCalls).toBe(1)
+
+    h.serverFrames = []
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+    await vi.waitFor(() => expect(h.connectCalls).toBe(2))
+    await vi.waitFor(() => expect(h.write).toHaveBeenCalledWith('ready\n'))
     unmount()
   })
 })

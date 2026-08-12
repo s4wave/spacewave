@@ -114,6 +114,7 @@ vi.mock('@xterm/addon-fit', () => ({
 
 import {
   TerminalPane,
+  safeTerminalFailureDetail,
   type TerminalPaneConnector,
   type TerminalPaneProps,
 } from './TerminalPane.js'
@@ -251,7 +252,8 @@ describe('TerminalPane', () => {
       [
         {
           kind: TerminalFrameKind.ERROR,
-          error: 'permission denied',
+          error:
+            'ssh: handshake failed: ssh: unable to authenticate, attempted methods [none password], no supported methods remain',
         },
       ],
       false,
@@ -262,7 +264,7 @@ describe('TerminalPane', () => {
       expect(screen.getByText('CLI session failed')).toBeDefined()
       expect(
         screen.getByText(
-          'The terminal session could not start. Try again from the owning surface.',
+          'The SSH host rejected the username or credentials. Check the host settings, then retry.',
         ),
       ).toBeDefined()
     })
@@ -399,5 +401,100 @@ describe('TerminalPane', () => {
     expect(closeIndex).toBeLessThan(h.events.indexOf('rpc.abort'))
     expect(h.inputDispose).toHaveBeenCalled()
     expect(h.dispose).toHaveBeenCalled()
+  })
+  it.each([
+    [
+      'ssh: handshake failed: ssh: unable to authenticate, attempted methods [none password], no supported methods remain',
+      'The SSH host rejected the username or credentials. Check the host settings, then retry.',
+    ],
+    [
+      'dial tcp 10.0.0.8:22: connect: connection refused',
+      'The SSH host refused the connection. Check that SSH is running and the host and port are correct.',
+    ],
+    [
+      'dial tcp: lookup host.internal: no such host',
+      'The terminal session could not start. Check the host settings, then retry.',
+    ],
+    [
+      'permission denied while reading object',
+      'The terminal session could not start. Check the host settings, then retry.',
+    ],
+  ])('safely classifies SSH producer failure %s', (raw, expected) => {
+    expect(safeTerminalFailureDetail(raw)).toBe(expected)
+  })
+
+  it('lets an explicit retry callback replace the local reconnect', async () => {
+    const onRetry = vi.fn()
+    const connectTerminal = vi.fn<TerminalPaneConnector>(() =>
+      terminalFrames(
+        [{ kind: TerminalFrameKind.ERROR, error: 'connection refused' }],
+        false,
+      ),
+    )
+    render(<TerminalPane connectTerminal={connectTerminal} onRetry={onRetry} />)
+
+    await screen.findByText('CLI session failed')
+    screen.getByRole('button', { name: 'Retry' }).click()
+
+    expect(onRetry).toHaveBeenCalledOnce()
+    await Promise.resolve()
+    expect(connectTerminal).toHaveBeenCalledOnce()
+  })
+
+  it('starts only one connector under StrictMode', async () => {
+    const connectTerminal = vi.fn<TerminalPaneConnector>(() =>
+      terminalFrames([], true),
+    )
+    render(
+      <React.StrictMode>
+        <TerminalPane connectTerminal={connectTerminal} />
+      </React.StrictMode>,
+    )
+
+    await vi.waitFor(() => expect(connectTerminal).toHaveBeenCalledOnce())
+  })
+  it('waits for CLOSE delivery and abort before starting a retry connector', async () => {
+    let releaseClose!: () => void
+    const closeReleased = new Promise<void>((resolve) => {
+      releaseClose = resolve
+    })
+    let calls = 0
+    const connectTerminal: TerminalPaneConnector = (frames, signal) => {
+      calls += 1
+      h.events.push(`connect.${calls}`)
+      signal.addEventListener('abort', () => h.events.push(`abort.${calls}`))
+      void (async () => {
+        const iterator = frames[Symbol.asyncIterator]()
+        if (calls === 1) await closeReleased
+        for (;;) {
+          const next = await iterator.next()
+          if (next.done || signal.aborted) return
+          h.clientFrames.push(next.value)
+          if (next.value.kind === TerminalFrameKind.CLOSE) {
+            h.events.push('client.close')
+            h.resolveClose()
+          }
+        }
+      })()
+      return terminalFrames(
+        [{ kind: TerminalFrameKind.ERROR, error: 'connection refused' }],
+        false,
+      )
+    }
+    render(<TerminalPane connectTerminal={connectTerminal} />)
+
+    await screen.findByText('CLI session failed')
+    screen.getByRole('button', { name: 'Retry' }).click()
+    await Promise.resolve()
+    expect(h.events).toEqual(['connect.1'])
+
+    releaseClose()
+    await vi.waitFor(() => expect(h.events).toContain('connect.2'))
+    expect(h.events.indexOf('client.close')).toBeLessThan(
+      h.events.indexOf('abort.1'),
+    )
+    expect(h.events.indexOf('abort.1')).toBeLessThan(
+      h.events.indexOf('connect.2'),
+    )
   })
 })
