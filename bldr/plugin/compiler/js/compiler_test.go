@@ -9,12 +9,15 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	"github.com/aperturerobotics/controllerbus/controller/configset"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	directivecontroller "github.com/aperturerobotics/controllerbus/directive/controller"
 	starpc_mock "github.com/aperturerobotics/starpc/mock"
 	"github.com/aperturerobotics/util/promise"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -219,60 +222,111 @@ func TestPluginCompilerJs(t *testing.T) {
 	le.Infof("plugin successfully called host rpc with message: %v", string(calledMsgDat))
 }
 
-func TestPluginCompilerJsOwnsWorkingPathDuringBuild(t *testing.T) {
-	ctrl, err := bldr_plugin_compiler_js.NewController(logrus.NewEntry(logrus.New()), nil, &bldr_plugin_compiler_js.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	workDir := t.TempDir()
-	args := &bldr_manifest_builder.BuildManifestArgs{
-		BuilderConfig: &bldr_manifest_builder.BuilderConfig{
-			ManifestMeta:   bldr_manifest.NewManifestMeta("test-plugin", bldr_manifest.BuildType_DEV, "js", 1),
-			SourcePath:     t.TempDir(),
-			DistSourcePath: t.TempDir(),
-			WorkingPath:    workDir,
-		},
-	}
-	buildStarted := make(chan struct{})
-	continueBuild := make(chan struct{})
-	sentinelErr := errors.New("stop after working-directory ownership check")
-	ctrl.AddPreBuildHook(func(
-		_ context.Context,
-		builderConf *bldr_manifest_builder.BuilderConfig,
-		_ world.Engine,
-	) (*bldr_plugin_compiler_js.PreBuildHookResult, error) {
-		close(buildStarted)
-		<-continueBuild
-		if err := os.WriteFile(filepath.Join(builderConf.GetWorkingPath(), "marker"), []byte("builder-owned"), 0o644); err != nil {
-			return nil, err
+func TestPluginCompilerJsReleaseWaitsForAdmittedBuild(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		le := logrus.NewEntry(logrus.New())
+		dc := directivecontroller.NewController(t.Context(), le)
+		b := inmem.NewBus(dc)
+		ctrl, err := bldr_plugin_compiler_js.NewController(le, b, &bldr_plugin_compiler_js.Config{})
+		if err != nil {
+			t.Fatal(err)
 		}
-		return nil, sentinelErr
+		release, err := b.AddController(t.Context(), ctrl, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		workDir := t.TempDir()
+		args := &bldr_manifest_builder.BuildManifestArgs{
+			BuilderConfig: &bldr_manifest_builder.BuilderConfig{
+				ManifestMeta:   bldr_manifest.NewManifestMeta("test-plugin", bldr_manifest.BuildType_DEV, "js", 1),
+				SourcePath:     t.TempDir(),
+				DistSourcePath: t.TempDir(),
+				WorkingPath:    workDir,
+			},
+		}
+		buildStarted := make(chan struct{})
+		continueBuild := make(chan struct{})
+		sentinelErr := errors.New("stop after release ordering check")
+		ctrl.AddPreBuildHook(func(
+			_ context.Context,
+			builderConf *bldr_manifest_builder.BuilderConfig,
+			_ world.Engine,
+		) (*bldr_plugin_compiler_js.PreBuildHookResult, error) {
+			close(buildStarted)
+			<-continueBuild
+			if err := os.WriteFile(filepath.Join(builderConf.GetWorkingPath(), "marker"), []byte("configured-path"), 0o644); err != nil {
+				return nil, err
+			}
+			return nil, sentinelErr
+		})
+
+		buildErr := make(chan error, 1)
+		go func() {
+			_, err := ctrl.BuildManifest(t.Context(), args, nil)
+			buildErr <- err
+		}()
+		<-buildStarted
+
+		releaseReturned := make(chan struct{})
+		go func() {
+			release()
+			close(releaseReturned)
+		}()
+		synctest.Wait()
+		releasedEarly := false
+		select {
+		case <-releaseReturned:
+			releasedEarly = true
+		default:
+		}
+		secondCloseReturned := make(chan struct{})
+		go func() {
+			_ = ctrl.Close()
+			close(secondCloseReturned)
+		}()
+		synctest.Wait()
+		select {
+		case <-secondCloseReturned:
+			t.Fatal("concurrent Close returned before the admitted build finished")
+		default:
+		}
+
+		close(continueBuild)
+		synctest.Wait()
+		if err := <-buildErr; !errors.Is(err, sentinelErr) {
+			t.Fatalf("BuildManifest error = %v, want sentinel", err)
+		}
+		select {
+		case <-releaseReturned:
+		default:
+			t.Fatal("controller release did not return after the admitted build finished")
+		}
+		select {
+		case <-secondCloseReturned:
+		default:
+			t.Fatal("concurrent Close did not return after the admitted build finished")
+		}
+		marker, err := os.ReadFile(filepath.Join(workDir, "marker"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(marker) != "configured-path" {
+			t.Fatalf("marker = %q, want configured-path", marker)
+		}
+		if releasedEarly {
+			t.Error("controller release returned before the admitted build finished")
+		}
+		if _, err := ctrl.BuildManifest(t.Context(), args, nil); err == nil || err.Error() != "js compiler is closed" {
+			t.Fatalf("BuildManifest after release error = %v, want closed", err)
+		}
+		if err := os.RemoveAll(workDir); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(workDir); !os.IsNotExist(err) {
+			t.Fatalf("configured working path still exists after removal: %v", err)
+		}
 	})
-
-	buildErr := make(chan error, 1)
-	go func() {
-		_, err := ctrl.BuildManifest(context.Background(), args, nil)
-		buildErr <- err
-	}()
-
-	<-buildStarted
-	if err := os.RemoveAll(workDir); err != nil {
-		t.Fatal(err)
-	}
-	close(continueBuild)
-
-	select {
-	case err := <-buildErr:
-		if !errors.Is(err, sentinelErr) {
-			t.Fatalf("BuildManifest error = %v, want sentinel after builder-owned write", err)
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("BuildManifest did not finish after releasing the build seam")
-	}
-	if err := ctrl.Close(); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func TestPluginCompilerJsStartupCacheRequiresStaticInputs(t *testing.T) {
