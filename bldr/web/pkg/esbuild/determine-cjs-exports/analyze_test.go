@@ -1,12 +1,21 @@
 package determine_cjs_exports
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
 	"sort"
 	"testing"
+	"time"
 )
+
+func TestCjsExportsResultRetainsFiveFieldCompositeShape(t *testing.T) {
+	result := CjsExportsResult{"pkg", true, []string{"named"}, "error", "stack"}
+	if result.Reexport != "pkg" || !result.ExportDefault || len(result.Exports) != 1 || result.Error != "error" || result.Stack != "stack" {
+		t.Fatalf("unexpected unkeyed result: %#v", result)
+	}
+}
 
 func TestAnalyzeCjsExports_JSON(t *testing.T) {
 	// Create a temp directory with a JSON file.
@@ -66,12 +75,20 @@ if (process.env.NODE_ENV !== "production") {
 		t.Fatal(err)
 	}
 
-	prodResult, err := AnalyzeCjsExports(dir, "./index.js", nil, "production")
+	prodResult, prodSources, err := AnalyzeCjsExportsWithProvenance(dir, "./index.js", nil, "production")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Contains(prodResult.Exports, "prodOnly") || slices.Contains(prodResult.Exports, "devOnly") {
 		t.Fatalf("unexpected production exports: %v", prodResult.Exports)
+	}
+	canonicalDir, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantProdSources := []string{filepath.Join(canonicalDir, "index.js"), filepath.Join(canonicalDir, "prod.js")}
+	if !slices.Equal(prodSources, wantProdSources) {
+		t.Fatalf("unexpected production sources: got %v want %v", prodSources, wantProdSources)
 	}
 
 	devResult, err := AnalyzeCjsExports(dir, "./index.js", nil, "development")
@@ -200,5 +217,159 @@ func TestResolveModule_BarePackage(t *testing.T) {
 	expected := filepath.Join(libDir, "index.js")
 	if resolved != expected {
 		t.Fatalf("expected %s, got %s", expected, resolved)
+	}
+}
+
+func TestAnalyzeCjsExportsPackageMainProvenance(t *testing.T) {
+	dir := t.TempDir()
+	pkgDir := filepath.Join(dir, "node_modules", "redirect-pkg")
+	if err := os.MkdirAll(pkgDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	packageJSON := filepath.Join(pkgDir, "package.json")
+	first := filepath.Join(pkgDir, "first.js")
+	second := filepath.Join(pkgDir, "second.js")
+	if err := os.WriteFile(first, []byte("exports.first = true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(second, []byte("exports.second = true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(packageJSON, []byte(`{"main":"first.js"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	firstResult, firstSources, err := AnalyzeCjsExportsWithProvenance(dir, "redirect-pkg", nil, "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(packageJSON, []byte(`{"main":"second.js"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	secondResult, secondSources, err := AnalyzeCjsExportsWithProvenance(dir, "redirect-pkg", nil, "production")
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonicalPackageJSON, err := filepath.EvalSymlinks(packageJSON)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(firstSources, canonicalPackageJSON) || !slices.Contains(secondSources, canonicalPackageJSON) {
+		t.Fatalf("package manifest missing from provenance: first=%v second=%v", firstSources, secondSources)
+	}
+	if !slices.Contains(firstResult.Exports, "first") || !slices.Contains(secondResult.Exports, "second") {
+		t.Fatalf("package main redirect did not change exports: first=%v second=%v", firstResult.Exports, secondResult.Exports)
+	}
+}
+
+func TestResolveModuleProvenancePreservesPrimaryBareError(t *testing.T) {
+	dir := t.TempDir()
+	failedNodePath := filepath.Join(dir, "extra", "node_modules")
+	failedPkg := filepath.Join(failedNodePath, "missing-package")
+	if err := os.MkdirAll(failedPkg, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(failedPkg, "package.json"), []byte(`{"main":"also-missing.js"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := ResolveModuleWithProvenance(dir, "missing-package", []string{failedNodePath})
+	var notFound *ModuleNotFoundError
+	if !errors.As(err, &notFound) {
+		t.Fatalf("resolution error = %v, want ModuleNotFoundError", err)
+	}
+	if notFound.Path != "missing-package" {
+		t.Fatalf("unresolved path = %q, want primary import", notFound.Path)
+	}
+}
+
+func TestResolveModulePreservesAbsentAbsoluteExtension(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "absent.js")
+	resolved, err := ResolveModule(t.TempDir(), path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved != path {
+		t.Fatalf("resolved path = %q, want %q", resolved, path)
+	}
+	provenanceResolved, provenance, err := ResolveModuleWithProvenance(t.TempDir(), path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if provenanceResolved != path || len(provenance) != 0 {
+		t.Fatalf("provenance resolution = %q %v, want absent path and no manifests", provenanceResolved, provenance)
+	}
+}
+
+func TestResolveModuleProvenanceIncludesFailedPackageCandidates(t *testing.T) {
+	dir := t.TempDir()
+	failedNodePath := filepath.Join(dir, "failed", "node_modules")
+	goodNodePath := filepath.Join(dir, "good", "node_modules")
+	failedPkg := filepath.Join(failedNodePath, "candidate")
+	goodPkg := filepath.Join(goodNodePath, "candidate")
+	for _, pkg := range []string{failedPkg, goodPkg} {
+		if err := os.MkdirAll(pkg, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	failedManifest := filepath.Join(failedPkg, "package.json")
+	goodManifest := filepath.Join(goodPkg, "package.json")
+	if err := os.WriteFile(failedManifest, []byte(`{"main":"missing.js"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(goodManifest, []byte(`{"main":"index.js"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(goodPkg, "index.js"), []byte("exports.ok = true\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, provenance, err := ResolveModuleWithProvenance(filepath.Join(dir, "source"), "candidate", []string{failedNodePath, goodNodePath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonicalFailed, err := filepath.EvalSymlinks(failedManifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonicalGood, err := filepath.EvalSymlinks(goodManifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{canonicalFailed, canonicalGood}
+	if !slices.Equal(provenance, want) {
+		t.Fatalf("resolution provenance = %v, want %v", provenance, want)
+	}
+}
+
+func TestAnalyzeCjsExportsRelativeReexportCycles(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		files map[string]string
+	}{
+		{name: "self", files: map[string]string{"a.js": `module.exports = require("./a.js")`}},
+		{name: "two-file", files: map[string]string{
+			"a.js": `module.exports = require("./b.js")`,
+			"b.js": `module.exports = require("./a.js")`,
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			dir := t.TempDir()
+			for name, content := range test.files {
+				if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			done := make(chan error, 1)
+			go func() {
+				_, err := AnalyzeCjsExports(dir, "./a.js", nil, "production")
+				done <- err
+			}()
+			select {
+			case err := <-done:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-time.After(time.Second):
+				t.Fatal("cyclic CJS reexport analysis did not terminate")
+			}
+		})
 	}
 }

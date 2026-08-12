@@ -9,180 +9,164 @@ import (
 	"github.com/aperturerobotics/fastjson"
 )
 
-// resolveExtensions is the ordered list of extensions to try when resolving.
 var resolveExtensions = []string{".cjs", ".js", ".json", ".node", ".es"}
 
+type moduleResolver struct {
+	manifests []string
+}
+
 // ResolveModule resolves a module import path to an absolute file path.
-// baseDir is the directory to resolve from (for relative imports).
-// importPath is the import specifier (e.g., "./lib", "react", "/abs/path.js").
 func ResolveModule(baseDir, importPath string) (string, error) {
-	// Absolute path with supported extension: return directly.
-	if strings.HasPrefix(importPath, "/") {
-		if hasExtension(importPath) {
-			return importPath, nil
-		}
-		return resolveFile(importPath)
-	}
-
-	// Relative path: resolve relative to baseDir.
-	if strings.HasPrefix(importPath, "./") || strings.HasPrefix(importPath, "../") {
-		abs := filepath.Join(baseDir, importPath)
-		return resolveFile(abs)
-	}
-
-	// Bare specifier: walk up looking for node_modules.
-	return resolveBarePath(baseDir, importPath)
+	return new(moduleResolver).resolveModule(baseDir, importPath)
 }
 
 // ResolveModuleWithNodePaths resolves a module, trying extra node paths if needed.
 func ResolveModuleWithNodePaths(baseDir, importPath string, nodePaths []string) (string, error) {
-	resolved, err := ResolveModule(baseDir, importPath)
-	if err == nil {
-		return resolved, nil
-	}
+	resolved, _, err := ResolveModuleWithProvenance(baseDir, importPath, nodePaths)
+	return resolved, err
+}
 
-	// Try each extra node path as a base directory for bare specifiers.
-	if !strings.HasPrefix(importPath, "./") && !strings.HasPrefix(importPath, "../") && !strings.HasPrefix(importPath, "/") {
-		for _, np := range nodePaths {
-			// nodePaths entries are node_modules directories themselves.
-			pkgDir := filepath.Join(np, importPath)
-			resolved, tryErr := resolvePackageDir(pkgDir)
-			if tryErr == nil {
-				return resolved, nil
+// ResolveModuleWithProvenance resolves a module and reports package manifests consulted during resolution.
+func ResolveModuleWithProvenance(baseDir, importPath string, nodePaths []string) (string, []string, error) {
+	r := new(moduleResolver)
+	resolved, err := r.resolveModule(baseDir, importPath)
+	primaryErr := err
+	if err != nil && !isRelativeOrAbsoluteImport(importPath) {
+		for _, nodePath := range nodePaths {
+			resolved, err = r.resolvePackageDir(filepath.Join(nodePath, importPath))
+			if err == nil {
+				break
 			}
 		}
-	}
-
-	return "", err
-}
-
-// resolveFile tries to resolve a path as a file or directory.
-func resolveFile(abs string) (string, error) {
-	// Try exact path.
-	if isFile(abs) {
-		return abs, nil
-	}
-
-	// Try with each extension.
-	for _, ext := range resolveExtensions {
-		p := abs + ext
-		if isFile(p) {
-			return p, nil
+		if err != nil {
+			err = primaryErr
 		}
 	}
-
-	// Try as directory with index file.
-	return resolveIndex(abs)
+	for i, manifest := range r.manifests {
+		if canonical, canonicalErr := filepath.EvalSymlinks(manifest); canonicalErr == nil {
+			r.manifests[i] = canonical
+		}
+	}
+	slices.Sort(r.manifests)
+	return resolved, slices.Compact(r.manifests), err
 }
 
-// resolveIndex tries to resolve a directory by looking for index files.
-func resolveIndex(dir string) (string, error) {
+func (r *moduleResolver) resolveModule(baseDir, importPath string) (string, error) {
+	if filepath.IsAbs(importPath) {
+		if hasExtension(importPath) {
+			return importPath, nil
+		}
+		return r.resolveFile(importPath)
+	}
+	if strings.HasPrefix(importPath, "./") || strings.HasPrefix(importPath, "../") {
+		return r.resolveFile(filepath.Join(baseDir, importPath))
+	}
+	return r.resolveBarePath(baseDir, importPath)
+}
+
+func (r *moduleResolver) resolveFile(candidate string) (string, error) {
+	if isFile(candidate) {
+		return candidate, nil
+	}
 	for _, ext := range resolveExtensions {
-		p := filepath.Join(dir, "index"+ext)
-		if isFile(p) {
-			return p, nil
+		path := candidate + ext
+		if isFile(path) {
+			return path, nil
+		}
+	}
+	return r.resolveIndex(candidate)
+}
+
+func (r *moduleResolver) resolveIndex(dir string) (string, error) {
+	for _, ext := range resolveExtensions {
+		path := filepath.Join(dir, "index"+ext)
+		if isFile(path) {
+			return path, nil
 		}
 	}
 	return "", &ModuleNotFoundError{Path: dir}
 }
 
-// resolveBarePath resolves a bare module specifier by walking up node_modules.
-func resolveBarePath(baseDir, importPath string) (string, error) {
-	dir := baseDir
-	for {
-		nmDir := filepath.Join(dir, "node_modules")
-		if isDir(nmDir) {
-			pkgDir := filepath.Join(nmDir, importPath)
-			resolved, err := resolvePackageDir(pkgDir)
+func (r *moduleResolver) resolveBarePath(baseDir, importPath string) (string, error) {
+	for dir := baseDir; ; dir = filepath.Dir(dir) {
+		nodeModules := filepath.Join(dir, "node_modules")
+		if isDir(nodeModules) {
+			resolved, err := r.resolvePackageDir(filepath.Join(nodeModules, importPath))
 			if err == nil {
 				return resolved, nil
 			}
 		}
-
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			break
 		}
-		dir = parent
 	}
 	return "", &ModuleNotFoundError{Path: importPath}
 }
 
-// resolvePackageDir resolves a package directory using package.json main field.
-func resolvePackageDir(pkgDir string) (string, error) {
-	// If pkgDir is actually a file (or resolvable as one), use it directly.
-	if isFile(pkgDir) {
-		return pkgDir, nil
+func (r *moduleResolver) resolvePackageDir(packageDir string) (string, error) {
+	if isFile(packageDir) {
+		return packageDir, nil
 	}
 	for _, ext := range resolveExtensions {
-		p := pkgDir + ext
-		if isFile(p) {
-			return p, nil
+		path := packageDir + ext
+		if isFile(path) {
+			return path, nil
 		}
 	}
 
-	// Read package.json for main field.
-	pkgJSON := filepath.Join(pkgDir, "package.json")
-	if isFile(pkgJSON) {
-		main, err := readPackageMain(pkgJSON)
+	packageJSON := filepath.Join(packageDir, "package.json")
+	if isFile(packageJSON) {
+		r.manifests = append(r.manifests, packageJSON)
+		main, err := readPackageMain(packageJSON)
 		if err == nil && main != "" {
-			resolved, err := resolveFile(filepath.Join(pkgDir, main))
-			if err == nil {
+			if resolved, resolveErr := r.resolveFile(filepath.Join(packageDir, main)); resolveErr == nil {
 				return resolved, nil
 			}
 		}
 	}
-
-	// Fall back to index files.
-	return resolveIndex(pkgDir)
+	return r.resolveIndex(packageDir)
 }
 
-// readPackageMain reads the "main" field from a package.json file.
+func isRelativeOrAbsoluteImport(importPath string) bool {
+	return filepath.IsAbs(importPath) || strings.HasPrefix(importPath, "./") || strings.HasPrefix(importPath, "../")
+}
+
 func readPackageMain(path string) (string, error) {
 	// #nosec G703 -- path is resolved from the package graph under analysis, not user input.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
-	var p fastjson.Parser
-	v, err := p.ParseBytes(data)
+	var parser fastjson.Parser
+	value, err := parser.ParseBytes(data)
 	if err != nil {
 		return "", err
 	}
-	return string(v.GetStringBytes("main")), nil
+	return string(value.GetStringBytes("main")), nil
 }
 
-// hasExtension checks if the path has one of the supported extensions.
-func hasExtension(p string) bool {
-	ext := filepath.Ext(p)
-	return slices.Contains(resolveExtensions, ext)
+func hasExtension(path string) bool {
+	return slices.Contains(resolveExtensions, filepath.Ext(path))
 }
 
-// isFile checks if the path is a regular file.
-func isFile(p string) bool {
-	// #nosec G703 -- p is resolved from the package graph under analysis, not user input.
-	info, err := os.Stat(p)
-	if err != nil {
-		return false
-	}
-	return !info.IsDir()
+func isFile(path string) bool {
+	// #nosec G703 -- path is resolved from the package graph under analysis, not user input.
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
 
-// isDir checks if the path is a directory.
-func isDir(p string) bool {
-	info, err := os.Stat(p)
-	if err != nil {
-		return false
-	}
-	return info.IsDir()
+func isDir(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
 }
 
-// ModuleNotFoundError is returned when a module cannot be resolved.
+// ModuleNotFoundError reports the unresolved import path.
 type ModuleNotFoundError struct {
 	Path string
 }
 
-// Error returns the error message.
+// Error returns the unresolved-module message.
 func (e *ModuleNotFoundError) Error() string {
 	return "cannot resolve module: " + e.Path
 }
