@@ -206,15 +206,36 @@ function waitForAbort(signal: AbortSignal): Promise<void> {
   })
 }
 
-function requireResourceRef(
-  parent: ClientResourceRef,
-  resourceId: number | undefined,
-  label: string,
-): ClientResourceRef {
-  if (!resourceId) {
-    throw new Error(label + ' registration did not return a resource id')
+class RetainedRegistrationRefs {
+  private readonly refs: ClientResourceRef[] = []
+  private released = false
+
+  retain(ref: ClientResourceRef): void {
+    if (this.released) {
+      ref.release()
+      return
+    }
+    this.refs.push(ref)
   }
-  return parent.createRef(resourceId)
+
+  retainChild(
+    parent: ClientResourceRef,
+    resourceId: number | undefined,
+    label: string,
+  ): void {
+    if (!resourceId) {
+      throw new Error(label + ' registration did not return a resource id')
+    }
+    this.retain(parent.createRef(resourceId))
+  }
+
+  release(): void {
+    if (this.released) return
+    this.released = true
+    for (let i = this.refs.length - 1; i >= 0; --i) {
+      this.refs[i].release()
+    }
+  }
 }
 
 // definePlugin builds a Bldr backend entrypoint from ObjectType and viewer declarations.
@@ -253,15 +274,13 @@ export function definePlugin<
       return Promise.resolve()
     })
 
-    const refs: ClientResourceRef[] = []
+    const registrations = new RetainedRegistrationRefs()
     let released = false
     const release = () => {
       if (released) return
       released = true
       api.handleStreamCtr.set(undefined)
-      for (let i = refs.length - 1; i >= 0; --i) {
-        refs[i].release()
-      }
+      registrations.release()
     }
     signal.addEventListener('abort', release, { once: true })
 
@@ -273,7 +292,7 @@ export function definePlugin<
 
         if (objectTypes.length > 0) {
           const hostRoot = await api.resourceClient.accessRootResource()
-          refs.push(hostRoot)
+          registrations.retain(hostRoot)
           const host = new PluginHostResourceServiceClient(hostRoot.client)
           await Promise.all(
             objectTypes.map(async (declaration) => {
@@ -281,12 +300,10 @@ export function definePlugin<
                 { typeId: declaration.typeId, metadata: declaration.metadata },
                 signal,
               )
-              refs.push(
-                requireResourceRef(
-                  hostRoot,
-                  response.resourceId,
-                  declaration.typeId + ' object type',
-                ),
+              registrations.retainChild(
+                hostRoot,
+                response.resourceId,
+                declaration.typeId + ' object type',
               )
             }),
           )
@@ -301,7 +318,7 @@ export function definePlugin<
             signal,
           )
           const coreRoot = await resourcesClient.accessRootResource()
-          refs.push(coreRoot)
+          registrations.retain(coreRoot)
           const registry = new ViewerRegistryResourceServiceClient(
             coreRoot.client,
           )
@@ -311,12 +328,10 @@ export function definePlugin<
                 { registration: viewer },
                 signal,
               )
-              refs.push(
-                requireResourceRef(
-                  coreRoot,
-                  response.resourceId,
-                  viewer.componentId + ' viewer',
-                ),
+              registrations.retainChild(
+                coreRoot,
+                response.resourceId,
+                viewer.componentId + ' viewer',
               )
             }),
           )

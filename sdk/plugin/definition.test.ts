@@ -13,6 +13,10 @@ const fakes = vi.hoisted(() => ({
   coreRoot: undefined as FakeRef | undefined,
   nextObjectResourceId: 10,
   nextViewerResourceId: 20,
+  registerObjectType: undefined as
+    | ((typeId: string) => Promise<{ resourceId: number }>)
+    | undefined,
+  onRelease: undefined as ((label: string) => void) | undefined,
 }))
 
 vi.mock(
@@ -20,7 +24,9 @@ vi.mock(
   () => ({
     PluginHostResourceServiceClient: class {
       async RegisterObjectType(request: { typeId?: string }) {
-        fakes.events.push('object:' + request.typeId)
+        const typeId = request.typeId ?? ''
+        fakes.events.push('object:' + typeId)
+        if (fakes.registerObjectType) return fakes.registerObjectType(typeId)
         return { resourceId: fakes.nextObjectResourceId }
       }
     },
@@ -83,6 +89,7 @@ class FakeRef implements ClientResourceRef {
     if (this.released) return
     this.released = true
     fakes.events.push('release:' + this.label)
+    fakes.onRelease?.(this.label)
   }
 
   [Symbol.dispose](): void {
@@ -122,6 +129,8 @@ describe('definePlugin', () => {
     fakes.coreRoot = new FakeRef(2, 'core-root')
     fakes.nextObjectResourceId = 10
     fakes.nextViewerResourceId = 20
+    fakes.registerObjectType = undefined
+    fakes.onRelease = undefined
   })
 
   it('completes empty declaration startup without opening registration roots', async () => {
@@ -203,6 +212,72 @@ describe('definePlugin', () => {
     expect(api.handleStreamCtr.value).toBeUndefined()
     controller.abort()
     await result.done
+  })
+
+  it('immediately releases a sibling registration that resolves after failure', async () => {
+    const late = Promise.withResolvers<{ resourceId: number }>()
+    fakes.registerObjectType = (typeId) => {
+      if (typeId === 'example/failing') {
+        return Promise.reject(new Error('registration failed'))
+      }
+      return late.promise
+    }
+    const controller = new AbortController()
+    const result = lifecycle(
+      definePlugin({
+        objectTypes: [
+          {
+            typeId: 'example/late',
+            service: SqlQueryResourceServiceDefinition,
+            create: sqlHandler,
+          },
+          {
+            typeId: 'example/failing',
+            service: SqlQueryResourceServiceDefinition,
+            create: sqlHandler,
+          },
+        ],
+      })(backendAPI(fakes.hostRoot!), controller.signal),
+    )
+
+    await expect(result.startup).rejects.toThrow('registration failed')
+    const released = Promise.withResolvers<void>()
+    fakes.onRelease = (label) => {
+      if (label === 'host-root:12') released.resolve()
+    }
+    late.resolve({ resourceId: 12 })
+    await released.promise
+
+    expect(fakes.events).toContain('retain:host-root:12')
+    expect(fakes.events).toContain('release:host-root:12')
+    controller.abort()
+    await result.done
+  })
+
+  it('immediately releases a registration that resolves after abort', async () => {
+    const late = Promise.withResolvers<{ resourceId: number }>()
+    fakes.registerObjectType = () => late.promise
+    const controller = new AbortController()
+    const result = lifecycle(
+      definePlugin({
+        objectTypes: [
+          {
+            typeId: 'example/late',
+            service: SqlQueryResourceServiceDefinition,
+            create: sqlHandler,
+          },
+        ],
+      })(backendAPI(fakes.hostRoot!), controller.signal),
+    )
+
+    controller.abort()
+    late.resolve({ resourceId: 13 })
+    await result.startup
+    await result.done
+
+    expect(fakes.events).toContain('retain:host-root:13')
+    expect(fakes.events).toContain('release:host-root:13')
+    expect(fakes.hostRoot!.released).toBe(true)
   })
 })
 
