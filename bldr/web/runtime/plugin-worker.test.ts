@@ -155,6 +155,36 @@ describe('PluginWorker startup shutdown', () => {
     expect(global.close).not.toHaveBeenCalled()
   })
 
+  test('reports startup errors by lifecycle state instead of message text', async () => {
+    vi.useFakeTimers()
+    const global = new FakeDedicatedWorkerGlobal()
+    vi.stubGlobal('navigator', {})
+    const worker = new PluginWorker(
+      global as unknown as DedicatedWorkerGlobalScope,
+      vi.fn(),
+      null,
+    )
+    vi.spyOn(worker.webDocumentTracker, 'waitConn').mockRejectedValue(
+      new Error('closed while waiting for WebDocument'),
+    )
+    const postMessage = vi.spyOn(worker.webDocumentTracker, 'postMessage')
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    global.dispatchMessage({
+      initData: new TextEncoder().encode(btoa('{}')),
+    })
+    await vi.waitFor(() =>
+      expect(postMessage).toHaveBeenCalledWith({
+        from: 'plugin/spacewave-core',
+        close: true,
+        failureReason: 'closed while waiting for WebDocument',
+      }),
+    )
+
+    await vi.runAllTimersAsync()
+    expect(global.close).toHaveBeenCalledOnce()
+  })
+
   test('reports one runtime failure close before idempotent shutdown', async () => {
     vi.useFakeTimers()
     const global = new FakeDedicatedWorkerGlobal()
