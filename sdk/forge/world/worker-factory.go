@@ -114,7 +114,8 @@ type forgeWorkerResource struct {
 // Execute implements SRPCPersistentExecutionServiceServer.
 // Sends RUNNING status, registers forge controller factories on the bus,
 // starts the forge WorkerController which discovers assigned objects and
-// starts Cluster/Task/Pass/Execution controllers, then blocks until canceled.
+// starts Cluster/Task/Pass/Execution controllers, then serves until the stream
+// is canceled or the WorkerController exits.
 func (r *forgeWorkerResource) Execute(
 	req *s4wave_process.ExecuteRequest,
 	stream s4wave_process.SRPCPersistentExecutionService_ExecuteStream,
@@ -163,13 +164,13 @@ func (r *forgeWorkerResource) Execute(
 
 	// Start the forge WorkerController which watches the world for objects
 	// assigned to this worker's keypairs and starts the appropriate controller
-	// for each (Cluster, Task, Pass, Execution).
+	// for each (Cluster, Task, Pass, Execution). A controller exit ends this
+	// stream so the process lifecycle can restart the Worker.
 	workerConf := worker_controller.NewConfig(r.engineID, r.objectKey, r.peerID, true)
 	workerCtrl := worker_controller.NewController(le, r.b, workerConf)
+	workerExited := make(chan error, 1)
 	workerRelease, err := r.b.AddController(ctx, workerCtrl, func(exitErr error) {
-		if exitErr != nil && exitErr != context.Canceled {
-			le.WithError(exitErr).Warn("forge worker controller exited")
-		}
+		workerExited <- exitErr
 	})
 	if err != nil {
 		return errors.Wrap(err, "add forge worker controller")
@@ -185,6 +186,11 @@ func (r *forgeWorkerResource) Execute(
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case exitErr := <-workerExited:
+			if exitErr == nil {
+				return errors.New("forge worker controller exited")
+			}
+			return errors.Wrap(exitErr, "forge worker controller")
 		case <-ticker.C:
 			if err := stream.Send(&s4wave_process.ExecuteStatus{
 				State: s4wave_process.ExecutionState_ExecutionState_RUNNING,
