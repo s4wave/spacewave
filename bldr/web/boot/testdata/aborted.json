@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "reportId": "fixture-report",
+  "startedUnixMicros": "1786400000000000",
+  "monotonicOriginUnixMicros": "1786400000000000",
+  "entrypointId": "drive",
+  "usableMark": "content-ready",
+  "state": 4,
+  "terminalMark": "boot.aborted",
+  "terminalMonotonicMicros": "60000",
+  "build": {
+    "commit": "858f3b3e7",
+    "releaseGeneration": "fixture",
+    "projectId": "spacewave",
+    "buildType": 2,
+    "runtimeKind": 1,
+    "workerMode": 1
+  },
+  "environment": {
+    "class": 1,
+    "browserEngine": "chromium",
+    "browserMajor": 140,
+    "osFamily": "linux",
+    "architecture": "amd64",
+    "serviceWorkerState": 4,
+    "cacheState": 1,
+    "recoveryDecision": 1
+  },
+  "marks": [
+    {
+      "sequence": "1",
+      "label": "boot.started",
+      "sourceOwner": "fixture",
+      "phase": 1
+    },
+    {
+      "sequence": "2",
+      "label": "runtime.started",
+      "sourceOwner": "fixture",
+      "monotonicMicros": "3000",
+      "phase": 3
+    },
+    {
+      "sequence": "3",
+      "label": "runtime.last-observed",
+      "sourceOwner": "fixture",
+      "monotonicMicros": "57000",
+      "phase": 3
+    },
+    {
+      "sequence": "4",
+      "label": "boot.aborted",
+      "sourceOwner": "fixture",
+      "monotonicMicros": "60000",
+      "phase": 3
+    }
+  ],
+  "spans": [
+    {
+      "spanId": "runtime",
+      "owner": "runtime",
+      "operation": "dist-main",
+      "startMonotonicMicros": "3000",
+      "endMonotonicMicros": "57000",
+      "result": 1,
+      "workClass": 1
+    },
+    {
+      "spanId": "wait",
+      "parentSpanId": "runtime",
+      "owner": "scheduler",
+      "operation": "wait-for-provider",
+      "startMonotonicMicros": "3000",
+      "endMonotonicMicros": "57000",
+      "workClass": 5,
+      "result": 1,
+      "causalWaitTarget": "release-world-provider"
+    }
+  ],
+  "accounting": {
+    "samples": [
+      {
+        "scopeId": "boot-candidate",
+        "owner": "scheduler",
+        "name": "selected-candidates",
+        "known": true,
+        "unit": 1
+      },
+      {
+        "scopeId": "boot-candidate",
+        "owner": "network",
+        "name": "download-bytes",
+        "unit": 2,
+        "monotonicMicros": "60000"
+      }
+    ]
+  },
+  "validation": {
+    "pass": true,
+    "totalDurationMicros": "60000",
+    "phaseDurations": [
+      {
+        "phase": 1,
+        "durationMicros": "3000"
+      },
+      {
+        "phase": 3,
+        "durationMicros": "57000"
+      }
+    ],
+    "longestGaps": [
+      {
+        "beforeSequence": "2",
+        "afterSequence": "3",
+        "startMonotonicMicros": "3000",
+        "endMonotonicMicros": "57000",
+        "durationMicros": "54000",
+        "coveredDurationMicros": "54000"
+      }
+    ]
+  },
+  "privacy": {
+    "exportPolicyVersion": 1
+  }
+}

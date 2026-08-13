@@ -1,0 +1,8 @@
+https://example.test/?token=secret
+/home/user
+api-token
+account-id
+space-id
+object-id
+authorization-header
+secret-value

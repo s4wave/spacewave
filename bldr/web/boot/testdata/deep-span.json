@@ -1,0 +1,739 @@
+{
+  "schemaVersion": 1,
+  "reportId": "fixture-report",
+  "startedUnixMicros": "1786400000000000",
+  "monotonicOriginUnixMicros": "1786400000000000",
+  "entrypointId": "drive",
+  "usableMark": "content-ready",
+  "state": 2,
+  "terminalMark": "content-ready",
+  "terminalMonotonicMicros": "96000",
+  "build": {
+    "commit": "858f3b3e7",
+    "releaseGeneration": "fixture",
+    "projectId": "spacewave",
+    "buildType": 2,
+    "runtimeKind": 1,
+    "workerMode": 1
+  },
+  "environment": {
+    "class": 1,
+    "browserEngine": "chromium",
+    "browserMajor": 140,
+    "osFamily": "linux",
+    "architecture": "amd64",
+    "serviceWorkerState": 4,
+    "cacheState": 1,
+    "recoveryDecision": 1
+  },
+  "marks": [
+    {
+      "sequence": "1",
+      "label": "boot.started",
+      "sourceOwner": "fixture",
+      "phase": 1,
+      "detail": [
+        { "key": "attempt-count", "value": { "unsignedValue": "1" } },
+        { "key": "cache-mode", "value": { "stringValue": "cold" } }
+      ]
+    },
+    {
+      "sequence": "2",
+      "label": "runtime.started",
+      "sourceOwner": "fixture",
+      "monotonicMicros": "4000",
+      "phase": 3
+    },
+    {
+      "sequence": "3",
+      "label": "content-ready",
+      "sourceOwner": "fixture",
+      "monotonicMicros": "96000",
+      "phase": 5
+    }
+  ],
+  "spans": [
+    {
+      "spanId": "span-0",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-1",
+      "parentSpanId": "span-0",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-2",
+      "parentSpanId": "span-1",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-3",
+      "parentSpanId": "span-2",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-4",
+      "parentSpanId": "span-3",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-5",
+      "parentSpanId": "span-4",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-6",
+      "parentSpanId": "span-5",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-7",
+      "parentSpanId": "span-6",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-8",
+      "parentSpanId": "span-7",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-9",
+      "parentSpanId": "span-8",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-10",
+      "parentSpanId": "span-9",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-11",
+      "parentSpanId": "span-10",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-12",
+      "parentSpanId": "span-11",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-13",
+      "parentSpanId": "span-12",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-14",
+      "parentSpanId": "span-13",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-15",
+      "parentSpanId": "span-14",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-16",
+      "parentSpanId": "span-15",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-17",
+      "parentSpanId": "span-16",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-18",
+      "parentSpanId": "span-17",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-19",
+      "parentSpanId": "span-18",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-20",
+      "parentSpanId": "span-19",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-21",
+      "parentSpanId": "span-20",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-22",
+      "parentSpanId": "span-21",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-23",
+      "parentSpanId": "span-22",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-24",
+      "parentSpanId": "span-23",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-25",
+      "parentSpanId": "span-24",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-26",
+      "parentSpanId": "span-25",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-27",
+      "parentSpanId": "span-26",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-28",
+      "parentSpanId": "span-27",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-29",
+      "parentSpanId": "span-28",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-30",
+      "parentSpanId": "span-29",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-31",
+      "parentSpanId": "span-30",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-32",
+      "parentSpanId": "span-31",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-33",
+      "parentSpanId": "span-32",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-34",
+      "parentSpanId": "span-33",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-35",
+      "parentSpanId": "span-34",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-36",
+      "parentSpanId": "span-35",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-37",
+      "parentSpanId": "span-36",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-38",
+      "parentSpanId": "span-37",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-39",
+      "parentSpanId": "span-38",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-40",
+      "parentSpanId": "span-39",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-41",
+      "parentSpanId": "span-40",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-42",
+      "parentSpanId": "span-41",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-43",
+      "parentSpanId": "span-42",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-44",
+      "parentSpanId": "span-43",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-45",
+      "parentSpanId": "span-44",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-46",
+      "parentSpanId": "span-45",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-47",
+      "parentSpanId": "span-46",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-48",
+      "parentSpanId": "span-47",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-49",
+      "parentSpanId": "span-48",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-50",
+      "parentSpanId": "span-49",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-51",
+      "parentSpanId": "span-50",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-52",
+      "parentSpanId": "span-51",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-53",
+      "parentSpanId": "span-52",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-54",
+      "parentSpanId": "span-53",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-55",
+      "parentSpanId": "span-54",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-56",
+      "parentSpanId": "span-55",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-57",
+      "parentSpanId": "span-56",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-58",
+      "parentSpanId": "span-57",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-59",
+      "parentSpanId": "span-58",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-60",
+      "parentSpanId": "span-59",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-61",
+      "parentSpanId": "span-60",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-62",
+      "parentSpanId": "span-61",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-63",
+      "parentSpanId": "span-62",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-64",
+      "parentSpanId": "span-63",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "span-65",
+      "parentSpanId": "span-64",
+      "owner": "runtime",
+      "operation": "nested-runtime",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "96000",
+      "workClass": 2,
+      "result": 1
+    }
+  ],
+  "accounting": {
+    "samples": [
+      {
+        "scopeId": "boot-candidate",
+        "owner": "scheduler",
+        "name": "selected-candidates",
+        "known": true,
+        "unit": 1
+      },
+      {
+        "scopeId": "boot-candidate",
+        "owner": "network",
+        "name": "download-bytes",
+        "unit": 2,
+        "monotonicMicros": "96000"
+      }
+    ]
+  },
+  "validation": {
+    "totalDurationMicros": "96000",
+    "violations": [{ "kind": 4 }]
+  },
+  "privacy": { "exportPolicyVersion": 1 }
+}

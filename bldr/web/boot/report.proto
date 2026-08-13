@@ -1,0 +1,461 @@
+syntax = "proto3";
+package bldr.web.boot;
+
+option go_package = "github.com/s4wave/spacewave/bldr/web/boot;boot";
+
+// BootReportState describes the browser boot lifecycle.
+enum BootReportState {
+  // BOOT_REPORT_STATE_UNKNOWN leaves the lifecycle state unset.
+  BOOT_REPORT_STATE_UNKNOWN = 0;
+  // BOOT_REPORT_STATE_RECORDING means startup evidence is still being collected.
+  BOOT_REPORT_STATE_RECORDING = 1;
+  // BOOT_REPORT_STATE_READY means the declared usable mark completed the boot.
+  BOOT_REPORT_STATE_READY = 2;
+  // BOOT_REPORT_STATE_FAILED means startup ended at a stable failure code.
+  BOOT_REPORT_STATE_FAILED = 3;
+  // BOOT_REPORT_STATE_ABORTED means a later launch inferred an interrupted boot.
+  BOOT_REPORT_STATE_ABORTED = 4;
+}
+
+// BootPhase partitions the browser startup timeline.
+enum BootPhase {
+  // BOOT_PHASE_UNKNOWN leaves the phase unset.
+  BOOT_PHASE_UNKNOWN = 0;
+  // BOOT_PHASE_PREPARE covers shell and release-manifest preparation.
+  BOOT_PHASE_PREPARE = 1;
+  // BOOT_PHASE_CONNECT covers entrypoint download and runtime connection.
+  BOOT_PHASE_CONNECT = 2;
+  // BOOT_PHASE_RUNTIME covers runtime and plugin-host startup.
+  BOOT_PHASE_RUNTIME = 3;
+  // BOOT_PHASE_FRAME covers application frame and content readiness.
+  BOOT_PHASE_FRAME = 4;
+  // BOOT_PHASE_DONE marks the declared usable boundary.
+  BOOT_PHASE_DONE = 5;
+}
+
+// BootWorkClass describes the stable work category for a span.
+enum BootWorkClass {
+  // BOOT_WORK_CLASS_UNKNOWN leaves the work category unattributed.
+  BOOT_WORK_CLASS_UNKNOWN = 0;
+  // BOOT_WORK_CLASS_COMPUTE is CPU work identified by a source task or symbol.
+  BOOT_WORK_CLASS_COMPUTE = 1;
+  // BOOT_WORK_CLASS_STORAGE_IO is storage access identified by its operation.
+  BOOT_WORK_CLASS_STORAGE_IO = 2;
+  // BOOT_WORK_CLASS_NETWORK_IO is network access identified by its request class.
+  BOOT_WORK_CLASS_NETWORK_IO = 3;
+  // BOOT_WORK_CLASS_LOCK_WAIT is a wait on a named lock or storage fence.
+  BOOT_WORK_CLASS_LOCK_WAIT = 4;
+  // BOOT_WORK_CLASS_DEPENDENCY_WAIT is a wait on a named dependency.
+  BOOT_WORK_CLASS_DEPENDENCY_WAIT = 5;
+  // BOOT_WORK_CLASS_SCHEDULER is a named scheduler state transition.
+  BOOT_WORK_CLASS_SCHEDULER = 6;
+}
+
+// BootSpanResult describes how a span ended.
+enum BootSpanResult {
+  // BOOT_SPAN_RESULT_UNKNOWN leaves the result unset.
+  BOOT_SPAN_RESULT_UNKNOWN = 0;
+  // BOOT_SPAN_RESULT_SUCCEEDED means the operation completed normally.
+  BOOT_SPAN_RESULT_SUCCEEDED = 1;
+  // BOOT_SPAN_RESULT_FAILED means the operation ended at a stable failure code.
+  BOOT_SPAN_RESULT_FAILED = 2;
+  // BOOT_SPAN_RESULT_CANCELED means the operation stopped with its boot lifetime.
+  BOOT_SPAN_RESULT_CANCELED = 3;
+}
+
+// BootRuntimeKind describes the runtime implementation used by the entrypoint.
+enum BootRuntimeKind {
+  // BOOT_RUNTIME_KIND_UNKNOWN leaves the runtime implementation unset.
+  BOOT_RUNTIME_KIND_UNKNOWN = 0;
+  // BOOT_RUNTIME_KIND_GOSCRIPT identifies the GoScript browser runtime.
+  BOOT_RUNTIME_KIND_GOSCRIPT = 1;
+  // BOOT_RUNTIME_KIND_WASM identifies the WebAssembly browser runtime.
+  BOOT_RUNTIME_KIND_WASM = 2;
+  // BOOT_RUNTIME_KIND_NATIVE identifies a native desktop runtime.
+  BOOT_RUNTIME_KIND_NATIVE = 3;
+}
+
+// BootWorkerMode describes browser runtime worker custody.
+enum BootWorkerMode {
+  // BOOT_WORKER_MODE_UNKNOWN leaves worker custody unset.
+  BOOT_WORKER_MODE_UNKNOWN = 0;
+  // BOOT_WORKER_MODE_SHARED identifies a SharedWorker runtime.
+  BOOT_WORKER_MODE_SHARED = 1;
+  // BOOT_WORKER_MODE_DEDICATED identifies a DedicatedWorker runtime.
+  BOOT_WORKER_MODE_DEDICATED = 2;
+  // BOOT_WORKER_MODE_INLINE identifies a runtime in the current process.
+  BOOT_WORKER_MODE_INLINE = 3;
+}
+
+// BootEnvironmentClass describes the coarse deployment environment.
+enum BootEnvironmentClass {
+  // BOOT_ENVIRONMENT_CLASS_UNKNOWN leaves the environment unset.
+  BOOT_ENVIRONMENT_CLASS_UNKNOWN = 0;
+  // BOOT_ENVIRONMENT_CLASS_LOCAL identifies a local development entrypoint.
+  BOOT_ENVIRONMENT_CLASS_LOCAL = 1;
+  // BOOT_ENVIRONMENT_CLASS_DEV identifies a shared development entrypoint.
+  BOOT_ENVIRONMENT_CLASS_DEV = 2;
+  // BOOT_ENVIRONMENT_CLASS_STAGING identifies a staging entrypoint.
+  BOOT_ENVIRONMENT_CLASS_STAGING = 3;
+  // BOOT_ENVIRONMENT_CLASS_PRODUCTION identifies a production entrypoint.
+  BOOT_ENVIRONMENT_CLASS_PRODUCTION = 4;
+}
+
+// BootCacheState describes the coarse cache condition observed at startup.
+enum BootCacheState {
+  // BOOT_CACHE_STATE_UNKNOWN leaves cache condition unset.
+  BOOT_CACHE_STATE_UNKNOWN = 0;
+  // BOOT_CACHE_STATE_COLD means no retained release cache was available.
+  BOOT_CACHE_STATE_COLD = 1;
+  // BOOT_CACHE_STATE_WARM means retained state existed but startup still fetched data.
+  BOOT_CACHE_STATE_WARM = 2;
+  // BOOT_CACHE_STATE_HOT means the required startup data was locally available.
+  BOOT_CACHE_STATE_HOT = 3;
+}
+
+// BootCounterUnit describes the unit of an accounting sample.
+enum BootCounterUnit {
+  // BOOT_COUNTER_UNIT_UNKNOWN leaves the unit unset.
+  BOOT_COUNTER_UNIT_UNKNOWN = 0;
+  // BOOT_COUNTER_UNIT_COUNT counts discrete operations or objects.
+  BOOT_COUNTER_UNIT_COUNT = 1;
+  // BOOT_COUNTER_UNIT_BYTES counts logical or durable bytes.
+  BOOT_COUNTER_UNIT_BYTES = 2;
+  // BOOT_COUNTER_UNIT_MICROSECONDS counts elapsed work time.
+  BOOT_COUNTER_UNIT_MICROSECONDS = 3;
+}
+
+// BootBuildType describes the public build configuration.
+enum BootBuildType {
+  // BOOT_BUILD_TYPE_UNKNOWN leaves the build configuration unset.
+  BOOT_BUILD_TYPE_UNKNOWN = 0;
+  // BOOT_BUILD_TYPE_DEBUG identifies a debug build.
+  BOOT_BUILD_TYPE_DEBUG = 1;
+  // BOOT_BUILD_TYPE_RELEASE identifies a release build.
+  BOOT_BUILD_TYPE_RELEASE = 2;
+}
+
+// BootServiceWorkerState describes the browser service-worker lifecycle.
+enum BootServiceWorkerState {
+  // BOOT_SERVICE_WORKER_STATE_UNKNOWN leaves the lifecycle state unset.
+  BOOT_SERVICE_WORKER_STATE_UNKNOWN = 0;
+  // BOOT_SERVICE_WORKER_STATE_UNAVAILABLE means no service worker is available.
+  BOOT_SERVICE_WORKER_STATE_UNAVAILABLE = 1;
+  // BOOT_SERVICE_WORKER_STATE_INSTALLING means the worker is installing.
+  BOOT_SERVICE_WORKER_STATE_INSTALLING = 2;
+  // BOOT_SERVICE_WORKER_STATE_WAITING means the worker is waiting to activate.
+  BOOT_SERVICE_WORKER_STATE_WAITING = 3;
+  // BOOT_SERVICE_WORKER_STATE_ACTIVE means the worker is active.
+  BOOT_SERVICE_WORKER_STATE_ACTIVE = 4;
+  // BOOT_SERVICE_WORKER_STATE_REDUNDANT means the worker is redundant.
+  BOOT_SERVICE_WORKER_STATE_REDUNDANT = 5;
+}
+
+// BootRecoveryDecision describes the action selected at boot recovery.
+enum BootRecoveryDecision {
+  // BOOT_RECOVERY_DECISION_UNKNOWN leaves the recovery action unset.
+  BOOT_RECOVERY_DECISION_UNKNOWN = 0;
+  // BOOT_RECOVERY_DECISION_NONE means recovery made no change.
+  BOOT_RECOVERY_DECISION_NONE = 1;
+  // BOOT_RECOVERY_DECISION_RELOAD means recovery reloaded the entrypoint.
+  BOOT_RECOVERY_DECISION_RELOAD = 2;
+  // BOOT_RECOVERY_DECISION_ABORT_STALE means recovery sealed a stale report as aborted.
+  BOOT_RECOVERY_DECISION_ABORT_STALE = 3;
+}
+
+// BootAttachmentKind describes a generation-matched evidence artifact.
+enum BootAttachmentKind {
+  // BOOT_ATTACHMENT_KIND_UNKNOWN leaves the artifact class unset.
+  BOOT_ATTACHMENT_KIND_UNKNOWN = 0;
+  // BOOT_ATTACHMENT_KIND_SOURCE_MAP identifies a JavaScript source map.
+  BOOT_ATTACHMENT_KIND_SOURCE_MAP = 1;
+  // BOOT_ATTACHMENT_KIND_RUNTIME_TRACE identifies a Go runtime trace.
+  BOOT_ATTACHMENT_KIND_RUNTIME_TRACE = 2;
+  // BOOT_ATTACHMENT_KIND_CPU_PROFILE identifies a CPU profile.
+  BOOT_ATTACHMENT_KIND_CPU_PROFILE = 3;
+  // BOOT_ATTACHMENT_KIND_NETWORK_PROFILE identifies a network profile.
+  BOOT_ATTACHMENT_KIND_NETWORK_PROFILE = 4;
+}
+
+// BootShareDestination describes an explicit report-sharing operation.
+enum BootShareDestination {
+  // BOOT_SHARE_DESTINATION_UNKNOWN means the report has never been shared.
+  BOOT_SHARE_DESTINATION_UNKNOWN = 0;
+  // BOOT_SHARE_DESTINATION_CLIPBOARD identifies an explicit clipboard copy.
+  BOOT_SHARE_DESTINATION_CLIPBOARD = 1;
+  // BOOT_SHARE_DESTINATION_DOWNLOAD identifies an explicit local download.
+  BOOT_SHARE_DESTINATION_DOWNLOAD = 2;
+  // BOOT_SHARE_DESTINATION_SPACE identifies explicit publication to a selected Space.
+  BOOT_SHARE_DESTINATION_SPACE = 3;
+}
+
+// BootValidationViolationKind describes one deterministic contract failure.
+enum BootValidationViolationKind {
+  // BOOT_VALIDATION_VIOLATION_KIND_UNKNOWN leaves the failure kind unset.
+  BOOT_VALIDATION_VIOLATION_KIND_UNKNOWN = 0;
+  // BOOT_VALIDATION_VIOLATION_KIND_REPORT_CONTRACT identifies missing report identity or lifecycle data.
+  BOOT_VALIDATION_VIOLATION_KIND_REPORT_CONTRACT = 1;
+  // BOOT_VALIDATION_VIOLATION_KIND_TERMINAL_CONTRACT identifies an invalid usable or terminal mark.
+  BOOT_VALIDATION_VIOLATION_KIND_TERMINAL_CONTRACT = 2;
+  // BOOT_VALIDATION_VIOLATION_KIND_MARK_ORDER identifies a reordered or duplicated mark.
+  BOOT_VALIDATION_VIOLATION_KIND_MARK_ORDER = 3;
+  // BOOT_VALIDATION_VIOLATION_KIND_SPAN_CONTRACT identifies an invalid span tree or interval.
+  BOOT_VALIDATION_VIOLATION_KIND_SPAN_CONTRACT = 4;
+  // BOOT_VALIDATION_VIOLATION_KIND_GAP_COVERAGE identifies insufficient owner coverage of a long gap.
+  BOOT_VALIDATION_VIOLATION_KIND_GAP_COVERAGE = 5;
+  // BOOT_VALIDATION_VIOLATION_KIND_GENERIC_LEAF identifies a long non-actionable attribution leaf.
+  BOOT_VALIDATION_VIOLATION_KIND_GENERIC_LEAF = 6;
+  // BOOT_VALIDATION_VIOLATION_KIND_UNKNOWN_SHARE identifies total unknown long-gap time above the budget.
+  BOOT_VALIDATION_VIOLATION_KIND_UNKNOWN_SHARE = 7;
+}
+
+// BootReport is the durable browser-local record for one startup attempt.
+message BootReport {
+  // SchemaVersion selects the validation and export contract.
+  uint32 schema_version = 1;
+  // ReportId is a random device-local identifier with no account or Space meaning.
+  string report_id = 2;
+  // ParentReportId identifies the interrupted report recovered by this launch, when present.
+  string parent_report_id = 3;
+  // StartedUnixMicros is wall time at collector initialization in Unix microseconds.
+  int64 started_unix_micros = 4;
+  // MonotonicOriginUnixMicros relates monotonic offsets to coarse wall time.
+  int64 monotonic_origin_unix_micros = 5;
+  // EntrypointId identifies the public entrypoint contract without a URL or query string.
+  string entrypoint_id = 6;
+  // UsableMark declares the single mark that completes this entrypoint's startup.
+  string usable_mark = 7;
+  // State is the report lifecycle state.
+  BootReportState state = 8;
+  // TerminalMark identifies the final accepted startup mark or stable failure boundary.
+  string terminal_mark = 9;
+  // TerminalErrorCode is a stable allowlisted code and never an arbitrary error string.
+  string terminal_error_code = 10;
+  // TerminalMonotonicMicros is the terminal offset from the collector origin.
+  uint64 terminal_monotonic_micros = 11;
+  // Build contains release and runtime identity available at startup.
+  BootBuild build = 12;
+  // Environment contains coarse device-local runtime context.
+  BootEnvironment environment = 13;
+  // Marks contains accepted startup marks through the measured terminal boundary; sealing occurs after this timeline.
+  repeated BootMark marks = 14;
+  // Spans contains owner intervals that attribute work between marks.
+  repeated BootSpan spans = 15;
+  // Accounting contains timestamped owner counters.
+  BootAccounting accounting = 16;
+  // Validation contains the last deterministic validator result.
+  BootValidation validation = 17;
+  // Attachments contains generation-matched optional deep-evidence metadata.
+  repeated BootAttachment attachments = 18;
+  // Privacy records the export allowlist version and explicit sharing facts.
+  BootPrivacy privacy = 19;
+}
+
+// BootBuild identifies the executable browser generation.
+message BootBuild {
+  // Commit is the public source commit when available.
+  string commit = 1;
+  // ReleaseGeneration is the immutable public release generation.
+  string release_generation = 2;
+  // ProjectId identifies the public Bldr project, not a Space or account.
+  string project_id = 3;
+  // BuildType identifies the public build configuration.
+  BootBuildType build_type = 4;
+  // RuntimeKind identifies the runtime implementation.
+  BootRuntimeKind runtime_kind = 5;
+  // WorkerMode identifies runtime worker custody.
+  BootWorkerMode worker_mode = 6;
+}
+
+// BootEnvironment contains coarse local context safe for deterministic export.
+message BootEnvironment {
+  // Class is the coarse deployment environment.
+  BootEnvironmentClass class = 1;
+  // BrowserEngine is the lowercase browser engine name.
+  string browser_engine = 2;
+  // BrowserMajor is the browser's major version only.
+  uint32 browser_major = 3;
+  // OsFamily is the coarse operating-system family.
+  string os_family = 4;
+  // Architecture is the coarse runtime architecture.
+  string architecture = 5;
+  // ServiceWorkerState is the stable browser service-worker state.
+  BootServiceWorkerState service_worker_state = 6;
+  // CacheState is the coarse boot cache condition.
+  BootCacheState cache_state = 7;
+  // RecoveryDecision is the stable boot-recovery action.
+  BootRecoveryDecision recovery_decision = 8;
+}
+
+// BootMark records one ordered startup boundary.
+message BootMark {
+  // Sequence is the collector-assigned strictly increasing sequence.
+  uint64 sequence = 1;
+  // Label is the stable startup vocabulary value without the performance prefix.
+  string label = 2;
+  // SourceOwner identifies the component that emitted the mark.
+  string source_owner = 3;
+  // MonotonicMicros is the offset from the collector origin.
+  uint64 monotonic_micros = 4;
+  // Phase partitions the interval that begins at this mark.
+  BootPhase phase = 5;
+  // Detail contains sanitized fields in strictly increasing key order.
+  repeated BootDetailField detail = 6;
+}
+
+// BootDetailField is one ordered sanitized startup-mark field.
+message BootDetailField {
+  // Key is the stable field vocabulary value.
+  string key = 1;
+  // Value contains the sanitized scalar field value.
+  BootValue value = 2;
+}
+
+// BootValue is one sanitized scalar startup-mark field.
+message BootValue {
+  // Value contains exactly one scalar representation.
+  oneof value {
+    // StringValue is an allowlisted stable vocabulary or coarse identity.
+    string string_value = 1;
+    // SignedValue is a signed counter value.
+    int64 signed_value = 2;
+    // UnsignedValue is an unsigned counter value.
+    uint64 unsigned_value = 3;
+    // NumberValue is a finite measurement that cannot use an integer unit.
+    double number_value = 4;
+    // BoolValue is a binary startup fact.
+    bool bool_value = 5;
+  }
+}
+
+// BootSpan attributes one monotonic owner interval.
+message BootSpan {
+  // SpanId is unique within the report.
+  string span_id = 1;
+  // ParentSpanId identifies the containing span and is empty for a top-level span.
+  string parent_span_id = 2;
+  // Owner identifies the component responsible for the operation.
+  string owner = 3;
+  // Operation is a stable operation name and never display copy.
+  string operation = 4;
+  // StartMonotonicMicros is the inclusive offset from the collector origin.
+  uint64 start_monotonic_micros = 5;
+  // EndMonotonicMicros is the exclusive offset from the collector origin.
+  uint64 end_monotonic_micros = 6;
+  // WorkClass is the stable work category.
+  BootWorkClass work_class = 7;
+  // Result describes how the operation ended.
+  BootSpanResult result = 8;
+  // CausalWaitTarget names a dependency, lock, or request class without an identifier.
+  string causal_wait_target = 9;
+  // SourceTask names a stable source task, package symbol, or trace task.
+  string source_task = 10;
+}
+
+// BootAccounting contains timestamped counters from startup owners.
+message BootAccounting {
+  // Samples contains counter snapshots in mark order.
+  repeated BootCounterSample samples = 1;
+}
+
+// BootCounterSample records one known or unknown owner counter at a mark boundary.
+message BootCounterSample {
+  // ScopeId correlates simultaneous candidates without exposing a Manifest ref.
+  string scope_id = 1;
+  // Owner identifies the component responsible for the counter.
+  string owner = 2;
+  // Name is the stable counter vocabulary value.
+  string name = 3;
+  // Value is meaningful only when Known is true.
+  uint64 value = 4;
+  // Known distinguishes unavailable data from a measured zero.
+  bool known = 5;
+  // Unit identifies how Value is interpreted.
+  BootCounterUnit unit = 6;
+  // MonotonicMicros binds the snapshot to the boot timeline.
+  uint64 monotonic_micros = 7;
+}
+
+// BootValidation is the deterministic derived no-gap result.
+message BootValidation {
+  // Pass is true only when every contract and attribution check succeeds.
+  bool pass = 1;
+  // TotalDurationMicros is the validated terminal duration.
+  uint64 total_duration_micros = 2;
+  // UnknownDurationMicros is the uncovered or non-actionable duration inside long gaps.
+  uint64 unknown_duration_micros = 3;
+  // UnknownPartsPerMillion is UnknownDurationMicros divided by total duration.
+  uint32 unknown_parts_per_million = 4;
+  // PhaseDurations contains deterministic phase totals in enum order.
+  repeated BootPhaseDuration phase_durations = 5;
+  // LongestGaps contains long gaps ordered by duration then mark sequence.
+  repeated BootGap longest_gaps = 6;
+  // Violations contains deterministic contract failures in traversal order.
+  repeated BootValidationViolation violations = 7;
+}
+
+// BootPhaseDuration contains one derived phase total.
+message BootPhaseDuration {
+  // Phase identifies the startup partition.
+  BootPhase phase = 1;
+  // DurationMicros is the phase wall time.
+  uint64 duration_micros = 2;
+}
+
+// BootGap describes one adjacent-mark interval above the five-percent threshold.
+message BootGap {
+  // BeforeSequence identifies the mark before the interval.
+  uint64 before_sequence = 1;
+  // AfterSequence identifies the mark after the interval.
+  uint64 after_sequence = 2;
+  // StartMonotonicMicros is the inclusive gap offset.
+  uint64 start_monotonic_micros = 3;
+  // EndMonotonicMicros is the exclusive gap offset.
+  uint64 end_monotonic_micros = 4;
+  // DurationMicros is the gap wall time.
+  uint64 duration_micros = 5;
+  // CoveredDurationMicros is the union of top-level owner spans in the gap.
+  uint64 covered_duration_micros = 6;
+}
+
+// BootValidationViolation identifies one exact invalid interval or record.
+message BootValidationViolation {
+  // Kind is the stable failure category.
+  BootValidationViolationKind kind = 1;
+  // StartMonotonicMicros is the inclusive failing offset when an interval applies.
+  uint64 start_monotonic_micros = 2;
+  // EndMonotonicMicros is the exclusive failing offset when an interval applies.
+  uint64 end_monotonic_micros = 3;
+  // MarkSequence identifies the related mark when one applies.
+  uint64 mark_sequence = 4;
+  // SpanId identifies the related span when one applies.
+  string span_id = 5;
+}
+
+// BootAttachment describes an optional generation-matched deep-evidence artifact.
+message BootAttachment {
+  // ArtifactId identifies the repo-owned artifact without a local path or URL.
+  string artifact_id = 1;
+  // Kind identifies the stable artifact class.
+  BootAttachmentKind kind = 2;
+  // ContentHash is the public content digest.
+  string content_hash = 3;
+  // SizeBytes is the artifact size.
+  uint64 size_bytes = 4;
+  // ReleaseGeneration binds the artifact to executable bytes.
+  string release_generation = 5;
+}
+
+// BootPrivacy records deterministic export and explicit-sharing policy facts.
+message BootPrivacy {
+  // ExportPolicyVersion selects the deterministic export allowlist.
+  uint32 export_policy_version = 1;
+  // RemovedFields lists stable field paths removed from an export.
+  repeated string removed_fields = 2;
+  // BucketedFields lists stable field paths coarsened by an export.
+  repeated string bucketed_fields = 3;
+  // SharedUnixMicros records an explicit share time and is zero when never shared.
+  int64 shared_unix_micros = 4;
+  // ShareDestination identifies the explicit sharing operation.
+  BootShareDestination share_destination = 5;
+}
