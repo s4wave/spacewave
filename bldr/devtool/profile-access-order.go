@@ -25,7 +25,7 @@ import (
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 )
 
-var chunkImportPattern = regexp.MustCompile(`(?:\./)?chunks/[^"'` + "`" + `)]+\.mjs`)
+var dynamicImportPattern = regexp.MustCompile("import\\(\\s*[\"'`]([^\"'`]+)[\"'`]\\s*\\)")
 
 // BuildProfileAccessOrderCommand builds the profile-access-order command.
 func (a *DevtoolArgs) BuildProfileAccessOrderCommand() *cli.Command {
@@ -328,8 +328,20 @@ func recordDynamicImportsFromFile(ctx context.Context, r *startupAccessRecorder,
 		return errors.Wrap(err, "read startup module")
 	}
 	baseDir := path.Dir(filePath)
-	for _, match := range chunkImportPattern.FindAllString(string(dat), -1) {
-		r.add(packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, path.Join(baseDir, match), packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, match)
+	for _, match := range dynamicImportPattern.FindAllStringSubmatch(string(dat), -1) {
+		specifier := match[1]
+		modulePath := specifier
+		if suffix := strings.IndexAny(modulePath, "?#"); suffix >= 0 {
+			modulePath = modulePath[:suffix]
+		}
+		resolvedPath := path.Clean(path.Join(baseDir, modulePath))
+		if path.Ext(modulePath) != ".mjs" ||
+			strings.HasPrefix(modulePath, "/") ||
+			strings.HasPrefix(resolvedPath, "../") ||
+			!strings.HasPrefix(resolvedPath, "chunks/") && !strings.Contains(resolvedPath, "/chunks/") {
+			continue
+		}
+		r.add(packfile_order.AccessOrderFilesystem_ACCESS_ORDER_FILESYSTEM_DIST, resolvedPath, packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, specifier)
 	}
 	return nil
 }
