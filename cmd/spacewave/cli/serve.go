@@ -8,26 +8,25 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
-	spacewave_launcher "github.com/s4wave/spacewave/core/provider/spacewave/launcher"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	db_world "github.com/s4wave/spacewave/db/world"
-	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 )
 
@@ -141,22 +140,18 @@ func runServeCommand(
 	leaseOwned = false
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	defer serveCancel()
-	releasePluginRuntime, err := startDaemonPluginRuntime(serveCtx, resolved, cliBus)
-	if err != nil {
-		return err
+	releasePluginRuntime := func() {}
+	if cliBus.GetPluginHostObjectKey() == "" {
+		releasePluginRuntime, err = startDaemonPluginRuntime(serveCtx, resolved, cliBus)
+		if err != nil {
+			return err
+		}
 	}
 	defer releasePluginRuntime()
 
-	le.Info("waiting for resource service")
-	invoker, invokerRef, err := waitForResourceService(
-		serveCtx,
-		cliBus,
-		cliBus.GetPluginHostObjectKey() != "",
-	)
-	if err != nil {
-		return err
-	}
-	defer invokerRef.Release()
+	// The socket is the stable transport boundary. Each Resource RPC waits for
+	// the current spacewave-core generation after its stream is opened.
+	invoker := newDaemonResourceInvoker(cliBus.GetBus())
 	devicePolicy, err := device_policy.NewPolicyStore(resolved)
 	if err != nil {
 		return err
@@ -287,83 +282,34 @@ func startDaemonPluginRuntime(
 	return rel, nil
 }
 
-// waitForResourceService waits for the resource service to appear, and on dist
-// runtimes surfaces launcher bootstrap failures when no usable DistConfig exists.
-func waitForResourceService(
-	ctx context.Context,
-	busCtx cli_entrypoint.CliBus,
-	watchLauncher bool,
-) (srpc.Invoker, directive.Reference, error) {
-	b := busCtx.GetBus()
-	serviceID := resource.SRPCResourceServiceServiceID
-	resourceCh := make(chan srpc.Invoker, 1)
-	resourceHandler := directive.NewTypedCallbackHandler[srpc.Invoker](
-		func(v directive.TypedAttachedValue[srpc.Invoker]) {
-			select {
-			case resourceCh <- v.GetValue():
-			default:
-			}
+// daemonPluginClientLoader waits for the current spacewave-core generation.
+type daemonPluginClientLoader func(context.Context) (srpc.Client, directive.Reference, error)
+
+type daemonResourceInvoker struct {
+	loadClient daemonPluginClientLoader
+}
+
+// newDaemonResourceInvoker routes each Resource RPC stream to the current
+// spacewave-core plugin generation.
+func newDaemonResourceInvoker(b bus.Bus) srpc.Invoker {
+	return &daemonResourceInvoker{
+		loadClient: func(ctx context.Context) (srpc.Client, directive.Reference, error) {
+			return bldr_plugin.ExPluginLoadWaitClient(ctx, b, "spacewave-core", nil)
 		},
-		nil,
-		nil,
-		nil,
-	)
-	_, resourceRef, err := b.AddDirective(
-		bifrost_rpc.NewLookupRpcService(serviceID, ""),
-		resourceHandler,
-	)
-	if err != nil {
-		return nil, nil, err
 	}
+}
 
-	if !watchLauncher {
-		select {
-		case <-ctx.Done():
-			resourceRef.Release()
-			return nil, nil, ctx.Err()
-		case invoker := <-resourceCh:
-			return invoker, resourceRef, nil
-		}
+func (i *daemonResourceInvoker) InvokeMethod(
+	serviceID, methodID string,
+	strm srpc.Stream,
+) (bool, error) {
+	if serviceID != resource.SRPCResourceServiceServiceID {
+		return false, nil
 	}
-
-	launcherErrCh := make(chan error, 1)
-	fetchHandler := directive.NewTypedCallbackHandler[*spacewave_launcher.FetchStatus](
-		func(v directive.TypedAttachedValue[*spacewave_launcher.FetchStatus]) {
-			st := v.GetValue()
-			if st == nil || st.Fetching || st.HasConfig || st.LastErr == "" {
-				return
-			}
-			err := errors.Errorf(
-				"launcher bootstrap failed: %s",
-				strings.TrimSpace(st.LastErr),
-			)
-			select {
-			case launcherErrCh <- err:
-			default:
-			}
-		},
-		nil,
-		nil,
-		nil,
-	)
-	_, fetchRef, err := b.AddDirective(
-		spacewave_launcher.NewWatchLauncherFetchStatus(projectID),
-		fetchHandler,
-	)
-	if err != nil {
-		resourceRef.Release()
-		return nil, nil, errors.Wrap(err, "watch launcher fetch status")
+	client, clientRef, err := i.loadClient(strm.Context())
+	if err != nil || clientRef == nil {
+		return false, err
 	}
-	defer fetchRef.Release()
-
-	select {
-	case <-ctx.Done():
-		resourceRef.Release()
-		return nil, nil, ctx.Err()
-	case err := <-launcherErrCh:
-		resourceRef.Release()
-		return nil, nil, err
-	case invoker := <-resourceCh:
-		return invoker, resourceRef, nil
-	}
+	defer clientRef.Release()
+	return srpc.NewClientInvoker(client).InvokeMethod(serviceID, methodID, strm)
 }

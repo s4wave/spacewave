@@ -38,14 +38,14 @@ func startDevicePolicyCapabilityProjection(
 	if b == nil || invoker == nil || store == nil {
 		return
 	}
-	client, err := buildSDKClientFromInvoker(ctx, invoker)
-	if err != nil {
-		if ctx.Err() == nil {
-			le.WithError(err).Warn("device policy capability projection unavailable")
-		}
-		return
-	}
 	go func() {
+		client, err := buildSDKClientFromInvoker(ctx, invoker)
+		if err != nil {
+			if ctx.Err() == nil {
+				le.WithError(err).Warn("device policy capability projection unavailable")
+			}
+			return
+		}
 		defer client.close()
 		if err := runDevicePolicyCapabilityProjection(ctx, le, statePath, client, store); err != nil && ctx.Err() == nil {
 			le.WithError(err).Warn("device policy capability projection stopped")
