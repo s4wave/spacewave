@@ -1,6 +1,6 @@
 import { useMemo, useCallback } from 'react'
 import { resolvePath, type To, useNavigate } from '@s4wave/web/router/router.js'
-import { isLocalHistoryNavigation } from '@s4wave/web/router/HistoryRouter.js'
+import { isLocalNavigation } from '@s4wave/web/router/HistoryRouter.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import {
   SpaceContentsContext,
@@ -30,7 +30,7 @@ export function SpaceObjectContainer() {
 
   const handleViewerNavigate = useCallback(
     (to: To) => {
-      if (to.path.startsWith('/') && !isLocalHistoryNavigation(to)) {
+      if (to.path.startsWith('/') && !isLocalNavigation(to)) {
         navigate(to)
         return
       }

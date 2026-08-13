@@ -97,6 +97,7 @@ interface MockFileListProps {
 
 interface MockToolbarProps {
   onNewFolder?: () => void
+  onNavigate?: (path: string) => void
 }
 
 const h = vi.hoisted(() => ({
@@ -220,9 +221,16 @@ vi.mock('@s4wave/web/editors/file-browser/FileList.js', () => ({
 }))
 
 vi.mock('@s4wave/web/editors/file-browser/Toolbar.js', () => ({
-  Toolbar: ({ onNewFolder }: MockToolbarProps) => (
+  Toolbar: ({ onNewFolder, onNavigate }: MockToolbarProps) => (
     <div>
       Toolbar
+      <button
+        aria-label="Navigate to root"
+        onClick={() => onNavigate?.('/')}
+        type="button"
+      >
+        Root
+      </button>
       <button onClick={onNewFolder} title="New folder" type="button">
         New folder
       </button>
@@ -280,6 +288,7 @@ vi.mock('@s4wave/web/router/router.js', () => ({
 }))
 
 vi.mock('@s4wave/web/router/HistoryRouter.js', () => ({
+  localNavigation: (to: { path: string }) => ({ ...to, navigation: 'local' }),
   useHistory: () => null,
 }))
 
@@ -696,6 +705,25 @@ describe('UnixFSBrowser drag gating', () => {
       expect(h.mockMkdirAll).toHaveBeenCalledWith(['Projects'])
     })
   })
+  it('marks breadcrumb root navigation as object-local', async () => {
+    const user = userEvent.setup()
+    render(
+      <UnixFSBrowser
+        unixfsId="files"
+        basePath="/"
+        currentPath="/docs/images"
+        worldState={buildResource({} as IWorldState)}
+      />,
+    )
+
+    await user.click(screen.getByLabelText('Navigate to root'))
+
+    expect(h.mockNavigate).toHaveBeenCalledWith({
+      path: '/',
+      navigation: 'local',
+    })
+  })
+
   it('disables navigate up at the UnixFS root and enables it in subdirectories', () => {
     const view = render(
       <UnixFSBrowser
@@ -721,7 +749,10 @@ describe('UnixFSBrowser drag gating', () => {
     expect(navigateUp?.enabled).toBe(true)
     if (!navigateUp?.handler) throw new Error('navigate up handler missing')
     navigateUp.handler()
-    expect(h.mockNavigate).toHaveBeenCalledWith({ path: '/docs' })
+    expect(h.mockNavigate).toHaveBeenCalledWith({
+      path: '/docs',
+      navigation: 'local',
+    })
   })
 
   it('renders owner-provided directory headers above the file list', () => {
