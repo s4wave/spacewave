@@ -499,6 +499,16 @@
         "bldr/storage/volume/config.proto"
       ]
     },
+    "github.com/s4wave/spacewave/bldr/web/boot": {
+      "hash": "73c3519e4a1e00ba89f25c7d54367b53bf9b852006a68d1072653ccfa7e19ac0",
+      "generatedFiles": [
+        "bldr/web/boot/report.pb.go",
+        "bldr/web/boot/report.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/web/boot/report.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/bldr/web/bundler": {
       "hash": "a1427fd54fcf839f2fdd0eb6525aca8974363fcd96404fa6eaf18208972a7e0c",
       "generatedFiles": [

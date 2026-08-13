@@ -1,0 +1,7 @@
+accept|mark-label|manifest-copy.done|NONE
+accept|detail-string|cold|NONE
+accept|operation|open-release-world|NONE
+reject|mark-label|object-id|REPORT_CONTRACT
+reject|detail-string|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|REPORT_CONTRACT
+reject|operation|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|SPAN_CONTRACT
+reject|report-id|account-id|REPORT_CONTRACT

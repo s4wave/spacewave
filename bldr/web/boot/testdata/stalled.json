@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "reportId": "fixture-report",
+  "startedUnixMicros": "1786400000000000",
+  "monotonicOriginUnixMicros": "1786400000000000",
+  "entrypointId": "drive",
+  "usableMark": "content-ready",
+  "state": 2,
+  "terminalMark": "content-ready",
+  "terminalMonotonicMicros": "95000",
+  "build": {
+    "commit": "858f3b3e7",
+    "releaseGeneration": "fixture",
+    "projectId": "spacewave",
+    "buildType": 2,
+    "runtimeKind": 1,
+    "workerMode": 1
+  },
+  "environment": {
+    "class": 1,
+    "browserEngine": "chromium",
+    "browserMajor": 140,
+    "osFamily": "linux",
+    "architecture": "amd64",
+    "serviceWorkerState": 4,
+    "cacheState": 1,
+    "recoveryDecision": 1
+  },
+  "marks": [
+    {
+      "sequence": "1",
+      "label": "boot.started",
+      "sourceOwner": "fixture",
+      "phase": 1
+    },
+    {
+      "sequence": "2",
+      "label": "runtime.started",
+      "sourceOwner": "fixture",
+      "monotonicMicros": "5000",
+      "phase": 3
+    },
+    {
+      "sequence": "3",
+      "label": "content-ready",
+      "sourceOwner": "fixture",
+      "monotonicMicros": "95000",
+      "phase": 5
+    }
+  ],
+  "spans": [
+    {
+      "spanId": "runtime",
+      "owner": "runtime",
+      "operation": "runtime",
+      "startMonotonicMicros": "5000",
+      "endMonotonicMicros": "95000",
+      "result": 1,
+      "workClass": 1
+    }
+  ],
+  "accounting": {
+    "samples": [
+      {
+        "scopeId": "boot-candidate",
+        "owner": "scheduler",
+        "name": "selected-candidates",
+        "known": true,
+        "unit": 1
+      },
+      {
+        "scopeId": "boot-candidate",
+        "owner": "network",
+        "name": "download-bytes",
+        "unit": 2,
+        "monotonicMicros": "95000"
+      }
+    ]
+  },
+  "validation": {
+    "totalDurationMicros": "95000",
+    "unknownDurationMicros": "95000",
+    "unknownPartsPerMillion": 1000000,
+    "phaseDurations": [
+      {
+        "phase": 1,
+        "durationMicros": "5000"
+      },
+      {
+        "phase": 3,
+        "durationMicros": "90000"
+      }
+    ],
+    "longestGaps": [
+      {
+        "beforeSequence": "2",
+        "afterSequence": "3",
+        "startMonotonicMicros": "5000",
+        "endMonotonicMicros": "95000",
+        "durationMicros": "90000",
+        "coveredDurationMicros": "90000"
+      },
+      {
+        "beforeSequence": "1",
+        "afterSequence": "2",
+        "endMonotonicMicros": "5000",
+        "durationMicros": "5000"
+      }
+    ],
+    "violations": [
+      {
+        "kind": 5,
+        "endMonotonicMicros": "5000",
+        "markSequence": "1"
+      },
+      {
+        "kind": 6,
+        "startMonotonicMicros": "5000",
+        "endMonotonicMicros": "95000",
+        "spanId": "runtime"
+      },
+      {
+        "kind": 7
+      }
+    ]
+  },
+  "privacy": {
+    "exportPolicyVersion": 1
+  }
+}

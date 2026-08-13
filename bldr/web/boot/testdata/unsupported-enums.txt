@@ -1,0 +1,14 @@
+report-state|99|TERMINAL_CONTRACT
+build-type|99|REPORT_CONTRACT
+runtime-kind|99|REPORT_CONTRACT
+worker-mode|99|REPORT_CONTRACT
+environment-class|99|REPORT_CONTRACT
+service-worker-state|99|REPORT_CONTRACT
+cache-state|99|REPORT_CONTRACT
+recovery-decision|99|REPORT_CONTRACT
+mark-phase|99|MARK_ORDER
+counter-unit|99|REPORT_CONTRACT
+attachment-kind|99|REPORT_CONTRACT
+share-destination|99|REPORT_CONTRACT
+span-result|99|SPAN_CONTRACT
+span-work-class|99|SPAN_CONTRACT

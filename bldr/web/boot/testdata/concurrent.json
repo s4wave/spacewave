@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "reportId": "fixture-report",
+  "startedUnixMicros": "1786400000000000",
+  "monotonicOriginUnixMicros": "1786400000000000",
+  "entrypointId": "drive",
+  "usableMark": "content-ready",
+  "state": 2,
+  "terminalMark": "content-ready",
+  "terminalMonotonicMicros": "96000",
+  "build": {
+    "commit": "858f3b3e7",
+    "releaseGeneration": "fixture",
+    "projectId": "spacewave",
+    "buildType": 2,
+    "runtimeKind": 1,
+    "workerMode": 1
+  },
+  "environment": {
+    "class": 1,
+    "browserEngine": "chromium",
+    "browserMajor": 140,
+    "osFamily": "linux",
+    "architecture": "amd64",
+    "serviceWorkerState": 4,
+    "cacheState": 1,
+    "recoveryDecision": 1
+  },
+  "marks": [
+    {
+      "sequence": "1",
+      "label": "boot.started",
+      "sourceOwner": "fixture",
+      "phase": 1
+    },
+    {
+      "sequence": "2",
+      "label": "runtime.started",
+      "sourceOwner": "fixture",
+      "monotonicMicros": "4000",
+      "phase": 3
+    },
+    {
+      "sequence": "3",
+      "label": "content-ready",
+      "sourceOwner": "fixture",
+      "monotonicMicros": "96000",
+      "phase": 5
+    }
+  ],
+  "spans": [
+    {
+      "spanId": "storage",
+      "owner": "opfs",
+      "operation": "read-release-blocks",
+      "startMonotonicMicros": "4000",
+      "endMonotonicMicros": "60000",
+      "workClass": 2,
+      "result": 1
+    },
+    {
+      "spanId": "network",
+      "owner": "cdn",
+      "operation": "release-pack-range",
+      "startMonotonicMicros": "50000",
+      "endMonotonicMicros": "96000",
+      "workClass": 3,
+      "result": 1
+    }
+  ],
+  "accounting": {
+    "samples": [
+      {
+        "scopeId": "boot-candidate",
+        "owner": "scheduler",
+        "name": "selected-candidates",
+        "known": true,
+        "unit": 1
+      },
+      {
+        "scopeId": "boot-candidate",
+        "owner": "network",
+        "name": "download-bytes",
+        "unit": 2,
+        "monotonicMicros": "96000"
+      }
+    ]
+  },
+  "validation": {
+    "pass": true,
+    "totalDurationMicros": "96000",
+    "phaseDurations": [
+      { "phase": 1, "durationMicros": "4000" },
+      { "phase": 3, "durationMicros": "92000" }
+    ],
+    "longestGaps": [
+      {
+        "beforeSequence": "2",
+        "afterSequence": "3",
+        "startMonotonicMicros": "4000",
+        "endMonotonicMicros": "96000",
+        "durationMicros": "92000",
+        "coveredDurationMicros": "92000"
+      }
+    ]
+  },
+  "privacy": { "exportPolicyVersion": 1 }
+}
