@@ -165,36 +165,39 @@ func (c *Controller) ListSessions(ctx context.Context) ([]*session.SessionListEn
 		return nil, err
 	}
 
-	// Retry classification: external to RunTransaction. Invalid-entry warnings
-	// are emitted from the transaction callback.
-
-	otx, err := objStore.NewTransaction(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	defer otx.Discard()
-
-	size, err := otx.Size(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if size == 0 {
-		return nil, nil
-	}
-
 	var elems []*session.SessionListEntry
-	err = otx.ScanPrefix(ctx, sessionListPrefix, func(key, value []byte) error {
-		entry := &session.SessionListEntry{}
-		if err := entry.UnmarshalVT(value); err != nil {
-			c.GetLogger().WithError(err).Warn("ignoring invalid session list entry")
-			return nil
-		}
+	var invalidEntryErrs []error
+	err = kvtx.RunTransaction(ctx, false,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, false)
+		},
+		func(ctx context.Context, otx kvtx.Tx) error {
+			elems = nil
+			invalidEntryErrs = nil
+			size, err := otx.Size(ctx)
+			if err != nil {
+				return err
+			}
+			if size == 0 {
+				return nil
+			}
 
-		elems = append(elems, entry)
-		return nil
-	})
+			return otx.ScanPrefix(ctx, sessionListPrefix, func(_ []byte, value []byte) error {
+				entry := &session.SessionListEntry{}
+				if err := entry.UnmarshalVT(value); err != nil {
+					invalidEntryErrs = append(invalidEntryErrs, err)
+					return nil
+				}
+				elems = append(elems, entry)
+				return nil
+			})
+		},
+	)
 	if err != nil {
 		return nil, err
+	}
+	for _, invalidEntryErr := range invalidEntryErrs {
+		c.GetLogger().WithError(invalidEntryErr).Warn("ignoring invalid session list entry")
 	}
 	return elems, nil
 }
