@@ -20,10 +20,14 @@ func BuildServiceScript(
 	sourceRoot,
 	bldrDistRoot,
 	outputPath string,
-) (*bldr_web_bundler_rolldown.BuildResult, error) {
+) (*bldr_web_bundler_rolldown.BuildResult, string, error) {
 	outputRoot := filepath.Dir(outputPath)
 	outputName := filepath.Base(outputPath)
 	entrypointName := strings.TrimSuffix(outputName, filepath.Ext(outputName))
+	dependencyRoot, err := bldr_web_bundler_rolldown.EnsureDependencyRoot(ctx, le, stateDir, bldrDistRoot)
+	if err != nil {
+		return nil, "", errors.Wrap(err, "resolve Vite dependency root")
+	}
 	result, err := bldr_web_bundler_rolldown.Build(
 		ctx,
 		le,
@@ -52,10 +56,10 @@ func BuildServiceScript(
 		},
 	)
 	if err != nil {
-		return result, errors.Wrap(err, "build Vite service script")
+		return result, dependencyRoot, errors.Wrap(err, "build Vite service script")
 	}
 	if got := result.GetEntrypointOutputs()[entrypointName]; got != outputName {
-		return result, errors.Errorf("Vite service output is %q, expected %q", got, outputName)
+		return result, dependencyRoot, errors.Errorf("Vite service output is %q, expected %q", got, outputName)
 	}
-	return result, nil
+	return result, dependencyRoot, nil
 }

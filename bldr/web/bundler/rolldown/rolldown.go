@@ -142,7 +142,7 @@ func Build(ctx context.Context, le *logrus.Entry, stateDir, toolRoot string, req
 		return nil, err
 	}
 	toolRoot = resolveToolRoot(toolRoot)
-	dependencyRoot, err := ensureDependencyRoot(ctx, le, stateDir, toolRoot)
+	dependencyRoot, err := EnsureDependencyRoot(ctx, le, stateDir, toolRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -227,6 +227,11 @@ func validateAbsolutePath(field, value string) error {
 		return errors.Errorf("%s must be a nonempty absolute path", field)
 	}
 	return nil
+}
+
+// EnsureDependencyRoot returns the installed dependency root used by Bun bundlers.
+func EnsureDependencyRoot(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot string) (string, error) {
+	return ensureDependencyRoot(ctx, le, stateDir, resolveToolRoot(bldrDistRoot))
 }
 
 func ensureDependencyRoot(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot string) (string, error) {

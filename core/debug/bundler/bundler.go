@@ -208,14 +208,15 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 	// State remains under .bldr/bun, two levels above the debug working path.
 	bunStateDir := filepath.Join(b.workingPath, "..", "..", "bun")
 	viteScriptPath := filepath.Join(b.workingPath, "bldr-"+pipeUuid+".mjs")
-	if _, err := bldr_vite.BuildServiceScript(
+	_, dependencyRoot, err := bldr_vite.BuildServiceScript(
 		viteCtx,
 		b.le,
 		bunStateDir,
 		b.sourcePath,
 		b.distPath,
 		viteScriptPath,
-	); err != nil {
+	)
+	if err != nil {
 		err = errors.Wrap(err, "compile vite.ts")
 		ready <- viteStartResult{err: err}
 		return err
@@ -238,7 +239,7 @@ func (b *Bundler) runVite(viteCtx context.Context, ready chan<- viteStartResult)
 		ready <- viteStartResult{err: errors.Wrap(err, "create bun command")}
 		return errors.Wrap(err, "create bun command")
 	}
-	cmd.Env = os.Environ()
+	cmd.Env = append(os.Environ(), "BLDR_DEPENDENCY_ROOT="+dependencyRoot)
 	cmd.Dir = filepath.Dir(viteScriptPath)
 	cmd.Stdout = b.le.WriterLevel(logrus.DebugLevel)
 	cmd.Stderr = b.le.WriterLevel(logrus.DebugLevel)

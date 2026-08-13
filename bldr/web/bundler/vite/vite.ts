@@ -33,6 +33,7 @@ import { buildGoAliases, goTsResolver } from './go-ts-resolver.js'
 import { createWorkerSafeModulePreloadPlugin } from './module-preload.js'
 import { buildStableEntryFileName } from './output-naming.js'
 import { buildWebPkgImportSpecifier } from './web-pkg-naming.js'
+import { withDependencyRoot } from './dependency-root.js'
 
 // verboseDebug is the verbose debugging flag
 const verboseDebug = process.env.BLDR_VITE_VERBOSE === 'true'
@@ -351,7 +352,7 @@ async function buildBundle(request: BuildRequest): Promise<BuildResponse> {
 
     // Run the build process with the merged config
     const { analysis, viteOutput, result } = await buildAndAnalyze(
-      mergedConfig,
+      withDependencyRoot(mergedConfig),
       rootDir,
       webPkgRefs,
     )
@@ -626,7 +627,7 @@ async function buildWebPkg(
     process.env['CI'] = '1'
     process.env['FORCE_COLOR'] = '0'
 
-    const viteOutput = (await viteBuild(config)) as
+    const viteOutput = (await viteBuild(withDependencyRoot(config))) as
       | Rollup.RolldownOutput[]
       | Rollup.RolldownOutput
     const rollupOutputs: Rollup.RolldownOutput[] = Array.isArray(viteOutput)

@@ -54,14 +54,15 @@ func RunOneShot(
 	}
 	bunStateDir := filepath.Join(workingPath, "..", "..", "bun")
 	viteScriptPath := filepath.Join(workingPath, "bldr-"+pipeUuid+".mjs")
-	if _, err := bldr_vite.BuildServiceScript(
+	_, dependencyRoot, err := bldr_vite.BuildServiceScript(
 		ctx,
 		le,
 		bunStateDir,
 		sourcePath,
 		distSourcePath,
 		viteScriptPath,
-	); err != nil {
+	)
+	if err != nil {
 		return errors.Wrap(err, "compile Vite service script")
 	}
 	defer os.Remove(viteScriptPath)
@@ -91,6 +92,7 @@ func RunOneShot(
 	// Env vars
 	cmd.Env = append(
 		cmd.Env,
+		"BLDR_DEPENDENCY_ROOT="+dependencyRoot,
 		"NO_COLOR=1",
 		"NODE_DISABLE_COLORS=1",
 		"FORCE_COLOR=0",

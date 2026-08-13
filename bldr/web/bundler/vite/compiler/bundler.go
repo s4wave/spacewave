@@ -102,14 +102,15 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	// Working path is typically .bldr/build/..., so state stays under .bldr/bun.
 	bunStateDir := filepath.Join(workingPath, "..", "..", "bun")
 	viteScriptPath := filepath.Join(workingPath, "bldr-"+pipeUuid+".mjs")
-	if _, err := bldr_vite.BuildServiceScript(
+	_, dependencyRoot, err := bldr_vite.BuildServiceScript(
 		ctx,
 		t.le,
 		bunStateDir,
 		sourcePath,
 		distPath,
 		viteScriptPath,
-	); err != nil {
+	)
+	if err != nil {
 		if ctx.Err() == nil {
 			t.instancePromiseCtr.SetResult(nil, err)
 		}
@@ -146,6 +147,7 @@ func (t *viteBundlerTracker) execute(ctx context.Context) error {
 	// Env vars
 	cmd.Env = append(
 		cmd.Env,
+		"BLDR_DEPENDENCY_ROOT="+dependencyRoot,
 		"NO_COLOR=1",
 		"NODE_DISABLE_COLORS=1",
 		"FORCE_COLOR=0",

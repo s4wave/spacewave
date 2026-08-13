@@ -79,7 +79,7 @@ export function startSocketSender() { return undefined }`),
 	}
 
 	outputPath := filepath.Join(t.TempDir(), "vite-bootstrap.mjs")
-	if _, err := bldr_web_bundler_vite.BuildServiceScript(
+	if _, _, err := bldr_web_bundler_vite.BuildServiceScript(
 		ctx,
 		le,
 		t.TempDir(),

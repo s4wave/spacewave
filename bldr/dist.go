@@ -42,7 +42,7 @@ import (
 //go:embed web/bundler/bundler.pb.ts
 //go:embed web/bundler/rolldown/run-build.mjs web/bundler/rolldown/run-build.ts web/bundler/rolldown/rolldown.pb.ts
 //go:embed web/bundler/vite/build.ts web/bundler/vite/run-build.ts
-//go:embed web/bundler/vite/vite.ts web/bundler/vite/plugin.ts web/bundler/vite/module-preload.ts web/bundler/vite/output-naming.ts web/bundler/vite/web-pkg-naming.ts
+//go:embed web/bundler/vite/vite.ts web/bundler/vite/dependency-root.ts web/bundler/vite/plugin.ts web/bundler/vite/module-preload.ts web/bundler/vite/output-naming.ts web/bundler/vite/web-pkg-naming.ts
 //go:embed web/bundler/vite/vite.pb.ts web/bundler/vite/vite_srpc.pb.ts
 //go:embed web/bundler/vite/vite-base.config.ts web/bundler/vite/go-ts-resolver.ts
 //go:embed plugin/compiler/js/entrypoint.ts
