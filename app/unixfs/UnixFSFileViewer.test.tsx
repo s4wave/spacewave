@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { UnixFSFileViewer } from './UnixFSFileViewer.js'
@@ -12,8 +12,13 @@ function buildResource<T>(value: T) {
   }
 }
 
+const h = vi.hoisted(() => ({
+  navigate: vi.fn(),
+  symlinkTarget: null as string | null,
+}))
+
 vi.mock('@aptre/bldr-sdk/hooks/useResource.js', () => ({
-  useResource: () => buildResource(null),
+  useResource: () => buildResource(h.symlinkTarget),
 }))
 
 vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
@@ -26,10 +31,11 @@ vi.mock('@s4wave/web/hooks/useUnixFSHandle.js', () => ({
 }))
 
 vi.mock('@s4wave/web/router/router.js', () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => h.navigate,
 }))
 
 vi.mock('@s4wave/web/router/HistoryRouter.js', () => ({
+  localNavigation: (to: { path: string }) => ({ ...to, navigation: 'local' }),
   useHistory: () => null,
 }))
 
@@ -88,6 +94,8 @@ vi.mock('./UnixFSVideoFileViewer.js', () => ({
 describe('UnixFSFileViewer image preview', () => {
   afterEach(() => {
     cleanup()
+    h.navigate.mockClear()
+    h.symlinkTarget = null
   })
 
   it('renders an image tag for image mime types when an inline raw url is provided', () => {
@@ -160,6 +168,32 @@ describe('UnixFSFileViewer image preview', () => {
 
     expect(screen.getByText('Symbolic link')).toBeDefined()
   })
+
+  it.each(['/shared/target.txt', '../shared/target.txt'])(
+    'normalizes symlink target %s as object-local',
+    (target) => {
+      h.symlinkTarget = target
+      render(
+        <UnixFSFileViewer
+          path="/nested/link"
+          stat={{
+            info: { isDir: false, name: 'link' },
+            fileKind: 'symlink',
+            mimeType: 'text/plain',
+          }}
+          rootHandle={buildResource(null)}
+          hideToolbar
+        />,
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Go to target' }))
+
+      expect(h.navigate).toHaveBeenCalledWith({
+        path: '/shared/target.txt',
+        navigation: 'local',
+      })
+    },
+  )
 
   it('renders a pdf viewer for pdf mime types when an inline raw url is provided', () => {
     render(

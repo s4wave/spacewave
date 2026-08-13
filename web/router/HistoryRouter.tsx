@@ -31,9 +31,28 @@ interface HistoryContextType {
 
 const HistoryContext = createContext<HistoryContextType | null>(null)
 
+// LocalNavigation identifies a path within the current nested router.
+export interface LocalNavigation {
+  path: string
+  navigation: 'local'
+}
+
+// localNavigation marks a path as local to the current nested router.
+export function localNavigation(to: Pick<To, 'path'>): LocalNavigation {
+  return { ...to, navigation: 'local' }
+}
+
 // LocalHistoryNavigation identifies a target restored from this router's private stack.
 export interface LocalHistoryNavigation extends To {
   history: 'local'
+}
+
+// isLocalNavigation reports whether a target stays within the current nested router.
+export function isLocalNavigation(
+  to: To,
+): to is LocalNavigation | LocalHistoryNavigation {
+  const target = to as Partial<LocalNavigation & LocalHistoryNavigation>
+  return target.navigation === 'local' || target.history === 'local'
 }
 
 // isLocalHistoryNavigation reports whether navigation restores private router history.

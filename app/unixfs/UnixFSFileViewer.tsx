@@ -22,7 +22,10 @@ import {
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
 import { getUnixFSFileInfoKind } from '@s4wave/sdk/unixfs/file-kind.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { useHistory } from '@s4wave/web/router/HistoryRouter.js'
+import {
+  localNavigation,
+  useHistory,
+} from '@s4wave/web/router/HistoryRouter.js'
 import { Toolbar } from '@s4wave/web/editors/file-browser/Toolbar.js'
 import { UnixFSAudioFileViewer } from './UnixFSAudioFileViewer.js'
 import { UnixFSPdfFileViewer } from './UnixFSPdfFileViewer.js'
@@ -247,7 +250,7 @@ export function UnixFSFileViewer({
 
   const handlePathChange = useCallback(
     (newPath: string) => {
-      navigate({ path: newPath })
+      navigate(localNavigation({ path: newPath }))
     },
     [navigate],
   )
@@ -278,8 +281,10 @@ export function UnixFSFileViewer({
     // Resolve relative target against the symlink's parent directory.
     const parent = path.replace(/\/[^/]*$/, '') || '/'
     const parts = (
-      parent === '/' ? [] : parent.split('/').filter(Boolean)
-    ).concat(target.split('/'))
+      target.startsWith('/') || parent === '/'
+        ? []
+        : parent.split('/').filter(Boolean)
+    ).concat(target.split('/').filter(Boolean))
     const resolved: string[] = []
     for (const part of parts) {
       if (part === '..') {
@@ -293,7 +298,7 @@ export function UnixFSFileViewer({
 
   const handleNavigateSymlink = useCallback(() => {
     if (resolvedTarget) {
-      navigate({ path: resolvedTarget })
+      navigate(localNavigation({ path: resolvedTarget }))
     }
   }, [resolvedTarget, navigate])
 

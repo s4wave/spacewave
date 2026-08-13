@@ -24,7 +24,10 @@ import { toast } from '@s4wave/web/ui/toaster.js'
 import { useTabContext } from '@s4wave/web/object/TabContext.js'
 import { UnixFSPathLoadingCard } from '@s4wave/app/loading/wrappers/UnixFSPathLoadingCard.js'
 import { useNavigate } from '@s4wave/web/router/router.js'
-import { useHistory } from '@s4wave/web/router/HistoryRouter.js'
+import {
+  localNavigation,
+  useHistory,
+} from '@s4wave/web/router/HistoryRouter.js'
 import { SpaceContainerContext } from '@s4wave/web/contexts/SpaceContainerContext.js'
 import { useSessionIndex } from '@s4wave/web/contexts/contexts.js'
 import { useSessionUploadManager } from '@s4wave/app/session/SessionUploadManagerContext.js'
@@ -355,14 +358,14 @@ function useUnixFSBrowserElement({
   const handleUp = useCallback(() => {
     if (!canGoUp) return
     dispatch({ type: 'set-pending-name', name: null })
-    navigate({ path: getUnixFSParentPath(displayPath) })
+    navigate(localNavigation({ path: getUnixFSParentPath(displayPath) }))
   }, [canGoUp, displayPath, navigate])
 
   // Handle path change from toolbar (user edited path directly)
   const handlePathChange = useCallback(
     (newPath: string) => {
       dispatch({ type: 'set-pending-name', name: null })
-      navigate({ path: newPath })
+      navigate(localNavigation({ path: newPath }))
     },
     [navigate],
   )
