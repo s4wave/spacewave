@@ -35,6 +35,19 @@ type testPack struct {
 	bloom []byte
 }
 
+type doneObservedContext struct {
+	context.Context
+	observed chan struct{}
+}
+
+func (c doneObservedContext) Done() <-chan struct{} {
+	select {
+	case c.observed <- struct{}{}:
+	default:
+	}
+	return c.Context.Done()
+}
+
 func buildSinglePack(t *testing.T, id string, blocks map[string][]byte) testPack {
 	t.Helper()
 
@@ -469,27 +482,35 @@ func TestCdnBlockStoreSharesNonContextPointerError(t *testing.T) {
 	defer bs.Close()
 
 	const readers = 32
-	start := make(chan struct{})
 	done := make(chan error, readers)
-	for range readers {
-		go func() {
-			<-start
-			_, err := bs.Refresh(t.Context())
-			done <- err
-		}()
-	}
-	close(start)
+	go func() {
+		_, err := bs.Refresh(t.Context())
+		done <- err
+	}()
 	select {
 	case <-requestStarted:
 	case <-t.Context().Done():
 		t.Fatal(t.Context().Err())
 	}
 
-	select {
-	case <-time.After(50 * time.Millisecond):
-	case <-t.Context().Done():
-		t.Fatal(t.Context().Err())
+	admitted := make([]chan struct{}, 0, readers-1)
+	for range readers - 1 {
+		observed := make(chan struct{}, 1)
+		admitted = append(admitted, observed)
+		go func() {
+			ctx := doneObservedContext{Context: t.Context(), observed: observed}
+			_, err := bs.Refresh(ctx)
+			done <- err
+		}()
 	}
+	for _, observed := range admitted {
+		select {
+		case <-observed:
+		case <-t.Context().Done():
+			t.Fatal(t.Context().Err())
+		}
+	}
+
 	close(releaseRequest)
 	for range readers {
 		if err := <-done; err == nil || !strings.Contains(err.Error(), "status 503") {
@@ -537,37 +558,43 @@ func TestCdnBlockStoreCoalescesUnchangedPointerRefreshes(t *testing.T) {
 	}
 
 	const readers = 32
-	start := make(chan struct{})
 	done := make(chan error, readers)
-	for range readers {
-		go func() {
-			<-start
-			_, err := bs.Refresh(t.Context())
-			done <- err
-		}()
-	}
-	close(start)
+	go func() {
+		_, err := bs.Refresh(t.Context())
+		done <- err
+	}()
 	select {
 	case <-refreshStarted:
 	case <-t.Context().Done():
 		t.Fatal(t.Context().Err())
 	}
 
-	// The blocked leader leaves every other refresh enough time to fold onto it.
-	select {
-	case <-time.After(50 * time.Millisecond):
-	case <-t.Context().Done():
-		t.Fatal(t.Context().Err())
+	admitted := make([]chan struct{}, 0, readers-1)
+	for range readers - 1 {
+		observed := make(chan struct{}, 1)
+		admitted = append(admitted, observed)
+		go func() {
+			ctx := doneObservedContext{Context: t.Context(), observed: observed}
+			_, err := bs.Refresh(ctx)
+			done <- err
+		}()
 	}
-	if got := requests.Load(); got != 2 {
-		close(releaseRefresh)
-		t.Fatalf("root pointer requests = %d, want initial plus one shared refresh", got)
+	for _, observed := range admitted {
+		select {
+		case <-observed:
+		case <-t.Context().Done():
+			t.Fatal(t.Context().Err())
+		}
 	}
+
 	close(releaseRefresh)
 	for range readers {
 		if err := <-done; err != nil {
 			t.Fatal(err)
 		}
+	}
+	if got := requests.Load(); got != 2 {
+		t.Fatalf("root pointer requests = %d, want initial plus one shared refresh", got)
 	}
 
 	bs.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -749,12 +776,14 @@ func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
 	}
 
 	followerDone := make(chan error, 1)
+	followerAdmitted := make(chan struct{}, 1)
 	go func() {
-		_, err := bs.Refresh(t.Context())
+		ctx := doneObservedContext{Context: t.Context(), observed: followerAdmitted}
+		_, err := bs.Refresh(ctx)
 		followerDone <- err
 	}()
 	select {
-	case <-time.After(50 * time.Millisecond):
+	case <-followerAdmitted:
 	case <-t.Context().Done():
 		t.Fatal(t.Context().Err())
 	}
