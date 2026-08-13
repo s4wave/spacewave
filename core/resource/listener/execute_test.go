@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
@@ -23,6 +24,16 @@ const (
 	listenerTestPingMethodID  = "Ping"
 	listenerTestWatchMethodID = "Watch"
 )
+
+func TestExecuteSkipsMachineSocketInHostedPlugin(t *testing.T) {
+	ctx := bldr_plugin.WithPluginContextInfo(
+		t.Context(),
+		new(bldr_plugin.PluginContextInfo),
+	)
+	if err := (&Controller{}).Execute(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestHandoffBlocksActiveListener(t *testing.T) {
 	const socketPath = "/tmp/spacewave.sock"

@@ -29,14 +29,14 @@ func startDeviceLauncherUpdateProjection(
 	if b == nil || invoker == nil {
 		return
 	}
-	client, err := buildSDKClientFromInvoker(ctx, invoker)
-	if err != nil {
-		if ctx.Err() == nil {
-			le.WithError(err).Warn("device update projection unavailable")
-		}
-		return
-	}
 	go func() {
+		client, err := buildSDKClientFromInvoker(ctx, invoker)
+		if err != nil {
+			if ctx.Err() == nil {
+				le.WithError(err).Warn("device update projection unavailable")
+			}
+			return
+		}
 		defer client.close()
 		if err := runDeviceLauncherUpdateProjection(ctx, le, statePath, b, client); err != nil && ctx.Err() == nil {
 			le.WithError(err).Warn("device update projection stopped")

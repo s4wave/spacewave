@@ -16,6 +16,7 @@ import (
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/pkg/errors"
 	entrypoint_fatal "github.com/s4wave/spacewave/bldr/entrypoint/fatal"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
@@ -37,6 +38,12 @@ const RequesterNameDefault = "spacewave serve"
 
 // Execute executes the controller.
 func (c *Controller) Execute(ctx context.Context) error {
+	// A hosted plugin publishes its Resource service through the process host.
+	// The outer application owns the machine-local daemon socket.
+	if bldr_plugin.GetPluginContextInfo(ctx) != nil {
+		return nil
+	}
+
 	// Resolve the configured socket and stop cleanly when it is disabled.
 	le := c.GetLogger()
 	b := c.GetBus()
