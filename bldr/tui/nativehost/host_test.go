@@ -24,45 +24,90 @@ import (
 
 const nativeHostHelperEnvironment = "SPACEWAVE_NATIVEHOST_TEST_HELPER"
 
+// nativeHostTestEndpoint returns one required child-owned endpoint for the current protocol.
+func nativeHostTestEndpoint(kind native.NativeViewerEndpointKind, fd int32, transport native.NativeViewerTransport, service string) *native.NativeViewerEndpointDescriptor {
+	return &native.NativeViewerEndpointDescriptor{
+		Kind:            kind,
+		Fd:              fd,
+		Transport:       transport,
+		ServiceId:       service,
+		ProtocolVersion: native.NativeViewerProtocolVersion,
+		Required:        true,
+		CloseOnExit:     true,
+	}
+}
+
 // nativeHostTestLaunch returns a valid launch record with the fixed inherited descriptor table.
 func nativeHostTestLaunch() *native.NativeViewerLaunchRecord {
 	return &native.NativeViewerLaunchRecord{
-		WireVersion: native.NativeViewerWireVersion, ProtocolVersion: native.NativeViewerProtocolVersion,
-		LaunchId: "launch:1", SessionObjectKey: "session:1", SpaceObjectKey: "space:1",
-		ManifestObjectKey: "manifest:1", ManifestDigest: "sha256:1",
-		ViewerObjectKey: "viewer:1", ViewerProfile: "default",
-		ResourceScopeSessionObjectKey: "session:1", SelectedStateKey: "state:1", LaunchNonce: "nonce:1",
+		WireVersion:     native.NativeViewerWireVersion,
+		ProtocolVersion: native.NativeViewerProtocolVersion,
+		LaunchId:        "launch:1",
+		LaunchNonce:     "nonce:1",
+
+		LlmSessionObjectKey:              "session:1",
+		SpaceObjectKey:                   "space:1",
+		ResourceScopeLlmSessionObjectKey: "session:1",
+		SelectedStateKey:                 "state:1",
+		SpacewaveSessionRef: &native.NativeViewerSpacewaveSessionRef{
+			ProviderResourceId: "resource-1",
+			ProviderId:         "provider-1",
+			ProviderAccountId:  "account-1",
+		},
+
+		ManifestObjectKey: "manifest:1",
+		ManifestDigest:    "sha256:1",
+		ViewerObjectKey:   "viewer:1",
+		ViewerProfile:     "default",
+
 		Io: &native.NativeViewerIODescriptor{
-			InputFd: 0, OutputFd: 1, DiagnosticFd: 2,
-			InputMode:  native.NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_READ,
-			OutputMode: native.NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE,
+			InputFd:      0,
+			OutputFd:     1,
+			DiagnosticFd: 2,
+			InputMode:    native.NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_READ,
+			OutputMode:   native.NativeViewerFDMode_NATIVE_VIEWER_FD_MODE_WRITE,
 		},
 		Endpoints: []*native.NativeViewerEndpointDescriptor{
-			{Kind: native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RECORD, Fd: native.RecordFD, Transport: native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO, ServiceId: "native.viewer.record", ProtocolVersion: 1, Required: true, CloseOnExit: true},
-			{Kind: native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_READINESS, Fd: native.ReadinessFD, Transport: native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO, ServiceId: "native.viewer.readiness", ProtocolVersion: 1, Required: true, CloseOnExit: true},
-			{Kind: native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE, Fd: native.ResourceFD, Transport: native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, ServiceId: "resource.ResourceService", ProtocolVersion: 1, Required: true, CloseOnExit: true},
-			{Kind: native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_STATE, Fd: native.StateFD, Transport: native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, ServiceId: native.SRPCStateServiceServiceID, ProtocolVersion: 1, Required: true, CloseOnExit: true},
-			{Kind: native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_CONTROL, Fd: native.ControlFD, Transport: native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, ServiceId: native.SRPCControlServiceServiceID, ProtocolVersion: 1, Required: true, CloseOnExit: true},
+			nativeHostTestEndpoint(native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RECORD, native.RecordFD, native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO, "native.viewer.record"),
+			nativeHostTestEndpoint(native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_READINESS, native.ReadinessFD, native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_LENGTH_DELIMITED_PROTO, "native.viewer.readiness"),
+			nativeHostTestEndpoint(native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_RESOURCE, native.ResourceFD, native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, "resource.ResourceService"),
+			nativeHostTestEndpoint(native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_STATE, native.StateFD, native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, native.SRPCStateServiceServiceID),
+			nativeHostTestEndpoint(native.NativeViewerEndpointKind_NATIVE_VIEWER_ENDPOINT_KIND_CONTROL, native.ControlFD, native.NativeViewerTransport_NATIVE_VIEWER_TRANSPORT_SRPC, native.SRPCControlServiceServiceID),
 		},
 	}
 }
 
 // nativeHostReady echoes launch identity into a readiness result with status-specific cleanup evidence.
 func nativeHostReady(launch *native.NativeViewerLaunchRecord, status native.NativeViewerReadinessStatus, detail string) *native.NativeViewerReadinessRecord {
-	r := &native.NativeViewerReadinessRecord{
-		WireVersion: native.NativeViewerWireVersion, ProtocolVersion: native.NativeViewerProtocolVersion,
-		LaunchId: launch.LaunchId, SessionObjectKey: launch.SessionObjectKey, SpaceObjectKey: launch.SpaceObjectKey,
-		ManifestObjectKey: launch.ManifestObjectKey, ManifestDigest: launch.ManifestDigest,
-		ViewerObjectKey: launch.ViewerObjectKey, ViewerProfile: launch.ViewerProfile,
-		ResourceScopeSessionObjectKey: launch.ResourceScopeSessionObjectKey, SelectedStateKey: launch.SelectedStateKey,
-		Status: status, Detail: detail,
+	readiness := &native.NativeViewerReadinessRecord{
+		WireVersion:     native.NativeViewerWireVersion,
+		ProtocolVersion: native.NativeViewerProtocolVersion,
+		LaunchId:        launch.GetLaunchId(),
+		LaunchNonce:     launch.GetLaunchNonce(),
+
+		LlmSessionObjectKey:              launch.GetLlmSessionObjectKey(),
+		SpaceObjectKey:                   launch.GetSpaceObjectKey(),
+		ResourceScopeLlmSessionObjectKey: launch.GetResourceScopeLlmSessionObjectKey(),
+		SelectedStateKey:                 launch.GetSelectedStateKey(),
+		SpacewaveSessionRef:              launch.GetSpacewaveSessionRef().CloneVT(),
+
+		ManifestObjectKey: launch.GetManifestObjectKey(),
+		ManifestDigest:    launch.GetManifestDigest(),
+		ViewerObjectKey:   launch.GetViewerObjectKey(),
+		ViewerProfile:     launch.GetViewerProfile(),
+
+		Status: status,
+		Detail: detail,
 	}
 	if status == native.NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY {
-		r.ResourceRevision, r.ResourceCursor, r.FrameSequence = 3, 4, 1
+		readiness.ResourceRevision = 3
+		readiness.ResourceCursor = 4
+		readiness.FrameSequence = 1
 	} else {
-		r.TerminalRestoreAttempted, r.AllWorkersJoined = true, true
+		readiness.TerminalRestoreAttempted = true
+		readiness.AllWorkersJoined = true
 	}
-	return r
+	return readiness
 }
 
 // TestNativeHostHelperProcess models child readiness, failure, cancellation, and terminal mutation.
@@ -93,7 +138,7 @@ func TestNativeHostHelperProcess(t *testing.T) {
 	}
 	if mode == "mismatch" {
 		r := nativeHostReady(launch, native.NativeViewerReadinessStatus_NATIVE_VIEWER_READINESS_STATUS_READY, "")
-		r.SessionObjectKey = "session:other"
+		r.LlmSessionObjectKey = "session:other"
 		frame, _ := r.MarshalVT()
 		var prefix [binary.MaxVarintLen64]byte
 		n := binary.PutUvarint(prefix[:], uint64(len(frame)))
@@ -347,7 +392,8 @@ func TestEndpointSetCleanupErrorsAndOnce(t *testing.T) {
 	closeErr := errors.New("transport close")
 	waitErr := errors.New("transport wait")
 	closes, waits := 0, 0
-	set := &EndpointSet{Resource: childR, State: nil, Control: nil,
+	set := &EndpointSet{
+		Resource: childR, State: nil, Control: nil,
 		CloseFunc: func() error { closes++; return closeErr },
 		WaitFunc:  func() error { waits++; return waitErr },
 	}

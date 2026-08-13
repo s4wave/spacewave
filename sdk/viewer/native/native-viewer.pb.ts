@@ -347,6 +347,53 @@ export const NativeViewerIODescriptor: MessageType<NativeViewerIODescriptor> =
   })
 
 /**
+ * NativeViewerSpacewaveSessionRef snapshots the canonical Spacewave SessionRef tuple for one immutable launch.
+ *
+ * @generated from message s4wave.viewer.native.NativeViewerSpacewaveSessionRef
+ */
+export interface NativeViewerSpacewaveSessionRef {
+  /**
+   * ProviderResourceId identifies the Spacewave Session resource within its provider.
+   *
+   * @generated from field: string provider_resource_id = 1;
+   */
+  providerResourceId?: string
+  /**
+   * ProviderId identifies the provider that contains the Spacewave Session resource.
+   *
+   * @generated from field: string provider_id = 2;
+   */
+  providerId?: string
+  /**
+   * ProviderAccountId identifies the provider account that contains the Spacewave Session resource.
+   *
+   * @generated from field: string provider_account_id = 3;
+   */
+  providerAccountId?: string
+}
+
+export const NativeViewerSpacewaveSessionRef: MessageType<NativeViewerSpacewaveSessionRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.viewer.native.NativeViewerSpacewaveSessionRef',
+    fields: [
+      {
+        no: 1,
+        name: 'provider_resource_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 2, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'provider_account_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * NativeViewerLaunchRecord freezes the identities and endpoints for one child launch.
  *
  * @generated from message s4wave.viewer.native.NativeViewerLaunchRecord
@@ -371,11 +418,11 @@ export interface NativeViewerLaunchRecord {
    */
   launchId?: string
   /**
-   * SessionObjectKey identifies the selected LlmSession object.
+   * LlmSessionObjectKey identifies the selected LlmSession object.
    *
-   * @generated from field: string session_object_key = 4;
+   * @generated from field: string llm_session_object_key = 4;
    */
-  sessionObjectKey?: string
+  llmSessionObjectKey?: string
   /**
    * SpaceObjectKey identifies the selected Space object.
    *
@@ -407,11 +454,11 @@ export interface NativeViewerLaunchRecord {
    */
   viewerProfile?: string
   /**
-   * ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
+   * ResourceScopeLlmSessionObjectKey limits resource access to the selected LlmSession object.
    *
-   * @generated from field: string resource_scope_session_object_key = 10;
+   * @generated from field: string resource_scope_llm_session_object_key = 10;
    */
-  resourceScopeSessionObjectKey?: string
+  resourceScopeLlmSessionObjectKey?: string
   /**
    * SelectedStateKey identifies the state atom persisted for this viewer selection.
    *
@@ -436,6 +483,12 @@ export interface NativeViewerLaunchRecord {
    * @generated from field: string launch_nonce = 14;
    */
   launchNonce?: string
+  /**
+   * SpacewaveSessionRef snapshots the exact Spacewave Session that authorized this launch.
+   *
+   * @generated from field: s4wave.viewer.native.NativeViewerSpacewaveSessionRef spacewave_session_ref = 15;
+   */
+  spacewaveSessionRef?: NativeViewerSpacewaveSessionRef
 }
 
 export const NativeViewerLaunchRecord: MessageType<NativeViewerLaunchRecord> =
@@ -447,7 +500,7 @@ export const NativeViewerLaunchRecord: MessageType<NativeViewerLaunchRecord> =
       { no: 3, name: 'launch_id', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 4,
-        name: 'session_object_key',
+        name: 'llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -468,7 +521,7 @@ export const NativeViewerLaunchRecord: MessageType<NativeViewerLaunchRecord> =
       { no: 9, name: 'viewer_profile', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 10,
-        name: 'resource_scope_session_object_key',
+        name: 'resource_scope_llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -492,6 +545,12 @@ export const NativeViewerLaunchRecord: MessageType<NativeViewerLaunchRecord> =
         T: () => NativeViewerIODescriptor,
       },
       { no: 14, name: 'launch_nonce', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 15,
+        name: 'spacewave_session_ref',
+        kind: 'message',
+        T: () => NativeViewerSpacewaveSessionRef,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -521,11 +580,11 @@ export interface NativeViewerReadinessRecord {
    */
   launchId?: string
   /**
-   * SessionObjectKey identifies the selected LlmSession object.
+   * LlmSessionObjectKey identifies the selected LlmSession object.
    *
-   * @generated from field: string session_object_key = 4;
+   * @generated from field: string llm_session_object_key = 4;
    */
-  sessionObjectKey?: string
+  llmSessionObjectKey?: string
   /**
    * SpaceObjectKey identifies the selected Space object.
    *
@@ -599,17 +658,29 @@ export interface NativeViewerReadinessRecord {
    */
   viewerProfile?: string
   /**
-   * ResourceScopeSessionObjectKey limits resource access to the selected LlmSession object.
+   * ResourceScopeLlmSessionObjectKey limits resource access to the selected LlmSession object.
    *
-   * @generated from field: string resource_scope_session_object_key = 17;
+   * @generated from field: string resource_scope_llm_session_object_key = 17;
    */
-  resourceScopeSessionObjectKey?: string
+  resourceScopeLlmSessionObjectKey?: string
   /**
    * SelectedStateKey identifies the state atom persisted for this viewer selection.
    *
    * @generated from field: string selected_state_key = 18;
    */
   selectedStateKey?: string
+  /**
+   * SpacewaveSessionRef echoes the exact Spacewave Session that authorized the launch.
+   *
+   * @generated from field: s4wave.viewer.native.NativeViewerSpacewaveSessionRef spacewave_session_ref = 19;
+   */
+  spacewaveSessionRef?: NativeViewerSpacewaveSessionRef
+  /**
+   * LaunchNonce echoes the launch attempt that this readiness evidence describes.
+   *
+   * @generated from field: string launch_nonce = 20;
+   */
+  launchNonce?: string
 }
 
 export const NativeViewerReadinessRecord: MessageType<NativeViewerReadinessRecord> =
@@ -621,7 +692,7 @@ export const NativeViewerReadinessRecord: MessageType<NativeViewerReadinessRecor
       { no: 3, name: 'launch_id', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 4,
-        name: 'session_object_key',
+        name: 'llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -669,7 +740,7 @@ export const NativeViewerReadinessRecord: MessageType<NativeViewerReadinessRecor
       { no: 16, name: 'viewer_profile', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 17,
-        name: 'resource_scope_session_object_key',
+        name: 'resource_scope_llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -679,6 +750,13 @@ export const NativeViewerReadinessRecord: MessageType<NativeViewerReadinessRecor
         kind: 'scalar',
         T: ScalarType.STRING,
       },
+      {
+        no: 19,
+        name: 'spacewave_session_ref',
+        kind: 'message',
+        T: () => NativeViewerSpacewaveSessionRef,
+      },
+      { no: 20, name: 'launch_nonce', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -690,29 +768,29 @@ export const NativeViewerReadinessRecord: MessageType<NativeViewerReadinessRecor
  */
 export interface NativeViewerSelectedState {
   /**
-   * Tabs orders the bounded set of open LlmSession object keys.
+   * TabLlmSessionObjectKeys orders the bounded set of open LlmSession object keys.
    *
-   * @generated from field: repeated string tabs = 1;
+   * @generated from field: repeated string tab_llm_session_object_keys = 1;
    */
-  tabs?: string[]
+  tabLlmSessionObjectKeys?: string[]
   /**
-   * Focused identifies the focused LlmSession tab.
+   * FocusedLlmSessionObjectKey identifies the focused LlmSession tab.
    *
-   * @generated from field: string focused = 2;
+   * @generated from field: string focused_llm_session_object_key = 2;
    */
-  focused?: string
+  focusedLlmSessionObjectKey?: string
   /**
-   * Drafts maps LlmSession object keys to bounded UTF-8 input drafts.
+   * DraftsByLlmSessionObjectKey maps LlmSession object keys to bounded UTF-8 input drafts.
    *
-   * @generated from field: map<string, string> drafts = 3;
+   * @generated from field: map<string, string> drafts_by_llm_session_object_key = 3;
    */
-  drafts?: { [key: string]: string }
+  draftsByLlmSessionObjectKey?: { [key: string]: string }
   /**
-   * Viewports maps LlmSession object keys to bounded transcript offsets.
+   * ViewportsByLlmSessionObjectKey maps LlmSession object keys to bounded transcript offsets.
    *
-   * @generated from field: map<string, uint32> viewports = 4;
+   * @generated from field: map<string, uint32> viewports_by_llm_session_object_key = 4;
    */
-  viewports?: { [key: string]: number }
+  viewportsByLlmSessionObjectKey?: { [key: string]: number }
   /**
    * SelectedView selects the active viewer pane.
    *
@@ -725,12 +803,6 @@ export interface NativeViewerSelectedState {
    * @generated from field: uint32 theme = 6;
    */
   theme?: number
-  /**
-   * SpaceObjectKey identifies the selected Space object.
-   *
-   * @generated from field: string space_object_key = 7;
-   */
-  spaceObjectKey?: string
 }
 
 export const NativeViewerSelectedState: MessageType<NativeViewerSelectedState> =
@@ -739,29 +811,33 @@ export const NativeViewerSelectedState: MessageType<NativeViewerSelectedState> =
     fields: [
       {
         no: 1,
-        name: 'tabs',
+        name: 'tab_llm_session_object_keys',
         kind: 'scalar',
         T: ScalarType.STRING,
         repeated: true,
       },
-      { no: 2, name: 'focused', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'focused_llm_session_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
       {
         no: 3,
-        name: 'drafts',
+        name: 'drafts_by_llm_session_object_key',
         kind: 'map',
         K: ScalarType.STRING,
         V: { kind: 'scalar', T: ScalarType.STRING },
       },
       {
         no: 4,
-        name: 'viewports',
+        name: 'viewports_by_llm_session_object_key',
         kind: 'map',
         K: ScalarType.STRING,
         V: { kind: 'scalar', T: ScalarType.UINT32 },
       },
       { no: 5, name: 'selected_view', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 6, name: 'theme', kind: 'scalar', T: ScalarType.UINT32 },
-      { no: 7, name: 'space_object_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -917,11 +993,11 @@ export const NativeViewerStateSaveResponse: MessageType<NativeViewerStateSaveRes
  */
 export interface NativeViewerAvailableSessionsRequest {
   /**
-   * ScopeSessionObjectKey identifies the LlmSession that bounds discovery.
+   * ResourceScopeLlmSessionObjectKey identifies the LlmSession that bounds discovery.
    *
-   * @generated from field: string scope_session_object_key = 1;
+   * @generated from field: string resource_scope_llm_session_object_key = 1;
    */
-  scopeSessionObjectKey?: string
+  resourceScopeLlmSessionObjectKey?: string
 }
 
 export const NativeViewerAvailableSessionsRequest: MessageType<NativeViewerAvailableSessionsRequest> =
@@ -930,7 +1006,7 @@ export const NativeViewerAvailableSessionsRequest: MessageType<NativeViewerAvail
     fields: [
       {
         no: 1,
-        name: 'scope_session_object_key',
+        name: 'resource_scope_llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -945,11 +1021,11 @@ export const NativeViewerAvailableSessionsRequest: MessageType<NativeViewerAvail
  */
 export interface NativeViewerAvailableSessionsResponse {
   /**
-   * SessionObjectKeys lists LlmSession objects available within the resource scope.
+   * LlmSessionObjectKeys lists LlmSession objects available within the resource scope.
    *
-   * @generated from field: repeated string session_object_keys = 1;
+   * @generated from field: repeated string llm_session_object_keys = 1;
    */
-  sessionObjectKeys?: string[]
+  llmSessionObjectKeys?: string[]
 }
 
 export const NativeViewerAvailableSessionsResponse: MessageType<NativeViewerAvailableSessionsResponse> =
@@ -958,7 +1034,7 @@ export const NativeViewerAvailableSessionsResponse: MessageType<NativeViewerAvai
     fields: [
       {
         no: 1,
-        name: 'session_object_keys',
+        name: 'llm_session_object_keys',
         kind: 'scalar',
         T: ScalarType.STRING,
         repeated: true,
@@ -974,11 +1050,11 @@ export const NativeViewerAvailableSessionsResponse: MessageType<NativeViewerAvai
  */
 export interface NativeViewerSelectSessionRequest {
   /**
-   * SessionObjectKey identifies the selected LlmSession object.
+   * LlmSessionObjectKey identifies the selected LlmSession object.
    *
-   * @generated from field: string session_object_key = 1;
+   * @generated from field: string llm_session_object_key = 1;
    */
-  sessionObjectKey?: string
+  llmSessionObjectKey?: string
   /**
    * RequestId identifies one idempotent control request.
    *
@@ -993,7 +1069,7 @@ export const NativeViewerSelectSessionRequest: MessageType<NativeViewerSelectSes
     fields: [
       {
         no: 1,
-        name: 'session_object_key',
+        name: 'llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -1015,11 +1091,11 @@ export interface NativeViewerSelectSessionResponse {
    */
   status?: NativeViewerControlStatus
   /**
-   * SessionObjectKey identifies the selected LlmSession object.
+   * LlmSessionObjectKey identifies the selected LlmSession object.
    *
-   * @generated from field: string session_object_key = 2;
+   * @generated from field: string llm_session_object_key = 2;
    */
-  sessionObjectKey?: string
+  llmSessionObjectKey?: string
   /**
    * RequestId identifies one idempotent control request.
    *
@@ -1046,7 +1122,7 @@ export const NativeViewerSelectSessionResponse: MessageType<NativeViewerSelectSe
       },
       {
         no: 2,
-        name: 'session_object_key',
+        name: 'llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -1063,11 +1139,11 @@ export const NativeViewerSelectSessionResponse: MessageType<NativeViewerSelectSe
  */
 export interface NativeViewerSendInputRequest {
   /**
-   * SessionObjectKey identifies the selected LlmSession object.
+   * LlmSessionObjectKey identifies the selected LlmSession object.
    *
-   * @generated from field: string session_object_key = 1;
+   * @generated from field: string llm_session_object_key = 1;
    */
-  sessionObjectKey?: string
+  llmSessionObjectKey?: string
   /**
    * DispatchKey identifies the active dispatch within an LlmSession.
    *
@@ -1094,7 +1170,7 @@ export const NativeViewerSendInputRequest: MessageType<NativeViewerSendInputRequ
     fields: [
       {
         no: 1,
-        name: 'session_object_key',
+        name: 'llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -1112,11 +1188,11 @@ export const NativeViewerSendInputRequest: MessageType<NativeViewerSendInputRequ
  */
 export interface NativeViewerInterruptRequest {
   /**
-   * SessionObjectKey identifies the selected LlmSession object.
+   * LlmSessionObjectKey identifies the selected LlmSession object.
    *
-   * @generated from field: string session_object_key = 1;
+   * @generated from field: string llm_session_object_key = 1;
    */
-  sessionObjectKey?: string
+  llmSessionObjectKey?: string
   /**
    * DispatchKey identifies the active dispatch within an LlmSession.
    *
@@ -1143,7 +1219,7 @@ export const NativeViewerInterruptRequest: MessageType<NativeViewerInterruptRequ
     fields: [
       {
         no: 1,
-        name: 'session_object_key',
+        name: 'llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -1167,11 +1243,11 @@ export interface NativeViewerControlResponse {
    */
   status?: NativeViewerControlStatus
   /**
-   * SessionObjectKey identifies the selected LlmSession object.
+   * LlmSessionObjectKey identifies the selected LlmSession object.
    *
-   * @generated from field: string session_object_key = 2;
+   * @generated from field: string llm_session_object_key = 2;
    */
-  sessionObjectKey?: string
+  llmSessionObjectKey?: string
   /**
    * DispatchKey identifies the active dispatch within an LlmSession.
    *
@@ -1216,7 +1292,7 @@ export const NativeViewerControlResponse: MessageType<NativeViewerControlRespons
       },
       {
         no: 2,
-        name: 'session_object_key',
+        name: 'llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -1246,11 +1322,11 @@ export const NativeViewerControlResponse: MessageType<NativeViewerControlRespons
  */
 export interface NativeViewerFollowUpRequest {
   /**
-   * PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
+   * PredecessorLlmSessionObjectKey identifies the LlmSession continued by a follow-up.
    *
-   * @generated from field: string predecessor_session_object_key = 1;
+   * @generated from field: string predecessor_llm_session_object_key = 1;
    */
-  predecessorSessionObjectKey?: string
+  predecessorLlmSessionObjectKey?: string
   /**
    * RequestId identifies one idempotent control request.
    *
@@ -1271,7 +1347,7 @@ export const NativeViewerFollowUpRequest: MessageType<NativeViewerFollowUpReques
     fields: [
       {
         no: 1,
-        name: 'predecessor_session_object_key',
+        name: 'predecessor_llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -1294,11 +1370,11 @@ export interface NativeViewerFollowUpResponse {
    */
   status?: NativeViewerControlStatus
   /**
-   * PredecessorSessionObjectKey identifies the LlmSession continued by a follow-up.
+   * PredecessorLlmSessionObjectKey identifies the LlmSession continued by a follow-up.
    *
-   * @generated from field: string predecessor_session_object_key = 2;
+   * @generated from field: string predecessor_llm_session_object_key = 2;
    */
-  predecessorSessionObjectKey?: string
+  predecessorLlmSessionObjectKey?: string
   /**
    * RequestId identifies one idempotent control request.
    *
@@ -1312,11 +1388,11 @@ export interface NativeViewerFollowUpResponse {
    */
   text?: string
   /**
-   * SuccessorSessionObjectKey identifies the LlmSession created by a follow-up.
+   * SuccessorLlmSessionObjectKey identifies the LlmSession created by a follow-up.
    *
-   * @generated from field: string successor_session_object_key = 5;
+   * @generated from field: string successor_llm_session_object_key = 5;
    */
-  successorSessionObjectKey?: string
+  successorLlmSessionObjectKey?: string
   /**
    * Detail explains a rejected, failed, or cancelled operation.
    *
@@ -1337,7 +1413,7 @@ export const NativeViewerFollowUpResponse: MessageType<NativeViewerFollowUpRespo
       },
       {
         no: 2,
-        name: 'predecessor_session_object_key',
+        name: 'predecessor_llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
@@ -1345,7 +1421,7 @@ export const NativeViewerFollowUpResponse: MessageType<NativeViewerFollowUpRespo
       { no: 4, name: 'text', kind: 'scalar', T: ScalarType.STRING },
       {
         no: 5,
-        name: 'successor_session_object_key',
+        name: 'successor_llm_session_object_key',
         kind: 'scalar',
         T: ScalarType.STRING,
       },
