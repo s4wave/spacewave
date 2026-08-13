@@ -1,10 +1,7 @@
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  APP_DRAG_MIME,
-  hasNativeFileDrag,
-} from '@s4wave/web/dnd/app-drag.js'
+import { APP_DRAG_MIME, hasNativeFileDrag } from '@s4wave/web/dnd/app-drag.js'
 
 import { FileDropGuard } from './FileDropGuard.js'
 
