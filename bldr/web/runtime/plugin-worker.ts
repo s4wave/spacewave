@@ -375,7 +375,7 @@ export class PluginWorker {
         data.workerCommsDetect,
         data.runtimeWasmEnv,
       ).catch((err) => {
-        if (isExpectedPluginWorkerShutdownError(err)) {
+        if (this.shuttingDown) {
           console.warn(
             `PluginWorker: ${this.workerId}: startup canceled because WebDocument closed`,
           )
@@ -398,11 +398,6 @@ function isAbortError(err: unknown): boolean {
     'name' in err &&
     (err as { name?: string }).name === 'AbortError'
   )
-}
-
-function isExpectedPluginWorkerShutdownError(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err)
-  return msg.includes('closed while waiting for WebDocument')
 }
 
 function stringifyError(err: unknown): string {
