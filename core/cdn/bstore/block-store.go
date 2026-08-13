@@ -61,6 +61,13 @@ type CdnBlockStore struct {
 	pointerTime     time.Time
 	pointerEpoch    uint64
 	writebackTarget block.StoreOps
+	pointerLoad     *rootPointerLoad
+}
+
+type rootPointerLoad struct {
+	done chan struct{}
+	ptr  *cdn.CdnRootPointer
+	err  error
 }
 
 // NewCdnBlockStore constructs a new CdnBlockStore. The pointer is fetched
@@ -267,22 +274,7 @@ func (s *CdnBlockStore) Pointer() *cdn.CdnRootPointer {
 // Refresh forces a re-fetch of the root pointer and updates the manifest.
 // Returns the new pointer (nil if the CDN Space is empty).
 func (s *CdnBlockStore) Refresh(ctx context.Context) (*cdn.CdnRootPointer, error) {
-	var closed bool
-	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		closed = s.closed
-	})
-	if closed {
-		return nil, packfile_store.ErrPackfileStoreClosed
-	}
-
-	ptr, err := FetchRootPointer(ctx, s.cli, s.opts.CdnBaseURL, s.opts.SpaceID)
-	if err != nil {
-		return nil, err
-	}
-	if _, published := s.setPointer(ctx, ptr); !published {
-		return nil, packfile_store.ErrPackfileStoreClosed
-	}
-	return ptr, nil
+	return s.loadPointer(ctx)
 }
 
 // Invalidate drops the cached pointer so the next read re-fetches.
@@ -322,6 +314,14 @@ func (s *CdnBlockStore) setPointer(ctx context.Context, ptr *cdn.CdnRootPointer)
 	var published bool
 	s.bcast.HoldLock(func(broadcastFn func(), _ func() <-chan struct{}) {
 		if s.closed {
+			return
+		}
+		if (ptr == nil && s.pointer == nil) ||
+			(ptr != nil && s.pointer != nil && ptr.EqualVT(s.pointer)) {
+			s.pointer = ptr
+			s.pointerTime = time.Now()
+			epoch = s.pointerEpoch
+			published = true
 			return
 		}
 		if s.memCache != nil {
@@ -371,15 +371,80 @@ func (s *CdnBlockStore) ensurePointer(ctx context.Context) (*cdn.CdnRootPointer,
 	if !fetchedAt.IsZero() && (ttl < 0 || time.Since(fetchedAt) < ttl) {
 		return cached, epoch, nil
 	}
-	ptr, err := FetchRootPointer(ctx, s.cli, s.opts.CdnBaseURL, s.opts.SpaceID)
+	ptr, err := s.loadPointer(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
-	epoch, published := s.setPointer(ctx, ptr)
-	if !published {
-		return nil, 0, packfile_store.ErrPackfileStoreClosed
-	}
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		epoch = s.pointerEpoch
+	})
 	return ptr, epoch, nil
+}
+
+// loadPointer folds concurrent refreshes onto one root-pointer request.
+func (s *CdnBlockStore) loadPointer(ctx context.Context) (*cdn.CdnRootPointer, error) {
+	for {
+		var load *rootPointerLoad
+		var leader bool
+		var storeChanged <-chan struct{}
+		s.bcast.HoldLock(func(_ func(), wait func() <-chan struct{}) {
+			if s.closed {
+				return
+			}
+			load = s.pointerLoad
+			if load == nil {
+				load = &rootPointerLoad{done: make(chan struct{})}
+				s.pointerLoad = load
+				leader = true
+			}
+			storeChanged = wait()
+		})
+		if load == nil {
+			return nil, packfile_store.ErrPackfileStoreClosed
+		}
+		if !leader {
+		waitForLoad:
+			for {
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-load.done:
+					if errors.Is(load.err, context.Canceled) || errors.Is(load.err, context.DeadlineExceeded) {
+						break waitForLoad
+					}
+					return load.ptr, load.err
+				case <-storeChanged:
+					var closed bool
+					s.bcast.HoldLock(func(_ func(), wait func() <-chan struct{}) {
+						closed = s.closed
+						storeChanged = wait()
+					})
+					if closed {
+						return nil, packfile_store.ErrPackfileStoreClosed
+					}
+				}
+			}
+			continue
+		}
+
+		ptr, err := FetchRootPointer(ctx, s.cli, s.opts.CdnBaseURL, s.opts.SpaceID)
+		if err == nil {
+			if _, published := s.setPointer(ctx, ptr); !published {
+				ptr = nil
+				err = packfile_store.ErrPackfileStoreClosed
+			}
+		}
+		s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			load.ptr = ptr
+			load.err = err
+			if s.pointerLoad == load {
+				s.pointerLoad = nil
+			}
+			close(load.done)
+			broadcast()
+		})
+		return ptr, err
+	}
 }
 
 func (s *CdnBlockStore) withCurrentManifest(ctx context.Context, read func() error) error {

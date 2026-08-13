@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -353,6 +354,229 @@ func TestCdnBlockStoreInvalidateClearsDecodedBlockCache(t *testing.T) {
 	}
 }
 
+func TestCdnBlockStoreCanceledPointerLeaderDoesNotPoisonFollower(t *testing.T) {
+	ptr := &cdn.CdnRootPointer{SpaceId: testSpaceID}
+	pointerBytes := encodePointer(t, ptr)
+	var requests atomic.Int64
+	leaderStarted := make(chan struct{})
+	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/"+testSpaceID+"/root.packedmsg" {
+			http.NotFound(w, r)
+			return
+		}
+		if requests.Add(1) == 1 {
+			close(leaderStarted)
+			<-r.Context().Done()
+			return
+		}
+		_, _ = w.Write(pointerBytes)
+	}))
+	defer hs.Close()
+
+	bs, err := NewCdnBlockStore(Options{
+		CdnBaseURL: hs.URL,
+		SpaceID:    testSpaceID,
+		HttpClient: hs.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bs.Close()
+
+	leaderCtx, cancelLeader := context.WithTimeout(t.Context(), 200*time.Millisecond)
+	defer cancelLeader()
+	leaderDone := make(chan error, 1)
+	go func() {
+		_, err := bs.Refresh(leaderCtx)
+		leaderDone <- err
+	}()
+	select {
+	case <-leaderStarted:
+	case <-t.Context().Done():
+		t.Fatal(t.Context().Err())
+	}
+
+	followerDone := make(chan error, 1)
+	go func() {
+		_, err := bs.Refresh(t.Context())
+		followerDone <- err
+	}()
+
+	callerCtx, cancelCaller := context.WithCancel(t.Context())
+	callerDone := make(chan error, 1)
+	go func() {
+		_, err := bs.Refresh(callerCtx)
+		callerDone <- err
+	}()
+	cancelCaller()
+	select {
+	case err := <-callerDone:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("canceled follower error = %v, want %v", err, context.Canceled)
+		}
+	case <-t.Context().Done():
+		t.Fatal(t.Context().Err())
+	}
+
+	select {
+	case err := <-leaderDone:
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("leader error = %v, want %v", err, context.DeadlineExceeded)
+		}
+	case <-t.Context().Done():
+		t.Fatal(t.Context().Err())
+	}
+	select {
+	case err := <-followerDone:
+		if err != nil {
+			t.Fatalf("healthy follower refresh: %v", err)
+		}
+	case <-t.Context().Done():
+		t.Fatal(t.Context().Err())
+	}
+	if got := requests.Load(); got != 2 {
+		t.Fatalf("root pointer requests = %d, want canceled leader plus replacement", got)
+	}
+	if got := bs.Pointer(); got == nil || !got.EqualVT(ptr) {
+		t.Fatalf("root pointer = %#v, want %#v", got, ptr)
+	}
+}
+
+func TestCdnBlockStoreSharesNonContextPointerError(t *testing.T) {
+	var requests atomic.Int64
+	requestStarted := make(chan struct{})
+	releaseRequest := make(chan struct{})
+	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/"+testSpaceID+"/root.packedmsg" {
+			http.NotFound(w, r)
+			return
+		}
+		requests.Add(1)
+		close(requestStarted)
+		<-releaseRequest
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
+	}))
+	defer hs.Close()
+
+	bs, err := NewCdnBlockStore(Options{
+		CdnBaseURL: hs.URL,
+		SpaceID:    testSpaceID,
+		HttpClient: hs.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bs.Close()
+
+	const readers = 32
+	start := make(chan struct{})
+	done := make(chan error, readers)
+	for range readers {
+		go func() {
+			<-start
+			_, err := bs.Refresh(t.Context())
+			done <- err
+		}()
+	}
+	close(start)
+	select {
+	case <-requestStarted:
+	case <-t.Context().Done():
+		t.Fatal(t.Context().Err())
+	}
+
+	select {
+	case <-time.After(50 * time.Millisecond):
+	case <-t.Context().Done():
+		t.Fatal(t.Context().Err())
+	}
+	close(releaseRequest)
+	for range readers {
+		if err := <-done; err == nil || !strings.Contains(err.Error(), "status 503") {
+			t.Fatalf("shared root pointer error = %v, want status 503", err)
+		}
+	}
+	if got := requests.Load(); got != 1 {
+		t.Fatalf("root pointer requests = %d, want one shared request", got)
+	}
+}
+
+func TestCdnBlockStoreCoalescesUnchangedPointerRefreshes(t *testing.T) {
+	ptr := &cdn.CdnRootPointer{SpaceId: testSpaceID}
+	pointerBytes := encodePointer(t, ptr)
+	var requests atomic.Int64
+	refreshStarted := make(chan struct{})
+	releaseRefresh := make(chan struct{})
+	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/"+testSpaceID+"/root.packedmsg" {
+			http.NotFound(w, r)
+			return
+		}
+		request := requests.Add(1)
+		if request == 2 {
+			close(refreshStarted)
+		}
+		if request > 1 {
+			<-releaseRefresh
+		}
+		_, _ = w.Write(pointerBytes)
+	}))
+	defer hs.Close()
+
+	bs, err := NewCdnBlockStore(Options{
+		CdnBaseURL: hs.URL,
+		SpaceID:    testSpaceID,
+		HttpClient: hs.Client(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bs.Close()
+	if _, err := bs.Refresh(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+
+	const readers = 32
+	start := make(chan struct{})
+	done := make(chan error, readers)
+	for range readers {
+		go func() {
+			<-start
+			_, err := bs.Refresh(t.Context())
+			done <- err
+		}()
+	}
+	close(start)
+	select {
+	case <-refreshStarted:
+	case <-t.Context().Done():
+		t.Fatal(t.Context().Err())
+	}
+
+	// The blocked leader leaves every other refresh enough time to fold onto it.
+	select {
+	case <-time.After(50 * time.Millisecond):
+	case <-t.Context().Done():
+		t.Fatal(t.Context().Err())
+	}
+	if got := requests.Load(); got != 2 {
+		close(releaseRefresh)
+		t.Fatalf("root pointer requests = %d, want initial plus one shared refresh", got)
+	}
+	close(releaseRefresh)
+	for range readers {
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	bs.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if bs.pointerEpoch != 1 {
+			t.Fatalf("unchanged pointer epoch = %d, want 1", bs.pointerEpoch)
+		}
+	})
+}
+
 func TestCdnBlockStorePointerTTLRefreshClearsDecodedBlockCache(t *testing.T) {
 	ctx := context.Background()
 
@@ -524,6 +748,17 @@ func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
 		t.Fatalf("Refresh did not reach the root pointer request: %v", t.Context().Err())
 	}
 
+	followerDone := make(chan error, 1)
+	go func() {
+		_, err := bs.Refresh(t.Context())
+		followerDone <- err
+	}()
+	select {
+	case <-time.After(50 * time.Millisecond):
+	case <-t.Context().Done():
+		t.Fatal(t.Context().Err())
+	}
+
 	closeDone := make(chan struct{})
 	go func() {
 		bs.Close()
@@ -539,6 +774,14 @@ func TestCdnBlockStoreCloseFencesBlockedRefresh(t *testing.T) {
 	}
 	if got := bs.pfs.SnapshotStats().ManifestEntries; got != 0 {
 		t.Fatalf("manifest entries after Close = %d, want 0", got)
+	}
+	select {
+	case err := <-followerDone:
+		if !errors.Is(err, packfile_store.ErrPackfileStoreClosed) {
+			t.Fatalf("Refresh follower after Close error = %v, want %v", err, packfile_store.ErrPackfileStoreClosed)
+		}
+	case <-t.Context().Done():
+		t.Fatalf("Refresh follower did not observe Close: %v", t.Context().Err())
 	}
 
 	close(releaseRefresh)
