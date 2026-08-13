@@ -64,6 +64,38 @@ import("chunks/not-js.css");
 	assertProfileAccessEntry(t, entries[7], 7, "chunks/beta.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/beta.mjs", 1)
 }
 
+func TestRecordDynamicImportsResolvesRelativeChunkSpecifiers(t *testing.T) {
+	ctx := context.Background()
+	distFS := newProfileAccessOrderTestFS(t, map[string][]byte{
+		"entrypoint/a/b/runtime.mjs": []byte(`
+import("../../chunks/parent.mjs");
+import("../chunks/sibling.mjs?worker#startup");
+import("./chunks/local.mjs");
+import("chunks/bare.mjs");
+import("../../../chunks/outside.mjs");
+import("/chunks/absolute.mjs");
+import("../styles/not-a-chunk.mjs");
+import("../chunks/not-module.js");
+`),
+	})
+	defer distFS.Release()
+
+	recorder := newStartupAccessRecorder()
+	if err := recordDynamicImportsFromFile(ctx, recorder, distFS, "entrypoint/a/b/runtime.mjs"); err != nil {
+		t.Fatalf("recordDynamicImportsFromFile: %v", err)
+	}
+
+	entries := recorder.entries
+	if len(entries) != 5 {
+		t.Fatalf("got %d entries, want 5: %v", len(entries), entries)
+	}
+	assertProfileAccessEntry(t, entries[0], 0, "entrypoint/chunks/parent.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "../../chunks/parent.mjs", 1)
+	assertProfileAccessEntry(t, entries[1], 1, "entrypoint/a/chunks/sibling.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "../chunks/sibling.mjs?worker#startup", 1)
+	assertProfileAccessEntry(t, entries[2], 2, "entrypoint/a/b/chunks/local.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "./chunks/local.mjs", 1)
+	assertProfileAccessEntry(t, entries[3], 3, "entrypoint/a/b/chunks/bare.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "chunks/bare.mjs", 1)
+	assertProfileAccessEntry(t, entries[4], 4, "chunks/outside.mjs", packfile_order.AccessOrderReason_ACCESS_ORDER_REASON_DYNAMIC_IMPORT, "../../../chunks/outside.mjs", 1)
+}
+
 func TestResolveStartupAccessRefsPopulatesResolvedRefsForRecordedDistAndAssetsEntries(t *testing.T) {
 	ctx := context.Background()
 	const sharedPath = "shared.txt"
