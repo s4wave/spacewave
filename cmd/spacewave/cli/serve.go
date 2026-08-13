@@ -13,20 +13,18 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
-	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
-	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
-	resource "github.com/s4wave/spacewave/bldr/resource"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	db_world "github.com/s4wave/spacewave/db/world"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 )
 
@@ -282,34 +280,8 @@ func startDaemonPluginRuntime(
 	return rel, nil
 }
 
-// daemonPluginClientLoader waits for the current spacewave-core generation.
-type daemonPluginClientLoader func(context.Context) (srpc.Client, directive.Reference, error)
-
-type daemonResourceInvoker struct {
-	loadClient daemonPluginClientLoader
-}
-
-// newDaemonResourceInvoker routes each Resource RPC stream to the current
-// spacewave-core plugin generation.
+// newDaemonResourceInvoker resolves the current Resource service for every RPC
+// stream and retains that generation until the stream ends.
 func newDaemonResourceInvoker(b bus.Bus) srpc.Invoker {
-	return &daemonResourceInvoker{
-		loadClient: func(ctx context.Context) (srpc.Client, directive.Reference, error) {
-			return bldr_plugin.ExPluginLoadWaitClient(ctx, b, "spacewave-core", nil)
-		},
-	}
-}
-
-func (i *daemonResourceInvoker) InvokeMethod(
-	serviceID, methodID string,
-	strm srpc.Stream,
-) (bool, error) {
-	if serviceID != resource.SRPCResourceServiceServiceID {
-		return false, nil
-	}
-	client, clientRef, err := i.loadClient(strm.Context())
-	if err != nil || clientRef == nil {
-		return false, err
-	}
-	defer clientRef.Release()
-	return srpc.NewClientInvoker(client).InvokeMethod(serviceID, methodID, strm)
+	return bifrost_rpc.NewInvoker(b, "", true)
 }
