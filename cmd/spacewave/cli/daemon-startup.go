@@ -28,11 +28,12 @@ const daemonTracePathEnvVar = "SPACEWAVE_DAEMON_TRACE"
 var defaultDaemonStartupTimeout = time.Minute
 
 // startDaemonProcess starts the current CLI executable in background serve mode
-// and waits for a one-shot startup readiness signal.
-func startDaemonProcess(ctx context.Context, statePath string) error {
+// and waits for the startup pipe. It returns the command so the caller can stop
+// and wait for the child if Resource Init fails.
+func startDaemonProcess(ctx context.Context, statePath string) (*exec.Cmd, error) {
 	startupTimeout, err := getDaemonStartupTimeout()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	startCtx, cancel := context.WithTimeout(ctx, startupTimeout)
@@ -42,13 +43,13 @@ func startDaemonProcess(ctx context.Context, statePath string) error {
 	pipeLogger := newDaemonStartupPipeLogger()
 	pipeListener, err := pipesock.BuildPipeListener(pipeLogger, statePath, pipeID)
 	if err != nil {
-		return errors.Wrap(err, "listen for daemon startup")
+		return nil, errors.Wrap(err, "listen for daemon startup")
 	}
 	defer pipeListener.Close()
 
 	exePath, err := os.Executable()
 	if err != nil {
-		return errors.Wrap(err, "resolve executable")
+		return nil, errors.Wrap(err, "resolve executable")
 	}
 
 	cmd := exec.Command(
@@ -58,33 +59,31 @@ func startDaemonProcess(ctx context.Context, statePath string) error {
 	// cmd.Env is left nil so the daemon inherits the parent's environment;
 	// the variables in daemonChildEnvForwarded propagate via that default.
 	if err := prepareDaemonStart(cmd); err != nil {
-		return err
+		return nil, err
 	}
 
 	nullFile, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
 	if err != nil {
-		return errors.Wrap(err, "open devnull")
+		return nil, errors.Wrap(err, "open devnull")
 	}
 	defer nullFile.Close()
 	cmd.Stdin = nullFile
 	cmd.Stdout = nullFile
 	cmd.Stderr = nullFile
 
-	if err := cmd.Start(); err != nil {
-		return errors.Wrap(err, "start daemon process")
+	if err := startDaemonCmd(cmd); err != nil {
+		return nil, errors.Wrap(err, "start daemon process")
 	}
 
 	if err := waitForDaemonStartup(startCtx, pipeListener); err != nil {
-		if cmd.Process != nil {
-			_ = cmd.Process.Kill()
-			_ = cmd.Process.Release()
+		if stopErr := terminateDaemonCmd(cmd, statePath); stopErr != nil {
+			return nil, errors.Wrapf(err, "stop started daemon: %v", stopErr)
 		}
-		return err
+		return nil, err
 	}
-	if cmd.Process != nil {
-		_ = cmd.Process.Release()
-	}
-	return nil
+	// Keep the process handle until Resource Init succeeds. A later startup
+	// failure must stop and wait for this child before returning.
+	return cmd, nil
 }
 
 func daemonServeArgs(statePath string, pipeID string) []string {

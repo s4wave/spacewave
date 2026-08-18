@@ -6,6 +6,7 @@ import (
 	"context"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -61,9 +62,9 @@ func TestRunStopRequestsDaemonShutdown(t *testing.T) {
 
 func TestRunStopWithoutDaemonDoesNotAutostart(t *testing.T) {
 	oldStart := connectDaemonStart
-	connectDaemonStart = func(ctx context.Context, statePath string) error {
+	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
 		t.Fatal("stop should not autostart daemon")
-		return nil
+		return nil, nil
 	}
 	t.Cleanup(func() {
 		connectDaemonStart = oldStart

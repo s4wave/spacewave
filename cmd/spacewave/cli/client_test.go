@@ -6,6 +6,7 @@ import (
 	"context"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -31,9 +32,9 @@ func TestConnectDaemonDoesNotAutostartAfterDialFailure(t *testing.T) {
 		dialCalls++
 		return nil, context.DeadlineExceeded
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) error {
+	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
 		t.Fatal("connectDaemon must not autostart")
-		return nil
+		return nil, nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		t.Fatal("unexpected build client call")
@@ -80,9 +81,9 @@ func TestConnectDaemonWithAutostartStartsDaemonAfterDialFailure(t *testing.T) {
 		}
 		return connA, nil
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) error {
+	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
 		startStatePath = statePath
-		return nil
+		return nil, nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		if conn != connA {
@@ -125,9 +126,9 @@ func TestConnectDaemonWithAutostartDoesNotAutostartOverExistingSocketAfterTransi
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		return nil, context.DeadlineExceeded
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) error {
+	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
 		t.Fatal("must not autostart while an existing daemon socket may still be live")
-		return nil
+		return nil, nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		t.Fatal("unexpected build client call")
@@ -174,9 +175,9 @@ func TestConnectDaemonWithAutostartRemovesStaleSocket(t *testing.T) {
 		}
 		return connA, nil
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) error {
+	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
 		startCalled = true
-		return nil
+		return nil, nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		return &sdkClient{conn: conn}, nil
@@ -217,9 +218,9 @@ func TestConnectDaemonSkipsAutostartWhenDialSucceeds(t *testing.T) {
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		return connA, nil
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) error {
+	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
 		startCalled = true
-		return nil
+		return nil, nil
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		return &sdkClient{conn: conn}, nil
@@ -246,8 +247,8 @@ func TestConnectDaemonWithAutostartReturnsAutostartFailure(t *testing.T) {
 	connectDaemonDial = func(ctx context.Context, sockPath string) (net.Conn, error) {
 		return nil, context.DeadlineExceeded
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) error {
-		return context.Canceled
+	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+		return nil, context.Canceled
 	}
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		t.Fatal("unexpected build client call")

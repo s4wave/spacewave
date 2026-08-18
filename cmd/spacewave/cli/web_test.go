@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -414,8 +415,8 @@ func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
 	}()
 
 	oldStart := connectDaemonStart
-	connectDaemonStart = func(ctx context.Context, statePath string) error {
-		return stderrors.New("unexpected daemon autostart")
+	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
+		return nil, stderrors.New("unexpected daemon autostart")
 	}
 	t.Cleanup(func() {
 		connectDaemonStart = oldStart

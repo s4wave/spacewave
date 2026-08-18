@@ -5,6 +5,7 @@ package spacewave_cli
 import (
 	"context"
 	"net"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -249,9 +250,9 @@ func TestDevicePolicyEnableShellCommandWritesPolicyAndReloadsDaemon(t *testing.T
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		dialed = sockPath
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
 		reloads++
@@ -295,9 +296,9 @@ func TestDevicePolicyEnableShellDisableWritesPolicyAndReloadsDaemon(t *testing.T
 	var reloads int
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
 		reloads++
@@ -336,9 +337,9 @@ func TestDevicePolicyCheckoutRootAddRemoveWritesPolicyAndReloadsDaemon(t *testin
 	var reloads int
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
 		reloads++

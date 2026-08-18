@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -114,9 +115,9 @@ func TestDeviceSetupUsesResolvedStatePathAndAutostart(t *testing.T) {
 			return nil, os.ErrNotExist
 		}
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		startedStatePath = path
-		return nil
+		return nil, nil
 	})
 
 	out, err := captureStdout(t, func() error {
@@ -154,9 +155,9 @@ func TestDeviceSetupUsesGlobalStatePathFlag(t *testing.T) {
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		dialed = sockPath
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 
 	out, err := captureStdout(t, func() error {
@@ -193,9 +194,9 @@ func TestDeviceSetupUsesEnvStatePath(t *testing.T) {
 	})
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 
 	out, err := captureStdout(t, func() error {
@@ -223,9 +224,9 @@ func TestDeviceSetupOutputsSignedDeviceTicketAndReusesIdentity(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "state")
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 
 	out, err := captureStdout(t, func() error {
@@ -305,9 +306,9 @@ func TestDeviceCompleteImportsApprovalCompletionIntoSetupState(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "state")
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 
 	setupOut, err := captureStdout(t, func() error {
@@ -453,9 +454,9 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "state")
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 
 	setupOut, err := captureStdout(t, func() error {
@@ -566,9 +567,9 @@ func TestDeviceCompletePreservesCompletionWhenDeviceObjectUpsertFails(t *testing
 	statePath := filepath.Join(t.TempDir(), "state")
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 
 	setupOut, err := captureStdout(t, func() error {
@@ -631,9 +632,9 @@ func TestDeviceCompleteRecordsRetryableFailureAndSetupCanRegenerateTicket(t *tes
 	statePath := filepath.Join(t.TempDir(), "state")
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 
 	setupOut, err := captureStdout(t, func() error {
@@ -701,9 +702,9 @@ func TestDeviceCompleteRejectsMismatchedNonceWithoutChangingState(t *testing.T) 
 	statePath := filepath.Join(t.TempDir(), "state")
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 
 	setupOut, err := captureStdout(t, func() error {
@@ -772,9 +773,9 @@ func TestDeviceStatusUsesSocketOverrideWithoutAutostart(t *testing.T) {
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		dialed = sockPath
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run with --socket-path")
-		return nil
+		return nil, nil
 	})
 
 	out, err := captureStdout(t, func() error {
@@ -808,9 +809,9 @@ func TestDeviceStatusReportsNotConfiguredWhenSetupStateMissing(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "state")
 	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
 		return newTestDaemonConn(t), nil
-	}, func(_ context.Context, path string) error {
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
 		t.Fatal("autostart must not run after successful dial")
-		return nil
+		return nil, nil
 	})
 
 	out, err := captureStdout(t, func() error {
@@ -1006,7 +1007,7 @@ func parseDeviceStatusOutputJSON(data []byte, out *deviceStatusOutput) error {
 func withDeviceDaemonStub(
 	t *testing.T,
 	dial func(sockPath string, call int) (net.Conn, error),
-	start func(context.Context, string) error,
+	start func(context.Context, string) (*exec.Cmd, error),
 ) {
 	t.Helper()
 
