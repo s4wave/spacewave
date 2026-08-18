@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"slices"
 	"sync"
 	"time"
 
@@ -17,20 +16,16 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
-	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
-	db_world "github.com/s4wave/spacewave/db/world"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 )
-
-const daemonPluginHostObjectKey = "plugin-host"
 
 // newServeCommand builds the serve command that starts the daemon
 // with a resource service socket listener.
@@ -140,18 +135,19 @@ func runServeCommand(
 	leaseOwned = false
 	serveCtx, serveCancel := context.WithCancel(ctx)
 	defer serveCancel()
-	releasePluginRuntime := func() {}
+	var invoker srpc.Invoker
 	if cliBus.GetPluginHostObjectKey() == "" {
-		releasePluginRuntime, err = startDaemonPluginRuntime(serveCtx, resolved, cliBus)
+		var invokerRef directive.Reference
+		invoker, invokerRef, err = lookupLocalResourceInvoker(serveCtx, cliBus.GetBus())
 		if err != nil {
 			return err
 		}
+		defer invokerRef.Release()
+	} else {
+		// Each Dist Resource RPC waits for the current spacewave-core generation
+		// after its stream is opened.
+		invoker = newDaemonResourceInvoker(cliBus.GetBus())
 	}
-	defer releasePluginRuntime()
-
-	// The socket is the stable transport boundary. Each Resource RPC waits for
-	// the current spacewave-core generation after its stream is opened.
-	invoker := newDaemonResourceInvoker(cliBus.GetBus())
 	devicePolicy, err := device_policy.NewPolicyStore(resolved)
 	if err != nil {
 		return err
@@ -208,78 +204,27 @@ func runServeCommand(
 	return serveDaemonListener(serveCtx, serveCancel, lis, srv, controlHandler, shutdownCh, idleTracker)
 }
 
-func startDaemonPluginRuntime(
+// lookupLocalResourceInvoker waits for the Resource service already registered
+// on the CLI bus and returns the reference that keeps it alive.
+func lookupLocalResourceInvoker(
 	ctx context.Context,
-	stateRoot string,
-	cliBus cli_entrypoint.CliBus,
-) (func(), error) {
-	pluginRoot := filepath.Join(stateRoot, "plugin")
-	pluginStateRoot := filepath.Join(pluginRoot, "state")
-	pluginDistRoot := filepath.Join(pluginRoot, "dist")
-	for _, dir := range []string{pluginStateRoot, pluginDistRoot} {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return nil, err
-		}
-	}
-
-	var rels []func()
-	rel := func() {
-		for _, v := range slices.Backward(rels) {
-			v()
-		}
-	}
-
-	lookupOpCtrl := db_world.NewLookupOpController(
-		"bldr-manifest-ops",
-		cliBus.GetWorldEngineID(),
-		bldr_manifest_world.LookupOp,
-	)
-	relLookupCtrl, err := cliBus.GetBus().AddController(ctx, lookupOpCtrl, nil)
-	if err != nil {
-		return nil, err
-	}
-	rels = append(rels, relLookupCtrl)
-
-	if _, err := bldr_manifest_world.CreateManifestStoreInEngine(
+	b bus.Bus,
+) (srpc.Invoker, directive.Reference, error) {
+	invokers, _, invokerRef, err := bifrost_rpc.ExLookupRpcService(
 		ctx,
-		cliBus.GetWorldEngine(),
-		daemonPluginHostObjectKey,
-	); err != nil {
-		rel()
-		return nil, err
-	}
-
-	_, relPluginSched, err := plugin_host_default.StartPluginScheduler(
-		ctx,
-		cliBus.GetBus(),
-		cliBus.GetWorldEngineID(),
-		daemonPluginHostObjectKey,
-		cliBus.GetVolume().GetID(),
-		cliBus.GetVolume().GetPeerID().String(),
-		true,
-		true,
-		true,
-	)
-	if err != nil {
-		rel()
-		return nil, err
-	}
-	rels = append(rels, relPluginSched)
-
-	_, relPluginHost, err := plugin_host_default.StartPluginHost(
-		ctx,
-		cliBus.GetBus(),
-		pluginStateRoot,
-		pluginDistRoot,
+		b,
+		resource.SRPCResourceServiceServiceID,
 		"",
+		true,
+		nil,
 	)
 	if err != nil {
-		rel()
-		return nil, err
+		return nil, nil, err
 	}
-	rels = append(rels, relPluginHost)
-
-	return rel, nil
+	if len(invokers) == 0 {
+		return nil, nil, errors.New("resource service not found")
+	}
+	return invokers[0], invokerRef, nil
 }
 
 // daemonPluginClientLoader waits for the current spacewave-core generation.

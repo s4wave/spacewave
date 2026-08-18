@@ -24,6 +24,8 @@ import (
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 )
 
+const defaultPluginHostObjectKey = "plugin-host"
+
 // newPluginCommand builds the plugin command group.
 func newPluginCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 	return &cli.Command{
@@ -64,7 +66,7 @@ func buildPluginImportManifestCommand(getBus func() cli_entrypoint.CliBus) *cli.
 			&cli.StringFlag{
 				Name:        "object-key",
 				Usage:       "plugin host object key to import into",
-				Value:       daemonPluginHostObjectKey,
+				Value:       defaultPluginHostObjectKey,
 				Destination: &objectKey,
 			},
 			&cli.StringFlag{

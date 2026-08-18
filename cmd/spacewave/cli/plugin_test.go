@@ -52,8 +52,8 @@ func TestPluginImportManifestObjectKeyFlag(t *testing.T) {
 	if objectKey == nil {
 		t.Fatal("object-key flag missing")
 	}
-	if objectKey.DefValue != daemonPluginHostObjectKey {
-		t.Fatalf("object-key default = %q, want %q", objectKey.DefValue, daemonPluginHostObjectKey)
+	if objectKey.DefValue != defaultPluginHostObjectKey {
+		t.Fatalf("object-key default = %q, want %q", objectKey.DefValue, defaultPluginHostObjectKey)
 	}
 	if set.Lookup("target-db") == nil {
 		t.Fatal("target-db flag missing")

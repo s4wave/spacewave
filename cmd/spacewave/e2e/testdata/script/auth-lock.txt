@@ -11,3 +11,9 @@ stderr "no session found at index 1"
 
 ! spacewave auth lock status --state-path $WORK/state
 stderr "no session found at index 1"
+
+spacewave stop --state-path $WORK/state
+stdout "Stopped Spacewave daemon."
+
+spacewave stop --state-path $WORK/state
+stdout "No Spacewave daemon is running."
