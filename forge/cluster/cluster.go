@@ -59,6 +59,10 @@ func LookupClusterOp(ctx context.Context, opTypeID string) (world.Operation, err
 		return &ClusterAssignTaskOp{}, nil
 	case ClusterAssignPeerOpId:
 		return &ClusterAssignPeerOp{}, nil
+	case ClusterStartJobOpId:
+		return &ClusterStartJobOp{}, nil
+	case ClusterCompleteJobOpId:
+		return &ClusterCompleteJobOp{}, nil
 	}
 	return nil, nil
 }
