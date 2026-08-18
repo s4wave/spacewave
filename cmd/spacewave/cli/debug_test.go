@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"net"
+	"os/exec"
 	"path/filepath"
 	"runtime/trace"
 	"testing"
@@ -97,9 +98,9 @@ func TestConnectDebugTraceDaemonUsesSocketPathWithoutAutostart(t *testing.T) {
 	connectDaemonBuildClient = func(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		return &sdkClient{conn: conn}, nil
 	}
-	connectDaemonStart = func(ctx context.Context, statePath string) error {
+	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
 		t.Fatal("debug connection must not autostart daemon")
-		return nil
+		return nil, nil
 	}
 
 	client, err := connectDebugTraceDaemon(context.Background(), nil, t.TempDir(), sock)
