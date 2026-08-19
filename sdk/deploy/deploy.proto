@@ -1,54 +1,49 @@
 syntax = "proto3";
 package s4wave.deploy;
 
+import "github.com/s4wave/spacewave/bldr/manifest/manifest.proto";
 import "github.com/s4wave/spacewave/db/block/block.proto";
-import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
 
-// DeployManifestMessage is the bidirectional message for manifest deployment.
-message DeployManifestMessage {
+// DeployManifestsMessage is the bidirectional message for manifest-set deployment.
+message DeployManifestsMessage {
   oneof body {
-    // DeployManifestRequest is sent client->server as the initial request.
-    DeployManifestRequest request = 1;
-    // BlockRequest is sent server->client to request a block.
+    // DeployManifestsRequest starts one complete manifest-set deployment.
+    DeployManifestsRequest request = 1;
+    // BlockRequest asks the client for one content-addressed block.
     BlockRequest block_request = 2;
-    // BlockResponse is sent client->server with block data.
+    // BlockResponse returns the requested block or reports it missing.
     BlockResponse block_response = 3;
-    // DeployManifestResult is sent server->client when deployment completes.
-    DeployManifestResult result = 4;
+    // DeployManifestsResult reports the deployment outcome.
+    DeployManifestsResult result = 4;
   }
 }
 
-// DeployManifestRequest is the initial deployment request from the CLI.
-message DeployManifestRequest {
-  // SpaceId is the ID of the Space to deploy to.
-  string space_id = 1;
-  // ManifestRef is the object ref of the manifest to deploy.
-  // Contains the root block ref and the transform config used to encode blocks.
-  .bucket.ObjectRef manifest_ref = 2;
-  // ObjectKey is the object key to store the manifest under in the Space world.
-  string object_key = 3;
-  // ManifestId is the manifest identifier (e.g., "glados-core").
-  string manifest_id = 4;
+// DeployManifestsRequest identifies one plugin-host manifest set.
+message DeployManifestsRequest {
+  // ObjectKey identifies the Space plugin-host manifest-store object.
+  string object_key = 1;
+  // ManifestRefs contains one latest revision for every deployed platform.
+  repeated .bldr.manifest.ManifestRef manifest_refs = 2;
 }
 
-// BlockRequest is a request from the server for a specific block.
+// BlockRequest asks for one block reachable from a manifest root.
 message BlockRequest {
-  // Ref is the block reference to fetch.
+  // Ref identifies the requested block.
   .block.BlockRef ref = 1;
 }
 
-// BlockResponse is the client's response with block data.
+// BlockResponse returns block data for exactly the requested reference.
 message BlockResponse {
-  // Ref is the block reference.
+  // Ref must equal the requested block reference.
   .block.BlockRef ref = 1;
-  // Data is the raw block bytes.
+  // Data contains the raw content-addressed block bytes.
   bytes data = 2;
-  // NotFound indicates the block was not found in the source.
+  // NotFound indicates the block is unavailable in the source.
   bool not_found = 3;
 }
 
-// DeployManifestResult is sent when deployment completes.
-message DeployManifestResult {
-  // Error is set if deployment failed.
+// DeployManifestsResult reports completion of the manifest-set deployment.
+message DeployManifestsResult {
+  // Error describes a failed or ambiguously completed deployment exchange.
   string error = 1;
 }

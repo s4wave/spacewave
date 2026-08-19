@@ -7,133 +7,212 @@ import (
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/hash"
 	s4wave_deploy "github.com/s4wave/spacewave/sdk/deploy"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
+	"github.com/sirupsen/logrus"
 )
 
-// DeployManifest handles the bidirectional deploy manifest stream.
-func (r *SpaceResource) DeployManifest(strm s4wave_space.SRPCSpaceResourceService_DeployManifestStream) error {
+// DeployManifests handles the bidirectional manifest-set deployment stream.
+func (r *SpaceResource) DeployManifests(strm s4wave_space.SRPCSpaceResourceService_DeployManifestsStream) error {
 	ctx := strm.Context()
 
-	// Receive initial request.
+	// Receive the initial request message before inspecting its deployment shape.
 	msg, err := strm.Recv()
 	if err != nil {
 		return errors.Wrap(err, "recv initial request")
 	}
 	req := msg.GetRequest()
 	if req == nil {
-		return errors.New("first message must be DeployManifestRequest")
+		return errors.New("first message must be DeployManifestsRequest")
 	}
 
-	manifestRef := req.GetManifestRef()
+	// Validate the request shape and complete manifest set before touching the World.
 	objectKey := req.GetObjectKey()
-	manifestID := req.GetManifestId()
-	rootRef := manifestRef.GetRootRef()
-
-	r.le.Infof("deploy manifest: manifest=%s key=%s ref=%s",
-		manifestID, objectKey, rootRef.MarshalString())
-
-	if rootRef.GetEmpty() {
-		return sendDeployResult(strm, "manifest_ref root_ref is required")
+	refs := req.GetManifestRefs()
+	if objectKey == "" {
+		return sendDeployManifestsResult(strm, "object_key is required")
 	}
-	if manifestID == "" {
-		return sendDeployResult(strm, "manifest_id is required")
+	if len(refs) == 0 {
+		return sendDeployManifestsResult(strm, "manifest_refs is required")
 	}
 
-	// Build a block transformer from the ObjectRef's transform config.
-	// This allows decoding gzip-compressed blocks for DAG traversal.
-	var xfrm block.Transformer
-	if tc := manifestRef.GetTransformConf(); tc != nil && len(tc.GetSteps()) > 0 {
-		sfs := block_transform.NewStepFactorySet()
-		sfs.AddStepFactory(transform_gzip.NewStepFactory())
-		xfrm, err = block_transform.NewTransformer(
-			controller.ConstructOpts{Logger: r.le},
-			sfs,
-			tc,
-		)
-		if err != nil {
-			r.le.WithError(err).Warn("build block transformer failed")
-			return sendDeployResult(strm, "invalid transform config: "+err.Error())
+	// Validate the complete request before reading or writing any block.
+	manifestID, err := validateManifestSet(refs)
+	if err != nil {
+		return sendDeployManifestsResult(strm, err.Error())
+	}
+
+	// Reject a known wrong host before block transfer; repeat this check in the write transaction.
+	engine := r.space.GetWorldEngine()
+	ws := world.NewEngineWorldState(engine, false)
+	if _, exists, err := ws.GetObject(ctx, objectKey); err != nil {
+		return sendDeployManifestsResult(strm, errors.Wrap(err, "check manifest store").Error())
+	} else if exists {
+		if err := bldr_manifest_world.CheckManifestStoreType(ctx, ws, objectKey); err != nil {
+			return sendDeployManifestsResult(strm, errors.Wrap(err, "manifest store type").Error())
 		}
 	}
 
-	engine := r.space.GetWorldEngine()
-
-	// Build a storage cursor to access the block store for writing.
+	// Copy and validate every manifest DAG before opening the transaction.
 	cursor, err := engine.BuildStorageCursor(ctx)
 	if err != nil {
-		r.le.WithError(err).Warn("build storage cursor failed")
-		return sendDeployResult(strm, err.Error())
+		return sendDeployManifestsResult(strm, errors.Wrap(err, "build storage cursor").Error())
 	}
 	defer cursor.Release()
-
-	// Use the raw bucket as the destination (no transform applied).
-	// Blocks are stored as-is (compressed) to preserve block refs.
 	dest := cursor.GetBucket()
-
-	// Build a StoreOps adapter that reads blocks from the client stream.
 	src := &streamStoreOps{strm: strm}
-
-	// Copy the manifest block DAG from stream source to dest.
-	// Uses the transformer to decode blocks for protobuf traversal only.
-	err = copyBlockDAGWithTransform(ctx, rootRef, bldr_manifest.NewManifestBlock, src, dest, xfrm)
-	if err != nil {
-		r.le.WithError(err).Warn("deploy manifest: block copy failed")
-		return sendDeployResult(strm, err.Error())
+	visited := make(map[string]bool)
+	storedRefs := make([]*bucket.ObjectRef, len(refs))
+	for i, ref := range refs {
+		if err := ctx.Err(); err != nil {
+			return sendDeployManifestsResult(strm, err.Error())
+		}
+		xfrm, err := newManifestTransformer(r.le, ref.GetManifestRef().GetTransformConf())
+		if err != nil {
+			return sendDeployManifestsResult(strm, errors.Wrapf(err, "manifest_refs[%d] transform", i).Error())
+		}
+		rootRef := ref.GetManifestRef().GetRootRef()
+		if err := copyBlockWithTransform(ctx, rootRef, bldr_manifest.NewManifestBlock, src, dest, xfrm, visited); err != nil {
+			return sendDeployManifestsResult(strm, errors.Wrapf(err, "manifest_refs[%d] block copy", i).Error())
+		}
+		if err := validateCopiedManifest(ctx, dest, rootRef, ref.GetMeta(), xfrm); err != nil {
+			return sendDeployManifestsResult(strm, errors.Wrapf(err, "manifest_refs[%d] copied manifest", i).Error())
+		}
+		storedRefs[i] = &bucket.ObjectRef{
+			BucketId:      r.space.GetWorldEngineBucketID(),
+			RootRef:       rootRef,
+			TransformConf: ref.GetManifestRef().GetTransformConf(),
+		}
 	}
 
-	// Create the manifest object in the Space world.
+	// Publish the host, child objects, and graph edges in one transaction.
 	tx, err := engine.NewTransaction(ctx, true)
 	if err != nil {
-		r.le.WithError(err).Warn("deploy manifest: new transaction failed")
-		return sendDeployResult(strm, err.Error())
+		return sendDeployManifestsResult(strm, errors.Wrap(err, "new transaction").Error())
 	}
 	defer tx.Discard()
+	txws := world.WorldState(tx)
 
-	// Store the ObjectRef with transform config so the world can decode blocks later.
-	objRef := &bucket.ObjectRef{
-		BucketId:      r.space.GetWorldEngineBucketID(),
-		RootRef:       rootRef,
-		TransformConf: manifestRef.GetTransformConf(),
-	}
-	_, _, err = bldr_manifest_world.SetManifest(ctx, tx, "", objectKey, objRef)
-	if err != nil {
-		r.le.WithError(err).Warn("deploy manifest: set manifest failed")
-		return sendDeployResult(strm, err.Error())
-	}
-	quad := bldr_manifest_world.NewManifestQuad(objectKey, objectKey, manifestID)
-	if err := tx.SetGraphQuad(ctx, quad); err != nil {
-		r.le.WithError(err).Warn("deploy manifest: link manifest failed")
-		return sendDeployResult(strm, err.Error())
+	// Authoritatively verify or create the host store inside this transaction.
+	if _, exists, err := txws.GetObject(ctx, objectKey); err != nil {
+		return sendDeployManifestsResult(strm, errors.Wrap(err, "check manifest store in transaction").Error())
+	} else if exists {
+		if err := bldr_manifest_world.CheckManifestStoreType(ctx, txws, objectKey); err != nil {
+			return sendDeployManifestsResult(strm, errors.Wrap(err, "manifest store type in transaction").Error())
+		}
+	} else if _, err := bldr_manifest_world.CreateManifestStore(ctx, txws, objectKey); err != nil {
+		return sendDeployManifestsResult(strm, errors.Wrap(err, "create manifest store").Error())
 	}
 
-	err = tx.Commit(ctx)
-	if err != nil {
-		r.le.WithError(err).Warn("deploy manifest: commit failed")
-		return sendDeployResult(strm, err.Error())
+	// Mutate deterministic child Manifest objects and their host edges.
+	for i, ref := range refs {
+		childKey := bldr_manifest.NewManifestKey(objectKey, ref.GetMeta())
+		// Store the exact copied reference at the deterministic child key.
+		if _, _, err := bldr_manifest_world.SetManifest(ctx, txws, "", childKey, storedRefs[i]); err != nil {
+			return sendDeployManifestsResult(strm, errors.Wrapf(err, "set manifest_refs[%d]", i).Error())
+		}
+
+		// Link the host to this child under the shared manifest ID.
+		if err := txws.SetGraphQuad(ctx, bldr_manifest_world.NewManifestQuad(objectKey, childKey, manifestID)); err != nil {
+			return sendDeployManifestsResult(strm, errors.Wrapf(err, "link manifest_refs[%d]", i).Error())
+		}
+	}
+
+	// Commit is the publication point; Sync and the result may be ambiguous after it.
+	if err := tx.Commit(ctx); err != nil {
+		return sendDeployManifestsResult(strm, errors.Wrap(err, "commit manifest set").Error())
 	}
 	if _, err := engine.Sync(ctx); err != nil {
-		r.le.WithError(err).Warn("deploy manifest: sync failed")
-		return sendDeployResult(strm, err.Error())
+		return sendDeployManifestsResult(strm, errors.Wrap(err, "sync manifest set").Error())
 	}
-
-	r.le.Infof("deploy manifest complete: manifest=%s key=%s", manifestID, objectKey)
-	return sendDeployResult(strm, "")
+	r.le.WithField("manifest-id", manifestID).WithField("object-key", objectKey).
+		Info("deploy manifest set complete")
+	return sendDeployManifestsResult(strm, "")
 }
 
-// sendDeployResult sends a DeployManifestResult on the stream and closes it.
-func sendDeployResult(strm s4wave_space.SRPCSpaceResourceService_DeployManifestStream, errMsg string) error {
-	return strm.SendAndClose(&s4wave_deploy.DeployManifestMessage{
-		Body: &s4wave_deploy.DeployManifestMessage_Result{
-			Result: &s4wave_deploy.DeployManifestResult{
-				Error: errMsg,
-			},
+func validateManifestSet(refs []*bldr_manifest.ManifestRef) (string, error) {
+	var manifestID string
+	platforms := make(map[string]struct{}, len(refs))
+	for i, ref := range refs {
+		if ref == nil {
+			return "", errors.Errorf("manifest_refs[%d] is required", i)
+		}
+		if err := ref.Validate(); err != nil {
+			return "", errors.Wrapf(err, "manifest_refs[%d]", i)
+		}
+		if ref.GetManifestRef().GetRootRef().GetEmpty() {
+			return "", errors.Errorf("manifest_refs[%d] root_ref is required", i)
+		}
+		id := ref.GetMeta().GetManifestId()
+		if manifestID == "" {
+			manifestID = id
+		} else if id != manifestID {
+			return "", errors.Errorf("manifest_refs[%d] has manifest ID %q, want %q", i, id, manifestID)
+		}
+		if _, err := bldr_platform.ParsePlatform(ref.GetMeta().GetPlatformId()); err != nil {
+			return "", errors.Wrapf(err, "manifest_refs[%d] platform", i)
+		}
+		platformID := ref.GetMeta().GetPlatformId()
+		if _, ok := platforms[platformID]; ok {
+			return "", errors.Errorf("manifest_refs[%d] duplicates platform %q", i, platformID)
+		}
+		platforms[platformID] = struct{}{}
+	}
+	return manifestID, nil
+}
+
+func newManifestTransformer(le *logrus.Entry, tc *block_transform.Config) (block.Transformer, error) {
+	if tc == nil || len(tc.GetSteps()) == 0 {
+		return nil, nil
+	}
+	sfs := block_transform.NewStepFactorySet()
+	sfs.AddStepFactory(transform_gzip.NewStepFactory())
+	return block_transform.NewTransformer(controller.ConstructOpts{Logger: le}, sfs, tc)
+}
+
+func validateCopiedManifest(
+	ctx context.Context,
+	dest block.StoreOps,
+	rootRef *block.BlockRef,
+	meta *bldr_manifest.ManifestMeta,
+	xfrm block.Transformer,
+) error {
+	data, found, err := dest.GetBlock(ctx, rootRef)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return block.ErrNotFound
+	}
+	if xfrm != nil {
+		data, err = xfrm.DecodeBlock(data)
+		if err != nil {
+			return err
+		}
+	}
+	manifest := bldr_manifest.NewManifest(nil, "")
+	if err := manifest.UnmarshalBlock(data); err != nil {
+		return err
+	}
+	if !manifest.GetMeta().EqualVT(meta) {
+		return errors.New("metadata differs from copied Manifest")
+	}
+	return manifest.Validate()
+}
+
+// sendDeployManifestsResult sends a result and closes the stream.
+func sendDeployManifestsResult(strm s4wave_space.SRPCSpaceResourceService_DeployManifestsStream, errMsg string) error {
+	return strm.SendAndClose(&s4wave_deploy.DeployManifestsMessage{
+		Body: &s4wave_deploy.DeployManifestsMessage_Result{
+			Result: &s4wave_deploy.DeployManifestsResult{Error: errMsg},
 		},
 	})
 }
@@ -191,6 +270,13 @@ func copyBlockWithTransform(
 		if !found {
 			return errors.Wrapf(block.ErrNotFound, "existing block: %s", refStr)
 		}
+		actual, err := block.BuildBlockRef(data, &block.PutOpts{HashType: ref.GetHash().GetHashType()})
+		if err != nil {
+			return errors.Wrapf(err, "hash existing block: %s", refStr)
+		}
+		if !actual.EqualsRef(ref) {
+			return errors.Errorf("existing block ref mismatch: got %s, want %s", actual.MarshalString(), refStr)
+		}
 	} else {
 		var found bool
 		// Read raw (possibly compressed) data from source.
@@ -202,8 +288,8 @@ func copyBlockWithTransform(
 			return errors.Wrapf(block.ErrNotFound, "block: %s", refStr)
 		}
 
-		// Write raw data to dest (preserves block refs).
-		if _, _, err := dest.PutBlock(ctx, data, nil); err != nil {
+		// Write raw data to dest and require content identity.
+		if _, _, err := dest.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
 			return errors.Wrapf(err, "put block: %s", refStr)
 		}
 	}
@@ -267,9 +353,21 @@ func followBlockGraphWithTransform(
 	return nil
 }
 
+// validateBlockResponseRef requires the response to identify the requested block exactly.
+func validateBlockResponseRef(want, got *block.BlockRef) error {
+	if got == nil || !got.EqualsRef(want) {
+		gotString := "<nil>"
+		if got != nil {
+			gotString = got.MarshalString()
+		}
+		return errors.Errorf("block response ref mismatch: got %s, want %s", gotString, want.MarshalString())
+	}
+	return nil
+}
+
 // streamStoreOps implements block.StoreOps by requesting blocks over the stream.
 type streamStoreOps struct {
-	strm s4wave_space.SRPCSpaceResourceService_DeployManifestStream
+	strm s4wave_space.SRPCSpaceResourceService_DeployManifestsStream
 }
 
 // GetHashType returns the preferred hash type for the store.
@@ -284,8 +382,11 @@ func (s *streamStoreOps) GetSupportedFeatures() block.StoreFeature {
 
 // GetBlock requests a block from the client over the stream.
 func (s *streamStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
-	err := s.strm.Send(&s4wave_deploy.DeployManifestMessage{
-		Body: &s4wave_deploy.DeployManifestMessage_BlockRequest{
+	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
+	err := s.strm.Send(&s4wave_deploy.DeployManifestsMessage{
+		Body: &s4wave_deploy.DeployManifestsMessage_BlockRequest{
 			BlockRequest: &s4wave_deploy.BlockRequest{
 				Ref: ref,
 			},
@@ -295,6 +396,9 @@ func (s *streamStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 		return nil, false, errors.Wrap(err, "send block request")
 	}
 
+	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
 	msg, err := s.strm.Recv()
 	if err != nil {
 		return nil, false, errors.Wrap(err, "recv block response")
@@ -302,6 +406,9 @@ func (s *streamStoreOps) GetBlock(ctx context.Context, ref *block.BlockRef) ([]b
 	resp := msg.GetBlockResponse()
 	if resp == nil {
 		return nil, false, errors.New("expected BlockResponse")
+	}
+	if err := validateBlockResponseRef(ref, resp.GetRef()); err != nil {
+		return nil, false, err
 	}
 	if resp.GetNotFound() {
 		return nil, false, nil

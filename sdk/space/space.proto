@@ -23,7 +23,7 @@ service SpaceResourceService {
 
   rpc ReadSecretPayload(ReadSecretPayloadRequest) returns (ReadSecretPayloadResponse) {}
 
-  rpc DeployManifest(stream .s4wave.deploy.DeployManifestMessage) returns (stream .s4wave.deploy.DeployManifestMessage) {}
+  rpc DeployManifests(stream .s4wave.deploy.DeployManifestsMessage) returns (stream .s4wave.deploy.DeployManifestsMessage) {}
 
   rpc AddSpacePlugin(AddSpacePluginRequest) returns (AddSpacePluginResponse) {}
 

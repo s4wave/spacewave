@@ -25,7 +25,7 @@ import {
   WatchSpaceStateRequest,
 } from './space.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
-import { DeployManifestMessage } from '../deploy/deploy.pb.js'
+import { DeployManifestsMessage } from '../deploy/deploy.pb.js'
 import {
   buildDecodeMessageTransform,
   buildEncodeMessageTransform,
@@ -95,12 +95,12 @@ export const SpaceResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
-     * @generated from rpc s4wave.space.SpaceResourceService.DeployManifest
+     * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
      */
-    DeployManifest: {
-      name: 'DeployManifest',
-      I: DeployManifestMessage,
-      O: DeployManifestMessage,
+    DeployManifests: {
+      name: 'DeployManifests',
+      I: DeployManifestsMessage,
+      O: DeployManifestsMessage,
       kind: MethodKind.BiDiStreaming,
     },
     /**
@@ -177,12 +177,12 @@ export interface SpaceResourceService {
   ): Promise<ReadSecretPayloadResponse>
 
   /**
-   * @generated from rpc s4wave.space.SpaceResourceService.DeployManifest
+   * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
-  DeployManifest(
-    request: MessageStream<DeployManifestMessage>,
+  DeployManifests(
+    request: MessageStream<DeployManifestsMessage>,
     abortSignal?: AbortSignal,
-  ): MessageStream<DeployManifestMessage>
+  ): MessageStream<DeployManifestsMessage>
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.AddSpacePlugin
@@ -260,13 +260,13 @@ export interface SpaceResourceServiceHandler {
   ): Promise<ReadSecretPayloadResponse>
 
   /**
-   * @generated from rpc s4wave.space.SpaceResourceService.DeployManifest
+   * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
-  DeployManifest(
-    request: MessageStream<DeployManifestMessage>,
+  DeployManifests(
+    request: MessageStream<DeployManifestsMessage>,
     abortSignal: AbortSignal,
     context: ServerContext,
-  ): MessageStream<DeployManifestMessage>
+  ): MessageStream<DeployManifestsMessage>
 
   /**
    * @generated from rpc s4wave.space.SpaceResourceService.AddSpacePlugin
@@ -302,7 +302,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.MountSpaceContents = this.MountSpaceContents.bind(this)
     this.CreateSecret = this.CreateSecret.bind(this)
     this.ReadSecretPayload = this.ReadSecretPayload.bind(this)
-    this.DeployManifest = this.DeployManifest.bind(this)
+    this.DeployManifests = this.DeployManifests.bind(this)
     this.AddSpacePlugin = this.AddSpacePlugin.bind(this)
     this.RemoveSpacePlugin = this.RemoveSpacePlugin.bind(this)
   }
@@ -409,19 +409,19 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
   }
 
   /**
-   * @generated from rpc s4wave.space.SpaceResourceService.DeployManifest
+   * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
-  DeployManifest(
-    request: MessageStream<DeployManifestMessage>,
+  DeployManifests(
+    request: MessageStream<DeployManifestsMessage>,
     abortSignal?: AbortSignal,
-  ): MessageStream<DeployManifestMessage> {
+  ): MessageStream<DeployManifestsMessage> {
     const result = this.rpc.bidirectionalStreamingRequest(
       this.service,
-      SpaceResourceServiceDefinition.methods.DeployManifest.name,
-      buildEncodeMessageTransform(DeployManifestMessage)(request),
+      SpaceResourceServiceDefinition.methods.DeployManifests.name,
+      buildEncodeMessageTransform(DeployManifestsMessage)(request),
       abortSignal || undefined,
     )
-    return buildDecodeMessageTransform(DeployManifestMessage)(result)
+    return buildDecodeMessageTransform(DeployManifestsMessage)(result)
   }
 
   /**

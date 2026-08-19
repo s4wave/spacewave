@@ -70,6 +70,7 @@ func newSpaceCreateCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 
 			ctx := c.Context
+			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
 				return err
@@ -116,6 +117,7 @@ func newSpaceDeleteCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 
 			ctx := c.Context
+			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
 				return err
@@ -155,6 +157,7 @@ func newSpaceRenameCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 
 			ctx := c.Context
+			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
 				return err
@@ -186,6 +189,7 @@ func newSpaceInfoCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		ArgsUsage: "<space-id>",
 		Action: func(c *cli.Context) error {
 			ctx := c.Context
+			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
 				return err
@@ -248,6 +252,7 @@ func newSpaceResolveCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 
 			ctx := c.Context
+			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
 				return err
@@ -279,6 +284,7 @@ func newSpaceSettingsCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		ArgsUsage: "[space-id]",
 		Action: func(c *cli.Context) error {
 			ctx := c.Context
+			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
 				return err
@@ -385,6 +391,7 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 			}
 
 			ctx := c.Context
+			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
 				return err
@@ -482,7 +489,7 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 	var spaceID, dbPath, manifestID, objectKey string
 	return &cli.Command{
 		Name:  "deploy",
-		Usage: "deploy a manifest from a .bldr devtool DB into a space",
+		Usage: "deploy a manifest set from a .bldr devtool DB into a space",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "space",
@@ -506,7 +513,7 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			},
 			&cli.StringFlag{
 				Name:        "object-key",
-				Usage:       "object key to store the manifest under (default: manifest-id)",
+				Usage:       "object key to store the manifest set under (default: plugin-host)",
 				EnvVars:     []string{"SPACEWAVE_OBJECT_KEY"},
 				Destination: &objectKey,
 			},
@@ -514,84 +521,77 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 		Action: func(c *cli.Context) error {
 			ctx := c.Context
 
+			// Resolve the destination object key and output contract.
 			key := objectKey
 			if key == "" {
-				key = manifestID
+				key = "plugin-host"
 			}
 
+			// Open the source volume.
 			le := logrus.NewEntry(logrus.New())
-
-			// Open the devtool sqlite volume from the .bldr/ directory.
 			vol, err := openDevtoolVolume(ctx, le, dbPath)
 			if err != nil {
 				return errors.Wrap(err, "open devtool storage")
 			}
 			defer vol.Close()
 
-			// Look up the manifest by ID in the devtool world.
-			collected, err := lookupDevtoolManifest(ctx, le, vol, manifestID)
-			if err != nil {
-				return errors.Wrap(err, "lookup manifest")
-			}
-
-			// Build the full ObjectRef with transform config so the server can decode blocks.
-			transformConf, err := block_transform.NewConfig([]config.Config{
-				&transform_gzip.Config{},
-			})
+			// Construct the source block factories and transform configuration.
+			transformConf, err := block_transform.NewConfig([]config.Config{&transform_gzip.Config{}})
 			if err != nil {
 				return errors.Wrap(err, "build transform config")
 			}
-			manifestRef := collected.ManifestRef.Clone()
-			manifestRef.TransformConf = transformConf
+
+			// Collect and canonicalize one complete deterministic set.
+			refs, err := lookupDevtoolManifestSet(ctx, le, vol, manifestID)
+			if err != nil {
+				return errors.Wrap(err, "lookup manifest set")
+			}
+			for _, ref := range refs {
+				ref.ManifestRef.TransformConf = transformConf
+			}
+
+			// Connect to the daemon, mount the selected session and Space resource.
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
 			if err != nil {
 				return err
 			}
 			defer client.close()
-
 			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
 			if err != nil {
 				return err
 			}
 			defer sess.Release()
-
 			sid, err := client.resolveSpaceID(ctx, sess, spaceID)
 			if err != nil {
 				return err
 			}
-
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
 
+			// Print the sorted set rows before sending the request.
 			w := os.Stdout
-			w.WriteString("deploying manifest " + manifestID + " to space " + sid + " (key=" + key + ")\n")
+			w.WriteString("deploying manifest set " + manifestID + " to space " + sid + " (key=" + key + ")\n")
 			w.WriteString("source: " + dbPath + "\n")
-			w.WriteString("manifest rev=" + strconv.FormatUint(collected.GetRev(), 10) +
-				" ref=" + manifestRef.GetRootRef().MarshalString() + "\n")
+			for _, ref := range refs {
+				w.WriteString("platform=" + ref.GetMeta().GetPlatformId() + " rev=" + strconv.FormatUint(ref.GetMeta().GetRev(), 10) + " ref=" + ref.GetManifestRef().GetRootRef().MarshalString() + "\n")
+			}
 
-			strm, err := spaceSvc.DeployManifest(ctx)
+			// Open, send, and exchange the deployment stream.
+			strm, err := spaceSvc.DeployManifests(ctx)
 			if err != nil {
 				return errors.Wrap(err, "open deploy stream")
 			}
-
-			// Send initial deploy request with manifest ref.
-			err = strm.Send(&s4wave_deploy.DeployManifestMessage{
-				Body: &s4wave_deploy.DeployManifestMessage_Request{
-					Request: &s4wave_deploy.DeployManifestRequest{
-						SpaceId:     spaceID,
-						ManifestRef: manifestRef,
-						ObjectKey:   key,
-						ManifestId:  manifestID,
-					},
+			err = strm.Send(&s4wave_deploy.DeployManifestsMessage{
+				Body: &s4wave_deploy.DeployManifestsMessage_Request{
+					Request: &s4wave_deploy.DeployManifestsRequest{ObjectKey: key, ManifestRefs: refs},
 				},
 			})
 			if err != nil {
 				return errors.Wrap(err, "send deploy request")
 			}
-
 			return runDeployBlockExchange(ctx, strm, vol, w)
 		},
 	}
@@ -601,7 +601,7 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 // The server requests blocks and the CLI responds with data from the devtool volume.
 func runDeployBlockExchange(
 	ctx context.Context,
-	strm s4wave_space.SRPCSpaceResourceService_DeployManifestClient,
+	strm s4wave_space.SRPCSpaceResourceService_DeployManifestsClient,
 	vol volume.Volume,
 	w *os.File,
 ) error {
@@ -612,7 +612,7 @@ func runDeployBlockExchange(
 		}
 
 		switch body := msg.GetBody().(type) {
-		case *s4wave_deploy.DeployManifestMessage_BlockRequest:
+		case *s4wave_deploy.DeployManifestsMessage_BlockRequest:
 			ref := body.BlockRequest.GetRef()
 			w.WriteString("server requested block: " + ref.MarshalString() + "\n")
 
@@ -628,8 +628,8 @@ func runDeployBlockExchange(
 			if found {
 				resp.Data = data
 			}
-			err = strm.Send(&s4wave_deploy.DeployManifestMessage{
-				Body: &s4wave_deploy.DeployManifestMessage_BlockResponse{
+			err = strm.Send(&s4wave_deploy.DeployManifestsMessage{
+				Body: &s4wave_deploy.DeployManifestsMessage_BlockResponse{
 					BlockResponse: resp,
 				},
 			})
@@ -637,7 +637,7 @@ func runDeployBlockExchange(
 				return errors.Wrap(err, "send block response")
 			}
 
-		case *s4wave_deploy.DeployManifestMessage_Result:
+		case *s4wave_deploy.DeployManifestsMessage_Result:
 			result := body.Result
 			if result.GetError() != "" {
 				return errors.Errorf("deploy failed: %s", result.GetError())

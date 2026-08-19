@@ -12,6 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/unixfs"
+	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
 )
 
@@ -121,5 +122,84 @@ func assertManifestEntrypointExists(
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func testDeployManifestRef(id, platform string, rev uint64, hashByte byte) *bldr_manifest.ManifestRef {
+	meta := &bldr_manifest.ManifestMeta{ManifestId: id, BuildType: "production", PlatformId: platform, Rev: rev}
+	root := block.NewBlockRef(hash.NewHash(hash.HashType_HashType_SHA256, []byte{hashByte}))
+	return bldr_manifest.NewManifestRef(meta, &bucket.ObjectRef{RootRef: root})
+}
+
+func TestValidateManifestSetRejectsMixedIDsAndDuplicatePlatforms(t *testing.T) {
+	if _, err := validateManifestSet([]*bldr_manifest.ManifestRef{
+		testDeployManifestRef("glados-core", "js", 1, 1),
+		testDeployManifestRef("other", "desktop/darwin/arm64", 1, 2),
+	}); err == nil {
+		t.Fatal("mixed manifest IDs accepted")
+	}
+	if _, err := validateManifestSet([]*bldr_manifest.ManifestRef{
+		testDeployManifestRef("glados-core", "js", 1, 1),
+		testDeployManifestRef("glados-core", "js", 2, 2),
+	}); err == nil {
+		t.Fatal("duplicate platform accepted")
+	}
+}
+
+type deployTestSource struct {
+	block.StoreOps
+	data []byte
+}
+
+func (s *deployTestSource) GetBlock(context.Context, *block.BlockRef) ([]byte, bool, error) {
+	return s.data, true, nil
+}
+
+func TestValidateBlockResponseRefRejectsMismatch(t *testing.T) {
+	want := block.NewBlockRef(hash.NewHash(hash.HashType_HashType_SHA256, []byte("want")))
+	got := block.NewBlockRef(hash.NewHash(hash.HashType_HashType_SHA256, []byte("got")))
+	if err := validateBlockResponseRef(want, got); err == nil {
+		t.Fatal("mismatched response ref accepted")
+	}
+	if err := validateBlockResponseRef(want, want); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCopyBlockRejectsStoredHashMismatch(t *testing.T) {
+	ctx := context.Background()
+	data := []byte("content")
+	requested := block.NewBlockRef(hash.NewHash(hash.HashType_HashType_SHA256, []byte("requested")))
+	dest := block_mock.NewMockStore(0)
+	src := &deployTestSource{StoreOps: block_mock.NewMockStore(0), data: data}
+	if err := copyBlockWithTransform(ctx, requested, nil, src, dest, nil, make(map[string]bool)); err == nil {
+		t.Fatal("stored hash mismatch accepted")
+	}
+}
+
+func TestValidateCopiedManifestRejectsMetadataMismatchAndCancellation(t *testing.T) {
+	ctx := context.Background()
+	meta := &bldr_manifest.ManifestMeta{ManifestId: "glados-core", BuildType: "production", PlatformId: "js", Rev: 1}
+	data, err := bldr_manifest.NewManifest(meta, "entrypoint").MarshalBlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref, err := block.BuildBlockRef(data, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dest := block_mock.NewMockStore(0)
+	if _, _, err := dest.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref}); err != nil {
+		t.Fatal(err)
+	}
+	wrongMeta := meta.CloneVT()
+	wrongMeta.Rev = 2
+	if err := validateCopiedManifest(ctx, dest, ref, wrongMeta, nil); err == nil {
+		t.Fatal("metadata mismatch accepted")
+	}
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	if err := validateCopiedManifest(cancelled, dest, ref, meta, nil); err == nil {
+		t.Fatal("cancelled copied-manifest validation succeeded")
 	}
 }

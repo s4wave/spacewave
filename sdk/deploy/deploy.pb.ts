@@ -2,7 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/sdk/deploy/deploy.proto (package s4wave.deploy, syntax proto3)
 /* eslint-disable */
 
-import { ObjectRef } from '../../db/bucket/bucket.pb.js'
+import { ManifestRef } from '../../bldr/manifest/manifest.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
@@ -12,58 +12,49 @@ import { BlockRef } from '../../db/block/block.pb.js'
 export const protobufPackage = 's4wave.deploy'
 
 /**
- * DeployManifestRequest is the initial deployment request from the CLI.
+ * DeployManifestsRequest identifies one plugin-host manifest set.
  *
- * @generated from message s4wave.deploy.DeployManifestRequest
+ * @generated from message s4wave.deploy.DeployManifestsRequest
  */
-export interface DeployManifestRequest {
+export interface DeployManifestsRequest {
   /**
-   * SpaceId is the ID of the Space to deploy to.
+   * ObjectKey identifies the Space plugin-host manifest-store object.
    *
-   * @generated from field: string space_id = 1;
-   */
-  spaceId?: string
-  /**
-   * ManifestRef is the object ref of the manifest to deploy.
-   * Contains the root block ref and the transform config used to encode blocks.
-   *
-   * @generated from field: bucket.ObjectRef manifest_ref = 2;
-   */
-  manifestRef?: ObjectRef
-  /**
-   * ObjectKey is the object key to store the manifest under in the Space world.
-   *
-   * @generated from field: string object_key = 3;
+   * @generated from field: string object_key = 1;
    */
   objectKey?: string
   /**
-   * ManifestId is the manifest identifier (e.g., "glados-core").
+   * ManifestRefs contains one latest revision for every deployed platform.
    *
-   * @generated from field: string manifest_id = 4;
+   * @generated from field: repeated bldr.manifest.ManifestRef manifest_refs = 2;
    */
-  manifestId?: string
+  manifestRefs?: ManifestRef[]
 }
 
-export const DeployManifestRequest: MessageType<DeployManifestRequest> =
+export const DeployManifestsRequest: MessageType<DeployManifestsRequest> =
   /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.deploy.DeployManifestRequest',
+    typeName: 's4wave.deploy.DeployManifestsRequest',
     fields: [
-      { no: 1, name: 'space_id', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'manifest_ref', kind: 'message', T: () => ObjectRef },
-      { no: 3, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 4, name: 'manifest_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'manifest_refs',
+        kind: 'message',
+        T: () => ManifestRef,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
 /**
- * BlockRequest is a request from the server for a specific block.
+ * BlockRequest asks for one block reachable from a manifest root.
  *
  * @generated from message s4wave.deploy.BlockRequest
  */
 export interface BlockRequest {
   /**
-   * Ref is the block reference to fetch.
+   * Ref identifies the requested block.
    *
    * @generated from field: block.BlockRef ref = 1;
    */
@@ -80,25 +71,25 @@ export const BlockRequest: MessageType<BlockRequest> =
   })
 
 /**
- * BlockResponse is the client's response with block data.
+ * BlockResponse returns block data for exactly the requested reference.
  *
  * @generated from message s4wave.deploy.BlockResponse
  */
 export interface BlockResponse {
   /**
-   * Ref is the block reference.
+   * Ref must equal the requested block reference.
    *
    * @generated from field: block.BlockRef ref = 1;
    */
   ref?: BlockRef
   /**
-   * Data is the raw block bytes.
+   * Data contains the raw content-addressed block bytes.
    *
    * @generated from field: bytes data = 2;
    */
   data?: Uint8Array
   /**
-   * NotFound indicates the block was not found in the source.
+   * NotFound indicates the block is unavailable in the source.
    *
    * @generated from field: bool not_found = 3;
    */
@@ -117,22 +108,22 @@ export const BlockResponse: MessageType<BlockResponse> =
   })
 
 /**
- * DeployManifestResult is sent when deployment completes.
+ * DeployManifestsResult reports completion of the manifest-set deployment.
  *
- * @generated from message s4wave.deploy.DeployManifestResult
+ * @generated from message s4wave.deploy.DeployManifestsResult
  */
-export interface DeployManifestResult {
+export interface DeployManifestsResult {
   /**
-   * Error is set if deployment failed.
+   * Error describes a failed or ambiguously completed deployment exchange.
    *
    * @generated from field: string error = 1;
    */
   error?: string
 }
 
-export const DeployManifestResult: MessageType<DeployManifestResult> =
+export const DeployManifestsResult: MessageType<DeployManifestsResult> =
   /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.deploy.DeployManifestResult',
+    typeName: 's4wave.deploy.DeployManifestsResult',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
@@ -140,13 +131,13 @@ export const DeployManifestResult: MessageType<DeployManifestResult> =
   })
 
 /**
- * DeployManifestMessage is the bidirectional message for manifest deployment.
+ * DeployManifestsMessage is the bidirectional message for manifest-set deployment.
  *
- * @generated from message s4wave.deploy.DeployManifestMessage
+ * @generated from message s4wave.deploy.DeployManifestsMessage
  */
-export interface DeployManifestMessage {
+export interface DeployManifestsMessage {
   /**
-   * @generated from oneof s4wave.deploy.DeployManifestMessage.body
+   * @generated from oneof s4wave.deploy.DeployManifestsMessage.body
    */
   body?:
     | {
@@ -155,16 +146,16 @@ export interface DeployManifestMessage {
       }
     | {
         /**
-         * DeployManifestRequest is sent client->server as the initial request.
+         * DeployManifestsRequest starts one complete manifest-set deployment.
          *
-         * @generated from field: s4wave.deploy.DeployManifestRequest request = 1;
+         * @generated from field: s4wave.deploy.DeployManifestsRequest request = 1;
          */
-        value: DeployManifestRequest
+        value: DeployManifestsRequest
         case: 'request'
       }
     | {
         /**
-         * BlockRequest is sent server->client to request a block.
+         * BlockRequest asks the client for one content-addressed block.
          *
          * @generated from field: s4wave.deploy.BlockRequest block_request = 2;
          */
@@ -173,7 +164,7 @@ export interface DeployManifestMessage {
       }
     | {
         /**
-         * BlockResponse is sent client->server with block data.
+         * BlockResponse returns the requested block or reports it missing.
          *
          * @generated from field: s4wave.deploy.BlockResponse block_response = 3;
          */
@@ -182,24 +173,24 @@ export interface DeployManifestMessage {
       }
     | {
         /**
-         * DeployManifestResult is sent server->client when deployment completes.
+         * DeployManifestsResult reports the deployment outcome.
          *
-         * @generated from field: s4wave.deploy.DeployManifestResult result = 4;
+         * @generated from field: s4wave.deploy.DeployManifestsResult result = 4;
          */
-        value: DeployManifestResult
+        value: DeployManifestsResult
         case: 'result'
       }
 }
 
-export const DeployManifestMessage: MessageType<DeployManifestMessage> =
+export const DeployManifestsMessage: MessageType<DeployManifestsMessage> =
   /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.deploy.DeployManifestMessage',
+    typeName: 's4wave.deploy.DeployManifestsMessage',
     fields: [
       {
         no: 1,
         name: 'request',
         kind: 'message',
-        T: () => DeployManifestRequest,
+        T: () => DeployManifestsRequest,
         oneof: 'body',
       },
       {
@@ -220,7 +211,7 @@ export const DeployManifestMessage: MessageType<DeployManifestMessage> =
         no: 4,
         name: 'result',
         kind: 'message',
-        T: () => DeployManifestResult,
+        T: () => DeployManifestsResult,
         oneof: 'body',
       },
     ] satisfies readonly PartialFieldInfo[],
