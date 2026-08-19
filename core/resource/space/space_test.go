@@ -571,6 +571,17 @@ func assertSpaceChatSender(t *testing.T, ctx context.Context, engine world.Engin
 	}
 }
 
+type spaceAttachedResourceClient struct {
+	// Client forwards calls to the attached resource.
+	srpc.Client
+	// done closes when the attached resource is released.
+	done <-chan struct{}
+}
+
+func (c *spaceAttachedResourceClient) Done() <-chan struct{} {
+	return c.done
+}
+
 type spaceRecordingResourceClient struct {
 	ctx      context.Context
 	mu       sync.Mutex
@@ -578,6 +589,8 @@ type spaceRecordingResourceClient struct {
 	muxes    map[uint32]srpc.Invoker
 	values   map[uint32]any
 	releases map[uint32]func()
+	// dones is guarded by mu and closes when its resource is released.
+	dones map[uint32]chan struct{}
 }
 
 func newSpaceRecordingResourceClient(ctx context.Context) *spaceRecordingResourceClient {
@@ -586,6 +599,7 @@ func newSpaceRecordingResourceClient(ctx context.Context) *spaceRecordingResourc
 		muxes:    make(map[uint32]srpc.Invoker),
 		values:   make(map[uint32]any),
 		releases: make(map[uint32]func()),
+		dones:    make(map[uint32]chan struct{}),
 	}
 }
 
@@ -604,21 +618,25 @@ func (c *spaceRecordingResourceClient) AddResourceValue(mux srpc.Invoker, value 
 	c.muxes[c.nextID] = mux
 	c.values[c.nextID] = value
 	c.releases[c.nextID] = releaseFn
+	c.dones[c.nextID] = make(chan struct{})
 	return c.nextID, nil
 }
 
 func (c *spaceRecordingResourceClient) ReleaseResource(resourceID uint32) bool {
 	c.mu.Lock()
 	releaseFn, ok := c.releases[resourceID]
+	done := c.dones[resourceID]
 	if ok {
 		delete(c.muxes, resourceID)
 		delete(c.values, resourceID)
 		delete(c.releases, resourceID)
+		delete(c.dones, resourceID)
 	}
 	c.mu.Unlock()
 	if !ok {
 		return false
 	}
+	close(done)
 	if releaseFn != nil {
 		releaseFn()
 	}
@@ -638,11 +656,15 @@ func (c *spaceRecordingResourceClient) GetResourceValue(resourceID uint32) (any,
 func (c *spaceRecordingResourceClient) GetAttachedResource(resourceID uint32) (srpc.Client, error) {
 	c.mu.Lock()
 	mux := c.muxes[resourceID]
+	done := c.dones[resourceID]
 	c.mu.Unlock()
 	if mux == nil {
 		return nil, errors.New("resource mux not found")
 	}
-	return srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))), nil
+	return &spaceAttachedResourceClient{
+		Client: srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux))),
+		done:   done,
+	}, nil
 }
 
 func (c *spaceRecordingResourceClient) client(t *testing.T, resourceID uint32) srpc.Client {

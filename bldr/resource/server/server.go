@@ -351,12 +351,12 @@ func (s *ResourceServer) ResourceAttach(
 				resourceID = s.resourceIDCtr
 			})
 
-			// Create srpc.Client for this resource via routed SRPC over yamux.
-			resClient := resource.NewRoutedClient(srpcClient, resourceID)
-
 			// Derive a per-resource context so removing one resource does
 			// not tear down the entire yamux session.
-			_, resCancel := context.WithCancel(attachCtx)
+			resCtx, resCancel := context.WithCancel(attachCtx)
+
+			// Create srpc.Client for this resource via routed SRPC over yamux.
+			resClient := resource.NewRoutedClientWithDone(srpcClient, resourceID, resCtx.Done())
 
 			// Register on client.
 			addErr := client.AddAttachedResource(resourceID, label, resCancel, resClient, func() {
