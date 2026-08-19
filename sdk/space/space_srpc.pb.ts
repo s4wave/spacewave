@@ -7,6 +7,8 @@ import {
   AccessWorldResponse,
   AddSpacePluginRequest,
   AddSpacePluginResponse,
+  BindAttachedRpcServiceRequest,
+  BindAttachedRpcServiceResponse,
   CreateSecretRequest,
   CreateSecretResponse,
   MountSpaceContentsRequest,
@@ -482,6 +484,18 @@ export const SpaceContentsResourceServiceDefinition = {
       O: SetProcessBindingResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * BindAttachedRpcService publishes a caller-attached Resource under one
+     * private service ID prefix for this Space runtime.
+     *
+     * @generated from rpc s4wave.space.SpaceContentsResourceService.BindAttachedRpcService
+     */
+    BindAttachedRpcService: {
+      name: 'BindAttachedRpcService',
+      I: BindAttachedRpcServiceRequest,
+      O: BindAttachedRpcServiceResponse,
+      kind: MethodKind.ServerStreaming,
+    },
   },
 } as const
 
@@ -504,6 +518,17 @@ export interface SpaceContentsResourceService {
     request: SetProcessBindingRequest,
     abortSignal?: AbortSignal,
   ): Promise<SetProcessBindingResponse>
+
+  /**
+   * BindAttachedRpcService publishes a caller-attached Resource under one
+   * private service ID prefix for this Space runtime.
+   *
+   * @generated from rpc s4wave.space.SpaceContentsResourceService.BindAttachedRpcService
+   */
+  BindAttachedRpcService(
+    request: BindAttachedRpcServiceRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<BindAttachedRpcServiceResponse>
 }
 
 /**
@@ -527,6 +552,18 @@ export interface SpaceContentsResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<SetProcessBindingResponse>
+
+  /**
+   * BindAttachedRpcService publishes a caller-attached Resource under one
+   * private service ID prefix for this Space runtime.
+   *
+   * @generated from rpc s4wave.space.SpaceContentsResourceService.BindAttachedRpcService
+   */
+  BindAttachedRpcService(
+    request: BindAttachedRpcServiceRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): MessageStream<BindAttachedRpcServiceResponse>
 }
 
 export const SpaceContentsResourceServiceServiceName =
@@ -540,6 +577,7 @@ export class SpaceContentsResourceServiceClient implements SpaceContentsResource
     this.rpc = rpc
     this.WatchState = this.WatchState.bind(this)
     this.SetProcessBinding = this.SetProcessBinding.bind(this)
+    this.BindAttachedRpcService = this.BindAttachedRpcService.bind(this)
   }
   /**
    * @generated from rpc s4wave.space.SpaceContentsResourceService.WatchState
@@ -573,5 +611,26 @@ export class SpaceContentsResourceServiceClient implements SpaceContentsResource
       abortSignal || undefined,
     )
     return SetProcessBindingResponse.fromBinary(result)
+  }
+
+  /**
+   * BindAttachedRpcService publishes a caller-attached Resource under one
+   * private service ID prefix for this Space runtime.
+   *
+   * @generated from rpc s4wave.space.SpaceContentsResourceService.BindAttachedRpcService
+   */
+  BindAttachedRpcService(
+    request: BindAttachedRpcServiceRequest,
+    abortSignal?: AbortSignal,
+  ): MessageStream<BindAttachedRpcServiceResponse> {
+    const requestMsg = BindAttachedRpcServiceRequest.create(request)
+    const result = this.rpc.serverStreamingRequest(
+      this.service,
+      SpaceContentsResourceServiceDefinition.methods.BindAttachedRpcService
+        .name,
+      BindAttachedRpcServiceRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return buildDecodeMessageTransform(BindAttachedRpcServiceResponse)(result)
   }
 }

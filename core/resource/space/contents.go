@@ -11,9 +11,12 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
+	"github.com/aperturerobotics/controllerbus/controller"
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -27,6 +30,7 @@ import (
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
@@ -34,6 +38,7 @@ import (
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_process "github.com/s4wave/spacewave/sdk/process"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	"github.com/sirupsen/logrus"
@@ -84,6 +89,30 @@ func (r *spaceRuntime) Release() {
 	})
 }
 
+type attachedRpcServiceBinding struct {
+	// runtime retains the Space runtime that serves this binding.
+	runtime *spaceRuntime
+	// controller routes the attached resource through the Space runtime.
+	controller *attachedRpcServiceController
+}
+
+// attachedRpcServiceController signals when its RPC service can resolve calls.
+type attachedRpcServiceController struct {
+	// RpcServiceController provides the RPC route after it receives a context.
+	*bifrost_rpc.RpcServiceController
+	// ready closes after RpcServiceController.Execute sets its context.
+	ready chan struct{}
+	// readyOnce guards ready closure when ControllerBus executes this controller.
+	readyOnce sync.Once
+}
+
+// Execute initializes the RPC service controller and then signals readiness.
+func (c *attachedRpcServiceController) Execute(ctx context.Context) error {
+	err := c.RpcServiceController.Execute(ctx)
+	c.readyOnce.Do(func() { close(c.ready) })
+	return err
+}
+
 type spaceRuntimeStarter func(
 	ctx context.Context,
 	parent bus.Bus,
@@ -117,6 +146,8 @@ type SpaceContentsResource struct {
 	ctrlRef directive.Reference
 	// runtime retains the isolated scheduler and child bus for this Space.
 	runtime *spaceRuntime
+	// attachedRpcServices is guarded by bcast and retains one binding per private service prefix.
+	attachedRpcServices map[string]*attachedRpcServiceBinding
 	// startErr is the terminal error from the current runtime startup.
 	startErr error
 	// ctrl wakes the running plugin/space controller after content changes.
@@ -521,6 +552,178 @@ func startSpaceContentsController(
 ) (*plugin_space.Controller, directive.Reference, error) {
 	ctrl, _, ctrlRef, err := plugin_space.StartControllerWithConfig(ctx, b, conf, func() {})
 	return ctrl, ctrlRef, err
+}
+
+// BindAttachedRpcService publishes a caller-attached Resource under one private
+// service ID prefix until the caller disconnects or this Space runtime ends.
+func (r *SpaceContentsResource) BindAttachedRpcService(
+	req *s4wave_space.BindAttachedRpcServiceRequest,
+	strm s4wave_space.SRPCSpaceContentsResourceService_BindAttachedRpcServiceStream,
+) error {
+	if req.GetAttachedResourceId() == 0 {
+		return errors.New("attached resource ID must be nonzero")
+	}
+	prefix := req.GetServiceIdPrefix()
+	if !isSafeAttachedRpcServicePrefix(prefix) {
+		return errors.New("service ID prefix must be nonempty and safe")
+	}
+
+	resourceCtx, err := resource_server.MustGetResourceClientContext(strm.Context())
+	if err != nil {
+		return err
+	}
+	client, err := resourceCtx.GetAttachedResource(req.GetAttachedResourceId())
+	if err != nil {
+		return err
+	}
+	var clientDone <-chan struct{}
+	if doneClient, ok := client.(interface{ Done() <-chan struct{} }); ok {
+		clientDone = doneClient.Done()
+	}
+
+	// Refuse a route when the caller, attachment, or request has already ended.
+	if err := attachedRpcServiceLifetimeError(strm.Context(), resourceCtx.Context(), clientDone, nil); err != nil {
+		return err
+	}
+
+	ctrl := &attachedRpcServiceController{
+		RpcServiceController: bifrost_rpc.NewRpcServiceController(
+			controller.NewInfo(
+				"core/resource/space/attached-rpc-service/"+prefix,
+				controller.MustParseVersion("0.0.1"),
+				"attached RPC service route",
+			),
+			bifrost_rpc.NewRpcServiceBuilder(srpc.NewClientInvoker(client)),
+			[]string{prefix},
+			true,
+			nil,
+			nil,
+			nil,
+		),
+		ready: make(chan struct{}),
+	}
+	binding := &attachedRpcServiceBinding{controller: ctrl}
+
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if r.runtime == nil {
+			err = errors.New("space runtime is not running")
+			return
+		}
+		if r.attachedRpcServices == nil {
+			r.attachedRpcServices = make(map[string]*attachedRpcServiceBinding)
+		}
+		if existing := r.attachedRpcServices[prefix]; existing != nil {
+			select {
+			case <-existing.runtime.done:
+				delete(r.attachedRpcServices, prefix)
+			default:
+				err = fmt.Errorf("service ID prefix %q is already bound", prefix)
+				return
+			}
+		}
+		binding.runtime = r.runtime
+		r.attachedRpcServices[prefix] = binding
+	})
+	if err != nil {
+		return err
+	}
+
+	// Check the installed binding lifetime before ControllerBus starts its route.
+	if err := attachedRpcServiceLifetimeError(strm.Context(), resourceCtx.Context(), clientDone, binding.runtime.done); err != nil {
+		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if r.attachedRpcServices[prefix] == binding {
+				delete(r.attachedRpcServices, prefix)
+			}
+		})
+		return err
+	}
+
+	release, err := binding.runtime.bus.AddController(strm.Context(), binding.controller, nil)
+	if err != nil {
+		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if r.attachedRpcServices[prefix] == binding {
+				delete(r.attachedRpcServices, prefix)
+			}
+		})
+		return err
+	}
+	defer func() {
+		release()
+		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if r.attachedRpcServices[prefix] == binding {
+				delete(r.attachedRpcServices, prefix)
+			}
+		})
+	}()
+
+	select {
+	case <-binding.controller.ready:
+	case <-strm.Context().Done():
+		return strm.Context().Err()
+	case <-resourceCtx.Context().Done():
+		return resourceCtx.Context().Err()
+	case <-clientDone:
+		return errors.New("attached resource ended before attached service was ready")
+	case <-binding.runtime.done:
+		return errors.New("space runtime ended before attached service was ready")
+	}
+
+	// Give an already-ended lifetime priority over the ready notification.
+	if err := attachedRpcServiceLifetimeError(strm.Context(), resourceCtx.Context(), clientDone, binding.runtime.done); err != nil {
+		return err
+	}
+	if err := strm.Send(&s4wave_space.BindAttachedRpcServiceResponse{}); err != nil {
+		return err
+	}
+	select {
+	case <-strm.Context().Done():
+		return strm.Context().Err()
+	case <-resourceCtx.Context().Done():
+		return resourceCtx.Context().Err()
+	case <-clientDone:
+		return nil
+	case <-binding.runtime.done:
+		return nil
+	}
+}
+
+// attachedRpcServiceLifetimeError reports an ended binding lifetime without waiting.
+func attachedRpcServiceLifetimeError(
+	streamCtx context.Context,
+	resourceCtx context.Context,
+	clientDone <-chan struct{},
+	runtimeDone <-chan struct{},
+) error {
+	if err := streamCtx.Err(); err != nil {
+		return err
+	}
+	if err := resourceCtx.Err(); err != nil {
+		return err
+	}
+	select {
+	case <-clientDone:
+		return errors.New("attached resource ended before attached service was ready")
+	default:
+	}
+	select {
+	case <-runtimeDone:
+		return errors.New("space runtime ended before attached service was ready")
+	default:
+	}
+	return nil
+}
+
+func isSafeAttachedRpcServicePrefix(prefix string) bool {
+	if prefix == "" || len(prefix) > 256 || !utf8.ValidString(prefix) ||
+		prefix[0] == '/' || prefix[len(prefix)-1] != '/' {
+		return false
+	}
+	for _, char := range prefix {
+		if unicode.IsSpace(char) || unicode.IsControl(char) {
+			return false
+		}
+	}
+	return true
 }
 
 // WatchState streams the current plugin and process state for the space.

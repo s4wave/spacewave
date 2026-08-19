@@ -34,6 +34,11 @@ service SpaceContentsResourceService {
   rpc WatchState(WatchSpaceContentsStateRequest) returns (stream SpaceContentsState) {}
 
   rpc SetProcessBinding(SetProcessBindingRequest) returns (SetProcessBindingResponse) {}
+
+  // BindAttachedRpcService publishes a caller-attached Resource under one
+  // private service ID prefix for this Space runtime.
+  rpc BindAttachedRpcService(BindAttachedRpcServiceRequest)
+    returns (stream BindAttachedRpcServiceResponse) {}
 }
 
 // WatchSpaceStateRequest is a request to watch the Workspace state.
@@ -153,6 +158,20 @@ message ReadSecretPayloadResponse {
 
 // WatchSpaceContentsStateRequest is a request to watch the space contents state.
 message WatchSpaceContentsStateRequest {}
+
+// BindAttachedRpcServiceRequest identifies the caller-attached Resource and its
+// private service ID prefix in this Space runtime.
+message BindAttachedRpcServiceRequest {
+  // AttachedResourceId identifies a Resource attached by this caller.
+  uint32 attached_resource_id = 1;
+  // ServiceIdPrefix is a slash-terminated private prefix of at most 256 UTF-8
+  // bytes.
+  string service_id_prefix = 2;
+}
+
+// BindAttachedRpcServiceResponse confirms the attached service is callable.
+message BindAttachedRpcServiceResponse {
+}
 
 // SpaceContentsState contains plugin status for the space.
 message SpaceContentsState {

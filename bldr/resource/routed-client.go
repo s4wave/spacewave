@@ -15,15 +15,28 @@ import (
 type routedClient struct {
 	inner  srpc.Client
 	prefix string
+	// done closes when the routed resource is detached.
+	done <-chan struct{}
 }
 
 // NewRoutedClient wraps an SRPC client so all calls are prefixed with the
 // resource ID for routing to the correct attached resource mux.
 func NewRoutedClient(inner srpc.Client, resourceID uint32) srpc.Client {
+	return NewRoutedClientWithDone(inner, resourceID, nil)
+}
+
+// NewRoutedClientWithDone wraps a client with a resource route and its lifetime.
+func NewRoutedClientWithDone(inner srpc.Client, resourceID uint32, done <-chan struct{}) srpc.Client {
 	return &routedClient{
 		inner:  inner,
 		prefix: strconv.FormatUint(uint64(resourceID), 10) + "/",
+		done:   done,
 	}
+}
+
+// Done closes when the routed resource is detached.
+func (c *routedClient) Done() <-chan struct{} {
+	return c.done
 }
 
 // ExecCall executes a request/reply RPC with the resource ID prefix.

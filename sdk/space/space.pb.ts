@@ -599,6 +599,61 @@ export const WatchSpaceContentsStateRequest: MessageType<WatchSpaceContentsState
   )
 
 /**
+ * BindAttachedRpcServiceRequest identifies the caller-attached Resource and its
+ * private service ID prefix in this Space runtime.
+ *
+ * @generated from message s4wave.space.BindAttachedRpcServiceRequest
+ */
+export interface BindAttachedRpcServiceRequest {
+  /**
+   * AttachedResourceId identifies a Resource attached by this caller.
+   *
+   * @generated from field: uint32 attached_resource_id = 1;
+   */
+  attachedResourceId?: number
+  /**
+   * ServiceIdPrefix is a slash-terminated private prefix of at most 256 UTF-8
+   * bytes.
+   *
+   * @generated from field: string service_id_prefix = 2;
+   */
+  serviceIdPrefix?: string
+}
+
+export const BindAttachedRpcServiceRequest: MessageType<BindAttachedRpcServiceRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.BindAttachedRpcServiceRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'attached_resource_id',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
+      {
+        no: 2,
+        name: 'service_id_prefix',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * BindAttachedRpcServiceResponse confirms the attached service is callable.
+ *
+ * @generated from message s4wave.space.BindAttachedRpcServiceResponse
+ */
+export interface BindAttachedRpcServiceResponse {}
+
+export const BindAttachedRpcServiceResponse: MessageType<BindAttachedRpcServiceResponse> =
+  /* @__PURE__ */ createEmptyMessageType<BindAttachedRpcServiceResponse>(
+    's4wave.space.BindAttachedRpcServiceResponse',
+    true,
+  )
+
+/**
  * SpacePluginStatus contains runtime state for a single plugin.
  *
  * @generated from message s4wave.space.SpacePluginStatus

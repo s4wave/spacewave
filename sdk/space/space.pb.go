@@ -526,6 +526,48 @@ func (x *WatchSpaceContentsStateRequest) Reset() {
 
 func (*WatchSpaceContentsStateRequest) ProtoMessage() {}
 
+// BindAttachedRpcServiceRequest identifies the caller-attached Resource and its
+// private service ID prefix in this Space runtime.
+type BindAttachedRpcServiceRequest struct {
+	unknownFields []byte
+	// AttachedResourceId identifies a Resource attached by this caller.
+	AttachedResourceId uint32 `protobuf:"varint,1,opt,name=attached_resource_id,json=attachedResourceId,proto3" json:"attachedResourceId,omitempty"`
+	// ServiceIdPrefix is a slash-terminated private prefix of at most 256 UTF-8
+	// bytes.
+	ServiceIdPrefix string `protobuf:"bytes,2,opt,name=service_id_prefix,json=serviceIdPrefix,proto3" json:"serviceIdPrefix,omitempty"`
+}
+
+func (x *BindAttachedRpcServiceRequest) Reset() {
+	*x = BindAttachedRpcServiceRequest{}
+}
+
+func (*BindAttachedRpcServiceRequest) ProtoMessage() {}
+
+func (x *BindAttachedRpcServiceRequest) GetAttachedResourceId() uint32 {
+	if x != nil {
+		return x.AttachedResourceId
+	}
+	return 0
+}
+
+func (x *BindAttachedRpcServiceRequest) GetServiceIdPrefix() string {
+	if x != nil {
+		return x.ServiceIdPrefix
+	}
+	return ""
+}
+
+// BindAttachedRpcServiceResponse confirms the attached service is callable.
+type BindAttachedRpcServiceResponse struct {
+	unknownFields []byte
+}
+
+func (x *BindAttachedRpcServiceResponse) Reset() {
+	*x = BindAttachedRpcServiceResponse{}
+}
+
+func (*BindAttachedRpcServiceResponse) ProtoMessage() {}
+
 // SpaceContentsState contains plugin status for the space.
 type SpaceContentsState struct {
 	unknownFields []byte
@@ -1102,6 +1144,38 @@ func (m *WatchSpaceContentsStateRequest) CloneMessageVT() protobuf_go_lite.Clone
 	return m.CloneVT()
 }
 
+func (m *BindAttachedRpcServiceRequest) CloneVT() *BindAttachedRpcServiceRequest {
+	if m == nil {
+		return (*BindAttachedRpcServiceRequest)(nil)
+	}
+	r := new(BindAttachedRpcServiceRequest)
+	r.AttachedResourceId = m.AttachedResourceId
+	r.ServiceIdPrefix = m.ServiceIdPrefix
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *BindAttachedRpcServiceRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *BindAttachedRpcServiceResponse) CloneVT() *BindAttachedRpcServiceResponse {
+	if m == nil {
+		return (*BindAttachedRpcServiceResponse)(nil)
+	}
+	r := new(BindAttachedRpcServiceResponse)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *BindAttachedRpcServiceResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *SpaceContentsState) CloneVT() *SpaceContentsState {
 	if m == nil {
 		return (*SpaceContentsState)(nil)
@@ -1617,6 +1691,46 @@ func (this *WatchSpaceContentsStateRequest) EqualVT(that *WatchSpaceContentsStat
 
 func (this *WatchSpaceContentsStateRequest) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*WatchSpaceContentsStateRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *BindAttachedRpcServiceRequest) EqualVT(that *BindAttachedRpcServiceRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.AttachedResourceId != that.AttachedResourceId {
+		return false
+	}
+	if this.ServiceIdPrefix != that.ServiceIdPrefix {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BindAttachedRpcServiceRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BindAttachedRpcServiceRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *BindAttachedRpcServiceResponse) EqualVT(that *BindAttachedRpcServiceResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *BindAttachedRpcServiceResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*BindAttachedRpcServiceResponse)
 	if !ok {
 		return false
 	}
@@ -2770,6 +2884,86 @@ func (x *WatchSpaceContentsStateRequest) UnmarshalProtoJSON(s *json.UnmarshalSta
 
 // UnmarshalJSON unmarshals the WatchSpaceContentsStateRequest from JSON.
 func (x *WatchSpaceContentsStateRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the BindAttachedRpcServiceRequest message to JSON.
+func (x *BindAttachedRpcServiceRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.AttachedResourceId != 0 || s.HasField("attachedResourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("attachedResourceId")
+		s.WriteUint32(x.AttachedResourceId)
+	}
+	if x.ServiceIdPrefix != "" || s.HasField("serviceIdPrefix") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("serviceIdPrefix")
+		s.WriteString(x.ServiceIdPrefix)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BindAttachedRpcServiceRequest to JSON.
+func (x *BindAttachedRpcServiceRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BindAttachedRpcServiceRequest message from JSON.
+func (x *BindAttachedRpcServiceRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "attached_resource_id", "attachedResourceId":
+			s.AddField("attached_resource_id")
+			x.AttachedResourceId = s.ReadUint32()
+		case "service_id_prefix", "serviceIdPrefix":
+			s.AddField("service_id_prefix")
+			x.ServiceIdPrefix = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the BindAttachedRpcServiceRequest from JSON.
+func (x *BindAttachedRpcServiceRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the BindAttachedRpcServiceResponse message to JSON.
+func (x *BindAttachedRpcServiceResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the BindAttachedRpcServiceResponse to JSON.
+func (x *BindAttachedRpcServiceResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the BindAttachedRpcServiceResponse message from JSON.
+func (x *BindAttachedRpcServiceResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the BindAttachedRpcServiceResponse from JSON.
+func (x *BindAttachedRpcServiceResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -4054,6 +4248,80 @@ func (m *WatchSpaceContentsStateRequest) MarshalToSizedBufferVT(dAtA []byte) (in
 	return len(dAtA) - i, nil
 }
 
+func (m *BindAttachedRpcServiceRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BindAttachedRpcServiceRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BindAttachedRpcServiceRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.ServiceIdPrefix) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ServiceIdPrefix)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.AttachedResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AttachedResourceId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *BindAttachedRpcServiceResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BindAttachedRpcServiceResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *BindAttachedRpcServiceResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *SpaceContentsState) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -4729,6 +4997,28 @@ func (m *WatchSpaceContentsStateRequest) SizeVT() (n int) {
 	return n
 }
 
+func (m *BindAttachedRpcServiceRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.AttachedResourceId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ServiceIdPrefix)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *BindAttachedRpcServiceResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *SpaceContentsState) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -5183,6 +5473,34 @@ func (x *WatchSpaceContentsStateRequest) MarshalProtoText() string {
 }
 
 func (x *WatchSpaceContentsStateRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *BindAttachedRpcServiceRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "BindAttachedRpcServiceRequest")
+	if x.AttachedResourceId != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "attached_resource_id")
+		protobuf_go_lite.TextWriteUint(&sb, x.AttachedResourceId)
+	}
+	if x.ServiceIdPrefix != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "service_id_prefix")
+		protobuf_go_lite.TextWriteString(&sb, x.ServiceIdPrefix)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *BindAttachedRpcServiceRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *BindAttachedRpcServiceResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "BindAttachedRpcServiceResponse")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *BindAttachedRpcServiceResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -6371,6 +6689,111 @@ func (m *WatchSpaceContentsStateRequest) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: WatchSpaceContentsStateRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *BindAttachedRpcServiceRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BindAttachedRpcServiceRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BindAttachedRpcServiceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AttachedResourceId", wireType)
+			}
+			m.AttachedResourceId = 0
+			m.AttachedResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ServiceIdPrefix", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ServiceIdPrefix = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *BindAttachedRpcServiceResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BindAttachedRpcServiceResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BindAttachedRpcServiceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		default:

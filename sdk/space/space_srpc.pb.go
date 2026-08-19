@@ -536,6 +536,9 @@ type SRPCSpaceContentsResourceServiceClient interface {
 	WatchState(ctx context.Context, in *WatchSpaceContentsStateRequest) (SRPCSpaceContentsResourceService_WatchStateClient, error)
 
 	SetProcessBinding(ctx context.Context, in *SetProcessBindingRequest) (*SetProcessBindingResponse, error)
+	// BindAttachedRpcService publishes a caller-attached Resource under one
+	// private service ID prefix for this Space runtime.
+	BindAttachedRpcService(ctx context.Context, in *BindAttachedRpcServiceRequest) (SRPCSpaceContentsResourceService_BindAttachedRpcServiceClient, error)
 }
 
 type srpcSpaceContentsResourceServiceClient struct {
@@ -599,10 +602,47 @@ func (c *srpcSpaceContentsResourceServiceClient) SetProcessBinding(ctx context.C
 	return out, nil
 }
 
+func (c *srpcSpaceContentsResourceServiceClient) BindAttachedRpcService(ctx context.Context, in *BindAttachedRpcServiceRequest) (SRPCSpaceContentsResourceService_BindAttachedRpcServiceClient, error) {
+	stream, err := c.cc.NewStream(ctx, c.serviceID, "BindAttachedRpcService", in)
+	if err != nil {
+		return nil, err
+	}
+	strm := &srpcSpaceContentsResourceService_BindAttachedRpcServiceClient{stream}
+	if err := strm.CloseSend(); err != nil {
+		return nil, err
+	}
+	return strm, nil
+}
+
+type SRPCSpaceContentsResourceService_BindAttachedRpcServiceClient interface {
+	srpc.Stream
+	Recv() (*BindAttachedRpcServiceResponse, error)
+	RecvTo(*BindAttachedRpcServiceResponse) error
+}
+
+type srpcSpaceContentsResourceService_BindAttachedRpcServiceClient struct {
+	srpc.Stream
+}
+
+func (x *srpcSpaceContentsResourceService_BindAttachedRpcServiceClient) Recv() (*BindAttachedRpcServiceResponse, error) {
+	m := new(BindAttachedRpcServiceResponse)
+	if err := x.MsgRecv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (x *srpcSpaceContentsResourceService_BindAttachedRpcServiceClient) RecvTo(m *BindAttachedRpcServiceResponse) error {
+	return x.MsgRecv(m)
+}
+
 type SRPCSpaceContentsResourceServiceServer interface {
 	WatchState(*WatchSpaceContentsStateRequest, SRPCSpaceContentsResourceService_WatchStateStream) error
 
 	SetProcessBinding(context.Context, *SetProcessBindingRequest) (*SetProcessBindingResponse, error)
+	// BindAttachedRpcService publishes a caller-attached Resource under one
+	// private service ID prefix for this Space runtime.
+	BindAttachedRpcService(*BindAttachedRpcServiceRequest, SRPCSpaceContentsResourceService_BindAttachedRpcServiceStream) error
 }
 
 const SRPCSpaceContentsResourceServiceServiceID = "s4wave.space.SpaceContentsResourceService"
@@ -633,6 +673,7 @@ func (SRPCSpaceContentsResourceServiceHandler) GetMethodIDs() []string {
 	return []string{
 		"WatchState",
 		"SetProcessBinding",
+		"BindAttachedRpcService",
 	}
 }
 
@@ -649,6 +690,8 @@ func (d *SRPCSpaceContentsResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_WatchState(d.impl, strm)
 	case "SetProcessBinding":
 		return true, d.InvokeMethod_SetProcessBinding(d.impl, strm)
+	case "BindAttachedRpcService":
+		return true, d.InvokeMethod_BindAttachedRpcService(d.impl, strm)
 	default:
 		return false, nil
 	}
@@ -673,6 +716,15 @@ func (SRPCSpaceContentsResourceServiceHandler) InvokeMethod_SetProcessBinding(im
 		return err
 	}
 	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceContentsResourceServiceHandler) InvokeMethod_BindAttachedRpcService(impl SRPCSpaceContentsResourceServiceServer, strm srpc.Stream) error {
+	req := new(BindAttachedRpcServiceRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	serverStrm := &srpcSpaceContentsResourceService_BindAttachedRpcServiceStream{strm}
+	return impl.BindAttachedRpcService(req, serverStrm)
 }
 
 type SRPCSpaceContentsResourceService_WatchStateStream interface {
@@ -704,4 +756,27 @@ type SRPCSpaceContentsResourceService_SetProcessBindingStream interface {
 
 type srpcSpaceContentsResourceService_SetProcessBindingStream struct {
 	srpc.Stream
+}
+
+type SRPCSpaceContentsResourceService_BindAttachedRpcServiceStream interface {
+	srpc.Stream
+	Send(*BindAttachedRpcServiceResponse) error
+	SendAndClose(*BindAttachedRpcServiceResponse) error
+}
+
+type srpcSpaceContentsResourceService_BindAttachedRpcServiceStream struct {
+	srpc.Stream
+}
+
+func (x *srpcSpaceContentsResourceService_BindAttachedRpcServiceStream) Send(m *BindAttachedRpcServiceResponse) error {
+	return x.MsgSend(m)
+}
+
+func (x *srpcSpaceContentsResourceService_BindAttachedRpcServiceStream) SendAndClose(m *BindAttachedRpcServiceResponse) error {
+	if m != nil {
+		if err := x.MsgSend(m); err != nil {
+			return err
+		}
+	}
+	return x.CloseSend()
 }
