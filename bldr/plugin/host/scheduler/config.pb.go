@@ -21,9 +21,6 @@ import (
 // Manages executing plugins via the plugin hosts.
 type Config struct {
 	unknownFields []byte
-	// InstanceKey identifies the isolated plugin instance set resolved by this scheduler.
-	// Empty retains the unscoped Dist behavior.
-	InstanceKey string `protobuf:"bytes,14,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
 	// EngineId is the world engine id to attach to.
 	EngineId string `protobuf:"bytes,1,opt,name=engine_id,json=engineId,proto3" json:"engineId,omitempty"`
 	// ObjectKey is the root object to attach to.
@@ -41,13 +38,6 @@ type Config struct {
 	// DisableStoreManifest disables storing manifests fetched with FetchManifest.
 	// This is used if we are watching the same world as the FetchManifest resolver.
 	DisableStoreManifest bool `protobuf:"varint,6,opt,name=disable_store_manifest,json=disableStoreManifest,proto3" json:"disableStoreManifest,omitempty"`
-	// DisableCopyManifest disables copying manifests to the plugin host world bucket.
-	// This is used if the manifest bucket is always accessible and locally cached.
-	// If unset, we will copy manifests to the same bucket as the plugin host world.
-	DisableCopyManifest bool `protobuf:"varint,10,opt,name=disable_copy_manifest,json=disableCopyManifest,proto3" json:"disableCopyManifest,omitempty"`
-	// NoCopyBucketIds lists source buckets that remain authoritative without a
-	// full-DAG copy.
-	NoCopyBucketIds []string `protobuf:"bytes,13,rep,name=no_copy_bucket_ids,json=noCopyBucketIds,proto3" json:"noCopyBucketIds,omitempty"`
 	// FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
 	// If zero, uses no limit to the number of concurrent fetches.
 	//
@@ -61,12 +51,22 @@ type Config struct {
 	// ExecBackoff is the backoff config for executing plugin manifests.
 	// If unset, defaults to reasonable defaults.
 	ExecBackoff *backoff.Backoff `protobuf:"bytes,9,opt,name=exec_backoff,json=execBackoff,proto3" json:"execBackoff,omitempty"`
+	// DisableCopyManifest disables copying manifests to the plugin host world bucket.
+	// This is used if the manifest bucket is always accessible and locally cached.
+	// If unset, we will copy manifests to the same bucket as the plugin host world.
+	DisableCopyManifest bool `protobuf:"varint,10,opt,name=disable_copy_manifest,json=disableCopyManifest,proto3" json:"disableCopyManifest,omitempty"`
 	// Verbose enables verbose logging for world ops (slower).
 	Verbose bool `protobuf:"varint,11,opt,name=verbose,proto3" json:"verbose,omitempty"`
 	// PlatformSelectionPolicies restrict selected platform IDs to selected
 	// plugin IDs. If empty, every discovered plugin host platform is selectable
 	// for every plugin.
 	PlatformSelectionPolicies []*PlatformSelectionPolicy `protobuf:"bytes,12,rep,name=platform_selection_policies,json=platformSelectionPolicies,proto3" json:"platformSelectionPolicies,omitempty"`
+	// NoCopyBucketIds lists source buckets that remain authoritative without a
+	// full-DAG copy.
+	NoCopyBucketIds []string `protobuf:"bytes,13,rep,name=no_copy_bucket_ids,json=noCopyBucketIds,proto3" json:"noCopyBucketIds,omitempty"`
+	// InstanceKey identifies the isolated plugin instance set resolved by this scheduler.
+	// Empty retains the unscoped Dist behavior.
+	InstanceKey string `protobuf:"bytes,14,opt,name=instance_key,json=instanceKey,proto3" json:"instanceKey,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -74,13 +74,6 @@ func (x *Config) Reset() {
 }
 
 func (*Config) ProtoMessage() {}
-
-func (x *Config) GetInstanceKey() string {
-	if x != nil {
-		return x.InstanceKey
-	}
-	return ""
-}
 
 func (x *Config) GetEngineId() string {
 	if x != nil {
@@ -124,20 +117,6 @@ func (x *Config) GetDisableStoreManifest() bool {
 	return false
 }
 
-func (x *Config) GetDisableCopyManifest() bool {
-	if x != nil {
-		return x.DisableCopyManifest
-	}
-	return false
-}
-
-func (x *Config) GetNoCopyBucketIds() []string {
-	if x != nil {
-		return x.NoCopyBucketIds
-	}
-	return nil
-}
-
 func (x *Config) GetFetchConcurrency() uint32 {
 	if x != nil {
 		return x.FetchConcurrency
@@ -159,6 +138,13 @@ func (x *Config) GetExecBackoff() *backoff.Backoff {
 	return nil
 }
 
+func (x *Config) GetDisableCopyManifest() bool {
+	if x != nil {
+		return x.DisableCopyManifest
+	}
+	return false
+}
+
 func (x *Config) GetVerbose() bool {
 	if x != nil {
 		return x.Verbose
@@ -171,6 +157,20 @@ func (x *Config) GetPlatformSelectionPolicies() []*PlatformSelectionPolicy {
 		return x.PlatformSelectionPolicies
 	}
 	return nil
+}
+
+func (x *Config) GetNoCopyBucketIds() []string {
+	if x != nil {
+		return x.NoCopyBucketIds
+	}
+	return nil
+}
+
+func (x *Config) GetInstanceKey() string {
+	if x != nil {
+		return x.InstanceKey
+	}
+	return ""
 }
 
 // PlatformSelectionPolicy restricts a plugin host platform to a plugin ID list.
@@ -208,20 +208,20 @@ func (m *Config) CloneVT() *Config {
 		return (*Config)(nil)
 	}
 	r := new(Config)
-	r.InstanceKey = m.InstanceKey
 	r.EngineId = m.EngineId
 	r.ObjectKey = m.ObjectKey
 	r.PeerId = m.PeerId
 	r.VolumeId = m.VolumeId
 	r.WatchFetchManifest = m.WatchFetchManifest
 	r.DisableStoreManifest = m.DisableStoreManifest
-	r.DisableCopyManifest = m.DisableCopyManifest
 	r.FetchConcurrency = m.FetchConcurrency
+	r.DisableCopyManifest = m.DisableCopyManifest
 	r.Verbose = m.Verbose
-	r.NoCopyBucketIds = protobuf_go_lite.CloneSlice(m.NoCopyBucketIds)
+	r.InstanceKey = m.InstanceKey
 	r.FetchBackoff = protobuf_go_lite.CloneVTValue(m.FetchBackoff)
 	r.ExecBackoff = protobuf_go_lite.CloneVTValue(m.ExecBackoff)
 	r.PlatformSelectionPolicies = protobuf_go_lite.CloneVTSlice(m.PlatformSelectionPolicies)
+	r.NoCopyBucketIds = protobuf_go_lite.CloneSlice(m.NoCopyBucketIds)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
