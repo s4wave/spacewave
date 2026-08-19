@@ -3,14 +3,19 @@
 package spacewave_cli
 
 import (
+	"bytes"
+	"cmp"
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/pkg/errors"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -179,18 +184,106 @@ func (e *devtoolWorldEngine) Close() error {
 	return nil
 }
 
-// lookupDevtoolManifest opens the devtool world and finds a manifest by ID.
-func lookupDevtoolManifest(
+// collectLatestManifestSet returns one latest manifest reference per platform.
+//
+// It rejects unavailable or invalid candidates and ambiguous equal-revision
+// references instead of selecting one by traversal order. Returned references
+// are sorted by manifest ID, descending revision, platform ID, and reference.
+func collectLatestManifestSet(
+	ctx context.Context,
+	ws world.WorldState,
+	manifestID string,
+) ([]*bldr_manifest.ManifestRef, error) {
+	if err := bldr_manifest.ValidateManifestID(manifestID, false); err != nil {
+		return nil, err
+	}
+	manifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, nil, devtoolPluginHostObjectKey)
+	if err != nil {
+		return nil, err
+	}
+	if len(manifestErrs) != 0 {
+		return nil, errors.Wrap(manifestErrs[0], "collect manifest set")
+	}
+	candidates := manifests[manifestID]
+	if len(candidates) == 0 {
+		return nil, errors.Errorf("manifest %q not found", manifestID)
+	}
+	selected := make(map[string]*bldr_manifest.ManifestRef)
+	for _, candidate := range candidates {
+		meta := candidate.Manifest.GetMeta()
+		if err := candidate.Manifest.Validate(); err != nil {
+			return nil, errors.Wrapf(err, "manifest %s", candidate.ManifestKey)
+		}
+		if _, err := bldr_platform.ParsePlatform(meta.GetPlatformId()); err != nil {
+			return nil, errors.Wrapf(err, "manifest %s platform", candidate.ManifestKey)
+		}
+		canonicalRef, err := bldr_manifest_world.CanonicalizeManifestObjectRef(ctx, ws.AccessWorldState, candidate.ManifestRef)
+		if err != nil {
+			return nil, errors.Wrapf(err, "manifest %s reference", candidate.ManifestKey)
+		}
+		if canonicalRef.GetRootRef().GetEmpty() {
+			return nil, errors.Errorf("manifest %s has empty root reference", candidate.ManifestKey)
+		}
+		ref := bldr_manifest.NewManifestRef(meta, canonicalRef)
+		if err := ref.Validate(); err != nil {
+			return nil, errors.Wrapf(err, "manifest %s", candidate.ManifestKey)
+		}
+		platformID := meta.GetPlatformId()
+		current := selected[platformID]
+		if current == nil || meta.GetRev() > current.GetMeta().GetRev() {
+			selected[platformID] = ref
+			continue
+		}
+		if meta.GetRev() != current.GetMeta().GetRev() {
+			continue
+		}
+		if !meta.EqualVT(current.GetMeta()) || !canonicalRef.EqualsRef(current.GetManifestRef()) {
+			return nil, errors.Errorf("manifest %q platform %q revision %d has ambiguous references", manifestID, platformID, meta.GetRev())
+		}
+	}
+	if len(selected) == 0 {
+		return nil, errors.Errorf("manifest %q has no valid platforms", manifestID)
+	}
+	result := make([]*bldr_manifest.ManifestRef, 0, len(selected))
+	for _, ref := range selected {
+		result = append(result, ref)
+	}
+	slices.SortStableFunc(result, func(a, b *bldr_manifest.ManifestRef) int {
+		if c := cmp.Compare(a.GetMeta().GetManifestId(), b.GetMeta().GetManifestId()); c != 0 {
+			return c
+		}
+		if c := cmp.Compare(b.GetMeta().GetRev(), a.GetMeta().GetRev()); c != 0 {
+			return c
+		}
+		if c := cmp.Compare(a.GetMeta().GetPlatformId(), b.GetMeta().GetPlatformId()); c != 0 {
+			return c
+		}
+		aBytes, _ := a.GetManifestRef().MarshalVT()
+		bBytes, _ := b.GetManifestRef().MarshalVT()
+		return bytes.Compare(aBytes, bBytes)
+	})
+	return result, nil
+}
+
+// lookupDevtoolManifestSet opens the devtool world and collects one latest
+// manifest reference for every valid platform.
+func lookupDevtoolManifestSet(
 	ctx context.Context,
 	le *logrus.Entry,
 	vol volume.Volume,
 	manifestID string,
-) (*bldr_manifest_world.CollectedManifest, error) {
-	list, err := lookupDevtoolManifests(ctx, le, vol, manifestID)
+) ([]*bldr_manifest.ManifestRef, error) {
+	eng, err := openDevtoolWorldEngine(ctx, le, vol)
 	if err != nil {
 		return nil, err
 	}
-	return list[0], nil
+	defer eng.Close()
+	ws := world.NewEngineWorldState(eng, false)
+	refs, err := collectLatestManifestSet(ctx, ws, manifestID)
+	if err != nil {
+		return nil, errors.Wrap(err, "collect manifest set")
+	}
+	return refs, nil
 }
 
 // lookupDevtoolManifests opens the devtool world and finds latest manifests by ID.
