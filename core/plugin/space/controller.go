@@ -329,6 +329,7 @@ func (c *Controller) runWorldWatchLoop(ctx context.Context, engineID string) err
 // LoadPlugin directives based on the current plugin_ids.
 func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, refs map[string]pluginReference) {
 	le := c.GetLogger()
+	conf := c.GetConfig()
 
 	settings, _, err := space_world.LookupSpaceSettings(ctx, ws)
 	if err != nil {
@@ -371,7 +372,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 		}
 
 		di, ref, err := c.GetBus().AddDirective(
-			bldr_plugin.NewLoadPlugin(pid),
+			bldr_plugin.NewLoadPluginInstanced(pid, conf.GetSpaceId()),
 			nil,
 		)
 		if err != nil {

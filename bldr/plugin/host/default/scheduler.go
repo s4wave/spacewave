@@ -15,6 +15,7 @@ import (
 func StartPluginScheduler(
 	ctx context.Context,
 	b bus.Bus,
+	instanceKey,
 	engineID,
 	pluginHostObjectKey,
 	volID,
@@ -24,6 +25,7 @@ func StartPluginScheduler(
 	disableCopyManifest bool,
 ) (sched *plugin_host_scheduler.Controller, rel func(), err error) {
 	schedConf := NewSchedulerConfig(
+		instanceKey,
 		engineID,
 		pluginHostObjectKey,
 		volID,
@@ -39,6 +41,7 @@ func StartPluginScheduler(
 func StartNativeDesktopPluginScheduler(
 	ctx context.Context,
 	b bus.Bus,
+	instanceKey,
 	engineID,
 	pluginHostObjectKey,
 	volID,
@@ -49,6 +52,7 @@ func StartNativeDesktopPluginScheduler(
 	quickJSPluginIDs []string,
 ) (sched *plugin_host_scheduler.Controller, rel func(), err error) {
 	schedConf := NewNativeDesktopSchedulerConfig(
+		instanceKey,
 		engineID,
 		pluginHostObjectKey,
 		volID,
@@ -80,6 +84,7 @@ func startPluginSchedulerWithConfig(
 
 // NewSchedulerConfig builds the default plugin scheduler config.
 func NewSchedulerConfig(
+	instanceKey,
 	engineID,
 	pluginHostObjectKey,
 	volID,
@@ -89,6 +94,7 @@ func NewSchedulerConfig(
 	disableCopyManifest bool,
 ) *plugin_host_scheduler.Config {
 	schedConf := plugin_host_scheduler.NewConfig(
+		instanceKey,
 		engineID,
 		pluginHostObjectKey,
 		volID,
@@ -102,6 +108,7 @@ func NewSchedulerConfig(
 
 // NewNativeDesktopSchedulerConfig builds the native desktop plugin scheduler config.
 func NewNativeDesktopSchedulerConfig(
+	instanceKey,
 	engineID,
 	pluginHostObjectKey,
 	volID,
@@ -112,6 +119,7 @@ func NewNativeDesktopSchedulerConfig(
 	quickJSPluginIDs []string,
 ) *plugin_host_scheduler.Config {
 	schedConf := NewSchedulerConfig(
+		instanceKey,
 		engineID,
 		pluginHostObjectKey,
 		volID,

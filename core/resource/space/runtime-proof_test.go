@@ -1,0 +1,330 @@
+package resource_space
+
+import (
+	"context"
+	"errors"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/aperturerobotics/controllerbus/bus"
+	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
+	"github.com/aperturerobotics/controllerbus/controller"
+	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
+	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/srpc"
+	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
+	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
+	space_world "github.com/s4wave/spacewave/core/space/world"
+	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	"github.com/s4wave/spacewave/db/unixfs"
+	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/db/world"
+	"github.com/s4wave/spacewave/net/peer"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
+	s4wave_space "github.com/s4wave/spacewave/sdk/space"
+	"github.com/s4wave/spacewave/testbed"
+	"github.com/sirupsen/logrus"
+)
+
+func TestSpaceRuntimeBusBridgesOnlyInfrastructure(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	parent, _, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	recorded := newSpaceRuntimeDirectiveRecorder()
+	ref, err := parent.AddController(ctx, recorded, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ref()
+
+	child, resolver, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(logrus.New()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bridgeRef, err := child.AddController(ctx, bus_bridge.NewBusBridge(parent, spaceRuntimeBridgeFilter), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer bridgeRef()
+	mirrorRef, err := child.AddController(ctx, newSpacePluginHostMirror(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mirrorRef()
+	_ = resolver
+
+	allowed := []directive.Directive{
+		world.NewLookupWorldEngine("engine"),
+		world.NewLookupWorldOp("operation", "engine"),
+		volume.NewLookupVolume("volume", ""),
+		volume.NewBuildObjectStoreAPI("store", "volume"),
+		plugin_host_root.NewLookupRoot([]string{"desktop/darwin/arm64"}),
+	}
+	for _, dir := range allowed {
+		execSpaceRuntimeDirective(t, ctx, child, dir)
+		recorded.wait(t, dir)
+	}
+
+	blocked := []directive.Directive{
+		plugin_host.NewLookupPluginHost(nil),
+		bldr_plugin.NewLoadPluginInstanced("plugin", "space-a"),
+		bldr_manifest.NewFetchManifest("plugin", nil, nil, 0),
+		bifrost_rpc.NewLookupRpcClient(bldr_plugin.SRPCPluginServiceID, "plugin"),
+		bifrost_rpc.NewLookupRpcService(bldr_plugin.SRPCPluginHostServiceID, "plugin-host"),
+	}
+	for _, dir := range blocked {
+		execSpaceRuntimeDirective(t, ctx, child, dir)
+	}
+	recorded.assertNoMore(t)
+}
+
+func TestSpaceContentsResourceProjectsPluginHostWatchChange(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	if _, _, err := space_world_ops.SetSpaceSettings(ctx, tb.WorldState, peer.ID(""), "", &space_world.SpaceSettings{PluginIds: []string{"test-plugin"}}, true, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	firstRef := addSpaceRuntimePluginHost(t, ctx, tb.Bus, "desktop/test-a")
+	defer firstRef()
+
+	resource := NewSpaceContentsResource(tb.Logger, tb.Bus, tb.Engine, "space-test", tb.EngineID)
+	resource.volumeID = tb.EngineVolumeID
+	resource.StartController(&plugin_space.Config{
+		SpaceId:       "space-test",
+		EngineId:      tb.EngineID,
+		SessionPeerId: tb.Volume.GetPeerID().String(),
+	})
+	defer resource.Release()
+	waitSpaceRuntimeStarted(t, resource)
+
+	watchCtx, watchCancel := context.WithCancel(ctx)
+	defer watchCancel()
+	stream := newTestWatchSpaceContentsStateStream(watchCtx)
+	watchErr := make(chan error, 1)
+	go func() {
+		watchErr <- resource.WatchState(&s4wave_space.WatchSpaceContentsStateRequest{}, stream)
+	}()
+	<-stream.msgs
+
+	secondRef := addSpaceRuntimePluginHost(t, ctx, tb.Bus, "desktop/test-b")
+	defer secondRef()
+	state := recvSpaceRuntimeWatchState(t, stream)
+	if len(state.GetPlugins()) != 1 {
+		t.Fatalf("plugins = %d, want 1", len(state.GetPlugins()))
+	}
+	plugin := state.GetPlugins()[0]
+	if plugin.GetState() != s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED || plugin.GetDetail() != "daemon plugin host set changed" {
+		t.Fatalf("plugin state = %#v", plugin)
+	}
+	waitSpaceRuntimeReleased(t, resource)
+	watchCancel()
+	if err := <-watchErr; err != nil && err != context.Canceled {
+		t.Fatalf("WatchState: %v", err)
+	}
+}
+
+func TestSpaceContentsResourceProjectsPluginHostWatchError(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	if _, _, err := space_world_ops.SetSpaceSettings(ctx, tb.WorldState, peer.ID(""), "", &space_world.SpaceSettings{PluginIds: []string{"test-plugin"}}, true, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	firstRef := addSpaceRuntimePluginHost(t, ctx, tb.Bus, "desktop/test-a")
+	defer firstRef()
+
+	resource := NewSpaceContentsResource(tb.Logger, tb.Bus, tb.Engine, "space-test", tb.EngineID)
+	resource.volumeID = tb.EngineVolumeID
+	resource.StartController(&plugin_space.Config{
+		SpaceId:       "space-test",
+		EngineId:      tb.EngineID,
+		SessionPeerId: tb.Volume.GetPeerID().String(),
+	})
+	defer resource.Release()
+	waitSpaceRuntimeStarted(t, resource)
+
+	watchCtx, watchCancel := context.WithCancel(ctx)
+	defer watchCancel()
+	stream := newTestWatchSpaceContentsStateStream(watchCtx)
+	watchErr := make(chan error, 1)
+	go func() {
+		watchErr <- resource.WatchState(&s4wave_space.WatchSpaceContentsStateRequest{}, stream)
+	}()
+	<-stream.msgs
+
+	errRef, err := tb.Bus.AddController(ctx, spaceRuntimePluginHostErrorController{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer errRef()
+	state := recvSpaceRuntimeWatchState(t, stream)
+	plugin := state.GetPlugins()[0]
+	if plugin.GetState() != s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED || plugin.GetDetail() != "watch daemon plugin hosts: test plugin host watch error" {
+		t.Fatalf("plugin state = %#v", plugin)
+	}
+	waitSpaceRuntimeReleased(t, resource)
+	watchCancel()
+	if err := <-watchErr; err != nil && err != context.Canceled {
+		t.Fatalf("WatchState: %v", err)
+	}
+}
+
+type spaceRuntimeDirectiveRecorder struct {
+	mu   sync.Mutex
+	dirs []directive.Directive
+	ch   chan struct{}
+}
+
+func newSpaceRuntimeDirectiveRecorder() *spaceRuntimeDirectiveRecorder {
+	return &spaceRuntimeDirectiveRecorder{ch: make(chan struct{}, 16)}
+}
+
+func (c *spaceRuntimeDirectiveRecorder) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/space-runtime-recorder", controller.MustParseVersion("0.0.1"), "records bridged directives")
+}
+
+func (c *spaceRuntimeDirectiveRecorder) Execute(context.Context) error { return nil }
+func (c *spaceRuntimeDirectiveRecorder) Close() error                  { return nil }
+
+func (c *spaceRuntimeDirectiveRecorder) HandleDirective(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+	c.mu.Lock()
+	c.dirs = append(c.dirs, inst.GetDirective())
+	c.mu.Unlock()
+	c.ch <- struct{}{}
+	return directive.R(directive.NewFuncResolver(func(_ context.Context, handler directive.ResolverHandler) error {
+		handler.MarkIdle(true)
+		return nil
+	}), nil)
+}
+
+func (c *spaceRuntimeDirectiveRecorder) wait(t *testing.T, want directive.Directive) {
+	t.Helper()
+	select {
+	case <-c.ch:
+	case <-time.After(time.Second):
+		t.Fatalf("parent did not receive %T", want)
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	got := c.dirs[len(c.dirs)-1]
+	if equivalent, ok := want.(directive.DirectiveWithEquiv); !ok || !equivalent.IsEquivalent(got) {
+		t.Fatalf("parent directive = %T, want %T", got, want)
+	}
+}
+
+func (c *spaceRuntimeDirectiveRecorder) assertNoMore(t *testing.T) {
+	t.Helper()
+	select {
+	case <-c.ch:
+		t.Fatal("blocked Space directive reached parent")
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
+func execSpaceRuntimeDirective(t *testing.T, ctx context.Context, b bus.Bus, dir directive.Directive) {
+	t.Helper()
+	_, ref, err := b.AddDirective(dir, bus.NewCallbackHandler(nil, nil, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(ref.Release)
+}
+
+func addSpaceRuntimePluginHost(t *testing.T, ctx context.Context, b bus.Bus, platformID string) func() {
+	t.Helper()
+	ref, err := b.AddController(ctx, &spaceRuntimePluginHostController{host: &spaceRuntimePluginHost{platformID: platformID}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ref
+}
+
+func waitSpaceRuntimeStarted(t *testing.T, r *SpaceContentsResource) {
+	t.Helper()
+	if err := r.bcast.Wait(t.Context(), func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return r.runtime != nil || r.startErr != nil, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if r.startErr != nil {
+		t.Fatal(r.startErr)
+	}
+}
+
+func waitSpaceRuntimeReleased(t *testing.T, r *SpaceContentsResource) {
+	t.Helper()
+	if err := r.bcast.Wait(t.Context(), func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return r.runtime == nil && r.ctrlRef == nil && r.startErr != nil, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func recvSpaceRuntimeWatchState(t *testing.T, stream *testWatchSpaceContentsStateStream) *s4wave_space.SpaceContentsState {
+	t.Helper()
+	select {
+	case state := <-stream.msgs:
+		return state
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for terminal Space state")
+		return nil
+	}
+}
+
+type spaceRuntimePluginHostController struct{ host plugin_host.PluginHost }
+
+func (c *spaceRuntimePluginHostController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/space-runtime-plugin-host", controller.MustParseVersion("0.0.1"), "test plugin host")
+}
+func (c *spaceRuntimePluginHostController) Execute(context.Context) error { return nil }
+func (c *spaceRuntimePluginHostController) Close() error                  { return nil }
+func (c *spaceRuntimePluginHostController) HandleDirective(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+	if _, ok := inst.GetDirective().(plugin_host.LookupPluginHost); !ok {
+		return nil, nil
+	}
+	return directive.R(directive.NewValueResolver([]plugin_host.PluginHost{c.host}), nil)
+}
+
+type spaceRuntimePluginHost struct{ platformID string }
+
+func (h *spaceRuntimePluginHost) GetPlatformId() string                         { return h.platformID }
+func (h *spaceRuntimePluginHost) Execute(context.Context) error                 { return nil }
+func (h *spaceRuntimePluginHost) ListPlugins(context.Context) ([]string, error) { return nil, nil }
+func (h *spaceRuntimePluginHost) ExecutePlugin(context.Context, string, string, string, *unixfs.FSHandle, *unixfs.FSHandle, srpc.Mux, plugin_host.PluginRpcInitCb) error {
+	return nil
+}
+func (h *spaceRuntimePluginHost) DeletePlugin(context.Context, string) error { return nil }
+
+type spaceRuntimePluginHostErrorController struct{}
+
+func (spaceRuntimePluginHostErrorController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/space-runtime-plugin-host-error", controller.MustParseVersion("0.0.1"), "test plugin host watch error")
+}
+func (spaceRuntimePluginHostErrorController) Execute(context.Context) error { return nil }
+func (spaceRuntimePluginHostErrorController) Close() error                  { return nil }
+func (spaceRuntimePluginHostErrorController) HandleDirective(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+	if _, ok := inst.GetDirective().(plugin_host.LookupPluginHost); !ok {
+		return nil, nil
+	}
+	return directive.R(directive.NewFuncResolver(func(context.Context, directive.ResolverHandler) error {
+		return errors.New("test plugin host watch error")
+	}), nil)
+}

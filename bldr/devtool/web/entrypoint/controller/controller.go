@@ -289,6 +289,7 @@ func (c *Controller) Execute(ctx context.Context) (rerr error) {
 
 	// run the plugin scheduler
 	pluginSchedConf := plugin_host_default.NewSchedulerConfig(
+		"",
 		engineID,
 		pluginHostObjKey,
 		storageVol.GetID(),

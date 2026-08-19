@@ -9,6 +9,7 @@ import (
 
 func TestNewNativeDesktopSchedulerConfigRestrictsJSPlatform(t *testing.T) {
 	conf := NewNativeDesktopSchedulerConfig(
+		"",
 		"engine",
 		"plugin-host",
 		"volume",

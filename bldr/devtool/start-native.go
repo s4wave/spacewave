@@ -118,6 +118,7 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	sched, relSched, err := plugin_host_default.StartNativeDesktopPluginScheduler(
 		ctx,
 		b.GetBus(),
+		"",
 		b.GetWorldEngineID(),
 		b.GetPluginHostObjectKey(),
 		pluginVolumeID,

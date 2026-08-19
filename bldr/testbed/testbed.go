@@ -224,6 +224,7 @@ func BuildTestbedWithSchedulerConfig(
 
 	// load the plugin scheduler
 	schedConf := plugin_host_scheduler.NewConfig(
+		"",
 		engineID,
 		pluginHostObjKey,
 		vol.GetID(),

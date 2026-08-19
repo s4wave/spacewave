@@ -188,7 +188,7 @@ func TestCloseJoinsStartupWork(t *testing.T) {
 		plugin_host_scheduler.NewController(
 			logger,
 			baseBus,
-			plugin_host_scheduler.NewConfig("", "", "", "", false, false, false),
+			plugin_host_scheduler.NewConfig("", "", "", "", "", false, false, false),
 		),
 	}
 	ctrl := NewController(logger, startupBus, &Config{})

@@ -313,7 +313,15 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 
 // resolveLoadPlugin resolves a LoadPlugin directive.
 func (c *Controller) resolveLoadPlugin(dir bldr_plugin.LoadPlugin) (directive.Resolver, error) {
-	return bldr_plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID(), dir.LoadPluginInstanceKey()), nil
+	instanceKey := dir.LoadPluginInstanceKey()
+	configuredInstanceKey := c.conf.GetInstanceKey()
+	if instanceKey != "" && configuredInstanceKey != "" && instanceKey != configuredInstanceKey {
+		return nil, nil
+	}
+	if instanceKey == "" {
+		instanceKey = configuredInstanceKey
+	}
+	return bldr_plugin_host.NewLoadPluginResolver(c, dir.LoadPluginID(), instanceKey), nil
 }
 
 // HandleDirective asks if the handler can resolve the directive.
@@ -377,7 +385,13 @@ func (c *Controller) WaitPluginClient(ctx context.Context, released func(), plug
 		return nil, nil, err
 	}
 
-	client, ref, err := bldr_plugin.ExPluginLoadWaitClient(ctx, c.bus, pluginID, released)
+	client, ref, err := bldr_plugin.ExPluginLoadInstancedWaitClient(
+		ctx,
+		c.bus,
+		pluginID,
+		c.conf.GetInstanceKey(),
+		released,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -415,7 +429,15 @@ func (c *Controller) buildPluginMux(
 	_ = web_view.SRPCRegisterAccessWebViews(mux, web_view_server.NewAccessWebViewsViaBus(c.le, c.bus))
 
 	// register plugin host service
-	_ = bldr_plugin.SRPCRegisterPluginHost(mux, bldr_plugin_host.NewPluginHostServer(ctx, c.bus, c.le, pluginID, manifest, proxyHostVolInfo))
+	_ = bldr_plugin.SRPCRegisterPluginHost(mux, bldr_plugin_host.NewPluginHostServer(
+		ctx,
+		c.bus,
+		c.le,
+		pluginID,
+		c.conf.GetInstanceKey(),
+		manifest,
+		proxyHostVolInfo,
+	))
 
 	// register plugin dist fs service
 	_ = mux.Register(unixfs_rpc.NewSRPCFSCursorServiceHandler(

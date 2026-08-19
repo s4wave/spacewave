@@ -332,7 +332,7 @@ func TestAttachPluginStatusWatchesSchedulerContainer(t *testing.T) {
 	scheduler := plugin_host_scheduler.NewController(
 		logrus.NewEntry(logrus.New()),
 		nil,
-		plugin_host_scheduler.NewConfig("engine", "devtool", "volume", "test", false, false, false),
+		plugin_host_scheduler.NewConfig("", "engine", "devtool", "volume", "test", false, false, false),
 	)
 	statusCtr := scheduler.GetPluginStatusCtr()
 	writableStatusCtr, ok := statusCtr.(interface {

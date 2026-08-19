@@ -9,6 +9,10 @@ import "github.com/aperturerobotics/util/backoff/backoff.proto";
 // Manages downloading the most appropriate manifest for the available plugin hosts.
 // Manages executing plugins via the plugin hosts.
 message Config {
+  // InstanceKey identifies the isolated plugin instance set resolved by this scheduler.
+  // Empty retains the unscoped Dist behavior.
+  string instance_key = 14;
+
   // EngineId is the world engine id to attach to.
   string engine_id = 1;
   // ObjectKey is the root object to attach to.

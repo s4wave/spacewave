@@ -460,6 +460,7 @@ func newReleaseSchedulerConfig(
 	peerID string,
 ) *plugin_host_scheduler.Config {
 	pluginSchedConf := plugin_host_default.NewSchedulerConfig(
+		"",
 		engineID,
 		pluginHostObjectKey,
 		volID,
