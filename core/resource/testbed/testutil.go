@@ -285,7 +285,7 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 
 	// Register plugin host service for GetPluginInfo etc.
 	manifestSnapshot := &bldr_manifest.ManifestSnapshot{Manifest: manifest}
-	pluginHostSrv := bldr_plugin_host.NewPluginHostServer(ctx, t.Bus, t.Logger, pluginID, manifestSnapshot, nil)
+	pluginHostSrv := bldr_plugin_host.NewPluginHostServer(ctx, t.Bus, t.Logger, pluginID, "", manifestSnapshot, nil)
 	_ = bldr_plugin.SRPCRegisterPluginHost(hostMux, pluginHostSrv)
 
 	// Convert billy FS handles to unixfs handles for ExecutePlugin.

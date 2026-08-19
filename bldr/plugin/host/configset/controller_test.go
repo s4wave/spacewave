@@ -91,7 +91,7 @@ func TestControllerReturnsConfigSetMemberError(t *testing.T) {
 
 	serverExited := make(chan error, 1)
 	server := &observingPluginHostServer{
-		SRPCPluginHostServer: bldr_plugin_host.NewPluginHostServer(ctx, hostBus, le, "spacewave-launcher", nil, nil),
+		SRPCPluginHostServer: bldr_plugin_host.NewPluginHostServer(ctx, hostBus, le, "spacewave-launcher", "", nil, nil),
 		exited:               serverExited,
 	}
 	mux := srpc.NewMux()
@@ -157,7 +157,7 @@ func TestPluginHostExecControllerReportsMemberError(t *testing.T) {
 	mux := srpc.NewMux()
 	if err := bldr_plugin.SRPCRegisterPluginHost(
 		mux,
-		bldr_plugin_host.NewPluginHostServer(ctx, hostBus, le, "spacewave-launcher", nil, nil),
+		bldr_plugin_host.NewPluginHostServer(ctx, hostBus, le, "spacewave-launcher", "", nil, nil),
 	); err != nil {
 		t.Fatal(err)
 	}

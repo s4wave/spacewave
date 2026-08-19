@@ -130,6 +130,7 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	sched, relPluginSched, err := plugin_host_default.StartPluginScheduler(
 		ctx,
 		d.GetBus(),
+		"",
 		d.GetWorldEngineID(),
 		d.GetPluginHostObjectKey(),
 		pluginVolumeID,

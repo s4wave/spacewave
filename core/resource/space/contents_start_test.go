@@ -2,6 +2,7 @@ package resource_space
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -9,7 +10,64 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
+	"github.com/sirupsen/logrus"
 )
+
+func TestSpaceContentsResourceReleaseStopsRuntimeWaiter(t *testing.T) {
+	r := NewSpaceContentsResource(nil, nil, nil, "space-test", "engine-test")
+	runtime := &spaceRuntime{
+		done:     make(chan struct{}),
+		terminal: make(chan error),
+	}
+	runtimeReleased := make(chan struct{})
+	runtime.schedulerRelease = func() { close(runtimeReleased) }
+	r.startRuntime = func(
+		_ context.Context,
+		parent bus.Bus,
+		_ *logrus.Entry,
+		_ *plugin_space.Config,
+	) (*spaceRuntime, error) {
+		runtime.bus = parent
+		return runtime, nil
+	}
+	ref := newTestSpaceContentsRef()
+	r.startController = func(
+		context.Context,
+		bus.Bus,
+		*plugin_space.Config,
+	) (*plugin_space.Controller, directive.Reference, error) {
+		return nil, ref, nil
+	}
+
+	waiterStarted := make(chan struct{})
+	waiterExited := make(chan struct{})
+	r.waitRuntimeTerminal = func(seq uint64, runtime *spaceRuntime, ctrlRef directive.Reference) {
+		close(waiterStarted)
+		r.runRuntimeTerminalWaiter(seq, runtime, ctrlRef)
+		close(waiterExited)
+	}
+
+	r.StartController(&plugin_space.Config{})
+	waitSpaceContentsCtrlRef(t, r, ref)
+	select {
+	case <-waiterStarted:
+	case <-time.After(time.Second):
+		t.Fatal("production runtime terminal waiter did not start")
+	}
+	r.Release()
+
+	waitSpaceContentsRefReleased(t, ref, "resource release")
+	select {
+	case <-runtimeReleased:
+	case <-time.After(time.Second):
+		t.Fatal("runtime was not released")
+	}
+	select {
+	case <-waiterExited:
+	case <-time.After(time.Second):
+		t.Fatal("runtime terminal waiter did not stop")
+	}
+}
 
 func TestSpaceContentsResourceStartControllerReleasesReplacedController(t *testing.T) {
 	r, calls := newTestSpaceContentsStartResource()
@@ -29,6 +87,69 @@ func TestSpaceContentsResourceStartControllerReleasesReplacedController(t *testi
 
 	r.Release()
 	waitSpaceContentsRefReleased(t, second.ref, "second ref resource release")
+}
+
+func TestSpaceContentsResourceReplacementWatchesRuntimeTerminal(t *testing.T) {
+	r := NewSpaceContentsResource(nil, nil, nil, "space-test", "engine-test")
+	defer r.Release()
+
+	runtimes := make(chan *spaceRuntime, 2)
+	runtimeTerminals := make(chan chan error, 2)
+	r.startRuntime = func(
+		_ context.Context,
+		parent bus.Bus,
+		_ *logrus.Entry,
+		_ *plugin_space.Config,
+	) (*spaceRuntime, error) {
+		terminal := make(chan error, 1)
+		runtime := &spaceRuntime{
+			bus:      parent,
+			done:     make(chan struct{}),
+			terminal: terminal,
+		}
+		runtimes <- runtime
+		runtimeTerminals <- terminal
+		return runtime, nil
+	}
+	refs := make(chan *testSpaceContentsRef, 2)
+	r.startController = func(
+		context.Context,
+		bus.Bus,
+		*plugin_space.Config,
+	) (*plugin_space.Controller, directive.Reference, error) {
+		ref := newTestSpaceContentsRef()
+		refs <- ref
+		return nil, ref, nil
+	}
+
+	r.StartController(&plugin_space.Config{})
+	firstRuntime := <-runtimes
+	<-runtimeTerminals
+	firstRef := <-refs
+	waitSpaceContentsCtrlRef(t, r, firstRef)
+
+	r.StartController(&plugin_space.Config{})
+	<-runtimes
+	secondTerminal := <-runtimeTerminals
+	secondRef := <-refs
+	waitSpaceContentsCtrlRef(t, r, secondRef)
+	waitSpaceContentsRefReleased(t, firstRef, "replaced ref")
+	select {
+	case <-firstRuntime.done:
+	case <-time.After(time.Second):
+		t.Fatal("replaced runtime was not released")
+	}
+
+	wantErr := errors.New("replacement runtime failed")
+	secondTerminal <- wantErr
+	waitSpaceContentsRefReleased(t, secondRef, "failed replacement ref")
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	if err := r.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return errors.Is(r.startErr, wantErr) && r.ctrlRef == nil && r.runtime == nil, nil
+	}); err != nil {
+		t.Fatalf("replacement runtime failure was not projected: %v", err)
+	}
 }
 
 func TestSpaceContentsResourceStartControllerReleasesStaleStartup(t *testing.T) {
@@ -107,6 +228,14 @@ func (r *testSpaceContentsRef) Release() {
 func newTestSpaceContentsStartResource() (*SpaceContentsResource, <-chan *testSpaceContentsStartCall) {
 	r := NewSpaceContentsResource(nil, nil, nil, "space-test", "engine-test")
 	calls := make(chan *testSpaceContentsStartCall, 4)
+	r.startRuntime = func(
+		_ context.Context,
+		parent bus.Bus,
+		_ *logrus.Entry,
+		_ *plugin_space.Config,
+	) (*spaceRuntime, error) {
+		return &spaceRuntime{bus: parent, done: make(chan struct{})}, nil
+	}
 	r.startController = func(
 		ctx context.Context,
 		_ bus.Bus,

@@ -58,6 +58,13 @@ export const PlatformSelectionPolicy: MessageType<PlatformSelectionPolicy> =
  */
 export interface Config {
   /**
+   * InstanceKey identifies the isolated plugin instance set resolved by this scheduler.
+   * Empty retains the unscoped Dist behavior.
+   *
+   * @generated from field: string instance_key = 14;
+   */
+  instanceKey?: string
+  /**
    * EngineId is the world engine id to attach to.
    *
    * @generated from field: string engine_id = 1;
@@ -157,6 +164,7 @@ export interface Config {
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'plugin.host.scheduler.Config',
   fields: [
+    { no: 14, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },

@@ -22,6 +22,7 @@ import (
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	objecttype_controller "github.com/s4wave/spacewave/sdk/world/objecttype/controller"
 	"github.com/s4wave/spacewave/testbed"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -111,6 +112,14 @@ func TestSpaceResourceWaitsForDesiredPluginTypeRegistration(t *testing.T) {
 		bucketID: tb.EngineBucketID,
 	}
 	spaceResource := NewSpaceResource(tb.Logger, tb.Bus, body)
+	spaceResource.startContentsRuntime = func(
+		ctx context.Context,
+		parent bus.Bus,
+		le *logrus.Entry,
+		conf *plugin_space.Config,
+	) (*spaceRuntime, error) {
+		return &spaceRuntime{bus: parent, done: make(chan struct{})}, nil
+	}
 	resources := newSpaceRecordingResourceClient(ctx)
 	mountCtx := resource_server.WithResourceClientContext(ctx, resources)
 	if _, err := spaceResource.MountSpaceContents(

@@ -18,6 +18,7 @@ const ConfigID = ControllerID
 // NewConfig constructs a new controller config.
 // Sets the most important fields only.
 func NewConfig(
+	instanceKey,
 	engineID,
 	objectKey,
 	volumeID,
@@ -28,10 +29,11 @@ func NewConfig(
 	noCopyBucketIDs ...string,
 ) *Config {
 	return &Config{
-		EngineId:  engineID,
-		ObjectKey: objectKey,
-		PeerId:    peerID,
-		VolumeId:  volumeID,
+		InstanceKey: instanceKey,
+		EngineId:    engineID,
+		ObjectKey:   objectKey,
+		PeerId:      peerID,
+		VolumeId:    volumeID,
 
 		WatchFetchManifest:   watchFetchManifest,
 		DisableStoreManifest: disableStoreManifest,

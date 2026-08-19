@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
@@ -147,6 +148,28 @@ func runServeCommand(
 		// Each Dist Resource RPC waits for the current spacewave-core generation
 		// after its stream is opened.
 		invoker = newDaemonResourceInvoker(cliBus.GetBus())
+	}
+	var releasePluginHost func()
+	if cliBus.GetPluginHostObjectKey() == "" {
+		pluginRoot := filepath.Join(resolved, "plugin")
+		pluginStateRoot := filepath.Join(pluginRoot, "state")
+		pluginDistRoot := filepath.Join(pluginRoot, "dist")
+		for _, dir := range []string{pluginStateRoot, pluginDistRoot} {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				return err
+			}
+		}
+		_, releasePluginHost, err = plugin_host_default.StartPluginHost(
+			serveCtx,
+			cliBus.GetBus(),
+			pluginStateRoot,
+			pluginDistRoot,
+			"",
+		)
+		if err != nil {
+			return err
+		}
+		defer releasePluginHost()
 	}
 	devicePolicy, err := device_policy.NewPolicyStore(resolved)
 	if err != nil {

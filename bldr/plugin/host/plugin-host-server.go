@@ -22,8 +22,10 @@ type PluginHostServer struct {
 	b bus.Bus
 	// le is the logger
 	le *logrus.Entry
-	// pluginID is the plugin id
+	// pluginID is the plugin id.
 	pluginID string
+	// instanceKey is the plugin instance key.
+	instanceKey string
 	// manifestSnapshot is the plugin manifestSnapshot snapshot
 	manifestSnapshot *bldr_manifest.ManifestSnapshot
 	// hostVolumeInfo is the host volume information
@@ -40,6 +42,7 @@ func NewPluginHostServer(
 	b bus.Bus,
 	le *logrus.Entry,
 	pluginID string,
+	instanceKey string,
 	manifest *bldr_manifest.ManifestSnapshot,
 	hostVolumeInfo *volume.VolumeInfo,
 ) *PluginHostServer {
@@ -47,6 +50,7 @@ func NewPluginHostServer(
 		b:                b,
 		le:               le,
 		pluginID:         pluginID,
+		instanceKey:      instanceKey,
 		manifestSnapshot: manifest,
 		hostVolumeInfo:   hostVolumeInfo,
 	}
@@ -84,9 +88,28 @@ func (s *PluginHostServer) LoadPlugin(
 	}
 
 	pluginID := req.GetPluginId()
+	instanceKey, err := s.resolveInstanceKey(req.GetInstanceKey())
+	if err != nil {
+		return err
+	}
+	if instanceKey == req.GetInstanceKey() {
+		s.le.Debugf("plugin %q is loading plugin %q via rpc request", s.pluginID, pluginID)
+		return HandleLoadPluginRpc(s.b, req, strm)
+	}
+	req = req.CloneVT()
+	req.InstanceKey = instanceKey
 	s.le.Debugf("plugin %q is loading plugin %q via rpc request", s.pluginID, pluginID)
-
 	return HandleLoadPluginRpc(s.b, req, strm)
+}
+
+func (s *PluginHostServer) resolveInstanceKey(instanceKey string) (string, error) {
+	if instanceKey == "" {
+		return s.instanceKey, nil
+	}
+	if s.instanceKey != "" && instanceKey != s.instanceKey {
+		return "", errors.Errorf("plugin instance %q cannot access foreign instance %q", s.instanceKey, instanceKey)
+	}
+	return instanceKey, nil
 }
 
 // PluginRpc forwards an RPC call to a remote plugin.
@@ -102,6 +125,10 @@ func (s *PluginHostServer) PluginRpc(strm bldr_plugin.SRPCPluginHost_PluginRpcSt
 			}
 			if pluginID == s.pluginID && instanceKey == "" {
 				return nil, "", nil, errors.Errorf("plugin cannot send rpc to itself: %s", pluginID)
+			}
+			instanceKey, err := s.resolveInstanceKey(instanceKey)
+			if err != nil {
+				return nil, "", nil, err
 			}
 			client, clientRef, err := bldr_plugin.ExPluginLoadInstancedWaitClient(ctx, s.b, pluginID, instanceKey, nil)
 			if err != nil {

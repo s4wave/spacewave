@@ -302,7 +302,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/scheduler": {
-      "hash": "95d5e1c13103d5176131cb2c612c493b33af46154228fb8380d9117e5e78dc75",
+      "hash": "4f860b3ff6952ec473200c44fda8ffe2da22995ff2a9e7ad196c97fb2157b838",
       "generatedFiles": [
         "bldr/plugin/host/scheduler/config.pb.go",
         "bldr/plugin/host/scheduler/config.pb.ts"

@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	provider "github.com/s4wave/spacewave/core/provider"
@@ -27,12 +28,13 @@ import (
 
 // SpaceResource wraps a Space for resource access.
 type SpaceResource struct {
-	le            *logrus.Entry
-	b             bus.Bus
-	mux           srpc.Invoker
-	space         space.SpaceSharedObjectBody
-	sessionPeerID string
-	hostPluginID  string
+	le                   *logrus.Entry
+	b                    bus.Bus
+	mux                  srpc.Invoker
+	space                space.SpaceSharedObjectBody
+	sessionPeerID        string
+	hostPluginID         string
+	startContentsRuntime spaceRuntimeStarter
 }
 
 // NewSpaceResource creates a new SpaceResource.
@@ -332,6 +334,9 @@ func (r *SpaceResource) MountSpaceContents(
 
 	// Create the contents sub-resource.
 	contentsResource := NewSpaceContentsResource(r.le, r.b, r.space.GetWorldEngine(), spaceID, engineID)
+	if r.startContentsRuntime != nil {
+		contentsResource.startRuntime = r.startContentsRuntime
+	}
 
 	// Resolve the host plugin id from the request context. The Space resource
 	// runs inside a plugin host; cloud block store forwarding registers under
@@ -351,6 +356,8 @@ func (r *SpaceResource) MountSpaceContents(
 	// before waiting for that startup path.
 	conf := &plugin_space.Config{
 		SpaceId:       spaceID,
+		VolumeId:      bldr_plugin.PluginVolumeID,
+		ObjectStoreId: "platform-account",
 		EngineId:      engineID,
 		SessionPeerId: r.sessionPeerID,
 		WorldBucketId: worldBucketID,

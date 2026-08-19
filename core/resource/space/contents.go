@@ -4,12 +4,17 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
+	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -18,6 +23,9 @@ import (
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
+	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
+	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	plugin_host_scheduler "github.com/s4wave/spacewave/bldr/plugin/host/scheduler"
 	process_binding "github.com/s4wave/spacewave/core/plugin/process"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
@@ -37,6 +45,58 @@ type spaceContentsControllerStarter func(
 	conf *plugin_space.Config,
 ) (*plugin_space.Controller, directive.Reference, error)
 
+type spaceRuntime struct {
+	bus              bus.Bus
+	scheduler        *plugin_host_scheduler.Controller
+	schedulerRelease func()
+	mirrorRelease    func()
+	hostWatchRelease func()
+	bridgeRef        func()
+	cancel           context.CancelFunc
+	done             chan struct{}
+	terminal         <-chan error
+	releaseOnce      sync.Once
+}
+
+func (r *spaceRuntime) Release() {
+	if r == nil {
+		return
+	}
+	r.releaseOnce.Do(func() {
+		if r.schedulerRelease != nil {
+			r.schedulerRelease()
+		}
+		if r.mirrorRelease != nil {
+			r.mirrorRelease()
+		}
+		if r.hostWatchRelease != nil {
+			r.hostWatchRelease()
+		}
+		if r.bridgeRef != nil {
+			r.bridgeRef()
+		}
+		if r.cancel != nil {
+			r.cancel()
+		}
+		if r.done != nil {
+			close(r.done)
+		}
+	})
+}
+
+type spaceRuntimeStarter func(
+	ctx context.Context,
+	parent bus.Bus,
+	le *logrus.Entry,
+	conf *plugin_space.Config,
+) (*spaceRuntime, error)
+
+type spaceRuntimeTerminalWaiter func(
+	seq uint64,
+	runtime *spaceRuntime,
+	ctrlRef directive.Reference,
+)
+
 // SpaceContentsResource provides streaming plugin status for a mounted space.
 type SpaceContentsResource struct {
 	le        *logrus.Entry
@@ -55,6 +115,10 @@ type SpaceContentsResource struct {
 	// ctrlRef holds the plugin/space controller reference.
 	// Released when the resource is cleaned up.
 	ctrlRef directive.Reference
+	// runtime retains the isolated scheduler and child bus for this Space.
+	runtime *spaceRuntime
+	// startErr is the terminal error from the current runtime startup.
+	startErr error
 	// ctrl wakes the running plugin/space controller after content changes.
 	ctrl *plugin_space.Controller
 	// bcast is broadcast when content state changes so WatchState re-sends. It
@@ -77,6 +141,9 @@ type SpaceContentsResource struct {
 	// lookupManifest overrides manifest lookup in tests.
 	lookupManifest  func(context.Context, world.WorldState, string) (*bldr_manifest.Manifest, *bucket.ObjectRef, error)
 	startController spaceContentsControllerStarter
+	startRuntime    spaceRuntimeStarter
+	// waitRuntimeTerminal runs the current runtime's terminal lifecycle waiter.
+	waitRuntimeTerminal spaceRuntimeTerminalWaiter
 }
 
 // NewSpaceContentsResource creates a new SpaceContentsResource.
@@ -92,7 +159,9 @@ func NewSpaceContentsResource(le *logrus.Entry, b bus.Bus, engine world.Engine, 
 		ctxCancel:       cancel,
 		start:           newSpaceContentsStartRoutine(le),
 		startController: startSpaceContentsController,
+		startRuntime:    startSpaceRuntime,
 	}
+	r.waitRuntimeTerminal = r.runRuntimeTerminalWaiter
 	r.start.SetContext(ctx, false)
 	mux := srpc.NewMux()
 	_ = s4wave_space.SRPCRegisterSpaceContentsResourceService(mux, r)
@@ -105,6 +174,7 @@ func (r *SpaceContentsResource) Release() {
 	var start *routine.RoutineContainer
 	var ref directive.Reference
 	var cancel context.CancelFunc
+	var runtime *spaceRuntime
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		r.released = true
 		r.startSeq++
@@ -115,16 +185,21 @@ func (r *SpaceContentsResource) Release() {
 		ref = r.ctrlRef
 		r.ctrlRef = nil
 		r.ctrl = nil
+		runtime = r.runtime
+		r.runtime = nil
 		broadcast()
 	})
-	if cancel != nil {
-		cancel()
-	}
 	if start != nil {
 		start.ClearContext()
 	}
 	if ref != nil {
 		ref.Release()
+	}
+	if runtime != nil {
+		runtime.Release()
+	}
+	if cancel != nil {
+		cancel()
 	}
 }
 
@@ -173,6 +248,7 @@ func (r *SpaceContentsResource) StartController(conf *plugin_space.Config) {
 		r.ensureStartOwnerLocked()
 		r.startSeq++
 		seq = r.startSeq
+		r.startErr = nil
 		start = r.start
 		broadcast()
 	})
@@ -195,32 +271,103 @@ func (r *SpaceContentsResource) ensureStartOwnerLocked() {
 	if r.startController == nil {
 		r.startController = startSpaceContentsController
 	}
+	if r.startRuntime == nil {
+		r.startRuntime = startSpaceRuntime
+	}
+	if r.waitRuntimeTerminal == nil {
+		r.waitRuntimeTerminal = r.runRuntimeTerminalWaiter
+	}
 }
 
 func (r *SpaceContentsResource) startControllerRoutine(ctx context.Context, seq uint64, conf *plugin_space.Config) error {
-	ctrl, ctrlRef, err := r.startController(ctx, r.b, conf)
+	var runtime *spaceRuntime
+	var ctrl *plugin_space.Controller
+	var ctrlRef directive.Reference
+	var err error
+	if r.startRuntime != nil {
+		runtime, err = r.startRuntime(ctx, r.b, r.le, conf)
+		if err == nil {
+			ctrl, ctrlRef, err = r.startController(ctx, runtime.bus, conf)
+		}
+	} else {
+		ctrl, ctrlRef, err = r.startController(ctx, r.b, conf)
+	}
 	if err != nil {
+		if runtime != nil {
+			runtime.Release()
+		}
 		if ctx.Err() == nil && r.le != nil {
 			r.le.WithError(err).Warn("failed to start Space contents controller")
 		}
+		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if !r.released && r.startSeq == seq && ctx.Err() == nil {
+				r.startErr = err
+				broadcast()
+			}
+		})
 		return nil
 	}
 
+	var installed bool
 	var release directive.Reference
+	var releaseRuntime *spaceRuntime
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		if r.released || r.startSeq != seq || ctx.Err() != nil {
 			release = ctrlRef
+			releaseRuntime = runtime
 		} else {
 			release = r.ctrlRef
+			releaseRuntime = r.runtime
 			r.ctrl = ctrl
 			r.ctrlRef = ctrlRef
+			r.runtime = runtime
+			r.startErr = nil
+			installed = true
 		}
 		broadcast()
 	})
 	if release != nil {
 		release.Release()
 	}
+	if releaseRuntime != nil {
+		releaseRuntime.Release()
+	}
+	if runtime != nil && installed {
+		go r.waitRuntimeTerminal(seq, runtime, ctrlRef)
+	}
 	return nil
+}
+
+func (r *SpaceContentsResource) runRuntimeTerminalWaiter(
+	seq uint64,
+	runtime *spaceRuntime,
+	ctrlRef directive.Reference,
+) {
+	var err error
+	var ok bool
+	select {
+	case <-runtime.done:
+		return
+	case err, ok = <-runtime.terminal:
+	}
+	if !ok || err == nil {
+		return
+	}
+	var release bool
+	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if !r.released && r.startSeq == seq && r.runtime == runtime {
+			r.startErr = err
+			r.ctrl = nil
+			r.ctrlRef = nil
+			r.runtime = nil
+			release = true
+			broadcast()
+		}
+	})
+	if release {
+		ctrlRef.Release()
+		runtime.Release()
+	}
 }
 
 func newSpaceContentsStartRoutine(le *logrus.Entry) *routine.RoutineContainer {
@@ -228,6 +375,143 @@ func newSpaceContentsStartRoutine(le *logrus.Entry) *routine.RoutineContainer {
 		return routine.NewRoutineContainer()
 	}
 	return routine.NewRoutineContainerWithLogger(le.WithField("routine", "space-contents-start"))
+}
+
+func startSpaceRuntime(
+	ctx context.Context,
+	parent bus.Bus,
+	le *logrus.Entry,
+	conf *plugin_space.Config,
+) (*spaceRuntime, error) {
+	if le == nil {
+		le = logrus.NewEntry(logrus.New())
+	}
+	childCtx, childCancel := context.WithCancel(context.WithoutCancel(ctx))
+	child, resolver, err := controllerbus_core.NewCoreBus(childCtx, le)
+	if err != nil {
+		childCancel()
+		return nil, err
+	}
+	resolver.AddFactory(plugin_host_scheduler.NewFactory(child))
+	resolver.AddFactory(plugin_space.NewFactory(child))
+	bridgeCtrl := bus_bridge.NewBusBridge(parent, spaceRuntimeBridgeFilter)
+	bridgeRef, err := child.AddController(childCtx, bridgeCtrl, nil)
+	if err != nil {
+		childCancel()
+		return nil, err
+	}
+
+	mirror := newSpacePluginHostMirror()
+	mirrorRelease, err := child.AddController(childCtx, mirror, nil)
+	if err != nil {
+		bridgeRef()
+		childCancel()
+		return nil, err
+	}
+	hostReady := make(chan error, 1)
+	terminal := make(chan error, 1)
+	var initialSnapshot atomic.Bool
+	reportTerminal := func(err error) {
+		select {
+		case terminal <- err:
+			childCancel()
+		default:
+		}
+	}
+	_, hostWatchRelease, err := bus.ExecCollectValuesWatch(
+		childCtx,
+		parent,
+		plugin_host.NewLookupPluginHost(nil),
+		true,
+		func(resErr []error, hosts []plugin_host.PluginHost) error {
+			if len(resErr) != 0 {
+				reportTerminal(fmt.Errorf("watch daemon plugin hosts: %w", resErr[0]))
+				if !initialSnapshot.Load() {
+					hostReady <- resErr[0]
+				}
+				return nil
+			}
+			if !initialSnapshot.CompareAndSwap(false, true) {
+				reportTerminal(errors.New("daemon plugin host set changed"))
+				return nil
+			}
+			mirror.SetHosts(hosts)
+			hostReady <- nil
+			return nil
+		},
+		func(err error) {
+			if initialSnapshot.Load() {
+				reportTerminal(fmt.Errorf("watch daemon plugin hosts: %w", err))
+				return
+			}
+			hostReady <- err
+		},
+	)
+	if err != nil {
+		mirrorRelease()
+		bridgeRef()
+		childCancel()
+		return nil, err
+	}
+	select {
+	case err = <-hostReady:
+	case <-ctx.Done():
+		err = context.Canceled
+	}
+	if err != nil {
+		hostWatchRelease()
+		mirrorRelease()
+		bridgeRef()
+		childCancel()
+		return nil, err
+	}
+
+	scheduler, schedulerRelease, err := plugin_host_default.StartNativeDesktopPluginScheduler(
+		childCtx,
+		child,
+		conf.GetSpaceId(),
+		conf.GetEngineId(),
+		bldr_plugin.PluginVolumeID,
+		bldr_plugin.PluginVolumeID,
+		conf.GetSessionPeerId(),
+		true,
+		true,
+		true,
+		[]string{},
+	)
+	if err != nil {
+		hostWatchRelease()
+		mirrorRelease()
+		bridgeRef()
+		childCancel()
+		return nil, err
+	}
+	return &spaceRuntime{
+		bus:              child,
+		scheduler:        scheduler,
+		schedulerRelease: schedulerRelease,
+		mirrorRelease:    mirrorRelease,
+		hostWatchRelease: hostWatchRelease,
+		bridgeRef:        bridgeRef,
+		cancel:           childCancel,
+		done:             make(chan struct{}),
+		terminal:         terminal,
+	}, nil
+}
+
+func spaceRuntimeBridgeFilter(inst directive.Instance) (bool, error) {
+	return spaceRuntimeBridgeDirective(inst.GetDirective()), nil
+}
+
+func spaceRuntimeBridgeDirective(dir directive.Directive) bool {
+	switch dir.(type) {
+	case world.LookupWorldEngine, world.LookupWorldOp,
+		volume.LookupVolume, volume.BuildObjectStoreAPI,
+		plugin_host_root.LookupRoot:
+		return true
+	default:
+		return false
+	}
 }
 
 func startSpaceContentsController(
@@ -306,11 +590,24 @@ func (r *SpaceContentsResource) WatchState(
 				loadedIDs[pid] = struct{}{}
 			}
 		}
+		var startErr error
+		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			startErr = r.startErr
+		})
 		schedulerStatuses := map[string]*bldr_plugin.PluginStatus{}
-		if scheduler := plugin_host_scheduler.FindControllerOnBus(r.b); scheduler != nil {
+		var scheduler *plugin_host_scheduler.Controller
+		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			if r.runtime != nil {
+				scheduler = r.runtime.scheduler
+			}
+		})
+		if scheduler == nil {
+			scheduler = plugin_host_scheduler.FindControllerOnBus(r.b)
+		}
+		if scheduler != nil {
 			statusCtr := scheduler.GetPluginStatusCtr()
 			statusSnapshot := statusCtr.GetValue()
-			schedulerStatuses = spacePluginStatusesByID(statusSnapshot)
+			schedulerStatuses = spacePluginStatusesByID(statusSnapshot, r.spaceID)
 			waitStatusChange = func(waitCtx context.Context) error {
 				_, err := statusCtr.WaitValueChange(waitCtx, statusSnapshot, nil)
 				return err
@@ -318,16 +615,18 @@ func (r *SpaceContentsResource) WatchState(
 		}
 		for _, pid := range pluginIDs {
 			_, loaded := loadedIDs[pid]
-			plugins = append(
-				plugins,
-				buildSpacePluginStatus(
-					pid,
-					descriptions[pid],
-					loaded,
-					ctrl != nil,
-					schedulerStatuses[pid],
-				),
+			status := buildSpacePluginStatus(
+				pid,
+				descriptions[pid],
+				loaded,
+				ctrl != nil,
+				schedulerStatuses[pid],
 			)
+			if startErr != nil {
+				status.State = s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED
+				status.Detail = startErr.Error()
+			}
+			plugins = append(plugins, status)
 		}
 		processBindings, err := r.listProcessBindingInfos(ctx)
 		if err != nil {
@@ -413,13 +712,14 @@ func waitSpaceContentsSources(
 
 func spacePluginStatusesByID(
 	snapshot *plugin_host_scheduler.PluginStatusSnapshot,
+	instanceKey string,
 ) map[string]*bldr_plugin.PluginStatus {
 	statuses := map[string]*bldr_plugin.PluginStatus{}
 	if snapshot == nil {
 		return statuses
 	}
 	for _, plugin := range snapshot.Plugins {
-		if plugin == nil || plugin.GetInstanceKey() != "" {
+		if plugin == nil || plugin.GetInstanceKey() != instanceKey {
 			continue
 		}
 		statuses[plugin.GetPluginId()] = plugin

@@ -29,6 +29,7 @@ func TestWaitControllerOnBusWaitsForDelayedScheduler(t *testing.T) {
 		t.Fatal(err)
 	}
 	scheduler := NewController(logger, b, NewConfig(
+		"",
 		"test-engine",
 		"test-plugin-host",
 		"test-volume",
@@ -395,5 +396,31 @@ func testObjectRef(t *testing.T, seed string) *bucket.ObjectRef {
 	return &bucket.ObjectRef{
 		BucketId: "bucket-" + seed,
 		RootRef:  ref,
+	}
+}
+
+func TestResolveLoadPluginScopesUnqualifiedDirectiveToScheduler(t *testing.T) {
+	conf := NewConfig("space-a", "engine", "plugin-host", "volume", "peer", true, false, false)
+	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, conf)
+
+	resolver, err := ctrl.resolveLoadPlugin(bldr_plugin.NewLoadPlugin("notes"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolver == nil {
+		t.Fatal("unqualified directive did not resolve")
+	}
+}
+
+func TestResolveLoadPluginRejectsForeignSchedulerInstance(t *testing.T) {
+	conf := NewConfig("space-a", "engine", "plugin-host", "volume", "peer", true, false, false)
+	ctrl := NewController(logrus.NewEntry(logrus.New()), nil, conf)
+
+	resolver, err := ctrl.resolveLoadPlugin(bldr_plugin.NewLoadPluginInstanced("notes", "space-b"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolver != nil {
+		t.Fatalf("foreign instance resolver = %T, want nil", resolver)
 	}
 }
