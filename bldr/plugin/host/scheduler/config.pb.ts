@@ -58,13 +58,6 @@ export const PlatformSelectionPolicy: MessageType<PlatformSelectionPolicy> =
  */
 export interface Config {
   /**
-   * InstanceKey identifies the isolated plugin instance set resolved by this scheduler.
-   * Empty retains the unscoped Dist behavior.
-   *
-   * @generated from field: string instance_key = 14;
-   */
-  instanceKey?: string
-  /**
    * EngineId is the world engine id to attach to.
    *
    * @generated from field: string engine_id = 1;
@@ -106,21 +99,6 @@ export interface Config {
    */
   disableStoreManifest?: boolean
   /**
-   * DisableCopyManifest disables copying manifests to the plugin host world bucket.
-   * This is used if the manifest bucket is always accessible and locally cached.
-   * If unset, we will copy manifests to the same bucket as the plugin host world.
-   *
-   * @generated from field: bool disable_copy_manifest = 10;
-   */
-  disableCopyManifest?: boolean
-  /**
-   * NoCopyBucketIds lists source buckets that remain authoritative without a
-   * full-DAG copy.
-   *
-   * @generated from field: repeated string no_copy_bucket_ids = 13;
-   */
-  noCopyBucketIds?: string[]
-  /**
    * FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
    * If zero, uses no limit to the number of concurrent fetches.
    *
@@ -146,6 +124,14 @@ export interface Config {
    */
   execBackoff?: Backoff
   /**
+   * DisableCopyManifest disables copying manifests to the plugin host world bucket.
+   * This is used if the manifest bucket is always accessible and locally cached.
+   * If unset, we will copy manifests to the same bucket as the plugin host world.
+   *
+   * @generated from field: bool disable_copy_manifest = 10;
+   */
+  disableCopyManifest?: boolean
+  /**
    * Verbose enables verbose logging for world ops (slower).
    *
    * @generated from field: bool verbose = 11;
@@ -159,12 +145,25 @@ export interface Config {
    * @generated from field: repeated plugin.host.scheduler.PlatformSelectionPolicy platform_selection_policies = 12;
    */
   platformSelectionPolicies?: PlatformSelectionPolicy[]
+  /**
+   * NoCopyBucketIds lists source buckets that remain authoritative without a
+   * full-DAG copy.
+   *
+   * @generated from field: repeated string no_copy_bucket_ids = 13;
+   */
+  noCopyBucketIds?: string[]
+  /**
+   * InstanceKey identifies the isolated plugin instance set resolved by this scheduler.
+   * Empty retains the unscoped Dist behavior.
+   *
+   * @generated from field: string instance_key = 14;
+   */
+  instanceKey?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
   typeName: 'plugin.host.scheduler.Config',
   fields: [
-    { no: 14, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
@@ -176,22 +175,15 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       kind: 'scalar',
       T: ScalarType.BOOL,
     },
+    { no: 7, name: 'fetch_concurrency', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 8, name: 'fetch_backoff', kind: 'message', T: () => Backoff },
+    { no: 9, name: 'exec_backoff', kind: 'message', T: () => Backoff },
     {
       no: 10,
       name: 'disable_copy_manifest',
       kind: 'scalar',
       T: ScalarType.BOOL,
     },
-    {
-      no: 13,
-      name: 'no_copy_bucket_ids',
-      kind: 'scalar',
-      T: ScalarType.STRING,
-      repeated: true,
-    },
-    { no: 7, name: 'fetch_concurrency', kind: 'scalar', T: ScalarType.UINT32 },
-    { no: 8, name: 'fetch_backoff', kind: 'message', T: () => Backoff },
-    { no: 9, name: 'exec_backoff', kind: 'message', T: () => Backoff },
     { no: 11, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
     {
       no: 12,
@@ -200,6 +192,14 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       T: () => PlatformSelectionPolicy,
       repeated: true,
     },
+    {
+      no: 13,
+      name: 'no_copy_bucket_ids',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    { no: 14, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })
