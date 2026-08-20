@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -41,9 +42,9 @@ func TestSpaceContentsResourceReleaseStopsRuntimeWaiter(t *testing.T) {
 
 	waiterStarted := make(chan struct{})
 	waiterExited := make(chan struct{})
-	r.waitRuntimeTerminal = func(seq uint64, runtime *spaceRuntime, ctrlRef directive.Reference) {
+	r.waitRuntimeTerminal = func(seq uint64, runtime *spaceRuntime, ctrlRef directive.Reference, conf *plugin_space.Config) {
 		close(waiterStarted)
-		r.runRuntimeTerminalWaiter(seq, runtime, ctrlRef)
+		r.runRuntimeTerminalWaiter(seq, runtime, ctrlRef, conf)
 		close(waiterExited)
 	}
 
@@ -67,6 +68,130 @@ func TestSpaceContentsResourceReleaseStopsRuntimeWaiter(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("runtime terminal waiter did not stop")
 	}
+}
+
+func TestSpaceContentsResourceReleasePreventsHostRuntimeRestart(t *testing.T) {
+	r := NewSpaceContentsResource(nil, nil, nil, "space-test", "engine-test")
+	terminal := make(chan error, 1)
+	runtime := &spaceRuntime{terminal: terminal}
+	startCalls := make(chan *plugin_space.Config, 2)
+	ref := newTestSpaceContentsRef()
+	r.startRuntime = func(
+		_ context.Context,
+		parent bus.Bus,
+		_ *logrus.Entry,
+		conf *plugin_space.Config,
+	) (*spaceRuntime, error) {
+		startCalls <- conf
+		runtime.bus = parent
+		return runtime, nil
+	}
+	r.startController = func(
+		context.Context,
+		bus.Bus,
+		*plugin_space.Config,
+	) (*plugin_space.Controller, directive.Reference, error) {
+		return nil, ref, nil
+	}
+	waitTerminal := make(chan struct{})
+	waiterDone := make(chan struct{})
+	r.waitRuntimeTerminal = func(
+		seq uint64,
+		runtime *spaceRuntime,
+		ctrlRef directive.Reference,
+		conf *plugin_space.Config,
+	) {
+		<-waitTerminal
+		r.runRuntimeTerminalWaiter(seq, runtime, ctrlRef, conf)
+		close(waiterDone)
+	}
+
+	conf := &plugin_space.Config{SpaceId: "space-test"}
+	r.StartController(conf)
+	if got := <-startCalls; got == conf || got.GetSpaceId() != "space-test" {
+		t.Fatalf("startup config = %#v, want owned clone of %#v", got, conf)
+	}
+	waitSpaceContentsCtrlRef(t, r, ref)
+
+	terminal <- errSpaceRuntimePluginHostSetChanged
+	r.Release()
+	close(waitTerminal)
+	select {
+	case <-waiterDone:
+	case <-t.Context().Done():
+		t.Fatal("host-change terminal waiter did not exit after release")
+	}
+	waitSpaceContentsRefReleased(t, ref, "resource release")
+	assertSpaceContentsCtrlRef(t, r, nil)
+	select {
+	case extra := <-startCalls:
+		t.Fatalf("Release allowed replacement startup: %#v", extra)
+	case <-time.After(20 * time.Millisecond):
+	}
+}
+
+func TestSpaceContentsResourceHostRestartCannotSupersedeNewerStart(t *testing.T) {
+	r := NewSpaceContentsResource(nil, nil, nil, "space-test", "engine-test")
+	defer r.Release()
+
+	terminal := make(chan error, 1)
+	initialRuntime := &spaceRuntime{terminal: terminal}
+	startCalls := make(chan *plugin_space.Config, 3)
+	var startCount atomic.Int32
+	r.startRuntime = func(
+		_ context.Context,
+		parent bus.Bus,
+		_ *logrus.Entry,
+		conf *plugin_space.Config,
+	) (*spaceRuntime, error) {
+		startCalls <- conf
+		if startCount.Add(1) == 1 {
+			initialRuntime.bus = parent
+			return initialRuntime, nil
+		}
+		return &spaceRuntime{bus: parent, done: make(chan struct{}), terminal: make(chan error)}, nil
+	}
+
+	initialRef := newBlockingSpaceContentsRef()
+	hostRestartRef := newTestSpaceContentsRef()
+	newRef := newTestSpaceContentsRef()
+	var controllerCount atomic.Int32
+	r.startController = func(
+		_ context.Context,
+		_ bus.Bus,
+		conf *plugin_space.Config,
+	) (*plugin_space.Controller, directive.Reference, error) {
+		if controllerCount.Add(1) == 1 {
+			return nil, initialRef, nil
+		}
+		if conf.GetSpaceId() == "new-space" {
+			return nil, newRef, nil
+		}
+		return nil, hostRestartRef, nil
+	}
+
+	r.StartController(&plugin_space.Config{SpaceId: "old-space"})
+	if got := recvSpaceContentsStartConfig(t, startCalls, "initial start"); got.GetSpaceId() != "old-space" {
+		t.Fatalf("initial config = %q, want old-space", got.GetSpaceId())
+	}
+	waitSpaceContentsCtrlRef(t, r, initialRef)
+
+	terminal <- errSpaceRuntimePluginHostSetChanged
+	waitBlockingSpaceContentsRefReleaseStarted(t, initialRef)
+	if got := recvSpaceContentsStartConfig(t, startCalls, "host restart"); got.GetSpaceId() != "old-space" {
+		t.Fatalf("host restart config = %q, want old-space", got.GetSpaceId())
+	}
+
+	r.StartController(&plugin_space.Config{SpaceId: "new-space"})
+	if got := recvSpaceContentsStartConfig(t, startCalls, "newer start"); got.GetSpaceId() != "new-space" {
+		t.Fatalf("newer start config = %q, want new-space", got.GetSpaceId())
+	}
+	waitSpaceContentsCtrlRef(t, r, newRef)
+	waitSpaceContentsRefReleased(t, hostRestartRef, "host restart replacement")
+
+	close(initialRef.unblock)
+	waitSpaceContentsRefReleased(t, initialRef.testSpaceContentsRef, "initial controller release")
+	assertSpaceContentsCtrlRef(t, r, newRef)
 }
 
 func TestSpaceContentsResourceStartControllerReleasesReplacedController(t *testing.T) {
@@ -215,6 +340,28 @@ type testSpaceContentsRef struct {
 	released chan struct{}
 }
 
+type blockingSpaceContentsRef struct {
+	*testSpaceContentsRef
+	releaseStarted chan struct{}
+	unblock        chan struct{}
+}
+
+func newBlockingSpaceContentsRef() *blockingSpaceContentsRef {
+	return &blockingSpaceContentsRef{
+		testSpaceContentsRef: newTestSpaceContentsRef(),
+		releaseStarted:       make(chan struct{}),
+		unblock:              make(chan struct{}),
+	}
+}
+
+func (r *blockingSpaceContentsRef) Release() {
+	r.once.Do(func() {
+		close(r.releaseStarted)
+		<-r.unblock
+		close(r.released)
+	})
+}
+
 func newTestSpaceContentsRef() *testSpaceContentsRef {
 	return &testSpaceContentsRef{released: make(chan struct{})}
 }
@@ -297,6 +444,30 @@ func waitSpaceContentsRefReleased(t *testing.T, ref *testSpaceContentsRef, name 
 	case <-ref.released:
 	case <-time.After(time.Second):
 		t.Fatalf("timed out waiting for %s release", name)
+	}
+}
+
+func recvSpaceContentsStartConfig(
+	t *testing.T,
+	calls <-chan *plugin_space.Config,
+	name string,
+) *plugin_space.Config {
+	t.Helper()
+	select {
+	case conf := <-calls:
+		return conf
+	case <-time.After(time.Second):
+		t.Fatalf("timed out waiting for %s", name)
+		return nil
+	}
+}
+
+func waitBlockingSpaceContentsRefReleaseStarted(t *testing.T, ref *blockingSpaceContentsRef) {
+	t.Helper()
+	select {
+	case <-ref.releaseStarted:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for initial controller release")
 	}
 }
 

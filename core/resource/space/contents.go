@@ -124,7 +124,10 @@ type spaceRuntimeTerminalWaiter func(
 	seq uint64,
 	runtime *spaceRuntime,
 	ctrlRef directive.Reference,
+	conf *plugin_space.Config,
 )
+
+var errSpaceRuntimePluginHostSetChanged = errors.New("daemon plugin host set changed")
 
 // SpaceContentsResource provides streaming plugin status for a mounted space.
 type SpaceContentsResource struct {
@@ -270,25 +273,28 @@ func (r *SpaceContentsResource) GetMux() srpc.Invoker {
 
 // StartController starts the plugin/space controller behind this resource.
 func (r *SpaceContentsResource) StartController(conf *plugin_space.Config) {
-	var seq uint64
-	var start *routine.RoutineContainer
+	conf = conf.CloneVT()
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if r.released {
-			return
-		}
-		r.ensureStartOwnerLocked()
-		r.startSeq++
-		seq = r.startSeq
-		r.startErr = nil
-		start = r.start
-		broadcast()
+		r.startControllerLocked(conf, broadcast)
 	})
-	if start == nil {
+}
+
+// startControllerLocked reserves the next controller start while bcast is held.
+func (r *SpaceContentsResource) startControllerLocked(
+	conf *plugin_space.Config,
+	broadcast func(),
+) {
+	if r.released {
 		return
 	}
-	start.SetRoutine(func(ctx context.Context) error {
+	r.ensureStartOwnerLocked()
+	r.startSeq++
+	seq := r.startSeq
+	r.startErr = nil
+	r.start.SetRoutine(func(ctx context.Context) error {
 		return r.startControllerRoutine(ctx, seq, conf)
 	})
+	broadcast()
 }
 
 func (r *SpaceContentsResource) ensureStartOwnerLocked() {
@@ -364,7 +370,7 @@ func (r *SpaceContentsResource) startControllerRoutine(ctx context.Context, seq 
 		releaseRuntime.Release()
 	}
 	if runtime != nil && installed {
-		go r.waitRuntimeTerminal(seq, runtime, ctrlRef)
+		go r.waitRuntimeTerminal(seq, runtime, ctrlRef, conf)
 	}
 	return nil
 }
@@ -373,6 +379,7 @@ func (r *SpaceContentsResource) runRuntimeTerminalWaiter(
 	seq uint64,
 	runtime *spaceRuntime,
 	ctrlRef directive.Reference,
+	conf *plugin_space.Config,
 ) {
 	var err error
 	var ok bool
@@ -386,14 +393,19 @@ func (r *SpaceContentsResource) runRuntimeTerminalWaiter(
 	}
 	var release bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if !r.released && r.startSeq == seq && r.runtime == runtime {
-			r.startErr = err
-			r.ctrl = nil
-			r.ctrlRef = nil
-			r.runtime = nil
-			release = true
-			broadcast()
+		if r.released || r.startSeq != seq || r.runtime != runtime {
+			return
 		}
+		r.ctrl = nil
+		r.ctrlRef = nil
+		r.runtime = nil
+		release = true
+		if errors.Is(err, errSpaceRuntimePluginHostSetChanged) {
+			r.startControllerLocked(conf.CloneVT(), broadcast)
+			return
+		}
+		r.startErr = err
+		broadcast()
 	})
 	if release {
 		ctrlRef.Release()
@@ -463,7 +475,7 @@ func startSpaceRuntime(
 				return nil
 			}
 			if !initialSnapshot.CompareAndSwap(false, true) {
-				reportTerminal(errors.New("daemon plugin host set changed"))
+				reportTerminal(errSpaceRuntimePluginHostSetChanged)
 				return nil
 			}
 			mirror.SetHosts(hosts)
