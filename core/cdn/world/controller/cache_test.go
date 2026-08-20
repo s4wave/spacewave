@@ -557,7 +557,7 @@ func TestReleaseWorldSharesTransportAndDurableCacheAcrossRpcBridge(t *testing.T)
 	serviceAdded := make(chan srpc.Invoker, 4)
 	serviceRemoved := make(chan srpc.Invoker, 4)
 	_, serviceRef, err := host.Bus.AddDirective(
-		bifrost_rpc.NewLookupRpcService(serviceID, "test-held-demand"),
+		bifrost_rpc.NewLookupRpcService(serviceID, ""),
 		directive.NewCallbackHandler(
 			func(v directive.AttachedValue) { serviceAdded <- v.GetValue().(srpc.Invoker) },
 			func(v directive.AttachedValue) { serviceRemoved <- v.GetValue().(srpc.Invoker) },
