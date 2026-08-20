@@ -83,6 +83,8 @@ type Controller struct {
 	bcast broadcast.Broadcast
 	// resolverBcast fires when the resolver set changes.
 	resolverBcast broadcast.Broadcast
+	// manifestSource resolves approved manifests from the parent bus.
+	manifestSource bus.Bus
 	// resolvers is the set of active FetchManifest resolvers.
 	resolvers map[*resolverEntry]struct{}
 	// pluginIDs is the current set of plugin IDs from SpaceSettings.
@@ -114,8 +116,24 @@ func (c *Controller) GetLoadedPluginIDsAndWaitCh() ([]string, <-chan struct{}) {
 	return c.loadedPlugins.GetAndWaitCh()
 }
 
+// FactoryOption configures a Space plugin controller factory.
+type FactoryOption func(*factoryConfig)
+
+type factoryConfig struct {
+	manifestSource bus.Bus
+}
+
+// WithManifestSource permits approved Space plugins to fetch manifests from source.
+func WithManifestSource(source bus.Bus) FactoryOption {
+	return func(conf *factoryConfig) { conf.manifestSource = source }
+}
+
 // NewFactory constructs the component factory.
-func NewFactory(b bus.Bus) controller.Factory {
+func NewFactory(b bus.Bus, opts ...FactoryOption) controller.Factory {
+	factoryConf := factoryConfig{}
+	for _, opt := range opts {
+		opt(&factoryConf)
+	}
 	return bus.NewBusControllerFactory(
 		b,
 		ConfigID,
@@ -128,6 +146,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 		func(base *bus.BusController[*Config]) (*Controller, error) {
 			c := &Controller{
 				BusController:  base,
+				manifestSource: factoryConf.manifestSource,
 				resolvers:      make(map[*resolverEntry]struct{}),
 				processConfigs: make(map[string]processConfig),
 			}
@@ -243,6 +262,9 @@ func (c *Controller) resolveFetchManifest(
 	}
 
 	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+		if source, _, _ := c.getManifestSourceApproval(mid); source != nil {
+			return c.resolveSourceFetchManifest(ctx, handler, dir)
+		}
 		entry := &resolverEntry{ctx: ctx, dir: dir, handler: handler}
 		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			c.resolvers[entry] = struct{}{}
