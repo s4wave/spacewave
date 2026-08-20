@@ -17,14 +17,27 @@ type ObjectTypeRegistryResource struct {
 
 	bcast         broadcast.Broadcast
 	nextID        uint32
-	registrations map[uint32]*s4wave_objecttype_registry.ObjectTypeRegistration
+	registrations map[uint32]*objectTypeRegistration
+}
+
+// objectTypeRegistration keeps private handler capability state beside the
+// public registration. Attached handler IDs never leave the caller generation.
+type objectTypeRegistration struct {
+	registration *s4wave_objecttype_registry.ObjectTypeRegistration
+	attached     *attachedObjectTypeHandler
+}
+
+// attachedObjectTypeHandler is a caller-owned ResourceService capability.
+type attachedObjectTypeHandler struct {
+	client srpc.Client
+	ctx    context.Context
 }
 
 // NewObjectTypeRegistryResource creates a new ObjectTypeRegistryResource.
 func NewObjectTypeRegistryResource() *ObjectTypeRegistryResource {
 	r := &ObjectTypeRegistryResource{
 		nextID:        1,
-		registrations: make(map[uint32]*s4wave_objecttype_registry.ObjectTypeRegistration),
+		registrations: make(map[uint32]*objectTypeRegistration),
 	}
 	mux := srpc.NewMux()
 	_ = s4wave_objecttype_registry.SRPCRegisterObjectTypeRegistryResourceService(mux, r)
@@ -62,11 +75,20 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 		return nil, err
 	}
 
+	var attached *attachedObjectTypeHandler
+	if attachedID := req.GetAttachedHandlerResourceId(); attachedID != 0 {
+		attachedClient, err := client.GetAttachedResource(attachedID)
+		if err != nil {
+			return nil, err
+		}
+		attached = &attachedObjectTypeHandler{client: attachedClient, ctx: client.Context()}
+	}
+
 	var regID uint32
 	var duplicate bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		for _, registration := range r.registrations {
-			if registration.GetTypeId() == typeID {
+			if registration.registration.GetTypeId() == typeID {
 				duplicate = true
 				return
 			}
@@ -77,12 +99,12 @@ func (r *ObjectTypeRegistryResource) RegisterObjectType(
 		if req.GetMetadata() != nil {
 			metadata = req.GetMetadata().CloneVT()
 		}
-		r.registrations[regID] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		r.registrations[regID] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         typeID,
 			RegistrationId: regID,
 			PluginId:       pluginID,
 			Metadata:       metadata,
-		}
+		}, attached: attached}
 		broadcast()
 	})
 	if duplicate {
@@ -146,8 +168,8 @@ func (r *ObjectTypeRegistryResource) LookupRegistration(
 	var reg *s4wave_objecttype_registry.ObjectTypeRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 		for _, v := range r.registrations {
-			if v.GetTypeId() == typeID {
-				reg = v.CloneVT()
+			if v.registration.GetTypeId() == typeID {
+				reg = v.registration.CloneVT()
 				break
 			}
 		}
@@ -155,12 +177,26 @@ func (r *ObjectTypeRegistryResource) LookupRegistration(
 	return reg
 }
 
+// lookupRegistration finds the complete private registration record.
+func (r *ObjectTypeRegistryResource) lookupRegistration(typeID string) *objectTypeRegistration {
+	var found *objectTypeRegistration
+	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for _, registration := range r.registrations {
+			if registration.registration.GetTypeId() == typeID {
+				found = registration
+				return
+			}
+		}
+	})
+	return found
+}
+
 // getRegistrationsLocked returns a snapshot of all registrations.
 // Must be called with bcast lock held.
 func (r *ObjectTypeRegistryResource) getRegistrationsLocked() []*s4wave_objecttype_registry.ObjectTypeRegistration {
 	regs := make([]*s4wave_objecttype_registry.ObjectTypeRegistration, 0, len(r.registrations))
 	for _, reg := range r.registrations {
-		regs = append(regs, reg)
+		regs = append(regs, reg.registration.CloneVT())
 	}
 	return regs
 }

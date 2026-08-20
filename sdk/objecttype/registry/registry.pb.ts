@@ -170,6 +170,14 @@ export interface RegisterObjectTypeRequest {
    * @generated from field: s4wave.objecttype.registry.ObjectTypeMetadata metadata = 3;
    */
   metadata?: ObjectTypeMetadata
+  /**
+   * AttachedHandlerResourceId identifies a nonzero caller-owned attached
+   * ResourceService mux. It is valid only for the caller generation that registers
+   * it and is never persisted.
+   *
+   * @generated from field: uint32 attached_handler_resource_id = 4;
+   */
+  attachedHandlerResourceId?: number
 }
 
 export const RegisterObjectTypeRequest: MessageType<RegisterObjectTypeRequest> =
@@ -179,6 +187,12 @@ export const RegisterObjectTypeRequest: MessageType<RegisterObjectTypeRequest> =
       { no: 1, name: 'type_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'metadata', kind: 'message', T: () => ObjectTypeMetadata },
+      {
+        no: 4,
+        name: 'attached_handler_resource_id',
+        kind: 'scalar',
+        T: ScalarType.UINT32,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

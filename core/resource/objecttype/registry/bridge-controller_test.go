@@ -46,11 +46,11 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 	}
 	defer rel()
 	registry := NewObjectTypeRegistryResource()
-	registry.registrations[1] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+	registry.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 		TypeId:         "test/type",
 		RegistrationId: 1,
 		PluginId:       "test-plugin",
-	}
+	}}
 	ctrl := NewBridgeController(le, tb.Bus, registry)
 	rel, err = tb.Bus.AddController(ctx, ctrl, nil)
 	if err != nil {
@@ -122,11 +122,11 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 	defer rel()
 
 	registry := NewObjectTypeRegistryResource()
-	registry.registrations[1] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+	registry.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 		TypeId:         "test/type",
 		RegistrationId: 1,
 		PluginId:       "test-plugin",
-	}
+	}}
 	ctrl := NewBridgeController(le, tb.Bus, registry)
 	rel, err = tb.Bus.AddController(ctx, ctrl, nil)
 	if err != nil {
@@ -183,6 +183,87 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 	}
 	if got := secondHandler.successfulPings(); got != 1 {
 		t.Fatalf("second plugin successful pings = %d, want 1", got)
+	}
+}
+
+func TestBridgeResolverInvokesCallerAttachedHandler(t *testing.T) {
+	ctx := t.Context()
+	le := logrus.NewEntry(logrus.New())
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+
+	registry, resources, registryClient := newRegistryResourceClient(t, ctx)
+	defer resources.Release()
+	childReleased := make(chan struct{}, 1)
+	handlerRoot := srpc.NewMux()
+	if err := s4wave_objecttype_registry.SRPCRegisterObjectTypeHandlerService(handlerRoot, &testObjectTypeHandler{childReleased: childReleased}); err != nil {
+		t.Fatal(err)
+	}
+	handlerService := srpc.NewMux()
+	if err := resource_server.NewResourceServer(handlerRoot).Register(handlerService); err != nil {
+		t.Fatal(err)
+	}
+	attachedID, err := resources.AttachResource(ctx, "handler", handlerService)
+	if err != nil {
+		t.Fatalf("attach handler: %v", err)
+	}
+	registration, err := registryClient.RegisterObjectType(ctx, &s4wave_objecttype_registry.RegisterObjectTypeRequest{
+		TypeId:                    "test/type",
+		PluginId:                  "test-plugin",
+		AttachedHandlerResourceId: attachedID,
+	})
+	if err != nil {
+		t.Fatalf("register attached handler: %v", err)
+	}
+
+	ctrl := NewBridgeController(le, tb.Bus, registry)
+	rel, err := tb.Bus.AddController(ctx, ctrl, nil)
+	if err != nil {
+		t.Fatalf("add bridge: %v", err)
+	}
+	defer rel()
+
+	ot, ref, err := objecttype.ExLookupObjectType(ctx, tb.Bus, "test/type")
+	if err != nil {
+		t.Fatalf("lookup attached ObjectType: %v", err)
+	}
+	defer ref.Release()
+	invoker, cleanup, err := ot.GetFactory()(ctx, le, tb.Bus, tb.Engine, nil, "test/object")
+	if err != nil {
+		t.Fatalf("create attached ObjectType: %v", err)
+	}
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
+	if err := client.ExecCall(ctx, "test.Child", "Ping", &testPingMessage{}, &testPingMessage{}); err != nil {
+		t.Fatalf("attached child ping: %v", err)
+	}
+	cleanup()
+	select {
+	case <-childReleased:
+	case <-time.After(time.Second):
+		t.Fatal("attached child was not released")
+	}
+
+	if err := resources.DetachResource(ctx, attachedID); err != nil {
+		t.Fatalf("detach attached handler: %v", err)
+	}
+	if _, cleanup, err := ot.GetFactory()(ctx, le, tb.Bus, tb.Engine, nil, "test/object"); err == nil {
+		if cleanup != nil {
+			cleanup()
+		}
+		t.Fatal("detached attached handler created an ObjectType")
+	}
+	waitCh := registryChangeWait(registry)
+	resources.CreateResourceReference(registration.GetResourceId()).Release()
+	select {
+	case <-waitCh:
+	case <-ctx.Done():
+		t.Fatal("registration release did not reach registry")
+	}
+	if registry.LookupRegistration("test/type") != nil {
+		t.Fatal("attached registration remained after release")
 	}
 }
 

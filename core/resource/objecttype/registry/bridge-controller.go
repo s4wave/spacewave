@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_world "github.com/s4wave/spacewave/core/resource/world"
@@ -66,7 +67,7 @@ func (c *BridgeController) HandleDirective(ctx context.Context, di directive.Ins
 	if typeID == "" {
 		return nil, nil
 	}
-	reg := c.registry.LookupRegistration(typeID)
+	reg := c.registry.lookupRegistration(typeID)
 	if reg == nil {
 		return nil, nil
 	}
@@ -83,14 +84,14 @@ func (c *BridgeController) Close() error {
 type bridgeResolver struct {
 	le  *logrus.Entry
 	b   bus.Bus
-	reg *s4wave_objecttype_registry.ObjectTypeRegistration
+	reg *objectTypeRegistration
 }
 
 // newBridgeResolver creates a new bridgeResolver.
 func newBridgeResolver(
 	le *logrus.Entry,
 	b bus.Bus,
-	reg *s4wave_objecttype_registry.ObjectTypeRegistration,
+	reg *objectTypeRegistration,
 ) *bridgeResolver {
 	return &bridgeResolver{
 		le:  le,
@@ -109,11 +110,34 @@ func (r *bridgeResolver) Resolve(ctx context.Context, handler directive.Resolver
 		ws world.WorldState,
 		objectKey string,
 	) (srpc.Invoker, func(), error) {
+		if r.reg.attached != nil {
+			return r.invokeAttached(ctx, objectKey, engine)
+		}
 		return r.invokePlugin(ctx, objectKey, engine)
 	}
-	ot := objecttype.NewObjectType(r.reg.GetTypeId(), factory)
+	ot := objecttype.NewObjectType(r.reg.registration.GetTypeId(), factory)
 	handler.AddValue(ot)
 	return nil
+}
+
+// invokeAttached creates an ObjectType proxy through a caller-attached handler.
+func (r *bridgeResolver) invokeAttached(
+	ctx context.Context,
+	objectKey string,
+	engine world.Engine,
+) (srpc.Invoker, func(), error) {
+	invoker := &attachedObjectTypeInvoker{
+		handler:   r.reg.attached,
+		reg:       r.reg.registration,
+		objectKey: objectKey,
+		engine:    engine,
+		b:         r.b,
+		le:        r.le,
+	}
+	if err := invoker.connect(ctx); err != nil {
+		return nil, nil, err
+	}
+	return invoker, invoker.Close, nil
 }
 
 // invokePlugin connects to the source plugin and creates a proxy invoker.
@@ -132,7 +156,7 @@ func (r *bridgeResolver) invokePlugin(
 	invoker := &pluginObjectTypeInvoker{
 		le:                r.le,
 		b:                 r.b,
-		reg:               r.reg,
+		reg:               r.reg.registration,
 		objectKey:         objectKey,
 		engine:            engine,
 		resourceClientCtx: resourceClientCtx,
@@ -141,6 +165,116 @@ func (r *bridgeResolver) invokePlugin(
 		return nil, nil, err
 	}
 	return invoker, invoker.Close, nil
+}
+
+// attachedObjectTypeInvoker holds one nested ResourceClient generation. It is
+// invalidated when the caller generation that supplied the handler ends.
+type attachedObjectTypeInvoker struct {
+	handler   *attachedObjectTypeHandler
+	reg       *s4wave_objecttype_registry.ObjectTypeRegistration
+	objectKey string
+	engine    world.Engine
+	b         bus.Bus
+	le        *logrus.Entry
+
+	mtx sync.Mutex
+
+	resources        *resource_client.Client
+	engineResourceID uint32
+	rootRef          resource_client.ResourceRef
+	childRef         resource_client.ResourceRef
+	childClient      srpc.Client
+}
+
+// InvokeMethod invokes a method on the attached handler child resource.
+func (i *attachedObjectTypeInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
+	i.mtx.Lock()
+	childClient := i.childClient
+	i.mtx.Unlock()
+	if childClient == nil {
+		return false, resource.ErrResourceOrClientReleased
+	}
+	return srpc.NewClientInvoker(childClient).InvokeMethod(serviceID, methodID, strm)
+}
+
+func (i *attachedObjectTypeInvoker) connect(ctx context.Context) error {
+	resources, err := resource_client.NewClient(
+		i.handler.ctx,
+		resource.NewSRPCResourceServiceClient(i.handler.client),
+	)
+	if err != nil {
+		return err
+	}
+	i.resources = resources
+
+	if i.engine != nil {
+		lookupOp := space_world_optypes.BuildSpaceLookupOp(i.b, i.le, "")
+		engineRes := resource_world.NewEngineResource(i.le, i.b, i.engine, lookupOp, nil)
+		i.engineResourceID, err = resources.AttachResource(ctx, "world-engine", engineRes.GetMux())
+		if err != nil {
+			i.release()
+			return err
+		}
+	}
+
+	i.rootRef = resources.AccessRootResource()
+	rootClient, err := i.rootRef.GetClient()
+	if err != nil {
+		i.release()
+		return err
+	}
+
+	handlerSvc := s4wave_objecttype_registry.NewSRPCObjectTypeHandlerServiceClient(rootClient)
+	resp, err := handlerSvc.InvokeObjectType(ctx, &s4wave_objecttype_registry.InvokeObjectTypeRequest{
+		TypeId:                   i.reg.GetTypeId(),
+		ObjectKey:                i.objectKey,
+		AttachedEngineResourceId: i.engineResourceID,
+	})
+	if err != nil {
+		i.release()
+		return err
+	}
+
+	i.childRef = resources.CreateResourceReference(resp.GetResourceId())
+	i.childClient, err = i.childRef.GetClient()
+	if err != nil {
+		i.release()
+		return err
+	}
+	return nil
+}
+
+// Close releases the child, root, engine attachment, and client generation.
+func (i *attachedObjectTypeInvoker) Close() {
+	i.mtx.Lock()
+	defer i.mtx.Unlock()
+	i.releaseLocked()
+}
+
+func (i *attachedObjectTypeInvoker) release() {
+	i.mtx.Lock()
+	defer i.mtx.Unlock()
+	i.releaseLocked()
+}
+
+func (i *attachedObjectTypeInvoker) releaseLocked() {
+	if i.childRef != nil {
+		i.childRef.Release()
+		i.childRef = nil
+	}
+	if i.rootRef != nil {
+		i.rootRef.Release()
+		i.rootRef = nil
+	}
+	if i.resources != nil {
+		if i.engineResourceID != 0 {
+			_ = i.resources.DetachResource(i.handler.ctx, i.engineResourceID)
+			i.engineResourceID = 0
+		}
+		i.resources.Release()
+		i.resources = nil
+	}
+	i.childClient = nil
 }
 
 type pluginObjectTypeInvoker struct {
