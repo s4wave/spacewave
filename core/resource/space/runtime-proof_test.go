@@ -11,12 +11,14 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
 	"github.com/aperturerobotics/controllerbus/controller"
+	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
+	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
@@ -98,6 +100,13 @@ func TestSpaceRuntimeSchedulesApprovedPluginFromParentManifestSource(t *testing.
 	}
 	defer tb.Release()
 
+	parentLoads := newSpaceRuntimeLoadPluginRecorder()
+	parentLoadsRef, err := tb.Bus.AddController(ctx, parentLoads, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer parentLoadsRef()
+
 	volumeRef, err := tb.Bus.AddController(ctx, &spaceRuntimeVolumeAliasController{volume: tb.Volume}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -148,14 +157,109 @@ func TestSpaceRuntimeSchedulesApprovedPluginFromParentManifestSource(t *testing.
 	}
 
 	scheduler := resource.runtime.scheduler
+	requested := false
 	for _, status := range scheduler.GetPluginStatusCtr().GetValue().Plugins {
 		if status.GetPluginId() == spaceRuntimeManifestID &&
 			status.GetInstanceKey() == "space-test" &&
 			status.GetState() == bldr_plugin.PluginState_PluginState_REQUESTED {
-			return
+			requested = true
+			break
 		}
 	}
-	t.Fatalf("plugin lifecycle did not reach requested: %#v", scheduler.GetPluginStatusCtr().GetValue())
+	if !requested {
+		t.Fatalf("plugin lifecycle did not reach requested: %#v", scheduler.GetPluginStatusCtr().GetValue())
+	}
+	select {
+	case load := <-parentLoads.loads:
+		t.Fatalf("empty HostPluginId leaked LoadPlugin to parent: %#v", load)
+	default:
+	}
+}
+
+func TestSpaceRuntimeRoutesPluginHostLoadToParentEntrypoint(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	volumeRef, err := tb.Bus.AddController(ctx, &spaceRuntimeVolumeAliasController{volume: tb.Volume}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer volumeRef()
+
+	host := newSpaceRuntimeEntrypointHost()
+	mux := srpc.NewMux()
+	if err := bldr_plugin.SRPCRegisterPluginHost(mux, host); err != nil {
+		t.Fatal(err)
+	}
+	entrypoint := plugin_entrypoint_controller.NewController(
+		tb.Bus,
+		tb.Logger,
+		&bldr_plugin.PluginMeta{PluginId: "spacewave-core"},
+		bldr_plugin.NewSRPCPluginHostClient(srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(mux)))),
+	)
+	entrypointRef, err := tb.Bus.AddController(ctx, entrypoint, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer entrypointRef()
+
+	resource := NewSpaceContentsResource(tb.Logger, tb.Bus, tb.Engine, "space-test", tb.EngineID)
+	resource.volumeID = tb.EngineVolumeID
+	resource.storeID = tb.EngineObjectStoreID
+	resource.StartController(&plugin_space.Config{
+		SpaceId:       "space-test",
+		VolumeId:      tb.EngineVolumeID,
+		ObjectStoreId: tb.EngineObjectStoreID,
+		EngineId:      tb.EngineID,
+		SessionPeerId: tb.Volume.GetPeerID().String(),
+		HostPluginId:  "spacewave-core",
+	})
+	defer resource.Release()
+	waitSpaceRuntimeStarted(t, resource)
+
+	if _, _, err := space_world_ops.SetSpaceSettings(
+		ctx, tb.WorldState, peer.ID(""), "",
+		&space_world.SpaceSettings{PluginIds: []string{spaceRuntimeManifestID}}, true, time.Now(),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case req := <-host.requests:
+		if req.GetPluginId() != spaceRuntimeManifestID || req.GetInstanceKey() != "space-test" {
+			t.Fatalf("LoadPlugin request = %#v", req)
+		}
+	case <-ctx.Done():
+		t.Fatal("parent plugin entrypoint did not receive LoadPlugin")
+	}
+
+	watchCtx, watchCancel := context.WithCancel(ctx)
+	stream := newTestWatchSpaceContentsStateStream(watchCtx)
+	watchErr := make(chan error, 1)
+	go func() {
+		watchErr <- resource.WatchState(&s4wave_space.WatchSpaceContentsStateRequest{}, stream)
+	}()
+	state := recvSpaceRuntimeWatchState(t, stream)
+	if len(state.GetPlugins()) != 1 || !state.GetPlugins()[0].GetLoaded() ||
+		state.GetPlugins()[0].GetState() != s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_LOADED {
+		t.Fatalf("plugin lifecycle = %#v", state.GetPlugins())
+	}
+	watchCancel()
+	if err := <-watchErr; err != nil && err != context.Canceled {
+		t.Fatalf("WatchState: %v", err)
+	}
+
+	resource.Release()
+	select {
+	case <-host.released:
+	case <-ctx.Done():
+		t.Fatal("releasing Space did not cancel parent LoadPlugin stream")
+	}
 }
 
 func TestSpaceRuntimeRestartsAfterParentHostPublication(t *testing.T) {
@@ -523,6 +627,84 @@ func (c *spaceRuntimeMutablePluginHostController) SetHosts(hosts []plugin_host.P
 		broadcast()
 	})
 }
+
+type spaceRuntimeLoadPluginRecorder struct {
+	loads chan bldr_plugin.LoadPlugin
+}
+
+func newSpaceRuntimeLoadPluginRecorder() *spaceRuntimeLoadPluginRecorder {
+	return &spaceRuntimeLoadPluginRecorder{loads: make(chan bldr_plugin.LoadPlugin, 1)}
+}
+
+// GetControllerInfo returns the test controller metadata.
+func (c *spaceRuntimeLoadPluginRecorder) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/space-runtime-load-recorder", controller.MustParseVersion("0.0.1"), "records parent plugin loads")
+}
+
+// Execute keeps the test controller available on its bus.
+func (c *spaceRuntimeLoadPluginRecorder) Execute(context.Context) error { return nil }
+
+// Close releases no resources for this test controller.
+func (c *spaceRuntimeLoadPluginRecorder) Close() error { return nil }
+
+// HandleDirective records parent plugin load directives.
+func (c *spaceRuntimeLoadPluginRecorder) HandleDirective(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+	load, ok := inst.GetDirective().(bldr_plugin.LoadPlugin)
+	if !ok {
+		return nil, nil
+	}
+	c.loads <- load
+	return directive.R(directive.NewFuncResolver(func(_ context.Context, handler directive.ResolverHandler) error {
+		handler.MarkIdle(true)
+		return nil
+	}), nil)
+}
+
+type spaceRuntimeEntrypointHost struct {
+	requests chan *bldr_plugin.LoadPluginRequest
+	released chan struct{}
+	once     sync.Once
+}
+
+func newSpaceRuntimeEntrypointHost() *spaceRuntimeEntrypointHost {
+	return &spaceRuntimeEntrypointHost{
+		requests: make(chan *bldr_plugin.LoadPluginRequest, 1),
+		released: make(chan struct{}),
+	}
+}
+
+// GetPluginInfo returns empty test plugin metadata.
+func (h *spaceRuntimeEntrypointHost) GetPluginInfo(context.Context, *bldr_plugin.GetPluginInfoRequest) (*bldr_plugin.GetPluginInfoResponse, error) {
+	return &bldr_plugin.GetPluginInfoResponse{}, nil
+}
+
+// ExecController rejects the unused controller execution path.
+func (h *spaceRuntimeEntrypointHost) ExecController(*controller_exec.ExecControllerRequest, bldr_plugin.SRPCPluginHost_ExecControllerStream) error {
+	return errors.New("ExecController is not used by this test")
+}
+
+// LoadPlugin records one remote plugin load and remains active for its stream lifetime.
+func (h *spaceRuntimeEntrypointHost) LoadPlugin(req *bldr_plugin.LoadPluginRequest, strm bldr_plugin.SRPCPluginHost_LoadPluginStream) error {
+	h.requests <- req.CloneVT()
+	if err := strm.Send(&bldr_plugin.LoadPluginResponse{PluginStatus: &bldr_plugin.PluginStatus{Running: true}}); err != nil {
+		return err
+	}
+	<-strm.Context().Done()
+	h.once.Do(func() { close(h.released) })
+	return strm.Context().Err()
+}
+
+// PluginRpc rejects the unused plugin RPC path.
+func (h *spaceRuntimeEntrypointHost) PluginRpc(bldr_plugin.SRPCPluginHost_PluginRpcStream) error {
+	return errors.New("PluginRpc is not used by this test")
+}
+
+// PluginFsRpc rejects the unused plugin filesystem RPC path.
+func (h *spaceRuntimeEntrypointHost) PluginFsRpc(bldr_plugin.SRPCPluginHost_PluginFsRpcStream) error {
+	return errors.New("PluginFsRpc is not used by this test")
+}
+
+var _ bldr_plugin.SRPCPluginHostServer = (*spaceRuntimeEntrypointHost)(nil)
 
 type spaceRuntimePluginHostController struct{ host plugin_host.PluginHost }
 
