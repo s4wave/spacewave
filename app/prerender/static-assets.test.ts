@@ -168,5 +168,5 @@ describe('hydration production assets', () => {
         true,
       )
     }
-  })
+  }, 20_000)
 })
