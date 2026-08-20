@@ -57,6 +57,10 @@ message RegisterObjectTypeRequest {
   string plugin_id = 2;
   // Metadata is user-facing display metadata for the ObjectType.
   ObjectTypeMetadata metadata = 3;
+  // AttachedHandlerResourceId identifies a nonzero caller-owned attached
+  // ResourceService mux. It is valid only for the caller generation that registers
+  // it and is never persisted.
+  uint32 attached_handler_resource_id = 4;
 }
 
 // RegisterObjectTypeResponse is the response for RegisterObjectType.

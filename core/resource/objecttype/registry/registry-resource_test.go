@@ -1,8 +1,12 @@
 package resource_objecttype_registry
 
 import (
+	"context"
 	"testing"
 
+	"github.com/aperturerobotics/starpc/srpc"
+	resource "github.com/s4wave/spacewave/bldr/resource"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	s4wave_objecttype_registry "github.com/s4wave/spacewave/sdk/objecttype/registry"
 )
@@ -26,11 +30,11 @@ func TestNewObjectTypeRegistryResource(t *testing.T) {
 
 func TestRegisterObjectTypeRejectsDuplicateTypeID(t *testing.T) {
 	r := NewObjectTypeRegistryResource()
-	r.registrations[1] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+	r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 		TypeId:         "test-plugin/duplicate",
 		RegistrationId: 1,
 		PluginId:       "test-plugin",
-	}
+	}}
 	r.nextID = 2
 	client := &testResourceClientContext{ctx: t.Context()}
 
@@ -67,7 +71,7 @@ func TestLookupRegistrationFound(t *testing.T) {
 	r := NewObjectTypeRegistryResource()
 
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		r.registrations[1] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "test-plugin/test-type",
 			RegistrationId: 1,
 			PluginId:       "test-plugin",
@@ -77,7 +81,7 @@ func TestLookupRegistrationFound(t *testing.T) {
 				Visibility:  s4wave_objecttype_registry.ObjectTypeVisibility_OBJECT_TYPE_VISIBILITY_VISIBLE,
 				Description: "Test object type",
 			},
-		}
+		}}
 		broadcast()
 	})
 
@@ -120,7 +124,7 @@ func TestLookupRegistrationReturnsClone(t *testing.T) {
 		},
 	}
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		r.registrations[1] = orig
+		r.registrations[1] = &objectTypeRegistration{registration: orig}
 		broadcast()
 	})
 
@@ -149,21 +153,21 @@ func TestLookupRegistrationMultiple(t *testing.T) {
 	r := NewObjectTypeRegistryResource()
 
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		r.registrations[1] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "plugin-a/type-one",
 			RegistrationId: 1,
 			PluginId:       "plugin-a",
-		}
-		r.registrations[2] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		}}
+		r.registrations[2] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "plugin-b/type-two",
 			RegistrationId: 2,
 			PluginId:       "plugin-b",
-		}
-		r.registrations[3] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		}}
+		r.registrations[3] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "plugin-a/type-three",
 			RegistrationId: 3,
 			PluginId:       "plugin-a",
-		}
+		}}
 		broadcast()
 	})
 
@@ -204,16 +208,16 @@ func TestGetRegistrationsLocked(t *testing.T) {
 
 	// Add two registrations.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		r.registrations[1] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "p/a",
 			RegistrationId: 1,
 			PluginId:       "p",
-		}
-		r.registrations[2] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		}}
+		r.registrations[2] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "p/b",
 			RegistrationId: 2,
 			PluginId:       "p",
-		}
+		}}
 		broadcast()
 	})
 
@@ -230,11 +234,11 @@ func TestRegistrationRemoval(t *testing.T) {
 	r := NewObjectTypeRegistryResource()
 
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		r.registrations[1] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "test-plugin/removable",
 			RegistrationId: 1,
 			PluginId:       "test-plugin",
-		}
+		}}
 		broadcast()
 	})
 
@@ -272,11 +276,11 @@ func TestBroadcastOnChange(t *testing.T) {
 
 	// Add a registration with broadcast.
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		r.registrations[1] = &s4wave_objecttype_registry.ObjectTypeRegistration{
+		r.registrations[1] = &objectTypeRegistration{registration: &s4wave_objecttype_registry.ObjectTypeRegistration{
 			TypeId:         "test-plugin/broadcast",
 			RegistrationId: 1,
 			PluginId:       "test-plugin",
-		}
+		}}
 		broadcast()
 	})
 
@@ -286,4 +290,100 @@ func TestBroadcastOnChange(t *testing.T) {
 	default:
 		t.Fatal("wait channel not closed after broadcast")
 	}
+}
+
+func TestRegisterObjectTypeAttachedHandlerRequiresOwnedResource(t *testing.T) {
+	ctx := t.Context()
+	registry, resources, registryClient := newRegistryResourceClient(t, ctx)
+	defer resources.Release()
+
+	if _, err := registryClient.RegisterObjectType(ctx, &s4wave_objecttype_registry.RegisterObjectTypeRequest{
+		TypeId:                    "test/unowned",
+		PluginId:                  "test-plugin",
+		AttachedHandlerResourceId: 99,
+	}); err == nil {
+		t.Fatal("RegisterObjectType accepted an unowned attached handler")
+	}
+	if registry.LookupRegistration("test/unowned") != nil {
+		t.Fatal("unowned attached handler created a registration")
+	}
+
+	resp, err := registryClient.RegisterObjectType(ctx, &s4wave_objecttype_registry.RegisterObjectTypeRequest{
+		TypeId:   "test/plugin",
+		PluginId: "test-plugin",
+	})
+	if err != nil {
+		t.Fatalf("RegisterObjectType ordinary registration: %v", err)
+	}
+	resources.CreateResourceReference(resp.GetResourceId()).Release()
+}
+
+func TestRegisterObjectTypeAttachedHandlerEndsWithClientGeneration(t *testing.T) {
+	ctx := t.Context()
+	registry, resources, registryClient := newRegistryResourceClient(t, ctx)
+
+	serviceMux := srpc.NewMux()
+	if err := resource_server.NewResourceServer(srpc.NewMux()).Register(serviceMux); err != nil {
+		t.Fatalf("register attached ResourceService: %v", err)
+	}
+	attachedID, err := resources.AttachResource(ctx, "handler", serviceMux)
+	if err != nil {
+		t.Fatalf("AttachResource: %v", err)
+	}
+	_, err = registryClient.RegisterObjectType(ctx, &s4wave_objecttype_registry.RegisterObjectTypeRequest{
+		TypeId:                    "test/attached",
+		PluginId:                  "test-plugin",
+		AttachedHandlerResourceId: attachedID,
+	})
+	if err != nil {
+		t.Fatalf("RegisterObjectType attached handler: %v", err)
+	}
+	if registry.LookupRegistration("test/attached") == nil {
+		t.Fatal("attached handler registration is not visible")
+	}
+
+	waitCh := registryChangeWait(registry)
+	resources.Release()
+	select {
+	case <-waitCh:
+	case <-ctx.Done():
+		t.Fatal("client generation close did not reach registry")
+	}
+	if registry.LookupRegistration("test/attached") != nil {
+		t.Fatal("registration remained after its client generation closed")
+	}
+}
+
+func newRegistryResourceClient(
+	t *testing.T,
+	ctx context.Context,
+) (*ObjectTypeRegistryResource, *resource_client.Client, s4wave_objecttype_registry.SRPCObjectTypeRegistryResourceServiceClient) {
+	t.Helper()
+	registry := NewObjectTypeRegistryResource()
+	serviceMux := srpc.NewMux()
+	if err := resource_server.NewResourceServer(registry.GetMux()).Register(serviceMux); err != nil {
+		t.Fatalf("register registry ResourceService: %v", err)
+	}
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(serviceMux)))
+	resources, err := resource_client.NewClient(ctx, resource.NewSRPCResourceServiceClient(client))
+	if err != nil {
+		t.Fatalf("new registry ResourceClient: %v", err)
+	}
+	rootRef := resources.AccessRootResource()
+	rootClient, err := rootRef.GetClient()
+	if err != nil {
+		rootRef.Release()
+		resources.Release()
+		t.Fatalf("access registry root: %v", err)
+	}
+	t.Cleanup(rootRef.Release)
+	return registry, resources, s4wave_objecttype_registry.NewSRPCObjectTypeRegistryResourceServiceClient(rootClient)
+}
+
+func registryChangeWait(r *ObjectTypeRegistryResource) <-chan struct{} {
+	var waitCh <-chan struct{}
+	r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		waitCh = getWaitCh()
+	})
+	return waitCh
 }
