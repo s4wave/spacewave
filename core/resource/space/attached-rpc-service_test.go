@@ -22,6 +22,8 @@ type attachedRpcServiceStream struct {
 	ctx context.Context
 	// ready records the first readiness response.
 	ready chan *s4wave_space.BindAttachedRpcServiceResponse
+	// checkReady verifies the route before recording readiness.
+	checkReady func() error
 }
 
 // newAttachedRpcServiceStream creates a bind stream with one readiness slot.
@@ -36,6 +38,11 @@ func (s *attachedRpcServiceStream) Context() context.Context {
 
 // Send records that the attached RPC service is callable.
 func (s *attachedRpcServiceStream) Send(resp *s4wave_space.BindAttachedRpcServiceResponse) error {
+	if s.checkReady != nil {
+		if err := s.checkReady(); err != nil {
+			return err
+		}
+	}
 	s.ready <- resp
 	return nil
 }
