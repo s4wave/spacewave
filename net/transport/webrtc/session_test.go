@@ -44,6 +44,31 @@ func TestCompleteExecutionWaitsForChildCompletion(t *testing.T) {
 	})
 }
 
+func TestDisconnectedSessionDefersSignalAcceptance(t *testing.T) {
+	incoming := &incomingSignal{accepted: make(chan struct{})}
+	sess := &session{connState: pion_webrtc.PeerConnectionStateDisconnected}
+
+	sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		sess.acceptIncomingSignalLocked(incoming)
+	})
+
+	select {
+	case <-incoming.accepted:
+		t.Fatal("disconnected session accepted a signal before reconnect or replacement")
+	default:
+	}
+
+	sess.connState = pion_webrtc.PeerConnectionStateConnected
+	sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		sess.acceptIncomingSignalLocked(incoming)
+	})
+	select {
+	case <-incoming.accepted:
+	default:
+		t.Fatal("reconnected session did not accept the pending signal")
+	}
+}
+
 func TestCreateDataChannelRegistersNegotiationCallbackFirst(t *testing.T) {
 	tpt := &WebRTC{
 		conf: &Config{},

@@ -470,7 +470,11 @@ func (s *session) onNegotiationNeeded() {
 // acceptIncomingSignalLocked accepts sig only while this session is live.
 // The caller must hold s.bcast.
 func (s *session) acceptIncomingSignalLocked(sig *incomingSignal) {
-	if sig == nil || s.fatalErr != nil || s.connState == webrtc.PeerConnectionStateFailed {
+	if sig == nil || s.fatalErr != nil {
+		return
+	}
+	switch s.connState {
+	case webrtc.PeerConnectionStateDisconnected, webrtc.PeerConnectionStateFailed:
 		return
 	}
 	sig.accept()
