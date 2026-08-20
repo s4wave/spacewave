@@ -424,7 +424,7 @@ func startSpaceRuntime(
 		return nil, err
 	}
 	resolver.AddFactory(plugin_host_scheduler.NewFactory(child))
-	resolver.AddFactory(plugin_space.NewFactory(child))
+	resolver.AddFactory(plugin_space.NewFactory(child, plugin_space.WithManifestSource(parent)))
 	bridgeCtrl := bus_bridge.NewBusBridge(parent, spaceRuntimeBridgeFilter)
 	bridgeRef, err := child.AddController(childCtx, bridgeCtrl, nil)
 	if err != nil {
