@@ -489,35 +489,44 @@ jobs:
           - name: support
             run: '^(TestE2ECloudAuthConfigEndpoint|TestStableE2ECloudAuthConfigAddr|TestApplyE2ECloudAuthConfigEndpoint|TestCompileTestScripts|TestCrashReportClassifiesGoFatalAndExitedGoLoop|TestDrainCrashReportDoesNotWaitForFutureMessages|TestTrace(CaptureBytes|CaptureWritesFile|PathDerivation|WindowControl|PolicyBehavior)|Test(Enable(TinyGo|GoScript)ForManifest|ResolveE2EWasmCompiler(RejectsInvalid|RejectsLegacyTinyGoEnv)?|Configure(TinyGoForManifest(RemovesDebugTrace|RemovesSessionHarnessWebRTC|DeterministicConfig)|GoScriptForManifestRemovesSeedRuntimeConfig)|StartupBuildCacheDefaultsToTinyGo|WorkerMode(DefaultsToDedicated|SelectsSharedWorker)|ApplyE2EWasmTinyGoCompilerEnv(DefaultsToFastProfile|CopiesExplicitDebugKnobs)|ClearHarnessStateRoot(PreservesStartupBuildCache|RemovesStartupBuildCache)|BrowserPeerErrorClassification|PeerWatcher(ReturnsNewestObservation|ObservationAfterSkipsStalePeers)|ResourceConnectionTimingSnapshot)|Test(BuildHarnessStateRootKeepsCachedRunsStable|ChromiumLaunchOptions|ConfigureGoScriptBrowserStartupUsesLauncherCoreAndBuildsSQL|ConfigureGoScriptForManifestPreservesTraceService|ConfigureGoScriptForManifestRetainsSessionHarnessWebRTC|CrashReport(IgnoresBenignNormalCloseTeardownAbort|StillCatchesRealAbortPageError)|E2EWasm(BrowserWebRTCEnabled|DriveBenchJSProfileEnabled|TraceServiceEnabled)|HarnessStateRoot(ConcurrentOwnersUseDistinctRoots|OwnerMarkerRoundTrip|ReleaseStopsConsumersBeforeUnlock|SerialOwnersReuseStableRoot)|ReapHarnessCacheOffStateRoots(DeletesDeadPIDMarker|DeletesOldMarkerlessStateRoot|PreservesLivePIDMarker|PreservesStableStateRoot|PreservesYoungMarkerlessStateRoot)|ResolveBldrDependencyUsesExplicitSpacewaveRepoRoot|ResolveE2EWasmManifestBuildTimeout(RejectsInvalid)?|StartupBuildCacheDefaultsOnWithExplicitFreshBuildEscape|Summarize(BrowserCPUProfileBucketsSamples|TraceBuildsOperationShapeFromTasksAndLogs)|TransientAppWaitErrorIncludesStartupNavigation|WaitForCountConsumesOwnerUpdates))$'
             timeout_minutes: 20
+            job_timeout_minutes: 40
           - name: harness
             package: scenario
             tags: first-use
             run: '^TestScenarios$'
             timeout_minutes: 40
+            job_timeout_minutes: 60
           - name: wasm-harness-retained
             run: '^(TestWasmHarness(Boot|PackageLifecycle|Readiness|Teardown)|TestBrowserSessionIsolation|TestMultiSessionPeerDiscovery|Test(RootResourceMount|SessionMount|SpaceMountAfterQuickstart))$'
             timeout_minutes: 30
+            job_timeout_minutes: 50
           - name: drive
             package: scenario
             tags: drive
             run: '^TestScenarios$'
             timeout_minutes: 40
+            job_timeout_minutes: 60
           - name: drive-retained
             run: '^(TestQuickstartDriveVideoPreview|TestExistingDriveOpenMeasurement|TestDriveNavigationBurstTrace|TestGoScriptDriveBrowserPreviewRenameUIParity)$'
             timeout_minutes: 40
+            job_timeout_minutes: 60
           - name: forge-blog
             run: '^(TestQuickstartForge(Route|Trace)|TestForge(ScenarioSequence|WorkerExecution)|TestBlog(CoexistenceScenario|QuickstartSetupProbe|QuickstartRetainedStateRegistrationProbe))$'
             timeout_minutes: 20
+            job_timeout_minutes: 40
           - name: session-sync
             run: '^(TestLocalOnboardingScenario|TestMultiSessionScenario|TestNoCloud(AnonymousParticipantSync|PairingDirect)|TestRecreatedPageSharedObjectHealthGuard|TestRetainedStatePagePeerProbe)$'
             timeout_minutes: 30
+            job_timeout_minutes: 50
           - name: web-lifecycle-host
             run: '^(TestDedicatedWorkerHostMultiTab|TestWebDocumentLivenessLockReleaseNoDeletion)$'
             timeout_minutes: 40
+            job_timeout_minutes: 60
           - name: web-lifecycle-session
             run: '^(TestBackgroundThrottledLifecycle|TestNeverFocusedBackgroundTabLoads|TestReturnVisitorStaticPluginAssetCache|TestServiceWorkerRestartRecoversBldrWebHarness)$'
             timeout_minutes: 40
-    timeout-minutes: ${{ matrix.slice.timeout_minutes }}
+            job_timeout_minutes: 60
+    timeout-minutes: ${{ matrix.slice.job_timeout_minutes }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -545,13 +554,23 @@ jobs:
             ~/.cache/ms-playwright-go
           key: ${{ runner.os }}-${{ runner.arch }}-playwright-go-driver-${{ steps.playwright-go-version.outputs.version }}
 
-      - name: Install Playwright browser OS dependencies
-        if: ${{ steps.playwright-browser-cache.outputs.cache-hit == 'true' }}
-        run: go run github.com/mxschmitt/playwright-go/cmd/playwright install-deps chromium
+      - name: Install Playwright Chromium and OS dependencies
+        env:
+          PLAYWRIGHT_CACHE_HIT: ${{ steps.playwright-browser-cache.outputs.cache-hit }}
+        run: |
+          if [ "$PLAYWRIGHT_CACHE_HIT" = "true" ]; then
+            install=(install-deps chromium)
+          else
+            install=(install --with-deps chromium)
+          fi
 
-      - name: Install Playwright browsers for Go tests
-        if: ${{ steps.playwright-browser-cache.outputs.cache-hit != 'true' }}
-        run: go run github.com/mxschmitt/playwright-go/cmd/playwright install --with-deps chromium
+          for attempt in 1 2; do
+            if timeout --kill-after=30s 7m go run github.com/mxschmitt/playwright-go/cmd/playwright "${install[@]}"; then
+              exit 0
+            fi
+            echo "Playwright install attempt $attempt failed."
+          done
+          exit 1
 
       - name: Cache aptre tools
         uses: actions/cache@v6
