@@ -3,6 +3,7 @@ package resource_space
 import (
 	"context"
 	"errors"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
@@ -29,6 +31,8 @@ import (
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
 )
+
+const spaceRuntimeManifestID = "cold-plugin"
 
 func TestSpaceRuntimeBusBridgesOnlyInfrastructure(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
@@ -85,6 +89,139 @@ func TestSpaceRuntimeBusBridgesOnlyInfrastructure(t *testing.T) {
 	recorded.assertNoMore(t)
 }
 
+func TestSpaceRuntimeSchedulesApprovedPluginFromParentManifestSource(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	volumeRef, err := tb.Bus.AddController(ctx, &spaceRuntimeVolumeAliasController{volume: tb.Volume}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer volumeRef()
+	hostRef := addSpaceRuntimePluginHost(t, ctx, tb.Bus, "test/platform")
+	defer hostRef()
+	manifestSource := newSpaceRuntimeManifestSourceController()
+	sourceRef, err := tb.Bus.AddController(ctx, manifestSource, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sourceRef()
+
+	resource := NewSpaceContentsResource(tb.Logger, tb.Bus, tb.Engine, "space-test", tb.EngineID)
+	resource.StartController(&plugin_space.Config{
+		SpaceId:       "space-test",
+		VolumeId:      tb.EngineVolumeID,
+		ObjectStoreId: tb.EngineObjectStoreID,
+		EngineId:      tb.EngineID,
+		SessionPeerId: tb.Volume.GetPeerID().String(),
+	})
+	defer resource.Release()
+	waitSpaceRuntimeStarted(t, resource)
+
+	select {
+	case <-manifestSource.started:
+		t.Fatal("unapproved Space plugin fetched its parent manifest")
+	default:
+	}
+
+	if _, _, err := space_world_ops.SetSpaceSettings(
+		ctx,
+		tb.WorldState,
+		peer.ID(""),
+		"",
+		&space_world.SpaceSettings{PluginIds: []string{spaceRuntimeManifestID}},
+		true,
+		time.Now(),
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case <-manifestSource.started:
+	case <-ctx.Done():
+		t.Fatal("approved Space plugin did not fetch its parent manifest")
+	}
+
+	scheduler := resource.runtime.scheduler
+	for _, status := range scheduler.GetPluginStatusCtr().GetValue().Plugins {
+		if status.GetPluginId() == spaceRuntimeManifestID &&
+			status.GetInstanceKey() == "space-test" &&
+			status.GetState() == bldr_plugin.PluginState_PluginState_REQUESTED {
+			return
+		}
+	}
+	t.Fatalf("plugin lifecycle did not reach requested: %#v", scheduler.GetPluginStatusCtr().GetValue())
+}
+
+func TestSpaceRuntimeRestartsAfterParentHostPublication(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	volumeRef, err := tb.Bus.AddController(ctx, &spaceRuntimeVolumeAliasController{volume: tb.Volume}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer volumeRef()
+	hosts := newSpaceRuntimeMutablePluginHostController()
+	hostsRef, err := tb.Bus.AddController(ctx, hosts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hostsRef()
+	manifestSource := newSpaceRuntimeManifestSourceController()
+	sourceRef, err := tb.Bus.AddController(ctx, manifestSource, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sourceRef()
+
+	resource := NewSpaceContentsResource(tb.Logger, tb.Bus, tb.Engine, "space-test", tb.EngineID)
+	resource.StartController(&plugin_space.Config{
+		SpaceId:       "space-test",
+		VolumeId:      tb.EngineVolumeID,
+		ObjectStoreId: tb.EngineObjectStoreID,
+		EngineId:      tb.EngineID,
+		SessionPeerId: tb.Volume.GetPeerID().String(),
+	})
+	defer resource.Release()
+	waitSpaceRuntimeStarted(t, resource)
+	firstRuntime := resource.runtime
+
+	host := &spaceRuntimePluginHost{platformID: "test/platform"}
+	hosts.SetHosts([]plugin_host.PluginHost{host})
+	if err := resource.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return resource.runtime != nil && resource.runtime != firstRuntime && resource.startErr == nil, nil
+	}); err != nil {
+		t.Fatalf("Space runtime did not restart after parent host publication: %v", err)
+	}
+	if _, _, err := space_world_ops.SetSpaceSettings(
+		ctx,
+		tb.WorldState,
+		peer.ID(""),
+		"",
+		&space_world.SpaceSettings{PluginIds: []string{spaceRuntimeManifestID}},
+		true,
+		time.Now(),
+	); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-manifestSource.started:
+	case <-ctx.Done():
+		t.Fatal("restarted Space runtime did not fetch the approved parent manifest")
+	}
+}
+
 func TestSpaceContentsResourceProjectsPluginHostWatchChange(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -109,6 +246,7 @@ func TestSpaceContentsResourceProjectsPluginHostWatchChange(t *testing.T) {
 	})
 	defer resource.Release()
 	waitSpaceRuntimeStarted(t, resource)
+	firstRuntime := resource.runtime
 
 	watchCtx, watchCancel := context.WithCancel(ctx)
 	defer watchCancel()
@@ -121,15 +259,18 @@ func TestSpaceContentsResourceProjectsPluginHostWatchChange(t *testing.T) {
 
 	secondRef := addSpaceRuntimePluginHost(t, ctx, tb.Bus, "desktop/test-b")
 	defer secondRef()
+	if err := resource.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return resource.runtime != nil && resource.runtime != firstRuntime && resource.startErr == nil, nil
+	}); err != nil {
+		t.Fatalf("Space runtime did not restart after daemon plugin host change: %v", err)
+	}
 	state := recvSpaceRuntimeWatchState(t, stream)
 	if len(state.GetPlugins()) != 1 {
 		t.Fatalf("plugins = %d, want 1", len(state.GetPlugins()))
 	}
-	plugin := state.GetPlugins()[0]
-	if plugin.GetState() != s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED || plugin.GetDetail() != "daemon plugin host set changed" {
-		t.Fatalf("plugin state = %#v", plugin)
+	if state.GetPlugins()[0].GetState() == s4wave_space.SpacePluginLifecycleState_SpacePluginLifecycleState_FAILED {
+		t.Fatalf("plugin state = %#v", state.GetPlugins()[0])
 	}
-	waitSpaceRuntimeReleased(t, resource)
 	watchCancel()
 	if err := <-watchErr; err != nil && err != context.Canceled {
 		t.Fatalf("WatchState: %v", err)
@@ -287,6 +428,100 @@ func recvSpaceRuntimeWatchState(t *testing.T, stream *testWatchSpaceContentsStat
 		t.Fatal("timed out waiting for terminal Space state")
 		return nil
 	}
+}
+
+type spaceRuntimeManifestSourceController struct {
+	started chan struct{}
+	once    sync.Once
+}
+
+func newSpaceRuntimeManifestSourceController() *spaceRuntimeManifestSourceController {
+	return &spaceRuntimeManifestSourceController{started: make(chan struct{})}
+}
+
+func (c *spaceRuntimeManifestSourceController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/space-runtime-manifest-source", controller.MustParseVersion("0.0.1"), "test manifest source")
+}
+
+func (c *spaceRuntimeManifestSourceController) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+func (c *spaceRuntimeManifestSourceController) Close() error { return nil }
+func (c *spaceRuntimeManifestSourceController) HandleDirective(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+	dir, ok := inst.GetDirective().(bldr_manifest.FetchManifest)
+	if !ok || dir.GetManifestId() != spaceRuntimeManifestID {
+		return nil, nil
+	}
+	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+		c.once.Do(func() { close(c.started) })
+		_, _ = handler.AddValue(&bldr_manifest.FetchManifestValue{})
+		handler.MarkIdle(true)
+		<-ctx.Done()
+		return ctx.Err()
+	}), nil)
+}
+
+type spaceRuntimeVolumeAliasController struct{ volume volume.Volume }
+
+func (c *spaceRuntimeVolumeAliasController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/space-runtime-volume-alias", controller.MustParseVersion("0.0.1"), "test plugin host volume alias")
+}
+func (c *spaceRuntimeVolumeAliasController) Execute(context.Context) error { return nil }
+func (c *spaceRuntimeVolumeAliasController) Close() error                  { return nil }
+func (c *spaceRuntimeVolumeAliasController) HandleDirective(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+	dir, ok := inst.GetDirective().(volume.LookupVolume)
+	if !ok || dir.LookupVolumeID() != bldr_plugin.PluginVolumeID {
+		return nil, nil
+	}
+	return directive.R(directive.NewValueResolver([]volume.Volume{c.volume}), nil)
+}
+
+type spaceRuntimeMutablePluginHostController struct {
+	bcast broadcast.Broadcast
+	hosts []plugin_host.PluginHost
+}
+
+func newSpaceRuntimeMutablePluginHostController() *spaceRuntimeMutablePluginHostController {
+	return &spaceRuntimeMutablePluginHostController{}
+}
+
+func (c *spaceRuntimeMutablePluginHostController) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/space-runtime-mutable-plugin-host", controller.MustParseVersion("0.0.1"), "test mutable plugin host")
+}
+func (c *spaceRuntimeMutablePluginHostController) Execute(context.Context) error { return nil }
+func (c *spaceRuntimeMutablePluginHostController) Close() error                  { return nil }
+func (c *spaceRuntimeMutablePluginHostController) HandleDirective(_ context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+	if _, ok := inst.GetDirective().(plugin_host.LookupPluginHost); !ok {
+		return nil, nil
+	}
+	return directive.R(directive.NewFuncResolver(func(ctx context.Context, handler directive.ResolverHandler) error {
+		for {
+			var hosts []plugin_host.PluginHost
+			var waitCh <-chan struct{}
+			c.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+				hosts = slices.Clone(c.hosts)
+				waitCh = getWaitCh()
+			})
+			_ = handler.ClearValues()
+			for _, host := range hosts {
+				_, _ = handler.AddValue(host)
+			}
+			handler.MarkIdle(true)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-waitCh:
+			}
+		}
+	}), nil)
+}
+
+func (c *spaceRuntimeMutablePluginHostController) SetHosts(hosts []plugin_host.PluginHost) {
+	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		c.hosts = slices.Clone(hosts)
+		broadcast()
+	})
 }
 
 type spaceRuntimePluginHostController struct{ host plugin_host.PluginHost }
