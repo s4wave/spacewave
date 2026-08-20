@@ -131,6 +131,9 @@ func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstan
 
 // execute executes the routine.
 func (t *pluginInstance) execute(ctx context.Context) error {
+	if err := t.c.ensureManifestStore(ctx); err != nil {
+		return err
+	}
 	t.ensureAccessProviders()
 
 	t.c.setPluginStatus(

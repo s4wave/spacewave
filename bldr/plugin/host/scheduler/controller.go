@@ -12,6 +12,7 @@ import (
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/keyed"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_resource "github.com/s4wave/spacewave/bldr/plugin/host/resource"
@@ -70,6 +71,12 @@ type Controller struct {
 	pluginHostsCtr *ccontainer.CContainer[*pluginHostSet]
 	// manifestCopyGate delays startup copies until runtime readiness.
 	manifestCopyGateCtr *ccontainer.CContainer[ManifestCopyGate]
+	// manifestStoreMtx guards manifest store initialization state.
+	manifestStoreMtx sync.Mutex
+	// manifestStoreReady caches successful manifest store initialization.
+	manifestStoreReady bool
+	// manifestStoreInit closes when the current initialization attempt completes.
+	manifestStoreInit chan struct{}
 	// manifestCommitOnce initializes manifestCommitSlots.
 	manifestCommitOnce sync.Once
 	// manifestCommitSlots serializes world manifest publication and sync.
@@ -205,6 +212,40 @@ func (c *Controller) acquireManifestCommit(ctx context.Context) (func(), error) 
 		}, nil
 	case <-ctx.Done():
 		return nil, context.Canceled
+	}
+}
+
+// ensureManifestStore creates the scheduler manifest store before a plugin reads it.
+func (c *Controller) ensureManifestStore(ctx context.Context) error {
+	for {
+		c.manifestStoreMtx.Lock()
+		if c.manifestStoreReady {
+			c.manifestStoreMtx.Unlock()
+			return nil
+		}
+		if wait := c.manifestStoreInit; wait != nil {
+			c.manifestStoreMtx.Unlock()
+			select {
+			case <-wait:
+				continue
+			case <-ctx.Done():
+				return context.Canceled
+			}
+		}
+		c.manifestStoreInit = make(chan struct{})
+		c.manifestStoreMtx.Unlock()
+
+		engine := world.NewBusEngine(ctx, c.bus, c.conf.GetEngineId())
+		_, err := bldr_manifest_world.CreateManifestStoreInEngine(ctx, engine, c.objKey)
+
+		c.manifestStoreMtx.Lock()
+		if err == nil {
+			c.manifestStoreReady = true
+		}
+		close(c.manifestStoreInit)
+		c.manifestStoreInit = nil
+		c.manifestStoreMtx.Unlock()
+		return err
 	}
 }
 
