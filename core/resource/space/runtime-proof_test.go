@@ -14,6 +14,7 @@ import (
 	controller_exec "github.com/aperturerobotics/controllerbus/controller/exec"
 	controllerbus_core "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/starpc/echo"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -21,6 +22,7 @@ import (
 	plugin_entrypoint_controller "github.com/s4wave/spacewave/bldr/plugin/entrypoint/controller"
 	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_host_root "github.com/s4wave/spacewave/bldr/plugin/host/root"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
@@ -324,6 +326,180 @@ func TestSpaceRuntimeRestartsAfterParentHostPublication(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("restarted Space runtime did not fetch the approved parent manifest")
 	}
+}
+
+func TestBindAttachedRpcServiceRebindsAfterSpaceRuntimeReplacement(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+
+	volumeRef, err := tb.Bus.AddController(ctx, &spaceRuntimeVolumeAliasController{volume: tb.Volume}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer volumeRef()
+	hosts := newSpaceRuntimeMutablePluginHostController()
+	hostsRef, err := tb.Bus.AddController(ctx, hosts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer hostsRef()
+	manifestSource := newSpaceRuntimeManifestSourceController()
+	sourceRef, err := tb.Bus.AddController(ctx, manifestSource, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sourceRef()
+
+	resource := NewSpaceContentsResource(tb.Logger, tb.Bus, tb.Engine, "space-test", tb.EngineID)
+	resource.StartController(&plugin_space.Config{
+		SpaceId:       "space-test",
+		VolumeId:      tb.EngineVolumeID,
+		ObjectStoreId: tb.EngineObjectStoreID,
+		EngineId:      tb.EngineID,
+		SessionPeerId: tb.Volume.GetPeerID().String(),
+	})
+	defer resource.Release()
+	waitSpaceRuntimeStarted(t, resource)
+	firstRuntime := resource.runtime
+
+	// Pause after the old route becomes callable, before it can publish readiness.
+	readyEntered := make(chan struct{})
+	continueBind := make(chan struct{})
+	var readyOnce sync.Once
+	resource.afterAttachedRpcServiceReady = func() {
+		readyOnce.Do(func() {
+			close(readyEntered)
+			<-continueBind
+		})
+	}
+
+	attachedResources := newSpaceRecordingResourceClient(ctx)
+	attachedMux := srpc.NewMux()
+	if err := attachedMux.Register(echo.NewSRPCEchoerHandler(echo.NewEchoServer(nil), echo.SRPCEchoerServiceID)); err != nil {
+		t.Fatal(err)
+	}
+	attachedID, err := attachedResources.AddResource(attachedMux, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bindCtx := resource_server.WithResourceClientContext(ctx, attachedResources)
+	stream := newAttachedRpcServiceStream(bindCtx)
+	stream.checkReady = func() error {
+		return invokeAttachedEcho(ctx, resource, "first response")
+	}
+	bindDone := make(chan error, 1)
+	go func() {
+		bindDone <- resource.BindAttachedRpcService(&s4wave_space.BindAttachedRpcServiceRequest{
+			AttachedResourceId: attachedID,
+			ServiceIdPrefix:    "attached/",
+		}, stream)
+	}()
+	select {
+	case <-readyEntered:
+	case <-ctx.Done():
+		t.Fatal("attached route did not become callable")
+	}
+	if err := invokeAttachedEcho(ctx, resource, "before replacement"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Replace the isolated runtime while the old bind continuation is paused.
+	hosts.SetHosts([]plugin_host.PluginHost{&spaceRuntimePluginHost{platformID: "test/platform"}})
+	if err := resource.bcast.Wait(ctx, func(_ func(), _ func() <-chan struct{}) (bool, error) {
+		return resource.runtime != nil && resource.runtime != firstRuntime && resource.startErr == nil, nil
+	}); err != nil {
+		t.Fatalf("Space runtime did not restart: %v", err)
+	}
+	select {
+	case <-stream.ready:
+		t.Fatal("old runtime reported readiness after replacement")
+	default:
+	}
+
+	close(continueBind)
+	select {
+	case <-stream.ready:
+	case <-ctx.Done():
+		t.Fatal("replacement attached route did not become ready")
+	}
+	if err := invokeAttachedEcho(ctx, resource, "after replacement"); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-bindDone:
+		t.Fatalf("bind stream ended after runtime replacement: %v", err)
+	default:
+	}
+
+	if !attachedResources.ReleaseResource(attachedID) {
+		t.Fatal("attached resource release failed")
+	}
+	if err := <-bindDone; err != nil {
+		t.Fatalf("bind returned %v after attached resource release", err)
+	}
+	if err := assertAttachedEchoAbsent(ctx, resource); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// invokeAttachedEcho calls the current Space runtime through its attached route.
+func invokeAttachedEcho(ctx context.Context, resource *SpaceContentsResource, body string) error {
+	runtime, err := currentSpaceRuntime(resource)
+	if err != nil {
+		return err
+	}
+	serviceID := "attached/" + echo.SRPCEchoerServiceID
+	invoker := bifrost_rpc.NewInvoker(runtime.bus, "", false)
+	client := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker)))
+	response, err := echo.NewSRPCEchoerClientWithServiceID(client, serviceID).Echo(ctx, &echo.EchoMsg{Body: body})
+	if err != nil {
+		return err
+	}
+	if response.GetBody() != body {
+		return errors.New("attached echo response body differs")
+	}
+	return nil
+}
+
+func assertAttachedEchoAbsent(ctx context.Context, resource *SpaceContentsResource) error {
+	runtime, err := currentSpaceRuntime(resource)
+	if err != nil {
+		return err
+	}
+	values, _, valuesRef, err := bifrost_rpc.ExLookupRpcService(
+		ctx,
+		runtime.bus,
+		"attached/"+echo.SRPCEchoerServiceID,
+		"",
+		false,
+		nil,
+	)
+	if valuesRef != nil {
+		valuesRef.Release()
+	}
+	if err != nil {
+		return err
+	}
+	if len(values) != 0 {
+		return errors.New("released attachment remained callable")
+	}
+	return nil
+}
+
+func currentSpaceRuntime(resource *SpaceContentsResource) (*spaceRuntime, error) {
+	var runtime *spaceRuntime
+	resource.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		runtime = resource.runtime
+	})
+	if runtime == nil {
+		return nil, errors.New("Space runtime is not running")
+	}
+	return runtime, nil
 }
 
 func TestSpaceContentsResourceProjectsPluginHostWatchChange(t *testing.T) {

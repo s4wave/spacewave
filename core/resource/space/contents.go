@@ -90,10 +90,13 @@ func (r *spaceRuntime) Release() {
 }
 
 type attachedRpcServiceBinding struct {
-	// runtime retains the Space runtime that serves this binding.
+	// client supplies calls to the caller-attached Resource.
+	client *srpc.ClientInvoker
+	// prefix is the private Space service ID prefix.
+	prefix string
+	// runtime is the Space runtime where the current controller is installed.
+	// Guarded by SpaceContentsResource.bcast.
 	runtime *spaceRuntime
-	// controller routes the attached resource through the Space runtime.
-	controller *attachedRpcServiceController
 }
 
 // attachedRpcServiceController signals when its RPC service can resolve calls.
@@ -178,6 +181,8 @@ type SpaceContentsResource struct {
 	startRuntime    spaceRuntimeStarter
 	// waitRuntimeTerminal runs the current runtime's terminal lifecycle waiter.
 	waitRuntimeTerminal spaceRuntimeTerminalWaiter
+	// afterAttachedRpcServiceReady blocks the bind continuation in focused lifecycle tests.
+	afterAttachedRpcServiceReady func()
 }
 
 // NewSpaceContentsResource creates a new SpaceContentsResource.
@@ -571,7 +576,8 @@ func startSpaceContentsController(
 }
 
 // BindAttachedRpcService publishes a caller-attached Resource under one private
-// service ID prefix until the caller disconnects or this Space runtime ends.
+// service ID prefix for the caller attachment lifetime. It reinstalls the route
+// when the isolated Space runtime is replaced.
 func (r *SpaceContentsResource) BindAttachedRpcService(
 	req *s4wave_space.BindAttachedRpcServiceRequest,
 	strm s4wave_space.SRPCSpaceContentsResourceService_BindAttachedRpcServiceStream,
@@ -602,69 +608,25 @@ func (r *SpaceContentsResource) BindAttachedRpcService(
 		return err
 	}
 
-	ctrl := &attachedRpcServiceController{
-		RpcServiceController: bifrost_rpc.NewRpcServiceController(
-			controller.NewInfo(
-				"core/resource/space/attached-rpc-service/"+prefix,
-				controller.MustParseVersion("0.0.1"),
-				"attached RPC service route",
-			),
-			bifrost_rpc.NewRpcServiceBuilder(srpc.NewClientInvoker(client)),
-			[]string{prefix},
-			true,
-			nil,
-			nil,
-			nil,
-		),
-		ready: make(chan struct{}),
-	}
-	binding := &attachedRpcServiceBinding{controller: ctrl}
-
+	binding := &attachedRpcServiceBinding{client: srpc.NewClientInvoker(client), prefix: prefix}
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		if r.runtime == nil {
-			err = errors.New("space runtime is not running")
+		if r.released {
+			err = errors.New("space contents resource is released")
 			return
 		}
 		if r.attachedRpcServices == nil {
 			r.attachedRpcServices = make(map[string]*attachedRpcServiceBinding)
 		}
-		if existing := r.attachedRpcServices[prefix]; existing != nil {
-			select {
-			case <-existing.runtime.done:
-				delete(r.attachedRpcServices, prefix)
-			default:
-				err = fmt.Errorf("service ID prefix %q is already bound", prefix)
-				return
-			}
+		if r.attachedRpcServices[prefix] != nil {
+			err = fmt.Errorf("service ID prefix %q is already bound", prefix)
+			return
 		}
-		binding.runtime = r.runtime
 		r.attachedRpcServices[prefix] = binding
 	})
 	if err != nil {
 		return err
 	}
-
-	// Check the installed binding lifetime before ControllerBus starts its route.
-	if err := attachedRpcServiceLifetimeError(strm.Context(), resourceCtx.Context(), clientDone, binding.runtime.done); err != nil {
-		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			if r.attachedRpcServices[prefix] == binding {
-				delete(r.attachedRpcServices, prefix)
-			}
-		})
-		return err
-	}
-
-	release, err := binding.runtime.bus.AddController(strm.Context(), binding.controller, nil)
-	if err != nil {
-		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			if r.attachedRpcServices[prefix] == binding {
-				delete(r.attachedRpcServices, prefix)
-			}
-		})
-		return err
-	}
 	defer func() {
-		release()
 		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			if r.attachedRpcServices[prefix] == binding {
 				delete(r.attachedRpcServices, prefix)
@@ -672,34 +634,148 @@ func (r *SpaceContentsResource) BindAttachedRpcService(
 		})
 	}()
 
-	select {
-	case <-binding.controller.ready:
-	case <-strm.Context().Done():
-		return strm.Context().Err()
-	case <-resourceCtx.Context().Done():
-		return resourceCtx.Context().Err()
-	case <-clientDone:
-		return errors.New("attached resource ended before attached service was ready")
-	case <-binding.runtime.done:
-		return errors.New("space runtime ended before attached service was ready")
-	}
+	var installed *spaceRuntime
+	var release func()
+	defer func() {
+		if release != nil {
+			release()
+		}
+	}()
+	ready := false
+	for {
+		var runtime *spaceRuntime
+		var startErr error
+		var released bool
+		var waitCh <-chan struct{}
+		r.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			runtime = r.runtime
+			startErr = r.startErr
+			released = r.released
+			waitCh = getWaitCh()
+		})
+		if released {
+			return errors.New("space contents resource is released")
+		}
+		if startErr != nil {
+			return startErr
+		}
+		if runtime == nil {
+			select {
+			case <-strm.Context().Done():
+				return strm.Context().Err()
+			case <-resourceCtx.Context().Done():
+				return resourceCtx.Context().Err()
+			case <-clientDone:
+				return nil
+			case <-waitCh:
+				continue
+			}
+		}
+		if runtime == installed {
+			select {
+			case <-strm.Context().Done():
+				return strm.Context().Err()
+			case <-resourceCtx.Context().Done():
+				return resourceCtx.Context().Err()
+			case <-clientDone:
+				return nil
+			case <-runtime.done:
+				installed = nil
+				if release != nil {
+					release()
+					release = nil
+				}
+				continue
+			}
+		}
 
-	// Give an already-ended lifetime priority over the ready notification.
-	if err := attachedRpcServiceLifetimeError(strm.Context(), resourceCtx.Context(), clientDone, binding.runtime.done); err != nil {
-		return err
+		// Stop the previous generation before installing the route on its replacement.
+		if release != nil {
+			release()
+			release = nil
+		}
+		ctrl := newAttachedRpcServiceController(binding)
+		if err := attachedRpcServiceLifetimeError(strm.Context(), resourceCtx.Context(), clientDone, runtime.done); err != nil {
+			return err
+		}
+		release, err = runtime.bus.AddController(strm.Context(), ctrl, nil)
+		if err != nil {
+			select {
+			case <-runtime.done:
+				continue
+			default:
+			}
+			return err
+		}
+		installed = runtime
+
+		// Wait until the route can answer before the first readiness response.
+		select {
+		case <-ctrl.ready:
+		case <-strm.Context().Done():
+			return strm.Context().Err()
+		case <-resourceCtx.Context().Done():
+			return resourceCtx.Context().Err()
+		case <-clientDone:
+			return errors.New("attached resource ended before attached service was ready")
+		case <-runtime.done:
+			installed = nil
+			release()
+			release = nil
+			continue
+		}
+		// Let focused lifecycle tests replace the Space runtime after its route is ready.
+		if r.afterAttachedRpcServiceReady != nil {
+			r.afterAttachedRpcServiceReady()
+		}
+
+		// Publish this route only while its runtime remains the current generation.
+		current := false
+		r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			current = r.attachedRpcServices[prefix] == binding &&
+				!r.released &&
+				r.startErr == nil &&
+				r.runtime == runtime
+			if current {
+				binding.runtime = runtime
+			}
+		})
+		if !current {
+			installed = nil
+			release()
+			release = nil
+			continue
+		}
+		if !ready {
+			// Check the caller lifetimes again before reporting the first route.
+			if err := attachedRpcServiceLifetimeError(strm.Context(), resourceCtx.Context(), clientDone, nil); err != nil {
+				return err
+			}
+			if err := strm.Send(&s4wave_space.BindAttachedRpcServiceResponse{}); err != nil {
+				return err
+			}
+			ready = true
+		}
 	}
-	if err := strm.Send(&s4wave_space.BindAttachedRpcServiceResponse{}); err != nil {
-		return err
-	}
-	select {
-	case <-strm.Context().Done():
-		return strm.Context().Err()
-	case <-resourceCtx.Context().Done():
-		return resourceCtx.Context().Err()
-	case <-clientDone:
-		return nil
-	case <-binding.runtime.done:
-		return nil
+}
+
+// newAttachedRpcServiceController builds one route for one Space runtime generation.
+func newAttachedRpcServiceController(binding *attachedRpcServiceBinding) *attachedRpcServiceController {
+	return &attachedRpcServiceController{
+		RpcServiceController: bifrost_rpc.NewRpcServiceController(
+			controller.NewInfo(
+				"core/resource/space/attached-rpc-service/"+binding.prefix,
+				controller.MustParseVersion("0.0.1"),
+				"attached RPC service route",
+			),
+			bifrost_rpc.NewRpcServiceBuilder(binding.client),
+			[]string{binding.prefix},
+			true,
+			nil,
+			nil,
+			nil,
+		),
+		ready: make(chan struct{}),
 	}
 }
 
