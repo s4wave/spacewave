@@ -85,6 +85,8 @@ type Controller struct {
 	resolverBcast broadcast.Broadcast
 	// manifestSource resolves approved manifests from the parent bus.
 	manifestSource bus.Bus
+	// loadTarget receives approved LoadPlugin directives when Space runs in a plugin.
+	loadTarget bus.Bus
 	// resolvers is the set of active FetchManifest resolvers.
 	resolvers map[*resolverEntry]struct{}
 	// pluginIDs is the current set of plugin IDs from SpaceSettings.
@@ -121,11 +123,17 @@ type FactoryOption func(*factoryConfig)
 
 type factoryConfig struct {
 	manifestSource bus.Bus
+	loadTarget     bus.Bus
 }
 
 // WithManifestSource permits approved Space plugins to fetch manifests from source.
 func WithManifestSource(source bus.Bus) FactoryOption {
 	return func(conf *factoryConfig) { conf.manifestSource = source }
+}
+
+// WithLoadTarget sends approved Space plugin load directives to target.
+func WithLoadTarget(target bus.Bus) FactoryOption {
+	return func(conf *factoryConfig) { conf.loadTarget = target }
 }
 
 // NewFactory constructs the component factory.
@@ -147,6 +155,7 @@ func NewFactory(b bus.Bus, opts ...FactoryOption) controller.Factory {
 			c := &Controller{
 				BusController:  base,
 				manifestSource: factoryConf.manifestSource,
+				loadTarget:     factoryConf.loadTarget,
 				resolvers:      make(map[*resolverEntry]struct{}),
 				processConfigs: make(map[string]processConfig),
 			}
@@ -393,7 +402,11 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 			continue
 		}
 
-		di, ref, err := c.GetBus().AddDirective(
+		loadTarget := c.loadTarget
+		if loadTarget == nil {
+			loadTarget = c.GetBus()
+		}
+		di, ref, err := loadTarget.AddDirective(
 			bldr_plugin.NewLoadPluginInstanced(pid, conf.GetSpaceId()),
 			nil,
 		)
