@@ -96,14 +96,7 @@ func runDemo() error {
 
 	ops := []error{
 		atx.Delete(ctx, []byte("key-0")),
-		// atx.Delete([]byte("key-2")),
 		atx.Delete(ctx, []byte("key-4")),
-		/*
-			atx.Delete([]byte("key-0")),
-			atx.Delete([]byte("key-1")),
-			atx.Delete([]byte("key-2")),
-			atx.Delete([]byte("key-3")),
-		*/
 	}
 	for _, op := range ops {
 		if op != nil {

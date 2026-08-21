@@ -111,16 +111,6 @@ func (r *refHandle) ReversedEdge() graph.Edge {
 	return &refHandle{src: r.target, target: r.src}
 }
 
-/*
-func (r *refHandle) FromPort() (string, string) {
-	return strconv.Itoa(int(r.id)), ""
-}
-
-func (r *refHandle) ToPort() (string, string) {
-	return "parent", ""
-}
-*/
-
 // addParent adds a parent removing any existing parents from the source.
 func (h *handle) addParent(rh *refHandle) []*refHandle {
 	if rh.target != h {

@@ -461,7 +461,6 @@ func (b *Blob) Truncate(ctx context.Context, bcs *block.Cursor, blobOpts *BuildB
 	}
 
 	// Convert small chunked blobs to raw storage when the high-water mark permits.
-	// Convert small chunked blobs to raw storage when the high-water mark permits.
 	// if new size is below high water mark, move to raw blob.
 	if hwm >= uint64(nsize) { //nolint:gosec
 

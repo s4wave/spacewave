@@ -43,11 +43,6 @@ func testBlobChunked(t *testing.T, chunkerType string, chunkerArgs *ChunkerArgs)
 		t.Fatal(err.Error())
 	}
 	_ = b1
-	/*
-		if err := b1.ValidateFull(context.Background(), nil); err != nil {
-			t.Fatal(err.Error())
-		}
-	*/
 	rootRef, bcs, err := btx.Write(ctx, true)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -15,8 +15,7 @@ type KeyFiltersReader struct {
 	keyBloom *bloom.Filter
 }
 
-// NewKeyFiltersBuilder constructs a new KeyFiltersBuilder.
-// If bloomCapacity is set to 0, bloom filter is left empty.
+// NewKeyFiltersReader constructs a new KeyFiltersReader.
 func NewKeyFiltersReader(keyFilters *KeyFilters) *KeyFiltersReader {
 	keyBloom := keyFilters.GetKeyBloom().ToBloomFilter()
 	return &KeyFiltersReader{

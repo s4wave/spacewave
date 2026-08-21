@@ -47,7 +47,7 @@ func (c *RabinArgs) ApplyArgs(other *RabinArgs) {
 		c.ChunkingMinSize = minSize
 	}
 	if maxSize := other.GetChunkingMaxSize(); maxSize != 0 {
-		c.ChunkingMinSize = maxSize
+		c.ChunkingMaxSize = maxSize
 	}
 }
 
