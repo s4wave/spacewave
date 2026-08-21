@@ -2,7 +2,6 @@ package peer
 
 import (
 	"encoding/binary"
-	"strings"
 
 	b58 "github.com/mr-tron/base58/base58"
 	"github.com/pkg/errors"
@@ -131,22 +130,6 @@ func IDsToString(ids []ID) []string {
 		out[i] = ids[i].String()
 	}
 	return out
-}
-
-// IDSlice is a sortable slice of peer IDs.
-type IDSlice []ID
-
-func (es IDSlice) Len() int           { return len(es) }
-func (es IDSlice) Swap(i, j int)      { es[i], es[j] = es[j], es[i] }
-func (es IDSlice) Less(i, j int) bool { return string(es[i]) < string(es[j]) }
-
-func (es IDSlice) String() string {
-	// Convert the slice to printable strings before joining it.
-	strs := make([]string, len(es))
-	for i, id := range es {
-		strs[i] = id.String()
-	}
-	return strings.Join(strs, ", ")
 }
 
 // encodeMultihash encodes a multihash: varint(code) + varint(len(digest)) + digest.

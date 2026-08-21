@@ -127,3 +127,6 @@ func (p *peer) GetPrivKey(ctx context.Context) (crypto.PrivKey, error) {
 	}
 	return p.privKey, nil
 }
+
+// _ is a type assertion
+var _ Peer = (*peer)(nil)
