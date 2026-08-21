@@ -25,10 +25,14 @@ import (
 // Manages backpressure on senders across the signaling channel.
 // Manages validating and signing messages with the peer private key.
 type Client struct {
-	le      *logrus.Entry
-	client  signaling_rpc.SRPCSignalingClient
+	// le is the logger for the client.
+	le *logrus.Entry
+	// client is the signaling RPC client.
+	client signaling_rpc.SRPCSignalingClient
+	// privKey is the local private key.
 	privKey crypto.PrivKey
-	peerID  peer.ID
+	// peerID is the peer ID derived from the private key.
+	peerID peer.ID
 
 	// peers is keyed by peer id in string format
 	peers *keyed.KeyedRefCount[string, *clientPeerTracker]

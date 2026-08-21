@@ -159,6 +159,8 @@ func (c *PacketConn) Close() error {
 	return nil
 }
 
+// isCleanReadClose returns true if the error is an expected read close:
+// cancellation, EOF, or a normal WebSocket closure status.
 func isCleanReadClose(err error) bool {
 	// Treat cancellation, EOF, and normal closure as clean reads.
 	if err == context.Canceled || errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) {
