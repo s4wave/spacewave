@@ -62,6 +62,22 @@ describe('AppSession', () => {
     vi.clearAllMocks()
   })
 
+  it('describes a pending session attachment as connecting', () => {
+    mockUseParams.mockReturnValue({ sessionIndex: '1' })
+    mockUseRootResource.mockReturnValue({ value: null })
+    mockUseSessionMetadata.mockReturnValue(null)
+    mockUseResource.mockReturnValue({
+      value: null,
+      loading: true,
+      error: null,
+      retry: vi.fn(),
+    })
+
+    render(<AppSession />)
+
+    expect(screen.getByText('Connecting to the session.')).toBeTruthy()
+  })
+
   it('renders the pre-mount PIN unlock overlay for locked sessions', () => {
     mockUseParams.mockReturnValue({ sessionIndex: '1' })
     mockUseRootResource.mockReturnValue({ value: null })
