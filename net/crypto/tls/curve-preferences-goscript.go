@@ -4,12 +4,12 @@ package p2ptls
 
 import (
 	"crypto/tls"
-	"sync"
+	"sync/atomic"
 
 	"github.com/sirupsen/logrus"
 )
 
-var browserCurveWarningOnce sync.Once
+var browserCurveWarningLogged atomic.Bool
 
 // browserCurvePreferences limits GoScript browser TLS to plain X25519. Go's
 // default includes X25519MLKEM768, whose ML-KEM/SHAKE implementation reaches
@@ -20,7 +20,7 @@ func browserCurvePreferences() []tls.CurveID {
 
 // LogBrowserCurvePreferenceWarning logs the GoScript browser TLS limitation once.
 func LogBrowserCurvePreferenceWarning(le *logrus.Entry) {
-	browserCurveWarningOnce.Do(func() {
+	if browserCurveWarningLogged.CompareAndSwap(false, true) {
 		le.Warn("GoScript browser p2p TLS uses experimental X25519-only curves; post-quantum X25519MLKEM768 is unavailable because SHA3 is unsupported")
-	})
+	}
 }
