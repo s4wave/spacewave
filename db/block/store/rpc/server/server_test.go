@@ -20,7 +20,7 @@ import (
 )
 
 // TestBlockStoreHTTPServer tests the block store rpc server and client.
-func TestBlockStoreHTTPServer(t *testing.T) {
+func TestBlockStoreRPCServer(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)

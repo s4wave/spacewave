@@ -19,8 +19,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestBlockStoreHTTPServer tests the block store rpc server and client.
-func TestBlockStoreHTTPServer(t *testing.T) {
+// TestBlockStoreBucketRPCServer tests the bucket block store rpc server and client.
+func TestBlockStoreBucketRPCServer(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)

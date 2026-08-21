@@ -22,8 +22,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestBlockStoreHTTP tests the block store http controller.
-func TestBlockStoreHTTPLookup(t *testing.T) {
+// TestBlockStoreHTTPEndToEnd tests the block store http controller end to end.
+func TestBlockStoreHTTPEndToEnd(t *testing.T) {
 	ctx := context.Background()
 	log := logrus.New()
 	log.SetLevel(logrus.DebugLevel)
