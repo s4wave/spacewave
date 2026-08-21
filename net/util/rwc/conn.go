@@ -27,7 +27,6 @@ type Conn struct {
 
 	ar       sync.Pool   // packet arena
 	rd       time.Time   // read deadline
-	wd       time.Time   // write deadline
 	packetCh chan []byte // packet ch
 	closeErr error
 }
@@ -129,30 +128,14 @@ func (p *Conn) Write(pkt []byte) (n int, err error) {
 	return written, nil
 }
 
-// SetDeadline sets the read and write deadlines associated
-// with the connection. It is equivalent to calling both
-// SetReadDeadline and SetWriteDeadline.
+// SetDeadline sets the read deadline associated with the connection.
+// It is equivalent to calling SetReadDeadline.
 //
-// A deadline is an absolute time after which I/O operations
-// fail instead of blocking. The deadline applies to all future
-// and pending I/O, not just the immediately following call to
-// Read or Write. After a deadline has been exceeded, the
-// connection can be refreshed by setting a deadline in the future.
+// Write deadlines are not supported; see SetWriteDeadline.
 //
-// If the deadline is exceeded a call to Read or Write or to other
-// I/O methods will return an error that wraps os.ErrDeadlineExceeded.
-// This can be tested using errors.Is(err, os.ErrDeadlineExceeded).
-// The error's Timeout method will return true, but note that there
-// are other possible errors for which the Timeout method will
-// return true even if the deadline has not been exceeded.
-//
-// An idle timeout can be implemented by repeatedly extending
-// the deadline after successful ReadFrom or WriteTo calls.
-//
-// A zero value for t means I/O operations will not time out.
+// A zero value for t means ReadFrom will not time out.
 func (p *Conn) SetDeadline(t time.Time) error {
 	p.rd = t
-	p.wd = t
 	return nil
 }
 
@@ -164,13 +147,9 @@ func (p *Conn) SetReadDeadline(t time.Time) error {
 	return nil
 }
 
-// SetWriteDeadline sets the deadline for future WriteTo calls
-// and any currently-blocked WriteTo call.
-// Even if write times out, it may return n > 0, indicating that
-// some of the data was successfully written.
-// A zero value for t means WriteTo will not time out.
+// SetWriteDeadline is a no-op: Conn does not support write deadlines,
+// because writes go through a plain blocking ReadWriteCloser.
 func (p *Conn) SetWriteDeadline(t time.Time) error {
-	p.wd = t
 	return nil
 }
 
