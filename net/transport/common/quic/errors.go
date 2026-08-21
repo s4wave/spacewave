@@ -15,6 +15,8 @@ var (
 	ErrRemoteUnspecified = errors.New("peer id and/or remote addr must be specified")
 )
 
+// isCleanAcceptClose returns true if the error is an expected accept-loop
+// close: a zero-code application error, cancellation, or stream EOF.
 func isCleanAcceptClose(err error) bool {
 	var qe *quic.ApplicationError
 	if errors.As(err, &qe) {

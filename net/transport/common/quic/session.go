@@ -98,7 +98,6 @@ func DialSessionViaTransport(
 // ListenSession listens for a single incoming session on a PacketConn.
 //
 // Negotiates a TLS session. Specify a empty peer ID to allow any.
-// Dial indicates this is the originator of the conn.
 func ListenSession(
 	ctx context.Context,
 	le *logrus.Entry,
