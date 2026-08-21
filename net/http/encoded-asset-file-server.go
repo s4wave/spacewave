@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// encodedAssetVary is the Vary header value advertised for encoded assets.
 const encodedAssetVary = "Accept-Encoding"
 
 // NewEncodedAssetFileServer serves an http.FileSystem with browser release
@@ -30,6 +31,8 @@ func NewEncodedAssetFileServer(hfs http.FileSystem) http.Handler {
 	})
 }
 
+// applyEncodedAssetHeaders sets the content type and encoding headers for a
+// precompressed asset request.
 func applyEncodedAssetHeaders(rw http.ResponseWriter, req *http.Request, hfs http.FileSystem) {
 	// Classify the requested asset and its optional content encoding.
 	reqPath := req.URL.Path
@@ -64,6 +67,8 @@ func applyEncodedAssetHeaders(rw http.ResponseWriter, req *http.Request, hfs htt
 	rw.Header().Set("Content-Length", strconv.FormatInt(st.Size(), 10))
 }
 
+// encodedAssetContentType returns the content type and content encoding for an
+// asset name. The content type is empty when the name is not a served asset.
 func encodedAssetContentType(name string) (string, string) {
 	switch {
 	case strings.HasSuffix(name, ".gz"):
@@ -79,6 +84,7 @@ func encodedAssetContentType(name string) (string, string) {
 	}
 }
 
+// contentTypeForAsset returns the content type for an asset file name.
 func contentTypeForAsset(name string) string {
 	switch {
 	case strings.HasSuffix(name, ".wasm"):
@@ -102,6 +108,8 @@ func contentTypeForAsset(name string) string {
 	return "application/octet-stream"
 }
 
+// acceptsEncoding returns true if the request accepts the encoding with a
+// non-zero quality.
 func acceptsEncoding(req *http.Request, want string) bool {
 	for val := range strings.SplitSeq(req.Header.Get("Accept-Encoding"), ",") {
 		encoding, params, _ := strings.Cut(strings.TrimSpace(val), ";")
@@ -112,6 +120,8 @@ func acceptsEncoding(req *http.Request, want string) bool {
 	return false
 }
 
+// encodingQuality parses the q parameter from one Accept-Encoding element. A
+// missing q parameter means quality 1.
 func encodingQuality(params string) float64 {
 	if params == "" {
 		return 1
@@ -130,6 +140,7 @@ func encodingQuality(params string) float64 {
 	return 1
 }
 
+// statHTTPFile stats a file in the filesystem without keeping it open.
 func statHTTPFile(hfs http.FileSystem, name string) (fs.FileInfo, error) {
 	f, err := openHTTPFile(hfs, name)
 	if err != nil {
@@ -139,6 +150,7 @@ func statHTTPFile(hfs http.FileSystem, name string) (fs.FileInfo, error) {
 	return f.Stat()
 }
 
+// openHTTPFile opens a cleaned path in the filesystem.
 func openHTTPFile(hfs http.FileSystem, name string) (http.File, error) {
 	clean, err := cleanHTTPFilePath(name)
 	if err != nil {
@@ -147,6 +159,8 @@ func openHTTPFile(hfs http.FileSystem, name string) (http.File, error) {
 	return hfs.Open(clean)
 }
 
+// cleanHTTPFilePath normalizes a request path and rejects traversal outside
+// the filesystem root.
 func cleanHTTPFilePath(name string) (string, error) {
 	if strings.Contains(name, "\\") {
 		return "", fs.ErrPermission
