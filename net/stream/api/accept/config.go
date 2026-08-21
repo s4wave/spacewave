@@ -57,4 +57,5 @@ func (c *Config) EqualsConfig(other config.Config) bool {
 	return ot.EqualVT(c)
 }
 
+// _ is a type assertion
 var _ config.Config = (*Config)(nil)

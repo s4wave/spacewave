@@ -157,11 +157,7 @@ func (c *Controller) resolveHandleMountedStream(
 	}
 	if len(c.remotePeerIDs) != 0 {
 		remoteID := dir.HandleMountedStreamRemotePeerID()
-		var found bool
-		if slices.Contains(c.remotePeerIDs, remoteID) {
-			found = true
-		}
-		if !found {
+		if !slices.Contains(c.remotePeerIDs, remoteID) {
 			c.le.Debugf(
 				"incoming stream %s != filtered %v",
 				remoteID.String(),

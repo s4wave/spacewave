@@ -66,4 +66,5 @@ func (m *MountedStreamHandler) HandleMountedStream(
 	return nil
 }
 
+// _ is a type assertion
 var _ link.MountedStreamHandler = (*MountedStreamHandler)(nil)
