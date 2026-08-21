@@ -17,6 +17,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// openStreamTimeout is the amount of time to wait for the stream to be opened.
+const openStreamTimeout = time.Second * 10
+
 // Controller implements the listening controller. The controller listens on a
 // multiaddress and forwards incoming connections as streams to the target peer
 // with the configured protocol ID attached.
@@ -129,9 +132,6 @@ func (c *Controller) acceptPump(ctx context.Context, listener manet.Listener) er
 	}
 }
 
-// openStreamTimeout is the amount of time to wait for the stream to be opened.
-var openStreamTimeout = time.Second * 10
-
 // handleConn handles a connection.
 func (c *Controller) handleConn(ctx context.Context, conn manet.Conn) {
 	// Bound stream establishment and release its timeout context on return.
@@ -151,8 +151,7 @@ func (c *Controller) handleConn(ctx context.Context, conn manet.Conn) {
 	)
 	if err != nil {
 		conn.Close()
-
-		// c.le.WithError(err).Warn("unable to open stream to handle conn")
+		c.le.WithError(err).Warn("unable to open stream to handle conn")
 		return
 	}
 
