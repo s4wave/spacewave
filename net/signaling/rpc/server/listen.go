@@ -15,15 +15,7 @@ func (s *Server) Listen(req *signaling.ListenRequest, strm signaling.SRPCSignali
 	}
 	pidStr := pid.String()
 
-	/*
-		pubKey, err := pid.ExtractPublicKey()
-		if err != nil {
-			return err
-		}
-	*/
-
 	// Register the peer and supersede any previous listen stream.
-	// Register this peer
 	s.mtx.Lock()
 	tkr, existed := s.getPeer(pidStr)
 	if existed {
