@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/fs"
 	"slices"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -103,11 +102,13 @@ func (h *FSHandle) AddReleaseCallback(rcb func()) {
 	}
 
 	// Wrap the callback so release invokes it once.
-	var once sync.Once
+	var once atomic.Bool
 	cb := func() {
-		once.Do(rcb)
+		if once.CompareAndSwap(false, true) {
+			rcb()
+		}
 	}
-	h.relCbs.Push(rcb)
+	h.relCbs.Push(cb)
 
 	// Handle an already-released handle without locking.
 	// fast path
@@ -124,7 +125,7 @@ func (h *FSHandle) AddReleaseCallback(rcb func()) {
 			cb()
 			return
 		}
-		inode.relCbs.Push(rcb)
+		inode.relCbs.Push(cb)
 
 		// if the inode was released or changed on h, continue & retry
 		if inode.checkReleased() || h.i() != inode {

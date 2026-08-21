@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"sync"
+	"sync/atomic"
 	"syscall/js"
 	"time"
 
@@ -208,7 +209,7 @@ func newJSErrorCode(code int) *JSError {
 func AwaitPromise(promise js.Value) (js.Value, error) {
 	// Allocate callback state for the promise result and rejection.
 	ch := make(chan struct{})
-	var closeOnce sync.Once
+	var closeOnce atomic.Bool
 	var result js.Value
 	var jsErr error
 
@@ -219,7 +220,9 @@ func AwaitPromise(promise js.Value) (js.Value, error) {
 		} else {
 			result = js.Undefined()
 		}
-		closeOnce.Do(func() { close(ch) })
+		if closeOnce.CompareAndSwap(false, true) {
+			close(ch)
+		}
 		return nil
 	})
 	defer thenCb.Release()
@@ -231,7 +234,9 @@ func AwaitPromise(promise js.Value) (js.Value, error) {
 		} else {
 			jsErr = errors.New("promise rejected")
 		}
-		closeOnce.Do(func() { close(ch) })
+		if closeOnce.CompareAndSwap(false, true) {
+			close(ch)
+		}
 		return nil
 	})
 	defer catchCb.Release()

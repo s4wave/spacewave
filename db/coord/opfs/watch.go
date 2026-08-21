@@ -4,7 +4,6 @@ package opfs
 
 import (
 	"context"
-	"sync"
 	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/coord"
@@ -20,7 +19,7 @@ type watch struct {
 	listener *blockshard.Listener
 	events   chan coord.Event
 	done     chan struct{}
-	once     sync.Once
+	once     atomic.Bool
 }
 
 func (w *watch) Events() <-chan coord.Event {

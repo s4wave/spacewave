@@ -5,6 +5,7 @@ package opfs
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/pkg/errors"
@@ -124,15 +125,15 @@ func (BrowserDriver) acquireWebLock(ctx context.Context, name string, exclusive,
 		return &WebLockResult{Outcome: WebLockOutcomeUnavailable}, nil
 	}
 
-	var releaseOnce sync.Once
+	var releaseOnce atomic.Bool
 	return &WebLockResult{
 		Outcome: WebLockOutcomeAcquired,
 		Release: func() {
-			releaseOnce.Do(func() {
+			if releaseOnce.CompareAndSwap(false, true) {
 				if tinygoReleaseWebLock(op.releaseID) == 0 {
 					panic("weblock release callback unavailable")
 				}
-			})
+			}
 		},
 	}, nil
 }

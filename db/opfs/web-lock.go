@@ -4,7 +4,7 @@ package opfs
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 	"syscall/js"
 
 	"github.com/pkg/errors"
@@ -148,11 +148,11 @@ func (d BrowserDriver) acquireWebLock(ctx context.Context, name string, exclusiv
 		return &WebLockResult{Outcome: WebLockOutcomeUnavailable}, nil
 	}
 
-	var releaseOnce sync.Once
+	var releaseOnce atomic.Bool
 	return &WebLockResult{
 		Outcome: WebLockOutcomeAcquired,
 		Release: func() {
-			releaseOnce.Do(func() {
+			if releaseOnce.CompareAndSwap(false, true) {
 				if resolveFunc.IsUndefined() || resolveFunc.IsNull() || resolveFunc.Type() != js.TypeFunction {
 					panic("weblock release callback unavailable")
 				}
@@ -164,7 +164,7 @@ func (d BrowserDriver) acquireWebLock(ctx context.Context, name string, exclusiv
 				resolveFunc.Invoke()
 				executorCb.Release()
 				lockCb.Release()
-			})
+			}
 		},
 	}, nil
 }
@@ -214,16 +214,16 @@ func (d BrowserDriver) acquireWebLockWithHelper(ctx context.Context, helper js.V
 		return &WebLockResult{Outcome: WebLockOutcomeUnavailable}, nil
 	}
 
-	var releaseOnce sync.Once
+	var releaseOnce atomic.Bool
 	return &WebLockResult{
 		Outcome: WebLockOutcomeAcquired,
 		Release: func() {
-			releaseOnce.Do(func() {
+			if releaseOnce.CompareAndSwap(false, true) {
 				if releaseFunc.IsUndefined() || releaseFunc.IsNull() || releaseFunc.Type() != js.TypeFunction {
 					panic("weblock release callback unavailable")
 				}
 				releaseFunc.Invoke()
-			})
+			}
 		},
 	}, nil
 }

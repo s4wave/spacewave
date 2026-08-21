@@ -7,7 +7,7 @@
 package filelock
 
 import (
-	"sync"
+	"sync/atomic"
 	"syscall/js"
 
 	"github.com/pkg/errors"
@@ -51,12 +51,12 @@ func AcquireFile(dir js.Value, name, lockPrefix string, create bool) (File, func
 			lockRelease()
 			return nil, nil, err
 		}
-		var once sync.Once
+		var once atomic.Bool
 		release := func() {
-			once.Do(func() {
+			if once.CompareAndSwap(false, true) {
 				handle.Close()
 				lockRelease()
-			})
+			}
 		}
 		return &syncAdapter{handle}, release, nil
 	}
@@ -72,9 +72,11 @@ func AcquireFile(dir js.Value, name, lockPrefix string, create bool) (File, func
 		lockRelease()
 		return nil, nil, err
 	}
-	var once sync.Once
+	var once atomic.Bool
 	release := func() {
-		once.Do(func() { lockRelease() })
+		if once.CompareAndSwap(false, true) {
+			lockRelease()
+		}
 	}
 	return &asyncAdapter{af}, release, nil
 }

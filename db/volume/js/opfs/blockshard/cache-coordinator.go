@@ -120,7 +120,7 @@ type segmentCacheLease struct {
 	lookup    *segment.LookupMeta
 	localFile *cachedSegmentFile
 	resources map[*cacheResource]struct{}
-	once      sync.Once
+	once      atomic.Bool
 }
 
 func (l *segmentCacheLease) ReadAt(p []byte, off int64) (int, error) {
