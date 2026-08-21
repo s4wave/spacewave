@@ -54,7 +54,7 @@ func (e *errIterator) Next() bool {
 // Seek moves the iterator to the selected key, or the next key after the key.
 // Pass nil to seek to the beginning (or end if reversed).
 func (e *errIterator) Seek(k []byte) error {
-	// no-oo
+	// no-op
 	return nil
 }
 
