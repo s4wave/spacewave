@@ -12,6 +12,8 @@ type handleMountedStreamResolver struct {
 	c *Controller
 }
 
+// newHandleMountedStreamResolver constructs a resolver for incoming mounted
+// streams handled by the controller.
 func newHandleMountedStreamResolver(c *Controller) *handleMountedStreamResolver {
 	return &handleMountedStreamResolver{c: c}
 }

@@ -10,10 +10,15 @@ import (
 )
 
 type trackedLink struct {
-	c         *Controller
-	tpl       pubsub.PeerLinkTuple
-	lnk       link.MountedLink
-	le        *logrus.Entry
+	// c is the owning controller.
+	c *Controller
+	// tpl identifies the peer/link pair this state tracks.
+	tpl pubsub.PeerLinkTuple
+	// lnk is the mounted link.
+	lnk link.MountedLink
+	// le is the logger for this link.
+	le *logrus.Entry
+	// ctxCancel cancels the link's lifecycle context.
 	ctxCancel context.CancelFunc
 }
 

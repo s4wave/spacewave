@@ -94,4 +94,5 @@ func (e *establishLinkHandler) HandleInstanceDisposed(inst directive.Instance) {
 	})
 }
 
+// _ is a type assertion
 var _ directive.ReferenceHandler = (*establishLinkHandler)(nil)
