@@ -114,16 +114,16 @@ func (a *API) Subscribe(serv pubsub_api.SRPCPubSubService_SubscribeStream) error
 			}
 
 			// note: the defer call is for releasing the handler.
+			// The send runs synchronously so a stalled stream applies
+			// backpressure instead of accumulating send goroutines.
 			defer val.AddHandler(func(m pubsub.Message) {
-				go func() {
-					_ = serv.Send(&pubsub_api.SubscribeResponse{
-						IncomingMessage: &pubsub_api.IncomingMessage{
-							FromPeerId:    m.GetFrom().String(),
-							Data:          m.GetData(),
-							Authenticated: m.GetAuthenticated(),
-						},
-					})
-				}()
+				_ = serv.Send(&pubsub_api.SubscribeResponse{
+					IncomingMessage: &pubsub_api.IncomingMessage{
+						FromPeerId:    m.GetFrom().String(),
+						Data:          m.GetData(),
+						Authenticated: m.GetAuthenticated(),
+					},
+				})
 			})()
 		}
 		if channelID == "" || sub == nil {
