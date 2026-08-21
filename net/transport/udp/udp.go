@@ -22,7 +22,7 @@ const ControllerID = "bifrost/udp"
 var Version = controller.MustParseVersion("0.0.1")
 
 // ExtendedSockBuf is the sockbuf parameter to set on udp sockets.
-var ExtendedSockBuf = 16777217
+const ExtendedSockBuf = 16777217
 
 // UDP implements a UDP transport.
 type UDP struct {
