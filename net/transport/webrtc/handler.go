@@ -64,9 +64,9 @@ func (c *WebRTCSignalHandler) Close() error {
 type handleSignalPeerResolver struct {
 	t    *WebRTC
 	sess signaling.SignalPeerSession
-	// held indicates this resolver has held the peer's ingress lease.
-	// guarded by t.bcast.
-	held bool
+
+	// closed reports that Resolve has exited. t.bcast guards closed.
+	closed bool
 }
 
 // Resolve resolves the directive.
@@ -93,12 +93,6 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 			r.t.le.WithError(err).Warnf("failed to decode incoming signal from %v", remotePeerIDStr)
 			return err
 		}
-		/*
-			if r.t.GetVerbose() {
-				r.t.le.Debugf("signal rx: %s", sig.String())
-			}
-		*/
-
 		incoming := &incomingSignal{
 			sig:      sig,
 			accepted: make(chan struct{}),

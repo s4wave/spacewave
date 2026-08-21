@@ -8,20 +8,29 @@ import (
 
 // signalIngress owns the one keyed lease that keeps a peer's signal tracker live.
 type signalIngress struct {
-	resolver *handleSignalPeerResolver
-	ref      *keyed.KeyedRef[string, *sessionTracker]
-	tracker  *sessionTracker
+	resolvers map[*handleSignalPeerResolver]struct{}
+	ref       *keyed.KeyedRef[string, *sessionTracker]
+	tracker   *sessionTracker
 }
 
-// acquireSignalIngressLocked acquires or replaces the peer's ingress lease.
+// acquireSignalIngressLocked acquires the peer's ingress lease.
+// A live lease remains authoritative until its tracker execution retires.
 // The caller must hold w.bcast.
 func (w *WebRTC) acquireSignalIngressLocked(
 	peerID string,
 	resolver *handleSignalPeerResolver,
 	broadcast func(),
 ) (*signalIngress, error) {
+	if resolver.closed {
+		return nil, context.Canceled
+	}
+
 	current := w.incomingSessions[peerID]
-	if current != nil && current.resolver == resolver {
+	if current != nil {
+		if _, member := current.resolvers[resolver]; !member {
+			current.resolvers[resolver] = struct{}{}
+			broadcast()
+		}
 		return current, nil
 	}
 
@@ -31,14 +40,11 @@ func (w *WebRTC) acquireSignalIngressLocked(
 	}
 
 	next := &signalIngress{
-		resolver: resolver,
-		ref:      ref,
-		tracker:  tracker,
+		resolvers: map[*handleSignalPeerResolver]struct{}{resolver: {}},
+		ref:       ref,
+		tracker:   tracker,
 	}
 	w.incomingSessions[peerID] = next
-	if current != nil {
-		current.ref.Release()
-	}
 	broadcast()
 	return next, nil
 }
@@ -63,15 +69,22 @@ func (w *WebRTC) retireSignalIngressLocked(peerID string, tracker *sessionTracke
 	ingress.ref.Release()
 }
 
-// closeSignalIngress closes the current lease for a resolver.
+// closeSignalIngress removes a resolver from the peer's ingress lease.
 func (w *WebRTC) closeSignalIngress(peerID string, resolver *handleSignalPeerResolver) {
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		resolver.closed = true
 		ingress := w.incomingSessions[peerID]
-		if ingress == nil || ingress.resolver != resolver {
+		if ingress == nil {
 			return
 		}
-		delete(w.incomingSessions, peerID)
-		ingress.ref.Release()
+		if _, ok := ingress.resolvers[resolver]; !ok {
+			return
+		}
+		delete(ingress.resolvers, resolver)
+		if len(ingress.resolvers) == 0 {
+			delete(w.incomingSessions, peerID)
+			ingress.ref.Release()
+		}
 		broadcast()
 	})
 }
@@ -108,24 +121,13 @@ func (w *WebRTC) deliverSignal(
 				return
 			default:
 			}
-			// A resolver that has never held the lease supersedes the
-			// current holder: a fresh inbound signal session replaces the
-			// previous one. A resolver that held the lease and was
-			// superseded reacquires only when the peer has no lease at
-			// all, including after the superseding ingress retires, so it
-			// never steals the lease from a live successor; otherwise
-			// delivery targets the successor's live execution. The held
-			// history lives on the resolver so every later signal from a
-			// superseded session observes it.
-			current := w.incomingSessions[peerID]
-			if current == nil || (current.resolver != resolver && !resolver.held) {
-				if _, err = w.acquireSignalIngressLocked(peerID, resolver, broadcast); err != nil {
-					return
-				}
-				current = w.incomingSessions[peerID]
-			}
-			if current.resolver == resolver {
-				resolver.held = true
+			// All signaling sessions for one peer deliver to the same live
+			// tracker. Replacing its ingress lease here would cancel an
+			// active negotiation before its answer or ICE arrives.
+			current, acquireErr := w.acquireSignalIngressLocked(peerID, resolver, broadcast)
+			if acquireErr != nil {
+				err = acquireErr
+				return
 			}
 			ingress = current
 			execution = w.snapshotSignalExecutionLocked(ingress)
