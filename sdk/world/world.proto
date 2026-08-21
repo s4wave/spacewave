@@ -168,10 +168,74 @@ service WatchWorldStateResourceService {
   rpc WatchWorldState(WatchWorldStateRequest) returns (stream WatchWorldStateResponse);
 }
 
+// TxResourceService controls one retained World transaction.
 service TxResourceService {
+  // CommitMutations applies ordered mutations and atomically commits the transaction.
+  rpc CommitMutations(CommitMutationsRequest) returns (CommitMutationsResponse);
+
+  // Commit atomically publishes the retained transaction.
   rpc Commit(CommitRequest) returns (CommitResponse);
 
+  // Discard releases the retained transaction without publication.
   rpc Discard(DiscardRequest) returns (DiscardResponse);
+}
+
+// CommitMutationsRequest is the request type for CommitMutations.
+message CommitMutationsRequest {
+  // Mutations are applied in request order before the transaction commits.
+  repeated TransactionMutation mutations = 1;
+}
+
+// TransactionMutation applies one World mutation.
+message TransactionMutation {
+  oneof mutation {
+    // CreateObject creates one object with its initial root.
+    CreateObjectRequest create_object = 1;
+    // SetObjectRoot replaces one existing object's root.
+    SetObjectRootMutation set_object_root = 2;
+    // SetGraphQuad writes one graph quad.
+    SetGraphQuadRequest set_graph_quad = 3;
+  }
+}
+
+// SetObjectRootMutation replaces an object's root by its exact key.
+message SetObjectRootMutation {
+  // ObjectKey identifies the exact object inside this transaction.
+  string object_key = 1;
+  // RootRef is the replacement immutable object root.
+  .bucket.ObjectRef root_ref = 2;
+}
+
+// TransactionMutationResult returns the value from one transaction mutation.
+message TransactionMutationResult {
+  oneof result {
+    // CreateObject reports the created object.
+    CreateObjectMutationResult create_object = 1;
+    // SetObjectRoot reports the updated object revision.
+    SetObjectRootMutationResult set_object_root = 2;
+    // SetGraphQuad reports the graph mutation result.
+    SetGraphQuadResponse set_graph_quad = 3;
+  }
+}
+
+// CreateObjectMutationResult returns the created object's key.
+message CreateObjectMutationResult {
+  // ObjectKey identifies the created object.
+  string object_key = 1;
+  // Rev is the created object's committed revision.
+  uint64 rev = 2;
+}
+
+// SetObjectRootMutationResult returns the object's new revision.
+message SetObjectRootMutationResult {
+  // Rev is the object's revision after the root replacement.
+  uint64 rev = 1;
+}
+
+// CommitMutationsResponse is the response type for CommitMutations.
+message CommitMutationsResponse {
+  // Results correspond one-for-one with the ordered request mutations.
+  repeated TransactionMutationResult results = 1;
 }
 
 // CommitRequest is the request type for Commit.

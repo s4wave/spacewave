@@ -490,6 +490,357 @@ export const AccessWorldStateResponse: MessageType<AccessWorldStateResponse> =
   })
 
 /**
+ * CreateObjectRequest is the request type for CreateObject.
+ *
+ * @generated from message s4wave.world.CreateObjectRequest
+ */
+export interface CreateObjectRequest {
+  /**
+   * ObjectKey is the unique identifier for the object within the world.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * RootRef is the initial reference to the object's root data.
+   *
+   * @generated from field: bucket.ObjectRef root_ref = 2;
+   */
+  rootRef?: ObjectRef
+}
+
+export const CreateObjectRequest: MessageType<CreateObjectRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.CreateObjectRequest',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetObjectRootMutation replaces an object's root by its exact key.
+ *
+ * @generated from message s4wave.world.SetObjectRootMutation
+ */
+export interface SetObjectRootMutation {
+  /**
+   * ObjectKey identifies the exact object inside this transaction.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * RootRef is the replacement immutable object root.
+   *
+   * @generated from field: bucket.ObjectRef root_ref = 2;
+   */
+  rootRef?: ObjectRef
+}
+
+export const SetObjectRootMutation: MessageType<SetObjectRootMutation> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.SetObjectRootMutation',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetGraphQuadRequest is the request type for SetGraphQuad.
+ *
+ * @generated from message s4wave.world.SetGraphQuadRequest
+ */
+export interface SetGraphQuadRequest {
+  /**
+   * Quad is the graph quad to add or update in the store.
+   *
+   * @generated from field: quad.Quad quad = 1;
+   */
+  quad?: Quad
+}
+
+export const SetGraphQuadRequest: MessageType<SetGraphQuadRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.SetGraphQuadRequest',
+    fields: [
+      { no: 1, name: 'quad', kind: 'message', T: () => Quad },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * TransactionMutation applies one World mutation.
+ *
+ * @generated from message s4wave.world.TransactionMutation
+ */
+export interface TransactionMutation {
+  /**
+   * @generated from oneof s4wave.world.TransactionMutation.mutation
+   */
+  mutation?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * CreateObject creates one object with its initial root.
+         *
+         * @generated from field: s4wave.world.CreateObjectRequest create_object = 1;
+         */
+        value: CreateObjectRequest
+        case: 'createObject'
+      }
+    | {
+        /**
+         * SetObjectRoot replaces one existing object's root.
+         *
+         * @generated from field: s4wave.world.SetObjectRootMutation set_object_root = 2;
+         */
+        value: SetObjectRootMutation
+        case: 'setObjectRoot'
+      }
+    | {
+        /**
+         * SetGraphQuad writes one graph quad.
+         *
+         * @generated from field: s4wave.world.SetGraphQuadRequest set_graph_quad = 3;
+         */
+        value: SetGraphQuadRequest
+        case: 'setGraphQuad'
+      }
+}
+
+export const TransactionMutation: MessageType<TransactionMutation> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.TransactionMutation',
+    fields: [
+      {
+        no: 1,
+        name: 'create_object',
+        kind: 'message',
+        T: () => CreateObjectRequest,
+        oneof: 'mutation',
+      },
+      {
+        no: 2,
+        name: 'set_object_root',
+        kind: 'message',
+        T: () => SetObjectRootMutation,
+        oneof: 'mutation',
+      },
+      {
+        no: 3,
+        name: 'set_graph_quad',
+        kind: 'message',
+        T: () => SetGraphQuadRequest,
+        oneof: 'mutation',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CommitMutationsRequest is the request type for CommitMutations.
+ *
+ * @generated from message s4wave.world.CommitMutationsRequest
+ */
+export interface CommitMutationsRequest {
+  /**
+   * Mutations are applied in request order before the transaction commits.
+   *
+   * @generated from field: repeated s4wave.world.TransactionMutation mutations = 1;
+   */
+  mutations?: TransactionMutation[]
+}
+
+export const CommitMutationsRequest: MessageType<CommitMutationsRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.CommitMutationsRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'mutations',
+        kind: 'message',
+        T: () => TransactionMutation,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CreateObjectMutationResult returns the created object's key.
+ *
+ * @generated from message s4wave.world.CreateObjectMutationResult
+ */
+export interface CreateObjectMutationResult {
+  /**
+   * ObjectKey identifies the created object.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * Rev is the created object's committed revision.
+   *
+   * @generated from field: uint64 rev = 2;
+   */
+  rev?: bigint
+}
+
+export const CreateObjectMutationResult: MessageType<CreateObjectMutationResult> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.CreateObjectMutationResult',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetObjectRootMutationResult returns the object's new revision.
+ *
+ * @generated from message s4wave.world.SetObjectRootMutationResult
+ */
+export interface SetObjectRootMutationResult {
+  /**
+   * Rev is the object's revision after the root replacement.
+   *
+   * @generated from field: uint64 rev = 1;
+   */
+  rev?: bigint
+}
+
+export const SetObjectRootMutationResult: MessageType<SetObjectRootMutationResult> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.SetObjectRootMutationResult',
+    fields: [
+      { no: 1, name: 'rev', kind: 'scalar', T: ScalarType.UINT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetGraphQuadResponse is the response type for SetGraphQuad.
+ *
+ * @generated from message s4wave.world.SetGraphQuadResponse
+ */
+export interface SetGraphQuadResponse {}
+
+export const SetGraphQuadResponse: MessageType<SetGraphQuadResponse> =
+  /* @__PURE__ */ createEmptyMessageType<SetGraphQuadResponse>(
+    's4wave.world.SetGraphQuadResponse',
+    true,
+  )
+
+/**
+ * TransactionMutationResult returns the value from one transaction mutation.
+ *
+ * @generated from message s4wave.world.TransactionMutationResult
+ */
+export interface TransactionMutationResult {
+  /**
+   * @generated from oneof s4wave.world.TransactionMutationResult.result
+   */
+  result?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * CreateObject reports the created object.
+         *
+         * @generated from field: s4wave.world.CreateObjectMutationResult create_object = 1;
+         */
+        value: CreateObjectMutationResult
+        case: 'createObject'
+      }
+    | {
+        /**
+         * SetObjectRoot reports the updated object revision.
+         *
+         * @generated from field: s4wave.world.SetObjectRootMutationResult set_object_root = 2;
+         */
+        value: SetObjectRootMutationResult
+        case: 'setObjectRoot'
+      }
+    | {
+        /**
+         * SetGraphQuad reports the graph mutation result.
+         *
+         * @generated from field: s4wave.world.SetGraphQuadResponse set_graph_quad = 3;
+         */
+        value: SetGraphQuadResponse
+        case: 'setGraphQuad'
+      }
+}
+
+export const TransactionMutationResult: MessageType<TransactionMutationResult> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.TransactionMutationResult',
+    fields: [
+      {
+        no: 1,
+        name: 'create_object',
+        kind: 'message',
+        T: () => CreateObjectMutationResult,
+        oneof: 'result',
+      },
+      {
+        no: 2,
+        name: 'set_object_root',
+        kind: 'message',
+        T: () => SetObjectRootMutationResult,
+        oneof: 'result',
+      },
+      {
+        no: 3,
+        name: 'set_graph_quad',
+        kind: 'message',
+        T: () => SetGraphQuadResponse,
+        oneof: 'result',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CommitMutationsResponse is the response type for CommitMutations.
+ *
+ * @generated from message s4wave.world.CommitMutationsResponse
+ */
+export interface CommitMutationsResponse {
+  /**
+   * Results correspond one-for-one with the ordered request mutations.
+   *
+   * @generated from field: repeated s4wave.world.TransactionMutationResult results = 1;
+   */
+  results?: TransactionMutationResult[]
+}
+
+export const CommitMutationsResponse: MessageType<CommitMutationsResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.world.CommitMutationsResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'results',
+        kind: 'message',
+        T: () => TransactionMutationResult,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * CommitRequest is the request type for Commit.
  *
  * @generated from message s4wave.world.CommitRequest
@@ -609,36 +960,6 @@ export const BuildStorageCursorResponse: MessageType<BuildStorageCursorResponse>
     typeName: 's4wave.world.BuildStorageCursorResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * CreateObjectRequest is the request type for CreateObject.
- *
- * @generated from message s4wave.world.CreateObjectRequest
- */
-export interface CreateObjectRequest {
-  /**
-   * ObjectKey is the unique identifier for the object within the world.
-   *
-   * @generated from field: string object_key = 1;
-   */
-  objectKey?: string
-  /**
-   * RootRef is the initial reference to the object's root data.
-   *
-   * @generated from field: bucket.ObjectRef root_ref = 2;
-   */
-  rootRef?: ObjectRef
-}
-
-export const CreateObjectRequest: MessageType<CreateObjectRequest> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.world.CreateObjectRequest',
-    fields: [
-      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
-      { no: 2, name: 'root_ref', kind: 'message', T: () => ObjectRef },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -899,42 +1220,6 @@ export const IterateObjectsResponse: MessageType<IterateObjectsResponse> =
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
-
-/**
- * SetGraphQuadRequest is the request type for SetGraphQuad.
- *
- * @generated from message s4wave.world.SetGraphQuadRequest
- */
-export interface SetGraphQuadRequest {
-  /**
-   * Quad is the graph quad to add or update in the store.
-   *
-   * @generated from field: quad.Quad quad = 1;
-   */
-  quad?: Quad
-}
-
-export const SetGraphQuadRequest: MessageType<SetGraphQuadRequest> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 's4wave.world.SetGraphQuadRequest',
-    fields: [
-      { no: 1, name: 'quad', kind: 'message', T: () => Quad },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * SetGraphQuadResponse is the response type for SetGraphQuad.
- *
- * @generated from message s4wave.world.SetGraphQuadResponse
- */
-export interface SetGraphQuadResponse {}
-
-export const SetGraphQuadResponse: MessageType<SetGraphQuadResponse> =
-  /* @__PURE__ */ createEmptyMessageType<SetGraphQuadResponse>(
-    's4wave.world.SetGraphQuadResponse',
-    true,
-  )
 
 /**
  * DeleteGraphQuadRequest is the request type for DeleteGraphQuad.

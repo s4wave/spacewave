@@ -11,11 +11,13 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
+	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
 
@@ -171,6 +173,101 @@ func TestSDKEngine_WorldRootSnapshots(t *testing.T) {
 	}
 	if watched.GetSeqno() != initial.GetSeqno() || !watched.GetRootRef().EqualsRef(initial.GetRootRef()) {
 		t.Fatalf("initial snapshot mismatch: get=%#v watch=%#v", initial, watched)
+	}
+}
+
+func TestSDKTxCommitMutations(t *testing.T) {
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
+
+	// Apply dependent mutations in one transaction RPC.
+	tx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	sdkTx, ok := tx.(*sdk_world_engine.SDKTx)
+	if !ok {
+		t.Fatalf("transaction type = %T, want *SDKTx", tx)
+	}
+	results, err := sdkTx.CommitMutations(ctx, []*s4wave_world.TransactionMutation{
+		{Mutation: &s4wave_world.TransactionMutation_CreateObject{CreateObject: &s4wave_world.CreateObjectRequest{ObjectKey: "batch/a"}}},
+		{Mutation: &s4wave_world.TransactionMutation_CreateObject{CreateObject: &s4wave_world.CreateObjectRequest{ObjectKey: "batch/b"}}},
+		{Mutation: &s4wave_world.TransactionMutation_SetObjectRoot{SetObjectRoot: &s4wave_world.SetObjectRootMutation{ObjectKey: "batch/a"}}},
+		{Mutation: &s4wave_world.TransactionMutation_SetGraphQuad{SetGraphQuad: &s4wave_world.SetGraphQuadRequest{Quad: &quad.Quad{Subject: "<batch/a>", Predicate: "<batch-rel>", Obj: "<batch/b>"}}}},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(results) != 4 || results[0].GetCreateObject().GetObjectKey() != "batch/a" || results[0].GetCreateObject().GetRev() == 0 || results[2].GetSetObjectRoot() == nil || results[3].GetSetGraphQuad() == nil {
+		t.Fatalf("unexpected mutation results: %#v", results)
+	}
+
+	// Read from a new transaction only after the batch response succeeds.
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer readTx.Discard()
+	if _, found, err := readTx.GetObject(ctx, "batch/a"); err != nil || !found {
+		t.Fatalf("created object found=%v err=%v", found, err)
+	}
+	quads, err := readTx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("batch/a", "<batch-rel>", "batch/b", ""), 1)
+	if err != nil || len(quads) != 1 {
+		t.Fatalf("committed graph quads = %#v, err=%v", quads, err)
+	}
+
+	// A failed mutation discards the whole transaction and its successful prefix.
+	failedTx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	failedSDKTx := failedTx.(*sdk_world_engine.SDKTx)
+	_, err = failedSDKTx.CommitMutations(ctx, []*s4wave_world.TransactionMutation{
+		{Mutation: &s4wave_world.TransactionMutation_CreateObject{CreateObject: &s4wave_world.CreateObjectRequest{ObjectKey: "batch/discarded"}}},
+		{Mutation: &s4wave_world.TransactionMutation_SetObjectRoot{SetObjectRoot: &s4wave_world.SetObjectRootMutation{ObjectKey: "batch/missing"}}},
+	})
+	if err == nil {
+		t.Fatal("expected failed mutation batch")
+	}
+	if err := failedSDKTx.Commit(ctx); err == nil {
+		t.Fatal("expected failed transaction to be unusable")
+	}
+
+	checkTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, found, err := checkTx.GetObject(ctx, "batch/discarded"); err != nil || found {
+		checkTx.Discard()
+		t.Fatalf("discarded object found=%v err=%v", found, err)
+	}
+	checkTx.Discard()
+
+	// A canceled request releases the transaction before it can publish state.
+	canceledTx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	canceledSDKTx := canceledTx.(*sdk_world_engine.SDKTx)
+	canceledCtx, cancel := context.WithCancel(ctx)
+	cancel()
+	_, err = canceledSDKTx.CommitMutations(canceledCtx, []*s4wave_world.TransactionMutation{
+		{Mutation: &s4wave_world.TransactionMutation_CreateObject{CreateObject: &s4wave_world.CreateObjectRequest{ObjectKey: "batch/canceled"}}},
+	})
+	if err == nil {
+		t.Fatal("expected canceled mutation batch")
+	}
+	if err := canceledSDKTx.Commit(ctx); err == nil {
+		t.Fatal("expected canceled transaction to be unusable")
+	}
+	canceledCheckTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer canceledCheckTx.Discard()
+	if _, found, err := canceledCheckTx.GetObject(ctx, "batch/canceled"); err != nil || found {
+		t.Fatalf("canceled object found=%v err=%v", found, err)
 	}
 }
 

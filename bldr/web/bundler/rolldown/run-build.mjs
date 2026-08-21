@@ -814,7 +814,7 @@ if (import.meta.main) {
   });
 }
 export {
-  validateBuildRequest,
+  BuildRequestError,
   runBuild,
-  BuildRequestError
+  validateBuildRequest
 };
