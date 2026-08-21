@@ -12,7 +12,7 @@ import (
 // Version is the version of the controller.
 var Version = controller.MustParseVersion("0.0.1")
 
-// ControllerID identifies the world object volume controller.
+// ControllerID is the string used to identify this controller.
 const ControllerID = "alpha/signaling/echo"
 
 // controllerDescrip is the controller description.

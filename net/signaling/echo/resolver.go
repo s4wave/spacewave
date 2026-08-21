@@ -17,7 +17,7 @@ type EchoResolver struct {
 	dir signaling.HandleSignalPeer
 }
 
-// NewEchoResolver constructs a new dial resolver.
+// NewEchoResolver constructs a new signaling echo resolver.
 func NewEchoResolver(le *logrus.Entry, dir signaling.HandleSignalPeer) (*EchoResolver, error) {
 	le = le.WithField("signaling-id", dir.HandleSignalingID()).
 		WithField("local-peer", dir.HandleSignalPeerSession().GetLocalPeerID().String()).
@@ -25,6 +25,8 @@ func NewEchoResolver(le *logrus.Entry, dir signaling.HandleSignalPeer) (*EchoRes
 	return &EchoResolver{le: le, dir: dir}, nil
 }
 
+// Resolve echoes received signaling messages back to the remote peer until
+// the context is canceled or the session closes.
 func (r *EchoResolver) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
 	r.le.Debug("starting echo signaling handler")
 
