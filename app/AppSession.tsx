@@ -175,7 +175,7 @@ export function AppSession() {
             view={{
               state: 'loading',
               title: 'Loading session',
-              detail: 'Mounting the session and its resources.',
+              detail: 'Connecting to the session.',
             }}
           />
         </div>
