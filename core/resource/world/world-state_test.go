@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	resource "github.com/s4wave/spacewave/bldr/resource"
@@ -78,6 +80,275 @@ func setupWorldResourceClient(ctx context.Context, t *testing.T, tb *world_testb
 	}
 
 	return resClient, engine, cleanup
+}
+
+type countingTx struct {
+	world.Tx
+	commits int
+}
+
+func (tx *countingTx) Commit(ctx context.Context) error {
+	tx.commits++
+	return tx.Tx.Commit(ctx)
+}
+
+func TestTxResourceCommitMutationsCommitsOnce(t *testing.T) {
+	ctx := context.Background()
+	tb, cleanup := setupWorldTestbed(ctx, t)
+	defer cleanup()
+
+	baseTx, err := tb.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tx := &countingTx{Tx: baseTx}
+	resource := resource_world.NewTxResource(nil, nil, tx, nil, nil)
+	resp, err := resource.CommitMutations(ctx, &s4wave_world.CommitMutationsRequest{
+		Mutations: []*s4wave_world.TransactionMutation{
+			{Mutation: &s4wave_world.TransactionMutation_CreateObject{CreateObject: &s4wave_world.CreateObjectRequest{ObjectKey: "server-batch/a"}}},
+			{Mutation: &s4wave_world.TransactionMutation_CreateObject{CreateObject: &s4wave_world.CreateObjectRequest{ObjectKey: "server-batch/b"}}},
+			{Mutation: &s4wave_world.TransactionMutation_SetGraphQuad{SetGraphQuad: &s4wave_world.SetGraphQuadRequest{Quad: &quad.Quad{Subject: "<server-batch/a>", Predicate: "<server-batch-rel>", Obj: "<server-batch/b>"}}}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if tx.commits != 1 {
+		t.Fatalf("commit calls = %d, want 1", tx.commits)
+	}
+	if len(resp.GetResults()) != 3 || resp.GetResults()[0].GetCreateObject().GetObjectKey() != "server-batch/a" || resp.GetResults()[0].GetCreateObject().GetRev() == 0 || resp.GetResults()[2].GetSetGraphQuad() == nil {
+		t.Fatalf("unexpected mutation results: %#v", resp.GetResults())
+	}
+}
+
+type terminalGateTx struct {
+	world.Tx
+
+	mux               sync.Mutex
+	createCalls       int
+	middleStarted     chan struct{}
+	unblockMiddle     chan struct{}
+	commitCalled      chan struct{}
+	commitStarted     chan struct{}
+	unblockCommit     chan struct{}
+	discardCalled     chan struct{}
+	blockCommit       bool
+	commitCalledOnce  sync.Once
+	commitStartedOnce sync.Once
+	discardCalledOnce sync.Once
+}
+
+func newTerminalGateTx(tx world.Tx, blockCommit bool) *terminalGateTx {
+	return &terminalGateTx{
+		Tx:            tx,
+		middleStarted: make(chan struct{}),
+		unblockMiddle: make(chan struct{}),
+		commitCalled:  make(chan struct{}),
+		commitStarted: make(chan struct{}),
+		unblockCommit: make(chan struct{}),
+		discardCalled: make(chan struct{}),
+		blockCommit:   blockCommit,
+	}
+}
+
+func (tx *terminalGateTx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
+	tx.mux.Lock()
+	tx.createCalls++
+	blockMiddle := tx.createCalls == 2
+	tx.mux.Unlock()
+
+	if blockMiddle {
+		close(tx.middleStarted)
+		select {
+		case <-tx.unblockMiddle:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	return tx.Tx.CreateObject(ctx, key, rootRef)
+}
+
+func (tx *terminalGateTx) Commit(ctx context.Context) error {
+	tx.commitCalledOnce.Do(func() { close(tx.commitCalled) })
+	if tx.blockCommit {
+		tx.commitStartedOnce.Do(func() { close(tx.commitStarted) })
+		select {
+		case <-tx.unblockCommit:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return tx.Tx.Commit(ctx)
+}
+
+func (tx *terminalGateTx) Discard() {
+	tx.discardCalledOnce.Do(func() { close(tx.discardCalled) })
+	tx.Tx.Discard()
+}
+
+func txMutationBatch() *s4wave_world.CommitMutationsRequest {
+	return &s4wave_world.CommitMutationsRequest{Mutations: []*s4wave_world.TransactionMutation{
+		{Mutation: &s4wave_world.TransactionMutation_CreateObject{CreateObject: &s4wave_world.CreateObjectRequest{ObjectKey: "terminal/a"}}},
+		{Mutation: &s4wave_world.TransactionMutation_CreateObject{CreateObject: &s4wave_world.CreateObjectRequest{ObjectKey: "terminal/b"}}},
+	}}
+}
+
+func TestTxResourceCommitWaitsForCommitMutations(t *testing.T) {
+	ctx := context.Background()
+	tb, cleanup := setupWorldTestbed(ctx, t)
+	defer cleanup()
+
+	baseTx, err := tb.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tx := newTerminalGateTx(baseTx, false)
+	resource := resource_world.NewTxResource(nil, nil, tx, nil, nil)
+	batchDone := make(chan error, 1)
+	go func() {
+		_, err := resource.CommitMutations(ctx, txMutationBatch())
+		batchDone <- err
+	}()
+	select {
+	case <-tx.middleStarted:
+	case <-time.After(time.Second):
+		t.Fatal("batch did not reach its middle mutation")
+	}
+
+	commitStarted := make(chan struct{})
+	commitDone := make(chan error, 1)
+	go func() {
+		close(commitStarted)
+		_, err := resource.Commit(ctx, &s4wave_world.CommitRequest{})
+		commitDone <- err
+	}()
+	<-commitStarted
+	select {
+	case <-tx.commitCalled:
+		t.Fatal("Commit entered while CommitMutations held the transaction")
+	default:
+	}
+
+	close(tx.unblockMiddle)
+	if err := <-batchDone; err != nil {
+		t.Fatalf("CommitMutations: %v", err)
+	}
+	if err := <-commitDone; err == nil {
+		t.Fatal("Commit succeeded after CommitMutations closed the transaction")
+	}
+}
+
+func TestTxResourceDiscardWaitsForCommitMutations(t *testing.T) {
+	ctx := context.Background()
+	tb, cleanup := setupWorldTestbed(ctx, t)
+	defer cleanup()
+
+	baseTx, err := tb.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tx := newTerminalGateTx(baseTx, false)
+	resource := resource_world.NewTxResource(nil, nil, tx, nil, nil)
+	batchDone := make(chan error, 1)
+	go func() {
+		_, err := resource.CommitMutations(ctx, txMutationBatch())
+		batchDone <- err
+	}()
+	select {
+	case <-tx.middleStarted:
+	case <-time.After(time.Second):
+		t.Fatal("batch did not reach its middle mutation")
+	}
+
+	discardStarted := make(chan struct{})
+	discardDone := make(chan error, 1)
+	go func() {
+		close(discardStarted)
+		_, err := resource.Discard(ctx, &s4wave_world.DiscardRequest{})
+		discardDone <- err
+	}()
+	<-discardStarted
+	select {
+	case <-tx.discardCalled:
+		t.Fatal("Discard entered while CommitMutations held the transaction")
+	default:
+	}
+
+	close(tx.unblockMiddle)
+	if err := <-batchDone; err != nil {
+		t.Fatalf("CommitMutations: %v", err)
+	}
+	if err := <-discardDone; err != nil {
+		t.Fatalf("Discard: %v", err)
+	}
+}
+
+func TestTxResourceCommitMutationsCancellationDuringMutation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	tb, cleanup := setupWorldTestbed(context.Background(), t)
+	defer cleanup()
+
+	baseTx, err := tb.Engine.NewTransaction(context.Background(), true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tx := newTerminalGateTx(baseTx, false)
+	resource := resource_world.NewTxResource(nil, nil, tx, nil, nil)
+	done := make(chan error, 1)
+	go func() {
+		_, err := resource.CommitMutations(ctx, txMutationBatch())
+		done <- err
+	}()
+	select {
+	case <-tx.middleStarted:
+	case <-time.After(time.Second):
+		t.Fatal("batch did not reach its middle mutation")
+	}
+
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("CommitMutations error = %v, want context.Canceled", err)
+	}
+	select {
+	case <-tx.discardCalled:
+	case <-time.After(time.Second):
+		t.Fatal("canceled mutation batch did not discard the transaction")
+	}
+}
+
+func TestTxResourceCommitMutationsCancellationDuringCommit(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	tb, cleanup := setupWorldTestbed(context.Background(), t)
+	defer cleanup()
+
+	baseTx, err := tb.Engine.NewTransaction(context.Background(), true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	tx := newTerminalGateTx(baseTx, true)
+	resource := resource_world.NewTxResource(nil, nil, tx, nil, nil)
+	done := make(chan error, 1)
+	go func() {
+		_, err := resource.CommitMutations(ctx, &s4wave_world.CommitMutationsRequest{})
+		done <- err
+	}()
+	select {
+	case <-tx.commitStarted:
+	case <-time.After(time.Second):
+		t.Fatal("batch did not reach commit")
+	}
+
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("CommitMutations error = %v, want context.Canceled", err)
+	}
+	select {
+	case <-tx.discardCalled:
+	case <-time.After(time.Second):
+		t.Fatal("canceled commit did not discard the transaction")
+	}
 }
 
 // TestGraphPathQueryResourceClose tests path query resource paging and close behavior.

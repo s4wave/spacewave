@@ -17,6 +17,8 @@ import {
   CloseGraphPathQueryResponse,
   CloseRequest,
   CloseResponse,
+  CommitMutationsRequest,
+  CommitMutationsResponse,
   CommitRequest,
   CommitResponse,
   CreateObjectRequest,
@@ -1635,12 +1637,27 @@ export class WatchWorldStateResourceServiceClient implements WatchWorldStateReso
   }
 }
 /**
+ * TxResourceService controls one retained World transaction.
+ *
  * @generated from service s4wave.world.TxResourceService
  */
 export const TxResourceServiceDefinition = {
   typeName: 's4wave.world.TxResourceService',
   methods: {
     /**
+     * CommitMutations applies ordered mutations and atomically commits the transaction.
+     *
+     * @generated from rpc s4wave.world.TxResourceService.CommitMutations
+     */
+    CommitMutations: {
+      name: 'CommitMutations',
+      I: CommitMutationsRequest,
+      O: CommitMutationsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Commit atomically publishes the retained transaction.
+     *
      * @generated from rpc s4wave.world.TxResourceService.Commit
      */
     Commit: {
@@ -1650,6 +1667,8 @@ export const TxResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * Discard releases the retained transaction without publication.
+     *
      * @generated from rpc s4wave.world.TxResourceService.Discard
      */
     Discard: {
@@ -1662,10 +1681,24 @@ export const TxResourceServiceDefinition = {
 } as const
 
 /**
+ * TxResourceService controls one retained World transaction.
+ *
  * @generated from service s4wave.world.TxResourceService
  */
 export interface TxResourceService {
   /**
+   * CommitMutations applies ordered mutations and atomically commits the transaction.
+   *
+   * @generated from rpc s4wave.world.TxResourceService.CommitMutations
+   */
+  CommitMutations(
+    request: CommitMutationsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CommitMutationsResponse>
+
+  /**
+   * Commit atomically publishes the retained transaction.
+   *
    * @generated from rpc s4wave.world.TxResourceService.Commit
    */
   Commit(
@@ -1674,6 +1707,8 @@ export interface TxResourceService {
   ): Promise<CommitResponse>
 
   /**
+   * Discard releases the retained transaction without publication.
+   *
    * @generated from rpc s4wave.world.TxResourceService.Discard
    */
   Discard(
@@ -1683,10 +1718,25 @@ export interface TxResourceService {
 }
 
 /**
+ * TxResourceService controls one retained World transaction.
+ *
  * @generated from service s4wave.world.TxResourceService
  */
 export interface TxResourceServiceHandler {
   /**
+   * CommitMutations applies ordered mutations and atomically commits the transaction.
+   *
+   * @generated from rpc s4wave.world.TxResourceService.CommitMutations
+   */
+  CommitMutations(
+    request: CommitMutationsRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CommitMutationsResponse>
+
+  /**
+   * Commit atomically publishes the retained transaction.
+   *
    * @generated from rpc s4wave.world.TxResourceService.Commit
    */
   Commit(
@@ -1696,6 +1746,8 @@ export interface TxResourceServiceHandler {
   ): Promise<CommitResponse>
 
   /**
+   * Discard releases the retained transaction without publication.
+   *
    * @generated from rpc s4wave.world.TxResourceService.Discard
    */
   Discard(
@@ -1713,10 +1765,32 @@ export class TxResourceServiceClient implements TxResourceService {
   constructor(rpc: ProtoRpc, opts?: { service?: string }) {
     this.service = opts?.service || TxResourceServiceServiceName
     this.rpc = rpc
+    this.CommitMutations = this.CommitMutations.bind(this)
     this.Commit = this.Commit.bind(this)
     this.Discard = this.Discard.bind(this)
   }
   /**
+   * CommitMutations applies ordered mutations and atomically commits the transaction.
+   *
+   * @generated from rpc s4wave.world.TxResourceService.CommitMutations
+   */
+  async CommitMutations(
+    request: CommitMutationsRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CommitMutationsResponse> {
+    const requestMsg = CommitMutationsRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      TxResourceServiceDefinition.methods.CommitMutations.name,
+      CommitMutationsRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CommitMutationsResponse.fromBinary(result)
+  }
+
+  /**
+   * Commit atomically publishes the retained transaction.
+   *
    * @generated from rpc s4wave.world.TxResourceService.Commit
    */
   async Commit(
@@ -1734,6 +1808,8 @@ export class TxResourceServiceClient implements TxResourceService {
   }
 
   /**
+   * Discard releases the retained transaction without publication.
+   *
    * @generated from rpc s4wave.world.TxResourceService.Discard
    */
   async Discard(

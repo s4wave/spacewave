@@ -34,6 +34,19 @@ func NewSDKTx(client ResourceClient, ref resource_client.ResourceRef, readOnly b
 	}, nil
 }
 
+// CommitMutations applies ordered mutations and commits the transaction.
+func (tx *SDKTx) CommitMutations(
+	ctx context.Context,
+	mutations []*s4wave_world.TransactionMutation,
+) ([]*s4wave_world.TransactionMutationResult, error) {
+	resp, err := tx.txService.CommitMutations(ctx, &s4wave_world.CommitMutationsRequest{Mutations: mutations})
+	tx.ref.Release()
+	if err != nil {
+		return nil, err
+	}
+	return resp.GetResults(), nil
+}
+
 // Commit commits the transaction to storage.
 func (tx *SDKTx) Commit(ctx context.Context) error {
 	_, err := tx.txService.Commit(ctx, &s4wave_world.CommitRequest{})
