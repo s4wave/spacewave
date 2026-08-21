@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/hash"
@@ -40,8 +39,9 @@ type FloodSub struct {
 	wakeCh chan struct{}
 	// publishCh is for publishing messages
 	publishCh chan *publishChMsg
-	// seenMessages is a map with recently seen messages
-	seenMessages *cache.Cache
+	// seenMessages tracks recently seen message IDs until their expiry.
+	// guarded by mtx
+	seenMessages map[string]time.Time
 
 	mtx sync.Mutex
 	// peers are the complete set of executing remote peer streams that we can
@@ -81,7 +81,7 @@ func NewFloodSub(
 		peers:        make(map[pubsub.PeerLinkTuple]*streamHandler),
 		channels:     make(map[string]map[*subscription]struct{}),
 		publishCh:    make(chan *publishChMsg, 16),
-		seenMessages: cache.New(120*time.Second, 30*time.Second),
+		seenMessages: make(map[string]time.Time),
 
 		peerChannels: make(map[string]map[pubsub.PeerLinkTuple]struct{}),
 	}, nil
@@ -149,6 +149,14 @@ func (m *FloodSub) Execute(ctx context.Context) error {
 		var xmitPeers []*streamHandler
 		var subChanges []*SubscriptionOpts
 		m.mtx.Lock()
+
+		// sweep expired seen-message entries
+		now := time.Now()
+		for id, exp := range m.seenMessages {
+			if now.After(exp) {
+				delete(m.seenMessages, id)
+			}
+		}
 
 		// sweep empty channels
 		for chid, chm := range m.channels {
@@ -360,11 +368,18 @@ func (m *FloodSub) handleValidMessage(
 	pktInner *pubmessage.PubMessageInner,
 ) {
 	channelID := pktInner.GetChannel()
+
+	// Record the message ID and report whether it was already seen.
 	msgId := pkt.ComputeMessageID()
-	if _, ok := m.seenMessages.Get(msgId); ok {
+	m.mtx.Lock()
+	_, seen := m.seenMessages[msgId]
+	if !seen {
+		m.seenMessages[msgId] = time.Now().Add(seenMessageTTL)
+	}
+	m.mtx.Unlock()
+	if seen {
 		return
 	}
-	m.seenMessages.Set(msgId, pkt, 0)
 
 	pid, err := peer.IDB58Decode(pkt.GetFromPeerId())
 	if err != nil {
