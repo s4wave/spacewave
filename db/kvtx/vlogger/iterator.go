@@ -1,7 +1,7 @@
 package kvtx_vlogger
 
 import (
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -10,7 +10,7 @@ import (
 
 // Iterator implements the kvtx vlogger iterator.
 type Iterator struct {
-	closeOnce sync.Once
+	closeOnce atomic.Bool
 	le        *logrus.Entry
 	ii        uint32
 	ta        time.Time
@@ -119,9 +119,9 @@ func (i *Iterator) Seek(k []byte) error {
 // Close closes the iterator.
 // Note: it is not necessary to close all iterators before Discard().
 func (i *Iterator) Close() {
-	i.closeOnce.Do(func() {
+	if i.closeOnce.CompareAndSwap(false, true) {
 		i.le.Debug("Close()")
-	})
+	}
 	i.it.Close()
 }
 

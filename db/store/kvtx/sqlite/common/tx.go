@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/kvtx"
 )
@@ -30,7 +31,7 @@ type Tx struct {
 	write        bool
 	closed       bool
 	finalizeMu   sync.RWMutex
-	finalizeOnce sync.Once
+	finalizeOnce atomic.Bool
 
 	// Precomputed queries
 	getQuery                 string
@@ -230,7 +231,9 @@ func (t *Tx) Commit(ctx context.Context) error {
 		if err := t.errIfClosed(); err != nil {
 			return err
 		}
-		t.finalizeOnce.Do(t.markClosed)
+		if t.finalizeOnce.CompareAndSwap(false, true) {
+			t.markClosed()
+		}
 		return nil
 	}
 
@@ -238,11 +241,11 @@ func (t *Tx) Commit(ctx context.Context) error {
 		err       error
 		committed bool
 	)
-	t.finalizeOnce.Do(func() {
+	if t.finalizeOnce.CompareAndSwap(false, true) {
 		t.markClosed()
 		err = t.txn.Commit()
 		committed = true
-	})
+	}
 	if !committed {
 		return kvtx.ErrDiscarded
 	}
@@ -274,12 +277,12 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 
 // Discard cancels the transaction.
 func (t *Tx) Discard() {
-	t.finalizeOnce.Do(func() {
+	if t.finalizeOnce.CompareAndSwap(false, true) {
 		t.markClosed()
 		if t.txn != nil {
 			_ = t.txn.Rollback()
 		}
-	})
+	}
 }
 
 // _ is a type assertion

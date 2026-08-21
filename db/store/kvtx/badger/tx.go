@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 
 	bdb "github.com/dgraph-io/badger/v4"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -13,7 +14,7 @@ import (
 type Tx struct {
 	s          *Store
 	txn        *bdb.Txn
-	commitOnce sync.Once
+	commitOnce atomic.Bool
 	write      bool
 	mtx        sync.Mutex
 	rel        bool
@@ -169,7 +170,7 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 // Will return error if called after Discard()
 func (t *Tx) Commit(ctx context.Context) error {
 	var err error
-	t.commitOnce.Do(func() {
+	if t.commitOnce.CompareAndSwap(false, true) {
 		t.mtx.Lock()
 		t.rel = true
 		// ensure all iterators are closed
@@ -182,7 +183,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 		if t.write {
 			t.s.writeMtx.Unlock()
 		}
-	})
+	}
 	if errors.Is(err, bdb.ErrConflict) {
 		return errors.Join(kvtx.ErrInvalidSnapshot, err)
 	}
@@ -209,7 +210,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 // Cannot return an error.
 // Can be called unlimited times.
 func (t *Tx) Discard() {
-	t.commitOnce.Do(func() {
+	if t.commitOnce.CompareAndSwap(false, true) {
 		t.mtx.Lock()
 		t.rel = true
 		// ensure all iterators are closed
@@ -221,7 +222,7 @@ func (t *Tx) Discard() {
 		if t.write {
 			t.s.writeMtx.Unlock()
 		}
-	})
+	}
 	t.txn.Discard()
 }
 

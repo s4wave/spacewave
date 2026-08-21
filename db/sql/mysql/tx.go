@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/dolthub/go-mysql-server/sql"
 	"github.com/s4wave/spacewave/db/block"
@@ -11,7 +12,7 @@ import (
 
 // Tx contains a transaction against the mysql data store.
 type Tx struct {
-	commitOnce sync.Once
+	commitOnce atomic.Bool
 	t          *Mysql
 	write      bool
 
@@ -34,7 +35,7 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 		t.Discard()
 		return nil
 	}
-	t.commitOnce.Do(func() {
+	if t.commitOnce.CompareAndSwap(false, true) {
 		defer t.t.rmtx.Unlock()
 		t.bcs.SetBlock(t.root, true)
 		res, _, err := t.tx.Write(ctx, true)
@@ -58,7 +59,7 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 				t.t.rootCursor.SetRootRef(res.Clone())
 			}
 		}
-	})
+	}
 	return
 }
 
@@ -67,13 +68,13 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 // Cannot return an error.
 // Can be called unlimited times.
 func (t *Tx) Discard() {
-	t.commitOnce.Do(func() {
+	if t.commitOnce.CompareAndSwap(false, true) {
 		if t.write {
 			t.t.rmtx.Unlock()
 		} else {
 			t.t.rmtx.RUnlock()
 		}
-	})
+	}
 }
 
 // DatabaseCount returns the number of databases in the tree.

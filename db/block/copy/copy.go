@@ -1,4 +1,4 @@
-// Package block_copy provides functions for copying block DAGs between stores.
+// Package blockcopy provides functions for copying block DAGs between stores.
 package blockcopy
 
 import (

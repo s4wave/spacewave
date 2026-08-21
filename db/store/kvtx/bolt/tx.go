@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"sync"
+	"sync/atomic"
 
 	bdb "github.com/aperturerobotics/bbolt"
 	bdberrors "github.com/aperturerobotics/bbolt/errors"
@@ -19,7 +19,7 @@ import (
 type Tx struct {
 	txn         *bdb.Tx
 	bucket      []byte
-	discardOnce sync.Once
+	discardOnce atomic.Bool
 }
 
 // NewTx constructs a new bolt transaction.
@@ -165,10 +165,10 @@ func (t *Tx) Delete(ctx context.Context, key []byte) (err error) {
 func (t *Tx) Commit(ctx context.Context) (err error) {
 	defer recoverBoltTxPanic(&err)
 	var done bool
-	t.discardOnce.Do(func() {
+	if t.discardOnce.CompareAndSwap(false, true) {
 		err = t.txn.Commit()
 		done = true
-	})
+	}
 	if err != nil {
 		return err
 	}
@@ -202,12 +202,12 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (exists bool, err error) {
 // Cannot return an error.
 // Can be called unlimited times.
 func (t *Tx) Discard() {
-	t.discardOnce.Do(func() {
+	if t.discardOnce.CompareAndSwap(false, true) {
 		defer func() {
 			_ = recover()
 		}()
 		_ = t.txn.Rollback()
-	})
+	}
 }
 
 func recoverBoltTxPanic(err *error) {

@@ -3,7 +3,6 @@ package kvtx_vlogger
 import (
 	"context"
 	"strconv"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -17,7 +16,7 @@ type Tx struct {
 	kvtx.Tx
 	le *logrus.Entry
 
-	discardOnce sync.Once
+	discardOnce atomic.Bool
 }
 
 // NewTx constructs a new verbose logger Tx wrapping tx.
@@ -205,7 +204,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (found bool, err error) {
 func (t *Tx) Commit(ctx context.Context) (err error) {
 	// only log the first Commit or Discard call
 	var logFn func()
-	t.discardOnce.Do(func() {
+	if t.discardOnce.CompareAndSwap(false, true) {
 		t1 := time.Now()
 		logFn = func() {
 			t.le.Debugf(
@@ -214,7 +213,7 @@ func (t *Tx) Commit(ctx context.Context) (err error) {
 				time.Since(t1).String(),
 			)
 		}
-	})
+	}
 	if logFn != nil {
 		defer logFn()
 	}
@@ -227,9 +226,9 @@ func (t *Tx) Commit(ctx context.Context) (err error) {
 // Can be called unlimited times.
 func (t *Tx) Discard() {
 	t.Tx.Discard()
-	t.discardOnce.Do(func() {
+	if t.discardOnce.CompareAndSwap(false, true) {
 		t.le.Debug("Discard()")
-	})
+	}
 }
 
 // _ is a type assertion

@@ -2,7 +2,7 @@ package store_kvtx_redis
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -17,7 +17,7 @@ var ErrNotWrite = kvtx.ErrNotWrite
 // NOTE: ScanPrefix with binary keys currently behaves incorrectly
 type Tx struct {
 	s          *Store
-	commitOnce sync.Once
+	commitOnce atomic.Bool
 	write      bool
 	ops        txOps
 
@@ -138,7 +138,7 @@ func (t *Tx) Delete(ctx context.Context, key []byte) error {
 // Will return error if called after Discard()
 func (t *Tx) Commit(ctx context.Context) error {
 	var err error
-	t.commitOnce.Do(func() {
+	if t.commitOnce.CompareAndSwap(false, true) {
 		// execute the command
 		if t.write {
 			defer t.s.writeMtx.Unlock()
@@ -150,7 +150,7 @@ func (t *Tx) Commit(ctx context.Context) error {
 			t.cache = nil
 		}
 		_ = t.ops.conn.Close()
-	})
+	}
 	return err
 }
 
@@ -167,7 +167,7 @@ func (t *Tx) Exists(ctx context.Context, key []byte) (bool, error) {
 // Cannot return an error.
 // Can be called unlimited times.
 func (t *Tx) Discard() {
-	t.commitOnce.Do(func() {
+	if t.commitOnce.CompareAndSwap(false, true) {
 		if t.write {
 			defer t.s.writeMtx.Unlock()
 			wc := t.ops.writeConn
@@ -178,7 +178,7 @@ func (t *Tx) Discard() {
 			t.cache = nil
 		}
 		_ = t.ops.conn.Close()
-	})
+	}
 }
 
 // getWriteConn gets or establishes the write conn.

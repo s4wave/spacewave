@@ -3,7 +3,7 @@ package kvtx_block_iavl
 import (
 	"bytes"
 	"context"
-	"sync"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
@@ -20,7 +20,7 @@ type Tx struct {
 	t          *AVLTree
 	tx         *block.Transaction
 	rel        func()
-	commitOnce sync.Once
+	commitOnce atomic.Bool
 
 	// rootChangedCb is called if the root cursor changed.
 	// may be nil
@@ -66,7 +66,7 @@ func (t *Tx) GetCursor() *block.Cursor {
 // Commit commits the transaction to storage.
 // Can return an error to indicate tx failure.
 func (t *Tx) Commit(ctx context.Context) (cerr error) {
-	t.commitOnce.Do(func() {
+	if t.commitOnce.CompareAndSwap(false, true) {
 		if t.write && t.tx != nil {
 			br, _, err := t.tx.Write(ctx, true)
 			if err != nil {
@@ -78,7 +78,7 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 		if t.rel != nil {
 			t.rel()
 		}
-	})
+	}
 	return
 }
 
@@ -87,11 +87,11 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 // Cannot return an error.
 // Can be called unlimited times.
 func (t *Tx) Discard() {
-	t.commitOnce.Do(func() {
+	if t.commitOnce.CompareAndSwap(false, true) {
 		if t.rel != nil {
 			t.rel()
 		}
-	})
+	}
 }
 
 // Size returns the number of keys in the tree.

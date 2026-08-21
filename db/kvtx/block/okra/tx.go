@@ -2,7 +2,7 @@ package kvtx_block_okra
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -17,7 +17,7 @@ type Tx struct {
 
 	tx         *block.Transaction
 	rel        func()
-	commitOnce sync.Once
+	commitOnce atomic.Bool
 
 	rootChangedCb func(*block.Cursor)
 }
@@ -76,7 +76,7 @@ func (t *Tx) GetCursor() *block.Cursor {
 
 // Commit commits the transaction to storage.
 func (t *Tx) Commit(ctx context.Context) (cerr error) {
-	t.commitOnce.Do(func() {
+	if t.commitOnce.CompareAndSwap(false, true) {
 		if t.write {
 			if t.tx != nil {
 				br, _, err := t.tx.Write(ctx, true)
@@ -93,17 +93,17 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 		if t.rel != nil {
 			t.rel()
 		}
-	})
+	}
 	return
 }
 
 // Discard cancels the transaction.
 func (t *Tx) Discard() {
-	t.commitOnce.Do(func() {
+	if t.commitOnce.CompareAndSwap(false, true) {
 		if t.rel != nil {
 			t.rel()
 		}
-	})
+	}
 }
 
 // Size returns the number of keys in the tree.
