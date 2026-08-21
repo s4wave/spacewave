@@ -87,6 +87,7 @@ func (c *Controller) GetBlockFromService(ctx context.Context, ref *block.BlockRe
 	if err != nil {
 		return nil, false, err
 	}
+	defer resp.Body.Close()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, false, err
