@@ -14,7 +14,7 @@ type Factory struct {
 	bus bus.Bus
 }
 
-// NewFactory builds a link hold open factory.
+// NewFactory builds a link establish factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }

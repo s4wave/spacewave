@@ -32,8 +32,7 @@ type Controller struct {
 	srcPeerID peer.ID
 }
 
-// NewController constructs a new peer controller.
-// If privKey is nil, one will be generated.
+// NewController constructs a new link establish controller.
 func NewController(b bus.Bus, le *logrus.Entry, peers []peer.ID, srcID peer.ID) *Controller {
 	return &Controller{
 		le:    le,
