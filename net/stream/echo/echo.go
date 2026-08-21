@@ -13,7 +13,7 @@ import (
 )
 
 // DefaultProtocolID is the default echo protocol ID.
-var DefaultProtocolID = protocol.ID("bifrost/echo")
+const DefaultProtocolID = protocol.ID("bifrost/echo")
 
 // Controller implements the stream echo controller. The controller handles
 // HandleMountedStream directives by echoing all data.
