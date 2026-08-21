@@ -41,3 +41,15 @@ func TestDerive(t *testing.T) {
 		t.Logf("keys[%d]: derived private key: %s", ki, derivPrivID.String())
 	}
 }
+
+// TestDeriveEmptyContext tests that DeriveKey rejects an empty context.
+func TestDeriveEmptyContext(t *testing.T) {
+	keys := BuildMockKeys(t)
+
+	// Derive with an empty context; expect ErrEmptyContext.
+	var secret [32]byte
+	err := DeriveKey("", nil, keys[0], secret[:])
+	if !errors.Is(err, ErrEmptyContext) {
+		t.Fatalf("expected ErrEmptyContext, got: %v", err)
+	}
+}

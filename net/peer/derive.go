@@ -24,7 +24,12 @@ import (
 //
 // the purpose of these requirements is to ensure that an attacker cannot trick
 // two different applications into using the same context string.
+// Returns ErrEmptyContext if the context is empty.
 func DeriveKey(context string, salt []byte, privKey crypto.PrivKey, out []byte) error {
+	if context == "" {
+		return ErrEmptyContext
+	}
+
 	// Convert the private key to its standard representation.
 	spKey, err := crypto.PrivKeyToStdKey(privKey)
 	if err != nil {

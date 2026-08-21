@@ -17,4 +17,6 @@ var (
 	ErrNoPublicKey = errors.New("public key is not embedded in peer ID")
 	// ErrInvalidEd25519PubKeyForCurve25519 is returned if a public key cannot be used for curve25519.
 	ErrInvalidEd25519PubKeyForCurve25519 = errors.New("invalid ed25519 public key for curve25519")
+	// ErrEmptyContext is returned when a derivation context is empty.
+	ErrEmptyContext = errors.New("derivation context cannot be empty")
 )
