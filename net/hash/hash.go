@@ -56,24 +56,14 @@ func (h HashType) Sum(data []byte) ([]byte, error) {
 	return sumHashType(h, data)
 }
 
-// CompareHash compares two hashes.
+// CompareHash compares two hashes. Both nil compares equal; a nil hash
+// never equals a non-nil one.
 func (h *Hash) CompareHash(other *Hash) bool {
-	if other == nil && h == nil {
-		return true
-	}
 	if h == nil || other == nil {
-		return false
+		return h == nil && other == nil
 	}
-	if h.GetHashType() != other.GetHashType() {
-		return false
-	}
-	if len(h.GetHash()) != len(other.GetHash()) {
-		return false
-	}
-	if !bytes.Equal(h.GetHash(), other.GetHash()) {
-		return false
-	}
-	return true
+	return h.GetHashType() == other.GetHashType() &&
+		bytes.Equal(h.GetHash(), other.GetHash())
 }
 
 // VerifyData verifies data against the sum.

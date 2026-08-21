@@ -13,40 +13,35 @@ import (
 // Uses PEM format and ed25519 keys.
 // May return a private key + an error.
 func OpenOrWritePrivKey(le *logrus.Entry, privKeyPath string) (crypto.PrivKey, error) {
-	var privKey crypto.PrivKey
-	var err error
+	// Fail on stat errors other than a missing file, such as an unreadable
+	// path component.
+	_, statErr := os.Stat(privKeyPath)
+	if statErr != nil && !os.IsNotExist(statErr) {
+		return nil, statErr
+	}
 
-	// Generate and persist a key when the configured file is absent.
-	if _, err := os.Stat(privKeyPath); err != nil {
-		if os.IsNotExist(err) {
-			if le != nil {
-				le.Debug("generating priv key")
-			}
-			privKey, _, err = crypto.GenerateEd25519Key(rand.Reader)
-			if err != nil {
-				return privKey, err
-			}
-			dat, err := keypem.MarshalPrivKeyPem(privKey)
-			if err != nil {
-				return privKey, err
-			}
-			if err := os.WriteFile(privKeyPath, dat, 0o600); err != nil {
-				return privKey, err
-			}
-			if le != nil {
-				le.Debug("wrote private key")
-			}
-		}
-	} else {
-		// Load and parse the existing private-key file.
+	// Load and parse the existing private-key file when present.
+	if statErr == nil {
 		dat, err := os.ReadFile(privKeyPath)
 		if err != nil {
-			return privKey, err
+			return nil, err
 		}
-		privKey, err = keypem.ParsePrivKeyPem(dat)
-		if err != nil {
-			return privKey, err
-		}
+		return keypem.ParsePrivKeyPem(dat)
 	}
-	return privKey, err
+
+	// Generate and persist a new key when the configured file is absent.
+	le.Debug("generating priv key")
+	privKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	dat, err := keypem.MarshalPrivKeyPem(privKey)
+	if err != nil {
+		return nil, err
+	}
+	if err := os.WriteFile(privKeyPath, dat, 0o600); err != nil {
+		return nil, err
+	}
+	le.Debug("wrote private key")
+	return privKey, nil
 }

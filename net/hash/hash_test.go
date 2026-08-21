@@ -66,3 +66,28 @@ func TestJSON(t *testing.T) {
 		t.Fail()
 	}
 }
+
+// TestCompareHash tests hash equality across nil, type, length, and content.
+func TestCompareHash(t *testing.T) {
+	h1 := &Hash{HashType: HashType_HashType_BLAKE3, Hash: []byte{1, 2, 3}}
+	h1Copy := &Hash{HashType: h1.GetHashType(), Hash: []byte{1, 2, 3}}
+	h2 := &Hash{HashType: h1.GetHashType(), Hash: []byte{1, 2}}
+	h3 := &Hash{HashType: HashType_HashType_SHA256, Hash: []byte{1, 2, 3}}
+
+	cases := map[string]struct {
+		a, b  *Hash
+		equal bool
+	}{
+		"both nil":       {nil, nil, true},
+		"left nil":       {nil, h1, false},
+		"right nil":      {h1, nil, false},
+		"equal":          {h1, h1Copy, true},
+		"length differs": {h1, h2, false},
+		"type differs":   {h1, h3, false},
+	}
+	for name, tc := range cases {
+		if tc.a.CompareHash(tc.b) != tc.equal {
+			t.Errorf("%s: CompareHash = %v, want %v", name, !tc.equal, tc.equal)
+		}
+	}
+}
