@@ -9,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// AddPeer generates a keypair and adds a peer to the graph, failing the
+// test on error.
 func AddPeer(t *testing.T, g *graph.Graph) *graph.Peer {
 	ctx := context.Background()
 
@@ -20,6 +22,8 @@ func AddPeer(t *testing.T, g *graph.Graph) *graph.Peer {
 	return p
 }
 
+// InitSimulator constructs the simulator for the graph, failing the test on
+// error.
 func InitSimulator(
 	t *testing.T,
 	ctx context.Context,

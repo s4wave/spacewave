@@ -45,5 +45,4 @@ func TestBasic(t *testing.T) {
 	}
 
 	le.Infof("successful connectivity test: %v", descrip)
-	// <-ctx.Done()
 }

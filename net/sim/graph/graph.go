@@ -44,7 +44,6 @@ func (g *Graph) BuildEdge(from, to graph.Node) graph.Edge {
 // AddEdge adds an edge to the network graph.
 func (g *Graph) AddEdge(edge Edge) {
 	g.graph.SetEdge(edge)
-	g.graph.Edges()
 }
 
 // From returns all nodes that can be reached directly from the node.
