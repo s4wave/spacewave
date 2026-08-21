@@ -12,6 +12,8 @@ type mountedStreamResolver struct {
 	c *Server
 }
 
+// newMountedStreamResolver constructs a resolver for incoming mounted
+// streams handled by the server.
 func newMountedStreamResolver(c *Server) *mountedStreamResolver {
 	return &mountedStreamResolver{c: c}
 }

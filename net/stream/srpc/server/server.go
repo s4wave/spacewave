@@ -127,27 +127,14 @@ func (s *Server) ResolveHandleMountedStream(
 ) ([]directive.Resolver, error) {
 	// Match the incoming protocol against the configured protocol set.
 	inProtocol := dir.HandleMountedStreamProtocolID()
-	var match bool
-	if slices.Contains(s.protocolIDs, inProtocol) {
-		match = true
-	}
-	if !match {
+	if !slices.Contains(s.protocolIDs, inProtocol) {
 		return nil, nil
 	}
 
 	// Match the incoming local peer against the configured peer set.
 	inPeerID := dir.HandleMountedStreamLocalPeerID()
-	inPeerIDString := inPeerID.String()
-	if len(s.peerIDs) != 0 {
-		match = false
-		for _, pid := range s.peerIDs {
-			if pid == inPeerIDString {
-				match = true
-			}
-		}
-		if !match {
-			return nil, nil
-		}
+	if len(s.peerIDs) != 0 && !slices.Contains(s.peerIDs, inPeerID.String()) {
+		return nil, nil
 	}
 
 	// Return the mounted-stream resolver for matching requests.
