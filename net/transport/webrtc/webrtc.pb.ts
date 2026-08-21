@@ -350,11 +350,17 @@ export interface WebRtcSdp {
    */
   sdpType?: string
   /**
-   * Sdp contains the WebRTC session description.
+   * Sdp contains the exact WebRTC session description.
    *
    * @generated from field: string sdp = 3;
    */
   sdp?: string
+  /**
+   * OfferId is the 32-byte SHA-256 digest of the exact offer SDP for this generation.
+   *
+   * @generated from field: bytes offer_id = 4;
+   */
+  offerId?: Uint8Array
 }
 
 export const WebRtcSdp: MessageType<WebRtcSdp> =
@@ -364,6 +370,7 @@ export const WebRtcSdp: MessageType<WebRtcSdp> =
       { no: 1, name: 'tx_seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'sdp_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'sdp', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'offer_id', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -380,6 +387,12 @@ export interface WebRtcIce {
    * @generated from field: string candidate = 1;
    */
   candidate?: string
+  /**
+   * OfferId is the 32-byte SHA-256 digest of the exact offer SDP for this generation.
+   *
+   * @generated from field: bytes offer_id = 2;
+   */
+  offerId?: Uint8Array
 }
 
 export const WebRtcIce: MessageType<WebRtcIce> =
@@ -387,18 +400,19 @@ export const WebRtcIce: MessageType<WebRtcIce> =
     typeName: 'webrtc.WebRtcIce',
     fields: [
       { no: 1, name: 'candidate', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'offer_id', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
 /**
- * WebRtcSignal is a WebRTC Signaling message sent via the Signaling channel.
+ * WebRtcSignal is a WebRTC signaling message sent via the signaling channel.
  *
  * @generated from message webrtc.WebRtcSignal
  */
 export interface WebRtcSignal {
   /**
-   * Body is the body of the message.
+   * Body is the signaling message body.
    *
    * @generated from oneof webrtc.WebRtcSignal.body
    */

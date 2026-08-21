@@ -93,9 +93,9 @@ message IceServerConfig {
   }
 }
 
-// WebRtcSignal is a WebRTC Signaling message sent via the Signaling channel.
+// WebRtcSignal is a WebRTC signaling message sent via the signaling channel.
 message WebRtcSignal {
-  // Body is the body of the message.
+  // Body is the signaling message body.
   oneof body {
     // RequestOffer requests a new offer from the offerer with the local session seqno.
     // Incremented when negotiation is needed (something changes about the session).
@@ -115,12 +115,16 @@ message WebRtcSdp {
   // SdpType is the string encoded type of the sdp.
   // Examples: "offer" "answer"
   string sdp_type = 2;
-  // Sdp contains the WebRTC session description.
+  // Sdp contains the exact WebRTC session description.
   string sdp = 3;
+  // OfferId is the 32-byte SHA-256 digest of the exact offer SDP for this generation.
+  bytes offer_id = 4;
 }
 
 // WebRtcIce contains an ICE candidate.
 message WebRtcIce {
   // Candidate contains the JSON-encoded ICE candidate.
   string candidate = 1;
+  // OfferId is the 32-byte SHA-256 digest of the exact offer SDP for this generation.
+  bytes offer_id = 2;
 }

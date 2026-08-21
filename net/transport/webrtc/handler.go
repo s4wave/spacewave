@@ -86,9 +86,6 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 		// The signature on the message was already verified.
 		sig, err := DecodeWebRtcSignal(data, r.t.privKey)
 		scrub.Scrub(data)
-		if err == nil {
-			err = sig.Validate()
-		}
 		if err != nil {
 			r.t.le.WithError(err).Warnf("failed to decode incoming signal from %v", remotePeerIDStr)
 			return err

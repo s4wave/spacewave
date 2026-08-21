@@ -1,7 +1,10 @@
 package webrtc
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"errors"
+	"strings"
 	"testing"
 
 	pion_webrtc "github.com/pion/webrtc/v4"
@@ -174,5 +177,190 @@ func TestRemoteICECandidateApplierPropagatesFailure(t *testing.T) {
 	}
 	if calls != 2 {
 		t.Fatalf("AddICECandidate calls %d, want 2", calls)
+	}
+}
+
+func TestSessionOfferIdentityAdmission(t *testing.T) {
+	offer := pion_webrtc.SessionDescription{Type: pion_webrtc.SDPTypeOffer, SDP: "v=0\r\no=fresh\r\n"}
+	offerID := OfferID(offer.SDP)
+	sdp := NewWebRtcSdp(1, &offer, offerID)
+	sess := new(session)
+
+	admitted, fresh := sess.admitRemoteSDP(sdp)
+	if !admitted || !fresh {
+		t.Fatalf("first offer admission = %v, fresh = %v", admitted, fresh)
+	}
+	sess.beginOfferGeneration(offerID)
+	admitted, fresh = sess.admitRemoteSDP(sdp)
+	if !admitted || fresh {
+		t.Fatalf("duplicate offer admission = %v, fresh = %v", admitted, fresh)
+	}
+
+	mismatched := NewWebRtcSdp(2, &offer, [sha256.Size]byte{})
+	if err := (&WebRtcSignal{
+		Body: &WebRtcSignal_Sdp{Sdp: mismatched},
+	}).Validate(); err == nil {
+		t.Fatal("mismatched offer identity validated")
+	}
+	missing := &WebRtcSdp{TxSeqno: 2, SdpType: offer.Type.String(), Sdp: offer.SDP}
+	if err := (&WebRtcSignal{
+		Body: &WebRtcSignal_Sdp{Sdp: missing},
+	}).Validate(); err == nil {
+		t.Fatal("missing offer identity validated")
+	}
+}
+
+func TestCorrelatedICEBuffersReordersAndCompletesWithinGeneration(t *testing.T) {
+	offer := pion_webrtc.SessionDescription{Type: pion_webrtc.SDPTypeOffer, SDP: "v=0\r\no=offer\r\n"}
+	offerID := OfferID(offer.SDP)
+	sess := &session{signaling: sessionSignalingState{offerID: offerID, offerEstablished: true}}
+	mline := uint16(0)
+	candidate, err := NewWebRtcIce(&pion_webrtc.ICECandidateInit{
+		Candidate:     "candidate:1 1 udp 2130706431 192.0.2.1 5000 typ host",
+		SDPMLineIndex: &mline,
+	}, offerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	eoc, err := NewWebRtcIce(&pion_webrtc.ICECandidateInit{SDPMLineIndex: &mline}, offerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	staleID := OfferID("other offer")
+	stale, err := NewWebRtcIce(&pion_webrtc.ICECandidateInit{
+		Candidate:     "candidate:stale 1 udp 1 192.0.2.2 5001 typ host",
+		SDPMLineIndex: &mline,
+	}, staleID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sess.admitsRemoteICE(stale) {
+		t.Fatal("stale reordered candidate entered the pending buffer")
+	}
+	if !sess.admitsRemoteICE(candidate) || !sess.admitsRemoteICE(eoc) {
+		t.Fatal("active generation candidate or EOC was rejected")
+	}
+
+	// Candidate and EOC may arrive before the answer and are flushed in arrival
+	// order after the correlated description. Duplicate and reordered material
+	// after EOC cannot reopen the completed generation.
+	var pending []pion_webrtc.ICECandidateInit
+	for _, signal := range []*WebRtcIce{candidate, eoc} {
+		ice, err := signal.ParseICECandidateInit()
+		if err != nil {
+			t.Fatal(err)
+		}
+		pending = append(pending, *ice)
+	}
+	var applied []pion_webrtc.ICECandidateInit
+	applier := remoteICECandidateApplier{add: func(candidate pion_webrtc.ICECandidateInit) error {
+		applied = append(applied, candidate)
+		return nil
+	}}
+	if err := applier.apply(pending); err != nil {
+		t.Fatal(err)
+	}
+	if err := applier.apply([]pion_webrtc.ICECandidateInit{pending[0]}); err != nil {
+		t.Fatal(err)
+	}
+	if len(applied) != 2 || applied[0].Candidate == "" || applied[1].Candidate != "" {
+		t.Fatalf("applied correlated ICE sequence = %#v", applied)
+	}
+
+	freshOffer := pion_webrtc.SessionDescription{Type: pion_webrtc.SDPTypeOffer, SDP: "v=0\r\no=fresh\r\n"}
+	freshID := OfferID(freshOffer.SDP)
+	admitted, fresh := sess.admitRemoteSDP(NewWebRtcSdp(2, &freshOffer, freshID))
+	if !admitted || !fresh {
+		t.Fatal("fresh offer did not replace the completed generation")
+	}
+	sess.beginOfferGeneration(freshID)
+	if sess.admitsRemoteICE(eoc) {
+		t.Fatal("old EOC remained admissible after fresh offer")
+	}
+}
+
+func TestBeginOfferGenerationResetsAllCorrelatedStateAndEmitsOneFreshEOC(t *testing.T) {
+	firstID := OfferID("first")
+	freshID := OfferID("fresh")
+	sess := &session{
+		signaling: sessionSignalingState{
+			offerID:              firstID,
+			offerEstablished:     true,
+			pendingRemoteICE:     []pion_webrtc.ICECandidateInit{{Candidate: "old"}},
+			remoteDescriptionSet: true,
+			lastAppliedRemoteSDP: "old",
+			remoteICE:            remoteICECandidateApplier{complete: true},
+			lastSentICE:          4,
+			sentICEComplete:      true,
+		},
+		localIceCandidates:         []*pion_webrtc.ICECandidateInit{{Candidate: "old"}},
+		localIceCandidatesComplete: true,
+	}
+	sess.beginOfferGeneration(freshID)
+
+	state := &sess.signaling
+	if state.offerID != freshID || !state.offerEstablished || len(state.pendingRemoteICE) != 0 ||
+		state.remoteDescriptionSet || state.lastAppliedRemoteSDP != "" ||
+		state.remoteICE.complete || state.lastSentICE != 0 || state.sentICEComplete ||
+		len(sess.localIceCandidates) != 0 || sess.localIceCandidatesComplete {
+		t.Fatalf("fresh generation retained stale state: %#v", state)
+	}
+
+	first, err := sess.nextLocalEndOfCandidates(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := sess.nextLocalEndOfCandidates(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first == nil || second != nil {
+		t.Fatalf("EOC first=%v second=%v", first, second)
+	}
+	if !bytes.Equal(first.GetIce().GetOfferId(), freshID[:]) {
+		t.Fatal("fresh EOC carried the prior offer identity")
+	}
+}
+
+func TestPendingRemoteICECandidateLimitChecksNextCountBeforeAppend(t *testing.T) {
+	candidate := pion_webrtc.ICECandidateInit{
+		Candidate: "candidate:1 1 udp 2130706431 192.0.2.1 5000 typ host",
+	}
+	sess := &session{signaling: sessionSignalingState{
+		pendingRemoteICE: make([]pion_webrtc.ICECandidateInit, maxPendingRemoteICECandidates-1),
+	}}
+	if err := sess.bufferRemoteICE("x", candidate); err != nil {
+		t.Fatalf("exact candidate limit rejected: %v", err)
+	}
+	if got := len(sess.signaling.pendingRemoteICE); got != maxPendingRemoteICECandidates {
+		t.Fatalf("pending candidate count %d, want %d", got, maxPendingRemoteICECandidates)
+	}
+	if err := sess.bufferRemoteICE("x", candidate); err == nil {
+		t.Fatal("candidate above limit was buffered")
+	}
+	if got := len(sess.signaling.pendingRemoteICE); got != maxPendingRemoteICECandidates {
+		t.Fatalf("rejected candidate changed pending count to %d", got)
+	}
+}
+
+func TestPendingRemoteICEByteLimitChecksNextSizeBeforeAppend(t *testing.T) {
+	candidate := pion_webrtc.ICECandidateInit{
+		Candidate: "candidate:1 1 udp 2130706431 192.0.2.1 5000 typ host",
+	}
+	sess := new(session)
+	if err := sess.bufferRemoteICE(strings.Repeat("x", maxPendingRemoteICEBytes), candidate); err != nil {
+		t.Fatalf("exact byte limit rejected: %v", err)
+	}
+	if got := sess.signaling.pendingRemoteICEBytes; got != maxPendingRemoteICEBytes {
+		t.Fatalf("pending bytes %d, want %d", got, maxPendingRemoteICEBytes)
+	}
+	if err := sess.bufferRemoteICE("x", candidate); err == nil {
+		t.Fatal("candidate above byte limit was buffered")
+	}
+	if got := len(sess.signaling.pendingRemoteICE); got != 1 {
+		t.Fatalf("rejected candidate changed pending count to %d", got)
+	}
+	if got := sess.signaling.pendingRemoteICEBytes; got != maxPendingRemoteICEBytes {
+		t.Fatalf("rejected candidate changed pending bytes to %d", got)
 	}
 }

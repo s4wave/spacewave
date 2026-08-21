@@ -1,8 +1,13 @@
 package webrtc
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"strings"
+
 	jsoniter "github.com/aperturerobotics/json-iterator-lite"
 	"github.com/aperturerobotics/util/scrub"
+	"github.com/pion/ice/v4"
 	"github.com/pion/sdp/v3"
 	"github.com/pion/webrtc/v4"
 	"github.com/pkg/errors"
@@ -10,11 +15,17 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// SignalingCryptContext is the encryption context to use for the signaling messages.
-var SignalingCryptContext = "github.com/s4wave/spacewave/net 2024-01-15 17:58:55 webrtc signaling"
+// SignalingCryptContext is the authenticated encryption domain for the strict
+// offer-correlated signaling schema.
+const SignalingCryptContext = "github.com/s4wave/spacewave/net 2026-08-12 webrtc signaling offer-id"
 
 // EncodeWebRtcSignal marshals and encrypts the WebRtcSignal message.
 func EncodeWebRtcSignal(s *WebRtcSignal, dstPeer crypto.PubKey) ([]byte, error) {
+	// Validate the complete signal before it reaches the wire.
+	if err := s.Validate(); err != nil {
+		return nil, err
+	}
+
 	// Marshal the signal before encrypting its serialized bytes.
 	msgSrc, err := s.MarshalVT()
 	if err != nil {
@@ -22,22 +33,25 @@ func EncodeWebRtcSignal(s *WebRtcSignal, dstPeer crypto.PubKey) ([]byte, error) 
 	}
 	defer scrub.Scrub(msgSrc)
 
-	// Encrypt the serialized signal for the destination peer.
+	// Encrypt the serialized signal in the signaling authentication domain.
 	return peer.EncryptToPubKey(dstPeer, SignalingCryptContext, msgSrc)
 }
 
-// DecodeWebRtcSignal decrypts and unmarshals the WebRtcSignal message.
+// DecodeWebRtcSignal decrypts, unmarshals, and validates a signaling message.
 func DecodeWebRtcSignal(msg []byte, privKey crypto.PrivKey) (*WebRtcSignal, error) {
-	// Decrypt the signal before unmarshaling its body.
+	// Decrypt the signal in the strict schema authentication domain.
 	msgDec, err := peer.DecryptWithPrivKey(privKey, SignalingCryptContext, msg)
 	if err != nil {
 		return nil, err
 	}
 	defer scrub.Scrub(msgDec)
 
-	// Unmarshal the decrypted signal.
+	// Unmarshal and validate the envelope before returning it for ingress.
 	out := &WebRtcSignal{}
 	if err := out.UnmarshalVT(msgDec); err != nil {
+		return nil, err
+	}
+	if err := out.Validate(); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -63,23 +77,42 @@ func (m *WebRtcSignal) Validate() error {
 	return nil
 }
 
-// NewWebRtcSdp constructs a new WebRtcSdp from a SessionDescription.
-func NewWebRtcSdp(txSeqno uint64, desc *webrtc.SessionDescription) *WebRtcSdp {
+// OfferID returns the SHA-256 identity of the exact offer SDP.
+func OfferID(offerSDP string) [sha256.Size]byte { return sha256.Sum256([]byte(offerSDP)) }
+
+// NewWebRtcSdp constructs a new WebRtcSdp for one offer generation.
+func NewWebRtcSdp(
+	txSeqno uint64,
+	desc *webrtc.SessionDescription,
+	offerID [sha256.Size]byte,
+) *WebRtcSdp {
 	return &WebRtcSdp{
 		TxSeqno: txSeqno,
 		SdpType: desc.Type.String(),
 		Sdp:     desc.SDP,
+		OfferId: bytes.Clone(offerID[:]),
 	}
 }
 
 // Validate validates the WebRtcSdp message.
 func (s *WebRtcSdp) Validate() error {
+	if len(s.GetOfferId()) != sha256.Size {
+		return errors.Errorf("offer_id: length %d, want %d", len(s.GetOfferId()), sha256.Size)
+	}
+
 	// Require a non-empty and recognized SDP type.
 	if s.GetSdpType() == "" {
 		return errors.New("sdp_type: cannot be empty")
 	}
-	if s.ParseSDPType() == webrtc.SDPTypeUnknown {
+	sdpType := s.ParseSDPType()
+	if sdpType == webrtc.SDPTypeUnknown {
 		return errors.Errorf("sdp_type: unknown sdp type: %v", s.GetSdpType())
+	}
+	if sdpType == webrtc.SDPTypeOffer {
+		offerID := OfferID(s.GetSdp())
+		if !bytes.Equal(s.GetOfferId(), offerID[:]) {
+			return errors.New("offer_id: does not match offer sdp")
+		}
 	}
 
 	// Parse the SDP payload to validate its structure.
@@ -120,14 +153,32 @@ func (s *WebRtcSdp) ParseSDP() (*sdp.SessionDescription, error) {
 
 // Validate validates the WebRtcIce message.
 func (s *WebRtcIce) Validate() error {
-	if _, err := s.ParseICECandidateInit(); err != nil {
+	if len(s.GetOfferId()) != sha256.Size {
+		return errors.Errorf("offer_id: length %d, want %d", len(s.GetOfferId()), sha256.Size)
+	}
+	candidate, err := s.ParseICECandidateInit()
+	if err != nil {
 		return err
+	}
+	if candidate.Candidate == "" {
+		if candidate.SDPMLineIndex == nil || *candidate.SDPMLineIndex != 0 ||
+			candidate.SDPMid != nil || candidate.UsernameFragment != nil {
+			return errors.New("ice candidate: invalid end-of-candidates shape")
+		}
+		return nil
+	}
+	candidateValue, ok := strings.CutPrefix(candidate.Candidate, "candidate:")
+	if !ok {
+		return errors.New("invalid ice candidate grammar: missing candidate prefix")
+	}
+	if _, err := ice.UnmarshalCandidate(candidateValue); err != nil {
+		return errors.Wrap(err, "invalid ice candidate grammar")
 	}
 	return nil
 }
 
-// NewWebRtcIce constructs a new WebRtcIce from a ICECandidateInit.
-func NewWebRtcIce(candidate *webrtc.ICECandidateInit) (*WebRtcIce, error) {
+// NewWebRtcIce constructs a new WebRtcIce from an ICECandidateInit.
+func NewWebRtcIce(candidate *webrtc.ICECandidateInit, offerID [sha256.Size]byte) (*WebRtcIce, error) {
 	// Marshal the ICE candidate before storing its JSON representation.
 	data, err := marshalICECandidateInit(candidate)
 	if err != nil {
@@ -135,7 +186,10 @@ func NewWebRtcIce(candidate *webrtc.ICECandidateInit) (*WebRtcIce, error) {
 	}
 
 	// Return the encoded ICE candidate message.
-	return &WebRtcIce{Candidate: string(data)}, nil
+	return &WebRtcIce{
+		Candidate: string(data),
+		OfferId:   bytes.Clone(offerID[:]),
+	}, nil
 }
 
 // ParseICECandidateInit parses the ICECandidate from the JSON encoded body.
