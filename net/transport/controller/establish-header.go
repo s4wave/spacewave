@@ -14,6 +14,8 @@ func NewStreamEstablish(protocolID protocol.ID) *StreamEstablish {
 	return &StreamEstablish{ProtocolId: string(protocolID)}
 }
 
+// marshalStreamEstablishHeader marshals a stream establish message with a
+// varint length prefix.
 func marshalStreamEstablishHeader(msg *StreamEstablish) []byte {
 	// Compute the payload size and allocate space for its length prefix.
 	datLen := msg.SizeVT()
@@ -30,10 +32,12 @@ func marshalStreamEstablishHeader(msg *StreamEstablish) []byte {
 	return outBuf[:prefixLen+msgFinalLen]
 }
 
+// writeStreamEstablishHeader writes the marshaled establish header to w.
 func writeStreamEstablishHeader(w io.Writer, msg *StreamEstablish) (int, error) {
 	return w.Write(marshalStreamEstablishHeader(msg))
 }
 
+// readAtLeast reads into buf until at least min bytes are buffered.
 func readAtLeast(r io.Reader, n, min int, buf []byte) (int, error) {
 	for n < min {
 		nr, err := r.Read(buf[n:])
@@ -45,6 +49,8 @@ func readAtLeast(r io.Reader, n, min int, buf []byte) (int, error) {
 	return n, nil
 }
 
+// readStreamEstablishHeader reads and validates a length-prefixed stream
+// establish header.
 func readStreamEstablishHeader(r io.Reader) (*StreamEstablish, error) {
 	// Read the fixed prefix bytes needed to decode the header length.
 	b := make([]byte, 4)

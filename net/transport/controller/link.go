@@ -78,6 +78,9 @@ func newEstablishedLink(
 	return el, nil
 }
 
+// acceptStreamPump accepts streams on the established link until it closes,
+// dispatching each incoming stream to the controller. It releases the link
+// when the accept loop exits.
 func (e *establishedLink) acceptStreamPump(ctx context.Context) {
 	// accept streams
 	lnk, ctrl := e.lnk, e.c

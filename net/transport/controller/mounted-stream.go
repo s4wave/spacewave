@@ -16,6 +16,7 @@ type mountedStream struct {
 	link         link.MountedLink
 }
 
+// newMountedStream constructs a new mounted stream on a mounted link.
 func newMountedStream(
 	strm stream.Stream,
 	strmOpenOpts stream.OpenOpts,

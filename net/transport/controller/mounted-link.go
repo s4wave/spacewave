@@ -19,6 +19,7 @@ type mountedLink struct {
 	link link.Link
 }
 
+// newMountedLink constructs a new mounted link for a transport link.
 func newMountedLink(
 	c *Controller,
 	tpt transport.Transport,
