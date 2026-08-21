@@ -94,7 +94,7 @@ func (d *handleSignalPeer) GetName() string {
 	return "HandleSignalPeer"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *handleSignalPeer) GetDebugVals() directive.DebugValues {
