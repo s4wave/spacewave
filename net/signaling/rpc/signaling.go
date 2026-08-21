@@ -11,7 +11,7 @@ import (
 )
 
 // ProtocolID is the default protocol ID for the signaling server.
-var ProtocolID = protocol.ID("bifrost/signaling")
+const ProtocolID = protocol.ID("bifrost/signaling")
 
 // encContext is the encryption context used for the signaling session messages.
 const encContext = "bifrost/signaling/rpc session msg 2024-06-05T02:45:07.208906Z"
