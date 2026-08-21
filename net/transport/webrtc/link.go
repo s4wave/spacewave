@@ -4,5 +4,5 @@ import (
 	"github.com/s4wave/spacewave/net/transport/common/conn"
 )
 
-// Link represents a WebSocket-based connection/link.
+// Link is a webrtc-based connection/link backed by a conn.Link.
 type Link = conn.Link

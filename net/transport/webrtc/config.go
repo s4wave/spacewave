@@ -17,7 +17,6 @@ func (c *Config) Validate() error {
 	if c.GetSignalingId() == "" {
 		return signaling.ErrEmptySignalingID
 	}
-	c.GetWebRtc().ToWebRtcConfiguration()
 	if _, err := c.ParseTransportPeerID(); err != nil {
 		return err
 	}
