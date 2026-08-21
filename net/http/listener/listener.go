@@ -86,9 +86,8 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	}
 	if hasHTTPS {
 		return c.srv.ListenAndServeTLS(c.certFile, c.keyFile)
-	} else {
-		return c.srv.ListenAndServe()
 	}
+	return c.srv.ListenAndServe()
 }
 
 // HandleDirective asks if the handler can resolve the directive.
