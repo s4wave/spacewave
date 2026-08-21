@@ -24,6 +24,8 @@ func (e *UnsupportedHashTypeError) Unwrap() error {
 	return ErrHashTypeUnsupported
 }
 
+// newUnsupportedHashTypeError returns an UnsupportedHashTypeError for a hash
+// type this build cannot use.
 func newUnsupportedHashTypeError(hashType HashType, message string) error {
 	return &UnsupportedHashTypeError{HashType: hashType, Message: message}
 }

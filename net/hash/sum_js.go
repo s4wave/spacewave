@@ -39,6 +39,8 @@ func sumHashType(h HashType, data []byte) ([]byte, error) {
 	}
 }
 
+// subtleCryptoDigest digests data with the browser SubtleCrypto algorithm
+// named by name.
 func subtleCryptoDigest(name string, data []byte) ([]byte, error) {
 	crypto := js.Global().Get("crypto")
 	if crypto.IsUndefined() || crypto.IsNull() {
@@ -67,6 +69,8 @@ func subtleCryptoDigest(name string, data []byte) ([]byte, error) {
 	return out, nil
 }
 
+// awaitPromise waits for a JavaScript promise and returns its result,
+// converting a rejection into an error.
 func awaitPromise(promise js.Value) (js.Value, error) {
 	ch := make(chan struct{})
 	var once sync.Once

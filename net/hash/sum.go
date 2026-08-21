@@ -9,6 +9,7 @@ import (
 	"github.com/zeebo/blake3"
 )
 
+// sumHashType digests data with the native hash implementation for h.
 func sumHashType(h HashType, data []byte) ([]byte, error) {
 	switch h {
 	case HashType_HashType_SHA256:
