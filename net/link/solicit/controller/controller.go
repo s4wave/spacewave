@@ -36,7 +36,9 @@ const maxMessageSize = 256 * 32 * 2 // ~16KB, enough for 256 hashes
 
 // Controller is the solicitation controller.
 type Controller struct {
-	le        *logrus.Entry
+	// le is the logger for the controller.
+	le *logrus.Entry
+	// maxHashes is the maximum number of solicit hashes sent per control stream.
 	maxHashes uint32
 
 	bcast broadcast.Broadcast
@@ -58,11 +60,16 @@ type solicitState struct {
 
 // linkState tracks per-link solicitation state.
 type linkState struct {
-	le           *logrus.Entry
-	ml           link.MountedLink
-	sessionID    []byte
+	// le is the logger for this link.
+	le *logrus.Entry
+	// ml is the mounted link being solicited over.
+	ml link.MountedLink
+	// sessionID is the derived control-stream session ID.
+	sessionID []byte
+	// localIsLower records whether our peer ID sorts below the remote's.
 	localIsLower bool
-	refCount     int
+	// refCount counts active users of this link state.
+	refCount int
 
 	// guarded by Controller.bcast
 	remoteHashes [][]byte
@@ -324,6 +331,8 @@ func (c *Controller) getSolicitEntries(ml link.MountedLink) []link_solicit.Solic
 	return entries
 }
 
+// watchControlStreamLocalSnapshots watches the local solicit snapshot for a
+// link and sends each distinct snapshot to send. Caller must not hold bcast.
 func (c *Controller) watchControlStreamLocalSnapshots(
 	ctx context.Context,
 	ls *linkState,
@@ -340,6 +349,8 @@ func (c *Controller) watchControlStreamLocalSnapshots(
 	)
 }
 
+// snapshotControlStreamLocalLocked snapshots the local solicit entries for a
+// link, or marks the link removed. Caller must hold bcast lock.
 func (c *Controller) snapshotControlStreamLocalLocked(ls *linkState) *controlStreamLocalSnapshot {
 	if !c.controlStreamLinkActiveLocked(ls) {
 		return &controlStreamLocalSnapshot{linkRemoved: true}
@@ -349,6 +360,8 @@ func (c *Controller) snapshotControlStreamLocalLocked(ls *linkState) *controlStr
 	}
 }
 
+// currentControlStreamLocalSnapshot returns the current local solicit
+// snapshot under the bcast lock.
 func (c *Controller) currentControlStreamLocalSnapshot(ls *linkState) *controlStreamLocalSnapshot {
 	locked := c.bcast.Lock()
 	defer locked.Unlock()
@@ -356,6 +369,8 @@ func (c *Controller) currentControlStreamLocalSnapshot(ls *linkState) *controlSt
 	return c.snapshotControlStreamLocalLocked(ls)
 }
 
+// currentControlStreamRemoteHashes returns the remote hashes reported by a
+// link, or true when the link is no longer active.
 func (c *Controller) currentControlStreamRemoteHashes(ls *linkState) ([][]byte, bool) {
 	locked := c.bcast.Lock()
 	defer locked.Unlock()
@@ -366,6 +381,8 @@ func (c *Controller) currentControlStreamRemoteHashes(ls *linkState) ([][]byte, 
 	return cloneHashes(ls.remoteHashes), false
 }
 
+// setControlStreamRemoteHashes stores the remote hashes reported by a link
+// and returns false when the link is no longer active.
 func (c *Controller) setControlStreamRemoteHashes(ls *linkState, hashes [][]byte) bool {
 	locked := c.bcast.Lock()
 	defer locked.Unlock()
@@ -377,10 +394,14 @@ func (c *Controller) setControlStreamRemoteHashes(ls *linkState, hashes [][]byte
 	return true
 }
 
+// controlStreamLinkActiveLocked returns true if ls is still the tracked
+// state for its link UUID. Caller must hold bcast lock.
 func (c *Controller) controlStreamLinkActiveLocked(ls *linkState) bool {
 	return c.links[ls.ml.GetLinkUUID()] == ls
 }
 
+// controlStreamLocalSnapshotsEqual returns true if two local snapshots hold
+// the same link-removed flag and solicit entries.
 func controlStreamLocalSnapshotsEqual(a, b *controlStreamLocalSnapshot) bool {
 	if a == nil || b == nil {
 		return a == b
@@ -391,6 +412,7 @@ func controlStreamLocalSnapshotsEqual(a, b *controlStreamLocalSnapshot) bool {
 	return solicitEntriesEqual(a.entries, b.entries)
 }
 
+// cloneSolicitEntries deep-clones and canonically sorts solicit entries.
 func cloneSolicitEntries(entries []link_solicit.SolicitEntry) []link_solicit.SolicitEntry {
 	if len(entries) == 0 {
 		return nil
@@ -411,6 +433,7 @@ func cloneSolicitEntries(entries []link_solicit.SolicitEntry) []link_solicit.Sol
 	return out
 }
 
+// solicitEntriesEqual returns true if two entry lists match pairwise.
 func solicitEntriesEqual(a, b []link_solicit.SolicitEntry) bool {
 	if len(a) != len(b) {
 		return false
@@ -423,6 +446,7 @@ func solicitEntriesEqual(a, b []link_solicit.SolicitEntry) bool {
 	return true
 }
 
+// cloneHashes deep-clones a hash list.
 func cloneHashes(hashes [][]byte) [][]byte {
 	if len(hashes) == 0 {
 		return nil
