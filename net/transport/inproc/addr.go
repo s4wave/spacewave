@@ -8,11 +8,15 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-var scheme = "inproc://"
+// scheme is the address scheme prefix for inproc addresses.
+const scheme = "inproc://"
 
+// Addr is an in-process address identifying a local peer.
 type Addr struct {
+	// peerID is the addressed peer.
 	peerID peer.ID
-	str    string
+	// str is the cached string form of the address.
+	str string
 }
 
 // NewAddr builds a new Addr
@@ -40,10 +44,12 @@ func ParseAddr(addr string) (net.Addr, error) {
 	return NewAddr(pid), nil
 }
 
+// Network returns the network name.
 func (a *Addr) Network() string {
 	return "inproc"
 }
 
+// String returns the address string.
 func (a *Addr) String() string {
 	return a.str
 }

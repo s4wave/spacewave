@@ -26,11 +26,16 @@ import (
 var daemonFlags struct {
 	bcli.DaemonArgs
 
-	WriteConfig  bool
-	ConfigPath   string
+	// WriteConfig writes the config file on startup when set.
+	WriteConfig bool
+	// ConfigPath is the path to the daemon config file.
+	ConfigPath string
+	// PeerPrivPath is the path to the node private key file.
 	PeerPrivPath string
-	APIListen    string
-	ProfListen   string
+	// APIListen is the listen address for the daemon API.
+	APIListen string
+	// ProfListen is the listen address for the pprof endpoint.
+	ProfListen string
 }
 
 func init() {
