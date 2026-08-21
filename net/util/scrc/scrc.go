@@ -7,8 +7,10 @@ import (
 )
 
 var (
+	// h64Mtx guards h64, which is reused across Crc64 calls.
 	h64Mtx sync.Mutex
-	h64    hash.Hash64
+	// h64 is the shared crc64 hash reused across Crc64 calls.
+	h64 hash.Hash64
 )
 
 func init() {

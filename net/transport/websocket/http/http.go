@@ -21,7 +21,8 @@ const ControllerID = "bifrost/websocket/http"
 // Version is the version of the implementation.
 var Version = controller.MustParseVersion("0.0.1")
 
-// NewWebSocketHttp builds a new WebSocket http handler controller.
+// WebSocketHttp serves the websocket transport and peer ID over
+// configured HTTP patterns.
 type WebSocketHttp struct {
 	// Controller is the transport controller
 	*transport_controller.Controller

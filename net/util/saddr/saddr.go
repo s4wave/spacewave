@@ -16,10 +16,12 @@ func NewStringAddr(net, addr string) *StringAddr {
 	}
 }
 
+// Network returns the network name.
 func (s *StringAddr) Network() string {
 	return s.net
 }
 
+// String returns the address string.
 func (s *StringAddr) String() string {
 	return s.addr
 }
