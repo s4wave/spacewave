@@ -55,7 +55,7 @@ func TestAllTransforms(t *testing.T) {
 
 // TestAllTransforms_JSON tests configuring all transforms with json.
 //
-// Checks that the yaml parsing for StepConfig works.
+// Checks that the JSON parsing for StepConfig works.
 func TestAllTransforms_JSON(t *testing.T) {
 	for _, sf := range BuildStepFactories() {
 		sfs := block_transform.NewStepFactorySet()

@@ -1,5 +1,5 @@
 // Package block_copy provides functions for copying block DAGs between stores.
-package block_copy
+package blockcopy
 
 import (
 	"context"

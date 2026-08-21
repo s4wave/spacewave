@@ -1,4 +1,4 @@
-package block_copy
+package blockcopy
 
 import (
 	"bytes"
