@@ -92,6 +92,7 @@ export class DataChannelWrapper {
   private _bufferedAmount = 0
   private _bufferedAmountLowThreshold = 0
   private _closed = false
+  private _closeEmitted = false
   private _realDC: RTCDataChannel | null = null
 
   // Queued sends before the real DC arrives
@@ -121,11 +122,11 @@ export class DataChannelWrapper {
     if (this._realDC) this._realDC.onmessage = v
   }
   get onclose() {
-    return this._realDC ? this._realDC.onclose : this._onclose
+    return this._onclose
   }
   set onclose(v: ((ev: Event) => void) | null) {
     this._onclose = v
-    if (this._realDC) this._realDC.onclose = v
+    if (this._realDC) this.forwardClose(this._realDC)
   }
   get onerror(): ((ev: Event) => void) | null {
     return this._onerror
@@ -190,11 +191,17 @@ export class DataChannelWrapper {
   }
 
   send(data: string | ArrayBuffer | ArrayBufferView): void {
-    if (this._realDC) {
-      sendRtcDataChannelPayload(this._realDC, data)
-      return
+    const dc = this._realDC
+    if (dc) {
+      if (dc.readyState !== 'closing' && dc.readyState !== 'closed') {
+        sendRtcDataChannelPayload(dc, data)
+        return
+      }
+      this.retire()
     }
-    if (this._closed) return
+    if (this._closed) {
+      throw new DOMException('RTCDataChannel is closed', 'InvalidStateError')
+    }
     this.sendQueue.push(data)
     // Track buffered amount for pre-attach reads
     if (typeof data === 'string') {
@@ -207,14 +214,29 @@ export class DataChannelWrapper {
   }
 
   close(): void {
-    if (this._realDC) {
-      this._realDC.close()
-      return
-    }
+    const dc = this._realDC
+    this.retire()
+    dc?.close()
+  }
+
+  private retire() {
     this._closed = true
     this._readyState = 'closed'
     this.sendQueue.length = 0
     this._bufferedAmount = 0
+  }
+
+  private finishClose(dc: RTCDataChannel, event: Event) {
+    if (this._realDC !== dc) return
+    this.retire()
+    this._realDC = null
+    if (this._closeEmitted) return
+    this._closeEmitted = true
+    this._onclose?.(event)
+  }
+
+  private forwardClose(dc: RTCDataChannel) {
+    dc.onclose = (event) => this.finishClose(dc, event)
   }
 
   // attach swaps in the real transferred DC. Called by ProxyRTCPeerConnection
@@ -233,10 +255,16 @@ export class DataChannelWrapper {
     // Re-attach stored event handlers to the real DC
     if (this._onopen) dc.onopen = this._onopen
     if (this._onmessage) dc.onmessage = this._onmessage
-    if (this._onclose) dc.onclose = this._onclose
+    this.forwardClose(dc)
     if (this._onerror) dc.onerror = (event) => this._onerror?.(event)
     if (this._onbufferedamountlow)
       dc.onbufferedamountlow = this._onbufferedamountlow
+
+    if (dc.readyState === 'closing' || dc.readyState === 'closed') {
+      this.retire()
+      if (dc.readyState === 'closed') this.finishClose(dc, new Event('close'))
+      return
+    }
 
     // Replay queued sends
     for (const data of this.sendQueue) {
@@ -253,19 +281,17 @@ export class DataChannelWrapper {
 
   // bridgeDied is called when the bridge port closes before the DC arrives.
   bridgeDied(reason = 'WebRTC bridge closed') {
-    if (this._realDC) return
-    this._closed = true
-    this._readyState = 'closed'
-    this.sendQueue.length = 0
-    this._bufferedAmount = 0
+    if (this._realDC || this._closed) return
+    this.retire()
     if (this._onerror) {
       this._onerror({
         type: 'error',
         error: new Error(reason),
       } as unknown as Event)
     }
-    if (this._onclose) {
-      this._onclose(new Event('close'))
+    if (!this._closeEmitted) {
+      this._closeEmitted = true
+      this._onclose?.(new Event('close'))
     }
   }
 }

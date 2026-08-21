@@ -140,7 +140,7 @@ describe('DataChannelWrapper transferred channel bridge', () => {
     expect(realChannel.bufferedAmountLowThreshold).toBe(11)
     expect(realChannel.onopen).toBe(onopen)
     expect(realChannel.onmessage).toBe(onmessage)
-    expect(realChannel.onclose).toBe(onclose)
+    expect(realChannel.onclose).toBeTypeOf('function')
     expect(realChannel.onbufferedamountlow).toBe(onbufferedamountlow)
     expect(realChannel.onerror).toBeTypeOf('function')
 
@@ -161,7 +161,80 @@ describe('DataChannelWrapper transferred channel bridge', () => {
     const message = new MessageEvent('message', { data: new Uint8Array([1]) })
     realChannel.onmessage?.call(asRTCDataChannel(realChannel), message)
     expect(nextMessageHandler).toHaveBeenCalledWith(message)
+
+    const close = new Event('close')
+    realChannel.onclose?.call(asRTCDataChannel(realChannel), close)
+    expect(onclose).toHaveBeenCalledWith(close)
+    expect(wrapper.readyState).toBe('closed')
   })
+
+  it('does not send through a transferred channel after close starts', () => {
+    const wrapper = new DataChannelWrapper('quic')
+    const realChannel = new FakeRTCDataChannel('open')
+    wrapper.attach(asRTCDataChannel(realChannel))
+
+    wrapper.close()
+
+    expect(realChannel.closed).toBe(true)
+    expect(() => wrapper.send('after-close')).toThrow(
+      expect.objectContaining({ name: 'InvalidStateError' }),
+    )
+    expect(realChannel.sent).toEqual([])
+  })
+
+  it('does not send when the transferred channel starts closing', () => {
+    const wrapper = new DataChannelWrapper('quic')
+    const realChannel = new FakeRTCDataChannel('closing')
+    wrapper.attach(asRTCDataChannel(realChannel))
+
+    expect(() => wrapper.send('after-closing')).toThrow(
+      expect.objectContaining({ name: 'InvalidStateError' }),
+    )
+    expect(realChannel.sent).toEqual([])
+    expect(wrapper.readyState).toBe('closing')
+  })
+
+  it('waits for native close after local close and bridge death', () => {
+    const wrapper = new DataChannelWrapper('quic')
+    const realChannel = new FakeRTCDataChannel('open')
+    const events: string[] = []
+    wrapper.onerror = (event) => events.push(event.type)
+    wrapper.onclose = (event) => events.push(event.type)
+    wrapper.attach(asRTCDataChannel(realChannel))
+
+    wrapper.close()
+    wrapper.bridgeDied()
+
+    expect(events).toEqual([])
+    realChannel.onclose?.call(
+      asRTCDataChannel(realChannel),
+      new Event('close'),
+    )
+    realChannel.onclose?.call(
+      asRTCDataChannel(realChannel),
+      new Event('close'),
+    )
+    wrapper.bridgeDied()
+    expect(events).toEqual(['close'])
+  })
+
+  it.each(['closing', 'closed'] as const)(
+    'does not replay queued data into an already %s transferred channel',
+    (readyState) => {
+      const wrapper = new DataChannelWrapper('quic')
+      const realChannel = new FakeRTCDataChannel(readyState)
+      wrapper.send('queued')
+
+      wrapper.attach(asRTCDataChannel(realChannel))
+
+      expect(realChannel.sent).toEqual([])
+      expect(wrapper.bufferedAmount).toBe(0)
+      expect(wrapper.readyState).toBe(readyState)
+      expect(() => wrapper.send('after-attach')).toThrow(
+        expect.objectContaining({ name: 'InvalidStateError' }),
+      )
+    },
+  )
 
   it('closes a pending wrapper on bridge death, clears queued bytes, and fires error before close', () => {
     const wrapper = new DataChannelWrapper('quic')
@@ -178,7 +251,9 @@ describe('DataChannelWrapper transferred channel bridge', () => {
     expect(wrapper.bufferedAmount).toBe(0)
     expect(events).toEqual(['error', 'close'])
 
-    wrapper.send('after-death')
+    expect(() => wrapper.send('after-death')).toThrow(
+      expect.objectContaining({ name: 'InvalidStateError' }),
+    )
     expect(wrapper.bufferedAmount).toBe(0)
 
     const lateChannel = new FakeRTCDataChannel()
@@ -253,7 +328,9 @@ describe('ProxyRTCPeerConnection supporting WebRTC objects', () => {
     expect(channel.bufferedAmount).toBe(0)
     expect(events).toEqual(['error', 'close'])
 
-    channel.send('after-death')
+    expect(() => channel.send('after-death')).toThrow(
+      expect.objectContaining({ name: 'InvalidStateError' }),
+    )
     expect(channel.bufferedAmount).toBe(0)
   })
 })
