@@ -90,8 +90,8 @@ func MarshalPublicKey(key crypto.PubKey) (string, error) {
 
 // ParsePrivateKey parses the private key from a string.
 // If the string starts with "-----BEGIN" assumes it is PEM.
-// Otherwise: the string is a b58 encoded libp2p public key.
-// If there is no public key specified, returns nil, nil.
+// Otherwise: the string is a b58 encoded libp2p private key.
+// If there is no private key specified, returns nil, nil.
 func ParsePrivateKey(privKeyStr string) (crypto.PrivKey, error) {
 	privKeyStr = strings.TrimSpace(privKeyStr)
 	if len(privKeyStr) == 0 {

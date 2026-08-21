@@ -5,7 +5,7 @@ import (
 	"github.com/s4wave/spacewave/net/protocol"
 )
 
-// ParseProtocolID parses the peer ID if it is not empty.
+// ParseProtocolID parses the protocol ID if it is not empty.
 func ParseProtocolID(protocolID string, allowEmpty bool) (protocol.ID, error) {
 	if allowEmpty && protocolID == "" {
 		return "", nil
@@ -18,7 +18,7 @@ func ParseProtocolID(protocolID string, allowEmpty bool) (protocol.ID, error) {
 	return id, nil
 }
 
-// ParseProtocolIDs parses a list of peer IDs.
+// ParseProtocolIDs parses a list of protocol IDs.
 func ParseProtocolIDs(ids []string, allowEmpty bool) ([]protocol.ID, error) {
 	pids := make([]protocol.ID, 0, len(ids))
 	for i, pidStr := range ids {
@@ -31,7 +31,7 @@ func ParseProtocolIDs(ids []string, allowEmpty bool) ([]protocol.ID, error) {
 	return pids, nil
 }
 
-// ParseProtocolIDsUnique parses a list of peer IDs and dedupes.
+// ParseProtocolIDsUnique parses a list of protocol IDs and dedupes.
 func ParseProtocolIDsUnique(ids []string, allowEmpty bool) ([]protocol.ID, error) {
 	m := make(map[protocol.ID]struct{})
 	o := make([]protocol.ID, 0, len(ids))
@@ -49,7 +49,7 @@ func ParseProtocolIDsUnique(ids []string, allowEmpty bool) ([]protocol.ID, error
 	return o, nil
 }
 
-// ValidateProtocolID checks if a peer ID is valid.
+// ValidateProtocolID checks if a protocol ID is valid.
 func ValidateProtocolID(id string, allowEmpty bool) error {
 	_, err := ParseProtocolID(id, allowEmpty)
 	return err
