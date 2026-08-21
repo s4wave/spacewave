@@ -23,8 +23,7 @@ func isCleanAcceptClose(err error) bool {
 		return qe != nil && qe.ErrorCode == 0
 	}
 
-	return err == context.Canceled ||
-		errors.Is(err, context.Canceled) ||
+	return errors.Is(err, context.Canceled) ||
 		errors.Is(err, io.EOF) ||
 		errors.Is(err, io.ErrClosedPipe)
 }

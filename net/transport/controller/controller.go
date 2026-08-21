@@ -384,11 +384,9 @@ func (c *Controller) DialPeerAddr(ctx context.Context, peerID peer.ID, opts *dia
 		return nil, err
 	}
 
-	tptDialer, ok := tpt.(dialer.TransportDialer)
-	if !ok {
+	if _, ok := tpt.(dialer.TransportDialer); !ok {
 		return nil, dialer.ErrNotTransportDialer
 	}
-	_ = tptDialer
 
 	ref, dial, _ := c.linkDialers.AddKeyRef(linkDialerKey{peerID: peerID, dialAddress: opts.GetAddress()})
 	defer ref.Release()

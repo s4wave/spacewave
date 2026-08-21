@@ -711,7 +711,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	var lastLocalSeqno, currRemoteSeqno uint64
 	var currLinkRwc datachannel.ReadWriteCloser
 
-	_ = currRemoteSeqno // TODO: remote restarted SDP?
+	// TODO: handle a remote SDP restart (seqno regression).
 
 	// lastAppliedRemoteSdp is the SDP string we last applied via
 	// SetRemoteDescription. A byte-identical duplicate is ignored to avoid an

@@ -63,7 +63,7 @@ func (c *ClientController) GetBaseClient() srpc.Client {
 
 // Execute executes the controller.
 // Returning nil ends execution.
-func (c *ClientController) Execute(rctx context.Context) (rerr error) {
+func (c *ClientController) Execute(context.Context) error {
 	return nil
 }
 
