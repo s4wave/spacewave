@@ -62,11 +62,6 @@ func TestTptAddr(t *testing.T) {
 	}
 	tp1 := inproc.BuildInprocController(tb1.Logger, tb1.Bus, tb1PeerID, &inproc.Config{
 		TransportPeerId: tb1PeerID.String(),
-		/* Using tptaddr instead.
-		Dialers: map[string]*dialer.DialerOpts{
-			tb2PeerID.String(): tpt2dialer,
-		},
-		*/
 	})
 	relTp1, err := tb1.Bus.AddController(ctx, tp1, nil)
 	if err != nil {
