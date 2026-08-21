@@ -41,14 +41,14 @@ func NewDiscoverRoutesWithPeerIDs(
 	}
 }
 
-// DiscoverRoutesLocalPeerID returns the local peer ID we are
-// requesting a handler for. Cannot be empty.
+// DiscoverRoutesLocalPeerID returns the local peer ID routing
+// originates from. Cannot be empty.
 func (d *DiscoverRoutesWithPeerIDs) DiscoverRoutesLocalPeerID() peer.ID {
 	return d.localPeerID
 }
 
-// DiscoverRoutesRemotePeerID returns the remote peer ID we are
-// requesting a handler for. Cannot be empty.
+// DiscoverRoutesRemotePeerID returns the remote peer ID routing
+// targets. Cannot be empty.
 func (d *DiscoverRoutesWithPeerIDs) DiscoverRoutesRemotePeerID() peer.ID {
 	return d.remotePeerID
 }
@@ -101,7 +101,7 @@ func (d *DiscoverRoutesWithPeerIDs) GetName() string {
 	return "DiscoverRoutesWithPeerIDs"
 }
 
-// GetDebugString returns the directive arguments stringified.
+// GetDebugVals returns the directive arguments stringified.
 // This should be something like param1="test", param2="test".
 // This is not necessarily unique, and is primarily intended for display.
 func (d *DiscoverRoutesWithPeerIDs) GetDebugVals() directive.DebugValues {
