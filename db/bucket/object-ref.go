@@ -155,11 +155,7 @@ func (o *ObjectRef) Clone() *ObjectRef {
 
 // CopyFrom copies the contents of another ObjectRef.
 func (o *ObjectRef) CopyFrom(ot *ObjectRef) {
-	if ot == nil {
-		return
-	}
-	if o == nil {
-		ot.Reset()
+	if o == nil || ot == nil {
 		return
 	}
 

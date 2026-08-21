@@ -1,4 +1,4 @@
-package bucket_lookup_test_test
+package bucket_lookup_test
 
 import (
 	"context"

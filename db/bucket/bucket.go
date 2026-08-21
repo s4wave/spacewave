@@ -2,7 +2,6 @@ package bucket
 
 import (
 	"github.com/s4wave/spacewave/db/block"
-	// "github.com/s4wave/spacewave/db/hash"
 )
 
 // Bucket is a bucket API handle.
