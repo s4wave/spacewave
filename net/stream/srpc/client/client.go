@@ -21,7 +21,7 @@ func NewClient(le *logrus.Entry, b bus.Bus, c *Config, protocolID protocol.ID) (
 
 	serverPeerIDs, err := c.ParseServerPeerIds()
 	if err != nil {
-		return nil, errors.Wrap(err, "src_peer_id")
+		return nil, errors.Wrap(err, "server_peer_ids")
 	}
 
 	timeoutDur, err := c.ParseTimeoutDur()
