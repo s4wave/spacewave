@@ -222,97 +222,94 @@ func (c *Controller) RegisterSession(ctx context.Context, ref *session.SessionRe
 		return nil, err
 	}
 
-	// Retry classification: external to RunTransaction. The callback captures
-	// time.Now and emits invalid-entry warnings while registering a session.
-
-	otx, err := objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return nil, err
-	}
-	defer otx.Discard()
-
-	// Inject created_at if not set by the caller.
+	// Freeze caller metadata before a retry can replay the session census.
 	if metadata != nil && metadata.GetCreatedAt() == 0 {
 		metadata.CreatedAt = time.Now().UnixMilli()
 	}
-
-	var matchedEntry *session.SessionListEntry
-	var maxSessionIndex uint32
-	size, err := otx.Size(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if size != 0 {
-		err = otx.ScanPrefix(ctx, sessionListPrefix, func(key, value []byte) error {
-			entry := &session.SessionListEntry{}
-			if err := entry.UnmarshalVT(value); err != nil {
-				c.GetLogger().WithError(err).Warn("ignoring invalid session list entry")
-				return nil
-			}
-
-			if matchedEntry == nil && entry.GetSessionRef().EqualVT(ref) {
-				matchedEntry = entry
-			}
-
-			maxSessionIndex = max(maxSessionIndex, entry.GetSessionIndex())
-			return nil
-		})
-	}
-	if matchedEntry != nil || err != nil {
-		// Write metadata even for existing entries (may have changed).
-		if matchedEntry != nil && metadata != nil {
-			metaData, err := metadata.MarshalVT()
-			if err != nil {
-				return nil, err
-			}
-			defer scrub.Scrub(metaData)
-			if err := otx.Set(ctx, sessionMetaKey(matchedEntry.GetSessionIndex()), metaData); err != nil {
-				return nil, err
-			}
-			if err := otx.Commit(ctx); err != nil {
-				return nil, err
-			}
-		}
-		return matchedEntry, err
-	}
-
-	// No matching entry. Add an entry.
-	writeEntry := &session.SessionListEntry{
-		SessionIndex: maxSessionIndex + 1,
-		SessionRef:   ref,
-	}
-	data, err := writeEntry.MarshalVT()
-	if err != nil {
-		return nil, err
-	}
-	defer scrub.Scrub(data)
-
-	key := sessionListEntryKey(writeEntry.SessionIndex)
-	if err := otx.Set(ctx, key, data); err != nil {
-		return nil, err
-	}
-
-	// Write metadata if provided.
+	var metadataData []byte
 	if metadata != nil {
-		metaData, err := metadata.MarshalVT()
+		metadataData, err = metadata.MarshalVT()
 		if err != nil {
 			return nil, err
 		}
-		defer scrub.Scrub(metaData)
-		if err := otx.Set(ctx, sessionMetaKey(writeEntry.GetSessionIndex()), metaData); err != nil {
-			return nil, err
-		}
+		defer scrub.Scrub(metadataData)
 	}
 
-	if err := otx.Commit(ctx); err != nil {
+	// Replay the complete census and write against one storage generation.
+	var result *session.SessionListEntry
+	var created bool
+	var resultData []byte
+	defer func() { scrub.Scrub(resultData) }()
+	var invalidEntryErrs []error
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, otx kvtx.Tx) error {
+			scrub.Scrub(resultData)
+			resultData = nil
+			result = nil
+			created = false
+			invalidEntryErrs = nil
+			var maxSessionIndex uint32
+
+			size, err := otx.Size(ctx)
+			if err != nil {
+				return err
+			}
+			if size != 0 {
+				err = otx.ScanPrefix(ctx, sessionListPrefix, func(_ []byte, value []byte) error {
+					entry := &session.SessionListEntry{}
+					if err := entry.UnmarshalVT(value); err != nil {
+						invalidEntryErrs = append(invalidEntryErrs, err)
+						return nil
+					}
+					if result == nil && entry.GetSessionRef().EqualVT(ref) {
+						result = entry
+					}
+					maxSessionIndex = max(maxSessionIndex, entry.GetSessionIndex())
+					return nil
+				})
+				if err != nil {
+					return err
+				}
+			}
+
+			if result == nil {
+				created = true
+				result = &session.SessionListEntry{
+					SessionIndex: maxSessionIndex + 1,
+					SessionRef:   ref,
+				}
+				resultData, err = result.MarshalVT()
+				if err != nil {
+					return err
+				}
+				if err := otx.Set(ctx, sessionListEntryKey(result.GetSessionIndex()), resultData); err != nil {
+					return err
+				}
+			}
+			if metadataData != nil {
+				if err := otx.Set(ctx, sessionMetaKey(result.GetSessionIndex()), metadataData); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	)
+	if err != nil {
 		return nil, err
 	}
+	for _, invalidEntryErr := range invalidEntryErrs {
+		c.GetLogger().WithError(invalidEntryErr).Warn("ignoring invalid session list entry")
+	}
 
-	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		broadcast()
-	})
-
-	return writeEntry, nil
+	if created {
+		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			broadcast()
+		})
+	}
+	return result, nil
 }
 
 // GetSessionMetadata returns the metadata for a session by index.
@@ -353,7 +350,7 @@ func (c *Controller) GetSessionMetadata(ctx context.Context, idx uint32) (*sessi
 }
 
 // UpdateSessionMetadata updates the metadata for a session by ref.
-// Creates the metadata entry if it does not exist.
+// Does nothing if no session entry matches the ref.
 func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.SessionRef, metadata *session.SessionMetadata) error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
@@ -363,53 +360,55 @@ func (c *Controller) UpdateSessionMetadata(ctx context.Context, ref *session.Ses
 		return err
 	}
 
-	// Retry classification: external to RunTransaction. The callback emits
-	// invalid-entry handling; Controller publishes the update after commit.
-
-	otx, err := objStore.NewTransaction(ctx, true)
-	if err != nil {
-		return err
-	}
-	defer otx.Discard()
-
-	// Find the session index by scanning for the matching ref.
-	var idx uint32
-	var found bool
-	scanErr := otx.ScanPrefix(ctx, sessionListPrefix, func(key, value []byte) error {
-		entry := &session.SessionListEntry{}
-		if err := entry.UnmarshalVT(value); err != nil {
-			return nil
-		}
-		if entry.GetSessionRef().EqualVT(ref) {
-			idx = entry.GetSessionIndex()
-			found = true
-			return io.EOF
-		}
-		return nil
-	})
-	if scanErr != nil && !errors.Is(scanErr, io.EOF) {
-		return scanErr
-	}
-	if !found {
-		return nil
-	}
-
 	metaData, err := metadata.MarshalVT()
 	if err != nil {
 		return err
 	}
 	defer scrub.Scrub(metaData)
 
-	if err := otx.Set(ctx, sessionMetaKey(idx), metaData); err != nil {
-		return err
-	}
-	if err := otx.Commit(ctx); err != nil {
+	// Replay the ref lookup and write against one storage generation.
+	var updated bool
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, otx kvtx.Tx) error {
+			updated = false
+
+			// Find the session index by scanning for the matching ref.
+			var idx uint32
+			var found bool
+			scanErr := otx.ScanPrefix(ctx, sessionListPrefix, func(_ []byte, value []byte) error {
+				entry := &session.SessionListEntry{}
+				if err := entry.UnmarshalVT(value); err != nil {
+					return nil
+				}
+				if entry.GetSessionRef().EqualVT(ref) {
+					idx = entry.GetSessionIndex()
+					found = true
+					return io.EOF
+				}
+				return nil
+			})
+			if scanErr != nil && !errors.Is(scanErr, io.EOF) {
+				return scanErr
+			}
+			if !found {
+				return nil
+			}
+			updated = true
+			return otx.Set(ctx, sessionMetaKey(idx), metaData)
+		},
+	)
+	if err != nil {
 		return err
 	}
 
-	c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		broadcast()
-	})
+	if updated {
+		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			broadcast()
+		})
+	}
 	return nil
 }
 
@@ -424,48 +423,62 @@ func (c *Controller) DeleteSession(ctx context.Context, ref *session.SessionRef)
 		return err
 	}
 
-	// Retry classification: external to RunTransaction. The callback emits
-	// invalid-entry warnings while deleting session state.
+	// Replay the scan and delete against one storage generation.
+	var deleted bool
+	var invalidEntryErrs []error
+	err = kvtx.RunTransaction(ctx, true,
+		func(ctx context.Context) (kvtx.Tx, error) {
+			return objStore.NewTransaction(ctx, true)
+		},
+		func(ctx context.Context, otx kvtx.Tx) error {
+			deleted = false
+			invalidEntryErrs = nil
 
-	otx, err := objStore.NewTransaction(ctx, true)
+			var matchedKey []byte
+			var matchedIdx uint32
+			scanErr := otx.ScanPrefix(ctx, sessionListPrefix, func(key []byte, value []byte) error {
+				entry := &session.SessionListEntry{}
+				if err := entry.UnmarshalVT(value); err != nil {
+					invalidEntryErrs = append(invalidEntryErrs, err)
+					return nil
+				}
+				if entry.GetSessionRef().EqualVT(ref) {
+					matchedKey = slices.Clone(key)
+					matchedIdx = entry.GetSessionIndex()
+					return io.EOF
+				}
+				return nil
+			})
+			if len(matchedKey) == 0 && scanErr != nil && !errors.Is(scanErr, io.EOF) {
+				return scanErr
+			}
+			if len(matchedKey) == 0 {
+				return nil
+			}
+			if err := otx.Delete(ctx, matchedKey); err != nil {
+				return err
+			}
+			// Also delete stale session metadata for this index.
+			if err := otx.Delete(ctx, sessionMetaKey(matchedIdx)); err != nil {
+				return err
+			}
+			deleted = true
+			return nil
+		},
+	)
 	if err != nil {
 		return err
 	}
-	defer otx.Discard()
-
-	var matchedKey []byte
-	var matchedIdx uint32
-	err = otx.ScanPrefix(ctx, sessionListPrefix, func(key, value []byte) error {
-		entry := &session.SessionListEntry{}
-		if err := entry.UnmarshalVT(value); err != nil {
-			c.GetLogger().WithError(err).Warn("ignoring invalid session list entry")
-			return nil
-		}
-
-		if entry.GetSessionRef().EqualVT(ref) {
-			matchedKey = slices.Clone(key)
-			matchedIdx = entry.GetSessionIndex()
-			return io.EOF
-		}
-		return nil
-	})
-	if len(matchedKey) != 0 {
-		// Note: we ignore the value of err= for ScanPrefix in this case (intentionally).
-		err = otx.Delete(ctx, matchedKey)
-		if err == nil {
-			// Also delete stale session metadata for this index.
-			_ = otx.Delete(ctx, sessionMetaKey(matchedIdx))
-		}
-		if err == nil {
-			err = otx.Commit(ctx)
-		}
-		if err == nil {
-			c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-				broadcast()
-			})
-		}
+	for _, invalidEntryErr := range invalidEntryErrs {
+		c.GetLogger().WithError(invalidEntryErr).Warn("ignoring invalid session list entry")
 	}
-	return err
+
+	if deleted {
+		c.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			broadcast()
+		})
+	}
+	return nil
 }
 
 // buildObjectStoreLocked builds or returns the cached sessions object store.
