@@ -9,6 +9,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ListenProf enables block and mutex profiling and serves the pprof
+// handlers on profListen until the process exits.
 func ListenProf(le *logrus.Entry, profListen string) error {
 	runtime.SetBlockProfileRate(1)
 	runtime.SetMutexProfileFraction(1)

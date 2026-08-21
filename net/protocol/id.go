@@ -5,8 +5,8 @@ import "unicode/utf8"
 // ID is a protocol identifier.
 type ID string
 
+// Validate rejects empty or non-UTF-8 protocol identifiers.
 func (i ID) Validate() error {
-	// Reject empty and invalid UTF-8 protocol identifiers.
 	if i == "" {
 		return ErrEmptyProtocolID
 	}
