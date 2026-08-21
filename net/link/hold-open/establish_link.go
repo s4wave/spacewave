@@ -122,4 +122,5 @@ func (e *establishLinkHandler) HandleInstanceDisposed(inst directive.Instance) {
 	e.c.mtx.Unlock()
 }
 
+// _ is a type assertion
 var _ directive.ReferenceHandler = (*establishLinkHandler)(nil)

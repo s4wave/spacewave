@@ -41,7 +41,6 @@ func (t *Factory) Construct(
 	opts controller.ConstructOpts,
 ) (controller.Controller, error) {
 	le := opts.GetLogger()
-	// cc := conf.(*Config)
 	return NewController(t.bus, le)
 }
 
