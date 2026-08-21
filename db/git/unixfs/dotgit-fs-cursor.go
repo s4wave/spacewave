@@ -43,10 +43,12 @@ func NewDotGitFSCursorWithOptions(tx hydra_git.Tx, name string, opts ...DotGitFS
 	}
 	releaseFn := conf.releaseFn
 	if releaseFn != nil {
-		var once sync.Once
+		var once atomic.Bool
 		baseReleaseFn := releaseFn
 		releaseFn = func() {
-			once.Do(baseReleaseFn)
+			if once.CompareAndSwap(false, true) {
+				baseReleaseFn()
+			}
 		}
 	}
 	c := &DotGitFSCursor{

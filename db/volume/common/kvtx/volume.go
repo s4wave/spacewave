@@ -3,7 +3,7 @@ package kvtx
 import (
 	"context"
 	"errors"
-	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/s4wave/spacewave/db/block"
@@ -50,7 +50,7 @@ type Volume struct {
 	// deleteFn removes the backing store after Close, may be nil.
 	deleteFn func() error
 	// closeOnce ensures Close is idempotent.
-	closeOnce sync.Once
+	closeOnce atomic.Bool
 	// closeErr stores the error from Close.
 	closeErr error
 }
@@ -396,17 +396,17 @@ func (v *Volume) SetGCManagerHooks(hooks block_gc.ManagerHooks) {
 // Close closes the volume, returning any errors.
 // Close is idempotent: subsequent calls return the same error.
 func (v *Volume) Close() error {
-	v.closeOnce.Do(func() {
+	if v.closeOnce.CompareAndSwap(false, true) {
 		if v.refGraph != nil {
 			if err := v.refGraph.Close(); err != nil {
 				v.closeErr = err
-				return
+				return v.closeErr
 			}
 		}
 		if v.closeFn != nil {
 			v.closeErr = v.closeFn()
 		}
-	})
+	}
 	return v.closeErr
 }
 

@@ -4,7 +4,7 @@ package bolt
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/coord"
 )
@@ -18,7 +18,7 @@ type watch struct {
 	events     chan coord.Event
 	done       chan struct{}
 	commitDone chan struct{}
-	once       sync.Once
+	once       atomic.Bool
 }
 
 func (w *watch) Events() <-chan coord.Event {
@@ -27,12 +27,12 @@ func (w *watch) Events() <-chan coord.Event {
 
 func (w *watch) Close() error {
 	var err error
-	w.once.Do(func() {
+	if w.once.CompareAndSwap(false, true) {
 		w.cancel()
 		err = w.inner.Close()
 		<-w.done
 		<-w.commitDone
-	})
+	}
 	return err
 }
 

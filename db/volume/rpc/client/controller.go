@@ -5,7 +5,7 @@ import (
 	"errors"
 	"regexp"
 	"slices"
-	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -118,12 +118,12 @@ func (c *Controller) LoadProxyVolume(ctx context.Context, volumeID string) (volu
 	le := c.le.WithField("volume-id", volumeID)
 	le.Debug("adding proxy volume reference")
 	ref, tracker, _ := c.proxyVolumes.AddKeyRef(volumeID)
-	var relOnce sync.Once
+	var relOnce atomic.Bool
 	rel := func() {
-		relOnce.Do(func() {
+		if relOnce.CompareAndSwap(false, true) {
 			le.Debug("removed proxy volume reference")
 			ref.Release()
-		})
+		}
 	}
 
 	proxyVol, err := tracker.proxyVolCtr.WaitValue(ctx, nil)

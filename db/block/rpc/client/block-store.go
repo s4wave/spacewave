@@ -3,7 +3,7 @@ package block_rpc_client
 import (
 	"context"
 	"errors"
-	"sync"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
@@ -20,7 +20,7 @@ type BlockStore struct {
 	// readOnly disables write calls
 	readOnly bool
 	// featuresOnce guards the lazy lookup of supportedFeatures.
-	featuresOnce sync.Once
+	featuresOnce atomic.Bool
 	// supportedFeatures caches the remote feature bitmask after the first call.
 	supportedFeatures block.StoreFeature
 }
@@ -50,18 +50,18 @@ func (v *BlockStore) GetHashType() hash.HashType {
 // for the lifetime of the store, and this method is on the hot path.
 func (v *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	// Fetch and cache the remote feature set once for this store lifetime.
-	v.featuresOnce.Do(func() {
+	if v.featuresOnce.CompareAndSwap(false, true) {
 		resp, err := v.client.GetSupportedFeatures(context.Background(), &block_rpc.GetSupportedFeaturesRequest{})
 		if err != nil {
 			v.supportedFeatures = block.StoreFeature_STORE_FEATURE_UNKNOWN
-			return
+			return v.supportedFeatures
 		}
 		features := resp.GetFeatures()
 		if v.readOnly {
 			features &^= block.StoreFeatureNativeBatchPut
 		}
 		v.supportedFeatures = features
-	})
+	}
 	return v.supportedFeatures
 }
 

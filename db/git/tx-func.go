@@ -2,7 +2,7 @@ package hydra_git
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 )
 
 // NewFuncTx constructs a Tx from a Storer plus commit/discard callbacks.
@@ -23,7 +23,7 @@ type funcTx struct {
 
 	commitFn  func(ctx context.Context) error
 	discardFn func()
-	discarded sync.Once
+	discarded atomic.Bool
 }
 
 func (t *funcTx) Commit(ctx context.Context) error {
@@ -37,11 +37,11 @@ func (t *funcTx) Discard() {
 	if t == nil {
 		return
 	}
-	t.discarded.Do(func() {
+	if t.discarded.CompareAndSwap(false, true) {
 		if t.discardFn != nil {
 			t.discardFn()
 		}
-	})
+	}
 }
 
 // _ is a type assertion

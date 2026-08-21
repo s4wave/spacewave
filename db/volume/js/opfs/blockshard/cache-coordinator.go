@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/pkg/errors"
@@ -137,7 +138,7 @@ func (l *segmentCacheLease) Size() (int64, error) {
 }
 
 func (l *segmentCacheLease) Release() {
-	l.once.Do(func() {
+	if l.once.CompareAndSwap(false, true) {
 		if l.localFile != nil {
 			if err := closeSegmentReader(l.localFile.rd); err != nil {
 				l.cache.recordReleaseError()
@@ -145,7 +146,7 @@ func (l *segmentCacheLease) Release() {
 			return
 		}
 		l.cache.releaseLease(l)
-	})
+	}
 }
 
 func (c *cacheCoordinator) acquireSegment(

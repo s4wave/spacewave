@@ -3,6 +3,7 @@ package volume_rpc_client
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/coord"
 	volume_rpc "github.com/s4wave/spacewave/db/volume/rpc"
@@ -175,7 +176,7 @@ type watch struct {
 	closing chan struct{}
 	done    chan struct{}
 
-	closeOnce sync.Once
+	closeOnce atomic.Bool
 }
 
 func (w *watch) Events() <-chan coord.Event {
@@ -183,12 +184,12 @@ func (w *watch) Events() <-chan coord.Event {
 }
 
 func (w *watch) Close() error {
-	w.closeOnce.Do(func() {
+	if w.closeOnce.CompareAndSwap(false, true) {
 		w.cancel()
 		close(w.closing)
 		_ = w.stream.Close()
 		<-w.done
-	})
+	}
 	return nil
 }
 

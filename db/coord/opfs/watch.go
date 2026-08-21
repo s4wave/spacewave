@@ -5,6 +5,7 @@ package opfs
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/blockshard"
@@ -28,12 +29,12 @@ func (w *watch) Events() <-chan coord.Event {
 
 func (w *watch) Close() error {
 	var err error
-	w.once.Do(func() {
+	if w.once.CompareAndSwap(false, true) {
 		w.cancel()
 		err = w.inner.Close()
 		w.listener.Close()
 		<-w.done
-	})
+	}
 	return err
 }
 
