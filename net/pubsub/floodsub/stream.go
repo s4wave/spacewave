@@ -133,7 +133,7 @@ func (s *streamHandler) readPump(ctx context.Context) {
 	msg := &Packet{}
 	for {
 		if err := s.stream.RecvMsg(msg); err != nil {
-			if err != io.EOF && err != context.Canceled && err.Error() != "broken pipe" && err.Error() == "NO_ERROR" {
+			if err != io.EOF && err != context.Canceled && err.Error() != "NO_ERROR" {
 				s.le.WithError(err).Warn("error receiving message")
 			} else {
 				s.le.Debug("session reader exiting")

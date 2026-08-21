@@ -371,19 +371,22 @@ func (m *FloodSub) handleValidMessage(
 		return
 	}
 	msg := pubmessage.NewMessage(pid, pktInner)
+
+	// Snapshot the subscriptions, then deliver to each handler set.
+	// Handlers must not block, so they run on the calling goroutine.
 	m.mtx.Lock()
-	subs := m.channels[channelID]
-	for sub := range subs {
-		ss := sub
-		go func() {
-			ss.mtx.Lock()
-			for s := range ss.handlers {
-				s.cb(msg)
-			}
-			ss.mtx.Unlock()
-		}()
+	subs := make([]*subscription, 0, len(m.channels[channelID]))
+	for sub := range m.channels[channelID] {
+		subs = append(subs, sub)
 	}
 	m.mtx.Unlock()
+	for _, ss := range subs {
+		ss.mtx.Lock()
+		for s := range ss.handlers {
+			s.cb(msg)
+		}
+		ss.mtx.Unlock()
+	}
 	select {
 	case m.publishCh <- &publishChMsg{
 		msg:         pkt,
@@ -401,58 +404,6 @@ func (m *FloodSub) wake() {
 	default:
 	}
 }
-
-/*
-func shufflePeers(peers []pubsub.PeerLinkTuple) {
-	for i := range peers {
-		j := rand.Intn(i + 1)
-		peers[i], peers[j] = peers[j], peers[i]
-	}
-}
-
-// getPeers returns peers for a channel
-func (m *FloodSub) getPeers(
-	channel string,
-	count int,
-	filter func(pubsub.PeerLinkTuple) bool,
-) []pubsub.PeerLinkTuple {
-	tmap, ok := m.peerChannels[channel]
-	if !ok {
-		return nil
-	}
-
-	peers := make([]pubsub.PeerLinkTuple, 0, len(tmap))
-	for p := range tmap {
-		if filter(p) {
-			peers = append(peers, p)
-		}
-	}
-
-	shufflePeers(peers)
-	if count > 0 && len(peers) > count {
-		peers = peers[:count]
-	}
-
-	return peers
-}
-
-// peerListToMap converts a slice to a map
-func peerListToMap(peers []pubsub.PeerLinkTuple) map[pubsub.PeerLinkTuple]struct{} {
-	pmap := make(map[pubsub.PeerLinkTuple]struct{})
-	for _, p := range peers {
-		pmap[p] = struct{}{}
-	}
-	return pmap
-}
-
-func peerMapToList(peers map[pubsub.PeerLinkTuple]struct{}) []pubsub.PeerLinkTuple {
-	plst := make([]pubsub.PeerLinkTuple, 0, len(peers))
-	for p := range peers {
-		plst = append(plst, p)
-	}
-	return plst
-}
-*/
 
 // _ is a type assertion
 var _ pubsub.PubSub = (*FloodSub)(nil)
