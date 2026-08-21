@@ -15,16 +15,24 @@ import (
 
 // ClientController resolves LookupRpcService with an AccessRpcService client.
 type ClientController struct {
-	le      *logrus.Entry
-	info    *controller.Info
-	svc     AccessClientFunc
+	// le is the logger for the controller.
+	le *logrus.Entry
+	// info is the controller info.
+	info *controller.Info
+	// svc constructs the AccessRpcServiceClient.
+	svc AccessClientFunc
+	// waitAck waits for an ack from the remote before starting a proxied rpc.
 	waitAck bool
+	// backoff configures retries of the proxied directive.
 	backoff backoff.BackOff
 
+	// clientRc manages a shared reference to the access service client.
 	clientRc *refcount.RefCount[SRPCAccessRpcServiceClient]
 
+	// serviceIDRe matches the service IDs this controller proxies.
 	serviceIDRe *regexp.Regexp
-	serverIDRe  *regexp.Regexp
+	// serverIDRe matches the peer IDs this controller proxies to.
+	serverIDRe *regexp.Regexp
 }
 
 // AccessClientFunc is a function to access the AccessRpcServiceClient.
