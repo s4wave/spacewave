@@ -107,7 +107,7 @@ func (d *lookupRpcService) GetValueOptions() directive.ValueOptions {
 	}
 }
 
-// LookupRpcServiceID returns the plugin ID.
+// LookupRpcServiceID returns the service ID to load.
 func (d *lookupRpcService) LookupRpcServiceID() string {
 	return d.serviceID
 }
