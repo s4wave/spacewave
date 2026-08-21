@@ -4,15 +4,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
-	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/s4wave/spacewave/net/pubsub/floodsub"
 	floodsub_controller "github.com/s4wave/spacewave/net/pubsub/floodsub/controller"
 )
-
-// pubsubFactories contains the static compiled-in pubsub factories.
-var pubsubFactories [](func(b bus.Bus) controller.Factory)
 
 // pubsubProviders contains the static compiled-in pubsub provider presets.
 var pubsubProviders = map[string](func(args *DaemonArgs) (config.Config, error)){

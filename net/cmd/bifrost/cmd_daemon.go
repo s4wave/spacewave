@@ -101,7 +101,6 @@ func runDaemon(c *cli.Context) error {
 	}
 
 	b := d.GetControllerBus()
-	sr := d.GetStaticResolver()
 
 	// Construct config set.
 	confSet := configset.ConfigSet{}
@@ -131,9 +130,6 @@ func runDaemon(c *cli.Context) error {
 			return errors.Wrap(err, "unmarshal config yaml")
 		}
 	}
-
-	// Apply factories
-	daemonFlags.ApplyFactories(b, sr)
 
 	// Daemon API
 	if daemonFlags.APIListen != "" {

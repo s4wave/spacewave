@@ -4,10 +4,8 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/cli"
-	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
 	configset "github.com/aperturerobotics/controllerbus/controller/configset"
-	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	"github.com/pkg/errors"
 	link_establish_controller "github.com/s4wave/spacewave/net/link/establish"
 	link_holdopen_controller "github.com/s4wave/spacewave/net/link/hold-open"
@@ -18,10 +16,14 @@ import (
 
 // DaemonArgs contains common flags for bifrost-powered daemons.
 type DaemonArgs struct {
+	// WebsocketListen is the listen address for the WebSocket transport.
 	WebsocketListen string
-	UDPListen       string
-	HoldOpenLinks   bool
-	Pubsub          string
+	// UDPListen is the listen address for the UDP transport.
+	UDPListen string
+	// HoldOpenLinks holds open links without an inactivity timeout when set.
+	HoldOpenLinks bool
+	// Pubsub selects the pubsub provider preset by name.
+	Pubsub string
 
 	// EstablishPeers is a list of peers to establish
 	// peer-id comma separated
@@ -79,13 +81,6 @@ func (a *DaemonArgs) BuildFlags() []cli.Flag {
 			EnvVars:     []string{"BIFROST_PUBSUB"},
 			Destination: &a.Pubsub,
 		},
-	}
-}
-
-// ApplyFactories applies any extra factories necessary on top of the core set.
-func (a *DaemonArgs) ApplyFactories(b bus.Bus, sr *static.Resolver) {
-	for _, f := range pubsubFactories {
-		sr.AddFactory(f(b))
 	}
 }
 

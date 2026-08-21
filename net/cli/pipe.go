@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"io"
-	"log"
+	"os"
 	"strings"
 
 	"github.com/aperturerobotics/cli"
@@ -229,7 +229,10 @@ func pipeStream(strm io.ReadWriteCloser, stdin io.Reader, stdout io.Writer) erro
 
 // logStatus prints a status message to stderr if not in quiet mode.
 func (a *PipeArgs) logStatus(format string, args ...any) {
-	if !a.Quiet {
-		log.Printf(format, args...)
+	if a.Quiet {
+		return
 	}
+	logger := logrus.New()
+	logger.SetOutput(os.Stderr)
+	logger.Infof(format, args...)
 }
