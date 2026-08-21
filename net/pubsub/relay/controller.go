@@ -17,8 +17,8 @@ var Version = controller.MustParseVersion("0.0.1")
 // ControllerID is the ID of the controller.
 const ControllerID = "bifrost/pubsub/relay"
 
-// Controller is the static Link establish controller.
-// It adds a EstablishLink for each configured peer.
+// Controller is the pubsub relay controller.
+// It subscribes to each configured topic via BuildChannelSubscription.
 type Controller struct {
 	// le is the root logger
 	le *logrus.Entry
@@ -30,7 +30,7 @@ type Controller struct {
 	topics []string
 }
 
-// NewController constructs a new relay controllr.
+// NewController constructs a new pubsub relay controller.
 func NewController(b bus.Bus, le *logrus.Entry, peerID peer.ID, topics []string) *Controller {
 	return &Controller{
 		le:     le,
@@ -95,7 +95,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
 		ControllerID,
 		Version,
-		"link establish controller",
+		"pubsub relay controller",
 	)
 }
 
