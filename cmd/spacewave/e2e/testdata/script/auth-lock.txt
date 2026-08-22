@@ -16,4 +16,4 @@ spacewave stop --state-path $WORK/state
 stdout "Stopped Spacewave daemon."
 
 spacewave stop --state-path $WORK/state
-stdout "No Spacewave daemon is running."
+stdout "No Spacewave daemon is running"
