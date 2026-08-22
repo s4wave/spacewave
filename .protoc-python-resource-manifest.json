@@ -1,7 +1,7 @@
 {
   "version": 2,
   "protocFlagsHash": "f3371eb4a4768e3b7f3e3ac546ec7bb7da05b08dda4ec8d0fe2f6c63f6b19da9",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.16.0,starpc=v0.49.21,protobuf-es-lite=1.1.1,uv.lock=b394ccf8ba6132f1eea3603f50dec8b5e4eff441b013e3d38fdcbea466bf9ab6",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.16.0,starpc=v0.49.21,protobuf-es-lite=1.1.1,uv.lock=71bb930a5468b8044e6eaba95467957361aec054961e34fae78436679361e18c",
   "packages": {
     "github.com/s4wave/spacewave/bldr/resource": {
       "hash": "ab5f53e288f96f011c2ffe36c784eb353ad2ecd3d893b5cd34d167a725915104",
@@ -11,9 +11,7 @@
         "bldr/resource/resource_srpc.py",
         "bldr/resource/resource_srpc.pyi"
       ],
-      "protoFiles": [
-        "bldr/resource/resource.proto"
-      ]
+      "protoFiles": ["bldr/resource/resource.proto"]
     }
   }
 }

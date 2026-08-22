@@ -2,6 +2,7 @@ package plugin_host_scheduler
 
 import (
 	"slices"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/util/backoff"
@@ -74,7 +75,30 @@ func (c *Config) Validate() error {
 	if err := c.GetExecBackoff().Validate(true); err != nil {
 		return errors.Wrap(err, "exec_backoff")
 	}
+	if _, err := c.BuildStartupWaitBudget(); err != nil {
+		return err
+	}
 	return nil
+}
+
+// DefaultStartupWaitBudget is the startup wait budget used when the config
+// leaves StartupWaitBudgetDur unset or zero.
+const DefaultStartupWaitBudget = time.Minute
+
+// BuildStartupWaitBudget gets the StartupWaitBudgetDur and fills the default
+// if unset. Rejects negative and unparseable durations.
+func (c *Config) BuildStartupWaitBudget() (time.Duration, error) {
+	budget, err := confparse.ParseDuration(c.GetStartupWaitBudgetDur())
+	if err != nil {
+		return 0, errors.Wrap(err, "startup_wait_budget_dur")
+	}
+	if budget < 0 {
+		return 0, errors.New("startup_wait_budget_dur cannot be negative")
+	}
+	if budget == 0 {
+		return DefaultStartupWaitBudget, nil
+	}
+	return budget, nil
 }
 
 // GetConfigID returns the unique string for this configuration type.

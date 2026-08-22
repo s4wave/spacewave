@@ -106,3 +106,31 @@ func TestStartupGroupCoordinatorReleasesAfterTerminalFailure(t *testing.T) {
 	}
 	<-source.releasedCh["plugin/broken"]
 }
+
+func TestStartupGroupCoordinatorReleasesAfterStartupBudgetExhaustion(t *testing.T) {
+	ctx := t.Context()
+	source := newTestStartupPluginSource("plugin/stuck")
+	coordinator := NewStartupGroupCoordinator([]string{"plugin/stuck"}, source)
+	if err := coordinator.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	source.refs["plugin/stuck"].stateCtr.SetValue(
+		bldr_plugin.NewPluginLoadState(
+			nil,
+			bldr_plugin.InitialCapabilityRegistrationPending,
+		).WithStartupBudgetExhausted(),
+	)
+	if err := coordinator.WaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	<-source.releasedCh["plugin/stuck"]
+
+	source.refs["plugin/stuck"].stateCtr.SetValue(bldr_plugin.NewPluginLoadState(
+		nil,
+		bldr_plugin.InitialCapabilityRegistrationPending,
+	))
+	if !coordinator.IsReady() || !coordinator.GetReadyCtr().GetValue() {
+		t.Fatal("startup group readiness reverted after budget exhaustion")
+	}
+}
