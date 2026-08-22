@@ -51,15 +51,17 @@ export default defineConfig({
         replacement: resolveBldrDistPath('web/bldr/index.js'),
       },
       // The Bldr harness ships the SDK inside the dist root; map both the
-      // plugin entry and exact .js imports onto the packaged .ts sources so
-      // apps need no local SDK install or tsconfig paths.
+      // plugin entry and explicit .js imports onto the packaged sources so
+      // apps need no local SDK install or tsconfig paths. The .js imports
+      // resolve to an extensionless path so Vite picks the packaged .ts or
+      // .tsx module.
       {
         find: /^@aptre\/bldr-sdk$/,
         replacement: resolveBldrDistPath('sdk/plugin.ts'),
       },
       {
         find: /^@aptre\/bldr-sdk\/(.*)\.js$/,
-        replacement: resolveBldrDistPath('sdk/$1.ts'),
+        replacement: resolveBldrDistPath('sdk/$1'),
       },
       {
         find: /^@aptre\/bldr-react$/,
