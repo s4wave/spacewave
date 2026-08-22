@@ -21,7 +21,6 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 		return err
 	}
 
-	// TODO: add storage depending on if we are in js or not.
 	verbose := false
 	av, _, svolRef, err := common.AddStorageVolume(ctx, le, b, sr, verbose)
 	if err != nil {

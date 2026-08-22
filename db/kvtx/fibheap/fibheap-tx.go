@@ -129,37 +129,8 @@ func (t *tx) getEntry(ctx context.Context, key []byte, alloc bool) (*Entry, erro
 }
 
 // setEntry sets the entry with the specified ID
-/*
-func (t *tx) setEntry(key []byte, entry *Entry) {
-	t.entryCache.Set(key, entry)
-}
-*/
 
 // editEntry gets an entry, edits it, then writes it back.
-/*
-func (t *tx) editEntry(key []byte, cb func(e *Entry) (bool, error)) error {
-	inCache := t.entryCache.Exists(key)
-	ent, err := t.getEntry(key, false)
-	if err != nil {
-		return err
-	}
-
-	if ent == nil {
-		return errors.Errorf("entry %s not found", key)
-	}
-
-	dirty, err := cb(ent)
-	if err != nil {
-		return err
-	}
-
-	if !dirty && !inCache {
-		t.entryCache.Remove(key)
-	}
-
-	return nil
-}
-*/
 
 // getPrevNext returns the previous and next entries for an entry.
 func (t *tx) getPrevNext(

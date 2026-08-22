@@ -71,16 +71,6 @@ func (p *TablePartition) BuildTreeTx(ctx context.Context, detach, write bool) (k
 
 // IterateRows returns a row iterator.
 func (p *TablePartition) IterateRows(ctx *sql.Context) (sql.RowIter, error) {
-	/* TODO: index lookup
-	if p.lookup != nil {
-		var err error
-		values, err = p.lookup.(sql.DriverIndexLookup).Values(partition)
-		if err != nil {
-			return nil, err
-		}
-	}
-	*/
-
 	cctx := GetDbContext(ctx)
 	tx, err := p.BuildTreeTx(cctx, false, false)
 	if err != nil {

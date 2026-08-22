@@ -131,9 +131,6 @@ func main() {
 	for _, v := range createVals {
 		db.Create(v)
 	}
-	// db = db.Commit()
-
-	// TODO Find() does not work before Commit - why?
 	err = tx.Commit(ctx)
 	if err != nil {
 		panic(err)

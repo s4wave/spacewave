@@ -137,14 +137,6 @@ func (m Migrator) ColumnTypes(value any) (columnTypes []gorm.ColumnType, err err
 			return err
 		}
 
-		disableDatetimePrecision := true
-		if !disableDatetimePrecision {
-			columnTypeSQL += ", datetime_precision"
-		}
-		disableNumericPrecision := true
-		if !disableNumericPrecision {
-			columnTypeSQL += ", numeric_precision, numeric_scale"
-		}
 		columnTypeSQL += " FROM information_schema.columns WHERE table_schema = ? AND table_name = ? ORDER BY ORDINAL_POSITION"
 
 		columns, rowErr := m.DB.Raw(columnTypeSQL, currentDatabase, stmt.Table).Rows()
@@ -155,11 +147,10 @@ func (m Migrator) ColumnTypes(value any) (columnTypes []gorm.ColumnType, err err
 
 		for columns.Next() {
 			var (
-				column            migrator.ColumnType
-				datetimePrecision sql.NullInt64
-				extraValue        sql.NullString
-				columnKey         sql.NullString
-				values            = []any{
+				column     migrator.ColumnType
+				extraValue sql.NullString
+				columnKey  sql.NullString
+				values     = []any{
 					&column.NameValue,
 					&column.DefaultValueValue,
 					&column.NullableValue,
@@ -171,14 +162,6 @@ func (m Migrator) ColumnTypes(value any) (columnTypes []gorm.ColumnType, err err
 					&column.CommentValue,
 				}
 			)
-
-			if !disableDatetimePrecision {
-				values = append(values, &datetimePrecision)
-			}
-
-			if !disableNumericPrecision {
-				values = append(values, &column.DecimalSizeValue, &column.ScaleValue)
-			}
 
 			if scanErr := columns.Scan(values...); scanErr != nil {
 				return scanErr
@@ -198,10 +181,6 @@ func (m Migrator) ColumnTypes(value any) (columnTypes []gorm.ColumnType, err err
 			}
 
 			column.DefaultValueValue.String = strings.Trim(column.DefaultValueValue.String, "'")
-
-			if datetimePrecision.Valid {
-				column.DecimalSizeValue = datetimePrecision
-			}
 
 			for _, c := range rawColumnTypes {
 				if c.Name() == column.NameValue.String {

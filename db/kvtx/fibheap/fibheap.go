@@ -222,81 +222,6 @@ func (h *FibbonaciHeap) Delete(ctx context.Context, key []byte) (rerr error) {
 // Merge merges b into a, enqueuing any keys that do not exist already.
 // As a consequence of the operation, any elements already existing in A are removed from B.
 // This can be used as a one-time UNIQ operation.
-/*
-func (h *FibbonaciHeap) Merge(other *FibbonaciHeap) (rerr error) {
-	if h == nil || other == nil {
-		return errors.New("merge: one of the maps was nil")
-	}
-
-	tx, err := h.startTx(true)
-	if err != nil {
-		return err
-	}
-	defer tx.finish(&rerr)
-
-	resultSize := tx.root.Size
-
-	// unfortunately, have to remove any keys in other that exist in h.
-	// this is to avoid collisions
-	otherKeys, err := other.db.ListKeys("")
-	if err != nil {
-		return err
-	}
-
-	// remove any keys that would collide
-	for _, key := range otherKeys {
-		id := key
-		if id == fibRootKey {
-			continue
-		}
-		otherEntry, err := other.getEntry(id, false)
-		if err != nil {
-			return err
-		}
-
-		if otherEntry == nil {
-			return errors.Errorf("cannot find entry: %s", id)
-		}
-
-		_, hvOk, err := h.db.GetObject(key)
-		if err != nil {
-			return err
-		}
-
-		if hvOk {
-			if err := other.dequeueKeyByID(id, otherEntry); err != nil {
-				return err
-			}
-		} else {
-			h.entryCache[id] = otherEntry
-			resultSize++
-		}
-	}
-
-	heapMin, err := tx.getEntry(tx.root.Min, false)
-	if err != nil {
-		return err
-	}
-
-	otherMin, err := tx.getEntry(other.root.Min, false)
-	if err != nil {
-		return err
-	}
-
-	resultMinKey, resultMinEntry, err := h.mergeLists(
-		heapMin, otherMin,
-		tx.root.Min, other.root.Min,
-	)
-	if err != nil {
-		return err
-	}
-
-	tx.root.Min = resultMinKey
-	tx.root.Size = resultSize
-	tx.root.MinPriority = resultMinEntry.GetPriority()
-	return h.writeState()
-}
-*/
 
 // dequeueMinEntry dequeues the min entry and returns it.
 func (h *FibbonaciHeap) dequeueMinEntry(ctx context.Context, tx *tx) (*Entry, []byte, error) {
@@ -431,12 +356,6 @@ func (h *FibbonaciHeap) dequeueMinEntry(ctx context.Context, tx *tx) (*Entry, []
 					treeSliceKeys = treeSliceKeys[:deg+1]
 				}
 			}
-			/*
-				for curr.Degree >= int32(len(treeSlice)) {
-					treeSlice = append(treeSlice, nil)
-					treeSliceKeys = append(treeSliceKeys, nil)
-				}
-			*/
 
 			if treeSlice[curr.Degree] == nil {
 				treeSlice[curr.Degree] = curr
@@ -511,12 +430,6 @@ func (h *FibbonaciHeap) dequeueMinEntry(ctx context.Context, tx *tx) (*Entry, []
 			currKey = minTKey
 		}
 
-		/* Update the global min based on this node.  Note that we compare
-		 * for <= instead of < here.  That's because if we just did a
-		 * reparent operation that merged two different trees of equal
-		 * priority, we need to make sure that the min pointer points to
-		 * the root-level one.
-		 */
 		if curr.GetPriority() <= tx.root.MinPriority {
 			tx.root.Min = currKey
 			tx.root.MinPriority = curr.GetPriority()

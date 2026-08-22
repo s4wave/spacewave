@@ -86,9 +86,6 @@ func (i *TablePartitionRowIter) Next(sctx *sql.Context) (sql.Row, error) {
 	if err != nil {
 		return nil, err
 	}
-	/*
-		return projectOnRow(i.columns, row), nil
-	*/
 	return row, nil
 }
 

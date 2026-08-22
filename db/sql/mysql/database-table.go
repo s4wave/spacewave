@@ -11,8 +11,8 @@ func (d *Database) TableCount() int {
 	return len(d.root.GetTables())
 }
 
-// Creates the table with the given name and schema. If a table with that name
-// already exists, must return sql.ErrTableAlreadyExists.
+// CreateTable creates the table with the given name and schema. If a table
+// with that name already exists, returns sql.ErrTableAlreadyExists.
 func (d *Database) CreateTable(ctx *sql.Context, name string, schema sql.PrimaryKeySchema, collation sql.CollationID, comment string) error {
 	if _, _, nsbOk := d.nsbs.LookupByName(name); nsbOk {
 		return sql.ErrTableAlreadyExists.New(name)

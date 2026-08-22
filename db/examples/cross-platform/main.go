@@ -22,7 +22,6 @@ func Run(ctx context.Context, le *logrus.Entry) error {
 	}
 
 	// Add the platform-specific storage volume.
-	// TODO: add storage depending on if we are in js or not.
 	verbose := false
 	av, _, ref, err := common.AddStorageVolume(ctx, le, b, sr, verbose)
 	if err != nil {
