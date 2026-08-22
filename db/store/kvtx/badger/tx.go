@@ -63,7 +63,11 @@ func (t *Tx) Set(ctx context.Context, key, value []byte) error {
 	if len(key) == 0 {
 		return kvtx.ErrEmptyKey
 	}
-	return t.txn.Set(key, value)
+	if err := t.txn.Set(key, value); err != nil {
+		return err
+	}
+	t.s.recordWrite(len(key) + len(value))
+	return nil
 }
 
 // ScanPrefix iterates over keys with a prefix.
