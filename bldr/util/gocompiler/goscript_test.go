@@ -166,6 +166,99 @@ func TestResolveGoScriptCompilerCacheRootRejectsEscapingRelativeRoot(t *testing.
 	}
 }
 
+func TestExecGoScriptCompileMapsBindingRoots(t *testing.T) {
+	dir := t.TempDir()
+	depDir := filepath.Join(dir, "dep")
+	if err := os.MkdirAll(depDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeGoScriptModule(t, dir, "example.com/root", map[string]string{
+		"main.go": "package root\nimport \"example.com/dep\"\nvar Value dep.Message\n",
+	})
+	writeGoScriptModule(t, depDir, "example.com/dep", map[string]string{
+		"msg.pb.go": "package dep\ntype Message struct { Value string `protobuf:\"bytes,1,opt,name=value,proto3\"` }\n",
+		"msg.pb.ts": "export const Message = {}\n",
+	})
+	goMod := `module example.com/root
+
+go 1.25.3
+
+require example.com/dep v0.0.0
+
+replace example.com/dep => ./dep
+`
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(goMod), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	roots, err := GoScriptBindingRoots(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "out")
+	err = ExecGoScriptCompile(context.Background(), logrus.NewEntry(logrus.New()), GoScriptCompileOptions{
+		WorkDir:                   dir,
+		OutputPath:                out,
+		Packages:                  []string{"."},
+		BindingRoots:              roots,
+		AllDependencies:           true,
+		ProtobufTypeScriptBinding: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(out, "@goscript", "example.com", "dep", "msg.pb.ts")); err != nil {
+		t.Fatalf("protobuf TypeScript binding was not emitted: %v", err)
+	}
+}
+
+func TestGoScriptBindingRootsFiltersModuleSources(t *testing.T) {
+	dir := t.TempDir()
+	withPB := filepath.Join(dir, "with-pb")
+	withoutPB := filepath.Join(dir, "without-pb")
+	if err := os.MkdirAll(withPB, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(withoutPB, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeGoScriptModule(t, dir, "example.com/root", map[string]string{
+		"main.pb.ts": "export {}\n",
+	})
+	writeGoScriptModule(t, withPB, "example.com/with-pb", map[string]string{
+		"types.pb.ts": "export {}\n",
+	})
+	writeGoScriptModule(t, withoutPB, "example.com/without-pb", map[string]string{
+		"node_modules/generated.pb.ts": "export {}\n",
+		"a/b/c/d/e/f/g/types.pb.ts":    "export {}\n",
+	})
+	goMod := `module example.com/root
+
+go 1.25.3
+
+require (
+	example.com/with-pb v0.0.0
+	example.com/without-pb v0.0.0
+)
+
+replace example.com/with-pb => ./with-pb
+replace example.com/without-pb => ./without-pb
+`
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(goMod), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := GoScriptBindingRoots(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := filepath.EvalSymlinks(withPB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(got, []string{want}) {
+		t.Fatalf("binding roots = %v, want [%s]", got, want)
+	}
+}
+
 func TestGoListImportPathPreservesEnv(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/goscriptenv\n\ngo 1.24\n"), 0o644); err != nil {

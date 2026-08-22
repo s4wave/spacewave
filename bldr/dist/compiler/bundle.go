@@ -422,6 +422,10 @@ func BuildDistBundle(
 				return err
 			}
 			goScriptOverrideDirs := existingSourceDirs(srcPath, "gs")
+			goScriptBindingRoots, err := gocompiler.GoScriptBindingRoots(ctx, entrypointBuildDir, goScriptEnv...)
+			if err != nil {
+				return err
+			}
 			mainPackagePath, err := gocompiler.GoListImportPath(ctx, entrypointBuildDir, goScriptBuildFlags, goScriptEnv...)
 			if err != nil {
 				return err
@@ -439,6 +443,7 @@ func BuildDistBundle(
 				BuildFlags:                goScriptBuildFlags,
 				Env:                       goScriptEnv,
 				OverrideDirs:              goScriptOverrideDirs,
+				BindingRoots:              goScriptBindingRoots,
 				AllDependencies:           true,
 				ProtobufTypeScriptBinding: true,
 			}); err != nil {

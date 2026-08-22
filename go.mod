@@ -4,7 +4,7 @@ go 1.26.5
 
 tool github.com/s4wave/goscript/cmd/goscript
 
-require github.com/s4wave/goscript v0.2.27-0.20260813091320-94a37ae74e9d // master
+require github.com/s4wave/goscript v0.2.27-0.20260822054934-545493ac2803 // master
 
 replace (
 	// aperture: use compatibility forks

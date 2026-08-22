@@ -2,9 +2,12 @@ package gocompiler
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -29,6 +32,7 @@ type GoScriptCompileOptions struct {
 	BuildFlags                []string
 	Env                       []string
 	OverrideDirs              []string
+	BindingRoots              []string
 	AllDependencies           bool
 	ProtobufTypeScriptBinding bool
 }
@@ -83,6 +87,83 @@ func goScriptBldrStateRootForBuildPath(buildPath string) string {
 
 func isGoScriptBldrStateRootName(name string) bool {
 	return name == ".bldr" || strings.HasPrefix(name, ".bldr-")
+}
+
+// GoScriptBindingRoots returns dependency module roots containing protobuf
+// TypeScript siblings. The main module is covered by GoScript's source root.
+func GoScriptBindingRoots(ctx context.Context, workDir string, env ...string) ([]string, error) {
+	cmd := exec.CommandContext(ctx, "go", "list", "-m", "-json", "all")
+	cmd.Env = append(os.Environ(), GetDefaultEnv()...)
+	cmd.Env = append(cmd.Env, env...)
+	cmd.Dir = workDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return nil, errors.Errorf("go list modules failed: %s", strings.TrimSpace(string(out)))
+		}
+		return nil, err
+	}
+	decoder := json.NewDecoder(strings.NewReader(string(out)))
+	var roots []string
+	seen := make(map[string]struct{})
+	for {
+		var module struct {
+			Dir  string
+			Main bool
+		}
+		if err := decoder.Decode(&module); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, errors.Wrap(err, "decode go list modules")
+		}
+		if module.Main || strings.TrimSpace(module.Dir) == "" {
+			continue
+		}
+		dir := filepath.Clean(module.Dir)
+		if _, ok := seen[dir]; ok || !goScriptBindingRootHasProtobufTypeScript(dir) {
+			continue
+		}
+		seen[dir] = struct{}{}
+		roots = append(roots, dir)
+	}
+	slices.Sort(roots)
+	return roots, nil
+}
+
+func goScriptBindingRootHasProtobufTypeScript(root string) bool {
+	found := false
+	_ = filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if found {
+			return filepath.SkipAll
+		}
+		if entry.IsDir() {
+			if path != root && (entry.Name() == "node_modules" || entry.Name() == "vendor") {
+				return filepath.SkipDir
+			}
+			rel, relErr := filepath.Rel(root, path)
+			if relErr != nil {
+				return relErr
+			}
+			depth := 0
+			if rel != "." {
+				depth = strings.Count(rel, string(filepath.Separator)) + 1
+			}
+			if depth > 6 {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if strings.HasSuffix(entry.Name(), ".pb.ts") {
+			found = true
+		}
+		return nil
+	})
+	return found
 }
 
 // GoListImportPath returns the import path for the package in workDir under the given build flags.
@@ -166,6 +247,13 @@ func ExecGoScriptCompile(ctx context.Context, le *logrus.Entry, opts GoScriptCom
 			return errors.New("goscript override dir cannot be empty")
 		}
 		conf.OverrideDirs = append(conf.OverrideDirs, dir)
+	}
+	for _, root := range opts.BindingRoots {
+		root = strings.TrimSpace(root)
+		if root == "" {
+			return errors.New("goscript binding root cannot be empty")
+		}
+		conf.AdditionalBindingRoots = append(conf.AdditionalBindingRoots, root)
 	}
 
 	budget, err := bldr_buildbudget.Default()
