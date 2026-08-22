@@ -114,6 +114,7 @@ async function runBuild(request, dependencyRoot) {
     source
   ]));
   const injectedPaths = (request.inject ?? []).map(canonicalPath);
+  const entryInjects = new Map;
   const entrypointPaths = new Set;
   for (const entrypoint of entrypoints) {
     const name = entrypoint.name || basename(entrypoint.inputPath || "entry");
@@ -122,15 +123,10 @@ async function runBuild(request, dependencyRoot) {
     }
     const inputPath = canonicalPath(entrypoint.inputPath);
     entrypointPaths.add(inputPath);
-    if (injectedPaths.length === 0) {
-      inputEntries[name] = inputPath;
-      continue;
+    if (injectedPaths.length > 0) {
+      entryInjects.set(inputPath, injectedPaths);
     }
-    const wrapperName = `bldr-internal-entry:${name}`;
-    const imports = [...injectedPaths, inputPath].map((filePath) => `import ${JSON.stringify(filePath)};`).join(`
-`);
-    virtualModules.set(wrapperName, imports);
-    inputEntries[name] = wrapperName;
+    inputEntries[name] = inputPath;
   }
   for (const [name, source] of Object.entries(request.virtualModules ?? {})) {
     virtualModules.set(name, source);
@@ -396,7 +392,15 @@ async function runBuild(request, dependencyRoot) {
         return virtualModules.get(id.slice(9)) ?? null;
       const normalizedID = normalize(id);
       trackInput(normalizedID);
-      return sourceOverrides.get(normalizedID) ?? null;
+      const overrideSource = sourceOverrides.get(normalizedID);
+      const injects = entryInjects.get(normalizedID);
+      if (!injects)
+        return overrideSource ?? null;
+      const original = overrideSource ?? readFileSync(normalizedID, "utf8");
+      const imports = injects.map((filePath) => `import ${JSON.stringify(filePath)};`).join(`
+`);
+      return `${imports}
+${original}`;
     },
     transform(code, id) {
       if (request.routeCssImports && sourceHasCssImport(code)) {
@@ -630,12 +634,6 @@ function normalizeOutputPath(outputRoot, outputPath) {
 function entrypointForFacade(facade, entrypoints) {
   if (!facade)
     return "";
-  const injectedEntrypointPrefix = "\x00virtual:bldr-internal-entry:";
-  if (facade.startsWith(injectedEntrypointPrefix)) {
-    const name = facade.slice(injectedEntrypointPrefix.length);
-    if (entrypoints.some((entrypoint) => entrypoint.name === name))
-      return name;
-  }
   const normalizedFacade = normalizeExistingPath(facade);
   return entrypoints.find((entrypoint) => normalizeExistingPath(entrypoint.inputPath || "") === normalizedFacade)?.name || "";
 }

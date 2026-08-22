@@ -240,6 +240,9 @@ export async function runBuild(
     ]),
   )
   const injectedPaths = (request.inject ?? []).map(canonicalPath)
+  // entryInjects maps each canonical entry path to its injected module
+  // paths in request order.
+  const entryInjects = new Map<string, string[]>()
   const entrypointPaths = new Set<string>()
   for (const entrypoint of entrypoints) {
     const name = entrypoint.name || basename(entrypoint.inputPath || 'entry')
@@ -250,16 +253,14 @@ export async function runBuild(
     }
     const inputPath = canonicalPath(entrypoint.inputPath)
     entrypointPaths.add(inputPath)
-    if (injectedPaths.length === 0) {
-      inputEntries[name] = inputPath
-      continue
+    if (injectedPaths.length > 0) {
+      // esbuild-style inject: the injected modules become side-effect
+      // imports prepended ahead of the real entry source, so the entry
+      // keeps its own exports, including arbitrary named exports, its
+      // default export, or none at all.
+      entryInjects.set(inputPath, injectedPaths)
     }
-    const wrapperName = `bldr-internal-entry:${name}`
-    const imports = [...injectedPaths, inputPath]
-      .map((filePath) => `import ${JSON.stringify(filePath)};`)
-      .join('\n')
-    virtualModules.set(wrapperName, imports)
-    inputEntries[name] = wrapperName
+    inputEntries[name] = inputPath
   }
   for (const [name, source] of Object.entries(request.virtualModules ?? {})) {
     virtualModules.set(name, source)
@@ -578,7 +579,14 @@ export async function runBuild(
         return virtualModules.get(id.slice(9)) ?? null
       const normalizedID = normalize(id)
       trackInput(normalizedID)
-      return sourceOverrides.get(normalizedID) ?? null
+      const overrideSource = sourceOverrides.get(normalizedID)
+      const injects = entryInjects.get(normalizedID)
+      if (!injects) return overrideSource ?? null
+      const original = overrideSource ?? readFileSync(normalizedID, 'utf8')
+      const imports = injects
+        .map((filePath) => `import ${JSON.stringify(filePath)};`)
+        .join('\n')
+      return `${imports}\n${original}`
     },
     transform(code, id) {
       if (request.routeCssImports && sourceHasCssImport(code)) {
@@ -886,11 +894,6 @@ function entrypointForFacade(
   entrypoints: Entrypoint[],
 ): string {
   if (!facade) return ''
-  const injectedEntrypointPrefix = '\0virtual:bldr-internal-entry:'
-  if (facade.startsWith(injectedEntrypointPrefix)) {
-    const name = facade.slice(injectedEntrypointPrefix.length)
-    if (entrypoints.some((entrypoint) => entrypoint.name === name)) return name
-  }
   const normalizedFacade = normalizeExistingPath(facade)
   return (
     entrypoints.find(
