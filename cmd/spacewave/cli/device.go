@@ -97,6 +97,33 @@ type deviceStatusOutput struct {
 	IdentityCreated  bool   `json:"identityCreated,omitempty"`
 }
 
+// newDeviceStatusOutput projects a setup record into the status output for
+// the given daemon paths.
+func newDeviceStatusOutput(record *deviceSetupRecord, resolvedStatePath, sockPath string) deviceStatusOutput {
+	return deviceStatusOutput{
+		DaemonStatus:     "running",
+		SetupState:       record.SetupState,
+		StatePath:        resolvedStatePath,
+		Socket:           sockPath,
+		PeerID:           record.PeerID,
+		Label:            record.Label,
+		RequestedRole:    record.RequestedRole,
+		TargetHint:       record.TargetHint,
+		CompletionMode:   record.CompletionMode,
+		CompletionAt:     record.CompletionAt,
+		CompletionStatus: record.CompletionStatus,
+		AccountID:        record.AccountID,
+		ResourceID:       record.ResourceID,
+		SessionID:        record.SessionID,
+		SessionIndex:     record.SessionIndex,
+		SessionPeerID:    record.SessionPeerID,
+		DeviceObjectKey:  record.DeviceObjectKey,
+		FailureReason:    record.FailureReason,
+		ExpiresAt:        record.ExpiresAt,
+		Ticket:           record.Ticket,
+	}
+}
+
 type deviceSetupArgs struct {
 	statePath     string
 	outputFormat  string
@@ -334,29 +361,9 @@ func runDeviceSetup(c *cli.Context, args deviceSetupArgs) error {
 	if err := writeDeviceSetupRecord(resolvedStatePath, record); err != nil {
 		return err
 	}
-	return writeDeviceStatusOutput(deviceStatusOutput{
-		DaemonStatus:     "running",
-		SetupState:       record.SetupState,
-		StatePath:        resolvedStatePath,
-		Socket:           sockPath,
-		PeerID:           record.PeerID,
-		Label:            record.Label,
-		RequestedRole:    record.RequestedRole,
-		TargetHint:       record.TargetHint,
-		CompletionMode:   record.CompletionMode,
-		CompletionAt:     record.CompletionAt,
-		CompletionStatus: record.CompletionStatus,
-		AccountID:        record.AccountID,
-		ResourceID:       record.ResourceID,
-		SessionID:        record.SessionID,
-		SessionIndex:     record.SessionIndex,
-		SessionPeerID:    record.SessionPeerID,
-		DeviceObjectKey:  record.DeviceObjectKey,
-		FailureReason:    record.FailureReason,
-		ExpiresAt:        record.ExpiresAt,
-		Ticket:           record.Ticket,
-		IdentityCreated:  identityCreated,
-	}, args.outputFormat)
+	out := newDeviceStatusOutput(record, resolvedStatePath, sockPath)
+	out.IdentityCreated = identityCreated
+	return writeDeviceStatusOutput(out, args.outputFormat)
 }
 
 func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
@@ -397,28 +404,7 @@ func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
 			return err
 		}
 	}
-	return writeDeviceStatusOutput(deviceStatusOutput{
-		DaemonStatus:     "running",
-		SetupState:       updated.SetupState,
-		StatePath:        resolvedStatePath,
-		Socket:           sockPath,
-		PeerID:           updated.PeerID,
-		Label:            updated.Label,
-		RequestedRole:    updated.RequestedRole,
-		TargetHint:       updated.TargetHint,
-		CompletionMode:   updated.CompletionMode,
-		CompletionAt:     updated.CompletionAt,
-		CompletionStatus: updated.CompletionStatus,
-		AccountID:        updated.AccountID,
-		ResourceID:       updated.ResourceID,
-		SessionID:        updated.SessionID,
-		SessionIndex:     updated.SessionIndex,
-		SessionPeerID:    updated.SessionPeerID,
-		DeviceObjectKey:  updated.DeviceObjectKey,
-		FailureReason:    updated.FailureReason,
-		ExpiresAt:        updated.ExpiresAt,
-		Ticket:           updated.Ticket,
-	}, args.outputFormat)
+	return writeDeviceStatusOutput(newDeviceStatusOutput(updated, resolvedStatePath, sockPath), args.outputFormat)
 }
 
 func runDeviceStatus(c *cli.Context, statePath, outputFormat string) error {
@@ -437,28 +423,7 @@ func runDeviceStatus(c *cli.Context, statePath, outputFormat string) error {
 	if err != nil {
 		return err
 	}
-	return writeDeviceStatusOutput(deviceStatusOutput{
-		DaemonStatus:     "running",
-		SetupState:       record.SetupState,
-		StatePath:        resolvedStatePath,
-		Socket:           sockPath,
-		PeerID:           record.PeerID,
-		Label:            record.Label,
-		RequestedRole:    record.RequestedRole,
-		TargetHint:       record.TargetHint,
-		CompletionMode:   record.CompletionMode,
-		CompletionAt:     record.CompletionAt,
-		CompletionStatus: record.CompletionStatus,
-		AccountID:        record.AccountID,
-		ResourceID:       record.ResourceID,
-		SessionID:        record.SessionID,
-		SessionIndex:     record.SessionIndex,
-		SessionPeerID:    record.SessionPeerID,
-		DeviceObjectKey:  record.DeviceObjectKey,
-		FailureReason:    record.FailureReason,
-		ExpiresAt:        record.ExpiresAt,
-		Ticket:           record.Ticket,
-	}, outputFormat)
+	return writeDeviceStatusOutput(newDeviceStatusOutput(record, resolvedStatePath, sockPath), outputFormat)
 }
 
 func buildDeviceDockerSetupReport(c *cli.Context, statePath string, label string) (*deviceDockerSetupReport, error) {

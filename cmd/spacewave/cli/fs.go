@@ -127,68 +127,17 @@ type fsContext struct {
 // mountFsContext connects to the daemon and mounts the full chain to get
 // an FSHandleResourceService client for the given URI.
 func mountFsContext(c *cli.Context, statePath string, uri fsURI) (*fsContext, func(), error) {
-	ctx := c.Context
-
-	client, err := connectDaemonFromContext(ctx, c, statePath)
+	mount, _, err := mountObjectChain(c, statePath, uri, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	sess, err := client.mountSession(ctx, uri.sessionIdx)
-	if err != nil {
-		client.close()
-		return nil, nil, err
-	}
-
-	// resolve space ID
-	spaceID := uri.spaceID
-	if spaceID == "" {
-		spaceID, err = client.getSpaceByName(ctx, sess, "")
-		if err != nil {
-			sess.Release()
-			client.close()
-			return nil, nil, errors.Wrap(err, "resolve default space")
-		}
-	}
-
-	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
-	if err != nil {
-		sess.Release()
-		client.close()
-		return nil, nil, err
-	}
-
-	_, engineRef, engineCleanup, err := client.accessWorldEngineWithRef(ctx, spaceSvc)
-	if err != nil {
-		spaceCleanup()
-		sess.Release()
-		client.close()
-		return nil, nil, err
-	}
-
-	typedClient, _, _, typedCleanup, err := client.accessTypedObject(ctx, engineRef, uri.objectKey)
-	if err != nil {
-		engineCleanup()
-		spaceCleanup()
-		sess.Release()
-		client.close()
-		return nil, nil, errors.Wrap(err, "access typed object for "+uri.objectKey)
-	}
-
-	fsSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(typedClient)
-
-	cleanup := func() {
-		typedCleanup()
-		engineCleanup()
-		spaceCleanup()
-		sess.Release()
-		client.close()
-	}
+	fsSvc := s4wave_unixfs.NewSRPCFSHandleResourceServiceClient(mount.typedClient)
 
 	return &fsContext{
 		fsSvc:     fsSvc,
-		resClient: client.resClient,
-	}, cleanup, nil
+		resClient: mount.client.resClient,
+	}, mount.release, nil
 }
 
 // lookupPath navigates from the root FSHandle to the given path.

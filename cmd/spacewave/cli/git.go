@@ -41,71 +41,22 @@ func parseGitURI(arg, spaceFlag string, sessFlag int) (fsURI, error) {
 }
 
 // mountGitContext connects to the daemon and mounts the full chain to get
+// mountGitContext connects to the daemon and mounts the full chain to get
 // a GitRepoResourceService client for the given URI.
 func mountGitContext(c *cli.Context, statePath string, uri fsURI) (*gitContext, func(), error) {
-	ctx := c.Context
-
-	client, err := connectDaemonFromContext(ctx, c, statePath)
+	mount, _, err := mountObjectChain(c, statePath, uri, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	sess, err := client.mountSession(ctx, uri.sessionIdx)
-	if err != nil {
-		client.close()
-		return nil, nil, err
-	}
-
-	spaceID := uri.spaceID
-	if spaceID == "" {
-		spaceID, err = client.getSpaceByName(ctx, sess, "")
-		if err != nil {
-			sess.Release()
-			client.close()
-			return nil, nil, errors.Wrap(err, "resolve default space")
-		}
-	}
-
-	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
-	if err != nil {
-		sess.Release()
-		client.close()
-		return nil, nil, err
-	}
-
-	engine, engineRef, engineCleanup, err := client.accessWorldEngineWithRef(ctx, spaceSvc)
-	if err != nil {
-		spaceCleanup()
-		sess.Release()
-		client.close()
-		return nil, nil, err
-	}
-
-	typedClient, _, _, typedCleanup, err := client.accessTypedObject(ctx, engineRef, uri.objectKey)
-	if err != nil {
-		engineCleanup()
-		spaceCleanup()
-		sess.Release()
-		client.close()
-		return nil, nil, errors.Wrap(err, "access typed object for "+uri.objectKey)
-	}
-
-	gitSvc := s4wave_git.NewSRPCGitRepoResourceServiceClient(typedClient)
-
-	cleanup := func() {
-		typedCleanup()
-		engineCleanup()
-		spaceCleanup()
-		sess.Release()
-		client.close()
-	}
+	gitSvc := s4wave_git.NewSRPCGitRepoResourceServiceClient(mount.typedClient)
 
 	return &gitContext{
 		gitSvc:    gitSvc,
-		engine:    engine,
-		objectKey: uri.objectKey,
-		client:    client,
-	}, cleanup, nil
+		engine:    mount.engine,
+		objectKey: mount.objectKey,
+		client:    mount.client,
+	}, mount.release, nil
 }
 
 // mountGitEngine connects to the daemon and mounts the engine without

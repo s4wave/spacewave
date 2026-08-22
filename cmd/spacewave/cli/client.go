@@ -875,3 +875,112 @@ func (c *sdkClient) lookupLocalProvider(ctx context.Context) (*s4wave_provider_l
 	}
 	return prov, cleanup, nil
 }
+
+// objectMount holds one mounted daemon-to-world-object chain: session,
+// space, world engine, and typed object client. The unexported cleanup
+// fields are set by mountObjectChain and run by release.
+type objectMount struct {
+	client      *sdkClient
+	sess        *s4wave_session.Session
+	spaceSvc    s4wave_space.SRPCSpaceResourceServiceClient
+	engineRef   resource_client.ResourceRef
+	engine      *sdk_engine.SDKEngine
+	typedClient srpc.Client
+	objectKey   string
+
+	typedCleanup  func()
+	engineCleanup func()
+	spaceCleanup  func()
+}
+
+// release unwinds the whole chain in reverse acquisition order.
+func (m *objectMount) release() {
+	m.typedCleanup()
+	m.engineCleanup()
+	m.spaceCleanup()
+	m.sess.Release()
+	m.client.close()
+}
+
+// mountObjectChain connects to the daemon and mounts session -> space ->
+// world engine -> typed object for the URI. When resolveObjectKey is nil,
+// uri.objectKey is used verbatim; otherwise it resolves the key against
+// the mounted space service.
+func mountObjectChain(
+	c *cli.Context,
+	statePath string,
+	uri fsURI,
+	resolveObjectKey func(ctx context.Context, spaceSvc s4wave_space.SRPCSpaceResourceServiceClient) (string, error),
+) (*objectMount, func(), error) {
+	ctx := c.Context
+
+	client, err := connectDaemonFromContext(ctx, c, statePath)
+	if err != nil {
+		return nil, nil, err
+	}
+	var rels []func()
+	unwind := func() {
+		for i := len(rels) - 1; i >= 0; i-- {
+			rels[i]()
+		}
+	}
+	fail := func(err error) (*objectMount, func(), error) {
+		unwind()
+		return nil, nil, err
+	}
+
+	sess, err := client.mountSession(ctx, uri.sessionIdx)
+	if err != nil {
+		return fail(err)
+	}
+	rels = append(rels, sess.Release)
+
+	spaceID := uri.spaceID
+	if spaceID == "" {
+		spaceID, err = client.getSpaceByName(ctx, sess, "")
+		if err != nil {
+			return fail(errors.Wrap(err, "resolve default space"))
+		}
+	}
+
+	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
+	if err != nil {
+		return fail(err)
+	}
+	rels = append(rels, spaceCleanup)
+
+	objectKey := uri.objectKey
+	if resolveObjectKey != nil {
+		objectKey, err = resolveObjectKey(ctx, spaceSvc)
+		if err != nil {
+			return fail(err)
+		}
+	}
+
+	engine, engineRef, engineCleanup, err := client.accessWorldEngineWithRef(ctx, spaceSvc)
+	if err != nil {
+		return fail(err)
+	}
+	rels = append(rels, engineCleanup)
+
+	typedClient, _, _, typedCleanup, err := client.accessTypedObject(ctx, engineRef, objectKey)
+	if err != nil {
+		return fail(errors.Wrap(err, "access typed object for "+objectKey))
+	}
+	rels = append(rels, typedCleanup)
+
+	mount := &objectMount{
+		client:        client,
+		sess:          sess,
+		spaceSvc:      spaceSvc,
+		engineRef:     engineRef,
+		engine:        engine,
+		typedClient:   typedClient,
+		objectKey:     objectKey,
+		typedCleanup:  typedCleanup,
+		engineCleanup: engineCleanup,
+		spaceCleanup:  spaceCleanup,
+	}
+	cleanup := func() { unwind() }
+	return mount, cleanup, nil
+}

@@ -48,79 +48,20 @@ func parseCanvasURI(arg, spaceFlag string, sessFlag int) (fsURI, error) {
 // If uri.objectKey is empty, auto-discovers the canvas by finding exactly one
 // canvas-type object in the space.
 func mountCanvasContext(c *cli.Context, statePath string, uri fsURI) (*canvasContext, func(), error) {
-	ctx := c.Context
-
-	client, err := connectDaemonFromContext(ctx, c, statePath)
+	mount, _, err := mountObjectChain(c, statePath, uri, func(ctx context.Context, spaceSvc s4wave_space.SRPCSpaceResourceServiceClient) (string, error) {
+		return discoverCanvasObject(ctx, spaceSvc)
+	})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	sess, err := client.mountSession(ctx, uri.sessionIdx)
-	if err != nil {
-		client.close()
-		return nil, nil, err
-	}
-
-	spaceID := uri.spaceID
-	if spaceID == "" {
-		spaceID, err = client.getSpaceByName(ctx, sess, "")
-		if err != nil {
-			sess.Release()
-			client.close()
-			return nil, nil, errors.Wrap(err, "resolve default space")
-		}
-	}
-
-	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
-	if err != nil {
-		sess.Release()
-		client.close()
-		return nil, nil, err
-	}
-
-	objectKey := uri.objectKey
-	if objectKey == "" {
-		objectKey, err = discoverCanvasObject(ctx, spaceSvc)
-		if err != nil {
-			spaceCleanup()
-			sess.Release()
-			client.close()
-			return nil, nil, err
-		}
-	}
-
-	engine, engineRef, engineCleanup, err := client.accessWorldEngineWithRef(ctx, spaceSvc)
-	if err != nil {
-		spaceCleanup()
-		sess.Release()
-		client.close()
-		return nil, nil, err
-	}
-
-	typedClient, _, _, typedCleanup, err := client.accessTypedObject(ctx, engineRef, objectKey)
-	if err != nil {
-		engineCleanup()
-		spaceCleanup()
-		sess.Release()
-		client.close()
-		return nil, nil, errors.Wrap(err, "access typed object for "+objectKey)
-	}
-
-	canvasSvc := s4wave_canvas.NewSRPCCanvasResourceServiceClient(typedClient)
-
-	cleanup := func() {
-		typedCleanup()
-		engineCleanup()
-		spaceCleanup()
-		sess.Release()
-		client.close()
-	}
+	canvasSvc := s4wave_canvas.NewSRPCCanvasResourceServiceClient(mount.typedClient)
 
 	return &canvasContext{
 		canvasSvc: canvasSvc,
-		engine:    engine,
-		objectKey: objectKey,
-	}, cleanup, nil
+		engine:    mount.engine,
+		objectKey: mount.objectKey,
+	}, mount.release, nil
 }
 
 // discoverCanvasObject finds exactly one canvas-type object in the space.
