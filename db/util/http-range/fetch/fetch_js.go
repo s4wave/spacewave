@@ -26,6 +26,10 @@ import (
 // Use hashes in the URL to ensure this.
 //
 // if le is nil all logging will be disabled
+
+// ErrNoContentLength is returned when a response carries no content length.
+var ErrNoContentLength = errors.New("no content length returned")
+
 // verbose logs all http responses even if successful
 type FetchRangeReader struct {
 	le       *logrus.Entry
@@ -202,7 +206,7 @@ func (r *FetchRangeReader) Size() (uint64, error) {
 	// First, try HEAD request
 	size, err := r.getSizeFromRequest("HEAD")
 	if err != nil {
-		if err.Error() == "no content length returned by HEAD request" {
+		if errors.Is(err, ErrNoContentLength) {
 			// Try GET request
 			size, err = r.getSizeFromRequest("GET")
 			if err != nil {
@@ -274,7 +278,7 @@ func (r *FetchRangeReader) getSizeFromRequest(method string) (uint64, error) {
 		return totalSize, nil
 	}
 
-	return 0, errors.New("no content length returned by " + method + " request")
+	return 0, errors.Wrap(ErrNoContentLength, method+" request")
 }
 
 func fmtRange(from, length int64) string {

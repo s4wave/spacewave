@@ -36,15 +36,15 @@ func NewPoolAlloc() (allocFn AllocFn, relBuf func(b []byte)) {
 	pool := sync.Pool{}
 	defAlloc := DefaultAllocFn()
 	return func(n int) []byte {
-			var out []byte
-			for cap(out) < n {
-				gv := pool.Get()
-				if gv == nil {
-					return defAlloc(n)
+			if gv := pool.Get(); gv != nil {
+				out := *gv.(*[]byte)
+				if cap(out) >= n {
+					return out[:n]
 				}
-				out = *gv.(*[]byte)
+				// Too small for this request: drop it rather than
+				// draining the pool of buffers other callers can use.
 			}
-			return out[:n]
+			return defAlloc(n)
 		}, func(b []byte) {
 			if cap(b) != 0 {
 				// scrub entire buffer before returning it to the pool

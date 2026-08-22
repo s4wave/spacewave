@@ -16,7 +16,11 @@ type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// HTTPRangeReader uses HTTP requests with Range headers to implement
+// ErrNoContentLength is returned when a response carries no content length.
+var ErrNoContentLength = errors.New("no content length returned")
+
+// HTTPRangeReader reads ranges of data over HTTP using requests with
+// Range headers to implement io.ReadSeeker and io.ReaderAt.
 // io.ReadSeeker and io.ReaderAt. It is concurrency safe.
 //
 // While Read() and Seek() are concurrency safe, the behavior while using them
@@ -247,7 +251,7 @@ func (r *HTTPRangeReader) getSizeFromRequest(method string) (uint64, error) {
 		return totalSize, nil
 	}
 
-	return 0, errors.New("no content length returned by " + method + " request")
+	return 0, errors.Wrap(ErrNoContentLength, method+" request")
 }
 
 // Size uses an HTTP HEAD request to find out the total available bytes.
@@ -261,7 +265,7 @@ func (r *HTTPRangeReader) Size() (uint64, error) {
 	// First, try HEAD request
 	size, err := r.getSizeFromRequest("HEAD")
 	if err != nil {
-		if err.Error() == "no content length returned by HEAD request" {
+		if errors.Is(err, ErrNoContentLength) {
 			// Try GET request
 			size, err = r.getSizeFromRequest("GET")
 			if err != nil {

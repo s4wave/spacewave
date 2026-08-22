@@ -200,6 +200,7 @@ func RunTest(t *testing.T, cb func(t *testing.T, tb *Testbed)) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer tb.Release()
 	cb(t, tb)
 }
 
