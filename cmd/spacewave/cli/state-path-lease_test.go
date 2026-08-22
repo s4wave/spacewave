@@ -5,6 +5,7 @@ package spacewave_cli
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"io"
 	"net"
 	"os"
@@ -13,16 +14,72 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	bdb "github.com/aperturerobotics/bbolt"
+	"github.com/aperturerobotics/cli"
+	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	storage_native "github.com/s4wave/spacewave/bldr/storage/native"
 	"github.com/sirupsen/logrus"
 )
 
 const statePathLeaseHolderEnv = "SPACEWAVE_TEST_STATE_PATH_LEASE_HOLDER"
 
+func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
+	statePath := shortStatePath(t)
+	sockPath := filepath.Join(statePath, socketName)
+	shutdownStarted := make(chan struct{})
+	finishShutdown := make(chan struct{})
+	old := startDesktopLikeListenerWithShutdown(t, t.Context(), sockPath, func() {
+		close(shutdownStarted)
+		<-finishShutdown
+	})
+
+	app := cli.NewApp()
+	parentFlags := flag.NewFlagSet("spacewave", flag.ContinueOnError)
+	parentFlags.String("state-path", statePath, "state directory path")
+	if err := parentFlags.Parse([]string{"--state-path", statePath}); err != nil {
+		t.Fatal(err)
+	}
+	parent := cli.NewContext(app, parentFlags, nil)
+	child := cli.NewContext(app, flag.NewFlagSet("serve", flag.ContinueOnError), parent)
+
+	busInitialized := make(chan struct{})
+	commandErr := make(chan error, 1)
+	go func() {
+		commandErr <- runServeCommand(child, func() cli_entrypoint.CliBus {
+			close(busInitialized)
+			return nil
+		}, "", true, 0)
+	}()
+
+	select {
+	case <-shutdownStarted:
+	case <-busInitialized:
+		t.Fatal("replacement initialized its writable runtime before takeover shutdown completed")
+	case <-time.After(5 * time.Second):
+		t.Fatal("takeover did not reach the old runtime")
+	}
+	select {
+	case <-busInitialized:
+		t.Fatal("replacement initialized its writable runtime while takeover shutdown was pending")
+	default:
+	}
+
+	close(finishShutdown)
+	select {
+	case <-busInitialized:
+	case <-time.After(5 * time.Second):
+		t.Fatal("replacement did not initialize its runtime after takeover")
+	}
+	if err := <-commandErr; err == nil || !strings.Contains(err.Error(), "bus not initialized") {
+		t.Fatalf("serve error = %v, want bus initialization sentinel", err)
+	}
+	<-old.done
+}
+
 func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
-	statePath := makeShortTakeoverDir(t, "takeover-lease-held")
+	statePath := shortStatePath(t)
 	holderPID, holderStore := startStatePathLeaseHolder(t, statePath)
 	sockPath := filepath.Join(statePath, socketName)
 
@@ -62,7 +119,7 @@ func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
 }
 
 func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
-	statePath := makeShortTakeoverDir(t, "takeover-lease-clean")
+	statePath := shortStatePath(t)
 	sockPath := filepath.Join(statePath, socketName)
 	oldLease, err := acquireStatePathLease(statePath)
 	if err != nil {
@@ -103,7 +160,7 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 }
 
 func TestAcquireStatePathLeaseFailsClosedOnUnknownStoreLock(t *testing.T) {
-	statePath := makeShortTakeoverDir(t, "takeover-lease-version")
+	statePath := shortStatePath(t)
 	storePath, err := storage_native.BoltDBPath(statePath, "unknown")
 	if err != nil {
 		t.Fatalf("resolve provider store: %v", err)
