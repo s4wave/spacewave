@@ -4,6 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/s4wave/spacewave/db/bucket"
+	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
+
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -31,6 +34,7 @@ func TestCreateOrReuseAllocationLinksForgeAndGitProvenance(t *testing.T) {
 		PassObjectKey:      "forge/pass/1",
 		RepoObjectKey:      "repo/main",
 		WorktreeObjectKey:  "repo/main/worktree/exec-a",
+		WorkdirObjectKey:   "repo/main/worktree/exec-a/workdir",
 		BaseCommitHash:     "1111111111111111111111111111111111111111",
 		BranchRef:          "refs/heads/agent/exec-a",
 		PathFamily:         "repos/spacewave",
@@ -102,9 +106,63 @@ func TestCreateOrReuseAllocationLinksForgeAndGitProvenance(t *testing.T) {
 		t.Fatalf("allocation worktrees: %+v", worktreeKeys)
 	}
 
+	receipt := &forge_runtime.CleanupReceipt{
+		ReservationObjectKey: "forge/runtime/reservation/abc",
+		ExecutionObjectKey:   args.ExecutionObjectKey,
+		RuntimeIdentity:      "container-1",
+		Generation:           2,
+		RuntimeStopped:       true,
+		CapacityReleased:     true,
+		Reason:               "cancelled",
+	}
+	cleaned, cleanedRef, err := RecordCleanup(ctx, ws, objKey, receipt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cleaned.GetCleanupState() != "released" || !cleaned.GetCleanup().Complete() {
+		t.Fatalf("unexpected cleanup record: %+v state=%q", cleaned.GetCleanup(), cleaned.GetCleanupState())
+	}
+	reloaded, err := Lookup(ctx, ws, objKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.GetCleanup() == nil ||
+		reloaded.GetCleanup().RuntimeIdentity != "container-1" ||
+		reloaded.GetCleanup().Generation != 2 ||
+		reloaded.GetCleanup().Reason != "cancelled" ||
+		reloaded.GetWorkdirObjectKey() != args.WorkdirObjectKey {
+		t.Fatalf("cleanup did not persist: %+v", reloaded)
+	}
+	if !cleanedRef.EqualsRef(mustRootRef(t, ctx, ws, objKey)) {
+		t.Fatal("returned ref does not match persisted object root")
+	}
+	partial := &forge_runtime.CleanupReceipt{
+		ReservationObjectKey: receipt.ReservationObjectKey,
+		ExecutionObjectKey:   args.ExecutionObjectKey,
+		Generation:           2,
+		CapacityReleased:     true,
+	}
+	if _, _, err := RecordCleanup(ctx, ws, objKey, partial); err == nil {
+		t.Fatal("expected receipt without reason to be rejected")
+	}
+
 	collisionArgs := args
 	collisionArgs.WorktreeObjectKey = "repo/main/worktree/other"
 	if _, _, _, err := CreateOrReuse(ctx, ws, collisionArgs); err == nil {
 		t.Fatal("expected collision for same allocation key with different worktree")
 	}
+}
+
+func mustRootRef(t *testing.T, ctx context.Context, ws world.WorldState, objKey string) *bucket.ObjectRef {
+	t.Helper()
+	obj, err := world.MustGetObject(ctx, ws, objKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer world.ReleaseObjectState(obj)
+	ref, _, err := obj.GetRootRef(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ref
 }

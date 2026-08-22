@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
+	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
 )
 
 const (
@@ -43,6 +44,8 @@ type Allocation struct {
 	RepoObjectKey string `json:"repoObjectKey,omitempty"`
 	// WorktreeObjectKey is the allocated Git Worktree object key.
 	WorktreeObjectKey string `json:"worktreeObjectKey,omitempty"`
+	// WorkdirObjectKey is the mutable Workdir UnixFS object linked to the Worktree.
+	WorkdirObjectKey string `json:"workdirObjectKey,omitempty"`
 	// BaseCommitHash is the pinned base commit used for branch allocation.
 	BaseCommitHash string `json:"baseCommitHash,omitempty"`
 	// BranchRef is the branch/ref assigned to the allocation.
@@ -59,6 +62,8 @@ type Allocation struct {
 	StaleBaseState string `json:"staleBaseState,omitempty"`
 	// CleanupState records cleanup lifecycle for the allocated Worktree.
 	CleanupState string `json:"cleanupState,omitempty"`
+	// Cleanup records the terminal runtime cleanup receipt, set by RecordCleanup.
+	Cleanup *forge_runtime.CleanupReceipt `json:"cleanup,omitempty"`
 	// Timestamp is the allocation timestamp.
 	Timestamp *timestamp.Timestamp `json:"timestamp,omitempty"`
 }
@@ -70,15 +75,19 @@ type CreateArgs struct {
 	PassObjectKey      string
 	RepoObjectKey      string
 	WorktreeObjectKey  string
-	BaseCommitHash     string
-	BranchRef          string
-	PathFamily         string
-	EvidenceObjectKey  string
-	Status             string
-	CollisionState     string
-	StaleBaseState     string
-	CleanupState       string
-	Timestamp          *timestamp.Timestamp
+	// WorkdirRequired reports whether the allocation must carry the mutable
+	// Workdir identity. Legacy allocations without it require a clean break.
+	WorkdirRequired   bool
+	WorkdirObjectKey  string
+	BaseCommitHash    string
+	BranchRef         string
+	PathFamily        string
+	EvidenceObjectKey string
+	Status            string
+	CollisionState    string
+	StaleBaseState    string
+	CleanupState      string
+	Timestamp         *timestamp.Timestamp
 }
 
 // BuildObjectKey builds a deterministic allocation object key.
@@ -116,6 +125,7 @@ func CreateOrReuse(
 		PassObjectKey:      args.PassObjectKey,
 		RepoObjectKey:      args.RepoObjectKey,
 		WorktreeObjectKey:  args.WorktreeObjectKey,
+		WorkdirObjectKey:   args.WorkdirObjectKey,
 		BaseCommitHash:     args.BaseCommitHash,
 		BranchRef:          args.BranchRef,
 		PathFamily:         args.PathFamily,
@@ -141,6 +151,9 @@ func CreateOrReuse(
 	if alloc.Timestamp == nil {
 		alloc.Timestamp = timestamp.Now()
 	}
+	if args.WorkdirRequired && args.WorkdirObjectKey == "" {
+		return nil, "", nil, errors.New("sandbox allocation requires a workdir object key")
+	}
 	if err := alloc.Validate(); err != nil {
 		return nil, "", nil, err
 	}
@@ -153,6 +166,12 @@ func CreateOrReuse(
 		existingAlloc, err := Lookup(ctx, ws, args.ObjectKey)
 		if err != nil {
 			return nil, "", nil, err
+		}
+		if args.WorkdirRequired && existingAlloc.GetWorkdirObjectKey() == "" {
+			return nil, "", nil, errors.Errorf(
+				"existing allocation %s lacks the required workdir identity; clean break required",
+				args.ObjectKey,
+			)
 		}
 		if !existingAlloc.sameAllocation(alloc) {
 			return nil, "", nil, errors.Errorf("allocation key collision: %s", args.ObjectKey)
@@ -252,6 +271,11 @@ func (a *Allocation) Validate() error {
 	case a.GetCleanupState() == "":
 		return errors.New("cleanup_state cannot be empty")
 	}
+	if cleanup := a.GetCleanup(); cleanup != nil {
+		if err := cleanup.Validate(); err != nil {
+			return errors.Wrap(err, "cleanup")
+		}
+	}
 	if err := a.GetTimestamp().Validate(false); err != nil {
 		return errors.Wrap(err, "timestamp")
 	}
@@ -288,6 +312,22 @@ func (a *Allocation) GetWorktreeObjectKey() string {
 		return a.WorktreeObjectKey
 	}
 	return ""
+}
+
+// GetWorkdirObjectKey returns the mutable Workdir object key.
+func (a *Allocation) GetWorkdirObjectKey() string {
+	if a != nil {
+		return a.WorkdirObjectKey
+	}
+	return ""
+}
+
+// GetCleanup returns the terminal runtime cleanup receipt.
+func (a *Allocation) GetCleanup() *forge_runtime.CleanupReceipt {
+	if a != nil {
+		return a.Cleanup
+	}
+	return nil
 }
 
 // GetBaseCommitHash returns the base commit hash.
@@ -389,6 +429,7 @@ func (a *Allocation) MarshalJSON() ([]byte, error) {
 	setStringJSONField(&arena, obj, "passObjectKey", a.PassObjectKey)
 	setStringJSONField(&arena, obj, "repoObjectKey", a.RepoObjectKey)
 	setStringJSONField(&arena, obj, "worktreeObjectKey", a.WorktreeObjectKey)
+	setStringJSONField(&arena, obj, "workdirObjectKey", a.WorkdirObjectKey)
 	setStringJSONField(&arena, obj, "baseCommitHash", a.BaseCommitHash)
 	setStringJSONField(&arena, obj, "branchRef", a.BranchRef)
 	setStringJSONField(&arena, obj, "pathFamily", a.PathFamily)
@@ -397,6 +438,17 @@ func (a *Allocation) MarshalJSON() ([]byte, error) {
 	setStringJSONField(&arena, obj, "collisionState", a.CollisionState)
 	setStringJSONField(&arena, obj, "staleBaseState", a.StaleBaseState)
 	setStringJSONField(&arena, obj, "cleanupState", a.CleanupState)
+	if cleanup := a.GetCleanup(); cleanup != nil {
+		cleanupJSON, err := cleanup.MarshalJSON()
+		if err != nil {
+			return nil, errors.Wrap(err, "marshal cleanup")
+		}
+		cleanupValue, err := parseJSONValue(&arena, cleanupJSON)
+		if err != nil {
+			return nil, errors.Wrap(err, "marshal cleanup")
+		}
+		obj.Set("cleanup", cleanupValue)
+	}
 	if a.Timestamp != nil {
 		timestampJSON, err := a.Timestamp.MarshalJSON()
 		if err != nil {
@@ -445,6 +497,7 @@ func (a *Allocation) UnmarshalJSON(data []byte) error {
 	a.PassObjectKey = string(value.GetStringBytes("passObjectKey"))
 	a.RepoObjectKey = string(value.GetStringBytes("repoObjectKey"))
 	a.WorktreeObjectKey = string(value.GetStringBytes("worktreeObjectKey"))
+	a.WorkdirObjectKey = string(value.GetStringBytes("workdirObjectKey"))
 	a.BaseCommitHash = string(value.GetStringBytes("baseCommitHash"))
 	a.BranchRef = string(value.GetStringBytes("branchRef"))
 	a.PathFamily = string(value.GetStringBytes("pathFamily"))
@@ -453,6 +506,15 @@ func (a *Allocation) UnmarshalJSON(data []byte) error {
 	a.CollisionState = string(value.GetStringBytes("collisionState"))
 	a.StaleBaseState = string(value.GetStringBytes("staleBaseState"))
 	a.CleanupState = string(value.GetStringBytes("cleanupState"))
+	if cleanupValue := value.Get("cleanup"); cleanupValue != nil && cleanupValue.Type() == fastjson.TypeObject {
+		cleanup := &forge_runtime.CleanupReceipt{}
+		if err := cleanup.UnmarshalJSON(cleanupValue.MarshalTo(nil)); err != nil {
+			return errors.Wrap(err, "unmarshal cleanup")
+		}
+		a.Cleanup = cleanup
+	} else {
+		a.Cleanup = nil
+	}
 	if timestampValue := value.Get("timestamp"); timestampValue != nil && timestampValue.Type() != fastjson.TypeNull {
 		ts := &timestamp.Timestamp{}
 		if err := ts.UnmarshalJSON(timestampValue.MarshalTo(nil)); err != nil {
@@ -470,6 +532,7 @@ func (a *Allocation) sameAllocation(other *Allocation) bool {
 		a.GetPassObjectKey() == other.GetPassObjectKey() &&
 		a.GetRepoObjectKey() == other.GetRepoObjectKey() &&
 		a.GetWorktreeObjectKey() == other.GetWorktreeObjectKey() &&
+		a.GetWorkdirObjectKey() == other.GetWorkdirObjectKey() &&
 		a.GetBaseCommitHash() == other.GetBaseCommitHash() &&
 		a.GetBranchRef() == other.GetBranchRef() &&
 		a.GetPathFamily() == other.GetPathFamily() &&
@@ -495,3 +558,51 @@ func setAllocationQuads(ctx context.Context, ws world.WorldState, objKey string,
 
 // _ is a type assertion
 var _ block.Block = (*Allocation)(nil)
+
+// UnmarshalAllocation unmarshals an Allocation from a block cursor.
+func UnmarshalAllocation(ctx context.Context, bcs *block.Cursor) (*Allocation, error) {
+	return block.UnmarshalBlock[*Allocation](ctx, bcs, NewAllocationBlock)
+}
+
+// RecordCleanup records the terminal runtime cleanup receipt on one
+// allocation. Runtime release stays separate from retention: the Worktree and
+// committed Workdir bytes remain readable after the receipt lands.
+func RecordCleanup(
+	ctx context.Context,
+	ws world.WorldState,
+	allocationObjectKey string,
+	receipt *forge_runtime.CleanupReceipt,
+) (*Allocation, *bucket.ObjectRef, error) {
+	if allocationObjectKey == "" {
+		return nil, nil, errors.New("allocation_object_key cannot be empty")
+	}
+	if err := receipt.Validate(); err != nil {
+		return nil, nil, errors.Wrap(err, "cleanup receipt")
+	}
+
+	var out *Allocation
+	var outRef *bucket.ObjectRef
+	ref, _, err := world.AccessWorldObject(ctx, ws, allocationObjectKey, true, func(bcs *block.Cursor) error {
+		alloc, err := UnmarshalAllocation(ctx, bcs)
+		if err != nil {
+			return err
+		}
+		alloc.Cleanup = receipt
+		if receipt.Complete() {
+			alloc.CleanupState = "released"
+		} else {
+			alloc.CleanupState = "cleanup-partial"
+		}
+		if err := alloc.Validate(); err != nil {
+			return err
+		}
+		bcs.SetBlock(alloc, true)
+		out = alloc
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	outRef = ref
+	return out, outRef, nil
+}
