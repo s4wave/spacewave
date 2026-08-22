@@ -20,6 +20,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/stream"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
+	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
 
 const terminalFrameMaxBytes = 4 * 1024 * 1024
@@ -74,52 +75,17 @@ func (r *TerminalResource) GetMux() srpc.Mux {
 
 // WatchTerminalState streams Terminal state changes from world object revisions.
 func (r *TerminalResource) WatchTerminalState(_ *WatchTerminalStateRequest, strm SRPCTerminalResourceService_WatchTerminalStateStream) error {
-	ctx := strm.Context()
-
-	objState, found, err := r.ws.GetObject(ctx, r.objKey)
-	if err != nil {
-		return err
-	}
-	if !found {
-		return world.ErrObjectNotFound
-	}
-
-	var lastSent *Terminal
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		_, rev, err := objState.GetRootRef(ctx)
-		if err != nil {
-			return err
-		}
-
-		state, err := readTerminalObject(ctx, objState)
-		if err != nil {
-			return err
-		}
-		if state == nil {
-			state = &Terminal{}
-		}
-
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			r.state = state.CloneVT()
-			broadcast()
-		})
-
-		if lastSent == nil || !state.EqualVT(lastSent) {
-			if serr := strm.Send(&WatchTerminalStateResponse{State: state.CloneVT()}); serr != nil {
-				return serr
+	return s4wave_world.WatchWorldObject(strm.Context(), r.ws, r.objKey, readTerminalObject,
+		func(state *Terminal, changed bool) error {
+			r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				r.state = state.CloneVT()
+				broadcast()
+			})
+			if changed {
+				return strm.Send(&WatchTerminalStateResponse{State: state.CloneVT()})
 			}
-			lastSent = state
-		}
-
-		_, err = objState.WaitRev(ctx, rev+1, false)
-		if err != nil {
-			return err
-		}
-	}
+			return nil
+		})
 }
 
 // ConnectTerminal opens the live stream for this Terminal target.
@@ -407,13 +373,14 @@ func (r *TerminalResource) persistState(ctx context.Context, state *Terminal) er
 }
 
 func readTerminalObject(ctx context.Context, objState world.ObjectState) (*Terminal, error) {
-	var state *Terminal
-	_, _, err := world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
-		var uerr error
-		state, uerr = UnmarshalTerminal(ctx, bcs)
-		return uerr
-	})
-	return state, err
+	state, err := s4wave_world.ReadWorldBlock[*Terminal](ctx, objState, NewTerminalBlock)
+	if err != nil {
+		return nil, err
+	}
+	if state == nil {
+		state = &Terminal{}
+	}
+	return state, nil
 }
 
 var _ SRPCTerminalResourceServiceServer = (*TerminalResource)(nil)

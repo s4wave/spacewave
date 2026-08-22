@@ -9,11 +9,11 @@ import (
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_unixfs "github.com/s4wave/spacewave/core/resource/unixfs"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
+	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
 )
 
@@ -53,52 +53,17 @@ func (r *DeviceResource) GetMux() srpc.Mux {
 
 // WatchDeviceState streams Device state changes from world object revisions.
 func (r *DeviceResource) WatchDeviceState(_ *WatchDeviceStateRequest, strm SRPCDeviceResourceService_WatchDeviceStateStream) error {
-	ctx := strm.Context()
-
-	objState, found, err := r.ws.GetObject(ctx, r.objKey)
-	if err != nil {
-		return err
-	}
-	if !found {
-		return world.ErrObjectNotFound
-	}
-
-	var lastSent *Device
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		_, rev, err := objState.GetRootRef(ctx)
-		if err != nil {
-			return err
-		}
-
-		state, err := readDeviceObject(ctx, objState)
-		if err != nil {
-			return err
-		}
-		if state == nil {
-			state = &Device{}
-		}
-
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			r.state = state.CloneVT()
-			broadcast()
-		})
-
-		if lastSent == nil || !state.EqualVT(lastSent) {
-			if serr := strm.Send(&WatchDeviceStateResponse{State: state.CloneVT()}); serr != nil {
-				return serr
+	return s4wave_world.WatchWorldObject(strm.Context(), r.ws, r.objKey, readDeviceObject,
+		func(state *Device, changed bool) error {
+			r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				r.state = state.CloneVT()
+				broadcast()
+			})
+			if changed {
+				return strm.Send(&WatchDeviceStateResponse{State: state.CloneVT()})
 			}
-			lastSent = state
-		}
-
-		_, err = objState.WaitRev(ctx, rev+1, false)
-		if err != nil {
-			return err
-		}
-	}
+			return nil
+		})
 }
 
 // ReportDeviceStatus rejects browser-visible status writes.
@@ -231,13 +196,14 @@ func (r *DeviceResource) writeWorldState() (world.WorldState, error) {
 }
 
 func readDeviceObject(ctx context.Context, objState world.ObjectState) (*Device, error) {
-	var state *Device
-	_, _, err := world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
-		var uerr error
-		state, uerr = UnmarshalDevice(ctx, bcs)
-		return uerr
-	})
-	return state, err
+	state, err := s4wave_world.ReadWorldBlock[*Device](ctx, objState, NewDeviceBlock)
+	if err != nil {
+		return nil, err
+	}
+	if state == nil {
+		state = &Device{}
+	}
+	return state, nil
 }
 
 var _ SRPCDeviceResourceServiceServer = (*DeviceResource)(nil)

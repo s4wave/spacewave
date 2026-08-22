@@ -6,8 +6,8 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
 
 // SshHostResource implements the SshHostResourceService SRPC interface.
@@ -42,62 +42,28 @@ func (r *SshHostResource) GetMux() srpc.Mux {
 
 // WatchSshHostState streams SSH Host state changes from world object revisions.
 func (r *SshHostResource) WatchSshHostState(_ *WatchSshHostStateRequest, strm SRPCSshHostResourceService_WatchSshHostStateStream) error {
-	ctx := strm.Context()
-
-	objState, found, err := r.ws.GetObject(ctx, r.objKey)
-	if err != nil {
-		return err
-	}
-	if !found {
-		return world.ErrObjectNotFound
-	}
-
-	var lastSent *SshHost
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		_, rev, err := objState.GetRootRef(ctx)
-		if err != nil {
-			return err
-		}
-
-		state, err := readSshHostObject(ctx, objState)
-		if err != nil {
-			return err
-		}
-		if state == nil {
-			state = &SshHost{}
-		}
-
-		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-			r.state = state.CloneVT()
-			broadcast()
-		})
-
-		if lastSent == nil || !state.EqualVT(lastSent) {
-			if serr := strm.Send(&WatchSshHostStateResponse{State: state.CloneVT()}); serr != nil {
-				return serr
+	return s4wave_world.WatchWorldObject(strm.Context(), r.ws, r.objKey, readSshHostObject,
+		func(state *SshHost, changed bool) error {
+			r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				r.state = state.CloneVT()
+				broadcast()
+			})
+			if changed {
+				return strm.Send(&WatchSshHostStateResponse{State: state.CloneVT()})
 			}
-			lastSent = state
-		}
-
-		_, err = objState.WaitRev(ctx, rev+1, false)
-		if err != nil {
-			return err
-		}
-	}
+			return nil
+		})
 }
 
 func readSshHostObject(ctx context.Context, objState world.ObjectState) (*SshHost, error) {
-	var state *SshHost
-	_, _, err := world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
-		var uerr error
-		state, uerr = UnmarshalSshHost(ctx, bcs)
-		return uerr
-	})
-	return state, err
+	state, err := s4wave_world.ReadWorldBlock[*SshHost](ctx, objState, NewSshHostBlock)
+	if err != nil {
+		return nil, err
+	}
+	if state == nil {
+		state = &SshHost{}
+	}
+	return state, nil
 }
 
 var _ SRPCSshHostResourceServiceServer = (*SshHostResource)(nil)
