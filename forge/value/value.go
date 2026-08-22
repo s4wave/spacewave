@@ -58,8 +58,16 @@ func (v *Value) Validate(allowEmptyName bool) error {
 		return ErrEmptyValueName
 	}
 	vt := v.GetValueType()
-	if err := vt.Validate(); err != nil {
+	if vt == ValueType_ValueType_UNKNOWN {
+		// unknown is the empty value; nothing further to validate.
 		return nil
+	}
+	switch vt {
+	case ValueType_ValueType_BLOCK_REF:
+	case ValueType_ValueType_BUCKET_REF:
+	case ValueType_ValueType_WORLD_OBJECT_SNAPSHOT:
+	default:
+		return errors.Wrap(ErrUnknownValueType, vt.String())
 	}
 
 	if vt == ValueType_ValueType_BLOCK_REF {

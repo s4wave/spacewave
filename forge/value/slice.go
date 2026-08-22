@@ -1,7 +1,7 @@
 package forge_value
 
 import (
-	"sort"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -32,7 +32,7 @@ func GetValuesNames(values ...ValueSlice) []string {
 			allNames = append(allNames, valueName)
 		}
 	}
-	sort.Strings(allNames)
+	slices.Sort(allNames)
 	return allNames
 }
 
