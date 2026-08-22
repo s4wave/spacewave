@@ -102,21 +102,21 @@ func (w *FSWatcher) SetPathPts(pathPts []string) bool {
 			return
 		}
 
-		// Compare the paths and drop entries that don't match.
-		for i, v := range slices.Backward(prevPathPts) {
-			// If the previous path at i does not match the new path:
+		// Find the first index where the paths diverge, then release all
+		// handles from that depth. handles[0] is the access handle;
+		// prevPathPts[i] corresponds to handles[i+1], so a divergence at i
+		// releases every handle past i+1.
+		diverged := len(prevPathPts)
+		for i, v := range prevPathPts {
 			if i >= len(pathPts) || pathPts[i] != v {
-				// Release handle at this index + all after it.
-				// Note that handles[0] is the access handle.
-				// prevPathPts[i] corresponds to handles[i+1]
-				// we need to release all handles from i+1 to end
-				// reduce len(w.handles) to i+1
-				for len(w.handles) > i+1 {
-					w.handles[len(w.handles)-1].Release()
-					w.handles[len(w.handles)-1] = nil
-					w.handles = w.handles[:len(w.handles)-1]
-				}
+				diverged = i
+				break
 			}
+		}
+		for len(w.handles) > diverged+1 {
+			w.handles[len(w.handles)-1].Release()
+			w.handles[len(w.handles)-1] = nil
+			w.handles = w.handles[:len(w.handles)-1]
 		}
 
 		// Update the pathPts
@@ -132,7 +132,7 @@ func (w *FSWatcher) SetPathPts(pathPts []string) bool {
 func (w *FSWatcher) ClearPath() bool {
 	var changed bool
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		changed := w.pathPts != nil
+		changed = w.pathPts != nil
 		if !changed {
 			return
 		}

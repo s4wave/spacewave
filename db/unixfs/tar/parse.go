@@ -75,6 +75,9 @@ func parseTar(ra io.ReaderAt, size int64) (*tarNode, error) {
 		childMap: make(map[string]*tarNode),
 	}
 	nodes := map[string]*tarNode{".": root}
+	// Hardlinks may reference a target that appears later in the archive;
+	// resolve them in a second pass.
+	var pendingLinks []pendingLink
 
 	counter := &readCounter{r: io.NewSectionReader(ra, 0, size)}
 	tr := tar.NewReader(counter)
@@ -147,33 +150,43 @@ func parseTar(ra io.ReaderAt, size int64) (*tarNode, error) {
 			nodes[name] = node
 
 		case tar.TypeLink:
-			// hardlink: resolve to target node's data
-			tgt := path.Clean(hdr.Linkname)
-			if tgtNode, ok := nodes[tgt]; ok && !tgtNode.isDir && !tgtNode.isLink {
-				node := &tarNode{
-					name:    path.Base(name),
-					mode:    tgtNode.mode,
-					modTime: tgtNode.modTime,
-					size:    tgtNode.size,
-					ra:      tgtNode.ra,
-					offset:  tgtNode.offset,
-				}
-				ensureParent(nodes, root, name)
-				parent := nodes[path.Dir(name)]
-				parent.addChild(node)
-				nodes[name] = node
-			}
-			// if target not found, skip silently
+			pendingLinks = append(pendingLinks, pendingLink{name: name, target: path.Clean(hdr.Linkname)})
 
 		default:
 			// skip other types (block devices, char devices, fifos, etc.)
 		}
 	}
 
+	// Resolve hardlinks now that every regular entry is known.
+	for _, l := range pendingLinks {
+		tgtNode, ok := nodes[l.target]
+		if !ok || tgtNode.isDir || tgtNode.isLink {
+			continue
+		}
+		node := &tarNode{
+			name:    path.Base(l.name),
+			mode:    tgtNode.mode,
+			modTime: tgtNode.modTime,
+			size:    tgtNode.size,
+			ra:      tgtNode.ra,
+			offset:  tgtNode.offset,
+		}
+		ensureParent(nodes, root, l.name)
+		parent := nodes[path.Dir(l.name)]
+		parent.addChild(node)
+		nodes[l.name] = node
+	}
+
 	// sort all directory children
 	sortAll(root)
 
 	return root, nil
+}
+
+// pendingLink records a hardlink entry awaiting resolution to its target.
+type pendingLink struct {
+	name   string
+	target string
 }
 
 // ensureParent ensures all parent directories of name exist in the tree.
