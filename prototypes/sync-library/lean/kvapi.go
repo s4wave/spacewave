@@ -24,15 +24,34 @@ var (
 	kvWatchCancels []context.CancelFunc
 )
 
-// KvOpen opens the embedded world and its default key/value store.
+// KvOpen opens the embedded in-memory world and its default key/value
+// store. Use KvOpenDurable for a volume that survives KvClose.
 func KvOpen(ctx context.Context) error {
+	return KvOpenWithWorld(ctx, func(inner context.Context) (*World, error) {
+		return OpenWorld(inner)
+	})
+}
+
+// KvOpenDurable opens the embedded world backed by a durable volume:
+// OPFS on JavaScript targets, bbolt at dir on other platforms. State
+// written through the Kv* functions survives KvClose and is visible to a
+// later KvOpenDurable.
+func KvOpenDurable(ctx context.Context, dir string) error {
+	return KvOpenWithWorld(ctx, func(inner context.Context) (*World, error) {
+		return OpenWorldDurable(inner, dir)
+	})
+}
+
+// KvOpenWithWorld opens the default key/value store over a world built by
+// the given constructor.
+func KvOpenWithWorld(ctx context.Context, open func(context.Context) (*World, error)) error {
 	kvMtx.Lock()
 	defer kvMtx.Unlock()
 	if kvStore != nil {
 		return nil
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	w, err := OpenWorld(ctx)
+	w, err := open(ctx)
 	if err != nil {
 		cancel()
 		return err

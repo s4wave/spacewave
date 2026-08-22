@@ -65,3 +65,39 @@ func TestKvApi(t *testing.T) {
 	KvClose()
 	KvClose() // idempotent
 }
+
+func TestKvDurableReopen(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 60000000000)
+	defer cancel()
+	dir := t.TempDir()
+
+	if err := KvOpenDurable(ctx, dir); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := KvPut("durable/a", `one`); err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := KvPut("durable/b", `two`); err != nil {
+		t.Fatal(err.Error())
+	}
+	KvClose()
+
+	if _, found, _ := KvGet("durable/a"); found {
+		t.Fatal("expected empty store after close before reopen")
+	}
+
+	if err := KvOpenDurable(ctx, dir); err != nil {
+		t.Fatal(err.Error())
+	}
+	got, found, err := KvGet("durable/a")
+	if err != nil || !found || got != "one" {
+		t.Fatalf("KvGet after reopen = %q %v %v; want one true nil", got, found, err)
+	}
+	got2, found2, err := KvGet("durable/b")
+	if err != nil || !found2 || got2 != "two" {
+		t.Fatalf("KvGet b after reopen = %q %v %v", got2, found2, err)
+	}
+	KvClose()
+	KvOpen(context.Background())
+	KvClose()
+}
