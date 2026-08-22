@@ -54,12 +54,12 @@ func (d *lookupWorldOp) GetValueOptions() directive.ValueOptions {
 	}
 }
 
-// LookupWorldOpOperationTypeID returns the bucket config.
+// LookupWorldOpOperationTypeID returns the operation type ID.
 func (d *lookupWorldOp) LookupWorldOpOperationTypeID() string {
 	return d.operationTypeID
 }
 
-// LookupWorldOpOperationTypeID returns the world engine ID.
+// LookupWorldOpEngineID returns the world engine ID.
 func (d *lookupWorldOp) LookupWorldOpEngineID() string {
 	return d.engineID
 }

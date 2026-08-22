@@ -11,7 +11,6 @@ import (
 // buildBucketAPIResolver resolves BuildBucketAPI directives
 type buildBucketAPIResolver struct {
 	c   *Controller
-	ctx context.Context
 	dir bucket.BuildBucketAPI
 }
 
@@ -75,7 +74,7 @@ func (c *Controller) resolveBuildBucketAPI(
 	}
 
 	// Return resolver.
-	return &buildBucketAPIResolver{c: c, ctx: ctx, dir: dir}, nil
+	return &buildBucketAPIResolver{c: c, dir: dir}, nil
 }
 
 // _ is a type assertion

@@ -11,7 +11,6 @@ import (
 // lookupBlockStoreResolver resolves LookupBlockStore directives
 type lookupBlockStoreResolver struct {
 	c   *Controller
-	ctx context.Context
 	dir block_store.LookupBlockStore
 }
 
@@ -53,7 +52,7 @@ func (c *Controller) resolveLookupBlockStore(
 	}
 
 	// Return resolver.
-	return &lookupBlockStoreResolver{c: c, ctx: ctx, dir: dir}, nil
+	return &lookupBlockStoreResolver{c: c, dir: dir}, nil
 }
 
 // _ is a type assertion

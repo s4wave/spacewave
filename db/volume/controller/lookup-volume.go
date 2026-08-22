@@ -10,7 +10,6 @@ import (
 // lookupVolumeResolver resolves LookupVolume directives
 type lookupVolumeResolver struct {
 	c   *Controller
-	ctx context.Context
 	dir volume.LookupVolume
 }
 
@@ -47,7 +46,7 @@ func (c *Controller) resolveLookupVolume(
 	}
 
 	// Return resolver.
-	return &lookupVolumeResolver{c: c, ctx: ctx, dir: dir}, nil
+	return &lookupVolumeResolver{c: c, dir: dir}, nil
 }
 
 // _ is a type assertion

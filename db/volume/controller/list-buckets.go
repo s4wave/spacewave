@@ -12,7 +12,6 @@ import (
 // listBucketsResolver resolves ListBuckets directives
 type listBucketsResolver struct {
 	c   *Controller
-	ctx context.Context
 	dir volume.ListBuckets
 }
 
@@ -106,7 +105,7 @@ func (c *Controller) resolveListBuckets(
 	}
 
 	// Return resolver.
-	return &listBucketsResolver{c: c, ctx: ctx, dir: dir}, nil
+	return &listBucketsResolver{c: c, dir: dir}, nil
 }
 
 // _ is a type assertion

@@ -75,11 +75,11 @@ func NewVolume(
 		stateXfrm: stateXfrm,
 	}
 
+	// Validate the kv key config up front; the value is used below.
 	kvkey, err := kvkey.NewKVKey(conf.GetKvKeyOpts())
 	if err != nil {
 		return nil, err
 	}
-	_ = kvkey
 
 	// Determine the init ref to the HEAD
 	var headRef *bucket.ObjectRef

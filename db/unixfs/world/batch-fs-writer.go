@@ -41,10 +41,9 @@ type pendingEntry struct {
 type pendingDir struct {
 	// parentPath is the path from the fs root to this directory.
 	parentPath []string
-	// dirEntry, when non-nil, carries explicit metadata for the directory
-	// itself (set by AddDir).
-	dirEntry *pendingEntry
-	// entries is the list of children added to this directory.
+	// entries is the list of children added to this directory,
+	// including an explicit AddDir of the directory itself recorded as a
+	// child entry under its parent.
 	entries []pendingEntry
 }
 
@@ -203,10 +202,7 @@ func (b *BatchFSWriter) AddDir(
 	childPath := make([]string, 0, len(parentPath)+1)
 	childPath = append(childPath, parentPath...)
 	childPath = append(childPath, name)
-	childPd := b.pendingDirFor(childPath)
-	if childPd.dirEntry == nil {
-		childPd.dirEntry = &parentPd.entries[len(parentPd.entries)-1]
-	}
+	b.pendingDirFor(childPath)
 	return nil
 }
 

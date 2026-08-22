@@ -12,7 +12,6 @@ import (
 // applyBucketConfigResolver resolves ApplyBucketConfig directives
 type applyBucketConfigResolver struct {
 	c   *Controller
-	ctx context.Context
 	dir bucket.ApplyBucketConfig
 
 	mtx     sync.Mutex
@@ -104,7 +103,7 @@ func (c *Controller) resolveApplyBucketConf(
 	}
 
 	// Return resolver.
-	return &applyBucketConfigResolver{c: c, ctx: ctx, dir: dir}, nil
+	return &applyBucketConfigResolver{c: c, dir: dir}, nil
 }
 
 // _ is a type assertion

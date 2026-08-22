@@ -10,7 +10,6 @@ import (
 // buildObjectStoreAPIResolver resolves BuildObjectStoreAPI directives
 type buildObjectStoreAPIResolver struct {
 	c   *Controller
-	ctx context.Context
 	dir volume.BuildObjectStoreAPI
 }
 
@@ -60,7 +59,7 @@ func (c *Controller) resolveBuildObjectStoreAPI(
 	}
 
 	// Return resolver.
-	return &buildObjectStoreAPIResolver{c: c, ctx: ctx, dir: dir}, nil
+	return &buildObjectStoreAPIResolver{c: c, dir: dir}, nil
 }
 
 // _ is a type assertion

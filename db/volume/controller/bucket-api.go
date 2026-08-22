@@ -23,7 +23,7 @@ func (c *Controller) BuildBucketAPI(
 
 	if h.err != nil {
 		ref.Release()
-		return nil, nil, err
+		return nil, nil, h.err
 	}
 
 	return h, ref.Release, nil
