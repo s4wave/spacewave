@@ -9,6 +9,8 @@ import (
 )
 
 // ApplyOrgSOOp applies an org SO operation to the current state.
+// ctx satisfies the sobject_stateproc.ApplyOpFunc contract; application is
+// pure today and performs no I/O with it.
 // stateData is the current marshaled OrgState (nil for uninitialized).
 // opData is the marshaled OrgSOOp.
 // Returns the next marshaled OrgState.

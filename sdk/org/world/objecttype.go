@@ -50,5 +50,5 @@ func orgFactory(
 	}
 
 	resource := s4wave_org.NewOrgResource(ws, objectKey, state)
-	return resource.GetMux(), func() {}, nil
+	return resource.GetMux(), resource.Close, nil
 }
