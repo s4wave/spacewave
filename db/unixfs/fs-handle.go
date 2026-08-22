@@ -795,7 +795,7 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 		}
 
 		fsOpsDest := destParent.fsOps
-		if fsOpsDest == nil || fsOpsSrc.CheckReleased() {
+		if fsOpsDest == nil || fsOpsDest.CheckReleased() {
 			// release the src loc for now
 			relSrcLoc()
 
