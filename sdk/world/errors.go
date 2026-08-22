@@ -1,6 +1,8 @@
 package s4wave_world
 
 import (
+	"strconv"
+
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
 )
@@ -28,10 +30,8 @@ type ObjectBodiesBatchRevisionError struct {
 
 // Error returns the inconsistent World sequence details.
 func (e *ObjectBodiesBatchRevisionError) Error() string {
-	return errors.Errorf(
-		"object bodies batch World sequence changed from %d to %d after %d retries",
-		e.Expected,
-		e.Got,
-		e.Retries,
-	).Error()
+	return "object bodies batch World sequence changed from " +
+		strconv.FormatUint(e.Expected, 10) + " to " +
+		strconv.FormatUint(e.Got, 10) + " after " +
+		strconv.Itoa(e.Retries) + " retries"
 }

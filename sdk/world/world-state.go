@@ -12,8 +12,7 @@ import (
 
 // WorldState represents the full state read/write interface to the world.
 // WorldState implements all world state operations.
-//
-// In the Go implementation (hydra/world/world-state.go), WorldState provides:
+// Provides:
 // - GetReadOnly() bool
 // - WorldStorage: BuildStorageCursor, AccessWorldState
 // - WorldStateObject: CreateObject, GetObject, IterateObjects, RenameObject, DeleteObject
@@ -275,7 +274,7 @@ func (ws *WorldState) LookupGraphQuadsBatch(ctx context.Context, filters []world
 
 // ListGraphEdgeBuckets lists grouped inbound/outbound graph edge buckets.
 func (ws *WorldState) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) ([]*world.GraphEdgeBucket, error) {
-	req := graphEdgeBucketQueryToProto(query)
+	req := GraphEdgeBucketQueryToProto(query)
 	resp, err := ws.service.ListGraphEdgeBuckets(ctx, req)
 	if err != nil {
 		return nil, err
@@ -371,7 +370,7 @@ func (ws *WorldState) GetObjectBodiesBatch(ctx context.Context, keys []string) (
 
 // QueryGraphPath executes a bounded server-side graph path query.
 func (ws *WorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
-	req, err := graphPathQueryToProto(query)
+	req, err := GraphPathQueryToProto(query)
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +431,8 @@ func (ws *WorldState) ApplyWorldOp(ctx context.Context, opTypeID string, opData 
 	return resp.Seqno, resp.SysErr, nil
 }
 
-func graphPathQueryToProto(query *world.GraphPathQuery) (*QueryGraphPathRequest, error) {
+// GraphPathQueryToProto converts a GraphPathQuery to its wire request.
+func GraphPathQueryToProto(query *world.GraphPathQuery) (*QueryGraphPathRequest, error) {
 	if query == nil {
 		return &QueryGraphPathRequest{}, nil
 	}
@@ -470,7 +470,8 @@ func graphPathDirectionToProto(dir world.GraphPathDirection) (GraphPathDirection
 	}
 }
 
-func graphEdgeBucketQueryToProto(query *world.GraphEdgeBucketQuery) *ListGraphEdgeBucketsRequest {
+// GraphEdgeBucketQueryToProto converts a GraphEdgeBucketQuery to its wire request.
+func GraphEdgeBucketQueryToProto(query *world.GraphEdgeBucketQuery) *ListGraphEdgeBucketsRequest {
 	if query == nil {
 		return &ListGraphEdgeBucketsRequest{}
 	}

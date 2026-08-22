@@ -198,9 +198,8 @@ export interface IWorldState {
 }
 
 // WorldStateResource represents the full state read/write interface to the world.
-// WorldState implements all world state operations (maps to WorldState in Go).
-//
-// In the Go implementation (hydra/world/world-state.go), WorldState provides:
+// WorldState implements all world state operations.
+// Provides:
 // - GetReadOnly() bool
 // - WorldStorage: BuildStorageCursor, AccessWorldState
 // - WorldStateObject: CreateObject, GetObject, IterateObjects, RenameObject, DeleteObject

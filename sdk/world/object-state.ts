@@ -81,7 +81,7 @@ export interface IObjectState {
 // ObjectState represents a single object within a World.
 // It provides access to the object's key, root reference, and operations.
 //
-// In the Go implementation (hydra/world/object-state.go), ObjectState provides:
+// Provides:
 // - GetKey() string
 // - GetRootRef(ctx) (*bucket.ObjectRef, uint64, error)
 // - SetRootRef(ctx, *bucket.ObjectRef) (uint64, error)

@@ -7,9 +7,8 @@ import (
 )
 
 // Tx represents a transaction against the world state.
-// Tx implements the world state transaction interfaces (maps to Tx in hydra).
-//
-// In the Go implementation (hydra/world/tx.go), Tx provides:
+// Tx implements the world state transaction interfaces.
+// Provides:
 // - WorldState: full state read/write interface (inherited from WorldState)
 // - tx.Tx: Commit, Discard operations
 //

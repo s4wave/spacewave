@@ -18,7 +18,6 @@ import { ObjectRef } from '@go/github.com/s4wave/spacewave/db/bucket/bucket.pb.j
 
 // formatObjectRef marshals an ObjectRef to a base58-encoded string.
 // Returns an empty string if the ref is null or undefined.
-// This mimics the Go implementation in hydra/bucket/object-ref.go MarshalB58().
 export async function formatObjectRef(
   root: Root,
   ref: ObjectRef | null | undefined,
@@ -40,7 +39,6 @@ export async function formatObjectRef(
 
 // parseObjectRef parses a base58-encoded string to an ObjectRef.
 // Returns null if the string is empty.
-// This mimics the Go implementation in hydra/bucket/object-ref.go ParseObjectRef().
 export async function parseObjectRef(
   root: Root,
   refStr: string,

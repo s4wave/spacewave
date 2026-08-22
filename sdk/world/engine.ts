@@ -12,10 +12,9 @@ import { Tx } from './tx.js'
 import { BucketLookupCursor } from '../bucket/lookup/lookup.js'
 import { WorldStateResource, type TypedObjectAccess } from './world-state.js'
 
-// Engine is the top-level resource for Hydra's World data structure.
+// Engine is the top-level resource for the World data structure.
 // Engine implements a transactional world state container.
-//
-// In the Go implementation (hydra/world/engine.go), Engine provides:
+// Provides:
 // - NewTransaction(ctx, write bool) (Tx, error)
 // - WorldStorage for bucket cursor access (BuildStorageCursor, AccessWorldState)
 // - WorldWaitSeqno for sequence number waiting (GetSeqno, WaitSeqno)

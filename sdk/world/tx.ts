@@ -3,9 +3,8 @@ import { TxResourceServiceClient } from './world_srpc.pb.js'
 import { WorldStateResource } from './world-state.js'
 
 // Tx represents a transaction against the world state.
-// Tx implements the world state transaction interfaces (maps to Tx in Go).
-//
-// In the Go implementation (hydra/world/tx.go), Tx provides:
+// Tx implements the world state transaction interfaces.
+// Provides:
 // - WorldState: full state read/write interface (inherited from WorldStateResource)
 // - tx.Tx: Commit, Discard operations
 //

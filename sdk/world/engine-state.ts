@@ -22,9 +22,35 @@ import type {
   WaitRevResponse,
 } from './world.pb.js'
 
+// runEngineOp performs an operation with a short-lived transaction on the
+// engine owned by state.
+async function runEngineOp<T>(
+  state: EngineWorldState,
+  write: boolean,
+  abortSignal: AbortSignal | undefined,
+  cb: (tx: Tx) => Promise<T>,
+): Promise<T> {
+  if (!state.canWrite() && write) {
+    throw new Error('EngineWorldState is read-only')
+  }
+
+  const tx = await state.getEngine().newTransaction(write, abortSignal)
+  try {
+    const result = await cb(tx)
+    if (write) {
+      await tx.commit(abortSignal)
+    }
+    return result
+  } finally {
+    // Always discard to clean up (catches panic cases)
+    await tx.discard(abortSignal).catch(() => {
+      // Ignore errors during cleanup
+    })
+  }
+}
+
 // EngineWorldState implements IWorldState on top of an Engine.
 // Short-lived transactions are created for each operation.
-// This matches the Go implementation in hydra/world/engine-state.go
 export class EngineWorldState implements IWorldState {
   private engine: Engine
   private write: boolean
@@ -255,28 +281,17 @@ export class EngineWorldState implements IWorldState {
   }
 
   // performOp performs an operation with a short-lived transaction
-  private async performOp<T>(
+  private performOp<T>(
     write: boolean,
     abortSignal: AbortSignal | undefined,
     cb: (tx: Tx) => Promise<T>,
   ): Promise<T> {
-    if (!this.write && write) {
-      throw new Error('EngineWorldState is read-only')
-    }
+    return runEngineOp(this, write, abortSignal, cb)
+  }
 
-    const tx = await this.engine.newTransaction(write, abortSignal)
-    try {
-      const result = await cb(tx)
-      if (write) {
-        await tx.commit(abortSignal)
-      }
-      return result
-    } finally {
-      // Always discard to clean up (catches panic cases)
-      await tx.discard(abortSignal).catch(() => {
-        // Ignore errors during cleanup
-      })
-    }
+  // canWrite reports whether this wrapper allows write operations.
+  public canWrite(): boolean {
+    return this.write
   }
 
   // getEngine returns the underlying Engine (for advanced usage)
@@ -298,7 +313,6 @@ export class EngineWorldState implements IWorldState {
 }
 
 // EngineWorldStateObject wraps an EngineWorldState to provide ObjectState operations
-// This matches the Go implementation in hydra/world/engine-state-object.go
 class EngineWorldStateObject implements IObjectState {
   private engineState: EngineWorldState
   private objectKey: string
@@ -315,7 +329,7 @@ class EngineWorldStateObject implements IObjectState {
   public async getRootRef(
     abortSignal?: AbortSignal,
   ): Promise<GetRootRefResponse> {
-    return this.engineState['performOp'](false, abortSignal, async (tx) => {
+    return runEngineOp(this.engineState, false, abortSignal, async (tx) => {
       const obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
         throw new Error(`Object not found: ${this.objectKey}`)
@@ -328,7 +342,7 @@ class EngineWorldStateObject implements IObjectState {
     rootRef: ObjectRef,
     abortSignal?: AbortSignal,
   ): Promise<SetRootRefResponse> {
-    return this.engineState['performOp'](true, abortSignal, async (tx) => {
+    return runEngineOp(this.engineState, true, abortSignal, async (tx) => {
       const obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
         throw new Error(`Object not found: ${this.objectKey}`)
@@ -368,7 +382,7 @@ class EngineWorldStateObject implements IObjectState {
     opSender: string,
     abortSignal?: AbortSignal,
   ): Promise<ApplyObjectOpResponse> {
-    return this.engineState['performOp'](true, abortSignal, async (tx) => {
+    return runEngineOp(this.engineState, true, abortSignal, async (tx) => {
       const obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
         throw new Error(`Object not found: ${this.objectKey}`)
@@ -380,7 +394,7 @@ class EngineWorldStateObject implements IObjectState {
   public async incrementRev(
     abortSignal?: AbortSignal,
   ): Promise<IncrementRevResponse> {
-    return this.engineState['performOp'](true, abortSignal, async (tx) => {
+    return runEngineOp(this.engineState, true, abortSignal, async (tx) => {
       const obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
         throw new Error(`Object not found: ${this.objectKey}`)
@@ -394,7 +408,7 @@ class EngineWorldStateObject implements IObjectState {
     ignoreNotFound?: boolean,
     abortSignal?: AbortSignal,
   ): Promise<WaitRevResponse> {
-    return this.engineState['performOp'](false, abortSignal, async (tx) => {
+    return runEngineOp(this.engineState, false, abortSignal, async (tx) => {
       const obj = await tx.getObject(this.objectKey, abortSignal)
       if (!obj) {
         throw new Error(`Object not found: ${this.objectKey}`)
