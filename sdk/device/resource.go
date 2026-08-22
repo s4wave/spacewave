@@ -19,6 +19,7 @@ import (
 
 // DeviceResource implements the DeviceResourceService SRPC interface.
 type DeviceResource struct {
+	le     *logrus.Entry
 	engine world.Engine
 	ws     world.WorldState
 	objKey string
@@ -28,11 +29,12 @@ type DeviceResource struct {
 }
 
 // NewDeviceResource creates a new DeviceResource.
-func NewDeviceResource(engine world.Engine, ws world.WorldState, objKey string, state *Device) *DeviceResource {
+func NewDeviceResource(le *logrus.Entry, engine world.Engine, ws world.WorldState, objKey string, state *Device) *DeviceResource {
 	if state == nil {
 		state = &Device{}
 	}
 	r := &DeviceResource{
+		le:     le,
 		engine: engine,
 		ws:     ws,
 		objKey: objKey,
@@ -169,11 +171,10 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 		return nil, err
 	}
 	var fsCursor *unixfs_world.FSCursor
-	le := logrus.NewEntry(logrus.StandardLogger())
 	if req.GetWrite() {
-		fsCursor, _ = unixfs_world.NewFSCursorWithWriter(ctx, le, accessWS, link.GetObjectKey(), fsType, "")
+		fsCursor, _ = unixfs_world.NewFSCursorWithWriter(ctx, r.le, accessWS, link.GetObjectKey(), fsType, "")
 	} else {
-		fsCursor = unixfs_world.NewFSCursor(le, accessWS, link.GetObjectKey(), fsType, nil, true)
+		fsCursor = unixfs_world.NewFSCursor(r.le, accessWS, link.GetObjectKey(), fsType, nil, true)
 	}
 	fsh, err := unixfs.NewFSHandle(fsCursor)
 	if err != nil {
