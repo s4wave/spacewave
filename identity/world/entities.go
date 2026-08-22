@@ -98,6 +98,7 @@ func LookupEntity(ctx context.Context, w world.WorldState, objKey string) (*iden
 		return err
 	})
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, nil, err
 	}
 	return entity, obj, nil
@@ -108,7 +109,9 @@ func LookupEntities(ctx context.Context, w world.WorldState, objKeys []string) (
 	ents := make([]*identity.Entity, len(objKeys))
 	var err error
 	for i, objKey := range objKeys {
-		ents[i], _, err = LookupEntity(ctx, w, objKey)
+		var state world.ObjectState
+		ents[i], state, err = LookupEntity(ctx, w, objKey)
+		world.ReleaseObjectState(state)
 		if err != nil {
 			return nil, err
 		}

@@ -362,7 +362,7 @@ func (c *Controller) reconcilePlugins(ctx context.Context, ws world.WorldState, 
 	le := c.GetLogger()
 	conf := c.GetConfig()
 
-	settings, _, err := space_world.LookupSpaceSettings(ctx, ws)
+	settings, err := space_world.LookupSpaceSettingsBody(ctx, ws)
 	if err != nil {
 		warnOnErrorUnlessCanceled(ctx, le, err, "failed to lookup SpaceSettings")
 		return

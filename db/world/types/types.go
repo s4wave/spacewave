@@ -233,15 +233,17 @@ func ListObjectsWithType(ctx context.Context, ws world.WorldState, typeID string
 // Unmarshals the bodies of the matched objects.
 //
 // ctor must return an object of type T
-// returns two slices of length objKeys
-// if any objects are not found, returns nil for that object state / value and objs, objsStates, ErrNotFound
-// returns nil, nil, err for any other error
+// Returns two slices of length len(objKeys). If any objects are not found,
+// their entries are nil and ErrNotFound is returned after all states release.
 func ListCollectObjectsWithType[T block.Block](ctx context.Context, ws world.WorldState, typeID string, ctor func() block.Block) ([]T, []string, error) {
 	objKeys, err := ListObjectsWithType(ctx, ws, typeID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	objs, _, err := world.CollectObjectBodies[T](ctx, ws, objKeys, ctor)
+	objs, states, err := world.CollectObjectBodies[T](ctx, ws, objKeys, ctor)
+	for _, state := range states {
+		world.ReleaseObjectState(state)
+	}
 	return objs, objKeys, err
 }

@@ -93,7 +93,7 @@ func LookupOrStoreKeypair(
 	}
 
 	kpKey := NewKeypairKey(keypairPeerStr)
-	kp, _, err := LookupKeypair(ctx, w, kpKey)
+	kp, err := LookupKeypairBody(ctx, w, kpKey)
 	if err != nil {
 		return nil, "", err
 	}

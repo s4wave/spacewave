@@ -52,7 +52,7 @@ func (o *ForgeJobCreateOp) ApplyWorldOp(
 	jobKey := o.GetJobKey()
 
 	// Check the cluster exists and can be decoded as a Cluster object.
-	cluster, _, err := forge_cluster.LookupCluster(ctx, ws, clusterKey)
+	cluster, err := forge_cluster.LookupClusterBody(ctx, ws, clusterKey)
 	if err != nil {
 		return false, errors.Wrap(err, "cluster")
 	}

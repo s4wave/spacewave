@@ -154,7 +154,7 @@ func (r *TerminalResource) lookupSshHost(ctx context.Context, objectKey string) 
 	if err := world_types.CheckObjectType(ctx, r.ws, objectKey, s4wave_sshhost.SshHostTypeID); err != nil {
 		return nil, err
 	}
-	host, _, err := world.LookupObject[*s4wave_sshhost.SshHost](
+	host, err := world.LookupObjectBody[*s4wave_sshhost.SshHost](
 		ctx,
 		r.ws,
 		objectKey,
@@ -256,7 +256,7 @@ func (r *TerminalResource) readSshCredentialPayload(ctx context.Context, objectK
 	if err := world_types.CheckObjectType(ctx, r.ws, objectKey, s4wave_secret.SecretTypeID); err != nil {
 		return nil, err
 	}
-	secret, _, err := world.LookupObject[*s4wave_secret.Secret](
+	secret, err := world.LookupObjectBody[*s4wave_secret.Secret](
 		ctx,
 		r.ws,
 		objectKey,

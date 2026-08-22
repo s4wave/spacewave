@@ -61,14 +61,14 @@ func (o *ClusterAssignJobOp) ApplyWorldOp(
 
 	// Check the job and cluster objects by decoding their bodies rather than
 	// relying on the type index being immediately visible.
-	cluster, _, err := LookupCluster(ctx, worldHandle, clusterKey)
+	cluster, err := LookupClusterBody(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
 	}
 	if err := cluster.Validate(); err != nil {
 		return false, err
 	}
-	job, _, err := forge_job.LookupJob(ctx, worldHandle, jobKey)
+	job, err := forge_job.LookupJobBody(ctx, worldHandle, jobKey)
 	if err != nil {
 		return false, err
 	}

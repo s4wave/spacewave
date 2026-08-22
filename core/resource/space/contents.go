@@ -844,7 +844,7 @@ func (r *SpaceContentsResource) WatchState(
 				return err
 			}
 
-			settings, _, err := space_world.LookupSpaceSettings(ctx, wtx)
+			settings, err := space_world.LookupSpaceSettingsBody(ctx, wtx)
 			if err != nil {
 				return err
 			}

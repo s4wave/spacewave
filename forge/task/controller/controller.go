@@ -135,7 +135,7 @@ func (c *Controller) updateWithPassState(ctx context.Context) error {
 	// lookup the task and make sure it is still in RUNNING state
 	// ... and peer id matches
 	taskObjKey := c.objKey
-	taskObj, _, err := forge_task.LookupTask(ctx, wtx, taskObjKey)
+	taskObj, err := forge_task.LookupTaskBody(ctx, wtx, taskObjKey)
 	if err != nil {
 		return errors.Wrap(err, "lookup task")
 	}

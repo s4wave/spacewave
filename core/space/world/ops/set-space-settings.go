@@ -115,7 +115,7 @@ func (o *SetSpaceSettingsOp) ApplyWorldOp(
 	}
 
 	if o.GetExpectedKeybindingOverrides() != nil {
-		current, _, err := space_world.LookupSpaceSettings(ctx, worldHandle)
+		current, err := space_world.LookupSpaceSettingsBody(ctx, worldHandle)
 		if err != nil {
 			return false, err
 		}

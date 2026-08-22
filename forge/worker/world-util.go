@@ -53,7 +53,8 @@ func CollectWorkerKeypairs(ctx context.Context, w world.WorldState, workerKeys .
 
 	kps := make([]*identity.Keypair, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
-		kps[i], _, err = identity_world.LookupKeypair(ctx, w, objKey)
+		var err error
+		kps[i], err = identity_world.LookupKeypairBody(ctx, w, objKey)
 		if err != nil {
 			return nil, kpObjectKeys, err
 		}

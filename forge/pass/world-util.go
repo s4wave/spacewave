@@ -112,7 +112,7 @@ func CollectPassExecutions(
 
 	states := make([]*forge_execution.Execution, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
-		states[i], _, err = forge_execution.LookupExecution(ctx, ws, objKey)
+		states[i], err = world.LookupObjectBody[*forge_execution.Execution](ctx, ws, objKey, forge_execution.NewExecutionBlock)
 		if err != nil {
 			return nil, nil, err
 		}

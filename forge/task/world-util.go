@@ -23,6 +23,11 @@ func LookupTask(ctx context.Context, ws world.WorldState, objKey string) (*Task,
 	return world.LookupObject[*Task](ctx, ws, objKey, NewTaskBlock)
 }
 
+// LookupTaskBody looks up a Task body in the world.
+func LookupTaskBody(ctx context.Context, ws world.WorldState, objKey string) (*Task, error) {
+	return world.LookupObjectBody[*Task](ctx, ws, objKey, NewTaskBlock)
+}
+
 // ListTaskPasses lists all Pass object keys that are linked to by the Task.
 func ListTaskPasses(ctx context.Context, w world.WorldState, taskKeys ...string) ([]string, error) {
 	return world.CollectGraphPathStepWithKeys(
@@ -214,7 +219,7 @@ func CollectTaskSubtasks(
 
 	tasks := make([]*Task, len(objKeys))
 	for i, objKey := range objKeys {
-		tasks[i], _, err = LookupTask(ctx, ws, objKey)
+		tasks[i], err = LookupTaskBody(ctx, ws, objKey)
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "subtasks[%s]", objKey)
 		}

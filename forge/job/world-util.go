@@ -190,7 +190,7 @@ func CollectJobTasks(
 
 	tasks := make([]*forge_task.Task, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
-		tasks[i], _, err = forge_task.LookupTask(ctx, ws, objKey)
+		tasks[i], err = forge_task.LookupTaskBody(ctx, ws, objKey)
 		if err != nil {
 			return nil, nil, err
 		}
