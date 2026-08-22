@@ -53,6 +53,7 @@ func BuiltInRegistry() (*Registry, error) {
 		NewSchemaHandler(spacewave_chat.ChatMessageTypeID, ClassificationRewrite, true, false, false, false, false, inspectChatMessage, rewriteChatMessage),
 		NewSchemaHandler(s4wave_device.DeviceTypeID, ClassificationRewrite, true, false, false, false, false, inspectDevice, rewriteDevice),
 		NewSchemaRefusalHandler(s4wave_device.ComputersDashboardTypeID, ClassificationExternalRef, "device dashboard payload is external and not admitted for rewrite"),
+		NewSchemaRefusalHandler(s4wave_device.SensorTypeID, ClassificationNonMigratable, "sensor state is daemon-projected and rebuilt from local device policy"),
 		NewSchemaHandler(s4wave_terminal.TerminalTypeID, ClassificationRewrite, true, false, false, false, false, inspectTerminal, rewriteTerminal),
 		NewSchemaHandler(s4wave_sshhost.SshHostTypeID, ClassificationRewrite, true, false, false, false, false, inspectSSHHost, rewriteSSHHost),
 		NewSchemaRefusalHandler(s4wave_vm.VmV86TypeID, ClassificationNonMigratable, "V86 runtime state is non-migratable"),
