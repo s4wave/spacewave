@@ -247,6 +247,13 @@ const quicRwcFixtureDeadline = 45 * time.Second
 // exchange a stream payload over detached RTCDataChannels transferred into one
 // browser worker.
 func TestBrowserWorkerQuicRwcFixture(t *testing.T) {
+	compiler, err := ResolveE2EWasmCompiler()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if compiler == E2EWasmCompilerTinyGo {
+		t.Skip("browser QUIC fixture requires a compiler with pion/webrtc support")
+	}
 	sess := harness(t).NewCleanSession(t)
 	ctx, cancel := context.WithTimeout(harness(t).Context(), quicRwcFixtureDeadline)
 	defer cancel()
