@@ -274,6 +274,10 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 	if err != nil {
 		return "", err
 	}
+	bindingRoots, err := gocompiler.GoScriptBindingRoots(ctx, m.pluginCodegenPath, "GOOS=js", "GOARCH=wasm")
+	if err != nil {
+		return "", err
+	}
 	if err := gocompiler.ExecGoScriptCompile(ctx, le, gocompiler.GoScriptCompileOptions{
 		WorkDir:                   m.pluginCodegenPath,
 		OutputPath:                outPath,
@@ -281,6 +285,7 @@ func (m *ModuleCompiler) CompilePluginGoScript(
 		Packages:                  []string{"."},
 		BuildFlags:                buildFlags,
 		OverrideDirs:              overrideDirs,
+		BindingRoots:              bindingRoots,
 		AllDependencies:           true,
 		ProtobufTypeScriptBinding: true,
 	}); err != nil {

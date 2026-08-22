@@ -315,6 +315,8 @@ github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0t
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/s4wave/goscript v0.2.27-0.20260813091320-94a37ae74e9d h1:RunRcL6WkSpJc6oZyOqj+yDsoo7ABamRkox4ronAjb0=
 github.com/s4wave/goscript v0.2.27-0.20260813091320-94a37ae74e9d/go.mod h1:2PkLvl4v5IXRzAh+HpOQymrS7Z6mNmAOKY89EoAhv8A=
+github.com/s4wave/goscript v0.2.27-0.20260822054934-545493ac2803 h1:VVpTOfJbnuOmQYbroWDzG6x+ConiHSBp1xDa9uVA4+w=
+github.com/s4wave/goscript v0.2.27-0.20260822054934-545493ac2803/go.mod h1:2PkLvl4v5IXRzAh+HpOQymrS7Z6mNmAOKY89EoAhv8A=
 github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlEQV+w=
 github.com/sasha-s/go-deadlock v0.3.9/go.mod h1:KuZj51ZFmx42q/mPaYbRk0P1xcwe697zsJKE03vD4/Y=
 github.com/satori/go.uuid v1.2.0 h1:0uYX9dsZ2yD7q2RtLRtPSdGDWzjeM3TbMJP9utgA0ww=
