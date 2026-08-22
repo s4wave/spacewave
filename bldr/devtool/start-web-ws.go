@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -31,6 +32,67 @@ import (
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
+
+// errWebSocketConnectionsClosed is returned when a connection arrives after
+// the server stopped accepting upgraded connections.
+var errWebSocketConnectionsClosed = errors.New("devtool websocket connections closed")
+
+// webSocketControllerConnections binds upgraded connections and their controllers to the server lifetime.
+type webSocketControllerConnections struct {
+	ctx context.Context
+
+	mtx         sync.Mutex
+	connections map[*websocket.Conn]struct{}
+	closed      bool
+	wait        sync.WaitGroup
+}
+
+func newWebSocketControllerConnections(ctx context.Context) *webSocketControllerConnections {
+	return &webSocketControllerConnections{ctx: ctx, connections: make(map[*websocket.Conn]struct{})}
+}
+
+func (c *webSocketControllerConnections) Execute(connection *websocket.Conn, execute func(context.Context) error) error {
+	c.mtx.Lock()
+	if c.closed {
+		c.mtx.Unlock()
+		_ = connection.CloseNow()
+		return errWebSocketConnectionsClosed
+	}
+	if ctxErr := c.ctx.Err(); ctxErr != nil {
+		c.mtx.Unlock()
+		_ = connection.CloseNow()
+		return ctxErr
+	}
+	c.connections[connection] = struct{}{}
+	c.wait.Add(1)
+	c.mtx.Unlock()
+	defer func() {
+		c.mtx.Lock()
+		delete(c.connections, connection)
+		c.mtx.Unlock()
+		c.wait.Done()
+	}()
+	return execute(c.ctx)
+}
+
+func (c *webSocketControllerConnections) Close() {
+	c.mtx.Lock()
+	if c.closed {
+		c.mtx.Unlock()
+		return
+	}
+	c.closed = true
+	connections := make([]*websocket.Conn, 0, len(c.connections))
+	for connection := range c.connections {
+		connections = append(connections, connection)
+	}
+	c.mtx.Unlock()
+	for _, connection := range connections {
+		_ = connection.CloseNow()
+	}
+}
+
+func (c *webSocketControllerConnections) Wait() { c.wait.Wait() }
 
 // DevtoolWsVersion is the version to report for the ws-backed devtool runtime.
 var DevtoolWsVersion = controller.MustParseVersion("0.0.1")
@@ -186,20 +248,19 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	}
 	defer relStatusCtrl()
 
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	d.setCommandRunningWithLogFile("start web", "web runtime active on "+a.WebListenAddr, commandLogFile)
-	return d.ExecuteWebWs(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr, webStartupSrcPath)
+	return d.executeWebWs(ctx, repoRoot, a.MinifyEntrypoint, buildType.IsDev(), a.WebListenAddr, webStartupSrcPath, func(string) error {
+		d.setCommandRunningWithLogFile("start web", "web runtime active on "+a.WebListenAddr, commandLogFile)
+		return nil
+	})
 }
 
-// ExecuteWebWs starts the application in the browser with a websocket.
-func (d *DevtoolBus) ExecuteWebWs(
+func (d *DevtoolBus) executeWebWs(
 	ctx context.Context,
 	repoRoot string,
 	minifyEntrypoint, devMode bool,
 	listenAddr string,
 	webStartupSrcPath string,
+	onListening func(string) error,
 ) error {
 	le := d.GetLogger()
 	stateDir := d.GetStateRoot()
@@ -256,6 +317,7 @@ func (d *DevtoolBus) ExecuteWebWs(
 
 	// serve the websocket if the path matches
 	webRuntimeWsPath := "/bldr-dev/web-runtime.ws"
+	connections := newWebSocketControllerConnections(ctx)
 	serveFn := func(rw http.ResponseWriter, req *http.Request) {
 		// Add Cross-Origin Isolation headers required for SharedArrayBuffer
 		// These enable SAB-based communication between SharedWorkers
@@ -271,8 +333,13 @@ func (d *DevtoolBus) ExecuteWebWs(
 				return
 			}
 			ctrl := buildWsWebRuntime(le, d.GetBus(), runtimeID, wc)
-			err = d.GetBus().ExecuteController(req.Context(), ctrl)
-			if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) {
+			err = connections.Execute(wc, func(connectionCtx context.Context) error {
+				return d.GetBus().ExecuteController(connectionCtx, ctrl)
+			})
+			if err != nil &&
+				!errors.Is(err, context.Canceled) &&
+				!errors.Is(err, io.EOF) &&
+				!errors.Is(err, errWebSocketConnectionsClosed) {
 				le.WithError(err).Warn("websocket disconnected with error")
 			} else {
 				le.Debug("websocket disconnected normally")
@@ -285,7 +352,22 @@ func (d *DevtoolBus) ExecuteWebWs(
 
 	le.Infof("listening on: %s", listenAddr)
 	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}
-	return listenAndServeDevtoolHTTP(ctx, server, nil)
+	return listenAndServeDevtoolWebWs(ctx, server, connections, onListening)
+}
+
+// listenAndServeDevtoolWebWs serves the devtool websocket HTTP server until it
+// returns, then closes every upgraded connection and waits for its controller
+// to exit before returning.
+func listenAndServeDevtoolWebWs(
+	ctx context.Context,
+	server *http.Server,
+	connections *webSocketControllerConnections,
+	onListening func(string) error,
+) error {
+	err := listenAndServeDevtoolHTTP(ctx, server, onListening)
+	connections.Close()
+	connections.Wait()
+	return err
 }
 
 func writeWebWsBuildManifest(entrypointDir string, bundleResult *entrypoint_browser_bundle.BrowserBundleResult) error {
@@ -349,36 +431,33 @@ func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server, onListe
 	}
 
 	serveErrCh := make(chan error, 1)
-	go func() {
-		serveErrCh <- server.Serve(listener)
-	}()
+	go func() { serveErrCh <- server.Serve(listener) }()
 	stopShutdownCh := make(chan struct{})
-	shutdownDoneCh := make(chan struct{})
-	defer func() {
-		close(stopShutdownCh)
-		<-shutdownDoneCh
-	}()
+	shutdownErrCh := make(chan error, 1)
 	go func() {
-		defer close(shutdownDoneCh)
 		select {
 		case <-ctx.Done():
-			shutdownCtx, shutdownCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
-			defer shutdownCancel()
-			_ = server.Shutdown(shutdownCtx)
+			// Drain plain HTTP requests without a deadline. Upgraded
+			// (hijacked) connections are not tracked by Shutdown; their
+			// lifecycle owner closes and joins them separately.
+			shutdownErrCh <- server.Shutdown(context.WithoutCancel(ctx))
 		case <-stopShutdownCh:
+			shutdownErrCh <- nil
 		}
 	}()
 
+	var callbackErr error
 	if onListening != nil {
-		if err := onListening(listener.Addr().String()); err != nil {
+		callbackErr = onListening(listener.Addr().String())
+		if callbackErr != nil {
 			_ = server.Close()
-			<-serveErrCh
-			return err
 		}
 	}
-	err = <-serveErrCh
-	if err == http.ErrServerClosed {
-		return nil
+	serveErr := <-serveErrCh
+	close(stopShutdownCh)
+	shutdownErr := <-shutdownErrCh
+	if errors.Is(serveErr, http.ErrServerClosed) {
+		serveErr = nil
 	}
-	return err
+	return errors.Join(callbackErr, serveErr, shutdownErr)
 }

@@ -113,12 +113,8 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 	webStartupSrcPath, _ := startConf.ParseWebStartupPath()
 
 	buildType := bldr_manifest.BuildType(a.BuildType)
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	d.setCommandRunningWithLogFile("start web", "wasm web runtime active on "+a.WebListenAddr, commandLogFile)
 	a.writeBannerTo(os.Stderr)
-	return d.ExecuteWebWasm(
+	return d.executeWebWasm(
 		ctx,
 		repoRoot,
 		a.MinifyEntrypoint,
@@ -129,6 +125,10 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 		startupManifestPreflights,
 		webStartupSrcPath,
 		false,
+		func(string) error {
+			d.setCommandRunningWithLogFile("start web", "wasm web runtime active on "+a.WebListenAddr, commandLogFile)
+			return nil
+		},
 	)
 }
 
@@ -144,6 +144,22 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	startupManifestPreflights []StartupManifestPreflight,
 	webStartupSrcPath string,
 	forceDedicatedWorkers bool,
+) error {
+	return d.executeWebWasm(ctx, repoRoot, minifyEntrypoint, devMode, listenAddr, appID, startPlugins, startupManifestPreflights, webStartupSrcPath, forceDedicatedWorkers, nil)
+}
+
+func (d *DevtoolBus) executeWebWasm(
+	ctx context.Context,
+	repoRoot string,
+	minifyEntrypoint,
+	devMode bool,
+	listenAddr string,
+	appID string,
+	startPlugins []string,
+	startupManifestPreflights []StartupManifestPreflight,
+	webStartupSrcPath string,
+	forceDedicatedWorkers bool,
+	onListening func(string) error,
 ) error {
 	le := d.GetLogger()
 	stateDir := d.GetStateRoot()
@@ -390,7 +406,12 @@ func (d *DevtoolBus) ExecuteWebWasm(
 			ref.Release()
 		}
 	}()
-	return listenAndServeDevtoolHTTP(ctx, server, func(_ string) error {
+	return listenAndServeDevtoolHTTP(ctx, server, func(addr string) error {
+		if onListening != nil {
+			if err := onListening(addr); err != nil {
+				return err
+			}
+		}
 		if !devMode {
 			return nil
 		}

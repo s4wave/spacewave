@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/fastjson"
+	"github.com/aperturerobotics/go-websocket"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 )
 
@@ -174,5 +175,224 @@ func TestListenAndServeDevtoolHTTPServesWhileOnListeningBlocked(t *testing.T) {
 				t.Fatal("HTTP listener remained open after listenAndServeDevtoolHTTP returned")
 			}
 		})
+	}
+}
+
+// TestListenAndServeDevtoolWebWsClosesUpgradedControllers drives the production
+// websocket serve path: an upgraded connection whose controller only exits when
+// the socket closes. The server must close every upgraded connection and wait
+// for its controller before listenAndServeDevtoolWebWs returns.
+func TestListenAndServeDevtoolWebWsClosesUpgradedControllers(t *testing.T) {
+	deadlineCtx, stopDeadline := context.WithTimeout(context.Background(), 10*time.Second)
+	defer stopDeadline()
+	ctx, cancel := context.WithCancel(deadlineCtx)
+	connections := newWebSocketControllerConnections(ctx)
+	handlerStarted := make(chan struct{})
+	handlerExited := make(chan struct{})
+	server := &http.Server{
+		Addr:              "127.0.0.1:0",
+		ReadHeaderTimeout: time.Second,
+		Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			connection, err := websocket.Accept(rw, req, nil)
+			if err != nil {
+				return
+			}
+			_ = connections.Execute(connection, func(context.Context) error {
+				close(handlerStarted)
+				// Read until the socket closes; do not return on cancellation.
+				readCtx := context.WithoutCancel(deadlineCtx)
+				_, _, readErr := connection.Read(readCtx)
+				close(handlerExited)
+				return readErr
+			})
+		}),
+	}
+	listeningAddr := make(chan string, 1)
+	serverDone := make(chan error, 1)
+	go func() {
+		serverDone <- listenAndServeDevtoolWebWs(ctx, server, connections, func(addr string) error {
+			listeningAddr <- addr
+			return nil
+		})
+	}()
+
+	addr := <-listeningAddr
+	client, _, err := websocket.Dial(deadlineCtx, "ws://"+addr, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.CloseNow()
+	<-handlerStarted
+	cancel()
+
+	select {
+	case err := <-serverDone:
+		select {
+		case <-handlerExited:
+		default:
+			t.Fatal("server returned before the upgraded WebSocket controller exited")
+		}
+		if err != nil {
+			t.Fatalf("server shutdown: %v", err)
+		}
+	case <-deadlineCtx.Done():
+		t.Fatalf("server did not close and join upgraded controllers: %v", deadlineCtx.Err())
+	}
+
+	readCtx, stopRead := context.WithTimeout(context.Background(), time.Second)
+	defer stopRead()
+	if _, _, err := client.Read(readCtx); err == nil {
+		t.Fatal("WebSocket remained open after server shutdown")
+	}
+}
+
+// TestListenAndServeDevtoolHTTPDrainsPlainRequestsOnCancel pins the graceful
+// plain HTTP path: an in-flight request finishes and the caller sees a normal
+// response even though cancellation started while the request was active.
+func TestListenAndServeDevtoolHTTPDrainsPlainRequestsOnCancel(t *testing.T) {
+	deadlineCtx, stopDeadline := context.WithTimeout(context.Background(), 10*time.Second)
+	defer stopDeadline()
+	ctx, cancel := context.WithCancel(deadlineCtx)
+	requestStarted := make(chan struct{})
+	server := &http.Server{
+		Addr:              "127.0.0.1:0",
+		ReadHeaderTimeout: time.Second,
+		Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			close(requestStarted)
+			select {
+			case <-req.Context().Done():
+				return
+			case <-time.After(300 * time.Millisecond):
+			}
+			_, _ = io.WriteString(rw, "drained")
+		}),
+	}
+	listeningAddr := make(chan string, 1)
+	serverDone := make(chan error, 1)
+	go func() {
+		serverDone <- listenAndServeDevtoolHTTP(ctx, server, func(addr string) error {
+			listeningAddr <- addr
+			return nil
+		})
+	}()
+
+	addr := <-listeningAddr
+	type httpResult struct {
+		body string
+		err  error
+	}
+	resultCh := make(chan httpResult, 1)
+	go func() {
+		resp, err := http.Get("http://" + addr)
+		if err != nil {
+			resultCh <- httpResult{err: err}
+			return
+		}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		resultCh <- httpResult{body: string(body), err: err}
+	}()
+	<-requestStarted
+	cancel()
+
+	select {
+	case result := <-resultCh:
+		if result.err != nil {
+			t.Fatalf("in-flight request was not drained: %v", result.err)
+		}
+		if result.body != "drained" {
+			t.Fatalf("drained request body: got %q, want %q", result.body, "drained")
+		}
+	case <-deadlineCtx.Done():
+		t.Fatalf("in-flight request did not complete during shutdown: %v", deadlineCtx.Err())
+	}
+
+	select {
+	case err := <-serverDone:
+		if err != nil {
+			t.Fatalf("server shutdown: %v", err)
+		}
+	case <-deadlineCtx.Done():
+		t.Fatalf("server did not finish draining: %v", deadlineCtx.Err())
+	}
+}
+
+// TestWebSocketControllerConnectionsRejectExecuteAfterClose pins post-close
+// rejection: Execute after Close force-closes the connection, reports an
+// error, and never runs the controller.
+func TestWebSocketControllerConnectionsRejectExecuteAfterClose(t *testing.T) {
+	deadlineCtx, stopDeadline := context.WithTimeout(context.Background(), 10*time.Second)
+	defer stopDeadline()
+	ctx, cancel := context.WithCancel(deadlineCtx)
+	defer cancel()
+	connections := newWebSocketControllerConnections(ctx)
+	accepted := make(chan struct{})
+	closeGate := make(chan struct{})
+	executeErr := make(chan error, 1)
+	executed := make(chan struct{})
+	server := &http.Server{
+		Addr:              "127.0.0.1:0",
+		ReadHeaderTimeout: time.Second,
+		Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			connection, err := websocket.Accept(rw, req, nil)
+			if err != nil {
+				return
+			}
+			close(accepted)
+			<-closeGate
+			executeErr <- connections.Execute(connection, func(context.Context) error {
+				close(executed)
+				return nil
+			})
+		}),
+	}
+	listeningAddr := make(chan string, 1)
+	serverDone := make(chan error, 1)
+	go func() {
+		serverDone <- listenAndServeDevtoolWebWs(ctx, server, connections, func(addr string) error {
+			listeningAddr <- addr
+			return nil
+		})
+	}()
+
+	addr := <-listeningAddr
+	client, _, err := websocket.Dial(deadlineCtx, "ws://"+addr, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.CloseNow()
+	<-accepted
+
+	connections.Close()
+	close(closeGate)
+
+	select {
+	case err := <-executeErr:
+		if !errors.Is(err, errWebSocketConnectionsClosed) {
+			t.Fatalf("Execute after Close: got %v, want %v", err, errWebSocketConnectionsClosed)
+		}
+	case <-deadlineCtx.Done():
+		t.Fatal("Execute after Close did not return")
+	}
+	select {
+	case <-executed:
+		t.Fatal("controller ran after Close rejected it")
+	default:
+	}
+
+	readCtx, stopRead := context.WithTimeout(context.Background(), time.Second)
+	defer stopRead()
+	if _, _, err := client.Read(readCtx); err == nil {
+		t.Fatal("WebSocket remained open after Close rejected it")
+	}
+
+	cancel()
+	select {
+	case err := <-serverDone:
+		if err != nil {
+			t.Fatalf("server shutdown: %v", err)
+		}
+	case <-deadlineCtx.Done():
+		t.Fatalf("server did not shut down: %v", deadlineCtx.Err())
 	}
 }
