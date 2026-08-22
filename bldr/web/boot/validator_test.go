@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -210,6 +211,16 @@ func TestValidateBootReportSharedVocabularyVectors(t *testing.T) {
 				report.Marks[0].Detail[1].Value.Value = &BootValue_StringValue{StringValue: parts[2]}
 			case "operation":
 				report.Spans[1].Operation = parts[2]
+			case "browser-engine":
+				report.Environment.BrowserEngine = parts[2]
+			case "os-family":
+				report.Environment.OsFamily = parts[2]
+			case "worker-mode":
+				mode, err := strconv.Atoi(parts[2])
+				if err != nil {
+					t.Fatal(err)
+				}
+				report.Build.WorkerMode = BootWorkerMode(mode)
 			default:
 				t.Fatalf("unknown target %q", parts[1])
 			}

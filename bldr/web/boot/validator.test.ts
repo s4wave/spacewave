@@ -197,6 +197,9 @@ describe('validateBootReport', () => {
           value: { case: 'stringValue', value },
         }
       } else if (target === 'operation') report.spans![1].operation = value
+      else if (target === 'browser-engine') report.environment!.browserEngine = value
+      else if (target === 'os-family') report.environment!.osFamily = value
+      else if (target === 'worker-mode') report.build!.workerMode = Number(value)
       else throw new Error(`unknown target ${target}`)
       const validation = validateBootReport(report)
       if (disposition === 'accept') expect(validation.pass).toBe(true)

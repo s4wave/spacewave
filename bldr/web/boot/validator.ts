@@ -220,7 +220,7 @@ const bootEntrypoints = new Set([
 
 const bootProjects = new Set(['spacewave'])
 
-const bootBrowserEngines = new Set(['chromium', 'webkit'])
+const bootBrowserEngines = new Set(['chromium', 'firefox', 'webkit'])
 
 const bootOSFamilies = new Set(['android', 'darwin', 'ios', 'linux', 'windows'])
 

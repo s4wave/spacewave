@@ -135,7 +135,7 @@ var (
 		"canvas": {}, "computers": {}, "drive": {}, "forge": {}, "space": {},
 	}
 	bootProjects       = map[string]struct{}{"spacewave": {}}
-	bootBrowserEngines = map[string]struct{}{"chromium": {}, "webkit": {}}
+	bootBrowserEngines = map[string]struct{}{"chromium": {}, "firefox": {}, "webkit": {}}
 	bootOSFamilies     = map[string]struct{}{"android": {}, "darwin": {}, "ios": {}, "linux": {}, "windows": {}}
 	bootArchitectures  = map[string]struct{}{"amd64": {}, "arm64": {}, "wasm": {}}
 )
