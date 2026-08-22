@@ -98,7 +98,16 @@ esac
     -Xlinker __launchd_plist \
     -Xlinker "$PRIV_PLIST_DIR/Launchd.plist"
 )
-PRIV_BIN="$REPO_ROOT/desktop/macos/.build/${SWIFT_ARCH}-apple-macosx/release/SpacewaveHelperPrivileged"
+# SwiftPM's scratch layout changed across toolchain versions; ask it where
+# the built product is instead of assuming the <triple>/release path.
+PRIV_BIN_DIR=$(cd "$REPO_ROOT/desktop/macos" && \
+  swift build --show-bin-path -c release --arch "$SWIFT_ARCH" \
+    --product SpacewaveHelperPrivileged)
+if [ -z "$PRIV_BIN_DIR" ]; then
+  echo "ERROR: swift build --show-bin-path returned no product directory for SpacewaveHelperPrivileged" >&2
+  exit 1
+fi
+PRIV_BIN="$PRIV_BIN_DIR/SpacewaveHelperPrivileged"
 if [ ! -f "$PRIV_BIN" ]; then
   echo "ERROR: privileged helper build did not produce $PRIV_BIN" >&2
   exit 1

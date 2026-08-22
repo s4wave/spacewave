@@ -188,20 +188,42 @@ sign_windows_helper() {
 # wrote all three to dist/helper/spacewave-helper-<arch> which let the linux
 # ELF overwrite the darwin Mach-O on multi-platform release runs, producing
 # a .app bundle whose helper was an unlaunchable Linux binary).
+build_darwin_helper() {
+  local swift_arch="$1"
+  local out_arch="$2"
+  local scratch="$SCRATCH_ROOT/swift/darwin-$out_arch"
+  mkdir -p "$scratch"
+  (cd "$REPO_ROOT/desktop/macos" && \
+    swift build -c release --arch "$swift_arch" --scratch-path "$scratch")
+  # SwiftPM's scratch layout changed across toolchain versions; ask it where
+  # the built products are instead of assuming the <triple>/release path.
+  local bin_dir
+  bin_dir=$(cd "$REPO_ROOT/desktop/macos" && \
+    swift build -c release --arch "$swift_arch" --scratch-path "$scratch" --show-bin-path)
+  if [ -z "$bin_dir" ]; then
+    echo "ERROR: swift build --show-bin-path returned no product directory for darwin-$out_arch" >&2
+    exit 1
+  fi
+  if [ ! -f "$bin_dir/SpacewaveHelper" ]; then
+    echo "ERROR: no SpacewaveHelper in swift product directory $bin_dir for darwin-$out_arch" >&2
+    exit 1
+  fi
+  mkdir -p "$OUT/darwin-$out_arch"
+  cp "$bin_dir/SpacewaveHelper" \
+    "$OUT/darwin-$out_arch/spacewave-helper"
+}
+
+# The requested ARCH selects exactly one Swift target. A universal release
+# requests darwin-arm64 and darwin-amd64 separately (see handoff buildHelpers),
+# so no invocation silently builds the other architecture.
 case "$PLATFORM" in
   darwin)
-    cd "$REPO_ROOT/desktop/macos"
-    SCRATCH_ARM="$SCRATCH_ROOT/swift/darwin-arm64"
-    SCRATCH_AMD="$SCRATCH_ROOT/swift/darwin-amd64"
-    mkdir -p "$SCRATCH_ARM" "$SCRATCH_AMD"
-    swift build -c release --arch arm64 --scratch-path "$SCRATCH_ARM"
-    swift build -c release --arch x86_64 --scratch-path "$SCRATCH_AMD"
-    mkdir -p "$OUT/darwin-arm64" "$OUT/darwin-amd64"
-    cp "$SCRATCH_ARM/arm64-apple-macosx/release/SpacewaveHelper" \
-      "$OUT/darwin-arm64/spacewave-helper"
-    cp "$SCRATCH_AMD/x86_64-apple-macosx/release/SpacewaveHelper" \
-      "$OUT/darwin-amd64/spacewave-helper"
-    echo "Built macOS helpers in $OUT/darwin-{arm64,amd64}/"
+    case "$ARCH" in
+      arm64) build_darwin_helper arm64 arm64 ;;
+      amd64) build_darwin_helper x86_64 amd64 ;;
+      *) echo "ERROR: unsupported darwin helper ARCH: $ARCH" >&2; exit 1 ;;
+    esac
+    echo "Built macOS helper ($ARCH) in $OUT/darwin-$ARCH/"
     ;;
   linux)
     case "$ARCH" in
