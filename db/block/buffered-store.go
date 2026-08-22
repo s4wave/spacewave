@@ -27,16 +27,25 @@ type drainBatch struct {
 // BufferedStore buffers PutBlock calls in memory and drains them explicitly on
 // Sync or when a caller must free capacity.
 type BufferedStore struct {
+	// inner is the store drains write to.
 	inner StoreOps
 
-	bcast             broadcast.Broadcast
-	drainMu           csync.Mutex
-	pending           map[string]*pendingBlock
-	pendingBytes      int
-	maxPendingBytes   int
-	maxPendingBlocks  int
+	// bcast guards and signals the fields below.
+	bcast broadcast.Broadcast
+	// drainMu serializes drain batches against concurrent drainers.
+	drainMu csync.Mutex
+	// pending holds queued blocks keyed by ref id.
+	pending map[string]*pendingBlock
+	// pendingBytes is the total size of queued blocks.
+	pendingBytes int
+	// maxPendingBytes caps pendingBytes before a forced drain.
+	maxPendingBytes int
+	// maxPendingBlocks caps len(pending) before a forced drain.
+	maxPendingBlocks int
+	// drainBatchEntries is the number of entries written per batch.
 	drainBatchEntries int
 
+	// queue preserves block arrival order across the pending map.
 	queue []string
 
 	// drainErr captures the last drain error to surface on subsequent calls.
@@ -355,6 +364,8 @@ func (s *BufferedStore) EndDeferFlush(ctx context.Context) error {
 	return EndDeferFlush(ctx, s.inner)
 }
 
+// drainForCapacity drains batches until the pending queue is within its
+// configured limits.
 func (s *BufferedStore) drainForCapacity(ctx context.Context) error {
 	release, err := s.drainMu.Lock(ctx)
 	if err != nil {
@@ -371,6 +382,7 @@ func (s *BufferedStore) drainForCapacity(ctx context.Context) error {
 	return err
 }
 
+// drainAll drains every queued block.
 func (s *BufferedStore) drainAll(ctx context.Context) error {
 	release, err := s.drainMu.Lock(ctx)
 	if err != nil {
@@ -392,6 +404,8 @@ func (s *BufferedStore) drainAll(ctx context.Context) error {
 	}
 }
 
+// logPendingShape logs the current queue depth and byte count under the
+// given trace category.
 func (s *BufferedStore) logPendingShape(ctx context.Context, category string) {
 	var pending int
 	var queued int
@@ -404,6 +418,8 @@ func (s *BufferedStore) logPendingShape(ctx context.Context, category string) {
 	trace.Logf(ctx, category, "pending=%d queued=%d bytes=%d", pending, queued, pendingBytes)
 }
 
+// drainNextBatch writes one batch of queued blocks, returning false when
+// the queue is empty or the batch was returned for retry.
 func (s *BufferedStore) drainNextBatch(ctx context.Context) (bool, error) {
 	var batch *drainBatch
 	var drainErr error
@@ -461,6 +477,8 @@ func (s *BufferedStore) drainNextBatch(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
+// takeDrainBatchLocked pops the next batch from the queue. Caller must
+// hold bcast lock.
 func (s *BufferedStore) takeDrainBatchLocked() *drainBatch {
 	if len(s.queue) == 0 {
 		return nil
@@ -495,6 +513,8 @@ func (s *BufferedStore) takeDrainBatchLocked() *drainBatch {
 	return batch
 }
 
+// returnDrainBatchLocked requeues a failed batch in arrival order.
+// Caller must hold bcast lock.
 func (s *BufferedStore) returnDrainBatchLocked(batch *drainBatch) {
 	if batch == nil || len(batch.keys) == 0 {
 		return
@@ -516,6 +536,7 @@ func (s *BufferedStore) returnDrainBatchLocked(batch *drainBatch) {
 	}
 }
 
+// writeBatch writes the entries to the inner store as one put batch.
 func (s *BufferedStore) writeBatch(ctx context.Context, entries []*PutBatchEntry) error {
 	if len(entries) == 0 {
 		return nil
@@ -526,6 +547,7 @@ func (s *BufferedStore) writeBatch(ctx context.Context, entries []*PutBatchEntry
 	return err
 }
 
+// marshalRefKey marshals the ref into its queue key.
 func marshalRefKey(ref *BlockRef) (string, error) {
 	dat, err := ref.MarshalKey()
 	if err != nil {
@@ -534,6 +556,7 @@ func marshalRefKey(ref *BlockRef) (string, error) {
 	return string(dat), nil
 }
 
+// getPending returns the queued block for the ref, or nil.
 func (s *BufferedStore) getPending(ref *BlockRef) (*pendingBlock, error) {
 	key, err := marshalRefKey(ref)
 	if err != nil {
@@ -546,6 +569,8 @@ func (s *BufferedStore) getPending(ref *BlockRef) (*pendingBlock, error) {
 	return pending, nil
 }
 
+// putPendingLocked queues or replaces a pending block. Caller must hold
+// bcast lock.
 func (s *BufferedStore) putPendingLocked(broadcastFn func(), key string, pending *pendingBlock) error {
 	prev := s.pending[key]
 	prevBytes := 0
