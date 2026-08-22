@@ -26,6 +26,16 @@ type devicePolicyCheckoutRootRemoveArgs struct {
 	statePath string
 }
 
+type devicePolicySensorAddArgs struct {
+	statePath string
+	kind      string
+	disable   bool
+}
+
+type devicePolicySensorRemoveArgs struct {
+	statePath string
+}
+
 var devicePolicyReloadDaemon = requestDevicePolicyReload
 
 func newDevicePolicyCommand() *cli.Command {
@@ -35,7 +45,41 @@ func newDevicePolicyCommand() *cli.Command {
 		Subcommands: []*cli.Command{
 			newDevicePolicyEnableShellCommand(),
 			newDevicePolicyCheckoutRootCommand(),
+			newDevicePolicySensorCommand(),
 		},
+	}
+}
+
+func newDevicePolicySensorCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "sensor",
+		Usage: "manage daemon-local sensor endpoint declarations",
+		Subcommands: []*cli.Command{
+			newDevicePolicySensorAddCommand(),
+			newDevicePolicySensorRemoveCommand(),
+		},
+	}
+}
+
+func newDevicePolicySensorAddCommand() *cli.Command {
+	args := &devicePolicySensorAddArgs{}
+	return &cli.Command{
+		Name:      "add",
+		Usage:     "add or update a daemon-local sensor endpoint",
+		ArgsUsage: "<id> <host:port>",
+		Flags:     args.BuildFlags(),
+		Action:    args.Run,
+	}
+}
+
+func newDevicePolicySensorRemoveCommand() *cli.Command {
+	args := &devicePolicySensorRemoveArgs{}
+	return &cli.Command{
+		Name:      "remove",
+		Usage:     "remove a daemon-local sensor endpoint",
+		ArgsUsage: "<id>",
+		Flags:     args.BuildFlags(),
+		Action:    args.Run,
 	}
 }
 
@@ -186,6 +230,101 @@ func (a *devicePolicyCheckoutRootRemoveArgs) Run(c *cli.Context) error {
 			return nil
 		}
 		return errors.Errorf("checkout-root %q is not declared", name)
+	})
+}
+
+// parseSensorAdapterKind maps a CLI adapter-kind name onto its policy enum.
+func parseSensorAdapterKind(raw string) (s4wave_device.SensorAdapterKind, error) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", "esphome":
+		return s4wave_device.SensorAdapterKind_SENSOR_ADAPTER_KIND_ESPHOME, nil
+	default:
+		return s4wave_device.SensorAdapterKind_SENSOR_ADAPTER_KIND_UNKNOWN,
+			errors.Errorf("unknown sensor adapter kind %q; supported: esphome", raw)
+	}
+}
+
+// BuildFlags returns flags for sensor add.
+func (a *devicePolicySensorAddArgs) BuildFlags() []cli.Flag {
+	return append(
+		daemonClientFlags(&a.statePath),
+		&cli.StringFlag{
+			Name:        "kind",
+			Usage:       "sensor adapter kind (esphome)",
+			Value:       "esphome",
+			Destination: &a.kind,
+		},
+		&cli.BoolFlag{
+			Name:        "disable",
+			Usage:       "declare the endpoint but keep it disabled",
+			Destination: &a.disable,
+		},
+	)
+}
+
+// Run adds or replaces one sensor endpoint declaration by stable ID. The
+// address stays in daemon-local policy and never enters World state or
+// command output.
+func (a *devicePolicySensorAddArgs) Run(c *cli.Context) error {
+	if c.NArg() != 2 {
+		return errors.New("sensor add requires <id> <host:port>")
+	}
+	id := strings.TrimSpace(c.Args().Get(0))
+	if id == "" {
+		return errors.New("sensor endpoint id is required")
+	}
+	address := strings.TrimSpace(c.Args().Get(1))
+	if address == "" {
+		return errors.New("sensor endpoint address is required")
+	}
+	kind, err := parseSensorAdapterKind(a.kind)
+	if err != nil {
+		return err
+	}
+	return runDevicePolicyMutation(c, a.statePath, func(policy *device_policy.DevicePolicy) error {
+		endpoint := &device_policy.SensorEndpointPolicy{
+			Id:          id,
+			Enabled:     !a.disable,
+			AdapterKind: kind,
+			Endpoint:    address,
+		}
+		for i, existing := range policy.GetSensorEndpoint() {
+			if existing == nil {
+				continue
+			}
+			if strings.TrimSpace(existing.GetId()) == id {
+				policy.SensorEndpoint[i] = endpoint
+				return nil
+			}
+		}
+		policy.SensorEndpoint = append(policy.SensorEndpoint, endpoint)
+		return nil
+	})
+}
+
+// BuildFlags returns flags for sensor remove.
+func (a *devicePolicySensorRemoveArgs) BuildFlags() []cli.Flag {
+	return daemonClientFlags(&a.statePath)
+}
+
+// Run removes one sensor endpoint declaration by stable ID.
+func (a *devicePolicySensorRemoveArgs) Run(c *cli.Context) error {
+	if c.NArg() != 1 {
+		return errors.New("sensor remove requires <id>")
+	}
+	id := strings.TrimSpace(c.Args().Get(0))
+	if id == "" {
+		return errors.New("sensor endpoint id is required")
+	}
+	return runDevicePolicyMutation(c, a.statePath, func(policy *device_policy.DevicePolicy) error {
+		for i, endpoint := range policy.GetSensorEndpoint() {
+			if endpoint == nil || strings.TrimSpace(endpoint.GetId()) != id {
+				continue
+			}
+			policy.SensorEndpoint = append(policy.SensorEndpoint[:i], policy.SensorEndpoint[i+1:]...)
+			return nil
+		}
+		return errors.Errorf("sensor endpoint %q is not declared", id)
 	})
 }
 

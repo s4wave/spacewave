@@ -14,9 +14,11 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	"github.com/s4wave/spacewave/core/device/sensor"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,6 +26,7 @@ const (
 	devicePolicyRemoteShellCapabilityID   = "remote-shell"
 	devicePolicyRemoteShellCapabilityKind = "remote-shell"
 	devicePolicyCheckoutRootIDPrefix      = "checkout-root-"
+	devicePolicySensorCapabilityIDPrefix  = "sensor-"
 	devicePolicyRefPrefix                 = "device-policy/"
 )
 
@@ -53,6 +56,136 @@ func startDevicePolicyCapabilityProjection(
 	}()
 }
 
+// devicePolicyUpdate carries one policy change to the projection loop.
+type devicePolicyUpdate struct {
+	policy *device_policy.DevicePolicy
+	err    error
+}
+
+// watchDevicePolicyUpdates feeds every policy change into updates until the
+// context ends or the store fails.
+func watchDevicePolicyUpdates(
+	ctx context.Context,
+	store *device_policy.PolicyStore,
+	updates chan<- devicePolicyUpdate,
+) {
+	defer close(updates)
+	var last *device_policy.DevicePolicy
+	for {
+		policy, err := store.WaitChange(ctx, last)
+		if ctx.Err() != nil {
+			return
+		}
+		sendErr := func(u devicePolicyUpdate) bool {
+			select {
+			case updates <- u:
+				return true
+			case <-ctx.Done():
+				return false
+			}
+		}
+		if err != nil {
+			sendErr(devicePolicyUpdate{err: err})
+			return
+		}
+		if !sendErr(devicePolicyUpdate{policy: policy}) {
+			return
+		}
+		last = policy
+	}
+}
+
+// deviceSensorRun holds the mounts and sensor manager for one ready Device.
+// The run lives while the Device session and Space engine stay available;
+// release cancels the run context, joins the adapters, and tears down mounts
+// through their own lifecycles.
+type deviceSensorRun struct {
+	le      *logrus.Entry
+	record  *deviceSetupRecord
+	engine  *sdk_engine.SDKEngine
+	manager *sensor.Manager
+
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	cleanups []func()
+}
+
+func (r *deviceSensorRun) release() {
+	r.cancel()
+	if r.manager != nil {
+		r.manager.Close()
+	}
+	for i := len(r.cleanups) - 1; i >= 0; i-- {
+		r.cleanups[i]()
+	}
+	r.cleanups = nil
+}
+
+// mountDeviceSensorRun mounts the Device session, Space, and World engine and
+// constructs the sensor manager. It returns nil without error when the Device
+// setup target is not ready yet.
+func mountDeviceSensorRun(
+	ctx context.Context,
+	le *logrus.Entry,
+	statePath string,
+	client *sdkClient,
+) (*deviceSensorRun, error) {
+	record, ok, err := deviceLauncherProjectionTarget(statePath)
+	if err != nil || !ok {
+		return nil, err
+	}
+	spaceID, err := decodeDeviceResourceID(record.ResourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	runCtx, runCancel := context.WithCancel(ctx)
+	run := &deviceSensorRun{le: le, record: record, ctx: runCtx, cancel: runCancel}
+	fail := func(err error) (*deviceSensorRun, error) {
+		run.release()
+		return nil, err
+	}
+
+	sess, err := client.mountSession(ctx, record.SessionIndex)
+	if err != nil {
+		return fail(err)
+	}
+	run.cleanups = append(run.cleanups, sess.Release)
+
+	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
+	if err != nil {
+		return fail(err)
+	}
+	run.cleanups = append(run.cleanups, spaceCleanup)
+
+	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
+	if err != nil {
+		return fail(err)
+	}
+	run.engine = engine
+	run.cleanups = append(run.cleanups, engineCleanup)
+
+	run.manager = sensor.NewManager(
+		le.WithField("device_object_key", record.DeviceObjectKey),
+		engine,
+		record.DeviceObjectKey,
+		nil,
+	)
+	return run, nil
+}
+
+// reconcile starts and stops sensor adapters for the current policy. Adapter
+// contexts derive from the run context so release joins every adapter.
+func (r *deviceSensorRun) reconcile(policy *device_policy.DevicePolicy) {
+	r.manager.Reconcile(r.ctx, policy.GetSensorEndpoint())
+}
+
+// sensorStatusLookup reads live adapter status for capability projection.
+func (r *deviceSensorRun) sensorStatusLookup() func(string) (sensor.Status, bool) {
+	return r.manager.Status
+}
+
 func runDevicePolicyCapabilityProjection(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -60,68 +193,83 @@ func runDevicePolicyCapabilityProjection(
 	client *sdkClient,
 	store *device_policy.PolicyStore,
 ) error {
-	var last *device_policy.DevicePolicy
-	for {
-		policy, err := store.WaitChange(ctx, last)
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil
-			}
-			return err
+	updates := make(chan devicePolicyUpdate)
+	go watchDevicePolicyUpdates(ctx, store, updates)
+
+	var run *deviceSensorRun
+	defer func() {
+		if run != nil {
+			run.release()
 		}
-		if err := projectDevicePolicyCapabilities(ctx, statePath, client, policy, time.Now()); err != nil {
+	}()
+	for {
+		var policy *device_policy.DevicePolicy
+		if run == nil {
+			u, ok := <-updates
+			if !ok || u.err != nil {
+				if ctx.Err() != nil || !ok {
+					return nil
+				}
+				return u.err
+			}
+			policy = u.policy
+		} else {
+			select {
+			case u, ok := <-updates:
+				if !ok {
+					return nil
+				}
+				if u.err != nil {
+					if ctx.Err() != nil {
+						return nil
+					}
+					return u.err
+				}
+				policy = u.policy
+			case <-run.manager.Changed():
+				policy = store.Snapshot()
+			}
+		}
+
+		if run == nil {
+			mounted, err := mountDeviceSensorRun(ctx, le, statePath, client)
+			if err != nil {
+				le.WithError(err).Warn("failed to mount device policy projection")
+				continue
+			}
+			if mounted == nil {
+				continue
+			}
+			run = mounted
+		}
+
+		// Adapters start only after session and engine readiness above.
+		run.reconcile(policy)
+		if err := projectDevicePolicyCapabilities(ctx, run, policy, time.Now()); err != nil {
 			if stderrors.Is(err, world.ErrObjectNotFound) {
 				le.WithError(err).Debug("device object not available for policy projection")
-				last = policy
+				run.release()
+				run = nil
 				continue
 			}
 			le.WithError(err).Warn("failed to project device policy capabilities")
 		}
-		last = policy
 	}
 }
 
 func projectDevicePolicyCapabilities(
 	ctx context.Context,
-	statePath string,
-	client *sdkClient,
+	run *deviceSensorRun,
 	policy *device_policy.DevicePolicy,
 	now time.Time,
 ) error {
-	record, ok, err := deviceLauncherProjectionTarget(statePath)
-	if err != nil || !ok {
-		return err
-	}
-	spaceID, err := decodeDeviceResourceID(record.ResourceID)
-	if err != nil {
-		return err
-	}
-
-	sess, err := client.mountSession(ctx, record.SessionIndex)
-	if err != nil {
-		return err
-	}
-	defer sess.Release()
-
-	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
-	if err != nil {
-		return err
-	}
-	defer spaceCleanup()
-
-	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
-	if err != nil {
-		return err
-	}
-	defer engineCleanup()
-
-	tx, err := engine.NewTransaction(ctx, true)
+	tx, err := run.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
 
-	objState, found, err := tx.GetObject(ctx, record.DeviceObjectKey)
+	objState, found, err := tx.GetObject(ctx, run.record.DeviceObjectKey)
 	if err != nil {
 		return err
 	}
@@ -132,10 +280,16 @@ func projectDevicePolicyCapabilities(
 	if err != nil {
 		return err
 	}
-	if existing.GetPeerId() != record.PeerID {
+	if existing.GetPeerId() != run.record.PeerID {
 		return errors.New("device object peer_id does not match setup state")
 	}
-	next, changed, err := projectDevicePolicyOntoDevice(existing, policy, now)
+	next, changed, err := projectDevicePolicyOntoDevice(
+		existing,
+		policy,
+		run.record.DeviceObjectKey,
+		run.sensorStatusLookup(),
+		now,
+	)
 	if err != nil || !changed {
 		return err
 	}
@@ -153,13 +307,15 @@ func projectDevicePolicyCapabilities(
 func projectDevicePolicyOntoDevice(
 	existing *s4wave_device.Device,
 	policy *device_policy.DevicePolicy,
+	deviceObjectKey string,
+	sensorStatus func(string) (sensor.Status, bool),
 	now time.Time,
 ) (*s4wave_device.Device, bool, error) {
 	if existing == nil {
 		return nil, false, errors.New("device state is required")
 	}
 	next := existing.CloneVT()
-	nextCaps := computeDevicePolicyCapabilities(policy, existing.GetCapabilities())
+	nextCaps := computeDevicePolicyCapabilities(policy, existing.GetCapabilities(), deviceObjectKey, sensorStatus)
 	if sameDeviceCapabilities(nextCaps, existing.GetCapabilities()) {
 		return next, false, nil
 	}
@@ -174,9 +330,11 @@ func projectDevicePolicyOntoDevice(
 func computeDevicePolicyCapabilities(
 	policy *device_policy.DevicePolicy,
 	existing []*s4wave_device.DeviceCapability,
+	deviceObjectKey string,
+	sensorStatus func(string) (sensor.Status, bool),
 ) []*s4wave_device.DeviceCapability {
 	existingByID := make(map[string]*s4wave_device.DeviceCapability, len(existing))
-	out := make([]*s4wave_device.DeviceCapability, 0, len(existing)+len(policy.GetCheckoutRoot())+1)
+	out := make([]*s4wave_device.DeviceCapability, 0, len(existing)+len(policy.GetCheckoutRoot())+len(policy.GetSensorEndpoint())+1)
 	for _, cap := range existing {
 		if cap == nil {
 			continue
@@ -198,7 +356,84 @@ func computeDevicePolicyCapabilities(
 		id := devicePolicyCheckoutRootIDPrefix + strings.TrimSpace(root.GetName())
 		out = append(out, computeCheckoutRootCapability(policy, root, existingByID[id]))
 	}
+	for _, endpoint := range policy.GetSensorEndpoint() {
+		if endpoint == nil || !endpoint.GetEnabled() {
+			continue
+		}
+		id := strings.TrimSpace(endpoint.GetId())
+		var status *sensor.Status
+		if sensorStatus != nil {
+			if live, ok := sensorStatus(id); ok {
+				status = &live
+			}
+		}
+		out = append(out, computeSensorCapability(
+			policy,
+			endpoint,
+			deviceObjectKey,
+			existingByID[devicePolicySensorCapabilityIDPrefix+id],
+			status,
+		))
+	}
 	return out
+}
+
+func computeSensorCapability(
+	policy *device_policy.DevicePolicy,
+	endpoint *device_policy.SensorEndpointPolicy,
+	deviceObjectKey string,
+	existing *s4wave_device.DeviceCapability,
+	status *sensor.Status,
+) *s4wave_device.DeviceCapability {
+	id := strings.TrimSpace(endpoint.GetId())
+	state, detail := computeSensorCapabilityState(status, existing)
+	return &s4wave_device.DeviceCapability{
+		Id:     devicePolicySensorCapabilityIDPrefix + id,
+		Kind:   s4wave_device.DeviceCapabilityKindSensor,
+		Label:  sensor.EndpointLabel(id) + " sensor",
+		State:  state,
+		Detail: detail,
+		Policy: computeDeviceCapabilityPolicy(policyRef(policy.GetRevision(), "sensor/"+id), existing),
+		Link: &s4wave_device.DeviceCapabilityLink{
+			ObjectKey: sensor.ObjectKey(deviceObjectKey, id),
+			TypeId:    s4wave_device.SensorTypeID,
+		},
+	}
+}
+
+// computeSensorCapabilityState maps live connection state onto the projected
+// capability state. A linked Sensor stays visible during transient disconnect
+// with explicit degraded or offline detail.
+func computeSensorCapabilityState(
+	status *sensor.Status,
+	existing *s4wave_device.DeviceCapability,
+) (s4wave_device.DeviceCapabilityState, string) {
+	if existing != nil && existing.GetPolicy().GetGrantState() == s4wave_device.DeviceCapabilityGrantState_DEVICE_CAPABILITY_GRANT_STATE_BLOCKED {
+		if existing.GetDetail() != "" {
+			return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_GRANT_BLOCKED, existing.GetDetail()
+		}
+		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_GRANT_BLOCKED, "blocked by Space grant"
+	}
+	if status == nil {
+		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE, "waiting for device session"
+	}
+	switch status.ConnectionState {
+	case s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_CONNECTED:
+		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_ACTIVE, ""
+	case s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_CONNECTING:
+		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE, "connecting"
+	case s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_DEGRADED:
+		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE, joinSensorDetail("degraded", status.LastError)
+	default:
+		return s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE, joinSensorDetail("offline", status.LastError)
+	}
+}
+
+func joinSensorDetail(state, lastError string) string {
+	if strings.TrimSpace(lastError) == "" {
+		return state
+	}
+	return state + ": " + lastError
 }
 
 func computeRemoteShellCapability(
@@ -292,7 +527,9 @@ func sameDeviceCapabilities(a, b []*s4wave_device.DeviceCapability) bool {
 }
 
 func isDevicePolicyCapabilityID(id string) bool {
-	return id == devicePolicyRemoteShellCapabilityID || strings.HasPrefix(id, devicePolicyCheckoutRootIDPrefix)
+	return id == devicePolicyRemoteShellCapabilityID ||
+		strings.HasPrefix(id, devicePolicyCheckoutRootIDPrefix) ||
+		strings.HasPrefix(id, devicePolicySensorCapabilityIDPrefix)
 }
 
 func policyRef(revision uint64, suffix string) string {
