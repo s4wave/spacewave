@@ -8,6 +8,8 @@ import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import type { DeviceCheckoutRootAccess } from '../../../sdk/device/device.pb.js'
 import { DeviceCheckoutRootAccess_Enum } from '../../../sdk/device/device.pb.js'
+import type { SensorAdapterKind } from '../../../sdk/device/sensor.pb.js'
+import { SensorAdapterKind_Enum } from '../../../sdk/device/sensor.pb.js'
 
 export const protobufPackage = 's4wave.device.policy'
 
@@ -79,6 +81,51 @@ export const CheckoutRootPolicy: MessageType<CheckoutRootPolicy> =
   })
 
 /**
+ * SensorEndpointPolicy declares one daemon-local sensor endpoint. Connection
+ * details stay in this policy and never enter World state.
+ *
+ * @generated from message s4wave.device.policy.SensorEndpointPolicy
+ */
+export interface SensorEndpointPolicy {
+  /**
+   * Id is the stable endpoint selector used to derive the Sensor object key.
+   *
+   * @generated from field: string id = 1;
+   */
+  id?: string
+  /**
+   * Enabled allows the daemon to connect to this endpoint when true.
+   *
+   * @generated from field: bool enabled = 2;
+   */
+  enabled?: boolean
+  /**
+   * AdapterKind selects the sensor adapter that owns the connection.
+   *
+   * @generated from field: s4wave.device.SensorAdapterKind adapter_kind = 3;
+   */
+  adapterKind?: SensorAdapterKind
+  /**
+   * Endpoint is the daemon-local host:port address of the sensor.
+   *
+   * @generated from field: string endpoint = 4;
+   */
+  endpoint?: string
+}
+
+export const SensorEndpointPolicy: MessageType<SensorEndpointPolicy> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.device.policy.SensorEndpointPolicy',
+    fields: [
+      { no: 1, name: 'id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'enabled', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'adapter_kind', kind: 'enum', T: SensorAdapterKind_Enum },
+      { no: 4, name: 'endpoint', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * DevicePolicy is the daemon-local policy that controls Device capabilities.
  *
  * @generated from message s4wave.device.policy.DevicePolicy
@@ -102,6 +149,12 @@ export interface DevicePolicy {
    * @generated from field: repeated s4wave.device.policy.CheckoutRootPolicy checkout_root = 3;
    */
   checkoutRoot?: CheckoutRootPolicy[]
+  /**
+   * SensorEndpoint declares local sensor endpoints the daemon may connect to.
+   *
+   * @generated from field: repeated s4wave.device.policy.SensorEndpointPolicy sensor_endpoint = 4;
+   */
+  sensorEndpoint?: SensorEndpointPolicy[]
 }
 
 export const DevicePolicy: MessageType<DevicePolicy> =
@@ -120,6 +173,13 @@ export const DevicePolicy: MessageType<DevicePolicy> =
         name: 'checkout_root',
         kind: 'message',
         T: () => CheckoutRootPolicy,
+        repeated: true,
+      },
+      {
+        no: 4,
+        name: 'sensor_endpoint',
+        kind: 'message',
+        T: () => SensorEndpointPolicy,
         repeated: true,
       },
     ] satisfies readonly PartialFieldInfo[],

@@ -45,6 +45,7 @@ var commonObjectTypes = map[string]objecttype.ObjectType{
 	spacewave_chat.ChatMessageTypeID:       spacewave_chat_world.ChatMessageType,
 	s4wave_device.DeviceTypeID:             s4wave_device_world.DeviceType,
 	s4wave_device.ComputersDashboardTypeID: s4wave_device_world.ComputersDashboardType,
+	s4wave_device.SensorTypeID:             s4wave_device_world.SensorType,
 	s4wave_terminal.TerminalTypeID:         s4wave_terminal_world.TerminalType,
 	s4wave_sshhost.SshHostTypeID:           s4wave_sshhost_world.SshHostType,
 }

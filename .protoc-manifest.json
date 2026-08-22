@@ -987,13 +987,23 @@
       ]
     },
     "github.com/s4wave/spacewave/core/device/policy": {
-      "hash": "44bf242cf4ff4a6ac21d7bc5c1c199ea99d390a1dd7f27d8a88238d283a40f41",
+      "hash": "f906e77b91a40f6b5910dbf56e9a9baeac8a18dbced5b5a7f7e4bda4cc9ef9a1",
       "generatedFiles": [
         "core/device/policy/policy.pb.go",
         "core/device/policy/policy.pb.ts"
       ],
       "protoFiles": [
         "core/device/policy/policy.proto"
+      ]
+    },
+    "github.com/s4wave/spacewave/core/device/sensor/esphome": {
+      "hash": "2397d026dcf068244452d02152e5c2e414b98dc5c8bd622efd51f0299e787d56",
+      "generatedFiles": [
+        "core/device/sensor/esphome/esphome.pb.go",
+        "core/device/sensor/esphome/esphome.pb.ts"
+      ],
+      "protoFiles": [
+        "core/device/sensor/esphome/esphome.proto"
       ]
     },
     "github.com/s4wave/spacewave/core/forge/dashboard": {
@@ -3470,15 +3480,18 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/device": {
-      "hash": "96476b4e7dc443cb922b11aefea8ad72145740326afd7108f9d01d3250478ebb",
+      "hash": "db652643d0a78d65297b19ea9cdf8b30e02d53480ee6829c4c2e1004f03eda51",
       "generatedFiles": [
         "sdk/device/device.pb.go",
         "sdk/device/device.pb.ts",
         "sdk/device/device_srpc.pb.go",
-        "sdk/device/device_srpc.pb.ts"
+        "sdk/device/device_srpc.pb.ts",
+        "sdk/device/sensor.pb.go",
+        "sdk/device/sensor.pb.ts"
       ],
       "protoFiles": [
-        "sdk/device/device.proto"
+        "sdk/device/device.proto",
+        "sdk/device/sensor.proto"
       ]
     },
     "github.com/s4wave/spacewave/sdk/docs": {

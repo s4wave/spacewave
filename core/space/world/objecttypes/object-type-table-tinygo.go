@@ -49,6 +49,7 @@ var commonObjectTypes = map[string]objecttype.ObjectType{
 	s4wave_org.OrganizationTypeID:          s4wave_org_world.OrganizationType,
 	s4wave_device.DeviceTypeID:             s4wave_device_world.DeviceType,
 	s4wave_device.ComputersDashboardTypeID: s4wave_device_world.ComputersDashboardType,
+	s4wave_device.SensorTypeID:             s4wave_device_world.SensorType,
 	s4wave_terminal.TerminalTypeID:         s4wave_terminal_world.TerminalType,
 	s4wave_secret_world.SecretTypeID:       s4wave_secret_world.SecretType,
 	s4wave_sshhost.SshHostTypeID:           s4wave_sshhost_world.SshHostType,

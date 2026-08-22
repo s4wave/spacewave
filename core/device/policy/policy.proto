@@ -2,6 +2,7 @@ syntax = "proto3";
 package s4wave.device.policy;
 
 import "github.com/s4wave/spacewave/sdk/device/device.proto";
+import "github.com/s4wave/spacewave/sdk/device/sensor.proto";
 
 option go_package = "github.com/s4wave/spacewave/core/device/policy;device_policy";
 
@@ -13,6 +14,21 @@ message DevicePolicy {
   RemoteShellPolicy remote_shell = 2;
   // CheckoutRoot declares locally available checkout roots.
   repeated CheckoutRootPolicy checkout_root = 3;
+  // SensorEndpoint declares local sensor endpoints the daemon may connect to.
+  repeated SensorEndpointPolicy sensor_endpoint = 4;
+}
+
+// SensorEndpointPolicy declares one daemon-local sensor endpoint. Connection
+// details stay in this policy and never enter World state.
+message SensorEndpointPolicy {
+  // Id is the stable endpoint selector used to derive the Sensor object key.
+  string id = 1;
+  // Enabled allows the daemon to connect to this endpoint when true.
+  bool enabled = 2;
+  // AdapterKind selects the sensor adapter that owns the connection.
+  .s4wave.device.SensorAdapterKind adapter_kind = 3;
+  // Endpoint is the daemon-local host:port address of the sensor.
+  string endpoint = 4;
 }
 
 // RemoteShellPolicy controls whether remote shell OPEN frames may start a PTY.

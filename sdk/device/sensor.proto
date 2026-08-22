@@ -1,0 +1,93 @@
+syntax = "proto3";
+package s4wave.device;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/s4wave/spacewave/sdk/device;s4wave_device";
+
+// SensorAdapterKind selects the adapter that owns a sensor connection.
+enum SensorAdapterKind {
+  // SENSOR_ADAPTER_KIND_UNKNOWN is unset and rejected where required.
+  SENSOR_ADAPTER_KIND_UNKNOWN = 0;
+  // SENSOR_ADAPTER_KIND_ESPHOME connects through the ESPHome Native API.
+  SENSOR_ADAPTER_KIND_ESPHOME = 1;
+}
+
+// SensorConnectionState is the daemon-observed sensor connection state.
+enum SensorConnectionState {
+  // SENSOR_CONNECTION_STATE_UNKNOWN is unset.
+  SENSOR_CONNECTION_STATE_UNKNOWN = 0;
+  // SENSOR_CONNECTION_STATE_CONNECTING means the adapter is establishing the
+  // connection or enumerating entities.
+  SENSOR_CONNECTION_STATE_CONNECTING = 1;
+  // SENSOR_CONNECTION_STATE_CONNECTED means the endpoint is connected and
+  // publishing states.
+  SENSOR_CONNECTION_STATE_CONNECTED = 2;
+  // SENSOR_CONNECTION_STATE_DEGRADED means the connection is up but the
+  // endpoint missed expected liveness.
+  SENSOR_CONNECTION_STATE_DEGRADED = 3;
+  // SENSOR_CONNECTION_STATE_OFFLINE means the endpoint is disconnected.
+  SENSOR_CONNECTION_STATE_OFFLINE = 4;
+}
+
+// SensorEntityValueKind classifies the observable value of one entity.
+enum SensorEntityValueKind {
+  // SENSOR_ENTITY_VALUE_KIND_UNKNOWN is unset and rejected where required.
+  SENSOR_ENTITY_VALUE_KIND_UNKNOWN = 0;
+  // SENSOR_ENTITY_VALUE_KIND_BINARY publishes boolean state.
+  SENSOR_ENTITY_VALUE_KIND_BINARY = 1;
+  // SENSOR_ENTITY_VALUE_KIND_NUMERIC publishes float state with a unit.
+  SENSOR_ENTITY_VALUE_KIND_NUMERIC = 2;
+  // SENSOR_ENTITY_VALUE_KIND_LIGHT publishes RGB light state.
+  SENSOR_ENTITY_VALUE_KIND_LIGHT = 3;
+}
+
+// SensorEntity records sanitized metadata for one enumerated endpoint entity.
+// Observed values never enter this message; they belong to the MetricsStore.
+message SensorEntity {
+  // ObjectId is the stable configured entity identifier on the endpoint.
+  string object_id = 1;
+  // Key joins entity metadata with state packets for one connection.
+  fixed32 key = 2;
+  // Name is the operator-visible entity name.
+  string name = 3;
+  // ValueKind classifies the observable value of this entity.
+  SensorEntityValueKind value_kind = 4;
+  // Unit is the measurement unit, such as lx, bpm, or cm. Empty when unitless.
+  string unit = 5;
+  // Precision is the reported decimal accuracy of a numeric value.
+  uint32 precision = 6;
+  // DeviceClass is the endpoint-declared semantic class, when present.
+  string device_class = 7;
+}
+
+// Sensor is the world-block state for one Device-owned sensor endpoint.
+// Connection details stay in daemon-local policy; this block carries only
+// sanitized identity, metadata, and connection state. The Device link is the
+// typed Device-to-Sensor graph edge, not a field in this message.
+message Sensor {
+  reserved 1;
+  // EndpointId is the stable daemon-local policy selector for this endpoint.
+  string endpoint_id = 2;
+  // AdapterKind is the adapter that owns the connection.
+  SensorAdapterKind adapter_kind = 3;
+  // EndpointLabel is a sanitized operator-visible label derived from local
+  // policy. It never contains the raw host or port.
+  string endpoint_label = 4;
+  // ConnectionState is the current daemon-observed connection state.
+  SensorConnectionState connection_state = 5;
+  // LastError describes the last connection failure, if any.
+  string last_error = 6;
+  // LastObservationAt is the Device receive time of the last accepted
+  // observation. No source timestamp is fabricated.
+  .google.protobuf.Timestamp last_observation_at = 7;
+  // MetricsStoreObjectKey links the Space MetricsStore that stores this
+  // sensor's observations. Empty until the MetricsStore exists.
+  string metrics_store_object_key = 8;
+  // Entities are the sanitized enumerated endpoint entities.
+  repeated SensorEntity entities = 9;
+  // CreatedAt is when the daemon first created this Sensor object.
+  .google.protobuf.Timestamp created_at = 10;
+  // UpdatedAt is the last projected change time.
+  .google.protobuf.Timestamp updated_at = 11;
+}

@@ -91,5 +91,30 @@ func Validate(policy *DevicePolicy) error {
 			return errors.Errorf("device policy checkout-root %q access is required", name)
 		}
 	}
+	seenEndpoints := make(map[string]struct{}, len(policy.GetSensorEndpoint()))
+	for _, endpoint := range policy.GetSensorEndpoint() {
+		if endpoint == nil {
+			continue
+		}
+		id := strings.TrimSpace(endpoint.GetId())
+		if id == "" {
+			return errors.New("device policy sensor-endpoint id is required")
+		}
+		if _, ok := seenEndpoints[id]; ok {
+			return errors.Errorf("duplicate device policy sensor-endpoint %q", id)
+		}
+		seenEndpoints[id] = struct{}{}
+		if strings.TrimSpace(endpoint.GetEndpoint()) == "" {
+			return errors.Errorf("device policy sensor-endpoint %q endpoint is required", id)
+		}
+		if !endpoint.GetEnabled() {
+			continue
+		}
+		switch endpoint.GetAdapterKind() {
+		case s4wave_device.SensorAdapterKind_SENSOR_ADAPTER_KIND_ESPHOME:
+		default:
+			return errors.Errorf("device policy sensor-endpoint %q adapter kind is required", id)
+		}
+	}
 	return nil
 }
