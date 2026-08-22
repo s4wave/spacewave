@@ -20,17 +20,29 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// backing is the minimal contract the sugar layer needs: transactions,
+// live prefix snapshots, and an optional teardown.
+type backing interface {
+	kvtx.Store
+	kvtx.WatchStore
+}
+
+// closeable is implemented by backing stores that hold resources.
+type closeable interface {
+	Close()
+}
+
 // Store is a high-level world-backed key/value store.
 //
-// Values are arbitrary bytes; JSON helpers are provided for structured
-// values. All mutations are transactional and commit through world
-// operations, so they flow through the same validation and watch paths as
-// every other world mutation.
+// Values are arbitrary bytes. All mutations are transactional and commit
+// through world operations, so they flow through the same validation and
+// watch paths as every other world mutation. The backing may be local
+// (world object) or remote (kvtx RPC), hosted or embedded.
 type Store struct {
 	le    *logrus.Entry
 	ws    world.WorldState
 	key   string
-	inner *s4wave_kv_world.WorldBackedStore
+	inner backing
 }
 
 // Open opens or creates the key/value store object at objectKey within the
@@ -83,9 +95,24 @@ func Open(ctx context.Context, le *logrus.Entry, ws world.WorldState, objectKey 
 	return &Store{le: le, ws: ws, key: objectKey, inner: inner}, nil
 }
 
-// Close releases the backing object cursor.
+// OpenRemote wraps an existing backing store - for example a kvtx RPC
+// client store connected over WebSocket - with the same sugar surface.
+// The caller retains ownership of the backing store.
+func OpenRemote(ctx context.Context, le *logrus.Entry, store backing) (*Store, error) {
+	if store == nil {
+		return nil, errors.New("worldkv: backing store is required")
+	}
+	if le == nil {
+		le = logrus.NewEntry(logrus.New())
+	}
+	return &Store{le: le, inner: store}, nil
+}
+
+// Close releases the backing store when it owns resources.
 func (s *Store) Close() {
-	s.inner.Close()
+	if c, ok := s.inner.(closeable); ok {
+		c.Close()
+	}
 }
 
 // Update runs fn in a write transaction, committing on success.

@@ -6,7 +6,11 @@ import (
 	"sync"
 
 	fastjson "github.com/aperturerobotics/fastjson"
+	ws "github.com/aperturerobotics/go-websocket"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/kvtx"
+	kvtx_rpc "github.com/s4wave/spacewave/db/kvtx/rpc"
+	kvtx_rpc_client "github.com/s4wave/spacewave/db/kvtx/rpc/client"
 	"github.com/s4wave/spacewave/sdk/worldkv"
 )
 
@@ -78,8 +82,12 @@ func KvClose() {
 		return
 	}
 	kvStore.Close()
-	kvWorld.Close()
-	kvCancel()
+	if kvWorld != nil {
+		kvWorld.Close()
+	}
+	if kvCancel != nil {
+		kvCancel()
+	}
 	kvStore = nil
 	kvWorld = nil
 	kvCtx = nil
@@ -193,4 +201,35 @@ func KvStopWatches() {
 	for _, cancel := range cancels {
 		cancel()
 	}
+}
+
+// KvOpenHosted connects to a hosted world over WebSocket SRPC and wraps
+// the remote key/value store with the same sugar surface as the embedded
+// world: the Kv* functions operate against the authoritative hosted
+// state, and watch subscriptions receive snapshots for commits made by
+// any participant.
+func KvOpenHosted(ctx context.Context, url string) error {
+	conn, _, err := ws.Dial(ctx, url, nil)
+	if err != nil {
+		return err
+	}
+	mconn, err := srpc.NewWebSocketConn(ctx, conn, false, nil)
+	if err != nil {
+		_ = conn.CloseNow()
+		return err
+	}
+	client := srpc.NewClientWithMuxedConn(mconn)
+	store := kvtx_rpc_client.NewStore(kvtx_rpc.NewSRPCKvtxClient(client))
+
+	kvMtx.Lock()
+	defer kvMtx.Unlock()
+	if kvStore != nil {
+		return nil
+	}
+	kvStore, err = worldkv.OpenRemote(ctx, nil, store)
+	if err != nil {
+		return err
+	}
+	kvCtx = ctx
+	return nil
 }
