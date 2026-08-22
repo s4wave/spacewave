@@ -165,6 +165,27 @@ func (o *SetV86ConfigOp) Validate() error {
 	return nil
 }
 
+// resolveVmV86Object returns the object state for a VmV86 key, rejecting
+// missing objects and wrong types. sysErr reports transport-level failures.
+func resolveVmV86Object(ctx context.Context, ws world.WorldState, objKey string) (objState world.ObjectState, sysErr bool, err error) {
+	objState, found, err := ws.GetObject(ctx, objKey)
+	if err != nil {
+		return nil, true, err
+	}
+	if !found {
+		return nil, false, errors.New("vm-v86 object not found")
+	}
+
+	typeID, err := world_types.GetObjectType(ctx, ws, objKey)
+	if err != nil {
+		return nil, true, err
+	}
+	if typeID != VmV86TypeID {
+		return nil, false, errors.Errorf("object %q is not a VmV86 (type=%q)", objKey, typeID)
+	}
+	return objState, false, nil
+}
+
 // ApplyWorldOp applies the operation as a world operation.
 func (o *SetV86ConfigOp) ApplyWorldOp(
 	ctx context.Context,
@@ -176,21 +197,9 @@ func (o *SetV86ConfigOp) ApplyWorldOp(
 		return false, err
 	}
 
-	objKey := o.GetObjectKey()
-	objState, found, err := ws.GetObject(ctx, objKey)
+	objState, sysErr, err := resolveVmV86Object(ctx, ws, o.GetObjectKey())
 	if err != nil {
-		return true, err
-	}
-	if !found {
-		return false, errors.New("vm-v86 object not found")
-	}
-
-	typeID, err := world_types.GetObjectType(ctx, ws, objKey)
-	if err != nil {
-		return true, err
-	}
-	if typeID != VmV86TypeID {
-		return false, errors.Errorf("object %q is not a VmV86 (type=%q)", objKey, typeID)
+		return sysErr, err
 	}
 
 	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
@@ -329,21 +338,9 @@ func (o *SetV86StateOp) ApplyWorldOp(
 		return false, err
 	}
 
-	objKey := o.GetObjectKey()
-	objState, found, err := ws.GetObject(ctx, objKey)
+	objState, sysErr, err := resolveVmV86Object(ctx, ws, o.GetObjectKey())
 	if err != nil {
-		return true, err
-	}
-	if !found {
-		return false, errors.New("vm-v86 object not found")
-	}
-
-	typeID, err := world_types.GetObjectType(ctx, ws, objKey)
-	if err != nil {
-		return true, err
-	}
-	if typeID != VmV86TypeID {
-		return false, errors.Errorf("object %q is not a VmV86 (type=%q)", objKey, typeID)
+		return sysErr, err
 	}
 
 	target, err := normalizeV86DesiredState(o.GetState())
