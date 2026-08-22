@@ -116,23 +116,12 @@ func StoreValueAsBlockRef(
 		return nil, nil
 	}
 
-	var err error
 	vtype := val.GetValueType()
 	if vtype == forge_value.ValueType_ValueType_BLOCK_REF {
 		return forge_value.NewValueWithBlockRef("", val.GetBlockRef()), nil
 	}
 
-	var outValue *forge_value.Value
-	err = handle.AccessStorage(
-		ctx,
-		nil,
-		func(bls *bucket_lookup.Cursor) error {
-			var berr error
-			outValue, berr = CopyValueToBucket(ctx, handle, val)
-			return berr
-		},
-	)
-	return outValue, err
+	return CopyValueToBucket(ctx, handle, val)
 }
 
 // CopyValueToBucket copies the value to the target bucket.

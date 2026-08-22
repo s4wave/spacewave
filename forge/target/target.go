@@ -38,12 +38,12 @@ func (t *Target) Validate() error {
 		return errors.New("target cannot be empty")
 	}
 	// ensure all input names are unique
-	inputSet := newInputSetContainer(&t.Inputs, nil)
+	inputSet := newSubBlockSetContainer(&t.Inputs, nil)
 	if err := inputSet.ValidateUnique(true); err != nil {
 		return errors.Wrap(err, "inputs")
 	}
 	// ensure all output names are unique
-	outputSet := newOutputSetContainer(&t.Outputs, nil)
+	outputSet := newSubBlockSetContainer(&t.Outputs, nil)
 	if err := outputSet.ValidateUnique(true); err != nil {
 		return errors.Wrap(err, "outputs")
 	}
@@ -87,11 +87,11 @@ func (t *Target) GetSubBlockCtor(id uint32) block.SubBlockCtor {
 	switch id {
 	case 1:
 		return func(bool) block.SubBlock {
-			return newInputSetContainer(&t.Inputs, nil)
+			return newSubBlockSetContainer(&t.Inputs, nil)
 		}
 	case 2:
 		return func(bool) block.SubBlock {
-			return newOutputSetContainer(&t.Outputs, nil)
+			return newSubBlockSetContainer(&t.Outputs, nil)
 		}
 	case 3:
 		return func(create bool) block.SubBlock {
