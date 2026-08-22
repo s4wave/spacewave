@@ -7,6 +7,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	"github.com/s4wave/spacewave/db/block"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -149,5 +150,117 @@ func TestObjectLayoutFactoryPublishesSeedModelFromEngineWorldState(t *testing.T)
 	}
 	if got := tabData.GetObjectInfo().GetWorldObjectInfo().GetObjectKey(); got != "files" {
 		t.Fatalf("tab object key = %q, want files", got)
+	}
+}
+
+// TestObjectLayoutFactorySharesExternalWorldUpdates pins that the factory
+// container re-reads the World object after external revisions instead of
+// serving only the seed model.
+func TestObjectLayoutFactorySharesExternalWorldUpdates(t *testing.T) {
+	ctx := context.Background()
+	log := logrus.New()
+	le := logrus.NewEntry(log)
+
+	btb, err := hydra_testbed.NewTestbed(ctx, le, hydra_testbed.WithVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer btb.Release()
+
+	wtb, err := world_testbed.NewTestbed(btb, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer wtb.Release()
+
+	objectKey := "object-layout/test-factory-external-update"
+	writeState := world.NewEngineWorldState(wtb.Engine, true)
+	if _, _, err := space_world_ops.InitObjectLayout(ctx, writeState, wtb.Volume.GetPeerID(), objectKey, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+
+	readState := world.NewEngineWorldState(wtb.Engine, true)
+	invoker, cleanup, err := s4wave_layout_world.ObjectLayoutFactory(ctx, le, btb.Bus, wtb.Engine, readState, objectKey)
+	if err != nil {
+		t.Fatalf("ObjectLayoutFactory: %v", err)
+	}
+	defer cleanup()
+
+	stream := newLayoutWatchSeedStream(ctx)
+	done := make(chan error, 1)
+	go func() {
+		ok, err := invoker.InvokeMethod(s4wave_layout.SRPCLayoutHostServiceID, "WatchLayoutModel", stream)
+		if err != nil {
+			done <- err
+			return
+		}
+		if !ok {
+			done <- srpc.ErrUnimplemented
+			return
+		}
+		done <- nil
+	}()
+
+	var model s4wave_layout.LayoutModel
+	select {
+	case data := <-stream.sent:
+		if err := model.UnmarshalVT(data); err != nil {
+			t.Fatalf("unmarshal watched model: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for seeded layout model")
+	}
+
+	// Apply an external revision from a separate write transaction.
+	wtx, err := wtb.Engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	objState, found, err := wtx.GetObject(ctx, objectKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("layout object not found for external write")
+	}
+	_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
+		cur, uerr := block.UnmarshalBlock[*s4wave_layout_world.ObjectLayout](ctx, bcs, s4wave_layout_world.NewObjectLayoutBlock)
+		if uerr != nil {
+			return uerr
+		}
+		if cur == nil {
+			cur = &s4wave_layout_world.ObjectLayout{}
+		}
+		next := cur.GetLayoutModel().CloneVT()
+		next.GetLayout().Id = "remote-edit"
+		cur.LayoutModel = next
+		bcs.SetBlock(cur, true)
+		return nil
+	})
+	if err == nil {
+		err = wtx.Commit(ctx)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var updated s4wave_layout.LayoutModel
+	select {
+	case data := <-stream.sent:
+		if err := updated.UnmarshalVT(data); err != nil {
+			t.Fatalf("unmarshal updated model: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for external update emission")
+	}
+	if got := updated.GetLayout().GetId(); got != "remote-edit" {
+		t.Fatalf("watched layout root id after external write = %q, want remote-edit", got)
+	}
+
+	stream.cancel()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out stopping layout watch")
 	}
 }

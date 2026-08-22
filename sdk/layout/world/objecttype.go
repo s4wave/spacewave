@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/routine"
 	resource_layout "github.com/s4wave/spacewave/core/resource/layout"
 	"github.com/s4wave/spacewave/db/block"
 	trace "github.com/s4wave/spacewave/db/traceutil"
@@ -60,7 +61,55 @@ func ObjectLayoutFactory(
 		return nil, nil, err
 	}
 
-	stateCtr := ccontainer.NewCContainer(layout.GetLayoutModel())
+	// stateCtr holds the observed layout model; the watch below republishes
+	// it after each World revision so remote edits are visible locally.
+	stateCtr := ccontainer.NewCContainerVT(layout.GetLayoutModel())
+
+	watch := routine.NewRoutineContainer()
+	watch.SetRoutine(func(ctx context.Context) error {
+		for {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+
+			seqno, err := ws.GetSeqno(ctx)
+			if err != nil {
+				return err
+			}
+
+			objState, found, err := ws.GetObject(ctx, objectKey)
+			if err != nil {
+				return err
+			}
+			if !found {
+				return world.ErrObjectNotFound
+			}
+			err = func() error {
+				// Release the object-state handle before the WaitSeqno block
+				// below so the read scope does not span the wait.
+				defer world.ReleaseObjectState(objState)
+				var cur *ObjectLayout
+				_, _, aerr := world.AccessObjectState(ctx, objState, false, func(bcs *block.Cursor) error {
+					var uerr error
+					cur, uerr = block.UnmarshalBlock[*ObjectLayout](ctx, bcs, NewObjectLayoutBlock)
+					return uerr
+				})
+				if aerr != nil {
+					return aerr
+				}
+				stateCtr.SetValue(cur.GetLayoutModel())
+				return nil
+			}()
+			if err != nil {
+				return err
+			}
+
+			if _, err := ws.WaitSeqno(ctx, seqno+1); err != nil {
+				return err
+			}
+		}
+	})
+	watch.SetContext(context.Background(), false)
 
 	// setLayout updates the layout model in the world using a write transaction
 	setLayout := func(ctx context.Context, model *s4wave_layout.LayoutModel) error {
@@ -98,9 +147,15 @@ func ObjectLayoutFactory(
 		{
 			taskCtx, task := trace.NewTask(ctx, "alpha/layout/set-layout/mutate-object")
 			_, _, err := world.AccessObjectState(taskCtx, writeState, true, func(bcs *block.Cursor) error {
-				newLayout := layout.Clone()
-				newLayout.LayoutModel = model.CloneVT()
-				bcs.SetBlock(newLayout, true)
+				cur, uerr := block.UnmarshalBlock[*ObjectLayout](ctx, bcs, NewObjectLayoutBlock)
+				if uerr != nil {
+					return uerr
+				}
+				if cur == nil {
+					cur = &ObjectLayout{}
+				}
+				cur.LayoutModel = model.CloneVT()
+				bcs.SetBlock(cur, true)
 				return nil
 			})
 			task.End()
@@ -233,5 +288,7 @@ func ObjectLayoutFactory(
 	layoutResource := resource_layout.NewLayoutResource(stateCtr, setLayout, navigateTab)
 	layoutResource.SetReplaceTabFunc(replaceTab)
 
-	return layoutResource.GetMux(), func() {}, nil
+	return layoutResource.GetMux(), func() {
+		watch.ClearContext()
+	}, nil
 }
