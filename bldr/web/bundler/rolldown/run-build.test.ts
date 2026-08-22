@@ -48,6 +48,54 @@ afterEach(async () => {
 })
 
 describe('direct Rolldown/Oxc owner', () => {
+  it('keeps the default export of an injected entry', async () => {
+    const project = await makeProject()
+    await fs.writeFile(
+      join(project.root, 'inject.js'),
+      `console.log('inject side effect')\n`,
+    )
+    await fs.writeFile(
+      join(project.root, 'main.ts'),
+      `export default async function main() {}\n`,
+    )
+    const result = await runBuild(
+      project.request({
+        inject: [join(project.root, 'inject.js')],
+      }),
+      dependencyRoot,
+    )
+    expect(result.diagnostics ?? []).toEqual([])
+    const output = await fs.readFile(join(project.output, 'main.js'), 'utf8')
+    expect(output).toContain('inject side effect')
+    // The emitted module carries a default export in either accepted shape.
+    const hasDefault =
+      /\bexport\s*\{[^}]*\bas\s+default\b[^}]*\}/.test(output) ||
+      /\bexport\s+default\b/.test(output)
+    expect(hasDefault).toBe(true)
+  })
+
+  it('builds an injected self-executing entry without exports', async () => {
+    const project = await makeProject()
+    await fs.writeFile(
+      join(project.root, 'inject.js'),
+      `console.log('inject side effect')\n`,
+    )
+    await fs.writeFile(
+      join(project.root, 'main.ts'),
+      `console.log('self executing entry')\n`,
+    )
+    const result = await runBuild(
+      project.request({
+        inject: [join(project.root, 'inject.js')],
+      }),
+      dependencyRoot,
+    )
+    expect(result.diagnostics ?? []).toEqual([])
+    const output = await fs.readFile(join(project.output, 'main.js'), 'utf8')
+    expect(output).toContain('inject side effect')
+    expect(output).toContain('self executing entry')
+  })
+
   it('tree-shakes unused exports while retaining side effects and virtual modules', async () => {
     const project = await makeProject()
     await fs.writeFile(
