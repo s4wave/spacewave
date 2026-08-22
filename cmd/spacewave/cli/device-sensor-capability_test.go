@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
-
 	"github.com/s4wave/spacewave/core/device/sensor"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	"github.com/sirupsen/logrus"
@@ -131,5 +131,46 @@ func TestComputeSensorCapabilityLinksTheSensorObject(t *testing.T) {
 	}
 	if capability.GetLabel() != "radar sensor" {
 		t.Fatalf("label = %q, want %q", capability.GetLabel(), "radar sensor")
+	}
+}
+
+// TestWatchDeviceSetupStateWakesProjectionOnRecordWrite pins that a setup
+// record write wakes the projection loop: the device complete command runs in
+// its own process, so policy updates alone cannot announce session readiness.
+func TestWatchDeviceSetupStateWakesProjectionOnRecordWrite(t *testing.T) {
+	ctx := t.Context()
+
+	dir := t.TempDir()
+	recordPath := filepath.Join(dir, "device", "setup.json")
+	if err := os.MkdirAll(filepath.Dir(recordPath), 0o755); err != nil {
+		t.Fatalf("mkdir setup dir: %v", err)
+	}
+
+	updates := make(chan devicePolicyUpdate, 1)
+	watchDeviceSetupState(ctx,
+		logrus.WithField("test", t.Name()),
+		dir,
+		func() *device_policy.DevicePolicy {
+			return &device_policy.DevicePolicy{}
+		},
+		updates,
+	)
+
+	// A write to the setup record must deliver a wake even though policy did
+	// not change. Retry briefly: directory watches attach asynchronously on
+	// some platforms.
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		if err := os.WriteFile(recordPath, []byte("{}\n"), 0o600); err != nil {
+			t.Fatalf("write setup record: %v", err)
+		}
+		select {
+		case <-updates:
+			return
+		case <-time.After(50 * time.Millisecond):
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("setup record write did not wake the projection loop")
+		}
 	}
 }

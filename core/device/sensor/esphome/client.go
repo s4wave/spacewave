@@ -146,6 +146,9 @@ type Options struct {
 	KeepaliveTimeout time.Duration
 	// OnState receives every published entity state.
 	OnState func(State)
+	// OnLivenessMissed fires once when ping liveness goes stale, before
+	// termination closes the connection.
+	OnLivenessMissed func()
 	// OnError receives the terminal connection error.
 	OnError func(error)
 	// Dial dials the endpoint connection. Tests inject fakes; nil uses net.Dial.
@@ -624,6 +627,9 @@ func (c *Client) keepaliveLoop() {
 		stale := time.Since(c.lastPong) > c.opts.KeepaliveTimeout
 		c.mtx.Unlock()
 		if stale {
+			if c.opts.OnLivenessMissed != nil {
+				c.opts.OnLivenessMissed()
+			}
 			c.terminate(ErrKeepaliveTimeout)
 			return
 		}

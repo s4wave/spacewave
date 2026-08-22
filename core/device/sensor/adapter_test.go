@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -348,6 +349,43 @@ func readTestSensor(t *testing.T, ctx context.Context, engine world.Engine, key 
 }
 
 // waitForState waits until the endpoint's live status reaches the state.
+// waitForWorldState polls until the persisted Sensor object reaches want.
+func waitForWorldState(
+	t *testing.T,
+	ctx context.Context,
+	engine world.Engine,
+	sensorKey string,
+	want s4wave_device.SensorConnectionState,
+) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	var last s4wave_device.SensorConnectionState
+	for {
+		tx, err := engine.NewTransaction(ctx, false)
+		if err != nil {
+			t.Fatalf("read transaction failed: %v", err)
+		}
+		objState, found, err := tx.GetObject(ctx, sensorKey)
+		if err != nil {
+			t.Fatalf("get sensor object failed: %v", err)
+		}
+		if found {
+			sensor, err := readSensorBlock(ctx, objState)
+			if err != nil {
+				t.Fatalf("read sensor block: %v", err)
+			}
+			last = sensor.GetConnectionState()
+			if last == want {
+				return
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("world connection_state = %v (found=%t), want %v", last, found, want)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
 func waitForState(
 	t *testing.T,
 	mgr *Manager,
@@ -457,5 +495,118 @@ func TestAdapterPersistRestoresDeviceEdgeIdempotently(t *testing.T) {
 	}
 	if !edgePresent() {
 		t.Fatal("edge missing after no-op reconcile persist")
+	}
+}
+
+// countingDial bounds concurrent endpoint connections so a config change can
+// prove the replacement starts only after the replaced adapter finished.
+func countingDial(active, maxActive *int32) DialFunc {
+	return func(ctx context.Context, _ string) (net.Conn, error) {
+		n := atomic.AddInt32(active, 1)
+		for {
+			old := atomic.LoadInt32(maxActive)
+			if n <= old || atomic.CompareAndSwapInt32(maxActive, old, n) {
+				break
+			}
+		}
+		defer atomic.AddInt32(active, -1)
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
+}
+
+func TestManagerReconcileKeepsOneWriterPerEndpoint(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatalf("world testbed failed: %v", err)
+	}
+	defer wtb.Release()
+
+	var active, maxActive int32
+	mgr := NewManager(
+		logrus.WithField("test", t.Name()),
+		wtb.Engine,
+		"devices/test-device",
+		countingDial(&active, &maxActive),
+	)
+
+	mgr.Reconcile(ctx, []*policy.SensorEndpointPolicy{endpoint("radar")})
+	waitForState(t, mgr, "radar",
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_CONNECTING)
+
+	changed := endpoint("radar")
+	changed.Endpoint = "127.0.0.1:6054"
+	mgr.Reconcile(ctx, []*policy.SensorEndpointPolicy{changed})
+
+	deadline := time.Now().Add(2 * time.Second)
+	for atomic.LoadInt32(&active) != 0 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if got := atomic.LoadInt32(&maxActive); got != 1 {
+		t.Fatalf("max concurrent endpoint connections = %d, want 1", got)
+	}
+}
+
+func TestAdapterCancellationPersistsOfflineState(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatalf("world testbed failed: %v", err)
+	}
+	defer wtb.Release()
+
+	deviceKey := "devices/test-device"
+	if err := createTestDevice(ctx, wtb.Engine, deviceKey); err != nil {
+		t.Fatalf("create device object: %v", err)
+	}
+
+	runCtx, runCancel := context.WithCancel(context.Background())
+	mgr := NewManager(logrus.WithField("test", t.Name()), wtb.Engine, deviceKey, blockingDial)
+	mgr.Reconcile(runCtx, []*policy.SensorEndpointPolicy{endpoint("radar")})
+
+	sensorKey := ObjectKey(deviceKey, "radar")
+	waitForWorldState(t, ctx, wtb.Engine, sensorKey,
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_CONNECTING)
+
+	runCancel()
+	waitForWorldState(t, ctx, wtb.Engine, sensorKey,
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_OFFLINE)
+}
+
+func TestAdapterLivenessMissPersistsDegraded(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatalf("world testbed failed: %v", err)
+	}
+	defer wtb.Release()
+
+	deviceKey := "devices/test-device"
+	if err := createTestDevice(ctx, wtb.Engine, deviceKey); err != nil {
+		t.Fatalf("create device object: %v", err)
+	}
+
+	runCtx := t.Context()
+	mgr := NewManager(logrus.WithField("test", t.Name()), wtb.Engine, deviceKey, blockingDial)
+	mgr.Reconcile(runCtx, []*policy.SensorEndpointPolicy{endpoint("radar")})
+
+	waitForState(t, mgr, "radar",
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_CONNECTING)
+	mgr.mu.Lock()
+	adapter := mgr.adapters["radar"]
+	mgr.mu.Unlock()
+	if adapter == nil {
+		t.Fatal("adapter missing after Reconcile")
+	}
+
+	adapter.livenessMissed()
+	sensorKey := ObjectKey(deviceKey, "radar")
+	waitForWorldState(t, ctx, wtb.Engine, sensorKey,
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_DEGRADED)
+
+	status, _ := mgr.Status("radar")
+	if status.LastError != "keepalive timeout" {
+		t.Fatalf("status LastError = %q, want keepalive timeout", status.LastError)
 	}
 }
