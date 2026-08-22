@@ -5,3 +5,10 @@ reject|mark-label|object-id|REPORT_CONTRACT
 reject|detail-string|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|REPORT_CONTRACT
 reject|operation|aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa|SPAN_CONTRACT
 reject|report-id|account-id|REPORT_CONTRACT
+accept|browser-engine|chromium|NONE
+accept|browser-engine|webkit|NONE
+accept|browser-engine|firefox|NONE
+reject|browser-engine|gecko|REPORT_CONTRACT
+accept|os-family|android|NONE
+reject|os-family|solaris|REPORT_CONTRACT
+accept|worker-mode|2|NONE
