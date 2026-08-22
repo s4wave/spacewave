@@ -494,7 +494,7 @@ func (a *ProviderAccount) startP2PSyncControllers(
 		}
 
 		if !state.hasSO(soID) {
-			if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
+			if err := a.startSOSync(syncCtx, childBus, sessionTransport.GetPeerID(), ref, soID, state); err != nil {
 				if syncCtx.Err() != nil {
 					return syncCtx.Err()
 				}
@@ -664,7 +664,14 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 }
 
 // startSOSync mounts the shared object and starts an SOSync instance for it.
-func (a *ProviderAccount) startSOSync(ctx context.Context, childBus bus.Bus, ref *sobject.SharedObjectRef, soID string, state *p2pSyncState) error {
+func (a *ProviderAccount) startSOSync(
+	ctx context.Context,
+	childBus bus.Bus,
+	localPeerID peer.ID,
+	ref *sobject.SharedObjectRef,
+	soID string,
+	state *p2pSyncState,
+) error {
 	// Mount the SO to ensure the tracker is initialized with the ref.
 	// This is necessary when StartP2PSync is called from auto-start
 	// (before any UI-driven mount).
@@ -674,7 +681,7 @@ func (a *ProviderAccount) startSOSync(ctx context.Context, childBus bus.Bus, ref
 	}
 
 	localSO := so.(*SharedObject)
-	soSync := sobject_sync.NewSOSync(a.le, childBus, soID, localSO.soHost)
+	soSync := sobject_sync.NewSOSync(a.le, childBus, soID, localPeerID, localSO.soHost)
 	state.addWorker()
 	go func() {
 		defer state.workerDone()
