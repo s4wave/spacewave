@@ -224,28 +224,21 @@ func iterateQuadResults(ctx context.Context, h CayleyHandle, it iterator.Scanner
 	}
 }
 
-// NewCachedCayleyHandle wraps a Cayley handle with per-operation read caches.
-func NewCachedCayleyHandle(h CayleyHandle) CayleyHandle {
-	return newCachedCayleyHandle(h, true)
-}
-
 // NewReadOperationCayleyHandle wraps a Cayley handle for a batched read operation.
+//
+// The returned handle caches ValueOf, NameOf, QuadIteratorSize, and
+// QuadDirection results for one read operation. It does not cache resolved
+// quad refs; batch reads resolve each quad ref at most once, so caching them
+// only costs memory.
 func NewReadOperationCayleyHandle(h CayleyHandle) CayleyHandle {
-	return newCachedCayleyHandle(h, false)
-}
-
-func newCachedCayleyHandle(h CayleyHandle, cacheQuadRefs bool) CayleyHandle {
 	return &cachedCayleyHandle{
 		CayleyHandle:        h,
-		cacheQuadRefs:       cacheQuadRefs,
 		valueRefs:           make(map[string]graph.Ref),
 		valueRefFound:       make(map[string]bool),
 		names:               make(map[any]quad.Value),
 		nameFound:           make(map[any]bool),
 		quadIteratorSizes:   make(map[quadIteratorSizeKey]refs.Size),
 		quadIteratorErrors:  make(map[quadIteratorSizeKey]error),
-		quads:               make(map[any]quad.Quad),
-		quadErrors:          make(map[any]error),
 		quadDirections:      make(map[quadDirectionKey]graph.Ref),
 		quadDirectionErrors: make(map[quadDirectionKey]error),
 	}
@@ -254,15 +247,12 @@ func newCachedCayleyHandle(h CayleyHandle, cacheQuadRefs bool) CayleyHandle {
 type cachedCayleyHandle struct {
 	CayleyHandle
 
-	cacheQuadRefs       bool
 	valueRefs           map[string]graph.Ref
 	valueRefFound       map[string]bool
 	names               map[any]quad.Value
 	nameFound           map[any]bool
 	quadIteratorSizes   map[quadIteratorSizeKey]refs.Size
 	quadIteratorErrors  map[quadIteratorSizeKey]error
-	quads               map[any]quad.Quad
-	quadErrors          map[any]error
 	quadDirections      map[quadDirectionKey]graph.Ref
 	quadDirectionErrors map[quadDirectionKey]error
 }
@@ -329,49 +319,17 @@ func (h *cachedCayleyHandle) Quad(ctx context.Context, ref graph.Ref) (quad.Quad
 	if err := ctx.Err(); err != nil {
 		return quad.Quad{}, err
 	}
-	if !h.cacheQuadRefs {
-		q, ok, err := h.quadFromDirectionsUncached(ctx, ref)
-		if err == nil && !ok {
-			q, err = h.CayleyHandle.Quad(ctx, ref)
-		}
-		return q, err
-	}
-	key := graphRefCacheKey(ref)
-	if q, ok := h.quads[key]; ok {
-		return q, h.quadErrors[key]
-	}
 	q, ok, err := h.quadFromDirections(ctx, ref)
 	if err == nil && !ok {
 		q, err = h.CayleyHandle.Quad(ctx, ref)
 	}
-	h.quads[key] = q
-	h.quadErrors[key] = err
 	return q, err
 }
 
+// quadFromDirections resolves a quad ref through its four directions.
+// Direction refs are resolved on every Quad call; NameOf remains cached
+// within the read operation.
 func (h *cachedCayleyHandle) quadFromDirections(ctx context.Context, ref graph.Ref) (quad.Quad, bool, error) {
-	var q quad.Quad
-	for _, dir := range quad.Directions {
-		dirRef, err := h.QuadDirection(ctx, ref, dir)
-		if err != nil {
-			return q, false, err
-		}
-		if dirRef == nil {
-			if dir == quad.Label {
-				continue
-			}
-			return q, false, nil
-		}
-		val, err := h.NameOf(ctx, dirRef)
-		if err != nil {
-			return q, false, err
-		}
-		q.Set(dir, val)
-	}
-	return q, true, nil
-}
-
-func (h *cachedCayleyHandle) quadFromDirectionsUncached(ctx context.Context, ref graph.Ref) (quad.Quad, bool, error) {
 	var q quad.Quad
 	for _, dir := range quad.Directions {
 		dirRef, err := h.CayleyHandle.QuadDirection(ctx, ref, dir)
