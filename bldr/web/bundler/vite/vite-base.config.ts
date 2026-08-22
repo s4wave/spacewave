@@ -50,6 +50,17 @@ export default defineConfig({
         find: /^@aptre\/bldr$/,
         replacement: resolveBldrDistPath('web/bldr/index.js'),
       },
+      // The Bldr harness ships the SDK inside the dist root; map both the
+      // plugin entry and exact .js imports onto the packaged .ts sources so
+      // apps need no local SDK install or tsconfig paths.
+      {
+        find: /^@aptre\/bldr-sdk$/,
+        replacement: resolveBldrDistPath('sdk/plugin.ts'),
+      },
+      {
+        find: /^@aptre\/bldr-sdk\/(.*)\.js$/,
+        replacement: resolveBldrDistPath('sdk/$1.ts'),
+      },
       {
         find: /^@aptre\/bldr-react$/,
         replacement: resolveBldrDistPath('web/bldr-react/index.js'),
