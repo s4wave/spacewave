@@ -66,9 +66,13 @@ var testRequest = ResourceRequest{MilliCPU: 1_000, MemoryBytes: 1 << 30, Backend
 func TestReserveActivateStopRoundTrip(t *testing.T) {
 	ctx, eng, _ := newTestbed(t)
 	stopper := newTestStopper()
-	admission := NewWorldRuntimeAdmission(eng, stopper, time.Minute)
+	admission := NewWorldRuntimeAdmission(eng, stopper, time.Minute, time.Minute)
 
-	if _, err := admission.ObserveWorker(ctx, "worker/a", 2_000, 4<<30, []string{"docker", "v86"}); err != nil {
+	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker", "v86"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -108,7 +112,7 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 		t.Fatalf("expected active outcome, got %d", loaded.Outcome(time.Now()))
 	}
 
-	receipt, err := admission.StopAndRelease(ctx, res.ObjectKey(), 1)
+	receipt, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +124,7 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 	}
 
 	// Idempotent stop returns the persisted receipt without re-stopping.
-	receipt2, err := admission.StopAndRelease(ctx, res.ObjectKey(), 1)
+	receipt2, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), 1)
 	if err != nil || receipt2 == nil || !receipt2.Complete() {
 		t.Fatalf("expected persisted receipt on retry: %+v err=%v", receipt2, err)
 	}
@@ -145,8 +149,12 @@ func TestReserveActivateStopRoundTrip(t *testing.T) {
 
 func TestReserveConcurrentOversubscribeRejected(t *testing.T) {
 	ctx, eng, _ := newTestbed(t)
-	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute)
-	if _, err := admission.ObserveWorker(ctx, "worker/a", 2_000, 2<<30, []string{"docker"}); err != nil {
+	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 2<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -190,8 +198,12 @@ func TestReserveConcurrentOversubscribeRejected(t *testing.T) {
 func TestRestartReconcileResumesWithoutRelaunch(t *testing.T) {
 	ctx, eng, _ := newTestbed(t)
 	stopper := newTestStopper()
-	admission := NewWorldRuntimeAdmission(eng, stopper, time.Hour)
-	if _, err := admission.ObserveWorker(ctx, "worker/a", 4_000, 8<<30, []string{"docker"}); err != nil {
+	admission := NewWorldRuntimeAdmission(eng, stopper, time.Hour, time.Hour)
+	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 4_000, 8<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
 	res, err := admission.Reserve(ctx, "worker/a", "exec/restart", testRequest)
@@ -204,7 +216,7 @@ func TestRestartReconcileResumesWithoutRelaunch(t *testing.T) {
 	}
 
 	// A fresh admission over the same durable engine reconciles by lookup.
-	restarted := NewWorldRuntimeAdmission(eng, stopper, time.Hour)
+	restarted := NewWorldRuntimeAdmission(eng, stopper, time.Hour, time.Hour)
 	loaded, err := restarted.LookupReservation(ctx, res.ObjectKey())
 	if err != nil {
 		t.Fatal(err)
@@ -220,8 +232,12 @@ func TestRestartReconcileResumesWithoutRelaunch(t *testing.T) {
 func TestUncertainRetainsDebitAndResumeRefencesGeneration(t *testing.T) {
 	ctx, eng, _ := newTestbed(t)
 	stopper := newTestStopper()
-	admission := NewWorldRuntimeAdmission(eng, stopper, time.Hour)
-	if _, err := admission.ObserveWorker(ctx, "worker/a", 2_000, 4<<30, []string{"docker"}); err != nil {
+	admission := NewWorldRuntimeAdmission(eng, stopper, time.Hour, time.Hour)
+	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
 	res, err := admission.Reserve(ctx, "worker/a", "exec/uncertain", testRequest)
@@ -258,7 +274,7 @@ func TestUncertainRetainsDebitAndResumeRefencesGeneration(t *testing.T) {
 	}
 
 	// Late return from the replaced runtime instance is stale and inert.
-	if _, err := admission.StopAndRelease(ctx, res.ObjectKey(), 1); !errors.Is(err, ErrStaleGeneration) {
+	if _, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), 1); !errors.Is(err, ErrStaleGeneration) {
 		t.Fatalf("expected stale generation error, got %v", err)
 	}
 	if stopper.count("container-u1") != 0 && stopper.count("container-u2") != 0 {
@@ -272,7 +288,7 @@ func TestUncertainRetainsDebitAndResumeRefencesGeneration(t *testing.T) {
 		t.Fatal("stale late-return must not credit capacity")
 	}
 
-	receipt, err := admission.StopAndRelease(ctx, res.ObjectKey(), 2)
+	receipt, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,8 +303,12 @@ func TestUncertainRetainsDebitAndResumeRefencesGeneration(t *testing.T) {
 func TestExpiryFencesGenerationReleasesOnceAndStopsLateReturn(t *testing.T) {
 	ctx, eng, _ := newTestbed(t)
 	stopper := newTestStopper()
-	admission := NewWorldRuntimeAdmission(eng, stopper, time.Minute)
-	if _, err := admission.ObserveWorker(ctx, "worker/a", 2_000, 4<<30, []string{"docker"}); err != nil {
+	admission := NewWorldRuntimeAdmission(eng, stopper, time.Minute, time.Minute)
+	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
 	now := time.Now().UTC().Truncate(time.Second)
@@ -304,13 +324,13 @@ func TestExpiryFencesGenerationReleasesOnceAndStopsLateReturn(t *testing.T) {
 	}
 
 	// Not yet expired: expiry is a no-op.
-	receipts, err := admission.ExpireLeases(ctx, now.Add(30*time.Second))
+	receipts, err := admission.ExpireLeases(ctx, selfRef, now.Add(30*time.Second))
 	if err != nil || len(receipts) != 0 {
 		t.Fatalf("expected no expiries: %+v err=%v", receipts, err)
 	}
 
 	expiredAt := now.Add(2 * time.Minute)
-	receipts, err = admission.ExpireLeases(ctx, expiredAt)
+	receipts, err = admission.ExpireLeases(ctx, selfRef, expiredAt)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,7 +352,7 @@ func TestExpiryFencesGenerationReleasesOnceAndStopsLateReturn(t *testing.T) {
 	}
 
 	// Post-expiry old-runtime calls are stale: the fence moved.
-	if _, err := admission.StopAndRelease(ctx, res.ObjectKey(), 1); !errors.Is(err, ErrStaleGeneration) {
+	if _, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), 1); !errors.Is(err, ErrStaleGeneration) {
 		t.Fatalf("expected stale generation after expiry, got %v", err)
 	}
 	if stopper.count("container-exp") != 1 {
@@ -350,11 +370,11 @@ func TestExpiryFencesGenerationReleasesOnceAndStopsLateReturn(t *testing.T) {
 	}
 
 	// Nothing remains pending for reconciliation.
-	done, err := admission.ReconcilePendingStops(ctx)
+	done, err := admission.ReconcilePendingStops(ctx, selfRef)
 	if err != nil || len(done) != 0 {
 		t.Fatalf("expected no pending stops after a confirmed sweep: %+v err=%v", done, err)
 	}
-	final, err := admission.StopAndRelease(ctx, res.ObjectKey(), 2)
+	final, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), 2)
 	if err != nil || final == nil || !final.Complete() {
 		t.Fatalf("expected terminal-idempotent receipt for fencing generation: %+v err=%v", final, err)
 	}
@@ -373,8 +393,12 @@ func TestExpiryWithFailingStopperKeepsPendingStopForReconcile(t *testing.T) {
 	stopper := newTestStopper()
 	stopper.failFor = "container-flaky"
 	stopper.stopErr = errors.New("docker daemon unreachable")
-	admission := NewWorldRuntimeAdmission(eng, stopper, time.Minute)
-	if _, err := admission.ObserveWorker(ctx, "worker/a", 1_000, 1<<30, []string{"docker"}); err != nil {
+	admission := NewWorldRuntimeAdmission(eng, stopper, time.Minute, time.Minute)
+	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 1_000, 1<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
 	now := time.Now().UTC()
@@ -387,7 +411,7 @@ func TestExpiryWithFailingStopperKeepsPendingStopForReconcile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	receipts, err := admission.ExpireLeases(ctx, now.Add(2*time.Minute))
+	receipts, err := admission.ExpireLeases(ctx, selfRef, now.Add(2*time.Minute))
 	if err != nil || len(receipts) != 1 {
 		t.Fatalf("expected expiry receipt despite failed stop: %+v err=%v", receipts, err)
 	}
@@ -408,13 +432,13 @@ func TestExpiryWithFailingStopperKeepsPendingStopForReconcile(t *testing.T) {
 	}
 
 	// Graceful stop of the flaky runtime also fails while it is unreachable.
-	if _, err := admission.StopAndRelease(ctx, res.ObjectKey(), 2); err == nil {
+	if _, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), 2); err == nil {
 		t.Fatal("expected stop failure to surface")
 	}
 
 	// The daemon recovers; reconciliation finishes the pending stop once.
 	stopper.failFor = ""
-	done, err := admission.ReconcilePendingStops(ctx)
+	done, err := admission.ReconcilePendingStops(ctx, selfRef)
 	if err != nil || len(done) != 1 || !done[0].Complete() {
 		t.Fatalf("expected completed receipt: %+v err=%v", done, err)
 	}
@@ -439,8 +463,12 @@ func TestStopperErrorDuringGracefulStopKeepsReservationLive(t *testing.T) {
 	stopper := newTestStopper()
 	stopper.failFor = "container-graceful"
 	stopper.stopErr = errors.New("stop timeout")
-	admission := NewWorldRuntimeAdmission(eng, stopper, time.Hour)
-	if _, err := admission.ObserveWorker(ctx, "worker/a", 1_000, 1<<30, []string{"docker"}); err != nil {
+	admission := NewWorldRuntimeAdmission(eng, stopper, time.Hour, time.Hour)
+	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 1_000, 1<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
 	res, err := admission.Reserve(ctx, "worker/a", "exec/graceful", testRequest)
@@ -450,7 +478,7 @@ func TestStopperErrorDuringGracefulStopKeepsReservationLive(t *testing.T) {
 	if _, err := admission.Activate(ctx, res.ObjectKey(), BackendRuntimeIdentity{Backend: "docker", ID: "container-graceful"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := admission.StopAndRelease(ctx, res.ObjectKey(), 1); err == nil {
+	if _, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), 1); err == nil {
 		t.Fatal("expected stopper error to surface")
 	}
 	loaded, err := admission.LookupReservation(ctx, res.ObjectKey())
@@ -470,7 +498,7 @@ func TestStopperErrorDuringGracefulStopKeepsReservationLive(t *testing.T) {
 
 	// The stopper recovers; a retry with the same fenced generation completes.
 	stopper.failFor = ""
-	receipt, err := admission.StopAndRelease(ctx, res.ObjectKey(), 1)
+	receipt, err := admission.StopAndRelease(ctx, selfRef, claimed.OwnerEpoch, res.ObjectKey(), 1)
 	if err != nil || !receipt.Complete() {
 		t.Fatalf("expected completed receipt: %+v err=%v", receipt, err)
 	}
@@ -478,14 +506,18 @@ func TestStopperErrorDuringGracefulStopKeepsReservationLive(t *testing.T) {
 
 func TestObserveWorkerPreservesDebitsAndRejectsUnknownBackend(t *testing.T) {
 	ctx, eng, _ := newTestbed(t)
-	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute)
-	if _, err := admission.ObserveWorker(ctx, "worker/a", 2_000, 4<<30, []string{"docker"}); err != nil {
+	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+	claimed, err := admission.ClaimWorkerCapacity(ctx, "worker/a", selfRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := admission.Reserve(ctx, "worker/a", "exec/backend", testRequest); err != nil {
 		t.Fatal(err)
 	}
-	updated, err := admission.ObserveWorker(ctx, "worker/a", 4_000, 8<<30, []string{"docker"})
+	updated, err := admission.ObserveWorker(ctx, "worker/a", selfRef, claimed.OwnerEpoch, 4_000, 8<<30, []string{"docker"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -520,4 +552,32 @@ func LookupWorkerCapacityEngine(ctx context.Context, eng world.Engine, workerObj
 		return err
 	})
 	return out, err
+}
+
+// TestReserveDrainingRejectionOnIdempotentPath proves the fail-before
+// ordering: a draining capacity record rejects Reserve on the fresh path and
+// on the idempotent existing path before any debit-proof read.
+func TestReserveDrainingRejectionOnIdempotentPath(t *testing.T) {
+	ctx, eng, _ := newTestbed(t)
+	admission := NewWorldRuntimeAdmission(eng, newTestStopper(), time.Minute, time.Minute)
+	ref := WorkerClaimRef{DeviceObjectKey: "devices/self", ClaimID: "claim-1"}
+	capacity, err := admission.ClaimWorkerCapacity(ctx, "worker/a", ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.ObserveWorker(ctx, "worker/a", ref, capacity.OwnerEpoch, 2_000, 4<<30, []string{"docker"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.Reserve(ctx, "worker/a", "exec/1", testRequest); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.BeginDrainCapacity(ctx, "worker/a", ref, capacity.OwnerEpoch); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := admission.Reserve(ctx, "worker/a", "exec/2", testRequest); !errors.Is(err, ErrCapacityDraining) {
+		t.Fatalf("expected draining rejection on fresh path, got %v", err)
+	}
+	if _, err := admission.Reserve(ctx, "worker/a", "exec/1", testRequest); !errors.Is(err, ErrCapacityDraining) {
+		t.Fatalf("expected draining rejection on idempotent path, got %v", err)
+	}
 }

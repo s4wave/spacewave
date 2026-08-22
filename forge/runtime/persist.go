@@ -48,6 +48,26 @@ func listReservationKeys(ctx context.Context, ws world.WorldState) ([]string, er
 	return keys, it.Err()
 }
 
+// listWorkerCapacityKeys lists all persisted worker capacity object keys.
+func listWorkerCapacityKeys(ctx context.Context, ws world.WorldState) ([]string, error) {
+	var keys []string
+	it := ws.IterateObjects(ctx, workerCapacityObjectKeyPrefix, false)
+	defer it.Close()
+	for it.Next() {
+		if !it.Valid() {
+			break
+		}
+		keys = append(keys, it.Key())
+	}
+	return keys, it.Err()
+}
+
+// deleteWorkerCapacity deletes the capacity record of one Worker.
+func deleteWorkerCapacity(ctx context.Context, ws world.WorldState, workerObjectKey string) error {
+	_, err := ws.DeleteObject(ctx, BuildWorkerCapacityObjectKey(workerObjectKey))
+	return err
+}
+
 // persistWorkerCapacity writes the capacity record of one Worker.
 func persistWorkerCapacity(ctx context.Context, ws world.WorldState, workerObjectKey string, capacity *WorkerCapacity) error {
 	if _, _, err := world.AccessWorldObject(
@@ -98,7 +118,9 @@ func debitCapacity(ctx context.Context, ws world.WorldState, workerObjectKey str
 }
 
 // creditCapacity removes one released reservation's request from the Worker's
-// reserved totals exactly once per release.
+// reserved totals exactly once per release. This is the only path that
+// reactivates a draining record whose declared backends remain: once the
+// remaining debits fit the declared totals, the claim returns to ACTIVE.
 func creditCapacity(ctx context.Context, ws world.WorldState, workerObjectKey string, request ResourceRequest) error {
 	capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 	if err != nil {
@@ -112,6 +134,11 @@ func creditCapacity(ctx context.Context, ws world.WorldState, workerObjectKey st
 	}
 	capacity.MilliCPUReserved -= request.MilliCPU
 	capacity.MemoryBytesReserved -= request.MemoryBytes
+	if capacity.OwnerState == CapacityOwnerStateDraining && len(capacity.Backends) > 0 &&
+		capacity.MilliCPUReserved <= capacity.MilliCPUTotal &&
+		capacity.MemoryBytesReserved <= capacity.MemoryBytesTotal {
+		capacity.OwnerState = CapacityOwnerStateActive
+	}
 	capacity.Generation++
 	if err := capacity.Validate(); err != nil {
 		return errors.Wrapf(err, "credit worker %s", workerObjectKey)
