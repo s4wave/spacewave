@@ -28,7 +28,7 @@ type Transaction interface {
 	// Validate performs a cursory check of the transaction.
 	// Note: this should not fetch network data.
 	Validate() error
-	// ExecuteTx executes the transaction against the pass instance.
+	// ExecuteTx executes the transaction against the cluster instance.
 	// bcs is located at the pass state root.
 	// The result is written into bcs.
 	ExecuteTx(
@@ -59,8 +59,6 @@ func (t *Tx) Validate() error {
 // Validate checks the execution tx type is in range.
 func (t TxType) Validate() error {
 	switch t {
-	// case TxType_TxType_COMPLETE:
-	//	return nil
 	default:
 		return errors.Wrap(world.ErrUnhandledOp, t.String())
 	}
@@ -69,8 +67,6 @@ func (t TxType) Validate() error {
 // LocateTx returns the sub-block for the transaction.
 func (t *Tx) LocateTx() (Transaction, error) {
 	switch t.GetTxType() {
-	// case TxType_TxType_COMPLETE:
-	// return t.GetTxComplete(), nil
 	default:
 		return nil, errors.Wrap(world.ErrUnhandledOp, t.String())
 	}
@@ -78,7 +74,7 @@ func (t *Tx) LocateTx() (Transaction, error) {
 
 // ByteSliceToTx converts a byte slice block a Tx.
 // If blk is nil, returns nil, nil
-// If the blk is already parsed to a MockWorldOp, returns the MockWorldOp.
+// If the blk is already parsed to a Tx, returns the Tx.
 func ByteSliceToTx(blk block.Block) (*Tx, error) {
 	if blk == nil {
 		return nil, nil

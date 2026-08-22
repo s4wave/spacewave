@@ -43,12 +43,12 @@ func NewJobTaskKey(jobKey, taskName string) string {
 	}, "/")
 }
 
-// UnmarshalJob unmarshals a pass block from the cursor.
+// UnmarshalJob unmarshals a Job block from the cursor.
 func UnmarshalJob(ctx context.Context, bcs *block.Cursor) (*Job, error) {
 	return block.UnmarshalBlock[*Job](ctx, bcs, NewJobBlock)
 }
 
-// IsComplete checks if the execution is in the COMPLETE state.
+// IsComplete checks if the job is in the COMPLETE state.
 func (e *Job) IsComplete() bool {
 	return e.GetJobState() == State_JobState_COMPLETE
 }

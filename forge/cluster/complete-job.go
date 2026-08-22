@@ -93,8 +93,24 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// TODO TODO calculate the job result by scanning the tasks
+	// The job result aggregates the linked task results: the job completes
+	// successfully only when every linked task completed successfully.
+	tasks, taskKeys, err := forge_job.CollectJobTasks(ctx, worldHandle, jobKey)
+	if err != nil {
+		return false, err
+	}
 	jobResult = forge_value.NewResultWithSuccess()
+	for i, task := range tasks {
+		if !task.IsComplete() {
+			return false, errors.Errorf("task %s is not complete", taskKeys[i])
+		}
+		if res := task.GetResult(); !res.GetSuccess() {
+			jobResult = forge_value.NewResultWithError(errors.Errorf(
+				"task %s failed: %s", taskKeys[i], res.GetFailError(),
+			))
+			break
+		}
+	}
 
 	// transition job to complete with the result
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, jobKey, true, func(bcs *block.Cursor) error {

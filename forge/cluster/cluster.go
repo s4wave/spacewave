@@ -67,7 +67,7 @@ func LookupClusterOp(ctx context.Context, opTypeID string) (world.Operation, err
 	return nil, nil
 }
 
-// UnmarshalCluster unmarshals a worker block from the cursor.
+// UnmarshalCluster unmarshals a Cluster block from the cursor.
 func UnmarshalCluster(ctx context.Context, bcs *block.Cursor) (*Cluster, error) {
 	return block.UnmarshalBlock[*Cluster](ctx, bcs, NewClusterBlock)
 }

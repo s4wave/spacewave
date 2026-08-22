@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ClusterAssignWorkerOpId is the cluster assign job operation id.
+// ClusterAssignWorkerOpId is the cluster assign worker operation id.
 var ClusterAssignWorkerOpId = ClusterTypeID + "/assign-worker"
 
 // NewClusterAssignWorkerOp constructs a new ClusterAssignWorkerOp block.

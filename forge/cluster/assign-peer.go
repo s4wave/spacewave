@@ -73,11 +73,7 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		return false, err
 	}
 
-	// Skip the update when the peer ID is unchanged.
 	peerIDStr := peerID.String()
-	if o.GetPeerId() == peerIDStr {
-		return false, nil
-	}
 
 	// Confirm the cluster object type.
 	err = CheckClusterType(ctx, worldHandle, clusterKey)
@@ -85,10 +81,10 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		return false, err
 	}
 
-	var cluster *Cluster
+	var changed bool
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, clusterKey, true, func(bcs *block.Cursor) error {
 		var err error
-		cluster, err = UnmarshalCluster(ctx, bcs)
+		cluster, err := UnmarshalCluster(ctx, bcs)
 		if err == nil {
 			err = cluster.Validate()
 		}
@@ -96,6 +92,7 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 			return err
 		}
 
+		// Skip the update when the cluster already runs this peer.
 		clusterPeerID, err := cluster.ParsePeerID()
 		if err != nil {
 			return err
@@ -103,6 +100,9 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 		clusterPeerIDStr := clusterPeerID.String()
 		if clusterPeerIDStr == "" {
 			return errors.Wrap(peer.ErrEmptyPeerID, "cluster")
+		}
+		if clusterPeerIDStr == peerIDStr {
+			return nil
 		}
 
 		// Require the sender to match the cluster's current peer.
@@ -113,11 +113,15 @@ func (o *ClusterAssignPeerOp) ApplyWorldOp(
 
 		// Store the replacement cluster peer ID.
 		cluster.PeerId = peerIDStr
+		changed = true
 		bcs.SetBlock(cluster, true)
 		return nil
 	})
 	if err != nil {
 		return false, err
+	}
+	if !changed {
+		return false, nil
 	}
 
 	// Remove links to the previous cluster keypairs.
