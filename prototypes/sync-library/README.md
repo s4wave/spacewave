@@ -63,6 +63,21 @@ loop alive; end scripts with an explicit `process.exit(0)` until resolved.
    modules mix with es-lite modules. Needs either `_srpc` binding support
    in goscript or bundler dedup rules.
 
+## Hosted mode
+
+Run the Go server (native binary, hosts the authoritative world):
+
+    go run ./prototypes/sync-library/hosted/server -addr :8900
+
+Connect a compiled client to it instead of opening an embedded world:
+
+    await KvOpenHosted(ctx, 'ws://127.0.0.1:8900/ws')
+
+The same `Kv*` functions then operate against the hosted authoritative
+state. Cross-process proof lives in
+`hosted/client/kv-hosted-demo.mjs`: the client subscribes before the
+server's delayed write and observes it through WatchPrefix.
+
 ## Durability
 
 - js targets: OPFS volume (`volume/js/opfs`), mirroring
