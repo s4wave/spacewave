@@ -42,17 +42,7 @@ func buildSharedModule(imports *wasmExternImports, opts HostRuntimeOptions) ([]b
 		memorySection = appendLimits(memorySection, wasmLimits{Min: memoryMin})
 		sections = append(sections, wasmSection(5, memorySection))
 	}
-	exportSection := appendU32(nil, uint32(len(imports.Memories)+len(imports.Tables)))
-	if len(imports.Memories) != 0 {
-		exportSection = appendName(exportSection, imports.Memories[0].Name)
-		exportSection = append(exportSection, 0x02)
-		exportSection = appendU32(exportSection, 0)
-	}
-	if len(imports.Tables) != 0 {
-		exportSection = appendName(exportSection, imports.Tables[0].Name)
-		exportSection = append(exportSection, 0x01)
-		exportSection = appendU32(exportSection, 0)
-	}
+	exportSection := appendExternExports(appendU32(nil, uint32(len(imports.Memories)+len(imports.Tables))), imports)
 	sections = append(sections, wasmSection(7, exportSection))
 	return wasmModule(sections...), nil
 }
@@ -114,16 +104,7 @@ func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) 
 
 	exportCount := uint32(len(funcs) + len(imports.Memories) + len(imports.Tables))
 	exportSection := appendU32(nil, exportCount)
-	if len(imports.Memories) != 0 {
-		exportSection = appendName(exportSection, imports.Memories[0].Name)
-		exportSection = append(exportSection, 0x02)
-		exportSection = appendU32(exportSection, 0)
-	}
-	if len(imports.Tables) != 0 {
-		exportSection = appendName(exportSection, imports.Tables[0].Name)
-		exportSection = append(exportSection, 0x01)
-		exportSection = appendU32(exportSection, 0)
-	}
+	exportSection = appendExternExports(exportSection, imports)
 	for i, fn := range funcs {
 		exportSection = appendName(exportSection, fn.name)
 		exportSection = append(exportSection, 0x00)
@@ -135,6 +116,22 @@ func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) 
 		wasmSection(2, importSection),
 		wasmSection(7, exportSection),
 	), nil
+}
+
+// appendExternExports appends the memory and table export entries that
+// re-export every imported extern under its import name.
+func appendExternExports(out []byte, imports *wasmExternImports) []byte {
+	if len(imports.Memories) != 0 {
+		out = appendName(out, imports.Memories[0].Name)
+		out = append(out, 0x02)
+		out = appendU32(out, 0)
+	}
+	if len(imports.Tables) != 0 {
+		out = appendName(out, imports.Tables[0].Name)
+		out = append(out, 0x01)
+		out = appendU32(out, 0)
+	}
+	return out
 }
 
 func signatureKey(params, results []api.ValueType) string {

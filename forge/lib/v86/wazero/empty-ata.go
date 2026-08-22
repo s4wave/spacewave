@@ -7,7 +7,6 @@ const (
 	ataPrimaryControlBase     = 0x3f6
 	ataSecondaryCommandBase   = 0x170
 	ataSecondaryControlBase   = 0x376
-	ataRegStatus              = 0x07
 	ataRegAltStatus           = 0x00
 	ataBusMasterBase          = 0xb400
 	ataBusMasterChannelStride = 8
@@ -21,12 +20,8 @@ func (h *HostRuntime) registerEmptyATA() {
 func (h *HostRuntime) registerEmptyATAChannel(commandBase, controlBase, busMasterBase uint16) {
 	for offset := range uint16(8) {
 		port := commandBase + offset
-		value := uint32(0)
-		if offset == ataRegStatus {
-			value = 0
-		}
 		h.RegisterIORead(port, 8, func(context.Context, uint16) uint32 {
-			return value
+			return 0
 		})
 		h.RegisterIOWrite(port, 8, func(context.Context, uint16, uint32) {})
 	}

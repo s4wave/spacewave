@@ -161,7 +161,7 @@ func (fs *Host9PFS) Handle(req []byte) []byte {
 	}
 	size := binary.LittleEndian.Uint32(req)
 	if size > uint32(len(req)) {
-		return p9Error(req[4], binary.LittleEndian.Uint16(req[5:]), p9EIO)
+		return p9Error(binary.LittleEndian.Uint16(req[5:]), p9EIO)
 	}
 	msgType := req[4]
 	tag := binary.LittleEndian.Uint16(req[5:])
@@ -192,7 +192,7 @@ func (fs *Host9PFS) Handle(req []byte) []byte {
 	case p9TFlush:
 		return p9Reply(p9RFlush, tag, nil)
 	default:
-		return p9Error(msgType, tag, p9EOPNOTSUPP)
+		return p9Error(tag, p9EOPNOTSUPP)
 	}
 }
 
@@ -210,7 +210,7 @@ func (fs *Host9PFS) stats() (uint64, byte, uint64, uint32, uint32, bool) {
 
 func (fs *Host9PFS) handleVersion(tag uint16, body []byte) []byte {
 	if len(body) < 4 {
-		return p9Error(p9TVersion, tag, p9EIO)
+		return p9Error(tag, p9EIO)
 	}
 	var out []byte
 	out = p9AppendU32(out, binary.LittleEndian.Uint32(body))
@@ -220,7 +220,7 @@ func (fs *Host9PFS) handleVersion(tag uint16, body []byte) []byte {
 
 func (fs *Host9PFS) handleAttach(tag uint16, body []byte) []byte {
 	if len(body) < 4 || len(fs.inodes) == 0 {
-		return p9Error(p9TAttach, tag, p9EIO)
+		return p9Error(tag, p9EIO)
 	}
 	fs.fids[binary.LittleEndian.Uint32(body)] = fs.inodes[0]
 	return p9Reply(p9RAttach, tag, fs.inodes[0].qid())
@@ -228,7 +228,7 @@ func (fs *Host9PFS) handleAttach(tag uint16, body []byte) []byte {
 
 func (fs *Host9PFS) handleWalk(tag uint16, body []byte) []byte {
 	if len(body) < 10 {
-		return p9Error(p9TWalk, tag, p9EIO)
+		return p9Error(tag, p9EIO)
 	}
 	fid := binary.LittleEndian.Uint32(body)
 	newfid := binary.LittleEndian.Uint32(body[4:])
@@ -236,20 +236,20 @@ func (fs *Host9PFS) handleWalk(tag uint16, body []byte) []byte {
 	cursor := p9Cursor{data: body[10:]}
 	node := fs.fids[fid]
 	if node == nil {
-		return p9Error(p9TWalk, tag, p9ENOENT)
+		return p9Error(tag, p9ENOENT)
 	}
 	var qids []byte
 	for range count {
 		name, ok := cursor.string()
 		if !ok {
-			return p9Error(p9TWalk, tag, p9EIO)
+			return p9Error(tag, p9EIO)
 		}
 		if !node.isDir() {
-			return p9Error(p9TWalk, tag, p9ENOTDIR)
+			return p9Error(tag, p9ENOTDIR)
 		}
 		next := node.child(name)
 		if next == nil {
-			return p9Error(p9TWalk, tag, p9ENOENT)
+			return p9Error(tag, p9ENOENT)
 		}
 		node = next
 		qids = append(qids, node.qid()...)
@@ -263,11 +263,11 @@ func (fs *Host9PFS) handleWalk(tag uint16, body []byte) []byte {
 
 func (fs *Host9PFS) handleLOpen(tag uint16, body []byte) []byte {
 	if len(body) < 4 {
-		return p9Error(p9TLOpen, tag, p9EIO)
+		return p9Error(tag, p9EIO)
 	}
 	node := fs.fids[binary.LittleEndian.Uint32(body)]
 	if node == nil {
-		return p9Error(p9TLOpen, tag, p9ENOENT)
+		return p9Error(tag, p9ENOENT)
 	}
 	out := append([]byte{}, node.qid()...)
 	out = p9AppendU32(out, 65536)
@@ -276,22 +276,22 @@ func (fs *Host9PFS) handleLOpen(tag uint16, body []byte) []byte {
 
 func (fs *Host9PFS) handleReadLink(tag uint16, body []byte) []byte {
 	if len(body) < 4 {
-		return p9Error(p9TReadLink, tag, p9EIO)
+		return p9Error(tag, p9EIO)
 	}
 	node := fs.fids[binary.LittleEndian.Uint32(body)]
 	if node == nil {
-		return p9Error(p9TReadLink, tag, p9ENOENT)
+		return p9Error(tag, p9ENOENT)
 	}
 	return p9Reply(p9RReadLink, tag, p9AppendString(nil, node.symlink))
 }
 
 func (fs *Host9PFS) handleGetAttr(tag uint16, body []byte) []byte {
 	if len(body) < 4 {
-		return p9Error(p9TGetAttr, tag, p9EIO)
+		return p9Error(tag, p9EIO)
 	}
 	node := fs.fids[binary.LittleEndian.Uint32(body)]
 	if node == nil {
-		return p9Error(p9TGetAttr, tag, p9ENOENT)
+		return p9Error(tag, p9ENOENT)
 	}
 	var out []byte
 	out = p9AppendU64(out, 0x7ff)
@@ -315,14 +315,14 @@ func (fs *Host9PFS) handleGetAttr(tag uint16, body []byte) []byte {
 
 func (fs *Host9PFS) handleReadDir(tag uint16, body []byte) []byte {
 	if len(body) < 16 {
-		return p9Error(p9TReadDir, tag, p9EIO)
+		return p9Error(tag, p9EIO)
 	}
 	node := fs.fids[binary.LittleEndian.Uint32(body)]
 	if node == nil {
-		return p9Error(p9TReadDir, tag, p9ENOENT)
+		return p9Error(tag, p9ENOENT)
 	}
 	if !node.isDir() {
-		return p9Error(p9TReadDir, tag, p9ENOTDIR)
+		return p9Error(tag, p9ENOTDIR)
 	}
 	offset := binary.LittleEndian.Uint64(body[4:])
 	count := int(binary.LittleEndian.Uint32(body[12:]))
@@ -345,17 +345,17 @@ func (fs *Host9PFS) handleReadDir(tag uint16, body []byte) []byte {
 
 func (fs *Host9PFS) handleRead(tag uint16, body []byte) []byte {
 	if len(body) < 16 {
-		return p9Error(p9TRead, tag, p9EIO)
+		return p9Error(tag, p9EIO)
 	}
 	node := fs.fids[binary.LittleEndian.Uint32(body)]
 	if node == nil {
-		return p9Error(p9TRead, tag, p9ENOENT)
+		return p9Error(tag, p9ENOENT)
 	}
 	offset := binary.LittleEndian.Uint64(body[4:])
 	count := binary.LittleEndian.Uint32(body[12:])
 	data, err := fs.readFile(node, offset, count)
 	if err != nil {
-		return p9Error(p9TRead, tag, p9EIO)
+		return p9Error(tag, p9EIO)
 	}
 	out := p9AppendU32(nil, uint32(len(data)))
 	out = append(out, data...)
@@ -461,8 +461,7 @@ func p9Reply(typ byte, tag uint16, body []byte) []byte {
 	return append(out, body...)
 }
 
-func p9Error(reqType byte, tag uint16, errno uint32) []byte {
-	_ = reqType
+func p9Error(tag uint16, errno uint32) []byte {
 	return p9Reply(p9RError, tag, p9AppendU32(nil, errno))
 }
 

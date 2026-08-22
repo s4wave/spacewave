@@ -89,7 +89,7 @@ func (u *uartDevice) register() {
 			u.baudRate = (u.baudRate & 0xff) | (value << 8)
 			return
 		}
-		if u.ier&uartIirTHRI == 0 && value&uartIirTHRI != 0 {
+		if u.ier&uartIerTHRI == 0 && value&uartIerTHRI != 0 {
 			u.throwInterrupt(ctx, uartIirTHRI)
 		}
 		u.ier = value & 0xf

@@ -45,6 +45,9 @@ type AssetSet struct {
 
 // AssetOptions configures where the harness finds the real v86 image.
 type AssetOptions struct {
+	// Le is the logger entry for asset hydration; may be nil.
+	Le *logrus.Entry
+
 	CacheDir string
 	AssetDir string
 	V86Dir   string
@@ -199,7 +202,7 @@ func hydrateAssetsFromCdn(ctx context.Context, opts AssetOptions) (*AssetSet, er
 		{Pred: string(s4wave_vm.PredV86ImageKernel), FileName: "bzImage", OutName: "bzImage"},
 	}
 	for _, spec := range specs {
-		if err := writeCdnAsset(ctx, ws, imageKey, spec, opts.CacheDir); err != nil {
+		if err := writeCdnAsset(ctx, opts.Le, ws, imageKey, spec, opts.CacheDir); err != nil {
 			return nil, err
 		}
 	}
@@ -238,8 +241,7 @@ func mountCdnWorld(ctx context.Context, opts AssetOptions) (world_state.WorldSta
 		store.Close()
 		return nil, nil, errors.Wrap(err, "build cdn shared object")
 	}
-	le := logrus.NewEntry(logrus.StandardLogger())
-	we, err := cdn_sharedobject.NewWorldEngine(ctx, le, nil, so, space_world_optypes.LookupWorldOp)
+	we, err := cdn_sharedobject.NewWorldEngine(ctx, opts.Le, nil, so, space_world_optypes.LookupWorldOp)
 	if err != nil {
 		store.Close()
 		return nil, nil, errors.Wrap(err, "mount cdn world")
@@ -276,7 +278,7 @@ type assetSpec struct {
 	OutName  string
 }
 
-func writeCdnAsset(ctx context.Context, ws world_state.WorldState, imageKey string, spec assetSpec, dir string) error {
+func writeCdnAsset(ctx context.Context, le *logrus.Entry, ws world_state.WorldState, imageKey string, spec assetSpec, dir string) error {
 	assetKey, err := lookupEdge(ctx, ws, imageKey, spec.Pred)
 	if err != nil {
 		return err
@@ -284,7 +286,7 @@ func writeCdnAsset(ctx context.Context, ws world_state.WorldState, imageKey stri
 	if assetKey == "" {
 		return errors.Errorf("v86 image %q missing %s edge", imageKey, spec.Pred)
 	}
-	data, err := readUnixFSAsset(ctx, ws, assetKey, spec.FileName)
+	data, err := readUnixFSAsset(ctx, le, ws, assetKey, spec.FileName)
 	if err != nil {
 		return errors.Wrapf(err, "read %s asset object %q", spec.FileName, assetKey)
 	}
@@ -302,8 +304,8 @@ func lookupEdge(ctx context.Context, ws world_state.WorldState, subject, pred st
 	return world_state.GraphValueToKey(quads[0].GetObj())
 }
 
-func readUnixFSAsset(ctx context.Context, ws world_state.WorldState, objectKey, fileName string) ([]byte, error) {
-	fsh, err := openFSHandleForObject(ctx, ws, objectKey)
+func readUnixFSAsset(ctx context.Context, le *logrus.Entry, ws world_state.WorldState, objectKey, fileName string) ([]byte, error) {
+	fsh, err := openFSHandleForObject(ctx, le, ws, objectKey)
 	if err != nil {
 		return nil, err
 	}
@@ -323,12 +325,11 @@ func readUnixFSAsset(ctx context.Context, ws world_state.WorldState, objectKey, 
 	return billy_util.ReadFile(bfs, entries[0].Name())
 }
 
-func openFSHandleForObject(ctx context.Context, ws world_state.WorldState, objectKey string) (*unixfs.FSHandle, error) {
+func openFSHandleForObject(ctx context.Context, le *logrus.Entry, ws world_state.WorldState, objectKey string) (*unixfs.FSHandle, error) {
 	fsType, _, err := unixfs_world.LookupFsType(ctx, ws, objectKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "lookup fs type")
 	}
-	le := logrus.NewEntry(logrus.StandardLogger())
 	fsCursor := unixfs_world.NewFSCursor(le, ws, objectKey, fsType, nil, false)
 	fsh, err := unixfs.NewFSHandle(fsCursor)
 	if err != nil {

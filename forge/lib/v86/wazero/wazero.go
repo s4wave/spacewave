@@ -2,8 +2,8 @@ package v86_wazero
 
 import (
 	"context"
-	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -53,12 +53,12 @@ func importReport(compiled wazero.CompiledModule, wasmBytes []byte) (*ImportRepo
 	}
 	for _, mem := range compiled.ImportedMemories() {
 		moduleName, name, _ := mem.Import()
-		max, hasMax := mem.Max()
 		maxText := "unbounded"
-		if hasMax {
-			maxText = fmt.Sprint(max)
+		if max, hasMax := mem.Max(); hasMax {
+			maxText = strconv.FormatUint(uint64(max), 10)
 		}
-		report.Memories = append(report.Memories, fmt.Sprintf("%s.%s min=%d max=%s", moduleName, name, mem.Min(), maxText))
+		report.Memories = append(report.Memories,
+			moduleName+"."+name+" min="+strconv.FormatUint(uint64(mem.Min()), 10)+" max="+maxText)
 	}
 	imports, err := parseWasmExternImports(wasmBytes)
 	if err != nil {
@@ -74,7 +74,7 @@ func importReport(compiled wazero.CompiledModule, wasmBytes []byte) (*ImportRepo
 }
 
 func formatImport(moduleName, name string, params, results []api.ValueType) string {
-	return fmt.Sprintf("%s.%s %s -> %s", moduleName, name, valueTypes(params), valueTypes(results))
+	return moduleName + "." + name + " " + valueTypes(params) + " -> " + valueTypes(results)
 }
 
 func valueTypes(types []api.ValueType) string {
@@ -100,7 +100,7 @@ type wasmMemoryImport struct {
 }
 
 func (i wasmMemoryImport) String() string {
-	return fmt.Sprintf("%s.%s %s", i.Module, i.Name, i.Limits.String())
+	return i.Module + "." + i.Name + " " + i.Limits.String()
 }
 
 type wasmTableImport struct {
@@ -110,7 +110,7 @@ type wasmTableImport struct {
 }
 
 func (i wasmTableImport) String() string {
-	return fmt.Sprintf("%s.%s %s", i.Module, i.Name, i.Limits.String())
+	return i.Module + "." + i.Name + " " + i.Limits.String()
 }
 
 type wasmLimits struct {
@@ -121,9 +121,9 @@ type wasmLimits struct {
 func (l wasmLimits) String() string {
 	maxText := "unbounded"
 	if l.Max != nil {
-		maxText = fmt.Sprint(*l.Max)
+		maxText = strconv.FormatUint(uint64(*l.Max), 10)
 	}
-	return fmt.Sprintf("min=%d max=%s", l.Min, maxText)
+	return "min=" + strconv.FormatUint(uint64(l.Min), 10) + " max=" + maxText
 }
 
 func parseWasmExternImports(wasmBytes []byte) (*wasmExternImports, error) {

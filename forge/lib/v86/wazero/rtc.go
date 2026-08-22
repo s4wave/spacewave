@@ -95,7 +95,7 @@ func (c *cmosDevice) fill(memorySize uint32) {
 	memoryAbove1M := uint32(0)
 	if memorySize >= 1024*1024 {
 		memoryAbove1M = (memorySize - 1024*1024) >> 10
-		memoryAbove1M = minU32(memoryAbove1M, 0xffff)
+		memoryAbove1M = min(memoryAbove1M, uint32(0xffff))
 	}
 	c.data[cmosMemOldExtLow] = byte(memoryAbove1M)
 	c.data[cmosMemOldExtHigh] = byte(memoryAbove1M >> 8)
@@ -105,7 +105,7 @@ func (c *cmosDevice) fill(memorySize uint32) {
 	memoryAbove16M := uint32(0)
 	if memorySize >= 16*1024*1024 {
 		memoryAbove16M = (memorySize - 16*1024*1024) >> 16
-		memoryAbove16M = minU32(memoryAbove16M, 0xffff)
+		memoryAbove16M = min(memoryAbove16M, uint32(0xffff))
 	}
 	c.data[cmosMemExt2Low] = byte(memoryAbove16M)
 	c.data[cmosMemExt2High] = byte(memoryAbove16M >> 8)
@@ -262,11 +262,4 @@ func (c *cmosDevice) alarmTime(nowMillis int64) int64 {
 		0,
 		time.UTC,
 	).UnixMilli()
-}
-
-func minU32(a, b uint32) uint32 {
-	if a < b {
-		return a
-	}
-	return b
 }

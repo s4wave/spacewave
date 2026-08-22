@@ -1,11 +1,12 @@
 package v86_wazero
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -474,11 +475,11 @@ func topPorts(counts map[uint16]uint64) string {
 	for port, count := range counts {
 		entries = append(entries, entry{port: port, count: count})
 	}
-	sort.Slice(entries, func(i, j int) bool {
-		if entries[i].count == entries[j].count {
-			return entries[i].port < entries[j].port
+	slices.SortFunc(entries, func(a, b entry) int {
+		if a.count != b.count {
+			return cmp.Compare(b.count, a.count)
 		}
-		return entries[i].count > entries[j].count
+		return cmp.Compare(a.port, b.port)
 	})
 	if len(entries) > 12 {
 		entries = entries[:12]
