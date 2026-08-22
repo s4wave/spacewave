@@ -4,23 +4,6 @@ export interface DebugContext {
   [key: string]: unknown
 }
 
-// TestDebugContext is the typed debug context for e2e test scripts.
-// Fields match the setDebugContext() call in app/AppAPI.tsx.
-export interface TestDebugContext extends DebugContext {
-  client: import('@aptre/bldr-sdk/resource/index.js').Client
-  root: import('../root/root.js').Root
-  createLocalSession: typeof import('../../app/quickstart/create.js').createLocalSession
-  createDrive: typeof import('../../app/quickstart/create.js').createDrive
-  createQuickstartSetup: typeof import('../../app/quickstart/create.js').createQuickstartSetup
-  mountSpace: typeof import('../../app/space/space.js').mountSpace
-  FSHandle: typeof import('../unixfs/handle.js').FSHandle
-  downloadURL: typeof import('../../web/download.js').downloadURL
-  SpacewaveProvider: typeof import('../provider/spacewave/spacewave.js').SpacewaveProvider
-  UNIXFS_OBJECT_KEY: string
-  runSOPerfTest: typeof import('../../app/quickstart/perf-test.js').runSOPerfTest
-  runPostLoadSOPerfTest: typeof import('../../app/quickstart/perf-test.js').runPostLoadSOPerfTest
-}
-
 const GLOBAL_KEY = '__s4wave_debug'
 
 // debugContextStore is the process-global store holding the debug context.
