@@ -130,7 +130,7 @@ func (a *ProviderAccount) startP2PSyncForSession(
 				a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
 			}
 
-			if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
+			if err := a.startSOSync(syncCtx, childBus, sessionTransport.GetPeerID(), ref, soID, state); err != nil {
 				a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
 			}
 		}
@@ -167,8 +167,8 @@ func (a *ProviderAccount) stopP2PSyncForSession(sessionID string) {
 func (a *ProviderAccount) startSOSync(
 	ctx context.Context,
 	childBus bus.Bus,
+	localPeerID peer.ID,
 	ref *sobject.SharedObjectRef,
-
 	soID string,
 	state *p2pSyncState,
 ) error {
@@ -183,7 +183,7 @@ func (a *ProviderAccount) startSOSync(
 		return errors.New("unexpected session shared object type")
 	}
 
-	soSync := sobject_sync.NewSOSync(a.le, childBus, soID, swSO.GetSOHost())
+	soSync := sobject_sync.NewSOSync(a.le, childBus, soID, localPeerID, swSO.GetSOHost())
 	state.wg.Go(func() {
 		defer relSO.Release()
 		if err := soSync.Execute(ctx); err != nil && ctx.Err() == nil {

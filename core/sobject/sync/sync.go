@@ -6,6 +6,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
 	"github.com/s4wave/spacewave/net/peer"
@@ -24,19 +25,23 @@ const maxMessageSize = 10 * 1024 * 1024
 // over a solicit protocol stream. Each instance syncs one SharedObject
 // with peers connected via the session transport's child bus.
 type SOSync struct {
-	le     *logrus.Entry
-	b      bus.Bus
-	soID   string
-	soHost *sobject.SOHost
+	le          *logrus.Entry
+	b           bus.Bus
+	soID        string
+	localPeerID peer.ID
+	soHost      *sobject.SOHost
 }
 
 // NewSOSync constructs a new SOSync.
-func NewSOSync(le *logrus.Entry, b bus.Bus, soID string, soHost *sobject.SOHost) *SOSync {
+//
+// localPeerID is the local session peer checked against inbound state.
+func NewSOSync(le *logrus.Entry, b bus.Bus, soID string, localPeerID peer.ID, soHost *sobject.SOHost) *SOSync {
 	return &SOSync{
-		le:     le.WithField("so-sync", soID),
-		b:      b,
-		soID:   soID,
-		soHost: soHost,
+		le:          le.WithField("so-sync", soID),
+		b:           b,
+		soID:        soID,
+		localPeerID: localPeerID,
+		soHost:      soHost,
 	}
 }
 
@@ -140,11 +145,18 @@ func (s *SOSync) exchangeSnapshots(ctx context.Context, le *logrus.Entry, sess *
 	// The full state includes config (participants, grants) and root,
 	// which is necessary for paired devices that share the same SO but
 	// may have divergent configs until the first sync.
+	// A matched solicit stream proves routing agreement, never content
+	// trust: validate the snapshot elements before adopting them.
 	if peerSnap.GetRootSeqno() > localSeqno {
 		peerState := &sobject.SOState{}
 		if err := peerState.UnmarshalVT(peerSnap.GetSoState()); err != nil {
 			le.WithError(err).Warn("failed to unmarshal peer snapshot")
 			return err
+		}
+
+		if err := s.validateSnapshotElements(peerState); err != nil {
+			le.WithError(err).Warn("rejected peer snapshot failing element validation")
+			return errors.Wrap(err, "invalid peer snapshot")
 		}
 
 		if err := s.soHost.UpdateSOState(ctx, func(state *sobject.SOState) error {
@@ -154,9 +166,51 @@ func (s *SOSync) exchangeSnapshots(ctx context.Context, le *logrus.Entry, sess *
 			le.WithError(err).Warn("failed to apply peer snapshot")
 			return err
 		}
-		le.Debug("applied peer snapshot with higher seqno")
+		le.Debug("applied validated peer snapshot with higher seqno")
 	}
 
+	return nil
+}
+
+// validateSnapshotElements checks an inbound snapshot before it may replace
+// local shared-object state. The sending peer may have self-authored the
+// received config: nothing here verifies who wrote it or its lineage. The
+// checks only require the local session peer to keep readable membership in
+// the resulting config, and the grants and ops carried in the snapshot to
+// carry internally valid signatures against that untrusted config.
+//
+// Full config-head authorization requires VerifyConfigChain over the
+// sender's SOConfigChange entries. Neither SOSyncMessage nor any p2p-side
+// store carries those entries today; closing that chain-lineage gap is a
+// separate prerequisite.
+func (s *SOSync) validateSnapshotElements(peerState *sobject.SOState) error {
+	cfg := peerState.GetConfig()
+	if cfg == nil || len(cfg.GetParticipants()) == 0 {
+		return errors.New("snapshot has no participants")
+	}
+
+	localPeerIDStr := s.localPeerID.String()
+	var localParticipant bool
+	for _, p := range cfg.GetParticipants() {
+		if p.GetPeerId() == localPeerIDStr && sobject.CanReadState(p.GetRole()) {
+			localParticipant = true
+			break
+		}
+	}
+	if !localParticipant {
+		return errors.Errorf("local peer %s is not a participant of the snapshot config", localPeerIDStr)
+	}
+
+	for _, g := range peerState.GetRootGrants() {
+		if err := g.ValidateSignature(s.soID, cfg.GetParticipants()); err != nil {
+			return errors.Wrap(err, "root grant")
+		}
+	}
+	for _, op := range peerState.GetOps() {
+		if err := op.ValidateSignature(s.soID, cfg.GetParticipants()); err != nil {
+			return errors.Wrap(err, "queued op")
+		}
+	}
 	return nil
 }
 
@@ -256,6 +310,20 @@ func (s *SOSync) handleRemoteOp(ctx context.Context, le *logrus.Entry, syncOp *S
 	peerID, err := peer.IDB58Decode(peerIDStr)
 	if err != nil {
 		le.WithError(err).Warn("invalid peer id in remote op")
+		return
+	}
+
+	// Verify the op signer against the current local participants before
+	// queueing. SOState.QueueOperation re-validates under the state lock;
+	// this check surfaces rejection of unauthorized ops at warn level.
+	localState, err := s.soHost.GetHostState(ctx)
+	if err != nil {
+		le.WithError(err).Warn("failed to load local state for op authorization")
+		return
+	}
+	if err := op.ValidateSignature(s.soID, localState.GetConfig().GetParticipants()); err != nil {
+		le.WithError(err).WithField("op-peer", peerIDStr).
+			Warn("rejected unauthorized remote op")
 		return
 	}
 

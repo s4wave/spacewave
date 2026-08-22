@@ -4,6 +4,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -168,8 +169,11 @@ func TestSyncProtocolID(t *testing.T) {
 func TestNewSOSync(t *testing.T) {
 	le := logrus.NewEntry(logrus.New())
 	le.Logger.SetOutput(io.Discard)
-	s := NewSOSync(le, nil, "test-so-id", nil)
+	s := NewSOSync(le, nil, "test-so-id", peer.ID("test-peer"), nil)
 	if s.soID != "test-so-id" {
 		t.Errorf("expected test-so-id, got %s", s.soID)
+	}
+	if s.localPeerID != peer.ID("test-peer") {
+		t.Errorf("expected test-peer local peer id, got %s", s.localPeerID)
 	}
 }
