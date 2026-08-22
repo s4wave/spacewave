@@ -2,7 +2,6 @@ package plugin_host_web
 
 import (
 	"context"
-	"maps"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -20,7 +19,6 @@ import (
 	host_controller "github.com/s4wave/spacewave/bldr/plugin/host/controller"
 	web_document "github.com/s4wave/spacewave/bldr/web/document"
 	web_runtime "github.com/s4wave/spacewave/bldr/web/runtime"
-	web_worker "github.com/s4wave/spacewave/bldr/web/worker"
 	"github.com/s4wave/spacewave/db/unixfs"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/s4wave/spacewave/net/util/randstring"
@@ -352,37 +350,6 @@ func (h *WebHost) ExecutePlugin(
 		return nil
 	}
 
-	removeWorkerInstances := func(ctx context.Context, doc web_document.WebDocument, generation string) (map[string]web_worker.WebWorker, error) {
-		// Remove any old instances of the web worker.
-		docWebWorkers, err := doc.GetWebWorkers(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		docWebWorkers = maps.Clone(docWebWorkers)
-		for id, worker := range docWebWorkers {
-			if worker.GetId() != pluginWebWorkerID ||
-				(generation != "" && worker.GetGeneration() != generation) {
-				delete(docWebWorkers, id)
-				continue
-			}
-
-			h.le.
-				WithFields(logrus.Fields{
-					"web-document": doc.GetWebDocumentUuid(),
-					"web-runtime":  h.webRuntimeID,
-					"web-worker":   pluginWebWorkerID,
-				}).
-				Debug("removing old instance of web worker")
-			_, err := worker.Remove(ctx)
-			if err != nil {
-				h.le.WithError(err).Warn("unable to remove old web worker instance")
-			}
-		}
-
-		return docWebWorkers, nil
-	}
-
 	// Track web document is called for each of the running web documents.
 	trackWebDocument := func(ctx context.Context, webDocumentID string) error {
 		// Get the web document.
@@ -396,7 +363,7 @@ func (h *WebHost) ExecutePlugin(
 		defer cleanupCtxCancel()
 
 		for cleanupCtx.Err() == nil {
-			removedInstances, err := removeWorkerInstances(ctx, doc, "")
+			removedInstances, err := removeStaleWebWorkerInstances(ctx, doc, h.le, h.webRuntimeID, pluginWebWorkerID, pluginInstanceID)
 			if err != nil {
 				return err
 			}
@@ -495,7 +462,7 @@ func (h *WebHost) ExecutePlugin(
 			var retErr error
 			var nOldInstances int
 			for _, doc := range docs {
-				oldInstances, err := removeWorkerInstances(ctx, doc, pluginInstanceID)
+				oldInstances, err := removeOwnWebWorkerInstances(ctx, doc, h.le, h.webRuntimeID, pluginWebWorkerID, pluginInstanceID)
 				if err != nil {
 					retErr = err
 				}
