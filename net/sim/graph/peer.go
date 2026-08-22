@@ -146,10 +146,8 @@ func (p *Peer) GetLinkedPeers(g *Graph) []*Peer {
 
 // AllPeers returns the set of all peers in the graph.
 func (g *Graph) AllPeers() []*Peer {
-	it := g.graph.Nodes()
 	var nodes []*Peer
-	for it.Next() {
-		nod := it.Node()
+	for _, nod := range g.AllNodes() {
 		p, pOk := nod.(*Peer)
 		if pOk {
 			nodes = append(nodes, p)

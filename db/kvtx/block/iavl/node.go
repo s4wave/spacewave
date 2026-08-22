@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/blob"
-	"gonum.org/v1/gonum/graph/encoding"
 )
 
 // NewNodeBlock constructs a new node block.
@@ -188,8 +187,8 @@ func (n *Node) GetBlockRefCtor(id uint32) block.Ctor {
 }
 
 // GetBlockGraphAttributes returns the block graph attributes.
-func (n *Node) GetBlockGraphAttributes() []encoding.Attribute {
-	return []encoding.Attribute{{
+func (n *Node) GetBlockGraphAttributes() []block.BlockGraphAttribute {
+	return []block.BlockGraphAttribute{{
 		Key: "label",
 		Value: fmt.Sprintf(
 			"key: %q\nsize: %d\nheight: %d",

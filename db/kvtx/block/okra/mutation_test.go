@@ -192,7 +192,7 @@ func TestTxSetMaterializesBlobOutsideTreeTransaction(t *testing.T) {
 	if err := tx.Set(ctx, []byte("a"), []byte("1")); err != nil {
 		t.Fatal(err)
 	}
-	if nodes := btx.GetBlockGraph().Nodes().Len(); nodes != 3 {
+	if nodes := len(btx.GetBlockGraph().Nodes()); nodes != 3 {
 		t.Fatalf("outer transaction nodes = %d, want 3 root/page nodes", nodes)
 	}
 	if err := tx.Commit(ctx); err != nil {
