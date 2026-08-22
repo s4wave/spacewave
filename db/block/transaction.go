@@ -20,6 +20,8 @@ var maxWriteConcurrency = runtime.GOMAXPROCS(0)
 // maxEncodeConcurrency is the maximum concurrency for hashing & marshaling blocks.
 var maxEncodeConcurrency = maxWriteConcurrency
 
+// transactionReachableNode tracks one node in the marshal reachability
+// graph.
 type transactionReachableNode struct {
 	// from is the list of nodes that we can reach from this node
 	// (child nodes)
@@ -640,6 +642,9 @@ func (t *Transaction) clearData() {
 	t.blockGraph.AddNode(t.root)
 }
 
+// addMarshalAliasWaits makes each node's marshal wait for the marshals of
+// any alias-linked nodes it references, so alias identities are written
+// before the blocks that point at them.
 func (t *Transaction) addMarshalAliasWaits(reachable map[int64]transactionReachableNode) {
 	if t == nil || t.blockGraph == nil {
 		return
@@ -693,6 +698,8 @@ func (t *Transaction) addMarshalAliasWaits(reachable map[int64]transactionReacha
 	}
 }
 
+// blockAliasIdentity returns the alias identity token of a block value,
+// or nil.
 func blockAliasIdentity(v any) *AliasIdentityToken {
 	if v == nil {
 		return nil
@@ -704,6 +711,8 @@ func blockAliasIdentity(v any) *AliasIdentityToken {
 	return withIdentity.BlockAliasIdentity()
 }
 
+// walkMarshalAliasSubBlocks visits every sub-block carrying an alias
+// identity exactly once.
 func walkMarshalAliasSubBlocks(v any, seen map[*AliasIdentityToken]struct{}, visit func(any)) {
 	identity := blockAliasIdentity(v)
 	if identity != nil {
