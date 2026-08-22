@@ -53,7 +53,7 @@ require (
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
 	github.com/aperturerobotics/protobuf-go-lite v0.17.1-0.20260813224822-0110bb08b4f1 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
-	github.com/aperturerobotics/starpc v0.52.1-0.20260809072151-672438b66c69
+	github.com/aperturerobotics/starpc v0.52.1-0.20260812064155-f8d627ef2571
 	github.com/aperturerobotics/util v1.34.10-0.20260802062101-496aab6cefd2 // master
 )
 
@@ -78,11 +78,11 @@ require (
 	github.com/pion/logging v0.2.4
 	github.com/pion/transport/v4 v4.1.0
 	go.starlark.net v0.0.0-20260708150628-5395d018f003
-	golang.org/x/exp v0.0.0-20260811152304-ee035b5b010f
+	golang.org/x/exp v0.0.0-20260820142414-ca536658362e
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
 	gotest.tools/v3 v3.5.2
-	modernc.org/sqlite v1.56.0
+	modernc.org/sqlite v1.57.0
 )
 
 require (
@@ -113,7 +113,7 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mr-tron/base58 v1.3.0
 	github.com/ncruces/go-sqlite3 v0.35.3
-	github.com/pierrec/lz4/v4 v4.1.28
+	github.com/pierrec/lz4/v4 v4.1.29
 	github.com/pion/datachannel v1.6.2
 	github.com/pion/sdp/v3 v3.0.19
 	github.com/pion/webrtc/v4 v4.2.18
@@ -123,7 +123,7 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
-	github.com/sirupsen/logrus v1.9.5-0.20260811112848-ed957d512a86
+	github.com/sirupsen/logrus v1.10.1
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
 	github.com/tetratelabs/wazero v1.12.0
@@ -144,7 +144,6 @@ require (
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
 	github.com/dolthub/go-icu-regex v0.0.0-20260610153742-72563bc7ca83 // indirect
 	github.com/dolthub/jsonpath v0.0.2-0.20240227200619-19675ab05c71 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.5 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
@@ -162,7 +161,7 @@ require (
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
-	github.com/mxschmitt/playwright-go v0.6100.0
+	github.com/mxschmitt/playwright-go v0.6201.1
 	github.com/ncruces/go-sqlite3-wasm/v3 v3.2.35304 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
