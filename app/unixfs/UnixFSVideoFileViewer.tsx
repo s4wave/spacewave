@@ -204,7 +204,7 @@ function UnixFSVideoPlayerSurface({
         </div>
       )}
 
-      <Player.Provider>
+      <Player.Player>
         <VideoSkin
           className="flex h-full min-h-0 w-full items-center justify-center rounded-none"
           style={videoSkinStyle}
@@ -230,7 +230,7 @@ function UnixFSVideoPlayerSurface({
             src={inlineFileURL}
           />
         </VideoSkin>
-      </Player.Provider>
+      </Player.Player>
     </div>
   )
 }

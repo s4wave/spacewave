@@ -187,7 +187,7 @@ function UnixFSAudioPlayerSurface({
               </div>
             )}
 
-            <Player.Provider>
+            <Player.Player>
               <AudioSkin
                 className="flex min-h-0 w-full items-center rounded-none"
                 style={audioSkinStyle}
@@ -210,7 +210,7 @@ function UnixFSAudioPlayerSurface({
                   src={inlineFileURL}
                 />
               </AudioSkin>
-            </Player.Provider>
+            </Player.Player>
           </div>
         </div>
       </div>
