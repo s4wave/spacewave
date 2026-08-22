@@ -407,23 +407,15 @@ func prepareSupportFiles(ctx context.Context, repoDir string, platforms []string
 	return nil
 }
 
+// buildHelpers runs one helper build per requested platform. Darwin arches
+// build independently: build-helper.sh builds exactly the requested
+// architecture, so a universal macOS release lists both darwin platforms.
 func buildHelpers(repoDir string, platforms []string) error {
-	needsDarwin := false
 	for _, platform := range platforms {
 		goos, goarch := splitPlatform(platform)
-		if goos == "darwin" {
-			needsDarwin = true
-			continue
-		}
 		if err := runScript(repoDir, filepath.Join("scripts", "release", "build-helper.sh"), goos, goarch); err != nil {
 			return errors.Wrap(err, "build helper "+platform)
 		}
-	}
-	if !needsDarwin {
-		return nil
-	}
-	if err := runScript(repoDir, filepath.Join("scripts", "release", "build-helper.sh"), "darwin", "arm64"); err != nil {
-		return errors.Wrap(err, "build helper darwin")
 	}
 	return nil
 }
