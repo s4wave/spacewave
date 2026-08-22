@@ -1,0 +1,327 @@
+// Wire-compatible subset of ESPHome api.proto at commit
+// 7bd44a70c2199b5c074d8b230af20f302aa90293, covering connection negotiation,
+// entity enumeration, and state publication for Device-owned sensors.
+syntax = "proto3";
+package s4wave.sensor.esphome;
+
+option go_package = "github.com/s4wave/spacewave/core/device/sensor/esphome;esphome";
+
+// EspHomeMessageId identifies a Native API payload outside the protobuf body.
+enum EspHomeMessageId {
+  // ESP_HOME_MESSAGE_ID_UNKNOWN rejects an unidentified Native API payload.
+  ESP_HOME_MESSAGE_ID_UNKNOWN = 0;
+  // ESP_HOME_MESSAGE_ID_HELLO_REQUEST starts client negotiation.
+  ESP_HOME_MESSAGE_ID_HELLO_REQUEST = 1;
+  // ESP_HOME_MESSAGE_ID_HELLO_RESPONSE reports server protocol identity.
+  ESP_HOME_MESSAGE_ID_HELLO_RESPONSE = 2;
+  // ESP_HOME_MESSAGE_ID_AUTHENTICATION_REQUEST carries legacy authentication.
+  ESP_HOME_MESSAGE_ID_AUTHENTICATION_REQUEST = 3;
+  // ESP_HOME_MESSAGE_ID_AUTHENTICATION_RESPONSE reports legacy authentication.
+  ESP_HOME_MESSAGE_ID_AUTHENTICATION_RESPONSE = 4;
+  // ESP_HOME_MESSAGE_ID_DISCONNECT_REQUEST starts graceful disconnect.
+  ESP_HOME_MESSAGE_ID_DISCONNECT_REQUEST = 5;
+  // ESP_HOME_MESSAGE_ID_DISCONNECT_RESPONSE acknowledges graceful disconnect.
+  ESP_HOME_MESSAGE_ID_DISCONNECT_RESPONSE = 6;
+  // ESP_HOME_MESSAGE_ID_PING_REQUEST asks the peer to confirm liveness.
+  ESP_HOME_MESSAGE_ID_PING_REQUEST = 7;
+  // ESP_HOME_MESSAGE_ID_PING_RESPONSE confirms peer liveness.
+  ESP_HOME_MESSAGE_ID_PING_RESPONSE = 8;
+  // ESP_HOME_MESSAGE_ID_LIST_ENTITIES_REQUEST requests entity metadata.
+  ESP_HOME_MESSAGE_ID_LIST_ENTITIES_REQUEST = 11;
+  // ESP_HOME_MESSAGE_ID_LIST_ENTITIES_BINARY_SENSOR_RESPONSE describes a binary sensor.
+  ESP_HOME_MESSAGE_ID_LIST_ENTITIES_BINARY_SENSOR_RESPONSE = 12;
+  // ESP_HOME_MESSAGE_ID_LIST_ENTITIES_LIGHT_RESPONSE describes a light.
+  ESP_HOME_MESSAGE_ID_LIST_ENTITIES_LIGHT_RESPONSE = 15;
+  // ESP_HOME_MESSAGE_ID_LIST_ENTITIES_SENSOR_RESPONSE describes a numeric sensor.
+  ESP_HOME_MESSAGE_ID_LIST_ENTITIES_SENSOR_RESPONSE = 16;
+  // ESP_HOME_MESSAGE_ID_LIST_ENTITIES_DONE_RESPONSE ends entity enumeration.
+  ESP_HOME_MESSAGE_ID_LIST_ENTITIES_DONE_RESPONSE = 19;
+  // ESP_HOME_MESSAGE_ID_SUBSCRIBE_STATES_REQUEST starts state publication.
+  ESP_HOME_MESSAGE_ID_SUBSCRIBE_STATES_REQUEST = 20;
+  // ESP_HOME_MESSAGE_ID_BINARY_SENSOR_STATE_RESPONSE publishes binary state.
+  ESP_HOME_MESSAGE_ID_BINARY_SENSOR_STATE_RESPONSE = 21;
+  // ESP_HOME_MESSAGE_ID_LIGHT_STATE_RESPONSE publishes light state.
+  ESP_HOME_MESSAGE_ID_LIGHT_STATE_RESPONSE = 24;
+  // ESP_HOME_MESSAGE_ID_SENSOR_STATE_RESPONSE publishes numeric state.
+  ESP_HOME_MESSAGE_ID_SENSOR_STATE_RESPONSE = 25;
+}
+
+// DisconnectReason explains why a Native API peer closed its connection.
+enum DisconnectReason {
+  // DISCONNECT_REASON_UNSPECIFIED is the legacy or unstated reason.
+  DISCONNECT_REASON_UNSPECIFIED = 0;
+  // DISCONNECT_REASON_PROVISIONING_CLOSED reports completed provisioning.
+  DISCONNECT_REASON_PROVISIONING_CLOSED = 1;
+}
+
+// EntityCategory classifies an ESPHome entity in client interfaces.
+enum EntityCategory {
+  // ENTITY_CATEGORY_NONE is an ordinary entity.
+  ENTITY_CATEGORY_NONE = 0;
+  // ENTITY_CATEGORY_CONFIG changes device configuration.
+  ENTITY_CATEGORY_CONFIG = 1;
+  // ENTITY_CATEGORY_DIAGNOSTIC reports device diagnostics.
+  ENTITY_CATEGORY_DIAGNOSTIC = 2;
+}
+
+// SensorStateClass defines the aggregation semantics of a numeric sensor.
+enum SensorStateClass {
+  // SENSOR_STATE_CLASS_NONE has no aggregation semantics.
+  SENSOR_STATE_CLASS_NONE = 0;
+  // SENSOR_STATE_CLASS_MEASUREMENT is an instantaneous measurement.
+  SENSOR_STATE_CLASS_MEASUREMENT = 1;
+  // SENSOR_STATE_CLASS_TOTAL_INCREASING is a monotonically increasing total.
+  SENSOR_STATE_CLASS_TOTAL_INCREASING = 2;
+  // SENSOR_STATE_CLASS_TOTAL is a non-monotonic total.
+  SENSOR_STATE_CLASS_TOTAL = 3;
+  // SENSOR_STATE_CLASS_MEASUREMENT_ANGLE is an angular measurement.
+  SENSOR_STATE_CLASS_MEASUREMENT_ANGLE = 4;
+}
+
+// SensorLastResetType retains the deprecated ESPHome reset contract.
+enum SensorLastResetType {
+  // SENSOR_LAST_RESET_TYPE_NONE has no legacy reset declaration.
+  SENSOR_LAST_RESET_TYPE_NONE = 0;
+  // SENSOR_LAST_RESET_TYPE_NEVER declares that the sensor never resets.
+  SENSOR_LAST_RESET_TYPE_NEVER = 1;
+  // SENSOR_LAST_RESET_TYPE_AUTO lets the server infer resets.
+  SENSOR_LAST_RESET_TYPE_AUTO = 2;
+}
+
+// ColorMode identifies the channels a light state can represent.
+enum ColorMode {
+  // COLOR_MODE_UNKNOWN is not a usable light mode.
+  COLOR_MODE_UNKNOWN = 0;
+  // COLOR_MODE_ON_OFF controls only power.
+  COLOR_MODE_ON_OFF = 1;
+  // COLOR_MODE_LEGACY_BRIGHTNESS retains legacy brightness behavior.
+  COLOR_MODE_LEGACY_BRIGHTNESS = 2;
+  // COLOR_MODE_BRIGHTNESS controls power and brightness.
+  COLOR_MODE_BRIGHTNESS = 3;
+  // COLOR_MODE_WHITE controls a white channel.
+  COLOR_MODE_WHITE = 7;
+  // COLOR_MODE_COLOR_TEMPERATURE controls color temperature.
+  COLOR_MODE_COLOR_TEMPERATURE = 11;
+  // COLOR_MODE_COLD_WARM_WHITE controls separate white channels.
+  COLOR_MODE_COLD_WARM_WHITE = 19;
+  // COLOR_MODE_RGB controls red, green, and blue channels.
+  COLOR_MODE_RGB = 35;
+  // COLOR_MODE_RGB_WHITE controls RGB and one white channel.
+  COLOR_MODE_RGB_WHITE = 39;
+  // COLOR_MODE_RGB_COLOR_TEMPERATURE controls RGB and color temperature.
+  COLOR_MODE_RGB_COLOR_TEMPERATURE = 47;
+  // COLOR_MODE_RGB_COLD_WARM_WHITE controls RGB and two white channels.
+  COLOR_MODE_RGB_COLD_WARM_WHITE = 51;
+}
+
+// HelloRequest identifies this client and its supported Native API version.
+message HelloRequest {
+  // ClientInfo identifies the client for device logs.
+  string client_info = 1;
+  // ApiVersionMajor is the supported breaking-protocol version.
+  uint32 api_version_major = 2;
+  // ApiVersionMinor is the supported message-contract version.
+  uint32 api_version_minor = 3;
+}
+
+// HelloResponse identifies the device and negotiated Native API version.
+message HelloResponse {
+  // ApiVersionMajor is the device breaking-protocol version.
+  uint32 api_version_major = 1;
+  // ApiVersionMinor is the device message-contract version.
+  uint32 api_version_minor = 2;
+  // ServerInfo identifies the ESPHome firmware build.
+  string server_info = 3;
+  // Name is the configured ESPHome node name.
+  string name = 4;
+}
+
+// AuthenticationRequest carries the password required by legacy firmware.
+message AuthenticationRequest {
+  // Password is the configured Native API password, or empty when disabled.
+  string password = 1;
+}
+
+// AuthenticationResponse reports whether legacy authentication failed.
+message AuthenticationResponse {
+  // InvalidPassword is true when the server rejected the password.
+  bool invalid_password = 1;
+}
+
+// DisconnectRequest asks the peer to acknowledge a graceful disconnect.
+message DisconnectRequest {
+  // Reason explains why the connection is closing.
+  DisconnectReason reason = 1;
+}
+
+// DisconnectResponse acknowledges a graceful disconnect.
+message DisconnectResponse {
+}
+
+// PingRequest asks a connected peer to confirm liveness.
+message PingRequest {
+}
+
+// PingResponse confirms liveness to the requesting peer.
+message PingResponse {
+}
+
+// ListEntitiesRequest asks the server to enumerate configured entities.
+message ListEntitiesRequest {
+}
+
+// ListEntitiesDoneResponse marks the end of one entity enumeration.
+message ListEntitiesDoneResponse {
+}
+
+// SubscribeStatesRequest asks the server to publish entity state changes.
+message SubscribeStatesRequest {
+}
+
+// ListEntitiesBinarySensorResponse describes one binary sensor.
+message ListEntitiesBinarySensorResponse {
+  // ObjectId is the stable configured entity object identifier.
+  string object_id = 1;
+  // Key joins entity metadata with state packets for this connection.
+  fixed32 key = 2;
+  // Name is the human-readable configured entity name.
+  string name = 3;
+  // Field 4 is reserved after removal of the legacy unique identifier.
+  reserved 4;
+  // DeviceClass states the Home Assistant binary-sensor semantic class.
+  string device_class = 5;
+  // IsStatusBinarySensor marks the legacy node-status sensor.
+  bool is_status_binary_sensor = 6;
+  // DisabledByDefault reports the factory client-visibility default.
+  bool disabled_by_default = 7;
+  // Icon is the optional configured icon name.
+  string icon = 8;
+  // EntityCategory classifies the entity as ordinary, config, or diagnostic.
+  EntityCategory entity_category = 9;
+  // DeviceId associates the entity with an ESPHome subdevice when present.
+  uint32 device_id = 10;
+}
+
+// BinarySensorStateResponse publishes one binary-sensor state.
+message BinarySensorStateResponse {
+  // Key identifies the entity from enumeration.
+  fixed32 key = 1;
+  // State is the current boolean value.
+  bool state = 2;
+  // MissingState is true before the component has produced a valid value.
+  bool missing_state = 3;
+  // DeviceId associates the state with an ESPHome subdevice when present.
+  uint32 device_id = 4;
+}
+
+// ListEntitiesSensorResponse describes one numeric sensor.
+message ListEntitiesSensorResponse {
+  // ObjectId is the stable configured entity object identifier.
+  string object_id = 1;
+  // Key joins entity metadata with state packets for this connection.
+  fixed32 key = 2;
+  // Name is the human-readable configured entity name.
+  string name = 3;
+  // Field 4 is reserved after removal of the legacy unique identifier.
+  reserved 4;
+  // Icon is the optional configured icon name.
+  string icon = 5;
+  // UnitOfMeasurement describes numeric state units.
+  string unit_of_measurement = 6;
+  // AccuracyDecimals is the display precision requested by the component.
+  int32 accuracy_decimals = 7;
+  // ForceUpdate requests publication even when the value has not changed.
+  bool force_update = 8;
+  // DeviceClass states the Home Assistant sensor semantic class.
+  string device_class = 9;
+  // StateClass states the aggregation semantics of numeric values.
+  SensorStateClass state_class = 10;
+  // LegacyLastResetType retains the deprecated reset declaration.
+  SensorLastResetType legacy_last_reset_type = 11;
+  // DisabledByDefault reports the factory client-visibility default.
+  bool disabled_by_default = 12;
+  // EntityCategory classifies the entity as ordinary, config, or diagnostic.
+  EntityCategory entity_category = 13;
+  // DeviceId associates the entity with an ESPHome subdevice when present.
+  uint32 device_id = 14;
+}
+
+// SensorStateResponse publishes one numeric-sensor state.
+message SensorStateResponse {
+  // Key identifies the entity from enumeration.
+  fixed32 key = 1;
+  // State is the current IEEE-754 numeric value.
+  float state = 2;
+  // MissingState is true before the component has produced a valid value.
+  bool missing_state = 3;
+  // DeviceId associates the state with an ESPHome subdevice when present.
+  uint32 device_id = 4;
+}
+
+// ListEntitiesLightResponse describes one controllable light.
+message ListEntitiesLightResponse {
+  // ObjectId is the stable configured entity object identifier.
+  string object_id = 1;
+  // Key joins entity metadata with state packets for this connection.
+  fixed32 key = 2;
+  // Name is the human-readable configured entity name.
+  string name = 3;
+  // Field 4 is reserved after removal of the legacy unique identifier.
+  reserved 4;
+  // LegacySupportsBrightness retains the API before color-mode masks.
+  bool legacy_supports_brightness = 5;
+  // LegacySupportsRgb retains the API before color-mode masks.
+  bool legacy_supports_rgb = 6;
+  // LegacySupportsWhiteValue retains the API before color-mode masks.
+  bool legacy_supports_white_value = 7;
+  // LegacySupportsColorTemperature retains the API before color-mode masks.
+  bool legacy_supports_color_temperature = 8;
+  // MinMireds is the coolest supported color temperature.
+  float min_mireds = 9;
+  // MaxMireds is the warmest supported color temperature.
+  float max_mireds = 10;
+  // Effects lists command effect names accepted by the firmware.
+  repeated string effects = 11;
+  // SupportedColorModes lists complete channel combinations.
+  repeated ColorMode supported_color_modes = 12;
+  // DisabledByDefault reports the factory client-visibility default.
+  bool disabled_by_default = 13;
+  // Icon is the optional configured icon name.
+  string icon = 14;
+  // EntityCategory classifies the entity as ordinary, config, or diagnostic.
+  EntityCategory entity_category = 15;
+  // DeviceId associates the entity with an ESPHome subdevice when present.
+  uint32 device_id = 16;
+}
+
+// LightStateResponse publishes the complete current light state.
+message LightStateResponse {
+  // Key identifies the entity from enumeration.
+  fixed32 key = 1;
+  // State is true when the light is on.
+  bool state = 2;
+  // Brightness is normalized from zero through one.
+  float brightness = 3;
+  // Red is the normalized red channel.
+  float red = 4;
+  // Green is the normalized green channel.
+  float green = 5;
+  // Blue is the normalized blue channel.
+  float blue = 6;
+  // White is the normalized single-white channel.
+  float white = 7;
+  // ColorTemperature is measured in mireds.
+  float color_temperature = 8;
+  // Effect is the active firmware effect name.
+  string effect = 9;
+  // ColorBrightness is normalized color-channel brightness.
+  float color_brightness = 10;
+  // ColorMode identifies which channels represent the current state.
+  ColorMode color_mode = 11;
+  // ColdWhite is the normalized cold-white channel.
+  float cold_white = 12;
+  // WarmWhite is the normalized warm-white channel.
+  float warm_white = 13;
+  // DeviceId associates the state with an ESPHome subdevice when present.
+  uint32 device_id = 14;
+}
