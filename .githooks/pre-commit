@@ -18,7 +18,7 @@ if [ -z "$files" ]; then
 	exit 0
 fi
 
-format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json)$' | grep -v '^\.protoc-manifest\.json$' || true)
+format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json)$' | grep -vE '^\.protoc(-python-[a-z-]+)?-manifest\.json$' || true)
 if [ -n "$format_files" ]; then
 	printf "%s\n" "$format_files" | xargs node_modules/.bin/oxfmt
 	printf "%s\n" "$format_files" | xargs git add

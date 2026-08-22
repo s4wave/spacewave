@@ -11,7 +11,9 @@
         "bldr/resource/resource_srpc.py",
         "bldr/resource/resource_srpc.pyi"
       ],
-      "protoFiles": ["bldr/resource/resource.proto"]
+      "protoFiles": [
+        "bldr/resource/resource.proto"
+      ]
     }
   }
 }
