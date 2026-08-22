@@ -8,7 +8,7 @@ func IsBasicRune(c byte) bool {
 	case c >= 48 && c <= 57:
 		fallthrough
 		// A-Z
-	case c >= 65 && c <= 89:
+	case c >= 65 && c <= 90:
 		fallthrough
 		// a-z
 	case c >= 97 && c <= 122:

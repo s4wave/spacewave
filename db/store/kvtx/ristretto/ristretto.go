@@ -16,7 +16,7 @@ type Store struct {
 
 // NewStoreWithCache constructs a new key-value store from a cache.
 func NewStoreWithCache(db *ristretto.Cache[[]byte, []byte], ttl time.Duration) *Store {
-	return &Store{db: db}
+	return &Store{db: db, ttl: ttl}
 }
 
 // NewEmptyStore constructs a new empty ristretto cache store.
