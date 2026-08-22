@@ -5,10 +5,22 @@
 // back through the same WorldState API a TypeScript SDK would expose.
 package main
 
-import "context"
+import (
+	"context"
+	"os"
+
+	"github.com/s4wave/spacewave/prototypes/sync-library/lean"
+)
 
 func main() {
-	if err := run(context.Background()); err != nil {
+	ctx := context.Background()
+	var err error
+	if len(os.Args) > 1 && os.Args[1] == "lean" {
+		err = lean.RunLean(ctx)
+	} else {
+		err = run(ctx)
+	}
+	if err != nil {
 		panic(err)
 	}
 }
