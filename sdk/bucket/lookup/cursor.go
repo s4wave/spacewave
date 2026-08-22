@@ -1,5 +1,3 @@
-//go:build !js
-
 package s4wave_bucket_lookup
 
 import (
