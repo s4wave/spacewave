@@ -65,8 +65,18 @@ func (t *Terminal) Validate() error {
 	return validateTerminalEnvironment(t.GetEnvironment())
 }
 
-// EffectiveTerminalTargetKind resolves old Device terminals with no explicit target kind.
-func EffectiveTerminalTargetKind(t *Terminal) TerminalTargetKind {
+// terminalTargetSource is the field set that identifies a terminal target.
+// Both Terminal and CreateTerminalOp expose these getters.
+type terminalTargetSource interface {
+	GetTargetKind() TerminalTargetKind
+	GetSshHostObjectKey() string
+	GetDeviceObjectKey() string
+	GetDevicePeerId() string
+}
+
+// resolveTerminalTargetKind resolves targets with no explicit kind by their
+// set fields: an SSH host key wins, then device key or peer ID.
+func resolveTerminalTargetKind(t terminalTargetSource) TerminalTargetKind {
 	if t == nil {
 		return TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN
 	}
@@ -82,6 +92,11 @@ func EffectiveTerminalTargetKind(t *Terminal) TerminalTargetKind {
 		return TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE
 	}
 	return TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN
+}
+
+// EffectiveTerminalTargetKind resolves old Device terminals with no explicit target kind.
+func EffectiveTerminalTargetKind(t *Terminal) TerminalTargetKind {
+	return resolveTerminalTargetKind(t)
 }
 
 func validateTerminalEnvironment(env []string) error {

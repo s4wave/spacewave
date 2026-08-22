@@ -158,21 +158,7 @@ func LookupCreateTerminalOp(ctx context.Context, operationTypeID string) (world.
 }
 
 func effectiveCreateTerminalOpTargetKind(o *CreateTerminalOp) TerminalTargetKind {
-	if o == nil {
-		return TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN
-	}
-	switch o.GetTargetKind() {
-	case TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE,
-		TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST:
-		return o.GetTargetKind()
-	}
-	if strings.TrimSpace(o.GetSshHostObjectKey()) != "" {
-		return TerminalTargetKind_TERMINAL_TARGET_KIND_SSH_HOST
-	}
-	if strings.TrimSpace(o.GetDeviceObjectKey()) != "" || strings.TrimSpace(o.GetDevicePeerId()) != "" {
-		return TerminalTargetKind_TERMINAL_TARGET_KIND_DEVICE
-	}
-	return TerminalTargetKind_TERMINAL_TARGET_KIND_UNKNOWN
+	return resolveTerminalTargetKind(o)
 }
 
 var _ world.Operation = (*CreateTerminalOp)(nil)
