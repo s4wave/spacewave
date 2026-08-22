@@ -13,7 +13,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-var aptPackageIndexChecksumAlgorithms = [...]string{"md5", "sha1", "sha256"}
+// aptPackageIndexChecksumHexSizes maps the checksum algorithms the Debian
+// Packages index requires to their hex digest lengths; order is fixed.
+var (
+	aptPackageIndexChecksumHexSizes = map[string]int{
+		"md5": 32, "sha1": 40, "sha256": 64,
+	}
+	aptPackageIndexChecksumOrder = []string{"md5", "sha1", "sha256"}
+)
 
 // AptPackagePoolFilename returns the repository pool path for a package.
 func AptPackagePoolFilename(pkg *AptPackage) (string, error) {
@@ -138,7 +145,7 @@ func newPackagesFileEntry(pkg *AptPackage) (packagesFileEntry, error) {
 	checksums := make(map[string]string)
 	for _, checksum := range pkg.GetChecksums() {
 		algorithm := strings.ToLower(checksum.GetAlgorithm())
-		size, ok := aptPackageIndexChecksumHexSize(algorithm)
+		size, ok := aptPackageIndexChecksumHexSizes[algorithm]
 		if !ok {
 			continue
 		}
@@ -154,7 +161,7 @@ func newPackagesFileEntry(pkg *AptPackage) (packagesFileEntry, error) {
 		}
 		checksums[algorithm] = value
 	}
-	for _, algorithm := range aptPackageIndexChecksumAlgorithms {
+	for _, algorithm := range aptPackageIndexChecksumOrder {
 		if checksums[algorithm] == "" {
 			return packagesFileEntry{}, errors.Wrapf(ErrInvalidAptPackageIndexMetadata, "%s checksum is required", algorithm)
 		}
@@ -187,19 +194,6 @@ func aptPackageFilenameVersion(version string) (string, error) {
 		return "", err
 	}
 	return version, nil
-}
-
-func aptPackageIndexChecksumHexSize(algorithm string) (int, bool) {
-	switch algorithm {
-	case "md5":
-		return 32, true
-	case "sha1":
-		return 40, true
-	case "sha256":
-		return 64, true
-	default:
-		return 0, false
-	}
 }
 
 func validateAptPackageName(value string) error {
