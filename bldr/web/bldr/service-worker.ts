@@ -49,7 +49,6 @@ const bootAssetPath = '/boot.mjs'
 const browserIndexPath = '/b/__index.html'
 const rootNavigationPath = '/'
 const browserReleaseStatePath = '/__bldr/browser-release-state.json'
-const pluginManifestRootPathPrefix = '/__bldr/plugin-manifest-root/'
 const pluginDistPathPrefix = '/b/pd/'
 const pluginAssetsPathPrefix = '/b/pa/'
 const pluginWebPkgPathPrefix = '/b/pkg/'
@@ -158,12 +157,6 @@ interface CacheRow {
   cacheName: string
 }
 
-interface PluginManifestRootMetadata {
-  pluginId: string
-  rootHash: string
-  serviceWorkerURL: string
-}
-
 // BrowserRuntimeFetchErrorCode is the bounded failure vocabulary for runtime fetches.
 export type BrowserRuntimeFetchErrorCode =
   | 'no-ready-document'
@@ -173,6 +166,7 @@ export type BrowserRuntimeFetchErrorCode =
   | 'runtime-unavailable'
   | 'plugin-asset-missing'
   | 'plugin-asset-unavailable'
+  | 'plugin-root-changed'
   | 'request-canceled'
 
 // BrowserPluginAssetFetchResultCode is the plugin asset lease result surfaced
@@ -182,6 +176,7 @@ export type BrowserPluginAssetFetchResultCode =
   | 'missing'
   | 'unavailable'
   | 'generation-closed'
+  | 'root-changed'
   | 'runtime-unavailable'
   | 'canceled'
 
@@ -391,35 +386,6 @@ async function writeCachedJson(
     operation: 'write control JSON',
     controlRowKind: row.kind,
   })
-}
-
-async function readPluginManifestRoot(
-  pluginId: string,
-): Promise<string | null> {
-  try {
-    const metadata = await readCachedJson<PluginManifestRootMetadata>({
-      path: `${pluginManifestRootPathPrefix}${encodeURIComponent(pluginId)}.json`,
-      cacheName: controlCacheName,
-    })
-    if (
-      !metadata ||
-      metadata.pluginId !== pluginId ||
-      metadata.serviceWorkerURL !== self.location.href ||
-      typeof metadata.rootHash !== 'string' ||
-      metadata.rootHash === ''
-    ) {
-      return null
-    }
-    return metadata.rootHash
-  } catch (error) {
-    console.warn(
-      'ServiceWorker: %s: plugin root metadata read failed: plugin=%s: %s',
-      serviceWorkerId,
-      pluginId,
-      castToError(error, 'unknown error').message,
-    )
-    return null
-  }
 }
 
 async function loadBrowserReleaseState(): Promise<BrowserReleaseState> {
@@ -865,23 +831,16 @@ async function resolveStaticPluginAsset(
     return null
   }
   const pluginId = pathAfterPrefix.slice(0, slash)
+  // Only the currently active announced root may be served or cached. A root
+  // that is not yet active waits for its activation update; it never falls
+  // back to persisted roots, and old roots never satisfy new requests.
   let rootHash = activePluginRoots.get(pluginId)
   if (!rootHash) {
     await pluginRootUpdates.get(pluginId)
     rootHash = activePluginRoots.get(pluginId)
   }
   if (!rootHash) {
-    const persistedRootHash = await readPluginManifestRoot(pluginId)
-    if (!persistedRootHash) {
-      return null
-    }
-    const desiredRootHash = desiredPluginRoots.get(pluginId)
-    if (desiredRootHash && desiredRootHash !== persistedRootHash) {
-      return null
-    }
-    rootHash = persistedRootHash
-    desiredPluginRoots.set(pluginId, rootHash)
-    activePluginRoots.set(pluginId, rootHash)
+    return null
   }
   const state = await loadBrowserReleaseState()
   return {
@@ -891,9 +850,19 @@ async function resolveStaticPluginAsset(
   }
 }
 
-function staticPluginAssetCacheRequest(request: Request): Request {
+// staticPluginAssetCacheRequest builds the generation-cache key for a plugin
+// asset. The key binds the manifest root hash to the pathname and search, so
+// cached bytes from one root can never satisfy a request for another root.
+function staticPluginAssetCacheRequest(
+  asset: StaticPluginAsset,
+  request: Request,
+): Request {
   const url = new URL(request.url)
-  return buildCacheRequest(url.pathname + url.search)
+  const rootParam = `__bldr_plugin_root=${encodeURIComponent(asset.rootHash)}`
+  const search = url.search
+    ? `?${rootParam}&${url.search.slice(1)}`
+    : `?${rootParam}`
+  return buildCacheRequest(`${url.pathname}${search}`)
 }
 
 async function cacheStaticPluginAsset(
@@ -909,7 +878,7 @@ async function cacheStaticPluginAsset(
   ) {
     return
   }
-  const cacheRequest = staticPluginAssetCacheRequest(request)
+  const cacheRequest = staticPluginAssetCacheRequest(asset, request)
   if (!canCacheRequest(cacheRequest)) {
     return
   }
@@ -943,7 +912,9 @@ async function matchStaticPluginAsset(
     return null
   }
   const cache = await caches.open(buildGenerationCacheName(asset.generationId))
-  const response = await cache.match(staticPluginAssetCacheRequest(request))
+  const response = await cache.match(
+    staticPluginAssetCacheRequest(asset, request),
+  )
   if (!response || activePluginRoots.get(asset.pluginId) !== asset.rootHash) {
     return null
   }
@@ -986,40 +957,17 @@ async function revalidateStaticPluginAsset(
   }
 }
 
+// activatePluginManifestRoot activates an announced root when it is still the
+// desired root. Activation is in-memory only; a restarted service worker waits
+// for the next announcement instead of reactivating persisted state.
 async function activatePluginManifestRoot(
   pluginId: string,
   rootHash: string,
 ): Promise<void> {
-  try {
-    if (desiredPluginRoots.get(pluginId) !== rootHash) {
-      return
-    }
-    const persisted = await writeCachedJson(
-      {
-        path: `${pluginManifestRootPathPrefix}${encodeURIComponent(pluginId)}.json`,
-        cacheName: controlCacheName,
-      },
-      {
-        pluginId,
-        rootHash,
-        serviceWorkerURL: self.location.href,
-      },
-    )
-    if (!persisted || desiredPluginRoots.get(pluginId) !== rootHash) {
-      return
-    }
-    activePluginRoots.set(pluginId, rootHash)
-  } catch (error) {
-    activePluginRoots.delete(pluginId)
-    console.warn(
-      'ServiceWorker: %s: plugin manifest root activation failed: plugin=%s root=%s: %s',
-      serviceWorkerId,
-      pluginId,
-      rootHash,
-      castToError(error, 'unknown error').message,
-    )
+  if (desiredPluginRoots.get(pluginId) !== rootHash) {
     return
   }
+  activePluginRoots.set(pluginId, rootHash)
 }
 
 export async function handleBrowserReleaseRequest(
@@ -1490,6 +1438,9 @@ function browserRuntimeFetchStatusForCode(
   if (code === 'generation-closed') {
     return 410
   }
+  if (code === 'plugin-root-changed') {
+    return 409
+  }
   if (code === 'plugin-asset-missing') {
     return 404
   }
@@ -1510,6 +1461,8 @@ function pluginAssetFetchResultForErrorCode(
       return 'canceled'
     case 'generation-closed':
       return 'generation-closed'
+    case 'plugin-root-changed':
+      return 'root-changed'
     case 'runtime-unavailable':
     case 'no-ready-document':
     case 'resume-unavailable':
@@ -2036,9 +1989,25 @@ export async function swFetch(
         staticPluginAsset = await resolveStaticPluginAsset(source)
         continue
       }
-      return new Response('plugin manifest root changed during fetch', {
-        status: 503,
-      })
+      // A request that spans a manifest-root transition must fail with a
+      // classified error so the runtime failure path restarts the graph.
+      // Never pin the client to the old root or serve old-root bytes.
+      return buildBrowserRuntimeFetchErrorResponse(
+        {
+          code: 'plugin-root-changed',
+          source: source.kind,
+          path: source.path,
+          message: 'plugin manifest root changed during fetch',
+          status: browserRuntimeFetchStatusForCode(
+            'plugin-root-changed',
+            undefined,
+          ),
+          pluginAssetFetchResult: pluginAssetFetchResultForErrorCode(
+            'plugin-root-changed',
+          ),
+        },
+        request.method,
+      )
     }
 
     if (staticPluginAssetSource) {

@@ -201,6 +201,7 @@ export type BackendAssetFetchFailureResult =
   | 'missing'
   | 'unavailable'
   | 'generation-closed'
+  | 'root-changed'
   | 'runtime-unavailable'
   | 'canceled'
 
@@ -627,6 +628,7 @@ function backendAssetFetchFailureResult(
   const result = getHeader('X-Bldr-Plugin-Asset-Fetch-Result')
   if (
     result === 'generation-closed' ||
+    result === 'root-changed' ||
     result === 'runtime-unavailable' ||
     result === 'canceled' ||
     result === 'missing' ||
@@ -665,6 +667,8 @@ function formatBackendAssetFailure(
       return `Missing backend asset ${failure.url}: ${failure.status}${detail}`
     case 'generation-closed':
       return `QuickJS backend asset generation closed ${failure.url}: ${failure.status}${detail}`
+    case 'root-changed':
+      return `QuickJS backend asset root changed ${failure.url}: ${failure.status}${detail}`
     case 'runtime-unavailable':
       return `QuickJS backend asset runtime unavailable ${failure.url}: ${failure.status}${detail}`
     case 'canceled':

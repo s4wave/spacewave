@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, fireEvent, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { WebViewErrorBoundary } from './web-view-error-boundary.js'
@@ -93,5 +93,49 @@ describe('WebViewErrorBoundary module load diagnostics', () => {
     fireEvent.click(rendered.getByText('Retry now'))
 
     expect(onRecoverableRetry).toHaveBeenCalledOnce()
+  })
+
+  it('recovers a root-changed 409 classification through the bounded retry path', async () => {
+    vi.useFakeTimers()
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    const onRecoverableRetry = vi.fn()
+    const error = new WebViewRootAssetLoadError({
+      scriptPath: '/b/pd/spacewave-app/backend.mjs',
+      status: 409,
+      ok: false,
+      fetchSource: 'plugin-dist',
+      runtimeError: 'plugin-root-changed',
+      pluginAssetResult: 'root-changed',
+      contentType: 'application/json',
+      classification: 'root-changed',
+      bodyPrefix: '{"code":"plugin-root-changed"',
+    })
+
+    const rendered = render(
+      React.createElement(
+        WebViewErrorBoundary,
+        { onRecoverableRetry },
+        React.createElement(ThrowError, { error }),
+      ),
+    )
+
+    // The classified failure enters the established exponential-backoff
+    // recovery instead of the manual-only diagnostic path.
+    expect(rendered.container.textContent).toContain('Retrying in 2s…')
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(rendered.container.textContent).toContain('Retrying in 1s…')
+    expect(onRecoverableRetry).not.toHaveBeenCalled()
+
+    // The bounded recovery retries exactly once, then backoff escalates for
+    // any repeat failure instead of retrying immediately.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(onRecoverableRetry).toHaveBeenCalledOnce()
+    expect(rendered.container.textContent).toContain('Retrying in 4s…')
   })
 })

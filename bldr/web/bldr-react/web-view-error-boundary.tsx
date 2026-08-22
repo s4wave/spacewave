@@ -24,6 +24,7 @@ function isRecoverableError(error: Error): boolean {
     return (
       rootAssetError.rootAsset.classification === 'runtime-unavailable' ||
       rootAssetError.rootAsset.classification === 'generation-closed' ||
+      rootAssetError.rootAsset.classification === 'root-changed' ||
       rootAssetError.rootAsset.classification === 'bypass' ||
       rootAssetError.rootAsset.status >= 500
     )
@@ -163,21 +164,21 @@ export class WebViewErrorBoundary extends React.Component<
   private startCountdown(seconds: number) {
     this.clearCountdown()
     this.setState({ countdown: seconds })
+    // The interval callback owns the tick: side effects stay outside setState
+    // updaters, which React may invoke more than once per update.
     this.countdownInterval = setInterval(() => {
-      this.setState((prev) => {
-        const next = prev.countdown - 1
-        if (next <= 0) {
-          this.clearCountdown()
-          this.props.onRecoverableRetry?.()
-          return {
-            ...prev,
-            countdown: 0,
-            caughtError: undefined,
-            retryAttempt: prev.retryAttempt + 1,
-          }
-        }
-        return { ...prev, countdown: next }
-      })
+      const next = this.state.countdown - 1
+      if (next <= 0) {
+        this.clearCountdown()
+        this.props.onRecoverableRetry?.()
+        this.setState({
+          countdown: 0,
+          caughtError: undefined,
+          retryAttempt: this.state.retryAttempt + 1,
+        })
+        return
+      }
+      this.setState({ countdown: next })
     }, 1000)
   }
 
