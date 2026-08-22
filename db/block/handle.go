@@ -1,17 +1,11 @@
 package block
 
-import (
-	"strconv"
-
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/encoding"
-	"gonum.org/v1/gonum/graph/encoding/dot"
-)
+import "strconv"
 
 // handle contains working state for a block.
 type handle struct {
-	// nod is the base graph node
-	graph.Node
+	// Node is the base graph node.
+	Node GraphNode
 	// parents are all blocks referencing this position
 	// note: FollowRef creates a new location on default.
 	// note: if isSubBlock is true, len(parents) >= 0
@@ -31,6 +25,11 @@ type handle struct {
 	blk any
 	// blkPreWrite is the pre write callback
 	blkPreWrite func(b any) error
+}
+
+// ID returns the node identifier of the underlying graph node.
+func (h *handle) ID() int64 {
+	return h.Node.ID()
 }
 
 // Clone clones the handle object.
@@ -71,8 +70,8 @@ func (h *handle) DOTID() string {
 }
 
 // Attributes returns the graph attributes
-func (h *handle) Attributes() []encoding.Attribute {
-	var res []encoding.Attribute
+func (h *handle) Attributes() []BlockGraphAttribute {
+	var res []BlockGraphAttribute
 	if h.blk != nil {
 		attrs, ok := h.blk.(BlockWithAttributes)
 		if ok {
@@ -82,7 +81,7 @@ func (h *handle) Attributes() []encoding.Attribute {
 	return res
 }
 
-var _ graph.Node = (*handle)(nil)
+var _ GraphNode = (*handle)(nil)
 
 // refHandle is a block ref handle.
 type refHandle struct {
@@ -96,18 +95,18 @@ type refHandle struct {
 }
 
 // From returns the from node of the edge.
-func (r *refHandle) From() graph.Node {
+func (r *refHandle) From() GraphNode {
 	return r.src
 }
 
 // To returns the to node of the edge.
-func (r *refHandle) To() graph.Node {
+func (r *refHandle) To() GraphNode {
 	return r.target
 }
 
 // ReversedEdge returns an edge that has
 // the end points of the receiver swapped.
-func (r *refHandle) ReversedEdge() graph.Edge {
+func (r *refHandle) ReversedEdge() GraphEdge {
 	return &refHandle{src: r.target, target: r.src}
 }
 
@@ -138,7 +137,4 @@ func (h *handle) removeParent(oh *handle) []*refHandle {
 }
 
 // _ is a type assertion
-var _ graph.Edge = (*refHandle)(nil)
-
-// _ is a type assertion
-var _ dot.Node = (*handle)(nil)
+var _ GraphEdge = (*refHandle)(nil)

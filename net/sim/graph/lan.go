@@ -30,9 +30,7 @@ func (l *LAN) AddConnectionToLAN(g *Graph, ol *LAN) Edge {
 // GetAssociatedPeers returns all peers directly linked to the lan.
 func (l *LAN) GetAssociatedPeers(g *Graph) []*Peer {
 	var peers []*Peer
-	nodes := g.From(l)
-	for nodes.Next() {
-		n := nodes.Node()
+	for _, n := range g.From(l) {
 		np, isPeer := n.(*Peer)
 		if isPeer {
 			peers = append(peers, np)

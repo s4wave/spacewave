@@ -12,8 +12,6 @@ import (
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/tx"
 	"github.com/s4wave/spacewave/net/hash"
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/topo"
 )
 
 // maxWriteConcurrency is the maximum concurrency for PutBlock calls.
@@ -48,7 +46,7 @@ type Transaction struct {
 	// mtx guards the object
 	mtx sync.Mutex
 	// blockGraph is the graph of blocks
-	blockGraph *directedGraph
+	blockGraph *BlockGraph
 	// putOpts are put options (hashType is always filled with a value)
 	putOpts *PutOpts
 	// dirty indicates anything changed in the transaction
@@ -92,7 +90,7 @@ func NewTransaction(
 		store:      store,
 		xfrm:       transformer,
 		root:       &handle{ref: rootRef},
-		blockGraph: newDirectedGraph(),
+		blockGraph: NewBlockGraph(),
 		putOpts:    putOpts,
 	}
 	t.root.Node = t.blockGraph.NewNode()
@@ -103,7 +101,7 @@ func NewTransaction(
 
 // GetBlockGraph returns a handle to the internal block graph state.
 // Do not modify this, used for analysis.
-func (t *Transaction) GetBlockGraph() graph.Graph {
+func (t *Transaction) GetBlockGraph() *BlockGraph {
 	return t.blockGraph
 }
 
@@ -291,7 +289,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	_, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/mark-reachable")
 	{
 		var reachableEdges int
-		nodStack := []graph.Node{writeRoot}
+		nodStack := []GraphNode{writeRoot}
 		for len(nodStack) != 0 {
 			nn := nodStack[len(nodStack)-1]
 			nodStack = nodStack[:len(nodStack)-1]
@@ -300,10 +298,8 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 				continue
 			}
 			fromNn := t.blockGraph.From(nnID)
-			fromNnLen := max(fromNn.Len(), 0)
-			fromNodes := make([]int64, 0, fromNnLen)
-			for fromNn.Next() {
-				to := fromNn.Node()
+			fromNodes := make([]int64, 0, len(fromNn))
+			for _, to := range fromNn {
 				toID := to.ID()
 				fromNodes = append(fromNodes, toID)
 				if _, ok := reachable[toID]; !ok {
@@ -324,7 +320,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 
 	// topological sort to determine dependencies (references, etc).
 	_, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/topo-sort")
-	nods, err := topo.Sort(t.blockGraph)
+	nods, err := SortBlockGraph(t.blockGraph)
 	subtask.End()
 	if err != nil {
 		return nil, nil, err
@@ -638,7 +634,7 @@ func (t *Transaction) clearData() {
 	t.dirty = false
 	t.root.dirty = false
 	t.root.refHandles = nil
-	t.blockGraph = newDirectedGraph()
+	t.blockGraph = NewBlockGraph()
 	rn := t.blockGraph.NewNode()
 	t.root.Node = rn
 	t.blockGraph.AddNode(t.root)
@@ -738,7 +734,7 @@ func (t *Transaction) cloneDetached(nroot *handle) *Transaction {
 		store:         t.store,
 		xfrm:          t.xfrm,
 		root:          nroot,
-		blockGraph:    newDirectedGraph(),
+		blockGraph:    NewBlockGraph(),
 		putOpts:       t.putOpts,
 		decodedBlocks: t.decodedBlocks,
 	}

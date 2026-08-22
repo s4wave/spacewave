@@ -7,7 +7,6 @@ import (
 	"errors"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
-	"gonum.org/v1/gonum/graph/encoding"
 )
 
 // MaxBlockSize is the default maximum size in bytes (10MB) for a single
@@ -129,10 +128,19 @@ type BlockWithSubBlocks interface {
 	GetSubBlockCtor(id uint32) SubBlockCtor
 }
 
+// BlockGraphAttribute is a key-value attribute rendered alongside the
+// block in graph visualizations.
+type BlockGraphAttribute struct {
+	// Key is the attribute name.
+	Key string
+	// Value is the attribute value.
+	Value string
+}
+
 // BlockWithAttributes returns a block with graph attributes.
 type BlockWithAttributes interface {
 	// GetBlockGraphAttributes returns the block graph attributes.
-	GetBlockGraphAttributes() []encoding.Attribute
+	GetBlockGraphAttributes() []BlockGraphAttribute
 }
 
 // BlockWithPreWriteHook is a block with a function called when writing.

@@ -79,7 +79,6 @@ require (
 	github.com/pion/transport/v4 v4.1.0
 	go.starlark.net v0.0.0-20260708150628-5395d018f003
 	golang.org/x/exp v0.0.0-20260811152304-ee035b5b010f
-	gonum.org/v1/gonum v0.17.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
 	gotest.tools/v3 v3.5.2
