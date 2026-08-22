@@ -11,7 +11,6 @@ import (
 	execution_transaction "github.com/s4wave/spacewave/forge/execution/tx"
 	forge_pass "github.com/s4wave/spacewave/forge/pass"
 	pass_transaction "github.com/s4wave/spacewave/forge/pass/tx"
-	forge_target "github.com/s4wave/spacewave/forge/target"
 	forge_value "github.com/s4wave/spacewave/forge/value"
 	"github.com/sirupsen/logrus"
 )
@@ -30,23 +29,16 @@ func (c *Controller) ProcessState(
 		return true, nil
 	}
 
-	// unmarshal Pass state + build read cursor
+	// unmarshal Pass state
 	var passState *forge_pass.Pass
-	var tgt *forge_target.Target
 	_, err = world.AccessObject(ctx, ws.AccessWorldState, rootRef, func(bcs *block.Cursor) error {
 		var berr error
 		passState, berr = forge_pass.UnmarshalPass(ctx, bcs)
-		if berr != nil {
-			return berr
-		}
-
-		tgt, _, berr = passState.FollowTargetRef(ctx, bcs)
 		return berr
 	})
 	if err != nil {
 		return false, err
 	}
-	_ = tgt
 
 	// Keep observing linked executions while they run or drain.
 	currState := passState.GetPassState()
@@ -107,16 +99,9 @@ func (c *Controller) ProcessState(
 			return false, err
 		}
 
-		// verify that the outputs look correct
-		// currently: we check that the output hashes match.
-		exState := execStates[0]
-
-		// build the output set according to the target
-		// TODO TODO
-		_ = exState
-
 		// COMPLETE w/ success=true
-		// this will use the values from the first ExecState
+		// TxComplete recomputes the output set against the target and fails
+		// the pass if the exec states do not agree with it.
 		txd := pass_transaction.NewTxComplete(objKey, forge_value.NewResultWithSuccess())
 		_, _, err = ws.ApplyWorldOp(ctx, txd, c.peerID)
 		return true, err

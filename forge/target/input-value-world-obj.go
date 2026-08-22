@@ -14,9 +14,10 @@ type ivWorldObject struct {
 	err  error
 }
 
-// NewInputValueWorldObject constructs a new InputValueWorldObject with a reference value.
-// eng can be nil
-// if eng != nil and ws == nil, constructs a EngineWorldState for ws
+// NewInputValueWorldObject constructs a new InputValueWorldObject from its
+// component values. Nil inline and world components are replaced with empty
+// ones. objs carries the resolved object state and err any resolution error;
+// Validate reports err until it is cleared.
 func NewInputValueWorldObject(
 	inline InputValueInline,
 	wrld InputValueWorld,

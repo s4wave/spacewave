@@ -4,10 +4,8 @@ import "github.com/pkg/errors"
 
 // Validate validates the output type.
 func (t OutputType) Validate(allowUnknown bool) error {
-	if t == OutputType_OutputType_UNKNOWN {
-		if allowUnknown {
-			return nil
-		}
+	if t == OutputType_OutputType_UNKNOWN && allowUnknown {
+		return nil
 	}
 	switch t {
 	case OutputType_OutputType_EXEC:

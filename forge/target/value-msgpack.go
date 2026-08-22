@@ -26,8 +26,7 @@ func StoreMsgpackValue(
 // LoadMsgpackValue loads the data from a msgpack block.
 // use interface{} type to unmarshal dynamic types.
 // if ctor is nil, uses the empty value of T.
-// returns the empty value returned from ctor if value is empty
-// StoreMsgpackValue stores the given data as a Msgpack block.
+// returns the empty value returned from ctor if value is empty.
 func LoadMsgpackValue[T any](
 	ctx context.Context,
 	handle ExecControllerHandle,

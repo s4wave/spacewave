@@ -24,7 +24,7 @@ func NewTxCreateExecSpecs(objKey string) *Tx {
 
 // NewTxCreateExecSpecsTxn constructs a new CREATE_EXEC_SPECS transaction.
 func NewTxCreateExecSpecsTxn() Transaction {
-	return &TxUpdateExecStates{}
+	return &TxCreateExecSpecs{}
 }
 
 // GetTxType returns the type of transaction this is.

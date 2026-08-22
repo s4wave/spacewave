@@ -166,7 +166,6 @@ func (e *Execution) UnmarshalBlock(data []byte) error {
 
 // ApplySubBlock applies a sub-block change with a field id.
 func (e *Execution) ApplySubBlock(id uint32, next block.SubBlock) error {
-	// no-op
 	switch id {
 	case 3:
 		v, ok := next.(*forge_target.ValueSet)

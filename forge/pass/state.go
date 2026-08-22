@@ -12,10 +12,8 @@ var ErrUnknownState = errors.New("unexpected or unhandled state")
 
 // Validate checks the execution state is within known values.
 func (s State) Validate(allowUnknown bool) error {
-	if s == State_PassState_UNKNOWN {
-		if allowUnknown {
-			return nil
-		}
+	if s == State_PassState_UNKNOWN && allowUnknown {
+		return nil
 	}
 	switch s {
 	case State_PassState_PENDING:
@@ -32,15 +30,11 @@ func (s State) Validate(allowUnknown bool) error {
 
 // EnsureMatches checks if the state matches or returns an error.
 func (s State) EnsureMatches(sts ...State) error {
-	var match bool
 	if slices.Contains(sts, s) {
-		match = true
+		return nil
 	}
-	if !match {
-		return errors.Wrapf(
-			forge_value.ErrUnknownState,
-			"%s", s.String(),
-		)
-	}
-	return nil
+	return errors.Wrapf(
+		forge_value.ErrUnknownState,
+		"%s", s.String(),
+	)
 }

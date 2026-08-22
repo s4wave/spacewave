@@ -98,7 +98,6 @@ func (t *TxUpdateInputs) ExecuteTx(
 		valueSet = forge_target.NewValueSet()
 
 		// note: if reset_inputs is set, we transition to PENDING unconditionally.
-		// dirty = len(valueSetBefore.GetInputs()) != 0
 		dirty = true
 	} else {
 		valueSet = valueSetBefore.Clone()

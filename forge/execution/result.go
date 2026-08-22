@@ -59,8 +59,8 @@ func ComputeExecutionOutputs(
 
 		// compare with previous outputs
 		if len(prevOutputs) != len(execOutpVals) {
-			return nil, errors.Wrapf(
-				err, "execution outputs mismatch: len(%d) != len(%d)",
+			return nil, errors.Errorf(
+				"execution outputs mismatch: len(%d) != len(%d)",
 				len(prevOutputs), len(execOutpVals),
 			)
 		}
