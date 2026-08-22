@@ -12,11 +12,16 @@ import (
 )
 
 // KVTxBlock is a block store on top of a kvtx store.
+// KVTxBlock implements a block store on top of a kvtx store.
 type KVTxBlock struct {
-	kvkey    *store_kvkey.KVKey
-	store    kvtx.Store
+	// kvkey namespaces the block keys in the store.
+	kvkey *store_kvkey.KVKey
+	// store is the underlying kvtx store.
+	store kvtx.Store
+	// hashType is the preferred block hash type.
 	hashType hash.HashType
-	hashGet  bool
+	// hashGet hashes Get responses for integrity.
+	hashGet bool
 }
 
 // NewKVTxBlock constructs a new block store on top of a kvtx store.
@@ -191,6 +196,8 @@ func (k *KVTxBlock) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, 
 	return data, found, err
 }
 
+// getBlock reads a block through the given tx ops, verifying the hash
+// when hashGet is set.
 func (k *KVTxBlock) getBlock(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) ([]byte, bool, error) {
 	if err := ref.Validate(false); err != nil {
 		return nil, false, err
@@ -317,6 +324,7 @@ func (k *KVTxBlock) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bo
 	return found, err
 }
 
+// getBlockExists checks for the block's key through the given tx ops.
 func (k *KVTxBlock) getBlockExists(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) (bool, error) {
 	key, err := k.blockKey(ref)
 	if err != nil {
@@ -348,6 +356,7 @@ func (k *KVTxBlock) GetBlockExistsBatch(ctx context.Context, refs []*block.Block
 	return found, err
 }
 
+// getBlockExistsBatch checks every ref's key through the given tx ops.
 func (k *KVTxBlock) getBlockExistsBatch(ctx context.Context, tx kvtx.TxOps, refs []*block.BlockRef) ([]bool, error) {
 	out := make([]bool, len(refs))
 	for i, ref := range refs {
@@ -377,6 +386,7 @@ func (k *KVTxBlock) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.
 	return stat, err
 }
 
+// statBlock reads the block stat through the given tx ops.
 func (k *KVTxBlock) statBlock(ctx context.Context, tx kvtx.TxOps, ref *block.BlockRef) (*block.BlockStat, error) {
 	key, err := k.blockKey(ref)
 	if err != nil {
@@ -425,6 +435,7 @@ type putBlockBatchOp struct {
 	tombstone bool
 }
 
+// preparePutBlockBatchOp marshals one batch entry into its stored form.
 func (k *KVTxBlock) preparePutBlockBatchOp(entry *block.PutBatchEntry) (putBlockBatchOp, error) {
 	if entry.Tombstone {
 		key, err := k.blockKey(entry.Ref)
@@ -464,6 +475,7 @@ func (k *KVTxBlock) preparePutBlockBatchOp(entry *block.PutBatchEntry) (putBlock
 	return putBlockBatchOp{key: key, data: entry.Data}, nil
 }
 
+// blockKey marshals the ref into its store key.
 func (k *KVTxBlock) blockKey(ref *block.BlockRef) ([]byte, error) {
 	rm, err := ref.MarshalKey()
 	if err != nil {

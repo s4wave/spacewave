@@ -14,19 +14,30 @@ import (
 
 // Handle is a open file handle, using a block transaction and a
 // Not concurrency safe.
+// Handle reads a file block through a cursor.
 type Handle struct {
-	ctx       context.Context
+	// ctx owns the handle's read lifetimes.
+	ctx context.Context
+	// ctxCancel cancels ctx.
 	ctxCancel context.CancelFunc
-	bcs       *block.Cursor
+	// bcs is positioned at the file root.
+	bcs *block.Cursor
 
-	root     *File
-	idx      uint64
+	// root is the unmarshaled file block.
+	root *File
+	// idx is the current sub-block index.
+	idx uint64
+	// nextEval is the next index needing an eval pass.
 	nextEval uint64
 
-	rangeSet        *sbset.SubBlockSet
+	// rangeSet tracks seen ranges for deduplication.
+	rangeSet *sbset.SubBlockSet
+	// currentRangeIdx is the index of currentRange.
 	currentRangeIdx int
-	currentRange    *Range
-	currentBlob     *blob.Reader // nil if currentRange is zeros
+	// currentRange is the range currently being read.
+	currentRange *Range
+	// currentBlob is the open reader over currentRange, nil if empty.
+	currentBlob *blob.Reader
 }
 
 // NewHandle constructs a new reader.

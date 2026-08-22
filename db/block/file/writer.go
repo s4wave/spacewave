@@ -537,6 +537,8 @@ func (w *Writer) deleteRange(idx int) {
 	w.bcs.MarkDirty()
 }
 
+// rangeCoveredByHigherNonce returns true if the range at idx is fully
+// covered by a later range with a higher nonce.
 func rangeCoveredByHigherNonce(ranges []*Range, idx int) bool {
 	rng := ranges[idx]
 	start := rng.GetStart()

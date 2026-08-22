@@ -86,6 +86,8 @@ func (c *ReadCounter) Snapshot() ReadCounterSnapshot {
 	}
 }
 
+// recordReadCounter records a block read and whether it was found in the
+// store.
 func recordReadCounter(ctx context.Context, found bool, bytes int) {
 	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
 	if counter == nil {
@@ -116,6 +118,8 @@ func RecordResourceGetBlock(ctx context.Context, ref *BlockRef, found bool, byte
 	counter.resourceGetBlockMisses.Add(1)
 }
 
+// recordDecodedBlockUnmarshal records a decoded block unmarshal and its
+// size.
 func recordDecodedBlockUnmarshal(ctx context.Context, bytes int) {
 	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
 	if counter == nil {
@@ -125,6 +129,8 @@ func recordDecodedBlockUnmarshal(ctx context.Context, bytes int) {
 	counter.decodedBlockUnmarshalBytes.Add(uint64(bytes))
 }
 
+// recordDecodedBlockCacheMiss records a decoded block cache attempt that
+// missed.
 func recordDecodedBlockCacheMiss(ctx context.Context) {
 	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
 	if counter == nil {
@@ -165,6 +171,8 @@ func RecordDecodedBlockUncacheable(ctx context.Context) {
 	counter.decodedBlockUncacheable.Add(1)
 }
 
+// recordDecodedBlockCacheStore records a cache store attempt, whether it
+// was accepted, and its cost.
 func recordDecodedBlockCacheStore(ctx context.Context, accepted bool, cost int64) {
 	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
 	if counter == nil {
@@ -179,6 +187,8 @@ func recordDecodedBlockCacheStore(ctx context.Context, accepted bool, cost int64
 	}
 }
 
+// recordDecodedBlockCacheRejected records a block rejected as
+// uncacheable.
 func recordDecodedBlockCacheRejected(ctx context.Context) {
 	counter, _ := ctx.Value(readCounterContextKey{}).(*ReadCounter)
 	if counter == nil {

@@ -4,12 +4,18 @@ import "context"
 
 // Metric records one blob-build memory-relevant decision point.
 type Metric struct {
-	Stage            string
-	InputBytes       int64
-	ChunkBytes       int
+	// Stage names the build decision point.
+	Stage string
+	// InputBytes is the total input data size.
+	InputBytes int64
+	// ChunkBytes is the total chunked payload size.
+	ChunkBytes int
+	// RawHighWaterMark is the raw-blob size limit in effect.
 	RawHighWaterMark uint64
-	ChunkIndex       int
-	DirectPut        bool
+	// ChunkIndex is the number of chunks produced.
+	ChunkIndex int
+	// DirectPut reports whether the blob was stored as raw bytes.
+	DirectPut bool
 }
 
 // MetricsRecorder consumes blob-build metrics.
