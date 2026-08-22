@@ -11,6 +11,30 @@ import (
 // owner does not configure a duration.
 const DefaultLeaseDuration = 10 * time.Minute
 
+// DefaultOwnerLeaseDuration is the owner claim lease applied when the
+// admission owner does not configure a duration.
+const DefaultOwnerLeaseDuration = time.Minute
+
+// WorkerClaimRef identifies one daemon instance's durable owner claim on a
+// capacity record. The reference is presented by the caller and checked
+// against the record's stored claim inside each write transaction.
+type WorkerClaimRef struct {
+	// DeviceObjectKey is the enrolled Device object key of the instance.
+	DeviceObjectKey string
+	// ClaimID is the per-instance claim identifier. A new claim id on the same
+	// Device replaces a previous instance after reclaim.
+	ClaimID string
+}
+
+// OwnedWorkerCapacity pairs an owned capacity record with the Forge Worker
+// object key it describes, so scans can name workers for reclaim.
+type OwnedWorkerCapacity struct {
+	// WorkerObjectKey is the Forge Worker object key of the record.
+	WorkerObjectKey string
+	// Capacity is the owned capacity record.
+	Capacity *WorkerCapacity
+}
+
 // ReservationState describes whether capacity remains held and whether the
 // runtime outcome is known.
 type ReservationState uint8
@@ -168,6 +192,18 @@ var (
 	// reservation whose lease already expired but is not swept yet. Run the
 	// expiry sweep; the retry then requires a new attempt.
 	ErrReservationExpired = errors.New("reservation lease expired")
+	// ErrCapacityUnowned is returned when a capacity record carries no live
+	// owner claim, including legacy ownerless records.
+	ErrCapacityUnowned = errors.New("worker capacity has no live owner claim")
+	// ErrCapacityOwned is returned when a different Device holds the live
+	// owner claim on a capacity record.
+	ErrCapacityOwned = errors.New("worker capacity claimed by another device")
+	// ErrCapacityOwnerExpired is returned when the live claim's lease expired
+	// without renewal or reclaim.
+	ErrCapacityOwnerExpired = errors.New("worker capacity owner claim expired")
+	// ErrCapacityDraining is returned when the record's claim is live but in
+	// the draining state and cannot accept new work.
+	ErrCapacityDraining = errors.New("worker capacity is draining")
 )
 
 // Cleanup reasons recorded on receipts.
@@ -190,8 +226,11 @@ type RuntimeAdmission interface {
 	// restart reads the same object and resumes observation without relaunch.
 	LookupReservation(ctx context.Context, reservationObjectKey string) (*Reservation, error)
 	// StopAndRelease stops the fenced runtime, credits capacity exactly once,
-	// and returns the persisted cleanup facts. A stale generation is rejected
-	// without touching the current runtime or capacity. Until the stop is
-	// confirmed the reservation sits in the durable pending-stop state.
-	StopAndRelease(ctx context.Context, reservationObjectKey string, generation uint64) (*CleanupReceipt, error)
+	// and returns the persisted cleanup facts. The caller must present the
+	// live owner claim (ref and current owner epoch) of the Worker's capacity
+	// record; a deposed or stale instance is rejected before the stopper runs.
+	// A stale reservation generation is rejected without touching the current
+	// runtime or capacity. Until the stop is confirmed the reservation sits in
+	// the durable pending-stop state.
+	StopAndRelease(ctx context.Context, ref WorkerClaimRef, ownerEpoch uint64, reservationObjectKey string, generation uint64) (*CleanupReceipt, error)
 }

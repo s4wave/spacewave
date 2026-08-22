@@ -36,6 +36,8 @@ type WorldRuntimeAdmission struct {
 	stopper RuntimeStopper
 	// lease is the reservation lease duration.
 	lease time.Duration
+	// ownerLease is the owner claim lease duration.
+	ownerLease time.Duration
 	// now returns the current time; overridable in tests.
 	now func() time.Time
 
@@ -45,15 +47,20 @@ type WorldRuntimeAdmission struct {
 }
 
 // NewWorldRuntimeAdmission constructs a world-backed RuntimeAdmission.
-// A zero lease uses DefaultLeaseDuration.
-func NewWorldRuntimeAdmission(eng world.Engine, stopper RuntimeStopper, lease time.Duration) *WorldRuntimeAdmission {
+// A zero lease uses DefaultLeaseDuration; a zero ownerLease uses
+// DefaultOwnerLeaseDuration.
+func NewWorldRuntimeAdmission(eng world.Engine, stopper RuntimeStopper, lease, ownerLease time.Duration) *WorldRuntimeAdmission {
 	if lease == 0 {
 		lease = DefaultLeaseDuration
+	}
+	if ownerLease == 0 {
+		ownerLease = DefaultOwnerLeaseDuration
 	}
 	return &WorldRuntimeAdmission{
 		eng:         eng,
 		stopper:     stopper,
 		lease:       lease,
+		ownerLease:  ownerLease,
 		now:         time.Now,
 		workerLocks: make(map[string]*sync.Mutex),
 	}
@@ -88,16 +95,75 @@ func (a *WorldRuntimeAdmission) withTx(
 	})
 }
 
-// ObserveWorker upserts the Worker's observed capacity totals and backends.
-// Reserved debits are preserved; every observation bumps the record generation.
-func (a *WorldRuntimeAdmission) ObserveWorker(
+// loadOwnedCapacity loads the capacity record inside the transaction and
+// verifies the caller's ref and epoch against its durable claim. The record
+// must be owned by the same Device and claim with the current epoch and an
+// unexpired lease. This is the in-transaction half of every gated mutation.
+func loadOwnedCapacity(
+	ctx context.Context,
+	ws world.WorldState,
+	workerObjectKey string,
+	ref WorkerClaimRef,
+	epoch uint64,
+	now time.Time,
+) (*WorkerCapacity, error) {
+	capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
+	if err != nil {
+		return nil, err
+	}
+	if !capacity.owned() {
+		return nil, ErrCapacityUnowned
+	}
+	expired := capacity.OwnerLeaseExpiresAt == nil || !now.Before(capacity.OwnerLeaseExpiresAt.AsTime())
+	switch {
+	case capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey:
+		if expired {
+			return nil, ErrCapacityOwnerExpired
+		}
+		return nil, ErrCapacityOwned
+	case expired:
+		return nil, ErrCapacityOwnerExpired
+	case capacity.ClaimID != ref.ClaimID || capacity.OwnerEpoch != epoch:
+		return nil, ErrStaleGeneration
+	}
+	return capacity, nil
+}
+
+// verifyLiveClaim checks that the record's durable claim matches the caller's
+// reference and is unexpired. Sweeps use this variant: they carry no epoch
+// argument because the stored epoch is current for the live owner.
+func verifyLiveClaim(capacity *WorkerCapacity, ref WorkerClaimRef, now time.Time) error {
+	if !capacity.owned() {
+		return ErrCapacityUnowned
+	}
+	if capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey || capacity.ClaimID != ref.ClaimID {
+		if capacity.OwnerLeaseExpiresAt == nil || !now.Before(capacity.OwnerLeaseExpiresAt.AsTime()) {
+			return ErrCapacityOwnerExpired
+		}
+		return ErrCapacityOwned
+	}
+	if capacity.OwnerLeaseExpiresAt == nil || !now.Before(capacity.OwnerLeaseExpiresAt.AsTime()) {
+		return ErrCapacityOwnerExpired
+	}
+	return nil
+}
+
+// ClaimWorkerCapacity claims or reclaims the Worker's capacity record for the
+// calling instance. An absent record is created at epoch 1 with zero totals; a
+// legacy ownerless record or an expired lease is reclaimed with an epoch bump
+// that preserves OwnerState so resumed drains stay draining. A live foreign
+// Device claim fails with ErrCapacityOwned. The same Device and claim id renew
+// idempotently without bumping the epoch.
+func (a *WorldRuntimeAdmission) ClaimWorkerCapacity(
 	ctx context.Context,
 	workerObjectKey string,
-	milliCPUTotal, memoryBytesTotal uint64,
-	backends []string,
+	ref WorkerClaimRef,
 ) (*WorkerCapacity, error) {
 	if workerObjectKey == "" {
 		return nil, errors.Wrap(world.ErrEmptyObjectKey, "worker_object_key")
+	}
+	if ref.DeviceObjectKey == "" || ref.ClaimID == "" {
+		return nil, errors.New("claim reference must be complete")
 	}
 	unlock := a.lockWorker(workerObjectKey)
 	defer unlock()
@@ -108,12 +174,154 @@ func (a *WorldRuntimeAdmission) ObserveWorker(
 		if err != nil && !errors.Is(err, ErrWorkerNotObserved) {
 			return err
 		}
+		now := a.now().UTC()
 		if capacity == nil {
-			capacity = &WorkerCapacity{}
+			capacity = &WorkerCapacity{
+				WorkerObjectKey:      workerObjectKey,
+				MilliCPUTotal:        0,
+				MemoryBytesTotal:     0,
+				ObservedAt:           timestamp.New(now),
+				OwnerDeviceObjectKey: ref.DeviceObjectKey,
+				ClaimID:              ref.ClaimID,
+				OwnerEpoch:           1,
+				OwnerLeaseExpiresAt:  timestamp.New(now.Add(a.ownerLease)),
+				OwnerState:           CapacityOwnerStateActive,
+			}
+			capacity.Generation = 1
+		} else {
+			live := capacity.owned() &&
+				capacity.OwnerLeaseExpiresAt != nil &&
+				now.Before(capacity.OwnerLeaseExpiresAt.AsTime())
+			if live && capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey {
+				return ErrCapacityOwned
+			}
+			sameClaim := live &&
+				capacity.OwnerDeviceObjectKey == ref.DeviceObjectKey &&
+				capacity.ClaimID == ref.ClaimID
+			if sameClaim {
+				// Idempotent renew: extend the lease in place.
+				capacity.OwnerLeaseExpiresAt = timestamp.New(now.Add(a.ownerLease))
+			} else {
+				// Reclaim: legacy ownerless, expired lease, or a new claim id
+				// on the same Device. Preserve OwnerState and observed totals;
+				// bump the epoch so stale instances fence out.
+				prevEpoch := capacity.OwnerEpoch
+				capacity.OwnerDeviceObjectKey = ref.DeviceObjectKey
+				capacity.ClaimID = ref.ClaimID
+				capacity.OwnerEpoch = prevEpoch + 1
+				capacity.OwnerLeaseExpiresAt = timestamp.New(now.Add(a.ownerLease))
+				if capacity.OwnerState == CapacityOwnerStateUnspecified {
+					capacity.OwnerState = CapacityOwnerStateActive
+				}
+			}
+		}
+		if capacity.WorkerObjectKey == "" {
+			capacity.WorkerObjectKey = workerObjectKey
+		}
+		capacity.Generation++
+		if err := capacity.Validate(); err != nil {
+			return err
+		}
+		if err := persistWorkerCapacity(ctx, ws, workerObjectKey, capacity); err != nil {
+			return err
+		}
+		out = capacity
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// RenewWorkerClaim extends the owner claim lease of one Worker. Renewal on an
+// expired lease falls back to reclaim: the same ref reclaims with an epoch
+// bump and preserved state instead of stalling its own sweeps.
+func (a *WorldRuntimeAdmission) RenewWorkerClaim(
+	ctx context.Context,
+	workerObjectKey string,
+	ref WorkerClaimRef,
+) (*WorkerCapacity, error) {
+	unlock := a.lockWorker(workerObjectKey)
+	defer unlock()
+
+	var out *WorkerCapacity
+	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
+		if err != nil {
+			return err
+		}
+		now := a.now().UTC()
+		if !capacity.owned() {
+			return ErrCapacityUnowned
+		}
+		if capacity.OwnerDeviceObjectKey != ref.DeviceObjectKey {
+			return ErrCapacityOwned
+		}
+		if capacity.ClaimID != ref.ClaimID {
+			return ErrStaleGeneration
+		}
+		expired := capacity.OwnerLeaseExpiresAt == nil ||
+			!now.Before(capacity.OwnerLeaseExpiresAt.AsTime())
+		if expired {
+			capacity.OwnerEpoch++
+		}
+		capacity.OwnerLeaseExpiresAt = timestamp.New(now.Add(a.ownerLease))
+		capacity.Generation++
+		if err := capacity.Validate(); err != nil {
+			return err
+		}
+		if err := persistWorkerCapacity(ctx, ws, workerObjectKey, capacity); err != nil {
+			return err
+		}
+		out = capacity
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ObserveWorker upserts the Worker's observed capacity totals and backends
+// under a live owner claim at the given epoch. Reserved debits are preserved;
+// every observation bumps the record generation and stamps ObservedAt.
+// Declared totals below current debits move the record to DRAINING until
+// credits land; fitting totals return it to ACTIVE. Empty backends are a
+// validation error: only BeginDrainCapacity empties the backend list.
+func (a *WorldRuntimeAdmission) ObserveWorker(
+	ctx context.Context,
+	workerObjectKey string,
+	ref WorkerClaimRef,
+	epoch uint64,
+	milliCPUTotal, memoryBytesTotal uint64,
+	backends []string,
+) (*WorkerCapacity, error) {
+	if workerObjectKey == "" {
+		return nil, errors.Wrap(world.ErrEmptyObjectKey, "worker_object_key")
+	}
+	if len(backends) == 0 {
+		return nil, errors.New("backends must not be empty")
+	}
+	unlock := a.lockWorker(workerObjectKey)
+	defer unlock()
+
+	var out *WorkerCapacity
+	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		capacity, err := loadOwnedCapacity(ctx, ws, workerObjectKey, ref, epoch, a.now())
+		if err != nil {
+			return err
 		}
 		capacity.MilliCPUTotal = milliCPUTotal
 		capacity.MemoryBytesTotal = memoryBytesTotal
 		capacity.Backends = append([]string(nil), backends...)
+		fits := capacity.MilliCPUReserved <= capacity.MilliCPUTotal &&
+			capacity.MemoryBytesReserved <= capacity.MemoryBytesTotal
+		if fits {
+			capacity.OwnerState = CapacityOwnerStateActive
+		} else {
+			capacity.OwnerState = CapacityOwnerStateDraining
+		}
 		capacity.ObservedAt = timestamp.Now()
 		capacity.Generation++
 		if err := capacity.Validate(); err != nil {
@@ -129,6 +337,116 @@ func (a *WorldRuntimeAdmission) ObserveWorker(
 		return nil, err
 	}
 	return out, nil
+}
+
+// BeginDrainCapacity moves the record to DRAINING with empty backends under a
+// live claim at the given epoch. Reserved debits stay held; sweeps continue.
+// Idempotent.
+func (a *WorldRuntimeAdmission) BeginDrainCapacity(
+	ctx context.Context,
+	workerObjectKey string,
+	ref WorkerClaimRef,
+	epoch uint64,
+) (*WorkerCapacity, error) {
+	unlock := a.lockWorker(workerObjectKey)
+	defer unlock()
+
+	var out *WorkerCapacity
+	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		capacity, err := loadOwnedCapacity(ctx, ws, workerObjectKey, ref, epoch, a.now())
+		if err != nil {
+			return err
+		}
+		capacity.OwnerState = CapacityOwnerStateDraining
+		capacity.Backends = nil
+		capacity.Generation++
+		if err := capacity.Validate(); err != nil {
+			return err
+		}
+		if err := persistWorkerCapacity(ctx, ws, workerObjectKey, capacity); err != nil {
+			return err
+		}
+		out = capacity
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// CompleteDrainCapacity deletes a fully drained capacity record exactly once.
+// It requires the DRAINING state and no non-terminal reservation referencing
+// the Worker; the scan runs inside the same transaction as the deletion.
+func (a *WorldRuntimeAdmission) CompleteDrainCapacity(
+	ctx context.Context,
+	workerObjectKey string,
+	ref WorkerClaimRef,
+	epoch uint64,
+) error {
+	unlock := a.lockWorker(workerObjectKey)
+	defer unlock()
+
+	return a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		capacity, err := loadOwnedCapacity(ctx, ws, workerObjectKey, ref, epoch, a.now())
+		if err != nil {
+			return err
+		}
+		if capacity.OwnerState != CapacityOwnerStateDraining {
+			return errors.New("capacity record is not draining")
+		}
+		resKeys, err := listReservationKeys(ctx, ws)
+		if err != nil {
+			return err
+		}
+		for _, resKey := range resKeys {
+			res, err := LookupReservation(ctx, ws, resKey)
+			if errors.Is(err, ErrReservationNotFound) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if res.WorkerObjectKey == workerObjectKey && !res.State.Terminal() {
+				return errors.Errorf("worker %s still holds active reservation %s",
+					workerObjectKey, resKey)
+			}
+		}
+		return deleteWorkerCapacity(ctx, ws, workerObjectKey)
+	})
+}
+
+// ScanOwnedCapacity returns the capacity records owned by one Device, paired
+// with their Worker object keys.
+func (a *WorldRuntimeAdmission) ScanOwnedCapacity(
+	ctx context.Context,
+	deviceObjectKey string,
+) ([]OwnedWorkerCapacity, error) {
+	var out []OwnedWorkerCapacity
+	err := a.withTx(ctx, false, func(ctx context.Context, ws world.WorldState) error {
+		keys, err := listWorkerCapacityKeys(ctx, ws)
+		if err != nil {
+			return err
+		}
+		for _, objKey := range keys {
+			capacity, err := world.LookupObjectBody[*WorkerCapacity](ctx, ws, objKey, NewWorkerCapacityBlock)
+			if errors.Is(err, world.ErrObjectNotFound) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if capacity.OwnerDeviceObjectKey != deviceObjectKey {
+				continue
+			}
+			out = append(out, OwnedWorkerCapacity{
+				WorkerObjectKey: capacity.WorkerObjectKey,
+				Capacity:        capacity,
+			})
+		}
+		return nil
+	})
+	return out, err
 }
 
 // Reserve implements RuntimeAdmission. Creation and the capacity debit apply
@@ -171,6 +489,9 @@ func (a *WorldRuntimeAdmission) Reserve(
 			if err != nil {
 				return err
 			}
+			if err := capacity.OwnerClaimActive(a.now()); err != nil {
+				return err
+			}
 			if remainingMilliCPU(capacity)+existing.Request.MilliCPU < existing.Request.MilliCPU ||
 				capacity.MilliCPUReserved < existing.Request.MilliCPU ||
 				capacity.MemoryBytesReserved < existing.Request.MemoryBytes {
@@ -182,6 +503,9 @@ func (a *WorldRuntimeAdmission) Reserve(
 
 		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 		if err != nil {
+			return err
+		}
+		if err := capacity.OwnerClaimActive(a.now()); err != nil {
 			return err
 		}
 		if !capacity.SupportsBackend(request.Backend) {
@@ -278,15 +602,48 @@ func (a *WorldRuntimeAdmission) ResumeFromUncertain(
 	})
 }
 
-// RenewLease extends the lease of a live reservation from the observing owner.
-func (a *WorldRuntimeAdmission) RenewLease(ctx context.Context, reservationObjectKey string) (*Reservation, error) {
-	return a.transitionReservation(ctx, reservationObjectKey, func(res *Reservation) error {
-		if !res.State.Live() {
+// RenewLease extends the lease of a live reservation from the owning
+// instance. The claim reference is verified against the worker record's
+// durable live claim inside the transition transaction: a deposed instance
+// renewing leases in a loop must not starve the new owner's expiry sweep.
+func (a *WorldRuntimeAdmission) RenewLease(ctx context.Context, ref WorkerClaimRef, reservationObjectKey string) (*Reservation, error) {
+	res, err := a.LookupReservation(ctx, reservationObjectKey)
+	if err != nil {
+		return nil, err
+	}
+	unlock := a.lockWorker(res.WorkerObjectKey)
+	defer unlock()
+
+	var out *Reservation
+	err = a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		capacity, err := LookupWorkerCapacity(ctx, ws, res.WorkerObjectKey)
+		if err != nil {
+			return err
+		}
+		if err := verifyLiveClaim(capacity, ref, a.now()); err != nil {
+			return err
+		}
+		current, err := LookupReservation(ctx, ws, reservationObjectKey)
+		if err != nil {
+			return err
+		}
+		if !current.State.Live() {
 			return ErrReservationTerminal
 		}
-		renewLease(res, a.now(), a.lease)
+		renewLease(current, a.now(), a.lease)
+		if err := current.Validate(); err != nil {
+			return err
+		}
+		if err := persistReservation(ctx, ws, reservationObjectKey, current); err != nil {
+			return err
+		}
+		out = current
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // LookupReservation implements RuntimeAdmission.
@@ -312,10 +669,12 @@ func (a *WorldRuntimeAdmission) LookupReservation(ctx context.Context, reservati
 // finishes it with the same idempotent stopper.
 func (a *WorldRuntimeAdmission) StopAndRelease(
 	ctx context.Context,
+	ref WorkerClaimRef,
+	ownerEpoch uint64,
 	reservationObjectKey string,
 	generation uint64,
 ) (*CleanupReceipt, error) {
-	res, receipt, err := a.beginStopLocked(ctx, reservationObjectKey, generation)
+	res, receipt, err := a.beginStopLocked(ctx, ref, ownerEpoch, reservationObjectKey, generation)
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +691,7 @@ func (a *WorldRuntimeAdmission) StopAndRelease(
 		}
 		runtimeStopped = stopped
 	}
-	return a.finalizeStop(ctx, res.ObjectKey(), res.WorkerObjectKey, res.ExecutionObjectKey, res.Runtime.ID, res.Generation, runtimeStopped, CleanupReasonStop)
+	return a.finalizeStop(ctx, ref, ownerEpoch, res.ObjectKey(), res.WorkerObjectKey, res.ExecutionObjectKey, res.Runtime.ID, res.Generation, runtimeStopped, CleanupReasonStop, false)
 }
 
 // ExpireLeases fences every live reservation whose lease expired at or
@@ -345,7 +704,7 @@ func (a *WorldRuntimeAdmission) StopAndRelease(
 // receipt and credits the debit exactly once. Failure leaves the work to
 // ReconcilePendingStops. Post-expiry calls fenced against the old generation
 // are stale and cannot receive the terminal receipt.
-func (a *WorldRuntimeAdmission) ExpireLeases(ctx context.Context, now time.Time) ([]*CleanupReceipt, error) {
+func (a *WorldRuntimeAdmission) ExpireLeases(ctx context.Context, ref WorkerClaimRef, now time.Time) ([]*CleanupReceipt, error) {
 	keys, err := a.listReservationKeys(ctx)
 	if err != nil {
 		return nil, err
@@ -353,11 +712,26 @@ func (a *WorldRuntimeAdmission) ExpireLeases(ctx context.Context, now time.Time)
 	var receipts []*CleanupReceipt
 	for _, key := range keys {
 		workerKey, err := a.resolveWorkerForReservation(ctx, key)
+		if errors.Is(err, ErrReservationNotFound) {
+			continue
+		}
 		if err != nil {
 			return receipts, err
 		}
+
+		// Entry check: only records carrying this live claim are swept.
+		// Missing, legacy ownerless, foreign-held, and expired-claim records
+		// are skipped without invoking the stopper.
+		live, err := a.claimLiveForWorker(ctx, workerKey, ref)
+		if err != nil {
+			return receipts, err
+		}
+		if !live {
+			continue
+		}
+
 		unlock := a.lockWorker(workerKey)
-		receipt, err := a.expireOne(ctx, key, now)
+		receipt, err := a.expireOne(ctx, ref, key, now)
 		unlock()
 		if err != nil {
 			return receipts, err
@@ -370,7 +744,7 @@ func (a *WorldRuntimeAdmission) ExpireLeases(ctx context.Context, now time.Time)
 		// Best-effort immediate stop outside the Worker lock;
 		// ReconcilePendingStops retries later. When the stop confirms here,
 		// report the completed truthful receipt instead of the partial one.
-		done, err := a.reconcilePendingStop(ctx, receipt.ReservationObjectKey)
+		done, err := a.reconcilePendingStop(ctx, ref, receipt.ReservationObjectKey)
 		if err == nil && done != nil {
 			receipts[len(receipts)-1] = done
 		}
@@ -378,17 +752,51 @@ func (a *WorldRuntimeAdmission) ExpireLeases(ctx context.Context, now time.Time)
 	return receipts, nil
 }
 
+// claimLiveForWorker reports whether the Worker's capacity record carries the
+// caller's live claim. It is the entry check for sweeps; the in-transaction
+// recheck inside each mutation remains authoritative. Missing records are
+// simply not live; other read failures propagate to the caller.
+func (a *WorldRuntimeAdmission) claimLiveForWorker(ctx context.Context, workerObjectKey string, ref WorkerClaimRef) (bool, error) {
+	var live bool
+	err := a.withTx(ctx, false, func(ctx context.Context, ws world.WorldState) error {
+		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
+		if errors.Is(err, ErrWorkerNotObserved) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		live = verifyLiveClaim(capacity, ref, a.now()) == nil
+		return nil
+	})
+	return live, err
+}
+
 // ReconcilePendingStops confirms stops for every pending-stop reservation by
 // running the idempotent stopper and finalizing the receipt. It completes the
 // work of a crashed StopAndRelease or an unreachable expired runtime.
-func (a *WorldRuntimeAdmission) ReconcilePendingStops(ctx context.Context) ([]*CleanupReceipt, error) {
+func (a *WorldRuntimeAdmission) ReconcilePendingStops(ctx context.Context, ref WorkerClaimRef) ([]*CleanupReceipt, error) {
 	keys, err := a.listReservationKeys(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var receipts []*CleanupReceipt
 	for _, key := range keys {
-		receipt, err := a.reconcilePendingStop(ctx, key)
+		workerKey, err := a.resolveWorkerForReservation(ctx, key)
+		if errors.Is(err, ErrReservationNotFound) {
+			continue
+		}
+		if err != nil {
+			return receipts, err
+		}
+		live, err := a.claimLiveForWorker(ctx, workerKey, ref)
+		if err != nil {
+			return receipts, err
+		}
+		if !live {
+			continue
+		}
+		receipt, err := a.reconcilePendingStop(ctx, ref, key)
 		if err != nil {
 			return receipts, err
 		}
@@ -402,7 +810,7 @@ func (a *WorldRuntimeAdmission) ReconcilePendingStops(ctx context.Context) ([]*C
 // expireOne expires one expired live reservation in one transaction.
 // Caller holds the Worker lock. Returns nil when the reservation is not
 // expirable.
-func (a *WorldRuntimeAdmission) expireOne(ctx context.Context, objKey string, now time.Time) (*CleanupReceipt, error) {
+func (a *WorldRuntimeAdmission) expireOne(ctx context.Context, ref WorkerClaimRef, objKey string, now time.Time) (*CleanupReceipt, error) {
 	var out *CleanupReceipt
 	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
 		res, err := LookupReservation(ctx, ws, objKey)
@@ -410,6 +818,13 @@ func (a *WorldRuntimeAdmission) expireOne(ctx context.Context, objKey string, no
 			return err
 		}
 		if !res.State.Live() || !res.LeaseExpired(now) {
+			return nil
+		}
+		capacity, err := LookupWorkerCapacity(ctx, ws, res.WorkerObjectKey)
+		if err != nil {
+			return err
+		}
+		if err := verifyLiveClaim(capacity, ref, a.now()); err != nil {
 			return nil
 		}
 		// Fence custody: every old-generation call becomes stale. The debit
@@ -453,6 +868,8 @@ func (a *WorldRuntimeAdmission) expireOne(ctx context.Context, objKey string, no
 // generation.
 func (a *WorldRuntimeAdmission) beginStopLocked(
 	ctx context.Context,
+	ref WorkerClaimRef,
+	ownerEpoch uint64,
 	reservationObjectKey string,
 	generation uint64,
 ) (*Reservation, *CleanupReceipt, error) {
@@ -465,6 +882,9 @@ func (a *WorldRuntimeAdmission) beginStopLocked(
 
 	var out *Reservation
 	err = a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		if _, err := loadOwnedCapacity(ctx, ws, res.WorkerObjectKey, ref, ownerEpoch, a.now()); err != nil {
+			return err
+		}
 		current, err := LookupReservation(ctx, ws, reservationObjectKey)
 		if err != nil {
 			return err
@@ -516,16 +936,28 @@ func (a *WorldRuntimeAdmission) beginStopLocked(
 // once: only the released state releases capacity.
 func (a *WorldRuntimeAdmission) finalizeStop(
 	ctx context.Context,
+	ref WorkerClaimRef,
+	ownerEpoch uint64,
 	objKey, workerObjectKey, executionObjectKey, runtimeIdentity string,
 	generation uint64,
 	runtimeStopped bool,
 	reason string,
+	benignOnFence bool,
 ) (*CleanupReceipt, error) {
 	unlock := a.lockWorker(workerObjectKey)
 	defer unlock()
 
 	var out *CleanupReceipt
 	err := a.withTx(ctx, true, func(ctx context.Context, ws world.WorldState) error {
+		if _, err := loadOwnedCapacity(ctx, ws, workerObjectKey, ref, ownerEpoch, a.now()); err != nil {
+			// Claim turnover between stop and finalize: for sweep/reconcile
+			// this is a benign skip. The partial receipt and debit stay
+			// durable so the new owner's reconcile finishes the release.
+			if benignOnFence && isClaimFenceError(err) {
+				return nil
+			}
+			return err
+		}
 		res, err := LookupReservation(ctx, ws, objKey)
 		if err != nil {
 			return err
@@ -603,12 +1035,21 @@ func (a *WorldRuntimeAdmission) finalizeStop(
 
 // reconcilePendingStop confirms the stop of one pending-stop reservation.
 // Returns the completed receipt, or nil when the key is not pending-stop.
-func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, objKey string) (*CleanupReceipt, error) {
+func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, ref WorkerClaimRef, objKey string) (*CleanupReceipt, error) {
 	res, err := a.LookupReservation(ctx, objKey)
 	if err != nil {
 		return nil, err
 	}
 	if res.State != ReservationStatePendingStop {
+		return nil, nil
+	}
+	// Entry check before any stopper invocation: a deposed or stale instance
+	// must not stop runtimes it no longer owns.
+	capacity, err := a.LookupWorkerCapacityAdmission(ctx, res.WorkerObjectKey)
+	if err != nil {
+		return nil, err
+	}
+	if err := verifyLiveClaim(capacity, ref, a.now()); err != nil {
 		return nil, nil
 	}
 	runtimeStopped := true
@@ -626,8 +1067,10 @@ func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, objKey
 	if priorReason == "" {
 		priorReason = CleanupReasonStop
 	}
-	return a.finalizeStop(
+	receipt, err := a.finalizeStop(
 		ctx,
+		ref,
+		capacity.OwnerEpoch,
 		objKey,
 		res.WorkerObjectKey,
 		res.ExecutionObjectKey,
@@ -635,7 +1078,35 @@ func (a *WorldRuntimeAdmission) reconcilePendingStop(ctx context.Context, objKey
 		res.Generation,
 		runtimeStopped,
 		priorReason,
+		true,
 	)
+	if receipt == nil && err == nil {
+		// Claim turnover during finalize: benign skip, debit preserved for
+		// the new owner's reconcile.
+		return nil, nil
+	}
+	return receipt, err
+}
+
+// isClaimFenceError reports whether an error came from the owner-claim fence
+// rather than from storage or validation.
+func isClaimFenceError(err error) bool {
+	return errors.Is(err, ErrCapacityUnowned) ||
+		errors.Is(err, ErrCapacityOwned) ||
+		errors.Is(err, ErrCapacityOwnerExpired) ||
+		errors.Is(err, ErrStaleGeneration)
+}
+
+// LookupWorkerCapacityAdmission loads one capacity record through the
+// admission instance's read transaction.
+func (a *WorldRuntimeAdmission) LookupWorkerCapacityAdmission(ctx context.Context, workerObjectKey string) (*WorkerCapacity, error) {
+	var out *WorkerCapacity
+	err := a.withTx(ctx, false, func(ctx context.Context, ws world.WorldState) error {
+		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
+		out = capacity
+		return err
+	})
+	return out, err
 }
 
 // stopRuntimeChecked invokes the configured stopper and wraps failures.
