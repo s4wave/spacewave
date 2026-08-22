@@ -196,6 +196,8 @@ func (c *DecodedBlockCache) Snapshot() DecodedBlockCacheSnapshot {
 	return snapshot
 }
 
+// Lookup returns the cached decoded block for the key, recording a cache
+// hit or miss. The returned block is a clone safe for the caller to keep.
 func (c *DecodedBlockCache) Lookup(ctx context.Context, front *decodedBlockFrontCache, key decodedBlockCacheKey) (Block, bool, error) {
 	if cached := front.lookup(key); cached != nil {
 		cloned, ok, err := cloneDecodedBlock(cached)
@@ -235,6 +237,8 @@ func (c *DecodedBlockCache) Lookup(ctx context.Context, front *decodedBlockFront
 	return cloned, true, nil
 }
 
+// Store caches the decoded block under the key when the store token is
+// still current.
 func (c *DecodedBlockCache) Store(
 	ctx context.Context,
 	front *decodedBlockFrontCache,
@@ -367,6 +371,8 @@ func (c *DecodedBlockCache) storeTokenCurrent(token decodedBlockCacheStoreToken)
 	return ok
 }
 
+// storeTokenCurrentLocked returns true if the token still matches the
+// current cache epochs. Caller must hold mtx.
 func (c *DecodedBlockCache) storeTokenCurrentLocked(token decodedBlockCacheStoreToken) bool {
 	if !token.ok {
 		return true
@@ -377,6 +383,8 @@ func (c *DecodedBlockCache) storeTokenCurrentLocked(token decodedBlockCacheStore
 	return c.clearEpoch == token.clearEpoch && c.refEpoch[token.ref] == token.refEpoch
 }
 
+// recordRefKeyLocked tracks the key under its ref and returns the new
+// generation for the ref. Caller must hold mtx.
 func (c *DecodedBlockCache) recordRefKeyLocked(refKey, key string) uint64 {
 	if c == nil || refKey == "" || key == "" {
 		return 0
@@ -475,6 +483,8 @@ func (c *DecodedBlockCache) hasRefKeyGenerationLocked(h decodedBlockCacheHash, r
 	return false
 }
 
+// takeRefKeys removes and returns every key belonging to the ref,
+// invalidating that ref's generation.
 func (c *DecodedBlockCache) takeRefKeys(refKey string) map[string]struct{} {
 	if c == nil {
 		return nil
@@ -493,6 +503,7 @@ func (c *DecodedBlockCache) takeRefKeys(refKey string) map[string]struct{} {
 	return keys
 }
 
+// takeAllKeys removes and returns every cached key.
 func (c *DecodedBlockCache) takeAllKeys() map[string]struct{} {
 	if c == nil {
 		return nil
@@ -515,11 +526,13 @@ func (c *DecodedBlockCache) takeAllKeys() map[string]struct{} {
 	return keys
 }
 
+// decodedBlockCacheHashFor computes the ristretto hash pair for a key.
 func decodedBlockCacheHashFor(key string) decodedBlockCacheHash {
 	keyHash, conflictHash := ristrettoz.KeyToHash[string](key)
 	return decodedBlockCacheHash{key: keyHash, conflict: conflictHash}
 }
 
+// decodedBlockCacheRefKey marshals the ref into its cache key prefix.
 func decodedBlockCacheRefKey(ref *BlockRef) (string, bool) {
 	if ref == nil || ref.GetEmpty() {
 		return "", false
@@ -531,14 +544,18 @@ func decodedBlockCacheRefKey(ref *BlockRef) (string, bool) {
 	return string(refKey), true
 }
 
+// lookupDecodedBlock looks the key up in the context's caches.
 func lookupDecodedBlock(ctx context.Context, key decodedBlockCacheKey) (Block, bool, error) {
 	return decodedBlockCacheFromContext(ctx).Lookup(ctx, decodedBlockFrontCacheFromContext(ctx), key)
 }
 
+// decodedBlockCacheStoreTokenFromContext returns a store token bound to
+// the context's cache and ref.
 func decodedBlockCacheStoreTokenFromContext(ctx context.Context, refKey string) decodedBlockCacheStoreToken {
 	return decodedBlockCacheFromContext(ctx).storeToken(refKey)
 }
 
+// storeDecodedBlock stores the block in the context's caches.
 func storeDecodedBlock(
 	ctx context.Context,
 	key decodedBlockCacheKey,
@@ -552,6 +569,8 @@ func storeDecodedBlock(
 
 type decodedBlockCacheContextKey struct{}
 
+// decodedBlockCacheFromContext returns the shared decoded block cache
+// from the context, or nil.
 func decodedBlockCacheFromContext(ctx context.Context) *DecodedBlockCache {
 	if ctx != nil {
 		if cache, _ := ctx.Value(decodedBlockCacheContextKey{}).(*DecodedBlockCache); cache != nil {
@@ -561,6 +580,8 @@ func decodedBlockCacheFromContext(ctx context.Context) *DecodedBlockCache {
 	return nil
 }
 
+// decodedBlockFrontCacheFromContext returns the read operation's front
+// cache from the context, or nil.
 func decodedBlockFrontCacheFromContext(ctx context.Context) *decodedBlockFrontCache {
 	op := readOperationContextFromContext(ctx)
 	if op == nil {
@@ -569,6 +590,8 @@ func decodedBlockFrontCacheFromContext(ctx context.Context) *decodedBlockFrontCa
 	return op.decodedBlocks
 }
 
+// decodedBlockCacheCost computes the raw plus decoded cost of a cached
+// entry, or false when either size is unknown.
 func decodedBlockCacheCost(blk Block, data []byte) (int64, bool) {
 	rawCost := int64(len(data))
 	if rawCost <= 0 {
@@ -591,6 +614,8 @@ func decodedBlockCacheCost(blk Block, data []byte) (int64, bool) {
 	return rawCost + decodedCost + decodedBlockCacheEntryOverheadCost, true
 }
 
+// decodedBlockCacheKeyFor builds the cache key for a block, or false
+// when the block type is not cacheable.
 func decodedBlockCacheKeyFor(ref *BlockRef, blk Block, xfrm Transformer) (decodedBlockCacheKey, bool) {
 	if ref == nil || ref.GetEmpty() || blk == nil {
 		return decodedBlockCacheKey{}, false
@@ -619,6 +644,8 @@ func decodedBlockCacheKeyFor(ref *BlockRef, blk Block, xfrm Transformer) (decode
 	}, true
 }
 
+// decodedBlockCacheTransformKey returns the transformer's cache identity,
+// or the no-transform key.
 func decodedBlockCacheTransformKey(xfrm Transformer) (string, bool) {
 	if xfrm == nil {
 		return DecodedBlockCacheNoTransformKey, true
@@ -648,6 +675,8 @@ func (k decodedBlockCacheKey) String() string {
 	return b.String()
 }
 
+// cloneDecodedBlock deep-clones a block, returning false when the block
+// type cannot be cloned.
 func cloneDecodedBlock(blk Block) (Block, bool, error) {
 	cloned, err := CloneBlock(blk)
 	if err != nil {

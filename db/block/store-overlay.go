@@ -12,11 +12,17 @@ import (
 //
 // ctx is used for writeback requests
 type StoreOverlay struct {
-	ctx              context.Context
-	le               *logrus.Entry
-	lower, upper     StoreOps
-	mode             OverlayMode
+	// ctx owns writeback request lifetimes.
+	ctx context.Context
+	// le is the logger.
+	le *logrus.Entry
+	// lower is the backing store; upper is the cache/front store.
+	lower, upper StoreOps
+	// mode selects the read and writeback routing.
+	mode OverlayMode
+	// writebackTimeout bounds each writeback, zero means no timeout.
 	writebackTimeout time.Duration
+	// writebackPutOpts carries options for writeback puts.
 	writebackPutOpts *PutOpts
 }
 

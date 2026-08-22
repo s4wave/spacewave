@@ -589,6 +589,7 @@ func (c *Cursor) Fetch(ctx context.Context) ([]byte, bool, error) {
 	return data, found, err
 }
 
+// fetch loads the raw and unmarshaled block data at the cursor position.
 func (c *Cursor) fetch(ctx context.Context) ([]byte, []byte, bool, error) {
 	if c == nil {
 		return nil, nil, false, nil
@@ -714,6 +715,8 @@ func (c *Cursor) Unmarshal(ctx context.Context, ctor func() Block) (Block, error
 	return c.setUnmarshaledBlock(b)
 }
 
+// readStore returns the read-scoped store from the context, falling back
+// to the cursor's block store.
 func (c *Cursor) readStore(ctx context.Context) StoreOps {
 	bkt := readOperationStore(ctx)
 	if bkt != nil {
@@ -723,6 +726,8 @@ func (c *Cursor) readStore(ctx context.Context) StoreOps {
 	return bkt
 }
 
+// decodedBlockCacheContext attaches the transaction's decoded block
+// cache to the context when not already present.
 func (c *Cursor) decodedBlockCacheContext(ctx context.Context) context.Context {
 	if decodedBlockCacheFromContext(ctx) != nil || c == nil || c.t == nil {
 		return ctx
@@ -733,6 +738,7 @@ func (c *Cursor) decodedBlockCacheContext(ctx context.Context) context.Context {
 	return WithDecodedBlockCache(ctx, cache)
 }
 
+// transformer returns the transaction's block transformer, or nil.
 func (c *Cursor) transformer() Transformer {
 	if c == nil || c.t == nil {
 		return nil
@@ -740,6 +746,8 @@ func (c *Cursor) transformer() Transformer {
 	return c.t.xfrm
 }
 
+// setUnmarshaledBlock caches the unmarshaled block on the cursor
+// position, deduplicating concurrent unmarshal calls.
 func (c *Cursor) setUnmarshaledBlock(b Block) (Block, error) {
 	var err error
 	if c.t != nil {
