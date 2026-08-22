@@ -9,7 +9,7 @@ import {
 } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { build } from 'vite'
+import { build, type InlineConfig } from 'vite'
 
 // The isolated Bldr harness ships the SDK inside its own dist root. The app
 // project roots here have no node_modules install of @aptre/bldr-sdk, no
@@ -57,7 +57,7 @@ async function startIsolatedHarness(layout: HarnessLayout): Promise<{
   return { baseDir, distRoot, appRoot }
 }
 
-async function loadBaseConfig(appRoot: string) {
+async function loadBaseConfig(appRoot: string): Promise<InlineConfig> {
   vi.resetModules()
   const { default: baseConfig } = await import('./vite-base.config.js')
   return {
