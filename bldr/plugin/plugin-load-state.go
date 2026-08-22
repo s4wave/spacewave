@@ -16,11 +16,14 @@ const (
 	InitialCapabilityRegistrationFailed
 )
 
-// PluginLoadState atomically projects the plugin RPC client and initial
-// capability-registration state.
+// PluginLoadState atomically projects the plugin RPC client, initial
+// capability-registration state, and startup wait budget state.
 type PluginLoadState struct {
 	plugin            RunningPlugin
 	registrationState InitialCapabilityRegistrationState
+	// startupBudgetExhausted reports that the plugin instance exceeded its
+	// configured startup wait budget before completing registration.
+	startupBudgetExhausted bool
 }
 
 // NewPluginLoadState constructs a plugin load state.
@@ -55,4 +58,17 @@ func (s PluginLoadState) GetRpcClient() srpc.Client {
 // GetInitialCapabilityRegistrationState returns the startup registration state.
 func (s PluginLoadState) GetInitialCapabilityRegistrationState() InitialCapabilityRegistrationState {
 	return s.registrationState
+}
+
+// WithStartupBudgetExhausted returns a copy of the state marked as having
+// exceeded its startup wait budget.
+func (s PluginLoadState) WithStartupBudgetExhausted() PluginLoadState {
+	s.startupBudgetExhausted = true
+	return s
+}
+
+// GetStartupBudgetExhausted reports whether the plugin instance exceeded its
+// startup wait budget before completing initial capability registration.
+func (s PluginLoadState) GetStartupBudgetExhausted() bool {
+	return s.startupBudgetExhausted
 }

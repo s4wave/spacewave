@@ -108,6 +108,12 @@ func (c *StartupGroupCoordinator) newPluginWatcher(
 				c.setPluginTerminal(pluginID)
 				return nil
 			}
+			// A pending plugin that exhausted its startup wait budget stops
+			// blocking the group; execution retries continue unbounded.
+			if next.GetStartupBudgetExhausted() {
+				c.setPluginTerminal(pluginID)
+				return nil
+			}
 		}
 	}, struct{}{}
 }

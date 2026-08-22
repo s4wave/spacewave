@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/util/ccontainer"
@@ -36,6 +37,9 @@ type pluginInstance struct {
 	// manifestSelectionFingerprint is the last input set fully processed by
 	// watchWorldManifestRoutine.
 	manifestSelectionFingerprint atomic.Pointer[manifestSelectionInput]
+
+	// startupWaitBudgetTimer holds the armed startup wait budget deadline.
+	startupWaitBudgetTimer atomic.Pointer[time.Timer]
 
 	// runningPluginCtr contains the running plugin ref
 	runningPluginCtr *ccontainer.CContainer[bldr_plugin.RunningPlugin]
@@ -135,6 +139,13 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 		return err
 	}
 	t.ensureAccessProviders()
+
+	startupWaitBudget, err := t.c.conf.BuildStartupWaitBudget()
+	if err != nil {
+		return err
+	}
+	t.armStartupWaitBudget(startupWaitBudget)
+	defer t.stopStartupWaitBudget()
 
 	t.c.setPluginStatus(
 		t.pluginID,

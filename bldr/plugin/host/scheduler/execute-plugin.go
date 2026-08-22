@@ -217,35 +217,61 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 // beginInitialCapabilityRegistration resets readiness for a new plugin
 // instance execution.
 func (t *pluginInstance) beginInitialCapabilityRegistration() {
-	state := bldr_plugin.NewPluginLoadState(
-		nil,
-		bldr_plugin.InitialCapabilityRegistrationPending,
-	)
-	t.pluginLoadStateCtr.SetValue(state)
-	t.publishPluginLoadState(state)
+	t.updatePluginLoadState(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
+		next := bldr_plugin.NewPluginLoadState(
+			nil,
+			bldr_plugin.InitialCapabilityRegistrationPending,
+		)
+		if current.GetStartupBudgetExhausted() {
+			next = next.WithStartupBudgetExhausted()
+		}
+		return next
+	})
 }
 
 // updateRpcClient is called by the plugin when the RPC client changes.
 func (t *pluginInstance) updateRpcClient(client srpc.Client) {
-	state := t.pluginLoadStateCtr.SwapValue(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
+	t.updatePluginLoadState(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
 		registrationState := current.GetInitialCapabilityRegistrationState()
 		if client == nil {
 			registrationState = bldr_plugin.InitialCapabilityRegistrationFailed
 		}
-		return bldr_plugin.NewPluginLoadState(client, registrationState)
+		next := bldr_plugin.NewPluginLoadState(client, registrationState)
+		if current.GetStartupBudgetExhausted() {
+			next = next.WithStartupBudgetExhausted()
+		}
+		return next
 	})
-	t.publishPluginLoadState(state)
 }
 
 func (t *pluginInstance) finishInitialCapabilityRegistration(complete bool) {
-	state := t.pluginLoadStateCtr.SwapValue(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
+	t.updatePluginLoadState(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
 		registrationState := bldr_plugin.InitialCapabilityRegistrationFailed
 		if complete {
 			registrationState = bldr_plugin.InitialCapabilityRegistrationComplete
 		}
-		return bldr_plugin.NewPluginLoadState(current.GetRpcClient(), registrationState)
+		next := bldr_plugin.NewPluginLoadState(current.GetRpcClient(), registrationState)
+		if current.GetStartupBudgetExhausted() {
+			next = next.WithStartupBudgetExhausted()
+		}
+		return next
 	})
-	t.publishPluginLoadState(state)
+	if complete {
+		t.stopStartupWaitBudget()
+	}
+}
+
+// updatePluginLoadState applies cb to the load state and refreshes the
+// running-plugin projection inside the load state container's critical
+// section, so concurrent updates cannot publish a stale projection.
+func (t *pluginInstance) updatePluginLoadState(
+	cb func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState,
+) bldr_plugin.PluginLoadState {
+	return t.pluginLoadStateCtr.SwapValue(func(current bldr_plugin.PluginLoadState) bldr_plugin.PluginLoadState {
+		next := cb(current)
+		t.publishPluginLoadState(next)
+		return next
+	})
 }
 
 func (t *pluginInstance) publishPluginLoadState(state bldr_plugin.PluginLoadState) {

@@ -55,6 +55,11 @@ message Config {
   // InstanceKey identifies the isolated plugin instance set resolved by this scheduler.
   // Empty retains the unscoped Dist behavior.
   string instance_key = 14;
+  // StartupWaitBudgetDur is the maximum wall-clock duration a plugin instance
+  // may take to complete initial capability registration before its startup
+  // wait budget is reported as exhausted. Execution retries remain unbounded.
+  // If unset or zero, defaults to 60s. Negative values are rejected.
+  string startup_wait_budget_dur = 15;
 }
 
 // PlatformSelectionPolicy restricts a plugin host platform to a plugin ID list.
