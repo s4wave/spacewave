@@ -6,7 +6,7 @@ import { UnixFSAudioFileViewer } from './UnixFSAudioFileViewer.js'
 
 vi.mock('@videojs/react', () => ({
   createPlayer: () => ({
-    Provider: ({ children }: { children?: ReactNode }) => children ?? null,
+    Player: ({ children }: { children?: ReactNode }) => children ?? null,
   }),
 }))
 
