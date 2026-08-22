@@ -1,3 +1,5 @@
+//go:build !tinygo
+
 package e2e_wasm_session
 
 import (
