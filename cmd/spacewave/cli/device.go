@@ -777,7 +777,7 @@ func upsertLinkedDeviceObject(
 			return "", errors.New("existing device object peer_id does not match setup state")
 		}
 		mergeDeviceObjectState(next, existing)
-		projected, _, err := projectDevicePolicyOntoDevice(next, policy, now)
+		projected, _, err := projectDevicePolicyOntoDevice(next, policy, objectKey, nil, now)
 		if err != nil {
 			return "", err
 		}
@@ -790,7 +790,7 @@ func upsertLinkedDeviceObject(
 			return "", err
 		}
 	} else {
-		projected, _, err := projectDevicePolicyOntoDevice(next, policy, now)
+		projected, _, err := projectDevicePolicyOntoDevice(next, policy, objectKey, nil, now)
 		if err != nil {
 			return "", err
 		}

@@ -7,6 +7,7 @@ import (
 	"net"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,10 +24,147 @@ func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 	checkoutRootCmd := findTestSubcommand(t, policyCmd, "checkout-root")
 	checkoutRootAddCmd := findTestSubcommand(t, checkoutRootCmd, "add")
 	checkoutRootRemoveCmd := findTestSubcommand(t, checkoutRootCmd, "remove")
+	sensorCmd := findTestSubcommand(t, policyCmd, "sensor")
+	sensorAddCmd := findTestSubcommand(t, sensorCmd, "add")
+	sensorRemoveCmd := findTestSubcommand(t, sensorCmd, "remove")
 
 	assertCommandFlags(t, enableShellCmd, "state-path", "socket-path", "disable")
 	assertCommandFlags(t, checkoutRootAddCmd, "state-path", "socket-path", "write")
 	assertCommandFlags(t, checkoutRootRemoveCmd, "state-path", "socket-path")
+	assertCommandFlags(t, sensorAddCmd, "state-path", "socket-path", "kind", "disable")
+	assertCommandFlags(t, sensorRemoveCmd, "state-path", "socket-path")
+}
+
+// runSensorPolicyMutation drives one CLI sensor mutation against a stubbed
+// daemon and returns the reload count it produced.
+func runSensorPolicyMutation(
+	t *testing.T,
+	statePath string,
+	args ...string,
+) int {
+	t.Helper()
+	var reloads int
+	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
+		return newTestDaemonConn(t), nil
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
+		t.Fatal("autostart must not run after successful dial")
+		return nil, nil
+	})
+	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
+		reloads++
+		return nil
+	})
+	// Flags belong to the leaf command: sensor <sub> --state-path ...
+	full := append([]string{"device", "policy", "sensor", args[0], "--state-path", statePath}, args[1:]...)
+	if err := runDeviceCLI(t, full...); err != nil {
+		t.Fatalf("device policy sensor %s: %v", strings.Join(args, " "), err)
+	}
+	return reloads
+}
+
+func TestDevicePolicySensorAddUpdateRemoveWritesPolicyAndReloadsDaemon(t *testing.T) {
+	clearStatePathEnv(t)
+	clearSocketPathEnv(t)
+	statePath := t.TempDir()
+	if err := device_policy.WriteFile(statePath, &device_policy.DevicePolicy{Revision: 3}); err != nil {
+		t.Fatalf("seed policy: %v", err)
+	}
+
+	if reloads := runSensorPolicyMutation(t, statePath,
+		"add", "living-room", "127.0.0.1:6053"); reloads != 1 {
+		t.Fatalf("add reloads = %d, want 1", reloads)
+	}
+	policy, err := device_policy.ReadFile(statePath)
+	if err != nil {
+		t.Fatalf("read add policy: %v", err)
+	}
+	if policy.GetRevision() != 4 {
+		t.Fatalf("add revision = %d, want 4", policy.GetRevision())
+	}
+	if len(policy.GetSensorEndpoint()) != 1 {
+		t.Fatalf("endpoints after add = %d, want 1", len(policy.GetSensorEndpoint()))
+	}
+	endpoint := policy.GetSensorEndpoint()[0]
+	if endpoint.GetId() != "living-room" || endpoint.GetEndpoint() != "127.0.0.1:6053" {
+		t.Fatalf("endpoint = %v", endpoint)
+	}
+	if !endpoint.GetEnabled() || endpoint.GetAdapterKind() != s4wave_device.SensorAdapterKind_SENSOR_ADAPTER_KIND_ESPHOME {
+		t.Fatalf("endpoint enabled/kind = %v/%v, want true/ESPHOME", endpoint.GetEnabled(), endpoint.GetAdapterKind())
+	}
+
+	// Re-adding the same stable ID updates the declaration in place.
+	if reloads := runSensorPolicyMutation(t, statePath,
+		"add", "--kind", "esphome", "--disable", "living-room", "127.0.0.1:6054"); reloads != 1 {
+		t.Fatalf("update reloads = %d, want 1", reloads)
+	}
+	policy, err = device_policy.ReadFile(statePath)
+	if err != nil {
+		t.Fatalf("read update policy: %v", err)
+	}
+	if policy.GetRevision() != 5 {
+		t.Fatalf("update revision = %d, want 5", policy.GetRevision())
+	}
+	if len(policy.GetSensorEndpoint()) != 1 {
+		t.Fatalf("endpoints after update = %d, want 1", len(policy.GetSensorEndpoint()))
+	}
+	endpoint = policy.GetSensorEndpoint()[0]
+	if endpoint.GetEndpoint() != "127.0.0.1:6054" || endpoint.GetEnabled() {
+		t.Fatalf("updated endpoint = %v, want address updated and disabled", endpoint)
+	}
+
+	if reloads := runSensorPolicyMutation(t, statePath, "remove", "living-room"); reloads != 1 {
+		t.Fatalf("remove reloads = %d, want 1", reloads)
+	}
+	policy, err = device_policy.ReadFile(statePath)
+	if err != nil {
+		t.Fatalf("read remove policy: %v", err)
+	}
+	if policy.GetRevision() != 6 {
+		t.Fatalf("remove revision = %d, want 6", policy.GetRevision())
+	}
+	if len(policy.GetSensorEndpoint()) != 0 {
+		t.Fatalf("endpoints after remove = %d, want 0", len(policy.GetSensorEndpoint()))
+	}
+}
+
+func TestDevicePolicySensorAddRejectsUnknownKindWithoutWrite(t *testing.T) {
+	clearStatePathEnv(t)
+	clearSocketPathEnv(t)
+	statePath := t.TempDir()
+	if err := device_policy.WriteFile(statePath, &device_policy.DevicePolicy{Revision: 7}); err != nil {
+		t.Fatalf("seed policy: %v", err)
+	}
+	var reloads int
+	withDeviceDaemonStub(t, func(sockPath string, call int) (net.Conn, error) {
+		return newTestDaemonConn(t), nil
+	}, func(_ context.Context, path string) (*exec.Cmd, error) {
+		t.Fatal("autostart must not run after successful dial")
+		return nil, nil
+	})
+	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
+		reloads++
+		return nil
+	})
+
+	err := runDeviceCLI(t, "device", "policy", "sensor", "add", "--state-path", statePath,
+		"--kind", "zigbee", "radar", "127.0.0.1:6053")
+	if err == nil {
+		t.Fatal("unknown adapter kind was accepted")
+	}
+	if !strings.Contains(err.Error(), "unknown sensor adapter kind") {
+		t.Fatalf("error = %v, want unknown-kind message", err)
+	}
+	policy, readErr := device_policy.ReadFile(statePath)
+	if readErr != nil {
+		t.Fatalf("read policy after rejection: %v", readErr)
+	}
+	if policy.GetRevision() != 7 || len(policy.GetSensorEndpoint()) != 0 {
+		t.Fatalf("rejected mutation wrote policy: revision=%d endpoints=%d",
+			policy.GetRevision(), len(policy.GetSensorEndpoint()))
+	}
+	if reloads != 0 {
+		t.Fatalf("reloads after rejection = %d, want 0", reloads)
+	}
 }
 
 func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testing.T) {
@@ -98,7 +236,7 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 		},
 	}
 
-	got := computeDevicePolicyCapabilities(policy, existing)
+	got := computeDevicePolicyCapabilities(policy, existing, "", nil)
 	byID := deviceCapabilitiesByID(got)
 	if len(got) != 4 {
 		t.Fatalf("capability count = %d, want non-policy + remote shell + two policy roots", len(got))
@@ -213,7 +351,7 @@ func TestProjectDevicePolicyOntoDeviceUpdatesCapabilitiesAndTimestamp(t *testing
 		RemoteShell: &device_policy.RemoteShellPolicy{Enabled: true, Detail: "terminal enabled"},
 	}
 
-	next, changed, err := projectDevicePolicyOntoDevice(existing, policy, now)
+	next, changed, err := projectDevicePolicyOntoDevice(existing, policy, "", nil, now)
 	if err != nil {
 		t.Fatalf("projectDevicePolicyOntoDevice() error = %v", err)
 	}
