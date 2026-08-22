@@ -43,7 +43,12 @@ func AttachLogFiles(logger *logrus.Logger, specs []LogFileSpec) (func(), error) 
 			return nil, err
 		}
 
-		f, err := os.Create(spec.Path)
+		// Open with append semantics: multiple processes can resolve the
+		// same log-file path within the same second (same-second {ts}
+		// template or an explicit shared spec), and a truncate-on-open
+		// here would destroy the records a still-running first writer
+		// already emitted.
+		f, err := os.OpenFile(spec.Path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o666)
 		if err != nil {
 			for _, h := range hooks {
 				h.Close()

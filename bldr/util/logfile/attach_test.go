@@ -1,9 +1,12 @@
 package logfile
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -119,6 +122,123 @@ func TestAttachLogFilesJSON(t *testing.T) {
 	}
 	if !strings.Contains(string(data), "{") {
 		t.Errorf("expected JSON format, got: %q", string(data))
+	}
+}
+
+// TestAttachLogFilesAppendPreservesExistingRecords pins append semantics for
+// the shared log-file path. Two processes starting within the same second
+// resolve the same {ts}.log path; the second attach must not destroy records
+// the first process already wrote.
+func TestAttachLogFilesAppendPreservesExistingRecords(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "shared.log")
+
+	logA := logrus.New()
+	logA.SetLevel(logrus.DebugLevel)
+	cleanupA, err := AttachLogFiles(logA, []LogFileSpec{
+		{Level: logrus.DebugLevel, Format: "text", Path: path},
+	})
+	if err != nil {
+		t.Fatalf("first AttachLogFiles error: %v", err)
+	}
+	for i := range 10 {
+		logA.Infof("a record %d", i)
+	}
+	cleanupA()
+
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read after first writer: %v", err)
+	}
+	if !strings.Contains(string(before), "a record 0") {
+		t.Fatalf("first writer records missing before second attach: %q", before)
+	}
+
+	logB := logrus.New()
+	logB.SetLevel(logrus.DebugLevel)
+	cleanupB, err := AttachLogFiles(logB, []LogFileSpec{
+		{Level: logrus.DebugLevel, Format: "text", Path: path},
+	})
+	if err != nil {
+		t.Fatalf("second AttachLogFiles error: %v", err)
+	}
+	logB.Info("b record 0")
+	cleanupB()
+
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read after second writer: %v", err)
+	}
+	if bytes.IndexByte(after, 0) >= 0 {
+		t.Error("log file contains NUL padding after second attach")
+	}
+	for i := range 10 {
+		if want := fmt.Sprintf("a record %d", i); !strings.Contains(string(after), want) {
+			t.Errorf("second attach destroyed existing record %q", want)
+		}
+	}
+	if !strings.Contains(string(after), "b record 0") {
+		t.Errorf("second writer record missing: %q", after)
+	}
+}
+
+// TestAttachLogFilesConcurrentWritersKeepsCompleteRecords verifies that two
+// hooks attached to one log file path both keep every record. This models
+// overlapping service-startup processes sharing one {ts}.log sink.
+func TestAttachLogFilesConcurrentWritersKeepsCompleteRecords(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "shared.log")
+
+	specs := []LogFileSpec{{Level: logrus.DebugLevel, Format: "text", Path: path}}
+	logA := logrus.New()
+	logA.SetLevel(logrus.DebugLevel)
+	cleanupA, err := AttachLogFiles(logA, specs)
+	if err != nil {
+		t.Fatalf("first AttachLogFiles error: %v", err)
+	}
+	logB := logrus.New()
+	logB.SetLevel(logrus.DebugLevel)
+	cleanupB, err := AttachLogFiles(logB, specs)
+	if err != nil {
+		cleanupA()
+		t.Fatalf("second AttachLogFiles error: %v", err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		for i := range 50 {
+			logA.Infof("a record %d", i)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for i := range 50 {
+			logB.Infof("b record %d", i)
+		}
+	}()
+	wg.Wait()
+	cleanupA()
+	cleanupB()
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read log file: %v", err)
+	}
+	if bytes.IndexByte(data, 0) >= 0 {
+		t.Error("log file contains NUL padding from truncating writes")
+	}
+	records := strings.Count(string(data), "time=")
+	if records != 100 {
+		t.Errorf("record count = %d, want 100 (records were destroyed by a truncating attach)", records)
+	}
+	for i := range 50 {
+		for _, prefix := range []string{"a", "b"} {
+			if want := fmt.Sprintf("%s record %d", prefix, i); !strings.Contains(string(data), want) {
+				t.Errorf("missing record %q", want)
+			}
+		}
 	}
 }
 
