@@ -8,8 +8,8 @@ import (
 	world "github.com/s4wave/spacewave/db/world"
 )
 
-// checkWorld writes objects and a graph edge and reads them back.
-func checkWorld(ctx context.Context, ws world.WorldState) error {
+// CheckWorld writes objects and a graph edge and reads them back.
+func CheckWorld(ctx context.Context, ws world.WorldState) error {
 	objRef := &bucket.ObjectRef{BucketId: "test-bucket"}
 	for _, key := range []string{"task/a", "task/b"} {
 		if _, err := ws.CreateObject(ctx, key, objRef); err != nil {

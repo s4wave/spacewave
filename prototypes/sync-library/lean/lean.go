@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
+	"github.com/aperturerobotics/controllerbus/controller/resolver/static"
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	boilerplate_controller "github.com/aperturerobotics/controllerbus/example/boilerplate/controller"
 	block_store_inmem "github.com/s4wave/spacewave/db/block/store/inmem"
@@ -25,17 +27,50 @@ import (
 // engineBucketID is the bucket the lean world engine uses.
 const engineBucketID = "test-bucket"
 
-// RunLean constructs a Hydra world without any transport factory and runs the
-// object and graph checks against it.
-func RunLean(ctx context.Context) error {
+// World is an opened transport-free Hydra world.
+type World struct {
+	// Bus is the controller bus.
+	Bus bus.Bus
+	// StaticResolver resolves controllers on the bus.
+	StaticResolver *static.Resolver
+	// WS is the writable world state handle.
+	WS world.WorldState
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	rels   []func()
+}
+
+// Close releases every resource the world holds. The world state must not
+// be used after Close returns.
+func (w *World) Close() {
+	for _, rel := range w.rels {
+		rel()
+	}
+	w.cancel()
+}
+
+// OpenWorld constructs a Hydra world without any transport factory:
+// storage factories only, plus the configset, node, volume, and engine
+// controllers loaded explicitly.
+func OpenWorld(ctx context.Context) (*World, error) {
 	log := logrus.New()
 	log.SetLevel(logrus.ErrorLevel)
 	le := logrus.NewEntry(log)
 
+	ctx, cancel := context.WithCancel(ctx)
+	w := &World{ctx: ctx, cancel: cancel}
+	fail := func(err error) (*World, error) {
+		w.Close()
+		return nil, err
+	}
+
 	b, sr, err := cbc.NewCoreBus(ctx, le)
 	if err != nil {
-		return err
+		return fail(err)
 	}
+	w.Bus = b
+	w.StaticResolver = sr
 	sr.AddFactory(bucket_setup.NewFactory(b))
 	sr.AddFactory(node_controller.NewFactory(b))
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
@@ -51,7 +86,7 @@ func RunLean(ctx context.Context) error {
 		resolver.NewLoadControllerWithConfig(&configset_controller.Config{}),
 		nil,
 	); err != nil {
-		return fmt.Errorf("configset controller: %w", err)
+		return fail(fmt.Errorf("configset controller: %w", err))
 	}
 	if _, _, _, err := loader.WaitExecControllerRunning(
 		ctx,
@@ -59,7 +94,7 @@ func RunLean(ctx context.Context) error {
 		resolver.NewLoadControllerWithConfig(&node_controller.Config{}),
 		nil,
 	); err != nil {
-		return fmt.Errorf("node controller: %w", err)
+		return fail(fmt.Errorf("node controller: %w", err))
 	}
 
 	dv, _, volRef, err := loader.WaitExecControllerRunning(
@@ -69,24 +104,24 @@ func RunLean(ctx context.Context) error {
 		nil,
 	)
 	if err != nil {
-		return fmt.Errorf("volume controller: %w", err)
+		return fail(fmt.Errorf("volume controller: %w", err))
 	}
-	defer volRef.Release()
+	w.rels = append(w.rels, volRef.Release)
 	vc := dv.(volume.Controller)
 	v, err := vc.GetVolume(ctx)
 	if err != nil {
-		return fmt.Errorf("get volume: %w", err)
+		return fail(fmt.Errorf("get volume: %w", err))
 	}
 	if _, _, _, err := v.ApplyBucketConfig(ctx, &bucket.Config{
 		Id:  engineBucketID,
 		Rev: 1,
 	}); err != nil {
-		return fmt.Errorf("apply bucket config: %w", err)
+		return fail(fmt.Errorf("apply bucket config: %w", err))
 	}
 
 	transformConf, err := engineTransformConfig(engineBucketID)
 	if err != nil {
-		return fmt.Errorf("build transform config: %w", err)
+		return fail(fmt.Errorf("build transform config: %w", err))
 	}
 	initRef := &bucket.ObjectRef{
 		BucketId:      engineBucketID,
@@ -102,11 +137,22 @@ func RunLean(ctx context.Context) error {
 	)
 	_, ctrlRef, err := world_block_engine.StartEngineWithConfig(ctx, b, engConf)
 	if err != nil {
-		return fmt.Errorf("start world engine: %w", err)
+		return fail(fmt.Errorf("start world engine: %w", err))
 	}
-	defer ctrlRef.Release()
+	w.rels = append(w.rels, ctrlRef.Release)
 
 	busEngine := world.NewBusEngine(ctx, b, "lean-engine")
-	ws := world.NewEngineWorldState(busEngine, true)
-	return checkWorld(ctx, ws)
+	w.WS = world.NewEngineWorldState(busEngine, true)
+	return w, nil
+}
+
+// RunLean constructs the world and runs the object and graph checks
+// against it.
+func RunLean(ctx context.Context) error {
+	w, err := OpenWorld(ctx)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	return CheckWorld(ctx, w.WS)
 }
