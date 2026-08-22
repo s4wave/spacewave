@@ -150,12 +150,7 @@ func (f *BillyFS) OpenFile(filepath string, flag int, perm os.FileMode) (billy.F
 			return nil, &os.PathError{Op: "openfile-lookup-excl", Path: filepath, Err: err}
 		}
 	}
-	// TODO: resolve symlink
-	/*
-		if err == nil && fileHandle != nil && fileHandle.IsSymlink() {
-			f.h.ResolveLink...
-		}
-	*/
+	// Note: symlinks are not resolved on this path.
 	// create the file if necessary
 	if err == unixfs_errors.ErrNotExist {
 		if !unixfs.FlagIsCreate(flag) {

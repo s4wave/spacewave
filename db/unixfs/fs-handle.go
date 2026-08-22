@@ -658,13 +658,8 @@ func (h *FSHandle) Copy(ctx context.Context, dest *FSHandle, destName string, ts
 				return err
 			}
 
-			// No optimized path exists, do it the slow way.
-			// TODO: recursive copy
-			/*
-				if le := h.i().f.le; le != nil {
-					le.Warnf("TODO: cross-fs copy between locations: %#v -> %#v", srcOps, destOps)
-				}
-			*/
+			// No optimized path exists and cross-location recursive copy
+			// is not implemented.
 			return errors.Errorf("unable to copy between these locations")
 		})
 	})
@@ -871,13 +866,7 @@ func (h *FSHandle) Rename(ctx context.Context, dest *FSHandle, destName string, 
 			break
 		}
 
-		// No optimized path exists, do it the slow way.
-		// TODO: recursive move
-		/*
-			if le := h.i().f.le; le != nil {
-				le.Warnf("TODO: cross-fs rename between locations: %#v -> %#v", srcOps, destOps)
-			}
-		*/
+		// No optimized path exists; cross-location moves return an error.
 		return unixfs_errors.ErrCrossFsRename
 	}
 

@@ -36,22 +36,6 @@ func TestEncodeDecode(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 	}
-	/*
-		getBucketAPI := func(tb *testbed.Testbed) bucket.Bucket {
-			targetVolID := tb.Volume.GetID()
-			av, avRel, err := bus.ExecOneOff(
-				tb.Context,
-				tb.Bus,
-				volume.NewBuildBucketAPI(bc.GetId(), targetVolID),
-				nil,
-			)
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			avRel.Release()
-			return av.GetValue().(volume.BuildBucketAPIValue).GetBucket()
-		}
-	*/
 
 	tconf, err := block_transform.NewConfig(
 		transform_blockenc.NewStepFactory().ConstructMockConfig(),

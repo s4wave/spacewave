@@ -165,12 +165,7 @@ func (f *AferoFS) OpenFile(filepath string, flag int, perm os.FileMode) (afero.F
 			return nil, err
 		}
 	}
-	// TODO: resolve symlink
-	/*
-		if err == nil && fileHandle != nil && fileHandle.IsSymlink() {
-			f.h.ResolveLink...
-		}
-	*/
+	// Note: symlinks are not resolved on this path.
 	// create the file if necessary
 	if err == unixfs_errors.ErrNotExist {
 		if !unixfs.FlagIsCreate(flag) {

@@ -1,7 +1,6 @@
 package dex
 
 import (
-	// "github.com/s4wave/spacewave/net/peer"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -27,9 +26,6 @@ type LookupBlockFromNetworkValue interface {
 	// GetData returns the returned data.
 	// Returns nil if not found.
 	GetData() []byte
-	// GetProvider returns the peer who provided the data.
-	// May be empty.
-	// GetProvider() peer.ID
 }
 
 // lookupBlockFromNetworkValue implements LookupBlockFromNetworkValue
