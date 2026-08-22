@@ -4,7 +4,7 @@ go 1.26.5
 
 tool github.com/s4wave/goscript/cmd/goscript
 
-require github.com/s4wave/goscript v0.2.26 // master
+require github.com/s4wave/goscript v0.2.27-0.20260813091320-94a37ae74e9d // master
 
 replace (
 	// aperture: use compatibility forks
@@ -32,7 +32,7 @@ require (
 	github.com/aperturerobotics/bldr-saucer v0.4.4
 	github.com/aperturerobotics/cayley v0.15.1-0.20260705021747-c5ec5d20d2b6 // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
-	github.com/aperturerobotics/common v0.35.2-0.20260812032156-a170e5b6fbdd // master
+	github.com/aperturerobotics/common v0.35.3-0.20260821174355-5178d1c5fe41 // master
 	github.com/aperturerobotics/controllerbus v0.53.5-0.20260812083451-7bd9dce82687 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
@@ -51,7 +51,7 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.17.0 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.17.1-0.20260813224822-0110bb08b4f1 // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.52.1-0.20260809072151-672438b66c69
 	github.com/aperturerobotics/util v1.34.10-0.20260802062101-496aab6cefd2 // master
@@ -64,11 +64,11 @@ require (
 
 require (
 	golang.org/x/crypto v0.55.0
-	golang.org/x/mod v0.39.0 // latest
+	golang.org/x/mod v0.40.0 // latest
 	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/term v0.45.0
-	golang.org/x/tools v0.48.0 // latest
+	golang.org/x/tools v0.49.0 // latest
 )
 
 require (
@@ -101,8 +101,8 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260810103312-ac60dc4baf74 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20260812092507-e63910ab7739 // main
+	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260818093742-7bd059496705 // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20260821142625-374c354884f1 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
@@ -114,7 +114,6 @@ require (
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mr-tron/base58 v1.3.0
 	github.com/ncruces/go-sqlite3 v0.35.3
-	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pierrec/lz4/v4 v4.1.28
 	github.com/pion/datachannel v1.6.2
 	github.com/pion/sdp/v3 v3.0.19
@@ -142,7 +141,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.3 // indirect
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/dolthub/flatbuffers/v23 v23.3.3-dh.2 // indirect
 	github.com/dolthub/go-icu-regex v0.0.0-20260610153742-72563bc7ca83 // indirect
@@ -186,15 +184,15 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
+	github.com/stretchr/testify v1.12.0 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/zeebo/assert v1.3.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/otel v1.41.0 // indirect
 	go.opentelemetry.io/otel/trace v1.41.0 // indirect
-	golang.org/x/net v0.57.0 // indirect
-	golang.org/x/telemetry v0.0.0-20260708182218-49f421fb7959 // indirect
+	golang.org/x/net v0.58.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260811182544-a038080d80e5 // indirect
 	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
