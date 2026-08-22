@@ -137,18 +137,25 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 	rel := t.rel
 	var it *Iterator
 	if !rel {
+		// createdIt holds the concrete iterator so the release func
+		// removes its own map entry; reassigning the outer variable
+		// would delete nothing.
+		// createdIt holds the concrete iterator so the release func
+		// removes its own map entry; reassigning the outer variable
+		// would delete nothing.
+		var createdIt *Iterator
 		it = NewIterator(t.txn.NewIterator(opts), reverse, prefix, func() {
 			t.mtx.Lock()
-			if it != nil && t.iters != nil {
-				it = nil
-				delete(t.iters, it)
+			if t.iters != nil {
+				delete(t.iters, createdIt)
 			}
 			t.mtx.Unlock()
 		})
+		createdIt = it
 		if t.iters == nil {
 			t.iters = make(map[*Iterator]struct{})
 		}
-		t.iters[it] = struct{}{}
+		t.iters[createdIt] = struct{}{}
 	}
 	t.mtx.Unlock()
 
