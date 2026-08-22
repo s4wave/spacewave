@@ -3,7 +3,9 @@ package sensor
 import (
 	"context"
 	"net"
+	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -513,6 +515,144 @@ func countingDial(active, maxActive *int32) DialFunc {
 		<-ctx.Done()
 		return nil, ctx.Err()
 	}
+}
+
+// flakyEngine fails one NewTransaction while the flag is set, so tests can
+// inject a failed World write and prove the retry path.
+type flakyEngine struct {
+	world.Engine
+	failNewTransaction atomic.Bool
+}
+
+func (e *flakyEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	// Only writes fail, so test-side read polls keep working.
+	if write && e.failNewTransaction.Load() {
+		return nil, errors.New("injected transaction failure")
+	}
+	return e.Engine.NewTransaction(ctx, write)
+}
+
+func TestManagerConcurrentReconcileKeepsOneWriterPerEndpoint(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatalf("world testbed failed: %v", err)
+	}
+	defer wtb.Release()
+
+	var active, maxActive int32
+	mgr := NewManager(
+		logrus.WithField("test", t.Name()),
+		wtb.Engine,
+		"devices/test-device",
+		countingDial(&active, &maxActive),
+	)
+
+	var wg sync.WaitGroup
+	for g := range 6 {
+		wg.Add(1)
+		go func(g int) {
+			defer wg.Done()
+			for i := range 20 {
+				ep := endpoint("radar")
+				ep.Endpoint = "10.0." + strconv.Itoa(g) + "." + strconv.Itoa(i) + ":6053"
+				mgr.Reconcile(ctx, []*policy.SensorEndpointPolicy{ep})
+			}
+		}(g)
+	}
+	wg.Wait()
+	mgr.Reconcile(ctx, nil)
+
+	deadline := time.Now().Add(2 * time.Second)
+	for atomic.LoadInt32(&active) != 0 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if got := atomic.LoadInt32(&maxActive); got != 1 {
+		t.Fatalf("max concurrent endpoint connections = %d, want 1", got)
+	}
+}
+
+func TestTransitionRetriesAfterFailedPersist(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatalf("world testbed failed: %v", err)
+	}
+	defer wtb.Release()
+
+	flaky := &flakyEngine{Engine: wtb.Engine}
+	if err := createTestDevice(ctx, flaky, "devices/test-device"); err != nil {
+		t.Fatalf("create device object: %v", err)
+	}
+
+	mgr := NewManager(
+		logrus.WithField("test", t.Name()),
+		flaky,
+		"devices/test-device",
+		blockingDial,
+	)
+	mgr.mu.Lock()
+	adapter := newAdapter(mgr, context.Background(), endpoint("radar"))
+	mgr.mu.Unlock()
+
+	adapter.transition(
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_CONNECTING, "")
+	sensorKey := ObjectKey("devices/test-device", "radar")
+	waitForWorldState(t, ctx, flaky, sensorKey,
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_CONNECTING)
+
+	// The offline write fails; the in-memory state moves on while World keeps
+	// the older persisted state.
+	flaky.failNewTransaction.Store(true)
+	adapter.transition(
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_OFFLINE, "network error")
+	waitForWorldState(t, ctx, flaky, sensorKey,
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_CONNECTING)
+
+	// A matching transition after the failed write must retry, not suppress.
+	flaky.failNewTransaction.Store(false)
+	adapter.transition(
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_OFFLINE, "network error")
+	waitForWorldState(t, ctx, flaky, sensorKey,
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_OFFLINE)
+}
+
+func TestCancellationDuringReconnectDelayRepairsStaleWorldState(t *testing.T) {
+	ctx := context.Background()
+	wtb, err := world_testbed.Default(ctx, world_testbed.WithWorldVerbose(false))
+	if err != nil {
+		t.Fatalf("world testbed failed: %v", err)
+	}
+	defer wtb.Release()
+
+	deviceKey := "devices/test-device"
+	if err := createTestDevice(ctx, wtb.Engine, deviceKey); err != nil {
+		t.Fatalf("create device object: %v", err)
+	}
+
+	// The dial flips the failure flag after CONNECTING persisted, so the
+	// following offline write fails and World keeps CONNECTING while the
+	// adapter sleeps in the reconnect delay.
+	flaky := &flakyEngine{Engine: wtb.Engine}
+	dial := func(ctx context.Context, _ string) (net.Conn, error) {
+		flaky.failNewTransaction.Store(true)
+		return nil, errors.Errorf("dial tcp 10.1.2.3:6053: connect: connection refused")
+	}
+
+	runCtx, runCancel := context.WithCancel(context.Background())
+	mgr := NewManager(logrus.WithField("test", t.Name()), flaky, deviceKey, dial)
+	mgr.Reconcile(runCtx, []*policy.SensorEndpointPolicy{endpoint("radar")})
+
+	sensorKey := ObjectKey(deviceKey, "radar")
+	waitForWorldState(t, ctx, flaky, sensorKey,
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_CONNECTING)
+
+	// Cancel while the adapter sleeps in the reconnect delay; the failure
+	// clears first so the detached final write can reach World.
+	flaky.failNewTransaction.Store(false)
+	runCancel()
+	waitForWorldState(t, ctx, flaky, sensorKey,
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_OFFLINE)
 }
 
 func TestManagerReconcileKeepsOneWriterPerEndpoint(t *testing.T) {

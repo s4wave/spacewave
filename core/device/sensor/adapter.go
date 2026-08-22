@@ -73,6 +73,11 @@ type Manager struct {
 	adapters map[string]*Adapter
 	changed  chan struct{}
 	closed   bool
+
+	// reconcileMu serializes one full reconcile cycle, stop phase included,
+	// so concurrent reconciliations cannot interleave replacement starts
+	// with unfinished stops.
+	reconcileMu sync.Mutex
 }
 
 // NewManager constructs a Manager over a ready World engine. A nil dial uses
@@ -156,6 +161,9 @@ func normalizeEndpoint(endpoint *device_policy.SensorEndpointPolicy) (endpointCo
 // changed has its old adapter stopped outside the lock before the replacement
 // starts. Unknown adapter kinds are logged and skipped.
 func (m *Manager) Reconcile(ctx context.Context, endpoints []*device_policy.SensorEndpointPolicy) {
+	m.reconcileMu.Lock()
+	defer m.reconcileMu.Unlock()
+
 	m.mu.Lock()
 	if m.closed {
 		m.mu.Unlock()
@@ -342,11 +350,12 @@ func (a *Adapter) record(state s4wave_device.SensorConnectionState, lastError st
 }
 
 // transition records an actual connection-state change and persists it to the
-// Sensor object with its sanitized category. Unchanged states stay unwritten:
-// repeated retry attempts do not rewrite CONNECTING.
+// Sensor object with its sanitized category. Dedup compares against the last
+// state that actually reached World: a failed write leaves the persisted state
+// behind, so the next matching transition retries instead of suppressing it.
 func (a *Adapter) transition(state s4wave_device.SensorConnectionState, lastError string) {
 	a.mu.Lock()
-	if a.connectionState == state && a.lastError == lastError {
+	if a.persistedState == state && a.persistedError == lastError {
 		a.mu.Unlock()
 		return
 	}
@@ -423,16 +432,16 @@ func (a *Adapter) finalizeShutdown(state s4wave_device.SensorConnectionState, la
 }
 
 // run connects, enumerates, consumes states, and reconnects until cancelled.
-// Cancellation records one final offline state so World never keeps a stale
-// connected Sensor across daemon stop.
+// Every exit records one final offline state through the detached write, so
+// World never keeps a stale connected Sensor across daemon stop.
 func (a *Adapter) run() {
+	defer a.finalizeShutdown(
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_OFFLINE,
+		"",
+	)
 	for a.ctx.Err() == nil {
 		if err := a.connectOnce(); err != nil {
 			if a.ctx.Err() != nil {
-				a.finalizeShutdown(
-					s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_OFFLINE,
-					"",
-				)
 				return
 			}
 			select {
