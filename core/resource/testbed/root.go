@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
+	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
@@ -87,13 +88,19 @@ func (s *TestbedResourceServer) CreateWorld(ctx context.Context, req *s4wave_tes
 		return nil, err
 	}
 
+	// Encrypt the world like the daemon does for space shared objects.
+	transformConf, err := world_testbed.NewEngineTransformConfig(bucketID)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create world engine config
 	engConf := world_block_engine.NewConfig(
 		engineID,
 		volumeID,
 		bucketID,
 		objectStoreID,
-		&bucket.ObjectRef{BucketId: bucketID},
+		&bucket.ObjectRef{BucketId: bucketID, TransformConf: transformConf},
 		nil,
 		false,
 	)
