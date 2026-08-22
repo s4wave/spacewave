@@ -144,9 +144,6 @@ func (t *Tx) Iterate(ctx context.Context, prefix []byte, sort, reverse bool) kvt
 		// createdIt holds the concrete iterator so the release func
 		// removes its own map entry; reassigning the outer variable
 		// would delete nothing.
-		// createdIt holds the concrete iterator so the release func
-		// removes its own map entry; reassigning the outer variable
-		// would delete nothing.
 		var createdIt *Iterator
 		it = NewIterator(t.txn.NewIterator(opts), reverse, prefix, func() {
 			t.mtx.Lock()
