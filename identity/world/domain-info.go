@@ -83,6 +83,7 @@ func LookupDomainInfo(ctx context.Context, w world.WorldState, objKey string) (*
 		return err
 	})
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, nil, err
 	}
 	return entity, obj, nil
@@ -93,7 +94,9 @@ func LookupDomainInfos(ctx context.Context, w world.WorldState, objKeys []string
 	kps := make([]*identity_domain.DomainInfo, len(objKeys))
 	for i, objKey := range objKeys {
 		var err error
-		kps[i], _, err = LookupDomainInfo(ctx, w, objKey)
+		var state world.ObjectState
+		kps[i], state, err = LookupDomainInfo(ctx, w, objKey)
+		world.ReleaseObjectState(state)
 		if err != nil {
 			return nil, err
 		}

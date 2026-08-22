@@ -322,7 +322,7 @@ func (r *WizardResource) replaceSpaceIndexIfWizardIsCurrent(
 	ws world.WorldState,
 	objectKey string,
 ) error {
-	settings, _, err := space_world.LookupSpaceSettings(ctx, ws)
+	settings, err := space_world.LookupSpaceSettingsBody(ctx, ws)
 	if err != nil {
 		return err
 	}

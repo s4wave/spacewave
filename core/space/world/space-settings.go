@@ -34,12 +34,26 @@ func LookupSpaceSettings(ctx context.Context, ws world.WorldState) (*SpaceSettin
 	return settings, state, err
 }
 
+// LookupSpaceSettingsBody looks up the SpaceSettings body in the world.
+// Returns nil, nil if the settings object does not exist.
+func LookupSpaceSettingsBody(ctx context.Context, ws world.WorldState) (*SpaceSettings, error) {
+	settings, err := world.LookupObjectBody[*SpaceSettings](
+		ctx,
+		ws,
+		SpaceSettingsObjectKey,
+		NewSpaceSettingsBlock,
+	)
+	if errors.Is(err, world.ErrObjectNotFound) {
+		return nil, nil
+	}
+	return settings, err
+}
+
 // LookupSpaceIndexObjectType returns the durable ObjectType selected by
 // SpaceSettings.index_path. Missing settings, an empty index, and stale index
 // paths have no semantic type and return an empty string.
 func LookupSpaceIndexObjectType(ctx context.Context, ws world.WorldState) (string, error) {
-	settings, state, err := LookupSpaceSettings(ctx, ws)
-	defer world.ReleaseObjectState(state)
+	settings, err := LookupSpaceSettingsBody(ctx, ws)
 	if err != nil {
 		return "", err
 	}

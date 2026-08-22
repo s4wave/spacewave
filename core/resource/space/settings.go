@@ -29,7 +29,7 @@ func (r *SpaceResource) AddSpacePlugin(
 	defer tx.Discard()
 
 	// Read current settings (may be nil if not yet created).
-	settings, _, err := space_world.LookupSpaceSettings(ctx, tx)
+	settings, err := space_world.LookupSpaceSettingsBody(ctx, tx)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (r *SpaceResource) RemoveSpacePlugin(
 	}
 	defer tx.Discard()
 
-	settings, _, err := space_world.LookupSpaceSettings(ctx, tx)
+	settings, err := space_world.LookupSpaceSettingsBody(ctx, tx)
 	if err != nil {
 		return nil, err
 	}

@@ -142,7 +142,7 @@ func (r *SpaceResource) WatchSpaceState(
 			}
 
 			// Load SpaceSettings when present.
-			state.Settings, _, err = space_world.LookupSpaceSettings(ctx, wtx)
+			state.Settings, err = space_world.LookupSpaceSettingsBody(ctx, wtx)
 			if err != nil {
 				return err
 			}

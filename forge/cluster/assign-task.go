@@ -83,7 +83,7 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 	}
 
 	// Load the cluster record and its controlling peer.
-	cluster, _, err := LookupCluster(ctx, worldHandle, clusterKey)
+	cluster, err := LookupClusterBody(ctx, worldHandle, clusterKey)
 	if err != nil {
 		return false, err
 	}
@@ -109,7 +109,7 @@ func (o *ClusterAssignTaskOp) ApplyWorldOp(
 	}
 
 	// Load the job record.
-	job, _, err := forge_job.LookupJob(ctx, worldHandle, jobKey)
+	job, err := forge_job.LookupJobBody(ctx, worldHandle, jobKey)
 	if err != nil {
 		return false, err
 	}

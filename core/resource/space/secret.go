@@ -117,7 +117,7 @@ func (r *SpaceResource) ReadSecretPayload(
 	if err := world_types.CheckObjectType(ctx, wtx, req.GetObjectKey(), s4wave_secret.SecretTypeID); err != nil {
 		return nil, err
 	}
-	secret, _, err := world.LookupObject[*s4wave_secret.Secret](ctx, wtx, req.GetObjectKey(), s4wave_secret.NewSecretBlock)
+	secret, err := world.LookupObjectBody[*s4wave_secret.Secret](ctx, wtx, req.GetObjectKey(), s4wave_secret.NewSecretBlock)
 	if err != nil {
 		return nil, err
 	}

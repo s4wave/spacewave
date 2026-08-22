@@ -44,7 +44,7 @@ func (o *ForgeTaskCreateOp) ApplyWorldOp(
 
 	// If a job key is provided, verify it exists and can be decoded as a Job.
 	if jobKey != "" {
-		job, _, err := forge_job.LookupJob(ctx, ws, jobKey)
+		job, err := forge_job.LookupJobBody(ctx, ws, jobKey)
 		if err != nil {
 			return false, errors.Wrap(err, "job")
 		}

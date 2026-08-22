@@ -17,6 +17,11 @@ func LookupCluster(ctx context.Context, ws world.WorldState, objKey string) (*Cl
 	return world.LookupObject[*Cluster](ctx, ws, objKey, NewClusterBlock)
 }
 
+// LookupClusterBody looks up a Cluster body in the world.
+func LookupClusterBody(ctx context.Context, ws world.WorldState, objKey string) (*Cluster, error) {
+	return world.LookupObjectBody[*Cluster](ctx, ws, objKey, NewClusterBlock)
+}
+
 // CheckClusterType checks the type graph quad for a cluster.
 func CheckClusterType(ctx context.Context, ws world.WorldState, objKey string) error {
 	return world_types.CheckObjectType(ctx, ws, objKey, ClusterTypeID)
@@ -48,7 +53,7 @@ func CollectClusterJobs(
 
 	states := make([]*forge_job.Job, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
-		states[i], _, err = forge_job.LookupJob(ctx, ws, objKey)
+		states[i], err = forge_job.LookupJobBody(ctx, ws, objKey)
 		if err == nil {
 			err = states[i].Validate()
 		}
@@ -109,7 +114,7 @@ func CollectClusterWorkers(
 
 	states := make([]*forge_worker.Worker, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
-		states[i], _, err = forge_worker.LookupWorker(ctx, ws, objKey)
+		states[i], err = world.LookupObjectBody[*forge_worker.Worker](ctx, ws, objKey, forge_worker.NewWorkerBlock)
 		if err != nil {
 			return nil, nil, err
 		}

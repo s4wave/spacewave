@@ -99,9 +99,17 @@ func LookupKeypair(ctx context.Context, w world.WorldState, objKey string) (*ide
 		return err
 	})
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, nil, err
 	}
 	return entity, obj, nil
+}
+
+// LookupKeypairBody looks up a keypair without returning its object-state handle.
+func LookupKeypairBody(ctx context.Context, w world.WorldState, objKey string) (*identity.Keypair, error) {
+	kp, state, err := LookupKeypair(ctx, w, objKey)
+	world.ReleaseObjectState(state)
+	return kp, err
 }
 
 // LookupKeypairs looks up a set of keypairs.
@@ -109,7 +117,7 @@ func LookupKeypairs(ctx context.Context, w world.WorldState, objKeys []string) (
 	kps := make([]*identity.Keypair, len(objKeys))
 	for i, objKey := range objKeys {
 		var err error
-		kps[i], _, err = LookupKeypair(ctx, w, objKey)
+		kps[i], err = LookupKeypairBody(ctx, w, objKey)
 		if err != nil {
 			return nil, err
 		}
@@ -205,7 +213,8 @@ func CollectObjectKeypairs(ctx context.Context, w world.WorldState, objectKeys .
 
 	kps := make([]*identity.Keypair, len(kpObjectKeys))
 	for i, objKey := range kpObjectKeys {
-		kps[i], _, err = LookupKeypair(ctx, w, objKey)
+		var err error
+		kps[i], err = LookupKeypairBody(ctx, w, objKey)
 		if err != nil {
 			return nil, nil, err
 		}
