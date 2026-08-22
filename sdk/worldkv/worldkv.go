@@ -211,3 +211,14 @@ func (s *Store) WatchPrefix(ctx context.Context, prefix string, cb func(entries 
 		return cb(cp)
 	})
 }
+
+// Exists reports whether key exists.
+func (s *Store) Exists(ctx context.Context, key string) (bool, error) {
+	var exists bool
+	err := s.View(ctx, func(tx kvtx.Tx) error {
+		var err error
+		exists, err = tx.Exists(ctx, []byte(key))
+		return err
+	})
+	return exists, err
+}

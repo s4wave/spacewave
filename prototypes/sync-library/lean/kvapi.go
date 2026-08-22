@@ -105,14 +105,23 @@ func KvPut(key, value string) error {
 	return store.Put(ctx, key, []byte(value))
 }
 
-// KvGet returns the value at key and whether it was found.
-func KvGet(key string) (string, bool, error) {
+// KvGet returns the value at key, or an empty string when absent.
+func KvGet(key string) (string, error) {
 	store, ctx, err := kvUse()
 	if err != nil {
-		return "", false, err
+		return "", err
 	}
-	data, found, err := store.Get(ctx, key)
-	return string(data), found, err
+	data, _, err := store.Get(ctx, key)
+	return string(data), err
+}
+
+// KvExists reports whether key exists.
+func KvExists(key string) (bool, error) {
+	store, ctx, err := kvUse()
+	if err != nil {
+		return false, err
+	}
+	return store.Exists(ctx, key)
 }
 
 // KvDelete deletes key.

@@ -21,9 +21,9 @@ func TestKvApi(t *testing.T) {
 	if err := KvPut("user/1", `{"name":"ada"}`); err != nil {
 		t.Fatal(err.Error())
 	}
-	got, found, err := KvGet("user/1")
-	if err != nil || !found || got != `{"name":"ada"}` {
-		t.Fatalf("KvGet = %q %v %v", got, found, err)
+	got, err := KvGet("user/1")
+	if err != nil || got != `{"name":"ada"}` {
+		t.Fatalf("KvGet = %q %v", got, err)
 	}
 
 	snapshots := make(chan string, 8)
@@ -59,8 +59,8 @@ func TestKvApi(t *testing.T) {
 	if err := KvDelete("user/1"); err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, found, _ := KvGet("user/1"); found {
-		t.Fatal("expected deletion")
+	if got, _ := KvGet("user/1"); got != "" {
+		t.Fatalf("expected deletion, got %q", got)
 	}
 	KvClose()
 	KvClose() // idempotent
@@ -82,20 +82,20 @@ func TestKvDurableReopen(t *testing.T) {
 	}
 	KvClose()
 
-	if _, found, _ := KvGet("durable/a"); found {
-		t.Fatal("expected empty store after close before reopen")
+	if got, _ := KvGet("durable/a"); got != "" {
+		t.Fatalf("expected empty store after close, got %q", got)
 	}
 
 	if err := KvOpenDurable(ctx, dir); err != nil {
 		t.Fatal(err.Error())
 	}
-	got, found, err := KvGet("durable/a")
-	if err != nil || !found || got != "one" {
-		t.Fatalf("KvGet after reopen = %q %v %v; want one true nil", got, found, err)
+	got, err := KvGet("durable/a")
+	if err != nil || got != "one" {
+		t.Fatalf("KvGet after reopen = %q %v; want one", got, err)
 	}
-	got2, found2, err := KvGet("durable/b")
-	if err != nil || !found2 || got2 != "two" {
-		t.Fatalf("KvGet b after reopen = %q %v %v", got2, found2, err)
+	got2, err := KvGet("durable/b")
+	if err != nil || got2 != "two" {
+		t.Fatalf("KvGet b after reopen = %q %v", got2, err)
 	}
 	KvClose()
 	KvOpen(context.Background())
