@@ -9,16 +9,21 @@ import (
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 )
 
-// run exercises the embeddable world path end to end.
+// run exercises the embeddable world path end to end through the default
+// testbed arrangement, which registers every standard factory including
+// transports.
 func run(ctx context.Context) error {
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
 		return fmt.Errorf("construct world testbed: %w", err)
 	}
 	defer tb.Release()
-	ws := tb.WorldState
+	return checkWorld(ctx, tb.WorldState)
+}
 
-	objRef := &bucket.ObjectRef{BucketId: tb.BucketId}
+// checkWorld writes objects and a graph edge and reads them back.
+func checkWorld(ctx context.Context, ws world.WorldState) error {
+	objRef := &bucket.ObjectRef{BucketId: "test-bucket"}
 	for _, key := range []string{"task/a", "task/b"} {
 		if _, err := ws.CreateObject(ctx, key, objRef); err != nil {
 			return fmt.Errorf("create object %s: %w", key, err)
