@@ -11,6 +11,7 @@ import (
 	provider "github.com/s4wave/spacewave/core/provider"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/provider/spacewave/clouderror"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -138,7 +139,47 @@ func waitForLinkedCloudSessionRef(
 	}
 }
 
+// runAccountSettingsCloudSync runs the account-settings cloud-sync routine.
+// A non-retryable cloud error stops the routine instead of entering the retry
+// backoff, so a permanent rejection of GET or POST on the account-settings
+// shared object cannot loop. Unauthenticated errors stay retriable: the
+// reauthentication flow owns them and the next attempt succeeds after it.
+// Access-gated errors stay retriable too: role, subscription, or access
+// state may change while the account stays linked, and the routine's
+// account-state waits recover once it does. Deletion and blocked states do
+// not recover through this loop; the existing account lifecycle owns them.
 func (a *ProviderAccount) runAccountSettingsCloudSync(
+	ctx context.Context,
+	cloudAccountID string,
+) error {
+	err := a.syncAccountSettingsToCloud(ctx, cloudAccountID)
+	if accountSettingsSyncTerminalError(err) {
+		a.t.p.le.WithField("routine", "account-settings-cloud-sync").
+			WithError(err).
+			Warn("permanent error syncing account settings, stopping until link changes")
+		return nil
+	}
+	return err
+}
+
+// accountSettingsSyncTerminalError reports whether an error from the
+// account-settings cloud-sync routine must stop the retry loop instead of
+// backing off and retrying. Access-gated errors are excluded: role,
+// subscription, or access state may change while the account stays linked,
+// so the loop keeps backing off until the correction lands. Deletion and
+// blocked states are owned by the existing account lifecycle, not by this
+// loop.
+func accountSettingsSyncTerminalError(err error) bool {
+	if err == nil || errors.Is(err, context.Canceled) {
+		return false
+	}
+	if clouderror.IsUnauth(err) || clouderror.IsAccessGated(err) {
+		return false
+	}
+	return clouderror.IsNonRetryable(err)
+}
+
+func (a *ProviderAccount) syncAccountSettingsToCloud(
 	ctx context.Context,
 	cloudAccountID string,
 ) error {
