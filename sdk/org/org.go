@@ -55,5 +55,4 @@ func (o *OrgState) Validate() error {
 	return nil
 }
 
-// _ is a type assertion
 var _ block.Block = (*OrgState)(nil)

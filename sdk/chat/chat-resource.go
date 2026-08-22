@@ -3,6 +3,7 @@ package spacewave_chat
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -449,10 +450,7 @@ func (r *ChatResource) messagePageKey(pageIndex uint64) string {
 }
 
 func parseMessageIndex(messageKey string) (uint64, bool) {
-	idx := len(messageKey) - 1
-	for idx >= 0 && messageKey[idx] != '/' {
-		idx--
-	}
+	idx := strings.LastIndexByte(messageKey, '/')
 	if idx < 0 || idx == len(messageKey)-1 {
 		return 0, false
 	}

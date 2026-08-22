@@ -17,7 +17,7 @@ import (
 const UnixFSTypeID = unixfs_world.FSNodeTypeID
 
 // UnixFSType is the ObjectType for UnixFS objects.
-// Returns a FSHandleResource which mirrors the Hydra FSHandle interface.
+// Returns a FSHandleResource for the world object.
 var UnixFSType = objecttype.NewObjectType(UnixFSTypeID, UnixFSFactory)
 
 // UnixFSFactory creates a FSHandleResource from a world object.

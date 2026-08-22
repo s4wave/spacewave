@@ -1,4 +1,3 @@
-/* eslint-disable react-doctor/async-await-in-loop */
 import { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
 import { GitRepoResourceServiceClient } from './repo_srpc.pb.js'
@@ -124,6 +123,8 @@ export class GitRepoHandle extends Resource {
   }
 
   // paginatedLog returns an async iterable that yields pages of commits.
+  // Pagination is sequential: page N+1 needs the commit count of page N for
+  // the offset, so the fetches cannot run in parallel.
   public async *paginatedLog(
     refName?: string,
     signal?: AbortSignal,
@@ -131,6 +132,7 @@ export class GitRepoHandle extends Resource {
     let offset = 0
     const pageSize = 50
     for (;;) {
+      // eslint-disable-next-line react-doctor/async-await-in-loop -- sequential pagination: each offset comes from the previous page
       const resp = await this.log(refName, offset, pageSize, signal)
       const commits = resp.commits ?? []
       if (commits.length === 0) return

@@ -99,5 +99,4 @@ func (s *Schema) Validate() error {
 	return nil
 }
 
-// _ is a type assertion.
 var _ block.Block = (*Schema)(nil)

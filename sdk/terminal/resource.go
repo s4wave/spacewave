@@ -416,5 +416,4 @@ func readTerminalObject(ctx context.Context, objState world.ObjectState) (*Termi
 	return state, err
 }
 
-// _ is a type assertion
 var _ SRPCTerminalResourceServiceServer = (*TerminalResource)(nil)

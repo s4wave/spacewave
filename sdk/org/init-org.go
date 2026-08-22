@@ -99,5 +99,4 @@ func LookupInitOrganizationOp(ctx context.Context, opTypeID string) (world.Opera
 	return nil, nil
 }
 
-// _ is a type assertion
 var _ world.Operation = (*InitOrganizationOp)(nil)

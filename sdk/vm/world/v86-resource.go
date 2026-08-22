@@ -643,5 +643,4 @@ func mapVmState(vs s4wave_vm.VmState) s4wave_process.ExecutionState {
 	}
 }
 
-// _ is a type assertion
 var _ s4wave_process.SRPCPersistentExecutionServiceServer = (*v86Resource)(nil)

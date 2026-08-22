@@ -64,5 +64,4 @@ func (t *objectType) GetFactory() ObjectTypeFactory {
 	return t.factory
 }
 
-// _ is a type assertion
 var _ ObjectType = (*objectType)(nil)

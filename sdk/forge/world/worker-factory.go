@@ -202,5 +202,4 @@ func (r *forgeWorkerResource) Execute(
 	}
 }
 
-// _ is a type assertion
 var _ s4wave_process.SRPCPersistentExecutionServiceServer = (*forgeWorkerResource)(nil)

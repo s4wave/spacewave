@@ -74,5 +74,4 @@ func (c *Controller) resolveObjectType(dir objecttype.LookupObjectType) (directi
 	}), nil
 }
 
-// _ is a type assertion
 var _ controller.Controller = (*Controller)(nil)

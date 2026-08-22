@@ -336,5 +336,4 @@ func rowFromDriverValues(values []driver.Value) (*hydra_sql.Row, error) {
 	return row, nil
 }
 
-// _ is a type assertion.
 var _ s4wave_sql_table_view.SRPCSqlTableViewResourceServiceServer = (*SqlTableViewResource)(nil)

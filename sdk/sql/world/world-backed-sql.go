@@ -228,7 +228,6 @@ func (o *recordingSqlOps) QueryContext(ctx context.Context, query string, args [
 	return rows, nil
 }
 
-// _ are type assertions
 var (
 	_ hydra_sql.SqlStore       = (*WorldBackedSql)(nil)
 	_ hydra_sql.SqlTransaction = (*worldBackedSqlTx)(nil)

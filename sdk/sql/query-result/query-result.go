@@ -114,5 +114,4 @@ func (r *QueryResult) Validate() error {
 	return nil
 }
 
-// _ is a type assertion.
 var _ block.Block = (*QueryResult)(nil)

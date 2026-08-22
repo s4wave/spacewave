@@ -113,8 +113,6 @@ func LookupSqlWorkbenchSetRootOp(_ context.Context, opTypeID string) (world.Oper
 	return nil, nil
 }
 
-// _ is a type assertion.
 var _ block.Block = (*SqlWorkbenchSetRootOp)(nil)
 
-// _ is a type assertion.
 var _ world.Operation = (*SqlWorkbenchSetRootOp)(nil)

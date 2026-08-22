@@ -23,30 +23,27 @@ export interface TestDebugContext extends DebugContext {
 
 const GLOBAL_KEY = '__s4wave_debug'
 
-// globalStore returns globalThis typed for debug context storage.
-function globalStore(): Record<string, unknown> {
-  return globalThis
-}
+// debugContextStore is the process-global store holding the debug context.
+const debugContextStore = globalThis as Record<string, unknown>
 
 // setDebugContext stores the debug context on globalThis for eval scripts to access.
 export function setDebugContext(ctx: DebugContext): void {
-  globalStore()[GLOBAL_KEY] = ctx
+  debugContextStore[GLOBAL_KEY] = ctx
 }
 
 // clearDebugContext removes the debug context when it still matches the
 // caller's generation.
 export function clearDebugContext(ctx?: DebugContext): void {
-  const store = globalStore()
-  if (ctx && store[GLOBAL_KEY] !== ctx) {
+  if (ctx && debugContextStore[GLOBAL_KEY] !== ctx) {
     return
   }
-  Reflect.deleteProperty(store, GLOBAL_KEY)
+  Reflect.deleteProperty(debugContextStore, GLOBAL_KEY)
 }
 
 // getDebugContext retrieves the debug context set by the app.
 // Throws if the context has not been initialized.
 export function getDebugContext<T = DebugContext>(): T {
-  const ctx = globalStore()[GLOBAL_KEY]
+  const ctx = debugContextStore[GLOBAL_KEY]
   if (!ctx) {
     throw new Error('Debug context not initialized. Is the app running?')
   }

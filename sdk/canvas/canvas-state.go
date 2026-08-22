@@ -40,5 +40,4 @@ func (s *CanvasState) Clone() *CanvasState {
 	return s.CloneVT()
 }
 
-// _ is a type assertion
 var _ block.Block = (*CanvasState)(nil)

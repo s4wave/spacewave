@@ -190,5 +190,4 @@ func tableNameFromValue(value driver.Value) (string, error) {
 	}
 }
 
-// _ is a type assertion.
 var _ s4wave_sql_schema.SRPCSqlSchemaResourceServiceServer = (*SqlSchemaResource)(nil)

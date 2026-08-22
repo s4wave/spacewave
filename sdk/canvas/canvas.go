@@ -347,5 +347,4 @@ func newHiddenGraphLinkKey(link *HiddenGraphLink) hiddenGraphLinkKey {
 	}
 }
 
-// _ is a type assertion
 var _ SRPCCanvasResourceServiceServer = (*CanvasResource)(nil)

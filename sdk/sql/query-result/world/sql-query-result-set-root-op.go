@@ -99,8 +99,6 @@ func LookupSqlQueryResultSetRootOp(_ context.Context, opTypeID string) (world.Op
 	return nil, nil
 }
 
-// _ is a type assertion.
 var _ block.Block = (*SqlQueryResultSetRootOp)(nil)
 
-// _ is a type assertion.
 var _ world.Operation = (*SqlQueryResultSetRootOp)(nil)

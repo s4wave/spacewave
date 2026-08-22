@@ -224,7 +224,6 @@ export interface IFSHandle {
 
 // FSHandle represents a handle to a filesystem location.
 // Each instance maps 1:1 to a Go FSHandle on the backend.
-// This mirrors the Hydra FSHandle pattern for full performance via stateful handles.
 export class FSHandle extends Resource implements IFSHandle {
   private service: FSHandleResourceServiceClient
   private _info: FileInfo

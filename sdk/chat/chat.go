@@ -77,11 +77,8 @@ func (m *ChatMessagePage) Validate() error {
 	return nil
 }
 
-// _ is a type assertion
 var _ block.Block = (*ChatChannel)(nil)
 
-// _ is a type assertion
 var _ block.Block = (*ChatMessage)(nil)
 
-// _ is a type assertion
 var _ block.Block = (*ChatMessagePage)(nil)

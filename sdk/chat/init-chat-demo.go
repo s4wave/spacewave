@@ -88,5 +88,4 @@ func LookupInitChatDemoOp(ctx context.Context, opTypeID string) (world.Operation
 	return nil, nil
 }
 
-// _ is a type assertion
 var _ world.Operation = (*InitChatDemoOp)(nil)

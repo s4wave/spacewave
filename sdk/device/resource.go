@@ -239,5 +239,4 @@ func readDeviceObject(ctx context.Context, objState world.ObjectState) (*Device,
 	return state, err
 }
 
-// _ is a type assertion
 var _ SRPCDeviceResourceServiceServer = (*DeviceResource)(nil)

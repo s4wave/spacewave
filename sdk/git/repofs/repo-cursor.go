@@ -100,5 +100,4 @@ func (c *repoFSCursor) releaseOwned() {
 	})
 }
 
-// _ is a type assertion
 var _ unixfs.FSCursor = (*repoFSCursor)(nil)

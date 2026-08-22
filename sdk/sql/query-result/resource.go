@@ -70,5 +70,4 @@ func (r *SqlQueryResultResource) GetResultGrid(
 	}, nil
 }
 
-// _ is a type assertion.
 var _ SRPCSqlQueryResultResourceServiceServer = (*SqlQueryResultResource)(nil)

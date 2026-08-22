@@ -1,20 +1,9 @@
 import { ClientResourceRef } from '@aptre/bldr-sdk/resource/client.js'
 import { Resource } from '@aptre/bldr-sdk/resource/resource.js'
-import {
-  SpacewaveSessionResourceServiceClient,
-  SpacewaveSessionResourceServiceDefinition,
-} from './spacewave-session_srpc.pb.js'
+import { SpacewaveSessionResourceServiceClient } from './spacewave-session_srpc.pb.js'
 import { SharedObjectSelfEnrollment } from './shared-object-self-enrollment.js'
 import type { MountSharedObjectSelfEnrollmentResponse } from './spacewave-session.pb.js'
-import {
-  BillingInterval,
-  CreateOrgInviteRequest as CreateOrgInviteMessage,
-  CreateOrgInviteResponse as CreateOrgInviteResponseMessage,
-  CreateTargetedInviteDraftByUsernameRequest as CreateTargetedInviteDraftByUsernameMessage,
-  CreateTargetedInviteDraftByUsernameResponse as CreateTargetedInviteDraftByUsernameResponseMessage,
-  ResolveUsernameRequest as ResolveUsernameMessage,
-  ResolveUsernameResponse as ResolveUsernameResponseMessage,
-} from '../provider/spacewave/spacewave.pb.js'
+import { BillingInterval } from '../provider/spacewave/spacewave.pb.js'
 import type {
   AcceptOrganizationTargetedInvitationResponse,
   AcceptSpaceTargetedInvitationResponse,
@@ -377,13 +366,7 @@ export class SpacewaveSession extends Resource {
     request: CreateOrgInviteRequest,
     abortSignal?: AbortSignal,
   ): Promise<CreateOrgInviteResponse> {
-    const result = await this.client.request(
-      SpacewaveSessionResourceServiceDefinition.typeName,
-      SpacewaveSessionResourceServiceDefinition.methods.CreateOrgInvite.name,
-      CreateOrgInviteMessage.toBinary(request),
-      abortSignal,
-    )
-    return CreateOrgInviteResponseMessage.fromBinary(result)
+    return await this.service.CreateOrgInvite(request, abortSignal)
   }
 
   // createTargetedInviteDraftByUsername creates an opaque targeted invite draft.
@@ -391,14 +374,10 @@ export class SpacewaveSession extends Resource {
     request: CreateTargetedInviteDraftByUsernameRequest,
     abortSignal?: AbortSignal,
   ): Promise<CreateTargetedInviteDraftByUsernameResponse> {
-    const result = await this.client.request(
-      SpacewaveSessionResourceServiceDefinition.typeName,
-      SpacewaveSessionResourceServiceDefinition.methods
-        .CreateTargetedInviteDraftByUsername.name,
-      CreateTargetedInviteDraftByUsernameMessage.toBinary(request),
+    return await this.service.CreateTargetedInviteDraftByUsername(
+      request,
       abortSignal,
     )
-    return CreateTargetedInviteDraftByUsernameResponseMessage.fromBinary(result)
   }
 
   // resolveUsername resolves an exact username for an allowed invite context.
@@ -406,13 +385,7 @@ export class SpacewaveSession extends Resource {
     request: ResolveUsernameRequest,
     abortSignal?: AbortSignal,
   ): Promise<ResolveUsernameResponse> {
-    const result = await this.client.request(
-      SpacewaveSessionResourceServiceDefinition.typeName,
-      SpacewaveSessionResourceServiceDefinition.methods.ResolveUsername.name,
-      ResolveUsernameMessage.toBinary(request),
-      abortSignal,
-    )
-    return ResolveUsernameResponseMessage.fromBinary(result)
+    return await this.service.ResolveUsername(request, abortSignal)
   }
 
   // createTargetedInvitation creates a signed pending targeted invitation.

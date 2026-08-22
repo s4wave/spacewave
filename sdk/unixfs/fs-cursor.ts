@@ -10,7 +10,7 @@ import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/cli
 //
 // The resource provides two levels of access:
 //  - getServiceClient() returns the raw FSCursorServiceClient for direct RPC use
-//  - buildFSHandle() constructs a hydra FSHandle backed by the resource's cursor
+//  - buildFSHandle() constructs an FSHandle backed by the resource's cursor
 export class FSCursorResource extends Resource {
   private svc: FSCursorServiceClient
   private fsHandle: FSHandle | null = null
@@ -26,7 +26,7 @@ export class FSCursorResource extends Resource {
     return this.svc
   }
 
-  // getFSHandle returns the cached hydra FSHandle, building it on first access.
+  // getFSHandle returns the cached FSHandle, building it on first access.
   // The handle manages the FSCursorClient session (streaming RPC) and provides
   // the full inode tree with automatic re-resolution on cursor releases.
   public async getFSHandle(abortSignal?: AbortSignal): Promise<FSHandle> {

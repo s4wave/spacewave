@@ -269,11 +269,8 @@ func LookupSetV86ImageMetadataOp(ctx context.Context, operationTypeID string) (w
 	return nil, nil
 }
 
-// _ is a type assertion
 var _ block.Block = (*V86Image)(nil)
 
-// _ is a type assertion
 var _ world.Operation = (*CreateV86ImageOp)(nil)
 
-// _ is a type assertion
 var _ world.Operation = (*SetV86ImageMetadataOp)(nil)

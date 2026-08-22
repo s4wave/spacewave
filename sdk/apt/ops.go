@@ -493,7 +493,6 @@ func LookupAptOp(ctx context.Context, operationTypeID string) (world.Operation, 
 	}).LookupOp(ctx, operationTypeID)
 }
 
-// _ is a type assertion
 var (
 	_ world.Operation = (*CreateAptRepositoryOp)(nil)
 	_ world.Operation = (*AddAptPackageOp)(nil)

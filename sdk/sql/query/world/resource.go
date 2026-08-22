@@ -448,5 +448,4 @@ func cloneSqlValues(values []*hydra_sql.SqlValue) []*hydra_sql.SqlValue {
 	return cloned
 }
 
-// _ is a type assertion.
 var _ s4wave_sql_query.SRPCSqlQueryResourceServiceServer = (*SqlQueryResource)(nil)

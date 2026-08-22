@@ -108,5 +108,4 @@ func NormalizeTerminalFrameSize(cols, rows uint32) (uint32, uint32) {
 	return cols, rows
 }
 
-// _ is a type assertion
 var _ block.Block = (*Terminal)(nil)

@@ -99,8 +99,6 @@ func LookupSqlSchemaSetRootOp(_ context.Context, opTypeID string) (world.Operati
 	return nil, nil
 }
 
-// _ is a type assertion.
 var _ block.Block = (*SqlSchemaSetRootOp)(nil)
 
-// _ is a type assertion.
 var _ world.Operation = (*SqlSchemaSetRootOp)(nil)

@@ -97,5 +97,4 @@ func LookupDeleteOrganizationOp(ctx context.Context, opTypeID string) (world.Ope
 	return nil, nil
 }
 
-// _ is a type assertion
 var _ world.Operation = (*DeleteOrganizationOp)(nil)

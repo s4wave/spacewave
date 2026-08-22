@@ -103,5 +103,4 @@ func (s *ObjectLayoutTab) Marshal() []byte {
 	return data
 }
 
-// _ is a type assertion
 var _ block.Block = (*ObjectLayout)(nil)

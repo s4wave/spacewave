@@ -144,5 +144,4 @@ func (d *lookupObjectType) GetDebugVals() directive.DebugValues {
 	return vals
 }
 
-// _ is a type assertion
 var _ LookupObjectType = (*lookupObjectType)(nil)

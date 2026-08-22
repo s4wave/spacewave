@@ -295,5 +295,4 @@ func LookupSqlSetRootOp(ctx context.Context, id string) (world.Operation, error)
 	return nil, nil
 }
 
-// _ is a type assertion
 var _ world.Operation = (*SqlSetRootOp)(nil)

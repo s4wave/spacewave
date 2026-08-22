@@ -105,5 +105,4 @@ func LookupCreateComputersDashboardOp(ctx context.Context, operationTypeID strin
 	return nil, nil
 }
 
-// _ is a type assertion.
 var _ world.Operation = (*CreateComputersDashboardOp)(nil)

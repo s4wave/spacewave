@@ -271,5 +271,4 @@ func removeString(values []string, target string) []string {
 	return out
 }
 
-// _ is a type assertion.
 var _ s4wave_sql_workbench.SRPCSqlWorkbenchResourceServiceServer = (*SqlWorkbenchResource)(nil)

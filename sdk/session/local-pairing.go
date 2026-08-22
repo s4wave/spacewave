@@ -11,66 +11,67 @@ import (
 	"github.com/s4wave/spacewave/net/util/confparse"
 )
 
-// EncodeLocalPairingOffer serializes, DEFLATE-compresses, and base58-encodes
-// an offer.
-func EncodeLocalPairingOffer(offer *LocalPairingOffer) (string, error) {
-	data, err := offer.MarshalVT()
+// localPairingMessage is the generated-message contract shared by pairing
+// offers and answers.
+type localPairingMessage[T any] interface {
+	*T
+	MarshalVT() ([]byte, error)
+	UnmarshalVT([]byte) error
+}
+
+// encodeLocalPairing serializes, DEFLATE-compresses, and base58-encodes a
+// pairing message.
+func encodeLocalPairing[M localPairingMessage[T], T any](label string, msg M) (string, error) {
+	data, err := msg.MarshalVT()
 	if err != nil {
-		return "", errors.Wrap(err, "marshal offer")
+		return "", errors.Wrap(err, "marshal "+label)
 	}
 	compressed, err := compressLocalPairingPayload(data)
 	if err != nil {
-		return "", errors.Wrap(err, "compress offer")
+		return "", errors.Wrap(err, "compress "+label)
 	}
 	return b58.Encode(compressed), nil
 }
 
-// DecodeLocalPairingOffer decodes a base58 string into a LocalPairingOffer.
-func DecodeLocalPairingOffer(encoded string) (*LocalPairingOffer, error) {
+// decodeLocalPairing decodes a base58 string into a pairing message.
+func decodeLocalPairing[M localPairingMessage[T], T any](label, encoded string) (T, error) {
+	var msg T
 	compressed, err := b58.Decode(encoded)
 	if err != nil {
-		return nil, errors.Wrap(err, "base58 decode")
+		return msg, errors.Wrap(err, "base58 decode")
 	}
 	data, err := decompressLocalPairingPayload(compressed)
 	if err != nil {
-		return nil, errors.Wrap(err, "decompress offer")
+		return msg, errors.Wrap(err, "decompress "+label)
 	}
-	offer := &LocalPairingOffer{}
-	if err := offer.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal offer")
+	if err := M(&msg).UnmarshalVT(data); err != nil {
+		return msg, errors.Wrap(err, "unmarshal "+label)
 	}
-	return offer, nil
+	return msg, nil
+}
+
+// EncodeLocalPairingOffer serializes, DEFLATE-compresses, and base58-encodes
+// an offer.
+func EncodeLocalPairingOffer(offer *LocalPairingOffer) (string, error) {
+	return encodeLocalPairing[*LocalPairingOffer]("offer", offer)
+}
+
+// DecodeLocalPairingOffer decodes a base58 string into a LocalPairingOffer.
+func DecodeLocalPairingOffer(encoded string) (*LocalPairingOffer, error) {
+	msg, err := decodeLocalPairing[*LocalPairingOffer]("offer", encoded)
+	return &msg, err
 }
 
 // EncodeLocalPairingAnswer serializes, DEFLATE-compresses, and base58-encodes
 // an answer.
 func EncodeLocalPairingAnswer(answer *LocalPairingAnswer) (string, error) {
-	data, err := answer.MarshalVT()
-	if err != nil {
-		return "", errors.Wrap(err, "marshal answer")
-	}
-	compressed, err := compressLocalPairingPayload(data)
-	if err != nil {
-		return "", errors.Wrap(err, "compress answer")
-	}
-	return b58.Encode(compressed), nil
+	return encodeLocalPairing[*LocalPairingAnswer]("answer", answer)
 }
 
 // DecodeLocalPairingAnswer decodes a base58 string into a LocalPairingAnswer.
 func DecodeLocalPairingAnswer(encoded string) (*LocalPairingAnswer, error) {
-	compressed, err := b58.Decode(encoded)
-	if err != nil {
-		return nil, errors.Wrap(err, "base58 decode")
-	}
-	data, err := decompressLocalPairingPayload(compressed)
-	if err != nil {
-		return nil, errors.Wrap(err, "decompress answer")
-	}
-	answer := &LocalPairingAnswer{}
-	if err := answer.UnmarshalVT(data); err != nil {
-		return nil, errors.Wrap(err, "unmarshal answer")
-	}
-	return answer, nil
+	msg, err := decodeLocalPairing[*LocalPairingAnswer]("answer", encoded)
+	return &msg, err
 }
 
 // ParsePeerID parses the peer ID from a LocalPairingOffer.

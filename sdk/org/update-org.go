@@ -208,5 +208,4 @@ func applyJoinViaInvite(state *OrgState, join *JoinOrgViaInviteOp) error {
 	return nil
 }
 
-// _ is a type assertion
 var _ world.Operation = (*UpdateOrgOp)(nil)

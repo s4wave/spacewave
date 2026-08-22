@@ -272,5 +272,4 @@ func (d *Device) FindSelectableForgeWorker() *DeviceCapability {
 	return nil
 }
 
-// _ is a type assertion
 var _ block.Block = (*Device)(nil)
