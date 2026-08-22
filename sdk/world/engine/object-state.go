@@ -8,6 +8,7 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
 
@@ -70,7 +71,7 @@ func (os *SDKObjectState) AccessWorldState(ctx context.Context, ref *bucket.Obje
 	if err != nil {
 		return err
 	}
-	return accessSDKBucketLookupCursor(ctx, os.client, resp.GetResourceId(), cb)
+	return s4wave_bucket_lookup.AccessCursor(ctx, os.client, resp.GetResourceId(), cb)
 }
 
 // ApplyObjectOp applies a batch operation at the object level.

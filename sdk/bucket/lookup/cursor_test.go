@@ -1,4 +1,4 @@
-package sdk_world_engine
+package s4wave_bucket_lookup
 
 import (
 	"bytes"
@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
-	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 )
 
 func TestSDKBucketLookupStorePutBlockBatchUsesRemoteBatch(t *testing.T) {
@@ -20,7 +19,7 @@ func TestSDKBucketLookupStorePutBlockBatchUsesRemoteBatch(t *testing.T) {
 	secondRef := testSDKBlockRef(t, secondData)
 	tombstoneRef := testSDKBlockRef(t, []byte("deleted"))
 	service := &bucketLookupBatchService{}
-	store := &sdkBucketLookupStore{service: service}
+	store := &cursorStore{service: service}
 
 	err := store.PutBlockBatch(ctx, []*block.PutBatchEntry{
 		{Ref: firstRef, Data: firstData},
@@ -56,11 +55,11 @@ func TestSDKBucketLookupStoreGetBlockExistsBatchUsesRemoteBatch(t *testing.T) {
 	firstRef := testSDKBlockRef(t, []byte("first"))
 	secondRef := testSDKBlockRef(t, []byte("second"))
 	service := &bucketLookupBatchService{
-		existsBatchResponse: &s4wave_bucket_lookup.GetBlockExistsBatchResponse{
+		existsBatchResponse: &GetBlockExistsBatchResponse{
 			Found: []bool{true, false},
 		},
 	}
-	store := &sdkBucketLookupStore{service: service}
+	store := &cursorStore{service: service}
 
 	found, err := store.GetBlockExistsBatch(ctx, []*block.BlockRef{firstRef, secondRef})
 	if err != nil {
@@ -85,12 +84,12 @@ func TestSDKBucketLookupStoreGetBlockRecordsResourceCounter(t *testing.T) {
 	data := []byte("resource block data")
 	ref := testSDKBlockRef(t, data)
 	service := &bucketLookupBatchService{
-		getBlockResponse: &s4wave_bucket_lookup.GetBlockResponse{
+		getBlockResponse: &GetBlockResponse{
 			Data:  data,
 			Found: true,
 		},
 	}
-	store := &sdkBucketLookupStore{service: service}
+	store := &cursorStore{service: service}
 
 	opCtx, counter := block.WithReadCounter(ctx)
 	got, found, err := store.GetBlock(opCtx, ref)
@@ -120,12 +119,12 @@ func TestSDKBucketLookupStoreReadOperationReusesDecodedBlocks(t *testing.T) {
 	}
 	ref := testSDKBlockRef(t, encoded)
 	service := &bucketLookupBatchService{
-		getBlockResponse: &s4wave_bucket_lookup.GetBlockResponse{
+		getBlockResponse: &GetBlockResponse{
 			Data:  encoded,
 			Found: true,
 		},
 	}
-	store := &sdkBucketLookupStore{service: service}
+	store := &cursorStore{service: service}
 	_, first := block.NewTransaction(store, nil, ref, nil)
 	_, second := block.NewTransaction(store, nil, ref, nil)
 	ctor := func() block.Block { return &block_mock.Example{} }
@@ -171,25 +170,25 @@ func TestSDKBucketLookupStoreReadOperationReusesDecodedBlocks(t *testing.T) {
 type bucketLookupBatchService struct {
 	putBlockCalls       int
 	putBatchCalls       int
-	putBatchRequest     *s4wave_bucket_lookup.PutBlockBatchRequest
+	putBatchRequest     *PutBlockBatchRequest
 	getBlockCalls       int
-	getBlockResponse    *s4wave_bucket_lookup.GetBlockResponse
+	getBlockResponse    *GetBlockResponse
 	existsBatchCalls    int
-	existsBatchRequest  *s4wave_bucket_lookup.GetBlockExistsBatchRequest
-	existsBatchResponse *s4wave_bucket_lookup.GetBlockExistsBatchResponse
+	existsBatchRequest  *GetBlockExistsBatchRequest
+	existsBatchResponse *GetBlockExistsBatchResponse
 }
 
 func (s *bucketLookupBatchService) SRPCClient() srpc.Client { return nil }
 
-func (s *bucketLookupBatchService) GetRef(context.Context, *s4wave_bucket_lookup.GetRefRequest) (*s4wave_bucket_lookup.GetRefResponse, error) {
+func (s *bucketLookupBatchService) GetRef(context.Context, *GetRefRequest) (*GetRefResponse, error) {
 	return nil, errors.New("unexpected GetRef")
 }
 
-func (s *bucketLookupBatchService) FollowRef(context.Context, *s4wave_bucket_lookup.FollowRefRequest) (*s4wave_bucket_lookup.FollowRefResponse, error) {
+func (s *bucketLookupBatchService) FollowRef(context.Context, *FollowRefRequest) (*FollowRefResponse, error) {
 	return nil, errors.New("unexpected FollowRef")
 }
 
-func (s *bucketLookupBatchService) GetBlock(context.Context, *s4wave_bucket_lookup.GetBlockRequest) (*s4wave_bucket_lookup.GetBlockResponse, error) {
+func (s *bucketLookupBatchService) GetBlock(context.Context, *GetBlockRequest) (*GetBlockResponse, error) {
 	s.getBlockCalls++
 	if s.getBlockResponse != nil {
 		return s.getBlockResponse, nil
@@ -197,43 +196,43 @@ func (s *bucketLookupBatchService) GetBlock(context.Context, *s4wave_bucket_look
 	return nil, errors.New("unexpected GetBlock")
 }
 
-func (s *bucketLookupBatchService) PutBlock(context.Context, *s4wave_bucket_lookup.PutBlockRequest) (*s4wave_bucket_lookup.PutBlockResponse, error) {
+func (s *bucketLookupBatchService) PutBlock(context.Context, *PutBlockRequest) (*PutBlockResponse, error) {
 	s.putBlockCalls++
 	return nil, errors.New("unexpected PutBlock")
 }
 
-func (s *bucketLookupBatchService) PutBlockBatch(_ context.Context, req *s4wave_bucket_lookup.PutBlockBatchRequest) (*s4wave_bucket_lookup.PutBlockBatchResponse, error) {
+func (s *bucketLookupBatchService) PutBlockBatch(_ context.Context, req *PutBlockBatchRequest) (*PutBlockBatchResponse, error) {
 	s.putBatchCalls++
 	s.putBatchRequest = req
-	return &s4wave_bucket_lookup.PutBlockBatchResponse{}, nil
+	return &PutBlockBatchResponse{}, nil
 }
 
-func (s *bucketLookupBatchService) GetBlockExistsBatch(_ context.Context, req *s4wave_bucket_lookup.GetBlockExistsBatchRequest) (*s4wave_bucket_lookup.GetBlockExistsBatchResponse, error) {
+func (s *bucketLookupBatchService) GetBlockExistsBatch(_ context.Context, req *GetBlockExistsBatchRequest) (*GetBlockExistsBatchResponse, error) {
 	s.existsBatchCalls++
 	s.existsBatchRequest = req
 	if s.existsBatchResponse != nil {
 		return s.existsBatchResponse, nil
 	}
-	return &s4wave_bucket_lookup.GetBlockExistsBatchResponse{}, nil
+	return &GetBlockExistsBatchResponse{}, nil
 }
 
-func (s *bucketLookupBatchService) BuildTransaction(context.Context, *s4wave_bucket_lookup.BuildTransactionRequest) (*s4wave_bucket_lookup.BuildTransactionResponse, error) {
+func (s *bucketLookupBatchService) BuildTransaction(context.Context, *BuildTransactionRequest) (*BuildTransactionResponse, error) {
 	return nil, errors.New("unexpected BuildTransaction")
 }
 
-func (s *bucketLookupBatchService) BuildTransactionAtRef(context.Context, *s4wave_bucket_lookup.BuildTransactionAtRefRequest) (*s4wave_bucket_lookup.BuildTransactionAtRefResponse, error) {
+func (s *bucketLookupBatchService) BuildTransactionAtRef(context.Context, *BuildTransactionAtRefRequest) (*BuildTransactionAtRefResponse, error) {
 	return nil, errors.New("unexpected BuildTransactionAtRef")
 }
 
-func (s *bucketLookupBatchService) Clone(context.Context, *s4wave_bucket_lookup.CloneRequest) (*s4wave_bucket_lookup.CloneResponse, error) {
+func (s *bucketLookupBatchService) Clone(context.Context, *CloneRequest) (*CloneResponse, error) {
 	return nil, errors.New("unexpected Clone")
 }
 
-func (s *bucketLookupBatchService) Release(context.Context, *s4wave_bucket_lookup.ReleaseRequest) (*s4wave_bucket_lookup.ReleaseResponse, error) {
+func (s *bucketLookupBatchService) Release(context.Context, *ReleaseRequest) (*ReleaseResponse, error) {
 	return nil, errors.New("unexpected Release")
 }
 
-func (s *bucketLookupBatchService) Unmarshal(context.Context, *s4wave_bucket_lookup.UnmarshalRequest) (*s4wave_bucket_lookup.UnmarshalResponse, error) {
+func (s *bucketLookupBatchService) Unmarshal(context.Context, *UnmarshalRequest) (*UnmarshalResponse, error) {
 	return nil, errors.New("unexpected Unmarshal")
 }
 

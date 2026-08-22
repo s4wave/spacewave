@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
 
@@ -81,7 +82,7 @@ func (ws *SDKWorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup
 	}
 
 	ref := ws.client.CreateResourceReference(resp.GetResourceId())
-	cursor, err := newSDKBucketLookupCursor(ctx, ref)
+	cursor, err := s4wave_bucket_lookup.NewCursor(ctx, ref)
 	if err != nil {
 		ref.Release()
 		return nil, err
@@ -95,7 +96,7 @@ func (ws *SDKWorldState) AccessWorldState(ctx context.Context, ref *bucket.Objec
 	if err != nil {
 		return err
 	}
-	return accessSDKBucketLookupCursor(ctx, ws.client, resp.GetResourceId(), cb)
+	return s4wave_bucket_lookup.AccessCursor(ctx, ws.client, resp.GetResourceId(), cb)
 }
 
 // CreateObject creates an object with a key and initial root ref.
@@ -277,7 +278,7 @@ func (ws *SDKWorldState) LookupGraphQuadsBatch(ctx context.Context, filters []wo
 
 // ListGraphEdgeBuckets lists grouped inbound/outbound graph edge buckets.
 func (ws *SDKWorldState) ListGraphEdgeBuckets(ctx context.Context, query *world.GraphEdgeBucketQuery) ([]*world.GraphEdgeBucket, error) {
-	req := graphEdgeBucketQueryToProto(query)
+	req := s4wave_world.GraphEdgeBucketQueryToProto(query)
 	resp, err := ws.service.ListGraphEdgeBuckets(ctx, req)
 	if err != nil {
 		return nil, err
@@ -373,7 +374,7 @@ func (ws *SDKWorldState) GetObjectBodiesBatch(ctx context.Context, keys []string
 
 // QueryGraphPath executes a bounded server-side graph path query.
 func (ws *SDKWorldState) QueryGraphPath(ctx context.Context, query *world.GraphPathQuery) (*world.GraphPathQueryResult, error) {
-	req, err := graphPathQueryToProto(query)
+	req, err := s4wave_world.GraphPathQueryToProto(query)
 	if err != nil {
 		return nil, err
 	}
@@ -444,66 +445,3 @@ func (ws *SDKWorldState) HasObject(ctx context.Context, key string) (bool, error
 }
 
 var _ world.WorldState = (*SDKWorldState)(nil)
-
-func graphPathQueryToProto(query *world.GraphPathQuery) (*s4wave_world.QueryGraphPathRequest, error) {
-	if query == nil {
-		return &s4wave_world.QueryGraphPathRequest{}, nil
-	}
-	steps := make([]*s4wave_world.GraphPathStep, len(query.Steps))
-	for i, step := range query.Steps {
-		dir, err := graphPathDirectionToProto(step.Direction)
-		if err != nil {
-			return nil, err
-		}
-		steps[i] = &s4wave_world.GraphPathStep{
-			Direction: dir,
-			Predicate: step.Predicate,
-			Limit:     step.Limit,
-		}
-	}
-	return &s4wave_world.QueryGraphPathRequest{
-		StartKeys:    query.StartKeys,
-		Steps:        steps,
-		ResultLimit:  query.ResultLimit,
-		IncludeQuads: query.IncludeQuads,
-		PageSize:     query.ResultLimit,
-	}, nil
-}
-
-func graphPathDirectionToProto(dir world.GraphPathDirection) (s4wave_world.GraphPathDirection, error) {
-	switch dir {
-	case world.GraphPathDirectionOut:
-		return s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_OUT, nil
-	case world.GraphPathDirectionIn:
-		return s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_IN, nil
-	case world.GraphPathDirectionBoth:
-		return s4wave_world.GraphPathDirection_GRAPH_PATH_DIRECTION_BOTH, nil
-	default:
-		return 0, world.ErrGraphPathDirection
-	}
-}
-
-func graphEdgeBucketQueryToProto(query *world.GraphEdgeBucketQuery) *s4wave_world.ListGraphEdgeBucketsRequest {
-	if query == nil {
-		return &s4wave_world.ListGraphEdgeBucketsRequest{}
-	}
-	return &s4wave_world.ListGraphEdgeBucketsRequest{
-		OriginObjectKeys: query.OriginObjectKeys,
-		Predicate:        query.Predicate,
-		LimitPerOrigin:   query.LimitPerOrigin,
-		Direction:        graphEdgeBucketDirectionToProto(query.Direction),
-	}
-}
-
-func graphEdgeBucketDirectionToProto(dir world.GraphEdgeBucketDirection) s4wave_world.GraphEdgeBucketDirection {
-	switch dir {
-	case world.GraphEdgeBucketDirectionOut:
-		return s4wave_world.GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_OUT
-	case world.GraphEdgeBucketDirectionIn:
-		return s4wave_world.GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_IN
-	case world.GraphEdgeBucketDirectionBoth:
-		return s4wave_world.GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_BOTH
-	default:
-		return s4wave_world.GraphEdgeBucketDirection_GRAPH_EDGE_BUCKET_DIRECTION_UNSPECIFIED
-	}
-}

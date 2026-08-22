@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/block/quad"
 	"github.com/s4wave/spacewave/db/bucket"
+	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	world_parent "github.com/s4wave/spacewave/db/world/parent"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -1219,4 +1220,61 @@ func TestSDKEngine_SeqnoAfterOperations(t *testing.T) {
 	}
 
 	t.Logf("seqno progression: %d -> %d -> %d", s0, s1, s2)
+}
+
+// TestSDKWorldStateObjectAccessWorldStateInvokesCallback pins that the Go SDK
+// ObjectState wraps the returned cursor resource and drives the callback,
+// rather than releasing it and returning a silent no-op.
+func TestSDKWorldStateObjectAccessWorldStateInvokesCallback(t *testing.T) {
+	ctx := context.Background()
+	_, resClient, tbCleanup := resource_testbed.SetupTestbedWithClient(ctx, t)
+	rootRef := resClient.AccessRootResource()
+	defer rootRef.Release()
+	defer tbCleanup()
+	srpcClient, err := rootRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	testbedClient := s4wave_testbed.NewSRPCTestbedResourceServiceClient(srpcClient)
+	createResp, err := testbedClient.CreateWorld(ctx, &s4wave_testbed.CreateWorldRequest{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	engineRef := resClient.CreateResourceReference(createResp.GetResourceId())
+	defer engineRef.Release()
+	engineSrpc, err := engineRef.GetClient()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	engineService := s4wave_world.NewSRPCEngineResourceServiceClient(engineSrpc)
+	txResp, err := engineService.NewTransaction(ctx, &s4wave_world.NewTransactionRequest{Write: true})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	txRef := resClient.CreateResourceReference(txResp.GetResourceId())
+	defer txRef.Release()
+
+	ws, err := s4wave_world.NewWorldState(resClient, txRef, txResp.GetReadOnly())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	obj, err := ws.CreateObject(ctx, "sdk-obj-access-world-state", nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	called := false
+	err = obj.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
+		called = true
+		if cursor == nil {
+			t.Fatal("callback received a nil cursor")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !called {
+		t.Fatal("AccessWorldState returned without invoking the callback")
+	}
 }

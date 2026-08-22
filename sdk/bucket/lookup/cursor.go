@@ -1,4 +1,6 @@
-package sdk_world_engine
+//go:build !js
+
+package s4wave_bucket_lookup
 
 import (
 	"bytes"
@@ -14,15 +16,17 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/net/hash"
-	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 )
 
-type sdkBucketLookupStore struct {
-	service s4wave_bucket_lookup.SRPCBucketLookupCursorResourceServiceClient
-	xfrm    block.Transformer
+// ResourceClient creates references for resource IDs returned by RPCs.
+type ResourceClient interface {
+	CreateResourceReference(resourceID uint32) resource_client.ResourceRef
 }
 
-func newSDKBucketLookupCursor(
+// NewCursor wraps a bucket lookup cursor resource reference in a local
+// bucket_lookup.Cursor backed by RPC calls to the cursor resource.
+// The returned cursor releases the reference when released.
+func NewCursor(
 	ctx context.Context,
 	ref resource_client.ResourceRef,
 ) (*bucket_lookup.Cursor, error) {
@@ -30,14 +34,14 @@ func newSDKBucketLookupCursor(
 	if err != nil {
 		return nil, err
 	}
-	service := s4wave_bucket_lookup.NewSRPCBucketLookupCursorResourceServiceClient(srpcClient)
-	resp, err := service.GetRef(ctx, &s4wave_bucket_lookup.GetRefRequest{})
+	service := NewSRPCBucketLookupCursorResourceServiceClient(srpcClient)
+	resp, err := service.GetRef(ctx, &GetRefRequest{})
 	if err != nil {
 		return nil, err
 	}
 	objRef := resp.GetRef()
-	store := &sdkBucketLookupStore{service: service}
-	conf, xfrm, err := buildSDKCursorTransform(ctx, store, objRef)
+	store := &cursorStore{service: service}
+	conf, xfrm, err := buildCursorTransform(ctx, store, objRef)
 	if err != nil {
 		return nil, err
 	}
@@ -59,14 +63,16 @@ func newSDKBucketLookupCursor(
 	), nil
 }
 
-func accessSDKBucketLookupCursor(
+// AccessCursor resolves a cursor resource ID, invokes cb with the wrapped
+// cursor, and releases the reference after cb returns.
+func AccessCursor(
 	ctx context.Context,
 	client ResourceClient,
 	resourceID uint32,
 	cb func(*bucket_lookup.Cursor) error,
 ) error {
 	ref := client.CreateResourceReference(resourceID)
-	cursor, err := newSDKBucketLookupCursor(ctx, ref)
+	cursor, err := NewCursor(ctx, ref)
 	if err != nil {
 		ref.Release()
 		return err
@@ -75,9 +81,11 @@ func accessSDKBucketLookupCursor(
 	return cb(cursor)
 }
 
-func buildSDKCursorTransform(
+// buildCursorTransform resolves the transform configuration and transformer
+// for the referenced object.
+func buildCursorTransform(
 	ctx context.Context,
-	store *sdkBucketLookupStore,
+	store *cursorStore,
 	objRef *bucket.ObjectRef,
 ) (*block_transform.Config, block.Transformer, error) {
 	conf := objRef.GetTransformConf()
@@ -102,19 +110,25 @@ func buildSDKCursorTransform(
 	return conf, xfrm, nil
 }
 
-func (s *sdkBucketLookupStore) GetHashType() hash.HashType {
+// cursorStore serves block reads over the bucket lookup cursor resource RPCs.
+type cursorStore struct {
+	service SRPCBucketLookupCursorResourceServiceClient
+	xfrm    block.Transformer
+}
+
+func (s *cursorStore) GetHashType() hash.HashType {
 	return 0
 }
 
-func (s *sdkBucketLookupStore) GetSupportedFeatures() block.StoreFeature {
+func (s *cursorStore) GetSupportedFeatures() block.StoreFeature {
 	return block.StoreFeatureNativeBatchPut | block.StoreFeatureNativeBatchExists
 }
 
-func (s *sdkBucketLookupStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
+func (s *cursorStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
 	return s, func() {}, nil
 }
 
-func (s *sdkBucketLookupStore) PutBlock(
+func (s *cursorStore) PutBlock(
 	ctx context.Context,
 	data []byte,
 	opts *block.PutOpts,
@@ -127,7 +141,7 @@ func (s *sdkBucketLookupStore) PutBlock(
 			return nil, false, err
 		}
 	}
-	resp, err := s.service.PutBlock(ctx, &s4wave_bucket_lookup.PutBlockRequest{
+	resp, err := s.service.PutBlock(ctx, &PutBlockRequest{
 		Data: data,
 		Opts: opts,
 	})
@@ -137,8 +151,8 @@ func (s *sdkBucketLookupStore) PutBlock(
 	return resp.GetRef(), resp.GetExisted(), nil
 }
 
-func (s *sdkBucketLookupStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	reqEntries := make([]*s4wave_bucket_lookup.PutBlockBatchEntry, len(entries))
+func (s *cursorStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	reqEntries := make([]*PutBlockBatchEntry, len(entries))
 	for i, entry := range entries {
 		data := entry.Data
 		if !entry.Tombstone && s.xfrm != nil {
@@ -149,21 +163,21 @@ func (s *sdkBucketLookupStore) PutBlockBatch(ctx context.Context, entries []*blo
 				return err
 			}
 		}
-		reqEntries[i] = &s4wave_bucket_lookup.PutBlockBatchEntry{
+		reqEntries[i] = &PutBlockBatchEntry{
 			Ref:       entry.Ref,
 			Data:      data,
 			Refs:      entry.Refs,
 			Tombstone: entry.Tombstone,
 		}
 	}
-	_, err := s.service.PutBlockBatch(ctx, &s4wave_bucket_lookup.PutBlockBatchRequest{
+	_, err := s.service.PutBlockBatch(ctx, &PutBlockBatchRequest{
 		Entries: reqEntries,
 	})
 	return err
 }
 
-func (s *sdkBucketLookupStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
-	resp, err := s.service.GetBlockExistsBatch(ctx, &s4wave_bucket_lookup.GetBlockExistsBatchRequest{
+func (s *cursorStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
+	resp, err := s.service.GetBlockExistsBatch(ctx, &GetBlockExistsBatchRequest{
 		Refs: refs,
 	})
 	if err != nil {
@@ -176,11 +190,11 @@ func (s *sdkBucketLookupStore) GetBlockExistsBatch(ctx context.Context, refs []*
 	return found, nil
 }
 
-func (s *sdkBucketLookupStore) GetBlock(
+func (s *cursorStore) GetBlock(
 	ctx context.Context,
 	ref *block.BlockRef,
 ) ([]byte, bool, error) {
-	resp, err := s.service.GetBlock(ctx, &s4wave_bucket_lookup.GetBlockRequest{Ref: ref})
+	resp, err := s.service.GetBlock(ctx, &GetBlockRequest{Ref: ref})
 	if err != nil {
 		return nil, false, err
 	}
@@ -195,16 +209,16 @@ func (s *sdkBucketLookupStore) GetBlock(
 	return data, resp.GetFound(), nil
 }
 
-func (s *sdkBucketLookupStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
+func (s *cursorStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	_, found, err := s.GetBlock(ctx, ref)
 	return found, err
 }
 
-func (s *sdkBucketLookupStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
+func (s *cursorStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return errors.New("bucket lookup cursor resource does not support removing blocks")
 }
 
-func (s *sdkBucketLookupStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
+func (s *cursorStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	data, found, err := s.GetBlock(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -215,8 +229,8 @@ func (s *sdkBucketLookupStore) StatBlock(ctx context.Context, ref *block.BlockRe
 	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
 }
 
-func (s *sdkBucketLookupStore) Sync(ctx context.Context) (bool, error) {
+func (s *cursorStore) Sync(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-var _ bucket.BucketOps = (*sdkBucketLookupStore)(nil)
+var _ bucket.BucketOps = (*cursorStore)(nil)

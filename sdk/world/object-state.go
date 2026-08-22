@@ -8,12 +8,13 @@ import (
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
+	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 )
 
 // ObjectState wraps ObjectStateResourceService and implements world.ObjectState.
 // Represents a handle to an object in the store.
 //
-// In the Go implementation (hydra/world/object-state.go), ObjectState provides:
+// Provides:
 // - GetKey() string
 // - GetRootRef(ctx) (*bucket.ObjectRef, uint64, error)
 // - SetRootRef(ctx, *bucket.ObjectRef) (uint64, error)
@@ -91,12 +92,7 @@ func (os *ObjectState) AccessWorldState(ctx context.Context, ref *bucket.ObjectR
 		return err
 	}
 
-	cursorRef := os.client.CreateResourceReference(resp.ResourceId)
-	defer cursorRef.Release()
-
-	// TODO: Need to create a proper bucket lookup cursor wrapper
-	// For now, return an error indicating this is not yet implemented
-	return nil
+	return s4wave_bucket_lookup.AccessCursor(ctx, os.client, resp.ResourceId, cb)
 }
 
 // ApplyObjectOp applies a batch operation at the object level.

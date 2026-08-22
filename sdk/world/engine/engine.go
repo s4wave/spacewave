@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_bucket_lookup "github.com/s4wave/spacewave/sdk/bucket/lookup"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
 
@@ -100,7 +101,7 @@ func (e *SDKEngine) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Curs
 	}
 
 	ref := e.client.CreateResourceReference(resp.GetResourceId())
-	cursor, err := newSDKBucketLookupCursor(ctx, ref)
+	cursor, err := s4wave_bucket_lookup.NewCursor(ctx, ref)
 	if err != nil {
 		ref.Release()
 		return nil, err
@@ -114,7 +115,7 @@ func (e *SDKEngine) AccessWorldState(ctx context.Context, ref *bucket.ObjectRef,
 	if err != nil {
 		return err
 	}
-	return accessSDKBucketLookupCursor(ctx, e.client, resp.GetResourceId(), cb)
+	return s4wave_bucket_lookup.AccessCursor(ctx, e.client, resp.GetResourceId(), cb)
 }
 
 var _ world.Engine = (*SDKEngine)(nil)
