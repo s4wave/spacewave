@@ -30,6 +30,10 @@ const ReconnectDelay = 5 * time.Second
 // Sensor object while states stream in.
 const ObservationFlushInterval = time.Second
 
+// FinalStateWriteTimeout bounds the single detached World write that records
+// the final connection state after cancellation.
+const FinalStateWriteTimeout = 5 * time.Second
+
 // DialFunc opens the endpoint connection. Tests inject fakes.
 type DialFunc func(ctx context.Context, address string) (net.Conn, error)
 
@@ -191,16 +195,27 @@ func (m *Manager) Reconcile(ctx context.Context, endpoints []*device_policy.Sens
 		stopped = append(stopped, m.adapters[id])
 		delete(m.adapters, id)
 	}
+	m.mu.Unlock()
+
+	// Stop removed and replaced adapters before their replacements start:
+	// both would otherwise hold one connection and write the same stable
+	// Sensor object concurrently. stop joins the loop, so by the time it
+	// returns the old writer can no longer touch World state.
+	for _, adapter := range stopped {
+		adapter.stop()
+	}
+
+	m.mu.Lock()
+	if m.closed {
+		m.mu.Unlock()
+		return
+	}
 	for _, endpoint := range append(start, restart...) {
 		adapter := newAdapter(m, ctx, endpoint)
 		m.adapters[strings.TrimSpace(endpoint.GetId())] = adapter
 		adapter.start()
 	}
 	m.mu.Unlock()
-
-	for _, adapter := range stopped {
-		adapter.stop()
-	}
 }
 
 // Status returns the live connection status for one endpoint.
@@ -236,6 +251,8 @@ type Adapter struct {
 	mu               sync.Mutex
 	connectionState  s4wave_device.SensorConnectionState
 	lastError        string
+	persistedState   s4wave_device.SensorConnectionState
+	persistedError   string
 	lastObservation  time.Time
 	observationDirty bool
 }
@@ -339,22 +356,83 @@ func (a *Adapter) transition(state s4wave_device.SensorConnectionState, lastErro
 	a.m.notify()
 
 	now := timestamppb.New(a.m.now())
-	err := a.persist(func(sensor *s4wave_device.Sensor) {
+	err := a.persistWithContext(a.ctx, func(sensor *s4wave_device.Sensor) {
 		sensor.ConnectionState = state
 		sensor.LastError = lastError
 		sensor.TouchUpdatedAt(now)
 	})
+	a.mu.Lock()
+	if err == nil {
+		a.persistedState = state
+		a.persistedError = lastError
+	}
+	a.mu.Unlock()
 	if err != nil && a.ctx.Err() == nil && a.m.le != nil {
 		a.m.le.WithError(err).WithField("sensor_object_key", a.sensorKey).
 			Warn("failed to persist sensor connection state")
 	}
 }
 
+// livenessMissed records the degraded state when ping liveness goes stale
+// while the connection is still open; termination then records offline.
+func (a *Adapter) livenessMissed() {
+	a.transition(
+		s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_DEGRADED,
+		sanitizeFailure(esphome.ErrKeepaliveTimeout),
+	)
+}
+
+// finalizeShutdown records the post-cancellation connection state and any
+// pending observation receive time in one bounded World write. The detached
+// context keeps that write alive past cancellation, so daemon stop leaves a
+// truthful Sensor state whenever World remains reachable.
+func (a *Adapter) finalizeShutdown(state s4wave_device.SensorConnectionState, lastError string) {
+	a.mu.Lock()
+	unchanged := a.persistedState == state && a.persistedError == lastError
+	observedAt := a.lastObservation
+	dirty := a.observationDirty
+	a.connectionState = state
+	a.lastError = lastError
+	a.observationDirty = false
+	a.mu.Unlock()
+	if unchanged && !dirty {
+		return
+	}
+	a.m.notify()
+
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(a.ctx), FinalStateWriteTimeout)
+	defer cancel()
+	err := a.persistWithContext(ctx, func(sensor *s4wave_device.Sensor) {
+		sensor.ConnectionState = state
+		sensor.LastError = lastError
+		if dirty {
+			sensor.LastObservationAt = timestamppb.New(observedAt)
+		}
+		sensor.TouchUpdatedAt(timestamppb.New(a.m.now()))
+	})
+	a.mu.Lock()
+	if err == nil {
+		a.persistedState = state
+		a.persistedError = lastError
+	}
+	a.mu.Unlock()
+	if err != nil && a.m.le != nil {
+		a.m.le.WithError(err).WithField("sensor_object_key", a.sensorKey).
+			Debug("failed to persist final sensor state during shutdown")
+	}
+}
+
 // run connects, enumerates, consumes states, and reconnects until cancelled.
+// Cancellation records one final offline state so World never keeps a stale
+// connected Sensor across daemon stop.
 func (a *Adapter) run() {
 	for a.ctx.Err() == nil {
 		if err := a.connectOnce(); err != nil {
 			if a.ctx.Err() != nil {
+				a.finalizeShutdown(
+					s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_OFFLINE,
+					"",
+				)
 				return
 			}
 			select {
@@ -373,10 +451,11 @@ func (a *Adapter) connectOnce() error {
 	a.transition(s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_CONNECTING, "")
 
 	client, err := esphome.Connect(a.ctx, esphome.Options{
-		Address: a.config.address,
-		Dial:    a.m.dial,
-		OnState: a.onState,
-		OnError: func(error) {},
+		Address:          a.config.address,
+		Dial:             a.m.dial,
+		OnState:          a.onState,
+		OnLivenessMissed: a.livenessMissed,
+		OnError:          func(error) {},
 	})
 	if err != nil {
 		a.transition(s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_OFFLINE, sanitizeFailure(err))
@@ -386,7 +465,7 @@ func (a *Adapter) connectOnce() error {
 	entities := client.Entities()
 	now := timestamppb.New(a.m.now())
 	if err := a.persist(func(sensor *s4wave_device.Sensor) {
-		sensor.Entities = mapEntities(client.Device(), entities)
+		sensor.Entities = mapEntities(entities)
 		sensor.ConnectionState = s4wave_device.SensorConnectionState_SENSOR_CONNECTION_STATE_CONNECTED
 		sensor.LastError = ""
 		sensor.TouchUpdatedAt(now)
@@ -465,19 +544,26 @@ func (a *Adapter) flushObservation(force bool) {
 // persist applies one mutation to the Sensor object in one World transaction,
 // creating the object with its ObjectType when absent.
 func (a *Adapter) persist(mutate func(*s4wave_device.Sensor)) error {
-	tx, err := a.m.engine.NewTransaction(a.ctx, true)
+	return a.persistWithContext(a.ctx, mutate)
+}
+
+// persistWithContext applies one mutation to the Sensor object in one World
+// transaction bounded by ctx, creating the object with its ObjectType when
+// absent.
+func (a *Adapter) persistWithContext(ctx context.Context, mutate func(*s4wave_device.Sensor)) error {
+	tx, err := a.m.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
 
-	objState, found, err := tx.GetObject(a.ctx, a.sensorKey)
+	objState, found, err := tx.GetObject(ctx, a.sensorKey)
 	if err != nil {
 		return err
 	}
 	var sensor *s4wave_device.Sensor
 	if found {
-		sensor, err = readSensorBlock(a.ctx, objState)
+		sensor, err = readSensorBlock(ctx, objState)
 		if err != nil {
 			return err
 		}
@@ -497,7 +583,7 @@ func (a *Adapter) persist(mutate func(*s4wave_device.Sensor)) error {
 		return err
 	}
 	if found {
-		_, _, err = world.AccessObjectState(a.ctx, objState, true, func(bcs *block.Cursor) error {
+		_, _, err = world.AccessObjectState(ctx, objState, true, func(bcs *block.Cursor) error {
 			bcs.SetBlock(sensor, true)
 			return nil
 		})
@@ -505,23 +591,23 @@ func (a *Adapter) persist(mutate func(*s4wave_device.Sensor)) error {
 			return err
 		}
 	} else {
-		if _, _, err := world.CreateWorldObject(a.ctx, tx, a.sensorKey, func(bcs *block.Cursor) error {
+		if _, _, err := world.CreateWorldObject(ctx, tx, a.sensorKey, func(bcs *block.Cursor) error {
 			bcs.ClearAllRefs()
 			bcs.SetBlock(sensor, true)
 			return nil
 		}); err != nil {
 			return err
 		}
-		if err := world_types.SetObjectType(a.ctx, tx, a.sensorKey, s4wave_device.SensorTypeID); err != nil {
+		if err := world_types.SetObjectType(ctx, tx, a.sensorKey, s4wave_device.SensorTypeID); err != nil {
 			return err
 		}
 	}
 	// Reconcile the Device-to-Sensor edge on every persist: SetGraphQuad is a
 	// documented no-op when the quad exists and restores it if state lost it.
-	if err := tx.SetGraphQuad(a.ctx, s4wave_device.NewDeviceToSensorQuad(a.m.deviceObjectKey, a.sensorKey)); err != nil {
+	if err := tx.SetGraphQuad(ctx, s4wave_device.NewDeviceToSensorQuad(a.m.deviceObjectKey, a.sensorKey)); err != nil {
 		return errors.Wrap(err, "link device to sensor")
 	}
-	return tx.Commit(a.ctx)
+	return tx.Commit(ctx)
 }
 
 // readSensorBlock unmarshals the Sensor block from an object state.
@@ -537,7 +623,7 @@ func readSensorBlock(ctx context.Context, objState world.ObjectState) (*s4wave_d
 
 // mapEntities converts enumerated ESPHome entities to sanitized SensorEntity
 // metadata.
-func mapEntities(device esphome.DeviceInfo, entities []esphome.Entity) []*s4wave_device.SensorEntity {
+func mapEntities(entities []esphome.Entity) []*s4wave_device.SensorEntity {
 	out := make([]*s4wave_device.SensorEntity, 0, len(entities))
 	for _, entity := range entities {
 		valueKind := s4wave_device.SensorEntityValueKind_SENSOR_ENTITY_VALUE_KIND_UNKNOWN

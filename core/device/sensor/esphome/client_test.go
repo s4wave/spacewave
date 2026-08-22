@@ -3,6 +3,7 @@ package esphome
 import (
 	"context"
 	"net"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -183,11 +184,13 @@ func negotiateBehavior(
 func TestSilentPeerDegradesAfterKeepaliveTimeout(t *testing.T) {
 	server := startFakeServer(t, negotiateBehavior(t, nil))
 
+	var missed atomic.Bool
 	client, err := Connect(context.Background(), Options{
 		Address:           server.listener.Addr().String(),
 		ConnectTimeout:    time.Second,
 		KeepaliveInterval: 20 * time.Millisecond,
 		KeepaliveTimeout:  60 * time.Millisecond,
+		OnLivenessMissed:  func() { missed.Store(true) },
 	})
 	if err != nil {
 		t.Fatalf("Connect() error = %v", err)
@@ -197,6 +200,9 @@ func TestSilentPeerDegradesAfterKeepaliveTimeout(t *testing.T) {
 	case <-client.Done():
 		if !errors.Is(client.Err(), ErrKeepaliveTimeout) {
 			t.Fatalf("Err() = %v, want ErrKeepaliveTimeout", client.Err())
+		}
+		if !missed.Load() {
+			t.Fatal("OnLivenessMissed did not fire before termination")
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("silent peer did not degrade within the keepalive deadline")

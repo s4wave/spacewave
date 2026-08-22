@@ -5,11 +5,13 @@ package spacewave_cli
 import (
 	"context"
 	stderrors "errors"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/fsnotify"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
@@ -52,6 +54,56 @@ func startDevicePolicyCapabilityProjection(
 		defer client.close()
 		if err := runDevicePolicyCapabilityProjection(ctx, le, statePath, client, store); err != nil && ctx.Err() == nil {
 			le.WithError(err).Warn("device policy capability projection stopped")
+		}
+	}()
+}
+
+// watchDeviceSetupState wakes the projection loop when the daemon-local setup
+// record changes. Setup completion is written by the device complete command
+// in its own process, so without this watch a configured endpoint would wait
+// for an unrelated policy mutation before the ready Device mounts.
+func watchDeviceSetupState(
+	ctx context.Context,
+	le *logrus.Entry,
+	statePath string,
+	snapshot func() *device_policy.DevicePolicy,
+	updates chan<- devicePolicyUpdate,
+) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		le.WithError(err).Warn("device setup state watch unavailable")
+		return
+	}
+	if err := watcher.Add(filepath.Dir(deviceSetupRecordPath(statePath))); err != nil {
+		le.WithError(err).Warn("device setup state watch unavailable")
+		watcher.Close()
+		return
+	}
+	go func() {
+		defer watcher.Close()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				if event.Op == fsnotify.Chmod {
+					continue
+				}
+				policy := snapshot()
+				select {
+				case updates <- devicePolicyUpdate{policy: policy}:
+				case <-ctx.Done():
+					return
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				le.WithError(err).Warn("device setup state watch error")
+			}
 		}
 	}()
 }
@@ -195,6 +247,7 @@ func runDevicePolicyCapabilityProjection(
 ) error {
 	updates := make(chan devicePolicyUpdate)
 	go watchDevicePolicyUpdates(ctx, store, updates)
+	watchDeviceSetupState(ctx, le, statePath, store.Snapshot, updates)
 
 	var run *deviceSensorRun
 	defer func() {
