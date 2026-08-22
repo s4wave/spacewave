@@ -93,7 +93,7 @@ func CopyFSToFSTree(
 				entPerm := entInfo.Mode().Perm()
 				entNode, err := destNode.Mknod(entName, nodeType, nil, entPerm, writeTs)
 				if err != nil {
-					return &fs.PathError{}
+					return &fs.PathError{Op: "mknod", Path: entPath, Err: err}
 				}
 				pushStack(entPath, entNode, entType.IsDir())
 			}

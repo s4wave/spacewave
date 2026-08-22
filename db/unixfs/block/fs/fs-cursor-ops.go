@@ -167,9 +167,6 @@ func (f *FSCursorOps) ReadAt(ctx context.Context, offset int64, data []byte) (in
 	if f.fileHandle == nil {
 		return 0, unixfs_errors.ErrNotFile
 	}
-	if f.CheckReleased() {
-		return 0, unixfs_errors.ErrReleased
-	}
 
 	// zero-size read
 	if f.fileHandle.Size() == 0 {
@@ -263,10 +260,6 @@ func (f *FSCursorOps) Truncate(ctx context.Context, nsize uint64, ts time.Time) 
 // Returns ErrReleased if the reference has been released.
 // Creates a new FSCursor at the new location.
 func (f *FSCursorOps) Lookup(ctx context.Context, name string) (unixfs.FSCursor, error) {
-	if f.CheckReleased() {
-		return nil, unixfs_errors.ErrReleased
-	}
-
 	if f.CheckReleased() {
 		return nil, unixfs_errors.ErrReleased
 	}
