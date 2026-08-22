@@ -97,7 +97,11 @@ func (r *handleSignalPeerResolver) Resolve(ctx context.Context, handler directiv
 			sig:      sig,
 			accepted: make(chan struct{}),
 		}
-		if err := r.t.deliverSignal(ctx, remotePeerIDStr, r, incoming); err != nil {
+		// Deliver under the transport lifetime context: retiring the directive
+		// instance mid-trickle must not drop an owned decoded signal while it
+		// awaits a live tracker execution. Transport shutdown still releases
+		// the parked delivery; the next Recv observes instance cancellation.
+		if err := r.t.deliverSignal(r.t.ctx, remotePeerIDStr, r, incoming); err != nil {
 			return err
 		}
 	}

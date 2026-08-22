@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -120,6 +121,7 @@ func TestHandleSignalPeerRetriesSameTrackerExecutionGeneration(t *testing.T) {
 	signalSession.recvCh <- msg
 
 	tpt := &WebRTC{
+		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
 		conf:             &Config{},
 		peerID:           localPeerID,
@@ -349,6 +351,7 @@ func TestHandleSignalPeerDeliversOncePerTrackerGeneration(t *testing.T) {
 	secondSession.recvCh <- msg
 
 	tpt := &WebRTC{
+		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
 		conf:             &Config{},
 		peerID:           localPeerID,
@@ -550,6 +553,7 @@ func TestHandleSignalPeerReleasesOverlappingResolverReferences(t *testing.T) {
 	secondSession.recvCh <- msg
 
 	tpt := &WebRTC{
+		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
 		conf:             &Config{},
 		peerID:           localPeerID,
@@ -709,6 +713,7 @@ func testHandleSignalPeerRetriesRetiredTrackerSignal(t *testing.T, routineFailur
 	signalSession.recvCh <- msg
 
 	tpt := &WebRTC{
+		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
 		conf:             &Config{},
 		peerID:           localPeerID,
@@ -927,6 +932,7 @@ func TestHandleSignalPeerReacquiresAfterTrackerExecutionRetires(t *testing.T) {
 	peerKey := remotePeerID.String()
 
 	tpt := &WebRTC{
+		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
 		conf:             &Config{},
 		peerID:           localPeerID,
@@ -1053,6 +1059,7 @@ func TestHandleSignalPeerResolverExitPreservesSharedIngress(t *testing.T) {
 	peerKey := remotePeerID.String()
 
 	tpt := &WebRTC{
+		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
 		conf:             &Config{},
 		peerID:           localPeerID,
@@ -1179,6 +1186,7 @@ func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
 	peerKey := remotePeerID.String()
 
 	tpt := &WebRTC{
+		ctx:              t.Context(),
 		le:               logrus.NewEntry(logrus.New()),
 		conf:             &Config{},
 		peerID:           localPeerID,
@@ -1311,5 +1319,235 @@ func TestHandleSignalPeerJoinsMidHandshakeWithoutReplacement(t *testing.T) {
 	stale := &incomingSignal{accepted: make(chan struct{})}
 	if err := tpt.deliverSignal(ctx, peerKey, resolverA, stale); !errors.Is(err, context.Canceled) {
 		t.Fatalf("exited resolver delivery returned %v, want context canceled", err)
+	}
+}
+
+// newTrickleSignal builds one encoded host-candidate ICE signal.
+func newTrickleSignal(t *testing.T, localPub crypto.PubKey) []byte {
+	t.Helper()
+	mlineIndex := uint16(0)
+	ice, err := NewWebRtcIce(&pion_webrtc.ICECandidateInit{
+		Candidate:     "candidate:1 1 udp 2130706431 10.5.0.2 54504 typ host",
+		SDPMLineIndex: &mlineIndex,
+	})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	msg, err := EncodeWebRtcSignal(
+		&WebRtcSignal{Body: &WebRtcSignal_Ice{Ice: ice}},
+		localPub,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return msg
+}
+
+// startGatedTracker installs a keyed tracker factory whose routine publishes
+// no execution until releaseExecution closes, then accepts exactly one signal.
+// The returned channel receives the exit error exactly once. The exit is
+// reported by the keyed exit callback, not by the routine body: keyed skips
+// the routine body when its derived context is already canceled at startup,
+// and transport cancellation races that startup.
+func startGatedTracker(
+	t *testing.T,
+	tpt *WebRTC,
+	remotePeerID peer.ID,
+	releaseExecution chan struct{},
+	delivered chan *WebRtcSignal,
+) chan error {
+	t.Helper()
+	trackerDone := make(chan error, 1)
+	var doneOnce sync.Once
+	tpt.sessionTrackers = keyed.NewKeyedRefCount(
+		func(key string) (keyed.Routine, *sessionTracker) {
+			tkr := &sessionTracker{
+				w:       tpt,
+				le:      tpt.le,
+				key:     key,
+				peerID:  remotePeerID,
+				offerer: true,
+			}
+			return func(ctx context.Context) (err error) {
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				case <-releaseExecution:
+				}
+				execution := tkr.beginExecution()
+				defer tkr.retireExecution(execution)
+
+				var incoming *incomingSignal
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				case incoming = <-execution.rxSignal:
+				}
+				sess := &session{t: tkr}
+				sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+					sess.acceptIncomingSignalLocked(incoming)
+				})
+				select {
+				case delivered <- incoming.sig:
+				case <-ctx.Done():
+					return context.Canceled
+				}
+				<-ctx.Done()
+				return context.Canceled
+			}, tkr
+		},
+		keyed.WithBackoff[string, *sessionTracker](func(string) cbackoff.BackOff {
+			return new(cbackoff.ZeroBackOff)
+		}),
+		keyed.WithExitCb(func(_ string, _ keyed.Routine, _ *sessionTracker, err error) {
+			doneOnce.Do(func() { trackerDone <- err })
+		}),
+	)
+	tpt.sessionTrackers.SetContext(tpt.ctx, true)
+	t.Cleanup(tpt.sessionTrackers.ClearContext)
+	return trackerDone
+}
+
+// TestHandleSignalPeerDeliversParkedSignalAfterResolverCancel retires the
+// directive instance while a decoded ICE signal awaits a live tracker
+// execution. The owned signal must still reach the single sessionTracker
+// exactly once, and the resolver must exit canceled on its next Recv.
+func TestHandleSignalPeerDeliversParkedSignalAfterResolverCancel(t *testing.T) {
+	transportCtx, cancelTransport := context.WithCancel(t.Context())
+	t.Cleanup(cancelTransport)
+
+	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	localPeerID, err := peer.IDFromPrivateKey(localPriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePeerID, err := peer.IDFromPrivateKey(remotePriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePeerIDStr := remotePeerID.String()
+
+	signalSession := &testSignalPeerSession{
+		localPeerID:  localPeerID,
+		remotePeerID: remotePeerID,
+		recvCh:       make(chan []byte, 1),
+	}
+
+	tpt := &WebRTC{
+		ctx:              transportCtx,
+		le:               logrus.NewEntry(logrus.New()),
+		conf:             &Config{},
+		peerID:           localPeerID,
+		privKey:          localPriv,
+		incomingSessions: make(map[string]*signalIngress),
+	}
+	releaseExecution := make(chan struct{})
+	delivered := make(chan *WebRtcSignal, 1)
+	trackerDone := startGatedTracker(t, tpt, remotePeerID, releaseExecution, delivered)
+
+	resolverCtx, cancelResolver := context.WithCancel(transportCtx)
+	resolverErr := make(chan error, 1)
+	resolver := &handleSignalPeerResolver{t: tpt, sess: signalSession}
+	go func() {
+		resolverErr <- resolver.Resolve(resolverCtx, nil)
+	}()
+
+	signalSession.recvCh <- newTrickleSignal(t, localPub)
+	waitForSignalIngress(t, tpt, remotePeerIDStr, resolver)
+
+	// Retire the directive instance while the decoded signal is parked on the
+	// transport lifetime inside deliverSignal.
+	cancelResolver()
+
+	// Publish the tracker execution; the parked signal must be accepted once.
+	close(releaseExecution)
+	got := <-delivered
+	if got.GetIce() == nil || got.GetIce().GetCandidate() == "" {
+		t.Fatalf("parked trickle signal lost across resolver retirement: %+v", got)
+	}
+
+	// The next Recv observes the retired instance.
+	if err := <-resolverErr; err != context.Canceled {
+		t.Fatalf("resolver returned %v, want context canceled", err)
+	}
+
+	cancelTransport()
+	if err := <-trackerDone; err != context.Canceled {
+		t.Fatalf("tracker returned %v, want context canceled", err)
+	}
+}
+
+// TestHandleSignalPeerParkedDeliveryReleasesOnTransportCancel asserts that
+// transport shutdown releases a delivery parked on the transport lifetime.
+func TestHandleSignalPeerParkedDeliveryReleasesOnTransportCancel(t *testing.T) {
+	transportCtx, cancelTransport := context.WithCancel(t.Context())
+	t.Cleanup(cancelTransport)
+
+	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	localPeerID, err := peer.IDFromPrivateKey(localPriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePeerID, err := peer.IDFromPrivateKey(remotePriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePeerIDStr := remotePeerID.String()
+
+	signalSession := &testSignalPeerSession{
+		localPeerID:  localPeerID,
+		remotePeerID: remotePeerID,
+		recvCh:       make(chan []byte, 1),
+	}
+
+	tpt := &WebRTC{
+		ctx:              transportCtx,
+		le:               logrus.NewEntry(logrus.New()),
+		conf:             &Config{},
+		peerID:           localPeerID,
+		privKey:          localPriv,
+		incomingSessions: make(map[string]*signalIngress),
+	}
+	releaseExecution := make(chan struct{})
+	delivered := make(chan *WebRtcSignal, 1)
+	trackerDone := startGatedTracker(t, tpt, remotePeerID, releaseExecution, delivered)
+
+	resolverCtx, cancelResolver := context.WithCancel(transportCtx)
+	defer cancelResolver()
+	resolverErr := make(chan error, 1)
+	resolver := &handleSignalPeerResolver{t: tpt, sess: signalSession}
+	go func() {
+		resolverErr <- resolver.Resolve(resolverCtx, nil)
+	}()
+
+	signalSession.recvCh <- newTrickleSignal(t, localPub)
+	waitForSignalIngress(t, tpt, remotePeerIDStr, resolver)
+
+	// Transport shutdown must release the parked delivery.
+	cancelTransport()
+	select {
+	case sig := <-delivered:
+		t.Fatalf("delivered after transport cancellation: %+v", sig)
+	default:
+	}
+	if err := <-resolverErr; err != context.Canceled {
+		t.Fatalf("resolver returned %v, want context canceled", err)
+	}
+	if err := <-trackerDone; err != context.Canceled {
+		t.Fatalf("tracker returned %v, want context canceled", err)
 	}
 }
