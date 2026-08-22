@@ -133,6 +133,11 @@ func ParseObjectURI(uri string) ObjectURI {
 	cleaned := path.Clean("/" + uri)
 	uri = strings.TrimPrefix(cleaned, "/")
 
+	// A bare delimiter marker is the subpath delimiter with no key and no path.
+	if uri == "-" {
+		return ObjectURI{}
+	}
+
 	// if URI starts with subpath delimiter, remove it
 	trimmed := strings.TrimPrefix(SubpathDelimiter, "/")
 	uri = strings.TrimPrefix(uri, trimmed)
