@@ -27,6 +27,5 @@ func ApplyOpDelete(
 	if err != nil {
 		return err
 	}
-	// set the output if necessary
 	return nil
 }

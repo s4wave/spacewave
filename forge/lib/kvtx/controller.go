@@ -134,21 +134,21 @@ func (c *Controller) Execute(ctx context.Context) error {
 					Info("store input was empty, initializing empty store")
 			}
 			btx, bcs := cs.BuildTransactionAtRef(nil, rootRef.GetRootRef())
-			kvtx, berr := kvtx_block.BuildKvTransaction(ctx, bcs, true)
+			txn, berr := kvtx_block.BuildKvTransaction(ctx, bcs, true)
 			if berr != nil {
 				return berr
 			}
-			defer kvtx.Discard()
-			sizeBefore, berr = kvtx.Size(ctx)
+			defer txn.Discard()
+			sizeBefore, berr = txn.Size(ctx)
 			if berr != nil {
-				return err
+				return berr
 			}
-			berr = opQueue.ApplyOps(kvtx, true, c.conf.GetIgnoreErrors())
+			berr = opQueue.ApplyOps(txn, true, c.conf.GetIgnoreErrors())
 			if berr == nil {
-				sizeAfter, berr = kvtx.Size(ctx)
+				sizeAfter, berr = txn.Size(ctx)
 			}
 			if berr == nil {
-				berr = kvtx.Commit(ctx)
+				berr = txn.Commit(ctx)
 			}
 			if berr != nil {
 				return berr

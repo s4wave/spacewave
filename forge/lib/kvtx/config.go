@@ -26,14 +26,12 @@ func (c *Config) Validate() error {
 
 // IsEmpty checks if there are no operations in the config.
 func (c *Config) IsEmpty() bool {
-	var any bool
 	for _, op := range c.GetOps() {
 		if !op.IsEmpty() {
-			any = true
-			break
+			return false
 		}
 	}
-	return !any
+	return true
 }
 
 // GetConfigID returns the unique string for this configuration type.

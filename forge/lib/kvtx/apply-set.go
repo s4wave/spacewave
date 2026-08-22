@@ -1,7 +1,6 @@
 package forge_lib_kvtx
 
 import (
-	"bytes"
 	"context"
 	"errors"
 
@@ -22,9 +21,8 @@ func ApplyOpSet(
 	valueIsBlob bool,
 	outputName string,
 ) error {
-	if bytes.Equal(key, []byte("test-1")) {
-		_ = ctx.Err()
-	}
+	// note: GetBlockStore returns ok=false when the store is tx-scoped, so only
+	// the nil result means no block store is reachable from this cursor.
 	btxCursor := btx.GetCursor()
 	blockStore, _ := btxCursor.GetBlockStore()
 	if blockStore == nil {
@@ -33,8 +31,7 @@ func ApplyOpSet(
 
 	// copy the value into the same bucket as the tree if necessary
 	// note: value will be nil if the input ref is empty
-	var err error
-	value, err = forge_target.CopyValueToBucket(ctx, handle, value)
+	value, err := forge_target.CopyValueToBucket(ctx, handle, value)
 	if err != nil {
 		return err
 	}

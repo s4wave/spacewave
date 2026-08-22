@@ -103,10 +103,9 @@ func ApplyOpCheckExists(
 	}
 	if doesExist != shouldExist {
 		if shouldExist {
-			return errors.New("key exists")
-		} else {
-			return kvtx.ErrNotFound
+			return errors.New("key does not exist")
 		}
+		return errors.New("key exists")
 	}
 	return nil
 }

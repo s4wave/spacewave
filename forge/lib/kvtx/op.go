@@ -14,15 +14,10 @@ func checkReservedName(name string) error {
 
 // IsEmpty checks if the configuration is empty.
 func (o *Op) IsEmpty() bool {
-	var any bool
 	for _, op := range o.GetOps() {
 		if !op.IsEmpty() {
-			any = true
-			break
+			return false
 		}
-	}
-	if any {
-		return true
 	}
 
 	return o.GetOpType() == OpType_OpType_NONE && len(o.GetOps()) == 0
