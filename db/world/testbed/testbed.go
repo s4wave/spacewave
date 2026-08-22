@@ -74,7 +74,7 @@ func NewTestbed(tb *testbed.Testbed, opts ...Option) (t *Testbed, tbErr error) {
 	t.EngineBucketID = tb.BucketId
 	t.EngineObjectStoreID = t.EngineID + "-store"
 
-	transformConf, err := newEngineTransformConfig(t.EngineBucketID)
+	transformConf, err := NewEngineTransformConfig(t.EngineBucketID)
 	if err != nil {
 		return nil, err
 	}

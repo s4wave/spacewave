@@ -11,7 +11,7 @@ import (
 	"github.com/zeebo/blake3"
 )
 
-func newEngineTransformConfig(engineBucketID string) (*block_transform.Config, error) {
+func NewEngineTransformConfig(engineBucketID string) (*block_transform.Config, error) {
 	key := make([]byte, 32)
 	blake3.DeriveKey("hydra/world/testbed "+engineBucketID, []byte("testbed"), key)
 
