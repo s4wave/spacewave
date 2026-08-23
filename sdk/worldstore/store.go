@@ -14,8 +14,8 @@ import (
 	"context"
 
 	"github.com/s4wave/spacewave/db/world"
+	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
 	s4wave_sql_world "github.com/s4wave/spacewave/sdk/sql/world"
-	"github.com/s4wave/spacewave/sdk/worldkv"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,8 +37,8 @@ func Open(le *logrus.Entry, ws world.WorldState) (*Store, error) {
 }
 
 // KV opens or creates a key/value collection at name.
-func (s *Store) KV(ctx context.Context, name string) (*worldkv.Store, error) {
-	return worldkv.Open(ctx, s.le, s.ws, name)
+func (s *Store) KV(ctx context.Context, name string) (*s4wave_kv_world.WorldBackedStore, error) {
+	return s4wave_kv_world.OpenOrCreate(ctx, s.le, s.ws, name)
 }
 
 // SQL opens or creates a SQL database at name.

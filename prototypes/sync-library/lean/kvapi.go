@@ -11,7 +11,7 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 	kvtx_rpc "github.com/s4wave/spacewave/db/kvtx/rpc"
 	kvtx_rpc_client "github.com/s4wave/spacewave/db/kvtx/rpc/client"
-	"github.com/s4wave/spacewave/sdk/worldkv"
+	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
 )
 
 // errKvNotOpen is returned when the KV API is used before KvOpen.
@@ -20,7 +20,7 @@ var errKvNotOpen = errors.New("kv: not open")
 var (
 	kvMtx    sync.Mutex
 	kvWorld  *World
-	kvStore  *worldkv.Store
+	kvStore  s4wave_kv_world.WatchKVStore
 	kvCtx    context.Context
 	kvCancel context.CancelFunc
 
@@ -60,7 +60,7 @@ func KvOpenWithWorld(ctx context.Context, open func(context.Context) (*World, er
 		cancel()
 		return err
 	}
-	store, err := worldkv.Open(ctx, nil, w.WS, "sync/kv")
+	store, err := s4wave_kv_world.OpenOrCreate(ctx, nil, w.WS, "sync/kv")
 	if err != nil {
 		w.Close()
 		cancel()
@@ -95,7 +95,7 @@ func KvClose() {
 }
 
 // kvUse locks state and returns the store plus context, or errKvNotOpen.
-func kvUse() (*worldkv.Store, context.Context, error) {
+func kvUse() (s4wave_kv_world.WatchKVStore, context.Context, error) {
 	kvMtx.Lock()
 	defer kvMtx.Unlock()
 	if kvStore == nil {
@@ -183,9 +183,8 @@ func KvWatch(prefix string, cb func(snapshotJSON string)) error {
 	kvWatchMtx.Unlock()
 
 	go func() {
-		_ = store.WatchPrefix(watchCtx, prefix, func(entries []kvtx.WatchEntry) error {
+		_, _ = store.Watch(watchCtx, prefix, func(entries []kvtx.WatchEntry) {
 			cb(kvSnapshotJSON(entries))
-			return nil
 		})
 	}()
 	return nil
@@ -226,7 +225,7 @@ func KvOpenHosted(ctx context.Context, url string) error {
 	if kvStore != nil {
 		return nil
 	}
-	kvStore, err = worldkv.OpenRemote(ctx, nil, store)
+	kvStore, err = s4wave_kv_world.OpenRemote(ctx, nil, store)
 	if err != nil {
 		return err
 	}
