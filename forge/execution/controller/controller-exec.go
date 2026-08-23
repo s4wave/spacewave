@@ -32,7 +32,7 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 
 	canceling := false
 	select {
-	case <-c.cancelCh:
+	case <-c.CancelWaitCh():
 		canceling = true
 	default:
 	}
@@ -210,7 +210,7 @@ func (c *Controller) processExec(
 	}
 
 	// Build the execution handle and pass it to the controller.
-	execCtx := forge_target.WithExecCancelSignal(ctx, c.cancelCh)
+	execCtx := forge_target.WithExecCancelSignal(ctx, c.CancelWaitCh())
 	execCtrlHandle := newExecControllerHandle(
 		execCtx,
 		c,

@@ -2,7 +2,6 @@ package execution_controller
 
 import (
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -11,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/routine"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -57,9 +57,11 @@ type Controller struct {
 	// execRoutine is the execution routine resolving execResult
 	// note: value_set and result are set to nil
 	execRoutine *routine.StateRoutineContainer[*ExecConfig]
-	// cancelCh closes after durable cancellation is observed.
-	cancelCh   chan struct{}
-	cancelOnce sync.Once
+	// cancelBcast guards canceled below; its wait channel closes once
+	// durable cancellation is observed.
+	cancelBcast broadcast.Broadcast
+	// canceled records that durable cancellation was observed.
+	canceled bool
 }
 
 // NewController constructs a new Execution controller.
@@ -82,7 +84,6 @@ func NewController(
 		uniqueID: uniqueID,
 		peerID:   peerID,
 		claimID:  claimID,
-		cancelCh: make(chan struct{}),
 	}
 	c.busEngine = world.NewBusEngine(nil, bus, conf.GetEngineId())
 	c.ws = world.NewEngineWorldState(c.busEngine, true)
@@ -123,6 +124,16 @@ func StartControllerWithConfig(
 	return cl, ctrlRef, nil
 }
 
+// CancelWaitCh returns a channel that closes once durable cancellation of
+// the execution has been observed.
+func (c *Controller) CancelWaitCh() <-chan struct{} {
+	var waitCh <-chan struct{}
+	c.cancelBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+		waitCh = getWaitCh()
+	})
+	return waitCh
+}
+
 // GetControllerInfo returns information about the controller.
 func (c *Controller) GetControllerInfo() *controller.Info {
 	return controller.NewInfo(
@@ -156,10 +167,23 @@ func (c *Controller) ProcessState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
+	execConfig, waitForChanges, err := c.processExecutionState(ctx, le, ws, obj, rootRef, rev)
+	c.execRoutine.SetState(execConfig)
+	return waitForChanges, err
+}
+
+// processExecutionState reconciles the Execution state and returns the exec
+// routine config to apply, or nil to clear the routine.
+func (c *Controller) processExecutionState(
+	ctx context.Context,
+	le *logrus.Entry,
+	ws world.WorldState,
+	obj world.ObjectState, // may be nil if not found
+	rootRef *bucket.ObjectRef, rev uint64,
+) (execConfig *ExecConfig, waitForChanges bool, err error) {
 	if obj == nil {
 		le.Debug("object does not exist, waiting")
-		c.execRoutine.SetState(nil)
-		return true, nil
+		return nil, true, nil
 	}
 
 	// unmarshal Execution state + build read cursor
@@ -170,14 +194,12 @@ func (c *Controller) ProcessState(
 		return berr
 	})
 	if err != nil {
-		c.execRoutine.SetState(nil)
-		return false, err
+		return nil, false, err
 	}
 
 	// check execution state
 	if err := exState.Validate(); err != nil {
-		c.execRoutine.SetState(nil)
-		return false, errors.Wrap(err, "initial state is invalid")
+		return nil, false, errors.Wrap(err, "initial state is invalid")
 	}
 
 	// locally specified peer id
@@ -186,35 +208,34 @@ func (c *Controller) ProcessState(
 		// use the peer ID specified on the state
 		peerID, err = exState.ParsePeerID()
 		if err != nil {
-			c.execRoutine.SetState(nil)
-			return true, errors.Wrap(err, "parse peer id on execution state")
+			return nil, true, errors.Wrap(err, "parse peer id on execution state")
 		}
 	}
 
 	// check if completed
 	currState := exState.GetExecutionState()
 	if currState == forge_execution.State_ExecutionState_CANCELING {
-		c.cancelOnce.Do(func() {
-			close(c.cancelCh)
+		c.cancelBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			if !c.canceled {
+				c.canceled = true
+				broadcast()
+			}
 		})
 	}
 	if currState == forge_execution.State_ExecutionState_COMPLETE {
 		le.Debug("execution is marked as complete")
-		c.execRoutine.SetState(nil)
-		return false, nil
+		return nil, false, nil
 	}
 
 	// check peer id matches if set
 	if err := exState.CheckPeerID(peerID); err != nil {
-		c.execRoutine.SetState(nil)
-		return true, err
+		return nil, true, err
 	}
 
 	// lookup the peer on the bus (wait for it to exist)
 	_, _, peerRef, err := peer.GetPeerWithID(ctx, c.bus, peerID, false, nil)
 	if err != nil {
-		c.execRoutine.SetState(nil)
-		return false, err
+		return nil, false, err
 	}
 	defer peerRef.Release()
 
@@ -222,33 +243,30 @@ func (c *Controller) ProcessState(
 	// starting side effects until this controller observes its durable claim.
 	if currState == forge_execution.State_ExecutionState_PENDING ||
 		exState.GetClaim() == nil {
-		c.execRoutine.SetState(nil)
 		le.Debugf("claiming execution with peer id: %s", peerID.String())
 		txd := execution_transaction.NewTxStart(peerID, c.claimID)
 		_, _, err = obj.ApplyObjectOp(ctx, txd, peerID)
 		if err != nil {
 			var heldErr *execution_transaction.ClaimHeldError
 			if errors.As(err, &heldErr) {
-				return true, nil
+				return nil, true, nil
 			}
-			return false, err
+			return nil, false, err
 		}
 		// The control loop observes the durable claim before starting work.
-		return true, nil
+		return nil, true, nil
 	}
 
 	if exState.GetClaim().GetClaimId() != c.claimID {
 		le.Debug("observing execution owned by another controller")
-		c.execRoutine.SetState(nil)
-		return true, nil
+		return nil, true, nil
 	}
 
 	// RUNNING and CANCELING both retain adapter custody. Cancellation is
 	// delivered without tearing down the routine context.
 	if currState != forge_execution.State_ExecutionState_RUNNING &&
 		currState != forge_execution.State_ExecutionState_CANCELING {
-		c.execRoutine.SetState(nil)
-		return true, errors.Wrapf(
+		return nil, true, errors.Wrapf(
 			forge_value.ErrUnknownState,
 			"%s", currState.String(),
 		)
@@ -277,19 +295,18 @@ func (c *Controller) ProcessState(
 			return berr
 		})
 		if err != nil {
-			c.execRoutine.SetState(nil)
-			return true, errors.Wrap(err, "lookup target configuration")
+			return nil, true, errors.Wrap(err, "lookup target configuration")
 		}
 
-		// update the exec configuration
-		// note: SetState checks ExecConfig for equality.
-		c.execRoutine.SetState(&ExecConfig{
+		execConfig = &ExecConfig{
 			Execution: execConfigState,
 			Target:    tgt,
-		})
+		}
+	} else {
+		execConfig = prevConfigState
 	}
 
-	return true, nil
+	return execConfig, true, nil
 }
 
 // _ is a type assertion
