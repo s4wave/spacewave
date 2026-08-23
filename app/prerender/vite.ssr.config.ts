@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig } from 'vite'
 import { resolve } from 'path'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -11,32 +11,15 @@ import {
   goTsResolver,
 } from '../../bldr/web/bundler/vite/go-ts-resolver.js'
 
+import {
+  buildWorkspaceAliases,
+  staticAssetPlugin,
+} from './workspace-aliases.js'
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(__dirname, '../../')
 const bldrDistRoot = resolve(projectRoot, '.bldr-dist/src')
 const goAliases = buildGoAliases(projectRoot, bldrDistRoot)
-
-// Resolves image imports to /static/assets/<basename> URLs during SSR.
-// At runtime Vite/esbuild handles these; during prerender we need
-// the static serving path so the HTML has correct URLs.
-function staticAssetPlugin(): Plugin {
-  return {
-    name: 'prerender-static-assets',
-    enforce: 'pre',
-    resolveId(source) {
-      if (/\.(png|svg|jpg|gif|ico)(\?.*)?$/.test(source)) {
-        return { id: '\0static-asset:' + source, moduleSideEffects: false }
-      }
-      return null
-    },
-    load(id) {
-      if (!id.startsWith('\0static-asset:')) return null
-      const source = id.slice('\0static-asset:'.length)
-      const basename = source.split('/').pop()?.replace(/\?.*$/, '') ?? ''
-      return `export default "/static/assets/${basename}";`
-    },
-  }
-}
 
 export default defineConfig({
   root: projectRoot,
@@ -89,34 +72,7 @@ export default defineConfig({
         replacement: resolve(bldrDistRoot, 'sdk/$1'),
       },
       ...goAliases,
-      {
-        find: /^@s4wave\/core\/(.*)$/,
-        replacement: resolve(projectRoot, './core/$1'),
-      },
-      {
-        find: /^@s4wave\/sdk\/(.*)$/,
-        replacement: resolve(projectRoot, './sdk/$1'),
-      },
-      {
-        find: '@s4wave/sdk',
-        replacement: resolve(projectRoot, './sdk'),
-      },
-      {
-        find: /^@s4wave\/app\/(.*)$/,
-        replacement: resolve(projectRoot, './app/$1'),
-      },
-      {
-        find: '@s4wave/app',
-        replacement: resolve(projectRoot, './app'),
-      },
-      {
-        find: /^@s4wave\/web\/(.*)$/,
-        replacement: resolve(projectRoot, './web/$1'),
-      },
-      {
-        find: '@s4wave/web',
-        replacement: resolve(projectRoot, './web'),
-      },
+      ...buildWorkspaceAliases(projectRoot),
     ],
   },
 

@@ -11,6 +11,8 @@ import {
   goTsResolver,
 } from '../../bldr/web/bundler/vite/go-ts-resolver.js'
 
+import { buildWorkspaceAliases } from './workspace-aliases.js'
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const projectRoot = resolve(__dirname, '../../')
 const goAliases = buildGoAliases(projectRoot)
@@ -47,34 +49,7 @@ export default defineConfig({
         replacement: resolve(projectRoot, './.bldr/src/sdk/$1'),
       },
       ...goAliases,
-      {
-        find: /^@s4wave\/core\/(.*)$/,
-        replacement: resolve(projectRoot, './core/$1'),
-      },
-      {
-        find: /^@s4wave\/sdk\/(.*)$/,
-        replacement: resolve(projectRoot, './sdk/$1'),
-      },
-      {
-        find: '@s4wave/sdk',
-        replacement: resolve(projectRoot, './sdk'),
-      },
-      {
-        find: /^@s4wave\/app\/(.*)$/,
-        replacement: resolve(projectRoot, './app/$1'),
-      },
-      {
-        find: '@s4wave/app',
-        replacement: resolve(projectRoot, './app'),
-      },
-      {
-        find: /^@s4wave\/web\/(.*)$/,
-        replacement: resolve(projectRoot, './web/$1'),
-      },
-      {
-        find: '@s4wave/web',
-        replacement: resolve(projectRoot, './web'),
-      },
+      ...buildWorkspaceAliases(projectRoot),
     ],
   },
 
