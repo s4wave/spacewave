@@ -26,14 +26,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// durableRootPath is the OPFS root directory for the durable world.
-const durableRootPath = "sync-kv"
-
-// OpenWorldDurable constructs a Hydra world backed by the OPFS volume,
-// mirroring the browser storage wiring in bldr/storage/browser. All state
-// survives Close and a later reopen. The dir argument is unused: the OPFS
-// root is fixed by the browser origin.
-func OpenWorldDurable(ctx context.Context, _ string) (*World, error) {
+// OpenWorldOpfs constructs a Hydra world backed by the OPFS volume,
+// mirroring the browser storage wiring in bldr/storage/browser. Browser
+// targets only: OPFS handles come from navigator.storage.
+func OpenWorldOpfs(ctx context.Context) (*World, error) {
 	log := logrus.New()
 	log.SetLevel(logrus.ErrorLevel)
 	le := logrus.NewEntry(log)
@@ -81,8 +77,8 @@ func OpenWorldDurable(ctx context.Context, _ string) (*World, error) {
 		ctx,
 		b,
 		resolver.NewLoadControllerWithConfig(&volume_opfs.Config{
-			RootPath:                 durableRootPath,
-			LockPrefix:               durableRootPath,
+			RootPath:                 "sync-kv",
+			LockPrefix:               "sync-kv",
 			BlockShardCount:          volume_opfs_blockshard.DefaultShardCount,
 			BlockCompactionTrigger:   8,
 			BlockMaxSegmentDataBytes: volume_opfs_blockshard.DefaultMaxSegmentDataBytes,
@@ -135,4 +131,12 @@ func OpenWorldDurable(ctx context.Context, _ string) (*World, error) {
 	busEngine := world.NewBusEngine(ctx, b, "lean-engine")
 	w.WS = world.NewEngineWorldState(busEngine, true)
 	return w, nil
+}
+
+// KvOpenOpfs opens the embedded world backed by OPFS. Requires a browser
+// environment.
+func KvOpenOpfs(ctx context.Context) error {
+	return KvOpenWithWorld(ctx, func(inner context.Context) (*World, error) {
+		return OpenWorldOpfs(inner)
+	})
 }

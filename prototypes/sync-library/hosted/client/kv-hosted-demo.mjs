@@ -31,7 +31,7 @@ if (!observed) throw new Error('never observed server/hello from the other proce
 // client-side mutation round-trip against the hosted authoritative world
 await KvPut('client/note', 'written-from-client')
 const got = await KvGet('client/note')
-console.log('client write readback:', got)
+console.log('client write readback:', got[0])
 const list = await KvList('')
 console.log('total keys visible:', JSON.parse(list[0]).length)
 

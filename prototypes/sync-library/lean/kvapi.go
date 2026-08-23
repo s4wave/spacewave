@@ -233,3 +233,10 @@ func KvOpenHosted(ctx context.Context, url string) error {
 	kvCtx = ctx
 	return nil
 }
+
+// KvIsOpen reports whether the KV API currently has an open store.
+func KvIsOpen() bool {
+	kvMtx.Lock()
+	defer kvMtx.Unlock()
+	return kvStore != nil
+}

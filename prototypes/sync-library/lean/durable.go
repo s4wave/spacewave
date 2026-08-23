@@ -1,10 +1,9 @@
-//go:build !js
-
 package lean
 
 import (
 	"context"
 	"fmt"
+	"os"
 
 	configset_controller "github.com/aperturerobotics/controllerbus/controller/configset/controller"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -18,19 +17,27 @@ import (
 	bucket_setup "github.com/s4wave/spacewave/db/bucket/setup"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	"github.com/s4wave/spacewave/db/volume"
-	volume_bolt "github.com/s4wave/spacewave/db/volume/bolt"
 	world "github.com/s4wave/spacewave/db/world"
 	world_block_engine "github.com/s4wave/spacewave/db/world/block/engine"
+	volume_filesnap "github.com/s4wave/spacewave/prototypes/sync-library/lean/filesnap"
 	"github.com/sirupsen/logrus"
 )
 
-// OpenWorldDurable constructs a Hydra world backed by a durable bbolt
-// volume rooted at dir. Same factory set as OpenWorld with the in-memory
-// volume swapped for bolt; all state survives Close and a later reopen at
-// the same dir.
+// OpenWorldDurable constructs a Hydra world backed by a durable snapshot
+// file volume. Same factory set as OpenWorld with the in-memory volume
+// swapped for the file-backed store; all state survives Close and a later
+// reopen at the same path.
 func OpenWorldDurable(ctx context.Context, dir string) (*World, error) {
 	log := logrus.New()
-	log.SetLevel(logrus.ErrorLevel)
+	if os.Getenv("KV_DEBUG") != "" {
+		log.SetLevel(logrus.DebugLevel)
+	} else {
+		log.SetLevel(logrus.ErrorLevel)
+	}
+	return openWorldDurableLogged(ctx, dir, log)
+}
+
+func openWorldDurableLogged(ctx context.Context, dir string, log *logrus.Logger) (*World, error) {
 	le := logrus.NewEntry(log)
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -49,7 +56,7 @@ func OpenWorldDurable(ctx context.Context, dir string) (*World, error) {
 	sr.AddFactory(bucket_setup.NewFactory(b))
 	sr.AddFactory(node_controller.NewFactory(b))
 	sr.AddFactory(lookup_concurrent.NewFactory(b))
-	sr.AddFactory(volume_bolt.NewFactory(b))
+	sr.AddFactory(volume_filesnap.NewFactory(b))
 	sr.AddFactory(block_store_inmem.NewFactory(b))
 	sr.AddFactory(block_store_overlay.NewFactory(b))
 	sr.AddFactory(boilerplate_controller.NewFactory(b))
@@ -75,7 +82,7 @@ func OpenWorldDurable(ctx context.Context, dir string) (*World, error) {
 	dv, _, volRef, err := loader.WaitExecControllerRunning(
 		ctx,
 		b,
-		resolver.NewLoadControllerWithConfig(&volume_bolt.Config{Path: durablePath(dir)}),
+		resolver.NewLoadControllerWithConfig(&volume_filesnap.Config{Path: durablePath(dir)}),
 		nil,
 	)
 	if err != nil {
@@ -121,7 +128,7 @@ func OpenWorldDurable(ctx context.Context, dir string) (*World, error) {
 	return w, nil
 }
 
-// durablePath returns the bbolt database file path for a durable root dir.
+// durablePath returns the snapshot file path for a durable root dir.
 func durablePath(dir string) string {
-	return dir + "/kv-durable.bolt"
+	return dir + "/kv-durable.json"
 }

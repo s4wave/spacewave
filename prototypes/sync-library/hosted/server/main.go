@@ -1,3 +1,5 @@
+//go:build !js
+
 // Command server hosts an authoritative world and serves its key/value
 // store over WebSocket SRPC for the hosted-transport prototype.
 //

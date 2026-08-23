@@ -61,7 +61,8 @@ loop alive; end scripts with an explicit `process.exit(0)` until resolved.
 3. **bound-mode node bundling**: currently broken - the protobuf-es-lite
    enum descriptor path fails at runtime because generated `_srpc`
    modules mix with es-lite modules. Needs either `_srpc` binding support
-   in goscript or bundler dedup rules.
+   in goscript or bundler dedup rules. The unbound rolldown bundle (2)
+   runs correctly under node and is the recommended node path.
 
 ## Hosted mode
 
@@ -80,8 +81,12 @@ server's delayed write and observes it through WatchPrefix.
 
 ## Durability
 
-- js targets: OPFS volume (`volume/js/opfs`), mirroring
-  `bldr/storage/browser` wiring. Runtime verification requires a browser
-  harness (OPFS is not available in Node).
-- other platforms: bbolt via `KvOpenDurable(ctx, dir)`; close/reopen test
-  in `lean/kvapi_test.go`.
+`KvOpenDurable(ctx, dir)` persists through a snapshot-file volume
+(`lean/filesnap`): the world state rewrites one JSON snapshot atomically on
+every commit, with values base64-encoded because block bytes are binary.
+Proven by `TestKvDurableReopen` natively and by two open/close cycles in
+compiled bun and node (`kv-durable-demo.mjs`).
+
+For browser targets, `KvOpenOpfs(ctx)` wires the production OPFS volume
+(`volume/js/opfs`, mirroring `bldr/storage/browser`); runtime verification
+there needs a browser harness since OPFS is unavailable in Node.
