@@ -57,7 +57,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the controller.
 // Returning nil ends execution.
-func (c *Controller) Execute(rctx context.Context) (rerr error) {
+func (c *Controller) Execute(context.Context) error {
 	return nil
 }
 
@@ -68,7 +68,7 @@ func (c *Controller) HandleDirective(
 ) ([]directive.Resolver, error) {
 	switch d := inst.GetDirective().(type) {
 	case manifest.FetchManifest:
-		return directive.R(c.resolveFetchManifest(ctx, inst, d))
+		return directive.R(c.resolveFetchManifest(ctx, d))
 	}
 	return nil, nil
 }

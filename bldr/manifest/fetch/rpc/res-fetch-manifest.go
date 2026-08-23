@@ -10,7 +10,6 @@ import (
 // resolveFetchManifest resolves a FetchManifest directive.
 func (c *Controller) resolveFetchManifest(
 	ctx context.Context,
-	di directive.Instance,
 	dir manifest.FetchManifest,
 ) (directive.Resolver, error) {
 	if c.fetchManifestIdRe != nil && dir.GetManifestId() != "" {
