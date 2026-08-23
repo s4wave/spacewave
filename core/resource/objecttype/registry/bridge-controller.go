@@ -126,14 +126,7 @@ func (r *bridgeResolver) invokeAttached(
 	objectKey string,
 	engine world.Engine,
 ) (srpc.Invoker, func(), error) {
-	invoker := &attachedObjectTypeInvoker{
-		handler:   r.reg.attached,
-		reg:       r.reg.registration,
-		objectKey: objectKey,
-		engine:    engine,
-		b:         r.b,
-		le:        r.le,
-	}
+	invoker := newAttachedObjectTypeInvoker(r.reg.attached, r.reg.registration, objectKey, engine, r.b, r.le)
 	if err := invoker.connect(ctx); err != nil {
 		return nil, nil, err
 	}
@@ -153,44 +146,197 @@ func (r *bridgeResolver) invokePlugin(
 	if resourceCtx != nil {
 		resourceClientCtx = resourceCtx.Context()
 	}
-	invoker := &pluginObjectTypeInvoker{
-		le:                r.le,
-		b:                 r.b,
-		reg:               r.reg.registration,
-		objectKey:         objectKey,
-		engine:            engine,
-		resourceClientCtx: resourceClientCtx,
-	}
+	invoker := newPluginObjectTypeInvoker(resourceClientCtx, r.reg.registration, objectKey, engine, r.b, r.le)
 	if err := invoker.connect(ctx); err != nil {
 		return nil, nil, err
 	}
 	return invoker, invoker.Close, nil
 }
 
-// attachedObjectTypeInvoker holds one nested ResourceClient generation. It is
-// invalidated when the caller generation that supplied the handler ends.
-type attachedObjectTypeInvoker struct {
-	handler   *attachedObjectTypeHandler
+// pluginResourceSession drives one nested ResourceClient generation for a
+// proxied ObjectType. It owns the resource client, the optional world-engine
+// attachment, the root and child references, and the child SRPC client.
+type pluginResourceSession struct {
+	le        *logrus.Entry
+	b         bus.Bus
 	reg       *s4wave_objecttype_registry.ObjectTypeRegistration
 	objectKey string
 	engine    world.Engine
-	b         bus.Bus
-	le        *logrus.Entry
+
+	// openResources opens the ResourceClient generation. The alive callback
+	// reports whether the generation is still usable; nil means always.
+	openResources func(ctx context.Context) (*resource_client.Client, func(), func() bool, error)
+	// detachCtx outlives one request and is used to detach the engine.
+	detachCtx context.Context
 
 	mtx sync.Mutex
 
 	resources        *resource_client.Client
+	releaseResources func()
+	alive            func() bool
 	engineResourceID uint32
 	rootRef          resource_client.ResourceRef
 	childRef         resource_client.ResourceRef
 	childClient      srpc.Client
 }
 
+// connectLocked opens a fresh session, replacing any current one.
+func (s *pluginResourceSession) connectLocked(ctx context.Context) error {
+	s.resetLocked()
+	client, releaseResources, alive, err := s.openResources(ctx)
+	if err != nil {
+		return err
+	}
+	s.resources = client
+	s.releaseResources = releaseResources
+	s.alive = alive
+
+	if s.engine != nil {
+		lookupOp := space_world_optypes.BuildSpaceLookupOp(s.b, s.le, "")
+		engineRes := resource_world.NewEngineResource(s.le, s.b, s.engine, lookupOp, nil)
+		s.engineResourceID, err = client.AttachResource(ctx, "world-engine", engineRes.GetMux())
+		if err != nil {
+			s.resetLocked()
+			return err
+		}
+	}
+
+	s.rootRef = client.AccessRootResource()
+	rootClient, err := s.rootRef.GetClient()
+	if err != nil {
+		s.resetLocked()
+		return err
+	}
+
+	handlerSvc := s4wave_objecttype_registry.NewSRPCObjectTypeHandlerServiceClient(rootClient)
+	resp, err := handlerSvc.InvokeObjectType(ctx, &s4wave_objecttype_registry.InvokeObjectTypeRequest{
+		TypeId:                   s.reg.GetTypeId(),
+		ObjectKey:                s.objectKey,
+		AttachedEngineResourceId: s.engineResourceID,
+	})
+	if err != nil {
+		s.resetLocked()
+		return err
+	}
+
+	s.childRef = client.CreateResourceReference(resp.GetResourceId())
+	s.childClient, err = s.childRef.GetClient()
+	if err != nil {
+		s.resetLocked()
+		return err
+	}
+	return nil
+}
+
+// resetLocked releases the child, root, engine attachment, and client
+// generation.
+func (s *pluginResourceSession) resetLocked() {
+	if s.childRef != nil {
+		s.childRef.Release()
+	}
+	if s.rootRef != nil {
+		s.rootRef.Release()
+	}
+	if s.resources != nil {
+		if s.engineResourceID != 0 {
+			_ = s.resources.DetachResource(s.detachCtx, s.engineResourceID)
+		}
+		if s.releaseResources != nil {
+			s.releaseResources()
+		} else {
+			s.resources.Release()
+		}
+	}
+	s.resources = nil
+	s.releaseResources = nil
+	s.alive = nil
+	s.engineResourceID = 0
+	s.rootRef = nil
+	s.childRef = nil
+	s.childClient = nil
+}
+
+// connect replaces the current session with a fresh one.
+func (s *pluginResourceSession) connect(ctx context.Context) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.connectLocked(ctx)
+}
+
+// close releases the current session.
+func (s *pluginResourceSession) close() {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	s.resetLocked()
+}
+
+// reset drops the current session so the next use reconnects.
+func (s *pluginResourceSession) reset() {
+	s.close()
+}
+
+// peekChildClient returns the connected child client without reconnecting.
+func (s *pluginResourceSession) peekChildClient() srpc.Client {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	return s.childClient
+}
+
+// currentClient returns a live child client, reconnecting when the session
+// was released or the plugin runtime dropped it.
+func (s *pluginResourceSession) currentClient(ctx context.Context) (srpc.Client, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+	if s.childClient != nil && (s.alive == nil || s.alive()) {
+		return s.childClient, nil
+	}
+	if err := s.connectLocked(ctx); err != nil {
+		return nil, err
+	}
+	return s.childClient, nil
+}
+
+// attachedObjectTypeInvoker holds one nested ResourceClient generation. It is
+// invalidated when the caller generation that supplied the handler ends.
+type attachedObjectTypeInvoker struct {
+	session pluginResourceSession
+}
+
+// newAttachedObjectTypeInvoker creates an invoker over a caller-attached
+// handler.
+func newAttachedObjectTypeInvoker(
+	handler *attachedObjectTypeHandler,
+	reg *s4wave_objecttype_registry.ObjectTypeRegistration,
+	objectKey string,
+	engine world.Engine,
+	b bus.Bus,
+	le *logrus.Entry,
+) *attachedObjectTypeInvoker {
+	i := &attachedObjectTypeInvoker{}
+	i.session = pluginResourceSession{
+		le:        le,
+		b:         b,
+		reg:       reg,
+		objectKey: objectKey,
+		engine:    engine,
+		detachCtx: handler.ctx,
+		openResources: func(_ context.Context) (*resource_client.Client, func(), func() bool, error) {
+			client, err := resource_client.NewClient(
+				handler.ctx,
+				resource.NewSRPCResourceServiceClient(handler.client),
+			)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			return client, client.Release, nil, nil
+		},
+	}
+	return i
+}
+
 // InvokeMethod invokes a method on the attached handler child resource.
 func (i *attachedObjectTypeInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-	i.mtx.Lock()
-	childClient := i.childClient
-	i.mtx.Unlock()
+	childClient := i.session.peekChildClient()
 	if childClient == nil {
 		return false, resource.ErrResourceOrClientReleased
 	}
@@ -198,248 +344,88 @@ func (i *attachedObjectTypeInvoker) InvokeMethod(serviceID, methodID string, str
 }
 
 func (i *attachedObjectTypeInvoker) connect(ctx context.Context) error {
-	resources, err := resource_client.NewClient(
-		i.handler.ctx,
-		resource.NewSRPCResourceServiceClient(i.handler.client),
-	)
-	if err != nil {
-		return err
-	}
-	i.resources = resources
-
-	if i.engine != nil {
-		lookupOp := space_world_optypes.BuildSpaceLookupOp(i.b, i.le, "")
-		engineRes := resource_world.NewEngineResource(i.le, i.b, i.engine, lookupOp, nil)
-		i.engineResourceID, err = resources.AttachResource(ctx, "world-engine", engineRes.GetMux())
-		if err != nil {
-			i.release()
-			return err
-		}
-	}
-
-	i.rootRef = resources.AccessRootResource()
-	rootClient, err := i.rootRef.GetClient()
-	if err != nil {
-		i.release()
-		return err
-	}
-
-	handlerSvc := s4wave_objecttype_registry.NewSRPCObjectTypeHandlerServiceClient(rootClient)
-	resp, err := handlerSvc.InvokeObjectType(ctx, &s4wave_objecttype_registry.InvokeObjectTypeRequest{
-		TypeId:                   i.reg.GetTypeId(),
-		ObjectKey:                i.objectKey,
-		AttachedEngineResourceId: i.engineResourceID,
-	})
-	if err != nil {
-		i.release()
-		return err
-	}
-
-	i.childRef = resources.CreateResourceReference(resp.GetResourceId())
-	i.childClient, err = i.childRef.GetClient()
-	if err != nil {
-		i.release()
-		return err
-	}
-	return nil
+	return i.session.connect(ctx)
 }
 
 // Close releases the child, root, engine attachment, and client generation.
 func (i *attachedObjectTypeInvoker) Close() {
-	i.mtx.Lock()
-	defer i.mtx.Unlock()
-	i.releaseLocked()
+	i.session.close()
 }
 
-func (i *attachedObjectTypeInvoker) release() {
-	i.mtx.Lock()
-	defer i.mtx.Unlock()
-	i.releaseLocked()
-}
-
-func (i *attachedObjectTypeInvoker) releaseLocked() {
-	if i.childRef != nil {
-		i.childRef.Release()
-		i.childRef = nil
-	}
-	if i.rootRef != nil {
-		i.rootRef.Release()
-		i.rootRef = nil
-	}
-	if i.resources != nil {
-		if i.engineResourceID != 0 {
-			_ = i.resources.DetachResource(i.handler.ctx, i.engineResourceID)
-			i.engineResourceID = 0
-		}
-		i.resources.Release()
-		i.resources = nil
-	}
-	i.childClient = nil
-}
-
+// pluginObjectTypeInvoker connects to the source plugin and proxies method
+// invokes, reconnecting when the plugin runtime drops the session.
 type pluginObjectTypeInvoker struct {
-	le                *logrus.Entry
-	b                 bus.Bus
-	reg               *s4wave_objecttype_registry.ObjectTypeRegistration
-	objectKey         string
-	engine            world.Engine
-	resourceClientCtx context.Context
-
-	mtx              sync.Mutex
-	resources        *s4wave_plugin.PluginResources
-	engineResourceID uint32
-	rootRef          resource_client.ResourceRef
-	childRef         resource_client.ResourceRef
-	childClient      srpc.Client
+	session pluginResourceSession
 }
 
+// newPluginObjectTypeInvoker creates an invoker that connects to the plugin
+// named by reg and reconnects on released sessions.
+func newPluginObjectTypeInvoker(
+	resourceClientCtx context.Context,
+	reg *s4wave_objecttype_registry.ObjectTypeRegistration,
+	objectKey string,
+	engine world.Engine,
+	b bus.Bus,
+	le *logrus.Entry,
+) *pluginObjectTypeInvoker {
+	i := &pluginObjectTypeInvoker{}
+	i.session = pluginResourceSession{
+		le:        le,
+		b:         b,
+		reg:       reg,
+		objectKey: objectKey,
+		engine:    engine,
+		detachCtx: resourceClientCtx,
+		openResources: func(_ context.Context) (*resource_client.Client, func(), func() bool, error) {
+			resources, err := s4wave_plugin.ConnectPluginResources(resourceClientCtx, b, reg.GetPluginId())
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			alive := func() bool {
+				select {
+				case <-resources.Client.Done():
+					return false
+				default:
+					return true
+				}
+			}
+			return resources.Client, resources.Release, alive, nil
+		},
+	}
+	return i
+}
+
+// InvokeMethod invokes a method on the plugin child resource, retrying once
+// through a fresh session when the plugin dropped the old one.
 func (i *pluginObjectTypeInvoker) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bool, error) {
-	childClient, err := i.currentClient(strm.Context())
+	childClient, err := i.session.currentClient(strm.Context())
 	if err != nil {
 		return false, err
 	}
 	found, err := srpc.NewClientInvoker(childClient).InvokeMethod(serviceID, methodID, strm)
-	if err == nil || !i.shouldReconnect(strm.Context(), err) {
+	if err == nil || !shouldReconnectPluginInvoke(strm.Context(), err) {
 		return found, err
 	}
-	i.reset()
-	childClient, retryErr := i.currentClient(strm.Context())
+	i.session.reset()
+	childClient, retryErr := i.session.currentClient(strm.Context())
 	if retryErr != nil {
 		return false, retryErr
 	}
 	return srpc.NewClientInvoker(childClient).InvokeMethod(serviceID, methodID, strm)
 }
 
-func (i *pluginObjectTypeInvoker) currentClient(ctx context.Context) (srpc.Client, error) {
-	i.mtx.Lock()
-	defer i.mtx.Unlock()
-	if i.childClient != nil && i.resources != nil {
-		select {
-		case <-i.resources.Client.Done():
-		default:
-			return i.childClient, nil
-		}
-	}
-	i.releaseLocked()
-	if err := i.connectLocked(ctx); err != nil {
-		return nil, err
-	}
-	return i.childClient, nil
-}
-
 func (i *pluginObjectTypeInvoker) connect(ctx context.Context) error {
-	i.mtx.Lock()
-	defer i.mtx.Unlock()
-	return i.connectLocked(ctx)
-}
-
-func (i *pluginObjectTypeInvoker) connectLocked(ctx context.Context) error {
-	resources, err := s4wave_plugin.ConnectPluginResources(i.resourceClientCtx, i.b, i.reg.GetPluginId())
-	if err != nil {
-		return err
-	}
-
-	// Plugin ObjectTypes commit through an attached world engine. If the
-	// plugin runtime reconnects, the attachment belongs to the old resource
-	// client and must be recreated with the child ObjectType resource.
-	var engineResourceID uint32
-	if i.engine != nil {
-		lookupOp := space_world_optypes.BuildSpaceLookupOp(i.b, i.le, "")
-		engineRes := resource_world.NewEngineResource(i.le, i.b, i.engine, lookupOp, nil)
-		engineResourceID, err = resources.Client.AttachResource(ctx, "world-engine", engineRes.GetMux())
-		if err != nil {
-			resources.Release()
-			return err
-		}
-	}
-
-	rootRef := resources.Client.AccessRootResource()
-	rootClient, err := rootRef.GetClient()
-	if err != nil {
-		rootRef.Release()
-		if engineResourceID != 0 {
-			_ = resources.Client.DetachResource(i.resourceClientCtx, engineResourceID)
-		}
-		resources.Release()
-		return errors.Wrapf(
-			err,
-			"invoke objecttype plugin_id=%s capability=engine attached_root_id=%d path=InvokeObjectType type_id=%s object_key=%s",
-			i.reg.GetPluginId(),
-			engineResourceID,
-			i.reg.GetTypeId(),
-			i.objectKey,
-		)
-	}
-
-	handlerSvc := s4wave_objecttype_registry.NewSRPCObjectTypeHandlerServiceClient(rootClient)
-	resp, err := handlerSvc.InvokeObjectType(ctx, &s4wave_objecttype_registry.InvokeObjectTypeRequest{
-		TypeId:                   i.reg.GetTypeId(),
-		ObjectKey:                i.objectKey,
-		AttachedEngineResourceId: engineResourceID,
-	})
-	if err != nil {
-		rootRef.Release()
-		if engineResourceID != 0 {
-			_ = resources.Client.DetachResource(i.resourceClientCtx, engineResourceID)
-		}
-		resources.Release()
-		return err
-	}
-
-	childRef := resources.Client.CreateResourceReference(resp.GetResourceId())
-	childClient, err := childRef.GetClient()
-	if err != nil {
-		childRef.Release()
-		rootRef.Release()
-		if engineResourceID != 0 {
-			_ = resources.Client.DetachResource(i.resourceClientCtx, engineResourceID)
-		}
-		resources.Release()
-		return err
-	}
-
-	i.resources = resources
-	i.engineResourceID = engineResourceID
-	i.rootRef = rootRef
-	i.childRef = childRef
-	i.childClient = childClient
-	return nil
+	return i.session.connect(ctx)
 }
 
 // Close releases the currently connected plugin ObjectType resource.
 func (i *pluginObjectTypeInvoker) Close() {
-	i.mtx.Lock()
-	defer i.mtx.Unlock()
-	i.releaseLocked()
+	i.session.close()
 }
 
-func (i *pluginObjectTypeInvoker) reset() {
-	i.mtx.Lock()
-	defer i.mtx.Unlock()
-	i.releaseLocked()
-}
-
-func (i *pluginObjectTypeInvoker) releaseLocked() {
-	if i.childRef != nil {
-		i.childRef.Release()
-	}
-	if i.rootRef != nil {
-		i.rootRef.Release()
-	}
-	if i.resources != nil {
-		if i.engineResourceID != 0 {
-			_ = i.resources.Client.DetachResource(i.resourceClientCtx, i.engineResourceID)
-		}
-		i.resources.Release()
-	}
-	i.resources = nil
-	i.engineResourceID = 0
-	i.rootRef = nil
-	i.childRef = nil
-	i.childClient = nil
-}
-
-func (i *pluginObjectTypeInvoker) shouldReconnect(ctx context.Context, err error) bool {
+// shouldReconnectPluginInvoke reports whether the invoke failed because the
+// plugin dropped the resource session rather than the call itself.
+func shouldReconnectPluginInvoke(ctx context.Context, err error) bool {
 	msg := err.Error()
 	if strings.Contains(msg, "resource not found") ||
 		strings.Contains(msg, "invalid resource id") ||

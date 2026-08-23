@@ -167,9 +167,9 @@ func TestBridgeResolverReconnectsPluginChildAfterResourceClientClose(t *testing.
 	}
 
 	pluginLoader.SetClient(secondPluginClient)
-	bridgeInvoker.mtx.Lock()
-	firstResourceClient := bridgeInvoker.resources.Client
-	bridgeInvoker.mtx.Unlock()
+	bridgeInvoker.session.mtx.Lock()
+	firstResourceClient := bridgeInvoker.session.resources
+	bridgeInvoker.session.mtx.Unlock()
 	firstResourceClient.Release()
 
 	if err := client.ExecCall(ctx, "test.Child", "Ping", &testPingMessage{}, &testPingMessage{}); err != nil {
