@@ -113,6 +113,7 @@ func (a *WorldRuntimeAdmission) ObserveWorker(
 		}
 		capacity.MilliCPUTotal = milliCPUTotal
 		capacity.MemoryBytesTotal = memoryBytesTotal
+		capacity.WorkerObjectKey = workerObjectKey
 		capacity.Backends = append([]string(nil), backends...)
 		capacity.ObservedAt = timestamp.Now()
 		capacity.Generation++
@@ -183,6 +184,9 @@ func (a *WorldRuntimeAdmission) Reserve(
 		capacity, err := LookupWorkerCapacity(ctx, ws, workerObjectKey)
 		if err != nil {
 			return err
+		}
+		if capacity.Draining {
+			return errors.Wrapf(ErrWorkerDraining, "worker %s", workerObjectKey)
 		}
 		if !capacity.SupportsBackend(request.Backend) {
 			return errors.Wrapf(ErrBackendUnsupported, "backend %q", request.Backend)

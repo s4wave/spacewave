@@ -156,6 +156,18 @@ var (
 	ErrStaleGeneration = errors.New("stale reservation generation")
 	// ErrCapacityExhausted is returned when a worker cannot satisfy a request.
 	ErrCapacityExhausted = errors.New("worker capacity exhausted")
+	// ErrWorkerClaimHeld is returned when another live admission owner
+	// instance holds the single-writer claim on one Worker's capacity record.
+	ErrWorkerClaimHeld = errors.New("worker capacity claimed by another instance")
+	// ErrWorkerNotClaimed is returned when the calling instance holds no live
+	// claim on one Worker's capacity record.
+	ErrWorkerNotClaimed = errors.New("worker capacity not claimed by this instance")
+	// ErrWorkerDraining is returned when a Worker's capacity record is
+	// draining and cannot accept new reservations.
+	ErrWorkerDraining = errors.New("worker capacity is draining")
+	// ErrDrainIncomplete is returned when a drain cannot complete because
+	// live reservations still debit the Worker's capacity.
+	ErrDrainIncomplete = errors.New("drain incomplete: reservations remain")
 	// ErrBackendUnsupported is returned when a worker does not declare the backend.
 	ErrBackendUnsupported = errors.New("backend unsupported by worker")
 	// ErrReservationTerminal is returned when an idempotent retry hits a

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/aperturerobotics/fastjson"
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -46,6 +47,26 @@ type WorkerCapacity struct {
 	// Generation increments on every mutation of this record so observers can
 	// fence stale capacity views.
 	Generation uint64
+	// WorkerObjectKey is the Worker this record describes. The record key is a
+	// digest of it, so the plain key is stored for scans and receipts.
+	WorkerObjectKey string
+	// ClaimInstance is the admission owner instance holding the single-writer
+	// claim on this record, empty when unclaimed.
+	ClaimInstance string
+	// ClaimExpiresAt is when the claim lease lapses; set whenever
+	// ClaimInstance is set.
+	ClaimExpiresAt *timestamp.Timestamp
+	// Draining records that the owner began draining this Worker: new
+	// reservations are rejected until the drained record is completed.
+	Draining bool
+}
+
+// ClaimLive reports whether instanceID holds an unexpired claim.
+func (w *WorkerCapacity) ClaimLive(instanceID string, now time.Time) bool {
+	if w.ClaimInstance != instanceID || w.ClaimExpiresAt == nil {
+		return false
+	}
+	return w.ClaimExpiresAt.AsTime().After(now)
 }
 
 // SupportsBackend reports whether the Worker declares the backend.
@@ -62,6 +83,8 @@ func (w *WorkerCapacity) Validate() error {
 		return errors.New("reserved memory_bytes exceeds total")
 	case w.Generation == 0:
 		return errors.New("generation must be set")
+	case w.ClaimInstance != "" && w.ClaimExpiresAt == nil:
+		return errors.New("claim expires_at must be set")
 	}
 	if err := w.ObservedAt.Validate(false); err != nil {
 		return errors.Wrap(err, "observed_at")
@@ -103,6 +126,20 @@ func (w *WorkerCapacity) MarshalJSON() ([]byte, error) {
 	}
 	obj.Set("observedAt", tsValue)
 	obj.Set("generation", arena.NewNumberString(strconv.FormatUint(w.Generation, 10)))
+	if w.WorkerObjectKey != "" {
+		obj.Set("workerObjectKey", arena.NewString(w.WorkerObjectKey))
+	}
+	if w.ClaimInstance != "" {
+		obj.Set("claimInstance", arena.NewString(w.ClaimInstance))
+		claimTs, err := marshalTimestampField(&arena, w.ClaimExpiresAt)
+		if err != nil {
+			return nil, err
+		}
+		obj.Set("claimExpiresAt", claimTs)
+	}
+	if w.Draining {
+		obj.Set("draining", arena.NewTrue())
+	}
 	return obj.MarshalTo(nil), nil
 }
 
@@ -133,6 +170,15 @@ func (w *WorkerCapacity) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	w.Generation = value.GetUint64("generation")
+	w.WorkerObjectKey = string(value.GetStringBytes("workerObjectKey"))
+	w.ClaimInstance = string(value.GetStringBytes("claimInstance"))
+	if value.Get("claimExpiresAt") != nil {
+		w.ClaimExpiresAt, err = unmarshalTimestampField(value, "claimExpiresAt")
+		if err != nil {
+			return err
+		}
+	}
+	w.Draining = value.GetBool("draining")
 	return nil
 }
 
