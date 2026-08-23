@@ -377,7 +377,13 @@ func (b *BatchFSWriter) mergePendingDir(
 			childPath = append(childPath, pd.parentPath...)
 			childPath = append(childPath, e.name)
 			if existing != nil && existing.GetNodeType() == unixfs_block.NodeType_NodeType_FILE {
-				return b.syncExistingFile(ctx, root, childPath, e.blobRef, e.ts)
+				// syncExistingFile rewrites content while preserving the
+				// inode. A successful overwrite must not end the merge:
+				// entries recorded after it in the same batch still apply.
+				if err := b.syncExistingFile(ctx, root, childPath, e.blobRef, e.ts); err != nil {
+					return err
+				}
+				continue
 			}
 			if existing != nil {
 				// Pass nil ts so Remove does not bump the parent
