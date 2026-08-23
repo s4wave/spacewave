@@ -11,7 +11,7 @@ const dir = '/tmp/sync-kv-durable-demo'
   await KvPut('durable/a', 'one')
   await KvPut('durable/b', 'two')
   console.log('cycle 1: wrote durable/a=one, durable/b=two')
-  KvClose()
+  await KvClose()
 }
 
 {
@@ -21,7 +21,7 @@ const dir = '/tmp/sync-kv-durable-demo'
   const [b] = await KvGet('durable/b')
   console.log(`cycle 2 readback: durable/a=${JSON.stringify(a)} durable/b=${JSON.stringify(b)}`)
   if (a !== 'one' || b !== 'two') throw new Error('durable readback mismatch')
-  KvClose()
+  await KvClose()
 }
 console.log('durable demo OK')
 process.exit(0)

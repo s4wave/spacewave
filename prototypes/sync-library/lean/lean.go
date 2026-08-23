@@ -41,9 +41,14 @@ type World struct {
 	rels   []func()
 }
 
-// Close releases every resource the world holds. The world state must not
-// be used after Close returns.
+// Close fences pending block writes durable, then releases every resource
+// the world holds. The world state must not be used after Close returns.
 func (w *World) Close() {
+	if w.WS != nil {
+		syncCtx, cancel := context.WithTimeout(context.Background(), 10000000000)
+		defer cancel()
+		_, _ = w.WS.Sync(syncCtx)
+	}
 	for _, rel := range w.rels {
 		rel()
 	}
