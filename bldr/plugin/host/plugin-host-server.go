@@ -92,16 +92,17 @@ func (s *PluginHostServer) LoadPlugin(
 	if err != nil {
 		return err
 	}
-	if instanceKey == req.GetInstanceKey() {
-		s.le.Debugf("plugin %q is loading plugin %q via rpc request", s.pluginID, pluginID)
-		return HandleLoadPluginRpc(s.b, req, strm)
+	if instanceKey != req.GetInstanceKey() {
+		req = req.CloneVT()
+		req.InstanceKey = instanceKey
 	}
-	req = req.CloneVT()
-	req.InstanceKey = instanceKey
 	s.le.Debugf("plugin %q is loading plugin %q via rpc request", s.pluginID, pluginID)
 	return HandleLoadPluginRpc(s.b, req, strm)
 }
 
+// resolveInstanceKey resolves the effective instance key for a request,
+// rejecting requests from a plugin instance that address a foreign
+// instance.
 func (s *PluginHostServer) resolveInstanceKey(instanceKey string) (string, error) {
 	if instanceKey == "" {
 		return s.instanceKey, nil
@@ -188,7 +189,6 @@ func (s *PluginHostServer) PluginFsRpc(rpcStream bldr_plugin.SRPCPluginHost_Plug
 			}
 
 			// wrap with verbose
-			// mux = srpc.NewVMux(mux, s.le.WithField("vmux", "plugin-fs-rpc"), true)
 
 			// return release func
 			return mux, pluginRef.Release, nil
