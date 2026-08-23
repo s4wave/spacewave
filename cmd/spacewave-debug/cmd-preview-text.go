@@ -5,7 +5,6 @@ package main
 import (
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/fastjson"
@@ -100,9 +99,8 @@ func buildPreviewTextCommand() *cli.Command {
 			}
 			if len(lines) >= 2 {
 				last := lines[len(lines)-1]
-				chars := len(strings.TrimSpace(last))
-				words := len(strings.Fields(last))
-				if chars < 15 || words <= 1 {
+				orphan, words, chars := isOrphanLastLine(last)
+				if orphan {
 					w.WriteString("ORPHAN: L" + strconv.Itoa(len(lines)) +
 						" is " + strconv.Itoa(words) + " word" + plural(words) +
 						" (" + strconv.Itoa(chars) + " chars)\n")

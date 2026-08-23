@@ -241,7 +241,7 @@ func Run(ctx context.Context, args *Args) error {
 	}
 	if !args.SkipBuild && needsBuilderImage(runtime.GOOS, platforms) {
 		if err := runPhase(le, "ensure-builder-image", func() error {
-			return runScript(repoDir, filepath.Join("scripts", "release", "ensure-builder-image.sh"))
+			return runScript(ctx, repoDir, filepath.Join("scripts", "release", "ensure-builder-image.sh"))
 		}); err != nil {
 			return errors.Wrap(err, "ensure builder image")
 		}
@@ -255,7 +255,7 @@ func Run(ctx context.Context, args *Args) error {
 	}
 	if !args.SkipBuild {
 		if err := runPhase(le, "build-helpers", func() error {
-			return buildHelpers(repoDir, platforms)
+			return buildHelpers(ctx, repoDir, platforms)
 		}); err != nil {
 			return err
 		}
@@ -296,7 +296,7 @@ func Run(ctx context.Context, args *Args) error {
 		return err
 	}
 	if err := runPhase(le, "package-installers", func() error {
-		return packageInstallers(repoDir, args.Version, platforms, args.SkipNotarize)
+		return packageInstallers(ctx, repoDir, args.Version, platforms, args.SkipNotarize)
 	}); err != nil {
 		return err
 	}
@@ -386,7 +386,7 @@ func splitPlatform(platform string) (string, string) {
 }
 
 func prepareSupportFiles(ctx context.Context, repoDir string, platforms []string) error {
-	if err := runScript(repoDir, filepath.Join("scripts", "release", "gen-desktop.sh")); err != nil {
+	if err := runScript(ctx, repoDir, filepath.Join("scripts", "release", "gen-desktop.sh")); err != nil {
 		return errors.Wrap(err, "gen-desktop")
 	}
 	iconPath := filepath.Join(repoDir, "web", "images", "spacewave-icon.png")
@@ -401,7 +401,7 @@ func prepareSupportFiles(ctx context.Context, repoDir string, platforms []string
 	if !needsDarwin {
 		return generateHostIcons(ctx, repoDir, iconPath)
 	}
-	if err := runScript(repoDir, filepath.Join("scripts", "release", "gen-icons.sh"), iconPath); err != nil {
+	if err := runScript(ctx, repoDir, filepath.Join("scripts", "release", "gen-icons.sh"), iconPath); err != nil {
 		return errors.Wrap(err, "gen-icons")
 	}
 	return nil
@@ -410,10 +410,10 @@ func prepareSupportFiles(ctx context.Context, repoDir string, platforms []string
 // buildHelpers runs one helper build per requested platform. Darwin arches
 // build independently: build-helper.sh builds exactly the requested
 // architecture, so a universal macOS release lists both darwin platforms.
-func buildHelpers(repoDir string, platforms []string) error {
+func buildHelpers(ctx context.Context, repoDir string, platforms []string) error {
 	for _, platform := range platforms {
 		goos, goarch := splitPlatform(platform)
-		if err := runScript(repoDir, filepath.Join("scripts", "release", "build-helper.sh"), goos, goarch); err != nil {
+		if err := runScript(ctx, repoDir, filepath.Join("scripts", "release", "build-helper.sh"), goos, goarch); err != nil {
 			return errors.Wrap(err, "build helper "+platform)
 		}
 	}
@@ -933,7 +933,7 @@ func notarizeMacOSCliArchives(ctx context.Context, repoDir string, platforms []s
 	return nil
 }
 
-func packageInstallers(repoDir, version string, platforms []string, skipNotarize bool) error {
+func packageInstallers(ctx context.Context, repoDir, version string, platforms []string, skipNotarize bool) error {
 	for _, platform := range platforms {
 		goos, goarch := splitPlatform(platform)
 		switch goos {
@@ -942,18 +942,18 @@ func packageInstallers(repoDir, version string, platforms []string, skipNotarize
 			if skipNotarize {
 				args = append(args, "--skip-notarize")
 			}
-			if err := runScript(repoDir, args[0], args[1:]...); err != nil {
+			if err := runScript(ctx, repoDir, args[0], args[1:]...); err != nil {
 				return errors.Wrap(err, "build-macos "+platform)
 			}
 		case "windows":
-			if err := runScript(repoDir, filepath.Join("scripts", "release", "build-msix.sh"), goarch, version); err != nil {
+			if err := runScript(ctx, repoDir, filepath.Join("scripts", "release", "build-msix.sh"), goarch, version); err != nil {
 				return errors.Wrap(err, "build-msix "+platform)
 			}
-			if err := runScript(repoDir, filepath.Join("scripts", "release", "build-winzip.sh"), goarch, version); err != nil {
+			if err := runScript(ctx, repoDir, filepath.Join("scripts", "release", "build-winzip.sh"), goarch, version); err != nil {
 				return errors.Wrap(err, "build-winzip "+platform)
 			}
 		case "linux":
-			if err := runScript(repoDir, filepath.Join("scripts", "release", "build-appimage.sh"), goarch); err != nil {
+			if err := runScript(ctx, repoDir, filepath.Join("scripts", "release", "build-appimage.sh"), goarch); err != nil {
 				return errors.Wrap(err, "build-appimage "+platform)
 			}
 		default:
@@ -1200,11 +1200,11 @@ func stageBuildInputsTree(repoDir, outDir string, platforms []string) error {
 	return nil
 }
 
-func runScript(repoDir, script string, args ...string) error {
+func runScript(ctx context.Context, repoDir, script string, args ...string) error {
 	cmdArgs := append([]string{script}, args...)
 	logCommandStart("script", append([]string{"bash"}, cmdArgs...))
 	start := time.Now()
-	cmd := exec.Command("bash", cmdArgs...)
+	cmd := exec.CommandContext(ctx, "bash", cmdArgs...)
 	cmd.Dir = repoDir
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout

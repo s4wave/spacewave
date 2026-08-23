@@ -52,9 +52,7 @@ func buildOrphansCommand() *cli.Command {
 					continue
 				}
 				last := r.lines[len(r.lines)-1]
-				chars := len(strings.TrimSpace(last))
-				words := len(strings.Fields(last))
-				orphan := chars < 15 || words <= 1
+				orphan, words, chars := isOrphanLastLine(last)
 				lineNum := strconv.Itoa(len(r.lines))
 				charStr := strconv.Itoa(chars)
 				wordStr := strconv.Itoa(words)
@@ -81,4 +79,12 @@ func plural(n int) string {
 		return ""
 	}
 	return "s"
+}
+
+// isOrphanLastLine reports whether the last output line looks like an
+// orphaned fragment, with its trimmed char and word counts.
+func isOrphanLastLine(last string) (orphan bool, words, chars int) {
+	chars = len(strings.TrimSpace(last))
+	words = len(strings.Fields(last))
+	return chars < 15 || words <= 1, words, chars
 }

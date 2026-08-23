@@ -61,7 +61,7 @@ func (a *Domain) Execute(ctx context.Context) error {
 
 // GetDomainInfo returns the domain info object.
 func (a *Domain) GetDomainInfo() *identity_domain.DomainInfo {
-	return a.conf.GetDomainInfo().Clone()
+	return a.conf.GetDomainInfo().CloneVT()
 }
 
 // LookupPeer looks up the peer id for requests.

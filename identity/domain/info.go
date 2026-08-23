@@ -39,18 +39,6 @@ func (d *DomainInfo) Validate() error {
 	return nil
 }
 
-// Clone clones the domain info.
-func (d *DomainInfo) Clone() *DomainInfo {
-	if d == nil {
-		return nil
-	}
-	return &DomainInfo{
-		DomainId:    d.GetDomainId(),
-		Name:        d.GetName(),
-		Description: d.GetDescription(),
-	}
-}
-
 // MarshalBlock marshals the block to binary.
 // This is the initial step of marshaling, before transformations.
 func (d *DomainInfo) MarshalBlock() ([]byte, error) {
