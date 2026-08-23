@@ -18,6 +18,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	emptypb "github.com/aperturerobotics/protobuf-go-lite/types/known/emptypb"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -58,7 +59,7 @@ type Handler struct {
 	claimed          bool
 	shutdownGranted  func(context.Context)
 	shutdownComplete chan struct{}
-	completeOnce     sync.Once
+	completed        atomic.Bool
 }
 
 // NewHandler constructs a daemon control handler. policy decides
@@ -145,9 +146,11 @@ func (h *Handler) InvokeMethod(serviceID, methodID string, strm srpc.Stream) (bo
 	// requester verifies that no listener remains and reclaims the stale
 	// path.
 	h.shutdown()
-	defer h.completeOnce.Do(func() {
-		close(h.shutdownComplete)
-	})
+	defer func() {
+		if h.completed.CompareAndSwap(false, true) {
+			close(h.shutdownComplete)
+		}
+	}()
 	if err := strm.MsgSend(&emptypb.Empty{}); err != nil {
 		return true, err
 	}

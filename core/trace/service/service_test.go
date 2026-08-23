@@ -354,17 +354,17 @@ func TestTraceServiceCaptureCPUProfile(t *testing.T) {
 
 func TestTraceServiceRejectsBusyCPUProfile(t *testing.T) {
 	service := NewService()
-	service.mu.Lock()
+	service.mtx.Lock()
 	service.profileBusy = true
-	service.mu.Unlock()
+	service.mtx.Unlock()
 
 	err := service.CaptureCPUProfile(&s4wave_trace.CaptureCPUProfileRequest{DurationMillis: 1}, &testCPUProfileStream{})
 	if err == nil || !strings.Contains(err.Error(), "already active") {
 		t.Fatalf("expected busy CPU profile error, got %v", err)
 	}
 
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mtx.Lock()
+	defer service.mtx.Unlock()
 	if !service.profileBusy {
 		t.Fatal("busy rejection cleared the active profile owner")
 	}
@@ -381,9 +381,9 @@ func TestTraceServiceCPUProfileCancelClearsBusy(t *testing.T) {
 		t.Fatalf("expected context canceled, got %v", err)
 	}
 
-	service.mu.Lock()
+	service.mtx.Lock()
 	busy := service.profileBusy
-	service.mu.Unlock()
+	service.mtx.Unlock()
 	if busy {
 		t.Fatal("canceled CPU profile left profileBusy set")
 	}

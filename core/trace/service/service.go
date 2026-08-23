@@ -18,7 +18,7 @@ const maxChunkSize = 4096
 
 // Service provides process-local runtime diagnostic capture.
 type Service struct {
-	mu          sync.Mutex
+	mtx         sync.Mutex
 	buf         bytes.Buffer
 	active      bool
 	profileBusy bool
@@ -32,8 +32,8 @@ func NewService() *Service {
 // StartTrace starts runtime trace capture in the current process.
 // If a trace is already active it is stopped and discarded first.
 func (s *Service) StartTrace(_ context.Context, _ *s4wave_trace.StartTraceRequest) (*s4wave_trace.StartTraceResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
 	if s.active {
 		runtime_trace.Stop()
@@ -51,9 +51,9 @@ func (s *Service) StartTrace(_ context.Context, _ *s4wave_trace.StartTraceReques
 
 // StopTrace stops runtime trace capture and streams the captured bytes.
 func (s *Service) StopTrace(_ *s4wave_trace.StopTraceRequest, strm s4wave_trace.SRPCTraceService_StopTraceStream) error {
-	s.mu.Lock()
+	s.mtx.Lock()
 	if !s.active {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return errors.New("trace not active")
 	}
 
@@ -61,7 +61,7 @@ func (s *Service) StopTrace(_ *s4wave_trace.StopTraceRequest, strm s4wave_trace.
 	data := bytes.Clone(s.buf.Bytes())
 	s.buf.Reset()
 	s.active = false
-	s.mu.Unlock()
+	s.mtx.Unlock()
 
 	for len(data) > 0 {
 		chunk := data
@@ -87,17 +87,17 @@ func (s *Service) CaptureCPUProfile(
 	}
 
 	var buf bytes.Buffer
-	s.mu.Lock()
+	s.mtx.Lock()
 	if s.profileBusy {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return errors.New("cpu profile already active")
 	}
 	if err := pprof.StartCPUProfile(&buf); err != nil {
-		s.mu.Unlock()
+		s.mtx.Unlock()
 		return err
 	}
 	s.profileBusy = true
-	s.mu.Unlock()
+	s.mtx.Unlock()
 
 	timer := time.NewTimer(duration)
 	var waitErr error
@@ -113,11 +113,11 @@ func (s *Service) CaptureCPUProfile(
 		}
 	}
 
-	s.mu.Lock()
+	s.mtx.Lock()
 	pprof.StopCPUProfile()
 	data := bytes.Clone(buf.Bytes())
 	s.profileBusy = false
-	s.mu.Unlock()
+	s.mtx.Unlock()
 
 	if waitErr != nil {
 		return waitErr

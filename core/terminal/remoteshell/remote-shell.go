@@ -9,7 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -384,9 +384,10 @@ func defaultRemoteShell() string {
 }
 
 type ptyRemoteShellProcess struct {
-	cmd  *exec.Cmd
-	ptmx *os.File
-	once sync.Once
+	cmd      *exec.Cmd
+	ptmx     *os.File
+	closed   atomic.Bool
+	closeErr error
 }
 
 func (p *ptyRemoteShellProcess) Read(buf []byte) (int, error) {
@@ -402,14 +403,14 @@ func (p *ptyRemoteShellProcess) Resize(cols, rows uint32) error {
 }
 
 func (p *ptyRemoteShellProcess) Close() error {
-	var err error
-	p.once.Do(func() {
-		err = p.ptmx.Close()
-		if p.cmd.Process != nil {
-			_ = p.cmd.Process.Kill()
-		}
-	})
-	return err
+	if !p.closed.CompareAndSwap(false, true) {
+		return p.closeErr
+	}
+	p.closeErr = p.ptmx.Close()
+	if p.cmd.Process != nil {
+		_ = p.cmd.Process.Kill()
+	}
+	return p.closeErr
 }
 
 func (p *ptyRemoteShellProcess) Wait() (int, error) {
