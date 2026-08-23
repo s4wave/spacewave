@@ -16,20 +16,15 @@ const (
 	virtioHost9PMountTagFeature = 1
 )
 
+// virtioHost9PDevice exposes a Host9PFS to the guest over a virtio-mmio
+// style PCI device.
 type virtioHost9PDevice struct {
+	virtioCommonConfig
+
 	host *HostRuntime
 	fs   *Host9PFS
 
-	deviceFeatureSelect uint32
-	driverFeatureSelect uint32
-	deviceFeatures      [4]uint32
-	driverFeatures      [4]uint32
-	featuresOK          bool
-	status              uint32
-	configGeneration    uint32
-	queueSelect         uint32
-	queue               *virtioQueue
-	isrStatus           uint32
+	queue *virtioQueue
 }
 
 func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
@@ -37,9 +32,9 @@ func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
 		return
 	}
 	dev := &virtioHost9PDevice{
-		host:       h,
-		fs:         fs,
-		featuresOK: true,
+		virtioCommonConfig: virtioCommonConfig{featuresOK: true},
+		host:               h,
+		fs:                 fs,
 	}
 	dev.deviceFeatures[0] = virtioHost9PMountTagFeature | virtqDescIndirectFeature | virtqEventIdxFeature
 	dev.deviceFeatures[1] = 1 // VIRTIO_F_VERSION_1.
@@ -60,73 +55,11 @@ func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
 }
 
 func (d *virtioHost9PDevice) registerCommonPorts() {
-	fields := []struct {
-		offset uint16
-		width  int
-		read   func() uint32
-		write  func(context.Context, uint32)
-	}{
-		{0, 32, func() uint32 { return d.deviceFeatureSelect }, func(_ context.Context, value uint32) { d.deviceFeatureSelect = value }},
-		{4, 32, func() uint32 { return d.deviceFeatures[d.deviceFeatureSelect&3] }, func(context.Context, uint32) {}},
-		{8, 32, func() uint32 { return d.driverFeatureSelect }, func(_ context.Context, value uint32) { d.driverFeatureSelect = value }},
-		{12, 32, func() uint32 { return d.driverFeatures[d.driverFeatureSelect&3] }, func(_ context.Context, value uint32) {
-			idx := d.driverFeatureSelect & 3
-			supported := d.deviceFeatures[idx]
-			d.driverFeatures[idx] = value & supported
-			d.featuresOK = d.featuresOK && value&^supported == 0
-		}},
-		{16, 16, func() uint32 { return 0xffff }, func(context.Context, uint32) {}},
-		{18, 16, func() uint32 { return 1 }, func(context.Context, uint32) {}},
-		{20, 8, func() uint32 { return d.status }, func(ctx context.Context, value uint32) { d.writeStatus(ctx, value) }},
-		{21, 8, func() uint32 { return d.configGeneration }, func(context.Context, uint32) {}},
-		{22, 16, func() uint32 { return d.queueSelect }, func(_ context.Context, value uint32) { d.queueSelect = value }},
-		{24, 16, func() uint32 { return d.selectedQueue().size }, func(_ context.Context, value uint32) { d.selectedQueue().setSize(value) }},
-		{26, 16, func() uint32 { return 0xffff }, func(context.Context, uint32) {}},
-		{28, 16, func() uint32 {
-			if d.selectedQueue().enabled {
-				return 1
-			}
-			return 0
-		}, func(_ context.Context, value uint32) {
-			if value == 1 && d.selectedQueue().canEnable() {
-				d.selectedQueue().enabled = true
-			}
-		}},
-		{30, 16, func() uint32 { return d.selectedQueue().notifyOffset }, func(context.Context, uint32) {}},
-		{32, 32, func() uint32 { return d.selectedQueue().descAddr }, func(_ context.Context, value uint32) { d.selectedQueue().descAddr = value }},
-		{36, 32, func() uint32 { return 0 }, func(context.Context, uint32) {}},
-		{40, 32, func() uint32 { return d.selectedQueue().availAddr }, func(_ context.Context, value uint32) { d.selectedQueue().availAddr = value }},
-		{44, 32, func() uint32 { return 0 }, func(context.Context, uint32) {}},
-		{48, 32, func() uint32 { return d.selectedQueue().usedAddr }, func(_ context.Context, value uint32) { d.selectedQueue().usedAddr = value }},
-		{52, 32, func() uint32 { return 0 }, func(context.Context, uint32) {}},
-	}
-	for _, field := range fields {
-		port := virtioHost9PCommonPort + field.offset
-		switch field.width {
-		case 8:
-			d.host.RegisterIORead(port, 8, func(context.Context, uint16) uint32 { return field.read() & 0xff })
-			d.host.RegisterIOWrite(port, 8, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value&0xff) })
-		case 16:
-			d.host.RegisterIORead(port, 16, func(context.Context, uint16) uint32 { return field.read() & 0xffff })
-			d.host.RegisterIORead(port, 8, func(_ context.Context, p uint16) uint32 {
-				return (field.read() >> ((p - port) * 8)) & 0xff
-			})
-			d.host.RegisterIORead(port+1, 8, func(_ context.Context, p uint16) uint32 {
-				return (field.read() >> ((p - port) * 8)) & 0xff
-			})
-			d.host.RegisterIOWrite(port, 16, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value&0xffff) })
-		case 32:
-			d.host.RegisterIORead(port, 32, func(context.Context, uint16) uint32 { return field.read() })
-			for i := range uint16(4) {
-				offset := i
-				d.host.RegisterIORead(port+offset, 8, func(context.Context, uint16) uint32 {
-					return (field.read() >> (offset * 8)) & 0xff
-				})
-			}
-			d.host.RegisterIOWrite(port, 32, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value) })
-		}
-	}
+	registerVirtioCommonPorts(virtioHost9PCommonPort, d)
 }
+
+// numQueues reports the NUM_QUEUES common configuration value.
+func (d *virtioHost9PDevice) numQueues() uint32 { return 1 }
 
 func (d *virtioHost9PDevice) registerNotifyPorts() {
 	d.host.RegisterIORead(virtioHost9PNotifyPort, 16, func(context.Context, uint16) uint32 { return 0xffff })
@@ -136,12 +69,7 @@ func (d *virtioHost9PDevice) registerNotifyPorts() {
 }
 
 func (d *virtioHost9PDevice) registerISRPort() {
-	d.host.RegisterIORead(virtioHost9PISRPort, 8, func(ctx context.Context, _ uint16) uint32 {
-		value := d.isrStatus
-		d.lowerIRQ(ctx)
-		return value
-	})
-	d.host.RegisterIOWrite(virtioHost9PISRPort, 8, func(context.Context, uint16, uint32) {})
+	registerVirtioISRPort(virtioHost9PISRPort, d)
 }
 
 func (d *virtioHost9PDevice) registerConfigPorts() {
@@ -169,30 +97,15 @@ func (d *virtioHost9PDevice) selectedQueue() *virtioQueue {
 	return d.queue
 }
 
-func (d *virtioHost9PDevice) writeStatus(ctx context.Context, value uint32) {
-	if value == 0 {
-		d.reset(ctx)
-		return
-	}
-	if !d.featuresOK {
-		value &^= 8
-	}
-	d.status = value
-	if value&virtioStatusFailed != 0 {
-		d.raiseIRQ(ctx, virtioISRQueue)
-	}
-	if value&virtioStatusDriverOK != 0 {
+func (d *virtioHost9PDevice) applyStatus(ctx context.Context, value uint32) {
+	applied := d.handleStatusWrite(ctx, d, value)
+	if applied&virtioStatusDriverOK != 0 {
 		d.handleQueue(ctx)
 	}
 }
 
 func (d *virtioHost9PDevice) reset(ctx context.Context) {
-	d.driverFeatureSelect = 0
-	d.deviceFeatureSelect = 0
-	d.driverFeatures = d.deviceFeatures
-	d.featuresOK = true
-	d.status = 0
-	d.queueSelect = 0
+	d.resetState()
 	d.queue.reset()
 	d.lowerIRQ(ctx)
 }
@@ -244,14 +157,6 @@ func (d *virtioHost9PDevice) virtioHost() *HostRuntime {
 
 func (d *virtioHost9PDevice) virtioRaiseIRQ(ctx context.Context, typ uint32) {
 	d.raiseIRQ(ctx, typ)
-}
-
-func (d *virtioHost9PDevice) virtioFeatureNegotiated(bit uint32) bool {
-	idx := bit >> 5
-	if idx >= uint32(len(d.driverFeatures)) {
-		return false
-	}
-	return d.driverFeatures[idx]&(1<<(bit&31)) != 0
 }
 
 func newVirtioHost9PPCISpace() []byte {

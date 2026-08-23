@@ -31,20 +31,15 @@ const (
 	virtqEventIdxFeature     = 1 << 29
 )
 
+// virtioV86FSDevice exposes the v86 filesystem server to the guest over a
+// virtio PCI device.
 type virtioV86FSDevice struct {
+	virtioCommonConfig
+
 	host    *HostRuntime
 	session *unixfs_v86fs.LocalSession
 
-	deviceFeatureSelect uint32
-	driverFeatureSelect uint32
-	deviceFeatures      [4]uint32
-	driverFeatures      [4]uint32
-	featuresOK          bool
-	status              uint32
-	configGeneration    uint32
-	queueSelect         uint32
-	queues              [3]*virtioQueue
-	isrStatus           uint32
+	queues [3]*virtioQueue
 
 	driverOK      atomic.Bool
 	lastStatus    atomic.Uint32
@@ -166,7 +161,7 @@ func (d *virtioV86FSDevice) stats() v86fsStats {
 type virtioQueueDevice interface {
 	virtioHost() *HostRuntime
 	virtioRaiseIRQ(context.Context, uint32)
-	virtioFeatureNegotiated(uint32) bool
+	featureNegotiated(uint32) bool
 }
 
 type virtioQueue struct {
@@ -204,9 +199,9 @@ func (h *HostRuntime) registerV86FS(ctx context.Context, server *unixfs_v86fs.Se
 		return
 	}
 	dev := &virtioV86FSDevice{
-		host:       h,
-		session:    unixfs_v86fs.NewLocalSession(ctx, server),
-		featuresOK: true,
+		virtioCommonConfig: virtioCommonConfig{featuresOK: true},
+		host:               h,
+		session:            unixfs_v86fs.NewLocalSession(ctx, server),
 	}
 	dev.deviceFeatures[1] = 1 // VIRTIO_F_VERSION_1.
 	for i := range dev.queues {
@@ -228,73 +223,11 @@ func (h *HostRuntime) registerV86FS(ctx context.Context, server *unixfs_v86fs.Se
 }
 
 func (d *virtioV86FSDevice) registerCommonPorts() {
-	fields := []struct {
-		offset uint16
-		width  int
-		read   func() uint32
-		write  func(context.Context, uint32)
-	}{
-		{0, 32, func() uint32 { return d.deviceFeatureSelect }, func(_ context.Context, value uint32) { d.deviceFeatureSelect = value }},
-		{4, 32, func() uint32 { return d.deviceFeatures[d.deviceFeatureSelect&3] }, func(context.Context, uint32) {}},
-		{8, 32, func() uint32 { return d.driverFeatureSelect }, func(_ context.Context, value uint32) { d.driverFeatureSelect = value }},
-		{12, 32, func() uint32 { return d.driverFeatures[d.driverFeatureSelect&3] }, func(_ context.Context, value uint32) {
-			idx := d.driverFeatureSelect & 3
-			supported := d.deviceFeatures[idx]
-			d.driverFeatures[idx] = value & supported
-			d.featuresOK = d.featuresOK && value&^supported == 0
-		}},
-		{16, 16, func() uint32 { return 0xffff }, func(context.Context, uint32) {}},
-		{18, 16, func() uint32 { return uint32(len(d.queues)) }, func(context.Context, uint32) {}},
-		{20, 8, func() uint32 { return d.status }, func(ctx context.Context, value uint32) { d.writeStatus(ctx, value) }},
-		{21, 8, func() uint32 { return d.configGeneration }, func(context.Context, uint32) {}},
-		{22, 16, func() uint32 { return d.queueSelect }, func(_ context.Context, value uint32) { d.queueSelect = value }},
-		{24, 16, func() uint32 { return d.selectedQueue().size }, func(_ context.Context, value uint32) { d.selectedQueue().setSize(value) }},
-		{26, 16, func() uint32 { return 0xffff }, func(context.Context, uint32) {}},
-		{28, 16, func() uint32 {
-			if d.selectedQueue().enabled {
-				return 1
-			}
-			return 0
-		}, func(_ context.Context, value uint32) {
-			if value == 1 && d.selectedQueue().canEnable() {
-				d.selectedQueue().enabled = true
-			}
-		}},
-		{30, 16, func() uint32 { return d.selectedQueue().notifyOffset }, func(context.Context, uint32) {}},
-		{32, 32, func() uint32 { return d.selectedQueue().descAddr }, func(_ context.Context, value uint32) { d.selectedQueue().descAddr = value }},
-		{36, 32, func() uint32 { return 0 }, func(context.Context, uint32) {}},
-		{40, 32, func() uint32 { return d.selectedQueue().availAddr }, func(_ context.Context, value uint32) { d.selectedQueue().availAddr = value }},
-		{44, 32, func() uint32 { return 0 }, func(context.Context, uint32) {}},
-		{48, 32, func() uint32 { return d.selectedQueue().usedAddr }, func(_ context.Context, value uint32) { d.selectedQueue().usedAddr = value }},
-		{52, 32, func() uint32 { return 0 }, func(context.Context, uint32) {}},
-	}
-	for _, field := range fields {
-		port := virtioV86FSCommonPort + field.offset
-		switch field.width {
-		case 8:
-			d.host.RegisterIORead(port, 8, func(context.Context, uint16) uint32 { return field.read() & 0xff })
-			d.host.RegisterIOWrite(port, 8, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value&0xff) })
-		case 16:
-			d.host.RegisterIORead(port, 16, func(context.Context, uint16) uint32 { return field.read() & 0xffff })
-			d.host.RegisterIORead(port, 8, func(_ context.Context, p uint16) uint32 {
-				return (field.read() >> ((p - port) * 8)) & 0xff
-			})
-			d.host.RegisterIORead(port+1, 8, func(_ context.Context, p uint16) uint32 {
-				return (field.read() >> ((p - port) * 8)) & 0xff
-			})
-			d.host.RegisterIOWrite(port, 16, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value&0xffff) })
-		case 32:
-			d.host.RegisterIORead(port, 32, func(context.Context, uint16) uint32 { return field.read() })
-			for i := range uint16(4) {
-				offset := i
-				d.host.RegisterIORead(port+offset, 8, func(context.Context, uint16) uint32 {
-					return (field.read() >> (offset * 8)) & 0xff
-				})
-			}
-			d.host.RegisterIOWrite(port, 32, func(ctx context.Context, _ uint16, value uint32) { field.write(ctx, value) })
-		}
-	}
+	registerVirtioCommonPorts(virtioV86FSCommonPort, d)
 }
+
+// numQueues reports the NUM_QUEUES common configuration value.
+func (d *virtioV86FSDevice) numQueues() uint32 { return uint32(len(d.queues)) }
 
 func (d *virtioV86FSDevice) registerNotifyPorts() {
 	for i := range d.queues {
@@ -313,12 +246,7 @@ func (d *virtioV86FSDevice) registerNotifyPorts() {
 }
 
 func (d *virtioV86FSDevice) registerISRPort() {
-	d.host.RegisterIORead(virtioV86FSISRPort, 8, func(ctx context.Context, _ uint16) uint32 {
-		value := d.isrStatus
-		d.lowerIRQ(ctx)
-		return value
-	})
-	d.host.RegisterIOWrite(virtioV86FSISRPort, 8, func(context.Context, uint16, uint32) {})
+	registerVirtioISRPort(virtioV86FSISRPort, d)
 }
 
 func (d *virtioV86FSDevice) selectedQueue() *virtioQueue {
@@ -328,32 +256,20 @@ func (d *virtioV86FSDevice) selectedQueue() *virtioQueue {
 	return d.queues[d.queueSelect]
 }
 
-func (d *virtioV86FSDevice) writeStatus(ctx context.Context, value uint32) {
-	if value == 0 {
-		d.reset(ctx)
+func (d *virtioV86FSDevice) applyStatus(ctx context.Context, value uint32) {
+	applied := d.handleStatusWrite(ctx, d, value)
+	if applied == 0 {
 		return
 	}
-	if !d.featuresOK {
-		value &^= 8
-	}
-	d.status = value
-	d.lastStatus.Store(value)
-	if value&virtioStatusFailed != 0 {
-		d.raiseIRQ(ctx, virtioISRQueue)
-	}
-	if value&virtioStatusDriverOK != 0 {
+	d.lastStatus.Store(applied)
+	if applied&virtioStatusDriverOK != 0 {
 		d.driverOK.Store(true)
 		d.flushNotifications(ctx)
 	}
 }
 
 func (d *virtioV86FSDevice) reset(ctx context.Context) {
-	d.driverFeatureSelect = 0
-	d.deviceFeatureSelect = 0
-	d.driverFeatures = d.deviceFeatures
-	d.featuresOK = true
-	d.status = 0
-	d.queueSelect = 0
+	d.resetState()
 	for _, queue := range d.queues {
 		queue.reset()
 	}
@@ -476,14 +392,6 @@ func (d *virtioV86FSDevice) virtioRaiseIRQ(ctx context.Context, typ uint32) {
 	d.raiseIRQ(ctx, typ)
 }
 
-func (d *virtioV86FSDevice) virtioFeatureNegotiated(bit uint32) bool {
-	idx := bit >> 5
-	if idx >= uint32(len(d.driverFeatures)) {
-		return false
-	}
-	return d.driverFeatures[idx]&(1<<(bit&31)) != 0
-}
-
 func (q *virtioQueue) reset() {
 	q.enabled = false
 	q.descAddr = 0
@@ -544,7 +452,7 @@ func (q *virtioQueue) flushReplies(ctx context.Context) {
 	}
 	q.device.virtioHost().guestWriteUint16(q.usedAddr+2, uint16(uint32(q.usedIdx())+q.stagedReplies))
 	q.stagedReplies = 0
-	if q.device.virtioFeatureNegotiated(29) || q.availFlags()&virtqAvailNoIRQ == 0 {
+	if q.device.featureNegotiated(29) || q.availFlags()&virtqAvailNoIRQ == 0 {
 		q.device.virtioRaiseIRQ(ctx, virtioISRQueue)
 	}
 }
