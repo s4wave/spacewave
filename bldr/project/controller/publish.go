@@ -4,7 +4,6 @@ package bldr_project_controller
 
 import (
 	"context"
-	"slices"
 	"strings"
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -53,13 +52,7 @@ func (c *Controller) PublishTargets(ctx context.Context, remote string, targets 
 		})
 		publishTarget := publishTargets[target]
 
-		// cleanup list of remotes
-		destRemoteIDs := slices.Clone(publishTarget.GetRemotes())
-		slices.Sort(destRemoteIDs)
-		destRemoteIDs = slices.Compact(destRemoteIDs)
-		if len(destRemoteIDs) != 0 && destRemoteIDs[0] == "" {
-			destRemoteIDs = destRemoteIDs[1:]
-		}
+		destRemoteIDs := bldr_project.DedupeStrings(publishTarget.GetRemotes())
 		if len(destRemoteIDs) == 0 {
 			le.Warn("skipping target with no remotes")
 			continue

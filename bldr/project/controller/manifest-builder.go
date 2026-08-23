@@ -143,6 +143,8 @@ func NewManifestBuilderResult(
 
 // newManifestBuilderTracker constructs a new build controller tracker.
 func (c *Controller) newManifestBuilderTracker(key string) (keyed.Routine, *manifestBuilderTracker) {
+	// note: the key is always produced by MarshalB58 of a validated config,
+	// so decoding cannot fail.
 	conf, _ := UnmarshalManifestBuilderConfigB58(key)
 	tr := &manifestBuilderTracker{
 		c:                c,
@@ -403,8 +405,6 @@ func (t *manifestBuilderTracker) execute(ctx context.Context) error {
 			// re-check (manifest was rebuilt)
 		}
 	}
-
-	// TODO: cleanup the working dir?
 }
 
 // applyBuilderConfigOverride applies a build-scoped builder config override to

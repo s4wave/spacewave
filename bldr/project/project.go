@@ -228,6 +228,12 @@ func (c *PublishConfig) DedupePlatformIDs() []string {
 	return dedupeNonEmptyStrings(c.GetPlatformIds())
 }
 
+// DedupeStrings clones, sorts, compacts, and drops a leading empty entry
+// from values.
+func DedupeStrings(values []string) []string {
+	return dedupeNonEmptyStrings(values)
+}
+
 // dedupeNonEmptyStrings clones, sorts, compacts, and drops a leading empty
 // entry from values.
 func dedupeNonEmptyStrings(values []string) []string {
