@@ -17,10 +17,13 @@ const versionProbeTimeoutMs = 2_000
 const managedCLIReleaseSidecarFilename = 'managed-cli-release.json'
 const managedCLIReleaseRoots = new WeakMap<ManagedCLIRelease, string>()
 
+// ManagedCLIReleaseResolver resolves the managed CLI release, or
+// undefined when none is installed.
 export type ManagedCLIReleaseResolver = () => Promise<
   ManagedCLIRelease | undefined
 >
 
+// buildDesktopCLIInstallProbe builds the Node-backed filesystem probe.
 export function buildDesktopCLIInstallProbe(): DesktopCLIInstallProbe {
   return {
     fileExists: async (targetPath) => {
@@ -38,6 +41,8 @@ export function buildDesktopCLIInstallProbe(): DesktopCLIInstallProbe {
   }
 }
 
+// isDesktopCLIInstallTargetWritable reports whether the target path's
+// directory is writable.
 export async function isDesktopCLIInstallTargetWritable(
   targetPath: string,
 ): Promise<boolean> {
@@ -58,6 +63,8 @@ async function isDesktopCLIInstallDirWritable(dir: string): Promise<boolean> {
   }
 }
 
+// buildDesktopCLIInstallDetector builds a detector bound to the given
+// release resolver and probe.
 export function buildDesktopCLIInstallDetector(
   resolveRelease: ManagedCLIReleaseResolver,
   probe: DesktopCLIInstallProbe,
@@ -75,6 +82,7 @@ export function buildDesktopCLIInstallDetector(
   }
 }
 
+// buildManagedCLIReleaseResolver builds a resolver over a static release.
 export function buildManagedCLIReleaseResolver(
   release: ManagedCLIRelease | undefined,
 ): ManagedCLIReleaseResolver {
@@ -84,6 +92,8 @@ export function buildManagedCLIReleaseResolver(
   return readManagedCLIReleaseSidecar
 }
 
+// managedCLIReleaseIdentity returns the entrypoint identity of a release,
+// or undefined when unavailable.
 export function managedCLIReleaseIdentity(
   release: ManagedCLIRelease | undefined,
 ): DesktopCLIEntrypointIdentity | undefined {
@@ -99,6 +109,8 @@ export function managedCLIReleaseIdentity(
   }
 }
 
+// readManagedCLIReleaseBinary returns the release binary reader, failing
+// when the binary does not match the expected identity.
 export function readManagedCLIReleaseBinary(
   resolveRelease: ManagedCLIReleaseResolver,
 ): (expected?: DesktopCLIEntrypointIdentity) => Promise<Uint8Array> {

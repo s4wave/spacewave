@@ -1,6 +1,6 @@
 import { MessageChannelMain, MessagePortMain } from 'electron'
 
-// convert MessagePort to a MessagePortMain.
+// messagePortToMessagePortMain converts a renderer MessagePort to a MessagePortMain.
 export function messagePortToMessagePortMain(
   port: MessagePort,
 ): MessagePortMain {
@@ -26,7 +26,7 @@ export function messagePortToMessagePortMain(
   return channel.port2
 }
 
-// convert MessagePortMain to a MessagePort.
+// messagePortMainToMessagePort converts a MessagePortMain to a renderer MessagePort.
 export function messagePortMainToMessagePort(
   portMain: MessagePortMain,
 ): MessagePort {

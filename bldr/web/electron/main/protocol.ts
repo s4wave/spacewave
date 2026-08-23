@@ -94,7 +94,7 @@ export async function appRequestHandler(
   } catch (err) {
     // TODO: We know that .map files are not being fetched properly.
     // https://issues.chromium.org/issues/40765087
-    // superceeds: https://issues.chromium.org/issues/41486524#comment4
+    // supersedes: https://issues.chromium.org/issues/41486524#comment4
     if (filePath.endsWith('.map')) {
       return withElectronAppResponseHeaders(
         new Response(

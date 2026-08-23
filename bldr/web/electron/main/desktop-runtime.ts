@@ -41,6 +41,7 @@ import {
   type DesktopCLIInstallResourceOpts,
 } from './desktop-cli-install-resource.js'
 
+// DesktopRuntimeResourceOpts configures the desktop runtime resource.
 interface DesktopRuntimeResourceOpts {
   openOrFocusMainWindow: (
     request: OpenOrFocusMainWindowRequest,
@@ -301,4 +302,5 @@ function cloneCLIInstallSummary(
   return { ...summary }
 }
 
+// DesktopRuntimeResourceOpts configures the desktop runtime resource.
 export type { DesktopRuntimeResourceOpts }

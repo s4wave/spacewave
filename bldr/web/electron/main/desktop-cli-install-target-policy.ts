@@ -5,6 +5,8 @@ import {
   type DesktopCLIInstallTarget,
 } from '../desktop-runtime/desktop-runtime.pb.js'
 
+// DesktopCLIInstallTargetPolicyOpts configures the target policy for one
+// platform and environment.
 export interface DesktopCLIInstallTargetPolicyOpts {
   homeDir: string
   platformId: string
@@ -12,6 +14,8 @@ export interface DesktopCLIInstallTargetPolicyOpts {
   canWrite: (targetPath: string) => Promise<boolean>
 }
 
+// buildDesktopCLIInstallTargets resolves the candidate targets with their
+// writability and blocked reasons.
 export async function buildDesktopCLIInstallTargets(
   opts: DesktopCLIInstallTargetPolicyOpts,
 ): Promise<DesktopCLIInstallTarget[]> {
@@ -37,6 +41,7 @@ export async function buildDesktopCLIInstallTargets(
   return targets
 }
 
+// targetCandidates returns the built-in target candidates for a platform.
 export function targetCandidates(
   homeDir: string,
   platformId: string,
@@ -86,6 +91,8 @@ export function targetCandidates(
   }
 }
 
+// blockedTargetReason returns why a target path is blocked by policy, or
+// an empty string when it is allowed.
 export function blockedTargetReason(
   targetPath: string,
   platformId: string,
@@ -103,6 +110,8 @@ export function blockedTargetReason(
   return ''
 }
 
+// targetPathState classifies a candidate path against the environment
+// PATH entries and the policy block list.
 export function targetPathState(
   targetPath: string,
   pathEntries: string[],

@@ -340,4 +340,5 @@ function cloneState(state: DesktopTrayState): DesktopTrayState {
   }
 }
 
+// DesktopTrayResourceHandler serves the tray resource over SRPC.
 export const DesktopTrayResourceHandler = DesktopTrayResourceServiceDefinition

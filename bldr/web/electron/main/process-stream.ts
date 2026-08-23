@@ -1,3 +1,4 @@
+// ProcessStream receives errors from a process output stream.
 export interface ProcessStream {
   on(event: 'error', handler: (err: unknown) => void): void
 }
@@ -9,6 +10,8 @@ interface ProcessLike {
 
 let installed = false
 
+// isClosedProcessStreamError reports whether the error is a write to a
+// closed or destroyed stream.
 export function isClosedProcessStreamError(err: unknown): boolean {
   return (
     typeof err === 'object' &&
@@ -18,6 +21,8 @@ export function isClosedProcessStreamError(err: unknown): boolean {
   )
 }
 
+// ignoreClosedProcessStreamErrors installs global handlers that swallow
+// closed-stream write errors from the given process.
 export function ignoreClosedProcessStreamErrors(proc: ProcessLike = process) {
   if (installed) {
     return

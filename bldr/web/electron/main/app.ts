@@ -29,10 +29,8 @@ import type {
   DesktopRuntimeState,
   OpenOrFocusMainWindowRequest,
 } from '../desktop-runtime/desktop-runtime.pb.js'
-import { APP_SCHEME, appRequestHandler } from './protocol.js'
 import { ServiceWorkerHostClient } from '../../runtime/sw/sw_srpc.pb.js'
 import { proxyFetch } from '../../fetch/fetch.js'
-import { messagePortMainToMessagePort } from './ipc.js'
 import {
   buildPipeName,
   connectToPipe,
@@ -42,6 +40,9 @@ import {
   ExternalLinks,
   type ElectronInit,
 } from '../../plugin/electron/electron.pb.js'
+
+import { APP_SCHEME, appRequestHandler } from './protocol.js'
+import { messagePortMainToMessagePort } from './ipc.js'
 import {
   buildDesktopCLIInstallDetector,
   buildDesktopCLIInstallProbe,
@@ -57,9 +58,12 @@ import {
 import { DesktopTrayController } from './desktop-tray.js'
 import { buildApplicationMenuTemplate } from './app-menu.js'
 
+// isMac reports whether the app runs on macOS.
 export const isMac = os.platform() === 'darwin'
 // BLDR_DEBUG is set if this is a debug build.
 declare const BLDR_DEBUG: boolean | undefined
+
+// isDebug reports whether this is a debug build.
 export const isDebug = BLDR_DEBUG ?? false
 const proxyFetchHeaderTimeoutMs = 30_000
 const logRendererEvents =
@@ -736,7 +740,7 @@ export class BldrElectronApp {
     }
   }
 
-  // runtimeCreateWebDocument is called by the WebRuntimeHost to create a new WebDocument.
+  // createWebDocument is called by the WebRuntimeHost to create a new WebDocument.
   private async createWebDocument(
     req: Message<CreateWebDocumentRequest>,
     hash?: string,
@@ -753,7 +757,7 @@ export class BldrElectronApp {
     return { created: true }
   }
 
-  // runtimeRemoveWebDocument is called to remove a browser window.
+  // removeWebDocument is called to remove a browser window.
   private async removeWebDocument(
     req: Message<RemoveWebDocumentRequest>,
   ): Promise<RemoveWebDocumentResponse> {

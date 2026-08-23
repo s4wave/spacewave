@@ -10,6 +10,8 @@ import {
 } from '../desktop-runtime/desktop-runtime.pb.js'
 import { buildDesktopCLIInstallTargets } from './desktop-cli-install-target-policy.js'
 
+// DesktopCLIInstallProbe is the filesystem probe surface used to inspect
+// candidate CLI install targets.
 export interface DesktopCLIInstallProbe {
   fileExists(path: string): Promise<boolean>
   targetWritable(path: string): Promise<boolean>
@@ -18,6 +20,8 @@ export interface DesktopCLIInstallProbe {
   ): Promise<DesktopCLIEntrypointIdentity | undefined>
 }
 
+// DesktopCLIInstallDetectionOpts configures a desktop CLI install state
+// detection pass.
 export interface DesktopCLIInstallDetectionOpts {
   homeDir: string
   pathEntries: string[]
@@ -27,10 +31,14 @@ export interface DesktopCLIInstallDetectionOpts {
   probe: DesktopCLIInstallProbe
 }
 
+// CLIInstallStateGenerationOpts carries the install-action gating flags
+// for one state generation.
 export interface CLIInstallStateGenerationOpts {
   installActionsEnabled?: boolean
 }
 
+// detectDesktopCLIInstallState probes the filesystem and resolves the
+// current CLI install state.
 export async function detectDesktopCLIInstallState(
   opts: DesktopCLIInstallDetectionOpts,
 ): Promise<DesktopCLIInstallState> {
@@ -98,6 +106,7 @@ export async function detectDesktopCLIInstallState(
   }
 }
 
+// buildCLIInstallState builds a CLI install state from the given fields.
 export function buildCLIInstallState(opts: {
   status: DesktopCLIInstallStatus
   label: string
@@ -128,6 +137,8 @@ export function buildCLIInstallState(opts: {
   }
 }
 
+// bindCLIInstallStateGeneration stamps the generation and install actions
+// onto a cloned state.
 export function bindCLIInstallStateGeneration(
   state: DesktopCLIInstallState,
   generation: bigint,
@@ -144,6 +155,7 @@ export function bindCLIInstallStateGeneration(
   return next
 }
 
+// cloneCLIInstallState deep-clones a CLI install state.
 export function cloneCLIInstallState(
   state: DesktopCLIInstallState,
 ): DesktopCLIInstallState {

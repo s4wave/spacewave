@@ -24,6 +24,7 @@ import {
   type DesktopCLIInstallFilesystem,
 } from './desktop-cli-install-executor.js'
 
+// DesktopCLIInstallResourceOpts configures the CLI install resource.
 interface DesktopCLIInstallResourceOpts {
   detectCLIInstallState?: (
     selectedTargetId?: string,

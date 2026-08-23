@@ -170,59 +170,17 @@ export class DesktopTrayController {
     if (!entry.enabled || !action) {
       return disabledItem(entry.label || '')
     }
-    switch (action.kind) {
-      case DesktopTrayActionKind.OPEN_ROUTE:
-        return {
-          label: entry.label,
-          click: () => {
-            void this.invokeTrayEntry(entry)
-          },
-        }
-      case DesktopTrayActionKind.NEW_WINDOW:
-        return {
-          label: entry.label,
-          click: () => {
-            void this.invokeTrayEntry(entry)
-          },
-        }
-      case DesktopTrayActionKind.COPY_TEXT:
-        if (!action.value) {
-          return disabledItem(entry.label || '')
-        }
-        return {
-          label: entry.label,
-          click: () => {
-            void this.invokeTrayEntry(entry)
-          },
-        }
-      case DesktopTrayActionKind.REVEAL_PATH:
-        if (!action.value) {
-          return disabledItem(entry.label || '')
-        }
-        return {
-          label: entry.label,
-          click: () => {
-            void this.invokeTrayEntry(entry)
-          },
-        }
-      case DesktopTrayActionKind.QUIT:
-        return {
-          label: entry.label,
-          click: () => {
-            void this.invokeTrayEntry(entry)
-          },
-        }
-      case DesktopTrayActionKind.ATTACHED_HANDLER:
-        return {
-          label: entry.label,
-          click: () => {
-            void this.invokeTrayEntry(entry)
-          },
-        }
-      default:
-        return disabledItem(entry.label || '')
+    if (!canInvokeDesktopTrayEntry(entry)) {
+      return disabledItem(entry.label || '')
+    }
+    return {
+      label: entry.label,
+      click: () => {
+        void this.invokeTrayEntry(entry)
+      },
     }
   }
+
 
   private async openOrFocusMainWindow(): Promise<void> {
     await this.opts.resource.OpenOrFocusMainWindow({})

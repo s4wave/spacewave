@@ -17,6 +17,8 @@ import type {
 import type { DesktopCLIInstallProbe } from './desktop-cli-install-detector.js'
 import { blockedTargetReason } from './desktop-cli-install-target-policy.js'
 
+// DesktopCLIInstallFilesystem is the filesystem surface the executor
+// operates on.
 export interface DesktopCLIInstallFilesystem {
   readFile(path: string): Promise<Uint8Array>
   writeFileExclusive(path: string, data: Uint8Array): Promise<void>
@@ -27,6 +29,7 @@ export interface DesktopCLIInstallFilesystem {
   pathKind(path: string): Promise<'missing' | 'file' | 'symlink' | 'other'>
 }
 
+// DesktopCLIInstallExecutorOpts configures one CLI install execution.
 export interface DesktopCLIInstallExecutorOpts {
   target: DesktopCLIInstallTarget
   installed?: DesktopCLIEntrypointIdentity
@@ -40,6 +43,7 @@ export interface DesktopCLIInstallExecutorOpts {
   now?: () => number
 }
 
+// executeDesktopCLIInstall validates and executes a managed CLI install.
 export async function executeDesktopCLIInstall(
   opts: DesktopCLIInstallExecutorOpts,
 ): Promise<void> {
@@ -92,7 +96,7 @@ function validateInstallRequest(opts: DesktopCLIInstallExecutorOpts): void {
   if (!(opts.target.writable ?? false)) {
     throw new Error('desktop CLI install target is not writable')
   }
-  if (!isUserLevelTarget(targetPath)) {
+  if (blockedTargetReason(targetPath, opts.available?.platformId ?? '')) {
     throw new Error('desktop CLI install target must be user-level')
   }
   if (opts.available?.entrypointRole !== 'cli') {
@@ -157,16 +161,6 @@ async function restoreBackup(
   if (!backupCreated) return
   await fs.remove(targetPath).catch(() => {})
   await fs.rename(backupPath, targetPath)
-}
-
-function isUserLevelTarget(targetPath: string): boolean {
-  const normalized = targetPath.replaceAll('\\', '/')
-  if (normalized.includes('/../')) return false
-  if (normalized.startsWith('/Applications/')) return false
-  if (normalized.startsWith('/usr/')) return false
-  if (normalized.startsWith('/opt/')) return false
-  if (normalized.startsWith('/var/')) return false
-  return true
 }
 
 async function assertRegularExistingTarget(

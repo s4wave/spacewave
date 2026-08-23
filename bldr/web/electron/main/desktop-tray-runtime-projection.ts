@@ -19,6 +19,8 @@ import {
   type DesktopRuntimeCLIInstallSummary,
 } from '../desktop-runtime/desktop-runtime.pb.js'
 
+// buildDesktopTrayCLIInstallEntries builds the tray entries for CLI
+// installs needing attention.
 export function buildDesktopTrayCLIInstallEntries(
   summary: DesktopRuntimeCLIInstallSummary | undefined,
 ): DesktopTrayEntry[] {
@@ -43,6 +45,8 @@ export function buildDesktopTrayCLIInstallEntries(
   ]
 }
 
+// buildDesktopTrayEntriesFromRuntimeState builds the tray entries for a
+// runtime state.
 export function buildDesktopTrayEntriesFromRuntimeState(
   state: DesktopRuntimeState,
 ): DesktopTrayEntry[] {
@@ -204,6 +208,8 @@ function buildNavigationItem(
   )
 }
 
+// desktopRuntimeCLISettingsRoute returns the settings route hosting the
+// CLI install controls, or an empty string.
 export function desktopRuntimeCLISettingsRoute(
   state: Pick<DesktopRuntimeState, 'sessions'> | undefined,
 ): string {
@@ -423,6 +429,7 @@ function cliInstallSeverity(
   }
 }
 
+// iconStateForRuntimeHealth maps runtime health to a tray icon state.
 export function iconStateForRuntimeHealth(
   health: DesktopRuntimeHealth | undefined,
 ): DesktopTrayIconState {
