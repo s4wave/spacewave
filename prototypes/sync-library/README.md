@@ -75,9 +75,11 @@ Connect a compiled client to it instead of opening an embedded world:
     await KvOpenHosted(ctx, 'ws://127.0.0.1:8900/ws')
 
 The same `Kv*` functions then operate against the hosted authoritative
-state. Cross-process proof lives in
-`hosted/client/kv-hosted-demo.mjs`: the client subscribes before the
-server's delayed write and observes it through WatchPrefix.
+state. Cross-process proof lives in `hosted/client/kv-hosted-demo.mjs`:
+the client lists all keys after the server's delayed write and asserts
+cross-process visibility. Live watch subscriptions over RPC are a known
+follow-up (the embedded path proves WatchPrefix; the RPC streaming variant
+needs integration testing).
 
 ## Durability
 

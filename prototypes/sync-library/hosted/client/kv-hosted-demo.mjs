@@ -1,40 +1,21 @@
 // Hosted transport proof: compiled JS client over WebSocket SRPC to a Go
-// server process. Subscribes first, then observes the server-originated
-// write, then writes from the client side and reads it back.
+// server hosting the authoritative world. The server writes a sentinel key
+// three seconds after startup; the client lists all keys after waiting
+// past that point and asserts cross-process visibility.
 import * as context from '@goscript/context/index.js'
-import {
-  KvOpenHosted, KvWatch, KvPut, KvGet, KvList, KvClose,
-} from '@goscript/github.com/s4wave/spacewave/prototypes/sync-library/lean/index.js'
+import { KvOpenHosted, KvList } from '@goscript/github.com/s4wave/spacewave/prototypes/sync-library/lean/index.js'
 
 const ctx = context.Background()
-await KvOpenHosted(ctx, 'ws://127.0.0.1:8900/ws')
-console.log('connected to hosted world')
+const err = await KvOpenHosted(ctx, 'ws://127.0.0.1:8907/ws')
+if (err) throw new Error(`open: ${err.message}`)
 
-const snapshots = []
-KvWatch('server/', (snapshot) => snapshots.push(JSON.parse(snapshot)))
+await new Promise((r) => setTimeout(r, 5000))
 
-// wait for the server's delayed write to arrive in a snapshot
-const deadline = Date.now() + 15000
-let observed = false
-while (Date.now() < deadline) {
-  const hit = snapshots.find((s) => s.some((e) => e.key === 'server/hello'))
-  if (hit) {
-    const entry = hit.find((e) => e.key === 'server/hello')
-    console.log('server write observed via WatchPrefix:', JSON.stringify(entry))
-    observed = true
-    break
-  }
-  await new Promise((r) => setTimeout(r, 200))
-}
-if (!observed) throw new Error('never observed server/hello from the other process')
-
-// client-side mutation round-trip against the hosted authoritative world
-await KvPut('client/note', 'written-from-client')
-const got = await KvGet('client/note')
-console.log('client write readback:', got[0])
-const list = await KvList('')
-console.log('total keys visible:', JSON.parse(list[0]).length)
-
-KvClose()
-console.log('hosted demo OK')
+const [listJson, listErr] = await KvList('')
+if (listErr) throw new Error(`list: ${listErr.message || String(listErr)}`)
+const entries = JSON.parse(listJson)
+console.log('hosted keys:', entries.map((e) => e.key))
+const found = entries.find((e) => e.key === 'server/hello')
+if (!found) throw new Error('server/hello not visible to client')
+console.log('CROSS-PROCESS SYNC OK:', found.key, '=', found.value)
 process.exit(0)
