@@ -19,12 +19,7 @@ export interface MountSpaceParams {
   phase?: <T>(name: string, cb: () => Promise<T>) => Promise<T>
 }
 
-/**
- * mountSpace mounts a Space resource from a CreateSpaceResponse.
- *
- * @param params - Parameters for mounting the space
- * @returns The mounted Space resource
- */
+// mountSpace mounts a Space resource from a CreateSpaceResponse.
 export async function mountSpace(params: MountSpaceParams): Promise<Space> {
   const { session, spaceResp, abortSignal, cleanup, phase } = params
   const runPhase: NonNullable<MountSpaceParams['phase']> =
