@@ -4,7 +4,7 @@ go 1.26.5
 
 tool github.com/s4wave/goscript/cmd/goscript
 
-require github.com/s4wave/goscript v0.2.27-0.20260822054934-545493ac2803 // master
+require github.com/s4wave/goscript v0.2.27-0.20260823085407-dff344f35d60 // master
 
 replace (
 	// aperture: use compatibility forks
@@ -30,7 +30,7 @@ require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/bbolt v0.0.0-20260803053248-633a6560e3d0 // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
-	github.com/aperturerobotics/cayley v0.15.1-0.20260705021747-c5ec5d20d2b6 // master
+	github.com/aperturerobotics/cayley v0.15.1-0.20260822045846-b727c66784cb // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
 	github.com/aperturerobotics/common v0.35.3-0.20260821174355-5178d1c5fe41 // master
 	github.com/aperturerobotics/controllerbus v0.53.5-0.20260812083451-7bd9dce82687 // master
@@ -51,7 +51,7 @@ require (
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
 	github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 // indirect
-	github.com/aperturerobotics/protobuf-go-lite v0.17.1-0.20260813224822-0110bb08b4f1 // master
+	github.com/aperturerobotics/protobuf-go-lite v0.17.1-0.20260822063947-4682a526c6ee // master
 	github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c // indirect
 	github.com/aperturerobotics/starpc v0.52.1-0.20260812064155-f8d627ef2571
 	github.com/aperturerobotics/util v1.34.10-0.20260802062101-496aab6cefd2 // master
