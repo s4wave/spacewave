@@ -8,6 +8,7 @@ import {
 import { isDesktop, WebDocument as BldrWebDocument } from '@aptre/bldr'
 import type { WebDocumentOptions } from '@aptre/bldr'
 
+import { initBootReportCollector } from '../boot/collector.js'
 import { initBrowserReleaseAutoReload } from '../bldr/browser-release-update.js'
 import { markStartupBoundary } from '../bldr/startup-marks.js'
 import { setAppPath } from './app-path.js'
@@ -93,6 +94,30 @@ if (!isDesktop) {
 }
 bindBrowserBootStatusToStartupMarks()
 markStartupBoundary('shell.entrypoint-loaded', { source: 'browser' })
+
+// Install the BootReport collector exactly once per document at bootstrap.
+// The entrypoint id maps the public route to the validator's entrypoint
+// vocabulary, and webview.revealed is the declared usable boundary. The
+// collector is observation only: it never reorders, retries, or gates
+// startup or pairing work.
+try {
+  const pathSegment = window.location.pathname
+    .split('/')
+    .filter(Boolean)
+    .at(0)
+  const entrypointContractIds = [
+    'canvas',
+    'computers',
+    'drive',
+    'forge',
+    'space',
+  ] as const
+  const entrypointId =
+    entrypointContractIds.find((id) => id === pathSegment) ?? 'space'
+  initBootReportCollector({ entrypointId, usableMark: 'webview.revealed' })
+} catch (cause) {
+  console.warn('bootreport: collector install failed', cause)
+}
 
 type StartupModule = {
   default: React.LazyExoticComponent<React.ComponentType>
