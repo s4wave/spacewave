@@ -42,7 +42,7 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 // Execute executes the controller.
 // Returning nil ends execution.
-func (c *Controller) Execute(ctx context.Context) (rerr error) {
+func (c *Controller) Execute(ctx context.Context) error {
 	le := c.GetLogger()
 	configSet := c.GetConfig().GetConfigSet()
 	if len(configSet) == 0 {

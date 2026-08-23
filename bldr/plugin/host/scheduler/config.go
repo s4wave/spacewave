@@ -118,18 +118,7 @@ func (c *Config) ParsePeerID() (peer.ID, error) {
 
 // BuildExecBackoff gets the ExecBackoff and fills defaults if applicable.
 func (c *Config) BuildExecBackoff() *backoff.Backoff {
-	backoffConf := c.GetExecBackoff().CloneVT()
-	if backoffConf == nil {
-		backoffConf = &backoff.Backoff{}
-	}
-	if backoffConf.BackoffKind == 0 {
-		if backoffConf.Exponential == nil {
-			backoffConf.Exponential = &backoff.Exponential{}
-		}
-		backoffConf.BackoffKind = backoff.BackoffKind_BackoffKind_EXPONENTIAL
-		backoffConf.Exponential.MaxInterval = 2100
-	}
-	return backoffConf
+	return c.buildBackoff(c.GetExecBackoff(), 2100)
 }
 
 // FilterPluginPlatformIDs filters platform IDs through PlatformSelectionPolicies.
@@ -160,17 +149,27 @@ func (c *Config) pluginPlatformAllowed(pluginID, platformID string) bool {
 
 // BuildFetchBackoff gets the FetchBackoff and fills defaults if applicable.
 func (c *Config) BuildFetchBackoff() *backoff.Backoff {
-	backoffConf := c.GetFetchBackoff().CloneVT()
+	return c.buildBackoff(c.GetFetchBackoff(), 1200)
+}
+
+// buildBackoff clones conf and fills exponential defaults with the given max
+// interval when unset.
+func (c *Config) buildBackoff(
+	conf *backoff.Backoff,
+	maxInterval uint32,
+) *backoff.Backoff {
+	backoffConf := conf.CloneVT()
 	if backoffConf == nil {
 		backoffConf = &backoff.Backoff{}
 	}
-	if backoffConf.BackoffKind == 0 {
-		if backoffConf.Exponential == nil {
-			backoffConf.Exponential = &backoff.Exponential{}
-		}
-		backoffConf.BackoffKind = backoff.BackoffKind_BackoffKind_EXPONENTIAL
-		backoffConf.Exponential.MaxInterval = 1200
+	if backoffConf.BackoffKind != 0 {
+		return backoffConf
 	}
+	if backoffConf.Exponential == nil {
+		backoffConf.Exponential = &backoff.Exponential{}
+	}
+	backoffConf.BackoffKind = backoff.BackoffKind_BackoffKind_EXPONENTIAL
+	backoffConf.Exponential.MaxInterval = maxInterval
 	return backoffConf
 }
 

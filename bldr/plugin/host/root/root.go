@@ -8,10 +8,15 @@ import (
 )
 
 // Root is the process-lifetime Bldr plugin host resource root.
+// Root is the plugin-host root resource owning the tray and structured
+// log hub.
 type Root struct {
-	desktopTray    *desktop_tray.DesktopTray
+	// desktopTray serves the desktop tray.
+	desktopTray *desktop_tray.DesktopTray
+	// structuredLogs owns structured plugin log events.
 	structuredLogs *plugin_host_logs.Hub
-	mux            srpc.Invoker
+	// mux routes resource access to the owned services.
+	mux srpc.Invoker
 }
 
 // NewRoot constructs a new Root.

@@ -72,7 +72,7 @@ func (c *Controller) GetHostRoot() *plugin_host_root.Root {
 // Execute executes the controller.
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
-func (c *Controller) Execute(ctx context.Context) (rerr error) {
+func (c *Controller) Execute(ctx context.Context) error {
 	c.le.Info("starting plugin host")
 	return c.host.Execute(ctx)
 }

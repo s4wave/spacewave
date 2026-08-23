@@ -15,23 +15,36 @@ import (
 )
 
 // PluginStatusSnapshot describes the scheduler's current plugin instances.
+// PluginStatusSnapshot is the scheduler's live plugin-status snapshot.
 type PluginStatusSnapshot struct {
-	Plugins          []*bldr_plugin.PluginStatus
+	// Plugins lists the per-plugin statuses.
+	Plugins []*bldr_plugin.PluginStatus
+	// ManifestRecovery lists per-plugin manifest selection facts.
 	ManifestRecovery []*PluginManifestRecoveryStatus
 }
 
 // PluginManifestRecoveryStatus describes the scheduler-owned retained Manifest
 // selection and eligibility facts for one plugin instance.
 type PluginManifestRecoveryStatus struct {
-	PluginID                    string
-	InstanceKey                 string
-	ExecuteManifestRef          string
-	DownloadManifestRef         string
-	SkippedCandidateCount       int
-	SkippedCandidateSummary     string
-	IgnoredCandidateCount       int
-	IgnoredCandidateSummary     string
-	QuarantinedCandidateCount   int
+	// PluginID is the plugin's id.
+	PluginID string
+	// InstanceKey is the plugin's instance key.
+	InstanceKey string
+	// ExecuteManifestRef is the ref of the manifest selected for execution.
+	ExecuteManifestRef string
+	// DownloadManifestRef is the ref of the manifest selected for download.
+	DownloadManifestRef string
+	// SkippedCandidateCount is how many candidates were skipped.
+	SkippedCandidateCount int
+	// SkippedCandidateSummary summarizes the skipped candidates.
+	SkippedCandidateSummary string
+	// IgnoredCandidateCount is how many candidates were ignored.
+	IgnoredCandidateCount int
+	// IgnoredCandidateSummary summarizes the ignored candidates.
+	IgnoredCandidateSummary string
+	// QuarantinedCandidateCount is how many candidates were quarantined.
+	QuarantinedCandidateCount int
+	// QuarantinedCandidateSummary summarizes the quarantined candidates.
 	QuarantinedCandidateSummary string
 }
 
@@ -125,6 +138,8 @@ func (c *Controller) WaitPluginsRunning(ctx context.Context, pluginIDs []string)
 	}
 }
 
+// pluginsRunningOrError reports whether every required plugin is running,
+// returning an error naming any missing one.
 func pluginsRunningOrError(snapshot *PluginStatusSnapshot, required map[string]struct{}) (bool, error) {
 	if snapshot == nil {
 		return false, nil
@@ -155,6 +170,7 @@ func pluginsRunningOrError(snapshot *PluginStatusSnapshot, required map[string]s
 	return true, nil
 }
 
+// setPluginStatus sets a plugin's status state and summary.
 func (c *Controller) setPluginStatus(
 	pluginID,
 	instanceKey string,
@@ -163,6 +179,8 @@ func (c *Controller) setPluginStatus(
 	c.updatePluginStatus(pluginID, instanceKey, state, "", nil, false, false)
 }
 
+// setPluginStatusClearingError sets a plugin's status state, clearing any
+// prior error.
 func (c *Controller) setPluginStatusClearingError(
 	pluginID,
 	instanceKey string,
@@ -171,6 +189,7 @@ func (c *Controller) setPluginStatusClearingError(
 	c.updatePluginStatus(pluginID, instanceKey, state, "", nil, false, true)
 }
 
+// recordPluginStatusError records an error against a plugin's status.
 func (c *Controller) recordPluginStatusError(
 	pluginID,
 	instanceKey,
@@ -195,6 +214,7 @@ func (c *Controller) recordPluginStatusError(
 	)
 }
 
+// clearPluginStatusError clears a plugin's recorded error.
 func (c *Controller) clearPluginStatusError(pluginID, instanceKey string) {
 	c.updatePluginStatus(
 		pluginID,
@@ -207,6 +227,8 @@ func (c *Controller) clearPluginStatusError(pluginID, instanceKey string) {
 	)
 }
 
+// clearPluginStatusErrorStage clears a plugin's error once its stage
+// advances past the failed stage.
 func (c *Controller) clearPluginStatusErrorStage(pluginID, instanceKey, stage string) {
 	key := pluginInstanceKey(pluginID, instanceKey)
 	c.pluginStatusMtx.Lock()
@@ -221,6 +243,8 @@ func (c *Controller) clearPluginStatusErrorStage(pluginID, instanceKey, stage st
 	c.clearPluginStatusError(pluginID, instanceKey)
 }
 
+// recordPluginManifestRecoveryStatus records manifest selection facts for
+// a plugin.
 func (c *Controller) recordPluginManifestRecoveryStatus(
 	pluginID,
 	instanceKey string,
@@ -252,6 +276,7 @@ func (c *Controller) recordPluginManifestRecoveryStatus(
 	}
 }
 
+// updatePluginStatus applies one status mutation to a plugin's entry.
 func (c *Controller) updatePluginStatus(
 	pluginID,
 	instanceKey string,
@@ -305,6 +330,8 @@ func (c *Controller) updatePluginStatus(
 	}
 }
 
+// buildPluginStatusSnapshotLocked builds the current snapshot. Caller must
+// hold pluginStatusMtx.
 func (c *Controller) buildPluginStatusSnapshotLocked() *PluginStatusSnapshot {
 	plugins := make([]*bldr_plugin.PluginStatus, 0, len(c.pluginStatus))
 	for _, plugin := range c.pluginStatus {
@@ -360,6 +387,7 @@ func (c *Controller) buildPluginStatusSnapshotLocked() *PluginStatusSnapshot {
 	return &PluginStatusSnapshot{Plugins: plugins, ManifestRecovery: recovery}
 }
 
+// pluginStatusSnapshotEqual reports whether two snapshots are equal.
 func pluginStatusSnapshotEqual(a, b *PluginStatusSnapshot) bool {
 	if a == nil || b == nil {
 		return a == b
@@ -381,6 +409,7 @@ func pluginStatusSnapshotEqual(a, b *PluginStatusSnapshot) bool {
 	return slices.EqualFunc(a.ManifestRecovery, b.ManifestRecovery, pluginManifestRecoveryStatusEqual)
 }
 
+// clonePluginManifestRecoveryStatus deep-clones a recovery status row.
 func clonePluginManifestRecoveryStatus(row *PluginManifestRecoveryStatus) *PluginManifestRecoveryStatus {
 	if row == nil {
 		return nil
@@ -389,6 +418,8 @@ func clonePluginManifestRecoveryStatus(row *PluginManifestRecoveryStatus) *Plugi
 	return &next
 }
 
+// pluginManifestRecoveryStatusEqual reports whether two recovery rows are
+// equal.
 func pluginManifestRecoveryStatusEqual(a, b *PluginManifestRecoveryStatus) bool {
 	if a == nil || b == nil {
 		return a == b
@@ -405,6 +436,7 @@ func pluginManifestRecoveryStatusEqual(a, b *PluginManifestRecoveryStatus) bool 
 		a.QuarantinedCandidateSummary == b.QuarantinedCandidateSummary
 }
 
+// manifestSnapshotRefString renders a manifest snapshot's ref as a string.
 func manifestSnapshotRefString(snapshot *bldr_manifest.ManifestSnapshot) string {
 	if snapshot == nil || snapshot.GetManifestRef() == nil {
 		return ""
@@ -412,6 +444,8 @@ func manifestSnapshotRefString(snapshot *bldr_manifest.ManifestSnapshot) string 
 	return snapshot.GetManifestRef().MarshalB58()
 }
 
+// summarizeStartupManifestEligibilityKind builds a summary line for one
+// eligibility kind.
 func summarizeStartupManifestEligibilityKind(
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
 	eligibility bldr_manifest_world.StartupManifestEligibility,
@@ -421,6 +455,8 @@ func summarizeStartupManifestEligibilityKind(
 	})
 }
 
+// summarizeStartupManifestEligibility builds a summary across all
+// tracked eligibility kinds.
 func summarizeStartupManifestEligibility(
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
 	match func(*bldr_manifest_world.StartupManifestCandidateEligibility) bool,
@@ -437,6 +473,8 @@ func summarizeStartupManifestEligibility(
 	return bldr_manifest_world.SummarizeStartupManifestEligibility(filtered, maxStartupManifestSkipSummaryItems)
 }
 
+// countStartupManifestEligibilityKind counts candidates of one
+// eligibility kind.
 func countStartupManifestEligibilityKind(
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
 	eligibility bldr_manifest_world.StartupManifestEligibility,
@@ -446,6 +484,8 @@ func countStartupManifestEligibilityKind(
 	})
 }
 
+// countStartupManifestEligibility counts candidates per tracked
+// eligibility kind.
 func countStartupManifestEligibility(
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
 	match func(*bldr_manifest_world.StartupManifestCandidateEligibility) bool,
