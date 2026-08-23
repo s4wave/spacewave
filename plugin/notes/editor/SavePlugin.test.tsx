@@ -2,7 +2,31 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 
 const root = document.createElement('div')
-const registerUpdateListener = vi.fn(() => vi.fn())
+interface EditorUpdate {
+  editorState: object
+  prevEditorState: object
+}
+let updateListeners: Array<(update: EditorUpdate) => void> = []
+const registerUpdateListener = vi.fn(
+  (listener: (update: EditorUpdate) => void) => {
+    updateListeners.push(listener)
+    return () => {
+      updateListeners = updateListeners.filter(
+        (registered) => registered !== listener,
+      )
+    }
+  },
+)
+
+// Simulates a keystroke: every editor state change reaches the plugin through
+// registerUpdateListener with distinct editor state objects.
+function fireEditorUpdate() {
+  const prevEditorState = {}
+  const editorState = {}
+  for (const listener of updateListeners) {
+    listener({ editorState, prevEditorState })
+  }
+}
 
 vi.mock('@lexical/react/LexicalComposerContext', () => ({
   useLexicalComposerContext: () => [
@@ -19,6 +43,7 @@ import SavePlugin from './SavePlugin.js'
 describe('SavePlugin', () => {
   afterEach(() => {
     cleanup()
+    updateListeners = []
     vi.clearAllMocks()
   })
 
@@ -73,30 +98,55 @@ describe('SavePlugin', () => {
     expect(onSave).not.toHaveBeenCalled()
   })
 
-  it('submits a changed export while suppressing the same failed body', async () => {
+  it('suppresses automatic re-save of edited drafts until the retry clears the failure', async () => {
     let exported = 'first'
+    const onDraftChange = vi.fn()
     const onSave = vi
       .fn<(content: string) => Promise<void>>()
       .mockRejectedValueOnce(new Error('disk full'))
-      .mockResolvedValueOnce()
 
-    render(
+    const view = render(
       <SavePlugin
         savedContent="original"
         exportString={() => exported}
         onSave={onSave}
+        onDraftChange={onDraftChange}
       />,
     )
 
     fireEvent.blur(root)
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce())
-    fireEvent.blur(root)
-    expect(onSave).toHaveBeenCalledOnce()
+    // The rejected body stays the published draft instead of vanishing.
+    await waitFor(() => expect(onDraftChange).toHaveBeenCalledWith('first'))
 
+    // A keystroke goes through registerUpdateListener -> markDirty, which
+    // refreshes the failure marker to the newest export and keeps carrying
+    // the draft text forward.
     exported = 'second'
+    fireEditorUpdate()
+    expect(onDraftChange).toHaveBeenLastCalledWith('second')
+
+    // The next export sees content equal to the refreshed failure marker and
+    // skips, so the failed body never retries automatically.
+    fireEvent.blur(root)
+    await Promise.resolve()
+    expect(onSave).toHaveBeenCalledOnce()
+    expect(onDraftChange).toHaveBeenLastCalledWith('second')
+
+    // The explicit retry path accepts the draft as saved and clears the
+    // failure, so later exports submit again.
+    exported = 'third'
+    view.rerender(
+      <SavePlugin
+        savedContent="second"
+        exportString={() => exported}
+        onSave={onSave}
+        onDraftChange={onDraftChange}
+      />,
+    )
     fireEvent.blur(root)
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2))
-    expect(onSave).toHaveBeenNthCalledWith(2, 'second')
+    expect(onSave).toHaveBeenNthCalledWith(2, 'third')
   })
   it('submits Y after pending X rejects without suppressing Y', async () => {
     let exported = 'X'
