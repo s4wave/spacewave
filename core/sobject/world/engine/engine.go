@@ -2,7 +2,7 @@ package sobject_world_engine
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -188,12 +188,13 @@ func newSoEngine(c *Controller, so sobject.SharedObject, engine *world_block.Eng
 
 // wrapReleaseWithTask ends task when release is called.
 func wrapReleaseWithTask(release func(), task *trace.Task) func() {
-	var once sync.Once
+	var fired atomic.Bool
 	return func() {
-		once.Do(func() {
-			task.End()
-			release()
-		})
+		if !fired.CompareAndSwap(false, true) {
+			return
+		}
+		task.End()
+		release()
 	}
 }
 

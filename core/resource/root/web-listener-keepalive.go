@@ -1,6 +1,9 @@
 package resource_root
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 // WebListenerKeepaliveFunc acquires daemon lifetime for a background listener.
 type WebListenerKeepaliveFunc func(listenerID string) func()
@@ -17,13 +20,14 @@ func SetWebListenerKeepaliveFunc(fn WebListenerKeepaliveFunc) func() {
 	webListenerKeepalive.fn = fn
 	webListenerKeepalive.mu.Unlock()
 
-	var once sync.Once
+	var restored atomic.Bool
 	return func() {
-		once.Do(func() {
-			webListenerKeepalive.mu.Lock()
-			webListenerKeepalive.fn = prev
-			webListenerKeepalive.mu.Unlock()
-		})
+		if !restored.CompareAndSwap(false, true) {
+			return
+		}
+		webListenerKeepalive.mu.Lock()
+		webListenerKeepalive.fn = prev
+		webListenerKeepalive.mu.Unlock()
 	}
 }
 

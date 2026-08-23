@@ -648,8 +648,8 @@ func (r *SessionResource) watchSpaceIndexObjectType(
 		return
 	}
 
-	// A returnIfIdle miss is generic in the prompt batch; the blocking mount
-	// below reports the durable type as a later live update.
+	// A pending readback does not prove the type is absent: the blocking
+	// mount below reports the durable type as a later live update.
 	initialPending := true
 	if mountedSpace == nil {
 		if !sendProjection(true, "") {

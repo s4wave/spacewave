@@ -85,15 +85,14 @@ func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.S
 
 			if idleTimer == nil {
 				idleTimer = time.NewTimer(idleWindow)
-			} else {
-				if !idleTimer.Stop() {
-					select {
-					case <-idleTimer.C:
-					default:
-					}
-				}
-				idleTimer.Reset(idleWindow)
 			}
+			if !idleTimer.Stop() {
+				select {
+				case <-idleTimer.C:
+				default:
+				}
+			}
+			idleTimer.Reset(idleWindow)
 		case <-idleCh:
 			idleTimer = nil
 			entries := bengine.GetGCJournalEntries()

@@ -14,7 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -244,7 +244,7 @@ type webListener struct {
 	pkgServer        *web_pkg_http.Server
 	server           *http.Server
 	listener         net.Listener
-	closeOnce        sync.Once
+	closed           atomic.Bool
 	releaseKeepalive func()
 
 	bcast         broadcast.Broadcast
@@ -347,13 +347,14 @@ func (l *webListener) info(background bool) *s4wave_root.WebListenerInfo {
 
 // Close closes the listener.
 func (l *webListener) Close() {
-	l.closeOnce.Do(func() {
-		_ = l.server.Close()
-		_ = l.listener.Close()
-		if l.releaseKeepalive != nil {
-			l.releaseKeepalive()
-		}
-	})
+	if !l.closed.CompareAndSwap(false, true) {
+		return
+	}
+	_ = l.server.Close()
+	_ = l.listener.Close()
+	if l.releaseKeepalive != nil {
+		l.releaseKeepalive()
+	}
 }
 
 func (l *webListener) holdDaemonKeepalive() {
