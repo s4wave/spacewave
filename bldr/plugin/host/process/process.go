@@ -29,9 +29,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// hostExecutableDirEnv overrides the plugin executable directory for tests.
 const hostExecutableDirEnv = "BLDR_PLUGIN_HOST_EXECUTABLE_DIR"
 
-// Controller is the plugin host controller tytpe.
+// Controller is the plugin host controller type.
 type Controller = host_controller.Controller
 
 // ProcessHost implements the plugin host with native processes.
@@ -248,7 +249,6 @@ func (h *ProcessHost) ExecutePlugin(
 	debugWriter := le.WriterLevel(logrus.DebugLevel)
 	stderrTail := tailwriter.New(debugWriter, 20)
 	entrypointProc.Stderr = stderrTail
-	// entrypointProc.Stdout = debugWriter
 
 	// call any os-specific pre-start adjustment
 	preStartObj, err := preStartCmd(entrypointProc)
@@ -380,14 +380,17 @@ func (h *ProcessHost) execPluginIPC(
 	return srv.AcceptMuxedConn(ctx, muxedConn)
 }
 
+// pluginDistDir returns the dist checkout directory for a plugin.
 func (h *ProcessHost) pluginDistDir(pluginID string) string {
 	return filepath.Join(h.distDir, pluginID)
 }
 
+// pluginStateDir returns the state directory for a plugin.
 func (h *ProcessHost) pluginStateDir(pluginID string) string {
 	return filepath.Join(h.stateDir, pluginID)
 }
 
+// ensurePluginStateDir creates the state directory for a plugin if missing.
 func (h *ProcessHost) ensurePluginStateDir(pluginID string) (string, error) {
 	pluginStateDir := h.pluginStateDir(pluginID)
 	if err := os.MkdirAll(pluginStateDir, 0o755); err != nil {
@@ -396,6 +399,8 @@ func (h *ProcessHost) ensurePluginStateDir(pluginID string) (string, error) {
 	return pluginStateDir, nil
 }
 
+// syncPluginDist materializes or updates the plugin's dist checkout from
+// its FS handle and returns the directory.
 func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID string, pluginDist *unixfs.FSHandle) (string, error) {
 	pluginDistDir := h.pluginDistDir(pluginID)
 	if err := os.MkdirAll(pluginDistDir, 0o755); err != nil {
@@ -455,6 +460,7 @@ func (h *ProcessHost) GetPackageStatusCtr() ccontainer.Watchable[*PluginPackageS
 	return h.packageStatusCtr
 }
 
+// recordPluginPackageStatus records one package status under the lock.
 func (h *ProcessHost) recordPluginPackageStatus(
 	pluginID,
 	distDir string,
@@ -486,6 +492,8 @@ func (h *ProcessHost) recordPluginPackageStatus(
 	}
 }
 
+// packageStatusSnapshotLocked clones the recorded package statuses. Caller
+// must hold the status lock.
 func (h *ProcessHost) packageStatusSnapshotLocked() []PluginPackageStatus {
 	out := make([]PluginPackageStatus, 0, len(h.packageStatus))
 	for _, status := range h.packageStatus {
@@ -503,6 +511,7 @@ func (h *ProcessHost) packageStatusSnapshotLocked() []PluginPackageStatus {
 	return out
 }
 
+// pluginPackageStatusSnapshotEqual reports whether two snapshots are equal.
 func pluginPackageStatusSnapshotEqual(a, b *PluginPackageStatusSnapshot) bool {
 	if a == nil || b == nil {
 		return a == b
