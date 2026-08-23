@@ -379,37 +379,48 @@ function hasStoredLocalSessionHint(): boolean {
   return localStorage.getItem('spacewave-has-session') === '1'
 }
 
+// QUICKSTART_SEEDS is the per-quickstart descriptor table: the seeded space
+// name plus the optional initial object key and type. Typing the Record
+// against QuickstartSpaceCreateId keeps new quickstarts exhaustive.
+const QUICKSTART_SEEDS: Record<
+  QuickstartSpaceCreateId,
+  { spaceName: string; initialObjectKey?: string; initialObjectType?: string }
+> = {
+  space: { spaceName: 'My Space' },
+  drive: { spaceName: 'My Drive' },
+  git: { spaceName: 'My Git Repository' },
+  notebook: { spaceName: 'My Notebook' },
+  canvas: {
+    spaceName: 'My Canvas',
+    initialObjectKey: CANVAS_DEMO_OBJECT_KEY,
+    initialObjectType: CanvasTypeID,
+  },
+  chat: { spaceName: 'My Chat', initialObjectKey: CHAT_DEMO_CHANNEL_KEY },
+  docs: { spaceName: 'My Docs' },
+  blog: { spaceName: 'My Blog' },
+  v86: { spaceName: 'My V86 VM' },
+  device: { spaceName: 'My Computers' },
+  forge: {
+    spaceName: 'My Forge Dashboard',
+    initialObjectKey: 'forge',
+    initialObjectType: ObjectLayoutTypeID,
+  },
+  kv: {
+    spaceName: 'My Key-Value Store',
+    initialObjectKey: KV_QUICKSTART_STORE_KEY,
+    initialObjectType: KvStoreTypeID,
+  },
+  sql: {
+    spaceName: 'My SQL Database',
+    initialObjectKey: SQL_QUICKSTART_DB_KEY,
+    initialObjectType: SQL_DB_TYPE_ID,
+  },
+}
+
 export function getQuickstartSpaceName(
   quickstartId: QuickstartSpaceCreateId,
 ): string {
-  switch (quickstartId) {
-    case 'space':
-      return 'My Space'
-    case 'drive':
-      return 'My Drive'
-    case 'git':
-      return 'My Git Repository'
-    case 'notebook':
-      return 'My Notebook'
-    case 'canvas':
-      return 'My Canvas'
-    case 'chat':
-      return 'My Chat'
-    case 'docs':
-      return 'My Docs'
-    case 'blog':
-      return 'My Blog'
-    case 'v86':
-      return 'My V86 VM'
-    case 'device':
-      return 'My Computers'
-    case 'forge':
-      return 'My Forge Dashboard'
-    case 'kv':
-      return 'My Key-Value Store'
-    case 'sql':
-      return 'My SQL Database'
-  }
+  return QUICKSTART_SEEDS[quickstartId].spaceName
 }
 
 // createLocalSession creates a local provider account and mounts a session without creating a space.
@@ -712,63 +723,13 @@ export async function createQuickstartSetup(
 export function getQuickstartInitialObjectKey(
   quickstartId: QuickstartSpaceCreateId,
 ): string {
-  switch (quickstartId) {
-    case 'drive':
-      return ''
-    case 'canvas':
-      return CANVAS_DEMO_OBJECT_KEY
-    case 'chat':
-      return CHAT_DEMO_CHANNEL_KEY
-    case 'forge':
-      return 'forge'
-    case 'kv':
-      return KV_QUICKSTART_STORE_KEY
-    case 'sql':
-      return SQL_QUICKSTART_DB_KEY
-    case 'device':
-      return ''
-    case 'space':
-    case 'git':
-    case 'notebook':
-    case 'docs':
-    case 'blog':
-    case 'v86':
-      return ''
-    default: {
-      const _exhaustive: never = quickstartId
-      return _exhaustive
-    }
-  }
+  return QUICKSTART_SEEDS[quickstartId].initialObjectKey ?? ''
 }
 
 export function getQuickstartInitialObjectType(
   quickstartId: QuickstartSpaceCreateId,
 ): string {
-  switch (quickstartId) {
-    case 'drive':
-      return ''
-    case 'canvas':
-      return CanvasTypeID
-    case 'kv':
-      return KvStoreTypeID
-    case 'sql':
-      return SQL_DB_TYPE_ID
-    case 'forge':
-      return ObjectLayoutTypeID
-    case 'space':
-    case 'git':
-    case 'notebook':
-    case 'docs':
-    case 'blog':
-    case 'chat':
-    case 'v86':
-    case 'device':
-      return ''
-    default: {
-      const _exhaustive: never = quickstartId
-      return _exhaustive
-    }
-  }
+  return QUICKSTART_SEEDS[quickstartId].initialObjectType ?? ''
 }
 
 export function getQuickstartInitialObjectRouteHandoff(
