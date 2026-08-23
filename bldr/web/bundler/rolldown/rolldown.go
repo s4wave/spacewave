@@ -2,11 +2,11 @@ package bldr_web_bundler_rolldown
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/aperturerobotics/fastjson"
@@ -59,7 +59,8 @@ func ValidateBuildRequest(req *BuildRequest) error {
 			return errors.Errorf("entrypoints[%d].name %q is duplicated", i, name)
 		}
 		seenNames[name] = struct{}{}
-		if err := validateAbsolutePath(fmt.Sprintf("entrypoints[%d].input_path", i), entrypoint.GetInputPath()); err != nil {
+		field := "entrypoints[" + strconv.Itoa(i) + "].input_path"
+		if err := validateAbsolutePath(field, entrypoint.GetInputPath()); err != nil {
 			return err
 		}
 	}
@@ -107,7 +108,7 @@ func ValidateBuildRequest(req *BuildRequest) error {
 		}
 	}
 	for i, injectPath := range req.GetInject() {
-		if err := validateAbsolutePath(fmt.Sprintf("inject[%d]", i), injectPath); err != nil {
+		if err := validateAbsolutePath("inject["+strconv.Itoa(i)+"]", injectPath); err != nil {
 			return err
 		}
 	}
@@ -435,10 +436,12 @@ func sortBuildResult(result *BuildResult) {
 func formatDiagnostic(diagnostic *Diagnostic) string {
 	location := diagnostic.GetFile()
 	if diagnostic.GetLine() != 0 {
-		location = fmt.Sprintf("%s:%d:%d", location, diagnostic.GetLine(), diagnostic.GetColumn())
+		location = location + ":" + strconv.Itoa(int(diagnostic.GetLine())) + ":" +
+			strconv.Itoa(int(diagnostic.GetColumn()))
 	}
 	if location != "" {
-		return fmt.Sprintf("[%s] %s: %s", diagnostic.GetSeverity(), location, diagnostic.GetMessage())
+		return "[" + diagnostic.GetSeverity() + "] " + location + ": " +
+			diagnostic.GetMessage()
 	}
-	return fmt.Sprintf("[%s] %s", diagnostic.GetSeverity(), diagnostic.GetMessage())
+	return "[" + diagnostic.GetSeverity() + "] " + diagnostic.GetMessage()
 }
