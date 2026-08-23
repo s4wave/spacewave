@@ -173,7 +173,7 @@ dev = [
     { name = "mypy", specifier = "==2.3.1" },
     { name = "ruff", specifier = "==0.16.2" },
     { name = "starpc-python-plugin", git = "https://github.com/aperturerobotics/starpc.git?subdirectory=python%2Fplugin&rev=b78c815f1e13b4a2d8e7f602658d6c695fa26e53" },
-    { name = "types-protobuf", specifier = "==7.35.1.20260822" },
+    { name = "types-protobuf", specifier = "==7.35.1.20260823" },
 ]
 
 [[package]]
@@ -195,11 +195,11 @@ dependencies = [
 
 [[package]]
 name = "types-protobuf"
-version = "7.35.1.20260822"
+version = "7.35.1.20260823"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ae/73/83a53029c6acf3c1d041c14864e9c4256b687787719f9f04b0ece7487bf8/types_protobuf-7.35.1.20260822.tar.gz", hash = "sha256:734db0a9620a032eea789eabfd2848a875e17aedc3fb0dcb57ef530c0badda00", size = 69612, upload-time = "2026-08-22T02:43:48.607Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4d/5e/c32831c44aa8f96f7f81967a480a3191cf67c2dce3f3484bbdf715f8758f/types_protobuf-7.35.1.20260823.tar.gz", hash = "sha256:62da1827744fa074e6c3ce2210f4c9ef833e4cf7354c4a8c49239472a2dc5d14", size = 69639, upload-time = "2026-08-23T02:52:29.538Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0c/ba/eb30d4110b7c426555b5bffd79cdd1e920290983a5744858dd3e2682c8db/types_protobuf-7.35.1.20260822-py3-none-any.whl", hash = "sha256:0a6621dd28ec85876bbd0e2e80fba4998bfb63bbd4cff2c15eb469e73915fa05", size = 86411, upload-time = "2026-08-22T02:43:47.529Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/72/fed5d0fcdfb447e404e1099ade9f48649023376cf99971a2f8d687dfb4ef/types_protobuf-7.35.1.20260823-py3-none-any.whl", hash = "sha256:67f732dc78d7cb379ae1bd60891d053aee3c963ecae56c3d16a343c4665c3c04", size = 86412, upload-time = "2026-08-23T02:52:28.543Z" },
 ]
 
 [[package]]
