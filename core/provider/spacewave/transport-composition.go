@@ -38,7 +38,6 @@ type transportCompositionLinkSource interface {
 }
 
 type transportCompositionConfig struct {
-	ctx          context.Context
 	sessionID    string
 	sessionKey   crypto.PrivKey
 	signalingURL string
@@ -50,19 +49,18 @@ type transportCompositionSession struct {
 	config        *transportCompositionConfig
 	directRunning bool
 	linkCancel    context.CancelFunc
-	linkWG        sync.WaitGroup
-	closing       bool
-
+	// bcast guards the link-goroutine lifetime and every projection field below.
 	bcast         broadcast.Broadcast
+	linkRunning   bool
 	snapshot      TransportCompositionSnapshot
 	generation    uint64
 	hadPeers      bool
 	activeDemands uint64
+	closing       bool
 }
 
 type transportCompositionOwner struct {
-	initOnce sync.Once
-	account  *ProviderAccount
+	account *ProviderAccount
 
 	mtx      sync.Mutex
 	sessions map[string]*transportCompositionSession
@@ -75,40 +73,45 @@ type transportCompositionOwner struct {
 	transportState func(string) (bool, <-chan struct{})
 }
 
+// init binds the owner to its account and production hooks. Idempotent: the
+// first caller constructs the shared state; later calls return it unchanged.
 func (o *transportCompositionOwner) init(account *ProviderAccount) {
-	o.initOnce.Do(func() {
-		o.account = account
-		o.sessions = make(map[string]*transportCompositionSession)
-		o.startDirect = func(ctx context.Context, sessionID string, sessionKey crypto.PrivKey, signalingURL string) (transportCompositionLinkSource, error) {
-			if err := account.createSessionTransportForSession(ctx, sessionID, sessionKey, signalingURL); err != nil {
-				return nil, err
-			}
-			st := account.getSessionTransportForSession(sessionID)
-			if st == nil {
-				if err := account.stopSessionTransportForSession(ctx, sessionID, nil); err != nil {
-					return nil, errors.Wrap(err, "stop missing session transport")
-				}
-				return nil, errors.New("session transport missing after startup")
-			}
-			if err := account.startP2PSyncForSession(ctx, sessionID, st); err != nil {
-				account.stopP2PSyncForSession(sessionID)
-				if stopErr := account.stopSessionTransportForSession(ctx, sessionID, nil); stopErr != nil {
-					return nil, errors.Wrap(stopErr, "stop session transport after P2P startup failure")
-				}
-				return nil, err
-			}
-			return st, nil
+	o.mtx.Lock()
+	defer o.mtx.Unlock()
+	if o.sessions != nil {
+		return
+	}
+	o.account = account
+	o.sessions = make(map[string]*transportCompositionSession)
+	o.startDirect = func(ctx context.Context, sessionID string, sessionKey crypto.PrivKey, signalingURL string) (transportCompositionLinkSource, error) {
+		if err := account.createSessionTransportForSession(ctx, sessionID, sessionKey, signalingURL); err != nil {
+			return nil, err
 		}
-		o.stopDirect = func(sessionID string) {
+		st := account.getSessionTransportForSession(sessionID)
+		if st == nil {
+			if err := account.stopSessionTransportForSession(ctx, sessionID, nil); err != nil {
+				return nil, errors.Wrap(err, "stop missing session transport")
+			}
+			return nil, errors.New("session transport missing after startup")
+		}
+		if err := account.startP2PSyncForSession(ctx, sessionID, st); err != nil {
 			account.stopP2PSyncForSession(sessionID)
-			if err := account.stopSessionTransportForSession(nil, sessionID, nil); err != nil {
-				account.le.WithError(err).Warn("failed to stop session transport composition")
+			if stopErr := account.stopSessionTransportForSession(ctx, sessionID, nil); stopErr != nil {
+				return nil, errors.Wrap(stopErr, "stop session transport after P2P startup failure")
 			}
+			return nil, err
 		}
-		o.transportState = func(sessionID string) (bool, <-chan struct{}) {
-			return account.getTransportSnapshotWithWaitForSession(sessionID)
+		return st, nil
+	}
+	o.stopDirect = func(sessionID string) {
+		account.stopP2PSyncForSession(sessionID)
+		if err := account.stopSessionTransportForSession(nil, sessionID, nil); err != nil {
+			account.le.WithError(err).Warn("failed to stop session transport composition")
 		}
-	})
+	}
+	o.transportState = func(sessionID string) (bool, <-chan struct{}) {
+		return account.getTransportSnapshotWithWaitForSession(sessionID)
+	}
 }
 
 func newTransportCompositionSession() *transportCompositionSession {
@@ -138,17 +141,19 @@ func (o *transportCompositionOwner) findSession(sessionID string) *transportComp
 }
 
 // ConfigureSessionTransport reconciles one mounted Session's direct policy.
+// Startup work is bound to ctx; the running link watcher outlives ctx and ends
+// only when the composition stops.
 func (a *ProviderAccount) ConfigureSessionTransport(ctx context.Context, sessionID string, sessionKey crypto.PrivKey, signalingURL string, enabled bool) error {
 	o := &a.transportComposition
 	o.init(a)
-	return o.configure(&transportCompositionConfig{ctx: ctx, sessionID: sessionID, sessionKey: sessionKey, signalingURL: signalingURL, enabled: enabled})
+	return o.configure(ctx, &transportCompositionConfig{sessionID: sessionID, sessionKey: sessionKey, signalingURL: signalingURL, enabled: enabled})
 }
 
 // SetSessionDirectP2PEnabled reconciles one mounted Session after persistence.
-func (a *ProviderAccount) SetSessionDirectP2PEnabled(sessionID string, enabled bool) error {
+func (a *ProviderAccount) SetSessionDirectP2PEnabled(ctx context.Context, sessionID string, enabled bool) error {
 	o := &a.transportComposition
 	o.init(a)
-	return o.setEnabled(sessionID, enabled)
+	return o.setEnabled(ctx, sessionID, enabled)
 }
 
 // StopSessionTransportComposition stops direct mechanics owned by sessionID.
@@ -177,7 +182,7 @@ func (a *ProviderAccount) directDemandFinished(sessionID string) {
 	o.demandFinished(sessionID)
 }
 
-func (o *transportCompositionOwner) configure(config *transportCompositionConfig) error {
+func (o *transportCompositionOwner) configure(ctx context.Context, config *transportCompositionConfig) error {
 	state := o.sessionForConfigure(config.sessionID)
 	state.mtx.Lock()
 	defer state.mtx.Unlock()
@@ -187,10 +192,10 @@ func (o *transportCompositionOwner) configure(config *transportCompositionConfig
 	if current != state || state.closing {
 		return errors.New("session transport composition is stopping")
 	}
-	return o.configureLocked(state, config)
+	return o.configureLocked(ctx, state, config)
 }
 
-func (o *transportCompositionOwner) configureLocked(state *transportCompositionSession, config *transportCompositionConfig) error {
+func (o *transportCompositionOwner) configureLocked(ctx context.Context, state *transportCompositionSession, config *transportCompositionConfig) error {
 	if state.config != nil && state.config.enabled == config.enabled &&
 		state.snapshotState() != TransportCompositionP2PStateError {
 		state.config = config
@@ -205,21 +210,36 @@ func (o *transportCompositionOwner) configureLocked(state *transportCompositionS
 	}
 
 	state.setSnapshot(TransportCompositionSnapshot{DirectP2PEnabled: true, P2PState: TransportCompositionP2PStateStarting})
-	linkSource, err := o.startDirect(config.ctx, config.sessionID, config.sessionKey, config.signalingURL)
+	linkSource, err := o.startDirect(ctx, config.sessionID, config.sessionKey, config.signalingURL)
 	if err != nil {
 		state.setSnapshot(TransportCompositionSnapshot{DirectP2PEnabled: true, P2PState: TransportCompositionP2PStateError, LastError: err.Error()})
 		return err
 	}
 
 	state.directRunning = true
-	linkCtx, linkCancel := context.WithCancel(config.ctx)
+	// The watcher belongs to the composition lifetime, not to the caller's
+	// context: a later SetSessionDirectP2PEnabled restart must not inherit a
+	// caller whose lifecycle already ended.
+	linkCtx, linkCancel := context.WithCancel(context.WithoutCancel(ctx))
 	state.linkCancel = linkCancel
 	generation := state.nextGeneration()
-	state.linkWG.Go(func() { o.watchLinks(linkCtx, config.sessionID, state, generation, linkSource) })
+	state.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		state.linkRunning = true
+		broadcast()
+	})
+	go func() {
+		defer func() {
+			state.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+				state.linkRunning = false
+				broadcast()
+			})
+		}()
+		o.watchLinks(linkCtx, config.sessionID, state, generation, linkSource)
+	}()
 	return nil
 }
 
-func (o *transportCompositionOwner) setEnabled(sessionID string, enabled bool) error {
+func (o *transportCompositionOwner) setEnabled(ctx context.Context, sessionID string, enabled bool) error {
 	state := o.findSession(sessionID)
 	if state == nil {
 		return nil
@@ -234,7 +254,7 @@ func (o *transportCompositionOwner) setEnabled(sessionID string, enabled bool) e
 	}
 	config := *state.config
 	config.enabled = enabled
-	return o.configureLocked(state, &config)
+	return o.configureLocked(ctx, state, &config)
 }
 
 func (o *transportCompositionOwner) stop(sessionID string) {
@@ -268,13 +288,32 @@ func (o *transportCompositionOwner) removeSession(sessionID string, target *tran
 	o.mtx.Unlock()
 }
 
+// awaitLinkExit waits for the running link watcher to publish its exit.
+func (o *transportCompositionOwner) awaitLinkExit(state *transportCompositionSession) {
+	for {
+		var waitCh <-chan struct{}
+		exited := false
+		state.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if state.linkRunning {
+				waitCh = getWaitCh()
+				return
+			}
+			exited = true
+		})
+		if exited {
+			return
+		}
+		<-waitCh
+	}
+}
+
 func (o *transportCompositionOwner) stopLocked(state *transportCompositionSession, clearConfig bool) {
 	state.nextGeneration()
 	if state.linkCancel != nil {
 		state.linkCancel()
 		state.linkCancel = nil
 	}
-	state.linkWG.Wait()
+	o.awaitLinkExit(state)
 	if state.directRunning {
 		o.stopDirect(state.config.sessionID)
 		state.directRunning = false

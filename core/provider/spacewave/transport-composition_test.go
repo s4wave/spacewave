@@ -61,8 +61,7 @@ func TestTransportCompositionDisabledConstructsNoDirectMechanics(t *testing.T) {
 	}
 	owner.stopDirect = func(string) { stops++ }
 
-	if err := owner.configure(&transportCompositionConfig{
-		ctx:       t.Context(),
+	if err := owner.configure(t.Context(), &transportCompositionConfig{
 		sessionID: "session",
 		enabled:   false,
 	}); err != nil {
@@ -96,8 +95,7 @@ func TestTransportCompositionUnknownLifecycleDoesNotCreateState(t *testing.T) {
 	}
 
 	for _, sessionID := range []string{"A", "B"} {
-		if err := owner.configure(&transportCompositionConfig{
-			ctx:       t.Context(),
+		if err := owner.configure(t.Context(), &transportCompositionConfig{
 			sessionID: sessionID,
 			enabled:   false,
 		}); err != nil {
@@ -143,8 +141,7 @@ func TestTransportCompositionTracksPeerLossAndReconnectFromLinkEvents(t *testing
 		return running, waitCh
 	}
 
-	if err := owner.configure(&transportCompositionConfig{
-		ctx:       t.Context(),
+	if err := owner.configure(t.Context(), &transportCompositionConfig{
 		sessionID: "session",
 		enabled:   true,
 	}); err != nil {
@@ -193,4 +190,57 @@ func awaitCompositionState(
 		case <-waitCh:
 		}
 	}
+}
+
+func TestTransportCompositionRestartSurvivesEndedConfigureContext(t *testing.T) {
+	t.Parallel()
+
+	acc := &ProviderAccount{}
+	owner := &acc.transportComposition
+	owner.init(acc)
+	links := &compositionTestLinkSource{}
+	owner.startDirect = func(context.Context, string, crypto.PrivKey, string) (transportCompositionLinkSource, error) {
+		return links, nil
+	}
+	owner.stopDirect = func(string) {}
+	transportRunning := true
+	var transportBcast broadcast.Broadcast
+	owner.transportState = func(string) (bool, <-chan struct{}) {
+		var running bool
+		var waitCh <-chan struct{}
+		transportBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			running = transportRunning
+			waitCh = getWaitCh()
+		})
+		return running, waitCh
+	}
+
+	configureCtx, cancelConfigure := context.WithCancel(t.Context())
+	defer cancelConfigure()
+	if err := owner.configure(configureCtx, &transportCompositionConfig{
+		sessionID: "session",
+		enabled:   true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	links.setLinkCount(5)
+	awaitCompositionState(t, owner, TransportCompositionP2PStateIdle, 5)
+
+	// End the original configure caller, then toggle the policy off and back
+	// on. The restarted link watcher must stay live and track later link
+	// events instead of binding to the ended caller's context.
+	cancelConfigure()
+	if err := owner.setEnabled(t.Context(), "session", false); err != nil {
+		t.Fatal(err)
+	}
+	awaitCompositionState(t, owner, TransportCompositionP2PStateDisabled, 0)
+	if err := owner.setEnabled(t.Context(), "session", true); err != nil {
+		t.Fatal(err)
+	}
+	awaitCompositionState(t, owner, TransportCompositionP2PStateIdle, 5)
+
+	links.setLinkCount(6)
+	awaitCompositionState(t, owner, TransportCompositionP2PStateIdle, 6)
+
+	owner.stop("session")
 }

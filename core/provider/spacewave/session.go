@@ -157,7 +157,7 @@ func (s *Session) SetDirectP2PEnabled(ctx context.Context, enabled bool) error {
 		s.directP2PEnabled = enabled
 		broadcast()
 	})
-	return s.tkr.a.SetSessionDirectP2PEnabled(s.tkr.id, enabled)
+	return s.tkr.a.SetSessionDirectP2PEnabled(ctx, s.tkr.id, enabled)
 }
 
 // UnlockSession unlocks a PIN-locked session with the given PIN.
