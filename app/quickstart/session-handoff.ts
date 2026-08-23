@@ -17,20 +17,22 @@ export interface QuickstartInitialObjectHandoff {
 }
 
 const handoffsBySessionIndex = new Map<number, QuickstartSessionHandoff>()
-const sharedObjectsBySessionAndId = new Map<string, SharedObject>()
-const sharedObjectBodiesBySessionAndId = new Map<string, SharedObjectBody>()
-const spacesBySessionAndId = new Map<string, Space>()
-const spaceContentsBySessionAndId = new Map<string, SpaceContents>()
-const spaceWorldsBySessionAndId = new Map<string, EngineWorldState>()
-const sharedObjectRoutesAwaitingResourcesList = new Set<string>()
-const initialObjectsBySessionAndId = new Map<
-  string,
-  QuickstartInitialObjectHandoff
->()
-const releaseTimersBySessionAndId = new Map<
-  string,
-  ReturnType<typeof setTimeout>
->()
+
+// QuickstartHandoffRecord is every fact and resource staged under one
+// session+shared-object key. releaseQuickstartSharedObjectHandoffNow walks
+// the resource fields child-before-parent.
+interface QuickstartHandoffRecord {
+  sharedObject?: SharedObject
+  sharedObjectBody?: SharedObjectBody
+  space?: Space
+  spaceContents?: SpaceContents
+  spaceWorld?: EngineWorldState
+  initialObject?: QuickstartInitialObjectHandoff
+  awaitingResourcesList?: boolean
+  releaseTimer?: ReturnType<typeof setTimeout>
+}
+
+const sharedObjectHandoffsByKey = new Map<string, QuickstartHandoffRecord>()
 
 const handoffReleaseGraceMs = 5000
 
@@ -79,25 +81,60 @@ function releaseSpaceWorld(world: EngineWorldState): void {
   world.release()
 }
 
+// handoffRecordAt returns the record for key, creating one when create is set.
+function handoffRecordAt(
+  key: string,
+  create: boolean,
+): QuickstartHandoffRecord | undefined {
+  let record = sharedObjectHandoffsByKey.get(key)
+  if (!record && create) {
+    record = {}
+    sharedObjectHandoffsByKey.set(key, record)
+  }
+  return record
+}
+
+// deleteHandoffRecordIfEmpty drops records with no staged state left.
+function deleteHandoffRecordIfEmpty(
+  key: string,
+  record: QuickstartHandoffRecord,
+): void {
+  if (
+    !record.sharedObject &&
+    !record.sharedObjectBody &&
+    !record.space &&
+    !record.spaceContents &&
+    !record.spaceWorld &&
+    !record.initialObject &&
+    !record.awaitingResourcesList &&
+    !record.releaseTimer
+  ) {
+    sharedObjectHandoffsByKey.delete(key)
+  }
+}
+
 function cancelScheduledRelease(key: string): void {
-  const timer = releaseTimersBySessionAndId.get(key)
-  if (!timer) {
+  const record = handoffRecordAt(key, false)
+  if (!record?.releaseTimer) {
     return
   }
-  clearTimeout(timer)
-  releaseTimersBySessionAndId.delete(key)
+  clearTimeout(record.releaseTimer)
+  record.releaseTimer = undefined
+  deleteHandoffRecordIfEmpty(key, record)
 }
 
 function scheduleSharedObjectHandoffRelease(key: string): void {
   cancelScheduledRelease(key)
+  const record = handoffRecordAt(key, true)
+  if (!record) return
   const timer = setTimeout(() => {
-    if (releaseTimersBySessionAndId.get(key) !== timer) {
+    if (record.releaseTimer !== timer) {
       return
     }
-    releaseTimersBySessionAndId.delete(key)
+    record.releaseTimer = undefined
     releaseQuickstartSharedObjectHandoffNow(key)
   }, handoffReleaseGraceMs)
-  releaseTimersBySessionAndId.set(key, timer)
+  record.releaseTimer = timer
 }
 
 function cloneSharedObject(sharedObject: SharedObject): SharedObject {
@@ -128,22 +165,98 @@ function cloneSpaceWorld(world: EngineWorldState): EngineWorldState {
   )
 }
 
-function consumeClonedResource<T>(
-  resources: Map<string, T>,
-  key: string,
-  released: (resource: T) => boolean,
-  clone: (resource: T) => T,
-): T | null {
+// HandoffField projects one resource field of a handoff record: how to read
+// and write it, detect release, clone it for a consumer, and release it.
+interface HandoffField<T> {
+  get(record: QuickstartHandoffRecord): T | undefined
+  set(record: QuickstartHandoffRecord, value: T | undefined): void
+  released(resource: T): boolean
+  clone(resource: T): T
+  release(resource: T): void
+}
+
+const SHARED_OBJECT_FIELD: HandoffField<SharedObject> = {
+  get: (record) => record.sharedObject,
+  set: (record, value) => {
+    record.sharedObject = value
+  },
+  released: (sharedObject) => sharedObject.released,
+  clone: cloneSharedObject,
+  release: releaseSharedObject,
+}
+
+const SHARED_OBJECT_BODY_FIELD: HandoffField<SharedObjectBody> = {
+  get: (record) => record.sharedObjectBody,
+  set: (record, value) => {
+    record.sharedObjectBody = value
+  },
+  released: (body) => body.released,
+  clone: cloneSharedObjectBody,
+  release: releaseSharedObjectBody,
+}
+
+const SPACE_FIELD: HandoffField<Space> = {
+  get: (record) => record.space,
+  set: (record, value) => {
+    record.space = value
+  },
+  released: (space) => space.released,
+  clone: cloneSpace,
+  release: releaseSpace,
+}
+
+const SPACE_CONTENTS_FIELD: HandoffField<SpaceContents> = {
+  get: (record) => record.spaceContents,
+  set: (record, value) => {
+    record.spaceContents = value
+  },
+  released: (contents) => contents.released,
+  clone: cloneSpaceContents,
+  release: releaseSpaceContents,
+}
+
+const SPACE_WORLD_FIELD: HandoffField<EngineWorldState> = {
+  get: (record) => record.spaceWorld,
+  set: (record, value) => {
+    record.spaceWorld = value
+  },
+  released: (world) => world.getEngine().released,
+  clone: cloneSpaceWorld,
+  release: releaseSpaceWorld,
+}
+
+// consumeHandoffField returns a clone of the staged resource for key,
+// canceling any scheduled release and re-arming the grace timer.
+function consumeHandoffField<T>(key: string, field: HandoffField<T>): T | null {
   cancelScheduledRelease(key)
-  const resource = resources.get(key)
+  const record = handoffRecordAt(key, false)
+  const resource = record ? field.get(record) : undefined
   if (!resource) return null
-  if (released(resource)) {
-    resources.delete(key)
+  if (field.released(resource)) {
+    field.set(record, undefined)
+    deleteHandoffRecordIfEmpty(key, record)
     return null
   }
-  const cloned = clone(resource)
   scheduleSharedObjectHandoffRelease(key)
-  return cloned
+  return field.clone(resource)
+}
+
+// stageHandoffResource moves one held resource into the handoff record,
+// releasing the previously staged value when it differs.
+function stageHandoffResource<T>(
+  key: string,
+  held: T[],
+  field: HandoffField<T>,
+): void {
+  const resource = held.pop()
+  if (!resource) return
+  const record = handoffRecordAt(key, true)
+  if (!record) return
+  const existing = field.get(record)
+  if (existing && existing !== resource) {
+    field.release(existing)
+  }
+  field.set(record, resource)
 }
 
 export function stageQuickstartSessionHandoff(
@@ -174,12 +287,9 @@ export function consumeQuickstartSharedObjectHandoff(
   sessionIndex: number,
   sharedObjectId: string,
 ): SharedObject | null {
-  const key = sharedObjectHandoffKey(sessionIndex, sharedObjectId)
-  return consumeClonedResource(
-    sharedObjectsBySessionAndId,
-    key,
-    (sharedObject) => sharedObject.released,
-    cloneSharedObject,
+  return consumeHandoffField(
+    sharedObjectHandoffKey(sessionIndex, sharedObjectId),
+    SHARED_OBJECT_FIELD,
   )
 }
 
@@ -187,13 +297,18 @@ export function hasQuickstartSharedObjectHandoff(
   sessionIndex: number,
   sharedObjectId: string,
 ): boolean {
-  const key = sharedObjectHandoffKey(sessionIndex, sharedObjectId)
+  const record = sharedObjectHandoffsByKey.get(
+    sharedObjectHandoffKey(sessionIndex, sharedObjectId),
+  )
   return (
-    sharedObjectsBySessionAndId.has(key) ||
-    sharedObjectBodiesBySessionAndId.has(key) ||
-    spacesBySessionAndId.has(key) ||
-    spaceContentsBySessionAndId.has(key) ||
-    spaceWorldsBySessionAndId.has(key)
+    !!record &&
+    !!(
+      record.sharedObject ||
+      record.sharedObjectBody ||
+      record.space ||
+      record.spaceContents ||
+      record.spaceWorld
+    )
   )
 }
 
@@ -201,39 +316,42 @@ export function markQuickstartSharedObjectHandoffAwaitingResourcesList(
   sessionIndex: number,
   sharedObjectId: string,
 ): void {
-  sharedObjectRoutesAwaitingResourcesList.add(
+  const record = handoffRecordAt(
     sharedObjectHandoffKey(sessionIndex, sharedObjectId),
+    true,
   )
+  if (record) {
+    record.awaitingResourcesList = true
+  }
 }
 
 export function clearQuickstartSharedObjectHandoffAwaitingResourcesList(
   sessionIndex: number,
   sharedObjectId: string,
 ): void {
-  sharedObjectRoutesAwaitingResourcesList.delete(
-    sharedObjectHandoffKey(sessionIndex, sharedObjectId),
-  )
+  const key = sharedObjectHandoffKey(sessionIndex, sharedObjectId)
+  const record = handoffRecordAt(key, false)
+  if (!record) return
+  record.awaitingResourcesList = false
+  deleteHandoffRecordIfEmpty(key, record)
 }
 
 export function isQuickstartSharedObjectHandoffAwaitingResourcesList(
   sessionIndex: number,
   sharedObjectId: string,
 ): boolean {
-  return sharedObjectRoutesAwaitingResourcesList.has(
+  return !!sharedObjectHandoffsByKey.get(
     sharedObjectHandoffKey(sessionIndex, sharedObjectId),
-  )
+  )?.awaitingResourcesList
 }
 
 export function consumeQuickstartSharedObjectBodyHandoff(
   sessionIndex: number,
   sharedObjectId: string,
 ): SharedObjectBody | null {
-  const key = sharedObjectHandoffKey(sessionIndex, sharedObjectId)
-  return consumeClonedResource(
-    sharedObjectBodiesBySessionAndId,
-    key,
-    (body) => body.released,
-    cloneSharedObjectBody,
+  return consumeHandoffField(
+    sharedObjectHandoffKey(sessionIndex, sharedObjectId),
+    SHARED_OBJECT_BODY_FIELD,
   )
 }
 
@@ -241,12 +359,9 @@ export function consumeQuickstartSpaceHandoff(
   sessionIndex: number,
   sharedObjectId: string,
 ): Space | null {
-  const key = sharedObjectHandoffKey(sessionIndex, sharedObjectId)
-  return consumeClonedResource(
-    spacesBySessionAndId,
-    key,
-    (space) => space.released,
-    cloneSpace,
+  return consumeHandoffField(
+    sharedObjectHandoffKey(sessionIndex, sharedObjectId),
+    SPACE_FIELD,
   )
 }
 
@@ -254,12 +369,9 @@ export function consumeQuickstartSpaceContentsHandoff(
   sessionIndex: number,
   sharedObjectId: string,
 ): SpaceContents | null {
-  const key = sharedObjectHandoffKey(sessionIndex, sharedObjectId)
-  return consumeClonedResource(
-    spaceContentsBySessionAndId,
-    key,
-    (contents) => contents.released,
-    cloneSpaceContents,
+  return consumeHandoffField(
+    sharedObjectHandoffKey(sessionIndex, sharedObjectId),
+    SPACE_CONTENTS_FIELD,
   )
 }
 
@@ -267,12 +379,9 @@ export function consumeQuickstartSpaceWorldHandoff(
   sessionIndex: number,
   sharedObjectId: string,
 ): EngineWorldState | null {
-  const key = sharedObjectHandoffKey(sessionIndex, sharedObjectId)
-  return consumeClonedResource(
-    spaceWorldsBySessionAndId,
-    key,
-    (world) => world.getEngine().released,
-    cloneSpaceWorld,
+  return consumeHandoffField(
+    sharedObjectHandoffKey(sessionIndex, sharedObjectId),
+    SPACE_WORLD_FIELD,
   )
 }
 
@@ -282,50 +391,54 @@ export function getQuickstartInitialObjectHandoff(
   objectKey?: string,
 ): QuickstartInitialObjectHandoff | null {
   if (sessionIndex == null || !sharedObjectId || !objectKey) return null
-  const handoff = initialObjectsBySessionAndId.get(
+  const record = sharedObjectHandoffsByKey.get(
     sharedObjectHandoffKey(sessionIndex, sharedObjectId),
   )
+  const handoff = record?.initialObject
   if (!handoff || handoff.objectKey !== objectKey) return null
   return handoff
 }
 
 function releaseQuickstartSharedObjectHandoffNow(key: string): void {
-  cancelScheduledRelease(key)
-  sharedObjectRoutesAwaitingResourcesList.delete(key)
-  initialObjectsBySessionAndId.delete(key)
-  const world = spaceWorldsBySessionAndId.get(key)
+  const record = handoffRecordAt(key, false)
+  if (!record) return
+  record.awaitingResourcesList = false
+  record.initialObject = undefined
+  const world = record.spaceWorld
   if (world) {
-    spaceWorldsBySessionAndId.delete(key)
+    record.spaceWorld = undefined
     releaseSpaceWorld(world)
   }
-  const contents = spaceContentsBySessionAndId.get(key)
+  const contents = record.spaceContents
   if (contents) {
-    spaceContentsBySessionAndId.delete(key)
+    record.spaceContents = undefined
     releaseSpaceContents(contents)
   }
-  const space = spacesBySessionAndId.get(key)
+  const space = record.space
   if (space) {
-    spacesBySessionAndId.delete(key)
+    record.space = undefined
     releaseSpace(space)
   }
-  const body = sharedObjectBodiesBySessionAndId.get(key)
+  const body = record.sharedObjectBody
   if (body) {
-    sharedObjectBodiesBySessionAndId.delete(key)
+    record.sharedObjectBody = undefined
     releaseSharedObjectBody(body)
   }
-  const sharedObject = sharedObjectsBySessionAndId.get(key)
+  const sharedObject = record.sharedObject
   if (sharedObject) {
-    sharedObjectsBySessionAndId.delete(key)
+    record.sharedObject = undefined
     releaseSharedObject(sharedObject)
   }
+  deleteHandoffRecordIfEmpty(key, record)
 }
 
 export function releaseQuickstartSharedObjectHandoff(
   sessionIndex: number,
   sharedObjectId: string,
 ): void {
-  const key = sharedObjectHandoffKey(sessionIndex, sharedObjectId)
-  scheduleSharedObjectHandoffRelease(key)
+  scheduleSharedObjectHandoffRelease(
+    sharedObjectHandoffKey(sessionIndex, sharedObjectId),
+  )
 }
 
 export interface QuickstartSessionHandoffCleanup {
@@ -434,51 +547,18 @@ export function createQuickstartSessionHandoffCleanup(
       }
       const key = sharedObjectHandoffKey(sessionIndex, sharedObjectId)
       cancelScheduledRelease(key)
-      if (initialObject) {
-        initialObjectsBySessionAndId.set(key, initialObject)
-      } else {
-        initialObjectsBySessionAndId.delete(key)
-      }
-      const sharedObject = heldSharedObjects.pop()
-      if (sharedObject) {
-        const existing = sharedObjectsBySessionAndId.get(key)
-        if (existing && existing !== sharedObject && !existing.released) {
-          existing.release()
-        }
-        sharedObjectsBySessionAndId.set(key, sharedObject)
-      }
-      const body = heldSharedObjectBodies.pop()
-      if (body) {
-        const existing = sharedObjectBodiesBySessionAndId.get(key)
-        if (existing && existing !== body && !existing.released) {
-          existing.release()
-        }
-        sharedObjectBodiesBySessionAndId.set(key, body)
-      }
-      const space = heldSpaces.pop()
-      if (space) {
-        const existing = spacesBySessionAndId.get(key)
-        if (existing && existing !== space && !existing.released) {
-          existing.release()
-        }
-        spacesBySessionAndId.set(key, space)
-      }
-      const contents = heldSpaceContents.pop()
-      if (contents) {
-        const existing = spaceContentsBySessionAndId.get(key)
-        if (existing && existing !== contents && !existing.released) {
-          existing.release()
-        }
-        spaceContentsBySessionAndId.set(key, contents)
-      }
-      const world = heldSpaceWorlds.pop()
-      if (world) {
-        const existing = spaceWorldsBySessionAndId.get(key)
-        if (existing && existing !== world) {
-          existing.release()
-        }
-        spaceWorldsBySessionAndId.set(key, world)
-      }
+      const record = handoffRecordAt(key, true)
+      if (!record) return
+      record.initialObject = initialObject
+      stageHandoffResource(key, heldSharedObjects, SHARED_OBJECT_FIELD)
+      stageHandoffResource(
+        key,
+        heldSharedObjectBodies,
+        SHARED_OBJECT_BODY_FIELD,
+      )
+      stageHandoffResource(key, heldSpaces, SPACE_FIELD)
+      stageHandoffResource(key, heldSpaceContents, SPACE_CONTENTS_FIELD)
+      stageHandoffResource(key, heldSpaceWorlds, SPACE_WORLD_FIELD)
       while (heldSharedObjects.length) {
         const extra = heldSharedObjects.pop()
         if (extra) {
@@ -514,45 +594,21 @@ export function createQuickstartSessionHandoffCleanup(
 }
 
 export function releaseQuickstartSessionHandoffsForTests(): void {
-  for (const timer of releaseTimersBySessionAndId.values()) {
-    clearTimeout(timer)
-  }
-  releaseTimersBySessionAndId.clear()
-  sharedObjectRoutesAwaitingResourcesList.clear()
-
-  for (const world of spaceWorldsBySessionAndId.values()) {
-    world.release()
-  }
-  spaceWorldsBySessionAndId.clear()
-  initialObjectsBySessionAndId.clear()
-
-  for (const contents of spaceContentsBySessionAndId.values()) {
-    if (!contents.released) {
-      contents.release()
+  for (const [key, record] of sharedObjectHandoffsByKey) {
+    if (record.releaseTimer) {
+      clearTimeout(record.releaseTimer)
+      record.releaseTimer = undefined
     }
+    record.awaitingResourcesList = false
+    record.initialObject = undefined
+    if (record.spaceWorld) releaseSpaceWorld(record.spaceWorld)
+    if (record.spaceContents) releaseSpaceContents(record.spaceContents)
+    if (record.space) releaseSpace(record.space)
+    if (record.sharedObjectBody)
+      releaseSharedObjectBody(record.sharedObjectBody)
+    if (record.sharedObject) releaseSharedObject(record.sharedObject)
+    deleteHandoffRecordIfEmpty(key, record)
   }
-  spaceContentsBySessionAndId.clear()
-
-  for (const space of spacesBySessionAndId.values()) {
-    if (!space.released) {
-      space.release()
-    }
-  }
-  spacesBySessionAndId.clear()
-
-  for (const body of sharedObjectBodiesBySessionAndId.values()) {
-    if (!body.released) {
-      body.release()
-    }
-  }
-  sharedObjectBodiesBySessionAndId.clear()
-
-  for (const sharedObject of sharedObjectsBySessionAndId.values()) {
-    if (!sharedObject.released) {
-      sharedObject.release()
-    }
-  }
-  sharedObjectsBySessionAndId.clear()
 
   for (const handoff of handoffsBySessionIndex.values()) {
     releaseHandoff(handoff)
