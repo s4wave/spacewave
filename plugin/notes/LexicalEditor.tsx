@@ -82,7 +82,9 @@ const EDITOR_NODES = [
 interface LexicalEditorProps {
   content: string
   format: NoteFileFormat
-  onSave: (content: string) => void
+  onSave: (content: string) => void | Promise<void>
+  onDraftChange?: (content: string) => void
+  onDirty?: () => void
   composerKey?: string
 }
 
@@ -92,18 +94,15 @@ function LexicalEditor({
   content,
   format,
   onSave,
+  onDraftChange,
+  onDirty,
   composerKey,
 }: LexicalEditorProps) {
   // Remount the composer when the source changes externally.
   // The key ensures a fresh Lexical instance.
   const key = composerKey ?? `${format}:${content}`
 
-  const handleSave = useCallback(
-    (body: string) => {
-      onSave(body)
-    },
-    [onSave],
-  )
+  const handleSave = useCallback((body: string) => onSave(body), [onSave])
 
   const exportContent = useCallback(() => {
     return format === 'org'
@@ -137,7 +136,10 @@ function LexicalEditor({
       >
         <RichTextPlugin
           contentEditable={
-            <ContentEditable className="text-editor-foreground text-ui min-h-full p-4 outline-none" />
+            <ContentEditable
+              aria-label="Note editor"
+              className="text-editor-foreground text-ui focus-visible:ring-brand min-h-full p-4 outline-none focus-visible:ring-2 focus-visible:ring-inset"
+            />
           }
           ErrorBoundary={LexicalErrorBoundary}
         />
@@ -155,7 +157,13 @@ function LexicalEditor({
         <FloatingToolbarPlugin />
         <SlashCommandPlugin />
         <EditorCommandsPlugin />
-        <SavePlugin exportString={exportContent} onSave={handleSave} />
+        <SavePlugin
+          savedContent={content}
+          exportString={exportContent}
+          onSave={handleSave}
+          onDraftChange={onDraftChange}
+          onDirty={onDirty}
+        />
       </FocusContextProvider>
     </LexicalComposer>
   )
