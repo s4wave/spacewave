@@ -1,20 +1,31 @@
 syntax = "proto3";
 package spacewave.chat.rpc;
 
+import "github.com/s4wave/spacewave/sdk/chat/chat.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/chat/rpc;spacewave_chat_rpc";
 
+// ChatResourceService is the client-facing read and send boundary for one
+// chat channel. It serves flattened projections of chat channel state and
+// accepts native sends; bridged external events enter through the claim
+// path on the ChatResource instead of through this service.
 service ChatResourceService {
+  // GetChannelInfo returns the name and topic metadata for the channel.
   rpc GetChannelInfo(GetChannelInfoRequest) returns (GetChannelInfoResponse);
+  // ListMessages returns a page of channel messages before an optional key.
   rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  // WatchMessages streams batches of new messages as they arrive.
   rpc WatchMessages(WatchMessagesRequest) returns (stream WatchMessagesResponse);
+  // SendMessage sends a native message as the authenticated caller and
+  // dedupes retries by ClientMessageId.
   rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
 }
 
 // ChatMessageInfo contains flattened message info for the client.
 message ChatMessageInfo {
-  // ObjectKey is the message world object key.
+  // ObjectKey is the message world object key. No-graph-consumer exemption:
+  // this projection exports the raw key to clients without graph access.
   string object_key = 1;
   // SenderPeerId is the sender's peer ID.
   string sender_peer_id = 2;
@@ -22,12 +33,23 @@ message ChatMessageInfo {
   string text = 3;
   // CreatedAt is the message creation timestamp.
   .google.protobuf.Timestamp created_at = 4;
-  // ReplyToKey is the key of the message being replied to.
+  // ReplyToKey is the key of the message being replied to, when present.
+  // No-graph-consumer exemption: this projection exports the stored key to
+  // clients without graph access.
   string reply_to_key = 5;
+  // Origin mirrors the stored message send origin.
+  oneof origin {
+    // ClientMessageId mirrors a native send retry identity.
+    string client_message_id = 6;
+    // ExternalRef mirrors the bridged external event reference.
+    spacewave.chat.ExternalMessageRef external_ref = 7;
+  }
 }
 
-// GetChannelInfoRequest is a request for channel info.
-message GetChannelInfoRequest {}
+// GetChannelInfoRequest requests channel info for the addressed channel. It
+// carries no fields because the channel is selected by the call target.
+message GetChannelInfoRequest {
+}
 
 // GetChannelInfoResponse contains channel metadata.
 message GetChannelInfoResponse {
@@ -39,7 +61,8 @@ message GetChannelInfoResponse {
 
 // ListMessagesRequest is a request for paginated messages.
 message ListMessagesRequest {
-  // BeforeKey returns messages before this key (for pagination).
+  // BeforeKey returns messages before this key. Ordering exemption:
+  // pagination follows the channel's ordered key page, not a graph edge.
   string before_key = 1;
   // Limit is the maximum number of messages to return.
   uint32 limit = 2;
@@ -53,8 +76,10 @@ message ListMessagesResponse {
   bool has_more = 2;
 }
 
-// WatchMessagesRequest is a request to stream messages.
-message WatchMessagesRequest {}
+// WatchMessagesRequest subscribes to new messages in the addressed channel.
+// It carries no fields because the stream follows the whole channel.
+message WatchMessagesRequest {
+}
 
 // WatchMessagesResponse contains a batch of new messages.
 message WatchMessagesResponse {
@@ -62,16 +87,28 @@ message WatchMessagesResponse {
   repeated ChatMessageInfo messages = 1;
 }
 
-// SendMessageRequest is a request to send a message.
+// SendMessageRequest is a request to send a message. The author is always the
+// authenticated caller's peer identity; requests cannot set another author.
 message SendMessageRequest {
   // Text is the message text.
   string text = 1;
-  // ReplyToKey is the optional key of the message to reply to.
+  // ReplyToKey is the optional key of the message to reply to. No-graph
+  // consumer exemption: callers pass through the raw key returned by this
+  // service.
   string reply_to_key = 2;
+  // ClientMessageId makes a native send retry idempotent. It is nonempty,
+  // printable ASCII of at most 256 bytes, scoped by sender and channel.
+  string client_message_id = 3;
+
+  // Field 4 is reserved. Bridged origins enter through the claim path, never
+  // from native SendMessage clients.
+  reserved 4;
 }
 
 // SendMessageResponse is the response after sending a message.
 message SendMessageResponse {
-  // MessageKey is the object key of the created message.
+  // MessageKey is the object key of the created or existing message.
+  // No-graph-consumer exemption: clients receive the raw key without World
+  // graph access; duplicate sends resolve to the original key internally.
   string message_key = 1;
 }

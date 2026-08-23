@@ -16,7 +16,8 @@ import (
 
 func TestMarshalFriendDmChannelWorldOp(t *testing.T) {
 	_, sender := generateTestKeypair(t)
-	data, err := marshalFriendDmChannelWorldOp(sender)
+	members := []string{"peer-a", "peer-b"}
+	data, err := marshalFriendDmChannelWorldOp(sender, members)
 	if err != nil {
 		t.Fatalf("marshalFriendDmChannelWorldOp: %v", err)
 	}
@@ -41,6 +42,9 @@ func TestMarshalFriendDmChannelWorldOp(t *testing.T) {
 	}
 	if tx.GetTxApplyWorldOp().GetOpSender() != sender.String() {
 		t.Fatalf("op sender = %q", tx.GetTxApplyWorldOp().GetOpSender())
+	}
+	if got := chatOp.GetMemberPeerIds(); !reflect.DeepEqual(got, members) {
+		t.Fatalf("member peer ids = %v, want %v", got, members)
 	}
 }
 

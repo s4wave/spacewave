@@ -21,12 +21,19 @@ import {
 } from 'starpc'
 
 /**
+ * ChatResourceService is the client-facing read and send boundary for one
+ * chat channel. It serves flattened projections of chat channel state and
+ * accepts native sends; bridged external events enter through the claim
+ * path on the ChatResource instead of through this service.
+ *
  * @generated from service spacewave.chat.rpc.ChatResourceService
  */
 export const ChatResourceServiceDefinition = {
   typeName: 'spacewave.chat.rpc.ChatResourceService',
   methods: {
     /**
+     * GetChannelInfo returns the name and topic metadata for the channel.
+     *
      * @generated from rpc spacewave.chat.rpc.ChatResourceService.GetChannelInfo
      */
     GetChannelInfo: {
@@ -36,6 +43,8 @@ export const ChatResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ListMessages returns a page of channel messages before an optional key.
+     *
      * @generated from rpc spacewave.chat.rpc.ChatResourceService.ListMessages
      */
     ListMessages: {
@@ -45,6 +54,8 @@ export const ChatResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * WatchMessages streams batches of new messages as they arrive.
+     *
      * @generated from rpc spacewave.chat.rpc.ChatResourceService.WatchMessages
      */
     WatchMessages: {
@@ -54,6 +65,9 @@ export const ChatResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * SendMessage sends a native message as the authenticated caller and
+     * dedupes retries by ClientMessageId.
+     *
      * @generated from rpc spacewave.chat.rpc.ChatResourceService.SendMessage
      */
     SendMessage: {
@@ -66,10 +80,17 @@ export const ChatResourceServiceDefinition = {
 } as const
 
 /**
+ * ChatResourceService is the client-facing read and send boundary for one
+ * chat channel. It serves flattened projections of chat channel state and
+ * accepts native sends; bridged external events enter through the claim
+ * path on the ChatResource instead of through this service.
+ *
  * @generated from service spacewave.chat.rpc.ChatResourceService
  */
 export interface ChatResourceService {
   /**
+   * GetChannelInfo returns the name and topic metadata for the channel.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.GetChannelInfo
    */
   GetChannelInfo(
@@ -78,6 +99,8 @@ export interface ChatResourceService {
   ): Promise<GetChannelInfoResponse>
 
   /**
+   * ListMessages returns a page of channel messages before an optional key.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.ListMessages
    */
   ListMessages(
@@ -86,6 +109,8 @@ export interface ChatResourceService {
   ): Promise<ListMessagesResponse>
 
   /**
+   * WatchMessages streams batches of new messages as they arrive.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.WatchMessages
    */
   WatchMessages(
@@ -94,6 +119,9 @@ export interface ChatResourceService {
   ): MessageStream<WatchMessagesResponse>
 
   /**
+   * SendMessage sends a native message as the authenticated caller and
+   * dedupes retries by ClientMessageId.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.SendMessage
    */
   SendMessage(
@@ -103,10 +131,17 @@ export interface ChatResourceService {
 }
 
 /**
+ * ChatResourceService is the client-facing read and send boundary for one
+ * chat channel. It serves flattened projections of chat channel state and
+ * accepts native sends; bridged external events enter through the claim
+ * path on the ChatResource instead of through this service.
+ *
  * @generated from service spacewave.chat.rpc.ChatResourceService
  */
 export interface ChatResourceServiceHandler {
   /**
+   * GetChannelInfo returns the name and topic metadata for the channel.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.GetChannelInfo
    */
   GetChannelInfo(
@@ -116,6 +151,8 @@ export interface ChatResourceServiceHandler {
   ): Promise<GetChannelInfoResponse>
 
   /**
+   * ListMessages returns a page of channel messages before an optional key.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.ListMessages
    */
   ListMessages(
@@ -125,6 +162,8 @@ export interface ChatResourceServiceHandler {
   ): Promise<ListMessagesResponse>
 
   /**
+   * WatchMessages streams batches of new messages as they arrive.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.WatchMessages
    */
   WatchMessages(
@@ -134,6 +173,9 @@ export interface ChatResourceServiceHandler {
   ): MessageStream<WatchMessagesResponse>
 
   /**
+   * SendMessage sends a native message as the authenticated caller and
+   * dedupes retries by ClientMessageId.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.SendMessage
    */
   SendMessage(
@@ -158,6 +200,8 @@ export class ChatResourceServiceClient implements ChatResourceService {
     this.SendMessage = this.SendMessage.bind(this)
   }
   /**
+   * GetChannelInfo returns the name and topic metadata for the channel.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.GetChannelInfo
    */
   async GetChannelInfo(
@@ -175,6 +219,8 @@ export class ChatResourceServiceClient implements ChatResourceService {
   }
 
   /**
+   * ListMessages returns a page of channel messages before an optional key.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.ListMessages
    */
   async ListMessages(
@@ -192,6 +238,8 @@ export class ChatResourceServiceClient implements ChatResourceService {
   }
 
   /**
+   * WatchMessages streams batches of new messages as they arrive.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.WatchMessages
    */
   WatchMessages(
@@ -209,6 +257,9 @@ export class ChatResourceServiceClient implements ChatResourceService {
   }
 
   /**
+   * SendMessage sends a native message as the authenticated caller and
+   * dedupes retries by ClientMessageId.
+   *
    * @generated from rpc spacewave.chat.rpc.ChatResourceService.SendMessage
    */
   async SendMessage(

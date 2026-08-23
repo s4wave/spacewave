@@ -398,14 +398,50 @@ func reconcileFriendDmParticipants(
 	return nil
 }
 
-func marshalFriendDmChannelWorldOp(opSender peer.ID) ([]byte, error) {
+// friendDmChannelMembers returns the sorted unique participant peer IDs of
+// the shared object, which are exactly the local and remote DM peers.
+func friendDmChannelMembers(ctx context.Context, swSO *SharedObject, localPeerID peer.ID) ([]string, error) {
+	state, err := swSO.GetSOHost().GetHostState(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if state.GetConfig() == nil {
+		return nil, errors.New("friend dm config is missing")
+	}
+	seen := make(map[string]struct{}, len(state.GetConfig().GetParticipants()))
+	var members []string
+	for _, participant := range state.GetConfig().GetParticipants() {
+		peerID := participant.GetPeerId()
+		if peerID == "" {
+			continue
+		}
+		if _, dup := seen[peerID]; dup {
+			continue
+		}
+		seen[peerID] = struct{}{}
+		members = append(members, peerID)
+	}
+	if localPeerID != "" {
+		if _, ok := seen[string(localPeerID)]; !ok {
+			members = append(members, string(localPeerID))
+		}
+	}
+	slices.Sort(members)
+	if len(members) == 0 {
+		return nil, errors.New("friend dm channel has no member peers")
+	}
+	return members, nil
+}
+
+func marshalFriendDmChannelWorldOp(opSender peer.ID, memberPeerIds []string) ([]byte, error) {
 	if opSender == "" {
 		return nil, errors.New("friend dm channel op sender is required")
 	}
 	op := &spacewave_chat.CreateChatChannelOp{
-		ObjectKey: FriendDmChannelObjectKey,
-		Name:      "Direct Messages",
-		Timestamp: timestamppb.Now(),
+		ObjectKey:     FriendDmChannelObjectKey,
+		Name:          "Direct Messages",
+		Timestamp:     timestamppb.Now(),
+		MemberPeerIds: memberPeerIds,
 	}
 	tx, err := world_block_tx.NewTxApplyWorldOp(op, opSender)
 	if err != nil {
@@ -449,7 +485,11 @@ func ensureFriendDmChannel(
 		return nil
 	}
 
-	opData, err := marshalFriendDmChannelWorldOp(opSender)
+	memberPeerIds, err := friendDmChannelMembers(ctx, swSO, opSender)
+	if err != nil {
+		return errors.Wrap(err, "collect friend dm channel members")
+	}
+	opData, err := marshalFriendDmChannelWorldOp(opSender, memberPeerIds)
 	if err != nil {
 		return err
 	}

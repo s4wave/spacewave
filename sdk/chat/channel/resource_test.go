@@ -1,8 +1,9 @@
-package spacewave_chat
+package spacewave_chat_channel
 
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	db_world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	spacewave_chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 )
 
@@ -74,9 +76,9 @@ func TestChatResourceSendsListsAndWatchesMessages(t *testing.T) {
 	defer wtb.Release()
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
-	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
+	createChatChannel(t, ctx, ws, spacewave_chat.GeneralChannelKey, "General")
 
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	resource := NewChatResource(ws, wtb.Engine, spacewave_chat.GeneralChannelKey, "peer-local")
 
 	info, err := resource.GetChannelInfo(ctx, &spacewave_chat_rpc.GetChannelInfoRequest{})
 	if err != nil {
@@ -86,7 +88,10 @@ func TestChatResourceSendsListsAndWatchesMessages(t *testing.T) {
 		t.Fatalf("channel name = %q, want General", info.GetName())
 	}
 
-	sendResp, err := resource.SendMessage(ctx, &spacewave_chat_rpc.SendMessageRequest{Text: "hello goscript chat"})
+	sendResp, err := resource.SendMessage(ctx, &spacewave_chat_rpc.SendMessageRequest{
+		Text:            "hello goscript chat",
+		ClientMessageId: "cmid-1",
+	})
 	if err != nil {
 		t.Fatalf("SendMessage: %v", err)
 	}
@@ -100,12 +105,12 @@ func TestChatResourceSendsListsAndWatchesMessages(t *testing.T) {
 	}
 	requireChatMessages(t, listResp.GetMessages(), sendResp.GetMessageKey(), "hello goscript chat", "peer-local")
 
-	if err := world_types.CheckObjectType(ctx, ws, sendResp.GetMessageKey(), ChatMessageTypeID); err != nil {
+	if err := world_types.CheckObjectType(ctx, ws, sendResp.GetMessageKey(), spacewave_chat.ChatMessageTypeID); err != nil {
 		t.Fatalf("message object type: %v", err)
 	}
 	quads, err := ws.LookupGraphQuads(
 		ctx,
-		world.NewGraphQuadWithKeys(GeneralChannelKey, PredChannelMessage.String(), sendResp.GetMessageKey(), ""),
+		world.NewGraphQuadWithKeys(spacewave_chat.GeneralChannelKey, spacewave_chat.PredChannelMessage.String(), sendResp.GetMessageKey(), ""),
 		1,
 	)
 	if err != nil {
@@ -146,8 +151,8 @@ func TestChatResourceWatchMessagesSettlesEmptyChannel(t *testing.T) {
 	t.Cleanup(wtb.Release)
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
-	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	createChatChannel(t, ctx, ws, spacewave_chat.GeneralChannelKey, "General")
+	resource := NewChatResource(ws, wtb.Engine, spacewave_chat.GeneralChannelKey, "peer-local")
 
 	watchCtx, cancel := context.WithCancel(ctx)
 	t.Cleanup(cancel)
@@ -182,14 +187,14 @@ func TestChatResourceListMessagesBeforeKeyUsesSortedMessageSet(t *testing.T) {
 	defer wtb.Release()
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
-	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
-	createChatMessage(t, ctx, ws, GeneralChannelKey, GeneralChannelKey+"/message/0", "first", "peer-local")
-	createChatMessage(t, ctx, ws, GeneralChannelKey, GeneralChannelKey+"/message/1", "second", "peer-local")
-	createChatMessage(t, ctx, ws, GeneralChannelKey, GeneralChannelKey+"/message/2", "third", "peer-local")
+	createChatChannel(t, ctx, ws, spacewave_chat.GeneralChannelKey, "General")
+	createChatMessage(t, ctx, ws, spacewave_chat.GeneralChannelKey, spacewave_chat.GeneralChannelKey+"/message/0", "first", "peer-local")
+	createChatMessage(t, ctx, ws, spacewave_chat.GeneralChannelKey, spacewave_chat.GeneralChannelKey+"/message/1", "second", "peer-local")
+	createChatMessage(t, ctx, ws, spacewave_chat.GeneralChannelKey, spacewave_chat.GeneralChannelKey+"/message/2", "third", "peer-local")
 
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	resource := NewChatResource(ws, wtb.Engine, spacewave_chat.GeneralChannelKey, "peer-local")
 	listResp, err := resource.ListMessages(ctx, &spacewave_chat_rpc.ListMessagesRequest{
-		BeforeKey: GeneralChannelKey + "/message/2",
+		BeforeKey: spacewave_chat.GeneralChannelKey + "/message/2",
 		Limit:     1,
 	})
 	if err != nil {
@@ -198,7 +203,7 @@ func TestChatResourceListMessagesBeforeKeyUsesSortedMessageSet(t *testing.T) {
 	if !listResp.GetHasMore() {
 		t.Fatal("ListMessages hasMore = false, want true")
 	}
-	requireChatMessages(t, listResp.GetMessages(), GeneralChannelKey+"/message/1", "second", "peer-local")
+	requireChatMessages(t, listResp.GetMessages(), spacewave_chat.GeneralChannelKey+"/message/1", "second", "peer-local")
 }
 
 func TestChatResourceListMessagesClampsLimitAcrossPages(t *testing.T) {
@@ -210,16 +215,16 @@ func TestChatResourceListMessagesClampsLimitAcrossPages(t *testing.T) {
 	defer wtb.Release()
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
-	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
+	createChatChannel(t, ctx, ws, spacewave_chat.GeneralChannelKey, "General")
 
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "peer-local")
+	resource := NewChatResource(ws, wtb.Engine, spacewave_chat.GeneralChannelKey, "peer-local")
 	for idx := range 70 {
 		createChatMessage(
 			t,
 			ctx,
 			ws,
-			GeneralChannelKey,
-			fmt.Sprintf("%s/message/%d", GeneralChannelKey, idx),
+			spacewave_chat.GeneralChannelKey,
+			fmt.Sprintf("%s/message/%d", spacewave_chat.GeneralChannelKey, idx),
 			fmt.Sprintf("message-%02d", idx),
 			"peer-local",
 		)
@@ -236,10 +241,10 @@ func TestChatResourceListMessagesClampsLimitAcrossPages(t *testing.T) {
 	if !listResp.GetHasMore() {
 		t.Fatal("ListMessages hasMore = false, want true")
 	}
-	if first := messages[0]; first.GetObjectKey() != GeneralChannelKey+"/message/20" || first.GetText() != "message-20" {
+	if first := messages[0]; first.GetObjectKey() != spacewave_chat.GeneralChannelKey+"/message/20" || first.GetText() != "message-20" {
 		t.Fatalf("first clamped message = %q %q, want message 20", first.GetObjectKey(), first.GetText())
 	}
-	if last := messages[len(messages)-1]; last.GetObjectKey() != GeneralChannelKey+"/message/69" || last.GetText() != "message-69" {
+	if last := messages[len(messages)-1]; last.GetObjectKey() != spacewave_chat.GeneralChannelKey+"/message/69" || last.GetText() != "message-69" {
 		t.Fatalf("last clamped message = %q %q, want message 69", last.GetObjectKey(), last.GetText())
 	}
 }
@@ -253,9 +258,9 @@ func TestChatResourceAllowsAnonymousConstructionAndRead(t *testing.T) {
 	t.Cleanup(wtb.Release)
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
-	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
+	createChatChannel(t, ctx, ws, spacewave_chat.GeneralChannelKey, "General")
 
-	resource := NewChatResource(ws, nil, GeneralChannelKey, "")
+	resource := NewChatResource(ws, nil, spacewave_chat.GeneralChannelKey, "")
 	if resource == nil {
 		t.Fatal("NewChatResource returned nil")
 	}
@@ -284,41 +289,50 @@ func TestChatResourceRejectsAnonymousSender(t *testing.T) {
 	defer wtb.Release()
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
-	createChatChannel(t, ctx, ws, GeneralChannelKey, "General")
+	createChatChannel(t, ctx, ws, spacewave_chat.GeneralChannelKey, "General")
 
-	resource := NewChatResource(ws, wtb.Engine, GeneralChannelKey, "")
-	_, err = resource.SendMessage(ctx, &spacewave_chat_rpc.SendMessageRequest{Text: "anonymous"})
+	resource := NewChatResource(ws, wtb.Engine, spacewave_chat.GeneralChannelKey, "")
+	_, err = resource.SendMessage(ctx, &spacewave_chat_rpc.SendMessageRequest{Text: "anonymous", ClientMessageId: "cmid-anon"})
 	if err != ErrChatAuthorIdentityRequired {
 		t.Fatalf("SendMessage error = %v, want %v", err, ErrChatAuthorIdentityRequired)
 	}
 }
 
-func createChatChannel(t *testing.T, ctx context.Context, ws world.WorldState, objectKey, name string) {
+func createChatChannel(
+	t *testing.T,
+	ctx context.Context,
+	ws world.WorldState,
+	objectKey string,
+	name string,
+	memberPeerIds ...string,
+) {
 	t.Helper()
 
 	_, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
-		bcs.SetBlock(&ChatChannel{Name: name, CreatedAt: timestamppb.Now()}, true)
+		bcs.SetBlock(&spacewave_chat.ChatChannel{Name: name, CreatedAt: timestamppb.Now(), MemberPeerIds: memberPeerIds}, true)
 		return nil
 	})
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
-	if err := world_types.SetObjectType(ctx, ws, objectKey, ChatChannelTypeID); err != nil {
+	if err := world_types.SetObjectType(ctx, ws, objectKey, spacewave_chat.ChatChannelTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
 	}
 }
 
+// createChatMessage stores one message block at an arbitrary key and appends
+// it to the channel pages, mirroring the canonical append shape.
 func createChatMessage(t *testing.T, ctx context.Context, ws world.WorldState, channelKey, msgKey, text, sender string) {
 	t.Helper()
 
-	msgIndex, ok := parseMessageIndex(msgKey)
+	msgIndex, ok := parseTestMessageIndex(msgKey)
 	if !ok {
 		t.Fatalf("message key %q does not end with an index", msgKey)
 	}
 	_, _, err := world.CreateWorldObject(ctx, ws, msgKey, func(bcs *block.Cursor) error {
-		bcs.SetBlock(&ChatMessage{
+		bcs.SetBlock(&spacewave_chat.ChatMessage{
 			SenderPeerId: sender,
-			Content:      &ChatMessageContent{Content: &ChatMessageContent_Text{Text: text}},
+			Content:      &spacewave_chat.ChatMessageContent{Content: &spacewave_chat.ChatMessageContent_Text{Text: text}},
 			CreatedAt:    timestamppb.Now(),
 			Index:        msgIndex,
 		}, true)
@@ -327,11 +341,11 @@ func createChatMessage(t *testing.T, ctx context.Context, ws world.WorldState, c
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", msgKey, err)
 	}
-	if err := world_types.SetObjectType(ctx, ws, msgKey, ChatMessageTypeID); err != nil {
+	if err := world_types.SetObjectType(ctx, ws, msgKey, spacewave_chat.ChatMessageTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", msgKey, err)
 	}
 	appendChatMessageKey(t, ctx, ws, channelKey, msgKey)
-	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(channelKey, PredChannelMessage.String(), msgKey, "")); err != nil {
+	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(channelKey, spacewave_chat.PredChannelMessage.String(), msgKey, "")); err != nil {
 		t.Fatalf("SetGraphQuad(%s): %v", msgKey, err)
 	}
 }
@@ -339,7 +353,7 @@ func createChatMessage(t *testing.T, ctx context.Context, ws world.WorldState, c
 func appendChatMessageKey(t *testing.T, ctx context.Context, ws world.WorldState, channelKey, msgKey string) {
 	t.Helper()
 
-	msgIndex, ok := parseMessageIndex(msgKey)
+	msgIndex, ok := parseTestMessageIndex(msgKey)
 	if !ok {
 		t.Fatalf("message key %q does not end with an index", msgKey)
 	}
@@ -351,7 +365,7 @@ func appendChatMessageKey(t *testing.T, ctx context.Context, ws world.WorldState
 		t.Fatalf("GetObject(%s): not found", channelKey)
 	}
 	_, _, err = world.AccessObjectState(ctx, channelObj, true, func(bcs *block.Cursor) error {
-		channel, err := block.UnmarshalBlock[*ChatChannel](ctx, bcs, NewChatChannelBlock)
+		channel, err := block.UnmarshalBlock[*spacewave_chat.ChatChannel](ctx, bcs, spacewave_chat.NewChatChannelBlock)
 		if err != nil {
 			return err
 		}
@@ -376,12 +390,12 @@ func appendChatMessageKey(t *testing.T, ctx context.Context, ws world.WorldState
 		}
 	}
 	_, _, err = world.AccessObjectState(ctx, pageObj, true, func(bcs *block.Cursor) error {
-		page, err := block.UnmarshalBlock[*ChatMessagePage](ctx, bcs, NewChatMessagePageBlock)
+		page, err := block.UnmarshalBlock[*spacewave_chat.ChatMessagePage](ctx, bcs, spacewave_chat.NewChatMessagePageBlock)
 		if err != nil {
 			return err
 		}
 		if page == nil {
-			page = &ChatMessagePage{}
+			page = &spacewave_chat.ChatMessagePage{}
 		}
 		page.MessageKeys = append(page.MessageKeys, msgKey)
 		bcs.SetBlock(page, true)
@@ -390,6 +404,21 @@ func appendChatMessageKey(t *testing.T, ctx context.Context, ws world.WorldState
 	if err != nil {
 		t.Fatalf("append page message key(%s): %v", msgKey, err)
 	}
+}
+
+func parseTestMessageIndex(messageKey string) (uint64, bool) {
+	idx := len(messageKey) - 1
+	for idx >= 0 && messageKey[idx] != '/' {
+		idx--
+	}
+	if idx < 0 || idx == len(messageKey)-1 {
+		return 0, false
+	}
+	messageIndex, err := strconv.ParseUint(messageKey[idx+1:], 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	return messageIndex, true
 }
 
 func recvChatWatchValue(t *testing.T, ch <-chan *spacewave_chat_rpc.WatchMessagesResponse) *spacewave_chat_rpc.WatchMessagesResponse {

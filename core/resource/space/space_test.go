@@ -22,6 +22,7 @@ import (
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
+	spacewave_chat_channel "github.com/s4wave/spacewave/sdk/chat/channel"
 	spacewave_chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 	spacewave_chat_world "github.com/s4wave/spacewave/sdk/chat/world"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
@@ -107,8 +108,8 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 		t.Fatalf("AccessTypedObject(anonymous): %v", err)
 	}
 	anonymousChat := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, anonymousChannel.GetResourceId()))
-	if _, err := anonymousChat.SendMessage(anonymousCtx, &spacewave_chat_rpc.SendMessageRequest{Text: "anonymous"}); err == nil || !strings.Contains(err.Error(), spacewave_chat.ErrChatAuthorIdentityRequired.Error()) {
-		t.Fatalf("anonymous SendMessage error = %v, want %v", err, spacewave_chat.ErrChatAuthorIdentityRequired)
+	if _, err := anonymousChat.SendMessage(anonymousCtx, &spacewave_chat_rpc.SendMessageRequest{Text: "anonymous"}); err == nil || !strings.Contains(err.Error(), spacewave_chat_channel.ErrChatAuthorIdentityRequired.Error()) {
+		t.Fatalf("anonymous SendMessage error = %v, want %v", err, spacewave_chat_channel.ErrChatAuthorIdentityRequired)
 	}
 	resources.ReleaseResource(anonymousChannel.GetResourceId())
 	select {
@@ -143,7 +144,7 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 		t.Fatalf("AccessTypedObject(A): %v", err)
 	}
 	chatA := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, typedA.GetResourceId()))
-	sendA, err := chatA.SendMessage(ctxWithPeerB, &spacewave_chat_rpc.SendMessageRequest{Text: "from A"})
+	sendA, err := chatA.SendMessage(ctxWithPeerB, &spacewave_chat_rpc.SendMessageRequest{Text: "from A", ClientMessageId: "space-a"})
 	if err != nil {
 		t.Fatalf("SendMessage(A): %v", err)
 	}
@@ -156,7 +157,7 @@ func TestSpaceResourceChatSenderUsesMountedSessionPeer(t *testing.T) {
 		t.Fatalf("AccessTypedObject(B): %v", err)
 	}
 	chatB := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, typedB.GetResourceId()))
-	sendB, err := chatB.SendMessage(ctxWithPeerA, &spacewave_chat_rpc.SendMessageRequest{Text: "from B"})
+	sendB, err := chatB.SendMessage(ctxWithPeerA, &spacewave_chat_rpc.SendMessageRequest{Text: "from B", ClientMessageId: "space-b"})
 	if err != nil {
 		t.Fatalf("SendMessage(B): %v", err)
 	}
@@ -294,13 +295,13 @@ func TestTypedObjectResourceCacheSeparatesPeerIdentities(t *testing.T) {
 	}
 
 	chatA := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, typedA1.GetResourceId()))
-	sendA, err := chatA.SendMessage(ctxA, &spacewave_chat_rpc.SendMessageRequest{Text: "owner A"})
+	sendA, err := chatA.SendMessage(ctxA, &spacewave_chat_rpc.SendMessageRequest{Text: "owner A", ClientMessageId: "cache-a"})
 	if err != nil {
 		t.Fatalf("SendMessage(A): %v", err)
 	}
 	assertSpaceChatSender(t, ctx, tb.BusEngine, sendA.GetMessageKey(), peerA.String())
 	chatB := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, typedB1.GetResourceId()))
-	sendB, err := chatB.SendMessage(ctxB, &spacewave_chat_rpc.SendMessageRequest{Text: "owner B"})
+	sendB, err := chatB.SendMessage(ctxB, &spacewave_chat_rpc.SendMessageRequest{Text: "owner B", ClientMessageId: "cache-b"})
 	if err != nil {
 		t.Fatalf("SendMessage(B): %v", err)
 	}
@@ -426,7 +427,7 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 		t.Fatalf("AccessTypedObject(A tx): %v", err)
 	}
 	txChat := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, txChannel.GetResourceId()))
-	txSend, err := txChat.SendMessage(ctxWithPeerB, &spacewave_chat_rpc.SendMessageRequest{Text: "from A tx"})
+	txSend, err := txChat.SendMessage(ctxWithPeerB, &spacewave_chat_rpc.SendMessageRequest{Text: "from A tx", ClientMessageId: "tx-a"})
 	if err != nil {
 		t.Fatalf("SendMessage(A tx): %v", err)
 	}
@@ -454,7 +455,7 @@ func TestSpaceResourceChatSenderPropagatesThroughChildWorldResources(t *testing.
 	trackedChat := spacewave_chat_rpc.NewSRPCChatResourceServiceClient(resources.client(t, trackedChannel.GetResourceId()))
 	cancelWatch()
 	_ = watch.Close()
-	trackedSend, err := trackedChat.SendMessage(ctxWithPeerA, &spacewave_chat_rpc.SendMessageRequest{Text: "from B tracked"})
+	trackedSend, err := trackedChat.SendMessage(ctxWithPeerA, &spacewave_chat_rpc.SendMessageRequest{Text: "from B tracked", ClientMessageId: "tracked-b"})
 	if err != nil {
 		t.Fatalf("SendMessage(B tracked): %v", err)
 	}

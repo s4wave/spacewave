@@ -16,6 +16,13 @@ message ChatChannel {
   .google.protobuf.Timestamp created_at = 3;
   // MessageCount is the number of messages appended to the channel.
   uint64 message_count = 4;
+  // MemberPeerIds lists peer IDs with explicit read and send authority on a
+  // private channel. An empty list keeps the channel open to all Space
+  // participants.
+  repeated string member_peer_ids = 5;
+  // ExternalRef names the external surface this channel bridges when the
+  // channel mirrors an external conversation. Empty for a native-only channel.
+  ExternalChannelRef external_ref = 6;
 }
 
 // ChatMessage is a chat message world object linked to a channel.
@@ -26,10 +33,68 @@ message ChatMessage {
   ChatMessageContent content = 2;
   // CreatedAt is the message creation timestamp.
   .google.protobuf.Timestamp created_at = 3;
-  // ReplyToKey is the object key of the message being replied to.
+  // ReplyToKey is the object key of the message being replied to, recorded
+  // exactly as the author observed it at send time. Immutable-snapshot
+  // exemption: the receipt keeps its observed key while the World reply edge
+  // stays the relationship authority.
   string reply_to_key = 4;
   // Index is the zero-based message index within the channel.
   uint64 index = 5;
+  // Origin holds exactly one send origin for this message.
+  oneof origin {
+    // ClientMessageId is the sender's own retry identity for a native send.
+    // Retries with the same value scoped by sender and channel dedupe to one
+    // message.
+    string client_message_id = 6;
+    // ExternalRef identifies the bridged external event this message relays.
+    ExternalMessageRef external_ref = 7;
+  }
+}
+
+// ExternalChannelRef names one channel on an external surface. The pair is
+// the durable external identity of one bridged channel.
+message ExternalChannelRef {
+  // System names the external surface.
+  string system = 1;
+  // ChannelId identifies the channel within System.
+  string channel_id = 2;
+}
+
+// ExternalMessageRef names one event on an external surface. System,
+// ChannelId, and EventId form the exactly-once delivery identity; AuthorId
+// records the external author without joining that identity.
+message ExternalMessageRef {
+  // System names the external surface the event arrived from.
+  string system = 1;
+  // ChannelId identifies the channel within System.
+  string channel_id = 2;
+  // EventId identifies the event within the external channel.
+  string event_id = 3;
+  // AuthorId identifies the external author of the event.
+  string author_id = 4;
+}
+
+// ChatExternalChannelClaim claims one external channel for exactly-once
+// binding. The ChatResource creates it in the same transaction as the bound
+// channel object.
+message ChatExternalChannelClaim {
+  // ExternalRef is the complete claimed external channel identity.
+  ExternalChannelRef external_ref = 1;
+  // ChannelObjectKey is the World object key of the bound chat channel.
+  // No-graph-consumer exemption: the external-identity claim resolves directly
+  // to this raw key without a graph lookup.
+  string channel_object_key = 2;
+}
+
+// ChatExternalEventClaim claims one external event for exactly-once delivery.
+// The ChatResource creates it in the same transaction as the claimed message.
+message ChatExternalEventClaim {
+  // ExternalRef is the complete claimed external event identity.
+  ExternalMessageRef external_ref = 1;
+  // MessageKey is the object key of the claimed channel message. Immutable
+  // snapshot exemption: the claim is a replay receipt and keeps the key it
+  // observed when written.
+  string message_key = 2;
 }
 
 // ChatMessageContent contains the message body.
@@ -43,12 +108,16 @@ message ChatMessageContent {
 // ChatMessagePage stores a bounded page of channel message keys.
 message ChatMessagePage {
   // MessageKeys are page-local message object keys in creation order.
+  // Ordering exemption: quads do not own domain order, so the ordered page
+  // stays a repeated string key list.
   repeated string message_keys = 1;
 }
 
 // InitChatDemoOp creates a "General" channel on space quickstart.
 message InitChatDemoOp {
-  // ChannelObjectKey is the key for the channel object.
+  // ChannelObjectKey is the key for the channel object. Deterministic
+  // identity input exemption: the op folds this caller-supplied key into the
+  // channel object grammar.
   string channel_object_key = 1;
   // Timestamp is the creation timestamp.
   .google.protobuf.Timestamp timestamp = 2;
@@ -56,7 +125,9 @@ message InitChatDemoOp {
 
 // CreateChatChannelOp creates a new chat channel.
 message CreateChatChannelOp {
-  // ObjectKey is the key to create the channel at.
+  // ObjectKey is the key to create the channel at. Deterministic identity
+  // input exemption: the op folds this supplied key into the channel object
+  // grammar.
   string object_key = 1;
   // Name is the channel name.
   string name = 2;
@@ -64,4 +135,7 @@ message CreateChatChannelOp {
   string topic = 3;
   // Timestamp is the creation timestamp.
   .google.protobuf.Timestamp timestamp = 4;
+  // MemberPeerIds lists peer IDs with read and send authority. An empty list
+  // keeps the channel open to all Space participants.
+  repeated string member_peer_ids = 5;
 }

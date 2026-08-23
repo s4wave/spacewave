@@ -5,10 +5,41 @@
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
-import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 
 export const protobufPackage = 'spacewave.chat'
+
+/**
+ * ExternalChannelRef names one channel on an external surface. The pair is
+ * the durable external identity of one bridged channel.
+ *
+ * @generated from message spacewave.chat.ExternalChannelRef
+ */
+export interface ExternalChannelRef {
+  /**
+   * System names the external surface.
+   *
+   * @generated from field: string system = 1;
+   */
+  system?: string
+  /**
+   * ChannelId identifies the channel within System.
+   *
+   * @generated from field: string channel_id = 2;
+   */
+  channelId?: string
+}
+
+export const ExternalChannelRef: MessageType<ExternalChannelRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.chat.ExternalChannelRef',
+    fields: [
+      { no: 1, name: 'system', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'channel_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * ChatChannel is a chat channel world object.
@@ -41,6 +72,21 @@ export interface ChatChannel {
    * @generated from field: uint64 message_count = 4;
    */
   messageCount?: bigint
+  /**
+   * MemberPeerIds lists peer IDs with explicit read and send authority on a
+   * private channel. An empty list keeps the channel open to all Space
+   * participants.
+   *
+   * @generated from field: repeated string member_peer_ids = 5;
+   */
+  memberPeerIds?: string[]
+  /**
+   * ExternalRef names the external surface this channel bridges when the
+   * channel mirrors an external conversation. Empty for a native-only channel.
+   *
+   * @generated from field: spacewave.chat.ExternalChannelRef external_ref = 6;
+   */
+  externalRef?: ExternalChannelRef
 }
 
 export const ChatChannel: MessageType<ChatChannel> =
@@ -51,6 +97,19 @@ export const ChatChannel: MessageType<ChatChannel> =
       { no: 2, name: 'topic', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'created_at', kind: 'message', T: () => Timestamp },
       { no: 4, name: 'message_count', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 5,
+        name: 'member_peer_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      {
+        no: 6,
+        name: 'external_ref',
+        kind: 'message',
+        T: () => ExternalChannelRef,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -96,6 +155,52 @@ export const ChatMessageContent: MessageType<ChatMessageContent> =
   })
 
 /**
+ * ExternalMessageRef names one event on an external surface. System,
+ * ChannelId, and EventId form the exactly-once delivery identity; AuthorId
+ * records the external author without joining that identity.
+ *
+ * @generated from message spacewave.chat.ExternalMessageRef
+ */
+export interface ExternalMessageRef {
+  /**
+   * System names the external surface the event arrived from.
+   *
+   * @generated from field: string system = 1;
+   */
+  system?: string
+  /**
+   * ChannelId identifies the channel within System.
+   *
+   * @generated from field: string channel_id = 2;
+   */
+  channelId?: string
+  /**
+   * EventId identifies the event within the external channel.
+   *
+   * @generated from field: string event_id = 3;
+   */
+  eventId?: string
+  /**
+   * AuthorId identifies the external author of the event.
+   *
+   * @generated from field: string author_id = 4;
+   */
+  authorId?: string
+}
+
+export const ExternalMessageRef: MessageType<ExternalMessageRef> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.chat.ExternalMessageRef',
+    fields: [
+      { no: 1, name: 'system', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'channel_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'event_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'author_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * ChatMessage is a chat message world object linked to a channel.
  *
  * @generated from message spacewave.chat.ChatMessage
@@ -120,7 +225,10 @@ export interface ChatMessage {
    */
   createdAt?: Date
   /**
-   * ReplyToKey is the object key of the message being replied to.
+   * ReplyToKey is the object key of the message being replied to, recorded
+   * exactly as the author observed it at send time. Immutable-snapshot
+   * exemption: the receipt keeps its observed key while the World reply edge
+   * stays the relationship authority.
    *
    * @generated from field: string reply_to_key = 4;
    */
@@ -131,6 +239,37 @@ export interface ChatMessage {
    * @generated from field: uint64 index = 5;
    */
   index?: bigint
+
+  /**
+   * Origin holds exactly one send origin for this message.
+   *
+   * @generated from oneof spacewave.chat.ChatMessage.origin
+   */
+  origin?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * ClientMessageId is the sender's own retry identity for a native send.
+         * Retries with the same value scoped by sender and channel dedupe to one
+         * message.
+         *
+         * @generated from field: string client_message_id = 6;
+         */
+        value: string
+        case: 'clientMessageId'
+      }
+    | {
+        /**
+         * ExternalRef identifies the bridged external event this message relays.
+         *
+         * @generated from field: spacewave.chat.ExternalMessageRef external_ref = 7;
+         */
+        value: ExternalMessageRef
+        case: 'externalRef'
+      }
 }
 
 export const ChatMessage: MessageType<ChatMessage> =
@@ -142,6 +281,102 @@ export const ChatMessage: MessageType<ChatMessage> =
       { no: 3, name: 'created_at', kind: 'message', T: () => Timestamp },
       { no: 4, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'index', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 6,
+        name: 'client_message_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        oneof: 'origin',
+      },
+      {
+        no: 7,
+        name: 'external_ref',
+        kind: 'message',
+        T: () => ExternalMessageRef,
+        oneof: 'origin',
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ChatExternalChannelClaim claims one external channel for exactly-once
+ * binding. The ChatResource creates it in the same transaction as the bound
+ * channel object.
+ *
+ * @generated from message spacewave.chat.ChatExternalChannelClaim
+ */
+export interface ChatExternalChannelClaim {
+  /**
+   * ExternalRef is the complete claimed external channel identity.
+   *
+   * @generated from field: spacewave.chat.ExternalChannelRef external_ref = 1;
+   */
+  externalRef?: ExternalChannelRef
+  /**
+   * ChannelObjectKey is the World object key of the bound chat channel.
+   * No-graph-consumer exemption: the external-identity claim resolves directly
+   * to this raw key without a graph lookup.
+   *
+   * @generated from field: string channel_object_key = 2;
+   */
+  channelObjectKey?: string
+}
+
+export const ChatExternalChannelClaim: MessageType<ChatExternalChannelClaim> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.chat.ChatExternalChannelClaim',
+    fields: [
+      {
+        no: 1,
+        name: 'external_ref',
+        kind: 'message',
+        T: () => ExternalChannelRef,
+      },
+      {
+        no: 2,
+        name: 'channel_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ChatExternalEventClaim claims one external event for exactly-once delivery.
+ * The ChatResource creates it in the same transaction as the claimed message.
+ *
+ * @generated from message spacewave.chat.ChatExternalEventClaim
+ */
+export interface ChatExternalEventClaim {
+  /**
+   * ExternalRef is the complete claimed external event identity.
+   *
+   * @generated from field: spacewave.chat.ExternalMessageRef external_ref = 1;
+   */
+  externalRef?: ExternalMessageRef
+  /**
+   * MessageKey is the object key of the claimed channel message. Immutable
+   * snapshot exemption: the claim is a replay receipt and keeps the key it
+   * observed when written.
+   *
+   * @generated from field: string message_key = 2;
+   */
+  messageKey?: string
+}
+
+export const ChatExternalEventClaim: MessageType<ChatExternalEventClaim> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'spacewave.chat.ChatExternalEventClaim',
+    fields: [
+      {
+        no: 1,
+        name: 'external_ref',
+        kind: 'message',
+        T: () => ExternalMessageRef,
+      },
+      { no: 2, name: 'message_key', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -154,6 +389,8 @@ export const ChatMessage: MessageType<ChatMessage> =
 export interface ChatMessagePage {
   /**
    * MessageKeys are page-local message object keys in creation order.
+   * Ordering exemption: quads do not own domain order, so the ordered page
+   * stays a repeated string key list.
    *
    * @generated from field: repeated string message_keys = 1;
    */
@@ -182,7 +419,9 @@ export const ChatMessagePage: MessageType<ChatMessagePage> =
  */
 export interface InitChatDemoOp {
   /**
-   * ChannelObjectKey is the key for the channel object.
+   * ChannelObjectKey is the key for the channel object. Deterministic
+   * identity input exemption: the op folds this caller-supplied key into the
+   * channel object grammar.
    *
    * @generated from field: string channel_object_key = 1;
    */
@@ -217,7 +456,9 @@ export const InitChatDemoOp: MessageType<InitChatDemoOp> =
  */
 export interface CreateChatChannelOp {
   /**
-   * ObjectKey is the key to create the channel at.
+   * ObjectKey is the key to create the channel at. Deterministic identity
+   * input exemption: the op folds this supplied key into the channel object
+   * grammar.
    *
    * @generated from field: string object_key = 1;
    */
@@ -240,6 +481,13 @@ export interface CreateChatChannelOp {
    * @generated from field: google.protobuf.Timestamp timestamp = 4;
    */
   timestamp?: Date
+  /**
+   * MemberPeerIds lists peer IDs with read and send authority. An empty list
+   * keeps the channel open to all Space participants.
+   *
+   * @generated from field: repeated string member_peer_ids = 5;
+   */
+  memberPeerIds?: string[]
 }
 
 export const CreateChatChannelOp: MessageType<CreateChatChannelOp> =
@@ -250,6 +498,13 @@ export const CreateChatChannelOp: MessageType<CreateChatChannelOp> =
       { no: 2, name: 'name', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'topic', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'timestamp', kind: 'message', T: () => Timestamp },
+      {
+        no: 5,
+        name: 'member_peer_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

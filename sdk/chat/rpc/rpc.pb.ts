@@ -2,6 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/sdk/chat/rpc/rpc.proto (package spacewave.chat.rpc, syntax proto3)
 /* eslint-disable */
 
+import { ExternalMessageRef } from '../chat.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
@@ -20,7 +21,8 @@ export const protobufPackage = 'spacewave.chat.rpc'
  */
 export interface ChatMessageInfo {
   /**
-   * ObjectKey is the message world object key.
+   * ObjectKey is the message world object key. No-graph-consumer exemption:
+   * this projection exports the raw key to clients without graph access.
    *
    * @generated from field: string object_key = 1;
    */
@@ -44,11 +46,42 @@ export interface ChatMessageInfo {
    */
   createdAt?: Date
   /**
-   * ReplyToKey is the key of the message being replied to.
+   * ReplyToKey is the key of the message being replied to, when present.
+   * No-graph-consumer exemption: this projection exports the stored key to
+   * clients without graph access.
    *
    * @generated from field: string reply_to_key = 5;
    */
   replyToKey?: string
+
+  /**
+   * Origin mirrors the stored message send origin.
+   *
+   * @generated from oneof spacewave.chat.rpc.ChatMessageInfo.origin
+   */
+  origin?:
+    | {
+        value?: undefined
+        case: undefined
+      }
+    | {
+        /**
+         * ClientMessageId mirrors a native send retry identity.
+         *
+         * @generated from field: string client_message_id = 6;
+         */
+        value: string
+        case: 'clientMessageId'
+      }
+    | {
+        /**
+         * ExternalRef mirrors the bridged external event reference.
+         *
+         * @generated from field: spacewave.chat.ExternalMessageRef external_ref = 7;
+         */
+        value: ExternalMessageRef
+        case: 'externalRef'
+      }
 }
 
 export const ChatMessageInfo: MessageType<ChatMessageInfo> =
@@ -60,12 +93,27 @@ export const ChatMessageInfo: MessageType<ChatMessageInfo> =
       { no: 3, name: 'text', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'created_at', kind: 'message', T: () => Timestamp },
       { no: 5, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 6,
+        name: 'client_message_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        oneof: 'origin',
+      },
+      {
+        no: 7,
+        name: 'external_ref',
+        kind: 'message',
+        T: () => ExternalMessageRef,
+        oneof: 'origin',
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
 
 /**
- * GetChannelInfoRequest is a request for channel info.
+ * GetChannelInfoRequest requests channel info for the addressed channel. It
+ * carries no fields because the channel is selected by the call target.
  *
  * @generated from message spacewave.chat.rpc.GetChannelInfoRequest
  */
@@ -114,7 +162,8 @@ export const GetChannelInfoResponse: MessageType<GetChannelInfoResponse> =
  */
 export interface ListMessagesRequest {
   /**
-   * BeforeKey returns messages before this key (for pagination).
+   * BeforeKey returns messages before this key. Ordering exemption:
+   * pagination follows the channel's ordered key page, not a graph edge.
    *
    * @generated from field: string before_key = 1;
    */
@@ -174,7 +223,8 @@ export const ListMessagesResponse: MessageType<ListMessagesResponse> =
   })
 
 /**
- * WatchMessagesRequest is a request to stream messages.
+ * WatchMessagesRequest subscribes to new messages in the addressed channel.
+ * It carries no fields because the stream follows the whole channel.
  *
  * @generated from message spacewave.chat.rpc.WatchMessagesRequest
  */
@@ -216,7 +266,8 @@ export const WatchMessagesResponse: MessageType<WatchMessagesResponse> =
   })
 
 /**
- * SendMessageRequest is a request to send a message.
+ * SendMessageRequest is a request to send a message. The author is always the
+ * authenticated caller's peer identity; requests cannot set another author.
  *
  * @generated from message spacewave.chat.rpc.SendMessageRequest
  */
@@ -228,11 +279,20 @@ export interface SendMessageRequest {
    */
   text?: string
   /**
-   * ReplyToKey is the optional key of the message to reply to.
+   * ReplyToKey is the optional key of the message to reply to. No-graph
+   * consumer exemption: callers pass through the raw key returned by this
+   * service.
    *
    * @generated from field: string reply_to_key = 2;
    */
   replyToKey?: string
+  /**
+   * ClientMessageId makes a native send retry idempotent. It is nonempty,
+   * printable ASCII of at most 256 bytes, scoped by sender and channel.
+   *
+   * @generated from field: string client_message_id = 3;
+   */
+  clientMessageId?: string
 }
 
 export const SendMessageRequest: MessageType<SendMessageRequest> =
@@ -241,6 +301,12 @@ export const SendMessageRequest: MessageType<SendMessageRequest> =
     fields: [
       { no: 1, name: 'text', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 3,
+        name: 'client_message_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -252,7 +318,9 @@ export const SendMessageRequest: MessageType<SendMessageRequest> =
  */
 export interface SendMessageResponse {
   /**
-   * MessageKey is the object key of the created message.
+   * MessageKey is the object key of the created or existing message.
+   * No-graph-consumer exemption: clients receive the raw key without World
+   * graph access; duplicate sends resolve to the original key internally.
    *
    * @generated from field: string message_key = 1;
    */

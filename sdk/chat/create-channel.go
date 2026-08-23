@@ -3,6 +3,7 @@ package spacewave_chat
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -31,6 +32,16 @@ func (o *CreateChatChannelOp) Validate() error {
 	if err := o.GetTimestamp().Validate(false); err != nil {
 		return err
 	}
+	seen := make(map[string]struct{}, len(o.GetMemberPeerIds()))
+	for _, memberID := range o.GetMemberPeerIds() {
+		if memberID == "" {
+			return errors.New("chat channel member peer id is empty")
+		}
+		if _, dup := seen[memberID]; dup {
+			return errors.Errorf("chat channel member %s is listed more than once", memberID)
+		}
+		seen[memberID] = struct{}{}
+	}
 	return nil
 }
 
@@ -57,9 +68,10 @@ func (o *CreateChatChannelOp) ApplyWorldOp(
 
 	objKey := o.GetObjectKey()
 	channel := &ChatChannel{
-		Name:      o.GetName(),
-		Topic:     o.GetTopic(),
-		CreatedAt: o.GetTimestamp(),
+		Name:          o.GetName(),
+		Topic:         o.GetTopic(),
+		CreatedAt:     o.GetTimestamp(),
+		MemberPeerIds: o.GetMemberPeerIds(),
 	}
 
 	if _, _, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {

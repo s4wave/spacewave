@@ -1,4 +1,7 @@
-package spacewave_chat
+// Package channel serves the ChatResourceService read and send boundary for
+// one chat channel World object. Bridged external events enter through the
+// internal claim path; no public RPC accepts an external origin.
+package spacewave_chat_channel
 
 import (
 	"context"
@@ -6,13 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
-	world_types "github.com/s4wave/spacewave/db/world/types"
+	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	spacewave_chat_rpc "github.com/s4wave/spacewave/sdk/chat/rpc"
 )
 
@@ -24,6 +26,27 @@ const (
 
 // ErrChatAuthorIdentityRequired is returned when a message has no authenticated author.
 var ErrChatAuthorIdentityRequired = errors.New("chat author identity required")
+
+// ErrChatPeerNotMember is returned when a peer sends to or reads from a
+// private channel whose member list does not include it.
+var ErrChatPeerNotMember = errors.New("chat peer is not a channel member")
+
+// ErrChatOriginConflict is returned when a send identity already exists but
+// the retry carries a different author or payload. The original message wins;
+// the conflicting attempt fails closed instead of mutating it.
+var ErrChatOriginConflict = errors.New("chat send origin conflicts with an earlier message")
+
+// ErrChatExternalChannelMismatch is returned when an external event names a
+// surface or channel other than the one bound to this chat channel.
+var ErrChatExternalChannelMismatch = errors.New("chat external event does not match the channel binding")
+
+// ErrChatExternalChannelConflict is returned when another ChatChannel object
+// already holds the global claim for one external channel.
+var ErrChatExternalChannelConflict = errors.New("chat external channel is already bound to another chat channel")
+
+// ErrChatExternalEventConflict is returned when another chat message already
+// holds the global claim for one external event identity.
+var ErrChatExternalEventConflict = errors.New("chat external event is already claimed by another message")
 
 // ChatResource serves ChatResourceService for a single chat channel object.
 type ChatResource struct {
@@ -70,10 +93,22 @@ func (r *ChatResource) GetChannelInfo(
 	if err != nil {
 		return nil, err
 	}
+	if err := r.authorizeChannelRead(channel); err != nil {
+		return nil, err
+	}
 	return &spacewave_chat_rpc.GetChannelInfoResponse{
 		Name:  channel.GetName(),
 		Topic: channel.GetTopic(),
 	}, nil
+}
+
+// authorizeChannelRead rejects peers outside a private channel's member list.
+// An empty member list keeps the channel open to all peers.
+func (r *ChatResource) authorizeChannelRead(channel *spacewave_chat.ChatChannel) error {
+	if !spacewave_chat.ChannelAllowsMember(channel, r.localPeerID) {
+		return ErrChatPeerNotMember
+	}
+	return nil
 }
 
 // ListMessages returns a page of channel messages.
@@ -90,9 +125,12 @@ func (r *ChatResource) ListMessages(
 	if err != nil {
 		return nil, err
 	}
+	if err := r.authorizeChannelRead(channel); err != nil {
+		return nil, err
+	}
 	beforeIndex := channel.GetMessageCount()
 	if beforeKey := req.GetBeforeKey(); beforeKey != "" {
-		idx, ok := parseMessageIndex(beforeKey)
+		idx, ok := r.messageIndexByKey(ctx, beforeKey)
 		if ok && idx < beforeIndex {
 			beforeIndex = idx
 		}
@@ -134,6 +172,9 @@ func (r *ChatResource) WatchMessages(
 		if err != nil {
 			return err
 		}
+		if err := r.authorizeChannelRead(channel); err != nil {
+			return err
+		}
 		messageCount := channel.GetMessageCount()
 		if nextIndex > messageCount {
 			nextIndex = messageCount
@@ -171,166 +212,22 @@ func (r *ChatResource) WatchMessages(
 	}
 }
 
-// SendMessage creates a message object and links it to the channel.
-func (r *ChatResource) SendMessage(
-	ctx context.Context,
-	req *spacewave_chat_rpc.SendMessageRequest,
-) (*spacewave_chat_rpc.SendMessageResponse, error) {
-	if r.engine == nil {
-		return nil, errors.New("chat resource is read-only")
-	}
-	if r.localPeerID == "" {
-		return nil, ErrChatAuthorIdentityRequired
-	}
-
-	wtx, err := r.engine.NewTransaction(ctx, true)
-	if err != nil {
-		return nil, err
-	}
-	index, msgKey, err := r.appendChannelMessageKey(ctx, wtx)
-	if err != nil {
-		wtx.Discard()
-		return nil, err
-	}
-	now := time.Now().UTC()
-	msg := &ChatMessage{
-		SenderPeerId: r.localPeerID,
-		Content:      &ChatMessageContent{Content: &ChatMessageContent_Text{Text: req.GetText()}},
-		CreatedAt:    timestamppb.New(now),
-		ReplyToKey:   req.GetReplyToKey(),
-		Index:        index,
-	}
-	obj, err := wtx.CreateObject(ctx, msgKey, nil)
-	if err != nil {
-		wtx.Discard()
-		return nil, err
-	}
-	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
-		bcs.SetBlock(msg, true)
-		return nil
-	})
-	if err != nil {
-		wtx.Discard()
-		return nil, err
-	}
-	if err := world_types.SetObjectType(ctx, wtx, msgKey, ChatMessageTypeID); err != nil {
-		wtx.Discard()
-		return nil, err
-	}
-	if err := wtx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(r.objectKey, PredChannelMessage.String(), msgKey, "")); err != nil {
-		wtx.Discard()
-		return nil, err
-	}
-	peerKey := "peer/" + r.localPeerID
-	_, found, err := wtx.GetObject(ctx, peerKey)
-	if err != nil {
-		wtx.Discard()
-		return nil, err
-	}
-	if found {
-		if err := wtx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(msgKey, PredMessageSender.String(), peerKey, "")); err != nil {
-			wtx.Discard()
-			return nil, err
-		}
-	}
-	if err := wtx.Commit(ctx); err != nil {
-		wtx.Discard()
-		return nil, err
-	}
-
-	return &spacewave_chat_rpc.SendMessageResponse{MessageKey: msgKey}, nil
-}
-
-func (r *ChatResource) appendChannelMessageKey(ctx context.Context, ws world.WorldState) (uint64, string, error) {
-	obj, found, err := ws.GetObject(ctx, r.objectKey)
-	if err != nil {
-		return 0, "", err
-	}
-	if !found {
-		return 0, "", world.ErrObjectNotFound
-	}
-
-	var index uint64
-	var msgKey string
-	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
-		channel, err := block.UnmarshalBlock[*ChatChannel](ctx, bcs, NewChatChannelBlock)
-		if err != nil {
-			return err
-		}
-		if channel == nil {
-			return world.ErrObjectNotFound
-		}
-		index = channel.GetMessageCount()
-		msgKey = r.messageKey(index)
-		channel.MessageCount = index + 1
-		bcs.SetBlock(channel, true)
-		return nil
-	})
-	if err != nil {
-		return 0, "", err
-	}
-	if err := r.appendMessagePageKey(ctx, ws, index, msgKey); err != nil {
-		return 0, "", err
-	}
-	return index, msgKey, nil
-}
-
-func (r *ChatResource) appendMessagePageKey(ctx context.Context, ws world.WorldState, index uint64, msgKey string) error {
-	pageKey := r.messagePageKey(index / chatMessagePageSize)
-	obj, found, err := ws.GetObject(ctx, pageKey)
-	if err != nil {
-		return err
-	}
-	if !found {
-		obj, err = ws.CreateObject(ctx, pageKey, nil)
-		if err != nil {
-			return err
-		}
-	}
-
-	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
-		page, err := block.UnmarshalBlock[*ChatMessagePage](ctx, bcs, NewChatMessagePageBlock)
-		if err != nil {
-			return err
-		}
-		if page == nil {
-			page = &ChatMessagePage{}
-		}
-		page.MessageKeys = append(page.MessageKeys, msgKey)
-		bcs.SetBlock(page, true)
-		return nil
-	})
-	return err
-}
-
-func (r *ChatResource) readChannel(ctx context.Context) (*ChatChannel, error) {
+// readChannel reads the channel block.
+func (r *ChatResource) readChannel(ctx context.Context) (*spacewave_chat.ChatChannel, error) {
 	if r.ws == nil {
 		return nil, errors.New("chat resource requires world state")
 	}
-	obj, found, err := r.ws.GetObject(ctx, r.objectKey)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, world.ErrObjectNotFound
-	}
+	return spacewave_chat.ReadChatChannel(ctx, r.ws, r.objectKey)
+}
 
-	var channel *ChatChannel
-	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
-		var err error
-		channel, err = block.UnmarshalBlock[*ChatChannel](ctx, bcs, NewChatChannelBlock)
-		if err != nil {
-			return err
-		}
-		if channel == nil {
-			return world.ErrObjectNotFound
-		}
-		return nil
-	})
+// messageIndexByKey resolves one pagination cursor to the message index
+// stored on the referenced message object.
+func (r *ChatResource) messageIndexByKey(ctx context.Context, key string) (uint64, bool) {
+	msg, err := r.readMessageBlock(ctx, key)
 	if err != nil {
-		return nil, err
+		return 0, false
 	}
-	return channel, nil
+	return msg.GetIndex(), true
 }
 
 func (r *ChatResource) readMessages(ctx context.Context, keys []string) ([]*spacewave_chat_rpc.ChatMessageInfo, error) {
@@ -377,24 +274,24 @@ func (r *ChatResource) readMessageKeys(ctx context.Context, startIndex, endIndex
 	return keys, nil
 }
 
-func (r *ChatResource) readMessagePage(ctx context.Context, pageIndex uint64) (*ChatMessagePage, error) {
-	obj, found, err := r.ws.GetObject(ctx, r.messagePageKey(pageIndex))
+func (r *ChatResource) readMessagePage(ctx context.Context, pageIndex uint64) (*spacewave_chat.ChatMessagePage, error) {
+	obj, found, err := r.ws.GetObject(ctx, messagePageKey(r.objectKey, pageIndex))
 	if err != nil {
 		return nil, err
 	}
 	if !found {
-		return &ChatMessagePage{}, nil
+		return &spacewave_chat.ChatMessagePage{}, nil
 	}
 
-	var page *ChatMessagePage
+	var page *spacewave_chat.ChatMessagePage
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
-		page, err = block.UnmarshalBlock[*ChatMessagePage](ctx, bcs, NewChatMessagePageBlock)
+		page, err = block.UnmarshalBlock[*spacewave_chat.ChatMessagePage](ctx, bcs, spacewave_chat.NewChatMessagePageBlock)
 		if err != nil {
 			return err
 		}
 		if page == nil {
-			page = &ChatMessagePage{}
+			page = &spacewave_chat.ChatMessagePage{}
 		}
 		return nil
 	})
@@ -404,22 +301,23 @@ func (r *ChatResource) readMessagePage(ctx context.Context, pageIndex uint64) (*
 	return page, nil
 }
 
-func (r *ChatResource) readMessage(
+// readMessageBlock loads the raw ChatMessage stored at one key.
+func (r *ChatResource) readMessageBlock(
 	ctx context.Context,
 	key string,
-) (*spacewave_chat_rpc.ChatMessageInfo, error) {
+) (*spacewave_chat.ChatMessage, error) {
 	obj, found, err := r.ws.GetObject(ctx, key)
 	if err != nil {
 		return nil, err
 	}
 	if !found {
-		return nil, nil
+		return nil, world.ErrObjectNotFound
 	}
 
-	var msg *ChatMessage
+	var msg *spacewave_chat.ChatMessage
 	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
 		var err error
-		msg, err = block.UnmarshalBlock[*ChatMessage](ctx, bcs, NewChatMessageBlock)
+		msg, err = block.UnmarshalBlock[*spacewave_chat.ChatMessage](ctx, bcs, spacewave_chat.NewChatMessageBlock)
 		if err != nil {
 			return err
 		}
@@ -431,14 +329,39 @@ func (r *ChatResource) readMessage(
 	if err != nil {
 		return nil, err
 	}
+	return msg, nil
+}
 
-	return &spacewave_chat_rpc.ChatMessageInfo{
+func (r *ChatResource) readMessage(
+	ctx context.Context,
+	key string,
+) (*spacewave_chat_rpc.ChatMessageInfo, error) {
+	msg, err := r.readMessageBlock(ctx, key)
+	if err != nil {
+		if errors.Is(err, world.ErrObjectNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	info := &spacewave_chat_rpc.ChatMessageInfo{
 		ObjectKey:    key,
 		SenderPeerId: msg.GetSenderPeerId(),
 		Text:         msg.GetContent().GetText(),
 		CreatedAt:    msg.GetCreatedAt(),
 		ReplyToKey:   msg.GetReplyToKey(),
-	}, nil
+	}
+	switch origin := msg.GetOrigin().(type) {
+	case *spacewave_chat.ChatMessage_ClientMessageId:
+		info.Origin = &spacewave_chat_rpc.ChatMessageInfo_ClientMessageId{
+			ClientMessageId: origin.ClientMessageId,
+		}
+	case *spacewave_chat.ChatMessage_ExternalRef:
+		info.Origin = &spacewave_chat_rpc.ChatMessageInfo_ExternalRef{
+			ExternalRef: origin.ExternalRef,
+		}
+	}
+	return info, nil
 }
 
 func (r *ChatResource) messageKey(index uint64) string {

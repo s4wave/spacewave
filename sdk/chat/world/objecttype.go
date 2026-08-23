@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/world"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
+	spacewave_chat_channel "github.com/s4wave/spacewave/sdk/chat/channel"
 	"github.com/s4wave/spacewave/sdk/world/objecttype"
 	"github.com/sirupsen/logrus"
 )
@@ -31,7 +32,7 @@ func ChatChannelFactory(
 	}
 	peerID := objecttype.SessionPeerIDFromContext(ctx)
 
-	resource := spacewave_chat.NewChatResource(ws, engine, objectKey, peerID.String())
+	resource := spacewave_chat_channel.NewChatResource(ws, engine, objectKey, peerID.String())
 	return resource.GetMux(), resource.Close, nil
 }
 
