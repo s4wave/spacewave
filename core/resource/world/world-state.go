@@ -684,23 +684,9 @@ func (r *WorldStateResource) observeOperation(record WorldStateOperationRecord, 
 	r.operationObserver(record)
 }
 
+// recordBlockReadSnapshot copies the counter's snapshot into the record.
 func recordBlockReadSnapshot(record *WorldStateOperationRecord, counter *block.ReadCounter) {
-	snapshot := counter.Snapshot()
-	record.BlockReadCount = snapshot.BlockReadCount
-	record.BlockReadBytes = snapshot.BlockReadBytes
-	record.BlockReadMissCount = snapshot.BlockReadMissCount
-	record.ResourceGetBlockCount = snapshot.ResourceGetBlockCount
-	record.ResourceGetBlockRefCount = snapshot.ResourceGetBlockRefCount
-	record.ResourceGetBlockBytes = snapshot.ResourceGetBlockBytes
-	record.ResourceGetBlockMissCount = snapshot.ResourceGetBlockMissCount
-	record.DecodedBlockUnmarshalCount = snapshot.DecodedBlockUnmarshalCount
-	record.DecodedBlockUnmarshalBytes = snapshot.DecodedBlockUnmarshalBytes
-	record.DecodedBlockCacheAttemptCount = snapshot.DecodedBlockCacheAttemptCount
-	record.DecodedBlockCacheHitCount = snapshot.DecodedBlockCacheHitCount
-	record.DecodedBlockCacheMissCount = snapshot.DecodedBlockCacheMissCount
-	record.DecodedBlockCloneCount = snapshot.DecodedBlockCloneCount
-	record.DecodedBlockUncloneableCount = snapshot.DecodedBlockUncloneableCount
-	record.DecodedBlockUncacheableCount = snapshot.DecodedBlockUncacheableCount
+	record.ReadCounterSnapshot = counter.Snapshot()
 }
 
 func graphPathQueryFromProto(req *s4wave_world.QueryGraphPathRequest) (*world.GraphPathQuery, error) {
