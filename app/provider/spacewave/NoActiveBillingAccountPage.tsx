@@ -24,7 +24,7 @@ import {
   isStatusActive,
   lifecycleStateLabel,
   subscriptionStatusBadgeColor,
-  subscriptionStatusLabel,
+  statusLabel,
 } from '@s4wave/app/billing/billing-utils.js'
 import { PageFooter, PageWrapper } from './CloudConfirmationPage.js'
 import { useBillingAccountCheckout } from './useBillingAccountCheckout.js'
@@ -310,7 +310,7 @@ export function NoActiveBillingAccountPage() {
                         subscriptionStatusBadgeColor(ba.subscriptionStatus),
                       )}
                     >
-                      {subscriptionStatusLabel(ba.subscriptionStatus)}
+                      {statusLabel(ba.subscriptionStatus)}
                     </span>
                   </div>
                   {ba.lifecycleState && (

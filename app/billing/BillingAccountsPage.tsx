@@ -37,7 +37,7 @@ import {
 import {
   lifecycleStateLabel,
   subscriptionStatusBadgeColor,
-  subscriptionStatusLabel,
+  statusLabel,
 } from './billing-utils.js'
 
 // AssignTarget is one option offered in the per-row "Assign to..." menu.
@@ -289,7 +289,7 @@ export function BillingAccountsPage() {
                           subscriptionStatusBadgeColor(ba.subscriptionStatus),
                         )}
                       >
-                        {subscriptionStatusLabel(ba.subscriptionStatus)}
+                        {statusLabel(ba.subscriptionStatus)}
                       </span>
                     </div>
                     <div

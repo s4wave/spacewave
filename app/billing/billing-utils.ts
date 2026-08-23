@@ -13,11 +13,15 @@ export function statusLabel(status?: BillingStatus): string {
       return 'Trial'
     case BillingStatus.BillingStatus_PAST_DUE:
     case BillingStatus.BillingStatus_PAST_DUE_READONLY:
-      return 'Past Due'
+      return 'Past due'
     case BillingStatus.BillingStatus_CANCELED:
       return 'Canceled'
+    case BillingStatus.BillingStatus_LAPSED:
+      return 'Lapsed'
+    case BillingStatus.BillingStatus_DELETED:
+      return 'Deleted'
     case BillingStatus.BillingStatus_NONE:
-      return 'No Subscription'
+      return 'No subscription'
     default:
       return 'Unknown'
   }
@@ -70,29 +74,6 @@ export function deleteBillingAccountDisabledReason(
     return 'Detach this billing account from every personal account and organization before deleting it.'
   }
   return null
-}
-
-// subscriptionStatusLabel returns a human-readable label for a billing status.
-export function subscriptionStatusLabel(status?: BillingStatus): string {
-  switch (status) {
-    case BillingStatus.BillingStatus_ACTIVE:
-      return 'Active'
-    case BillingStatus.BillingStatus_TRIALING:
-      return 'Trial'
-    case BillingStatus.BillingStatus_PAST_DUE:
-    case BillingStatus.BillingStatus_PAST_DUE_READONLY:
-      return 'Past due'
-    case BillingStatus.BillingStatus_CANCELED:
-      return 'Canceled'
-    case BillingStatus.BillingStatus_LAPSED:
-      return 'Lapsed'
-    case BillingStatus.BillingStatus_DELETED:
-      return 'Deleted'
-    case BillingStatus.BillingStatus_NONE:
-      return 'No subscription'
-    default:
-      return 'Unknown'
-  }
 }
 
 // lifecycleStateLabel returns a human-readable label for a billing account
