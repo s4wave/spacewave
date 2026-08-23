@@ -11,6 +11,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/ulid"
 	b58 "github.com/mr-tron/base58/base58"
@@ -461,9 +462,45 @@ func (r *SessionResource) WatchResourcesList(
 	workers := make(map[string]resourcesListProjectionWorker)
 	objectTypes := make(map[string]string)
 	var workerGeneration uint64
-	var wg sync.WaitGroup
 
-	wg.Go(func() {
+	// goroutinesBcast guards the running projection goroutine count so the
+	// handler joins every worker before returning.
+	var goroutinesBcast broadcast.Broadcast
+	runningGoroutines := 0
+	startGoroutine := func(run func()) {
+		goroutinesBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			runningGoroutines++
+			broadcast()
+		})
+		go func() {
+			defer func() {
+				goroutinesBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+					runningGoroutines--
+					broadcast()
+				})
+			}()
+			run()
+		}()
+	}
+	awaitGoroutinesIdle := func() {
+		for {
+			var waitCh <-chan struct{}
+			idle := false
+			goroutinesBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+				if runningGoroutines != 0 {
+					waitCh = getWaitCh()
+					return
+				}
+				idle = true
+			})
+			if idle {
+				return
+			}
+			<-waitCh
+		}
+	}
+
+	startGoroutine(func() {
 		var current *sobject.SharedObjectList
 		for {
 			next, err := soListWatchable.WaitValueChange(ctx, current, nil)
@@ -487,7 +524,7 @@ func (r *SessionResource) WatchResourcesList(
 		for _, worker := range workers {
 			worker.cancel()
 		}
-		wg.Wait()
+		awaitGoroutinesIdle()
 	}()
 
 	var currentList []*space.SpaceSoListEntry
@@ -531,15 +568,19 @@ func (r *SessionResource) WatchResourcesList(
 						generation: workerGeneration,
 					}
 					pendingInitial[id] = workerGeneration
-					wg.Add(1)
-					go r.watchSpaceIndexObjectType(
-						workerCtx,
-						ref.CloneVT(),
-						id,
-						workerGeneration,
-						projectionCh,
-						&wg,
-					)
+					// Capture this worker's generation before starting the
+					// goroutine: the closure would otherwise read the shared
+					// counter after later iterations advanced it.
+					workerGen := workerGeneration
+					startGoroutine(func() {
+						r.watchSpaceIndexObjectType(
+							workerCtx,
+							ref.CloneVT(),
+							id,
+							workerGen,
+							projectionCh,
+						)
+					})
 				}
 				for id := range objectTypes {
 					if _, ok := present[id]; !ok {
@@ -621,10 +662,7 @@ func (r *SessionResource) watchSpaceIndexObjectType(
 	id string,
 	generation uint64,
 	events chan<- resourcesListProjectionEvent,
-	wg *sync.WaitGroup,
 ) {
-	defer wg.Done()
-
 	sendProjection := func(initial bool, objectType string) bool {
 		select {
 		case events <- resourcesListProjectionEvent{
