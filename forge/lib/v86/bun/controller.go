@@ -99,7 +99,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "build pipe listener")
 	}
-	defer lis.Close()
 
 	// Create v86fs relay server (mounts added dynamically below).
 	v86fsSrv := v86fs.NewServer(c.le, nil)
@@ -110,28 +109,22 @@ func (c *Controller) Execute(ctx context.Context) error {
 	}
 	server := srpc.NewServer(mux)
 
-	// Accept SRPC connections in background.
+	// Serve SRPC connections until the listener closes or ctx ends. The bun
+	// subprocess opens one muxed connection, so serving connections
+	// sequentially through AcceptMuxedListener is sufficient.
+	serveErr := make(chan error, 1)
 	go func() {
-		for {
-			conn, err := lis.Accept()
-			if err != nil {
-				if ctx.Err() != nil {
-					return
-				}
-				c.le.WithError(err).Warn("accept error")
-				return
-			}
-			mp, err := srpc.NewMuxedConn(conn, false, nil)
-			if err != nil {
-				c.le.WithError(err).Warn("muxed conn error")
-				conn.Close()
-				continue
-			}
-			go func() {
-				_ = server.AcceptMuxedConn(ctx, mp)
-			}()
-		}
+		serveErr <- srpc.AcceptMuxedListener(ctx, lis, server, nil)
 	}()
+	// stopServe closes the listener and waits for the accept loop to exit.
+	stopServe := func() {
+		lis.Close()
+		select {
+		case <-serveErr:
+		case <-ctx.Done():
+		}
+	}
+	defer stopServe()
 
 	// Resolve bun version and state directory.
 	bunVersion := c.conf.GetBunVersion()
