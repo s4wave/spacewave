@@ -253,11 +253,11 @@ func (r *SessionResource) waitLocalPairingLink(
 			return
 		}
 		r.le.WithError(err).Warn("local pairing link failed")
+		failMsg := "direct connection failed: " + err.Error()
 		if ctx.Err() != nil {
-			localAcc.SetPairingFailed("direct connection timed out")
-		} else {
-			localAcc.SetPairingFailed("direct connection failed: " + err.Error())
+			failMsg = "direct connection timed out"
 		}
+		localAcc.SetPairingFailed(failMsg)
 		return
 	}
 

@@ -312,10 +312,9 @@ func refreshSpaceRootAliasStatus(
 
 	path := out.GetNative().GetPath()
 	if err := validateExistingSpaceRootPath(path); err != nil {
+		out.Status = s4wave_root.SpaceRootStatus_SpaceRootStatus_INVALID
 		if os.IsNotExist(errors.Cause(err)) {
 			out.Status = s4wave_root.SpaceRootStatus_SpaceRootStatus_MISSING
-		} else {
-			out.Status = s4wave_root.SpaceRootStatus_SpaceRootStatus_INVALID
 		}
 		out.StatusMessage = err.Error()
 		return out

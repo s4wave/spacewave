@@ -1273,16 +1273,17 @@ func (r *SessionResource) CreateSpaceInvite(
 		code := generateShortCode()
 		msgData, err := msg.MarshalVT()
 		if err == nil {
-			if err := swAcc.GetSessionClient().RegisterInviteCode(ctx, spaceID, &api.RegisterInviteCodeRequest{
+			err := swAcc.GetSessionClient().RegisterInviteCode(ctx, spaceID, &api.RegisterInviteCodeRequest{
 				Code:          code,
 				InviteId:      msg.GetInviteId(),
 				InviteMessage: base64.StdEncoding.EncodeToString(msgData),
 				ExpiresAt:     expiresAt,
-			}); err != nil {
+			})
+			if err != nil {
 				r.le.WithError(err).Warn("failed to register invite short code")
-			} else {
-				resp.ShortCode = code
+				return resp, nil
 			}
+			resp.ShortCode = code
 		}
 	}
 

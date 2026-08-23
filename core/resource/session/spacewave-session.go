@@ -2192,11 +2192,8 @@ func (r *SpacewaveSessionResource) EnrollSpaceMember(
 			continue
 		}
 
-		if grant == nil {
-			result.AlreadyParticipant = true
-		} else {
-			result.Enrolled = true
-		}
+		result.AlreadyParticipant = grant == nil
+		result.Enrolled = grant != nil
 		results = append(results, result)
 	}
 
@@ -2240,11 +2237,8 @@ func (r *SpacewaveSessionResource) RemoveSpaceMember(
 			continue
 		}
 
-		if removed {
-			result.Removed = true
-		} else {
-			result.NotParticipant = true
-		}
+		result.Removed = removed
+		result.NotParticipant = !removed
 		results = append(results, result)
 	}
 
