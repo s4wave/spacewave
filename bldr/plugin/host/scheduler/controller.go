@@ -148,6 +148,7 @@ func (s *pluginHostSet) toPluginPlatformIDsMap(conf *Config, pluginID string) ma
 	return hostMap
 }
 
+// pluginHostSetEqual reports whether two plugin host sets are equal.
 func pluginHostSetEqual(a, b *pluginHostSet) bool {
 	if a == nil || b == nil {
 		return a == b
@@ -161,6 +162,8 @@ func NewController(
 	bus bus.Bus,
 	conf *Config,
 ) *Controller {
+	// note: conf.Validate enforces a valid peer id upstream, so the discard
+	// here only tolerates configs that have not passed Validate yet.
 	peerID, _ := conf.ParsePeerID()
 	c := &Controller{
 		le:                  le,
@@ -191,6 +194,7 @@ func (c *Controller) SetManifestCopyGate(gate ManifestCopyGate) {
 	c.manifestCopyGateCtr.SetValue(gate)
 }
 
+// getManifestCopyGate returns the gate serializing manifest copies.
 func (c *Controller) getManifestCopyGate() ManifestCopyGate {
 	if c == nil || c.manifestCopyGateCtr == nil {
 		return nil
@@ -198,6 +202,8 @@ func (c *Controller) getManifestCopyGate() ManifestCopyGate {
 	return c.manifestCopyGateCtr.GetValue()
 }
 
+// acquireManifestCommit acquires the manifest commit lock, returning the
+// release func.
 func (c *Controller) acquireManifestCommit(ctx context.Context) (func(), error) {
 	if c == nil {
 		return func() {}, nil
@@ -296,7 +302,7 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	ws := world.NewEngineWorldState(busEngine, true)
 
 	c.worldStateCtr.SetValue(ws)
-	defer c.worldStateCtr.SetValue(ws)
+	defer c.worldStateCtr.SetValue(nil)
 
 	// startup manifest watchers & plugin instances
 	c.pluginInstances.SetContext(ctx, true)
@@ -507,54 +513,6 @@ func (c *Controller) buildPluginMux(
 
 	return mux, pluginHostRoot.Release
 }
-
-/*
-// cleanupUnknownPlugins calls DeletePlugin for any plugins without a matching manifest.
-func (c *Controller) cleanupUnknownPlugins(ctx context.Context, ws world.WorldState, filterPlatformID string, host bldr_plugin_host.PluginHost) error {
-	// list ids from the plugin host
-	loadedPlugins, err := host.ListPlugins(ctx)
-	if err != nil {
-		return err
-	}
-
-	// if there are no known plugin ids stop here
-	if len(loadedPlugins) == 0 {
-		return nil
-	}
-
-	// fetch all known plugin manifests
-	pluginManifests, pluginManifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, filterPlatformID, c.objKey)
-	if err != nil {
-		return err
-	}
-	for _, err := range pluginManifestErrs {
-		c.le.WithError(err).Warn("ignoring invalid plugin manifest")
-	}
-
-	// delete any unknowns
-	var unknownPlugins []string
-	for _, loadedPlugin := range loadedPlugins {
-		if _, ok := pluginManifests[loadedPlugin]; !ok {
-			unknownPlugins = append(unknownPlugins, loadedPlugin)
-		}
-	}
-	if len(unknownPlugins) == 0 {
-		return nil
-	}
-
-	c.le.WithField("count", len(unknownPlugins)).Info("clearing unknown or out-of-date plugins")
-	for _, unknownPlugin := range unknownPlugins {
-		if err := host.DeletePlugin(ctx, unknownPlugin); err != nil {
-			if err == context.Canceled {
-				return err
-			}
-			c.le.WithError(err).WithField("plugin-id", unknownPlugin).Warn("unable to clear old plugin")
-		}
-	}
-
-	return nil
-}
-*/
 
 // _ is a type assertion
 var (
