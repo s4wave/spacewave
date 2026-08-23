@@ -1,8 +1,12 @@
 package resource_worldop_registry
 
 import (
+	"context"
+	"errors"
 	"testing"
 
+	"github.com/aperturerobotics/starpc/srpc"
+	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	s4wave_worldop_registry "github.com/s4wave/spacewave/sdk/worldop/registry"
 )
 
@@ -231,5 +235,54 @@ func TestBroadcastOnChange(t *testing.T) {
 	case <-waitCh:
 	default:
 		t.Fatal("wait channel not closed after broadcast")
+	}
+}
+
+// fakeResourceClientContext satisfies the Resource RPC client context for
+// direct RegisterWorldOp calls in tests.
+type fakeResourceClientContext struct{}
+
+func (f *fakeResourceClientContext) Context() context.Context { return context.Background() }
+
+func (f *fakeResourceClientContext) AddResource(mux srpc.Invoker, releaseFn func()) (uint32, error) {
+	return 1, nil
+}
+
+func (f *fakeResourceClientContext) AddResourceValue(mux srpc.Invoker, value any, releaseFn func()) (uint32, error) {
+	return 1, nil
+}
+
+func (f *fakeResourceClientContext) ReleaseResource(resourceID uint32) bool { return true }
+
+func (f *fakeResourceClientContext) GetResourceValue(resourceID uint32) (any, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (f *fakeResourceClientContext) GetAttachedResource(id uint32) (srpc.Client, error) {
+	return nil, errors.New("not implemented")
+}
+
+// TestRegisterWorldOpRejectsDuplicateOperationType verifies a second
+// registration of one operation type ID fails instead of making dispatch
+// nondeterministic between plugins.
+func TestRegisterWorldOpRejectsDuplicateOperationType(t *testing.T) {
+	r := NewWorldOpRegistryResource()
+	ctx := resource_server.WithResourceClientContext(
+		context.Background(),
+		&fakeResourceClientContext{},
+	)
+	req := &s4wave_worldop_registry.RegisterWorldOpRequest{
+		OperationTypeId: "test-plugin/duplicate",
+		PluginId:        "test-plugin",
+	}
+	if _, err := r.RegisterWorldOp(ctx, req); err != nil {
+		t.Fatalf("first registration: %v", err)
+	}
+	if _, err := r.RegisterWorldOp(ctx, req); !errors.Is(err, ErrOperationTypeAlreadyRegistered) {
+		t.Fatalf("duplicate registration error = %v, want ErrOperationTypeAlreadyRegistered", err)
+	}
+	reg := r.LookupRegistrationByOpType("test-plugin/duplicate")
+	if reg == nil || reg.GetRegistrationId() != 1 {
+		t.Fatalf("original registration changed after duplicate attempt: %+v", reg)
 	}
 }

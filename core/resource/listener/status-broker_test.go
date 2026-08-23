@@ -210,13 +210,3 @@ func TestStatusBrokerConcurrentClients(t *testing.T) {
 		t.Fatalf("connected clients after %d removes: %d", n, snapshot.ConnectedClients)
 	}
 }
-
-// TestGetProcessStatusBrokerSingleton asserts the process-wide broker
-// is cached across calls.
-func TestGetProcessStatusBrokerSingleton(t *testing.T) {
-	a := GetProcessStatusBroker()
-	b := GetProcessStatusBroker()
-	if a != b {
-		t.Fatalf("process broker singleton differs across calls")
-	}
-}

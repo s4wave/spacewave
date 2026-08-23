@@ -11,6 +11,8 @@ import (
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	resource_cdn "github.com/s4wave/spacewave/core/resource/cdn"
 	resource_debugdb "github.com/s4wave/spacewave/core/resource/debugdb"
+	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
+	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	resource_session "github.com/s4wave/spacewave/core/resource/session"
 	"github.com/s4wave/spacewave/core/session"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
@@ -47,6 +49,12 @@ type CoreRootServer struct {
 	// recoveryStatusRegistry owns volatile renderer recovery facts by logical
 	// session across separately mounted SessionResources.
 	recoveryStatusRegistry *resource_session.RecoveryStatusRegistry
+
+	// yieldBrokerMtx and listenerStatusMtx guard the injected shared brokers.
+	yieldBrokerMtx    sync.Mutex
+	yieldBroker       *yield_policy.Broker
+	listenerStatusMtx sync.Mutex
+	listenerStatus    *resource_listener.StatusBroker
 }
 
 // NewCoreRootServer creates a new CoreRootServer.
@@ -60,6 +68,37 @@ func NewCoreRootServer(le *logrus.Entry, b bus.Bus) *CoreRootServer {
 	s.webListeners = newWebListenerRegistry(le)
 	s.recoveryStatusRegistry = resource_session.NewRecoveryStatusRegistry()
 	return s
+}
+
+// SetYieldBroker injects the shared listener yield broker. The composition
+// root that also wires the resource listener controller injects one broker so
+// takeover prompts and reclaim signals agree across consumers.
+func (s *CoreRootServer) SetYieldBroker(broker *yield_policy.Broker) {
+	s.yieldBrokerMtx.Lock()
+	defer s.yieldBrokerMtx.Unlock()
+	s.yieldBroker = broker
+}
+
+// getYieldBroker returns the injected broker, or nil before injection.
+func (s *CoreRootServer) getYieldBroker() *yield_policy.Broker {
+	s.yieldBrokerMtx.Lock()
+	defer s.yieldBrokerMtx.Unlock()
+	return s.yieldBroker
+}
+
+// SetListenerStatusBroker injects the shared listener status broker.
+func (s *CoreRootServer) SetListenerStatusBroker(broker *resource_listener.StatusBroker) {
+	s.listenerStatusMtx.Lock()
+	defer s.listenerStatusMtx.Unlock()
+	s.listenerStatus = broker
+}
+
+// getListenerStatusBroker returns the injected broker, or nil before
+// injection.
+func (s *CoreRootServer) getListenerStatusBroker() *resource_listener.StatusBroker {
+	s.listenerStatusMtx.Lock()
+	defer s.listenerStatusMtx.Unlock()
+	return s.listenerStatus
 }
 
 // WebListenerKeepaliveFunc acquires daemon lifetime for a background

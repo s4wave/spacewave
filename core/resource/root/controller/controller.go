@@ -13,6 +13,8 @@ import (
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	resource_command "github.com/s4wave/spacewave/core/resource/command"
 	resource_configtype_registry "github.com/s4wave/spacewave/core/resource/configtype/registry"
+	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
+	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	resource_objecttype_registry "github.com/s4wave/spacewave/core/resource/objecttype/registry"
 	resource_quickstart_registry "github.com/s4wave/spacewave/core/resource/quickstart/registry"
 	resource_root "github.com/s4wave/spacewave/core/resource/root"
@@ -65,10 +67,29 @@ type Controller struct {
 	objectWizardRegistry *s4wave_wizard.WizardRegistryResource
 	// commandsManager is the commands manager resource
 	commandsManager *resource_command.CommandsManager
+
+	// yieldBroker and listenerStatus are shared with the resource listener
+	// controller through the composition root; injected into the root
+	// resource after construction.
+	yieldBroker    *yield_policy.Broker
+	listenerStatus *resource_listener.StatusBroker
+}
+
+// Option configures the root resource controller factory.
+type Option func(*Controller)
+
+// WithYieldBroker injects the shared listener yield broker.
+func WithYieldBroker(broker *yield_policy.Broker) Option {
+	return func(c *Controller) { c.yieldBroker = broker }
+}
+
+// WithListenerStatusBroker injects the shared listener status broker.
+func WithListenerStatusBroker(broker *resource_listener.StatusBroker) Option {
+	return func(c *Controller) { c.listenerStatus = broker }
 }
 
 // NewFactory constructs the component factory.
-func NewFactory(b bus.Bus) controller.Factory {
+func NewFactory(b bus.Bus, opts ...Option) controller.Factory {
 	return bus.NewBusControllerFactory(
 		b,
 		ConfigID,
@@ -80,6 +101,9 @@ func NewFactory(b bus.Bus) controller.Factory {
 		},
 		func(base *bus.BusController[*Config]) (*Controller, error) {
 			c := &Controller{BusController: base}
+			for _, opt := range opts {
+				opt(c)
+			}
 
 			// create the resource server
 			c.rootResourceMux = srpc.NewMux()
@@ -94,6 +118,12 @@ func NewFactory(b bus.Bus) controller.Factory {
 
 			// create the root resource
 			c.rootResource = resource_root.NewCoreRootServer(base.GetLogger(), b)
+			if c.yieldBroker != nil {
+				c.rootResource.SetYieldBroker(c.yieldBroker)
+			}
+			if c.listenerStatus != nil {
+				c.rootResource.SetListenerStatusBroker(c.listenerStatus)
+			}
 			if err := c.rootResource.Register(c.rootResourceMux); err != nil {
 				return nil, err
 			}

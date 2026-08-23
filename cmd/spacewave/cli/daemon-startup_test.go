@@ -15,6 +15,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/util/pipesock"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 )
 
 // shortStatePath returns a state directory whose unix socket paths fit in
@@ -51,7 +52,7 @@ func TestInvalidDaemonIdleTimeoutReportsStartupError(t *testing.T) {
 
 	commandErrCh := make(chan error, 1)
 	go func() {
-		commandErrCh <- runServeCommand(child, func() cli_entrypoint.CliBus { return nil }, "startup", false, defaultDaemonIdleTimeout)
+		commandErrCh <- runServeCommand(child, func() cli_entrypoint.CliBus { return nil }, yield_policy.NewBroker(), "startup", false, defaultDaemonIdleTimeout)
 	}()
 
 	waitCtx, cancel := context.WithTimeout(context.Background(), time.Second)

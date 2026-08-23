@@ -20,6 +20,7 @@ import (
 	"github.com/aperturerobotics/cli"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	storage_native "github.com/s4wave/spacewave/bldr/storage/native"
+	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	"github.com/sirupsen/logrus"
 )
 
@@ -50,7 +51,7 @@ func TestRunServeCommandCompletesTakeoverBeforeBusInitialization(t *testing.T) {
 		commandErr <- runServeCommand(child, func() cli_entrypoint.CliBus {
 			close(busInitialized)
 			return nil
-		}, "", true, 0)
+		}, yield_policy.NewBroker(), "", true, 0)
 	}()
 
 	select {

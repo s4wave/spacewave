@@ -5,7 +5,7 @@ package resource_root
 import (
 	"context"
 
-	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
+	"github.com/pkg/errors"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 )
@@ -18,7 +18,10 @@ func (s *CoreRootServer) WatchListenerYieldPrompts(
 	_ *s4wave_root.WatchListenerYieldPromptsRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchListenerYieldPromptsStream,
 ) error {
-	broker := resource_listener.GetProcessYieldBroker()
+	broker := s.getYieldBroker()
+	if broker == nil {
+		return errors.New("listener yield broker is not available")
+	}
 	ctx := strm.Context()
 	var sentIDs []string
 	for {
@@ -55,7 +58,10 @@ func (s *CoreRootServer) RespondToListenerYieldPrompt(
 	_ context.Context,
 	req *s4wave_root.RespondToListenerYieldPromptRequest,
 ) (*s4wave_root.RespondToListenerYieldPromptResponse, error) {
-	broker := resource_listener.GetProcessYieldBroker()
+	broker := s.getYieldBroker()
+	if broker == nil {
+		return &s4wave_root.RespondToListenerYieldPromptResponse{NotFound: true}, nil
+	}
 	if err := broker.ResolvePrompt(req.GetPromptId(), req.GetAllow()); err != nil {
 		return &s4wave_root.RespondToListenerYieldPromptResponse{NotFound: true}, nil
 	}
@@ -69,7 +75,10 @@ func (s *CoreRootServer) WatchRuntimeHandoff(
 	_ *s4wave_root.WatchRuntimeHandoffRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchRuntimeHandoffStream,
 ) error {
-	broker := resource_listener.GetProcessYieldBroker()
+	broker := s.getYieldBroker()
+	if broker == nil {
+		return errors.New("listener yield broker is not available")
+	}
 	ctx := strm.Context()
 	var prev s4wave_root.RuntimeHandoffState
 	first := true
@@ -104,7 +113,10 @@ func (s *CoreRootServer) ReclaimRuntime(
 	_ context.Context,
 	_ *s4wave_root.ReclaimRuntimeRequest,
 ) (*s4wave_root.ReclaimRuntimeResponse, error) {
-	broker := resource_listener.GetProcessYieldBroker()
+	broker := s.getYieldBroker()
+	if broker == nil {
+		return &s4wave_root.ReclaimRuntimeResponse{}, nil
+	}
 	return &s4wave_root.ReclaimRuntimeResponse{Reclaimed: broker.Reclaim()}, nil
 }
 

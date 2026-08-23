@@ -9,10 +9,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/pkg/errors"
 	entrypoint_fatal "github.com/s4wave/spacewave/bldr/entrypoint/fatal"
@@ -63,8 +64,15 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return errors.Wrap(err, "resolve socket path")
 	}
 
+	if c.statusBroker == nil {
+		return errors.New("listener status broker is not injected")
+	}
+	if c.yieldBroker == nil {
+		return errors.New("listener yield broker is not injected")
+	}
+
 	// Publish listener status while the resource service is acquired.
-	status := GetProcessStatusBroker()
+	status := c.statusBroker
 	status.SetSocketPath(absPath)
 	defer status.SetListening(false)
 
@@ -82,7 +90,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer invokerRef.Release()
 
 	// Enter the handoff-aware serve and reclaim loop.
-	broker := GetProcessYieldBroker()
+	broker := c.yieldBroker
 
 	// allowTakeover is false on first entry so a live daemon on the
 	// socket is refused rather than displaced, and true when
@@ -194,14 +202,14 @@ func (c *Controller) serveOnce(
 	defer serveCancel()
 
 	yieldCh := make(chan struct{})
-	var yieldOnce sync.Once
+	var yieldRequested atomic.Bool
 	mux := srpc.NewMux(invoker)
 	policy := broker.MakePolicy(RequesterNameDefault, absPath)
 	controlHandler := listener_control.NewHandler(policy, func() {
 		le.Info("daemon control shutdown approved, yielding socket")
-		yieldOnce.Do(func() {
+		if yieldRequested.CompareAndSwap(false, true) {
 			close(yieldCh)
-		})
+		}
 		_ = lis.Close()
 	})
 	if err := mux.Register(controlHandler); err != nil {
@@ -251,31 +259,51 @@ func acceptCountingListener(
 	srv *srpc.Server,
 	status *StatusBroker,
 ) (func(), error) {
-	// Initialize connection tracking and the client wait group.
-	var clients sync.WaitGroup
-	var connectionsMtx sync.Mutex
+	// connectionsBcast guards the set of live client connections; drain waits
+	// for it to empty instead of counting goroutines in a WaitGroup.
+	var connectionsBcast broadcast.Broadcast
 	connections := make(map[*countingConn]struct{})
 
 	// Close a snapshot of active client connections.
 	closeConnections := func() {
-		connectionsMtx.Lock()
-		active := make([]*countingConn, 0, len(connections))
-		for conn := range connections {
-			active = append(active, conn)
-		}
-		connectionsMtx.Unlock()
+		var active []*countingConn
+		connectionsBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+			for conn := range connections {
+				active = append(active, conn)
+			}
+		})
 		for _, conn := range active {
 			_ = conn.Close()
 		}
 	}
 
+	// awaitConnectionsIdle blocks until every tracked client has exited.
+	awaitConnectionsIdle := func() {
+		for {
+			var waitCh <-chan struct{}
+			idle := false
+			connectionsBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+				if len(connections) != 0 {
+					waitCh = getWaitCh()
+					return
+				}
+				idle = true
+			})
+			if idle {
+				return
+			}
+			<-waitCh
+		}
+	}
+
 	// Build an idempotent drain operation for shutdown.
-	drainOnce := sync.Once{}
+	var drained atomic.Bool
 	drainClients := func() {
-		drainOnce.Do(func() {
-			closeConnections()
-			clients.Wait()
-		})
+		if !drained.CompareAndSwap(false, true) {
+			return
+		}
+		closeConnections()
+		awaitConnectionsIdle()
 	}
 
 	// Accept connections until the listener closes.
@@ -294,16 +322,16 @@ func acceptCountingListener(
 			continue
 		}
 
-		connectionsMtx.Lock()
-		connections[tracked] = struct{}{}
-		clients.Add(1)
-		connectionsMtx.Unlock()
+		connectionsBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			connections[tracked] = struct{}{}
+			broadcast()
+		})
 		go func() {
-			defer clients.Done()
 			defer func() {
-				connectionsMtx.Lock()
-				delete(connections, tracked)
-				connectionsMtx.Unlock()
+				connectionsBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+					delete(connections, tracked)
+					broadcast()
+				})
 				_ = tracked.Close()
 			}()
 			_ = srv.AcceptMuxedConn(ctx, mc)
@@ -315,16 +343,16 @@ func acceptCountingListener(
 // exactly once when the connection closes.
 type countingConn struct {
 	net.Conn
-	status    *StatusBroker
-	closeOnce sync.Once
+	status  *StatusBroker
+	counted atomic.Bool
 }
 
 // Close closes the underlying connection and decrements the
 // connected-client count exactly once.
 func (c *countingConn) Close() error {
-	c.closeOnce.Do(func() {
+	if c.counted.CompareAndSwap(false, true) {
 		c.status.RemoveClient()
-	})
+	}
 	return c.Conn.Close()
 }
 

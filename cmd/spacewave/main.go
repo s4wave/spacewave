@@ -20,6 +20,7 @@ import (
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
+	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	resource_root_controller "github.com/s4wave/spacewave/core/resource/root/controller"
 	session_controller "github.com/s4wave/spacewave/core/session/controller"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
@@ -54,103 +55,141 @@ import (
 //go:embed configset.bin
 var configSetFS embed.FS
 
-// factories are the factories included in the binary.
-var factories = []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{auth_method_password.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{block_store_bucket.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{block_store_rpc.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{block_store_rpc_server.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{cluster_controller.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{dex_solicit.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{execution_controller.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{forge_lib_git_clone.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{forge_lib_kvtx.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{link_solicit_controller.NewFactory()}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{object_peer.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{optypes.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{pass_controller.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{peer_controller.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{plugin_host_configset.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{plugin_host_process.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{plugin_host_scheduler.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{plugin_host_quickjs.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{plugin_space.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{provider_local.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{provider_spacewave.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{resource_listener.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{resource_root_controller.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{session_controller.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{signaling_rpc_client.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{sobject_world_engine.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{space_http_download.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{space_http_export.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{space_sobject.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{space_world_blocktype.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{storage_volume.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{task_controller.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{unixfs_access_http.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{volume_rpc_server.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{webrtc.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{websocket.NewFactory(b)}
-}, func(b bus.Bus) []controller.Factory {
-	return []controller.Factory{worker_controller.NewFactory(b)}
-}}
+// listenerBrokers are the shared yield and listener-status brokers wired at
+// this composition root into the resource listener controller, the root
+// resource controller, the desktop status projector, and the CLI commands.
+type listenerBrokers struct {
+	yield  *yield_policy.Broker
+	status *resource_listener.StatusBroker
+}
+
+// newListenerBrokers constructs the process-shared broker pair.
+func newListenerBrokers() *listenerBrokers {
+	return &listenerBrokers{
+		yield:  yield_policy.NewBroker(),
+		status: resource_listener.NewStatusBroker(),
+	}
+}
+
+// buildFactories wires the shared listener brokers into every consumer.
+func buildFactories(brokers *listenerBrokers) []cli_entrypoint.AddFactoryFunc {
+	return []cli_entrypoint.AddFactoryFunc{func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{auth_method_password.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{block_store_bucket.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{block_store_rpc.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{block_store_rpc_server.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{cluster_controller.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{dex_solicit.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{execution_controller.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{forge_lib_git_clone.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{forge_lib_kvtx.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{link_solicit_controller.NewFactory()}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{object_peer.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{optypes.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{pass_controller.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{peer_controller.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{plugin_host_configset.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{plugin_host_process.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{plugin_host_scheduler.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{plugin_host_quickjs.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{plugin_space.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{provider_local.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{provider_spacewave.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{
+			resource_listener.NewFactory(
+				b,
+				resource_listener.WithYieldBroker(brokers.yield),
+				resource_listener.WithStatusBroker(brokers.status),
+			),
+		}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{resource_root_controller.NewFactory(
+			b,
+			resource_root_controller.WithYieldBroker(brokers.yield),
+			resource_root_controller.WithListenerStatusBroker(brokers.status),
+		)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{session_controller.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{signaling_rpc_client.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{sobject_world_engine.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{space_http_download.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{space_http_export.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{space_sobject.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{space_world_blocktype.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{storage_volume.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{task_controller.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{unixfs_access_http.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{volume_rpc_server.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{webrtc.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{websocket.NewFactory(b)}
+	}, func(b bus.Bus) []controller.Factory {
+		return []controller.Factory{worker_controller.NewFactory(b)}
+	}}
+}
 
 // configSets are the configuration sets to apply on startup.
 var configSets = []cli_entrypoint.BuildConfigSetFunc{cli_entrypoint.ConfigSetFuncFromFS(configSetFS, "configset.bin")}
 
-// cliCommands are the CLI command builders.
-//
-// CLI commands build a local bus for storage and control work. They must not
-// let that bus's configured resource listener displace the foreground serve
-// process; serve binds the socket explicitly after installing its own handoff
-// guard.
-var cliCommands = []cli_entrypoint.BuildCommandsFunc{func(getBus func() cli_entrypoint.CliBus) []*aperture_cli.Command {
-	handedOff := false
-	protectedGetBus := func() cli_entrypoint.CliBus {
-		if !handedOff {
-			resource_listener.GetProcessYieldBroker().BeginHandoff("spacewave CLI", "")
-			handedOff = true
+// buildCliCommands builds the CLI command builders. Each command process
+// owns a private broker pair: it never shares listener state with the
+// daemon, and its bus's configured resource listener must not displace the
+// foreground serve process; serve binds the socket explicitly after
+// installing its own handoff guard.
+func buildCliCommands(brokers *listenerBrokers) []cli_entrypoint.BuildCommandsFunc {
+	return []cli_entrypoint.BuildCommandsFunc{func(getBus func() cli_entrypoint.CliBus) []*aperture_cli.Command {
+		handedOff := false
+		protectedGetBus := func() cli_entrypoint.CliBus {
+			if !handedOff {
+				brokers.yield.BeginHandoff("spacewave CLI", "")
+				handedOff = true
+			}
+			return getBus()
 		}
-		return getBus()
-	}
-	return cli.NewCliCommands(protectedGetBus)
-}}
+		return cli.NewCliCommands(protectedGetBus, brokers.yield)
+	}}
+}
 
 // main is the main entrypoint.
-func main() { cli_entrypoint.Main("spacewave", "spacewave", factories, configSets, cliCommands) }
+func main() {
+	brokers := newListenerBrokers()
+	cli_entrypoint.Main(
+		"spacewave",
+		"spacewave",
+		buildFactories(brokers),
+		configSets,
+		buildCliCommands(brokers),
+	)
+}

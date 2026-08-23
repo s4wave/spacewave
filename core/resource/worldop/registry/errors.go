@@ -10,3 +10,6 @@ var ErrPluginIdRequired = errors.New("plugin_id is required")
 
 // ErrOpTypeIdMustHavePluginPrefix is returned when the operation_type_id has no namespace prefix before '/'.
 var ErrOpTypeIdMustHavePluginPrefix = errors.New("operation_type_id must contain a namespace prefix before '/'")
+
+// ErrOperationTypeAlreadyRegistered is returned when the operation_type_id already has an active registration.
+var ErrOperationTypeAlreadyRegistered = errors.New("operation_type_id is already registered")

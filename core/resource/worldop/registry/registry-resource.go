@@ -63,7 +63,14 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 	}
 
 	var regID uint32
+	duplicate := false
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		for _, v := range r.registrations {
+			if v.GetOperationTypeId() == opTypeID {
+				duplicate = true
+				return
+			}
+		}
 		regID = r.nextID
 		r.nextID++
 		r.registrations[regID] = &s4wave_worldop_registry.WorldOpRegistration{
@@ -73,6 +80,9 @@ func (r *WorldOpRegistryResource) RegisterWorldOp(
 		}
 		broadcast()
 	})
+	if duplicate {
+		return nil, ErrOperationTypeAlreadyRegistered
+	}
 
 	emptyMux := srpc.NewMux()
 	resourceID, err := client.AddResource(emptyMux, func() {

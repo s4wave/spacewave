@@ -22,7 +22,7 @@ import (
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
-	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
+	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	resource_root_controller "github.com/s4wave/spacewave/core/resource/root/controller"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
@@ -32,7 +32,7 @@ import (
 
 // newServeCommand builds the serve command that starts the daemon
 // with a resource service socket listener.
-func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
+func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker) *cli.Command {
 	var startupPipeID string
 	var runtimeTracePath string
 	var takeover bool
@@ -67,7 +67,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 		},
 		Action: func(c *cli.Context) (retErr error) {
 			return runWithRuntimeTrace(runtimeTracePath, func() error {
-				return runServeCommand(c, getBus, startupPipeID, takeover, idleTimeout)
+				return runServeCommand(c, getBus, yieldBroker, startupPipeID, takeover, idleTimeout)
 			})
 		},
 	}
@@ -76,6 +76,7 @@ func newServeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 func runServeCommand(
 	c *cli.Context,
 	getBus func() cli_entrypoint.CliBus,
+	yieldBroker *yield_policy.Broker,
 	startupPipeID string,
 	takeover bool,
 	idleTimeout time.Duration,
@@ -108,7 +109,7 @@ func runServeCommand(
 	}
 
 	sockPath := filepath.Join(resolved, socketName)
-	handoffBroker := resource_listener.GetProcessYieldBroker()
+	handoffBroker := yieldBroker
 	handoffBroker.BeginHandoff("spacewave serve", sockPath)
 	defer handoffBroker.Reclaim()
 

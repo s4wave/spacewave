@@ -17,10 +17,11 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
+	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 )
 
 func TestServeCommandTraceFlag(t *testing.T) {
-	cmd := newServeCommand(nil)
+	cmd := newServeCommand(nil, yield_policy.NewBroker())
 	set := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
 	set.SetOutput(io.Discard)
 	for _, fl := range cmd.Flags {
@@ -35,7 +36,7 @@ func TestServeCommandTraceFlag(t *testing.T) {
 
 func TestServeCommandIdleTimeoutFlag(t *testing.T) {
 	t.Setenv(daemonIdleTimeoutEnvVar, "")
-	cmd := newServeCommand(nil)
+	cmd := newServeCommand(nil, yield_policy.NewBroker())
 	idleFlag := findServeIdleTimeoutFlag(t, cmd)
 
 	if idleFlag.Value != defaultDaemonIdleTimeout {
@@ -52,7 +53,7 @@ func TestServeCommandIdleTimeoutFlag(t *testing.T) {
 
 func TestServeCommandIdleTimeoutFlagDefersEnvironmentParsing(t *testing.T) {
 	t.Setenv(daemonIdleTimeoutEnvVar, "not-a-duration")
-	cmd := newServeCommand(nil)
+	cmd := newServeCommand(nil, yield_policy.NewBroker())
 	idleFlag := findServeIdleTimeoutFlag(t, cmd)
 	set := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
 	set.SetOutput(io.Discard)
@@ -67,7 +68,7 @@ func TestServeCommandIdleTimeoutFlagDefersEnvironmentParsing(t *testing.T) {
 
 func TestServeCommandIdleTimeoutFlagOverridesEnvironment(t *testing.T) {
 	t.Setenv(daemonIdleTimeoutEnvVar, "45s")
-	cmd := newServeCommand(nil)
+	cmd := newServeCommand(nil, yield_policy.NewBroker())
 	idleFlag := findServeIdleTimeoutFlag(t, cmd)
 	set := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
 	set.SetOutput(io.Discard)

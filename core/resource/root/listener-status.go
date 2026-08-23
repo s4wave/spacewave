@@ -1,7 +1,7 @@
 package resource_root
 
 import (
-	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
+	"github.com/pkg/errors"
 	s4wave_root "github.com/s4wave/spacewave/sdk/root"
 )
 
@@ -14,7 +14,10 @@ func (s *CoreRootServer) WatchListenerStatus(
 	_ *s4wave_root.WatchListenerStatusRequest,
 	strm s4wave_root.SRPCRootResourceService_WatchListenerStatusStream,
 ) error {
-	broker := resource_listener.GetProcessStatusBroker()
+	broker := s.getListenerStatusBroker()
+	if broker == nil {
+		return errors.New("listener status broker is not available")
+	}
 	ctx := strm.Context()
 	var prev s4wave_root.WatchListenerStatusResponse
 	first := true

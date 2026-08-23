@@ -6,6 +6,7 @@ package spacewave_cli
 import (
 	"github.com/aperturerobotics/cli"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	hydra_cli "github.com/s4wave/spacewave/db/cli"
 	hydra_cliutil "github.com/s4wave/spacewave/db/cli/util"
 	bifrost_cli "github.com/s4wave/spacewave/net/cli"
@@ -13,14 +14,19 @@ import (
 	"github.com/s4wave/spacewave/sdk/cli/runner"
 )
 
-// NewCliCommands builds the spacewave CLI commands.
-func NewCliCommands(getBus func() cli_entrypoint.CliBus) []*cli.Command {
+// NewCliCommands builds the spacewave CLI commands. The yield broker is the
+// process-shared broker from the composition root; nil builds commands with
+// a private broker for tests and read-only command trees.
+func NewCliCommands(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker) []*cli.Command {
+	if yieldBroker == nil {
+		yieldBroker = yield_policy.NewBroker()
+	}
 	commands := []*cli.Command{
 		// Tier 1: entry points
 		newLoginCommand(getBus),
 		newLogoutCommand(getBus),
 		newWhoamiCommand(getBus),
-		newServeCommand(getBus),
+		newServeCommand(getBus, yieldBroker),
 		newStopCommand(getBus),
 		newStatusCommand(getBus),
 		newWebCommand(getBus),

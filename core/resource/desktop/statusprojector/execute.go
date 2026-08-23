@@ -14,6 +14,10 @@ import (
 
 // Execute publishes Spacewave status into the host desktop tray tree.
 func (c *Controller) Execute(ctx context.Context) error {
+	if c.statusBroker == nil {
+		return errors.New("listener status broker is not injected")
+	}
+
 	le := c.GetLogger()
 	le.Info("desktop tray status projector starting")
 
@@ -47,7 +51,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	return projectRuntimeTrayStatus(
 		ctx,
 		c.GetBus(),
-		resource_listener.GetProcessStatusBroker(),
+		c.statusBroker,
 		sessionCtrl,
 		launcher,
 		publisher,

@@ -1,28 +1,8 @@
 package resource_listener
 
 import (
-	"sync"
-
 	"github.com/aperturerobotics/util/broadcast"
 )
-
-// processStatusBrokerOnce guards lazy construction of the process-wide
-// listener status broker. The listener controller and the Root
-// resource server share a single broker so UI subscribers see the
-// same listener state the controller publishes.
-var (
-	processStatusBrokerOnce sync.Once
-	processStatusBroker     *StatusBroker
-)
-
-// GetProcessStatusBroker returns the process-wide listener status
-// broker. On the first call it lazily constructs a broker.
-func GetProcessStatusBroker() *StatusBroker {
-	processStatusBrokerOnce.Do(func() {
-		processStatusBroker = NewStatusBroker()
-	})
-	return processStatusBroker
-}
 
 // ListenerStatus is the current listener state emitted to UI
 // subscribers.
