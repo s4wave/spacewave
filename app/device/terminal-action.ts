@@ -29,6 +29,46 @@ export function isOpenableTerminalCapability(
   )
 }
 
+// buildTerminalOpData encodes one CreateTerminalOp for a resolved terminal
+// target; labelFallback names the target kind when the source has no label.
+function buildTerminalOpData({
+  label,
+  labelFallback,
+  targetKind,
+  devicePeerId,
+  sshHostObjectKey,
+  deviceObjectKey,
+  command,
+  existingObjectKeys,
+}: {
+  label: string
+  labelFallback: string
+  targetKind: (typeof TerminalTargetKind)[keyof typeof TerminalTargetKind]
+  devicePeerId?: string
+  sshHostObjectKey?: string
+  deviceObjectKey?: string
+  command?: string
+  existingObjectKeys?: Iterable<string | undefined>
+}): { objectKey: string; opData: Uint8Array } {
+  const name = `${label || labelFallback} Terminal`
+  const objectKey = buildObjectKey('terminal/', name, existingObjectKeys)
+  return {
+    objectKey,
+    opData: CreateTerminalOp.toBinary({
+      objectKey,
+      name,
+      devicePeerId,
+      sshHostObjectKey,
+      deviceObjectKey,
+      targetKind,
+      command,
+      cols: 80,
+      rows: 24,
+      timestamp: new Date(),
+    }),
+  }
+}
+
 export function buildCreateTerminalOpData({
   device,
   deviceObjectKey,
@@ -39,21 +79,14 @@ export function buildCreateTerminalOpData({
   existingObjectKeys?: Iterable<string | undefined>
 }): { objectKey: string; opData: Uint8Array } | undefined {
   if (!device.peerId) return undefined
-  const name = `${device.label || 'Device'} Terminal`
-  const objectKey = buildObjectKey('terminal/', name, existingObjectKeys)
-  return {
-    objectKey,
-    opData: CreateTerminalOp.toBinary({
-      objectKey,
-      name,
-      deviceObjectKey,
-      devicePeerId: device.peerId,
-      targetKind: TerminalTargetKind.DEVICE,
-      cols: 80,
-      rows: 24,
-      timestamp: new Date(),
-    }),
-  }
+  return buildTerminalOpData({
+    label: device.label ?? '',
+    labelFallback: 'Device',
+    targetKind: TerminalTargetKind.DEVICE,
+    devicePeerId: device.peerId,
+    deviceObjectKey,
+    existingObjectKeys,
+  })
 }
 
 export function buildCreateSshHostTerminalOpData({
@@ -68,19 +101,12 @@ export function buildCreateSshHostTerminalOpData({
   command?: string
 }): { objectKey: string; opData: Uint8Array } | undefined {
   if (!hostObjectKey) return undefined
-  const name = `${host.label || 'SSH Host'} Terminal`
-  const objectKey = buildObjectKey('terminal/', name, existingObjectKeys)
-  return {
-    objectKey,
-    opData: CreateTerminalOp.toBinary({
-      objectKey,
-      name,
-      sshHostObjectKey: hostObjectKey,
-      targetKind: TerminalTargetKind.SSH_HOST,
-      command,
-      cols: 80,
-      rows: 24,
-      timestamp: new Date(),
-    }),
-  }
+  return buildTerminalOpData({
+    label: host.label ?? '',
+    labelFallback: 'SSH Host',
+    targetKind: TerminalTargetKind.SSH_HOST,
+    sshHostObjectKey: hostObjectKey,
+    command,
+    existingObjectKeys,
+  })
 }
