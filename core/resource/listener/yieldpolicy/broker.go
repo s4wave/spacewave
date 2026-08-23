@@ -22,7 +22,9 @@ package yieldpolicy
 
 import (
 	"context"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/util/broadcast"
@@ -261,6 +263,8 @@ func (b *Broker) SnapshotPrompts() ([]Prompt, <-chan struct{}) {
 			out = append(out, p.prompt)
 		}
 	})
+	// Sort outside the lock; an unchanged prompt set must snapshot stably.
+	slices.SortFunc(out, func(a, b Prompt) int { return strings.Compare(a.ID, b.ID) })
 	return out, waitCh
 }
 

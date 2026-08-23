@@ -262,11 +262,10 @@ func (t *TestbedWithQuickJS) LoadQuickJSPlugin(
 
 	manifestID := pluginID
 	manifestMeta := bldr_manifest.NewManifestMeta(manifestID, bldr_manifest.BuildType_DEV, platformID, 1)
-	manifest, manifestRef, err := t.Testbed.CreateManifestWithBilly(ctx, manifestMeta, scriptPath, distFS, assetsFS, nowTs)
+	manifest, _, err := t.Testbed.CreateManifestWithBilly(ctx, manifestMeta, scriptPath, distFS, assetsFS, nowTs)
 	if err != nil {
 		return nil, err
 	}
-	_ = manifestRef
 
 	// Build a host mux for the plugin with the testbed's resource server.
 	// This ensures the plugin's ResourceService root is the testbed's

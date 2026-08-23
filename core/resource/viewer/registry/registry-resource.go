@@ -1,7 +1,9 @@
 package resource_viewer_registry
 
 import (
+	"cmp"
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
@@ -205,6 +207,12 @@ func (r *ViewerRegistryResource) getRegistrationsLocked(
 		}
 		regs = append(regs, reg)
 	}
+	slices.SortFunc(regs, func(a, b *s4wave_viewer_registry.ViewerRegistration) int {
+		return cmp.Or(
+			cmp.Compare(a.GetTypeId(), b.GetTypeId()),
+			cmp.Compare(a.GetComponentId(), b.GetComponentId()),
+		)
+	})
 	return regs
 }
 

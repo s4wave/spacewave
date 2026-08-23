@@ -69,13 +69,6 @@ func NewSetSpaceSettingsOpBlock() block.Block {
 
 // Validate performs cursory checks on the op.
 func (o *SetSpaceSettingsOp) Validate() error {
-	objKey := o.GetObjectKey()
-	if objKey == "" {
-		objKey = DefaultSpaceSettingsObjectKey
-	}
-	if len(objKey) == 0 {
-		return world.ErrEmptyObjectKey
-	}
 	if err := o.GetTimestamp().Validate(false); err != nil {
 		return err
 	}

@@ -1,7 +1,9 @@
 package resource_configtype_registry
 
 import (
+	"cmp"
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
@@ -130,10 +132,15 @@ func (r *ConfigTypeRegistryResource) LookupRegistration(
 ) *s4wave_configtype_registry.ConfigTypeRegistration {
 	var reg *s4wave_configtype_registry.ConfigTypeRegistration
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		for _, v := range r.registrations {
-			if v.GetConfigId() == configID {
+		// Deterministic winner: lowest registration id on duplicate config IDs.
+		var bestID uint32
+		for id, v := range r.registrations {
+			if v.GetConfigId() != configID {
+				continue
+			}
+			if reg == nil || id < bestID {
 				reg = v.CloneVT()
-				break
+				bestID = id
 			}
 		}
 	})
@@ -147,6 +154,9 @@ func (r *ConfigTypeRegistryResource) getRegistrationsLocked() []*s4wave_configty
 	for _, reg := range r.registrations {
 		regs = append(regs, reg)
 	}
+	slices.SortFunc(regs, func(a, b *s4wave_configtype_registry.ConfigTypeRegistration) int {
+		return cmp.Compare(a.GetConfigId(), b.GetConfigId())
+	})
 	return regs
 }
 

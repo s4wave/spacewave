@@ -263,9 +263,12 @@ func (t *Transfer) Execute(ctx context.Context) error {
 		}
 	}
 
-	// Clean up checkpoint on success.
+	// Clean up checkpoint on success. A failed delete leaves a stale complete
+	// checkpoint that the next Execute resumes from as already-done, so log it.
 	if t.checkpoint != nil {
-		_ = t.checkpoint.DeleteCheckpoint(ctx)
+		if err := t.checkpoint.DeleteCheckpoint(ctx); err != nil {
+			t.le.WithError(err).Warn("failed to delete completed transfer checkpoint")
+		}
 	}
 
 	t.setPhase(TransferPhase_TransferPhase_COMPLETE)

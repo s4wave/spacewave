@@ -197,9 +197,11 @@ func (f *FSCursor) lookupChild(ctx context.Context, name string) (unixfs.FSCurso
 		return f.buildChild(name), nil
 	}
 
-	if _, ok, err := f.getMountedObjectKey(ctx); err != nil {
+	_, mounted, err := f.getMountedObjectKey(ctx)
+	if err != nil {
 		return nil, err
-	} else if ok {
+	}
+	if mounted {
 		return nil, unixfs_errors.ErrNotExist
 	}
 
