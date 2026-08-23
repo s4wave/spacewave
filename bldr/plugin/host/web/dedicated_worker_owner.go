@@ -14,6 +14,8 @@ type dedicatedWorkerOwner struct {
 	docs       map[string]bool
 }
 
+// dedicatedWorkerState tracks the document's role in the dedicated worker
+// host election.
 type dedicatedWorkerState uint8
 
 const (

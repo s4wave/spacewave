@@ -17,6 +17,8 @@ import (
 // starting correctly.
 const webWorkerReadyTimeout = time.Minute * 5
 
+// waitForWebWorkerReady waits until the web worker becomes ready or closes,
+// retrying transient startup failures.
 func waitForWebWorkerReady(ctx context.Context, docStatusCtr *ccontainer.CContainer[*web_document.WebDocumentStatus], webWorkerID string) error {
 	var docStatus *web_document.WebDocumentStatus
 	for {
@@ -65,6 +67,8 @@ func waitForCreatedWebWorkerReady(ctx context.Context, docStatusCtr *ccontainer.
 	return waitForCreatedWebWorkerReadyWithTimeout(ctx, docStatusCtr, worker, webWorkerReadyTimeout)
 }
 
+// waitForCreatedWebWorkerReadyWithTimeout waits for a created web worker to
+// become ready, removing and reporting the worker on retryable failure.
 func waitForCreatedWebWorkerReadyWithTimeout(ctx context.Context, docStatusCtr *ccontainer.CContainer[*web_document.WebDocumentStatus], worker web_worker.WebWorker, timeout time.Duration) (bool, error) {
 	readyCtx, readyCtxCancel := context.WithTimeout(ctx, timeout)
 	defer readyCtxCancel()
@@ -92,6 +96,8 @@ func waitForCreatedWebWorkerReadyWithTimeout(ctx context.Context, docStatusCtr *
 	return true, nil
 }
 
+// webWorkerFailureError builds an error carrying the worker's failure
+// reason.
 func webWorkerFailureError(worker *web_document.WebWorkerStatus, message string) error {
 	if failureReason := worker.GetFailureReason(); failureReason != "" {
 		return &webWorkerFailureErr{message: message + ": " + failureReason}
@@ -99,6 +105,7 @@ func webWorkerFailureError(worker *web_document.WebWorkerStatus, message string)
 	return &webWorkerFailureErr{message: message}
 }
 
+// isWebWorkerFailureError reports whether err is a worker failure.
 func isWebWorkerFailureError(err error) bool {
 	if err == nil {
 		return false
@@ -107,10 +114,13 @@ func isWebWorkerFailureError(err error) bool {
 	return ok
 }
 
+// webWorkerStartupRetryError builds a retryable startup failure error.
 func webWorkerStartupRetryError(message string) error {
 	return &webWorkerStartupRetryErr{message: message}
 }
 
+// isWebWorkerStartupRetryError reports whether err is a retryable startup
+// failure.
 func isWebWorkerStartupRetryError(err error) bool {
 	if err == nil {
 		return false
@@ -119,6 +129,7 @@ func isWebWorkerStartupRetryError(err error) bool {
 	return ok
 }
 
+// webWorkerFailureErr is a non-retryable worker failure.
 type webWorkerFailureErr struct {
 	message string
 }
@@ -127,6 +138,7 @@ func (e *webWorkerFailureErr) Error() string {
 	return e.message
 }
 
+// webWorkerStartupRetryErr is a retryable worker startup failure.
 type webWorkerStartupRetryErr struct {
 	message string
 }
