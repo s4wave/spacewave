@@ -10,9 +10,183 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	"github.com/sirupsen/logrus"
 )
+
+// newTestSpaceRuntimeHostWatch builds a watch with buffered channels and a
+// recorded child cancellation.
+func newTestSpaceRuntimeHostWatch() (*spaceRuntimeHostWatch, chan error, chan error, *atomic.Bool) {
+	hostReady := make(chan error, 1)
+	terminal := make(chan error, 1)
+	var childCanceled atomic.Bool
+	w := &spaceRuntimeHostWatch{
+		mirror:         newSpacePluginHostMirror(),
+		childCtxCancel: func() { childCanceled.Store(true) },
+		hostReady:      hostReady,
+		terminal:       terminal,
+	}
+	return w, hostReady, terminal, &childCanceled
+}
+
+// assertNoSpaceRuntimeTerminal verifies that no terminal arrived and the child
+// was not canceled.
+func assertNoSpaceRuntimeTerminal(
+	t *testing.T,
+	terminal chan error,
+	canceled *atomic.Bool,
+) {
+	t.Helper()
+	select {
+	case err := <-terminal:
+		t.Fatalf("runtime terminated unexpectedly: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	if canceled.Load() {
+		t.Fatal("runtime child was canceled unexpectedly")
+	}
+}
+
+// recvSpaceRuntimeTerminal waits for the terminal error.
+func recvSpaceRuntimeTerminal(t *testing.T, terminal chan error) error {
+	t.Helper()
+	select {
+	case err := <-terminal:
+		return err
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for the runtime terminal")
+		return nil
+	}
+}
+
+// TestSpaceRuntimeHostWatchTerminalDecisions covers the terminal decision for
+// each LookupPluginHost full-snapshot delivery shape.
+func TestSpaceRuntimeHostWatchTerminalDecisions(t *testing.T) {
+	newHosts := func(platformIDs ...string) []plugin_host.PluginHost {
+		hosts := make([]plugin_host.PluginHost, 0, len(platformIDs))
+		for _, id := range platformIDs {
+			hosts = append(hosts, &spaceRuntimePluginHost{platformID: id})
+		}
+		return hosts
+	}
+
+	t.Run("identical redelivery keeps runtime alive", func(t *testing.T) {
+		w, hostReady, terminal, canceled := newTestSpaceRuntimeHostWatch()
+		if err := w.handleValues(nil, newHosts("a", "b")); err != nil {
+			t.Fatalf("initial delivery returned %v", err)
+		}
+		if err := <-hostReady; err != nil {
+			t.Fatalf("startup failed: %v", err)
+		}
+		if err := w.handleValues(nil, newHosts("a", "b")); err != nil {
+			t.Fatalf("redelivery returned %v", err)
+		}
+		if err := w.handleValues(nil, newHosts("b", "a")); err != nil {
+			t.Fatalf("reordered redelivery returned %v", err)
+		}
+		assertNoSpaceRuntimeTerminal(t, terminal, canceled)
+	})
+
+	t.Run("initial watch error fails startup", func(t *testing.T) {
+		w, hostReady, terminal, canceled := newTestSpaceRuntimeHostWatch()
+		resErr := errors.New("resolver failed")
+		if err := w.handleValues([]error{resErr}, nil); err != nil {
+			t.Fatalf("error delivery returned %v", err)
+		}
+		select {
+		case err := <-hostReady:
+			if !errors.Is(err, resErr) {
+				t.Fatalf("startup error = %v, want %v", err, resErr)
+			}
+		case <-time.After(time.Second):
+			t.Fatal("startup error was not delivered to hostReady")
+		}
+		if err := recvSpaceRuntimeTerminal(t, terminal); !errors.Is(err, resErr) {
+			t.Fatalf("terminal error = %v, want wrap of %v", err, resErr)
+		}
+		if !canceled.Load() {
+			t.Fatal("watch-error delivery did not cancel the runtime child")
+		}
+	})
+
+	t.Run("post-ready watch error is not an empty set", func(t *testing.T) {
+		w, hostReady, terminal, canceled := newTestSpaceRuntimeHostWatch()
+		if err := w.handleValues(nil, newHosts("a")); err != nil {
+			t.Fatalf("initial delivery returned %v", err)
+		}
+		<-hostReady
+		watchErr := errors.New("watch failed")
+		if err := w.handleValues([]error{watchErr}, nil); err != nil {
+			t.Fatalf("error delivery returned %v", err)
+		}
+		err := recvSpaceRuntimeTerminal(t, terminal)
+		if !errors.Is(err, watchErr) {
+			t.Fatalf("terminal error = %v, want wrap of %v", err, watchErr)
+		}
+		if errors.Is(err, errSpaceRuntimePluginHostSetChanged) {
+			t.Fatal("watch error was misread as an empty host set")
+		}
+		if !canceled.Load() {
+			t.Fatal("watch-error delivery did not cancel the runtime child")
+		}
+	})
+
+	t.Run("genuine empty set terminates runtime", func(t *testing.T) {
+		w, hostReady, terminal, canceled := newTestSpaceRuntimeHostWatch()
+		if err := w.handleValues(nil, newHosts("a")); err != nil {
+			t.Fatalf("initial delivery returned %v", err)
+		}
+		<-hostReady
+		if err := w.handleValues(nil, nil); err != nil {
+			t.Fatalf("empty-set delivery returned %v", err)
+		}
+		err := recvSpaceRuntimeTerminal(t, terminal)
+		if !errors.Is(err, errSpaceRuntimePluginHostSetChanged) {
+			t.Fatalf("terminal error = %v, want %v", err, errSpaceRuntimePluginHostSetChanged)
+		}
+		if !canceled.Load() {
+			t.Fatal("empty-set delivery did not cancel the runtime child")
+		}
+	})
+
+	t.Run("membership change terminates runtime", func(t *testing.T) {
+		t.Run("host loss", func(t *testing.T) {
+			w, hostReady, terminal, canceled := newTestSpaceRuntimeHostWatch()
+			if err := w.handleValues(nil, newHosts("a", "b")); err != nil {
+				t.Fatalf("initial delivery returned %v", err)
+			}
+			<-hostReady
+			if err := w.handleValues(nil, newHosts("a")); err != nil {
+				t.Fatalf("loss delivery returned %v", err)
+			}
+			err := recvSpaceRuntimeTerminal(t, terminal)
+			if !errors.Is(err, errSpaceRuntimePluginHostSetChanged) {
+				t.Fatalf("terminal error = %v, want %v", err, errSpaceRuntimePluginHostSetChanged)
+			}
+			if !canceled.Load() {
+				t.Fatal("host loss did not cancel the runtime child")
+			}
+		})
+		t.Run("duplicate growth", func(t *testing.T) {
+			w, hostReady, terminal, canceled := newTestSpaceRuntimeHostWatch()
+			if err := w.handleValues(nil, newHosts("a")); err != nil {
+				t.Fatalf("initial delivery returned %v", err)
+			}
+			<-hostReady
+			if err := w.handleValues(nil, newHosts("a", "a")); err != nil {
+				t.Fatalf("growth delivery returned %v", err)
+			}
+			err := recvSpaceRuntimeTerminal(t, terminal)
+			if !errors.Is(err, errSpaceRuntimePluginHostSetChanged) {
+				t.Fatalf("terminal error = %v, want %v", err, errSpaceRuntimePluginHostSetChanged)
+			}
+			if !canceled.Load() {
+				t.Fatal("duplicate growth did not cancel the runtime child")
+			}
+		})
+	})
+}
 
 func TestSpaceContentsResourceReleaseStopsRuntimeWaiter(t *testing.T) {
 	r := NewSpaceContentsResource(nil, nil, nil, "space-test", "engine-test")

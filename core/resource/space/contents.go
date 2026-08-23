@@ -428,6 +428,75 @@ func newSpaceContentsStartRoutine(le *logrus.Entry) *routine.RoutineContainer {
 	return routine.NewRoutineContainerWithLogger(le.WithField("routine", "space-contents-start"))
 }
 
+// spaceRuntimeHostWatch decides the Space runtime terminal for each full
+// snapshot of LookupPluginHost values delivered by the host watch. An
+// error-free snapshot whose sorted platform-ID multiset equals the last
+// accepted set is a no-op, so identical redeliveries keep the runtime alive.
+// Any other error-free set, including a genuine empty set, terminates the
+// runtime with errSpaceRuntimePluginHostSetChanged so the resource starts a
+// replacement. A snapshot with resolver errors follows the named watch-error
+// terminal path and is never read as an empty host set. Deliveries are serial.
+type spaceRuntimeHostWatch struct {
+	// mirror projects accepted host sets onto the runtime child bus.
+	mirror *spacePluginHostMirror
+	// childCtxCancel cancels the runtime child context on a terminal.
+	childCtxCancel context.CancelFunc
+	// hostReady receives the startup result exactly once.
+	hostReady chan<- error
+	// terminal receives a terminal error after startup succeeded.
+	terminal chan<- error
+	// initial records that an accepted snapshot started the runtime.
+	initial atomic.Bool
+	// lastPlatformIDs is the sorted platform-ID multiset of the last accepted
+	// snapshot. Duplicates are preserved so duplicate growth is a change.
+	lastPlatformIDs []string
+}
+
+// handleValues applies one collected values snapshot.
+func (w *spaceRuntimeHostWatch) handleValues(resErr []error, hosts []plugin_host.PluginHost) error {
+	if len(resErr) != 0 {
+		w.reportTerminal(errors.Wrap(resErr[0], "watch daemon plugin hosts"))
+		if !w.initial.Load() {
+			w.hostReady <- resErr[0]
+		}
+		return nil
+	}
+	platformIDs := make([]string, 0, len(hosts))
+	for _, host := range hosts {
+		platformIDs = append(platformIDs, host.GetPlatformId())
+	}
+	slices.Sort(platformIDs)
+	if w.initial.CompareAndSwap(false, true) {
+		w.lastPlatformIDs = platformIDs
+		w.mirror.SetHosts(hosts)
+		w.hostReady <- nil
+		return nil
+	}
+	if slices.Equal(platformIDs, w.lastPlatformIDs) {
+		return nil
+	}
+	w.reportTerminal(errSpaceRuntimePluginHostSetChanged)
+	return nil
+}
+
+// handleExited applies the watch termination.
+func (w *spaceRuntimeHostWatch) handleExited(err error) {
+	if w.initial.Load() {
+		w.reportTerminal(errors.Wrap(err, "watch daemon plugin hosts"))
+		return
+	}
+	w.hostReady <- err
+}
+
+// reportTerminal delivers a terminal error and cancels the runtime child.
+func (w *spaceRuntimeHostWatch) reportTerminal(err error) {
+	select {
+	case w.terminal <- err:
+		w.childCtxCancel()
+	default:
+	}
+}
+
 func startSpaceRuntime(
 	ctx context.Context,
 	parent bus.Bus,
@@ -465,42 +534,19 @@ func startSpaceRuntime(
 	}
 	hostReady := make(chan error, 1)
 	terminal := make(chan error, 1)
-	var initialSnapshot atomic.Bool
-	reportTerminal := func(err error) {
-		select {
-		case terminal <- err:
-			childCancel()
-		default:
-		}
+	hostWatch := &spaceRuntimeHostWatch{
+		mirror:         mirror,
+		childCtxCancel: childCancel,
+		hostReady:      hostReady,
+		terminal:       terminal,
 	}
 	_, hostWatchRelease, err := bus.ExecCollectValuesWatch(
 		childCtx,
 		parent,
 		plugin_host.NewLookupPluginHost(nil),
 		true,
-		func(resErr []error, hosts []plugin_host.PluginHost) error {
-			if len(resErr) != 0 {
-				reportTerminal(errors.Wrap(resErr[0], "watch daemon plugin hosts"))
-				if !initialSnapshot.Load() {
-					hostReady <- resErr[0]
-				}
-				return nil
-			}
-			if !initialSnapshot.CompareAndSwap(false, true) {
-				reportTerminal(errSpaceRuntimePluginHostSetChanged)
-				return nil
-			}
-			mirror.SetHosts(hosts)
-			hostReady <- nil
-			return nil
-		},
-		func(err error) {
-			if initialSnapshot.Load() {
-				reportTerminal(errors.Wrap(err, "watch daemon plugin hosts"))
-				return
-			}
-			hostReady <- err
-		},
+		hostWatch.handleValues,
+		hostWatch.handleExited,
 	)
 	if err != nil {
 		mirrorRelease()
