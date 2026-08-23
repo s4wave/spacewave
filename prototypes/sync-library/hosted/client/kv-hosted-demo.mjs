@@ -1,21 +1,33 @@
 // Hosted transport proof: compiled JS client over WebSocket SRPC to a Go
-// server hosting the authoritative world. The server writes a sentinel key
-// three seconds after startup; the client lists all keys after waiting
-// past that point and asserts cross-process visibility.
+// server hosting the authoritative world. Subscribes via WatchPrefix,
+// observes the server-originated write cross-process, then writes from
+// the client side and reads back.
 import * as context from '@goscript/context/index.js'
-import { KvOpenHosted, KvList } from '@goscript/github.com/s4wave/spacewave/prototypes/sync-library/lean/index.js'
+import { KvOpenHosted, KvWatch, KvPut, KvGet, KvList } from '@goscript/github.com/s4wave/spacewave/prototypes/sync-library/lean/index.js'
 
 const ctx = context.Background()
-const err = await KvOpenHosted(ctx, 'ws://127.0.0.1:8907/ws')
-if (err) throw new Error(`open: ${err.message}`)
+const openErr = await KvOpenHosted(ctx, 'ws://127.0.0.1:8907/ws')
+if (openErr) throw new Error(`open: ${openErr.Error()}`)
+console.log('connected to hosted world')
 
-await new Promise((r) => setTimeout(r, 5000))
+const snapshots = []
+KvWatch('server/', (snapshot) => snapshots.push(JSON.parse(snapshot)))
 
-const [listJson, listErr] = await KvList('')
-if (listErr) throw new Error(`list: ${listErr.message || String(listErr)}`)
-const entries = JSON.parse(listJson)
-console.log('hosted keys:', entries.map((e) => e.key))
-const found = entries.find((e) => e.key === 'server/hello')
-if (!found) throw new Error('server/hello not visible to client')
-console.log('CROSS-PROCESS SYNC OK:', found.key, '=', found.value)
+const deadline = Date.now() + 15000
+let observed = false
+while (Date.now() < deadline) {
+  const hit = snapshots.find((s) => s.some((e) => e.key === 'server/hello'))
+  if (hit) {
+    const entry = hit.find((e) => e.key === 'server/hello')
+    console.log('CROSS-PROCESS WRITE OBSERVED:', JSON.stringify(entry))
+    observed = true
+    break
+  }
+  await new Promise((r) => setTimeout(r, 200))
+}
+if (!observed) throw new Error('server/hello never appeared')
+
+await KvPut('client/note', 'written-from-client')
+const [got] = await KvGet('client/note')
+console.log('client write readback:', JSON.stringify(got))
 process.exit(0)
