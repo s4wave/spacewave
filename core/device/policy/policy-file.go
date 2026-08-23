@@ -91,5 +91,26 @@ func Validate(policy *DevicePolicy) error {
 			return errors.Errorf("device policy checkout-root %q access is required", name)
 		}
 	}
+	if fw := policy.GetForgeWorker(); fw != nil {
+		if strings.TrimSpace(fw.GetWorkerObjectKey()) == "" {
+			return errors.New("device policy forge-worker worker object key is required")
+		}
+		if fw.GetMilliCpu() == 0 {
+			return errors.New("device policy forge-worker milli_cpu must be set")
+		}
+		if fw.GetMemoryBytes() == 0 {
+			return errors.New("device policy forge-worker memory_bytes must be set")
+		}
+		if len(fw.GetBackends()) == 0 {
+			return errors.New("device policy forge-worker backends must not be empty")
+		}
+		seenBackends := make(map[string]struct{}, len(fw.GetBackends()))
+		for _, backend := range fw.GetBackends() {
+			if _, ok := seenBackends[backend]; ok {
+				return errors.Errorf("duplicate device policy forge-worker backend %q", backend)
+			}
+			seenBackends[backend] = struct{}{}
+		}
+	}
 	return nil
 }

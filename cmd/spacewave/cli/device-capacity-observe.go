@@ -1,0 +1,275 @@
+//go:build !js
+
+package spacewave_cli
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"time"
+
+	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
+	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	forge_runtime "github.com/s4wave/spacewave/forge/runtime"
+)
+
+const (
+	// capacityReservationLease is the reservation lease used by the daemon's
+	// admission owner.
+	capacityReservationLease = 10 * time.Minute
+	// capacityOwnerLease is the owner claim lease; the renewal ticker runs at
+	// a fraction of it so the claim outlives the interval.
+	capacityOwnerLease  = time.Minute
+	capacityRenewPeriod = capacityOwnerLease / 3
+)
+
+// startDeviceCapacityObserver claims, observes, and drains the declared
+// forge-worker capacity envelope through the merged owner-state admission
+// APIs. It follows policy changes and renews the claim while the daemon runs.
+func startDeviceCapacityObserver(
+	ctx context.Context,
+	le *logrus.Entry,
+	statePath string,
+	invoker srpc.Invoker,
+	store *device_policy.PolicyStore,
+) {
+	if invoker == nil || store == nil {
+		return
+	}
+	go func() {
+		client, err := buildSDKClientFromInvoker(ctx, invoker)
+		if err != nil {
+			if ctx.Err() == nil {
+				le.WithError(err).Warn("device capacity observer unavailable")
+			}
+			return
+		}
+		defer client.close()
+		if err := runDeviceCapacityObserver(ctx, le, statePath, client, store); err != nil && ctx.Err() == nil {
+			le.WithError(err).Warn("device capacity observer stopped")
+		}
+	}()
+}
+
+// runDeviceCapacityObserver reacts to every accepted policy revision and
+// renews the claim between revisions. The ticker is lease-driven, not a state
+// poll: only the claim deadline forces work between policy changes.
+func runDeviceCapacityObserver(
+	ctx context.Context,
+	le *logrus.Entry,
+	statePath string,
+	client *sdkClient,
+	store *device_policy.PolicyStore,
+) error {
+	claimID, err := newClaimID()
+	if err != nil {
+		return errors.Wrap(err, "generate claim id")
+	}
+	go renewOwnedCapacityLoop(ctx, le, statePath, client, store, claimID)
+
+	var last *device_policy.DevicePolicy
+	for {
+		policy, err := store.WaitChange(ctx, last)
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil
+			}
+			return err
+		}
+		if err := observeDeclaredCapacity(ctx, le, statePath, client, store, policy, claimID); err != nil {
+			le.WithError(err).Warn("failed to observe declared capacity")
+		}
+		last = policy
+	}
+}
+
+// observeDeclaredCapacity runs one full cycle: mount the space world engine,
+// reclaim owned records by scan, then apply the declared envelope (or drain
+// everything owned when the declaration is absent).
+func observeDeclaredCapacity(
+	ctx context.Context,
+	le *logrus.Entry,
+	statePath string,
+	client *sdkClient,
+	store *device_policy.PolicyStore,
+	policy *device_policy.DevicePolicy,
+	claimID string,
+) error {
+	record, ok, err := deviceLauncherProjectionTarget(statePath)
+	if err != nil || !ok {
+		return err
+	}
+	sess, err := client.mountSession(ctx, record.SessionIndex)
+	if err != nil {
+		return err
+	}
+	defer sess.Release()
+
+	spaceID, err := decodeDeviceResourceID(record.ResourceID)
+	if err != nil {
+		return err
+	}
+	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
+	if err != nil {
+		return err
+	}
+	defer spaceCleanup()
+
+	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
+	if err != nil {
+		return err
+	}
+	defer engineCleanup()
+
+	admission := forge_runtime.NewWorldRuntimeAdmission(engine, nil, capacityReservationLease, capacityOwnerLease)
+	ref := forge_runtime.WorkerClaimRef{DeviceObjectKey: record.DeviceObjectKey, ClaimID: claimID}
+
+	var declared *device_policy.ForgeWorkerPolicy
+	if policy != nil && ctx.Err() == nil {
+		declared = policy.GetForgeWorker()
+	}
+	return applyDeclaredCapacity(ctx, le, admission, ref, declared)
+}
+
+// applyDeclaredCapacity claims every owned record, observes the declared key
+// with the declared totals, and drains any other owned record. A nil
+// declaration drains everything owned and never reactivates.
+func applyDeclaredCapacity(
+	ctx context.Context,
+	le *logrus.Entry,
+	admission *forge_runtime.WorldRuntimeAdmission,
+	ref forge_runtime.WorkerClaimRef,
+	declared *device_policy.ForgeWorkerPolicy,
+) error {
+	owned, err := admission.ScanOwnedCapacity(ctx, ref.DeviceObjectKey)
+	if err != nil {
+		return err
+	}
+	declaredKey := ""
+	if declared != nil {
+		declaredKey = declared.GetWorkerObjectKey()
+	}
+	handled := make(map[string]bool, len(owned)+1)
+	for _, oc := range owned {
+		key := oc.WorkerObjectKey
+		handled[key] = true
+		capacity, err := admission.ClaimWorkerCapacity(ctx, key, ref)
+		if err != nil {
+			return err
+		}
+		if key == declaredKey {
+			if _, err := admission.ObserveWorker(ctx, key, ref, capacity.OwnerEpoch,
+				declared.GetMilliCpu(), declared.GetMemoryBytes(), declared.GetBackends()); err != nil {
+				return err
+			}
+			continue
+		}
+		// Stale owned key or removal: drain with empty backends and complete
+		// when terminal. Completion failure means reservations are still
+		// live; the next cycle retries.
+		if _, err := admission.BeginDrainCapacity(ctx, key, ref, capacity.OwnerEpoch); err != nil {
+			return err
+		}
+		if err := admission.CompleteDrainCapacity(ctx, key, ref, capacity.OwnerEpoch); err != nil {
+			le.WithError(err).Debug("drained capacity retains live reservations")
+		}
+	}
+	if declaredKey == "" || handled[declaredKey] {
+		return nil
+	}
+	capacity, err := admission.ClaimWorkerCapacity(ctx, declaredKey, ref)
+	if err != nil {
+		return err
+	}
+	_, err = admission.ObserveWorker(ctx, declaredKey, ref, capacity.OwnerEpoch,
+		declared.GetMilliCpu(), declared.GetMemoryBytes(), declared.GetBackends())
+	return err
+}
+
+// renewOwnedCapacityLoop extends the claim on every owned record at a bounded
+// fraction of the owner lease. An expired lease falls back to reclaim with an
+// epoch bump inside RenewWorkerClaim, so turnover stays safe.
+func renewOwnedCapacityLoop(
+	ctx context.Context,
+	le *logrus.Entry,
+	statePath string,
+	client *sdkClient,
+	store *device_policy.PolicyStore,
+	claimID string,
+) {
+	ticker := time.NewTicker(capacityRenewPeriod)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := renewOwnedCapacityOnce(ctx, statePath, client, claimID); err != nil && ctx.Err() == nil {
+				le.WithError(err).Warn("capacity claim renewal failed")
+			}
+		}
+	}
+}
+
+func renewOwnedCapacityOnce(ctx context.Context, statePath string, client *sdkClient, claimID string) error {
+	record, ok, err := deviceLauncherProjectionTarget(statePath)
+	if err != nil || !ok {
+		return err
+	}
+	sess, err := client.mountSession(ctx, record.SessionIndex)
+	if err != nil {
+		return err
+	}
+	defer sess.Release()
+
+	spaceID, err := decodeDeviceResourceID(record.ResourceID)
+	if err != nil {
+		return err
+	}
+	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
+	if err != nil {
+		return err
+	}
+	defer spaceCleanup()
+
+	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
+	if err != nil {
+		return err
+	}
+	defer engineCleanup()
+
+	admission := forge_runtime.NewWorldRuntimeAdmission(engine, nil, capacityReservationLease, capacityOwnerLease)
+	ref := forge_runtime.WorkerClaimRef{DeviceObjectKey: record.DeviceObjectKey, ClaimID: claimID}
+	return renewOwnedCapacityWithAdmission(ctx, admission, ref.DeviceObjectKey, ref)
+}
+
+// renewOwnedCapacityWithAdmission renews every record the Device owns.
+func renewOwnedCapacityWithAdmission(
+	ctx context.Context,
+	admission *forge_runtime.WorldRuntimeAdmission,
+	deviceObjectKey string,
+	ref forge_runtime.WorkerClaimRef,
+) error {
+	owned, err := admission.ScanOwnedCapacity(ctx, deviceObjectKey)
+	if err != nil {
+		return err
+	}
+	for _, oc := range owned {
+		if _, err := admission.RenewWorkerClaim(ctx, oc.WorkerObjectKey, ref); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// newClaimID generates this daemon invocation's claim identifier.
+func newClaimID() (string, error) {
+	var buf [16]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf[:]), nil
+}

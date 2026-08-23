@@ -177,6 +177,7 @@ func runServeCommand(
 	}
 	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
 	startDevicePolicyCapabilityProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy)
+	startDeviceCapacityObserver(serveCtx, le, resolved, invoker, devicePolicy)
 	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus(), devicePolicy)
 	defer releaseDeviceRemoteShell()
 

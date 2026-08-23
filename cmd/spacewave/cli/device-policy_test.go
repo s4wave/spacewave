@@ -33,12 +33,12 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 	existingLink := &s4wave_device.DeviceCapabilityLink{ObjectKey: "objects/skiffos", TypeId: "unixfs-root"}
 	existing := []*s4wave_device.DeviceCapability{
 		{
-			Id:     "forge-worker",
-			Kind:   "forge-worker",
-			Label:  "Forge Worker",
+			Id:     "custom-capability",
+			Kind:   "custom",
+			Label:  "Operator Capability",
 			State:  s4wave_device.DeviceCapabilityState_DEVICE_CAPABILITY_STATE_DECLARED,
 			Detail: "operator-owned",
-			Link:   &s4wave_device.DeviceCapabilityLink{ProtocolId: "spacewave/forge-worker"},
+			Link:   &s4wave_device.DeviceCapabilityLink{ProtocolId: "spacewave/custom"},
 		},
 		{
 			Id:     devicePolicyRemoteShellCapabilityID,
@@ -106,7 +106,7 @@ func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testi
 	if _, ok := byID[devicePolicyCheckoutRootIDPrefix+"removed"]; ok {
 		t.Fatal("removed policy checkout root was preserved")
 	}
-	nonPolicy := byID["forge-worker"]
+	nonPolicy := byID["custom-capability"]
 	if nonPolicy == nil || !nonPolicy.EqualVT(existing[0]) {
 		t.Fatalf("non-policy capability = %v, want preserved %v", nonPolicy, existing[0])
 	}

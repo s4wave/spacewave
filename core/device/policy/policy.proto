@@ -13,6 +13,21 @@ message DevicePolicy {
   RemoteShellPolicy remote_shell = 2;
   // CheckoutRoot declares locally available checkout roots.
   repeated CheckoutRootPolicy checkout_root = 3;
+  // ForgeWorker declares the local Forge Worker capacity envelope. Absent
+  // means this daemon exposes no Forge Worker execution capacity.
+  ForgeWorkerPolicy forge_worker = 4;
+}
+
+// ForgeWorkerPolicy declares the capacity envelope of the local Forge Worker.
+message ForgeWorkerPolicy {
+  // WorkerObjectKey is the Forge Worker object key this daemon hosts.
+  string worker_object_key = 1;
+  // MilliCpu is the declared total CPU in milli-cores.
+  uint64 milli_cpu = 2;
+  // MemoryBytes is the declared total memory in bytes.
+  uint64 memory_bytes = 3;
+  // Backends lists the runtime backends the Worker supports.
+  repeated string backends = 4;
 }
 
 // RemoteShellPolicy controls whether remote shell OPEN frames may start a PTY.
