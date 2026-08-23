@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/util/broadcast"
 )
 
+// defaultRetainedEventLimit is the retained event count when unset.
 const defaultRetainedEventLimit uint32 = 1000
 
 // Hub owns structured plugin log events for a host process.
@@ -135,6 +136,8 @@ func (h *Hub) OpenView(filter *StructuredLogFilter, rng *StructuredLogRange) *Vi
 	return view
 }
 
+// buildStateLocked builds a log state snapshot from the retained events,
+// applying the filter and range. Caller must hold the Hub lock.
 func (h *Hub) buildStateLocked(filter *StructuredLogFilter, rng *StructuredLogRange) *StructuredLogState {
 	filter = filter.CloneVT()
 	rng = rng.CloneVT()
@@ -241,20 +244,24 @@ func (v *View) Release() {
 	locked.Broadcast()
 }
 
+// notifyLocked signals waiting followers. Caller must hold the View lock.
 func (v *View) notifyLocked() {
 	v.updates.Notify()
 }
 
+// viewUpdateSignal is a broadcast-backed change signal for one View.
 type viewUpdateSignal struct {
 	bcast  broadcast.Broadcast
 	ch     chan struct{}
 	closed bool
 }
 
+// newViewUpdateSignal constructs an empty update signal.
 func newViewUpdateSignal() *viewUpdateSignal {
 	return &viewUpdateSignal{ch: make(chan struct{}, 1)}
 }
 
+// Updates returns the change-notification channel.
 func (s *viewUpdateSignal) Updates() <-chan struct{} {
 	locked := s.bcast.Lock()
 	defer locked.Unlock()
@@ -262,6 +269,7 @@ func (s *viewUpdateSignal) Updates() <-chan struct{} {
 	return s.ch
 }
 
+// Notify signals one waiting follower.
 func (s *viewUpdateSignal) Notify() {
 	locked := s.bcast.Lock()
 	defer locked.Unlock()
@@ -276,6 +284,7 @@ func (s *viewUpdateSignal) Notify() {
 	locked.Broadcast()
 }
 
+// Close closes the signal channel.
 func (s *viewUpdateSignal) Close() {
 	locked := s.bcast.Lock()
 	defer locked.Unlock()
@@ -288,6 +297,9 @@ func (s *viewUpdateSignal) Close() {
 	locked.Broadcast()
 }
 
+// appendFollowEventLocked appends an event to a following View's state,
+// returning false when the event falls outside the follow range. Caller
+// must hold the View lock.
 func (v *View) appendFollowEventLocked(event *StructuredLogEvent) bool {
 	if event.GetSequence() <= v.rangeSnapshot.GetAfterSequence() {
 		return false

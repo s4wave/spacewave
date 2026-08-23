@@ -8,19 +8,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// hostLogPluginID is the plugin id used for host-process log events.
 const hostLogPluginID = "plugin-host"
 
+// hostLogrusHooks is the package-level bus-keyed hook attachment
+// registry. logrus hooks are inherently per-process state and every caller
+// passes its own logger/bus, so there is no composition root to inject one.
 var hostLogrusHooks struct {
 	sync.Mutex
 	byBus map[bus.Bus]*hostLogrusHookAttachment
 }
 
+// hostLogrusHookAttachment is one refcounted bus-to-hook attachment.
 type hostLogrusHookAttachment struct {
 	logger *logrus.Logger
 	hook   *hostLogrusHook
 	refs   uint64
 }
 
+// logrusFieldStringer renders a log field value as a string.
 type logrusFieldStringer interface {
 	String() string
 }
@@ -58,6 +64,8 @@ func AttachHostLogrusHook(
 	}
 }
 
+// releaseHostLogrusHook drops a hub's ref on the bus hook, detaching the
+// hook when the last ref goes away.
 func releaseHostLogrusHook(b bus.Bus, hub *Hub) {
 	hostLogrusHooks.Lock()
 	defer hostLogrusHooks.Unlock()
@@ -75,6 +83,7 @@ func releaseHostLogrusHook(b bus.Bus, hub *Hub) {
 	removeLogrusHook(att.logger, att.hook)
 }
 
+// removeLogrusHook detaches a hook from a logger if attached.
 func removeLogrusHook(logger *logrus.Logger, target logrus.Hook) {
 	oldHooks := logger.ReplaceHooks(logrus.LevelHooks{})
 	nextHooks := make(logrus.LevelHooks, len(oldHooks))
@@ -89,21 +98,26 @@ func removeLogrusHook(logger *logrus.Logger, target logrus.Hook) {
 	logger.ReplaceHooks(nextHooks)
 }
 
+// hostLogrusHook forwards logrus entries to every attached hub, holding a
+// refcounted hub set.
 type hostLogrusHook struct {
 	mu   sync.RWMutex
 	hubs map[*Hub]uint64
 }
 
+// newHostLogrusHook constructs an empty hook.
 func newHostLogrusHook() *hostLogrusHook {
 	return &hostLogrusHook{
 		hubs: make(map[*Hub]uint64),
 	}
 }
 
+// Levels implements logrus.Hook.
 func (h *hostLogrusHook) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
+// Fire implements logrus.Hook, forwarding the entry to attached hubs.
 func (h *hostLogrusHook) Fire(entry *logrus.Entry) error {
 	event := structuredLogEventFromLogrusEntry(entry)
 
@@ -124,6 +138,7 @@ func (h *hostLogrusHook) Fire(entry *logrus.Entry) error {
 	return nil
 }
 
+// addHub adds a ref for the hub.
 func (h *hostLogrusHook) addHub(hub *Hub) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -131,6 +146,7 @@ func (h *hostLogrusHook) addHub(hub *Hub) {
 	h.hubs[hub]++
 }
 
+// removeHub drops the hub's ref, detaching it at zero refs.
 func (h *hostLogrusHook) removeHub(hub *Hub) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -143,6 +159,8 @@ func (h *hostLogrusHook) removeHub(hub *Hub) {
 	h.hubs[hub] = refs - 1
 }
 
+// structuredLogEventFromLogrusEntry converts a logrus entry to a
+// structured log event.
 func structuredLogEventFromLogrusEntry(entry *logrus.Entry) *StructuredLogEvent {
 	fields := make(map[string]string, len(entry.Data))
 	pluginID := hostLogPluginID
@@ -175,6 +193,8 @@ func structuredLogEventFromLogrusEntry(entry *logrus.Entry) *StructuredLogEvent 
 	}
 }
 
+// structuredLogLevelFromLogrus maps a logrus level to its structured
+// log level.
 func structuredLogLevelFromLogrus(level logrus.Level) StructuredLogLevel {
 	switch level {
 	case logrus.TraceLevel:
@@ -194,6 +214,8 @@ func structuredLogLevelFromLogrus(level logrus.Level) StructuredLogLevel {
 	}
 }
 
+// logrusFieldString renders a log field value as a string, using the
+// field's String method when available.
 func logrusFieldString(value any) string {
 	switch v := value.(type) {
 	case nil:
