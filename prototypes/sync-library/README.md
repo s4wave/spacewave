@@ -38,14 +38,28 @@ round-trips, `kv-demo OK`.
 | Function | Behavior |
 |---|---|
 | `KvOpen(ctx)` | open in-memory world + default KV store |
-| `KvOpenDurable(ctx, dir)` | durable volume: OPFS on js targets, bbolt elsewhere |
-| `KvPut(key, value)` | set value (string or bytes) |
-| `KvGet(key)` | value string, empty when absent |
+| `KvOpenDurable(ctx, dir)` | durable volume: OPFS on js targets, snapshot-file elsewhere |
+| `KvPut(key, value)` | set value |
+| `KvGet(key)` | returns `[value, found]`; empty string when absent |
 | `KvExists(key)` | presence check |
 | `KvDelete(key)` | delete if present |
 | `KvList(prefix)` | JSON array of `{key, value}` under prefix |
 | `KvWatch(prefix, cb)` | live snapshots after every commit |
 | `KvStopWatches()` / `KvClose()` | tear down subscriptions / everything |
+
+Go-side API (`sdk/worldkv.Store`):
+
+| Method | Behavior |
+|---|---|
+| `Put(ctx, key, val []byte)` | set single key |
+| `PutMany(ctx, map[string][]byte)` | batch set in one tx |
+| `Get(ctx, key) ([]byte, bool, error)` | read single key |
+| `Delete(ctx, key)` | delete single key |
+| `DeleteMany(ctx, keys []string)` | batch delete in one tx |
+| `List(ctx, prefix) ([]WatchEntry, error)` | prefix scan |
+| `Exists(ctx, key) (bool, error)` | presence check |
+| `Update(ctx, fn)` / `View(ctx, fn)` | custom transactions |
+| `Watch(ctx, prefix, cb) (cancel, error)` | live snapshots, returns cancel |
 
 Known teardown gap: after `KvClose()` a live bus handle keeps the JS event
 loop alive; end scripts with an explicit `process.exit(0)` until resolved.
