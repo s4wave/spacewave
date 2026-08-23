@@ -31,26 +31,42 @@ type Transfer struct {
 // stateRewriter may be nil to copy SO state verbatim (only safe when source
 // and target share the same peer key).
 // filterSpaceIDs, if non-empty, restricts the transfer to only those space IDs.
+// TransferOptions carries the optional collaborators of a Transfer. The zero
+// value is valid: no cleanup, no checkpointing, no state rewrite, and no
+// space-ID filter.
+type TransferOptions struct {
+	// Cleanup deletes the source volume after a successful transfer.
+	Cleanup CleanupSource
+	// Checkpoint persists resumable transfer progress.
+	Checkpoint CheckpointStore
+	// StateRewriter rewrites persisted SOState during the copy.
+	StateRewriter SOStateRewriter
+	// FilterSpaceIDs restricts the transfer to the listed Space IDs.
+	FilterSpaceIDs []string
+}
+
+// NewTransfer constructs a Transfer for the given mode, source, target, and
+// session indexes.
 func NewTransfer(
 	le *logrus.Entry,
 	mode TransferMode,
 	source TransferSource,
 	target TransferTarget,
 	sourceSessionIdx, targetSessionIdx uint32,
-	cleanup CleanupSource,
-	checkpoint CheckpointStore,
-	stateRewriter SOStateRewriter,
-	filterSpaceIDs []string,
+	opts *TransferOptions,
 ) *Transfer {
+	if opts == nil {
+		opts = &TransferOptions{}
+	}
 	return &Transfer{
 		le:             le,
 		mode:           mode,
 		source:         source,
 		target:         target,
-		cleanup:        cleanup,
-		checkpoint:     checkpoint,
-		stateRewriter:  stateRewriter,
-		filterSpaceIDs: filterSpaceIDs,
+		cleanup:        opts.Cleanup,
+		checkpoint:     opts.Checkpoint,
+		stateRewriter:  opts.StateRewriter,
+		filterSpaceIDs: opts.FilterSpaceIDs,
 		state: &TransferState{
 			Mode:               mode,
 			Phase:              TransferPhase_TransferPhase_IDLE,

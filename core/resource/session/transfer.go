@@ -183,7 +183,18 @@ func (r *SessionResource) StartTransfer(
 	}
 
 	xfer := provider_transfer.NewTransfer(
-		le, mode, source, target, srcIdx, tgtIdx, cleanup, checkpoint, stateRewriter, req.GetSpaceIds(),
+		le,
+		mode,
+		source,
+		target,
+		srcIdx,
+		tgtIdx,
+		&provider_transfer.TransferOptions{
+			Cleanup:        cleanup,
+			Checkpoint:     checkpoint,
+			StateRewriter:  stateRewriter,
+			FilterSpaceIDs: req.GetSpaceIds(),
+		},
 	)
 
 	// Read the linked-cloud account ID before the transfer starts, because the

@@ -66,9 +66,6 @@ func TestTransferWatchStatePairsSnapshotAndWaitChannel(t *testing.T) {
 		1,
 		2,
 		nil,
-		nil,
-		nil,
-		nil,
 	)
 
 	state, ch := xfer.WatchState()
@@ -233,9 +230,6 @@ func TestTransferAddsTargetSharedObjectBeforeWritingState(t *testing.T) {
 		1,
 		2,
 		nil,
-		nil,
-		nil,
-		nil,
 	)
 	if err := xfer.Execute(ctx); err != nil {
 		t.Fatal(err)
@@ -301,7 +295,7 @@ func TestLocalMergeBlockCopy(t *testing.T) {
 	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
 
 	// Run the transfer.
-	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, nil, nil, nil, nil)
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, nil)
 	if err := xfer.Execute(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -379,7 +373,7 @@ func TestLocalMergeSoList(t *testing.T) {
 	le := logrus.NewEntry(logrus.StandardLogger())
 	src := provider_transfer.NewLocalTransferSource(srcAcc, providerID, srcAccountID, tb.Bus)
 	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
-	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, nil, nil, nil, nil)
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, nil)
 	if err := xfer.Execute(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -462,7 +456,7 @@ func TestLocalMergeResume(t *testing.T) {
 	createTestSpace(ctx, t, tgtAcc, "space-a")
 
 	// Run the transfer with the checkpoint. It should skip space-a.
-	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, nil, cpStore, nil, nil)
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, &provider_transfer.TransferOptions{Checkpoint: cpStore})
 	if err := xfer.Execute(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -527,7 +521,7 @@ func TestLocalMergeCleanup(t *testing.T) {
 	tgt := provider_transfer.NewLocalTransferTarget(tgtAcc, providerID, tgtAccountID, tb.Bus)
 
 	// Run transfer WITH cleanup.
-	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, src, nil, nil, nil)
+	xfer := provider_transfer.NewTransfer(le, provider_transfer.TransferMode_TransferMode_MERGE, src, tgt, 1, 2, &provider_transfer.TransferOptions{Cleanup: src})
 	if err := xfer.Execute(ctx); err != nil {
 		t.Fatal(err)
 	}
