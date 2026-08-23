@@ -53,12 +53,9 @@ type SessionTransport struct {
 	startupDeadlineStarted bool
 	// cancel cancels the SessionTransport context after startup stop admission.
 	cancel context.CancelFunc
-	// startupStopped admits timeout cancellation before Execute publishes cancel.
-	startupStopped bool
-	// startupTimeoutAdmitted records that timeout owns the terminal error.
-	startupTimeoutAdmitted bool
-	// startupReady is true after all startup controllers are running.
-	startupReady bool
+	// startupPhase is the startup lifecycle phase; bcast guards it together
+	// with startupErr and startupStage below.
+	startupPhase transportStartupPhase
 	// ready closes when the child bus and base controllers become ready.
 	ready chan struct{}
 	// startupErr is the terminal startup error, including timeout.
@@ -67,6 +64,32 @@ type SessionTransport struct {
 	startupStage string
 	// startupRetryable keeps per-attempt failures private to the retrying caller.
 	startupRetryable bool
+}
+
+// transportStartupPhase is one coherent startup lifecycle state for a
+// SessionTransport.
+type transportStartupPhase uint8
+
+const (
+	// startupPhaseIdle is the state before the first Execute attempt enters
+	// its readiness phase.
+	startupPhaseIdle transportStartupPhase = iota
+	// startupPhaseStarting means startup controllers are still coming up.
+	startupPhaseStarting
+	// startupPhaseReady means every startup controller is running; terminal.
+	startupPhaseReady
+	// startupPhaseStopped means an admitted timeout or explicit stop owns the
+	// terminal error; retries are refused.
+	startupPhaseStopped
+	// startupPhaseFailed records a per-attempt failure a retrying caller may
+	// reset by re-entering Execute.
+	startupPhaseFailed
+)
+
+// startupTerminal reports whether the phase ends startup with a stable
+// outcome: ready, an admitted stop, or a failure no retry will clear.
+func (p transportStartupPhase) startupTerminal() bool {
+	return p == startupPhaseReady || p == startupPhaseStopped || p == startupPhaseFailed
 }
 
 // SessionTransportOption configures child-bus directive routing and startup.
@@ -254,20 +277,18 @@ func (t *SessionTransport) awaitReady(ctx context.Context, beforeWait func()) er
 		}
 
 		var (
-			ready        bool
+			phase        transportStartupPhase
 			startupErr   error
 			startupStage string
-			timeout      bool
 			waitCh       <-chan struct{}
 			deadlineCtx  context.Context
 			deadlineCh   <-chan struct{}
 		)
 		t.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-			ready = t.startupReady
+			phase = t.startupPhase
 			startupErr = t.startupErr
 			startupStage = t.startupStage
-			timeout = t.startupTimeoutAdmitted
-			if !ready && startupErr == nil {
+			if phase == startupPhaseStarting || phase == startupPhaseIdle {
 				waitCh = getWaitCh()
 				deadlineCtx = t.startupDeadlineCtx
 				if deadlineCtx != nil {
@@ -275,11 +296,11 @@ func (t *SessionTransport) awaitReady(ctx context.Context, beforeWait func()) er
 				}
 			}
 		})
-		if ready {
+		if phase == startupPhaseReady {
 			return nil
 		}
 		if startupErr != nil {
-			if timeout {
+			if phase == startupPhaseStopped {
 				return startupErr
 			}
 			return errors.Wrapf(startupErr, "session transport failed to start at %s", startupStage)
@@ -328,12 +349,12 @@ func (t *SessionTransport) admitStartupTimeout() error {
 		cancel context.CancelFunc
 	)
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if t.startupReady {
+		if t.startupPhase == startupPhaseReady {
 			return
 		}
 		if t.startupErr != nil {
 			err = t.startupErr
-			if !t.startupTimeoutAdmitted {
+			if t.startupPhase != startupPhaseStopped {
 				err = errors.Wrapf(err, "session transport failed to start at %s", t.startupStage)
 			}
 			return
@@ -342,8 +363,7 @@ func (t *SessionTransport) admitStartupTimeout() error {
 			"session transport did not become ready, stalled at %s",
 			t.startupStage,
 		)
-		t.startupStopped = true
-		t.startupTimeoutAdmitted = true
+		t.startupPhase = startupPhaseStopped
 		t.startupErr = err
 		cancel = t.cancel
 		broadcast()
@@ -360,10 +380,11 @@ func (t *SessionTransport) publishStartupError(err error) bool {
 		published bool
 	)
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if t.startupReady || t.startupErr != nil {
+		if t.startupPhase.startupTerminal() {
 			return
 		}
 		t.startupErr = err
+		t.startupPhase = startupPhaseFailed
 		published = true
 		cancel = t.startupDeadlineCancel
 		t.startupDeadlineCancel = nil
@@ -378,10 +399,10 @@ func (t *SessionTransport) publishStartupError(err error) bool {
 func (t *SessionTransport) publishStartupReady() {
 	var cancel context.CancelFunc
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
-		if t.startupReady || t.startupStopped || t.startupErr != nil {
+		if t.startupPhase.startupTerminal() {
 			return
 		}
-		t.startupReady = true
+		t.startupPhase = startupPhaseReady
 		close(t.ready)
 		cancel = t.startupDeadlineCancel
 		t.startupDeadlineCancel = nil
@@ -398,17 +419,18 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	// Initialize cancellation and publish startup state.
 	ctx, cancel := context.WithCancel(ctx)
 	t.ensureStartupDeadline(ctx)
-	var startupStopped bool
+	var stopped bool
 	t.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		t.cancel = cancel
-		startupStopped = t.startupStopped
-		if !startupStopped && !t.startupReady {
+		stopped = t.startupPhase == startupPhaseStopped
+		if !stopped && t.startupPhase != startupPhaseReady {
 			t.startupErr = nil
 			t.startupStage = ""
+			t.startupPhase = startupPhaseStarting
 		}
 		broadcast()
 	})
-	if startupStopped {
+	if stopped {
 		cancel()
 		return context.Canceled
 	}

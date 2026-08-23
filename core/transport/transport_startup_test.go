@@ -22,7 +22,7 @@ func TestSessionTransportStartupTimeoutCannotBeOverwrittenByReady(t *testing.T) 
 	// Attempt readiness publication after terminal timeout.
 	st.publishStartupReady()
 
-	if st.startupReady {
+	if st.startupPhase != startupPhaseStopped {
 		t.Fatal("startup timeout was overwritten by readiness")
 	}
 	err := st.AwaitReady(context.Background())
