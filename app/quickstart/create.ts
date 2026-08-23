@@ -44,7 +44,7 @@ import {
   CANVAS_DEMO_OBJECT_KEY,
 } from '@s4wave/core/space/world/ops/init-canvas-demo.js'
 import { InitCanvasDemoOp } from '@s4wave/core/space/world/ops/ops.pb.js'
-import { CanvasTypeID } from '@s4wave/app/canvas/type.js'
+import { CanvasTypeID } from '@s4wave/app/canvas/types.js'
 
 import { InitChatDemoOp } from '@s4wave/sdk/chat/chat.pb.js'
 import {
@@ -996,13 +996,11 @@ export async function initUnixFS(
   abortSignal?: AbortSignal,
   timing?: QuickstartSetupTiming,
 ): Promise<void> {
-  // Create the InitUnixFSOp operation
   const op: InitUnixFSOp = {
     objectKey: UNIXFS_OBJECT_KEY,
     timestamp: new Date(),
   }
 
-  // Apply the operation using ApplyWorldOp
   const opData = InitUnixFSOp.toBinary(op)
   await applyQuickstartWorldOp(
     spaceWorld,
@@ -1060,13 +1058,11 @@ export async function initObjectLayout(
   spaceWorld: EngineWorldState,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  // Create the InitObjectLayoutOp operation
   const op: InitObjectLayoutOp = {
     objectKey: OBJECT_LAYOUT_OBJECT_KEY,
     timestamp: new Date(),
   }
 
-  // Apply the operation using ApplyWorldOp
   const opData = InitObjectLayoutOp.toBinary(op)
   await spaceWorld.applyWorldOp(
     INIT_OBJECT_LAYOUT_OP_ID,
