@@ -52,32 +52,8 @@ func NewLookupRpcServiceResolver(h LookupRpcClientHandler, pluginID, stripServic
 func ResolveLookupRpcService(ctx context.Context, dir bifrost_rpc.LookupRpcService, h LookupRpcClientHandler) (directive.Resolver, error) {
 	serviceID := dir.LookupRpcServiceID()
 
-	// check if the service ID matches one of the known prefixes.
-	matchedService, matchedPrefix := srpc.CheckStripPrefix(serviceID, []string{
-		PluginServiceIDPrefix,
-		HostServiceIDPrefix,
-	})
-
-	var pluginID, stripServiceIDPrefix string
-	switch matchedPrefix {
-	case PluginServiceIDPrefix:
-		var remoteServiceID string
-		var ok bool
-		pluginID, remoteServiceID, ok = strings.Cut(matchedService, "/")
-		if !ok || remoteServiceID == "" || pluginID == "" {
-			// ignore: we require the following format:
-			// plugin/{plugin-id}/{service-id}
-			return nil, nil
-		}
-		if err := ValidatePluginID(pluginID, false); err != nil {
-			// ignore it: invalid plugin id
-			return nil, err
-		}
-		stripServiceIDPrefix = serviceID[:len(PluginServiceIDPrefix)+len(pluginID)+1]
-	case HostServiceIDPrefix:
-		stripServiceIDPrefix = HostServiceIDPrefix
-	default:
-		// no match
+	pluginID, stripServiceIDPrefix, ok := matchPluginServiceID(serviceID)
+	if !ok {
 		return nil, nil
 	}
 

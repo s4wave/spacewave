@@ -70,35 +70,37 @@ func NewLookupRpcClientResolver(h LookupRpcClientHandler, pluginID, stripService
 //
 // Returns nil, nil if the service ID does not match any of the known prefixes.
 // Returns an error if the plugin id is invalid.
-func ResolveLookupRpcClient(ctx context.Context, dir bifrost_rpc.LookupRpcClient, h LookupRpcClientHandler) (directive.Resolver, error) {
-	serviceID := dir.LookupRpcServiceID()
-
-	// check if the service ID matches one of the known prefixes.
+// matchPluginServiceID parses a service ID against the known plugin service
+// prefixes. Returns the plugin id and the service-id prefix to strip, or
+// empty strings when no prefix matches.
+func matchPluginServiceID(serviceID string) (pluginID, stripPrefix string, ok bool) {
 	matchedService, matchedPrefix := srpc.CheckStripPrefix(serviceID, []string{
 		PluginServiceIDPrefix,
 		HostServiceIDPrefix,
 	})
-
-	var pluginID, stripServiceIDPrefix string
 	switch matchedPrefix {
 	case PluginServiceIDPrefix:
-		var remoteServiceID string
-		var ok bool
-		pluginID, remoteServiceID, ok = strings.Cut(matchedService, "/")
-		if !ok || remoteServiceID == "" || pluginID == "" {
-			// ignore: we require the following format:
-			// plugin/{plugin-id}/{service-id}
-			return nil, nil
+		id, remoteServiceID, cutOk := strings.Cut(matchedService, "/")
+		if !cutOk || remoteServiceID == "" || id == "" {
+			// require the format: plugin/{plugin-id}/{service-id}
+			return "", "", false
 		}
-		if err := ValidatePluginID(pluginID, false); err != nil {
-			// ignore it: invalid plugin id
-			return nil, err
+		if err := ValidatePluginID(id, false); err != nil {
+			return "", "", false
 		}
-		stripServiceIDPrefix = serviceID[:len(PluginServiceIDPrefix)+len(pluginID)+1]
+		return id, serviceID[:len(PluginServiceIDPrefix)+len(id)+1], true
 	case HostServiceIDPrefix:
-		stripServiceIDPrefix = HostServiceIDPrefix
+		return "", HostServiceIDPrefix, true
 	default:
-		// no match
+		return "", "", false
+	}
+}
+
+func ResolveLookupRpcClient(ctx context.Context, dir bifrost_rpc.LookupRpcClient, h LookupRpcClientHandler) (directive.Resolver, error) {
+	serviceID := dir.LookupRpcServiceID()
+
+	pluginID, stripServiceIDPrefix, ok := matchPluginServiceID(serviceID)
+	if !ok {
 		return nil, nil
 	}
 
