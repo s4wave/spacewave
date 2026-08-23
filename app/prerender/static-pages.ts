@@ -22,7 +22,7 @@ import { QuickstartLoading } from '@s4wave/app/quickstart/QuickstartLoading.js'
 
 // STATIC_PAGES maps pathnames to components for prerender and Startup.
 // Paths must match STATIC_ROUTES in web/router/static-routes.ts.
-// '/' is omitted here -- it uses a special dual template (see Phase 4.4).
+// '/' is omitted here -- the root path uses a dual landing + loading template.
 export const STATIC_PAGES: Array<{ path: string; component: FC }> = [
   { path: '/landing', component: Landing },
   { path: '/landing/drive', component: LandingDrive },

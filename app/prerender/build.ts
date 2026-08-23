@@ -81,7 +81,7 @@ export interface PrerenderContext {
   log: (msg: string) => void
 }
 
-export async function streamToString(
+async function streamToString(
   stream: ReadableStream<Uint8Array>,
 ): Promise<string> {
   const reader = stream.getReader()
@@ -94,7 +94,7 @@ export async function streamToString(
   return Buffer.concat(chunks).toString('utf-8')
 }
 
-export function noop() {}
+function noop() {}
 
 // prerenderElement renders a React element wrapped in static/router
 // providers to an HTML string.
