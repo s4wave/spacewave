@@ -18,6 +18,12 @@ func newWebListenerRegistry(_ *logrus.Entry) *webListenerRegistry {
 
 func (r *webListenerRegistry) close() {}
 
+// setKeepalive is a no-op: web listeners are unsupported in TinyGo builds.
+func (r *webListenerRegistry) setKeepalive(fn WebListenerKeepaliveFunc) {}
+
+// keepaliveFn always returns nil: web listeners are unsupported in TinyGo.
+func (r *webListenerRegistry) keepaliveFn() WebListenerKeepaliveFunc { return nil }
+
 // AccessWebListener returns unsupported in TinyGo browser builds.
 func (s *CoreRootServer) AccessWebListener(
 	_ context.Context,

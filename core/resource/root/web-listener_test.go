@@ -341,7 +341,8 @@ func TestWebListenerRegistryRetainsExplicitPort(t *testing.T) {
 
 func TestWebListenerRegistryAcquiresKeepalive(t *testing.T) {
 	var held int
-	resetKeepalive := SetWebListenerKeepaliveFunc(func(listenerID string) func() {
+	reg := newWebListenerRegistry(logrus.NewEntry(logrus.New()))
+	reg.setKeepalive(func(listenerID string) func() {
 		if listenerID == "" {
 			t.Fatal("listener id should be set before keepalive")
 		}
@@ -350,9 +351,7 @@ func TestWebListenerRegistryAcquiresKeepalive(t *testing.T) {
 			held--
 		}
 	})
-	defer resetKeepalive()
-
-	reg := newWebListenerRegistry(logrus.NewEntry(logrus.New()))
+	defer reg.setKeepalive(nil)
 	listener, reused, err := reg.access(t.Context(), nil, "/ip4/127.0.0.1/tcp/0")
 	if err != nil {
 		t.Fatal(err)

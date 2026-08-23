@@ -62,6 +62,18 @@ func NewCoreRootServer(le *logrus.Entry, b bus.Bus) *CoreRootServer {
 	return s
 }
 
+// WebListenerKeepaliveFunc acquires daemon lifetime for a background
+// listener. It returns a release function for the acquired lifetime.
+type WebListenerKeepaliveFunc func(listenerID string) func()
+
+// SetWebListenerKeepaliveFunc installs the daemon-lifetime hook the web
+// listener registry calls when a background listener starts. The composition
+// root that owns daemon lifetime injects it here; unset means listeners run
+// without holding daemon lifetime.
+func (s *CoreRootServer) SetWebListenerKeepaliveFunc(fn WebListenerKeepaliveFunc) {
+	s.webListeners.setKeepalive(fn)
+}
+
 // SetHostPluginID records the plugin id serving this resource root.
 func (s *CoreRootServer) SetHostPluginID(pluginID string) {
 	s.hostPluginID = pluginID

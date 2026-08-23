@@ -67,13 +67,12 @@ func TestBackgroundWebListenerSurvivesClientDisconnectPastIdle(t *testing.T) {
 	})
 	defer idleTracker.close()
 
-	resetKeepalive := resource_root.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
+	rootServer.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
 		if listenerID == "" {
 			t.Fatal("listener id should be set before keepalive")
 		}
 		return idleTracker.serviceAttached()
 	})
-	defer resetKeepalive()
 
 	daemonMux := srpc.NewMux(resourceMux)
 	server := srpc.NewServer(daemonMux)
@@ -379,10 +378,9 @@ func startInProcessWebDaemon(t *testing.T, ctx context.Context) testWebDaemon {
 	idleTracker := newDaemonIdleTracker(time.Minute, func() {})
 	t.Cleanup(idleTracker.close)
 
-	resetKeepalive := resource_root.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
+	rootServer.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
 		return idleTracker.serviceAttached()
 	})
-	t.Cleanup(resetKeepalive)
 
 	lis, err := net.Listen("unix", filepath.Join(statePath, socketName))
 	if err != nil {

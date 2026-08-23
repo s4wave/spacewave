@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -114,6 +115,9 @@ func (s *CoreRootServer) StopWebListener(
 type webListenerRegistry struct {
 	le *logrus.Entry
 
+	keepaliveMtx sync.Mutex
+	keepalive    WebListenerKeepaliveFunc
+
 	bcast     broadcast.Broadcast
 	listeners map[string]*webListener
 }
@@ -123,6 +127,20 @@ func newWebListenerRegistry(le *logrus.Entry) *webListenerRegistry {
 		le:        le,
 		listeners: make(map[string]*webListener),
 	}
+}
+
+// setKeepalive installs the daemon-lifetime hook for later listeners.
+func (r *webListenerRegistry) setKeepalive(fn WebListenerKeepaliveFunc) {
+	r.keepaliveMtx.Lock()
+	defer r.keepaliveMtx.Unlock()
+	r.keepalive = fn
+}
+
+// keepaliveFn returns the installed daemon-lifetime hook, or nil.
+func (r *webListenerRegistry) keepaliveFn() WebListenerKeepaliveFunc {
+	r.keepaliveMtx.Lock()
+	defer r.keepaliveMtx.Unlock()
+	return r.keepalive
 }
 
 func (r *webListenerRegistry) close() {
@@ -153,7 +171,7 @@ func (r *webListenerRegistry) access(
 		if err != nil {
 			return nil, false, err
 		}
-		listener.holdDaemonKeepalive()
+		listener.holdDaemonKeepalive(r.keepaliveFn())
 		r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 			r.listeners["explicit:"+listener.id] = listener
 			broadcast()
@@ -174,7 +192,7 @@ func (r *webListenerRegistry) access(
 	if err != nil {
 		return nil, false, err
 	}
-	listener.holdDaemonKeepalive()
+	listener.holdDaemonKeepalive(r.keepaliveFn())
 	var reused bool
 	r.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		existing = r.listeners[key]
@@ -357,11 +375,12 @@ func (l *webListener) Close() {
 	}
 }
 
-func (l *webListener) holdDaemonKeepalive() {
-	if l.releaseKeepalive != nil {
+// holdDaemonKeepalive acquires daemon lifetime through the injected hook.
+func (l *webListener) holdDaemonKeepalive(acquire WebListenerKeepaliveFunc) {
+	if acquire == nil || l.releaseKeepalive != nil {
 		return
 	}
-	l.releaseKeepalive = acquireWebListenerKeepalive(l.id)
+	l.releaseKeepalive = acquire(l.id)
 }
 
 func (l *webListener) ServeHTTP(rw http.ResponseWriter, req *http.Request) {

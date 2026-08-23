@@ -12,6 +12,8 @@ import (
 
 	"github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/controller/loader"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
@@ -21,7 +23,7 @@ import (
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
-	resource_root "github.com/s4wave/spacewave/core/resource/root"
+	resource_root_controller "github.com/s4wave/spacewave/core/resource/root/controller"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
@@ -198,11 +200,21 @@ func runServeCommand(
 		lis.Close()
 	})
 	defer idleTracker.close()
-	releaseWebKeepalive := resource_root.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
+
+	rootCtrl, _, rootCtrlRef, err := loader.WaitExecControllerRunningTyped[*resource_root_controller.Controller](
+		serveCtx,
+		cliBus.GetBus(),
+		resolver.NewLoadControllerWithConfig(&resource_root_controller.Config{}),
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "wait for root resource controller")
+	}
+	defer rootCtrlRef.Release()
+	rootCtrl.SetWebListenerKeepaliveFunc(func(listenerID string) func() {
 		le.WithField("listener", listenerID).Debug("web listener holding daemon lifetime")
 		return idleTracker.serviceAttached()
 	})
-	defer releaseWebKeepalive()
 
 	mux := srpc.NewMux(invoker)
 	shutdownCh := make(chan struct{})
