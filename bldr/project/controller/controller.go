@@ -63,6 +63,7 @@ type Controller struct {
 	closeDone chan struct{}
 }
 
+// errControllerClosed is returned when the controller is already closed.
 var errControllerClosed = errors.New("bldr project controller is closed")
 
 // NewController constructs a new controller.
@@ -242,6 +243,8 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 	return nil
 }
 
+// publishProjectConfigStatus publishes a clone of the project config to
+// the status sink.
 func (c *Controller) publishProjectConfigStatus(projectConfig *bldr_project.ProjectConfig) {
 	c.statusSinkMtx.Lock()
 	sink := c.projectConfigStatusSink

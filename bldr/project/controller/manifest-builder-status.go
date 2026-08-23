@@ -19,22 +19,40 @@ const (
 )
 
 // ManifestBuilderStatus is the ProjectController manifest build status surface.
+// ManifestBuilderStatus is the user-visible manifest build status consumed
+// by the devtool TUI. Identity and target fields are set at construction;
+// cache, rebuild, and watch fields are merged in by lifecycle events.
 type ManifestBuilderStatus struct {
-	ID                      string
-	BuildTargetIDs          []string
-	ManifestID              string
-	PlatformID              string
-	TargetPlatformIDs       []string
-	BuildType               string
-	RemoteID                string
-	State                   ManifestBuilderStatusState
-	CacheHit                bool
-	FullRebuild             bool
-	HotRebuild              bool
-	WatchedFileCount        int
+	// ID is the manifest builder tracker id.
+	ID string
+	// BuildTargetIDs lists the build targets this builder serves.
+	BuildTargetIDs []string
+	// ManifestID is the manifest id under construction.
+	ManifestID string
+	// PlatformID is the target platform id.
+	PlatformID string
+	// TargetPlatformIDs lists the platforms the build produces.
+	TargetPlatformIDs []string
+	// BuildType names the build type.
+	BuildType string
+	// RemoteID is the publish remote id.
+	RemoteID string
+	// State is the current lifecycle state.
+	State ManifestBuilderStatusState
+	// CacheHit reports whether the build reused a startup cache hit.
+	CacheHit bool
+	// FullRebuild reports whether a full rebuild was required.
+	FullRebuild bool
+	// HotRebuild reports whether a hot rebuild was used.
+	HotRebuild bool
+	// WatchedFileCount is the number of files watched for changes.
+	WatchedFileCount int
+	// DependencyRebuildReason explains why dependencies forced a rebuild.
 	DependencyRebuildReason string
-	Summary                 string
-	Error                   string
+	// Summary is a human-readable status line.
+	Summary string
+	// Error carries the last build error, if any.
+	Error string
 }
 
 // ManifestBuilderStatusSink consumes ProjectController manifest build status.

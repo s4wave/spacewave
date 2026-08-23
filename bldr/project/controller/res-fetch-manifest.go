@@ -112,23 +112,22 @@ func (r *fetchManifestWithMetaResolver) Resolve(ctx context.Context, handler dir
 			result, err := currResultPromise.AwaitWithCancelCh(ctx, waitChanged)
 			if err != nil {
 				return err
-			} else if result == nil {
+			}
+			if result == nil {
 				// waitChanged closed
 				continue
+			}
+			if result.GetBuilderResult().GetManifest().GetMeta().GetManifestId() == "" {
+				// continue to waitChanged
+				le.Debug("FetchManifest: manifest builder returned empty result, ignoring")
 			} else {
-				// result != nil
-				if result.GetBuilderResult().GetManifest().GetMeta().GetManifestId() == "" {
-					// continue to waitChanged
-					le.Debug("FetchManifest: manifest builder returned empty result, ignoring")
-				} else {
-					_, _ = handler.AddValue(bldr_manifest.NewFetchManifestValue(
-						[]*bldr_manifest.ManifestRef{result.GetBuilderResult().GetManifestRef().CloneVT()},
-					))
-					if !watch {
-						releaseManifestBuilderRef = false
-						manifestBuilderRef.ReleaseAfter(ctx, manifestBuilderRetainAfterFetch)
-						return nil
-					}
+				_, _ = handler.AddValue(bldr_manifest.NewFetchManifestValue(
+					[]*bldr_manifest.ManifestRef{result.GetBuilderResult().GetManifestRef().CloneVT()},
+				))
+				if !watch {
+					releaseManifestBuilderRef = false
+					manifestBuilderRef.ReleaseAfter(ctx, manifestBuilderRetainAfterFetch)
+					return nil
 				}
 			}
 		}

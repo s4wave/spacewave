@@ -75,10 +75,14 @@ func NewManifestBuilderConfigWithTargetPlatforms(manifestID, buildType, platform
 	}
 }
 
+// bufferedStoreSettingsTx is implemented by world transactions that
+// accept buffered store settings.
 type bufferedStoreSettingsTx interface {
 	SetBufferedStoreSettings(*block.BufferedStoreSettings)
 }
 
+// configureManifestBuildTransactionBuffer applies the manifest build
+// buffered store settings to a transaction that supports them.
 func configureManifestBuildTransactionBuffer(tx world.Tx) {
 	bufferedTx, ok := tx.(bufferedStoreSettingsTx)
 	if !ok {
@@ -436,6 +440,7 @@ func applyBuilderConfigOverride(
 	return nil
 }
 
+// setManifestBuilderStatus updates the status state and summary.
 func (t *manifestBuilderTracker) setManifestBuilderStatus(
 	state ManifestBuilderStatusState,
 	summary string,
@@ -452,6 +457,8 @@ func (t *manifestBuilderTracker) setManifestBuilderStatus(
 	t.storeManifestBuilderStatus(next)
 }
 
+// setManifestBuilderTerminalStatus records the final build state,
+// mapping context cancellation to a canceled status.
 func (t *manifestBuilderTracker) setManifestBuilderTerminalStatus(
 	ctx context.Context,
 	summary string,
@@ -464,6 +471,7 @@ func (t *manifestBuilderTracker) setManifestBuilderTerminalStatus(
 	t.setManifestBuilderStatus(ManifestBuilderStatusStateError, summary, err)
 }
 
+// currentManifestBuilderStatus returns the current status snapshot.
 func (t *manifestBuilderTracker) currentManifestBuilderStatus() ManifestBuilderStatus {
 	t.statusMtx.Lock()
 	status := t.status
@@ -471,6 +479,8 @@ func (t *manifestBuilderTracker) currentManifestBuilderStatus() ManifestBuilderS
 	return status
 }
 
+// refreshManifestBuilderStatusMeta re-reads identity and target fields
+// from the controller and republishes the status.
 func (t *manifestBuilderTracker) refreshManifestBuilderStatusMeta() {
 	next := t.currentManifestBuilderStatus()
 	next.BuildTargetIDs = t.c.getManifestBuilderBuildTargets(t.conf.MarshalB58())
@@ -478,6 +488,7 @@ func (t *manifestBuilderTracker) refreshManifestBuilderStatusMeta() {
 	t.storeManifestBuilderStatus(next)
 }
 
+// storeManifestBuilderStatus stores and publishes the status.
 func (t *manifestBuilderTracker) storeManifestBuilderStatus(status ManifestBuilderStatus) {
 	t.statusMtx.Lock()
 	t.status = status
@@ -485,6 +496,7 @@ func (t *manifestBuilderTracker) storeManifestBuilderStatus(status ManifestBuild
 	t.publishManifestBuilderStatus()
 }
 
+// publishManifestBuilderStatus publishes the current status to the sink.
 func (t *manifestBuilderTracker) publishManifestBuilderStatus() {
 	status := t.currentManifestBuilderStatus()
 	t.c.statusSinkMtx.Lock()
@@ -495,6 +507,7 @@ func (t *manifestBuilderTracker) publishManifestBuilderStatus() {
 	}
 }
 
+// newStatus builds the initial status for this tracker from its config.
 func (t *manifestBuilderTracker) newStatus(
 	state ManifestBuilderStatusState,
 	summary string,
@@ -515,6 +528,8 @@ func (t *manifestBuilderTracker) newStatus(
 	}
 }
 
+// addManifestBuilderBuildTarget records a build target name for a
+// manifest builder config.
 func (c *Controller) addManifestBuilderBuildTarget(conf *ManifestBuilderConfig, target string) {
 	target = strings.TrimSpace(target)
 	if target == "" {
@@ -528,6 +543,8 @@ func (c *Controller) addManifestBuilderBuildTarget(conf *ManifestBuilderConfig, 
 	c.statusSinkMtx.Unlock()
 }
 
+// getManifestBuilderBuildTargets returns the recorded build targets for a
+// manifest builder config key.
 func (c *Controller) getManifestBuilderBuildTargets(key string) []string {
 	c.statusSinkMtx.Lock()
 	targets := slices.Clone(c.manifestBuilderBuildTargets[key])

@@ -130,6 +130,8 @@ func ResolveBuildTarget(buildConfig *bldr_project.BuildConfig, targetsOverride [
 	}, nil
 }
 
+// newBuildTargetManifestBuilderConfig builds the manifest builder config
+// for one resolved build target.
 func newBuildTargetManifestBuilderConfig(
 	manifestID string,
 	platformID string,

@@ -56,6 +56,8 @@ func resolveWebPkgDeps(le *logrus.Entry, manifests map[string]*bldr_project.Mani
 	return result
 }
 
+// readCompilerWebPkgs reads the web package refs declared by a compiler
+// config, returning nil when the compiler is unknown or has none.
 func readCompilerWebPkgs(le *logrus.Entry, manifestID string, builder *configset_proto.ControllerConfig) []*bldr_web_bundler.WebPkgRefConfig {
 	switch builder.GetId() {
 	case js_compiler.ConfigID:
@@ -75,11 +77,16 @@ func readCompilerWebPkgs(le *logrus.Entry, manifestID string, builder *configset
 	}
 }
 
+// compilerConfig is implemented by compiler configs that support both
+// JSON and binary VT decoding.
 type compilerConfig interface {
 	UnmarshalJSON([]byte) error
 	UnmarshalVT([]byte) error
 }
 
+// unmarshalBuilderConfig decodes builder config bytes as JSON or binary
+// VT based on the leading byte; an empty payload is a no-op. Failures are
+// logged, not returned: dep resolution is best effort.
 func unmarshalBuilderConfig(le *logrus.Entry, manifestID, compilerName string, configData []byte, conf compilerConfig) error {
 	if len(configData) == 0 {
 		return nil
