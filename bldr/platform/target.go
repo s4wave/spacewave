@@ -1,7 +1,6 @@
 package bldr_platform
 
 import (
-	"fmt"
 	"runtime"
 	"strings"
 
@@ -50,12 +49,12 @@ const TargetID_Desktop = "desktop"
 
 // GetHostPlatformID returns the platform ID for the current host.
 func GetHostPlatformID() string {
-	return fmt.Sprintf("desktop/%s/%s", runtime.GOOS, runtime.GOARCH)
+	return "desktop/" + runtime.GOOS + "/" + runtime.GOARCH
 }
 
-// BuiltinTargets contains the predefined targets.
+// builtinTargets contains the predefined targets.
 // Note: desktop target uses the host platform, computed at call time via GetBuiltinTarget.
-var BuiltinTargets = map[string]*Target{
+var builtinTargets = map[string]*Target{
 	TargetID_Browser: {
 		ID:          TargetID_Browser,
 		PlatformIDs: []string{"web/js/wasm", PlatformID_JS},
@@ -66,7 +65,7 @@ var BuiltinTargets = map[string]*Target{
 // GetBuiltinTarget returns a builtin target by ID.
 // For targets that depend on the host platform (like "desktop"), this computes the correct platform IDs.
 func GetBuiltinTarget(id string) *Target {
-	if target, ok := BuiltinTargets[id]; ok {
+	if target, ok := builtinTargets[id]; ok {
 		return target
 	}
 	if id == TargetID_Desktop {
@@ -111,7 +110,7 @@ func ParseTarget(id string) (*Target, error) {
 		return &Target{
 			ID:          id,
 			PlatformIDs: []string{platformID, PlatformID_JS},
-			Description: fmt.Sprintf("Desktop for %s", suffix),
+			Description: "Desktop for " + suffix,
 		}, nil
 	}
 
@@ -161,8 +160,8 @@ func (t *Target) SelectPlatformForCompiler(supportedBasePlatforms []string) stri
 
 // ListBuiltinTargetIDs returns a list of all builtin target IDs.
 func ListBuiltinTargetIDs() []string {
-	ids := make([]string, 0, len(BuiltinTargets)+1)
-	for id := range BuiltinTargets {
+	ids := make([]string, 0, len(builtinTargets)+1)
+	for id := range builtinTargets {
 		ids = append(ids, id)
 	}
 	ids = append(ids, TargetID_Desktop)

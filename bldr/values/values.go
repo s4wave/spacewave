@@ -1,4 +1,4 @@
-// package bldr_values contains value types that are injected to the target binary.
+// Package bldr_values contains value types that are injected to the target binary.
 package bldr_values
 
 import bldr_web_bundler "github.com/s4wave/spacewave/bldr/web/bundler"
