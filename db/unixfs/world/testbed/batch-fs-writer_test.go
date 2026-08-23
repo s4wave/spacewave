@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -394,6 +395,80 @@ func TestBatchFSWriter_NestedDirs(t *testing.T) {
 	}
 	if size != uint64(len("nested")) {
 		t.Fatalf("nested size got %d want %d", size, len("nested"))
+	}
+}
+
+// TestBatchFSWriter_UpdateThenCreate isolates the lost-create defect: a
+// create scheduled after an existing-file rewrite inside one Commit must
+// converge.
+func TestBatchFSWriter_UpdateThenCreate(t *testing.T) {
+	ctx := context.Background()
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	le := logrus.NewEntry(logger)
+
+	htb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	wtb, err := world_testbed.NewTestbed(htb)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	fsHandle, err := InitTestbed(wtb, objKey, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer fsHandle.Release()
+
+	sender := wtb.Volume.GetPeerID()
+	fsType := unixfs_world.FSType_FSType_FS_NODE
+
+	bw1 := unixfs_world.NewBatchFSWriter(wtb.WorldState, objKey, fsType, sender)
+	now := time.Now()
+	for name, body := range map[string]string{"a.txt": "alpha", "b.txt": "beta"} {
+		if err := bw1.AddFile(ctx, nil, name, unixfs.NewFSCursorNodeType_File(), int64(len(body)), strings.NewReader(body), 0o644, now); err != nil {
+			t.Fatalf("seed %s: %v", name, err)
+		}
+	}
+	if err := bw1.Commit(ctx); err != nil {
+		t.Fatalf("seed commit: %v", err)
+	}
+	bw1.Release()
+
+	bw2 := unixfs_world.NewBatchFSWriter(wtb.WorldState, objKey, fsType, sender)
+	updated := []byte("beta-v2")
+	if err := bw2.AddFile(ctx, nil, "b.txt", unixfs.NewFSCursorNodeType_File(), int64(len(updated)), bytes.NewReader(updated), 0o644, now); err != nil {
+		t.Fatalf("update b.txt: %v", err)
+	}
+	created := []byte("delta")
+	if err := bw2.AddFile(ctx, nil, "d.txt", unixfs.NewFSCursorNodeType_File(), int64(len(created)), bytes.NewReader(created), 0o644, now); err != nil {
+		t.Fatalf("create d.txt: %v", err)
+	}
+	if err := bw2.Commit(ctx); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+	bw2.Release()
+
+	for name, want := range map[string]string{"a.txt": "alpha", "b.txt": "beta-v2", "d.txt": "delta"} {
+		fh, err := fsHandle.Lookup(ctx, name)
+		if err != nil {
+			t.Fatalf("lookup %s: %v", name, err)
+		}
+		size, err := fh.GetSize(ctx)
+		if err != nil {
+			fh.Release()
+			t.Fatalf("size %s: %v", name, err)
+		}
+		buf := make([]byte, size)
+		if _, err := fh.ReadAt(ctx, 0, buf); err != nil {
+			fh.Release()
+			t.Fatalf("read %s: %v", name, err)
+		}
+		fh.Release()
+		if string(buf) != want {
+			t.Fatalf("file %s content %q want %q", name, buf, want)
+		}
 	}
 }
 
