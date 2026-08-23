@@ -1,4 +1,5 @@
-import { Model, IJsonModel, Actions } from '@aptre/flex-layout'
+import { Actions, IJsonModel, Model } from '@aptre/flex-layout'
+import type { TabSetNode } from '@aptre/flex-layout'
 
 import {
   LayoutModel,
@@ -28,19 +29,27 @@ export const SHELL_GRID_BASE_MODEL: IJsonModel = {
   layout: { type: 'row', weight: 100, children: [] },
 }
 
+// tabsets collects the model's tabset nodes in visit order.
+function tabsets(model: Model): TabSetNode[] {
+  const nodes: TabSetNode[] = []
+  model.visitNodes((node) => {
+    if (node.getType() === 'tabset') {
+      nodes.push(node as TabSetNode)
+    }
+  })
+  return nodes
+}
+
+// toBase64Url encodes binary as unpadded base64url.
+function toBase64Url(binary: Uint8Array): string {
+  const base64 = btoa(String.fromCharCode(...binary))
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
 // hasGridLayout checks if the model has multiple tabsets (splits).
 // Returns true if the layout has been split, false if it's a single tabset.
 export function hasGridLayout(model: Model): boolean {
-  let tabsetCount = 0
-
-  model.visitNodes((node) => {
-    if (node.getType() === 'tabset') {
-      tabsetCount++
-    }
-  })
-
-  // Grid mode only if there are multiple tabsets
-  return tabsetCount > 1
+  return tabsets(model).length > 1
 }
 
 // getTabIdsFromModel extracts all tab IDs from the model.
@@ -54,57 +63,35 @@ export function getTabIdsFromModel(model: Model): string[] {
   return ids
 }
 
-// getSelectedTabId returns the ID of the selected tab in the active tabset.
+// getSelectedTabId returns the ID of the selected tab in the active tabset,
+// falling back to the first tabset carrying a selection.
 export function getSelectedTabId(model: Model): string | null {
-  let selectedId: string | null = null
-
-  model.visitNodes((node) => {
-    if (node.getType() === 'tabset') {
-      const tabset = node as import('@aptre/flex-layout').TabSetNode
-      if (tabset.isActive()) {
-        const selected = tabset.getSelectedNode()
-        if (selected) {
-          selectedId = selected.getId()
-        }
-      }
+  const sets = tabsets(model)
+  for (const tabset of sets.filter((s) => s.isActive()).concat(sets)) {
+    const selected = tabset.getSelectedNode()
+    if (selected) {
+      return selected.getId()
     }
-  })
-
-  // Fallback: if no active tabset found, get the first tabset's selected tab
-  if (!selectedId) {
-    model.visitNodes((node) => {
-      if (node.getType() === 'tabset' && !selectedId) {
-        const tabset = node as import('@aptre/flex-layout').TabSetNode
-        const selected = tabset.getSelectedNode()
-        if (selected) {
-          selectedId = selected.getId()
-        }
-      }
-    })
   }
-
-  return selectedId
+  return null
 }
 
 // extractLocalStateFromModel extracts local state (active tabset, selections) from a model.
 function extractLocalStateFromModel(model: Model): LayoutLocalState {
   const localState: LayoutLocalState = { tabSetSelections: {} }
 
-  model.visitNodes((node) => {
-    if (node.getType() === 'tabset') {
-      const tabset = node as import('@aptre/flex-layout').TabSetNode
-      if (tabset.isActive()) {
-        localState.activeTabSetId = tabset.getId()
-      }
-      const selected = tabset.getSelectedNode()
-      if (selected && localState.tabSetSelections) {
-        localState.tabSetSelections[tabset.getId()] = selected.getId()
-      }
-      if (tabset.isMaximized()) {
-        localState.maximizedTabSetId = tabset.getId()
-      }
+  for (const tabset of tabsets(model)) {
+    if (tabset.isActive()) {
+      localState.activeTabSetId = tabset.getId()
     }
-  })
+    const selected = tabset.getSelectedNode()
+    if (selected && localState.tabSetSelections) {
+      localState.tabSetSelections[tabset.getId()] = selected.getId()
+    }
+    if (tabset.isMaximized()) {
+      localState.maximizedTabSetId = tabset.getId()
+    }
+  }
 
   return localState
 }
@@ -116,7 +103,6 @@ export function applyLocalStateToModel(
 ): void {
   if (!localState) return
 
-  // Apply selected tabs
   if (localState.tabSetSelections) {
     for (const tabId of Object.values(localState.tabSetSelections)) {
       const node = model.getNodeById(tabId)
@@ -126,7 +112,6 @@ export function applyLocalStateToModel(
     }
   }
 
-  // Apply active tabset
   if (localState.activeTabSetId) {
     const node = model.getNodeById(localState.activeTabSetId)
     if (node) {
@@ -134,7 +119,6 @@ export function applyLocalStateToModel(
     }
   }
 
-  // Apply maximized state
   if (localState.maximizedTabSetId) {
     const node = model.getNodeById(localState.maximizedTabSetId)
     if (node) {
@@ -155,11 +139,7 @@ export function encodeGridLayout(model: Model): string {
     localState,
   }
 
-  const binary = LayoutSnapshot.toBinary(snapshot)
-
-  // Convert to base64url encoding (URL-safe)
-  const base64 = btoa(String.fromCharCode(...binary))
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return toBase64Url(LayoutSnapshot.toBinary(snapshot))
 }
 
 // encodeGridLayoutStructure converts a Model to a URL-safe base64 string WITHOUT local state.
@@ -174,10 +154,7 @@ export function encodeGridLayoutStructure(model: Model): string {
     model: layoutModel,
   }
 
-  const binary = LayoutSnapshot.toBinary(snapshot)
-
-  const base64 = btoa(String.fromCharCode(...binary))
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return toBase64Url(LayoutSnapshot.toBinary(snapshot))
 }
 
 // DecodeResult contains the decoded model and local state.
@@ -196,15 +173,12 @@ export function decodeGridLayout(
   }
 
   try {
-    // Restore standard base64 from base64url
     let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
-    // Add padding if needed
     const padding = (4 - (base64.length % 4)) % 4
     base64 += '='.repeat(padding)
 
     const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
 
-    // Try to decode as LayoutSnapshot first (new format)
     try {
       const snapshot = LayoutSnapshot.fromBinary(binary)
       if (snapshot.model) {
@@ -217,10 +191,10 @@ export function decodeGridLayout(
         return { model, localState: snapshot.localState }
       }
     } catch {
-      // Fall through to legacy format
+      // Shared grid URLs written before LayoutSnapshot existed carry a bare
+      // LayoutModel with no local state.
     }
 
-    // Fallback: try legacy LayoutModel format (no local state)
     const layoutModel = LayoutModel.fromBinary(binary)
     const tabDataMap: TabDataMap = {}
     const model = layoutModelToJsonModel(baseModel, tabDataMap, layoutModel)
@@ -230,27 +204,13 @@ export function decodeGridLayout(
   }
 }
 
-// getActiveTabsetId returns the ID of the active tabset in the model.
+// getActiveTabsetId returns the ID of the active tabset in the model,
+// falling back to the first tabset.
 export function getActiveTabsetId(model: Model): string | null {
-  let activeId: string | null = null
-
-  model.visitNodes((node) => {
-    if (node.getType() === 'tabset') {
-      const tabset = node as import('@aptre/flex-layout').TabSetNode
-      if (tabset.isActive()) {
-        activeId = tabset.getId()
-      }
-    }
-  })
-
-  // Fallback to first tabset if none is active
-  if (!activeId) {
-    model.visitNodes((node) => {
-      if (node.getType() === 'tabset' && !activeId) {
-        activeId = node.getId()
-      }
-    })
-  }
-
-  return activeId
+  const sets = tabsets(model)
+  return (
+    sets.find((tabset) => tabset.isActive())?.getId() ??
+    sets[0]?.getId() ??
+    null
+  )
 }
