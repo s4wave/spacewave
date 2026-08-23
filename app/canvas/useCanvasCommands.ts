@@ -1,5 +1,3 @@
-import { useCallback } from 'react'
-
 import {
   type SubItemsCallback,
   useOpenCommand,
@@ -31,6 +29,352 @@ interface UseCanvasCommandsParams {
 // ARROW_STEP is the number of canvas units to move per arrow key press.
 const ARROW_STEP = 10
 
+// CanvasCommandContext carries the per-mount state the command table's
+// predicates and handlers read.
+interface CanvasCommandContext {
+  isTabActive: boolean
+  borderActive: boolean
+  contentFocused: boolean
+  actions: UseCanvasActionsResult['actions']
+  moveSelected: UseCanvasActionsResult['moveSelected']
+  openCommand: (commandId: string) => void
+  onToolChange?: (tool: CanvasTool) => void
+  onCancelDrag?: () => void
+  onSetFocus: (focus: SelectionFocus) => void
+  onAddText?: () => void
+  onAddObject?: (objectKey: string) => void
+  addObjectSubItems?: SubItemsCallback
+  onAddImage?: (path: string) => void
+  addImageSubItems?: SubItemsCallback
+}
+
+// CanvasCommandSpec is one entry of the static canvas shortcut table:
+// registration fields, an active predicate over the mount context, and the
+// behavior to run when invoked.
+interface CanvasCommandSpec {
+  commandId: string
+  label: string
+  description?: string
+  menuPath?: string
+  menuGroup?: number
+  menuOrder?: number
+  combo?: string
+  active: (ctx: CanvasCommandContext) => boolean
+  enabled?: (ctx: CanvasCommandContext) => boolean
+  hasSubItems?: boolean
+  subItems?: (ctx: CanvasCommandContext) => SubItemsCallback | undefined
+  run: (ctx: CanvasCommandContext, args: Record<string, string>) => void
+}
+
+const tabActive = (ctx: CanvasCommandContext): boolean => ctx.isTabActive
+const borderActive = (ctx: CanvasCommandContext): boolean => ctx.borderActive
+
+// CANVAS_COMMANDS is the shortcut table; useCanvasCommands registers each
+// entry. The table is module-level so the hook call count stays constant.
+const CANVAS_COMMANDS: CanvasCommandSpec[] = [
+  // Escape: content-focused switches to border, otherwise deselect.
+  {
+    commandId: 'canvas.escape',
+    label: 'Deselect / Exit Content',
+    combo: 'Escape',
+    active: tabActive,
+    run: (ctx) => {
+      if (ctx.contentFocused) {
+        ctx.onSetFocus('border')
+      } else {
+        ctx.onCancelDrag?.()
+        ctx.actions.deselect()
+      }
+    },
+  },
+
+  // Edit actions.
+  {
+    commandId: 'canvas.copy',
+    label: 'Copy',
+    menuPath: 'Edit/Copy',
+    combo: 'CmdOrCtrl+C',
+    menuGroup: 20,
+    menuOrder: 2,
+    active: tabActive,
+    run: (ctx) => ctx.actions.copy(),
+  },
+  {
+    commandId: 'canvas.paste',
+    label: 'Paste',
+    menuPath: 'Edit/Paste',
+    combo: 'CmdOrCtrl+V',
+    menuGroup: 20,
+    menuOrder: 3,
+    active: tabActive,
+    run: (ctx) => ctx.actions.paste(),
+  },
+  {
+    commandId: 'canvas.undo',
+    label: 'Undo',
+    menuPath: 'Edit/Undo',
+    combo: 'CmdOrCtrl+Z',
+    menuGroup: 10,
+    menuOrder: 1,
+    active: tabActive,
+    run: (ctx) => ctx.actions.undo(),
+  },
+  {
+    commandId: 'canvas.redo',
+    label: 'Redo',
+    menuPath: 'Edit/Redo',
+    combo: 'CmdOrCtrl+Shift+Z',
+    menuGroup: 10,
+    menuOrder: 2,
+    active: tabActive,
+    run: (ctx) => ctx.actions.redo(),
+  },
+  {
+    commandId: 'canvas.select-all',
+    label: 'Select All',
+    menuPath: 'Edit/Select All',
+    combo: 'CmdOrCtrl+A',
+    menuGroup: 30,
+    menuOrder: 1,
+    active: tabActive,
+    run: (ctx) => ctx.actions['select-all'](),
+  },
+  {
+    commandId: 'canvas.deselect',
+    label: 'Deselect',
+    menuPath: 'Edit/Deselect',
+    menuGroup: 30,
+    menuOrder: 2,
+    active: borderActive,
+    run: (ctx) => ctx.actions.deselect(),
+  },
+  {
+    commandId: 'canvas.delete',
+    label: 'Delete Selected',
+    menuPath: 'Edit/Delete',
+    combo: 'Delete',
+    menuGroup: 40,
+    menuOrder: 1,
+    active: borderActive,
+    run: (ctx) => ctx.actions.delete(),
+  },
+  {
+    commandId: 'canvas.delete-backspace',
+    label: 'Delete Selected',
+    combo: 'Backspace',
+    active: borderActive,
+    run: (ctx) => ctx.actions.delete(),
+  },
+  {
+    commandId: 'canvas.bring-to-front',
+    label: 'Bring to Front',
+    menuPath: 'Edit/Bring to Front',
+    menuGroup: 50,
+    menuOrder: 1,
+    active: borderActive,
+    run: (ctx) => ctx.actions['bring-to-front'](),
+  },
+  {
+    commandId: 'canvas.send-to-back',
+    label: 'Send to Back',
+    menuPath: 'Edit/Send to Back',
+    menuGroup: 50,
+    menuOrder: 2,
+    active: borderActive,
+    run: (ctx) => ctx.actions['send-to-back'](),
+  },
+
+  // View actions.
+  {
+    commandId: 'canvas.zoom-in',
+    label: 'Zoom In',
+    menuPath: 'View/Zoom In',
+    combo: '=',
+    menuGroup: 10,
+    menuOrder: 1,
+    active: borderActive,
+    run: (ctx) => ctx.actions['zoom-in'](),
+  },
+  {
+    commandId: 'canvas.zoom-in-plus',
+    label: 'Zoom In',
+    combo: '+',
+    active: borderActive,
+    run: (ctx) => ctx.actions['zoom-in'](),
+  },
+  {
+    commandId: 'canvas.zoom-out',
+    label: 'Zoom Out',
+    menuPath: 'View/Zoom Out',
+    combo: '-',
+    menuGroup: 10,
+    menuOrder: 2,
+    active: borderActive,
+    run: (ctx) => ctx.actions['zoom-out'](),
+  },
+  {
+    commandId: 'canvas.fit-view',
+    label: 'Fit View',
+    menuPath: 'View/Fit View',
+    combo: 'CmdOrCtrl+0',
+    menuGroup: 10,
+    menuOrder: 3,
+    active: tabActive,
+    run: (ctx) => ctx.actions['fit-view'](),
+  },
+  {
+    commandId: 'canvas.organize-nodes',
+    label: 'Organize Nodes',
+    menuPath: 'View/Organize Nodes',
+    menuGroup: 10,
+    menuOrder: 4,
+    active: tabActive,
+    run: (ctx) => ctx.actions['organize-nodes'](),
+  },
+  {
+    commandId: 'canvas.zoom-reset',
+    label: 'Zoom to 100%',
+    menuPath: 'View/Zoom to 100%',
+    menuGroup: 10,
+    menuOrder: 5,
+    active: tabActive,
+    run: (ctx) => ctx.actions['zoom-reset'](),
+  },
+
+  // Arrow key movement.
+  {
+    commandId: 'canvas.move-up',
+    label: 'Move Up',
+    combo: 'ArrowUp',
+    active: borderActive,
+    run: (ctx) => ctx.moveSelected(0, -ARROW_STEP),
+  },
+  {
+    commandId: 'canvas.move-down',
+    label: 'Move Down',
+    combo: 'ArrowDown',
+    active: borderActive,
+    run: (ctx) => ctx.moveSelected(0, ARROW_STEP),
+  },
+  {
+    commandId: 'canvas.move-left',
+    label: 'Move Left',
+    combo: 'ArrowLeft',
+    active: borderActive,
+    run: (ctx) => ctx.moveSelected(-ARROW_STEP, 0),
+  },
+  {
+    commandId: 'canvas.move-right',
+    label: 'Move Right',
+    combo: 'ArrowRight',
+    active: borderActive,
+    run: (ctx) => ctx.moveSelected(ARROW_STEP, 0),
+  },
+  {
+    commandId: 'canvas.move-up-fast',
+    label: 'Move Up Fast',
+    combo: 'Shift+ArrowUp',
+    active: borderActive,
+    run: (ctx) => ctx.moveSelected(0, -ARROW_STEP * 5),
+  },
+  {
+    commandId: 'canvas.move-down-fast',
+    label: 'Move Down Fast',
+    combo: 'Shift+ArrowDown',
+    active: borderActive,
+    run: (ctx) => ctx.moveSelected(0, ARROW_STEP * 5),
+  },
+  {
+    commandId: 'canvas.move-left-fast',
+    label: 'Move Left Fast',
+    combo: 'Shift+ArrowLeft',
+    active: borderActive,
+    run: (ctx) => ctx.moveSelected(-ARROW_STEP * 5, 0),
+  },
+  {
+    commandId: 'canvas.move-right-fast',
+    label: 'Move Right Fast',
+    combo: 'Shift+ArrowRight',
+    active: borderActive,
+    run: (ctx) => ctx.moveSelected(ARROW_STEP * 5, 0),
+  },
+
+  // Tool switches (only when onToolChange is provided).
+  ...(
+    [
+      ['select', 'Select', 'v', 1],
+      ['draw', 'Draw', 'd', 2],
+      ['line', 'Line', 'l', 3],
+      ['arrow', 'Arrow', 'a', 4],
+      ['rectangle', 'Rectangle', 'r', 5],
+      ['ellipse', 'Ellipse', 'e', 6],
+      ['text', 'Text', 't', 3],
+      ['object', 'Object', 'o', 4],
+    ] as Array<[CanvasTool, string, string, number]>
+  ).map(([tool, label, combo, menuOrder]): CanvasCommandSpec => ({
+    commandId: `canvas.tool.${tool}`,
+    label: `${label} Tool`,
+    menuPath: `Tools/${label}`,
+    combo,
+    menuGroup: 1,
+    menuOrder,
+    active: (ctx) => ctx.borderActive && !!ctx.onToolChange,
+    run: (ctx) => ctx.onToolChange?.(tool),
+  })),
+
+  {
+    commandId: 'canvas.add-text',
+    label: 'Add Text Node',
+    menuPath: 'Tools/Add Text Node',
+    menuGroup: 2,
+    menuOrder: 1,
+    active: (ctx) => ctx.isTabActive && !!ctx.onAddText,
+    enabled: (ctx) => !!ctx.onAddText,
+    run: (ctx) => ctx.onAddText?.(),
+  },
+  {
+    commandId: 'canvas.add-object',
+    label: 'Add Existing Object',
+    menuPath: 'Tools/Add Existing Object',
+    menuGroup: 2,
+    menuOrder: 2,
+    hasSubItems: true,
+    subItems: (ctx) => ctx.addObjectSubItems,
+    active: (ctx) =>
+      ctx.isTabActive && !!ctx.onAddObject && !!ctx.addObjectSubItems,
+    enabled: (ctx) => !!ctx.onAddObject && !!ctx.addObjectSubItems,
+    run: (ctx, args) => {
+      const objectKey = args.subItemId
+      if (objectKey) {
+        ctx.onAddObject?.(objectKey)
+        return
+      }
+      ctx.openCommand('canvas.add-object')
+    },
+  },
+  {
+    commandId: 'canvas.add-image',
+    label: 'Add Image',
+    description: 'Place an image from this Space on the Canvas',
+    menuPath: 'Tools/Add Image',
+    menuGroup: 2,
+    menuOrder: 3,
+    hasSubItems: true,
+    subItems: (ctx) => ctx.addImageSubItems,
+    active: (ctx) =>
+      ctx.isTabActive && !!ctx.onAddImage && !!ctx.addImageSubItems,
+    enabled: (ctx) => !!ctx.onAddImage && !!ctx.addImageSubItems,
+    run: (ctx, args) => {
+      const path = args.subItemId
+      if (path) {
+        ctx.onAddImage?.(path)
+        return
+      }
+      ctx.openCommand('canvas.add-image')
+    },
+  },
+]
+
 // useCanvasCommands registers all canvas keyboard shortcuts as commands
 // via the command system. Commands are scoped to the active canvas tab
 // using useIsTabActive().
@@ -55,632 +399,48 @@ export function useCanvasCommands(params: UseCanvasCommandsParams): void {
   const contentFocused = selectionFocus === 'content' && hasSelection
   const borderActive = isTabActive && !contentFocused
 
-  // Escape: content-focused switches to border, otherwise deselect.
-  useCommand({
-    commandId: 'canvas.escape',
-    label: 'Deselect / Exit Content',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'Escape' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    active: isTabActive,
-    handler: useCallback(() => {
-      if (contentFocused) {
-        onSetFocus('border')
-      } else {
-        onCancelDrag?.()
-        actions.deselect()
-      }
-    }, [contentFocused, onSetFocus, onCancelDrag, actions]),
-  })
+  const ctx: CanvasCommandContext = {
+    isTabActive,
+    borderActive,
+    contentFocused,
+    actions,
+    moveSelected,
+    openCommand,
+    onToolChange,
+    onCancelDrag,
+    onSetFocus,
+    onAddText,
+    onAddObject,
+    addObjectSubItems,
+    onAddImage,
+    addImageSubItems,
+  }
 
-  // Edit actions.
-  useCommand({
-    commandId: 'canvas.copy',
-    label: 'Copy',
-    menuPath: 'Edit/Copy',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+C' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 20,
-    menuOrder: 2,
-    active: isTabActive,
-    handler: useCallback(() => {
-      actions.copy()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.paste',
-    label: 'Paste',
-    menuPath: 'Edit/Paste',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+V' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 20,
-    menuOrder: 3,
-    active: isTabActive,
-    handler: useCallback(() => {
-      actions.paste()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.undo',
-    label: 'Undo',
-    menuPath: 'Edit/Undo',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+Z' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 10,
-    menuOrder: 1,
-    active: isTabActive,
-    handler: useCallback(() => {
-      actions.undo()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.redo',
-    label: 'Redo',
-    menuPath: 'Edit/Redo',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+Shift+Z' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 10,
-    menuOrder: 2,
-    active: isTabActive,
-    handler: useCallback(() => {
-      actions.redo()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.select-all',
-    label: 'Select All',
-    menuPath: 'Edit/Select All',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+A' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 30,
-    menuOrder: 1,
-    active: isTabActive,
-    handler: useCallback(() => {
-      actions['select-all']()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.deselect',
-    label: 'Deselect',
-    menuPath: 'Edit/Deselect',
-    menuGroup: 30,
-    menuOrder: 2,
-    active: borderActive,
-    handler: useCallback(() => {
-      actions.deselect()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.delete',
-    label: 'Delete Selected',
-    menuPath: 'Edit/Delete',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'Delete' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 40,
-    menuOrder: 1,
-    active: borderActive,
-    handler: useCallback(() => {
-      actions.delete()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.delete-backspace',
-    label: 'Delete Selected',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'Backspace' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    active: borderActive,
-    handler: useCallback(() => {
-      actions.delete()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.bring-to-front',
-    label: 'Bring to Front',
-    menuPath: 'Edit/Bring to Front',
-    menuGroup: 50,
-    menuOrder: 1,
-    active: borderActive,
-    handler: useCallback(() => {
-      actions['bring-to-front']()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.send-to-back',
-    label: 'Send to Back',
-    menuPath: 'Edit/Send to Back',
-    menuGroup: 50,
-    menuOrder: 2,
-    active: borderActive,
-    handler: useCallback(() => {
-      actions['send-to-back']()
-    }, [actions]),
-  })
-
-  // View actions.
-  useCommand({
-    commandId: 'canvas.zoom-in',
-    label: 'Zoom In',
-    menuPath: 'View/Zoom In',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: '=' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 10,
-    menuOrder: 1,
-    active: borderActive,
-    handler: useCallback(() => {
-      actions['zoom-in']()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.zoom-in-plus',
-    label: 'Zoom In',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: '+' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    active: borderActive,
-    handler: useCallback(() => {
-      actions['zoom-in']()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.zoom-out',
-    label: 'Zoom Out',
-    menuPath: 'View/Zoom Out',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: '-' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 10,
-    menuOrder: 2,
-    active: borderActive,
-    handler: useCallback(() => {
-      actions['zoom-out']()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.fit-view',
-    label: 'Fit View',
-    menuPath: 'View/Fit View',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'CmdOrCtrl+0' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 10,
-    menuOrder: 3,
-    active: isTabActive,
-    handler: useCallback(() => {
-      actions['fit-view']()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.zoom-reset',
-    label: 'Zoom to 100%',
-    menuPath: 'View/Zoom to 100%',
-    menuGroup: 10,
-    menuOrder: 5,
-    active: isTabActive,
-    handler: useCallback(() => {
-      actions['zoom-reset']()
-    }, [actions]),
-  })
-
-  useCommand({
-    commandId: 'canvas.organize-nodes',
-    label: 'Organize Nodes',
-    menuPath: 'View/Organize Nodes',
-    menuGroup: 10,
-    menuOrder: 4,
-    active: isTabActive,
-    handler: useCallback(() => {
-      actions['organize-nodes']()
-    }, [actions]),
-  })
-
-  // Arrow key movement.
-  useCommand({
-    commandId: 'canvas.move-up',
-    label: 'Move Up',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'ArrowUp' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    active: borderActive,
-    handler: useCallback(() => {
-      moveSelected(0, -ARROW_STEP)
-    }, [moveSelected]),
-  })
-
-  useCommand({
-    commandId: 'canvas.move-down',
-    label: 'Move Down',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'ArrowDown' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    active: borderActive,
-    handler: useCallback(() => {
-      moveSelected(0, ARROW_STEP)
-    }, [moveSelected]),
-  })
-
-  useCommand({
-    commandId: 'canvas.move-left',
-    label: 'Move Left',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'ArrowLeft' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    active: borderActive,
-    handler: useCallback(() => {
-      moveSelected(-ARROW_STEP, 0)
-    }, [moveSelected]),
-  })
-
-  useCommand({
-    commandId: 'canvas.move-right',
-    label: 'Move Right',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'ArrowRight' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    active: borderActive,
-    handler: useCallback(() => {
-      moveSelected(ARROW_STEP, 0)
-    }, [moveSelected]),
-  })
-
-  useCommand({
-    commandId: 'canvas.move-up-fast',
-    label: 'Move Up Fast',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'Shift+ArrowUp' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    active: borderActive,
-    handler: useCallback(() => {
-      moveSelected(0, -ARROW_STEP * 5)
-    }, [moveSelected]),
-  })
-
-  useCommand({
-    commandId: 'canvas.move-down-fast',
-    label: 'Move Down Fast',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'Shift+ArrowDown' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    active: borderActive,
-    handler: useCallback(() => {
-      moveSelected(0, ARROW_STEP * 5)
-    }, [moveSelected]),
-  })
-
-  useCommand({
-    commandId: 'canvas.move-left-fast',
-    label: 'Move Left Fast',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'Shift+ArrowLeft' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    active: borderActive,
-    handler: useCallback(() => {
-      moveSelected(-ARROW_STEP * 5, 0)
-    }, [moveSelected]),
-  })
-
-  useCommand({
-    commandId: 'canvas.move-right-fast',
-    label: 'Move Right Fast',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'Shift+ArrowRight' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    active: borderActive,
-    handler: useCallback(() => {
-      moveSelected(ARROW_STEP * 5, 0)
-    }, [moveSelected]),
-  })
-
-  // Tool switches (only when onToolChange is provided).
-  useCommand({
-    commandId: 'canvas.tool.select',
-    label: 'Select Tool',
-    menuPath: 'Tools/Select',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'v' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 1,
-    menuOrder: 1,
-    active: borderActive && !!onToolChange,
-    handler: useCallback(() => {
-      onToolChange?.('select')
-    }, [onToolChange]),
-  })
-
-  useCommand({
-    commandId: 'canvas.tool.draw',
-    label: 'Draw Tool',
-    menuPath: 'Tools/Draw',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'd' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 1,
-    menuOrder: 2,
-    active: borderActive && !!onToolChange,
-    handler: useCallback(() => {
-      onToolChange?.('draw')
-    }, [onToolChange]),
-  })
-
-  useCommand({
-    commandId: 'canvas.tool.line',
-    label: 'Line Tool',
-    menuPath: 'Tools/Line',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'l' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 1,
-    menuOrder: 3,
-    active: borderActive && !!onToolChange,
-    handler: useCallback(() => {
-      onToolChange?.('line')
-    }, [onToolChange]),
-  })
-
-  useCommand({
-    commandId: 'canvas.tool.arrow',
-    label: 'Arrow Tool',
-    menuPath: 'Tools/Arrow',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'a' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 1,
-    menuOrder: 4,
-    active: borderActive && !!onToolChange,
-    handler: useCallback(() => {
-      onToolChange?.('arrow')
-    }, [onToolChange]),
-  })
-
-  useCommand({
-    commandId: 'canvas.tool.rectangle',
-    label: 'Rectangle Tool',
-    menuPath: 'Tools/Rectangle',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'r' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 1,
-    menuOrder: 5,
-    active: borderActive && !!onToolChange,
-    handler: useCallback(() => {
-      onToolChange?.('rectangle')
-    }, [onToolChange]),
-  })
-
-  useCommand({
-    commandId: 'canvas.tool.ellipse',
-    label: 'Ellipse Tool',
-    menuPath: 'Tools/Ellipse',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'e' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 1,
-    menuOrder: 6,
-    active: borderActive && !!onToolChange,
-    handler: useCallback(() => {
-      onToolChange?.('ellipse')
-    }, [onToolChange]),
-  })
-
-  useCommand({
-    commandId: 'canvas.tool.text',
-    label: 'Text Tool',
-    menuPath: 'Tools/Text',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 't' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 1,
-    menuOrder: 3,
-    active: borderActive && !!onToolChange,
-    handler: useCallback(() => {
-      onToolChange?.('text')
-    }, [onToolChange]),
-  })
-
-  useCommand({
-    commandId: 'canvas.tool.object',
-    label: 'Object Tool',
-    menuPath: 'Tools/Object',
-    defaultBindings: [
-      {
-        id: 'default',
-        binding: { case: 'combo', value: { combo: 'o' } },
-        surface: CommandSurface.WEB,
-      },
-    ],
-    menuGroup: 1,
-    menuOrder: 4,
-    active: borderActive && !!onToolChange,
-    handler: useCallback(() => {
-      onToolChange?.('object')
-    }, [onToolChange]),
-  })
-
-  useCommand({
-    commandId: 'canvas.add-text',
-    label: 'Add Text Node',
-    menuPath: 'Tools/Add Text Node',
-    menuGroup: 2,
-    menuOrder: 1,
-    active: isTabActive && !!onAddText,
-    enabled: !!onAddText,
-    handler: useCallback(() => {
-      onAddText?.()
-    }, [onAddText]),
-  })
-
-  useCommand({
-    commandId: 'canvas.add-object',
-    label: 'Add Existing Object',
-    menuPath: 'Tools/Add Existing Object',
-    menuGroup: 2,
-    menuOrder: 2,
-    active: isTabActive && !!onAddObject && !!addObjectSubItems,
-    enabled: !!onAddObject && !!addObjectSubItems,
-    hasSubItems: true,
-    subItems: addObjectSubItems,
-    handler: useCallback(
-      (args: Record<string, string>) => {
-        const objectKey = args.subItemId
-        if (objectKey) {
-          onAddObject?.(objectKey)
-          return
-        }
-        openCommand('canvas.add-object')
-      },
-      [onAddObject, openCommand],
-    ),
-  })
-
-  useCommand({
-    commandId: 'canvas.add-image',
-    label: 'Add Image',
-    description: 'Place an image from this Space on the Canvas',
-    menuPath: 'Tools/Add Image',
-    menuGroup: 2,
-    menuOrder: 3,
-    active: isTabActive && !!onAddImage && !!addImageSubItems,
-    enabled: !!onAddImage && !!addImageSubItems,
-    hasSubItems: true,
-    subItems: addImageSubItems,
-    handler: useCallback(
-      (args: Record<string, string>) => {
-        const path = args.subItemId
-        if (path) {
-          onAddImage?.(path)
-          return
-        }
-        openCommand('canvas.add-image')
-      },
-      [onAddImage, openCommand],
-    ),
-  })
+  for (const spec of CANVAS_COMMANDS) {
+    // CANVAS_COMMANDS is a module-level constant, so this loop registers the
+    // same commands in the same order on every render.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useCommand({
+      commandId: spec.commandId,
+      label: spec.label,
+      description: spec.description,
+      menuPath: spec.menuPath,
+      menuGroup: spec.menuGroup,
+      menuOrder: spec.menuOrder,
+      defaultBindings: spec.combo
+        ? [
+            {
+              id: 'default',
+              binding: { case: 'combo', value: { combo: spec.combo } },
+              surface: CommandSurface.WEB,
+            },
+          ]
+        : undefined,
+      active: spec.active(ctx),
+      enabled: spec.enabled?.(ctx),
+      hasSubItems: spec.hasSubItems,
+      subItems: spec.subItems?.(ctx),
+      handler: (args: Record<string, string>) => spec.run(ctx, args),
+    })
+  }
 }
