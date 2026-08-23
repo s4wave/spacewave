@@ -209,6 +209,11 @@ function NotebookViewer({
         {/* Mobile hamburger toggle */}
         <button
           type="button"
+          aria-label={
+            sidebarOpen
+              ? 'Close notebook navigation'
+              : 'Open notebook navigation'
+          }
           className="bg-background-primary text-foreground-alt hover:text-foreground absolute top-2 left-2 z-30 rounded p-1 md:hidden"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >

@@ -241,6 +241,39 @@ describe('NotebookViewer', () => {
     expect(screen.getByText('Select a note to view')).toBeDefined()
   })
 
+  it('names the mobile notebook navigation for its current action', () => {
+    vi.mocked(useAccessTypedHandle).mockReturnValue({
+      value: {},
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    } as never)
+    mockUseWorldObjectMessageState.mockReturnValue({
+      state: {
+        value: {
+          sources: [{ name: 'My Docs', ref: 'key/-/docs' }],
+        },
+        loading: false,
+        error: null,
+        retry: vi.fn(),
+      },
+      sources: [{ name: 'My Docs', ref: 'key/-/docs' }],
+    })
+
+    renderViewer()
+    const openButton = screen.getByRole('button', {
+      name: 'Open notebook navigation',
+    })
+    fireEvent.click(openButton)
+    const closeButton = screen.getByRole('button', {
+      name: 'Close notebook navigation',
+    })
+    fireEvent.click(closeButton)
+    expect(
+      screen.getByRole('button', { name: 'Open notebook navigation' }),
+    ).toBeDefined()
+  })
+
   it('renders three-panel layout when loaded with sources', () => {
     vi.mocked(useAccessTypedHandle).mockReturnValue({
       value: {},

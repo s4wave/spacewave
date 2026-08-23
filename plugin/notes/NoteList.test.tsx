@@ -283,7 +283,7 @@ describe('NoteList', () => {
 
     renderList()
 
-    const input = await screen.findByPlaceholderText('Search notes…')
+    const input = await screen.findByRole('textbox', { name: 'Search notes' })
     fireEvent.change(input, { target: { value: 'proj' } })
     expect(screen.getByText('projects')).toBeDefined()
     expect(screen.queryByText('alpha')).toBeNull()

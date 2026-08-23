@@ -436,6 +436,7 @@ function NoteListView({ controller }: { controller: NoteListController }) {
             <LuSearch className="text-muted-foreground size-3 shrink-0" />
             <input
               type="text"
+              aria-label="Search notes"
               placeholder="Search notes…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
