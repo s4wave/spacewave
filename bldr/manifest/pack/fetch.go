@@ -59,6 +59,7 @@ func ResolveManifestTuple(
 	return manifestRef, nil
 }
 
+// validateManifestRefMatchesTuple checks that a manifest ref matches the manifest id and build type of the tuple.
 func validateManifestRefMatchesTuple(ref *bldr_manifest.ManifestRef, tuple *ManifestTuple, buildType string) error {
 	if err := ref.Validate(); err != nil {
 		return err

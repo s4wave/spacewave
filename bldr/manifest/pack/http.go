@@ -81,6 +81,7 @@ func NewHTTPHandlers(meta *ManifestPackMetadata, packBytes []byte) (*HTTPHandler
 	}, nil
 }
 
+// serveBytes serves in-memory bytes over HTTP with browser-readable headers.
 func serveBytes(rw http.ResponseWriter, req *http.Request, name, contentType string, data []byte) {
 	setBrowserReadableHeaders(rw.Header(), contentType)
 	if req.Method == http.MethodOptions {
@@ -95,6 +96,7 @@ func serveBytes(rw http.ResponseWriter, req *http.Request, name, contentType str
 	http.ServeContent(rw, req, name, time.Time{}, bytes.NewReader(data))
 }
 
+// setBrowserReadableHeaders sets the headers needed for browser access to the served bytes.
 func setBrowserReadableHeaders(h http.Header, contentType string) {
 	h.Set("Accept-Ranges", "bytes")
 	h.Set("Content-Type", contentType)

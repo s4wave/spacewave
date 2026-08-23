@@ -91,9 +91,9 @@ func PackManifestBundle(
 		if idx >= len(blocks) {
 			return nil, nil, nil
 		}
-		block := blocks[idx]
+		blk := blocks[idx]
 		idx++
-		return block.hash, block.data, nil
+		return blk.hash, blk.data, nil
 	})
 	if err != nil {
 		return nil, nil, err
@@ -151,6 +151,7 @@ func NewMetadata(
 	return meta, nil
 }
 
+// packBlock is one block queued for the pack writer.
 type packBlock struct {
 	key  string
 	hash *hash.Hash

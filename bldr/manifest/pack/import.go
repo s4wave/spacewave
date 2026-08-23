@@ -41,6 +41,7 @@ func ImportManifestPack(
 	return err
 }
 
+// verifyPackBytes checks the pack length and SHA-256 against the metadata.
 func verifyPackBytes(meta *ManifestPackMetadata, packBytes []byte) error {
 	if uint64(len(packBytes)) != meta.GetPack().GetSizeBytes() {
 		return errors.Errorf("pack size mismatch: got %d want %d", len(packBytes), meta.GetPack().GetSizeBytes())
@@ -52,6 +53,7 @@ func verifyPackBytes(meta *ManifestPackMetadata, packBytes []byte) error {
 	return nil
 }
 
+// importPackBlocks imports every block from the pack bytes into the world state.
 func importPackBlocks(ctx context.Context, ws world.WorldState, packBytes []byte) error {
 	rdr, err := kvfile.BuildReader(bytes.NewReader(packBytes), uint64(len(packBytes)))
 	if err != nil {
@@ -78,6 +80,7 @@ func importPackBlocks(ctx context.Context, ws world.WorldState, packBytes []byte
 	})
 }
 
+// applyManifestBundle reads the manifest bundle referenced by the metadata and applies it to the world state.
 func applyManifestBundle(
 	ctx context.Context,
 	ws world.WorldState,
@@ -135,6 +138,7 @@ func applyManifestBundle(
 	return nil
 }
 
+// readManifestBundle reads and validates a manifest bundle at the ref.
 func readManifestBundle(
 	ctx context.Context,
 	ws world.WorldState,
@@ -152,6 +156,7 @@ func readManifestBundle(
 	return bundle, err
 }
 
+// parsePackBlockRef parses a pack index entry key into a block ref.
 func parsePackBlockRef(entry *kvfile.IndexEntry) (*block.BlockRef, error) {
 	h := &hash.Hash{}
 	if err := h.ParseFromB58(string(entry.GetKey())); err != nil {

@@ -40,6 +40,7 @@ func VerifyImportedManifests(
 	return nil
 }
 
+// verifyImportedManifestRoot verifies that an imported manifest root collects the expected manifests without errors.
 func verifyImportedManifestRoot(
 	ctx context.Context,
 	ws world.WorldState,

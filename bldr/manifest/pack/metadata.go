@@ -101,6 +101,7 @@ func ValidateCleanObjectRef(name string, ref *bucket.ObjectRef) error {
 	return nil
 }
 
+// validatePackEntry validates one entry of a pack file.
 func validatePackEntry(entry *packfile.PackfileEntry) error {
 	if entry == nil {
 		return errors.New("is nil")
