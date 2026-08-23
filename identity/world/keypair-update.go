@@ -4,10 +4,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
-	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/identity"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
@@ -38,40 +36,21 @@ func StoreKeypair(
 		return 0, false, err
 	}
 
-	pidString := pid.String()
-	key := NewKeypairKey(pidString)
-	seqno, err := w.GetSeqno(ctx)
-	if err != nil {
-		return 0, false, err
-	}
-	obj, objFound, err := w.GetObject(ctx, key)
-	if err != nil {
-		return 0, false, err
-	}
-	if objFound && !overwrite {
-		return seqno, false, nil
-	}
-	setKeypair := func(bcs *block.Cursor) error {
-		bcs.SetBlock(kp, true)
-		bcs.ClearAllRefs()
-		return nil
-	}
-	var kpRef *bucket.ObjectRef
-	if objFound {
-		var changed bool
-		kpRef, changed, err = world.AccessObjectState(ctx, obj, false, setKeypair)
-		if err != nil || !changed {
-			return 0, false, err
-		}
-	} else {
-		kpRef, err = world.AccessObject(ctx, w.AccessWorldState, nil, setKeypair)
+	key := NewKeypairKey(pid.String())
+	if !overwrite {
+		existing, err := LookupKeypairBody(ctx, w, key)
 		if err != nil {
 			return 0, false, err
 		}
+		if existing != nil {
+			seqno, err := w.GetSeqno(ctx)
+			return seqno, false, err
+		}
 	}
 
-	op := NewKeypairUpdateOp(kpRef)
-	return w.ApplyWorldOp(ctx, op, sender)
+	return storeBlockUpdate(ctx, w, sender, key, kp, func(ref *bucket.ObjectRef) world.Operation {
+		return NewKeypairUpdateOp(ref)
+	})
 }
 
 // LookupOrStoreKeypair looks up the keypair with peer ID or stores a new keypair.
@@ -176,47 +155,27 @@ func (o *KeypairUpdateOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	kpRef := o.GetKeypairRef()
 
-	// Resolve and validate the referenced keypair.
-	var kp *identity.Keypair
-	kp, err = FollowKeypair(ctx, worldHandle.AccessWorldState, kpRef)
-	if err == nil && kp.GetPeerId() == "" {
-		err = errors.New("keypair cannot be empty")
-	}
-	if err != nil {
-		return false, err
-	}
-	if err := kp.Validate(); err != nil {
-		return false, err
-	}
-
-	pid, err := kp.ParsePeerID()
-	if err != nil {
-		return false, err
-	}
-
-	pidString := pid.String()
-	objKey := NewKeypairKey(pidString)
-
-	// Update the existing keypair object or create it with its type index.
-	obj, objFound, err := worldHandle.GetObject(ctx, objKey)
-	if err != nil {
-		return false, err
-	}
-	if objFound {
-		_, err = obj.SetRootRef(ctx, kpRef)
-		return false, err
+	resolve := func(ctx context.Context) (string, func() error, error) {
+		kp, err := FollowKeypair(ctx, worldHandle.AccessWorldState, kpRef)
+		if err != nil {
+			return "", nil, err
+		}
+		validate := func() error {
+			if kp.GetPeerId() == "" {
+				return errors.New("keypair cannot be empty")
+			}
+			return kp.Validate()
+		}
+		pid, err := kp.ParsePeerID()
+		if err != nil {
+			return "", nil, err
+		}
+		return NewKeypairKey(pid.String()), validate, nil
 	}
 
-	_, err = worldHandle.CreateObject(ctx, objKey, kpRef)
-	if err != nil {
+	if _, err := applyRefUpdate(ctx, worldHandle, kpRef, KeypairTypeID, resolve); err != nil {
 		return false, err
 	}
-
-	// Index the new object as an identity keypair.
-	if err := world_types.SetObjectType(ctx, worldHandle, objKey, KeypairTypeID); err != nil {
-		return false, err
-	}
-
 	return false, nil
 }
 

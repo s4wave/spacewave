@@ -93,30 +93,7 @@ KeypairLoop:
 		}
 
 		// Build the user-facing reason for the password prompt.
-		var reasonBuf strings.Builder
-		if ekp.GetEntityEmpty() {
-			reasonBuf.WriteString("unlock ")
-			if peerID := ekp.GetKeypair().GetPeerId(); peerID != "" {
-				if len(peerID) > 14 {
-					reasonBuf.WriteString(peerID[len(peerID)-13:])
-				} else {
-					reasonBuf.WriteString(peerID)
-				}
-			} else {
-				reasonBuf.WriteString("keypair")
-			}
-		} else {
-			reasonBuf.WriteString("unlock ")
-			reasonBuf.WriteString(ekp.GetEntityId())
-		}
-
-		if domainID := ekp.GetDomainId(); domainID != "" {
-			reasonBuf.WriteString("@")
-			reasonBuf.WriteString(domainID)
-		}
-
-		// Prepare prompt metadata and surface any prior keypair failure.
-		reasonDetail := reasonBuf.String()
+		reasonDetail := keypairUnlockPrompt(ekp)
 		reason := strings.Join([]string{
 			ControllerID,
 			"peer",
@@ -212,3 +189,32 @@ func (c *Controller) resolveDeriveEntityKeypair(
 
 // _ is a type assertion
 var _ directive.Resolver = (*deriveKeypairResolver)(nil)
+
+// keypairUnlockPrompt builds the user-facing unlock prompt text for an
+// entity keypair: an "unlock <peer-or-entity>" phrase with the domain
+// appended when set.
+func keypairUnlockPrompt(ekp *identity.EntityKeypair) string {
+	var reasonBuf strings.Builder
+	if ekp.GetEntityEmpty() {
+		reasonBuf.WriteString("unlock ")
+		if peerID := ekp.GetKeypair().GetPeerId(); peerID != "" {
+			if len(peerID) > 14 {
+				reasonBuf.WriteString(peerID[len(peerID)-13:])
+			} else {
+				reasonBuf.WriteString(peerID)
+			}
+		} else {
+			reasonBuf.WriteString("keypair")
+		}
+	} else {
+		reasonBuf.WriteString("unlock ")
+		reasonBuf.WriteString(ekp.GetEntityId())
+	}
+
+	if domainID := ekp.GetDomainId(); domainID != "" {
+		reasonBuf.WriteString("@")
+		reasonBuf.WriteString(domainID)
+	}
+
+	return reasonBuf.String()
+}

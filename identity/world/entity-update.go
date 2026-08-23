@@ -3,17 +3,12 @@ package identity_world
 import (
 	"context"
 
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
-	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/identity"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
-
-// NOTE: This code is nearly identical to session-update.go
-// perhaps it could be code-genned or replaced w/ a common struct.
 
 // EntityUpdateOpId is the entity update operation id.
 var EntityUpdateOpId = EntityTypeID + "/update"
@@ -25,7 +20,7 @@ func NewEntityUpdateOp(entityRef *bucket.ObjectRef) *EntityUpdateOp {
 	}
 }
 
-// StoreEntity stores a session to a object using EntityUpdate.
+// StoreEntity stores an entity to an object using EntityUpdate.
 // Returns seqno, sysErr, error.
 func StoreEntity(
 	ctx context.Context,
@@ -35,31 +30,9 @@ func StoreEntity(
 ) (uint64, bool, error) {
 	domainID, entityID := entity.GetDomainId(), entity.GetEntityId()
 	key := NewEntityKey(domainID, entityID)
-	obj, objFound, err := w.GetObject(ctx, key)
-	if err != nil {
-		return 0, false, err
-	}
-	setEntity := func(bcs *block.Cursor) error {
-		bcs.SetBlock(entity, true)
-		bcs.ClearAllRefs()
-		return nil
-	}
-	var sessRef *bucket.ObjectRef
-	if objFound {
-		var changed bool
-		sessRef, changed, err = world.AccessObjectState(ctx, obj, false, setEntity)
-		if err != nil || !changed {
-			return 0, false, err
-		}
-	} else {
-		sessRef, err = world.AccessObject(ctx, w.AccessWorldState, nil, setEntity)
-		if err != nil {
-			return 0, false, err
-		}
-	}
-
-	op := NewEntityUpdateOp(sessRef)
-	return w.ApplyWorldOp(ctx, op, sender)
+	return storeBlockUpdate(ctx, w, sender, key, entity, func(ref *bucket.ObjectRef) world.Operation {
+		return NewEntityUpdateOp(ref)
+	})
 }
 
 // Validate performs cursory validation of the operation.
@@ -85,46 +58,24 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	entityRef := o.GetEntityRef()
 
-	// Resolve and validate the referenced entity.
-	var entity *identity.Entity
-	entity, err = FollowEntity(ctx, worldHandle.AccessWorldState, entityRef)
-	if err != nil || entity == nil {
+	resolve := func(ctx context.Context) (string, func() error, error) {
+		entity, err := FollowEntity(ctx, worldHandle.AccessWorldState, entityRef)
+		if err != nil || entity == nil {
+			return "", nil, err
+		}
+		validate := func() error { return nil }
+		domainID, entityID := entity.GetDomainId(), entity.GetEntityId()
+		return NewEntityKey(domainID, entityID), validate, nil
+	}
+
+	if _, err := applyRefUpdate(ctx, worldHandle, entityRef, EntityTypeID, resolve); err != nil {
 		return false, err
 	}
 
-	domainID, entityID := entity.GetDomainId(), entity.GetEntityId()
-	objKey := NewEntityKey(domainID, entityID)
-
-	// Update the existing entity object or create its initial type index.
-	obj, objFound, err := worldHandle.GetObject(ctx, objKey)
+	// Re-resolve the entity to link its keypairs and domain info.
+	entity, err := FollowEntity(ctx, worldHandle.AccessWorldState, entityRef)
 	if err != nil {
 		return false, err
-	}
-
-	prevLinkedKp := make(map[string]struct{})
-	if objFound {
-		// Build list of previous linked keypairs.
-		kpObjectIDs, err := ListEntityKeypairs(ctx, worldHandle, objKey)
-		if err != nil {
-			return false, err
-		}
-		for _, id := range kpObjectIDs {
-			prevLinkedKp[id] = struct{}{}
-		}
-		_, err = obj.SetRootRef(ctx, entityRef)
-		if err != nil {
-			return false, err
-		}
-	} else {
-		_, err = worldHandle.CreateObject(ctx, objKey, entityRef)
-		if err != nil {
-			return false, err
-		}
-
-		// Index the new object as an identity entity.
-		if err := world_types.SetObjectType(ctx, worldHandle, objKey, EntityTypeID); err != nil {
-			return false, err
-		}
 	}
 
 	// Persist newly referenced keypairs and collect their object keys.
@@ -140,6 +91,9 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 	if err != nil {
 		return false, err
 	}
+
+	domainID, entityID := entity.GetDomainId(), entity.GetEntityId()
+	objKey := NewEntityKey(domainID, entityID)
 
 	// Link the entity to each referenced keypair.
 	for _, kpObjKey := range kpObjectKeys {

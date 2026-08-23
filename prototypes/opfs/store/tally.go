@@ -103,11 +103,17 @@ func (s *Store) recomputeTally() (uint64, error) {
 				continue
 			}
 			fh := f.AsFileHandle()
-			data, err := fh.ReadFile()
+			ops, err := fh.OpenFileOps()
 			if err != nil {
 				continue
 			}
-			total += uint64(len(data))
+			fi, err := ops.Stat()
+			if err != nil {
+				_ = ops.Close()
+				continue
+			}
+			total += uint64(fi.Size())
+			_ = ops.Close()
 		}
 	}
 	return total, nil

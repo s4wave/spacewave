@@ -20,8 +20,7 @@ func (c *Config) Validate() error {
 
 // EqualsConfig checks if the config is equal to another.
 func (c *Config) EqualsConfig(other config.Config) bool {
-	_, ok := other.(*Config)
-	return ok
+	return config.EqualsConfig(c, other)
 }
 
 // _ is a type assertion
