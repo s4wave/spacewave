@@ -108,8 +108,20 @@ Browser E2E tests with full bldr backend (plugins, compilers, etc.):
 ```go
 // In core/resource/testbed/browser-e2e_test.go
 server := browser_testbed.NewLayoutServer(le)
-helper := resource_testbed.NewLayoutServerHelper(server)
-helper.SetupInitialLayoutModel()
+initialModel := &s4wave_layout.LayoutModel{
+	Layout: &s4wave_layout.RowDef{
+		Id:      "root",
+		Children: []*s4wave_layout.RowOrTabSetDef{{
+			Node: &s4wave_layout.RowOrTabSetDef_TabSet{
+				TabSet: &s4wave_layout.TabSetDef{
+					Id:       "tabset-1",
+					Children: []*s4wave_layout.TabDef{{Id: "tab-1", Name: "Tab 1"}},
+				},
+			},
+		}},
+	},
+}
+server.SetLayoutModel(initialModel)
 
 port, _ := server.Start(ctx)
 defer server.Stop(ctx)
