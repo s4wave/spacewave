@@ -23,7 +23,7 @@ func exportBatchZip(ctx context.Context, w io.Writer, baseHandle *unixfs.FSHandl
 			return errors.Wrap(err, "lookup batch path "+relPath)
 		}
 
-		if err := writeHandleToZip(ctx, zw, targetHandle, relPath); err != nil {
+		if err := unixfs.WriteFSHandleToZip(ctx, zw, targetHandle, relPath); err != nil {
 			targetHandle.Release()
 			zw.Close()
 			return err

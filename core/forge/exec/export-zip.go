@@ -5,11 +5,8 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/fs"
-	"path"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
@@ -26,9 +23,6 @@ import (
 
 // ExportZipConfigID is the config ID for the export-zip handler.
 const ExportZipConfigID = "space-exec/export-zip"
-
-// exportZipReadChunkSize is the size of each read chunk when streaming file content.
-const exportZipReadChunkSize = 256 * 1024
 
 // exportZipConfig holds the parsed config for the export-zip handler.
 type exportZipConfig struct {
@@ -133,12 +127,7 @@ func (h *exportZipHandler) buildFSZip(ctx context.Context, w io.Writer, objKey s
 	}
 	defer fsh.Release()
 
-	zw := zip.NewWriter(w)
-	if err := exportZipWalkAndZip(ctx, zw, fsh, ""); err != nil {
-		zw.Close()
-		return err
-	}
-	return zw.Close()
+	return unixfs.WriteZipArchive(ctx, w, fsh, "")
 }
 
 // buildRawZip creates a zip with the object's raw block data as a single entry.
@@ -186,150 +175,6 @@ func (h *exportZipHandler) buildRawZip(ctx context.Context, w io.Writer, objKey 
 		}
 	}
 	return zw.Close()
-}
-
-// exportZipWalkAndZip recursively walks the FSHandle tree and writes zip entries.
-func exportZipWalkAndZip(ctx context.Context, zw *zip.Writer, h *unixfs.FSHandle, prefix string) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-
-	type entry struct {
-		name      string
-		isDir     bool
-		isSymlink bool
-	}
-
-	var entries []entry
-	err := h.ReaddirAll(ctx, 0, func(ent unixfs.FSCursorDirent) error {
-		entries = append(entries, entry{
-			name:      ent.GetName(),
-			isDir:     ent.GetIsDirectory(),
-			isSymlink: ent.GetIsSymlink(),
-		})
-		return nil
-	})
-	if err != nil {
-		return errors.Wrap(err, "readdir")
-	}
-
-	for _, e := range entries {
-		entryPath := path.Join(prefix, e.name)
-		if e.isDir {
-			if err := exportZipDir(ctx, zw, h, e.name, entryPath); err != nil {
-				return err
-			}
-			continue
-		}
-		if e.isSymlink {
-			if err := exportZipSymlink(ctx, zw, h, e.name, entryPath); err != nil {
-				return err
-			}
-			continue
-		}
-		if err := exportZipFile(ctx, zw, h, e.name, entryPath); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// exportZipDir writes a directory entry and recurses into it.
-func exportZipDir(ctx context.Context, zw *zip.Writer, parent *unixfs.FSHandle, name string, entryPath string) error {
-	child, err := parent.Lookup(ctx, name)
-	if err != nil {
-		return errors.Wrap(err, "lookup "+name)
-	}
-	defer child.Release()
-
-	header := &zip.FileHeader{
-		Name:     entryPath + "/",
-		Method:   zip.Store,
-		Modified: time.Time{},
-	}
-	header.SetMode(fs.ModeDir | 0o755)
-	if _, err := zw.CreateHeader(header); err != nil {
-		return errors.Wrap(err, "create dir header "+entryPath)
-	}
-	return exportZipWalkAndZip(ctx, zw, child, entryPath)
-}
-
-// exportZipSymlink writes a symlink entry with the target as content.
-func exportZipSymlink(ctx context.Context, zw *zip.Writer, parent *unixfs.FSHandle, name string, entryPath string) error {
-	target, isAbsolute, err := parent.Readlink(ctx, name)
-	if err != nil {
-		return errors.Wrap(err, "readlink "+name)
-	}
-
-	targetStr := strings.Join(target, "/")
-	if isAbsolute {
-		targetStr = "/" + targetStr
-	}
-
-	header := &zip.FileHeader{
-		Name:     entryPath,
-		Method:   zip.Store,
-		Modified: time.Time{},
-	}
-	header.SetMode(fs.ModeSymlink | 0o777)
-	w, err := zw.CreateHeader(header)
-	if err != nil {
-		return errors.Wrap(err, "create symlink header "+entryPath)
-	}
-	_, err = io.WriteString(w, targetStr)
-	return err
-}
-
-// exportZipFile writes a regular file entry with deflate compression.
-func exportZipFile(ctx context.Context, zw *zip.Writer, parent *unixfs.FSHandle, name string, entryPath string) error {
-	child, err := parent.Lookup(ctx, name)
-	if err != nil {
-		return errors.Wrap(err, "lookup "+name)
-	}
-	defer child.Release()
-
-	info, err := child.GetFileInfo(ctx)
-	if err != nil {
-		return errors.Wrap(err, "getfileinfo "+entryPath)
-	}
-
-	header := &zip.FileHeader{
-		Name:               entryPath,
-		Method:             zip.Deflate,
-		Modified:           info.ModTime(),
-		UncompressedSize64: uint64(info.Size()),
-	}
-	header.SetMode(info.Mode())
-
-	w, err := zw.CreateHeader(header)
-	if err != nil {
-		return errors.Wrap(err, "create file header "+entryPath)
-	}
-
-	buf := make([]byte, exportZipReadChunkSize)
-	var offset int64
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-		n, readErr := child.ReadAt(ctx, offset, buf)
-		if n > 0 {
-			if _, writeErr := w.Write(buf[:n]); writeErr != nil {
-				return errors.Wrap(writeErr, "write "+entryPath)
-			}
-			offset += n
-		}
-		if readErr != nil {
-			if readErr == io.EOF {
-				break
-			}
-			return errors.Wrap(readErr, "read "+entryPath)
-		}
-		if n == 0 {
-			break
-		}
-	}
-	return nil
 }
 
 // sanitizeExportKey replaces unsafe characters in an object key for filenames.
