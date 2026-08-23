@@ -148,6 +148,7 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 	}
 
 	fsResource := resource_unixfs.NewFSHandleObjectResource(
+		r.le,
 		fsh,
 		nil,
 		accessWS,

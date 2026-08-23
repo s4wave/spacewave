@@ -34,6 +34,9 @@ func validateUploadDataFrame(data []byte) error {
 // FSHandleResource implements FSHandleResourceService for a single FSHandle.
 // Each instance wraps exactly one hydra/unixfs.FSHandle with 1:1 mapping.
 type FSHandleResource struct {
+	// le is the logger entry for object-backed handle construction; may be nil
+	// only when no object path is bound.
+	le     *logrus.Entry
 	handle *unixfs.FSHandle
 	mux    srpc.Mux
 	bcast  *broadcast.Broadcast
@@ -58,13 +61,17 @@ type FSHandleResource struct {
 }
 
 // NewFSHandleResource creates a new FSHandleResource.
+//
+// The handle-only form never constructs an object-backed cursor, so no logger
+// entry is needed.
 func NewFSHandleResource(handle *unixfs.FSHandle) *FSHandleResource {
-	return newFSHandleResource(handle, nil, nil, nil, "", 0, nil)
+	return newFSHandleResource(nil, handle, nil, nil, nil, "", 0, nil)
 }
 
 // NewFSHandleObjectResource creates a new FSHandleResource bound to a world
 // object path so batch tree uploads can target the same filesystem subtree.
 func NewFSHandleObjectResource(
+	le *logrus.Entry,
 	handle *unixfs.FSHandle,
 	bcast *broadcast.Broadcast,
 	ws world.WorldState,
@@ -72,10 +79,11 @@ func NewFSHandleObjectResource(
 	fsType unixfs_world.FSType,
 	path []string,
 ) *FSHandleResource {
-	return newFSHandleResource(handle, bcast, nil, ws, objKey, fsType, path)
+	return newFSHandleResource(le, handle, bcast, nil, ws, objKey, fsType, path)
 }
 
 func newFSHandleResource(
+	le *logrus.Entry,
 	handle *unixfs.FSHandle,
 	bcast *broadcast.Broadcast,
 	writeMtx *sync.Mutex,
@@ -91,6 +99,7 @@ func newFSHandleResource(
 		writeMtx = &sync.Mutex{}
 	}
 	r := &FSHandleResource{
+		le:       le,
 		handle:   handle,
 		bcast:    bcast,
 		writeMtx: writeMtx,
@@ -128,6 +137,7 @@ func (r *FSHandleResource) registerChildResource(
 	}
 
 	childResource := newFSHandleResource(
+		r.le,
 		childHandle,
 		r.bcast,
 		r.writeMtx,
@@ -221,12 +231,14 @@ func (r *FSHandleResource) newObjectFSHandle(ctx context.Context) (*unixfs.FSHan
 		return nil, errors.New("object-backed filesystem handle unavailable")
 	}
 
-	le := logrus.NewEntry(logrus.StandardLogger())
 	var fsCursor *unixfs_world.FSCursor
 	if r.ws.GetReadOnly() {
-		fsCursor = unixfs_world.NewFSCursor(le, r.ws, r.objKey, r.fsType, nil, true)
+		fsCursor = unixfs_world.NewFSCursor(r.le, r.ws, r.objKey, r.fsType, nil, true)
 	} else {
-		fsCursor, _ = unixfs_world.NewFSCursorWithWriter(ctx, le, r.ws, r.objKey, r.fsType, "")
+		// note: NewFSCursorWithWriter returns (cursor, writer) and cannot fail;
+		// the cursor retains the writer internally, so the second return value
+		// carries nothing new here.
+		fsCursor, _ = unixfs_world.NewFSCursorWithWriter(ctx, r.le, r.ws, r.objKey, r.fsType, "")
 	}
 	var nextHandle *unixfs.FSHandle
 	var err error

@@ -3252,6 +3252,7 @@ func runWorldResourceDirectUploadTreeLargeUnixFSUpload(ctx context.Context, c *c
 	defer handle.Release()
 
 	rootResource := resource_unixfs.NewFSHandleObjectResource(
+		logrus.NewEntry(logrus.StandardLogger()),
 		handle,
 		nil,
 		ws,
@@ -3392,6 +3393,7 @@ func runWorldResourceLargeUnixFSUploadOnBucket(
 	defer handle.Release()
 
 	rootResource := resource_unixfs.NewFSHandleObjectResource(
+		logrus.NewEntry(logrus.StandardLogger()),
 		handle,
 		nil,
 		ws,

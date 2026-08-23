@@ -234,6 +234,7 @@ func setupFSHandleResourceClient(
 	srpcClient := srpc.NewClientWithMuxedConn(clientMp)
 
 	rootResource := NewFSHandleObjectResource(
+		logrus.NewEntry(log),
 		rootHandle,
 		nil,
 		ws,

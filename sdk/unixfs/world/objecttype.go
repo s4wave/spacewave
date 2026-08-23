@@ -52,6 +52,7 @@ func UnixFSFactory(
 	}
 
 	resource := resource_unixfs.NewFSHandleObjectResource(
+		le,
 		fsh,
 		nil,
 		ws,
