@@ -19,31 +19,15 @@ func (e *evaluator) manifestBuiltin(thread *starlark.Thread, fn *starlark.Builti
 	var config starlark.Value
 	var description string
 
-	// Parse first positional arg as id if present.
-	if len(args) > 1 {
-		return nil, errors.New("manifest() accepts at most 1 positional argument (id)")
-	}
-	if len(args) == 1 {
-		s, ok := args[0].(starlark.String)
-		if !ok {
-			return nil, errExpectedString("manifest", "id")
-		}
-		id = string(s)
+	id, kwargs, err := popPositionalID("manifest", args, kwargs)
+	if err != nil {
+		return nil, err
 	}
 
 	for _, kv := range kwargs {
 		key := string(kv[0].(starlark.String))
 		val := kv[1]
 		switch key {
-		case "id":
-			if id != "" {
-				return nil, errors.New("manifest(): id specified both positionally and as keyword")
-			}
-			s, ok := val.(starlark.String)
-			if !ok {
-				return nil, errExpectedString("manifest", "id")
-			}
-			id = string(s)
 		case "builder":
 			s, ok := val.(starlark.String)
 			if !ok {

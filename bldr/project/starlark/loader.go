@@ -84,6 +84,8 @@ func (e *evaluator) resolveModulePath(thread *starlark.Thread, module string) (s
 	return resolved, nil
 }
 
+// resolveModuleUnder resolves a module path relative to a root directory,
+// erroring when the path escapes the root.
 func resolveModuleUnder(root, module, display string) (string, error) {
 	if module == "" {
 		return "", errors.Errorf("load %q: empty module path", display)
@@ -106,6 +108,8 @@ func resolveModuleUnder(root, module, display string) (string, error) {
 	return resolved, nil
 }
 
+// isPathWithin reports whether path is inside root by lexical comparison.
+// See isExistingPathWithin for the symlink-resolved check.
 func isPathWithin(root, path string) bool {
 	rootAbs, err := filepath.Abs(root)
 	if err != nil {
@@ -118,6 +122,8 @@ func isPathWithin(root, path string) bool {
 	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
 }
 
+// isExistingPathWithin reports whether path is inside root after resolving
+// symlinks on both paths.
 func isExistingPathWithin(root, path string) (bool, error) {
 	rootReal, err := filepath.EvalSymlinks(root)
 	if err != nil {

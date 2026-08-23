@@ -119,6 +119,7 @@ func appendJSONString(buf []byte, s string) []byte {
 	return append(buf, '"')
 }
 
+// hexDigit encodes a 4-bit value as a lowercase hex digit.
 func hexDigit(b byte) byte {
 	if b < 10 {
 		return '0' + b

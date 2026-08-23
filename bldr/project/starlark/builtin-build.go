@@ -18,30 +18,15 @@ func (e *evaluator) buildBuiltin(thread *starlark.Thread, fn *starlark.Builtin, 
 	var platformIDs []string
 	var manifestOverridesRaw starlark.IterableMapping
 
-	if len(args) > 1 {
-		return nil, errors.New("build() accepts at most 1 positional argument (id)")
-	}
-	if len(args) == 1 {
-		s, ok := args[0].(starlark.String)
-		if !ok {
-			return nil, errExpectedString("build", "id")
-		}
-		id = string(s)
+	id, kwargs, err := popPositionalID("build", args, kwargs)
+	if err != nil {
+		return nil, err
 	}
 
 	for _, kv := range kwargs {
 		key := string(kv[0].(starlark.String))
 		val := kv[1]
 		switch key {
-		case "id":
-			if id != "" {
-				return nil, errors.New("build(): id specified both positionally and as keyword")
-			}
-			s, ok := val.(starlark.String)
-			if !ok {
-				return nil, errExpectedString("build", "id")
-			}
-			id = string(s)
 		case "manifests":
 			list, err := toStringList(val)
 			if err != nil {

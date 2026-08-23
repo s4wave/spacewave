@@ -134,17 +134,9 @@ func startConfigBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args star
 // Returns a dict matching WebPkgRefConfig structure.
 // Entrypoints can be a list of strings (converted to [{path: s}, ...]).
 func webPkgBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var id string
-
-	if len(args) > 1 {
-		return nil, errors.New("web_pkg() accepts at most 1 positional argument (id)")
-	}
-	if len(args) == 1 {
-		s, ok := args[0].(starlark.String)
-		if !ok {
-			return nil, errExpectedString("web_pkg", "id")
-		}
-		id = string(s)
+	id, kwargs, err := popPositionalID("web_pkg", args, kwargs)
+	if err != nil {
+		return nil, err
 	}
 
 	var exclude starlark.Bool
@@ -154,15 +146,6 @@ func webPkgBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args starlark.
 		key := string(kv[0].(starlark.String))
 		val := kv[1]
 		switch key {
-		case "id":
-			if id != "" {
-				return nil, errors.New("web_pkg(): id specified both positionally and as keyword")
-			}
-			s, ok := val.(starlark.String)
-			if !ok {
-				return nil, errExpectedString("web_pkg", "id")
-			}
-			id = string(s)
 		case "exclude":
 			b, ok := val.(starlark.Bool)
 			if !ok {
@@ -292,36 +275,14 @@ func jsModuleBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args starlar
 // remoteBuiltin implements the remote() registration built-in.
 // remote(id, engineId, peerId, objectKey, hostConfigSet={}, linkObjectKeys=[])
 func (e *evaluator) remoteBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var id string
-
-	if len(args) > 1 {
-		return nil, errors.New("remote() accepts at most 1 positional argument (id)")
-	}
-	if len(args) == 1 {
-		s, ok := args[0].(starlark.String)
-		if !ok {
-			return nil, errExpectedString("remote", "id")
-		}
-		id = string(s)
+	id, remainingKwargs, err := popPositionalID("remote", args, kwargs)
+	if err != nil {
+		return nil, err
 	}
 
-	// Collect all kwargs into a dict for JSON conversion.
-	fields := starlark.NewDict(len(kwargs))
-	for _, kv := range kwargs {
-		key := string(kv[0].(starlark.String))
-		val := kv[1]
-		if key == "id" {
-			if id != "" {
-				return nil, errors.New("remote(): id specified both positionally and as keyword")
-			}
-			s, ok := val.(starlark.String)
-			if !ok {
-				return nil, errExpectedString("remote", "id")
-			}
-			id = string(s)
-			continue
-		}
-		if err := fields.SetKey(kv[0], val); err != nil {
+	fields := starlark.NewDict(len(remainingKwargs))
+	for _, kv := range remainingKwargs {
+		if err := fields.SetKey(kv[0], kv[1]); err != nil {
 			return nil, err
 		}
 	}
@@ -351,35 +312,14 @@ func (e *evaluator) remoteBuiltin(thread *starlark.Thread, fn *starlark.Builtin,
 // publishBuiltin implements the publish() registration built-in.
 // publish(id, **kwargs)
 func (e *evaluator) publishBuiltin(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	var id string
-
-	if len(args) > 1 {
-		return nil, errors.New("publish() accepts at most 1 positional argument (id)")
-	}
-	if len(args) == 1 {
-		s, ok := args[0].(starlark.String)
-		if !ok {
-			return nil, errExpectedString("publish", "id")
-		}
-		id = string(s)
+	id, remainingKwargs, err := popPositionalID("publish", args, kwargs)
+	if err != nil {
+		return nil, err
 	}
 
-	fields := starlark.NewDict(len(kwargs))
-	for _, kv := range kwargs {
-		key := string(kv[0].(starlark.String))
-		val := kv[1]
-		if key == "id" {
-			if id != "" {
-				return nil, errors.New("publish(): id specified both positionally and as keyword")
-			}
-			s, ok := val.(starlark.String)
-			if !ok {
-				return nil, errExpectedString("publish", "id")
-			}
-			id = string(s)
-			continue
-		}
-		if err := fields.SetKey(kv[0], val); err != nil {
+	fields := starlark.NewDict(len(remainingKwargs))
+	for _, kv := range remainingKwargs {
+		if err := fields.SetKey(kv[0], kv[1]); err != nil {
 			return nil, err
 		}
 	}
