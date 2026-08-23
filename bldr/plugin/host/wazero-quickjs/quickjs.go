@@ -39,7 +39,7 @@ import (
 // ControllerID is the wazero-quickjs host controller ID.
 const ControllerID = "bldr/plugin/host/wazero-quickjs"
 
-// Controller is the plugin host controller tytpe.
+// Controller is the plugin host controller type.
 type Controller = host_controller.Controller
 
 // Version is the version of this controller.
@@ -294,7 +294,6 @@ func (h *WazeroQuickJsHost) ExecutePlugin(
 
 		// construct a filesystem with the plugin dist fs at /dist
 		// this makes /dist read-only which is what we want.
-		// wazeroFs := wazerofs.NewFS(ctx, pluginDist, nil)
 		pluginDistIofs := unixfs_iofs.NewFS(ctx, pluginDist)
 		pluginAssetsIoFs := unixfs_iofs.NewFS(ctx, pluginAssets)
 
