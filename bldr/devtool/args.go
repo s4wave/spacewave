@@ -523,7 +523,6 @@ func (a *DevtoolArgs) Validate() error {
 	if _, err := a.BuildPolicyOverride(); err != nil {
 		return err
 	}
-	// more?
 	return nil
 }
 
@@ -561,7 +560,7 @@ func (a *DevtoolArgs) applyLogLevel() {
 	a.Logger.Logger.SetLevel(lvl)
 }
 
-// InitRepoRoot finds an initializes the repo root.
+// InitRepoRoot finds and initializes the repo root.
 func (a *DevtoolArgs) InitRepoRoot() (
 	repoRoot, stateRoot string,
 	err error,

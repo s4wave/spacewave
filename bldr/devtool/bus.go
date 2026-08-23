@@ -163,8 +163,6 @@ func BuildDevtoolBus(
 		return nil, err
 	}
 
-	// add storage factories
-
 	// attach the default storage controller
 	// this provides separate named volumes with the storage volume controller.
 	storageID := default_storage.StorageID
@@ -268,7 +266,6 @@ func BuildDevtoolBus(
 		nil,
 		false,
 	)
-	// engConf.Verbose = true
 
 	worldCtrl, worldCtrlRef, err := world_block_engine.StartEngineWithConfig(
 		ctx,
@@ -573,7 +570,7 @@ func (d *DevtoolBus) StartProjectControllerWithStartup(
 	)
 	projCtrlConf.FetchManifestRemote = startWithRemote
 	projWatcherConfig := &bldr_project_watcher.Config{
-		ConfigPath:              absConfigPath, //   configPath,
+		ConfigPath:              absConfigPath,
 		DisableWatch:            !d.watch,
 		ProjectControllerConfig: projCtrlConf,
 	}

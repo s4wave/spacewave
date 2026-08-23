@@ -15,6 +15,8 @@ type StartupManifestPreflight struct {
 	PlatformIDs []string
 }
 
+// projectOwnedStartupPlugins returns the plugin ids owned by the project's
+// start configuration.
 func projectOwnedStartupPlugins(projectConfig *bldr_project.ProjectConfig) []string {
 	startPlugins := projectConfig.GetStart().GetPlugins()
 	if len(startPlugins) == 0 {
@@ -65,6 +67,8 @@ func ProjectOwnedStartupManifestPreflights(projectConfig *bldr_project.ProjectCo
 	return preflights
 }
 
+// startupManifestPlatformIDs returns the platform ids a manifest builds
+// for, given the resolved wasm platform id.
 func startupManifestPlatformIDs(pluginID string, manifest *bldr_project.ManifestConfig, wasmPlatformID string) []string {
 	switch manifest.GetBuilder().GetId() {
 	case bldr_plugin_compiler_js.ConfigID:

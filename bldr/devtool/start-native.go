@@ -156,6 +156,8 @@ func (a *DevtoolArgs) ExecuteNativeProject(ctx context.Context) (err error) {
 	return nil
 }
 
+// nativeDesktopQuickJSPluginIDs returns the QuickJS plugin ids needed by a
+// native desktop build.
 func nativeDesktopQuickJSPluginIDs(projectConfig *bldr_project.ProjectConfig) []string {
 	pluginIDs := make([]string, 0)
 	for pluginID, manifest := range projectConfig.GetManifests() {

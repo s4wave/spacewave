@@ -14,12 +14,15 @@ import (
 	"golang.org/x/term"
 )
 
+// devtoolTUIRunner runs the interactive TUI over the devtool status feed.
 type devtoolTUIRunner struct {
 	input   *os.File
 	output  *os.File
 	openURL string
 }
 
+// startDevtoolTUI starts the interactive TUI when the environment supports
+// one, returning a context that is canceled when the TUI exits.
 func (a *DevtoolArgs) startDevtoolTUI(
 	ctx context.Context,
 	producer *devtool_status.BldrDevtoolStatusProducer,
@@ -37,6 +40,7 @@ func (a *DevtoolArgs) startDevtoolTUI(
 	return runner.start(ctx, producer)
 }
 
+// start runs the TUI loop until the context is canceled or the user quits.
 func (r *devtoolTUIRunner) start(
 	ctx context.Context,
 	producer *devtool_status.BldrDevtoolStatusProducer,
@@ -86,6 +90,7 @@ func (r *devtoolTUIRunner) start(
 	}
 }
 
+// render renders the dashboard snapshot at the terminal width.
 func (r *devtoolTUIRunner) render(snapshot *devtool_status.BldrDevtoolStatus) string {
 	width := 100
 	if r.output != nil {
@@ -102,6 +107,7 @@ func tuiColorEnabled() bool {
 	return os.Getenv("NO_COLOR") == ""
 }
 
+// handleKey maps quit and open-browser keys to their actions.
 func (r *devtoolTUIRunner) handleKey(cancel context.CancelFunc) termui.KeyHandler[*devtool_status.BldrDevtoolStatus] {
 	return func(_ *devtool_status.BldrDevtoolStatus, key byte) {
 		switch key {
@@ -115,6 +121,7 @@ func (r *devtoolTUIRunner) handleKey(cancel context.CancelFunc) termui.KeyHandle
 	}
 }
 
+// openDevtoolBrowser opens the URL with the platform browser opener.
 func openDevtoolBrowser(url string) {
 	if url == "" {
 		return

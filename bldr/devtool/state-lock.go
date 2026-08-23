@@ -77,6 +77,8 @@ func (l *stateLock) writePID() error {
 	return nil
 }
 
+// readHolderPID returns the pid recorded by the current lock holder, or
+// an empty string.
 func (l *stateLock) readHolderPID() string {
 	data, err := os.ReadFile(l.pidPath)
 	if err != nil {
@@ -85,6 +87,7 @@ func (l *stateLock) readHolderPID() string {
 	return strings.TrimSpace(string(data))
 }
 
+// release unlocks and closes the lock file.
 func (l *stateLock) release() {
 	if l == nil || l.file == nil {
 		return
@@ -94,6 +97,8 @@ func (l *stateLock) release() {
 	l.file = nil
 }
 
+// closeAfterError closes the lock file without unlocking, leaving the
+// advisory lock to the OS process teardown.
 func (l *stateLock) closeAfterError() {
 	if l == nil || l.file == nil {
 		return
@@ -102,10 +107,8 @@ func (l *stateLock) closeAfterError() {
 	l.file = nil
 }
 
+// logStateLockWait logs the state-lock wait through the plumbed logger.
+// logrus entry methods are nil-safe, so a nil entry drops the message.
 func logStateLockWait(le *logrus.Entry, message string) {
-	if le != nil {
-		le.Warn(message)
-		return
-	}
-	_, _ = os.Stderr.WriteString("warning: " + message + "\n")
+	le.Warn(message)
 }

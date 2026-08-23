@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -98,7 +100,11 @@ func runDevtoolStateLockRole(t *testing.T, role string) {
 	if stateRoot == "" {
 		t.Fatal("state lock test root is required")
 	}
-	lock, err := acquireStateLock(context.Background(), nil, stateRoot)
+	// Plumb a logger writing to stderr so the collision diagnostic still
+	// reaches the parent process's captured stderr.
+	logger := logrus.New()
+	logger.SetOutput(os.Stderr)
+	lock, err := acquireStateLock(context.Background(), logrus.NewEntry(logger), stateRoot)
 	if err != nil {
 		t.Fatal(err)
 	}

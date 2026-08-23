@@ -3,7 +3,7 @@
 package devtool
 
 import (
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -257,8 +257,8 @@ func targetSection(th tuiTheme, snapshot *devtool_status.BldrDevtoolStatus, widt
 	if len(targets) == 0 {
 		return nil
 	}
-	sort.SliceStable(targets, func(i, j int) bool {
-		return targets[i].kind.rank() < targets[j].kind.rank()
+	slices.SortStableFunc(targets, func(a, b tuiTarget) int {
+		return a.kind.rank() - b.kind.rank()
 	})
 
 	lines := []string{sectionTitle(th, "TARGETS · "+strconv.Itoa(len(targets)), width)}

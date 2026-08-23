@@ -15,6 +15,8 @@ import (
 
 const cliSubprocessKillTimeout = 3 * time.Second
 
+// cliSubprocessSupervisor runs the devtool CLI subprocess and owns its
+// lifetime: start, wait, and graceful-then-forced termination.
 type cliSubprocessSupervisor struct {
 	ctx        context.Context
 	le         *logrus.Entry
@@ -27,6 +29,8 @@ type cliSubprocessSupervisor struct {
 	done        chan error
 }
 
+// newCliSubprocessSupervisor constructs a supervisor for the given binary
+// and args.
 func newCliSubprocessSupervisor(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -42,6 +46,7 @@ func newCliSubprocessSupervisor(
 	}
 }
 
+// start launches the CLI subprocess.
 func (s *cliSubprocessSupervisor) start() error {
 	if err := s.ctx.Err(); err != nil {
 		return err
@@ -55,6 +60,8 @@ func (s *cliSubprocessSupervisor) start() error {
 	return s.startCommand(cmd)
 }
 
+// startCommand starts the command and records it as the supervised
+// process.
 func (s *cliSubprocessSupervisor) startCommand(cmd *exec.Cmd) error {
 	if err := cmd.Start(); err != nil {
 		s.closeStderr()
@@ -71,14 +78,19 @@ func (s *cliSubprocessSupervisor) startCommand(cmd *exec.Cmd) error {
 	return nil
 }
 
+// wait returns the channel delivering the subprocess exit error.
 func (s *cliSubprocessSupervisor) wait() <-chan error {
 	return s.done
 }
 
+// terminate stops the subprocess, escalating to kill after the kill
+// timeout.
 func (s *cliSubprocessSupervisor) terminate() error {
 	return s.terminateAfter(s.killTimeout)
 }
 
+// terminateAfter signals the subprocess and escalates to kill once the
+// timeout expires.
 func (s *cliSubprocessSupervisor) terminateAfter(timeout time.Duration) error {
 	if s.cmd == nil || s.cmd.Process == nil {
 		return nil
@@ -97,12 +109,15 @@ func (s *cliSubprocessSupervisor) terminateAfter(timeout time.Duration) error {
 	}
 }
 
+// newStderrWriter returns a logrus-backed writer for the subprocess
+// stderr.
 func (s *cliSubprocessSupervisor) newStderrWriter() io.Writer {
 	stderr := s.le.WriterLevel(logrus.DebugLevel)
 	s.stderr = stderr
 	return stderr
 }
 
+// closeStderr closes the subprocess stderr writer.
 func (s *cliSubprocessSupervisor) closeStderr() {
 	if s.stderr != nil {
 		_ = s.stderr.Close()
