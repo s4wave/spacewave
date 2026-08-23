@@ -59,6 +59,7 @@ type AssetOptions struct {
 	Refresh    bool
 }
 
+// OptionsFromEnv reads the V86_WAZERO_* and V86_DIR/V86FS_DIR environment
 func OptionsFromEnv() AssetOptions {
 	refresh := strings.EqualFold(strings.TrimSpace(os.Getenv("V86_WAZERO_REFRESH")), "true")
 	return AssetOptions{
@@ -73,6 +74,7 @@ func OptionsFromEnv() AssetOptions {
 	}
 }
 
+// ResolveAssets locates the v86 image from the configured directories or
 func ResolveAssets(ctx context.Context, opts AssetOptions) (*AssetSet, error) {
 	opts = opts.withDefaults()
 	if opts.AssetDir != "" {
@@ -93,6 +95,7 @@ func ResolveAssets(ctx context.Context, opts AssetOptions) (*AssetSet, error) {
 	return hydrateAssetsFromCdn(ctx, opts)
 }
 
+// withDefaults fills unset options with the repo-standard values.
 func (o AssetOptions) withDefaults() AssetOptions {
 	if o.Le == nil {
 		o.Le = logrus.NewEntry(logrus.StandardLogger())
@@ -112,6 +115,7 @@ func (o AssetOptions) withDefaults() AssetOptions {
 	return o
 }
 
+// repoRootOrCwd walks up to the repository root (the directory holding both
 func repoRootOrCwd() string {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -130,6 +134,7 @@ func repoRootOrCwd() string {
 	}
 }
 
+// assetSetFromDir builds an AssetSet from a directory when it holds the
 func assetSetFromDir(dir, imageKey string) (*AssetSet, bool) {
 	assets := &AssetSet{
 		Dir:           dir,
@@ -152,6 +157,7 @@ func assetSetFromDir(dir, imageKey string) (*AssetSet, bool) {
 	return nil, false
 }
 
+// assetSetFromV86Dirs builds an AssetSet pointing at the upstream v86 and
 func assetSetFromV86Dirs(v86Dir, v86fsDir, imageKey string) (*AssetSet, bool) {
 	wasm := filepath.Join(v86Dir, "build", "v86.wasm")
 	if _, err := os.Stat(wasm); err != nil {
@@ -174,6 +180,7 @@ func assetSetFromV86Dirs(v86Dir, v86fsDir, imageKey string) (*AssetSet, bool) {
 	return nil, false
 }
 
+// filesExist reports whether every named file exists in dir.
 func filesExist(paths ...string) bool {
 	for _, path := range paths {
 		info, err := os.Stat(path)
@@ -184,6 +191,7 @@ func filesExist(paths ...string) bool {
 	return true
 }
 
+// hydrateAssetsFromCdn downloads the v86 image objects from the CDN into
 func hydrateAssetsFromCdn(ctx context.Context, opts AssetOptions) (*AssetSet, error) {
 	if err := os.MkdirAll(opts.CacheDir, 0o755); err != nil {
 		return nil, errors.Wrap(err, "create v86 wazero cache dir")
@@ -227,6 +235,7 @@ func hydrateAssetsFromCdn(ctx context.Context, opts AssetOptions) (*AssetSet, er
 	return assets, nil
 }
 
+// mountCdnWorld mounts the v86 image's shared object world for edge lookup.
 func mountCdnWorld(ctx context.Context, opts AssetOptions) (world_state.WorldState, func(), error) {
 	store, err := cdn_bstore.NewCdnBlockStore(cdn_bstore.Options{
 		CdnBaseURL: opts.CdnBaseURL,
@@ -256,6 +265,7 @@ func mountCdnWorld(ctx context.Context, opts AssetOptions) (world_state.WorldSta
 	}, nil
 }
 
+// resolveV86ImageKey resolves the well-known image key to its canonical
 func resolveV86ImageKey(ctx context.Context, ws world_state.WorldState, preferred string) (string, error) {
 	if preferred != "" {
 		if _, found, err := ws.GetObject(ctx, preferred); err != nil {
@@ -275,12 +285,14 @@ func resolveV86ImageKey(ctx context.Context, ws world_state.WorldState, preferre
 	return keys[len(keys)-1], nil
 }
 
+// assetSpec names one guest image file and the graph predicate linking it.
 type assetSpec struct {
 	Pred     string
 	FileName string
 	OutName  string
 }
 
+// writeCdnAsset resolves one image-file edge and writes the object bytes to
 func writeCdnAsset(ctx context.Context, le *logrus.Entry, ws world_state.WorldState, imageKey string, spec assetSpec, dir string) error {
 	assetKey, err := lookupEdge(ctx, ws, imageKey, spec.Pred)
 	if err != nil {
@@ -296,6 +308,7 @@ func writeCdnAsset(ctx context.Context, le *logrus.Entry, ws world_state.WorldSt
 	return os.WriteFile(filepath.Join(dir, spec.OutName), data, 0o644)
 }
 
+// lookupEdge returns the object key at the far end of a single quad edge.
 func lookupEdge(ctx context.Context, ws world_state.WorldState, subject, pred string) (string, error) {
 	quads, err := ws.LookupGraphQuads(ctx, world_state.NewGraphQuadWithKeys(subject, pred, "", ""), 1)
 	if err != nil {
@@ -307,6 +320,7 @@ func lookupEdge(ctx context.Context, ws world_state.WorldState, subject, pred st
 	return world_state.GraphValueToKey(quads[0].GetObj())
 }
 
+// readUnixFSAsset extracts a single file from a unixfs object by name.
 func readUnixFSAsset(ctx context.Context, le *logrus.Entry, ws world_state.WorldState, objectKey, fileName string) ([]byte, error) {
 	fsh, err := openFSHandleForObject(ctx, le, ws, objectKey)
 	if err != nil {
@@ -328,6 +342,7 @@ func readUnixFSAsset(ctx context.Context, le *logrus.Entry, ws world_state.World
 	return billy_util.ReadFile(bfs, entries[0].Name())
 }
 
+// openFSHandleForObject opens the unixfs handle rooted at an object key.
 func openFSHandleForObject(ctx context.Context, le *logrus.Entry, ws world_state.WorldState, objectKey string) (*unixfs.FSHandle, error) {
 	fsType, _, err := unixfs_world.LookupFsType(ctx, ws, objectKey)
 	if err != nil {

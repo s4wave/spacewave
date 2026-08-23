@@ -31,11 +31,13 @@ const (
 	initrdAddress                = 64 << 20
 )
 
+// optionROM is one option-rom image exposed through fw_cfg.
 type optionROM struct {
 	name string
 	data []byte
 }
 
+// loadLinuxKernel validates a bzImage and installs it with its initrd and
 func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd []byte, cmdline string) error {
 	if len(kernel) < linuxBootHdrCmdlineSize+4 {
 		return errors.Errorf("kernel image too small: %d bytes", len(kernel))
@@ -118,6 +120,7 @@ func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd
 	return nil
 }
 
+// makeLinuxBootROM builds the 16-bit boot stub that jumps into the loaded
 func makeLinuxBootROM(realModeSegment, heapEnd uint16) []byte {
 	const size = 0x200
 	data := make([]byte, size)

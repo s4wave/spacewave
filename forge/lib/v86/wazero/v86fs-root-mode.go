@@ -44,6 +44,7 @@ func ParseRootMode(value string) (RootMode, error) {
 	}
 }
 
+// normalizeRootMode applies the empty-mode default and validates the mode
 func normalizeRootMode(mode RootMode) (RootMode, error) {
 	if mode.Mode == "" {
 		mode.Mode = rootModeRAM

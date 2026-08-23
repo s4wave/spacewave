@@ -10,6 +10,7 @@ const (
 	pciConfigData    = 0xcfc
 )
 
+// pciDevice implements the PCI configuration address/data mechanism: the
 type pciDevice struct {
 	host      *HostRuntime
 	addr      uint32
@@ -20,6 +21,7 @@ type pciDevice struct {
 	barProbes map[uint16]map[int]bool
 }
 
+// registerPCI wires the 0xcf8/0xcfc config ports and seeds the host bridge
 func (h *HostRuntime) registerPCI() {
 	pci := &pciDevice{
 		host: h,
@@ -89,6 +91,7 @@ func (h *HostRuntime) registerPCI() {
 	}
 }
 
+// query resolves the latched config address into the response bytes,
 func (p *pciDevice) query() {
 	p.response = [4]byte{0xff, 0xff, 0xff, 0xff}
 	if p.addr&0x80000000 == 0 {
@@ -116,6 +119,7 @@ func (p *pciDevice) query() {
 	}
 }
 
+// write stores config-space bytes, detecting BAR sizing probes and moving
 func (p *pciDevice) write(offset, value uint32, width int) {
 	if p.addr&0x80000000 == 0 {
 		return
@@ -157,6 +161,7 @@ func (p *pciDevice) write(offset, value uint32, width int) {
 	p.query()
 }
 
+// setBARSize records a device BAR's size and IO/memory kind for sizing
 func (p *pciDevice) setBARSize(bdf uint16, bar int, size uint32, isIO bool) {
 	if _, ok := p.barSizes[bdf]; !ok {
 		p.barSizes[bdf] = make(map[int]uint32)
@@ -168,6 +173,7 @@ func (p *pciDevice) setBARSize(bdf uint16, bar int, size uint32, isIO bool) {
 	p.barIO[bdf][bar] = isIO
 }
 
+// pciBARIndex returns the BAR index of a config-space offset, or -1 when
 func pciBARIndex(addr int) int {
 	if addr < 0x10 || addr >= 0x28 || addr&3 != 0 {
 		return -1
@@ -175,6 +181,7 @@ func pciBARIndex(addr int) int {
 	return (addr - 0x10) / 4
 }
 
+// newPCIHostBridgeSpace builds the config space of the host bridge at bus 0.
 func newPCIHostBridgeSpace() []byte {
 	space := make([]byte, 256)
 	copy(space, []byte{
@@ -187,6 +194,7 @@ func newPCIHostBridgeSpace() []byte {
 	return space
 }
 
+// newPCIISABridgeSpace builds the config space of the ISA bridge device.
 func newPCIISABridgeSpace() []byte {
 	space := make([]byte, 256)
 	copy(space, []byte{

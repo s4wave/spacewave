@@ -2,6 +2,7 @@ package v86_wazero
 
 import "context"
 
+// ps2Device models the i8042 keyboard/mouse controller: its command and data
 type ps2Device struct {
 	host                 *HostRuntime
 	commandRegister      uint8
@@ -13,11 +14,13 @@ type ps2Device struct {
 	lastData             uint8
 }
 
+// ps2QueuedByte is one pending controller output byte and its device kind.
 type ps2QueuedByte struct {
 	value uint8
 	aux   bool
 }
 
+// registerPS2 wires the controller's data (0x60) and status/command (0x64)
 func (h *HostRuntime) registerPS2() {
 	ps2 := &ps2Device{host: h, commandRegister: 1 | 4}
 	h.RegisterIORead(0x60, 8, func(ctx context.Context, _ uint16) uint32 {
@@ -34,6 +37,7 @@ func (h *HostRuntime) registerPS2() {
 	})
 }
 
+// readData pops the oldest queued byte and re-raises the interrupt line for
 func (p *ps2Device) readData(ctx context.Context) uint8 {
 	if len(p.queue) == 0 {
 		return p.lastData
@@ -51,6 +55,7 @@ func (p *ps2Device) readData(ctx context.Context) uint8 {
 	return entry.value
 }
 
+// readStatus renders the status register: output-buffer full plus the aux
 func (p *ps2Device) readStatus() uint8 {
 	status := uint8(0x10)
 	if len(p.queue) != 0 {
@@ -62,6 +67,7 @@ func (p *ps2Device) readStatus() uint8 {
 	return status
 }
 
+// writeData delivers a byte to the selected device (keyboard or aux mouse).
 func (p *ps2Device) writeData(ctx context.Context, value uint8) {
 	switch {
 	case p.readCommandRegister:
@@ -93,6 +99,7 @@ func (p *ps2Device) writeData(ctx context.Context, value uint8) {
 	}
 }
 
+// writeCommand handles a controller command, possibly consuming the next
 func (p *ps2Device) writeCommand(ctx context.Context, value uint8) {
 	switch value {
 	case 0x20:
@@ -129,6 +136,7 @@ func (p *ps2Device) writeCommand(ctx context.Context, value uint8) {
 	}
 }
 
+// enqueueKeyboard queues a keyboard byte and raises the IRQ1 line.
 func (p *ps2Device) enqueueKeyboard(ctx context.Context, values ...uint8) {
 	for _, value := range values {
 		p.queue = append(p.queue, ps2QueuedByte{value: value})
@@ -136,6 +144,7 @@ func (p *ps2Device) enqueueKeyboard(ctx context.Context, values ...uint8) {
 	p.raiseIRQ(ctx)
 }
 
+// enqueueAux queues an auxiliary (mouse) byte and raises the IRQ12 line.
 func (p *ps2Device) enqueueAux(ctx context.Context, values ...uint8) {
 	for _, value := range values {
 		p.queue = append(p.queue, ps2QueuedByte{value: value, aux: true})
@@ -143,6 +152,7 @@ func (p *ps2Device) enqueueAux(ctx context.Context, values ...uint8) {
 	p.raiseIRQ(ctx)
 }
 
+// raiseIRQ asserts whichever interrupt line matches the next queued byte.
 func (p *ps2Device) raiseIRQ(ctx context.Context) {
 	if len(p.queue) == 0 {
 		return

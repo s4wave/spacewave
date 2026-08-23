@@ -7,6 +7,7 @@ import (
 	"sync"
 )
 
+// tcpConn bridges one guest TCP flow to a host TCP socket: it terminates
 type tcpConn struct {
 	stack *Stack
 	key   string
@@ -48,6 +49,7 @@ type tcpConn struct {
 	closed bool
 }
 
+// newTCPConn builds the connection in SYN-received state from the SYN
 func newTCPConn(stack *Stack, key string, host net.Conn, packet *ethPacket) *tcpConn {
 	return &tcpConn{
 		stack: stack,
@@ -63,6 +65,7 @@ func newTCPConn(stack *Stack, key string, host net.Conn, packet *ethPacket) *tcp
 	}
 }
 
+// accept completes the handshake with a SYN-ACK and enters established
 func (c *tcpConn) accept(packet *ethPacket) {
 	c.mtx.Lock()
 	c.seq = 1338
@@ -82,10 +85,12 @@ func (c *tcpConn) accept(packet *ethPacket) {
 	c.mtx.Unlock()
 }
 
+// start launches the host-to-guest read loop on its own goroutine; the
 func (c *tcpConn) start() {
 	go c.readLoop()
 }
 
+// process services one inbound segment: ACK accounting, FIN handling, and
 func (c *tcpConn) process(packet *ethPacket) {
 	tcp := packet.ipv4.tcp
 	var data []byte
@@ -150,6 +155,7 @@ func (c *tcpConn) process(packet *ethPacket) {
 	}
 }
 
+// writeHost queues host data for delivery to the guest under the lock.
 func (c *tcpConn) writeHost(dat []byte) {
 	_, err := c.host.Write(dat)
 	if err != nil {
@@ -157,6 +163,7 @@ func (c *tcpConn) writeHost(dat []byte) {
 	}
 }
 
+// writeFromHost segments queued host data into guest-inbound packets.
 func (c *tcpConn) writeFromHost(dat []byte) {
 	c.mtx.Lock()
 	if !c.inActiveClose && c.state != tcpStateClosed {
@@ -171,6 +178,7 @@ func (c *tcpConn) writeFromHost(dat []byte) {
 	c.mtx.Unlock()
 }
 
+// closeFromHost begins an active close: send or defer FIN per pending data.
 func (c *tcpConn) closeFromHost() {
 	c.mtx.Lock()
 	if !c.inActiveClose {
@@ -202,6 +210,7 @@ func (c *tcpConn) closeFromHost() {
 	c.mtx.Unlock()
 }
 
+// closeHost closes the host socket exactly once.
 func (c *tcpConn) closeHost() error {
 	c.mtx.Lock()
 	if c.closed {
@@ -213,6 +222,7 @@ func (c *tcpConn) closeHost() error {
 	return c.host.Close()
 }
 
+// readLoop pumps host bytes toward the guest until the host socket ends.
 func (c *tcpConn) readLoop() {
 	buf := make([]byte, defaultMTU-ipv4HeaderSize-tcpHeaderSize)
 	for {
@@ -227,6 +237,7 @@ func (c *tcpConn) readLoop() {
 	}
 }
 
+// consumeAckLocked advances past acknowledged send-buffer bytes and
 func (c *tcpConn) consumeAckLocked(tcp *tcpPacket) {
 	if !c.haveLastAck {
 		c.lastAck = tcp.ack
@@ -259,6 +270,7 @@ func (c *tcpConn) consumeAckLocked(tcp *tcpPacket) {
 	}
 }
 
+// processFINLocked applies a guest FIN and reports whether the connection
 func (c *tcpConn) processFINLocked(tcp *tcpPacket) bool {
 	c.ack++
 	reply := c.packetReplyLocked(tcp, tcpFlagACK)
@@ -289,6 +301,7 @@ func (c *tcpConn) processFINLocked(tcp *tcpPacket) bool {
 	return true
 }
 
+// pumpLocked sends buffered host data while the guest window allows.
 func (c *tcpConn) pumpLocked() {
 	if c.sendBuffer.Len() == 0 || c.pending {
 		return
@@ -304,6 +317,7 @@ func (c *tcpConn) pumpLocked() {
 	c.pending = true
 }
 
+// ipv4ReplyLocked builds an empty reply segment with current sequence
 func (c *tcpConn) ipv4ReplyLocked(flags byte) *tcpPacket {
 	return &tcpPacket{
 		sport:   c.sport,
@@ -315,6 +329,7 @@ func (c *tcpConn) ipv4ReplyLocked(flags byte) *tcpPacket {
 	}
 }
 
+// packetReplyLocked builds a reply echoing one received segment numbers.
 func (c *tcpConn) packetReplyLocked(tcp *tcpPacket, flags byte) *tcpPacket {
 	return &tcpPacket{
 		sport:   tcp.dport,
@@ -326,6 +341,7 @@ func (c *tcpConn) packetReplyLocked(tcp *tcpPacket, flags byte) *tcpPacket {
 	}
 }
 
+// shutdownHostWriteLocked half-closes the host side after guest FIN.
 func (c *tcpConn) shutdownHostWriteLocked() {
 	type closeWriter interface {
 		CloseWrite() error
@@ -338,6 +354,7 @@ func (c *tcpConn) shutdownHostWriteLocked() {
 	}
 }
 
+// release unregisters the flow and optionally closes the host socket.
 func (c *tcpConn) release(closeHost bool) {
 	c.stack.releaseTCP(c.key, c)
 	if closeHost {

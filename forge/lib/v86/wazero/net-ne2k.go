@@ -58,6 +58,7 @@ const (
 	enrxcrPRO = 0x10
 )
 
+// ne2kDevice models an NE2000-compatible Ethernet adapter: the 8390
 type ne2kDevice struct {
 	host *HostRuntime
 	id   int
@@ -90,6 +91,7 @@ type ne2kDevice struct {
 	inbound [][]byte
 }
 
+// newNE2KDevice builds a device at its per-id IO base with a reset state.
 func newNE2KDevice(host *HostRuntime, id int, mac [6]byte) *ne2kDevice {
 	d := &ne2kDevice{
 		host:   host,
@@ -104,12 +106,14 @@ func newNE2KDevice(host *HostRuntime, id int, mac [6]byte) *ne2kDevice {
 	return d
 }
 
+// registerNE2K wires the device's PCI BAR and IO ports on the host runtime.
 func (h *HostRuntime) registerNE2K(ctx context.Context, id int, mac [6]byte) *ne2kDevice {
 	dev := newNE2KDevice(h, id, mac)
 	_ = dev.register(ctx)
 	return dev
 }
 
+// register maps the device into PCI config space and wires byte-wide port
 func (d *ne2kDevice) register(ctx context.Context) error {
 	if d.host == nil || d.host.pci == nil {
 		return nil
@@ -232,6 +236,7 @@ func (d *ne2kDevice) ReceiveFrame(ctx context.Context, frame []byte) {
 	d.interrupt(ctx, enisrRX)
 }
 
+// readPort services one register read, dispatching by register page.
 func (d *ne2kDevice) readPort(ctx context.Context, offset uint16) byte {
 	if offset == ne2kDataPort {
 		return d.readData(ctx)
@@ -255,6 +260,7 @@ func (d *ne2kDevice) readPort(ctx context.Context, offset uint16) byte {
 	}
 }
 
+// writePort services one register write, dispatching by register page.
 func (d *ne2kDevice) writePort(ctx context.Context, offset uint16, value byte) {
 	if offset == ne2kDataPort {
 		d.writeData(ctx, value)
@@ -275,6 +281,7 @@ func (d *ne2kDevice) writePort(ctx context.Context, offset uint16, value byte) {
 	}
 }
 
+// writeCommand handles the shared command-register write: remote-DMA
 func (d *ne2kDevice) writeCommand(ctx context.Context, value byte) {
 	d.cr = value
 	if value&ne2kCRStop != 0 {
@@ -290,6 +297,7 @@ func (d *ne2kDevice) writeCommand(ctx context.Context, value byte) {
 	d.cr &^= ne2kCRTXP
 }
 
+// readPage0 reads a page-0 register (DMA and receive status registers).
 func (d *ne2kDevice) readPage0(offset uint16) byte {
 	switch offset {
 	case en0Startpg:
@@ -317,6 +325,7 @@ func (d *ne2kDevice) readPage0(offset uint16) byte {
 	}
 }
 
+// writePage0 writes a page-0 register (DMA pointers and transmit control).
 func (d *ne2kDevice) writePage0(ctx context.Context, offset uint16, value byte) {
 	switch offset {
 	case en0Startpg:
@@ -357,6 +366,7 @@ func (d *ne2kDevice) writePage0(ctx context.Context, offset uint16, value byte) 
 	}
 }
 
+// readPage1 reads a page-1 register (current receive page and MAC).
 func (d *ne2kDevice) readPage1(offset uint16) byte {
 	switch {
 	case offset >= en0Startpg && offset < en0Startpg+6:
@@ -370,6 +380,7 @@ func (d *ne2kDevice) readPage1(offset uint16) byte {
 	}
 }
 
+// writePage1 writes a page-1 register (current receive page and MAC).
 func (d *ne2kDevice) writePage1(_ context.Context, offset uint16, value byte) {
 	switch {
 	case offset >= en0Startpg && offset < en0Startpg+6:
@@ -381,6 +392,7 @@ func (d *ne2kDevice) writePage1(_ context.Context, offset uint16, value byte) {
 	}
 }
 
+// readPage2 reads a page-2 mirror of the ring configuration registers.
 func (d *ne2kDevice) readPage2(offset uint16) byte {
 	switch offset {
 	case en0Startpg:
@@ -392,6 +404,7 @@ func (d *ne2kDevice) readPage2(offset uint16) byte {
 	}
 }
 
+// readData consumes one byte through the remote-DMA read pointer.
 func (d *ne2kDevice) readData(ctx context.Context) byte {
 	var value byte
 	if int(d.rsar) < len(d.memory) {
@@ -401,6 +414,7 @@ func (d *ne2kDevice) readData(ctx context.Context) byte {
 	return value
 }
 
+// writeData stores one byte through the remote-DMA write pointer.
 func (d *ne2kDevice) writeData(ctx context.Context, value byte) {
 	if int(d.rsar) < len(d.memory) {
 		d.memory[d.rsar] = value
@@ -408,6 +422,7 @@ func (d *ne2kDevice) writeData(ctx context.Context, value byte) {
 	d.advanceDMA(ctx)
 }
 
+// advanceDMA walks the DMA address around the receive ring and raises the
 func (d *ne2kDevice) advanceDMA(ctx context.Context) {
 	d.rsar++
 	if d.rsar >= uint16(d.pstop)<<8 {
@@ -421,6 +436,7 @@ func (d *ne2kDevice) advanceDMA(ctx context.Context) {
 	}
 }
 
+// transmit copies the transmit-buffer frame and hands it to the outbound
 func (d *ne2kDevice) transmit(ctx context.Context) {
 	start := uint16(d.tpsr) << 8
 	end := min(uint32(start)+uint32(d.tcnt), uint32(len(d.memory)))
@@ -431,6 +447,7 @@ func (d *ne2kDevice) transmit(ctx context.Context) {
 	d.interrupt(ctx, enisrTX)
 }
 
+// acceptsFrame applies the receive filter: promiscuous, broadcast, and
 func (d *ne2kDevice) acceptsFrame(frame []byte) bool {
 	if d.rxcr&enrxcrPRO != 0 {
 		return true
@@ -449,6 +466,7 @@ func (d *ne2kDevice) acceptsFrame(frame []byte) bool {
 	return true
 }
 
+// rxAvailable reports whether needed ring pages are free between BOUNDARY
 func (d *ne2kDevice) rxAvailable(needed byte) bool {
 	if d.boundary == 0 {
 		return true
@@ -465,6 +483,7 @@ func (d *ne2kDevice) rxAvailable(needed byte) bool {
 	return available >= needed
 }
 
+// writeRing copies bytes into ring memory, wrapping pages.
 func (d *ne2kDevice) writeRing(offset uint16, data []byte) {
 	for _, value := range data {
 		d.writeRingByte(offset, value)
@@ -472,6 +491,7 @@ func (d *ne2kDevice) writeRing(offset uint16, data []byte) {
 	}
 }
 
+// writeRingZeros zeroes count ring bytes starting at offset.
 func (d *ne2kDevice) writeRingZeros(offset uint16, count int) {
 	for range count {
 		d.writeRingByte(offset, 0)
@@ -479,6 +499,7 @@ func (d *ne2kDevice) writeRingZeros(offset uint16, count int) {
 	}
 }
 
+// writeRingByte stores one byte into ring memory with page wrap-around.
 func (d *ne2kDevice) writeRingByte(offset uint16, value byte) {
 	start := uint16(d.pstart) << 8
 	stop := uint16(d.pstop) << 8
@@ -490,11 +511,13 @@ func (d *ne2kDevice) writeRingByte(offset uint16, value byte) {
 	}
 }
 
+// interrupt marks ISR bits pending for the given event mask.
 func (d *ne2kDevice) interrupt(ctx context.Context, mask byte) {
 	d.isr |= mask
 	d.updateIRQ(ctx)
 }
 
+// updateIRQ reevaluates the interrupt line against ISR & IMR.
 func (d *ne2kDevice) updateIRQ(ctx context.Context) {
 	asserted := d.imr&d.isr != 0
 	d.irqAsserted = asserted
@@ -508,6 +531,7 @@ func (d *ne2kDevice) updateIRQ(ctx context.Context) {
 	_ = d.host.lowerIRQ(ctx, d.assignedIRQ())
 }
 
+// assignedIRQ returns the ISA interrupt line the adapter signals.
 func (d *ne2kDevice) assignedIRQ() uint32 {
 	if d.host != nil && d.host.pci != nil {
 		space := d.host.pci.spaces[d.bdf]
@@ -520,12 +544,14 @@ func (d *ne2kDevice) assignedIRQ() uint32 {
 	return ne2kIRQ
 }
 
+// reset performs a software reset and latches the reset ISR bit.
 func (d *ne2kDevice) reset(ctx context.Context) {
 	d.resetState()
 	d.isr = enisrReset
 	d.updateIRQ(ctx)
 }
 
+// resetState restores power-on register defaults and clears ring memory.
 func (d *ne2kDevice) resetState() {
 	d.isr = 0
 	d.imr = 0
@@ -547,6 +573,7 @@ func (d *ne2kDevice) resetState() {
 	d.writePROM()
 }
 
+// writePROM seeds the PROM area with the MAC in word-duplicated form.
 func (d *ne2kDevice) writePROM() {
 	for i, value := range d.mac {
 		d.memory[i<<1] = value
@@ -558,14 +585,17 @@ func (d *ne2kDevice) writePROM() {
 	d.memory[15<<1|1] = 0x57
 }
 
+// page returns the currently selected register page from the command
 func (d *ne2kDevice) page() byte {
 	return d.cr >> 6 & 3
 }
 
+// ne2kPort returns the IO base for adapter index id.
 func ne2kPort(id int) uint16 {
 	return uint16(ne2kPCIPortBase + ne2kPCIPortStep*id)
 }
 
+// ne2kPCIID returns the PCI device number for adapter index id.
 func ne2kPCIID(id int) uint16 {
 	if id == 0 {
 		return 0x05 << 3
@@ -573,6 +603,7 @@ func ne2kPCIID(id int) uint16 {
 	return uint16(0x07+id) << 3
 }
 
+// newNE2KPCISpace builds the adapter's config space exposing its IO BAR.
 func newNE2KPCISpace(port uint16) []byte {
 	space := make([]byte, 256)
 	copy(space, []byte{
@@ -590,6 +621,7 @@ func newNE2KPCISpace(port uint16) []byte {
 	return space
 }
 
+// isBroadcastFrame reports whether the destination MAC is all ones.
 func isBroadcastFrame(frame []byte) bool {
 	for _, value := range frame[:6] {
 		if value != 0xff {

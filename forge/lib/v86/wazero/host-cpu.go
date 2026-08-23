@@ -92,6 +92,7 @@ func (h *HostRuntime) RunMainLoop(ctx context.Context, ticks int) error {
 	return nil
 }
 
+// createMemory allocates guest memory pages and exports them to the module.
 func (h *HostRuntime) createMemory(ctx context.Context, opts HostBootOptions) error {
 	size := opts.MemorySize
 	if size == 0 {
@@ -135,6 +136,7 @@ func (h *HostRuntime) createMemory(ctx context.Context, opts HostBootOptions) er
 	return nil
 }
 
+// loadBIOS copies the BIOS images into guest memory at their fixed
 func (h *HostRuntime) loadBIOS(ctx context.Context, bios []byte, vgaBIOS []byte) error {
 	if len(bios) > 0x100000 {
 		return errors.Errorf("BIOS image too large for v86 low memory window: %d bytes", len(bios))
@@ -150,6 +152,7 @@ func (h *HostRuntime) loadBIOS(ctx context.Context, bios []byte, vgaBIOS []byte)
 	return nil
 }
 
+// writeGuestBlob copies bytes into guest memory at the given linear
 func (h *HostRuntime) writeGuestBlob(ctx context.Context, guestOffset uint32, data []byte) error {
 	if len(data) == 0 {
 		return nil
@@ -169,6 +172,7 @@ func (h *HostRuntime) writeGuestBlob(ctx context.Context, guestOffset uint32, da
 	return nil
 }
 
+// callVoid invokes an exported no-result function by name with uint64 args.
 func (h *HostRuntime) callVoid(ctx context.Context, name string, args ...uint64) error {
 	results, err := h.call(ctx, name, args...)
 	if err != nil {
@@ -180,6 +184,7 @@ func (h *HostRuntime) callVoid(ctx context.Context, name string, args ...uint64)
 	return nil
 }
 
+// call invokes an exported function by name and returns its first result.
 func (h *HostRuntime) call(ctx context.Context, name string, args ...uint64) ([]uint64, error) {
 	fn := h.Module.ExportedFunction(name)
 	if fn == nil {
@@ -192,6 +197,7 @@ func (h *HostRuntime) call(ctx context.Context, name string, args ...uint64) ([]
 	return results, nil
 }
 
+// alignGuestMemorySize rounds a memory size up to the guest page multiple
 func alignGuestMemorySize(size uint32) uint32 {
 	if size == 0 {
 		return 0

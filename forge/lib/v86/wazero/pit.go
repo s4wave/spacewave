@@ -7,6 +7,7 @@ import (
 
 const pitOscillatorKHz = 1193.1816666
 
+// pitDevice models the Intel 8253/8254 programmable interval timer: three
 type pitDevice struct {
 	host              *HostRuntime
 	counterStartTime  [3]float64
@@ -21,6 +22,7 @@ type pitDevice struct {
 	speakerToggle     uint8
 }
 
+// registerPIT wires the counter ports (0x40-0x42), the control register
 func (h *HostRuntime) registerPIT() {
 	pit := &pitDevice{host: h}
 	h.pit = pit
@@ -51,6 +53,7 @@ func (h *HostRuntime) registerPIT() {
 	})
 }
 
+// timer services the timer tick: it raises/lower IRQ0 per counter 0 state
 func (p *pitDevice) timer(ctx context.Context, now float64, noIRQ bool) float64 {
 	next := 100.0
 	if noIRQ {
@@ -76,6 +79,7 @@ func (p *pitDevice) timer(ctx context.Context, now float64, noIRQ bool) float64 
 	return next
 }
 
+// counterRead returns the next latched or live byte of a counter, honoring
 func (p *pitDevice) counterRead(i int) uint8 {
 	if p.counterLatch[i] != 0 {
 		latch := p.counterLatch[i]
@@ -97,6 +101,7 @@ func (p *pitDevice) counterRead(i int) uint8 {
 	return uint8(value >> 8)
 }
 
+// counterWrite accepts one byte of a counter reload value; the counter
 func (p *pitDevice) counterWrite(i int, value uint8) {
 	if p.counterNextLow[i] != 0 {
 		p.counterReload[i] = (p.counterReload[i] &^ 0xff) | uint16(value)
@@ -116,6 +121,7 @@ func (p *pitDevice) counterWrite(i int, value uint8) {
 	}
 }
 
+// writeControl decodes a control-word write: latch command, read/load
 func (p *pitDevice) writeControl(ctx context.Context, value uint8) {
 	mode := (value >> 1) & 7
 	i := int((value >> 6) & 3)
@@ -150,6 +156,7 @@ func (p *pitDevice) writeControl(ctx context.Context, value uint8) {
 	p.counterReadMode[i] = readMode
 }
 
+// counterValue computes the current down-counter value in oscillator ticks.
 func (p *pitDevice) counterValue(i int, now float64) uint16 {
 	if p.counterEnabled[i] == 0 {
 		return 0
@@ -169,6 +176,7 @@ func (p *pitDevice) counterValue(i int, now float64) uint16 {
 	return uint16(value)
 }
 
+// didRollover reports whether counter i has wrapped by now.
 func (p *pitDevice) didRollover(i int, now float64) uint8 {
 	diff := now - p.counterStartTime[i]
 	if diff < 0 {

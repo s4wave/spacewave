@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// udpConn relays one guest UDP flow to a host UDP socket.
 type udpConn struct {
 	stack *Stack
 	key   string
@@ -22,6 +23,7 @@ type udpConn struct {
 	closed bool
 }
 
+// newUDPConn builds the relay from the packet's addresses reversed.
 func newUDPConn(stack *Stack, key string, host net.Conn, packet *ethPacket) *udpConn {
 	return &udpConn{
 		stack: stack,
@@ -36,10 +38,12 @@ func newUDPConn(stack *Stack, key string, host net.Conn, packet *ethPacket) *udp
 	}
 }
 
+// start launches the host-to-guest read loop on its own goroutine; the
 func (c *udpConn) start() {
 	go c.readLoop()
 }
 
+// write forwards guest payload bytes to the host socket.
 func (c *udpConn) write(dat []byte) {
 	c.mtx.Lock()
 	closed := c.closed
@@ -57,6 +61,7 @@ func (c *udpConn) write(dat []byte) {
 	}
 }
 
+// close shuts the host socket exactly once and marks the flow closed.
 func (c *udpConn) close() error {
 	c.mtx.Lock()
 	if c.closed {
@@ -68,6 +73,7 @@ func (c *udpConn) close() error {
 	return c.host.Close()
 }
 
+// readLoop pumps host datagrams back toward the guest until the host
 func (c *udpConn) readLoop() {
 	buf := make([]byte, defaultMTU-ipv4HeaderSize-udpHeaderSize)
 	for {

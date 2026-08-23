@@ -30,6 +30,7 @@ var (
 	v86ASCII     = []byte{118, 56, 54}
 )
 
+// ethPacket is a parsed Ethernet frame with its decoded payload layered on
 type ethPacket struct {
 	dest      [6]byte
 	src       [6]byte
@@ -40,6 +41,7 @@ type ethPacket struct {
 	origFrame []byte
 }
 
+// arpPacket is a parsed ARP request or reply.
 type arpPacket struct {
 	htype uint16
 	ptype uint16
@@ -52,6 +54,7 @@ type arpPacket struct {
 	tpa   netip.Addr
 }
 
+// ipv4Packet is a parsed IPv4 datagram with its decoded payload layered on
 type ipv4Packet struct {
 	tos     byte
 	id      uint16
@@ -65,18 +68,21 @@ type ipv4Packet struct {
 	tcp     *tcpPacket
 }
 
+// icmpPacket is a parsed ICMP message: type, code, and raw body.
 type icmpPacket struct {
 	typ  byte
 	code byte
 	data []byte
 }
 
+// udpPacket is a parsed UDP datagram.
 type udpPacket struct {
 	sport uint16
 	dport uint16
 	data  []byte
 }
 
+// tcpPacket is a parsed TCP segment header plus its payload bytes.
 type tcpPacket struct {
 	sport   uint16
 	dport   uint16
@@ -88,6 +94,7 @@ type tcpPacket struct {
 	data    []byte
 }
 
+// dhcpPacket is a parsed DHCP discover/request/reply message.
 type dhcpPacket struct {
 	op      byte
 	htype   byte
@@ -104,6 +111,7 @@ type dhcpPacket struct {
 	options [][]byte
 }
 
+// dnsQuestion is one parsed DNS question and its offset in the raw query.
 type dnsQuestion struct {
 	name      string
 	rawName   []byte
@@ -112,6 +120,7 @@ type dnsQuestion struct {
 	nameStart int
 }
 
+// dnsPacket is a parsed DNS query awaiting a synthesized answer.
 type dnsPacket struct {
 	id        uint16
 	flags     uint16
@@ -119,6 +128,7 @@ type dnsPacket struct {
 	rawQuery  []byte
 }
 
+// parseEth decodes an Ethernet frame header and its payload by ethertype.
 func parseEth(frame []byte) (*ethPacket, error) {
 	if len(frame) < ethHeaderSize {
 		return nil, ErrShortFrame
@@ -148,6 +158,7 @@ func parseEth(frame []byte) (*ethPacket, error) {
 	return p, nil
 }
 
+// parseARP decodes an ARP packet from an Ethernet payload.
 func parseARP(dat []byte) (*arpPacket, error) {
 	if len(dat) < 28 {
 		return nil, ErrShortFrame
@@ -166,6 +177,7 @@ func parseARP(dat []byte) (*arpPacket, error) {
 	return p, nil
 }
 
+// parseIPv4 decodes an IPv4 header and its payload by protocol.
 func parseIPv4(dat []byte) (*ipv4Packet, error) {
 	if len(dat) < ipv4HeaderSize {
 		return nil, ErrShortFrame
@@ -216,6 +228,7 @@ func parseIPv4(dat []byte) (*ipv4Packet, error) {
 	return p, nil
 }
 
+// parseICMP decodes an ICMP message from an IPv4 payload.
 func parseICMP(dat []byte) (*icmpPacket, error) {
 	if len(dat) < icmpHeaderSize {
 		return nil, ErrShortFrame
@@ -227,6 +240,7 @@ func parseICMP(dat []byte) (*icmpPacket, error) {
 	}, nil
 }
 
+// parseUDP decodes a UDP datagram from an IPv4 payload.
 func parseUDP(dat []byte) (*udpPacket, error) {
 	if len(dat) < udpHeaderSize {
 		return nil, ErrShortFrame
@@ -245,6 +259,7 @@ func parseUDP(dat []byte) (*udpPacket, error) {
 	}, nil
 }
 
+// parseTCP decodes a TCP segment from an IPv4 payload.
 func parseTCP(dat []byte) (*tcpPacket, error) {
 	if len(dat) < tcpHeaderSize {
 		return nil, ErrShortFrame
@@ -265,6 +280,7 @@ func parseTCP(dat []byte) (*tcpPacket, error) {
 	}, nil
 }
 
+// buildEth frames an Ethernet header around a payload.
 func buildEth(dest [6]byte, src [6]byte, ethType uint16, payload []byte) []byte {
 	frame := make([]byte, ethHeaderSize+len(payload))
 	copy(frame[0:6], dest[:])
@@ -274,6 +290,7 @@ func buildEth(dest [6]byte, src [6]byte, ethType uint16, payload []byte) []byte 
 	return frame
 }
 
+// buildARPReply builds an ARP reply advertising senderIP at routerMAC.
 func buildARPReply(dest [6]byte, senderIP netip.Addr, targetIP netip.Addr) []byte {
 	payload := make([]byte, 28)
 	binary.BigEndian.PutUint16(payload[0:2], 1)
@@ -288,6 +305,7 @@ func buildARPReply(dest [6]byte, senderIP netip.Addr, targetIP netip.Addr) []byt
 	return buildEth(dest, routerMAC, ethTypeARP, payload)
 }
 
+// buildIPv4 frames an IPv4 datagram header around a payload.
 func buildIPv4(proto byte, src netip.Addr, dest netip.Addr, payload []byte) []byte {
 	ip := make([]byte, ipv4HeaderSize+len(payload))
 	ip[0] = 0x45
@@ -302,6 +320,7 @@ func buildIPv4(proto byte, src netip.Addr, dest netip.Addr, payload []byte) []by
 	return ip
 }
 
+// buildICMP frames an ICMP echo reply message.
 func buildICMP(typ byte, code byte, data []byte) []byte {
 	msg := make([]byte, icmpHeaderSize+len(data))
 	msg[0] = typ
@@ -311,6 +330,7 @@ func buildICMP(typ byte, code byte, data []byte) []byte {
 	return msg
 }
 
+// buildUDP frames a UDP datagram with checksummed pseudo-header.
 func buildUDP(src netip.Addr, dest netip.Addr, sport uint16, dport uint16, data []byte) []byte {
 	msg := make([]byte, udpHeaderSize+len(data))
 	binary.BigEndian.PutUint16(msg[0:2], sport)
@@ -322,6 +342,7 @@ func buildUDP(src netip.Addr, dest netip.Addr, sport uint16, dport uint16, data 
 	return msg
 }
 
+// buildTCP frames a TCP segment, splitting the payload by the MSS when
 func buildTCP(src netip.Addr, dest netip.Addr, tcp *tcpPacket, data []byte, mss uint16) []byte {
 	offset := tcpHeaderSize
 	if mss != 0 {
@@ -347,6 +368,7 @@ func buildTCP(src netip.Addr, dest netip.Addr, tcp *tcpPacket, data []byte, mss 
 	return msg
 }
 
+// inetChecksum folds running sum into the ones-complement Internet
 func inetChecksum(dat []byte, checksum uint32) uint16 {
 	end := len(dat) &^ 1
 	for i := 0; i < end; i += 2 {
@@ -361,6 +383,7 @@ func inetChecksum(dat []byte, checksum uint32) uint16 {
 	return ^uint16(checksum)
 }
 
+// pseudoHeaderChecksum seeds the TCP/UDP checksum with the IPv4
 func pseudoHeaderChecksum(src netip.Addr, dest netip.Addr, proto byte, size int) uint32 {
 	sb := src.AsSlice()
 	db := dest.AsSlice()
@@ -371,10 +394,12 @@ func pseudoHeaderChecksum(src netip.Addr, dest netip.Addr, proto byte, size int)
 		uint32(proto) + uint32(size)
 }
 
+// tcpFlag reports whether one TCP flag bit is set.
 func tcpFlag(tcp *tcpPacket, flag byte) bool {
 	return tcp.flags&flag != 0
 }
 
+// parseDHCP decodes a DHCP message and its option fields.
 func parseDHCP(dat []byte) (*dhcpPacket, error) {
 	if len(dat) < 240 {
 		return nil, ErrShortFrame
@@ -418,6 +443,7 @@ func parseDHCP(dat []byte) (*dhcpPacket, error) {
 	return p, nil
 }
 
+// buildDHCP constructs a DHCP reply offering the given addresses to chaddr.
 func buildDHCP(p *dhcpPacket) []byte {
 	msg := make([]byte, 240)
 	msg[0] = p.op
@@ -439,6 +465,7 @@ func buildDHCP(p *dhcpPacket) []byte {
 	return msg
 }
 
+// parseDNS decodes a DNS query's question section.
 func parseDNS(dat []byte) (*dnsPacket, error) {
 	if len(dat) < 12 {
 		return nil, ErrShortFrame
@@ -486,6 +513,7 @@ func parseDNS(dat []byte) (*dnsPacket, error) {
 	return p, nil
 }
 
+// buildDNSResponse answers each question: A records resolve to the host
 func buildDNSResponse(req *dnsPacket, answers [][]byte, rcode byte) []byte {
 	size := 12
 	for _, q := range req.questions {
@@ -518,6 +546,7 @@ func buildDNSResponse(req *dnsPacket, answers [][]byte, rcode byte) []byte {
 	return msg
 }
 
+// buildDNSAnswer appends one A-record answer for a name.
 func buildDNSAnswer(q dnsQuestion, dat []byte, ttl uint32) []byte {
 	answer := make([]byte, 12+len(dat))
 	binary.BigEndian.PutUint16(answer[0:2], 0xc000|uint16(q.nameStart))
@@ -529,6 +558,7 @@ func buildDNSAnswer(q dnsQuestion, dat []byte, ttl uint32) []byte {
 	return answer
 }
 
+// addr4 renders a netip.Addr as four network-order bytes.
 func addr4(dat []byte) netip.Addr {
 	return netip.AddrFrom4([4]byte{dat[0], dat[1], dat[2], dat[3]})
 }

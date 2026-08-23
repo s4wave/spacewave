@@ -12,11 +12,14 @@ const (
 	ataBusMasterChannelStride = 8
 )
 
+// registerEmptyATA wires both primary and secondary ATA channels.
 func (h *HostRuntime) registerEmptyATA() {
 	h.registerEmptyATAChannel(ataPrimaryCommandBase, ataPrimaryControlBase, ataBusMasterBase)
 	h.registerEmptyATAChannel(ataSecondaryCommandBase, ataSecondaryControlBase, ataBusMasterBase+ataBusMasterChannelStride)
 }
 
+// registerEmptyATAChannel stubs one ATA channel at the given port bases:
+// command registers read as zero, the alternate status reads zero, and the
 func (h *HostRuntime) registerEmptyATAChannel(commandBase, controlBase, busMasterBase uint16) {
 	for offset := range uint16(8) {
 		port := commandBase + offset

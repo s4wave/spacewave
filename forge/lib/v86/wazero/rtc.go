@@ -42,6 +42,7 @@ const (
 	bootOrderCDFirst    = 0x123
 )
 
+// cmosDevice models the MC146818 CMOS RTC: index/data register pairs, the
 type cmosDevice struct {
 	host                  *HostRuntime
 	index                 byte
@@ -61,6 +62,7 @@ type cmosDevice struct {
 	nmiDisabled           byte
 }
 
+// registerCMOS seeds the CMOS from wall-clock time and wires its ports.
 func (h *HostRuntime) registerCMOS() {
 	now := time.Now().UnixMilli()
 	cmos := &cmosDevice{
@@ -85,6 +87,8 @@ func (h *HostRuntime) registerCMOS() {
 	})
 }
 
+// fill writes the standard CMOS memory map: base and extended memory sizes,
+// equipment info, and the SMP count byte.
 func (c *cmosDevice) fill(memorySize uint32) {
 	bootOrder := bootOrderCDFirst
 	c.data[cmosBiosBootflag1] = byte(1 | ((bootOrder >> 4) & 0xf0))
@@ -117,6 +121,8 @@ func (c *cmosDevice) fill(memorySize uint32) {
 	c.data[0x3f] = 1
 }
 
+// read returns the indexed register byte: clock registers render the current
+// time, and a status-C read acknowledges the RTC interrupt.
 func (c *cmosDevice) read(ctx context.Context) byte {
 	now := time.UnixMilli(c.rtcTime).UTC()
 	switch c.index {
@@ -158,6 +164,8 @@ func (c *cmosDevice) read(ctx context.Context) byte {
 	}
 }
 
+// write stores an indexed register byte; status-register writes reprogram
+// the periodic, alarm, and update interrupt schedule.
 func (c *cmosDevice) write(_ context.Context, value byte) {
 	switch c.index {
 	case cmosStatusA:
@@ -193,14 +201,17 @@ func (c *cmosDevice) write(_ context.Context, value byte) {
 	c.periodicInterrupt = c.statusB&0x40 != 0 && c.statusA&0xf > 0
 }
 
+// bcdPack encodes a two-digit decimal as packed BCD.
 func bcdPack(value int) byte {
 	return byte((value/10)<<4 | value%10)
 }
 
+// bcdUnpack decodes a packed-BCD byte into its decimal value.
 func bcdUnpack(value byte) int {
 	return int(value&0xf) + int(value>>4)*10
 }
 
+// encodeTime renders a two-digit clock value honoring the BCD format bit.
 func (c *cmosDevice) encodeTime(value int) byte {
 	if c.statusB&4 != 0 {
 		return byte(value)
@@ -208,6 +219,8 @@ func (c *cmosDevice) encodeTime(value int) byte {
 	return bcdPack(value)
 }
 
+// decodeTime parses an RTC clock register back into its decimal value,
+// honoring the binary-format bit of status register B.
 func (c *cmosDevice) decodeTime(value byte) int {
 	if c.statusB&4 != 0 {
 		return int(value)
@@ -215,6 +228,7 @@ func (c *cmosDevice) decodeTime(value byte) int {
 	return bcdUnpack(value)
 }
 
+// timer returns the milliseconds until the next periodic or update
 func (c *cmosDevice) timer(ctx context.Context) float64 {
 	now := time.Now().UnixMilli()
 	c.rtcTime += now - c.lastUpdate
@@ -250,6 +264,7 @@ func (c *cmosDevice) timer(ctx context.Context) float64 {
 	return next
 }
 
+// alarmTime converts the programmed alarm registers into the next alarm
 func (c *cmosDevice) alarmTime(nowMillis int64) int64 {
 	now := time.UnixMilli(nowMillis).UTC()
 	return time.Date(

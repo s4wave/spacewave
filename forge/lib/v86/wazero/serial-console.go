@@ -101,12 +101,14 @@ func (h *HostRuntime) RunSerialConsole(ctx context.Context, in io.Reader, out io
 	}
 }
 
+// guestHaltDetectingWriter forwards serial output and records whether the
 type guestHaltDetectingWriter struct {
 	dst    io.Writer
 	tail   []byte
 	halted bool
 }
 
+// Write scans appended output for guest-halt markers and forwards to dst.
 func (w *guestHaltDetectingWriter) Write(p []byte) (int, error) {
 	if len(p) != 0 && !w.halted {
 		buf := append(append([]byte(nil), w.tail...), p...)
@@ -124,10 +126,12 @@ func (w *guestHaltDetectingWriter) Write(p []byte) (int, error) {
 	return w.dst.Write(p)
 }
 
+// Halted reports whether a guest-halt marker was observed in the stream.
 func (w *guestHaltDetectingWriter) Halted() bool {
 	return w.halted
 }
 
+// serialMarkerTail returns the trailing bytes of buf that a marker could
 func serialMarkerTail(buf []byte) []byte {
 	keep := 0
 	for _, marker := range guestHaltSerialMarkers {

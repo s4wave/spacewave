@@ -24,6 +24,7 @@ type HostBootOptions struct {
 	Networking        *NetworkConfig
 }
 
+// kernelCmdline returns the configured cmdline or the default for the
 func (o HostBootOptions) kernelCmdline() string {
 	if o.Cmdline != "" {
 		return o.Cmdline

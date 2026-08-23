@@ -65,6 +65,7 @@ func (d *virtioV86FSDevice) recordTrace(dir string, typeByte byte) {
 	d.traceMu.Unlock()
 }
 
+// v86fsWireTypeName names a v86fs wire message type byte for the trace.
 func v86fsWireTypeName(typeByte byte) string {
 	switch typeByte {
 	case 0x00:
@@ -139,6 +140,7 @@ type v86fsStats struct {
 	trace         []string
 }
 
+// stats snapshots the device counters and the bounded wire trace.
 func (d *virtioV86FSDevice) stats() v86fsStats {
 	if d == nil {
 		return v86fsStats{}
@@ -158,12 +160,14 @@ func (d *virtioV86FSDevice) stats() v86fsStats {
 	}
 }
 
+// virtioQueueDevice is the seam the virtio queue needs into its owning
 type virtioQueueDevice interface {
 	virtioHost() *HostRuntime
 	virtioRaiseIRQ(context.Context, uint32)
 	featureNegotiated(uint32) bool
 }
 
+// virtioQueue is one split virtqueue: guest-posted descriptor/avail/used
 type virtioQueue struct {
 	device        virtioQueueDevice
 	size          uint32
@@ -177,6 +181,7 @@ type virtioQueue struct {
 	stagedReplies uint32
 }
 
+// virtioDesc is one split-virtqueue descriptor table entry.
 type virtioDesc struct {
 	addr  uint32
 	len   uint32
@@ -184,6 +189,7 @@ type virtioDesc struct {
 	next  uint16
 }
 
+// virtioBufferChain walks one descriptor chain: gathered read buffers for
 type virtioBufferChain struct {
 	queue          *virtioQueue
 	headIdx        uint16
@@ -194,6 +200,7 @@ type virtioBufferChain struct {
 	lengthWritten  uint32
 }
 
+// registerV86FS attaches a v86fs server to the host runtime as a three-
 func (h *HostRuntime) registerV86FS(ctx context.Context, server *unixfs_v86fs.Server) {
 	if h.pci == nil {
 		return
@@ -222,6 +229,7 @@ func (h *HostRuntime) registerV86FS(ctx context.Context, server *unixfs_v86fs.Se
 	dev.registerISRPort()
 }
 
+// registerCommonPorts wires the shared virtio common configuration.
 func (d *virtioV86FSDevice) registerCommonPorts() {
 	registerVirtioCommonPorts(virtioV86FSCommonPort, d)
 }
@@ -229,6 +237,7 @@ func (d *virtioV86FSDevice) registerCommonPorts() {
 // numQueues reports the NUM_QUEUES common configuration value.
 func (d *virtioV86FSDevice) numQueues() uint32 { return uint32(len(d.queues)) }
 
+// registerNotifyPorts wires one kick port per queue; queue 2 flushes
 func (d *virtioV86FSDevice) registerNotifyPorts() {
 	for i := range d.queues {
 		queueID := i
@@ -245,10 +254,12 @@ func (d *virtioV86FSDevice) registerNotifyPorts() {
 	}
 }
 
+// registerISRPort wires the shared ISR status port.
 func (d *virtioV86FSDevice) registerISRPort() {
 	registerVirtioISRPort(virtioV86FSISRPort, d)
 }
 
+// selectedQueue returns the queue addressed by queueSelect, or an empty
 func (d *virtioV86FSDevice) selectedQueue() *virtioQueue {
 	if d.queueSelect >= uint32(len(d.queues)) {
 		return &virtioQueue{}
@@ -256,6 +267,7 @@ func (d *virtioV86FSDevice) selectedQueue() *virtioQueue {
 	return d.queues[d.queueSelect]
 }
 
+// applyStatus latches the status write and flushes pending notifications
 func (d *virtioV86FSDevice) applyStatus(ctx context.Context, value uint32) {
 	applied := d.handleStatusWrite(ctx, d, value)
 	if applied == 0 {
@@ -268,6 +280,7 @@ func (d *virtioV86FSDevice) applyStatus(ctx context.Context, value uint32) {
 	}
 }
 
+// reset clears the common configuration and every queue.
 func (d *virtioV86FSDevice) reset(ctx context.Context) {
 	d.resetState()
 	for _, queue := range d.queues {
@@ -276,6 +289,7 @@ func (d *virtioV86FSDevice) reset(ctx context.Context) {
 	d.lowerIRQ(ctx)
 }
 
+// handleQueue services one available-ring request on the given queue:
 func (d *virtioV86FSDevice) handleQueue(ctx context.Context, queueID int) {
 	queue := d.queues[queueID]
 	for queue.configured() && queue.hasRequest() {
@@ -321,6 +335,7 @@ func (d *virtioV86FSDevice) handleQueue(ctx context.Context, queueID int) {
 	d.flushNotifications(ctx)
 }
 
+// flushNotifications delivers queued server notifications into queue 2,
 func (d *virtioV86FSDevice) flushNotifications(ctx context.Context) {
 	queue := d.queues[2]
 	if !queue.configured() {
@@ -374,24 +389,29 @@ func (d *virtioV86FSDevice) assignedIRQ() uint32 {
 	return virtioV86FSIRQ
 }
 
+// raiseIRQ asserts the routed device interrupt line with ISR bits set.
 func (d *virtioV86FSDevice) raiseIRQ(ctx context.Context, typ uint32) {
 	d.isrStatus |= typ
 	_ = d.host.raiseIRQ(ctx, d.assignedIRQ())
 }
 
+// lowerIRQ clears the ISR state and deasserts the interrupt line.
 func (d *virtioV86FSDevice) lowerIRQ(ctx context.Context) {
 	d.isrStatus = 0
 	_ = d.host.lowerIRQ(ctx, d.assignedIRQ())
 }
 
+// virtioHost exposes the owning host runtime to the queue machinery.
 func (d *virtioV86FSDevice) virtioHost() *HostRuntime {
 	return d.host
 }
 
+// virtioRaiseIRQ routes queue completion interrupts through the device.
 func (d *virtioV86FSDevice) virtioRaiseIRQ(ctx context.Context, typ uint32) {
 	d.raiseIRQ(ctx, typ)
 }
 
+// reset clears the queue state back to its supported size.
 func (q *virtioQueue) reset() {
 	q.enabled = false
 	q.descAddr = 0
@@ -402,6 +422,7 @@ func (q *virtioQueue) reset() {
 	q.setSize(q.sizeSupported)
 }
 
+// setSize clamps the driver-requested size to the supported maximum and
 func (q *virtioQueue) setSize(size uint32) {
 	if size == 0 || size > q.sizeSupported {
 		size = q.sizeSupported
@@ -409,26 +430,32 @@ func (q *virtioQueue) setSize(size uint32) {
 	q.size = nextPowerOfTwo(size)
 }
 
+// configured reports whether the queue is enabled with all addresses set.
 func (q *virtioQueue) configured() bool {
 	return q.enabled && q.descAddr != 0 && q.availAddr != 0 && q.usedAddr != 0 && q.size != 0
 }
 
+// canEnable reports whether the driver posted all queue addresses.
 func (q *virtioQueue) canEnable() bool {
 	return q.descAddr != 0 && q.availAddr != 0 && q.usedAddr != 0 && q.size != 0
 }
 
+// mask returns the ring index wrap mask derived from the queue size.
 func (q *virtioQueue) mask() uint32 {
 	return q.size - 1
 }
 
+// hasRequest reports whether an unconsumed available buffer remains.
 func (q *virtioQueue) hasRequest() bool {
 	return q.requestCount() != 0
 }
 
+// requestCount returns the number of buffers the driver has made available
 func (q *virtioQueue) requestCount() uint32 {
 	return uint32(q.availIdx() - q.availLastIdx)
 }
 
+// popRequest takes the next available buffer head as a descriptor chain.
 func (q *virtioQueue) popRequest() (*virtioBufferChain, error) {
 	if !q.hasRequest() {
 		return nil, errors.New("virtio queue has no request")
@@ -438,6 +465,7 @@ func (q *virtioQueue) popRequest() (*virtioBufferChain, error) {
 	return newVirtioBufferChain(q, head)
 }
 
+// pushReply stages one used-ring entry; entries publish on flushReplies.
 func (q *virtioQueue) pushReply(chain *virtioBufferChain) {
 	usedIdx := (q.usedIdx() + uint16(q.stagedReplies)) & uint16(q.mask())
 	host := q.device.virtioHost()
@@ -446,6 +474,7 @@ func (q *virtioQueue) pushReply(chain *virtioBufferChain) {
 	q.stagedReplies++
 }
 
+// flushReplies publishes staged used entries, advances the used index, and
 func (q *virtioQueue) flushReplies(ctx context.Context) {
 	if q.stagedReplies == 0 {
 		return
@@ -457,6 +486,7 @@ func (q *virtioQueue) flushReplies(ctx context.Context) {
 	}
 }
 
+// notifyMeAfter arms the avail no-interrupt watermark after skipped
 func (q *virtioQueue) notifyMeAfter(skipped uint32) {
 	if q.usedAddr == 0 || q.size == 0 {
 		return
@@ -465,22 +495,27 @@ func (q *virtioQueue) notifyMeAfter(skipped uint32) {
 	q.device.virtioHost().guestWriteUint16(q.usedAddr+4+q.size*8, availEvent)
 }
 
+// availFlags reads the avail ring flag word.
 func (q *virtioQueue) availFlags() uint16 {
 	return q.device.virtioHost().guestReadUint16(q.availAddr)
 }
 
+// availIdx reads the driver write index of the avail ring.
 func (q *virtioQueue) availIdx() uint16 {
 	return q.device.virtioHost().guestReadUint16(q.availAddr + 2)
 }
 
+// availEntry reads the descriptor head at one avail ring slot.
 func (q *virtioQueue) availEntry(idx uint16) uint16 {
 	return q.device.virtioHost().guestReadUint16(q.availAddr + 4 + 2*(uint32(idx)&q.mask()))
 }
 
+// usedIdx reads the device write index of the used ring.
 func (q *virtioQueue) usedIdx() uint16 {
 	return q.device.virtioHost().guestReadUint16(q.usedAddr + 2)
 }
 
+// newVirtioBufferChain walks a descriptor chain from its head, following
 func newVirtioBufferChain(q *virtioQueue, head uint16) (*virtioBufferChain, error) {
 	chain := &virtioBufferChain{queue: q, headIdx: head}
 	tableAddr := q.descAddr
@@ -509,6 +544,7 @@ func newVirtioBufferChain(q *virtioQueue, head uint16) (*virtioBufferChain, erro
 	return nil, errors.New("virtio descriptor chain cycle")
 }
 
+// descriptor reads one descriptor table entry from guest memory.
 func (q *virtioQueue) descriptor(tableAddr uint32, idx uint16) virtioDesc {
 	base := tableAddr + uint32(idx)*16
 	host := q.device.virtioHost()
@@ -520,6 +556,7 @@ func (q *virtioQueue) descriptor(tableAddr uint32, idx uint16) virtioDesc {
 	}
 }
 
+// readAll gathers the chain read buffers into one byte slice.
 func (c *virtioBufferChain) readAll() ([]byte, error) {
 	out := make([]byte, 0, c.lengthReadable)
 	host := c.queue.device.virtioHost()
@@ -533,6 +570,7 @@ func (c *virtioBufferChain) readAll() ([]byte, error) {
 	return out, nil
 }
 
+// write scatters data across the chain write buffers and reports how many
 func (c *virtioBufferChain) write(data []byte) uint32 {
 	var written uint32
 	host := c.queue.device.virtioHost()
@@ -550,6 +588,7 @@ func (c *virtioBufferChain) write(data []byte) uint32 {
 	return written
 }
 
+// guestRead copies bytes out of guest linear memory, reporting ok=false
 func (h *HostRuntime) guestRead(addr, size uint32) ([]byte, bool) {
 	if uint64(addr)+uint64(size) > uint64(h.guestMemorySize) {
 		return nil, false
@@ -561,6 +600,7 @@ func (h *HostRuntime) guestRead(addr, size uint32) ([]byte, bool) {
 	return append([]byte(nil), data...), true
 }
 
+// guestWrite copies bytes into guest linear memory, reporting success.
 func (h *HostRuntime) guestWrite(addr uint32, data []byte) bool {
 	if uint64(addr)+uint64(len(data)) > uint64(h.guestMemorySize) {
 		return false
@@ -568,6 +608,7 @@ func (h *HostRuntime) guestWrite(addr uint32, data []byte) bool {
 	return h.Module.Memory().Write(h.guestMemoryOffset+addr, data)
 }
 
+// guestReadUint16 reads one little-endian uint16 from guest memory.
 func (h *HostRuntime) guestReadUint16(addr uint32) uint16 {
 	data, ok := h.guestRead(addr, 2)
 	if !ok {
@@ -576,6 +617,7 @@ func (h *HostRuntime) guestReadUint16(addr uint32) uint16 {
 	return binary.LittleEndian.Uint16(data)
 }
 
+// guestReadUint32 reads one little-endian uint32 from guest memory.
 func (h *HostRuntime) guestReadUint32(addr uint32) uint32 {
 	data, ok := h.guestRead(addr, 4)
 	if !ok {
@@ -584,18 +626,21 @@ func (h *HostRuntime) guestReadUint32(addr uint32) uint32 {
 	return binary.LittleEndian.Uint32(data)
 }
 
+// guestWriteUint16 writes one little-endian uint16 to guest memory.
 func (h *HostRuntime) guestWriteUint16(addr uint32, value uint16) {
 	var data [2]byte
 	binary.LittleEndian.PutUint16(data[:], value)
 	h.guestWrite(addr, data[:])
 }
 
+// guestWriteUint32 writes one little-endian uint32 to guest memory.
 func (h *HostRuntime) guestWriteUint32(addr, value uint32) {
 	var data [4]byte
 	binary.LittleEndian.PutUint32(data[:], value)
 	h.guestWrite(addr, data[:])
 }
 
+// newVirtioV86FSPCISpace builds the device config space with its four PCI
 func newVirtioV86FSPCISpace() []byte {
 	space := make([]byte, 256)
 	copy(space, []byte{
@@ -619,6 +664,7 @@ func newVirtioV86FSPCISpace() []byte {
 	return space
 }
 
+// writeVirtioPCICap writes one virtio PCI capability structure.
 func writeVirtioPCICap(space []byte, off, next int, typ, bar byte, capOffset, size uint32, extra []byte) {
 	space[off] = 0x09
 	space[off+1] = byte(next)
@@ -630,6 +676,7 @@ func writeVirtioPCICap(space []byte, off, next int, typ, bar byte, capOffset, si
 	copy(space[off+16:], extra)
 }
 
+// nextPowerOfTwo rounds value up to the next power of two.
 func nextPowerOfTwo(value uint32) uint32 {
 	if value <= 1 {
 		return 1

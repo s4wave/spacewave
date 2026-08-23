@@ -57,6 +57,7 @@ func OpenV86Root(mode RootMode, rootfsTar string) (*unixfs_v86fs.Server, func(),
 	}
 }
 
+// openV86RootLower parses the rootfs tar into a read-only lower cursor.
 func openV86RootLower(rootfsTar string) (unixfs.FSCursor, error) {
 	f, err := os.Open(rootfsTar)
 	if err != nil {
@@ -70,6 +71,7 @@ func openV86RootLower(rootfsTar string) (unixfs.FSCursor, error) {
 	return cursor, nil
 }
 
+// openV86RootServer wraps a root cursor in a v86fs server serving /.
 func openV86RootServer(cursor unixfs.FSCursor) (*unixfs_v86fs.Server, func(), error) {
 	handle, err := unixfs.NewFSHandle(cursor)
 	if err != nil {

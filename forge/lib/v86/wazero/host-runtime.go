@@ -68,6 +68,7 @@ type HostRuntime struct {
 	Logs              []string
 }
 
+// InstantiateHostRuntime compiles and instantiates the v86 wasm image and
 func InstantiateHostRuntime(ctx context.Context, wasmPath string, opts HostRuntimeOptions) (*HostRuntime, error) {
 	wasmBytes, err := os.ReadFile(wasmPath)
 	if err != nil {
@@ -133,6 +134,7 @@ func InstantiateHostRuntime(ctx context.Context, wasmPath string, opts HostRunti
 	return host, nil
 }
 
+// Close releases the wazero runtime and every module it instantiated.
 func (h *HostRuntime) Close(ctx context.Context) error {
 	if h == nil || h.Runtime == nil {
 		return nil
@@ -221,6 +223,7 @@ func (h *HostRuntime) LastException() uint32 {
 	return h.lastException.Load()
 }
 
+// instantiateGoEnv registers Go implementations for every function the v86
 func (h *HostRuntime) instantiateGoEnv(ctx context.Context, compiled wazero.CompiledModule) error {
 	builder := h.Runtime.NewHostModuleBuilder(goenvModuleName)
 	for _, fn := range compiled.ImportedFunctions() {
@@ -238,6 +241,7 @@ func (h *HostRuntime) instantiateGoEnv(ctx context.Context, compiled wazero.Comp
 	return nil
 }
 
+// callback dispatches one env-module import to its host-side behavior:
 func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModuleFunction {
 	return api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
 		switch name {
@@ -325,6 +329,7 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 	})
 }
 
+// apicTimer advances the guest APIC timer and returns the next tick
 func (h *HostRuntime) apicTimer(ctx context.Context, now float64) float64 {
 	fn := h.Module.ExportedFunction("apic_timer")
 	if fn == nil {
@@ -340,6 +345,7 @@ func (h *HostRuntime) apicTimer(ctx context.Context, now float64) float64 {
 	return api.DecodeF64(result[0])
 }
 
+// readIO services a guest IO port read through its registered handler.
 func (h *HostRuntime) readIO(ctx context.Context, port uint32, width int) uint32 {
 	if h.ioReads != nil {
 		h.ioReads[uint16(port)]++
@@ -362,6 +368,7 @@ func (h *HostRuntime) readIO(ctx context.Context, port uint32, width int) uint32
 	return value
 }
 
+// writeIO services a guest IO port write through its registered handler.
 func (h *HostRuntime) writeIO(ctx context.Context, port, value uint32, width int) {
 	if h.ioWrites != nil {
 		h.ioWrites[uint16(port)]++
@@ -380,6 +387,7 @@ func (h *HostRuntime) writeIO(ctx context.Context, port, value uint32, width int
 	}
 }
 
+// readMmap services a memory-mapped device read from its registered block.
 func (h *HostRuntime) readMmap(addr uint32, width int) uint32 {
 	block := h.mmapBlocks[addr>>mmapBlockBits]
 	switch width {
@@ -398,6 +406,7 @@ func (h *HostRuntime) readMmap(addr uint32, width int) uint32 {
 	}
 }
 
+// writeMmap services a memory-mapped device write to its registered block.
 func (h *HostRuntime) writeMmap(addr, value uint32, width int) {
 	block := h.mmapBlocks[addr>>mmapBlockBits]
 	switch width {
@@ -415,6 +424,7 @@ func (h *HostRuntime) writeMmap(addr, value uint32, width int) {
 	}
 }
 
+// codegenFinalize notifies the guest that asynchronous code generation
 func (h *HostRuntime) codegenFinalize(ctx context.Context, stack []uint64) {
 	if h.Module == nil || len(stack) < 3 {
 		return
@@ -426,6 +436,7 @@ func (h *HostRuntime) codegenFinalize(ctx context.Context, stack []uint64) {
 	_, _ = fn.Call(ctx, stack[0], stack[1], stack[2])
 }
 
+// appendLog appends a debug-console string written by the guest to Logs.
 func (h *HostRuntime) appendLog(mod api.Module, stack []uint64) {
 	if len(stack) < 2 || mod == nil || mod.Memory() == nil {
 		return
@@ -439,10 +450,12 @@ func (h *HostRuntime) appendLog(mod api.Module, stack []uint64) {
 	h.Logs = append(h.Logs, string(data))
 }
 
+// microtick returns milliseconds elapsed since the runtime started.
 func (h *HostRuntime) microtick() float64 {
 	return float64(time.Since(h.started).Microseconds()) / 1000
 }
 
+// setZeroResults zeroes the return slots of an env callback invocation.
 func setZeroResults(stack []uint64, results []api.ValueType) {
 	for i, typ := range results {
 		switch typ {
@@ -456,6 +469,7 @@ func setZeroResults(stack []uint64, results []api.ValueType) {
 	}
 }
 
+// ioPort holds the registered handlers for one IO port address.
 type ioPort struct {
 	read8   IOReadFunc
 	read16  IOReadFunc
@@ -465,6 +479,7 @@ type ioPort struct {
 	write32 IOWriteFunc
 }
 
+// newIOPorts builds the full 64K IO port table with empty handlers.
 func newIOPorts() []ioPort {
 	ports := make([]ioPort, 0x10000)
 	for i := range ports {
@@ -473,6 +488,7 @@ func newIOPorts() []ioPort {
 	return ports
 }
 
+// emptyIOPort returns open-bus handlers: reads return all ones and writes
 func emptyIOPort() ioPort {
 	return ioPort{
 		read8:   func(context.Context, uint16) uint32 { return 0xff },
@@ -484,6 +500,7 @@ func emptyIOPort() ioPort {
 	}
 }
 
+// moveIOPorts relocates size ports from one base to another after a BAR
 func (h *HostRuntime) moveIOPorts(from, to uint32, size uint32) {
 	if from == to || size == 0 {
 		return
@@ -497,6 +514,7 @@ func (h *HostRuntime) moveIOPorts(from, to uint32, size uint32) {
 	}
 }
 
+// mmapBlock holds the registered handlers for one memory-mapped block.
 type mmapBlock struct {
 	read8   MmapReadFunc
 	write8  MmapWriteFunc

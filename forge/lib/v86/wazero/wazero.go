@@ -19,6 +19,7 @@ type ImportReport struct {
 	Exports   []string
 }
 
+// CompileImportReport compiles a wasm artifact and reports the host surface
 func CompileImportReport(ctx context.Context, wasmPath string) (*ImportReport, error) {
 	wasmBytes, err := os.ReadFile(wasmPath)
 	if err != nil {
@@ -36,6 +37,7 @@ func CompileImportReport(ctx context.Context, wasmPath string) (*ImportReport, e
 	return importReport(compiled, wasmBytes)
 }
 
+// TryInstantiateEmscriptenV86 instantiates the artifact with default options
 func TryInstantiateEmscriptenV86(ctx context.Context, wasmPath string) (*ImportReport, error) {
 	host, err := InstantiateHostRuntime(ctx, wasmPath, HostRuntimeOptions{})
 	if err != nil {
@@ -45,6 +47,7 @@ func TryInstantiateEmscriptenV86(ctx context.Context, wasmPath string) (*ImportR
 	return host.Report, nil
 }
 
+// importReport summarizes the imports of a compiled v86 module and verifies
 func importReport(compiled wazero.CompiledModule, wasmBytes []byte) (*ImportReport, error) {
 	report := &ImportReport{}
 	for _, fn := range compiled.ImportedFunctions() {
@@ -73,10 +76,12 @@ func importReport(compiled wazero.CompiledModule, wasmBytes []byte) (*ImportRepo
 	return report, nil
 }
 
+// formatImport renders one imported function signature for the report.
 func formatImport(moduleName, name string, params, results []api.ValueType) string {
 	return moduleName + "." + name + " " + valueTypes(params) + " -> " + valueTypes(results)
 }
 
+// valueTypes renders a list of wasm value types as their short names.
 func valueTypes(types []api.ValueType) string {
 	if len(types) == 0 {
 		return "()"
@@ -88,36 +93,43 @@ func valueTypes(types []api.ValueType) string {
 	return "(" + strings.Join(parts, ",") + ")"
 }
 
+// wasmExternImports collects the memory and table externs the v86 module
 type wasmExternImports struct {
 	Memories []wasmMemoryImport
 	Tables   []wasmTableImport
 }
 
+// wasmMemoryImport describes one imported linear memory.
 type wasmMemoryImport struct {
 	Module string
 	Name   string
 	Limits wasmLimits
 }
 
+// String renders the memory import as module.name limits.
 func (i wasmMemoryImport) String() string {
 	return i.Module + "." + i.Name + " " + i.Limits.String()
 }
 
+// wasmTableImport describes one imported table.
 type wasmTableImport struct {
 	Module string
 	Name   string
 	Limits wasmLimits
 }
 
+// String renders the table import as module.name limits.
 func (i wasmTableImport) String() string {
 	return i.Module + "." + i.Name + " " + i.Limits.String()
 }
 
+// wasmLimits holds the min and optional max size of an imported memory or
 type wasmLimits struct {
 	Min uint32
 	Max *uint32
 }
 
+// String renders the limits as min=N max=M or min=N max=unbounded.
 func (l wasmLimits) String() string {
 	maxText := "unbounded"
 	if l.Max != nil {
@@ -126,6 +138,7 @@ func (l wasmLimits) String() string {
 	return "min=" + strconv.FormatUint(uint64(l.Min), 10) + " max=" + maxText
 }
 
+// parseWasmExternImports walks the wasm binary's import section and returns
 func parseWasmExternImports(wasmBytes []byte) (*wasmExternImports, error) {
 	r := wasmReader{data: wasmBytes}
 	if len(wasmBytes) < 8 || string(wasmBytes[:4]) != "\x00asm" {
@@ -153,6 +166,7 @@ func parseWasmExternImports(wasmBytes []byte) (*wasmExternImports, error) {
 	return &wasmExternImports{}, nil
 }
 
+// parseImportedExterns decodes one import-section payload into the externs
 func parseImportedExterns(section []byte) (*wasmExternImports, error) {
 	r := wasmReader{data: section}
 	count, err := r.u32()
@@ -215,15 +229,18 @@ func parseImportedExterns(section []byte) (*wasmExternImports, error) {
 	return imports, nil
 }
 
+// wasmReader is a little-endian LEB128 reader over an in-memory wasm image.
 type wasmReader struct {
 	data []byte
 	pos  int
 }
 
+// remaining returns how many unread bytes are left.
 func (r *wasmReader) remaining() int {
 	return len(r.data) - r.pos
 }
 
+// byte consumes one byte.
 func (r *wasmReader) byte() (byte, error) {
 	if r.remaining() < 1 {
 		return 0, errors.New("unexpected end of wasm")
@@ -233,6 +250,7 @@ func (r *wasmReader) byte() (byte, error) {
 	return v, nil
 }
 
+// bytes consumes n raw bytes.
 func (r *wasmReader) bytes(n int) ([]byte, error) {
 	if n < 0 || r.remaining() < n {
 		return nil, errors.New("unexpected end of wasm")
@@ -242,6 +260,7 @@ func (r *wasmReader) bytes(n int) ([]byte, error) {
 	return v, nil
 }
 
+// name consumes a length-prefixed string.
 func (r *wasmReader) name() (string, error) {
 	n, err := r.u32()
 	if err != nil {
@@ -254,6 +273,7 @@ func (r *wasmReader) name() (string, error) {
 	return string(b), nil
 }
 
+// limits consumes a flags-prefixed min/max pair.
 func (r *wasmReader) limits() (wasmLimits, error) {
 	flags, err := r.u32()
 	if err != nil {
@@ -273,6 +293,7 @@ func (r *wasmReader) limits() (wasmLimits, error) {
 	return wasmLimits{Min: min, Max: &max}, nil
 }
 
+// u32 consumes one unsigned LEB128 value.
 func (r *wasmReader) u32() (uint32, error) {
 	var result uint32
 	for shift := 0; shift < 35; shift += 7 {

@@ -29,6 +29,7 @@ type Config struct {
 	Resolver *net.Resolver
 }
 
+// withDefaults fills unset configuration values: gateway, netmask, DNS,
 func (c Config) withDefaults() Config {
 	if !c.GuestIP.IsValid() {
 		c.GuestIP = netip.MustParseAddr("10.0.2.15")

@@ -8,6 +8,7 @@ import (
 	"github.com/tetratelabs/wazero/api"
 )
 
+// buildSharedModule emits the wasm module that re-exports the imported
 func buildSharedModule(imports *wasmExternImports, opts HostRuntimeOptions) ([]byte, error) {
 	if len(imports.Memories) > 1 {
 		return nil, errors.Errorf("v86 host runtime supports one imported memory, got %d", len(imports.Memories))
@@ -47,6 +48,7 @@ func buildSharedModule(imports *wasmExternImports, opts HostRuntimeOptions) ([]b
 	return wasmModule(sections...), nil
 }
 
+// buildEnvModule emits the goenv module: it imports the shared memory and
 func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) ([]byte, error) {
 	type typeEntry struct {
 		params  []api.ValueType
@@ -134,6 +136,7 @@ func appendExternExports(out []byte, imports *wasmExternImports) []byte {
 	return out
 }
 
+// signatureKey builds a map key identifying a function signature.
 func signatureKey(params, results []api.ValueType) string {
 	var b strings.Builder
 	for _, typ := range params {
@@ -146,6 +149,7 @@ func signatureKey(params, results []api.ValueType) string {
 	return b.String()
 }
 
+// appendValueTypes writes a length-prefixed list of value types.
 func appendValueTypes(out []byte, types []api.ValueType) []byte {
 	out = appendU32(out, uint32(len(types)))
 	for _, typ := range types {
@@ -154,6 +158,7 @@ func appendValueTypes(out []byte, types []api.ValueType) []byte {
 	return out
 }
 
+// wasmValueType maps an api value type to its binary encoding byte.
 func wasmValueType(typ api.ValueType) byte {
 	switch typ {
 	case api.ValueTypeI32:
@@ -169,6 +174,7 @@ func wasmValueType(typ api.ValueType) byte {
 	}
 }
 
+// wasmModule emits the wasm magic header followed by whole sections.
 func wasmModule(sections ...[]byte) []byte {
 	out := []byte{0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00}
 	for _, section := range sections {
@@ -177,6 +183,7 @@ func wasmModule(sections ...[]byte) []byte {
 	return out
 }
 
+// wasmSection frames one section: id byte plus LEB128 length prefix.
 func wasmSection(id byte, payload []byte) []byte {
 	out := []byte{id}
 	out = appendU32(out, uint32(len(payload)))
@@ -184,11 +191,13 @@ func wasmSection(id byte, payload []byte) []byte {
 	return out
 }
 
+// appendName writes a length-prefixed wasm name string.
 func appendName(out []byte, name string) []byte {
 	out = appendU32(out, uint32(len(name)))
 	return append(out, name...)
 }
 
+// appendLimits writes a limits flags/min/max triple.
 func appendLimits(out []byte, limits wasmLimits) []byte {
 	if limits.Max == nil {
 		out = appendU32(out, 0)
@@ -199,6 +208,7 @@ func appendLimits(out []byte, limits wasmLimits) []byte {
 	return appendU32(out, *limits.Max)
 }
 
+// appendU32 encodes one unsigned LEB128 value.
 func appendU32(out []byte, value uint32) []byte {
 	for {
 		b := byte(value & 0x7f)

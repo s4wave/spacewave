@@ -23,6 +23,7 @@ const (
 	uartLsrTransmitterEmpty = 0x40
 )
 
+// uartDevice models a 16550A UART: divisor latch, line/modem registers,
 type uartDevice struct {
 	host            *HostRuntime
 	port            uint16
@@ -40,6 +41,7 @@ type uartDevice struct {
 	input           []byte
 }
 
+// registerUART wires a COM port at port on its ISA interrupt line; COM1
 func (h *HostRuntime) registerUART(port uint16) {
 	irq := uint32(4)
 	if port == 0x2f8 || port == 0x2e8 {
@@ -59,6 +61,7 @@ func (h *HostRuntime) registerUART(port uint16) {
 	u.register()
 }
 
+// register wires the eight UART register ports, including the DLAB-shared
 func (u *uartDevice) register() {
 	u.host.RegisterIOWrite(u.port, 8, func(ctx context.Context, _ uint16, value uint32) {
 		u.writeData(ctx, value)
@@ -132,6 +135,7 @@ func (u *uartDevice) register() {
 	u.host.RegisterIOWrite(u.port|7, 8, func(_ context.Context, _ uint16, value uint32) { u.scratchRegister = value })
 }
 
+// writeData transmits one byte: in loopback mode it feeds the receiver,
 func (u *uartDevice) writeData(ctx context.Context, value uint32) {
 	if u.lineControl&uartDLAB != 0 {
 		u.baudRate = (u.baudRate &^ 0xff) | (value & 0xff)
@@ -148,6 +152,7 @@ func (u *uartDevice) writeData(ctx context.Context, value uint32) {
 	}
 }
 
+// receive queues an input byte and raises the data-ready interrupt.
 func (u *uartDevice) receive(ctx context.Context, value byte) {
 	u.input = append(u.input, value)
 	u.lsr |= uartLsrDataReady
@@ -158,6 +163,7 @@ func (u *uartDevice) receive(ctx context.Context, value byte) {
 	u.throwInterrupt(ctx, uartIirRDI)
 }
 
+// checkInterrupt reevaluates the pending interrupt priority against the
 func (u *uartDevice) checkInterrupt(ctx context.Context) {
 	switch {
 	case u.ints&(1<<uartIirCTI) != 0 && u.ier&uartIerRDI != 0:
@@ -178,22 +184,26 @@ func (u *uartDevice) checkInterrupt(ctx context.Context) {
 	}
 }
 
+// throwInterrupt marks an interrupt source pending.
 func (u *uartDevice) throwInterrupt(ctx context.Context, line uint32) {
 	u.ints |= 1 << line
 	u.checkInterrupt(ctx)
 }
 
+// clearInterrupt marks an interrupt source resolved.
 func (u *uartDevice) clearInterrupt(ctx context.Context, line uint32) {
 	u.ints &^= 1 << line
 	u.checkInterrupt(ctx)
 }
 
+// setModemStatus stores the modem status byte plus its delta bits.
 func (u *uartDevice) setModemStatus(status uint32) {
 	delta := (u.modemStatus ^ status) >> 4
 	delta |= u.modemStatus & 0x0f
 	u.modemStatus = status | delta
 }
 
+// raiseIRQ asserts a guest ISA interrupt line.
 func (h *HostRuntime) raiseIRQ(ctx context.Context, irq uint32) error {
 	if h.Module == nil {
 		return nil
@@ -201,6 +211,7 @@ func (h *HostRuntime) raiseIRQ(ctx context.Context, irq uint32) error {
 	return h.callVoid(ctx, "device_raise_irq", uint64(irq))
 }
 
+// lowerIRQ deasserts a guest ISA interrupt line.
 func (h *HostRuntime) lowerIRQ(ctx context.Context, irq uint32) error {
 	if h.Module == nil {
 		return nil

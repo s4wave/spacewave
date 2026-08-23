@@ -119,6 +119,7 @@ func (s *Stack) Close() error {
 	return ret
 }
 
+// handleARP answers requests for the gateway or DNS address with the
 func (s *Stack) handleARP(packet *ethPacket) {
 	if packet.arp.oper != 1 || packet.arp.ptype != ethTypeIPv4 {
 		return
@@ -129,6 +130,7 @@ func (s *Stack) handleARP(packet *ethPacket) {
 	s.emit(buildARPReply(packet.src, packet.arp.tpa, packet.arp.spa))
 }
 
+// handleICMP replies to pings addressed to the gateway.
 func (s *Stack) handleICMP(packet *ethPacket) {
 	if packet.ipv4.icmp.typ != 8 || packet.ipv4.dest != s.cfg.GatewayIP {
 		return
@@ -138,6 +140,7 @@ func (s *Stack) handleICMP(packet *ethPacket) {
 	s.emit(buildEth(packet.src, routerMAC, ethTypeIPv4, ip))
 }
 
+// handleUDP demultiploys a UDP datagram to DHCP, DNS, or host proxying.
 func (s *Stack) handleUDP(packet *ethPacket) {
 	udp := packet.ipv4.udp
 	if udp.sport == 68 && udp.dport == 67 {
@@ -151,6 +154,7 @@ func (s *Stack) handleUDP(packet *ethPacket) {
 	s.handleUDPHost(packet)
 }
 
+// handleDHCP performs the offer/ack exchange that leases the configured
 func (s *Stack) handleDHCP(packet *ethPacket) {
 	req, err := parseDHCP(packet.ipv4.udp.data)
 	if err != nil {
@@ -198,6 +202,7 @@ func (s *Stack) handleDHCP(packet *ethPacket) {
 	s.emit(buildEth(packet.src, routerMAC, ethTypeIPv4, ip))
 }
 
+// handleDNS resolves each A/AAAA question through the configured resolver
 func (s *Stack) handleDNS(packet *ethPacket) {
 	req, err := parseDNS(packet.ipv4.udp.data)
 	if err != nil {
@@ -234,6 +239,7 @@ func (s *Stack) handleDNS(packet *ethPacket) {
 	s.emit(buildEth(packet.src, routerMAC, ethTypeIPv4, ip))
 }
 
+// handleUDPHost relays guest UDP datagrams to the host over an existing or
 func (s *Stack) handleUDPHost(packet *ethPacket) {
 	key := tupleKey(packet.ipv4.src, packet.ipv4.udp.sport, packet.ipv4.dest, packet.ipv4.udp.dport)
 	s.mtx.Lock()
@@ -279,6 +285,7 @@ func (s *Stack) handleUDPHost(packet *ethPacket) {
 	conn.write(packet.ipv4.udp.data)
 }
 
+// handleTCP dispatches one TCP segment: SYNs open connections, unknown
 func (s *Stack) handleTCP(packet *ethPacket) {
 	key := tupleKey(packet.ipv4.src, packet.ipv4.tcp.sport, packet.ipv4.dest, packet.ipv4.tcp.dport)
 	if tcpFlag(packet.ipv4.tcp, tcpFlagSYN) && !tcpFlag(packet.ipv4.tcp, tcpFlagACK) {
@@ -295,6 +302,7 @@ func (s *Stack) handleTCP(packet *ethPacket) {
 	conn.process(packet)
 }
 
+// openTCP dials the host target for a new connection and registers it
 func (s *Stack) openTCP(key string, packet *ethPacket) {
 	addr := net.JoinHostPort(packet.ipv4.dest.String(), strconv.Itoa(int(packet.ipv4.tcp.dport)))
 	host, err := s.cfg.Dialer.DialContext(s.ctx, "tcp", addr)
@@ -325,6 +333,7 @@ func (s *Stack) openTCP(key string, packet *ethPacket) {
 	conn.start()
 }
 
+// sendTCPReset emits a RST segment answering a stray packet.
 func (s *Stack) sendTCPReset(packet *ethPacket) {
 	bop := packet.ipv4.tcp.ack
 	if tcpFlag(packet.ipv4.tcp, tcpFlagFIN) || tcpFlag(packet.ipv4.tcp, tcpFlagSYN) {
@@ -350,24 +359,28 @@ func (s *Stack) sendTCPReset(packet *ethPacket) {
 	s.emit(buildEth(packet.src, routerMAC, ethTypeIPv4, ip))
 }
 
+// sendTCP frames and emits one outbound TCP segment for a connection.
 func (s *Stack) sendTCP(conn *tcpConn, tcp *tcpPacket, data []byte, mss uint16) {
 	msg := buildTCP(conn.psrc, conn.pdest, tcp, data, mss)
 	ip := buildIPv4(ipProtoTCP, conn.psrc, conn.pdest, msg)
 	s.emit(buildEth(conn.hdest, conn.hsrc, ethTypeIPv4, ip))
 }
 
+// sendUDP frames and emits one outbound UDP datagram for a connection.
 func (s *Stack) sendUDP(conn *udpConn, data []byte) {
 	udp := buildUDP(conn.psrc, conn.pdest, conn.sport, conn.dport, data)
 	ip := buildIPv4(ipProtoUDP, conn.psrc, conn.pdest, udp)
 	s.emit(buildEth(conn.hdest, conn.hsrc, ethTypeIPv4, ip))
 }
 
+// releaseUDP drops the connection-table entry under its tuple key.
 func (s *Stack) releaseUDP(key string) {
 	s.mtx.Lock()
 	delete(s.udp, key)
 	s.mtx.Unlock()
 }
 
+// releaseTCP drops a connection-table entry when still registered.
 func (s *Stack) releaseTCP(key string, conn *tcpConn) {
 	s.mtx.Lock()
 	if s.tcp[key] == conn {
@@ -376,6 +389,7 @@ func (s *Stack) releaseTCP(key string, conn *tcpConn) {
 	s.mtx.Unlock()
 }
 
+// emit hands one guest-inbound frame to the inbound sink when set.
 func (s *Stack) emit(frame []byte) {
 	if s.inbound == nil {
 		return
@@ -383,6 +397,7 @@ func (s *Stack) emit(frame []byte) {
 	s.inbound(frame)
 }
 
+// ipToLong renders an IPv4 address as one network-order uint32.
 func ipToLong(addr netip.Addr) uint32 {
 	return binary.BigEndian.Uint32(addr.AsSlice())
 }

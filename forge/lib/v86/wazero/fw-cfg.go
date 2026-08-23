@@ -18,6 +18,7 @@ const (
 	fwCfgSignatureQEMU = 0x554d4551
 )
 
+// registerFWCfgPorts wires the QEMU fw_cfg DMA-less selector/data ports at
 func (h *HostRuntime) registerFWCfgPorts() {
 	h.RegisterIORead(0x511, 8, func(context.Context, uint16) uint32 {
 		if h.fwPointer >= len(h.fwValue) {
@@ -52,6 +53,7 @@ func (h *HostRuntime) registerFWCfgPorts() {
 	})
 }
 
+// fwCfgFileDir renders the fw_cfg file-directory entry describing the
 func (h *HostRuntime) fwCfgFileDir() []byte {
 	out := make([]byte, 4+64*len(h.optionROMs))
 	binary.BigEndian.PutUint32(out[0:], uint32(len(h.optionROMs)))
@@ -64,12 +66,14 @@ func (h *HostRuntime) fwCfgFileDir() []byte {
 	return out
 }
 
+// be32 encodes a uint32 big-endian, matching fw_cfg's wire byte order.
 func be32(value uint32) []byte {
 	out := make([]byte, 4)
 	binary.BigEndian.PutUint32(out, value)
 	return out
 }
 
+// le32 encodes a uint32 little-endian.
 func le32(value uint32) []byte {
 	out := make([]byte, 4)
 	binary.LittleEndian.PutUint32(out, value)
