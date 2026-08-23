@@ -162,7 +162,7 @@ function highlightCodeBlocks(
           lang: language,
           theme: 'vitesse-dark',
         })
-        return `<div dangerouslySetInnerHTML="true">${highlighted}</div>`
+        return `<div>${highlighted}</div>`
       } catch {
         return `\`\`\`${language}\n${code}\`\`\``
       }
