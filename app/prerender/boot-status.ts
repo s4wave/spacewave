@@ -5,6 +5,7 @@ import {
   withBrowserBootProgress,
   type BrowserBootStatus,
   type BrowserStartupMark,
+  type BrowserStartupPhaseState,
 } from '@s4wave/app/loading/status/browser-startup-model.js'
 
 export const bootStatusEvent = 'spacewave:boot-status'
@@ -102,6 +103,24 @@ function updateProgressLabel(
   )
 }
 
+// PHASE_DOT_COLOR and PHASE_LABEL_COLOR map each boot phase state to the
+// static shell's dot background and label color.
+const PHASE_DOT_COLOR: Record<BrowserStartupPhaseState, string> = {
+  error: 'var(--color-destructive,#ef4444)',
+  pending: 'color-mix(in srgb,var(--color-foreground,#fafafa) 15%,transparent)',
+  current: 'var(--color-brand,var(--color-logo-blue,#4f8cff))',
+  complete: 'var(--color-brand,var(--color-logo-blue,#4f8cff))',
+}
+
+const PHASE_LABEL_COLOR: Record<BrowserStartupPhaseState, string> = {
+  error: 'var(--color-destructive,#ef4444)',
+  current: 'var(--color-foreground,#fafafa)',
+  complete:
+    'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 85%,transparent)',
+  pending:
+    'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 55%,transparent)',
+}
+
 function updateStaticPhaseRail(
   phases: ReturnType<typeof projectBrowserStartup>['phases'],
 ) {
@@ -112,26 +131,14 @@ function updateStaticPhaseRail(
 
     const dot = target.querySelector<HTMLElement>('[data-sw-boot-phase-dot]')
     if (dot) {
-      dot.style.background =
-        phase.state === 'error'
-          ? 'var(--color-destructive,#ef4444)'
-          : phase.state === 'pending'
-            ? 'color-mix(in srgb,var(--color-foreground,#fafafa) 15%,transparent)'
-            : 'var(--color-brand,var(--color-logo-blue,#4f8cff))'
+      dot.style.background = PHASE_DOT_COLOR[phase.state]
     }
 
     const label = target.querySelector<HTMLElement>(
       '[data-sw-boot-phase-label]',
     )
     if (label) {
-      label.style.color =
-        phase.state === 'error'
-          ? 'var(--color-destructive,#ef4444)'
-          : phase.state === 'current'
-            ? 'var(--color-foreground,#fafafa)'
-            : phase.state === 'complete'
-              ? 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 85%,transparent)'
-              : 'color-mix(in srgb,var(--color-foreground-alt,#a1a1aa) 55%,transparent)'
+      label.style.color = PHASE_LABEL_COLOR[phase.state]
     }
   }
 }

@@ -33,8 +33,15 @@ export interface BrowserStartupPhase {
   label: string
 }
 
+// BrowserStartupPhaseState is the presentation state of one startup phase.
+export type BrowserStartupPhaseState =
+  | 'pending'
+  | 'current'
+  | 'complete'
+  | 'error'
+
 export interface BrowserStartupPhaseView extends BrowserStartupPhase {
-  state: 'pending' | 'current' | 'complete' | 'error'
+  state: BrowserStartupPhaseState
 }
 
 export interface BrowserStartupProjection {
