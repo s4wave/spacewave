@@ -1,8 +1,7 @@
 package testbed
 
 import (
-	"errors"
-	"time"
+	"github.com/pkg/errors"
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/world"
@@ -67,11 +66,11 @@ func (tb *Testbed) RunExecutionWithTarget(
 		tb.EngineID,
 		execution_transaction.LookupWorldOp,
 	)
-	go func() {
-		_ = tb.Bus.ExecuteController(ctx, opc)
-	}()
-	// hack: wait for it to start
-	<-time.After(time.Millisecond * 100)
+	releaseOpCtrl, err := tb.Bus.AddController(ctx, opc, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "attach op controller")
+	}
+	defer releaseOpCtrl()
 
 	// wait for execution to complete
 	finalState, err := forge_execution.WaitExecutionComplete(

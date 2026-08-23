@@ -1,8 +1,6 @@
 package testbed
 
 import (
-	"time"
-
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/world"
@@ -38,11 +36,11 @@ func (tb *Testbed) RunWorkerWithTasks(
 		tb.EngineID,
 		forge_world.LookupWorldOp,
 	)
-	go func() {
-		_ = tb.Bus.ExecuteController(ctx, opc)
-	}()
-	// hack: wait for it to start
-	<-time.After(time.Millisecond * 100)
+	releaseOpCtrl, err := tb.Bus.AddController(ctx, opc, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "attach op controller")
+	}
+	defer releaseOpCtrl()
 
 	// create a new peer for the worker, if necessary.
 	if workerPeer == nil {
@@ -158,24 +156,6 @@ func (tb *Testbed) RunWorkerWithTasks(
 	if len(jobTaskKeys) != len(jobTasks) {
 		return nil, errors.Errorf("expected %d job task keys but found %d", len(jobTasks), len(jobTaskKeys))
 	}
-
-	// start the Cluster controller, which will schedule the Job to the Worker.
-	/*
-		clusterCtrlCfg := cluster_controller.NewConfig(
-			tb.EngineID,
-			clusterKey,
-			clusterPeer.GetPeerID(),
-		)
-		_, clusterCtrlRef, err := cluster_controller.StartControllerWithConfig(
-			ctx,
-			tb.Bus,
-			clusterCtrlCfg,
-		)
-		if err != nil {
-			return nil, err
-		}
-		defer clusterCtrlRef.Release()
-	*/
 
 	// wait for Job to complete
 	finalState, err := forge_job.WaitJobComplete(

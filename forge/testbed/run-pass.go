@@ -1,8 +1,7 @@
 package testbed
 
 import (
-	"errors"
-	"time"
+	"github.com/pkg/errors"
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/s4wave/spacewave/db/world"
@@ -67,11 +66,11 @@ func (tb *Testbed) RunPassWithTarget(
 		tb.EngineID,
 		pass_transaction.LookupWorldOp,
 	)
-	go func() {
-		_ = tb.Bus.ExecuteController(ctx, opc)
-	}()
-	// hack: wait for it to start
-	<-time.After(time.Millisecond * 100)
+	releaseOpCtrl, err := tb.Bus.AddController(ctx, opc, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "attach op controller")
+	}
+	defer releaseOpCtrl()
 
 	// construct execution controller & attach to the object the pass controller
 	// will create. NOTE: this should eventually be replaced with the worker.
@@ -101,11 +100,11 @@ func (tb *Testbed) RunPassWithTarget(
 		tb.EngineID,
 		exec_transaction.LookupWorldOp,
 	)
-	go func() {
-		_ = tb.Bus.ExecuteController(ctx, opc)
-	}()
-	// hack: wait for it to start
-	<-time.After(time.Millisecond * 100)
+	releaseExecOpCtrl, err := tb.Bus.AddController(ctx, opc, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "attach op controller")
+	}
+	defer releaseExecOpCtrl()
 
 	// wait for pass to complete
 	finalState, err := forge_pass.WaitPassComplete(
