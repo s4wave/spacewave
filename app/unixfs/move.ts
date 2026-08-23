@@ -6,7 +6,6 @@ import {
   joinUnixFSDisplayPath,
   normalizeUnixFSDisplayPath,
   normalizeUnixFSLookupPath,
-  splitUnixFSPath,
 } from '@s4wave/sdk/unixfs/path.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 
@@ -33,14 +32,6 @@ export interface UnixFSMoveValidation {
     | 'descendant'
     | 'duplicate-source'
     | null
-}
-
-export {
-  getUnixFSBaseName,
-  getUnixFSParentPath,
-  isSameOrChildUnixFSPath,
-  normalizeUnixFSLookupPath as normalizeUnixFSHandlePath,
-  splitUnixFSPath,
 }
 
 // buildUnixFSMoveItems maps browser entries in one directory into move items.

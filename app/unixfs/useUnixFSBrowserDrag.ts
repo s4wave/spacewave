@@ -1,18 +1,17 @@
 import { useCallback, type DragEvent } from 'react'
 
 import type { FSHandle } from '@s4wave/sdk/unixfs/handle.js'
-import { joinUnixFSDisplayPath } from '@s4wave/sdk/unixfs/path.js'
+import {
+  getUnixFSBaseName,
+  joinUnixFSDisplayPath,
+} from '@s4wave/sdk/unixfs/path.js'
 import type { FileEntry } from '@s4wave/web/editors/file-browser/types.js'
 import { hasNativeFileDrag } from '@s4wave/web/dnd/app-drag.js'
 import type { UploadManager } from '@s4wave/app/unixfs/useUploadManager.js'
 import { toast } from '@s4wave/web/ui/toaster.js'
 
 import { extractNativeUploadSelection } from './native-upload.js'
-import {
-  getUnixFSBaseName,
-  moveUnixFSItemsFromDirectory,
-  validateUnixFSMove,
-} from './move.js'
+import { moveUnixFSItemsFromDirectory, validateUnixFSMove } from './move.js'
 import { readUnixFSMovableAppDragItems } from './unixfs-app-drag.js'
 
 interface UnixFSBrowserDragOptions {
