@@ -1,6 +1,7 @@
 package publish
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"io"
@@ -210,7 +211,7 @@ func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetad
 			return errors.Wrap(err, "verify indexed block hash")
 		}
 		bf.Add(key)
-		keys = append(keys, append([]byte(nil), key...))
+		keys = append(keys, bytes.Clone(key))
 		return nil
 	})
 	if err != nil {

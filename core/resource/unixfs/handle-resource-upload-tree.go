@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"slices"
 	"strings"
 	"time"
 
@@ -115,7 +116,7 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 		if err := r.addUploadTreeDir(
 			ctx,
 			state,
-			append(append([]string(nil), r.path...), parts...),
+			slices.Concat(r.path, parts),
 			fs.FileMode(dir.GetMode()),
 		); err != nil {
 			return err
@@ -137,7 +138,7 @@ func (r *FSHandleResource) handleUploadTreeMessage(
 			return errors.New("file total_size must be non-negative")
 		}
 
-		parentPath := append(append([]string(nil), r.path...), parts[:len(parts)-1]...)
+		parentPath := slices.Concat(r.path, parts[:len(parts)-1])
 		if err := r.ensureUploadTreeParents(ctx, state, parts[:len(parts)-1]); err != nil {
 			return err
 		}
@@ -183,7 +184,7 @@ func (r *FSHandleResource) ensureUploadTreeParents(
 	if len(relParts) == 0 {
 		return nil
 	}
-	fullPath := append(append([]string(nil), r.path...), relParts...)
+	fullPath := slices.Concat(r.path, relParts)
 	for i := range fullPath {
 		if len(fullPath[:i+1]) <= len(r.path) {
 			continue

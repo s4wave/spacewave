@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 
 	fetch "github.com/aperturerobotics/util/js/fetch"
@@ -88,7 +89,7 @@ func cloneFetchHeaders(src map[string][]string) fetch.Header {
 	}
 	dst := make(fetch.Header, len(src))
 	for key, vals := range src {
-		dst[key] = append([]string(nil), vals...)
+		dst[key] = slices.Clone(vals)
 	}
 	return dst
 }
@@ -142,7 +143,7 @@ func buildSignedRangeHeaders(url string, signReq func(*http.Request) error) (map
 	}
 	headers := make(map[string][]string, len(req.Header))
 	for key, vals := range req.Header {
-		headers[key] = append([]string(nil), vals...)
+		headers[key] = slices.Clone(vals)
 	}
 	return headers, nil
 }

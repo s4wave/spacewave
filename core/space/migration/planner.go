@@ -102,7 +102,7 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 	blockers := make([]*MigrationBlocker, 0)
 	conflicts := make([]*MigrationConflict, 0)
 	closure := make(map[string]struct{}, len(selected))
-	queue := append([]string(nil), selected...)
+	queue := slices.Clone(selected)
 
 	// Traverse selected objects and collect dependency closure diagnostics.
 	for len(queue) > 0 {
@@ -161,8 +161,8 @@ func (p *Planner) Plan(ctx context.Context, input *PlannerInput) (*MigrationPrev
 		object.Dependencies = append(object.Dependencies, inspection.Dependencies...)
 		slices.Sort(object.Dependencies)
 		object.Dependencies = slices.Compact(object.Dependencies)
-		object.References = append([]TypedReference(nil), inspection.References...)
-		object.ExternalReferences = append([]string(nil), inspection.ExternalReferences...)
+		object.References = slices.Clone(inspection.References)
+		object.ExternalReferences = slices.Clone(inspection.ExternalReferences)
 		for _, dependency := range object.Dependencies {
 			if dependency != "" {
 				queue = append(queue, dependency)
@@ -632,7 +632,7 @@ func selectClosure(selected []string, source map[string]*ObjectDescriptor) []str
 		slices.Sort(keys)
 		return keys
 	}
-	keys := append([]string(nil), selected...)
+	keys := slices.Clone(selected)
 	slices.Sort(keys)
 	return slices.Compact(keys)
 }

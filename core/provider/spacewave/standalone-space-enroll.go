@@ -221,7 +221,7 @@ func (c *SessionClient) addStandaloneParticipant(
 				epoch = &sobject.SOKeyEpoch{
 					Epoch:      sobject.CurrentEpochNumber(epochs),
 					SeqnoStart: state.GetRoot().GetInnerSeqno(),
-					Grants:     append([]*sobject.SOGrant(nil), state.GetRootGrants()...),
+					Grants:     slices.Clone(state.GetRootGrants()),
 				}
 			}
 			if epoch.GetSeqnoStart() == 0 {
@@ -395,7 +395,7 @@ func (c *SessionClient) addStandalonePeerParticipant(
 				epoch = &sobject.SOKeyEpoch{
 					Epoch:      sobject.CurrentEpochNumber(epochs),
 					SeqnoStart: state.GetRoot().GetInnerSeqno(),
-					Grants:     append([]*sobject.SOGrant(nil), state.GetRootGrants()...),
+					Grants:     slices.Clone(state.GetRootGrants()),
 				}
 			}
 			if epoch.GetSeqnoStart() == 0 {

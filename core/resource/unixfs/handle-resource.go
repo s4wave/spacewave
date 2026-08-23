@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"slices"
 	"sync"
 	"time"
 
@@ -96,7 +97,7 @@ func newFSHandleResource(
 		ws:       ws,
 		objKey:   objKey,
 		fsType:   fsType,
-		path:     append([]string(nil), path...),
+		path:     slices.Clone(path),
 	}
 	r.mux = resource_server.NewResourceMux(func(mux srpc.Mux) error {
 		return s4wave_unixfs.SRPCRegisterFSHandleResourceService(mux, r)
@@ -149,9 +150,9 @@ func (r *FSHandleResource) registerChildResource(
 // joinHandlePath joins relPath onto the current handle path.
 func (r *FSHandleResource) joinHandlePath(relPath string) []string {
 	if relPath == "" || relPath == "." {
-		return append([]string(nil), r.path...)
+		return slices.Clone(r.path)
 	}
-	next := append([]string(nil), r.path...)
+	next := slices.Clone(r.path)
 	parts, _ := unixfs.SplitPath(relPath)
 	for _, part := range parts {
 		if part == "" || part == "." {

@@ -2,6 +2,7 @@ package resource_world
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -80,7 +81,7 @@ func (r *GraphPathQueryResource) Next(ctx context.Context, req *s4wave_world.Nex
 	}
 
 	end := min(r.offset+int(r.pageSize), len(r.objectKeys))
-	objectKeys := append([]string(nil), r.objectKeys[r.offset:end]...)
+	objectKeys := slices.Clone(r.objectKeys[r.offset:end])
 	done := end >= len(r.objectKeys)
 	r.offset = end
 

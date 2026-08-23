@@ -64,7 +64,7 @@ func BuildPackID(resourceID string, result *writer.PackResult) (string, error) {
 func DigestSortedKeys(keys [][]byte) []byte {
 	sorted := make([][]byte, len(keys))
 	for i, key := range keys {
-		sorted[i] = append([]byte(nil), key...)
+		sorted[i] = bytes.Clone(key)
 	}
 	slices.SortFunc(sorted, bytes.Compare)
 	h := sha256.New()

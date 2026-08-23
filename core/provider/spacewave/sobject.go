@@ -1,6 +1,7 @@
 package provider_spacewave
 
 import (
+	"bytes"
 	"context"
 	"path"
 	"slices"
@@ -1004,7 +1005,7 @@ func (s *SharedObject) AddParticipant(ctx context.Context, targetPeerIDStr strin
 				epoch = &sobject.SOKeyEpoch{
 					Epoch:      sobject.CurrentEpochNumber(epochs),
 					SeqnoStart: state.GetRoot().GetInnerSeqno(),
-					Grants:     append([]*sobject.SOGrant(nil), state.GetRootGrants()...),
+					Grants:     slices.Clone(state.GetRootGrants()),
 				}
 			}
 			if epoch.GetSeqnoStart() == 0 {
@@ -1117,7 +1118,7 @@ func currentEpochWithFallback(state *sobject.SOState, epochs []*sobject.SOKeyEpo
 	return &sobject.SOKeyEpoch{
 		Epoch:      currentEpoch,
 		SeqnoStart: state.GetRoot().GetInnerSeqno(),
-		Grants:     append([]*sobject.SOGrant(nil), state.GetRootGrants()...),
+		Grants:     slices.Clone(state.GetRootGrants()),
 	}
 }
 
@@ -1292,7 +1293,7 @@ func (s *SharedObject) loadLatestConfigState(ctx context.Context) (*sobject.SOSt
 	var lastSeqno uint64
 	var epochs []*sobject.SOKeyEpoch
 	s.host.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		lastHash = append([]byte(nil), s.host.lastConfigChainHash...)
+		lastHash = bytes.Clone(s.host.lastConfigChainHash)
 		lastSeqno = s.host.verifiedConfigChainSeqno
 		epochs = cloneVTSlice(s.host.keyEpochs)
 	})
@@ -1304,13 +1305,13 @@ func (s *SharedObject) loadLatestConfigState(ctx context.Context) (*sobject.SOSt
 			return nil, nil, nil, errors.Wrap(err, "sync config chain")
 		}
 		s.host.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-			lastHash = append([]byte(nil), s.host.lastConfigChainHash...)
+			lastHash = bytes.Clone(s.host.lastConfigChainHash)
 			lastSeqno = s.host.verifiedConfigChainSeqno
 			epochs = cloneVTSlice(s.host.keyEpochs)
 		})
 	}
 	if len(lastHash) != 0 {
-		currentCfg.ConfigChainHash = append([]byte(nil), lastHash...)
+		currentCfg.ConfigChainHash = bytes.Clone(lastHash)
 		currentCfg.ConfigChainSeqno = lastSeqno
 	}
 
