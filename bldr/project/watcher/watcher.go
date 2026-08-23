@@ -112,9 +112,11 @@ func (c *Controller) Execute(rctx context.Context) error {
 	starPath := ResolveStarlarkPath(configPath)
 
 	for {
-		// add the config file if it exists (or re-add if watcher was removed)
+		// Missing paths are expected here: bldr.star and loaded files may not
+		// exist yet. Other Add failures (e.g. too many watches) are dropped
+		// too; the debounce loop still sees changes on successfully added
+		// paths.
 		_ = watcher.Add(configPath)
-		// watch bldr.star and any files it loaded
 		_ = watcher.Add(starPath)
 		for _, f := range c.starLoadedFiles {
 			_ = watcher.Add(f)
