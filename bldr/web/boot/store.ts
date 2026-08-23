@@ -36,6 +36,8 @@ interface IDBRequestLike<T> {
 }
 
 interface IDBTransactionLike {
+  // Error mirrors the native transaction error surfaced on abort.
+  readonly error?: Error | null
   objectStore(name: string): {
     get(key: string): IDBRequestLike<unknown>
     getAll(): IDBRequestLike<unknown[]>
@@ -420,8 +422,8 @@ export async function openBootReportStore(
         a: BootReport,
         b: BootReport,
       ): number => {
-        const aAt = a.sealedAt ?? 0n
-        const bAt = b.sealedAt ?? 0n
+        const aAt = (a as { sealedAt?: bigint }).sealedAt ?? 0n
+        const bAt = (b as { sealedAt?: bigint }).sealedAt ?? 0n
         // BigInt-safe comparison: microsecond stamps may exceed the safe
         // integer range in future schemas.
         if (aAt === bAt) return 0

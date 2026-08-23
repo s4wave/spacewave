@@ -388,7 +388,7 @@ function lockManagerDenied(): LockManager {
 // settles, and contending requests observe null asynchronously exactly like
 // the native manager.
 function lockManagerShared(): LockManager {
-  const held = new Map<string, () => void>()
+  const held = new Map<string, boolean>()
   const manager = {
     request: (
       name: string,
@@ -500,7 +500,10 @@ describe('BootReportStore durability', () => {
         store.createIndex('state', 'state')
         store.createIndex('sealedAt', 'sealedAt')
         const future = recordingReport('boot-report-future', ['boot.started'])
-        store.records.set('boot-report-future', future)
+        store.records.set(
+          'boot-report-future',
+          future as unknown as Record<string, unknown>,
+        )
       },
     )
 
@@ -699,24 +702,26 @@ describe('BootReportStore durability', () => {
     const result = await store.applyRetention()
 
     const survivors = await store.list()
-    expect(survivors.some((r) => r.reportId === 'boot-report-recording')).toBe(
+    expect(survivors.some((r: BootReport) => r.reportId === 'boot-report-recording')).toBe(
       true,
     )
-    expect(survivors.some((r) => r.reportId === 'boot-report-failed-new')).toBe(
+    expect(survivors.some((r: BootReport) => r.reportId === 'boot-report-failed-new')).toBe(
       true,
     )
-    expect(survivors.some((r) => r.reportId === 'boot-report-failed-old')).toBe(
+    expect(survivors.some((r: BootReport) => r.reportId === 'boot-report-failed-old')).toBe(
       false,
     )
-    expect(survivors.some((r) => r.reportId === 'boot-report-ready-1')).toBe(
+    expect(survivors.some((r: BootReport) => r.reportId === 'boot-report-ready-1')).toBe(
       false,
     )
-    const terminals = survivors.filter(
-      (r) => r.state !== BootReportState.RECORDING,
-    )
+    const terminals = survivors.filter((r: BootReport) => r.state !== BootReportState.RECORDING)
     expect(terminals.length).toBeLessThanOrEqual(100)
     expect(result.evicted.length).toBeGreaterThanOrEqual(2)
-    for (const eviction of result.evicted) {
+    const evictions = result.evicted as Array<{
+      reportId: string
+      reason: string
+    }>
+    for (const eviction of evictions) {
       expect(eviction.reason.length).toBeGreaterThan(0)
     }
   })
@@ -756,12 +761,16 @@ describe('BootReportStore durability', () => {
       bodyBudgetBytes: Math.floor((wideBytes + smallBytes) / 2),
     })
     const survivors = await store.list()
-    expect(survivors.some((r) => r.reportId === 'boot-report-small')).toBe(
+    expect(survivors.some((r: BootReport) => r.reportId === 'boot-report-small')).toBe(
       true,
     )
-    const evictedIds = result.evicted.map((eviction) => eviction.reportId)
+    const evictedIds = result.evicted.map((eviction: { reportId: string; reason: string }) => eviction.reportId)
     expect(evictedIds).toContain('boot-report-wide')
-    for (const eviction of result.evicted) {
+    const evictions = result.evicted as Array<{
+      reportId: string
+      reason: string
+    }>
+    for (const eviction of evictions) {
       expect(eviction.reason).toBe('body-budget')
     }
   })
@@ -793,10 +802,10 @@ describe('BootReportStore durability', () => {
     })
 
     const survivors = await store.list()
-    expect(survivors.map((r) => r.reportId)).toEqual([
+    expect(survivors.map((r: BootReport) => r.reportId)).toEqual([
       'boot-report-failed-huge',
     ])
-    expect(result.evicted.map((eviction) => eviction.reportId)).toEqual([
+    expect(result.evicted.map((eviction: { reportId: string; reason: string }) => eviction.reportId)).toEqual([
       'boot-report-old-ready',
     ])
     expect(result.evicted[0]?.reason).toBe('sealed-limit')
@@ -826,8 +835,8 @@ describe('BootReportStore durability', () => {
 
     // Number() coercion would collapse both stamps to the same double and
     // could evict the wrong side; BigInt comparison keeps the newer report.
-    expect(survivors.map((r) => r.reportId)).toEqual(['boot-report-big-new'])
-    expect(result.evicted.map((eviction) => eviction.reportId)).toEqual([
+    expect(survivors.map((r: BootReport) => r.reportId)).toEqual(['boot-report-big-new'])
+    expect(result.evicted.map((eviction: { reportId: string; reason: string }) => eviction.reportId)).toEqual([
       'boot-report-big-old',
     ])
   })
@@ -866,6 +875,7 @@ describe('BootReportStore durability', () => {
       { entrypointId: 'drive', usableMark: 'webview.revealed' },
       { store },
     )
+    if (!collector) throw new Error('boot report collector missing')
     try {
       const persisted = await waitForStoreRecord(store)
       expect(persisted.length).toBeGreaterThanOrEqual(1)
@@ -910,6 +920,7 @@ describe('BootReportStore durability', () => {
       { entrypointId: 'drive', usableMark: 'webview.revealed' },
       { store },
     )
+    if (!collector) throw new Error('boot report collector missing')
     try {
       window.dispatchEvent(
         new CustomEvent('spacewave-startup-mark', {
@@ -1036,17 +1047,16 @@ describe('BootReport lock and lazy-attach races', () => {
     const factory = new FakeIDBFactory()
     const previousIndexedDB = globals.indexedDB
     globals.indexedDB = factory as unknown as IDBFactory
-    let collector: { stop(): void } | undefined
+    let collector: ReturnType<typeof collectorModule.initBootReportCollector>
     try {
       collector = collectorModule.initBootReportCollector({
         entrypointId: 'drive',
         usableMark: 'boot-status.app',
       })
       expect(collector?.isSealed()).toBe(true)
-      const reportId = (
-        (globalThis as { __swBootReport?: BootReport }).__swBootReport ??
-        {}
-      ).reportId ?? ''
+      const sealedReport = (globalThis as { __swBootReport?: BootReport })
+        .__swBootReport
+      const reportId = sealedReport?.reportId ?? ''
       expect(reportId).toMatch(/^boot-report-/)
 
       // The lazy durable attach must land even though the boot sealed while
@@ -1094,6 +1104,7 @@ describe('BootReport lock and lazy-attach races', () => {
       { entrypointId: 'drive', usableMark: 'webview.revealed' },
       { store },
     )
+    if (!collector) throw new Error('boot report collector missing')
     try {
       window.dispatchEvent(
         new CustomEvent('spacewave-startup-mark', {
@@ -1111,7 +1122,9 @@ describe('BootReport lock and lazy-attach races', () => {
       // Attach order is recover -> lease -> first durable write: the stale
       // row aborts, this boot's own row persists RECORDING under its held
       // lease, and a contender is denied that same lease.
-      const reportId = globals.__swBootReport?.reportId ?? ''
+      const published = (globalThis as { __swBootReport?: BootReport })
+        .__swBootReport
+      const reportId = published?.reportId ?? ''
       await vi.waitFor(async () => {
         const dead = await store.get('boot-report-dead')
         expect(dead?.state).toBe(BootReportState.ABORTED)
@@ -1148,6 +1161,7 @@ describe('BootReport lock and lazy-attach races', () => {
       { entrypointId: 'drive', usableMark: 'webview.revealed' },
       { store },
     )
+    if (!collector) throw new Error('boot report collector missing')
     try {
       // Live marks keep collecting in memory while the lease is denied.
       window.dispatchEvent(
