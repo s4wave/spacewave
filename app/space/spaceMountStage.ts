@@ -75,7 +75,6 @@ export function spaceRouteCanRenderBody(
   root: boolean,
   space: boolean,
   spaceWorld: boolean,
-  _spaceContents: boolean,
   spaceStateReady: boolean,
   objectKey?: string,
 ): boolean {
@@ -86,11 +85,4 @@ export function spaceRouteCanRenderBody(
     return true
   }
   return !!objectKey
-}
-
-export function spaceRouteShouldMountContents(
-  _objectKey: string | undefined,
-  _spaceStateReady: boolean,
-): boolean {
-  return true
 }

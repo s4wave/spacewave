@@ -67,7 +67,6 @@ import {
   spaceMountDetailFromWorld,
   spaceMountStageFromWorld,
   spaceRouteCanRenderBody,
-  spaceRouteShouldMountContents,
 } from './spaceMountStage.js'
 import { SpaceCommands } from './SpaceCommands.js'
 import { SpaceObjectBrowser } from './SpaceObjectBrowser.js'
@@ -234,10 +233,6 @@ function useSpaceContainerController() {
     WatchSpaceStateRequest.equals,
     SpaceState.equals,
   )
-  const shouldMountSpaceContents = spaceRouteShouldMountContents(
-    objectKey,
-    !!spaceState?.ready,
-  )
   const spaceContentsResource = useResource(
     spaceResource,
     async (space, signal, cleanup) => {
@@ -269,9 +264,10 @@ function useSpaceContainerController() {
       return cleanup(contents)
     },
     [sessionIndex, sharedObjectId],
-    { enabled: shouldMountSpaceContents },
   )
-  const spaceContents = useResourceValue(spaceContentsResource)
+  // Subscribe this component to contents resource updates; consumers read
+  // the resource through SpaceContentsContext.
+  const _spaceContents = useResourceValue(spaceContentsResource)
   const resourcesList = useWatchStateRpc(
     useCallback(
       (req: WatchResourcesListRequest, signal: AbortSignal) =>
@@ -423,7 +419,6 @@ function useSpaceContainerController() {
     !!root,
     !!space,
     !!spaceWorld,
-    !!spaceContents,
     !!spaceState?.ready,
     objectKey,
   )
