@@ -45,7 +45,7 @@ import {
 import { CanvasObjectNode } from './CanvasObjectNode.js'
 import { deleteCanvasGraphLink } from './graphLinkActions.js'
 import { isCanvasInsertableObject } from './object-picker.js'
-import { CanvasTypeID } from '../type.js'
+import { CanvasTypeID } from '../types.js'
 import { getUnixFSImageSubItems } from '../unixfs-image-sub-items.js'
 
 export { CanvasTypeID }

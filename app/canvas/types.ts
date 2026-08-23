@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
 
+// CanvasTypeID is the type identifier for canvas objects.
+export const CanvasTypeID = 'canvas'
+
 // NodeType matches proto NodeType enum.
 export type NodeType = 'text' | 'shape' | 'world_object' | 'drawing'
 
