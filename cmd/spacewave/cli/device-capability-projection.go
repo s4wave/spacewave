@@ -16,6 +16,7 @@ import (
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	"github.com/sirupsen/logrus"
 )
@@ -24,6 +25,7 @@ const (
 	devicePolicyRemoteShellCapabilityID   = "remote-shell"
 	devicePolicyRemoteShellCapabilityKind = "remote-shell"
 	devicePolicyCheckoutRootIDPrefix      = "checkout-root-"
+	devicePolicyForgeWorkerCapabilityID   = "forge-worker"
 	devicePolicyRefPrefix                 = "device-policy/"
 )
 
@@ -119,6 +121,15 @@ func projectDevicePolicyCapabilities(
 	if err != nil {
 		return errors.Wrap(err, "new transaction")
 	}
+
+	// Verify the declared Worker object inside the same transaction that
+	// writes the Device block, so verification and the capability write
+	// commit or abort together.
+	if fw := policy.GetForgeWorker(); fw != nil {
+		if err := verifyForgeWorkerLink(ctx, tx, fw.GetWorkerObjectKey()); err != nil {
+			return err
+		}
+	}
 	defer tx.Discard()
 
 	objState, found, err := tx.GetObject(ctx, record.DeviceObjectKey)
@@ -198,7 +209,33 @@ func computeDevicePolicyCapabilities(
 		id := devicePolicyCheckoutRootIDPrefix + strings.TrimSpace(root.GetName())
 		out = append(out, computeCheckoutRootCapability(policy, root, existingByID[id]))
 	}
+	if fw := policy.GetForgeWorker(); fw != nil {
+		out = append(out, computeForgeWorkerCapability(policy, fw, existingByID[devicePolicyForgeWorkerCapabilityID]))
+	}
 	return out
+}
+
+// computeForgeWorkerCapability authors or refreshes the forge-worker
+// capability from the declared capacity envelope. The link always carries the
+// policy-declared Worker object key and its forge/worker type id.
+func computeForgeWorkerCapability(
+	policy *device_policy.DevicePolicy,
+	fw *device_policy.ForgeWorkerPolicy,
+	existing *s4wave_device.DeviceCapability,
+) *s4wave_device.DeviceCapability {
+	state, detail := computeDevicePolicyCapabilityState("", existing)
+	return &s4wave_device.DeviceCapability{
+		Id:     devicePolicyForgeWorkerCapabilityID,
+		Kind:   s4wave_device.DeviceCapabilityKindForgeWorker,
+		Label:  "Forge Worker",
+		State:  state,
+		Detail: detail,
+		Policy: computeDeviceCapabilityPolicy(policyRef(policy.GetRevision(), "forge-worker"), existing),
+		Link: &s4wave_device.DeviceCapabilityLink{
+			ObjectKey: fw.GetWorkerObjectKey(),
+			TypeId:    forge_worker.WorkerTypeID,
+		},
+	}
 }
 
 func computeRemoteShellCapability(
@@ -291,8 +328,22 @@ func sameDeviceCapabilities(a, b []*s4wave_device.DeviceCapability) bool {
 	return true
 }
 
+// verifyForgeWorkerLink proves the declared Worker object exists and carries
+// the forge/worker type quad. It runs inside the caller's transaction.
+func verifyForgeWorkerLink(ctx context.Context, ws world.WorldState, workerObjectKey string) error {
+	if _, _, err := forge_worker.LookupWorker(ctx, ws, workerObjectKey); err != nil {
+		return errors.Wrapf(err, "verify forge worker %q", workerObjectKey)
+	}
+	if err := forge_worker.CheckWorkerType(ctx, ws, workerObjectKey); err != nil {
+		return errors.Wrapf(err, "verify forge worker %q", workerObjectKey)
+	}
+	return nil
+}
+
 func isDevicePolicyCapabilityID(id string) bool {
-	return id == devicePolicyRemoteShellCapabilityID || strings.HasPrefix(id, devicePolicyCheckoutRootIDPrefix)
+	return id == devicePolicyRemoteShellCapabilityID ||
+		id == devicePolicyForgeWorkerCapabilityID ||
+		strings.HasPrefix(id, devicePolicyCheckoutRootIDPrefix)
 }
 
 func policyRef(revision uint64, suffix string) string {

@@ -79,6 +79,61 @@ export const CheckoutRootPolicy: MessageType<CheckoutRootPolicy> =
   })
 
 /**
+ * ForgeWorkerPolicy declares the capacity envelope of the local Forge Worker.
+ *
+ * @generated from message s4wave.device.policy.ForgeWorkerPolicy
+ */
+export interface ForgeWorkerPolicy {
+  /**
+   * WorkerObjectKey is the Forge Worker object key this daemon hosts.
+   *
+   * @generated from field: string worker_object_key = 1;
+   */
+  workerObjectKey?: string
+  /**
+   * MilliCpu is the declared total CPU in milli-cores.
+   *
+   * @generated from field: uint64 milli_cpu = 2;
+   */
+  milliCpu?: bigint
+  /**
+   * MemoryBytes is the declared total memory in bytes.
+   *
+   * @generated from field: uint64 memory_bytes = 3;
+   */
+  memoryBytes?: bigint
+  /**
+   * Backends lists the runtime backends the Worker supports.
+   *
+   * @generated from field: repeated string backends = 4;
+   */
+  backends?: string[]
+}
+
+export const ForgeWorkerPolicy: MessageType<ForgeWorkerPolicy> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.device.policy.ForgeWorkerPolicy',
+    fields: [
+      {
+        no: 1,
+        name: 'worker_object_key',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 2, name: 'milli_cpu', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'memory_bytes', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 4,
+        name: 'backends',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * DevicePolicy is the daemon-local policy that controls Device capabilities.
  *
  * @generated from message s4wave.device.policy.DevicePolicy
@@ -102,6 +157,13 @@ export interface DevicePolicy {
    * @generated from field: repeated s4wave.device.policy.CheckoutRootPolicy checkout_root = 3;
    */
   checkoutRoot?: CheckoutRootPolicy[]
+  /**
+   * ForgeWorker declares the local Forge Worker capacity envelope. Absent
+   * means this daemon exposes no Forge Worker execution capacity.
+   *
+   * @generated from field: s4wave.device.policy.ForgeWorkerPolicy forge_worker = 4;
+   */
+  forgeWorker?: ForgeWorkerPolicy
 }
 
 export const DevicePolicy: MessageType<DevicePolicy> =
@@ -121,6 +183,12 @@ export const DevicePolicy: MessageType<DevicePolicy> =
         kind: 'message',
         T: () => CheckoutRootPolicy,
         repeated: true,
+      },
+      {
+        no: 4,
+        name: 'forge_worker',
+        kind: 'message',
+        T: () => ForgeWorkerPolicy,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,

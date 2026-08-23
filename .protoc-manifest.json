@@ -987,7 +987,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/device/policy": {
-      "hash": "44bf242cf4ff4a6ac21d7bc5c1c199ea99d390a1dd7f27d8a88238d283a40f41",
+      "hash": "565b8f4f429333b2e30177c8cf55b80c74a093a138a4fa9a199dde2ad77e29c4",
       "generatedFiles": [
         "core/device/policy/policy.pb.go",
         "core/device/policy/policy.pb.ts"
