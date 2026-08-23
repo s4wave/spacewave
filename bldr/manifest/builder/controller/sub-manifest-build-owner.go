@@ -13,6 +13,8 @@ import (
 	bldr_project "github.com/s4wave/spacewave/bldr/project"
 )
 
+// subManifestBuildOwner owns one sub-manifest's build lifecycle: config
+// state, result promise, and restart signaling.
 type subManifestBuildOwner struct {
 	tracker        *subManifestBuilderTracker
 	builderRoutine *routine.StateRoutineContainer[*bldr_project.ManifestConfig]
@@ -25,6 +27,8 @@ type subManifestBuildOwner struct {
 	observed  bool
 }
 
+// newSubManifestBuildOwner constructs a sub-manifest build owner bound to
+// the shared tracker.
 func newSubManifestBuildOwner(tracker *subManifestBuilderTracker) *subManifestBuildOwner {
 	owner := &subManifestBuildOwner{
 		tracker:  tracker,

@@ -294,6 +294,8 @@ func enrichBuilderResultForStartupReuse(
 	return nil
 }
 
+// addSubManifestResultForStartupReuse merges a validated sub-manifest
+// result into the startup reuse result.
 func addSubManifestResultForStartupReuse(
 	builderResult *bldr_manifest_builder.BuilderResult,
 	subManifestID string,
@@ -366,6 +368,8 @@ func validateNestedStartupInputs(inputManifest *bldr_manifest_builder.InputManif
 	return validateStartupInputsWithControllerConfig(nil, inputManifest, false)
 }
 
+// validateStartupInputsWithControllerConfig validates the startup input
+// manifest against the controller config digest and cache format.
 func validateStartupInputsWithControllerConfig(
 	controllerConfig *configset_proto.ControllerConfig,
 	inputManifest *bldr_manifest_builder.InputManifest,
@@ -411,6 +415,8 @@ func validateStartupInputsWithControllerConfig(
 	return nil
 }
 
+// newStartupCacheFormatInput builds the env startup input carrying the
+// cache format version.
 func newStartupCacheFormatInput() *bldr_manifest_builder.InputManifest_StartupInput {
 	return bldr_manifest_builder.NewEnvStartupInput(
 		startupCacheFormatEnvKey,

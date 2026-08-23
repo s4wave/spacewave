@@ -11,6 +11,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// manifestBuildOwner owns the manifest build lifecycle: it serializes
+// attempts, tracks the previous result and rebuild reason, and publishes
+// results to the world state.
 type manifestBuildOwner struct {
 	c             *Controller
 	builderConfig *bldr_manifest_builder.BuilderConfig
@@ -25,6 +28,8 @@ type manifestBuildOwner struct {
 	current       *manifestBuildAttempt
 }
 
+// manifestBuildAttempt is one in-flight build pass. A restart cancels the
+// current attempt so the loop can begin a new one with fresh inputs.
 type manifestBuildAttempt struct {
 	owner     *manifestBuildOwner
 	ctx       context.Context
@@ -32,6 +37,8 @@ type manifestBuildAttempt struct {
 	restarted bool
 }
 
+// newManifestBuildOwner constructs a manifest build owner for the
+// controller.
 func newManifestBuildOwner(
 	c *Controller,
 	builderConfig *bldr_manifest_builder.BuilderConfig,
@@ -43,6 +50,8 @@ func newManifestBuildOwner(
 	}
 }
 
+// beginAttempt registers a new build attempt as the current one,
+// canceling any prior attempt.
 func (o *manifestBuildOwner) beginAttempt(ctx context.Context) *manifestBuildAttempt {
 	attemptCtx, cancel := context.WithCancel(ctx)
 	attempt := &manifestBuildAttempt{
@@ -58,12 +67,16 @@ func (o *manifestBuildOwner) beginAttempt(ctx context.Context) *manifestBuildAtt
 	return attempt
 }
 
+// nextResultPromise installs a fresh result promise on the controller and
+// returns it for this attempt.
 func (o *manifestBuildOwner) nextResultPromise() *promise.Promise[*bldr_manifest_builder.BuilderResult] {
 	resultPromise := promise.NewPromise[*bldr_manifest_builder.BuilderResult]()
 	o.resultPromise.SetPromise(resultPromise)
 	return resultPromise
 }
 
+// buildArgs builds the manifest build arguments from the previous result
+// and any changed files, clearing the changed-file set.
 func (o *manifestBuildOwner) buildArgs() *bldr_manifest_builder.BuildManifestArgs {
 	args := &bldr_manifest_builder.BuildManifestArgs{
 		BuilderConfig:     o.builderConfig,
@@ -74,6 +87,8 @@ func (o *manifestBuildOwner) buildArgs() *bldr_manifest_builder.BuildManifestArg
 	return args
 }
 
+// rebuildFlags reports the full-rebuild and hot-rebuild flags for a nil
+// result.
 func (o *manifestBuildOwner) rebuildFlags(result *bldr_manifest_builder.BuilderResult) (bool, bool) {
 	if result != nil {
 		return false, false
@@ -81,23 +96,28 @@ func (o *manifestBuildOwner) rebuildFlags(result *bldr_manifest_builder.BuilderR
 	return o.prevResult == nil, o.prevResult != nil
 }
 
+// setChangedFiles records the changed input files as the rebuild reason.
 func (o *manifestBuildOwner) setChangedFiles(changedFiles []*bldr_manifest_builder.InputManifest_File) {
 	o.changedFiles = changedFiles
 	o.setRebuildReason(changedFilesSummary(len(changedFiles)))
 }
 
+// rebuildReasonSnapshot returns the current rebuild reason.
 func (o *manifestBuildOwner) rebuildReasonSnapshot() string {
 	o.mtx.Lock()
 	defer o.mtx.Unlock()
 	return o.rebuildReason
 }
 
+// setRebuildReason records why the next build is needed.
 func (o *manifestBuildOwner) setRebuildReason(reason string) {
 	o.mtx.Lock()
 	o.rebuildReason = reason
 	o.mtx.Unlock()
 }
 
+// publishResult validates and stores the build result, resolves the
+// result promise, and updates the lifecycle status.
 func (o *manifestBuildOwner) publishResult(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -146,6 +166,8 @@ func (o *manifestBuildOwner) publishResult(
 	return nil
 }
 
+// restart cancels the attempt so its loop begins a new pass, recording
+// reason. The first restart takes effect; later ones are ignored.
 func (a *manifestBuildAttempt) restart(reason string) {
 	var cancel context.CancelFunc
 	a.owner.mtx.Lock()
@@ -161,12 +183,14 @@ func (a *manifestBuildAttempt) restart(reason string) {
 	}
 }
 
+// wasRestarted reports whether this attempt was restarted.
 func (a *manifestBuildAttempt) wasRestarted() bool {
 	a.owner.mtx.Lock()
 	defer a.owner.mtx.Unlock()
 	return a.restarted
 }
 
+// release cancels the attempt and clears it as the current attempt.
 func (a *manifestBuildAttempt) release() {
 	a.cancel()
 	a.owner.mtx.Lock()

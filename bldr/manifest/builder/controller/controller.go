@@ -730,6 +730,7 @@ func rebuildSummary(fullRebuild, hotRebuild bool) string {
 	return "build"
 }
 
+// changedFilesSummary summarizes a changed-file count for lifecycle status.
 func changedFilesSummary(count int) string {
 	switch count {
 	case 0:
