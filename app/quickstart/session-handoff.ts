@@ -230,7 +230,8 @@ const SPACE_WORLD_FIELD: HandoffField<EngineWorldState> = {
 function consumeHandoffField<T>(key: string, field: HandoffField<T>): T | null {
   cancelScheduledRelease(key)
   const record = handoffRecordAt(key, false)
-  const resource = record ? field.get(record) : undefined
+  if (!record) return null
+  const resource = field.get(record)
   if (!resource) return null
   if (field.released(resource)) {
     field.set(record, undefined)
