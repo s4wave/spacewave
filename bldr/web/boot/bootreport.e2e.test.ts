@@ -88,7 +88,7 @@ describe('BootReport durability in a real browser', () => {
         detail: {},
       },
     ]
-    let collector: { stop(): void } | undefined
+    let collector: ReturnType<typeof initBootReportCollector>
     try {
       collector = initBootReportCollector({
         entrypointId: 'drive',

@@ -18,6 +18,7 @@ import (
 //
 //go:embed web/bldr-react/*.ts web/bldr-react/*.tsx
 //go:embed web/bldr/*.ts web/bldr/*.tsx
+//go:embed web/boot/*.ts
 //go:embed web/devtool-status/*.tsx web/devtool-status/*.css
 //go:embed web/wasi-shim/*.ts
 //go:embed web/document/*.ts web/view/*.ts web/view/handler/*.ts
