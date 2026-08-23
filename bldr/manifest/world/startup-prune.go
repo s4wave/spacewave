@@ -10,17 +10,26 @@ import (
 // StartupManifestPruneProof carries the non-source proof gates required before
 // a retained startup Manifest candidate may be pruned.
 type StartupManifestPruneProof struct {
-	Reachability        bool
-	Quarantine          bool
+	// Reachability attests that no reachable graph path still references the
+	// candidate.
+	Reachability bool
+	// Quarantine attests the candidate is quarantined.
+	Quarantine bool
+	// CopiedStateRelaunch attests a copied-state relaunch has been captured.
 	CopiedStateRelaunch bool
 }
 
 // StartupManifestPruneResult describes a pruning attempt.
 type StartupManifestPruneResult struct {
-	ObjectKey     string
-	Pruned        bool
-	Reason        string
-	DeletedEdges  int
+	// ObjectKey is the pruned candidate's object key.
+	ObjectKey string
+	// Pruned reports whether any pruning action was taken.
+	Pruned bool
+	// Reason explains why the candidate was skipped or pruned.
+	Reason string
+	// DeletedEdges is the number of deleted graph edges.
+	DeletedEdges int
+	// DeletedObject reports whether the object itself was deleted.
 	DeletedObject bool
 }
 

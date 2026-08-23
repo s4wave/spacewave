@@ -40,9 +40,7 @@ func AccessManifest(
 				return bldr_manifest.AccessManifest(ctx, le, manifest, cb)
 			}
 
-			opArgs := root.GetOpArgs()
-			opArgs.BucketId = manifestRef.GetBucketId()
-			opArgs.VolumeId = ""
+			opArgs := opArgsForRef(root, manifestRef)
 			le.WithFields(logrus.Fields{
 				"bucket-id":      manifestRef.GetBucketId(),
 				"root-bucket-id": root.GetOpArgs().GetBucketId(),

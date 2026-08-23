@@ -270,20 +270,20 @@ func classifyManifestRefStartupEligibility(
 	}
 
 	meta := manifestRef.GetMeta()
-	if expectedManifestID != "" && meta.GetManifestId() != expectedManifestID {
+	snapshotMeta := func(eligibility StartupManifestEligibility, reason string) {
 		candidate.ManifestID = meta.GetManifestId()
 		candidate.PlatformID = meta.GetPlatformId()
 		candidate.Rev = meta.GetRev()
-		candidate.Eligibility = StartupManifestEligibilityQuarantined
-		candidate.Reason = "manifest-id-mismatch:" + meta.GetManifestId()
+		candidate.Eligibility = eligibility
+		candidate.Reason = reason
+	}
+
+	if expectedManifestID != "" && meta.GetManifestId() != expectedManifestID {
+		snapshotMeta(StartupManifestEligibilityQuarantined, "manifest-id-mismatch:"+meta.GetManifestId())
 		return candidate, nil
 	}
 	if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, meta.GetPlatformId()) {
-		candidate.ManifestID = meta.GetManifestId()
-		candidate.PlatformID = meta.GetPlatformId()
-		candidate.Rev = meta.GetRev()
-		candidate.Eligibility = StartupManifestEligibilityIgnored
-		candidate.Reason = "platform-filtered:" + meta.GetPlatformId()
+		snapshotMeta(StartupManifestEligibilityIgnored, "platform-filtered:"+meta.GetPlatformId())
 		return candidate, nil
 	}
 
@@ -292,28 +292,16 @@ func classifyManifestRefStartupEligibility(
 		if ctxErr := startupContextError(err); ctxErr != nil {
 			return nil, ctxErr
 		}
-		candidate.ManifestID = meta.GetManifestId()
-		candidate.PlatformID = meta.GetPlatformId()
-		candidate.Rev = meta.GetRev()
-		candidate.Eligibility = StartupManifestEligibilityUnsafe
-		candidate.Reason = "manifest-ref-unreadable:" + err.Error()
+		snapshotMeta(StartupManifestEligibilityUnsafe, "manifest-ref-unreadable:"+err.Error())
 		return candidate, nil
 	}
 	candidate.Manifest = manifest
 	if !manifest.GetMeta().EqualVT(meta) {
-		candidate.ManifestID = meta.GetManifestId()
-		candidate.PlatformID = meta.GetPlatformId()
-		candidate.Rev = meta.GetRev()
-		candidate.Eligibility = StartupManifestEligibilityUnsafe
-		candidate.Reason = "manifest-meta-mismatch"
+		snapshotMeta(StartupManifestEligibilityUnsafe, "manifest-meta-mismatch")
 		return candidate, nil
 	}
 	if err := validateStartupManifest(ctx, manifest); err != nil {
-		candidate.ManifestID = meta.GetManifestId()
-		candidate.PlatformID = meta.GetPlatformId()
-		candidate.Rev = meta.GetRev()
-		candidate.Eligibility = StartupManifestEligibilityUnsafe
-		candidate.Reason = "manifest-validate:" + err.Error()
+		snapshotMeta(StartupManifestEligibilityUnsafe, "manifest-validate:"+err.Error())
 		return candidate, nil
 	}
 	return classifyReadableStartupManifest(candidate, meta, expectedManifestID, filterPlatformIDs), nil

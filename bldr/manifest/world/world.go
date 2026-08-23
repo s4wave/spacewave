@@ -618,21 +618,6 @@ func listManifestCandidateEdgesWithLabel(
 	return linkedKeys, nil
 }
 
-// ListManifestsWithID lists all manifests recursively linked to the given object(s).
-// Filters to the given manifest ID.
-func ListManifestsWithID(ctx context.Context, w world.WorldState, startObjKeys ...string) ([]string, error) {
-	return world.CollectPathWithKeys(
-		ctx,
-		w,
-		startObjKeys,
-		func(p *cayley.Path) (*cayley.Path, error) {
-			// Follow <manifest> references, collecting nodes.
-			// Limit those objects to the ones that have type manifest.
-			return NewListManifestPath(p), nil
-		},
-	)
-}
-
 // CollectedManifest contains information from CollectManifest.
 type CollectedManifest struct {
 	// Manifest is the manifest object.
@@ -773,7 +758,15 @@ func CollectStartupManifests(
 	if err != nil {
 		return nil, nil, err
 	}
-	return collectStartupManifestsFromCandidates(ctx, ws, manifestObjKeys, "", filterPlatformIDs)
+	candidates := make([]startupManifestSelectionCandidate, 0, len(manifestObjKeys))
+	for _, objKey := range manifestObjKeys {
+		candidates = append(candidates, startupManifestSelectionCandidate{
+			objectKey: objKey,
+			legacy:    true,
+		})
+	}
+	any := func(startupManifestSelectionCandidate, string) bool { return true }
+	return collectStartupManifests(ctx, ws, candidates, any, filterPlatformIDs)
 }
 
 // CollectStartupManifestsForManifestIDs collects startup manifests for selected
@@ -806,14 +799,23 @@ func CollectStartupManifestsForManifestIDs(
 	for _, manifestID := range manifestIDs {
 		selected[manifestID] = struct{}{}
 	}
-	return collectStartupManifestsForSelectedCandidates(ctx, ws, candidates, selected, filterPlatformIDs)
+	matches := func(candidate startupManifestSelectionCandidate, manifestID string) bool {
+		return candidate.matches(manifestID, selected)
+	}
+	return collectStartupManifests(ctx, ws, candidates, matches, filterPlatformIDs)
 }
 
-func collectStartupManifestsForSelectedCandidates(
+// collectStartupManifests walks the candidates, decoding and filtering each
+// one, and returns collected manifests grouped by manifest id.
+//
+// matches reports whether a candidate's manifest id passes the caller's
+// selection; it is applied to both the ref metadata and the decoded
+// manifest.
+func collectStartupManifests(
 	ctx context.Context,
 	ws world.WorldState,
 	candidates []startupManifestSelectionCandidate,
-	selected map[string]struct{},
+	matches func(candidate startupManifestSelectionCandidate, manifestID string) bool,
 	filterPlatformIDs []string,
 ) (map[string][]*CollectedManifest, []error, error) {
 	var manifestErrors []error
@@ -832,12 +834,12 @@ func collectStartupManifestsForSelectedCandidates(
 			continue
 		}
 
-		manifest, manifestRef, skip, err := collectStartupManifestSelectionCandidate(
+		manifest, manifestRef, skip, err := collectStartupManifestCandidate(
 			ctx,
 			ws,
 			candidate,
 			objType,
-			selected,
+			matches,
 			filterPlatformIDs,
 		)
 		if skip {
@@ -855,7 +857,7 @@ func collectStartupManifestsForSelectedCandidates(
 			continue
 		}
 		manifestID := manifest.GetMeta().GetManifestId()
-		if !candidate.matches(manifestID, selected) {
+		if !matches(candidate, manifestID) {
 			continue
 		}
 		platformID := manifest.GetMeta().GetPlatformId()
@@ -876,7 +878,13 @@ func collectStartupManifestsForSelectedCandidates(
 	return manifestMap, manifestErrors, nil
 }
 
-func (c startupManifestSelectionCandidate) matches(manifestID string, selected map[string]struct{}) bool {
+// matches reports whether the candidate's manifest id passes selection:
+// exact graph labels match directly, and legacy candidates match any id in
+// the selected set.
+func (c startupManifestSelectionCandidate) matches(
+	manifestID string,
+	selected map[string]struct{},
+) bool {
 	if slices.Contains(c.exactManifestIDs, manifestID) {
 		return true
 	}
@@ -887,12 +895,16 @@ func (c startupManifestSelectionCandidate) matches(manifestID string, selected m
 	return ok
 }
 
-func collectStartupManifestSelectionCandidate(
+// collectStartupManifestCandidate decodes one startup candidate. It follows
+// a manifest ref when present, falling back to direct manifest or bundle
+// lookups for untyped objects. Returns skip=true when the candidate is not
+// selected under matches or is filtered by platform.
+func collectStartupManifestCandidate(
 	ctx context.Context,
 	ws world.WorldState,
 	candidate startupManifestSelectionCandidate,
 	objType string,
-	selected map[string]struct{},
+	matches func(candidate startupManifestSelectionCandidate, manifestID string) bool,
 	filterPlatformIDs []string,
 ) (*bldr_manifest.Manifest, *bucket.ObjectRef, bool, error) {
 	if objType == ManifestTypeID {
@@ -918,7 +930,7 @@ func collectStartupManifestSelectionCandidate(
 		return nil, manifestObjRef, false, err
 	}
 	refMeta := manifestRef.GetMeta()
-	if !candidate.matches(refMeta.GetManifestId(), selected) {
+	if !matches(candidate, refMeta.GetManifestId()) {
 		return nil, manifestObjRef, true, nil
 	}
 	if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, refMeta.GetPlatformId()) {
@@ -926,122 +938,6 @@ func collectStartupManifestSelectionCandidate(
 	}
 
 	manifest, err := lookupStartupManifestObjectRefLocal(ctx, ws, manifestObjRef)
-	if err != nil {
-		return nil, manifestObjRef, false, err
-	}
-	if !manifest.GetMeta().EqualVT(manifestRef.GetMeta()) {
-		return nil, manifestObjRef, false, errors.New("manifest ref meta does not match manifest meta")
-	}
-	return manifest, manifestObjRef, false, nil
-}
-
-func collectStartupManifestsFromCandidates(
-	ctx context.Context,
-	ws world.WorldState,
-	manifestObjKeys []string,
-	expectedManifestID string,
-	filterPlatformIDs []string,
-) (map[string][]*CollectedManifest, []error, error) {
-	var manifestErrors []error
-	manifestMap := make(map[string][]*CollectedManifest)
-
-	for _, objKey := range manifestObjKeys {
-		objType, err := world_types.GetObjectType(ctx, ws, objKey)
-		if err != nil {
-			if ctxErr := startupContextError(err); ctxErr != nil {
-				return nil, manifestErrors, ctxErr
-			}
-			manifestErrors = append(manifestErrors, newStartupManifestSkipError(objKey, nil, err))
-			continue
-		}
-		if objType == ManifestStoreTypeID || objType == ManifestBundleTypeID {
-			continue
-		}
-
-		manifest, manifestRef, skip, err := collectStartupManifestCandidate(
-			ctx,
-			ws,
-			objKey,
-			objType,
-			expectedManifestID,
-			filterPlatformIDs,
-		)
-		if skip {
-			continue
-		}
-		if err != nil {
-			if ctxErr := startupContextError(err); ctxErr != nil {
-				return nil, manifestErrors, ctxErr
-			}
-			manifestErrors = append(manifestErrors, newStartupManifestSkipError(objKey, manifestRef, err))
-			continue
-		}
-		if err := manifest.Validate(); err != nil {
-			manifestErrors = append(manifestErrors, newStartupManifestSkipError(objKey, manifestRef, err))
-			continue
-		}
-		manifestID := manifest.GetMeta().GetManifestId()
-		if expectedManifestID != "" && manifestID != expectedManifestID {
-			continue
-		}
-		platformID := manifest.GetMeta().GetPlatformId()
-		if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, platformID) {
-			continue
-		}
-		manifestList := append(manifestMap[manifestID], &CollectedManifest{
-			Manifest:    manifest,
-			ManifestRef: manifestRef,
-			ManifestKey: objKey,
-		})
-		slices.SortStableFunc(manifestList, func(a, b *CollectedManifest) int {
-			return cmp.Compare(b.GetRev(), a.GetRev())
-		})
-		manifestMap[manifestID] = manifestList
-	}
-
-	return manifestMap, manifestErrors, nil
-}
-
-func collectStartupManifestCandidate(
-	ctx context.Context,
-	ws world.WorldState,
-	objKey string,
-	objType string,
-	expectedManifestID string,
-	filterPlatformIDs []string,
-) (*bldr_manifest.Manifest, *bucket.ObjectRef, bool, error) {
-	if objType == ManifestTypeID {
-		manifest, manifestRef, err := LookupManifest(ctx, ws, objKey)
-		return manifest, manifestRef, false, err
-	}
-
-	manifestRef, candidateRef, err := LookupManifestRef(ctx, ws, objKey)
-	if err != nil {
-		if objType == "" {
-			manifest, directRef, manifestErr := LookupManifest(ctx, ws, objKey)
-			if manifestErr == nil && manifest != nil && manifest.Validate() == nil {
-				return manifest, directRef, false, nil
-			}
-			if _, _, bundleErr := LookupManifestBundle(ctx, ws, objKey); bundleErr == nil {
-				return nil, nil, true, nil
-			}
-		}
-		return nil, candidateRef, false, err
-	}
-	manifestObjRef := manifestRef.GetManifestRef()
-	if err := manifestRef.Validate(); err != nil {
-		return nil, manifestObjRef, false, err
-	}
-	refMeta := manifestRef.GetMeta()
-	if expectedManifestID != "" && refMeta.GetManifestId() != expectedManifestID {
-		return nil, manifestObjRef, true, nil
-	}
-	if len(filterPlatformIDs) != 0 && !slices.Contains(filterPlatformIDs, refMeta.GetPlatformId()) {
-		return nil, manifestObjRef, true, nil
-	}
-
-	var manifest *bldr_manifest.Manifest
-	manifest, err = lookupStartupManifestObjectRefLocal(ctx, ws, manifestObjRef)
 	if err != nil {
 		return nil, manifestObjRef, false, err
 	}
@@ -1145,11 +1041,9 @@ func lookupStartupManifestObjectRefDemand(
 	return manifest, validateStartupManifest(ctx, manifest)
 }
 
-func followManifestRefForStartupDemand(
-	ctx context.Context,
-	root *bucket_lookup.Cursor,
-	ref *bucket.ObjectRef,
-) (*bucket_lookup.Cursor, error) {
+// opArgsForRef derives the follow op args for a ref: a ref pointing at an
+// external bucket retargets the bucket and drops the source volume binding.
+func opArgsForRef(root *bucket_lookup.Cursor, ref *bucket.ObjectRef) *bucket.BucketOpArgs {
 	opArgs := root.GetOpArgs()
 	if refBucketID := ref.GetBucketId(); refBucketID != "" {
 		opArgs.BucketId = refBucketID
@@ -1157,7 +1051,15 @@ func followManifestRefForStartupDemand(
 	if opArgs.GetBucketId() != root.GetOpArgs().GetBucketId() {
 		opArgs.VolumeId = ""
 	}
-	return root.FollowRefWithOpArgs(ctx, ref, opArgs)
+	return opArgs
+}
+
+func followManifestRefForStartupDemand(
+	ctx context.Context,
+	root *bucket_lookup.Cursor,
+	ref *bucket.ObjectRef,
+) (*bucket_lookup.Cursor, error) {
+	return root.FollowRefWithOpArgs(ctx, ref, opArgsForRef(root, ref))
 }
 
 func followStartupManifestRef(
@@ -1165,14 +1067,7 @@ func followStartupManifestRef(
 	root *bucket_lookup.Cursor,
 	ref *bucket.ObjectRef,
 ) (*bucket_lookup.Cursor, error) {
-	opArgs := root.GetOpArgs()
-	if refBucketID := ref.GetBucketId(); refBucketID != "" {
-		opArgs.BucketId = refBucketID
-	}
-	if opArgs.GetBucketId() != root.GetOpArgs().GetBucketId() {
-		opArgs.VolumeId = ""
-	}
-	return root.FollowRefWithOpArgsReadOnly(ctx, ref, opArgs, true)
+	return root.FollowRefWithOpArgsReadOnly(ctx, ref, opArgsForRef(root, ref), true)
 }
 
 // FollowObjectRefReadOnly follows an object reference through a lookup-only
@@ -1189,14 +1084,7 @@ func FollowObjectRefReadOnly(
 	if ref == nil || ref.GetEmpty() {
 		return nil, errors.New("object ref is empty")
 	}
-	opArgs := root.GetOpArgs()
-	if refBucketID := ref.GetBucketId(); refBucketID != "" {
-		opArgs.BucketId = refBucketID
-	}
-	if opArgs.GetBucketId() != root.GetOpArgs().GetBucketId() {
-		opArgs.VolumeId = ""
-	}
-	return root.FollowRefWithOpArgsReadOnly(ctx, ref, opArgs, false)
+	return root.FollowRefWithOpArgsReadOnly(ctx, ref, opArgsForRef(root, ref), false)
 }
 
 // FilterCollectedManifestsMapByPlatformID filters the result of CollectManifests by a platform id list.
