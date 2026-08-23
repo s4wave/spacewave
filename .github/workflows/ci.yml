@@ -688,6 +688,22 @@ jobs:
           build = jobs.fetch("release-wasm-build")
           smoke = jobs.fetch("release-wasm-smoke")
 
+          bun_version = workflow.fetch("env").fetch("BUN_VERSION") do
+            abort("workflow env must pin BUN_VERSION")
+          end
+          unless bun_version == "1.4.0"
+            abort("workflow BUN_VERSION must stay pinned at 1.4.0: #{bun_version.inspect}")
+          end
+          [build, smoke].each do |job|
+            bun_step = job.fetch("steps").find do |candidate|
+              candidate["uses"].to_s.start_with?("oven-sh/setup-bun@")
+            end || abort("missing setup-bun step in #{job['name']}")
+            with = bun_step["with"]
+            unless with.is_a?(Hash) && with["bun-version"] == "${{ env.BUN_VERSION }}"
+              abort("#{job['name']} setup-bun must consume the workflow BUN_VERSION pin")
+            end
+          end
+
           step = lambda do |job, name|
             job.fetch("steps").find { |candidate| candidate["name"] == name } ||
               abort("missing step #{name.inspect}")

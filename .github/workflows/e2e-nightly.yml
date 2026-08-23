@@ -15,6 +15,10 @@ permissions:
 env:
   TINYGO_VERSION: 0.41.1
   BINARYEN_VERSION: 129
+  # Pin Bun so release-WASM builds and smokes reproduce a single toolchain.
+  # The nightly-workflow-contract job in ci.yml fails when either
+  # release-wasm setup-bun step stops consuming this value.
+  BUN_VERSION: 1.4.0
   # Binaryen's static Linux release binaries can segfault in pthreaded
   # wasm-opt on deep optimization recursion. Keep TinyGo's optimization level
   # unchanged, but force wasm-opt to avoid pthread workers on GitHub Linux.
@@ -138,6 +142,8 @@ jobs:
           node-version: 25.x
 
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
@@ -332,6 +338,8 @@ jobs:
           node-version: 25.x
 
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
