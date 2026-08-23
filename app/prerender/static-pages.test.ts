@@ -5,11 +5,10 @@ import { QuickstartLoading } from '@s4wave/app/quickstart/QuickstartLoading.js'
 import { isStaticRoute } from '@s4wave/web/router/static-routes.js'
 import { getMetadata } from './metadata.js'
 import {
-  STATIC_PAGES,
+  STATIC_ROUTES,
   buildQuickstartStaticPages,
   getStaticPageComponent,
 } from './static-pages.js'
-
 describe('buildQuickstartStaticPages', () => {
   it('omits experimental quickstart pages from the release inventory', () => {
     const pages = buildQuickstartStaticPages(getPublicQuickstartOptions(false))
@@ -31,9 +30,9 @@ describe('buildQuickstartStaticPages', () => {
     expect(pages.some((page) => page.path === '/quickstart/forge')).toBe(true)
   })
 
-  it('keeps metadata in sync with the static page inventory', () => {
-    for (const page of STATIC_PAGES) {
-      const meta = getMetadata(page.path)
+  it('carves complete SEO metadata onto every route entry', () => {
+    for (const route of STATIC_ROUTES) {
+      const meta = route.metadata
 
       expect(meta.title).not.toBe('')
       expect(meta.description).not.toBe('')
@@ -42,11 +41,16 @@ describe('buildQuickstartStaticPages', () => {
       expect(meta.canonicalPath).toBeTruthy()
       expect(meta.ogImage).toBeTruthy()
     }
+
+    // The metadata lookup reads the same inventory.
+    for (const route of STATIC_ROUTES) {
+      expect(getMetadata(route.path)).toBe(route.metadata)
+    }
   })
 
   it('keeps static route matching in sync with the static page inventory', () => {
-    for (const page of STATIC_PAGES) {
-      expect(isStaticRoute(page.path)).toBe(true)
+    for (const route of STATIC_ROUTES) {
+      expect(isStaticRoute(route.path)).toBe(true)
     }
   })
 

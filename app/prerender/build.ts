@@ -29,8 +29,8 @@ import {
   type ViteManifest,
 } from './static-assets.js'
 import { StaticProvider } from './StaticContext.js'
-import { STATIC_PAGES } from './static-pages.js'
-import { getMetadata, type PageMetadata } from './metadata.js'
+import { STATIC_ROUTES, type StaticRoute } from './static-pages.js'
+import type { PageMetadata } from './metadata.js'
 import {
   ROOT_BOOT_VISIBILITY_CSS,
   ROOT_BOOT_VISIBILITY_SCRIPT,
@@ -215,7 +215,7 @@ export function buildPrerenderContext(
       wasm: manifest.wasm,
       css: manifest.css,
     },
-    ['/', ...STATIC_PAGES.map((page) => page.path), ...blogPaths],
+    ['/', ...STATIC_ROUTES.map((page) => page.path), ...blogPaths],
     collectRequiredStaticAssetUrls(OUTPUT_DIR),
   )
   const browserReleasePath = join(DIST_DIR, 'browser-release.json')
@@ -253,11 +253,9 @@ async function main() {
   const blogPaths = collectBlogPaths(includeDrafts)
   const ctx = buildPrerenderContext(verbose, blogPaths)
 
-  async function buildStaticPage(
-    page: (typeof STATIC_PAGES)[number],
-  ): Promise<void> {
+  async function buildStaticPage(page: StaticRoute): Promise<void> {
     const Component = page.component
-    const meta = { ...getMetadata(page.path) }
+    const meta = { ...page.metadata }
 
     // For /landing, override canonicalPath to '/'
     if (page.path === '/landing') {
@@ -300,7 +298,7 @@ async function main() {
 
   // Prerender each static page in route order so logs and failure ordering stay stable.
   let staticPageSequence = Promise.resolve()
-  for (const page of STATIC_PAGES) {
+  for (const page of STATIC_ROUTES) {
     staticPageSequence = staticPageSequence.then(() => buildStaticPage(page))
   }
   await staticPageSequence
@@ -317,7 +315,7 @@ async function main() {
   const manifestEntries: Record<string, string> = {
     '/': 'static/index.html',
   }
-  for (const page of STATIC_PAGES) {
+  for (const page of STATIC_ROUTES) {
     manifestEntries[page.path] = `static/${page.path.slice(1)}.html`
   }
   for (const blogPath of blogPaths) {
