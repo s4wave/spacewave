@@ -172,22 +172,23 @@ func (s *syncController) Execute(ctx context.Context) error {
 				if err := waitDirtySyncRetry(ctx, ch, delay); err != nil {
 					return nil
 				}
-			} else {
-				bo.Reset()
-				var nextDirty int64
-				s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-					nextDirty = s.dirtySize
+				continue
+			}
+
+			bo.Reset()
+			var nextDirty int64
+			s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+				nextDirty = s.dirtySize
+			})
+			if nextDirty >= dirty && nextDirty > 0 {
+				s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+					ch = getWaitCh()
 				})
-				if nextDirty >= dirty && nextDirty > 0 {
-					s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
-						ch = getWaitCh()
-					})
-					select {
-					case <-ctx.Done():
-						return nil
-					case <-ch:
-					case <-time.After(syncNoProgressBackoff):
-					}
+				select {
+				case <-ctx.Done():
+					return nil
+				case <-ch:
+				case <-time.After(syncNoProgressBackoff):
 				}
 			}
 			continue
@@ -217,20 +218,21 @@ func (s *syncController) Execute(ctx context.Context) error {
 					s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 						ch = getWaitCh()
 					})
-					if err := waitDirtySyncRetry(ctx, ch, delay); err != nil {
+					if werr := waitDirtySyncRetry(ctx, ch, delay); werr != nil {
 						return nil
 					}
-				} else {
-					bo.Reset()
+					continue
 				}
+				bo.Reset()
 			}
-		} else {
-			bo.Reset()
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-ch:
-			}
+			continue
+		}
+
+		bo.Reset()
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ch:
 		}
 	}
 }
@@ -354,6 +356,7 @@ func (s *syncController) pushPackfile(
 	)
 	defer cancel()
 
+	// note: this fork of logrus dereferences the entry, so le must be set.
 	if s.le != nil {
 		s.le.WithField("pack-id", packID).
 			Debug("retrying canceled sync push with detached context")

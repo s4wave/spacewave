@@ -311,12 +311,16 @@ func (c *SignedHTTPClient) signRequestPrecomputed(req *http.Request, bodyHash []
 		return errors.Wrap(err, "marshal signing payload")
 	}
 
-	var sig []byte
-	if c.sign != nil {
-		sig, err = c.sign(req.Context(), payloadBytes)
-	} else {
-		sig, err = c.priv.Sign(payloadBytes)
+	signPayload := func(payload []byte) ([]byte, error) {
+		return c.priv.Sign(payload)
 	}
+	if c.sign != nil {
+		reqCtx := req.Context()
+		signPayload = func(payload []byte) ([]byte, error) {
+			return c.sign(reqCtx, payload)
+		}
+	}
+	sig, err := signPayload(payloadBytes)
 	if err != nil {
 		return errors.Wrap(err, "sign payload")
 	}

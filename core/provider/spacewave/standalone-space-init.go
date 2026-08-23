@@ -564,11 +564,11 @@ func marshalCreateWithStateBody(
 	body.Set("objectType", arena.NewString(objectType))
 	body.Set("ownerType", arena.NewString(ownerType))
 	body.Set("ownerId", arena.NewString(ownerID))
+	accountPrivateVal := arena.NewFalse()
 	if accountPrivate {
-		body.Set("accountPrivate", arena.NewTrue())
-	} else {
-		body.Set("accountPrivate", arena.NewFalse())
+		accountPrivateVal = arena.NewTrue()
 	}
+	body.Set("accountPrivate", accountPrivateVal)
 	body.Set("configState", arena.NewString(base64.StdEncoding.EncodeToString(configState)))
 	body.Set("rootState", arena.NewString(base64.StdEncoding.EncodeToString(rootState)))
 	return body.MarshalTo(nil), nil
@@ -662,11 +662,9 @@ func repairGrantlessStandaloneSpace(
 		Grants:     []*sobject.SOGrant{grant},
 	}
 
-	recoveryCfg := state.GetConfig()
-	if recoveryCfg == nil {
-		recoveryCfg = &sobject.SharedObjectConfig{}
-	} else {
-		recoveryCfg = recoveryCfg.CloneVT()
+	recoveryCfg := &sobject.SharedObjectConfig{}
+	if cfg := state.GetConfig(); cfg != nil {
+		recoveryCfg = cfg.CloneVT()
 	}
 	recoveryEnvelopes, err := buildSORecoveryEnvelopes(
 		ctx,

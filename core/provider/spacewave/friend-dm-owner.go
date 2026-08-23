@@ -95,39 +95,33 @@ func (a *ProviderAccount) OpenFriendDM(
 			configState,
 			rootState,
 		)
+		conflicted := false
 		if err != nil {
 			var cloudErr *cloudError
 			if !errors.As(err, &cloudErr) ||
 				cloudErr.StatusCode != http.StatusConflict {
 				return nil, err
 			}
+			conflicted = true
 			created, err = cli.GetFriendDM(ctx, targetAccountID)
 			if err != nil {
 				return nil, errors.Wrap(err, "reload friend dm after conflict")
 			}
-			if err := validateFriendDmBootstrap(
-				created,
-				localAccountID,
-				targetAccountID,
-				localPeerID,
-			); err != nil {
-				return nil, err
+		}
+		if err := validateFriendDmBootstrap(
+			created,
+			localAccountID,
+			targetAccountID,
+			localPeerID,
+		); err != nil {
+			return nil, err
+		}
+		if !created.Ready {
+			readyErr := "friend dm create did not produce ready state"
+			if conflicted {
+				readyErr = "friend dm conflict did not produce ready state"
 			}
-			if !created.Ready {
-				return nil, errors.New("friend dm conflict did not produce ready state")
-			}
-		} else {
-			if err := validateFriendDmBootstrap(
-				created,
-				localAccountID,
-				targetAccountID,
-				localPeerID,
-			); err != nil {
-				return nil, err
-			}
-			if !created.Ready {
-				return nil, errors.New("friend dm create did not produce ready state")
-			}
+			return nil, errors.New(readyErr)
 		}
 		bootstrap = created
 	}

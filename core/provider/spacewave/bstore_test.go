@@ -13,6 +13,11 @@ import (
 	"testing"
 	"time"
 
+	packedmsg "github.com/s4wave/spacewave/bldr/util/packedmsg"
+	alpha_cdn "github.com/s4wave/spacewave/core/cdn"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
+	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	block_store "github.com/s4wave/spacewave/db/block/store"
@@ -21,12 +26,6 @@ import (
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
 	"github.com/s4wave/spacewave/net/hash"
-
-	packedmsg "github.com/s4wave/spacewave/bldr/util/packedmsg"
-	alpha_cdn "github.com/s4wave/spacewave/core/cdn"
-	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
-	packfile "github.com/s4wave/spacewave/core/provider/spacewave/packfile"
-	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 	"github.com/sirupsen/logrus"
 )
 

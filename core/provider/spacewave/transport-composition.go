@@ -311,16 +311,17 @@ func (o *transportCompositionOwner) setLinks(state *transportCompositionSession,
 			return
 		}
 		state.snapshot.ActivePeerCount = uint32(max(count, 0))
-		if count > 0 {
+		switch {
+		case count > 0:
 			state.hadPeers = true
+			p2p := TransportCompositionP2PStateIdle
 			if state.activeDemands != 0 {
-				state.snapshot.P2PState = TransportCompositionP2PStateActive
-			} else {
-				state.snapshot.P2PState = TransportCompositionP2PStateIdle
+				p2p = TransportCompositionP2PStateActive
 			}
-		} else if state.hadPeers {
+			state.snapshot.P2PState = p2p
+		case state.hadPeers:
 			state.snapshot.P2PState = TransportCompositionP2PStateFallbackNoPeer
-		} else {
+		default:
 			state.snapshot.P2PState = TransportCompositionP2PStateNoPeers
 		}
 		state.snapshot.LastError = ""

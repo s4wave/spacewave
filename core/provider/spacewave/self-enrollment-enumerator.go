@@ -157,6 +157,7 @@ func (a *ProviderAccount) enumerateSelfEnrollmentCandidates(
 
 func (a *ProviderAccount) refreshSelfEnrollmentSummary(ctx context.Context) {
 	if err := a.RefreshSelfEnrollmentSummary(ctx); err != nil {
+		// note: this fork of logrus dereferences the entry, so le must be set.
 		if a.le != nil {
 			a.le.WithError(err).Warn("failed to refresh self-enrollment summary")
 		}

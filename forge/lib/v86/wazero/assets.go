@@ -94,6 +94,9 @@ func ResolveAssets(ctx context.Context, opts AssetOptions) (*AssetSet, error) {
 }
 
 func (o AssetOptions) withDefaults() AssetOptions {
+	if o.Le == nil {
+		o.Le = logrus.NewEntry(logrus.StandardLogger())
+	}
 	if o.CdnBaseURL == "" {
 		o.CdnBaseURL = DefaultCdnBaseURL
 	}

@@ -74,11 +74,8 @@ func (c *SessionClient) EnrollSpaceMember(
 			results = append(results, result)
 			continue
 		}
-		if grant == nil {
-			result.AlreadyParticipant = true
-		} else {
-			result.Enrolled = true
-		}
+		result.AlreadyParticipant = grant == nil
+		result.Enrolled = grant != nil
 		results = append(results, result)
 	}
 
@@ -487,11 +484,9 @@ func (c *SessionClient) loadStandaloneConfigState(
 	if state == nil {
 		return nil, nil, nil, errors.New("missing so state snapshot")
 	}
-	currentCfg := state.GetConfig()
-	if currentCfg == nil {
-		currentCfg = &sobject.SharedObjectConfig{}
-	} else {
-		currentCfg = currentCfg.CloneVT()
+	currentCfg := &sobject.SharedObjectConfig{}
+	if cfg := state.GetConfig(); cfg != nil {
+		currentCfg = cfg.CloneVT()
 	}
 
 	if chain == nil {

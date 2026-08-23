@@ -341,7 +341,8 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 			priv,
 			pid,
 		)
-	} else {
+	}
+	if entityCli == nil {
 		entityCli = NewEntityClient(
 			t.p.httpCli,
 			t.p.endpoint,
@@ -445,9 +446,9 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 		le.WithField("epoch", epoch).Debug("account changed via ws notify")
 		if epoch > 0 {
 			acc.setEpoch(epoch)
-		} else {
-			acc.BumpLocalEpoch()
+			return
 		}
+		acc.BumpLocalEpoch()
 	}
 	acc.wsTracker.onOrgChanged = func(orgID string) {
 		le.WithField("org-id", orgID).Debug("org changed via ws notify")
@@ -538,11 +539,11 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	}
 	acc.wsTracker.onDormantChanged = func(dormant bool) {
 		acc.accountBcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+			status := provider.ProviderAccountStatus_ProviderAccountStatus_READY
 			if dormant {
-				acc.state.status = provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT
-			} else {
-				acc.state.status = provider.ProviderAccountStatus_ProviderAccountStatus_READY
+				status = provider.ProviderAccountStatus_ProviderAccountStatus_DORMANT
 			}
+			acc.state.status = status
 			broadcast()
 		})
 		acc.refreshSelfRejoinSweepState()

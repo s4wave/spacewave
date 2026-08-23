@@ -1282,11 +1282,9 @@ func (s *SharedObject) loadLatestConfigState(ctx context.Context) (*sobject.SOSt
 		return nil, nil, nil, errors.Wrap(err, "get current SO state")
 	}
 
-	currentCfg := state.GetConfig()
-	if currentCfg == nil {
-		currentCfg = &sobject.SharedObjectConfig{}
-	} else {
-		currentCfg = currentCfg.CloneVT()
+	currentCfg := &sobject.SharedObjectConfig{}
+	if cfg := state.GetConfig(); cfg != nil {
+		currentCfg = cfg.CloneVT()
 	}
 
 	var lastHash []byte

@@ -199,7 +199,7 @@ func BuildSOOperationRejectionSignatureContext(sharedObjectID string, validatorP
 	return b.String()
 }
 
-// BuildSOOperationRejectionErrorDetailsEncContext builds the context string for error details on a shared object operation rejection.
+// BuildSOOperationRejectionErrorDetailsContext builds the context string for error details on a shared object operation rejection.
 func BuildSOOperationRejectionErrorDetailsContext(sharedObjectID string, validatorPeerID, submitterPeerID string, opNonce uint64, localID string) string {
 	var b strings.Builder
 	b.WriteString(baseCryptoContext)
