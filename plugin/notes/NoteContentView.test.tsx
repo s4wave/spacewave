@@ -953,4 +953,77 @@ describe('NoteContentView', () => {
     await waitFor(() => expect(screen.queryByText('Saving…')).toBeNull())
     expect(screen.queryByText('Saved')).toBeNull()
   })
+
+  it('keeps note B clean when note A completes writing after the switch', async () => {
+    let resolveWrite: (() => void) | undefined
+    const writeAt = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveWrite = resolve
+        }),
+    )
+    const truncate = vi.fn(() => Promise.resolve())
+    const onContentSaved = vi.fn()
+    vi.mocked(useUnixFSHandle).mockReturnValue({
+      value: { writeAt, truncate } as never,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+    vi.mocked(useUnixFSHandleTextContent).mockReturnValue({
+      value: 'original',
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+
+    const view = render(
+      <NoteContentView
+        worldState={mockWorldState as never}
+        sourceRef="obj-key/-/docs"
+        noteName="a.md"
+        editing={false}
+        onToggleEdit={vi.fn()}
+        onContentSaved={onContentSaved}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('mock-save'))
+    await waitFor(() => expect(writeAt).toHaveBeenCalledOnce())
+
+    // Switch notes while A's write is still in flight.
+    view.rerender(
+      <NoteContentView
+        worldState={mockWorldState as never}
+        sourceRef="obj-key/-/docs"
+        noteName="b.md"
+        editing={false}
+        onToggleEdit={vi.fn()}
+        onContentSaved={onContentSaved}
+      />,
+    )
+
+    resolveWrite?.()
+    await waitFor(() => expect(truncate).toHaveBeenCalledOnce())
+    // Drain microtasks plus scheduler macrotasks so any leaked completion
+    // would have rendered before the absence checks below.
+    for (let i = 0; i < 20; i++) {
+      await Promise.resolve()
+      if (i % 4 === 3) {
+        await new Promise((resolve) => setTimeout(resolve, 0))
+      }
+    }
+
+    // A's completion must not publish through B's view.
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.queryByText('Saving…')).toBeNull()
+    expect(screen.queryByText('Saved')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(onContentSaved).not.toHaveBeenCalled()
+
+    // B's own content and editor stay intact.
+    const editor = screen.getByTestId('lexical-editor')
+    expect(editor.getAttribute('data-content')).toBe('original')
+    expect(editor.getAttribute('data-composer-key')).toBe('docs/b.md:markdown')
+  })
 })
