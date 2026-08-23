@@ -67,7 +67,8 @@ func (c *BuilderConfig) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())
 }
 
-// CommitManifest is a shortcut for CommitManifest.
+// CommitManifest creates and applies a manifest from in-memory dist and
+// assets filesystems.
 func (c *BuilderConfig) CommitManifest(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -146,10 +147,12 @@ func (c *BuilderConfig) CommitManifestWithPaths(
 	return c.CommitManifest(ctx, le, ws, meta, entrypointFilename, distFs, assetsFs)
 }
 
-// CheckoutManifest is a shortcut for CheckoutManifest.
+// CheckoutManifest checks out the manifest's dist and assets to on-disk
+// paths, delegating to manifest_world.CheckoutManifest with
+// DeleteMode_DURING.
 //
 // If either of the paths are empty, they will be skipped.
-// If manifestRef is nil, will use the reference defaulted to by accessFunc.
+// If manifestRef is nil, it defaults to the reference chosen by accessFunc.
 func (c *BuilderConfig) CheckoutManifest(
 	ctx context.Context,
 	le *logrus.Entry,

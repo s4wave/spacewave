@@ -177,7 +177,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		ebo.InitialInterval = time.Second
 		ebo.Multiplier = 2
 		ebo.MaxInterval = time.Second * 10
-		// ebo.MaxElapsedTime = time.Minute
 		return ebo
 	}
 

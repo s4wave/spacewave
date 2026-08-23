@@ -11,9 +11,9 @@ import (
 
 // CaptureFileIdentity captures the content identity for one file path.
 //
-// The identity records size, modification time, and SHA-256 digest so a later
-// validation can take a cheap size+modtime fast path and fall back to a content
-// comparison when only the modification time changed.
+// The identity records size, modification time, and SHA-256 digest. Later
+// validations always compare the digest; size and modification time are
+// recorded as diagnostics.
 func CaptureFileIdentity(filePath string) (*InputManifest_FileIdentity, error) {
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
