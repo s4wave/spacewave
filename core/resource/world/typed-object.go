@@ -2,7 +2,7 @@ package resource_world
 
 import (
 	"context"
-	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -31,7 +31,7 @@ type TypedObjectResource struct {
 	sessionPeerIDBound bool
 	lifecycleCtx       context.Context
 	lifecycleCancel    context.CancelFunc
-	closeOnce          sync.Once
+	closed             atomic.Bool
 	objects            *keyed.KeyedRefCount[typedObjectResourceKey, *typedObjectHandle]
 }
 
@@ -116,15 +116,16 @@ func RegisterTypedObjectResource(mux srpc.Mux, le *logrus.Entry, b bus.Bus, ws w
 
 // Close releases shared typed object handles owned by this resource mount.
 func (r *TypedObjectResource) Close() {
-	r.closeOnce.Do(func() {
-		for _, keyedObject := range r.objects.GetKeysWithData() {
-			if keyedObject.Data != nil {
-				keyedObject.Data.close()
-			}
+	if !r.closed.CompareAndSwap(false, true) {
+		return
+	}
+	for _, keyedObject := range r.objects.GetKeysWithData() {
+		if keyedObject.Data != nil {
+			keyedObject.Data.close()
 		}
-		r.objects.ClearContext()
-		r.lifecycleCancel()
-	})
+	}
+	r.objects.ClearContext()
+	r.lifecycleCancel()
 }
 
 // AccessTypedObject looks up an object, determines its type, and returns a typed resource.
@@ -236,18 +237,19 @@ func (k typedObjectResourceKey) String() string {
 }
 
 type typedObjectHandle struct {
-	invoker   srpc.Invoker
-	cleanup   func()
-	closeOnce sync.Once
-	err       error
+	invoker srpc.Invoker
+	cleanup func()
+	closed  atomic.Bool
+	err     error
 }
 
 func (h *typedObjectHandle) close() {
-	h.closeOnce.Do(func() {
-		if h.cleanup != nil {
-			h.cleanup()
-		}
-	})
+	if !h.closed.CompareAndSwap(false, true) {
+		return
+	}
+	if h.cleanup != nil {
+		h.cleanup()
+	}
 }
 
 func (r *TypedObjectResource) buildTypedObjectHandle(key typedObjectResourceKey) (keyed.Routine, *typedObjectHandle) {

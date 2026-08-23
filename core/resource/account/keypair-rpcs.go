@@ -367,9 +367,6 @@ func (s *entityKeypairsWatchState) bridgeLocalAccountSettings(
 
 func (r *AccountResource) entityKeyStore() (*provider_spacewave.EntityKeyStore, error) {
 	if r.localAccount != nil {
-		if r.localEntityKeyStore == nil {
-			r.localEntityKeyStore = provider_spacewave.NewEntityKeyStore()
-		}
 		return r.localEntityKeyStore, nil
 	}
 	acc, err := r.requireCloudAccount()

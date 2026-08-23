@@ -3,6 +3,7 @@ package resource_world
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
@@ -21,7 +22,7 @@ type TxResource struct {
 	engine world.Engine
 
 	typedResource  *TypedObjectResource
-	releaseOnce    sync.Once
+	released       atomic.Bool
 	terminalLocker sync.Locker
 	terminal       bool
 }
@@ -183,12 +184,13 @@ func (r *TxResource) Discard(ctx context.Context, req *s4wave_world.DiscardReque
 
 // Release discards the underlying transaction exactly once.
 func (r *TxResource) Release() {
-	r.releaseOnce.Do(func() {
-		if r.typedResource != nil {
-			r.typedResource.Close()
-		}
-		r.tx.Discard()
-	})
+	if !r.released.CompareAndSwap(false, true) {
+		return
+	}
+	if r.typedResource != nil {
+		r.typedResource.Close()
+	}
+	r.tx.Discard()
 }
 
 // _ is a type assertion

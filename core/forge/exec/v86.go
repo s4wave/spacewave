@@ -140,6 +140,7 @@ func openV86ExecutionStream(ctx context.Context, client srpc.Client) (srpc.Strea
 	if err := strm.CloseSend(); err != nil &&
 		!errors.Is(err, io.ErrClosedPipe) &&
 		!errors.Is(err, srpc.ErrCompleted) {
+		// note: the close error is secondary to the Send failure being returned.
 		_ = strm.Close()
 		return nil, err
 	}

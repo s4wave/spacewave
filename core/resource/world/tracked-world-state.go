@@ -240,9 +240,11 @@ func (t *TrackedWorldState) AccessWorldState(ctx context.Context, ref *bucket.Ob
 func (t *TrackedWorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	obj, err := t.ws.CreateObject(ctx, key, rootRef)
 	if err == nil {
-		// Record the created object's revision.
-		_, rev, _ := obj.GetRootRef(ctx)
-		t.trackObjectAccess(key, rev)
+		// Record the created object's revision. A failed read is skipped rather
+		// than recorded as rev=0, which the change detector reads as missing.
+		if _, rev, revErr := obj.GetRootRef(ctx); revErr == nil {
+			t.trackObjectAccess(key, rev)
+		}
 	}
 	return obj, err
 }
@@ -251,11 +253,14 @@ func (t *TrackedWorldState) GetObject(ctx context.Context, key string) (world.Ob
 	obj, found, err := t.ws.GetObject(ctx, key)
 	if err == nil {
 		// Record the requested object's revision, including a missing object.
-		rev := uint64(0)
+		// A failed read is skipped rather than recorded as rev=0.
 		if found {
-			_, rev, _ = obj.GetRootRef(ctx)
+			if _, rev, revErr := obj.GetRootRef(ctx); revErr == nil {
+				t.trackObjectAccess(key, rev)
+			}
+		} else {
+			t.trackObjectAccess(key, 0)
 		}
-		t.trackObjectAccess(key, rev)
 	}
 	return obj, found, err
 }
@@ -269,8 +274,9 @@ func (t *TrackedWorldState) RenameObject(ctx context.Context, oldKey, newKey str
 	obj, err := t.ws.RenameObject(ctx, oldKey, newKey, descendants)
 	if err == nil {
 		t.trackObjectAccess(oldKey, 0)
-		_, rev, _ := obj.GetRootRef(ctx)
-		t.trackObjectAccess(newKey, rev)
+		if _, rev, revErr := obj.GetRootRef(ctx); revErr == nil {
+			t.trackObjectAccess(newKey, rev)
+		}
 		t.trackQuadQuery()
 	}
 	return obj, err

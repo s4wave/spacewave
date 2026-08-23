@@ -3,16 +3,15 @@ package resource_space
 import (
 	"cmp"
 	"context"
-	"errors"
-	"fmt"
 	"maps"
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/pkg/errors"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	bus_bridge "github.com/aperturerobotics/controllerbus/bus/bridge"
@@ -60,33 +59,34 @@ type spaceRuntime struct {
 	cancel           context.CancelFunc
 	done             chan struct{}
 	terminal         <-chan error
-	releaseOnce      sync.Once
+	released         atomic.Bool
 }
 
 func (r *spaceRuntime) Release() {
 	if r == nil {
 		return
 	}
-	r.releaseOnce.Do(func() {
-		if r.schedulerRelease != nil {
-			r.schedulerRelease()
-		}
-		if r.mirrorRelease != nil {
-			r.mirrorRelease()
-		}
-		if r.hostWatchRelease != nil {
-			r.hostWatchRelease()
-		}
-		if r.bridgeRef != nil {
-			r.bridgeRef()
-		}
-		if r.cancel != nil {
-			r.cancel()
-		}
-		if r.done != nil {
-			close(r.done)
-		}
-	})
+	if !r.released.CompareAndSwap(false, true) {
+		return
+	}
+	if r.schedulerRelease != nil {
+		r.schedulerRelease()
+	}
+	if r.mirrorRelease != nil {
+		r.mirrorRelease()
+	}
+	if r.hostWatchRelease != nil {
+		r.hostWatchRelease()
+	}
+	if r.bridgeRef != nil {
+		r.bridgeRef()
+	}
+	if r.cancel != nil {
+		r.cancel()
+	}
+	if r.done != nil {
+		close(r.done)
+	}
 }
 
 type attachedRpcServiceBinding struct {
@@ -105,14 +105,17 @@ type attachedRpcServiceController struct {
 	*bifrost_rpc.RpcServiceController
 	// ready closes after RpcServiceController.Execute sets its context.
 	ready chan struct{}
-	// readyOnce guards ready closure when ControllerBus executes this controller.
-	readyOnce sync.Once
+	// readyClosed records that ready was closed; Execute may run more than once
+	// if ControllerBus restarts the controller after an error.
+	readyClosed atomic.Bool
 }
 
 // Execute initializes the RPC service controller and then signals readiness.
 func (c *attachedRpcServiceController) Execute(ctx context.Context) error {
 	err := c.RpcServiceController.Execute(ctx)
-	c.readyOnce.Do(func() { close(c.ready) })
+	if c.readyClosed.CompareAndSwap(false, true) {
+		close(c.ready)
+	}
 	return err
 }
 
@@ -477,7 +480,7 @@ func startSpaceRuntime(
 		true,
 		func(resErr []error, hosts []plugin_host.PluginHost) error {
 			if len(resErr) != 0 {
-				reportTerminal(fmt.Errorf("watch daemon plugin hosts: %w", resErr[0]))
+				reportTerminal(errors.Wrap(resErr[0], "watch daemon plugin hosts"))
 				if !initialSnapshot.Load() {
 					hostReady <- resErr[0]
 				}
@@ -493,7 +496,7 @@ func startSpaceRuntime(
 		},
 		func(err error) {
 			if initialSnapshot.Load() {
-				reportTerminal(fmt.Errorf("watch daemon plugin hosts: %w", err))
+				reportTerminal(errors.Wrap(err, "watch daemon plugin hosts"))
 				return
 			}
 			hostReady <- err
@@ -618,7 +621,7 @@ func (r *SpaceContentsResource) BindAttachedRpcService(
 			r.attachedRpcServices = make(map[string]*attachedRpcServiceBinding)
 		}
 		if r.attachedRpcServices[prefix] != nil {
-			err = fmt.Errorf("service ID prefix %q is already bound", prefix)
+			err = errors.Errorf("service ID prefix %q is already bound", prefix)
 			return
 		}
 		r.attachedRpcServices[prefix] = binding

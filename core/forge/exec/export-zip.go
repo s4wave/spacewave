@@ -107,10 +107,16 @@ func (h *exportZipHandler) Execute(ctx context.Context) error {
 // For other objects, exports the raw block data as a single entry.
 func (h *exportZipHandler) buildZip(ctx context.Context, w io.Writer, objKey string) error {
 	// Check if the object is a unixfs FS type.
-	typeID, _ := world_types.GetObjectType(ctx, h.ws, objKey)
+	typeID, typeIDErr := world_types.GetObjectType(ctx, h.ws, objKey)
+	if typeIDErr != nil {
+		h.le.WithError(typeIDErr).Warn("zip export: object type lookup failed, exporting raw block")
+	}
 	fsType, hasType, err := unixfs_world.LookupFsType(ctx, h.ws, objKey)
 	if err == nil && hasType {
 		return h.buildFSZip(ctx, w, objKey, fsType)
+	}
+	if err != nil {
+		h.le.WithError(err).Debug("zip export: fs type lookup failed, exporting raw block")
 	}
 
 	// Fall back to raw block export.

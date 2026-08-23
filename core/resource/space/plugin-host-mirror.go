@@ -50,6 +50,9 @@ func (m *spacePluginHostMirror) HandleDirective(
 		}
 		m.insts[inst] = struct{}{}
 	})
+	// note: the unregister func is deliberately not retained: registration
+	// lifetime equals the instance lifetime, and unregistration happens when
+	// the controllerbus disposes the instance.
 	release := inst.AddDisposeCallback(func() {
 		m.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
 			delete(m.insts, inst)

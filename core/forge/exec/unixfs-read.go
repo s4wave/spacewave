@@ -65,7 +65,7 @@ func (h *unixfsReadHandler) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// Log file metadata.
+	// Log file metadata. A failed best-effort info log must not fail the read.
 	_ = h.handle.WriteLog(ctx, "info", "read "+strconv.Itoa(len(data))+" bytes from "+objKey+":"+filePath)
 
 	// Build a snapshot of the source object as the output.
