@@ -1779,9 +1779,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       // A service worker talking to this document is proof that one controls
       // it, which is the condition the runtime start is waiting for.
       this.startRuntimeOnce?.()
-      if (!this.runtimeConnected) {
-        this.taskEnsureWebRuntimeConn()
-      }
+      this.taskEnsureWebRuntimeConnAfterStartGate()
     }
 
     const attachSwMessageListener = () => {
@@ -1808,9 +1806,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       // settle, so this route must start the runtime rather than only rebind
       // the port to it.
       this.startRuntimeOnce?.()
-      if (!this.runtimeConnected) {
-        this.taskEnsureWebRuntimeConn()
-      }
+      this.taskEnsureWebRuntimeConnAfterStartGate()
     })
 
     // register the service worker
@@ -2998,6 +2994,20 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
           this.webDocumentLivenessLockState = 'idle'
         }
       })
+  }
+
+  // taskEnsureWebRuntimeConnAfterStartGate ensures the runtime connection once
+  // the control observation can route a client open. While the DedicatedWorker
+  // host election is pending, neither the attach relay nor the runtime port
+  // exists, so an immediate open fails with webRuntimePort not initialized;
+  // the election callbacks own the first attempt until they resolve the role.
+  private taskEnsureWebRuntimeConnAfterStartGate() {
+    if (this.dedicatedRuntimeHost?.role === 'pending') {
+      return
+    }
+    if (!this.runtimeConnected) {
+      this.taskEnsureWebRuntimeConn()
+    }
   }
 
   // taskEnsureWebRuntimeConn ensures an active connection with the WebRuntime.
