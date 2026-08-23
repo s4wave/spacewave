@@ -574,6 +574,75 @@ describe('WebDocument service worker startup', () => {
 
     expect(startRuntimeOnce).toHaveBeenCalledOnce()
   })
+
+  it('holds the runtime client open until the DedicatedWorker host election resolves', async () => {
+    const messageListeners: Array<(ev: MessageEvent) => void> = []
+    const controllerChangeListeners: Array<(ev: Event) => void> = []
+    installSessionStorage()
+    vi.stubGlobal('location', {
+      href: 'https://example.test/app',
+      reload: vi.fn(),
+    })
+    const sw = { postMessage: vi.fn() } as unknown as ServiceWorker
+    const serviceWorker = {
+      controller: sw as ServiceWorker | null,
+      addEventListener: vi.fn((type: string, listener: EventListener) => {
+        if (type === 'message') {
+          messageListeners.push(listener as (ev: MessageEvent) => void)
+        }
+        if (type === 'controllerchange') {
+          controllerChangeListeners.push(listener as (ev: Event) => void)
+        }
+      }),
+      register: vi.fn(),
+    }
+    vi.stubGlobal('navigator', { serviceWorker })
+
+    // The election is in flight: DedicatedWorkerHostOwner.start() requested
+    // the host Web Lock, but neither the grant callback nor the attach query
+    // has run, so the role is still pending and no runtime port is bound.
+    const doc = buildTestWebDocument()
+    doc.runtimeConnected = false
+    doc.dedicatedRuntimeHost = { role: 'pending' }
+    vi.spyOn(
+      doc as unknown as { initServiceWorkerPort: (sw: ServiceWorker) => void },
+      'initServiceWorkerPort',
+    ).mockImplementation(() => {})
+    // Deliberately unresolved: the test asserts the open attempt happened, not
+    // that the connection succeeded, so no resume-ready seeding outlives the
+    // test.
+    const waitConn = vi.fn().mockReturnValue(new Promise(() => {}))
+    doc.webRuntimeClient.waitConn = waitConn
+    const wb: TestWorkbox = {
+      register: vi
+        .fn()
+        .mockResolvedValue({
+          scope: 'https://example.test/',
+        } as ServiceWorkerRegistration),
+      update: vi.fn().mockResolvedValue(undefined),
+      controlling: Promise.resolve(sw),
+    }
+
+    await doc.initServiceWorker(wb, '/sw.mjs')
+
+    // Both control-observation routes fire while the role is still pending.
+    // Neither may attempt a client open: the attach relay and the runtime port
+    // do not exist yet, so the attempt throws webRuntimePort not initialized.
+    messageListeners[0](
+      new MessageEvent('message', { data: { from: 'sw', init: true } }),
+    )
+    controllerChangeListeners[0](new Event('controllerchange'))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(waitConn).not.toHaveBeenCalled()
+
+    // The election callback resolved the role (startHost ran and bound the
+    // runtime port). A control observation on the other handler retries and
+    // opens one client.
+    doc.dedicatedRuntimeHost!.role = 'host'
+    controllerChangeListeners[0](new Event('controllerchange'))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(waitConn).toHaveBeenCalledOnce()
+  })
 })
 
 describe('shouldForceDedicatedWorkers', () => {
