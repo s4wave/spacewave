@@ -1,0 +1,13 @@
+syntax = "proto3";
+package session.lock;
+
+option go_package = "github.com/s4wave/spacewave/core/session/lock";
+
+// LockConfig is the persisted PIN-lock key-derivation configuration stored
+// at {sessionID}/lock-params in the session ObjectStore.
+message LockConfig {
+  // ScryptN is the scrypt cost factor exponent; the work factor is 2^N.
+  uint32 scrypt_n = 1;
+  // Salt is the random salt for PIN key derivation.
+  bytes salt = 2;
+}

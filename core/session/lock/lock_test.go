@@ -298,3 +298,23 @@ func TestWritePINLockReplaysIdentically(t *testing.T) {
 		t.Fatalf("delegated commits = %d, want 1", got)
 	}
 }
+
+// TestLockConfigRoundTrip proves the persisted PIN-lock configuration
+// survives a schema-codec encode and decode with its fields intact.
+func TestLockConfigRoundTrip(t *testing.T) {
+	config := &LockConfig{ScryptN: 18, Salt: []byte("0123456789abcdef")}
+	data, err := config.MarshalVT()
+	if err != nil {
+		t.Fatalf("marshal lock config: %v", err)
+	}
+	decoded := &LockConfig{}
+	if err := decoded.UnmarshalVT(data); err != nil {
+		t.Fatalf("unmarshal lock config: %v", err)
+	}
+	if decoded.ScryptN != config.ScryptN {
+		t.Fatalf("scrypt N = %d, want %d", decoded.ScryptN, config.ScryptN)
+	}
+	if !bytes.Equal(decoded.Salt, config.Salt) {
+		t.Fatalf("salt = %x, want %x", decoded.Salt, config.Salt)
+	}
+}

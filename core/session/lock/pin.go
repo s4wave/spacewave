@@ -13,37 +13,6 @@ import (
 // pinKDFContext is the blake3 context for PIN key derivation.
 var pinKDFContext = "aperture/alpha 2026-03-16 session-lock pin-kdf v2"
 
-// LockConfig is stored at {sessionID}/lock-params in ObjectStore.
-type LockConfig struct {
-	// ScryptN is the scrypt N parameter (cost factor as power of 2).
-	ScryptN uint32
-	// Salt is the random salt for PIN key derivation (16 bytes).
-	Salt []byte
-}
-
-// MarshalVT serializes LockConfig to bytes.
-// Format: 4 bytes scryptN (big-endian) + salt bytes.
-func (c *LockConfig) MarshalVT() ([]byte, error) {
-	out := make([]byte, 4+len(c.Salt))
-	out[0] = byte(c.ScryptN >> 24)
-	out[1] = byte(c.ScryptN >> 16)
-	out[2] = byte(c.ScryptN >> 8)
-	out[3] = byte(c.ScryptN)
-	copy(out[4:], c.Salt)
-	return out, nil
-}
-
-// UnmarshalVT deserializes LockConfig from bytes.
-func (c *LockConfig) UnmarshalVT(data []byte) error {
-	if len(data) < 4 {
-		return errors.New("lock config too short")
-	}
-	c.ScryptN = uint32(data[0])<<24 | uint32(data[1])<<16 | uint32(data[2])<<8 | uint32(data[3])
-	c.Salt = make([]byte, len(data)-4)
-	copy(c.Salt, data[4:])
-	return nil
-}
-
 // derivePinKey derives a 32-byte key from a PIN using scrypt+blake3.
 func derivePinKey(config *LockConfig, pin []byte) ([]byte, error) {
 	n := config.ScryptN
