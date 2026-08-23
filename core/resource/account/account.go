@@ -92,56 +92,18 @@ func (r *AccountResource) WatchAccountInfo(
 func (r *AccountResource) watchLocalAccountInfo(
 	strm s4wave_account.SRPCAccountResourceService_WatchAccountInfoStream,
 ) error {
-	ctx, ctxCancel := context.WithCancel(strm.Context())
-	defer ctxCancel()
-
-	soRef, err := r.localAccount.GetAccountSettingsRef(ctx)
-	if err != nil {
-		return err
-	}
-	so, relSO, err := r.localAccount.MountSharedObject(ctx, soRef, ctxCancel)
-	if err != nil {
-		return err
-	}
-	defer relSO()
-
-	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, ctxCancel)
-	if err != nil {
-		return err
-	}
-	defer relStateCtr()
-
-	var prev *s4wave_account.WatchAccountInfoResponse
-	return ccontainer.WatchChanges(
-		ctx,
-		nil,
-		stateCtr,
-		func(snap sobject.SharedObjectStateSnapshot) error {
-			settings := &account_settings.AccountSettings{}
-			if snap != nil {
-				rootInner, err := snap.GetRootInner(ctx)
-				if err != nil {
-					return err
-				}
-				if data := rootInner.GetStateData(); len(data) > 0 {
-					if err := settings.UnmarshalVT(data); err != nil {
-						return err
-					}
-				}
-			}
-			resp := &s4wave_account.WatchAccountInfoResponse{
+	return watchLocalSettingsStream(
+		strm.Context(),
+		r,
+		strm.Send,
+		func(_ context.Context, settings *account_settings.AccountSettings) (*s4wave_account.WatchAccountInfoResponse, error) {
+			return &s4wave_account.WatchAccountInfoResponse{
 				AccountId:    r.localAccount.GetAccountID(),
 				EntityId:     settings.GetDisplayName(),
 				ProviderId:   r.localAccount.GetProviderID(),
 				KeypairCount: uint32(len(settings.GetEntityKeypairs())),
-			}
-			if prev != nil && resp.EqualVT(prev) {
-				return nil
-			}
-			prev = resp
-			return strm.Send(resp)
+			}, nil
 		},
-		nil,
 	)
 }
 
@@ -188,40 +150,19 @@ func (r *AccountResource) WatchKeybindingOverrides(
 		})
 	}
 
-	ctx, ctxCancel := context.WithCancel(strm.Context())
-	defer ctxCancel()
-
-	_, relSO, stateCtr, relStateCtr, err := r.mountLocalAccountSettingsState(ctx, ctxCancel)
-	if err != nil {
-		return err
-	}
-	defer relSO()
-	defer relStateCtr()
-
-	var prev *s4wave_account.WatchKeybindingOverridesResponse
-	return ccontainer.WatchChanges(
-		ctx,
-		nil,
-		stateCtr,
-		func(snap sobject.SharedObjectStateSnapshot) error {
-			settings, err := decodeLocalAccountSettingsSnapshot(ctx, snap)
-			if err != nil {
-				return err
-			}
+	return watchLocalSettingsStream(
+		strm.Context(),
+		r,
+		strm.Send,
+		func(_ context.Context, settings *account_settings.AccountSettings) (*s4wave_account.WatchKeybindingOverridesResponse, error) {
 			overrideSet := settings.GetKeybindingOverrides()
 			if overrideSet == nil {
 				overrideSet = &s4wave_command.KeybindingOverrideSet{}
 			}
-			resp := &s4wave_account.WatchKeybindingOverridesResponse{
+			return &s4wave_account.WatchKeybindingOverridesResponse{
 				OverrideSet: overrideSet.CloneVT(),
-			}
-			if prev != nil && resp.EqualVT(prev) {
-				return nil
-			}
-			prev = resp
-			return strm.Send(resp)
+			}, nil
 		},
-		nil,
 	)
 }
 
@@ -312,6 +253,53 @@ func (r *AccountResource) queueLocalAccountSettingsOp(
 		return errors.Wrap(err, "wait for account settings op")
 	}
 	return nil
+}
+
+// watchLocalSettingsStream drives a local account-settings watch loop. It
+// mounts the local account settings shared object, decodes each snapshot into
+// AccountSettings, builds a response with build, diffs it against the previous
+// response via EqualVT, and sends only changed responses through send.
+func watchLocalSettingsStream[T interface{ EqualVT(T) bool }](
+	strmCtx context.Context,
+	r *AccountResource,
+	send func(resp T) error,
+	build func(ctx context.Context, settings *account_settings.AccountSettings) (T, error),
+) error {
+	ctx, ctxCancel := context.WithCancel(strmCtx)
+	defer ctxCancel()
+
+	_, relSO, stateCtr, relStateCtr, err := r.mountLocalAccountSettingsState(ctx, ctxCancel)
+	if err != nil {
+		return err
+	}
+	defer relSO()
+	defer relStateCtr()
+
+	var (
+		prev     T
+		havePrev bool
+	)
+	return ccontainer.WatchChanges(
+		ctx,
+		nil,
+		stateCtr,
+		func(snap sobject.SharedObjectStateSnapshot) error {
+			settings, err := decodeLocalAccountSettingsSnapshot(ctx, snap)
+			if err != nil {
+				return err
+			}
+			resp, err := build(ctx, settings)
+			if err != nil {
+				return err
+			}
+			if havePrev && resp.EqualVT(prev) {
+				return nil
+			}
+			prev, havePrev = resp, true
+			return send(resp)
+		},
+		nil,
+	)
 }
 
 func decodeLocalAccountSettingsSnapshot(
@@ -433,93 +421,61 @@ func (r *AccountResource) WatchSessions(
 func (r *AccountResource) watchLocalSessions(
 	strm s4wave_account.SRPCAccountResourceService_WatchSessionsStream,
 ) error {
-	ctx, ctxCancel := context.WithCancel(strm.Context())
-	defer ctxCancel()
-
-	soRef, err := r.localAccount.GetAccountSettingsRef(ctx)
-	if err != nil {
-		return err
-	}
-	so, relSO, err := r.localAccount.MountSharedObject(ctx, soRef, ctxCancel)
-	if err != nil {
-		return err
-	}
-	defer relSO()
-
-	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, ctxCancel)
-	if err != nil {
-		return err
-	}
-	defer relStateCtr()
-
-	var prev *s4wave_account.WatchSessionsResponse
-	return ccontainer.WatchChanges(
-		ctx,
-		nil,
-		stateCtr,
-		func(snap sobject.SharedObjectStateSnapshot) error {
-			currentPeerID := r.localAccount.GetMountedSessionPeerID(ctx).String()
-			settings := &account_settings.AccountSettings{}
-			var devices []*account_settings.PairedDevice
-			if snap != nil {
-				rootInner, err := snap.GetRootInner(ctx)
-				if err != nil {
-					return err
-				}
-				if data := rootInner.GetStateData(); len(data) > 0 {
-					if err := settings.UnmarshalVT(data); err != nil {
-						return err
-					}
-				}
-				devices = settings.GetPairedDevices()
-			}
-			presentations := buildSessionPresentationMap(settings)
-
-			sessions := make([]*s4wave_account.AccountSession, 0, len(devices)+1)
-			if currentPeerID != "" {
-				row := &s4wave_account.AccountSession{
-					PeerId:         currentPeerID,
-					CurrentSession: true,
-					Kind: s4wave_account.
-						AccountSessionKind_AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION,
-					Label: settings.GetDisplayName(),
-				}
-				if row.GetLabel() == "" {
-					row.Label = "This device"
-				}
-				applySessionPresentation(row, presentations[currentPeerID])
-				sessions = append(sessions, row)
-			}
-			for _, device := range devices {
-				peerID := device.GetPeerId()
-				if peerID == "" || peerID == currentPeerID {
-					continue
-				}
-				row := &s4wave_account.AccountSession{
-					PeerId: peerID,
-					Kind: s4wave_account.
-						AccountSessionKind_AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION,
-					Label: device.GetDisplayName(),
-				}
-				if row.GetLabel() == "" {
-					row.Label = peerID
-				}
-				if pairedAt := device.GetPairedAt(); pairedAt > 0 {
-					row.CreatedAt = timestamppb.New(time.Unix(pairedAt, 0))
-				}
-				applySessionPresentation(row, presentations[peerID])
-				sessions = append(sessions, row)
-			}
-
-			resp := &s4wave_account.WatchSessionsResponse{Sessions: sessions}
-			if prev != nil && resp.EqualVT(prev) {
-				return nil
-			}
-			prev = resp
-			return strm.Send(resp)
-		},
-		nil,
+	return watchLocalSettingsStream(
+		strm.Context(),
+		r,
+		strm.Send,
+		r.buildLocalSessionsResponse,
 	)
+}
+
+// buildLocalSessionsResponse renders one WatchSessions response from the
+// account settings snapshot: the mounted session plus one row per paired
+// device that is not the current peer.
+func (r *AccountResource) buildLocalSessionsResponse(
+	ctx context.Context,
+	settings *account_settings.AccountSettings,
+) (*s4wave_account.WatchSessionsResponse, error) {
+	currentPeerID := r.localAccount.GetMountedSessionPeerID(ctx).String()
+	devices := settings.GetPairedDevices()
+	presentations := buildSessionPresentationMap(settings)
+
+	sessions := make([]*s4wave_account.AccountSession, 0, len(devices)+1)
+	if currentPeerID != "" {
+		row := &s4wave_account.AccountSession{
+			PeerId:         currentPeerID,
+			CurrentSession: true,
+			Kind: s4wave_account.
+				AccountSessionKind_AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION,
+			Label: settings.GetDisplayName(),
+		}
+		if row.GetLabel() == "" {
+			row.Label = "This device"
+		}
+		applySessionPresentation(row, presentations[currentPeerID])
+		sessions = append(sessions, row)
+	}
+	for _, device := range devices {
+		peerID := device.GetPeerId()
+		if peerID == "" || peerID == currentPeerID {
+			continue
+		}
+		row := &s4wave_account.AccountSession{
+			PeerId: peerID,
+			Kind: s4wave_account.
+				AccountSessionKind_AccountSessionKind_ACCOUNT_SESSION_KIND_LOCAL_SESSION,
+			Label: device.GetDisplayName(),
+		}
+		if row.GetLabel() == "" {
+			row.Label = peerID
+		}
+		if pairedAt := device.GetPairedAt(); pairedAt > 0 {
+			row.CreatedAt = timestamppb.New(time.Unix(pairedAt, 0))
+		}
+		applySessionPresentation(row, presentations[peerID])
+		sessions = append(sessions, row)
+	}
+	return &s4wave_account.WatchSessionsResponse{Sessions: sessions}, nil
 }
 
 func (r *AccountResource) watchCloudSessions(
