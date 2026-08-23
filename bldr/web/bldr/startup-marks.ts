@@ -28,6 +28,7 @@ declare global {
       }>
     | undefined
   var __swStartupMarkSequence: number | undefined
+  var __swStartupMarkOverflows: number | undefined
 }
 
 let nextStartupMarkSequence = 1
@@ -38,11 +39,27 @@ function getPerformance(): Performance | undefined {
     : undefined
 }
 
+// startupMarkBufferLimit bounds the document-global mark store. The inline
+// shell seeds the first mark and shares this bound; appends past the limit
+// increment __swStartupMarkOverflows instead of pushing, and the BootReport
+// collector turns that count into a persisted validation failure.
+export const startupMarkBufferLimit = 4096
+
 function nextSequence(): number {
-  const next = globalThis.__swStartupMarkSequence ?? nextStartupMarkSequence
-  globalThis.__swStartupMarkSequence = next + 1
-  nextStartupMarkSequence = next + 1
-  return next
+  if (globalThis.__swStartupMarkSequence !== undefined) {
+    const seeded = globalThis.__swStartupMarkSequence
+    globalThis.__swStartupMarkSequence = seeded + 1
+    nextStartupMarkSequence = seeded + 1
+    return seeded
+  }
+  // The inline shell's first mark already used sequence 1, so continue
+  // after the last buffered mark instead of restarting at 1.
+  const lastBuffered = globalThis.__swStartupMarks?.at(-1)?.sequence
+  const seeded =
+    lastBuffered !== undefined ? lastBuffered + 1 : nextStartupMarkSequence
+  globalThis.__swStartupMarkSequence = seeded
+  nextStartupMarkSequence = seeded + 1
+  return seeded
 }
 
 // markStartupBoundary records a performance mark for a startup boundary and
@@ -58,10 +75,6 @@ export function markStartupBoundary(
     label,
     sequence,
   }
-  globalThis.__swStartupMarks = [
-    ...(globalThis.__swStartupMarks ?? []),
-    { name, label, sequence, detail: markDetail },
-  ]
   const perf = getPerformance()
   if (perf) {
     try {
@@ -69,6 +82,20 @@ export function markStartupBoundary(
     } catch {
       perf.mark(name)
     }
+  }
+  const bufferedMarks =
+    globalThis.__swStartupMarks ??
+    (globalThis.__swStartupMarks = [])
+  if (bufferedMarks.length >= startupMarkBufferLimit) {
+    globalThis.__swStartupMarkOverflows =
+      (globalThis.__swStartupMarkOverflows ?? 0) + 1
+  } else {
+    bufferedMarks.push({
+      name,
+      label,
+      sequence,
+      detail: markDetail,
+    })
   }
   if (
     typeof globalThis.dispatchEvent === 'function' &&

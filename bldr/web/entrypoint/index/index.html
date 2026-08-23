@@ -100,6 +100,31 @@
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app. </noscript>
+    <script>
+      // Bldr inline boot recorder: bounded synchronous enqueue buffer for the
+      // earliest startup marks. This script runs before any module and before
+      // manifest lookup; it loads no TypeScript and touches no storage. The
+      // BootReportStore module drains this buffer into IndexedDB once it
+      // opens, and overflow past the bound is counted, never silent.
+      ;(function () {
+        var limit = 4096
+        window.__swStartupMarks = window.__swStartupMarks || []
+        window.__swStartupMarkOverflows = 0
+        window.__swStartupMarkPush = function (mark) {
+          if (window.__swStartupMarks.length >= limit) {
+            window.__swStartupMarkOverflows += 1
+            return
+          }
+          window.__swStartupMarks.push(mark)
+        }
+        window.__swStartupMarkPush({
+          name: 'spacewave.startup.boot.started',
+          label: 'boot.started',
+          sequence: 1,
+          detail: { source: 'browser' },
+        })
+      })()
+    </script>
     <script type="importmap">
       {{ .ImportMap.String }}
     </script>
