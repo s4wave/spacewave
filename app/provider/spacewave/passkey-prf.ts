@@ -1,5 +1,7 @@
 import { base64URLStringToBuffer } from '@simplewebauthn/browser'
 
+import { base64ToBytes } from './keypair-utils.js'
+
 import type { SpacewaveProvider } from '@s4wave/sdk/provider/spacewave/spacewave.js'
 import {
   PasskeyPrfAuthParams,
@@ -37,10 +39,6 @@ export interface PasskeyPrfWrapResult {
   encryptedPrivkey: string
 }
 
-function base64ToUint8Array(dat: string): Uint8Array {
-  return Uint8Array.from(atob(dat), (c) => c.charCodeAt(0))
-}
-
 function toUint8Array(dat: BufferSource): Uint8Array {
   if (dat instanceof ArrayBuffer) {
     return new Uint8Array(dat)
@@ -57,7 +55,7 @@ function cloneJson<T>(value: T): T {
 
 function parseAuthParams(authParamsBase64: string) {
   const params = PasskeyPrfAuthParams.fromBinary(
-    base64ToUint8Array(authParamsBase64),
+    base64ToBytes(authParamsBase64),
   )
   if (params.algorithm !== PasskeyPrfWrapAlgorithm.AES_256_GCM_V1) {
     throw new Error('unsupported passkey PRF wrap algorithm')
