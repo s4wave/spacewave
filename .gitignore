@@ -60,3 +60,5 @@ eslint-errors.json
 trace.out
 /e2e/wasm/testdata
 .aider*
+
+__pycache__/
