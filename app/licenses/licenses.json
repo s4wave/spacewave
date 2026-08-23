@@ -799,7 +799,7 @@
     },
     {
       "name": "github.com/aperturerobotics/cayley",
-      "version": "v0.15.1-0.20260705021747-c5ec5d20d2b6",
+      "version": "v0.15.1-0.20260822045846-b727c66784cb",
       "spdx": "Apache-2.0",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/cayley",
@@ -926,7 +926,7 @@
     },
     {
       "name": "github.com/aperturerobotics/protobuf-go-lite",
-      "version": "v0.17.1-0.20260813224822-0110bb08b4f1",
+      "version": "v0.17.1-0.20260822063947-4682a526c6ee",
       "spdx": "BSD-3-Clause",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/protobuf-go-lite",
@@ -1511,7 +1511,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.27-0.20260822054934-545493ac2803",
+      "version": "v0.2.27-0.20260823085407-dff344f35d60",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
