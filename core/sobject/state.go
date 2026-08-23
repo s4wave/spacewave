@@ -584,9 +584,9 @@ func (s *SOState) ClearOperationResult(sharedObjectID string, clearOp *SOClearOp
 			}
 			if rejInner.GetLocalId() != inner.GetLocalId() {
 				nextRejections = append(nextRejections, rejection)
-			} else {
-				found = true
+				continue
 			}
+			found = true
 		}
 
 		// Update or remove the peer rejections entry

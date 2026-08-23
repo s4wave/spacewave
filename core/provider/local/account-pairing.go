@@ -244,6 +244,7 @@ func (a *ProviderAccount) OnDirectPairingConnected(
 			return nil
 		})
 		a.pairing.exchangeRc = rc
+		// note: bcast must run on both paths, so the branch cannot return.
 		if parentCtx == nil {
 			a.le.Warn("direct pairing confirm exchange has no lifecycle context")
 		} else {

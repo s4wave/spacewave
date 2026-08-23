@@ -1002,7 +1002,8 @@ func openJournalWriter(storage JournalStorage, cryptos ...*JournalCrypto) (*jour
 		if floor != 0 {
 			return nil, nil, errors.Wrap(ErrJournalCheckpointCorrupt, "journal generation marker is missing below publication floor")
 		}
-	} else {
+	}
+	if generationPresent {
 		marker, markerErr = unmarshalJournalGenerationMarker(markerData, identity)
 		if markerErr != nil {
 			return nil, nil, markerErr
@@ -1037,13 +1038,12 @@ func openJournalWriter(storage JournalStorage, cryptos ...*JournalCrypto) (*jour
 		}
 		pending := marker.Generation == floor+1
 		tailRecords, offset, scanErr := scanJournalFrom(storage, marker.NextSequence)
+		if scanErr != nil && !errors.Is(scanErr, errJournalSequenceBaseMismatch) {
+			return nil, nil, scanErr
+		}
 		if scanErr != nil {
-			if errors.Is(scanErr, errJournalSequenceBaseMismatch) {
-				pending = true
-				tailRecords, offset = nil, 0
-			} else {
-				return nil, nil, scanErr
-			}
+			pending = true
+			tailRecords, offset = nil, 0
 		}
 		if pending {
 			retired, readErr := readJournalStorageBytes(storage)

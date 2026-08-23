@@ -61,12 +61,11 @@ func (c *Controller) fetchDistConfig(ctx context.Context) (rerr error) {
 				next.FetchedConfigRev = fetchedRev
 				next.FetchedConfigSource = fetchedSource
 			}
+			next.LastErr = ""
+			next.Attempts = 0
 			if rerr != nil {
 				next.LastErr = rerr.Error()
 				next.Attempts = attempts
-			} else {
-				next.LastErr = ""
-				next.Attempts = 0
 			}
 		})
 	}()

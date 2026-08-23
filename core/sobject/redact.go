@@ -26,7 +26,8 @@ func RedactStepConfig(step *block_transform.StepConfig) *block_transform.StepCon
 		if err := conf.UnmarshalJSON(data); err != nil {
 			return out
 		}
-	} else {
+	}
+	if data[0] != '{' {
 		if err := conf.UnmarshalVT(data); err != nil {
 			return out
 		}

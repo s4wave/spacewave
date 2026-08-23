@@ -295,11 +295,11 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 		watch = true
 	})
 	if watch {
+		watchState := state
 		if waitState != nil {
-			a.watchP2PSyncOwner(ctx, waitState)
-		} else {
-			a.watchP2PSyncOwner(ctx, state)
+			watchState = waitState
 		}
+		a.watchP2PSyncOwner(ctx, watchState)
 	}
 	if state == nil {
 		if waitState == nil {
@@ -454,11 +454,10 @@ func (a *ProviderAccount) restoreP2PSyncAfterFailedStart(
 				restorePrevious = !previous.stopping && previous.ctx.Err() == nil
 			})
 		}
+		a.p2pSync = nil
+		retirePrevious = previous != nil
 		if restorePrevious {
 			a.p2pSync = previous
-		} else {
-			a.p2pSync = nil
-			retirePrevious = previous != nil
 		}
 		bcast()
 	})
@@ -493,16 +492,17 @@ func (a *ProviderAccount) startP2PSyncControllers(
 			}
 		}
 
-		if !state.hasSO(soID) {
-			if err := a.startSOSync(syncCtx, childBus, sessionTransport.GetPeerID(), ref, soID, state); err != nil {
-				if syncCtx.Err() != nil {
-					return syncCtx.Err()
-				}
-				a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
-			} else {
-				state.addSO(soID)
-			}
+		if state.hasSO(soID) {
+			continue
 		}
+		if err := a.startSOSync(syncCtx, childBus, sessionTransport.GetPeerID(), ref, soID, state); err != nil {
+			if syncCtx.Err() != nil {
+				return syncCtx.Err()
+			}
+			a.le.WithError(err).WithField("so-id", soID).Warn("failed to start so sync")
+			continue
+		}
+		state.addSO(soID)
 	}
 
 	if !*inviteStarted {
