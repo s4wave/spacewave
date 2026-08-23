@@ -19,6 +19,7 @@ import {
   type RuntimeClientStreamOpenGateResult,
 } from './web-runtime-client.js'
 
+// OpenWebRuntimePortResult is the result of a runtime relay port open.
 export interface OpenWebRuntimePortResult {
   webRuntimePort: MessagePort
   hostDocumentId?: string
@@ -330,6 +331,8 @@ export class WebDocumentTracker {
     }
   }
 
+  // openWebRuntimePort opens a runtime relay port, discarding the host
+  // metadata.
   public openWebRuntimePort(
     init: Uint8Array,
     excludedWebDocumentId?: string,
@@ -342,6 +345,8 @@ export class WebDocumentTracker {
     ).then((result) => result.webRuntimePort)
   }
 
+  // openWebRuntimePortWithResult opens a runtime relay port and returns the
+  // elected host metadata alongside it.
   public openWebRuntimePortWithResult(
     init: Uint8Array,
     excludedWebDocumentId?: string,
@@ -367,6 +372,8 @@ export class WebDocumentTracker {
     return result.webRuntimePort
   }
 
+  // hasRuntimeFetchRelay reports whether any document can relay runtime
+  // fetches.
   public hasRuntimeFetchRelay(): boolean {
     const webDocumentId =
       this.activeRuntimeWebDocumentId ??
@@ -453,6 +460,8 @@ export class WebDocumentTracker {
     }
   }
 
+  // requestSabPair asks a hosting document to allocate a SAB pair for the
+  // target worker and rejects if no document is available.
   public async requestSabPair(
     targetWorkerId: string,
   ): Promise<SabPairEndpointDescriptor> {
@@ -489,6 +498,7 @@ export class WebDocumentTracker {
     })
   }
 
+  // closeSabPair tears down the SAB pair with the given id.
   public closeSabPair(pairId: string): void {
     this.sabPairEndpoints.delete(pairId)
     const msg: ClientToWebDocument = {
@@ -991,7 +1001,7 @@ export class WebDocumentTracker {
     // accepts a connectWebRuntime relay; every other document rejects it. So a
     // successful relay open always tracks the host as activeRuntimeWebDocumentId,
     // which makes wasActiveRuntimeDocument the host-lost signal. Keep that
-    // coupling: the tracker cannot otherwise identify the elected host, since
+    // coupling: the tracker cannot otherwise identify the elected host.
     if (wasActiveRuntimeDocument) {
       this.notifyDedicatedRuntimeHostLost(
         webDocumentId,

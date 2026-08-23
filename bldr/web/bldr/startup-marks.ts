@@ -1,6 +1,10 @@
+// startupMarkPrefix prefixes every startup performance mark name.
 export const startupMarkPrefix = 'spacewave.startup.'
+
+// startupMarkEvent is the DOM event dispatched on each startup mark.
 export const startupMarkEvent = 'spacewave-startup-mark'
 
+// StartupMarkDetail carries optional context for one startup mark.
 export interface StartupMarkDetail {
   documentId?: string
   from?: string
@@ -41,6 +45,8 @@ function nextSequence(): number {
   return next
 }
 
+// markStartupBoundary records a performance mark for a startup boundary and
+// returns the generated mark name.
 export function markStartupBoundary(
   label: string,
   detail: StartupMarkDetail = {},

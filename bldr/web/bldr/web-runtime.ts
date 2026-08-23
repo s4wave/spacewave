@@ -51,6 +51,8 @@ import { ItState } from './it-state.js'
 // spurious ERR_STREAM_IDLE errors when browser timers are throttled.
 export const WebRuntimeClientChannelStreamOpts: ChannelStreamOpts = {}
 
+// logWebRuntimeMessage logs to console, swallowing closed-stream write
+// errors.
 export function logWebRuntimeMessage(...args: unknown[]) {
   try {
     console.log(...args)
@@ -71,6 +73,8 @@ function logWebRuntimeError(...args: unknown[]) {
   }
 }
 
+// isClosedStreamWriteError reports whether the error is a write to a closed
+// or destroyed stream.
 export function isClosedStreamWriteError(err: unknown): boolean {
   return (
     typeof err === 'object' &&

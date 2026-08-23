@@ -846,13 +846,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     return this.storageDurabilityOwner.requestProtection()
   }
 
-  public getResumeReadyState(): WebDocumentResumeReadyState | null {
-    const state = globalThis.__swWebDocumentResumeReady
-    if (state?.documentId !== this.webDocumentUuid) {
-      return null
-    }
-    return state
-  }
   // getRuntimePresentationState exposes only the current-generation gate used
   // by the owning WebView; Web-Lock and ServiceWorker telemetry stay private.
   public getRuntimePresentationState(): WebDocumentRuntimePresentationState {
@@ -3264,43 +3257,6 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
         })
       }
       this.on('runtimeconnected', onReady)
-      this.on('closed', onClosed)
-      if (this.closed) {
-        onClosed(
-          this.closed instanceof Error
-            ? this.closed
-            : new Error('web document is closed'),
-        )
-      }
-    })
-  }
-
-  private async waitForResumeReady(): Promise<RuntimeClientStreamOpenGateResult> {
-    if (this.resumeReady) {
-      return {
-        state: 'ready',
-        documentId: this.webDocumentUuid,
-      }
-    }
-    return new Promise<RuntimeClientStreamOpenGateResult>((resolve) => {
-      const onReady = () => {
-        this.removeListener('closed', onClosed)
-        this.removeListener('resumeready', onReady)
-        resolve({
-          state: 'ready',
-          documentId: this.webDocumentUuid,
-        })
-      }
-      const onClosed = (err?: Error) => {
-        this.removeListener('resumeready', onReady)
-        this.removeListener('closed', onClosed)
-        resolve({
-          state: 'closed',
-          documentId: this.webDocumentUuid,
-          reason: err?.message ?? 'web document is closed',
-        })
-      }
-      this.on('resumeready', onReady)
       this.on('closed', onClosed)
       if (this.closed) {
         onClosed(

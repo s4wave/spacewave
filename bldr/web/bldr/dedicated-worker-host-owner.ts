@@ -8,6 +8,8 @@ import {
 import { randomId } from './random-id.js'
 import { markStartupBoundary } from './startup-marks.js'
 
+// DedicatedWorkerHostRole is the host-election role of this document in the
+// dedicated worker fallback.
 export type DedicatedWorkerHostRole =
   | 'pending'
   | 'host'
@@ -15,6 +17,7 @@ export type DedicatedWorkerHostRole =
   | 'unavailable'
   | 'closed'
 
+// DedicatedWorkerHostCallbacks receives host-state transitions.
 export interface DedicatedWorkerHostCallbacks {
   startHost(generation: string): void
   startAttached(): void
@@ -27,6 +30,8 @@ interface DedicatedWorkerHostOpen {
   reject(err: Error): void
 }
 
+// buildDedicatedWorkerHostLockName returns the Web Lock name used to elect
+// the dedicated runtime host for a runtime id.
 export function buildDedicatedWorkerHostLockName(runtimeId: string): string {
   return `bldr-dedicated-runtime-host-${runtimeId}`
 }

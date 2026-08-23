@@ -426,6 +426,7 @@ async function opStreamAbort(args: unknown): Promise<null> {
   return null
 }
 
+// dispatchOp routes one named OPFS operation to its implementation.
 async function dispatchOp(op: string, args: unknown): Promise<unknown> {
   switch (op) {
     case 'getRoot':

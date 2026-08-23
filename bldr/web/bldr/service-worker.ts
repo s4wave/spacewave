@@ -1772,13 +1772,9 @@ export async function swFetch(
   // 3. The request will wait forever
   // 4. Close the /p/does-not-exist tab.
   // 5. Notice the request is not canceled.
-  /*
-  const requestSignal = ev.request.signal
-  requestSignal.addEventListener('abort', () => {
-    // This line is never printed!
-    console.error('requestSignal: aborted for ' + ev.request.url.toString())
-  })
-  */
+  // Note: ev.request.signal abort listeners never fire inside a service
+  // worker fetch handler (w3c/ServiceWorker issue 1544), so cancellation of
+  // the requesting tab cannot be observed here.
 
   const useRuntimeFetch = source.runtime
 
@@ -1794,15 +1790,6 @@ export async function swFetch(
     }
     // Check the cache (for e.x. index.html)
     // NOTE: We do not want this, we want the latest index.html if possible.
-    /*
-    const bldrCache = CACHES['bldr']
-    if (bldrCache) {
-      const cacheResp = await bldrCache.match(request)
-      if (cacheResp) {
-        return cacheResp
-      }
-    }
-    */
 
     // Use the built-in browser fetch.
     if (BLDR_DEBUG) {
@@ -2035,18 +2022,8 @@ export async function swFetch(
   // The loop returns or throws within two attempts; this satisfies control flow.
   return buildNoReadyDocumentResponse(source, request.method)
 
-  /*
-  Not working with custom app:// scheme in Electron.
-  https://github.com/electron/electron/issues/35033
-  response.then((resp) => {
-    if (resp.ok) {
-      bldrCache().then((bcache) => {
-        console.log('BLDR_CACHE', requestURL.toString(), resp)
-        bcache.put(request, resp)
-      })
-    }
-  })
-  */
+  // Note: caching responses here does not work with the custom app:// scheme
+  // in Electron (electron issue 35033).
 }
 
 function initServiceWorker() {
