@@ -81,6 +81,18 @@ cross-process visibility. Live watch subscriptions over RPC are a known
 follow-up (the embedded path proves WatchPrefix; the RPC streaming variant
 needs integration testing).
 
+## Multi-Object Access
+
+`sdk/worldstore` provides typed access to all world object types from one
+handle: KV collections, SQL databases, and future types (git, docs, chat)
+as their sugar wrappers land.
+
+```go
+ws := worldstore.Open(nil, w.WS)
+kv := ws.KV(ctx, "app-data")   // key/value collection
+db := ws.SQL(ctx, "app-db")    // SQL database
+```
+
 ## Durability
 
 `KvOpenDurable(ctx, dir)` persists through a snapshot-file volume
