@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
@@ -51,7 +52,7 @@ func TestOpenFriendDMHiddenTargetDoesNotMutate(t *testing.T) {
 		if r.URL.Path != "/api/account/friends/acct-b/dm" {
 			t.Fatalf("path = %s", r.URL.Path)
 		}
-		_, _ = w.Write([]byte(`{"found":false}`))
+		writeFriendDmResponse(t, w, &api.GetFriendDmResponse{})
 	}))
 	defer srv.Close()
 
@@ -69,21 +70,29 @@ func TestOpenFriendDMProposedOtherOwnerRefusesBeforeCreate(t *testing.T) {
 	var requests int
 	var localPeer string
 	_, targetPeer := generateTestKeypair(t)
-	local := FriendDmAccount{
-		AccountID:  "test-account",
-		EntityUUID: "entity-a",
-		Epoch:      2,
-	}
-	target := FriendDmAccount{
-		AccountID:  "acct-b",
-		EntityUUID: "entity-b",
-		Epoch:      2,
-		Sessions:   []FriendDmSession{{PeerID: targetPeer.String()}},
+	local := &api.FriendDmAccount{AccountId: "test-account", EntityUuid: "entity-a"}
+	target := &api.FriendDmAccount{
+		AccountId:  "acct-b",
+		EntityUuid: "entity-b",
+		Sessions:   []*api.FriendDmSessionPeer{{PeerId: targetPeer.String()}},
 	}
 	sharedObjectID := deriveFriendDmSharedObjectID(local, target)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
-		_, _ = w.Write([]byte(`{"sharedObjectId":"` + sharedObjectID + `","ready":false,"ownerAccountId":"acct-b","ownerType":"account","accounts":[{"accountId":"test-account","entityUuid":"entity-a","epoch":2,"sessions":[{"peerId":"` + localPeer + `"}],"recoveryKeypairs":[{"peerId":"` + localPeer + `"}]},{"accountId":"acct-b","entityUuid":"entity-b","epoch":2,"sessions":[{"peerId":"` + targetPeer.String() + `"}],"recoveryKeypairs":[{"peerId":"` + targetPeer.String() + `"}]}]}`))
+		writeFriendDmResponse(t, w, &api.GetFriendDmResponse{
+			SharedObjectId: sharedObjectID,
+			OwnerAccountId: "acct-b",
+			OwnerType:      "account",
+			Accounts: []*api.FriendDmAccount{
+				{
+					AccountId:        local.AccountId,
+					EntityUuid:       local.EntityUuid,
+					Sessions:         []*api.FriendDmSessionPeer{{PeerId: localPeer}},
+					RecoveryKeypairs: []*api.FriendDmRecoveryPeer{{PeerId: localPeer}},
+				},
+				target,
+			},
+		})
 	}))
 	defer srv.Close()
 
@@ -118,34 +127,38 @@ func TestOpenFriendDMInvalidResponseDoesNotMutate(t *testing.T) {
 
 func TestOpenFriendDMRejectsInvalidPeerBeforeInitialization(t *testing.T) {
 	var requests int
-	var response string
+	var response *api.GetFriendDmResponse
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
-		_, _ = w.Write([]byte(response))
+		if response != nil {
+			writeFriendDmResponse(t, w, response)
+			return
+		}
+		writeFriendDmResponse(t, w, &api.GetFriendDmResponse{})
 	}))
 	defer srv.Close()
 
 	acc := NewTestProviderAccount(t, srv.URL)
 	localPeerID := acc.GetCurrentSessionPeerID().String()
-	local := FriendDmAccount{
-		AccountID:  acc.GetAccountID(),
-		EntityUUID: "entity-a",
-		Epoch:      2,
-		Sessions:   []FriendDmSession{{PeerID: localPeerID}},
+	local := &api.FriendDmAccount{
+		AccountId:        acc.GetAccountID(),
+		EntityUuid:       "entity-a",
+		Sessions:         []*api.FriendDmSessionPeer{{PeerId: localPeerID}},
+		RecoveryKeypairs: []*api.FriendDmRecoveryPeer{{PeerId: localPeerID}},
 	}
-	target := FriendDmAccount{
-		AccountID:  "acct-b",
-		EntityUUID: "entity-b",
-		Epoch:      2,
-		Sessions:   []FriendDmSession{{PeerID: "invalid-peer"}},
+	target := &api.FriendDmAccount{
+		AccountId:        "acct-b",
+		EntityUuid:       "entity-b",
+		Sessions:         []*api.FriendDmSessionPeer{{PeerId: "invalid-peer"}},
+		RecoveryKeypairs: []*api.FriendDmRecoveryPeer{{PeerId: localPeerID}},
 	}
-	response = `{"sharedObjectId":"` + deriveFriendDmSharedObjectID(local, target) +
-		`","ready":false,"ownerAccountId":"` + local.AccountID +
-		`","ownerType":"account","accounts":[{"accountId":"` + local.AccountID +
-		`","entityUuid":"entity-a","epoch":2,"sessions":[{"peerId":"` + localPeerID +
-		`"}],"recoveryKeypairs":[{"peerId":"` + localPeerID +
-		`"}]},{"accountId":"acct-b","entityUuid":"entity-b","epoch":2,"sessions":[{"peerId":"invalid-peer"}],"recoveryKeypairs":[{"peerId":"` + localPeerID + `"}]}]}`
-	if _, err := acc.OpenFriendDM(context.Background(), target.AccountID); err == nil {
+	response = &api.GetFriendDmResponse{
+		SharedObjectId: deriveFriendDmSharedObjectID(local, target),
+		OwnerAccountId: local.AccountId,
+		OwnerType:      "account",
+		Accounts:       []*api.FriendDmAccount{local, target},
+	}
+	if _, err := acc.OpenFriendDM(context.Background(), target.AccountId); err == nil {
 		t.Fatal("expected invalid peer error")
 	}
 	if requests != 1 {
@@ -155,35 +168,39 @@ func TestOpenFriendDMRejectsInvalidPeerBeforeInitialization(t *testing.T) {
 
 func TestOpenFriendDMRejectsNoncanonicalIDBeforeInitialization(t *testing.T) {
 	var requests int
-	var response string
+	var response *api.GetFriendDmResponse
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
-		_, _ = w.Write([]byte(response))
+		if response != nil {
+			writeFriendDmResponse(t, w, response)
+			return
+		}
+		writeFriendDmResponse(t, w, &api.GetFriendDmResponse{})
 	}))
 	defer srv.Close()
 
-	acc := NewTestProviderAccount(t, srv.URL)
 	_, targetPeer := generateTestKeypair(t)
-	local := FriendDmAccount{
-		AccountID:  acc.GetAccountID(),
-		EntityUUID: "entity-a",
-		Epoch:      2,
-		Sessions:   []FriendDmSession{{PeerID: acc.GetCurrentSessionPeerID().String()}},
+	acc := NewTestProviderAccount(t, srv.URL)
+	localPeerID := acc.GetCurrentSessionPeerID().String()
+	local := &api.FriendDmAccount{
+		AccountId:        acc.GetAccountID(),
+		EntityUuid:       "entity-a",
+		Sessions:         []*api.FriendDmSessionPeer{{PeerId: localPeerID}},
+		RecoveryKeypairs: []*api.FriendDmRecoveryPeer{{PeerId: localPeerID}},
 	}
-	target := FriendDmAccount{
-		AccountID:  "acct-b",
-		EntityUUID: "entity-b",
-		Epoch:      2,
-		Sessions:   []FriendDmSession{{PeerID: targetPeer.String()}},
+	target := &api.FriendDmAccount{
+		AccountId:        "acct-b",
+		EntityUuid:       "entity-b",
+		Sessions:         []*api.FriendDmSessionPeer{{PeerId: targetPeer.String()}},
+		RecoveryKeypairs: []*api.FriendDmRecoveryPeer{{PeerId: targetPeer.String()}},
 	}
-	response = `{"sharedObjectId":"wrong-id","ready":false,"ownerAccountId":"` +
-		local.AccountID + `","ownerType":"account","accounts":[{"accountId":"` +
-		local.AccountID + `","entityUuid":"entity-a","epoch":2,"sessions":[{"peerId":"` +
-		local.Sessions[0].PeerID + `"}],"recoveryKeypairs":[{"peerId":"` +
-		local.Sessions[0].PeerID + `"}]},{"accountId":"acct-b","entityUuid":"entity-b","epoch":2,"sessions":[{"peerId":"` +
-		target.Sessions[0].PeerID + `"}],"recoveryKeypairs":[{"peerId":"` +
-		target.Sessions[0].PeerID + `"}]}]}`
-	if _, err := acc.OpenFriendDM(context.Background(), target.AccountID); err == nil {
+	response = &api.GetFriendDmResponse{
+		SharedObjectId: "wrong-id",
+		OwnerAccountId: local.AccountId,
+		OwnerType:      "account",
+		Accounts:       []*api.FriendDmAccount{local, target},
+	}
+	if _, err := acc.OpenFriendDM(context.Background(), target.AccountId); err == nil {
 		t.Fatal("expected noncanonical ID error")
 	}
 	if requests != 1 {
@@ -194,35 +211,28 @@ func TestOpenFriendDMRejectsNoncanonicalIDBeforeInitialization(t *testing.T) {
 func TestValidateFriendDmBootstrapAllowsEpochZero(t *testing.T) {
 	_, localPeer := generateTestKeypair(t)
 	_, targetPeer := generateTestKeypair(t)
-	local := FriendDmAccount{
-		AccountID:  "acct-a",
-		EntityUUID: "entity-a",
-		Epoch:      0,
-		Sessions:   []FriendDmSession{{PeerID: localPeer.String()}},
-		RecoveryKeypairs: []FriendDmRecoveryKeypair{{
-			PeerID: localPeer.String(),
-		}},
+	local := &api.FriendDmAccount{
+		AccountId:        "acct-a",
+		EntityUuid:       "entity-a",
+		Sessions:         []*api.FriendDmSessionPeer{{PeerId: localPeer.String()}},
+		RecoveryKeypairs: []*api.FriendDmRecoveryPeer{{PeerId: localPeer.String()}},
 	}
-	target := FriendDmAccount{
-		AccountID:  "acct-b",
-		EntityUUID: "entity-b",
-		Epoch:      0,
-		Sessions:   []FriendDmSession{{PeerID: targetPeer.String()}},
-		RecoveryKeypairs: []FriendDmRecoveryKeypair{{
-			PeerID: targetPeer.String(),
-		}},
+	target := &api.FriendDmAccount{
+		AccountId:        "acct-b",
+		EntityUuid:       "entity-b",
+		Sessions:         []*api.FriendDmSessionPeer{{PeerId: targetPeer.String()}},
+		RecoveryKeypairs: []*api.FriendDmRecoveryPeer{{PeerId: targetPeer.String()}},
 	}
-	bootstrap := &FriendDmBootstrap{
-		SharedObjectID: deriveFriendDmSharedObjectID(local, target),
-		Ready:          false,
-		OwnerAccountID: local.AccountID,
+	bootstrap := &api.GetFriendDmResponse{
+		SharedObjectId: deriveFriendDmSharedObjectID(local, target),
+		OwnerAccountId: local.AccountId,
 		OwnerType:      "account",
-		Accounts:       []FriendDmAccount{local, target},
+		Accounts:       []*api.FriendDmAccount{local, target},
 	}
 	if err := validateFriendDmBootstrap(
 		bootstrap,
-		local.AccountID,
-		target.AccountID,
+		local.AccountId,
+		target.AccountId,
 		localPeer.String(),
 	); err != nil {
 		t.Fatalf("validate epoch-zero bootstrap: %v", err)
@@ -235,9 +245,9 @@ func TestBuildFriendDmParticipantPlanReconcilesActivePeers(t *testing.T) {
 		{PeerId: "peer-stale", EntityId: "acct-old", Role: sobject.SOParticipantRole_SOParticipantRole_WRITER},
 		{PeerId: "peer-b", EntityId: "acct-b", Role: sobject.SOParticipantRole_SOParticipantRole_READER},
 	}
-	accounts := []FriendDmAccount{
-		{AccountID: "acct-a", Sessions: []FriendDmSession{{PeerID: "peer-owner"}, {PeerID: "peer-a-new"}}},
-		{AccountID: "acct-b", Sessions: []FriendDmSession{{PeerID: "peer-b"}}},
+	accounts := []*api.FriendDmAccount{
+		{AccountId: "acct-a", Sessions: []*api.FriendDmSessionPeer{{PeerId: "peer-owner"}, {PeerId: "peer-a-new"}}},
+		{AccountId: "acct-b", Sessions: []*api.FriendDmSessionPeer{{PeerId: "peer-b"}}},
 	}
 	want := friendDmParticipantPlan{
 		removals: []string{"peer-b", "peer-stale"},
@@ -275,9 +285,9 @@ func TestBuildFriendDmParticipantPlanCorrectsRoles(t *testing.T) {
 			{PeerId: "peer-a-new", EntityId: "acct-a", Role: sobject.SOParticipantRole_SOParticipantRole_WRITER},
 			{PeerId: "peer-b", EntityId: "acct-b", Role: sobject.SOParticipantRole_SOParticipantRole_OWNER},
 		},
-		[]FriendDmAccount{
-			{AccountID: "acct-a", Sessions: []FriendDmSession{{PeerID: "peer-owner"}, {PeerID: "peer-a-new"}}},
-			{AccountID: "acct-b", Sessions: []FriendDmSession{{PeerID: "peer-b"}}},
+		[]*api.FriendDmAccount{
+			{AccountId: "acct-a", Sessions: []*api.FriendDmSessionPeer{{PeerId: "peer-owner"}, {PeerId: "peer-a-new"}}},
+			{AccountId: "acct-b", Sessions: []*api.FriendDmSessionPeer{{PeerId: "peer-b"}}},
 		},
 		"peer-owner",
 	)
@@ -303,7 +313,7 @@ func TestBuildFriendDmParticipantPlanRejectsMissingLocalOwner(t *testing.T) {
 			EntityId: "acct-a",
 			Role:     sobject.SOParticipantRole_SOParticipantRole_OWNER,
 		}},
-		[]FriendDmAccount{{AccountID: "acct-a", Sessions: []FriendDmSession{{PeerID: "peer-other"}}}},
+		[]*api.FriendDmAccount{{AccountId: "acct-a", Sessions: []*api.FriendDmSessionPeer{{PeerId: "peer-other"}}}},
 		"peer-owner",
 	)
 	if err == nil {

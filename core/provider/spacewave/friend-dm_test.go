@@ -1,19 +1,57 @@
 package provider_spacewave
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	stderrors "errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/aperturerobotics/fastjson"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/sobject"
 )
+
+func friendDmTestResponse() *api.GetFriendDmResponse {
+	return &api.GetFriendDmResponse{
+		Found:          true,
+		SharedObjectId: "01frienddm",
+		Ready:          true,
+		OwnerAccountId: "acct-b",
+		OwnerType:      "account",
+		Accounts: []*api.FriendDmAccount{
+			{
+				AccountId:  "acct-a",
+				EntityUuid: "entity-a",
+				Epoch:      3,
+				Sessions:   []*api.FriendDmSessionPeer{{PeerId: "peer-a"}},
+				RecoveryKeypairs: []*api.FriendDmRecoveryPeer{
+					{PeerId: "recovery-a"},
+				},
+			},
+			{
+				AccountId:  "acct-b",
+				EntityUuid: "entity-b",
+				Epoch:      4,
+				Sessions:   []*api.FriendDmSessionPeer{{PeerId: "peer-b"}},
+				RecoveryKeypairs: []*api.FriendDmRecoveryPeer{
+					{PeerId: "recovery-b"},
+				},
+			},
+		},
+	}
+}
+
+func writeFriendDmResponse(t *testing.T, w http.ResponseWriter, resp *api.GetFriendDmResponse) {
+	t.Helper()
+	data, err := resp.MarshalVT()
+	if err != nil {
+		t.Fatalf("marshal response: %v", err)
+	}
+	if _, err := w.Write(data); err != nil {
+		t.Fatalf("write response: %v", err)
+	}
+}
 
 func TestGetFriendDM(t *testing.T) {
 	priv, peerID := generateTestKeypair(t)
@@ -24,16 +62,7 @@ func TestGetFriendDM(t *testing.T) {
 		if r.URL.Path != "/api/account/friends/acct-b/dm" {
 			t.Fatalf("path = %s", r.URL.Path)
 		}
-		_, _ = w.Write([]byte(`{
-			"sharedObjectId":"01frienddm",
-			"ready":true,
-			"ownerAccountId":"acct-b",
-			"ownerType":"account",
-			"accounts":[
-				{"accountId":"acct-a","entityUuid":"entity-a","epoch":3,"sessions":[{"peerId":"peer-a"}],"recoveryKeypairs":[{"peerId":"recovery-a"}]},
-				{"accountId":"acct-b","entityUuid":"entity-b","epoch":4,"sessions":[{"peerId":"peer-b"}],"recoveryKeypairs":[{"peerId":"recovery-b"}]}
-			]
-		}`))
+		writeFriendDmResponse(t, w, friendDmTestResponse())
 	}))
 	defer srv.Close()
 
@@ -42,13 +71,13 @@ func TestGetFriendDM(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetFriendDM: %v", err)
 	}
-	if !got.Ready || got.SharedObjectID != "01frienddm" {
+	if !got.Ready || got.SharedObjectId != "01frienddm" {
 		t.Fatalf("unexpected bootstrap: %+v", got)
 	}
-	if got.OwnerAccountID != "acct-b" || got.OwnerType != "account" {
+	if got.OwnerAccountId != "acct-b" || got.OwnerType != "account" {
 		t.Fatalf("unexpected owner: %+v", got)
 	}
-	if len(got.Accounts) != 2 || got.Accounts[1].Sessions[0].PeerID != "peer-b" {
+	if len(got.Accounts) != 2 || got.Accounts[1].Sessions[0].PeerId != "peer-b" {
 		t.Fatalf("unexpected accounts: %+v", got.Accounts)
 	}
 }
@@ -75,36 +104,26 @@ func TestCreateFriendDMWithState(t *testing.T) {
 		if r.URL.Path != "/api/account/friends/acct-b/dm" {
 			t.Fatalf("path = %s", r.URL.Path)
 		}
-		if got := r.Header.Get("Content-Type"); got != "application/json" {
-			t.Fatalf("content type = %q, want application/json", got)
+		if got := r.Header.Get("Content-Type"); got != "application/octet-stream" {
+			t.Fatalf("content type = %q, want application/octet-stream", got)
 		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Fatalf("read body: %v", err)
 		}
-		for _, want := range []string{
-			`"displayName":"Friend DM"`,
-			`"objectType":"space"`,
-			`"ownerType":"account"`,
-			`"ownerId":"acct-a"`,
-			`"accountPrivate":true`,
-		} {
-			if !bytes.Contains(body, []byte(want)) {
-				t.Fatalf("request body = %s, missing %s", body, want)
-			}
+		req := &api.CreateWithStateRequest{}
+		if err := req.UnmarshalVT(body); err != nil {
+			t.Fatalf("unmarshal request body: %v", err)
 		}
-		var parser fastjson.Parser
-		value, err := parser.ParseBytes(body)
-		if err != nil {
-			t.Fatalf("parse request body: %v", err)
-		}
-		encodedConfig := string(value.GetStringBytes("configState"))
-		postedConfigData, err := base64.StdEncoding.DecodeString(encodedConfig)
-		if err != nil {
-			t.Fatalf("decode config state: %v", err)
+		if req.DisplayName != "Friend DM" ||
+			req.ObjectType != "space" ||
+			req.OwnerType != "account" ||
+			req.OwnerId != "acct-a" ||
+			!req.AccountPrivate {
+			t.Fatalf("unexpected request metadata: %+v", req)
 		}
 		postedConfig := &api.PostConfigStateRequest{}
-		if err := postedConfig.UnmarshalVT(postedConfigData); err != nil {
+		if err := postedConfig.UnmarshalVT(req.ConfigState); err != nil {
 			t.Fatalf("unmarshal config state wrapper: %v", err)
 		}
 		if string(postedConfig.GetConfigChange()) != "config" ||
@@ -112,13 +131,8 @@ func TestCreateFriendDMWithState(t *testing.T) {
 			postedConfig.GetKeyEpoch().GetEpoch() != 0 {
 			t.Fatalf("unexpected config state wrapper: %+v", postedConfig)
 		}
-		encodedRoot := string(value.GetStringBytes("rootState"))
-		postedRootData, err := base64.StdEncoding.DecodeString(encodedRoot)
-		if err != nil {
-			t.Fatalf("decode root state: %v", err)
-		}
 		postedRoot := &api.PostRootRequest{}
-		if err := postedRoot.UnmarshalVT(postedRootData); err != nil {
+		if err := postedRoot.UnmarshalVT(req.RootState); err != nil {
 			t.Fatalf("unmarshal root state wrapper: %v", err)
 		}
 		if postedRoot.GetRoot() == nil ||
@@ -126,16 +140,9 @@ func TestCreateFriendDMWithState(t *testing.T) {
 			string(postedRoot.GetRoot().GetInner()) != "root" {
 			t.Fatalf("unexpected root state wrapper: %+v", postedRoot)
 		}
-		_, _ = w.Write([]byte(`{
-			"sharedObjectId":"01frienddm",
-			"ready":true,
-			"ownerAccountId":"acct-a",
-			"ownerType":"account",
-			"accounts":[
-				{"accountId":"acct-a","entityUuid":"entity-a","epoch":3,"sessions":[{"peerId":"peer-a"}],"recoveryKeypairs":[{"peerId":"recovery-a"}]},
-				{"accountId":"acct-b","entityUuid":"entity-b","epoch":4,"sessions":[{"peerId":"peer-b"}],"recoveryKeypairs":[{"peerId":"recovery-b"}]}
-			]
-		}`))
+		resp := friendDmTestResponse()
+		resp.OwnerAccountId = "acct-a"
+		writeFriendDmResponse(t, w, resp)
 	}))
 	defer srv.Close()
 
@@ -150,7 +157,7 @@ func TestCreateFriendDMWithState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateFriendDMWithState: %v", err)
 	}
-	if !got.Ready || got.OwnerAccountID != "acct-a" {
+	if !got.Ready || got.OwnerAccountId != "acct-a" {
 		t.Fatalf("unexpected bootstrap: %+v", got)
 	}
 }
@@ -158,7 +165,7 @@ func TestCreateFriendDMWithState(t *testing.T) {
 func TestGetFriendDMHidesUnauthorizedTarget(t *testing.T) {
 	priv, peerID := generateTestKeypair(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"found":false}`))
+		writeFriendDmResponse(t, w, &api.GetFriendDmResponse{})
 	}))
 	defer srv.Close()
 
@@ -169,25 +176,29 @@ func TestGetFriendDMHidesUnauthorizedTarget(t *testing.T) {
 	}
 }
 
-func TestParseFriendDmBootstrapRejectsDuplicateAccounts(t *testing.T) {
-	_, err := parseFriendDmBootstrap([]byte(`{
-		"sharedObjectId":"01frienddm",
-		"ready":false,
-		"ownerAccountId":"acct-a",
-		"ownerType":"account",
-		"accounts":[
-			{"accountId":"acct-a","entityUuid":"entity-a","epoch":1,"sessions":[{"peerId":"peer-1"}]},
-			{"accountId":"acct-a","entityUuid":"entity-b","epoch":1,"sessions":[{"peerId":"peer-2"}]}
-		]
-	}`))
-	if err == nil {
-		t.Fatal("expected duplicate account error")
+func TestValidateFriendDmBootstrapRejectsDuplicateAccounts(t *testing.T) {
+	_, peerID := generateTestKeypair(t)
+	account := &api.FriendDmAccount{
+		AccountId:        "acct-a",
+		Sessions:         []*api.FriendDmSessionPeer{{PeerId: peerID.String()}},
+		RecoveryKeypairs: []*api.FriendDmRecoveryPeer{{PeerId: peerID.String()}},
+	}
+	bootstrap := &api.GetFriendDmResponse{
+		Found:          true,
+		SharedObjectId: "01frienddm",
+		OwnerAccountId: "acct-a",
+		OwnerType:      "account",
+		Accounts:       []*api.FriendDmAccount{account, account},
+	}
+	err := validateFriendDmBootstrap(bootstrap, "acct-a", "acct-b", peerID.String())
+	if err == nil || err.Error() != "friend dm response contains duplicate account" {
+		t.Fatalf("error = %v, want duplicate account error", err)
 	}
 }
 
 func TestDeriveFriendDmSharedObjectIDVector(t *testing.T) {
-	first := FriendDmAccount{AccountID: "acct-a", EntityUUID: "acct-a-uuid", Epoch: 2}
-	second := FriendDmAccount{AccountID: "acct-b", EntityUUID: "acct-b-uuid", Epoch: 2}
+	first := &api.FriendDmAccount{AccountId: "acct-a", EntityUuid: "acct-a-uuid", Epoch: 2}
+	second := &api.FriendDmAccount{AccountId: "acct-b", EntityUuid: "acct-b-uuid", Epoch: 2}
 	const want = "014qkjwy00eemfrmy7cx7nj2sx"
 	if got := deriveFriendDmSharedObjectID(first, second); got != want {
 		t.Fatalf("id = %q, want %q", got, want)
@@ -198,75 +209,5 @@ func TestDeriveFriendDmSharedObjectIDVector(t *testing.T) {
 	second.Epoch++
 	if got := deriveFriendDmSharedObjectID(first, second); got == want {
 		t.Fatalf("generation change kept id %q", got)
-	}
-}
-
-func TestParseFriendDmBootstrapAllowsEpochZero(t *testing.T) {
-	got, err := parseFriendDmBootstrap([]byte(`{
-		"sharedObjectId":"01frienddm",
-		"ready":false,
-		"ownerAccountId":"acct-a",
-		"ownerType":"account",
-		"accounts":[
-			{"accountId":"acct-a","entityUuid":"entity-a","epoch":0,"sessions":[],"recoveryKeypairs":[{"peerId":"recovery-a"}]},
-			{"accountId":"acct-b","entityUuid":"entity-b","epoch":0,"sessions":[],"recoveryKeypairs":[{"peerId":"recovery-b"}]}
-		]
-	}`))
-	if err != nil {
-		t.Fatalf("parse epoch-zero bootstrap: %v", err)
-	}
-	if got.Accounts[0].Epoch != 0 || got.Accounts[1].Epoch != 0 {
-		t.Fatalf("unexpected epochs: %+v", got.Accounts)
-	}
-}
-
-func TestParseFriendDmBootstrapAllowsEmptySessions(t *testing.T) {
-	got, err := parseFriendDmBootstrap([]byte(`{
-		"sharedObjectId":"01frienddm",
-		"ready":false,
-		"ownerAccountId":"acct-a",
-		"ownerType":"account",
-		"accounts":[
-			{"accountId":"acct-a","entityUuid":"entity-a","epoch":1,"sessions":[],"recoveryKeypairs":[{"peerId":"recovery-a"}]},
-			{"accountId":"acct-b","entityUuid":"entity-b","epoch":1,"sessions":[],"recoveryKeypairs":[{"peerId":"recovery-b"}]}
-		]
-	}`))
-	if err != nil {
-		t.Fatalf("parseFriendDmBootstrap: %v", err)
-	}
-	if len(got.Accounts) != 2 || len(got.Accounts[0].Sessions) != 0 {
-		t.Fatalf("unexpected empty sessions: %+v", got.Accounts)
-	}
-}
-
-func TestParseFriendDmBootstrapRejectsDuplicateRecoveryPeers(t *testing.T) {
-	_, err := parseFriendDmBootstrap([]byte(`{
-		"sharedObjectId":"01frienddm",
-		"ready":false,
-		"ownerAccountId":"acct-a",
-		"ownerType":"account",
-		"accounts":[
-			{"accountId":"acct-a","entityUuid":"entity-a","epoch":0,"sessions":[],"recoveryKeypairs":[{"peerId":"recovery-a"},{"peerId":"recovery-a"}]},
-			{"accountId":"acct-b","entityUuid":"entity-b","epoch":0,"sessions":[],"recoveryKeypairs":[{"peerId":"recovery-b"}]}
-		]
-	}`))
-	if err == nil {
-		t.Fatal("expected duplicate recovery peer error")
-	}
-}
-
-func TestParseFriendDmBootstrapRejectsPeerAcrossAccounts(t *testing.T) {
-	_, err := parseFriendDmBootstrap([]byte(`{
-		"sharedObjectId":"01frienddm",
-		"ready":false,
-		"ownerAccountId":"acct-a",
-		"ownerType":"account",
-		"accounts":[
-			{"accountId":"acct-a","entityUuid":"entity-a","epoch":1,"sessions":[{"peerId":"peer-1"}],"recoveryKeypairs":[{"peerId":"recovery-a"}]},
-			{"accountId":"acct-b","entityUuid":"entity-b","epoch":1,"sessions":[{"peerId":"peer-1"}],"recoveryKeypairs":[{"peerId":"recovery-b"}]}
-		]
-	}`))
-	if err == nil {
-		t.Fatal("expected duplicate session peer error")
 	}
 }

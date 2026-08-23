@@ -10616,3 +10616,247 @@ export const WsBillingCheckoutServerFrame: MessageType<WsBillingCheckoutServerFr
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * FriendDmSessionPeer identifies one active session peer of a friend DM
+ * account.
+ *
+ * @generated from message provider.spacewave.api.FriendDmSessionPeer
+ */
+export interface FriendDmSessionPeer {
+  /**
+   * PeerId is the libp2p peer ID of the session.
+   *
+   * @generated from field: string peer_id = 1;
+   */
+  peerId?: string
+}
+
+export const FriendDmSessionPeer: MessageType<FriendDmSessionPeer> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.FriendDmSessionPeer',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * FriendDmRecoveryPeer identifies one entity recovery keypair peer of a
+ * friend DM account.
+ *
+ * @generated from message provider.spacewave.api.FriendDmRecoveryPeer
+ */
+export interface FriendDmRecoveryPeer {
+  /**
+   * PeerId is the libp2p peer ID of the recovery keypair.
+   *
+   * @generated from field: string peer_id = 1;
+   */
+  peerId?: string
+}
+
+export const FriendDmRecoveryPeer: MessageType<FriendDmRecoveryPeer> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.FriendDmRecoveryPeer',
+    fields: [
+      { no: 1, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * FriendDmAccount describes one side of a friend DM.
+ *
+ * @generated from message provider.spacewave.api.FriendDmAccount
+ */
+export interface FriendDmAccount {
+  /**
+   * AccountId is the Spacewave Cloud account ID.
+   *
+   * @generated from field: string account_id = 1;
+   */
+  accountId?: string
+  /**
+   * EntityUuid is the entity UUID owning the account.
+   *
+   * @generated from field: string entity_uuid = 2;
+   */
+  entityUuid?: string
+  /**
+   * Epoch is the current SOState epoch for the account.
+   *
+   * @generated from field: uint64 epoch = 3;
+   */
+  epoch?: bigint
+  /**
+   * Sessions lists the account's currently active session peers.
+   *
+   * @generated from field: repeated provider.spacewave.api.FriendDmSessionPeer sessions = 4;
+   */
+  sessions?: FriendDmSessionPeer[]
+  /**
+   * RecoveryKeypairs lists the account's entity recovery keypair peers.
+   *
+   * @generated from field: repeated provider.spacewave.api.FriendDmRecoveryPeer recovery_keypairs = 5;
+   */
+  recoveryKeypairs?: FriendDmRecoveryPeer[]
+}
+
+export const FriendDmAccount: MessageType<FriendDmAccount> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.FriendDmAccount',
+    fields: [
+      { no: 1, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'entity_uuid', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'epoch', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 4,
+        name: 'sessions',
+        kind: 'message',
+        T: () => FriendDmSessionPeer,
+        repeated: true,
+      },
+      {
+        no: 5,
+        name: 'recovery_keypairs',
+        kind: 'message',
+        T: () => FriendDmRecoveryPeer,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * GetFriendDmResponse is the response body for
+ * GET and POST /api/account/friends/:accountId/dm.
+ *
+ * @generated from message provider.spacewave.api.GetFriendDmResponse
+ */
+export interface GetFriendDmResponse {
+  /**
+   * Found reports whether a usable friendship was returned. When false the
+   * endpoint intentionally hid an unauthorized, missing, blocked, or
+   * otherwise unusable friendship.
+   *
+   * @generated from field: bool found = 1;
+   */
+  found?: boolean
+  /**
+   * SharedObjectId is the canonical friend DM shared object ID.
+   *
+   * @generated from field: string shared_object_id = 2;
+   */
+  sharedObjectId?: string
+  /**
+   * Ready reports whether the shared object is usable without mutation.
+   *
+   * @generated from field: bool ready = 3;
+   */
+  ready?: boolean
+  /**
+   * OwnerAccountId is the account that owns the shared object.
+   *
+   * @generated from field: string owner_account_id = 4;
+   */
+  ownerAccountId?: string
+  /**
+   * OwnerType is the owner kind; always "account".
+   *
+   * @generated from field: string owner_type = 5;
+   */
+  ownerType?: string
+  /**
+   * Accounts are the two accounts of the friendship.
+   *
+   * @generated from field: repeated provider.spacewave.api.FriendDmAccount accounts = 6;
+   */
+  accounts?: FriendDmAccount[]
+}
+
+export const GetFriendDmResponse: MessageType<GetFriendDmResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.GetFriendDmResponse',
+    fields: [
+      { no: 1, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 2, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'ready', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 4, name: 'owner_account_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'owner_type', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 6,
+        name: 'accounts',
+        kind: 'message',
+        T: () => FriendDmAccount,
+        repeated: true,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CreateWithStateRequest is the request body for
+ * POST /sobject/:id/create-with-state and the reserved friend DM route.
+ *
+ * @generated from message provider.spacewave.api.CreateWithStateRequest
+ */
+export interface CreateWithStateRequest {
+  /**
+   * DisplayName is the human-readable object name.
+   *
+   * @generated from field: string display_name = 1;
+   */
+  displayName?: string
+  /**
+   * ObjectType is the world object type root of the new object.
+   *
+   * @generated from field: string object_type = 2;
+   */
+  objectType?: string
+  /**
+   * OwnerType is the owner kind, e.g. "account".
+   *
+   * @generated from field: string owner_type = 3;
+   */
+  ownerType?: string
+  /**
+   * OwnerId is the owner identifier.
+   *
+   * @generated from field: string owner_id = 4;
+   */
+  ownerId?: string
+  /**
+   * AccountPrivate keeps the object unlisted.
+   *
+   * @generated from field: bool account_private = 5;
+   */
+  accountPrivate?: boolean
+  /**
+   * ConfigState is the signed initial config state payload.
+   *
+   * @generated from field: bytes config_state = 6;
+   */
+  configState?: Uint8Array
+  /**
+   * RootState is the signed initial root state payload.
+   *
+   * @generated from field: bytes root_state = 7;
+   */
+  rootState?: Uint8Array
+}
+
+export const CreateWithStateRequest: MessageType<CreateWithStateRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.CreateWithStateRequest',
+    fields: [
+      { no: 1, name: 'display_name', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'object_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'owner_type', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'owner_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'account_private', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 6, name: 'config_state', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 7, name: 'root_state', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

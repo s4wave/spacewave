@@ -3,12 +3,12 @@ package provider_spacewave
 import (
 	"bytes"
 	"context"
-	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
@@ -25,46 +25,92 @@ import (
 type p2pSyncState struct {
 	sessionID string
 	cancel    context.CancelFunc
-	wg        sync.WaitGroup
-	mtx       sync.Mutex
-	refs      []directive.Reference
-	relFns    []func()
-	stores    map[string]block.StoreOps
+	// bcast guards every resource field and the running worker count below.
+	bcast  broadcast.Broadcast
+	refs   []directive.Reference
+	relFns []func()
+	stores map[string]block.StoreOps
+	// workers counts running sync goroutines; stop waits for it to drain.
+	workers int
 }
 
 func (s *p2pSyncState) addStore(bucketID string, store block.StoreOps) {
-	s.mtx.Lock()
-	if s.stores == nil {
-		s.stores = make(map[string]block.StoreOps)
-	}
-	s.stores[bucketID] = store
-	s.mtx.Unlock()
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		if s.stores == nil {
+			s.stores = make(map[string]block.StoreOps)
+		}
+		s.stores[bucketID] = store
+		broadcast()
+	})
 }
 
 func (s *p2pSyncState) getStore(bucketID string) block.StoreOps {
-	s.mtx.Lock()
-	store := s.stores[bucketID]
-	s.mtx.Unlock()
+	var store block.StoreOps
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		store = s.stores[bucketID]
+	})
 	return store
 }
 
 func (s *p2pSyncState) addRef(ref directive.Reference) {
-	s.mtx.Lock()
-	s.refs = append(s.refs, ref)
-	s.mtx.Unlock()
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.refs = append(s.refs, ref)
+		broadcast()
+	})
 }
 
 func (s *p2pSyncState) addRelease(release func()) {
-	s.mtx.Lock()
-	s.relFns = append(s.relFns, release)
-	s.mtx.Unlock()
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.relFns = append(s.relFns, release)
+		broadcast()
+	})
+}
+
+// startWorker registers a running sync goroutine before it starts so a
+// concurrent stop observes it in the worker count rather than missing it.
+func (s *p2pSyncState) startWorker() {
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.workers++
+		broadcast()
+	})
+}
+
+// workerExited releases one running sync goroutine.
+func (s *p2pSyncState) workerExited() {
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		s.workers--
+		broadcast()
+	})
+}
+
+// awaitWorkersIdle blocks until every running sync goroutine has exited.
+// Callers cancel the state context first; workers exit in response to it.
+func (s *p2pSyncState) awaitWorkersIdle() {
+	for {
+		var waitCh <-chan struct{}
+		idle := false
+		s.bcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			if s.workers != 0 {
+				waitCh = getWaitCh()
+				return
+			}
+			idle = true
+		})
+		if idle {
+			return
+		}
+		<-waitCh
+	}
 }
 
 func (s *p2pSyncState) cleanup() {
-	s.mtx.Lock()
-	refs, relFns := s.refs, s.relFns
-	s.refs, s.relFns = nil, nil
-	s.mtx.Unlock()
+	var refs []directive.Reference
+	var relFns []func()
+	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		refs, relFns = s.refs, s.relFns
+		s.refs, s.relFns = nil, nil
+		broadcast()
+	})
 	for _, ref := range refs {
 		ref.Release()
 	}
@@ -159,7 +205,7 @@ func (a *ProviderAccount) stopP2PSyncForSession(sessionID string) {
 		return
 	}
 	state.cancel()
-	state.wg.Wait()
+	state.awaitWorkersIdle()
 	state.cleanup()
 }
 
@@ -184,12 +230,14 @@ func (a *ProviderAccount) startSOSync(
 	}
 
 	soSync := sobject_sync.NewSOSync(a.le, childBus, soID, localPeerID, swSO.GetSOHost())
-	state.wg.Go(func() {
+	state.startWorker()
+	go func() {
+		defer state.workerExited()
 		defer relSO.Release()
 		if err := soSync.Execute(ctx); err != nil && ctx.Err() == nil {
 			a.le.WithError(err).WithField("so-id", soID).Warn("so sync exited with error")
 		}
-	})
+	}()
 	return nil
 }
 

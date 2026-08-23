@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"strconv"
 	"strings"
+
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 )
 
 const (
@@ -38,21 +40,21 @@ func encodeFriendDmRandomPart(bytes []byte) string {
 }
 
 func deriveFriendDmSharedObjectID(
-	first FriendDmAccount,
-	second FriendDmAccount,
+	first *api.FriendDmAccount,
+	second *api.FriendDmAccount,
 ) string {
 	low, high := first, second
-	if high.AccountID < low.AccountID {
+	if high.GetAccountId() < low.GetAccountId() {
 		low, high = high, low
 	}
 	payload := strings.Join([]string{
 		friendDmIDDomain,
-		low.AccountID,
-		low.EntityUUID,
-		strconv.FormatUint(low.Epoch, 10),
-		high.AccountID,
-		high.EntityUUID,
-		strconv.FormatUint(high.Epoch, 10),
+		low.GetAccountId(),
+		low.GetEntityUuid(),
+		strconv.FormatUint(low.GetEpoch(), 10),
+		high.GetAccountId(),
+		high.GetEntityUuid(),
+		strconv.FormatUint(high.GetEpoch(), 10),
 	}, "\x00")
 	digest := sha256.Sum256([]byte(payload))
 	return encodeFriendDmTimestamp(friendDmULIDTimestamp) + encodeFriendDmRandomPart(digest[:10])

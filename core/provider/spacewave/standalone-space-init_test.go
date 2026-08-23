@@ -21,21 +21,21 @@ func TestBuildFriendDmInitialStateIncludesBilateralRecovery(t *testing.T) {
 	localRecoveryPriv, localRecoveryPID := generateTestKeypair(t)
 	targetPriv, targetPID := generateTestKeypair(t)
 	targetRecoveryPriv, targetRecoveryPID := generateTestKeypair(t)
-	accounts := []FriendDmAccount{
+	accounts := []*api.FriendDmAccount{
 		{
-			AccountID: "acct-a",
-			Sessions: []FriendDmSession{
-				{PeerID: localPID.String()},
-				{PeerID: localSecondPID.String()},
+			AccountId: "acct-a",
+			Sessions: []*api.FriendDmSessionPeer{
+				{PeerId: localPID.String()},
+				{PeerId: localSecondPID.String()},
 			},
-			RecoveryKeypairs: []FriendDmRecoveryKeypair{
-				{PeerID: localRecoveryPID.String()},
+			RecoveryKeypairs: []*api.FriendDmRecoveryPeer{
+				{PeerId: localRecoveryPID.String()},
 			},
 		},
 		{
-			AccountID:        "acct-b",
-			Sessions:         []FriendDmSession{{PeerID: targetPID.String()}},
-			RecoveryKeypairs: []FriendDmRecoveryKeypair{{PeerID: targetRecoveryPID.String()}},
+			AccountId:        "acct-b",
+			Sessions:         []*api.FriendDmSessionPeer{{PeerId: targetPID.String()}},
+			RecoveryKeypairs: []*api.FriendDmRecoveryPeer{{PeerId: targetRecoveryPID.String()}},
 		},
 	}
 	state, err := buildStandaloneSpaceInitState(

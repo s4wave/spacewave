@@ -3,12 +3,10 @@ package provider_spacewave
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
 	"path"
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
-	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
@@ -233,7 +231,7 @@ type standaloneSpaceInitState struct {
 func buildStandaloneGenesisParticipants(
 	localPeerID peer.ID,
 	accountID string,
-	friendAccounts []FriendDmAccount,
+	friendAccounts []*api.FriendDmAccount,
 ) ([]*sobject.SOParticipantConfig, error) {
 	if len(friendAccounts) == 0 {
 		return []*sobject.SOParticipantConfig{{
@@ -247,39 +245,39 @@ func buildStandaloneGenesisParticipants(
 	seenPeers := make(map[string]struct{})
 	ownerAccountFound := false
 	for _, account := range friendAccounts {
-		if account.AccountID == "" {
+		if account.GetAccountId() == "" {
 			return nil, errors.New("friend dm account id is required")
 		}
-		if _, ok := seenAccounts[account.AccountID]; ok {
+		if _, ok := seenAccounts[account.GetAccountId()]; ok {
 			return nil, errors.New("friend dm account is duplicated")
 		}
-		seenAccounts[account.AccountID] = struct{}{}
+		seenAccounts[account.GetAccountId()] = struct{}{}
 		if len(account.Sessions) == 0 {
 			return nil, errors.Errorf(
 				"friend dm account %s has no active sessions",
-				account.AccountID,
+				account.GetAccountId(),
 			)
 		}
 		role := sobject.SOParticipantRole_SOParticipantRole_WRITER
-		if account.AccountID == accountID {
+		if account.GetAccountId() == accountID {
 			role = sobject.SOParticipantRole_SOParticipantRole_OWNER
 			ownerAccountFound = true
 		}
 		for _, session := range account.Sessions {
-			if session.PeerID == "" {
+			if session.GetPeerId() == "" {
 				return nil, errors.New("friend dm session peer is required")
 			}
-			if _, ok := seenPeers[session.PeerID]; ok {
+			if _, ok := seenPeers[session.GetPeerId()]; ok {
 				return nil, errors.Errorf(
 					"friend dm peer %s appears more than once",
-					session.PeerID,
+					session.GetPeerId(),
 				)
 			}
-			seenPeers[session.PeerID] = struct{}{}
+			seenPeers[session.GetPeerId()] = struct{}{}
 			participants = append(participants, &sobject.SOParticipantConfig{
-				PeerId:   session.PeerID,
+				PeerId:   session.GetPeerId(),
 				Role:     role,
-				EntityId: account.AccountID,
+				EntityId: account.GetAccountId(),
 			})
 		}
 	}
@@ -312,7 +310,7 @@ func buildStandaloneGenesisParticipants(
 }
 
 func buildFriendDmRecoveryEnvelopes(
-	accounts []FriendDmAccount,
+	accounts []*api.FriendDmAccount,
 	cfg *sobject.SharedObjectConfig,
 	keyEpoch uint64,
 	grantInner *sobject.SOGrantInner,
@@ -329,45 +327,45 @@ func buildFriendDmRecoveryEnvelopes(
 	}
 	envelopes := make([]*sobject.SOEntityRecoveryEnvelope, 0, len(accounts))
 	for _, account := range accounts {
-		role, ok := entityRoles[account.AccountID]
+		role, ok := entityRoles[account.GetAccountId()]
 		if !ok {
 			return nil, errors.Errorf(
 				"friend dm recovery entity %s is not readable",
-				account.AccountID,
+				account.GetAccountId(),
 			)
 		}
 		if len(account.RecoveryKeypairs) == 0 {
 			return nil, errors.Errorf(
 				"friend dm account %s has no recovery keypairs",
-				account.AccountID,
+				account.GetAccountId(),
 			)
 		}
 		recipientPubs := make([]crypto.PubKey, 0, len(account.RecoveryKeypairs))
 		seenRecoveryPeers := make(map[string]struct{}, len(account.RecoveryKeypairs))
 		for _, recoveryKeypair := range account.RecoveryKeypairs {
-			if _, ok := seenRecoveryPeers[recoveryKeypair.PeerID]; ok {
+			if _, ok := seenRecoveryPeers[recoveryKeypair.GetPeerId()]; ok {
 				return nil, errors.Errorf(
 					"friend dm recovery peer %s appears more than once",
-					recoveryKeypair.PeerID,
+					recoveryKeypair.GetPeerId(),
 				)
 			}
-			seenRecoveryPeers[recoveryKeypair.PeerID] = struct{}{}
-			pub, err := session.ExtractPublicKeyFromPeerID(recoveryKeypair.PeerID)
+			seenRecoveryPeers[recoveryKeypair.GetPeerId()] = struct{}{}
+			pub, err := session.ExtractPublicKeyFromPeerID(recoveryKeypair.GetPeerId())
 			if err != nil {
 				return nil, errors.Wrapf(
 					err,
 					"extract friend dm recovery pubkey %s",
-					recoveryKeypair.PeerID,
+					recoveryKeypair.GetPeerId(),
 				)
 			}
 			recipientPubs = append(recipientPubs, pub)
 		}
 		env, err := sobject.BuildSOEntityRecoveryEnvelope(
-			account.AccountID,
+			account.GetAccountId(),
 			keyEpoch,
 			cfg,
 			&sobject.SOEntityRecoveryMaterial{
-				EntityId:   account.AccountID,
+				EntityId:   account.GetAccountId(),
 				Role:       role,
 				GrantInner: grantInner.CloneVT(),
 			},
@@ -377,7 +375,7 @@ func buildFriendDmRecoveryEnvelopes(
 			return nil, errors.Wrapf(
 				err,
 				"build friend dm recovery envelope %s",
-				account.AccountID,
+				account.GetAccountId(),
 			)
 		}
 		envelopes = append(envelopes, env)
@@ -415,7 +413,7 @@ func buildStandaloneSpaceInitState(
 	localPriv crypto.PrivKey,
 	sfs *block_transform.StepFactorySet,
 	seedWorldHead bool,
-	friendAccounts []FriendDmAccount,
+	friendAccounts []*api.FriendDmAccount,
 ) (*standaloneSpaceInitState, error) {
 	localPeerID, err := peer.IDFromPrivateKey(localPriv)
 	if err != nil {
@@ -543,7 +541,9 @@ func buildStandaloneSpaceInitState(
 	}, nil
 }
 
-func marshalCreateWithStateBody(
+// buildCreateWithStateRequest validates and builds the create-with-state
+// request for the Cloud shared-object route.
+func buildCreateWithStateRequest(
 	displayName string,
 	objectType string,
 	ownerType string,
@@ -551,27 +551,22 @@ func marshalCreateWithStateBody(
 	accountPrivate bool,
 	configState []byte,
 	rootState []byte,
-) ([]byte, error) {
+) (*api.CreateWithStateRequest, error) {
 	if displayName == "" || objectType == "" || ownerType == "" || ownerID == "" {
 		return nil, errors.New("space metadata is required")
 	}
 	if len(configState) == 0 || len(rootState) == 0 {
 		return nil, errors.New("space initial state is required")
 	}
-	var arena fastjson.Arena
-	body := arena.NewObject()
-	body.Set("displayName", arena.NewString(displayName))
-	body.Set("objectType", arena.NewString(objectType))
-	body.Set("ownerType", arena.NewString(ownerType))
-	body.Set("ownerId", arena.NewString(ownerID))
-	accountPrivateVal := arena.NewFalse()
-	if accountPrivate {
-		accountPrivateVal = arena.NewTrue()
-	}
-	body.Set("accountPrivate", accountPrivateVal)
-	body.Set("configState", arena.NewString(base64.StdEncoding.EncodeToString(configState)))
-	body.Set("rootState", arena.NewString(base64.StdEncoding.EncodeToString(rootState)))
-	return body.MarshalTo(nil), nil
+	return &api.CreateWithStateRequest{
+		DisplayName:    displayName,
+		ObjectType:     objectType,
+		OwnerType:      ownerType,
+		OwnerId:        ownerID,
+		AccountPrivate: accountPrivate,
+		ConfigState:    configState,
+		RootState:      rootState,
+	}, nil
 }
 
 // CreateSpaceWithState atomically creates a private shared object with signed
@@ -594,7 +589,7 @@ func (c *SessionClient) CreateSpaceWithState(
 	if spaceID == "" {
 		return errors.New("space id is required")
 	}
-	body, err := marshalCreateWithStateBody(
+	req, err := buildCreateWithStateRequest(
 		displayName,
 		objectType,
 		ownerType,
@@ -606,12 +601,15 @@ func (c *SessionClient) CreateSpaceWithState(
 	if err != nil {
 		return err
 	}
-	_, err = c.doPost(
+	body, err := req.MarshalVT()
+	if err != nil {
+		return errors.Wrap(err, "marshal create request")
+	}
+	_, err = c.doPostBinary(
 		ctx,
 		path.Join("/api/sobject", spaceID, "create-with-state"),
-		"application/json",
 		body,
-		map[string]string{"Accept": "application/json"},
+		nil,
 		SeedReasonMutation,
 	)
 	return errors.Wrap(err, "create space with state")

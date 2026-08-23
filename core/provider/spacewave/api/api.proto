@@ -2785,3 +2785,69 @@ message WsBillingCheckoutServerFrame {
     CheckoutStatusMessage status = 1;
   }
 }
+
+// FriendDmSessionPeer identifies one active session peer of a friend DM
+// account.
+message FriendDmSessionPeer {
+  // PeerId is the libp2p peer ID of the session.
+  string peer_id = 1;
+}
+
+// FriendDmRecoveryPeer identifies one entity recovery keypair peer of a
+// friend DM account.
+message FriendDmRecoveryPeer {
+  // PeerId is the libp2p peer ID of the recovery keypair.
+  string peer_id = 1;
+}
+
+// FriendDmAccount describes one side of a friend DM.
+message FriendDmAccount {
+  // AccountId is the Spacewave Cloud account ID.
+  string account_id = 1;
+  // EntityUuid is the entity UUID owning the account.
+  string entity_uuid = 2;
+  // Epoch is the current SOState epoch for the account.
+  uint64 epoch = 3;
+  // Sessions lists the account's currently active session peers.
+  repeated FriendDmSessionPeer sessions = 4;
+  // RecoveryKeypairs lists the account's entity recovery keypair peers.
+  repeated FriendDmRecoveryPeer recovery_keypairs = 5;
+}
+
+// GetFriendDmResponse is the response body for
+// GET and POST /api/account/friends/:accountId/dm.
+message GetFriendDmResponse {
+  // Found reports whether a usable friendship was returned. When false the
+  // endpoint intentionally hid an unauthorized, missing, blocked, or
+  // otherwise unusable friendship.
+  bool found = 1;
+  // SharedObjectId is the canonical friend DM shared object ID.
+  string shared_object_id = 2;
+  // Ready reports whether the shared object is usable without mutation.
+  bool ready = 3;
+  // OwnerAccountId is the account that owns the shared object.
+  string owner_account_id = 4;
+  // OwnerType is the owner kind; always "account".
+  string owner_type = 5;
+  // Accounts are the two accounts of the friendship.
+  repeated FriendDmAccount accounts = 6;
+}
+
+// CreateWithStateRequest is the request body for
+// POST /sobject/:id/create-with-state and the reserved friend DM route.
+message CreateWithStateRequest {
+  // DisplayName is the human-readable object name.
+  string display_name = 1;
+  // ObjectType is the world object type root of the new object.
+  string object_type = 2;
+  // OwnerType is the owner kind, e.g. "account".
+  string owner_type = 3;
+  // OwnerId is the owner identifier.
+  string owner_id = 4;
+  // AccountPrivate keeps the object unlisted.
+  bool account_private = 5;
+  // ConfigState is the signed initial config state payload.
+  bytes config_state = 6;
+  // RootState is the signed initial root state payload.
+  bytes root_state = 7;
+}

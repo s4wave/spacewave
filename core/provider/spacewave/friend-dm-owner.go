@@ -9,6 +9,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
@@ -67,7 +68,7 @@ func (a *ProviderAccount) OpenFriendDM(
 
 	// Create the canonical Space when bootstrap is not ready.
 	if !bootstrap.Ready {
-		if bootstrap.OwnerAccountID != localAccountID {
+		if bootstrap.OwnerAccountId != localAccountID {
 			return nil, errors.New("friend dm is not ready and caller is not owner")
 		}
 		state, err := buildStandaloneSpaceInitState(
@@ -75,7 +76,7 @@ func (a *ProviderAccount) OpenFriendDM(
 			cli,
 			a.GetLogger(),
 			localAccountID,
-			bootstrap.SharedObjectID,
+			bootstrap.SharedObjectId,
 			cli.priv,
 			buildStandaloneSpaceInitStepFactorySet(),
 			true,
@@ -130,8 +131,8 @@ func (a *ProviderAccount) OpenFriendDM(
 	}
 
 	// Mount the canonical shared object.
-	ref := a.buildSharedObjectRef(bootstrap.SharedObjectID)
-	swSO, relSO, err := a.mountSpaceSO(ctx, bootstrap.SharedObjectID)
+	ref := a.buildSharedObjectRef(bootstrap.SharedObjectId)
+	swSO, relSO, err := a.mountSpaceSO(ctx, bootstrap.SharedObjectId)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +147,7 @@ func (a *ProviderAccount) OpenFriendDM(
 	// Reconcile grants and the deterministic channel for writable participants.
 	localParticipant := participantConfigForPeer(state.GetConfig(), localPeerID)
 	if localParticipant != nil && sobject.CanWriteOps(localParticipant.GetRole()) {
-		if bootstrap.OwnerAccountID == localAccountID &&
+		if bootstrap.OwnerAccountId == localAccountID &&
 			sobject.IsOwner(localParticipant.GetRole()) {
 			if err := reconcileFriendDmParticipants(
 				ctx,
@@ -183,7 +184,7 @@ func (a *ProviderAccount) OpenFriendDM(
 }
 
 func validateFriendDmBootstrap(
-	bootstrap *FriendDmBootstrap,
+	bootstrap *api.GetFriendDmResponse,
 	localAccountID string,
 	targetAccountID string,
 	localPeerID string,
@@ -197,35 +198,51 @@ func validateFriendDmBootstrap(
 	if len(bootstrap.Accounts) != 2 {
 		return errors.New("friend dm response must contain two accounts")
 	}
-	accountsByID := make(map[string]FriendDmAccount, len(bootstrap.Accounts))
+	accountsByID := make(map[string]*api.FriendDmAccount, len(bootstrap.Accounts))
+	sessionPeers := make(map[string]struct{})
+	recoveryPeers := make(map[string]struct{})
 	for _, account := range bootstrap.Accounts {
-		if _, ok := accountsByID[account.AccountID]; ok {
+		if _, ok := accountsByID[account.GetAccountId()]; ok {
 			return errors.New("friend dm response contains duplicate account")
 		}
-		accountsByID[account.AccountID] = account
+		accountsByID[account.GetAccountId()] = account
 		if len(account.Sessions) == 0 {
 			return errors.Errorf(
 				"friend dm account %s has no active sessions",
-				account.AccountID,
+				account.GetAccountId(),
 			)
 		}
 		for _, sess := range account.Sessions {
-			if _, err := session.ExtractPublicKeyFromPeerID(sess.PeerID); err != nil {
-				return errors.Wrapf(err, "parse friend dm peer %s", sess.PeerID)
+			if _, ok := sessionPeers[sess.GetPeerId()]; ok {
+				return errors.Errorf(
+					"friend dm response contains duplicate session peer %s",
+					sess.GetPeerId(),
+				)
+			}
+			sessionPeers[sess.GetPeerId()] = struct{}{}
+			if _, err := session.ExtractPublicKeyFromPeerID(sess.GetPeerId()); err != nil {
+				return errors.Wrapf(err, "parse friend dm peer %s", sess.GetPeerId())
 			}
 		}
 		if len(account.RecoveryKeypairs) == 0 {
 			return errors.Errorf(
 				"friend dm account %s has no recovery keypairs",
-				account.AccountID,
+				account.GetAccountId(),
 			)
 		}
 		for _, recoveryPeer := range account.RecoveryKeypairs {
-			if _, err := session.ExtractPublicKeyFromPeerID(recoveryPeer.PeerID); err != nil {
+			if _, ok := recoveryPeers[recoveryPeer.GetPeerId()]; ok {
+				return errors.Errorf(
+					"friend dm response contains duplicate recovery peer %s",
+					recoveryPeer.GetPeerId(),
+				)
+			}
+			recoveryPeers[recoveryPeer.GetPeerId()] = struct{}{}
+			if _, err := session.ExtractPublicKeyFromPeerID(recoveryPeer.GetPeerId()); err != nil {
 				return errors.Wrapf(
 					err,
 					"parse friend dm recovery peer %s",
-					recoveryPeer.PeerID,
+					recoveryPeer.GetPeerId(),
 				)
 			}
 		}
@@ -237,7 +254,7 @@ func validateFriendDmBootstrap(
 	}
 	localPeerFound := false
 	for _, sess := range localAccount.Sessions {
-		if sess.PeerID == localPeerID {
+		if sess.GetPeerId() == localPeerID {
 			localPeerFound = true
 			break
 		}
@@ -245,15 +262,15 @@ func validateFriendDmBootstrap(
 	if !localPeerFound {
 		return errors.New("friend dm response does not contain the authenticated session")
 	}
-	if bootstrap.OwnerAccountID != localAccountID &&
-		bootstrap.OwnerAccountID != targetAccountID {
+	if bootstrap.OwnerAccountId != localAccountID &&
+		bootstrap.OwnerAccountId != targetAccountID {
 		return errors.New("friend dm owner is outside account pair")
 	}
 	expectedID := deriveFriendDmSharedObjectID(localAccount, targetAccount)
-	if bootstrap.SharedObjectID != expectedID {
+	if bootstrap.SharedObjectId != expectedID {
 		return errors.Errorf(
 			"friend dm response has noncanonical shared object id %q",
-			bootstrap.SharedObjectID,
+			bootstrap.SharedObjectId,
 		)
 	}
 	return nil
@@ -272,19 +289,19 @@ type friendDmParticipantPlan struct {
 
 func buildFriendDmParticipantPlan(
 	current []*sobject.SOParticipantConfig,
-	accounts []FriendDmAccount,
+	accounts []*api.FriendDmAccount,
 	localPeerID string,
 ) (friendDmParticipantPlan, error) {
 	desired := make(map[string]string)
 	for _, account := range accounts {
 		for _, sess := range account.Sessions {
-			if _, ok := desired[sess.PeerID]; ok {
+			if _, ok := desired[sess.GetPeerId()]; ok {
 				return friendDmParticipantPlan{}, errors.Errorf(
 					"friend dm peer %s appears more than once",
-					sess.PeerID,
+					sess.GetPeerId(),
 				)
 			}
-			desired[sess.PeerID] = account.AccountID
+			desired[sess.GetPeerId()] = account.GetAccountId()
 		}
 	}
 
@@ -347,7 +364,7 @@ func buildFriendDmParticipantPlan(
 func reconcileFriendDmParticipants(
 	ctx context.Context,
 	swSO *SharedObject,
-	accounts []FriendDmAccount,
+	accounts []*api.FriendDmAccount,
 	localPeerID string,
 ) error {
 	state, err := swSO.GetSOHost().GetHostState(ctx)
