@@ -1,9 +1,4 @@
-import {
-  getSectionDef,
-  getSectionKey,
-  sectionDefs,
-  siteDefs,
-} from './sections.js'
+import { getSectionKey, sectionDefs, siteDefs } from './sections.js'
 import type { DocPage, DocFrontmatter } from './types.js'
 
 // docModules imports all .md files from the content directory.
@@ -62,12 +57,9 @@ export function loadDocs(): DocPage[] {
     if (!fm.title || !fm.section || fm.order == null || !fm.summary) continue
     if (fm.draft === true) continue
 
-    // Derive site and section from directory structure.
-    // Supports both content/{site}/{section}/{page}.md and
-    // content/{section}/{page}.md (legacy flat layout).
+    // Derive site and section from the content/{site}/{section}/{page}.md
+    // directory contract.
     const parts = path.split('/')
-    let site: string
-    let section: string
     let contentIdx = -1
     for (const [idx, part] of parts.entries()) {
       if (part === 'content') {
@@ -75,16 +67,9 @@ export function loadDocs(): DocPage[] {
         break
       }
     }
-    const depth = parts.length - contentIdx - 1
-    if (depth >= 3) {
-      // New layout: content/{site}/{section}/{page}.md
-      site = parts[contentIdx + 1]
-      section = parts[contentIdx + 2]
-    } else {
-      // Legacy layout: content/{section}/{page}.md
-      section = parts[parts.length - 2]
-      site = getSectionDef('users', section)?.site ?? 'users'
-    }
+    if (parts.length - contentIdx - 1 < 3) continue
+    const site = parts[contentIdx + 1]
+    const section = parts[contentIdx + 2]
 
     // Derive slug from filename, stripping numeric prefix.
     const rawFilename = parts[parts.length - 1]
