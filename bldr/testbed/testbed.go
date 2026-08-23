@@ -108,6 +108,7 @@ func BuildTestbedWithSchedulerConfig(
 	sr.AddFactory(plugin_host_scheduler.NewFactory(b))
 
 	// add the configset controller
+	// note: configset_controller.NewController always returns a nil error.
 	configSetCtrl, _ := configset_controller.NewController(le, b)
 	relConfigSetCtrl, err := b.AddController(ctx, configSetCtrl, nil)
 	if err != nil {

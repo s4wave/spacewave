@@ -211,39 +211,33 @@ func (c *ManifestConfig) Validate() error {
 //
 // Returns a copy of the slice stored in the object.
 func (c *PublishConfig) DedupeSrcObjectKeys() []string {
-	srcObjectKeys := slices.Clone(c.GetSourceObjectKeys())
-	slices.Sort(srcObjectKeys)
-	srcObjectKeys = slices.Compact(srcObjectKeys)
-	if len(srcObjectKeys) != 0 && srcObjectKeys[0] == "" {
-		srcObjectKeys = srcObjectKeys[1:]
-	}
-	return srcObjectKeys
+	return dedupeNonEmptyStrings(c.GetSourceObjectKeys())
 }
 
 // DedupeManifests sorts and cleans up the list of manifest ids.
 //
 // Returns a copy of the slice stored in the object.
 func (c *PublishConfig) DedupeManifests() []string {
-	manifests := slices.Clone(c.GetManifests())
-	slices.Sort(manifests)
-	manifests = slices.Compact(manifests)
-	if len(manifests) != 0 && manifests[0] == "" {
-		manifests = manifests[1:]
-	}
-	return manifests
+	return dedupeNonEmptyStrings(c.GetManifests())
 }
 
 // DedupePlatformIDs sorts and cleans up the list of platform ids.
 //
 // Returns a copy of the slice stored in the object.
 func (c *PublishConfig) DedupePlatformIDs() []string {
-	platformIDs := slices.Clone(c.GetPlatformIds())
-	slices.Sort(platformIDs)
-	platformIDs = slices.Compact(platformIDs)
-	if len(platformIDs) != 0 && platformIDs[0] == "" {
-		platformIDs = platformIDs[1:]
+	return dedupeNonEmptyStrings(c.GetPlatformIds())
+}
+
+// dedupeNonEmptyStrings clones, sorts, compacts, and drops a leading empty
+// entry from values.
+func dedupeNonEmptyStrings(values []string) []string {
+	values = slices.Clone(values)
+	slices.Sort(values)
+	values = slices.Compact(values)
+	if len(values) != 0 && values[0] == "" {
+		values = values[1:]
 	}
-	return platformIDs
+	return values
 }
 
 // LoadExtendedProjectConfig loads a project config from an extended module path.

@@ -3,20 +3,6 @@ declare module '*.css'
 declare module '*.module.css'
 declare module '*.module.scss'
 
-// File loader
-declare module '*.png' {
-  const value: string
-  export default value
-}
-declare module '*.svg' {
-  const value: string
-  export default value
-}
-declare module '*.wasm' {
-  const value: string
-  export default value
-}
-
 // WebkitAppRegion is declared in ../global.d.ts, a module file. A declare-module
 // augmentation in this global script would replace csstype.
 
