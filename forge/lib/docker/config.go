@@ -58,6 +58,7 @@ func (c *Config) UnmarshalBlock(data []byte) error {
 	return c.UnmarshalVT(data)
 }
 
+// validateEnvMap rejects empty keys and keys containing '='.
 func validateEnvMap(env map[string]string) error {
 	for key := range env {
 		if key == "" {
@@ -70,6 +71,7 @@ func validateEnvMap(env map[string]string) error {
 	return nil
 }
 
+// sortedMapKeys returns the map keys in sorted order.
 func sortedMapKeys(vals map[string]string) []string {
 	keys := make([]string, 0, len(vals))
 	for key := range vals {

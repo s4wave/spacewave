@@ -4,6 +4,7 @@ import (
 	"strconv"
 )
 
+// buildDockerEnv renders the configured environment as KEY=value arguments.
 func buildDockerEnv(conf *Config) []string {
 	vals := conf.GetDockerEnv()
 	env := make([]string, 0, len(vals))
@@ -13,6 +14,7 @@ func buildDockerEnv(conf *Config) []string {
 	return env
 }
 
+// buildCreateArgs renders the docker create invocation for the config.
 func buildCreateArgs(conf *Config) []string {
 	args := []string{"create"}
 	if workdir := conf.GetWorkdir(); workdir != "" {
@@ -29,6 +31,7 @@ func buildCreateArgs(conf *Config) []string {
 	return args
 }
 
+// buildStopArgs renders the docker stop invocation with the stop timeout.
 func buildStopArgs(conf *Config, containerID string) []string {
 	args := []string{"stop"}
 	if timeout := conf.GetStopTimeoutSeconds(); timeout != 0 {
@@ -37,6 +40,7 @@ func buildStopArgs(conf *Config, containerID string) []string {
 	return append(args, containerID)
 }
 
+// buildMountArg renders one bind mount in docker --mount syntax.
 func buildMountArg(mount *Mount) string {
 	arg := "type=bind,source=" + mount.GetHostPath() + ",target=" + mount.GetContainerPath()
 	if mount.GetReadOnly() {

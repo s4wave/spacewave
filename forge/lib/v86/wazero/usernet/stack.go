@@ -235,7 +235,7 @@ func (s *Stack) handleDNS(packet *ethPacket) {
 }
 
 func (s *Stack) handleUDPHost(packet *ethPacket) {
-	key := udpTuple(packet.ipv4.src, packet.ipv4.udp.sport, packet.ipv4.dest, packet.ipv4.udp.dport)
+	key := tupleKey(packet.ipv4.src, packet.ipv4.udp.sport, packet.ipv4.dest, packet.ipv4.udp.dport)
 	s.mtx.Lock()
 	if s.closed {
 		s.mtx.Unlock()
@@ -280,7 +280,7 @@ func (s *Stack) handleUDPHost(packet *ethPacket) {
 }
 
 func (s *Stack) handleTCP(packet *ethPacket) {
-	key := tcpTuple(packet.ipv4.src, packet.ipv4.tcp.sport, packet.ipv4.dest, packet.ipv4.tcp.dport)
+	key := tupleKey(packet.ipv4.src, packet.ipv4.tcp.sport, packet.ipv4.dest, packet.ipv4.tcp.dport)
 	if tcpFlag(packet.ipv4.tcp, tcpFlagSYN) && !tcpFlag(packet.ipv4.tcp, tcpFlagACK) {
 		s.openTCP(key, packet)
 		return
@@ -387,14 +387,7 @@ func ipToLong(addr netip.Addr) uint32 {
 	return binary.BigEndian.Uint32(addr.AsSlice())
 }
 
-func udpTuple(src netip.Addr, sport uint16, dest netip.Addr, dport uint16) string {
-	return connTuple(src, sport, dest, dport)
-}
-
-func tcpTuple(src netip.Addr, sport uint16, dest netip.Addr, dport uint16) string {
-	return connTuple(src, sport, dest, dport)
-}
-
-func connTuple(src netip.Addr, sport uint16, dest netip.Addr, dport uint16) string {
+// tupleKey builds the connection-tracking map key for a UDP or TCP flow.
+func tupleKey(src netip.Addr, sport uint16, dest netip.Addr, dport uint16) string {
 	return src.String() + ":" + strconv.Itoa(int(sport)) + ":" + dest.String() + ":" + strconv.Itoa(int(dport))
 }

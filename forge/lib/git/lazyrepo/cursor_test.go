@@ -233,7 +233,6 @@ func TestLazyRepoCursorSerializesConcurrentFirstWrites(t *testing.T) {
 	go func() {
 		errCh <- fileHandle.WriteAt(ctx, 0, []byte("second"), time.Now())
 	}()
-	time.Sleep(20 * time.Millisecond)
 	close(releaseAllocation)
 	for range 2 {
 		if err := <-errCh; err != nil {

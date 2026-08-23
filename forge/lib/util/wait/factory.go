@@ -8,7 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 )
 
-// Factory constructs a git clone controller.
+// Factory constructs the wait controller.
 type Factory struct {
 	// bus is the controller bus
 	bus bus.Bus

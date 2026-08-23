@@ -57,6 +57,8 @@ func (jt *jobTracker) execute(ctx context.Context) error {
 	)
 }
 
+// skipUnhandledOperation wraps a handler so ErrUnhandledOp waits for changes
+// instead of failing the watch loop.
 func skipUnhandledOperation(handler world_control.WatchLoopHandler) world_control.WatchLoopHandler {
 	return func(
 		ctx context.Context,

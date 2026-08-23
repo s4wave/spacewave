@@ -19,7 +19,7 @@ type Factory struct {
 	bus bus.Bus
 }
 
-// NewFactory builds a UDP transport factory.
+// NewFactory builds the Forge API controller factory.
 func NewFactory(bus bus.Bus) *Factory {
 	return &Factory{bus: bus}
 }

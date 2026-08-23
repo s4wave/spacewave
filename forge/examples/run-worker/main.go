@@ -40,7 +40,7 @@ func main() {
 	}
 }
 
-// runWorkerDemo runs the Execution demo.
+// runWorkerDemo runs the worker demo via RunWorkerWithTasks.
 func runWorkerDemo(ctx context.Context, le *logrus.Entry, targetPath string) error {
 	if _, err := os.Stat(targetPath); err != nil {
 		return err
