@@ -611,6 +611,16 @@ func (s *session) onDataChannelClose() {
 
 // close closes the session and releases its generation fence state.
 func (s *session) close() {
+	// An outstanding offer survives this tracker: hand the session to the
+	// peer's ingress lease for adoption by a successor instead of disposing
+	// a generation the remote side may already have answered.
+	if s.t != nil && s.t.offerer && len(s.pendingOfferID) > 0 &&
+		s.connState != webrtc.PeerConnectionStateConnected &&
+		s.connState != webrtc.PeerConnectionStateFailed &&
+		s.connState != webrtc.PeerConnectionStateClosed &&
+		s.t.w.stashAdoptableSession(s.t.key, s) {
+		return
+	}
 	s.retiredOfferIDs = nil
 	_ = s.pc.Close()
 }
@@ -641,6 +651,22 @@ func (s *sessionTracker) transmitLocalNegotiation(
 	if s.offerer {
 		if s.w.GetVerbose() {
 			le.Debug("signal tx: offer sdp")
+		}
+		if sess.pendingOfferID != nil &&
+			sess.pc.SignalingState() == webrtc.SignalingStateHaveLocalOffer {
+			// An offer is already outstanding on this connection: retransmit
+			// the same bytes and identity instead of minting a new
+			// generation, so an in-flight answer still correlates.
+			localDesc := sess.pc.LocalDescription()
+			if localDesc == nil {
+				return lastLocalSeqno, false, pkgerrors.New("retransmit outstanding offer: no local description")
+			}
+			le.Debug("signal tx: retransmit outstanding offer")
+			xmitSdp := NewWebRtcSdp(currLocalSeqno, localDesc)
+			xmitSdp.OfferId = sess.pendingOfferID
+			xmit = &WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: xmitSdp}}
+			xmitSignal(xmit)
+			return currLocalSeqno, true, nil
 		}
 		localDesc, err := sess.pc.CreateOffer(nil)
 		if err != nil {
@@ -681,11 +707,24 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 		s.completeExecution(execution, linkDone, xmitDone)
 	}()
 
-	// Construct the PeerConnection and attach the callbacks.
+	// Construct the PeerConnection and attach the callbacks. A session left
+	// by a retired predecessor with an offer still outstanding is adopted so
+	// its pending generation survives regeneration and the remote answer
+	// still correlates.
 	phase = "construct session"
-	sess, waitCh, err := s.newSession()
-	if err != nil {
-		return pkgerrors.Wrap(err, phase)
+	sess := s.w.takeAdoptableSession(s.key)
+	var waitCh <-chan struct{}
+	if sess != nil {
+		sess.t = s
+		sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+			waitCh = getWaitCh()
+		})
+		s.le.Debug("adopted in-flight negotiation session from retired predecessor")
+	} else {
+		sess, waitCh, err = s.newSession()
+		if err != nil {
+			return pkgerrors.Wrap(err, phase)
+		}
 	}
 	defer sess.close()
 

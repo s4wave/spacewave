@@ -7,6 +7,7 @@ package webrtc
 // existing fatal role and Pion error paths, stays unchanged.
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"testing"
 
@@ -139,6 +140,102 @@ func newNegotiatedPair(t *testing.T) (offerPC, answerPC *pion_webrtc.PeerConnect
 // TestSignalIngressRejectsStaleGenerationAnswer asserts the answer seam: an
 // answer whose offer_id does not match the active generation must be dropped
 // before Pion state is touched, leaving the remote description unapplied.
+// TestAnswerCorrelatesAcrossTrackerRegeneration pins the glare seam from
+// mercury v4: an answer already in flight for a peer's earlier local offer
+// must still correlate after the signaling tracker regenerates. The successor
+// adopts the handed-over session, so the remote answer's offer_id matches its
+// pending generation and Pion applies it instead of dropping it.
+func TestAnswerCorrelatesAcrossTrackerRegeneration(t *testing.T) {
+	w := &WebRTC{conf: &Config{}}
+
+	newTrackerSess := func(pc *pion_webrtc.PeerConnection) (*sessionTracker, *session) {
+		tracker := &sessionTracker{
+			w:       w,
+			le:      newFenceTestLogger(),
+			offerer: true,
+			key:     "regen-peer",
+		}
+		return tracker, &session{t: tracker, pc: pc}
+	}
+
+	xmit := func(*WebRtcSignal) {}
+	le := newFenceTestLogger()
+
+	// Generation one: the first tracker transmits its local offer.
+	pcA, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(func() { pcA.Close() })
+	trackerA, sessA := newTrackerSess(pcA)
+	seqA, _, err := trackerA.transmitLocalNegotiation(sessA, le, 1, 0, xmit)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	genOneID := sessA.pendingOfferID
+	if len(genOneID) == 0 {
+		t.Fatal("first generation recorded no pending offer id")
+	}
+
+	// The tracker retires: the in-flight session is handed to the peer's
+	// ingress lease for adoption instead of disposed.
+	w.incomingSessions = map[string]*signalIngress{"regen-peer": {}}
+	sessA.close()
+
+	// A successor regenerates on the same peer key and adopts the handed-over
+	// session.
+	trackerB := &sessionTracker{
+		w:       w,
+		le:      le,
+		offerer: true,
+		key:     "regen-peer",
+	}
+	sessB := w.takeAdoptableSession("regen-peer")
+	if sessB == nil {
+		t.Fatal("successor found no adoptable session after regeneration")
+	}
+	sessB.t = trackerB
+	if sessB.pc != pcA {
+		t.Fatal("adopted session lost its peer connection")
+	}
+
+	// Generation two retransmits: the adopted session must retransmit the
+	// outstanding offer bytes so the in-flight answer still correlates.
+	seqB, _, err := trackerB.transmitLocalNegotiation(sessB, le, seqA+1, 0, xmit)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(sessB.pendingOfferID, genOneID) {
+		t.Fatalf("successor offered a different generation: retransmitted id %x != original %x",
+			sessB.pendingOfferID, genOneID)
+	}
+	if seqB <= seqA {
+		t.Fatalf("successor seqno %d did not advance past %d", seqB, seqA)
+	}
+
+	// The leader answers generation one after the regeneration. The answer
+	// carries generation one's id and must be applied by the successor.
+	_, _, _, answerDesc := newNegotiatedPair(t)
+
+	f := &fenceIngest{
+		tracker: trackerB,
+		sess:    sessB,
+		applier: &remoteICECandidateApplier{
+			add: func(pion_webrtc.ICECandidateInit) error { return nil },
+		},
+	}
+	if err := f.ingest(&WebRtcSdp{
+		SdpType: "answer",
+		Sdp:     answerDesc.SDP,
+		OfferId: genOneID,
+	}, nil); err != nil {
+		t.Fatalf("correlating answer returned %v, want application", err)
+	}
+	if sessB.pc.RemoteDescription() == nil {
+		t.Fatal("correlating answer was dropped: successor never applied the remote description")
+	}
+}
+
 func TestSignalIngressRejectsStaleGenerationAnswer(t *testing.T) {
 	offerPC, _, _, answerDesc := newNegotiatedPair(t)
 
