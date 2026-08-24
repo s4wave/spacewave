@@ -135,6 +135,61 @@ type spaceRuntimeTerminalWaiter func(
 
 var errSpaceRuntimePluginHostSetChanged = errors.New("daemon plugin host set changed")
 
+// spaceRuntimeHostWatch accepts LookupPluginHost snapshot deliveries for one
+// Space runtime and decides whether the runtime must terminate.
+type spaceRuntimeHostWatch struct {
+	// mirror receives the first accepted host set.
+	mirror *spacePluginHostMirror
+	// hostReady receives the startup result of the initial delivery.
+	hostReady chan<- error
+	// reportTerminal terminates the runtime with a terminal error.
+	reportTerminal func(error)
+	// initial tracks whether the first delivery was processed.
+	initial atomic.Bool
+	// accepted retains the sorted platform-ID multiset of the last
+	// error-free snapshot.
+	accepted []string
+}
+
+// canonicalizeHostSet returns the sorted platform-ID multiset of the hosts.
+// Duplicates are retained: an unsupported duplicated member is a genuine
+// membership change.
+func canonicalizeHostSet(hosts []plugin_host.PluginHost) []string {
+	ids := make([]string, 0, len(hosts))
+	for _, host := range hosts {
+		ids = append(ids, host.GetPlatformId())
+	}
+	slices.Sort(ids)
+	return ids
+}
+
+// deliver applies one LookupPluginHost snapshot delivery and returns the
+// terminal error, or nil when the runtime survives the delivery. Resolver
+// errors follow the named watch-error terminal path and never read as an
+// empty host set.
+func (w *spaceRuntimeHostWatch) deliver(resErr []error, hosts []plugin_host.PluginHost) error {
+	if len(resErr) != 0 {
+		// Before the first accepted snapshot there is no runtime to terminate:
+		// the error only fails startup. Afterwards the set change is terminal.
+		if !w.initial.Load() {
+			w.hostReady <- resErr[0]
+			return nil
+		}
+		w.reportTerminal(errors.Wrap(resErr[0], "watch daemon plugin hosts"))
+		return nil
+	}
+	if !w.initial.CompareAndSwap(false, true) {
+		if !slices.Equal(w.accepted, canonicalizeHostSet(hosts)) {
+			return errSpaceRuntimePluginHostSetChanged
+		}
+		return nil
+	}
+	w.accepted = canonicalizeHostSet(hosts)
+	w.mirror.SetHosts(hosts)
+	w.hostReady <- nil
+	return nil
+}
+
 // SpaceContentsResource provides streaming plugin status for a mounted space.
 type SpaceContentsResource struct {
 	le        *logrus.Entry
@@ -465,7 +520,6 @@ func startSpaceRuntime(
 	}
 	hostReady := make(chan error, 1)
 	terminal := make(chan error, 1)
-	var initialSnapshot atomic.Bool
 	reportTerminal := func(err error) {
 		select {
 		case terminal <- err:
@@ -473,29 +527,19 @@ func startSpaceRuntime(
 		default:
 		}
 	}
+	watch := &spaceRuntimeHostWatch{
+		mirror:         mirror,
+		hostReady:      hostReady,
+		reportTerminal: reportTerminal,
+	}
 	_, hostWatchRelease, err := bus.ExecCollectValuesWatch(
 		childCtx,
 		parent,
 		plugin_host.NewLookupPluginHost(nil),
 		true,
-		func(resErr []error, hosts []plugin_host.PluginHost) error {
-			if len(resErr) != 0 {
-				reportTerminal(errors.Wrap(resErr[0], "watch daemon plugin hosts"))
-				if !initialSnapshot.Load() {
-					hostReady <- resErr[0]
-				}
-				return nil
-			}
-			if !initialSnapshot.CompareAndSwap(false, true) {
-				reportTerminal(errSpaceRuntimePluginHostSetChanged)
-				return nil
-			}
-			mirror.SetHosts(hosts)
-			hostReady <- nil
-			return nil
-		},
+		watch.deliver,
 		func(err error) {
-			if initialSnapshot.Load() {
+			if watch.initial.Load() {
 				reportTerminal(errors.Wrap(err, "watch daemon plugin hosts"))
 				return
 			}

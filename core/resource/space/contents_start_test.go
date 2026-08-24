@@ -10,6 +10,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/directive"
+	bldr_plugin_host "github.com/s4wave/spacewave/bldr/plugin/host"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
 	"github.com/sirupsen/logrus"
 )
@@ -477,5 +478,101 @@ func assertSpaceContentsRefNotReleased(t *testing.T, ref *testSpaceContentsRef, 
 	case <-ref.released:
 		t.Fatalf("%s released unexpectedly", name)
 	default:
+	}
+}
+
+// spaceRuntimePluginHost from runtime_proof_test.go carries the full
+// bldr_plugin_host.PluginHost surface; tests here only need platform IDs.
+
+func newHostWatchTest() (*spaceRuntimeHostWatch, *spacePluginHostMirror, <-chan error, <-chan error) {
+	mirror := newSpacePluginHostMirror()
+	hostReady := make(chan error, 1)
+	terminal := make(chan error, 8)
+	w := &spaceRuntimeHostWatch{
+		mirror:         mirror,
+		hostReady:      hostReady,
+		reportTerminal: func(err error) { terminal <- err },
+	}
+	return w, mirror, hostReady, terminal
+}
+
+func hostsOf(ids ...string) []bldr_plugin_host.PluginHost {
+	out := make([]bldr_plugin_host.PluginHost, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, &spaceRuntimePluginHost{platformID: id})
+	}
+	return out
+}
+
+func TestSpaceRuntimeHostWatchIdenticalRedeliverySurvives(t *testing.T) {
+	w, _, _, _ := newHostWatchTest()
+	if err := w.deliver(nil, hostsOf("a", "b")); err != nil {
+		t.Fatalf("initial delivery returned %v", err)
+	}
+	if err := w.deliver(nil, hostsOf("a", "b")); err != nil {
+		t.Fatalf("identical redelivery terminated the runtime: %v", err)
+	}
+}
+
+func TestSpaceRuntimeHostWatchInitialErrorFailsStartupWithoutRuntime(t *testing.T) {
+	w, _, hostReady, terminal := newHostWatchTest()
+	sent := errors.New("resolver failed")
+	if err := w.deliver([]error{sent}, nil); err != nil {
+		t.Fatalf("error delivery returned %v", err)
+	}
+	select {
+	case err := <-hostReady:
+		if !errors.Is(err, sent) {
+			t.Fatalf("startup error = %v, want %v", err, sent)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("startup did not fail with the watch error")
+	}
+	select {
+	case err := <-terminal:
+		t.Fatalf("initial error published a terminal: %v", err)
+	default:
+	}
+}
+
+func TestSpaceRuntimeHostWatchPostReadyErrorIsNamedTerminal(t *testing.T) {
+	w, _, _, _ := newHostWatchTest()
+	if err := w.deliver(nil, hostsOf("a")); err != nil {
+		t.Fatalf("initial delivery returned %v", err)
+	}
+	sent := errors.New("watch broke")
+	if err := w.deliver([]error{sent}, nil); err != nil {
+		t.Fatalf("error delivery returned %v", err)
+	}
+}
+
+func TestSpaceRuntimeHostWatchGenuineEmptyCancels(t *testing.T) {
+	w, _, _, _ := newHostWatchTest()
+	if err := w.deliver(nil, hostsOf("a", "b")); err != nil {
+		t.Fatalf("initial delivery returned %v", err)
+	}
+	err := w.deliver(nil, nil)
+	if !errors.Is(err, errSpaceRuntimePluginHostSetChanged) {
+		t.Fatalf("genuine empty delivery = %v, want %v", err, errSpaceRuntimePluginHostSetChanged)
+	}
+}
+
+func TestSpaceRuntimeHostWatchMembershipChangeCancels(t *testing.T) {
+	w, _, _, _ := newHostWatchTest()
+	if err := w.deliver(nil, hostsOf("a", "b")); err != nil {
+		t.Fatalf("initial delivery returned %v", err)
+	}
+	if err := w.deliver(nil, hostsOf("a")); !errors.Is(err, errSpaceRuntimePluginHostSetChanged) {
+		t.Fatalf("membership loss = %v, want %v", err, errSpaceRuntimePluginHostSetChanged)
+	}
+}
+
+func TestSpaceRuntimeHostWatchDuplicateGrowthCancels(t *testing.T) {
+	w, _, _, _ := newHostWatchTest()
+	if err := w.deliver(nil, hostsOf("a")); err != nil {
+		t.Fatalf("initial delivery returned %v", err)
+	}
+	if err := w.deliver(nil, hostsOf("a", "a")); !errors.Is(err, errSpaceRuntimePluginHostSetChanged) {
+		t.Fatalf("duplicate growth = %v, want %v", err, errSpaceRuntimePluginHostSetChanged)
 	}
 }
