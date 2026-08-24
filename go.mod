@@ -30,7 +30,7 @@ require (
 	github.com/aperturerobotics/abseil-cpp v0.0.0-20260131110040-4bb56e2f9017 // indirect
 	github.com/aperturerobotics/bbolt v0.0.0-20260803053248-633a6560e3d0 // master
 	github.com/aperturerobotics/bldr-saucer v0.4.4
-	github.com/aperturerobotics/cayley v0.15.1-0.20260822045846-b727c66784cb // master
+	github.com/aperturerobotics/cayley v0.15.1-0.20260824110931-e6b102492e31 // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
 	github.com/aperturerobotics/common v0.35.3-0.20260821174355-5178d1c5fe41 // master
 	github.com/aperturerobotics/controllerbus v0.53.5-0.20260812083451-7bd9dce82687 // master
