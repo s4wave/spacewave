@@ -9,6 +9,7 @@ import {
 
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { useBrowserStartupProjection } from '@s4wave/app/loading/status/browser-startup.js'
+import { useBrowserBootWatchdog } from '@s4wave/app/loading/status/browser-boot-watchdog.js'
 import { useBootDownloads } from '@s4wave/app/loading/status/browser-downloads.js'
 import {
   browserStartupStallCopy,
@@ -27,6 +28,7 @@ import { BootLoadingCriticalStyle } from './boot-loading-critical.js'
 // classes) instead of the not-yet-loaded Tailwind app.css.
 export function AppLoadingScreen() {
   const startup = useBrowserStartupProjection()
+  useBrowserBootWatchdog()
   const reducedMotion = useReducedMotion()
   const view = withBrowserStartupErrorActions(startup.view)
   const hasProgress =
