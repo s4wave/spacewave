@@ -13,7 +13,10 @@ import (
 // generation stays attributable to this ingress instead of silently rebinding
 // to its successor.
 type signalIngress struct {
-	resolvers map[*handleSignalPeerResolver]struct{}
+	// adoptedSession holds an in-flight negotiation session handed over by a
+	// retired predecessor tracker, pending adoption by a successor.
+	adoptedSession *session
+	resolvers      map[*handleSignalPeerResolver]struct{}
 	// ref and tracker are nil while the ingress has no live tracker
 	// generation attached.
 	ref     *keyed.KeyedRef[string, *sessionTracker]
@@ -100,6 +103,36 @@ func (w *WebRTC) retireSignalIngressLocked(peerID string, tracker *sessionTracke
 		delete(w.incomingSessions, peerID)
 	}
 	broadcast()
+}
+
+// stashAdoptableSession stores an in-flight negotiation session on the
+// peer's ingress lease so a successor tracker can adopt it. Returns false
+// when the lease is already gone.
+func (w *WebRTC) stashAdoptableSession(peerID string, sess *session) bool {
+	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		broadcast()
+	})
+	ingress := w.incomingSessions[peerID]
+	if ingress == nil {
+		return false
+	}
+	ingress.adoptedSession = sess
+	return true
+}
+
+// takeAdoptableSession returns and clears an adoptable in-flight session for
+// the peer key, if any.
+func (w *WebRTC) takeAdoptableSession(peerID string) *session {
+	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		broadcast()
+	})
+	ingress := w.incomingSessions[peerID]
+	if ingress == nil {
+		return nil
+	}
+	sess := ingress.adoptedSession
+	ingress.adoptedSession = nil
+	return sess
 }
 
 // closeSignalIngress removes a resolver from the peer's ingress lease.
