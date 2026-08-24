@@ -62,7 +62,6 @@ func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs
 	}
 	ctx, task := trace.NewTask(ctx, "bldr/plugin-host-scheduler/execute-plugin")
 	defer task.End()
-	t.ensureAccessProviders()
 	defer func() {
 		if rerr != nil {
 			trace.Log(ctx, "manifest-copy-phase", "error")

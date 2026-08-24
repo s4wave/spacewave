@@ -18,7 +18,7 @@ import (
 
 // pluginInstance manages a running plugin instance
 //
-// downloadManifestRoutine: given a manifest from FetchManfest, downloads + stores in the world.
+// downloadManifestRoutine: given a manifest from FetchManifest, downloads + stores in the world.
 // watchWorldManifestRoutine: watches the world for the latest manifest for the plugin.
 // executePluginRoutine: with a ManifestSnapshot from watchWorldManifestRoutine, executes the plugin.
 type pluginInstance struct {
@@ -115,11 +115,6 @@ func (c *Controller) newPluginInstance(key string) (keyed.Routine, *pluginInstan
 	tr.downloadManifestRoutine = routine.NewStateRoutineContainerWithLoggerVT[*bldr_manifest.ManifestSnapshot](
 		le,
 		routine.WithRetry(fetchBackoff),
-		// TODO: Detect issues copying entrypoint manifests.
-		/*
-			routine.WithExitCb(func(err error) {
-			}),
-		*/
 	)
 	tr.downloadManifestRoutine.SetStateRoutine(tr.execDownloadManifest)
 
@@ -138,7 +133,6 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 	if err := t.c.ensureManifestStore(ctx); err != nil {
 		return err
 	}
-	t.ensureAccessProviders()
 
 	startupWaitBudget, err := t.c.conf.BuildStartupWaitBudget()
 	if err != nil {
@@ -229,15 +223,6 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 		},
 		nil,
 	)
-}
-
-func (t *pluginInstance) ensureAccessProviders() {
-	if t.distAccess == nil {
-		t.distAccess = unixfs_access.NewRotatingAccess()
-	}
-	if t.assetsAccess == nil {
-		t.assetsAccess = unixfs_access.NewRotatingAccess()
-	}
 }
 
 // _ is a type assertion
