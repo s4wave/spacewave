@@ -10,6 +10,7 @@ import { ObjectTypeRegistryResourceServiceClient } from '@s4wave/sdk/objecttype/
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { LocalProvider } from '@s4wave/sdk/provider/local/local.js'
 import { Space } from '@s4wave/sdk/space/space.js'
+import type { SpaceSoListEntry } from '@s4wave/sdk/space/space.pb.js'
 import { SpaceContents } from '@s4wave/sdk/space/contents.js'
 import { SUBPATH_DELIMITER } from '@s4wave/sdk/space/object-uri.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
@@ -646,6 +647,27 @@ export async function createQuickstartSetupFromSession(
   }
 }
 
+// findExistingQuickstartSpace returns the first space-list entry whose space
+// name matches the quickstart's seeded space name, or undefined when no
+// snapshot entry matches.
+async function findExistingQuickstartSpace(
+  session: Session,
+  spaceName: string,
+  abortSignal: AbortSignal,
+): Promise<SpaceSoListEntry | undefined> {
+  for await (const resp of session.watchResourcesList(
+    { includeIndexObjectTypes: true },
+    abortSignal,
+  )) {
+    return (resp.spacesList ?? []).find(
+      (entry) =>
+        entry.spaceMeta?.name === spaceName &&
+        !!entry.entry?.ref?.providerResourceRef?.id,
+    )
+  }
+  return undefined
+}
+
 export async function createQuickstartSetup(
   root: Root,
   quickstartId: QuickstartSpaceCreateId,
@@ -666,18 +688,31 @@ export async function createQuickstartSetup(
       progress,
     )
 
-    // Create a new space with the quickstart ID as the name.
+    // Reuse the account's existing space for this quickstart; creating again
+    // would duplicate it and rerun the seed pipeline over user content.
+    const spaceName = getQuickstartSpaceName(quickstartId)
     reportQuickstartProgress(
       progress,
       'space',
-      'Creating ' + getQuickstartSpaceName(quickstartId),
+      'Checking for an existing ' + spaceName,
     )
-    const spaceResp = await timeQuickstartPhase(timing, 'create-space', () =>
-      session.createSpace(
-        { spaceName: getQuickstartSpaceName(quickstartId) },
-        abortSignal,
-      ),
+    const existingEntry = await timeQuickstartPhase(
+      timing,
+      'find-existing-space',
+      () => findExistingQuickstartSpace(session, spaceName, abortSignal),
     )
+    const sharedObjectRef = existingEntry?.entry?.ref
+
+    let spaceResp: CreateSpaceResponse
+    if (sharedObjectRef) {
+      reportQuickstartProgress(progress, 'space', 'Opening ' + spaceName)
+      spaceResp = { sharedObjectRef }
+    } else {
+      reportQuickstartProgress(progress, 'space', 'Creating ' + spaceName)
+      spaceResp = await timeQuickstartPhase(timing, 'create-space', () =>
+        session.createSpace({ spaceName }, abortSignal),
+      )
+    }
 
     // Create the setup from the session and space response.
     const setup = await createQuickstartSetupFromSession({
@@ -700,15 +735,20 @@ export async function createQuickstartSetup(
       ...setup,
     }
 
-    // Populate the space with quickstart-specific content.
-    reportQuickstartProgress(
-      progress,
-      'content',
-      'Seeding ' + getQuickstartSpaceName(quickstartId) + ' content',
-    )
-    await timeQuickstartPhase(timing, 'populate-space', () =>
-      populateSpace(quickstartId, result, abortSignal, timing),
-    )
+    if (sharedObjectRef) {
+      // The reused space already holds its seeded content.
+      markQuickstartProgressReady(timing)
+    } else {
+      // Populate the space with quickstart-specific content.
+      reportQuickstartProgress(
+        progress,
+        'content',
+        'Seeding ' + getQuickstartSpaceName(quickstartId) + ' content',
+      )
+      await timeQuickstartPhase(timing, 'populate-space', () =>
+        populateSpace(quickstartId, result, abortSignal, timing),
+      )
+    }
 
     markQuickstartProgressReady(timing)
 
