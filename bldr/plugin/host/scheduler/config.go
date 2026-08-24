@@ -173,6 +173,8 @@ func (c *Config) buildBackoff(
 	return backoffConf
 }
 
+// manifestCopyConcurrency returns the configured manifest copy
+// concurrency.
 func (c *Config) manifestCopyConcurrency() int {
 	return int(c.GetFetchConcurrency())
 }

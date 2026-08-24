@@ -14,6 +14,8 @@ func (t *pluginInstance) logPluginAccountingFields(ctx context.Context) {
 	trace.Log(ctx, "instance-key", t.instanceKey)
 }
 
+// logManifestSnapshotAccountingFields logs the accounting fields of a
+// manifest snapshot.
 func logManifestSnapshotAccountingFields(ctx context.Context, prefix string, manifest *bldr_manifest.ManifestSnapshot) {
 	if manifest == nil {
 		trace.Log(ctx, prefix+"-manifest-ref", "none")
@@ -26,6 +28,8 @@ func logManifestSnapshotAccountingFields(ctx context.Context, prefix string, man
 	}
 }
 
+// logManifestRefAccountingFields logs the accounting fields of a
+// manifest ref.
 func logManifestRefAccountingFields(ctx context.Context, prefix string, ref *bldr_manifest.ManifestRef) {
 	if ref == nil {
 		trace.Log(ctx, prefix+"-manifest-ref", "none")
@@ -35,6 +39,8 @@ func logManifestRefAccountingFields(ctx context.Context, prefix string, ref *bld
 	logManifestMetaAccountingFields(ctx, prefix, ref.GetMeta())
 }
 
+// logObjectRefAccountingFields logs the accounting fields of an object
+// ref.
 func logObjectRefAccountingFields(ctx context.Context, prefix string, ref *bucket.ObjectRef) {
 	if ref == nil {
 		trace.Log(ctx, prefix+"-ref", "none")
@@ -47,6 +53,8 @@ func logObjectRefAccountingFields(ctx context.Context, prefix string, ref *bucke
 	trace.Log(ctx, prefix+"-bucket-id", ref.GetBucketId())
 }
 
+// logManifestMetaAccountingFields logs the accounting fields of a
+// manifest meta.
 func logManifestMetaAccountingFields(ctx context.Context, prefix string, meta *bldr_manifest.ManifestMeta) {
 	if meta == nil {
 		return
