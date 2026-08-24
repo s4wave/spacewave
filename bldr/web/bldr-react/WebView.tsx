@@ -28,6 +28,15 @@ import { ReactComponentContainer } from './web-view-react.js'
 import { DebugInfo } from './DebugInfo.js'
 import { useLatestRef } from './hooks.js'
 import { markStartupBoundary } from '../bldr/startup-marks.js'
+import {
+  beginBootDownload,
+  failBootDownload,
+} from '../bldr/boot-downloads.js'
+
+// webViewRevealDeadlineMillis bounds how long a startup-critical web view may
+// wait for the plugin's SetRenderMode/SetHtmlLinks calls and component
+// readiness before boot reports a terminal failure instead of stalling.
+const webViewRevealDeadlineMillis = 90_000
 
 // RemoveWebViewFunc is a function to remove a web view.
 type RemoveWebViewFunc = (view: BldrWebView) => void
@@ -542,6 +551,26 @@ export const WebView: React.FC<IWebViewProps> = (props) => {
     webViewState.ready,
     webViewState.refreshNonce,
   ])
+
+  // Boot-ladder deadline: if this startup-critical view never receives a
+  // render mode, html links, or component readiness, the loading screen would
+  // wait forever behind a frozen progress bar. After webViewRevealDeadlineMillis
+  // without progress, surface a terminal boot-download failure instead.
+  useEffect(() => {
+    if (!props.startupProgress || !webViewState.ready || isComponentReady) {
+      return
+    }
+    const timer = setTimeout(() => {
+      if (markedRevealedRef.current || markedComponentReadyRef.current) {
+        return
+      }
+      const message = `web view did not become ready within ${webViewRevealDeadlineMillis / 1000}s (no render mode, html links, or component-ready)`
+      console.error(`WebView ${uuid}: ${message}`)
+      beginBootDownload('webview-frame', 'Interface frame')
+      failBootDownload('webview-frame', message)
+    }, webViewRevealDeadlineMillis)
+    return () => clearTimeout(timer)
+  }, [props.startupProgress, uuid, webViewState.ready, isComponentReady])
 
   const handleComponentReady = useCallback(() => {
     setIsComponentReady(true)
