@@ -8,6 +8,7 @@ import {
   webViewModuleImportErrorEvent,
   webViewRootAssetStatusEvent,
 } from './web-view-module-loader.js'
+import { readBootDownloads } from '../bldr/boot-downloads.js'
 
 function pluginAssetResponse(
   status: number,
@@ -33,6 +34,57 @@ function deferred<T>(): {
   })
   return { promise, resolve, reject }
 }
+
+describe('WebView boot deadlines', () => {
+  it('fails the boot download when the root asset fetch never settles', async () => {
+    const fetchRootAsset = vi.fn(
+      () => new Promise<Response>(() => undefined),
+    )
+    const importModule = vi.fn(async () => ({ default: 'module' }))
+
+    await expect(
+      loadWebViewScriptModule('/b/pa/spacewave-app/v/app/App.mjs', {
+        fetchRootAsset,
+        importModule,
+        fetchDeadlineMillis: 10,
+      }),
+    ).rejects.toThrow('root asset fetch')
+
+    const downloads = readBootDownloads()
+    const failed = downloads.find((download) => download.state === 'error')
+    expect(failed?.error).toContain('timed out')
+    expect(
+      globalThis.__bldrWebViewModuleImportError,
+    ).toBeUndefined()
+  })
+
+  it('fails the boot download when the module import never settles', async () => {
+    const fetchRootAsset = vi.fn(async () =>
+      pluginAssetResponse(200, '', {
+        'X-Bldr-Fetch-Source': 'plugin-assets',
+        'X-Bldr-Plugin-Asset-Fetch-Result': 'live',
+      }),
+    )
+    const importModule = vi.fn(
+      () => new Promise<unknown>(() => undefined),
+    )
+
+    await expect(
+      loadWebViewScriptModule('/b/pa/spacewave-app/v/app/App.mjs', {
+        fetchRootAsset,
+        importModule,
+        importDeadlineMillis: 10,
+      }),
+    ).rejects.toThrow('module import')
+
+    const downloads = readBootDownloads()
+    const failed = downloads.find((download) => download.state === 'error')
+    expect(failed?.error).toContain('timed out')
+    expect(globalThis.__bldrWebViewModuleImportError?.message).toContain(
+      'timed out',
+    )
+  })
+})
 
 describe('WebView root module loader', () => {
   it('skips the root asset probe for non-plugin asset paths', async () => {
