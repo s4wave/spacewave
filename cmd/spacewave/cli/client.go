@@ -18,6 +18,7 @@ import (
 	"github.com/aperturerobotics/util/gitroot"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
+	entrypoint_storagepath "github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	s4wave_space_core "github.com/s4wave/spacewave/core/space"
@@ -699,11 +700,21 @@ func lineageFlagSet(c *cli.Context, name string) (value string, set bool) {
 // daemon socket in cwd/.spacewave or git-root/.spacewave take precedence
 // over the shared default. Explicit --state-path values skip project
 // discovery and use relative-path resolution as before.
+//
+// Without an explicit path or a discoverable project-local daemon the
+// resolution fails instead of falling back to the shared default state root:
+// that default may hold the operator's live world, and commands attaching to
+// it implicitly have mounted every Space in it.
 func resolveStatePathFromContext(c *cli.Context, fallback string) (string, error) {
 	if !statePathUserSet(c) {
 		if discovered, ok := discoverProjectLocalStatePath(); ok {
 			return discovered, nil
 		}
+		return "", errors.Errorf(
+			"no explicit daemon state path: pass --state-path, set %s (or %s), or run inside a checkout whose .spacewave holds a live daemon; refusing to attach implicitly to the shared default %s",
+			entrypoint_storagepath.StatePathEnvVar(projectID),
+			entrypoint_storagepath.StorageRootEnvVar(projectID), defaultStatePath,
+		)
 	}
 	return resolveStatePath(effectiveStatePath(c, fallback))
 }

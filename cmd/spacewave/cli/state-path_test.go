@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/aperturerobotics/cli"
@@ -95,23 +96,42 @@ func TestResolveStatePathFromContextUsesEnv(t *testing.T) {
 	}
 }
 
-func TestResolveStatePathFromContextUsesDefault(t *testing.T) {
+// TestResolveStatePathFromContextRefusesDefault asserts that with no
+// explicit --state-path flag or environment variable and no live
+// project-local daemon, resolution fails instead of falling back to the
+// shared default state root: attaching to it implicitly has mounted every
+// Space of the operator's live world.
+func TestResolveStatePathFromContextRefusesDefault(t *testing.T) {
 	clearStatePathEnv(t)
 
-	cwd := t.TempDir()
-	chdir(t, cwd)
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+	chdir(t, t.TempDir())
 
-	got := runStatePathResolveCommand(t, []string{"check"})
-	want := defaultStatePath
-	if !filepath.IsAbs(want) {
-		want = filepath.Join(cwd, want)
+	oldDefault := defaultStatePath
+	defaultStatePath = filepath.Join(tempHome, ".spacewave")
+	t.Cleanup(func() { defaultStatePath = oldDefault })
+
+	var commandStatePath string
+	var rootStatePath string
+	app := cli.NewApp()
+	app.Name = "spacewave"
+	app.HideVersion = true
+	app.Flags = []cli.Flag{statePathFlag(&rootStatePath)}
+	app.Commands = []*cli.Command{{
+		Name:  "check",
+		Flags: clientFlags(&commandStatePath, nil),
+		Action: func(c *cli.Context) error {
+			_, err := resolveStatePathFromContext(c, commandStatePath)
+			return err
+		},
+	}}
+	err := app.RunContext(context.Background(), []string{"spacewave", "check"})
+	if err == nil {
+		t.Fatal("implicit default state path accepted")
 	}
-	if got != want {
-		t.Fatalf("got %s, want %s", got, want)
+	if !strings.Contains(err.Error(), "--state-path") {
+		t.Fatalf("error does not tell the user how to pass an explicit path: %v", err)
 	}
 }
 
