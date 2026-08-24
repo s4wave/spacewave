@@ -19,6 +19,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// opfsBrowserEngines enumerates the browser engines that must pass the
+// OPFS durability proof.
+var opfsBrowserEngines = []string{"chromium", "webkit"}
+
 func TestOpfsBrowserHarness(t *testing.T) {
 	root := repositoryRoot(t)
 	distDir := filepath.Join(root, "prototypes", "opfs-browser-harness", ".tmp", "dist")
@@ -48,17 +52,31 @@ func TestOpfsBrowserHarness(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer pw.Stop()
-	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{Headless: new(true)})
+	for _, engine := range opfsBrowserEngines {
+		t.Run(engine, func(t *testing.T) {
+			runOpfsBrowserEngine(t, pw, server.URL+"/index.html", engine)
+		})
+	}
+}
+
+// runOpfsBrowserEngine loads the harness page in one engine and waits for the
+// page to report the write, close, reopen, and read-back result.
+func runOpfsBrowserEngine(t *testing.T, pw *playwright.Playwright, pageURL string, engine string) {
+	t.Helper()
+	browserType, err := browserTypeByName(pw, engine)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// WebKit exposes OPFS only in a persistent session backed by a profile
+	// directory, so every engine launches through a persistent context.
+	browser, err := browserType.LaunchPersistentContext(t.TempDir(), playwright.BrowserTypeLaunchPersistentContextOptions{
+		Headless: new(true),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer browser.Close()
-	browserContext, err := browser.NewContext()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer browserContext.Close()
-	page, err := browserContext.NewPage()
+	page, err := browser.NewPage()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +86,7 @@ func TestOpfsBrowserHarness(t *testing.T) {
 	page.On("pageerror", func(err error) {
 		t.Logf("browser pageerror: %s", err)
 	})
-	if _, err := page.Goto(server.URL+"/index.html", playwright.PageGotoOptions{
+	if _, err := page.Goto(pageURL, playwright.PageGotoOptions{
 		WaitUntil: playwright.WaitUntilStateLoad,
 	}); err != nil {
 		t.Fatal(err)
@@ -90,6 +108,19 @@ func TestOpfsBrowserHarness(t *testing.T) {
 		t.Fatalf("OPFS browser harness failed: %v", result["detail"])
 	}
 	t.Logf("OPFS browser harness: %v", result["detail"])
+}
+
+// browserTypeByName maps an engine name from opfsBrowserEngines to its
+// playwright browser type.
+func browserTypeByName(pw *playwright.Playwright, engine string) (playwright.BrowserType, error) {
+	switch engine {
+	case "chromium":
+		return pw.Chromium, nil
+	case "webkit":
+		return pw.WebKit, nil
+	default:
+		return nil, fmt.Errorf("unsupported browser engine %q", engine)
+	}
 }
 
 func buildBrowserBundle(t *testing.T, root, distDir string) error {
