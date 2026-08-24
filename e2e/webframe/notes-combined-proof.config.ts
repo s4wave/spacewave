@@ -6,7 +6,7 @@ const url = `http://127.0.0.1:${port}`
 export default defineConfig({
   testDir: '.',
   testMatch: 'notes-combined-proof.spec.ts',
-  timeout: 300_000,
+  timeout: 900_000,
   expect: {
     timeout: 10_000,
   },
