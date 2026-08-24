@@ -17,17 +17,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// storeFetchedManifestsKey is the context key for the fetched manifests
+// key.
 type storeFetchedManifestsKey struct {
 	valueID  uint32
 	refIndex int
 }
 
+// directFetchCandidate is one candidate manifest ref considered for a
+// direct fetch.
 type directFetchCandidate struct {
 	ref  *bldr_manifest.ManifestRef
 	host bldr_plugin_host.PluginHost
 }
 
-// execute executes the tracker.
+// execFetchWorldManifestCore fetches plugin manifests via FetchManifest and
+// feeds the store and execute paths.
 func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *pluginHostSet) (rerr error) {
 	defer func() {
 		t.c.recordPluginStatusError(t.pluginID, t.instanceKey, "fetch plugin manifest", rerr)
@@ -125,6 +130,8 @@ func (t *pluginInstance) execFetchWorldManifestCore(ctx context.Context, hosts *
 	return nil
 }
 
+// fetchManifestValueStorer stores fetched manifest values on the plugin
+// instance.
 type fetchManifestValueStorer struct {
 	pi      *pluginInstance
 	value   *promise.Promise[*bldr_manifest.FetchManifestValue]
@@ -132,6 +139,8 @@ type fetchManifestValueStorer struct {
 	refIdx  int
 }
 
+// newManifestFetchValueStorer constructs a value storer bound to this
+// instance and key.
 func (t *pluginInstance) newManifestFetchValueStorer(key storeFetchedManifestsKey) (keyed.Routine, *fetchManifestValueStorer) {
 	s := &fetchManifestValueStorer{pi: t, valueID: key.valueID, refIdx: key.refIndex}
 	s.value = promise.NewPromise[*bldr_manifest.FetchManifestValue]()
@@ -298,6 +307,8 @@ func (t *pluginInstance) newDirectFetchHandler(ctx context.Context, hosts *plugi
 	)
 }
 
+// directFetchCandidateBetter reports whether candidate is a better
+// download choice than current.
 func directFetchCandidateBetter(candidate, current *directFetchCandidate) bool {
 	if current == nil {
 		return true
@@ -324,6 +335,9 @@ func directFetchCandidateBetter(candidate, current *directFetchCandidate) bool {
 	return candidate.host.GetPlatformId() > current.host.GetPlatformId()
 }
 
+// directFetchCandidateShouldRemainCurrent pins the hysteresis rule: an
+// already-selected same-rev candidate is never displaced by a later
+// preferred-platform arrival.
 func directFetchCandidateShouldRemainCurrent(current, best *directFetchCandidate) bool {
 	if current == nil {
 		return false
@@ -345,6 +359,8 @@ func directFetchCandidateShouldRemainCurrent(current, best *directFetchCandidate
 	return true
 }
 
+// platformPreferenceRank returns the preference rank of a platform id;
+// lower is more preferred.
 func platformPreferenceRank(platformID string) int {
 	if platformID == bldr_platform.PlatformID_JS {
 		return 0
@@ -352,6 +368,8 @@ func platformPreferenceRank(platformID string) int {
 	return 1
 }
 
+// directFetchCandidateMatchesState reports whether the candidate matches
+// the currently selected state.
 func directFetchCandidateMatchesState(candidate *directFetchCandidate, currentState *executePluginArgs) bool {
 	if currentState == nil || currentState.pluginHost != candidate.host {
 		return false
