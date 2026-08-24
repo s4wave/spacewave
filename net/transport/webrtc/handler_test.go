@@ -1018,8 +1018,7 @@ func TestHandleSignalPeerReacquiresAfterTrackerExecutionRetires(t *testing.T) {
 	// The tracker execution retires before A's signal is accepted, leaving
 	// the peer with no ingress lease.
 	tpt.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-		tpt.retireSignalIngressLocked(peerKey, sharedTracker)
-		broadcast()
+		tpt.retireSignalIngressLocked(peerKey, sharedTracker, broadcast)
 	})
 
 	// A reacquires a fresh tracker and redelivers until acceptance.
