@@ -1,5 +1,3 @@
-//go:build !js
-
 // Package yieldpolicy implements the yield-policy broker used by the
 // desktop resource listener. The broker lets the local UI surface an
 // interactive prompt when a peer (typically "spacewave serve") asks the
