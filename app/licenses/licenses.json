@@ -815,7 +815,7 @@
     },
     {
       "name": "github.com/aperturerobotics/controllerbus",
-      "version": "v0.53.5-0.20260812083451-7bd9dce82687",
+      "version": "v0.53.5-0.20260824053313-c237a1261331",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/aperturerobotics/controllerbus",
@@ -1511,7 +1511,7 @@
     },
     {
       "name": "github.com/s4wave/goscript",
-      "version": "v0.2.27-0.20260823221015-d370a36f44ae",
+      "version": "v0.2.27-0.20260824172010-b0ea06a50dc4",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/s4wave/goscript",
