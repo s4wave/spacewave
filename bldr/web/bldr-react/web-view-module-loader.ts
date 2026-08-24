@@ -34,7 +34,18 @@ export type WebViewModuleImporter<T> = (scriptPath: string) => Promise<T>
 export interface LoadWebViewScriptModuleOptions<T> {
   fetchRootAsset?: typeof fetch
   importModule?: WebViewModuleImporter<T>
+  // fetchDeadlineMillis overrides the root-asset fetch deadline (tests).
+  fetchDeadlineMillis?: number
+  // importDeadlineMillis overrides the module import deadline (tests).
+  importDeadlineMillis?: number
 }
+
+// Root-asset fetches and dynamic imports have no built-in timeout. When an
+// engine wedges one (the fetch or import promise never settles), the boot
+// ladder would wait forever behind a frozen progress bar. These deadlines
+// convert a wedged load into a terminal boot-download failure instead.
+const rootAssetFetchDeadlineMillis = 45_000
+const moduleImportDeadlineMillis = 45_000
 
 const rootPluginAssetPrefix = '/b/pa/'
 export const webViewRootAssetStatusEvent = 'bldr:webview-root-asset-status'
@@ -190,8 +201,13 @@ export function getWebViewRootAssetLoadError(
 export async function fetchWebViewRootAssetResult(
   scriptPath: string,
   fetchRootAsset: typeof fetch = fetch,
+  fetchDeadlineMillis: number = rootAssetFetchDeadlineMillis,
 ): Promise<WebViewRootAssetResult> {
-  const response = await fetchRootAsset(scriptPath, { cache: 'no-store' })
+  const response = await withDeadline(
+    fetchRootAsset(scriptPath, { cache: 'no-store' }),
+    fetchDeadlineMillis,
+    `root asset fetch ${scriptPath}`,
+  )
   const classification = classifyRootAssetResponse(response)
   const result: WebViewRootAssetResult = {
     scriptPath,
@@ -219,6 +235,27 @@ export async function fetchWebViewRootAssetResult(
 
 async function importWebViewScriptModule<T>(scriptPath: string): Promise<T> {
   return import(/* @vite-ignore */ scriptPath) as Promise<T>
+}
+
+// withDeadline rejects with a timeout error if the wrapped promise does not
+// settle within deadlineMillis. The wrapped promise itself is left running;
+// its eventual result is ignored once the deadline has fired.
+async function withDeadline<T>(
+  promise: Promise<T>,
+  deadlineMillis: number,
+  description: string,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`${description}: timed out after ${deadlineMillis}ms`))
+    }, deadlineMillis)
+  })
+  try {
+    return await Promise.race([promise, timeout])
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
+  }
 }
 
 function buildModuleImportPath(scriptPath: string): string {
@@ -284,9 +321,21 @@ async function loadWebViewScriptModuleUncached<T>(
   if (isRootPluginAsset) {
     beginBootDownload(scriptPath, webViewDownloadLabel(scriptPath))
   }
-  const rootAsset = isRootPluginAsset
-    ? await fetchWebViewRootAssetResult(scriptPath, options.fetchRootAsset)
-    : undefined
+  let rootAsset: WebViewRootAssetResult | undefined
+  if (isRootPluginAsset) {
+    try {
+      rootAsset = await fetchWebViewRootAssetResult(
+        scriptPath,
+        options.fetchRootAsset,
+        options.fetchDeadlineMillis,
+      )
+    } catch (error) {
+      // A wedged or failed fetch never reaches the response classification
+      // below, so report the boot download as failed here.
+      failBootDownload(scriptPath, serializeImportError(error).message)
+      throw error
+    }
+  }
   if (rootAsset && (!rootAsset.ok || rootAsset.classification !== 'live')) {
     if (isRootPluginAsset) {
       failBootDownload(scriptPath, rootAsset.classification)
@@ -296,7 +345,11 @@ async function loadWebViewScriptModuleUncached<T>(
 
   const importModule = options.importModule ?? importWebViewScriptModule<T>
   try {
-    const module = await importModule(moduleImportPath)
+    const module = await withDeadline(
+      importModule(moduleImportPath),
+      options.importDeadlineMillis ?? moduleImportDeadlineMillis,
+      `module import ${moduleImportPath}`,
+    )
     recordModuleImportSuccess(scriptPath)
     if (isRootPluginAsset) {
       completeBootDownload(scriptPath)
