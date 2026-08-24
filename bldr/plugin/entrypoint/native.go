@@ -51,7 +51,7 @@ func Main(
 		if pluginStartInfoJsonB64 == "" {
 			startInfoBin, err := os.ReadFile(filepath.Join(wd, ".plugin-start-info"))
 			if err != nil {
-				if err == os.ErrNotExist {
+				if errors.Is(err, os.ErrNotExist) {
 					return errors.New("start info not found")
 				}
 				return errors.Wrap(err, "load start info")

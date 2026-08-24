@@ -12,8 +12,6 @@ import (
 
 // resolveLoadPlugin resolves a LoadPlugin directive.
 func (c *Controller) resolveLoadPlugin(
-	ctx context.Context,
-	di directive.Instance,
 	dir bldr_plugin.LoadPlugin,
 ) (directive.Resolver, error) {
 	return &loadPluginResolver{

@@ -80,7 +80,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 func (c *Controller) HandleDirective(ctx context.Context, di directive.Instance) ([]directive.Resolver, error) {
 	switch dir := di.GetDirective().(type) {
 	case bldr_plugin.LoadPlugin:
-		return directive.R(c.resolveLoadPlugin(ctx, di, dir))
+		return directive.R(c.resolveLoadPlugin(dir))
 	case bifrost_rpc.LookupRpcClient:
 		return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, dir, c))
 	case bifrost_rpc.LookupRpcService:

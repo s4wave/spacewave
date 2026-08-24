@@ -60,7 +60,7 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // Execute executes the controller.
 // Returning nil ends execution.
-func (c *Controller) Execute(rctx context.Context) (rerr error) {
+func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }
 

@@ -91,9 +91,6 @@ func Run(
 		return err
 	}
 
-	instanceID := pluginStartInfo.GetInstanceId()
-	_ = instanceID
-
 	// dial outgoing streams and accept incoming streams
 	rpcClient := pluginIo.BuildClient()
 	acceptRpcStreams := func(ctx context.Context, srv *srpc.Server, ready func()) error {

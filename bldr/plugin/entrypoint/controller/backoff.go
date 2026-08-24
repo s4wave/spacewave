@@ -5,6 +5,8 @@ import (
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 )
 
+// buildBackoff constructs the default exponential backoff for the
+// startup group.
 func buildBackoff() cbackoff.BackOff {
 	return (&backoff.Backoff{
 		BackoffKind: backoff.BackoffKind_BackoffKind_EXPONENTIAL,

@@ -118,6 +118,7 @@ func (c *StartupGroupCoordinator) newPluginWatcher(
 	}, struct{}{}
 }
 
+// setPluginTerminal marks a plugin's watcher state as terminal.
 func (c *StartupGroupCoordinator) setPluginTerminal(pluginID string) {
 	var ready bool
 	var changed bool

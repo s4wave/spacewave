@@ -323,6 +323,8 @@ func startInitialCapabilityRegistration(
 	return complete(ctx)
 }
 
+// handlePluginEntrypointError forwards an entrypoint error to errCh,
+// dropping normal client-close errors.
 func handlePluginEntrypointError(errCh chan<- error, err error) {
 	if web_runtime.IsNormalWebRuntimeClientClose(err) {
 		return
@@ -333,6 +335,8 @@ func handlePluginEntrypointError(errCh chan<- error, err error) {
 	}
 }
 
+// isExpectedPluginEntrypointError reports whether the error is an
+// expected entrypoint shutdown error.
 func isExpectedPluginEntrypointError(err error) bool {
 	return err == context.Canceled || web_runtime.IsNormalWebRuntimeClientClose(err)
 }
