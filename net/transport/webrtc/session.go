@@ -51,6 +51,11 @@ type sessionTracker struct {
 	execution           *sessionTrackerExecution
 	// link contains the current link, if any
 	link *transport_quic.Link
+	// linkRef holds the transport-owned tracker reference while a published
+	// link is live. The transport session, not the signal-ingress lease, owns
+	// the established-link reference: retiring the ingress lease must not
+	// cancel a tracker whose PeerConnection and datachannel are still in use.
+	linkRef *keyed.KeyedRef[string, *sessionTracker]
 }
 
 // sessionTrackerExecution is one live invocation of sessionTracker.execute.
@@ -252,6 +257,10 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	errCh := make(chan error, 1)
 	var nextLink *transport_quic.Link
 	var wasClosed atomic.Bool
+	// publishedRef is the transport-owned tracker reference this publication
+	// established or reused. The link closure releases it only while it is
+	// still the tracker's owned reference.
+	var publishedRef *keyed.KeyedRef[string, *sessionTracker]
 	closed := func() {
 		if wasClosed.Swap(true) {
 			return
@@ -259,8 +268,12 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 		s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			if s.link == nextLink {
 				s.link = nil
-				broadcast()
 			}
+			if publishedRef != nil && s.linkRef == publishedRef {
+				s.linkRef = nil
+				publishedRef.Release()
+			}
+			broadcast()
 		})
 		go s.w.handler.HandleLinkLost(nextLink)
 		_ = dcRwc.Close()
@@ -284,8 +297,19 @@ func (s *sessionTracker) executeLink(ctx context.Context, dcRwc datachannel.Read
 	s.le.WithField("quic-role", role).Info("webrtc quic phase: link constructed")
 
 	// Publish the link under the broadcast lock and notify the handler.
+	// Acquire the transport-owned tracker reference for the live link so
+	// retiring the signal-ingress lease cannot cancel an established session.
 	s.w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		s.link = nextLink
+		if s.linkRef == nil {
+			ref, _, _, err := s.w.addSessionTrackerRef(s.key)
+			if err != nil {
+				s.le.WithError(err).Warn("webrtc quic phase: transport link reference not acquired")
+			} else {
+				s.linkRef = ref
+			}
+		}
+		publishedRef = s.linkRef
 		broadcast()
 	})
 	s.w.handler.HandleLinkEstablished(nextLink)
