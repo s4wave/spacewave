@@ -671,6 +671,9 @@ describe('quickstart create', () => {
         createSpace: vi.fn().mockResolvedValue({
           sharedObjectRef: { providerResourceRef: { id: 'space-1' } },
         }),
+        watchResourcesList: vi
+          .fn()
+          .mockReturnValue(asyncValues({ spacesList: [] })),
         release: vi.fn(),
         [Symbol.dispose]: vi.fn(),
       }),
@@ -756,6 +759,9 @@ describe('quickstart create', () => {
         createSpace: vi.fn().mockResolvedValue({
           sharedObjectRef: { providerResourceRef: { id: 'space-1' } },
         }),
+        watchResourcesList: vi
+          .fn()
+          .mockReturnValue(asyncValues({ spacesList: [] })),
         release: vi.fn(),
         [Symbol.dispose]: vi.fn(),
       }),
@@ -819,6 +825,210 @@ describe('quickstart create', () => {
     expect(timing?.finishedMs).toEqual(expect.any(Number))
     expect(timing?.error).toBe('Aborted')
     expect(globalThis.__s4wave_debug?.quickstartTiming?.state).toBe('cancelled')
+  })
+
+  it('reuses an existing quickstart space instead of creating another', async () => {
+    const cleanup: RegisterCleanup = (value) => value
+    localProviderMocks.createAccount.mockResolvedValue({
+      sessionListEntry: {
+        sessionIndex: 3,
+        sessionRef: { providerResourceRef: { providerId: 'local' } },
+      },
+    })
+    const createSpace = vi.fn().mockResolvedValue({
+      sharedObjectRef: { providerResourceRef: { id: 'space-duplicate' } },
+    })
+    const applyWorldOp = vi.fn<ApplyWorldOp>().mockResolvedValue({
+      seqno: 1n,
+      sysErr: false,
+    })
+    const { world } = buildQuickstartWorld()
+    const root = {
+      listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
+      lookupProvider: vi.fn().mockResolvedValue({
+        resourceRef: { providerId: 'local' },
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+      mountSession: vi.fn().mockResolvedValue({
+        createSpace,
+        watchResourcesList: vi.fn().mockReturnValue(
+          asyncValues({
+            spacesList: [
+              {
+                entry: {
+                  ref: {
+                    providerResourceRef: {
+                      providerId: 'local',
+                      id: 'space-existing',
+                    },
+                  },
+                  source: 'created',
+                },
+                spaceMeta: { name: 'My Notebook' },
+              },
+              {
+                entry: {
+                  ref: {
+                    providerResourceRef: {
+                      providerId: 'local',
+                      id: 'space-other',
+                    },
+                  },
+                  source: 'created',
+                },
+                spaceMeta: { name: 'My Drive' },
+              },
+            ],
+          }),
+        ),
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    }
+    spaceMocks.mountSpace.mockResolvedValue({
+      accessWorldState: vi.fn().mockResolvedValue(world),
+      mountSpaceContents: vi.fn().mockResolvedValue({
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    })
+
+    const result = await createQuickstartSetup(
+      root as never,
+      'notebook',
+      new AbortController().signal,
+      cleanup,
+    )
+
+    expect(createSpace).not.toHaveBeenCalled()
+    expect(result.spaceResp.sharedObjectRef?.providerResourceRef?.id).toBe(
+      'space-existing',
+    )
+    // Reuse skips the seed pipeline entirely.
+    expect(applyWorldOp).not.toHaveBeenCalled()
+  })
+
+  it('reuses an existing quickstart space without reseeding its content', async () => {
+    const cleanup: RegisterCleanup = (value) => value
+    localProviderMocks.createAccount.mockResolvedValue({
+      sessionListEntry: {
+        sessionIndex: 3,
+        sessionRef: { providerResourceRef: { providerId: 'local' } },
+      },
+    })
+    quickstartRegistryMocks.ListQuickstarts.mockResolvedValue({
+      registrations: [],
+    })
+    const createSpace = vi.fn().mockResolvedValue({
+      sharedObjectRef: { providerResourceRef: { id: 'space-duplicate' } },
+    })
+    const applyWorldOp = vi.fn<ApplyWorldOp>()
+    const { world } = buildQuickstartWorld()
+    const root = {
+      listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
+      lookupProvider: vi.fn().mockResolvedValue({
+        resourceRef: { providerId: 'local' },
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+      mountSession: vi.fn().mockResolvedValue({
+        createSpace,
+        watchResourcesList: vi.fn().mockReturnValue(
+          asyncValues({
+            spacesList: [
+              {
+                entry: {
+                  ref: {
+                    providerResourceRef: {
+                      providerId: 'local',
+                      id: 'space-notebook',
+                    },
+                  },
+                  source: 'created',
+                },
+                spaceMeta: { name: 'My Notebook' },
+              },
+            ],
+          }),
+        ),
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    }
+    spaceMocks.mountSpace.mockImplementation(async () => ({
+      accessWorldState: vi.fn().mockResolvedValue(world),
+      mountSpaceContents: vi.fn().mockResolvedValue({
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    }))
+
+    await createQuickstartSetup(
+      root as never,
+      'notebook',
+      new AbortController().signal,
+      cleanup,
+    )
+
+    expect(createSpace).not.toHaveBeenCalled()
+    expect(quickstartRegistryMocks.ExecuteQuickstart).not.toHaveBeenCalled()
+    expect(applyWorldOp).not.toHaveBeenCalled()
+  })
+
+  it('creates a new quickstart space when no matching space exists', async () => {
+    const cleanup: RegisterCleanup = (value) => value
+    localProviderMocks.createAccount.mockResolvedValue({
+      sessionListEntry: {
+        sessionIndex: 3,
+        sessionRef: { providerResourceRef: { providerId: 'local' } },
+      },
+    })
+    const createSpace = vi.fn().mockResolvedValue({
+      sharedObjectRef: { providerResourceRef: { id: 'space-new' } },
+    })
+    const { world, applyWorldOp } = buildQuickstartWorld()
+    const root = {
+      listSessions: vi.fn().mockResolvedValue({ sessions: [] }),
+      lookupProvider: vi.fn().mockResolvedValue({
+        resourceRef: { providerId: 'local' },
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+      mountSession: vi.fn().mockResolvedValue({
+        createSpace,
+        watchResourcesList: vi
+          .fn()
+          .mockReturnValue(asyncValues({ spacesList: [] })),
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    }
+    spaceMocks.mountSpace.mockResolvedValue({
+      accessWorldState: vi.fn().mockResolvedValue(world),
+      mountSpaceContents: vi.fn().mockResolvedValue({
+        release: vi.fn(),
+        [Symbol.dispose]: vi.fn(),
+      }),
+    })
+
+    const result = await createQuickstartSetup(
+      root as never,
+      'space',
+      new AbortController().signal,
+      cleanup,
+    )
+
+    expect(createSpace).toHaveBeenCalledTimes(1)
+    expect(createSpace).toHaveBeenCalledWith(
+      { spaceName: 'My Space' },
+      expect.any(AbortSignal),
+    )
+    expect(result.spaceResp.sharedObjectRef?.providerResourceRef?.id).toBe(
+      'space-new',
+    )
+    // The seed pipeline still runs for a genuinely missing space.
+    expect(applyWorldOp).toHaveBeenCalled()
   })
 
   it('creates Drive storage and indexes the intro wizard before raw files', async () => {
@@ -985,6 +1195,9 @@ to try first.
           id: 73,
           sharedObjectRef: { providerResourceRef: { id: 'space-1' } },
         }),
+        watchResourcesList: vi
+          .fn()
+          .mockReturnValue(asyncValues({ spacesList: [] })),
         release: vi.fn(),
         [Symbol.dispose]: vi.fn(),
       }),
