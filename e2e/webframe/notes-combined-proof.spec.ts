@@ -20,8 +20,10 @@ const CONTENT_VIEW = "[data-testid='notes-content-view']"
 const SOURCE_TOGGLE = "[data-testid='notes-source-toggle']"
 
 // The first launch downloads the app bundle and seeds the notebook, which
-// takes minutes; both waits tolerate one full cold start.
-const COLD_START_TIMEOUT = 300_000
+// takes minutes — longer on webkit, where the download alone ran past five
+// minutes at roughly eighty percent when timed out. One shared context per
+// engine pays this once.
+const COLD_START_TIMEOUT = 900_000
 
 async function waitNotebookReady(page: Page) {
   await page.locator("input[placeholder='Search notes…']").waitFor({
