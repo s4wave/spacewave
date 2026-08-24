@@ -364,10 +364,11 @@ type session struct {
 	// whose offer_id does not match it are dropped before Pion.
 	pendingOfferID []byte
 
-	// retiredOfferIDs holds the digests of remote offers superseded during
-	// this session's lifetime. Offers carrying a retired digest are dropped
-	// before Pion. The set lives and dies with the session; it is never
-	// retained across sessions.
+	// retiredOfferIDs holds the digests of remote offers this session already
+	// applied and replaced with a newer generation. A replayed copy of a
+	// retired offer is dropped before Pion so a stale description can never
+	// re-enter negotiation. The set lives and dies with the session; it is
+	// never retained across sessions.
 	retiredOfferIDs map[string]struct{}
 
 	// localIceCandidates contains the current list of local ice candidates.
@@ -611,18 +612,48 @@ func (s *session) onDataChannelClose() {
 
 // close closes the session and releases its generation fence state.
 func (s *session) close() {
+	// fatalErr and connState are written by pion callback goroutines and the
+	// child routine exit paths; snapshot them under the lock.
+	var fatalErr error
+	var connState webrtc.PeerConnectionState
+	s.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		fatalErr = s.fatalErr
+		connState = s.connState
+	})
 	// An outstanding offer survives this tracker: hand the session to the
 	// peer's ingress lease for adoption by a successor instead of disposing
-	// a generation the remote side may already have answered.
-	if s.t != nil && s.t.offerer && len(s.pendingOfferID) > 0 &&
-		s.connState != webrtc.PeerConnectionStateConnected &&
-		s.connState != webrtc.PeerConnectionStateFailed &&
-		s.connState != webrtc.PeerConnectionStateClosed &&
+	// a generation the remote side may already have answered. Only a session
+	// whose offer drew an answer is worth adopting: an unanswered offer can
+	// never be re-answered (the remote deduplicates byte-identical offers) nor
+	// replaced (pion v4 has no rollback), so the successor must mint a fresh
+	// generation on a new connection. A session with a recorded fatal error is
+	// likewise never adoptable: its successor would exit on the first snapshot
+	// and re-stash, wedging the ingress against new signals.
+	if fatalErr == nil && s.t != nil && s.t.offerer && len(s.pendingOfferID) > 0 &&
+		s.pc.RemoteDescription() != nil &&
+		connState != webrtc.PeerConnectionStateConnected &&
+		connState != webrtc.PeerConnectionStateFailed &&
+		connState != webrtc.PeerConnectionStateClosed &&
 		s.t.w.stashAdoptableSession(s.t.key, s) {
 		return
 	}
 	s.retiredOfferIDs = nil
 	_ = s.pc.Close()
+}
+
+// adoptSession binds a stashed in-flight session to this tracker generation
+// and returns the session's wait channel.
+func (s *sessionTracker) adoptSession(sess *session) <-chan struct{} {
+	var waitCh <-chan struct{}
+	sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		sess.t = s
+		// The successor owns the session lifecycle now; a predecessor fatal
+		// error must not exit the successor before it negotiates.
+		sess.fatalErr = nil
+		waitCh = getWaitCh()
+		broadcast()
+	})
+	return waitCh
 }
 
 // activeOfferID returns the digest identifying the negotiation generation
@@ -715,10 +746,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	sess := s.w.takeAdoptableSession(s.key)
 	var waitCh <-chan struct{}
 	if sess != nil {
-		sess.t = s
-		sess.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
-			waitCh = getWaitCh()
-		})
+		waitCh = s.adoptSession(sess)
 		s.le.Debug("adopted in-flight negotiation session from retired predecessor")
 	} else {
 		sess, waitCh, err = s.newSession()
