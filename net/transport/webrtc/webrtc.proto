@@ -117,10 +117,19 @@ message WebRtcSdp {
   string sdp_type = 2;
   // Sdp contains the WebRTC session description.
   string sdp = 3;
+  // OfferId is the SHA-256 of the exact offer SDP bytes this description
+  // belongs to. Offers carry their own digest; answers echo the digest of
+  // the offer they answer. Signals whose offer_id does not match the active
+  // generation are rejected before Pion.
+  bytes offer_id = 4;
 }
 
 // WebRtcIce contains an ICE candidate.
 message WebRtcIce {
   // Candidate contains the JSON-encoded ICE candidate.
   string candidate = 1;
+  // OfferId echoes the SHA-256 of the exact offer SDP bytes of the active
+  // generation. Candidates and end-of-candidates markers whose offer_id does
+  // not match the active generation are rejected before Pion.
+  bytes offer_id = 2;
 }

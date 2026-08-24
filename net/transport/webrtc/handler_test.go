@@ -1551,3 +1551,172 @@ func TestHandleSignalPeerParkedDeliveryReleasesOnTransportCancel(t *testing.T) {
 		t.Fatalf("tracker returned %v, want context canceled", err)
 	}
 }
+
+// TestSignalIngressFencesRetiredGenerationMaterial asserts the generation
+// fence at ingress admission: an SDP offer and an ICE candidate parked by a
+// retired tracker execution must never be delivered to the successor
+// execution. Redelivering them is the cross-generation poisoning seen in the
+// hosted-Mercury failure; the fence drops them with a warn instead. A valid,
+// exempt request_offer marker enqueued after the retired material is the
+// bounded positive wake: post-fix the fence drops both old payloads and
+// delivers exactly the marker.
+func TestSignalIngressFencesRetiredGenerationMaterial(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	t.Cleanup(cancel)
+
+	localPriv, localPub, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	localPeerID, err := peer.IDFromPrivateKey(localPriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	remotePeerID, err := peer.IDFromPrivateKey(remotePriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	offerPC, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer offerPC.Close()
+	if _, err := offerPC.CreateDataChannel(dataChannelID, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	offerDesc, err := offerPC.CreateOffer(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	offerSignal := &WebRtcSignal{
+		Body: &WebRtcSignal_Sdp{Sdp: NewWebRtcSdp(1, &offerDesc)},
+	}
+	offerMsg, err := EncodeWebRtcSignal(offerSignal, localPub)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	candidateMsg := newTrickleSignal(t, localPub)
+	markerSignal := &WebRtcSignal{Body: &WebRtcSignal_RequestOffer{RequestOffer: 7}}
+	markerMsg, err := EncodeWebRtcSignal(markerSignal, localPub)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	signalSession := &testSignalPeerSession{
+		localPeerID:  localPeerID,
+		remotePeerID: remotePeerID,
+		recvCh:       make(chan []byte, 3),
+	}
+	signalSession.recvCh <- offerMsg
+	signalSession.recvCh <- candidateMsg
+	signalSession.recvCh <- markerMsg
+
+	tpt := &WebRTC{
+		ctx:              ctx,
+		le:               logrus.NewEntry(logrus.New()),
+		conf:             &Config{},
+		peerID:           localPeerID,
+		privKey:          localPriv,
+		incomingSessions: make(map[string]*signalIngress),
+	}
+
+	type delivery struct {
+		bodyType string
+		sig      *WebRtcSignal
+	}
+	fencedDelivered := make(chan delivery, 4)
+
+	tpt.sessionTrackers = keyed.NewKeyedRefCount(
+		func(key string) (keyed.Routine, *sessionTracker) {
+			tkr := &sessionTracker{
+				w:       tpt,
+				le:      tpt.le,
+				key:     key,
+				peerID:  remotePeerID,
+				offerer: true,
+			}
+			return func(ctx context.Context) error {
+				execution := tkr.beginExecution()
+				defer tkr.retireExecution(execution)
+
+				incoming := <-execution.rxSignal
+				bodyType := "unknown"
+				switch b := incoming.sig.GetBody().(type) {
+				case *WebRtcSignal_Sdp:
+					bodyType = "sdp/" + b.Sdp.GetSdpType()
+				case *WebRtcSignal_Ice:
+					bodyType = "ice"
+				case *WebRtcSignal_RequestOffer:
+					bodyType = "request_offer"
+				}
+				select {
+				case fencedDelivered <- delivery{bodyType: bodyType, sig: incoming.sig}:
+				case <-ctx.Done():
+					return context.Canceled
+				}
+				select {
+				case <-ctx.Done():
+					return context.Canceled
+				case incoming2 := <-execution.rxSignal:
+					bodyType2 := classifySignal(incoming2.sig)
+					fencedDelivered <- delivery{bodyType: bodyType2, sig: incoming2.sig}
+				}
+				<-ctx.Done()
+				return context.Canceled
+			}, tkr
+		},
+	)
+	tpt.sessionTrackers.SetContext(ctx, true)
+	t.Cleanup(tpt.sessionTrackers.ClearContext)
+
+	resolverErr := make(chan error, 1)
+	resolver := &handleSignalPeerResolver{t: tpt, sess: signalSession}
+	go func() {
+		resolverErr <- resolver.Resolve(ctx, nil)
+	}()
+
+	var delivered []string
+	for {
+		select {
+		case d := <-fencedDelivered:
+			delivered = append(delivered, d.bodyType)
+			if d.bodyType == "request_offer" {
+				for _, kind := range delivered[:len(delivered)-1] {
+					if kind != "request_offer" {
+						t.Fatalf(
+							"retired-generation %s material reached the successor execution before the exempt marker; expected the ingress fence to drop it",
+							kind,
+						)
+					}
+				}
+				cancel()
+				if err := <-resolverErr; !errors.Is(err, context.Canceled) {
+					t.Fatalf("resolver returned %v, want context canceled", err)
+				}
+				return
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatalf(
+				"exempt request_offer marker was not delivered within 5s; deliveries observed: %v",
+				delivered,
+			)
+		}
+	}
+}
+
+func classifySignal(sig *WebRtcSignal) string {
+	switch b := sig.GetBody().(type) {
+	case *WebRtcSignal_Sdp:
+		return "sdp/" + b.Sdp.GetSdpType()
+	case *WebRtcSignal_Ice:
+		return "ice"
+	case *WebRtcSignal_RequestOffer:
+		return "request_offer"
+	}
+	return "unknown"
+}
