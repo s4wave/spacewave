@@ -335,29 +335,31 @@ func (c *Controller) BuildManifest(
 			buildWorld,
 			buildHost,
 			buildType,
-			builderConf.GetBuildPolicy().ResolveJsMinification(buildType),
-			builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType),
-			builderConf.GetBuildPolicy().ResolveGoScriptCodeSplitting(buildType),
 			buildPlatform,
-			outBinName,
-			workingPath,
-			sourcePath,
-			distSourcePath,
-			outDistPath,
-			outAssetsPath,
-			pluginBuildConf.GetGoPkgs(),
-			pluginBuildConf.GetWebPkgs(),
-			pluginBuildConf.GetWebPluginId(),
-			pluginBuildConf.GetDisableRpcFetch(),
-			pluginBuildConf.GetDelveAddr(),
-			pluginBuildConf.GetConfigSet(),
-			pluginBuildConf.GetHostConfigSet(),
-			pluginBuildConf.GetEnableCgo(),
-			pluginBuildConf.GetGoCompiler(),
-			pluginBuildConf.GetEnableImportedFactoryDiscovery(),
-			pluginBuildConf.GetEnableCompression(),
-			pluginBuildConf.GetEsbuildFlags(),
-			devInfoFile,
+			BuildPluginOpts{
+				JsMinification:                    builderConf.GetBuildPolicy().ResolveJsMinification(buildType),
+				JsSourcemaps:                      builderConf.GetBuildPolicy().ResolveJsSourcemaps(buildType),
+				GoScriptCodeSplitting:             builderConf.GetBuildPolicy().ResolveGoScriptCodeSplitting(buildType),
+				OutBinName:                        outBinName,
+				WorkingPath:                       workingPath,
+				SourcePath:                        sourcePath,
+				DistSourcePath:                    distSourcePath,
+				OutDistPath:                       outDistPath,
+				OutAssetsPath:                     outAssetsPath,
+				GoPkgs:                            pluginBuildConf.GetGoPkgs(),
+				WebPkgs:                           pluginBuildConf.GetWebPkgs(),
+				WebPluginID:                       pluginBuildConf.GetWebPluginId(),
+				DelveAddr:                         pluginBuildConf.GetDelveAddr(),
+				DisableRpcFetch:                   pluginBuildConf.GetDisableRpcFetch(),
+				ConfigSet:                         pluginBuildConf.GetConfigSet(),
+				HostConfigSet:                     pluginBuildConf.GetHostConfigSet(),
+				EnableCgoOpt:                      pluginBuildConf.GetEnableCgo(),
+				GoCompilerOpt:                     pluginBuildConf.GetGoCompiler(),
+				EnableImportedFactoryDiscoveryOpt: pluginBuildConf.GetEnableImportedFactoryDiscovery(),
+				EnableCompressionOpt:              pluginBuildConf.GetEnableCompression(),
+				BaseEsbuildFlags:                  pluginBuildConf.GetEsbuildFlags(),
+				DevInfoFile:                       devInfoFile,
+			},
 		)
 		if err != nil {
 			return nil, err
@@ -461,6 +463,65 @@ func goAnalysisEnv(buildPlatform bldr_platform.Platform) (string, string, error)
 // webPluginID is optional, if set, automatically adds controllers to configure the web plugin.
 // Returns a list of source files from the list of given goPkgs.
 // Source files list includes all files consumed by esbuild.
+// BuildPluginOpts is the configuration for one invocation of BuildPlugin.
+type BuildPluginOpts struct {
+	// JsMinification enables minification of bundled JavaScript output.
+	JsMinification bool
+	// JsSourcemaps enables source maps for bundled JavaScript output.
+	JsSourcemaps bool
+	// GoScriptCodeSplitting enables code splitting for GoScript builds.
+	GoScriptCodeSplitting bool
+
+	// OutBinName is the file name of the compiled plugin binary.
+	OutBinName string
+	// WorkingPath is the working directory used for the build.
+	WorkingPath string
+	// SourcePath is the path to the plugin source directory.
+	SourcePath string
+	// DistSourcePath is the source directory of the dist output to bundle.
+	DistSourcePath string
+	// OutDistPath is the output directory for the dist output.
+	OutDistPath string
+	// OutAssetsPath is the output directory for the assets output.
+	OutAssetsPath string
+
+	// GoPkgs is the list of go packages included in the plugin.
+	GoPkgs []string
+	// WebPkgs is the list of web package references included in the plugin.
+	WebPkgs []*bldr_web_bundler.WebPkgRefConfig
+	// WebPluginID is optional; if set, automatically adds controllers to configure the web plugin.
+	WebPluginID string
+	// DelveAddr optionally attaches a delve debugger listening on this address.
+	DelveAddr string
+
+	// DisableRpcFetch disables rpc fetch controllers in the plugin.
+	DisableRpcFetch bool
+
+	// ConfigSet is an additional config set embedded into the plugin.
+	ConfigSet map[string]*configset_proto.ControllerConfig
+	// HostConfigSet is an additional config set embedded into the plugin host.
+	HostConfigSet map[string]*configset_proto.ControllerConfig
+
+	// EnableCgoOpt enables cgo support on default false.
+	EnableCgoOpt enabled.Enabled
+	// GoCompilerOpt selects the go compiler used for the build.
+	GoCompilerOpt GoCompiler
+	// EnableImportedFactoryDiscoveryOpt enables imported factory discovery on default false.
+	EnableImportedFactoryDiscoveryOpt enabled.Enabled
+	// EnableCompressionOpt enables compression of the plugin binary on default depending on release mode.
+	EnableCompressionOpt enabled.Enabled
+
+	// BaseEsbuildFlags are extra flags passed to esbuild.
+	BaseEsbuildFlags []string
+	// DevInfoFile is the path of the dev info file to generate, if set.
+	DevInfoFile string
+}
+
+// BuildPlugin compiles the plugin once, committing it to the target world.
+//
+// webPluginID is optional, if set, automatically adds controllers to configure the web plugin.
+// Returns a list of source files from the list of given goPkgs.
+// Source files list includes all files consumed by esbuild.
 // This is the main function that orchestrates the entire plugin build process.
 func (c *Controller) BuildPlugin(
 	ctx context.Context,
@@ -469,30 +530,27 @@ func (c *Controller) BuildPlugin(
 	buildWorld world.Engine,
 	buildHost bldr_manifest_builder.BuildManifestHost,
 	buildType bldr_manifest.BuildType,
-	jsMinification bool,
-	jsSourcemaps bool,
-	goScriptCodeSplitting bool,
 	buildPlatform bldr_platform.Platform,
-	outBinName,
-	workingPath,
-	sourcePath,
-	distSourcePath,
-	outDistPath,
-	outAssetsPath string,
-	goPkgs []string,
-	webPkgs []*bldr_web_bundler.WebPkgRefConfig,
-	webPluginID string,
-	disableRpcFetch bool,
-	delveAddr string,
-	configSet map[string]*configset_proto.ControllerConfig,
-	hostConfigSet map[string]*configset_proto.ControllerConfig,
-	enableCgoOpt enabled.Enabled,
-	goCompilerOpt GoCompiler,
-	enableImportedFactoryDiscoveryOpt enabled.Enabled,
-	enableCompressionOpt enabled.Enabled,
-	baseEsbuildFlags []string,
-	devInfoFile string,
+	opts BuildPluginOpts,
 ) (*Analysis, *bldr_manifest_builder.InputManifest, error) {
+	// extract the build options used more than once below
+	outBinName := opts.OutBinName
+	workingPath := opts.WorkingPath
+	sourcePath := opts.SourcePath
+	distSourcePath := opts.DistSourcePath
+	outDistPath := opts.OutDistPath
+	outAssetsPath := opts.OutAssetsPath
+	devInfoFile := opts.DevInfoFile
+	jsMinification := opts.JsMinification
+	jsSourcemaps := opts.JsSourcemaps
+	goPkgs := opts.GoPkgs
+	webPkgs := opts.WebPkgs
+	webPluginID := opts.WebPluginID
+	delveAddr := opts.DelveAddr
+	hostConfigSet := opts.HostConfigSet
+	goCompilerOpt := opts.GoCompilerOpt
+	baseEsbuildFlags := opts.BaseEsbuildFlags
+
 	// plugin id
 	pluginID := pluginMeta.GetPluginId()
 	isRelease := buildType.IsRelease()
@@ -508,9 +566,9 @@ func (c *Controller) BuildPlugin(
 	isWebBuildPlatform := buildPlatform.GetExecutableExt() == ".mjs"
 
 	// disable cgo on default (false means default value is false)
-	enableCgo := enableCgoOpt.IsEnabled(false)
+	enableCgo := opts.EnableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default (isRelease means default value depends on release mode)
-	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
+	enableCompression := opts.EnableCompressionOpt.IsEnabled(isRelease)
 	goCompiler, err := resolveBuildGoCompiler(buildPlatform, buildType, goCompilerOpt)
 	if err != nil {
 		return nil, nil, err
@@ -528,7 +586,7 @@ func (c *Controller) BuildPlugin(
 		return nil, nil, err
 	}
 	enableTinygo := goCompiler.IsTinyGo()
-	enableImportedFactoryDiscovery := enableImportedFactoryDiscoveryOpt.IsEnabled(false)
+	enableImportedFactoryDiscovery := opts.EnableImportedFactoryDiscoveryOpt.IsEnabled(false)
 
 	// build the config set based on configuration
 	embedConfigSet := make(configset_proto.ConfigSetMap)
@@ -556,7 +614,7 @@ func (c *Controller) BuildPlugin(
 		}
 	}
 
-	if !disableRpcFetch {
+	if !opts.DisableRpcFetch {
 		addGoPkg("github.com/s4wave/spacewave/bldr/web/fetch/service")
 		if err := applyToConfigSet(
 			"rpc-fetch",
@@ -629,7 +687,7 @@ func (c *Controller) BuildPlugin(
 	}
 
 	// merge configured config set entries
-	configset_proto.MergeConfigSetMaps(embedConfigSet, configSet)
+	configset_proto.MergeConfigSetMaps(embedConfigSet, opts.ConfigSet)
 
 	// cleanup list of go packages
 	slices.Sort(goPkgs)
@@ -995,7 +1053,7 @@ func (c *Controller) BuildPlugin(
 				mainPackagePath,
 				goScriptJSMinification,
 				goScriptJSSourcemaps,
-				goScriptCodeSplitting,
+				opts.GoScriptCodeSplitting,
 				sharedOptions,
 			)
 			if err != nil {
