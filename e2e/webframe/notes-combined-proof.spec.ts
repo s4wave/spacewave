@@ -1,4 +1,18 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test as base, type Page } from '@playwright/test'
+
+// All tests in one engine share a single browser context: the app-bundle
+// download cache is keyed to the browser profile, and a fresh context pays
+// the whole multi-minute download again. Viewports are still set per test.
+const test = base.extend({
+  page: async ({ browser }, use) => {
+    const context = await browser.newContext()
+    const page = await context.newPage()
+    // Playwright fixture teardown hook, not a React hook.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    await use(page)
+    await context.close()
+  },
+})
 
 const ROUTE = '/#/quickstart/notebook'
 const WELCOME_ROW = "[data-testid='notes-note-row']"
@@ -9,8 +23,7 @@ const SOURCE_TOGGLE = "[data-testid='notes-source-toggle']"
 // takes minutes; both waits tolerate one full cold start.
 const COLD_START_TIMEOUT = 300_000
 
-async function openNotebook(page: Page) {
-  await page.goto(ROUTE, { waitUntil: 'domcontentloaded' })
+async function waitNotebookReady(page: Page) {
   await page.locator("input[placeholder='Search notes…']").waitFor({
     state: 'visible',
     timeout: COLD_START_TIMEOUT,
@@ -23,6 +36,14 @@ async function openNotebook(page: Page) {
       state: 'visible',
       timeout: COLD_START_TIMEOUT,
     })
+}
+
+// Navigates to the quickstart route; every visit creates a new seeded space,
+// so tests that must return to an existing notebook call waitNotebookReady
+// on the URL they already hold instead of routing here again.
+async function openNotebook(page: Page) {
+  await page.goto(ROUTE, { waitUntil: 'domcontentloaded' })
+  await waitNotebookReady(page)
 }
 
 async function openWelcome(page: Page) {
@@ -130,8 +151,12 @@ test.describe('Notes combined proof', () => {
     await openWelcome(page)
     const nonce = await saveNonce(page, testInfo.project.name)
 
+    // Reload holds this space's own URL. Routing to the quickstart route
+    // here would create a second seeded space instead of proving bytes.
+    const spaceUrl = page.url()
     await page.reload({ waitUntil: 'domcontentloaded' })
-    await openNotebook(page)
+    expect(page.url()).toBe(spaceUrl)
+    await waitNotebookReady(page)
     await openWelcome(page)
 
     await toggleSourceMode(page)
