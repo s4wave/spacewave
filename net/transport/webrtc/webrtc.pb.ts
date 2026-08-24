@@ -355,6 +355,15 @@ export interface WebRtcSdp {
    * @generated from field: string sdp = 3;
    */
   sdp?: string
+  /**
+   * OfferId is the SHA-256 of the exact offer SDP bytes this description
+   * belongs to. Offers carry their own digest; answers echo the digest of
+   * the offer they answer. Signals whose offer_id does not match the active
+   * generation are rejected before Pion.
+   *
+   * @generated from field: bytes offer_id = 4;
+   */
+  offerId?: Uint8Array
 }
 
 export const WebRtcSdp: MessageType<WebRtcSdp> =
@@ -364,6 +373,7 @@ export const WebRtcSdp: MessageType<WebRtcSdp> =
       { no: 1, name: 'tx_seqno', kind: 'scalar', T: ScalarType.UINT64 },
       { no: 2, name: 'sdp_type', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'sdp', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'offer_id', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -380,6 +390,14 @@ export interface WebRtcIce {
    * @generated from field: string candidate = 1;
    */
   candidate?: string
+  /**
+   * OfferId echoes the SHA-256 of the exact offer SDP bytes of the active
+   * generation. Candidates and end-of-candidates markers whose offer_id does
+   * not match the active generation are rejected before Pion.
+   *
+   * @generated from field: bytes offer_id = 2;
+   */
+  offerId?: Uint8Array
 }
 
 export const WebRtcIce: MessageType<WebRtcIce> =
@@ -387,6 +405,7 @@ export const WebRtcIce: MessageType<WebRtcIce> =
     typeName: 'webrtc.WebRtcIce',
     fields: [
       { no: 1, name: 'candidate', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'offer_id', kind: 'scalar', T: ScalarType.BYTES },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

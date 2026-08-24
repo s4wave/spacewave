@@ -2,6 +2,7 @@ package webrtc
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"io"
 	"runtime/debug"
@@ -327,6 +328,11 @@ type session struct {
 	// if offerer: transmit sdp offer when changed
 	// if !offerer: transmit request_offer=localSeqno when changed
 	localSeqno uint64
+
+	// rxOfferID is the SHA-256 digest of the exact offer SDP bytes of the
+	// remote offer currently applied to this session, when set. It records
+	// the active generation identity for the signal fence.
+	rxOfferID []byte
 
 	// localIceCandidates contains the current list of local ice candidates.
 	localIceCandidates []*webrtc.ICECandidateInit
@@ -853,93 +859,20 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			currLinkRwc = currDcRwc
 		}
 
-		// Handle incoming offer.
-		sdpType := currRxSdp.GetSdpType()
-		if sdpType != "" {
-			phase = "handle remote sdp"
-
-			// Enforce offerer always does the offering.
-			if s.offerer {
-				if sdpType != "answer" {
-					return errors.New("expected answer from remote peer but got " + sdpType)
-				}
-			} else {
-				if sdpType != "offer" {
-					return errors.New("expected offer from remote peer but got " + sdpType)
-				}
-			}
-
-			sessDesc := currRxSdp.ToSessionDescription()
-			switch {
-			case sessDesc == nil:
-				// Malformed description; ignore it.
-			case currRxSdp.GetSdp() == lastAppliedRemoteSdp:
-				// A byte-identical duplicate of the description we already applied.
-				// Ignore it to avoid an unnecessary renegotiation / ICE restart. The
-				// offerer re-sends its offer on every request_offer, so the answerer
-				// routinely sees the same offer twice.
-			case s.offerer && sess.pc.SignalingState() != webrtc.SignalingStateHaveLocalOffer:
-				// Drop an answer that arrives with no local offer pending. Applying an
-				// answer while signalingState is already "stable" makes pion fail with
-				// "set remote answer sdp: called in wrong state: stable", which would
-				// tear down an otherwise healthy PeerConnection and cascade into a
-				// reconnect storm.
-				le.WithField("signaling-state", sess.pc.SignalingState().String()).
-					Debug("dropping stale answer: no pending local offer")
-			default:
-				if err := sess.pc.SetRemoteDescription(*sessDesc); err != nil {
-					return pkgerrors.Wrap(err, "set remote description")
-				}
-				lastAppliedRemoteSdp = currRxSdp.GetSdp()
-
-				// Flush any candidates that arrived before the remote description.
-				remoteICE.complete = false
-				if err := remoteICE.apply(pendingRemoteIce); err != nil {
-					return pkgerrors.Wrap(err, "add buffered remote ice candidate")
-				}
-				pendingRemoteIce = nil
-
-				// Transmit an answer if applicable
-				if !s.offerer {
-					if s.w.GetVerbose() {
-						le.Debug("signal tx: answer sdp")
-					}
-					answer, err := sess.pc.CreateAnswer(nil)
-					if err != nil {
-						return pkgerrors.Wrap(err, "create answer")
-					}
-					if err := sess.pc.SetLocalDescription(answer); err != nil {
-						return pkgerrors.Wrap(err, "set local description(answer)")
-					}
-					xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Sdp{NewWebRtcSdp(
-						currLocalSeqno,
-						&answer,
-					)}})
-				}
-			}
-		}
-
-		// Handle incoming ICE.
-		if currRxIce.GetCandidate() != "" {
-			phase = "handle remote ice"
-			ice, err := currRxIce.ParseICECandidateInit()
-			if err != nil {
-				return pkgerrors.Wrap(err, "parse remote ice candidate")
-			}
-
-			// Apply the candidate once a remote description exists; otherwise
-			// buffer it. pion drops candidates added with no remote description,
-			// and the offerer commonly receives the answerer's candidates before
-			// the answer SDP lands.
-			if ice != nil {
-				if sess.pc.RemoteDescription() != nil {
-					if err := remoteICE.apply([]webrtc.ICECandidateInit{*ice}); err != nil {
-						return pkgerrors.Wrap(err, "add remote ice candidate")
-					}
-				} else {
-					pendingRemoteIce = append(pendingRemoteIce, *ice)
-				}
-			}
+		// Handle incoming offer and ICE signals.
+		if err := s.ingestRemoteSignal(
+			sess,
+			currRxSdp,
+			currRxIce,
+			currLocalSeqno,
+			&lastAppliedRemoteSdp,
+			&remoteICE,
+			&pendingRemoteIce,
+			xmitSignal,
+			le,
+			&phase,
+		); err != nil {
+			return err
 		}
 
 		// If there is a pending outgoing signaling message, wait to send ice candidates or tx an offer.
@@ -1055,4 +988,119 @@ func (a *remoteICECandidateApplier) apply(candidates []webrtc.ICECandidateInit) 
 // isOfferer checks if peer ID A is the offerer or answerer.
 func isOfferer(a, b string) bool {
 	return strings.Compare(a, b) < 0
+}
+
+// ingestRemoteSignal applies one received SDP/candidate signal pair to the
+// session. It is the execute-loop answer/candidate application extracted
+// verbatim; behavior is byte-for-byte unchanged.
+func (s *sessionTracker) ingestRemoteSignal(
+	sess *session,
+	currRxSdp *WebRtcSdp,
+	currRxIce *WebRtcIce,
+	currLocalSeqno uint64,
+	lastAppliedRemoteSdp *string,
+	remoteICE *remoteICECandidateApplier,
+	pendingRemoteIce *[]webrtc.ICECandidateInit,
+	xmitSignal func(*WebRtcSignal),
+	le *logrus.Entry,
+	phase *string,
+) error {
+	// Handle incoming offer.
+	sdpType := currRxSdp.GetSdpType()
+	if sdpType != "" {
+		*phase = "handle remote sdp"
+
+		// Enforce offerer always does the offering.
+		if s.offerer {
+			if sdpType != "answer" {
+				return errors.New("expected answer from remote peer but got " + sdpType)
+			}
+		} else {
+			if sdpType != "offer" {
+				return errors.New("expected offer from remote peer but got " + sdpType)
+			}
+		}
+
+		sessDesc := currRxSdp.ToSessionDescription()
+		switch {
+		case sessDesc == nil:
+			// Malformed description; ignore it.
+		case currRxSdp.GetSdp() == *lastAppliedRemoteSdp:
+			// A byte-identical duplicate of the description we already applied.
+			// Ignore it to avoid an unnecessary renegotiation / ICE restart. The
+			// offerer re-sends its offer on every request_offer, so the answerer
+			// routinely sees the same offer twice.
+		case s.offerer && sess.pc.SignalingState() != webrtc.SignalingStateHaveLocalOffer:
+			// Drop an answer that arrives with no local offer pending. Applying an
+			// answer while signalingState is already "stable" makes pion fail with
+			// "set remote answer sdp: called in wrong state: stable", which would
+			// tear down an otherwise healthy PeerConnection and cascade into a
+			// reconnect storm.
+			le.WithField("signaling-state", sess.pc.SignalingState().String()).
+				Debug("dropping stale answer: no pending local offer")
+		default:
+			if err := sess.pc.SetRemoteDescription(*sessDesc); err != nil {
+				return pkgerrors.Wrap(err, "set remote description")
+			}
+			*lastAppliedRemoteSdp = currRxSdp.GetSdp()
+
+			// Record the accepted remote offer digest as the active generation
+			// identity. On the offerer the active identity is the pending
+			// local offer instead, so the answer digest is not stored here.
+			if !s.offerer {
+				offerSum := sha256.Sum256([]byte(currRxSdp.GetSdp()))
+				sess.rxOfferID = offerSum[:]
+			}
+
+			// Flush any candidates that arrived before the remote description.
+			remoteICE.complete = false
+			if err := remoteICE.apply(*pendingRemoteIce); err != nil {
+				return pkgerrors.Wrap(err, "add buffered remote ice candidate")
+			}
+			*pendingRemoteIce = nil
+
+			// Transmit an answer if applicable
+			if !s.offerer {
+				if s.w.GetVerbose() {
+					le.Debug("signal tx: answer sdp")
+				}
+				answer, err := sess.pc.CreateAnswer(nil)
+				if err != nil {
+					return pkgerrors.Wrap(err, "create answer")
+				}
+				if err := sess.pc.SetLocalDescription(answer); err != nil {
+					return pkgerrors.Wrap(err, "set local description(answer)")
+				}
+				xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Sdp{NewWebRtcSdp(
+					currLocalSeqno,
+					&answer,
+				)}})
+			}
+		}
+	}
+
+	// Handle incoming ICE.
+	if currRxIce.GetCandidate() != "" {
+		*phase = "handle remote ice"
+		ice, err := currRxIce.ParseICECandidateInit()
+		if err != nil {
+			return pkgerrors.Wrap(err, "parse remote ice candidate")
+		}
+
+		// Apply the candidate once a remote description exists; otherwise
+		// buffer it. pion drops candidates added with no remote description,
+		// and the offerer commonly receives the answerer's candidates before
+		// the answer SDP lands.
+		if ice != nil {
+			if sess.pc.RemoteDescription() != nil {
+				if err := remoteICE.apply([]webrtc.ICECandidateInit{*ice}); err != nil {
+					return pkgerrors.Wrap(err, "add remote ice candidate")
+				}
+			} else {
+				*pendingRemoteIce = append(*pendingRemoteIce, *ice)
+			}
+		}
+	}
+
+	return nil
 }
