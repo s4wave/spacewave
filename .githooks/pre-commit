@@ -5,9 +5,12 @@ set -e
 # it can fail. It fails exactly when formatting would change a tracked file
 # that differs between the index and the worktree; the later git add steps
 # would fold such worktree edits into the commit. Restrict the candidate set
-# to the file types bun run format rewrites: the oxfmt targets listed by
-# format_files plus Go sources.
-dirty_format_files=$(git diff --name-only | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json|[^/]+\.go)$' | grep -vE '^\.protoc(-python-[a-z-]+)?-manifest\.json$' || true)
+# to the files bun run format rewrites: the oxfmt targets listed by
+# format_files plus Go sources anywhere outside vendor/. Deleted files are
+# never candidates because no formatter input remains. Git emits NUL-delimited
+# names; the line filters preserve spaces and quotes, and argv conversion is
+# NUL-delimited again. Newlines in filenames remain unsupported.
+dirty_format_files=$(git diff --name-only -z --diff-filter=d | tr '\0' '\n' | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json|.*\.go)$' | grep -vE '^vendor/' | grep -vE '^\.protoc(-python-[a-z-]+)?-manifest\.json$' || true)
 if [ -n "$dirty_format_files" ]; then
 	format_before=$(mktemp)
 	format_after=$(mktemp)
@@ -16,45 +19,48 @@ if [ -n "$dirty_format_files" ]; then
 	bun run format
 	git diff --binary --no-ext-diff >"$format_after"
 	if ! cmp -s "$format_before" "$format_after"; then
-		printf '%s
-' 'bun run format changed the working tree; review and stage those changes, then retry the commit.' >&2
+		printf '%s\n' 'bun run format changed the working tree; review and stage those changes, then retry the commit.' >&2
 		exit 1
 	fi
 fi
 
-files=$(git diff --cached --name-only --diff-filter=ACMR)
+files=$(git diff --cached --name-only -z --diff-filter=ACMR | tr '\0' '\n')
 if [ -z "$files" ]; then
 	exit 0
 fi
 
 format_files=$(printf "%s\n" "$files" | grep -E '^((app|web|core|sdk|net)/.*\.(ts|tsx|js|html|css|scss)|[^/]+\.json|\.github/.*\.(json|yml)|\.oxfmtrc\.json|\.golangci\.yml|tsconfig.*\.json)$' | grep -vE '^\.protoc(-python-[a-z-]+)?-manifest\.json$' || true)
 if [ -n "$format_files" ]; then
-	printf "%s\n" "$format_files" | xargs node_modules/.bin/oxfmt
-	printf "%s\n" "$format_files" | xargs git add
+	printf "%s\n" "$format_files" | tr '\n' '\0' | xargs -0 node_modules/.bin/oxfmt
+	printf "%s\n" "$format_files" | tr '\n' '\0' | xargs -0 git add
 fi
 
 js_files=$(printf "%s\n" "$files" | grep -E '\.(js|mjs|ts|tsx)$' || true)
 if [ -n "$js_files" ]; then
-	printf "%s\n" "$js_files" | xargs node_modules/.bin/oxlint --no-error-on-unmatched-pattern
+	printf "%s\n" "$js_files" | tr '\n' '\0' | xargs -0 node_modules/.bin/oxlint --no-error-on-unmatched-pattern
 fi
 
 go_files=$(printf "%s\n" "$files" | grep -E '\.go$' || true)
 if [ -n "$go_files" ]; then
-	printf "%s\n" "$go_files" | xargs gofmt -w
-	printf "%s\n" "$go_files" | xargs git add
+	printf "%s\n" "$go_files" | tr '\n' '\0' | xargs -0 gofmt -w
+	printf "%s\n" "$go_files" | tr '\n' '\0' | xargs -0 git add
 
-	go_pkg_dirs=$(printf "%s\n" "$go_files" | xargs -n1 dirname | sort -u | sed 's#^\.$#.#; s#^\./##; s#^#./#')
+	go_pkg_dirs=$(printf "%s\n" "$go_files" | tr '\n' '\0' | xargs -0 -n1 dirname | sort -u | sed 's#^\.$#.#; s#^\./##; s#^#./#')
 
 	# A package whose files the host platform excludes, such as a js-only one,
 	# cannot be listed or compiled here; the wasm build in CI covers it. Drop it
-	# and treat every other listing error as a failure.
+	# and treat every other listing error as a failure. Read one directory per
+	# line and pass them as quoted arguments so names with spaces survive.
 	list_err=$(mktemp)
-	go_pkgs=""
-	for dir in $go_pkg_dirs; do
-		if GOFLAGS="-mod=mod -tags=purego" go list "$dir" >/dev/null 2>>"$list_err"; then
-			go_pkgs="$go_pkgs $dir"
+	set --
+	while IFS= read -r go_pkg_dir; do
+		[ -n "$go_pkg_dir" ] || continue
+		if GOFLAGS="-mod=mod -tags=purego" go list "$go_pkg_dir" >/dev/null 2>>"$list_err"; then
+			set -- "$@" "$go_pkg_dir"
 		fi
-	done
+	done <<GO_PKG_DIRS
+$go_pkg_dirs
+GO_PKG_DIRS
 	if grep -v 'build constraints exclude all Go files' "$list_err" | grep -q .; then
 		cat "$list_err" >&2
 		rm -f "$list_err"
@@ -63,13 +69,13 @@ if [ -n "$go_files" ]; then
 	rm -f "$list_err"
 fi
 
-if [ -n "$go_pkgs" ]; then
-	go_fix_before=$(git diff -- $go_pkg_dirs)
-	GOFLAGS="-mod=mod -tags=purego" go fix $go_pkgs
-	go_fix_after=$(git diff -- $go_pkg_dirs)
+if [ "$#" -gt 0 ]; then
+	go_fix_before=$(git diff -- "$@")
+	GOFLAGS="-mod=mod -tags=purego" go fix "$@"
+	go_fix_after=$(git diff -- "$@")
 	if [ "$go_fix_before" != "$go_fix_after" ]; then
 		printf "go fix changed files in staged Go package(s); review and stage them before committing:\n" >&2
-		git diff --name-only -- $go_pkg_dirs >&2
+		git diff --name-only -- "$@" >&2
 		exit 1
 	fi
 
@@ -79,9 +85,9 @@ if [ -n "$go_pkgs" ]; then
 	# fails, printing both logs.
 	compile_out=$(mktemp)
 	lint_out=$(mktemp)
-	GOFLAGS="-mod=mod -tags=purego" go test -run '^$' $go_pkgs >"$compile_out" 2>&1 &
+	GOFLAGS="-mod=mod -tags=purego" go test -run '^$' "$@" >"$compile_out" 2>&1 &
 	compile_pid=$!
-	bun run go:aptre -- lint $go_pkgs >"$lint_out" 2>&1 &
+	bun run go:aptre -- lint "$@" >"$lint_out" 2>&1 &
 	lint_pid=$!
 	go_rc=0
 	wait "$compile_pid" || go_rc=1
