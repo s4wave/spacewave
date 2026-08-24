@@ -180,7 +180,6 @@ interface NoteBodyProps {
   composerKey: string
   onSave: (content: string) => Promise<void>
   onDraftChange: (content: string) => void
-  onDirty: () => void
   onFilterTag?: (tag: string | undefined) => void
   onFilterStatus?: (status: string | undefined) => void
 }
@@ -197,7 +196,6 @@ function NoteBody({
   composerKey,
   onSave,
   onDraftChange,
-  onDirty,
   onFilterTag,
   onFilterStatus,
 }: NoteBodyProps) {
@@ -225,7 +223,6 @@ function NoteBody({
           format={noteFormat ?? 'markdown'}
           onSave={onSave}
           onDraftChange={onDraftChange}
-          onDirty={onDirty}
           composerKey={composerKey}
         />
       </div>
@@ -297,6 +294,10 @@ function NoteContentView({
     savedContent?.filePath === filePath
       ? savedContent.content
       : (textResource.value ?? '')
+  // Full note text of the last completed write or initial load. Editor
+  // updates that re-export this text are not edits.
+  const lastSettledContent = useRef('')
+  lastSettledContent.current = content
   const displayedSaveState =
     saveTargetPath.current === filePath ? saveState : 'idle'
 
@@ -333,10 +334,15 @@ function NoteContentView({
         return Promise.reject(error)
       }
 
-      const revision = saveRevision.current + 1
-      saveRevision.current = revision
-      saveTargetPath.current = filePath
-      setSaveState('saving')
+      const isReexport = content === lastSettledContent.current
+      const revision = isReexport
+        ? saveRevision.current
+        : saveRevision.current + 1
+      if (!isReexport) {
+        saveRevision.current = revision
+        saveTargetPath.current = filePath
+        setSaveState('saving')
+      }
       const encoded = new TextEncoder().encode(content)
       const prior = writeTails.current.get(filePath) ?? Promise.resolve()
       const operation = prior
@@ -389,21 +395,19 @@ function NoteContentView({
     [fileHandle.value, filePath, onContentSaved],
   )
 
-  const handleWysiwygDirty = useCallback(() => {
-    saveRevision.current += 1
-    setSaveState((state) => (state === 'failed' ? state : 'idle'))
-  }, [])
-
   const handleWysiwygDraftChange = useCallback(
     (body: string) => {
-      if (failedWrite.current?.filePath !== filePath) return
-      failedWrite.current = {
-        filePath,
-        content:
-          noteFormat === 'org'
-            ? reassembleOrgMetadata(rawMetadata, body)
-            : reassembleNote(rawMetadata, body),
+      const full =
+        noteFormat === 'org'
+          ? reassembleOrgMetadata(rawMetadata, body)
+          : reassembleNote(rawMetadata, body)
+      if (full !== lastSettledContent.current) {
+        // Real edit: supersede in-flight completions and drop stale status.
+        saveRevision.current += 1
+        setSaveState((state) => (state === 'failed' ? state : 'idle'))
       }
+      if (failedWrite.current?.filePath !== filePath) return
+      failedWrite.current = { filePath, content: full }
     },
     [filePath, noteFormat, rawMetadata],
   )
@@ -544,7 +548,6 @@ function NoteContentView({
         composerKey={`${filePath}:${noteFormat}`}
         onSave={handleWysiwygSave}
         onDraftChange={handleWysiwygDraftChange}
-        onDirty={handleWysiwygDirty}
         onFilterTag={onFilterTag}
         onFilterStatus={onFilterStatus}
       />

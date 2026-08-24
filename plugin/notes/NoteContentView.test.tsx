@@ -42,14 +42,12 @@ vi.mock('./LexicalEditor.js', () => ({
     onSave,
     composerKey,
     onDraftChange,
-    onDirty,
   }: {
     content: string
     format: string
     onSave: (content: string) => Promise<void>
     composerKey?: string
     onDraftChange?: (content: string) => void
-    onDirty?: () => void
   }) => (
     <div
       data-testid="lexical-editor"
@@ -77,9 +75,6 @@ vi.mock('./LexicalEditor.js', () => ({
       </button>
       <button type="button" onClick={() => onDraftChange?.('unsent Y')}>
         mock-draft-new
-      </button>
-      <button type="button" onClick={onDirty}>
-        mock-dirty
       </button>
     </div>
   ),
@@ -775,16 +770,17 @@ describe('NoteContentView', () => {
       new TextEncoder().encode('newest draft'),
     )
   })
-  it('keeps the WYSIWYG editor mounted when X saves after unsent Y', async () => {
-    let resolveWrite: (() => void) | undefined
+  it('keeps the WYSIWYG editor mounted when a newer edit saves after X', async () => {
+    const resolvers: Array<() => void> = []
+    const writeAt = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolvers.push(resolve)
+        }),
+    )
     vi.mocked(useUnixFSHandle).mockReturnValue({
       value: {
-        writeAt: vi.fn(
-          () =>
-            new Promise<void>((resolve) => {
-              resolveWrite = resolve
-            }),
-        ),
+        writeAt,
         truncate: vi.fn(() => Promise.resolve()),
       } as never,
       loading: false,
@@ -809,9 +805,11 @@ describe('NoteContentView', () => {
     const editor = screen.getByTestId('lexical-editor')
     const initialKey = editor.getAttribute('data-composer-key')
     fireEvent.click(screen.getByText('mock-save'))
-    fireEvent.click(screen.getByText('mock-draft-new'))
-    await waitFor(() => expect(resolveWrite).toBeDefined())
-    resolveWrite?.()
+    fireEvent.click(screen.getByText('mock-save-new'))
+    await waitFor(() => expect(writeAt).toHaveBeenCalledOnce())
+    resolvers[0]?.()
+    await waitFor(() => expect(writeAt).toHaveBeenCalledTimes(2))
+    resolvers[1]?.()
 
     await waitFor(() =>
       expect(screen.getByRole('status').textContent).toBe('Saved'),
@@ -915,7 +913,46 @@ describe('NoteContentView', () => {
     ).toBe('Y')
   })
 
-  it('does not announce Saved for X after unsent WYSIWYG Y dirties the editor', async () => {
+  it('keeps Saved across an editor update that exports identical text', async () => {
+    const writeAt = vi.fn(() => Promise.resolve(0n))
+    const truncate = vi.fn(() => Promise.resolve())
+    vi.mocked(useUnixFSHandle).mockReturnValue({
+      value: { writeAt, truncate } as never,
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+    vi.mocked(useUnixFSHandleTextContent).mockReturnValue({
+      value: 'original',
+      loading: false,
+      error: null,
+      retry: vi.fn(),
+    })
+    render(
+      <NoteContentView
+        worldState={mockWorldState as never}
+        sourceRef="obj-key/-/docs"
+        noteName="note.md"
+        editing={false}
+        onToggleEdit={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('mock-save'))
+    await waitFor(() =>
+      expect(screen.getByRole('status').textContent).toBe('Saved'),
+    )
+
+    // An editor update that re-exports the saved text (mount, mode toggle)
+    // is not an edit and must leave the completed save visible.
+    fireEvent.click(screen.getByText('mock-save-current'))
+    expect(screen.getByRole('status').textContent).toBe('Saved')
+    expect(screen.queryByText('Saving…')).toBeNull()
+    await waitFor(() => expect(truncate).toHaveBeenCalledOnce())
+    expect(screen.getByRole('status').textContent).toBe('Saved')
+  })
+
+  it('does not announce Saved for X after unsent WYSIWYG Y drafts', async () => {
     let resolveWrite: (() => void) | undefined
     vi.mocked(useUnixFSHandle).mockReturnValue({
       value: {
@@ -948,7 +985,7 @@ describe('NoteContentView', () => {
     )
     fireEvent.click(screen.getByText('mock-save'))
     await waitFor(() => expect(resolveWrite).toBeDefined())
-    fireEvent.click(screen.getByText('mock-dirty'))
+    fireEvent.click(screen.getByText('mock-draft-new'))
     resolveWrite?.()
     await waitFor(() => expect(screen.queryByText('Saving…')).toBeNull())
     expect(screen.queryByText('Saved')).toBeNull()
