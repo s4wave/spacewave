@@ -4,7 +4,7 @@ go 1.26.5
 
 tool github.com/s4wave/goscript/cmd/goscript
 
-require github.com/s4wave/goscript v0.2.27-0.20260823221015-d370a36f44ae // master
+require github.com/s4wave/goscript v0.2.27-0.20260824172010-b0ea06a50dc4 // master
 
 replace (
 	// aperture: use compatibility forks
@@ -33,7 +33,7 @@ require (
 	github.com/aperturerobotics/cayley v0.15.1-0.20260824110931-e6b102492e31 // master
 	github.com/aperturerobotics/cli v1.1.0 // v1.1.0
 	github.com/aperturerobotics/common v0.35.3-0.20260821174355-5178d1c5fe41 // master
-	github.com/aperturerobotics/controllerbus v0.53.5-0.20260812083451-7bd9dce82687 // master
+	github.com/aperturerobotics/controllerbus v0.53.5-0.20260824053313-c237a1261331 // master
 	github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d
 	github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 // https://github.com/evanw/esbuild/pull/3413 [rejected]
 	github.com/aperturerobotics/fastjson v0.1.2-0.20260705010846-94f343f5bb34
@@ -101,7 +101,7 @@ require (
 	github.com/fatih/color v1.19.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.2.0.20260818093742-7bd059496705 // main
-	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20260821142625-374c354884f1 // main
+	github.com/go-git/go-git/v6 v6.0.0-alpha.5.0.20260824140246-e37764fd3023 // main
 	github.com/goccy/go-json v0.10.6
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.6.0
