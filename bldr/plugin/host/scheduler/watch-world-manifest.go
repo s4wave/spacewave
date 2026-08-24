@@ -20,7 +20,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// execute executes the tracker.
+// execWatchWorldManifest watches the world for the latest executable
+// manifest for the plugin.
 func (t *pluginInstance) execWatchWorldManifest(ctx context.Context, hosts *pluginHostSet) error {
 	t.le.Debugf("starting watch world manifests")
 	engineID := t.c.conf.GetEngineId()
@@ -290,11 +291,15 @@ func (t *pluginInstance) processManifestWorldStateCore(
 	)
 }
 
+// manifestSelectionInput is the fingerprinted selection state used to
+// suppress redundant re-selections.
 type manifestSelectionInput struct {
 	hostSet     *pluginHostSet
 	fingerprint string
 }
 
+// manifestSelectionInputUnchanged reports whether the selection inputs
+// are unchanged since the last fingerprint.
 func (t *pluginInstance) manifestSelectionInputUnchanged(hosts *pluginHostSet, fingerprint string) bool {
 	current := t.manifestSelectionFingerprint.Load()
 	return current != nil &&
@@ -302,6 +307,8 @@ func (t *pluginInstance) manifestSelectionInputUnchanged(hosts *pluginHostSet, f
 		current.fingerprint == fingerprint
 }
 
+// storeManifestSelectionInputFingerprint persists the current selection
+// input fingerprint.
 func (t *pluginInstance) storeManifestSelectionInputFingerprint(hosts *pluginHostSet, fingerprint string) {
 	t.manifestSelectionFingerprint.Store(&manifestSelectionInput{
 		hostSet:     hosts,
@@ -309,6 +316,8 @@ func (t *pluginInstance) storeManifestSelectionInputFingerprint(hosts *pluginHos
 	})
 }
 
+// manifestSelectionInputFingerprint computes the fingerprint over the
+// current selection inputs.
 func manifestSelectionInputFingerprint(
 	platformIDs []string,
 	candidates []*bldr_manifest_world.StartupManifestCandidateEligibility,
@@ -369,6 +378,8 @@ func manifestSelectionInputFingerprint(
 
 const maxStartupManifestSkipSummaryItems = 3
 
+// summarizeStartupManifestEligibilitySkips builds a summary line of
+// skipped candidate counts by eligibility kind.
 func summarizeStartupManifestEligibilitySkips(candidates []*bldr_manifest_world.StartupManifestCandidateEligibility) string {
 	if len(candidates) == 0 {
 		return ""
@@ -395,6 +406,8 @@ func summarizeStartupManifestEligibilitySkips(candidates []*bldr_manifest_world.
 	return strconv.Itoa(countStartupManifestEligibilitySkips(candidates)) + " skipped startup manifest ref(s): " + summary
 }
 
+// countStartupManifestEligibilitySkips counts skipped candidates by
+// eligibility kind.
 func countStartupManifestEligibilitySkips(candidates []*bldr_manifest_world.StartupManifestCandidateEligibility) int {
 	var count int
 	for _, candidate := range candidates {
@@ -405,6 +418,8 @@ func countStartupManifestEligibilitySkips(candidates []*bldr_manifest_world.Star
 	return count
 }
 
+// startupManifestEligibilitySkipCandidate wraps a candidate with its
+// skip reason for summary counting.
 func startupManifestEligibilitySkipCandidate(candidate *bldr_manifest_world.StartupManifestCandidateEligibility) bool {
 	if candidate == nil {
 		return false
@@ -413,6 +428,8 @@ func startupManifestEligibilitySkipCandidate(candidate *bldr_manifest_world.Star
 		candidate.Eligibility == bldr_manifest_world.StartupManifestEligibilityQuarantined
 }
 
+// addManifestSelectionFields adds manifest selection fields to a logrus
+// entry.
 func addManifestSelectionFields(
 	fields logrus.Fields,
 	prefix string,
