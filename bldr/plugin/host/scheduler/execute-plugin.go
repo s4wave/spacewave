@@ -30,10 +30,8 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 		return a == b
 	}
 
-	// Compare manifest snapshots
 	manifestEqual := (a.manifestSnapshot == nil) == (b.manifestSnapshot == nil)
 	if manifestEqual && a.manifestSnapshot != nil {
-		// Compare the manifest references for equality
 		manifestEqual = manifest_world.ManifestObjectRefsSameExecutable(
 			a.manifestSnapshot.GetManifestRef(),
 			b.manifestSnapshot.GetManifestRef(),
@@ -43,7 +41,6 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 		return false
 	}
 
-	// Compare plugin hosts
 	pluginHostEqual := (a.pluginHost == nil) == (b.pluginHost == nil)
 	if pluginHostEqual && a.pluginHost != nil {
 		pluginHostEqual = a.pluginHost == b.pluginHost
@@ -53,6 +50,8 @@ func executePluginArgsEqual(a, b *executePluginArgs) bool {
 }
 
 // execPlugin executes the plugin.
+// execPlugin executes the plugin with the given manifest snapshot on a
+// plugin host.
 func (t *pluginInstance) execPlugin(ctx context.Context, args *executePluginArgs) (rerr error) {
 	if args == nil ||
 		args.manifestSnapshot == nil ||

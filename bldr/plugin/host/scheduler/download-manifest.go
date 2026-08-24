@@ -11,6 +11,8 @@ import (
 	trace "github.com/s4wave/spacewave/db/traceutil"
 )
 
+// manifestCopyClass is the startup-copy scheduling decision for a
+// manifest: immediate, deferred to a ready gate, or suppressed.
 type manifestCopyClass string
 
 const (
@@ -20,6 +22,7 @@ const (
 	manifestCopyClassSuppressed             manifestCopyClass = "suppressed"
 )
 
+// manifestCopyPhase is the lifecycle phase of one manifest copy.
 type manifestCopyPhase string
 
 const (
@@ -32,6 +35,8 @@ const (
 	manifestCopyPhaseSuppressed             manifestCopyPhase = "suppressed"
 )
 
+// manifestCopyStatus tracks the copy state and identities for one
+// manifest.
 type manifestCopyStatus struct {
 	phase               manifestCopyPhase
 	class               manifestCopyClass
@@ -43,6 +48,8 @@ type manifestCopyStatus struct {
 	stats               bucket_lookup.ObjectCopyStats
 }
 
+// classifyManifestCopy decides the startup-copy class for a manifest
+// snapshot.
 func (t *pluginInstance) classifyManifestCopy(manifestSnapshot *bldr_manifest.ManifestSnapshot) manifestCopyClass {
 	if t == nil || manifestSnapshot == nil {
 		return manifestCopyClassImmediate
@@ -75,6 +82,7 @@ func (t *pluginInstance) classifyManifestCopy(manifestSnapshot *bldr_manifest.Ma
 	return manifestCopyClassAfterExecuteReady
 }
 
+// setManifestCopyStatus stores a new status for the manifest copy.
 func (t *pluginInstance) setManifestCopyStatus(
 	phase manifestCopyPhase,
 	class manifestCopyClass,
@@ -105,6 +113,7 @@ func (t *pluginInstance) setManifestCopyStatus(
 	t.manifestCopyStatus.SetValue(status)
 }
 
+// setDownloadManifestState updates the download routine's state.
 func (t *pluginInstance) setDownloadManifestState(
 	ctx context.Context,
 	manifestSnapshot *bldr_manifest.ManifestSnapshot,
@@ -139,6 +148,7 @@ func (t *pluginInstance) setDownloadManifestState(
 	return changed
 }
 
+// waitForManifestCopyReady waits until the manifest copy is ready to use.
 func (t *pluginInstance) waitForManifestCopyReady(
 	ctx context.Context,
 	class manifestCopyClass,
