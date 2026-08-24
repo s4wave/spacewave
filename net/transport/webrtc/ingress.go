@@ -162,6 +162,7 @@ func (w *WebRTC) deliverSignal(
 
 		var ingress *signalIngress
 		var execution *sessionTrackerExecution
+		var tracker *sessionTracker
 		var waitCh <-chan struct{}
 		var accepted bool
 		var fenced bool
@@ -205,6 +206,10 @@ func (w *WebRTC) deliverSignal(
 			}
 
 			execution = w.snapshotSignalExecutionLocked(ingress)
+			// Snapshot the tracker under the same lock: retirement and
+			// acquisition mutate it concurrently, so the admit and deliver
+			// decisions below must read the same coherent value.
+			tracker = ingress.tracker
 			waitCh = getWaitCh()
 		})
 		if accepted || fenced {
@@ -233,18 +238,18 @@ func (w *WebRTC) deliverSignal(
 		}
 
 		if admitTracker == nil {
-			admitTracker = ingress.tracker
+			admitTracker = tracker
 			admitGeneration = execution.generation
-		} else if admitTracker != ingress.tracker || admitGeneration != execution.generation {
+		} else if admitTracker != tracker || admitGeneration != execution.generation {
 			if isGenerationFencedBody(incoming.sig) {
 				w.le.Debug("dropping stale-generation signal: superseded by successor tracker")
 				return nil
 			}
-			admitTracker = ingress.tracker
+			admitTracker = tracker
 			admitGeneration = execution.generation
 		}
 
-		if deliveredTracker != ingress.tracker || deliveredGeneration != execution.generation {
+		if deliveredTracker != tracker || deliveredGeneration != execution.generation {
 			select {
 			case <-ctx.Done():
 				return context.Canceled
@@ -253,7 +258,7 @@ func (w *WebRTC) deliverSignal(
 			case <-waitCh:
 				continue
 			case execution.rxSignal <- incoming:
-				deliveredTracker = ingress.tracker
+				deliveredTracker = tracker
 				deliveredGeneration = execution.generation
 			}
 			continue
