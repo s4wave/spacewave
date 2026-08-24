@@ -107,31 +107,38 @@ func (w *WebRTC) retireSignalIngressLocked(peerID string, tracker *sessionTracke
 
 // stashAdoptableSession stores an in-flight negotiation session on the
 // peer's ingress lease so a successor tracker can adopt it. Returns false
-// when the lease is already gone.
+// when the lease is already gone. Lookup and mutation run inside one hold of
+// w.bcast so a concurrent lease deletion cannot race the map or drop the
+// session. Takes w.bcast itself; callers must not already hold it (session
+// close runs outside every other w.bcast section).
 func (w *WebRTC) stashAdoptableSession(peerID string, sess *session) bool {
+	stashed := false
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		ingress := w.incomingSessions[peerID]
+		if ingress == nil {
+			return
+		}
+		ingress.adoptedSession = sess
+		stashed = true
 		broadcast()
 	})
-	ingress := w.incomingSessions[peerID]
-	if ingress == nil {
-		return false
-	}
-	ingress.adoptedSession = sess
-	return true
+	return stashed
 }
 
 // takeAdoptableSession returns and clears an adoptable in-flight session for
-// the peer key, if any.
+// the peer key, if any. Take and clear run inside one hold of w.bcast so
+// adoption is exactly-once even against concurrent lease deletion.
 func (w *WebRTC) takeAdoptableSession(peerID string) *session {
+	var sess *session
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
+		ingress := w.incomingSessions[peerID]
+		if ingress == nil {
+			return
+		}
+		sess = ingress.adoptedSession
+		ingress.adoptedSession = nil
 		broadcast()
 	})
-	ingress := w.incomingSessions[peerID]
-	if ingress == nil {
-		return nil
-	}
-	sess := ingress.adoptedSession
-	ingress.adoptedSession = nil
 	return sess
 }
 

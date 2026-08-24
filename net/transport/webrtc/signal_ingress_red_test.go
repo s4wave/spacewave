@@ -7,8 +7,8 @@ package webrtc
 // existing fatal role and Pion error paths, stays unchanged.
 
 import (
-	"bytes"
 	"crypto/sha256"
+	"errors"
 	"testing"
 
 	pion_webrtc "github.com/pion/webrtc/v4"
@@ -140,11 +140,10 @@ func newNegotiatedPair(t *testing.T) (offerPC, answerPC *pion_webrtc.PeerConnect
 // TestSignalIngressRejectsStaleGenerationAnswer asserts the answer seam: an
 // answer whose offer_id does not match the active generation must be dropped
 // before Pion state is touched, leaving the remote description unapplied.
-// TestAnswerCorrelatesAcrossTrackerRegeneration pins the glare seam from
-// mercury v4: an answer already in flight for a peer's earlier local offer
-// must still correlate after the signaling tracker regenerates. The successor
-// adopts the handed-over session, so the remote answer's offer_id matches its
-// pending generation and Pion applies it instead of dropping it.
+// TestAnswerCorrelatesAcrossTrackerRegeneration pins the adoption seam across
+// tracker regeneration. The successor adopts the handed-over session, clears
+// any predecessor fatal error, and continues negotiation with a fresh offer;
+// answers from earlier generations stay fenced out.
 func TestAnswerCorrelatesAcrossTrackerRegeneration(t *testing.T) {
 	w := &WebRTC{conf: &Config{}}
 
@@ -172,9 +171,16 @@ func TestAnswerCorrelatesAcrossTrackerRegeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	genOneID := sessA.pendingOfferID
+	genOneID := append([]byte(nil), sessA.pendingOfferID...)
 	if len(genOneID) == 0 {
 		t.Fatal("first generation recorded no pending offer id")
+	}
+
+	// The remote answered generation one before the tracker retired: the
+	// session carries a live connection worth handing over.
+	_, _, _, answerDesc := newNegotiatedPair(t)
+	if err := pcA.SetRemoteDescription(*answerDesc); err != nil {
+		t.Fatal(err.Error())
 	}
 
 	// The tracker retires: the in-flight session is handed to the peer's
@@ -194,28 +200,21 @@ func TestAnswerCorrelatesAcrossTrackerRegeneration(t *testing.T) {
 	if sessB == nil {
 		t.Fatal("successor found no adoptable session after regeneration")
 	}
-	sessB.t = trackerB
+	trackerB.adoptSession(sessB)
 	if sessB.pc != pcA {
 		t.Fatal("adopted session lost its peer connection")
 	}
 
-	// Generation two retransmits: the adopted session must retransmit the
-	// outstanding offer bytes so the in-flight answer still correlates.
+	// Generation two: the successor continues negotiation on the adopted
+	// connection with a fresh offer generation.
 	seqB, _, err := trackerB.transmitLocalNegotiation(sessB, le, seqA+1, 0, xmit)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if !bytes.Equal(sessB.pendingOfferID, genOneID) {
-		t.Fatalf("successor offered a different generation: retransmitted id %x != original %x",
-			sessB.pendingOfferID, genOneID)
-	}
 	if seqB <= seqA {
 		t.Fatalf("successor seqno %d did not advance past %d", seqB, seqA)
 	}
-
-	// The leader answers generation one after the regeneration. The answer
-	// carries generation one's id and must be applied by the successor.
-	_, _, _, answerDesc := newNegotiatedPair(t)
+	genTwoID := append([]byte(nil), sessB.pendingOfferID...)
 
 	f := &fenceIngest{
 		tracker: trackerB,
@@ -224,16 +223,137 @@ func TestAnswerCorrelatesAcrossTrackerRegeneration(t *testing.T) {
 			add: func(pion_webrtc.ICECandidateInit) error { return nil },
 		},
 	}
+
+	// A late duplicate answer for generation one arrives after the successor's
+	// fresh offer. Its offer_id no longer matches the pending generation and
+	// must drop before Pion state is touched.
 	if err := f.ingest(&WebRtcSdp{
 		SdpType: "answer",
 		Sdp:     answerDesc.SDP,
 		OfferId: genOneID,
+	}, nil); err != nil {
+		t.Fatalf("stale-generation answer returned %v, want silent drop", err)
+	}
+
+	// The answer for the fresh generation correlates and is applied.
+	if err := f.ingest(&WebRtcSdp{
+		SdpType: "answer",
+		Sdp:     answerDesc.SDP,
+		OfferId: genTwoID,
 	}, nil); err != nil {
 		t.Fatalf("correlating answer returned %v, want application", err)
 	}
 	if sessB.pc.RemoteDescription() == nil {
 		t.Fatal("correlating answer was dropped: successor never applied the remote description")
 	}
+}
+
+// TestCloseSkipsStashOnFatalError asserts a session carrying a fatal error is
+// never handed to the peer's ingress lease: its successor would exit on the
+// first snapshot and re-stash, wedging the ingress against new signals. The
+// session otherwise meets every adoption condition, including an applied
+// answer, so the fatal error alone decides the disposition.
+func TestCloseSkipsStashOnFatalError(t *testing.T) {
+	w := &WebRTC{conf: &Config{}}
+	offerPC, _, _, answerDesc := newNegotiatedPair(t)
+	if err := offerPC.SetRemoteDescription(*answerDesc); err != nil {
+		t.Fatal(err.Error())
+	}
+	tracker := &sessionTracker{
+		w:       w,
+		le:      newFenceTestLogger(),
+		offerer: true,
+		key:     "fatal-peer",
+	}
+	sess := &session{t: tracker, pc: offerPC, pendingOfferID: []byte("outstanding-offer")}
+	sess.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		sess.fatalErr = errors.New("signal transmit routine failed")
+		sess.connState = pion_webrtc.PeerConnectionStateConnecting
+		broadcast()
+	})
+
+	w.incomingSessions = map[string]*signalIngress{"fatal-peer": {}}
+	sess.close()
+
+	if stashed := w.takeAdoptableSession("fatal-peer"); stashed != nil {
+		t.Fatal("close stashed a session carrying a fatal error")
+	}
+	if offerPC.ConnectionState() != pion_webrtc.PeerConnectionStateClosed {
+		t.Fatalf("fatal session was not disposed: connection state %s", offerPC.ConnectionState().String())
+	}
+}
+
+// TestCloseDisposesUnansweredOfferSession asserts the adoption boundary of the
+// offerer handover: an offer that never drew an answer cannot be re-answered
+// (the remote deduplicates byte-identical offers) nor replaced (pion v4 has no
+// rollback), so close disposes it and the successor mints a fresh generation.
+func TestCloseDisposesUnansweredOfferSession(t *testing.T) {
+	w := &WebRTC{conf: &Config{}}
+	offerPC, _, _, _ := newNegotiatedPair(t)
+	tracker := &sessionTracker{
+		w:       w,
+		le:      newFenceTestLogger(),
+		offerer: true,
+		key:     "unanswered-peer",
+	}
+	sess := &session{t: tracker, pc: offerPC, pendingOfferID: []byte("unanswered-offer")}
+	sess.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		sess.connState = pion_webrtc.PeerConnectionStateConnecting
+		broadcast()
+	})
+
+	w.incomingSessions = map[string]*signalIngress{"unanswered-peer": {}}
+	sess.close()
+
+	if stashed := w.takeAdoptableSession("unanswered-peer"); stashed != nil {
+		t.Fatal("close stashed a session whose outstanding offer drew no answer")
+	}
+	if offerPC.ConnectionState() != pion_webrtc.PeerConnectionStateClosed {
+		t.Fatalf("unanswered-offer session was not disposed: connection state %s", offerPC.ConnectionState().String())
+	}
+}
+
+// TestAdoptedSessionClearsFatalError asserts the adoption rebinding: the
+// successor clears the predecessor's fatal error, rebinds the tracker under
+// the session lock, and arms a fresh offer when no answer was applied.
+func TestAdoptedSessionClearsFatalError(t *testing.T) {
+	w := &WebRTC{conf: &Config{}}
+	pc, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(func() { pc.Close() })
+	trackerA := &sessionTracker{
+		w:       w,
+		le:      newFenceTestLogger(),
+		offerer: true,
+		key:     "adopt-peer",
+	}
+	sess := &session{t: trackerA, pc: pc, pendingOfferID: []byte("outstanding-offer")}
+	sess.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		sess.fatalErr = errors.New("predecessor failed")
+		sess.connState = pion_webrtc.PeerConnectionStateConnecting
+		broadcast()
+	})
+
+	trackerB := &sessionTracker{
+		w:       w,
+		le:      newFenceTestLogger(),
+		offerer: true,
+		key:     "adopt-peer",
+	}
+	waitCh := trackerB.adoptSession(sess)
+	if waitCh == nil {
+		t.Fatal("adoption returned no wait channel")
+	}
+	sess.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if sess.fatalErr != nil {
+			t.Fatalf("adopted session kept the predecessor fatal error: %v", sess.fatalErr)
+		}
+		if sess.t != trackerB {
+			t.Fatal("adopted session kept the predecessor tracker binding")
+		}
+	})
 }
 
 func TestSignalIngressRejectsStaleGenerationAnswer(t *testing.T) {
