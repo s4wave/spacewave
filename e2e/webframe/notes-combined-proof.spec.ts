@@ -5,11 +5,15 @@ const WELCOME_ROW = "[data-testid='notes-note-row']"
 const CONTENT_VIEW = "[data-testid='notes-content-view']"
 const SOURCE_TOGGLE = "[data-testid='notes-source-toggle']"
 
+// The first launch downloads the app bundle and seeds the notebook, which
+// takes minutes; both waits tolerate one full cold start.
+const COLD_START_TIMEOUT = 300_000
+
 async function openNotebook(page: Page) {
   await page.goto(ROUTE, { waitUntil: 'domcontentloaded' })
   await page.locator("input[placeholder='Search notes…']").waitFor({
     state: 'visible',
-    timeout: 60_000,
+    timeout: COLD_START_TIMEOUT,
   })
   await page
     .locator(WELCOME_ROW)
@@ -17,7 +21,7 @@ async function openNotebook(page: Page) {
     .first()
     .waitFor({
       state: 'visible',
-      timeout: 60_000,
+      timeout: COLD_START_TIMEOUT,
     })
 }
 
