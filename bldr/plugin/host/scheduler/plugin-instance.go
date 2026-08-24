@@ -225,5 +225,16 @@ func (t *pluginInstance) execute(ctx context.Context) error {
 	)
 }
 
+// ensureAccessProviders initializes the dist and assets access providers
+// if unset. Some construction paths (e.g. tests) build partial instances.
+func (t *pluginInstance) ensureAccessProviders() {
+	if t.distAccess == nil {
+		t.distAccess = unixfs_access.NewRotatingAccess()
+	}
+	if t.assetsAccess == nil {
+		t.assetsAccess = unixfs_access.NewRotatingAccess()
+	}
+}
+
 // _ is a type assertion
 var _ bldr_plugin.RunningPluginRef = (*pluginInstance)(nil)
