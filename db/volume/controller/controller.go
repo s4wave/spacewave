@@ -3,6 +3,7 @@ package volume_controller
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -18,6 +19,16 @@ import (
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/sirupsen/logrus"
 )
+
+// maxConstructionAttempts caps consecutive failed volume constructions before
+// the failure is treated as permanent. The controllerbus loader restarts a
+// controller whose Execute returned an error with exponential backoff and no
+// elapsed-time ceiling, so without this cap a wedged environment (for example
+// OPFS GetRoot failing with UnknownError) loops forever at the backoff ceiling
+// while boot waits silently. After this many consecutive failures, retrying
+// has stopped being plausible; the controller records a terminal error and
+// stops so GetVolume surfaces it to the boot failure path.
+const maxConstructionAttempts = 5
 
 // Controller implements a common volume controller.
 //
@@ -42,6 +53,10 @@ type Controller struct {
 	// bucketHandles contains open bucket handles
 	// key: bucket id
 	bucketHandles *keyed.KeyedRefCount[string, *bucketHandleTracker]
+
+	// constructionFailures counts consecutive failed volume constructions
+	// across controllerbus restarts of this same controller instance.
+	constructionFailures int
 
 	// terminalMtx guards terminalErr and terminalDone.
 	terminalMtx sync.Mutex
@@ -105,8 +120,19 @@ func (c *Controller) Execute(ctx context.Context) error {
 			c.setTerminal(err)
 			return nil
 		}
+		c.constructionFailures++
+		if c.constructionFailures >= maxConstructionAttempts {
+			err = volume.Permanent(fmt.Errorf(
+				"volume construction failed %d times consecutively: %w",
+				c.constructionFailures, err,
+			))
+			c.le.WithError(err).Error("volume unavailable: retry cap exceeded, not restarting")
+			c.setTerminal(err)
+			return nil
+		}
 		return err
 	}
+	c.constructionFailures = 0
 	defer v.Close()
 
 	// Prepare readiness diagnostics and the volume execution error channel.
