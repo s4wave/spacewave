@@ -1,6 +1,7 @@
 package webrtc
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"errors"
@@ -80,7 +81,7 @@ func (s *sessionTracker) retireExecution(execution *sessionTrackerExecution) {
 			return
 		}
 		s.execution = nil
-		s.w.retireSignalIngressLocked(s.key, s)
+		s.w.retireSignalIngressLocked(s.key, s, broadcast)
 		broadcast()
 	})
 }
@@ -334,6 +335,17 @@ type session struct {
 	// the active generation identity for the signal fence.
 	rxOfferID []byte
 
+	// pendingOfferID is the SHA-256 digest of the local offer SDP bytes most
+	// recently transmitted by this session, when we are the offerer. Answers
+	// whose offer_id does not match it are dropped before Pion.
+	pendingOfferID []byte
+
+	// retiredOfferIDs holds the digests of remote offers superseded during
+	// this session's lifetime. Offers carrying a retired digest are dropped
+	// before Pion. The set lives and dies with the session; it is never
+	// retained across sessions.
+	retiredOfferIDs map[string]struct{}
+
 	// localIceCandidates contains the current list of local ice candidates.
 	localIceCandidates []*webrtc.ICECandidateInit
 	// localIceCandidatesComplete indicates the ice candidate list is complete.
@@ -573,9 +585,20 @@ func (s *session) onDataChannelClose() {
 	})
 }
 
-// close closes the session.
+// close closes the session and releases its generation fence state.
 func (s *session) close() {
+	s.retiredOfferIDs = nil
 	_ = s.pc.Close()
+}
+
+// activeOfferID returns the digest identifying the negotiation generation
+// this session transmits signals for: the pending local offer while offering,
+// otherwise the remote offer applied to this session.
+func (s *session) activeOfferID() []byte {
+	if s.t.offerer {
+		return s.pendingOfferID
+	}
+	return s.rxOfferID
 }
 
 // transmitLocalNegotiation emits one offer or request for each local sequence.
@@ -602,12 +625,11 @@ func (s *sessionTracker) transmitLocalNegotiation(
 		if err := sess.pc.SetLocalDescription(localDesc); err != nil {
 			return lastLocalSeqno, false, pkgerrors.Wrap(err, "set local description(offer)")
 		}
-		xmit = &WebRtcSignal{
-			Body: &WebRtcSignal_Sdp{Sdp: NewWebRtcSdp(
-				currLocalSeqno,
-				&localDesc,
-			)},
-		}
+		offerSum := sha256.Sum256([]byte(localDesc.SDP))
+		sess.pendingOfferID = offerSum[:]
+		xmitSdp := NewWebRtcSdp(currLocalSeqno, &localDesc)
+		xmitSdp.OfferId = offerSum[:]
+		xmit = &WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: xmitSdp}}
 	} else {
 		if s.w.GetVerbose() {
 			le.Debug("signal tx: offer request")
@@ -930,6 +952,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 				if err != nil {
 					return pkgerrors.Wrap(err, "marshal local ice candidate")
 				}
+				ice.OfferId = sess.activeOfferID()
 				xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Ice{Ice: ice}})
 				lastSentICE++
 			}
@@ -953,6 +976,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			if err != nil {
 				return pkgerrors.Wrap(err, "marshal end-of-candidates")
 			}
+			eoc.OfferId = sess.activeOfferID()
 			xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Ice{Ice: eoc}})
 			sentIceComplete = true
 		}
@@ -1021,6 +1045,25 @@ func (s *sessionTracker) ingestRemoteSignal(
 			}
 		}
 
+		// Generation fence: reject material whose offer_id does not identify
+		// its own generation before Pion state is touched.
+		if s.offerer {
+			if !bytes.Equal(currRxSdp.GetOfferId(), sess.pendingOfferID) {
+				le.Debug("dropping stale answer: offer id does not match the pending local offer")
+				return nil
+			}
+		} else {
+			offerSum := sha256.Sum256([]byte(currRxSdp.GetSdp()))
+			if !bytes.Equal(currRxSdp.GetOfferId(), offerSum[:]) {
+				le.Debug("dropping stale sdp: offer id does not match the sdp bytes")
+				return nil
+			}
+			if _, retired := sess.retiredOfferIDs[string(offerSum[:])]; retired {
+				le.Debug("dropping retired-generation sdp")
+				return nil
+			}
+		}
+
 		sessDesc := currRxSdp.ToSessionDescription()
 		switch {
 		case sessDesc == nil:
@@ -1047,8 +1090,16 @@ func (s *sessionTracker) ingestRemoteSignal(
 			// Record the accepted remote offer digest as the active generation
 			// identity. On the offerer the active identity is the pending
 			// local offer instead, so the answer digest is not stored here.
+			// A previously applied offer digest becomes retired for this
+			// session: a replayed copy must never reach Pion again.
 			if !s.offerer {
 				offerSum := sha256.Sum256([]byte(currRxSdp.GetSdp()))
+				if len(sess.rxOfferID) > 0 && !bytes.Equal(sess.rxOfferID, offerSum[:]) {
+					if sess.retiredOfferIDs == nil {
+						sess.retiredOfferIDs = make(map[string]struct{})
+					}
+					sess.retiredOfferIDs[string(sess.rxOfferID)] = struct{}{}
+				}
 				sess.rxOfferID = offerSum[:]
 			}
 
@@ -1071,10 +1122,9 @@ func (s *sessionTracker) ingestRemoteSignal(
 				if err := sess.pc.SetLocalDescription(answer); err != nil {
 					return pkgerrors.Wrap(err, "set local description(answer)")
 				}
-				xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Sdp{NewWebRtcSdp(
-					currLocalSeqno,
-					&answer,
-				)}})
+				ans := NewWebRtcSdp(currLocalSeqno, &answer)
+				ans.OfferId = sess.rxOfferID
+				xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: ans}})
 			}
 		}
 	}
@@ -1082,6 +1132,18 @@ func (s *sessionTracker) ingestRemoteSignal(
 	// Handle incoming ICE.
 	if currRxIce.GetCandidate() != "" {
 		*phase = "handle remote ice"
+
+		// Generation fence: drop candidates that do not belong to the active
+		// generation before they reach Pion or the pending buffer.
+		active := sess.rxOfferID
+		if s.offerer {
+			active = sess.pendingOfferID
+		}
+		if len(active) == 0 || !bytes.Equal(currRxIce.GetOfferId(), active) {
+			le.Debug("dropping stale ice candidate: offer id does not match the active generation")
+			return nil
+		}
+
 		ice, err := currRxIce.ParseICECandidateInit()
 		if err != nil {
 			return pkgerrors.Wrap(err, "parse remote ice candidate")
