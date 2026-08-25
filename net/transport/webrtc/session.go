@@ -364,6 +364,13 @@ type session struct {
 	// whose offer_id does not match it are dropped before Pion.
 	pendingOfferID []byte
 
+	// pendingOfferSDP holds the exact local offer SDP bytes whose digest is
+	// pendingOfferID. Pion augments LocalDescription with gathered ICE
+	// candidates after the initial transmission, so the outstanding-offer
+	// retransmit path replays these bytes to keep the generation identity
+	// stable across retransmissions.
+	pendingOfferSDP string
+
 	// retiredOfferIDs holds the digests of remote offers this session already
 	// applied and replaced with a newer generation. A replayed copy of a
 	// retired offer is dropped before Pion so a stale description can never
@@ -620,23 +627,33 @@ func (s *session) close() {
 		fatalErr = s.fatalErr
 		connState = s.connState
 	})
-	// An outstanding offer survives this tracker: hand the session to the
-	// peer's ingress lease for adoption by a successor instead of disposing
-	// a generation the remote side may already have answered. Only a session
-	// whose offer drew an answer is worth adopting: an unanswered offer can
-	// never be re-answered (the remote deduplicates byte-identical offers) nor
-	// replaced (pion v4 has no rollback), so the successor must mint a fresh
-	// generation on a new connection. A session with a recorded fatal error is
-	// likewise never adoptable: its successor would exit on the first snapshot
-	// and re-stash, wedging the ingress against new signals.
+	// An in-flight negotiation survives this tracker: hand the session to the
+	// peer's ingress lease for adoption by a successor instead of disposing an
+	// outstanding offer. The successor adopts the connection with the same
+	// pending offer id and retransmits the identical offer via the outstanding-
+	// offer path in transmitLocalNegotiation, so an answer already sent or
+	// still in flight correlates instead of dying with the retired generation.
+	// Only a session holding a live outstanding local offer is adoptable; a
+	// session with a recorded fatal error, a finished or unusable connection,
+	// or no outstanding offer cannot continue negotiation and is disposed so
+	// its successor mints a fresh generation on a new connection.
+	localDesc := s.pc.LocalDescription()
 	if fatalErr == nil && s.t != nil && s.t.offerer && len(s.pendingOfferID) > 0 &&
-		s.pc.RemoteDescription() != nil &&
+		localDesc != nil && localDesc.SDP != "" &&
+		s.pc.SignalingState() == webrtc.SignalingStateHaveLocalOffer &&
 		connState != webrtc.PeerConnectionStateConnected &&
 		connState != webrtc.PeerConnectionStateFailed &&
 		connState != webrtc.PeerConnectionStateClosed &&
 		s.t.w.stashAdoptableSession(s.t.key, s) {
 		return
 	}
+	s.dispose()
+}
+
+// dispose releases the session's generation fence state and closes the peer
+// connection exactly once. It never stashes: the ingress-lease cleanup path
+// uses it to dispose a handed-over session outside every w.bcast section.
+func (s *session) dispose() {
 	s.retiredOfferIDs = nil
 	_ = s.pc.Close()
 }
@@ -687,13 +704,19 @@ func (s *sessionTracker) transmitLocalNegotiation(
 			sess.pc.SignalingState() == webrtc.SignalingStateHaveLocalOffer {
 			// An offer is already outstanding on this connection: retransmit
 			// the same bytes and identity instead of minting a new
-			// generation, so an in-flight answer still correlates.
-			localDesc := sess.pc.LocalDescription()
-			if localDesc == nil {
-				return lastLocalSeqno, false, pkgerrors.New("retransmit outstanding offer: no local description")
+			// generation, so an in-flight answer still correlates. The minted
+			// bytes are replayed verbatim: Pion augments LocalDescription
+			// with gathered ICE candidates, which would present the remote
+			// with a byte-different offer that answers under a new identity.
+			if sess.pendingOfferSDP == "" {
+				return lastLocalSeqno, false, pkgerrors.New("retransmit outstanding offer: no pending offer sdp")
 			}
 			le.Debug("signal tx: retransmit outstanding offer")
-			xmitSdp := NewWebRtcSdp(currLocalSeqno, localDesc)
+			xmitSdp := &WebRtcSdp{
+				TxSeqno: currLocalSeqno,
+				SdpType: webrtc.SDPTypeOffer.String(),
+				Sdp:     sess.pendingOfferSDP,
+			}
 			xmitSdp.OfferId = sess.pendingOfferID
 			xmit = &WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: xmitSdp}}
 			xmitSignal(xmit)
@@ -708,6 +731,7 @@ func (s *sessionTracker) transmitLocalNegotiation(
 		}
 		offerSum := sha256.Sum256([]byte(localDesc.SDP))
 		sess.pendingOfferID = offerSum[:]
+		sess.pendingOfferSDP = localDesc.SDP
 		xmitSdp := NewWebRtcSdp(currLocalSeqno, &localDesc)
 		xmitSdp.OfferId = offerSum[:]
 		xmit = &WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: xmitSdp}}
@@ -1105,9 +1129,26 @@ func isOfferer(a, b string) bool {
 	return strings.Compare(a, b) < 0
 }
 
+// transmitAnswer emits one Sdp signal carrying an answer description tagged
+// with the session's active remote-offer digest. The first answer
+// transmission and the duplicate-offer replay share it; it performs no
+// matching or validation of its own.
+func (s *sessionTracker) transmitAnswer(
+	sess *session,
+	answer *webrtc.SessionDescription,
+	currLocalSeqno uint64,
+	xmitSignal func(*WebRtcSignal),
+) {
+	if answer == nil || answer.SDP == "" || answer.Type != webrtc.SDPTypeAnswer {
+		return
+	}
+	ans := NewWebRtcSdp(currLocalSeqno, answer)
+	ans.OfferId = sess.rxOfferID
+	xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: ans}})
+}
+
 // ingestRemoteSignal applies one received SDP/candidate signal pair to the
-// session. It is the execute-loop answer/candidate application extracted
-// verbatim; behavior is byte-for-byte unchanged.
+// session.
 func (s *sessionTracker) ingestRemoteSignal(
 	sess *session,
 	currRxSdp *WebRtcSdp,
@@ -1163,7 +1204,19 @@ func (s *sessionTracker) ingestRemoteSignal(
 			// A byte-identical duplicate of the description we already applied.
 			// Ignore it to avoid an unnecessary renegotiation / ICE restart. The
 			// offerer re-sends its offer on every request_offer, so the answerer
-			// routinely sees the same offer twice.
+			// routinely sees the same offer twice. When the retransmitted offer
+			// is the generation this session already answered, the offerer may
+			// have regenerated and lost the original answer in flight: replay
+			// the retained local answer so the outstanding offer still
+			// correlates, without touching Pion state a second time.
+			if !s.offerer &&
+				bytes.Equal(currRxSdp.GetOfferId(), sess.rxOfferID) &&
+				sess.pc.RemoteDescription() != nil {
+				if s.w.GetVerbose() {
+					le.Debug("signal tx: replay retained answer")
+				}
+				s.transmitAnswer(sess, sess.pc.LocalDescription(), currLocalSeqno, xmitSignal)
+			}
 		case s.offerer && sess.pc.SignalingState() != webrtc.SignalingStateHaveLocalOffer:
 			// Drop an answer that arrives with no local offer pending. Applying an
 			// answer while signalingState is already "stable" makes pion fail with
@@ -1213,9 +1266,7 @@ func (s *sessionTracker) ingestRemoteSignal(
 				if err := sess.pc.SetLocalDescription(answer); err != nil {
 					return pkgerrors.Wrap(err, "set local description(answer)")
 				}
-				ans := NewWebRtcSdp(currLocalSeqno, &answer)
-				ans.OfferId = sess.rxOfferID
-				xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: ans}})
+				s.transmitAnswer(sess, &answer, currLocalSeqno, xmitSignal)
 			}
 		}
 	}
