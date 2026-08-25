@@ -142,8 +142,14 @@ func (w *WebRTC) takeAdoptableSession(peerID string) *session {
 	return sess
 }
 
-// closeSignalIngress removes a resolver from the peer's ingress lease.
+// closeSignalIngress removes a resolver from the peer's ingress lease. The
+// last resolver out detaches the lease and disposes a session handed over for
+// adoption: take-and-clear of the stash runs under the same hold as the
+// deletion, so a concurrent successor adoption yields exactly one adopter or
+// one disposer, never both. The disposal itself runs outside w.bcast through
+// the non-stashing dispose path.
 func (w *WebRTC) closeSignalIngress(peerID string, resolver *handleSignalPeerResolver) {
+	var orphan *session
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		resolver.closed = true
 		ingress := w.incomingSessions[peerID]
@@ -160,9 +166,14 @@ func (w *WebRTC) closeSignalIngress(peerID string, resolver *handleSignalPeerRes
 				ingress.ref.Release()
 				ingress.ref = nil
 			}
+			orphan = ingress.adoptedSession
+			ingress.adoptedSession = nil
 		}
 		broadcast()
 	})
+	if orphan != nil {
+		orphan.dispose()
+	}
 }
 
 // isGenerationFencedBody reports whether a signal body carries offer

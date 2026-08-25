@@ -7,9 +7,12 @@ package webrtc
 // existing fatal role and Pion error paths, stays unchanged.
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"errors"
+	"strings"
 	"testing"
+	"time"
 
 	pion_webrtc "github.com/pion/webrtc/v4"
 	"github.com/sirupsen/logrus"
@@ -28,11 +31,16 @@ type fenceIngest struct {
 	lastApplied string
 	pendingICE  []pion_webrtc.ICECandidateInit
 	applier     *remoteICECandidateApplier
+	xmit        func(*WebRtcSignal)
 }
 
 // ingest applies one received SDP/candidate signal pair.
 func (f *fenceIngest) ingest(sdp *WebRtcSdp, ice *WebRtcIce) error {
 	phase := ""
+	xmit := f.xmit
+	if xmit == nil {
+		xmit = func(*WebRtcSignal) {}
+	}
 	return f.tracker.ingestRemoteSignal(
 		f.sess,
 		sdp,
@@ -41,7 +49,7 @@ func (f *fenceIngest) ingest(sdp *WebRtcSdp, ice *WebRtcIce) error {
 		&f.lastApplied,
 		f.applier,
 		&f.pendingICE,
-		func(*WebRtcSignal) {},
+		xmit,
 		newFenceTestLogger(),
 		&phase,
 	)
@@ -141,61 +149,61 @@ func newNegotiatedPair(t *testing.T) (offerPC, answerPC *pion_webrtc.PeerConnect
 // answer whose offer_id does not match the active generation must be dropped
 // before Pion state is touched, leaving the remote description unapplied.
 // TestAnswerCorrelatesAcrossTrackerRegeneration pins the adoption seam across
-// tracker regeneration. The successor adopts the handed-over session, clears
-// any predecessor fatal error, and continues negotiation with a fresh offer;
-// answers from earlier generations stay fenced out.
+// tracker regeneration. The successor adopts the handed-over session with its
+// outstanding local offer, retransmits the identical offer generation, drops
+// an answer for any other generation before Pion state is touched, and
+// applies the answer that matches the outstanding generation.
 func TestAnswerCorrelatesAcrossTrackerRegeneration(t *testing.T) {
 	w := &WebRTC{conf: &Config{}}
 
-	newTrackerSess := func(pc *pion_webrtc.PeerConnection) (*sessionTracker, *session) {
-		tracker := &sessionTracker{
+	newTracker := func() *sessionTracker {
+		return &sessionTracker{
 			w:       w,
 			le:      newFenceTestLogger(),
 			offerer: true,
 			key:     "regen-peer",
 		}
-		return tracker, &session{t: tracker, pc: pc}
 	}
 
-	xmit := func(*WebRtcSignal) {}
+	var xmitted []*WebRtcSdp
+	xmit := func(sig *WebRtcSignal) {
+		xmitted = append(xmitted, sig.GetBody().(*WebRtcSignal_Sdp).Sdp)
+	}
 	le := newFenceTestLogger()
 
-	// Generation one: the first tracker transmits its local offer.
+	// Generation one: the first tracker transmits its local offer and retires
+	// with the offer still outstanding.
 	pcA, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	t.Cleanup(func() { pcA.Close() })
-	trackerA, sessA := newTrackerSess(pcA)
+	if _, err := pcA.CreateDataChannel(dataChannelID, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	trackerA := newTracker()
+	sessA := &session{t: trackerA, pc: pcA}
 	seqA, _, err := trackerA.transmitLocalNegotiation(sessA, le, 1, 0, xmit)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 	genOneID := append([]byte(nil), sessA.pendingOfferID...)
-	if len(genOneID) == 0 {
-		t.Fatal("first generation recorded no pending offer id")
+	offerSDP := xmitted[0].GetSdp()
+	if offerSDP == "" || !strings.Contains(offerSDP, "a=ice-ufrag") {
+		t.Fatalf("first generation transmitted no usable offer: n=%d body=%q type=%q", len(xmitted), offerSDP, xmitted[0].GetSdpType())
+	}
+	if len(genOneID) == 0 || offerSDP == "" {
+		t.Fatal("first generation recorded no outstanding offer")
 	}
 
-	// The remote answered generation one before the tracker retired: the
-	// session carries a live connection worth handing over.
-	_, _, _, answerDesc := newNegotiatedPair(t)
-	if err := pcA.SetRemoteDescription(*answerDesc); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	// The tracker retires: the in-flight session is handed to the peer's
-	// ingress lease for adoption instead of disposed.
+	// The tracker retires mid-handshake: the in-flight negotiation is handed
+	// to the peer's ingress lease for adoption instead of disposed.
 	w.incomingSessions = map[string]*signalIngress{"regen-peer": {}}
 	sessA.close()
 
 	// A successor regenerates on the same peer key and adopts the handed-over
 	// session.
-	trackerB := &sessionTracker{
-		w:       w,
-		le:      le,
-		offerer: true,
-		key:     "regen-peer",
-	}
+	trackerB := newTracker()
 	sessB := w.takeAdoptableSession("regen-peer")
 	if sessB == nil {
 		t.Fatal("successor found no adoptable session after regeneration")
@@ -205,16 +213,23 @@ func TestAnswerCorrelatesAcrossTrackerRegeneration(t *testing.T) {
 		t.Fatal("adopted session lost its peer connection")
 	}
 
-	// Generation two: the successor continues negotiation on the adopted
-	// connection with a fresh offer generation.
-	seqB, _, err := trackerB.transmitLocalNegotiation(sessB, le, seqA+1, 0, xmit)
-	if err != nil {
+	// The successor retransmits the identical outstanding offer instead of
+	// minting a new generation, so an in-flight or replayed answer still
+	// correlates.
+	before := len(xmitted)
+	if _, _, err := trackerB.transmitLocalNegotiation(sessB, le, seqA+1, 0, xmit); err != nil {
 		t.Fatal(err.Error())
 	}
-	if seqB <= seqA {
-		t.Fatalf("successor seqno %d did not advance past %d", seqB, seqA)
+	if len(xmitted) != before+1 {
+		t.Fatalf("successor transmitted %d offers, want exactly one retransmission", len(xmitted)-before)
 	}
-	genTwoID := append([]byte(nil), sessB.pendingOfferID...)
+	retrans := xmitted[len(xmitted)-1]
+	if retrans.GetSdpType() != "offer" || retrans.GetSdp() != offerSDP {
+		t.Fatal("successor did not retransmit the identical outstanding offer")
+	}
+	if !bytes.Equal(retrans.GetOfferId(), genOneID) {
+		t.Fatal("retransmitted offer changed the generation identity")
+	}
 
 	f := &fenceIngest{
 		tracker: trackerB,
@@ -224,22 +239,38 @@ func TestAnswerCorrelatesAcrossTrackerRegeneration(t *testing.T) {
 		},
 	}
 
-	// A late duplicate answer for generation one arrives after the successor's
-	// fresh offer. Its offer_id no longer matches the pending generation and
+	// A late duplicate answer for a retired generation arrives after the
+	// handover. Its offer_id no longer matches the outstanding generation and
 	// must drop before Pion state is touched.
+	staleID := sha256.Sum256([]byte("retired-generation-offer"))
 	if err := f.ingest(&WebRtcSdp{
 		SdpType: "answer",
-		Sdp:     answerDesc.SDP,
-		OfferId: genOneID,
+		Sdp:     "stale-answer-sdp",
+		OfferId: staleID[:],
 	}, nil); err != nil {
 		t.Fatalf("stale-generation answer returned %v, want silent drop", err)
 	}
 
-	// The answer for the fresh generation correlates and is applied.
+	// The answer for the outstanding generation correlates and is applied.
+	answerPC, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(func() { answerPC.Close() })
+	if err := answerPC.SetRemoteDescription(pion_webrtc.SessionDescription{
+		Type: pion_webrtc.SDPTypeOffer,
+		SDP:  offerSDP,
+	}); err != nil {
+		t.Fatal(err.Error())
+	}
+	answerDesc, err := answerPC.CreateAnswer(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if err := f.ingest(&WebRtcSdp{
 		SdpType: "answer",
 		Sdp:     answerDesc.SDP,
-		OfferId: genTwoID,
+		OfferId: genOneID,
 	}, nil); err != nil {
 		t.Fatalf("correlating answer returned %v, want application", err)
 	}
@@ -283,33 +314,148 @@ func TestCloseSkipsStashOnFatalError(t *testing.T) {
 	}
 }
 
-// TestCloseDisposesUnansweredOfferSession asserts the adoption boundary of the
-// offerer handover: an offer that never drew an answer cannot be re-answered
-// (the remote deduplicates byte-identical offers) nor replaced (pion v4 has no
-// rollback), so close disposes it and the successor mints a fresh generation.
-func TestCloseDisposesUnansweredOfferSession(t *testing.T) {
-	w := &WebRTC{conf: &Config{}}
-	offerPC, _, _, _ := newNegotiatedPair(t)
-	tracker := &sessionTracker{
-		w:       w,
-		le:      newFenceTestLogger(),
-		offerer: true,
-		key:     "unanswered-peer",
+// waitForSignalingState bounds the asynchronous application of pion
+// description operations before the test asserts on the signaling state.
+func waitForSignalingState(t *testing.T, pc *pion_webrtc.PeerConnection, want pion_webrtc.SignalingState) {
+	t.Helper()
+	deadline := time.After(5 * time.Second)
+	for pc.SignalingState() != want {
+		select {
+		case <-deadline:
+			t.Fatalf("signaling state %v, want %v", pc.SignalingState(), want)
+		case <-time.After(time.Millisecond):
+		}
 	}
-	sess := &session{t: tracker, pc: offerPC, pendingOfferID: []byte("unanswered-offer")}
+}
+
+// newOutstandingOfferSession builds an offerer session holding a live
+// outstanding local offer in the have-local-offer signaling state, the shape a
+// tracker hands over when it retires mid-negotiation.
+func newOutstandingOfferSession(t *testing.T, w *WebRTC, key string) (*sessionTracker, *session, *pion_webrtc.PeerConnection) {
+	t.Helper()
+	pc, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(func() { pc.Close() })
+	if _, err := pc.CreateDataChannel(dataChannelID, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	offer, err := pc.CreateOffer(nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := pc.SetLocalDescription(offer); err != nil {
+		t.Fatal(err.Error())
+	}
+	tracker := &sessionTracker{w: w, le: newFenceTestLogger(), offerer: true, key: key}
+	sess := &session{
+		t:               tracker,
+		pc:              pc,
+		pendingOfferID:  offerDigest(offer.SDP),
+		pendingOfferSDP: offer.SDP,
+	}
 	sess.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		sess.connState = pion_webrtc.PeerConnectionStateConnecting
 		broadcast()
 	})
+	return tracker, sess, pc
+}
 
-	w.incomingSessions = map[string]*signalIngress{"unanswered-peer": {}}
+// TestCloseStashesOutstandingOfferForAdoption asserts the offerer handover:
+// retiring with a live outstanding local offer hands the session to the peer's
+// ingress lease with its connection, description, and generation identity
+// intact, so the successor can retransmit the identical offer.
+func TestCloseStashesOutstandingOfferForAdoption(t *testing.T) {
+	w := &WebRTC{conf: &Config{}}
+	tracker, sess, pc := newOutstandingOfferSession(t, w, "handover-peer")
+	pendingID := append([]byte(nil), sess.pendingOfferID...)
+
+	w.incomingSessions = map[string]*signalIngress{"handover-peer": {}}
 	sess.close()
 
-	if stashed := w.takeAdoptableSession("unanswered-peer"); stashed != nil {
-		t.Fatal("close stashed a session whose outstanding offer drew no answer")
+	stashed := w.takeAdoptableSession("handover-peer")
+	if stashed == nil {
+		t.Fatal("close disposed an outstanding-offer session instead of handing it over")
 	}
-	if offerPC.ConnectionState() != pion_webrtc.PeerConnectionStateClosed {
-		t.Fatalf("unanswered-offer session was not disposed: connection state %s", offerPC.ConnectionState().String())
+	if stashed.pc != pc {
+		t.Fatal("handed-over session lost its peer connection")
+	}
+	if !bytes.Equal(stashed.pendingOfferID, pendingID) {
+		t.Fatal("handed-over session lost its outstanding generation identity")
+	}
+	if state := stashed.pc.SignalingState(); state != pion_webrtc.SignalingStateHaveLocalOffer {
+		t.Fatalf("handed-over session signaling state %v, want have-local-offer", state)
+	}
+	if stashed.pc.ConnectionState() == pion_webrtc.PeerConnectionStateClosed {
+		t.Fatal("handed-over session's peer connection was disposed")
+	}
+	_ = tracker
+}
+
+// TestCloseDisposesNonAdoptableSessions asserts every non-adoptable
+// disposition of the offerer handover: a fatal error, a finished or unusable
+// connection, and sessions without an outstanding local offer are disposed so
+// the successor mints a fresh generation on a new connection.
+func TestCloseDisposesNonAdoptableSessions(t *testing.T) {
+	cases := []struct {
+		name   string
+		mutate func(*session)
+	}{
+		{"fatal_error", func(s *session) {
+			s.fatalErr = errors.New("signal transmit routine failed")
+		}},
+		{"connected", func(s *session) {
+			s.connState = pion_webrtc.PeerConnectionStateConnected
+		}},
+		{"failed", func(s *session) {
+			s.connState = pion_webrtc.PeerConnectionStateFailed
+		}},
+		{"closed", func(s *session) {
+			s.connState = pion_webrtc.PeerConnectionStateClosed
+		}},
+		{"no_outstanding_offer", func(s *session) {
+			s.pendingOfferID = nil
+		}},
+		{"already_answered", func(s *session) {
+			answerPC, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			t.Cleanup(func() { answerPC.Close() })
+			if err := answerPC.SetRemoteDescription(pion_webrtc.SessionDescription{
+				Type: pion_webrtc.SDPTypeOffer,
+				SDP:  s.pendingOfferSDP,
+			}); err != nil {
+				t.Fatal(err.Error())
+			}
+			answer, err := answerPC.CreateAnswer(nil)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if err := s.pc.SetRemoteDescription(answer); err != nil {
+				t.Fatal(err.Error())
+			}
+			waitForSignalingState(t, s.pc, pion_webrtc.SignalingStateStable)
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := &WebRTC{conf: &Config{}}
+			tracker, sess, pc := newOutstandingOfferSession(t, w, "dispose-peer")
+			tc.mutate(sess)
+
+			w.incomingSessions = map[string]*signalIngress{"dispose-peer": {}}
+			sess.close()
+
+			if stashed := w.takeAdoptableSession("dispose-peer"); stashed != nil {
+				t.Fatalf("close handed over a non-adoptable session: %s", tc.name)
+			}
+			if pc.ConnectionState() != pion_webrtc.PeerConnectionStateClosed {
+				t.Fatalf("non-adoptable session was not disposed: connection state %s", pc.ConnectionState().String())
+			}
+			_ = tracker
+		})
 	}
 }
 
@@ -487,4 +633,150 @@ func TestSignalIngressMatchingGenerationFatalControls(t *testing.T) {
 			t.Fatalf("matching-generation candidate applied %d times, want exactly 1", applied)
 		}
 	})
+}
+
+// TestAnswererReplaysRetainedAnswerOnDuplicateOffer pins the answerer side of
+// the regeneration handover: when the byte-identical offer this session
+// already answered arrives again, the session replays its retained local
+// answer carrying the same generation identity, and its Pion state stays
+// untouched.
+func TestAnswererReplaysRetainedAnswerOnDuplicateOffer(t *testing.T) {
+	_, answerPC, offerDesc, _ := newNegotiatedPair(t)
+
+	var xmitted []*WebRtcSdp
+	tracker := &sessionTracker{
+		w:       &WebRTC{conf: &Config{}},
+		le:      newFenceTestLogger(),
+		offerer: false,
+	}
+	sess := &session{pc: answerPC}
+	f := &fenceIngest{
+		tracker: tracker,
+		sess:    sess,
+		applier: &remoteICECandidateApplier{
+			add: func(pion_webrtc.ICECandidateInit) error { return nil },
+		},
+		xmit: func(sig *WebRtcSignal) {
+			xmitted = append(xmitted, sig.GetBody().(*WebRtcSignal_Sdp).Sdp)
+		},
+	}
+
+	// First delivery of the offer: apply it and transmit the fresh answer.
+	if err := f.ingest(&WebRtcSdp{
+		SdpType: "offer",
+		Sdp:     offerDesc.SDP,
+		OfferId: offerDigest(offerDesc.SDP),
+	}, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(xmitted) != 1 || xmitted[0].GetSdpType() != "answer" {
+		t.Fatalf("first offer produced %d answers, want exactly one answer", len(xmitted))
+	}
+	firstAnswer := xmitted[0]
+
+	stateBefore := answerPC.SignalingState()
+	localBefore := answerPC.LocalDescription().SDP
+
+	// Byte-identical redelivery of the same generation: replay the retained
+	// answer instead of re-running SetRemote/CreateAnswer/SetLocal.
+	if err := f.ingest(&WebRtcSdp{
+		SdpType: "offer",
+		Sdp:     offerDesc.SDP,
+		OfferId: offerDigest(offerDesc.SDP),
+	}, nil); err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(xmitted) != 2 {
+		t.Fatalf("duplicate offer produced %d answers, want exactly one replay", len(xmitted))
+	}
+	replayed := xmitted[1]
+	if replayed.GetSdp() != firstAnswer.GetSdp() {
+		t.Fatal("replayed answer changed the local description bytes")
+	}
+	if !bytes.Equal(replayed.GetOfferId(), sess.rxOfferID) {
+		t.Fatal("replayed answer changed the generation identity")
+	}
+	if answerPC.SignalingState() != stateBefore {
+		t.Fatal("replay mutated the signaling state")
+	}
+	if answerPC.LocalDescription().SDP != localBefore {
+		t.Fatal("replay mutated the local description")
+	}
+}
+
+// TestCloseSignalIngressDisposesStashedSessionOnLastResolver pins that the
+// last resolver out detaches the lease and disposes a session handed over for
+// adoption exactly once: the stash is gone and the peer connection is closed.
+func TestCloseSignalIngressDisposesStashedSessionOnLastResolver(t *testing.T) {
+	w := &WebRTC{conf: &Config{}}
+	pc, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Cleanup(func() { pc.Close() })
+	sess := &session{pc: pc, pendingOfferID: []byte("outstanding-offer")}
+	resolver := &handleSignalPeerResolver{t: w}
+	w.incomingSessions = map[string]*signalIngress{"detach-peer": {
+		adoptedSession: sess,
+		resolvers:      map[*handleSignalPeerResolver]struct{}{resolver: {}},
+	}}
+
+	w.closeSignalIngress("detach-peer", resolver)
+
+	if w.incomingSessions["detach-peer"] != nil {
+		t.Fatal("ingress lease survived its last resolver")
+	}
+	if taken := w.takeAdoptableSession("detach-peer"); taken != nil {
+		t.Fatal("stash survived the last-resolver detach")
+	}
+	if pc.ConnectionState() != pion_webrtc.PeerConnectionStateClosed {
+		t.Fatalf("detached stash was not disposed: connection state %s", pc.ConnectionState().String())
+	}
+}
+
+// TestCloseSignalIngressTakeVsDisposeExactlyOnce pins the concurrent handover
+// boundary: a successor taking the stashed session races the last-resolver
+// cleanup, and the take-and-clear under the transport lock yields exactly one
+// adopter or one disposer, never both.
+func TestCloseSignalIngressTakeVsDisposeExactlyOnce(t *testing.T) {
+	for i := range 50 {
+		w := &WebRTC{conf: &Config{}}
+		pc, err := pion_webrtc.NewPeerConnection(pion_webrtc.Configuration{})
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		sess := &session{pc: pc, pendingOfferID: []byte("outstanding-offer")}
+		resolver := &handleSignalPeerResolver{t: w}
+		w.incomingSessions = map[string]*signalIngress{"race-peer": {
+			adoptedSession: sess,
+			resolvers:      map[*handleSignalPeerResolver]struct{}{resolver: {}},
+		}}
+
+		start := make(chan struct{})
+		taken := make(chan *session, 1)
+		go func() {
+			<-start
+			taken <- w.takeAdoptableSession("race-peer")
+		}()
+		go func() {
+			<-start
+			w.closeSignalIngress("race-peer", resolver)
+		}()
+		close(start)
+
+		got := <-taken
+		if got != nil {
+			// The adopter won: the disposer observed an empty stash and left
+			// the connection open for the adopted negotiation.
+			if got.pc != pc {
+				t.Fatal("adopter received a foreign session")
+			}
+			if second := w.takeAdoptableSession("race-peer"); second != nil {
+				t.Fatal("stash was handed over twice")
+			}
+			_ = pc.Close()
+		} else if pc.ConnectionState() != pion_webrtc.PeerConnectionStateClosed {
+			t.Fatalf("iteration %d: disposer won but did not close the connection", i)
+		}
+	}
 }
