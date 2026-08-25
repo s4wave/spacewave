@@ -10,7 +10,7 @@ import { ObjectTypeRegistryResourceServiceClient } from '@s4wave/sdk/objecttype/
 import type { IWorldState } from '@s4wave/sdk/world/world-state.js'
 import { LocalProvider } from '@s4wave/sdk/provider/local/local.js'
 import { Space } from '@s4wave/sdk/space/space.js'
-import type { SpaceSoListEntry } from '@s4wave/sdk/space/space.pb.js'
+import type { SpaceSoListEntry } from '@s4wave/core/space/space.pb.js'
 import { SpaceContents } from '@s4wave/sdk/space/contents.js'
 import { SUBPATH_DELIMITER } from '@s4wave/sdk/space/object-uri.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
