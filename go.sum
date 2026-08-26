@@ -76,8 +76,8 @@ github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260812073402-46b0606ba62e
 github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260812073402-46b0606ba62e/go.mod h1:ouWnb0BiJw+N7WZhaEhz+9xuuCPkq6Kn6kCFr4MKrwA=
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 h1:4Dy3BAHh2kgVdHAqtlwcFsgY0kAwUe2m3rfFcaGwGQg=
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4/go.mod h1:tMgO7y6SJo/d9ZcvrpNqIQtdYT9de+QmYaHOZ4KnhOg=
-github.com/aperturerobotics/protobuf-go-lite v0.17.1-0.20260822063947-4682a526c6ee h1:loR4PIhSB5IjA1hZIPGINvYJpUHxxnP3GtdT1ZhfrGA=
-github.com/aperturerobotics/protobuf-go-lite v0.17.1-0.20260822063947-4682a526c6ee/go.mod h1:3Ay/E7iaw2KWLirK3+dDdNJZHK0hu8Y1/kKeYeUa+8s=
+github.com/aperturerobotics/protobuf-go-lite v0.18.0 h1:M4ylc1wvu6hjwU6bSsfgYhdxCbaBaITp0cJbFFQHgOs=
+github.com/aperturerobotics/protobuf-go-lite v0.18.0/go.mod h1:3Ay/E7iaw2KWLirK3+dDdNJZHK0hu8Y1/kKeYeUa+8s=
 github.com/aperturerobotics/ristretto/v2 v2.0.0-20260705010935-8d0c8a34b53e h1:R1jRl3USxWkaiM0PAJZtUsN5kDnPKDuDu0x4WoZGUVw=
 github.com/aperturerobotics/ristretto/v2 v2.0.0-20260705010935-8d0c8a34b53e/go.mod h1:0KsrXtXvnv0EqnzyowllbVJB8yBonswa2lTCK2gGo9E=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phqiA+X/w4YAT3sP8DyhfP81mo3k6v/RI/t1qGk=
