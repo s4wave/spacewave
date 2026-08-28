@@ -17,6 +17,7 @@ import (
 	forge_pass_tx "github.com/s4wave/spacewave/forge/pass/tx"
 	forge_task_tx "github.com/s4wave/spacewave/forge/task/tx"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	identity_world "github.com/s4wave/spacewave/identity/world"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_kv_world "github.com/s4wave/spacewave/sdk/kv/world"
@@ -137,6 +138,7 @@ func TestBuildSpaceLookupOpResolvesBuiltInWithoutBus(t *testing.T) {
 }
 
 func TestBuildSpaceLookupOpAndLookupWorldOpResolveForgeQuickstartOps(t *testing.T) {
+	requireLookupWorldAndBuildSpaceOp[*identity_world.KeypairUpdateOp](t, identity_world.KeypairUpdateOpId)
 	requireLookupWorldAndBuildSpaceOp[*forge_dashboard.CreateForgeDashboardOp](t, forge_dashboard.CreateForgeDashboardOpId)
 	requireLookupWorldAndBuildSpaceOp[*forge_dashboard.LinkForgeDashboardOp](t, forge_dashboard.LinkForgeDashboardOpId)
 	requireLookupWorldAndBuildSpaceOp[*forge_dashboard.InitForgeQuickstartOp](t, forge_dashboard.InitForgeQuickstartOpId)
