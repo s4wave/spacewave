@@ -4,6 +4,7 @@ package resource_world_test
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
@@ -23,8 +24,12 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
+	"github.com/s4wave/spacewave/identity"
+	identity_world "github.com/s4wave/spacewave/identity/world"
+	spacewave_crypto "github.com/s4wave/spacewave/net/crypto"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
+	sdk_world_engine "github.com/s4wave/spacewave/sdk/world/engine"
 )
 
 // setupWorldTestbed creates a hydra world testbed and returns it.
@@ -80,6 +85,52 @@ func setupWorldResourceClient(ctx context.Context, t *testing.T, tb *world_testb
 	}
 
 	return resClient, engine, cleanup
+}
+
+func TestRemoteWorldPersistsIdentityKeypair(t *testing.T) {
+	ctx := t.Context()
+	tb, cleanup := setupWorldTestbed(ctx, t)
+	defer cleanup()
+	resourceClient, resourceEngine, cleanupClient := setupWorldResourceClient(ctx, t, tb)
+	defer cleanupClient()
+	engineRef := resourceClient.CreateResourceReference(resourceEngine.GetResourceRef().GetResourceID())
+	engine, err := sdk_world_engine.NewSDKEngine(resourceClient, engineRef)
+	if err != nil {
+		engineRef.Release()
+		t.Fatal(err)
+	}
+	defer engine.Release()
+
+	_, publicKey, err := spacewave_crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keypair, err := identity.NewKeypair(publicKey, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sender, err := keypair.ParsePeerID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := world.ExecTransaction(ctx, engine, true, func(ctx context.Context, ws world.WorldState) error {
+		_, err := identity_world.EnsureKeypairsExist(ctx, ws, sender, []*identity.Keypair{keypair}, false)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := world.ExecTransaction(ctx, engine, false, func(ctx context.Context, ws world.WorldState) error {
+		stored, err := identity_world.LookupKeypairBody(ctx, ws, identity_world.NewKeypairKey(sender.String()))
+		if err != nil {
+			return err
+		}
+		if stored == nil || !stored.EqualVT(keypair) {
+			return errors.New("remote World did not retain the identity keypair")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 type countingTx struct {
