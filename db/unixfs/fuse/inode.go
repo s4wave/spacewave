@@ -270,7 +270,7 @@ func (i *Inode) Create(
 	resp *fuse.CreateResponse,
 ) (fs.Node, fs.Handle, error) {
 	// Require each successful write to reach the World before FUSE reports it.
-	resp.OpenResponse.Flags |= fuse.OpenDirectIO
+	resp.Flags |= fuse.OpenDirectIO
 	openFlags := req.Flags | fuse.OpenSync
 
 	name := req.Name

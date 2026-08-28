@@ -78,7 +78,7 @@ func TestInodeCreateUsesSynchronousDirectIO(t *testing.T) {
 	t.Cleanup(func() {
 		_ = opened.Release(context.Background(), &fuse.ReleaseRequest{})
 	})
-	if response.OpenResponse.Flags&fuse.OpenDirectIO == 0 {
+	if response.Flags&fuse.OpenDirectIO == 0 {
 		t.Fatal("expected OpenDirectIO response flag")
 	}
 	if opened.openFlags&fuse.OpenSync == 0 {
