@@ -32,6 +32,8 @@ github.com/aperturerobotics/common v0.35.3-0.20260821174355-5178d1c5fe41 h1:QyTx
 github.com/aperturerobotics/common v0.35.3-0.20260821174355-5178d1c5fe41/go.mod h1:/sl0p5kW3P3I68AFSlr+KCQju14aUQuCdnxMJ+vzJF8=
 github.com/aperturerobotics/controllerbus v0.53.5-0.20260824053313-c237a1261331 h1:kw73fJ5NZUpBfiQeIClm/rxWRW3W4fp4TgTXwZgTyeg=
 github.com/aperturerobotics/controllerbus v0.53.5-0.20260824053313-c237a1261331/go.mod h1:rWdcZCKa8cT7kJAHERzrIq2D/qmBCAGGYkbvBKfjjH0=
+github.com/aperturerobotics/controllerbus v0.53.5-0.20260824183849-02413eacc3de h1:FsRiEw05cnzDsNdejdIBZSmoheio7EcY0iubWbQkXpM=
+github.com/aperturerobotics/controllerbus v0.53.5-0.20260824183849-02413eacc3de/go.mod h1:rWdcZCKa8cT7kJAHERzrIq2D/qmBCAGGYkbvBKfjjH0=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d h1:TVae+YDmMmtutvNKC5d64yXx5Woa3QIq3Ndn11J1IPQ=
 github.com/aperturerobotics/cpp-yamux v0.0.0-20260223122921-58339cfd0e5d/go.mod h1:z43wdjwvCS9HJwxnqEtWgedAqWpeK6c5vozJoGXtUug=
 github.com/aperturerobotics/esbuild v0.24.1-0.20260219011422-6d4b923e2023 h1:OFfw+2XQglhiej7liQM/YQneJTkJvENZLfR/H4zmZ8Q=
@@ -44,6 +46,8 @@ github.com/aperturerobotics/go-brotli-decoder v1.2.2 h1:86K8ep4IumgTjJAKrr8YOp1O
 github.com/aperturerobotics/go-brotli-decoder v1.2.2/go.mod h1:YTEQqhat1/c+qVaOqhuCU80nu+O8gzJOpbafK3Y8pOc=
 github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260620031345-da32192f9c83 h1:OEV//vcEj5jtC9Bb+BtlYTeV+H2m0ypzoDcTI7ODGzw=
 github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260620031345-da32192f9c83/go.mod h1:yivaqhvl5Xe+5pRuz+SjkZ06/zkWOBKocl0GyIoXrd4=
+github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260828124433-e9a9043dd318 h1:qgjo/oVjlYz/F8ffllKPKo/9vg5SSCj6qJqLHtS3GBs=
+github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260828124433-e9a9043dd318/go.mod h1:yivaqhvl5Xe+5pRuz+SjkZ06/zkWOBKocl0GyIoXrd4=
 github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260329113533-333005693662 h1:PBlBYtFJHqbsRalTvDbiM9Dgk4PfHwzEbd00h51aIs4=
 github.com/aperturerobotics/go-indexeddb v0.2.4-0.20260329113533-333005693662/go.mod h1:JV1XngOCCui7zrMSyRz+Wvz00nUSfotRKZqJzWpl5fQ=
 github.com/aperturerobotics/go-kvfile v0.10.1-0.20260705010911-5c5ed949ddfe h1:WrZSu4hkdfPGqao8LBY5bsRxDjlNPVe+02o0hxVGQmc=
@@ -78,6 +82,8 @@ github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4 h1:4Dy3B
 github.com/aperturerobotics/protobuf v0.0.0-20260203024654-8201686529c4/go.mod h1:tMgO7y6SJo/d9ZcvrpNqIQtdYT9de+QmYaHOZ4KnhOg=
 github.com/aperturerobotics/protobuf-go-lite v0.18.0 h1:M4ylc1wvu6hjwU6bSsfgYhdxCbaBaITp0cJbFFQHgOs=
 github.com/aperturerobotics/protobuf-go-lite v0.18.0/go.mod h1:3Ay/E7iaw2KWLirK3+dDdNJZHK0hu8Y1/kKeYeUa+8s=
+github.com/aperturerobotics/protobuf-go-lite v0.18.1-0.20260826222423-298dca0e6eaf h1:Tckjg0YEboL8uf/ZWuDsp1eTQ0GDCWORar/atnxPIU4=
+github.com/aperturerobotics/protobuf-go-lite v0.18.1-0.20260826222423-298dca0e6eaf/go.mod h1:3Ay/E7iaw2KWLirK3+dDdNJZHK0hu8Y1/kKeYeUa+8s=
 github.com/aperturerobotics/ristretto/v2 v2.0.0-20260705010935-8d0c8a34b53e h1:R1jRl3USxWkaiM0PAJZtUsN5kDnPKDuDu0x4WoZGUVw=
 github.com/aperturerobotics/ristretto/v2 v2.0.0-20260705010935-8d0c8a34b53e/go.mod h1:0KsrXtXvnv0EqnzyowllbVJB8yBonswa2lTCK2gGo9E=
 github.com/aperturerobotics/saucer v0.0.0-20260317232052-4db05a4e0b4c h1:32+9phqiA+X/w4YAT3sP8DyhfP81mo3k6v/RI/t1qGk=
