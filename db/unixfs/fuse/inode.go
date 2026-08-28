@@ -269,6 +269,10 @@ func (i *Inode) Create(
 	req *fuse.CreateRequest,
 	resp *fuse.CreateResponse,
 ) (fs.Node, fs.Handle, error) {
+	// Require each successful write to reach the World before FUSE reports it.
+	resp.OpenResponse.Flags |= fuse.OpenDirectIO
+	openFlags := req.Flags | fuse.OpenSync
+
 	name := req.Name
 	mode := req.Mode
 
@@ -294,7 +298,7 @@ func (i *Inode) Create(
 		return nil, nil, err
 	}
 
-	return childNode, NewHandle(childNode, req.Flags), nil
+	return childNode, NewHandle(childNode, openFlags), nil
 }
 
 // Rename moves an inode from one location to another.
@@ -433,7 +437,9 @@ func (i *Inode) Open(
 	req *fuse.OpenRequest,
 	resp *fuse.OpenResponse,
 ) (fs.Handle, error) {
-	return NewHandle(i, req.Flags), nil
+	// Bypass the kernel page cache and the Handle's asynchronous write buffer.
+	resp.Flags |= fuse.OpenDirectIO
+	return NewHandle(i, req.Flags|fuse.OpenSync), nil
 }
 
 // Remove removes the entry with the given name from the receiver, which must be

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	billy_util "github.com/go-git/go-billy/v6/util"
+	"github.com/s4wave/spacewave/db/block"
+	block_mock "github.com/s4wave/spacewave/db/block/mock"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
@@ -20,6 +22,120 @@ import (
 )
 
 var objKey = "test/fs"
+
+// TestEngineWorldFilesystemSurvivesConcurrentWriteAndSync checks that a
+// retained filesystem handle and another World writer cannot lose each other's
+// committed values.
+func TestEngineWorldFilesystemSurvivesConcurrentWriteAndSync(t *testing.T) {
+	ctx := context.Background()
+	logger := logrus.New()
+	le := logrus.NewEntry(logger)
+
+	tb, err := hydra_testbed.NewTestbed(ctx, le)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wtb, err := world_testbed.NewTestbed(tb)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Retain a writable filesystem handle after its initialization commit.
+	fsHandle, err := InitTestbed(wtb, objKey, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(fsHandle.Release)
+	ws := world.NewEngineWorldState(wtb.Engine, true)
+	initialSeqno, err := ws.GetSeqno(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Commit an unrelated object through another short transaction.
+	const unrelatedKey = "test/concurrent-object"
+	const unrelatedValue = "concurrent write survives"
+	_, _, err = world.CreateWorldObject(ctx, ws, unrelatedKey, func(bcs *block.Cursor) error {
+		bcs.SetBlock(block_mock.NewExample(unrelatedValue), true)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	concurrentSeqno, err := ws.GetSeqno(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if concurrentSeqno <= initialSeqno {
+		t.Fatalf("expected concurrent write to advance seqno beyond %d, got %d", initialSeqno, concurrentSeqno)
+	}
+
+	// Write through the retained filesystem handle.
+	const fileName = "retained-handle.txt"
+	content := []byte("filesystem write survives")
+	if err := fsHandle.Mknod(ctx, true, []string{fileName}, unixfs.NewFSCursorNodeType_File(), 0o644, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	fileHandle, err := fsHandle.Lookup(ctx, fileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(fileHandle.Release)
+	if err := fileHandle.WriteAt(ctx, 0, content, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	fileHandle.Release()
+	filesystemSeqno, err := ws.GetSeqno(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if filesystemSeqno <= concurrentSeqno {
+		t.Fatalf("expected filesystem write to advance seqno beyond %d, got %d", concurrentSeqno, filesystemSeqno)
+	}
+
+	// Release the retained handle before fencing durable storage.
+	fsHandle.Release()
+	if _, err := ws.Sync(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	// Reopen from the engine and prove that neither writer lost the other.
+	freshWS := world.NewEngineWorldState(wtb.Engine, false)
+	unrelated, err := world.LookupObjectBody[*block_mock.Example](ctx, freshWS, unrelatedKey, block_mock.NewExampleBlock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unrelated.GetMsg() != unrelatedValue {
+		t.Fatalf("expected unrelated value %q, got %q", unrelatedValue, unrelated.GetMsg())
+	}
+	freshFS, err := unixfs_world.BuildFSFromUnixfsRef(
+		ctx,
+		le,
+		freshWS,
+		"",
+		&unixfs_world.UnixfsRef{ObjectKey: objKey},
+		false,
+		false,
+		time.Now(),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(freshFS.Release)
+	freshFile, err := freshFS.Lookup(ctx, fileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(freshFile.Release)
+	read := make([]byte, len(content))
+	n, err := freshFile.ReadAt(ctx, 0, read)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != int64(len(content)) || !bytes.Equal(read, content) {
+		t.Fatalf("expected file %q, got %q (%d bytes)", content, read, n)
+	}
+}
 
 // TestFs runs the e2e tests.
 func TestFs(t *testing.T) {
