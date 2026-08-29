@@ -173,7 +173,7 @@ func TestNewSOSync(t *testing.T) {
 	if s.soID != "test-so-id" {
 		t.Errorf("expected test-so-id, got %s", s.soID)
 	}
-	if s.localPeerID != peer.ID("test-peer") {
-		t.Errorf("expected test-peer local peer id, got %s", s.localPeerID)
+	if s.localObjectPeerID != peer.ID("test-peer") {
+		t.Errorf("expected test-peer local object peer id, got %s", s.localObjectPeerID)
 	}
 }
