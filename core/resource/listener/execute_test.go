@@ -113,6 +113,7 @@ func TestServeOnceRefusesConnectableSocket(t *testing.T) {
 		sock,
 		yield_policy.NewBroker(),
 		NewStatusBroker(),
+		true,
 		false,
 	)
 	if err == nil {
@@ -243,6 +244,7 @@ func TestServeOnceReleasesSocketBeforeDrainingConcurrentClients(t *testing.T) {
 			sock,
 			broker,
 			status,
+			true,
 			false,
 		)
 		serveResultCh <- serveResult{yielded: yielded, err: err}

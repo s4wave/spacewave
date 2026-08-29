@@ -111,7 +111,16 @@ func (c *Controller) Execute(ctx context.Context) error {
 		}
 
 		// Serve until shutdown, takeover, or context cancellation.
-		yielded, err := c.serveOnce(ctx, le, invokers[0], absPath, broker, status, allowTakeover)
+		yielded, err := c.serveOnce(
+			ctx,
+			le,
+			invokers[0],
+			absPath,
+			broker,
+			status,
+			c.GetConfig().SocketPathManaged(),
+			allowTakeover,
+		)
 		if err != nil {
 			if listener_control.IsSocketInUse(err) {
 				// Another live daemon holds the socket. Retrying under the
@@ -161,6 +170,7 @@ func (c *Controller) serveOnce(
 	absPath string,
 	broker *yield_policy.Broker,
 	status *StatusBroker,
+	managed bool,
 	allowTakeover bool,
 ) (bool, error) {
 	// Choose the socket preparation policy for this serve attempt.
@@ -171,12 +181,8 @@ func (c *Controller) serveOnce(
 	if err := prepare(parentCtx, le, absPath); err != nil {
 		return false, errors.Wrap(err, "prepare socket")
 	}
-	if err := os.MkdirAll(filepath.Dir(absPath), 0o755); err != nil {
-		return false, err
-	}
-
-	// Bind the Unix socket and classify bind races.
-	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: absPath, Net: "unix"})
+	// Bind only after the socket parent has been made private.
+	lis, err := ListenProtectedUnix(absPath, managed)
 	if err != nil {
 		if stderrors.Is(err, syscall.EADDRINUSE) {
 			// Two daemons can both pass the availability check before
@@ -188,10 +194,6 @@ func (c *Controller) serveOnce(
 		return false, err
 	}
 	defer lis.Close()
-
-	if err := os.Chmod(absPath, 0o600); err != nil {
-		le.WithError(err).Warn("failed to chmod socket")
-	}
 
 	// Publish listening status and register RPC handlers.
 	le.Infof("resource listener listening on %s", absPath)
