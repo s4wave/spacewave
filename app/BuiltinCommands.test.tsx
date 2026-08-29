@@ -1,15 +1,8 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  waitFor,
-} from '@testing-library/react'
+import { act, cleanup, render, waitFor } from '@testing-library/react'
 
 import type { KeybindingEditorProps } from '@s4wave/web/command/KeybindingEditor.js'
-import type { KeyboardShortcutsDialogProps } from '@s4wave/web/command/KeyboardShortcutsDialog.js'
 import { BuiltinCommands } from './BuiltinCommands.js'
 
 interface RegisteredCommand {
@@ -38,7 +31,6 @@ interface BuiltinCommandMocks {
   openPathInActiveTabset: (path: string, opts: ShellTabOpenOptions) => void
   appPath: string
   setAppPath: (path: string) => void
-  keyboardShortcutsDialogs: KeyboardShortcutsDialogProps[]
   keybindingEditors: KeybindingEditorProps[]
 }
 
@@ -54,20 +46,6 @@ vi.mock('@aptre/bldr', () => ({
 vi.mock('@s4wave/web/command/useCommand.js', () => ({
   useCommand: (opts: RegisteredCommand) => {
     builtinCommandMocks.commands.push(opts)
-  },
-}))
-
-vi.mock('@s4wave/web/command/KeyboardShortcutsDialog.js', () => ({
-  KeyboardShortcutsDialog: (props: KeyboardShortcutsDialogProps) => {
-    builtinCommandMocks.keyboardShortcutsDialogs.push(props)
-    return props.open ? (
-      <button
-        type="button"
-        onClick={() => props.onEditCommand?.('spacewave.file.open')}
-      >
-        Edit Open File
-      </button>
-    ) : null
   },
 }))
 
@@ -144,7 +122,6 @@ describe('BuiltinCommands', () => {
       openPathInActiveTabset: vi.fn(),
       appPath: '/',
       setAppPath: vi.fn(),
-      keyboardShortcutsDialogs: [],
       keybindingEditors: [],
     }
   })
@@ -263,24 +240,16 @@ describe('BuiltinCommands', () => {
     })
   })
 
-  it('opens the local keybinding editor from the shortcuts dialog row edit affordance', () => {
+  it('opens the shortcuts workbench from the help command', () => {
     render(<BuiltinCommands />)
 
     act(() => {
       findCommand('spacewave.help.shortcuts')?.handler({})
     })
-    expect(
-      builtinCommandMocks.keyboardShortcutsDialogs.some((props) => props.open),
-    ).toBe(true)
-    fireEvent.click(document.querySelector('button') as HTMLButtonElement)
 
-    expect(builtinCommandMocks.keyboardShortcutsDialogs.at(-1)).toMatchObject({
-      open: false,
-    })
     expect(builtinCommandMocks.keybindingEditors.at(-1)).toMatchObject({
       open: true,
       initialScope: 'local',
-      initialCommandId: 'spacewave.file.open',
     })
   })
 })

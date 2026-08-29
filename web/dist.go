@@ -8,11 +8,11 @@ import "embed"
 // internal source directories and assets.
 //
 //go:embed command/CommandContext.tsx command/CommandPalette.tsx command/FocusContext.tsx
-//go:embed command/KeyDispatcher.tsx command/KeybindingBindingList.tsx command/KeybindingCaptureInput.tsx
+//go:embed command/KeyDispatcher.tsx command/KeybindingBindingsSection.tsx
 //go:embed command/KeybindingCommandDetails.tsx command/KeybindingCommandList.tsx
 //go:embed command/KeybindingConflictList.tsx command/KeybindingDiscoverySettings.tsx
-//go:embed command/KeybindingEditor.tsx command/KeybindingEditorActions.tsx command/KeybindingEditorContext.ts
-//go:embed command/KeybindingResolver.ts command/KeyboardManager.tsx command/KeyboardShortcutsDialog.tsx
+//go:embed command/KeybindingEditor.tsx command/KeybindingEditorContext.ts
+//go:embed command/KeybindingResolver.ts command/KeyboardManager.tsx
 //go:embed command/WhichKeyPanel.tsx command/component.ts command/index.ts command/keybinding-editor-helpers.ts
 //go:embed command/keybinding-overrides.ts command/sub-item-navigation.ts
 //go:embed command/useAccountKeybindingOverrides.ts command/useCommand.ts command/useKeybindingEditorLayers.ts

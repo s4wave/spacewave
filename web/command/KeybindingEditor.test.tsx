@@ -118,6 +118,9 @@ vi.mock('@s4wave/web/ui/dialog.js', () => ({
   DialogTitle: ({ children }: { children: React.ReactNode }) => (
     <h2>{children}</h2>
   ),
+  DialogDescription: ({ children }: { children: React.ReactNode }) => (
+    <p>{children}</p>
+  ),
 }))
 
 function comboBinding(
@@ -236,27 +239,23 @@ describe('KeybindingEditor', () => {
     ]
 
     const view = renderEditor()
-    const scope = view.container.querySelector('select') as HTMLSelectElement
-    const options = Array.from(scope.options).map((option) => ({
-      text: option.textContent,
-      value: option.value,
-      disabled: option.disabled,
-    }))
-
-    expect(options).toContainEqual({
-      text: 'Local',
-      value: 'local',
-      disabled: false,
-    })
-    expect(options.some((option) => option.text?.includes('next phase'))).toBe(
+    expect(view.getByRole('button', { name: 'This device' })).toHaveProperty(
+      'disabled',
       false,
     )
-    expect(scope.value).toBe('local')
+    expect(view.getByRole('button', { name: 'Account' })).toHaveProperty(
+      'disabled',
+      true,
+    )
+    expect(view.getByRole('button', { name: 'Space' })).toHaveProperty(
+      'disabled',
+      true,
+    )
     expect(view.getAllByText('Paint Brush').length).toBeGreaterThan(0)
     expect(view.getAllByText('Open Terminal').length).toBeGreaterThan(0)
     expect(view.getAllByText('Special Command').length).toBeGreaterThan(0)
 
-    const search = view.getByPlaceholderText('Search commands…')
+    const search = view.getByPlaceholderText('Search commands or shortcuts…')
 
     await act(() => fireEvent.input(search, { target: { value: 'brush' } }))
     await waitFor(() => {
@@ -306,22 +305,14 @@ describe('KeybindingEditor', () => {
     }
 
     const view = renderEditor('spacewave.open', 'account')
-    const scope = view.container.querySelector('select') as HTMLSelectElement
-    const options = Array.from(scope.options).map((option) => ({
-      text: option.textContent,
-      value: option.value,
-      disabled: option.disabled,
-    }))
-
-    expect(options).toContainEqual({
-      text: 'Account',
-      value: 'account',
-      disabled: false,
-    })
-    expect(options.find((option) => option.value === 'space')?.disabled).toBe(
+    expect(view.getByRole('button', { name: 'Account' })).toHaveProperty(
+      'disabled',
+      false,
+    )
+    expect(view.getByRole('button', { name: 'Space' })).toHaveProperty(
+      'disabled',
       true,
     )
-    expect(scope.value).toBe('account')
     const leaderInput = view.getByLabelText('Leader combo') as HTMLInputElement
     const delayInput = view.getByLabelText(
       'Which-key delay',
@@ -330,9 +321,6 @@ describe('KeybindingEditor', () => {
     expect(delayInput.disabled).toBe(false)
     expect(leaderInput.readOnly).toBe(false)
     expect(delayInput.readOnly).toBe(false)
-    expect(options.some((option) => option.text?.includes('next phase'))).toBe(
-      false,
-    )
     expect(view.queryByText(/account settings are read-only/i)).toBeNull()
 
     const user = userEvent.setup({ document })
@@ -368,12 +356,12 @@ describe('KeybindingEditor', () => {
       whichKeyDelayMs: 125,
     })
 
-    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    fireEvent.click(view.getByRole('button', { name: 'Record shortcut' }))
     fireEvent.keyDown(document, {
       key: 'K',
       ctrlKey: true,
     })
-    fireEvent.click(view.getByRole('button', { name: 'Save binding' }))
+    fireEvent.click(view.getByRole('button', { name: 'Save shortcut' }))
 
     expect(
       sharedLayerHookState.account.setCommandBindings,
@@ -384,12 +372,16 @@ describe('KeybindingEditor', () => {
     ])
     expect(sharedLayerHookState.space.setCommandBindings).not.toHaveBeenCalled()
 
-    fireEvent.click(view.getByRole('button', { name: /Reset command/ }))
+    fireEvent.click(
+      view.getByRole('button', { name: /Use inherited shortcuts/ }),
+    )
     expect(sharedLayerHookState.account.resetCommand).toHaveBeenCalledWith(
       'spacewave.open',
     )
 
-    fireEvent.click(view.getByRole('button', { name: /Reset Account layer/ }))
+    fireEvent.click(
+      view.getByRole('button', { name: /Reset Account settings/ }),
+    )
     expect(sharedLayerHookState.account.resetLayer).toHaveBeenCalled()
   })
 
@@ -418,21 +410,17 @@ describe('KeybindingEditor', () => {
     }
 
     const view = renderEditor('spacewave.open', 'space')
-    const scope = view.container.querySelector('select') as HTMLSelectElement
-    const spaceOption = Array.from(scope.options).find(
-      (option) => option.value === 'space',
+    expect(view.getByRole('button', { name: 'Space' })).toHaveProperty(
+      'disabled',
+      false,
     )
 
-    expect(spaceOption).toBeDefined()
-    expect(spaceOption?.disabled).toBe(false)
-    expect(scope.value).toBe('space')
-
-    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    fireEvent.click(view.getByRole('button', { name: 'Record shortcut' }))
     fireEvent.keyDown(document, {
       key: 'K',
       ctrlKey: true,
     })
-    fireEvent.click(view.getByRole('button', { name: 'Save binding' }))
+    fireEvent.click(view.getByRole('button', { name: 'Save shortcut' }))
 
     expect(sharedLayerHookState.space.setCommandBindings).toHaveBeenCalledWith(
       'spacewave.open',
@@ -446,19 +434,19 @@ describe('KeybindingEditor', () => {
       sharedLayerHookState.account.setCommandBindings,
     ).not.toHaveBeenCalled()
 
-    fireEvent.click(
-      view.getByRole('button', { name: /Disable command bindings/ }),
-    )
+    fireEvent.click(view.getByRole('button', { name: /Disable shortcuts/ }))
     expect(
       sharedLayerHookState.space.clearCommandBindings,
     ).toHaveBeenCalledWith('spacewave.open')
 
-    fireEvent.click(view.getByRole('button', { name: /Reset command/ }))
+    fireEvent.click(
+      view.getByRole('button', { name: /Use inherited shortcuts/ }),
+    )
     expect(sharedLayerHookState.space.resetCommand).toHaveBeenCalledWith(
       'spacewave.open',
     )
 
-    fireEvent.click(view.getByRole('button', { name: /Reset Space layer/ }))
+    fireEvent.click(view.getByRole('button', { name: /Reset Space settings/ }))
     expect(sharedLayerHookState.space.resetLayer).toHaveBeenCalled()
   })
 
@@ -474,8 +462,8 @@ describe('KeybindingEditor', () => {
 
     const view = renderEditor('spacewave.open')
 
-    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
-    expect(document.activeElement).not.toBe(view.getByRole('status'))
+    fireEvent.click(view.getByRole('button', { name: 'Record shortcut' }))
+    expect(document.activeElement).toBe(view.getByRole('status'))
     fireEvent.keyDown(document, {
       key: 'Shift',
       shiftKey: true,
@@ -490,18 +478,17 @@ describe('KeybindingEditor', () => {
     })
     await act(() => document.dispatchEvent(comboEvent))
     expect(comboEvent.defaultPrevented).toBe(true)
-    expect(view.getByText(/Pending replacement:/).textContent).toContain(
-      'Ctrl+Shift+K',
-    )
+    expect(view.getByText('Ctrl+Shift+K')).toBeTruthy()
 
-    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    fireEvent.click(view.getByRole('button', { name: 'Record shortcut' }))
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(view.queryByText(/Recording… press keys/)).toBeNull()
-    expect(view.queryByText(/Pending replacement:/)).toBeNull()
+    expect(view.queryByText('Recording shortcut')).toBeNull()
+    expect(view.queryByText('Replace with')).toBeNull()
 
-    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    fireEvent.click(view.getByRole('button', { name: 'Record shortcut' }))
     fireEvent.pointerDown(document.body)
-    expect(view.queryByText(/Recording… press keys/)).toBeNull()
+    expect(view.getByText('Recording shortcut')).toBeTruthy()
+    fireEvent.keyDown(document, { key: 'Escape' })
   })
 
   it('captures combos and Leader sequences, mutates the local layer, clears defaults, and resets overrides', async () => {
@@ -526,57 +513,53 @@ describe('KeybindingEditor', () => {
 
     expect(within(editorPanel()).getByText('Ctrl+O')).toBeTruthy()
 
-    fireEvent.click(view.getByRole('button', { name: 'Clear' }))
+    fireEvent.click(view.getByRole('button', { name: 'Remove' }))
     await waitFor(() => {
       expect(view.queryByText('Ctrl+O')).toBeNull()
-      expect(view.getByText(/No keyboard binding/)).toBeTruthy()
+      expect(view.getByText(/No keyboard shortcut/)).toBeTruthy()
     })
 
-    fireEvent.click(view.getByRole('button', { name: /Reset command/ }))
+    fireEvent.click(
+      view.getByRole('button', { name: /Use inherited shortcuts/ }),
+    )
     await waitFor(() => {
       expect(within(editorPanel()).getByText('Ctrl+O')).toBeTruthy()
     })
 
-    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    fireEvent.click(view.getByRole('button', { name: 'Record shortcut' }))
     fireEvent.keyDown(document, {
       key: 'K',
       ctrlKey: true,
     })
-    expect(view.getByText(/Pending replacement:/).textContent).toContain(
-      'Ctrl+K',
-    )
-    fireEvent.click(view.getByRole('button', { name: 'Save binding' }))
+    expect(view.getByText('Ctrl+K')).toBeTruthy()
+    fireEvent.click(view.getByRole('button', { name: 'Save shortcut' }))
     await waitFor(() => {
       expect(view.queryByText('Ctrl+O')).toBeNull()
       expect(view.getAllByText('Ctrl+K').length).toBeGreaterThan(0)
       expect(view.getByText('Local · Global')).toBeTruthy()
     })
 
-    fireEvent.click(view.getByRole('button', { name: 'Add Leader sequence' }))
+    fireEvent.click(view.getByRole('button', { name: 'Add key sequence' }))
     fireEvent.keyDown(document, {
       key: 'K',
     })
-    expect(view.getByText(/Pending addition:/).textContent).toContain(
-      'Leader K',
-    )
-    fireEvent.click(view.getByRole('button', { name: 'Save binding' }))
+    expect(view.getByText('Leader K')).toBeTruthy()
+    fireEvent.click(view.getByRole('button', { name: 'Save shortcut' }))
     await waitFor(() => {
       expect(view.getByText('Leader K')).toBeTruthy()
     })
 
     fireEvent.click(view.getByText('Close File'))
     expect(within(editorPanel()).getByText('Ctrl+W')).toBeTruthy()
-    fireEvent.click(
-      view.getByRole('button', { name: /Disable command bindings/ }),
-    )
+    fireEvent.click(view.getByRole('button', { name: /Disable shortcuts/ }))
     await waitFor(() => {
       expect(within(editorPanel()).queryByText('Ctrl+W')).toBeNull()
       expect(
-        within(editorPanel()).getByText(/No keyboard binding/),
+        within(editorPanel()).getByText(/No keyboard shortcut/),
       ).toBeTruthy()
     })
 
-    fireEvent.click(view.getByRole('button', { name: /Reset Local layer/ }))
+    fireEvent.click(view.getByRole('button', { name: /Reset Local settings/ }))
     fireEvent.click(view.getByText('Open File'))
     await waitFor(() => {
       expect(within(editorPanel()).getByText('Ctrl+O')).toBeTruthy()
@@ -606,18 +589,18 @@ describe('KeybindingEditor', () => {
 
     const view = renderEditor('spacewave.open')
 
-    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    fireEvent.click(view.getByRole('button', { name: 'Record shortcut' }))
     fireEvent.keyDown(document, {
       key: 'K',
       ctrlKey: true,
     })
-    fireEvent.click(view.getByRole('button', { name: 'Save binding' }))
+    fireEvent.click(view.getByRole('button', { name: 'Save shortcut' }))
     await waitFor(() => {
       expect(view.getAllByText('Ctrl+K').length).toBeGreaterThan(0)
     })
 
     fireEvent.click(view.getByText('Close File'))
-    fireEvent.click(view.getByRole('button', { name: 'Replace with combo' }))
+    fireEvent.click(view.getByRole('button', { name: 'Record shortcut' }))
     fireEvent.keyDown(document, {
       key: 'K',
       ctrlKey: true,
@@ -632,20 +615,17 @@ describe('KeybindingEditor', () => {
             'Global combo Ctrl+K is used by Open File, Close File.',
         ).length,
       ).toBeGreaterThan(0)
-      expect(view.getByRole('button', { name: 'Save binding' })).toHaveProperty(
-        'disabled',
-        true,
-      )
+      expect(view.queryByRole('button', { name: 'Save shortcut' })).toBeNull()
       expect(within(editorPanel()).getByText('Ctrl+W')).toBeTruthy()
     })
 
-    expect(view.getByText('Already used by Open File')).toBeTruthy()
+    expect(view.getByText(/already used by Open File/i)).toBeTruthy()
     fireEvent.click(
-      view.getByRole('button', { name: 'Replace existing binding' }),
+      view.getByRole('button', { name: 'Replace existing shortcut' }),
     )
     await waitFor(() => {
       expect(within(editorPanel()).getByText('Ctrl+K')).toBeTruthy()
-      expect(view.queryByText('Already used by Open File')).toBeNull()
+      expect(view.queryByText(/already used by Open File/i)).toBeNull()
     })
     fireEvent.click(view.getByText('Open File'))
     await waitFor(() => {

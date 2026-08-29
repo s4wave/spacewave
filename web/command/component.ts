@@ -80,7 +80,7 @@ export interface KeybindingEditorContextValue {
   capture: CaptureState | null
   captureError: string | null
   setQuery: (query: string) => void
-  setSelectedCommandId: (commandId: string) => void
+  setSelectedCommandId: (commandId: string | null) => void
   setSelectedScope: (scope: KeybindingEditorScope) => void
   startCapture: (kind: 'combo' | 'sequence', replace: boolean) => void
   cancelCapture: () => void

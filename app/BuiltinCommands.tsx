@@ -4,7 +4,6 @@ import { isDesktop, quitDesktopRuntime } from '@aptre/bldr'
 import { getAppPath, setAppPath } from '@s4wave/web/router/app-path.js'
 import { useCommand } from '@s4wave/web/command/useCommand.js'
 import { CommandSurface } from '@s4wave/sdk/command/command.pb.js'
-import { KeyboardShortcutsDialog } from '@s4wave/web/command/KeyboardShortcutsDialog.js'
 import {
   KeybindingEditor,
   type KeybindingEditorScope,
@@ -22,7 +21,6 @@ import { SelectAccountCommand } from '@s4wave/app/session/SelectAccountCommand.j
 // Returns null (no UI).
 export function BuiltinCommands() {
   const { activeTabId, openPathInActiveTabset, resetShellTabs } = useShellTabs()
-  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [keybindingEditorOpen, setKeybindingEditorOpen] = useState(false)
   const [keybindingEditorScope, setKeybindingEditorScope] =
     useState<KeybindingEditorScope>('local')
@@ -131,7 +129,10 @@ export function BuiltinCommands() {
     menuPath: 'Help/Keyboard Shortcuts',
     menuGroup: 10,
     menuOrder: 2,
-    handler: useCallback(() => setShortcutsOpen(true), []),
+    handler: useCallback(
+      () => openKeybindingEditor('local'),
+      [openKeybindingEditor],
+    ),
   })
 
   useCommand({
@@ -219,14 +220,6 @@ export function BuiltinCommands() {
     <>
       <SelectAccountCommand />
       {isDesktop && <DesktopBuiltinCommands />}
-      <KeyboardShortcutsDialog
-        open={shortcutsOpen}
-        onOpenChange={setShortcutsOpen}
-        onEditCommand={(commandId) => {
-          setShortcutsOpen(false)
-          openKeybindingEditor('local', commandId)
-        }}
-      />
       <KeybindingEditor
         open={keybindingEditorOpen}
         onOpenChange={setKeybindingEditorOpen}

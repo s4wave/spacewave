@@ -97,29 +97,17 @@ export function useKeybindingRecorder({
     })
   })
 
-  const handlePointerDown = useEffectEvent((event: PointerEvent) => {
-    const target = event.target
-    if (
-      target instanceof Element &&
-      target.closest('[data-keybinding-recorder]')
-    ) {
-      return
-    }
-    cancelCapture()
-  })
-
   const recording = Boolean(capture)
   useEffect(() => {
     if (!recording) return
     document.documentElement.dataset.keybindingRecording = 'true'
     document.addEventListener('keydown', handleKeyDown, true)
     document.addEventListener('keyup', handleKeyUp, true)
-    document.addEventListener('pointerdown', handlePointerDown, true)
+    document.querySelector<HTMLElement>('[data-keybinding-recorder]')?.focus()
     return () => {
       delete document.documentElement.dataset.keybindingRecording
       document.removeEventListener('keydown', handleKeyDown, true)
       document.removeEventListener('keyup', handleKeyUp, true)
-      document.removeEventListener('pointerdown', handlePointerDown, true)
     }
   }, [recording])
 }
