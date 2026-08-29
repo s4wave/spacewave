@@ -202,10 +202,12 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 
 	// The OWNER approves the ticket.
 	ownerRes := resource_session.NewLocalSessionResource(ownerEnv.tb.Bus, ownerSess)
-	resp, err := ownerRes.ApproveSpaceLink(ctx, &s4wave_session.ApproveLocalSpaceLinkRequest{
+	approvalCtx, cancelApproval := context.WithCancel(ctx)
+	resp, err := ownerRes.ApproveSpaceLink(approvalCtx, &s4wave_session.ApproveLocalSpaceLinkRequest{
 		Ticket:     ticketBytes,
 		ResourceId: spaceID,
 	})
+	cancelApproval()
 	if err != nil {
 		t.Fatal(err)
 	}
