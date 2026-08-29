@@ -476,6 +476,14 @@ func (a *ProviderAccount) stopSessionTransportStateLocked(ctx context.Context, s
 	return nil
 }
 
+// fallbackSignalingEndpoint returns the configured trusted cloud signaling
+// endpoint for sessions whose cloud relay lookup found nothing. Standalone
+// local sessions have no linked cloud account, so the persisted provider
+// signaling URL is their only rendezvous. Empty keeps them without signaling.
+func (a *ProviderAccount) fallbackSignalingEndpoint() cloudRelayEndpoint {
+	return cloudRelayEndpoint{url: a.t.p.signalingURL}
+}
+
 // lookupCloudRelayEndpoint resolves the cloud relay endpoint and signing
 // environment via the configured Spacewave Cloud provider. Empty fields keep
 // local accounts usable without cloud signaling.

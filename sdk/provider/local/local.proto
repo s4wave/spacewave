@@ -2,9 +2,35 @@ syntax = "proto3";
 package s4wave.provider.local;
 
 import "github.com/s4wave/spacewave/core/session/session.proto";
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 
 service LocalProviderResourceService {
   rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+
+  // CompleteSpaceLinkEnrollment creates or reopens the caller's own local
+  // session from the supplied Device key and joins the target Space through
+  // the one-use targeted invite from a local SpaceLink approval.
+  rpc CompleteSpaceLinkEnrollment(CompleteSpaceLinkEnrollmentRequest) returns (CompleteSpaceLinkEnrollmentResponse);
+}
+
+// CompleteSpaceLinkEnrollmentRequest creates the caller's local session from
+// its durable key and joins via a targeted invite.
+message CompleteSpaceLinkEnrollmentRequest {
+  // SessionPemPrivateKey is the Device's durable session private key. The
+  // local provider uses it only to seed this Device's own local session; it
+  // is never forwarded, logged, or copied to another peer.
+  bytes session_pem_private_key = 1;
+  // SessionPeerId is the peer ID expected to derive from the key. Empty
+  // skips the identity check.
+  string session_peer_id = 2;
+  // Invite is the one-use targeted SOInviteMessage from the approval.
+  .sobject.SOInviteMessage invite = 3;
+}
+
+// CompleteSpaceLinkEnrollmentResponse returns the enrolled session entry.
+message CompleteSpaceLinkEnrollmentResponse {
+  // SessionListEntry is the enrolled local session entry.
+  .session.SessionListEntry session_list_entry = 1;
 }
 
 // CreateAccountRequest creates a new account on the local provider.

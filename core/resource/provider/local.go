@@ -5,8 +5,11 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/pkg/errors"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/session"
+	"github.com/s4wave/spacewave/net/keypem"
+	"github.com/s4wave/spacewave/net/peer"
 	s4wave_provider_local "github.com/s4wave/spacewave/sdk/provider/local"
 	"github.com/sirupsen/logrus"
 )
@@ -57,6 +60,145 @@ func (s *LocalProviderResource) CreateAccount(
 	}
 
 	return &s4wave_provider_local.CreateAccountResponse{SessionListEntry: listEntry}, nil
+}
+
+// CompleteSpaceLinkEnrollment creates or reopens the caller's own local
+// session from the supplied Device key and joins the target Space through the
+// one-use targeted invite from a local SpaceLink approval.
+func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
+	ctx context.Context,
+	req *s4wave_provider_local.CompleteSpaceLinkEnrollmentRequest,
+) (*s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse, error) {
+	invite := req.GetInvite()
+	if invite == nil {
+		return nil, errors.New("invite is required")
+	}
+	if len(req.GetSessionPemPrivateKey()) == 0 {
+		return nil, errors.New("session_pem_private_key is required")
+	}
+	sessionKey, err := keypem.ParsePrivKeyPem(req.GetSessionPemPrivateKey())
+	if err != nil {
+		return nil, errors.Wrap(err, "parse session key")
+	}
+	sessionPeerID, err := peer.IDFromPrivateKey(sessionKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "derive session peer id")
+	}
+	if req.GetSessionPeerId() != "" && req.GetSessionPeerId() != sessionPeerID.String() {
+		return nil, errors.New("session key does not match expected session peer id")
+	}
+	if invite.GetTargetPeerId() != "" && invite.GetTargetPeerId() != sessionPeerID.String() {
+		return nil, errors.New("invite targets a different peer")
+	}
+
+	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer sessionCtrlRef.Release()
+
+	listEntry, err := s.lookupLocalSessionByPeerID(ctx, sessionCtrl, sessionPeerID.String())
+	if err != nil {
+		return nil, err
+	}
+	if listEntry == nil {
+		sessRef, err := s.provider.CreateLocalAccountAndSessionWithKey(ctx, "", req.GetSessionPemPrivateKey())
+		if err != nil {
+			return nil, errors.Wrap(err, "create local session")
+		}
+		meta := &session.SessionMetadata{
+			ProviderDisplayName: "Local",
+			ProviderId:          sessRef.GetProviderResourceRef().GetProviderId(),
+			ProviderAccountId:   sessRef.GetProviderResourceRef().GetProviderAccountId(),
+			CreatedAt:           time.Now().UnixMilli(),
+		}
+		listEntry, err = sessionCtrl.RegisterSession(ctx, sessRef, meta)
+		if err != nil {
+			return nil, errors.Wrap(err, "register session")
+		}
+	}
+
+	sessRef := listEntry.GetSessionRef()
+	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
+	accIface, accRel, err := s.provider.AccessProviderAccount(ctx, accountID, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "access provider account")
+	}
+	defer accRel()
+	localAcc, ok := accIface.(*provider_local.ProviderAccount)
+	if !ok {
+		return nil, errors.New("unexpected provider account type")
+	}
+	if localAccountHasSharedObject(localAcc, invite.GetSharedObjectId()) {
+		return &s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse{SessionListEntry: listEntry}, nil
+	}
+	if _, err := localAcc.JoinViaInvite(ctx, sessionKey, invite, ""); err != nil {
+		return nil, errors.Wrap(err, "join space via invite")
+	}
+
+	return &s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse{SessionListEntry: listEntry}, nil
+}
+
+// lookupLocalSessionByPeerID returns the registered local session whose
+// mounted identity matches peerID. Missing is not an error.
+func (s *LocalProviderResource) lookupLocalSessionByPeerID(
+	ctx context.Context,
+	sessionCtrl session.SessionController,
+	peerID string,
+) (*session.SessionListEntry, error) {
+	if peerID == "" {
+		return nil, nil
+	}
+	entries, err := sessionCtrl.ListSessions(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "list sessions")
+	}
+	for _, entry := range entries {
+		ref := entry.GetSessionRef()
+		if ref == nil {
+			continue
+		}
+		provRef := ref.GetProviderResourceRef()
+		if provRef.GetProviderId() != "local" {
+			continue
+		}
+		accIface, accRel, err := s.provider.AccessProviderAccount(ctx, provRef.GetProviderAccountId(), nil)
+		if err != nil {
+			continue
+		}
+		localAcc, ok := accIface.(*provider_local.ProviderAccount)
+		if !ok {
+			accRel()
+			continue
+		}
+		sess, sessRel, err := localAcc.MountSession(ctx, ref, nil)
+		if err != nil {
+			accRel()
+			continue
+		}
+		match := sess.GetPeerId().String() == peerID
+		sessRel()
+		accRel()
+		if match {
+			return entry, nil
+		}
+	}
+	return nil, nil
+}
+
+// localAccountHasSharedObject reports whether the account already lists the
+// shared object, so a later enrollment retry can remount without consuming
+// the one-use invite again.
+func localAccountHasSharedObject(localAcc *provider_local.ProviderAccount, soID string) bool {
+	if soID == "" {
+		return false
+	}
+	for _, entry := range localAcc.GetSOListCtr().GetValue().GetSharedObjects() {
+		if entry.GetRef().GetProviderResourceRef().GetId() == soID {
+			return true
+		}
+	}
+	return false
 }
 
 // _ is a type assertion

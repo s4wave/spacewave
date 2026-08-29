@@ -144,6 +144,9 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 	if s.tkr.cloudAccountID != "" {
 		relay = s.tkr.a.lookupCloudRelayEndpoint(transportCtx)
 	}
+	if relay.url == "" {
+		relay = s.tkr.a.fallbackSignalingEndpoint()
+	}
 	_, _, transportErr := s.tkr.a.ensureSessionTransportWithoutReplacement(transportCtx, privKey, relay.url, relay.signingEnvPrefix)
 	if transportErr != nil {
 		if errors.Is(transportErr, context.Canceled) {
@@ -284,6 +287,10 @@ type sessionTracker struct {
 	id string
 	// cloudAccountID links this local session to a cloud account (empty for standalone).
 	cloudAccountID string
+	// seedPEM is an optional session private key PEM used only when the
+	// session has no stored key yet. An existing stored key wins so the
+	// session reopens with its durable identity.
+	seedPEM []byte
 	// ref is the reference to the session
 	// set when instantiating the tracker
 	ref *promise.Promise[*session.SessionRef]
@@ -427,11 +434,18 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 			}
 		}
 		if !found {
-			// Generate new key (first time).
+			// Generate new key (first time), or seed from the supplied key.
 			le.Debug("initializing session priv key")
-			sessionPriv, _, err = crypto.GenerateEd25519Key(rand.Reader)
-			if err != nil {
-				return err
+			if len(t.seedPEM) != 0 {
+				sessionPriv, err = keypem.ParsePrivKeyPem(t.seedPEM)
+				if err != nil {
+					return errors.Wrap(err, "parse session seed key")
+				}
+			} else {
+				sessionPriv, _, err = crypto.GenerateEd25519Key(rand.Reader)
+				if err != nil {
+					return err
+				}
 			}
 			privPEM, err = keypem.MarshalPrivKeyPem(sessionPriv)
 			if err != nil {
@@ -492,6 +506,9 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 	relay := cloudRelayEndpoint{}
 	if t.cloudAccountID != "" {
 		relay = t.a.lookupCloudRelayEndpoint(ctx)
+	}
+	if relay.url == "" {
+		relay = t.a.fallbackSignalingEndpoint()
 	}
 	sts, created, err := t.a.ensureSessionTransportWithoutReplacement(ctx, sessionPriv, relay.url, relay.signingEnvPrefix)
 	if created {

@@ -76,6 +76,7 @@ func (t *Factory) Construct(
 				le,
 				t.bus,
 				cc.GetStorageId(),
+				cc.GetSignalingUrl(),
 				info,
 				peer,
 				handler,

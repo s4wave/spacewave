@@ -73,6 +73,9 @@ func TestValidateRejectsPartialForgeWorkerEnvelopes(t *testing.T) {
 		"zero milli_cpu":     {WorkerObjectKey: "worker/a", MemoryBytes: 1 << 30, Backends: []string{"docker"}},
 		"zero memory_bytes":  {WorkerObjectKey: "worker/a", MilliCpu: 1000, Backends: []string{"docker"}},
 		"empty backends":     {WorkerObjectKey: "worker/a", MilliCpu: 1000, MemoryBytes: 1 << 30},
+		"blank backend":      {WorkerObjectKey: "worker/a", MilliCpu: 1000, MemoryBytes: 1 << 30, Backends: []string{" "}},
+		"spaced backend":     {WorkerObjectKey: "worker/a", MilliCpu: 1000, MemoryBytes: 1 << 30, Backends: []string{"docker host"}},
+		"comma backend":      {WorkerObjectKey: "worker/a", MilliCpu: 1000, MemoryBytes: 1 << 30, Backends: []string{"docker,host"}},
 		"duplicate backends": {WorkerObjectKey: "worker/a", MilliCpu: 1000, MemoryBytes: 1 << 30, Backends: []string{"docker", "docker"}},
 	}
 	for name, fw := range cases {

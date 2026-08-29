@@ -17,7 +17,8 @@ import (
 )
 
 // setupProviderAndSession creates a testbed with a local provider, account, and session.
-func setupProviderAndSession(ctx context.Context, t *testing.T) (
+// An optional trailing signalingURL sets the provider's standalone signaling URL.
+func setupProviderAndSession(ctx context.Context, t *testing.T, signalingURL ...string) (
 	*testbed.Testbed,
 	*session.SessionRef,
 	*provider_local.ProviderAccount,
@@ -33,12 +34,16 @@ func setupProviderAndSession(ctx context.Context, t *testing.T) (
 
 	providerID := "local"
 	peerID := tb.Volume.GetPeerID()
-	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
-	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(&provider_local.Config{
+	provCfg := &provider_local.Config{
 		ProviderId: providerID,
 		PeerId:     peerID.String(),
 		StorageId:  tb.StorageID,
-	}), nil)
+	}
+	if len(signalingURL) != 0 {
+		provCfg.SignalingUrl = signalingURL[0]
+	}
+	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
+	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(provCfg), nil)
 	if err != nil {
 		tb.Release()
 		t.Fatal(err)

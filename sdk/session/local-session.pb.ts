@@ -2,16 +2,141 @@
 // @generated from file github.com/s4wave/spacewave/sdk/session/local-session.proto (package s4wave.session, syntax proto3)
 /* eslint-disable */
 
-import { EntityCredential } from '../../core/session/session.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
   createMessageType,
 } from '@aptre/protobuf-es-lite/message'
-import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import type { SessionType } from '../../core/session/session.pb.js'
+import {
+  EntityCredential,
+  SessionType_Enum,
+} from '../../core/session/session.pb.js'
+import { SOInviteMessage } from '../../core/sobject/sobject.pb.js'
 
 export const protobufPackage = 's4wave.session'
+
+/**
+ * ApproveLocalSpaceLinkRequest is the request for ApproveSpaceLink on a local
+ * mounted session.
+ *
+ * @generated from message s4wave.session.ApproveLocalSpaceLinkRequest
+ */
+export interface ApproveLocalSpaceLinkRequest {
+  /**
+   * Ticket is the signed SpaceLinkAuthTicket from the Device.
+   *
+   * @generated from field: bytes ticket = 1;
+   */
+  ticket?: Uint8Array
+  /**
+   * ResourceId is the target Space shared object ID.
+   *
+   * @generated from field: string resource_id = 2;
+   */
+  resourceId?: string
+}
+
+export const ApproveLocalSpaceLinkRequest: MessageType<ApproveLocalSpaceLinkRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.ApproveLocalSpaceLinkRequest',
+    fields: [
+      { no: 1, name: 'ticket', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * LocalSpaceLinkCompletion is the approval result for a local Space. It
+ * carries the provider and one-use targeted invite the Device needs to create
+ * its own local session and join, without cloud session registration, account
+ * credentials, or private key material.
+ *
+ * @generated from message s4wave.session.LocalSpaceLinkCompletion
+ */
+export interface LocalSpaceLinkCompletion {
+  /**
+   * ProviderId is the provider identifier of the local Space.
+   *
+   * @generated from field: string provider_id = 1;
+   */
+  providerId?: string
+  /**
+   * ResourceId is the target Space shared object ID.
+   *
+   * @generated from field: string resource_id = 2;
+   */
+  resourceId?: string
+  /**
+   * SessionPeerId is the approved Device session peer ID.
+   *
+   * @generated from field: bytes session_peer_id = 3;
+   */
+  sessionPeerId?: Uint8Array
+  /**
+   * SessionType is the approved session type from the ticket.
+   *
+   * @generated from field: session.SessionType session_type = 4;
+   */
+  sessionType?: SessionType
+  /**
+   * Invite is the one-use targeted SOInviteMessage signed by the OWNER.
+   *
+   * @generated from field: sobject.SOInviteMessage invite = 5;
+   */
+  invite?: SOInviteMessage
+  /**
+   * Nonce is the consumed ticket nonce, echoed for the Device to verify the
+   * completion against its stored ticket payload.
+   *
+   * @generated from field: bytes nonce = 6;
+   */
+  nonce?: Uint8Array
+}
+
+export const LocalSpaceLinkCompletion: MessageType<LocalSpaceLinkCompletion> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.LocalSpaceLinkCompletion',
+    fields: [
+      { no: 1, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'resource_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'session_peer_id', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 4, name: 'session_type', kind: 'enum', T: SessionType_Enum },
+      { no: 5, name: 'invite', kind: 'message', T: () => SOInviteMessage },
+      { no: 6, name: 'nonce', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ApproveLocalSpaceLinkResponse is the response for ApproveSpaceLink on a
+ * local mounted session.
+ *
+ * @generated from message s4wave.session.ApproveLocalSpaceLinkResponse
+ */
+export interface ApproveLocalSpaceLinkResponse {
+  /**
+   * @generated from field: s4wave.session.LocalSpaceLinkCompletion completion = 1;
+   */
+  completion?: LocalSpaceLinkCompletion
+}
+
+export const ApproveLocalSpaceLinkResponse: MessageType<ApproveLocalSpaceLinkResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.ApproveLocalSpaceLinkResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'completion',
+        kind: 'message',
+        T: () => LocalSpaceLinkCompletion,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * AddLocalEntityKeypairRequest is the request for AddEntityKeypair on local sessions.

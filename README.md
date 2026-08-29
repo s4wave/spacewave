@@ -73,6 +73,7 @@ To start the Spacewave app:
 ```bash
 # Install dependencies
 bun install
+uv sync --frozen --all-groups
 
 # Start the desktop app
 bun run start:desktop

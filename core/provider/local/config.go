@@ -1,6 +1,9 @@
 package provider_local
 
 import (
+	"net/url"
+	"strings"
+
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/peer"
@@ -15,7 +18,32 @@ func (c *Config) Validate() error {
 	if _, err := c.ParsePeerID(); err != nil {
 		return errors.Wrap(err, "peer_id")
 	}
+	if _, err := c.ParseSignalingURL(); err != nil {
+		return errors.Wrap(err, "signaling_url")
+	}
 	return nil
+}
+
+// ParseSignalingURL parses the signaling_url field. Empty disables WebRTC
+// signaling for standalone local sessions.
+func (c *Config) ParseSignalingURL() (*url.URL, error) {
+	raw := strings.TrimSpace(c.GetSignalingUrl())
+	if raw == "" {
+		return nil, nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return nil, err
+	}
+	switch u.Scheme {
+	case "http", "https":
+	default:
+		return nil, errors.Errorf("must be an absolute http or https URL, got %q", raw)
+	}
+	if u.Host == "" {
+		return nil, errors.Errorf("must be an absolute http or https URL, got %q", raw)
+	}
+	return u, nil
 }
 
 // GetConfigID returns the unique string for this configuration type.

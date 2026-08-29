@@ -71,7 +71,9 @@ def core_config_set(
         }),
         "root-resource": config_entry("resource/root", 1),
         "session-list": config_entry("session", 1),
-        "provider-local": config_entry("provider/local", 1),
+        "provider-local": config_entry("provider/local", 1, {
+            "signalingUrl": cloud_api_endpoint,
+        }),
         "provider-spacewave": config_entry("provider/spacewave", 2, {
             "endpoint": cloud_api_endpoint,
             "accountEndpoint": account_endpoint,

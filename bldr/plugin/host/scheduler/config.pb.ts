@@ -2,13 +2,13 @@
 // @generated from file github.com/s4wave/spacewave/bldr/plugin/host/scheduler/config.proto (package plugin.host.scheduler, syntax proto3)
 /* eslint-disable */
 
-import type { MessageType } from "@aptre/protobuf-es-lite/message";
-import { createMessageType } from "@aptre/protobuf-es-lite/message";
-import { ScalarType } from "@aptre/protobuf-es-lite/scalar";
-import type { PartialFieldInfo } from "@aptre/protobuf-es-lite/field";
-import { Backoff } from "@go/github.com/aperturerobotics/util/backoff/backoff.pb.js";
+import type { MessageType } from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
+import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { Backoff } from '@go/github.com/aperturerobotics/util/backoff/backoff.pb.js'
 
-export const protobufPackage = "plugin.host.scheduler";
+export const protobufPackage = 'plugin.host.scheduler'
 
 /**
  * PlatformSelectionPolicy restricts a plugin host platform to a plugin ID list.
@@ -22,24 +22,30 @@ export interface PlatformSelectionPolicy {
    *
    * @generated from field: string platform_id = 1;
    */
-  platformId?: string;
+  platformId?: string
   /**
    * AllowedPluginIds are the plugin IDs that may select PlatformId.
    *
    * @generated from field: repeated string allowed_plugin_ids = 2;
    */
-  allowedPluginIds?: string[];
+  allowedPluginIds?: string[]
+}
 
-};
-
-export const PlatformSelectionPolicy: MessageType<PlatformSelectionPolicy> = /* @__PURE__ */ createMessageType({
-    typeName: "plugin.host.scheduler.PlatformSelectionPolicy",
+export const PlatformSelectionPolicy: MessageType<PlatformSelectionPolicy> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'plugin.host.scheduler.PlatformSelectionPolicy',
     fields: [
-        { no: 1, name: "platform_id", kind: "scalar", T: ScalarType.STRING },
-        { no: 2, name: "allowed_plugin_ids", kind: "scalar", T: ScalarType.STRING, repeated: true },
+      { no: 1, name: 'platform_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'allowed_plugin_ids',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
-});
+  })
 
 /**
  * Config is the plugin host scheduler controller configuration.
@@ -56,7 +62,7 @@ export interface Config {
    *
    * @generated from field: string engine_id = 1;
    */
-  engineId?: string;
+  engineId?: string
   /**
    * ObjectKey is the root object to attach to.
    * If not exists, waits for it to exist.
@@ -65,33 +71,33 @@ export interface Config {
    *
    * @generated from field: string object_key = 2;
    */
-  objectKey?: string;
+  objectKey?: string
   /**
    * PeerId is the peer ID to use for world transactions.
    *
    * @generated from field: string peer_id = 3;
    */
-  peerId?: string;
+  peerId?: string
   /**
    * VolumeId is the identifier of the volume on the plugin host bus.
    * This volume is available for the plugin to use via the volume proxy.
    *
    * @generated from field: string volume_id = 4;
    */
-  volumeId?: string;
+  volumeId?: string
   /**
    * WatchFetchManifest will watch the FetchManifest directive while a plugin is running.
    *
    * @generated from field: bool watch_fetch_manifest = 5;
    */
-  watchFetchManifest?: boolean;
+  watchFetchManifest?: boolean
   /**
    * DisableStoreManifest disables storing manifests fetched with FetchManifest.
    * This is used if we are watching the same world as the FetchManifest resolver.
    *
    * @generated from field: bool disable_store_manifest = 6;
    */
-  disableStoreManifest?: boolean;
+  disableStoreManifest?: boolean
   /**
    * FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
    * If zero, uses no limit to the number of concurrent fetches.
@@ -102,21 +108,21 @@ export interface Config {
    *
    * @generated from field: uint32 fetch_concurrency = 7;
    */
-  fetchConcurrency?: number;
+  fetchConcurrency?: number
   /**
    * FetchBackoff is the backoff config for fetching plugin manifests.
    * If unset, defaults to reasonable defaults.
    *
    * @generated from field: backoff.Backoff fetch_backoff = 8;
    */
-  fetchBackoff?: Backoff;
+  fetchBackoff?: Backoff
   /**
    * ExecBackoff is the backoff config for executing plugin manifests.
    * If unset, defaults to reasonable defaults.
    *
    * @generated from field: backoff.Backoff exec_backoff = 9;
    */
-  execBackoff?: Backoff;
+  execBackoff?: Backoff
   /**
    * DisableCopyManifest disables copying manifests to the plugin host world bucket.
    * This is used if the manifest bucket is always accessible and locally cached.
@@ -124,13 +130,13 @@ export interface Config {
    *
    * @generated from field: bool disable_copy_manifest = 10;
    */
-  disableCopyManifest?: boolean;
+  disableCopyManifest?: boolean
   /**
    * Verbose enables verbose logging for world ops (slower).
    *
    * @generated from field: bool verbose = 11;
    */
-  verbose?: boolean;
+  verbose?: boolean
   /**
    * PlatformSelectionPolicies restrict selected platform IDs to selected
    * plugin IDs. If empty, every discovered plugin host platform is selectable
@@ -138,21 +144,21 @@ export interface Config {
    *
    * @generated from field: repeated plugin.host.scheduler.PlatformSelectionPolicy platform_selection_policies = 12;
    */
-  platformSelectionPolicies?: PlatformSelectionPolicy[];
+  platformSelectionPolicies?: PlatformSelectionPolicy[]
   /**
    * NoCopyBucketIds lists source buckets that remain authoritative without a
    * full-DAG copy.
    *
    * @generated from field: repeated string no_copy_bucket_ids = 13;
    */
-  noCopyBucketIds?: string[];
+  noCopyBucketIds?: string[]
   /**
    * InstanceKey identifies the isolated plugin instance set resolved by this scheduler.
    * Empty retains the unscoped Dist behavior.
    *
    * @generated from field: string instance_key = 14;
    */
-  instanceKey?: string;
+  instanceKey?: string
   /**
    * StartupWaitBudgetDur is the maximum wall-clock duration a plugin instance
    * may take to complete initial capability registration before its startup
@@ -161,28 +167,54 @@ export interface Config {
    *
    * @generated from field: string startup_wait_budget_dur = 15;
    */
-  startupWaitBudgetDur?: string;
-
-};
+  startupWaitBudgetDur?: string
+}
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
-    typeName: "plugin.host.scheduler.Config",
-    fields: [
-        { no: 1, name: "engine_id", kind: "scalar", T: ScalarType.STRING },
-        { no: 2, name: "object_key", kind: "scalar", T: ScalarType.STRING },
-        { no: 3, name: "peer_id", kind: "scalar", T: ScalarType.STRING },
-        { no: 4, name: "volume_id", kind: "scalar", T: ScalarType.STRING },
-        { no: 5, name: "watch_fetch_manifest", kind: "scalar", T: ScalarType.BOOL },
-        { no: 6, name: "disable_store_manifest", kind: "scalar", T: ScalarType.BOOL },
-        { no: 7, name: "fetch_concurrency", kind: "scalar", T: ScalarType.UINT32 },
-        { no: 8, name: "fetch_backoff", kind: "message", T: () => Backoff },
-        { no: 9, name: "exec_backoff", kind: "message", T: () => Backoff },
-        { no: 10, name: "disable_copy_manifest", kind: "scalar", T: ScalarType.BOOL },
-        { no: 11, name: "verbose", kind: "scalar", T: ScalarType.BOOL },
-        { no: 12, name: "platform_selection_policies", kind: "message", T: () => PlatformSelectionPolicy, repeated: true },
-        { no: 13, name: "no_copy_bucket_ids", kind: "scalar", T: ScalarType.STRING, repeated: true },
-        { no: 14, name: "instance_key", kind: "scalar", T: ScalarType.STRING },
-        { no: 15, name: "startup_wait_budget_dur", kind: "scalar", T: ScalarType.STRING },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-});
+  typeName: 'plugin.host.scheduler.Config',
+  fields: [
+    { no: 1, name: 'engine_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 2, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+    { no: 3, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'volume_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 5, name: 'watch_fetch_manifest', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 6,
+      name: 'disable_store_manifest',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+    },
+    { no: 7, name: 'fetch_concurrency', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 8, name: 'fetch_backoff', kind: 'message', T: () => Backoff },
+    { no: 9, name: 'exec_backoff', kind: 'message', T: () => Backoff },
+    {
+      no: 10,
+      name: 'disable_copy_manifest',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+    },
+    { no: 11, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 12,
+      name: 'platform_selection_policies',
+      kind: 'message',
+      T: () => PlatformSelectionPolicy,
+      repeated: true,
+    },
+    {
+      no: 13,
+      name: 'no_copy_bucket_ids',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+      repeated: true,
+    },
+    { no: 14, name: 'instance_key', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 15,
+      name: 'startup_wait_budget_dur',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
+  ] satisfies readonly PartialFieldInfo[],
+  packedByDefault: true,
+})

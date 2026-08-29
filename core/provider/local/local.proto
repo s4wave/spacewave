@@ -15,6 +15,12 @@ message Config {
   // StorageId is the storage id to use.
   // If empty, uses the default storage controller id.
   string storage_id = 3;
+  // SignalingUrl is the trusted Spacewave Cloud signaling base URL used by
+  // standalone local sessions without a linked cloud account. Each session
+  // signs its own short-lived ticket request with its session keypair; no
+  // cloud account or provider credential is involved. Empty disables WebRTC
+  // signaling for standalone sessions.
+  string signaling_url = 4;
 }
 
 // LocalSOState contains the local state for a shared object.

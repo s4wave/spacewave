@@ -31,6 +31,7 @@ import (
 	"github.com/s4wave/spacewave/net/keypem"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
+	s4wave_provider_local "github.com/s4wave/spacewave/sdk/provider/local"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
@@ -175,6 +176,7 @@ func newDeviceCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 		Flags:   daemonClientFlags(&statePath),
 		Subcommands: []*cli.Command{
 			newDeviceSetupCommand(),
+			newDeviceApproveCommand(),
 			newDeviceCompleteCommand(),
 			newDevicePolicyCommand(),
 			newDeviceStatusCommand(),
@@ -602,6 +604,10 @@ func applyDeviceCompletion(record *deviceSetupRecord, encodedCompletion string, 
 		return nil, errors.New("device completion nonce does not match setup ticket")
 	}
 
+	if strings.HasPrefix(strings.TrimSpace(encodedCompletion), deviceLocalCompletionPrefix) {
+		return applyLocalDeviceCompletion(record, encodedCompletion, now)
+	}
+
 	updated := *record
 	updated.Completion = strings.TrimSpace(encodedCompletion)
 	updated.CompletionAt = now.Unix()
@@ -665,12 +671,64 @@ func applySuccessfulDeviceCompletion(
 	return record, nil
 }
 
+// applyLocalDeviceCompletion imports a local SpaceLink completion. The local
+// completion carries a targeted invite instead of a cloud account ID; the
+// Device creates its own local session from its durable key when the
+// enrollment is activated.
+func applyLocalDeviceCompletion(record *deviceSetupRecord, encodedCompletion string, now time.Time) (*deviceSetupRecord, error) {
+	if record == nil || record.SetupState == deviceSetupStateNotConfigured {
+		return nil, errors.New("device setup must run before completion import")
+	}
+	encodedCompletion = strings.TrimSpace(encodedCompletion)
+	completion, err := decodeDeviceLocalCompletion(encodedCompletion)
+	if err != nil {
+		return nil, err
+	}
+	payload, err := decodeDeviceStoredTicketPayload(record)
+	if err != nil {
+		return nil, err
+	}
+	if !bytes.Equal(completion.GetNonce(), payload.GetNonce()) {
+		return nil, errors.New("device completion nonce does not match setup ticket")
+	}
+	sessionPeerID, err := peer.IDFromBytes(completion.GetSessionPeerId())
+	if err != nil {
+		return nil, errors.Wrap(err, "parse completion session peer id")
+	}
+	if !bytes.Equal(completion.GetSessionPeerId(), payload.GetAgentPeerId()) {
+		return nil, errors.New("device completion session peer does not match setup ticket")
+	}
+	if record.PeerID != "" && sessionPeerID.String() != record.PeerID {
+		return nil, errors.New("device completion session peer does not match setup state")
+	}
+	if len(completion.GetResourceId()) == 0 {
+		return nil, errors.New("device completion missing resource id")
+	}
+
+	updated := *record
+	updated.Completion = encodedCompletion
+	updated.CompletionAt = now.Unix()
+	updated.CompletionStatus = deviceCompletionStatusLabel(s4wave_provider_spacewave.SpaceLinkCallbackStatus_SpaceLinkCallbackStatus_OK)
+	updated.SetupState = deviceSetupStateImported
+	updated.FailureReason = ""
+	updated.AccountID = ""
+	updated.ResourceID = base64.StdEncoding.EncodeToString([]byte(completion.GetResourceId()))
+	if updated.SessionID == "" {
+		updated.SessionID = deviceSessionID(sessionPeerID)
+	}
+	updated.SessionPeerID = sessionPeerID.String()
+	return &updated, nil
+}
+
 func openDeviceSession(
 	ctx context.Context,
 	client *sdkClient,
 	statePath string,
 	record *deviceSetupRecord,
 ) (*deviceSetupRecord, error) {
+	if strings.HasPrefix(record.Completion, deviceLocalCompletionPrefix) {
+		return openLocalDeviceSession(ctx, client, statePath, record)
+	}
 	if record.AccountID == "" {
 		return nil, errors.New("device completion missing account id")
 	}
@@ -707,6 +765,64 @@ func openDeviceSession(
 	updated.SetupState = deviceSetupStateSessionReady
 	updated.SessionIndex = entry.GetSessionIndex()
 	updated.SessionPeerID = pid.String()
+	objectKey, err := deviceUpsertObject(ctx, client, statePath, &updated)
+	if err != nil {
+		return nil, errors.Wrap(err, "create or update device object")
+	}
+	updated.DeviceObjectKey = objectKey
+	return &updated, nil
+}
+
+// openLocalDeviceSession activates a local SpaceLink enrollment: the daemon's
+// local provider creates or reopens the Device's own session from its durable
+// key and joins the target Space through the one-use targeted invite.
+func openLocalDeviceSession(
+	ctx context.Context,
+	client *sdkClient,
+	statePath string,
+	record *deviceSetupRecord,
+) (*deviceSetupRecord, error) {
+	completion, err := decodeDeviceLocalCompletion(record.Completion)
+	if err != nil {
+		return nil, err
+	}
+	_, pid, pemData, err := loadDeviceIdentity(deviceIdentityKeyPath(statePath))
+	if err != nil {
+		return nil, err
+	}
+	if record.PeerID != "" && pid.String() != record.PeerID {
+		return nil, errors.New("device identity does not match setup state")
+	}
+	if record.SessionPeerID != "" && pid.String() != record.SessionPeerID {
+		return nil, errors.New("device identity does not match imported completion")
+	}
+	if len(completion.GetSessionPeerId()) != 0 && !bytes.Equal([]byte(pid), completion.GetSessionPeerId()) {
+		return nil, errors.New("device identity does not match approval completion")
+	}
+
+	prov, cleanup, err := client.lookupLocalProvider(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	resp, err := prov.CompleteSpaceLinkEnrollment(ctx, &s4wave_provider_local.CompleteSpaceLinkEnrollmentRequest{
+		SessionPemPrivateKey: pemData,
+		SessionPeerId:        pid.String(),
+		Invite:               completion.GetInvite(),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "complete local SpaceLink enrollment")
+	}
+	entry := resp.GetSessionListEntry()
+	if entry == nil {
+		return nil, errors.New("local SpaceLink enrollment returned no session entry")
+	}
+
+	updated := *record
+	updated.SetupState = deviceSetupStateSessionReady
+	updated.SessionIndex = entry.GetSessionIndex()
+	updated.SessionPeerID = pid.String()
+	updated.AccountID = entry.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
 	objectKey, err := deviceUpsertObject(ctx, client, statePath, &updated)
 	if err != nil {
 		return nil, errors.Wrap(err, "create or update device object")

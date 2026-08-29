@@ -41,6 +41,12 @@ func (a *ProviderAccount) JoinViaInvite(
 		return nil, errors.New("invite message is nil")
 	}
 
+	// A local account with no explicit signaling URL rendezvouses through the
+	// configured trusted cloud endpoint so WebRTC reconnects after restarts.
+	if signalingURL == "" {
+		signalingURL = a.fallbackSignalingEndpoint().url
+	}
+
 	// Ensure transport is running so we can reach the owner.
 	if err := a.EnsureSessionTransport(ctx, sessionKey, signalingURL); err != nil {
 		return nil, errors.Wrap(err, "start session transport")
@@ -73,7 +79,7 @@ func (a *ProviderAccount) JoinViaInvite(
 	}
 
 	// Mount the shared object and apply the grant.
-	if err := a.mountInvitedSO(ctx, result); err != nil {
+	if err := a.mountInvitedSO(ctx, result, inviteMsg.GetRole()); err != nil {
 		return nil, errors.Wrap(err, "mount invited shared object")
 	}
 
@@ -121,7 +127,11 @@ func (a *ProviderAccount) waitDirectInviteOwnerOnline(
 // mountInvitedSO mounts a shared object after receiving an invite grant.
 // The grant is stored in the SO state and the SO is persisted to the
 // account's SO list so it survives restarts and is picked up by P2P sync.
-func (a *ProviderAccount) mountInvitedSO(ctx context.Context, result *sobject_invite.JoinResult) error {
+func (a *ProviderAccount) mountInvitedSO(
+	ctx context.Context,
+	result *sobject_invite.JoinResult,
+	role sobject.SOParticipantRole,
+) error {
 	if result.Grant == nil {
 		return errors.New("invite result has no grant")
 	}
@@ -150,13 +160,45 @@ func (a *ProviderAccount) mountInvitedSO(ctx context.Context, result *sobject_in
 	}
 
 	if err := localSO.soHost.UpdateSOState(ctx, func(state *sobject.SOState) error {
-		// Append the grant to root_grants if not already present.
 		grantPeerID := result.Grant.GetPeerId()
 		for _, g := range state.GetRootGrants() {
 			if g.GetPeerId() == grantPeerID {
 				return nil
 			}
 		}
+		// The invitee's first local state is initialized with this account's
+		// volume peer as OWNER. The grant is signed by the Space OWNER and
+		// issued to the Device session peer, so remount validation requires
+		// both of those peers in the participant list.
+		signerPub, err := result.Grant.GetSignature().ParsePubKey()
+		if err != nil {
+			return errors.Wrap(err, "parse grant signer")
+		}
+		signerPeerID, err := peer.IDFromPublicKey(signerPub)
+		if err != nil {
+			return errors.Wrap(err, "derive grant signer peer id")
+		}
+		if role == sobject.SOParticipantRole_SOParticipantRole_UNKNOWN {
+			role = sobject.SOParticipantRole_SOParticipantRole_WRITER
+		}
+		cfg := state.GetConfig()
+		if cfg == nil {
+			cfg = &sobject.SharedObjectConfig{}
+			state.Config = cfg
+		}
+		addParticipant := func(peerID string, participantRole sobject.SOParticipantRole) {
+			for _, p := range cfg.GetParticipants() {
+				if p.GetPeerId() == peerID {
+					return
+				}
+			}
+			cfg.Participants = append(cfg.Participants, &sobject.SOParticipantConfig{
+				PeerId: peerID,
+				Role:   participantRole,
+			})
+		}
+		addParticipant(signerPeerID.String(), sobject.SOParticipantRole_SOParticipantRole_OWNER)
+		addParticipant(grantPeerID, role)
 		state.RootGrants = append(state.RootGrants, result.Grant)
 		return nil
 	}); err != nil {

@@ -2,6 +2,7 @@ package provider_local
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/backoff"
@@ -27,6 +28,9 @@ type Provider struct {
 	b bus.Bus
 	// storageID is the storage controller to use
 	storageID string
+	// signalingURL is the trusted cloud signaling base URL from the
+	// provider configuration. Empty disables standalone-session signaling.
+	signalingURL string
 	// info is the provider info
 	info *provider.ProviderInfo
 	// sfs is the step factory set for block transforms
@@ -54,10 +58,16 @@ var providerBackoff = &backoff.Backoff{
 }
 
 // NewProvider constructs a new Provider.
+//
+// signalingURL is the trusted Spacewave Cloud signaling base URL persisted in
+// the provider configuration. Standalone local sessions without a linked
+// cloud account use it as their WebRTC transport rendezvous. Empty keeps
+// those sessions without signaling.
 func NewProvider(
 	le *logrus.Entry,
 	b bus.Bus,
 	storageID string,
+	signalingURL string,
 	info *provider.ProviderInfo,
 	peer peer.Peer,
 	handler provider.ProviderHandler,
@@ -67,13 +77,14 @@ func NewProvider(
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
 
 	p := &Provider{
-		le:        le,
-		b:         b,
-		storageID: storageID,
-		info:      info,
-		peer:      peer,
-		handler:   handler,
-		sfs:       sfs,
+		le:           le,
+		b:            b,
+		storageID:    storageID,
+		signalingURL: signalingURL,
+		info:         info,
+		peer:         peer,
+		handler:      handler,
+		sfs:          sfs,
 	}
 	p.linkedCloudAccountLoader = defaultLinkedCloudAccountLoader
 	p.accountRc = keyed.NewKeyedRefCountWithLogger(
@@ -111,6 +122,14 @@ func (p *Provider) GetProviderInfo() *provider.ProviderInfo {
 //
 // NOTE: this is a WIP / possibly temporary function.
 func (p *Provider) CreateLocalAccountAndSession(ctx context.Context, cloudAccountID string) (*session.SessionRef, error) {
+	return p.CreateLocalAccountAndSessionWithKey(ctx, cloudAccountID, nil)
+}
+
+// CreateLocalAccountAndSessionWithKey initializes a local provider account and
+// session seeded with the given session private key PEM. The key is used only
+// when the session has no stored key yet; an existing stored key wins so the
+// session reopens with its durable identity. An empty keyPEM generates a key.
+func (p *Provider) CreateLocalAccountAndSessionWithKey(ctx context.Context, cloudAccountID string, keyPEM []byte) (*session.SessionRef, error) {
 	// Generate an ID for the local account and session.
 	localAccountID := ulid.NewULID()
 	localSessionID := ulid.NewULID()
@@ -137,6 +156,7 @@ func (p *Provider) CreateLocalAccountAndSession(ctx context.Context, cloudAccoun
 	localAcc := provAcc.(*ProviderAccount)
 	tkrRef, tkr, _ := localAcc.sessions.AddKeyRef(localSessionID)
 	tkr.cloudAccountID = cloudAccountID
+	tkr.seedPEM = slices.Clone(keyPEM)
 	tkr.ref.SetResult(sessRef, nil)
 
 	_, err = tkr.sessionProm.Await(ctx)

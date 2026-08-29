@@ -106,6 +106,12 @@ func Validate(policy *DevicePolicy) error {
 		}
 		seenBackends := make(map[string]struct{}, len(fw.GetBackends()))
 		for _, backend := range fw.GetBackends() {
+			if strings.TrimSpace(backend) == "" {
+				return errors.New("device policy forge-worker backend must not be empty")
+			}
+			if strings.ContainsAny(backend, ", \t\r\n") {
+				return errors.Errorf("device policy forge-worker backend %q cannot contain comma or whitespace", backend)
+			}
 			if _, ok := seenBackends[backend]; ok {
 				return errors.Errorf("duplicate device policy forge-worker backend %q", backend)
 			}

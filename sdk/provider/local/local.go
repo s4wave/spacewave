@@ -40,3 +40,13 @@ func (l *LocalProvider) Release() {
 func (l *LocalProvider) CreateAccount(ctx context.Context) (*CreateAccountResponse, error) {
 	return l.service.CreateAccount(ctx, &CreateAccountRequest{})
 }
+
+// CompleteSpaceLinkEnrollment creates or reopens the caller's own local
+// session from the supplied Device key and joins the target Space through the
+// one-use targeted invite from a local SpaceLink approval.
+func (l *LocalProvider) CompleteSpaceLinkEnrollment(
+	ctx context.Context,
+	req *CompleteSpaceLinkEnrollmentRequest,
+) (*CompleteSpaceLinkEnrollmentResponse, error) {
+	return l.service.CompleteSpaceLinkEnrollment(ctx, req)
+}

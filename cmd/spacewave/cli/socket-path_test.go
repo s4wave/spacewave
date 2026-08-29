@@ -67,6 +67,34 @@ func TestEffectiveSocketPathUnsetReturnsFallback(t *testing.T) {
 	}
 }
 
+// TestServeSocketPathUsesExplicitListener proves serve does not replace an
+// exact socket path with the state-local default.
+func TestServeSocketPathUsesExplicitListener(t *testing.T) {
+	clearSocketPathEnv(t)
+	statePath := t.TempDir()
+	explicit := filepath.Join(t.TempDir(), "device.sock")
+
+	var rootStatePath string
+	var got string
+	app := cli.NewApp()
+	app.Name = "spacewave"
+	app.HideVersion = true
+	app.Flags = []cli.Flag{statePathFlag(&rootStatePath), socketPathFlag()}
+	app.Commands = []*cli.Command{{
+		Name: "check",
+		Action: func(c *cli.Context) error {
+			got = serveSocketPath(c, statePath)
+			return nil
+		},
+	}}
+	if err := app.RunContext(context.Background(), []string{"spacewave", "--socket-path", explicit, "check"}); err != nil {
+		t.Fatal(err)
+	}
+	if got != explicit {
+		t.Fatalf("serve socket = %q, want %q", got, explicit)
+	}
+}
+
 // TestConnectDaemonAtSocketSkipsAutostart asserts connect-only mode
 // never invokes the daemon autostart path, even on dial failure.
 func TestConnectDaemonAtSocketSkipsAutostart(t *testing.T) {

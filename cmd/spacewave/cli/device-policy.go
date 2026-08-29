@@ -35,6 +35,7 @@ func newDevicePolicyCommand() *cli.Command {
 		Subcommands: []*cli.Command{
 			newDevicePolicyEnableShellCommand(),
 			newDevicePolicyCheckoutRootCommand(),
+			newDevicePolicyForgeWorkerCommand(),
 		},
 	}
 }
@@ -194,6 +195,15 @@ func runDevicePolicyMutation(
 	statePath string,
 	mutate func(*device_policy.DevicePolicy) error,
 ) error {
+	return runDevicePolicyMutationValidated(c, statePath, mutate, nil)
+}
+
+func runDevicePolicyMutationValidated(
+	c *cli.Context,
+	statePath string,
+	mutate func(*device_policy.DevicePolicy) error,
+	validate func(*sdkClient, string, *device_policy.DevicePolicy) error,
+) error {
 	ctx := c.Context
 	resolvedStatePath, _, err := resolveDeviceDaemonPaths(c, statePath)
 	if err != nil {
@@ -211,6 +221,11 @@ func runDevicePolicyMutation(
 	}
 	if err := mutate(policy); err != nil {
 		return err
+	}
+	if validate != nil {
+		if err := validate(client, resolvedStatePath, policy); err != nil {
+			return err
+		}
 	}
 	policy.Revision++
 	if err := device_policy.WriteFile(resolvedStatePath, policy); err != nil {

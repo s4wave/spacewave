@@ -2,15 +2,91 @@
 // @generated from file github.com/s4wave/spacewave/sdk/provider/local/local.proto (package s4wave.provider.local, syntax proto3)
 /* eslint-disable */
 
+import { SOInviteMessage } from '../../../core/sobject/sobject.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
   createMessageType,
 } from '@aptre/protobuf-es-lite/message'
-import { SessionListEntry } from '../../../core/session/session.pb.js'
+import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { SessionListEntry } from '../../../core/session/session.pb.js'
 
 export const protobufPackage = 's4wave.provider.local'
+
+/**
+ * CompleteSpaceLinkEnrollmentRequest creates the caller's local session from
+ * its durable key and joins via a targeted invite.
+ *
+ * @generated from message s4wave.provider.local.CompleteSpaceLinkEnrollmentRequest
+ */
+export interface CompleteSpaceLinkEnrollmentRequest {
+  /**
+   * SessionPemPrivateKey is the Device's durable session private key. The
+   * local provider uses it only to seed this Device's own local session; it
+   * is never forwarded, logged, or copied to another peer.
+   *
+   * @generated from field: bytes session_pem_private_key = 1;
+   */
+  sessionPemPrivateKey?: Uint8Array
+  /**
+   * SessionPeerId is the peer ID expected to derive from the key. Empty
+   * skips the identity check.
+   *
+   * @generated from field: string session_peer_id = 2;
+   */
+  sessionPeerId?: string
+  /**
+   * Invite is the one-use targeted SOInviteMessage from the approval.
+   *
+   * @generated from field: sobject.SOInviteMessage invite = 3;
+   */
+  invite?: SOInviteMessage
+}
+
+export const CompleteSpaceLinkEnrollmentRequest: MessageType<CompleteSpaceLinkEnrollmentRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.local.CompleteSpaceLinkEnrollmentRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'session_pem_private_key',
+        kind: 'scalar',
+        T: ScalarType.BYTES,
+      },
+      { no: 2, name: 'session_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'invite', kind: 'message', T: () => SOInviteMessage },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * CompleteSpaceLinkEnrollmentResponse returns the enrolled session entry.
+ *
+ * @generated from message s4wave.provider.local.CompleteSpaceLinkEnrollmentResponse
+ */
+export interface CompleteSpaceLinkEnrollmentResponse {
+  /**
+   * SessionListEntry is the enrolled local session entry.
+   *
+   * @generated from field: session.SessionListEntry session_list_entry = 1;
+   */
+  sessionListEntry?: SessionListEntry
+}
+
+export const CompleteSpaceLinkEnrollmentResponse: MessageType<CompleteSpaceLinkEnrollmentResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.provider.local.CompleteSpaceLinkEnrollmentResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'session_list_entry',
+        kind: 'message',
+        T: () => SessionListEntry,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * CreateAccountRequest creates a new account on the local provider.

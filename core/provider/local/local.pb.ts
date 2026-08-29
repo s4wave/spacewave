@@ -41,6 +41,16 @@ export interface Config {
    * @generated from field: string storage_id = 3;
    */
   storageId?: string
+  /**
+   * SignalingUrl is the trusted Spacewave Cloud signaling base URL used by
+   * standalone local sessions without a linked cloud account. Each session
+   * signs its own short-lived ticket request with its session keypair; no
+   * cloud account or provider credential is involved. Empty disables WebRTC
+   * signaling for standalone sessions.
+   *
+   * @generated from field: string signaling_url = 4;
+   */
+  signalingUrl?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -49,6 +59,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 1, name: 'provider_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'storage_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 4, name: 'signaling_url', kind: 'scalar', T: ScalarType.STRING },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

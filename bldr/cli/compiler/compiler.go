@@ -151,9 +151,38 @@ func (c *Controller) BuildManifest(
 	cliPkgs, _ := plugin_compiler_go.UpdateRelativeGoPackagePaths(
 		conf.GetCliPkgs(), rootModule,
 	)
-	cliImports := make(map[string]string)
-	for _, pkg := range cliPkgs {
-		cliImports[pkg] = path.Base(pkg)
+	cliImports := make(map[string]CliImport)
+	if len(cliPkgs) != 0 {
+		cliAnalysis, err := plugin_compiler_go.AnalyzePackages(
+			ctx, le, sourcePath, cliPkgs, nil, analyzeGOOS, analyzeGOARCH, false,
+		)
+		if err != nil {
+			return nil, err
+		}
+		loadedPkgs := cliAnalysis.GetLoadedPackages()
+		for _, cliPkg := range cliPkgs {
+			pkgPath := cliPkg
+			if resolved, ok := cliAnalysis.GetPackagePathMappings()[cliPkg]; ok {
+				pkgPath = resolved
+			}
+			pkg := loadedPkgs[pkgPath]
+			if pkg == nil || pkg.Types == nil {
+				return nil, errors.Errorf("failed to analyze cli package %s", cliPkg)
+			}
+			cmdObj := pkg.Types.Scope().Lookup("NewCliCommands")
+			if cmdObj == nil {
+				return nil, errors.Errorf("cli package %s does not export NewCliCommands", pkgPath)
+			}
+			sig, ok := cmdObj.Type().(*types.Signature)
+			if !ok {
+				return nil, errors.Errorf("cli package %s NewCliCommands is not a function", pkgPath)
+			}
+			takesBroker, err := cliCommandsNeedsYieldBroker(pkgPath, sig)
+			if err != nil {
+				return nil, err
+			}
+			cliImports[cliPkg] = CliImport{Alias: path.Base(cliPkg), TakesYieldBroker: takesBroker}
+		}
 	}
 
 	// serialize config set
