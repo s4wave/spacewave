@@ -111,7 +111,7 @@ func buildForgeCreateClusterCommand(statePath *string, sessionIdx *uint, spaceID
 			defer tx.Discard()
 
 			op := forge_cluster.NewClusterCreateOp(key, name, entityPeerID)
-			_, _, err = tx.ApplyWorldOp(ctx, op, "")
+			_, _, err = tx.ApplyWorldOp(ctx, op, entityPeerID)
 			if err != nil {
 				return errors.Wrap(err, "create cluster")
 			}
