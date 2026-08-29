@@ -521,6 +521,23 @@ func (a *ProviderAccount) EnsureSessionTransport(
 	return err
 }
 
+// EnsureConfiguredSessionTransport follows the session mount's transport and
+// uses the provider's trusted signaling endpoint only when it must create one.
+// It never replaces a mounted transport with an RPC-owned transport.
+func (a *ProviderAccount) EnsureConfiguredSessionTransport(
+	ctx context.Context,
+	sessionPriv crypto.PrivKey,
+) error {
+	relay := a.fallbackSignalingEndpoint()
+	_, _, err := a.ensureSessionTransportWithoutReplacement(
+		ctx,
+		sessionPriv,
+		relay.url,
+		relay.signingEnvPrefix,
+	)
+	return err
+}
+
 func (a *ProviderAccount) ensureSessionTransport(
 	ctx context.Context,
 	sessionPriv crypto.PrivKey,

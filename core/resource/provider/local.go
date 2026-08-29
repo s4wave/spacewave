@@ -134,7 +134,7 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 			return nil, errors.Wrap(err, "join space via invite")
 		}
 	} else {
-		if err := localAcc.EnsureSessionTransport(ctx, sessionKey, ""); err != nil {
+		if err := localAcc.EnsureConfiguredSessionTransport(ctx, sessionKey); err != nil {
 			return nil, errors.Wrap(err, "start session transport")
 		}
 		if err := localAcc.StartP2PSync(context.WithoutCancel(ctx), localAcc.GetSessionTransport()); err != nil {
