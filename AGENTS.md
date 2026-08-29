@@ -81,9 +81,11 @@ a subdirectory.
 
 - Use `bun run ...` for JS/TS/package scripts; do not use `npm`, `yarn`, `pnpm`,
   `npx`, or bare package binaries from the shell.
-- Run `bun install` before treating generated/module-resolution failures as real.
-  Use `bun run setup` only to repair stale `.bldr` exports or module resolution
-  after dependencies are installed.
+- Run `bun install` and `uv sync --frozen --all-groups` before treating
+  generated or module-resolution failures as real. The Python sync installs
+  `protoc-gen-starpc-python` in `.venv`; Bun does not install Python tools. Use
+  `bun run setup` only to repair stale `.bldr` exports or module resolution after
+  dependencies are installed.
 - Keep large command output under `.tmp/` when needed, then inspect a short
   summary or tail. Do not commit `.tmp/`.
 - Do not use sleep loops for readiness, locks, files, ports, pids, or results.

@@ -5,6 +5,8 @@
 import {
   AddLocalEntityKeypairRequest,
   AddLocalEntityKeypairResponse,
+  ApproveLocalSpaceLinkRequest,
+  ApproveLocalSpaceLinkResponse,
   RemoveLocalEntityKeypairRequest,
   RemoveLocalEntityKeypairResponse,
   SetLocalDisplayNameRequest,
@@ -62,6 +64,19 @@ export const LocalSessionResourceServiceDefinition = {
       O: WatchLocalDisplayNameResponse,
       kind: MethodKind.ServerStreaming,
     },
+    /**
+     * ApproveSpaceLink verifies a signed SpaceLink Device ticket for a target
+     * Space, confirms the approving peer is OWNER, consumes the ticket nonce,
+     * and returns a one-use targeted invite for the Device to join.
+     *
+     * @generated from rpc s4wave.session.LocalSessionResourceService.ApproveSpaceLink
+     */
+    ApproveSpaceLink: {
+      name: 'ApproveSpaceLink',
+      I: ApproveLocalSpaceLinkRequest,
+      O: ApproveLocalSpaceLinkResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -100,6 +115,18 @@ export interface LocalSessionResourceService {
     request: WatchLocalDisplayNameRequest,
     abortSignal?: AbortSignal,
   ): MessageStream<WatchLocalDisplayNameResponse>
+
+  /**
+   * ApproveSpaceLink verifies a signed SpaceLink Device ticket for a target
+   * Space, confirms the approving peer is OWNER, consumes the ticket nonce,
+   * and returns a one-use targeted invite for the Device to join.
+   *
+   * @generated from rpc s4wave.session.LocalSessionResourceService.ApproveSpaceLink
+   */
+  ApproveSpaceLink(
+    request: ApproveLocalSpaceLinkRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ApproveLocalSpaceLinkResponse>
 }
 
 /**
@@ -141,6 +168,19 @@ export interface LocalSessionResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): MessageStream<WatchLocalDisplayNameResponse>
+
+  /**
+   * ApproveSpaceLink verifies a signed SpaceLink Device ticket for a target
+   * Space, confirms the approving peer is OWNER, consumes the ticket nonce,
+   * and returns a one-use targeted invite for the Device to join.
+   *
+   * @generated from rpc s4wave.session.LocalSessionResourceService.ApproveSpaceLink
+   */
+  ApproveSpaceLink(
+    request: ApproveLocalSpaceLinkRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<ApproveLocalSpaceLinkResponse>
 }
 
 export const LocalSessionResourceServiceServiceName =
@@ -156,6 +196,7 @@ export class LocalSessionResourceServiceClient implements LocalSessionResourceSe
     this.RemoveEntityKeypair = this.RemoveEntityKeypair.bind(this)
     this.SetDisplayName = this.SetDisplayName.bind(this)
     this.WatchDisplayName = this.WatchDisplayName.bind(this)
+    this.ApproveSpaceLink = this.ApproveSpaceLink.bind(this)
   }
   /**
    * @generated from rpc s4wave.session.LocalSessionResourceService.AddEntityKeypair
@@ -223,5 +264,26 @@ export class LocalSessionResourceServiceClient implements LocalSessionResourceSe
       abortSignal || undefined,
     )
     return buildDecodeMessageTransform(WatchLocalDisplayNameResponse)(result)
+  }
+
+  /**
+   * ApproveSpaceLink verifies a signed SpaceLink Device ticket for a target
+   * Space, confirms the approving peer is OWNER, consumes the ticket nonce,
+   * and returns a one-use targeted invite for the Device to join.
+   *
+   * @generated from rpc s4wave.session.LocalSessionResourceService.ApproveSpaceLink
+   */
+  async ApproveSpaceLink(
+    request: ApproveLocalSpaceLinkRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<ApproveLocalSpaceLinkResponse> {
+    const requestMsg = ApproveLocalSpaceLinkRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      LocalSessionResourceServiceDefinition.methods.ApproveSpaceLink.name,
+      ApproveLocalSpaceLinkRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return ApproveLocalSpaceLinkResponse.fromBinary(result)
   }
 }

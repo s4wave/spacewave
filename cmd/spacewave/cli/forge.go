@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
@@ -17,6 +18,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
+	"github.com/s4wave/spacewave/identity"
 )
 
 // newForgeCommand builds the forge command group.
@@ -197,21 +199,43 @@ func buildForgeCreateJobCommand(statePath *string, sessionIdx *uint, spaceID *st
 
 // buildForgeCreateWorkerCommand builds the forge create-worker subcommand.
 func buildForgeCreateWorkerCommand(statePath *string, sessionIdx *uint, spaceID *string, commonFlags []cli.Flag) *cli.Command {
-	var name string
+	var name, peerID, clusterKey string
 	return &cli.Command{
 		Name:      "create-worker",
-		Usage:     "create a forge worker in a space",
+		Usage:     "create and cluster-assign a Forge Worker for one session peer",
 		ArgsUsage: "<key>",
-		Flags: append(commonFlags, &cli.StringFlag{
-			Name:        "name",
-			Usage:       "worker name",
-			Required:    true,
-			Destination: &name,
-		}),
+		Flags: append(commonFlags,
+			&cli.StringFlag{
+				Name:        "name",
+				Usage:       "worker name",
+				Required:    true,
+				Destination: &name,
+			},
+			&cli.StringFlag{
+				Name:        "peer-id",
+				Usage:       "exact session peer that will run the Worker",
+				Required:    true,
+				Destination: &peerID,
+			},
+			&cli.StringFlag{
+				Name:        "cluster",
+				Usage:       "existing Cluster object key",
+				Required:    true,
+				Destination: &clusterKey,
+			},
+		),
 		Action: func(c *cli.Context) error {
-			key := c.Args().First()
+			key := strings.TrimSpace(c.Args().First())
 			if key == "" {
 				return errors.New("worker key required")
+			}
+			peerID = strings.TrimSpace(peerID)
+			if peerID == "" {
+				return errors.New("worker peer ID required")
+			}
+			clusterKey = strings.TrimSpace(clusterKey)
+			if clusterKey == "" {
+				return errors.New("worker Cluster required")
 			}
 			ctx := c.Context
 			client, err := connectDaemonFromContext(ctx, c, *statePath)
@@ -225,41 +249,69 @@ func buildForgeCreateWorkerCommand(statePath *string, sessionIdx *uint, spaceID 
 				return err
 			}
 			defer sess.Release()
+			info, err := sess.GetSessionInfo(ctx)
+			if err != nil {
+				return errors.Wrap(err, "get Worker session info")
+			}
+			if info.GetPeerId() != peerID {
+				return errors.Errorf(
+					"worker peer %q does not match mounted session peer %q",
+					peerID,
+					info.GetPeerId(),
+				)
+			}
+			publicKeyPEM := strings.TrimSpace(info.GetCryptoInfo().GetPublicKeyPem())
+			if publicKeyPEM == "" {
+				return errors.New("mounted Worker session has no public key")
+			}
+			keypair := &identity.Keypair{PeerId: peerID, PubKey: publicKeyPEM}
+			if err := keypair.Validate(); err != nil {
+				return errors.Wrap(err, "validate Worker session keypair")
+			}
+			workerPeerID, err := keypair.ParsePeerID()
+			if err != nil {
+				return errors.Wrap(err, "parse Worker session peer")
+			}
 
 			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
 			if err != nil {
 				return err
 			}
-
 			spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, sid)
 			if err != nil {
 				return err
 			}
 			defer spaceCleanup()
-
 			engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 			if err != nil {
 				return err
 			}
 			defer engineCleanup()
-
 			tx, err := engine.NewTransaction(ctx, true)
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
 			defer tx.Discard()
 
-			op := forge_worker.NewWorkerCreateOp(key, name, nil)
-			_, _, err = tx.ApplyWorldOp(ctx, op, "")
-			if err != nil {
+			if _, _, err = tx.ApplyWorldOp(
+				ctx,
+				forge_worker.NewWorkerCreateOp(key, name, []*identity.Keypair{keypair}),
+				workerPeerID,
+			); err != nil {
 				return errors.Wrap(err, "create worker")
 			}
-
+			if _, _, err = tx.ApplyWorldOp(
+				ctx,
+				forge_cluster.NewClusterAssignWorkerOp(clusterKey, key),
+				workerPeerID,
+			); err != nil {
+				return errors.Wrap(err, "assign worker to Cluster")
+			}
 			if err := tx.Commit(ctx); err != nil {
 				return errors.Wrap(err, "commit transaction")
 			}
 
-			os.Stdout.WriteString("Created worker \"" + key + "\".\n")
+			os.Stdout.WriteString("Created worker \"" + key + "\" in Cluster \"" + clusterKey + "\".\n")
 			return nil
 		},
 	}

@@ -1,4 +1,13 @@
 
+5
+space-sobject$
+space/sobject{"verbose":false}
+§
+provider-spacewaveç
+provider/spacewaveu{"endpoint":"https://spacewave.app","accountEndpoint":"https://account.spacewave.app","signingEnvPrefix":"spacewave"}
+N
+provider-local<
+provider/local({"signalingUrl":"https://spacewave.app"}
 
 session-list
 session
@@ -12,24 +21,15 @@ store-peerI
 
 export
 space/http/export
-#
-download
-space/http/download
+
+	blocktype
+db/blocktype
 &
 space-world-ops
 space/world/ops
 L
 resource-listener7
 resource/listener {"storageProjectId":"spacewave"}
-
-	blocktype
-db/blocktype
-5
-space-sobject$
-space/sobject{"verbose":false}
-§
-provider-spacewaveç
-provider/spacewaveu{"endpoint":"https://spacewave.app","accountEndpoint":"https://account.spacewave.app","signingEnvPrefix":"spacewave"}
-$
-provider-local
-provider/local
+#
+download
+space/http/download

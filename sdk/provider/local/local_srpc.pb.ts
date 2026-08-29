@@ -2,7 +2,12 @@
 // @generated from file github.com/s4wave/spacewave/sdk/provider/local/local.proto (package s4wave.provider.local, syntax proto3)
 /* eslint-disable */
 
-import { CreateAccountRequest, CreateAccountResponse } from './local.pb.js'
+import {
+  CompleteSpaceLinkEnrollmentRequest,
+  CompleteSpaceLinkEnrollmentResponse,
+  CreateAccountRequest,
+  CreateAccountResponse,
+} from './local.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { ProtoRpc, ServerContext } from 'starpc'
 
@@ -21,6 +26,19 @@ export const LocalProviderResourceServiceDefinition = {
       O: CreateAccountResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * CompleteSpaceLinkEnrollment creates or reopens the caller's own local
+     * session from the supplied Device key and joins the target Space through
+     * the one-use targeted invite from a local SpaceLink approval.
+     *
+     * @generated from rpc s4wave.provider.local.LocalProviderResourceService.CompleteSpaceLinkEnrollment
+     */
+    CompleteSpaceLinkEnrollment: {
+      name: 'CompleteSpaceLinkEnrollment',
+      I: CompleteSpaceLinkEnrollmentRequest,
+      O: CompleteSpaceLinkEnrollmentResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -35,6 +53,18 @@ export interface LocalProviderResourceService {
     request: CreateAccountRequest,
     abortSignal?: AbortSignal,
   ): Promise<CreateAccountResponse>
+
+  /**
+   * CompleteSpaceLinkEnrollment creates or reopens the caller's own local
+   * session from the supplied Device key and joins the target Space through
+   * the one-use targeted invite from a local SpaceLink approval.
+   *
+   * @generated from rpc s4wave.provider.local.LocalProviderResourceService.CompleteSpaceLinkEnrollment
+   */
+  CompleteSpaceLinkEnrollment(
+    request: CompleteSpaceLinkEnrollmentRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CompleteSpaceLinkEnrollmentResponse>
 }
 
 /**
@@ -49,6 +79,19 @@ export interface LocalProviderResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<CreateAccountResponse>
+
+  /**
+   * CompleteSpaceLinkEnrollment creates or reopens the caller's own local
+   * session from the supplied Device key and joins the target Space through
+   * the one-use targeted invite from a local SpaceLink approval.
+   *
+   * @generated from rpc s4wave.provider.local.LocalProviderResourceService.CompleteSpaceLinkEnrollment
+   */
+  CompleteSpaceLinkEnrollment(
+    request: CompleteSpaceLinkEnrollmentRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<CompleteSpaceLinkEnrollmentResponse>
 }
 
 export const LocalProviderResourceServiceServiceName =
@@ -61,6 +104,8 @@ export class LocalProviderResourceServiceClient implements LocalProviderResource
     this.service = opts?.service || LocalProviderResourceServiceServiceName
     this.rpc = rpc
     this.CreateAccount = this.CreateAccount.bind(this)
+    this.CompleteSpaceLinkEnrollment =
+      this.CompleteSpaceLinkEnrollment.bind(this)
   }
   /**
    * @generated from rpc s4wave.provider.local.LocalProviderResourceService.CreateAccount
@@ -77,5 +122,27 @@ export class LocalProviderResourceServiceClient implements LocalProviderResource
       abortSignal || undefined,
     )
     return CreateAccountResponse.fromBinary(result)
+  }
+
+  /**
+   * CompleteSpaceLinkEnrollment creates or reopens the caller's own local
+   * session from the supplied Device key and joins the target Space through
+   * the one-use targeted invite from a local SpaceLink approval.
+   *
+   * @generated from rpc s4wave.provider.local.LocalProviderResourceService.CompleteSpaceLinkEnrollment
+   */
+  async CompleteSpaceLinkEnrollment(
+    request: CompleteSpaceLinkEnrollmentRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<CompleteSpaceLinkEnrollmentResponse> {
+    const requestMsg = CompleteSpaceLinkEnrollmentRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      LocalProviderResourceServiceDefinition.methods.CompleteSpaceLinkEnrollment
+        .name,
+      CompleteSpaceLinkEnrollmentRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return CompleteSpaceLinkEnrollmentResponse.fromBinary(result)
   }
 }

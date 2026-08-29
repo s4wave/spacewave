@@ -4,9 +4,11 @@ package spacewave_cli
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,15 +20,24 @@ import (
 
 func TestDevicePolicyCommandExposesSubcommandsAndFlags(t *testing.T) {
 	deviceCmd := newDeviceCommand(nil)
+	approveCmd := findTestSubcommand(t, deviceCmd, "approve")
 	policyCmd := findTestSubcommand(t, deviceCmd, "policy")
 	enableShellCmd := findTestSubcommand(t, policyCmd, "enable-shell")
 	checkoutRootCmd := findTestSubcommand(t, policyCmd, "checkout-root")
 	checkoutRootAddCmd := findTestSubcommand(t, checkoutRootCmd, "add")
 	checkoutRootRemoveCmd := findTestSubcommand(t, checkoutRootCmd, "remove")
+	forgeWorkerCmd := findTestSubcommand(t, policyCmd, "forge-worker")
+	forgeWorkerSetCmd := findTestSubcommand(t, forgeWorkerCmd, "set")
+	forgeWorkerShowCmd := findTestSubcommand(t, forgeWorkerCmd, "show")
+	forgeWorkerClearCmd := findTestSubcommand(t, forgeWorkerCmd, "clear")
 
+	assertCommandFlags(t, approveCmd, "state-path", "socket-path", "session-index", "space", "ticket")
 	assertCommandFlags(t, enableShellCmd, "state-path", "socket-path", "disable")
 	assertCommandFlags(t, checkoutRootAddCmd, "state-path", "socket-path", "write")
 	assertCommandFlags(t, checkoutRootRemoveCmd, "state-path", "socket-path")
+	assertCommandFlags(t, forgeWorkerSetCmd, "state-path", "socket-path", "milli-cpu", "memory-bytes", "backend")
+	assertCommandFlags(t, forgeWorkerShowCmd, "state-path", "output")
+	assertCommandFlags(t, forgeWorkerClearCmd, "state-path", "socket-path")
 }
 
 func TestComputeDevicePolicyCapabilitiesProjectsPolicyOwnedCapabilities(t *testing.T) {
@@ -414,4 +425,110 @@ func withDevicePolicyReloadStub(t *testing.T, reload func(context.Context, *sdkC
 		devicePolicyReloadDaemon = oldReload
 	})
 	devicePolicyReloadDaemon = reload
+}
+
+func TestDevicePolicyForgeWorkerSetAndClearValidateBeforeWriting(t *testing.T) {
+	clearStatePathEnv(t)
+	clearSocketPathEnv(t)
+	statePath := t.TempDir()
+	if err := device_policy.WriteFile(statePath, &device_policy.DevicePolicy{Revision: 30}); err != nil {
+		t.Fatalf("seed policy: %v", err)
+	}
+	withDeviceDaemonStub(t, func(string, int) (net.Conn, error) {
+		return newTestDaemonConn(t), nil
+	}, func(context.Context, string) (*exec.Cmd, error) {
+		t.Fatal("autostart must not run after successful dial")
+		return nil, nil
+	})
+	var reloads int
+	withDevicePolicyReloadStub(t, func(context.Context, *sdkClient) error {
+		reloads++
+		return nil
+	})
+	originalValidate := devicePolicyValidateForgeWorker
+	t.Cleanup(func() { devicePolicyValidateForgeWorker = originalValidate })
+	var validated *device_policy.ForgeWorkerPolicy
+	devicePolicyValidateForgeWorker = func(
+		_ context.Context,
+		gotStatePath string,
+		_ *sdkClient,
+		policy *device_policy.ForgeWorkerPolicy,
+	) error {
+		if gotStatePath != statePath {
+			t.Fatalf("validation state path = %q, want %q", gotStatePath, statePath)
+		}
+		validated = policy.CloneVT()
+		return nil
+	}
+
+	if err := runDeviceCLI(t,
+		"device", "policy", "forge-worker", "set",
+		"--state-path", statePath,
+		"--milli-cpu", "2500",
+		"--memory-bytes", "4294967296",
+		"--backend", "fuse",
+		"--backend", "docker",
+		"forge/worker/forge-device",
+	); err != nil {
+		t.Fatalf("device policy forge-worker set: %v", err)
+	}
+	if validated == nil || validated.GetWorkerObjectKey() != "forge/worker/forge-device" {
+		t.Fatalf("validated policy = %v", validated)
+	}
+	policy, err := device_policy.ReadFile(statePath)
+	if err != nil {
+		t.Fatalf("read set policy: %v", err)
+	}
+	worker := policy.GetForgeWorker()
+	if policy.GetRevision() != 31 || worker.GetMilliCpu() != 2500 || worker.GetMemoryBytes() != 4294967296 {
+		t.Fatalf("set policy = %v", policy)
+	}
+	if got := worker.GetBackends(); len(got) != 2 || got[0] != "docker" || got[1] != "fuse" {
+		t.Fatalf("backends = %v, want canonical [docker fuse]", got)
+	}
+
+	devicePolicyValidateForgeWorker = func(context.Context, string, *sdkClient, *device_policy.ForgeWorkerPolicy) error {
+		return errors.New("wrong Device session keypair")
+	}
+	if err := runDeviceCLI(t,
+		"device", "policy", "forge-worker", "set",
+		"--state-path", statePath,
+		"--milli-cpu", "1000",
+		"--memory-bytes", "1073741824",
+		"--backend", "docker",
+		"forge/worker/other",
+	); err == nil || !strings.Contains(err.Error(), "wrong Device session keypair") {
+		t.Fatalf("mismatched Worker error = %v", err)
+	}
+	unchanged, err := device_policy.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unchanged.GetRevision() != 31 || unchanged.GetForgeWorker().GetWorkerObjectKey() != "forge/worker/forge-device" {
+		t.Fatalf("failed validation changed policy: %v", unchanged)
+	}
+
+	if err := runDeviceCLI(t,
+		"device", "policy", "forge-worker", "clear", "--state-path", statePath,
+	); err != nil {
+		t.Fatalf("device policy forge-worker clear: %v", err)
+	}
+	cleared, err := device_policy.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cleared.GetRevision() != 32 || cleared.GetForgeWorker() != nil {
+		t.Fatalf("cleared policy = %v", cleared)
+	}
+	if reloads != 2 {
+		t.Fatalf("reloads = %d, want set and clear", reloads)
+	}
+}
+
+func TestNormalizedForgeWorkerBackendsRejectsUnsafeValues(t *testing.T) {
+	for _, values := range [][]string{nil, {""}, {"docker", "docker"}, {"docker,host"}, {"docker host"}} {
+		if got, err := normalizedForgeWorkerBackends(values); err == nil || got != nil {
+			t.Fatalf("normalizedForgeWorkerBackends(%q) = %v, %v; want error", values, got, err)
+		}
+	}
 }

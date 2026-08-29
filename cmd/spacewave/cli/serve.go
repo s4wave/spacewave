@@ -30,6 +30,12 @@ import (
 	s4wave_trace "github.com/s4wave/spacewave/sdk/trace"
 )
 
+// serveSocketPath selects the exact listener requested by the command and
+// falls back to the state-local daemon socket.
+func serveSocketPath(c *cli.Context, statePath string) string {
+	return effectiveSocketPath(c, filepath.Join(statePath, socketName))
+}
+
 // newServeCommand builds the serve command that starts the daemon
 // with a resource service socket listener.
 func newServeCommand(getBus func() cli_entrypoint.CliBus, yieldBroker *yield_policy.Broker) *cli.Command {
@@ -108,7 +114,7 @@ func runServeCommand(
 		}
 	}
 
-	sockPath := filepath.Join(resolved, socketName)
+	sockPath := serveSocketPath(c, resolved)
 	handoffBroker := yieldBroker
 	handoffBroker.BeginHandoff("spacewave serve", sockPath)
 	defer handoffBroker.Reclaim()
