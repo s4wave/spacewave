@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -41,9 +42,9 @@ func newForgeCommand(getBus func() cli_entrypoint.CliBus) *cli.Command {
 		Name:  "forge",
 		Usage: "manage forge entities (clusters, jobs, workers)",
 		Subcommands: []*cli.Command{
-			buildForgeCreateClusterCommand(&statePath, &sessionIdx, &spaceID, commonFlags),
-			buildForgeCreateJobCommand(&statePath, &sessionIdx, &spaceID, commonFlags),
-			buildForgeCreateWorkerCommand(&statePath, &sessionIdx, &spaceID, commonFlags),
+			buildForgeCreateClusterCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags)),
+			buildForgeCreateJobCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags)),
+			buildForgeCreateWorkerCommand(&statePath, &sessionIdx, &spaceID, slices.Clone(commonFlags)),
 		},
 	}
 }
