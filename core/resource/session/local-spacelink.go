@@ -96,6 +96,13 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 	if err := ih.GetSOHost().CreateInvite(ctx, ih.GetPrivKey(), invite); err != nil {
 		return nil, errors.Wrap(err, "store targeted invite")
 	}
+	ownerTransport := localAcc.GetSessionTransport()
+	if ownerTransport == nil {
+		return nil, errors.New("approving session transport is not available")
+	}
+	if err := localAcc.StartP2PSync(ctx, ownerTransport); err != nil {
+		return nil, errors.Wrap(err, "start invite service")
+	}
 
 	return &s4wave_session.ApproveLocalSpaceLinkResponse{
 		Completion: &s4wave_session.LocalSpaceLinkCompletion{
