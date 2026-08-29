@@ -119,7 +119,7 @@ func runServeCommand(
 	handoffBroker.BeginHandoff("spacewave serve", sockPath)
 	defer handoffBroker.Reclaim()
 
-	statePathLease, err := prepareDaemonRuntime(ctx, nil, resolved, takeover)
+	statePathLease, err := prepareDaemonRuntime(ctx, nil, resolved, sockPath, takeover)
 	if err != nil {
 		return err
 	}
