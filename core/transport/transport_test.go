@@ -11,12 +11,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
 	websocket "github.com/aperturerobotics/go-websocket"
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
 	"github.com/aperturerobotics/util/routine"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/link"
+	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
+	"github.com/s4wave/spacewave/net/peer"
+	"github.com/s4wave/spacewave/net/protocol"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -415,4 +421,92 @@ func TestSessionTransportRepeatedWaitersObserveReady(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("session transport did not stop after cancellation")
 	}
+}
+
+type establishLinkSpy struct {
+	count   atomic.Int32
+	bridged atomic.Int32
+}
+
+func (s *establishLinkSpy) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+	switch di.GetDirective().(type) {
+	case link.EstablishLinkWithPeer:
+		s.count.Add(1)
+	case link_solicit.SolicitProtocol:
+		s.bridged.Add(1)
+	}
+	return nil, nil
+}
+
+func (*establishLinkSpy) GetControllerInfo() *controller.Info {
+	return controller.NewInfo("test/establish-link-spy", controller.MustParseVersion("0.0.1"), "establish link spy")
+}
+
+func (*establishLinkSpy) Execute(ctx context.Context) error {
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+func (*establishLinkSpy) Close() error { return nil }
+
+// TestSessionTransportKeepsEstablishLinkOnChildBus prevents one desired peer
+// from starting duplicate WebRTC offers on both the session and parent buses.
+func TestSessionTransportKeepsEstablishLinkOnChildBus(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	spy := &establishLinkSpy{}
+	if _, err := tb.Bus.AddController(ctx, spy, nil); err != nil {
+		t.Fatal(err)
+	}
+	localKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	remoteKey, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	localID, err := peer.IDFromPrivateKey(localKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	remoteID, err := peer.IDFromPrivateKey(remoteKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, err := transport.NewSessionTransport(logrus.NewEntry(logrus.New()), tb.Bus, localKey, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- st.Execute(ctx) }()
+	if err := st.AwaitReady(ctx); err != nil {
+		t.Fatal(err)
+	}
+	_, ref, err := st.GetChildBus().AddDirective(link.NewEstablishLinkWithPeer(localID, remoteID), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref.Release()
+	_, bridgeRef, err := st.GetChildBus().AddDirective(
+		link_solicit.NewSolicitProtocol(protocol.ID("test/bridge"), nil, "", 0),
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bridgeRef.Release()
+	if got := spy.bridged.Load(); got == 0 {
+		t.Fatal("parent bus did not observe bridged protocol directive")
+	}
+	if got := spy.count.Load(); got != 0 {
+		t.Fatalf("parent bus observed %d EstablishLinkWithPeer directives", got)
+	}
+	cancel()
+	<-done
 }
