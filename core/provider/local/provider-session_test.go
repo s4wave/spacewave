@@ -142,15 +142,19 @@ func addPairedDeviceAndWait(ctx context.Context, t *testing.T, so sobject.Shared
 		t.Fatal(err)
 	}
 
+	if _, err := so.QueueOperation(ctx, opData); err != nil {
+		t.Fatal(err)
+	}
+	waitPairedDevice(ctx, t, so, peerID)
+}
+
+func waitPairedDevice(ctx context.Context, t *testing.T, so sobject.SharedObject, peerID string) {
+	t.Helper()
 	stateCtr, relStateCtr, err := so.AccessSharedObjectState(ctx, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer relStateCtr()
-
-	if _, err := so.QueueOperation(ctx, opData); err != nil {
-		t.Fatal(err)
-	}
 
 	err = ccontainer.WatchChanges(
 		ctx,

@@ -126,6 +126,29 @@ func (a *ProviderAccount) consumePairingExchange(remotePeerID peer.ID) error {
 	return err
 }
 
+// RecordPairedDevice persists a verified Device identity in account settings.
+// SpaceLink approval uses it so the originating account restores P2P sync after
+// daemon restart without repeating enrollment.
+func (a *ProviderAccount) RecordPairedDevice(
+	ctx context.Context,
+	remotePeerID string,
+	displayName string,
+) error {
+	if remotePeerID == "" {
+		return errors.New("paired Device peer ID is required")
+	}
+	ref, err := a.GetAccountSettingsRef(ctx)
+	if err != nil {
+		return errors.Wrap(err, "get account settings ref")
+	}
+	so, release, err := a.MountSharedObject(ctx, ref, nil)
+	if err != nil {
+		return errors.Wrap(err, "mount account settings")
+	}
+	defer release()
+	return a.queueAddPairedDevice(ctx, so, remotePeerID, displayName)
+}
+
 // queueAddPairedDevice queues an AddPairedDevice operation on the given
 // (already-mounted) shared object.
 func (a *ProviderAccount) queueAddPairedDevice(
