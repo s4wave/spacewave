@@ -3,10 +3,15 @@
 package wasm
 
 import (
+	"context"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/fastjson"
+	"github.com/aperturerobotics/util/gitroot"
 	playwright "github.com/mxschmitt/playwright-go"
 )
 
@@ -15,7 +20,7 @@ const (
 	canvasQuickstartProbeWaitMS = 120000
 )
 
-func TestGoScriptCanvasQuickstartRouteResourceProbe(t *testing.T) {
+func TestGoScriptCanvasQuickstartScenario(t *testing.T) {
 	compiler, err := ResolveE2EWasmCompiler()
 	if err != nil {
 		t.Fatalf("resolve wasm compiler: %v", err)
@@ -24,55 +29,7 @@ func TestGoScriptCanvasQuickstartRouteResourceProbe(t *testing.T) {
 		t.Skipf("requires %s", E2EWasmCompilerGoScript)
 	}
 
-	sess := harness(t).NewCleanPageSession(t)
-	console, stopConsole := sess.WatchConsole()
-	defer stopConsole()
-	defer func() {
-		report := DrainCrashReport(console)
-		if report.HasCrash() {
-			t.Errorf("unexpected browser/WASM crash report during Canvas route probe: %+v", report)
-		}
-		if report.HasExitedGoLoop() {
-			t.Errorf("unexpected exited-Go loop during Canvas route probe: %+v", report)
-		}
-	}()
-
-	page := sess.Page()
-	WaitForApp(t, page)
-	EnableQuickstartTimingLogs(t, page)
-	NavigateHash(t, harness(t), page, "#/quickstart/canvas")
-
-	probe := waitForCanvasRouteResourceProbe(t, page)
-	if probe.Timeout {
-		t.Fatalf("Canvas route/resource probe timed out: %+v", probe)
-	}
-	if !strings.HasSuffix(probe.Hash, "/-/canvas-1") {
-		t.Fatalf("Canvas route = %q, want canonical /-/canvas-1 route; probe: %+v", probe.Hash, probe)
-	}
-	if probe.RouteProbe.SpaceState.ObjectType != "canvas" {
-		t.Fatalf("Canvas object type = %q, want canvas; probe: %+v", probe.RouteProbe.SpaceState.ObjectType, probe)
-	}
-	if probe.RouteProbe.CanvasAccess.TypeID != "canvas" {
-		t.Fatalf("Canvas access type = %q, want canvas; probe: %+v", probe.RouteProbe.CanvasAccess.TypeID, probe)
-	}
-	if probe.RouteProbe.CanvasAccess.ResourceID == 0 {
-		t.Fatalf("Canvas access returned no resource id; probe: %+v", probe)
-	}
-	if !probe.HasViewport || !probe.HasDemoNode {
-		t.Fatalf("Canvas viewer did not render seeded viewport/node; probe: %+v", probe)
-	}
-}
-
-func TestGoScriptCanvasQuickstartCreateMutate(t *testing.T) {
-	compiler, err := ResolveE2EWasmCompiler()
-	if err != nil {
-		t.Fatalf("resolve wasm compiler: %v", err)
-	}
-	if compiler != E2EWasmCompilerGoScript {
-		t.Skipf("requires %s", E2EWasmCompilerGoScript)
-	}
-
-	sess := harness(t).NewCleanPageSession(t)
+	sess := harness(t).NewCleanSession(t)
 	console, stopConsole := sess.WatchConsole()
 	defer stopConsole()
 	defer func() {
@@ -100,6 +57,51 @@ func TestGoScriptCanvasQuickstartCreateMutate(t *testing.T) {
 
 	addCanvasTextNode(t, page, "GoScript Canvas Proof")
 	waitForCanvasText(t, page, "GoScript Canvas Proof")
+	waitForCanvasSynced(t, page)
+
+	artifactDir := canvasResizeArtifactDir(t)
+	measurements := make([]float64, 3)
+	for idx := range measurements {
+		measurements[idx] = float64(resizeCanvasNode(t, page, "unixfs-demo")) / float64(time.Millisecond)
+	}
+	var arena fastjson.Arena
+	measurementObj := arena.NewObject()
+	measurementObj.Set("compiler", arena.NewString(string(compiler)))
+	measurementObj.Set("operation", arena.NewString("canvas-node-resize-applying-to-synced"))
+	measurementSamples := arena.NewArray()
+	for idx, sample := range measurements {
+		measurementSamples.SetArrayItem(idx, arena.NewNumberString(strconv.FormatFloat(sample, 'f', 6, 64)))
+	}
+	measurementObj.Set("samplesMs", measurementSamples)
+	measurementData := append(measurementObj.MarshalTo(nil), '\n')
+	measurementPath := filepath.Join(artifactDir, "benchmark.json")
+	if err := WriteTraceArtifact(measurementPath, measurementData); err != nil {
+		t.Fatalf("write Canvas resize measurements: %v", err)
+	}
+	t.Logf("goscript Canvas resize samples: %.3fms %.3fms %.3fms", measurements[0], measurements[1], measurements[2])
+
+	if !E2EWasmTraceServiceEnabled(compiler) {
+		return
+	}
+	var diagnosticDuration time.Duration
+	traceData, err := sess.CaptureTrace(t.Context(), "goscript-canvas-resize", func(context.Context) error {
+		diagnosticDuration = resizeCanvasNode(t, page, "unixfs-demo")
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("capture Canvas resize trace: %v", err)
+	}
+	tracePath := filepath.Join(artifactDir, "runtime.trace")
+	if err := WriteTraceArtifact(tracePath, traceData); err != nil {
+		t.Fatalf("write Canvas resize trace: %v", err)
+	}
+	summary, _, _, _, _, _ := summarizeTrace(t, traceData)
+	summaryPath := filepath.Join(artifactDir, "tracetool.txt")
+	if err := WriteTraceArtifact(summaryPath, []byte(summary)); err != nil {
+		t.Fatalf("write Canvas resize trace summary: %v", err)
+	}
+	t.Logf("goscript Canvas traced resize applied and watched in %s", diagnosticDuration)
+	t.Logf("goscript Canvas resize artifacts written to %s", artifactDir)
 }
 
 type canvasRouteResourceProbe struct {
@@ -375,6 +377,69 @@ func waitForCanvasText(t testing.TB, page playwright.Page, text string) {
 	if err != nil {
 		t.Fatalf("wait for Canvas text %q: %v\ndebug: %v", text, err, collectCanvasQuickstartDebug(page))
 	}
+}
+
+func canvasResizeArtifactDir(t testing.TB) string {
+	t.Helper()
+
+	repoRoot, err := gitroot.FindRepoRoot()
+	if err != nil {
+		t.Fatalf("find repo root for Canvas resize artifacts: %v", err)
+	}
+	return filepath.Join(repoRoot, ".bldr", "e2e-goscript-canvas-resize")
+}
+
+func waitForCanvasSynced(t testing.TB, page playwright.Page) {
+	t.Helper()
+
+	_, err := page.WaitForFunction(`() => {
+		const text = document.querySelector('[data-testid="canvas-viewport"]')?.textContent ?? ''
+		return text.includes('Synced') || !text.includes('Applying ')
+	}`, nil, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(canvasQuickstartWaitMS),
+	})
+	if err != nil {
+		t.Fatalf("wait for Canvas sync: %v\ndebug: %v", err, collectCanvasQuickstartDebug(page))
+	}
+}
+
+func resizeCanvasNode(t testing.TB, page playwright.Page, nodeID string) time.Duration {
+	t.Helper()
+
+	node := page.Locator(`[data-canvas-node="` + nodeID + `"]`).First()
+	if err := node.Click(playwright.LocatorClickOptions{Timeout: playwright.Float(canvasQuickstartWaitMS)}); err != nil {
+		t.Fatalf("select Canvas node %q: %v\ndebug: %v", nodeID, err, collectCanvasQuickstartDebug(page))
+	}
+	handle := node.Locator(".cursor-nwse-resize").First()
+	box, err := handle.BoundingBox()
+	if err != nil {
+		t.Fatalf("measure Canvas resize handle: %v\ndebug: %v", err, collectCanvasQuickstartDebug(page))
+	}
+	start := time.Now()
+	if err := page.Mouse().Move(box.X+box.Width/2, box.Y+box.Height/2); err != nil {
+		t.Fatalf("move to Canvas resize handle: %v", err)
+	}
+	if err := page.Mouse().Down(); err != nil {
+		t.Fatalf("press Canvas resize handle: %v", err)
+	}
+	if err := page.Mouse().Move(box.X+box.Width/2+32, box.Y+box.Height/2+24); err != nil {
+		t.Fatalf("drag Canvas resize handle: %v", err)
+	}
+	if err := page.Mouse().Up(); err != nil {
+		t.Fatalf("release Canvas resize handle: %v", err)
+	}
+
+	_, err = page.WaitForFunction(`() => {
+		const text = document.querySelector('[data-testid="canvas-viewport"]')?.textContent ?? ''
+		return text.includes('Applying ')
+	}`, nil, playwright.PageWaitForFunctionOptions{
+		Timeout: playwright.Float(canvasQuickstartWaitMS),
+	})
+	if err != nil {
+		t.Fatalf("wait for Canvas resize mutation: %v\ndebug: %v", err, collectCanvasQuickstartDebug(page))
+	}
+	waitForCanvasSynced(t, page)
+	return time.Since(start)
 }
 
 func collectCanvasQuickstartDebug(page playwright.Page) any {
