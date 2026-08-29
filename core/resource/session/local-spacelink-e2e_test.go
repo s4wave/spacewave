@@ -294,22 +294,20 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 		t.Fatal("device session did not reopen with the supplied key identity")
 	}
 
-	// Connect the owner and device session transports over inproc, then
-	// start the owner's invite server. Connectivity has to exist before
-	// the Device opens the invite stream.
-	if err := ownerAcc.CreateSessionTransport(ctx, ownerSess.GetPrivKey(), ""); err != nil {
-		t.Fatal(err)
+	// Approval starts the owner's invite service on its mounted session
+	// transport. Connect the Device transport, then exercise the same invite
+	// RPC that the cross-host CLI uses.
+	ownerTransport := ownerAcc.GetSessionTransport()
+	if ownerTransport == nil {
+		t.Fatal("approval did not retain the owner session transport")
 	}
 	defer ownerAcc.StopSessionTransport()
+	defer ownerAcc.StopP2PSync()
 	if err := deviceAcc.EnsureSessionTransport(ctx, devicePriv, ""); err != nil {
 		t.Fatal(err)
 	}
 	defer deviceAcc.StopSessionTransport()
-	connectSessionTransportsForTest(ctx, t, deviceAcc.GetSessionTransport(), ownerAcc.GetSessionTransport())
-	if err := ownerAcc.StartP2PSync(ctx, ownerAcc.GetSessionTransport()); err != nil {
-		t.Fatal(err)
-	}
-	defer ownerAcc.StopP2PSync()
+	connectSessionTransportsForTest(ctx, t, deviceAcc.GetSessionTransport(), ownerTransport)
 
 	joinResult, err := deviceAcc.JoinViaInvite(ctx, devicePriv, invite, "")
 	if err != nil {
