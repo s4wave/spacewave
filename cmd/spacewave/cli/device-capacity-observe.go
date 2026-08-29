@@ -65,8 +65,12 @@ func runDeviceCapacityObserver(
 	client *sdkClient,
 	store *device_policy.PolicyStore,
 ) error {
-	if err := restoreLocalDeviceEnrollment(ctx, statePath, client); err != nil {
+	enrollmentCleanup, err := restoreLocalDeviceEnrollment(ctx, statePath, client)
+	if err != nil {
 		return errors.Wrap(err, "restore local Device enrollment")
+	}
+	if enrollmentCleanup != nil {
+		defer enrollmentCleanup()
 	}
 	claimID, err := newClaimID()
 	if err != nil {
@@ -118,16 +122,25 @@ func runDeviceCapacityObserver(
 // restoreLocalDeviceEnrollment reopens the persisted local completion on each
 // daemon start. This reasserts the invite authority as a desired signaling
 // peer without replaying the one-use invite.
-func restoreLocalDeviceEnrollment(ctx context.Context, statePath string, client *sdkClient) error {
+func restoreLocalDeviceEnrollment(ctx context.Context, statePath string, client *sdkClient) (func(), error) {
 	record, ok, err := deviceLauncherProjectionTarget(statePath)
 	if err != nil || !ok || !strings.HasPrefix(record.Completion, deviceLocalCompletionPrefix) {
-		return err
+		return nil, err
+	}
+	sess, err := client.mountSession(ctx, record.SessionIndex)
+	if err != nil {
+		return nil, err
 	}
 	updated, err := openLocalDeviceSession(ctx, client, statePath, record)
 	if err != nil {
-		return err
+		sess.Release()
+		return nil, err
 	}
-	return writeDeviceSetupRecord(statePath, updated)
+	if err := writeDeviceSetupRecord(statePath, updated); err != nil {
+		sess.Release()
+		return nil, err
+	}
+	return sess.Release, nil
 }
 
 // openDeviceCapacityAdmission mounts the Device session, Space, and World
