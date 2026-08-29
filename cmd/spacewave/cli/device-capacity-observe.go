@@ -68,7 +68,15 @@ func runDeviceCapacityObserver(
 	if err != nil {
 		return errors.Wrap(err, "generate claim id")
 	}
-	go renewOwnedCapacityLoop(ctx, le, statePath, client, store, claimID)
+
+	var admission *forge_runtime.WorldRuntimeAdmission
+	var ref forge_runtime.WorkerClaimRef
+	var cleanup func()
+	defer func() {
+		if cleanup != nil {
+			cleanup()
+		}
+	}()
 
 	var last *device_policy.DevicePolicy
 	for {
@@ -79,59 +87,71 @@ func runDeviceCapacityObserver(
 			}
 			return err
 		}
-		if err := observeDeclaredCapacity(ctx, le, statePath, client, store, policy, claimID); err != nil {
+		if admission == nil {
+			admission, ref, cleanup, err = openDeviceCapacityAdmission(ctx, statePath, client, claimID)
+			if err != nil {
+				le.WithError(err).Warn("failed to open declared capacity target")
+				last = policy
+				continue
+			}
+			if admission == nil {
+				last = policy
+				continue
+			}
+			go renewOwnedCapacityLoop(ctx, le, admission, ref)
+		}
+		var declared *device_policy.ForgeWorkerPolicy
+		if policy != nil && ctx.Err() == nil {
+			declared = policy.GetForgeWorker()
+		}
+		if err := applyDeclaredCapacity(ctx, le, admission, ref, declared); err != nil {
 			le.WithError(err).Warn("failed to observe declared capacity")
 		}
 		last = policy
 	}
 }
 
-// observeDeclaredCapacity runs one full cycle: mount the space world engine,
-// reclaim owned records by scan, then apply the declared envelope (or drain
-// everything owned when the declaration is absent).
-func observeDeclaredCapacity(
+// openDeviceCapacityAdmission mounts the Device session, Space, and World
+// engine for the daemon lifetime. Retaining these resources keeps the session
+// transport and its WebRTC reconnection loop alive between lease renewals.
+func openDeviceCapacityAdmission(
 	ctx context.Context,
-	le *logrus.Entry,
 	statePath string,
 	client *sdkClient,
-	store *device_policy.PolicyStore,
-	policy *device_policy.DevicePolicy,
 	claimID string,
-) error {
+) (*forge_runtime.WorldRuntimeAdmission, forge_runtime.WorkerClaimRef, func(), error) {
 	record, ok, err := deviceLauncherProjectionTarget(statePath)
 	if err != nil || !ok {
-		return err
+		return nil, forge_runtime.WorkerClaimRef{}, nil, err
 	}
 	sess, err := client.mountSession(ctx, record.SessionIndex)
 	if err != nil {
-		return err
+		return nil, forge_runtime.WorkerClaimRef{}, nil, err
 	}
-	defer sess.Release()
-
 	spaceID, err := decodeDeviceResourceID(record.ResourceID)
 	if err != nil {
-		return err
+		sess.Release()
+		return nil, forge_runtime.WorkerClaimRef{}, nil, err
 	}
 	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
 	if err != nil {
-		return err
+		sess.Release()
+		return nil, forge_runtime.WorkerClaimRef{}, nil, err
 	}
-	defer spaceCleanup()
-
 	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
 	if err != nil {
-		return err
+		spaceCleanup()
+		sess.Release()
+		return nil, forge_runtime.WorkerClaimRef{}, nil, err
 	}
-	defer engineCleanup()
-
+	cleanup := func() {
+		engineCleanup()
+		spaceCleanup()
+		sess.Release()
+	}
 	admission := forge_runtime.NewWorldRuntimeAdmission(engine, nil, capacityReservationLease, capacityOwnerLease)
 	ref := forge_runtime.WorkerClaimRef{DeviceObjectKey: record.DeviceObjectKey, ClaimID: claimID}
-
-	var declared *device_policy.ForgeWorkerPolicy
-	if policy != nil && ctx.Err() == nil {
-		declared = policy.GetForgeWorker()
-	}
-	return applyDeclaredCapacity(ctx, le, admission, ref, declared)
+	return admission, ref, cleanup, nil
 }
 
 // applyDeclaredCapacity claims every owned record, observes the declared key
@@ -195,10 +215,8 @@ func applyDeclaredCapacity(
 func renewOwnedCapacityLoop(
 	ctx context.Context,
 	le *logrus.Entry,
-	statePath string,
-	client *sdkClient,
-	store *device_policy.PolicyStore,
-	claimID string,
+	admission *forge_runtime.WorldRuntimeAdmission,
+	ref forge_runtime.WorkerClaimRef,
 ) {
 	ticker := time.NewTicker(capacityRenewPeriod)
 	defer ticker.Stop()
@@ -207,47 +225,21 @@ func renewOwnedCapacityLoop(
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := renewOwnedCapacityOnce(ctx, statePath, client, claimID); err != nil && ctx.Err() == nil {
+			if err := renewOwnedCapacityOnceWithAdmission(
+				ctx,
+				admission,
+				ref.DeviceObjectKey,
+				ref,
+			); err != nil && ctx.Err() == nil {
 				le.WithError(err).Warn("capacity claim renewal failed")
 			}
 		}
 	}
 }
 
-func renewOwnedCapacityOnce(ctx context.Context, statePath string, client *sdkClient, claimID string) error {
-	record, ok, err := deviceLauncherProjectionTarget(statePath)
-	if err != nil || !ok {
-		return err
-	}
-	sess, err := client.mountSession(ctx, record.SessionIndex)
-	if err != nil {
-		return err
-	}
-	defer sess.Release()
-
-	spaceID, err := decodeDeviceResourceID(record.ResourceID)
-	if err != nil {
-		return err
-	}
-	spaceSvc, spaceCleanup, err := client.mountSpace(ctx, sess, spaceID)
-	if err != nil {
-		return err
-	}
-	defer spaceCleanup()
-
-	engine, engineCleanup, err := client.accessWorldEngine(ctx, spaceSvc)
-	if err != nil {
-		return err
-	}
-	defer engineCleanup()
-
-	admission := forge_runtime.NewWorldRuntimeAdmission(engine, nil, capacityReservationLease, capacityOwnerLease)
-	ref := forge_runtime.WorkerClaimRef{DeviceObjectKey: record.DeviceObjectKey, ClaimID: claimID}
-	return renewOwnedCapacityWithAdmission(ctx, admission, ref.DeviceObjectKey, ref)
-}
-
-// renewOwnedCapacityWithAdmission renews every record the Device owns.
-func renewOwnedCapacityWithAdmission(
+// renewOwnedCapacityOnceWithAdmission renews every record the Device owns
+// through the daemon-lifetime World engine mount.
+func renewOwnedCapacityOnceWithAdmission(
 	ctx context.Context,
 	admission *forge_runtime.WorldRuntimeAdmission,
 	deviceObjectKey string,
