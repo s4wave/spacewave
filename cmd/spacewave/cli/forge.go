@@ -19,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/s4wave/spacewave/identity"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // newForgeCommand builds the forge command group.
@@ -77,6 +78,15 @@ func buildForgeCreateClusterCommand(statePath *string, sessionIdx *uint, spaceID
 			}
 			defer sess.Release()
 
+			info, err := sess.GetSessionInfo(ctx)
+			if err != nil {
+				return errors.Wrap(err, "get Cluster session info")
+			}
+			entityPeerID, err := peer.IDB58Decode(info.GetPeerId())
+			if err != nil {
+				return errors.Wrap(err, "parse Cluster session peer")
+			}
+
 			sid, err := client.resolveSpaceID(ctx, sess, *spaceID)
 			if err != nil {
 				return err
@@ -100,7 +110,7 @@ func buildForgeCreateClusterCommand(statePath *string, sessionIdx *uint, spaceID
 			}
 			defer tx.Discard()
 
-			op := forge_cluster.NewClusterCreateOp(key, name, "")
+			op := forge_cluster.NewClusterCreateOp(key, name, entityPeerID)
 			_, _, err = tx.ApplyWorldOp(ctx, op, "")
 			if err != nil {
 				return errors.Wrap(err, "create cluster")
