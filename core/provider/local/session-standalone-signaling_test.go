@@ -71,29 +71,31 @@ func newSignalingServer() *signalingServer {
 	return s
 }
 
-// awaitSessionTransport waits for the account's running session transport.
-func awaitSessionTransport(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount) *transport.SessionTransport {
+// awaitReadySessionTransport follows account transport replacements until the
+// current transport becomes ready.
+func awaitReadySessionTransport(ctx context.Context, t *testing.T, acc *provider_local.ProviderAccount) *transport.SessionTransport {
 	t.Helper()
 	for {
-		if st := acc.GetSessionTransport(); st != nil {
-			return st
-		}
 		_, waitCh := acc.GetTransportSnapshotWithWait()
+		st := acc.GetSessionTransport()
+		if st == nil {
+			select {
+			case <-ctx.Done():
+				t.Fatalf("session transport did not start: %v", ctx.Err())
+			case <-waitCh:
+			}
+			continue
+		}
 		select {
 		case <-ctx.Done():
-			t.Fatalf("session transport did not start: %v", ctx.Err())
+			t.Fatalf("session transport did not become ready: %v", ctx.Err())
 		case <-waitCh:
+			continue
+		case <-st.Ready():
+			if acc.GetSessionTransport() == st {
+				return st
+			}
 		}
-	}
-}
-
-// awaitTransportReady waits for the transport to become ready.
-func awaitTransportReady(ctx context.Context, t *testing.T, st *transport.SessionTransport) {
-	t.Helper()
-	select {
-	case <-st.Ready():
-	case <-ctx.Done():
-		t.Fatalf("session transport did not become ready: %v", ctx.Err())
 	}
 }
 
@@ -120,8 +122,7 @@ func TestStandaloneSessionSignaling(t *testing.T) {
 		_, _, acc, _, release := setupProviderAndSession(ctx, t, "")
 		defer release()
 
-		st := awaitSessionTransport(ctx, t, acc)
-		awaitTransportReady(ctx, t, st)
+		st := awaitReadySessionTransport(ctx, t, acc)
 		if got := st.GetStartupStage(); got != "ready" {
 			t.Fatalf("startup stage = %q, want ready", got)
 		}
@@ -138,8 +139,7 @@ func TestStandaloneSessionSignaling(t *testing.T) {
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t, sig.server.URL)
 	defer release()
 
-	st := awaitSessionTransport(ctx, t, acc)
-	awaitTransportReady(ctx, t, st)
+	awaitReadySessionTransport(ctx, t, acc)
 	if n := sig.tickets.Load(); n == 0 {
 		t.Fatal("standalone session did not request a signal ticket")
 	}
