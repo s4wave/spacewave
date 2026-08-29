@@ -4,10 +4,12 @@ package bldr_cli_compiler
 
 import (
 	"context"
+	"encoding/binary"
 	"go/types"
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -52,6 +54,37 @@ func NewFactory(b bus.Bus) controller.Factory {
 			return &Controller{BusController: base}, nil
 		},
 	)
+}
+
+// marshalConfigSetDeterministic encodes the ConfigSet map in key order so the
+// generated configset.bin is stable across builds.
+func marshalConfigSetDeterministic(
+	configs map[string]*configset_proto.ControllerConfig,
+) ([]byte, error) {
+	keys := make([]string, 0, len(configs))
+	for key := range configs {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+
+	var result []byte
+	for _, key := range keys {
+		value, err := configs[key].MarshalVT()
+		if err != nil {
+			return nil, err
+		}
+		var entry []byte
+		entry = append(entry, 0x0a)
+		entry = binary.AppendUvarint(entry, uint64(len(key)))
+		entry = append(entry, key...)
+		entry = append(entry, 0x12)
+		entry = binary.AppendUvarint(entry, uint64(len(value)))
+		entry = append(entry, value...)
+		result = append(result, 0x0a)
+		result = binary.AppendUvarint(result, uint64(len(entry)))
+		result = append(result, entry...)
+	}
+	return result, nil
 }
 
 // SupportsStartupManifestCache returns true if startup cache reuse is safe.
@@ -190,8 +223,7 @@ func (c *Controller) BuildManifest(
 	configSetPath := filepath.Join(entrypointBuildDir, "configset.bin")
 	configSet := conf.GetConfigSet()
 	if len(configSet) != 0 {
-		configSetObj := &configset_proto.ConfigSet{Configs: configSet}
-		data, err := configSetObj.MarshalVT()
+		data, err := marshalConfigSetDeterministic(configSet)
 		if err != nil {
 			return nil, err
 		}
