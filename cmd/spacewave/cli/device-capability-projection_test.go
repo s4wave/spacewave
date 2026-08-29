@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
+	"github.com/s4wave/spacewave/net/peer"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	"github.com/sirupsen/logrus"
 )
@@ -108,5 +109,24 @@ func TestVerifyForgeWorkerLinkMissingObject(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "verify forge worker") {
 		t.Fatalf("expected verification failure for missing worker, got %v", err)
+	}
+}
+
+// TestVerifyForgeWorkerLinkRequiresClusterAssignment rejects a typed Worker
+// that exists but cannot receive work from any Cluster.
+func TestVerifyForgeWorkerLinkRequiresClusterAssignment(t *testing.T) {
+	ctx, wtb := newCapacityTestbed(t)
+	err := world.ExecTransaction(ctx, wtb.Engine, true, func(ctx context.Context, ws world.WorldState) error {
+		if _, _, err := ws.ApplyWorldOp(
+			ctx,
+			forge_worker.NewWorkerCreateOp("worker/unassigned", "unassigned", nil),
+			peer.ID("test-peer"),
+		); err != nil {
+			return err
+		}
+		return verifyForgeWorkerLink(ctx, ws, "worker/unassigned")
+	})
+	if err == nil || !strings.Contains(err.Error(), "not assigned to a Cluster") {
+		t.Fatalf("expected cluster-assignment failure, got %v", err)
 	}
 }

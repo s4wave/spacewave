@@ -375,6 +375,26 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 		t.Fatal("owner space is missing the enrolled Device participant")
 	}
 
+	// The joined Device copy contains a local storage signer marked OWNER,
+	// but it did not originate the Space and cannot enroll another Device.
+	childPriv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	childPeerID, err := peer.IDFromPrivateKey(childPriv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	childTicket, _ := buildDeviceTicket(t, childPriv, childPeerID)
+	deviceRes := resource_session.NewLocalSessionResource(deviceEnv.tb.Bus, deviceSess)
+	_, err = deviceRes.ApproveSpaceLink(ctx, &s4wave_session.ApproveLocalSpaceLinkRequest{
+		Ticket:     childTicket,
+		ResourceId: spaceID,
+	})
+	if err == nil || !strings.Contains(err.Error(), "originating local account") {
+		t.Fatalf("expected joined Device approval rejection, got %v", err)
+	}
+
 	// Restart remount: release the device session, then re-mount it. The
 	// session tracker reloads its stored key and identity, and the grant
 	// remains on the persisted Space.

@@ -16,6 +16,7 @@ import (
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
+	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
 	forge_worker "github.com/s4wave/spacewave/forge/worker"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	"github.com/sirupsen/logrus"
@@ -336,6 +337,18 @@ func verifyForgeWorkerLink(ctx context.Context, ws world.WorldState, workerObjec
 	}
 	if err := forge_worker.CheckWorkerType(ctx, ws, workerObjectKey); err != nil {
 		return errors.Wrapf(err, "verify forge worker %q", workerObjectKey)
+	}
+	clusterKeys, err := forge_cluster.ListWorkerClusters(ctx, ws, workerObjectKey)
+	if err != nil {
+		return errors.Wrapf(err, "list clusters for Forge Worker %q", workerObjectKey)
+	}
+	if len(clusterKeys) == 0 {
+		return errors.Errorf("Forge Worker %q is not assigned to a Cluster", workerObjectKey)
+	}
+	for _, clusterKey := range clusterKeys {
+		if err := forge_cluster.CheckClusterType(ctx, ws, clusterKey); err != nil {
+			return errors.Wrapf(err, "verify Cluster %q for Forge Worker %q", clusterKey, workerObjectKey)
+		}
 	}
 	return nil
 }

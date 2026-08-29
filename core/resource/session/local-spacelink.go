@@ -40,10 +40,10 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 		return nil, errors.New("session provider account is not local")
 	}
 
-	// The OWNER check happens before any mutation: no nonce is consumed and
-	// no invite is created unless the account owning this session holds the
-	// OWNER role on the Space. A local Space records its OWNER as the peer
-	// that signs shared-object operations for the account.
+	// The authority check happens before any mutation. Only the local account
+	// that originated the Space can enroll Devices. A joined copy initializes
+	// its own storage signer as OWNER, so participant role alone cannot
+	// distinguish the workstation authority from an enrolled Device.
 	so, err := r.mountLocalSpace(ctx, localAcc, resourceID)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 	if err != nil {
 		return nil, errors.Wrap(err, "derive approver peer id")
 	}
-	if err := so.requireApproverOwner(ctx, approverPeerID.String()); err != nil {
+	if err := so.requireOriginOwner(ctx, approverPeerID.String()); err != nil {
 		return nil, err
 	}
 
@@ -121,12 +121,16 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 type mountedLocalSpace struct {
 	so         *provider_local.SharedObject
 	providerID string
+	sharedCopy bool
 	release    func()
 }
 
-// requireApproverOwner returns an error unless the peer already participates
-// in the Space with the OWNER role.
-func (m *mountedLocalSpace) requireApproverOwner(ctx context.Context, approverPeerID string) error {
+// requireOriginOwner returns an error unless the peer is an OWNER on the
+// originating local account's copy of the Space.
+func (m *mountedLocalSpace) requireOriginOwner(ctx context.Context, approverPeerID string) error {
+	if m.sharedCopy {
+		return errors.New("spacelink approval requires the originating local account")
+	}
 	if approverPeerID == "" {
 		return errors.New("approver peer id is required")
 	}
@@ -152,9 +156,11 @@ func (r *LocalSessionResource) mountLocalSpace(
 ) (*mountedLocalSpace, error) {
 	providerID := localAcc.GetProviderID()
 	found := false
+	sharedCopy := false
 	for _, entry := range localAcc.GetSOListCtr().GetValue().GetSharedObjects() {
 		if entry.GetRef().GetProviderResourceRef().GetId() == resourceID {
 			found = true
+			sharedCopy = entry.GetSource() == "shared"
 			break
 		}
 	}
@@ -176,5 +182,10 @@ func (r *LocalSessionResource) mountLocalSpace(
 		relSO()
 		return nil, errors.New("unexpected shared object type")
 	}
-	return &mountedLocalSpace{so: so, providerID: providerID, release: relSO}, nil
+	return &mountedLocalSpace{
+		so:         so,
+		providerID: providerID,
+		sharedCopy: sharedCopy,
+		release:    relSO,
+	}, nil
 }

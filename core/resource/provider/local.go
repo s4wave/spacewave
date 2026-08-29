@@ -162,19 +162,20 @@ func (s *LocalProviderResource) lookupLocalSessionByPeerID(
 		if provRef.GetProviderId() != "local" {
 			continue
 		}
-		accIface, accRel, err := s.provider.AccessProviderAccount(ctx, provRef.GetProviderAccountId(), nil)
+		accountID := provRef.GetProviderAccountId()
+		accIface, accRel, err := s.provider.AccessProviderAccount(ctx, accountID, nil)
 		if err != nil {
-			continue
+			return nil, errors.Wrapf(err, "access local account %q while matching session identity", accountID)
 		}
 		localAcc, ok := accIface.(*provider_local.ProviderAccount)
 		if !ok {
 			accRel()
-			continue
+			return nil, errors.Errorf("local account %q has unexpected type", accountID)
 		}
 		sess, sessRel, err := localAcc.MountSession(ctx, ref, nil)
 		if err != nil {
 			accRel()
-			continue
+			return nil, errors.Wrapf(err, "mount local session for account %q while matching identity", accountID)
 		}
 		match := sess.GetPeerId().String() == peerID
 		sessRel()

@@ -118,7 +118,8 @@ func (x *LocalSpaceLinkCompletion) GetNonce() []byte {
 // local mounted session.
 type ApproveLocalSpaceLinkResponse struct {
 	unknownFields []byte
-	Completion    *LocalSpaceLinkCompletion `protobuf:"bytes,1,opt,name=completion,proto3" json:"completion,omitempty"`
+	// Completion carries the targeted local invite for the Device.
+	Completion *LocalSpaceLinkCompletion `protobuf:"bytes,1,opt,name=completion,proto3" json:"completion,omitempty"`
 }
 
 func (x *ApproveLocalSpaceLinkResponse) Reset() {
