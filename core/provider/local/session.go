@@ -154,7 +154,7 @@ func (s *Session) UnlockSession(ctx context.Context, pin []byte) error {
 		}
 		s.tkr.a.le.WithError(transportErr).Warn("failed to start session transport after unlock")
 	} else if st := s.tkr.a.GetSessionTransport(); st != nil {
-		if err := s.tkr.a.AutoStartP2PSyncIfPaired(transportCtx, st); err != nil {
+		if err := s.tkr.a.AutoStartP2PSyncIfNeeded(transportCtx, st); err != nil {
 			s.tkr.a.le.WithError(err).Warn("failed to auto-start P2P sync after unlock")
 		}
 	}
@@ -523,7 +523,7 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		// Restore P2P sync controllers for accounts that already have paired
 		// devices, so a session that was paired in a prior mount resumes
 		// DEX/SOSync without requiring an explicit re-pair.
-		if err := t.a.AutoStartP2PSyncIfPaired(ctx, st); err != nil {
+		if err := t.a.AutoStartP2PSyncIfNeeded(ctx, st); err != nil {
 			le.WithError(err).Warn("failed to auto-start P2P sync on session mount")
 		}
 	}

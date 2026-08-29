@@ -8,17 +8,16 @@ import (
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	sobject "github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/transport"
+	"github.com/sirupsen/logrus"
 )
 
-// AutoStartP2PSyncIfPaired starts P2P sync when the account already has
-// paired devices recorded in AccountSettings. Called from the session mount
-// path so a session that was paired in a prior mount restores its DEX +
-// SOSync controllers without requiring the user to re-pair.
+// AutoStartP2PSyncIfNeeded starts P2P sync when the account has a paired
+// Device or a Space joined from another account. Called from session mount so
+// both pairing and invite enrollment restore DEX and SO sync after restart.
 //
-// When no paired devices are present this is a no-op. Errors mounting the
-// account settings SO are logged and swallowed so a missing or unreadable
-// SO does not abort the session mount.
-func (a *ProviderAccount) AutoStartP2PSyncIfPaired(
+// Errors mounting the account settings SO are logged and swallowed so a
+// missing or unreadable SO does not abort the session mount.
+func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 	ctx context.Context,
 	st *transport.SessionTransport,
 ) error {
@@ -34,12 +33,22 @@ func (a *ProviderAccount) AutoStartP2PSyncIfPaired(
 		a.le.WithError(err).Warn("failed to read paired devices for auto-start")
 		return nil
 	}
-	if len(devices) == 0 {
+	sharedSpaceCount := 0
+	if soList := a.soListCtr.GetValue(); soList != nil {
+		for _, entry := range soList.GetSharedObjects() {
+			if entry.GetSource() == "shared" {
+				sharedSpaceCount++
+			}
+		}
+	}
+	if len(devices) == 0 && sharedSpaceCount == 0 {
 		return nil
 	}
 
-	a.le.WithField("paired-device-count", len(devices)).
-		Debug("auto-starting P2P sync for paired devices")
+	a.le.WithFields(logrus.Fields{
+		"paired-device-count": len(devices),
+		"shared-space-count":  sharedSpaceCount,
+	}).Debug("auto-starting P2P sync")
 	if err := a.StartP2PSync(ctx, st); err != nil {
 		return errors.Wrap(err, "auto-start P2P sync")
 	}

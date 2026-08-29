@@ -84,7 +84,7 @@ func (a *ProviderAccount) JoinViaInvite(
 	}
 
 	// Start P2P sync so SolicitSync delivers state from the owner.
-	if err := a.StartP2PSync(ctx, st); err != nil {
+	if err := a.StartP2PSync(context.WithoutCancel(ctx), st); err != nil {
 		a.le.WithError(err).Warn("failed to start P2P sync after invite join")
 	}
 
