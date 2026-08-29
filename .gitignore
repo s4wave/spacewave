@@ -4,6 +4,7 @@
 node_modules
 /plugin-release
 /coverage
+/bun
 /build
 /.log
 /.spacewave
