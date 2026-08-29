@@ -22,4 +22,4 @@ COPY --chmod=0755 spacewave /usr/local/bin/spacewave
 USER spacewave
 VOLUME ["/var/lib/spacewave", "/run/spacewave"]
 ENTRYPOINT ["/usr/local/bin/spacewave"]
-CMD ["--state-path", "/var/lib/spacewave", "--socket-path", "/run/spacewave/spacewave.sock", "serve"]
+CMD ["--state-path", "/var/lib/spacewave", "--socket-path", "/run/spacewave/spacewave.sock", "serve", "--idle-timeout", "0"]
