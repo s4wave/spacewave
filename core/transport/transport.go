@@ -14,9 +14,11 @@ import (
 	"github.com/pkg/errors"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/link"
 	link_solicit_controller "github.com/s4wave/spacewave/net/link/solicit/controller"
 	"github.com/s4wave/spacewave/net/peer"
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
+	"github.com/s4wave/spacewave/net/signaling"
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	"github.com/sirupsen/logrus"
 )
@@ -483,7 +485,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 			}
 		}
 		switch di.GetDirective().(type) {
-		case peer.GetPeer:
+		case peer.GetPeer, link.EstablishLinkWithPeer, signaling.SignalPeer, signaling.HandleSignalPeer:
 			return false, nil
 		}
 		return true, nil
