@@ -82,9 +82,20 @@ func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
 
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
-	acc.GetSOListCtr().SetValue(&sobject.SharedObjectList{
-		SharedObjects: []*sobject.SharedObjectListEntry{{Source: "shared"}},
-	})
+
+	spaceRef, err := acc.CreateSharedObject(ctx, "auto-start-shared-space", &sobject.SharedObjectMeta{
+		BodyType: "space",
+	}, "", "")
+	if err != nil {
+		t.Fatalf("CreateSharedObject: %v", err)
+	}
+	soList := acc.GetSOListCtr().GetValue().CloneVT()
+	for _, entry := range soList.GetSharedObjects() {
+		if entry.GetRef().GetProviderResourceRef().GetId() == spaceRef.GetProviderResourceRef().GetId() {
+			entry.Source = "shared"
+		}
+	}
+	acc.GetSOListCtr().SetValue(soList)
 
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 		t.Fatalf("CreateSessionTransport: %v", err)
