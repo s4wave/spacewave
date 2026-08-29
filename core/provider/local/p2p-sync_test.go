@@ -371,7 +371,7 @@ func TestRetainP2PPeerEstablishesLink(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), p2pSyncTestTimeout)
 	defer cancel()
 
-	_, _, accA, sessA, releaseA := setupProviderAndSession(ctx, t)
+	tbA, sessRefA, accA, sessA, releaseA := setupProviderAndSession(ctx, t)
 	defer releaseA()
 	_, _, accB, sessB, releaseB := setupProviderAndSession(ctx, t)
 	defer releaseB()
@@ -403,6 +403,21 @@ func TestRetainP2PPeerEstablishesLink(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitForSyncedRootSeqno(ctx, t, accB, account_settings.BindingPurpose, 0)
+
+	// Unreferenced EstablishLinkWithPeer values are disposed after ten seconds.
+	// Keep the connection past that boundary, then prove new state still crosses.
+	timer := time.NewTimer(11 * time.Second)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	case <-timer.C:
+	}
+	accountIDA := sessRefA.GetProviderResourceRef().GetProviderAccountId()
+	soA, releaseSOA := mountAccountSettingsSO(ctx, t, tbA.Bus, accountIDA)
+	addPairedDeviceAndWait(ctx, t, soA, stB.GetPeerID().String(), "retained peer")
+	releaseSOA()
+	waitForSyncedRootSeqno(ctx, t, accB, account_settings.BindingPurpose, 1)
 }
 
 // TestStartP2PSyncSameTransportRestartAddsDesiredWork proves that a
