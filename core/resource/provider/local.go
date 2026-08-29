@@ -129,11 +129,24 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	if !ok {
 		return nil, errors.New("unexpected provider account type")
 	}
-	if localAccountHasSharedObject(localAcc, invite.GetSharedObjectId()) {
-		return &s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse{SessionListEntry: listEntry}, nil
+	if !localAccountHasSharedObject(localAcc, invite.GetSharedObjectId()) {
+		if _, err := localAcc.JoinViaInvite(ctx, sessionKey, invite, ""); err != nil {
+			return nil, errors.Wrap(err, "join space via invite")
+		}
+	} else {
+		if err := localAcc.EnsureSessionTransport(ctx, sessionKey, ""); err != nil {
+			return nil, errors.Wrap(err, "start session transport")
+		}
+		if err := localAcc.StartP2PSync(context.WithoutCancel(ctx), localAcc.GetSessionTransport()); err != nil {
+			return nil, errors.Wrap(err, "start P2P sync")
+		}
 	}
-	if _, err := localAcc.JoinViaInvite(ctx, sessionKey, invite, ""); err != nil {
-		return nil, errors.Wrap(err, "join space via invite")
+	ownerPeerID, err := peer.IDB58Decode(invite.GetOwnerPeerId())
+	if err != nil {
+		return nil, errors.Wrap(err, "parse invite owner peer id")
+	}
+	if err := localAcc.RetainP2PPeer(ctx, ownerPeerID); err != nil {
+		return nil, errors.Wrap(err, "retain invite owner link")
 	}
 
 	return &s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse{SessionListEntry: listEntry}, nil
