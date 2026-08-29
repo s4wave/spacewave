@@ -60,6 +60,70 @@ func TestRunStopRequestsDaemonShutdown(t *testing.T) {
 	}
 }
 
+func TestRunStopConfirmsPeerExitAfterControlStreamReset(t *testing.T) {
+	statePath, wait := startResettingShutdownPeer(t, "stop-reset", true)
+
+	if err := runStop(t.Context(), statePath); err != nil {
+		t.Fatalf("stop after peer exit: %v", err)
+	}
+	wait()
+}
+
+func TestRunStopPreservesResetWhileListenerRemains(t *testing.T) {
+	statePath, wait := startResettingShutdownPeer(t, "stop-live-reset", false)
+
+	if err := runStop(t.Context(), statePath); err == nil {
+		t.Fatal("stop succeeded while the listener remained reachable")
+	}
+	wait()
+}
+
+func startResettingShutdownPeer(t *testing.T, name string, closeListener bool) (string, func()) {
+	t.Helper()
+
+	statePath := makeShortDaemonStopStatePath(t, name)
+	t.Cleanup(func() { _ = os.RemoveAll(statePath) })
+	lis, err := net.Listen("unix", filepath.Join(statePath, socketName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = lis.Close() })
+
+	var accepted net.Conn
+	mux := srpc.NewMux()
+	if err := mux.Register(newDaemonControlHandler(func() {
+		if closeListener {
+			_ = lis.Close()
+		}
+		_ = accepted.Close()
+	})); err != nil {
+		t.Fatal(err)
+	}
+	server := srpc.NewServer(mux)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		conn, err := lis.Accept()
+		if err != nil {
+			return
+		}
+		accepted = conn
+		muxed, err := srpc.NewMuxedConn(conn, false, nil)
+		if err != nil {
+			return
+		}
+		_ = server.AcceptMuxedConn(t.Context(), muxed)
+	}()
+
+	return statePath, func() {
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+			t.Fatal("resetting control peer did not exit")
+		}
+	}
+}
+
 func TestRunStopWithoutDaemonDoesNotAutostart(t *testing.T) {
 	oldStart := connectDaemonStart
 	connectDaemonStart = func(ctx context.Context, statePath string) (*exec.Cmd, error) {
