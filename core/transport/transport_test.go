@@ -424,8 +424,8 @@ func TestSessionTransportRepeatedWaitersObserveReady(t *testing.T) {
 }
 
 type establishLinkSpy struct {
-	count   atomic.Int32
-	bridged atomic.Int32
+	count      atomic.Int32
+	bridgedSig chan struct{}
 }
 
 func (s *establishLinkSpy) HandleDirective(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
@@ -433,7 +433,10 @@ func (s *establishLinkSpy) HandleDirective(_ context.Context, di directive.Insta
 	case link.EstablishLinkWithPeer:
 		s.count.Add(1)
 	case link_solicit.SolicitProtocol:
-		s.bridged.Add(1)
+		select {
+		case s.bridgedSig <- struct{}{}:
+		default:
+		}
 	}
 	return nil, nil
 }
@@ -452,14 +455,14 @@ func (*establishLinkSpy) Close() error { return nil }
 // TestSessionTransportKeepsEstablishLinkOnChildBus prevents one desired peer
 // from starting duplicate WebRTC offers on both the session and parent buses.
 func TestSessionTransportKeepsEstablishLinkOnChildBus(t *testing.T) {
-	ctx, cancel := context.WithCancel(t.Context())
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	tb, err := testbed.Default(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer tb.Release()
-	spy := &establishLinkSpy{}
+	spy := &establishLinkSpy{bridgedSig: make(chan struct{}, 1)}
 	if _, err := tb.Bus.AddController(ctx, spy, nil); err != nil {
 		t.Fatal(err)
 	}
@@ -492,7 +495,7 @@ func TestSessionTransportKeepsEstablishLinkOnChildBus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ref.Release()
+	defer ref.Release()
 	_, bridgeRef, err := st.GetChildBus().AddDirective(
 		link_solicit.NewSolicitProtocol(protocol.ID("test/bridge"), nil, "", 0),
 		nil,
@@ -500,9 +503,11 @@ func TestSessionTransportKeepsEstablishLinkOnChildBus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bridgeRef.Release()
-	if got := spy.bridged.Load(); got == 0 {
-		t.Fatal("parent bus did not observe bridged protocol directive")
+	defer bridgeRef.Release()
+	select {
+	case <-spy.bridgedSig:
+	case <-ctx.Done():
+		t.Fatalf("parent bus did not observe bridged protocol directive: %v", ctx.Err())
 	}
 	if got := spy.count.Load(); got != 0 {
 		t.Fatalf("parent bus observed %d EstablishLinkWithPeer directives", got)
