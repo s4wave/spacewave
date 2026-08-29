@@ -326,7 +326,7 @@ func marshalRunValue(arena *fastjson.Arena, run Run) *fastjson.Value {
 		obj.Set("trace", marshalTraceValue(arena, *run.Trace))
 	}
 	if run.OperationShape != nil && len(run.OperationShape.Operations) != 0 {
-		obj.Set("operationShape", marshalOperationShapeValue(arena, *run.OperationShape))
+		obj.Set("operationShape", MarshalOperationShapeValue(arena, *run.OperationShape))
 	}
 	if run.BrowserProfile != nil {
 		obj.Set("browserProfile", marshalBrowserProfileValue(arena, *run.BrowserProfile))
@@ -447,7 +447,8 @@ func marshalTasksValue(arena *fastjson.Arena, tasks []Task) *fastjson.Value {
 	return arr
 }
 
-func marshalOperationShapeValue(arena *fastjson.Arena, shape OperationShape) *fastjson.Value {
+// MarshalOperationShapeValue encodes an operation-shape projection in an existing JSON arena.
+func MarshalOperationShapeValue(arena *fastjson.Arena, shape OperationShape) *fastjson.Value {
 	obj := arena.NewObject()
 	if len(shape.Operations) != 0 {
 		arr := arena.NewArray()

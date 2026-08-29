@@ -784,6 +784,7 @@ var operationShapeOrder = []string{
 	"block-write",
 	"cayley-delta",
 	"gc-wal",
+	"opfs-read",
 	"opfs-publish",
 	"startup-replay",
 }
@@ -912,6 +913,11 @@ func operationNameForTraceTask(typ string) string {
 		return "startup-replay"
 	case strings.HasPrefix(typ, "hydra/block-gc/"):
 		return "gc-wal"
+	case typ == "hydra/opfs-blockshard/get-from-shard" ||
+		strings.HasPrefix(typ, "hydra/opfs-blockshard/get-from-shard/") ||
+		typ == "hydra/opfs-blockshard/acquire-segment" ||
+		strings.HasPrefix(typ, "hydra/opfs-blockshard/acquire-segment/"):
+		return "opfs-read"
 	case strings.HasPrefix(typ, "hydra/opfs-blockshard/block-store/"):
 		return "opfs-publish"
 	case typ == "hydra/opfs-blockshard/run-actor/publish" ||
@@ -939,6 +945,7 @@ func operationTraceLogFieldName(category, key string) string {
 		"hydra/block-gc/store/flush-pending/",
 		"hydra/block-gc/refgraph/apply-ref-batch/",
 		"hydra/block-gc/wal/",
+		"hydra/opfs-blockshard/get-from-shard/",
 		"hydra/opfs-blockshard/run-actor/publish/",
 		"hydra/opfs-blockshard/block-store/",
 		"hydra/opfs-blockshard/shard/publish/",

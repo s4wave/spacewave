@@ -13,6 +13,7 @@ import (
 	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/gitroot"
 	playwright "github.com/mxschmitt/playwright-go"
+	"github.com/s4wave/spacewave/e2e/drivebench"
 )
 
 const (
@@ -73,14 +74,17 @@ func TestGoScriptCanvasQuickstartScenario(t *testing.T) {
 		measurementSamples.SetArrayItem(idx, arena.NewNumberString(strconv.FormatFloat(sample, 'f', 6, 64)))
 	}
 	measurementObj.Set("samplesMs", measurementSamples)
-	measurementData := append(measurementObj.MarshalTo(nil), '\n')
 	measurementPath := filepath.Join(artifactDir, "benchmark.json")
-	if err := WriteTraceArtifact(measurementPath, measurementData); err != nil {
-		t.Fatalf("write Canvas resize measurements: %v", err)
+	writeMeasurements := func() {
+		measurementData := append(measurementObj.MarshalTo(nil), '\n')
+		if err := WriteTraceArtifact(measurementPath, measurementData); err != nil {
+			t.Fatalf("write Canvas resize measurements: %v", err)
+		}
 	}
 	t.Logf("goscript Canvas resize samples: %.3fms %.3fms %.3fms", measurements[0], measurements[1], measurements[2])
 
 	if !E2EWasmTraceServiceEnabled(compiler) {
+		writeMeasurements()
 		return
 	}
 	var diagnosticDuration time.Duration
@@ -95,7 +99,12 @@ func TestGoScriptCanvasQuickstartScenario(t *testing.T) {
 	if err := WriteTraceArtifact(tracePath, traceData); err != nil {
 		t.Fatalf("write Canvas resize trace: %v", err)
 	}
-	summary, _, _, _, _, _ := summarizeTrace(t, traceData)
+	summary, _, _, _, _, operationShape := summarizeTrace(t, traceData)
+	if operationShape != nil {
+		measurementObj.Set("operationShape", drivebench.MarshalOperationShapeValue(&arena, *operationShape))
+	}
+	measurementObj.Set("tracedSampleMs", arena.NewNumberString(strconv.FormatFloat(float64(diagnosticDuration)/float64(time.Millisecond), 'f', 6, 64)))
+	writeMeasurements()
 	summaryPath := filepath.Join(artifactDir, "tracetool.txt")
 	if err := WriteTraceArtifact(summaryPath, []byte(summary)); err != nil {
 		t.Fatalf("write Canvas resize trace summary: %v", err)

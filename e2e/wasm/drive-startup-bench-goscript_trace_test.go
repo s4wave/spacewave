@@ -33,6 +33,10 @@ func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
 	trace.Log(ctx, "hydra/world-graph/set-quad/shape", "adds=1 duplicates=0")
 	graphTask.End()
 
+	ctx, readTask := trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard")
+	trace.Log(ctx, "hydra/opfs-blockshard/get-from-shard/shape", "manifest_segments=4 candidates=3 acquisitions=3 pending_hit=0 found_published=1 retried=0")
+	readTask.End()
+
 	ctx, publishTask := trace.NewTask(ctx, "hydra/opfs-blockshard/run-actor/publish")
 	trace.Log(ctx, "coalesce", "reqs=4 entries=5")
 	publishTask.End()
@@ -47,8 +51,8 @@ func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
 	if tasks < 2 {
 		t.Fatalf("tasks = %d, want at least 2", tasks)
 	}
-	if logs != 6 {
-		t.Fatalf("logs = %d, want 6", logs)
+	if logs != 7 {
+		t.Fatalf("logs = %d, want 7", logs)
 	}
 	if shape == nil {
 		t.Fatal("operation shape is nil")
@@ -74,6 +78,14 @@ func TestSummarizeTraceBuildsOperationShapeFromTasksAndLogs(t *testing.T) {
 		t.Fatalf("cayley-delta count = 0")
 	}
 	assertOperationField(t, cayley, "set-quad.shape.adds", 1)
+	read := findOperation(t, shape, "opfs-read")
+	if read.Count == 0 {
+		t.Fatalf("opfs-read count = 0")
+	}
+	assertOperationField(t, read, "shape.manifest_segments", 4)
+	assertOperationField(t, read, "shape.candidates", 3)
+	assertOperationField(t, read, "shape.acquisitions", 3)
+
 	publish := findOperation(t, shape, "opfs-publish")
 	if publish.Count == 0 {
 		t.Fatalf("opfs-publish count = 0")
