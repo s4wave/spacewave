@@ -45,9 +45,13 @@ func TestAutoStartP2PSyncIfNeededWithDevice(t *testing.T) {
 	tb, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
 
+	const devicePeerID = "12D3KooWAutoStartPaired"
+	if err := acc.RecordPairedDevice(ctx, devicePeerID, "Auto-Start Test Device"); err != nil {
+		t.Fatalf("RecordPairedDevice: %v", err)
+	}
 	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
 	so, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
-	addPairedDeviceAndWait(ctx, t, so, "12D3KooWAutoStartPaired", "Auto-Start Test Device")
+	waitPairedDevice(ctx, t, so, devicePeerID)
 	soRelease()
 
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {

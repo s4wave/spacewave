@@ -96,6 +96,13 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 	if err := ih.GetSOHost().CreateInvite(ctx, ih.GetPrivKey(), invite); err != nil {
 		return nil, errors.Wrap(err, "store targeted invite")
 	}
+	if err := localAcc.RecordPairedDevice(
+		ctx,
+		verified.agentPeerID.String(),
+		payload.GetLabel(),
+	); err != nil {
+		return nil, errors.Wrap(err, "record enrolled Device")
+	}
 	ownerTransport := localAcc.GetSessionTransport()
 	if ownerTransport == nil {
 		return nil, errors.New("approving session transport is not available")
