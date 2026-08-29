@@ -397,6 +397,11 @@ func TestRetainP2PPeerEstablishesLink(t *testing.T) {
 	if err := accA.RetainP2PPeer(ctx, stB.GetPeerID()); err != nil {
 		t.Fatal(err)
 	}
+	// A second session mount restarts P2P discovery on the same transport. The
+	// persisted enrollment peer must move to the new state with it.
+	if err := accA.StartP2PSync(context.WithoutCancel(ctx), stA); err != nil {
+		t.Fatal(err)
+	}
 	waitForSyncedRootSeqno(ctx, t, accB, account_settings.BindingPurpose, 0)
 }
 

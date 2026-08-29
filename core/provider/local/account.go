@@ -22,6 +22,7 @@ import (
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	"github.com/s4wave/spacewave/db/volume"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -59,6 +60,8 @@ type ProviderAccount struct {
 	p2pSyncBcast broadcast.Broadcast
 	// p2pSync holds current P2P sync startup or running state, nil when inactive.
 	p2pSync *p2pSyncState
+	// p2pPeerIDs are enrollment peers retained across P2P sync state restarts.
+	p2pPeerIDs map[string]peer.ID
 	// sessionTransport is the running session transport, nil when not active.
 	sessionTransport *sessionTransportState
 	// transportBcast guards sessionTransport state changes.
