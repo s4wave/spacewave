@@ -21,6 +21,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/net/peer"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
+	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
 func TestDeviceCommandExposesDaemonFlags(t *testing.T) {
@@ -296,6 +297,18 @@ func TestDeviceSetupOutputsSignedDeviceTicketAndReusesIdentity(t *testing.T) {
 	}
 	if second.PeerID != first.PeerID {
 		t.Fatalf("second peer id = %q, want %q", second.PeerID, first.PeerID)
+	}
+}
+
+func TestApplyDeviceCompletionDispatchesLocalPrefixBeforeCloudDecode(t *testing.T) {
+	data, err := (&s4wave_session.LocalSpaceLinkCompletion{}).MarshalVT()
+	if err != nil {
+		t.Fatalf("marshal local completion: %v", err)
+	}
+	encoded := deviceLocalCompletionPrefix + base64.StdEncoding.EncodeToString(data)
+	_, err = applyDeviceCompletion(&deviceSetupRecord{SetupState: deviceSetupStateWaiting}, encoded, time.Now())
+	if err == nil || !strings.Contains(err.Error(), "device setup ticket is missing") {
+		t.Fatalf("apply local completion error = %v, want missing setup ticket after local dispatch", err)
 	}
 }
 
