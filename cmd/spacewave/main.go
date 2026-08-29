@@ -158,9 +158,9 @@ func buildFactories(brokers *listenerBrokers) []cli_entrypoint.AddFactoryFunc {
 	}, func(b bus.Bus) []controller.Factory {
 		return []controller.Factory{provider_spacewave.NewFactory(b)}
 	}, func(b bus.Bus) []controller.Factory {
-		return []controller.Factory{resource_listener.NewFactory(b)}
+		return []controller.Factory{resource_listener.NewFactory(b, resource_listener.WithYieldBroker(brokers.yield), resource_listener.WithStatusBroker(brokers.status))}
 	}, func(b bus.Bus) []controller.Factory {
-		return []controller.Factory{resource_root_controller.NewFactory(b)}
+		return []controller.Factory{resource_root_controller.NewFactory(b, resource_root_controller.WithYieldBroker(brokers.yield), resource_root_controller.WithListenerStatusBroker(brokers.status))}
 	}, func(b bus.Bus) []controller.Factory {
 		return []controller.Factory{session_controller.NewFactory(b)}
 	}, func(b bus.Bus) []controller.Factory {

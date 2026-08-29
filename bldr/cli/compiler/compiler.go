@@ -142,6 +142,7 @@ func (c *Controller) BuildManifest(
 			return nil, err
 		}
 		factoryImports[pkg.PkgPath] = FactoryImport{
+			Path:    pkg.PkgPath,
 			Alias:   plugin_compiler_go.BuildPackageName(pkg.Types),
 			PassBus: passBus,
 		}
