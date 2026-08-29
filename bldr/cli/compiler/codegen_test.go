@@ -13,6 +13,7 @@ const expectedCodegenWithImports = `package main
 
 import (
 	"embed"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	example_cli "github.com/example/cli-cmds"
@@ -44,6 +45,7 @@ const expectedCodegenMultiple = `package main
 
 import (
 	"embed"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	alpha_cli "github.com/example/alpha/cli"
@@ -79,6 +81,7 @@ const expectedCodegenNoBus = `package main
 
 import (
 	"embed"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	example_factory "github.com/example/factory"
@@ -112,6 +115,7 @@ const expectedCodegenEmpty = `package main
 
 import (
 	"embed"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
@@ -214,6 +218,7 @@ const expectedCodegenBroker = `package main
 
 import (
 	"embed"
+
 	aperture_cli "github.com/aperturerobotics/cli"
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"

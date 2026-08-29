@@ -646,5 +646,9 @@ func formatFileWithSpacing(decls []gast.Decl) ([]byte, error) {
 	if err := format.Node(&buf, fset, astFile); err != nil {
 		return nil, err
 	}
-	return format.Source(buf.Bytes())
+	formatted, err := format.Source(buf.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	return bytes.Replace(formatted, []byte("import (\n\t\"embed\"\n\t"), []byte("import (\n\t\"embed\"\n\n\t"), 1), nil
 }
