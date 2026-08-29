@@ -782,7 +782,26 @@ func (a *ProviderAccount) startSOSync(
 	// Validate inbound snapshots against the local storage identity that holds
 	// the Space grant. The session transport peer routes the stream but is not
 	// necessarily a participant in a local Space.
-	soSync := sobject_sync.NewSOSync(a.le, childBus, soID, localSO.GetPeerID(), localSO.soHost)
+	validateSnapshotAccess := func(ctx context.Context, state *sobject.SOState) error {
+		snapshot := sobject.NewSOStateParticipantHandle(
+			a.le,
+			a.t.p.sfs,
+			soID,
+			state,
+			localSO.localPriv,
+			localSO.localPid,
+		)
+		_, err := snapshot.GetTransformer(ctx)
+		return err
+	}
+	soSync := sobject_sync.NewSOSync(
+		a.le,
+		childBus,
+		soID,
+		localSO.GetPeerID(),
+		localSO.soHost,
+		validateSnapshotAccess,
+	)
 	state.addWorker()
 	go func() {
 		defer state.workerDone()

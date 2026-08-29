@@ -229,7 +229,26 @@ func (a *ProviderAccount) startSOSync(
 		return errors.New("unexpected session shared object type")
 	}
 
-	soSync := sobject_sync.NewSOSync(a.le, childBus, soID, localPeerID, swSO.GetSOHost())
+	validateSnapshotAccess := func(ctx context.Context, state *sobject.SOState) error {
+		snapshot := sobject.NewSOStateParticipantHandle(
+			a.le,
+			a.p.sfs,
+			soID,
+			state,
+			swSO.privKey,
+			swSO.localPid,
+		)
+		_, err := snapshot.GetTransformer(ctx)
+		return err
+	}
+	soSync := sobject_sync.NewSOSync(
+		a.le,
+		childBus,
+		soID,
+		localPeerID,
+		swSO.GetSOHost(),
+		validateSnapshotAccess,
+	)
 	state.startWorker()
 	go func() {
 		defer state.workerExited()
