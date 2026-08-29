@@ -40,6 +40,16 @@ func (c *Config) DetermineSocketPath() (string, error) {
 	return filepath.Join(storageRoot, projectID+".sock"), nil
 }
 
+// SocketPathManaged reports whether the configured socket uses the managed
+// state/storage parent rather than an explicitly selected path.
+func (c *Config) SocketPathManaged() bool {
+	if c.GetListenerSocketPath() != "" {
+		return false
+	}
+	return c.GetStorageProjectId() != "" &&
+		os.Getenv(storagepath.SocketPathEnvVar(c.GetStorageProjectId())) == ""
+}
+
 // GetConfigID returns the unique string for this configuration type.
 func (c *Config) GetConfigID() string {
 	return ConfigID

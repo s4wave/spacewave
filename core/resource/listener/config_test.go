@@ -111,7 +111,7 @@ func TestDetermineSocketPathUsesStatePath(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "state")
 	t.Setenv("HOME", home)
 	t.Setenv("SPACEWAVE_DATA_DIR", "")
-	t.Setenv("SPACEWAVE_SOCKET_PATH", "")
+	t.Setenv(storagepath.SocketPathEnvVar("spacewave"), "")
 	t.Setenv("SPACEWAVE_STATE_PATH", statePath)
 
 	got, err := (&Config{StorageProjectId: "spacewave"}).DetermineSocketPath()
@@ -139,5 +139,23 @@ func TestDetermineSocketPathUsesExplicitSocketPath(t *testing.T) {
 	}
 	if got != explicit {
 		t.Fatalf("socket path: got %q, want %q", got, explicit)
+	}
+}
+
+func TestSocketPathManaged(t *testing.T) {
+	t.Setenv(storagepath.SocketPathEnvVar("spacewave"), "")
+	if !(&Config{StorageProjectId: "spacewave"}).SocketPathManaged() {
+		t.Fatal("state-derived socket path must use its managed parent")
+	}
+	if (&Config{
+		ListenerSocketPath: "/tmp/explicit.sock",
+		StorageProjectId:   "spacewave",
+	}).SocketPathManaged() {
+		t.Fatal("configured socket path parent must not be managed")
+	}
+
+	t.Setenv(storagepath.SocketPathEnvVar("spacewave"), "/tmp/environment.sock")
+	if (&Config{StorageProjectId: "spacewave"}).SocketPathManaged() {
+		t.Fatal("environment socket path parent must not be managed")
 	}
 }

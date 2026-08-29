@@ -4,7 +4,6 @@ package spacewave_cli
 
 import (
 	"context"
-	"net"
 	"os"
 	"path/filepath"
 	"sync"
@@ -22,6 +21,7 @@ import (
 	plugin_host_default "github.com/s4wave/spacewave/bldr/plugin/host/default"
 	resource "github.com/s4wave/spacewave/bldr/resource"
 	device_policy "github.com/s4wave/spacewave/core/device/policy"
+	resource_listener "github.com/s4wave/spacewave/core/resource/listener"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
 	resource_root_controller "github.com/s4wave/spacewave/core/resource/root/controller"
 	terminal_remoteshell "github.com/s4wave/spacewave/core/terminal/remoteshell"
@@ -190,15 +190,13 @@ func runServeCommand(
 	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus(), devicePolicy)
 	defer releaseDeviceRemoteShell()
 
-	lis, err := net.ListenUnix("unix", &net.UnixAddr{Name: sockPath, Net: "unix"})
+	_, explicitSocket := lineageFlagSet(c, "socket-path")
+	// Protect and bind the Resource socket before publishing daemon readiness.
+	lis, err := resource_listener.ListenProtectedUnix(sockPath, !explicitSocket)
 	if err != nil {
-		return errors.Wrapf(err, "listen on daemon socket %s; use --takeover only if you intend to ask another runtime to yield", sockPath)
+		return errors.Wrapf(err, "listen on daemon socket %s", sockPath)
 	}
 	defer lis.Close()
-
-	if err := os.Chmod(sockPath, 0o600); err != nil {
-		le.WithError(err).Warn("failed to chmod socket")
-	}
 
 	le.Infof("listening on %s", sockPath)
 	idleTracker := newDaemonIdleTracker(idleTimeout, func() {
