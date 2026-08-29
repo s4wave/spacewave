@@ -318,21 +318,33 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 	return a.awaitP2PSyncStart(ctx, state)
 }
 
-// RetainP2PPeer keeps an EstablishLinkWithPeer directive for the current P2P
-// sync lifetime. Device enrollment calls it with the persisted invite owner so
-// restart reconnects without repeating the one-use invite.
+// RetainP2PPeer keeps an EstablishLinkWithPeer directive across P2P sync
+// state restarts. Device enrollment calls it with the persisted invite owner
+// so daemon restart reconnects without repeating the one-use invite.
 func (a *ProviderAccount) RetainP2PPeer(ctx context.Context, remotePeerID peer.ID) error {
 	if remotePeerID == "" {
 		return errors.New("remote P2P peer ID is required")
 	}
 	var state *p2pSyncState
-	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if a.p2pPeerIDs == nil {
+			a.p2pPeerIDs = make(map[string]peer.ID)
+		}
+		a.p2pPeerIDs[remotePeerID.String()] = remotePeerID
 		state = a.p2pSync
+		bcast()
 	})
 	if state == nil {
 		return errors.New("P2P sync is not running")
 	}
+	return a.retainP2PPeerOnState(ctx, state, remotePeerID)
+}
 
+func (a *ProviderAccount) retainP2PPeerOnState(
+	ctx context.Context,
+	state *p2pSyncState,
+	remotePeerID peer.ID,
+) error {
 	remoteKey := remotePeerID.String()
 	var alreadyRetained bool
 	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
@@ -371,6 +383,22 @@ func (a *ProviderAccount) RetainP2PPeer(ctx context.Context, remotePeerID peer.I
 	})
 	if !retained {
 		ref.Release()
+	}
+	return nil
+}
+
+func (a *ProviderAccount) retainConfiguredP2PPeers(state *p2pSyncState) error {
+	var peers []peer.ID
+	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		peers = make([]peer.ID, 0, len(a.p2pPeerIDs))
+		for _, remotePeerID := range a.p2pPeerIDs {
+			peers = append(peers, remotePeerID)
+		}
+	})
+	for _, remotePeerID := range peers {
+		if err := a.retainP2PPeerOnState(state.ctx, state, remotePeerID); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -532,6 +560,9 @@ func (a *ProviderAccount) startP2PSyncControllers(
 	inviteStarted *bool,
 ) error {
 	syncCtx := state.ctx
+	if err := a.retainConfiguredP2PPeers(state); err != nil {
+		return errors.Wrap(err, "retain configured P2P peers")
+	}
 	soList := a.soListCtr.GetValue()
 	for _, entry := range soList.GetSharedObjects() {
 		ref := entry.GetRef()
