@@ -585,7 +585,7 @@ func (a *ProviderAccount) startP2PSyncControllers(
 		if state.hasSO(soID) {
 			continue
 		}
-		if err := a.startSOSync(syncCtx, childBus, sessionTransport.GetPeerID(), ref, soID, state); err != nil {
+		if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
 			if syncCtx.Err() != nil {
 				return syncCtx.Err()
 			}
@@ -757,7 +757,6 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 func (a *ProviderAccount) startSOSync(
 	ctx context.Context,
 	childBus bus.Bus,
-	localPeerID peer.ID,
 	ref *sobject.SharedObjectRef,
 	soID string,
 	state *p2pSyncState,
@@ -771,7 +770,10 @@ func (a *ProviderAccount) startSOSync(
 	}
 
 	localSO := so.(*SharedObject)
-	soSync := sobject_sync.NewSOSync(a.le, childBus, soID, localPeerID, localSO.soHost)
+	// Validate inbound snapshots against the local storage identity that holds
+	// the Space grant. The session transport peer routes the stream but is not
+	// necessarily a participant in a local Space.
+	soSync := sobject_sync.NewSOSync(a.le, childBus, soID, localSO.GetPeerID(), localSO.soHost)
 	state.addWorker()
 	go func() {
 		defer state.workerDone()

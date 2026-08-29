@@ -208,9 +208,10 @@ func TestSnapshotExchangeRejectsTamperedGrant(t *testing.T) {
 	}
 }
 
-func TestSnapshotExchangeAcceptsValidatedConvergence(t *testing.T) {
+func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T) {
 	ctx := context.Background()
 	soID := "gate-object-valid"
+	transportPeer := mustPeerIDStr(t, mustKeyPair(t))
 	localPriv, localPub, err := crypto.GenerateKeyPair(crypto.KeyType_Ed25519, 0)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -218,6 +219,9 @@ func TestSnapshotExchangeAcceptsValidatedConvergence(t *testing.T) {
 	localPeer, err := peer.IDFromPrivateKey(localPriv)
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+	if localPeer.String() == transportPeer {
+		t.Fatal("local object and transport peers unexpectedly match")
 	}
 	ownerPriv := mustKeyPair(t)
 	ownerPeerStr := mustPeerIDStr(t, ownerPriv)

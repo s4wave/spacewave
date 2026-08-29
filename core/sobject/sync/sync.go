@@ -25,23 +25,25 @@ const maxMessageSize = 10 * 1024 * 1024
 // over a solicit protocol stream. Each instance syncs one SharedObject
 // with peers connected via the session transport's child bus.
 type SOSync struct {
-	le          *logrus.Entry
-	b           bus.Bus
-	soID        string
-	localPeerID peer.ID
-	soHost      *sobject.SOHost
+	le                *logrus.Entry
+	b                 bus.Bus
+	soID              string
+	localObjectPeerID peer.ID
+	soHost            *sobject.SOHost
 }
 
 // NewSOSync constructs a new SOSync.
 //
-// localPeerID is the local session peer checked against inbound state.
-func NewSOSync(le *logrus.Entry, b bus.Bus, soID string, localPeerID peer.ID, soHost *sobject.SOHost) *SOSync {
+// localObjectPeerID is the local storage identity checked against inbound
+// state. The transport peer routes the sync stream but need not be a Space
+// participant.
+func NewSOSync(le *logrus.Entry, b bus.Bus, soID string, localObjectPeerID peer.ID, soHost *sobject.SOHost) *SOSync {
 	return &SOSync{
-		le:          le.WithField("so-sync", soID),
-		b:           b,
-		soID:        soID,
-		localPeerID: localPeerID,
-		soHost:      soHost,
+		le:                le.WithField("so-sync", soID),
+		b:                 b,
+		soID:              soID,
+		localObjectPeerID: localObjectPeerID,
+		soHost:            soHost,
 	}
 }
 
@@ -189,16 +191,16 @@ func (s *SOSync) validateSnapshotElements(peerState *sobject.SOState) error {
 		return errors.New("snapshot has no participants")
 	}
 
-	localPeerIDStr := s.localPeerID.String()
+	localObjectPeerIDStr := s.localObjectPeerID.String()
 	var localParticipant bool
 	for _, p := range cfg.GetParticipants() {
-		if p.GetPeerId() == localPeerIDStr && sobject.CanReadState(p.GetRole()) {
+		if p.GetPeerId() == localObjectPeerIDStr && sobject.CanReadState(p.GetRole()) {
 			localParticipant = true
 			break
 		}
 	}
 	if !localParticipant {
-		return errors.Errorf("local peer %s is not a participant of the snapshot config", localPeerIDStr)
+		return errors.Errorf("local object peer %s is not a participant of the snapshot config", localObjectPeerIDStr)
 	}
 
 	for _, g := range peerState.GetRootGrants() {
