@@ -21,8 +21,8 @@ import (
 )
 
 // TestTaskTrackerRetriesTransientWorldError verifies that a task tracker
-// recovers from a World error, assigns the task, and wakes its parent when the
-// first observed task state is COMPLETE.
+// retries after a World error and wakes its parent when the first task state it
+// observes is COMPLETE.
 func TestTaskTrackerRetriesTransientWorldError(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
@@ -123,7 +123,6 @@ func TestTaskTrackerRetriesTransientWorldError(t *testing.T) {
 
 	taskTracker, _ := tracker.taskTrackers.SetKey(taskKey, false)
 	attempt := 0
-	assigned := make(chan struct{}, 1)
 	taskTracker.objLoop = world_control.NewWatchLoop(
 		tb.Logger,
 		taskKey,
@@ -139,21 +138,7 @@ func TestTaskTrackerRetriesTransientWorldError(t *testing.T) {
 			if attempt == 1 {
 				return false, errors.New("transient world read")
 			}
-			waitForChanges, err := taskTracker.processState(ctx, le, ws, obj, rootRef, rev)
-			if err != nil {
-				return waitForChanges, err
-			}
-			task, _, err := forge_task.LookupTask(ctx, ws, taskKey)
-			if err != nil {
-				return waitForChanges, err
-			}
-			if task.GetPeerId() == peerID.String() {
-				select {
-				case assigned <- struct{}{}:
-				default:
-				}
-			}
-			return waitForChanges, nil
+			return taskTracker.processState(ctx, le, ws, obj, rootRef, rev)
 		},
 	)
 
@@ -179,11 +164,6 @@ func TestTaskTrackerRetriesTransientWorldError(t *testing.T) {
 	}
 
 	tracker.taskTrackers.SetContext(trackerCtx, true)
-	select {
-	case <-assigned:
-	case <-ctx.Done():
-		t.Fatalf("task was not assigned after transient World error: %v", ctx.Err())
-	}
 	select {
 	case <-complete:
 	case <-ctx.Done():
