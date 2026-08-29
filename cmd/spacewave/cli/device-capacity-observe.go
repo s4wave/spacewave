@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -64,6 +65,9 @@ func runDeviceCapacityObserver(
 	client *sdkClient,
 	store *device_policy.PolicyStore,
 ) error {
+	if err := restoreLocalDeviceEnrollment(ctx, statePath, client); err != nil {
+		return errors.Wrap(err, "restore local Device enrollment")
+	}
 	claimID, err := newClaimID()
 	if err != nil {
 		return errors.Wrap(err, "generate claim id")
@@ -109,6 +113,21 @@ func runDeviceCapacityObserver(
 		}
 		last = policy
 	}
+}
+
+// restoreLocalDeviceEnrollment reopens the persisted local completion on each
+// daemon start. This reasserts the invite authority as a desired signaling
+// peer without replaying the one-use invite.
+func restoreLocalDeviceEnrollment(ctx context.Context, statePath string, client *sdkClient) error {
+	record, ok, err := deviceLauncherProjectionTarget(statePath)
+	if err != nil || !ok || !strings.HasPrefix(record.Completion, deviceLocalCompletionPrefix) {
+		return err
+	}
+	updated, err := openLocalDeviceSession(ctx, client, statePath, record)
+	if err != nil {
+		return err
+	}
+	return writeDeviceSetupRecord(statePath, updated)
 }
 
 // openDeviceCapacityAdmission mounts the Device session, Space, and World
