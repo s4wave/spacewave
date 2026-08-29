@@ -522,11 +522,25 @@ func (e *Engine) getFromShard(
 	retried bool,
 ) ([]byte, bool, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard")
-	defer task.End()
+	candidateSegments := 0
+	acquiredSegments := 0
+	pendingHit := 0
+	foundPublished := 0
+	// manifestSegments stays zero when pending read-through avoids a manifest scan.
+	manifestSegments := 0
+	retriedInt := 0
+	if retried {
+		retriedInt = 1
+	}
+	defer func() {
+		trace.Logf(ctx, "hydra/opfs-blockshard/get-from-shard/shape", "manifest_segments=%d candidates=%d acquisitions=%d pending_hit=%d found_published=%d retried=%d", manifestSegments, candidateSegments, acquiredSegments, pendingHit, foundPublished, retriedInt)
+		task.End()
+	}()
 
 	// Pending-then-published: a buffered (not-yet-published) write or tombstone
 	// is newer than anything in the manifest and wins.
 	if pe, ok := e.pending[shardIdx].get(key); ok {
+		pendingHit = 1
 		if pe.tombstone {
 			return nil, false, nil
 		}
@@ -545,6 +559,7 @@ func (e *Engine) getFromShard(
 	}
 
 	// Scan segments newest-first (last in manifest = newest).
+	manifestSegments = len(m.Segments)
 	for i := len(m.Segments) - 1; i >= 0; i-- {
 		seg := &m.Segments[i]
 		// Skip segments whose immutable key range excludes the request.
@@ -552,6 +567,7 @@ func (e *Engine) getFromShard(
 			continue
 		}
 
+		candidateSegments++
 		// Pin cache resources for this segment lookup step.
 		taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard/acquire-segment")
 		lease, err := shard.acquireSegment(taskCtx, seg)
@@ -562,6 +578,7 @@ func (e *Engine) getFromShard(
 			}
 			return nil, false, errors.Errorf("acquire segment %s: %v", seg.Filename, err)
 		}
+		acquiredSegments++
 
 		// Locate the key and release every segment resource pin.
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard/locate")
@@ -581,6 +598,7 @@ func (e *Engine) getFromShard(
 			return nil, false, nil
 		}
 		if found {
+			foundPublished = 1
 			return val, true, nil
 		}
 	}
