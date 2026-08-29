@@ -12,6 +12,7 @@ import (
 	bdb "github.com/aperturerobotics/bbolt"
 	"github.com/pkg/errors"
 	storage_native "github.com/s4wave/spacewave/bldr/storage/native"
+	listener_control "github.com/s4wave/spacewave/core/resource/listener/control"
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,6 +55,7 @@ func prepareDaemonRuntime(
 	ctx context.Context,
 	le *logrus.Entry,
 	statePath string,
+	sockPath string,
 	takeover bool,
 ) (*statePathLease, error) {
 	if err := os.MkdirAll(statePath, 0o755); err != nil {
@@ -62,11 +64,14 @@ func prepareDaemonRuntime(
 	if le == nil {
 		le = logrus.NewEntry(logrus.New())
 	}
+	var err error
 	if takeover {
-		sockPath := filepath.Join(statePath, socketName)
-		if err := takeoverDaemonSocket(ctx, le, sockPath); err != nil {
-			return nil, err
-		}
+		err = takeoverDaemonSocket(ctx, le, sockPath)
+	} else {
+		err = listener_control.EnsureSocketAvailable(ctx, le, sockPath)
+	}
+	if err != nil {
+		return nil, err
 	}
 	return acquireStatePathLease(statePath)
 }

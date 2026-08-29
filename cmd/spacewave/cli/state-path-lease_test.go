@@ -98,7 +98,7 @@ func TestPrepareDaemonRuntimeRejectsHeldLeaseAfterPeerExit(t *testing.T) {
 		}
 	}()
 
-	lease, err := prepareDaemonRuntime(t.Context(), logrus.NewEntry(logrus.New()), statePath, true)
+	lease, err := prepareDaemonRuntime(t.Context(), logrus.NewEntry(logrus.New()), statePath, sockPath, true)
 	if lease != nil {
 		_ = lease.release()
 		t.Fatal("replacement acquired lease held by another process")
@@ -137,7 +137,7 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 		}
 	})
 
-	lease, err := prepareDaemonRuntime(t.Context(), logrus.NewEntry(logrus.New()), statePath, true)
+	lease, err := prepareDaemonRuntime(t.Context(), logrus.NewEntry(logrus.New()), statePath, sockPath, true)
 	if err != nil {
 		t.Fatalf("prepare daemon runtime: %v", err)
 	}
@@ -157,6 +157,33 @@ func TestPrepareDaemonRuntimeCleanHandoffAcquiresLease(t *testing.T) {
 	}
 	if err := os.Remove(sockPath); err != nil && !os.IsNotExist(err) {
 		t.Fatalf("remove replacement socket: %v", err)
+	}
+}
+
+func TestPrepareDaemonRuntimeRemovesStaleExplicitSocket(t *testing.T) {
+	statePath := shortStatePath(t)
+	sockPath := filepath.Join(shortStatePath(t), "runtime.sock")
+	listener, err := net.Listen("unix", sockPath)
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	if err := listener.Close(); err != nil {
+		t.Fatalf("close stale listener: %v", err)
+	}
+
+	lease, err := prepareDaemonRuntime(
+		t.Context(),
+		logrus.NewEntry(logrus.New()),
+		statePath,
+		sockPath,
+		false,
+	)
+	if err != nil {
+		t.Fatalf("prepare daemon runtime: %v", err)
+	}
+	defer lease.release()
+	if _, err := os.Stat(sockPath); !os.IsNotExist(err) {
+		t.Fatalf("stale explicit socket remains: %v", err)
 	}
 }
 
