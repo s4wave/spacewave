@@ -17,6 +17,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -41,6 +42,7 @@ type p2pSyncState struct {
 	lowerSourceHeld  bool
 	workers          int
 	refs             []directive.Reference
+	peerRefs         map[string]directive.Reference
 	relFns           []func()
 	stores           map[string]block.StoreOps
 	soIDs            map[string]struct{}
@@ -314,6 +316,63 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 	// the state alive could not return until startup finished on its own.
 	go a.runP2PSyncStart(state, previous, previousRetained, sessionTransport, childBus)
 	return a.awaitP2PSyncStart(ctx, state)
+}
+
+// RetainP2PPeer keeps an EstablishLinkWithPeer directive for the current P2P
+// sync lifetime. Device enrollment calls it with the persisted invite owner so
+// restart reconnects without repeating the one-use invite.
+func (a *ProviderAccount) RetainP2PPeer(ctx context.Context, remotePeerID peer.ID) error {
+	if remotePeerID == "" {
+		return errors.New("remote P2P peer ID is required")
+	}
+	var state *p2pSyncState
+	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		state = a.p2pSync
+	})
+	if state == nil {
+		return errors.New("P2P sync is not running")
+	}
+
+	remoteKey := remotePeerID.String()
+	var alreadyRetained bool
+	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		_, alreadyRetained = state.peerRefs[remoteKey]
+	})
+	if alreadyRetained {
+		return nil
+	}
+	childBus := state.sessionTransport.GetChildBus()
+	if childBus == nil {
+		return errors.New("session transport child bus is not ready")
+	}
+	_, ref, err := childBus.AddDirective(
+		link.NewEstablishLinkWithPeer(state.sessionTransport.GetPeerID(), remotePeerID),
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	retained := false
+	state.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if state.stopping || state.ctx.Err() != nil {
+			return
+		}
+		if state.peerRefs == nil {
+			state.peerRefs = make(map[string]directive.Reference)
+		}
+		if _, exists := state.peerRefs[remoteKey]; exists {
+			return
+		}
+		state.peerRefs[remoteKey] = ref
+		state.refs = append(state.refs, ref)
+		retained = true
+		bcast()
+	})
+	if !retained {
+		ref.Release()
+	}
+	return nil
 }
 
 // awaitP2PSyncStart waits for the shared startup to finish or for the caller's

@@ -139,6 +139,12 @@ func TestAutoReconnectSync(t *testing.T) {
 // transport so they can exchange bifrost traffic in-process.
 func connectSessionTransports(ctx context.Context, t *testing.T, stA, stB *transport.SessionTransport) {
 	t.Helper()
+	prepareSessionTransportBackends(ctx, t, stA, stB)
+	addEstablishLink(ctx, t, stA.GetChildBus(), stA.GetPeerID(), stB.GetPeerID())
+}
+
+func prepareSessionTransportBackends(ctx context.Context, t *testing.T, stA, stB *transport.SessionTransport) {
+	t.Helper()
 
 	peerIDA := stA.GetPeerID()
 	peerIDB := stB.GetPeerID()
@@ -181,8 +187,6 @@ func connectSessionTransports(ctx context.Context, t *testing.T, stA, stB *trans
 	ipA.ConnectToInproc(ctx, ipB)
 	ipB.ConnectToInproc(ctx, ipA)
 
-	// Establish link from one side only to avoid dual-dial instability.
-	addEstablishLink(ctx, t, childBusA, peerIDA, peerIDB)
 }
 
 // addEstablishLink adds an EstablishLinkWithPeer directive to the bus.
@@ -356,6 +360,43 @@ func TestBlockSyncDEX(t *testing.T) {
 
 	// Verify SO sync works between the two sides (proves the solicit
 	// infrastructure including DEX is operational on the connected link).
+	waitForSyncedRootSeqno(ctx, t, accB, account_settings.BindingPurpose, 0)
+}
+
+// TestRetainP2PPeerEstablishesLink verifies that a persisted enrollment peer
+// drives the transport link after restart instead of relying on an invite RPC
+// that has already completed.
+func TestRetainP2PPeerEstablishesLink(t *testing.T) {
+	skipFullP2PSyncUnderGoScript(t)
+	ctx, cancel := context.WithTimeout(t.Context(), p2pSyncTestTimeout)
+	defer cancel()
+
+	_, _, accA, sessA, releaseA := setupProviderAndSession(ctx, t)
+	defer releaseA()
+	_, _, accB, sessB, releaseB := setupProviderAndSession(ctx, t)
+	defer releaseB()
+	if err := accA.CreateSessionTransport(ctx, sessA.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+	defer accA.StopSessionTransport()
+	if err := accB.CreateSessionTransport(ctx, sessB.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+	defer accB.StopSessionTransport()
+	stA := accA.GetSessionTransport()
+	stB := accB.GetSessionTransport()
+	prepareSessionTransportBackends(ctx, t, stA, stB)
+	if err := accA.StartP2PSync(context.WithoutCancel(ctx), stA); err != nil {
+		t.Fatal(err)
+	}
+	defer accA.StopP2PSync()
+	if err := accB.StartP2PSync(context.WithoutCancel(ctx), stB); err != nil {
+		t.Fatal(err)
+	}
+	defer accB.StopP2PSync()
+	if err := accA.RetainP2PPeer(ctx, stB.GetPeerID()); err != nil {
+		t.Fatal(err)
+	}
 	waitForSyncedRootSeqno(ctx, t, accB, account_settings.BindingPurpose, 0)
 }
 
