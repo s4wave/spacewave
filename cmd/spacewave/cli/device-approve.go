@@ -113,7 +113,8 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 		return errors.Wrap(err, "session client")
 	}
 	var payload []byte
-	if providerID == "spacewave" {
+	switch providerID {
+	case "spacewave":
 		service := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(sessionClient)
 		response, err := service.ApproveSpaceLink(ctx, &s4wave_provider_spacewave.ApproveSpaceLinkRequest{
 			Ticket:     ticket,
@@ -132,6 +133,9 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 		}
 		_, err = fmt.Fprintln(os.Stdout, base64.StdEncoding.EncodeToString(payload))
 		return err
+	case "local":
+	default:
+		return errors.Errorf("session provider %q does not support SpaceLink Device approval", providerID)
 	}
 
 	service := s4wave_session.NewSRPCLocalSessionResourceServiceClient(sessionClient)

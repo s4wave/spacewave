@@ -54,6 +54,7 @@ message LocalSpaceLinkCompletion {
 // ApproveLocalSpaceLinkResponse is the response for ApproveSpaceLink on a
 // local mounted session.
 message ApproveLocalSpaceLinkResponse {
+  // Completion carries the targeted local invite for the Device.
   LocalSpaceLinkCompletion completion = 1;
 }
 

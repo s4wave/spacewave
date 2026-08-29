@@ -119,6 +119,8 @@ export const LocalSpaceLinkCompletion: MessageType<LocalSpaceLinkCompletion> =
  */
 export interface ApproveLocalSpaceLinkResponse {
   /**
+   * Completion carries the targeted local invite for the Device.
+   *
    * @generated from field: s4wave.session.LocalSpaceLinkCompletion completion = 1;
    */
   completion?: LocalSpaceLinkCompletion

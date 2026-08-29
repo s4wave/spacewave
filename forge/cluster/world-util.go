@@ -100,6 +100,18 @@ func ListClusterWorkers(ctx context.Context, w world.WorldState, clusterKeys ...
 	)
 }
 
+// ListWorkerClusters lists all Cluster object keys linked to the Worker.
+func ListWorkerClusters(ctx context.Context, w world.WorldState, workerKeys ...string) ([]string, error) {
+	return world.CollectGraphPathStepWithKeys(
+		ctx,
+		w,
+		workerKeys,
+		world.GraphPathDirectionIn,
+		PredClusterToWorker.String(),
+		clusterGraphPathLimit,
+	)
+}
+
 // CollectClusterWorkers collects all Worker linked to by the Cluster.
 // If any of the linked states are invalid, returns an error.
 func CollectClusterWorkers(
