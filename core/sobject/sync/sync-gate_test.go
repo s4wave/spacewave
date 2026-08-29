@@ -2,6 +2,7 @@ package sobject_sync
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net"
 	"testing"
@@ -154,6 +155,50 @@ func TestSnapshotExchangeRejectsExcludedLocalPeer(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected snapshot from config excluding the local peer to be rejected")
+	}
+	if got := ctr.GetValue().GetRoot().GetInnerSeqno(); got != 1 {
+		t.Fatalf("local state advanced to seqno %d; expected rejection to keep seqno 1", got)
+	}
+}
+
+func TestSnapshotExchangeRejectsSnapshotWithoutLocalGrant(t *testing.T) {
+	ctx := context.Background()
+	soID := "gate-object-local-grant"
+	localPriv := mustKeyPair(t)
+	localPeer, err := peer.IDFromPrivateKey(localPriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ownerPeer := mustPeerIDStr(t, mustKeyPair(t))
+	localHost, ctr := newMemHost(soID, &sobject.SOState{
+		Config: &sobject.SharedObjectConfig{},
+		Root:   &sobject.SORoot{InnerSeqno: 1},
+	})
+	validateAccess := func(_ context.Context, state *sobject.SOState) error {
+		for _, grant := range state.GetRootGrants() {
+			if grant.GetPeerId() == localPeer.String() {
+				return nil
+			}
+		}
+		return errors.New("no local root grant")
+	}
+	s := NewSOSync(gateLogger(), nil, soID, localPeer, localHost, validateAccess)
+	peerState := &sobject.SOState{
+		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
+			participantCfg(ownerPeer, sobject.SOParticipantRole_SOParticipantRole_OWNER),
+			participantCfg(localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER),
+		}},
+		Root: &sobject.SORoot{InnerSeqno: 5},
+	}
+	snapData, err := peerState.MarshalVT()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	err = runSnapshotExchange(t, s, ctx, &SOSyncMessage{
+		Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{SoState: snapData, RootSeqno: 5}},
+	})
+	if err == nil {
+		t.Fatal("expected inaccessible snapshot to be rejected")
 	}
 	if got := ctr.GetValue().GetRoot().GetInnerSeqno(); got != 1 {
 		t.Fatalf("local state advanced to seqno %d; expected rejection to keep seqno 1", got)

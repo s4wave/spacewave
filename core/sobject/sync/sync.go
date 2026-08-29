@@ -24,12 +24,17 @@ const maxMessageSize = 10 * 1024 * 1024
 // SOSync manages bidirectional shared object state synchronization
 // over a solicit protocol stream. Each instance syncs one SharedObject
 // with peers connected via the session transport's child bus.
+// SnapshotAccessValidator verifies that the local object identity can decode
+// an inbound snapshot before it replaces durable state.
+type SnapshotAccessValidator func(context.Context, *sobject.SOState) error
+
 type SOSync struct {
-	le                *logrus.Entry
-	b                 bus.Bus
-	soID              string
-	localObjectPeerID peer.ID
-	soHost            *sobject.SOHost
+	le                     *logrus.Entry
+	b                      bus.Bus
+	soID                   string
+	localObjectPeerID      peer.ID
+	soHost                 *sobject.SOHost
+	validateSnapshotAccess SnapshotAccessValidator
 }
 
 // NewSOSync constructs a new SOSync.
@@ -37,13 +42,25 @@ type SOSync struct {
 // localObjectPeerID is the local storage identity checked against inbound
 // state. The transport peer routes the sync stream but need not be a Space
 // participant.
-func NewSOSync(le *logrus.Entry, b bus.Bus, soID string, localObjectPeerID peer.ID, soHost *sobject.SOHost) *SOSync {
+func NewSOSync(
+	le *logrus.Entry,
+	b bus.Bus,
+	soID string,
+	localObjectPeerID peer.ID,
+	soHost *sobject.SOHost,
+	accessValidators ...SnapshotAccessValidator,
+) *SOSync {
+	var validateSnapshotAccess SnapshotAccessValidator
+	if len(accessValidators) != 0 {
+		validateSnapshotAccess = accessValidators[0]
+	}
 	return &SOSync{
-		le:                le.WithField("so-sync", soID),
-		b:                 b,
-		soID:              soID,
-		localObjectPeerID: localObjectPeerID,
-		soHost:            soHost,
+		le:                     le.WithField("so-sync", soID),
+		b:                      b,
+		soID:                   soID,
+		localObjectPeerID:      localObjectPeerID,
+		soHost:                 soHost,
+		validateSnapshotAccess: validateSnapshotAccess,
 	}
 }
 
@@ -159,6 +176,12 @@ func (s *SOSync) exchangeSnapshots(ctx context.Context, le *logrus.Entry, sess *
 		if err := s.validateSnapshotElements(peerState); err != nil {
 			le.WithError(err).Warn("rejected peer snapshot failing element validation")
 			return errors.Wrap(err, "invalid peer snapshot")
+		}
+		if s.validateSnapshotAccess != nil {
+			if err := s.validateSnapshotAccess(ctx, peerState); err != nil {
+				le.WithError(err).Warn("rejected peer snapshot inaccessible to local object identity")
+				return errors.Wrap(err, "inaccessible peer snapshot")
+			}
 		}
 
 		if err := s.soHost.UpdateSOState(ctx, func(state *sobject.SOState) error {
