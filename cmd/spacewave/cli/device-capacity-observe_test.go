@@ -205,23 +205,3 @@ func testCapacityRequest() forge_runtime.ResourceRequest {
 func BuildReservationKeyForExec(executionObjectKey string) string {
 	return forge_runtime.BuildReservationObjectKey(executionObjectKey)
 }
-
-// renewOwnedCapacityOnceWithAdmission renews every owned record's claim
-// through an existing admission owner.
-func renewOwnedCapacityOnceWithAdmission(
-	ctx context.Context,
-	admission *forge_runtime.WorldRuntimeAdmission,
-	deviceObjectKey string,
-	ref forge_runtime.WorkerClaimRef,
-) error {
-	owned, err := admission.ScanOwnedCapacity(ctx, deviceObjectKey)
-	if err != nil {
-		return err
-	}
-	for _, oc := range owned {
-		if _, err := admission.RenewWorkerClaim(ctx, oc.WorkerObjectKey, ref); err != nil {
-			return err
-		}
-	}
-	return nil
-}
