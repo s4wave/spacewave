@@ -229,3 +229,27 @@ func TestSessionTransportReadyCommitRejectsReplacement(t *testing.T) {
 		}
 	})
 }
+
+// TestEnsureConfiguredSessionTransportDoesNotReplaceMountedTransport proves an
+// enrollment RPC follows the session tracker's transport rather than creating
+// an RPC-owned replacement when the requested signaling configuration differs.
+func TestEnsureConfiguredSessionTransportDoesNotReplaceMountedTransport(t *testing.T) {
+	ctx := t.Context()
+	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
+	defer release()
+	acc.t.p.signalingURL = "https://spacewave.app"
+	if err := acc.CreateSessionTransport(ctx, sessionKey, ""); err != nil {
+		t.Fatal(err)
+	}
+	defer acc.StopSessionTransport()
+	mounted := acc.GetSessionTransport()
+	if mounted == nil {
+		t.Fatal("expected mounted session transport")
+	}
+	if err := acc.EnsureConfiguredSessionTransport(ctx, sessionKey); err != nil {
+		t.Fatal(err)
+	}
+	if got := acc.GetSessionTransport(); got != mounted {
+		t.Fatal("configured ensure replaced the mounted session transport")
+	}
+}
