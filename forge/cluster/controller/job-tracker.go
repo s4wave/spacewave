@@ -3,6 +3,7 @@ package cluster_controller
 import (
 	"context"
 
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -38,7 +39,12 @@ func (c *Controller) newJobTracker(key string) (keyed.Routine, *jobTracker) {
 		key,
 		skipUnhandledOperation(tr.processState),
 	)
-	tr.taskTrackers = keyed.NewKeyedWithLogger(tr.newTaskTracker, c.le)
+	// Retry World watch errors so task assignment and parent wakeups resume.
+	tr.taskTrackers = keyed.NewKeyedWithLogger(
+		tr.newTaskTracker,
+		c.le,
+		keyed.WithRetry[string, *taskTracker](&backoff.Backoff{}),
+	)
 	return tr.execute, tr
 }
 

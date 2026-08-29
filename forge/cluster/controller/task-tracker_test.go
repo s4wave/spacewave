@@ -10,7 +10,6 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/world"
-	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_control "github.com/s4wave/spacewave/db/world/control"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	forge_cluster "github.com/s4wave/spacewave/forge/cluster"
@@ -21,12 +20,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TestTaskTrackerWakesParentOnFirstComplete verifies that a task tracker wakes
-// its parent when the first observed task state is COMPLETE. This models the
-// parent job tracker scanning a pending task before the child watcher starts.
-func TestTaskTrackerWakesParentOnFirstComplete(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+// TestTaskTrackerRetriesTransientWorldError verifies that a task tracker
+// recovers from a World error, assigns the task, and wakes its parent when the
+// first observed task state is COMPLETE.
+func TestTaskTrackerRetriesTransientWorldError(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
+	trackerCtx, stopTrackers := context.WithCancel(ctx)
 
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
@@ -111,7 +111,7 @@ func TestTaskTrackerWakesParentOnFirstComplete(t *testing.T) {
 
 	parentDone := make(chan error, 1)
 	go func() {
-		parentDone <- tracker.objLoop.Execute(ctx, tb.WorldState)
+		parentDone <- tracker.objLoop.Execute(trackerCtx, tb.WorldState)
 	}()
 	select {
 	case <-scanned:
@@ -120,6 +120,42 @@ func TestTaskTrackerWakesParentOnFirstComplete(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatalf("parent tracker did not scan pending task: %v", ctx.Err())
 	}
+
+	taskTracker, _ := tracker.taskTrackers.SetKey(taskKey, false)
+	attempt := 0
+	assigned := make(chan struct{}, 1)
+	taskTracker.objLoop = world_control.NewWatchLoop(
+		tb.Logger,
+		taskKey,
+		func(
+			ctx context.Context,
+			le *logrus.Entry,
+			ws world.WorldState,
+			obj world.ObjectState,
+			rootRef *bucket.ObjectRef,
+			rev uint64,
+		) (bool, error) {
+			attempt++
+			if attempt == 1 {
+				return false, errors.New("transient world read")
+			}
+			waitForChanges, err := taskTracker.processState(ctx, le, ws, obj, rootRef, rev)
+			if err != nil {
+				return waitForChanges, err
+			}
+			task, _, err := forge_task.LookupTask(ctx, ws, taskKey)
+			if err != nil {
+				return waitForChanges, err
+			}
+			if task.GetPeerId() == peerID.String() {
+				select {
+				case assigned <- struct{}{}:
+				default:
+				}
+			}
+			return waitForChanges, nil
+		},
+	)
 
 	taskTarget, err := forge_target.LookupTarget(
 		ctx, tb.WorldState, forge_task.NewTargetKey(taskKey),
@@ -142,19 +178,21 @@ func TestTaskTrackerWakesParentOnFirstComplete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tracker.taskTrackers.SetContext(ctx, true)
+	tracker.taskTrackers.SetContext(trackerCtx, true)
+	select {
+	case <-assigned:
+	case <-ctx.Done():
+		t.Fatalf("task was not assigned after transient World error: %v", ctx.Err())
+	}
 	select {
 	case <-complete:
 	case <-ctx.Done():
-		t.Fatalf("job did not complete after first COMPLETE task observation: %v", ctx.Err())
+		t.Fatalf("job did not complete after task tracker retry: %v", ctx.Err())
 	}
 
-	// The cancel below stops the tracker loop and tears the testbed engine down
-	// at the same time, so the loop returns whichever it notices first. Both are
-	// the shutdown this asserts; anything else is a real error.
-	cancel()
+	stopTrackers()
 	err = <-parentDone
-	if !errors.Is(err, context.Canceled) && !errors.Is(err, world_block.ErrEngineClosed) {
-		t.Fatalf("parent tracker returned %v after cancellation, want %v or %v", err, context.Canceled, world_block.ErrEngineClosed)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("parent tracker returned %v after cancellation, want %v", err, context.Canceled)
 	}
 }
