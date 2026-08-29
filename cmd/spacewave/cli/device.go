@@ -592,6 +592,9 @@ func applyDeviceCompletion(record *deviceSetupRecord, encodedCompletion string, 
 	if record == nil || record.SetupState == deviceSetupStateNotConfigured {
 		return nil, errors.New("device setup must run before completion import")
 	}
+	if strings.HasPrefix(strings.TrimSpace(encodedCompletion), deviceLocalCompletionPrefix) {
+		return applyLocalDeviceCompletion(record, encodedCompletion, now)
+	}
 	completion, err := decodeDeviceCompletion(encodedCompletion)
 	if err != nil {
 		return nil, err
@@ -602,10 +605,6 @@ func applyDeviceCompletion(record *deviceSetupRecord, encodedCompletion string, 
 	}
 	if !bytes.Equal(completion.GetNonce(), payload.GetNonce()) {
 		return nil, errors.New("device completion nonce does not match setup ticket")
-	}
-
-	if strings.HasPrefix(strings.TrimSpace(encodedCompletion), deviceLocalCompletionPrefix) {
-		return applyLocalDeviceCompletion(record, encodedCompletion, now)
 	}
 
 	updated := *record
