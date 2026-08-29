@@ -357,9 +357,18 @@ func (a *ProviderAccount) retainP2PPeerOnState(
 	if childBus == nil {
 		return errors.New("session transport child bus is not ready")
 	}
+	// Keep an attached value reference as well as the directive reference.
+	// A directive with no value handler leaves its MountedLink unreferenced, so
+	// controllerbus disposes the link after EstablishLinkWithPeer's grace period.
+	handler := directive.NewTypedCallbackHandler[link.MountedLink](
+		func(directive.TypedAttachedValue[link.MountedLink]) {},
+		nil,
+		nil,
+		nil,
+	)
 	_, ref, err := childBus.AddDirective(
 		link.NewEstablishLinkWithPeer(state.sessionTransport.GetPeerID(), remotePeerID),
-		nil,
+		handler,
 	)
 	if err != nil {
 		return err
