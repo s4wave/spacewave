@@ -8,6 +8,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller/loader"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
+	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
@@ -65,7 +66,11 @@ func NewController(
 		c.objKey,
 		c.ProcessState,
 	)
-	c.jobTrackers = keyed.NewKeyedWithLogger(c.newJobTracker, le)
+	c.jobTrackers = keyed.NewKeyedWithLogger(
+		c.newJobTracker,
+		le,
+		keyed.WithRetry[string, *jobTracker](&backoff.Backoff{}),
+	)
 	return c
 }
 

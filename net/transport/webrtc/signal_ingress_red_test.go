@@ -641,7 +641,8 @@ func TestSignalIngressMatchingGenerationFatalControls(t *testing.T) {
 // answer carrying the same generation identity, and its Pion state stays
 // untouched.
 func TestAnswererReplaysRetainedAnswerOnDuplicateOffer(t *testing.T) {
-	_, answerPC, offerDesc, _ := newNegotiatedPair(t)
+	answerPC, offerDesc := newOfferForAnswerer(t)
+	gatherComplete := pion_webrtc.GatheringCompletePromise(answerPC)
 
 	var xmitted []*WebRtcSdp
 	tracker := &sessionTracker{
@@ -674,6 +675,11 @@ func TestAnswererReplaysRetainedAnswerOnDuplicateOffer(t *testing.T) {
 	}
 	firstAnswer := xmitted[0]
 
+	select {
+	case <-gatherComplete:
+	case <-time.After(5 * time.Second):
+		t.Fatal("answer ICE gathering did not complete")
+	}
 	stateBefore := answerPC.SignalingState()
 	localBefore := answerPC.LocalDescription().SDP
 
@@ -691,7 +697,7 @@ func TestAnswererReplaysRetainedAnswerOnDuplicateOffer(t *testing.T) {
 	}
 	replayed := xmitted[1]
 	if replayed.GetSdp() != firstAnswer.GetSdp() {
-		t.Fatal("replayed answer changed the local description bytes")
+		t.Fatal("replayed answer changed the originally transmitted SDP bytes")
 	}
 	if !bytes.Equal(replayed.GetOfferId(), sess.rxOfferID) {
 		t.Fatal("replayed answer changed the generation identity")

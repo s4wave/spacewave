@@ -359,6 +359,11 @@ type session struct {
 	// the active generation identity for the signal fence.
 	rxOfferID []byte
 
+	// rxOfferAnswerSDP holds the exact local answer SDP bytes transmitted for
+	// rxOfferID. Pion augments LocalDescription with gathered ICE candidates,
+	// so duplicate-offer replay uses these bytes to preserve the generation.
+	rxOfferAnswerSDP string
+
 	// pendingOfferID is the SHA-256 digest of the local offer SDP bytes most
 	// recently transmitted by this session, when we are the offerer. Answers
 	// whose offer_id does not match it are dropped before Pion.
@@ -1129,21 +1134,23 @@ func isOfferer(a, b string) bool {
 	return strings.Compare(a, b) < 0
 }
 
-// transmitAnswer emits one Sdp signal carrying an answer description tagged
-// with the session's active remote-offer digest. The first answer
-// transmission and the duplicate-offer replay share it; it performs no
-// matching or validation of its own.
+// transmitAnswer emits the exact answer SDP bytes retained for the session's
+// active remote-offer generation.
 func (s *sessionTracker) transmitAnswer(
 	sess *session,
-	answer *webrtc.SessionDescription,
+	answerSDP string,
 	currLocalSeqno uint64,
 	xmitSignal func(*WebRtcSignal),
 ) {
-	if answer == nil || answer.SDP == "" || answer.Type != webrtc.SDPTypeAnswer {
+	if answerSDP == "" {
 		return
 	}
-	ans := NewWebRtcSdp(currLocalSeqno, answer)
-	ans.OfferId = sess.rxOfferID
+	ans := &WebRtcSdp{
+		TxSeqno: currLocalSeqno,
+		SdpType: webrtc.SDPTypeAnswer.String(),
+		Sdp:     answerSDP,
+		OfferId: sess.rxOfferID,
+	}
 	xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: ans}})
 }
 
@@ -1215,7 +1222,7 @@ func (s *sessionTracker) ingestRemoteSignal(
 				if s.w.GetVerbose() {
 					le.Debug("signal tx: replay retained answer")
 				}
-				s.transmitAnswer(sess, sess.pc.LocalDescription(), currLocalSeqno, xmitSignal)
+				s.transmitAnswer(sess, sess.rxOfferAnswerSDP, currLocalSeqno, xmitSignal)
 			}
 		case s.offerer && sess.pc.SignalingState() != webrtc.SignalingStateHaveLocalOffer:
 			// Drop an answer that arrives with no local offer pending. Applying an
@@ -1245,6 +1252,7 @@ func (s *sessionTracker) ingestRemoteSignal(
 					sess.retiredOfferIDs[string(sess.rxOfferID)] = struct{}{}
 				}
 				sess.rxOfferID = offerSum[:]
+				sess.rxOfferAnswerSDP = ""
 			}
 
 			// Flush any candidates that arrived before the remote description.
@@ -1266,7 +1274,8 @@ func (s *sessionTracker) ingestRemoteSignal(
 				if err := sess.pc.SetLocalDescription(answer); err != nil {
 					return pkgerrors.Wrap(err, "set local description(answer)")
 				}
-				s.transmitAnswer(sess, &answer, currLocalSeqno, xmitSignal)
+				sess.rxOfferAnswerSDP = answer.SDP
+				s.transmitAnswer(sess, sess.rxOfferAnswerSDP, currLocalSeqno, xmitSignal)
 			}
 		}
 	}

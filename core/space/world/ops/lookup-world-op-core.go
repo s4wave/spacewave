@@ -12,6 +12,7 @@ import (
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
 	forge_world "github.com/s4wave/spacewave/forge/world"
+	identity_world "github.com/s4wave/spacewave/identity/world"
 	spacewave_chat "github.com/s4wave/spacewave/sdk/chat"
 	s4wave_device "github.com/s4wave/spacewave/sdk/device"
 	s4wave_terminal "github.com/s4wave/spacewave/sdk/terminal"
@@ -20,6 +21,7 @@ import (
 func lookupCoreWorldOp(ctx context.Context, opTypeID string) (world.Operation, error) {
 	return world.LookupOpSlice([]world.LookupOp{
 		unixfs_world.LookupFsOp,
+		identity_world.LookupOp,
 		LookupSetSpaceSettingsOp,
 		LookupInitUnixFSOp,
 		LookupInitObjectLayoutOp,
