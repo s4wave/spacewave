@@ -3,6 +3,7 @@ package s4wave_canvas
 import (
 	"context"
 	"maps"
+	"slices"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -107,7 +108,8 @@ func WriteCanvasState(
 	}
 	defer nodes.Discard()
 
-	for id, node := range next.GetNodes() {
+	for _, id := range slices.Sorted(maps.Keys(next.GetNodes())) {
+		node := next.GetNodes()[id]
 		if old := current.GetNodes()[id]; old != nil && old.EqualVT(node) {
 			continue
 		}
@@ -115,7 +117,7 @@ func WriteCanvasState(
 			return err
 		}
 	}
-	for id := range current.GetNodes() {
+	for _, id := range slices.Sorted(maps.Keys(current.GetNodes())) {
 		if _, ok := next.GetNodes()[id]; ok {
 			continue
 		}
