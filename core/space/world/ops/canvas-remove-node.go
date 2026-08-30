@@ -72,6 +72,8 @@ func (o *CanvasRemoveNodeOp) ApplyWorldOp(
 			state = &s4wave_canvas.CanvasState{}
 		}
 
+		previous := state.CloneVT()
+
 		// Remove nodes.
 		for id := range removedSet {
 			delete(state.Nodes, id)
@@ -88,7 +90,7 @@ func (o *CanvasRemoveNodeOp) ApplyWorldOp(
 			}
 		}
 
-		return s4wave_canvas.WriteCanvasState(ctx, bcs, nil, state)
+		return s4wave_canvas.WriteCanvasState(ctx, bcs, previous, state)
 	})
 	if err != nil {
 		return false, err

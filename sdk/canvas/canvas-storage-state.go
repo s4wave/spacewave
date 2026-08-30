@@ -78,8 +78,9 @@ func materializeCanvasStorage(
 	return state, nil
 }
 
-// WriteCanvasState writes a logical Canvas state through the pluggable block
-// KVTX node index. Previous is the logical state read from the same object root.
+// WriteCanvasState writes a complete logical Canvas state through the
+// pluggable block KVTX node index. Previous must be the complete logical state
+// read from the same object root. A nil previous value reloads that state.
 func WriteCanvasState(
 	ctx context.Context,
 	bcs *block.Cursor,

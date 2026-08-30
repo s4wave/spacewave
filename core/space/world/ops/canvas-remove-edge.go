@@ -79,6 +79,8 @@ func (o *CanvasRemoveEdgeOp) ApplyWorldOp(
 			state = &s4wave_canvas.CanvasState{}
 		}
 
+		previous := state.CloneVT()
+
 		// Filter edges to exclude removed IDs.
 		edges := state.GetEdges()
 		filtered := make([]*s4wave_canvas.CanvasEdge, 0, len(edges))
@@ -89,7 +91,7 @@ func (o *CanvasRemoveEdgeOp) ApplyWorldOp(
 		}
 		state.Edges = filtered
 
-		return s4wave_canvas.WriteCanvasState(ctx, bcs, nil, state)
+		return s4wave_canvas.WriteCanvasState(ctx, bcs, previous, state)
 	})
 	if err != nil {
 		return false, err

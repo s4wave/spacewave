@@ -377,7 +377,7 @@ func (x *CanvasLayoutMetadata) GetProjectionOwner() string {
 	return ""
 }
 
-// CanvasState is the full canvas state stored as a world object block.
+// CanvasState is the complete logical Canvas state exposed through the resource API.
 type CanvasState struct {
 	unknownFields []byte
 	// Nodes is the set of canvas nodes keyed by ID.
