@@ -534,7 +534,10 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if e2eBrowserRelease == nil {
 		t.Fatal("build target 'release-web-e2e' not found")
 	}
-	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-cli-plugin", "web", "spacewave-browser"} {
+	if slices.Contains(e2eBrowserRelease.GetManifests(), "spacewave-notes") {
+		t.Fatalf("release-web-e2e should build Notes only through the js embed: %v", e2eBrowserRelease.GetManifests())
+	}
+	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-cli-plugin", "web", "spacewave-browser"} {
 		if !slices.Contains(e2eBrowserRelease.GetManifests(), want) {
 			t.Fatalf("release-web-e2e manifests missing %s: %v", want, e2eBrowserRelease.GetManifests())
 		}
@@ -607,12 +610,12 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if e2eAssetBuild == nil {
 		t.Fatal("build target 'release-web-e2e-assets' not found")
 	}
-	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-cli-plugin", "web"} {
+	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-cli-plugin", "web"} {
 		if !slices.Contains(e2eAssetBuild.GetManifests(), want) {
 			t.Fatalf("release-web-e2e-assets manifests missing %s: %v", want, e2eAssetBuild.GetManifests())
 		}
 	}
-	for _, unexpected := range []string{"spacewave-browser", "spacewave-dist"} {
+	for _, unexpected := range []string{"spacewave-browser", "spacewave-dist", "spacewave-notes"} {
 		if slices.Contains(e2eAssetBuild.GetManifests(), unexpected) {
 			t.Fatalf("release-web-e2e-assets should not build %s: %v", unexpected, e2eAssetBuild.GetManifests())
 		}

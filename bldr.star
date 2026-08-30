@@ -571,7 +571,7 @@ BROWSER_RELEASE_MANIFESTS = [
 ]
 BROWSER_RELEASE_E2E_MANIFESTS = [
     "spacewave-launcher",
-    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-sql", "spacewave-cli-plugin", "web",
+    "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "spacewave-cli-plugin", "web",
     "spacewave-browser",
 ]
 DESKTOP_RELEASE_MANIFESTS = [
@@ -674,7 +674,7 @@ build("release-web-e2e",
 build("release-web-e2e-assets",
     manifests=[
         "spacewave-launcher",
-        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-sql", "spacewave-cli-plugin", "web",
+        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "spacewave-cli-plugin", "web",
     ],
     targets=["browser"],
     manifestOverrides={
