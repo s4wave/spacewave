@@ -22,6 +22,8 @@ type JoinResult struct {
 	SharedObjectID string
 	// OwnerGrant keeps the originating owner's root access on the joined copy.
 	OwnerGrant *sobject.SOGrant
+	// SharedObjectState is the owner's authorized state after enrollment.
+	SharedObjectState *sobject.SOState
 }
 
 // JoinViaInvite executes the invitee side of the invite handshake.
@@ -74,9 +76,10 @@ func JoinViaInvite(
 	}
 
 	return &JoinResult{
-		Grant:          resp.GetGrant(),
-		SharedObjectID: resp.GetSharedObjectId(),
-		OwnerGrant:     resp.GetOwnerGrant(),
+		Grant:             resp.GetGrant(),
+		SharedObjectID:    resp.GetSharedObjectId(),
+		OwnerGrant:        resp.GetOwnerGrant(),
+		SharedObjectState: resp.GetSharedObjectState(),
 	}, nil
 }
 

@@ -29,4 +29,7 @@ message AcceptInviteResponse {
   // OwnerGrant is the owner's existing root grant. The invitee preserves it so
   // the owner can read later state written by the joined copy.
   .sobject.SOGrant owner_grant = 3;
+  // SharedObjectState is the owner's authorized state after enrollment. The
+  // invitee installs this state so both copies use the same root transform.
+  .sobject.SOState shared_object_state = 4;
 }

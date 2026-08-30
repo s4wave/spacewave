@@ -2,7 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/core/sobject/invite/invite.proto (package sobject.invite, syntax proto3)
 /* eslint-disable */
 
-import { SOGrant, SOJoinResponse } from '../sobject.pb.js'
+import { SOGrant, SOJoinResponse, SOState } from '../sobject.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
@@ -73,6 +73,13 @@ export interface AcceptInviteResponse {
    * @generated from field: sobject.SOGrant owner_grant = 3;
    */
   ownerGrant?: SOGrant
+  /**
+   * SharedObjectState is the owner's authorized state after enrollment. The
+   * invitee installs this state so both copies use the same root transform.
+   *
+   * @generated from field: sobject.SOState shared_object_state = 4;
+   */
+  sharedObjectState?: SOState
 }
 
 export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
@@ -82,6 +89,7 @@ export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
       { no: 1, name: 'grant', kind: 'message', T: () => SOGrant },
       { no: 2, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'owner_grant', kind: 'message', T: () => SOGrant },
+      { no: 4, name: 'shared_object_state', kind: 'message', T: () => SOState },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
