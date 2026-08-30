@@ -1,25 +1,8 @@
 package s4wave_canvas
 
-import "github.com/s4wave/spacewave/db/block"
-
-// NewCanvasStateBlock constructs a new CanvasState block.
-func NewCanvasStateBlock() block.Block {
-	return &CanvasState{}
-}
-
-// Validate performs cursory checks on the CanvasState block.
-func (s *CanvasState) Validate() error {
-	return nil
-}
-
-// MarshalBlock marshals the block to binary.
+// MarshalBlock marshals the logical Canvas migration payload to binary.
 func (s *CanvasState) MarshalBlock() ([]byte, error) {
 	return s.MarshalVT()
-}
-
-// UnmarshalBlock unmarshals the block from binary.
-func (s *CanvasState) UnmarshalBlock(data []byte) error {
-	return s.UnmarshalVT(data)
 }
 
 // Clone clones the canvas state.
@@ -29,5 +12,3 @@ func (s *CanvasState) Clone() *CanvasState {
 	}
 	return s.CloneVT()
 }
-
-var _ block.Block = (*CanvasState)(nil)

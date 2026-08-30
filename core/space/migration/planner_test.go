@@ -252,7 +252,7 @@ func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, type
 		case s4wave_kv_world.KvStoreTypeID:
 			blocks.SetBlock(kvtx_block.NewKeyValueStore(0), true)
 		case s4wave_canvas_world.CanvasTypeID:
-			blocks.SetBlock(&s4wave_canvas.CanvasState{}, true)
+			blocks.SetBlock(s4wave_canvas.NewCanvasStorage(), true)
 		default:
 			blocks.SetBlock(block_mock.NewExampleBlock(), true)
 		}
@@ -267,6 +267,19 @@ func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, type
 		t.Fatal(err)
 	}
 	if err := world_types.SetObjectType(ctx, ws, key, typeID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func setCanvasState(t *testing.T, ctx context.Context, ws world.WorldState, key string, state *s4wave_canvas.CanvasState) {
+	t.Helper()
+	_, _, err := world.CreateWorldObject(ctx, ws, key, func(blocks *block.Cursor) error {
+		return s4wave_canvas.WriteCanvasState(ctx, blocks, nil, state)
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := world_types.SetObjectType(ctx, ws, key, s4wave_canvas_world.CanvasTypeID); err != nil {
 		t.Fatal(err)
 	}
 }

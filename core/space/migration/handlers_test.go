@@ -52,7 +52,7 @@ func TestBuiltInHandlersDecodeAndSerializePopulatedWorldPayloads(t *testing.T) {
 		{"unixfs", s4wave_unixfs_world.UnixFSTypeID, unixfs_block.NewFSNodeBlock()},
 		{"git-repo", git_world.GitRepoTypeID, git_block.NewRepo()},
 		{"git-worktree", git_world.GitWorktreeTypeID, git_world.NewWorktreeBlock()},
-		{"canvas", s4wave_canvas_world.CanvasTypeID, &s4wave_canvas.CanvasState{}},
+		{"canvas", s4wave_canvas_world.CanvasTypeID, s4wave_canvas.NewCanvasStorage()},
 		{"kv", s4wave_kv_world.KvStoreTypeID, kvtx_block.NewKeyValueStore(0)},
 		{"cluster", forge_cluster.ClusterTypeID, forge_cluster.NewClusterBlock()},
 		{"job", forge_job.JobTypeID, forge_job.NewJobBlock()},

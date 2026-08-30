@@ -105,8 +105,7 @@ func TestExportSpaceWithCanvasWorldObjectNode(t *testing.T) {
 		},
 	}}
 	if _, _, err := world.CreateWorldObject(ctx, ws, "canvas", func(bcs *block.Cursor) error {
-		bcs.SetBlock(canvas, true)
-		return nil
+		return s4wave_canvas.WriteCanvasState(ctx, bcs, nil, canvas)
 	}); err != nil {
 		t.Fatal(err)
 	}

@@ -5,37 +5,13 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 	block_kvtx "github.com/s4wave/spacewave/db/kvtx/block"
 )
 
-// UnmarshalCanvasState reads either the current Canvas DAG or a legacy flat
-// Canvas state and returns the logical RPC state.
+// UnmarshalCanvasState reads the Canvas DAG and returns the logical RPC state.
 func UnmarshalCanvasState(ctx context.Context, bcs *block.Cursor) (*CanvasState, error) {
-	data, found, err := bcs.Fetch(ctx)
-	if err != nil || !found {
-		return nil, err
-	}
-
-	// The storage format is field 1 with a varint wire type. Legacy CanvasState
-	// uses a map at field 1, so it cannot be mistaken for this version marker.
-	storageProbe := &CanvasStorage{}
-	storageErr := storageProbe.UnmarshalVT(data)
-	if storageProbe.GetFormat() != CanvasStorageFormat_CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1 {
-		state, err := block.UnmarshalBlock[*CanvasState](ctx, bcs, NewCanvasStateBlock)
-		if err != nil {
-			return nil, err
-		}
-		if state == nil {
-			state = &CanvasState{}
-		}
-		return state, nil
-	}
-	if storageErr != nil {
-		return nil, errors.Wrap(storageErr, "unmarshal Canvas storage")
-	}
 	storage, err := UnmarshalCanvasStorage(ctx, bcs)
 	if err != nil {
 		return nil, err
@@ -58,7 +34,7 @@ func materializeCanvasStorage(
 		HiddenGraphLinks: cloneHiddenGraphLinks(storage.GetHiddenGraphLinks()),
 		LayoutMetadata:   cloneCanvasLayoutMetadata(storage.GetLayoutMetadata()),
 	}
-	nodes, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), false)
+	nodes, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), false)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +78,7 @@ func WriteCanvasState(
 	storage.LayoutMetadata = cloneCanvasLayoutMetadata(next.GetLayoutMetadata())
 	bcs.SetBlock(storage, true)
 
-	nodes, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), true)
+	nodes, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), true)
 	if err != nil {
 		return err
 	}
@@ -133,7 +109,7 @@ func loadCanvasStorageForWrite(
 	bcs *block.Cursor,
 	previous *CanvasState,
 ) (*CanvasStorage, *CanvasState, error) {
-	data, found, err := bcs.Fetch(ctx)
+	_, found, err := bcs.Fetch(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -143,34 +119,20 @@ func loadCanvasStorageForWrite(
 		return storage, &CanvasState{}, nil
 	}
 
-	probe := &CanvasStorage{}
-	probeErr := probe.UnmarshalVT(data)
-	if probe.GetFormat() == CanvasStorageFormat_CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1 {
-		if probeErr != nil {
-			return nil, nil, errors.Wrap(probeErr, "unmarshal Canvas storage")
-		}
-		storage, err := UnmarshalCanvasStorage(ctx, bcs)
+	storage, err := UnmarshalCanvasStorage(ctx, bcs)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := storage.Validate(); err != nil {
+		return nil, nil, err
+	}
+	if previous == nil {
+		previous, err = materializeCanvasStorage(ctx, bcs, storage)
 		if err != nil {
 			return nil, nil, err
 		}
-		if err := storage.Validate(); err != nil {
-			return nil, nil, err
-		}
-		if previous == nil {
-			previous, err = materializeCanvasStorage(ctx, bcs, storage)
-			if err != nil {
-				return nil, nil, err
-			}
-		}
-		return storage, previous, nil
 	}
-
-	if _, err := block.UnmarshalBlock[*CanvasState](ctx, bcs, NewCanvasStateBlock); err != nil {
-		return nil, nil, err
-	}
-	storage := NewCanvasStorage()
-	bcs.SetBlock(storage, true)
-	return storage, &CanvasState{}, nil
+	return storage, previous, nil
 }
 
 func setCanvasNode(ctx context.Context, nodes kvtx.BlockTx, id string, node *CanvasNode) error {
