@@ -137,6 +137,11 @@ func (a *ProviderAccount) RecordPairedDevice(
 	if remotePeerID == "" {
 		return errors.New("paired Device peer ID is required")
 	}
+	pendingPeerID, _, err := peer.ParsePeerIDWithPubKey(remotePeerID)
+	if err != nil {
+		return errors.Wrap(err, "parse paired Device peer id")
+	}
+	a.markP2PPendingEnrollPeer(pendingPeerID)
 	ref, err := a.GetAccountSettingsRef(ctx)
 	if err != nil {
 		return errors.Wrap(err, "get account settings ref")

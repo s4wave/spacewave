@@ -436,8 +436,14 @@ func (t *sessionTracker) executeSessionTracker(rctx context.Context) (rerr error
 		if !found {
 			// Generate new key (first time), or seed from the supplied key.
 			le.Debug("initializing session priv key")
-			if len(t.seedPEM) != 0 {
-				sessionPriv, err = keypem.ParsePrivKeyPem(t.seedPEM)
+			seedPEM := t.seedPEM
+			if len(seedPEM) == 0 {
+				// The account volume can restart before the caller re-opens
+				// the session; the provider-level seed keeps the identity.
+				seedPEM = t.a.t.p.getSeedKey(providerID, providerAccountID, sessionID)
+			}
+			if len(seedPEM) != 0 {
+				sessionPriv, err = keypem.ParsePrivKeyPem(seedPEM)
 				if err != nil {
 					return errors.Wrap(err, "parse session seed key")
 				}
