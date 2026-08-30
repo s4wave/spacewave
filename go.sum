@@ -376,6 +376,8 @@ github.com/s4wave/goscript v0.2.27-0.20260824172010-b0ea06a50dc4 h1:XnupsWsQi66F
 github.com/s4wave/goscript v0.2.27-0.20260824172010-b0ea06a50dc4/go.mod h1:2PkLvl4v5IXRzAh+HpOQymrS7Z6mNmAOKY89EoAhv8A=
 github.com/s4wave/goscript v0.2.27-0.20260830083937-46b6e33841ae h1:m+xHPCUaOYfd7dxcIn5C/dO0NXVTl7dcYKJUUo77mG4=
 github.com/s4wave/goscript v0.2.27-0.20260830083937-46b6e33841ae/go.mod h1:2PkLvl4v5IXRzAh+HpOQymrS7Z6mNmAOKY89EoAhv8A=
+github.com/s4wave/goscript v0.2.27 h1:y5Mi0+99ZeUkIfjrxzV9IAq8e2nMJl7zWnPwOZ51D9g=
+github.com/s4wave/goscript v0.2.27/go.mod h1:2PkLvl4v5IXRzAh+HpOQymrS7Z6mNmAOKY89EoAhv8A=
 github.com/sagikazarmark/locafero v0.11.0/go.mod h1:nVIGvgyzw595SUSUE6tvCp3YYTeHs15MvlmU87WwIik=
 github.com/sasha-s/go-deadlock v0.3.9 h1:fiaT9rB7g5sr5ddNZvlwheclN9IP86eFW9WgqlEQV+w=
 github.com/sasha-s/go-deadlock v0.3.9/go.mod h1:KuZj51ZFmx42q/mPaYbRk0P1xcwe697zsJKE03vD4/Y=
