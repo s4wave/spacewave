@@ -4,6 +4,7 @@ package wasm
 
 import (
 	"net/url"
+	"runtime"
 	"sync/atomic"
 	"testing"
 
@@ -13,6 +14,9 @@ import (
 // TestWebKitPersistentContextRuntimeStartup proves the browser plugin runtime
 // starts with the durable profile storage required by the WebKit runtime.
 func TestWebKitPersistentContextRuntimeStartup(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skipf("persistent-context WebKit startup proof requires macOS; os=%s", runtime.GOOS)
+	}
 	h := harness(t)
 	if h.BrowserName() != "webkit" {
 		t.Skipf("persistent-context WebKit startup proof; browser=%s", h.BrowserName())
