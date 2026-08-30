@@ -766,6 +766,36 @@ func TestCanvasStorageMigratesEmptyLegacyState(t *testing.T) {
 	}
 }
 
+func TestCanvasStorageWritesNilMessageValues(t *testing.T) {
+	ctx := t.Context()
+	initial := &CanvasState{}
+	ws, release := setupCanvasWatchWorld(t, ctx, "canvas", initial)
+	defer release()
+
+	next := &CanvasState{
+		Edges:            []*CanvasEdge{nil},
+		HiddenGraphLinks: []*HiddenGraphLink{nil},
+		LayoutMetadata: map[string]*CanvasLayoutMetadata{
+			"node": nil,
+		},
+	}
+	writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, next)
+
+	got, err := LookupCanvasState(ctx, ws, "canvas")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.GetEdges()) != 1 {
+		t.Fatalf("edges = %d, want 1", len(got.GetEdges()))
+	}
+	if len(got.GetHiddenGraphLinks()) != 1 {
+		t.Fatalf("hidden graph links = %d, want 1", len(got.GetHiddenGraphLinks()))
+	}
+	if _, found := got.GetLayoutMetadata()["node"]; !found {
+		t.Fatal("nil layout metadata entry was dropped")
+	}
+}
+
 func writeCanvasStorageTestState(
 	t *testing.T,
 	ctx context.Context,
