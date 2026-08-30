@@ -39,6 +39,7 @@ func JoinViaInvite(
 	childBus bus.Bus,
 	localPeerID peer.ID,
 	inviteePrivKey crypto.PrivKey,
+	storagePrivKey crypto.PrivKey,
 	inviteMsg *sobject.SOInviteMessage,
 ) (*JoinResult, error) {
 	if inviteMsg == nil {
@@ -56,6 +57,11 @@ func JoinViaInvite(
 		return nil, errors.Wrap(err, "build join response")
 	}
 
+	storageJoinResp, err := BuildJoinResponse(inviteMsg.GetInviteId(), storagePrivKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "build storage join response")
+	}
+
 	// Create SRPC client targeting the owner on alpha/so-invite protocol.
 	openFn := stream_srpc.NewOpenStreamFunc(
 		childBus,
@@ -68,8 +74,9 @@ func JoinViaInvite(
 
 	// Send the AcceptInvite request with the raw token.
 	resp, err := client.AcceptInvite(ctx, &AcceptInviteRequest{
-		JoinResponse: joinResp,
-		Token:        inviteMsg.GetToken(),
+		JoinResponse:        joinResp,
+		Token:               inviteMsg.GetToken(),
+		StorageJoinResponse: storageJoinResp,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "accept invite RPC")

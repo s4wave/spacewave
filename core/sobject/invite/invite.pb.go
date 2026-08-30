@@ -24,6 +24,9 @@ type AcceptInviteRequest struct {
 	// Only the owner sees the raw token on the authenticated stream.
 	// The cloud beacon/mailbox layer gates on token_hash (never sees raw token).
 	Token []byte `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
+	// StorageJoinResponse proves the persistent local storage identity that will
+	// read and write the joined copy.
+	StorageJoinResponse *sobject.SOJoinResponse `protobuf:"bytes,3,opt,name=storage_join_response,json=storageJoinResponse,proto3" json:"storageJoinResponse,omitempty"`
 }
 
 func (x *AcceptInviteRequest) Reset() {
@@ -42,6 +45,13 @@ func (x *AcceptInviteRequest) GetJoinResponse() *sobject.SOJoinResponse {
 func (x *AcceptInviteRequest) GetToken() []byte {
 	if x != nil {
 		return x.Token
+	}
+	return nil
+}
+
+func (x *AcceptInviteRequest) GetStorageJoinResponse() *sobject.SOJoinResponse {
+	if x != nil {
+		return x.StorageJoinResponse
 	}
 	return nil
 }
@@ -102,6 +112,7 @@ func (m *AcceptInviteRequest) CloneVT() *AcceptInviteRequest {
 	r := new(AcceptInviteRequest)
 	r.JoinResponse = protobuf_go_lite.CloneVTValue(m.JoinResponse)
 	r.Token = protobuf_go_lite.CloneBytes(m.Token)
+	r.StorageJoinResponse = protobuf_go_lite.CloneVTValue(m.StorageJoinResponse)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -141,6 +152,9 @@ func (this *AcceptInviteRequest) EqualVT(that *AcceptInviteRequest) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualBytes(this.Token, that.Token) {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.StorageJoinResponse, that.StorageJoinResponse) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -201,6 +215,11 @@ func (x *AcceptInviteRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("token")
 		s.WriteBytes(x.Token)
 	}
+	if x.StorageJoinResponse != nil || s.HasField("storageJoinResponse") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("storageJoinResponse")
+		x.StorageJoinResponse.MarshalProtoJSON(s.WithField("storageJoinResponse"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -228,6 +247,13 @@ func (x *AcceptInviteRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "token":
 			s.AddField("token")
 			x.Token = s.ReadBytes()
+		case "storage_join_response", "storageJoinResponse":
+			if s.ReadNil() {
+				x.StorageJoinResponse = nil
+				return
+			}
+			x.StorageJoinResponse = &sobject.SOJoinResponse{}
+			x.StorageJoinResponse.UnmarshalProtoJSON(s.WithField("storage_join_response", true))
 		}
 	})
 }
@@ -344,6 +370,16 @@ func (m *AcceptInviteRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.StorageJoinResponse != nil {
+		size, err := m.StorageJoinResponse.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.Token) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Token)
 		i--
@@ -440,6 +476,10 @@ func (m *AcceptInviteRequest) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Token)
+	if m.StorageJoinResponse != nil {
+		l = m.StorageJoinResponse.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -477,6 +517,10 @@ func (x *AcceptInviteRequest) MarshalProtoText() string {
 	if len(x.Token) != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "token")
 		protobuf_go_lite.TextWriteBytes(&sb, x.Token)
+	}
+	if x.StorageJoinResponse != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "storage_join_response")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.StorageJoinResponse)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -554,6 +598,21 @@ func (m *AcceptInviteRequest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StorageJoinResponse", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.StorageJoinResponse == nil {
+				m.StorageJoinResponse = &sobject.SOJoinResponse{}
+			}
+			if err := m.StorageJoinResponse.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
