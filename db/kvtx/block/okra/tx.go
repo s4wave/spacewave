@@ -100,6 +100,11 @@ func (t *Tx) Commit(ctx context.Context) (cerr error) {
 // Discard cancels the transaction.
 func (t *Tx) Discard() {
 	if t.commitOnce.CompareAndSwap(false, true) {
+		btx := t.tx
+		if btx == nil && t.bcs != nil {
+			btx = t.bcs.GetTransaction()
+		}
+		btx.DiscardStagedWrites()
 		if t.rel != nil {
 			t.rel()
 		}

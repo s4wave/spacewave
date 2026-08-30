@@ -58,6 +58,12 @@ type Transaction struct {
 	bufferedStoreSettings *BufferedStoreSettings
 	// decodedBlocks is borrowed from the owning object lifecycle.
 	decodedBlocks *DecodedBlockCache
+	// stagedStore buffers content-addressed sub-tree blocks until a write drains
+	// them before the root that references them.
+	stagedStore atomic.Pointer[BufferedStore]
+	// writeBuffer is borrowed by sub-transactions that must add blocks to a
+	// transaction-level staging store without draining it themselves.
+	writeBuffer *BufferedStore
 }
 
 // NewTransaction builds a new transaction with a root cursor.
@@ -138,6 +144,44 @@ func (t *Transaction) SetStoreOps(store StoreOps) {
 		return
 	}
 	t.store = store
+}
+
+// StageWrites returns the transaction staging store, creating it on first use.
+// SetStoreOps must not be called after staging begins.
+func (t *Transaction) StageWrites(ctx context.Context, inner StoreOps) *BufferedStore {
+	if t == nil || inner == nil {
+		return nil
+	}
+	if staged := t.stagedStore.Load(); staged != nil {
+		return staged
+	}
+	staged := NewBufferedStoreWithSettings(ctx, inner, t.bufferedStoreSettings)
+	if t.stagedStore.CompareAndSwap(nil, staged) {
+		return staged
+	}
+	return t.stagedStore.Load()
+}
+
+// GetStagedStore returns the transaction staging store when one exists.
+func (t *Transaction) GetStagedStore() *BufferedStore {
+	if t == nil {
+		return nil
+	}
+	return t.stagedStore.Load()
+}
+
+// DiscardStagedWrites drops blocks that have not been published.
+func (t *Transaction) DiscardStagedWrites() {
+	if t != nil {
+		t.stagedStore.Store(nil)
+	}
+}
+
+// SetWriteBuffer borrows a buffer that WriteAtRoot must not drain.
+func (t *Transaction) SetWriteBuffer(buffer *BufferedStore) {
+	if t != nil {
+		t.writeBuffer = buffer
+	}
 }
 
 // SetDecodedBlockCache sets the lifecycle-owned decoded-block cache borrowed by this transaction.
@@ -262,14 +306,33 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		return writeRoot.ref, nil, nil
 	}
 
-	// buffered is the per-write coalescer wrapping the write store. It is held
-	// as the concrete type so the in-lock drain below can drain it without
-	// applying a durability fence (Sync), which would needlessly fence the
-	// inner store on every sub-tree write.
+	// Publish staged sub-tree blocks before encoding roots that reference them.
+	// The staging store can intentionally bypass the GC WAL wrapper used by
+	// page writes, so it drains separately from the per-write coalescer.
+	if staged := t.stagedStore.Load(); staged != nil {
+		_, subtask := trace.NewTask(ctx, "hydra/block/transaction/write-at-root/drain-staged-store")
+		staged.logPendingShape(ctx, "hydra/block/transaction/write-at-root/drain-staged-store/before")
+		err := staged.drainAll(ctx)
+		staged.logPendingShape(ctx, "hydra/block/transaction/write-at-root/drain-staged-store/after")
+		subtask.End()
+		if err != nil {
+			return nil, nil, err
+		}
+		t.stagedStore.CompareAndSwap(staged, nil)
+	}
+
+	// buffered is the per-write coalescer wrapping the write store. A borrowed
+	// write buffer collects blocks for its parent transaction and is not drained
+	// by this write.
 	var buffered *BufferedStore
-	if writeStore != nil {
+	drainBuffered := false
+	if t.writeBuffer != nil {
+		buffered = t.writeBuffer
+		writeStore = buffered
+	} else if writeStore != nil {
 		buffered = NewBufferedStoreWithSettings(ctx, writeStore, t.bufferedStoreSettings)
 		writeStore = buffered
+		drainBuffered = true
 	}
 
 	// begin deferred GC flushing.
@@ -595,7 +658,7 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 		return nil, nil, err
 	}
 	trace.Logf(ctx, "hydra/block/transaction/write-at-root/write-shape", "encoded_blocks=%d put_blocks=%d", encodedBlocks.Load(), putBlocks.Load())
-	if buffered != nil {
+	if buffered != nil && drainBuffered {
 		taskCtx, subtask = trace.NewTask(ctx, "hydra/block/transaction/write-at-root/drain-write-store")
 		buffered.logPendingShape(taskCtx, "hydra/block/transaction/write-at-root/drain-write-store/before")
 		err = buffered.drainAll(taskCtx)

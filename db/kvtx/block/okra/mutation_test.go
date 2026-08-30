@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"sync"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -391,4 +392,89 @@ func sequentialOkraTestKey(i int) []byte {
 	key := make([]byte, 8)
 	binary.BigEndian.PutUint64(key, uint64(i))
 	return key
+}
+
+type stagingCountStore struct {
+	block.StoreOps
+	mu         sync.Mutex
+	putCalls   int
+	batchCalls int
+	batchSizes []int
+}
+
+func (s *stagingCountStore) PutBlock(ctx context.Context, data []byte, opts *block.PutOpts) (*block.BlockRef, bool, error) {
+	s.mu.Lock()
+	s.putCalls++
+	s.mu.Unlock()
+	return s.StoreOps.PutBlock(ctx, data, opts)
+}
+
+func (s *stagingCountStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
+	s.mu.Lock()
+	s.batchCalls++
+	s.batchSizes = append(s.batchSizes, len(entries))
+	s.mu.Unlock()
+	return s.StoreOps.PutBlockBatch(ctx, entries)
+}
+
+func (s *stagingCountStore) counts() (int, int, []int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.putCalls, s.batchCalls, append([]int(nil), s.batchSizes...)
+}
+
+func TestTxSetStagesValueWritesUntilCommit(t *testing.T) {
+	ctx := context.Background()
+	store := &stagingCountStore{StoreOps: newOkraTestStore()}
+	_, rootCursor := block.NewTransaction(store, nil, nil, nil)
+	rootCursor.SetBlock(&Root{}, true)
+	tx, err := NewTx(ctx, rootCursor, nil, true, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range 8 {
+		key := []byte{byte('a' + i)}
+		value := bytes.Repeat([]byte{byte('1' + i)}, 64)
+		if err := tx.Set(ctx, key, value); err != nil {
+			t.Fatal(err)
+		}
+		got, found, err := tx.Get(ctx, key)
+		if err != nil || !found || !bytes.Equal(got, value) {
+			t.Fatalf("read staged value %q: found=%v err=%v", key, found, err)
+		}
+	}
+	if puts, batches, _ := store.counts(); puts != 0 || batches != 0 {
+		t.Fatalf("value writes reached inner store before commit: puts=%d batches=%d", puts, batches)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatal(err)
+	}
+	puts, batches, sizes := store.counts()
+	if puts != 0 {
+		t.Fatalf("expected batched publication, got %d direct puts", puts)
+	}
+	if batches != 2 {
+		t.Fatalf("expected one staged value batch and one page batch, got %d (%v)", batches, sizes)
+	}
+	if sizes[0] != 8 {
+		t.Fatalf("expected 8 staged values in the first batch, got %v", sizes)
+	}
+}
+
+func TestTxDiscardPublishesNoStagedValues(t *testing.T) {
+	ctx := context.Background()
+	store := &stagingCountStore{StoreOps: newOkraTestStore()}
+	_, rootCursor := block.NewTransaction(store, nil, nil, nil)
+	rootCursor.SetBlock(&Root{}, true)
+	tx, err := NewTx(ctx, rootCursor, nil, true, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Set(ctx, []byte("discarded"), bytes.Repeat([]byte("x"), 64)); err != nil {
+		t.Fatal(err)
+	}
+	tx.Discard()
+	if puts, batches, sizes := store.counts(); puts != 0 || batches != 0 {
+		t.Fatalf("discard published staged values: puts=%d batches=%d sizes=%v", puts, batches, sizes)
+	}
 }
