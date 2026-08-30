@@ -706,6 +706,42 @@ func TestCanvasStorageMigratesFlatStateAndKeepsUnchangedNodeRef(t *testing.T) {
 	}
 }
 
+func TestCanvasStorageRootIsDeterministic(t *testing.T) {
+	const nodeCount = 100
+	ascending := &CanvasState{Nodes: make(map[string]*CanvasNode, nodeCount)}
+	descending := &CanvasState{Nodes: make(map[string]*CanvasNode, nodeCount)}
+	for i := range nodeCount {
+		id := fmt.Sprintf("node-%04d", i)
+		ascending.Nodes[id] = &CanvasNode{Id: id, Width: float64(i)}
+	}
+	for i := nodeCount - 1; i >= 0; i-- {
+		id := fmt.Sprintf("node-%04d", i)
+		descending.Nodes[id] = &CanvasNode{Id: id, Width: float64(i)}
+	}
+	first := migratedCanvasStorageRoot(t, ascending)
+	second := migratedCanvasStorageRoot(t, descending)
+	if first != second {
+		t.Fatalf("Canvas storage roots differ: %s != %s", first, second)
+	}
+}
+
+func migratedCanvasStorageRoot(t *testing.T, state *CanvasState) string {
+	t.Helper()
+	ctx := t.Context()
+	ws, release := setupCanvasWatchWorld(t, ctx, "canvas", state)
+	defer release()
+	writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, state)
+	var root string
+	_, _, err := world.AccessWorldObject(ctx, ws, "canvas", false, func(bcs *block.Cursor) error {
+		root = bcs.GetRef().MarshalString()
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
 func TestCanvasStorageMigratesEmptyLegacyState(t *testing.T) {
 	ctx := t.Context()
 	initial := &CanvasState{}
