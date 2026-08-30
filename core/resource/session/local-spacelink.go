@@ -107,7 +107,7 @@ func (r *LocalSessionResource) ApproveSpaceLink(
 	if ownerTransport == nil {
 		return nil, errors.New("approving session transport is not available")
 	}
-	if err := localAcc.StartP2PSync(context.WithoutCancel(ctx), ownerTransport); err != nil {
+	if err := localAcc.StartPersistentP2PSync(ctx, ownerTransport); err != nil {
 		return nil, errors.Wrap(err, "start invite service")
 	}
 
