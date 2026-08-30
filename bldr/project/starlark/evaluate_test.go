@@ -534,12 +534,12 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if e2eBrowserRelease == nil {
 		t.Fatal("build target 'release-web-e2e' not found")
 	}
-	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-cli-plugin", "web", "spacewave-browser"} {
+	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-cli-plugin", "web", "spacewave-browser"} {
 		if !slices.Contains(e2eBrowserRelease.GetManifests(), want) {
 			t.Fatalf("release-web-e2e manifests missing %s: %v", want, e2eBrowserRelease.GetManifests())
 		}
 	}
-	for _, coldPlugin := range []string{"spacewave-notes", "spacewave-v86"} {
+	for _, coldPlugin := range []string{"spacewave-v86"} {
 		if slices.Contains(e2eBrowserRelease.GetManifests(), coldPlugin) {
 			t.Fatalf("release-web-e2e should not build %s: %v", coldPlugin, e2eBrowserRelease.GetManifests())
 		}
