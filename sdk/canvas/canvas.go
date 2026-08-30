@@ -82,10 +82,11 @@ func (r *CanvasResource) GetCanvasState(_ context.Context, _ *GetCanvasStateRequ
 // UpdateCanvas applies a batch update to the canvas.
 func (r *CanvasResource) UpdateCanvas(ctx context.Context, req *UpdateCanvasRequest) (*UpdateCanvasResponse, error) {
 	// Apply mutations to a clone of the current state.
-	var updated *CanvasState
+	var previous *CanvasState
 	r.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
-		updated = r.state.CloneVT()
+		previous = r.state.CloneVT()
 	})
+	updated := previous.CloneVT()
 
 	if updated.Nodes == nil {
 		updated.Nodes = make(map[string]*CanvasNode)
@@ -173,7 +174,7 @@ func (r *CanvasResource) UpdateCanvas(ctx context.Context, req *UpdateCanvasRequ
 
 	// Persist to the world if engine is available.
 	if r.engine != nil {
-		if err := r.persistState(ctx, updated); err != nil {
+		if err := r.persistState(ctx, previous, updated); err != nil {
 			return nil, errors.Wrap(err, "persist canvas state")
 		}
 	}
@@ -306,7 +307,7 @@ func canvasWatchSnapshotsEqual(a, b *canvasWatchSnapshot) bool {
 }
 
 // persistState writes the canvas state to the world via a write transaction.
-func (r *CanvasResource) persistState(ctx context.Context, state *CanvasState) error {
+func (r *CanvasResource) persistState(ctx context.Context, previous, next *CanvasState) error {
 	wtx, err := r.engine.NewTransaction(ctx, true)
 	if err != nil {
 		return err
@@ -321,8 +322,7 @@ func (r *CanvasResource) persistState(ctx context.Context, state *CanvasState) e
 		return world.ErrObjectNotFound
 	}
 	_, _, err = world.AccessObjectState(ctx, writeState, true, func(bcs *block.Cursor) error {
-		bcs.SetBlock(state, true)
-		return nil
+		return WriteCanvasState(ctx, bcs, previous, next)
 	})
 	if err != nil {
 		wtx.Discard()

@@ -3354,15 +3354,18 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/canvas": {
-      "hash": "ea5a28557460e75539709c74e599aab779fe128ccd6391b74e7af7b707f21d44",
+      "hash": "921e150cb2f74837b1ff8749847756e2b6fc573bce3bf5311995870c324cb196",
       "generatedFiles": [
         "sdk/canvas/canvas.pb.go",
         "sdk/canvas/canvas.pb.ts",
         "sdk/canvas/canvas_srpc.pb.go",
-        "sdk/canvas/canvas_srpc.pb.ts"
+        "sdk/canvas/canvas_srpc.pb.ts",
+        "sdk/canvas/storage.pb.go",
+        "sdk/canvas/storage.pb.ts"
       ],
       "protoFiles": [
-        "sdk/canvas/canvas.proto"
+        "sdk/canvas/canvas.proto",
+        "sdk/canvas/storage.proto"
       ]
     },
     "github.com/s4wave/spacewave/sdk/cdn": {

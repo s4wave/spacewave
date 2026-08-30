@@ -1,0 +1,31 @@
+syntax = "proto3";
+package s4wave.canvas;
+
+option go_package = "github.com/s4wave/spacewave/sdk/canvas;s4wave_canvas";
+
+import "github.com/s4wave/spacewave/db/kvtx/block/kvtx.proto";
+import "github.com/s4wave/spacewave/sdk/canvas/canvas.proto";
+
+// CanvasStorageFormat identifies the durable Canvas block representation.
+enum CanvasStorageFormat {
+  // CANVAS_STORAGE_FORMAT_UNKNOWN is not a durable Canvas representation.
+  CANVAS_STORAGE_FORMAT_UNKNOWN = 0;
+  // CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1 stores nodes in a block KVTX tree.
+  CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1 = 1;
+}
+
+// CanvasStorage is the root block of a Canvas state DAG.
+message CanvasStorage {
+  // Format identifies the Canvas storage representation.
+  CanvasStorageFormat format = 1;
+  // Nodes stores Canvas nodes. Key: UTF-8 node ID. Value: block.BlockRef to CanvasNode.
+  .kvtx.block.KeyValueStore nodes = 2;
+  // Edges contains user-drawn visual edges.
+  repeated CanvasEdge edges = 3;
+  // StrokeTreeRef identifies the freeform stroke tree.
+  bytes stroke_tree_ref = 4;
+  // HiddenGraphLinks contains canvas-scoped hidden world graph links.
+  repeated HiddenGraphLink hidden_graph_links = 5;
+  // LayoutMetadata contains projection layout metadata keyed by canvas node ID.
+  map<string, CanvasLayoutMetadata> layout_metadata = 6;
+}

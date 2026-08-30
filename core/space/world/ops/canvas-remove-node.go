@@ -88,8 +88,7 @@ func (o *CanvasRemoveNodeOp) ApplyWorldOp(
 			}
 		}
 
-		bcs.SetBlock(state, true)
-		return nil
+		return s4wave_canvas.WriteCanvasState(ctx, bcs, nil, state)
 	})
 	if err != nil {
 		return false, err
