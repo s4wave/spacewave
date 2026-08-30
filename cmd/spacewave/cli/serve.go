@@ -187,7 +187,6 @@ func runServeCommand(
 	startLocalSessionKeeper(serveCtx, le, invoker)
 	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
 	startDevicePolicyCapabilityProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy)
-	startDeviceCapacityObserver(serveCtx, le, resolved, invoker, devicePolicy)
 	releaseDeviceRemoteShell := terminal_remoteshell.StartHandler(serveCtx, le, cliBus.GetBus(), devicePolicy)
 	defer releaseDeviceRemoteShell()
 
@@ -240,6 +239,7 @@ func runServeCommand(
 	}
 
 	srv := srpc.NewServer(mux)
+	startDeviceCapacityObserver(serveCtx, le, resolved, sockPath, devicePolicy)
 	if err := startupNotifier.reportReady(); err != nil {
 		return err
 	}
