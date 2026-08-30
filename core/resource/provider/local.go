@@ -15,6 +15,8 @@ import (
 )
 
 // LocalProviderResource implements the LocalProviderResourceService.
+const localSpaceLinkNetworkTimeout = 10 * time.Second
+
 type LocalProviderResource struct {
 	*ProviderResource
 	le       *logrus.Entry
@@ -129,15 +131,17 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	if !ok {
 		return nil, errors.New("unexpected provider account type")
 	}
+	networkCtx, networkCancel := context.WithTimeout(ctx, localSpaceLinkNetworkTimeout)
+	defer networkCancel()
 	if !localAccountHasSharedObject(localAcc, invite.GetSharedObjectId()) {
-		if _, err := localAcc.JoinViaInvite(ctx, sessionKey, invite, ""); err != nil {
+		if _, err := localAcc.JoinViaInvite(networkCtx, sessionKey, invite, ""); err != nil {
 			return nil, errors.Wrap(err, "join space via invite")
 		}
 	} else {
-		if err := localAcc.EnsureConfiguredSessionTransport(ctx, sessionKey); err != nil {
+		if err := localAcc.EnsureConfiguredSessionTransport(networkCtx, sessionKey); err != nil {
 			return nil, errors.Wrap(err, "start session transport")
 		}
-		if err := localAcc.StartP2PSync(context.WithoutCancel(ctx), localAcc.GetSessionTransport()); err != nil {
+		if err := localAcc.StartP2PSync(networkCtx, localAcc.GetSessionTransport()); err != nil {
 			return nil, errors.Wrap(err, "start P2P sync")
 		}
 	}
@@ -145,7 +149,7 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	if err != nil {
 		return nil, errors.Wrap(err, "parse invite owner peer id")
 	}
-	if err := localAcc.RetainP2PPeer(ctx, ownerPeerID); err != nil {
+	if err := localAcc.RetainP2PPeer(networkCtx, ownerPeerID); err != nil {
 		return nil, errors.Wrap(err, "retain invite owner link")
 	}
 
