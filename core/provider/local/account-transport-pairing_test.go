@@ -29,8 +29,9 @@ func newPairingTransportAccount(ctx context.Context, t *testing.T) (*ProviderAcc
 		t.Fatal(err)
 	}
 	acc := &ProviderAccount{
-		t:  &providerAccountTracker{p: &Provider{b: tb.Bus}},
-		le: logrus.New().WithField("test", t.Name()),
+		t:            &providerAccountTracker{p: &Provider{b: tb.Bus}},
+		le:           logrus.New().WithField("test", t.Name()),
+		lifecycleCtx: ctx,
 	}
 	acc.setPairingContext(ctx)
 	release := func() {
@@ -233,6 +234,37 @@ func TestSessionTransportReadyCommitRejectsReplacement(t *testing.T) {
 // TestEnsureConfiguredSessionTransportDoesNotReplaceMountedTransport proves an
 // enrollment RPC follows the session tracker's transport rather than creating
 // an RPC-owned replacement when the requested signaling configuration differs.
+func TestEnsureConfiguredSessionTransportOutlivesCaller(t *testing.T) {
+	ctx := t.Context()
+	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
+	defer release()
+
+	callerCtx, cancelCaller := context.WithCancel(ctx)
+	if err := acc.EnsureConfiguredSessionTransport(callerCtx, sessionKey); err != nil {
+		t.Fatal(err)
+	}
+	cancelCaller()
+
+	timer := time.NewTimer(100 * time.Millisecond)
+	defer timer.Stop()
+	for {
+		var current *sessionTransportState
+		var changed <-chan struct{}
+		acc.transportBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			current = acc.sessionTransport
+			changed = getWaitCh()
+		})
+		if current == nil {
+			t.Fatal("configured transport stopped with its caller")
+		}
+		select {
+		case <-changed:
+		case <-timer.C:
+			return
+		}
+	}
+}
+
 func TestEnsureConfiguredSessionTransportDoesNotReplaceMountedTransport(t *testing.T) {
 	ctx := t.Context()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
