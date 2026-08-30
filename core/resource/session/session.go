@@ -360,14 +360,35 @@ func (r *SessionResource) mountSpaceResponse(
 	soRef *sobject.SharedObjectRef,
 	soMeta *sobject.SharedObjectMeta,
 ) (*s4wave_session.CreateSpaceResponse, error) {
+	soFeature, err := sobject.GetSharedObjectProviderAccountFeature(ctx, r.session.GetProviderAccount())
+	if err != nil {
+		return nil, err
+	}
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	mountedSpace, spaceBodyRef, err := space.ExMountSpaceSoBody(ctx, r.b, soRef, false, nil)
+	mountedSource, releaseMountedSource, err := soFeature.MountSharedObject(ctx, soRef, nil)
 	if err != nil {
 		return nil, err
+	}
+	mountedSpace, spaceBodyRef, err := sobject.ExMountSharedObjectBodyWithSource[space.SpaceSharedObjectBody](
+		ctx,
+		r.b,
+		soRef,
+		space.SpaceBodyType,
+		mountedSource,
+		false,
+		nil,
+	)
+	if err != nil {
+		releaseMountedSource()
+		return nil, err
+	}
+	releaseMountedSpace := func() {
+		spaceBodyRef.Release()
+		releaseMountedSource()
 	}
 	spaceResource := resource_space.NewSpaceResourceWithSessionPeerIDAndHostPluginID(
 		r.le,
@@ -380,10 +401,10 @@ func (r *SessionResource) mountSpaceResponse(
 		resourceCtx,
 		spaceResource.GetMux(),
 		spaceResource,
-		spaceBodyRef.Release,
+		releaseMountedSpace,
 	)
 	if err != nil {
-		spaceBodyRef.Release()
+		releaseMountedSpace()
 		return nil, err
 	}
 

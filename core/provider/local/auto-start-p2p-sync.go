@@ -50,7 +50,7 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 		"paired-device-count": len(devices),
 		"shared-space-count":  sharedSpaceCount,
 	}).Debug("auto-starting P2P sync")
-	if err := a.StartP2PSync(ctx, st); err != nil {
+	if err := a.StartPersistentP2PSync(ctx, st); err != nil {
 		return errors.Wrap(err, "auto-start P2P sync")
 	}
 	for _, device := range devices {

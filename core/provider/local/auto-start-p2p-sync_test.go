@@ -1,7 +1,9 @@
 package provider_local_test
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -104,12 +106,19 @@ func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
 	if st == nil {
 		t.Fatal("expected non-nil session transport")
 	}
-	if err := acc.AutoStartP2PSyncIfNeeded(ctx, st); err != nil {
+	startCtx, cancelStart := context.WithCancel(ctx)
+	if err := acc.AutoStartP2PSyncIfNeeded(startCtx, st); err != nil {
 		t.Fatalf("AutoStartP2PSyncIfNeeded: %v", err)
 	}
 	defer acc.StopP2PSync()
+	cancelStart()
+	select {
+	case <-time.After(100 * time.Millisecond):
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
 	if !acc.IsP2PSyncRunning() {
-		t.Fatal("expected P2P sync to restart for a joined Space")
+		t.Fatal("expected P2P sync to outlive the session-mount startup context")
 	}
 }
 

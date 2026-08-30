@@ -141,8 +141,10 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 		if err := localAcc.EnsureConfiguredSessionTransport(networkCtx, sessionKey); err != nil {
 			return nil, errors.Wrap(err, "start session transport")
 		}
-		if err := localAcc.StartPersistentP2PSync(ctx, localAcc.GetSessionTransport()); err != nil {
-			return nil, errors.Wrap(err, "start P2P sync")
+		if !localAcc.IsP2PSyncRunning() {
+			if err := localAcc.StartPersistentP2PSync(ctx, localAcc.GetSessionTransport()); err != nil {
+				return nil, errors.Wrap(err, "start P2P sync")
+			}
 		}
 	}
 	ownerPeerID, err := peer.IDB58Decode(invite.GetOwnerPeerId())
