@@ -45,6 +45,8 @@ type Cursor struct {
 	transformConf *block_transform.Config
 	// decodedBlocks borrows decoded-block retention from the owning object lifecycle.
 	decodedBlocks *block.DecodedBlockCache
+	// transactionStore overrides the bucket store for block transactions.
+	transactionStore block.StoreOps
 	// rel is a release function
 	rel func()
 }
@@ -306,21 +308,32 @@ func (c *Cursor) CloneWithLocalOnlyReads() *Cursor {
 // BuildTransaction builds a block transaction at the cursor location.
 // putOpts is optional
 func (c *Cursor) BuildTransaction(putOpts *block.PutOpts) (*block.Transaction, *block.Cursor) {
-	return c.BuildTransactionWithStore(putOpts, c.bkt)
+	return c.BuildTransactionWithStore(putOpts, nil)
 }
 
 // BuildTransactionWithStore builds a block transaction using the supplied store.
 func (c *Cursor) BuildTransactionWithStore(putOpts *block.PutOpts, store block.StoreOps) (*block.Transaction, *block.Cursor) {
+	if store == nil {
+		store = c.transactionStore
+	}
 	return c.BuildTransactionAtRefWithStore(putOpts, c.ref.GetRootRef(), store)
+}
+
+// SetTransactionStore makes block transactions built from this cursor use store.
+func (c *Cursor) SetTransactionStore(store block.StoreOps) {
+	c.transactionStore = store
 }
 
 // BuildTransactionAtRef builds a transaction rooted at the reference.
 func (c *Cursor) BuildTransactionAtRef(putOpts *block.PutOpts, ref *block.BlockRef) (*block.Transaction, *block.Cursor) {
-	return c.BuildTransactionAtRefWithStore(putOpts, ref, c.bkt)
+	return c.BuildTransactionAtRefWithStore(putOpts, ref, nil)
 }
 
 // BuildTransactionAtRefWithStore builds a transaction rooted at the reference using the supplied store.
 func (c *Cursor) BuildTransactionAtRefWithStore(putOpts *block.PutOpts, ref *block.BlockRef, store block.StoreOps) (*block.Transaction, *block.Cursor) {
+	if store == nil {
+		store = c.transactionStore
+	}
 	if store == nil {
 		store = c.bkt
 	}
@@ -711,5 +724,6 @@ func (c *Cursor) clone() *Cursor {
 		opArgs:           c.opArgs.CloneVT(),
 		decodedBlocks:    c.decodedBlocks,
 		bucketIDOverride: c.bucketIDOverride,
+		transactionStore: c.transactionStore,
 	}
 }
