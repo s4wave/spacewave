@@ -614,6 +614,8 @@ BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_LOAD_PLUGINS = BROWSER_RELEASE_LOAD_PLUGINS 
 # sql plugin cold-builds under the e2e release without a populated Release World.
 def browser_e2e_embed_manifests(go_platform_id):
     return browser_release_embed_manifests(go_platform_id) + [
+        {"manifestId": "spacewave-notes",
+         "platformId": "js"},
         {"manifestId": "spacewave-sql",
          "platformId": "js"},
     ]
@@ -672,7 +674,7 @@ build("release-web-e2e",
 build("release-web-e2e-assets",
     manifests=[
         "spacewave-launcher",
-        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-sql", "spacewave-cli-plugin", "web",
+        "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-sql", "spacewave-cli-plugin", "web",
     ],
     targets=["browser"],
     manifestOverrides={
