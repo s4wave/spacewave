@@ -94,8 +94,9 @@ func (o *CanvasAddEdgeOp) ApplyWorldOp(
 			return ErrEdgeNodeNotFound
 		}
 
+		previous := state.CloneVT()
 		state.Edges = append(state.Edges, edge)
-		return s4wave_canvas.WriteCanvasState(ctx, bcs, nil, state)
+		return s4wave_canvas.WriteCanvasState(ctx, bcs, previous, state)
 	})
 	if err != nil {
 		return false, err

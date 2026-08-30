@@ -620,7 +620,17 @@ func TestCanvasStorageMigratesFlatStateAndKeepsUnchangedNodeRef(t *testing.T) {
 	for _, nodeCount := range []int{1, 100, 1000} {
 		t.Run(strconv.Itoa(nodeCount), func(t *testing.T) {
 			ctx := t.Context()
-			initial := &CanvasState{Nodes: make(map[string]*CanvasNode, nodeCount)}
+			initial := &CanvasState{
+				Nodes:         make(map[string]*CanvasNode, nodeCount),
+				Edges:         []*CanvasEdge{{Id: "edge", SourceNodeId: "node-0000", TargetNodeId: "node-0000"}},
+				StrokeTreeRef: []byte("stroke-root"),
+				HiddenGraphLinks: []*HiddenGraphLink{{
+					Subject: "subject", Predicate: "predicate", Object: "object", Label: "label",
+				}},
+				LayoutMetadata: map[string]*CanvasLayoutMetadata{
+					"node-0000": {StableNodeId: "node-0000", Lane: "main", Rank: 1},
+				},
+			}
 			for i := range nodeCount {
 				id := fmt.Sprintf("node-%04d", i)
 				initial.Nodes[id] = &CanvasNode{Id: id, Width: float64(100 + i), Height: 100}
@@ -637,7 +647,7 @@ func TestCanvasStorageMigratesFlatStateAndKeepsUnchangedNodeRef(t *testing.T) {
 
 			migrated := initial.CloneVT()
 			migrated.Nodes["node-0000"].Width++
-			writeCanvasStorageTestState(t, ctx, ws, "canvas", initial, migrated)
+			writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, migrated)
 			got, err := LookupCanvasState(ctx, ws, "canvas")
 			if err != nil {
 				t.Fatal(err)
@@ -649,18 +659,51 @@ func TestCanvasStorageMigratesFlatStateAndKeepsUnchangedNodeRef(t *testing.T) {
 
 			next := migrated.CloneVT()
 			next.Nodes["node-0000"].Width++
-			writeCanvasStorageTestState(t, ctx, ws, "canvas", migrated, next)
+			next.Nodes["added"] = &CanvasNode{Id: "added", Width: 80, Height: 80}
+			var removed string
+			if nodeCount > 2 {
+				removed = fmt.Sprintf("node-%04d", nodeCount-1)
+				delete(next.Nodes, removed)
+			}
+			writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, next)
 			secondRefs := canvasStorageNodeRefs(t, ctx, ws, "canvas")
+			if _, found := secondRefs[removed]; removed != "" && found {
+				t.Fatalf("removed node %q remains in the node DAG", removed)
+			}
 			if firstRefs["node-0000"].EqualsRef(secondRefs["node-0000"]) {
 				t.Fatal("changed node kept its old block ref")
 			}
 			if nodeCount > 1 {
-				unchanged := fmt.Sprintf("node-%04d", nodeCount-1)
+				unchanged := "node-0001"
 				if !firstRefs[unchanged].EqualsRef(secondRefs[unchanged]) {
 					t.Fatalf("unchanged node %q block ref changed", unchanged)
 				}
 			}
 		})
+	}
+}
+
+func TestCanvasStorageMigratesEmptyLegacyState(t *testing.T) {
+	ctx := t.Context()
+	initial := &CanvasState{}
+	ws, release := setupCanvasWatchWorld(t, ctx, "canvas", initial)
+	defer release()
+
+	legacy, err := LookupCanvasState(ctx, ws, "canvas")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !legacy.EqualVT(initial) {
+		t.Fatalf("empty legacy state = %#v", legacy)
+	}
+	next := &CanvasState{Edges: []*CanvasEdge{{Id: "edge"}}}
+	writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, next)
+	got, err := LookupCanvasState(ctx, ws, "canvas")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.EqualVT(next) {
+		t.Fatalf("migrated empty state = %#v, want %#v", got, next)
 	}
 }
 

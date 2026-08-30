@@ -99,7 +99,7 @@ message CanvasLayoutMetadata {
   string projection_owner = 5;
 }
 
-// CanvasState is the full canvas state stored as a world object block.
+// CanvasState is the complete logical Canvas state exposed through the resource API.
 message CanvasState {
   // Nodes is the set of canvas nodes keyed by ID.
   map<string, CanvasNode> nodes = 1;

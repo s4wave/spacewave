@@ -68,11 +68,12 @@ func (o *CanvasAddNodeOp) ApplyWorldOp(
 		if state == nil {
 			state = &s4wave_canvas.CanvasState{}
 		}
+		previous := state.CloneVT()
 		if state.Nodes == nil {
 			state.Nodes = make(map[string]*s4wave_canvas.CanvasNode)
 		}
 		state.Nodes[node.GetId()] = node
-		return s4wave_canvas.WriteCanvasState(ctx, bcs, nil, state)
+		return s4wave_canvas.WriteCanvasState(ctx, bcs, previous, state)
 	})
 	if err != nil {
 		return false, err

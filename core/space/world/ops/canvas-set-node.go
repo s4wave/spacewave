@@ -72,8 +72,9 @@ func (o *CanvasSetNodeOp) ApplyWorldOp(
 		if _, exists := state.Nodes[nodeID]; !exists {
 			return ErrNodeNotFound
 		}
+		previous := state.CloneVT()
 		state.Nodes[nodeID] = node
-		return s4wave_canvas.WriteCanvasState(ctx, bcs, nil, state)
+		return s4wave_canvas.WriteCanvasState(ctx, bcs, previous, state)
 	})
 	if err != nil {
 		return false, err

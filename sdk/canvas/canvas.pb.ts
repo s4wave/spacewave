@@ -342,7 +342,7 @@ export const CanvasLayoutMetadata: MessageType<CanvasLayoutMetadata> =
   })
 
 /**
- * CanvasState is the full canvas state stored as a world object block.
+ * CanvasState is the complete logical Canvas state exposed through the resource API.
  *
  * @generated from message s4wave.canvas.CanvasState
  */
