@@ -114,19 +114,6 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
-        if: ${{ matrix.member.name == 'alpha' }}
-        with:
-          python-version: '3.14'
-
-      - name: Install uv for Python Session journey
-        if: ${{ matrix.member.name == 'alpha' }}
-        run: python -m pip install uv==0.12.3
-
-      - name: Install Python Resource environment
-        if: ${{ matrix.member.name == 'alpha' }}
-        run: uv sync --frozen --all-groups
-
       - name: Install Bun dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
@@ -250,6 +237,8 @@ jobs:
           -run 'Test(PythonClientResourceLifecycleAgainstGoServer|PythonClientResourceLifecycleAgainstTypeScriptServer|TypeScriptClientResourceLifecycleAgainstPythonServer|GoClientResourceLifecycleAgainstPythonServer)$'
 
       - name: Test Python Session journey
+        env:
+          RUN_PYTHON_SESSION_JOURNEY: '1'
         run: >-
           go test -count=1 -timeout=120s ./core/resource/session
           -run '^TestPythonSessionJourneyAgainstGoSessionOwner$'
