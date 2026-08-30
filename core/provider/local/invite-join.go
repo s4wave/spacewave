@@ -60,15 +60,22 @@ func (a *ProviderAccount) JoinViaInvite(
 	if childBus == nil {
 		return nil, errors.New("session transport child bus not available")
 	}
-	if inviteMsg.GetProviderId() == "spacewave" {
-		if err := a.waitDirectInviteOwnerOnline(ctx, childBus, st.GetPeerID(), inviteMsg.GetOwnerPeerId()); err != nil {
-			return nil, err
-		}
+	joinCtx, joinCancel := context.WithTimeout(ctx, directInviteOwnerWaitTimeout)
+	defer joinCancel()
+	if err := a.waitDirectInviteOwnerOnline(
+		joinCtx,
+		childBus,
+		st.GetPeerID(),
+		inviteMsg.GetOwnerPeerId(),
+	); err != nil {
+		return nil, err
 	}
 
-	// Execute the invite handshake over SRPC.
+	// Execute the invite handshake over SRPC while the verified owner remains
+	// reachable. A signaling or link failure must not hold the enrollment RPC
+	// forever.
 	result, err := sobject_invite.JoinViaInvite(
-		ctx,
+		joinCtx,
 		childBus,
 		st.GetPeerID(),
 		sessionKey,
@@ -84,7 +91,7 @@ func (a *ProviderAccount) JoinViaInvite(
 	}
 
 	// Start P2P sync so SolicitSync delivers state from the owner.
-	if err := a.StartP2PSync(context.WithoutCancel(ctx), st); err != nil {
+	if err := a.StartP2PSync(joinCtx, st); err != nil {
 		a.le.WithError(err).Warn("failed to start P2P sync after invite join")
 	}
 

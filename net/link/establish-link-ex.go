@@ -28,7 +28,9 @@ func EstablishLinkWithPeerEx(
 		return nil, nil, err
 	}
 	if estl == nil {
-		ref.Release()
+		if ref != nil {
+			ref.Release()
+		}
 		return nil, nil, nil
 	}
 
