@@ -192,7 +192,11 @@ func (s *SOSync) applyPeerSnapshot(
 		if peerSnap.GetRootSeqno() <= state.GetRoot().GetInnerSeqno() {
 			return nil
 		}
-		*state = *peerState
+		merged := peerState.CloneVT()
+		if err := mergePendingOperations(le, s.soID, merged, state); err != nil {
+			return errors.Wrap(err, "preserve pending local operations")
+		}
+		*state = *merged
 		applied = true
 		return nil
 	}); err != nil {
@@ -201,6 +205,41 @@ func (s *SOSync) applyPeerSnapshot(
 	}
 	if applied {
 		le.Debug("applied validated peer snapshot with higher seqno")
+	}
+	return nil
+}
+
+// mergePendingOperations carries unresolved operations that remain valid under
+// the authoritative state. The authoritative configuration and queue capacity
+// win when a pending local operation can no longer be admitted.
+func mergePendingOperations(le *logrus.Entry, sharedObjectID string, authoritative, previous *sobject.SOState) error {
+	rootNonces := make(map[string]uint64, len(authoritative.GetRoot().GetAccountNonces()))
+	for _, account := range authoritative.GetRoot().GetAccountNonces() {
+		rootNonces[account.GetPeerId()] = account.GetNonce()
+	}
+	for _, operation := range previous.GetOps() {
+		inner, err := operation.UnmarshalInner()
+		if err != nil {
+			return err
+		}
+		if inner.GetNonce() <= rootNonces[inner.GetPeerId()] {
+			continue
+		}
+		existing, rejection, err := authoritative.GetOperationStatus(inner.GetPeerId(), inner.GetLocalId())
+		if err != nil {
+			return err
+		}
+		if existing != nil || rejection != nil {
+			continue
+		}
+		if err := authoritative.QueueOperation(sharedObjectID, operation); err != nil {
+			le.WithError(err).WithFields(logrus.Fields{
+				"operation-peer":  inner.GetPeerId(),
+				"operation-nonce": inner.GetNonce(),
+				"operation-id":    inner.GetLocalId(),
+			}).Warn("dropping pending operation rejected by authoritative state")
+			continue
+		}
 	}
 	return nil
 }
@@ -386,6 +425,19 @@ func (s *SOSync) handleRemoteOp(ctx context.Context, le *logrus.Entry, syncOp *S
 	if err := op.ValidateSignature(s.soID, localState.GetConfig().GetParticipants()); err != nil {
 		le.WithError(err).WithField("op-peer", peerIDStr).
 			Warn("rejected unauthorized remote op")
+		return
+	}
+	for _, account := range localState.GetRoot().GetAccountNonces() {
+		if account.GetPeerId() == peerIDStr && account.GetNonce() >= opInner.GetNonce() {
+			return
+		}
+	}
+	existing, rejection, err := localState.GetOperationStatus(peerIDStr, opInner.GetLocalId())
+	if err != nil {
+		le.WithError(err).Debug("failed to inspect remote op status")
+		return
+	}
+	if existing != nil || rejection != nil {
 		return
 	}
 
