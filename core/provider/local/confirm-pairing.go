@@ -99,7 +99,7 @@ func (a *ProviderAccount) ConfirmPairing(
 
 	// Start P2P sync when a session transport is already running.
 	if st := a.GetSessionTransport(); st != nil {
-		if err := a.StartP2PSync(ctx, st); err != nil {
+		if err := a.StartPersistentP2PSync(ctx, st); err != nil {
 			a.le.WithError(err).Warn("failed to start P2P sync after pairing confirmation")
 		}
 	}
