@@ -111,6 +111,9 @@ type GetRefResponse struct {
 	unknownFields []byte
 	// Ref is the current object reference.
 	Ref *bucket.ObjectRef `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
+	// BucketIdOverride identifies the bucket used for implicit child references.
+	// Empty preserves each reference's authored bucket.
+	BucketIdOverride string `protobuf:"bytes,2,opt,name=bucket_id_override,json=bucketIdOverride,proto3" json:"bucketIdOverride,omitempty"`
 }
 
 func (x *GetRefResponse) Reset() {
@@ -124,6 +127,13 @@ func (x *GetRefResponse) GetRef() *bucket.ObjectRef {
 		return x.Ref
 	}
 	return nil
+}
+
+func (x *GetRefResponse) GetBucketIdOverride() string {
+	if x != nil {
+		return x.BucketIdOverride
+	}
+	return ""
 }
 
 // FollowRefRequest is the request type for FollowRef.
@@ -676,6 +686,7 @@ func (m *GetRefResponse) CloneVT() *GetRefResponse {
 		return (*GetRefResponse)(nil)
 	}
 	r := new(GetRefResponse)
+	r.BucketIdOverride = m.BucketIdOverride
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1107,6 +1118,9 @@ func (this *GetRefResponse) EqualVT(that *GetRefResponse) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Ref, that.Ref) {
+		return false
+	}
+	if this.BucketIdOverride != that.BucketIdOverride {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1727,6 +1741,11 @@ func (x *GetRefResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("ref")
 		x.Ref.MarshalProtoJSON(s.WithField("ref"))
 	}
+	if x.BucketIdOverride != "" || s.HasField("bucketIdOverride") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("bucketIdOverride")
+		s.WriteString(x.BucketIdOverride)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1751,6 +1770,9 @@ func (x *GetRefResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Ref = &bucket.ObjectRef{}
 			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
+		case "bucket_id_override", "bucketIdOverride":
+			s.AddField("bucket_id_override")
+			x.BucketIdOverride = s.ReadString()
 		}
 	})
 }
@@ -2953,6 +2975,11 @@ func (m *GetRefResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.BucketIdOverride) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.BucketIdOverride)
+		i--
+		dAtA[i] = 0x12
+	}
 	if m.Ref != nil {
 		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -3901,6 +3928,7 @@ func (m *GetRefResponse) SizeVT() (n int) {
 		l = m.Ref.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BucketIdOverride)
 	n += len(m.unknownFields)
 	return n
 }
@@ -4240,6 +4268,10 @@ func (x *GetRefResponse) MarshalProtoText() string {
 	if x.Ref != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ref")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Ref)
+	}
+	if x.BucketIdOverride != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "bucket_id_override")
+		protobuf_go_lite.TextWriteString(&sb, x.BucketIdOverride)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -4830,6 +4862,16 @@ func (m *GetRefResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BucketIdOverride", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BucketIdOverride = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

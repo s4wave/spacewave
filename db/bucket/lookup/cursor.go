@@ -626,6 +626,14 @@ func (c *Cursor) SetBucketIDOverride(bucketID string) {
 	c.bucketIDOverride = bucketID
 }
 
+// GetBucketIDOverride returns the bucket used for implicit child references.
+func (c *Cursor) GetBucketIDOverride() string {
+	if c == nil {
+		return ""
+	}
+	return c.bucketIDOverride
+}
+
 // GetRefWithOpArgs gets the ref and sets the BucketId and TransformConf (if unset).
 func (c *Cursor) GetRefWithOpArgs() *bucket.ObjectRef {
 	ref := c.ref.Clone()

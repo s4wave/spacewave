@@ -117,6 +117,13 @@ export interface GetRefResponse {
    * @generated from field: bucket.ObjectRef ref = 1;
    */
   ref?: ObjectRef
+  /**
+   * BucketIdOverride identifies the bucket used for implicit child references.
+   * Empty preserves each reference's authored bucket.
+   *
+   * @generated from field: string bucket_id_override = 2;
+   */
+  bucketIdOverride?: string
 }
 
 export const GetRefResponse: MessageType<GetRefResponse> =
@@ -124,6 +131,12 @@ export const GetRefResponse: MessageType<GetRefResponse> =
     typeName: 's4wave.bucket_lookup.GetRefResponse',
     fields: [
       { no: 1, name: 'ref', kind: 'message', T: () => ObjectRef },
+      {
+        no: 2,
+        name: 'bucket_id_override',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
