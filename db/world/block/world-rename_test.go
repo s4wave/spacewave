@@ -155,6 +155,8 @@ func TestWorldState_RenameObject(t *testing.T) {
 		t.Fatalf("expected rename change %q -> %q, got %q -> %q", oldKey, newKey, changes[0].GetKey(), changes[0].GetNewKey())
 	}
 
+	reconcileGCTestWorld(t, ctx, ws)
+
 	rg := ws.GetRefGraph()
 	if rg == nil {
 		t.Fatal("expected ref graph")

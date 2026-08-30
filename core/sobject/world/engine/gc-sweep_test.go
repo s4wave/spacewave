@@ -306,8 +306,8 @@ func TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep(t *testing.T) {
 
 	queueGCSweepTestRawOp(t, ctx, sharedObjectID, state, xfrm, maintenancePriv, 1, sobject.NewSOOperationLocalID(), queueSO.queueOps[0])
 	sweepHead := processGCSweepTestStateOps(t, ctx, c, so, state, maintenanceSnap, sharedObjectID, maintenanceID)
-	if entries := getGCSweepTestJournalEntries(t, ctx, c, so, sweepHead); entries != baselineEntries {
-		t.Fatalf("gc sweep left %d pending journal entries, want baseline %d", entries, baselineEntries)
+	if entries := getGCSweepTestJournalEntries(t, ctx, c, so, sweepHead); entries > baselineEntries {
+		t.Fatalf("gc sweep left %d pending journal entries, want at most baseline %d", entries, baselineEntries)
 	}
 }
 

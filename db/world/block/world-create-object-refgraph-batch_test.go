@@ -3,6 +3,7 @@ package world_block
 import (
 	"context"
 	"slices"
+	"strconv"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -15,7 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestWorldState_CreateObjectAppliesRootRefBatch(t *testing.T) {
+func TestWorldState_CreateObjectJournalsRootRefBatch(t *testing.T) {
 	ctx := context.Background()
 	ws, ocs, cleanup := newRefBatchTestWorld(t, ctx)
 	defer cleanup()
@@ -34,6 +35,19 @@ func TestWorldState_CreateObjectAppliesRootRefBatch(t *testing.T) {
 
 	if _, err := ws.CreateObject(ctx, objKey, rootRef); err != nil {
 		t.Fatal(err.Error())
+	}
+	if len(recorder.applyBatches) != 0 {
+		t.Fatalf("ApplyRefBatch calls before reconciliation = %d, want 0", len(recorder.applyBatches))
+	}
+	if entries := ws.GetGCJournalEntries(); entries != 1 {
+		t.Fatalf("journal entries before reconciliation = %d, want 1", entries)
+	}
+	result, err := ws.reconcileGCJournal(ctx, defaultGCJournalReconcileEntryLimit, defaultGCJournalReconcileEdgeLimit)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if result.remainingEntries != 0 {
+		t.Fatalf("remaining journal entries = %d, want 0", result.remainingEntries)
 	}
 
 	objIRI := block_gc.ObjectIRI(objKey)
@@ -54,7 +68,96 @@ func TestWorldState_CreateObjectAppliesRootRefBatch(t *testing.T) {
 	assertNotOutgoingRef(t, ctx, recorder, block_gc.NodeUnreferenced, rootBlockIRI)
 }
 
-func TestWorldTypes_EnsureTypeExistsAppliesObjectRefBatch(t *testing.T) {
+func TestWorldState_ReconcileGCJournalAppliesDefaultEntryLimit(t *testing.T) {
+	ctx := context.Background()
+	ws, _, cleanup := newRefBatchTestWorld(t, ctx)
+	defer cleanup()
+	recorder := installRecordingRefGraph(t, ws)
+
+	for i := range defaultGCJournalReconcileEntryLimit + 1 {
+		edge := block_gc.RefEdge{Subject: "world", Object: "object:limit-" + strconv.FormatUint(i, 10)}
+		if err := ws.gcJournal.Append(ctx, []block_gc.RefEdge{edge}, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	result, err := ws.reconcileGCJournal(ctx, defaultGCJournalReconcileEntryLimit, defaultGCJournalReconcileEdgeLimit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.appliedEntries != int(defaultGCJournalReconcileEntryLimit) {
+		t.Fatalf("applied entries = %d, want %d", result.appliedEntries, defaultGCJournalReconcileEntryLimit)
+	}
+	if result.remainingEntries == 0 {
+		t.Fatal("bounded reconciliation drained every journal entry")
+	}
+	if len(recorder.applyBatches) != 1 {
+		t.Fatalf("ApplyRefBatch calls = %d, want 1", len(recorder.applyBatches))
+	}
+}
+
+func TestWorldState_ReconcileGCJournalGroupsIndependentEntries(t *testing.T) {
+	ctx := context.Background()
+	ws, _, cleanup := newRefBatchTestWorld(t, ctx)
+	defer cleanup()
+	recorder := installRecordingRefGraph(t, ws)
+
+	first := block_gc.RefEdge{Subject: "world", Object: "object:first"}
+	second := block_gc.RefEdge{Subject: "world", Object: "object:second"}
+	if err := ws.gcJournal.Append(ctx, []block_gc.RefEdge{first}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := ws.gcJournal.Append(ctx, []block_gc.RefEdge{second}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ws.reconcileGCJournal(ctx, defaultGCJournalReconcileEntryLimit, defaultGCJournalReconcileEdgeLimit); err != nil {
+		t.Fatal(err)
+	}
+	if len(recorder.applyBatches) != 1 {
+		t.Fatalf("ApplyRefBatch calls = %d, want 1", len(recorder.applyBatches))
+	}
+	assertRefEdgeSet(t, "grouped adds", recorder.applyBatches[0].adds, []block_gc.RefEdge{first, second})
+}
+
+func TestWorldState_ReconcileGCJournalPreservesRootSwapOrder(t *testing.T) {
+	ctx := context.Background()
+	ws, ocs, cleanup := newRefBatchTestWorld(t, ctx)
+	defer cleanup()
+
+	rootA := writeRefBatchTestBlock(t, ctx, ocs, "root A")
+	rootB := writeRefBatchTestBlock(t, ctx, ocs, "root B")
+	obj, err := ws.CreateObject(ctx, "ref-batch/swap-order", rootA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ws.reconcileGCJournal(ctx, defaultGCJournalReconcileEntryLimit, defaultGCJournalReconcileEdgeLimit); err != nil {
+		t.Fatal(err)
+	}
+	recorder := installRecordingRefGraph(t, ws)
+
+	if _, err := obj.SetRootRef(ctx, rootB); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := obj.SetRootRef(ctx, rootA); err != nil {
+		t.Fatal(err)
+	}
+	if entries := ws.GetGCJournalEntries(); entries != 2 {
+		t.Fatalf("journal entries = %d, want 2", entries)
+	}
+	if _, err := ws.reconcileGCJournal(ctx, defaultGCJournalReconcileEntryLimit, defaultGCJournalReconcileEdgeLimit); err != nil {
+		t.Fatal(err)
+	}
+	if len(recorder.applyBatches) != 2 {
+		t.Fatalf("ApplyRefBatch calls = %d, want 2", len(recorder.applyBatches))
+	}
+
+	objIRI := block_gc.ObjectIRI("ref-batch/swap-order")
+	rootAIRI := block_gc.BlockIRI(rootA.GetRootRef())
+	rootBIRI := block_gc.BlockIRI(rootB.GetRootRef())
+	assertOutgoingRefs(t, ctx, ws.refGraph, objIRI, []string{rootAIRI})
+	assertOutgoingRefs(t, ctx, ws.refGraph, block_gc.NodeUnreferenced, []string{rootBIRI})
+}
+
+func TestWorldTypes_EnsureTypeExistsJournalsObjectRefBatch(t *testing.T) {
 	ctx := context.Background()
 	ws, _, cleanup := newRefBatchTestWorld(t, ctx)
 	defer cleanup()
@@ -67,6 +170,19 @@ func TestWorldTypes_EnsureTypeExistsAppliesObjectRefBatch(t *testing.T) {
 	}
 	if !created {
 		t.Fatal("expected EnsureTypeExists to create the missing type object")
+	}
+	if len(recorder.applyBatches) != 0 {
+		t.Fatalf("ApplyRefBatch calls before reconciliation = %d, want 0", len(recorder.applyBatches))
+	}
+	if entries := ws.GetGCJournalEntries(); entries != 1 {
+		t.Fatalf("journal entries before reconciliation = %d, want 1", entries)
+	}
+	result, err := ws.reconcileGCJournal(ctx, defaultGCJournalReconcileEntryLimit, defaultGCJournalReconcileEdgeLimit)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if result.remainingEntries != 0 {
+		t.Fatalf("remaining journal entries = %d, want 0", result.remainingEntries)
 	}
 
 	objKey := world_types.BuildTypeObjectKey(typeID)

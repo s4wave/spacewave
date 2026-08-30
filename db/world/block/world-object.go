@@ -109,7 +109,7 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 
 	// One logical world object create applies one refgraph batch; logical edges
 	// match the former per-edge writes exactly.
-	if rg := t.refGraph; rg != nil {
+	if t.refGraph != nil {
 		objIRI := block_gc.ObjectIRI(key)
 		adds := []block_gc.RefEdge{{Subject: "world", Object: objIRI}}
 		var removes []block_gc.RefEdge
@@ -119,7 +119,7 @@ func (t *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 			adds = append(adds, block_gc.RefEdge{Subject: objIRI, Object: rootBlockIRI})
 			removes = append(removes, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: rootBlockIRI})
 		}
-		if err := rg.ApplyRefBatch(ctx, adds, removes); err != nil {
+		if err := t.applyRefBatch(ctx, adds, removes); err != nil {
 			return nil, err
 		}
 	}
@@ -209,13 +209,12 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 		changeBcs.SetRef(6, oldObj.bcs)
 	}
 
-	if rg := t.refGraph; rg != nil {
+	if t.refGraph != nil {
 		rootBlockRef := oldRoot.GetRootRef().GetRootRef()
 		oldObjIRI := block_gc.ObjectIRI(oldKey)
 		newObjIRI := block_gc.ObjectIRI(newKey)
 		adds := []block_gc.RefEdge{
 			{Subject: "world", Object: newObjIRI},
-			{Subject: block_gc.NodeUnreferenced, Object: oldObjIRI},
 		}
 		removes := []block_gc.RefEdge{
 			{Subject: "world", Object: oldObjIRI},
@@ -225,7 +224,7 @@ func (t *WorldState) renameObjectSingle(ctx context.Context, oldKey, newKey stri
 			adds = append(adds, block_gc.RefEdge{Subject: newObjIRI, Object: rootBlockIRI})
 			removes = append(removes, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: rootBlockIRI})
 		}
-		if err := rg.ApplyRefBatch(ctx, adds, removes); err != nil {
+		if err := t.applyRefBatch(ctx, adds, removes); err != nil {
 			return nil, err
 		}
 	}
@@ -354,13 +353,13 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	}
 	nbcs := objs.bcs
 
-	// GC: remove world -> object edge, mark object unreferenced.
-	if rg := t.refGraph; rg != nil {
-		objIRI := block_gc.ObjectIRI(key)
-		if err := rg.RemoveRef(ctx, "world", objIRI); err != nil {
-			return false, err
-		}
-		if err := rg.AddRef(ctx, block_gc.NodeUnreferenced, objIRI); err != nil {
+	// Record removal of the world ownership edge with the world transaction.
+	if t.refGraph != nil {
+		removes := []block_gc.RefEdge{{
+			Subject: "world",
+			Object:  block_gc.ObjectIRI(key),
+		}}
+		if err := t.applyRefBatch(ctx, nil, removes); err != nil {
 			return false, err
 		}
 	}

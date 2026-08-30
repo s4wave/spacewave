@@ -31,7 +31,7 @@ import (
 var objectKeyPrefix = "o/"
 
 const (
-	defaultGCJournalReconcileEntryLimit uint64 = 64
+	defaultGCJournalReconcileEntryLimit uint64 = 128
 	defaultGCJournalReconcileEdgeLimit  uint64 = 4096
 )
 
@@ -639,7 +639,20 @@ func (t *WorldState) Commit(ctx context.Context) error {
 	return err
 }
 
+// applyRefBatch records one ownership transition in the world GC journal.
+// Worlds without a journal retain the direct reference-graph path.
+func (t *WorldState) applyRefBatch(ctx context.Context, adds, removes []block_gc.RefEdge) error {
+	if t.refGraph == nil {
+		return nil
+	}
+	if t.gcJournal != nil {
+		return t.gcJournal.Append(ctx, adds, removes)
+	}
+	return t.refGraph.ApplyRefBatch(ctx, adds, removes)
+}
+
 // GetRefGraph returns the GC reference graph, or nil if not initialized.
+// Journaled ownership transitions become visible after GarbageCollect reconciles them.
 func (t *WorldState) GetRefGraph() block_gc.RefGraphOps {
 	if t.refGraph == nil {
 		return nil
@@ -752,7 +765,6 @@ func (t *WorldState) reconcileGCJournal(ctx context.Context, maxEntries, maxEdge
 		return gcJournalReconcileResult{}, nil
 	}
 
-	var allAdds, allRemoves []block_gc.RefEdge
 	entries, err := t.gcJournal.Take(ctx, maxEntries, maxEdges)
 	if err != nil {
 		return gcJournalReconcileResult{}, errors.Wrap(err, "iterate gc journal")
@@ -760,13 +772,59 @@ func (t *WorldState) reconcileGCJournal(ctx context.Context, maxEntries, maxEdge
 	if len(entries) == 0 {
 		return gcJournalReconcileResult{}, nil
 	}
-	for _, entry := range entries {
-		allAdds = append(allAdds, entry.adds...)
-		allRemoves = append(allRemoves, entry.removes...)
+	appliedEdges := 0
+	// Entries commute unless a later operation reverses an exact edge from the
+	// current group. Flush at that boundary so add-before-remove processing in
+	// ApplyRefBatch cannot invert ordered transitions such as A to B to A.
+	var groupAdds, groupRemoves []block_gc.RefEdge
+	groupAddsSet := make(map[block_gc.RefEdge]struct{})
+	groupRemovesSet := make(map[block_gc.RefEdge]struct{})
+	flushGroup := func() error {
+		if len(groupAdds) == 0 && len(groupRemoves) == 0 {
+			return nil
+		}
+		if err := t.refGraph.ApplyRefBatch(ctx, groupAdds, groupRemoves); err != nil {
+			return errors.Wrap(err, "apply gc journal entries")
+		}
+		groupAdds = nil
+		groupRemoves = nil
+		clear(groupAddsSet)
+		clear(groupRemovesSet)
+		return nil
 	}
-
-	if err := t.refGraph.ApplyRefBatch(ctx, allAdds, allRemoves); err != nil {
-		return gcJournalReconcileResult{}, errors.Wrap(err, "apply gc journal batch")
+	for _, entry := range entries {
+		conflicts := false
+		for _, edge := range entry.adds {
+			if _, found := groupRemovesSet[edge]; found {
+				conflicts = true
+				break
+			}
+		}
+		if !conflicts {
+			for _, edge := range entry.removes {
+				if _, found := groupAddsSet[edge]; found {
+					conflicts = true
+					break
+				}
+			}
+		}
+		if conflicts {
+			if err := flushGroup(); err != nil {
+				return gcJournalReconcileResult{}, err
+			}
+		}
+		groupAdds = append(groupAdds, entry.adds...)
+		groupRemoves = append(groupRemoves, entry.removes...)
+		for _, edge := range entry.adds {
+			groupAddsSet[edge] = struct{}{}
+		}
+		for _, edge := range entry.removes {
+			groupRemovesSet[edge] = struct{}{}
+		}
+		appliedEdges += len(entry.adds) + len(entry.removes)
+	}
+	if err := flushGroup(); err != nil {
+		return gcJournalReconcileResult{}, err
 	}
 	if err := t.gcJournal.DeleteApplied(ctx, entries); err != nil {
 		return gcJournalReconcileResult{}, errors.Wrap(err, "delete applied gc journal entries")
@@ -774,7 +832,7 @@ func (t *WorldState) reconcileGCJournal(ctx context.Context, maxEntries, maxEdge
 	t.gcJournalDirty = true
 	result := gcJournalReconcileResult{
 		appliedEntries:   len(entries),
-		appliedEdges:     len(allAdds) + len(allRemoves),
+		appliedEdges:     appliedEdges,
 		remainingEntries: t.gcJournal.Entries(),
 	}
 	trace.Logf(
