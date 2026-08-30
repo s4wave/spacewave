@@ -342,7 +342,7 @@ func (e *Engine) setRootRefLocked(
 	}
 
 	taskCtx, subtask = trace.NewTask(ctx, "hydra/world-block/engine/set-root-ref/build-world-state")
-	nextWorld, err := e.buildWorldStateForRoot(taskCtx, true, nextRoot)
+	nextWorld, err := e.buildWorldStateForRoot(taskCtx, true, nextRoot, nil)
 	subtask.End()
 	if err != nil {
 		nextRoot.Release()
@@ -704,7 +704,14 @@ func (e *Engine) ForkBlockTransaction(ctx context.Context, write bool) (*Tx, err
 	}
 
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/engine/fork-block-transaction/build-world-state")
-	ws, err := e.buildWorldState(taskCtx, !write)
+	// Buffer nested and root block writes per fork so they drain in one batch
+	// at Sync. Coordinator mode stays durable-on-write: its commit path
+	// validates the committed root against raw storage before publication.
+	store := block.StoreOps(nil)
+	if write && e.writeCoordinator == nil {
+		store = block.NewBufferedStore(ctx, e.writeBlockStore)
+	}
+	ws, err := e.buildWorldStateForRoot(taskCtx, !write, e.head.root, store)
 	subtask.End()
 	if err != nil {
 		return nil, err
@@ -971,13 +978,14 @@ func (e *Engine) initializeHeadReadTx(ctx context.Context) error {
 // buildWorldState builds the world state transaction and cursor fields.
 // The caller must hold bcast.
 func (e *Engine) buildWorldState(ctx context.Context, readOnly bool) (*WorldState, error) {
-	return e.buildWorldStateForRoot(ctx, readOnly, e.head.root)
+	return e.buildWorldStateForRoot(ctx, readOnly, e.head.root, nil)
 }
 
 func (e *Engine) buildWorldStateForRoot(
 	ctx context.Context,
 	readOnly bool,
 	root *bucket_lookup.Cursor,
+	transactionStore block.StoreOps,
 ) (*WorldState, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/world-block/engine/build-world-state")
 	defer task.End()
@@ -988,7 +996,10 @@ func (e *Engine) buildWorldStateForRoot(
 	// committed in memory but not yet drained to durable storage (read your
 	// writes before Sync). It is the bucket store directly in coordinator and
 	// self-buffered modes.
-	store := e.writeBlockStore
+	store := transactionStore
+	if store == nil {
+		store = e.writeBlockStore
+	}
 	worldStore := store
 	if !readOnly && e.writeCoordinator != nil {
 		worldStore = nil

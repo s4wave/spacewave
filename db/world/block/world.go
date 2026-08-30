@@ -251,7 +251,12 @@ func (t *WorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cur
 	if storage == nil {
 		return nil, world.ErrWorldStorageUnavailable
 	}
-	return storage.BuildStorageCursor(ctx)
+	cursor, err := storage.BuildStorageCursor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cursor.SetTransactionStore(t.store)
+	return cursor, nil
 }
 
 // AccessWorldState builds a bucket lookup cursor with an optional ref.
@@ -266,7 +271,10 @@ func (t *WorldState) AccessWorldState(
 	if storage == nil {
 		return world.ErrWorldStorageUnavailable
 	}
-	return storage.AccessWorldState(ctx, ref, cb)
+	return storage.AccessWorldState(ctx, ref, func(cursor *bucket_lookup.Cursor) error {
+		cursor.SetTransactionStore(t.store)
+		return cb(cursor)
+	})
 }
 
 // ApplyWorldOp applies a batch operation at the world level.
