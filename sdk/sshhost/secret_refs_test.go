@@ -26,7 +26,7 @@ func TestValidateSshHostCredentialSecretsChecksSecretKinds(t *testing.T) {
 	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/key", s4wave_secret.SecretKindSSHPrivateKey)
 	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/password", s4wave_secret.SecretKindSSHPassword)
 	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/passphrase", s4wave_secret.SecretKindSSHPassphrase)
-	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/wrong", s4wave_secret.SecretKindMatrixAccessToken)
+	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/wrong", s4wave_secret.SecretKindProviderCredential)
 
 	refs := &SshHostCredentialRefs{
 		PrivateKeySecretObjectKey: "secrets/ssh/key",

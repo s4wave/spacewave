@@ -27,12 +27,12 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 	tb, soProvider, release := setupSecretTest(ctx, t)
 	defer release()
 
-	token := "matrix-token-secret-value"
+	token := "provider-credential-secret-value"
 	secret, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
-		ObjectKey:   "secrets/matrix",
-		DisplayName: "Matrix token",
-		Kind:        s4wave_secret.SecretKindMatrixAccessToken,
-		ContentType: s4wave_secret.MatrixAccessTokenContentType,
+		ObjectKey:   "secrets/provider/opencode-go",
+		DisplayName: "OpenCode Go credential",
+		Kind:        s4wave_secret.SecretKindProviderCredential,
+		ContentType: s4wave_secret.ProviderCredentialContentType,
 		Value:       []byte(token),
 		Timestamp:   time.Unix(100, 0),
 	})
@@ -46,11 +46,11 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 		t.Fatal("expected nested SharedObject id")
 	}
 
-	if err := world_types.CheckObjectType(ctx, tb.WorldState, "secrets/matrix", s4wave_secret.SecretTypeID); err != nil {
+	if err := world_types.CheckObjectType(ctx, tb.WorldState, "secrets/provider/opencode-go", s4wave_secret.SecretTypeID); err != nil {
 		t.Fatalf("CheckObjectType: %v", err)
 	}
 
-	parent := readParentSecret(ctx, t, tb.WorldState, "secrets/matrix")
+	parent := readParentSecret(ctx, t, tb.WorldState, "secrets/provider/opencode-go")
 	parentData, err := parent.MarshalVT()
 	if err != nil {
 		t.Fatalf("marshal parent: %v", err)
@@ -66,12 +66,12 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 	if got := string(payload.GetValue()); got != token {
 		t.Fatalf("payload value mismatch: %q", got)
 	}
-	readToken, err := s4wave_secret.ReadMatrixAccessToken(ctx, tb.Bus, secret)
+	readCredential, err := s4wave_secret.ReadProviderCredentialPayload(ctx, tb.Bus, secret)
 	if err != nil {
-		t.Fatalf("ReadMatrixAccessToken: %v", err)
+		t.Fatalf("ReadProviderCredentialPayload: %v", err)
 	}
-	if readToken != token {
-		t.Fatalf("matrix token mismatch: %q", readToken)
+	if string(readCredential) != token {
+		t.Fatalf("provider credential mismatch: %q", readCredential)
 	}
 }
 
