@@ -33,6 +33,10 @@ const (
 // the Session watch handler, the child release callback, the Python client,
 // and the Go generation to settle before the listener closes.
 func TestPythonSessionJourneyAgainstGoSessionOwner(t *testing.T) {
+	if os.Getenv("RUN_PYTHON_SESSION_JOURNEY") != "1" {
+		t.Skip("Python Session journey runs in the Python Resource CI job")
+	}
+
 	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
 	defer cancel()
 
