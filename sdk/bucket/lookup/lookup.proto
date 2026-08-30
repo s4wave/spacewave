@@ -35,6 +35,10 @@ message GetRefRequest {}
 message GetRefResponse {
   // Ref is the current object reference.
   .bucket.ObjectRef ref = 1;
+
+  // BucketIdOverride identifies the bucket used for implicit child references.
+  // Empty preserves each reference's authored bucket.
+  string bucket_id_override = 2;
 }
 
 // FollowRefRequest is the request type for FollowRef.

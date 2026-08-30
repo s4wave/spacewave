@@ -7,9 +7,76 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	"github.com/s4wave/spacewave/db/bucket"
 )
+
+func TestSDKCursorPreservesServerBucketIDOverride(t *testing.T) {
+	ctx := context.Background()
+	ref := &bucketLookupCursorRef{client: &bucketLookupCursorClient{
+		response: &GetRefResponse{
+			Ref:              &bucket.ObjectRef{BucketId: "device-mirror"},
+			BucketIdOverride: "device-mirror",
+		},
+	}}
+	cursor, err := NewCursor(ctx, ref)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer cursor.Release()
+	if got := cursor.GetBucketIDOverride(); got != "device-mirror" {
+		t.Fatalf("bucket override = %q, want device-mirror", got)
+	}
+
+	child, err := cursor.FollowRef(ctx, &bucket.ObjectRef{BucketId: "author-bucket"})
+	if err != nil {
+		t.Fatalf("follow mirrored author reference: %v", err)
+	}
+	defer child.Release()
+	if got := child.GetOpArgs().GetBucketId(); got != "device-mirror" {
+		t.Fatalf("child bucket = %q, want device-mirror", got)
+	}
+}
+
+type bucketLookupCursorRef struct {
+	client   srpc.Client
+	released bool
+}
+
+func (r *bucketLookupCursorRef) GetResourceID() uint32           { return 1 }
+func (r *bucketLookupCursorRef) GetClient() (srpc.Client, error) { return r.client, nil }
+func (r *bucketLookupCursorRef) Release()                        { r.released = true }
+
+var _ resource_client.ResourceRef = (*bucketLookupCursorRef)(nil)
+
+type bucketLookupCursorClient struct {
+	response *GetRefResponse
+}
+
+func (c *bucketLookupCursorClient) ExecCall(
+	_ context.Context,
+	_, _ string,
+	_ srpc.Message,
+	out srpc.Message,
+) error {
+	response, ok := out.(*GetRefResponse)
+	if !ok {
+		return errors.Errorf("unexpected response type %T", out)
+	}
+	*response = *c.response.CloneVT()
+	return nil
+}
+
+func (c *bucketLookupCursorClient) NewStream(
+	context.Context,
+	string,
+	string,
+	srpc.Message,
+) (srpc.Stream, error) {
+	return nil, errors.New("unexpected stream")
+}
 
 func TestSDKBucketLookupStorePutBlockBatchUsesRemoteBatch(t *testing.T) {
 	ctx := context.Background()

@@ -41,7 +41,10 @@ func (r *BucketLookupCursorResource) GetMux() srpc.Invoker {
 // GetRef returns the current object reference.
 func (r *BucketLookupCursorResource) GetRef(ctx context.Context, req *s4wave_bucket_lookup.GetRefRequest) (*s4wave_bucket_lookup.GetRefResponse, error) {
 	ref := r.cursor.GetRefWithOpArgs()
-	return &s4wave_bucket_lookup.GetRefResponse{Ref: ref}, nil
+	return &s4wave_bucket_lookup.GetRefResponse{
+		Ref:              ref,
+		BucketIdOverride: r.cursor.GetBucketIDOverride(),
+	}, nil
 }
 
 // FollowRef follows an object reference and returns a new cursor.

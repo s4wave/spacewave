@@ -3342,7 +3342,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/bucket/lookup": {
-      "hash": "3e7bd84ba599dc2209493c98ed9e8d04396979005db197ae3d577f8d05c08518",
+      "hash": "c92a7f1699be9ab55b5df636fb13f32af19bed53018e268d1ef38223ebe6f516",
       "generatedFiles": [
         "sdk/bucket/lookup/lookup.pb.go",
         "sdk/bucket/lookup/lookup.pb.ts",
