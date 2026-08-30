@@ -3,6 +3,7 @@ package provider_local
 import (
 	"context"
 	stderrors "errors"
+	"maps"
 
 	"github.com/pkg/errors"
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
@@ -53,10 +54,23 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 	if err := a.StartPersistentP2PSync(ctx, st); err != nil {
 		return errors.Wrap(err, "auto-start P2P sync")
 	}
+	var pendingEnroll map[string]struct{}
+	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if len(a.p2pPendingEnrollPeers) != 0 {
+			pendingEnroll = make(map[string]struct{}, len(a.p2pPendingEnrollPeers))
+			maps.Copy(pendingEnroll, a.p2pPendingEnrollPeers)
+		}
+	})
 	for _, device := range devices {
 		remotePeerID, _, err := peer.ParsePeerIDWithPubKey(device.GetPeerId())
 		if err != nil {
 			return errors.Wrap(err, "parse paired Device peer id")
+		}
+		// The Device dials the owner through its one-use invite; the owner
+		// must not dial a device that has not connected once in this process.
+		if _, pending := pendingEnroll[remotePeerID.String()]; pending {
+			a.le.WithField("peer-id", remotePeerID.String()).Debug("skipping auto-start retain for pending enrollment")
+			continue
 		}
 		if err := a.RetainP2PPeer(ctx, remotePeerID); err != nil {
 			return errors.Wrap(err, "retain paired Device peer")
