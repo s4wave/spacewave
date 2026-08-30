@@ -593,6 +593,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		e2eDistConf,
 		"web/js/wasm",
 		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
+		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "web/js/wasm"},
 		distEmbedManifestWant{manifestID: "spacewave-sql", platformID: "js"},
 	)
 
@@ -659,6 +660,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		e2eDistOnlyConf,
 		"web/js/wasm",
 		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
+		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "web/js/wasm"},
 		distEmbedManifestWant{manifestID: "spacewave-sql", platformID: "js"},
 	)
 
@@ -788,6 +790,7 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		tinygoE2EDistConf,
 		"web/js/wasm",
 		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
+		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "web/js/wasm"},
 		distEmbedManifestWant{manifestID: "spacewave-sql", platformID: "js"},
 	)
 
@@ -826,6 +829,7 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		goscriptE2EDistConf,
 		"js",
 		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
+		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "web/js/wasm"},
 		distEmbedManifestWant{manifestID: "spacewave-sql", platformID: "js"},
 	)
 
@@ -854,15 +858,17 @@ func assertDistEmbedPlatform(
 	wantPlatformID string,
 ) {
 	t.Helper()
+	var gotPlatformIDs []string
 	for _, embed := range conf.GetEmbedManifests() {
-		if embed.GetManifestId() == manifestID {
-			if got := embed.GetPlatformId(); got != wantPlatformID {
-				t.Fatalf("%s embeds %s platform: got %q, want %q", label, manifestID, got, wantPlatformID)
-			}
+		if embed.GetManifestId() != manifestID {
+			continue
+		}
+		gotPlatformIDs = append(gotPlatformIDs, embed.GetPlatformId())
+		if embed.GetPlatformId() == wantPlatformID {
 			return
 		}
 	}
-	t.Fatalf("%s embed manifests missing %s: %v", label, manifestID, conf.GetEmbedManifests())
+	t.Fatalf("%s embeds %s platforms %v, missing %q", label, manifestID, gotPlatformIDs, wantPlatformID)
 }
 
 type distEmbedManifestWant struct {

@@ -610,12 +610,14 @@ BROWSER_RELEASE_LAZY_PLUGIN_FIXTURE_LOAD_PLUGINS = BROWSER_RELEASE_LOAD_PLUGINS 
     "spacewave-cli-plugin",
 ]
 
-# Browser e2e embeds the startup closure plus the spacewave-sql plugin so the
-# sql plugin cold-builds under the e2e release without a populated Release World.
+# Browser e2e embeds the startup closure, every Notes platform the browser can
+# select, and the spacewave-sql fixture without a populated Release World.
 def browser_e2e_embed_manifests(go_platform_id):
     return browser_release_embed_manifests(go_platform_id) + [
         {"manifestId": "spacewave-notes",
          "platformId": "js"},
+        {"manifestId": "spacewave-notes",
+         "platformId": "web/js/wasm"},
         {"manifestId": "spacewave-sql",
          "platformId": "js"},
     ]
