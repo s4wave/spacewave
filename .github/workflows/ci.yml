@@ -33,13 +33,6 @@ jobs:
       fail-fast: false
       matrix:
         member:
-          - name: alpha
-            build_script: ''
-            check_script: typecheck
-            lint_go_script: lint:go:alpha
-            lint_js_script: ''
-            test_go_script: test:go:alpha
-            test_js_script: test:js:alpha
           - name: auth
             build_script: ''
             check_script: ''
@@ -156,6 +149,56 @@ jobs:
       - name: Lint Go
         if: ${{ matrix.member.lint_go_script != '' }}
         run: bun run ${{ matrix.member.lint_go_script }}
+
+  # Alpha's Go tests, JavaScript tests, and Go lint each saturate a runner for
+  # three to six minutes. Running them serially made CI (alpha) the last job
+  # to finish while the other runners sat idle, so the stages run as parallel
+  # jobs on the shared matrix machinery instead of serial steps.
+  member-ci-alpha:
+    name: CI (alpha / ${{ matrix.stage.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stage:
+          - name: test-go
+            script: test:go:alpha
+          - name: test-js
+            script: test:js:alpha
+          - name: typecheck
+            script: typecheck
+          - name: lint-go
+            script: lint:go:alpha
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Cache aptre tools
+        uses: actions/cache@v6
+        with:
+          path: ./.tools
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
+
+      - name: Setup aptre tools and vendor
+        run: bun run prepare
+
+      - name: Setup alpha production-source fixture
+        run: bun run bldr -- --state-path=.bldr-dist setup
+
+      - name: Run alpha stage
+        run: bun run ${{ matrix.stage.script }}
 
   python-resource:
     name: Python Resource
