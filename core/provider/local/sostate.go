@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -105,6 +106,8 @@ func NewObjectStoreSOStateFuncs(rctx context.Context, objStore object.ObjectStor
 		return sobject.NewSOStateLock(
 			initialState,
 			func(ctx context.Context, state *sobject.SOState) error {
+				ctx, task := trace.NewTask(ctx, "alpha/local-so/write-so-state")
+				defer task.End()
 				state = state.CloneVT()
 				data, err := state.MarshalVT()
 				if err != nil {
