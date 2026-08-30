@@ -57,7 +57,7 @@ func inspectSpaceSettings(ctx context.Context, object *ObjectDescriptor) (*Inspe
 }
 
 func inspectCanvas(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
-	state, err := world.LookupObjectBody[*s4wave_canvas.CanvasState](ctx, object.World, object.ObjectKey, s4wave_canvas.NewCanvasStateBlock)
+	state, err := s4wave_canvas.LookupCanvasState(ctx, object.World, object.ObjectKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "decode Canvas payload")
 	}
@@ -432,7 +432,7 @@ func rewriteSpaceSettings(ctx context.Context, object *ObjectDescriptor, mapping
 }
 
 func rewriteCanvas(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {
-	state, err := world.LookupObjectBody[*s4wave_canvas.CanvasState](ctx, object.World, object.ObjectKey, s4wave_canvas.NewCanvasStateBlock)
+	state, err := s4wave_canvas.LookupCanvasState(ctx, object.World, object.ObjectKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "decode Canvas payload")
 	}

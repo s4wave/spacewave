@@ -1,20 +1,10 @@
 package s4wave_canvas
 
-import (
-	"context"
-
-	"github.com/s4wave/spacewave/db/block"
-)
+import "github.com/s4wave/spacewave/db/block"
 
 // NewCanvasStateBlock constructs a new CanvasState block.
 func NewCanvasStateBlock() block.Block {
 	return &CanvasState{}
-}
-
-// UnmarshalCanvasState unmarshals a canvas state from a cursor.
-// If empty, returns nil, nil.
-func UnmarshalCanvasState(ctx context.Context, bcs *block.Cursor) (*CanvasState, error) {
-	return block.UnmarshalBlock[*CanvasState](ctx, bcs, NewCanvasStateBlock)
 }
 
 // Validate performs cursory checks on the CanvasState block.

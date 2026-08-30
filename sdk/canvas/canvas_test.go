@@ -3,11 +3,14 @@ package s4wave_canvas
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/s4wave/spacewave/db/block"
+	block_kvtx "github.com/s4wave/spacewave/db/kvtx/block"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -611,4 +614,105 @@ func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
 	if !req.EqualVT(&decodedReq) {
 		t.Fatal("update request hidden graph links did not round trip through JSON")
 	}
+}
+
+func TestCanvasStorageMigratesFlatStateAndKeepsUnchangedNodeRef(t *testing.T) {
+	for _, nodeCount := range []int{1, 100, 1000} {
+		t.Run(strconv.Itoa(nodeCount), func(t *testing.T) {
+			ctx := t.Context()
+			initial := &CanvasState{Nodes: make(map[string]*CanvasNode, nodeCount)}
+			for i := range nodeCount {
+				id := fmt.Sprintf("node-%04d", i)
+				initial.Nodes[id] = &CanvasNode{Id: id, Width: float64(100 + i), Height: 100}
+			}
+			ws, release := setupCanvasWatchWorld(t, ctx, "canvas", initial)
+			defer release()
+			legacy, err := LookupCanvasState(ctx, ws, "canvas")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !legacy.EqualVT(initial) {
+				t.Fatalf("legacy state has %d nodes, want %d", len(legacy.GetNodes()), nodeCount)
+			}
+
+			migrated := initial.CloneVT()
+			migrated.Nodes["node-0000"].Width++
+			writeCanvasStorageTestState(t, ctx, ws, "canvas", initial, migrated)
+			got, err := LookupCanvasState(ctx, ws, "canvas")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !got.EqualVT(migrated) {
+				t.Fatalf("migrated state has %d nodes, want %d", len(got.GetNodes()), nodeCount)
+			}
+			firstRefs := canvasStorageNodeRefs(t, ctx, ws, "canvas")
+
+			next := migrated.CloneVT()
+			next.Nodes["node-0000"].Width++
+			writeCanvasStorageTestState(t, ctx, ws, "canvas", migrated, next)
+			secondRefs := canvasStorageNodeRefs(t, ctx, ws, "canvas")
+			if firstRefs["node-0000"].EqualsRef(secondRefs["node-0000"]) {
+				t.Fatal("changed node kept its old block ref")
+			}
+			if nodeCount > 1 {
+				unchanged := fmt.Sprintf("node-%04d", nodeCount-1)
+				if !firstRefs[unchanged].EqualsRef(secondRefs[unchanged]) {
+					t.Fatalf("unchanged node %q block ref changed", unchanged)
+				}
+			}
+		})
+	}
+}
+
+func writeCanvasStorageTestState(
+	t *testing.T,
+	ctx context.Context,
+	ws *world_block.WorldState,
+	objKey string,
+	previous, next *CanvasState,
+) {
+	t.Helper()
+	_, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
+		return WriteCanvasState(ctx, bcs, previous, next)
+	})
+	if err == nil {
+		err = ws.Commit(ctx)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func canvasStorageNodeRefs(
+	t *testing.T,
+	ctx context.Context,
+	ws *world_block.WorldState,
+	objKey string,
+) map[string]*block.BlockRef {
+	t.Helper()
+	refs := make(map[string]*block.BlockRef)
+	_, _, err := world.AccessWorldObject(ctx, ws, objKey, false, func(bcs *block.Cursor) error {
+		storage, err := UnmarshalCanvasStorage(ctx, bcs)
+		if err != nil {
+			return err
+		}
+		if got, want := storage.GetNodes().GetImplType(), block_kvtx.DefaultKeyValueStoreImplForWorkload(block_kvtx.WorkloadClassWriteChurn); got != want {
+			t.Fatalf("Canvas node backend = %s, want workload policy %s", got, want)
+		}
+		tx, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), false)
+		if err != nil {
+			return err
+		}
+		defer tx.Discard()
+		it := tx.BlockIterate(ctx, nil, false, false)
+		defer it.Close()
+		for it.Next() {
+			refs[string(it.Key())] = it.ValueCursor().GetRef().CloneVT()
+		}
+		return it.Err()
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return refs
 }
