@@ -159,41 +159,49 @@ func (s *SOSync) exchangeSnapshots(ctx context.Context, le *logrus.Entry, sess *
 	if peerSnap == nil {
 		return nil
 	}
+	return s.applyPeerSnapshot(ctx, le, peerSnap)
+}
 
-	// Compare root_seqno: if peer is newer, apply their full state.
-	// The full state includes config (participants, grants) and root,
-	// which is necessary for paired devices that share the same SO but
-	// may have divergent configs until the first sync.
-	// A matched solicit stream proves routing agreement, never content
-	// trust: validate the snapshot elements before adopting them.
-	if peerSnap.GetRootSeqno() > localSeqno {
-		peerState := &sobject.SOState{}
-		if err := peerState.UnmarshalVT(peerSnap.GetSoState()); err != nil {
-			le.WithError(err).Warn("failed to unmarshal peer snapshot")
-			return err
+// applyPeerSnapshot validates and adopts a newer authoritative state.
+func (s *SOSync) applyPeerSnapshot(
+	ctx context.Context,
+	le *logrus.Entry,
+	peerSnap *SOSyncSnapshot,
+) error {
+	peerState := &sobject.SOState{}
+	if err := peerState.UnmarshalVT(peerSnap.GetSoState()); err != nil {
+		le.WithError(err).Warn("failed to unmarshal peer snapshot")
+		return err
+	}
+	if peerState.GetRoot().GetInnerSeqno() != peerSnap.GetRootSeqno() {
+		return errors.New("peer snapshot root sequence does not match its state")
+	}
+	if err := s.validateSnapshotElements(peerState); err != nil {
+		le.WithError(err).Warn("rejected peer snapshot failing element validation")
+		return errors.Wrap(err, "invalid peer snapshot")
+	}
+	if s.validateSnapshotAccess != nil {
+		if err := s.validateSnapshotAccess(ctx, peerState); err != nil {
+			le.WithError(err).Warn("rejected peer snapshot inaccessible to local object identity")
+			return errors.Wrap(err, "inaccessible peer snapshot")
 		}
-
-		if err := s.validateSnapshotElements(peerState); err != nil {
-			le.WithError(err).Warn("rejected peer snapshot failing element validation")
-			return errors.Wrap(err, "invalid peer snapshot")
-		}
-		if s.validateSnapshotAccess != nil {
-			if err := s.validateSnapshotAccess(ctx, peerState); err != nil {
-				le.WithError(err).Warn("rejected peer snapshot inaccessible to local object identity")
-				return errors.Wrap(err, "inaccessible peer snapshot")
-			}
-		}
-
-		if err := s.soHost.UpdateSOState(ctx, func(state *sobject.SOState) error {
-			*state = *peerState
-			return nil
-		}); err != nil {
-			le.WithError(err).Warn("failed to apply peer snapshot")
-			return err
-		}
-		le.Debug("applied validated peer snapshot with higher seqno")
 	}
 
+	var applied bool
+	if err := s.soHost.UpdateSOState(ctx, func(state *sobject.SOState) error {
+		if peerSnap.GetRootSeqno() <= state.GetRoot().GetInnerSeqno() {
+			return nil
+		}
+		*state = *peerState
+		applied = true
+		return nil
+	}); err != nil {
+		le.WithError(err).Warn("failed to apply peer snapshot")
+		return err
+	}
+	if applied {
+		le.Debug("applied validated peer snapshot with higher seqno")
+	}
 	return nil
 }
 
@@ -259,6 +267,10 @@ func (s *SOSync) streamOps(ctx context.Context, le *logrus.Entry, sess *stream_p
 		}
 
 		switch body := inMsg.GetBody().(type) {
+		case *SOSyncMessage_Snapshot:
+			if err := s.applyPeerSnapshot(ctx, le, body.Snapshot); err != nil {
+				return
+			}
 		case *SOSyncMessage_Op:
 			s.handleRemoteOp(ctx, le, body.Op)
 		case *SOSyncMessage_Ack:
@@ -276,14 +288,38 @@ func (s *SOSync) sendOps(ctx context.Context, le *logrus.Entry, sess *stream_pac
 	}
 	defer relStateCtr()
 
-	var prev *sobject.SOState
+	var (
+		prev              *sobject.SOState
+		lastSnapshotSeqno uint64
+	)
 	for {
 		next, err := stateCtr.WaitValueChange(ctx, prev, nil)
 		if err != nil {
+			le.WithError(err).Debug("shared object state watch ended")
 			return
 		}
 
-		// Send new ops that appeared since last state.
+		rootSeqno := next.GetRoot().GetInnerSeqno()
+		if rootSeqno > lastSnapshotSeqno {
+			stateData, err := next.MarshalVT()
+			if err != nil {
+				le.WithError(err).Warn("failed to marshal snapshot for sync")
+				return
+			}
+			if err := sess.SendMsg(&SOSyncMessage{
+				Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{
+					SoState:   stateData,
+					RootSeqno: rootSeqno,
+				}},
+			}); err != nil {
+				le.WithError(err).Debug("failed to send updated shared object snapshot")
+				return
+			}
+			le.WithField("root-seqno", rootSeqno).Debug("sent updated shared object snapshot")
+			lastSnapshotSeqno = rootSeqno
+		}
+
+		// Send operations queued since the authoritative root.
 		for _, op := range next.GetOps() {
 			opData, err := op.MarshalVT()
 			if err != nil {
@@ -299,6 +335,7 @@ func (s *SOSync) sendOps(ctx context.Context, le *logrus.Entry, sess *stream_pac
 				},
 			}
 			if err := sess.SendMsg(msg); err != nil {
+				le.WithError(err).Debug("failed to send shared object operation")
 				return
 			}
 		}

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	ulid "github.com/aperturerobotics/util/ulid"
@@ -124,6 +125,80 @@ func runSnapshotExchange(t *testing.T, s *SOSync, ctx context.Context, peerSnap 
 		t.Fatalf("remote send snapshot: %v", err)
 	}
 	return <-errCh
+}
+
+func TestStreamOpsAppliesNewerSnapshot(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+
+	ownerPriv := mustKeyPair(t)
+	writerPriv := mustKeyPair(t)
+	ownerID := mustPeerIDStr(t, ownerPriv)
+	writerID := mustPeerIDStr(t, writerPriv)
+	participants := []*sobject.SOParticipantConfig{
+		participantCfg(ownerID, sobject.SOParticipantRole_SOParticipantRole_OWNER),
+		participantCfg(writerID, sobject.SOParticipantRole_SOParticipantRole_WRITER),
+	}
+	initial := &sobject.SOState{
+		Config: &sobject.SharedObjectConfig{Participants: participants},
+		Root:   &sobject.SORoot{InnerSeqno: 1},
+	}
+	newer := initial.CloneVT()
+	newer.Root.InnerSeqno = 2
+	newerData, err := newer.MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	host, stateCtr := newMemHost("stream-newer-snapshot", initial)
+	writerPeerID, err := peer.IDFromPrivateKey(writerPriv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	syncer := NewSOSync(gateLogger(), nil, "stream-newer-snapshot", writerPeerID, host)
+	localSess, remoteSess := pipeSessions(t)
+	streamDone := make(chan struct{})
+	go func() {
+		syncer.streamOps(ctx, gateLogger(), localSess)
+		close(streamDone)
+	}()
+
+	if err := remoteSess.SendMsg(&SOSyncMessage{
+		Body: &SOSyncMessage_Snapshot{Snapshot: &SOSyncSnapshot{
+			SoState:   newerData,
+			RootSeqno: 2,
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := stateCtr.WaitValueChange(ctx, initial, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := updated.GetRoot().GetInnerSeqno(); got != 2 {
+		t.Fatalf("root seqno = %d, want 2", got)
+	}
+
+	// The local sender publishes the adopted root so both directions keep
+	// following authoritative state after the initial exchange.
+	for {
+		out := &SOSyncMessage{}
+		if err := remoteSess.RecvMsg(out); err != nil {
+			t.Fatal(err)
+		}
+		if out.GetSnapshot().GetRootSeqno() == 2 {
+			break
+		}
+	}
+	cancel()
+	if err := remoteSess.Close(); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-streamDone:
+	case <-time.After(time.Second):
+		t.Fatal("stream did not stop after cancellation")
+	}
 }
 
 func TestSnapshotExchangeRejectsExcludedLocalPeer(t *testing.T) {

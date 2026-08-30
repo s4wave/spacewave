@@ -13,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	sobject_sync "github.com/s4wave/spacewave/core/sobject/sync"
+	"github.com/s4wave/spacewave/core/space"
 	"github.com/s4wave/spacewave/core/transport"
 	"github.com/s4wave/spacewave/db/block"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
@@ -607,7 +608,7 @@ func (a *ProviderAccount) startP2PSyncControllers(
 		if state.hasSO(soID) {
 			continue
 		}
-		if err := a.startSOSync(syncCtx, childBus, ref, soID, state); err != nil {
+		if err := a.startSOSync(syncCtx, childBus, ref, entry.GetMeta().GetBodyType(), soID, state); err != nil {
 			if syncCtx.Err() != nil {
 				return syncCtx.Err()
 			}
@@ -780,6 +781,7 @@ func (a *ProviderAccount) startSOSync(
 	ctx context.Context,
 	childBus bus.Bus,
 	ref *sobject.SharedObjectRef,
+	bodyType string,
 	soID string,
 	state *p2pSyncState,
 ) error {
@@ -792,6 +794,54 @@ func (a *ProviderAccount) startSOSync(
 	}
 
 	localSO := so.(*SharedObject)
+
+	// Keep the body processor running on validators while the Space is shared.
+	// Writers submit operations through SO sync; without a validator body
+	// admission, their operations remain queued whenever no UI has the Space
+	// open on the primary host.
+	hostState, err := localSO.soHost.GetHostState(ctx)
+	if err != nil {
+		relSO()
+		return err
+	}
+	participantHandle := sobject.NewSOStateParticipantHandle(
+		a.le,
+		a.t.p.sfs,
+		soID,
+		hostState,
+		localSO.localPriv,
+		localSO.localPid,
+	)
+	participantConfig, err := participantHandle.GetParticipantConfig(ctx)
+	if err != nil {
+		relSO()
+		return err
+	}
+	if bodyType == space.SpaceBodyType &&
+		sobject.IsValidatorOrOwner(participantConfig.GetRole()) &&
+		ref.GetProviderResourceRef() != nil {
+		state.addWorker()
+		go func() {
+			defer state.workerDone()
+			_, bodyRef, err := sobject.ExMountSharedObjectBodyWithSource[space.SpaceSharedObjectBody](
+				ctx,
+				a.t.p.b,
+				ref,
+				space.SpaceBodyType,
+				localSO,
+				false,
+				nil,
+			)
+			if err != nil {
+				if ctx.Err() == nil {
+					a.le.WithError(err).WithField("so-id", soID).Warn("validator Space body exited")
+				}
+				return
+			}
+			state.addRef(bodyRef)
+		}()
+	}
+
 	// Validate inbound snapshots against the local storage identity that holds
 	// the Space grant. The session transport peer routes the stream but is not
 	// necessarily a participant in a local Space.
