@@ -70,6 +70,47 @@ func TestDefaultWriteReadsBackBeforePublish(t *testing.T) {
 	}
 }
 
+// TestBatchWriteReadsBackBeforePublish proves that batch writes share the
+// pending-then-fenced lifetime used by single-block writes.
+func TestBatchWriteReadsBackBeforePublish(t *testing.T) {
+	settings := DefaultSettings()
+	settings.ShardCount = 1
+	e, cleanup := newTestEngineWithSettings(t, "test-blockshard-pending-batch", "test-blockshard-pending-batch", settings)
+	defer cleanup()
+
+	store := NewBlockStore(e, block.DefaultHashType)
+	data := []byte("buffered batch")
+	ref, err := block.BuildBlockRef(data, &block.PutOpts{HashType: block.DefaultHashType})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.PutBlockBatch(context.Background(), []*block.PutBatchEntry{{Ref: ref, Data: data}}); err != nil {
+		t.Fatal(err)
+	}
+	if n := e.pending[0].length(); n != 1 {
+		t.Fatalf("pending buffer length after pending batch: got %d want 1", n)
+	}
+	if gen := e.shards[0].Manifest().Generation; gen != 0 {
+		t.Fatalf("generation after pending batch: got %d want 0", gen)
+	}
+	value, found, err := store.GetBlock(context.Background(), ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found || string(value) != string(data) {
+		t.Fatalf("read batch before publish: found=%t value=%q", found, value)
+	}
+	if _, err := store.Sync(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if n := e.pending[0].length(); n != 0 {
+		t.Fatalf("pending buffer length after Sync: got %d want 0", n)
+	}
+	if gen := e.shards[0].Manifest().Generation; gen == 0 {
+		t.Fatal("generation after Sync: got 0 want a publish")
+	}
+}
+
 // TestPendingTombstoneShadowsPublishedValue proves pending-then-published read
 // order: a buffered tombstone wins over an older published value across the
 // value, existence, and batch-existence read paths.

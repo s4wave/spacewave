@@ -264,17 +264,31 @@ func (e *Engine) ShardForKey(key []byte) int {
 	return int(h.Sum32() % uint32(len(e.shards)))
 }
 
+type writeDispatchMode uint8
+
+const (
+	writeDispatchWait writeDispatchMode = iota
+	writeDispatchPending
+	writeDispatchBackground
+)
+
 // Put enqueues entries to the appropriate shard write actor.
 // Blocks until the entries are flushed to OPFS.
 func (e *Engine) Put(ctx context.Context, entries []segment.Entry) error {
-	return e.putToActors(ctx, "hydra/opfs-blockshard/put", entries, false)
+	return e.putToActors(ctx, "hydra/opfs-blockshard/put", entries, writeDispatchWait)
+}
+
+// PutPending enqueues latency-sensitive entries to the foreground channel and
+// returns before publication. Sync fences their durability.
+func (e *Engine) PutPending(ctx context.Context, entries []segment.Entry) error {
+	return e.putToActors(ctx, "hydra/opfs-blockshard/put-pending", entries, writeDispatchPending)
 }
 
 // PutBackground enqueues entries to the low-priority background channel.
 // Background requests are processed only when no foreground work is pending.
 // Used for GC block writes and other non-latency-sensitive operations.
 func (e *Engine) PutBackground(ctx context.Context, entries []segment.Entry) error {
-	return e.putToActors(ctx, "hydra/opfs-blockshard/put-background", entries, true)
+	return e.putToActors(ctx, "hydra/opfs-blockshard/put-background", entries, writeDispatchBackground)
 }
 
 // Sync blocks until every write enqueued before the call is durable on every
@@ -382,14 +396,14 @@ func (e *Engine) compactShardOnce(ctx context.Context, shardIdx int, shard *Shar
 	return true, nil
 }
 
-// putToActors partitions entries by shard, dispatches them to each shard actor,
-// and waits for all replies. tracePrefix is the trace task name prefix used for
-// all sub-spans emitted by this call.
+// putToActors partitions entries by shard and dispatches them to each shard
+// actor. tracePrefix is the trace task name prefix used for all sub-spans
+// emitted by this call.
 func (e *Engine) putToActors(
 	ctx context.Context,
 	tracePrefix string,
 	entries []segment.Entry,
-	background bool,
+	mode writeDispatchMode,
 ) error {
 	ctx, task := trace.NewTask(ctx, tracePrefix)
 	defer task.End()
@@ -417,18 +431,25 @@ func (e *Engine) putToActors(
 		}
 	}
 
-	if background {
+	if mode != writeDispatchWait {
 		// Fire-and-forget: wake each actor and return before the publish. The
 		// pending buffer holds the entries for read-through, and Sync fences
-		// their durability.
+		// their durability. Foreground requests stay ahead of maintenance;
+		// background requests may coalesce with maintenance work.
 		for idx := range buckets {
 			if len(buckets[idx]) == 0 {
 				continue
 			}
 			_, reqTask := trace.NewTask(taskCtx, tracePrefix+"/queue-request")
 			actor := e.actors[idx]
+			requests := actor.foreground
+			request := writeReq{err: make(chan error, 1)}
+			if mode == writeDispatchBackground {
+				requests = actor.background
+				request.background = true
+			}
 			select {
-			case actor.background <- writeReq{background: true, err: make(chan error, 1)}:
+			case requests <- request:
 				reqTask.End()
 			case <-ctx.Done():
 				reqTask.End()
