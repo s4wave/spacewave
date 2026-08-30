@@ -8,64 +8,25 @@ import (
 	fmt "fmt"
 	io "io"
 	slices "slices"
-	strconv "strconv"
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	block "github.com/s4wave/spacewave/db/kvtx/block"
 )
 
-// CanvasStorageFormat identifies the durable Canvas block representation.
-type CanvasStorageFormat int32
-
-const (
-	// CANVAS_STORAGE_FORMAT_UNKNOWN is not a durable Canvas representation.
-	CanvasStorageFormat_CANVAS_STORAGE_FORMAT_UNKNOWN CanvasStorageFormat = 0
-	// CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1 stores nodes in a block KVTX tree.
-	CanvasStorageFormat_CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1 CanvasStorageFormat = 1
-)
-
-// Enum value maps for CanvasStorageFormat.
-var (
-	CanvasStorageFormat_name = map[int32]string{
-		0: "CANVAS_STORAGE_FORMAT_UNKNOWN",
-		1: "CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1",
-	}
-	CanvasStorageFormat_value = map[string]int32{
-		"CANVAS_STORAGE_FORMAT_UNKNOWN":       0,
-		"CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1": 1,
-	}
-)
-
-func (x CanvasStorageFormat) Enum() *CanvasStorageFormat {
-	p := new(CanvasStorageFormat)
-	*p = x
-	return p
-}
-
-func (x CanvasStorageFormat) String() string {
-	name, valid := CanvasStorageFormat_name[int32(x)]
-	if valid {
-		return name
-	}
-	return strconv.Itoa(int(x))
-}
-
 // CanvasStorage is the root block of a Canvas state DAG.
 type CanvasStorage struct {
 	unknownFields []byte
-	// Format identifies the Canvas storage representation.
-	Format CanvasStorageFormat `protobuf:"varint,1,opt,name=format,proto3" json:"format,omitempty"`
 	// Nodes stores Canvas nodes. Key: UTF-8 node ID. Value: block.BlockRef to CanvasNode.
-	Nodes *block.KeyValueStore `protobuf:"bytes,2,opt,name=nodes,proto3" json:"nodes,omitempty"`
+	Nodes *block.KeyValueStore `protobuf:"bytes,1,opt,name=nodes,proto3" json:"nodes,omitempty"`
 	// Edges contains user-drawn visual edges.
-	Edges []*CanvasEdge `protobuf:"bytes,3,rep,name=edges,proto3" json:"edges,omitempty"`
+	Edges []*CanvasEdge `protobuf:"bytes,2,rep,name=edges,proto3" json:"edges,omitempty"`
 	// StrokeTreeRef identifies the freeform stroke tree.
-	StrokeTreeRef []byte `protobuf:"bytes,4,opt,name=stroke_tree_ref,json=strokeTreeRef,proto3" json:"strokeTreeRef,omitempty"`
+	StrokeTreeRef []byte `protobuf:"bytes,3,opt,name=stroke_tree_ref,json=strokeTreeRef,proto3" json:"strokeTreeRef,omitempty"`
 	// HiddenGraphLinks contains canvas-scoped hidden world graph links.
-	HiddenGraphLinks []*HiddenGraphLink `protobuf:"bytes,5,rep,name=hidden_graph_links,json=hiddenGraphLinks,proto3" json:"hiddenGraphLinks,omitempty"`
+	HiddenGraphLinks []*HiddenGraphLink `protobuf:"bytes,4,rep,name=hidden_graph_links,json=hiddenGraphLinks,proto3" json:"hiddenGraphLinks,omitempty"`
 	// LayoutMetadata contains projection layout metadata keyed by canvas node ID.
-	LayoutMetadata map[string]*CanvasLayoutMetadata `protobuf:"bytes,6,rep,name=layout_metadata,json=layoutMetadata,proto3" json:"layoutMetadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	LayoutMetadata map[string]*CanvasLayoutMetadata `protobuf:"bytes,5,rep,name=layout_metadata,json=layoutMetadata,proto3" json:"layoutMetadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
 func (x *CanvasStorage) Reset() {
@@ -73,13 +34,6 @@ func (x *CanvasStorage) Reset() {
 }
 
 func (*CanvasStorage) ProtoMessage() {}
-
-func (x *CanvasStorage) GetFormat() CanvasStorageFormat {
-	if x != nil {
-		return x.Format
-	}
-	return CanvasStorageFormat_CANVAS_STORAGE_FORMAT_UNKNOWN
-}
 
 func (x *CanvasStorage) GetNodes() *block.KeyValueStore {
 	if x != nil {
@@ -147,7 +101,6 @@ func (m *CanvasStorage) CloneVT() *CanvasStorage {
 		return (*CanvasStorage)(nil)
 	}
 	r := new(CanvasStorage)
-	r.Format = m.Format
 	r.Nodes = protobuf_go_lite.CloneVTValue(m.Nodes)
 	r.Edges = protobuf_go_lite.CloneVTSlice(m.Edges)
 	r.StrokeTreeRef = protobuf_go_lite.CloneBytes(m.StrokeTreeRef)
@@ -167,9 +120,6 @@ func (this *CanvasStorage) EqualVT(that *CanvasStorage) bool {
 	if this == that {
 		return true
 	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Format != that.Format {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Nodes, that.Nodes) {
@@ -196,46 +146,6 @@ func (this *CanvasStorage) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
-}
-
-// MarshalProtoJSON marshals the CanvasStorageFormat to JSON.
-func (x CanvasStorageFormat) MarshalProtoJSON(s *json.MarshalState) {
-	s.WriteEnum(int32(x), CanvasStorageFormat_name)
-}
-
-// MarshalText marshals the CanvasStorageFormat to text.
-func (x CanvasStorageFormat) MarshalText() ([]byte, error) {
-	return []byte(json.GetEnumString(int32(x), CanvasStorageFormat_name)), nil
-}
-
-// MarshalJSON marshals the CanvasStorageFormat to JSON.
-func (x CanvasStorageFormat) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the CanvasStorageFormat from JSON.
-func (x *CanvasStorageFormat) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	v := s.ReadEnum(CanvasStorageFormat_value)
-	if err := s.Err(); err != nil {
-		s.SetErrorf("could not read CanvasStorageFormat enum: %v", err)
-		return
-	}
-	*x = CanvasStorageFormat(v)
-}
-
-// UnmarshalText unmarshals the CanvasStorageFormat from text.
-func (x *CanvasStorageFormat) UnmarshalText(b []byte) error {
-	i, err := json.ParseEnumString(string(b), CanvasStorageFormat_value)
-	if err != nil {
-		return err
-	}
-	*x = CanvasStorageFormat(i)
-	return nil
-}
-
-// UnmarshalJSON unmarshals the CanvasStorageFormat from JSON.
-func (x *CanvasStorageFormat) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
 // MarshalProtoJSON marshals the CanvasStorage_LayoutMetadataEntry message to JSON.
@@ -300,11 +210,6 @@ func (x *CanvasStorage) MarshalProtoJSON(s *json.MarshalState) {
 	}
 	s.WriteObjectStart()
 	var wroteField bool
-	if x.Format != 0 || s.HasField("format") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("format")
-		x.Format.MarshalProtoJSON(s)
-	}
 	if x.Nodes != nil || s.HasField("nodes") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("nodes")
@@ -366,9 +271,6 @@ func (x *CanvasStorage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		switch key {
 		default:
 			s.Skip() // ignore unknown field
-		case "format":
-			s.AddField("format")
-			x.Format.UnmarshalProtoJSON(s)
 		case "nodes":
 			if s.ReadNil() {
 				x.Nodes = nil
@@ -482,7 +384,7 @@ func (m *CanvasStorage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			dAtA[i] = 0xa
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(baseI-i))
 			i--
-			dAtA[i] = 0x32
+			dAtA[i] = 0x2a
 		}
 	}
 	if len(m.HiddenGraphLinks) > 0 {
@@ -494,13 +396,13 @@ func (m *CanvasStorage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x2a
+			dAtA[i] = 0x22
 		}
 	}
 	if len(m.StrokeTreeRef) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.StrokeTreeRef)
 		i--
-		dAtA[i] = 0x22
+		dAtA[i] = 0x1a
 	}
 	if len(m.Edges) > 0 {
 		for iNdEx := len(m.Edges) - 1; iNdEx >= 0; iNdEx-- {
@@ -511,7 +413,7 @@ func (m *CanvasStorage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 			i -= size
 			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x1a
+			dAtA[i] = 0x12
 		}
 	}
 	if m.Nodes != nil {
@@ -522,12 +424,7 @@ func (m *CanvasStorage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= size
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
 		i--
-		dAtA[i] = 0x12
-	}
-	if m.Format != 0 {
-		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Format))
-		i--
-		dAtA[i] = 0x8
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -538,7 +435,6 @@ func (m *CanvasStorage) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
-	n += protobuf_go_lite.SizeVarintNonZero(1, m.Format)
 	if m.Nodes != nil {
 		l = m.Nodes.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
@@ -566,10 +462,6 @@ func (m *CanvasStorage) SizeVT() (n int) {
 	return n
 }
 
-func (x CanvasStorageFormat) MarshalProtoText() string {
-	return x.String()
-}
-
 func (x *CanvasStorage_LayoutMetadataEntry) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "LayoutMetadataEntry")
@@ -591,10 +483,6 @@ func (x *CanvasStorage_LayoutMetadataEntry) String() string {
 func (x *CanvasStorage) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
 	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CanvasStorage")
-	if x.Format != 0 {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "format")
-		protobuf_go_lite.TextWriteStringer(&sb, CanvasStorageFormat(x.Format))
-	}
 	if x.Nodes != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "nodes")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Nodes)
@@ -670,17 +558,6 @@ func (m *CanvasStorage) UnmarshalVT(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Format", wireType)
-			}
-			m.Format = 0
-			var _v uint64
-			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-			m.Format = CanvasStorageFormat(_v)
-			if err != nil {
-				return err
-			}
-		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Nodes", wireType)
 			}
@@ -695,7 +572,7 @@ func (m *CanvasStorage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 3:
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Edges", wireType)
 			}
@@ -708,7 +585,7 @@ func (m *CanvasStorage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 4:
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StrokeTreeRef", wireType)
 			}
@@ -716,7 +593,7 @@ func (m *CanvasStorage) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		case 5:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field HiddenGraphLinks", wireType)
 			}
@@ -729,7 +606,7 @@ func (m *CanvasStorage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 6:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LayoutMetadata", wireType)
 			}

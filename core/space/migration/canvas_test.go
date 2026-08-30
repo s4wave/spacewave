@@ -24,12 +24,12 @@ func TestCanvasCombineIsTypedPerObjectKey(t *testing.T) {
 	}
 	defer destination.Release()
 	setObject(t, ctx, source.WorldState, "child", s4wave_kv_world.KvStoreTypeID)
-	setObjectBlock(t, ctx, source.WorldState, "canvas-object", s4wave_canvas_world.CanvasTypeID, &s4wave_canvas.CanvasState{
+	setCanvasState(t, ctx, source.WorldState, "canvas-object", &s4wave_canvas.CanvasState{
 		Nodes: map[string]*s4wave_canvas.CanvasNode{
 			"node-1": {Id: "node-1", ObjectKey: "child"},
 		},
 	})
-	setObjectBlock(t, ctx, destination.WorldState, "canvas-object", s4wave_canvas_world.CanvasTypeID, &s4wave_canvas.CanvasState{
+	setCanvasState(t, ctx, destination.WorldState, "canvas-object", &s4wave_canvas.CanvasState{
 		Nodes: map[string]*s4wave_canvas.CanvasNode{
 			"existing-node": {Id: "existing-node", ObjectKey: "child"},
 		},
@@ -66,7 +66,7 @@ func TestCanvasRewriteRemapsNodeObjectKeyWhenCanvasRenamed(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tb.Release()
-	setObjectBlock(t, ctx, tb.WorldState, "canvas-object", s4wave_canvas_world.CanvasTypeID, &s4wave_canvas.CanvasState{
+	setCanvasState(t, ctx, tb.WorldState, "canvas-object", &s4wave_canvas.CanvasState{
 		Nodes: map[string]*s4wave_canvas.CanvasNode{
 			"node-1": {Id: "node-1", ObjectKey: "child"},
 		},
@@ -85,7 +85,7 @@ func TestCanvasRewriteRemapsNodeObjectKeyWhenCanvasRenamed(t *testing.T) {
 		t.Fatal(err)
 	}
 	var rewritten s4wave_canvas.CanvasState
-	if err := rewritten.UnmarshalBlock(result.Payload); err != nil {
+	if err := rewritten.UnmarshalVT(result.Payload); err != nil {
 		t.Fatal(err)
 	}
 	node := rewritten.GetNodes()["node-1"]
@@ -101,7 +101,7 @@ func TestCanvasRewriteRemapsNodeIDAndObjectKeyOnCombine(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tb.Release()
-	setObjectBlock(t, ctx, tb.WorldState, "canvas-object", s4wave_canvas_world.CanvasTypeID, &s4wave_canvas.CanvasState{
+	setCanvasState(t, ctx, tb.WorldState, "canvas-object", &s4wave_canvas.CanvasState{
 		Nodes: map[string]*s4wave_canvas.CanvasNode{
 			"node-1": {Id: "node-1", ObjectKey: "child"},
 		},
@@ -121,7 +121,7 @@ func TestCanvasRewriteRemapsNodeIDAndObjectKeyOnCombine(t *testing.T) {
 		t.Fatal(err)
 	}
 	var rewritten s4wave_canvas.CanvasState
-	if err := rewritten.UnmarshalBlock(result.Payload); err != nil {
+	if err := rewritten.UnmarshalVT(result.Payload); err != nil {
 		t.Fatal(err)
 	}
 	node := rewritten.GetNodes()["node-1-combined"]

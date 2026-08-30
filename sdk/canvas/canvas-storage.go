@@ -16,8 +16,7 @@ func NewCanvasStorageBlock() block.Block {
 // NewCanvasStorage constructs an empty Canvas storage DAG.
 func NewCanvasStorage() *CanvasStorage {
 	return &CanvasStorage{
-		Format: CanvasStorageFormat_CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1,
-		Nodes:  block_kvtx.NewKeyValueStoreForWorkload(block_kvtx.WorkloadClassWriteChurn),
+		Nodes: block_kvtx.NewKeyValueStoreForWorkload(block_kvtx.WorkloadClassWriteChurn),
 	}
 }
 
@@ -26,11 +25,8 @@ func (s *CanvasStorage) DecodedBlockCacheTypeKey() string {
 	return "sdk/canvas.CanvasStorage"
 }
 
-// Validate checks the Canvas storage format and node index.
+// Validate checks the Canvas node index.
 func (s *CanvasStorage) Validate() error {
-	if s.GetFormat() != CanvasStorageFormat_CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1 {
-		return errors.Errorf("unsupported Canvas storage format: %s", s.GetFormat())
-	}
 	if s.GetNodes() == nil {
 		return errors.New("Canvas storage node index is missing")
 	}
@@ -49,7 +45,7 @@ func (s *CanvasStorage) UnmarshalBlock(data []byte) error {
 
 // ApplySubBlock applies a Canvas storage sub-block change.
 func (s *CanvasStorage) ApplySubBlock(id uint32, next block.SubBlock) error {
-	if id != 2 {
+	if id != 1 {
 		return nil
 	}
 	nodes, ok := next.(*block_kvtx.KeyValueStore)
@@ -62,12 +58,12 @@ func (s *CanvasStorage) ApplySubBlock(id uint32, next block.SubBlock) error {
 
 // GetSubBlocks returns the Canvas storage sub-blocks by field ID.
 func (s *CanvasStorage) GetSubBlocks() map[uint32]block.SubBlock {
-	return map[uint32]block.SubBlock{2: s.GetNodes()}
+	return map[uint32]block.SubBlock{1: s.GetNodes()}
 }
 
 // GetSubBlockCtor returns the constructor for a Canvas storage sub-block.
 func (s *CanvasStorage) GetSubBlockCtor(id uint32) block.SubBlockCtor {
-	if id != 2 {
+	if id != 1 {
 		return nil
 	}
 	return func(create bool) block.SubBlock {

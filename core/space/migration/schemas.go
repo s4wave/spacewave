@@ -494,9 +494,8 @@ func rewriteCanvas(ctx context.Context, object *ObjectDescriptor, mapping *Ident
 		link.Object = mapGraphReference(mapping, link.GetObject())
 		link.Label = mapGraphReference(mapping, link.GetLabel())
 	}
-	// Migration payloads contain one self-contained root block, so materialize
-	// the Canvas DAG as the legacy flat encoding. The destination reads that
-	// encoding and migrates it to the local block KVTX backend on its next write.
+	// Migration rewrites use the logical CanvasState transport payload. Durable
+	// Canvas objects use CanvasStorage and must be created through WriteCanvasState.
 	data, err := state.MarshalBlock()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal Canvas payload")

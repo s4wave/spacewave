@@ -112,8 +112,7 @@ func setupCanvasWatchWorld(
 		t.Fatal(err.Error())
 	}
 	_, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
-		bcs.SetBlock(state, true)
-		return nil
+		return WriteCanvasState(ctx, bcs, nil, state)
 	})
 	if err == nil {
 		err = ws.Commit(ctx)
@@ -139,8 +138,7 @@ func setCanvasWatchWorldState(
 	t.Helper()
 
 	_, _, err := world.AccessWorldObject(ctx, ws, objKey, true, func(bcs *block.Cursor) error {
-		bcs.SetBlock(state, true)
-		return nil
+		return WriteCanvasState(ctx, bcs, nil, state)
 	})
 	if err == nil {
 		err = ws.Commit(ctx)
@@ -529,7 +527,7 @@ func TestUpdateCanvasMutatesLayoutMetadata(t *testing.T) {
 	}
 }
 
-func TestUpdateCanvasAcceptsEmptyLegacyLayoutMetadata(t *testing.T) {
+func TestUpdateCanvasAcceptsEmptyLayoutMetadata(t *testing.T) {
 	ctx := context.Background()
 	resource := NewCanvasResource(nil, nil, "", &CanvasState{
 		Nodes: map[string]*CanvasNode{
@@ -553,7 +551,7 @@ func TestUpdateCanvasAcceptsEmptyLegacyLayoutMetadata(t *testing.T) {
 	}
 	requireCanvasNode(t, resp.GetState(), "manual")
 	if got := requireCanvasLayoutMetadata(t, resp.GetState(), "workflow").GetStableNodeId(); got != "spell-run:workflow" {
-		t.Fatalf("expected metadata to be added to legacy empty map, got %q", got)
+		t.Fatalf("expected metadata to be added to empty map, got %q", got)
 	}
 }
 
@@ -616,7 +614,7 @@ func TestCanvasHiddenGraphLinksJSONRoundTrip(t *testing.T) {
 	}
 }
 
-func TestCanvasStorageMigratesFlatStateAndKeepsUnchangedNodeRef(t *testing.T) {
+func TestCanvasStorageUpdatesNodeDAGAndKeepsUnchangedNodeRef(t *testing.T) {
 	for _, nodeCount := range []int{1, 100, 1000} {
 		t.Run(strconv.Itoa(nodeCount), func(t *testing.T) {
 			ctx := t.Context()
@@ -637,28 +635,28 @@ func TestCanvasStorageMigratesFlatStateAndKeepsUnchangedNodeRef(t *testing.T) {
 			}
 			ws, release := setupCanvasWatchWorld(t, ctx, "canvas", initial)
 			defer release()
-			legacy, err := LookupCanvasState(ctx, ws, "canvas")
+			stored, err := LookupCanvasState(ctx, ws, "canvas")
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !legacy.EqualVT(initial) {
-				t.Fatalf("legacy state has %d nodes, want %d", len(legacy.GetNodes()), nodeCount)
+			if !stored.EqualVT(initial) {
+				t.Fatalf("stored state has %d nodes, want %d", len(stored.GetNodes()), nodeCount)
 			}
 
-			migrated := initial.CloneVT()
-			migrated.Nodes["node-0000"].Width++
-			writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, migrated)
+			firstUpdate := initial.CloneVT()
+			firstUpdate.Nodes["node-0000"].Width++
+			writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, firstUpdate)
 			got, err := LookupCanvasState(ctx, ws, "canvas")
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !got.EqualVT(migrated) {
-				t.Fatalf("migrated state has %d nodes, want %d", len(got.GetNodes()), nodeCount)
+			if !got.EqualVT(firstUpdate) {
+				t.Fatalf("stored state has %d nodes, want %d", len(got.GetNodes()), nodeCount)
 			}
 			firstRefs := canvasStorageNodeRefs(t, ctx, ws, "canvas")
 			firstDagRefs := canvasStorageNodeDagRefs(t, ctx, ws, "canvas")
 
-			next := migrated.CloneVT()
+			next := firstUpdate.CloneVT()
 			next.Nodes["node-0000"].Width++
 			writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, next)
 			secondRefs := canvasStorageNodeRefs(t, ctx, ws, "canvas")
@@ -718,14 +716,14 @@ func TestCanvasStorageRootIsDeterministic(t *testing.T) {
 		id := fmt.Sprintf("node-%04d", i)
 		descending.Nodes[id] = &CanvasNode{Id: id, Width: float64(i)}
 	}
-	first := migratedCanvasStorageRoot(t, ascending)
-	second := migratedCanvasStorageRoot(t, descending)
+	first := canvasStorageRoot(t, ascending)
+	second := canvasStorageRoot(t, descending)
 	if first != second {
 		t.Fatalf("Canvas storage roots differ: %s != %s", first, second)
 	}
 }
 
-func migratedCanvasStorageRoot(t *testing.T, state *CanvasState) string {
+func canvasStorageRoot(t *testing.T, state *CanvasState) string {
 	t.Helper()
 	ctx := t.Context()
 	ws, release := setupCanvasWatchWorld(t, ctx, "canvas", state)
@@ -742,18 +740,18 @@ func migratedCanvasStorageRoot(t *testing.T, state *CanvasState) string {
 	return root
 }
 
-func TestCanvasStorageMigratesEmptyLegacyState(t *testing.T) {
+func TestCanvasStorageWritesEmptyNodeIndex(t *testing.T) {
 	ctx := t.Context()
 	initial := &CanvasState{}
 	ws, release := setupCanvasWatchWorld(t, ctx, "canvas", initial)
 	defer release()
 
-	legacy, err := LookupCanvasState(ctx, ws, "canvas")
+	stored, err := LookupCanvasState(ctx, ws, "canvas")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !legacy.EqualVT(initial) {
-		t.Fatalf("empty legacy state = %#v", legacy)
+	if !stored.EqualVT(initial) {
+		t.Fatalf("empty stored state = %#v", stored)
 	}
 	next := &CanvasState{Edges: []*CanvasEdge{{Id: "edge"}}}
 	writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, next)
@@ -762,7 +760,7 @@ func TestCanvasStorageMigratesEmptyLegacyState(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !got.EqualVT(next) {
-		t.Fatalf("migrated empty state = %#v, want %#v", got, next)
+		t.Fatalf("stored empty state = %#v, want %#v", got, next)
 	}
 }
 
@@ -827,7 +825,7 @@ func canvasStorageNodeDagRefs(
 		if _, err := UnmarshalCanvasStorage(ctx, bcs); err != nil {
 			return err
 		}
-		nodes, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), false)
+		nodes, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), false)
 		if err != nil {
 			return err
 		}
@@ -864,7 +862,7 @@ func canvasStorageNodeDagRefs(
 			}
 			return nil
 		}
-		return collect(bcs.FollowSubBlock(2))
+		return collect(bcs.FollowSubBlock(1))
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -888,7 +886,7 @@ func canvasStorageNodeRefs(
 		if got, want := storage.GetNodes().GetImplType(), block_kvtx.DefaultKeyValueStoreImplForWorkload(block_kvtx.WorkloadClassWriteChurn); got != want {
 			t.Fatalf("Canvas node backend = %s, want workload policy %s", got, want)
 		}
-		tx, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), false)
+		tx, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(1), false)
 		if err != nil {
 			return err
 		}

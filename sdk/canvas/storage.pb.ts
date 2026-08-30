@@ -2,7 +2,6 @@
 // @generated from file github.com/s4wave/spacewave/sdk/canvas/storage.proto (package s4wave.canvas, syntax proto3)
 /* eslint-disable */
 
-import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import { KeyValueStore } from '../../db/kvtx/block/kvtx.pb.js'
 import {
   CanvasEdge,
@@ -17,74 +16,39 @@ import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 export const protobufPackage = 's4wave.canvas'
 
 /**
- * CanvasStorageFormat identifies the durable Canvas block representation.
- *
- * @generated from enum s4wave.canvas.CanvasStorageFormat
- */
-export enum CanvasStorageFormat {
-  /**
-   * CANVAS_STORAGE_FORMAT_UNKNOWN is not a durable Canvas representation.
-   *
-   * @generated from enum value: CANVAS_STORAGE_FORMAT_UNKNOWN = 0;
-   */
-  UNKNOWN = 0,
-
-  /**
-   * CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1 stores nodes in a block KVTX tree.
-   *
-   * @generated from enum value: CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1 = 1;
-   */
-  BLOCK_KVTX_V1 = 1,
-}
-
-export const CanvasStorageFormat_Enum = /* @__PURE__ */ createEnumType(
-  's4wave.canvas.CanvasStorageFormat',
-  [
-    [0, 'CANVAS_STORAGE_FORMAT_UNKNOWN'],
-    [1, 'CANVAS_STORAGE_FORMAT_BLOCK_KVTX_V1'],
-  ],
-)
-
-/**
  * CanvasStorage is the root block of a Canvas state DAG.
  *
  * @generated from message s4wave.canvas.CanvasStorage
  */
 export interface CanvasStorage {
   /**
-   * Format identifies the Canvas storage representation.
-   *
-   * @generated from field: s4wave.canvas.CanvasStorageFormat format = 1;
-   */
-  format?: CanvasStorageFormat
-  /**
    * Nodes stores Canvas nodes. Key: UTF-8 node ID. Value: block.BlockRef to CanvasNode.
    *
-   * @generated from field: kvtx.block.KeyValueStore nodes = 2;
+   * @generated from field: kvtx.block.KeyValueStore nodes = 1;
    */
   nodes?: KeyValueStore
   /**
    * Edges contains user-drawn visual edges.
    *
-   * @generated from field: repeated s4wave.canvas.CanvasEdge edges = 3;
+   * @generated from field: repeated s4wave.canvas.CanvasEdge edges = 2;
    */
   edges?: CanvasEdge[]
   /**
    * StrokeTreeRef identifies the freeform stroke tree.
    *
-   * @generated from field: bytes stroke_tree_ref = 4;
+   * @generated from field: bytes stroke_tree_ref = 3;
    */
   strokeTreeRef?: Uint8Array
   /**
    * HiddenGraphLinks contains canvas-scoped hidden world graph links.
    *
-   * @generated from field: repeated s4wave.canvas.HiddenGraphLink hidden_graph_links = 5;
+   * @generated from field: repeated s4wave.canvas.HiddenGraphLink hidden_graph_links = 4;
    */
   hiddenGraphLinks?: HiddenGraphLink[]
   /**
    * LayoutMetadata contains projection layout metadata keyed by canvas node ID.
    *
-   * @generated from field: map<string, s4wave.canvas.CanvasLayoutMetadata> layout_metadata = 6;
+   * @generated from field: map<string, s4wave.canvas.CanvasLayoutMetadata> layout_metadata = 5;
    */
   layoutMetadata?: { [key: string]: CanvasLayoutMetadata }
 }
@@ -93,25 +57,24 @@ export const CanvasStorage: MessageType<CanvasStorage> =
   /* @__PURE__ */ createMessageType({
     typeName: 's4wave.canvas.CanvasStorage',
     fields: [
-      { no: 1, name: 'format', kind: 'enum', T: CanvasStorageFormat_Enum },
-      { no: 2, name: 'nodes', kind: 'message', T: () => KeyValueStore },
+      { no: 1, name: 'nodes', kind: 'message', T: () => KeyValueStore },
       {
-        no: 3,
+        no: 2,
         name: 'edges',
         kind: 'message',
         T: () => CanvasEdge,
         repeated: true,
       },
-      { no: 4, name: 'stroke_tree_ref', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 3, name: 'stroke_tree_ref', kind: 'scalar', T: ScalarType.BYTES },
       {
-        no: 5,
+        no: 4,
         name: 'hidden_graph_links',
         kind: 'message',
         T: () => HiddenGraphLink,
         repeated: true,
       },
       {
-        no: 6,
+        no: 5,
         name: 'layout_metadata',
         kind: 'map',
         K: ScalarType.STRING,
