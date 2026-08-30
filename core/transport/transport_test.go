@@ -452,9 +452,9 @@ func (*establishLinkSpy) Execute(ctx context.Context) error {
 
 func (*establishLinkSpy) Close() error { return nil }
 
-// TestSessionTransportKeepsEstablishLinkOnChildBus prevents one desired peer
-// from starting duplicate WebRTC offers on both the session and parent buses.
-func TestSessionTransportKeepsEstablishLinkOnChildBus(t *testing.T) {
+// TestSessionTransportKeepsProtocolsOnChildBus prevents session protocol
+// controllers from splitting attached values across duplicate parent directives.
+func TestSessionTransportKeepsProtocolsOnChildBus(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	tb, err := testbed.Default(ctx)
@@ -506,8 +506,8 @@ func TestSessionTransportKeepsEstablishLinkOnChildBus(t *testing.T) {
 	defer bridgeRef.Release()
 	select {
 	case <-spy.bridgedSig:
-	case <-ctx.Done():
-		t.Fatalf("parent bus did not observe bridged protocol directive: %v", ctx.Err())
+		t.Fatal("parent bus observed a session SolicitProtocol directive")
+	case <-time.After(100 * time.Millisecond):
 	}
 	if got := spy.count.Load(); got != 0 {
 		t.Fatalf("parent bus observed %d EstablishLinkWithPeer directives", got)

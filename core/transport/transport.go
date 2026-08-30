@@ -15,6 +15,7 @@ import (
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	bifrost_crypto "github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/link"
+	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
 	link_solicit_controller "github.com/s4wave/spacewave/net/link/solicit/controller"
 	"github.com/s4wave/spacewave/net/peer"
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
@@ -484,9 +485,18 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 				return process, err
 			}
 		}
-		switch di.GetDirective().(type) {
-		case peer.GetPeer, link.EstablishLinkWithPeer, signaling.SignalPeer, signaling.HandleSignalPeer:
+		switch d := di.GetDirective().(type) {
+		case peer.GetPeer, link.EstablishLinkWithPeer, link_solicit.SolicitProtocol,
+			signaling.SignalPeer, signaling.HandleSignalPeer:
 			return false, nil
+		case resolver.LoadControllerWithConfig:
+			if _, ok := d.GetLoadControllerConfig().(*dex_solicit.Config); ok {
+				return false, nil
+			}
+		case loader.ExecController:
+			if _, ok := d.GetExecControllerConfig().(*dex_solicit.Config); ok {
+				return false, nil
+			}
 		}
 		return true, nil
 	})
