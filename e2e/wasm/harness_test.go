@@ -1579,12 +1579,18 @@ func assertGoScriptFSHandleBrowserResourceOperations(t testing.TB, page playwrig
 			}
 
 			step = 'directory-create-read'
-			await rootHandle.mkdirAll(['row2-dir', 'nested'], 0o755, abort)
-			const nested = await rootHandle.lookupPath('row2-dir/nested', abort)
-			const nestedEntries = await nested.handle.readdirAll(0n, abort)
-			nested.handle.release()
-			if (!Array.isArray(nestedEntries)) {
-				return { error: 'nested directory readdir did not return entries' }
+			const mkdirSamplesMs = []
+			for (let idx = 0; idx < 3; idx++) {
+				const name = 'row2-mkdir-' + idx
+				const startedAt = performance.now()
+				await rootHandle.mkdirAll([name], 0o755, abort)
+				mkdirSamplesMs.push(performance.now() - startedAt)
+				const dir = await rootHandle.lookup(name, abort)
+				const entries = await dir.readdirAll(0n, abort)
+				dir.release()
+				if (!Array.isArray(entries)) {
+					return { error: 'created directory readdir did not return entries' }
+				}
 			}
 
 			step = 'rename-remove'
@@ -1595,10 +1601,7 @@ func assertGoScriptFSHandleBrowserResourceOperations(t testing.TB, page playwrig
 			}
 			file.release()
 			await rootHandle.remove(['row2-renamed.txt'], abort)
-			const row2Dir = await rootHandle.lookup('row2-dir', abort)
-			await row2Dir.remove(['nested'], abort)
-			row2Dir.release()
-			await rootHandle.remove(['row2-dir'], abort)
+			await rootHandle.remove(['row2-mkdir-0', 'row2-mkdir-1', 'row2-mkdir-2'], abort)
 
 			step = 'upload-file'
 			const uploadedFileBytes = await rootHandle.uploadFile(
@@ -1657,6 +1660,7 @@ func assertGoScriptFSHandleBrowserResourceOperations(t testing.TB, page playwrig
 				fileWriteRead: true,
 				truncate: true,
 				directoryRead: true,
+				mkdirSamplesMs,
 				rename: true,
 				remove: true,
 				uploadFileBytes: uploadedFileBytes.toString(),
@@ -1705,6 +1709,7 @@ func assertGoScriptFSHandleBrowserResourceOperations(t testing.TB, page playwrig
 	if stringField(result, "treeUploadBytes") != "10" {
 		t.Fatalf("FSHandle uploadTree bytes mismatch: %#v", result)
 	}
+	recordUnixFSMkdirTiming(t, result)
 }
 
 func assertDirectSharedObjectRouteSpaceState(t testing.TB, page playwright.Page) {
