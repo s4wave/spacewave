@@ -255,7 +255,7 @@ func applyDeclaredCapacity(
 ) error {
 	owned, err := admission.ScanOwnedCapacity(ctx, ref.DeviceObjectKey)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "scan owned capacity")
 	}
 	declaredKey := ""
 	if declared != nil {
@@ -267,12 +267,12 @@ func applyDeclaredCapacity(
 		handled[key] = true
 		capacity, err := admission.ClaimWorkerCapacity(ctx, key, ref)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "claim owned worker capacity")
 		}
 		if key == declaredKey {
 			if _, err := admission.ObserveWorker(ctx, key, ref, capacity.OwnerEpoch,
 				declared.GetMilliCpu(), declared.GetMemoryBytes(), declared.GetBackends()); err != nil {
-				return err
+				return errors.Wrap(err, "observe declared worker capacity")
 			}
 			continue
 		}
@@ -280,7 +280,7 @@ func applyDeclaredCapacity(
 		// when terminal. Completion failure means reservations are still
 		// live; the next cycle retries.
 		if _, err := admission.BeginDrainCapacity(ctx, key, ref, capacity.OwnerEpoch); err != nil {
-			return err
+			return errors.Wrap(err, "begin stale capacity drain")
 		}
 		if err := admission.CompleteDrainCapacity(ctx, key, ref, capacity.OwnerEpoch); err != nil {
 			le.WithError(err).Debug("drained capacity retains live reservations")
@@ -291,11 +291,11 @@ func applyDeclaredCapacity(
 	}
 	capacity, err := admission.ClaimWorkerCapacity(ctx, declaredKey, ref)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "claim declared worker capacity")
 	}
 	_, err = admission.ObserveWorker(ctx, declaredKey, ref, capacity.OwnerEpoch,
 		declared.GetMilliCpu(), declared.GetMemoryBytes(), declared.GetBackends())
-	return err
+	return errors.Wrap(err, "observe declared worker capacity")
 }
 
 // renewOwnedCapacityOnceWithAdmission renews every record the Device owns
