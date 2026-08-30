@@ -64,6 +64,11 @@ type ProviderAccount struct {
 	p2pSync *p2pSyncState
 	// p2pPeerIDs are enrollment peers retained across P2P sync state restarts.
 	p2pPeerIDs map[string]peer.ID
+	// p2pPendingEnrollPeers are device peers recorded by SpaceLink approval that
+	// have not joined through their invite yet. The Device dials the owner via
+	// the invite, so auto-start must not dial these peers first. Memory-only:
+	// after a daemon restart the devices are dialed again for recovery.
+	p2pPendingEnrollPeers map[string]struct{}
 	// sessionTransport is the running session transport, nil when not active.
 	sessionTransport *sessionTransportState
 	// transportBcast guards sessionTransport state changes.

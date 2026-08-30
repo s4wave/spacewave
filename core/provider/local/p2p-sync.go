@@ -338,6 +338,29 @@ func (a *ProviderAccount) startP2PSync(ctx, ownerCtx context.Context, sessionTra
 	return a.awaitP2PSyncStart(ctx, state)
 }
 
+// markP2PPendingEnrollPeer records a device peer recorded by SpaceLink
+// approval whose invite has not been consumed yet. Auto-start skips these
+// peers so the owner never dials a device that has not connected once in
+// this process; the Device dials the owner through the one-use invite.
+func (a *ProviderAccount) markP2PPendingEnrollPeer(remotePeerID peer.ID) {
+	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if a.p2pPendingEnrollPeers == nil {
+			a.p2pPendingEnrollPeers = make(map[string]struct{})
+		}
+		a.p2pPendingEnrollPeers[remotePeerID.String()] = struct{}{}
+		bcast()
+	})
+}
+
+// clearP2PPendingEnrollPeer removes a device peer from the pending-enrollment
+// set after the device joined through its invite.
+func (a *ProviderAccount) clearP2PPendingEnrollPeer(remotePeerID peer.ID) {
+	a.p2pSyncBcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		delete(a.p2pPendingEnrollPeers, remotePeerID.String())
+		bcast()
+	})
+}
+
 // RetainP2PPeer keeps an EstablishLinkWithPeer directive across P2P sync
 // state restarts. Device enrollment calls it with the persisted invite owner
 // so daemon restart reconnects without repeating the one-use invite.
@@ -976,6 +999,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 			}
 		}
 		if result.Invite.GetTargetPeerId() == inviteePeerID.String() {
+			a.clearP2PPendingEnrollPeer(inviteePeerID)
 			if err := a.RetainP2PPeer(ctx, inviteePeerID); err != nil {
 				return nil, errors.Wrap(err, "retain enrolled peer")
 			}

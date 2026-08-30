@@ -4,6 +4,8 @@ import (
 	"context"
 	"slices"
 
+	csync "github.com/aperturerobotics/util/csync"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/aperturerobotics/util/keyed"
@@ -45,6 +47,16 @@ type Provider struct {
 	// linkedCloudAccountLoader loads linked cloud account state for a local
 	// account after the account is published.
 	linkedCloudAccountLoader func(context.Context, *ProviderAccount) (string, error)
+
+	// seedKeysMtx guards seedKeys.
+	seedKeysMtx csync.Mutex
+	// seedKeys holds session private key PEMs seeded by
+	// CreateLocalAccountAndSessionWithKey, keyed by
+	// providerID/accountID/sessionID. The account volume can restart before
+	// the caller re-opens the session, and an ephemeral storage backend then
+	// loses the stored key; the seed here keeps the session identity stable
+	// for the provider lifetime.
+	seedKeys map[string][]byte
 }
 
 // providerBackoff is the default backoff for provider services.
@@ -151,6 +163,13 @@ func (p *Provider) CreateLocalAccountAndSessionWithKey(ctx context.Context, clou
 		},
 	}
 
+	// Retain the seed key for the provider lifetime so a session remount
+	// after an account restart reopens with the same identity even when the
+	// storage backend did not persist the stored key yet.
+	if len(keyPEM) != 0 {
+		p.setSeedKey(p.info.GetProviderId(), localAccountID, localSessionID, keyPEM)
+	}
+
 	// Access the tracker directly to set cloudAccountID before the session
 	// starts executing (the tracker blocks on ref.Await until we set it).
 	localAcc := provAcc.(*ProviderAccount)
@@ -173,6 +192,36 @@ func (p *Provider) CreateLocalAccountAndSessionWithKey(ctx context.Context, clou
 	tkrRef.Release()
 
 	return sessRef, nil
+}
+
+// setSeedKey stores a session seed key PEM in the provider-level map.
+func (p *Provider) setSeedKey(providerID, accountID, sessionID string, keyPEM []byte) {
+	release, err := p.seedKeysMtx.Lock(context.Background())
+	if err != nil {
+		p.le.WithError(err).Warn("provider seed key lock failed")
+		return
+	}
+	defer release()
+	if p.seedKeys == nil {
+		p.seedKeys = make(map[string][]byte)
+	}
+	p.seedKeys[seedKeyID(providerID, accountID, sessionID)] = slices.Clone(keyPEM)
+}
+
+// getSeedKey returns the stored session seed key PEM, or nil when absent.
+func (p *Provider) getSeedKey(providerID, accountID, sessionID string) []byte {
+	release, err := p.seedKeysMtx.Lock(context.Background())
+	if err != nil {
+		p.le.WithError(err).Warn("provider seed key lock failed")
+		return nil
+	}
+	defer release()
+	return p.seedKeys[seedKeyID(providerID, accountID, sessionID)]
+}
+
+// seedKeyID builds the provider-level seed key map ID.
+func seedKeyID(providerID, accountID, sessionID string) string {
+	return providerID + "/" + accountID + "/" + sessionID
 }
 
 func (a *ProviderAccount) writeLinkedCloudAccountID(ctx context.Context, sessionID, cloudAccountID string) error {
