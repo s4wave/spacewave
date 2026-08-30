@@ -541,11 +541,17 @@ func (a *ProviderAccount) EnsureConfiguredSessionTransport(
 	sessionPriv crypto.PrivKey,
 ) error {
 	relay := a.fallbackSignalingEndpoint()
-	_, _, err := a.ensureSessionTransportWithoutReplacement(
+	ownerCtx := a.lifecycleCtx
+	if ownerCtx == nil {
+		ownerCtx = ctx
+	}
+	_, _, err := a.ensureSessionTransportWithOwner(
 		ctx,
+		ownerCtx,
 		sessionPriv,
 		relay.url,
 		relay.signingEnvPrefix,
+		false,
 	)
 	return err
 }
@@ -561,6 +567,24 @@ func (a *ProviderAccount) ensureSessionTransport(
 
 func (a *ProviderAccount) ensureSessionTransportWithReplacement(
 	ctx context.Context,
+	sessionPriv crypto.PrivKey,
+	relayURL string,
+	signingEnvPrefix string,
+	replaceMismatched bool,
+) (*sessionTransportState, bool, error) {
+	return a.ensureSessionTransportWithOwner(
+		ctx,
+		ctx,
+		sessionPriv,
+		relayURL,
+		signingEnvPrefix,
+		replaceMismatched,
+	)
+}
+
+func (a *ProviderAccount) ensureSessionTransportWithOwner(
+	ctx context.Context,
+	ownerCtx context.Context,
 	sessionPriv crypto.PrivKey,
 	relayURL string,
 	signingEnvPrefix string,
@@ -598,7 +622,7 @@ func (a *ProviderAccount) ensureSessionTransportWithReplacement(
 		if sts != nil {
 			a.le.Debug("replacing session transport with requested configuration")
 		}
-		sts, err = a.startSessionTransportLocked(ctx, cleanupCtx, sessionPriv, relayURL, signingEnvPrefix)
+		sts, err = a.startSessionTransportLocked(ownerCtx, cleanupCtx, sessionPriv, relayURL, signingEnvPrefix)
 		rel()
 		cleanupCancel()
 		if err != nil {
