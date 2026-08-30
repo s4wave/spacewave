@@ -21,14 +21,12 @@ type Secret struct {
 	unknownFields []byte
 	// DisplayName is the user-visible secret label.
 	DisplayName string `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"displayName,omitempty"`
-	// Kind identifies the secret use, such as matrix_access_token.
+	// Kind identifies the secret use, such as provider_credential or ssh_private_key.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// NestedSharedObjectId is the SharedObject id that stores the payload.
 	NestedSharedObjectId string `protobuf:"bytes,3,opt,name=nested_shared_object_id,json=nestedSharedObjectId,proto3" json:"nestedSharedObjectId,omitempty"`
 	// Ref points at the nested SharedObject security domain.
 	Ref *sobject.SharedObjectRef `protobuf:"bytes,4,opt,name=ref,proto3" json:"ref,omitempty"`
-	// ValueHash is an optional redacted integrity hint.
-	ValueHash string `protobuf:"bytes,5,opt,name=value_hash,json=valueHash,proto3" json:"valueHash,omitempty"`
 	// CreatedAt is when the Secret object was created.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
 	// UpdatedAt is when the Secret metadata was last updated.
@@ -67,13 +65,6 @@ func (x *Secret) GetRef() *sobject.SharedObjectRef {
 		return x.Ref
 	}
 	return nil
-}
-
-func (x *Secret) GetValueHash() string {
-	if x != nil {
-		return x.ValueHash
-	}
-	return ""
 }
 
 func (x *Secret) GetCreatedAt() *timestamppb.Timestamp {
@@ -478,7 +469,6 @@ func (m *Secret) CloneVT() *Secret {
 	r.DisplayName = m.DisplayName
 	r.Kind = m.Kind
 	r.NestedSharedObjectId = m.NestedSharedObjectId
-	r.ValueHash = m.ValueHash
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
 	r.UpdatedAt = protobuf_go_lite.CloneVTValue(m.UpdatedAt)
@@ -688,9 +678,6 @@ func (this *Secret) EqualVT(that *Secret) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Ref, that.Ref) {
-		return false
-	}
-	if this.ValueHash != that.ValueHash {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.CreatedAt, that.CreatedAt) {
@@ -998,11 +985,6 @@ func (x *Secret) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("ref")
 		x.Ref.MarshalProtoJSON(s.WithField("ref"))
 	}
-	if x.ValueHash != "" || s.HasField("valueHash") {
-		s.WriteMoreIf(&wroteField)
-		s.WriteObjectField("valueHash")
-		s.WriteString(x.ValueHash)
-	}
 	if x.CreatedAt != nil || s.HasField("createdAt") {
 		s.WriteMoreIf(&wroteField)
 		s.WriteObjectField("createdAt")
@@ -1046,9 +1028,6 @@ func (x *Secret) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Ref = &sobject.SharedObjectRef{}
 			x.Ref.UnmarshalProtoJSON(s.WithField("ref", true))
-		case "value_hash", "valueHash":
-			s.AddField("value_hash")
-			x.ValueHash = s.ReadString()
 		case "created_at", "createdAt":
 			if s.ReadNil() {
 				x.CreatedAt = nil
@@ -1737,11 +1716,6 @@ func (m *Secret) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x32
 	}
-	if len(m.ValueHash) > 0 {
-		i = protobuf_go_lite.EncodeString(dAtA, i, m.ValueHash)
-		i--
-		dAtA[i] = 0x2a
-	}
 	if m.Ref != nil {
 		size, err := m.Ref.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -2303,7 +2277,6 @@ func (m *Secret) SizeVT() (n int) {
 		l = m.Ref.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
-	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ValueHash)
 	if m.CreatedAt != nil {
 		l = m.CreatedAt.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
@@ -2494,10 +2467,6 @@ func (x *Secret) MarshalProtoText() string {
 	if x.Ref != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "ref")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Ref)
-	}
-	if x.ValueHash != "" {
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value_hash")
-		protobuf_go_lite.TextWriteString(&sb, x.ValueHash)
 	}
 	if x.CreatedAt != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "created_at")
@@ -2799,16 +2768,6 @@ func (m *Secret) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ValueHash", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.ValueHash = v
 		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field CreatedAt", wireType)
