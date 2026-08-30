@@ -143,6 +143,9 @@ func (a *ProviderAccount) mountInvitedSO(
 	if result.Grant == nil {
 		return errors.New("invite result has no grant")
 	}
+	if result.OwnerGrant == nil {
+		return errors.New("invite result has no owner grant")
+	}
 
 	soID := result.SharedObjectID
 	if soID == "" {
@@ -208,6 +211,13 @@ func (a *ProviderAccount) mountInvitedSO(
 		addParticipant(signerPeerID.String(), sobject.SOParticipantRole_SOParticipantRole_OWNER)
 		addParticipant(grantPeerID, role)
 		state.RootGrants = append(state.RootGrants, result.Grant)
+		ownerGrantPeerID := result.OwnerGrant.GetPeerId()
+		for _, g := range state.GetRootGrants() {
+			if g.GetPeerId() == ownerGrantPeerID {
+				return nil
+			}
+		}
+		state.RootGrants = append(state.RootGrants, result.OwnerGrant)
 		return nil
 	}); err != nil {
 		return errors.Wrap(err, "store grant")

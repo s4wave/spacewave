@@ -20,6 +20,8 @@ type JoinResult struct {
 	Grant *sobject.SOGrant
 	// SharedObjectID is the ID of the shared object.
 	SharedObjectID string
+	// OwnerGrant keeps the originating owner's root access on the joined copy.
+	OwnerGrant *sobject.SOGrant
 }
 
 // JoinViaInvite executes the invitee side of the invite handshake.
@@ -74,6 +76,7 @@ func JoinViaInvite(
 	return &JoinResult{
 		Grant:          resp.GetGrant(),
 		SharedObjectID: resp.GetSharedObjectId(),
+		OwnerGrant:     resp.GetOwnerGrant(),
 	}, nil
 }
 

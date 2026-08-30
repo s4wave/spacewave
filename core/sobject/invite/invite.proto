@@ -26,4 +26,7 @@ message AcceptInviteResponse {
   .sobject.SOGrant grant = 1;
   // SharedObjectId is the ID of the shared object the invitee was enrolled in.
   string shared_object_id = 2;
+  // OwnerGrant is the owner's existing root grant. The invitee preserves it so
+  // the owner can read later state written by the joined copy.
+  .sobject.SOGrant owner_grant = 3;
 }

@@ -53,6 +53,9 @@ type AcceptInviteResponse struct {
 	Grant *sobject.SOGrant `protobuf:"bytes,1,opt,name=grant,proto3" json:"grant,omitempty"`
 	// SharedObjectId is the ID of the shared object the invitee was enrolled in.
 	SharedObjectId string `protobuf:"bytes,2,opt,name=shared_object_id,json=sharedObjectId,proto3" json:"sharedObjectId,omitempty"`
+	// OwnerGrant is the owner's existing root grant. The invitee preserves it so
+	// the owner can read later state written by the joined copy.
+	OwnerGrant *sobject.SOGrant `protobuf:"bytes,3,opt,name=owner_grant,json=ownerGrant,proto3" json:"ownerGrant,omitempty"`
 }
 
 func (x *AcceptInviteResponse) Reset() {
@@ -73,6 +76,13 @@ func (x *AcceptInviteResponse) GetSharedObjectId() string {
 		return x.SharedObjectId
 	}
 	return ""
+}
+
+func (x *AcceptInviteResponse) GetOwnerGrant() *sobject.SOGrant {
+	if x != nil {
+		return x.OwnerGrant
+	}
+	return nil
 }
 
 func (m *AcceptInviteRequest) CloneVT() *AcceptInviteRequest {
@@ -99,6 +109,7 @@ func (m *AcceptInviteResponse) CloneVT() *AcceptInviteResponse {
 	r := new(AcceptInviteResponse)
 	r.SharedObjectId = m.SharedObjectId
 	r.Grant = protobuf_go_lite.CloneVTValue(m.Grant)
+	r.OwnerGrant = protobuf_go_lite.CloneVTValue(m.OwnerGrant)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -142,6 +153,9 @@ func (this *AcceptInviteResponse) EqualVT(that *AcceptInviteResponse) bool {
 		return false
 	}
 	if this.SharedObjectId != that.SharedObjectId {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.OwnerGrant, that.OwnerGrant) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -227,6 +241,11 @@ func (x *AcceptInviteResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("sharedObjectId")
 		s.WriteString(x.SharedObjectId)
 	}
+	if x.OwnerGrant != nil || s.HasField("ownerGrant") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("ownerGrant")
+		x.OwnerGrant.MarshalProtoJSON(s.WithField("ownerGrant"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -254,6 +273,13 @@ func (x *AcceptInviteResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "shared_object_id", "sharedObjectId":
 			s.AddField("shared_object_id")
 			x.SharedObjectId = s.ReadString()
+		case "owner_grant", "ownerGrant":
+			if s.ReadNil() {
+				x.OwnerGrant = nil
+				return
+			}
+			x.OwnerGrant = &sobject.SOGrant{}
+			x.OwnerGrant.UnmarshalProtoJSON(s.WithField("owner_grant", true))
 		}
 	})
 }
@@ -339,6 +365,16 @@ func (m *AcceptInviteResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) 
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.OwnerGrant != nil {
+		size, err := m.OwnerGrant.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.SharedObjectId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SharedObjectId)
 		i--
@@ -383,6 +419,10 @@ func (m *AcceptInviteResponse) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
+	if m.OwnerGrant != nil {
+		l = m.OwnerGrant.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -415,6 +455,10 @@ func (x *AcceptInviteResponse) MarshalProtoText() string {
 	if x.SharedObjectId != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "shared_object_id")
 		protobuf_go_lite.TextWriteString(&sb, x.SharedObjectId)
+	}
+	if x.OwnerGrant != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "owner_grant")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.OwnerGrant)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -534,6 +578,21 @@ func (m *AcceptInviteResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SharedObjectId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OwnerGrant", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.OwnerGrant == nil {
+				m.OwnerGrant = &sobject.SOGrant{}
+			}
+			if err := m.OwnerGrant.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

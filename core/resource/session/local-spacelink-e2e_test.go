@@ -327,6 +327,12 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if joinResult == nil || joinResult.Grant == nil {
 		t.Fatal("invite join returned no grant")
 	}
+	if joinResult.OwnerGrant == nil {
+		t.Fatal("invite join returned no owner grant")
+	}
+	if _, err := joinResult.OwnerGrant.DecryptInnerData(ownerMountedSO.GetPrivKey(), spaceID); err != nil {
+		t.Fatalf("originating owner cannot decrypt joined state: %v", err)
+	}
 	joinRelease := time.NewTimer(250 * time.Millisecond)
 	defer joinRelease.Stop()
 	select {
