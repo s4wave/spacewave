@@ -311,12 +311,24 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	defer deviceAcc.StopSessionTransport()
 	connectSessionTransportsForTest(ctx, t, deviceAcc.GetSessionTransport(), ownerTransport)
 
-	joinResult, err := deviceAcc.JoinViaInvite(ctx, devicePriv, invite, "")
+	joinCtx, cancelJoin := context.WithCancel(ctx)
+	joinResult, err := deviceAcc.JoinViaInvite(joinCtx, devicePriv, invite, "")
+	cancelJoin()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if joinResult == nil || joinResult.Grant == nil {
 		t.Fatal("invite join returned no grant")
+	}
+	joinRelease := time.NewTimer(250 * time.Millisecond)
+	defer joinRelease.Stop()
+	select {
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	case <-joinRelease.C:
+	}
+	if err := deviceAcc.RetainP2PPeer(ctx, ownerTransport.GetPeerID()); err != nil {
+		t.Fatalf("enrollment request released P2P sync: %v", err)
 	}
 	if joinResult.SharedObjectID != spaceID {
 		t.Fatalf("unexpected joined shared object %q", joinResult.SharedObjectID)
