@@ -85,6 +85,9 @@ var notEnrolledInAnySlice = []string{
 	"TestSharedWorkerOpfsReturnGate",
 	"TestSignalRelayCrossConnect",
 	"TestWasmHarnessTraceConfig",
+	// This persistent-context regression targets macOS WebKit. Linux WebKit
+	// connects its runtime but does not expose the app debug root this test uses.
+	"TestWebKitPersistentContextRuntimeStartup",
 }
 
 func TestAllWasmTestsAreEnrolled(t *testing.T) {
