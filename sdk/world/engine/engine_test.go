@@ -5,6 +5,7 @@ package sdk_world_engine_test
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -956,21 +957,59 @@ func TestSDKEngine_ObjectState(t *testing.T) {
 	}
 }
 
-// TestSDKEngine_IterateObjects tests the object iterator.
-//
-// Note: the server-side IterateObjects RPC handler passes the RPC request
-// context to the hydra iterator. That context is canceled when the unary
-// RPC completes, so subsequent Next()/Seek() calls on the iterator may
-// encounter context.Canceled. This is a known server-side design limitation
-// where lazy iterator initialization uses a stale context.
+// TestSDKEngine_IterateObjects exercises the lazy iterator after the unary
+// IterateObjects request has returned. The iterator resource, not that request,
+// controls its lifetime.
 func TestSDKEngine_IterateObjects(t *testing.T) {
-	t.Skip("server-side IterateObjects passes RPC request context to hydra iterator; context is canceled after unary RPC response, causing subsequent Next()/Seek() to fail")
-}
+	ctx := context.Background()
+	engine, cleanup := setupSDKEngine(ctx, t)
+	defer cleanup()
 
-// TestSDKEngine_IteratorSeek tests the Seek method on the object iterator.
-// See TestSDKEngine_IterateObjects for the known server-side limitation.
-func TestSDKEngine_IteratorSeek(t *testing.T) {
-	t.Skip("server-side IterateObjects passes RPC request context to hydra iterator; context is canceled after unary RPC response, causing subsequent Next()/Seek() to fail")
+	writeTx, err := engine.NewTransaction(ctx, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"iterator/a", "iterator/b", "other/c"} {
+		if _, err := writeTx.CreateObject(ctx, key, nil); err != nil {
+			writeTx.Discard()
+			t.Fatal(err)
+		}
+	}
+	if err := writeTx.Commit(ctx); err != nil {
+		writeTx.Discard()
+		t.Fatal(err)
+	}
+	writeTx.Discard()
+
+	readTx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer readTx.Discard()
+	iter := readTx.IterateObjects(ctx, "iterator/", false)
+	defer iter.Close()
+	var keys []string
+	for iter.Next() {
+		if !iter.Valid() {
+			break
+		}
+		keys = append(keys, iter.Key())
+	}
+	if err := iter.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(keys, []string{"iterator/a", "iterator/b"}) {
+		t.Fatalf("unexpected iterator keys %v", keys)
+	}
+
+	seek := readTx.IterateObjects(ctx, "iterator/", false)
+	defer seek.Close()
+	if err := seek.Seek("iterator/b"); err != nil {
+		t.Fatal(err)
+	}
+	if !seek.Valid() || seek.Key() != "iterator/b" {
+		t.Fatalf("seek returned valid=%v key=%q", seek.Valid(), seek.Key())
+	}
 }
 
 // TestSDKEngine_GraphQuadOperations tests graph quad set, lookup, and delete.

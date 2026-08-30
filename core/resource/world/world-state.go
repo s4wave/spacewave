@@ -231,7 +231,9 @@ func (r *WorldStateResource) IterateObjects(ctx context.Context, req *s4wave_wor
 		return nil, err
 	}
 
-	iter := r.ws.IterateObjects(ctx, req.GetPrefix(), req.GetReversed())
+	// The iterator outlives this unary RPC. Resource release closes it, while
+	// each iterator method supplies its own request context.
+	iter := r.ws.IterateObjects(context.WithoutCancel(ctx), req.GetPrefix(), req.GetReversed())
 	iterResource := NewObjectIteratorResource(r.le, r.b, iter)
 	id, err := resourceCtx.AddResource(iterResource.GetMux(), func() {
 		iter.Close()
