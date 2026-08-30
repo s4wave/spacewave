@@ -278,8 +278,9 @@ func (e *Engine) Put(ctx context.Context, entries []segment.Entry) error {
 	return e.putToActors(ctx, "hydra/opfs-blockshard/put", entries, writeDispatchWait)
 }
 
-// PutPending enqueues latency-sensitive entries to the foreground channel and
-// returns before publication. Sync fences their durability.
+// PutPending enqueues entries for early read-through and returns before
+// publication. Batches coalesce on the background channel and publish with
+// the next cycle; Sync fences their durability immediately.
 func (e *Engine) PutPending(ctx context.Context, entries []segment.Entry) error {
 	return e.putToActors(ctx, "hydra/opfs-blockshard/put-pending", entries, writeDispatchPending)
 }
@@ -434,20 +435,18 @@ func (e *Engine) putToActors(
 	if mode != writeDispatchWait {
 		// Fire-and-forget: wake each actor and return before the publish. The
 		// pending buffer holds the entries for read-through, and Sync fences
-		// their durability. Foreground requests stay ahead of maintenance;
-		// background requests may coalesce with maintenance work.
+		// their durability. Pending-mode writes ride the background channel so
+		// consecutive batches coalesce into one publish cycle; a Sync barrier
+		// drains and fences them immediately. Foreground requests stay ahead
+		// of maintenance; background requests may coalesce with it.
 		for idx := range buckets {
 			if len(buckets[idx]) == 0 {
 				continue
 			}
 			_, reqTask := trace.NewTask(taskCtx, tracePrefix+"/queue-request")
 			actor := e.actors[idx]
-			requests := actor.foreground
-			request := writeReq{err: make(chan error, 1)}
-			if mode == writeDispatchBackground {
-				requests = actor.background
-				request.background = true
-			}
+			requests := actor.background
+			request := writeReq{err: make(chan error, 1), background: true}
 			select {
 			case requests <- request:
 				reqTask.End()
