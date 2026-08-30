@@ -26,16 +26,17 @@ const (
 	SecretTypeID = "spacewave/secret"
 	// SecretBodyType is the nested SharedObject body type for Secret payloads.
 	SecretBodyType = "secret"
-	// SecretKindMatrixAccessToken is the kind for Matrix access tokens.
-	SecretKindMatrixAccessToken = "matrix_access_token" // #nosec G101 -- this identifies a secret kind, not a credential value.
+	// SecretKindProviderCredential is the kind for provider credential blobs
+	// such as an auth.json document for an LLM provider.
+	SecretKindProviderCredential = "provider_credential" // #nosec G101 -- this identifies a secret kind, not a credential value.
+	// ProviderCredentialContentType is the content type for provider credential payloads.
+	ProviderCredentialContentType = "application/json"
 	// SecretKindSSHPrivateKey is the kind for SSH private-key credentials.
 	SecretKindSSHPrivateKey = "ssh_private_key" // #nosec G101 -- this identifies a secret kind, not a credential value.
 	// SecretKindSSHPassword is the kind for SSH password credentials.
 	SecretKindSSHPassword = "ssh_password" // #nosec G101 -- this identifies a secret kind, not a credential value.
 	// SecretKindSSHPassphrase is the kind for SSH private-key passphrases.
 	SecretKindSSHPassphrase = "ssh_passphrase" // #nosec G101 -- this identifies a secret kind, not a credential value.
-	// MatrixAccessTokenContentType is the content type for Matrix access tokens.
-	MatrixAccessTokenContentType = "text/plain; charset=utf-8" // #nosec G101 -- this is a MIME content type, not a credential value.
 	// SSHPrivateKeyContentType is the content type for SSH private-key payloads.
 	SSHPrivateKeyContentType = "application/x-pem-file"
 	// SSHTextCredentialContentType is the content type for text SSH credentials.
@@ -119,9 +120,9 @@ func NewSharedObjectMeta() *sobject.SharedObjectMeta {
 	}
 }
 
-// NewMatrixAccessTokenPayload constructs a Matrix access token payload.
-func NewMatrixAccessTokenPayload(token string, ts time.Time) *SecretPayload {
-	return newSecretPayload([]byte(token), MatrixAccessTokenContentType, ts)
+// NewProviderCredentialPayload constructs a provider credential payload.
+func NewProviderCredentialPayload(credential []byte, ts time.Time) *SecretPayload {
+	return newSecretPayload(credential, ProviderCredentialContentType, ts)
 }
 
 // NewSSHPrivateKeyPayload constructs an SSH private-key payload.
@@ -313,13 +314,16 @@ func ReadSecretPayloadFromSnapshot(ctx context.Context, snap sobject.SharedObjec
 	return payload, nil
 }
 
-// ReadMatrixAccessToken reads a Matrix access token Secret payload.
-func ReadMatrixAccessToken(ctx context.Context, b bus.Bus, secret *Secret) (string, error) {
+// ReadProviderCredentialPayload reads a provider credential Secret payload after checking its kind.
+func ReadProviderCredentialPayload(ctx context.Context, b bus.Bus, secret *Secret) ([]byte, error) {
+	if secret == nil || secret.GetKind() != SecretKindProviderCredential {
+		return nil, ErrSecretKindMismatch
+	}
 	payload, err := ReadSecretPayload(ctx, b, secret)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(payload.GetValue()), nil
+	return append([]byte(nil), payload.GetValue()...), nil
 }
 
 // ReadSSHCredentialPayload reads an SSH Secret payload after checking its kind.

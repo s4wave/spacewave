@@ -40,11 +40,11 @@ func TestSpaceResourceCreateSecretCreatesGrantedSecret(t *testing.T) {
 	}
 
 	resp, err := resource.CreateSecret(ctx, &s4wave_space.CreateSecretRequest{
-		ObjectKey:          "secrets/matrix/access-token",
-		DisplayName:        "Matrix access token",
-		Kind:               s4wave_secret.SecretKindMatrixAccessToken,
-		ContentType:        s4wave_secret.MatrixAccessTokenContentType,
-		Value:              []byte("matrix-token"),
+		ObjectKey:          "secrets/provider/access-token",
+		DisplayName:        "Provider credential",
+		Kind:               s4wave_secret.SecretKindProviderCredential,
+		ContentType:        s4wave_secret.ProviderCredentialContentType,
+		Value:              []byte(`{"api_key":"opencode-go"}`),
 		ReaderPublicKeyPem: readerPubPEM,
 	})
 	if err != nil {
@@ -54,10 +54,10 @@ func TestSpaceResourceCreateSecretCreatesGrantedSecret(t *testing.T) {
 		t.Fatal("expected nested SharedObjectRef")
 	}
 
-	secretResource := s4wave_secret.NewSecretResource(tb.Logger, tb.Bus, tb.WorldState, "secrets/matrix/access-token")
+	secretResource := s4wave_secret.NewSecretResource(tb.Logger, tb.Bus, tb.WorldState, "secrets/provider/access-token")
 	begin, err := secretResource.BeginReadPayload(ctx, &s4wave_secret.BeginReadPayloadRequest{
 		ReaderPeerId: readerPeerID.String(),
-		ExpectedKind: s4wave_secret.SecretKindMatrixAccessToken,
+		ExpectedKind: s4wave_secret.SecretKindProviderCredential,
 	})
 	if err != nil {
 		t.Fatalf("BeginReadPayload: %v", err)
@@ -79,7 +79,7 @@ func TestSpaceResourceCreateSecretCreatesGrantedSecret(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadPayload: %v", err)
 	}
-	if got := string(read.GetPayload().GetValue()); got != "matrix-token" {
+	if got := string(read.GetPayload().GetValue()); got != `{"api_key":"opencode-go"}` {
 		t.Fatalf("payload mismatch: %q", got)
 	}
 }
@@ -98,31 +98,31 @@ func TestSpaceResourceReadSecretPayloadUsesMountedSessionGrant(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := resource.CreateSecret(ctx, &s4wave_space.CreateSecretRequest{
-		ObjectKey:          "secrets/matrix/session-token",
-		DisplayName:        "Matrix access token",
-		Kind:               s4wave_secret.SecretKindMatrixAccessToken,
-		ContentType:        s4wave_secret.MatrixAccessTokenContentType,
-		Value:              []byte("session-matrix-token"),
+		ObjectKey:          "secrets/provider/session-token",
+		DisplayName:        "Provider credential",
+		Kind:               s4wave_secret.SecretKindProviderCredential,
+		ContentType:        s4wave_secret.ProviderCredentialContentType,
+		Value:              []byte(`{"api_key":"session-token"}`),
 		ReaderPublicKeyPem: readerPubPEM,
 	}); err != nil {
 		t.Fatalf("CreateSecret: %v", err)
 	}
 
 	read, err := resource.ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{
-		ObjectKey:    "secrets/matrix/session-token",
-		ExpectedKind: s4wave_secret.SecretKindMatrixAccessToken,
+		ObjectKey:    "secrets/provider/session-token",
+		ExpectedKind: s4wave_secret.SecretKindProviderCredential,
 	})
 	if err != nil {
 		t.Fatalf("ReadSecretPayload: %v", err)
 	}
-	if read.GetSecret().GetKind() != s4wave_secret.SecretKindMatrixAccessToken {
+	if read.GetSecret().GetKind() != s4wave_secret.SecretKindProviderCredential {
 		t.Fatalf("secret kind: got %q", read.GetSecret().GetKind())
 	}
-	if got := string(read.GetPayload().GetValue()); got != "session-matrix-token" {
+	if got := string(read.GetPayload().GetValue()); got != `{"api_key":"session-token"}` {
 		t.Fatalf("payload mismatch: %q", got)
 	}
 	if _, err := resource.ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{
-		ObjectKey:    "secrets/matrix/session-token",
+		ObjectKey:    "secrets/provider/session-token",
 		ExpectedKind: "other",
 	}); !errors.Is(err, s4wave_secret.ErrSecretKindMismatch) {
 		t.Fatalf("expected kind mismatch, got %v", err)
@@ -138,8 +138,8 @@ func TestSpaceResourceReadSecretPayloadUsesMountedSessionGrant(t *testing.T) {
 	}
 	resource.sessionPeerID = otherPeerID.String()
 	if _, err := resource.ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{
-		ObjectKey:    "secrets/matrix/session-token",
-		ExpectedKind: s4wave_secret.SecretKindMatrixAccessToken,
+		ObjectKey:    "secrets/provider/session-token",
+		ExpectedKind: s4wave_secret.SecretKindProviderCredential,
 	}); !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
 		t.Fatalf("expected payload access denied, got %v", err)
 	}

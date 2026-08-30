@@ -45,7 +45,7 @@ func TestValidateSshHostCredentialSecretsReleasesLookedUpStates(t *testing.T) {
 	defer tb.Release()
 
 	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/key", s4wave_secret.SecretKindSSHPrivateKey)
-	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/wrong", s4wave_secret.SecretKindMatrixAccessToken)
+	createSecretParent(ctx, t, tb.WorldState, "secrets/ssh/wrong", s4wave_secret.SecretKindProviderCredential)
 
 	var released int
 	ws := &countingWorldState{WorldState: tb.WorldState, released: &released}

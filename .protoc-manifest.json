@@ -3653,7 +3653,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/secret": {
-      "hash": "0017714fe83010bd9a944bf6213dd1623ed4f55e29ca02e9463a0c0d09c75777",
+      "hash": "363ea6b55aafdd8c0f794fb482e485b1b52e981575a6dfa5e04c34769e79e80f",
       "generatedFiles": [
         "sdk/secret/secret.pb.go",
         "sdk/secret/secret.pb.ts",

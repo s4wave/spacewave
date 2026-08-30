@@ -33,7 +33,7 @@ export interface Secret {
    */
   displayName?: string
   /**
-   * Kind identifies the secret use, such as matrix_access_token.
+   * Kind identifies the secret use, such as provider_credential or ssh_private_key.
    *
    * @generated from field: string kind = 2;
    */
@@ -50,12 +50,6 @@ export interface Secret {
    * @generated from field: sobject.SharedObjectRef ref = 4;
    */
   ref?: SharedObjectRef
-  /**
-   * ValueHash is an optional redacted integrity hint.
-   *
-   * @generated from field: string value_hash = 5;
-   */
-  valueHash?: string
   /**
    * CreatedAt is when the Secret object was created.
    *
@@ -82,7 +76,6 @@ export const Secret: MessageType<Secret> = /* @__PURE__ */ createMessageType({
       T: ScalarType.STRING,
     },
     { no: 4, name: 'ref', kind: 'message', T: () => SharedObjectRef },
-    { no: 5, name: 'value_hash', kind: 'scalar', T: ScalarType.STRING },
     { no: 6, name: 'created_at', kind: 'message', T: () => Timestamp },
     { no: 7, name: 'updated_at', kind: 'message', T: () => Timestamp },
   ] satisfies readonly PartialFieldInfo[],
