@@ -2,7 +2,6 @@ package debug_bridge
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
+	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	web_view "github.com/s4wave/spacewave/bldr/web/view"
 	debug_projectroot "github.com/s4wave/spacewave/core/debug/projectroot"
 	bifrost_http "github.com/s4wave/spacewave/net/http"
@@ -125,12 +125,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	// Remove stale socket.
 	_ = os.Remove(absPath)
 
-	// Ensure parent directory exists.
-	if err := os.MkdirAll(filepath.Dir(absPath), 0o755); err != nil {
-		return err
-	}
-
-	lis, err := net.Listen("unix", absPath)
+	lis, err := bldr_pipesock.ListenProtectedUnix(absPath)
 	if err != nil {
 		return err
 	}
@@ -138,11 +133,6 @@ func (c *Controller) Execute(ctx context.Context) error {
 		lis.Close()
 		_ = os.Remove(absPath)
 	}()
-
-	// Restrict socket permissions to owner only.
-	if err := os.Chmod(absPath, 0o600); err != nil {
-		le.WithError(err).Warn("failed to chmod socket")
-	}
 
 	le.Infof("debug bridge listening on %s", absPath)
 

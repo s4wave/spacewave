@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"io"
-	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
+	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	singleton_muxed_conn "github.com/s4wave/spacewave/bldr/util/singleton-muxed-conn"
 	"github.com/sirupsen/logrus"
 )
@@ -175,26 +175,19 @@ func runDebugSocket(ctx context.Context, le *logrus.Entry, mc *singleton_muxed_c
 	}
 
 	sockDir := filepath.Join(workdir, ".bldr")
-	if err := os.MkdirAll(sockDir, 0o755); err != nil {
-		return errors.Wrap(err, "create .bldr dir")
-	}
 	sockPath := filepath.Join(sockDir, debugSocketName)
 
 	// Remove stale socket.
 	_ = os.Remove(sockPath)
 
-	lis, err := net.Listen("unix", sockPath)
+	lis, err := bldr_pipesock.ListenProtectedUnix(sockPath)
 	if err != nil {
-		return errors.Wrap(err, "listen unix")
+		return errors.Wrap(err, "listen protected unix")
 	}
 	defer func() {
 		lis.Close()
 		_ = os.Remove(sockPath)
 	}()
-
-	if err := os.Chmod(sockPath, 0o600); err != nil {
-		le.WithError(err).Warn("failed to chmod socket")
-	}
 
 	le.Infof("debug bridge listening on %s", sockPath)
 
