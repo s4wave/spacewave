@@ -40,6 +40,8 @@ const (
 	E2EWasmTinyGoInterpTimeoutEnv = "E2E_WASM_TINYGO_INTERP_TIMEOUT"
 	// E2EWasmManifestBuildTimeoutEnv overrides the local startup Manifest build wait.
 	E2EWasmManifestBuildTimeoutEnv = "E2E_WASM_MANIFEST_BUILD_TIMEOUT"
+	// E2EWasmJSSourcemapsEnv opts browser bundles into source-map emission.
+	E2EWasmJSSourcemapsEnv = "E2E_WASM_JS_SOURCEMAPS"
 	// E2EWasmGoScriptRuntimeTraceEnv opts GoScript browser runs into
 	// runtime-trace capture; off by default so routine GoScript e2e stays fast.
 	E2EWasmGoScriptRuntimeTraceEnv = "E2E_WASM_GOSCRIPT_RUNTIME_TRACE"
@@ -335,6 +337,20 @@ func E2EWasmStartupBuildCacheEnabled() bool {
 	return err == nil && enabled
 }
 
+// ResolveE2EWasmJSSourcemapsEnabled reports whether browser builds should emit
+// source maps for E2E diagnostics.
+func ResolveE2EWasmJSSourcemapsEnabled() (bool, error) {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv(E2EWasmJSSourcemapsEnv)))
+	switch value {
+	case "", "false", "0", "no", "off":
+		return false, nil
+	case "true", "1", "yes", "on":
+		return true, nil
+	default:
+		return false, errors.Errorf("invalid %s value: %q", E2EWasmJSSourcemapsEnv, value)
+	}
+}
+
 // WithTinyGoCore enables TinyGo for the browser spacewave-core Manifest.
 func WithTinyGoCore() Option {
 	return WithConfigMutator(ConfigureTinyGoForManifest("spacewave-core"))
@@ -394,9 +410,17 @@ func ConfigureGoScriptBrowserStartup(conf *bldr_project.ProjectConfig) error {
 		return err
 	}
 	build := conf.GetBuild()["release-web-e2e"]
+	sourceMapsEnabled, err := ResolveE2EWasmJSSourcemapsEnabled()
+	if err != nil {
+		return err
+	}
+	sourceMaps := enabled.Enabled_DISABLE
+	if sourceMapsEnabled {
+		sourceMaps = enabled.Enabled_ENABLE
+	}
 	build.BuildPolicy = build.GetBuildPolicy().Merge(manifest_build.NewBuildPolicy(
 		enabled.Enabled_ENABLE,
-		enabled.Enabled_DISABLE,
+		sourceMaps,
 		enabled.Enabled_DEFAULT,
 	))
 	for _, manifestID := range goScriptBrowserGoManifests {

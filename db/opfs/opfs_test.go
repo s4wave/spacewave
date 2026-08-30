@@ -98,6 +98,19 @@ func TestBrowserDriverReadWriteListDeleteClassify(t *testing.T) {
 	}
 }
 
+func TestUnknownErrorClassification(t *testing.T) {
+	err := &JSError{
+		Name:    "UnknownError",
+		Message: "storage unavailable for this browser profile",
+	}
+	if !IsUnknown(err) {
+		t.Fatalf("IsUnknown(%v) = false, want true", err)
+	}
+	if IsUnknown(errors.New("unknown storage failure")) {
+		t.Fatal("IsUnknown accepted a non-DOM error")
+	}
+}
+
 func TestQuotaExceededErrorClassification(t *testing.T) {
 	err := &JSError{
 		Name:    "QuotaExceededError",

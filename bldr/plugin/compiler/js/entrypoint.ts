@@ -556,9 +556,13 @@ async function completeInitialCapabilityRegistration(
   backendAPI: BackendAPI,
   abortSignal: AbortSignal,
 ): Promise<void> {
-  using rootRef = await backendAPI.resourceClient.accessRootResource()
-  const svc = new PluginHostResourceServiceClient(rootRef.client)
-  await svc.CompleteInitialCapabilityRegistration({}, abortSignal)
+  const rootRef = await backendAPI.resourceClient.accessRootResource()
+  try {
+    const svc = new PluginHostResourceServiceClient(rootRef.client)
+    await svc.CompleteInitialCapabilityRegistration({}, abortSignal)
+  } finally {
+    rootRef.release()
+  }
 }
 
 /**
