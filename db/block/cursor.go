@@ -722,6 +722,11 @@ func (c *Cursor) readStore(ctx context.Context) StoreOps {
 	if bkt != nil {
 		return bkt
 	}
+	if c != nil && c.store == nil && c.t != nil {
+		if staged := c.t.GetStagedStore(); staged != nil {
+			return staged
+		}
+	}
 	bkt, _ = c.GetBlockStore()
 	return bkt
 }

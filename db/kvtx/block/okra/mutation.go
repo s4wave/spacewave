@@ -484,7 +484,7 @@ func entryStartsPage(ent *Entry) bool {
 }
 
 func (t *Tx) buildBlobValue(ctx context.Context, val []byte) (*block.BlockRef, error) {
-	valueCursor := t.buildValueCursor()
+	valueCursor := t.buildValueCursor(ctx)
 	valueCursor.ClearAllRefs()
 	if len(val) == 0 {
 		valueCursor.SetBlock(blob.NewBlobBlock(), true)
@@ -496,7 +496,7 @@ func (t *Tx) buildBlobValue(ctx context.Context, val []byte) (*block.BlockRef, e
 	return t.materializeValueCursor(ctx, valueCursor)
 }
 
-func (t *Tx) buildValueCursor() *block.Cursor {
+func (t *Tx) buildValueCursor(ctx context.Context) *block.Cursor {
 	if t.bcs == nil {
 		return nil
 	}
@@ -504,10 +504,15 @@ func (t *Tx) buildValueCursor() *block.Cursor {
 	if btx == nil {
 		return t.bcs.Detach(false)
 	}
-	store, _ := t.bcs.GetBlockStore()
-	store = valueMaterializationStore(store)
-	_, valueCursor := block.NewTransaction(store, btx.GetTransformer(), nil, btx.GetPutOpts())
+	staged := t.stagedValueStore(ctx, btx)
+	valueTx, valueCursor := block.NewTransaction(staged, btx.GetTransformer(), nil, btx.GetPutOpts())
+	valueTx.SetWriteBuffer(staged)
 	return valueCursor
+}
+
+func (t *Tx) stagedValueStore(ctx context.Context, btx *block.Transaction) *block.BufferedStore {
+	store, _ := t.bcs.GetBlockStore()
+	return btx.StageWrites(ctx, valueMaterializationStore(store))
 }
 
 type walTrackingStore interface {
@@ -532,9 +537,12 @@ func (t *Tx) materializeValueCursor(ctx context.Context, cursor *block.Cursor) (
 		btx := cursor.GetTransaction()
 		if btx != nil {
 			if t.bcs != nil && btx == t.bcs.GetTransaction() {
+				staged := t.stagedValueStore(ctx, btx)
 				cursor = cursor.DetachRecursive(true, true, true)
 				cursor.MarkDirty()
 				btx = cursor.GetTransaction()
+				btx.SetStoreOps(staged)
+				btx.SetWriteBuffer(staged)
 			}
 			ref, _, err := btx.WriteAtRoot(ctx, false, cursor)
 			if err != nil {
