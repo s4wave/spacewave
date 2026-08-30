@@ -187,7 +187,9 @@ func setCanvasNode(ctx context.Context, nodes kvtx.BlockTx, id string, node *Can
 func cloneCanvasEdges(edges []*CanvasEdge) []*CanvasEdge {
 	cloned := make([]*CanvasEdge, len(edges))
 	for i, edge := range edges {
-		cloned[i] = edge.CloneVT()
+		if edge != nil {
+			cloned[i] = edge.CloneVT()
+		}
 	}
 	return cloned
 }
@@ -195,7 +197,9 @@ func cloneCanvasEdges(edges []*CanvasEdge) []*CanvasEdge {
 func cloneHiddenGraphLinks(links []*HiddenGraphLink) []*HiddenGraphLink {
 	cloned := make([]*HiddenGraphLink, len(links))
 	for i, link := range links {
-		cloned[i] = link.CloneVT()
+		if link != nil {
+			cloned[i] = link.CloneVT()
+		}
 	}
 	return cloned
 }
@@ -205,9 +209,12 @@ func cloneCanvasLayoutMetadata(metadata map[string]*CanvasLayoutMetadata) map[st
 		return nil
 	}
 	cloned := make(map[string]*CanvasLayoutMetadata, len(metadata))
-	maps.Copy(cloned, metadata)
-	for id, item := range cloned {
-		cloned[id] = item.CloneVT()
+	for id, item := range metadata {
+		if item != nil {
+			cloned[id] = item.CloneVT()
+		} else {
+			cloned[id] = nil
+		}
 	}
 	return cloned
 }
