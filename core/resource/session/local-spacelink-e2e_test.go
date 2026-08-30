@@ -277,6 +277,13 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if deviceSessRef.GetProviderResourceRef().GetProviderId() != "local" {
 		t.Fatal("device session is not a local session")
 	}
+	if _, err := deviceEnv.sessCtrl.RegisterSession(ctx, deviceSessRef, &core_session.SessionMetadata{
+		ProviderDisplayName: "Local",
+		ProviderId:          "local",
+		ProviderAccountId:   deviceSessRef.GetProviderResourceRef().GetProviderAccountId(),
+	}); err != nil {
+		t.Fatal(err)
+	}
 	deviceAccIface, relDeviceAcc, err := deviceEnv.prov.AccessProviderAccount(
 		ctx,
 		deviceSessRef.GetProviderResourceRef().GetProviderAccountId(),
@@ -329,6 +336,30 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	}
 	if err := deviceAcc.RetainP2PPeer(ctx, ownerTransport.GetPeerID()); err != nil {
 		t.Fatalf("enrollment request released P2P sync: %v", err)
+	}
+
+	// Reopening an already-joined enrollment follows a separate path. Its
+	// request lifetime must not become the P2P lifetime either.
+	deviceAcc.StopP2PSync()
+	reopenCtx, cancelReopen := context.WithCancel(ctx)
+	_, err = deviceProvRes.CompleteSpaceLinkEnrollment(reopenCtx, &s4wave_provider_local.CompleteSpaceLinkEnrollmentRequest{
+		SessionPemPrivateKey: devicePEM,
+		SessionPeerId:        devicePeerID.String(),
+		Invite:               invite,
+	})
+	cancelReopen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	reopenRelease := time.NewTimer(250 * time.Millisecond)
+	defer reopenRelease.Stop()
+	select {
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	case <-reopenRelease.C:
+	}
+	if err := deviceAcc.RetainP2PPeer(ctx, ownerTransport.GetPeerID()); err != nil {
+		t.Fatalf("reopened enrollment request released P2P sync: %v", err)
 	}
 	if joinResult.SharedObjectID != spaceID {
 		t.Fatalf("unexpected joined shared object %q", joinResult.SharedObjectID)
