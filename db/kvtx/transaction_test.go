@@ -140,6 +140,24 @@ func TestRunTransactionDiscardsBodyErrorWithoutCommit(t *testing.T) {
 	}
 }
 
+func TestRunOperationReturnsOperationExhaustionError(t *testing.T) {
+	attempts := 0
+	err := RunOperationWithRetry(
+		context.Background(),
+		func(context.Context) error {
+			attempts++
+			return ErrInvalidSnapshot
+		},
+		RetryInvalidSnapshot,
+	)
+	if err == nil || err.Error() != "kvtx operation attempt limit exhausted" {
+		t.Fatalf("error = %v, want operation attempt limit exhaustion", err)
+	}
+	if attempts != transactionAttemptLimit {
+		t.Fatalf("attempts = %d, want %d", attempts, transactionAttemptLimit)
+	}
+}
+
 func TestRunTransactionReturnsExhaustionErrorAtAttemptBound(t *testing.T) {
 	var events []string
 	var opened int
