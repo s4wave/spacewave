@@ -89,8 +89,20 @@ var (
 	errSessionTransportSuperseded = errors.New("session transport request superseded by newer configuration")
 )
 
+// sessionTransportReplacementContext lets mandatory old-transport cleanup
+// outlive caller cancellation without shortening a caller-supplied deadline.
 func sessionTransportReplacementContext(ctx context.Context) (context.Context, context.CancelFunc) {
-	return sessionTransportCleanupContext(ctx)
+	if ctx == nil {
+		return sessionTransportCleanupContext(nil)
+	}
+	replacementCtx := context.WithoutCancel(ctx)
+	if deadline, ok := ctx.Deadline(); ok {
+		if time.Until(deadline) <= 0 {
+			return sessionTransportCleanupContext(ctx)
+		}
+		return context.WithDeadline(replacementCtx, deadline)
+	}
+	return context.WithCancel(replacementCtx)
 }
 
 func sessionTransportCleanupContext(ctx context.Context) (context.Context, context.CancelFunc) {

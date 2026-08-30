@@ -148,6 +148,27 @@ func TestEnsureSessionTransportReleasesAccountLockWhileWaitingReady(t *testing.T
 	}
 }
 
+func TestSessionTransportReplacementContextDoesNotInventDeadline(t *testing.T) {
+	callerCtx, callerCancel := context.WithCancel(t.Context())
+	replacementCtx, replacementCancel := sessionTransportReplacementContext(callerCtx)
+
+	if deadline, ok := replacementCtx.Deadline(); ok {
+		t.Fatalf("replacement context added private deadline %v", deadline)
+	}
+	callerCancel()
+	select {
+	case <-replacementCtx.Done():
+		t.Fatal("caller cancellation interrupted mandatory transport cleanup")
+	default:
+	}
+	replacementCancel()
+	select {
+	case <-replacementCtx.Done():
+	default:
+		t.Fatal("replacement cleanup context did not cancel")
+	}
+}
+
 func TestSessionTransportReadyErrorCleanupHonorsCallerDeadline(t *testing.T) {
 	ctx, ctxCancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer ctxCancel()
