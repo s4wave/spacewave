@@ -1,5 +1,71 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.1
+<2026-08-29 Sat>
+
+Spacewave 0.57.1 adds a redesigned Keyboard Shortcuts workbench, a dedicated
+Secret viewer, and managed-device support for Forge Workers. It also improves
+browser startup, Drive navigation, Quickstarts, split layouts, invites and
+device linking, session recovery, Terminal, Forge workflows, and local file
+storage, with stronger protection for browser sign-in and saved content.
+
+** Features
+- Keyboard Shortcuts now has a redesigned workbench for searching commands and
+  shortcuts, recording key combinations or sequences, resolving conflicts, and
+  saving changes to this device, your account, or the current Space.
+- Secrets now open in a dedicated viewer that shows redacted status and access
+  information while keeping secret values hidden.
+- Managed Devices can now join a Space as Forge Workers and reconnect after
+  restart.
+
+** Fixes
+- Dropping a file outside a Drive upload target no longer navigates away from
+  Spacewave or reloads the app.
+- Drive Home, linked paths, and Back and Forward navigation now stay inside the
+  current Drive and Space.
+- Quickstarts now reopen an existing matching Space instead of creating a
+  duplicate and running setup over its contents.
+- Closing the final tab in a split now removes the empty pane instead of leaving
+  a blank pane or producing duplicate-tab layout errors.
+- New Chat channels now open to an empty conversation instead of loading
+  forever, and a failed send keeps the draft available for retry.
+- Local file storage no longer omits a newly created file when the same save
+  also updates another file.
+- Session setup, updates, and removal now recover automatically when another tab
+  or process changes local file storage.
+- Device links and invites now retain their connection and sync after
+  acceptance, restart, or reconnection instead of dropping shortly afterward.
+- Forge Cluster creation now accepts valid default names, reports failed or
+  empty data clearly, and prevents Job setup from getting stuck while loading
+  Clusters.
+- Browser startup now reports a clear failure with Retry if an app download or
+  loading step stalls, rather than leaving the progress screen indefinitely.
+
+** Improvements
+- Returning users and direct links now show the loading screen immediately
+  instead of briefly showing the signed-out landing page.
+- Space rows now open reliably, use a separate copy action, and keep closed Join
+  and Link dialogs from resurfacing stale progress or results.
+- Terminal connection failures now show safe, actionable guidance, and Retry
+  reconnects with a clean session.
+- Managed Device setup now offers a direct setup command or an install-and-run
+  option, with a clearer path to sign-in and approval.
+- Documentation navigation is denser and clearer on narrow screens, with the
+  current page kept visible and duplicate title bars removed.
+- Release pages now offer explicit Latest release and This release choices and
+  show the platform, architecture, file type, and version before a desktop
+  download.
+- Large browser sessions now keep file-storage cache growth bounded and load
+  nearby file data with fewer reads.
+
+** Security
+- Spaces created in the browser now protect locally stored content with
+  authenticated encryption. Spaces created by earlier browser versions remain
+  readable but must be migrated before they can be edited.
+- Browser sign-in completion links are now tied to the browser session that
+  started sign-in, so a copied link cannot complete the flow elsewhere.
+- Space sync now rejects updates from peers that no longer have access.
+
 * v0.57.0
 <2026-07-31 Fri>
 
