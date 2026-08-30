@@ -44,31 +44,30 @@ func TestAutoStartP2PSyncIfNeededWithDevice(t *testing.T) {
 
 	tb, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
+	_, _, _, remoteSess, releaseRemote := setupProviderAndSession(ctx, t)
+	defer releaseRemote()
 
-	const devicePeerID = "12D3KooWAutoStartPaired"
-	if err := acc.RecordPairedDevice(ctx, devicePeerID, "Auto-Start Test Device"); err != nil {
+	remotePeerID := remoteSess.GetPeerId().String()
+	if err := acc.RecordPairedDevice(ctx, remotePeerID, "Auto-Start Test Device"); err != nil {
 		t.Fatalf("RecordPairedDevice: %v", err)
 	}
 	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
 	so, soRelease := mountAccountSettingsSO(ctx, t, tb.Bus, accountID)
-	waitPairedDevice(ctx, t, so, devicePeerID)
+	waitPairedDevice(ctx, t, so, remotePeerID)
 	soRelease()
 
 	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
 		t.Fatalf("CreateSessionTransport: %v", err)
 	}
 	defer acc.StopSessionTransport()
-
 	st := acc.GetSessionTransport()
 	if st == nil {
 		t.Fatal("expected non-nil session transport")
 	}
-
 	if err := acc.AutoStartP2PSyncIfNeeded(ctx, st); err != nil {
 		t.Fatalf("AutoStartP2PSyncIfNeeded: %v", err)
 	}
 	defer acc.StopP2PSync()
-
 	if !acc.IsP2PSyncRunning() {
 		t.Fatal("expected P2P sync to be running after auto-start with paired device present")
 	}
