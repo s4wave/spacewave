@@ -4,9 +4,39 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 )
+
+// executeProcessOpsWhenValidator waits until this participant can validate and
+// then processes queued operations. Writer and reader copies receive validated
+// roots from their Space peers; they must not attempt to finalize those roots.
+func (c *Controller) executeProcessOpsWhenValidator(
+	ctx context.Context,
+	so sobject.SharedObject,
+	state ccontainer.Watchable[sobject.SharedObjectStateSnapshot],
+) error {
+	for {
+		snapshot := state.GetValue()
+		if snapshot == nil {
+			if _, err := state.WaitValue(ctx, nil); err != nil {
+				return err
+			}
+			continue
+		}
+		participant, err := snapshot.GetParticipantConfig(ctx)
+		if err != nil {
+			return err
+		}
+		if sobject.IsValidatorOrOwner(participant.GetRole()) {
+			return c.executeProcessOpsAsValidator(ctx, so)
+		}
+		if _, err := state.WaitValueChange(ctx, snapshot, nil); err != nil {
+			return err
+		}
+	}
+}
 
 // executeProcessOpsAsValidator executes processing operations as a validator.
 func (c *Controller) executeProcessOpsAsValidator(ctx context.Context, so sobject.SharedObject) error {

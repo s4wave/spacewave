@@ -2,7 +2,9 @@ package sobject_world_engine
 
 import (
 	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/config"
@@ -23,6 +25,53 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	alpha_testbed "github.com/s4wave/spacewave/testbed"
 )
+
+func TestExecuteProcessOpsWaitsForValidatorRole(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	inspected := make(chan struct{}, 1)
+	processCalled := make(chan struct{}, 1)
+	writer := &testSharedObjectSnapshot{
+		participant: &sobject.SOParticipantConfig{Role: sobject.SOParticipantRole_SOParticipantRole_WRITER},
+		inspected:   inspected,
+	}
+	state := ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](writer)
+	so := &testSharedObject{processOperations: func(ctx context.Context, _ bool, _ sobject.ProcessOpsFunc) error {
+		processCalled <- struct{}{}
+		<-ctx.Done()
+		return ctx.Err()
+	}}
+	controller := &Controller{}
+	done := make(chan error, 1)
+	go func() {
+		done <- controller.executeProcessOpsWhenValidator(ctx, so, state)
+	}()
+
+	select {
+	case <-inspected:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	select {
+	case <-processCalled:
+		t.Fatal("writer participant attempted to validate queued operations")
+	default:
+	}
+
+	state.SetValue(&testSharedObjectSnapshot{
+		participant: &sobject.SOParticipantConfig{Role: sobject.SOParticipantRole_SOParticipantRole_VALIDATOR},
+	})
+	select {
+	case <-processCalled:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("validator routine returned %v", err)
+	}
+}
 
 // TestExecuteWatchSOStateOnceSignalsGCSweepMaintenance verifies that
 // authoritative watch-state updates wake the GC maintenance routine.
@@ -188,7 +237,8 @@ func TestBuildBlkEngineBorrowsTransformAwareBlockStoreDecodedCache(t *testing.T)
 }
 
 type testSharedObject struct {
-	blockStore bstore.BlockStore
+	blockStore        bstore.BlockStore
+	processOperations func(context.Context, bool, sobject.ProcessOpsFunc) error
 }
 
 type testBlockStore struct {
@@ -245,15 +295,23 @@ func (s *testSharedObject) ClearOperationResult(ctx context.Context, localID str
 }
 
 func (s *testSharedObject) ProcessOperations(ctx context.Context, watch bool, cb sobject.ProcessOpsFunc) error {
+	if s.processOperations != nil {
+		return s.processOperations(ctx, watch, cb)
+	}
 	return nil
 }
 
 type testSharedObjectSnapshot struct {
-	rootInner *sobject.SORootInner
+	rootInner   *sobject.SORootInner
+	participant *sobject.SOParticipantConfig
+	inspected   chan<- struct{}
 }
 
 func (s *testSharedObjectSnapshot) GetParticipantConfig(ctx context.Context) (*sobject.SOParticipantConfig, error) {
-	return nil, nil
+	if s.inspected != nil {
+		s.inspected <- struct{}{}
+	}
+	return s.participant, nil
 }
 
 func (s *testSharedObjectSnapshot) GetTransformer(ctx context.Context) (*block_transform.Transformer, error) {

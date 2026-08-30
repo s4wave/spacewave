@@ -180,7 +180,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// start the process ops routine (as a validator)
 	_, _ = c.processOpsAsValidator.SetRoutine(func(ctx context.Context) error {
-		return c.executeProcessOpsAsValidator(ctx, so)
+		return c.executeProcessOpsWhenValidator(ctx, so, soStateCtr)
 	})
 	_ = c.processOpsAsValidator.SetContext(rctx, true)
 	defer c.processOpsAsValidator.ClearContext()
