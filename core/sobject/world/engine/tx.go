@@ -63,12 +63,23 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 		}
 	}
 
-	// commit the block txn
+	// Commit every block generated for the candidate world root.
 	var nroot *block.BlockRef
 	{
 		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/block-commit")
 		var err error
 		nroot, err = t.btx.CommitBlockTransaction(taskCtx)
+		task.End()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Fence pending block writes before the candidate root can enter the
+	// SharedObject operation queue.
+	{
+		taskCtx, task := trace.NewTask(ctx, "alpha/so-engine/write-tx/sync-blocks")
+		_, err := t.btx.Sync(taskCtx)
 		task.End()
 		if err != nil {
 			return err

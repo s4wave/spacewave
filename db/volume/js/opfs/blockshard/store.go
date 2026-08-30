@@ -88,7 +88,9 @@ func (s *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	return finish(ref, false)
 }
 
-// PutBlockBatch writes multiple blocks as one lower-layer engine batch.
+// PutBlockBatch enqueues multiple blocks as one lower-layer engine batch.
+// The blocks are readable through the engine pending buffer before they are
+// durable. Sync fences every batch enqueued before it.
 func (s *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/block-store/put-block-batch")
 	defer task.End()
@@ -113,8 +115,8 @@ func (s *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatc
 	}
 	encodeTask.End()
 
-	putCtx, putTask := trace.NewTask(ctx, "hydra/opfs-blockshard/block-store/put-block-batch/engine-put")
-	err := s.engine.Put(putCtx, batch)
+	putCtx, putTask := trace.NewTask(ctx, "hydra/opfs-blockshard/block-store/put-block-batch/engine-put-pending")
+	err := s.engine.PutPending(putCtx, batch)
 	putTask.End()
 	return err
 }
