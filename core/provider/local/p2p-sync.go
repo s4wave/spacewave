@@ -901,19 +901,30 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 			result.Invite.GetRole(),
 			"",
 		)
-		if err != nil || grant != nil {
-			return grant, err
-		}
-		state, err := result.Host.GetHostState(ctx)
 		if err != nil {
 			return nil, err
 		}
-		for _, existing := range state.GetRootGrants() {
-			if existing.GetPeerId() == inviteePeerID.String() {
-				return existing.CloneVT(), nil
+		if grant == nil {
+			state, err := result.Host.GetHostState(ctx)
+			if err != nil {
+				return nil, err
+			}
+			for _, existing := range state.GetRootGrants() {
+				if existing.GetPeerId() == inviteePeerID.String() {
+					grant = existing.CloneVT()
+					break
+				}
+			}
+			if grant == nil {
+				return nil, errors.New("participant exists without a root grant")
 			}
 		}
-		return nil, errors.New("participant exists without a root grant")
+		if result.Invite.GetTargetPeerId() == inviteePeerID.String() {
+			if err := a.RetainP2PPeer(ctx, inviteePeerID); err != nil {
+				return nil, errors.Wrap(err, "retain enrolled peer")
+			}
+		}
+		return grant, nil
 	}
 
 	ctrl, err := sobject_invite.NewInviteController(
