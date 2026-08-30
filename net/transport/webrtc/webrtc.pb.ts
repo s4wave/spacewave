@@ -297,6 +297,14 @@ export interface Config {
    * @generated from field: bool verbose = 11;
    */
   verbose?: boolean
+  /**
+   * AllPeersLowerPeerOffers prevents simultaneous offers when both peers use
+   * AllPeers. The peer with the lower binary peer ID makes the offer.
+   * Explicit Dialers are not restricted.
+   *
+   * @generated from field: bool all_peers_lower_peer_offers = 12;
+   */
+  allPeersLowerPeerOffers?: boolean
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -325,6 +333,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       repeated: true,
     },
     { no: 11, name: 'verbose', kind: 'scalar', T: ScalarType.BOOL },
+    {
+      no: 12,
+      name: 'all_peers_lower_peer_offers',
+      kind: 'scalar',
+      T: ScalarType.BOOL,
+    },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

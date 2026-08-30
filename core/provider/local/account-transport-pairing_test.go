@@ -231,9 +231,42 @@ func TestSessionTransportReadyCommitRejectsReplacement(t *testing.T) {
 	})
 }
 
-// TestEnsureConfiguredSessionTransportDoesNotReplaceMountedTransport proves an
-// enrollment RPC follows the session tracker's transport rather than creating
-// an RPC-owned replacement when the requested signaling configuration differs.
+// TestCreateSessionTransportOutlivesCaller proves that a session mounted by an
+// enrollment RPC does not bind its transport to the RPC deadline.
+func TestCreateSessionTransportOutlivesCaller(t *testing.T) {
+	ctx := t.Context()
+	acc, sessionKey, release := newPairingTransportAccount(ctx, t)
+	defer release()
+
+	callerCtx, cancelCaller := context.WithCancel(ctx)
+	if err := acc.CreateSessionTransport(callerCtx, sessionKey, ""); err != nil {
+		t.Fatal(err)
+	}
+	cancelCaller()
+
+	timer := time.NewTimer(100 * time.Millisecond)
+	defer timer.Stop()
+	for {
+		var current *sessionTransportState
+		var changed <-chan struct{}
+		acc.transportBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
+			current = acc.sessionTransport
+			changed = getWaitCh()
+		})
+		if current == nil {
+			t.Fatal("session transport stopped with its mounting caller")
+		}
+		select {
+		case <-changed:
+		case <-timer.C:
+			return
+		}
+	}
+}
+
+// TestEnsureConfiguredSessionTransportOutlivesCaller proves an enrollment RPC
+// follows the session tracker's transport rather than creating an RPC-owned
+// replacement when the requested signaling configuration differs.
 func TestEnsureConfiguredSessionTransportOutlivesCaller(t *testing.T) {
 	ctx := t.Context()
 	acc, sessionKey, release := newPairingTransportAccount(ctx, t)

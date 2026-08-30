@@ -2,9 +2,11 @@ package resource_provider
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/pkg/errors"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/session"
@@ -22,6 +24,9 @@ type LocalProviderResource struct {
 	le       *logrus.Entry
 	b        bus.Bus
 	provider *provider_local.Provider
+
+	deviceSessionsMu sync.Mutex
+	deviceSessions   map[string]directive.Reference
 }
 
 // NewLocalProviderResource creates a new LocalProviderResource.
@@ -154,8 +159,37 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	if err := localAcc.RetainP2PPeer(networkCtx, ownerPeerID); err != nil {
 		return nil, errors.Wrap(err, "retain invite owner link")
 	}
+	if err := s.retainDeviceSession(ctx, sessRef); err != nil {
+		return nil, errors.Wrap(err, "retain completed Device session")
+	}
 
 	return &s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse{SessionListEntry: listEntry}, nil
+}
+
+// retainDeviceSession keeps a completed Device session mounted for the local
+// provider resource lifetime. This bridges the RPC response to the daemon's
+// capacity observer without dropping its transport in between.
+func (s *LocalProviderResource) retainDeviceSession(ctx context.Context, sessRef *session.SessionRef) error {
+	_, ref, err := session.ExMountSession(ctx, s.b, sessRef, false, nil)
+	if err != nil {
+		return err
+	}
+	if ref == nil {
+		return errors.New("completed Device session could not be mounted")
+	}
+	key := sessRef.GetProviderResourceRef().GetProviderAccountId()
+	s.deviceSessionsMu.Lock()
+	if s.deviceSessions == nil {
+		s.deviceSessions = make(map[string]directive.Reference)
+	}
+	if _, exists := s.deviceSessions[key]; exists {
+		s.deviceSessionsMu.Unlock()
+		ref.Release()
+		return nil
+	}
+	s.deviceSessions[key] = ref
+	s.deviceSessionsMu.Unlock()
+	return nil
 }
 
 // lookupLocalSessionByPeerID returns the registered local session whose

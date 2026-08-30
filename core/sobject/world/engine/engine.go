@@ -131,6 +131,10 @@ func (c *Controller) buildBlkEngine(
 			},
 			transformConf,
 		)
+		// A shared-object copy mounts its complete DAG through its local bucket.
+		// Preserve explicit cross-store references, but resolve implicit authoring
+		// bucket references through that local mirror and its DEX read-through.
+		cursor.SetBucketIDOverride(bucketID)
 		cursor.SetDecodedBlockCache(decodedBlocks)
 		task.End()
 	}

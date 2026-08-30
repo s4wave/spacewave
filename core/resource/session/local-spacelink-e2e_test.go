@@ -300,7 +300,7 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	if deviceSess.GetPeerId().String() != devicePeerID.String() {
-		t.Fatal("device session did not reopen with the supplied key identity")
+		t.Fatalf("device session reopened as %s, want %s", deviceSess.GetPeerId(), devicePeerID)
 	}
 
 	// Approval starts the owner's invite service on its mounted session
@@ -310,9 +310,16 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 	if ownerTransport == nil {
 		t.Fatal("approval did not retain the owner session transport")
 	}
+	for _, di := range ownerTransport.GetChildBus().GetDirectives() {
+		establish, ok := di.GetDirective().(link.EstablishLinkWithPeer)
+		if ok && establish.EstablishLinkSourcePeerId() == ownerTransport.GetPeerID() &&
+			establish.EstablishLinkTargetPeerId() == devicePeerID {
+			t.Fatal("approval made the owner compete with the Device to establish the same WebRTC link")
+		}
+	}
 	defer ownerAcc.StopSessionTransport()
 	defer ownerAcc.StopP2PSync()
-	if err := deviceAcc.EnsureSessionTransport(ctx, devicePriv, ""); err != nil {
+	if err := deviceAcc.EnsureConfiguredSessionTransport(ctx, devicePriv); err != nil {
 		t.Fatal(err)
 	}
 	defer deviceAcc.StopSessionTransport()

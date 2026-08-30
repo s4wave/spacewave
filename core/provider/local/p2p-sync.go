@@ -273,10 +273,16 @@ func (a *ProviderAccount) startP2PSync(ctx, ownerCtx context.Context, sessionTra
 		previous = a.p2pSync
 		if previous != nil && previous.sessionTransport == sessionTransport {
 			previous.bcast.HoldLock(func(stateBcast func(), _ func() <-chan struct{}) {
-				if previous.startComplete || previous.stopping || previous.ctx.Err() != nil {
+				if previous.stopping || previous.ctx.Err() != nil || ownerCtx.Err() != nil {
 					return
 				}
-				if ownerCtx.Err() != nil {
+				if previous.started && previous.startErr == nil {
+					// The running pass watches the SO list. A later session mount must
+					// reuse it instead of dropping every active link and DEX stream.
+					waitState = previous
+					return
+				}
+				if previous.startComplete {
 					return
 				}
 				previous.owners++

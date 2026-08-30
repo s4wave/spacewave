@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/coord"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -184,8 +185,13 @@ func (t *soEngineWriteTx) Commit(ctx context.Context) error {
 			return err
 		}
 	}
-	if decision.GetStatus() != SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED {
-		return errors.New(decision.GetError())
+	if err := finalizationDecisionError(decision); err != nil {
+		if errors.Is(err, coord.ErrStaleGeneration) {
+			if refreshErr := t.eng.refreshFinalizationWorldRoot(ctx); refreshErr != nil {
+				return refreshErr
+			}
+		}
+		return err
 	}
 
 	// Update the local state only after SharedObject authority accepts the root.
@@ -219,3 +225,13 @@ func (t *soEngineWriteTx) Discard() {
 
 // _ is a type assertion
 var _ world.Tx = (*soEngineWriteTx)(nil)
+
+func finalizationDecisionError(decision *SpaceWorldFinalizationDecision) error {
+	if decision.GetStatus() == SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_ACCEPTED {
+		return nil
+	}
+	if decision.GetStatus() == SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE {
+		return errors.Wrap(coord.ErrStaleGeneration, decision.GetError())
+	}
+	return errors.New(decision.GetError())
+}

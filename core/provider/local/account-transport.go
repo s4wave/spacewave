@@ -135,7 +135,11 @@ func (a *ProviderAccount) createSessionTransport(ctx context.Context, sessionKey
 	if err != nil {
 		return nil, err
 	}
-	sts, err := a.startSessionTransportLocked(ctx, cleanupCtx, sessionKey, signalingURL, "")
+	ownerCtx := a.lifecycleCtx
+	if ownerCtx == nil {
+		ownerCtx = ctx
+	}
+	sts, err := a.startSessionTransportLocked(ownerCtx, cleanupCtx, sessionKey, signalingURL, "")
 	rel()
 	if err != nil {
 		return nil, err

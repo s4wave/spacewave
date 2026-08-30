@@ -46,13 +46,8 @@ func (t *SessionTransport) startWebRTCControllers(
 
 	le.Debug("connecting to signaling")
 
-	sigClient, sigConn, sigCleanup, err := dialSignalingClient(ctx, le, wsURL, t.sessionKey)
-	if err != nil {
-		return nil, nil, err
-	}
-	sigCtrl := newWSSignalingCtrl(le, b, sigClient, sigConn, "webrtc", t.peerID)
+	sigCtrl := newWSSignalingCtrl(le, b, wsURL, t.sessionKey, "webrtc", t.peerID)
 	if _, err := b.AddController(ctx, sigCtrl, nil); err != nil {
-		sigCleanup()
 		return nil, nil, err
 	}
 
@@ -65,18 +60,15 @@ func (t *SessionTransport) startWebRTCControllers(
 					{Urls: []string{"stun:stun.l.google.com:19302"}},
 				},
 			},
-			AllPeers: true,
+			AllPeers:                true,
+			AllPeersLowerPeerOffers: true,
 		}),
 		nil,
 	)
 	if err != nil {
-		sigCleanup()
 		return nil, nil, err
 	}
 
 	le.Debug("signaling and webrtc controllers started")
-	return rtcCtrl, func() {
-		rtcRef.Release()
-		sigCleanup()
-	}, nil
+	return rtcCtrl, rtcRef.Release, nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/kvtx"
 	store_kvtx_hashmap "github.com/s4wave/spacewave/db/kvtx/hashmap"
 	bifhash "github.com/s4wave/spacewave/net/hash"
@@ -38,6 +39,16 @@ func TestSpaceWorldFinalizationPacketValidate(t *testing.T) {
 	missingCandidate.CandidateContentId = nil
 	if err := missingCandidate.Validate(); err == nil {
 		t.Fatal("expected missing candidate content id to reject")
+	}
+}
+
+func TestStaleFinalizationDecisionIsRetryableGeneration(t *testing.T) {
+	err := finalizationDecisionError(&SpaceWorldFinalizationDecision{
+		Status: SpaceWorldFinalizationStatus_SPACE_WORLD_FINALIZATION_STATUS_STALE_BASE,
+		Error:  "base World root is stale",
+	})
+	if !errors.Is(err, coord.ErrStaleGeneration) {
+		t.Fatalf("stale decision error = %v, want ErrStaleGeneration", err)
 	}
 }
 

@@ -21,6 +21,8 @@ import (
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/s4wave/spacewave/net/signaling"
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
+	transport_webrtc "github.com/s4wave/spacewave/net/transport/webrtc"
+	transport_websocket "github.com/s4wave/spacewave/net/transport/websocket"
 	"github.com/sirupsen/logrus"
 )
 
@@ -490,11 +492,15 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 			signaling.SignalPeer, signaling.HandleSignalPeer:
 			return false, nil
 		case resolver.LoadControllerWithConfig:
-			if _, ok := d.GetLoadControllerConfig().(*dex_solicit.Config); ok {
+			switch d.GetLoadControllerConfig().(type) {
+			case *dex_solicit.Config, *link_solicit_controller.Config,
+				*transport_webrtc.Config, *transport_websocket.Config:
 				return false, nil
 			}
 		case loader.ExecController:
-			if _, ok := d.GetExecControllerConfig().(*dex_solicit.Config); ok {
+			switch d.GetExecControllerConfig().(type) {
+			case *dex_solicit.Config, *link_solicit_controller.Config,
+				*transport_webrtc.Config, *transport_websocket.Config:
 				return false, nil
 			}
 		}

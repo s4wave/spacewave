@@ -3208,7 +3208,7 @@
       ]
     },
     "github.com/s4wave/spacewave/net/transport/webrtc": {
-      "hash": "f1c704bb5ad5448b5f9cbb2be062f01d1d387ddca5d16108a79090aedc4f56e8",
+      "hash": "b1e80e61b190826c0197b9fe6bab2efffa481a30fa4684b60141696c19c332d4",
       "generatedFiles": [
         "net/transport/webrtc/webrtc.pb.go",
         "net/transport/webrtc/webrtc.pb.ts"
