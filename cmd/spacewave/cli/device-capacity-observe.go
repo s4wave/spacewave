@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
@@ -34,14 +33,14 @@ func startDeviceCapacityObserver(
 	ctx context.Context,
 	le *logrus.Entry,
 	statePath string,
-	invoker srpc.Invoker,
+	sockPath string,
 	store *device_policy.PolicyStore,
 ) {
-	if invoker == nil || store == nil {
+	if sockPath == "" || store == nil {
 		return
 	}
 	go func() {
-		client, err := buildSDKClientFromInvoker(ctx, invoker)
+		client, err := connectDaemonAtSocket(ctx, sockPath)
 		if err != nil {
 			if ctx.Err() == nil {
 				le.WithError(err).Warn("device capacity observer unavailable")
