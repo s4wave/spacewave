@@ -18,6 +18,9 @@ message AcceptInviteRequest {
   // Only the owner sees the raw token on the authenticated stream.
   // The cloud beacon/mailbox layer gates on token_hash (never sees raw token).
   bytes token = 2;
+  // StorageJoinResponse proves the persistent local storage identity that will
+  // read and write the joined copy.
+  .sobject.SOJoinResponse storage_join_response = 3;
 }
 
 // AcceptInviteResponse is returned by the owner after enrollment.

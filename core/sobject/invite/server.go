@@ -101,6 +101,18 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 		return nil, errors.New("stream peer ID does not match join response responder")
 	}
 
+	storageJoinResp := req.GetStorageJoinResponse()
+	if storageJoinResp == nil {
+		return nil, errors.New("storage_join_response is required")
+	}
+	storagePeerID, storagePubKey, err := ValidateJoinResponse(storageJoinResp)
+	if err != nil {
+		return nil, errors.Wrap(err, "validate storage join response")
+	}
+	if storageJoinResp.GetInviteId() != joinResp.GetInviteId() {
+		return nil, errors.New("storage join response invite ID mismatch")
+	}
+
 	// Look up the invite by token hash.
 	result, err := s.lookupFn(ctx, tokenHash)
 	if err != nil {
@@ -140,6 +152,11 @@ func (s *Server) AcceptInvite(ctx context.Context, req *AcceptInviteRequest) (*A
 	grant, err := s.enrollFn(ctx, result, responderPeerID, responderPubKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "enroll participant")
+	}
+	if storagePeerID != responderPeerID {
+		if _, err := s.enrollFn(ctx, result, storagePeerID, storagePubKey); err != nil {
+			return nil, errors.Wrap(err, "enroll storage participant")
+		}
 	}
 
 	// Preserve the owner's root grant on the joined copy. Without it, state

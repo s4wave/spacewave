@@ -31,6 +31,13 @@ export interface AcceptInviteRequest {
    * @generated from field: bytes token = 2;
    */
   token?: Uint8Array
+  /**
+   * StorageJoinResponse proves the persistent local storage identity that will
+   * read and write the joined copy.
+   *
+   * @generated from field: sobject.SOJoinResponse storage_join_response = 3;
+   */
+  storageJoinResponse?: SOJoinResponse
 }
 
 export const AcceptInviteRequest: MessageType<AcceptInviteRequest> =
@@ -44,6 +51,12 @@ export const AcceptInviteRequest: MessageType<AcceptInviteRequest> =
         T: () => SOJoinResponse,
       },
       { no: 2, name: 'token', kind: 'scalar', T: ScalarType.BYTES },
+      {
+        no: 3,
+        name: 'storage_join_response',
+        kind: 'message',
+        T: () => SOJoinResponse,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

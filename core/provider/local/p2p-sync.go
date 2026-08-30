@@ -877,7 +877,7 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 		if err != nil {
 			return nil, err
 		}
-		return sobject.AddSOParticipant(
+		grant, err := sobject.AddSOParticipant(
 			ctx,
 			result.Host,
 			result.SharedObjectID,
@@ -888,6 +888,19 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 			result.Invite.GetRole(),
 			"",
 		)
+		if err != nil || grant != nil {
+			return grant, err
+		}
+		state, err := result.Host.GetHostState(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, existing := range state.GetRootGrants() {
+			if existing.GetPeerId() == inviteePeerID.String() {
+				return existing.CloneVT(), nil
+			}
+		}
+		return nil, errors.New("participant exists without a root grant")
 	}
 
 	ctrl, err := sobject_invite.NewInviteController(

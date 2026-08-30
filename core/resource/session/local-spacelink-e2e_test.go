@@ -394,13 +394,34 @@ func TestLocalSpaceLinkDeviceEnrollmentEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	foundGrant := false
+	foundStorageGrant := false
+	storagePeerID := localDeviceSO.GetPeerID().String()
 	for _, grant := range deviceSOState.GetRootGrants() {
-		if grant.GetPeerId() == devicePeerID.String() {
+		switch grant.GetPeerId() {
+		case devicePeerID.String():
 			foundGrant = true
+		case storagePeerID:
+			foundStorageGrant = true
+			if _, err := grant.DecryptInnerData(localDeviceSO.GetPrivKey(), spaceID); err != nil {
+				t.Fatalf("storage identity cannot decrypt joined state: %v", err)
+			}
 		}
 	}
 	if !foundGrant {
 		t.Fatal("device SO state is missing the device grant")
+	}
+	if !foundStorageGrant {
+		t.Fatal("device SO state is missing the storage grant")
+	}
+	foundStorageParticipant := false
+	for _, participant := range deviceSOState.GetConfig().GetParticipants() {
+		if participant.GetPeerId() == storagePeerID &&
+			participant.GetRole() == sobject.SOParticipantRole_SOParticipantRole_WRITER {
+			foundStorageParticipant = true
+		}
+	}
+	if !foundStorageParticipant {
+		t.Fatal("device SO state is missing the storage participant")
 	}
 	foundEntry := false
 	for _, soEntry := range deviceAcc.GetSOListCtr().GetValue().GetSharedObjects() {

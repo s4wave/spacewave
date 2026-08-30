@@ -71,6 +71,15 @@ func (a *ProviderAccount) JoinViaInvite(
 		return nil, err
 	}
 
+	volumePeer, err := a.vol.GetPeer(ctx, true)
+	if err != nil {
+		return nil, errors.Wrap(err, "get storage peer")
+	}
+	storageKey, err := volumePeer.GetPrivKey(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "get storage peer key")
+	}
+
 	// Execute the invite handshake over SRPC while the verified owner remains
 	// reachable. A signaling or link failure must not hold the enrollment RPC
 	// forever.
@@ -79,6 +88,7 @@ func (a *ProviderAccount) JoinViaInvite(
 		childBus,
 		st.GetPeerID(),
 		sessionKey,
+		storageKey,
 		inviteMsg,
 	)
 	if err != nil {
