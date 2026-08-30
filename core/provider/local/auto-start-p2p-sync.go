@@ -8,6 +8,7 @@ import (
 	account_settings "github.com/s4wave/spacewave/core/account/settings"
 	sobject "github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/core/transport"
+	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,6 +52,15 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 	}).Debug("auto-starting P2P sync")
 	if err := a.StartP2PSync(ctx, st); err != nil {
 		return errors.Wrap(err, "auto-start P2P sync")
+	}
+	for _, device := range devices {
+		remotePeerID, _, err := peer.ParsePeerIDWithPubKey(device.GetPeerId())
+		if err != nil {
+			return errors.Wrap(err, "parse paired Device peer id")
+		}
+		if err := a.RetainP2PPeer(ctx, remotePeerID); err != nil {
+			return errors.Wrap(err, "retain paired Device peer")
+		}
 	}
 	return nil
 }
