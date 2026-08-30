@@ -42,6 +42,10 @@ message Config {
   repeated string block_peers = 10;
   // Verbose enables very verbose logging.
   bool verbose = 11;
+  // AllPeersLowerPeerOffers prevents simultaneous offers when both peers use
+  // AllPeers. The peer with the lower binary peer ID makes the offer.
+  // Explicit Dialers are not restricted.
+  bool all_peers_lower_peer_offers = 12;
 }
 
 // WebRtcConfig configures the WebRTC PeerConnection.

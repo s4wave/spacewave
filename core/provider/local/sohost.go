@@ -163,12 +163,8 @@ func (l *LocalSOHost) Execute(ctx context.Context) error {
 					return err
 				}
 
-				// Decode error details
-				errorDetails, err := rejInner.DecodeErrorDetails(
-					l.privKey,
-					l.sharedObjectID,
-					l.peerID,
-				)
+				// Decode error details using the validator signer identity.
+				errorDetails, err := l.decodeLocalRejectionError(rejection, rejInner)
 				if err != nil {
 					l.le.WithError(err).Warn("failed to decode error details")
 					return err
@@ -778,4 +774,19 @@ func (l *LocalSOHost) clearLocalOpResult(ctx context.Context, localID string) er
 			return tx.Delete(ctx, opResultKey)
 		},
 	)
+}
+
+func (l *LocalSOHost) decodeLocalRejectionError(
+	rejection *sobject.SOOperationRejection,
+	inner *sobject.SOOperationRejectionInner,
+) (*sobject.SOOperationRejectionErrorDetails, error) {
+	validatorPublicKey, err := rejection.GetSignature().ParsePubKey()
+	if err != nil {
+		return nil, err
+	}
+	validatorPeerID, err := peer.IDFromPublicKey(validatorPublicKey)
+	if err != nil {
+		return nil, err
+	}
+	return inner.DecodeErrorDetails(l.privKey, l.sharedObjectID, validatorPeerID)
 }

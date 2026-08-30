@@ -1,6 +1,7 @@
 package webrtc
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net"
@@ -235,14 +236,22 @@ func (w *WebRTC) GetPeerDialer(ctx context.Context, peerID peer.ID) (*dialer.Dia
 		return nil, nil
 	}
 
+	if peerDialer, ok := w.conf.GetDialers()[peerIDStr]; ok {
+		return peerDialer, nil
+	}
 	if w.conf.GetAllPeers() {
+		// Session transports enable deterministic offers because both peers see
+		// the same EstablishLinkWithPeer request.
+		if w.conf.GetAllPeersLowerPeerOffers() && bytes.Compare([]byte(w.peerID), []byte(peerID)) >= 0 {
+			return nil, nil
+		}
 		return &dialer.DialerOpts{
 			Address: "webrtc",
 			Backoff: w.conf.GetBackoff(),
 		}, nil
 	}
 
-	return w.conf.GetDialers()[peerIDStr], nil
+	return nil, nil
 }
 
 // Execute executes the transport as configured, returning any fatal error.

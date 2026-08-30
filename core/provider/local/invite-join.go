@@ -40,15 +40,29 @@ func (a *ProviderAccount) JoinViaInvite(
 	if inviteMsg == nil {
 		return nil, errors.New("invite message is nil")
 	}
+	ownerPeerID, err := peer.IDB58Decode(inviteMsg.GetOwnerPeerId())
+	if err != nil {
+		return nil, errors.Wrap(err, "parse invite owner peer id")
+	}
 
 	// A local account with no explicit signaling URL rendezvouses through the
 	// configured trusted cloud endpoint so WebRTC reconnects after restarts.
+	signingEnvPrefix := ""
 	if signalingURL == "" {
-		signalingURL = a.fallbackSignalingEndpoint().url
+		relay := a.fallbackSignalingEndpoint()
+		signalingURL = relay.url
+		signingEnvPrefix = relay.signingEnvPrefix
 	}
 
-	// Ensure transport is running so we can reach the owner.
-	if err := a.EnsureSessionTransport(ctx, sessionKey, signalingURL); err != nil {
+	// Enrollment outlives this RPC. Bind its transport to the mounted account
+	// rather than to the invite request that happened to create it.
+	ownerCtx := a.lifecycleCtx
+	if ownerCtx == nil {
+		ownerCtx = ctx
+	}
+	if _, _, err := a.ensureSessionTransportWithOwner(
+		ctx, ownerCtx, sessionKey, signalingURL, signingEnvPrefix, true,
+	); err != nil {
 		return nil, errors.Wrap(err, "start session transport")
 	}
 
@@ -104,6 +118,9 @@ func (a *ProviderAccount) JoinViaInvite(
 	// account and stops with the account, not with the enrollment request.
 	if err := a.StartPersistentP2PSync(ctx, st); err != nil {
 		a.le.WithError(err).Warn("failed to start P2P sync after invite join")
+	}
+	if err := a.RetainP2PPeer(ctx, ownerPeerID); err != nil {
+		return nil, errors.Wrap(err, "retain invite owner link")
 	}
 
 	return result, nil

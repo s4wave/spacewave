@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/controller/resolver"
 	"github.com/aperturerobotics/controllerbus/directive"
 	websocket "github.com/aperturerobotics/go-websocket"
 	cbackoff "github.com/aperturerobotics/util/backoff/cbackoff"
@@ -23,6 +24,7 @@ import (
 	link_solicit "github.com/s4wave/spacewave/net/link/solicit"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/s4wave/spacewave/net/protocol"
+	transport_webrtc "github.com/s4wave/spacewave/net/transport/webrtc"
 	"github.com/s4wave/spacewave/testbed"
 	"github.com/sirupsen/logrus"
 )
@@ -425,6 +427,7 @@ func TestSessionTransportRepeatedWaitersObserveReady(t *testing.T) {
 
 type establishLinkSpy struct {
 	count      atomic.Int32
+	loadCount  atomic.Int32
 	bridgedSig chan struct{}
 }
 
@@ -432,6 +435,10 @@ func (s *establishLinkSpy) HandleDirective(_ context.Context, di directive.Insta
 	switch di.GetDirective().(type) {
 	case link.EstablishLinkWithPeer:
 		s.count.Add(1)
+	case resolver.LoadControllerWithConfig:
+		if _, ok := di.GetDirective().(resolver.LoadControllerWithConfig).GetLoadControllerConfig().(*transport_webrtc.Config); ok {
+			s.loadCount.Add(1)
+		}
 	case link_solicit.SolicitProtocol:
 		select {
 		case s.bridgedSig <- struct{}{}:
@@ -504,6 +511,13 @@ func TestSessionTransportKeepsProtocolsOnChildBus(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer bridgeRef.Release()
+	_, loadRef, err := st.GetChildBus().AddDirective(
+		resolver.NewLoadControllerWithConfig(&transport_webrtc.Config{}), nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer loadRef.Release()
 	select {
 	case <-spy.bridgedSig:
 		t.Fatal("parent bus observed a session SolicitProtocol directive")
@@ -511,6 +525,9 @@ func TestSessionTransportKeepsProtocolsOnChildBus(t *testing.T) {
 	}
 	if got := spy.count.Load(); got != 0 {
 		t.Fatalf("parent bus observed %d EstablishLinkWithPeer directives", got)
+	}
+	if got := spy.loadCount.Load(); got != 0 {
+		t.Fatalf("parent bus observed %d session controller load directives", got)
 	}
 	cancel()
 	<-done

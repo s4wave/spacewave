@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/coord"
 	hydra_testbed "github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
@@ -59,6 +60,44 @@ func newTestbed(t *testing.T) (context.Context, world.Engine, *world_testbed.Tes
 	}
 	t.Cleanup(func() { wtb.Release() })
 	return ctx, wtb.Engine, wtb
+}
+
+type staleOnceEngine struct {
+	world.Engine
+	stale atomic.Bool
+}
+
+func (e *staleOnceEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	tx, err := e.Engine.NewTransaction(ctx, write)
+	if err != nil || !write || e.stale.Swap(false) == false {
+		return tx, err
+	}
+	return &staleOnceWorldState{Tx: tx}, nil
+}
+
+type staleOnceWorldState struct {
+	world.Tx
+}
+
+func (s *staleOnceWorldState) Commit(context.Context) error {
+	return coord.ErrStaleGeneration
+}
+
+func TestWorldRuntimeAdmissionRetriesStaleWorldRoot(t *testing.T) {
+	ctx, eng, _ := newTestbed(t)
+	wrapped := &staleOnceEngine{Engine: eng}
+	wrapped.stale.Store(true)
+	admission := NewWorldRuntimeAdmission(wrapped, nil, 0, 0)
+	attempts := 0
+	if err := admission.withTx(ctx, true, func(context.Context, world.WorldState) error {
+		attempts++
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if attempts != 2 {
+		t.Fatalf("transaction attempts = %d, want 2", attempts)
+	}
 }
 
 var testRequest = ResourceRequest{MilliCPU: 1_000, MemoryBytes: 1 << 30, Backend: "docker"}

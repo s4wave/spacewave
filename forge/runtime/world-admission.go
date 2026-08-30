@@ -7,6 +7,7 @@ import (
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/world"
 )
 
@@ -90,9 +91,18 @@ func (a *WorldRuntimeAdmission) withTx(
 	write bool,
 	cb func(ctx context.Context, ws world.WorldState) error,
 ) error {
-	return world.ExecTransaction(ctx, a.eng, write, func(ctx context.Context, wtx world.WorldState) error {
-		return cb(ctx, wtx)
-	})
+	const maxStaleRetries = 8
+	var err error
+	for attempt := 0; attempt <= maxStaleRetries; attempt++ {
+		if err = ctx.Err(); err != nil {
+			return err
+		}
+		err = world.ExecTransaction(ctx, a.eng, write, cb)
+		if !write || !errors.Is(err, coord.ErrStaleGeneration) {
+			return err
+		}
+	}
+	return err
 }
 
 // loadOwnedCapacity loads the capacity record inside the transaction and

@@ -391,10 +391,14 @@ func runDeviceComplete(c *cli.Context, args deviceCompleteArgs) error {
 	if err := writeDeviceSetupRecord(resolvedStatePath, updated); err != nil {
 		return err
 	}
+	// Wake the daemon observer after the durable completion exists. The observer
+	// retains the enrolled session while this request projects the Device into
+	// the World, so a slow or retryable projection cannot tear down its network.
+	_ = requestDevicePolicyReload(ctx, client)
 	if updated.SetupState == deviceSetupStateImported {
 		activated, err := openDeviceSession(ctx, client, resolvedStatePath, updated)
 		if err != nil {
-			updated.SetupState = deviceSetupStateFailed
+			updated.SetupState = deviceSetupStateImported
 			updated.FailureReason = err.Error()
 			if persistErr := writeDeviceSetupRecord(resolvedStatePath, updated); persistErr != nil {
 				return errors.Wrapf(err, "persist Device setup failure: %v", persistErr)
@@ -781,6 +785,27 @@ func openLocalDeviceSession(
 	statePath string,
 	record *deviceSetupRecord,
 ) (*deviceSetupRecord, error) {
+	updated, err := mountLocalDeviceSession(ctx, client, statePath, record)
+	if err != nil {
+		return nil, err
+	}
+	objectKey, err := deviceUpsertObject(ctx, client, statePath, updated)
+	if err != nil {
+		return nil, errors.Wrap(err, "create or update device object")
+	}
+	updated.DeviceObjectKey = objectKey
+	return updated, nil
+}
+
+// mountLocalDeviceSession restores the durable session and P2P enrollment
+// without requiring the Space World to be writable. Daemon startup retains
+// this mount before it observes or updates Device and capacity objects.
+func mountLocalDeviceSession(
+	ctx context.Context,
+	client *sdkClient,
+	statePath string,
+	record *deviceSetupRecord,
+) (*deviceSetupRecord, error) {
 	completion, err := decodeDeviceLocalCompletion(record.Completion)
 	if err != nil {
 		return nil, err
@@ -822,11 +847,6 @@ func openLocalDeviceSession(
 	updated.SessionIndex = entry.GetSessionIndex()
 	updated.SessionPeerID = pid.String()
 	updated.AccountID = entry.GetSessionRef().GetProviderResourceRef().GetProviderAccountId()
-	objectKey, err := deviceUpsertObject(ctx, client, statePath, &updated)
-	if err != nil {
-		return nil, errors.Wrap(err, "create or update device object")
-	}
-	updated.DeviceObjectKey = objectKey
 	return &updated, nil
 }
 

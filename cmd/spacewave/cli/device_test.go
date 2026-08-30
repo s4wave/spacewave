@@ -529,8 +529,8 @@ func TestDeviceCompletePersistsCompletionWhenSessionMountFails(t *testing.T) {
 	if upsertCalled {
 		t.Fatal("Device object upsert ran before session readiness")
 	}
-	if record.SetupState != deviceSetupStateFailed {
-		t.Fatalf("setup state = %q, want failed setup after mount failure", record.SetupState)
+	if record.SetupState != deviceSetupStateImported {
+		t.Fatalf("setup state = %q, want imported completion after mount failure", record.SetupState)
 	}
 	if !strings.Contains(record.FailureReason, "mount linked device session") {
 		t.Fatalf("failure reason = %q, want mount owner context", record.FailureReason)
@@ -624,8 +624,8 @@ func TestDeviceCompletePreservesCompletionWhenDeviceObjectUpsertFails(t *testing
 	if err != nil {
 		t.Fatalf("read setup record: %v", err)
 	}
-	if record.SetupState != deviceSetupStateFailed {
-		t.Fatalf("setup state = %q, want failed setup after Device object write failure", record.SetupState)
+	if record.SetupState != deviceSetupStateImported {
+		t.Fatalf("setup state = %q, want imported completion after Device object write failure", record.SetupState)
 	}
 	if !strings.Contains(record.FailureReason, "create or update device object") {
 		t.Fatalf("failure reason = %q, want Device object owner context", record.FailureReason)

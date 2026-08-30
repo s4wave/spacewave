@@ -54,6 +54,40 @@ func TestWriteAcceptedLocalOpResultsPersistsSuccess(t *testing.T) {
 	}
 }
 
+func TestDecodeLocalRejectionUsesValidatorSigner(t *testing.T) {
+	host, localPeer := newTestLocalSOHost(t)
+	validator, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	validatorKey, err := validator.GetPrivKey(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	rejection, err := sobject.BuildSOOperationRejection(
+		validatorKey,
+		testSharedObjectID,
+		localPeer.GetPeerID(),
+		1,
+		sobject.NewSOOperationLocalID(),
+		&sobject.SOOperationRejectionErrorDetails{ErrorMsg: "rejected"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inner, err := rejection.UnmarshalInner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	details, err := host.decodeLocalRejectionError(rejection, inner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if details.GetErrorMsg() != "rejected" {
+		t.Fatalf("error details = %q, want rejected", details.GetErrorMsg())
+	}
+}
+
 func TestWriteAcceptedLocalOpResultsSkipsPendingOps(t *testing.T) {
 	ctx := context.Background()
 	host, _ := newTestLocalSOHost(t)

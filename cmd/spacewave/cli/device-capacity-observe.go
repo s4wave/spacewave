@@ -68,8 +68,21 @@ func runDeviceCapacityObserver(
 	if err != nil {
 		return errors.Wrap(err, "restore local Device enrollment")
 	}
-	if enrollmentCleanup != nil {
-		defer enrollmentCleanup()
+	defer func() {
+		if enrollmentCleanup != nil {
+			enrollmentCleanup()
+		}
+	}()
+	restoreEnrollment := func() {
+		if enrollmentCleanup != nil {
+			return
+		}
+		cleanup, restoreErr := restoreLocalDeviceEnrollment(ctx, statePath, client)
+		if restoreErr != nil {
+			le.WithError(restoreErr).Warn("local Device enrollment restore failed")
+			return
+		}
+		enrollmentCleanup = cleanup
 	}
 	claimID, err := newClaimID()
 	if err != nil {
@@ -156,10 +169,12 @@ func runDeviceCapacityObserver(
 				}
 				return update.err
 			}
+			restoreEnrollment()
 			current = update.policy
 			havePolicy = true
 			applyNeeded = true
 		case <-ticker.C:
+			restoreEnrollment()
 			if admission == nil {
 				applyNeeded = true
 				continue
@@ -179,18 +194,24 @@ func runDeviceCapacityObserver(
 // daemon start. This reasserts the invite authority as a desired signaling
 // peer without replaying the one-use invite.
 func restoreLocalDeviceEnrollment(ctx context.Context, statePath string, client *sdkClient) (func(), error) {
-	record, ok, err := deviceLauncherProjectionTarget(statePath)
-	if err != nil || !ok || !strings.HasPrefix(record.Completion, deviceLocalCompletionPrefix) {
+	record, err := readDeviceSetupRecord(statePath)
+	if err != nil {
 		return nil, err
+	}
+	if !strings.HasPrefix(record.Completion, deviceLocalCompletionPrefix) || record.SessionIndex == 0 {
+		return nil, nil
 	}
 	sess, err := client.mountSession(ctx, record.SessionIndex)
 	if err != nil {
 		return nil, err
 	}
-	updated, err := openLocalDeviceSession(ctx, client, statePath, record)
+	updated, err := mountLocalDeviceSession(ctx, client, statePath, record)
 	if err != nil {
 		sess.Release()
 		return nil, err
+	}
+	if updated.DeviceObjectKey == "" {
+		updated.SetupState = deviceSetupStateImported
 	}
 	if err := writeDeviceSetupRecord(statePath, updated); err != nil {
 		sess.Release()

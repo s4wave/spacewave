@@ -190,3 +190,15 @@ func finalizationWorldRoot(ctx context.Context, snap sobject.SharedObjectStateSn
 	}
 	return state.GetHeadRef().Clone(), nil
 }
+
+func (e *soEngine) refreshFinalizationWorldRoot(ctx context.Context) error {
+	snapshot, err := e.so.GetSharedObjectState(ctx)
+	if err != nil {
+		return err
+	}
+	root, err := finalizationWorldRoot(ctx, snapshot)
+	if err != nil {
+		return err
+	}
+	return e.updateEngineState(ctx, root)
+}
