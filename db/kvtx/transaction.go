@@ -25,14 +25,60 @@ func RetryInvalidSnapshot(err error) bool {
 	return errors.Is(err, ErrInvalidSnapshot)
 }
 
+// RunOperation executes a complete logical operation again when its storage
+// snapshot becomes invalid. The body must be safe to replay.
+func RunOperation(ctx context.Context, body func(context.Context) error) error {
+	return RunOperationWithRetry(ctx, body, RetryInvalidSnapshot)
+}
+
+// RunOperationWithRetry executes a complete logical operation with the
+// supplied typed retry policy. The body must not perform non-idempotent external
+// effects. Per-attempt mutable state must be created or reset inside the body;
+// immutable inputs may be captured from outside it.
+func RunOperationWithRetry(
+	ctx context.Context,
+	body func(context.Context) error,
+	retry RetryPredicate,
+) error {
+	return runOperationWithRetry(
+		ctx,
+		body,
+		retry,
+		"kvtx operation attempt limit exhausted",
+	)
+}
+
+func runOperationWithRetry(
+	ctx context.Context,
+	body func(context.Context) error,
+	retry RetryPredicate,
+	exhaustedError string,
+) error {
+	for range transactionAttemptLimit {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		err := body(ctx)
+		if err == nil {
+			return nil
+		}
+		if !retry(err) {
+			return err
+		}
+	}
+
+	return errors.New(exhaustedError)
+}
+
 // RunTransaction executes body against a fresh transaction for each retryable
 // failure and retries only ErrInvalidSnapshot. A successful read body is
 // discarded without committing; a successful write body is committed before
 // the attempt is discarded.
 //
 // The body must be safe to replay. It may use the transaction and perform
-// deterministic local computation, but external effects and mutable
-// accumulators that span attempts belong outside the body.
+// deterministic local computation, but it must not perform non-idempotent
+// external effects. Per-attempt mutable state must be reset inside the body.
 func RunTransaction[T TransactionLifecycle](
 	ctx context.Context,
 	write bool,
@@ -52,23 +98,14 @@ func RunTransactionWithRetry[T TransactionLifecycle](
 	body func(context.Context, T) error,
 	retry RetryPredicate,
 ) error {
-	for range transactionAttemptLimit {
-		// Cancellation between attempts must win before another transaction opens.
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		// Run one transaction attempt and classify its retryability.
-		err := runTransactionAttempt(ctx, write, open, body)
-		if err == nil {
-			return nil
-		}
-		if !retry(err) {
-			return err
-		}
-	}
-
-	return errors.New("kvtx transaction attempt limit exhausted")
+	return runOperationWithRetry(
+		ctx,
+		func(ctx context.Context) error {
+			return runTransactionAttempt(ctx, write, open, body)
+		},
+		retry,
+		"kvtx transaction attempt limit exhausted",
+	)
 }
 
 func runTransactionAttempt[T TransactionLifecycle](

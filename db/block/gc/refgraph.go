@@ -429,6 +429,18 @@ func (rg *RefGraph) filterExistingRemoves(
 // reads the complete object-predicate-subject posting key rather than scanning
 // keys that share its unpadded base62 prefix.
 func (rg *RefGraph) hasRef(ctx context.Context, subject, object string) (bool, error) {
+	var found bool
+	err := kvtx.RunOperation(ctx, func(ctx context.Context) error {
+		var err error
+		found, err = rg.hasRefAttempt(ctx, subject, object)
+		return err
+	})
+	return found, err
+}
+
+// hasRefAttempt reads one exact edge without external effects so hasRef can
+// replay the full lookup when one of its storage snapshots becomes invalid.
+func (rg *RefGraph) hasRefAttempt(ctx context.Context, subject, object string) (bool, error) {
 	qs, ok := graph.Unwrap(rg.handle.QuadStore).(*cayley_kv.QuadStore)
 	if !ok {
 		return rg.hasRefGeneric(ctx, subject, object)

@@ -1292,3 +1292,70 @@ func TestApplyRefBatchIgnoresAbsentStagingRemoval(t *testing.T) {
 		t.Fatalf("target lost its owner but was not marked orphaned: %v", unreferenced)
 	}
 }
+
+func TestRegisterEntityChainRetriesInvalidSnapshot(t *testing.T) {
+	ctx := context.Background()
+	store := &invalidSnapshotOnceStore{Store: store_kvtx_inmem.NewStore()}
+	rg, err := NewRefGraph(ctx, store, []byte("gc/"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rg.Close()
+
+	if err := rg.AddRef(ctx, NodeGCRoot, "provider:local"); err != nil {
+		t.Fatal(err)
+	}
+	store.failNextRead.Store(true)
+
+	if err := RegisterEntityChain(
+		ctx,
+		rg,
+		NodeGCRoot,
+		"provider:local",
+		"bucket:account-settings",
+	); err != nil {
+		t.Fatal(err)
+	}
+	if !store.failed.Load() {
+		t.Fatal("test store did not inject an invalid snapshot")
+	}
+	found, err := rg.hasRef(ctx, "provider:local", "bucket:account-settings")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("entity chain stopped after its duplicate root edge")
+	}
+}
+
+type invalidSnapshotOnceStore struct {
+	kvtx.Store
+	failNextRead atomic.Bool
+	failed       atomic.Bool
+}
+
+func (s *invalidSnapshotOnceStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	tx, err := s.Store.NewTransaction(ctx, write)
+	if err != nil {
+		return nil, err
+	}
+	if write || !s.failNextRead.Load() {
+		return tx, nil
+	}
+	return &invalidSnapshotOnceTx{Tx: tx, store: s}, nil
+}
+
+type invalidSnapshotOnceTx struct {
+	kvtx.Tx
+	store *invalidSnapshotOnceStore
+	reads int
+}
+
+func (t *invalidSnapshotOnceTx) Get(ctx context.Context, key []byte) ([]byte, bool, error) {
+	t.reads++
+	if t.reads == 2 && t.store.failNextRead.CompareAndSwap(true, false) {
+		t.store.failed.Store(true)
+		return nil, false, kvtx.ErrInvalidSnapshot
+	}
+	return t.Tx.Get(ctx, key)
+}
