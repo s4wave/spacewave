@@ -589,12 +589,12 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		"release-web-e2e",
 		e2eDistConf,
 		"web/js/wasm",
+		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
 		distEmbedManifestWant{manifestID: "spacewave-sql", platformID: "js"},
 	)
 
 	for _, unexpected := range []string{
 		`"embeddedManifestOverrides"`,
-		`"spacewave-notes"`,
 		`"spacewave-v86"`,
 		"https://spacewave.app/api/release/config",
 	} {
@@ -607,7 +607,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 	if e2eAssetBuild == nil {
 		t.Fatal("build target 'release-web-e2e-assets' not found")
 	}
-	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-cli-plugin", "web"} {
+	for _, want := range []string{"spacewave-launcher", "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-cli-plugin", "web"} {
 		if !slices.Contains(e2eAssetBuild.GetManifests(), want) {
 			t.Fatalf("release-web-e2e-assets manifests missing %s: %v", want, e2eAssetBuild.GetManifests())
 		}
@@ -655,6 +655,7 @@ func TestEvaluateRootDesktopReleaseBuildsJsEmbeds(t *testing.T) {
 		"release-web-e2e-dist",
 		e2eDistOnlyConf,
 		"web/js/wasm",
+		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
 		distEmbedManifestWant{manifestID: "spacewave-sql", platformID: "js"},
 	)
 
@@ -783,6 +784,7 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		"release-web-e2e-tinygo",
 		tinygoE2EDistConf,
 		"web/js/wasm",
+		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
 		distEmbedManifestWant{manifestID: "spacewave-sql", platformID: "js"},
 	)
 
@@ -820,6 +822,7 @@ func TestEvaluateRootDesktopStatusProjectorPlatformBoundary(t *testing.T) {
 		"release-web-e2e-goscript",
 		goscriptE2EDistConf,
 		"js",
+		distEmbedManifestWant{manifestID: "spacewave-notes", platformID: "js"},
 		distEmbedManifestWant{manifestID: "spacewave-sql", platformID: "js"},
 	)
 
