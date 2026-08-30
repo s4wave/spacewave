@@ -42,6 +42,13 @@ export interface Config {
    * @generated from field: uint32 max_forward_hops = 4;
    */
   maxForwardHops?: number
+  /**
+   * ProtocolContext matches peers that expose the same logical block store.
+   * If empty, BucketId is used for compatibility with local-only callers.
+   *
+   * @generated from field: bytes protocol_context = 5;
+   */
+  protocolContext?: Uint8Array
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -51,6 +58,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'transport_id', kind: 'scalar', T: ScalarType.UINT64 },
     { no: 4, name: 'max_forward_hops', kind: 'scalar', T: ScalarType.UINT32 },
+    { no: 5, name: 'protocol_context', kind: 'scalar', T: ScalarType.BYTES },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

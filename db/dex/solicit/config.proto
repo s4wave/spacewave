@@ -14,4 +14,7 @@ message Config {
   // MaxForwardHops is the maximum number of times a request can be
   // forwarded between peers. Zero disables forwarding (default).
   uint32 max_forward_hops = 4;
+  // ProtocolContext matches peers that expose the same logical block store.
+  // If empty, BucketId is used for compatibility with local-only callers.
+  bytes protocol_context = 5;
 }

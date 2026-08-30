@@ -596,7 +596,7 @@ func (a *ProviderAccount) startP2PSyncControllers(
 		providerAccountID := provRef.GetProviderAccountId()
 		bucketID := BlockStoreBucketID(providerID, providerAccountID, blockStoreID)
 		if !state.hasStore(bucketID) {
-			if err := a.startDEXSolicit(syncCtx, childBus, bucketID, state); err != nil {
+			if err := a.startDEXSolicit(syncCtx, childBus, bucketID, soID, state); err != nil {
 				if syncCtx.Err() != nil {
 					return syncCtx.Err()
 				}
@@ -948,12 +948,13 @@ func (a *ProviderAccount) startInviteServer(ctx context.Context, childBus bus.Bu
 
 // startDEXSolicit loads a DEX solicit controller on the child bus for
 // the given block store bucket.
-func (a *ProviderAccount) startDEXSolicit(ctx context.Context, childBus bus.Bus, bucketID string, state *p2pSyncState) error {
+func (a *ProviderAccount) startDEXSolicit(ctx context.Context, childBus bus.Bus, bucketID, protocolContext string, state *p2pSyncState) error {
 	ctrl, _, dexRef, err := loader.WaitExecControllerRunningTyped[*dex_solicit.Controller](
 		ctx,
 		childBus,
 		resolver.NewLoadControllerWithConfig(&dex_solicit.Config{
-			BucketId: bucketID,
+			BucketId:        bucketID,
+			ProtocolContext: []byte(protocolContext),
 		}),
 		nil,
 	)
