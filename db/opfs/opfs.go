@@ -145,6 +145,12 @@ func IsQuotaExceeded(err error) bool {
 	return DefaultDriver.ClassifyError(err) == ErrorKindQuotaExceeded
 }
 
+// IsUnknown checks if an error is an "UnknownError" DOMException.
+func IsUnknown(err error) bool {
+	var jsErr *JSError
+	return errors.As(err, &jsErr) && jsErr.Name == "UnknownError"
+}
+
 // ClassifyError classifies an OPFS/browser error.
 func ClassifyError(err error) ErrorKind {
 	return DefaultDriver.ClassifyError(err)

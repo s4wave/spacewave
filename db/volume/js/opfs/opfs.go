@@ -55,12 +55,11 @@ func NewOpfs(
 	opfsRoot, err := opfs.GetRoot()
 	if err != nil {
 		err = errors.Wrap(err, "opfs GetRoot")
-		// A SecurityError on root acquisition is a browser storage-capability
-		// denial for this profile: it survives a site-data clear and only a
-		// different browser profile recovers it. Retrying cannot succeed, so
-		// mark it permanent and let the volume controller stop restarting and
-		// surface the condition instead of looping forever.
-		if opfs.IsSecurity(err) {
+		// SecurityError and UnknownError on root acquisition are browser
+		// storage-capability denials for this profile. Retrying in the same
+		// profile cannot succeed, so let the volume controller surface the
+		// condition instead of restarting forever.
+		if opfs.IsSecurity(err) || opfs.IsUnknown(err) {
 			return nil, volume.Permanent(err)
 		}
 		return nil, err

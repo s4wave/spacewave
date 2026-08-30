@@ -67,9 +67,13 @@ export default async function main(
   backendAPI.handleStreamCtr.set(async (channel: PacketStream) => {
     plugin.rpcServer.handlePacketStream(channel)
   })
-  using rootRef = await backendAPI.resourceClient.accessRootResource()
-  const pluginHost = new PluginHostResourceServiceClient(rootRef.client)
-  await pluginHost.CompleteInitialCapabilityRegistration({}, abortSignal)
+  const rootRef = await backendAPI.resourceClient.accessRootResource()
+  try {
+    const pluginHost = new PluginHostResourceServiceClient(rootRef.client)
+    await pluginHost.CompleteInitialCapabilityRegistration({}, abortSignal)
+  } finally {
+    rootRef.release()
+  }
 
   console.log('Web plugin for browser started.')
 }

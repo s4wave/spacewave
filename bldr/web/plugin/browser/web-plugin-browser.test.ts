@@ -34,7 +34,7 @@ describe('browser web plugin readiness', () => {
     const rootClient = {}
     const accessRootResource = vi.fn(async () => ({
       client: rootClient,
-      [Symbol.dispose]: disposeRoot,
+      release: disposeRoot,
     }))
     const controller = new AbortController()
 

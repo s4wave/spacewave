@@ -607,6 +607,25 @@ func TestStartupBuildCacheDefaultsOnWithExplicitFreshBuildEscape(t *testing.T) {
 	}
 }
 
+func TestJSSourcemapsDefaultOffWithExplicitDiagnosticOptIn(t *testing.T) {
+	t.Setenv(E2EWasmJSSourcemapsEnv, "")
+	enabled, err := ResolveE2EWasmJSSourcemapsEnabled()
+	if err != nil || enabled {
+		t.Fatalf("default source maps = %v, %v; want false, nil", enabled, err)
+	}
+
+	t.Setenv(E2EWasmJSSourcemapsEnv, "true")
+	enabled, err = ResolveE2EWasmJSSourcemapsEnabled()
+	if err != nil || !enabled {
+		t.Fatalf("enabled source maps = %v, %v; want true, nil", enabled, err)
+	}
+
+	t.Setenv(E2EWasmJSSourcemapsEnv, "invalid")
+	if _, err := ResolveE2EWasmJSSourcemapsEnabled(); err == nil {
+		t.Fatal("invalid source maps value should fail")
+	}
+}
+
 func TestBuildHarnessStateRootKeepsCachedRunsStable(t *testing.T) {
 	repoRoot := t.TempDir()
 	cached, err := buildHarnessStateRoot(repoRoot, true)
