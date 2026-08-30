@@ -184,6 +184,7 @@ func runServeCommand(
 	if err != nil {
 		return err
 	}
+	startLocalSessionKeeper(serveCtx, le, invoker)
 	startDeviceLauncherUpdateProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker)
 	startDevicePolicyCapabilityProjection(serveCtx, le, resolved, cliBus.GetBus(), invoker, devicePolicy)
 	startDeviceCapacityObserver(serveCtx, le, resolved, invoker, devicePolicy)
