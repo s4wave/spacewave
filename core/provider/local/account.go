@@ -44,6 +44,8 @@ type ProviderAccount struct {
 	le *logrus.Entry
 	// vol is the parent volume for storage for the account
 	vol volume.Volume
+	// lifecycleCtx ends when the provider account loses its final reference.
+	lifecycleCtx context.Context
 
 	// bstores contains the set of mounted block stores.
 	bstores *keyed.KeyedRefCount[string, *bstoreTracker]
@@ -186,9 +188,10 @@ func (t *providerAccountTracker) executeProviderAccountTracker(rctx context.Cont
 	// Construct the ProviderAccount and keyed trackers.
 	le := t.p.le.WithField("account-id", t.accountInfo.GetProviderAccountId())
 	providerAcc := &ProviderAccount{
-		t:   t,
-		vol: vol,
-		le:  le,
+		t:            t,
+		vol:          vol,
+		le:           le,
+		lifecycleCtx: ctx,
 	}
 
 	providerAcc.bstores = keyed.NewKeyedRefCountWithLogger(

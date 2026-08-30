@@ -102,7 +102,7 @@ func (a *ProviderAccount) JoinViaInvite(
 
 	// The bounded join context ends with this call. P2P sync belongs to the
 	// account and stops with the account, not with the enrollment request.
-	if err := a.StartP2PSync(context.WithoutCancel(ctx), st); err != nil {
+	if err := a.StartPersistentP2PSync(ctx, st); err != nil {
 		a.le.WithError(err).Warn("failed to start P2P sync after invite join")
 	}
 

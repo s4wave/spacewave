@@ -240,6 +240,19 @@ func (s *p2pSyncState) getStore(bucketID string) block.StoreOps {
 // controllers run. The session transport must be running before
 // calling this method.
 func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *transport.SessionTransport) error {
+	return a.startP2PSync(ctx, ctx, sessionTransport)
+}
+
+// StartPersistentP2PSync starts P2P sync for the provider-account lifetime
+// while bounding startup by ctx.
+func (a *ProviderAccount) StartPersistentP2PSync(ctx context.Context, sessionTransport *transport.SessionTransport) error {
+	if a.lifecycleCtx == nil {
+		return errors.New("provider account lifecycle is unavailable")
+	}
+	return a.startP2PSync(ctx, a.lifecycleCtx, sessionTransport)
+}
+
+func (a *ProviderAccount) startP2PSync(ctx, ownerCtx context.Context, sessionTransport *transport.SessionTransport) error {
 	if err := sessionTransport.AwaitReady(ctx); err != nil {
 		return err
 	}
@@ -262,7 +275,7 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 				if previous.startComplete || previous.stopping || previous.ctx.Err() != nil {
 					return
 				}
-				if ctx.Err() != nil {
+				if ownerCtx.Err() != nil {
 					return
 				}
 				previous.owners++
@@ -282,7 +295,7 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 			sessionTransport: sessionTransport,
 			cancel:           syncCancel,
 		}
-		if !a.retainP2PSyncStateLocked(ctx, state) {
+		if !a.retainP2PSyncStateLocked(ownerCtx, state) {
 			syncCancel()
 			state = nil
 			return
@@ -301,7 +314,7 @@ func (a *ProviderAccount) StartP2PSync(ctx context.Context, sessionTransport *tr
 		if waitState != nil {
 			watchState = waitState
 		}
-		a.watchP2PSyncOwner(ctx, watchState)
+		a.watchP2PSyncOwner(ownerCtx, watchState)
 	}
 	if state == nil {
 		if waitState == nil {
