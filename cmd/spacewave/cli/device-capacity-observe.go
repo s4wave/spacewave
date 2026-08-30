@@ -77,45 +77,102 @@ func runDeviceCapacityObserver(
 		return errors.Wrap(err, "generate claim id")
 	}
 
+	type policyUpdate struct {
+		policy *device_policy.DevicePolicy
+		err    error
+	}
+	watchCtx, stopWatch := context.WithCancel(ctx)
+	updates := make(chan policyUpdate, 1)
+	watchDone := make(chan struct{})
+	go func() {
+		defer close(watchDone)
+		var last *device_policy.DevicePolicy
+		for {
+			policy, err := store.WaitChange(watchCtx, last)
+			select {
+			case updates <- policyUpdate{policy: policy, err: err}:
+			case <-watchCtx.Done():
+				return
+			}
+			if err != nil {
+				return
+			}
+			last = policy
+		}
+	}()
+	defer func() {
+		stopWatch()
+		<-watchDone
+	}()
+
 	var admission *forge_runtime.WorldRuntimeAdmission
 	var ref forge_runtime.WorkerClaimRef
 	var cleanup func()
-	defer func() {
+	closeAdmission := func() {
 		if cleanup != nil {
 			cleanup()
 		}
-	}()
+		admission = nil
+		ref = forge_runtime.WorkerClaimRef{}
+		cleanup = nil
+	}
+	defer closeAdmission()
 
-	var last *device_policy.DevicePolicy
+	var current *device_policy.DevicePolicy
+	var havePolicy bool
+	var applyNeeded bool
+	ticker := time.NewTicker(capacityRenewPeriod)
+	defer ticker.Stop()
 	for {
-		policy, err := store.WaitChange(ctx, last)
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil
-			}
-			return err
-		}
-		if admission == nil {
-			admission, ref, cleanup, err = openDeviceCapacityAdmission(ctx, statePath, client, claimID)
-			if err != nil {
-				le.WithError(err).Warn("failed to open declared capacity target")
-				last = policy
-				continue
-			}
+		if applyNeeded && havePolicy {
+			applyNeeded = false
 			if admission == nil {
-				last = policy
+				admission, ref, cleanup, err = openDeviceCapacityAdmission(ctx, statePath, client, claimID)
+				if err != nil {
+					le.WithError(err).Warn("failed to open declared capacity target")
+					closeAdmission()
+				} else if admission == nil {
+					closeAdmission()
+				}
+			}
+			if admission != nil {
+				var declared *device_policy.ForgeWorkerPolicy
+				if current != nil {
+					declared = current.GetForgeWorker()
+				}
+				if err := applyDeclaredCapacity(ctx, le, admission, ref, declared); err != nil {
+					le.WithError(err).Warn("failed to observe declared capacity")
+					closeAdmission()
+				}
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil
+		case update := <-updates:
+			if update.err != nil {
+				if ctx.Err() != nil {
+					return nil
+				}
+				return update.err
+			}
+			current = update.policy
+			havePolicy = true
+			applyNeeded = true
+		case <-ticker.C:
+			if admission == nil {
+				applyNeeded = true
 				continue
 			}
-			go renewOwnedCapacityLoop(ctx, le, admission, ref)
+			if err := renewOwnedCapacityOnceWithAdmission(ctx, admission, ref.DeviceObjectKey, ref); err != nil {
+				if ctx.Err() == nil {
+					le.WithError(err).Warn("capacity claim renewal failed")
+				}
+				closeAdmission()
+				applyNeeded = true
+			}
 		}
-		var declared *device_policy.ForgeWorkerPolicy
-		if policy != nil && ctx.Err() == nil {
-			declared = policy.GetForgeWorker()
-		}
-		if err := applyDeclaredCapacity(ctx, le, admission, ref, declared); err != nil {
-			le.WithError(err).Warn("failed to observe declared capacity")
-		}
-		last = policy
 	}
 }
 
@@ -239,34 +296,6 @@ func applyDeclaredCapacity(
 	_, err = admission.ObserveWorker(ctx, declaredKey, ref, capacity.OwnerEpoch,
 		declared.GetMilliCpu(), declared.GetMemoryBytes(), declared.GetBackends())
 	return err
-}
-
-// renewOwnedCapacityLoop extends the claim on every owned record at a bounded
-// fraction of the owner lease. An expired lease falls back to reclaim with an
-// epoch bump inside RenewWorkerClaim, so turnover stays safe.
-func renewOwnedCapacityLoop(
-	ctx context.Context,
-	le *logrus.Entry,
-	admission *forge_runtime.WorldRuntimeAdmission,
-	ref forge_runtime.WorkerClaimRef,
-) {
-	ticker := time.NewTicker(capacityRenewPeriod)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if err := renewOwnedCapacityOnceWithAdmission(
-				ctx,
-				admission,
-				ref.DeviceObjectKey,
-				ref,
-			); err != nil && ctx.Err() == nil {
-				le.WithError(err).Warn("capacity claim renewal failed")
-			}
-		}
-	}
 }
 
 // renewOwnedCapacityOnceWithAdmission renews every record the Device owns
