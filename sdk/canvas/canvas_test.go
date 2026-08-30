@@ -656,27 +656,50 @@ func TestCanvasStorageMigratesFlatStateAndKeepsUnchangedNodeRef(t *testing.T) {
 				t.Fatalf("migrated state has %d nodes, want %d", len(got.GetNodes()), nodeCount)
 			}
 			firstRefs := canvasStorageNodeRefs(t, ctx, ws, "canvas")
+			firstDagRefs := canvasStorageNodeDagRefs(t, ctx, ws, "canvas")
 
 			next := migrated.CloneVT()
 			next.Nodes["node-0000"].Width++
-			next.Nodes["added"] = &CanvasNode{Id: "added", Width: 80, Height: 80}
-			var removed string
-			if nodeCount > 2 {
-				removed = fmt.Sprintf("node-%04d", nodeCount-1)
-				delete(next.Nodes, removed)
-			}
 			writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, next)
 			secondRefs := canvasStorageNodeRefs(t, ctx, ws, "canvas")
-			if _, found := secondRefs[removed]; removed != "" && found {
-				t.Fatalf("removed node %q remains in the node DAG", removed)
+			secondDagRefs := canvasStorageNodeDagRefs(t, ctx, ws, "canvas")
+			changedDagRefs := 0
+			for ref := range secondDagRefs {
+				if _, found := firstDagRefs[ref]; !found {
+					changedDagRefs++
+				}
+			}
+			t.Logf("nodes=%d DAG refs=%d changed refs=%d", nodeCount, len(secondDagRefs), changedDagRefs)
+			if changedDagRefs >= nodeCount && nodeCount > 1 {
+				t.Fatalf("single-node update changed %d DAG refs for %d nodes", changedDagRefs, nodeCount)
 			}
 			if firstRefs["node-0000"].EqualsRef(secondRefs["node-0000"]) {
 				t.Fatal("changed node kept its old block ref")
 			}
-			if nodeCount > 1 {
-				unchanged := "node-0001"
-				if !firstRefs[unchanged].EqualsRef(secondRefs[unchanged]) {
-					t.Fatalf("unchanged node %q block ref changed", unchanged)
+			if nodeCount > 1 && !firstRefs["node-0001"].EqualsRef(secondRefs["node-0001"]) {
+				t.Fatal("unchanged node block ref changed")
+			}
+
+			withMembershipChanges := next.CloneVT()
+			withMembershipChanges.Nodes["added"] = &CanvasNode{Id: "added", Width: 80, Height: 80}
+			var removed string
+			if nodeCount > 2 {
+				removed = fmt.Sprintf("node-%04d", nodeCount-1)
+				delete(withMembershipChanges.Nodes, removed)
+			}
+			writeCanvasStorageTestState(t, ctx, ws, "canvas", nil, withMembershipChanges)
+			membershipRefs := canvasStorageNodeRefs(t, ctx, ws, "canvas")
+			membershipDagRefs := canvasStorageNodeDagRefs(t, ctx, ws, "canvas")
+			if _, found := membershipRefs["added"]; !found {
+				t.Fatal("added node is missing from the node DAG")
+			}
+			if _, found := membershipRefs[removed]; removed != "" && found {
+				t.Fatalf("removed node %q remains in the node DAG", removed)
+			}
+			if removed != "" {
+				removedRef := firstRefs[removed].MarshalString()
+				if _, reachable := membershipDagRefs[removedRef]; reachable {
+					t.Fatalf("removed node %q block ref remains reachable", removed)
 				}
 			}
 		})
@@ -724,6 +747,63 @@ func writeCanvasStorageTestState(
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func canvasStorageNodeDagRefs(
+	t *testing.T,
+	ctx context.Context,
+	ws *world_block.WorldState,
+	objKey string,
+) map[string]struct{} {
+	t.Helper()
+	refs := make(map[string]struct{})
+	_, _, err := world.AccessWorldObject(ctx, ws, objKey, false, func(bcs *block.Cursor) error {
+		if _, err := UnmarshalCanvasStorage(ctx, bcs); err != nil {
+			return err
+		}
+		nodes, err := block_kvtx.BuildKvTransaction(ctx, bcs.FollowSubBlock(2), false)
+		if err != nil {
+			return err
+		}
+		defer nodes.Discard()
+		it := nodes.BlockIterate(ctx, nil, false, false)
+		for it.Next() {
+			if _, err := block.UnmarshalBlock[*CanvasNode](ctx, it.ValueCursor(), NewCanvasNodeBlock); err != nil {
+				it.Close()
+				return err
+			}
+		}
+		if err := it.Err(); err != nil {
+			it.Close()
+			return err
+		}
+		it.Close()
+		var collect func(*block.Cursor) error
+		collect = func(cursor *block.Cursor) error {
+			if ref := cursor.GetRef(); ref != nil && !ref.GetEmpty() {
+				key := ref.MarshalString()
+				if _, found := refs[key]; found {
+					return nil
+				}
+				refs[key] = struct{}{}
+			}
+			children, err := cursor.GetAllRefs(false)
+			if err != nil {
+				return err
+			}
+			for _, child := range children {
+				if err := collect(child); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		return collect(bcs.FollowSubBlock(2))
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return refs
 }
 
 func canvasStorageNodeRefs(
