@@ -23,6 +23,13 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+func solicitationContext(c *Config) []byte {
+	if protocolContext := c.GetProtocolContext(); len(protocolContext) != 0 {
+		return protocolContext
+	}
+	return []byte(c.GetBucketId())
+}
+
 // ParsePeerID parses the peer ID from config.
 func (c *Config) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())

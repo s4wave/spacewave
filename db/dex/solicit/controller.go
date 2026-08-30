@@ -69,9 +69,8 @@ func (c *Controller) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// Publish the solicitation protocol for the configured bucket.
-	// Emit SolicitProtocol directive with bucket ID as context.
-	solicitCtx := []byte(c.cc.GetBucketId())
+	// Publish the solicitation protocol for the configured logical store.
+	solicitCtx := solicitationContext(c.cc)
 	dir := link_solicit.NewSolicitProtocol(
 		DexProtocolID,
 		solicitCtx,

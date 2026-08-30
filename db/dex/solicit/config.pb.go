@@ -27,6 +27,9 @@ type Config struct {
 	// MaxForwardHops is the maximum number of times a request can be
 	// forwarded between peers. Zero disables forwarding (default).
 	MaxForwardHops uint32 `protobuf:"varint,4,opt,name=max_forward_hops,json=maxForwardHops,proto3" json:"maxForwardHops,omitempty"`
+	// ProtocolContext matches peers that expose the same logical block store.
+	// If empty, BucketId is used for compatibility with local-only callers.
+	ProtocolContext []byte `protobuf:"bytes,5,opt,name=protocol_context,json=protocolContext,proto3" json:"protocolContext,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -63,6 +66,13 @@ func (x *Config) GetMaxForwardHops() uint32 {
 	return 0
 }
 
+func (x *Config) GetProtocolContext() []byte {
+	if x != nil {
+		return x.ProtocolContext
+	}
+	return nil
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -72,6 +82,7 @@ func (m *Config) CloneVT() *Config {
 	r.PeerId = m.PeerId
 	r.TransportId = m.TransportId
 	r.MaxForwardHops = m.MaxForwardHops
+	r.ProtocolContext = protobuf_go_lite.CloneBytes(m.ProtocolContext)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -98,6 +109,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.MaxForwardHops != that.MaxForwardHops {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.ProtocolContext, that.ProtocolContext) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -139,6 +153,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("maxForwardHops")
 		s.WriteUint32(x.MaxForwardHops)
 	}
+	if len(x.ProtocolContext) > 0 || s.HasField("protocolContext") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("protocolContext")
+		s.WriteBytes(x.ProtocolContext)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -168,6 +187,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "max_forward_hops", "maxForwardHops":
 			s.AddField("max_forward_hops")
 			x.MaxForwardHops = s.ReadUint32()
+		case "protocol_context", "protocolContext":
+			s.AddField("protocol_context")
+			x.ProtocolContext = s.ReadBytes()
 		}
 	})
 }
@@ -206,6 +228,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.ProtocolContext) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.ProtocolContext)
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.MaxForwardHops != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.MaxForwardHops))
 		i--
@@ -239,6 +266,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.TransportId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.MaxForwardHops)
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.ProtocolContext)
 	n += len(m.unknownFields)
 	return n
 }
@@ -261,6 +289,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.MaxForwardHops != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "max_forward_hops")
 		protobuf_go_lite.TextWriteUint(&sb, x.MaxForwardHops)
+	}
+	if len(x.ProtocolContext) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "protocol_context")
+		protobuf_go_lite.TextWriteBytes(&sb, x.ProtocolContext)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -324,6 +356,14 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 			}
 			m.MaxForwardHops = 0
 			m.MaxForwardHops, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProtocolContext", wireType)
+			}
+			m.ProtocolContext, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.ProtocolContext, dAtA, iNdEx)
 			if err != nil {
 				return err
 			}

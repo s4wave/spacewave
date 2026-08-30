@@ -172,7 +172,7 @@ func (a *ProviderAccount) startP2PSyncForSession(
 			blockStoreID := ref.GetBlockStoreId()
 
 			bucketID := BlockStoreBucketID(a.accountID, blockStoreID)
-			if err := a.startDEXSolicit(syncCtx, childBus, bucketID, state); err != nil {
+			if err := a.startDEXSolicit(syncCtx, childBus, bucketID, soID, state); err != nil {
 				a.le.WithError(err).WithField("bucket-id", bucketID).Warn("failed to start dex solicit")
 			}
 
@@ -366,13 +366,15 @@ func (a *ProviderAccount) startDEXSolicit(
 	ctx context.Context,
 	childBus bus.Bus,
 	bucketID string,
+	protocolContext string,
 	state *p2pSyncState,
 ) error {
 	ctrl, _, dexRef, err := loader.WaitExecControllerRunningTyped[*dex_solicit.Controller](
 		ctx,
 		childBus,
 		resolver.NewLoadControllerWithConfig(&dex_solicit.Config{
-			BucketId: bucketID,
+			BucketId:        bucketID,
+			ProtocolContext: []byte(protocolContext),
 		}),
 		nil,
 	)
