@@ -104,8 +104,8 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 		changeBcs.SetRef(6, prevBcs)
 	}
 
-	// GC: swap object -> block edge (old -> new).
-	if rg := o.w.refGraph; rg != nil {
+	// Record the object root ownership swap with the world transaction.
+	if o.w.refGraph != nil {
 		taskCtx, subtask := trace.NewTask(ctx, "hydra/world-block/object-state/set-root-ref/update-gc-refs")
 		oldBlockRef := prevBlk.GetRootRef().GetRootRef()
 		newBlockRef := nref.GetRootRef()
@@ -113,28 +113,20 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 		var adds []block_gc.RefEdge
 		var removes []block_gc.RefEdge
 		if oldBlockRef != nil && !oldBlockRef.GetEmpty() {
-			oldIRI := block_gc.BlockIRI(oldBlockRef)
-			removes = append(removes, block_gc.RefEdge{Subject: objIRI, Object: oldIRI})
-
-			queryCtx, queryTask := trace.NewTask(taskCtx, "hydra/world-block/object-state/set-root-ref/has-incoming-refs-excluding")
-			has, err := rg.HasIncomingRefsExcluding(queryCtx, oldIRI, objIRI)
-			queryTask.End()
-			if err != nil {
-				subtask.End()
-				return r, err
-			}
-			if !has {
-				adds = append(adds, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: oldIRI})
-			}
+			removes = append(removes, block_gc.RefEdge{
+				Subject: objIRI,
+				Object:  block_gc.BlockIRI(oldBlockRef),
+			})
 		}
 		if newBlockRef != nil && !newBlockRef.GetEmpty() {
 			newIRI := block_gc.BlockIRI(newBlockRef)
 			adds = append(adds, block_gc.RefEdge{Subject: objIRI, Object: newIRI})
-			removes = append(removes, block_gc.RefEdge{Subject: block_gc.NodeUnreferenced, Object: newIRI})
+			removes = append(removes, block_gc.RefEdge{
+				Subject: block_gc.NodeUnreferenced,
+				Object:  newIRI,
+			})
 		}
-		applyCtx, applyTask := trace.NewTask(taskCtx, "hydra/world-block/object-state/set-root-ref/apply-ref-batch")
-		err := rg.ApplyRefBatch(applyCtx, adds, removes)
-		applyTask.End()
+		err := o.w.applyRefBatch(taskCtx, adds, removes)
 		subtask.End()
 		if err != nil {
 			return r, err

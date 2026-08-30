@@ -1460,6 +1460,19 @@ func buildGCTestWorld(t *testing.T) (*world_block.WorldState, *testbed.Testbed) 
 	return ws, tb
 }
 
+func reconcileGCTestWorld(t *testing.T, ctx context.Context, ws *world_block.WorldState) {
+	t.Helper()
+	for ws.GetGCJournalEntries() != 0 {
+		before := ws.GetGCJournalEntries()
+		if _, err := ws.GarbageCollect(ctx); err != nil {
+			t.Fatal(err.Error())
+		}
+		if after := ws.GetGCJournalEntries(); after >= before {
+			t.Fatalf("GC journal did not advance: before=%d after=%d", before, after)
+		}
+	}
+}
+
 // TestWorldState_GC_RefGraphInit verifies that a writable WorldState
 // initializes the RefGraph with a gcroot -> world edge.
 func TestWorldState_GC_RefGraphInit(t *testing.T) {
@@ -1494,6 +1507,7 @@ func TestWorldState_GC_CreateObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	reconcileGCTestWorld(t, ctx, ws)
 
 	objIRI := block_gc.ObjectIRI("gc-test-obj")
 
@@ -1535,6 +1549,7 @@ func TestWorldState_GC_DeleteObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	reconcileGCTestWorld(t, ctx, ws)
 
 	objIRI := block_gc.ObjectIRI("gc-del-obj")
 
@@ -1556,16 +1571,7 @@ func TestWorldState_GC_DeleteObject(t *testing.T) {
 		t.Fatal("expected object to be deleted")
 	}
 
-	// Object should now be unreferenced.
-	unrefs, err := rg.GetUnreferencedNodes(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if !slices.Contains(unrefs, objIRI) {
-		t.Fatalf("expected %s in unreferenced nodes, got: %v", objIRI, unrefs)
-	}
-
-	// GarbageCollect should sweep the object and its blocks.
+	// GarbageCollect reconciles the deletion and sweeps the object and its blocks.
 	stats, err := ws.GarbageCollect(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1575,7 +1581,7 @@ func TestWorldState_GC_DeleteObject(t *testing.T) {
 	}
 
 	// After GC, no unreferenced nodes should remain.
-	unrefs, err = rg.GetUnreferencedNodes(ctx)
+	unrefs, err := rg.GetUnreferencedNodes(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1598,6 +1604,7 @@ func TestWorldState_GC_SetRootRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	reconcileGCTestWorld(t, ctx, ws)
 
 	objIRI := block_gc.ObjectIRI("gc-swap-obj")
 
@@ -1626,6 +1633,7 @@ func TestWorldState_GC_SetRootRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	reconcileGCTestWorld(t, ctx, ws)
 
 	// New outgoing should differ from old.
 	newOutgoing, err := rg.GetOutgoingRefs(ctx, objIRI)
@@ -1674,6 +1682,7 @@ func TestWorldState_GC_SetRootRef_OrphanBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	reconcileGCTestWorld(t, ctx, ws)
 
 	// Get the old block IRI before SetRootRef.
 	oref, _, err := objState.GetRootRef(ctx)
@@ -1711,16 +1720,7 @@ func TestWorldState_GC_SetRootRef_OrphanBlock(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Old block should now be unreferenced.
-	unrefs, err = rg.GetUnreferencedNodes(ctx)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	if !slices.Contains(unrefs, oldBlockIRI) {
-		t.Fatalf("expected old block %s in unreferenced nodes after SetRootRef, got: %v", oldBlockIRI, unrefs)
-	}
-
-	// GarbageCollect should sweep the orphaned old block.
+	// GarbageCollect reconciles the root swap and sweeps the orphaned block.
 	stats, err := ws.GarbageCollect(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1814,8 +1814,9 @@ func TestWorldState_GC_ReconcileJournalInBoundedDurableChunks(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 	}
-	if entries := ws.GetGCJournalEntries(); entries <= 64 {
-		t.Fatalf("journal entries = %d, want more than one default chunk", entries)
+	entriesBefore := ws.GetGCJournalEntries()
+	if entriesBefore <= 128 {
+		t.Fatalf("journal entries = %d, want more than one default chunk", entriesBefore)
 	}
 
 	stats, err := ws.GarbageCollect(ctx)
@@ -1828,8 +1829,8 @@ func TestWorldState_GC_ReconcileJournalInBoundedDurableChunks(t *testing.T) {
 	if stats.NodesSwept != 0 {
 		t.Fatalf("nodes swept during partial journal reconciliation = %d, want 0", stats.NodesSwept)
 	}
-	if entries := ws.GetGCJournalEntries(); entries != 1 {
-		t.Fatalf("remaining journal entries = %d, want 1", entries)
+	if entries := ws.GetGCJournalEntries(); entries == 0 || entries > entriesBefore-64 {
+		t.Fatalf("remaining journal entries = %d, want between 0 and %d", entries, entriesBefore-64)
 	}
 	if err := ws.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
@@ -1840,7 +1841,7 @@ func TestWorldState_GC_ReconcileJournalInBoundedDurableChunks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if entries := reopened.GetGCJournalEntries(); entries == 0 || entries >= 65 {
+	if entries := reopened.GetGCJournalEntries(); entries == 0 || entries >= entriesBefore {
 		t.Fatalf("reopened journal entries = %d, want bounded pending suffix", entries)
 	}
 	if _, err := world.MustGetObject(ctx, reopened, "gc-bounded-64"); err != nil {
@@ -1990,6 +1991,7 @@ func TestWorldState_GC_Fork(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	reconcileGCTestWorld(t, ctx, ws)
 
 	// Commit so block data is persisted for fork.
 	err = ws.Commit(ctx)
@@ -2050,6 +2052,7 @@ func TestWorldState_GC_Fork(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	reconcileGCTestWorld(t, ctx, forked)
 
 	// New object should have GC edges in forked state.
 	postForkIRI := block_gc.ObjectIRI("post-fork-obj")
@@ -2106,6 +2109,7 @@ func TestWorldState_GC_FullLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	reconcileGCTestWorld(t, ctx, ws)
 
 	keepIRI := block_gc.ObjectIRI("obj-keep")
 	delIRI := block_gc.ObjectIRI("obj-delete")
@@ -2243,24 +2247,15 @@ func TestWorldState_GC_SweepTx(t *testing.T) {
 		}
 	}
 
-	// Verify unreferenced nodes exist before sweep.
+	// Verify the deletion remains journaled until the explicit sweep.
 	{
 		ocs.SetRootRef(eng.GetRootRef().GetRootRef())
 		ws, err := world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		rg := ws.GetRefGraph()
-		if rg == nil {
-			t.Fatal("no refgraph on world state")
-		}
-		unrefs, err := rg.GetUnreferencedNodes(ctx)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		objIRI := block_gc.ObjectIRI(objKey)
-		if !slices.Contains(unrefs, objIRI) {
-			t.Fatalf("expected %s in unreferenced nodes before sweep, got: %v", objIRI, unrefs)
+		if entries := ws.GetGCJournalEntries(); entries == 0 {
+			t.Fatal("expected pending GC journal entries before sweep")
 		}
 	}
 
