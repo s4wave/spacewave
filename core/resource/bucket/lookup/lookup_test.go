@@ -325,6 +325,7 @@ func TestGetRefReturnsCursorOpArgs(t *testing.T) {
 	if !cursor.GetRef().GetTransformConf().GetEmpty() {
 		t.Fatal("test cursor unexpectedly stores transform config in raw ref")
 	}
+	cursor.SetBucketIDOverride("device-mirror")
 
 	resource := NewBucketLookupCursorResource(le, tb.Bus, cursor)
 	resp, err := resource.GetRef(ctx, &s4wave_bucket_lookup.GetRefRequest{})
@@ -337,6 +338,9 @@ func TestGetRefReturnsCursorOpArgs(t *testing.T) {
 	}
 	if !ref.GetTransformConf().EqualVT(transformConf) {
 		t.Fatal("resource ref did not preserve cursor transform config")
+	}
+	if got := resp.GetBucketIdOverride(); got != "device-mirror" {
+		t.Fatalf("bucket override = %q, want device-mirror", got)
 	}
 }
 

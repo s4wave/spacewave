@@ -45,7 +45,7 @@ func NewCursor(
 	}
 	store.xfrm = xfrm
 	var once sync.Once
-	return bucket_lookup.NewCursorWithRelease(
+	cursor := bucket_lookup.NewCursorWithRelease(
 		ctx,
 		nil,
 		nil,
@@ -58,7 +58,9 @@ func NewCursor(
 		func() {
 			once.Do(ref.Release)
 		},
-	), nil
+	)
+	cursor.SetBucketIDOverride(resp.GetBucketIdOverride())
+	return cursor, nil
 }
 
 // AccessCursor resolves a cursor resource ID, invokes cb with the wrapped
