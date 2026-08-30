@@ -345,21 +345,29 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 	}
 	ownerPriv := mustKeyPair(t)
 	ownerPeerStr := mustPeerIDStr(t, ownerPriv)
-
-	localHost, ctr := newMemHost(soID, &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{},
-		Root:   &sobject.SORoot{InnerSeqno: 1},
-	})
+	participants := []*sobject.SOParticipantConfig{
+		participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER),
+		participantCfg(localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER),
+	}
+	grant := buildGrant(t, soID, ownerPriv, localPub)
+	pendingID := ulid.NewULID()
+	pending, err := sobject.BuildSOOperation(soID, localPriv, []byte("pending-local-write"), 1, pendingID)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	localState := &sobject.SOState{
+		Config:     &sobject.SharedObjectConfig{Participants: participants},
+		Root:       &sobject.SORoot{InnerSeqno: 1},
+		RootGrants: []*sobject.SOGrant{grant},
+	}
+	if err := localState.QueueOperation(soID, pending); err != nil {
+		t.Fatal(err.Error())
+	}
+	localHost, ctr := newMemHost(soID, localState)
 	s := NewSOSync(gateLogger(), nil, soID, localPeer, localHost)
 
-	grant := buildGrant(t, soID, ownerPriv, localPub)
 	peerState := &sobject.SOState{
-		Config: &sobject.SharedObjectConfig{
-			Participants: []*sobject.SOParticipantConfig{
-				participantCfg(ownerPeerStr, sobject.SOParticipantRole_SOParticipantRole_OWNER),
-				participantCfg(localPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER),
-			},
-		},
+		Config:     &sobject.SharedObjectConfig{Participants: participants},
 		Root:       &sobject.SORoot{InnerSeqno: 5},
 		RootGrants: []*sobject.SOGrant{grant},
 	}
@@ -378,6 +386,54 @@ func TestSnapshotExchangeAcceptsObjectPeerDistinctFromTransportPeer(t *testing.T
 	}
 	if len(got.GetConfig().GetParticipants()) != 2 {
 		t.Fatalf("expected applied config participants, got %d", len(got.GetConfig().GetParticipants()))
+	}
+	if len(got.GetOps()) != 1 {
+		t.Fatalf("pending local write count = %d, want 1", len(got.GetOps()))
+	}
+	inner, err := got.GetOps()[0].UnmarshalInner()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if inner.GetLocalId() != pendingID {
+		t.Fatalf("pending local write = %q, want %q", inner.GetLocalId(), pendingID)
+	}
+}
+
+func TestMergePendingOperationsAcceptsAuthoritativeWriterDemotion(t *testing.T) {
+	soID := "gate-object-writer-demotion"
+	writerPriv := mustKeyPair(t)
+	writerPeer, err := peer.IDFromPrivateKey(writerPriv)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	previous := &sobject.SOState{
+		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
+			participantCfg(writerPeer.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER),
+		}},
+		Root: &sobject.SORoot{InnerSeqno: 1},
+	}
+	operation, err := sobject.BuildSOOperation(soID, writerPriv, []byte("pending-before-demotion"), 1, ulid.NewULID())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if err := previous.QueueOperation(soID, operation); err != nil {
+		t.Fatal(err.Error())
+	}
+	authoritative := &sobject.SOState{
+		Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
+			participantCfg(writerPeer.String(), sobject.SOParticipantRole_SOParticipantRole_READER),
+		}},
+		Root: &sobject.SORoot{InnerSeqno: 2},
+	}
+
+	if err := mergePendingOperations(gateLogger(), soID, authoritative, previous); err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(authoritative.GetOps()) != 0 {
+		t.Fatalf("authoritative queue contains %d demoted-writer operations, want 0", len(authoritative.GetOps()))
+	}
+	if got := authoritative.GetConfig().GetParticipants()[0].GetRole(); got != sobject.SOParticipantRole_SOParticipantRole_READER {
+		t.Fatalf("authoritative writer role = %s, want READER", got.String())
 	}
 }
 
@@ -420,6 +476,61 @@ func TestRemoteOpNonparticipantRejected(t *testing.T) {
 
 	if got := len(ctr.GetValue().GetOps()); got != 0 {
 		t.Fatalf("nonparticipant op was queued (%d ops)", got)
+	}
+}
+
+func TestRemoteOpReplayIsIdempotent(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		rootNonce  uint64
+		queueFirst bool
+	}{
+		{name: "applied root", rootNonce: 1},
+		{name: "pending queue", queueFirst: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			soID := "gate-object-op-replay"
+			writerPriv := mustKeyPair(t)
+			writerPeer, err := peer.IDFromPrivateKey(writerPriv)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			state := &sobject.SOState{
+				Config: &sobject.SharedObjectConfig{Participants: []*sobject.SOParticipantConfig{
+					participantCfg(writerPeer.String(), sobject.SOParticipantRole_SOParticipantRole_WRITER),
+				}},
+				Root: &sobject.SORoot{InnerSeqno: 2},
+			}
+			if test.rootNonce != 0 {
+				state.Root.AccountNonces = []*sobject.SOAccountNonce{{
+					PeerId: writerPeer.String(), Nonce: test.rootNonce,
+				}}
+			}
+			op, err := sobject.BuildSOOperation(soID, writerPriv, []byte("replayed"), 1, ulid.NewULID())
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			if test.queueFirst {
+				if err := state.QueueOperation(soID, op); err != nil {
+					t.Fatal(err.Error())
+				}
+			}
+			host, ctr := newMemHost(soID, state)
+			s := NewSOSync(gateLogger(), nil, soID, writerPeer, host)
+			opData, err := op.MarshalVT()
+			if err != nil {
+				t.Fatal(err.Error())
+			}
+			s.handleRemoteOp(ctx, gateLogger(), &SOSyncOp{Operation: opData})
+			wantOps := 0
+			if test.queueFirst {
+				wantOps = 1
+			}
+			if got := len(ctr.GetValue().GetOps()); got != wantOps {
+				t.Fatalf("operation queue length = %d, want %d", got, wantOps)
+			}
+		})
 	}
 }
 
