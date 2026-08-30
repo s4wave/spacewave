@@ -66,6 +66,13 @@ export interface AcceptInviteResponse {
    * @generated from field: string shared_object_id = 2;
    */
   sharedObjectId?: string
+  /**
+   * OwnerGrant is the owner's existing root grant. The invitee preserves it so
+   * the owner can read later state written by the joined copy.
+   *
+   * @generated from field: sobject.SOGrant owner_grant = 3;
+   */
+  ownerGrant?: SOGrant
 }
 
 export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
@@ -74,6 +81,7 @@ export const AcceptInviteResponse: MessageType<AcceptInviteResponse> =
     fields: [
       { no: 1, name: 'grant', kind: 'message', T: () => SOGrant },
       { no: 2, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'owner_grant', kind: 'message', T: () => SOGrant },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
