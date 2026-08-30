@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/pagestore"
 	"github.com/sirupsen/logrus"
 )
@@ -121,6 +122,8 @@ func (ms *MetaShard) getAt(ctx context.Context, key []byte) ([]byte, bool, uint6
 // and may call Put/Delete. After fn returns, the transaction is committed
 // by writing dirty pages and flipping the superblock.
 func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
+	ctx, task := trace.NewTask(context.Background(), "hydra/metashard/write-tx")
+	defer task.End()
 	// Acquire write lock.
 	release, err := ms.acquireStateLock(context.Background(), true)
 	if err != nil {
@@ -173,7 +176,11 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 		}
 		return err
 	}
-	ms.pager.Flush()
+	{
+		_, subtask := trace.NewTask(ctx, "hydra/metashard/write-tx/flush-pages")
+		ms.pager.Flush()
+		subtask.End()
+	}
 	if err := ms.pager.Close(); err != nil {
 		return errors.Wrap(err, "close page file before superblock flip")
 	}

@@ -746,6 +746,8 @@ func (l *LocalSOHost) readLocalOpResult(ctx context.Context, localOpID string) (
 
 // writeLocalOpResult writes the operation result to the object store.
 func (l *LocalSOHost) writeLocalOpResult(ctx context.Context, result *LocalSOOperationResult) error {
+	ctx, task := trace.NewTask(ctx, "alpha/local-so/write-local-op-result")
+	defer task.End()
 	opResultKey := SobjectObjectStoreLocalOpResultKey(l.soHost.GetSharedObjectID(), result.GetLocalId())
 	data, err := result.MarshalVT()
 	if err != nil {
