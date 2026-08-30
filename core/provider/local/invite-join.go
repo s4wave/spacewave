@@ -90,8 +90,9 @@ func (a *ProviderAccount) JoinViaInvite(
 		return nil, errors.Wrap(err, "mount invited shared object")
 	}
 
-	// Start P2P sync so SolicitSync delivers state from the owner.
-	if err := a.StartP2PSync(joinCtx, st); err != nil {
+	// The bounded join context ends with this call. P2P sync belongs to the
+	// account and stops with the account, not with the enrollment request.
+	if err := a.StartP2PSync(context.WithoutCancel(ctx), st); err != nil {
 		a.le.WithError(err).Warn("failed to start P2P sync after invite join")
 	}
 
