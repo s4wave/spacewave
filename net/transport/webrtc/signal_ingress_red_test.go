@@ -760,17 +760,20 @@ func TestCloseSignalIngressTakeVsDisposeExactlyOnce(t *testing.T) {
 
 		start := make(chan struct{})
 		taken := make(chan *session, 1)
+		closeDone := make(chan struct{})
 		go func() {
 			<-start
 			taken <- w.takeAdoptableSession("race-peer")
 		}()
 		go func() {
+			defer close(closeDone)
 			<-start
 			w.closeSignalIngress("race-peer", resolver)
 		}()
 		close(start)
 
 		got := <-taken
+		<-closeDone
 		if got != nil {
 			// The adopter won: the disposer observed an empty stash and left
 			// the connection open for the adopted negotiation.
