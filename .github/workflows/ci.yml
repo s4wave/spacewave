@@ -655,6 +655,18 @@ jobs:
       - name: Setup aptre tools and vendor
         run: bun run prepare
 
+      # Reuse the bldr startup manifest build (~280s of vite and GoScript
+      # compilation) across runs. The manifest dependency snapshot validates a
+      # restored build against the current plugin sources; a stale entry falls
+      # back to a normal rebuild.
+      - name: Cache bldr startup manifests
+        uses: actions/cache@v6
+        with:
+          path: .bldr/e2e-wasm
+          key: ${{ runner.os }}-${{ runner.arch }}-e2e-wasm-manifests-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-e2e-wasm-manifests-
+
       - name: Run wasm E2E slice
         env:
           ENABLE_E2E_WASM: 'true'
