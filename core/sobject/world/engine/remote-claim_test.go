@@ -225,12 +225,14 @@ func newRemoteSharedObjectEngine(
 	if err != nil {
 		rootRef.Release()
 		resources.Release()
+		<-resources.Done()
 		stopServer()
 		t.Fatal(err)
 	}
 	cleanup := func() {
 		remote.Release()
 		resources.Release()
+		<-resources.Done()
 		stopServer()
 	}
 	return remote, cleanup
