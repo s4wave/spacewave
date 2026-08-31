@@ -75,13 +75,6 @@ jobs:
             lint_js_script: ''
             test_go_script: test:go:e2e:wasm:slice-coverage
             test_js_script: ''
-          - name: db
-            build_script: ''
-            check_script: check:go:startup-trace
-            lint_go_script: lint:go:db
-            lint_js_script: lint:js:db
-            test_go_script: test:go:db
-            test_js_script: test:js:db
           - name: identity
             build_script: ''
             check_script: ''
@@ -134,10 +127,6 @@ jobs:
       - name: Test Go
         if: ${{ matrix.member.test_go_script != '' }}
         run: bun run ${{ matrix.member.test_go_script }}
-      - name: Vet db Go tests for js/wasm
-        if: ${{ matrix.member.name == 'db' }}
-        run: GOOS=js GOARCH=wasm go vet ./db/block/gc/...
-
       - name: Test Js
         if: ${{ matrix.member.test_js_script != '' }}
         run: bun run ${{ matrix.member.test_js_script }}
@@ -202,6 +191,62 @@ jobs:
 
       - name: Run alpha stage
         run: bun run ${{ matrix.stage.script }}
+
+  # The db member's compile check (startup-trace builds ./bldr/... ./db/... with
+  # sqlite3, about 153s) and its Go test suite (about 266s, run with -p=1) each
+  # saturate a runner; serially they made CI (db) the second-to-last job to finish
+  # while other runners sat idle. The stages run as parallel jobs instead.
+  member-ci-db:
+    name: CI (db / ${{ matrix.stage.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stage:
+          - name: checks
+          - name: tests
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Cache aptre tools
+        uses: actions/cache@v6
+        with:
+          path: ./.tools
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
+
+      - name: Setup aptre tools and vendor
+        run: bun run prepare
+
+      # Compile-check the db and bldr packages with the startup-trace tags
+      # (compiles sqlite3; about 153s), then lint.
+      - name: Compile-check and lint db
+        if: ${{ matrix.stage.name == 'checks' }}
+        run: |
+          bun run check:go:startup-trace
+          bun run lint:go:db
+
+      # Go tests (about 266s with -p=1), the js/wasm vet, and the JavaScript
+      # tests and lint.
+      - name: Test db
+        if: ${{ matrix.stage.name == 'tests' }}
+        run: |
+          bun run test:go:db
+          GOOS=js GOARCH=wasm go vet ./db/block/gc/...
+          bun run test:js:db
+          bun run lint:js:db
 
   python-resource:
     name: Python Resource
