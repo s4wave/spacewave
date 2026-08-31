@@ -196,26 +196,33 @@ func NewEngineWithSettings(
 	}
 
 	// Open and recover every shard before starting its write actor.
+	_, shardOpenTask := trace.NewTask(ctx, "hydra/opfs-blockshard/engine/open")
 	for i := range e.shards {
 		// Bind one immutable shard directory to the engine cache.
 		name := "shard-" + zeroPad(uint64(i), 2)
 		shardDir, err := opfs.GetDirectory(dir, name, true)
 		if err != nil {
 			cancel()
+			shardOpenTask.End()
 			return nil, errors.Errorf("create shard %d directory: %v", i, err)
 		}
 		shard, err := newShard(i, shardDir, lockPrefix, settings, cache)
 		if err != nil {
 			cancel()
+			shardOpenTask.End()
 			return nil, errors.Errorf("open shard %d: %v", i, err)
 		}
 
 		// Recover pending deletion and orphan state under the publish lock.
+		_, lockTask := trace.NewTask(ctx, "hydra/opfs-blockshard/engine/open/acquire-publish-lock")
 		release, err := shard.AcquirePublishLockContext(ctx)
 		if err != nil {
+			lockTask.End()
 			cancel()
+			shardOpenTask.End()
 			return nil, errors.Errorf("lock shard %d recovery: %v", i, err)
 		}
+		lockTask.End()
 		if _, err := shard.ReclaimPendingDelete(ctx); err != nil {
 			release()
 			cancel()
@@ -235,6 +242,7 @@ func NewEngineWithSettings(
 		e.wg.Add(1)
 		go e.runActor(ctx, e.actors[i])
 	}
+	shardOpenTask.End()
 
 	// Start the invalidation listener after all shard actors are running.
 	e.wg.Add(1)

@@ -19,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/object"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/volume"
 )
 
@@ -157,16 +158,21 @@ func (c *Controller) GetSessionByIdx(ctx context.Context, idx uint32) (*session.
 
 // ListSessions lists the sessions in storage.
 func (c *Controller) ListSessions(ctx context.Context) ([]*session.SessionListEntry, error) {
+	ctx, task := trace.NewTask(ctx, "hydra/session/list-sessions")
+	defer task.End()
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	_, waitStoreTask := trace.NewTask(ctx, "hydra/session/list-sessions/wait-object-store")
 	objStore, err := c.buildObjectStoreLocked(ctx)
+	waitStoreTask.End()
 	if err != nil {
 		return nil, err
 	}
 
 	var elems []*session.SessionListEntry
 	var invalidEntryErrs []error
+	_, scanTask := trace.NewTask(ctx, "hydra/session/list-sessions/scan")
 	err = kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
 			return objStore.NewTransaction(ctx, false)
@@ -193,6 +199,7 @@ func (c *Controller) ListSessions(ctx context.Context) ([]*session.SessionListEn
 			})
 		},
 	)
+	scanTask.End()
 	if err != nil {
 		return nil, err
 	}

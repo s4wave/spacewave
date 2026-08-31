@@ -59,6 +59,8 @@ type MetaShard struct {
 
 // NewMetaShard opens or creates a meta shard in the given OPFS directory.
 func NewMetaShard(dir js.Value, lockPrefix string, pageSize int, le *logrus.Entry) (*MetaShard, error) {
+	ctx, task := trace.NewTask(context.Background(), "hydra/metashard/open")
+	defer task.End()
 	if pageSize == 0 {
 		pageSize = pagestore.DefaultPageSize
 	}
@@ -71,10 +73,13 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int, le *logrus.Entr
 		le:         le,
 		rootPage:   pagestore.InvalidPage,
 	}
+	_, lockTask := trace.NewTask(ctx, "hydra/metashard/open/acquire-state-lock")
 	release, err := ms.acquireStateLock(context.Background(), false)
 	if err != nil {
+		lockTask.End()
 		return nil, errors.Wrap(err, "acquire meta read lock")
 	}
+	lockTask.End()
 	err = ms.reloadCommittedState()
 	release()
 	if err != nil {

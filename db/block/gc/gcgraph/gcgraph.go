@@ -16,6 +16,7 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/zeebo/blake3"
 )
 
@@ -51,6 +52,8 @@ type GCGraph struct {
 // NewGCGraph creates a GCGraph rooted at the given OPFS directory.
 // lockPrefix is prepended to per-file WebLock names.
 func NewGCGraph(root js.Value, lockPrefix string) (*GCGraph, error) {
+	_, task := trace.NewTask(context.Background(), "hydra/gcgraph/open")
+	defer task.End()
 	g := &GCGraph{root: root, lockPrefix: lockPrefix}
 	var err error
 	g.nodesDir, err = opfs.GetDirectory(root, dirNodes, true)

@@ -15,6 +15,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	block_store "github.com/s4wave/spacewave/db/block/store"
 	"github.com/s4wave/spacewave/db/bucket"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	volume "github.com/s4wave/spacewave/db/volume"
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/sirupsen/logrus"
@@ -108,7 +109,9 @@ func (c *Controller) Execute(ctx context.Context) error {
 	defer volCtxCancel()
 
 	// Construct the volume.
+	_, task := trace.NewTask(ctx, "hydra/volume/controller/construct")
 	v, err := c.ctor(volCtx, c.le)
+	task.End()
 	if err != nil {
 		if volume.IsPermanent(err) {
 			// The volume cannot be constructed in this environment (for example,
@@ -212,10 +215,12 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 	// Publish the ready volume and enable bucket-handle activity.
 	le.WithField("volume-id", v.GetID()).Debug("volume ready")
+	_, publishTask := trace.NewTask(ctx, "hydra/volume/controller/publish-ready")
 	c.volume.SetValue(&volumeCtxPair{
 		ctx: volCtx,
 		vol: v,
 	})
+	publishTask.End()
 	c.bucketHandles.SetContext(ctx, true)
 
 	// Start GC sweep goroutine.
