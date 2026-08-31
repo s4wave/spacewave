@@ -71,6 +71,10 @@ type CreateSecretOptions struct {
 	Timestamp time.Time
 	// NestedSharedObjectId optionally fixes the nested SharedObject id.
 	NestedSharedObjectId string
+	// ReaderPeerID identifies the peer granted payload access before storage.
+	ReaderPeerID string
+	// ReaderPublicKey verifies the reader grant.
+	ReaderPublicKey crypto.PubKey
 }
 
 type secretPayloadStoreOperation struct {
@@ -209,6 +213,25 @@ func CreateSecret(
 	if err != nil {
 		return nil, errors.Wrap(err, "create nested shared object")
 	}
+	secret := &Secret{
+		DisplayName:          opts.DisplayName,
+		Kind:                 opts.Kind,
+		NestedSharedObjectId: nestedRef.GetProviderResourceRef().GetId(),
+		Ref:                  nestedRef.CloneVT(),
+		CreatedAt:            timestamppb.New(opts.Timestamp),
+		UpdatedAt:            timestamppb.New(opts.Timestamp),
+	}
+	if opts.ReaderPeerID != "" {
+		if opts.ReaderPublicKey == nil {
+			return nil, errors.New("reader public key is missing")
+		}
+		if _, err := AddSecretParticipant(
+			ctx, b, secret, opts.ReaderPeerID, opts.ReaderPublicKey,
+			sobject.SOParticipantRole_SOParticipantRole_READER, "",
+		); err != nil {
+			return nil, errors.Wrap(err, "grant reader")
+		}
+	}
 	payload := &SecretPayload{
 		Value:       append([]byte(nil), opts.Value...),
 		ContentType: opts.ContentType,
@@ -217,15 +240,6 @@ func CreateSecret(
 	}
 	if err := StoreSecretPayload(ctx, b, nestedRef, payload); err != nil {
 		return nil, errors.Wrap(err, "store secret payload")
-	}
-
-	secret := &Secret{
-		DisplayName:          opts.DisplayName,
-		Kind:                 opts.Kind,
-		NestedSharedObjectId: nestedRef.GetProviderResourceRef().GetId(),
-		Ref:                  nestedRef.CloneVT(),
-		CreatedAt:            timestamppb.New(opts.Timestamp),
-		UpdatedAt:            timestamppb.New(opts.Timestamp),
 	}
 
 	wtx, err := engine.NewTransaction(ctx, true)

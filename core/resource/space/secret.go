@@ -71,27 +71,16 @@ func (r *SpaceResource) CreateSecret(
 		return nil, err
 	}
 	secret, err := s4wave_secret.CreateSecret(ctx, r.b, soProvider, r.space.GetWorldEngine(), s4wave_secret.CreateSecretOptions{
-		ObjectKey:   req.GetObjectKey(),
-		DisplayName: req.GetDisplayName(),
-		Kind:        req.GetKind(),
-		ContentType: req.GetContentType(),
-		Value:       req.GetValue(),
+		ObjectKey:       req.GetObjectKey(),
+		DisplayName:     req.GetDisplayName(),
+		Kind:            req.GetKind(),
+		ContentType:     req.GetContentType(),
+		Value:           req.GetValue(),
+		ReaderPeerID:    readerPeerID,
+		ReaderPublicKey: readerPub,
 	})
 	if err != nil {
 		return nil, err
-	}
-	if readerPeerID != "" {
-		if _, err := s4wave_secret.AddSecretParticipant(
-			ctx,
-			r.b,
-			secret,
-			readerPeerID,
-			readerPub,
-			sobject.SOParticipantRole_SOParticipantRole_READER,
-			"",
-		); err != nil {
-			return nil, errors.Wrap(err, "grant reader")
-		}
 	}
 	return &s4wave_space.CreateSecretResponse{Secret: secret}, nil
 }

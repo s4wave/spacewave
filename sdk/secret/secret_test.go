@@ -75,6 +75,55 @@ func TestCreateSecretStoresPayloadOnlyInNestedSharedObject(t *testing.T) {
 	}
 }
 
+func TestCreateSecretGrantsReaderBeforePayloadStoreCompletes(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	tb, soProvider, release := setupSecretTest(ctx, t)
+	defer release()
+
+	readerPriv, readerPub, readerPeerID := makePeer(t)
+	secret, err := s4wave_secret.CreateSecret(ctx, tb.Bus, soProvider, tb.BusEngine, s4wave_secret.CreateSecretOptions{
+		ObjectKey:       "secrets/preauthorized-reader",
+		Kind:            "api_key",
+		Value:           []byte("reader-authorized-payload"),
+		Timestamp:       time.Unix(125, 0),
+		ReaderPeerID:    readerPeerID.String(),
+		ReaderPublicKey: readerPub,
+	})
+	if err != nil {
+		t.Fatalf("CreateSecret: %v", err)
+	}
+
+	so, soRef, err := sobject.ExMountSharedObject(ctx, tb.Bus, secret.GetRef(), false, nil)
+	if err != nil {
+		t.Fatalf("mount nested shared object: %v", err)
+	}
+	defer soRef.Release()
+	inviteHost, ok := so.(sobject.InviteHost)
+	if !ok {
+		t.Fatal("nested shared object does not expose its grants")
+	}
+	state, err := inviteHost.GetSOHost().GetHostState(ctx)
+	if err != nil {
+		t.Fatalf("GetHostState: %v", err)
+	}
+	readerSnapshot := sobject.NewSOStateParticipantHandle(
+		tb.Logger,
+		tb.StepFactorySet,
+		so.GetSharedObjectID(),
+		state,
+		readerPriv,
+		readerPeerID,
+	)
+	payload, err := s4wave_secret.ReadSecretPayloadFromSnapshot(ctx, readerSnapshot)
+	if err != nil {
+		t.Fatalf("reader payload: %v", err)
+	}
+	if got := string(payload.GetValue()); got != "reader-authorized-payload" {
+		t.Fatalf("payload = %q", got)
+	}
+}
+
 func TestSSHSecretContractStoresCredentialPayloadOnlyInNestedSharedObject(t *testing.T) {
 	ctx := t.Context()
 	tb, soProvider, release := setupSecretTest(ctx, t)
