@@ -69,7 +69,11 @@ function validateTools() {
   console.log('prepare: reusing .tools; generated files match aptre common')
 }
 
-run('go', ['mod', 'vendor'])
+// Build the bldr tool to .tools/bldr-bin so later invocations skip the `go run`
+// source compile (~60s per CI job). The .tools directory is restored by the CI
+// cache, so most jobs reuse the binary.
+run('go', ['build', '-o', join('.tools', 'bldr-bin'), './bldr/cmd/bldr'])
+
 validateTools()
 run('bun', ['run', 'setup'])
 run('git', ['config', 'core.hooksPath', '.githooks'])

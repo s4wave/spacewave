@@ -107,7 +107,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ./.tools
-          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml', 'bldr/**/*.go') }}
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
@@ -177,7 +177,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ./.tools
-          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml', 'bldr/**/*.go') }}
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
@@ -434,7 +434,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ./.tools
-          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml', 'bldr/**/*.go') }}
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
@@ -551,7 +551,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ./.tools
-          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml', 'bldr/**/*.go') }}
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
@@ -650,7 +650,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ./.tools
-          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml', 'bldr/**/*.go') }}
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
@@ -738,7 +738,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ./.tools
-          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml', 'bldr/**/*.go') }}
 
       - name: Setup aptre tools and vendor
         run: bun run prepare
