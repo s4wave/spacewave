@@ -3,6 +3,7 @@ package provider_local
 import (
 	"bytes"
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/aperturerobotics/util/scrub"
@@ -494,6 +495,15 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 		}
 		return seqno, rejected, err
 	}
+	if err := l.waitForLocalOperationTransmission(ctx, localID); err != nil {
+		return 0, false, err
+	}
+	if seqno, rejected, err, resolved := l.localOpResultOutcome(ctx, localID); err != nil || resolved {
+		if err == nil && resolved && !rejected && l.soHost.CanWatchSOState() {
+			seqno, err = l.waitForRootSeqno(ctx, seqno)
+		}
+		return seqno, rejected, err
+	}
 
 	ctx, ctxCancel := context.WithCancel(ctx)
 	defer ctxCancel()
@@ -590,6 +600,30 @@ func (l *LocalSOHost) WaitOperation(ctx context.Context, localID string) (uint64
 			return 0, false, errors.New("root inner state is nil")
 		}
 		return rootInner.GetSeqno(), false, nil
+	}
+}
+
+func (l *LocalSOHost) waitForLocalOperationTransmission(ctx context.Context, localID string) error {
+	if l.stateSnapCtr == nil {
+		return nil
+	}
+
+	var current sobject.SharedObjectStateSnapshot
+	for {
+		next, err := l.stateSnapCtr.WaitValueChange(ctx, current, nil)
+		if err != nil {
+			return err
+		}
+		current = next
+		_, localOps, err := current.GetOpQueue(ctx)
+		if err != nil {
+			return err
+		}
+		if !slices.ContainsFunc(localOps, func(op *sobject.QueuedSOOperation) bool {
+			return op.GetLocalId() == localID
+		}) {
+			return nil
+		}
 	}
 }
 

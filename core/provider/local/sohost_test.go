@@ -5,7 +5,9 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
+	"github.com/aperturerobotics/util/ccontainer"
 	"github.com/s4wave/spacewave/core/sobject"
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	"github.com/s4wave/spacewave/db/object"
@@ -188,6 +190,55 @@ func TestWriteAcceptedLocalOpResultsPreservesExistingResult(t *testing.T) {
 	}
 	if got := result.GetRootSeqno(); got != 9 {
 		t.Fatalf("root seqno = %d, want existing 9", got)
+	}
+}
+
+func TestWaitOperationWaitsForDurableLocalQueueTransmission(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	host, localPeer := newTestLocalSOHost(t)
+	localID := sobject.NewSOOperationLocalID()
+	pending := &sobject.QueuedSOOperation{LocalId: localID, OpData: []byte("operation")}
+	handle := sobject.NewSOStateParticipantHandle(
+		host.le, nil, testSharedObjectID, &sobject.SOState{}, host.privKey, host.peerID,
+	)
+	host.stateSnapCtr = ccontainer.NewCContainer[sobject.SharedObjectStateSnapshot](
+		newLsoStateSnapshot(handle, &LocalSOState{OpQueue: []*sobject.QueuedSOOperation{pending}}),
+	)
+
+	done := make(chan struct{})
+	var seqno uint64
+	var rejected bool
+	var waitErr error
+	go func() {
+		seqno, rejected, waitErr = host.WaitOperation(ctx, localID)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		t.Fatal("WaitOperation returned while the operation remained in the durable local queue")
+	case <-time.After(20 * time.Millisecond):
+	}
+	if err := host.writeLocalOpResult(ctx, &LocalSOOperationResult{
+		LocalId:   localID,
+		RootSeqno: 2,
+		Result: sobject.BuildSOOperationResult(
+			localPeer.GetPeerID().String(), 1, true, nil,
+		),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	host.stateSnapCtr.SetValue(newLsoStateSnapshot(handle, &LocalSOState{}))
+	<-done
+	if waitErr != nil {
+		t.Fatal(waitErr)
+	}
+	if rejected {
+		t.Fatal("accepted operation returned rejected")
+	}
+	if seqno != 2 {
+		t.Fatalf("seqno = %d, want 2", seqno)
 	}
 }
 
