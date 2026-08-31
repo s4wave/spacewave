@@ -163,10 +163,9 @@ jobs:
         stage:
           - name: test-go
             script: test:go:alpha
+            check_script: typecheck
           - name: test-js
             script: test:js:alpha
-          - name: typecheck
-            script: typecheck
           - name: lint-go
             script: lint:go:alpha
     timeout-minutes: 25
@@ -196,6 +195,10 @@ jobs:
 
       - name: Setup alpha production-source fixture
         run: bun run bldr -- --state-path=.bldr-dist setup
+
+      - name: Run alpha checks
+        if: ${{ matrix.stage.check_script != '' }}
+        run: bun run ${{ matrix.stage.check_script }}
 
       - name: Run alpha stage
         run: bun run ${{ matrix.stage.script }}
