@@ -1054,3 +1054,65 @@ func newTestDaemonConn(t *testing.T) net.Conn {
 	})
 	return clientConn
 }
+
+func TestOpenLocalDeviceSessionPersistsActivationBeforeProjection(t *testing.T) {
+	statePath := t.TempDir()
+	record := &deviceSetupRecord{SetupState: deviceSetupStateImported, PeerID: "peer", ResourceID: "resource"}
+	oldMount := deviceMountLocalSession
+	deviceMountLocalSession = func(context.Context, *sdkClient, string, *deviceSetupRecord) (*deviceSetupRecord, error) {
+		next := *record
+		next.AccountID = "account"
+		next.SessionIndex = 3
+		next.SessionPeerID = "peer"
+		next.SetupState = deviceSetupStateSessionReady
+		return &next, nil
+	}
+	t.Cleanup(func() { deviceMountLocalSession = oldMount })
+	withDeviceObjectUpsertStub(t, func(context.Context, *sdkClient, string, *deviceSetupRecord) (string, error) {
+		return "", errors.New("base World root is stale")
+	})
+	got, err := openLocalDeviceSession(context.Background(), nil, statePath, record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.SetupState != deviceSetupStateImported || got.SessionIndex != 3 || got.AccountID != "account" || got.DeviceObjectKey != "" {
+		t.Fatalf("pending activation = %+v", got)
+	}
+	persisted, err := readDeviceSetupRecord(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if persisted.SessionIndex != 3 || persisted.SetupState != deviceSetupStateImported || persisted.FailureReason == "" {
+		t.Fatalf("persisted pending activation = %+v", persisted)
+	}
+}
+
+func TestProjectPendingDeviceEnrollmentRetriesAfterRestart(t *testing.T) {
+	statePath := t.TempDir()
+	record := &deviceSetupRecord{SetupState: deviceSetupStateImported, PeerID: "peer", ResourceID: "resource", AccountID: "account", SessionIndex: 3}
+	if err := writeDeviceSetupRecord(statePath, record); err != nil {
+		t.Fatal(err)
+	}
+	attempts := 0
+	withDeviceObjectUpsertStub(t, func(context.Context, *sdkClient, string, *deviceSetupRecord) (string, error) {
+		attempts++
+		if attempts == 1 {
+			return "", errors.New("base World root is stale")
+		}
+		return "devices/key", nil
+	})
+	if err := projectPendingDeviceEnrollment(context.Background(), statePath, nil); err == nil {
+		t.Fatal("first projection succeeded")
+	}
+	pending, _ := readDeviceSetupRecord(statePath)
+	if pending.SetupState != deviceSetupStateImported || pending.SessionIndex != 3 || pending.DeviceObjectKey != "" {
+		t.Fatalf("pending = %+v", pending)
+	}
+	if err := projectPendingDeviceEnrollment(context.Background(), statePath, nil); err != nil {
+		t.Fatal(err)
+	}
+	ready, _ := readDeviceSetupRecord(statePath)
+	if ready.SetupState != deviceSetupStateSessionReady || ready.DeviceObjectKey != "devices/key" || ready.FailureReason != "" {
+		t.Fatalf("ready = %+v", ready)
+	}
+}

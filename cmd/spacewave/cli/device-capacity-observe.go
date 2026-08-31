@@ -73,6 +73,12 @@ func runDeviceCapacityObserver(
 			enrollmentCleanup()
 		}
 	}()
+	projectEnrollment := func() {
+		if err := projectPendingDeviceEnrollment(ctx, statePath, client); err != nil {
+			le.WithError(err).Warn("Device object projection pending")
+		}
+	}
+	projectEnrollment()
 	restoreEnrollment := func() {
 		if enrollmentCleanup != nil {
 			return
@@ -170,11 +176,13 @@ func runDeviceCapacityObserver(
 				return update.err
 			}
 			restoreEnrollment()
+			projectEnrollment()
 			current = update.policy
 			havePolicy = true
 			applyNeeded = true
 		case <-ticker.C:
 			restoreEnrollment()
+			projectEnrollment()
 			if admission == nil {
 				applyNeeded = true
 				continue
@@ -188,6 +196,30 @@ func runDeviceCapacityObserver(
 			}
 		}
 	}
+}
+
+// projectPendingDeviceEnrollment retries the World projection after the
+// enrolled session has been durably activated.
+func projectPendingDeviceEnrollment(ctx context.Context, statePath string, client *sdkClient) error {
+	record, err := readDeviceSetupRecord(statePath)
+	if err != nil {
+		return err
+	}
+	if record.SetupState != deviceSetupStateImported || record.SessionIndex == 0 || record.DeviceObjectKey != "" {
+		return nil
+	}
+	objectKey, err := deviceUpsertObject(ctx, client, statePath, record)
+	if err != nil {
+		record.FailureReason = "Device object projection pending: " + err.Error()
+		if persistErr := writeDeviceSetupRecord(statePath, record); persistErr != nil {
+			return errors.Wrapf(persistErr, "persist pending Device projection after: %v", err)
+		}
+		return err
+	}
+	record.DeviceObjectKey = objectKey
+	record.FailureReason = ""
+	record.SetupState = deviceSetupStateSessionReady
+	return writeDeviceSetupRecord(statePath, record)
 }
 
 // restoreLocalDeviceEnrollment reopens the persisted local completion on each
