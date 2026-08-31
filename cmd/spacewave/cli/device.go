@@ -166,6 +166,7 @@ var deviceMountLinkedSession = func(
 }
 
 var deviceUpsertObject = upsertLinkedDeviceObject
+var deviceMountLocalSession = mountLocalDeviceSession
 
 func newDeviceCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	var statePath string
@@ -785,15 +786,27 @@ func openLocalDeviceSession(
 	statePath string,
 	record *deviceSetupRecord,
 ) (*deviceSetupRecord, error) {
-	updated, err := mountLocalDeviceSession(ctx, client, statePath, record)
+	updated, err := deviceMountLocalSession(ctx, client, statePath, record)
 	if err != nil {
 		return nil, err
 	}
+	updated.SetupState = deviceSetupStateImported
+	updated.DeviceObjectKey = ""
+	updated.FailureReason = ""
+	if err := writeDeviceSetupRecord(statePath, updated); err != nil {
+		return nil, errors.Wrap(err, "persist activated Device session")
+	}
 	objectKey, err := deviceUpsertObject(ctx, client, statePath, updated)
 	if err != nil {
-		return nil, errors.Wrap(err, "create or update device object")
+		updated.FailureReason = "Device object projection pending: " + err.Error()
+		if persistErr := writeDeviceSetupRecord(statePath, updated); persistErr != nil {
+			return nil, errors.Wrapf(persistErr, "persist pending Device projection after: %v", err)
+		}
+		return updated, nil
 	}
 	updated.DeviceObjectKey = objectKey
+	updated.FailureReason = ""
+	updated.SetupState = deviceSetupStateSessionReady
 	return updated, nil
 }
 
