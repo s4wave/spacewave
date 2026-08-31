@@ -56,15 +56,8 @@ import { DeviceTypeID } from '@s4wave/sdk/device/device.js'
 import { CreateComputersDashboardOp } from '@s4wave/sdk/device/device.pb.js'
 import { CREATE_COMPUTERS_DASHBOARD_OP_ID } from '@s4wave/sdk/device/computers/create-computers-dashboard.js'
 import { V86WizardConfig } from '@s4wave/sdk/vm/v86-wizard.pb.js'
-import {
-  CreateWizardObjectOp,
-  IntroWizardConfig,
-} from '@s4wave/sdk/world/wizard/wizard.pb.js'
+import { CreateWizardObjectOp } from '@s4wave/sdk/world/wizard/wizard.pb.js'
 import { CREATE_WIZARD_OBJECT_OP_ID } from '@s4wave/sdk/world/wizard/create-wizard.js'
-import {
-  IntroWizardTypeID,
-  driveIntroConfig,
-} from '@s4wave/app/wizard/intro.js'
 import { InitForgeQuickstartOp } from '@s4wave/core/forge/dashboard/dashboard.pb.js'
 import { INIT_FORGE_QUICKSTART_OP_ID } from '@s4wave/sdk/forge/dashboard/init-forge-quickstart.js'
 import { markInteracted } from '@s4wave/web/state/interaction.js'
@@ -1325,32 +1318,17 @@ export async function createDrive(
     initUnixFS(spaceWorld, abortSignal, timing),
   )
   await writeDriveStarterGuide(spaceWorld, abortSignal, timing)
-  // Wrap the raw files object in the new-user intro: index the Space at a
-  // wizard/intro object carrying the introduced key and the Drive intro
-  // content. Finishing the intro sets the index to UNIXFS_OBJECT_KEY.
-  const introKey = buildWizardObjectKey('Welcome')
-  await applyQuickstartWorldOp(
-    spaceWorld,
-    CREATE_WIZARD_OBJECT_OP_ID,
-    CreateWizardObjectOp.toBinary({
-      objectKey: introKey,
-      wizardTypeId: IntroWizardTypeID,
-      targetTypeId: UnixFSTypeID,
-      targetKeyPrefix: UNIXFS_OBJECT_KEY,
-      name: 'Welcome',
-      timestamp: new Date(),
-      initialConfigData: IntroWizardConfig.toBinary(driveIntroConfig()),
-    }),
-    '',
-    abortSignal,
-    timing,
-    'create-drive-intro-wizard',
-  )
+  // Index the Space directly at the UnixFS files object. The new-user intro
+  // renders as a non-blocking overlay on first run instead of owning the
+  // index, so the seeded Drive is visible without finishing a wizard first.
+  // Older spaces whose index still points at a wizard object keep the
+  // existing finish flow (IntroWizardViewer only replaces the index while it
+  // still points at the wizard).
   await timeQuickstartPhase(timing, 'create-drive-settings', () =>
     createSpaceSettingsObject(
       spaceWorld,
       abortSignal,
-      introKey,
+      UNIXFS_OBJECT_KEY,
       undefined,
       timing,
       'create-drive-settings',
