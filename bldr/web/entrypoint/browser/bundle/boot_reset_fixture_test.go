@@ -18,6 +18,10 @@ func TestStableBootGateRunsOnceBeforeEntrypointImport(t *testing.T) {
 	runStableBootFixture(t, stableBootImportOrderFixtureScript)
 }
 
+func TestStableBootRecoversSignedOutSession(t *testing.T) {
+	runStableBootFixture(t, stableBootSignedOutRecoveryFixtureScript)
+}
+
 func TestStableBootEntrypointStreamProgress(t *testing.T) {
 	runStableBootFixture(t, stableBootEntrypointStreamProgressFixtureScript)
 }
@@ -207,6 +211,128 @@ assert(!indexedDBDeleteCalled, 'boot must not delete IndexedDB')
 assert(!opfsDirectoryRequested, 'boot must not request OPFS root')
 
 console.log('boot-reset-fixture=passed')
+`
+
+const stableBootSignedOutRecoveryFixtureScript = `
+const bootPath = process.argv[2]
+if (!bootPath) throw new Error('missing boot asset path')
+const script = await Bun.file(bootPath).text()
+
+class StorageFixture {
+  constructor(entries) { this.map = new Map(Object.entries(entries)) }
+  get length() { return this.map.size }
+  getItem(key) { return this.map.has(key) ? this.map.get(key) : null }
+  setItem(key, value) { this.map.set(key, String(value)) }
+  removeItem(key) { this.map.delete(key) }
+  key(index) { return Array.from(this.map.keys())[index] ?? null }
+}
+
+async function runScenario(gatedPath) {
+  const localStorage = new StorageFixture({
+    'spacewave-browser-app-state-version': '1000000',
+    'presentation-preference': 'compact',
+    'selected-map': 'moon',
+    'map-draft-session': '{"moves":[1,2]}',
+  })
+  const sessionStorage = new StorageFixture({
+    'spacewave-browser-tab-state-version': '1000000',
+  })
+  const events = []
+  let redirectedTo
+  let redirectResolve
+  const redirectPromise = new Promise((resolve) => { redirectResolve = resolve })
+  const opfsEntries = new Map([['runtime-cache', {}], ['session-shell', {}]])
+
+  globalThis.localStorage = localStorage
+  globalThis.sessionStorage = sessionStorage
+  globalThis.CustomEvent = class CustomEvent {
+    constructor(type, init) { this.type = type; this.detail = init?.detail }
+  }
+  globalThis.performance = { mark() {} }
+  globalThis.window = {
+    location: {
+      href: 'https://spacewave.test/',
+      origin: 'https://spacewave.test',
+      hash: '',
+      replace(path) {
+        events.push('redirect')
+        redirectedTo = path
+        redirectResolve()
+      },
+    },
+    history: { state: null, replaceState() {} },
+    dispatchEvent() {},
+    addEventListener() {},
+    removeEventListener() {},
+    setTimeout,
+    clearTimeout,
+  }
+  globalThis.document = {
+    readyState: 'complete',
+    documentElement: { setAttribute() {} },
+    querySelector() { return null },
+    getElementById() { return null },
+    addEventListener() {},
+    removeEventListener() {},
+  }
+  globalThis.navigator = {
+    serviceWorker: {
+      async getRegistrations() {
+        return [{ async unregister() { events.push('unregister') } }]
+      },
+    },
+    storage: {
+      async getDirectory() {
+        return {
+          async *entries() { for (const entry of opfsEntries) yield entry },
+          async removeEntry(name, options) {
+            if (!options?.recursive) throw new Error('OPFS cleanup must be recursive')
+            opfsEntries.delete(name)
+            events.push('opfs:' + name)
+          },
+        }
+      },
+    },
+  }
+  globalThis.caches = {
+    async keys() { return ['shell-cache'] },
+    async delete(name) { events.push('cache:' + name); return true },
+  }
+  globalThis.fetch = async (path) => {
+    if (gatedPath === 'release' || path === '/entrypoint.mjs') {
+      return new Response(JSON.stringify({
+        error: { code: 'login_required', message: 'Login is required.' },
+      }), { status: 401, headers: { 'content-type': 'application/json' } })
+    }
+    return new Response(JSON.stringify({
+      generationId: 'fixture',
+      autoStart: true,
+      shellAssets: { entrypoint: '/entrypoint.mjs', serviceWorker: '/sw.mjs' },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+
+  new Function(script)()
+  await Promise.race([
+    redirectPromise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout waiting for login redirect')), 2000)),
+  ])
+
+  function assert(condition, message) {
+    if (!condition) throw new Error(gatedPath + ': ' + message)
+  }
+  assert(redirectedTo === '/login', 'boot did not use the origin-relative login path')
+  assert(events.includes('unregister'), 'boot did not unregister its service worker')
+  assert(events.includes('cache:shell-cache'), 'boot did not clear Cache Storage')
+  assert(opfsEntries.size === 0, 'boot did not clear shell OPFS state')
+  assert(events.at(-1) === 'redirect', 'boot redirected before cleanup settled')
+  assert(localStorage.getItem('presentation-preference') === 'compact', 'boot removed presentation preference')
+  assert(localStorage.getItem('selected-map') === 'moon', 'boot removed selected map')
+  assert(localStorage.getItem('map-draft-session') === '{"moves":[1,2]}', 'boot removed map draft')
+}
+
+await runScenario('release')
+await runScenario('entrypoint')
+console.log('boot-signed-out-recovery-fixture=passed')
 `
 
 const stableBootImportOrderFixtureScript = `

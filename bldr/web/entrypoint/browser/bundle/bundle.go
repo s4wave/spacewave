@@ -347,6 +347,30 @@ async function clearCachesForBootReset(){
   const cacheNames=await g.caches.keys();
   await Promise.all(cacheNames.map(function(cacheName){return g.caches.delete(cacheName)}));
 }
+async function clearOpfsForSignedOutRecovery(){
+  if(!navigator.storage||typeof navigator.storage.getDirectory!=='function')return;
+  const root=await navigator.storage.getDirectory();
+  const names=[];
+  for await(const entry of root.entries())names.push(entry[0]);
+  await Promise.all(names.map(function(name){return root.removeEntry(name,{recursive:true})}));
+}
+async function isLoginRequiredResponse(response){
+  if(response.status!==401)return false;
+  try{
+    const body=await response.clone().json();
+    return body&&body.error&&body.error.code==='login_required';
+  }catch(_){return false}
+}
+async function recoverSignedOutSession(response){
+  if(!await isLoginRequiredResponse(response))return false;
+  await Promise.allSettled([
+    unregisterServiceWorkersForBootReset(),
+    clearCachesForBootReset(),
+    clearOpfsForSignedOutRecovery()
+  ]);
+  window.location.replace('/login');
+  return true;
+}
 function clearBootResetReloadParam(){
   try{
     if(!window.history||typeof window.history.replaceState!=='function')return;
@@ -546,6 +570,7 @@ function loadRelease(){
   if(releasePromise)return releasePromise;
   setBootStatus('manifest','Loading browser release...');
   releasePromise=fetch(releasePath,{cache:'no-cache'}).then(async function(resp){
+    if(await recoverSignedOutSession(resp))return new Promise(function(){});
     if(!resp.ok)throw new Error('failed to load browser release manifest: '+resp.status);
     const release=await resp.json();
     const shellAssets=release.shellAssets||{};
@@ -577,6 +602,7 @@ function primeRelease(){
 let entrypointStreamPromise;
 async function streamEntrypointModule(release){
   const response=await fetch(release.entrypoint,{credentials:'same-origin'});
+  if(await recoverSignedOutSession(response))return new Promise(function(){});
   if(!response.ok)throw new Error('failed to load entrypoint bundle: '+response.status);
   const total=release.entrypointDecompressedSize||parsePositiveByteLength(response.headers&&response.headers.get?response.headers.get('content-length'):undefined);
   // The app shell bundle download is part of the connect phase (entrypoint),
