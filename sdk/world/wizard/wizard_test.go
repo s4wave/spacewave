@@ -75,6 +75,7 @@ func setupWizardRegistryClient(t *testing.T) (context.Context, *resource_client.
 
 	t.Cleanup(func() {
 		client.Release()
+		<-client.Done()
 		cancel()
 		clientPipe.Close()
 		serverPipe.Close()
