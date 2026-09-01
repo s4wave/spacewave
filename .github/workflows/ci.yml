@@ -670,7 +670,6 @@ jobs:
       - name: Run wasm E2E slice
         env:
           ENABLE_E2E_WASM: 'true'
-          E2E_WASM_STARTUP_BUILD_CACHE: 'false'
           E2E_SCENARIO_TAGS: ${{ matrix.slice.tags }}
           GO_TEST_REPORT_TITLE: E2E (wasm / ${{ matrix.slice.name }})
           WASM_TEST_RUN: ${{ matrix.slice.run }}
