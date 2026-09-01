@@ -64,6 +64,7 @@ const benchmarkSpacewaveRevisionEnv =
 const benchmarkGoScriptRevisionEnv =
   'E2E_GOSCRIPT_STORAGE_BENCH_GOSCRIPT_REVISION'
 const benchmarkCpuProfileEnv = 'E2E_GOSCRIPT_STORAGE_BENCH_CPU_PROFILE'
+const benchmarkDiagnosticWasmEnv = 'BLDR_GO_WASM_DIAGNOSTIC'
 const benchmarkBrowserEnv = 'E2E_WASM_BROWSER'
 const artifactSchemaVersion = 2
 const capabilitySchemaVersion = 1
@@ -264,8 +265,11 @@ async function runGoScriptStorageBenchmarkEngine(
   env[benchmarkBrowserEnv] = engine
   if (options.chromiumCpuProfile && engine === 'chromium') {
     env[benchmarkCpuProfileEnv] = 'true'
+    // The diagnostic CPU-profile run needs the unstripped diagnostic wasm.
+    env[benchmarkDiagnosticWasmEnv] = '1'
   } else {
     delete env[benchmarkCpuProfileEnv]
+    delete env[benchmarkDiagnosticWasmEnv]
   }
 
   const logDescriptor = openSync(logFile, 'w')
