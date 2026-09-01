@@ -305,6 +305,19 @@ func (s *Shard) setManifestLocked(m *Manifest) {
 	s.cache.retainVisible(s.id, m.ReferencedFiles())
 }
 
+// installObservedManifest installs a newer manifest and returns the current
+// manifest at the installation point. Slot reads may race with publication, so
+// the generation comparison and installation occur together under mu.
+func (s *Shard) installObservedManifest(m *Manifest) *Manifest {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if m.Generation > s.manifest.Generation {
+		s.setManifestLocked(m)
+	}
+	return s.manifest.Clone()
+}
+
 func (s *Shard) acquireSegment(ctx context.Context, meta *SegmentMeta) (*segmentCacheLease, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/acquire-segment")
 	defer task.End()

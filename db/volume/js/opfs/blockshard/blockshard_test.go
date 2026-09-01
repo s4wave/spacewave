@@ -621,6 +621,57 @@ func TestShardCachesSegmentFiles(t *testing.T) {
 	}
 }
 
+func TestInstallObservedManifestDoesNotRegressConcurrentPublication(t *testing.T) {
+	e, cleanup := newTestEngine(t, "test-blockshard-observed-manifest", "test-blockshard-observed-manifest")
+	defer cleanup()
+
+	if err := e.Put(context.Background(), []segment.Entry{{
+		Key:   []byte("cached"),
+		Value: []byte("value"),
+	}}); err != nil {
+		t.Fatal(err)
+	}
+
+	shard := e.shards[0]
+	published := shard.Manifest()
+	lease, err := shard.acquireSegment(context.Background(), &published.Segments[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	lease.Release()
+
+	stale := &Manifest{Generation: published.Generation + 1}
+	newer := published.Clone()
+	newer.Generation = published.Generation + 2
+
+	shard.mu.Lock()
+	started := make(chan struct{})
+	installed := make(chan *Manifest, 1)
+	go func() {
+		close(started)
+		installed <- shard.installObservedManifest(stale)
+	}()
+	<-started
+
+	shard.setManifestLocked(newer)
+	shard.seqNum = 777
+	shard.mu.Unlock()
+
+	current := <-installed
+	if current.Generation != newer.Generation {
+		t.Fatalf("installed generation: got %d want %d", current.Generation, newer.Generation)
+	}
+	if got := shard.Manifest().Generation; got != newer.Generation {
+		t.Fatalf("shard generation: got %d want %d", got, newer.Generation)
+	}
+	if shard.seqNum != 777 {
+		t.Fatalf("segment sequence: got %d want 777", shard.seqNum)
+	}
+	if stats := e.cache.snapshot(); stats.LiveHandles != 1 {
+		t.Fatalf("live cache handles after stale observation: got %d want 1", stats.LiveHandles)
+	}
+}
+
 func TestPublishSplitsLargeBatchBySegmentDataLimit(t *testing.T) {
 	settings := DefaultSettings()
 	settings.ShardCount = 1

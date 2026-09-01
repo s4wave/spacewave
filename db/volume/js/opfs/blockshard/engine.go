@@ -739,7 +739,6 @@ func (e *Engine) refreshShardManifest(shardIdx int) (*Manifest, error) {
 	defer task.End()
 
 	shard := e.shards[shardIdx]
-	current := shard.Manifest()
 	taskCtx, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-shard-manifest/read-slot-a")
 	a := readFileBytesContext(taskCtx, shard.dir, manifestSlotA)
 	subtask.End()
@@ -752,15 +751,10 @@ func (e *Engine) refreshShardManifest(shardIdx int) (*Manifest, error) {
 	if m == nil {
 		return nil, nil
 	}
-	if m.Generation <= current.Generation {
-		return current, nil
-	}
 	_, subtask = trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-shard-manifest/update-cache")
-	shard.mu.Lock()
-	shard.setManifestLocked(m)
-	shard.mu.Unlock()
+	current := shard.installObservedManifest(m)
 	subtask.End()
-	return m.Clone(), nil
+	return current, nil
 }
 
 // Get looks up a key across all shards.
