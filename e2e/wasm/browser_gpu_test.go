@@ -19,7 +19,7 @@ func TestChromiumLaunchOptions(t *testing.T) {
 		env  string
 		gpu  bool
 	}{
-		{name: "default", env: "", gpu: false},
+		{name: "default", env: "", gpu: true},
 		{name: "false", env: "false", gpu: false},
 		{name: "true", env: "true", gpu: true},
 		{name: "one", env: "1", gpu: true},
