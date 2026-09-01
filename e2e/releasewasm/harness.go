@@ -194,10 +194,10 @@ func persistentBrowserContextLaunchOptions(browserName string) playwright.Browse
 
 func chromiumHardwareGPUEnabled() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv(chromiumGPUEnv))) {
-	case "true", "1", "yes", "on":
-		return true
-	default:
+	case "false", "0", "no", "off":
 		return false
+	default:
+		return true
 	}
 }
 

@@ -4171,9 +4171,9 @@ self.onmessage = async (event) => {
 // CPU-rendered headless shell.
 func chrometestGPUEnabled() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("E2E_CHROMIUM_GPU"))) {
-	case "true", "1", "yes", "on":
-		return true
-	default:
+	case "false", "0", "no", "off":
 		return false
+	default:
+		return true
 	}
 }
