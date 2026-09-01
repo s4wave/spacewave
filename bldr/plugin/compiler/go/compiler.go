@@ -1304,6 +1304,7 @@ func addCompilerStartupCacheInputs(
 	}
 	if goCompiler == gocompiler.GoCompilerGo {
 		addGoWasmOptimizeStartupCacheInputs(inputManifest)
+		addGoWasmDiagnosticStartupCacheInputs(inputManifest)
 	}
 	if goCompiler.IsGoScript() {
 		addGoScriptStartupCacheInputs(inputManifest)
@@ -1326,6 +1327,13 @@ func addGoCompilerStartupCacheInputs(inputManifest *bldr_manifest_builder.InputM
 
 func addGoWasmOptimizeStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.GoWasmOptimizeStartupCacheEnvKeys() {
+		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
+	}
+	inputManifest.SortStartupInputs()
+}
+
+func addGoWasmDiagnosticStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
+	for _, envKey := range gocompiler.GoWasmDiagnosticStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
 	}
 	inputManifest.SortStartupInputs()

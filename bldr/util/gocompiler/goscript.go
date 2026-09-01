@@ -2,8 +2,6 @@ package gocompiler
 
 import (
 	"context"
-	"encoding/json"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -92,7 +90,7 @@ func isGoScriptBldrStateRootName(name string) bool {
 // GoScriptBindingRoots returns dependency module roots containing protobuf
 // TypeScript siblings. The main module is covered by GoScript's source root.
 func GoScriptBindingRoots(ctx context.Context, workDir string, env ...string) ([]string, error) {
-	cmd := exec.CommandContext(ctx, "go", "list", "-m", "-json", "all")
+	cmd := exec.CommandContext(ctx, "go", "list", "-m", "-f", "{{if not .Main}}{{.Dir}}{{end}}", "all")
 	cmd.Env = append(os.Environ(), GetDefaultEnv()...)
 	cmd.Env = append(cmd.Env, env...)
 	cmd.Dir = workDir
@@ -104,24 +102,14 @@ func GoScriptBindingRoots(ctx context.Context, workDir string, env ...string) ([
 		}
 		return nil, err
 	}
-	decoder := json.NewDecoder(strings.NewReader(string(out)))
 	var roots []string
 	seen := make(map[string]struct{})
-	for {
-		var module struct {
-			Dir  string
-			Main bool
-		}
-		if err := decoder.Decode(&module); err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return nil, errors.Wrap(err, "decode go list modules")
-		}
-		if module.Main || strings.TrimSpace(module.Dir) == "" {
+	for moduleDir := range strings.SplitSeq(string(out), "\n") {
+		moduleDir = strings.TrimSpace(moduleDir)
+		if moduleDir == "" {
 			continue
 		}
-		dir := filepath.Clean(module.Dir)
+		dir := filepath.Clean(moduleDir)
 		if _, ok := seen[dir]; ok || !goScriptBindingRootHasProtobufTypeScript(dir) {
 			continue
 		}

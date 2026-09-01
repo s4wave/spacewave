@@ -17,6 +17,30 @@ import (
 
 var tinyGoBuildMu sync.Mutex
 
+// shouldDropWasmDebugSymbols reports whether the non-TinyGo Go build must pass
+// -w -s. Diagnostic mode keeps the linker name section for CPU-profile
+// symbolization, but only for WASM (non-native) output: native release builds
+// always strip regardless of the diagnostic flag.
+func shouldDropWasmDebugSymbols(isRelease, isNativeBuildPlatform, isWasmOutput, diagnostic bool) bool {
+	if isNativeBuildPlatform {
+		return isRelease
+	}
+	if isWasmOutput && diagnostic {
+		return false
+	}
+	return isRelease || !isNativeBuildPlatform
+}
+
+// shouldRunWasmOpt reports whether the release Go wasm build should run the
+// Binaryen wasm-opt pass. Diagnostic mode bypasses it so the linker name
+// section (and any DWARF) survives for CPU-profile symbolization.
+func shouldRunWasmOpt(diagnostic bool) (bool, error) {
+	if diagnostic {
+		return false, nil
+	}
+	return GoWasmOptimizeEnabled()
+}
+
 // ExecBuildEntrypoint executes building an entrypoint main package.
 func ExecBuildEntrypoint(
 	ctx context.Context,
@@ -33,6 +57,10 @@ func ExecBuildEntrypoint(
 	isRelease := buildType.IsRelease()
 	isNativeBuildPlatform := buildPlatform.GetBasePlatformID() == bldr_platform.PlatformID_DESKTOP
 	isWasmOutput := strings.HasSuffix(outBinPath, ".wasm")
+	goWasmDiagnostic, err := GoWasmDiagnosticEnabled()
+	if err != nil {
+		return err
+	}
 
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
 	if err != nil {
@@ -69,8 +97,10 @@ func ExecBuildEntrypoint(
 			outBinPathRel,
 		}, GetDefaultArgs()...)
 
-		// if release or not native platform drop debugging symbols
-		if isRelease || !isNativeBuildPlatform {
+		// if release or not native platform drop debugging symbols.
+		// Diagnostic mode keeps the linker name section for CPU-profile
+		// symbolization; release/default output is unchanged.
+		if shouldDropWasmDebugSymbols(isRelease, isNativeBuildPlatform, isWasmOutput, goWasmDiagnostic) {
 			ldFlags = append(ldFlags, "-w", "-s")
 		}
 
@@ -152,12 +182,12 @@ func ExecBuildEntrypoint(
 				}
 			}
 		} else {
-			goWasmOptimize, err := GoWasmOptimizeEnabled()
+			optimize, err := shouldRunWasmOpt(goWasmDiagnostic)
 			if err != nil {
 				return err
 			}
-			if !goWasmOptimize {
-				le.WithField("env", GoWasmOptimizeEnv).Info("skipped wasm-opt for Go wasm output")
+			if !optimize {
+				le.Info("skipped wasm-opt for Go wasm output")
 				return nil
 			}
 			if err := opt_wasm.OptimizeWasmBinary(ctx, le, workingPath, outBinPath); err != nil {
