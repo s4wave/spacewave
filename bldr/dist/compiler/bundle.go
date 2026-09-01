@@ -18,10 +18,10 @@ import (
 	cbc "github.com/aperturerobotics/controllerbus/core"
 	"github.com/aperturerobotics/go-kvfile"
 	"github.com/aperturerobotics/util/enabled"
-	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
 	spacewave "github.com/s4wave/spacewave"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	bldr_dist_assetpack "github.com/s4wave/spacewave/bldr/dist/assetpack"
 	dist_compiler_bundle "github.com/s4wave/spacewave/bldr/dist/compiler/bundle"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_build "github.com/s4wave/spacewave/bldr/manifest/build"
@@ -352,24 +352,35 @@ func BuildDistBundle(
 			return err
 		}
 
-		embeddedVolumeOutputPath := filepath.Join(outEntryDir, "assets.kvfile")
-		le.Debugf("copying %v to output as %v", embeddedVolumeFilename, embeddedVolumeOutputPath)
-		if err := fsutil.CopyFile(
-			embeddedVolumeOutputPath,
+		assetURLPrefix := "../" + entrypointHash + "/"
+		parts, err := copyWebAssetPack(
 			embeddedVolumePath,
-			0o644,
-		); err != nil {
+			outEntryDir,
+			assetURLPrefix,
+			webAssetPackPartSize,
+		)
+		if err != nil {
 			return err
 		}
-
-		// Write the URL to the kvfile - adjust path to include hash
-		embeddedVolumeURL := "../" + entrypointHash + "/assets.kvfile"
-		outVolumeURLFilename := "assets.url"
-		outVolumeURLPath := filepath.Join(entrypointBuildDir, outVolumeURLFilename)
-		if err := os.WriteFile(outVolumeURLPath, []byte(embeddedVolumeURL), 0o644); err != nil {
-			return err
+		if len(parts) == 1 {
+			outVolumeURLFilename := "assets.url"
+			outVolumeURLPath := filepath.Join(entrypointBuildDir, outVolumeURLFilename)
+			if err := os.WriteFile(outVolumeURLPath, []byte(parts[0].URL), 0o644); err != nil {
+				return err
+			}
+			embedAssetsFS = append(embedAssetsFS, outVolumeURLFilename)
+		} else {
+			partsData, err := bldr_dist_assetpack.MarshalParts(parts)
+			if err != nil {
+				return err
+			}
+			outPartsFilename := "assets.parts"
+			outPartsPath := filepath.Join(entrypointBuildDir, outPartsFilename)
+			if err := os.WriteFile(outPartsPath, partsData, 0o644); err != nil {
+				return err
+			}
+			embedAssetsFS = append(embedAssetsFS, outPartsFilename)
 		}
-		embedAssetsFS = append(embedAssetsFS, outVolumeURLFilename)
 
 		// entrypoint is located under /entrypoint/{hash}/pkgs/@aptre/bldr
 		entrypointToRootPrefix := "../../../../../"

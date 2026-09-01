@@ -4,6 +4,7 @@ package dist_entrypoint
 
 import (
 	"context"
+	"io"
 	"io/fs"
 	"os"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/bldr/banner"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
+	bldr_dist_assetpack "github.com/s4wave/spacewave/bldr/dist/assetpack"
 	web_entrypoint_browser "github.com/s4wave/spacewave/bldr/web/entrypoint/browser"
 	web_runtime_bootstrap "github.com/s4wave/spacewave/bldr/web/runtime/bootstrap"
 	"github.com/s4wave/spacewave/db/block"
@@ -118,45 +120,56 @@ func newStaticBlockStoreReaderBuilder(
 	rootRef *block.BlockRef,
 ) refcount.RefCountResolver[*kvfile.Reader] {
 	return func(ctx context.Context, released func()) (*kvfile.Reader, func(), error) {
-		// read the URL to fetch from the assets fs
-		fetchUrlDat, err := fs.ReadFile(assetsFS, "assets.url")
-		if err != nil {
-			return nil, nil, err
-		}
-		fetchUrl := string(fetchUrlDat)
-		if len(fetchUrl) == 0 {
-			return nil, nil, errors.New("empty assets url")
+		partsData, partsErr := fs.ReadFile(assetsFS, "assets.parts")
+		var parts []bldr_dist_assetpack.Part
+		if partsErr == nil {
+			var err error
+			parts, err = bldr_dist_assetpack.UnmarshalParts(partsData)
+			if err != nil {
+				return nil, nil, err
+			}
+		} else if errors.Is(partsErr, fs.ErrNotExist) {
+			fetchURLData, err := fs.ReadFile(assetsFS, "assets.url")
+			if err != nil {
+				return nil, nil, err
+			}
+			if len(fetchURLData) == 0 {
+				return nil, nil, errors.New("empty assets url")
+			}
+			parts = []bldr_dist_assetpack.Part{{URL: string(fetchURLData)}}
+		} else {
+			return nil, nil, partsErr
 		}
 
 		buildReader := func(cacheMode string) (*kvfile.Reader, error) {
-			// send http Range requests
-			fetchReader := fetch_range.NewFetchRangeReader(
-				le,
-				fetchUrl,
-				&fetch.Opts{
-					Method: "GET",
-
-					CommonOpts: fetch.CommonOpts{
-						// The asset path is immutable, but cache reload lets the
-						// boot path escape a stale ServiceWorker generation cache
-						// after proving the local packfile lacks the manifest root.
-						Cache: cacheMode,
+			readers := make([]io.ReaderAt, 0, len(parts))
+			resolvedParts := make([]bldr_dist_assetpack.Part, len(parts))
+			copy(resolvedParts, parts)
+			for i, part := range resolvedParts {
+				fetchReader := fetch_range.NewFetchRangeReader(
+					le,
+					part.URL,
+					&fetch.Opts{
+						Method:     "GET",
+						CommonOpts: fetch.CommonOpts{Cache: cacheMode},
 					},
-				},
-				verbose,
-			)
-
-			totalSize, err := fetchReader.Size()
+					verbose,
+				)
+				if part.Size == 0 {
+					totalSize, err := fetchReader.Size()
+					if err != nil {
+						return nil, err
+					}
+					resolvedParts[i].Size = totalSize
+				}
+				readers = append(readers, fetchReader)
+			}
+			joinedReader, err := bldr_dist_assetpack.NewReaderAt(resolvedParts, readers)
 			if err != nil {
 				return nil, err
 			}
-
-			bufferReader := buffered_reader_at.NewBufferedReaderAt(fetchReader, httpRangeMinSize)
-			rdr, err := kvfile.BuildReader(bufferReader, uint64(totalSize))
-			if err != nil {
-				return nil, err
-			}
-			return rdr, nil
+			bufferReader := buffered_reader_at.NewBufferedReaderAt(joinedReader, httpRangeMinSize)
+			return kvfile.BuildReader(bufferReader, uint64(joinedReader.Size()))
 		}
 
 		rdr, err := buildReader("force-cache")
