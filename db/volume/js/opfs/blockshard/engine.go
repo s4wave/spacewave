@@ -159,6 +159,7 @@ type Engine struct {
 	broadcaster *Broadcaster
 	listener    *Listener
 	cache       *cacheCoordinator
+	metrics     *BenchmarkMetrics
 }
 
 // NewEngine creates a new block shard engine in the given OPFS directory.
@@ -193,6 +194,7 @@ func NewEngineWithSettings(
 		broadcaster: NewBroadcaster(lockPrefix),
 		listener:    NewListener(lockPrefix),
 		cache:       cache,
+		metrics:     settings.BenchmarkMetrics,
 	}
 
 	// Open and recover every shard before starting its write actor.
@@ -345,6 +347,16 @@ func (e *Engine) Sync(ctx context.Context) error {
 	return nil
 }
 
+// PendingEntries returns buffered keys after the caller has completed Sync.
+// Concurrent writes after that barrier can change the result.
+func (e *Engine) PendingEntries() int {
+	var total int
+	for i := range e.pending {
+		total += e.pending[i].length()
+	}
+	return total
+}
+
 // CompactOnce runs at most one compaction plan per shard.
 //
 // Compaction is storage maintenance, so foreground writes do not run it
@@ -436,6 +448,13 @@ func (e *Engine) putToActors(
 	// in the same worker sees it immediately even though the publish is async.
 	for idx := range buckets {
 		if len(buckets[idx]) != 0 {
+			if e.metrics != nil {
+				var bytes int
+				for i := range buckets[idx] {
+					bytes += len(buckets[idx][i].Value)
+				}
+				e.metrics.accept(len(buckets[idx]), bytes)
+			}
 			e.pending[idx].insert(buckets[idx])
 		}
 	}
@@ -1008,6 +1027,9 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 
 	var fgOnly int // consecutive foreground-only cycles
 	for {
+		if e.metrics != nil {
+			e.metrics.actorCycle()
+		}
 		// If no pending entries, block for the next request.
 		// Prefer foreground: try fgCh first, only fall through to
 		// bgCh when fgCh is not ready.
@@ -1064,6 +1086,9 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 		// starvation, or barrier condition was met for this cycle, so background
 		// entries cannot inflate foreground publish latency.
 		for range maxCoalesceRounds {
+			if e.metrics != nil {
+				e.metrics.drainRound()
+			}
 			runtime.Gosched()
 			prevLen := len(reqs)
 			e.drainCh(fgCh, &reqs)
@@ -1113,6 +1138,14 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 		writeCtx, writeTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/shard-publish")
 		err = shard.Publish(writeCtx, snapshot)
 		writeTask.End()
+		if e.metrics != nil {
+			var bytes int
+			for i := range snapshot {
+				bytes += len(snapshot[i].Value)
+			}
+			segments := splitSegmentEntries(snapshot, shard.maxSegmentDataBytes)
+			e.metrics.publish(len(snapshot), bytes, len(segments), err)
+		}
 		if err == nil {
 			_, reclaimTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/reclaim-pending-delete")
 			_, err = shard.ReclaimPendingDelete(publishCtx)

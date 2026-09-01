@@ -26,6 +26,8 @@ type Settings struct {
 	SyncIO              bool
 	MaxSegmentDataBytes int
 	MaxEntryValueBytes  int
+	// BenchmarkMetrics records coarse write boundaries when explicitly enabled.
+	BenchmarkMetrics *BenchmarkMetrics
 }
 
 // DefaultSettings returns the default block shard settings.

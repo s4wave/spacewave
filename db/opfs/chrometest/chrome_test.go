@@ -304,6 +304,91 @@ func TestOpfsChromeMaterializeFanout(t *testing.T) {
 				float64(serial.writeMS)/float64(r.writeMS), serial.publishGen, r.publishGen)
 		}
 	}
+	t.Run("accounting", func(t *testing.T) {
+		runMaterializeAccounting(t, s, blocks)
+	})
+}
+
+func runMaterializeAccounting(t *testing.T, s *chromeSession, blocks int) {
+	t.Helper()
+	modes := []struct {
+		name     string
+		scenario string
+		batch    int
+	}{
+		{"async-serial", "materialize-fanout-async-serial", 1},
+		{"batch-64", "materialize-fanout-batched", 64},
+	}
+
+	for _, mode := range modes {
+		for sample := 0; sample <= 3; sample++ {
+			phase := materializeSamplePhase(sample)
+			root := materializeAccountingRoot("off", mode.name, phase, sample)
+			s.runWorker(t, workerArgs{scenario: "clear", root: root})
+			off := s.runWorker(t, workerArgs{
+				scenario:   mode.scenario,
+				root:       root,
+				worker:     sample,
+				iterations: blocks,
+				batch:      mode.batch,
+				shards:     defaultShards,
+			})
+			t.Logf("materialize-accounting mode=%s instrumentation=disabled phase=%s sample=%d blocks=%d writeMs=%d durationMs=%d",
+				mode.name, phase, sample, blocks, off.writeMS, off.durationMS)
+			if len(off.extra) != 2 {
+				// Generation delta and pending entries are result fields, not
+				// recorder counters.
+				t.Fatalf("disabled accounting emitted metrics: %v", off.extra)
+			}
+		}
+
+		for sample := 0; sample <= 3; sample++ {
+			phase := materializeSamplePhase(sample)
+			root := materializeAccountingRoot("on", mode.name, phase, sample)
+			s.runWorker(t, workerArgs{scenario: "clear", root: root})
+			res := s.runWorker(t, workerArgs{
+				scenario:   mode.scenario,
+				root:       root,
+				worker:     sample,
+				iterations: blocks,
+				batch:      mode.batch,
+				shards:     defaultShards,
+				metrics:    true,
+			})
+			m := res.extra
+			// The materialization scenario generates one unique key for every
+			// accepted entry, so pending-buffer deduplication cannot reduce this
+			// population. The generation equation below also asserts that no
+			// compaction manifest write occurred during the measured phase.
+			accepted := m["acceptedEntries"]
+			published := m["publishedEntries"]
+			pending := m["pendingEntries"]
+			errors := m["publishErrors"]
+			if accepted != published+pending || errors != 0 {
+				t.Fatalf("accounting reconcile mode=%s phase=%s sample=%d accepted=%d published=%d pending=%d errors=%d",
+					mode.name, phase, sample, accepted, published, pending, errors)
+			}
+			if m["generationDelta"] != m["manifestWrites"] ||
+				m["manifestWrites"] != m["publishSuccesses"]+m["reclaimHits"] {
+				t.Fatalf("generation reconcile mode=%s phase=%s sample=%d metrics=%v",
+					mode.name, phase, sample, m)
+			}
+			t.Logf("materialize-accounting mode=%s phase=%s sample=%d writeMs=%d durationMs=%d metrics=%v reconciliation=pass",
+				mode.name, phase, sample, res.writeMS, res.durationMS, m)
+		}
+	}
+}
+
+func materializeSamplePhase(sample int) string {
+	if sample == 0 {
+		return "warmup"
+	}
+	return "retained"
+}
+
+func materializeAccountingRoot(instrumentation, mode, phase string, sample int) string {
+	return fmt.Sprintf("opfs-chrome-materialize-%s-%s-%s-%d-%s",
+		instrumentation, mode, phase, sample, time.Now().Format("150405.000000000"))
 }
 
 // TestOpfsChromeCopyWalkWrapperConcurrency probes whether the production
@@ -2513,7 +2598,14 @@ func decodeWorkerResults(raw any) ([]workerResult, error) {
 		if !ok {
 			return nil, errors.Errorf("unexpected result item %T", item)
 		}
+		extra := make(map[string]int)
+		for _, key := range materializeMetricKeys {
+			if value, ok := intFieldOK(m, key); ok {
+				extra[key] = value
+			}
+		}
 		results[i] = workerResult{
+			extra:    extra,
 			scenario: stringField(m, "scenario"),
 			worker:   intField(m, "worker"),
 			ok:       boolField(m, "ok"),
@@ -2549,6 +2641,7 @@ func mapSingleWorkerArg(arg workerArgs) map[string]any {
 		"batch":      arg.batch,
 		"remote":     arg.remote,
 		"shards":     arg.shards,
+		"metrics":    arg.metrics,
 	}
 }
 
@@ -2591,9 +2684,34 @@ type workerArgs struct {
 	batch      int
 	shards     int
 	remote     bool
+	metrics    bool
+}
+
+var materializeMetricKeys = []string{
+	"generationDelta",
+	"pendingEntries",
+	"acceptedRequests",
+	"acceptedEntries",
+	"acceptedBytes",
+	"actorCycles",
+	"drainRounds",
+	"publishAttempts",
+	"publishSuccesses",
+	"publishErrors",
+	"publishErrorEntries",
+	"publishedEntries",
+	"publishedBytes",
+	"publishedSegments",
+	"manifestSlotReads",
+	"manifestWrites",
+	"reclaimCalls",
+	"reclaimHits",
+	"reclaimDeletes",
+	"reclaimNs",
 }
 
 type workerResult struct {
+	extra         map[string]int
 	scenario      string
 	worker        int
 	ok            bool
@@ -3573,6 +3691,7 @@ self.onmessage = async (event) => {
     String(args.iterations ?? 1),
     String(args.batch ?? 1),
     String(args.shards ?? 4),
+    String(args.metrics ?? false),
   ]
   self.__OPFS_CHROMETEST_ARGS = go.argv
   if (go.importObject.gojs && typeof go.importObject.gojs['runtime.getRandomData'] !== 'function') {

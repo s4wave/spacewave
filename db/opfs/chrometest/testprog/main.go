@@ -76,6 +76,7 @@ type config struct {
 	iterations int
 	batch      int
 	shards     int
+	metrics    bool
 }
 
 type blockEvent struct {
@@ -147,8 +148,8 @@ func testArgs() []string {
 }
 
 func parseConfig(args []string) (*config, error) {
-	if len(args) < 8 {
-		return nil, errors.Errorf("expected 7 args, got %d", len(args)-1)
+	if len(args) < 9 {
+		return nil, errors.Errorf("expected 8 args, got %d", len(args)-1)
 	}
 	worker, err := strconv.Atoi(args[3])
 	if err != nil {
@@ -170,6 +171,10 @@ func parseConfig(args []string) (*config, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "parse shards")
 	}
+	metrics, err := strconv.ParseBool(args[8])
+	if err != nil {
+		return nil, errors.Wrap(err, "parse metrics")
+	}
 	return &config{
 		scenario:   args[1],
 		root:       args[2],
@@ -178,6 +183,7 @@ func parseConfig(args []string) (*config, error) {
 		iterations: iterations,
 		batch:      batch,
 		shards:     shards,
+		metrics:    metrics,
 	}, nil
 }
 
@@ -1389,12 +1395,21 @@ func runRemoteCacheLifecycle(ctx context.Context, c *config) error {
 }
 
 func openBlockEngine(ctx context.Context, c *config) (*blockshard.Engine, func(), error) {
+	return openBlockEngineWithMetrics(ctx, c, nil)
+}
+
+func openBlockEngineWithMetrics(
+	ctx context.Context,
+	c *config,
+	metrics *blockshard.BenchmarkMetrics,
+) (*blockshard.Engine, func(), error) {
 	dir, err := openTestDirectory(c.root, []string{"blocks"})
 	if err != nil {
 		return nil, nil, err
 	}
 	settings := blockshard.DefaultSettings()
 	settings.ShardCount = c.shards
+	settings.BenchmarkMetrics = metrics
 	e, err := blockshard.NewEngineWithSettings(ctx, dir, c.root+"/blocks", settings)
 	if err != nil {
 		return nil, nil, err
@@ -1444,11 +1459,19 @@ func runMaterializeFanout(ctx context.Context, c *config, mode fanoutMode) error
 		}
 	}
 
-	e, release, err := openBlockEngine(ctx, c)
+	var metrics *blockshard.BenchmarkMetrics
+	if c.metrics {
+		metrics = &blockshard.BenchmarkMetrics{}
+	}
+	e, release, err := openBlockEngineWithMetrics(ctx, c, metrics)
 	if err != nil {
 		return err
 	}
 	defer release()
+	if metrics != nil {
+		metrics.Reset()
+	}
+	generationStart := sumManifestGenerations(c)
 
 	postProgress(c, "materialize-write-start", 0, blocks)
 	start := time.Now()
@@ -1475,10 +1498,36 @@ func runMaterializeFanout(ctx context.Context, c *config, mode fanoutMode) error
 	writeDur := time.Since(start)
 	postProgress(c, "materialize-write-complete", blocks, blocks)
 
+	generationEnd := sumManifestGenerations(c)
+	// Sync above is the durability barrier. No writer remains active in this
+	// worker, so PendingEntries is stable for the result snapshot.
 	benchExtra = map[string]int64{
-		"writeMs":    writeDur.Milliseconds(),
-		"blocks":     int64(blocks),
-		"publishGen": sumManifestGenerations(c),
+		"writeMs":         writeDur.Milliseconds(),
+		"blocks":          int64(blocks),
+		"publishGen":      generationEnd,
+		"generationDelta": generationEnd - generationStart,
+		"pendingEntries":  int64(e.PendingEntries()),
+	}
+	if metrics != nil {
+		m := metrics.Snapshot()
+		benchExtra["acceptedRequests"] = m.AcceptedRequests
+		benchExtra["acceptedEntries"] = m.AcceptedEntries
+		benchExtra["acceptedBytes"] = m.AcceptedBytes
+		benchExtra["actorCycles"] = m.ActorCycles
+		benchExtra["drainRounds"] = m.DrainRounds
+		benchExtra["publishAttempts"] = m.PublishAttempts
+		benchExtra["publishSuccesses"] = m.PublishSuccesses
+		benchExtra["publishErrors"] = m.PublishErrors
+		benchExtra["publishErrorEntries"] = m.PublishErrorEntries
+		benchExtra["publishedEntries"] = m.PublishedEntries
+		benchExtra["publishedBytes"] = m.PublishedBytes
+		benchExtra["publishedSegments"] = m.PublishedSegments
+		benchExtra["manifestSlotReads"] = m.ManifestSlotReads
+		benchExtra["manifestWrites"] = m.ManifestWrites
+		benchExtra["reclaimCalls"] = m.ReclaimCalls
+		benchExtra["reclaimHits"] = m.ReclaimHits
+		benchExtra["reclaimDeletes"] = m.ReclaimDeletes
+		benchExtra["reclaimNs"] = m.ReclaimNanoseconds
 	}
 	return nil
 }

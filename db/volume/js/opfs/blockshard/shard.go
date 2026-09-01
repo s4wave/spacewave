@@ -42,7 +42,8 @@ type Shard struct {
 	buildSegmentFileFn  func(context.Context, string, *segment.Writer) (segment.BuildResult, error)
 
 	// cache coordinates immutable segment resources across engine shards.
-	cache *cacheCoordinator
+	cache   *cacheCoordinator
+	metrics *BenchmarkMetrics
 }
 
 // NewShard opens or creates one standalone shard in an OPFS directory.
@@ -70,6 +71,7 @@ func newShard(
 		bloomFPR:            settings.BloomFPR,
 		maxSegmentDataBytes: settings.MaxSegmentDataBytes,
 		cache:               cache,
+		metrics:             settings.BenchmarkMetrics,
 	}
 
 	// Load the durable manifest before exposing shard state.
@@ -324,6 +326,9 @@ func (s *Shard) writeManifest(ctx context.Context, m *Manifest) error {
 	s.mu.Lock()
 	s.setManifestLocked(m)
 	s.mu.Unlock()
+	if s.metrics != nil {
+		s.metrics.manifestWrite()
+	}
 	return nil
 }
 
@@ -411,7 +416,7 @@ func (s *Shard) AcquirePublishLockContext(ctx context.Context) (func(), error) {
 }
 
 func (s *Shard) reloadManifestFromDisk(ctx context.Context) error {
-	m, err := readManifestFromDisk(ctx, s.dir)
+	m, err := readManifestFromDisk(ctx, s.dir, s.metrics)
 	if err != nil {
 		return err
 	}
@@ -447,10 +452,16 @@ func deriveSeqNum(m *Manifest) uint64 {
 	return max
 }
 
-func readManifestFromDisk(ctx context.Context, dir js.Value) (*Manifest, error) {
+func readManifestFromDisk(ctx context.Context, dir js.Value, metrics *BenchmarkMetrics) (*Manifest, error) {
+	if metrics != nil {
+		metrics.manifestSlotRead()
+	}
 	a, err := readFileBytesRequired(ctx, dir, manifestSlotA)
 	if err != nil {
 		return nil, errors.Wrap(err, "read manifest-a")
+	}
+	if metrics != nil {
+		metrics.manifestSlotRead()
 	}
 	b, err := readFileBytesRequired(ctx, dir, manifestSlotB)
 	if err != nil {
@@ -498,7 +509,12 @@ func (s *Shard) CleanOrphans() error {
 // ReclaimPendingDelete removes manifest-retired segment files once both the
 // generation gate and grace-period gate say they are safe to reclaim. Caller
 // must hold the shard publish lock.
-func (s *Shard) ReclaimPendingDelete(ctx context.Context) (bool, error) {
+func (s *Shard) ReclaimPendingDelete(ctx context.Context) (reclaimed bool, err error) {
+	started := time.Now()
+	deletes := 0
+	if s.metrics != nil {
+		defer func() { s.metrics.reclaim(reclaimed, deletes, time.Since(started)) }()
+	}
 	if err := s.reloadManifestFromDisk(ctx); err != nil {
 		return false, errors.Wrap(err, "reload manifest")
 	}
@@ -518,6 +534,7 @@ func (s *Shard) ReclaimPendingDelete(ctx context.Context) (bool, error) {
 	}
 
 	for _, seg := range reclaim {
+		deletes++
 		err := opfs.DeleteFile(s.dir, seg.Filename)
 		if err == nil || opfs.IsNotFound(err) {
 			continue
