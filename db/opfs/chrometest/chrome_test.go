@@ -1882,9 +1882,23 @@ func startChromeHarness() (*chromeHarness, error) {
 		return nil, errors.Wrap(err, "start playwright")
 	}
 	headless := true
-	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
+	launchOpts := playwright.BrowserTypeLaunchOptions{
 		Headless: &headless,
-	})
+	}
+	if gpuEnabled := chrometestGPUEnabled(); gpuEnabled {
+		channel := "chromium"
+		launchOpts.Channel = &channel
+		headless = false
+		launchOpts.Args = []string{
+			"--headless=new",
+			"--ignore-gpu-blocklist",
+			"--use-angle=vulkan",
+			"--enable-gpu-rasterization",
+			"--enable-zero-copy",
+			"--enable-features=Vulkan",
+		}
+	}
+	browser, err := pw.Chromium.Launch(launchOpts)
 	if err != nil {
 		pw.Stop()
 		server.Close()
@@ -1932,9 +1946,23 @@ func (h *chromeHarness) newSession(t testing.TB) *chromeSession {
 func (h *chromeHarness) newPersistentSession(t testing.TB, name string) *chromeSession {
 	t.Helper()
 	headless := true
-	ctx, err := h.pw.Chromium.LaunchPersistentContext(filepath.Join(h.dir, name), playwright.BrowserTypeLaunchPersistentContextOptions{
+	persistOpts := playwright.BrowserTypeLaunchPersistentContextOptions{
 		Headless: &headless,
-	})
+	}
+	if chrometestGPUEnabled() {
+		channel := "chromium"
+		persistOpts.Channel = &channel
+		headless = false
+		persistOpts.Args = []string{
+			"--headless=new",
+			"--ignore-gpu-blocklist",
+			"--use-angle=vulkan",
+			"--enable-gpu-rasterization",
+			"--enable-zero-copy",
+			"--enable-features=Vulkan",
+		}
+	}
+	ctx, err := h.pw.Chromium.LaunchPersistentContext(filepath.Join(h.dir, name), persistOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -4137,3 +4165,15 @@ self.onmessage = async (event) => {
   }
 }
 `
+
+// chrometestGPUEnabled reports whether the operator opted into the full
+// GPU-optimized chromium channel (E2E_CHROMIUM_GPU) instead of the
+// CPU-rendered headless shell.
+func chrometestGPUEnabled() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("E2E_CHROMIUM_GPU"))) {
+	case "true", "1", "yes", "on":
+		return true
+	default:
+		return false
+	}
+}
