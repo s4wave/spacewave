@@ -584,10 +584,6 @@ jobs:
             run: '^(TestQuickstartDriveVideoPreview|TestExistingDriveOpenMeasurement|TestDriveNavigationBurstTrace|TestGoScriptDriveBrowserPreviewRenameUIParity)$'
             timeout_minutes: 40
             job_timeout_minutes: 60
-          - name: forge-blog
-            run: '^(TestQuickstartForge(Route|Trace)|TestForge(ScenarioSequence|WorkerExecution)|TestBlog(CoexistenceScenario|QuickstartSetupProbe|QuickstartRetainedStateRegistrationProbe))$'
-            timeout_minutes: 20
-            job_timeout_minutes: 40
           - name: session-sync
             run: '^(TestLocalOnboardingScenario|TestMultiSessionScenario|TestNoCloud(AnonymousParticipantSync|PairingDirect)|TestRecreatedPageSharedObjectHealthGuard|TestRetainedStatePagePeerProbe)$'
             timeout_minutes: 30

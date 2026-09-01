@@ -32,10 +32,10 @@ type wasmSlice struct {
 	Run     string  `json:"run"`
 }
 
-// No slice regex selects these tests, so CI never runs them. This list exists
-// so a new unenrolled test fails this check instead of passing unnoticed.
-// Entries leave the list as tests are enrolled, and an addition is a deliberate
-// decision a reviewer sees in the diff.
+// No slice regex in either tier (PR or nightly) selects these tests, so CI
+// never runs them. This list exists so a new unenrolled test fails this check
+// instead of passing unnoticed. Entries leave the list as tests are enrolled,
+// and an addition is a deliberate decision a reviewer sees in the diff.
 var notEnrolledInAnySlice = []string{
 	"TestBrowserHelpersAndRawAccess",
 	"TestBrowserLaunchFromGo",
@@ -93,28 +93,34 @@ var notEnrolledInAnySlice = []string{
 func TestAllWasmTestsAreEnrolled(t *testing.T) {
 	repoRoot := testRepoRoot(t)
 
-	workflowData, err := os.ReadFile(filepath.Join(repoRoot, ".github", "workflows", "ci.yml"))
-	if err != nil {
-		t.Fatalf("read CI workflow: %v", err)
-	}
-	var config workflow
-	if err := yaml.Unmarshal(workflowData, &config); err != nil {
-		t.Fatalf("parse CI workflow: %v", err)
-	}
-
-	e2eWasm, ok := config.Jobs["e2e-wasm"]
-	if !ok {
-		t.Fatal("CI workflow has no e2e-wasm job")
-	}
+	// A test is enrolled when any slice in the PR tier (ci.yml e2e-wasm) or
+	// the nightly tier (e2e-nightly.yml e2e-wasm-nightly) selects it.
 	var sliceRegexps []*regexp.Regexp
-	for _, slice := range e2eWasm.Strategy.Matrix.Slice {
-		// A slice naming its own package runs TestScenarios under build tags, so
-		// what it covers is a tag question rather than a name question. This
-		// check answers the name question only.
-		if slice.Package != nil {
-			continue
+	for _, enrolled := range []struct{ file, jobName string }{
+		{file: "ci.yml", jobName: "e2e-wasm"},
+		{file: "e2e-nightly.yml", jobName: "e2e-wasm-nightly"},
+	} {
+		workflowData, err := os.ReadFile(filepath.Join(repoRoot, ".github", "workflows", enrolled.file))
+		if err != nil {
+			t.Fatalf("read workflow %s: %v", enrolled.file, err)
 		}
-		sliceRegexps = append(sliceRegexps, compileSliceRegexp(t, slice))
+		var config workflow
+		if err := yaml.Unmarshal(workflowData, &config); err != nil {
+			t.Fatalf("parse workflow %s: %v", enrolled.file, err)
+		}
+		e2eWasm, ok := config.Jobs[enrolled.jobName]
+		if !ok {
+			t.Fatalf("workflow %s has no %s job", enrolled.file, enrolled.jobName)
+		}
+		for _, slice := range e2eWasm.Strategy.Matrix.Slice {
+			// A slice naming its own package runs TestScenarios under build
+			// tags, so what it covers is a tag question rather than a name
+			// question. This check answers the name question only.
+			if slice.Package != nil {
+				continue
+			}
+			sliceRegexps = append(sliceRegexps, compileSliceRegexp(t, slice))
+		}
 	}
 
 	wasmTests := findWasmTests(t, filepath.Join(repoRoot, "e2e", "wasm"))

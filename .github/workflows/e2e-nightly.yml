@@ -382,3 +382,97 @@ jobs:
           path: .bldr/e2e-releasewasm/artifacts
           include-hidden-files: true
           if-no-files-found: warn
+
+  e2e-wasm-nightly:
+    name: Nightly E2E (wasm / ${{ matrix.slice.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        slice:
+          - name: forge-blog
+            run: '^(TestQuickstartForge(Route|Trace)|TestForge(ScenarioSequence|WorkerExecution)|TestBlog(CoexistenceScenario|QuickstartSetupProbe|QuickstartRetainedStateRegistrationProbe))$'
+            timeout_minutes: 20
+            job_timeout_minutes: 40
+    timeout-minutes: ${{ matrix.slice.job_timeout_minutes }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Resolve Playwright Go version
+        id: playwright-go-version
+        run: echo "version=$(go list -m -f '{{.Version}}' github.com/mxschmitt/playwright-go)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-browser-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/ms-playwright-go
+          key: ${{ runner.os }}-${{ runner.arch }}-playwright-go-driver-${{ steps.playwright-go-version.outputs.version }}
+
+      - name: Install Playwright Chromium and OS dependencies
+        env:
+          PLAYWRIGHT_CACHE_HIT: ${{ steps.playwright-browser-cache.outputs.cache-hit }}
+        run: |
+          if [ "$PLAYWRIGHT_CACHE_HIT" = "true" ]; then
+            install=(install-deps chromium)
+          else
+            install=(install --with-deps chromium)
+          fi
+
+          for attempt in 1 2; do
+            if timeout --kill-after=30s 7m go run github.com/mxschmitt/playwright-go/cmd/playwright "${install[@]}"; then
+              exit 0
+            fi
+            echo "Playwright install attempt $attempt failed."
+          done
+          exit 1
+
+      - name: Cache aptre tools
+        uses: actions/cache@v6
+        with:
+          path: ./.tools
+          key: ${{ runner.os }}-${{ runner.arch }}-aptre-tools-${{ hashFiles('go.mod', 'go.sum', '.custom-gcl.yml', 'bldr/**/*.go') }}
+
+      - name: Setup aptre tools and vendor
+        run: bun run prepare
+
+      # Same reuse contract as the PR wasm slices: the manifest dependency
+      # snapshot validates a restored build against the current plugin
+      # sources; a stale entry falls back to a normal rebuild.
+      - name: Cache bldr startup manifests
+        uses: actions/cache@v6
+        with:
+          path: .bldr/e2e-wasm
+          key: ${{ runner.os }}-${{ runner.arch }}-e2e-wasm-manifests-${{ matrix.slice.name }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-e2e-wasm-manifests-${{ matrix.slice.name }}-
+
+      - name: Run wasm E2E slice
+        env:
+          ENABLE_E2E_WASM: 'true'
+          GO_TEST_REPORT_TITLE: Nightly E2E (wasm / ${{ matrix.slice.name }})
+          WASM_TEST_RUN: ${{ matrix.slice.run }}
+        run: |
+          bun scripts/go-test-report.ts -- go test -json -count=1 -timeout=${{ matrix.slice.timeout_minutes }}m -run "$WASM_TEST_RUN" ./e2e/wasm
+
+      - name: Upload wasm runtime diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-wasm-diagnostics-${{ matrix.slice.name }}-${{ github.run_id }}
+          path: .bldr/e2e-wasm
+          include-hidden-files: true
+          if-no-files-found: warn
