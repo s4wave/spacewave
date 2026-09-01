@@ -1357,8 +1357,52 @@ func TestSerializedPublishReloadsStaleManifest(t *testing.T) {
 	assertShardEntry(t, fresh, keyB, []byte("two"))
 }
 
+func TestPublishReportsNoPendingDelete(t *testing.T) {
+	e, cleanup := newTestEngine(
+		t,
+		"test-blockshard-publish-result",
+		"test-blockshard-publish-result",
+	)
+	defer cleanup()
+
+	shard := e.shards[0]
+	release, err := shard.AcquirePublishLock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := shard.publish(context.Background(), []segment.Entry{{
+		Key:   []byte("internal"),
+		Value: []byte("value"),
+	}})
+	release()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.hasPendingDelete {
+		t.Fatal("publish reported pending deletes for a fresh manifest")
+	}
+
+	release, err = shard.AcquirePublishLock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = shard.Publish(context.Background(), []segment.Entry{{
+		Key:   []byte("exported"),
+		Value: []byte("value"),
+	}})
+	release()
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertShardEntry(t, shard, []byte("exported"), []byte("value"))
+}
+
 func TestPublishPreservesPendingDelete(t *testing.T) {
-	e, cleanup := newTestEngine(t, "test-blockshard-publish-pending-delete", "test-blockshard-publish-pending-delete")
+	e, cleanup := newTestEngine(
+		t,
+		"test-blockshard-publish-pending-delete",
+		"test-blockshard-publish-pending-delete",
+	)
 	defer cleanup()
 
 	for _, key := range []string{"a", "b", "c", "d"} {
@@ -1373,15 +1417,27 @@ func TestPublishPreservesPendingDelete(t *testing.T) {
 		t.Fatalf("pending delete after compaction: got %d want 4", len(compacted.PendingDelete))
 	}
 
-	publishEntries(t, e.shards[0], []segment.Entry{{
+	shard := e.shards[0]
+	release, err := shard.AcquirePublishLock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := shard.publish(context.Background(), []segment.Entry{{
 		Key:   []byte("e"),
 		Value: []byte("value-e"),
 	}})
-	current := e.shards[0].Manifest()
+	release()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.hasPendingDelete {
+		t.Fatal("publish did not report preserved pending deletes")
+	}
+	current := shard.Manifest()
 	if len(current.PendingDelete) != len(compacted.PendingDelete) {
 		t.Fatalf("pending delete after publish: got %d want %d", len(current.PendingDelete), len(compacted.PendingDelete))
 	}
-	assertShardEntry(t, e.shards[0], []byte("e"), []byte("value-e"))
+	assertShardEntry(t, shard, []byte("e"), []byte("value-e"))
 }
 
 func TestCompactionIncludesOverlappingLowerLevelAndAgesTombstone(t *testing.T) {

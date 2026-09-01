@@ -1136,7 +1136,8 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 		}
 
 		writeCtx, writeTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/shard-publish")
-		err = shard.Publish(writeCtx, snapshot)
+		publishResult, publishErr := shard.publish(writeCtx, snapshot)
+		err = publishErr
 		writeTask.End()
 		if e.metrics != nil {
 			var bytes int
@@ -1146,7 +1147,7 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 			segments := splitSegmentEntries(snapshot, shard.maxSegmentDataBytes)
 			e.metrics.publish(len(snapshot), bytes, len(segments), err)
 		}
-		if err == nil {
+		if err == nil && publishResult.hasPendingDelete {
 			_, reclaimTask := trace.NewTask(publishCtx, "hydra/opfs-blockshard/run-actor/publish/reclaim-pending-delete")
 			_, err = shard.ReclaimPendingDelete(publishCtx)
 			reclaimTask.End()

@@ -373,6 +373,14 @@ func runMaterializeAccounting(t *testing.T, s *chromeSession, blocks int) {
 				t.Fatalf("generation reconcile mode=%s phase=%s sample=%d metrics=%v",
 					mode.name, phase, sample, m)
 			}
+			if m["reclaimCalls"] != 0 || m["reclaimHits"] != 0 || m["reclaimDeletes"] != 0 {
+				t.Fatalf("unexpected no-pending reclaim mode=%s phase=%s sample=%d metrics=%v",
+					mode.name, phase, sample, m)
+			}
+			if m["manifestSlotReads"] != 2*m["publishSuccesses"] {
+				t.Fatalf("manifest reads do not match publish reloads mode=%s phase=%s sample=%d metrics=%v",
+					mode.name, phase, sample, m)
+			}
 			t.Logf("materialize-accounting mode=%s phase=%s sample=%d writeMs=%d durationMs=%d metrics=%v reconciliation=pass",
 				mode.name, phase, sample, res.writeMS, res.durationMS, m)
 		}

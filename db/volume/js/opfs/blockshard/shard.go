@@ -110,14 +110,23 @@ func (s *Shard) observeGeneration(gen uint64) {
 // Publish writes a batch of key-value entries as a new SSTable segment,
 // then flips the manifest to include it. Caller must hold the shard publish lock.
 func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
+	_, err := s.publish(ctx, entries)
+	return err
+}
+
+type publishResult struct {
+	hasPendingDelete bool
+}
+
+func (s *Shard) publish(ctx context.Context, entries []segment.Entry) (publishResult, error) {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/shard/publish")
 	defer task.End()
 
 	if len(entries) == 0 {
-		return nil
+		return publishResult{}, nil
 	}
 	if err := s.reloadManifestFromDisk(ctx); err != nil {
-		return errors.Wrap(err, "reload manifest")
+		return publishResult{}, errors.Wrap(err, "reload manifest")
 	}
 
 	groups := splitSegmentEntries(entries, s.maxSegmentDataBytes)
@@ -127,9 +136,9 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 		if err != nil {
 			err = opfs.WithQuotaEstimate(err, uint64(estimateSegmentEntriesDataBytes(groups[i])))
 			if cleanupErr := s.cleanupWrittenSegments(outputs); cleanupErr != nil {
-				return errors.Wrapf(err, "clean failed publish segments: %v", cleanupErr)
+				return publishResult{}, errors.Wrapf(err, "clean failed publish segments: %v", cleanupErr)
 			}
-			return err
+			return publishResult{}, err
 		}
 		outputs = append(outputs, output)
 	}
@@ -147,12 +156,12 @@ func (s *Shard) Publish(ctx context.Context, entries []segment.Entry) error {
 		subtask.End()
 		err = opfs.WithQuotaEstimate(err, 0)
 		if cleanupErr := s.cleanupWrittenSegments(outputs); cleanupErr != nil {
-			return errors.Wrapf(err, "clean failed publish segments: %v", cleanupErr)
+			return publishResult{}, errors.Wrapf(err, "clean failed publish segments: %v", cleanupErr)
 		}
-		return err
+		return publishResult{}, err
 	}
 	subtask.End()
-	return nil
+	return publishResult{hasPendingDelete: len(newManifest.PendingDelete) != 0}, nil
 }
 
 func (s *Shard) cleanupWrittenSegments(outputs []writtenSegment) error {
