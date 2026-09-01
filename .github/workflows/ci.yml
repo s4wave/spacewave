@@ -663,9 +663,9 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .bldr/e2e-wasm
-          key: ${{ runner.os }}-${{ runner.arch }}-e2e-wasm-manifests-${{ github.sha }}
+          key: ${{ runner.os }}-${{ runner.arch }}-e2e-wasm-manifests-${{ matrix.slice.name }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-e2e-wasm-manifests-
+            ${{ runner.os }}-${{ runner.arch }}-e2e-wasm-manifests-${{ matrix.slice.name }}-
 
       - name: Run wasm E2E slice
         env:
