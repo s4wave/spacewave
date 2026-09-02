@@ -43,7 +43,10 @@ async function waitForConsole(
   return promise
 }
 
-async function bridgeHarnessDocument(origin: string) {
+async function bridgeHarnessDocument(
+  origin: string,
+  browserIceServersEndpoint?: string,
+) {
   const indexResponse = await fetch(origin)
   if (!indexResponse.ok) {
     throw new Error(`failed to fetch browser index: ${indexResponse.status}`)
@@ -68,10 +71,19 @@ async function bridgeHarnessDocument(origin: string) {
       const workerId = 'bridge-harness-worker'
       const requestId = 'bridge-harness-request'
       const { port1: workerPort, port2: ackPort } = new MessageChannel()
+      const NativeRTCPeerConnection = globalThis.RTCPeerConnection
+      globalThis.RTCPeerConnection = class extends NativeRTCPeerConnection {
+        constructor(config) {
+          super(config)
+          globalThis.bridgeHarnessPeerConfiguration = this.getConfiguration()
+        }
+      }
       const webDocument = Object.create(WebDocument.prototype)
       webDocument.webDocumentUuid = 'bridge-harness-document'
       webDocument.webWorkers = { [workerId]: { port: workerPort } }
       webDocument.webrtcBridgeEndpoints = new Map()
+      webDocument.browserIceServers = []
+      webDocument.browserIceServersEndpoint = ${JSON.stringify(browserIceServersEndpoint)}
 
       ackPort.onmessage = (ev) => {
         const bridgePort = ev.data?.bridgePort
@@ -87,6 +99,10 @@ async function bridgeHarnessDocument(origin: string) {
               return
             }
             console.log('WebRTC bridge harness createPC response', bridgeEvent.data.pcId)
+            console.log(
+              'WebRTC bridge harness peer configuration',
+              JSON.stringify(globalThis.bridgeHarnessPeerConfiguration),
+            )
             bridgePort.postMessage({
               type: 'close',
               cmdId: 2,
@@ -129,6 +145,52 @@ test.describe('WebRTC bridge bootstrap', () => {
 
     const msg = await bridgePromise
     expect(msg).toContain('WebRTC bridge opened for')
+  })
+
+  test('loads trusted same-origin ICE credentials before creating a real peer connection', async ({
+    browser,
+  }) => {
+    const port = Number.parseInt(process.env.E2E_PORT ?? '', 10) || 5593
+    const origin = `http://localhost:${port}`
+    const credentialPath = '/api/test-turn-credentials'
+    const harness = await bridgeHarnessDocument(origin, credentialPath)
+    const context = await browser.newContext()
+    let credentialRequests = 0
+    await context.route(`${origin}${credentialPath}`, (route) => {
+      credentialRequests++
+      return route.fulfill({
+        contentType: 'application/json',
+        headers: { 'cache-control': 'private, no-store' },
+        body: JSON.stringify({
+          iceServers: [
+            {
+              urls: ['turns:turn.cloudflare.com:443?transport=tcp'],
+              username: 'short-lived-user',
+              credential: 'short-lived-credential',
+            },
+          ],
+          expiresAt: Date.now() + 6 * 60 * 60 * 1000,
+        }),
+      })
+    })
+    await context.route(harness.url, (route) =>
+      route.fulfill({ contentType: 'text/html', body: harness.html }),
+    )
+    const page = await context.newPage()
+    const configurationPromise = waitForConsole(
+      page,
+      'WebRTC bridge harness peer configuration',
+    )
+
+    await page.goto(harness.url, { waitUntil: 'domcontentloaded' })
+    const configurationMessage = await configurationPromise
+
+    expect(credentialRequests).toBe(1)
+    expect(configurationMessage).toContain(
+      'turns:turn.cloudflare.com:443?transport=tcp',
+    )
+    expect(configurationMessage).not.toContain('turn:worker.example')
+    await context.close()
   })
 
   test('no bridge-related errors during startup', async ({ page }) => {
