@@ -88,7 +88,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/dist/compiler": {
-      "hash": "1ec82cc342dbb61903b4dd8a0bbd2f46501ed6d0f166dd512002b7074f4fb292",
+      "hash": "b9072e49a2436cdbce19e51cc8f2c8b03f04308940a773245b3486abcf4d85d8",
       "generatedFiles": [
         "bldr/dist/compiler/config.pb.go",
         "bldr/dist/compiler/config.pb.ts"

@@ -36,6 +36,15 @@ declare global {
 
 const webDocumentOpts: WebDocumentOptions = {}
 
+// BLDR_BROWSER_ICE_SERVERS is injected from the trusted dist configuration.
+declare const BLDR_BROWSER_ICE_SERVERS: RTCIceServer[] | undefined
+if (
+  typeof BLDR_BROWSER_ICE_SERVERS !== 'undefined' &&
+  Array.isArray(BLDR_BROWSER_ICE_SERVERS)
+) {
+  webDocumentOpts.browserIceServers = BLDR_BROWSER_ICE_SERVERS
+}
+
 // Extract webDocumentId from URL query parameters (for Electron)
 const urlParams = new URLSearchParams(window.location.search)
 const webDocumentId = urlParams.get('webDocumentId')

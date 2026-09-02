@@ -231,6 +231,7 @@ go_plugin_config(
 | `goPkgs` | list[string] |
 | `configSet` | dict[string, config_entry] |
 | `hostConfigSet` | dict[string, config_entry] |
+| `browserIceServers` | list[dict{urls, username, credential}] |
 | `webPkgs` | list[web_pkg] |
 | `buildTypes` | dict[string, dict] |
 | `platformTypes` | dict[string, dict] |
@@ -307,6 +308,7 @@ dist_compiler_config(
     cliPkgs=["./cmd/mycli/cli"],
     loadPlugins=["core", "web", "app"],
     loadWebStartup="app/startup.tsx",
+    browserIceServers=[{"urls": ["stun:stun.example:3478"]}],
 )
 ```
 

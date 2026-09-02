@@ -49,6 +49,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func browserIceServersForBundle(servers []*IceServer) []entrypoint_browser_bundle.BrowserIceServer {
+	trusted := make([]entrypoint_browser_bundle.BrowserIceServer, 0, len(servers))
+	for _, server := range servers {
+		if server == nil || len(server.GetUrls()) == 0 {
+			continue
+		}
+		trusted = append(trusted, entrypoint_browser_bundle.BrowserIceServer{
+			URLs:       append([]string(nil), server.GetUrls()...),
+			Username:   server.GetUsername(),
+			Credential: server.GetCredential(),
+		})
+	}
+	return trusted
+}
+
 // BuildDistBundle builds the distribution bundle for an application.
 //
 // initEmbeddedWorld should initialize the embedded manifest world.
@@ -71,6 +86,7 @@ func BuildDistBundle(
 	enableCgoOpt enabled.Enabled,
 	goCompilerOpt plugin_compiler_go.GoCompiler,
 	enableCompressionOpt enabled.Enabled,
+	browserIceServers []*IceServer,
 ) error {
 	isRelease := buildType.IsRelease()
 	isWebPlatform := bldr_platform.IsWebPlatform(buildPlatform)
@@ -385,6 +401,8 @@ func BuildDistBundle(
 		}
 		runtimeWorkerPath := "/entrypoint/" + entrypointHash + "/" + runtimeWorkerName
 
+		trustedIceServers := browserIceServersForBundle(browserIceServers)
+
 		// Compile the bldr entrypoint (js bundle and index.html)
 		le.Debug("building browser bundle")
 		bundleResult, err := entrypoint_browser_bundle.BuildBrowserBundle(
@@ -404,6 +422,7 @@ func BuildDistBundle(
 			false,                       // devMode
 			false,                       // forceDedicatedWorkers
 			forceMessagePortWorkerComms, // forceMessagePortWorkerComms
+			trustedIceServers,           // browserIceServers
 		)
 		if err != nil {
 			return err

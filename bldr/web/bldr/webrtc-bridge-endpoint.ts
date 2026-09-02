@@ -32,13 +32,22 @@ function toTransferable(dc: RTCDataChannel): Transferable {
 export class WebRTCBridgeEndpoint {
   private port: MessagePort
   private pcs = new Map<string, RTCPeerConnection>()
+  private readonly iceServers: RTCIceServer[]
+  private pendingIceCandidates = new Map<
+    string,
+    Array<{ cmd: BridgeCommand }>
+  >()
   private closed = false
   // Pending stats promises keyed by pcId, awaited before close to avoid
   // collecting stats on an already-closed PC.
   private pendingStats = new Map<string, Promise<void>>()
 
-  constructor(port: MessagePort) {
+  constructor(port: MessagePort, iceServers: RTCIceServer[] = []) {
     this.port = port
+    this.iceServers = iceServers.map((server) => ({
+      ...server,
+      urls: Array.isArray(server.urls) ? [...server.urls] : server.urls,
+    }))
     this.port.onmessage = (e: MessageEvent<BridgeCommand>) =>
       this.handleCommand(e.data)
     this.port.start()
@@ -281,11 +290,12 @@ export class WebRTCBridgeEndpoint {
     try {
       if (cmd.type === 'createPC') {
         const pcId = 'pc-' + Math.random().toString(36).slice(2, 10)
-        // Sanitize config: only allow safe fields, strip iceServers to
-        // prevent a compromised worker from injecting malicious TURN servers.
+        // The worker may select safe transport policies, but only the trusted
+        // document shell can supply STUN or TURN servers.
         const safeConfig: RTCConfiguration = {
           bundlePolicy: cmd.config?.bundlePolicy,
           iceTransportPolicy: cmd.config?.iceTransportPolicy,
+          iceServers: this.iceServers,
         }
         const pc = new RTCPeerConnection(safeConfig)
         this.pcs.set(pcId, pc)
@@ -349,6 +359,25 @@ export class WebRTCBridgeEndpoint {
         }
         case 'setRemoteDescription': {
           await pc!.setRemoteDescription(cmd.sdp as RTCSessionDescriptionInit)
+          const pending = this.pendingIceCandidates.get(cmd.pcId!) ?? []
+          this.pendingIceCandidates.delete(cmd.pcId!)
+          for (const queued of pending) {
+            try {
+              await pc!.addIceCandidate(queued.cmd.candidate)
+              this.port.postMessage({
+                type: 'addIceCandidate',
+                cmdId: queued.cmd.cmdId,
+                pcId: queued.cmd.pcId,
+                snapshot: this.getSnapshot(pc!),
+              } satisfies BridgeResponse)
+            } catch (err) {
+              this.port.postMessage({
+                type: 'addIceCandidate',
+                cmdId: queued.cmd.cmdId,
+                error: err instanceof Error ? err.message : String(err),
+              } satisfies BridgeResponse)
+            }
+          }
           response = {
             type: 'setRemoteDescription',
             cmdId: cmd.cmdId,
@@ -358,6 +387,12 @@ export class WebRTCBridgeEndpoint {
           break
         }
         case 'addIceCandidate': {
+          if (!pc!.remoteDescription) {
+            const pending = this.pendingIceCandidates.get(cmd.pcId!) ?? []
+            pending.push({ cmd })
+            this.pendingIceCandidates.set(cmd.pcId!, pending)
+            return
+          }
           await pc!.addIceCandidate(cmd.candidate)
           response = {
             type: 'addIceCandidate',
@@ -388,6 +423,15 @@ export class WebRTCBridgeEndpoint {
           // getStats() runs on a live PC rather than a closed one.
           const statsP = this.pendingStats.get(cmd.pcId!)
           if (statsP) await statsP
+          const pending = this.pendingIceCandidates.get(cmd.pcId!) ?? []
+          this.pendingIceCandidates.delete(cmd.pcId!)
+          for (const queued of pending) {
+            this.port.postMessage({
+              type: 'addIceCandidate',
+              cmdId: queued.cmd.cmdId,
+              error: 'peer connection closed before remote description',
+            } satisfies BridgeResponse)
+          }
           if (pc) {
             pc.close()
             this.pcs.delete(cmd.pcId!)
@@ -422,6 +466,7 @@ export class WebRTCBridgeEndpoint {
   close() {
     if (this.closed) return
     this.closed = true
+    this.pendingIceCandidates.clear()
     try {
       this.port.postMessage({
         type: 'event:bridgeclose',

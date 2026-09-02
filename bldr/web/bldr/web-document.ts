@@ -601,6 +601,9 @@ export interface WebDocumentOptions {
   // forceMessagePortWorkerComms forces Config A worker communication even when
   // SAB and OPFS are available.
   forceMessagePortWorkerComms?: boolean
+  // browserIceServers is the trusted ICE-server allowlist for peer connections
+  // created by the main-thread WebRTC bridge. Worker-provided servers are ignored.
+  browserIceServers?: RTCIceServer[]
   // watchVisibility watches the page visibility API.
   // the callback should be called when the visibility changes.
   // call the callback with the initial visibility before returning.
@@ -751,6 +754,8 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
   // webRuntimePort is the Port connected to the WebRuntime (Shared Worker or Electron Main).
   // Not used in saucer mode (uses HTTP-based communication instead).
   private webRuntimePort?: MessagePort
+  // browserIceServers is the trusted ICE-server allowlist for bridge peer connections.
+  private readonly browserIceServers: RTCIceServer[]
   // webrtcBridgeEndpoints tracks active WebRTC bridge connections keyed by worker ID.
   private webrtcBridgeEndpoints = new Map<string, WebRTCBridgeEndpoint>()
   // sabPairBroker tracks active same-tab SAB pair metadata.
@@ -925,6 +930,10 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       opts?.forceDedicatedWorkers,
     )
     this.forceMessagePortWorkerComms = !!opts?.forceMessagePortWorkerComms
+    this.browserIceServers = (opts?.browserIceServers ?? []).map((server) => ({
+      ...server,
+      urls: Array.isArray(server.urls) ? [...server.urls] : server.urls,
+    }))
 
     // Detect if we can use WebAssembly (not needed for saucer - Go runtime is native).
     if (!this.isSaucer) {
@@ -2851,7 +2860,7 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
     }
 
     const { port1: endpointPort, port2: clientPort } = new MessageChannel()
-    const endpoint = new WebRTCBridgeEndpoint(endpointPort)
+    const endpoint = new WebRTCBridgeEndpoint(endpointPort, this.browserIceServers)
     this.webrtcBridgeEndpoints.set(from, endpoint)
     console.log(`WebDocument: WebRTC bridge opened for ${from}`)
 

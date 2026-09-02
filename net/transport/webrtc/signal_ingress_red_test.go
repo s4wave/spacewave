@@ -145,6 +145,38 @@ func newNegotiatedPair(t *testing.T) (offerPC, answerPC *pion_webrtc.PeerConnect
 	return offerPC, answerPC, &offer, &answer
 }
 
+func TestAdoptedOfferCarriesIceAcrossTrackerGeneration(t *testing.T) {
+	offerID := []byte("active-offer")
+	sess := &session{pendingOfferID: append([]byte(nil), offerID...)}
+	w := &WebRTC{
+		conf: &Config{},
+		incomingSessions: map[string]*signalIngress{
+			"peer": {adoptedSession: sess},
+		},
+	}
+
+	candidate := &WebRtcSignal{Body: &WebRtcSignal_Ice{Ice: &WebRtcIce{OfferId: offerID}}}
+	stale := &WebRtcSignal{Body: &WebRtcSignal_Ice{Ice: &WebRtcIce{OfferId: []byte("stale")}}}
+	ingress := w.incomingSessions["peer"]
+	if !carriesAdoptedOffer(ingress, nil, candidate) {
+		t.Fatal("matching candidate was not carried while the successor was detached")
+	}
+	if carriesAdoptedOffer(ingress, nil, stale) {
+		t.Fatal("unrelated candidate crossed the detached generation")
+	}
+
+	execution := &sessionTrackerExecution{}
+	if got := w.takeAdoptableSession("peer", execution); got != sess {
+		t.Fatal("successor did not adopt the stashed session")
+	}
+	if !carriesAdoptedOffer(ingress, execution, candidate) {
+		t.Fatal("matching candidate was not carried into the successor execution")
+	}
+	if carriesAdoptedOffer(ingress, execution, stale) {
+		t.Fatal("unrelated candidate crossed into the successor execution")
+	}
+}
+
 // TestSignalIngressRejectsStaleGenerationAnswer asserts the answer seam: an
 // answer whose offer_id does not match the active generation must be dropped
 // before Pion state is touched, leaving the remote description unapplied.
@@ -204,7 +236,7 @@ func TestAnswerCorrelatesAcrossTrackerRegeneration(t *testing.T) {
 	// A successor regenerates on the same peer key and adopts the handed-over
 	// session.
 	trackerB := newTracker()
-	sessB := w.takeAdoptableSession("regen-peer")
+	sessB := w.takeAdoptableSession("regen-peer", nil)
 	if sessB == nil {
 		t.Fatal("successor found no adoptable session after regeneration")
 	}
@@ -306,7 +338,7 @@ func TestCloseSkipsStashOnFatalError(t *testing.T) {
 	w.incomingSessions = map[string]*signalIngress{"fatal-peer": {}}
 	sess.close()
 
-	if stashed := w.takeAdoptableSession("fatal-peer"); stashed != nil {
+	if stashed := w.takeAdoptableSession("fatal-peer", nil); stashed != nil {
 		t.Fatal("close stashed a session carrying a fatal error")
 	}
 	if offerPC.ConnectionState() != pion_webrtc.PeerConnectionStateClosed {
@@ -374,7 +406,7 @@ func TestCloseStashesOutstandingOfferForAdoption(t *testing.T) {
 	w.incomingSessions = map[string]*signalIngress{"handover-peer": {}}
 	sess.close()
 
-	stashed := w.takeAdoptableSession("handover-peer")
+	stashed := w.takeAdoptableSession("handover-peer", nil)
 	if stashed == nil {
 		t.Fatal("close disposed an outstanding-offer session instead of handing it over")
 	}
@@ -448,7 +480,7 @@ func TestCloseDisposesNonAdoptableSessions(t *testing.T) {
 			w.incomingSessions = map[string]*signalIngress{"dispose-peer": {}}
 			sess.close()
 
-			if stashed := w.takeAdoptableSession("dispose-peer"); stashed != nil {
+			if stashed := w.takeAdoptableSession("dispose-peer", nil); stashed != nil {
 				t.Fatalf("close handed over a non-adoptable session: %s", tc.name)
 			}
 			if pc.ConnectionState() != pion_webrtc.PeerConnectionStateClosed {
@@ -732,7 +764,7 @@ func TestCloseSignalIngressDisposesStashedSessionOnLastResolver(t *testing.T) {
 	if w.incomingSessions["detach-peer"] != nil {
 		t.Fatal("ingress lease survived its last resolver")
 	}
-	if taken := w.takeAdoptableSession("detach-peer"); taken != nil {
+	if taken := w.takeAdoptableSession("detach-peer", nil); taken != nil {
 		t.Fatal("stash survived the last-resolver detach")
 	}
 	if pc.ConnectionState() != pion_webrtc.PeerConnectionStateClosed {
@@ -763,7 +795,7 @@ func TestCloseSignalIngressTakeVsDisposeExactlyOnce(t *testing.T) {
 		closeDone := make(chan struct{})
 		go func() {
 			<-start
-			taken <- w.takeAdoptableSession("race-peer")
+			taken <- w.takeAdoptableSession("race-peer", nil)
 		}()
 		go func() {
 			defer close(closeDone)
@@ -780,7 +812,7 @@ func TestCloseSignalIngressTakeVsDisposeExactlyOnce(t *testing.T) {
 			if got.pc != pc {
 				t.Fatal("adopter received a foreign session")
 			}
-			if second := w.takeAdoptableSession("race-peer"); second != nil {
+			if second := w.takeAdoptableSession("race-peer", nil); second != nil {
 				t.Fatal("stash was handed over twice")
 			}
 			_ = pc.Close()

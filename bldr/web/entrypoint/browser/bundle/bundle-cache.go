@@ -647,6 +647,7 @@ func buildRendererCached(
 	runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath,
 	webStartupSrcPath, entrypointHash string,
 	minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode bool,
+	browserIceServers []BrowserIceServer,
 	webPkgImportMap web_entrypoint_index.ImportMap,
 ) ([]string, error) {
 	indexHTML, err := renderIndexHTML("./"+stableBootFilename, webPkgImportMap)
@@ -658,6 +659,7 @@ func buildRendererCached(
 		runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath,
 		webStartupSrcPath, entrypointHash,
 		minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode,
+		browserIceServers,
 	)
 	if err != nil {
 		return nil, err
