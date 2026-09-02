@@ -138,7 +138,7 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 // WriteStableBootAsset writes the stable browser boot asset at the build root.
 func WriteStableBootAsset(dir string) error {
 	const bootAsset = `const releasePath='/browser-release.json';
-const bootStateVersion='1000000';
+const bootStateVersion='1000001';
 const bootStateVersionKey='spacewave-browser-app-state-version';
 const bootSessionStateVersionKey='spacewave-browser-tab-state-version';
 const bootStateResetAttemptKey='spacewave-browser-app-state-reset-attempted';
@@ -347,7 +347,7 @@ async function clearCachesForBootReset(){
   const cacheNames=await g.caches.keys();
   await Promise.all(cacheNames.map(function(cacheName){return g.caches.delete(cacheName)}));
 }
-async function clearOpfsForSignedOutRecovery(){
+async function clearOpfsForBootReset(){
   if(!navigator.storage||typeof navigator.storage.getDirectory!=='function')return;
   const root=await navigator.storage.getDirectory();
   const names=[];
@@ -366,7 +366,7 @@ async function recoverSignedOutSession(response){
   await Promise.allSettled([
     unregisterServiceWorkersForBootReset(),
     clearCachesForBootReset(),
-    clearOpfsForSignedOutRecovery()
+    clearOpfsForBootReset()
   ]);
   window.location.replace('/login');
   return true;
@@ -423,7 +423,8 @@ async function resetHistoricalStateForBoot(){
   storageSet(sessionStorage,bootStateResetAttemptKey,bootStateVersion);
   const cleanupResults=await Promise.allSettled([
     unregisterServiceWorkersForBootReset(),
-    clearCachesForBootReset()
+    clearCachesForBootReset(),
+    clearOpfsForBootReset()
   ]);
   if(settledAllFulfilled(cleanupResults)){
     storageSet(localStorage,bootStateVersionKey,bootStateVersion);
