@@ -201,6 +201,14 @@ export interface Config {
    * @generated from field: repeated bldr.dist.compiler.IceServer browser_ice_servers = 12;
    */
   browserIceServers?: IceServer[]
+  /**
+   * BrowserIceServersEndpoint is the optional trusted same-origin path that
+   * returns short-lived ICE credentials ({ iceServers, expiresAt }). Only the
+   * document shell may use it; worker-provided servers remain ignored.
+   *
+   * @generated from field: string browser_ice_servers_endpoint = 13;
+   */
+  browserIceServersEndpoint?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -247,6 +255,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       kind: 'message',
       T: () => IceServer,
       repeated: true,
+    },
+    {
+      no: 13,
+      name: 'browser_ice_servers_endpoint',
+      kind: 'scalar',
+      T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,

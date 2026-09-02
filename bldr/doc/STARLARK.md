@@ -232,6 +232,7 @@ go_plugin_config(
 | `configSet` | dict[string, config_entry] |
 | `hostConfigSet` | dict[string, config_entry] |
 | `browserIceServers` | list[dict{urls, username, credential}] |
+| `browserIceServersEndpoint` | string |
 | `webPkgs` | list[web_pkg] |
 | `buildTypes` | dict[string, dict] |
 | `platformTypes` | dict[string, dict] |

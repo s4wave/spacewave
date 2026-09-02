@@ -45,6 +45,17 @@ if (
   webDocumentOpts.browserIceServers = BLDR_BROWSER_ICE_SERVERS
 }
 
+// BLDR_BROWSER_ICE_SERVERS_ENDPOINT is the optional trusted same-origin
+// endpoint that returns short-lived ICE credentials. Injected from the trusted
+// dist configuration; never from worker code.
+declare const BLDR_BROWSER_ICE_SERVERS_ENDPOINT: string | undefined
+if (
+  typeof BLDR_BROWSER_ICE_SERVERS_ENDPOINT === 'string' &&
+  BLDR_BROWSER_ICE_SERVERS_ENDPOINT
+) {
+  webDocumentOpts.browserIceServersEndpoint = BLDR_BROWSER_ICE_SERVERS_ENDPOINT
+}
+
 // Extract webDocumentId from URL query parameters (for Electron)
 const urlParams = new URLSearchParams(window.location.search)
 const webDocumentId = urlParams.get('webDocumentId')
@@ -110,10 +121,7 @@ markStartupBoundary('shell.entrypoint-loaded', { source: 'browser' })
 // collector is observation only: it never reorders, retries, or gates
 // startup or pairing work.
 try {
-  const pathSegment = window.location.pathname
-    .split('/')
-    .filter(Boolean)
-    .at(0)
+  const pathSegment = window.location.pathname.split('/').filter(Boolean).at(0)
   const entrypointContractIds = [
     'canvas',
     'computers',

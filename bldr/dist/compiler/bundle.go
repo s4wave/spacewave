@@ -87,6 +87,7 @@ func BuildDistBundle(
 	goCompilerOpt plugin_compiler_go.GoCompiler,
 	enableCompressionOpt enabled.Enabled,
 	browserIceServers []*IceServer,
+	browserIceServersEndpoint string,
 ) error {
 	isRelease := buildType.IsRelease()
 	isWebPlatform := bldr_platform.IsWebPlatform(buildPlatform)
@@ -423,6 +424,7 @@ func BuildDistBundle(
 			false,                       // forceDedicatedWorkers
 			forceMessagePortWorkerComms, // forceMessagePortWorkerComms
 			trustedIceServers,           // browserIceServers
+			browserIceServersEndpoint,   // browserIceServersEndpoint
 		)
 		if err != nil {
 			return err
