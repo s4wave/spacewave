@@ -1351,7 +1351,7 @@
     },
     {
       "name": "github.com/pion/dtls/v3",
-      "version": "v3.1.5",
+      "version": "v3.1.8",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/dtls",
@@ -1359,7 +1359,7 @@
     },
     {
       "name": "github.com/pion/ice/v4",
-      "version": "v4.4.0",
+      "version": "=>",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/ice",
@@ -1439,7 +1439,7 @@
     },
     {
       "name": "github.com/pion/stun/v3",
-      "version": "v3.1.6",
+      "version": "v3.1.7",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/stun",
@@ -1455,7 +1455,7 @@
     },
     {
       "name": "github.com/pion/turn/v5",
-      "version": "v5.0.12",
+      "version": "v5.0.13",
       "spdx": "MIT",
       "source": "go",
       "repo": "https://github.com/pion/turn",
