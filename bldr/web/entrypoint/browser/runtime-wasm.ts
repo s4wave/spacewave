@@ -1,4 +1,6 @@
-import { MessagePortDuplex, OpenStreamCtr, PacketStream } from 'starpc'
+import { ChannelStream, OpenStreamCtr, PacketStream } from 'starpc'
+
+import { channelPacketStream } from '../../bldr/channel-packet-stream.js'
 import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
@@ -86,7 +88,9 @@ goOpenStreamChannel.port1.onmessage = (msg) => {
   }
 
   const port = msg.ports[0]
-  const portDuplex = new MessagePortDuplex<Uint8Array>(port)
+  const portDuplex = channelPacketStream(
+    new ChannelStream('runtime-wasm', port, { remoteOpen: true }),
+  )
   webRuntime
     .getWebRuntimeServer()
     .rpcStreamHandler(portDuplex)
@@ -97,7 +101,11 @@ function startGoRpcStreams() {
   goOpenStreamCtr.set(async (): Promise<PacketStream> => {
     const streamChannel = new MessageChannel()
     goOpenStreamChannel.port1.postMessage('open-stream', [streamChannel.port2])
-    return new MessagePortDuplex<Uint8Array>(streamChannel.port1)
+    return channelPacketStream(
+      new ChannelStream('runtime-wasm', streamChannel.port1, {
+        remoteOpen: true,
+      }),
+    )
   })
 }
 

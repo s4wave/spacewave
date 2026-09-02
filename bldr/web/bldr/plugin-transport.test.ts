@@ -53,9 +53,9 @@ describe('createTransportFactory pair streams', () => {
     await writeDone
 
     const closeable = localStream as SabRingStream
-    closeable.close()
+    await closeable.close()
     expect(closePairEndpoint).toHaveBeenCalledWith('sab-pair-1')
-    remoteStream.close()
+    await remoteStream.close()
   })
 
   it('does not expose pair streams for MessagePort-only configs', () => {

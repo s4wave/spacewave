@@ -11,6 +11,8 @@ import {
   type ChannelStreamOpts,
 } from 'starpc'
 
+import { channelPacketStream } from './channel-packet-stream.js'
+
 // CrossTabChannelStreamOpts configures ChannelStreams for cross-tab channels.
 // Cross-tab peers already have explicit broker lifecycle messages; leave idle
 // watchdogs disabled so background throttling does not tear down quiet streams.
@@ -28,7 +30,9 @@ export class CrossTabManager {
     private readonly localId: string,
     private readonly handleIncomingStream?: HandleStreamFunc,
     private readonly createStream: CreateCrossTabStream = (localId, port) =>
-      new ChannelStream(localId, port, CrossTabChannelStreamOpts),
+      channelPacketStream(
+        new ChannelStream(localId, port, CrossTabChannelStreamOpts),
+      ),
   ) {}
 
   // handleMessage processes a cross-tab broker message from the ServiceWorker.

@@ -18,6 +18,8 @@ import {
 } from 'starpc'
 import { pipe } from 'it-pipe'
 
+import { channelPacketStream } from './channel-packet-stream.js'
+
 import {
   WebRuntimeClientInit,
   CreateWebDocumentRequest,
@@ -107,9 +109,14 @@ class WebRuntimeClientChildStream implements PacketStream {
     }
   }
 
-  public close(err?: Error): void {
+  public async close(): Promise<void> {
     this.releaseOnce()
-    this.inner.close(err)
+    this.inner.close()
+  }
+
+  public abort(error: Error): void {
+    this.releaseOnce()
+    this.inner.close(error)
   }
 
   private async *wrapSource(
@@ -157,7 +164,7 @@ class WebRuntimeClientInstance {
   // They must be closed when the parent client is invalidated or replaced,
   // otherwise Go-side document/view controllers stay stuck on orphaned streams
   // after the parent client generation is gone.
-  private readonly childStreams = new Set<{ close: (err?: Error) => void }>()
+  private readonly childStreams = new Set<PacketStream>()
 
   // isClosed checks if the instance is closed.
   public get isClosed(): boolean {
@@ -282,13 +289,13 @@ class WebRuntimeClientInstance {
     // throttle timers, so the parent client invalidation owns cancellation.
     await Promise.race([stream.waitRemoteAck, this.waitClosed])
     if (this.isClosed) {
-      trackedStream.close()
+      void trackedStream.close()
       throw new Error('WebRuntimeClientInstance is closed')
     }
     // wait for the stream to be fully opened
     await Promise.race([stream.waitRemoteOpen, this.waitClosed])
     if (this.isClosed) {
-      trackedStream.close()
+      void trackedStream.close()
       throw new Error('WebRuntimeClientInstance is closed')
     }
     // return the stream
@@ -317,7 +324,7 @@ class WebRuntimeClientInstance {
     )
     for (const stream of this.childStreams) {
       try {
-        stream.close(streamErr)
+        stream.abort(streamErr)
       } catch {
         // ignored
       }
@@ -375,10 +382,12 @@ class WebRuntimeClientInstance {
 
   // openWebRuntimeClientInstanceStream opens a stream with the Go runtime on behalf of a client.
   private async openWebRuntimeClientInstanceStream(port: MessagePort) {
-    const channelStream = new ChannelStream(this.host.webRuntimeId, port, {
-      ...WebRuntimeClientChannelStreamOpts,
-      remoteOpen: true,
-    })
+    const channelStream = channelPacketStream(
+      new ChannelStream(this.host.webRuntimeId, port, {
+        ...WebRuntimeClientChannelStreamOpts,
+        remoteOpen: true,
+      }),
+    )
     this.childStreams.add(channelStream)
     try {
       let streamPromise: Promise<PacketStream>
@@ -398,13 +407,13 @@ class WebRuntimeClientInstance {
 
       const stream = await streamPromise
       pipe(channelStream, stream, channelStream)
-        .catch((err) => channelStream.close(err))
+        .catch((err) => channelStream.abort(castToError(err)))
         .then(() => channelStream.close())
         .finally(() => this.childStreams.delete(channelStream))
     } catch (errAny) {
       this.childStreams.delete(channelStream)
       const err = castToError(errAny, 'open stream failed')
-      channelStream.close(err)
+      channelStream.abort(err)
     }
   }
 }

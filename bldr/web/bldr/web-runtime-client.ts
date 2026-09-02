@@ -167,7 +167,12 @@ class RuntimeClientPacketStream implements PacketStream {
     }
   }
 
-  public close(error?: Error): void {
+  public async close(): Promise<void> {
+    this.releaseOnce()
+    this.inner.close()
+  }
+
+  public abort(error: Error): void {
     this.releaseOnce()
     this.inner.close(error)
   }
@@ -301,7 +306,7 @@ export class WebRuntimeClient {
         errAny,
         `WebRuntimeClient: ${this.clientId}: opening stream with host failed`,
       )
-      stream.close(err)
+      stream.abort(err)
       throw err
     }
   }
@@ -533,7 +538,7 @@ export class WebRuntimeClient {
     }
     if (err) {
       console.error(err.message)
-      stream.close(err)
+      stream.abort(err)
       return
     }
   }
@@ -717,7 +722,7 @@ export class WebRuntimeClient {
     const streams = Array.from(this.activeStreams)
     this.activeStreams.clear()
     for (const stream of streams) {
-      stream.close(err)
+      stream.abort(err)
     }
   }
 }
