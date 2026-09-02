@@ -197,6 +197,7 @@ func (d *DevtoolBus) executeWebWasm(
 		forceDedicatedWorkers,
 		false,
 		nil,
+		"",
 	)
 	if err != nil {
 		return err

@@ -146,6 +146,10 @@ type Config struct {
 	// are ignored at the main-thread bridge boundary. When empty, the shell uses
 	// Spacewave's standard public STUN server.
 	BrowserIceServers []*IceServer `protobuf:"bytes,12,rep,name=browser_ice_servers,json=browserIceServers,proto3" json:"browserIceServers,omitempty"`
+	// BrowserIceServersEndpoint is the optional trusted same-origin path that
+	// returns short-lived ICE credentials ({ iceServers, expiresAt }). Only the
+	// document shell may use it; worker-provided servers remain ignored.
+	BrowserIceServersEndpoint string `protobuf:"bytes,13,opt,name=browser_ice_servers_endpoint,json=browserIceServersEndpoint,proto3" json:"browserIceServersEndpoint,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -236,6 +240,13 @@ func (x *Config) GetBrowserIceServers() []*IceServer {
 		return x.BrowserIceServers
 	}
 	return nil
+}
+
+func (x *Config) GetBrowserIceServersEndpoint() string {
+	if x != nil {
+		return x.BrowserIceServersEndpoint
+	}
+	return ""
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
@@ -332,6 +343,7 @@ func (m *Config) CloneVT() *Config {
 	r.EnableCgo = m.EnableCgo
 	r.GoCompiler = m.GoCompiler
 	r.EnableCompression = m.EnableCompression
+	r.BrowserIceServersEndpoint = m.BrowserIceServersEndpoint
 	r.EmbedManifests = protobuf_go_lite.CloneVTSlice(m.EmbedManifests)
 	r.LoadPlugins = protobuf_go_lite.CloneSlice(m.LoadPlugins)
 	r.HostConfigSet = protobuf_go_lite.CloneVTMap(m.HostConfigSet)
@@ -452,6 +464,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualVTSliceImplicit(this.BrowserIceServers, that.BrowserIceServers, func() *IceServer { return &IceServer{} }) {
+		return false
+	}
+	if this.BrowserIceServersEndpoint != that.BrowserIceServersEndpoint {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -738,6 +753,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		}
 		s.WriteArrayEnd()
 	}
+	if x.BrowserIceServersEndpoint != "" || s.HasField("browserIceServersEndpoint") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("browserIceServersEndpoint")
+		s.WriteString(x.BrowserIceServersEndpoint)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -838,6 +858,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				}
 				x.BrowserIceServers = append(x.BrowserIceServers, v)
 			})
+		case "browser_ice_servers_endpoint", "browserIceServersEndpoint":
+			s.AddField("browser_ice_servers_endpoint")
+			x.BrowserIceServersEndpoint = s.ReadString()
 		}
 	})
 }
@@ -1012,6 +1035,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.BrowserIceServersEndpoint) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.BrowserIceServersEndpoint)
+		i--
+		dAtA[i] = 0x6a
 	}
 	if len(m.BrowserIceServers) > 0 {
 		for iNdEx := len(m.BrowserIceServers) - 1; iNdEx >= 0; iNdEx-- {
@@ -1209,6 +1237,7 @@ func (m *Config) SizeVT() (n int) {
 		l = e.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BrowserIceServersEndpoint)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1374,6 +1403,10 @@ func (x *Config) MarshalProtoText() string {
 			}
 		}
 		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.BrowserIceServersEndpoint != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "browser_ice_servers_endpoint")
+		protobuf_go_lite.TextWriteString(&sb, x.BrowserIceServersEndpoint)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1718,6 +1751,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 13:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BrowserIceServersEndpoint", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BrowserIceServersEndpoint = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

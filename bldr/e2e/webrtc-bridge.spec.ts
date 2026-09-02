@@ -164,7 +164,7 @@ test.describe('WebRTC bridge bootstrap', () => {
         body: JSON.stringify({
           iceServers: [
             {
-              urls: ['turns:turn.cloudflare.com:443?transport=tcp'],
+              urls: ['turns:turn.cloudflare.com:443'],
               username: 'short-lived-user',
               credential: 'short-lived-credential',
             },
@@ -187,7 +187,7 @@ test.describe('WebRTC bridge bootstrap', () => {
 
     expect(credentialRequests).toBe(1)
     expect(configurationMessage).toContain(
-      'turns:turn.cloudflare.com:443?transport=tcp',
+      'turns:turn.cloudflare.com:443',
     )
     expect(configurationMessage).not.toContain('turn:worker.example')
     await context.close()

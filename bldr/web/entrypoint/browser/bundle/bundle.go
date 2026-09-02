@@ -876,6 +876,7 @@ func browserRendererSpec(
 	forceMessagePortWorkerComms,
 	devMode bool,
 	browserIceServers []BrowserIceServer,
+	browserIceServersEndpoint string,
 ) (ConfigFreeRendererOpts, error) {
 	outputDir := filepath.Join(buildDir, "entrypoint")
 	publicPath := "/entrypoint/"
@@ -918,6 +919,9 @@ func browserRendererSpec(
 	if len(browserIceServers) != 0 {
 		defines["BLDR_BROWSER_ICE_SERVERS"] = encodeBrowserIceServers(browserIceServers)
 	}
+	if browserIceServersEndpoint != "" {
+		defines["BLDR_BROWSER_ICE_SERVERS_ENDPOINT"] = strconv.Quote(browserIceServersEndpoint)
+	}
 	return ConfigFreeRendererOpts{
 		OutputDir:  outputDir,
 		PublicPath: publicPath,
@@ -945,6 +949,7 @@ func BuildRendererBundle(
 	forceMessagePortWorkerComms,
 	devMode bool,
 	browserIceServers []BrowserIceServer,
+	browserIceServersEndpoint string,
 	webPkgImportMap web_entrypoint_index.ImportMap,
 ) ([]string, error) {
 	le.Debug("generating web renderer bundle")
@@ -967,6 +972,7 @@ func BuildRendererBundle(
 		forceMessagePortWorkerComms,
 		devMode,
 		browserIceServers,
+		browserIceServersEndpoint,
 	)
 	if err != nil {
 		return nil, err
@@ -1008,6 +1014,7 @@ func BuildBrowserBundle(
 	forceDedicatedWorkers,
 	forceMessagePortWorkerComms bool,
 	browserIceServers []BrowserIceServer,
+	browserIceServersEndpoint string,
 ) (*BrowserBundleResult, error) {
 	if err := os.MkdirAll(buildDir, 0o755); err != nil {
 		return nil, err
@@ -1087,7 +1094,7 @@ func BuildBrowserBundle(
 
 	// renderer bundle
 	rendererStart := time.Now()
-	cssPaths, err := buildRendererCached(ctx, stateDir, cache, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, browserIceServers, webPkgImportMap)
+	cssPaths, err := buildRendererCached(ctx, stateDir, cache, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, browserIceServers, browserIceServersEndpoint, webPkgImportMap)
 	if err != nil {
 		return nil, err
 	}

@@ -15,6 +15,7 @@ func TestBrowserRendererSpecDefinesTrustedIceServers(t *testing.T) {
 			Username:   "user",
 			Credential: "secret",
 		}},
+		"",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -28,7 +29,7 @@ func TestBrowserRendererSpecDefinesTrustedIceServers(t *testing.T) {
 func TestBrowserRendererSpecDefaultsAndEncodesIceServers(t *testing.T) {
 	spec, err := browserRendererSpec(
 		"/src", "/src/bldr", "/build", "", "", "", "", "", "",
-		false, false, false, false, false, nil,
+		false, false, false, false, false, nil, "",
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -45,5 +46,18 @@ func TestBrowserRendererSpecDefaultsAndEncodesIceServers(t *testing.T) {
 	}})
 	if err := fastjson.Validate(encoded); err != nil {
 		t.Fatalf("trusted ICE JSON is invalid: %v: %q", err, encoded)
+	}
+}
+
+func TestBrowserRendererSpecDefinesTrustedIceServersEndpoint(t *testing.T) {
+	spec, err := browserRendererSpec(
+		"/src", "/src/bldr", "/build", "", "", "", "", "", "",
+		false, false, false, false, false, nil, "/api/turn-credentials",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := spec.Defines["BLDR_BROWSER_ICE_SERVERS_ENDPOINT"]; got != `"/api/turn-credentials"` {
+		t.Fatalf("trusted ICE endpoint define = %q", got)
 	}
 }

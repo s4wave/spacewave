@@ -96,6 +96,11 @@ message Config {
   // are ignored at the main-thread bridge boundary. When empty, the shell uses
   // Spacewave's standard public STUN server.
   repeated IceServer browser_ice_servers = 12;
+
+  // BrowserIceServersEndpoint is the optional trusted same-origin path that
+  // returns short-lived ICE credentials ({ iceServers, expiresAt }). Only the
+  // document shell may use it; worker-provided servers remain ignored.
+  string browser_ice_servers_endpoint = 13;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
