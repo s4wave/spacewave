@@ -26,6 +26,9 @@ func PlatformToGoEnv(plat bldr_platform.Platform) ([]string, error) {
 		}
 	case *bldr_platform.JsPlatform:
 		vars = append(vars, "GOOS=js", "GOARCH=wasm")
+	case *bldr_platform.CloudflarePlatform:
+		// GoScript-compiled code uses the js build constraint surface.
+		vars = append(vars, "GOOS=js", "GOARCH=wasm")
 	default:
 		return nil, errors.Wrapf(ErrUnsupportedPlatform, "platform: %s", plat.GetPlatformID())
 	}

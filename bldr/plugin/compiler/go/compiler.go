@@ -1014,7 +1014,7 @@ func (c *Controller) BuildPlugin(
 			defer goScriptWebPluginBuildMu.Unlock()
 
 			le.Info("compiling plugin TypeScript package tree")
-			goScriptBuildFlags = newGoScriptBuildFlags(buildType, enableCgo)
+			goScriptBuildFlags = newGoScriptBuildFlags(buildPlatform, buildType, enableCgo)
 			goScriptOverrideDirs, goScriptOverrideDirRels = existingSourceDirs(sourcePath, "gs")
 			goScriptCacheRoot, err := gocompiler.GoScriptCompilerCacheRootFromEnv(workingPath)
 			if err != nil {
@@ -1043,7 +1043,11 @@ func (c *Controller) BuildPlugin(
 				WebPkgID: goScriptSharedWebPkgID,
 				Enabled:  consumeGoScriptSharedProvider,
 			}
-			webRuntimeSrcFiles, err = web_runtime_goscript_build.BuildWebGoScriptPluginScriptWithOptions(
+			buildBundleFn := web_runtime_goscript_build.BuildWebGoScriptPluginScriptWithOptions
+			if _, isCloudflare := buildPlatform.(*bldr_platform.CloudflarePlatform); isCloudflare {
+				buildBundleFn = web_runtime_goscript_build.BuildWebGoScriptCloudflarePluginScript
+			}
+			webRuntimeSrcFiles, err = buildBundleFn(
 				ctx,
 				le,
 				distSourcePath,
@@ -1285,9 +1289,16 @@ func (c *Controller) BuildPlugin(
 	return an, inputManifest, nil
 }
 
-func newGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
+func newGoScriptBuildFlags(
+	buildPlatform bldr_platform.Platform,
+	buildType bldr_manifest.BuildType,
+	enableCgo bool,
+) []string {
 	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
 	buildTags = append(buildTags, gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag)
+	if _, isCloudflare := buildPlatform.(*bldr_platform.CloudflarePlatform); isCloudflare {
+		buildTags = append(buildTags, gocompiler.CloudflareBuildTag)
+	}
 	return []string{"-tags=" + strings.Join(buildTags, ",")}
 }
 
@@ -1897,7 +1908,12 @@ func writeDevInfoFile(le *logrus.Entry, outDistPath, devInfoFile string, devInfo
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.
 func (c *Controller) GetSupportedPlatforms() []string {
-	return []string{bldr_platform.PlatformID_DESKTOP, bldr_platform.PlatformID_WEB, bldr_platform.PlatformID_JS}
+	return []string{
+		bldr_platform.PlatformID_DESKTOP,
+		bldr_platform.PlatformID_WEB,
+		bldr_platform.PlatformID_JS,
+		bldr_platform.PlatformID_CLOUDFLARE,
+	}
 }
 
 // _ is a type assertion
