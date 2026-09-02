@@ -88,6 +88,7 @@ require (
 require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 )
 
 require (
@@ -166,7 +167,7 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
-	github.com/pion/dtls/v3 v3.1.5 // indirect
+	github.com/pion/dtls/v3 v3.1.8 // indirect
 	github.com/pion/ice/v4 v4.4.0 // indirect
 	github.com/pion/interceptor v0.1.47 // indirect
 	github.com/pion/mdns/v2 v2.1.0 // indirect
@@ -175,14 +176,14 @@ require (
 	github.com/pion/rtp v1.10.5 // indirect
 	github.com/pion/sctp v1.11.1 // indirect
 	github.com/pion/srtp/v3 v3.0.13 // indirect
-	github.com/pion/stun/v3 v3.1.6 // indirect
-	github.com/pion/turn/v5 v5.0.12 // indirect
+	github.com/pion/stun/v3 v3.1.7 // indirect
+	github.com/pion/turn/v5 v5.0.13 // indirect
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/stretchr/testify v1.12.0 // indirect
+	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/zeebo/assert v1.3.0 // indirect
@@ -195,9 +196,10 @@ require (
 	golang.org/x/time v0.14.0 // indirect
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 	modernc.org/libc v1.74.4 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
+
+replace github.com/pion/ice/v4 => github.com/aperturerobotics/pion-ice/v4 v4.0.0-20260902093134-beabc67bc5d7
