@@ -324,7 +324,7 @@ func TestWriteStableBootAsset(t *testing.T) {
 	if !strings.Contains(script, "/browser-release.json") {
 		t.Fatalf("boot asset missing stable release manifest path: %s", script)
 	}
-	if !strings.Contains(script, "bootStateVersion='1000000'") {
+	if !strings.Contains(script, "bootStateVersion='1000001'") {
 		t.Fatalf("boot asset missing major browser app state version: %s", script)
 	}
 	if !strings.Contains(script, "spacewave-browser-app-state-version") {

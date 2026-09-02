@@ -92,6 +92,9 @@ const localStorage = new StorageFixture({
   'spacewave-state-devtools': '{"open":true}',
   'app-persistent': '{"json":{"draft":"keep"}}',
   'tab-state-home': '{"selected":"old"}',
+  'presentation-preference': 'compact',
+  'selected-map': 'moon',
+  'map-draft-session': '{"moves":[1,2]}',
 })
 const sessionStorage = new StorageFixture({
   'shell-tabs-state': '{"tabs":[]}',
@@ -105,6 +108,11 @@ const sessionStorage = new StorageFixture({
 let fetchCalled = false
 let indexedDBDeleteCalled = false
 let opfsDirectoryRequested = false
+const opfsEntries = new Map([
+  ['runtime', { kind: 'directory' }],
+  ['session.db', { kind: 'file' }],
+])
+const removedOpfsEntries = []
 const unregistered = []
 const deletedCaches = []
 let reloadCalled = false
@@ -153,7 +161,14 @@ globalThis.navigator = {
   storage: {
     async getDirectory() {
       opfsDirectoryRequested = true
-      return {}
+      return {
+        entries() { return opfsEntries.entries() },
+        async removeEntry(name, options) {
+          if (!options?.recursive) throw new Error('OPFS cleanup must be recursive')
+          removedOpfsEntries.push(name)
+          opfsEntries.delete(name)
+        },
+      }
     },
   },
 }
@@ -190,17 +205,20 @@ assert(reloadCalled, 'boot reset did not reload')
 assert(!fetchCalled, 'boot fetched release before reset reload')
 assert(unregistered.length === 2, 'boot did not unregister ServiceWorkers')
 assert(deletedCaches.join(',') === 'bldr-control,bldr-generation-old', 'boot did not delete expected caches')
-assert(localStorage.getItem('spacewave-browser-app-state-version') === '1000000', 'boot did not store durable version after cleanup')
-assert(sessionStorage.getItem('spacewave-browser-tab-state-version') === '1000000', 'boot did not store tab version')
-assert(sessionStorage.getItem('spacewave-browser-app-state-reset-attempted') === '1000000', 'boot did not set reset attempt guard')
-assert(globalThis.__swBootRecoveryStatus.compatibilityVersion === '1000000', 'boot recovery status missing compatibility version')
+assert(localStorage.getItem('spacewave-browser-app-state-version') === '1000001', 'boot did not store durable version after cleanup')
+assert(sessionStorage.getItem('spacewave-browser-tab-state-version') === '1000001', 'boot did not store tab version')
+assert(sessionStorage.getItem('spacewave-browser-app-state-reset-attempted') === '1000001', 'boot did not set reset attempt guard')
+assert(globalThis.__swBootRecoveryStatus.compatibilityVersion === '1000001', 'boot recovery status missing compatibility version')
 assert(globalThis.__swBootRecoveryStatus.lastResetDecision === 'reset-complete', 'boot recovery status missing reset-complete decision')
-assert(globalThis.__swBootStatus.compatibilityVersion === '1000000', 'boot status missing compatibility version')
+assert(globalThis.__swBootStatus.compatibilityVersion === '1000001', 'boot status missing compatibility version')
 assert(globalThis.__swBootStatus.lastResetDecision === 'reset-complete', 'boot status missing latest reset decision')
 assert(!localStorage.has('spacewave-has-session'), 'boot did not clear shell localStorage key')
 assert(!localStorage.has('spacewave-has-interacted'), 'boot did not clear interaction hint')
 assert(localStorage.getItem('app-persistent') === '{"json":{"draft":"keep"}}', 'boot must preserve generic app-persistent state')
 assert(localStorage.getItem('tab-state-home') === '{"selected":"old"}', 'boot must preserve generic tab-state prefix')
+assert(localStorage.getItem('presentation-preference') === 'compact', 'boot must preserve presentation preferences')
+assert(localStorage.getItem('selected-map') === 'moon', 'boot must preserve the selected map')
+assert(localStorage.getItem('map-draft-session') === '{"moves":[1,2]}', 'boot must preserve map drafts')
 assert(!sessionStorage.has('shell-tabs-state'), 'boot did not clear shell sessionStorage key')
 assert(!sessionStorage.has('shell-tabs-layout'), 'boot did not clear shell layout key')
 assert(sessionStorage.getItem('spacewave-sso-start-provider') === 'provider', 'boot must preserve SSO start provider')
@@ -208,7 +226,9 @@ assert(sessionStorage.getItem('spacewave-sso-return-to') === '#/return', 'boot m
 assert(sessionStorage.getItem('spacewave-pending-join') === 'invite', 'boot must preserve pending join payload')
 assert(sessionStorage.getItem('spacewave-auth-handoff-payload') === 'payload', 'boot must preserve auth handoff payload')
 assert(!indexedDBDeleteCalled, 'boot must not delete IndexedDB')
-assert(!opfsDirectoryRequested, 'boot must not request OPFS root')
+assert(opfsDirectoryRequested, 'boot must request the OPFS root')
+assert(opfsEntries.size === 0, 'boot did not clear shell OPFS state')
+assert(removedOpfsEntries.length === 2, 'boot did not remove every OPFS entry')
 
 console.log('boot-reset-fixture=passed')
 `
@@ -229,13 +249,13 @@ class StorageFixture {
 
 async function runScenario(gatedPath) {
   const localStorage = new StorageFixture({
-    'spacewave-browser-app-state-version': '1000000',
+    'spacewave-browser-app-state-version': '1000001',
     'presentation-preference': 'compact',
     'selected-map': 'moon',
     'map-draft-session': '{"moves":[1,2]}',
   })
   const sessionStorage = new StorageFixture({
-    'spacewave-browser-tab-state-version': '1000000',
+    'spacewave-browser-tab-state-version': '1000001',
   })
   const events = []
   let redirectedTo
@@ -485,7 +505,7 @@ async function runCase({ name, autoStart, hash, readyState, allowPreload }) {
   const firstEntrypoint = events.findIndex((event) => event === 'status:entrypoint')
   assert(firstFetch === -1, name + ' fetched release before reset reload')
   assert(firstEntrypoint === -1, name + ' reached entrypoint before reset reload')
-  assert(localStorage.getItem('spacewave-browser-app-state-version') === '1000000', name + ' did not store boot version')
+  assert(localStorage.getItem('spacewave-browser-app-state-version') === '1000001', name + ' did not store boot version')
   const resetHref = globalThis.window.location.href
   assert(new URL(resetHref).searchParams.has('brr'), name + ' reset reload did not add brr query: ' + resetHref)
 
@@ -524,7 +544,7 @@ async function runCase({ name, autoStart, hash, readyState, allowPreload }) {
     assert(entrypointIndex > releaseFetchIndex, name + ' entrypoint phase did not wait for release fetch: ' + events.join(','))
     assert(entrypointAssetFetchIndex > entrypointIndex, name + ' entrypoint asset fetch did not wait for entrypoint phase: ' + events.join(','))
   }
-  assert(localStorage.getItem('spacewave-browser-app-state-version') === '1000000', name + ' reached entrypoint before current version')
+  assert(localStorage.getItem('spacewave-browser-app-state-version') === '1000001', name + ' reached entrypoint before current version')
 }
 
 await runCase({ name: 'browser-hash', autoStart: false, hash: '#/u/1' })
@@ -645,10 +665,10 @@ async function runCase(testCase) {
   const progressLabel = new ElementFixture()
   const status = new ElementFixture()
   const localStorage = new StorageFixture({
-    'spacewave-browser-app-state-version': '1000000',
+    'spacewave-browser-app-state-version': '1000001',
   })
   const sessionStorage = new StorageFixture({
-    'spacewave-browser-tab-state-version': '1000000',
+    'spacewave-browser-tab-state-version': '1000001',
   })
   const entrypointSource = "globalThis.__fixtureEvents.push('import:direct:" + testCase.name + "'); export default null"
   const entrypointFile = fixtureDir + '/entrypoint-' + testCase.name + '.mjs'
@@ -940,10 +960,10 @@ function streamChunks(chunks) {
 const events = []
 const downloadEventCounts = []
 const localStorage = new StorageFixture({
-  'spacewave-browser-app-state-version': '1000000',
+  'spacewave-browser-app-state-version': '1000001',
 })
 const sessionStorage = new StorageFixture({
-  'spacewave-browser-tab-state-version': '1000000',
+  'spacewave-browser-tab-state-version': '1000001',
 })
 globalThis.__fixtureEvents = events
 const entrypointSource = "globalThis.__fixtureEvents.push('import:direct:registry'); export default null"
