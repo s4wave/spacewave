@@ -60,8 +60,9 @@ type sessionTracker struct {
 
 // sessionTrackerExecution is one live invocation of sessionTracker.execute.
 type sessionTrackerExecution struct {
-	generation uint64
-	rxSignal   chan *incomingSignal
+	generation     uint64
+	rxSignal       chan *incomingSignal
+	carriedOfferID []byte
 }
 
 // beginExecution publishes a new execution generation.
@@ -772,7 +773,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	// its pending generation survives regeneration and the remote answer
 	// still correlates.
 	phase = "construct session"
-	sess := s.w.takeAdoptableSession(s.key)
+	sess := s.w.takeAdoptableSession(s.key, execution)
 	var waitCh <-chan struct{}
 	if sess != nil {
 		waitCh = s.adoptSession(sess)

@@ -55,6 +55,44 @@ func (x *EmbedManifest) GetPlatformId() string {
 	return ""
 }
 
+// IceServer configures one trusted ICE server for browser peer connections.
+type IceServer struct {
+	unknownFields []byte
+	// Urls is the STUN or TURN URL list.
+	Urls []string `protobuf:"bytes,1,rep,name=urls,proto3" json:"urls,omitempty"`
+	// Username is the TURN username.
+	Username string `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	// Credential is the TURN credential.
+	Credential string `protobuf:"bytes,3,opt,name=credential,proto3" json:"credential,omitempty"`
+}
+
+func (x *IceServer) Reset() {
+	*x = IceServer{}
+}
+
+func (*IceServer) ProtoMessage() {}
+
+func (x *IceServer) GetUrls() []string {
+	if x != nil {
+		return x.Urls
+	}
+	return nil
+}
+
+func (x *IceServer) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *IceServer) GetCredential() string {
+	if x != nil {
+		return x.Credential
+	}
+	return ""
+}
+
 // Config configures the dist compiler controller.
 //
 // Builds an unpacked distribution bundle of the application.
@@ -103,6 +141,11 @@ type Config struct {
 	// CliPkgs is a list of Go packages providing native CLI commands.
 	// Native dist builds may expose these commands when launched with arguments.
 	CliPkgs []string `protobuf:"bytes,9,rep,name=cli_pkgs,json=cliPkgs,proto3" json:"cliPkgs,omitempty"`
+	// BrowserIceServers is the trusted ICE-server allowlist supplied by the
+	// document shell to browser peer connections. Worker-provided ICE servers
+	// are ignored at the main-thread bridge boundary. When empty, the shell uses
+	// Spacewave's standard public STUN server.
+	BrowserIceServers []*IceServer `protobuf:"bytes,12,rep,name=browser_ice_servers,json=browserIceServers,proto3" json:"browserIceServers,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -188,6 +231,13 @@ func (x *Config) GetCliPkgs() []string {
 	return nil
 }
 
+func (x *Config) GetBrowserIceServers() []*IceServer {
+	if x != nil {
+		return x.BrowserIceServers
+	}
+	return nil
+}
+
 // PreBuildHookResult is the output of a pre-build hook.
 type PreBuildHookResult struct {
 	unknownFields []byte
@@ -252,6 +302,24 @@ func (m *EmbedManifest) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
+func (m *IceServer) CloneVT() *IceServer {
+	if m == nil {
+		return (*IceServer)(nil)
+	}
+	r := new(IceServer)
+	r.Username = m.Username
+	r.Credential = m.Credential
+	r.Urls = protobuf_go_lite.CloneSlice(m.Urls)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *IceServer) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
 func (m *Config) CloneVT() *Config {
 	if m == nil {
 		return (*Config)(nil)
@@ -268,6 +336,7 @@ func (m *Config) CloneVT() *Config {
 	r.LoadPlugins = protobuf_go_lite.CloneSlice(m.LoadPlugins)
 	r.HostConfigSet = protobuf_go_lite.CloneVTMap(m.HostConfigSet)
 	r.CliPkgs = protobuf_go_lite.CloneSlice(m.CliPkgs)
+	r.BrowserIceServers = protobuf_go_lite.CloneVTSlice(m.BrowserIceServers)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -317,6 +386,32 @@ func (this *EmbedManifest) EqualMessageVT(thatMsg any) bool {
 	return this.EqualVT(that)
 }
 
+func (this *IceServer) EqualVT(that *IceServer) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualSlice(this.Urls, that.Urls) {
+		return false
+	}
+	if this.Username != that.Username {
+		return false
+	}
+	if this.Credential != that.Credential {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *IceServer) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*IceServer)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
 func (this *Config) EqualVT(that *Config) bool {
 	if this == that {
 		return true
@@ -354,6 +449,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.ChannelKey != that.ChannelKey {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.BrowserIceServers, that.BrowserIceServers, func() *IceServer { return &IceServer{} }) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -434,6 +532,68 @@ func (x *EmbedManifest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the EmbedManifest from JSON.
 func (x *EmbedManifest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the IceServer message to JSON.
+func (x *IceServer) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Urls) > 0 || s.HasField("urls") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("urls")
+		s.WriteStringArray(x.Urls)
+	}
+	if x.Username != "" || s.HasField("username") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("username")
+		s.WriteString(x.Username)
+	}
+	if x.Credential != "" || s.HasField("credential") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("credential")
+		s.WriteString(x.Credential)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the IceServer to JSON.
+func (x *IceServer) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the IceServer message from JSON.
+func (x *IceServer) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "urls":
+			s.AddField("urls")
+			if s.ReadNil() {
+				x.Urls = nil
+				return
+			}
+			x.Urls = s.ReadStringArray()
+		case "username":
+			s.AddField("username")
+			x.Username = s.ReadString()
+		case "credential":
+			s.AddField("credential")
+			x.Credential = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the IceServer from JSON.
+func (x *IceServer) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -567,6 +727,17 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("channelKey")
 		s.WriteString(x.ChannelKey)
 	}
+	if len(x.BrowserIceServers) > 0 || s.HasField("browserIceServers") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("browserIceServers")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.BrowserIceServers {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("browserIceServers"))
+		}
+		s.WriteArrayEnd()
+	}
 	s.WriteObjectEnd()
 }
 
@@ -649,6 +820,24 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "channel_key", "channelKey":
 			s.AddField("channel_key")
 			x.ChannelKey = s.ReadString()
+		case "browser_ice_servers", "browserIceServers":
+			s.AddField("browser_ice_servers")
+			if s.ReadNil() {
+				x.BrowserIceServers = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.BrowserIceServers = append(x.BrowserIceServers, nil)
+					return
+				}
+				v := &IceServer{}
+				v.UnmarshalProtoJSON(s.WithField("browser_ice_servers", false))
+				if s.Err() != nil {
+					return
+				}
+				x.BrowserIceServers = append(x.BrowserIceServers, v)
+			})
 		}
 	})
 }
@@ -746,6 +935,55 @@ func (m *EmbedManifest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *IceServer) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *IceServer) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *IceServer) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Credential) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Credential)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Username) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Username)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Urls) > 0 {
+		for iNdEx := len(m.Urls) - 1; iNdEx >= 0; iNdEx-- {
+			i = protobuf_go_lite.EncodeString(dAtA, i, m.Urls[iNdEx])
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Config) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -774,6 +1012,18 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.BrowserIceServers) > 0 {
+		for iNdEx := len(m.BrowserIceServers) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.BrowserIceServers[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x62
+		}
 	}
 	if len(m.ChannelKey) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.ChannelKey)
@@ -913,6 +1163,19 @@ func (m *EmbedManifest) SizeVT() (n int) {
 	return n
 }
 
+func (m *IceServer) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringSlice(1, m.Urls)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Username)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Credential)
+	n += len(m.unknownFields)
+	return n
+}
+
 func (m *Config) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -942,6 +1205,10 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringSlice(1, m.CliPkgs)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EntrypointRole)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ChannelKey)
+	for _, e := range m.BrowserIceServers {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -975,6 +1242,32 @@ func (x *EmbedManifest) MarshalProtoText() string {
 }
 
 func (x *EmbedManifest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *IceServer) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "IceServer")
+	if len(x.Urls) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "urls")
+		for i, v := range x.Urls {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			protobuf_go_lite.TextWriteString(&sb, v)
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.Username != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "username")
+		protobuf_go_lite.TextWriteString(&sb, x.Username)
+	}
+	if x.Credential != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "credential")
+		protobuf_go_lite.TextWriteString(&sb, x.Credential)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *IceServer) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1070,6 +1363,18 @@ func (x *Config) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "channel_key")
 		protobuf_go_lite.TextWriteString(&sb, x.ChannelKey)
 	}
+	if len(x.BrowserIceServers) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "browser_ice_servers")
+		for i, v := range x.BrowserIceServers {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &IceServer{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1131,6 +1436,79 @@ func (m *EmbedManifest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.PlatformId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *IceServer) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: IceServer: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: IceServer: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Urls", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Urls = append(m.Urls, v)
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Username", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Username = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Credential", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Credential = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -1327,6 +1705,19 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.ChannelKey = v
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BrowserIceServers", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BrowserIceServers = append(m.BrowserIceServers, &IceServer{})
+			if err := m.BrowserIceServers[len(m.BrowserIceServers)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

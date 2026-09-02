@@ -1,6 +1,7 @@
 package webrtc
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/aperturerobotics/util/keyed"
@@ -128,7 +129,7 @@ func (w *WebRTC) stashAdoptableSession(peerID string, sess *session) bool {
 // takeAdoptableSession returns and clears an adoptable in-flight session for
 // the peer key, if any. Take and clear run inside one hold of w.bcast so
 // adoption is exactly-once even against concurrent lease deletion.
-func (w *WebRTC) takeAdoptableSession(peerID string) *session {
+func (w *WebRTC) takeAdoptableSession(peerID string, execution *sessionTrackerExecution) *session {
 	var sess *session
 	w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 		ingress := w.incomingSessions[peerID]
@@ -136,6 +137,9 @@ func (w *WebRTC) takeAdoptableSession(peerID string) *session {
 			return
 		}
 		sess = ingress.adoptedSession
+		if sess != nil && execution != nil {
+			execution.carriedOfferID = append([]byte(nil), sess.pendingOfferID...)
+		}
 		ingress.adoptedSession = nil
 		broadcast()
 	})
@@ -189,6 +193,36 @@ func isGenerationFencedBody(sig *WebRtcSignal) bool {
 	}
 }
 
+// signalOfferID returns the negotiation digest carried by SDP or ICE.
+func signalOfferID(sig *WebRtcSignal) []byte {
+	switch body := sig.GetBody().(type) {
+	case *WebRtcSignal_Sdp:
+		return body.Sdp.GetOfferId()
+	case *WebRtcSignal_Ice:
+		return body.Ice.GetOfferId()
+	default:
+		return nil
+	}
+}
+
+// carriesAdoptedOffer reports whether an ICE candidate belongs to the
+// outstanding offer being handed from a retired tracker to its successor.
+// The caller must hold w.bcast.
+func carriesAdoptedOffer(ingress *signalIngress, execution *sessionTrackerExecution, sig *WebRtcSignal) bool {
+	if _, ok := sig.GetBody().(*WebRtcSignal_Ice); !ok {
+		return false
+	}
+	offerID := signalOfferID(sig)
+	if len(offerID) == 0 {
+		return false
+	}
+	if execution != nil && bytes.Equal(offerID, execution.carriedOfferID) {
+		return true
+	}
+	return ingress != nil && ingress.adoptedSession != nil &&
+		bytes.Equal(offerID, ingress.adoptedSession.pendingOfferID)
+}
+
 // deliverSignal submits a decoded signal to the live execution at most once.
 func (w *WebRTC) deliverSignal(
 	ctx context.Context,
@@ -217,6 +251,7 @@ func (w *WebRTC) deliverSignal(
 		var waitCh <-chan struct{}
 		var accepted bool
 		var fenced bool
+		var carried bool
 		var err error
 		w.bcast.HoldLock(func(broadcast func(), getWaitCh func() <-chan struct{}) {
 			// Recheck acceptance under the lock: a signal accepted between
@@ -257,6 +292,7 @@ func (w *WebRTC) deliverSignal(
 			}
 
 			execution = w.snapshotSignalExecutionLocked(ingress)
+			carried = carriesAdoptedOffer(ingress, execution, incoming.sig)
 			// Snapshot the tracker under the same lock: retirement and
 			// acquisition mutate it concurrently, so the admit and deliver
 			// decisions below must read the same coherent value.
@@ -274,7 +310,7 @@ func (w *WebRTC) deliverSignal(
 		}
 
 		if execution == nil {
-			if admitTracker != nil && isGenerationFencedBody(incoming.sig) {
+			if admitTracker != nil && isGenerationFencedBody(incoming.sig) && !carried {
 				w.le.Debug("dropping stale-generation signal: tracker execution retired")
 				return nil
 			}
@@ -292,7 +328,7 @@ func (w *WebRTC) deliverSignal(
 			admitTracker = tracker
 			admitGeneration = execution.generation
 		} else if admitTracker != tracker || admitGeneration != execution.generation {
-			if isGenerationFencedBody(incoming.sig) {
+			if isGenerationFencedBody(incoming.sig) && !carried {
 				w.le.Debug("dropping stale-generation signal: superseded by successor tracker")
 				return nil
 			}

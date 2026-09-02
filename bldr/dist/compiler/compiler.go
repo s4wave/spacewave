@@ -427,6 +427,7 @@ func (c *Controller) BuildManifest(
 		conf.GetEnableCgo(),
 		conf.GetGoCompiler(),
 		conf.GetEnableCompression(),
+		conf.GetBrowserIceServers(),
 	)
 	if err != nil {
 		return nil, err

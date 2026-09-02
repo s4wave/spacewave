@@ -23,6 +23,16 @@ message EmbedManifest {
   string platform_id = 2;
 }
 
+// IceServer configures one trusted ICE server for browser peer connections.
+message IceServer {
+  // Urls is the STUN or TURN URL list.
+  repeated string urls = 1;
+  // Username is the TURN username.
+  string username = 2;
+  // Credential is the TURN credential.
+  string credential = 3;
+}
+
 // Config configures the dist compiler controller.
 //
 // Builds an unpacked distribution bundle of the application.
@@ -80,6 +90,12 @@ message Config {
   // CliPkgs is a list of Go packages providing native CLI commands.
   // Native dist builds may expose these commands when launched with arguments.
   repeated string cli_pkgs = 9;
+
+  // BrowserIceServers is the trusted ICE-server allowlist supplied by the
+  // document shell to browser peer connections. Worker-provided ICE servers
+  // are ignored at the main-thread bridge boundary. When empty, the shell uses
+  // Spacewave's standard public STUN server.
+  repeated IceServer browser_ice_servers = 12;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.

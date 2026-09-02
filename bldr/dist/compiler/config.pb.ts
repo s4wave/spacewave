@@ -55,6 +55,49 @@ export const EmbedManifest: MessageType<EmbedManifest> =
   })
 
 /**
+ * IceServer configures one trusted ICE server for browser peer connections.
+ *
+ * @generated from message bldr.dist.compiler.IceServer
+ */
+export interface IceServer {
+  /**
+   * Urls is the STUN or TURN URL list.
+   *
+   * @generated from field: repeated string urls = 1;
+   */
+  urls?: string[]
+  /**
+   * Username is the TURN username.
+   *
+   * @generated from field: string username = 2;
+   */
+  username?: string
+  /**
+   * Credential is the TURN credential.
+   *
+   * @generated from field: string credential = 3;
+   */
+  credential?: string
+}
+
+export const IceServer: MessageType<IceServer> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'bldr.dist.compiler.IceServer',
+    fields: [
+      {
+        no: 1,
+        name: 'urls',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+        repeated: true,
+      },
+      { no: 2, name: 'username', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'credential', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
  * Config configures the dist compiler controller.
  *
  * Builds an unpacked distribution bundle of the application.
@@ -149,6 +192,15 @@ export interface Config {
    * @generated from field: repeated string cli_pkgs = 9;
    */
   cliPkgs?: string[]
+  /**
+   * BrowserIceServers is the trusted ICE-server allowlist supplied by the
+   * document shell to browser peer connections. Worker-provided ICE servers
+   * are ignored at the main-thread bridge boundary. When empty, the shell uses
+   * Spacewave's standard public STUN server.
+   *
+   * @generated from field: repeated bldr.dist.compiler.IceServer browser_ice_servers = 12;
+   */
+  browserIceServers?: IceServer[]
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -187,6 +239,13 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       name: 'cli_pkgs',
       kind: 'scalar',
       T: ScalarType.STRING,
+      repeated: true,
+    },
+    {
+      no: 12,
+      name: 'browser_ice_servers',
+      kind: 'message',
+      T: () => IceServer,
       repeated: true,
     },
   ] satisfies readonly PartialFieldInfo[],

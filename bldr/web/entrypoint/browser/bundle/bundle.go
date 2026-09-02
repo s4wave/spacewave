@@ -822,6 +822,43 @@ func renderIndexHTML(entrypointPath string, importMap web_entrypoint_index.Impor
 	return []byte(indexHTML), nil
 }
 
+// BrowserIceServer is a trusted ICE server embedded in the document shell.
+type BrowserIceServer struct {
+	URLs       []string `json:"urls"`
+	Username   string   `json:"username,omitempty"`
+	Credential string   `json:"credential,omitempty"`
+}
+
+const defaultBrowserStunServer = "stun:stun.l.google.com:19302"
+
+func resolveBrowserIceServers(servers []BrowserIceServer) []BrowserIceServer {
+	if len(servers) != 0 {
+		return servers
+	}
+	return []BrowserIceServer{{URLs: []string{defaultBrowserStunServer}}}
+}
+
+func encodeBrowserIceServers(servers []BrowserIceServer) string {
+	var arena fastjson.Arena
+	encoded := arena.NewArray()
+	for serverIndex, server := range servers {
+		encodedServer := arena.NewObject()
+		urls := arena.NewArray()
+		for urlIndex, url := range server.URLs {
+			urls.SetArrayItem(urlIndex, arena.NewString(url))
+		}
+		encodedServer.Set("urls", urls)
+		if server.Username != "" {
+			encodedServer.Set("username", arena.NewString(server.Username))
+		}
+		if server.Credential != "" {
+			encodedServer.Set("credential", arena.NewString(server.Credential))
+		}
+		encoded.SetArrayItem(serverIndex, encodedServer)
+	}
+	return string(encoded.MarshalTo(nil))
+}
+
 func browserRendererSpec(
 	sourcesRoot,
 	bldrDistRoot,
@@ -837,6 +874,7 @@ func browserRendererSpec(
 	forceDedicatedWorkers,
 	forceMessagePortWorkerComms,
 	devMode bool,
+	browserIceServers []BrowserIceServer,
 ) (ConfigFreeRendererOpts, error) {
 	outputDir := filepath.Join(buildDir, "entrypoint")
 	publicPath := "/entrypoint/"
@@ -844,6 +882,7 @@ func browserRendererSpec(
 		outputDir = filepath.Join(outputDir, entrypointHash)
 		publicPath = "/entrypoint/" + entrypointHash + "/"
 	}
+	browserIceServers = resolveBrowserIceServers(browserIceServers)
 	defines := map[string]string{
 		"BLDR_IS_BROWSER": "true",
 		"BLDR_DEBUG":      strconv.FormatBool(devMode),
@@ -875,6 +914,9 @@ func browserRendererSpec(
 	if forceMessagePortWorkerComms {
 		defines["BLDR_FORCE_MESSAGEPORT_WORKER_COMMS"] = "true"
 	}
+	if len(browserIceServers) != 0 {
+		defines["BLDR_BROWSER_ICE_SERVERS"] = encodeBrowserIceServers(browserIceServers)
+	}
 	return ConfigFreeRendererOpts{
 		OutputDir:  outputDir,
 		PublicPath: publicPath,
@@ -901,6 +943,7 @@ func BuildRendererBundle(
 	forceDedicatedWorkers,
 	forceMessagePortWorkerComms,
 	devMode bool,
+	browserIceServers []BrowserIceServer,
 	webPkgImportMap web_entrypoint_index.ImportMap,
 ) ([]string, error) {
 	le.Debug("generating web renderer bundle")
@@ -922,6 +965,7 @@ func BuildRendererBundle(
 		forceDedicatedWorkers,
 		forceMessagePortWorkerComms,
 		devMode,
+		browserIceServers,
 	)
 	if err != nil {
 		return nil, err
@@ -962,6 +1006,7 @@ func BuildBrowserBundle(
 	devMode,
 	forceDedicatedWorkers,
 	forceMessagePortWorkerComms bool,
+	browserIceServers []BrowserIceServer,
 ) (*BrowserBundleResult, error) {
 	if err := os.MkdirAll(buildDir, 0o755); err != nil {
 		return nil, err
@@ -1041,7 +1086,7 @@ func BuildBrowserBundle(
 
 	// renderer bundle
 	rendererStart := time.Now()
-	cssPaths, err := buildRendererCached(ctx, stateDir, cache, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, webPkgImportMap)
+	cssPaths, err := buildRendererCached(ctx, stateDir, cache, sourcesRoot, bldrDistRoot, buildDir, runtimeJsPath, runtimeSwPath, runtimeShwPath, runtimeOpfsWorkerPath, webStartupSrcPath, entrypointHash, minify, sourcemaps, forceDedicatedWorkers, forceMessagePortWorkerComms, devMode, browserIceServers, webPkgImportMap)
 	if err != nil {
 		return nil, err
 	}
