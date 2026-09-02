@@ -97,9 +97,11 @@ describe('zero-native WebView IPC packet stream', () => {
     const clientStream = await openZeroNativeWebViewIpcPacketStream(bridge, 11)
 
     const serverTask = server
-      .rpcStreamHandler(serverStream as PacketStream)
+      .rpcStreamHandler(serverStream as unknown as PacketStream)
       .catch(() => {})
-    const client = new Client(async () => clientStream as PacketStream)
+    const client = new Client(
+      async () => clientStream as unknown as PacketStream,
+    )
     const echoer = new EchoerClient(client)
 
     const resp = await echoer.Echo({ body: 'webview-ipc' })
