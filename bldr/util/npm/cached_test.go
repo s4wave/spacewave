@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 func TestReadSiblingBunLock(t *testing.T) {
@@ -61,6 +63,80 @@ func TestBunMinimumReleaseAgeArg(t *testing.T) {
 	got = bunMinimumReleaseAgeArg()
 	if len(got) != 1 || got[0] != "--minimum-release-age=7d" {
 		t.Fatalf("minimum age arg = %#v, want --minimum-release-age=7d", got)
+	}
+}
+
+func TestSharedInstallDir(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "cache")
+	t.Setenv("BLDR_SHARED_INSTALL_CACHE", root)
+
+	dir, ok := sharedInstallDir("abc123")
+	if !ok || dir != filepath.Join(root, "abc123") {
+		t.Fatalf("sharedInstallDir=%q ok=%v, want %q", dir, ok, filepath.Join(root, "abc123"))
+	}
+
+	// A cache root that cannot be created disables the shared cache.
+	blocker := filepath.Join(t.TempDir(), "blocker")
+	if err := os.WriteFile(blocker, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("BLDR_SHARED_INSTALL_CACHE", filepath.Join(blocker, "nested"))
+	if _, ok := sharedInstallDir("abc123"); ok {
+		t.Fatal("expected sharedInstallDir to report false for an unusable cache root")
+	}
+}
+
+func TestEnsureSharedBunInstallSharesCache(t *testing.T) {
+	le := logrus.NewEntry(logrus.New())
+
+	pkgDir := t.TempDir()
+	srcPackageJson := filepath.Join(pkgDir, "package.json")
+	pkgManifest := []byte(`{"dependencies":{}}`)
+	if err := os.WriteFile(srcPackageJson, pkgManifest, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cacheRoot := filepath.Join(t.TempDir(), "cache")
+	t.Setenv("BLDR_SHARED_INSTALL_CACHE", cacheRoot)
+
+	fallbackA := filepath.Join(t.TempDir(), "a")
+	dirA, err := EnsureSharedBunInstall(t.Context(), le, pkgDir, srcPackageJson, fallbackA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dirA == fallbackA || filepath.Dir(dirA) != cacheRoot {
+		t.Fatalf("install root=%q, want a shared cache dir under %q", dirA, cacheRoot)
+	}
+	if data, err := os.ReadFile(filepath.Join(dirA, ".bldr-install-hash")); err != nil || string(data) != sha256Hex(pkgManifest) {
+		t.Fatalf("install hash=%q err=%v, want %q", data, err, sha256Hex(pkgManifest))
+	}
+
+	// A second install of the same manifest reuses the shared directory.
+	fallbackB := filepath.Join(t.TempDir(), "b")
+	dirB, err := EnsureSharedBunInstall(t.Context(), le, pkgDir, srcPackageJson, fallbackB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dirB != dirA {
+		t.Fatalf("second install root=%q, want the shared %q", dirB, dirA)
+	}
+
+	// An unusable shared cache root falls back to the state directory.
+	blocker := filepath.Join(t.TempDir(), "blocker")
+	if err := os.WriteFile(blocker, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("BLDR_SHARED_INSTALL_CACHE", filepath.Join(blocker, "nested"))
+	fallbackC := filepath.Join(t.TempDir(), "c")
+	dirC, err := EnsureSharedBunInstall(t.Context(), le, pkgDir, srcPackageJson, fallbackC)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dirC != fallbackC {
+		t.Fatalf("fallback install root=%q, want %q", dirC, fallbackC)
+	}
+	if _, err := os.Stat(filepath.Join(fallbackC, "node_modules")); err != nil {
+		t.Fatalf("fallback node_modules missing: %v", err)
 	}
 }
 

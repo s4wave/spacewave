@@ -895,8 +895,12 @@ func resolveBldrDistWebPkgRefs(
 		return nil, nil
 	}
 
-	buildPkgsDir := filepath.Join(workingPath, "build", "web-pkgs")
-	if err := npm.EnsureBunInstall(ctx, le, workingPath, bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"), buildPkgsDir); err != nil {
+	buildPkgsDir, err := npm.EnsureSharedBunInstall(
+		ctx, le, workingPath,
+		bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"),
+		filepath.Join(workingPath, "build", "web-pkgs"),
+	)
+	if err != nil {
 		return nil, errors.Wrap(err, "install bldr dist web package deps")
 	}
 

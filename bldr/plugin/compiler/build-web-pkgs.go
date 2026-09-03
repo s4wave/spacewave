@@ -46,9 +46,14 @@ func BuildDirectWebPkgs(
 		return nil, nil, nil, err
 	}
 
-	// Install dist deps (cached: skips if package.json unchanged).
-	buildPkgsDir := filepath.Join(workingPath, "build", "web-pkgs")
-	if err := npm.EnsureBunInstall(ctx, le, workingPath, bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"), buildPkgsDir); err != nil {
+	// Install dist deps (cached: skips if package.json unchanged; the shared
+	// cache reuses one install across projects).
+	buildPkgsDir, err := npm.EnsureSharedBunInstall(
+		ctx, le, workingPath,
+		bldr.ResolveDistSourcePath(distSourcePath, "dist", "deps", "package.json"),
+		filepath.Join(workingPath, "build", "web-pkgs"),
+	)
+	if err != nil {
 		return nil, nil, nil, err
 	}
 

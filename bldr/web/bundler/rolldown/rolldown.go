@@ -236,8 +236,10 @@ func ensureDependencyRoot(ctx context.Context, le *logrus.Entry, stateDir, bldrD
 		return depsRoot, nil
 	}
 	packageJSON := filepath.Join(depsRoot, "package.json")
-	installRoot := filepath.Join(stateDir, "build-web-pkgs")
-	if err := npm.EnsureBunInstall(ctx, le, stateDir, packageJSON, installRoot); err != nil {
+	installRoot, err := npm.EnsureSharedBunInstall(
+		ctx, le, stateDir, packageJSON, filepath.Join(stateDir, "build-web-pkgs"),
+	)
+	if err != nil {
 		return "", errors.Wrap(err, "install rolldown dependencies")
 	}
 	if info, err := os.Stat(filepath.Join(installRoot, "node_modules", "rolldown", "dist", "index.mjs")); err != nil || info.IsDir() {

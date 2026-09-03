@@ -31,20 +31,55 @@ func withInstallLock(ctx context.Context, targetDir string, fn func() error) (re
 	return fn()
 }
 
-// EnsureBunInstall copies srcPackageJson and its sibling bun.lock, when
-// present, to targetDir and runs bun install, skipping the install if the
-// package manifest contents have not changed since the last successful install.
-func EnsureBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackageJson, targetDir string) error {
+// EnsureSharedBunInstall copies srcPackageJson and its sibling bun.lock, when
+// present, into the shared install cache and runs bun install there, skipping
+// the install if the package manifest contents have not changed since the
+// last successful install. The install directory is keyed by the install
+// hash, so identical dependency sets across projects and state directories
+// share one node_modules. It returns the install root actually used. When
+// the shared cache root is unavailable, it falls back to fallbackDir.
+func EnsureSharedBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackageJson, fallbackDir string) (string, error) {
 	data, err := os.ReadFile(srcPackageJson)
 	if err != nil {
-		return err
+		return "", err
 	}
 	lockData, lockFound, err := readSiblingBunLock(srcPackageJson)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	hash := bunInstallHash(data, lockData)
+	targetDir := fallbackDir
+	if sharedDir, ok := sharedInstallDir(hash); ok {
+		targetDir = sharedDir
+	}
+	return targetDir, ensureBunInstallAt(ctx, le, stateDir, targetDir, hash, data, lockData, lockFound)
+}
+
+// sharedInstallCacheEnv overrides the root of the shared install cache.
+const sharedInstallCacheEnv = "BLDR_SHARED_INSTALL_CACHE"
+
+// sharedInstallDir returns the shared cache directory for the install hash.
+// It reports false when the shared cache root cannot be created, and the
+// caller should install into its own state directory instead.
+func sharedInstallDir(hash string) (string, bool) {
+	root := os.Getenv(sharedInstallCacheEnv)
+	if root == "" {
+		userCacheDir, err := os.UserCacheDir()
+		if err != nil {
+			return "", false
+		}
+		root = filepath.Join(userCacheDir, "bldr", "web-pkgs")
+	}
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return "", false
+	}
+	return filepath.Join(root, hash), true
+}
+
+// ensureBunInstallAt runs the cached bun install for the hashed package
+// manifest into targetDir.
+func ensureBunInstallAt(ctx context.Context, le *logrus.Entry, stateDir, targetDir, hash string, packageJSON, bunLock []byte, lockFound bool) error {
 	return withInstallLock(ctx, targetDir, func() error {
 		if installCurrent(targetDir, hash) {
 			le.Debug("bun install cached, skipping")
@@ -55,12 +90,12 @@ func EnsureBunInstall(ctx context.Context, le *logrus.Entry, stateDir, srcPackag
 			return err
 		}
 		// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
-		if err := os.WriteFile(filepath.Join(targetDir, "package.json"), data, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(targetDir, "package.json"), packageJSON, 0o644); err != nil {
 			return err
 		}
 		if lockFound {
 			// #nosec G703 -- targetDir is a managed cache directory created by CleanCreateDir above.
-			if err := os.WriteFile(filepath.Join(targetDir, "bun.lock"), lockData, 0o644); err != nil {
+			if err := os.WriteFile(filepath.Join(targetDir, "bun.lock"), bunLock, 0o644); err != nil {
 				return err
 			}
 		}

@@ -1184,10 +1184,13 @@ func BuildWebPkgsBundle(ctx context.Context, le *logrus.Entry, stateDir string, 
 }
 
 func EnsureBldrDistDepsInstall(ctx context.Context, le *logrus.Entry, stateDir, bldrDistRoot string) (string, error) {
-	buildPkgsDir, _ := filepath.Abs(filepath.Join(stateDir, "build-web-pkgs"))
-	err := npm.EnsureBunInstall(ctx, le, stateDir, bldr.ResolveDistSourcePath(bldrDistRoot, "dist", "deps", "package.json"), buildPkgsDir)
+	buildPkgsDir, err := npm.EnsureSharedBunInstall(
+		ctx, le, stateDir,
+		bldr.ResolveDistSourcePath(bldrDistRoot, "dist", "deps", "package.json"),
+		filepath.Join(stateDir, "build-web-pkgs"),
+	)
 	if err != nil {
 		return "", err
 	}
-	return buildPkgsDir, nil
+	return filepath.Abs(buildPkgsDir)
 }
