@@ -2,6 +2,7 @@ package space_migration_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	forge_dashboard "github.com/s4wave/spacewave/core/forge/dashboard"
@@ -35,6 +36,129 @@ import (
 	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 )
 
+func TestChatMigrationRemapsLinksReplyAndReceiptKeys(t *testing.T) {
+	ctx := context.Background()
+	tb, err := world_testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tb.Release()
+	ws := tb.WorldState
+
+	createChannel := func(key string) {
+		setObjectBlock(t, ctx, ws, key, s4wave_chat.ChatChannelTypeID, &s4wave_chat.ChatChannel{Name: key})
+	}
+	createChannel("ch")
+	createChannel("target")
+	setObjectBlock(t, ctx, ws, "msg", s4wave_chat.ChatMessageTypeID, &s4wave_chat.ChatMessage{
+		SenderPeerId:     "peer-a",
+		ReplyToKey:       "ch",
+		LinkedObjectKeys: []string{"target", "target"},
+	})
+	setObjectBlock(t, ctx, ws, "receipt", s4wave_chat.ChatMessageReceiptTypeID, &s4wave_chat.ChatMessageReceipt{
+		SenderPeerId:    "peer-a",
+		ClientMessageId: "m1",
+		MessageKey:      "msg",
+	})
+	if err := ws.SetGraphQuad(ctx, world_db.NewGraphQuadWithKeys("msg", s4wave_chat.PredChannelMessage.String(), "ch", "")); err != nil {
+		t.Fatalf("SetGraphQuad(channel message): %v", err)
+	}
+	if err := ws.SetGraphQuad(ctx, world_db.NewGraphQuadWithKeys("msg", s4wave_chat.PredMessageLink.String(), "target", "")); err != nil {
+		t.Fatalf("SetGraphQuad(message link): %v", err)
+	}
+
+	mapping := space_migration.NewIdentityMap()
+	for _, pair := range [][2]string{{"ch", "new-ch"}, {"target", "new-target"}, {"msg", "new-msg"}, {"receipt", "new-receipt"}} {
+		mapping.ObjectKeys[pair[0]] = pair[1]
+	}
+	for _, pair := range [][2]string{{"msg", "<new-msg>"}, {"ch", "<new-ch>"}, {"target", "<new-target>"}} {
+		mapping.GraphIRIs[pair[0]] = pair[1]
+	}
+
+	registry, err := space_migration.BuiltInRegistry()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	msgHandler := registry.Lookup(s4wave_chat.ChatMessageTypeID)
+	if msgHandler == nil {
+		t.Fatal("handler missing for chat message")
+	}
+	// Mirror the read-only scan: quads arrive as subject/predicate/object/label groups.
+	msgObject := &space_migration.ObjectDescriptor{
+		ObjectKey: "msg", ObjectType: s4wave_chat.ChatMessageTypeID, World: ws,
+		GraphReferences: []string{
+			"msg", s4wave_chat.PredChannelMessage.String(), "ch", "",
+			"msg", s4wave_chat.PredMessageLink.String(), "target", "",
+		},
+	}
+	if _, err := msgHandler.Inspect(ctx, msgObject); err != nil {
+		t.Fatalf("Inspect(message): %v", err)
+	}
+	msgResult, err := msgHandler.Rewrite(ctx, msgObject, mapping)
+	if err != nil {
+		t.Fatalf("Rewrite(message): %v", err)
+	}
+	var gotMsg s4wave_chat.ChatMessage
+	if err := gotMsg.UnmarshalVT(msgResult.Payload); err != nil {
+		t.Fatalf("unmarshal rewritten message: %v", err)
+	}
+	if gotMsg.GetReplyToKey() != "new-ch" {
+		t.Fatalf("rewritten reply_to_key = %q, want new-ch", gotMsg.GetReplyToKey())
+	}
+	if gotLinks := gotMsg.GetLinkedObjectKeys(); len(gotLinks) != 1 || gotLinks[0] != "new-target" {
+		t.Fatalf("rewritten linked_object_keys = %v, want canonical [new-target]", gotLinks)
+	}
+	if gotMsg.GetSenderPeerId() != "peer-a" {
+		t.Fatalf("rewritten sender = %q, want peer-a preserved", gotMsg.GetSenderPeerId())
+	}
+	wantGraph := []string{
+		"<new-msg>", s4wave_chat.PredChannelMessage.String(), "<new-ch>", "",
+		"<new-msg>", s4wave_chat.PredMessageLink.String(), "<new-target>", "",
+	}
+	if !slices.Equal(msgResult.GraphReferences, wantGraph) {
+		t.Fatalf("rewritten graph references = %v, want %v", msgResult.GraphReferences, wantGraph)
+	}
+
+	receiptHandler := registry.Lookup(s4wave_chat.ChatMessageReceiptTypeID)
+	if receiptHandler == nil {
+		t.Fatal("handler missing for chat message receipt")
+	}
+	receiptObject := &space_migration.ObjectDescriptor{
+		ObjectKey: "receipt", ObjectType: s4wave_chat.ChatMessageReceiptTypeID, World: ws,
+	}
+	receiptInspection, err := receiptHandler.Inspect(ctx, receiptObject)
+	if err != nil {
+		t.Fatalf("Inspect(receipt): %v", err)
+	}
+	wantRefs := []space_migration.TypedReference{
+		{Kind: space_migration.ReferenceExternal, Value: "peer-a"},
+		{Kind: space_migration.ReferenceObjectKey, Value: "msg"},
+	}
+	if !slices.EqualFunc(receiptInspection.References, wantRefs, func(a, b space_migration.TypedReference) bool {
+		return a.Kind == b.Kind && a.Value == b.Value
+	}) {
+		t.Fatalf("receipt inspection references = %v, want %v", receiptInspection.References, wantRefs)
+	}
+	receiptResult, err := receiptHandler.Rewrite(ctx, receiptObject, mapping)
+	if err != nil {
+		t.Fatalf("Rewrite(receipt): %v", err)
+	}
+	var gotReceipt s4wave_chat.ChatMessageReceipt
+	if err := gotReceipt.UnmarshalVT(receiptResult.Payload); err != nil {
+		t.Fatalf("unmarshal rewritten receipt: %v", err)
+	}
+	if gotReceipt.GetMessageKey() != "new-msg" {
+		t.Fatalf("rewritten receipt message_key = %q, want new-msg", gotReceipt.GetMessageKey())
+	}
+	if gotReceipt.GetSenderPeerId() != "peer-a" || gotReceipt.GetClientMessageId() != "m1" {
+		t.Fatalf(
+			"rewritten receipt identity = (%q, %q), want (peer-a, m1) preserved",
+			gotReceipt.GetSenderPeerId(), gotReceipt.GetClientMessageId(),
+		)
+	}
+}
+
 func TestBuiltInHandlersDecodeAndSerializePopulatedWorldPayloads(t *testing.T) {
 	ctx := context.Background()
 	tb, err := world_testbed.Default(ctx)
@@ -63,6 +187,7 @@ func TestBuiltInHandlersDecodeAndSerializePopulatedWorldPayloads(t *testing.T) {
 		{"dashboard", forge_dashboard.ForgeDashboardTypeID, &forge_dashboard.ForgeDashboard{}},
 		{"channel", s4wave_chat.ChatChannelTypeID, s4wave_chat.NewChatChannelBlock()},
 		{"message", s4wave_chat.ChatMessageTypeID, s4wave_chat.NewChatMessageBlock()},
+		{"message-receipt", s4wave_chat.ChatMessageReceiptTypeID, s4wave_chat.NewChatMessageReceiptBlock()},
 		{"device", s4wave_device.DeviceTypeID, s4wave_device.NewDeviceBlock()},
 		{"terminal", s4wave_terminal.TerminalTypeID, s4wave_terminal.NewTerminalBlock()},
 		{"ssh-host", s4wave_sshhost.SshHostTypeID, s4wave_sshhost.NewSshHostBlock()},

@@ -30,6 +30,22 @@ message ChatMessage {
   string reply_to_key = 4;
   // Index is the zero-based message index within the channel.
   uint64 index = 5;
+  // ClientMessageId is the sender's own identity for this message. It makes
+  // send retry idempotent. Empty preserves the pre-receipt append behavior.
+  string client_message_id = 6;
+  // LinkedObjectKeys references existing typed World objects. Stored
+  // canonicalized: first-occurrence order, duplicates removed, at most 8.
+  repeated string linked_object_keys = 7;
+}
+
+// ChatMessageReceipt records the dedupe identity of one sent message.
+message ChatMessageReceipt {
+  // SenderPeerId is the trusted session peer id that sent the message.
+  string sender_peer_id = 1;
+  // ClientMessageId is the validated client message id for the message.
+  string client_message_id = 2;
+  // MessageKey is the object key of the appended ChatMessage.
+  string message_key = 3;
 }
 
 // ChatMessageContent contains the message body.

@@ -307,6 +307,11 @@ func inspectChatMessagePayload(message *s4wave_chat.ChatMessage) (*Inspection, e
 	if message.GetReplyToKey() != "" {
 		out.References = append(out.References, TypedReference{Kind: ReferenceObjectKey, Value: message.GetReplyToKey()})
 	}
+	for _, key := range message.GetLinkedObjectKeys() {
+		if key != "" {
+			out.References = append(out.References, TypedReference{Kind: ReferenceObjectKey, Value: key})
+		}
+	}
 	if message.GetSenderPeerId() != "" {
 		out.References = append(out.References, TypedReference{Kind: ReferenceExternal, Value: message.GetSenderPeerId()})
 	}
@@ -724,6 +729,15 @@ func rewriteChatMessage(ctx context.Context, object *ObjectDescriptor, mapping *
 			return nil, err
 		}
 	}
+	for index, key := range message.LinkedObjectKeys {
+		if key == "" {
+			continue
+		}
+		message.LinkedObjectKeys[index], err = remapObjectKey(mapping, key)
+		if err != nil {
+			return nil, err
+		}
+	}
 	data, err := message.MarshalBlock()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal chat message payload")
@@ -732,7 +746,11 @@ func rewriteChatMessage(ctx context.Context, object *ObjectDescriptor, mapping *
 	if err != nil {
 		return nil, err
 	}
-	return &RewriteResult{Payload: data, References: inspection.References}, nil
+	return &RewriteResult{
+		Payload:         data,
+		References:      inspection.References,
+		GraphReferences: mappedGraphReferences(object, mapping),
+	}, nil
 }
 
 func decodeForgePayload[T block.Block](ctx context.Context, object *ObjectDescriptor, ctor block.Ctor, label string) (T, error) {
@@ -916,6 +934,56 @@ func rewriteKV(ctx context.Context, object *ObjectDescriptor, mapping *IdentityM
 		return nil, errors.Wrap(err, "marshal KV store payload")
 	}
 	return &RewriteResult{Payload: data, GraphReferences: mappedGraphReferences(object, mapping)}, nil
+}
+
+func inspectChatMessageReceipt(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {
+	receipt, err := world.LookupObjectBody[*s4wave_chat.ChatMessageReceipt](ctx, object.World, object.ObjectKey, s4wave_chat.NewChatMessageReceiptBlock)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode chat message receipt payload")
+	}
+	if receipt == nil {
+		return nil, errors.Wrap(ErrPayloadSchemaRefused, "chat message receipt payload is missing")
+	}
+	return inspectChatMessageReceiptPayload(receipt)
+}
+
+func inspectChatMessageReceiptPayload(receipt *s4wave_chat.ChatMessageReceipt) (*Inspection, error) {
+	out := &Inspection{}
+	if receipt == nil {
+		return out, nil
+	}
+	if receipt.GetSenderPeerId() != "" {
+		out.References = append(out.References, TypedReference{Kind: ReferenceExternal, Value: receipt.GetSenderPeerId()})
+	}
+	if receipt.GetMessageKey() != "" {
+		out.References = append(out.References, TypedReference{Kind: ReferenceObjectKey, Value: receipt.GetMessageKey()})
+	}
+	return out, nil
+}
+
+func rewriteChatMessageReceipt(ctx context.Context, object *ObjectDescriptor, mapping *IdentityMap) (*RewriteResult, error) {
+	receipt, err := world.LookupObjectBody[*s4wave_chat.ChatMessageReceipt](ctx, object.World, object.ObjectKey, s4wave_chat.NewChatMessageReceiptBlock)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode chat message receipt payload")
+	}
+	if receipt == nil {
+		return nil, errors.Wrap(ErrPayloadSchemaRefused, "chat message receipt payload is missing")
+	}
+	if receipt.MessageKey != "" {
+		receipt.MessageKey, err = remapObjectKey(mapping, receipt.MessageKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+	data, err := receipt.MarshalBlock()
+	if err != nil {
+		return nil, errors.Wrap(err, "marshal chat message receipt payload")
+	}
+	inspection, err := inspectChatMessageReceiptPayload(receipt)
+	if err != nil {
+		return nil, err
+	}
+	return &RewriteResult{Payload: data, References: inspection.References}, nil
 }
 
 func inspectChatChannel(ctx context.Context, object *ObjectDescriptor) (*Inspection, error) {

@@ -51,6 +51,7 @@ func BuiltInRegistry() (*Registry, error) {
 		NewSchemaHandler(forge_dashboard.ForgeDashboardTypeID, ClassificationRewrite, false, false, false, true, false, inspectForgeDashboard, rewriteForgeDashboard),
 		NewSchemaHandler(spacewave_chat.ChatChannelTypeID, ClassificationRewrite, false, false, false, true, false, inspectChatChannel, rewriteChatChannel),
 		NewSchemaHandler(spacewave_chat.ChatMessageTypeID, ClassificationRewrite, true, false, false, false, false, inspectChatMessage, rewriteChatMessage),
+		NewSchemaHandler(spacewave_chat.ChatMessageReceiptTypeID, ClassificationRewrite, true, false, false, false, false, inspectChatMessageReceipt, rewriteChatMessageReceipt),
 		NewSchemaHandler(s4wave_device.DeviceTypeID, ClassificationRewrite, true, false, false, false, false, inspectDevice, rewriteDevice),
 		NewSchemaRefusalHandler(s4wave_device.ComputersDashboardTypeID, ClassificationExternalRef, "device dashboard payload is external and not admitted for rewrite"),
 		NewSchemaHandler(s4wave_terminal.TerminalTypeID, ClassificationRewrite, true, false, false, false, false, inspectTerminal, rewriteTerminal),

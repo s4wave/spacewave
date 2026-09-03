@@ -24,6 +24,8 @@ message ChatMessageInfo {
   .google.protobuf.Timestamp created_at = 4;
   // ReplyToKey is the key of the message being replied to.
   string reply_to_key = 5;
+  // LinkedObjectKeys mirrors the stored canonicalized message links.
+  repeated string linked_object_keys = 6;
 }
 
 // GetChannelInfoRequest is a request for channel info.
@@ -68,6 +70,12 @@ message SendMessageRequest {
   string text = 1;
   // ReplyToKey is the optional key of the message to reply to.
   string reply_to_key = 2;
+  // ClientMessageId makes send retry idempotent once receipts are served.
+  // Nonempty, printable ASCII, at most 256 bytes.
+  string client_message_id = 3;
+  // LinkedObjectKeys references existing typed World objects. Canonicalized
+  // before storage: first-occurrence order, duplicates removed, at most 8.
+  repeated string linked_object_keys = 4;
 }
 
 // SendMessageResponse is the response after sending a message.

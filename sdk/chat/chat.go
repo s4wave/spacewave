@@ -17,6 +17,14 @@ var PredChannelMessage = quad.IRI("spacewave-chat/channel-message")
 // PredMessageSender is the graph predicate linking a message to its sender.
 var PredMessageSender = quad.IRI("spacewave-chat/message-sender")
 
+// PredMessageLink is the graph predicate linking a message to a referenced
+// object.
+var PredMessageLink = quad.IRI("spacewave-chat/message-link")
+
+// ChatMessageReceiptTypeID is the type identifier for chat message receipt
+// objects.
+const ChatMessageReceiptTypeID = "spacewave-chat/message-receipt"
+
 // NewChatChannelBlock constructs a new ChatChannel block.
 func NewChatChannelBlock() block.Block {
 	return &ChatChannel{}
@@ -30,6 +38,11 @@ func NewChatMessageBlock() block.Block {
 // NewChatMessagePageBlock constructs a new ChatMessagePage block.
 func NewChatMessagePageBlock() block.Block {
 	return &ChatMessagePage{}
+}
+
+// NewChatMessageReceiptBlock constructs a new ChatMessageReceipt block.
+func NewChatMessageReceiptBlock() block.Block {
+	return &ChatMessageReceipt{}
 }
 
 // MarshalBlock marshals the ChatChannel to bytes.
@@ -59,6 +72,21 @@ func (m *ChatMessage) UnmarshalBlock(data []byte) error {
 
 // Validate performs cursory checks on the ChatMessage.
 func (m *ChatMessage) Validate() error {
+	return nil
+}
+
+// MarshalBlock marshals the ChatMessageReceipt to bytes.
+func (r *ChatMessageReceipt) MarshalBlock() ([]byte, error) {
+	return r.MarshalVT()
+}
+
+// UnmarshalBlock unmarshals the ChatMessageReceipt from bytes.
+func (r *ChatMessageReceipt) UnmarshalBlock(data []byte) error {
+	return r.UnmarshalVT(data)
+}
+
+// Validate performs cursory checks on the ChatMessageReceipt.
+func (r *ChatMessageReceipt) Validate() error {
 	return nil
 }
 
