@@ -22,8 +22,12 @@ func newScopeKey(scope coord.Scope) scopeKey {
 type scopeState struct {
 	generation uint64
 	root       *bucket.ObjectRef
-	locked     bool
-	watchers   map[uint64]*watch
+	// lastKeyPrefix is the key prefix invalidated by the most recent publish
+	// that carried one. Replayed events carry it so a watcher that missed the
+	// live publish still observes the outstanding invalidation.
+	lastKeyPrefix []byte
+	locked        bool
+	watchers      map[uint64]*watch
 }
 
 func newScopeState() *scopeState {
@@ -43,10 +47,11 @@ func (s *scopeState) snapshot(scope coord.Scope) *coord.Snapshot {
 
 func (s *scopeState) snapshotEvent(scope coord.Scope) coord.Event {
 	return coord.Event{
-		VolumeID:      scope.VolumeID,
-		ObjectStoreID: scope.ObjectStoreID,
-		Generation:    s.generation,
-		RootChanged:   s.root.Clone(),
+		VolumeID:         scope.VolumeID,
+		ObjectStoreID:    scope.ObjectStoreID,
+		Generation:       s.generation,
+		RootChanged:      s.root.Clone(),
+		KeyPrefixChanged: append([]byte(nil), s.lastKeyPrefix...),
 	}
 }
 
@@ -54,6 +59,7 @@ func (s *scopeState) publishLocked(event coord.Event) {
 	event.RootChanged = event.RootChanged.Clone()
 	if event.KeyPrefixChanged != nil {
 		event.KeyPrefixChanged = append([]byte(nil), event.KeyPrefixChanged...)
+		s.lastKeyPrefix = append([]byte(nil), event.KeyPrefixChanged...)
 	}
 	for _, watch := range s.watchers {
 		watch.sendLocked(event)
