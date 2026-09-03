@@ -6,8 +6,6 @@ package spacewave_chat_channel
 import (
 	"context"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/pkg/errors"
@@ -364,24 +362,9 @@ func (r *ChatResource) readMessage(
 	return info, nil
 }
 
-func (r *ChatResource) messageKey(index uint64) string {
-	return r.objectKey + "/message/" + strconv.FormatUint(index, 10)
-}
-
-func (r *ChatResource) messagePageKey(pageIndex uint64) string {
-	return r.objectKey + "/message-page/" + strconv.FormatUint(pageIndex, 10)
-}
-
-func parseMessageIndex(messageKey string) (uint64, bool) {
-	idx := strings.LastIndexByte(messageKey, '/')
-	if idx < 0 || idx == len(messageKey)-1 {
-		return 0, false
-	}
-	messageIndex, err := strconv.ParseUint(messageKey[idx+1:], 10, 64)
-	if err != nil {
-		return 0, false
-	}
-	return messageIndex, true
+// messagePageKey derives the message page object key for one page index.
+func messagePageKey(channelKey string, pageIndex uint64) string {
+	return channelKey + "/message-page/" + strconv.FormatUint(pageIndex, 10)
 }
 
 var _ spacewave_chat_rpc.SRPCChatResourceServiceServer = (*ChatResource)(nil)

@@ -146,6 +146,157 @@ func (m *ChatMessagePage) Validate() error {
 	return nil
 }
 
+// MarshalBlock marshals the ChatExternalChannelClaim to bytes.
+func (c *ChatExternalChannelClaim) MarshalBlock() ([]byte, error) {
+	return c.MarshalVT()
+}
+
+// UnmarshalBlock unmarshals the ChatExternalChannelClaim from bytes.
+func (c *ChatExternalChannelClaim) UnmarshalBlock(data []byte) error {
+	return c.UnmarshalVT(data)
+}
+
+// Validate performs cursory checks on the ChatExternalChannelClaim.
+func (c *ChatExternalChannelClaim) Validate() error {
+	if err := ValidateExternalChannelRef(c.GetExternalRef()); err != nil {
+		return err
+	}
+	if c.GetChannelObjectKey() == "" {
+		return errors.New("chat external channel claim has no channel object key")
+	}
+	return nil
+}
+
+// MarshalBlock marshals the ChatExternalEventClaim to bytes.
+func (c *ChatExternalEventClaim) MarshalBlock() ([]byte, error) {
+	return c.MarshalVT()
+}
+
+// UnmarshalBlock unmarshals the ChatExternalEventClaim from bytes.
+func (c *ChatExternalEventClaim) UnmarshalBlock(data []byte) error {
+	return c.UnmarshalVT(data)
+}
+
+// Validate performs cursory checks on the ChatExternalEventClaim.
+func (c *ChatExternalEventClaim) Validate() error {
+	if err := ValidateExternalMessageRef(c.GetExternalRef()); err != nil {
+		return err
+	}
+	if c.GetMessageKey() == "" {
+		return errors.New("chat external event claim has no message key")
+	}
+	return nil
+}
+
+// ValidateClientMessageID checks one native send retry identity. The identity
+// must be nonempty printable ASCII within MaxChatClientMessageIDLen bytes.
+func ValidateClientMessageID(clientMessageID string) error {
+	if clientMessageID == "" {
+		return errors.New("chat client message id is empty")
+	}
+	if len(clientMessageID) > MaxChatClientMessageIDLen {
+		return errors.Errorf(
+			"chat client message id exceeds %d bytes",
+			MaxChatClientMessageIDLen,
+		)
+	}
+	for i := 0; i < len(clientMessageID); i++ {
+		if c := clientMessageID[i]; c < 0x20 || c > 0x7e {
+			return errors.New("chat client message id must be printable ASCII")
+		}
+	}
+	return nil
+}
+
+// ValidateExternalChannelRef checks one bounded external channel identity.
+func ValidateExternalChannelRef(ref *ExternalChannelRef) error {
+	if ref == nil || ref.GetSystem() == "" || ref.GetChannelId() == "" {
+		return errors.New("chat external channel ref is incomplete")
+	}
+	if len(ref.GetSystem()) > MaxChatExternalSystemLen {
+		return errors.Errorf(
+			"chat external system exceeds %d bytes",
+			MaxChatExternalSystemLen,
+		)
+	}
+	if len(ref.GetChannelId()) > MaxChatExternalIDLen {
+		return errors.Errorf(
+			"chat external channel id exceeds %d bytes",
+			MaxChatExternalIDLen,
+		)
+	}
+	return nil
+}
+
+// ValidateExternalMessageRef checks one bounded external event identity
+// including its author.
+func ValidateExternalMessageRef(ref *ExternalMessageRef) error {
+	if err := ValidateExternalChannelRef(&ExternalChannelRef{
+		System:    ref.GetSystem(),
+		ChannelId: ref.GetChannelId(),
+	}); err != nil {
+		return err
+	}
+	if ref.GetEventId() == "" || ref.GetAuthorId() == "" {
+		return errors.New("chat external event ref is incomplete")
+	}
+	if len(ref.GetEventId()) > MaxChatExternalIDLen {
+		return errors.Errorf(
+			"chat external event id exceeds %d bytes",
+			MaxChatExternalIDLen,
+		)
+	}
+	if len(ref.GetAuthorId()) > MaxChatExternalIDLen {
+		return errors.Errorf(
+			"chat external author id exceeds %d bytes",
+			MaxChatExternalIDLen,
+		)
+	}
+	return nil
+}
+
+// ReadChatChannel reads the chat channel block from the given world state.
+func ReadChatChannel(
+	ctx context.Context,
+	ws world.WorldState,
+	objectKey string,
+) (*ChatChannel, error) {
+	obj, found, err := ws.GetObject(ctx, objectKey)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, world.ErrObjectNotFound
+	}
+
+	var channel *ChatChannel
+	_, _, err = world.AccessObjectState(ctx, obj, false, func(bcs *block.Cursor) error {
+		var err error
+		channel, err = block.UnmarshalBlock[*ChatChannel](ctx, bcs, NewChatChannelBlock)
+		if err != nil {
+			return err
+		}
+		if channel == nil {
+			return world.ErrObjectNotFound
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return channel, nil
+}
+
+// ChannelAllowsMember reports whether peerID holds read and send authority on
+// the channel. An empty member list keeps the channel open to all peers.
+func ChannelAllowsMember(channel *ChatChannel, peerID string) bool {
+	members := channel.GetMemberPeerIds()
+	if len(members) == 0 {
+		return true
+	}
+	return slices.Contains(members, peerID)
+}
+
 var _ block.Block = (*ChatChannel)(nil)
 
 var _ block.Block = (*ChatMessage)(nil)
