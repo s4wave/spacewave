@@ -404,6 +404,47 @@ func TestDeviceCapabilitySelectionSkipsBlockedSameKind(t *testing.T) {
 	}
 }
 
+func TestDeviceFindSelectableCapabilityByID(t *testing.T) {
+	dev := &Device{
+		PeerId:     "12D3KooWDevice",
+		Label:      "Build Host",
+		SetupState: DeviceSetupState_DEVICE_SETUP_STATE_DEVICE_SESSION_READY,
+		Capabilities: []*DeviceCapability{
+			{
+				Id:    "glados",
+				Kind:  "sensor",
+				Label: "Fixture Capability",
+				State: DeviceCapabilityState_DEVICE_CAPABILITY_STATE_AVAILABLE,
+				Link:  &DeviceCapabilityLink{ProtocolId: "plugin/test-plugin/fixture/v0"},
+			},
+			{
+				Id:    "blocked-sensor",
+				Kind:  "sensor",
+				Label: "Blocked Capability",
+				State: DeviceCapabilityState_DEVICE_CAPABILITY_STATE_GRANT_BLOCKED,
+				Link:  &DeviceCapabilityLink{ProtocolId: "plugin/test-plugin/blocked/v0"},
+			},
+		},
+	}
+
+	got := dev.FindSelectableCapability("glados")
+	if got == nil || got.GetId() != "glados" {
+		t.Fatalf("expected glados capability, got %v", got)
+	}
+	if dev.FindSelectableCapability(" blocked-sensor ") != nil {
+		t.Fatal("blocked capability must not be selectable by id")
+	}
+	if dev.FindSelectableCapability("") != nil {
+		t.Fatal("empty id must not select any capability")
+	}
+	if dev.FindSelectableCapability("plugin/test-plugin/fixture/v0") != nil {
+		t.Fatal("raw protocol id must not select a capability")
+	}
+	if (*Device)(nil).FindSelectableCapability("glados") != nil {
+		t.Fatal("nil device must not select a capability")
+	}
+}
+
 func TestDeviceForgeWorkerSelectionSkipsBlockedSameKind(t *testing.T) {
 	dev := &Device{
 		PeerId:     "12D3KooWLima",

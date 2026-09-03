@@ -8,6 +8,8 @@ import {
   DeviceCapabilityLocalState,
   DeviceSetupState,
   type Device,
+  type AccessCapabilityRequest,
+  type AccessCapabilityResponse,
   type AccessCheckoutRootRequest,
   type AccessCheckoutRootResponse,
   type DeviceCapability,
@@ -140,6 +142,18 @@ export function findWritableDeviceCheckoutRoot(
   return capability
 }
 
+export function findSelectableDeviceCapability(
+  device: Device | null | undefined,
+  capabilityId: string,
+): DeviceCapability | undefined {
+  const selector = capabilityId.trim()
+  return (device?.capabilities ?? []).find(
+    (capability) =>
+      (capability.id ?? '').trim() === selector &&
+      isDeviceCapabilitySelectable(capability),
+  )
+}
+
 export function findSelectableDeviceForgeWorker(
   device: Device | null | undefined,
 ): DeviceCapability | undefined {
@@ -171,6 +185,13 @@ export interface IDeviceHandle {
     nameOrOptions?: string | AccessCheckoutRootOptions,
     abortSignal?: AbortSignal,
   ): Promise<{ handle: FSHandle; response: AccessCheckoutRootResponse }>
+
+  // accessCapability retains the protocol service of a selectable capability
+  // until the returned reference is released.
+  accessCapability(
+    capabilityId: string,
+    abortSignal?: AbortSignal,
+  ): Promise<{ ref: ClientResourceRef; response: AccessCapabilityResponse }>
 
   // release releases the resource.
   release(): void
@@ -224,6 +245,21 @@ export class DeviceHandle extends Resource implements IDeviceHandle {
           path: response.checkoutRoot?.displayPath ?? '',
         },
       ),
+      response,
+    }
+  }
+
+  // accessCapability retains the protocol service of a selectable capability
+  // until the returned reference is released. The caller reaches the stamped
+  // service through ref.client with its own generated client.
+  public async accessCapability(
+    capabilityId: string,
+    abortSignal?: AbortSignal,
+  ): Promise<{ ref: ClientResourceRef; response: AccessCapabilityResponse }> {
+    const request: AccessCapabilityRequest = { capabilityId }
+    const response = await this.service.AccessCapability(request, abortSignal)
+    return {
+      ref: this.resourceRef.createRef(response.resourceId ?? 0),
       response,
     }
   }

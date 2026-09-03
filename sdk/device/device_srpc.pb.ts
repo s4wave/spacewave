@@ -3,6 +3,8 @@
 /* eslint-disable */
 
 import {
+  AccessCapabilityRequest,
+  AccessCapabilityResponse,
   AccessCheckoutRootRequest,
   AccessCheckoutRootResponse,
   ReportDeviceStatusRequest,
@@ -51,6 +53,18 @@ export const DeviceResourceServiceDefinition = {
       O: AccessCheckoutRootResponse,
       kind: MethodKind.Unary,
     },
+    /**
+     * AccessCapability resolves an available plugin-published capability by ID
+     * and returns a retained child resource serving its protocol.
+     *
+     * @generated from rpc s4wave.device.DeviceResourceService.AccessCapability
+     */
+    AccessCapability: {
+      name: 'AccessCapability',
+      I: AccessCapabilityRequest,
+      O: AccessCapabilityResponse,
+      kind: MethodKind.Unary,
+    },
   },
 } as const
 
@@ -81,6 +95,17 @@ export interface DeviceResourceService {
     request: AccessCheckoutRootRequest,
     abortSignal?: AbortSignal,
   ): Promise<AccessCheckoutRootResponse>
+
+  /**
+   * AccessCapability resolves an available plugin-published capability by ID
+   * and returns a retained child resource serving its protocol.
+   *
+   * @generated from rpc s4wave.device.DeviceResourceService.AccessCapability
+   */
+  AccessCapability(
+    request: AccessCapabilityRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AccessCapabilityResponse>
 }
 
 /**
@@ -113,6 +138,18 @@ export interface DeviceResourceServiceHandler {
     abortSignal: AbortSignal,
     context: ServerContext,
   ): Promise<AccessCheckoutRootResponse>
+
+  /**
+   * AccessCapability resolves an available plugin-published capability by ID
+   * and returns a retained child resource serving its protocol.
+   *
+   * @generated from rpc s4wave.device.DeviceResourceService.AccessCapability
+   */
+  AccessCapability(
+    request: AccessCapabilityRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessCapabilityResponse>
 }
 
 export const DeviceResourceServiceServiceName =
@@ -127,6 +164,7 @@ export class DeviceResourceServiceClient implements DeviceResourceService {
     this.WatchDeviceState = this.WatchDeviceState.bind(this)
     this.ReportDeviceStatus = this.ReportDeviceStatus.bind(this)
     this.AccessCheckoutRoot = this.AccessCheckoutRoot.bind(this)
+    this.AccessCapability = this.AccessCapability.bind(this)
   }
   /**
    * @generated from rpc s4wave.device.DeviceResourceService.WatchDeviceState
@@ -177,5 +215,25 @@ export class DeviceResourceServiceClient implements DeviceResourceService {
       abortSignal || undefined,
     )
     return AccessCheckoutRootResponse.fromBinary(result)
+  }
+
+  /**
+   * AccessCapability resolves an available plugin-published capability by ID
+   * and returns a retained child resource serving its protocol.
+   *
+   * @generated from rpc s4wave.device.DeviceResourceService.AccessCapability
+   */
+  async AccessCapability(
+    request: AccessCapabilityRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AccessCapabilityResponse> {
+    const requestMsg = AccessCapabilityRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      DeviceResourceServiceDefinition.methods.AccessCapability.name,
+      AccessCapabilityRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AccessCapabilityResponse.fromBinary(result)
   }
 }

@@ -250,6 +250,25 @@ func (d *Device) FindWritableCheckoutRoot(name string) *DeviceCapability {
 	return cap
 }
 
+// FindSelectableCapability returns the selectable capability with the exact
+// requested ID. Access routes through this lookup, so a caller cannot address
+// a protocol service without a selectable capability declaring its link.
+func (d *Device) FindSelectableCapability(id string) *DeviceCapability {
+	if d == nil {
+		return nil
+	}
+	id = strings.TrimSpace(id)
+	for _, cap := range d.GetCapabilities() {
+		if cap == nil || strings.TrimSpace(cap.GetId()) != id {
+			continue
+		}
+		if DeviceCapabilityIsSelectable(cap) {
+			return cap
+		}
+	}
+	return nil
+}
+
 // FindSelectableForgeWorker returns a selectable Forge Worker capability linked
 // to the Worker object that records execution state, logs, and results.
 func (d *Device) FindSelectableForgeWorker() *DeviceCapability {

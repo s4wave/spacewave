@@ -68,6 +68,6 @@ func deviceFactory(
 		return nil, nil, err
 	}
 
-	resource := s4wave_device.NewDeviceResource(le, engine, ws, objectKey, state)
+	resource := s4wave_device.NewDeviceResource(le, b, engine, ws, objectKey, state)
 	return resource.GetMux(), func() {}, nil
 }

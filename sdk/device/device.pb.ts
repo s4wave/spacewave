@@ -1068,3 +1068,56 @@ export const AccessCheckoutRootResponse: MessageType<AccessCheckoutRootResponse>
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * AccessCapabilityRequest resolves one available plugin-published capability.
+ *
+ * @generated from message s4wave.device.AccessCapabilityRequest
+ */
+export interface AccessCapabilityRequest {
+  /**
+   * CapabilityId is the stable capability identifier from the Device summary.
+   *
+   * @generated from field: string capability_id = 1;
+   */
+  capabilityId?: string
+}
+
+export const AccessCapabilityRequest: MessageType<AccessCapabilityRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.device.AccessCapabilityRequest',
+    fields: [
+      { no: 1, name: 'capability_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AccessCapabilityResponse contains the resolved capability child resource.
+ *
+ * @generated from message s4wave.device.AccessCapabilityResponse
+ */
+export interface AccessCapabilityResponse {
+  /**
+   * ResourceId is the retained child resource serving the capability protocol.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+  /**
+   * Capability is the resolved Device capability summary.
+   *
+   * @generated from field: s4wave.device.DeviceCapability capability = 2;
+   */
+  capability?: DeviceCapability
+}
+
+export const AccessCapabilityResponse: MessageType<AccessCapabilityResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.device.AccessCapabilityResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'capability', kind: 'message', T: () => DeviceCapability },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

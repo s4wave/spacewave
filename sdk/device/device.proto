@@ -220,6 +220,9 @@ service DeviceResourceService {
   rpc WatchDeviceState(WatchDeviceStateRequest) returns (stream WatchDeviceStateResponse);
   rpc ReportDeviceStatus(ReportDeviceStatusRequest) returns (ReportDeviceStatusResponse);
   rpc AccessCheckoutRoot(AccessCheckoutRootRequest) returns (AccessCheckoutRootResponse);
+  // AccessCapability resolves an available plugin-published capability by ID
+  // and returns a retained child resource serving its protocol.
+  rpc AccessCapability(AccessCapabilityRequest) returns (AccessCapabilityResponse);
 }
 
 // WatchDeviceStateRequest is a request to watch Device state.
@@ -281,4 +284,18 @@ message AccessCheckoutRootResponse {
   bool write_enabled = 7;
   // WriteApprovalRef is the approval ref accepted for a write-enabled handle.
   string write_approval_ref = 8;
+}
+
+// AccessCapabilityRequest resolves one available plugin-published capability.
+message AccessCapabilityRequest {
+  // CapabilityId is the stable capability identifier from the Device summary.
+  string capability_id = 1;
+}
+
+// AccessCapabilityResponse contains the resolved capability child resource.
+message AccessCapabilityResponse {
+  // ResourceId is the retained child resource serving the capability protocol.
+  uint32 resource_id = 1;
+  // Capability is the resolved Device capability summary.
+  DeviceCapability capability = 2;
 }

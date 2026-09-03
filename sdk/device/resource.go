@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
@@ -12,6 +13,7 @@ import (
 	"github.com/s4wave/spacewave/db/unixfs"
 	unixfs_world "github.com/s4wave/spacewave/db/unixfs/world"
 	"github.com/s4wave/spacewave/db/world"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	s4wave_unixfs_world "github.com/s4wave/spacewave/sdk/unixfs/world"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 	"github.com/sirupsen/logrus"
@@ -20,6 +22,7 @@ import (
 // DeviceResource implements the DeviceResourceService SRPC interface.
 type DeviceResource struct {
 	le     *logrus.Entry
+	b      bus.Bus
 	engine world.Engine
 	ws     world.WorldState
 	objKey string
@@ -28,13 +31,15 @@ type DeviceResource struct {
 	mux    srpc.Mux
 }
 
-// NewDeviceResource creates a new DeviceResource.
-func NewDeviceResource(le *logrus.Entry, engine world.Engine, ws world.WorldState, objKey string, state *Device) *DeviceResource {
+// NewDeviceResource creates a new DeviceResource. b is the ObjectType factory
+// bus and resolves the protocol services named by capability links.
+func NewDeviceResource(le *logrus.Entry, b bus.Bus, engine world.Engine, ws world.WorldState, objKey string, state *Device) *DeviceResource {
 	if state == nil {
 		state = &Device{}
 	}
 	r := &DeviceResource{
 		le:     le,
+		b:      b,
 		engine: engine,
 		ws:     ws,
 		objKey: objKey,
@@ -173,6 +178,79 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 		WriteAvailable:   DeviceCapabilityCanWriteCheckoutRoot(capability),
 		WriteEnabled:     req.GetWrite(),
 		WriteApprovalRef: writeApprovalRef,
+	}, nil
+}
+
+// AccessCapability resolves the requested capability's stamped protocol link
+// and retains its protocol service as a child resource until release. Every
+// call rereads the Device block from the engine, so a revoked or withdrawn
+// capability denies new access while previously returned resources stay valid.
+// The admit-time read and the service lookup are not one transaction; a
+// capability revoked between them may still return a live service once.
+func (r *DeviceResource) AccessCapability(ctx context.Context, req *AccessCapabilityRequest) (*AccessCapabilityResponse, error) {
+	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	capabilityID := strings.TrimSpace(req.GetCapabilityId())
+	if capabilityID == "" {
+		return nil, errors.New("capability id is required")
+	}
+
+	accessWS, err := r.readOnlyWorldState()
+	if err != nil {
+		return nil, err
+	}
+
+	objState, found, err := accessWS.GetObject(ctx, r.objKey)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, world.ErrObjectNotFound
+	}
+
+	state, err := readDeviceObject(ctx, objState)
+	if err != nil {
+		return nil, err
+	}
+	if !state.IsSelectable() {
+		return nil, errors.New("device is not selectable")
+	}
+
+	capability := state.FindSelectableCapability(capabilityID)
+	if capability == nil {
+		return nil, errors.Errorf("capability %q is not selectable", capabilityID)
+	}
+	protocolID := strings.TrimSpace(capability.GetLink().GetProtocolId())
+	if protocolID == "" {
+		return nil, errors.Errorf("capability %q has no protocol link", capability.GetId())
+	}
+	if r.b == nil {
+		return nil, errors.New("device resource requires the ObjectType factory bus to resolve protocol services")
+	}
+
+	// Look up exactly the stamped protocol service and retain the lookup
+	// reference until the returned child resource is released.
+	invokers, _, lookupRef, err := bifrost_rpc.ExLookupRpcService(ctx, r.b, protocolID, "", true, nil)
+	if err != nil {
+		return nil, err
+	}
+	if lookupRef == nil || len(invokers) == 0 {
+		return nil, errors.Errorf("capability %q protocol service %q is unavailable", capability.GetId(), protocolID)
+	}
+
+	childMux := srpc.NewMux(invokers...)
+	resourceID, err := resourceCtx.AddResourceValue(childMux, nil, lookupRef.Release)
+	if err != nil {
+		lookupRef.Release()
+		return nil, err
+	}
+
+	return &AccessCapabilityResponse{
+		ResourceId: resourceID,
+		Capability: capability.CloneVT(),
 	}, nil
 }
 
