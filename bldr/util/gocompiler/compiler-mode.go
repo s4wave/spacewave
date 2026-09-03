@@ -1,6 +1,7 @@
 package gocompiler
 
 import (
+	"context"
 	"os"
 	"strings"
 
@@ -53,6 +54,18 @@ func ParseGoCompiler(mode string) (GoCompiler, error) {
 	}
 }
 
+type goCompilerContextKey struct{}
+
+// WithGoCompiler returns a context that selects mode for builds in that invocation.
+func WithGoCompiler(ctx context.Context, mode GoCompiler) context.Context {
+	return context.WithValue(ctx, goCompilerContextKey{}, mode)
+}
+
+func goCompilerFromContext(ctx context.Context) GoCompiler {
+	mode, _ := ctx.Value(goCompilerContextKey{}).(GoCompiler)
+	return mode
+}
+
 // GoCompilerStartupCacheEnvKeys returns env keys that affect default Go
 // compiler selection.
 func GoCompilerStartupCacheEnvKeys() []string {
@@ -65,8 +78,22 @@ func ResolveGoCompiler(
 	goCompiler GoCompiler,
 	defaultTinygoEnabled bool,
 ) (GoCompiler, error) {
+	return ResolveGoCompilerContext(context.Background(), buildPlatform, goCompiler, defaultTinygoEnabled)
+}
+
+// ResolveGoCompilerContext resolves the Go compiler choice for one invocation.
+func ResolveGoCompilerContext(
+	ctx context.Context,
+	buildPlatform bldr_platform.Platform,
+	goCompiler GoCompiler,
+	defaultTinygoEnabled bool,
+) (GoCompiler, error) {
 	if goCompiler == GoCompilerDefault {
-		envMode, err := ParseGoCompiler(os.Getenv(GoCompilerEnv))
+		envMode := goCompilerFromContext(ctx)
+		var err error
+		if envMode == GoCompilerDefault {
+			envMode, err = ParseGoCompiler(os.Getenv(GoCompilerEnv))
+		}
 		if err != nil {
 			return "", err
 		}

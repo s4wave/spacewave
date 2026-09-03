@@ -82,7 +82,7 @@ func BuildDistBundle(
 	enableCgo := enableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
-	goCompiler, err := resolveDistGoCompiler(buildPlatform, goCompilerOpt)
+	goCompiler, err := resolveDistGoCompiler(rctx, buildPlatform, goCompilerOpt)
 	if err != nil {
 		return err
 	}
@@ -556,6 +556,7 @@ func distEntrypointLDFlags(buildPlatform bldr_platform.Platform, entrypointRole 
 }
 
 func resolveDistGoCompiler(
+	ctx context.Context,
 	buildPlatform bldr_platform.Platform,
 	goCompilerOpt plugin_compiler_go.GoCompiler,
 ) (gocompiler.GoCompiler, error) {
@@ -563,7 +564,8 @@ func resolveDistGoCompiler(
 	if err != nil {
 		return "", err
 	}
-	goCompiler, err := gocompiler.ResolveGoCompiler(
+	goCompiler, err := gocompiler.ResolveGoCompilerContext(
+		ctx,
 		buildPlatform,
 		resolvedGoCompilerOpt,
 		false,

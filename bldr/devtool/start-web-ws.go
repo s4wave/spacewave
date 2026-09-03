@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
@@ -32,13 +33,73 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// webSocketControllerConnections closes every upgraded connection and waits for its controller before shutdown completes.
+type webSocketControllerConnections struct {
+	ctx context.Context
+
+	mtx         sync.Mutex
+	connections map[*websocket.Conn]struct{}
+	closed      bool
+	wait        sync.WaitGroup
+}
+
+func newWebSocketControllerConnections(ctx context.Context) *webSocketControllerConnections {
+	return &webSocketControllerConnections{
+		ctx:         ctx,
+		connections: make(map[*websocket.Conn]struct{}),
+	}
+}
+
+func (c *webSocketControllerConnections) Execute(connection *websocket.Conn, execute func(context.Context) error) error {
+	c.mtx.Lock()
+	if c.closed || c.ctx.Err() != nil {
+		c.mtx.Unlock()
+		_ = connection.CloseNow()
+		return c.ctx.Err()
+	}
+	c.connections[connection] = struct{}{}
+	c.wait.Add(1)
+	c.mtx.Unlock()
+
+	defer func() {
+		c.mtx.Lock()
+		delete(c.connections, connection)
+		c.mtx.Unlock()
+		c.wait.Done()
+	}()
+	return execute(c.ctx)
+}
+
+func (c *webSocketControllerConnections) Close() {
+	c.mtx.Lock()
+	if c.closed {
+		c.mtx.Unlock()
+		return
+	}
+	c.closed = true
+	connections := make([]*websocket.Conn, 0, len(c.connections))
+	for connection := range c.connections {
+		connections = append(connections, connection)
+	}
+	c.mtx.Unlock()
+
+	for _, connection := range connections {
+		_ = connection.CloseNow()
+	}
+}
+
+func (c *webSocketControllerConnections) Wait() {
+	c.wait.Wait()
+}
+
 // DevtoolWsVersion is the version to report for the ws-backed devtool runtime.
 var DevtoolWsVersion = controller.MustParseVersion("0.0.1")
 
 // ExecuteWebWsProject starts the devtool bus and project as a web server with a
 // WebSocket. Plugins run as native binaries under the devtool process.
 func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
-	// init repo root and storage directories
+	ctx = web_plugin_compiler.WithSkipNativeWebRenderer(ctx)
+
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
@@ -46,7 +107,6 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	}
 	le.Infof("starting with state dir: %s", stateDir)
 
-	// initialize the storage + bus
 	buildType := bldr_manifest.BuildType(a.BuildType)
 	d, err := BuildDevtoolBus(ctx, le, repoRoot, stateDir, a.Watch)
 	if err != nil {
@@ -66,10 +126,8 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 		return err
 	}
 
-	// write the banner
 	a.writeBannerTo(os.Stderr)
 
-	// start the plugin storage volume
 	pluginVolumeID := bldr_plugin.PluginVolumeID
 	_, pluginStorageCtrlRef, err := d.StartStorageVolume(ctx, "plugins", &volume_controller.Config{
 		VolumeIdAlias: []string{bldr_plugin.PluginVolumeID},
@@ -79,14 +137,6 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 	}
 	defer pluginStorageCtrlRef.Release()
 
-	// Web-server mode still loads the web plugin so it registers its packages
-	// and RPCs, but the devtool serves the browser shell and must not embed a
-	// native renderer.
-	if err := os.Setenv(web_plugin_compiler.SkipNativeWebRendererEnvVar, "true"); err != nil {
-		return err
-	}
-
-	// execute the project controller
 	projCtrl, projCtrlRef, err := d.StartProjectControllerWithStartup(
 		ctx,
 		d.GetBus(),
@@ -126,7 +176,6 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 		}
 	}
 
-	// build the plugin host scheduler
 	sched, relPluginSched, err := plugin_host_default.StartPluginScheduler(
 		ctx,
 		d.GetBus(),
@@ -146,7 +195,6 @@ func (a *DevtoolArgs) ExecuteWebWsProject(ctx context.Context) (err error) {
 		defer relPluginSched()
 	}
 
-	// build the plugin host controller
 	_, relPluginHost, err := plugin_host_default.StartPluginHost(
 		ctx,
 		d.GetBus(),
@@ -209,7 +257,6 @@ func (d *DevtoolBus) ExecuteWebWs(
 	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
 	entrypointToRootPrefix := "../../../../"
 
-	// Compile the web entrypoint.
 	le.Info("building websocket entrypoint")
 	bundleResult, err := entrypoint_browser_bundle.BuildBrowserBundle(
 		ctx,
@@ -234,7 +281,6 @@ func (d *DevtoolBus) ExecuteWebWs(
 		return err
 	}
 
-	// compile the entrypoint
 	wsRuntimeDir := filepath.Join(entrypointDir, "entrypoint")
 	if err := os.MkdirAll(wsRuntimeDir, 0o755); err != nil {
 		return err
@@ -246,18 +292,14 @@ func (d *DevtoolBus) ExecuteWebWs(
 		return err
 	}
 
-	// serve the entrypoint
 	entryFs := http.Dir(entrypointDir)
 	entrySrv := bifrost_http.NewEncodedAssetFileServer(entryFs)
 
-	// start the local WebRuntime which communicates via WebSocket w/ the remote
 	runtimeID := "devtool"
 
-	// serve the websocket if the path matches
 	webRuntimeWsPath := "/bldr-dev/web-runtime.ws"
+	connections := newWebSocketControllerConnections(ctx)
 	serveFn := func(rw http.ResponseWriter, req *http.Request) {
-		// Add Cross-Origin Isolation headers required for SharedArrayBuffer
-		// These enable SAB-based communication between SharedWorkers
 		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
 
@@ -270,7 +312,9 @@ func (d *DevtoolBus) ExecuteWebWs(
 				return
 			}
 			ctrl := buildWsWebRuntime(le, d.GetBus(), runtimeID, wc)
-			err = d.GetBus().ExecuteController(req.Context(), ctrl)
+			err = connections.Execute(wc, func(connectionCtx context.Context) error {
+				return d.GetBus().ExecuteController(connectionCtx, ctrl)
+			})
 			if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, io.EOF) {
 				le.WithError(err).Warn("websocket disconnected with error")
 			} else {
@@ -284,7 +328,11 @@ func (d *DevtoolBus) ExecuteWebWs(
 
 	le.Infof("listening on: %s", listenAddr)
 	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}
-	return listenAndServeDevtoolHTTP(ctx, server, nil)
+	server.RegisterOnShutdown(connections.Close)
+	err = listenAndServeDevtoolHTTP(ctx, server, nil)
+	connections.Close()
+	connections.Wait()
+	return err
 }
 
 func writeWebWsBuildManifest(entrypointDir string, bundleResult *entrypoint_browser_bundle.BrowserBundleResult) error {
@@ -302,7 +350,7 @@ func writeWebWsBuildManifest(entrypointDir string, bundleResult *entrypoint_brow
 	})
 }
 
-// buildWsWebRuntime builds a websocket web runtime controller.
+// buildWsWebRuntime binds the remote runtime lifetime to its WebSocket connection.
 func buildWsWebRuntime(le *logrus.Entry, b bus.Bus, runtimeID string, nch *websocket.Conn) *web_runtime_controller.Controller {
 	return web_runtime_controller.NewController(
 		le,
@@ -352,32 +400,30 @@ func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server, onListe
 		serveErrCh <- server.Serve(listener)
 	}()
 	stopShutdownCh := make(chan struct{})
-	shutdownDoneCh := make(chan struct{})
-	defer func() {
-		close(stopShutdownCh)
-		<-shutdownDoneCh
-	}()
+	shutdownErrCh := make(chan error, 1)
 	go func() {
-		defer close(shutdownDoneCh)
 		select {
 		case <-ctx.Done():
 			shutdownCtx, shutdownCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 			defer shutdownCancel()
-			_ = server.Shutdown(shutdownCtx)
+			shutdownErrCh <- server.Shutdown(shutdownCtx)
 		case <-stopShutdownCh:
+			shutdownErrCh <- nil
 		}
 	}()
 
+	var callbackErr error
 	if onListening != nil {
-		if err := onListening(listener.Addr().String()); err != nil {
+		callbackErr = onListening(listener.Addr().String())
+		if callbackErr != nil {
 			_ = server.Close()
-			<-serveErrCh
-			return err
 		}
 	}
-	err = <-serveErrCh
-	if err == http.ErrServerClosed {
-		return nil
+	serveErr := <-serveErrCh
+	close(stopShutdownCh)
+	shutdownErr := <-shutdownErrCh
+	if errors.Is(serveErr, http.ErrServerClosed) {
+		serveErr = nil
 	}
-	return err
+	return errors.Join(callbackErr, serveErr, shutdownErr)
 }

@@ -1,6 +1,7 @@
 package bldr_web_plugin_compiler
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"slices"
@@ -57,17 +58,17 @@ func TestGetElectronDesktopPresencePolicy(t *testing.T) {
 
 func TestShouldBundleNativeWebRendererHonorsSkipEnv(t *testing.T) {
 	t.Setenv(SkipNativeWebRendererEnvVar, "")
-	if !shouldBundleNativeWebRenderer() {
+	if !shouldBundleNativeWebRenderer(context.Background()) {
 		t.Fatal("empty skip env should bundle native web renderer")
 	}
 
 	t.Setenv(SkipNativeWebRendererEnvVar, "true")
-	if shouldBundleNativeWebRenderer() {
+	if shouldBundleNativeWebRenderer(context.Background()) {
 		t.Fatal("true skip env should not bundle native web renderer")
 	}
 
 	t.Setenv(SkipNativeWebRendererEnvVar, "false")
-	if !shouldBundleNativeWebRenderer() {
+	if !shouldBundleNativeWebRenderer(context.Background()) {
 		t.Fatal("false skip env should bundle native web renderer")
 	}
 }
@@ -95,6 +96,7 @@ func TestAddWebPluginStartupInputsIncludesSkipRendererEnv(t *testing.T) {
 	t.Setenv(ElectronNoSandboxEnvVar, "true")
 	result := &bldr_manifest_builder.BuilderResult{}
 	if err := addWebPluginStartupInputs(
+		context.Background(),
 		&bldr_manifest_builder.BuilderConfig{SourcePath: t.TempDir()},
 		result,
 	); err != nil {
@@ -140,6 +142,7 @@ func TestAddWebPluginStartupInputsIncludesBrowserShimSources(t *testing.T) {
 
 	result := &bldr_manifest_builder.BuilderResult{}
 	if err := addWebPluginStartupInputs(
+		context.Background(),
 		&bldr_manifest_builder.BuilderConfig{SourcePath: sourcePath},
 		result,
 	); err != nil {
@@ -159,5 +162,16 @@ func TestAddWebPluginStartupInputsIncludesBrowserShimSources(t *testing.T) {
 		if !slices.Contains(paths, relPath) {
 			t.Fatalf("startup input files=%v, want %s", paths, relPath)
 		}
+	}
+}
+
+func TestSkipNativeWebRendererIsInvocationLocal(t *testing.T) {
+	t.Setenv(SkipNativeWebRendererEnvVar, "")
+	browserCtx := WithSkipNativeWebRenderer(context.Background())
+	if shouldBundleNativeWebRenderer(browserCtx) {
+		t.Fatal("browser build should skip the native renderer")
+	}
+	if !shouldBundleNativeWebRenderer(context.Background()) {
+		t.Fatal("subsequent native build inherited browser renderer selection")
 	}
 }

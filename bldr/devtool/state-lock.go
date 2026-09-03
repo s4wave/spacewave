@@ -45,7 +45,7 @@ func acquireStateLock(ctx context.Context, le *logrus.Entry, stateRoot string) (
 	}
 	if !locked {
 		logStateLockWait(le, lock.waitMessage(stateRoot))
-		if err := lock.lock(); err != nil {
+		if err := lock.lock(ctx); err != nil {
 			lock.closeAfterError()
 			return nil, errors.Wrap(err, "wait for bldr state lock")
 		}

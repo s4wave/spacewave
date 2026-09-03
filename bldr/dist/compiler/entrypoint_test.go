@@ -1,6 +1,7 @@
 package bldr_dist_compiler
 
 import (
+	"context"
 	"slices"
 	"strings"
 	"testing"
@@ -78,7 +79,7 @@ func TestResolveDistGoCompiler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	goCompiler, err := resolveDistGoCompiler(platform, plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO)
+	goCompiler, err := resolveDistGoCompiler(context.Background(), platform, plugin_compiler_go.GoCompiler_GO_COMPILER_TINYGO)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +87,7 @@ func TestResolveDistGoCompiler(t *testing.T) {
 		t.Fatalf("goCompiler = %s, want %s", goCompiler, gocompiler.GoCompilerTinyGo)
 	}
 
-	goCompiler, err = resolveDistGoCompiler(platform, plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT)
+	goCompiler, err = resolveDistGoCompiler(context.Background(), platform, plugin_compiler_go.GoCompiler_GO_COMPILER_GOSCRIPT)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -47,9 +47,26 @@ const SkipNativeWebRendererEnvVar = "BLDR_PLUGIN_WEB_SKIP_ELECTRON"
 // desktop launches for CI environments where chrome-sandbox cannot be setuid.
 const ElectronNoSandboxEnvVar = "BLDR_ELECTRON_NO_SANDBOX"
 
-func shouldBundleNativeWebRenderer() bool {
+type skipNativeWebRendererContextKey struct{}
+
+// WithSkipNativeWebRenderer disables native renderer bundling for one build invocation.
+func WithSkipNativeWebRenderer(ctx context.Context) context.Context {
+	return context.WithValue(ctx, skipNativeWebRendererContextKey{}, true)
+}
+
+func shouldBundleNativeWebRenderer(ctx context.Context) bool {
+	if skip, _ := ctx.Value(skipNativeWebRendererContextKey{}).(bool); skip {
+		return false
+	}
 	skip, err := strconv.ParseBool(os.Getenv(SkipNativeWebRendererEnvVar))
 	return err != nil || !skip
+}
+
+func skipNativeWebRendererValue(ctx context.Context) string {
+	if skip, _ := ctx.Value(skipNativeWebRendererContextKey{}).(bool); skip {
+		return "true"
+	}
+	return os.Getenv(SkipNativeWebRendererEnvVar)
 }
 
 func electronNoSandboxEnabled() bool {
@@ -178,7 +195,7 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
-	if shouldBundleNativeWebRenderer() {
+	if shouldBundleNativeWebRenderer(ctx) {
 		// Check which web renderer to bundle based on BLDR_WEB_RENDERER env var.
 		renderer := web_runtime.GetWebRendererFromEnv().Resolve()
 		switch renderer {
@@ -194,7 +211,7 @@ func (c *Controller) BuildManifest(
 	if err != nil || result == nil {
 		return result, err
 	}
-	if err := addWebPluginStartupInputs(args.GetBuilderConfig(), result); err != nil {
+	if err := addWebPluginStartupInputs(ctx, args.GetBuilderConfig(), result); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -579,7 +596,7 @@ func (c *Controller) buildBrowserShimManifest(
 		committedManifestRef,
 		nil,
 	)
-	if err := addWebPluginStartupInputs(builderConf, result); err != nil {
+	if err := addWebPluginStartupInputs(ctx, builderConf, result); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -596,6 +613,7 @@ func (c *Controller) GetSupportedPlatforms() []string {
 
 // addWebPluginStartupInputs adds web-plugin startup validation inputs.
 func addWebPluginStartupInputs(
+	ctx context.Context,
 	builderConf *bldr_manifest_builder.BuilderConfig,
 	builderResult *bldr_manifest_builder.BuilderResult,
 ) error {
@@ -612,7 +630,7 @@ func addWebPluginStartupInputs(
 	inputManifest.AddStartupInput(
 		bldr_manifest_builder.NewEnvStartupInput(
 			SkipNativeWebRendererEnvVar,
-			os.Getenv(SkipNativeWebRendererEnvVar),
+			skipNativeWebRendererValue(ctx),
 		),
 	)
 	inputManifest.AddStartupInput(

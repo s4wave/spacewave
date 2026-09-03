@@ -290,7 +290,7 @@ func (c *Controller) BuildManifest(
 		// apply the per-platform-type configs
 		pluginBuildConf.FlattenPlatformTypes(buildPlatform)
 
-		goCompiler, err := resolveBuildGoCompiler(buildPlatform, buildType, pluginBuildConf.GetGoCompiler())
+		goCompiler, err := resolveBuildGoCompiler(ctx, buildPlatform, buildType, pluginBuildConf.GetGoCompiler())
 		if err != nil {
 			return nil, err
 		}
@@ -406,6 +406,7 @@ func (c *Controller) BuildManifest(
 }
 
 func resolveBuildGoCompiler(
+	ctx context.Context,
 	buildPlatform bldr_platform.Platform,
 	buildType bldr_manifest.BuildType,
 	goCompilerOpt GoCompiler,
@@ -418,7 +419,8 @@ func resolveBuildGoCompiler(
 	if _, ok := buildPlatform.(*bldr_platform.NativePlatform); ok && buildPlatform.GetExecutableExt() == ".mjs" {
 		defaultTinygoEnabled = gocompiler.DefaultTinyGoEnabled(buildPlatform, buildType.IsRelease())
 	}
-	return gocompiler.ResolveGoCompiler(
+	return gocompiler.ResolveGoCompilerContext(
+		ctx,
 		buildPlatform,
 		resolvedModeOpt,
 		defaultTinygoEnabled,
@@ -511,7 +513,7 @@ func (c *Controller) BuildPlugin(
 	enableCgo := enableCgoOpt.IsEnabled(false)
 	// enable compression for release mode only on default (isRelease means default value depends on release mode)
 	enableCompression := enableCompressionOpt.IsEnabled(isRelease)
-	goCompiler, err := resolveBuildGoCompiler(buildPlatform, buildType, goCompilerOpt)
+	goCompiler, err := resolveBuildGoCompiler(ctx, buildPlatform, buildType, goCompilerOpt)
 	if err != nil {
 		return nil, nil, err
 	}

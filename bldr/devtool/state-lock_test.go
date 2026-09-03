@@ -6,12 +6,15 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -131,4 +134,65 @@ func stateLockTestCommand(t *testing.T, stateRoot, role string) *exec.Cmd {
 		stateLockTestRootEnv+"="+stateRoot,
 	)
 	return cmd
+}
+
+func TestDevtoolStateLockWaitHonorsContext(t *testing.T) {
+	stateRoot := t.TempDir()
+	holder := stateLockTestCommand(t, stateRoot, "hold")
+	holderIn, err := holder.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	holderOutPipe, err := holder.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := holder.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = holderIn.Close()
+		_ = holder.Wait()
+	})
+	if ready, err := bufio.NewReader(holderOutPipe).ReadString('\n'); err != nil || strings.TrimSpace(ready) != "ready" {
+		t.Fatalf("holder readiness = %q, %v", ready, err)
+	}
+
+	logReader, logWriter := io.Pipe()
+	logger := logrus.New()
+	logger.SetOutput(logWriter)
+	ctx, cancel := context.WithCancel(context.Background())
+	waitDone := make(chan error, 1)
+	go func() {
+		lock, err := acquireStateLock(ctx, logrus.NewEntry(logger), stateRoot)
+		if lock != nil {
+			lock.release()
+		}
+		waitDone <- err
+	}()
+	if diagnostic, err := bufio.NewReader(logReader).ReadString('\n'); err != nil || !strings.Contains(diagnostic, "waiting") {
+		t.Fatalf("wait diagnostic = %q, %v", diagnostic, err)
+	}
+
+	cancel()
+	select {
+	case err := <-waitDone:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("wait returned %v, want context.Canceled", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("state-lock wait did not stop promptly after cancellation")
+	}
+
+	if err := holderIn.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := holder.Wait(); err != nil {
+		t.Fatal(err)
+	}
+	fresh, err := acquireStateLock(context.Background(), nil, stateRoot)
+	if err != nil {
+		t.Fatalf("fresh waiter did not acquire after cancellation and release: %v", err)
+	}
+	fresh.release()
 }

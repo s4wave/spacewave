@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/aperturerobotics/fastjson"
+	"github.com/aperturerobotics/go-websocket"
 	entrypoint_browser_bundle "github.com/s4wave/spacewave/bldr/web/entrypoint/browser/bundle"
 )
 
@@ -174,5 +175,73 @@ func TestListenAndServeDevtoolHTTPServesWhileOnListeningBlocked(t *testing.T) {
 				t.Fatal("HTTP listener remained open after listenAndServeDevtoolHTTP returned")
 			}
 		})
+	}
+}
+
+func TestListenAndServeDevtoolHTTPClosesWebSocketControllers(t *testing.T) {
+	deadlineCtx, stopDeadline := context.WithTimeout(context.Background(), 10*time.Second)
+	defer stopDeadline()
+	ctx, cancel := context.WithCancel(deadlineCtx)
+	connections := newWebSocketControllerConnections(ctx)
+	handlerStarted := make(chan struct{})
+	handlerExited := make(chan struct{})
+	server := &http.Server{
+		Addr:              "127.0.0.1:0",
+		ReadHeaderTimeout: time.Second,
+		Handler: http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+			connection, err := websocket.Accept(rw, req, nil)
+			if err != nil {
+				return
+			}
+			_ = connections.Execute(connection, func(connectionCtx context.Context) error {
+				close(handlerStarted)
+				<-connectionCtx.Done()
+				close(handlerExited)
+				return connectionCtx.Err()
+			})
+		}),
+	}
+	server.RegisterOnShutdown(connections.Close)
+	listeningAddr := make(chan string, 1)
+	serverDone := make(chan error, 1)
+	go func() {
+		err := listenAndServeDevtoolHTTP(ctx, server, func(addr string) error {
+			listeningAddr <- addr
+			return nil
+		})
+		connections.Close()
+		connections.Wait()
+		serverDone <- err
+	}()
+
+	addr := <-listeningAddr
+	client, _, err := websocket.Dial(deadlineCtx, "ws://"+addr, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.CloseNow()
+	<-handlerStarted
+	cancel()
+
+	select {
+	case err := <-serverDone:
+		connections.Close()
+		connections.Wait()
+		select {
+		case <-handlerExited:
+		default:
+			t.Fatal("HTTP server returned before the WebSocket controller exited")
+		}
+		if err != nil {
+			t.Fatalf("HTTP server shutdown: %v", err)
+		}
+	case <-deadlineCtx.Done():
+		t.Fatalf("HTTP server did not finish WebSocket shutdown: %v", deadlineCtx.Err())
+	}
+
+	readCtx, stopRead := context.WithTimeout(context.Background(), time.Second)
+	defer stopRead()
+	if _, _, err := client.Read(readCtx); err == nil {
+		t.Fatal("WebSocket remained open after server shutdown")
 	}
 }

@@ -36,29 +36,13 @@ import (
 // ExecuteWebGoScriptProject starts the browser-hosted devtool path with
 // GoScript as the default Go compiler.
 func (a *DevtoolArgs) ExecuteWebGoScriptProject(ctx context.Context) error {
-	return withGoCompiler(gocompiler.GoCompilerGoScript, func() error {
-		return a.ExecuteWebWasmProject(ctx)
-	})
-}
-
-func withGoCompiler(mode gocompiler.GoCompiler, fn func() error) error {
-	prev, hadPrev := os.LookupEnv(gocompiler.GoCompilerEnv)
-	if err := os.Setenv(gocompiler.GoCompilerEnv, string(mode)); err != nil {
-		return err
-	}
-	defer func() {
-		if hadPrev {
-			_ = os.Setenv(gocompiler.GoCompilerEnv, prev)
-			return
-		}
-		_ = os.Unsetenv(gocompiler.GoCompilerEnv)
-	}()
-	return fn()
+	return a.ExecuteWebWasmProject(gocompiler.WithGoCompiler(ctx, gocompiler.GoCompilerGoScript))
 }
 
 // ExecuteWebWasmProject starts the project as a web server in Wasm mode.
 func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
-	// init repo root and storage directories
+	ctx = web_plugin_compiler.WithSkipNativeWebRenderer(ctx)
+
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
@@ -66,7 +50,6 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 	}
 	le.Infof("starting with state dir: %s", stateDir)
 
-	// initialize the storage + bus
 	d, err := BuildDevtoolBus(ctx, le, repoRoot, stateDir, a.Watch)
 	if err != nil {
 		return err
@@ -85,7 +68,6 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 		return err
 	}
 
-	// execute the project controller
 	projCtrl, projCtrlRef, err := d.StartProjectController(
 		ctx,
 		d.GetBus(),
@@ -151,16 +133,11 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	entrypointDataDir := filepath.Join(stateDir, "entry")
 	entrypointDir := filepath.Join(entrypointDataDir, "web/wasm")
 
-	// WASM devtool mode serves the browser runtime directly and should not spend
-	// startup building the native web renderer package.
-	if err := os.Setenv(web_plugin_compiler.SkipNativeWebRendererEnvVar, "true"); err != nil {
-		return err
-	}
+	ctx = web_plugin_compiler.WithSkipNativeWebRenderer(ctx)
 
 	// entrypoint is located under /entrypoint/pkgs/@aperture/bldr
 	entrypointToRootPrefix := "../../../../"
 
-	// Compile the web entrypoint.
 	le.Info("building web wasm entrypoint")
 	bundleResult, err := entrypoint_browser_bundle.BuildBrowserBundle(
 		ctx,
@@ -188,7 +165,6 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	// set the path to the entrypoint to use for the wasm main() function
 	entrypointPkg := "devtool/web/entrypoint"
 
-	// compile the entrypoint wasm
 	buildPlatform, err := bldr_platform.ParseNativePlatform("web/js/wasm")
 	if err != nil {
 		return err
@@ -199,8 +175,6 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		entryBuildType = bldr_manifest.BuildType_RELEASE
 	}
 
-	// disable tinygo unless release mode
-	// NOTE: we disable tinygo since it does not compile cleanly yet.
 	tinygoCompatible := false
 	useTinygo := entryBuildType.IsRelease() && minifyEntrypoint && tinygoCompatible
 
@@ -209,7 +183,6 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		return err
 	}
 
-	// start the websocket transport for the devtool
 	linkWsPath := "/bldr-dev/web-wasm/link.ws"
 	infoPath := "/bldr-dev/web-wasm/info"
 	wsPeerID := d.peerID.String()
@@ -233,7 +206,6 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	}
 	ws := tpt.(*transport_websocket.WebSocket)
 
-	// start the hold open controller to keep links open
 	d.GetStaticResolver().AddFactory(link_holdopen_controller.NewFactory(d.GetBus()))
 	_, _, holdOpenRef, err := loader.WaitExecControllerRunning(
 		ctx,
@@ -252,7 +224,6 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	}
 	defer relCachedManifestFetch()
 
-	// handle incoming srpc requests
 	rpcServer, err := stream_srpc_server.NewServer(
 		d.GetBus(),
 		le,
@@ -284,14 +255,12 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		return err
 	}
 
-	// start handling incoming srpc requests
 	relRpcServer, err := d.GetBus().AddController(ctx, rpcServer, nil)
 	if err != nil {
 		return err
 	}
 	defer relRpcServer()
 
-	// build the wasm entrypooints concurrently with the plugins for speedup
 	if err := entrypoint_browser_build.BuildWasmRuntimeEntrypoint(
 		ctx,
 		le,
@@ -305,7 +274,6 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		return err
 	}
 
-	// Build runtime wasm pkg
 	le.Info("building runtime.wasm")
 	entrypointGoDir := filepath.Join(distSrcDir, entrypointPkg)
 	runtimeOut := filepath.Join(wasmRuntimeDir, "runtime.wasm")
@@ -336,7 +304,6 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		return err
 	}
 
-	// encode the init info for the browser devtool entrypoint
 	browserInit := &devtool_web.DevtoolInitBrowser{
 		AppId:                 appID,
 		DevtoolPeerId:         wsPeerID,
@@ -352,13 +319,10 @@ func (d *DevtoolBus) ExecuteWebWasm(
 		return err
 	}
 
-	// run the http server
 	entryFs := http.Dir(entrypointDir)
 	entrySrv := bifrost_http.NewEncodedAssetFileServer(entryFs)
 
 	serveFn := func(rw http.ResponseWriter, req *http.Request) {
-		// Add Cross-Origin Isolation headers required for SharedArrayBuffer
-		// These enable SAB-based communication between SharedWorkers
 		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
 		rw.Header().Set("Cross-Origin-Resource-Policy", "same-origin")

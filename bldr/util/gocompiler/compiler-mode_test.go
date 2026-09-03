@@ -1,6 +1,7 @@
 package gocompiler
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -132,5 +133,32 @@ func TestResolveGoCompilerExplicitOverridesEnv(t *testing.T) {
 	}
 	if actual != GoCompilerGo {
 		t.Fatalf("compiler mode = %s, want %s", actual, GoCompilerGo)
+	}
+}
+
+func TestResolveGoCompilerContextIsolatesOverlappingModes(t *testing.T) {
+	platform, err := bldr_platform.ParseNativePlatform("web/js/wasm")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	start := make(chan struct{})
+	results := make(chan GoCompiler, 2)
+	resolve := func(mode GoCompiler) {
+		<-start
+		resolved, err := ResolveGoCompilerContext(WithGoCompiler(context.Background(), mode), platform, GoCompilerDefault, false)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		results <- resolved
+	}
+	go resolve(GoCompilerGoScript)
+	go resolve(GoCompilerTinyGo)
+	close(start)
+
+	seen := map[GoCompiler]bool{<-results: true, <-results: true}
+	if !seen[GoCompilerGoScript] || !seen[GoCompilerTinyGo] {
+		t.Fatalf("overlapping compiler selections = %v", seen)
 	}
 }
