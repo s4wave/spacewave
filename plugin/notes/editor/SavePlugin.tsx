@@ -57,11 +57,13 @@ function SavePlugin({
 
   const markDirty = useEffectEvent(() => {
     onDirty?.()
-    if (failedExport.current === null) return
     editor.getEditorState().read(() => {
       const current = exportString()
-      failedExport.current = current
+      // Publish the draft at edit time, not only at debounce fire, so the
+      // save pipeline can supersede an in-flight write before it settles a
+      // stale status over newer unsaved text.
       onDraftChange?.(current)
+      if (failedExport.current !== null) failedExport.current = current
     })
   })
 

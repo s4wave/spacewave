@@ -148,6 +148,49 @@ describe('SavePlugin', () => {
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2))
     expect(onSave).toHaveBeenNthCalledWith(2, 'third')
   })
+  it('publishes the newest draft at edit time while a save is in flight', async () => {
+    let exported = 'A'
+    let resolveSave: (() => void) | undefined
+    const onDraftChange = vi.fn()
+    const onSave = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve
+        }),
+    )
+
+    render(
+      <SavePlugin
+        savedContent="original"
+        exportString={() => exported}
+        onSave={onSave}
+        onDraftChange={onDraftChange}
+      />,
+    )
+
+    // The write of A goes out and stays in flight.
+    fireEvent.blur(root)
+    expect(onSave).toHaveBeenCalledWith('A')
+    await waitFor(() => expect(onDraftChange).toHaveBeenCalledWith('A'))
+
+    // A keystroke produces text B while the write of A is still in flight.
+    exported = 'B'
+    fireEditorUpdate()
+
+    // The plugin must publish B at edit time so the save pipeline can treat
+    // the in-flight write of A as superseded instead of settling 'Saved' for
+    // text the user has already replaced.
+    expect(onDraftChange).toHaveBeenLastCalledWith('B')
+
+    // Completing the stale write of A must not settle the pipeline back onto
+    // A: B remains the published draft and is the next thing saved.
+    resolveSave?.()
+    await Promise.resolve()
+    fireEvent.blur(root)
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2))
+    expect(onSave).toHaveBeenNthCalledWith(2, 'B')
+  })
+
   it('submits Y after pending X rejects without suppressing Y', async () => {
     let exported = 'X'
     let rejectX: ((error: Error) => void) | undefined
