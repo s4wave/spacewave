@@ -351,6 +351,20 @@ func ResolveE2EWasmJSSourcemapsEnabled() (bool, error) {
 	}
 }
 
+// resolveStartupBuildCache merges the operator escape hatch with the Boot
+// option value. E2E_WASM_STARTUP_BUILD_CACHE=false is an operator escape hatch:
+// it forces a fresh startup build even when WithStartupBuildCache(true) asks to
+// preserve the cache.
+func resolveStartupBuildCache(envEnabled bool, option *bool) bool {
+	if !envEnabled {
+		return false
+	}
+	if option != nil {
+		return *option
+	}
+	return true
+}
+
 // WithTinyGoCore enables TinyGo for the browser spacewave-core Manifest.
 func WithTinyGoCore() Option {
 	return WithConfigMutator(ConfigureTinyGoForManifest("spacewave-core"))

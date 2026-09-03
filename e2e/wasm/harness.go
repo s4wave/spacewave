@@ -141,13 +141,11 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		}
 	}
 
-	preserveStartupBuildCache, err := ResolveE2EWasmStartupBuildCacheEnabled()
+	envStartupBuildCache, err := ResolveE2EWasmStartupBuildCacheEnabled()
 	if err != nil {
 		return nil, err
 	}
-	if o.preserveStartupBuildCache != nil {
-		preserveStartupBuildCache = *o.preserveStartupBuildCache
-	}
+	preserveStartupBuildCache := resolveStartupBuildCache(envStartupBuildCache, o.preserveStartupBuildCache)
 	stateRoot, err := buildHarnessStateRoot(repoRoot, preserveStartupBuildCache)
 	if err != nil {
 		return nil, err

@@ -626,6 +626,26 @@ func TestJSSourcemapsDefaultOffWithExplicitDiagnosticOptIn(t *testing.T) {
 	}
 }
 
+func TestStartupBuildCacheEscapeHatchOverridesPreserveOption(t *testing.T) {
+	preserve := true
+	if resolveStartupBuildCache(false, &preserve) {
+		t.Fatal("E2E_WASM_STARTUP_BUILD_CACHE=false must override WithStartupBuildCache(true)")
+	}
+	if resolveStartupBuildCache(false, nil) {
+		t.Fatal("E2E_WASM_STARTUP_BUILD_CACHE=false should disable the cache without an option")
+	}
+	if !resolveStartupBuildCache(true, &preserve) {
+		t.Fatal("WithStartupBuildCache(true) should preserve the cache")
+	}
+	disable := false
+	if resolveStartupBuildCache(true, &disable) {
+		t.Fatal("WithStartupBuildCache(false) should disable the cache")
+	}
+	if !resolveStartupBuildCache(true, nil) {
+		t.Fatal("startup build cache should default on when the escape hatch allows it")
+	}
+}
+
 func TestBuildHarnessStateRootKeepsCachedRunsStable(t *testing.T) {
 	repoRoot := t.TempDir()
 	cached, err := buildHarnessStateRoot(repoRoot, true)
