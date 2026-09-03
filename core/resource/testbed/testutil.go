@@ -43,7 +43,7 @@ import (
 
 // SetupResourceClient creates pipes, muxed connections, and resource client for testing.
 // Returns the resource client and a cleanup function.
-func SetupResourceClient(ctx context.Context, t *testing.T, tb *world_testbed.Testbed) (*resource_client.Client, func()) {
+func SetupResourceClient(ctx context.Context, t testing.TB, tb *world_testbed.Testbed) (*resource_client.Client, func()) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
 	le := logrus.NewEntry(logger)
@@ -101,7 +101,7 @@ func SetupResourceClient(ctx context.Context, t *testing.T, tb *world_testbed.Te
 
 // SetupTestbedWithClient creates a hydra testbed and resource client for testing.
 // Returns the testbed, resource client, and a cleanup function.
-func SetupTestbedWithClient(ctx context.Context, t *testing.T) (*world_testbed.Testbed, *resource_client.Client, func()) {
+func SetupTestbedWithClient(ctx context.Context, t testing.TB) (*world_testbed.Testbed, *resource_client.Client, func()) {
 	// Create hydra world testbed
 	tb, err := world_testbed.Default(ctx)
 	if err != nil {
