@@ -4,6 +4,8 @@ package devtool
 
 import (
 	"context"
+	"errors"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -449,4 +451,45 @@ func (d *DevtoolBus) startCachedManifestFetchController(ctx context.Context) (fu
 	return d.GetBus().AddController(ctx, ctrl, func(err error) {
 		d.GetLogger().WithError(err).Error("cached manifest fetch controller failed")
 	})
+}
+
+func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server, onListening func(string) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	listener, err := net.Listen("tcp", server.Addr)
+	if err != nil {
+		return err
+	}
+
+	serveErrCh := make(chan error, 1)
+	go func() { serveErrCh <- server.Serve(listener) }()
+	stopShutdownCh := make(chan struct{})
+	shutdownErrCh := make(chan error, 1)
+	go func() {
+		select {
+		case <-ctx.Done():
+			// Drain plain HTTP requests without a deadline. Upgraded
+			// (hijacked) connections are not tracked by Shutdown; their
+			// lifecycle owner closes and joins them separately.
+			shutdownErrCh <- server.Shutdown(context.WithoutCancel(ctx))
+		case <-stopShutdownCh:
+			shutdownErrCh <- nil
+		}
+	}()
+
+	var callbackErr error
+	if onListening != nil {
+		callbackErr = onListening(listener.Addr().String())
+		if callbackErr != nil {
+			_ = server.Close()
+		}
+	}
+	serveErr := <-serveErrCh
+	close(stopShutdownCh)
+	shutdownErr := <-shutdownErrCh
+	if errors.Is(serveErr, http.ErrServerClosed) {
+		serveErr = nil
+	}
+	return errors.Join(callbackErr, serveErr, shutdownErr)
 }
