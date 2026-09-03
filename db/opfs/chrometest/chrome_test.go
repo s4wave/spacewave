@@ -1855,6 +1855,63 @@ func envIntDefault(t testing.TB, key string, def int) int {
 	return val
 }
 
+// BenchmarkOpfsChromeProductVolumeKVWrite commits one key per write
+// transaction on the product OPFS volume inside real Chromium workers. The
+// worker reports total elapsed nanos and ops; ns/op is derived here.
+func BenchmarkOpfsChromeProductVolumeKVWrite(b *testing.B) {
+	benchmarkOpfsChromeProductVolumeKVWrite(b, "volume-kv-write-per-op")
+}
+
+// BenchmarkOpfsChromeProductVolumeKVWriteSingleTx puts all values into one
+// write transaction and commits once. The delta from
+// BenchmarkOpfsChromeProductVolumeKVWrite isolates per-transaction commit
+// overhead on the product blockshard-pagestore path.
+func BenchmarkOpfsChromeProductVolumeKVWriteSingleTx(b *testing.B) {
+	benchmarkOpfsChromeProductVolumeKVWrite(b, "volume-kv-write-single-tx")
+}
+
+func benchmarkOpfsChromeProductVolumeKVWrite(b *testing.B, scenario string) {
+	requireChromeProfile(b, chromeStress)
+	h := newChromeHarness(b)
+	s := h.newSession(b)
+	defer s.close(b)
+
+	for _, size := range []int{4 << 10, 64 << 10} {
+		b.Run(strconv.Itoa(size), func(b *testing.B) {
+			// Unique root per size and session so no run reuses another
+			// run's tree state.
+			root := fmt.Sprintf("opfs-chrome-kv-%s-%d-%d", scenario, size, time.Now().UnixNano())
+			// Pre-delete of any stale root and the final delete below both
+			// fail loudly on non-NotFound errors (clearRoot), so a live
+			// stale handle aborts instead of measuring contamination.
+			clearRes := s.runWorker(b, workerArgs{scenario: "clear", root: root})
+			if !clearRes.ok {
+				b.Fatal(clearRes.err)
+			}
+			res := s.runWorker(b, workerArgs{
+				scenario:   scenario,
+				root:       root,
+				iterations: b.N,
+				batch:      size,
+				shards:     defaultShards,
+			})
+			if !res.ok {
+				b.Fatal(res.err)
+			}
+			delRes := s.runWorker(b, workerArgs{scenario: "clear", root: root})
+			if !delRes.ok {
+				b.Fatalf("final volume root delete: %s", delRes.err)
+			}
+			if res.ops == 0 || res.opNanos == 0 {
+				b.Fatal("worker reported no benchmark timing")
+			}
+			// Distinct unit name: the default ns/op column would report
+			// harness wall time per op, not storage cost.
+			b.ReportMetric(float64(res.opNanos)/float64(res.ops), "storage-ns/op")
+		})
+	}
+}
+
 func startChromeHarness() (*chromeHarness, error) {
 	dir, err := os.MkdirTemp("", "opfs-chrometest-*")
 	if err != nil {
@@ -2654,6 +2711,8 @@ func decodeWorkerResults(raw any) ([]workerResult, error) {
 			blocks:        intField(m, "blocks"),
 			publishGen:    intField(m, "publishGen"),
 			remoteHandles: intField(m, "remoteHandles"),
+			opNanos:       int64Field(m, "opNanos"),
+			ops:           int64Field(m, "ops"),
 		}
 	}
 	return results, nil
@@ -2711,6 +2770,22 @@ func intFieldOK(m map[string]any, key string) (int, bool) {
 	}
 }
 
+func int64Field(m map[string]any, key string) int64 {
+	v, _ := int64FieldOK(m, key)
+	return v
+}
+
+func int64FieldOK(m map[string]any, key string) (int64, bool) {
+	switch v := m[key].(type) {
+	case int:
+		return int64(v), true
+	case float64:
+		return int64(v), true
+	default:
+		return 0, false
+	}
+}
+
 type workerArgs struct {
 	scenario   string
 	root       string
@@ -2757,6 +2832,8 @@ type workerResult struct {
 	blocks        int
 	publishGen    int
 	remoteHandles int
+	opNanos       int64
+	ops           int64
 }
 
 type workerScriptEnvelope struct {

@@ -298,6 +298,10 @@ func run(ctx context.Context, c *config) error {
 		return runVolumeRuntimeVerifyReset(ctx, c, volume_opfs.ResetReasonUnknown)
 	case "volume-runtime-delete-verify":
 		return runVolumeRuntimeDeleteVerify(ctx, c)
+	case "volume-kv-write-per-op":
+		return runVolumeKVWritePerOp(ctx, c)
+	case "volume-kv-write-single-tx":
+		return runVolumeKVWriteSingleTx(ctx, c)
 	case "volume-coord-local":
 		return runVolumeCoordinatorLocal(ctx, c)
 	case "volume-coord-watch":
@@ -2209,6 +2213,88 @@ func runVolumeRuntimeWrite(ctx context.Context, c *config) error {
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return errors.Wrap(err, "commit volume meta")
+	}
+	return nil
+}
+
+// volumeKVKey returns the benchmark key for one write iteration.
+func volumeKVKey(i int) []byte {
+	return []byte("bench/kv/" + strconv.Itoa(i))
+}
+
+// volumeKVValue returns the benchmark payload; batch carries the size in bytes.
+func volumeKVValue(c *config) []byte {
+	return bytes.Repeat([]byte{0x61}, c.batch)
+}
+
+// openVolumeKVBench opens the product OPFS volume for the KV write benchmarks
+// with driver_mode pinned to standard-wasm, the ABI the product ships.
+func openVolumeKVBench(ctx context.Context, c *config) (*volume_opfs.Opfs, error) {
+	conf := newOPFSConfig(c)
+	conf.DriverMode = "standard-wasm"
+	return volume_opfs.NewOpfs(ctx, logrus.NewEntry(logrus.New()), conf)
+}
+
+// runVolumeKVWritePerOp commits one key per write transaction. opNanos covers
+// every iteration including transaction open and commit.
+func runVolumeKVWritePerOp(ctx context.Context, c *config) error {
+	vol, err := openVolumeKVBench(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer vol.Close()
+	store := vol.GetKvtxStore()
+
+	start := time.Now()
+	for i := range c.iterations {
+		tx, err := store.NewTransaction(ctx, true)
+		if err != nil {
+			return errors.Wrap(err, "open kv write tx")
+		}
+		if err := tx.Set(ctx, volumeKVKey(i), volumeKVValue(c)); err != nil {
+			tx.Discard()
+			return errors.Wrap(err, "set kv")
+		}
+		if err := tx.Commit(ctx); err != nil {
+			tx.Discard()
+			return errors.Wrap(err, "commit kv tx")
+		}
+	}
+	benchExtra = map[string]int64{
+		"opNanos": time.Since(start).Nanoseconds(),
+		"ops":     int64(c.iterations),
+	}
+	return nil
+}
+
+// runVolumeKVWriteSingleTx puts all values into one write transaction and
+// commits once. opNanos covers every set plus the single commit.
+func runVolumeKVWriteSingleTx(ctx context.Context, c *config) error {
+	vol, err := openVolumeKVBench(ctx, c)
+	if err != nil {
+		return err
+	}
+	defer vol.Close()
+	store := vol.GetKvtxStore()
+
+	tx, err := store.NewTransaction(ctx, true)
+	if err != nil {
+		return errors.Wrap(err, "open kv write tx")
+	}
+	defer tx.Discard()
+
+	start := time.Now()
+	for i := range c.iterations {
+		if err := tx.Set(ctx, volumeKVKey(i), volumeKVValue(c)); err != nil {
+			return errors.Wrap(err, "set kv")
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return errors.Wrap(err, "commit kv tx")
+	}
+	benchExtra = map[string]int64{
+		"opNanos": time.Since(start).Nanoseconds(),
+		"ops":     int64(c.iterations),
 	}
 	return nil
 }
