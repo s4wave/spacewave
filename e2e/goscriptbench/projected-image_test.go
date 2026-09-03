@@ -6,18 +6,130 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"io"
+	"net/http"
 	"os"
+	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/util/gitroot"
 	trace_service "github.com/s4wave/spacewave/core/trace/service"
 	wasm "github.com/s4wave/spacewave/e2e/wasm"
 	"github.com/sirupsen/logrus"
 )
 
 const projectedImageSmokeEnv = "E2E_GOSCRIPT_STORAGE_BENCH"
+
+// TestProjectedImageCacheDisabledRebuildsStartupModule proves that
+// E2E_WASM_STARTUP_BUILD_CACHE=false rebuilds changed app/prerender sources.
+//
+// The devtool shell served at / never embeds app/prerender/index.html; the
+// startup module graph does reach served output. boot-status.ts contributes
+// the loading detail literal, which lands verbatim in the compiled
+// entrypoint/startup-*.mjs chunk referenced by entrypoint.mjs.
+func TestProjectedImageCacheDisabledRebuildsStartupModule(t *testing.T) {
+	if !strings.EqualFold(strings.TrimSpace(os.Getenv(projectedImageSmokeEnv)), "true") {
+		t.Skipf("set %s=true to run the retained-OPFS browser smoke", projectedImageSmokeEnv)
+	}
+
+	repoRoot, err := gitroot.FindRepoRoot()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	bootStatusPath := filepath.Join(repoRoot, "app", "prerender", "boot-status.ts")
+	bootStatusInfo, err := os.Stat(bootStatusPath)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	originalMode := bootStatusInfo.Mode()
+	original, err := os.ReadFile(bootStatusPath)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	const servedDetail = "Loading application..."
+	const rebuiltDetail = "cache-disabled rebuild proof"
+	if !strings.Contains(string(original), servedDetail) {
+		t.Fatalf("%s does not contain %q", bootStatusPath, servedDetail)
+	}
+	defer func() {
+		if err := os.WriteFile(bootStatusPath, original, originalMode); err != nil {
+			t.Errorf("restore web source: %v", err)
+		}
+	}()
+
+	// Seed a known baseline through the preserved startup build cache and
+	// verify the served startup module before mutating any source.
+	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "true")
+	first := bootProjectedImageHarness(t, wasm.WithStartupBuildCache(true))
+	t.Cleanup(first.Release)
+	assertServedStartupModuleContains(t, first.BaseURL(), servedDetail)
+
+	updated := strings.Replace(string(original), servedDetail, rebuiltDetail, 1)
+	if err := os.WriteFile(bootStatusPath, []byte(updated), 0o644); err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Setenv("E2E_WASM_STARTUP_BUILD_CACHE", "false")
+	second := bootProjectedImageHarness(t)
+	defer second.Release()
+	assertServedStartupModuleContains(t, second.BaseURL(), rebuiltDetail)
+}
+
+// assertServedStartupModuleContains fetches the compiled startup module the
+// way the browser does: through entrypoint.mjs and its startup chunk import.
+func assertServedStartupModuleContains(t *testing.T, baseURL, want string) {
+	t.Helper()
+	entrypointBody := fetchBody(t, baseURL+"/entrypoint/entrypoint.mjs")
+	chunkRef := startupChunkRegexp.FindString(entrypointBody)
+	if chunkRef == "" {
+		t.Fatalf("entrypoint.mjs references no startup chunk")
+	}
+	body := fetchBody(t, baseURL+"/entrypoint/"+chunkRef)
+	if !strings.Contains(body, want) {
+		t.Fatalf("served startup module %s does not contain %q", chunkRef, want)
+	}
+}
+
+var startupChunkRegexp = regexp.MustCompile(`startup-[A-Za-z0-9_-]+\.mjs`)
+
+func fetchBody(t *testing.T, url string) string {
+	t.Helper()
+	resp, err := http.Get(url)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET %s: status %d", url, resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return string(body)
+}
+
+func bootProjectedImageHarness(t *testing.T, extra ...wasm.Option) *wasm.Harness {
+	t.Helper()
+	options := []wasm.Option{
+		wasm.WithSessionHarness(),
+		wasm.WithGoScriptBrowserStartup(),
+		wasm.WithWorkerMode(wasm.WorkerModeDedicated),
+		wasm.WithBrowserName("chromium"),
+		wasm.WithManifestBuildTimeout(20 * time.Minute),
+	}
+	options = append(options, extra...)
+	logger := logrus.New()
+	logger.SetLevel(logrus.DebugLevel)
+	harness, err := wasm.Boot(t.Context(), logrus.NewEntry(logger), options...)
+	if err != nil {
+		t.Fatalf("boot GoScript browser harness: %v", err)
+	}
+	return harness
+}
 
 func TestProjectedImageSetupScriptCompiles(t *testing.T) {
 	scripts, err := wasm.CompileTestScripts(".", t.TempDir())
@@ -291,29 +403,13 @@ func newProjectedImageHarness(t *testing.T, engine string, trace bool) *wasm.Har
 	t.Setenv(wasm.E2EWasmCompilerEnv, string(wasm.E2EWasmCompilerGoScript))
 	t.Setenv(wasm.E2EWasmWorkerModeEnv, string(wasm.WorkerModeDedicated))
 
-	options := []wasm.Option{
-		wasm.WithSessionHarness(),
-		wasm.WithGoScriptBrowserStartup(),
-		wasm.WithWorkerMode(wasm.WorkerModeDedicated),
-		wasm.WithBrowserName(engine),
-		wasm.WithStartupBuildCache(true),
-		wasm.WithManifestBuildTimeout(20 * time.Minute),
-	}
+	options := []wasm.Option{wasm.WithBrowserName(engine)}
 	if trace {
 		t.Setenv(wasm.E2EWasmGoScriptRuntimeTraceEnv, "true")
 		options = append(options, wasm.WithConfigMutator(trace_service.InjectTraceConfig))
 	}
 
-	logger := logrus.New()
-	logger.SetLevel(logrus.DebugLevel)
-	harness, err := wasm.Boot(
-		t.Context(),
-		logrus.NewEntry(logger),
-		options...,
-	)
-	if err != nil {
-		t.Fatalf("boot GoScript browser harness: %v", err)
-	}
+	harness := bootProjectedImageHarness(t, options...)
 	t.Cleanup(harness.Release)
 	if err := harness.LaunchBrowser(); err != nil {
 		t.Fatalf("launch %s: %v", engine, err)
