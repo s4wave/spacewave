@@ -3,6 +3,7 @@ package provider_local
 import (
 	"bytes"
 	"context"
+	"sort"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/loader"
@@ -10,6 +11,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/broadcast"
 	"github.com/pkg/errors"
+
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_invite "github.com/s4wave/spacewave/core/sobject/invite"
 	sobject_sync "github.com/s4wave/spacewave/core/sobject/sync"
@@ -17,6 +19,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	dex_solicit "github.com/s4wave/spacewave/db/dex/solicit"
 	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/link"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -44,6 +47,61 @@ type p2pSyncState struct {
 	relFns           []func()
 	stores           map[string]block.StoreOps
 	soIDs            map[string]struct{}
+	// linkRefs holds one retained EstablishLinkWithPeer reference per
+	// locally authorized paired-device peer. Reconciliation adds and
+	// releases entries as paired devices change; cleanup drains the rest.
+	linkRefs map[string]directive.Reference
+	// linkWatchStarted ensures the reconcile watcher starts once.
+	linkWatchStarted bool
+}
+
+// hasLinkRef reports whether a link directive for the peer is retained.
+func (s *p2pSyncState) hasLinkRef(peerID string) bool {
+	var ok bool
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		_, ok = s.linkRefs[peerID]
+	})
+	return ok
+}
+
+// holdLinkRef retains a link directive reference for the peer.
+func (s *p2pSyncState) holdLinkRef(peerID string, ref directive.Reference) {
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		if s.linkRefs == nil {
+			s.linkRefs = make(map[string]directive.Reference)
+		}
+		s.linkRefs[peerID] = ref
+		bcast()
+	})
+}
+
+// releaseLinkRef releases and drops the retained link directive for the
+// peer. Reports whether one was held.
+func (s *p2pSyncState) releaseLinkRef(peerID string) bool {
+	var ref directive.Reference
+	s.bcast.HoldLock(func(bcast func(), _ func() <-chan struct{}) {
+		ref = s.linkRefs[peerID]
+		if ref != nil {
+			delete(s.linkRefs, peerID)
+		}
+		bcast()
+	})
+	if ref != nil {
+		ref.Release()
+	}
+	return ref != nil
+}
+
+// heldLinkPeers returns the peers with retained link directives.
+func (s *p2pSyncState) heldLinkPeers() []string {
+	var out []string
+	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		for peerID := range s.linkRefs {
+			out = append(out, peerID)
+		}
+	})
+	sort.Strings(out)
+	return out
 }
 
 func (a *ProviderAccount) retainP2PSyncStateLocked(ctx context.Context, state *p2pSyncState) bool {
@@ -515,7 +573,156 @@ func (a *ProviderAccount) startP2PSyncControllers(
 			*inviteStarted = true
 		}
 	}
+
+	a.startPairingLinkReconcile(syncCtx, sessionTransport, childBus, state)
 	return syncCtx.Err()
+}
+
+// startPairingLinkReconcile reconciles retained link directives with the
+// account's locally authorized paired devices and keeps reconciling until
+// the P2P sync state ends.
+//
+// Paired-device bindings are the only link authority: they are recorded in
+// owner-signed AccountSettings state. Received SO config participants and
+// grants are deliberately NOT authority - current SOSync can persist a
+// self-authored received config and does not verify lineage - so they never
+// create or retain link directives.
+func (a *ProviderAccount) startPairingLinkReconcile(
+	ctx context.Context,
+	sessionTransport *transport.SessionTransport,
+	childBus bus.Bus,
+	state *p2pSyncState,
+) {
+	spawn := false
+	state.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if !state.linkWatchStarted {
+			state.linkWatchStarted = true
+			spawn = true
+		}
+	})
+
+	a.reconcilePairingLinks(ctx, sessionTransport, childBus, state)
+
+	if !spawn {
+		return
+	}
+	state.addWorker()
+	go func() {
+		defer state.workerDone()
+		if err := a.watchPairingLinkChanges(ctx, sessionTransport, childBus, state); err != nil && ctx.Err() == nil {
+			a.le.WithError(err).Warn("paired-device link reconcile ended")
+		}
+	}()
+}
+
+// watchPairingLinkChanges re-runs link reconciliation whenever the account
+// settings shared object changes.
+func (a *ProviderAccount) watchPairingLinkChanges(
+	ctx context.Context,
+	sessionTransport *transport.SessionTransport,
+	childBus bus.Bus,
+	state *p2pSyncState,
+) error {
+	ref, err := a.GetAccountSettingsRef(ctx)
+	if errors.Is(err, sobject.ErrSharedObjectNotFound) {
+		// No settings object: there are no paired devices to retain.
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	so, relSO, err := a.MountSharedObject(ctx, ref, nil)
+	if err != nil {
+		return err
+	}
+	defer relSO()
+
+	localSO, ok := so.(*SharedObject)
+	if !ok {
+		return errors.New("unexpected shared object type for settings watch")
+	}
+	stateCtr, relCtr, err := localSO.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer relCtr()
+
+	var prev sobject.SharedObjectStateSnapshot
+	for {
+		snap, err := stateCtr.WaitValueChange(ctx, prev, nil)
+		if err != nil {
+			return err
+		}
+		prev = snap
+		a.reconcilePairingLinks(ctx, sessionTransport, childBus, state)
+	}
+}
+
+// reconcilePairingLinks diffs the desired paired-device set against the
+// retained link directives: additions gain a directive, removals release
+// theirs immediately.
+func (a *ProviderAccount) reconcilePairingLinks(
+	ctx context.Context,
+	sessionTransport *transport.SessionTransport,
+	childBus bus.Bus,
+	state *p2pSyncState,
+) {
+	ownPeerID := sessionTransport.GetPeerID().String()
+
+	var deviceIDs []string
+	devices, err := a.readPairedDevices(ctx)
+	if err != nil {
+		if ctx.Err() == nil {
+			a.le.WithError(err).Warn("failed to read paired devices for link retention")
+		}
+	} else {
+		for _, device := range devices {
+			deviceIDs = append(deviceIDs, device.GetPeerId())
+		}
+	}
+
+	desired := make(map[string]struct{}, len(deviceIDs))
+	for _, peerID := range deviceIDs {
+		if peerID == "" || peerID == ownPeerID {
+			continue
+		}
+		if _, err := peer.IDB58Decode(peerID); err != nil {
+			a.le.WithError(err).WithField("peer-id", peerID).
+				Warn("skipping invalid paired-device peer id for link retention")
+			continue
+		}
+		desired[peerID] = struct{}{}
+	}
+
+	for _, peerID := range state.heldLinkPeers() {
+		if _, ok := desired[peerID]; !ok {
+			state.releaseLinkRef(peerID)
+			a.le.WithField("peer-id", peerID).Debug("released retained sync peer link")
+		}
+	}
+
+	for peerID := range desired {
+		if state.hasLinkRef(peerID) {
+			continue
+		}
+		dst, err := peer.IDB58Decode(peerID)
+		if err != nil {
+			continue
+		}
+		_, diRef, err := childBus.AddDirective(
+			link.NewEstablishLinkWithPeer(sessionTransport.GetPeerID(), dst),
+			nil,
+		)
+		if err != nil {
+			if ctx.Err() == nil {
+				a.le.WithError(err).WithField("peer-id", peerID).
+					Warn("failed to retain sync peer link")
+			}
+			continue
+		}
+		state.holdLinkRef(peerID, diRef)
+	}
 }
 
 // GetP2PSyncSnapshotWithWait returns whether P2P sync is running and a channel
@@ -647,6 +854,10 @@ func (a *ProviderAccount) stopP2PSyncState(state *p2pSyncState) {
 		relFns = state.relFns
 		state.refs = nil
 		state.relFns = nil
+		for _, ref := range state.linkRefs {
+			refs = append(refs, ref)
+		}
+		state.linkRefs = nil
 	})
 	for _, ref := range refs {
 		ref.Release()
