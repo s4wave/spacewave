@@ -491,6 +491,12 @@ js_plugin("spacewave-notes", rev=1, modules=[
     js_module("JS_MODULE_KIND_FRONTEND", "./plugin/notes/NotesWizardViewer.tsx"),
 ])
 
+js_plugin("spacewave-sdk-counter", rev=1, modules=[
+    js_module("JS_MODULE_KIND_BACKEND", "./sdk/plugin/testdata/backend.ts",
+              entrypoint=True),
+    js_module("JS_MODULE_KIND_FRONTEND", "./sdk/plugin/testdata/CounterViewer.tsx"),
+])
+
 js_plugin("spacewave-v86", rev=1, modules=[
     js_module("JS_MODULE_KIND_BACKEND", "./plugin/v86/backend.ts",
               entrypoint=True),

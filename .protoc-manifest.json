@@ -3557,7 +3557,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/plugin/testdata": {
-      "hash": "a39487db255719fb3424db0a5cc7f677dabe75ce4e7f24d2092212497dc908ae",
+      "hash": "7d95ac2d5778db753d531b2ad2185d3db6981a85f52a18746db0618132cc22a1",
       "generatedFiles": [
         "sdk/plugin/testdata/counter.pb.go",
         "sdk/plugin/testdata/counter.pb.ts",

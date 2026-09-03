@@ -163,7 +163,7 @@ describe('definePlugin', () => {
           typeId: 'example/counter',
           componentId: 'example.counter.viewer',
           viewerName: 'Counter',
-          scriptPath: './CounterViewer.js',
+          scriptPath: '/CounterViewer.js',
         },
       ],
     })

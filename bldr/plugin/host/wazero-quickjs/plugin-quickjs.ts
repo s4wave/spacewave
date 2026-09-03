@@ -11,6 +11,7 @@ import { applyPolyfills } from './quickjs/polyfill.js'
 import { BackendApiImpl } from '../../../sdk/impl/backend-api.js'
 import { PluginHostRoot } from '../../../sdk/plugin/host/plugin-host-root.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
+import { startBackendEntrypoint } from './lifecycle.js'
 
 // Utility function to properly log errors
 function logError(message: string, err: unknown): void {
@@ -150,15 +151,20 @@ async function startPlugin() {
   const pluginLifetime = new Promise<void>(() => {})
   retainRuntimeRoot({ script, backendAPI, abortController, pluginLifetime })
 
-  // Call the imported module's main function, passing the API implementation.
-  await script.default(backendAPI, abortSignal)
+  // Call the imported module's main function and honor the shared lifecycle
+  // contract before publishing capability readiness.
+  const entrypointLifecycle = await startBackendEntrypoint(
+    script.default,
+    backendAPI,
+    abortSignal,
+  )
   {
     using pluginHostRoot = new PluginHostRoot(
       await backendAPI.resourceClient.accessRootResource(),
     )
     await pluginHostRoot.completeInitialCapabilityRegistration(abortSignal)
   }
-  await pluginLifetime
+  await (entrypointLifecycle?.done ?? pluginLifetime)
 }
 
 // immediately call startPlugin

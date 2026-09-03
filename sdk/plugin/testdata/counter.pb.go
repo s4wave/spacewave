@@ -75,6 +75,26 @@ func (x *GetCounterResponse) GetValue() int64 {
 	return 0
 }
 
+// CounterState is the persisted block value for the counter fixture.
+type CounterState struct {
+	unknownFields []byte
+	// Value is the initialized counter value.
+	Value int64 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (x *CounterState) Reset() {
+	*x = CounterState{}
+}
+
+func (*CounterState) ProtoMessage() {}
+
+func (x *CounterState) GetValue() int64 {
+	if x != nil {
+		return x.Value
+	}
+	return 0
+}
+
 func (m *InitializeRequest) CloneVT() *InitializeRequest {
 	if m == nil {
 		return (*InitializeRequest)(nil)
@@ -134,6 +154,22 @@ func (m *GetCounterResponse) CloneVT() *GetCounterResponse {
 }
 
 func (m *GetCounterResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *CounterState) CloneVT() *CounterState {
+	if m == nil {
+		return (*CounterState)(nil)
+	}
+	r := new(CounterState)
+	r.Value = m.Value
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *CounterState) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -205,6 +241,26 @@ func (this *GetCounterResponse) EqualVT(that *GetCounterResponse) bool {
 
 func (this *GetCounterResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*GetCounterResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *CounterState) EqualVT(that *CounterState) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.Value != that.Value {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *CounterState) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*CounterState)
 	if !ok {
 		return false
 	}
@@ -355,6 +411,48 @@ func (x *GetCounterResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the CounterState message to JSON.
+func (x *CounterState) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Value != 0 || s.HasField("value") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("value")
+		s.WriteInt64(x.Value)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the CounterState to JSON.
+func (x *CounterState) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the CounterState message from JSON.
+func (x *CounterState) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "value":
+			s.AddField("value")
+			x.Value = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the CounterState from JSON.
+func (x *CounterState) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *InitializeRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -493,6 +591,43 @@ func (m *GetCounterResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *CounterState) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CounterState) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *CounterState) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Value != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Value))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *InitializeRequest) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -525,6 +660,17 @@ func (m *GetCounterRequest) SizeVT() (n int) {
 }
 
 func (m *GetCounterResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Value)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *CounterState) SizeVT() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -580,6 +726,20 @@ func (x *GetCounterResponse) MarshalProtoText() string {
 }
 
 func (x *GetCounterResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *CounterState) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "CounterState")
+	if x.Value != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
+		protobuf_go_lite.TextWriteInt(&sb, x.Value)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *CounterState) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -739,6 +899,58 @@ func (m *GetCounterResponse) UnmarshalVT(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: GetCounterResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			m.Value = 0
+			m.Value, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *CounterState) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CounterState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CounterState: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

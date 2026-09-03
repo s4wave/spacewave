@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/creack/pty"
 	bldr_manifest_builder_controller "github.com/s4wave/spacewave/bldr/manifest/builder/controller"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	bldr_plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
 	bldr_plugin_compiler_js "github.com/s4wave/spacewave/bldr/plugin/compiler/js"
 	plugin_host_process "github.com/s4wave/spacewave/bldr/plugin/host/process"
@@ -194,6 +196,12 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	defer projCtrlRef.Release()
 	_ = projCtrl
 
+	if err := tb.GetScheduler().WaitPluginsRunning(
+		ctx, projectConfig.GetStart().GetPlugins(),
+	); err != nil {
+		t.Fatalf("wait for startup plugins: %v", err)
+	}
+
 	// Start the browser test server that exposes the full resource API
 	browserServer := s4wave_core_e2e_browser.NewBrowserTestServer(le, b)
 	port, err := browserServer.Start(ctx)
@@ -203,6 +211,17 @@ func TestBrowserE2EWithBldr(t *testing.T) {
 	defer browserServer.Stop(ctx)
 
 	t.Logf("browser test server started on port %d", port)
+
+	_, _, counterPluginRef, err := bldr_plugin.ExLoadPlugin(
+		ctx, b, false, "spacewave-sdk-counter", nil,
+	)
+	if err != nil {
+		t.Fatalf("load TypeScript SDK fixture plugin: %v", err)
+	}
+	var stopCounterOnce sync.Once
+	stopCounter := func() { stopCounterOnce.Do(counterPluginRef.Release) }
+	defer stopCounter()
+	browserServer.SetStopFixturePlugin(stopCounter)
 
 	// Build vitest command arguments.
 	// Base command: vitest --config=vitest.browser.config.ts

@@ -83,3 +83,26 @@ export const GetCounterResponse: MessageType<GetCounterResponse> =
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * CounterState is the persisted block value for the counter fixture.
+ *
+ * @generated from message s4wave.plugin.testdata.counter.CounterState
+ */
+export interface CounterState {
+  /**
+   * Value is the initialized counter value.
+   *
+   * @generated from field: int64 value = 1;
+   */
+  value?: bigint
+}
+
+export const CounterState: MessageType<CounterState> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.plugin.testdata.counter.CounterState',
+    fields: [
+      { no: 1, name: 'value', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

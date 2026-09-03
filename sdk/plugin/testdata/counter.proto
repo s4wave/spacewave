@@ -30,3 +30,9 @@ message GetCounterResponse {
   // Value is the stored counter value.
   int64 value = 1;
 }
+
+// CounterState is the persisted block value for the counter fixture.
+message CounterState {
+  // Value is the initialized counter value.
+  int64 value = 1;
+}

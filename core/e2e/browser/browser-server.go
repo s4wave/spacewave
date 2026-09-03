@@ -33,6 +33,8 @@ type BrowserTestServer struct {
 	pluginClientRef func()
 	// layoutStateCtr holds the current layout model state for the standalone LayoutHost
 	layoutStateCtr *ccontainer.CContainer[*s4wave_layout.LayoutModel]
+	// stopFixturePlugin aborts the joined SDK fixture through its real load directive.
+	stopFixturePlugin func()
 }
 
 // NewBrowserTestServer creates a new BrowserTestServer.
@@ -100,6 +102,11 @@ func (s *BrowserTestServer) Start(ctx context.Context) (int, error) {
 // per-tab path data.
 func (s *BrowserTestServer) navigateTab(ctx context.Context, req *s4wave_layout.NavigateTabRequest) (*s4wave_layout.NavigateTabResponse, error) {
 	tabID := req.GetTabId()
+	if tabID == "stop-sdk-fixture-plugin" && s.stopFixturePlugin != nil {
+		s.stopFixturePlugin()
+		s.stopFixturePlugin = nil
+		return &s4wave_layout.NavigateTabResponse{}, nil
+	}
 	if tabID == "" {
 		return &s4wave_layout.NavigateTabResponse{}, nil
 	}
@@ -160,6 +167,11 @@ func (s *BrowserTestServer) setupInitialLayoutModel() {
 		},
 	}
 	s.layoutStateCtr.SetValue(initialModel)
+}
+
+// SetStopFixturePlugin installs the joined SDK fixture abort operation.
+func (s *BrowserTestServer) SetStopFixturePlugin(stop func()) {
+	s.stopFixturePlugin = stop
 }
 
 // Stop stops the server and releases the plugin client.

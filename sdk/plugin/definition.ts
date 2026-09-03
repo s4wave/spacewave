@@ -10,6 +10,7 @@ import {
 } from 'starpc'
 import { MethodKind, type MessageType } from '@aptre/protobuf-es-lite'
 import type {
+  BackendAPI,
   BackendEntrypointFunc,
   BackendEntrypointLifecycle,
 } from '@aptre/bldr-sdk'
@@ -36,6 +37,8 @@ import {
 import type { ViewerRegistration } from '@s4wave/sdk/viewer/registry/registry.pb.js'
 import { ViewerRegistryResourceServiceClient } from '@s4wave/sdk/viewer/registry/registry_srpc.pb.js'
 import { Engine } from '@s4wave/sdk/world/engine.js'
+import { FSCursorServiceClient } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/rpc_srpc.pb.js'
+import { buildFSHandle } from '@go/github.com/s4wave/spacewave/db/unixfs/rpc/client/fs-handle.js'
 
 // ResourceServiceDefinition is a generated StarRPC Resource service definition.
 export type ResourceServiceDefinition = Parameters<typeof createHandler>[0]
@@ -206,6 +209,40 @@ function waitForAbort(signal: AbortSignal): Promise<void> {
   })
 }
 
+type ViteManifestEntry = {
+  file?: string
+}
+
+async function resolveViewerScriptPath(
+  api: BackendAPI,
+  signal: AbortSignal,
+  scriptPath: string | undefined,
+): Promise<string> {
+  if (!scriptPath?.startsWith('./')) return scriptPath ?? ''
+  const assets = new FSCursorServiceClient(api.client, {
+    service: 'plugin-assets/unixfs.rpc.FSCursorService',
+  })
+  using root = await buildFSHandle(assets, signal)
+  const { handle: manifest } = await root.lookupPath(
+    signal,
+    'v/b/fe/.vite/manifest.json',
+  )
+  using _ = manifest
+  const size = await manifest.getSize(signal)
+  const { data } = await manifest.readAt(signal, 0n, size)
+  const entries = JSON.parse(new TextDecoder().decode(data)) as Record<
+    string,
+    ViteManifestEntry
+  >
+  const output = entries[scriptPath.slice(2)]?.file
+  if (!output)
+    throw new Error('viewer script is absent from Vite manifest: ' + scriptPath)
+  return api.utils.pluginAssetHttpPath(
+    api.startInfo.pluginId ?? '',
+    'v/b/fe/' + output,
+  )
+}
+
 class RetainedRegistrationRefs {
   private readonly refs: ClientResourceRef[] = []
   private released = false
@@ -324,8 +361,13 @@ export function definePlugin<
           )
           await Promise.all(
             viewers.map(async (viewer) => {
+              const scriptPath = await resolveViewerScriptPath(
+                api,
+                signal,
+                viewer.scriptPath,
+              )
               const response = await registry.RegisterViewer(
-                { registration: viewer },
+                { registration: { ...viewer, scriptPath } },
                 signal,
               )
               registrations.retainChild(

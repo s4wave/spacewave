@@ -16,11 +16,27 @@ import {
   getTestServerPort,
 } from '@s4wave/web/test/e2e-client.js'
 import { ResourceServiceClient } from '@aptre/bldr-sdk/resource/resource_srpc.pb.js'
-import { Client as ResourceClient } from '@aptre/bldr-sdk/resource/index.js'
+import {
+  Client as ResourceClient,
+  type ResourceReleasedEvent,
+  type ResourceReleaseReason,
+} from '@aptre/bldr-sdk/resource/index.js'
 import { Root } from '@s4wave/sdk/root/root.js'
 import { LocalProvider } from '@s4wave/sdk/provider/local/local.js'
 import { Space } from '@s4wave/sdk/space/space.js'
 import { AsyncDisposableStack } from '@aptre/bldr-sdk/defer.js'
+import { setObjectType } from '@s4wave/sdk/world/types/types.js'
+import { Counter, CounterTypeID } from '@s4wave/sdk/plugin/testdata/counter.js'
+import {
+  ViewerSurface,
+  type ViewerRegistration,
+} from '@s4wave/sdk/viewer/registry/registry.pb.js'
+import { ViewerRegistryResourceServiceClient } from '@s4wave/sdk/viewer/registry/registry_srpc.pb.js'
+import { viewerRegistrationToComponent } from '@s4wave/web/hooks/useViewerRegistry.js'
+import { render, cleanup } from 'vitest-browser-react'
+import { page } from 'vitest/browser'
+import { Suspense } from 'react'
+import { LayoutHostClient } from '@s4wave/sdk/layout/layout_srpc.pb.js'
 
 import { testLayoutCriticalPath } from '../core/e2e/layout-critical-path.js'
 
@@ -316,6 +332,154 @@ describe('Resources SDK with Real Backend E2E', () => {
     console.log('accessed world state')
 
     expect(worldState).not.toBeNull()
+  })
+
+  it('runs the TypeScript Counter ObjectType and dynamic viewer journey', async () => {
+    if (!client || !resourceClient) return
+
+    await using stack = new AsyncDisposableStack()
+    using rootRef = await resourceClient.accessRootResource()
+    const root = new Root(rootRef)
+    using localProvider = await root.lookupProvider('local')
+    const lp = new LocalProvider(localProvider.resourceRef)
+    const account = await lp.createAccount(abortController.signal)
+    const session = await root.mountSession(
+      { sessionRef: account.sessionListEntry?.sessionRef },
+      abortController.signal,
+    )
+    stack.defer(() => session[Symbol.dispose]())
+    const created = await session.createSpace(
+      { spaceName: 'TypeScript Counter Journey' },
+      abortController.signal,
+    )
+    const sharedObjectId = created.sharedObjectRef?.providerResourceRef?.id
+    const sharedObject = await session.mountSharedObject(
+      { sharedObjectId },
+      abortController.signal,
+    )
+    stack.defer(() => sharedObject[Symbol.dispose]())
+    const body = await sharedObject.mountSharedObjectBody(
+      {},
+      abortController.signal,
+    )
+    stack.defer(() => body[Symbol.dispose]())
+    const space = new Space(body.resourceRef.createRef(body.id))
+    stack.defer(() => space[Symbol.dispose]())
+    const contents = await space.mountSpaceContents(abortController.signal)
+    stack.defer(() => contents[Symbol.dispose]())
+
+    const world = await space.accessWorldState(true, abortController.signal)
+    stack.defer(() => world[Symbol.dispose]())
+    const objectKey = 'counter/main'
+    using object = await world.createObject(
+      objectKey,
+      {},
+      abortController.signal,
+    )
+    await setObjectType(world, objectKey, CounterTypeID, abortController.signal)
+
+    const firstAccess = await world.accessTypedObject(
+      objectKey,
+      abortController.signal,
+    )
+    expect(firstAccess.typeId).toBe(CounterTypeID)
+    const firstRef = world.getResourceRef().createRef(firstAccess.resourceId)
+    const first = new Counter(firstRef)
+    stack.defer(() => first[Symbol.dispose]())
+
+    // Discriminator probe: capture the typed facts that distinguish the
+    // ERR_RPC_ABORT producers. Fixture-only; removed once the abort source is
+    // identified and corrected at its owner.
+    const releasedEvents: Array<
+      ResourceReleasedEvent & { seq: number }
+    > = []
+    let connectionLost = false
+    let eventSeq = 0
+    const offReleased = resourceClient.onResourceReleased((event) => {
+      releasedEvents.push({ ...event, seq: ++eventSeq })
+    })
+    const offConnectionLost = resourceClient.onConnectionLost(() => {
+      connectionLost = true
+    })
+    try {
+      await first.initialize(7n, abortController.signal)
+    } catch (error) {
+      offReleased()
+      offConnectionLost()
+      const observed = {
+        callerAborted: abortController.signal.aborted,
+        childReleased: firstRef.released,
+        connectionLost,
+        releasedEvents,
+        error:
+          error instanceof Error
+            ? `${error.name}: ${error.message}`
+            : String(error),
+      }
+      throw new Error(
+        'counter discriminator: tuple not yet identified: '
+          + JSON.stringify(observed),
+        { cause: error },
+      )
+    }
+    offReleased()
+    offConnectionLost()
+    await expect(first.getCounter(abortController.signal)).resolves.toBe(7n)
+
+    const secondAccess = await world.accessTypedObject(
+      objectKey,
+      abortController.signal,
+    )
+    const second = new Counter(
+      world.getResourceRef().createRef(secondAccess.resourceId),
+    )
+    stack.defer(() => second[Symbol.dispose]())
+    await expect(second.getCounter(abortController.signal)).resolves.toBe(7n)
+
+    const registry = new ViewerRegistryResourceServiceClient(root.client)
+    const viewerSnapshot = await registry
+      .WatchViewers({ surface: ViewerSurface.WEB }, abortController.signal)
+      [Symbol.asyncIterator]()
+      .next()
+    const registration = viewerSnapshot.value?.registrations?.find(
+      (viewer: ViewerRegistration) =>
+        viewer.componentId === 'example.counter.viewer',
+    )
+    expect(registration?.scriptPath).toMatch(/^\/b\/pa\//)
+    const viewer = registration
+      ? viewerRegistrationToComponent(registration)
+      : null
+    expect(viewer).not.toBeNull()
+    const Viewer = viewer!.component
+    await render(
+      <Suspense fallback={<p>Loading counter viewer</p>}>
+        <Viewer
+          objectInfo={{
+            info: {
+              case: 'worldObjectInfo',
+              value: { objectKey, objectType: CounterTypeID },
+            },
+          }}
+          worldState={{
+            value: world,
+            loading: false,
+            error: null,
+            retry: () => {},
+          }}
+        />
+      </Suspense>,
+    )
+    await expect
+      .element(page.getByLabelText('Counter value'))
+      .toHaveTextContent('7')
+
+    const layout = new LayoutHostClient(client.getClient())
+    await layout.NavigateTab(
+      { tabId: 'stop-sdk-fixture-plugin' },
+      abortController.signal,
+    )
+    await expect(second.getCounter(abortController.signal)).rejects.toThrow()
+    await cleanup()
   })
 
   it('accesses state atom from root', async () => {
