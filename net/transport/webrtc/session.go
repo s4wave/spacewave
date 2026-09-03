@@ -384,6 +384,12 @@ type session struct {
 	// never retained across sessions.
 	retiredOfferIDs map[string]struct{}
 
+	// pendingRemoteIce holds remote ICE candidates buffered before their
+	// generation could accept them, tagged with the offer id they arrived
+	// under. A tracker restart hands this buffer to the successor with the
+	// session itself, so an in-flight trickle survives the restart.
+	pendingRemoteIce []pendingRemoteCandidate
+
 	// localIceCandidates contains the current list of local ice candidates.
 	localIceCandidates []*webrtc.ICECandidateInit
 	// localIceCandidatesComplete indicates the ice candidate list is complete.
@@ -661,6 +667,7 @@ func (s *session) close() {
 // uses it to dispose a handed-over session outside every w.bcast section.
 func (s *session) dispose() {
 	s.retiredOfferIDs = nil
+	s.pendingRemoteIce = nil
 	_ = s.pc.Close()
 }
 
@@ -683,10 +690,41 @@ func (s *sessionTracker) adoptSession(sess *session) <-chan struct{} {
 // this session transmits signals for: the pending local offer while offering,
 // otherwise the remote offer applied to this session.
 func (s *session) activeOfferID() []byte {
-	if s.t.offerer {
+	if s.t != nil && s.t.offerer {
 		return s.pendingOfferID
 	}
 	return s.rxOfferID
+}
+
+// retransmitOutstandingOffer replays the identical outstanding local offer
+// bytes and generation identity instead of minting a new generation, so an
+// in-flight answer still correlates. The minted bytes are replayed verbatim:
+// Pion augments LocalDescription with gathered ICE candidates, which would
+// present the remote with a byte-different offer that answers under a new
+// identity. Returns false when no offer is outstanding.
+func (s *sessionTracker) retransmitOutstandingOffer(
+	sess *session,
+	currLocalSeqno uint64,
+	xmitSignal func(*WebRtcSignal),
+) (bool, error) {
+	if sess.pendingOfferID == nil ||
+		sess.pc.SignalingState() != webrtc.SignalingStateHaveLocalOffer {
+		return false, nil
+	}
+	if sess.pendingOfferSDP == "" {
+		return false, pkgerrors.New("retransmit outstanding offer: no pending offer sdp")
+	}
+	if s.w.GetVerbose() {
+		s.le.Debug("signal tx: retransmit outstanding offer")
+	}
+	xmitSdp := &WebRtcSdp{
+		TxSeqno: currLocalSeqno,
+		SdpType: webrtc.SDPTypeOffer.String(),
+		Sdp:     sess.pendingOfferSDP,
+	}
+	xmitSdp.OfferId = sess.pendingOfferID
+	xmitSignal(&WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: xmitSdp}})
+	return true, nil
 }
 
 // transmitLocalNegotiation emits one offer or request for each local sequence.
@@ -706,26 +744,11 @@ func (s *sessionTracker) transmitLocalNegotiation(
 		if s.w.GetVerbose() {
 			le.Debug("signal tx: offer sdp")
 		}
-		if sess.pendingOfferID != nil &&
-			sess.pc.SignalingState() == webrtc.SignalingStateHaveLocalOffer {
-			// An offer is already outstanding on this connection: retransmit
-			// the same bytes and identity instead of minting a new
-			// generation, so an in-flight answer still correlates. The minted
-			// bytes are replayed verbatim: Pion augments LocalDescription
-			// with gathered ICE candidates, which would present the remote
-			// with a byte-different offer that answers under a new identity.
-			if sess.pendingOfferSDP == "" {
-				return lastLocalSeqno, false, pkgerrors.New("retransmit outstanding offer: no pending offer sdp")
-			}
-			le.Debug("signal tx: retransmit outstanding offer")
-			xmitSdp := &WebRtcSdp{
-				TxSeqno: currLocalSeqno,
-				SdpType: webrtc.SDPTypeOffer.String(),
-				Sdp:     sess.pendingOfferSDP,
-			}
-			xmitSdp.OfferId = sess.pendingOfferID
-			xmit = &WebRtcSignal{Body: &WebRtcSignal_Sdp{Sdp: xmitSdp}}
-			xmitSignal(xmit)
+		retransmitted, err := s.retransmitOutstandingOffer(sess, currLocalSeqno, xmitSignal)
+		if err != nil {
+			return lastLocalSeqno, false, err
+		}
+		if retransmitted {
 			return currLocalSeqno, true, nil
 		}
 		localDesc, err := sess.pc.CreateOffer(nil)
@@ -875,13 +898,10 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	// lastSentICE resets (a new local offer/answer regathers candidates).
 	var sentIceComplete bool
 
-	// pendingRemoteIce buffers remote ICE candidates that arrive before the
-	// remote description is set. pion's AddICECandidate requires a remote
-	// description, and the offerer routinely receives the answerer's trickled
-	// candidates before the answer SDP lands; without buffering, those host
-	// candidates are lost and the offerer rides a peer-reflexive-only pair.
-	// Buffered candidates are flushed immediately after SetRemoteDescription.
-	var pendingRemoteIce []webrtc.ICECandidateInit
+	// Remote ICE candidates buffer on the session, not in this frame: a
+	// tracker restart hands the buffer to the successor with the session
+	// itself, so an in-flight trickle survives the restart. See
+	// session.pendingRemoteIce.
 	remoteICE := remoteICECandidateApplier{add: sess.pc.AddICECandidate}
 
 	for {
@@ -932,6 +952,12 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 					return errors.New("remote peer requested offer but we are not the offerer")
 				}
 				currRemoteSeqno = b.RequestOffer
+				// The remote asks for an offer: retransmit the outstanding
+				// offer so a restarted answerer re-receives the generation
+				// its buffered candidates belong to.
+				if _, err := s.retransmitOutstandingOffer(sess, b.RequestOffer, xmitSignal); err != nil {
+					return err
+				}
 			case *WebRtcSignal_Sdp:
 				// Process the incoming sdp below.
 				currRxSdp = b.Sdp
@@ -1010,7 +1036,7 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 			currLocalSeqno,
 			&lastAppliedRemoteSdp,
 			&remoteICE,
-			&pendingRemoteIce,
+			&sess.pendingRemoteIce,
 			xmitSignal,
 			le,
 			&phase,
@@ -1109,6 +1135,30 @@ func (s *sessionTracker) execute(ctx context.Context) (err error) {
 	}
 }
 
+// pendingRemoteCandidate is a remote ICE candidate buffered before its
+// generation could accept it, with the offer id it arrived tagged with.
+type pendingRemoteCandidate struct {
+	candidate webrtc.ICECandidateInit
+	offerID   []byte
+}
+
+// splitBufferedCandidates partitions buffered candidates into those tagged
+// with offerID, which the active generation can accept now, and the rest,
+// which stay buffered for a generation that has not landed yet.
+func splitBufferedCandidates(
+	pending []pendingRemoteCandidate,
+	offerID []byte,
+) (matched []webrtc.ICECandidateInit, rest []pendingRemoteCandidate) {
+	for _, c := range pending {
+		if bytes.Equal(c.offerID, offerID) {
+			matched = append(matched, c.candidate)
+		} else {
+			rest = append(rest, c)
+		}
+	}
+	return matched, rest
+}
+
 // remoteICECandidateApplier applies one signaling generation in order.
 type remoteICECandidateApplier struct {
 	add      func(webrtc.ICECandidateInit) error
@@ -1164,7 +1214,7 @@ func (s *sessionTracker) ingestRemoteSignal(
 	currLocalSeqno uint64,
 	lastAppliedRemoteSdp *string,
 	remoteICE *remoteICECandidateApplier,
-	pendingRemoteIce *[]webrtc.ICECandidateInit,
+	pendingRemoteIce *[]pendingRemoteCandidate,
 	xmitSignal func(*WebRtcSignal),
 	le *logrus.Entry,
 	phase *string,
@@ -1256,12 +1306,19 @@ func (s *sessionTracker) ingestRemoteSignal(
 				sess.rxOfferAnswerSDP = ""
 			}
 
-			// Flush any candidates that arrived before the remote description.
+			// Flush the buffered candidates tagged with this generation.
+			// Candidates buffered under a different offer id stay buffered:
+			// the remote may still be trickling them for a generation this
+			// session has not seen yet, and replaying them into this
+			// generation would poison its candidate set.
+			matched, remaining := splitBufferedCandidates(*pendingRemoteIce, sess.activeOfferID())
+			*pendingRemoteIce = remaining
 			remoteICE.complete = false
-			if err := remoteICE.apply(*pendingRemoteIce); err != nil {
-				return pkgerrors.Wrap(err, "add buffered remote ice candidate")
+			if err := remoteICE.apply(matched); err != nil {
+				// Best-effort flush: a rejected buffered candidate is skipped
+				// rather than tearing down the freshly applied offer.
+				le.WithError(err).Debug("skipping rejected buffered remote ice candidate")
 			}
-			*pendingRemoteIce = nil
 
 			// Transmit an answer if applicable
 			if !s.offerer {
@@ -1285,13 +1342,16 @@ func (s *sessionTracker) ingestRemoteSignal(
 	if currRxIce.GetCandidate() != "" {
 		*phase = "handle remote ice"
 
-		// Generation fence: drop candidates that do not belong to the active
-		// generation before they reach Pion or the pending buffer.
+		// Generation fence: candidates for the active generation reach Pion;
+		// candidates for a retired generation drop; candidates for a
+		// generation this session has not seen yet buffer until it lands, so
+		// a tracker restart does not discard the in-flight candidate set
+		// while the remote keeps trickling under the previous offer id.
 		active := sess.rxOfferID
 		if s.offerer {
 			active = sess.pendingOfferID
 		}
-		if len(active) == 0 || !bytes.Equal(currRxIce.GetOfferId(), active) {
+		if len(active) != 0 && !bytes.Equal(currRxIce.GetOfferId(), active) {
 			le.Debug("dropping stale ice candidate: offer id does not match the active generation")
 			return nil
 		}
@@ -1308,10 +1368,20 @@ func (s *sessionTracker) ingestRemoteSignal(
 		if ice != nil {
 			if sess.pc.RemoteDescription() != nil {
 				if err := remoteICE.apply([]webrtc.ICECandidateInit{*ice}); err != nil {
-					return pkgerrors.Wrap(err, "add remote ice candidate")
+					// A candidate the browser or ICE agent rejects is a
+					// best-effort signal, not a negotiation failure: browsers
+					// reject candidates for transient reasons (e.g. a passive
+					// TCP candidate when the local side never opened a TCP
+					// listener). Skipping it keeps the tracker alive; treating
+					// it as fatal tears down the negotiation and starves ICE
+					// of the remaining candidates.
+					le.WithError(err).Debug("skipping rejected remote ice candidate")
 				}
 			} else {
-				*pendingRemoteIce = append(*pendingRemoteIce, *ice)
+				*pendingRemoteIce = append(*pendingRemoteIce, pendingRemoteCandidate{
+					candidate: *ice,
+					offerID:   append([]byte(nil), currRxIce.GetOfferId()...),
+				})
 			}
 		}
 	}

@@ -29,7 +29,7 @@ type fenceIngest struct {
 	tracker     *sessionTracker
 	sess        *session
 	lastApplied string
-	pendingICE  []pion_webrtc.ICECandidateInit
+	pendingICE  []pendingRemoteCandidate
 	applier     *remoteICECandidateApplier
 	xmit        func(*WebRtcSignal)
 }

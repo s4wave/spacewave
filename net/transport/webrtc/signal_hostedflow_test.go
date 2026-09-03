@@ -215,7 +215,7 @@ func runHostedFlowGeneration(
 	}
 
 	lastAppliedRemoteSdp := ""
-	pendingRemoteIce := make([]pion_webrtc.ICECandidateInit, 0)
+	pendingRemoteIce := make([]pendingRemoteCandidate, 0)
 	remoteICE := remoteICECandidateApplier{add: sess.pc.AddICECandidate}
 
 	for {
