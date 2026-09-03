@@ -9,10 +9,9 @@ import (
 
 	playwright "github.com/mxschmitt/playwright-go"
 	"github.com/pkg/errors"
+	e2eharness "github.com/s4wave/spacewave/e2e/harness"
 	"github.com/sirupsen/logrus"
 )
-
-const chromiumGPUEnv = "E2E_CHROMIUM_GPU"
 
 // LaunchBrowser starts a Playwright-managed browser instance. The browser
 // process is shared across all test sessions. NewClean* helpers create a fresh
@@ -27,70 +26,43 @@ func (h *Harness) LaunchBrowser() error {
 	}
 	h.pw = pw
 
-	browserType, launchOpts, err := h.browserLaunchConfig()
+	browser, err := h.launchBrowser(pw)
 	if err != nil {
 		pw.Stop()
 		h.pw = nil
 		return err
-	}
-	browser, err := browserType.Launch(launchOpts)
-	if err != nil {
-		pw.Stop()
-		h.pw = nil
-		return errors.Wrap(err, "launch "+h.browserName)
 	}
 	h.browser = browser
 
 	return nil
 }
 
-func chromiumLaunchOptions(headless bool) playwright.BrowserTypeLaunchOptions {
-	opts := playwright.BrowserTypeLaunchOptions{
-		Headless: new(headless),
-		Args: []string{
-			"--allow-loopback-in-peer-connection",
-			"--disable-features=WebRtcHideLocalIpsWithMdns",
-		},
-	}
-	if chromiumHardwareGPUEnabled() {
-		channel := "chromium"
-		opts.Channel = &channel
-		opts.Headless = new(false)
-		opts.Args = append(opts.Args,
-			"--headless=new",
-			"--ignore-gpu-blocklist",
-			"--use-angle=vulkan",
-			"--enable-gpu-rasterization",
-			"--enable-zero-copy",
-			"--enable-features=Vulkan",
-		)
-	}
-	return opts
-}
-
-func chromiumHardwareGPUEnabled() bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv(chromiumGPUEnv))) {
-	case "false", "0", "no", "off":
-		return false
-	default:
-		return true
-	}
-}
-
-func (h *Harness) browserLaunchConfig() (playwright.BrowserType, playwright.BrowserTypeLaunchOptions, error) {
-	opts := playwright.BrowserTypeLaunchOptions{
-		Headless: new(h.headless),
-	}
+// launchBrowser launches the configured Playwright browser type. Chromium
+// launches run through the shared sticky E2E_CHROMIUM_GPU launch policy.
+func (h *Harness) launchBrowser(pw *playwright.Playwright) (playwright.Browser, error) {
 	switch h.browserName {
 	case "chromium":
-		opts = chromiumLaunchOptions(h.headless)
-		return h.pw.Chromium, opts, nil
+		return e2eharness.LaunchChromium(h.ctx, h.chromiumPolicy, func(gpu bool) (playwright.Browser, error) {
+			return pw.Chromium.Launch(e2eharness.ChromiumLaunchOptions(h.headless, gpu))
+		})
 	case "firefox":
-		return h.pw.Firefox, opts, nil
+		browser, err := pw.Firefox.Launch(playwright.BrowserTypeLaunchOptions{
+			Headless: new(h.headless),
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "launch firefox")
+		}
+		return browser, nil
 	case "webkit":
-		return h.pw.WebKit, opts, nil
+		browser, err := pw.WebKit.Launch(playwright.BrowserTypeLaunchOptions{
+			Headless: new(h.headless),
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "launch webkit")
+		}
+		return browser, nil
 	default:
-		return nil, opts, errors.Errorf("unknown e2e wasm browser %q", h.browserName)
+		return nil, errors.Errorf("unknown e2e wasm browser %q", h.browserName)
 	}
 }
 

@@ -35,6 +35,7 @@ import (
 	bldr_project_controller "github.com/s4wave/spacewave/bldr/project/controller"
 	bldr_project_starlark "github.com/s4wave/spacewave/bldr/project/starlark"
 	bldr_statepath "github.com/s4wave/spacewave/bldr/statepath"
+	e2eharness "github.com/s4wave/spacewave/e2e/harness"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
@@ -46,22 +47,23 @@ import (
 // bus, compiles plugins, and starts the HTTP server once. Individual tests
 // choose NewClean* or NewRetainedState* helpers at the call site.
 type Harness struct {
-	devtool       *devtool.DevtoolBus
-	projConfig    *bldr_project.ProjectConfig
-	projRef       directive.Reference
-	manifestRefs  []directive.Reference
-	manifestWaits []manifestWait
-	le            *logrus.Entry
-	port          int
-	baseURL       string
-	headless      bool
-	browserName   string
-	workerMode    WorkerMode
-	manifestWait  time.Duration
-	ctx           context.Context
-	cancel        context.CancelFunc
-	wasmErr       error
-	wasmDone      chan struct{}
+	devtool        *devtool.DevtoolBus
+	projConfig     *bldr_project.ProjectConfig
+	projRef        directive.Reference
+	manifestRefs   []directive.Reference
+	manifestWaits  []manifestWait
+	le             *logrus.Entry
+	chromiumPolicy *e2eharness.ChromiumLaunchPolicy
+	port           int
+	baseURL        string
+	headless       bool
+	browserName    string
+	workerMode     WorkerMode
+	manifestWait   time.Duration
+	ctx            context.Context
+	cancel         context.CancelFunc
+	wasmErr        error
+	wasmDone       chan struct{}
 
 	// Browser process (populated by LaunchBrowser, shared across sessions).
 	pw      *playwright.Playwright
@@ -200,6 +202,11 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 		le.WithField("state-root", stateRoot).Info("preserving e2e wasm startup build cache")
 	}
 
+	chromiumPolicy, err := e2eharness.NewChromiumLaunchPolicy(le)
+	if err != nil {
+		return nil, err
+	}
+
 	hctx, cancel := context.WithCancel(ctx)
 	manifestWait := o.manifestBuildTimeout
 	if manifestWait == 0 {
@@ -208,6 +215,7 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 
 	h := &Harness{
 		ctx:                       hctx,
+		chromiumPolicy:            chromiumPolicy,
 		cancel:                    cancel,
 		headless:                  resolveHeadless(o.headless),
 		browserName:               resolveBrowserName(o.browserName),

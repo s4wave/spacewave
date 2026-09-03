@@ -27,12 +27,7 @@ func TestWebKitPersistentContextRuntimeStartup(t *testing.T) {
 	}
 	h.browser = nil
 	t.Cleanup(func() {
-		browserType, launchOpts, configErr := h.browserLaunchConfig()
-		if configErr != nil {
-			t.Errorf("restore shared WebKit browser config: %v", configErr)
-			return
-		}
-		browser, launchErr := browserType.Launch(launchOpts)
+		browser, launchErr := h.launchBrowser(h.pw)
 		if launchErr != nil {
 			t.Errorf("restore shared WebKit browser: %v", launchErr)
 			return

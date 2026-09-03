@@ -48,8 +48,7 @@ var heavyDriverSignals = []string{
 // to the repo root (slash-separated). Every entry is validated below so the
 // allowlist cannot silently rot.
 var lightAllowlist = map[string]string{
-	"e2e/wasm/browser_gpu_test.go":           "TestChromiumLaunchOptions only builds launch-option structs; never launches a browser",
-	"e2e/releasewasm/harness_gpu_test.go":    "TestChromiumLaunchOptions only builds launch-option structs; never launches a browser",
+	"e2e/harness/chromium-launch_test.go":    "tests build launch-option structs and injected recorder launch fns; never launch a browser",
 	"bldr/e2e/downstreamapp/harness_test.go": "browser tests gate on RunEnv=1 via t.Skipf; the rest are pure resolver unit tests",
 	"db/opfs/chrometest/chrome_test.go":      "TestMain and every test gate on the chrome/tinygo env vars, unset in the sweep",
 }

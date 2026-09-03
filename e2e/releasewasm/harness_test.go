@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	playwright "github.com/mxschmitt/playwright-go"
+	e2eharness "github.com/s4wave/spacewave/e2e/harness"
 )
 
 func TestIgnoreBrowserErrorFiltersGoRuntimeInfoLogs(t *testing.T) {
@@ -36,22 +37,22 @@ func TestExpectedReleaseWasmHTTPError(t *testing.T) {
 	}
 }
 
-func TestPersistentBrowserContextLaunchOptionsReuseChromiumOwner(t *testing.T) {
-	t.Setenv(chromiumGPUEnv, "1")
+func TestPersistentBrowserContextLaunchOptionsReuseChromiumContract(t *testing.T) {
+	for _, gpu := range []bool{false, true} {
+		got := persistentBrowserContextLaunchOptions("chromium", gpu)
+		want := e2eharness.ChromiumLaunchOptions(true, gpu)
+		if got.Headless == nil || want.Headless == nil || *got.Headless != *want.Headless {
+			t.Fatalf("persistent headless=%v, want shared Chromium value %v", got.Headless, want.Headless)
+		}
+		if got.Channel == nil || want.Channel == nil || *got.Channel != *want.Channel {
+			t.Fatalf("persistent channel=%v, want shared Chromium value %v", got.Channel, want.Channel)
+		}
+		if !slices.Equal(got.Args, want.Args) {
+			t.Fatalf("persistent args=%v, want shared Chromium args %v", got.Args, want.Args)
+		}
+	}
 
-	got := persistentBrowserContextLaunchOptions("chromium")
-	want := chromiumLaunchOptions(true)
-	if got.Headless == nil || want.Headless == nil || *got.Headless != *want.Headless {
-		t.Fatalf("persistent headless=%v, want shared Chromium value %v", got.Headless, want.Headless)
-	}
-	if got.Channel == nil || want.Channel == nil || *got.Channel != *want.Channel {
-		t.Fatalf("persistent channel=%v, want shared Chromium value %v", got.Channel, want.Channel)
-	}
-	if !slices.Equal(got.Args, want.Args) {
-		t.Fatalf("persistent args=%v, want shared Chromium args %v", got.Args, want.Args)
-	}
-
-	other := persistentBrowserContextLaunchOptions("firefox")
+	other := persistentBrowserContextLaunchOptions("firefox", false)
 	if other.Headless == nil || !*other.Headless || other.Channel != nil || len(other.Args) != 0 {
 		t.Fatalf("non-Chromium persistent options inherited Chromium state: %#v", other)
 	}

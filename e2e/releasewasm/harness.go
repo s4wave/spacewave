@@ -33,7 +33,6 @@ const (
 	prerenderDistRelPath        = "app/prerender/dist"
 	releaseWasmDistDirEnv       = "E2E_RELEASE_WASM_DIST_DIR"
 	releaseWasmPrerenderDistEnv = "E2E_RELEASE_WASM_PRERENDER_DIST_DIR"
-	chromiumGPUEnv              = "E2E_CHROMIUM_GPU"
 	releaseAuthConfigPath       = "/api/auth/config"
 )
 
@@ -57,13 +56,14 @@ type browserReleaseShellAssets struct {
 }
 
 type harness struct {
-	artifactDir string
-	baseURL     string
-	browserName string
-	repoRoot    string
-	server      *http.Server
-	pw          *playwright.Playwright
-	browser     playwright.Browser
+	artifactDir    string
+	baseURL        string
+	browserName    string
+	repoRoot       string
+	server         *http.Server
+	pw             *playwright.Playwright
+	browser        playwright.Browser
+	chromiumPolicy *e2eharness.ChromiumLaunchPolicy
 }
 
 type releaseWasmDistDirs struct {
@@ -92,11 +92,16 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 	if err != nil {
 		return nil, err
 	}
+	chromiumPolicy, err := e2eharness.NewChromiumLaunchPolicy(le)
+	if err != nil {
+		return nil, err
+	}
 	h := &harness{
-		artifactDir: artifactDir,
-		baseURL:     baseURL,
-		browserName: browserName,
-		repoRoot:    repoRoot,
+		artifactDir:    artifactDir,
+		baseURL:        baseURL,
+		browserName:    browserName,
+		repoRoot:       repoRoot,
+		chromiumPolicy: chromiumPolicy,
 	}
 	defer func() {
 		if retErr != nil {
@@ -138,13 +143,19 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 		return nil, err
 	}
 
-	launchOpts := playwright.BrowserTypeLaunchOptions{
-		Headless: new(true),
+	launch := func(gpu bool) (playwright.Browser, error) {
+		opts := playwright.BrowserTypeLaunchOptions{Headless: new(true)}
+		if browserName == "chromium" {
+			opts = e2eharness.ChromiumLaunchOptions(true, gpu)
+		}
+		return browserType.Launch(opts)
 	}
+	var browser playwright.Browser
 	if browserName == "chromium" {
-		launchOpts = chromiumLaunchOptions(true)
+		browser, err = e2eharness.LaunchChromium(ctx, h.chromiumPolicy, launch)
+	} else {
+		browser, err = launch(false)
 	}
-	browser, err := browserType.Launch(launchOpts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "launch %s", browserName)
 	}
@@ -155,50 +166,22 @@ func boot(ctx context.Context, le *logrus.Entry) (_ *harness, retErr error) {
 
 func (h *harness) getBaseURL() string { return h.baseURL }
 
-func chromiumLaunchOptions(headless bool) playwright.BrowserTypeLaunchOptions {
-	opts := playwright.BrowserTypeLaunchOptions{
-		Headless: new(headless),
-		Args: []string{
-			"--allow-loopback-in-peer-connection",
-			"--disable-features=WebRtcHideLocalIpsWithMdns",
-		},
-	}
-	if chromiumHardwareGPUEnabled() {
-		channel := "chromium"
-		opts.Channel = &channel
-		opts.Headless = new(false)
-		opts.Args = append(opts.Args,
-			"--headless=new",
-			"--ignore-gpu-blocklist",
-			"--use-angle=vulkan",
-			"--enable-gpu-rasterization",
-			"--enable-zero-copy",
-			"--enable-features=Vulkan",
-		)
-	}
-	return opts
-}
-
-func persistentBrowserContextLaunchOptions(browserName string) playwright.BrowserTypeLaunchPersistentContextOptions {
+// persistentBrowserContextLaunchOptions maps the shared Chromium launch
+// options onto a persistent-context launch. Non-Chromium browsers stay plain.
+func persistentBrowserContextLaunchOptions(
+	browserName string,
+	gpu bool,
+) playwright.BrowserTypeLaunchPersistentContextOptions {
 	options := playwright.BrowserTypeLaunchPersistentContextOptions{
 		Headless: new(true),
 	}
 	if browserName == "chromium" {
-		launchOptions := chromiumLaunchOptions(true)
+		launchOptions := e2eharness.ChromiumLaunchOptions(true, gpu)
 		options.Headless = launchOptions.Headless
 		options.Channel = launchOptions.Channel
 		options.Args = launchOptions.Args
 	}
 	return options
-}
-
-func chromiumHardwareGPUEnabled() bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv(chromiumGPUEnv))) {
-	case "false", "0", "no", "off":
-		return false
-	default:
-		return true
-	}
 }
 
 func prepareReleaseWasmDist(ctx context.Context, le *logrus.Entry, repoRoot string) (releaseWasmDistDirs, error) {
@@ -424,8 +407,22 @@ func (h *harness) newPersistentBrowserContext(t testing.TB, userDataDir string) 
 	if err != nil {
 		t.Fatalf("resolve persistent release browser type: %v", err)
 	}
-	options := persistentBrowserContextLaunchOptions(h.browserName)
-	ctx, err := browserType.LaunchPersistentContext(userDataDir, options)
+	launchPersistent := func(gpu bool) (playwright.BrowserContext, error) {
+		return browserType.LaunchPersistentContext(
+			userDataDir,
+			persistentBrowserContextLaunchOptions(h.browserName, gpu),
+		)
+	}
+	var ctx playwright.BrowserContext
+	switch {
+	case h.browserName == "chromium":
+		if h.chromiumPolicy == nil {
+			t.Fatal("launch persistent release browser context: missing chromium launch policy")
+		}
+		ctx, err = e2eharness.LaunchChromium(t.Context(), h.chromiumPolicy, launchPersistent)
+	default:
+		ctx, err = launchPersistent(false)
+	}
 	if err != nil {
 		t.Fatalf("launch persistent release browser context: %v", err)
 	}
