@@ -142,9 +142,11 @@ type GetPluginInfoResponse struct {
 	PluginId string `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"pluginId,omitempty"`
 	// ManifestRef is the reference to the Manifest object.
 	ManifestRef *manifest.ManifestRef `protobuf:"bytes,2,opt,name=manifest_ref,json=manifestRef,proto3" json:"manifestRef,omitempty"`
-	// HostVolumeInfo is the information for the host Volume.
-	// The volume is exposed with a ProxyVolume.
+	// HostVolumeInfo is the optional information for the host Volume.
+	// The volume is exposed with a ProxyVolume when present.
 	HostVolumeInfo *volume.VolumeInfo `protobuf:"bytes,3,opt,name=host_volume_info,json=hostVolumeInfo,proto3" json:"hostVolumeInfo,omitempty"`
+	// Standalone reports that no PluginHost Resource graph is available.
+	Standalone bool `protobuf:"varint,4,opt,name=standalone,proto3" json:"standalone,omitempty"`
 }
 
 func (x *GetPluginInfoResponse) Reset() {
@@ -172,6 +174,13 @@ func (x *GetPluginInfoResponse) GetHostVolumeInfo() *volume.VolumeInfo {
 		return x.HostVolumeInfo
 	}
 	return nil
+}
+
+func (x *GetPluginInfoResponse) GetStandalone() bool {
+	if x != nil {
+		return x.Standalone
+	}
+	return false
 }
 
 // LoadPluginRequest is a request to load a plugin while the RPC is active.
@@ -379,6 +388,7 @@ func (m *GetPluginInfoResponse) CloneVT() *GetPluginInfoResponse {
 	}
 	r := new(GetPluginInfoResponse)
 	r.PluginId = m.PluginId
+	r.Standalone = m.Standalone
 	r.ManifestRef = protobuf_go_lite.CloneVTValue(m.ManifestRef)
 	r.HostVolumeInfo = protobuf_go_lite.CloneVTValue(m.HostVolumeInfo)
 	if len(m.unknownFields) > 0 {
@@ -542,6 +552,9 @@ func (this *GetPluginInfoResponse) EqualVT(that *GetPluginInfoResponse) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.HostVolumeInfo, that.HostVolumeInfo) {
+		return false
+	}
+	if this.Standalone != that.Standalone {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -852,6 +865,11 @@ func (x *GetPluginInfoResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("hostVolumeInfo")
 		x.HostVolumeInfo.MarshalProtoJSON(s.WithField("hostVolumeInfo"))
 	}
+	if x.Standalone || s.HasField("standalone") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("standalone")
+		s.WriteBool(x.Standalone)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -886,6 +904,9 @@ func (x *GetPluginInfoResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.HostVolumeInfo = &volume.VolumeInfo{}
 			x.HostVolumeInfo.UnmarshalProtoJSON(s.WithField("host_volume_info", true))
+		case "standalone":
+			s.AddField("standalone")
+			x.Standalone = s.ReadBool()
 		}
 	})
 }
@@ -1289,6 +1310,11 @@ func (m *GetPluginInfoResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Standalone {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Standalone)
+		i--
+		dAtA[i] = 0x20
+	}
 	if m.HostVolumeInfo != nil {
 		size, err := m.HostVolumeInfo.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -1586,6 +1612,7 @@ func (m *GetPluginInfoResponse) SizeVT() (n int) {
 		l = m.HostVolumeInfo.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.Standalone)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1719,6 +1746,10 @@ func (x *GetPluginInfoResponse) MarshalProtoText() string {
 	if x.HostVolumeInfo != nil {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "host_volume_info")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.HostVolumeInfo)
+	}
+	if x.Standalone != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "standalone")
+		protobuf_go_lite.TextWriteBool(&sb, x.Standalone)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -2033,6 +2064,16 @@ func (m *GetPluginInfoResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Standalone", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Standalone = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -148,12 +148,18 @@ export interface GetPluginInfoResponse {
    */
   manifestRef?: ManifestRef
   /**
-   * HostVolumeInfo is the information for the host Volume.
-   * The volume is exposed with a ProxyVolume.
+   * HostVolumeInfo is the optional information for the host Volume.
+   * The volume is exposed with a ProxyVolume when present.
    *
    * @generated from field: volume.VolumeInfo host_volume_info = 3;
    */
   hostVolumeInfo?: VolumeInfo
+  /**
+   * Standalone reports that no PluginHost Resource graph is available.
+   *
+   * @generated from field: bool standalone = 4;
+   */
+  standalone?: boolean
 }
 
 export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
@@ -163,6 +169,7 @@ export const GetPluginInfoResponse: MessageType<GetPluginInfoResponse> =
       { no: 1, name: 'plugin_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'manifest_ref', kind: 'message', T: () => ManifestRef },
       { no: 3, name: 'host_volume_info', kind: 'message', T: () => VolumeInfo },
+      { no: 4, name: 'standalone', kind: 'scalar', T: ScalarType.BOOL },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

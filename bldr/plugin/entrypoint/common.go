@@ -245,6 +245,9 @@ func ExecutePluginEntrypoint(
 		acceptPluginHostStreams,
 		errCh,
 		func(ctx context.Context) (func(), error) {
+			if pluginInfo.GetStandalone() {
+				return func() {}, nil
+			}
 			registrations, err := sdk_plugin.RegisterObjectTypes(ctx, b)
 			if err != nil {
 				return nil, err

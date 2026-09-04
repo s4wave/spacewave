@@ -76,9 +76,11 @@ message GetPluginInfoResponse {
   string plugin_id = 1;
   // ManifestRef is the reference to the Manifest object.
   .bldr.manifest.ManifestRef manifest_ref = 2;
-  // HostVolumeInfo is the information for the host Volume.
-  // The volume is exposed with a ProxyVolume.
+  // HostVolumeInfo is the optional information for the host Volume.
+  // The volume is exposed with a ProxyVolume when present.
   .volume.VolumeInfo host_volume_info = 3;
+  // Standalone reports that no PluginHost Resource graph is available.
+  bool standalone = 4;
 }
 
 
