@@ -1,5 +1,68 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.2
+<2026-09-04 Fri>
+
+Spacewave 0.57.2 adds a redesigned Keyboard Shortcuts workbench, a dedicated
+Secret viewer, managed-device support for Forge Workers, and local repository
+imports for Git Spaces. It also improves Notes, Drive, browser startup, invites,
+device linking, session recovery, and local file storage.
+
+** Features
+- Keyboard Shortcuts now has a redesigned workbench for searching commands and
+  shortcuts, recording combinations or sequences, resolving conflicts, and
+  saving changes to this device, your account, or the current Space.
+- Secrets now open in a dedicated viewer that shows redacted status and access
+  information while keeping secret values hidden.
+- Managed Devices can now join a Space as Forge Workers and reconnect after
+  restart.
+- Git Spaces can now import repositories from your local computer.
+
+** Fixes
+- Notes now saves edits in order, preserves drafts when a save must be retried,
+  and keeps the Saved confirmation visible when an edit produces identical
+  content.
+- Signed-out browser sessions now recover cleanly during startup instead of
+  getting stuck on stale app state.
+- Drive Home, linked paths, and Back and Forward navigation now remain inside
+  the current Drive and Space; newly created Drive Spaces also open at Files.
+- Device links, invites, and session recovery now remain connected through
+  overlapping attempts, restarts, and temporary connection failures.
+- Browser connections now recover more reliably when network routes or
+  connection details change.
+- Dropping a file outside a Drive upload target no longer navigates away from
+  Spacewave or reloads the app.
+- Quickstarts now reopen an existing matching Space instead of creating a
+  duplicate.
+- Closing the final tab in a split now removes the empty pane instead of leaving
+  a blank pane.
+- New Chat channels now open to an empty conversation, and failed sends retain
+  the draft for retry.
+- Browser startup now reports a clear failure with Retry when an app download or
+  loading step stalls.
+
+** Improvements
+- Local file storage now batches related writes more efficiently, improving save
+  performance and durability in browser sessions.
+- Returning users and direct links now show the loading screen immediately
+  instead of briefly showing the signed-out landing page.
+- Terminal connection failures now show actionable guidance, and Retry
+  reconnects with a clean session.
+- Managed Device setup now offers clearer setup, sign-in, approval, and recovery
+  steps.
+- Release pages now distinguish the latest release from the selected release and
+  show download details before installation.
+- Large browser sessions keep file-storage cache growth bounded and load nearby
+  file data with fewer reads.
+
+** Security
+- Spaces created in the browser now protect locally stored content with
+  authenticated encryption. Spaces created by earlier browser versions remain
+  readable but must be migrated before editing.
+- Browser sign-in completion links are tied to the browser session that started
+  sign-in.
+- Space sync rejects updates from peers that no longer have access.
+
 * v0.57.1
 <2026-08-29 Sat>
 
