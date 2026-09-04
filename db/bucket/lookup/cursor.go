@@ -415,7 +415,8 @@ func (c *Cursor) followRefWithOpArgs(
 	}
 
 	// if we are switching bucket IDs
-	if orBkId := opArgs.GetBucketId(); orBkId != "" && c.opArgs.GetBucketId() != orBkId {
+	switchingBucket := opArgs.GetBucketId() != "" && c.opArgs.GetBucketId() != opArgs.GetBucketId()
+	if switchingBucket {
 		// acquire the new bucket handle
 		var err error
 		if readOnly {
@@ -511,6 +512,10 @@ func (c *Cursor) followRefWithOpArgs(
 	// return new cursor
 	ncc := c.clone()
 	ncc.bkt = bkt
+	if switchingBucket {
+		// The transaction store belongs to the source bucket.
+		ncc.transactionStore = nil
+	}
 	ncc.xfrm = xfrm
 	ncc.ref = objRef.Clone()
 	ncc.transformConf = transformConf

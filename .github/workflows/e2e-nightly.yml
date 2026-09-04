@@ -390,6 +390,10 @@ jobs:
       fail-fast: false
       matrix:
         slice:
+          - name: startup-build-cache
+            run: '^TestStartupBuildCacheInvalidatesOnSourceChange$'
+            timeout_minutes: 35
+            job_timeout_minutes: 50
           - name: forge-blog
             run: '^(TestQuickstartForge(Route|Trace)|TestForge(ScenarioSequence|WorkerExecution)|TestBlog(CoexistenceScenario|QuickstartSetupProbe|QuickstartRetainedStateRegistrationProbe))$'
             timeout_minutes: 20
