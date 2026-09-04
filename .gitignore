@@ -63,3 +63,4 @@ trace.out
 .aider*
 
 __pycache__/
+*.egg-info/
