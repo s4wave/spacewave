@@ -414,8 +414,8 @@ func (h *harness) newPersistentBrowserContext(t testing.TB, userDataDir string) 
 		)
 	}
 	var ctx playwright.BrowserContext
-	switch {
-	case h.browserName == "chromium":
+	switch h.browserName {
+	case "chromium":
 		if h.chromiumPolicy == nil {
 			t.Fatal("launch persistent release browser context: missing chromium launch policy")
 		}

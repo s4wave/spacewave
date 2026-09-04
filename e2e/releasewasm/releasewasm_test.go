@@ -2330,9 +2330,9 @@ func lastComposedStartupMark(t *testing.T, page playwright.Page, label string) c
 	t.Helper()
 
 	marks := readComposedStartupMarks(t, page)
-	for index := len(marks) - 1; index >= 0; index-- {
-		if marks[index].Label == label {
-			return marks[index]
+	for _, mark := range slices.Backward(marks) {
+		if mark.Label == label {
+			return mark
 		}
 	}
 	t.Fatalf("production startup mark %q is missing", label)
@@ -2399,10 +2399,10 @@ func assertWarmPresentation(t *testing.T, page playwright.Page, generation, host
 		}
 	}
 	var connected composedStartupMark
-	for index := len(marks) - 1; index >= 0; index-- {
-		if marks[index].Label == "runtime.connected" &&
-			composedString(marks[index].Detail["runtimeGeneration"]) == generation {
-			connected = marks[index]
+	for _, mark := range slices.Backward(marks) {
+		if mark.Label == "runtime.connected" &&
+			composedString(mark.Detail["runtimeGeneration"]) == generation {
+			connected = mark
 			break
 		}
 	}
@@ -2515,9 +2515,9 @@ func assertRelayFailureStayedCold(t *testing.T, page playwright.Page) {
 
 	marks := readComposedStartupMarks(t, page)
 	var failed composedStartupMark
-	for index := len(marks) - 1; index >= 0; index-- {
-		if marks[index].Label == "dedicated-host.attach-open-failed" {
-			failed = marks[index]
+	for _, mark := range slices.Backward(marks) {
+		if mark.Label == "dedicated-host.attach-open-failed" {
+			failed = mark
 			break
 		}
 	}
@@ -2525,10 +2525,10 @@ func assertRelayFailureStayedCold(t *testing.T, page playwright.Page) {
 		t.Fatalf("relay failure mark is missing")
 	}
 	var start composedStartupMark
-	for index := len(marks) - 1; index >= 0; index-- {
-		if marks[index].Label == "dedicated-host.attach-open-start" &&
-			marks[index].Sequence < failed.Sequence {
-			start = marks[index]
+	for _, mark := range slices.Backward(marks) {
+		if mark.Label == "dedicated-host.attach-open-start" &&
+			mark.Sequence < failed.Sequence {
+			start = mark
 			break
 		}
 	}
