@@ -14,9 +14,20 @@ import (
 	fetch "github.com/aperturerobotics/util/js/fetch"
 	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
-	web_runtime_wasm "github.com/s4wave/spacewave/bldr/web/runtime/wasm"
 	"github.com/sirupsen/logrus"
 )
+
+// pluginTransport abstracts the plugin-side SRPC transport used by the web
+// entrypoint. OpenStream dials the plugin host; SetAcceptStreams registers the
+// server-side invoker so the host can dial streams into this plugin.
+type pluginTransport interface {
+	// OpenStream opens a stream to the plugin host.
+	OpenStream(ctx context.Context, msgHandler srpc.PacketDataHandler, closeHandler srpc.CloseHandler) (srpc.PacketWriter, error)
+
+	// SetAcceptStreams registers the invoker used to accept incoming streams
+	// from the plugin host.
+	SetAcceptStreams(ctx context.Context, invoker srpc.Invoker)
+}
 
 // Version is the entrypoint version
 var Version = controller.MustParseVersion("0.0.1")
@@ -42,7 +53,7 @@ func Main(
 	defer ctxCancel()
 
 	if err := func() error {
-		pluginIo, err := web_runtime_wasm.GlobalWasmPluginIo()
+		pluginIo, err := newPluginTransport()
 		if err != nil {
 			return err
 		}
@@ -77,7 +88,7 @@ func Main(
 	}
 }
 
-// Run runs the plugin entrypoint.
+// Run runs the plugin entrypoint over the given transport.
 func Run(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -85,14 +96,14 @@ func Run(
 	pluginMeta *bldr_plugin.PluginMeta,
 	addFactoryFuncs []AddFactoryFunc,
 	configSetFuncs []BuildConfigSetFunc,
-	pluginIo *web_runtime_wasm.WasmPluginIo,
+	pluginIo pluginTransport,
 ) error {
 	if err := pluginStartInfo.Validate(); err != nil {
 		return err
 	}
 
-	// dial outgoing streams and accept incoming streams
-	rpcClient := pluginIo.BuildClient()
+	// Dial outgoing streams and accept incoming streams.
+	rpcClient := srpc.NewClient(pluginIo.OpenStream)
 	acceptRpcStreams := func(ctx context.Context, srv *srpc.Server, ready func()) error {
 		pluginIo.SetAcceptStreams(ctx, srv.GetInvoker())
 		ready()

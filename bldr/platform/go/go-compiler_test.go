@@ -59,6 +59,7 @@ func TestGoCompilerEnvVars(t *testing.T) {
 		{"web/wasi/wasm", []string{"GOOS=wasi", "GOARCH=wasm"}},
 		{"desktop/wasi/wasm", []string{"GOOS=wasi", "GOARCH=wasm"}},
 		{"js", []string{"GOOS=js", "GOARCH=wasm"}},
+		{"cloudflare-workers", []string{"GOOS=js", "GOARCH=wasm"}},
 	}
 
 	for _, tc := range testCases {
