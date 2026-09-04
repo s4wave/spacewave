@@ -163,22 +163,23 @@ func ExecutePluginEntrypoint(
 		handlePluginEntrypointError(errCh, err)
 	}
 
-	// serve the host volume proxy controller
-	hostVolumeInfo := pluginInfo.GetHostVolumeInfo()
-	hostVolumeController := volume_rpc_client.NewProxyVolumeControllerWithClient(
-		b,
-		le,
-		hostVolumeInfo,
-		[]string{bldr_plugin.PluginVolumeID},
-		pluginHostClient,
-		bldr_plugin.HostVolumeServiceIDPrefix,
-	)
-	relHostVolumeController, err := b.AddController(ctx, hostVolumeController, handleErr)
-	if err != nil {
-		rel()
-		return err
+	// Hosts without storage omit the volume capability.
+	if hostVolumeInfo := pluginInfo.GetHostVolumeInfo(); hostVolumeInfo != nil {
+		hostVolumeController := volume_rpc_client.NewProxyVolumeControllerWithClient(
+			b,
+			le,
+			hostVolumeInfo,
+			[]string{bldr_plugin.PluginVolumeID},
+			pluginHostClient,
+			bldr_plugin.HostVolumeServiceIDPrefix,
+		)
+		relHostVolumeController, err := b.AddController(ctx, hostVolumeController, handleErr)
+		if err != nil {
+			rel()
+			return err
+		}
+		rels = append(rels, relHostVolumeController)
 	}
-	rels = append(rels, relHostVolumeController)
 
 	// serve the plugin assets filesystem
 	pluginAssetsFsCtrl := BuildPluginAssetsFSController(le, b, pluginHostClient, meta.GetPluginId())
