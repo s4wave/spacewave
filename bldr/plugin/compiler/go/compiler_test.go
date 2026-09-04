@@ -120,8 +120,32 @@ func TestAddCompilerStartupCacheInputsIncludesOptimizerIdentityForExplicitGo(t *
 	}
 }
 
+func TestNewGoScriptBuildFlagsCloudflarePlatformAddsTag(t *testing.T) {
+	flags := newGoScriptBuildFlags(bldr_platform.NewCloudflarePlatform(), bldr_manifest.BuildType_DEV, false)
+	if len(flags) != 1 || !strings.HasPrefix(flags[0], "-tags=") {
+		t.Fatalf("GoScript build flags = %v, want single -tags flag", flags)
+	}
+	tags := strings.Split(strings.TrimPrefix(flags[0], "-tags="), ",")
+	for _, want := range []string{"purego", gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag, gocompiler.CloudflareBuildTag} {
+		if !slices.Contains(tags, want) {
+			t.Fatalf("GoScript build tags missing %q: %v", want, tags)
+		}
+	}
+}
+
+func TestNewGoScriptBuildFlagsBrowserPlatformExcludesCloudflareTag(t *testing.T) {
+	flags := newGoScriptBuildFlags(bldr_platform.NewJsPlatform(), bldr_manifest.BuildType_DEV, false)
+	if len(flags) != 1 || !strings.HasPrefix(flags[0], "-tags=") {
+		t.Fatalf("GoScript build flags = %v, want single -tags flag", flags)
+	}
+	tags := strings.Split(strings.TrimPrefix(flags[0], "-tags="), ",")
+	if slices.Contains(tags, gocompiler.CloudflareBuildTag) {
+		t.Fatalf("browser build should not include %q: %v", gocompiler.CloudflareBuildTag, tags)
+	}
+}
+
 func TestNewGoScriptBuildFlagsIncludesGoScriptTag(t *testing.T) {
-	flags := newGoScriptBuildFlags(bldr_manifest.BuildType_DEV, false)
+	flags := newGoScriptBuildFlags(bldr_platform.NewJsPlatform(), bldr_manifest.BuildType_DEV, false)
 	if len(flags) != 1 || !strings.HasPrefix(flags[0], "-tags=") {
 		t.Fatalf("GoScript build flags = %v, want single -tags flag", flags)
 	}

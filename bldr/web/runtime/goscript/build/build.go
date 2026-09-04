@@ -102,6 +102,44 @@ func BuildWebGoScriptPluginScriptWithOptions(
 	codeSplitting bool,
 	sharedOptions GoScriptSharedBundleOptions,
 ) ([]string, error) {
+	return buildWebGoScriptPluginScript(
+		ctx, le, bldrDistRoot, workDir, goScriptOutputRoot, outPath,
+		mainPackagePath, "plugin-goscript.ts", minify, sourcemaps,
+		codeSplitting, sharedOptions,
+	)
+}
+
+// BuildWebGoScriptCloudflarePluginScript builds the Cloudflare Workers plugin
+// runtime entrypoint script. Uses the Worker host runtime instead of the
+// browser MessagePort runtime.
+func BuildWebGoScriptCloudflarePluginScript(
+	ctx context.Context,
+	le *logrus.Entry,
+	bldrDistRoot,
+	workDir,
+	goScriptOutputRoot,
+	outPath,
+	mainPackagePath string,
+	minify,
+	sourcemaps,
+	codeSplitting bool,
+	sharedOptions GoScriptSharedBundleOptions,
+) ([]string, error) {
+	return buildWebGoScriptPluginScript(
+		ctx, le, bldrDistRoot, workDir, goScriptOutputRoot, outPath,
+		mainPackagePath, "plugin-goscript-cloudflare.ts", minify, sourcemaps,
+		codeSplitting, sharedOptions,
+	)
+}
+
+func buildWebGoScriptPluginScript(
+	ctx context.Context,
+	le *logrus.Entry,
+	bldrDistRoot, workDir, goScriptOutputRoot, outPath, mainPackagePath,
+	runtimeFile string,
+	minify, sourcemaps, codeSplitting bool,
+	sharedOptions GoScriptSharedBundleOptions,
+) ([]string, error) {
 	if strings.TrimSpace(mainPackagePath) == "" {
 		return nil, errors.New("plugin-goscript: main package path cannot be empty")
 	}
@@ -111,7 +149,7 @@ func BuildWebGoScriptPluginScriptWithOptions(
 
 	pluginJsDir := filepath.Join(bldrDistRoot, webRuntimeGoScriptDir)
 	entrypointPath := filepath.Join(workDir, "plugin-goscript-entrypoint.ts")
-	runtimeImport, err := relativeImportPath(workDir, filepath.Join(pluginJsDir, "plugin-goscript.ts"))
+	runtimeImport, err := relativeImportPath(workDir, filepath.Join(pluginJsDir, runtimeFile))
 	if err != nil {
 		return nil, err
 	}

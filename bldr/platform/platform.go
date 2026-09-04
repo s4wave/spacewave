@@ -31,6 +31,8 @@ func ParsePlatform(id string) (Platform, error) {
 		return ParseNativePlatform(id)
 	case PlatformID_JS:
 		return ParseJsPlatform(id)
+	case PlatformID_CLOUDFLARE:
+		return ParseCloudflarePlatform(id)
 	default:
 		return nil, errors.Errorf("unknown platform id: %s", id)
 	}
