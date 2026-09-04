@@ -47,6 +47,9 @@ const TargetID_Browser = "browser"
 // TargetID_Desktop is the target ID for native desktop applications.
 const TargetID_Desktop = "desktop"
 
+// TargetID_CloudflareWorkers is the target ID for Cloudflare Workers.
+const TargetID_CloudflareWorkers = "cloudflare-workers"
+
 // GetHostPlatformID returns the platform ID for the current host.
 func GetHostPlatformID() string {
 	return "desktop/" + runtime.GOOS + "/" + runtime.GOARCH
@@ -55,6 +58,11 @@ func GetHostPlatformID() string {
 // builtinTargets contains the predefined targets.
 // Note: desktop target uses the host platform, computed at call time via GetBuiltinTarget.
 var builtinTargets = map[string]*Target{
+	TargetID_CloudflareWorkers: {
+		ID:          TargetID_CloudflareWorkers,
+		PlatformIDs: []string{PlatformID_CLOUDFLARE},
+		Description: "Cloudflare Workers environment",
+	},
 	TargetID_Browser: {
 		ID:          TargetID_Browser,
 		PlatformIDs: []string{"web/js/wasm", PlatformID_JS},
