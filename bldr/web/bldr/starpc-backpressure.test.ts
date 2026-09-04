@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { Client } from 'starpc'
 
@@ -11,6 +11,8 @@ describe('patched starpc client stream backpressure', () => {
     const sinkConsumed = { count: 0 }
     const sinkGate = deferred()
     const client = new Client(async () => ({
+      close: vi.fn(async () => {}),
+      abort: vi.fn(),
       source: pendingSource(),
       sink: async (source) => {
         await sinkGate.promise

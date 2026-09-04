@@ -30,7 +30,9 @@ function openStreamCallbacksToPacketStream(
       (errMsg) => incoming.end(errMsg ? new Error(errMsg) : undefined),
       (sink: GoPushableSink) =>
         resolve({
-          close: async () => incoming.end(),
+          close: async () => {
+            incoming.end()
+          },
           abort: (err) => incoming.end(err),
           source: incoming,
           sink: async (source) => {

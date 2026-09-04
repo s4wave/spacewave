@@ -222,6 +222,8 @@ describe('plugin-wasm generation lifecycle', () => {
     let sinkCompleted = false
     const api = buildBackendAPI(
       vi.fn(async () => ({
+        close: vi.fn(async () => {}),
+        abort: vi.fn(),
         source: (async function* () {
           yield new Uint8Array([1])
           yield new Uint8Array([2])
@@ -276,6 +278,8 @@ describe('plugin-wasm generation lifecycle', () => {
     goProcessState.start.mockReturnValue(new Promise<void>(() => {}))
     const api = buildBackendAPI(
       vi.fn(async () => ({
+        close: vi.fn(async () => {}),
+        abort: vi.fn(),
         source: (async function* () {
           yield new Uint8Array([1])
         })(),
@@ -354,6 +358,8 @@ describe('plugin-wasm generation lifecycle', () => {
     const sinkPackets: Uint8Array[] = []
     const api = buildBackendAPI(
       vi.fn(async () => ({
+        close: vi.fn(async () => {}),
+        abort: vi.fn(),
         source: (async function* () {
           yield new Uint8Array([7, 8])
         })(),
@@ -452,6 +458,10 @@ describe('plugin-wasm generation lifecycle', () => {
 
     const source = pushable<Uint8Array>({ objectMode: true })
     const handled = api.handleStreamCtr.handleStreamFunc({
+      close: async () => {
+        source.end()
+      },
+      abort: (err) => source.end(err),
       source,
       sink: vi.fn(async () => {}),
     })
@@ -494,6 +504,10 @@ describe('plugin-wasm generation lifecycle', () => {
 
     const source = pushable<Uint8Array>({ objectMode: true })
     void api.handleStreamCtr.handleStreamFunc({
+      close: async () => {
+        source.end()
+      },
+      abort: (err) => source.end(err),
       source,
       sink: vi.fn(async () => {}),
     })
@@ -539,16 +553,17 @@ describe('plugin-wasm generation lifecycle', () => {
 
     const source = pushable<Uint8Array>({ objectMode: true })
     void api.handleStreamCtr.handleStreamFunc({
+      close: async () => {
+        source.end()
+      },
+      abort: (err) => source.end(err),
       source,
       sink: vi.fn(async () => {}),
     })
     await waitForGoCallbackQueue()
 
     const takeBytes = getGoNumberImport(gojs, 'bldr.plugin.streamTakeBytes')
-    const messageHandled = getGoImport(
-      gojs,
-      'bldr.plugin.streamMessageHandled',
-    )
+    const messageHandled = getGoImport(gojs, 'bldr.plugin.streamMessageHandled')
 
     source.push(new Uint8Array([5, 6, 7]))
     await waitForGoCallbackQueue()
@@ -595,6 +610,10 @@ describe('plugin-wasm generation lifecycle', () => {
 
     const source = pushable<Uint8Array>({ objectMode: true })
     void api.handleStreamCtr.handleStreamFunc({
+      close: async () => {
+        source.end()
+      },
+      abort: (err) => source.end(err),
       source,
       sink: vi.fn(async () => {}),
     })
@@ -635,6 +654,10 @@ describe('plugin-wasm generation lifecycle', () => {
 
     const source = pushable<Uint8Array>({ objectMode: true })
     void api.handleStreamCtr.handleStreamFunc({
+      close: async () => {
+        source.end()
+      },
+      abort: (err) => source.end(err),
       source,
       sink: vi.fn(async () => {}),
     })
@@ -673,6 +696,10 @@ describe('plugin-wasm generation lifecycle', () => {
 
     const source = pushable<Uint8Array>({ objectMode: true })
     void api.handleStreamCtr.handleStreamFunc({
+      close: async () => {
+        source.end()
+      },
+      abort: (err) => source.end(err),
       source,
       sink: vi.fn(async () => {}),
     })
@@ -786,6 +813,8 @@ function buildBackendAPI(
 
 function buildPacketStream(): PacketStream {
   return {
+    close: vi.fn(async () => {}),
+    abort: vi.fn(),
     source: (async function* () {})(),
     sink: vi.fn(async () => {}),
   }
