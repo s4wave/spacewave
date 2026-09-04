@@ -73,8 +73,16 @@ export function createTransportFactory(
       const endpoint = await opts.openPairEndpoint!(targetWorkerId)
       const stream = new SabRingStream(endpoint.txSab, endpoint.rxSab)
       const close = stream.close.bind(stream)
-      stream.close = (err?: Error) => {
-        close(err)
+      const abort = stream.abort.bind(stream)
+      stream.close = async () => {
+        try {
+          await close()
+        } finally {
+          opts.closePairEndpoint?.(endpoint.pairId)
+        }
+      }
+      stream.abort = (error) => {
+        abort(error)
         opts.closePairEndpoint?.(endpoint.pairId)
       }
       return stream
