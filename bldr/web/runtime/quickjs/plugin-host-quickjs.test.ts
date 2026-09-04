@@ -94,6 +94,12 @@ describe('plugin-host-quickjs bridge handlers', () => {
       markWebRuntimeSinkStarted = resolve
     })
     const webRuntimeStream: PacketStream = {
+      close: async () => {
+        webRuntimeSource.end()
+      },
+      abort: (err) => {
+        webRuntimeSource.end(err)
+      },
       source: webRuntimeSource,
       sink: async (packets) => {
         markWebRuntimeSinkStarted()
@@ -106,6 +112,12 @@ describe('plugin-host-quickjs bridge handlers', () => {
     const quickJSTargetSource = pushable<Uint8Array>({ objectMode: true })
     const quickJSTargetSinkPackets: Uint8Array[] = []
     const quickJSTargetStream: PacketStream = {
+      close: async () => {
+        quickJSTargetSource.end()
+      },
+      abort: (err) => {
+        quickJSTargetSource.end(err)
+      },
       source: quickJSTargetSource,
       sink: async (packets) => {
         for await (const packet of packets) {
@@ -152,6 +164,12 @@ describe('plugin-host-quickjs bridge handlers', () => {
     const webRuntimeSource = pushable<Uint8Array>({ objectMode: true })
     const webRuntimeSinkPackets: Uint8Array[] = []
     const webRuntimeStream: PacketStream = {
+      close: async () => {
+        webRuntimeSource.end()
+      },
+      abort: (err) => {
+        webRuntimeSource.end(err)
+      },
       source: webRuntimeSource,
       sink: async (packets) => {
         for await (const packet of packets) {
@@ -243,6 +261,12 @@ describe('plugin-host-quickjs bridge handlers', () => {
     const webRuntimeSource = pushable<Uint8Array>({ objectMode: true })
     const webRuntimeSinkPackets: Uint8Array[] = []
     const webRuntimeStream: PacketStream = {
+      close: async () => {
+        webRuntimeSource.end()
+      },
+      abort: (err) => {
+        webRuntimeSource.end(err)
+      },
       source: webRuntimeSource,
       sink: async (packets) => {
         for await (const packet of packets) {
@@ -397,7 +421,16 @@ describe('plugin-host-quickjs bridge handlers', () => {
       hostConn.close(err instanceof Error ? err : new Error(String(err)))
     })
 
-    void handlers.handleWebRuntimeStream(webRuntimeWorker)
+    void handlers.handleWebRuntimeStream({
+      close: async () => {
+        webRuntimeWorker.close()
+      },
+      abort: () => {
+        webRuntimeWorker.close()
+      },
+      source: webRuntimeWorker.source,
+      sink: webRuntimeWorker.sink,
+    })
     const quickJSStream = await quickJSStreamReady
     const quickJSSinkPackets: Uint8Array[] = []
     const quickJSRead = pipe(quickJSStream.source, async (packets) => {
@@ -446,6 +479,8 @@ describe('plugin-host-quickjs bridge handlers', () => {
       rpcError: 'context canceled',
     })
     const targetStream: PacketStream = {
+      close: vi.fn(async () => {}),
+      abort: vi.fn(),
       source: failingSource(remoteError),
       sink: vi.fn(async () => {}),
     }
@@ -476,6 +511,8 @@ describe('plugin-host-quickjs bridge handlers', () => {
       'WebDocumentTracker: plugin/spacewave-web: closed while waiting for WebDocument',
     )
     const targetStream: PacketStream = {
+      close: vi.fn(async () => {}),
+      abort: vi.fn(),
       source: failingSource(closeError),
       sink: vi.fn(async () => {}),
     }
@@ -806,6 +843,12 @@ describe('plugin-host-quickjs runner lifecycle', () => {
       const requestSource = pushable<Uint8Array>({ objectMode: true })
       const responsePackets: Uint8Array[] = []
       const webRuntimeStream: PacketStream = {
+        close: async () => {
+          requestSource.end()
+        },
+        abort: (err) => {
+          requestSource.end(err)
+        },
         source: requestSource,
         sink: async (packets) => {
           for await (const packet of packets) {
@@ -1262,6 +1305,12 @@ describe('plugin-host-quickjs runner lifecycle', () => {
       const requestSource = pushable<Uint8Array>({ objectMode: true })
       const responses: Uint8Array[] = []
       const inbound: PacketStream = {
+        close: async () => {
+          requestSource.end()
+        },
+        abort: (err) => {
+          requestSource.end(err)
+        },
         source: requestSource,
         sink: async (packets) => {
           for await (const packet of packets) {
@@ -2229,9 +2278,20 @@ describe('plugin-host-quickjs asset helpers', () => {
 })
 
 function buildPacketStream(): PacketStream {
+  const source = pushable<Uint8Array>({ objectMode: true })
   return {
-    source: (async function* () {})(),
-    sink: vi.fn(async () => {}),
+    close: async () => {
+      source.end()
+    },
+    abort: (err) => {
+      source.end(err)
+    },
+    source,
+    sink: vi.fn(async (packets) => {
+      for await (const _packet of packets) {
+        // Drain packets until the fixture closes.
+      }
+    }),
   }
 }
 
@@ -2241,6 +2301,14 @@ function buildPacketStreamPair(): [PacketStream, PacketStream] {
 
   return [
     {
+      close: async () => {
+        leftToRight.end()
+        rightToLeft.end()
+      },
+      abort: (err) => {
+        leftToRight.end(err)
+        rightToLeft.end(err)
+      },
       source: rightToLeft,
       sink: async (packets) => {
         try {
@@ -2253,6 +2321,14 @@ function buildPacketStreamPair(): [PacketStream, PacketStream] {
       },
     },
     {
+      close: async () => {
+        leftToRight.end()
+        rightToLeft.end()
+      },
+      abort: (err) => {
+        leftToRight.end(err)
+        rightToLeft.end(err)
+      },
       source: leftToRight,
       sink: async (packets) => {
         try {
