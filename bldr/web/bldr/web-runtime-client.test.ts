@@ -286,17 +286,16 @@ describe('WebRuntimeClient', () => {
       clientId: 'plugin-worker',
       clientType: WebRuntimeClientType.WebRuntimeClientType_WEB_WORKER,
     })
-    const close = vi.fn()
-    const stream = { close }
+    const abort = vi.fn()
     const activeStreams = Reflect.get(client, 'activeStreams') as Set<{
-      close(error?: Error): void
+      abort(error: Error): void
     }>
-    activeStreams.add(stream)
+    activeStreams.add({ abort })
     expect(client.getRuntimeGenerationSnapshot().activeStreams).toBe(1)
 
     client.close()
 
-    expect(close).toHaveBeenCalledWith(
+    expect(abort).toHaveBeenCalledWith(
       expect.objectContaining({
         message: expect.stringContaining('normal-close'),
       }),
@@ -547,16 +546,16 @@ describe('WebRuntimeClient', () => {
     await connectClient(client, port2)
     expect(openClientCh).toHaveBeenCalledTimes(1)
 
-    const streamClose = vi.fn()
+    const streamAbort = vi.fn()
     const activeStreams = Reflect.get(client, 'activeStreams') as Set<{
-      close(error?: Error): void
+      abort(error: Error): void
     }>
-    activeStreams.add({ close: streamClose })
+    activeStreams.add({ abort: streamAbort })
     const postMessage = vi.spyOn(port1, 'postMessage')
 
     await client.rerouteChannel()
 
-    expect(streamClose).not.toHaveBeenCalled()
+    expect(streamAbort).not.toHaveBeenCalled()
     // The runtime is not told the client is going away; no close is posted.
     expect(postMessage).not.toHaveBeenCalledWith(
       expect.objectContaining({ close: true }),
@@ -566,7 +565,7 @@ describe('WebRuntimeClient', () => {
     expect(openClientCh).toHaveBeenCalledTimes(2)
 
     client.close()
-    expect(streamClose).toHaveBeenCalledWith(
+    expect(streamAbort).toHaveBeenCalledWith(
       expect.objectContaining({
         message: expect.stringContaining('normal-close'),
       }),

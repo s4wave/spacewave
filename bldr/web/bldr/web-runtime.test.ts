@@ -549,20 +549,20 @@ describe('WebRuntime', () => {
     )
 
     const client = runtime.lookupClient('electron-init') as {
-      childStreams: Set<{ close: (err?: Error) => void }>
+      childStreams: Set<{ abort: (error: Error) => void }>
     } | null
     expect(client).not.toBeNull()
 
-    const close = vi.fn()
-    client!.childStreams.add({ close })
+    const abort = vi.fn()
+    client!.childStreams.add({ abort })
 
     runtime.invalidateClient(
       'electron-init',
       new Error('navigation started: app://index.html'),
     )
 
-    expect(close).toHaveBeenCalledTimes(1)
-    expect(close.mock.calls[0]?.[0]).toBeInstanceOf(Error)
+    expect(abort).toHaveBeenCalledTimes(1)
+    expect(abort.mock.calls[0]?.[0]).toBeInstanceOf(Error)
   })
 
   it('keeps runtime-to-client stream opens pending until client invalidation', async () => {
@@ -616,7 +616,7 @@ describe('WebRuntime', () => {
     )
 
     const client = runtime.lookupClient('document-1') as {
-      childStreams: Set<{ close: (err?: Error) => void }>
+      childStreams: Set<{ abort: (error: Error) => void }>
       openStream(): Promise<unknown>
     } | null
     expect(client).not.toBeNull()
@@ -781,8 +781,8 @@ describe('WebRuntime', () => {
     )
     const first = runtime.lookupClient('document')
     expect(first).not.toBeNull()
-    const close = vi.fn()
-    Reflect.get(first!, 'childStreams').add({ close })
+    const abort = vi.fn()
+    Reflect.get(first!, 'childStreams').add({ abort })
     Reflect.apply(Reflect.get(first!, 'armWebLock'), first!, [])
     locks.release(buildWebDocumentLockName('document-gen-1'))
     await flushMessages()
@@ -803,7 +803,7 @@ describe('WebRuntime', () => {
     expect(second).not.toBe(first)
     expect(Reflect.get(first!, 'state')).toBe('closed')
     expect(Reflect.get(second!, 'state')).toBe('active')
-    expect(close).toHaveBeenCalledTimes(1)
+    expect(abort).toHaveBeenCalledTimes(1)
     const statuses = statusSpy.mock.calls.flatMap(
       ([status]) => status.webDocuments ?? [],
     )

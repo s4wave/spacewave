@@ -236,7 +236,7 @@ export class SabRingStream implements Duplex<
           await this._write(msg)
         }
       } catch (err) {
-        this.close(err instanceof Error ? err : new Error(String(err)))
+        this.abort(err instanceof Error ? err : new Error(String(err)))
         return
       }
       this._closeTx()
@@ -244,7 +244,15 @@ export class SabRingStream implements Duplex<
   }
 
   // close tears down the stream in both directions.
-  public close(error?: Error): void {
+  public async close(): Promise<void> {
+    this.finish()
+  }
+
+  public abort(error: Error): void {
+    this.finish(error)
+  }
+
+  private finish(error?: Error): void {
     if (this.closed) {
       return
     }
