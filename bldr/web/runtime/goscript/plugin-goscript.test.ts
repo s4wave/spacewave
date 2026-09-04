@@ -164,6 +164,8 @@ function buildBackendAPI(): BackendAPI {
 
 function buildPacketStream(): PacketStream {
   return {
+    close: vi.fn(async () => {}),
+    abort: vi.fn(),
     source: (async function* () {
       await new Promise<void>(() => {})
       yield new Uint8Array()
@@ -174,6 +176,8 @@ function buildPacketStream(): PacketStream {
 
 function buildPendingPacketStream(): PacketStream {
   return {
+    close: vi.fn(async () => {}),
+    abort: vi.fn(),
     source: (async function* () {
       await new Promise<void>(() => {})
       yield new Uint8Array()

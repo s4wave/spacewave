@@ -52,7 +52,7 @@ describe('createTransportFactory pair streams', () => {
     expect(received.value).toEqual(payload)
     await writeDone
 
-    const closeable = localStream as SabRingStream
+    const closeable = localStream as unknown as SabRingStream
     closeable.close()
     expect(closePairEndpoint).toHaveBeenCalledWith('sab-pair-1')
     remoteStream.close()

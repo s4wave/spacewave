@@ -308,6 +308,8 @@ describe('ResourceServer', () => {
 
       const firstResponse = new Promise<Packet>((resolve, reject) => {
         srpcServer.handlePacketStream({
+          close: vi.fn(async () => {}),
+          abort: vi.fn(),
           source: (async function* () {
             yield Packet.toBinary({
               body: {
