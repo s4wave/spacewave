@@ -251,4 +251,44 @@ describe('plugin-goscript-cloudflare runtime', () => {
     await vi.waitFor(() => expect(channel.abort).toHaveBeenCalledWith(err))
     expect(channel.close).not.toHaveBeenCalled()
   })
+  it('rejects an outgoing stream that resolves after plugin exit', async () => {
+    const channelReady = Promise.withResolvers<PacketStream>()
+    const process = Promise.withResolvers<void>()
+    const api = buildBackendAPI(() => channelReady.promise)
+    const lifecycle = main(api, async () => () => process.promise)
+    const outgoing = openStreamCallbacksToPacketStream(
+      globalThis.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME!,
+    )
+    const failed = expect(outgoing).rejects.toThrow('exited')
+    process.reject(new Error('exited'))
+    await expect(lifecycle.done).rejects.toThrow('exited')
+    const [channel] = buildPacketStreamPair()
+    const abort = vi.spyOn(channel, 'abort')
+    channelReady.resolve(channel)
+    await failed
+    expect(abort).toHaveBeenCalledOnce()
+  })
+
+  it('settles an accepted stream when the process exits before Go opens it', async () => {
+    const process = Promise.withResolvers<void>()
+    const api = buildBackendAPI()
+    const lifecycle = main(api, async () => () => process.promise)
+    let open!: OpenStreamFunc
+    globalThis.BLDR_PLUGIN_SET_ACCEPT_STREAM_WORKERS!((callback) => {
+      open = callback
+    })
+    const [channel] = buildPacketStreamPair()
+    const accepted = api.handleStreamCtr.handleStreamFunc(channel)
+    process.reject(new Error('exited'))
+    await expect(lifecycle.done).rejects.toThrow('exited')
+    const rejected = vi.fn()
+    open(
+      () => {},
+      () => {},
+      () => {},
+      rejected,
+    )
+    await accepted
+    expect(rejected).toHaveBeenCalledWith(expect.stringContaining('exited'))
+  })
 })

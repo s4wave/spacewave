@@ -697,7 +697,7 @@ func (c *Controller) BuildPlugin(
 
 	// analyze go packages
 	le.Info("analyzing go packages")
-	buildTagsForAnalyze := newBuildTagsForAnalyze(buildType, enableCgo, goCompiler)
+	buildTagsForAnalyze := newBuildTagsForAnalyze(buildPlatform, buildType, enableCgo, goCompiler)
 	// Match analysis GOOS/GOARCH to the target so factories gated on
 	// platform-specific build tags (e.g. volume_bolt with "//go:build !js")
 	// are excluded from the generated factory list when targeting browser
@@ -1046,7 +1046,7 @@ func (c *Controller) BuildPlugin(
 				Enabled:  consumeGoScriptSharedProvider,
 			}
 			buildBundleFn := web_runtime_goscript_build.BuildWebGoScriptPluginScriptWithOptions
-			if _, isCloudflare := buildPlatform.(*bldr_platform.CloudflarePlatform); isCloudflare {
+			if _, ok := buildPlatform.(*bldr_platform.CloudflarePlatform); ok {
 				buildBundleFn = web_runtime_goscript_build.BuildWebGoScriptCloudflarePluginScript
 			}
 			webRuntimeSrcFiles, err = buildBundleFn(
@@ -1295,7 +1295,7 @@ func (c *Controller) BuildPlugin(
 func newGoScriptBuildFlags(buildPlatform bldr_platform.Platform, buildType bldr_manifest.BuildType, enableCgo bool) []string {
 	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
 	buildTags = append(buildTags, gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag)
-	if _, isCloudflare := buildPlatform.(*bldr_platform.CloudflarePlatform); isCloudflare {
+	if _, ok := buildPlatform.(*bldr_platform.CloudflarePlatform); ok {
 		buildTags = append(buildTags, gocompiler.CloudflareBuildTag)
 	}
 	return []string{"-tags=" + strings.Join(buildTags, ",")}
@@ -1419,6 +1419,7 @@ func filterPathsUnderBase(basePath string, paths []string) []string {
 // newBuildTagsForAnalyze assembles the build tags used during analysis for the
 // given build type, cgo setting, and Go compiler.
 func newBuildTagsForAnalyze(
+	buildPlatform bldr_platform.Platform,
 	buildType bldr_manifest.BuildType,
 	enableCgo bool,
 	goCompiler gocompiler.GoCompiler,
@@ -1430,6 +1431,9 @@ func newBuildTagsForAnalyze(
 	}
 	if goCompiler.IsGoScript() {
 		buildTags = append(buildTags, gocompiler.GoScriptBuildTag)
+		if _, ok := buildPlatform.(*bldr_platform.CloudflarePlatform); ok {
+			buildTags = append(buildTags, gocompiler.CloudflareBuildTag)
+		}
 	}
 	if goCompiler.IsTinyGo() || goCompiler.IsGoScript() {
 		buildTags = append(buildTags, gocompiler.SQLLiteBuildTag)
@@ -1923,12 +1927,7 @@ func writeDevInfoFile(le *logrus.Entry, outDistPath, devInfoFile string, devInfo
 
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.
 func (c *Controller) GetSupportedPlatforms() []string {
-	return []string{
-		bldr_platform.PlatformID_DESKTOP,
-		bldr_platform.PlatformID_WEB,
-		bldr_platform.PlatformID_JS,
-		bldr_platform.PlatformID_CLOUDFLARE,
-	}
+	return []string{bldr_platform.PlatformID_DESKTOP, bldr_platform.PlatformID_WEB, bldr_platform.PlatformID_JS}
 }
 
 // _ is a type assertion

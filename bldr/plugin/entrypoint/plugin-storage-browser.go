@@ -1,4 +1,4 @@
-//go:build js
+//go:build js && !bldr_cloudflare
 
 package plugin_entrypoint
 
