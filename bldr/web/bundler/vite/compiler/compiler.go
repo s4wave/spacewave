@@ -36,7 +36,7 @@ import (
 // ControllerID is the compiler controller ID.
 const ControllerID = ConfigID
 
-// Version is the controller version
+// Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
@@ -45,9 +45,11 @@ var controllerDescrip = "vite bundler controller"
 // Controller is the compiler controller.
 type Controller struct {
 	*bus.BusController[*Config]
+
+	// preBuildHooks is the list of hooks called before each build.
 	preBuildHooks []PreBuildHook
 
-	// bundlerRc is the bundler refcount instance.
+	// viteBundlers is the refcounted set of vite bundler instances.
 	viteBundlers *keyed.KeyedRefCount[viteBundlerKey, *viteBundlerTracker]
 }
 
@@ -110,7 +112,7 @@ type PreBuildHook func(
 ) (*PreBuildHookResult, error)
 
 // AddPreBuildHook adds a callback that is called just after constructing the plugin working dir.
-// NOTE: may be removed in future
+// NOTE: may be removed in the future.
 func (c *Controller) AddPreBuildHook(hook PreBuildHook) {
 	if hook != nil {
 		c.preBuildHooks = append(c.preBuildHooks, hook)
@@ -856,6 +858,7 @@ func (c *Controller) performFullRebuild(
 	)
 }
 
+// stopViteBundlers removes the vite bundler instances for the given bundles.
 func (c *Controller) stopViteBundlers(
 	distSourcePath,
 	sourcePath,
@@ -882,6 +885,8 @@ func (c *Controller) GetSupportedPlatforms() []string {
 	return nil
 }
 
+// resolveBldrDistWebPkgRefs resolves web pkg refs served from the bldr dist
+// deps install, filtered to the configured external IDs.
 func resolveBldrDistWebPkgRefs(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -914,6 +919,8 @@ func resolveBldrDistWebPkgRefs(
 	return filtered, nil
 }
 
+// configuredBldrDistWebPkgIDs returns the configured web pkg IDs that resolve
+// to bldr dist external packages.
 func configuredBldrDistWebPkgIDs(
 	configs []*bldr_web_bundler.WebPkgRefConfig,
 	excludedIDs map[string]struct{},
