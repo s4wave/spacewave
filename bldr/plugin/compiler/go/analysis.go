@@ -363,6 +363,8 @@ func (a *Analysis) GetProgramGoCodeFiles() map[string][]*ast.File {
 	return a.getGoCodeFiles(nil)
 }
 
+// getGoCodeFiles collects AST files per package path; when packagePaths is
+// empty, all loaded program packages are included.
 func (a *Analysis) getGoCodeFiles(packagePaths map[string]struct{}) map[string][]*ast.File {
 	res := make(map[string][]*ast.File)
 	addFile := func(pakImportPath string, astFile *ast.File) {

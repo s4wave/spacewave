@@ -1318,7 +1318,6 @@ func addCompilerStartupCacheInputs(
 }
 
 // addTinyGoStartupCacheInputs adds tinygo env cache inputs to the manifest.
-// addTinyGoStartupCacheInputs adds tinygo env cache inputs to the manifest.
 func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.TinyGoStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
@@ -1326,7 +1325,6 @@ func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManif
 	inputManifest.SortStartupInputs()
 }
 
-// addGoCompilerStartupCacheInputs adds default go compiler env cache inputs.
 // addGoCompilerStartupCacheInputs adds default go compiler env cache inputs.
 func addGoCompilerStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.GoCompilerStartupCacheEnvKeys() {
@@ -1336,7 +1334,6 @@ func addGoCompilerStartupCacheInputs(inputManifest *bldr_manifest_builder.InputM
 }
 
 // addGoWasmOptimizeStartupCacheInputs adds go wasm optimize env cache inputs.
-// addGoWasmOptimizeStartupCacheInputs adds go wasm optimize env cache inputs.
 func addGoWasmOptimizeStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.GoWasmOptimizeStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
@@ -1344,7 +1341,6 @@ func addGoWasmOptimizeStartupCacheInputs(inputManifest *bldr_manifest_builder.In
 	inputManifest.SortStartupInputs()
 }
 
-// addGoWasmDiagnosticStartupCacheInputs adds go wasm diagnostic env cache inputs.
 // addGoWasmDiagnosticStartupCacheInputs adds go wasm diagnostic env cache inputs.
 func addGoWasmDiagnosticStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.GoWasmDiagnosticStartupCacheEnvKeys() {
@@ -1354,7 +1350,6 @@ func addGoWasmDiagnosticStartupCacheInputs(inputManifest *bldr_manifest_builder.
 }
 
 // addGoScriptStartupCacheInputs adds goscript env cache inputs to the manifest.
-// addGoScriptStartupCacheInputs adds goscript env cache inputs to the manifest.
 func addGoScriptStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.GoScriptStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
@@ -1362,11 +1357,6 @@ func addGoScriptStartupCacheInputs(inputManifest *bldr_manifest_builder.InputMan
 	inputManifest.SortStartupInputs()
 }
 
-// appendInputManifestFiles records source-relative file paths of the given
-// kind in the input manifest. Go files are filtered to paths under the source
-// root; dependency module files are expected to be filtered by the caller.
-// appendInputManifestFiles records source-relative file paths of the given kind
-// in the input manifest. Go source files outside the source root are dropped.
 // appendInputManifestFiles records source-relative file paths of the given kind
 // in the input manifest. Go source files outside the source root are dropped.
 func appendInputManifestFiles(
@@ -1399,7 +1389,6 @@ func appendInputManifestFiles(
 }
 
 // filterPathsUnderBase drops empty paths and paths that fall outside basePath.
-// filterPathsUnderBase drops empty paths and paths that fall outside basePath.
 func filterPathsUnderBase(basePath string, paths []string) []string {
 	if len(paths) == 0 {
 		return nil
@@ -1421,8 +1410,6 @@ func filterPathsUnderBase(basePath string, paths []string) []string {
 	return filtered
 }
 
-// newBuildTagsForAnalyze assembles the build tags used during analysis for the
-// given build type, cgo setting, and Go compiler.
 // newBuildTagsForAnalyze assembles the build tags used during analysis for the
 // given build type, cgo setting, and Go compiler.
 func newBuildTagsForAnalyze(
@@ -1638,6 +1625,7 @@ func (c *Controller) FastRebuildPlugin(
 	if len(updatedViteOutputs) > 0 {
 		updatedInputMeta.ViteOutputs = updatedViteOutputs
 	}
+
 	// WebPkgRefs are confirmed to be the same, no need to update updatedInputMeta.WebPkgRefs
 
 	// Drop all overwritten variable definitions from the DevInfo set (we will add them back next)
@@ -1696,6 +1684,7 @@ func buildEsbuildGoVariableDefs(
 				if !strings.HasSuffix(entrypointPath, ".mjs") && !strings.HasSuffix(entrypointPath, ".js") {
 					return false
 				}
+
 				// match entrypoint id
 				return output.GetEntrypointId() == entrypointVarEsbuildEntrypointID
 			})
@@ -1881,8 +1870,6 @@ func existingSourceDirs(sourcePath string, relPaths ...string) ([]string, []stri
 	return existingAbs, existingRel
 }
 
-// sourceFilesUnderDirs walks the given source-relative directories and returns
-// the sorted relative paths of every file found beneath them.
 // sourceFilesUnderDirs walks the given source-relative directories and returns
 // the sorted relative paths of every file found beneath them.
 func sourceFilesUnderDirs(sourcePath string, relDirs []string) ([]string, error) {
