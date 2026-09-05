@@ -237,7 +237,7 @@ func ExecutePluginEntrypoint(
 	// handle incoming PluginRpc calls by forwarding to the bus
 	_ = bldr_plugin.SRPCRegisterPlugin(rpcMux, bldr_plugin.NewPluginServer(b))
 
-	// listen for incoming requests before publishing initial capabilities
+	// Listen for incoming requests before publishing initial capabilities.
 	srv := srpc.NewServer(rpcMux)
 	initialRegistrationRel, err := startInitialCapabilityRegistration(
 		ctx,
@@ -258,9 +258,9 @@ func ExecutePluginEntrypoint(
 	}
 	rels = append(rels, initialRegistrationRel)
 
-	// start the plugin storage controller and use the default storage id
-	// on js/wasm, this resolves to direct OPFS access
-	// on native, this proxies through the plugin host via RPC
+	// Start the plugin storage controller and use the default storage id.
+	// On js/wasm this resolves to direct OPFS access, and on native it
+	// proxies through the plugin host via RPC.
 	storages := buildPluginStorages(b, sr)
 	hostStorageCtrl := storage_controller.BuildStorageController(
 		bldr_plugin.HostStorageID,
@@ -290,6 +290,9 @@ func ExecutePluginEntrypoint(
 	}
 }
 
+// startInitialCapabilityRegistration serves incoming plugin host streams and
+// waits for the handler to become ready before completing initial capability
+// registration. It returns a release func for the registered capabilities.
 func startInitialCapabilityRegistration(
 	ctx context.Context,
 	srv *srpc.Server,
