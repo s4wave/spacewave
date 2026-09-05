@@ -150,6 +150,11 @@ type Config struct {
 	// returns short-lived ICE credentials ({ iceServers, expiresAt }). Only the
 	// document shell may use it; worker-provided servers remain ignored.
 	BrowserIceServersEndpoint string `protobuf:"bytes,13,opt,name=browser_ice_servers_endpoint,json=browserIceServersEndpoint,proto3" json:"browserIceServersEndpoint,omitempty"`
+	// EmbedNativeVolume embeds the assets.kvfile distribution volume inside the
+	// native executable without producing a sidecar. Unspecified and DISABLE
+	// retain the external volume layout. Web distributions always ship the
+	// volume separately regardless of this option.
+	EmbedNativeVolume enabled.Enabled `protobuf:"varint,14,opt,name=embed_native_volume,json=embedNativeVolume,proto3" json:"embedNativeVolume,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -249,6 +254,13 @@ func (x *Config) GetBrowserIceServersEndpoint() string {
 	return ""
 }
 
+func (x *Config) GetEmbedNativeVolume() enabled.Enabled {
+	if x != nil {
+		return x.EmbedNativeVolume
+	}
+	return enabled.Enabled(0)
+}
+
 // PreBuildHookResult is the output of a pre-build hook.
 type PreBuildHookResult struct {
 	unknownFields []byte
@@ -344,6 +356,7 @@ func (m *Config) CloneVT() *Config {
 	r.GoCompiler = m.GoCompiler
 	r.EnableCompression = m.EnableCompression
 	r.BrowserIceServersEndpoint = m.BrowserIceServersEndpoint
+	r.EmbedNativeVolume = m.EmbedNativeVolume
 	r.EmbedManifests = protobuf_go_lite.CloneVTSlice(m.EmbedManifests)
 	r.LoadPlugins = protobuf_go_lite.CloneSlice(m.LoadPlugins)
 	r.HostConfigSet = protobuf_go_lite.CloneVTMap(m.HostConfigSet)
@@ -467,6 +480,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.BrowserIceServersEndpoint != that.BrowserIceServersEndpoint {
+		return false
+	}
+	if this.EmbedNativeVolume != that.EmbedNativeVolume {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -758,6 +774,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("browserIceServersEndpoint")
 		s.WriteString(x.BrowserIceServersEndpoint)
 	}
+	if x.EmbedNativeVolume != 0 || s.HasField("embedNativeVolume") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("embedNativeVolume")
+		x.EmbedNativeVolume.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -861,6 +882,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "browser_ice_servers_endpoint", "browserIceServersEndpoint":
 			s.AddField("browser_ice_servers_endpoint")
 			x.BrowserIceServersEndpoint = s.ReadString()
+		case "embed_native_volume", "embedNativeVolume":
+			s.AddField("embed_native_volume")
+			x.EmbedNativeVolume.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -1035,6 +1059,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.EmbedNativeVolume != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.EmbedNativeVolume))
+		i--
+		dAtA[i] = 0x70
 	}
 	if len(m.BrowserIceServersEndpoint) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.BrowserIceServersEndpoint)
@@ -1238,6 +1267,7 @@ func (m *Config) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BrowserIceServersEndpoint)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.EmbedNativeVolume)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1407,6 +1437,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.BrowserIceServersEndpoint != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "browser_ice_servers_endpoint")
 		protobuf_go_lite.TextWriteString(&sb, x.BrowserIceServersEndpoint)
+	}
+	if x.EmbedNativeVolume != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "embed_native_volume")
+		protobuf_go_lite.TextWriteStringer(&sb, enabled.Enabled(x.EmbedNativeVolume))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1761,6 +1795,17 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.BrowserIceServersEndpoint = v
+		case 14:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EmbedNativeVolume", wireType)
+			}
+			m.EmbedNativeVolume = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.EmbedNativeVolume = enabled.Enabled(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

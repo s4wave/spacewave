@@ -324,6 +324,7 @@ func (c *Controller) BuildManifest(
 		conf.GetEnableCgo(),
 		conf.GetGoCompiler(),
 		conf.GetEnableCompression(),
+		conf.GetEmbedNativeVolume(),
 		conf.GetBrowserIceServers(),
 		conf.GetBrowserIceServersEndpoint(),
 	)

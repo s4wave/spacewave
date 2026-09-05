@@ -12,6 +12,12 @@ another copy of the payload. Small bootstrap configuration remains embedded.
 The existing block reader opens the volume lazily and checks that the expected
 root exists. A missing or mismatched volume fails startup.
 
+Set `embed_native_volume: "ENABLE"` on the dist compiler config to embed the
+volume inside the native executable. The executable then runs without the
+sidecar file, which keeps self-contained distributions working when an
+installer or updater replaces only the executable. The default keeps the
+volume external so existing packaging is unaffected.
+
 Web distributions continue to serve their volume separately through the browser
 range reader. Both packers include reachable blocks only; unrelated blocks left
 in a build store do not become distribution assets.

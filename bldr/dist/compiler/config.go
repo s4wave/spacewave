@@ -32,6 +32,7 @@ func (c *Config) GetConfigID() string {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	// Validate host configuration and the project boundary before source inputs.
 	if err := configset_proto.ConfigSetMap(c.GetHostConfigSet()).Validate(); err != nil {
 		return errors.Wrap(err, "host_config_set")
 	}
@@ -40,6 +41,8 @@ func (c *Config) Validate() error {
 			return err
 		}
 	}
+
+	// Require a supported startup source and an exact platform for every embed.
 	if _, err := c.ParseWebStartupPath(); err != nil {
 		return err
 	}
@@ -57,6 +60,8 @@ func (c *Config) Validate() error {
 			return errors.Wrapf(err, "embed_manifests[%d]: platform_id", i)
 		}
 	}
+
+	// Native CLI packages must resolve as Go import paths.
 	for i, impPath := range c.GetCliPkgs() {
 		impPath = strings.TrimPrefix(impPath, "./")
 		if err := module.CheckImportPath(impPath); err != nil {
@@ -67,12 +72,15 @@ func (c *Config) Validate() error {
 }
 
 // ParseWebStartupPath validates and cleans the web startup path.
-// If unset, returns "", nil
+// If unset, returns "", nil.
 func (c *Config) ParseWebStartupPath() (string, error) {
+	// An omitted startup source leaves browser startup to the distribution.
 	startupPath := c.GetLoadWebStartup()
 	if len(startupPath) == 0 {
 		return "", nil
 	}
+
+	// Normalize the project-relative path before validating its file type.
 	startupPath = path.Clean(startupPath)
 	if startupPath[0] == '/' {
 		return "", errors.New("load_web_startup: must be a relative path")
@@ -112,10 +120,10 @@ func (c *Config) Merge(o *Config) {
 		return
 	}
 
-	// allocate any maps
+	// Allocate host configuration before applying layered overrides.
 	c.Alloc()
 
-	// merge EmbedManifests by (manifest_id, platform_id) tuple
+	// Merge embedded manifests by their exact manifest/platform identity.
 	for _, em := range o.GetEmbedManifests() {
 		if em == nil {
 			continue
@@ -127,25 +135,25 @@ func (c *Config) Merge(o *Config) {
 	}
 	slices.SortFunc(c.EmbedManifests, compareEmbedManifest)
 
-	// merge LoadPlugins
+	// Merge plugin and CLI imports without duplicate startup work.
 	merge.MergeAndSortSlices(&c.LoadPlugins, o.GetLoadPlugins())
-
-	// merge CliPkgs
 	merge.MergeAndSortSlices(&c.CliPkgs, o.GetCliPkgs())
 
-	// merge config sets
+	// Merge controller configuration through its existing override rules.
 	configset_proto.MergeConfigSetMaps(c.HostConfigSet, o.GetHostConfigSet())
 
-	// override project id
+	// Override project identity only when explicitly configured.
 	if cproj := o.GetProjectId(); cproj != "" {
 		c.ProjectId = cproj
 	}
 
+	// Preserve unspecified compiler options and apply explicit selections.
 	c.EnableCgo = c.EnableCgo.Merge(o.GetEnableCgo())
 	if goCompiler := o.GetGoCompiler(); goCompiler != bldr_plugin_compiler_go.GoCompiler_GO_COMPILER_DEFAULT {
 		c.GoCompiler = goCompiler
 	}
 	c.EnableCompression = c.EnableCompression.Merge(o.GetEnableCompression())
+	c.EmbedNativeVolume = c.EmbedNativeVolume.Merge(o.GetEmbedNativeVolume())
 }
 
 // Normalize sorts and deduplicates the fields.
@@ -154,12 +162,13 @@ func (c *Config) Normalize() {
 		return
 	}
 
+	// Canonicalize manifest tuples before comparing or caching configuration.
 	slices.SortFunc(c.EmbedManifests, compareEmbedManifest)
 	c.EmbedManifests = slices.CompactFunc(c.EmbedManifests, equalEmbedManifest)
 
+	// Canonicalize plugin and command imports independently of input order.
 	slices.Sort(c.LoadPlugins)
 	c.LoadPlugins = slices.Compact(c.LoadPlugins)
-
 	slices.Sort(c.CliPkgs)
 	c.CliPkgs = slices.Compact(c.CliPkgs)
 }

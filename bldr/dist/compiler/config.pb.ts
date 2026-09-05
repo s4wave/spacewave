@@ -209,6 +209,15 @@ export interface Config {
    * @generated from field: string browser_ice_servers_endpoint = 13;
    */
   browserIceServersEndpoint?: string
+  /**
+   * EmbedNativeVolume embeds the assets.kvfile distribution volume inside the
+   * native executable without producing a sidecar. Unspecified and DISABLE
+   * retain the external volume layout. Web distributions always ship the
+   * volume separately regardless of this option.
+   *
+   * @generated from field: enabled.Enabled embed_native_volume = 14;
+   */
+  embedNativeVolume?: Enabled
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -262,6 +271,7 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
     },
+    { no: 14, name: 'embed_native_volume', kind: 'enum', T: Enabled_Enum },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

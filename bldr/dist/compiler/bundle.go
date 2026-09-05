@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
@@ -58,7 +59,7 @@ func browserIceServersForBundle(servers []*IceServer) []entrypoint_browser_bundl
 			continue
 		}
 		trusted = append(trusted, entrypoint_browser_bundle.BrowserIceServer{
-			URLs:       append([]string(nil), server.GetUrls()...),
+			URLs:       slices.Clone(server.GetUrls()),
 			Username:   server.GetUsername(),
 			Credential: server.GetCredential(),
 		})
@@ -88,11 +89,14 @@ func BuildDistBundle(
 	enableCgoOpt enabled.Enabled,
 	goCompilerOpt plugin_compiler_go.GoCompiler,
 	enableCompressionOpt enabled.Enabled,
+	embedNativeVolumeOpt enabled.Enabled,
 	browserIceServers []*IceServer,
 	browserIceServersEndpoint string,
 ) error {
+	// Resolve target-specific compilation and packaging policy.
 	isRelease := buildType.IsRelease()
 	isWebPlatform := bldr_platform.IsWebPlatform(buildPlatform)
+	embedNativeVolume := !isWebPlatform && embedNativeVolumeOpt.IsEnabled(false)
 	jsMinify := buildPolicy.ResolveJsMinification(buildType)
 	jsSourcemaps := buildPolicy.ResolveJsSourcemaps(buildType)
 	goScriptCodeSplitting := buildPolicy.ResolveGoScriptCodeSplitting(buildType)
@@ -109,6 +113,7 @@ func BuildDistBundle(
 	enableTinygo := goCompiler.IsTinyGo()
 	useGoScript := goCompiler.IsGoScript()
 
+	// Release the temporary build bus and its controllers on every exit.
 	ctx, ctxCancel := context.WithCancel(rctx)
 	defer ctxCancel()
 
@@ -117,10 +122,6 @@ func BuildDistBundle(
 	if err := os.WriteFile(filepath.Join(outputPath, "LICENSE.bldr"), []byte(bldrLicense), 0o644); err != nil {
 		return err
 	}
-
-	// NOTE: we use the go.mod from the parent program.
-	// We compile under ${parent_program}/.bldr/build/...
-	// The Go compiler will find the go.mod with reference to bldr in a parent dir.
 
 	// Encode the config set for embedding in the dist binary.
 	var hostConfigSetBin []byte
@@ -135,7 +136,7 @@ func BuildDistBundle(
 		}
 	}
 
-	// entrypointBuildDir is the directory we will run "go build" in.
+	// Compile below the parent project so Go uses its module dependencies.
 	entrypointBuildDir := filepath.Join(workingPath, "entrypoint")
 	if err := os.MkdirAll(entrypointBuildDir, 0o755); err != nil {
 		return err
@@ -161,6 +162,7 @@ func BuildDistBundle(
 	workSr.AddFactory(lookup_concurrent.NewFactory(workBus))
 	workSr.AddFactory(world_block_engine.NewFactory(workBus))
 
+	// Select persistent scratch storage for the distribution's World.
 	workingDbDir := filepath.Join(workingPath, "dist-vol")
 	if err := os.MkdirAll(workingDbDir, 0o755); err != nil {
 		return err
@@ -225,8 +227,6 @@ func BuildDistBundle(
 		return err
 	}
 
-	// The packaged volume contains the distribution manifests.
-
 	// Create the embedded manifests world.
 	embedWorldID := bldr_dist.DistWorldEngineID
 	embedObjStoreID := embedWorldID
@@ -290,17 +290,27 @@ func BuildDistBundle(
 		return err
 	}
 
-	le.Debug("packing embedded volume to assets.kvfile")
+	// Pack native assets in the selected layout and remove the previous layout
+	// when a build directory is reused after a configuration change.
+	le.Debug("packing distribution volume to assets.kvfile")
 	embeddedVolumeFilename := "assets.kvfile"
 	embeddedVolumePath := filepath.Join(entrypointBuildDir, embeddedVolumeFilename)
 	if !isWebPlatform {
-		embeddedVolumePath = filepath.Join(outputPath, embeddedVolumeFilename)
+		staleVolumePath := filepath.Join(outputPath, embeddedVolumeFilename)
+		if !embedNativeVolume {
+			embeddedVolumePath, staleVolumePath = staleVolumePath, embeddedVolumePath
+		}
+		if err := os.Remove(staleVolumePath); err != nil && !os.IsNotExist(err) {
+			return err
+		}
 	}
 	embeddedVolFile, err := os.OpenFile(embeddedVolumePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
+	defer embeddedVolFile.Close()
 
+	// Hash browser assets while writing so their URL binds to their contents.
 	var embeddedVolumeWrite io.Writer = embeddedVolFile
 	var embeddedVolumeHash hash.Hash
 	if isWebPlatform {
@@ -344,7 +354,11 @@ func BuildDistBundle(
 	if len(hostConfigSetBin) != 0 {
 		embedAssetsFS = append(embedAssetsFS, outConfigSetFilename)
 	}
+	if embedNativeVolume {
+		embedAssetsFS = append(embedAssetsFS, embeddedVolumeFilename)
+	}
 
+	// Generate the entrypoint after its embedded file set is final.
 	writeDistEntrypoint := func(embedAssets bool) error {
 		le.Debug("writing dist entrypoint")
 		entrypointSrc := FormatDistEntrypoint(meta, embedAssetsFS, cliImports, embedAssets)
@@ -524,13 +538,14 @@ func BuildDistBundle(
 			return err
 		}
 	} else {
-		// Native distributions keep the volume beside the executable.
+		// Native entrypoints embed only the files selected by their layout.
 		outBinPath = filepath.Join(outputPath, outBinName)
 		if err := writeDistEntrypoint(true); err != nil {
 			return err
 		}
 	}
 
+	// GoScript bundles already contain their compiled runtime.
 	if isWebPlatform && useGoScript {
 		return nil
 	}

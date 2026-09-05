@@ -17,7 +17,10 @@ import (
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 )
 
+// TestNativeAssetsResource resolves a real volume in both native layouts,
+// independently of the current directory and any obsolete sidecar.
 func TestNativeAssetsResource(t *testing.T) {
+	// External volumes follow the executable through a symlink.
 	dir := t.TempDir()
 	executable := filepath.Join(dir, "app")
 	if err := os.WriteFile(executable, nil, 0o755); err != nil {
@@ -35,6 +38,8 @@ func TestNativeAssetsResource(t *testing.T) {
 	if _, err := assets.Open("assets.kvfile"); !errors.Is(err, fs.ErrNotExist) {
 		t.Fatalf("missing volume error = %v", err)
 	}
+
+	// Package one real root block for the runtime's existing volume reader.
 	data := []byte("root block")
 	ref, err := block.BuildBlockRef(data, nil)
 	if err != nil {
@@ -55,6 +60,8 @@ func TestNativeAssetsResource(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "assets.kvfile"), volume.Bytes(), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	// Preserve random-access volume reads and ordinary embedded configuration.
 	file, err := assets.Open("assets.kvfile")
 	if err != nil {
 		t.Fatal(err)
@@ -69,6 +76,8 @@ func TestNativeAssetsResource(t *testing.T) {
 	if err != nil || string(config) != "config" {
 		t.Fatalf("embedded config = %q, error = %v", config, err)
 	}
+
+	// The block reader validates the selected volume's expected root.
 	resolve := newStaticBlockStoreReaderBuilder(nil, assets, false, ref)
 	_, closeReader, err := resolve(t.Context(), func() {})
 	if err != nil {
@@ -83,4 +92,19 @@ func TestNativeAssetsResource(t *testing.T) {
 	if !errors.Is(err, block.ErrNotFound) {
 		t.Fatalf("mismatched volume error = %v", err)
 	}
+
+	// Embedded builds remain usable after installation without any sidecar.
+	if err := os.Remove(filepath.Join(dir, "assets.kvfile")); err != nil {
+		t.Fatal(err)
+	}
+	assets.FS = fstest.MapFS{"assets.kvfile": {Data: volume.Bytes()}}
+	assets.executable = func() (string, error) {
+		t.Fatal("embedded volume attempted executable lookup")
+		return "", fs.ErrNotExist
+	}
+	_, closeEmbedded, err := newStaticBlockStoreReaderBuilder(nil, assets, false, ref)(t.Context(), func() {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	closeEmbedded()
 }

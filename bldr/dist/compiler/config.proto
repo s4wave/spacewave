@@ -101,6 +101,12 @@ message Config {
   // returns short-lived ICE credentials ({ iceServers, expiresAt }). Only the
   // document shell may use it; worker-provided servers remain ignored.
   string browser_ice_servers_endpoint = 13;
+
+  // EmbedNativeVolume embeds the assets.kvfile distribution volume inside the
+  // native executable without producing a sidecar. Unspecified and DISABLE
+  // retain the external volume layout. Web distributions always ship the
+  // volume separately regardless of this option.
+  .enabled.Enabled embed_native_volume = 14;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.
