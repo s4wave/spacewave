@@ -1,4 +1,4 @@
-import { BrowserStartupPhaseRail } from '@s4wave/app/loading/AppLoadingScreen.js'
+import { BrowserStartupPhaseRail } from '@s4wave/app/loading/BrowserStartupPhaseRail.js'
 import { useBrowserStartupProjection } from '@s4wave/app/loading/status/browser-startup.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { usePath } from '@s4wave/web/router/router.js'

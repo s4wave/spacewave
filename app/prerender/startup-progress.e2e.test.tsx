@@ -87,7 +87,7 @@ describe('browser startup progress surfaces', () => {
     resetBootDownloadsForTest()
     resetBrowserStartupMarksForTest()
     window.matchMedia = originalMatchMedia
-    await page.viewport(1280, 800)
+    await page.viewport(1518, 1094)
   })
 
   afterEach(async () => {
@@ -108,30 +108,12 @@ describe('browser startup progress surfaces', () => {
 
     await renderSurface(<AppLoadingScreen />)
 
-    // Detail copy is owned by browserStartupPhasePresentation in
-    // app/loading/status/browser-startup-model.ts.
-    await expect
-      .element(
-        page.getByText(
-          'Current app download: Loading the application interface.',
-        ),
-      )
-      .toBeInTheDocument()
-    await expect
-      .element(page.getByText('Prepare', { exact: true }))
-      .toBeInTheDocument()
-    await expect
-      .element(page.getByText('Connect', { exact: true }))
-      .toBeInTheDocument()
-    await expect
-      .element(page.getByText('Runtime', { exact: true }))
-      .toBeInTheDocument()
-    await expect
-      .element(page.getByText('App', { exact: true }))
-      .toBeInTheDocument()
-    await expect
-      .element(page.getByText('Done', { exact: true }))
-      .toBeInTheDocument()
+    await expect.element(page.getByText('Opening Spacewave')).toBeVisible()
+    await expect.element(page.getByText('Starting the app')).toBeVisible()
+    expect(document.querySelector('details')?.open).toBe(false)
+    expect(
+      document.querySelector('.swb-activity')?.getAttribute('aria-valuenow'),
+    ).toBeNull()
     const bounds = startupSurfaceBounds()
     expect(typeof bounds?.width).toBe('number')
     expect(typeof bounds?.height).toBe('number')
@@ -139,16 +121,20 @@ describe('browser startup progress surfaces', () => {
     await captureStartupEvidence('returning-user-runtime-desktop')
   })
 
-  it('renders the cold-cache app download with real byte progress', async () => {
+  it('does not display synthetic app-phase progress as downloaded bytes', async () => {
     localStorage.setItem('spacewave-has-session', '1')
     setBootPhaseProgress('app', 0.37)
 
     await renderSurface(<AppLoadingScreen />)
+    await page.getByText('Show details', { exact: true }).click()
 
     await expect
       .element(page.getByText('Current app download: Opening the application.'))
       .toBeInTheDocument()
-    await expect.element(page.getByText('87%')).toBeInTheDocument()
+    expect(
+      document.querySelector('.swb-activity')?.getAttribute('aria-valuenow'),
+    ).toBeNull()
+    await expect.element(page.getByText('87%')).not.toBeInTheDocument()
 
     await captureStartupEvidence('frame-download-progress-desktop')
   })
@@ -180,6 +166,7 @@ describe('browser startup progress surfaces', () => {
     ])
 
     await renderSurface(<AppLoadingScreen />)
+    await page.getByText('Show details', { exact: true }).click()
 
     await expect
       .element(
@@ -208,17 +195,18 @@ describe('browser startup progress surfaces', () => {
     await captureStartupEvidence('per-asset-download-breakdown-desktop')
   })
 
-  it('reaches the ready handoff at full progress', async () => {
+  it('retains the actual ready handoff evidence without a completion estimate', async () => {
     localStorage.setItem('spacewave-has-session', '1')
     setBootPhase('app')
     markBrowserStartupBoundary('webview.revealed', { startupRelevant: true })
 
     await renderSurface(<AppLoadingScreen />)
+    await page.getByText('Show details', { exact: true }).click()
 
     await expect
       .element(page.getByText('Startup complete. Rendering the first view…'))
       .toBeInTheDocument()
-    await expect.element(page.getByText('100%')).toBeInTheDocument()
+    await expect.element(page.getByText('100%')).not.toBeInTheDocument()
 
     await captureStartupEvidence('frame-ready-handoff-desktop')
   })
@@ -270,6 +258,7 @@ describe('browser startup progress surfaces', () => {
     setBootPhase('runtime-error', 'error')
 
     await renderSurface(<AppLoadingScreen />)
+    await page.getByText('Show details', { exact: true }).click()
 
     await expect
       .element(
@@ -291,6 +280,33 @@ describe('browser startup progress surfaces', () => {
     await captureStartupEvidence('returning-user-error')
   })
 
+  it('surfaces a failed frame download before the phase projection reaches error', async () => {
+    await page.viewport(390, 844)
+    setBootPhase('app')
+    setBootDownloads([
+      {
+        id: 'frame',
+        label: 'Interface frame',
+        loaded: 0,
+        state: 'error',
+        error: 'Interface did not become ready.',
+      },
+    ])
+    await renderSurface(<AppLoadingScreen />)
+    await expect
+      .element(page.getByRole('alert'))
+      .toHaveTextContent('Interface did not become ready.')
+    await expect
+      .element(page.getByRole('button', { name: 'Retry' }))
+      .toBeVisible()
+    expect(document.querySelector('.swb-activity')).toBeNull()
+    expect(document.querySelector('details')?.open).toBe(false)
+    await page.getByText('Show details', { exact: true }).click()
+    expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      window.innerWidth,
+    )
+  })
+
   it('keeps reduced-motion startup progress readable', async () => {
     localStorage.setItem('spacewave-has-session', '1')
     setBootPhase('runtime')
@@ -307,6 +323,7 @@ describe('browser startup progress surfaces', () => {
     window.matchMedia = reducedMatchMedia
 
     await renderSurface(<AppLoadingScreen />)
+    await page.getByText('Show details', { exact: true }).click()
 
     await expect
       .element(
@@ -339,9 +356,7 @@ describe('browser startup progress surfaces', () => {
         ),
       )
       .toBeInTheDocument()
-    await expect
-      .element(page.getByText('Done', { exact: true }))
-      .toBeInTheDocument()
+    await expect.element(page.getByText('Opening Spacewave')).toBeVisible()
 
     const bounds = startupSurfaceBounds()
     expect(bounds).not.toBeNull()
