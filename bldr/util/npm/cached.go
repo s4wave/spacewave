@@ -17,6 +17,9 @@ import (
 // installHashFile is the filename used to cache the install hash.
 const installHashFile = ".bldr-install-hash"
 
+// withInstallLock runs fn while holding the install lock for targetDir,
+// creating the target's parent directory first. The unlock error joins any
+// error returned by fn.
 func withInstallLock(ctx context.Context, targetDir string, fn func() error) (retErr error) {
 	if err := os.MkdirAll(filepath.Dir(targetDir), 0o755); err != nil {
 		return err
@@ -48,7 +51,11 @@ func EnsureSharedBunInstall(ctx context.Context, le *logrus.Entry, stateDir, src
 		return "", err
 	}
 
+	// Hash the manifest contents to key the install cache.
 	hash := bunInstallHash(data, lockData)
+
+	// Prefer the shared cache directory; fall back to the caller's own
+	// state directory when it is unavailable.
 	targetDir := fallbackDir
 	if sharedDir, ok := sharedInstallDir(hash); ok {
 		targetDir = sharedDir
@@ -81,11 +88,14 @@ func sharedInstallDir(hash string) (string, bool) {
 // manifest into targetDir.
 func ensureBunInstallAt(ctx context.Context, le *logrus.Entry, stateDir, targetDir, hash string, packageJSON, bunLock []byte, lockFound bool) error {
 	return withInstallLock(ctx, targetDir, func() error {
+		// Skip the install when the hash sentinel already matches.
 		if installCurrent(targetDir, hash) {
 			le.Debug("bun install cached, skipping")
 			return nil
 		}
 
+		// Recreate the install directory and seed it with the package
+		// manifest and lockfile.
 		if err := fsutil.CleanCreateDir(targetDir); err != nil {
 			return err
 		}
@@ -100,6 +110,7 @@ func ensureBunInstallAt(ctx context.Context, le *logrus.Entry, stateDir, targetD
 			}
 		}
 
+		// Freeze the install to the seeded lockfile when one exists.
 		installArgs := []string{"--cwd", targetDir}
 		if lockFound {
 			installArgs = append(installArgs, "--frozen-lockfile")
@@ -112,10 +123,13 @@ func ensureBunInstallAt(ctx context.Context, le *logrus.Entry, stateDir, targetD
 			return err
 		}
 
+		// Record the hash so a later install can skip this directory.
 		return writeInstallHash(targetDir, hash)
 	})
 }
 
+// readSiblingBunLock reads the bun.lock file beside srcPackageJson. It
+// reports found=false when the sibling lockfile does not exist.
 func readSiblingBunLock(srcPackageJson string) ([]byte, bool, error) {
 	lockPath := filepath.Join(filepath.Dir(srcPackageJson), "bun.lock")
 	data, err := os.ReadFile(lockPath)
@@ -128,6 +142,8 @@ func readSiblingBunLock(srcPackageJson string) ([]byte, bool, error) {
 	return nil, false, err
 }
 
+// bunInstallHash returns the install hash for a package manifest and its
+// optional bun.lock contents. The hash changes when either file changes.
 func bunInstallHash(packageJSON, bunLock []byte) string {
 	if bunLock == nil {
 		return sha256Hex(packageJSON)
@@ -149,13 +165,18 @@ func bunInstallHash(packageJSON, bunLock []byte) string {
 // instead of the host platform. The env is folded into the install cache
 // hash so switching targets between runs triggers a fresh install.
 func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pkg string, extraEnv ...string) error {
+	// Hash the package string and extra environment so a change to either
+	// triggers a fresh install.
 	hash := sha256Hex([]byte(pkg + "\x00" + strings.Join(extraEnv, "\x00")))
 	return withInstallLock(ctx, targetDir, func() error {
+		// Skip the install when the hash sentinel already matches.
 		if installCurrent(targetDir, hash) {
 			le.Debug("bun add cached, skipping")
 			return nil
 		}
 
+		// Recreate the install directory and seed it with an empty
+		// package manifest.
 		if err := fsutil.CleanCreateDir(targetDir); err != nil {
 			return err
 		}
@@ -164,6 +185,7 @@ func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pk
 			return err
 		}
 
+		// Run the install, forwarding any extra environment overrides.
 		cmd, err := BunAdd(ctx, le, stateDir, "--cwd", targetDir, pkg)
 		if err != nil {
 			return err
@@ -175,6 +197,7 @@ func EnsureBunAdd(ctx context.Context, le *logrus.Entry, stateDir, targetDir, pk
 			return err
 		}
 
+		// Record the hash so a later install can skip this directory.
 		return writeInstallHash(targetDir, hash)
 	})
 }
