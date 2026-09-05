@@ -85,29 +85,36 @@ func NewFactory(b bus.Bus) controller.Factory {
 }
 
 // PreBuildHook is a callback called before building the dist.
-// Returns an optional PreBuildResult.
+// Returns an optional PreBuildHookResult.
 type PreBuildHook func(ctx context.Context, builderConf *bldr_manifest_builder.BuilderConfig, worldEng world.Engine) (*PreBuildHookResult, error)
 
-// AddPreBuildHook adds a callback that is called just after constructing the dist working dir.
-// Called before calling the Go compiler or bundling the assets or dist fs.
-// NOTE: may be removed in future
+// AddPreBuildHook adds a callback that is called just after constructing the
+// dist working dir. Called before calling the Go compiler or bundling the
+// assets or dist fs.
+//
+// XXX: ceiling: unused hook lifecycle; upgrade unused -> remove this method.
 func (c *Controller) AddPreBuildHook(hook PreBuildHook) {
 	if hook != nil {
 		c.preBuildHooks = append(c.preBuildHooks, hook)
 	}
 }
 
-// Execute executes the controller goroutine.
+// Execute implements controller.Controller.
 func (c *Controller) Execute(ctx context.Context) error {
 	return nil
 }
 
-// SupportsStartupManifestCache returns true if startup cache reuse is safe.
+// SupportsStartupManifestCache returns false: the dist compiler cannot safely
+// reuse a startup manifest cache.
 func (c *Controller) SupportsStartupManifestCache() bool {
 	return false
 }
 
 // BuildManifest compiles the manifest once with the given builder args.
+//
+// BuildManifest is the main pipeline for the dist compiler: resolve metadata,
+// clean output dirs, load the source module, run pre-build hooks, collect and
+// copy the embed manifests, bundle the dist, and commit the result.
 func (c *Controller) BuildManifest(
 	ctx context.Context,
 	args *bldr_manifest_builder.BuildManifestArgs,
@@ -130,19 +137,19 @@ func (c *Controller) BuildManifest(
 		WithField("platform-id", platformID)
 	le.Debug("building dist manifest")
 
-	// clean / create dist dir
+	// Clean and create the dist dir.
 	outDistPath := filepath.Join(builderConf.GetWorkingPath(), "dist")
 	if err := fsutil.CleanCreateDir(outDistPath); err != nil {
 		return nil, err
 	}
 
-	// clean / create assets dir
+	// Clean and create the assets dir.
 	outAssetsPath := filepath.Join(builderConf.GetWorkingPath(), "assets")
 	if err := fsutil.CleanCreateDir(outAssetsPath); err != nil {
 		return nil, err
 	}
 
-	// working path
+	// Resolve the working and source paths.
 	workingPath := builderConf.GetWorkingPath()
 	sourcePath := builderConf.GetSourcePath()
 
@@ -153,13 +160,13 @@ func (c *Controller) BuildManifest(
 	}
 	rootModule := modfile.ModulePath(goModData)
 
-	// build output world engine
+	// Build the output world engine.
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 
-	// clone the config and apply the pre-build hooks
+	// Clone the config and apply the pre-build hooks.
 	conf := c.GetConfig().CloneVT()
 
-	// call any pre-build hooks
+	// Call any pre-build hooks.
 	for _, hook := range c.preBuildHooks {
 		res, err := hook(ctx, builderConf, busEngine)
 		if err != nil {
@@ -169,13 +176,13 @@ func (c *Controller) BuildManifest(
 		conf.Merge(res.GetConfig())
 	}
 
-	// build base config sets
+	// Build the base config sets.
 	hostConfigSet := make(map[string]*configset_proto.ControllerConfig, len(conf.GetHostConfigSet()))
 	for k, v := range conf.GetHostConfigSet() {
 		hostConfigSet[k] = v.CloneVT()
 	}
 
-	// build list of embed manifests & load plugins
+	// Build the list of embed manifests and load plugins.
 	embedSpecs := slices.Clone(conf.GetEmbedManifests())
 	embedManifestIDs := make([]string, len(embedSpecs))
 	for i, em := range embedSpecs {
@@ -183,7 +190,7 @@ func (c *Controller) BuildManifest(
 	}
 	loadPlugins := slices.Clone(conf.GetLoadPlugins())
 
-	// determine project id
+	// Determine the project id.
 	projectID := builderConf.GetProjectId()
 	if cproj := conf.GetProjectId(); cproj != "" {
 		projectID = cproj
@@ -197,7 +204,7 @@ func (c *Controller) BuildManifest(
 		channelKey = "stable"
 	}
 
-	// sort and cleanup the fields
+	// Sort and clean up the fields.
 	conf.Normalize()
 
 	le.Debug("compiling dist")
@@ -259,7 +266,7 @@ func (c *Controller) BuildManifest(
 
 		var notFoundDescs []string
 		for i, em := range embedSpecs {
-			// note: matchingManifests is sorted by rev, higher is first in the list.
+			// Note: matchingManifests is sorted by rev, higher is first in the list.
 			matchingManifests := collectedManifests[em.GetManifestId()]
 			var found *bldr_manifest_world.CollectedManifest
 			for _, cm := range matchingManifests {
@@ -343,7 +350,8 @@ func (c *Controller) BuildManifest(
 		return nil, watchErr
 	}
 
-	// When we compile the bundle we will copy the embed manifests to the embed volume.
+	// When we compile the bundle we will copy the embed manifests to the embedded
+	// volume.
 	initEmbeddedWorld := func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error {
 		// Create the base object store.
 		le.
