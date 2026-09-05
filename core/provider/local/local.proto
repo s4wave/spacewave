@@ -21,6 +21,9 @@ message Config {
   // cloud account or provider credential is involved. Empty disables WebRTC
   // signaling for standalone sessions.
   string signaling_url = 4;
+  // SignalingEnvPrefix is the request-signing namespace of the signaling server.
+  // Empty uses the production namespace.
+  string signaling_env_prefix = 5;
 }
 
 // LocalSOState contains the local state for a shared object.

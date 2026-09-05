@@ -33,6 +33,9 @@ type Config struct {
 	// cloud account or provider credential is involved. Empty disables WebRTC
 	// signaling for standalone sessions.
 	SignalingUrl string `protobuf:"bytes,4,opt,name=signaling_url,json=signalingUrl,proto3" json:"signalingUrl,omitempty"`
+	// SignalingEnvPrefix is the request-signing namespace of the signaling server.
+	// Empty uses the production namespace.
+	SignalingEnvPrefix string `protobuf:"bytes,5,opt,name=signaling_env_prefix,json=signalingEnvPrefix,proto3" json:"signalingEnvPrefix,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -65,6 +68,13 @@ func (x *Config) GetStorageId() string {
 func (x *Config) GetSignalingUrl() string {
 	if x != nil {
 		return x.SignalingUrl
+	}
+	return ""
+}
+
+func (x *Config) GetSignalingEnvPrefix() string {
+	if x != nil {
+		return x.SignalingEnvPrefix
 	}
 	return ""
 }
@@ -167,6 +177,7 @@ func (m *Config) CloneVT() *Config {
 	r.PeerId = m.PeerId
 	r.StorageId = m.StorageId
 	r.SignalingUrl = m.SignalingUrl
+	r.SignalingEnvPrefix = m.SignalingEnvPrefix
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -244,6 +255,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.SignalingUrl != that.SignalingUrl {
+		return false
+	}
+	if this.SignalingEnvPrefix != that.SignalingEnvPrefix {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -354,6 +368,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("signalingUrl")
 		s.WriteString(x.SignalingUrl)
 	}
+	if x.SignalingEnvPrefix != "" || s.HasField("signalingEnvPrefix") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("signalingEnvPrefix")
+		s.WriteString(x.SignalingEnvPrefix)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -383,6 +402,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "signaling_url", "signalingUrl":
 			s.AddField("signaling_url")
 			x.SignalingUrl = s.ReadString()
+		case "signaling_env_prefix", "signalingEnvPrefix":
+			s.AddField("signaling_env_prefix")
+			x.SignalingEnvPrefix = s.ReadString()
 		}
 	})
 }
@@ -596,6 +618,11 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.SignalingEnvPrefix) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SignalingEnvPrefix)
+		i--
+		dAtA[i] = 0x2a
+	}
 	if len(m.SignalingUrl) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.SignalingUrl)
 		i--
@@ -767,6 +794,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StorageId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SignalingUrl)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SignalingEnvPrefix)
 	n += len(m.unknownFields)
 	return n
 }
@@ -831,6 +859,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.SignalingUrl != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signaling_url")
 		protobuf_go_lite.TextWriteString(&sb, x.SignalingUrl)
+	}
+	if x.SignalingEnvPrefix != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signaling_env_prefix")
+		protobuf_go_lite.TextWriteString(&sb, x.SignalingEnvPrefix)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -961,6 +993,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.SignalingUrl = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SignalingEnvPrefix", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SignalingEnvPrefix = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
