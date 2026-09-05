@@ -218,6 +218,32 @@ func TestImportLocalRepoToRefDoesNotMutatePackedReadOnlyGitDir(t *testing.T) {
 	}
 }
 
+func TestImportLocalRepoToRefReadsLinkedWorktree(t *testing.T) {
+	ctx, ws := localImportWorld(t)
+	path, _, head := createLocalRepo(t)
+	linked := filepath.Join(t.TempDir(), "linked")
+	for _, args := range [][]string{
+		{"-C", path, "gc", "--prune=now"},
+		{"-C", path, "worktree", "add", "-b", "linked", linked},
+	} {
+		if output, err := exec.CommandContext(ctx, "git", args...).CombinedOutput(); err != nil {
+			t.Fatalf("prepare linked worktree: %v: %s", err, output)
+		}
+	}
+	ref, gotHead, branch, err := ImportLocalRepoToRef(ctx, ws, linked)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotHead != head.String() || branch != "linked" {
+		t.Fatalf("imported head/branch = %s/%s, want %s/linked", gotHead, branch, head)
+	}
+	withImportedStore(t, ctx, ws, ref, func(store *git_block.Store) {
+		if _, err := object.GetCommit(store, head); err != nil {
+			t.Fatalf("read linked worktree commit: %v", err)
+		}
+	})
+}
+
 func TestImportLocalRepoToRefDoesNotCopyConfiguration(t *testing.T) {
 	ctx, ws := localImportWorld(t)
 	path, repo, _ := createLocalRepo(t)

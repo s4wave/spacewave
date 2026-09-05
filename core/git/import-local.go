@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/format/packfile"
 	"github.com/go-git/go-git/v6/plumbing/revlist"
 	"github.com/go-git/go-git/v6/plumbing/storer"
 	"github.com/go-git/go-git/v6/storage/memory"
@@ -76,25 +77,21 @@ func importOpenedLocalRepo(
 			}
 		}()
 
-		for _, hash := range wanted {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			obj, err := repo.Storer.EncodedObject(plumbing.AnyObject, hash)
-			if err != nil {
-				return errors.Wrapf(err, "read local Git object %s", hash)
-			}
-			storedHash, err := store.SetEncodedObject(obj)
-			if err != nil {
-				return errors.Wrapf(err, "store local Git object %s", hash)
-			}
-			if storedHash != hash {
-				return errors.Errorf("stored local Git object %s as %s", hash, storedHash)
-			}
-			if afterObject != nil {
-				afterObject()
-			}
+		// Keep Git's existing deltas instead of expanding the graph into one
+		// block tree per object. A one-object window avoids an expensive search
+		// for new deltas while retaining the source's existing compression.
+		writer, err := store.PackfileWriter()
+		if err != nil {
+			return err
 		}
+		source := &importObjectStore{Storer: repo.Storer, ctx: ctx, afterObject: afterObject}
+		if _, err := packfile.NewEncoder(writer, source, false).Encode(wanted, 1); err != nil {
+			return errors.Wrap(err, "encode local repository pack")
+		}
+		if err := writer.Close(); err != nil {
+			return errors.Wrap(err, "store local repository pack")
+		}
+
 		for _, ref := range snapshot.refs {
 			if err := store.SetReference(ref); err != nil {
 				return errors.Wrapf(err, "store local Git reference %s", ref.Name())
@@ -252,4 +249,41 @@ func sameHashSet(want map[plumbing.Hash]struct{}, got []plumbing.Hash) bool {
 		}
 	}
 	return true
+}
+
+// importObjectStore binds object reads during pack selection to the import lifetime.
+type importObjectStore struct {
+	storer.Storer
+	ctx         context.Context
+	afterObject func()
+}
+
+func (s *importObjectStore) EncodedObject(typ plumbing.ObjectType, hash plumbing.Hash) (plumbing.EncodedObject, error) {
+	if err := s.ctx.Err(); err != nil {
+		return nil, err
+	}
+	obj, err := s.Storer.EncodedObject(typ, hash)
+	if err == nil && s.afterObject != nil {
+		s.afterObject()
+	}
+	return obj, err
+}
+
+func (s *importObjectStore) DeltaObject(typ plumbing.ObjectType, hash plumbing.Hash) (plumbing.EncodedObject, error) {
+	if err := s.ctx.Err(); err != nil {
+		return nil, err
+	}
+	if delta, ok := s.Storer.(storer.DeltaObjectStorer); ok {
+		obj, err := delta.DeltaObject(typ, hash)
+		// Delta lookup may exclude alternate object databases; the ordinary
+		// lookup still resolves their complete objects.
+		if errors.Is(err, plumbing.ErrObjectNotFound) {
+			return s.EncodedObject(typ, hash)
+		}
+		if err == nil && s.afterObject != nil {
+			s.afterObject()
+		}
+		return obj, err
+	}
+	return s.EncodedObject(typ, hash)
 }

@@ -268,10 +268,16 @@ type storePackCacheEntry struct {
 }
 
 func (w *storePackfileWriter) Write(p []byte) (int, error) {
+	if err := w.store.ctx.Err(); err != nil {
+		return 0, err
+	}
 	return w.buf.Write(p)
 }
 
 func (w *storePackfileWriter) Close() error {
+	if err := w.store.ctx.Err(); err != nil {
+		return err
+	}
 	idxWriter := &idxfile.Writer{}
 	parser := go_git_packfile.NewParser(
 		bytes.NewReader(w.buf.Bytes()),
