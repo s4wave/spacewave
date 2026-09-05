@@ -5,6 +5,7 @@ package bldr_plugin_compiler_go
 import (
 	"context"
 	"go/ast"
+	"go/parser"
 	"go/token"
 	"go/types"
 	"os"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/pkg/errors"
 	vardef "github.com/s4wave/spacewave/bldr/plugin/vardef"
+	bldr_buildbudget "github.com/s4wave/spacewave/bldr/util/buildbudget"
 	"github.com/s4wave/spacewave/bldr/util/gocompiler"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
@@ -78,6 +80,15 @@ func AnalyzePackages(
 	if err != nil {
 		return nil, err
 	}
+	budget, err := bldr_buildbudget.Default()
+	if err != nil {
+		return nil, err
+	}
+	permit, err := budget.Acquire(ctx, bldr_buildbudget.GoAnalysisWeight)
+	if err != nil {
+		return nil, err
+	}
+	defer permit.Release()
 
 	// update relative module paths (./)
 	packagePaths, packagePathMappings := UpdateRelativeGoPackagePaths(packagePaths, baseModFile.Module.Mod.Path)
@@ -113,30 +124,13 @@ func AnalyzePackages(
 	conf.Context = ctx
 
 	conf.Fset = token.NewFileSet()
-	conf.Mode = conf.Mode |
-		// NeedName adds Name and PkgPath.
-		packages.NeedName |
-		// NeedFiles adds GoFiles and OtherFiles.
-		// NeedCompiledGoFiles adds CompiledGoFiles for packages loaded by the driver.
-		packages.NeedCompiledGoFiles |
-		packages.NeedFiles |
-		// NeedImports adds Imports. If NeedDeps is not set, the Imports field will contain
-		// "placeholder" Packages with only the ID set.
-		packages.NeedImports |
-		// NeedDeps adds the fields requested by the LoadMode in the packages in Imports.
-		packages.NeedDeps |
-		// NeedExportFile adds ExportFile.
-		packages.NeedExportFile |
-		// NeedTypes adds Types, Fset, and IllTyped.
-		packages.NeedTypes |
-		// NeedSyntax adds Syntax.
-		packages.NeedSyntax |
-		// NeedTypesInfo adds TypesInfo.
-		packages.NeedTypesInfo |
-		// NeedTypesSizes adds the effective type sizes for the target build.
-		packages.NeedTypesSizes |
-		// NeedModule adds Module.
-		packages.NeedModule
+	// Discover the program before loading syntax. Dependencies outside its modules
+	// need export data, not complete syntax trees and expression type records.
+	conf.Mode = packages.NeedName | packages.NeedCompiledGoFiles |
+		packages.NeedFiles | packages.NeedImports | packages.NeedDeps | packages.NeedModule
+	conf.ParseFile = func(fset *token.FileSet, filename string, src []byte) (*ast.File, error) {
+		return parser.ParseFile(fset, filename, src, parser.AllErrors|parser.ParseComments|parser.SkipObjectResolution)
+	}
 
 	conf.Dir = workDir
 	conf.Logf = func(format string, args ...any) {
@@ -172,21 +166,6 @@ func AnalyzePackages(
 		return nil, err
 	}
 	res.fset = conf.Fset
-
-	// Find and store the web bundler output type
-	for _, pkg := range loadedPackages {
-		if pkg.PkgPath == EsbuildOutputPkgPath {
-			if obj := pkg.Types.Scope().Lookup(EsbuildOutputTypeName); obj != nil {
-				res.webBundlerOutputType = obj.Type()
-			}
-			break
-		}
-	}
-
-	// If we couldn't find the type, return an error since we need it for type comparison
-	if res.webBundlerOutputType == nil {
-		return nil, errors.Errorf("could not find %s.%s type", EsbuildOutputPkgPath, EsbuildOutputTypeName)
-	}
 
 	explicitFactoryPackagePaths := make(map[string]struct{}, len(packagePaths))
 	for _, packagePath := range packagePaths {
@@ -230,6 +209,44 @@ func AnalyzePackages(
 	le.Debugf("loaded %d init packages to analyze", len(res.packages))
 	if len(res.packages) == 0 {
 		return nil, errors.New("expected at least one package to be loaded")
+	}
+
+	// Load one coherent type universe for the program packages and the output
+	// type used by tagged variables. Imported dependencies use compiler exports.
+	typedPaths := []string{EsbuildOutputPkgPath}
+	for pkgPath := range res.packages {
+		typedPaths = append(typedPaths, pkgPath)
+	}
+	slices.Sort(typedPaths)
+	typedPaths = slices.Compact(typedPaths)
+	conf.Mode = (conf.Mode &^ packages.NeedDeps) | packages.NeedTypes |
+		packages.NeedSyntax | packages.NeedTypesSizes | packages.NeedExportFile
+	loadedPackages, err = packages.Load(&conf, typedPaths...)
+	if err != nil {
+		return nil, err
+	}
+	if err := packageLoadFailureError(loadedPackages, typedPaths, buildTags, goos, goarch, workDir); err != nil {
+		return nil, err
+	}
+	for _, pkg := range loadedPackages {
+		if _, ok := res.packages[pkg.PkgPath]; ok {
+			res.packages[pkg.PkgPath] = pkg
+		}
+	}
+
+	// Find and store the web bundler output type
+	for _, pkg := range loadedPackages {
+		if pkg.PkgPath == EsbuildOutputPkgPath {
+			if obj := pkg.Types.Scope().Lookup(EsbuildOutputTypeName); obj != nil {
+				res.webBundlerOutputType = obj.Type()
+			}
+			break
+		}
+	}
+
+	// If we couldn't find the type, return an error since we need it for type comparison
+	if res.webBundlerOutputType == nil {
+		return nil, errors.Errorf("could not find %s.%s type", EsbuildOutputPkgPath, EsbuildOutputTypeName)
 	}
 
 	// Find NewFactory() constructors.

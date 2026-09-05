@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
@@ -12,7 +13,7 @@ import (
 
 // Gzip is the gzip compression step.
 type Gzip struct {
-	level int
+	writers sync.Pool
 }
 
 // NewGzip constructs the gzip compression step.
@@ -20,7 +21,12 @@ func NewGzip(c *Config) (*Gzip, error) {
 	if err := c.Validate(); err != nil {
 		return nil, err
 	}
-	return &Gzip{level: c.EffectiveCompressionLevel()}, nil
+	level := c.EffectiveCompressionLevel()
+	return &Gzip{writers: sync.Pool{New: func() any {
+		// The validated compression level cannot fail writer construction.
+		writer, _ := gzip.NewWriterLevel(io.Discard, level)
+		return writer
+	}}}, nil
 }
 
 // EncodeBlock encodes the block according to the config.
@@ -28,10 +34,13 @@ func NewGzip(c *Config) (*Gzip, error) {
 func (g *Gzip) EncodeBlock(data []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.Grow(len(data))
-	wr, err := gzip.NewWriterLevel(&buf, g.level)
-	if err != nil {
-		return nil, err
-	}
+	wr := g.writers.Get().(*gzip.Writer)
+	wr.Reset(&buf)
+	defer func() {
+		// Keep compressor storage, but release the completed block's output buffer.
+		wr.Reset(io.Discard)
+		g.writers.Put(wr)
+	}()
 	if _, err := wr.Write(data); err != nil {
 		_ = wr.Close()
 		return nil, err

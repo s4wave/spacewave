@@ -328,7 +328,7 @@ func (c *Controller) BuildManifest(
 		)
 
 		le.Debug("compiling plugin")
-		_, updatedManifestMeta, err = c.BuildPlugin(
+		updatedManifestMeta, err = c.BuildPlugin(
 			ctx,
 			le,
 			pluginMeta,
@@ -458,11 +458,6 @@ func goAnalysisEnv(buildPlatform bldr_platform.Platform) (string, string, error)
 	return goos, goarch, nil
 }
 
-// BuildPlugin compiles the plugin once, committing it to the target world.
-//
-// webPluginID is optional, if set, automatically adds controllers to configure the web plugin.
-// Returns a list of source files from the list of given goPkgs.
-// Source files list includes all files consumed by esbuild.
 // BuildPluginOpts is the configuration for one invocation of BuildPlugin.
 type BuildPluginOpts struct {
 	// JsMinification enables minification of bundled JavaScript output.
@@ -519,10 +514,7 @@ type BuildPluginOpts struct {
 
 // BuildPlugin compiles the plugin once, committing it to the target world.
 //
-// webPluginID is optional, if set, automatically adds controllers to configure the web plugin.
-// Returns a list of source files from the list of given goPkgs.
-// Source files list includes all files consumed by esbuild.
-// This is the main function that orchestrates the entire plugin build process.
+// It returns the source inputs consumed by the plugin and its web bundles.
 func (c *Controller) BuildPlugin(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -532,7 +524,7 @@ func (c *Controller) BuildPlugin(
 	buildType bldr_manifest.BuildType,
 	buildPlatform bldr_platform.Platform,
 	opts BuildPluginOpts,
-) (*Analysis, *bldr_manifest_builder.InputManifest, error) {
+) (*bldr_manifest_builder.InputManifest, error) {
 	// extract the build options used more than once below
 	outBinName := opts.OutBinName
 	workingPath := opts.WorkingPath
@@ -571,19 +563,19 @@ func (c *Controller) BuildPlugin(
 	enableCompression := opts.EnableCompressionOpt.IsEnabled(isRelease)
 	goCompiler, err := resolveBuildGoCompiler(buildPlatform, buildType, goCompilerOpt)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	supported, err := validateGoCompilerPlatform(buildPlatform, goCompiler)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if !supported {
-		return nil, nil, errors.Errorf("go compiler %s does not support platform %s", goCompiler, buildPlatform.GetInputPlatformID())
+		return nil, errors.Errorf("go compiler %s does not support platform %s", goCompiler, buildPlatform.GetInputPlatformID())
 	}
 	useGoScript := goCompiler == gocompiler.GoCompilerGoScript
 	resolvedGoCompiler, err := GoCompilerFromGoCompiler(goCompiler)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	enableTinygo := goCompiler.IsTinyGo()
 	enableImportedFactoryDiscovery := opts.EnableImportedFactoryDiscoveryOpt.IsEnabled(false)
@@ -620,7 +612,7 @@ func (c *Controller) BuildPlugin(
 			"rpc-fetch",
 			web_fetch_controller.NewConfig(),
 		); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
@@ -630,13 +622,13 @@ func (c *Controller) BuildPlugin(
 		if err := applyToConfigSet("load-web", &bldr_plugin_load.Config{
 			PluginId: webPluginID,
 		}); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// - observe-web-view: handle LookupWebView with incoming HandleWebView directives
 		addGoPkg("github.com/s4wave/spacewave/bldr/web/view/observer")
 		if err := applyToConfigSet("observe-web-view", &bldr_web_view_observer.Config{}); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// - handle-rpc: handle incoming RPCs for web-view
@@ -646,7 +638,7 @@ func (c *Controller) BuildPlugin(
 			HandlePluginId: pluginID,
 			ServerIdRe:     "web-view/.*",
 		}); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// - handle-web-view-rpc: handle web views via HandleWebView
@@ -655,13 +647,13 @@ func (c *Controller) BuildPlugin(
 			WebPluginId:    webPluginID,
 			HandlePluginId: pluginID,
 		}); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// - handle-web-view-server: handle incoming RPCs for HandleWebView
 		addGoPkg("github.com/s4wave/spacewave/bldr/web/view/handler/server")
 		if err := applyToConfigSet("handle-web-view-server", &web_view_handler_server.Config{}); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// - handle-web-pkgs: handle web pkg lookups for the webPkgIds if there are any webPkgs defined
@@ -682,7 +674,7 @@ func (c *Controller) BuildPlugin(
 		if err := applyToConfigSet("plugin-host-configset", &plugin_host_configset.Config{
 			ConfigSet: hostConfigSet,
 		}); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
@@ -702,7 +694,7 @@ func (c *Controller) BuildPlugin(
 	// JavaScript, whether the artifact platform is web/js/wasm or js.
 	analyzeGOOS, analyzeGOARCH, err := goAnalysisEnv(buildPlatform)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	an, err := AnalyzePackages(
 		ctx,
@@ -715,13 +707,13 @@ func (c *Controller) BuildPlugin(
 		enableImportedFactoryDiscovery,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// ensure all go packages were found.
 	for srcPkg, dstPkg := range an.GetPackagePathMappings() {
 		if _, ok := an.GetLoadedPackages()[dstPkg]; !ok {
-			return nil, nil, errors.Errorf("go package not found: make sure it is imported in at least one Go file: %v", srcPkg)
+			return nil, errors.Errorf("go package not found: make sure it is imported in at least one Go file: %v", srcPkg)
 		}
 	}
 
@@ -745,14 +737,14 @@ func (c *Controller) BuildPlugin(
 	// parse bldr:asset comments
 	assetPkgs, err := an.FindAssetVariables(codeFiles)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	var assetSrcFiles []string
 	if len(assetPkgs) != 0 {
 		le.Debugf("found %d packages with %s comments", len(assetPkgs), AssetTag)
 		assetVarDefs, assetSrcPaths, err := BuildDefAssets(le, codeFiles, fset, assetPkgs, outAssetsPath, pluginID, isRelease)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		assetSrcFiles = assetSrcPaths
 		goVariableDefs = append(goVariableDefs, assetVarDefs...)
@@ -761,13 +753,13 @@ func (c *Controller) BuildPlugin(
 	// parse bldr:asset:href comments
 	assetHrefPkgs, err := an.FindAssetHrefVariables(codeFiles)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if len(assetHrefPkgs) != 0 {
 		le.Debugf("found %d packages with %s comments", len(assetHrefPkgs), AssetHrefTag)
 		assetHrefDefs, err := BuildDefAssetHrefs(le, codeFiles, fset, assetHrefPkgs, outAssetsPath, pluginID, isRelease)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		goVariableDefs = append(goVariableDefs, assetHrefDefs...)
 	}
@@ -781,7 +773,7 @@ func (c *Controller) BuildPlugin(
 	// parse bldr:esbuild comments and build import path definition list
 	esbuildPkgs, err := an.FindEsbuildVariables(codeFiles)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	var esbuildBundleVarMeta []*EsbuildBundleVarMeta
 	var esbuildOutputMeta []*bldr_web_bundler_esbuild.EsbuildOutputMeta
@@ -792,7 +784,7 @@ func (c *Controller) BuildPlugin(
 		// esbuildBundleVarMeta is sorted
 		esbuildBundleVarMeta, err = BuildEsbuildBundleVarMeta(le, sourcePath, codeFiles, fset, esbuildPkgs)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		publicPath := bldr_plugin.PluginAssetHTTPPath(pluginID, bldr_plugin_compiler.EsbuildAssetSubdir)
@@ -801,12 +793,12 @@ func (c *Controller) BuildPlugin(
 			err = esbuildBundlerConf.Validate()
 		}
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to build esbuild bundler config")
+			return nil, errors.Wrap(err, "failed to build esbuild bundler config")
 		}
 
 		esbuildBuilderProto, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, esbuildBundlerConf), true)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to marshal esbuild bundler config")
+			return nil, errors.Wrap(err, "failed to marshal esbuild bundler config")
 		}
 
 		// Build and checkout the esbuild sub-manifest
@@ -819,13 +811,13 @@ func (c *Controller) BuildPlugin(
 			esbuildBuilderProto,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// build the go variable bindings to the js files
 		esbuildGoVarDefs, err := buildEsbuildGoVariableDefs(pluginID, esbuildBundleVarMeta, esbuildOutputMeta)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		goVariableDefs = append(goVariableDefs, esbuildGoVarDefs...)
 	}
@@ -833,7 +825,7 @@ func (c *Controller) BuildPlugin(
 	// parse bldr:vite comments and build import path definition list
 	vitePkgs, err := an.FindViteVariables(codeFiles)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	var viteBundleVarMeta []*ViteBundleVarMeta
 	var viteOutputMeta []*bldr_vite.ViteOutputMeta
@@ -845,7 +837,7 @@ func (c *Controller) BuildPlugin(
 		// viteBundleVarMeta is sorted
 		viteBundleVarMeta, err = BuildViteBundleVarMeta(le, sourcePath, codeFiles, fset, vitePkgs)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// Get base vite config paths from the config
@@ -866,12 +858,12 @@ func (c *Controller) BuildPlugin(
 			err = viteBundlerConf.Validate()
 		}
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to build vite bundler config")
+			return nil, errors.Wrap(err, "failed to build vite bundler config")
 		}
 
 		viteBuilderProto, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(1, viteBundlerConf), true)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to marshal vite bundler config")
+			return nil, errors.Wrap(err, "failed to marshal vite bundler config")
 		}
 
 		// Build and checkout the vite sub-manifest
@@ -884,13 +876,13 @@ func (c *Controller) BuildPlugin(
 			viteBuilderProto,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// build the go variable bindings to the output files
 		viteGoVarDefs, err := buildViteGoVariableDefs(pluginID, viteBundleVarMeta, viteOutputMeta)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		goVariableDefs = append(goVariableDefs, viteGoVarDefs...)
 
@@ -906,7 +898,7 @@ func (c *Controller) BuildPlugin(
 			ctx, le, distSourcePath, sourcePath, workingPath, outAssetsPath, isRelease, jsMinification, jsSourcemaps, bundleWebPkgs,
 		)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "build direct web packages")
+			return nil, errors.Wrap(err, "build direct web packages")
 		}
 		viteSrcFiles = append(viteSrcFiles, directSrcFiles...)
 		webPkgRefs = append(webPkgRefs, directRefs...)
@@ -935,7 +927,7 @@ func (c *Controller) BuildPlugin(
 			"web-pkgs-rpc",
 			web_pkg_rpc_server.NewConfig("", webPkgIDs),
 		); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// add the web packages UnixFS-backed resolver to the config set.
@@ -950,7 +942,7 @@ func (c *Controller) BuildPlugin(
 				webPkgIDs,
 			),
 		); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// tell the web plugin to forward web pkgs to our plugin assets fs.
@@ -961,7 +953,7 @@ func (c *Controller) BuildPlugin(
 				WebPkgsPath:    bldr_plugin.PluginAssetsWebPkgsDir,
 				WebPkgIdList:   webPkgIDs,
 			}); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
 	}
@@ -974,7 +966,7 @@ func (c *Controller) BuildPlugin(
 		}
 		configSetBin, err = configSetObj.MarshalVT()
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
@@ -983,18 +975,18 @@ func (c *Controller) BuildPlugin(
 	moduleID := strings.Join([]string{pluginMeta.GetProjectId(), pluginMeta.GetPluginId()}, "-")
 	mc, err := NewModuleCompiler(le, workingPath, moduleID)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	an.AddVariableDefImports(le, goVariableDefs)
 
 	pluginDevInfo, err := mc.GenerateModule(ctx, an, pluginMeta, configSetBin, goVariableDefs, devInfoFile)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Write dev info file if applicable.
 	if err := writeDevInfoFile(le, outDistPath, devInfoFile, pluginDevInfo); err != nil {
-		return nil, nil, errors.Wrap(err, "write dev info file")
+		return nil, errors.Wrap(err, "write dev info file")
 	}
 
 	// Files to copy from the generated module directory to the output dist directory.
@@ -1086,7 +1078,7 @@ func (c *Controller) BuildPlugin(
 				Info("compiled GoScript web plugin entrypoint")
 			return nil
 		}(); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 	if compilePluginBinary {
@@ -1100,7 +1092,7 @@ func (c *Controller) BuildPlugin(
 			enableCgo,
 			enableTinygo,
 		); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		// optimization pass: compression
@@ -1110,18 +1102,18 @@ func (c *Controller) BuildPlugin(
 			/*
 				brPath, err := bldr_compress.CompressBrotli(le, workingPath, outDistBinary)
 				if err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 			*/
 
 			brPath, err := bldr_compress.CompressGzip(ctx, le, workingPath, outDistBinary)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 
 			// use this new binary from now on
 			if err := os.Remove(outDistBinary); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 
 			outDistBinary = brPath //nolint
@@ -1131,7 +1123,7 @@ func (c *Controller) BuildPlugin(
 	if compileDevWrapper {
 		le.Info("compiling plugin dev wrapper binary")
 		if err := mc.CompilePluginDevWrapper(ctx, le, outDistBinary, delveAddr, buildPlatform, buildType, enableCgo); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		copyFiles = append(copyFiles, "plugin.go", "config-set.bin")
 	}
@@ -1156,7 +1148,7 @@ func (c *Controller) BuildPlugin(
 			jsSourcemaps,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		le.
 			WithField("dur", time.Since(timeStart).String()).
@@ -1191,7 +1183,7 @@ func (c *Controller) BuildPlugin(
 	// copy some files to dist/ which the entrypoint will need
 	for _, filename := range copyFiles {
 		if err := copyFile(filename); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
@@ -1223,7 +1215,7 @@ func (c *Controller) BuildPlugin(
 	}
 	inputManifestMetaBin, err := inputManifestMeta.MarshalVT()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	inputManifest := &bldr_manifest_builder.InputManifest{Metadata: inputManifestMetaBin}
@@ -1234,7 +1226,7 @@ func (c *Controller) BuildPlugin(
 		InputFileKind_InputFileKind_GO,
 		append(goSrcFiles, moduleSrcFiles...),
 	); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := appendInputManifestFiles(
 		inputManifest,
@@ -1242,12 +1234,12 @@ func (c *Controller) BuildPlugin(
 		InputFileKind_InputFileKind_ASSET,
 		assetSrcFiles,
 	); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if useGoScript {
 		goScriptOverrideFiles, err := sourceFilesUnderDirs(sourcePath, goScriptOverrideDirRels)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		if err := appendInputManifestFiles(
 			inputManifest,
@@ -1255,14 +1247,14 @@ func (c *Controller) BuildPlugin(
 			InputFileKind_InputFileKind_GOSCRIPT_OVERRIDE,
 			goScriptOverrideFiles,
 		); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 	webRuntimeSrcFiles = filterPathsUnderBase(sourcePath, webRuntimeSrcFiles)
 	if len(webRuntimeSrcFiles) != 0 {
 		err = fsutil.ConvertPathsToRelative(sourcePath, webRuntimeSrcFiles)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 	seenInputPaths := make(map[string]struct{}, len(inputManifest.Files))
@@ -1282,7 +1274,7 @@ func (c *Controller) BuildPlugin(
 	addCompilerStartupCacheInputs(inputManifest, goCompilerOpt, goCompiler)
 	inputManifest.SortFiles()
 
-	return an, inputManifest, nil
+	return inputManifest, nil
 }
 
 func newGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
