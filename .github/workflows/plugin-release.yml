@@ -535,7 +535,8 @@ jobs:
       - native-macos
       - native-windows
       - native-linux
-    if: always() && needs.prep.result == 'success'
+    # Unselected surfaces may be skipped; failed producers cannot form a handoff.
+    if: ${{ !cancelled() && !failure() && needs.prep.result == 'success' }}
     runs-on: ubuntu-latest
     environment: ${{ needs.prep.outputs.environment_name }}
     timeout-minutes: 30
