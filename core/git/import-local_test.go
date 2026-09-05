@@ -218,7 +218,9 @@ func TestImportLocalRepoToRefDoesNotMutatePackedReadOnlyGitDir(t *testing.T) {
 	}
 }
 
+// TestImportLocalRepoToRefReadsLinkedWorktree preserves the linked HEAD and shared objects.
 func TestImportLocalRepoToRefReadsLinkedWorktree(t *testing.T) {
+	// Create a packed source and a linked checkout with its own branch.
 	ctx, ws := localImportWorld(t)
 	path, _, head := createLocalRepo(t)
 	linked := filepath.Join(t.TempDir(), "linked")
@@ -230,6 +232,8 @@ func TestImportLocalRepoToRefReadsLinkedWorktree(t *testing.T) {
 			t.Fatalf("prepare linked worktree: %v: %s", err, output)
 		}
 	}
+
+	// Import the linked checkout through its gitfile and common object database.
 	ref, gotHead, branch, err := ImportLocalRepoToRef(ctx, ws, linked)
 	if err != nil {
 		t.Fatal(err)
@@ -237,6 +241,8 @@ func TestImportLocalRepoToRefReadsLinkedWorktree(t *testing.T) {
 	if gotHead != head.String() || branch != "linked" {
 		t.Fatalf("imported head/branch = %s/%s, want %s/linked", gotHead, branch, head)
 	}
+
+	// Resolve the captured commit through the stored pack.
 	withImportedStore(t, ctx, ws, ref, func(store *git_block.Store) {
 		if _, err := object.GetCommit(store, head); err != nil {
 			t.Fatalf("read linked worktree commit: %v", err)
