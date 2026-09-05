@@ -693,15 +693,14 @@ func (t *Tx) removeFromNode(
 		return nil, nil, nil, nil, err
 	}
 	if ncs == nil {
-		// node was deleted
-		// clear ref to child
-		// set parent ref (left or right) to other link, deleting this node
+		// Promote the surviving child. The separator is the right subtree's
+		// minimum, even when that child is an internal node.
 		if left {
-			lnod, lcs, err = nod.FollowRight(ctx, bcs)
-		} else {
-			lnod, lcs, err = nod.FollowLeft(ctx, bcs)
+			_, lcs, err = nod.FollowRight(ctx, bcs)
+			return lcs, nod.GetKey(), removedCursor, removedNode, err
 		}
-		return lcs, lnod.GetKey(), removedCursor, removedNode, err
+		_, lcs, err = nod.FollowLeft(ctx, bcs)
+		return lcs, nil, removedCursor, removedNode, err
 	}
 
 	// Set the left or right node to new child.
@@ -713,12 +712,14 @@ func (t *Tx) removeFromNode(
 			nod.Key = nkey
 			bcs.SetBlock(nod, true)
 		}
+		// A changed right minimum updates this separator, not its ancestors.
+		nkey = nil
 	}
 	err = t.calcNodeHeightAndSize(ctx, nod, bcs)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	return bcs, nil, removedCursor, removedNode, nil
+	return bcs, nkey, removedCursor, removedNode, nil
 }
 
 // calcNodeHeightAndSize calculates a node's height and size.
