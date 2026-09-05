@@ -43,6 +43,8 @@ func (a *DevtoolArgs) ExecuteWebGoScriptProject(ctx context.Context) error {
 	})
 }
 
+// withGoCompiler sets the Go compiler environment to mode for the duration
+// of fn and restores the previous value afterwards.
 func withGoCompiler(mode gocompiler.GoCompiler, fn func() error) error {
 	prev, hadPrev := os.LookupEnv(gocompiler.GoCompilerEnv)
 	if err := os.Setenv(gocompiler.GoCompilerEnv, string(mode)); err != nil {
@@ -60,7 +62,7 @@ func withGoCompiler(mode gocompiler.GoCompiler, fn func() error) error {
 
 // ExecuteWebWasmProject starts the project as a web server in Wasm mode.
 func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
-	// init repo root and storage directories
+	// Initialize the repo root and storage directories.
 	le := a.Logger
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
@@ -68,12 +70,14 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 	}
 	le.Infof("starting with state dir: %s", stateDir)
 
-	// initialize the storage + bus
+	// Initialize the storage and bus.
 	d, err := BuildDevtoolBus(ctx, le, repoRoot, stateDir, a.Watch)
 	if err != nil {
 		return err
 	}
 	defer d.Release()
+
+	// Start the command status log and the devtool TUI.
 	commandLogFile := a.commandLogFile()
 	d.setCommandStartingWithLogFile("start web", "initializing wasm web runtime", commandLogFile)
 	ctx, stopTUI := a.startDevtoolTUI(ctx, d.GetStatusProducer(), "http://"+a.WebListenAddr)
@@ -87,7 +91,7 @@ func (a *DevtoolArgs) ExecuteWebWasmProject(ctx context.Context) (err error) {
 		return err
 	}
 
-	// execute the project controller
+	// Execute the project controller.
 	projCtrl, projCtrlRef, err := d.StartProjectController(
 		ctx,
 		d.GetBus(),
@@ -150,6 +154,8 @@ func (d *DevtoolBus) ExecuteWebWasm(
 	return d.executeWebWasm(ctx, repoRoot, minifyEntrypoint, devMode, listenAddr, appID, startPlugins, startupManifestPreflights, webStartupSrcPath, forceDedicatedWorkers, nil)
 }
 
+// executeWebWasm builds the wasm web entrypoint and serves it over HTTP
+// until ctx is canceled.
 func (d *DevtoolBus) executeWebWasm(
 	ctx context.Context,
 	repoRoot string,
@@ -205,22 +211,23 @@ func (d *DevtoolBus) executeWebWasm(
 		return err
 	}
 
-	// set the path to the entrypoint to use for the wasm main() function
+	// Set the dist-relative path of the Go package compiled into the wasm
+	// entrypoint.
 	entrypointPkg := "devtool/web/entrypoint"
 
-	// compile the entrypoint wasm
+	// Parse the wasm target platform.
 	buildPlatform, err := bldr_platform.ParseNativePlatform("web/js/wasm")
 	if err != nil {
 		return err
 	}
 
+	// Select the entrypoint build type from the minify flag.
 	entryBuildType := bldr_manifest.BuildType_DEV
 	if minifyEntrypoint {
 		entryBuildType = bldr_manifest.BuildType_RELEASE
 	}
 
-	// disable tinygo unless release mode
-	// NOTE: we disable tinygo since it does not compile cleanly yet.
+	// TinyGo does not compile cleanly yet, so keep it disabled.
 	tinygoCompatible := false
 	useTinygo := entryBuildType.IsRelease() && minifyEntrypoint && tinygoCompatible
 
@@ -229,7 +236,7 @@ func (d *DevtoolBus) executeWebWasm(
 		return err
 	}
 
-	// start the websocket transport for the devtool
+	// Start the websocket transport for the devtool.
 	linkWsPath := "/bldr-dev/web-wasm/link.ws"
 	infoPath := "/bldr-dev/web-wasm/info"
 	wsPeerID := d.peerID.String()
@@ -253,7 +260,7 @@ func (d *DevtoolBus) executeWebWasm(
 	}
 	ws := tpt.(*transport_websocket.WebSocket)
 
-	// start the hold open controller to keep links open
+	// Start the hold-open controller to keep links open.
 	d.GetStaticResolver().AddFactory(link_holdopen_controller.NewFactory(d.GetBus()))
 	_, _, holdOpenRef, err := loader.WaitExecControllerRunning(
 		ctx,
@@ -272,7 +279,7 @@ func (d *DevtoolBus) executeWebWasm(
 	}
 	defer relCachedManifestFetch()
 
-	// handle incoming srpc requests
+	// Handle incoming srpc requests.
 	rpcServer, err := stream_srpc_server.NewServer(
 		d.GetBus(),
 		le,
@@ -288,7 +295,7 @@ func (d *DevtoolBus) executeWebWasm(
 				return bldr_manifest.SRPCRegisterManifestFetch(mux, pluginFetchViaBus)
 			},
 			func(mux srpc.Mux) error {
-				// proxy the devtool host volume via RPC
+				// Proxy the devtool host volume via RPC.
 				proxyVol := volume_rpc_server.NewProxyVolume(ctx, d.GetVolume(), false)
 				return volume_rpc_server.RegisterProxyVolumeWithPrefix(mux, proxyVol, devtool_web.HostVolumeServiceIDPrefix)
 			},
@@ -304,14 +311,14 @@ func (d *DevtoolBus) executeWebWasm(
 		return err
 	}
 
-	// start handling incoming srpc requests
+	// Start handling incoming srpc requests.
 	relRpcServer, err := d.GetBus().AddController(ctx, rpcServer, nil)
 	if err != nil {
 		return err
 	}
 	defer relRpcServer()
 
-	// build the wasm entrypooints concurrently with the plugins for speedup
+	// Bundle the wasm runtime entrypoint for the browser.
 	if err := entrypoint_browser_build.BuildWasmRuntimeEntrypoint(
 		ctx,
 		le,
@@ -325,7 +332,7 @@ func (d *DevtoolBus) executeWebWasm(
 		return err
 	}
 
-	// Build runtime wasm pkg
+	// Compile the entrypoint Go package to runtime.wasm.
 	le.Info("building runtime.wasm")
 	entrypointGoDir := filepath.Join(distSrcDir, entrypointPkg)
 	runtimeOut := filepath.Join(wasmRuntimeDir, "runtime.wasm")
@@ -356,7 +363,7 @@ func (d *DevtoolBus) executeWebWasm(
 		return err
 	}
 
-	// encode the init info for the browser devtool entrypoint
+	// Encode the init info for the browser devtool entrypoint.
 	browserInit := &devtool_web.DevtoolInitBrowser{
 		AppId:                 appID,
 		DevtoolPeerId:         wsPeerID,
@@ -372,13 +379,14 @@ func (d *DevtoolBus) executeWebWasm(
 		return err
 	}
 
-	// run the http server
+	// Build the HTTP handler serving the entrypoint assets.
 	entryFs := http.Dir(entrypointDir)
 	entrySrv := bifrost_http.NewEncodedAssetFileServer(entryFs)
 
 	serveFn := func(rw http.ResponseWriter, req *http.Request) {
-		// Add Cross-Origin Isolation headers required for SharedArrayBuffer
-		// These enable SAB-based communication between SharedWorkers
+		// Set the Cross-Origin Isolation headers required for
+		// SharedArrayBuffer, which enables SAB-based communication between
+		// SharedWorkers.
 		rw.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 		rw.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
 		rw.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
@@ -400,6 +408,7 @@ func (d *DevtoolBus) executeWebWasm(
 		entrySrv.ServeHTTP(rw, req)
 	}
 
+	// Run the HTTP server until ctx is canceled.
 	le.Infof("listening on: %s", listenAddr)
 	server := &http.Server{Addr: listenAddr, Handler: http.HandlerFunc(serveFn), ReadHeaderTimeout: time.Second * 30}
 	// Manifest preflights start after listening so they cannot gate shell
@@ -438,6 +447,8 @@ func (d *DevtoolBus) executeWebWasm(
 	})
 }
 
+// startCachedManifestFetchController starts the cached manifest fetch
+// controller and returns a function releasing it.
 func (d *DevtoolBus) startCachedManifestFetchController(ctx context.Context) (func(), error) {
 	conf := &manifest_fetch_world.Config{
 		EngineId:   d.GetWorldEngineID(),
@@ -453,6 +464,8 @@ func (d *DevtoolBus) startCachedManifestFetchController(ctx context.Context) (fu
 	})
 }
 
+// listenAndServeDevtoolHTTP serves the HTTP server until ctx is canceled and
+// calls onListening with the bound address once listening.
 func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server, onListening func(string) error) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -462,8 +475,11 @@ func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server, onListe
 		return err
 	}
 
+	// Serve until the server exits.
 	serveErrCh := make(chan error, 1)
 	go func() { serveErrCh <- server.Serve(listener) }()
+
+	// Shut down gracefully on ctx cancellation.
 	stopShutdownCh := make(chan struct{})
 	shutdownErrCh := make(chan error, 1)
 	go func() {
@@ -478,6 +494,7 @@ func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server, onListe
 		}
 	}()
 
+	// Run the onListening callback, closing the server if it fails.
 	var callbackErr error
 	if onListening != nil {
 		callbackErr = onListening(listener.Addr().String())
@@ -485,6 +502,7 @@ func listenAndServeDevtoolHTTP(ctx context.Context, server *http.Server, onListe
 			_ = server.Close()
 		}
 	}
+	// Collect the serve and shutdown results.
 	serveErr := <-serveErrCh
 	close(stopShutdownCh)
 	shutdownErr := <-shutdownErrCh
