@@ -329,6 +329,14 @@ jobs:
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
+      # Exchange the short-lived GitHub assertion before compilation; signing uses
+      # the cached Azure resource token after the assertion has expired.
+      - name: Cache Azure code-signing access token
+        shell: pwsh
+        run: |
+          az account get-access-token --resource https://codesigning.azure.net --output none
+          if ($LASTEXITCODE -ne 0) { throw "Failed to acquire the code-signing access token" }
+
       - name: Resolve TrustedSigning module path
         id: trusted_signing_paths
         shell: pwsh
