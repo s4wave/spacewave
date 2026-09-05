@@ -19,7 +19,9 @@ service Kvtx {
 
 // KvtxRetryClass identifies a typed transaction retry signal.
 enum KvtxRetryClass {
+  // KVTX_RETRY_CLASS_UNSPECIFIED carries no retry authorization.
   KVTX_RETRY_CLASS_UNSPECIFIED = 0;
+  // KVTX_RETRY_CLASS_INVALID_SNAPSHOT requires a new transaction snapshot.
   KVTX_RETRY_CLASS_INVALID_SNAPSHOT = 1;
 }
 
@@ -51,7 +53,7 @@ message KvtxTransactionResponse {
   // First message MUST contain Ack.
   // Final message MUST contain Complete.
   oneof body {
-    // Ack acknowledges the KvtxTransaction has been openedj.
+    // Ack acknowledges the KvtxTransaction has been opened.
     KvtxTransactionAck ack = 1;
     // Complete contains the results of the transaction.
     KvtxTransactionComplete complete = 2;
@@ -64,9 +66,9 @@ message KvtxTransactionAck {
   string error = 1;
   // TransactionId is the identifier to use for the RpcStream.
   // If error != "" this will be empty.
+  string transaction_id = 2;
   // RetryClass is the typed retry classification for Error.
   KvtxRetryClass retry_class = 3;
-  string transaction_id = 2;
 }
 
 // KvtxTransactionComplete contains information about the result of a tx.
@@ -105,18 +107,23 @@ service KvtxOps {
   //  - Server replies with the Ack message.
   //  - Subsequent messages are request/reply, one request to one reply.
   rpc Iterate(stream KvtxIterateRequest) returns (stream KvtxIterateResponse);
-
-  // TODO Scan
-  // TODO Iterator
 }
 
 // KeyCountRequest is a request for the number of keys in the store.
-message KeyCountRequest {}
+message KeyCountRequest {
+  // AcceptRetryClass permits typed response errors instead of RPC errors.
+  // Older clients require RPC errors to avoid interpreting failures as zero keys.
+  bool accept_retry_class = 1;
+}
 
 // KeyCountResponse is a response to the KeyCountRequest.
 message KeyCountResponse {
   // KeyCount is the number of keys in the store.
   uint64 key_count = 1;
+  // Error reports failure to count keys.
+  string error = 2;
+  // RetryClass identifies whether the failed operation requires a fresh transaction.
+  KvtxRetryClass retry_class = 3;
 }
 
 // KvtxKeyRequest is a request that accepts a single key as a parameter.
@@ -134,6 +141,8 @@ message KvtxKeyDataResponse {
   bool found = 2;
   // Data contains the data, if found=true.
   bytes data = 3;
+  // RetryClass identifies whether the failed operation requires a fresh transaction.
+  KvtxRetryClass retry_class = 4;
 }
 
 // KvtxKeyExistsResponse responds to a request to check if a key exists.
@@ -143,6 +152,8 @@ message KvtxKeyExistsResponse {
   string error = 1;
   // Found indicates the key was found.
   bool found = 2;
+  // RetryClass identifies whether the failed operation requires a fresh transaction.
+  KvtxRetryClass retry_class = 3;
 }
 
 // KvtxSetKeyRequest is a request to set a key to a value.
@@ -158,6 +169,8 @@ message KvtxSetKeyResponse {
   // Error is any error setting the key.
   // If empty, the operation succeeded.
   string error = 1;
+  // RetryClass identifies whether the failed operation requires a fresh transaction.
+  KvtxRetryClass retry_class = 2;
 }
 
 // KvtxDeleteKeyRequest is a request to delete a key from the store.
@@ -171,6 +184,8 @@ message KvtxDeleteKeyResponse {
   // Error is any error removing the key.
   // If empty, the operation succeeded.
   string error = 1;
+  // RetryClass identifies whether the failed operation requires a fresh transaction.
+  KvtxRetryClass retry_class = 2;
 }
 
 // KvtxScanPrefixRequest is a request to scan for key/value pairs by prefix.
@@ -191,6 +206,8 @@ message KvtxScanPrefixResponse {
   bytes key = 2;
   // Value is the value for this key/value pair.
   bytes value = 3;
+  // RetryClass identifies whether the failed operation requires a fresh transaction.
+  KvtxRetryClass retry_class = 4;
 }
 
 // KvtxWatchRequest is a request to watch key/value snapshots by prefix.
@@ -264,6 +281,8 @@ message KvtxIterateResponse {
     // Closed acknowledges the close request.
     bool closed = 5;
   }
+  // RetryClass identifies whether the failed operation requires a fresh transaction.
+  KvtxRetryClass retry_class = 6;
 }
 
 // KvtxIterateStatus contains an update to the iterator status.
@@ -275,4 +294,6 @@ message KvtxIterateStatus {
   // Key is the current entry key.
   // If len(key) == 0, no change.
   bytes key = 3;
+  // RetryClass identifies whether the failed operation requires a fresh transaction.
+  KvtxRetryClass retry_class = 4;
 }

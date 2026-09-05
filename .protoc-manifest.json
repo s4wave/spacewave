@@ -1981,7 +1981,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/kvtx/rpc": {
-      "hash": "c2fad52a437b1dec16c7100ea6d3f684460c6f457205b4521260ce8fd7425602",
+      "hash": "f249d74d938d90136b59cd959e47b03112d2578e221bb477fd738ba019a188a9",
       "generatedFiles": [
         "db/kvtx/rpc/kvtx.pb.go",
         "db/kvtx/rpc/kvtx.pb.ts",

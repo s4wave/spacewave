@@ -19,7 +19,9 @@ import (
 type KvtxRetryClass int32
 
 const (
-	KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED      KvtxRetryClass = 0
+	// KVTX_RETRY_CLASS_UNSPECIFIED carries no retry authorization.
+	KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED KvtxRetryClass = 0
+	// KVTX_RETRY_CLASS_INVALID_SNAPSHOT requires a new transaction snapshot.
 	KvtxRetryClass_KVTX_RETRY_CLASS_INVALID_SNAPSHOT KvtxRetryClass = 1
 )
 
@@ -190,7 +192,7 @@ type isKvtxTransactionResponse_Body interface {
 }
 
 type KvtxTransactionResponse_Ack struct {
-	// Ack acknowledges the KvtxTransaction has been openedj.
+	// Ack acknowledges the KvtxTransaction has been opened.
 	Ack *KvtxTransactionAck `protobuf:"bytes,1,opt,name=ack,proto3,oneof"`
 }
 
@@ -210,9 +212,9 @@ type KvtxTransactionAck struct {
 	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
 	// TransactionId is the identifier to use for the RpcStream.
 	// If error != "" this will be empty.
+	TransactionId string `protobuf:"bytes,2,opt,name=transaction_id,json=transactionId,proto3" json:"transactionId,omitempty"`
 	// RetryClass is the typed retry classification for Error.
-	RetryClass    KvtxRetryClass `protobuf:"varint,3,opt,name=retry_class,json=retryClass,proto3" json:"retryClass,omitempty"`
-	TransactionId string         `protobuf:"bytes,2,opt,name=transaction_id,json=transactionId,proto3" json:"transactionId,omitempty"`
+	RetryClass KvtxRetryClass `protobuf:"varint,3,opt,name=retry_class,json=retryClass,proto3" json:"retryClass,omitempty"`
 }
 
 func (x *KvtxTransactionAck) Reset() {
@@ -228,18 +230,18 @@ func (x *KvtxTransactionAck) GetError() string {
 	return ""
 }
 
-func (x *KvtxTransactionAck) GetRetryClass() KvtxRetryClass {
-	if x != nil {
-		return x.RetryClass
-	}
-	return KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
-}
-
 func (x *KvtxTransactionAck) GetTransactionId() string {
 	if x != nil {
 		return x.TransactionId
 	}
 	return ""
+}
+
+func (x *KvtxTransactionAck) GetRetryClass() KvtxRetryClass {
+	if x != nil {
+		return x.RetryClass
+	}
+	return KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
 }
 
 // KvtxTransactionComplete contains information about the result of a tx.
@@ -295,6 +297,9 @@ func (x *KvtxTransactionComplete) GetRetryClass() KvtxRetryClass {
 // KeyCountRequest is a request for the number of keys in the store.
 type KeyCountRequest struct {
 	unknownFields []byte
+	// AcceptRetryClass permits typed response errors instead of RPC errors.
+	// Older clients require RPC errors to avoid interpreting failures as zero keys.
+	AcceptRetryClass bool `protobuf:"varint,1,opt,name=accept_retry_class,json=acceptRetryClass,proto3" json:"acceptRetryClass,omitempty"`
 }
 
 func (x *KeyCountRequest) Reset() {
@@ -303,11 +308,22 @@ func (x *KeyCountRequest) Reset() {
 
 func (*KeyCountRequest) ProtoMessage() {}
 
+func (x *KeyCountRequest) GetAcceptRetryClass() bool {
+	if x != nil {
+		return x.AcceptRetryClass
+	}
+	return false
+}
+
 // KeyCountResponse is a response to the KeyCountRequest.
 type KeyCountResponse struct {
 	unknownFields []byte
 	// KeyCount is the number of keys in the store.
 	KeyCount uint64 `protobuf:"varint,1,opt,name=key_count,json=keyCount,proto3" json:"keyCount,omitempty"`
+	// Error reports failure to count keys.
+	Error string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	// RetryClass identifies whether the failed operation requires a fresh transaction.
+	RetryClass KvtxRetryClass `protobuf:"varint,3,opt,name=retry_class,json=retryClass,proto3" json:"retryClass,omitempty"`
 }
 
 func (x *KeyCountResponse) Reset() {
@@ -321,6 +337,20 @@ func (x *KeyCountResponse) GetKeyCount() uint64 {
 		return x.KeyCount
 	}
 	return 0
+}
+
+func (x *KeyCountResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *KeyCountResponse) GetRetryClass() KvtxRetryClass {
+	if x != nil {
+		return x.RetryClass
+	}
+	return KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
 }
 
 // KvtxKeyRequest is a request that accepts a single key as a parameter.
@@ -353,6 +383,8 @@ type KvtxKeyDataResponse struct {
 	Found bool `protobuf:"varint,2,opt,name=found,proto3" json:"found,omitempty"`
 	// Data contains the data, if found=true.
 	Data []byte `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	// RetryClass identifies whether the failed operation requires a fresh transaction.
+	RetryClass KvtxRetryClass `protobuf:"varint,4,opt,name=retry_class,json=retryClass,proto3" json:"retryClass,omitempty"`
 }
 
 func (x *KvtxKeyDataResponse) Reset() {
@@ -382,6 +414,13 @@ func (x *KvtxKeyDataResponse) GetData() []byte {
 	return nil
 }
 
+func (x *KvtxKeyDataResponse) GetRetryClass() KvtxRetryClass {
+	if x != nil {
+		return x.RetryClass
+	}
+	return KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
+}
+
 // KvtxKeyExistsResponse responds to a request to check if a key exists.
 type KvtxKeyExistsResponse struct {
 	unknownFields []byte
@@ -390,6 +429,8 @@ type KvtxKeyExistsResponse struct {
 	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
 	// Found indicates the key was found.
 	Found bool `protobuf:"varint,2,opt,name=found,proto3" json:"found,omitempty"`
+	// RetryClass identifies whether the failed operation requires a fresh transaction.
+	RetryClass KvtxRetryClass `protobuf:"varint,3,opt,name=retry_class,json=retryClass,proto3" json:"retryClass,omitempty"`
 }
 
 func (x *KvtxKeyExistsResponse) Reset() {
@@ -410,6 +451,13 @@ func (x *KvtxKeyExistsResponse) GetFound() bool {
 		return x.Found
 	}
 	return false
+}
+
+func (x *KvtxKeyExistsResponse) GetRetryClass() KvtxRetryClass {
+	if x != nil {
+		return x.RetryClass
+	}
+	return KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
 }
 
 // KvtxSetKeyRequest is a request to set a key to a value.
@@ -447,6 +495,8 @@ type KvtxSetKeyResponse struct {
 	// Error is any error setting the key.
 	// If empty, the operation succeeded.
 	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// RetryClass identifies whether the failed operation requires a fresh transaction.
+	RetryClass KvtxRetryClass `protobuf:"varint,2,opt,name=retry_class,json=retryClass,proto3" json:"retryClass,omitempty"`
 }
 
 func (x *KvtxSetKeyResponse) Reset() {
@@ -460,6 +510,13 @@ func (x *KvtxSetKeyResponse) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *KvtxSetKeyResponse) GetRetryClass() KvtxRetryClass {
+	if x != nil {
+		return x.RetryClass
+	}
+	return KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
 }
 
 // KvtxDeleteKeyRequest is a request to delete a key from the store.
@@ -488,6 +545,8 @@ type KvtxDeleteKeyResponse struct {
 	// Error is any error removing the key.
 	// If empty, the operation succeeded.
 	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// RetryClass identifies whether the failed operation requires a fresh transaction.
+	RetryClass KvtxRetryClass `protobuf:"varint,2,opt,name=retry_class,json=retryClass,proto3" json:"retryClass,omitempty"`
 }
 
 func (x *KvtxDeleteKeyResponse) Reset() {
@@ -501,6 +560,13 @@ func (x *KvtxDeleteKeyResponse) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *KvtxDeleteKeyResponse) GetRetryClass() KvtxRetryClass {
+	if x != nil {
+		return x.RetryClass
+	}
+	return KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
 }
 
 // KvtxScanPrefixRequest is a request to scan for key/value pairs by prefix.
@@ -543,6 +609,8 @@ type KvtxScanPrefixResponse struct {
 	Key []byte `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 	// Value is the value for this key/value pair.
 	Value []byte `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
+	// RetryClass identifies whether the failed operation requires a fresh transaction.
+	RetryClass KvtxRetryClass `protobuf:"varint,4,opt,name=retry_class,json=retryClass,proto3" json:"retryClass,omitempty"`
 }
 
 func (x *KvtxScanPrefixResponse) Reset() {
@@ -570,6 +638,13 @@ func (x *KvtxScanPrefixResponse) GetValue() []byte {
 		return x.Value
 	}
 	return nil
+}
+
+func (x *KvtxScanPrefixResponse) GetRetryClass() KvtxRetryClass {
+	if x != nil {
+		return x.RetryClass
+	}
+	return KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
 }
 
 // KvtxWatchRequest is a request to watch key/value snapshots by prefix.
@@ -830,6 +905,8 @@ type KvtxIterateResponse struct {
 	//	*KvtxIterateResponse_Value
 	//	*KvtxIterateResponse_Closed
 	Body isKvtxIterateResponse_Body `protobuf_oneof:"body"`
+	// RetryClass identifies whether the failed operation requires a fresh transaction.
+	RetryClass KvtxRetryClass `protobuf:"varint,6,opt,name=retry_class,json=retryClass,proto3" json:"retryClass,omitempty"`
 }
 
 func (x *KvtxIterateResponse) Reset() {
@@ -878,6 +955,13 @@ func (x *KvtxIterateResponse) GetClosed() bool {
 		return x.Closed
 	}
 	return false
+}
+
+func (x *KvtxIterateResponse) GetRetryClass() KvtxRetryClass {
+	if x != nil {
+		return x.RetryClass
+	}
+	return KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
 }
 
 type isKvtxIterateResponse_Body interface {
@@ -929,6 +1013,8 @@ type KvtxIterateStatus struct {
 	// Key is the current entry key.
 	// If len(key) == 0, no change.
 	Key []byte `protobuf:"bytes,3,opt,name=key,proto3" json:"key,omitempty"`
+	// RetryClass identifies whether the failed operation requires a fresh transaction.
+	RetryClass KvtxRetryClass `protobuf:"varint,4,opt,name=retry_class,json=retryClass,proto3" json:"retryClass,omitempty"`
 }
 
 func (x *KvtxIterateStatus) Reset() {
@@ -956,6 +1042,13 @@ func (x *KvtxIterateStatus) GetKey() []byte {
 		return x.Key
 	}
 	return nil
+}
+
+func (x *KvtxIterateStatus) GetRetryClass() KvtxRetryClass {
+	if x != nil {
+		return x.RetryClass
+	}
+	return KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
 }
 
 func (m *KvtxTransactionRequest) CloneVT() *KvtxTransactionRequest {
@@ -1085,8 +1178,8 @@ func (m *KvtxTransactionAck) CloneVT() *KvtxTransactionAck {
 	}
 	r := new(KvtxTransactionAck)
 	r.Error = m.Error
-	r.RetryClass = m.RetryClass
 	r.TransactionId = m.TransactionId
+	r.RetryClass = m.RetryClass
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1121,6 +1214,7 @@ func (m *KeyCountRequest) CloneVT() *KeyCountRequest {
 		return (*KeyCountRequest)(nil)
 	}
 	r := new(KeyCountRequest)
+	r.AcceptRetryClass = m.AcceptRetryClass
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1137,6 +1231,8 @@ func (m *KeyCountResponse) CloneVT() *KeyCountResponse {
 	}
 	r := new(KeyCountResponse)
 	r.KeyCount = m.KeyCount
+	r.Error = m.Error
+	r.RetryClass = m.RetryClass
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1170,6 +1266,7 @@ func (m *KvtxKeyDataResponse) CloneVT() *KvtxKeyDataResponse {
 	r := new(KvtxKeyDataResponse)
 	r.Error = m.Error
 	r.Found = m.Found
+	r.RetryClass = m.RetryClass
 	r.Data = protobuf_go_lite.CloneBytes(m.Data)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1188,6 +1285,7 @@ func (m *KvtxKeyExistsResponse) CloneVT() *KvtxKeyExistsResponse {
 	r := new(KvtxKeyExistsResponse)
 	r.Error = m.Error
 	r.Found = m.Found
+	r.RetryClass = m.RetryClass
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1221,6 +1319,7 @@ func (m *KvtxSetKeyResponse) CloneVT() *KvtxSetKeyResponse {
 	}
 	r := new(KvtxSetKeyResponse)
 	r.Error = m.Error
+	r.RetryClass = m.RetryClass
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1253,6 +1352,7 @@ func (m *KvtxDeleteKeyResponse) CloneVT() *KvtxDeleteKeyResponse {
 	}
 	r := new(KvtxDeleteKeyResponse)
 	r.Error = m.Error
+	r.RetryClass = m.RetryClass
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -1286,6 +1386,7 @@ func (m *KvtxScanPrefixResponse) CloneVT() *KvtxScanPrefixResponse {
 	}
 	r := new(KvtxScanPrefixResponse)
 	r.Error = m.Error
+	r.RetryClass = m.RetryClass
 	r.Key = protobuf_go_lite.CloneBytes(m.Key)
 	r.Value = protobuf_go_lite.CloneBytes(m.Value)
 	if len(m.unknownFields) > 0 {
@@ -1470,6 +1571,7 @@ func (m *KvtxIterateResponse) CloneVT() *KvtxIterateResponse {
 		return (*KvtxIterateResponse)(nil)
 	}
 	r := new(KvtxIterateResponse)
+	r.RetryClass = m.RetryClass
 	if m.Body != nil {
 		r.Body = m.Body.(interface {
 			CloneOneofVT() isKvtxIterateResponse_Body
@@ -1557,6 +1659,7 @@ func (m *KvtxIterateStatus) CloneVT() *KvtxIterateStatus {
 	r := new(KvtxIterateStatus)
 	r.Error = m.Error
 	r.Valid = m.Valid
+	r.RetryClass = m.RetryClass
 	r.Key = protobuf_go_lite.CloneBytes(m.Key)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -1792,6 +1895,9 @@ func (this *KeyCountRequest) EqualVT(that *KeyCountRequest) bool {
 	} else if this == nil || that == nil {
 		return false
 	}
+	if this.AcceptRetryClass != that.AcceptRetryClass {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1810,6 +1916,12 @@ func (this *KeyCountResponse) EqualVT(that *KeyCountResponse) bool {
 		return false
 	}
 	if this.KeyCount != that.KeyCount {
+		return false
+	}
+	if this.Error != that.Error {
+		return false
+	}
+	if this.RetryClass != that.RetryClass {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1858,6 +1970,9 @@ func (this *KvtxKeyDataResponse) EqualVT(that *KvtxKeyDataResponse) bool {
 	if !protobuf_go_lite.EqualBytes(this.Data, that.Data) {
 		return false
 	}
+	if this.RetryClass != that.RetryClass {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1879,6 +1994,9 @@ func (this *KvtxKeyExistsResponse) EqualVT(that *KvtxKeyExistsResponse) bool {
 		return false
 	}
 	if this.Found != that.Found {
+		return false
+	}
+	if this.RetryClass != that.RetryClass {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -1924,6 +2042,9 @@ func (this *KvtxSetKeyResponse) EqualVT(that *KvtxSetKeyResponse) bool {
 	if this.Error != that.Error {
 		return false
 	}
+	if this.RetryClass != that.RetryClass {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -1962,6 +2083,9 @@ func (this *KvtxDeleteKeyResponse) EqualVT(that *KvtxDeleteKeyResponse) bool {
 		return false
 	}
 	if this.Error != that.Error {
+		return false
+	}
+	if this.RetryClass != that.RetryClass {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2011,6 +2135,9 @@ func (this *KvtxScanPrefixResponse) EqualVT(that *KvtxScanPrefixResponse) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualBytes(this.Value, that.Value) {
+		return false
+	}
+	if this.RetryClass != that.RetryClass {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2268,6 +2395,9 @@ func (this *KvtxIterateResponse) EqualVT(that *KvtxIterateResponse) bool {
 			return false
 		}
 	}
+	if this.RetryClass != that.RetryClass {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -2377,6 +2507,9 @@ func (this *KvtxIterateStatus) EqualVT(that *KvtxIterateStatus) bool {
 		return false
 	}
 	if !protobuf_go_lite.EqualBytes(this.Key, that.Key) {
+		return false
+	}
+	if this.RetryClass != that.RetryClass {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -2736,6 +2869,12 @@ func (x *KeyCountRequest) MarshalProtoJSON(s *json.MarshalState) {
 		return
 	}
 	s.WriteObjectStart()
+	var wroteField bool
+	if x.AcceptRetryClass || s.HasField("acceptRetryClass") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("acceptRetryClass")
+		s.WriteBool(x.AcceptRetryClass)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2750,7 +2889,13 @@ func (x *KeyCountRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		return
 	}
 	s.ReadObject(func(key string) {
-		// no fields
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "accept_retry_class", "acceptRetryClass":
+			s.AddField("accept_retry_class")
+			x.AcceptRetryClass = s.ReadBool()
+		}
 	})
 }
 
@@ -2772,6 +2917,16 @@ func (x *KeyCountResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("keyCount")
 		s.WriteUint64(x.KeyCount)
 	}
+	if x.Error != "" || s.HasField("error") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("error")
+		s.WriteString(x.Error)
+	}
+	if x.RetryClass != 0 || s.HasField("retryClass") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retryClass")
+		x.RetryClass.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2792,6 +2947,12 @@ func (x *KeyCountResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "key_count", "keyCount":
 			s.AddField("key_count")
 			x.KeyCount = s.ReadUint64()
+		case "error":
+			s.AddField("error")
+			x.Error = s.ReadString()
+		case "retry_class", "retryClass":
+			s.AddField("retry_class")
+			x.RetryClass.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -2866,6 +3027,11 @@ func (x *KvtxKeyDataResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("data")
 		s.WriteBytes(x.Data)
 	}
+	if x.RetryClass != 0 || s.HasField("retryClass") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retryClass")
+		x.RetryClass.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2892,6 +3058,9 @@ func (x *KvtxKeyDataResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "data":
 			s.AddField("data")
 			x.Data = s.ReadBytes()
+		case "retry_class", "retryClass":
+			s.AddField("retry_class")
+			x.RetryClass.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -2919,6 +3088,11 @@ func (x *KvtxKeyExistsResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("found")
 		s.WriteBool(x.Found)
 	}
+	if x.RetryClass != 0 || s.HasField("retryClass") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retryClass")
+		x.RetryClass.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -2942,6 +3116,9 @@ func (x *KvtxKeyExistsResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "found":
 			s.AddField("found")
 			x.Found = s.ReadBool()
+		case "retry_class", "retryClass":
+			s.AddField("retry_class")
+			x.RetryClass.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -3014,6 +3191,11 @@ func (x *KvtxSetKeyResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("error")
 		s.WriteString(x.Error)
 	}
+	if x.RetryClass != 0 || s.HasField("retryClass") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retryClass")
+		x.RetryClass.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3034,6 +3216,9 @@ func (x *KvtxSetKeyResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "error":
 			s.AddField("error")
 			x.Error = s.ReadString()
+		case "retry_class", "retryClass":
+			s.AddField("retry_class")
+			x.RetryClass.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -3098,6 +3283,11 @@ func (x *KvtxDeleteKeyResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("error")
 		s.WriteString(x.Error)
 	}
+	if x.RetryClass != 0 || s.HasField("retryClass") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retryClass")
+		x.RetryClass.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3118,6 +3308,9 @@ func (x *KvtxDeleteKeyResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "error":
 			s.AddField("error")
 			x.Error = s.ReadString()
+		case "retry_class", "retryClass":
+			s.AddField("retry_class")
+			x.RetryClass.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -3200,6 +3393,11 @@ func (x *KvtxScanPrefixResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("value")
 		s.WriteBytes(x.Value)
 	}
+	if x.RetryClass != 0 || s.HasField("retryClass") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retryClass")
+		x.RetryClass.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3226,6 +3424,9 @@ func (x *KvtxScanPrefixResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "value":
 			s.AddField("value")
 			x.Value = s.ReadBytes()
+		case "retry_class", "retryClass":
+			s.AddField("retry_class")
+			x.RetryClass.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -3592,6 +3793,11 @@ func (x *KvtxIterateResponse) MarshalProtoJSON(s *json.MarshalState) {
 			s.WriteBool(ov.Closed)
 		}
 	}
+	if x.RetryClass != 0 || s.HasField("retryClass") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retryClass")
+		x.RetryClass.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3638,6 +3844,9 @@ func (x *KvtxIterateResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			ov := &KvtxIterateResponse_Closed{}
 			x.Body = ov
 			ov.Closed = s.ReadBool()
+		case "retry_class", "retryClass":
+			s.AddField("retry_class")
+			x.RetryClass.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -3670,6 +3879,11 @@ func (x *KvtxIterateStatus) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("key")
 		s.WriteBytes(x.Key)
 	}
+	if x.RetryClass != 0 || s.HasField("retryClass") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("retryClass")
+		x.RetryClass.MarshalProtoJSON(s)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -3696,6 +3910,9 @@ func (x *KvtxIterateStatus) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "key":
 			s.AddField("key")
 			x.Key = s.ReadBytes()
+		case "retry_class", "retryClass":
+			s.AddField("retry_class")
+			x.RetryClass.UnmarshalProtoJSON(s)
 		}
 	})
 }
@@ -4050,6 +4267,11 @@ func (m *KeyCountRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.AcceptRetryClass {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.AcceptRetryClass)
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -4081,6 +4303,16 @@ func (m *KeyCountResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RetryClass != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RetryClass))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.Error) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Error)
+		i--
+		dAtA[i] = 0x12
 	}
 	if m.KeyCount != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.KeyCount))
@@ -4156,6 +4388,11 @@ func (m *KvtxKeyDataResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.RetryClass != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RetryClass))
+		i--
+		dAtA[i] = 0x20
+	}
 	if len(m.Data) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Data)
 		i--
@@ -4202,6 +4439,11 @@ func (m *KvtxKeyExistsResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RetryClass != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RetryClass))
+		i--
+		dAtA[i] = 0x18
 	}
 	if m.Found {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.Found)
@@ -4287,6 +4529,11 @@ func (m *KvtxSetKeyResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.RetryClass != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RetryClass))
+		i--
+		dAtA[i] = 0x10
+	}
 	if len(m.Error) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Error)
 		i--
@@ -4360,6 +4607,11 @@ func (m *KvtxDeleteKeyResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RetryClass != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RetryClass))
+		i--
+		dAtA[i] = 0x10
 	}
 	if len(m.Error) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Error)
@@ -4439,6 +4691,11 @@ func (m *KvtxScanPrefixResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RetryClass != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RetryClass))
+		i--
+		dAtA[i] = 0x20
 	}
 	if len(m.Value) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Value)
@@ -4806,6 +5063,11 @@ func (m *KvtxIterateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		}
 		i -= size
 	}
+	if m.RetryClass != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RetryClass))
+		i--
+		dAtA[i] = 0x30
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -4913,6 +5175,11 @@ func (m *KvtxIterateStatus) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.RetryClass != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.RetryClass))
+		i--
+		dAtA[i] = 0x20
 	}
 	if len(m.Key) > 0 {
 		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Key)
@@ -5067,6 +5334,7 @@ func (m *KeyCountRequest) SizeVT() (n int) {
 	}
 	var l int
 	_ = l
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.AcceptRetryClass)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5078,6 +5346,8 @@ func (m *KeyCountResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.KeyCount)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RetryClass)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5102,6 +5372,7 @@ func (m *KvtxKeyDataResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Found)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Data)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RetryClass)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5114,6 +5385,7 @@ func (m *KvtxKeyExistsResponse) SizeVT() (n int) {
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Found)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RetryClass)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5137,6 +5409,7 @@ func (m *KvtxSetKeyResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RetryClass)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5159,6 +5432,7 @@ func (m *KvtxDeleteKeyResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RetryClass)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5184,6 +5458,7 @@ func (m *KvtxScanPrefixResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Key)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Value)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RetryClass)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5327,6 +5602,7 @@ func (m *KvtxIterateResponse) SizeVT() (n int) {
 	if vtmsg, ok := m.Body.(interface{ SizeVT() int }); ok {
 		n += vtmsg.SizeVT()
 	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RetryClass)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5395,6 +5671,7 @@ func (m *KvtxIterateStatus) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Error)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.Valid)
 	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Key)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.RetryClass)
 	n += len(m.unknownFields)
 	return n
 }
@@ -5518,7 +5795,11 @@ func (x *KvtxTransactionComplete) String() string {
 
 func (x *KeyCountRequest) MarshalProtoText() string {
 	var sb protobuf_go_lite.TextBuilder
-	protobuf_go_lite.TextStartMessage(&sb, "KeyCountRequest")
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "KeyCountRequest")
+	if x.AcceptRetryClass != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "accept_retry_class")
+		protobuf_go_lite.TextWriteBool(&sb, x.AcceptRetryClass)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -5532,6 +5813,14 @@ func (x *KeyCountResponse) MarshalProtoText() string {
 	if x.KeyCount != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key_count")
 		protobuf_go_lite.TextWriteUint(&sb, x.KeyCount)
+	}
+	if x.Error != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error")
+		protobuf_go_lite.TextWriteString(&sb, x.Error)
+	}
+	if x.RetryClass != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retry_class")
+		protobuf_go_lite.TextWriteStringer(&sb, KvtxRetryClass(x.RetryClass))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5569,6 +5858,10 @@ func (x *KvtxKeyDataResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "data")
 		protobuf_go_lite.TextWriteBytes(&sb, x.Data)
 	}
+	if x.RetryClass != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retry_class")
+		protobuf_go_lite.TextWriteStringer(&sb, KvtxRetryClass(x.RetryClass))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -5586,6 +5879,10 @@ func (x *KvtxKeyExistsResponse) MarshalProtoText() string {
 	if x.Found != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "found")
 		protobuf_go_lite.TextWriteBool(&sb, x.Found)
+	}
+	if x.RetryClass != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retry_class")
+		protobuf_go_lite.TextWriteStringer(&sb, KvtxRetryClass(x.RetryClass))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5619,6 +5916,10 @@ func (x *KvtxSetKeyResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error")
 		protobuf_go_lite.TextWriteString(&sb, x.Error)
 	}
+	if x.RetryClass != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retry_class")
+		protobuf_go_lite.TextWriteStringer(&sb, KvtxRetryClass(x.RetryClass))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -5646,6 +5947,10 @@ func (x *KvtxDeleteKeyResponse) MarshalProtoText() string {
 	if x.Error != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "error")
 		protobuf_go_lite.TextWriteString(&sb, x.Error)
+	}
+	if x.RetryClass != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retry_class")
+		protobuf_go_lite.TextWriteStringer(&sb, KvtxRetryClass(x.RetryClass))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5686,6 +5991,10 @@ func (x *KvtxScanPrefixResponse) MarshalProtoText() string {
 	if len(x.Value) != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "value")
 		protobuf_go_lite.TextWriteBytes(&sb, x.Value)
+	}
+	if x.RetryClass != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retry_class")
+		protobuf_go_lite.TextWriteStringer(&sb, KvtxRetryClass(x.RetryClass))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -5836,6 +6145,10 @@ func (x *KvtxIterateResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "closed")
 		protobuf_go_lite.TextWriteBool(&sb, body.Closed)
 	}
+	if x.RetryClass != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retry_class")
+		protobuf_go_lite.TextWriteStringer(&sb, KvtxRetryClass(x.RetryClass))
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -5857,6 +6170,10 @@ func (x *KvtxIterateStatus) MarshalProtoText() string {
 	if len(x.Key) != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "key")
 		protobuf_go_lite.TextWriteBytes(&sb, x.Key)
+	}
+	if x.RetryClass != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "retry_class")
+		protobuf_go_lite.TextWriteStringer(&sb, KvtxRetryClass(x.RetryClass))
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -6264,6 +6581,16 @@ func (m *KeyCountRequest) UnmarshalVT(dAtA []byte) error {
 			return fmt.Errorf("proto: KeyCountRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AcceptRetryClass", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AcceptRetryClass = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -6313,6 +6640,27 @@ func (m *KeyCountResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			m.KeyCount = 0
 			m.KeyCount, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Error = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetryClass", wireType)
+			}
+			m.RetryClass = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.RetryClass = KvtxRetryClass(_v)
 			if err != nil {
 				return err
 			}
@@ -6438,6 +6786,17 @@ func (m *KvtxKeyDataResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetryClass", wireType)
+			}
+			m.RetryClass = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.RetryClass = KvtxRetryClass(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -6501,6 +6860,17 @@ func (m *KvtxKeyExistsResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Found = bool(v)
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetryClass", wireType)
+			}
+			m.RetryClass = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.RetryClass = KvtxRetryClass(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -6613,6 +6983,17 @@ func (m *KvtxSetKeyResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Error = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetryClass", wireType)
+			}
+			m.RetryClass = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.RetryClass = KvtxRetryClass(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -6717,6 +7098,17 @@ func (m *KvtxDeleteKeyResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Error = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetryClass", wireType)
+			}
+			m.RetryClass = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.RetryClass = KvtxRetryClass(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -6844,6 +7236,17 @@ func (m *KvtxScanPrefixResponse) UnmarshalVT(dAtA []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
 			}
 			m.Value, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Value, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetryClass", wireType)
+			}
+			m.RetryClass = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.RetryClass = KvtxRetryClass(_v)
 			if err != nil {
 				return err
 			}
@@ -7326,6 +7729,17 @@ func (m *KvtxIterateResponse) UnmarshalVT(dAtA []byte) error {
 			}
 			b := bool(v)
 			m.Body = &KvtxIterateResponse_Closed{Closed: b}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetryClass", wireType)
+			}
+			m.RetryClass = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.RetryClass = KvtxRetryClass(_v)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -7394,6 +7808,17 @@ func (m *KvtxIterateStatus) UnmarshalVT(dAtA []byte) error {
 				return fmt.Errorf("proto: wrong wireType = %d for field Key", wireType)
 			}
 			m.Key, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Key, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RetryClass", wireType)
+			}
+			m.RetryClass = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.RetryClass = KvtxRetryClass(_v)
 			if err != nil {
 				return err
 			}

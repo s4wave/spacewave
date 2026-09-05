@@ -35,8 +35,8 @@ func (o *Ops) Size(ctx context.Context) (uint64, error) {
 	if o.released.Load() {
 		return 0, kvtx.ErrDiscarded
 	}
-	resp, err := o.client.KeyCount(ctx, &kvtx_rpc.KeyCountRequest{})
-	return resp.GetKeyCount(), err
+	resp, err := o.client.KeyCount(ctx, &kvtx_rpc.KeyCountRequest{AcceptRetryClass: true})
+	return resp.GetKeyCount(), o.err(err, resp.GetError(), resp.GetRetryClass())
 }
 
 // Get looks up a key and data from the store.
@@ -48,19 +48,14 @@ func (o *Ops) Get(ctx context.Context, key []byte) (data []byte, found bool, err
 	if err != nil {
 		return nil, false, err
 	}
-	if err := o.err(err, resp.GetError()); err != nil {
+	if err := o.err(err, resp.GetError(), resp.GetRetryClass()); err != nil {
 		return nil, false, err
 	}
 	return resp.GetData(), resp.GetFound(), nil
 }
 
-// Ops deliberately does not implement kvtx.BatchTxOps. The store is reached
-// only through the generated KvtxOps RPC methods, which expose no batch KeyData
-// call, so a GetBatch here would still issue one round trip per key and could
-// not collapse the async read hops the batch seam exists to remove. Adding a
-// batch would extend the wire protocol, which is out of scope; until such an
-// RPC exists, kvtx.GetBatch falls back to serial Get calls for the remote
-// store, preserving current behavior.
+// Ops does not implement kvtx.BatchTxOps because KvtxOps has no batch read RPC.
+// kvtx.GetBatch therefore uses individual Get calls for remote stores.
 
 // Set sets a key in the store.
 func (o *Ops) Set(ctx context.Context, key []byte, value []byte) error {
@@ -71,7 +66,7 @@ func (o *Ops) Set(ctx context.Context, key []byte, value []byte) error {
 		Key:   key,
 		Value: value,
 	})
-	if err := o.err(err, resp.GetError()); err != nil {
+	if err := o.err(err, resp.GetError(), resp.GetRetryClass()); err != nil {
 		return err
 	}
 	return nil
@@ -85,7 +80,7 @@ func (o *Ops) Delete(ctx context.Context, key []byte) error {
 	resp, err := o.client.DeleteKey(ctx, &kvtx_rpc.KvtxDeleteKeyRequest{
 		Key: key,
 	})
-	if err := o.err(err, resp.GetError()); err != nil {
+	if err := o.err(err, resp.GetError(), resp.GetRetryClass()); err != nil {
 		return err
 	}
 	return nil
@@ -97,7 +92,7 @@ func (o *Ops) Exists(ctx context.Context, key []byte) (bool, error) {
 		return false, kvtx.ErrDiscarded
 	}
 	resp, err := o.client.KeyExists(ctx, kvtx_rpc.NewKeyRequest(key))
-	if err := o.err(err, resp.GetError()); err != nil {
+	if err := o.err(err, resp.GetError(), resp.GetRetryClass()); err != nil {
 		return false, err
 	}
 	return resp.GetFound(), err
@@ -135,7 +130,7 @@ func (o *Ops) Iterate(ctx context.Context, prefix []byte, sort bool, reverse boo
 	switch m := ackMsg.GetBody().(type) {
 	case *kvtx_rpc.KvtxIterateResponse_ReqError:
 		_ = itClient.Close()
-		return kvtx.NewErrIterator(errors.New(m.ReqError))
+		return kvtx.NewErrIterator(remoteError(m.ReqError, ackMsg.GetRetryClass()))
 	case *kvtx_rpc.KvtxIterateResponse_Ack:
 		break
 	default:
@@ -194,7 +189,7 @@ func (o *Ops) scanPrefix(ctx context.Context, prefix []byte, onlyKeys bool, cb f
 		}
 
 		if errStr := resp.GetError(); errStr != "" {
-			return errors.New(errStr)
+			return remoteError(errStr, resp.GetRetryClass())
 		}
 
 		if key := resp.GetKey(); len(key) != 0 {
@@ -206,10 +201,10 @@ func (o *Ops) scanPrefix(ctx context.Context, prefix []byte, onlyKeys bool, cb f
 }
 
 // err converts an error into the appropriate error.
-func (o *Ops) err(err error, errStr string) error {
+func (o *Ops) err(err error, errStr string, retryClass kvtx_rpc.KvtxRetryClass) error {
 	if err == nil {
 		if errStr != "" {
-			err = errors.New(errStr)
+			err = remoteError(errStr, retryClass)
 		} else {
 			return nil
 		}
