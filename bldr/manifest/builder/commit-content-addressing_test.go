@@ -11,6 +11,7 @@ import (
 
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
+	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	"github.com/s4wave/spacewave/bldr/testbed"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/sirupsen/logrus"
@@ -47,6 +48,23 @@ func TestCommitManifestUsesContentAddressing(t *testing.T) {
 	}
 	if !secondManifest.GetAssetsFsRef().EqualVT(firstManifest.GetAssetsFsRef()) {
 		t.Fatal("identical build produced a different assets filesystem ref")
+	}
+
+	// Dist copying uses this same timestamp policy and preserves content identity.
+	var copiedRoot *bucket.ObjectRef
+	for _, target := range []*testbed.Testbed{firstWorld, secondWorld} {
+		_, copied, err := bldr_manifest_world.DeepCopyManifest(
+			ctx, target.GetLogger(), firstWorld.GetWorldState().AccessWorldState,
+			firstRef, nil, target.GetWorldState(), target.GetWorldState().AccessWorldState,
+			"copied-manifest", nil, target.GetVolume().GetPeerID(), ManifestCommitTimestamp(ctx),
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if copiedRoot != nil && !copied.GetRootRef().EqualVT(copiedRoot.GetRootRef()) {
+			t.Fatal("fixed-time dist copying changed manifest content identity")
+		}
+		copiedRoot = copied
 	}
 
 	writeCommitTestFile(t, distPath, "plugin-HASH.mjs", "export const value = 2;\n")

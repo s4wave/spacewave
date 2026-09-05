@@ -41,7 +41,6 @@ import (
 	bucket_setup "github.com/s4wave/spacewave/db/bucket/setup"
 	node_controller "github.com/s4wave/spacewave/db/node/controller"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
-	common_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
@@ -225,13 +224,8 @@ func BuildDistBundle(
 	if err != nil {
 		return err
 	}
-	boltVol, ok := workingVol.(common_kvtx.KvtxVolume)
-	if !ok {
-		return errors.New("unexpected type for volume")
-	}
 
-	// workingVol will be embedded in the dist binary and available to the
-	// application. It will contain the embedded manifests.
+	// The packaged volume contains the distribution manifests.
 
 	// Create the embedded manifests world.
 	embedWorldID := bldr_dist.DistWorldEngineID
@@ -299,6 +293,9 @@ func BuildDistBundle(
 	le.Debug("packing embedded volume to assets.kvfile")
 	embeddedVolumeFilename := "assets.kvfile"
 	embeddedVolumePath := filepath.Join(entrypointBuildDir, embeddedVolumeFilename)
+	if !isWebPlatform {
+		embeddedVolumePath = filepath.Join(outputPath, embeddedVolumeFilename)
+	}
 	embeddedVolFile, err := os.OpenFile(embeddedVolumePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
@@ -320,10 +317,6 @@ func BuildDistBundle(
 	kvfileKvkey := store_kvkey.NewDefaultKVKey()
 	kvfileBlockPrefix := kvfileKvkey.GetBlockFullPrefix()
 
-	// Access the workingVol kvtx.
-	kvtxVolStore := boltVol.GetKvtxStore()
-	kvtxVolBlockPrefix := boltVol.GetKvKey().GetBlockFullPrefix()
-
 	// Write the kvfile.
 	// NOTE: We don't use compression here since the content is already compressed / not compressible.
 	err = dist_compiler_bundle.BundleManifestsKvfile(
@@ -332,8 +325,6 @@ func BuildDistBundle(
 		kvfileWriter,
 		kvfileBlockPrefix,
 		embedBlockEngine,
-		kvtxVolStore,
-		kvtxVolBlockPrefix,
 	)
 	if err != nil {
 		_ = kvfileWriter.Close()
@@ -533,8 +524,7 @@ func BuildDistBundle(
 			return err
 		}
 	} else {
-		// Otherwise we go:embed it.
-		embedAssetsFS = append(embedAssetsFS, embeddedVolumeFilename)
+		// Native distributions keep the volume beside the executable.
 		outBinPath = filepath.Join(outputPath, outBinName)
 		if err := writeDistEntrypoint(true); err != nil {
 			return err

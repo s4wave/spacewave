@@ -82,7 +82,7 @@ func (c *BuilderConfig) CommitManifest(
 	if err != nil {
 		return nil, nil, err
 	}
-	ts := manifestCommitTimestamp(ctx)
+	ts := ManifestCommitTimestamp(ctx)
 
 	var manifestValue *manifest.Manifest
 	manifestRef, err := world.AccessObject(ctx, ws.AccessWorldState, nil, func(bcs *block.Cursor) error {
@@ -174,7 +174,9 @@ func (c *BuilderConfig) CheckoutManifest(
 	)
 }
 
-func manifestCommitTimestamp(ctx context.Context) *timestamp.Timestamp {
+// ManifestCommitTimestamp returns the lifecycle's fixed build time when set,
+// otherwise the current time. Callers capture it once per build.
+func ManifestCommitTimestamp(ctx context.Context) *timestamp.Timestamp {
 	ts, ok := ctx.Value(manifestCommitTimestampContextKey{}).(*timestamp.Timestamp)
 	if ok && ts != nil {
 		return ts.CloneVT()

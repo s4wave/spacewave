@@ -14,7 +14,6 @@ import (
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
 	"github.com/aperturerobotics/controllerbus/directive"
-	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/fsutil"
 	pkgerrors "github.com/pkg/errors"
 	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
@@ -130,7 +129,7 @@ func (c *Controller) BuildManifest(
 	platformID := meta.GetPlatformId()
 	manifestID := meta.GetManifestId()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
-	buildTimestamp := timestamp.Now()
+	buildTimestamp := bldr_manifest_builder.ManifestCommitTimestamp(ctx)
 
 	le := c.GetLogger().
 		WithField("manifest-id", manifestID).
