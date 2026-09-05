@@ -45,6 +45,15 @@ type Config struct {
 	// DisableEndpointFetch disables all endpoint DistConfig fetches.
 	// Use this only for embedded/offline builds that must run from init_dist_config.
 	DisableEndpointFetch bool `protobuf:"varint,10,opt,name=disable_endpoint_fetch,json=disableEndpointFetch,proto3" json:"disableEndpointFetch,omitempty"`
+	// EntrypointManifestId selects the desktop manifest to stage.
+	// Empty preserves the Spacewave default, "spacewave-dist".
+	EntrypointManifestId string `protobuf:"bytes,11,opt,name=entrypoint_manifest_id,json=entrypointManifestId,proto3" json:"entrypointManifestId,omitempty"`
+	// CliManifestId selects the companion CLI manifest to stage.
+	// Empty preserves the Spacewave default, "spacewave-cli".
+	CliManifestId string `protobuf:"bytes,12,opt,name=cli_manifest_id,json=cliManifestId,proto3" json:"cliManifestId,omitempty"`
+	// DisableCliUpdate allows applications distributed without a companion CLI.
+	// When true, no CLI manifest, binary, or managed CLI sidecar is required.
+	DisableCliUpdate bool `protobuf:"varint,13,opt,name=disable_cli_update,json=disableCliUpdate,proto3" json:"disableCliUpdate,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -123,6 +132,27 @@ func (x *Config) GetDisableEndpointFetch() bool {
 	return false
 }
 
+func (x *Config) GetEntrypointManifestId() string {
+	if x != nil {
+		return x.EntrypointManifestId
+	}
+	return ""
+}
+
+func (x *Config) GetCliManifestId() string {
+	if x != nil {
+		return x.CliManifestId
+	}
+	return ""
+}
+
+func (x *Config) GetDisableCliUpdate() bool {
+	if x != nil {
+		return x.DisableCliUpdate
+	}
+	return false
+}
+
 // HttpEndpoint is an http endpoint.
 type HttpEndpoint struct {
 	unknownFields []byte
@@ -190,6 +220,9 @@ func (m *Config) CloneVT() *Config {
 	r.RefetchDur = m.RefetchDur
 	r.InitDistConfig = m.InitDistConfig
 	r.DisableEndpointFetch = m.DisableEndpointFetch
+	r.EntrypointManifestId = m.EntrypointManifestId
+	r.CliManifestId = m.CliManifestId
+	r.DisableCliUpdate = m.DisableCliUpdate
 	r.DistPeerIds = protobuf_go_lite.CloneSlice(m.DistPeerIds)
 	r.Endpoints = protobuf_go_lite.CloneVTSlice(m.Endpoints)
 	r.EndpointsBackoff = protobuf_go_lite.CloneVTValue(m.EndpointsBackoff)
@@ -254,6 +287,15 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.DisableEndpointFetch != that.DisableEndpointFetch {
+		return false
+	}
+	if this.EntrypointManifestId != that.EntrypointManifestId {
+		return false
+	}
+	if this.CliManifestId != that.CliManifestId {
+		return false
+	}
+	if this.DisableCliUpdate != that.DisableCliUpdate {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -354,6 +396,21 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("disableEndpointFetch")
 		s.WriteBool(x.DisableEndpointFetch)
 	}
+	if x.EntrypointManifestId != "" || s.HasField("entrypointManifestId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entrypointManifestId")
+		s.WriteString(x.EntrypointManifestId)
+	}
+	if x.CliManifestId != "" || s.HasField("cliManifestId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("cliManifestId")
+		s.WriteString(x.CliManifestId)
+	}
+	if x.DisableCliUpdate || s.HasField("disableCliUpdate") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("disableCliUpdate")
+		s.WriteBool(x.DisableCliUpdate)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -424,6 +481,15 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "disable_endpoint_fetch", "disableEndpointFetch":
 			s.AddField("disable_endpoint_fetch")
 			x.DisableEndpointFetch = s.ReadBool()
+		case "entrypoint_manifest_id", "entrypointManifestId":
+			s.AddField("entrypoint_manifest_id")
+			x.EntrypointManifestId = s.ReadString()
+		case "cli_manifest_id", "cliManifestId":
+			s.AddField("cli_manifest_id")
+			x.CliManifestId = s.ReadString()
+		case "disable_cli_update", "disableCliUpdate":
+			s.AddField("disable_cli_update")
+			x.DisableCliUpdate = s.ReadBool()
 		}
 	})
 }
@@ -576,6 +642,21 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.DisableCliUpdate {
+		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DisableCliUpdate)
+		i--
+		dAtA[i] = 0x68
+	}
+	if len(m.CliManifestId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.CliManifestId)
+		i--
+		dAtA[i] = 0x62
+	}
+	if len(m.EntrypointManifestId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.EntrypointManifestId)
+		i--
+		dAtA[i] = 0x5a
+	}
 	if m.DisableEndpointFetch {
 		i = protobuf_go_lite.EncodeBool(dAtA, i, m.DisableEndpointFetch)
 		i--
@@ -717,6 +798,9 @@ func (m *Config) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.InitDistConfig)
 	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableEndpointFetch)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EntrypointManifestId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.CliManifestId)
+	n += protobuf_go_lite.SizeBoolNonZero(1, m.DisableCliUpdate)
 	n += len(m.unknownFields)
 	return n
 }
@@ -792,6 +876,18 @@ func (x *Config) MarshalProtoText() string {
 	if x.DisableEndpointFetch != false {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "disable_endpoint_fetch")
 		protobuf_go_lite.TextWriteBool(&sb, x.DisableEndpointFetch)
+	}
+	if x.EntrypointManifestId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "entrypoint_manifest_id")
+		protobuf_go_lite.TextWriteString(&sb, x.EntrypointManifestId)
+	}
+	if x.CliManifestId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "cli_manifest_id")
+		protobuf_go_lite.TextWriteString(&sb, x.CliManifestId)
+	}
+	if x.DisableCliUpdate != false {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "disable_cli_update")
+		protobuf_go_lite.TextWriteBool(&sb, x.DisableCliUpdate)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -971,6 +1067,36 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.DisableEndpointFetch = bool(v)
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntrypointManifestId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.EntrypointManifestId = v
+		case 12:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CliManifestId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.CliManifestId = v
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DisableCliUpdate", wireType)
+			}
+			var v bool
+			v, iNdEx, err = protobuf_go_lite.DecodeVarintBool(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DisableCliUpdate = bool(v)
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

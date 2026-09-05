@@ -120,6 +120,27 @@ export interface Config {
    * @generated from field: bool disable_endpoint_fetch = 10;
    */
   disableEndpointFetch?: boolean
+  /**
+   * EntrypointManifestId selects the desktop manifest to stage.
+   * Empty preserves the Spacewave default, "spacewave-dist".
+   *
+   * @generated from field: string entrypoint_manifest_id = 11;
+   */
+  entrypointManifestId?: string
+  /**
+   * CliManifestId selects the companion CLI manifest to stage.
+   * Empty preserves the Spacewave default, "spacewave-cli".
+   *
+   * @generated from field: string cli_manifest_id = 12;
+   */
+  cliManifestId?: string
+  /**
+   * DisableCliUpdate allows applications distributed without a companion CLI.
+   * When true, no CLI manifest, binary, or managed CLI sidecar is required.
+   *
+   * @generated from field: bool disable_cli_update = 13;
+   */
+  disableCliUpdate?: boolean
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -152,6 +173,14 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       kind: 'scalar',
       T: ScalarType.BOOL,
     },
+    {
+      no: 11,
+      name: 'entrypoint_manifest_id',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
+    { no: 12, name: 'cli_manifest_id', kind: 'scalar', T: ScalarType.STRING },
+    { no: 13, name: 'disable_cli_update', kind: 'scalar', T: ScalarType.BOOL },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

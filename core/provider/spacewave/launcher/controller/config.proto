@@ -33,6 +33,15 @@ message Config {
   // DisableEndpointFetch disables all endpoint DistConfig fetches.
   // Use this only for embedded/offline builds that must run from init_dist_config.
   bool disable_endpoint_fetch = 10;
+  // EntrypointManifestId selects the desktop manifest to stage.
+  // Empty preserves the Spacewave default, "spacewave-dist".
+  string entrypoint_manifest_id = 11;
+  // CliManifestId selects the companion CLI manifest to stage.
+  // Empty preserves the Spacewave default, "spacewave-cli".
+  string cli_manifest_id = 12;
+  // DisableCliUpdate allows applications distributed without a companion CLI.
+  // When true, no CLI manifest, binary, or managed CLI sidecar is required.
+  bool disable_cli_update = 13;
 }
 
 // HttpEndpoint is an http endpoint.

@@ -1159,7 +1159,7 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/launcher/controller": {
-      "hash": "85b826ae10ada3ba51882f5bf663fc745efacf7bcbdb82372a45a19d6d35ecc6",
+      "hash": "4316f1355d07d59eb2ff0f2fe6fae3595ad605951c394733e5252c1b4cad8368",
       "generatedFiles": [
         "core/provider/spacewave/launcher/controller/config.pb.go",
         "core/provider/spacewave/launcher/controller/config.pb.ts"
