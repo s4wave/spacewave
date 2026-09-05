@@ -22,27 +22,33 @@ func GetDistBucketID(projectID string) string {
 
 // NewDistBucketConfig returns the bucket config for a project id dist.
 func NewDistBucketConfig(projectID string) (*bucket.Config, error) {
+	// Embedded blocks come from the installed bundle and its local cache.
+	// Missing blocks from a replaced bundle cannot be recovered by waiting
+	// for a network provider; report absence so startup can select a new manifest.
 	cc, err := configset_proto.NewControllerConfig(configset.NewControllerConfig(
-		1, // rev
+		2, // rev
 		&lookup_concurrent.Config{
-			// Verbose:              true,
 			FallbackBlockStoreId: StaticBlockStoreID,
 			WritebackBehavior:    lookup_concurrent.WritebackBehavior_WritebackBehavior_NONE,
 			PutBlockBehavior:     lookup_concurrent.PutBlockBehavior_PutBlockBehavior_ALL,
-			NotFoundBehavior:     lookup_concurrent.NotFoundBehavior_NotFoundBehavior_LOOKUP_DIRECTIVE_WAIT,
+			NotFoundBehavior:     lookup_concurrent.NotFoundBehavior_NotFoundBehavior_NONE,
 		},
 	), false)
 	if err != nil {
 		return nil, err
 	}
+
+	// Supersede the persisted wait-for-network configuration on upgrade.
 	conf, err := bucket.NewConfig(
 		GetDistBucketID(projectID),
-		1, // rev
+		2, // rev
 		&bucket.LookupConfig{Controller: cc},
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	// Keep the embedded block hash format stable across bundle updates.
 	conf.PutOpts = &block.PutOpts{HashType: hash.HashType_HashType_SHA256}
 	return conf, nil
 }
