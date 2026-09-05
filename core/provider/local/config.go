@@ -24,8 +24,8 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// ParseSignalingURL parses the signaling_url field. Empty disables WebRTC
-// signaling for standalone local sessions.
+// ParseSignalingURL accepts an absolute HTTP(S) URL or an origin-relative path
+// for browser signaling. Empty disables signaling for standalone local sessions.
 func (c *Config) ParseSignalingURL() (*url.URL, error) {
 	raw := strings.TrimSpace(c.GetSignalingUrl())
 	if raw == "" {
@@ -35,13 +35,16 @@ func (c *Config) ParseSignalingURL() (*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
+	if u.Scheme == "" && u.Host == "" && strings.HasPrefix(raw, "/") && !strings.HasPrefix(raw, "//") {
+		return u, nil
+	}
 	switch u.Scheme {
 	case "http", "https":
 	default:
-		return nil, errors.Errorf("must be an absolute http or https URL, got %q", raw)
+		return nil, errors.Errorf("must be an absolute http or https URL or an origin-relative path, got %q", raw)
 	}
 	if u.Host == "" {
-		return nil, errors.Errorf("must be an absolute http or https URL, got %q", raw)
+		return nil, errors.Errorf("must be an absolute http or https URL or an origin-relative path, got %q", raw)
 	}
 	return u, nil
 }
@@ -62,5 +65,5 @@ func (c *Config) ParsePeerID() (peer.ID, error) {
 	return confparse.ParsePeerID(c.GetPeerId())
 }
 
-// _ is a type assertion
+// _ is a type assertion.
 var _ config.Config = (*Config)(nil)
