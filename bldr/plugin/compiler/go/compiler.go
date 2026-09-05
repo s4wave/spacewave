@@ -1844,7 +1844,8 @@ func buildViteGoVariableDefs(
 	return goVariableDefs, nil
 }
 
-// existingSourceFiles filters source-relative file paths to files that exist.
+// existingSourceFiles resolves existing source-relative inputs to full paths.
+// The Go input filter requires paths rooted in the builder's source directory.
 func existingSourceFiles(sourcePath string, relPaths ...string) []string {
 	var existing []string
 	for _, relPath := range relPaths {
@@ -1856,7 +1857,7 @@ func existingSourceFiles(sourcePath string, relPaths ...string) []string {
 		if err != nil || fileInfo.IsDir() {
 			continue
 		}
-		existing = append(existing, relPath)
+		existing = append(existing, absPath)
 	}
 	return existing
 }

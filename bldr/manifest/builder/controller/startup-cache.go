@@ -30,9 +30,9 @@ import (
 )
 
 // startupCacheFormatEnvKey is bumped when compiler-owned output policy changes
-// without changing a plugin source file. V9 requires persisted nested builder
-// provenance and valid asset-only Manifest entrypoints.
-const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V9"
+// without changing a plugin source file. V10 invalidates native plugin results
+// that omitted module files from their dependency identities.
+const startupCacheFormatEnvKey = "BLDR_STARTUP_CACHE_FORMAT_V10"
 
 // startupValidationResult contains the startup cache validation result.
 type startupValidationResult struct {

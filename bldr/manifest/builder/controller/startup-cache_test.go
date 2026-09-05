@@ -540,8 +540,8 @@ func TestEnrichBuilderResultForStartupReuse(t *testing.T) {
 	if !foundCacheFormat {
 		t.Fatal("expected startup cache format marker input")
 	}
-	if startupCacheFormatEnvKey != "BLDR_STARTUP_CACHE_FORMAT_V9" {
-		t.Fatalf("startup cache format marker = %s, want V9", startupCacheFormatEnvKey)
+	if startupCacheFormatEnvKey != "BLDR_STARTUP_CACHE_FORMAT_V10" {
+		t.Fatalf("startup cache format marker = %s, want V10", startupCacheFormatEnvKey)
 	}
 }
 
