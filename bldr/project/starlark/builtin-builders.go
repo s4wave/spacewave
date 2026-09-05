@@ -105,6 +105,8 @@ func cliCompilerConfigBuiltin(thread *starlark.Thread, fn *starlark.Builtin, arg
 var validDistCompilerFields = map[string]bool{
 	"embedManifests":               true,
 	"embed_manifests":              true,
+	"embedNativeVolume":            true,
+	"embed_native_volume":          true,
 	"cliPkgs":                      true,
 	"cli_pkgs":                     true,
 	"loadPlugins":                  true,
@@ -154,10 +156,12 @@ func webPluginCompilerConfigBuiltin(thread *starlark.Thread, fn *starlark.Builti
 
 // buildTypedConfig validates kwargs against allowed fields and returns a dict.
 func buildTypedConfig(fnName string, validFields map[string]bool, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	// Typed configuration constructors accept named fields only.
 	if len(args) > 0 {
 		return nil, errNoPositionalArgs(fnName)
 	}
 
+	// Reject unknown fields while retaining their original values for decoding.
 	dict := starlark.NewDict(len(kwargs))
 	for _, kv := range kwargs {
 		key := string(kv[0].(starlark.String))
