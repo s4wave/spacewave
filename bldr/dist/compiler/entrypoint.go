@@ -1,3 +1,5 @@
+//go:build !js
+
 package bldr_dist_compiler
 
 import (
@@ -6,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 )
 
@@ -41,7 +44,7 @@ func main() {
 func FormatDistEntrypoint(
 	meta *bldr_dist.DistMeta,
 	embedAssetsFS []string,
-	cliImports map[string]string,
+	cliImports map[string]bldr_cli_compiler.CliImport,
 	nativeBuild bool,
 ) string {
 	var goEmbedLine string
@@ -64,27 +67,34 @@ func FormatDistEntrypoint(
 		slices.Sort(importPkgs)
 		for _, pkg := range importPkgs {
 			importLines.WriteString("\t")
-			importLines.WriteString(cliImports[pkg])
+			importLines.WriteString(cliImports[pkg].Alias)
 			importLines.WriteString(" ")
 			importLines.WriteString(strconv.Quote(pkg))
 			importLines.WriteString("\n")
 		}
 
-		aliases := make([]string, 0, len(cliImports))
-		for _, alias := range cliImports {
-			aliases = append(aliases, alias)
+		imports := make([]bldr_cli_compiler.CliImport, 0, len(cliImports))
+		var needsBroker bool
+		for _, ci := range cliImports {
+			imports = append(imports, ci)
+			needsBroker = needsBroker || ci.TakesYieldBroker
 		}
-		slices.Sort(aliases)
-		builders := make([]string, 0, len(aliases))
-		for _, alias := range aliases {
-			builders = append(builders, alias+".NewCliCommands")
+		slices.SortFunc(imports, func(a, b bldr_cli_compiler.CliImport) int { return strings.Compare(a.Alias, b.Alias) })
+		builders := make([]string, 0, len(imports))
+		for _, ci := range imports {
+			builders = append(builders, ci.CommandBuilder(meta.GetProjectId(), "yieldBroker"))
 		}
-		cliCommandsDecl = "// cliCommands are the native CLI command builders.\n" +
+		if needsBroker {
+			importLines.WriteString("\taperture_cli \"github.com/aperturerobotics/cli\"\n")
+			importLines.WriteString("\tyield_policy \"github.com/s4wave/spacewave/core/resource/listener/yieldpolicy\"\n")
+			cliCommandsDecl = "var yieldBroker = yield_policy.NewBroker()\n\n"
+		}
+		cliCommandsDecl += "// cliCommands are the native CLI command builders.\n" +
 			"var cliCommands = []cli_entrypoint.BuildCommandsFunc{" +
 			strings.Join(builders, ", ") + "}\n"
 	}
 	if nativeBuild && len(cliImports) == 0 {
-		cliCommandsDecl = "// cliCommands are the native CLI command builders.\n" +
+		cliCommandsDecl += "// cliCommands are the native CLI command builders.\n" +
 			"var cliCommands []cli_entrypoint.BuildCommandsFunc\n"
 	}
 

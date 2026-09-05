@@ -111,7 +111,7 @@ func GetWasmExecPath(ctx context.Context, le *logrus.Entry, useTinygo bool) (str
 	if err := uexec.ExecCmd(le, goc); err != nil {
 		return "", errors.Wrap(err, "cannot determine GOROOT")
 	}
-	goRootDir := strings.SplitN(gocBuf.String(), "\n", 2)[0]
+	goRootDir, _, _ := strings.Cut(gocBuf.String(), "\n")
 
 	var wasmExecFile string
 	if useTinygo {

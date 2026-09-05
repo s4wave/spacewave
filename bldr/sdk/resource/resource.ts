@@ -1,3 +1,5 @@
+import '../dispose-symbol.js'
+
 import { ItState } from '@aptre/bldr'
 
 import type { ClientResourceRef } from './client.js'

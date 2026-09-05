@@ -246,7 +246,7 @@ replace example.com/without-pb => ./without-pb
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(goMod), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := GoScriptBindingRoots(context.Background(), dir)
+	got, err := GoScriptBindingRoots(context.Background(), dir, "GOFLAGS=-mod=vendor")
 	if err != nil {
 		t.Fatal(err)
 	}

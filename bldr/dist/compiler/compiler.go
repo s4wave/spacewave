@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"os"
-	"path"
 	"path/filepath"
 	"slices"
 	"sync"
@@ -18,6 +17,7 @@ import (
 	timestamp "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
 	"github.com/aperturerobotics/util/fsutil"
 	pkgerrors "github.com/pkg/errors"
+	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
@@ -394,17 +394,19 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
-	var cliImports map[string]string
+	var cliImports map[string]bldr_cli_compiler.CliImport
 	if !bldr_platform.IsWebPlatform(buildPlatform) {
 		cliPkgs, _ := plugin_compiler_go.UpdateRelativeGoPackagePaths(
 			conf.GetCliPkgs(),
 			rootModule,
 		)
-		if len(cliPkgs) != 0 {
-			cliImports = make(map[string]string, len(cliPkgs))
-			for _, pkg := range cliPkgs {
-				cliImports[pkg] = path.Base(pkg)
-			}
+		var goos, goarch string
+		if native, ok := buildPlatform.(*bldr_platform.NativePlatform); ok {
+			goos, goarch = native.GetGOOS(), native.GetGOARCH()
+		}
+		cliImports, err = bldr_cli_compiler.AnalyzeCliImports(ctx, le, sourcePath, cliPkgs, goos, goarch)
+		if err != nil {
+			return nil, err
 		}
 	}
 

@@ -1,3 +1,5 @@
+import '../dispose-symbol.js'
+
 import { createAbortController, retryWithAbort } from '@aptre/bldr'
 import type { ResourceService } from './resource_srpc.pb.js'
 import type {
@@ -909,7 +911,7 @@ export class Client {
         const session: ResourceClientSession = {
           controller: attemptController,
           outgoing,
-          generation: ++this._connectionGeneration,
+          generation: this._connectionGeneration,
           initialized: false,
           closed: false,
           nextControlId: 0,
@@ -1180,6 +1182,7 @@ export class Client {
    * Used when connection is lost and resources are no longer valid.
    */
   private releaseAllResources(reason: ResourceReleaseReason): void {
+    this._connectionGeneration++
     this.clearAttachSession()
     for (const [resourceId, refs] of this.resources.entries()) {
       refs.forEach((ref) => ref._markReleased())

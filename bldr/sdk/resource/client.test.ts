@@ -613,9 +613,12 @@ describe('ResourceClient', () => {
     })
 
     const client = new Client(service, new AbortController().signal)
+    const generations: number[] = []
+    client.onConnectionLost(() => generations.push(client.connectionGeneration))
     const first = await client.accessRootResource()
 
     expect(first.resourceId).toBe(1)
+    expect(client.connectionGeneration).toBe(0)
 
     if (!firstStream.close) {
       throw new Error('expected first ResourceClient stream close callback')
@@ -624,6 +627,7 @@ describe('ResourceClient', () => {
     await vi.advanceTimersByTimeAsync(0)
 
     expect(first.released).toBe(true)
+    expect(generations).toEqual([1])
     expect(Reflect.get(client, 'initState')).toBe(null)
     expect(Reflect.get(client, 'initPromise')).toBeInstanceOf(Promise)
 
@@ -632,6 +636,7 @@ describe('ResourceClient', () => {
     const second = await secondPromise
 
     expect(second.resourceId).toBe(2)
+    expect(client.connectionGeneration).toBe(1)
     expect(calls).toBe(2)
 
     client.dispose()
