@@ -36,6 +36,7 @@ func BuildDirectWebPkgs(
 	jsSourcemaps bool,
 	webPkgConfigs []*bldr_web_bundler.WebPkgRefConfig,
 ) (web_pkg.WebPkgRefSlice, []string, []web_pkg_vite.ImportMapEntry, error) {
+	// Resolve the working and output asset paths to absolute paths.
 	var err error
 	workingPath, err = filepath.Abs(workingPath)
 	if err != nil {
