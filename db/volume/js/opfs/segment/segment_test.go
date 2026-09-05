@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"io"
 	"strconv"
 	"testing"
@@ -188,11 +189,39 @@ func TestLookupMetaStatStreamsLargeValueWithoutReadingIt(t *testing.T) {
 	}
 }
 
-func TestBuildStreamsDataEntries(t *testing.T) {
+// boundedWriter accepts a limited number of successful writes, then fails
+// each further write either with a short accepted prefix or with err.
+type boundedWriter struct {
+	bytes.Buffer
+
+	// successfulWrites is the number of leading Write calls that succeed
+	// before the destination begins failing.
+	successfulWrites int
+	// err, when set, is returned by every failing Write call.
+	err error
+
+	// calls counts the Write calls the destination received.
+	calls int
+}
+
+func (w *boundedWriter) Write(p []byte) (int, error) {
+	w.calls++
+	if w.calls <= w.successfulWrites {
+		return w.Buffer.Write(p)
+	}
+	if w.err != nil {
+		return 0, w.err
+	}
+	n := len(p) / 2
+	w.Buffer.Write(p[:n])
+	return n, nil
+}
+
+func TestBuildBoundedBuffering(t *testing.T) {
 	w := NewWriter()
 	w.SetIndexInterval(8)
-	for i := range 4 {
-		w.Add([]byte("key-"+strconv.Itoa(i)), bytes.Repeat([]byte{byte('a' + i)}, 128))
+	for i := range 400 {
+		w.Add([]byte("key-"+zeroPad(i, 4)), bytes.Repeat([]byte{byte('a' + i%26)}, 256))
 	}
 
 	var dst maxWriteRecorder
@@ -203,12 +232,67 @@ func TestBuildStreamsDataEntries(t *testing.T) {
 	if result.Written != int64(dst.Len()) {
 		t.Fatalf("written=%d but dst.Len()=%d", result.Written, dst.Len())
 	}
-	if dst.maxWrite > 128 {
-		t.Fatalf("max write size=%d, want <= 128", dst.maxWrite)
+	if dst.maxWrite != 32*1024 {
+		t.Fatalf("max write size=%d, want full 32KiB buffer flushes", dst.maxWrite)
 	}
 
-	if _, err := NewReader(bytes.NewReader(dst.Bytes()), int64(dst.Len())); err != nil {
+	rd, err := NewReader(bytes.NewReader(dst.Bytes()), int64(dst.Len()))
+	if err != nil {
 		t.Fatalf("NewReader: %v", err)
+	}
+	if rd.EntryCount() != 400 {
+		t.Fatalf("entry count: got %d, want 400", rd.EntryCount())
+	}
+}
+
+func TestBuildWithMetaShortWrite(t *testing.T) {
+	errTestDest := errors.New("test destination failure")
+
+	cases := []struct {
+		name             string
+		entryCount       int
+		valueSize        int
+		successfulWrites int
+		want             error
+	}{
+		// successfulWrites 0 fails the first destination write: the small
+		// cases at the final flush, the many-entry case at the first
+		// buffer-fill flush. successfulWrites 1 lets the buffer-fill flush
+		// succeed so the large-value cases fail on the bufio direct write.
+		{"small final flush short write", 4, 128, 0, io.ErrShortWrite},
+		{"small final flush destination error", 4, 128, 0, errTestDest},
+		{"buffer-fill flush short write", 400, 256, 0, io.ErrShortWrite},
+		{"direct large write short write", 4, 64 * 1024, 1, io.ErrShortWrite},
+		{"direct large write destination error", 4, 64 * 1024, 1, errTestDest},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := NewWriter()
+			for i := range tc.entryCount {
+				w.Add([]byte("key-"+zeroPad(i, 4)), bytes.Repeat([]byte{byte('a' + i%26)}, tc.valueSize))
+			}
+
+			dst := &boundedWriter{successfulWrites: tc.successfulWrites}
+			if tc.want != io.ErrShortWrite {
+				dst.err = tc.want
+			}
+			result, err := w.BuildWithMeta(dst)
+			if err == nil {
+				t.Fatal("BuildWithMeta: expected error")
+			}
+			if !errors.Is(err, tc.want) {
+				t.Fatalf("error = %v, want errors.Is %v", err, tc.want)
+			}
+			if result.Lookup != nil {
+				t.Fatal("Lookup set on error, want nil")
+			}
+			if result.Written != int64(dst.Len()) {
+				t.Fatalf("written=%d but dst accepted %d bytes", result.Written, dst.Len())
+			}
+			if dst.calls != tc.successfulWrites+1 {
+				t.Fatalf("destination Write calls=%d, want %d", dst.calls, tc.successfulWrites+1)
+			}
+		})
 	}
 }
 
