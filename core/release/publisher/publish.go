@@ -139,21 +139,36 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 	if err := objects.Err(); err != nil {
 		return nil, nil, err
 	}
+
+	// Selected manifests precede historical objects so their file closures stay
+	// together in the emitted packs. Metadata order is stable across retries.
+	var rootKeys []string
 	for _, manifest := range metadata.GetManifestRefs() {
 		ref := manifest.GetManifestRef()
 		key := ref.MarshalString()
 		roots[key], ctors[key] = ref, bldr_manifest.NewManifestBlock
+		if !slices.Contains(rootKeys, key) {
+			rootKeys = append(rootKeys, key)
+		}
 	}
 
 	// Walk through the owning cursor so bucket and transform references retain
 	// their original meaning. Single-worker traversal owns the collected map.
 	var head *bucket.ObjectRef
-	blocks := map[string]packedBlock{}
+	blocks := map[string]struct{}{}
+	var result []packedBlock
 	err = eng.AccessWorldState(ctx, nil, func(cursor *bucket_lookup.Cursor) error {
 		head = cursor.GetRefWithOpArgs()
 		roots[head.MarshalString()] = head
 		ctors[head.MarshalString()] = func() block.Block { return &world_block.World{} }
 		for _, key := range slices.Sorted(maps.Keys(roots)) {
+			if !slices.Contains(rootKeys, key) {
+				rootKeys = append(rootKeys, key)
+			}
+		}
+
+		// Each object retains the owning bucket and transform during traversal.
+		for _, key := range rootKeys {
 			ref := roots[key]
 			walk, err := cursor.FollowRef(ctx, ref)
 			if err != nil {
@@ -183,7 +198,9 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 					}
 					key := entry.Ref.MarshalString()
 					if _, exists := blocks[key]; !exists {
-						blocks[key] = packedBlock{ref: entry.Ref.CloneVT(), data: bytes.Clone(entry.Data)}
+						content := packedBlock{ref: entry.Ref.CloneVT(), data: bytes.Clone(entry.Data)}
+						blocks[key] = struct{}{}
+						result = append(result, content)
 					}
 					return true, nil
 				}, walk.GetBucket(), transformer, 1, true)
@@ -201,10 +218,7 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 		return nil, nil, errors.New("release World has no content")
 	}
 
-	// Stable ordering gives retries the same content-addressed pack identities.
-	result := make([]packedBlock, 0, len(blocks))
-	for _, key := range slices.Sorted(maps.Keys(blocks)) {
-		result = append(result, blocks[key])
-	}
+	// The single-worker walk orders children by reference ID. Preserve that
+	// locality rather than scattering adjacent file blocks by content hash.
 	return head, result, nil
 }

@@ -103,6 +103,28 @@ func TestPublishPreservesRootAfterUploadFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The selected manifest starts its pack closure, and a retry preserves
+	// byte ordering so unchanged content retains its pack identities.
+	_, first, err := collectBlocks(ctx, w.Engine, metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first) == 0 || !first[0].ref.EqualVT(metadata.ManifestRefs[0].ManifestRef.RootRef) {
+		t.Fatal("release content does not begin with the selected manifest")
+	}
+	_, repeated, err := collectBlocks(ctx, w.Engine, metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first) != len(repeated) {
+		t.Fatal("repeated export changed the block closure")
+	}
+	for index, entry := range first {
+		if !entry.ref.EqualVT(repeated[index].ref) {
+			t.Fatalf("repeated export reordered block %d", index)
+		}
+	}
+
 	// A failed pack write must leave the previously advertised root untouched.
 	client := &failingUpload{}
 	_, err = Publish(ctx, w.Engine, metadata, cdn_publish.Options{Client: client, DstSpaceID: "test-space", ValidatorKeyPem: "must-not-read.pem", CdnBaseURL: "https://unused.example"})
