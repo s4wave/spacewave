@@ -26,6 +26,7 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 	manifest := writeReleaseManifestTestBlockWithBinary(t, ctx, ws, "release/manifests/orbit", "orbit-desktop", platform, 2, "desktop payload")
 	metadata := testReleaseMetadata("alpha", platform, manifest.GetManifestRef().GetRootRef())
 	metadata.ProjectId = "orbit"
+	metadata.BrowserShell = nil
 	metadata.ManifestRefs = []*bldr_manifest.ManifestRef{manifest}
 	metadataRef := writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataObjectKey("alpha"), metadata)
 	writeReleaseMetadataTestBlock(t, ctx, ws, releaseMetadataDirectoryObjectKey, &spacewave_release.ChannelDirectory{
@@ -73,6 +74,32 @@ func TestApplicationReleaseWithoutCLI(t *testing.T) {
 	}
 	if got := ctrl.fetchStatusCtr.GetValue().SelectedCLIManifestID; got != "" {
 		t.Fatalf("desktop-only release selected CLI %q", got)
+	}
+
+	// Rechecking after replacement must not offer the same executable again.
+	installed := filepath.Join(t.TempDir(), "installed.exe")
+	if err := os.WriteFile(installed, dat, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	ctrl.currentExecutableBundleFunc = func() (string, bool, string, error) {
+		return installed, false, "", nil
+	}
+	if err := ctrl.refreshReleaseMetadataStatus(ctx, &spacewave_launcher.DistConfig{ProjectId: "orbit", Rev: 1, ChannelKey: "alpha"}); err != nil {
+		t.Fatal(err)
+	}
+	if ctrl.launcherInfoCtr.GetValue().GetUpdateState().GetPhase() == spacewave_launcher.UpdatePhase_UpdatePhase_STAGED {
+		t.Fatal("offered the installed executable as an update")
+	}
+	if ctrl.fetchStatusCtr.GetValue().ReleaseMetadataOutcome != "current" {
+		t.Fatal("installed release was not recognized")
+	}
+
+	// Application releases must not share Spacewave's version staging directory.
+	dataRoot := t.TempDir()
+	t.Setenv("ORBIT_DATA_DIR", dataRoot)
+	ctrl.stagingDirFunc = nil
+	if staging, err := ctrl.resolveStagingDir(); err != nil || staging != filepath.Join(dataRoot, "updates") {
+		t.Fatalf("application staging directory = %q: %v", staging, err)
 	}
 
 	// Enabling the companion again must reject a release that does not include it.

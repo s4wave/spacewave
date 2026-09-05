@@ -12,6 +12,7 @@ import (
 
 	"github.com/aperturerobotics/fastjson"
 	"github.com/pkg/errors"
+	"github.com/s4wave/spacewave/bldr/entrypoint/storagepath"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
@@ -204,6 +205,15 @@ func (c *Controller) stageReleaseManifestUpdate(
 
 	// Publish readiness only after artifact verification and CLI discovery.
 	c.setSelectedCLIManifestRef(cliManifestRef, cliStagedPath)
+	current, err := c.stagedReleaseIsCurrent(stagedPath)
+	if err != nil {
+		return err
+	}
+	if current {
+		c.clearUpdateState()
+		c.setReleaseMetadataOutcome("current")
+		return nil
+	}
 	c.setUpdateStaged(metadata.GetVersion(), stagedPath)
 	return nil
 }
@@ -212,6 +222,13 @@ func (c *Controller) stageReleaseManifestUpdate(
 func (c *Controller) resolveStagingDir() (string, error) {
 	if c.stagingDirFunc != nil {
 		return c.stagingDirFunc()
+	}
+	if projectID := c.conf.GetProjectId(); projectID != "" && projectID != "spacewave" {
+		root, err := storagepath.DetermineStorageRoot(projectID)
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(root, "updates"), nil
 	}
 	return getStagingDir()
 }
