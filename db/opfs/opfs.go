@@ -830,9 +830,9 @@ func ReadFile(dir js.Value, name string) ([]byte, error) {
 	return DefaultDriver.ReadFile(dir, name)
 }
 
-// ReadFile reads the contents of a file in the given directory.
+// ReadFile reads one immutable snapshot of a file in the given directory.
 func (d BrowserDriver) ReadFile(dir js.Value, name string) ([]byte, error) {
-	f, err := d.OpenAsyncFile(dir, name)
+	f, err := d.OpenReadSnapshot(dir, name)
 	if err != nil {
 		return nil, err
 	}
