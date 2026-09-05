@@ -28,6 +28,7 @@ func FetchSourcePackToTempFile(
 	opts Options,
 	entry *packfile.PackfileEntry,
 ) (string, error) {
+	// Fetch through the authenticated source rather than a public cache.
 	reqURL, err := url.JoinPath(opts.Endpoint, "/api/bstore", opts.SrcSpaceID, "pack", entry.GetId())
 	if err != nil {
 		return "", errors.Wrap(err, "build source pack url")
@@ -49,6 +50,8 @@ func FetchSourcePackToTempFile(
 		}
 		return "", errors.Errorf("source pack status %d: %s", resp.StatusCode, string(body))
 	}
+
+	// Bound downloads by the advertised pack size before creating a local file.
 	maxBytes := int64(entry.GetSizeBytes()) + 4096
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
 	if err != nil {
@@ -57,6 +60,8 @@ func FetchSourcePackToTempFile(
 	if int64(len(body)) > maxBytes {
 		return "", errors.New("source pack exceeds declared size budget")
 	}
+
+	// The caller owns the completed file; partial files are removed here.
 	tmp, err := opts.tempFileFactory()("spacewave-cdn-pack-*.kvf")
 	if err != nil {
 		return "", errors.Wrap(err, "create temp pack file")
@@ -84,6 +89,13 @@ func PushSinglePack(
 	if err != nil {
 		return errors.Wrap(err, "read pack file")
 	}
+	return PushPackData(ctx, opts, packBytes, bloomFilter)
+}
+
+// PushPackData verifies and uploads a kvfile with the shared publication retry
+// policy. Callers retain ownership of the bytes until the operation returns.
+func PushPackData(ctx context.Context, opts Options, packBytes, bloomFilter []byte) error {
+	// Derive resource-scoped identity from verified content and pack policy.
 	metadata, err := BuildKVFilePushMetadata(ctx, packBytes)
 	if err != nil {
 		return errors.Wrap(err, "build kvfile metadata")
@@ -95,6 +107,8 @@ func PushSinglePack(
 	if err != nil {
 		return errors.Wrap(err, "build pack id")
 	}
+
+	// Transient service failures retry the same immutable content identity.
 	packHash := sha256.Sum256(packBytes)
 	if err := syncPushDataWithRetry(ctx, opts, packID, metadata, packBytes, packHash[:], bloomFilter); err != nil {
 		return errors.Wrap(err, "sync push")
@@ -108,6 +122,7 @@ func PushSinglePack(
 	return err
 }
 
+// syncPushDataWithRetry bounds transient retries and honors cancellation.
 func syncPushDataWithRetry(
 	ctx context.Context,
 	opts Options,
@@ -145,6 +160,8 @@ func syncPushDataWithRetry(
 	return lastErr
 }
 
+// isRetryableSyncPushError classifies service and transport failures eligible
+// for the bounded publication retry policy.
 func isRetryableSyncPushError(err error) bool {
 	msg := err.Error()
 	if strings.Contains(msg, "429") {
@@ -158,11 +175,17 @@ func isRetryableSyncPushError(err error) bool {
 
 // KVFilePushMetadata is verified metadata for one kvfile pack.
 type KVFilePushMetadata struct {
-	BlockCount       int
-	BloomFilter      []byte
-	SortedKeyDigest  []byte
-	PackBytesDigest  []byte
-	PolicyTag        string
+	// BlockCount is the number of verified content entries.
+	BlockCount int
+	// BloomFilter describes the pack's content keys.
+	BloomFilter []byte
+	// SortedKeyDigest binds the ordered content-key set.
+	SortedKeyDigest []byte
+	// PackBytesDigest binds the exact uploaded bytes.
+	PackBytesDigest []byte
+	// PolicyTag identifies the writer policy included in pack identity.
+	PolicyTag string
+	// ValueOrderPolicy identifies the ordering used by the pack writer.
 	ValueOrderPolicy string
 }
 
@@ -180,6 +203,7 @@ func (m KVFilePushMetadata) PackResult() *writer.PackResult {
 
 // BuildKVFilePushMetadata verifies a kvfile and builds sync/push metadata.
 func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetadata, error) {
+	// Size the membership filter for the complete indexed block set.
 	rdr, err := kvfile.BuildReader(bytesReaderAt(data), uint64(len(data)))
 	if err != nil {
 		return nil, err
@@ -191,6 +215,8 @@ func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetad
 	}
 	bf := policy.NewBloomFilter()
 	keys := make([][]byte, 0, blockCount)
+
+	// Reject corrupt content before publication can make the pack reachable.
 	err = rdr.ScanPrefixEntries(nil, func(ie *kvfile.IndexEntry, _ int) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -217,6 +243,8 @@ func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetad
 	if err != nil {
 		return nil, errors.Wrap(err, "scan kvfile index")
 	}
+
+	// Pack identity covers the bytes, key set, and storage policy together.
 	bloomBytes, err := bloom.NewBloom(bf).MarshalBlock()
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal bloom filter")
