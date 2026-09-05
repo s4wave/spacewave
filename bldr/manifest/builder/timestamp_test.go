@@ -14,7 +14,7 @@ func TestManifestCommitTimestampFromSourceDateEpoch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ts := manifestCommitTimestamp(ctx)
+	ts := ManifestCommitTimestamp(ctx)
 	if ts.GetSeconds() != 1700000000 || ts.GetNanos() != 0 {
 		t.Fatalf("manifest timestamp = %d.%09d, want 1700000000.000000000", ts.GetSeconds(), ts.GetNanos())
 	}

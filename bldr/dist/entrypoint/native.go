@@ -30,6 +30,8 @@ func Main(
 	assetsFS fs.FS,
 	commandBuilders []cli_entrypoint.BuildCommandsFunc,
 ) {
+	assetsFS = nativeAssetsFS{FS: assetsFS, executable: os.Executable}
+
 	if len(commandBuilders) != 0 && len(os.Args) > 1 {
 		if err := func() error {
 			distMeta, err := bldr_dist.UnmarshalDistMetaB58(distMetaB58)
