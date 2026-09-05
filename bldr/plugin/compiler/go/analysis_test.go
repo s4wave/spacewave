@@ -391,7 +391,7 @@ var Value = missing.Value
 }
 
 func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
-	tags := newBuildTagsForAnalyze(bldr_manifest.BuildType_RELEASE, false, gocompiler.GoCompilerTinyGo)
+	tags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, false, gocompiler.GoCompilerTinyGo)
 	for _, want := range []string{
 		"build_type_release",
 		"purego",
@@ -404,7 +404,7 @@ func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 		}
 	}
 
-	standardTags := newBuildTagsForAnalyze(bldr_manifest.BuildType_RELEASE, false, gocompiler.GoCompilerGo)
+	standardTags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, false, gocompiler.GoCompilerGo)
 	if slices.Contains(standardTags, "tinygo") {
 		t.Fatalf("standard Go analysis tags unexpectedly include tinygo: %v", standardTags)
 	}
@@ -414,7 +414,7 @@ func TestNewBuildTagsForAnalyzeIncludesTinyGoTag(t *testing.T) {
 }
 
 func TestNewBuildTagsForAnalyzeIncludesGoScriptTag(t *testing.T) {
-	tags := newBuildTagsForAnalyze(bldr_manifest.BuildType_RELEASE, false, gocompiler.GoCompilerGoScript)
+	tags := newBuildTagsForAnalyze(nil, bldr_manifest.BuildType_RELEASE, false, gocompiler.GoCompilerGoScript)
 	for _, want := range []string{
 		"build_type_release",
 		"purego",

@@ -74,10 +74,31 @@ func (p *CloudflarePluginIo) OpenStream(
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 ) (srpc.PacketWriter, error) {
-	return web_runtime_wasm.NewPushableOpenStream(p.openStreamFunc)(ctx, msgHandler, closeHandler)
+	streamCtx, cancel := context.WithCancel(ctx)
+	writer, err := web_runtime_wasm.NewPushableOpenStream(p.openStreamFunc)(streamCtx, msgHandler, func(err error) {
+		cancel()
+		closeHandler(err)
+	})
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	return &cloudflarePacketWriter{PacketWriter: writer, cancel: cancel}, nil
 }
 
-var _ pluginTransport = ((*CloudflarePluginIo)(nil))
+// cloudflarePacketWriter ends the bridge goroutines when an outgoing RPC closes.
+type cloudflarePacketWriter struct {
+	srpc.PacketWriter
+	cancel context.CancelFunc
+}
+
+// Close closes the stream and cancels its callback lifetime.
+func (w *cloudflarePacketWriter) Close() error {
+	defer w.cancel()
+	return w.PacketWriter.Close()
+}
+
+var _ pluginTransport = (*CloudflarePluginIo)(nil)
 
 // SetAcceptStreams registers incoming streams until ctx is canceled.
 func (p *CloudflarePluginIo) SetAcceptStreams(ctx context.Context, invoker srpc.Invoker) {
@@ -95,11 +116,11 @@ func (p *CloudflarePluginIo) SetAcceptStreams(ctx context.Context, invoker srpc.
 
 	// Register one callback that gives each accepted stream its own lifetime.
 	acceptStreamFn := js.FuncOf(func(this js.Value, args []js.Value) any {
-		defer recoverCloudflareJSCallback("accept stream", func(err error) {})
 		if ctx.Err() != nil || len(args) == 0 || args[0].IsUndefined() || args[0].IsNull() || args[0].Type() != js.TypeFunction {
 			return nil
 		}
 
+		streamCtx, cancel := context.WithCancel(ctx)
 		writer := newDeferredPacketWriter()
 		activeMtx.Lock()
 		activeWriters[writer] = struct{}{}
@@ -109,10 +130,11 @@ func (p *CloudflarePluginIo) SetAcceptStreams(ctx context.Context, invoker srpc.
 			delete(activeWriters, writer)
 			activeMtx.Unlock()
 		}
-		serverRPC := srpc.NewServerRPC(ctx, invoker, writer)
+		serverRPC := srpc.NewServerRPC(streamCtx, invoker, writer)
 		done := make(chan struct{})
 		var doneMtx sync.Mutex
 		finish := func() {
+			cancel()
 			doneMtx.Lock()
 			select {
 			case <-done:
@@ -123,8 +145,12 @@ func (p *CloudflarePluginIo) SetAcceptStreams(ctx context.Context, invoker srpc.
 			remove()
 			_ = writer.Close()
 		}
+		defer recoverCloudflareJSCallback("accept stream", func(err error) {
+			serverRPC.HandleStreamClose(err)
+			finish()
+		})
 		packetWriter, err := web_runtime_wasm.NewPushableOpenStream(args[0])(
-			ctx,
+			streamCtx,
 			serverRPC.HandlePacketData,
 			func(err error) {
 				serverRPC.HandleStreamClose(err)
@@ -197,15 +223,29 @@ func (w *deferredPacketWriter) setWriter(writer srpc.PacketWriter) {
 		_ = writer.Close()
 		return
 	}
-	w.writer = writer
-	queue := w.queue
-	w.queue = nil
-	w.mtx.Unlock()
-
-	for _, pkt := range queue {
-		if err := writer.WritePacket(pkt); err != nil {
-			w.mtx.Lock()
-			w.err = err
+	// Keep the writer unpublished while flushing so a concurrent WritePacket
+	// cannot overtake packets queued before the bridge resolved.
+	for {
+		queue := w.queue
+		w.queue = nil
+		if len(queue) == 0 {
+			w.writer = writer
+			w.mtx.Unlock()
+			return
+		}
+		w.mtx.Unlock()
+		for _, pkt := range queue {
+			if err := writer.WritePacket(pkt); err != nil {
+				w.mtx.Lock()
+				w.err = err
+				w.queue = nil
+				w.mtx.Unlock()
+				_ = writer.Close()
+				return
+			}
+		}
+		w.mtx.Lock()
+		if w.closed {
 			w.mtx.Unlock()
 			_ = writer.Close()
 			return

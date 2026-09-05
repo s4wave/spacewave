@@ -306,3 +306,19 @@ func TestAppendInputManifestFilesRejectsExternalAssetInputs(t *testing.T) {
 		t.Fatalf("external asset appended files: %v", inputManifest.GetFiles())
 	}
 }
+
+func TestCloudflareAnalysisMatchesCompiledTarget(t *testing.T) {
+	t.Setenv(gocompiler.GoCompilerEnv, "")
+	platform := bldr_platform.NewCloudflarePlatform()
+	compiler, err := resolveBuildGoCompiler(platform, bldr_manifest.BuildType_RELEASE, GoCompiler_GO_COMPILER_DEFAULT)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !compiler.IsGoScript() {
+		t.Fatalf("Workers default compiler = %q", compiler)
+	}
+	tags := newBuildTagsForAnalyze(platform, bldr_manifest.BuildType_RELEASE, false, compiler)
+	if !slices.Contains(tags, gocompiler.CloudflareBuildTag) {
+		t.Fatalf("analysis omitted Workers transport: %v", tags)
+	}
+}

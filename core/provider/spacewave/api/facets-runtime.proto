@@ -1,0 +1,42 @@
+syntax = "proto3";
+package provider.spacewave.api;
+
+// FacetsRuntimeRequest operates a trusted plugin in the caller's cloud runtime.
+// Admission requires the runtime.worker-facet flag and a live developer role.
+message FacetsRuntimeRequest {
+  enum Action {
+    // EXECUTE starts or reuses the plugin and performs its diagnostic call.
+    EXECUTE = 0;
+    // RESTART aborts the plugin process, preserving facet scratch storage.
+    RESTART = 1;
+    // DELETE removes the plugin process and its scratch storage.
+    DELETE = 2;
+  }
+  Action action = 1;
+  // PluginId selects a server-approved compiled plugin. No uploaded code is accepted.
+  string plugin_id = 2;
+  // InstanceKey selects default or secondary, independently isolated plugin instances.
+  string instance_key = 3;
+  // Input is the diagnostic Echo request, limited to 4096 UTF-8 bytes.
+  string input = 4;
+}
+
+// FacetsRuntimeResponse reports a completed plugin operation.
+message FacetsRuntimeResponse {
+  string output = 1;
+  // ModuleDigest identifies the complete deployed facet code.
+  string module_digest = 2;
+  // Generation identifies the current plugin process, empty after teardown.
+  string generation = 3;
+}
+
+// FacetsRuntimeFlagRequest changes the current environment's developer runtime flag.
+// Only platform administrators may call POST /api/admin/facets/runtime-flag.
+message FacetsRuntimeFlagRequest {
+  bool enabled = 1;
+}
+
+// FacetsRuntimeFlagResponse reports the persisted admission setting.
+message FacetsRuntimeFlagResponse {
+  bool enabled = 1;
+}

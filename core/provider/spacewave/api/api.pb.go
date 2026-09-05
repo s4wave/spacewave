@@ -681,7 +681,6 @@ type SOStateMessage struct {
 	// Content is the message payload.
 	//
 	// Types that are assignable to Content:
-	//
 	//	*SOStateMessage_Snapshot
 	//	*SOStateMessage_Delta
 	//	*SOStateMessage_Error
@@ -1176,7 +1175,6 @@ type SessionMessage struct {
 	// Body is the session message payload.
 	//
 	// Types that are assignable to Body:
-	//
 	//	*SessionMessage_SoUpdate
 	//	*SessionMessage_SoListUpdate
 	//	*SessionMessage_SessionEvent
@@ -1458,7 +1456,6 @@ type NotifySessionRequest struct {
 	// Body is the typed notify payload.
 	//
 	// Types that are assignable to Body:
-	//
 	//	*NotifySessionRequest_SharedObjectChange
 	//	*NotifySessionRequest_AccountChanged
 	//	*NotifySessionRequest_OrganizationChanged
@@ -8003,7 +8000,6 @@ type DesktopPasskeyRelayResult struct {
 	// Result is the linked or new-account desktop passkey payload.
 	//
 	// Types that are assignable to Result:
-	//
 	//	*DesktopPasskeyRelayResult_Linked
 	//	*DesktopPasskeyRelayResult_NewAccount
 	Result isDesktopPasskeyRelayResult_Result `protobuf_oneof:"result"`
@@ -9109,7 +9105,6 @@ func (x *SsoLinkResult) GetProvider() string {
 type MultiSigActionResponse struct {
 	unknownFields []byte
 	// Types that are assignable to Result:
-	//
 	//	*MultiSigActionResponse_KeypairAdd
 	//	*MultiSigActionResponse_KeypairRemove
 	//	*MultiSigActionResponse_ThresholdChange
@@ -9806,7 +9801,6 @@ func (x *SsoCallbackResult) GetDeviceEncrypted() bool {
 type PasskeyRelay struct {
 	unknownFields []byte
 	// Types that are assignable to Relay:
-	//
 	//	*PasskeyRelay_Linked
 	//	*PasskeyRelay_NewAccount
 	//	*PasskeyRelay_RelayResult
@@ -9930,7 +9924,6 @@ func (*PasskeyRelay_ReauthRelay) isPasskeyRelay_Relay() {}
 type WsAuthSessionServerFrame struct {
 	unknownFields []byte
 	// Types that are assignable to Body:
-	//
 	//	*WsAuthSessionServerFrame_Completion
 	//	*WsAuthSessionServerFrame_SsoCallback
 	//	*WsAuthSessionServerFrame_PasskeyRelay
@@ -10012,7 +10005,6 @@ func (*WsAuthSessionServerFrame_SsoLink) isWsAuthSessionServerFrame_Body() {}
 type WsBillingCheckoutServerFrame struct {
 	unknownFields []byte
 	// Types that are assignable to Body:
-	//
 	//	*WsBillingCheckoutServerFrame_Status
 	Body isWsBillingCheckoutServerFrame_Body `protobuf_oneof:"body"`
 }

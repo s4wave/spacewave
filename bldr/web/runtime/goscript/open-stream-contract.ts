@@ -34,11 +34,14 @@ export function packetStreamToOpenStreamCallbacks(
 ): OpenStreamBridge {
   const out = pushable<Uint8Array>({ objectMode: true })
   let closed = false
+  let opened = false
+  let closeError: Error | undefined
   let onClose: ((errMsg?: string) => void) | undefined
 
   const close = (err?: Error) => {
     if (closed) return
     closed = true
+    closeError = err
     out.end(err)
     if (err) {
       channel.abort(err)
@@ -50,7 +53,14 @@ export function packetStreamToOpenStreamCallbacks(
     onClose?.(err?.toString())
   }
 
-  const open: OpenStreamFunc = (message, closedByPeer, resolve) => {
+  const open: OpenStreamFunc = (message, closedByPeer, resolve, reject) => {
+    if (closed || opened) {
+      reject(
+        (closeError ?? new Error('stream already closed or opened')).toString(),
+      )
+      return
+    }
+    opened = true
     onClose = closedByPeer
     resolve({
       push: (packet) => {

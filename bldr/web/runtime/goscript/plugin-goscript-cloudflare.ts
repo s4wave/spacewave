@@ -28,7 +28,7 @@ const baseURL = import.meta?.url
 globalScope.BLDR_BASE_URL = baseURL
 
 class GoScriptCloudflarePluginGeneration {
-  private readonly activeAcceptedStreams = new Set<(err?: Error) => void>()
+  private readonly activeStreams = new Set<(err?: Error) => void>()
   private readonly startup = Promise.withResolvers<void>()
   private readonly done = Promise.withResolvers<void>()
   private terminalError?: Error
@@ -42,7 +42,11 @@ class GoScriptCloudflarePluginGeneration {
     startInfo: PluginStartInfo,
     loadPluginMain: GoScriptPluginMainLoader,
   ): BackendEntrypointLifecycle {
-    const pluginStartInfoJsonB64 = btoa(PluginStartInfo.toJsonString(startInfo))
+    const pluginStartInfoJsonB64 = btoa(
+      String.fromCharCode(
+        ...new TextEncoder().encode(PluginStartInfo.toJsonString(startInfo)),
+      ),
+    )
     globalScope.BLDR_PLUGIN_START_INFO = pluginStartInfoJsonB64
 
     void Promise.resolve()
@@ -95,28 +99,66 @@ class GoScriptCloudflarePluginGeneration {
     acceptStreamFn: (openStreamFunc: OpenStreamFunc) => void,
   ): Promise<void> {
     const bridge = packetStreamToOpenStreamCallbacks(channel)
-    this.activeAcceptedStreams.add(bridge.close)
-    try {
-      await new Promise<void>((resolve) => {
-        acceptStreamFn((onMessage, onClose, onResolve, onReject) => {
-          bridge.open(
-            onMessage,
-            (errMsg) => {
-              resolve()
-              onClose(errMsg)
-            },
-            onResolve,
-            (errMsg) => {
-              resolve()
-              onReject(errMsg)
-            },
-          )
-        })
-      })
-    } finally {
-      this.activeAcceptedStreams.delete(bridge.close)
-      bridge.close()
+    const completed = Promise.withResolvers<void>()
+    const close = (err?: Error) => {
+      bridge.close(err)
+      completed.resolve()
     }
+    this.activeStreams.add(close)
+    try {
+      acceptStreamFn((onMessage, onClose, onResolve, onReject) => {
+        bridge.open(
+          onMessage,
+          (errMsg) => {
+            completed.resolve()
+            onClose(errMsg)
+          },
+          onResolve,
+          (errMsg) => {
+            completed.resolve()
+            onReject(errMsg)
+          },
+        )
+      })
+      await completed.promise
+    } finally {
+      this.activeStreams.delete(close)
+      close()
+    }
+  }
+
+  // openStream keeps outgoing channels within this generation's lifetime.
+  public openStream: OpenStreamFunc = (
+    onMessage,
+    onClose,
+    onResolve,
+    onReject,
+  ) => {
+    if (this.terminalError) {
+      onReject(this.terminalError.toString())
+      return
+    }
+    void this.api.openStream().then(
+      (channel) => {
+        if (this.terminalError) {
+          channel.abort(this.terminalError)
+          onReject(this.terminalError.toString())
+          return
+        }
+        const bridge = packetStreamToOpenStreamCallbacks(channel)
+        this.activeStreams.add(bridge.close)
+        bridge.open(
+          onMessage,
+          (err) => {
+            this.activeStreams.delete(bridge.close)
+            onClose(err)
+          },
+          onResolve,
+          onReject,
+        )
+      },
+      (err) => onReject(castToError(err).toString()),
+    )
   }
 
   private fail(err: unknown) {
@@ -132,15 +174,15 @@ class GoScriptCloudflarePluginGeneration {
       'plugin-goscript-cloudflare: GoScript plugin process exited',
       terminalError,
     )
-    this.closeActiveAcceptedStreams(terminalError)
+    this.closeActiveStreams(terminalError)
     this.installTerminalAcceptHandler(terminalError)
   }
 
-  private closeActiveAcceptedStreams(err: Error) {
-    for (const closeStream of this.activeAcceptedStreams) {
+  private closeActiveStreams(err: Error) {
+    for (const closeStream of this.activeStreams) {
       closeStream(err)
     }
-    this.activeAcceptedStreams.clear()
+    this.activeStreams.clear()
   }
 
   private installTerminalAcceptHandler(err: Error) {
@@ -156,26 +198,8 @@ export default function main(
 ): BackendEntrypointLifecycle {
   const generation = new GoScriptCloudflarePluginGeneration(api)
 
-  // Outgoing streams: map api.openStream() onto the callback contract the Go
-  // side consumes through NewPushableOpenStream.
-  globalScope.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME = (
-    onMessage,
-    onClose,
-    onResolve,
-    onReject,
-  ): void => {
-    api.openStream().then(
-      (channel) =>
-        packetStreamToOpenStreamCallbacks(channel).open(
-          onMessage,
-          onClose,
-          onResolve,
-          onReject,
-        ),
-      (err) => {
-        onReject(castToError(err).toString())
-      },
-    )
+  globalScope.BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME = (...args) => {
+    generation.openStream(...args)
   }
 
   globalScope.BLDR_PLUGIN_MARK_READY = () => {

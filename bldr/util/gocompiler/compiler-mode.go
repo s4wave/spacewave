@@ -90,7 +90,7 @@ func ResolveGoCompiler(
 		return "", errors.Errorf("unknown Go compiler %q", goCompiler)
 	}
 
-	if bldr_platform.IsWebPlatform(buildPlatform) {
+	if _, cloudflare := buildPlatform.(*bldr_platform.CloudflarePlatform); cloudflare || bldr_platform.IsWebPlatform(buildPlatform) {
 		return GoCompilerGoScript, nil
 	}
 
