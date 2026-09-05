@@ -39,6 +39,7 @@ const WindowsSignDescriptionEnv = "BLDR_WINDOWS_SIGN_DESCRIPTION"
 // when WindowsSignDescriptionEnv is unset.
 const defaultWindowsSignDescription = "Spacewave"
 
+// signWindowsMu serializes access to the module's shared metadata file.
 var signWindowsMu sync.Mutex
 
 // signWindowsScript is the PowerShell script driving the signing call.
@@ -52,19 +53,27 @@ Invoke-TrustedSigning ` +
 	`-Description $env:BLDR_SIGN_DESCRIPTION ` +
 	`-FileDigest SHA256 ` +
 	`-TimestampRfc3161 'http://timestamp.acs.microsoft.com' ` +
-	`-TimestampDigest SHA256`
+	`-TimestampDigest SHA256 ` +
+	`-ExcludeManagedIdentityCredential ` +
+	`-ExcludeSharedTokenCacheCredential ` +
+	`-ExcludeVisualStudioCredential ` +
+	`-ExcludeVisualStudioCodeCredential ` +
+	`-ExcludeAzurePowerShellCredential ` +
+	`-ExcludeAzureDeveloperCliCredential ` +
+	`-ExcludeInteractiveBrowserCredential`
 
 // SignWindows signs a PE binary via Azure Trusted Signing using the
 // Invoke-TrustedSigning cmdlet from the TrustedSigning PowerShell module.
 //
 // The TrustedSigning module must be installed on the host
 // (Install-Module -Name TrustedSigning). Authentication uses
-// DefaultAzureCredential, so a prior `az login` (or azure/login@v3 in CI)
-// is required.
+// environment, workload identity, or a prior az login (azure/login@v3 in CI).
+// Developer-tool and interactive credentials are excluded for unattended builds.
 //
 // No-op when BLDR_WINDOWS_SIGN_PROFILE is unset. Caller is responsible
 // for gating on GOOS=windows.
 func SignWindows(ctx context.Context, le *logrus.Entry, binPath string) error {
+	// Resolve the optional signing configuration before starting PowerShell.
 	profile := os.Getenv(WindowsSignProfileEnv)
 	if profile == "" {
 		return nil
@@ -81,6 +90,8 @@ func SignWindows(ctx context.Context, le *logrus.Entry, binPath string) error {
 	if description == "" {
 		description = defaultWindowsSignDescription
 	}
+
+	// Keep values out of command syntax and disable interactive credentials.
 	cmd := uexec.NewCmd(ctx, "pwsh", "-NoProfile", "-NonInteractive", "-Command", signWindowsScript)
 	cmd.Env = append(os.Environ(),
 		"BLDR_SIGN_ENDPOINT="+endpoint,
@@ -89,6 +100,8 @@ func SignWindows(ctx context.Context, le *logrus.Entry, binPath string) error {
 		"BLDR_SIGN_FILE="+binPath,
 		"BLDR_SIGN_DESCRIPTION="+description,
 	)
+
+	// The PowerShell module writes one shared metadata file for every binary.
 	signWindowsMu.Lock()
 	defer signWindowsMu.Unlock()
 	if err := uexec.ExecCmd(le, cmd); err != nil {
