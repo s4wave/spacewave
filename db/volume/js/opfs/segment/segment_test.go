@@ -283,6 +283,38 @@ func TestEntryIterator(t *testing.T) {
 	}
 }
 
+func TestEntryIteratorBuffersSequentialReads(t *testing.T) {
+	w := NewWriter()
+	value := bytes.Repeat([]byte("v"), 512)
+	const count = 4096
+	for i := range count {
+		w.Add([]byte("key-"+zeroPad(i, 6)), value)
+	}
+	var encoded bytes.Buffer
+	if _, err := w.Build(&encoded); err != nil {
+		t.Fatal(err)
+	}
+	data := encoded.Bytes()
+	meta, err := LoadLookupMeta(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := &countingReaderAt{data: data}
+	iterator := NewEntryIterator(source, meta)
+	for i := range count {
+		entry, ok, err := iterator.Next()
+		if err != nil || !ok || string(entry.Key) != "key-"+zeroPad(i, 6) || !bytes.Equal(entry.Value, value) {
+			t.Fatalf("entry %d: ok=%v err=%v", i, ok, err)
+		}
+	}
+	if _, ok, err := iterator.Next(); ok || err != nil {
+		t.Fatalf("exhaustion: ok=%v err=%v", ok, err)
+	}
+	if source.reads > 40 {
+		t.Fatalf("sequential scan used %d storage reads, want at most 40", source.reads)
+	}
+}
+
 func TestEntryIteratorRejectsTruncatedValueBeforeAlloc(t *testing.T) {
 	w := NewWriter()
 	w.Add([]byte("key"), []byte("value"))
