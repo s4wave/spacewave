@@ -12,18 +12,16 @@ import (
 
 // BuildProject builds one of the targets defined in the project configuration.
 func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
-	// init repo root and storage directories
+	// Resolve the project and state directories for a single build.
 	le := a.Logger
-
-	a.Watch = false // explicitly disable watching during build
-
+	a.Watch = false
 	repoRoot, stateDir, err := a.InitRepoRoot()
 	if err != nil {
 		return err
 	}
 	le.Infof("starting with state dir: %s", stateDir)
 
-	// initialize the storage + bus
+	// Retain the build bus and report the command's final result on every exit.
 	b, err := BuildDevtoolBus(ctx, le, repoRoot, stateDir, a.Watch)
 	if err != nil {
 		return err
@@ -37,36 +35,38 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 		stopTUI()
 	}()
 
+	// Synchronize the compiler sources before evaluating project targets.
 	err = b.SyncDistSources(a.BldrVersion, a.BldrVersionSum, a.BldrSrcPath)
 	if err != nil {
 		return err
 	}
 
-	// write the banner
+	// Display compiler identity before project build diagnostics.
 	a.writeBannerTo(os.Stderr)
 
-	// execute the project controller
-	// compiles the plugins and stores them in the devtool bus world
-	projWatcher, projWatcherRef, err := b.StartProjectController(
+	// Resolve dependency manifests through the same remote as the requested
+	// targets. Builds need on-demand compilation without application startup.
+	projWatcher, projWatcherRef, err := b.StartProjectControllerWithStartup(
 		ctx,
 		b.GetBus(),
 		repoRoot,
 		a.ConfigPath,
-		"",
+		a.Remote,
 		nil,
+		false,
 	)
 	if err != nil {
 		return err
 	}
 	defer projWatcherRef.Release()
 
-	// get the project controller from the watcher
+	// Wait for evaluated project configuration before selecting targets.
 	projCtrl, err := projWatcher.GetProjectController().WaitValue(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	// build the targets
+	// Apply explicit target and compiler-policy overrides to this build.
 	var targetsOverride []string
 	if a.TargetsCsv != "" {
 		targetsOverride = strings.Split(a.TargetsCsv, ",")
@@ -75,6 +75,7 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+	// Publish build progress while the project controller compiles its targets.
 	b.setCommandRunningWithLogFile(
 		"build",
 		buildCommandSummary(a.BuildCsv, a.BuildType, a.Remote, a.TargetsCsv),
@@ -90,6 +91,7 @@ func (a *DevtoolArgs) BuildProject(ctx context.Context) (err error) {
 	)
 }
 
+// buildCommandSummary describes the requested targets and explicit overrides.
 func buildCommandSummary(buildCSV, buildType, remote, targetsCSV string) string {
 	parts := []string{"building targets"}
 	if buildCSV != "" {
