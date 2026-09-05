@@ -15,6 +15,12 @@ case "${plugin}" in
     ;;
 esac
 
+release_environment="${SPACEWAVE_RELEASE_ENV:-production}"
+case "${release_environment}" in
+  staging|production) ;;
+  *) echo "unknown release environment: ${release_environment}" >&2; exit 64 ;;
+esac
+
 target="plugin-release-browser-${plugin}"
 backup="$(mktemp)"
 cp bldr.star "${backup}"
@@ -30,7 +36,7 @@ cat >> bldr.star <<EOF
 build("${target}",
     manifests=["${plugin}"],
     platform_ids=plugin_release_browser_manifest_platform_ids("${plugin}"),
-    manifestOverrides=plugin_release_browser_manifest_overrides("${plugin}"),
+    manifestOverrides=plugin_release_browser_manifest_overrides("${plugin}", "${release_environment}"),
 )
 EOF
 

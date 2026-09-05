@@ -497,7 +497,10 @@ func (a *ProviderAccount) stopSessionTransportStateLocked(ctx context.Context, s
 // local sessions have no linked cloud account, so the persisted provider
 // signaling URL is their only rendezvous. Empty keeps them without signaling.
 func (a *ProviderAccount) fallbackSignalingEndpoint() cloudRelayEndpoint {
-	return cloudRelayEndpoint{url: a.t.p.signalingURL}
+	return cloudRelayEndpoint{
+		url:              a.t.p.signalingURL,
+		signingEnvPrefix: a.t.p.signalingEnvPrefix,
+	}
 }
 
 // lookupCloudRelayEndpoint resolves the cloud relay endpoint and signing

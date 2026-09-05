@@ -51,6 +51,13 @@ export interface Config {
    * @generated from field: string signaling_url = 4;
    */
   signalingUrl?: string
+  /**
+   * SignalingEnvPrefix is the request-signing namespace of the signaling server.
+   * Empty uses the production namespace.
+   *
+   * @generated from field: string signaling_env_prefix = 5;
+   */
+  signalingEnvPrefix?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -60,6 +67,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 3, name: 'storage_id', kind: 'scalar', T: ScalarType.STRING },
     { no: 4, name: 'signaling_url', kind: 'scalar', T: ScalarType.STRING },
+    {
+      no: 5,
+      name: 'signaling_env_prefix',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -33,6 +33,8 @@ type Provider struct {
 	// signalingURL is the trusted cloud signaling base URL from the
 	// provider configuration. Empty disables standalone-session signaling.
 	signalingURL string
+	// signalingEnvPrefix selects the trusted signaling server signing namespace.
+	signalingEnvPrefix string
 	// info is the provider info
 	info *provider.ProviderInfo
 	// sfs is the step factory set for block transforms
@@ -80,6 +82,7 @@ func NewProvider(
 	b bus.Bus,
 	storageID string,
 	signalingURL string,
+	signalingEnvPrefix string,
 	info *provider.ProviderInfo,
 	peer peer.Peer,
 	handler provider.ProviderHandler,
@@ -89,14 +92,15 @@ func NewProvider(
 	sfs.AddStepFactory(transform_blockenc.NewStepFactory())
 
 	p := &Provider{
-		le:           le,
-		b:            b,
-		storageID:    storageID,
-		signalingURL: signalingURL,
-		info:         info,
-		peer:         peer,
-		handler:      handler,
-		sfs:          sfs,
+		le:                 le,
+		b:                  b,
+		storageID:          storageID,
+		signalingURL:       signalingURL,
+		signalingEnvPrefix: signalingEnvPrefix,
+		info:               info,
+		peer:               peer,
+		handler:            handler,
+		sfs:                sfs,
 	}
 	p.linkedCloudAccountLoader = defaultLinkedCloudAccountLoader
 	p.accountRc = keyed.NewKeyedRefCountWithLogger(

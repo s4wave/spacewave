@@ -63,7 +63,8 @@ E2E_RELEASE_WASM_DIST_PEER_ID = "12D3KooWJPNip1SbsUG7SjteoegGjfq22D4WThuctPvCwJz
 def core_config_set(
         include_export=True,
         cloud_api_endpoint=PRODUCTION_CLOUD_API_ENDPOINT,
-        account_endpoint=PRODUCTION_ACCOUNT_ENDPOINT):
+        account_endpoint=PRODUCTION_ACCOUNT_ENDPOINT,
+        signing_env_prefix="spacewave"):
     configs = {
         "store-peer": config_entry("object/peer", 1, {
             "objectStoreId": "s4wave-peer",
@@ -71,13 +72,14 @@ def core_config_set(
         }),
         "root-resource": config_entry("resource/root", 1),
         "session-list": config_entry("session", 1),
-        "provider-local": config_entry("provider/local", 1, {
+        "provider-local": config_entry("provider/local", 2, {
             "signalingUrl": cloud_api_endpoint,
+            "signalingEnvPrefix": signing_env_prefix,
         }),
         "provider-spacewave": config_entry("provider/spacewave", 2, {
             "endpoint": cloud_api_endpoint,
             "accountEndpoint": account_endpoint,
-            "signingEnvPrefix": "spacewave",
+            "signingEnvPrefix": signing_env_prefix,
         }),
         "space-sobject": config_entry("space/sobject", 1, {"verbose": False}),
         "space-world-ops": config_entry("space/world/ops", 1),
@@ -765,8 +767,16 @@ build("cli",         manifests=["spacewave"])
 PLUGIN_RELEASE_BROWSER_MANIFEST_OVERRIDES = {
     "spacewave-core": browser_spacewave_core_config("GO_COMPILER_GOSCRIPT"),
 }
-def plugin_release_browser_manifest_overrides(manifest_id):
+def plugin_release_browser_manifest_overrides(manifest_id, release_environment="production"):
     if manifest_id == "spacewave-core":
+        if release_environment == "staging":
+            core = browser_spacewave_core_config("GO_COMPILER_GOSCRIPT")
+            core["configSet"] = core_config_set(
+                cloud_api_endpoint=BROWSER_RELEASE_CLOUD_API_ENDPOINT,
+                account_endpoint="https://account-staging.spacewave.app",
+                signing_env_prefix="spacewave-staging",
+            )
+            return {"spacewave-core": core}
         return PLUGIN_RELEASE_BROWSER_MANIFEST_OVERRIDES
     return {}
 

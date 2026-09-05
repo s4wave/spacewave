@@ -103,7 +103,7 @@ func awaitReadySessionTransport(ctx context.Context, t *testing.T, acc *provider
 // standalone local session signaling. A standalone local session (no linked
 // cloud account) uses the trusted signaling URL persisted in the provider
 // configuration: with a URL it signs its own ticket request with the session
-// keypair under the default signing environment and connects the WebRTC
+// keypair under the configured signing environment and connects the WebRTC
 // signaling WebSocket without any cloud account credential; with an empty
 // URL it stays without signaling. A daemon restart re-runs the same mount
 // path, so a configured URL reconnects after restart.
@@ -111,74 +111,82 @@ func TestStandaloneSessionSignaling(t *testing.T) {
 	if runtime.GOOS == "js" {
 		t.Skip("standalone signaling test requires native HTTP server and WebSocket support")
 	}
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
-	defer cancel()
+	for _, prefix := range []string{"", "spacewave-staging"} {
+		t.Run("prefix="+prefix, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+			defer cancel()
 
-	// Empty signaling URL keeps the session without WebRTC signaling.
-	{
-		sig := newSignalingServer()
-		defer sig.server.Close()
+			// Empty signaling URL keeps the session without WebRTC signaling.
+			{
+				sig := newSignalingServer()
+				defer sig.server.Close()
 
-		_, _, acc, _, release := setupProviderAndSession(ctx, t, "")
-		defer release()
+				_, _, acc, _, release := setupProviderAndSession(ctx, t, "")
+				defer release()
 
-		st := awaitReadySessionTransport(ctx, t, acc)
-		if got := st.GetStartupStage(); got != "ready" {
-			t.Fatalf("startup stage = %q, want ready", got)
-		}
-		if n := sig.tickets.Load(); n != 0 {
-			t.Fatalf("empty signaling URL requested %d tickets, want 0", n)
-		}
-	}
+				st := awaitReadySessionTransport(ctx, t, acc)
+				if got := st.GetStartupStage(); got != "ready" {
+					t.Fatalf("startup stage = %q, want ready", got)
+				}
+				if n := sig.tickets.Load(); n != 0 {
+					t.Fatalf("empty signaling URL requested %d tickets, want 0", n)
+				}
+			}
 
-	// A configured signaling URL drives ticket signing and the signaling
-	// WebSocket through the existing WebRTC transport.
-	sig := newSignalingServer()
-	defer sig.server.Close()
+			// A configured signaling URL drives ticket signing and the signaling
+			// WebSocket through the existing WebRTC transport.
+			sig := newSignalingServer()
+			defer sig.server.Close()
 
-	_, _, acc, sess, release := setupProviderAndSession(ctx, t, sig.server.URL)
-	defer release()
+			_, _, acc, sess, release := setupProviderAndSession(ctx, t, sig.server.URL, prefix)
+			defer release()
 
-	awaitReadySessionTransport(ctx, t, acc)
-	if n := sig.tickets.Load(); n == 0 {
-		t.Fatal("standalone session did not request a signal ticket")
-	}
+			awaitReadySessionTransport(ctx, t, acc)
+			if n := sig.tickets.Load(); n == 0 {
+				t.Fatal("standalone session did not request a signal ticket")
+			}
 
-	req := sig.first.Load()
-	if want := sess.GetPeerId().String(); req.peerID != want {
-		t.Fatalf("ticket request peer ID = %q, want session peer %s", req.peerID, want)
-	}
-	timestampMs, err := strconv.ParseInt(req.timestamp, 10, 64)
-	if err != nil {
-		t.Fatalf("parse ticket timestamp %q: %v", req.timestamp, err)
-	}
-	payload, err := (&api.SigningPayload{
-		EnvPrefix:     "spacewave",
-		Method:        http.MethodPost,
-		Path:          "/api/signal/ticket",
-		TimestampMs:   timestampMs,
-		ContentLength: 0,
-		BodyHashHex:   req.bodyHash,
-	}).MarshalVT()
-	if err != nil {
-		t.Fatalf("marshal signing payload: %v", err)
-	}
-	pub, err := sess.GetPeerId().ExtractPublicKey()
-	if err != nil {
-		t.Fatalf("extract session public key: %v", err)
-	}
-	signature, err := base64.StdEncoding.DecodeString(req.signature)
-	if err != nil {
-		t.Fatalf("decode ticket signature: %v", err)
-	}
-	valid, err := pub.Verify(payload, signature)
-	if err != nil || !valid {
-		t.Fatalf("ticket signature not signed by the session keypair: valid=%v err=%v", valid, err)
-	}
+			req := sig.first.Load()
+			if want := sess.GetPeerId().String(); req.peerID != want {
+				t.Fatalf("ticket request peer ID = %q, want session peer %s", req.peerID, want)
+			}
+			timestampMs, err := strconv.ParseInt(req.timestamp, 10, 64)
+			if err != nil {
+				t.Fatalf("parse ticket timestamp %q: %v", req.timestamp, err)
+			}
+			wantPrefix := prefix
+			if wantPrefix == "" {
+				wantPrefix = "spacewave"
+			}
+			payload, err := (&api.SigningPayload{
+				EnvPrefix:     wantPrefix,
+				Method:        http.MethodPost,
+				Path:          "/api/signal/ticket",
+				TimestampMs:   timestampMs,
+				ContentLength: 0,
+				BodyHashHex:   req.bodyHash,
+			}).MarshalVT()
+			if err != nil {
+				t.Fatalf("marshal signing payload: %v", err)
+			}
+			pub, err := sess.GetPeerId().ExtractPublicKey()
+			if err != nil {
+				t.Fatalf("extract session public key: %v", err)
+			}
+			signature, err := base64.StdEncoding.DecodeString(req.signature)
+			if err != nil {
+				t.Fatalf("decode ticket signature: %v", err)
+			}
+			valid, err := pub.Verify(payload, signature)
+			if err != nil || !valid {
+				t.Fatalf("ticket signature not signed by the session keypair: valid=%v err=%v", valid, err)
+			}
 
-	select {
-	case <-sig.wsAccepted:
-	case <-ctx.Done():
-		t.Fatal("session transport did not connect to the signaling WebSocket")
+			select {
+			case <-sig.wsAccepted:
+			case <-ctx.Done():
+				t.Fatal("session transport did not connect to the signaling WebSocket")
+			}
+		})
 	}
 }

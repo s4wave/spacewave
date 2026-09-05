@@ -31,6 +31,7 @@ permissions:
   attestations: write
 
 env:
+  SPACEWAVE_RELEASE_ENV: ${{ inputs.environment }}
   TINYGO_VERSION: 0.41.1
 
 jobs:

@@ -17,7 +17,7 @@ import (
 )
 
 // setupProviderAndSession creates a testbed with a local provider, account, and session.
-// An optional trailing signalingURL sets the provider's standalone signaling URL.
+// Optional trailing arguments set the standalone signaling URL and signing namespace.
 func setupProviderAndSession(ctx context.Context, t *testing.T, signalingURL ...string) (
 	*testbed.Testbed,
 	*session.SessionRef,
@@ -41,6 +41,9 @@ func setupProviderAndSession(ctx context.Context, t *testing.T, signalingURL ...
 	}
 	if len(signalingURL) != 0 {
 		provCfg.SignalingUrl = signalingURL[0]
+	}
+	if len(signalingURL) > 1 {
+		provCfg.SignalingEnvPrefix = signalingURL[1]
 	}
 	tb.StaticResolver.AddFactory(provider_local.NewFactory(tb.Bus))
 	_, provCtrlRef, err := tb.Bus.AddDirective(resolver.NewLoadControllerWithConfig(provCfg), nil)
