@@ -23,7 +23,10 @@ func NewOps(ops kvtx.TxOps) *Ops {
 func (o *Ops) KeyCount(ctx context.Context, req *kvtx_rpc.KeyCountRequest) (*kvtx_rpc.KeyCountResponse, error) {
 	count, err := o.ops.Size(ctx)
 	if err != nil {
-		return nil, err
+		if !req.GetAcceptRetryClass() {
+			return nil, err
+		}
+		return &kvtx_rpc.KeyCountResponse{Error: err.Error(), RetryClass: retryClassForError(err)}, nil
 	}
 	return &kvtx_rpc.KeyCountResponse{KeyCount: count}, nil
 }
@@ -35,6 +38,7 @@ func (o *Ops) KeyData(ctx context.Context, req *kvtx_rpc.KvtxKeyRequest) (*kvtx_
 	resp := &kvtx_rpc.KvtxKeyDataResponse{}
 	if err != nil {
 		resp.Error = err.Error()
+		resp.RetryClass = retryClassForError(err)
 	} else {
 		resp.Data = data
 		resp.Found = found
@@ -49,6 +53,7 @@ func (o *Ops) KeyExists(ctx context.Context, req *kvtx_rpc.KvtxKeyRequest) (*kvt
 	resp := &kvtx_rpc.KvtxKeyExistsResponse{}
 	if err != nil {
 		resp.Error = err.Error()
+		resp.RetryClass = retryClassForError(err)
 	} else {
 		resp.Found = found
 	}
@@ -61,15 +66,18 @@ func (o *Ops) SetKey(ctx context.Context, req *kvtx_rpc.KvtxSetKeyRequest) (*kvt
 	resp := &kvtx_rpc.KvtxSetKeyResponse{}
 	if err != nil {
 		resp.Error = err.Error()
+		resp.RetryClass = retryClassForError(err)
 	}
 	return resp, nil
 }
 
+// DeleteKey removes a key from the transaction.
 func (o *Ops) DeleteKey(ctx context.Context, req *kvtx_rpc.KvtxDeleteKeyRequest) (*kvtx_rpc.KvtxDeleteKeyResponse, error) {
 	err := o.ops.Delete(ctx, req.GetKey())
 	resp := &kvtx_rpc.KvtxDeleteKeyResponse{}
 	if err != nil {
 		resp.Error = err.Error()
+		resp.RetryClass = retryClassForError(err)
 	}
 	return resp, nil
 }
@@ -93,7 +101,8 @@ func (o *Ops) ScanPrefix(req *kvtx_rpc.KvtxScanPrefixRequest, strm kvtx_rpc.SRPC
 	}
 	if err != nil {
 		return strm.Send(&kvtx_rpc.KvtxScanPrefixResponse{
-			Error: err.Error(),
+			Error:      err.Error(),
+			RetryClass: retryClassForError(err),
 		})
 	}
 	return nil
@@ -117,6 +126,7 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 
 	sendReqErr := func(err error) error {
 		return strm.Send(&kvtx_rpc.KvtxIterateResponse{
+			RetryClass: retryClassForError(err),
 			Body: &kvtx_rpc.KvtxIterateResponse_ReqError{
 				ReqError: err.Error(),
 			},
@@ -138,15 +148,17 @@ func (o *Ops) Iterate(strm kvtx_rpc.SRPCKvtxOps_IterateStream) error {
 	sendStatus := func(valid bool) error {
 		key := it.Key()
 		var itErrStr string
-		if itErr := it.Err(); itErr != nil {
+		itErr := it.Err()
+		if itErr != nil {
 			itErrStr = itErr.Error()
 		}
 		return strm.Send(&kvtx_rpc.KvtxIterateResponse{
 			Body: &kvtx_rpc.KvtxIterateResponse_Status{
 				Status: &kvtx_rpc.KvtxIterateStatus{
-					Error: itErrStr,
-					Valid: valid,
-					Key:   key,
+					Error:      itErrStr,
+					RetryClass: retryClassForError(itErr),
+					Valid:      valid,
+					Key:        key,
 				},
 			},
 		})

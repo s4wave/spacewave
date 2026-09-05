@@ -4,10 +4,7 @@
 
 import { createEnumType } from '@aptre/protobuf-es-lite/enum'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
-import {
-  createEmptyMessageType,
-  createMessageType,
-} from '@aptre/protobuf-es-lite/message'
+import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
 
@@ -20,11 +17,15 @@ export const protobufPackage = 'kvtx.rpc'
  */
 export enum KvtxRetryClass {
   /**
+   * KVTX_RETRY_CLASS_UNSPECIFIED carries no retry authorization.
+   *
    * @generated from enum value: KVTX_RETRY_CLASS_UNSPECIFIED = 0;
    */
   UNSPECIFIED = 0,
 
   /**
+   * KVTX_RETRY_CLASS_INVALID_SNAPSHOT requires a new transaction snapshot.
+   *
    * @generated from enum value: KVTX_RETRY_CLASS_INVALID_SNAPSHOT = 1;
    */
   INVALID_SNAPSHOT = 1,
@@ -153,15 +154,16 @@ export interface KvtxTransactionAck {
   /**
    * TransactionId is the identifier to use for the RpcStream.
    * If error != "" this will be empty.
+   *
+   * @generated from field: string transaction_id = 2;
+   */
+  transactionId?: string
+  /**
    * RetryClass is the typed retry classification for Error.
    *
    * @generated from field: kvtx.rpc.KvtxRetryClass retry_class = 3;
    */
   retryClass?: KvtxRetryClass
-  /**
-   * @generated from field: string transaction_id = 2;
-   */
-  transactionId?: string
 }
 
 export const KvtxTransactionAck: MessageType<KvtxTransactionAck> =
@@ -169,8 +171,8 @@ export const KvtxTransactionAck: MessageType<KvtxTransactionAck> =
     typeName: 'kvtx.rpc.KvtxTransactionAck',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
-      { no: 3, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
       { no: 2, name: 'transaction_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -242,7 +244,7 @@ export interface KvtxTransactionResponse {
       }
     | {
         /**
-         * Ack acknowledges the KvtxTransaction has been openedj.
+         * Ack acknowledges the KvtxTransaction has been opened.
          *
          * @generated from field: kvtx.rpc.KvtxTransactionAck ack = 1;
          */
@@ -287,13 +289,24 @@ export const KvtxTransactionResponse: MessageType<KvtxTransactionResponse> =
  *
  * @generated from message kvtx.rpc.KeyCountRequest
  */
-export interface KeyCountRequest {}
+export interface KeyCountRequest {
+  /**
+   * AcceptRetryClass permits typed response errors instead of RPC errors.
+   * Older clients require RPC errors to avoid interpreting failures as zero keys.
+   *
+   * @generated from field: bool accept_retry_class = 1;
+   */
+  acceptRetryClass?: boolean
+}
 
 export const KeyCountRequest: MessageType<KeyCountRequest> =
-  /* @__PURE__ */ createEmptyMessageType<KeyCountRequest>(
-    'kvtx.rpc.KeyCountRequest',
-    true,
-  )
+  /* @__PURE__ */ createMessageType({
+    typeName: 'kvtx.rpc.KeyCountRequest',
+    fields: [
+      { no: 1, name: 'accept_retry_class', kind: 'scalar', T: ScalarType.BOOL },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
 
 /**
  * KeyCountResponse is a response to the KeyCountRequest.
@@ -307,6 +320,18 @@ export interface KeyCountResponse {
    * @generated from field: uint64 key_count = 1;
    */
   keyCount?: bigint
+  /**
+   * Error reports failure to count keys.
+   *
+   * @generated from field: string error = 2;
+   */
+  error?: string
+  /**
+   * RetryClass identifies whether the failed operation requires a fresh transaction.
+   *
+   * @generated from field: kvtx.rpc.KvtxRetryClass retry_class = 3;
+   */
+  retryClass?: KvtxRetryClass
 }
 
 export const KeyCountResponse: MessageType<KeyCountResponse> =
@@ -314,6 +339,8 @@ export const KeyCountResponse: MessageType<KeyCountResponse> =
     typeName: 'kvtx.rpc.KeyCountResponse',
     fields: [
       { no: 1, name: 'key_count', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 2, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -366,6 +393,12 @@ export interface KvtxKeyDataResponse {
    * @generated from field: bytes data = 3;
    */
   data?: Uint8Array
+  /**
+   * RetryClass identifies whether the failed operation requires a fresh transaction.
+   *
+   * @generated from field: kvtx.rpc.KvtxRetryClass retry_class = 4;
+   */
+  retryClass?: KvtxRetryClass
 }
 
 export const KvtxKeyDataResponse: MessageType<KvtxKeyDataResponse> =
@@ -375,6 +408,7 @@ export const KvtxKeyDataResponse: MessageType<KvtxKeyDataResponse> =
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'data', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 4, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -398,6 +432,12 @@ export interface KvtxKeyExistsResponse {
    * @generated from field: bool found = 2;
    */
   found?: boolean
+  /**
+   * RetryClass identifies whether the failed operation requires a fresh transaction.
+   *
+   * @generated from field: kvtx.rpc.KvtxRetryClass retry_class = 3;
+   */
+  retryClass?: KvtxRetryClass
 }
 
 export const KvtxKeyExistsResponse: MessageType<KvtxKeyExistsResponse> =
@@ -406,6 +446,7 @@ export const KvtxKeyExistsResponse: MessageType<KvtxKeyExistsResponse> =
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'found', kind: 'scalar', T: ScalarType.BOOL },
+      { no: 3, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -453,6 +494,12 @@ export interface KvtxSetKeyResponse {
    * @generated from field: string error = 1;
    */
   error?: string
+  /**
+   * RetryClass identifies whether the failed operation requires a fresh transaction.
+   *
+   * @generated from field: kvtx.rpc.KvtxRetryClass retry_class = 2;
+   */
+  retryClass?: KvtxRetryClass
 }
 
 export const KvtxSetKeyResponse: MessageType<KvtxSetKeyResponse> =
@@ -460,6 +507,7 @@ export const KvtxSetKeyResponse: MessageType<KvtxSetKeyResponse> =
     typeName: 'kvtx.rpc.KvtxSetKeyResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -500,6 +548,12 @@ export interface KvtxDeleteKeyResponse {
    * @generated from field: string error = 1;
    */
   error?: string
+  /**
+   * RetryClass identifies whether the failed operation requires a fresh transaction.
+   *
+   * @generated from field: kvtx.rpc.KvtxRetryClass retry_class = 2;
+   */
+  retryClass?: KvtxRetryClass
 }
 
 export const KvtxDeleteKeyResponse: MessageType<KvtxDeleteKeyResponse> =
@@ -507,6 +561,7 @@ export const KvtxDeleteKeyResponse: MessageType<KvtxDeleteKeyResponse> =
     typeName: 'kvtx.rpc.KvtxDeleteKeyResponse',
     fields: [
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -567,6 +622,12 @@ export interface KvtxScanPrefixResponse {
    * @generated from field: bytes value = 3;
    */
   value?: Uint8Array
+  /**
+   * RetryClass identifies whether the failed operation requires a fresh transaction.
+   *
+   * @generated from field: kvtx.rpc.KvtxRetryClass retry_class = 4;
+   */
+  retryClass?: KvtxRetryClass
 }
 
 export const KvtxScanPrefixResponse: MessageType<KvtxScanPrefixResponse> =
@@ -576,6 +637,7 @@ export const KvtxScanPrefixResponse: MessageType<KvtxScanPrefixResponse> =
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
       { no: 3, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 4, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -862,6 +924,12 @@ export interface KvtxIterateStatus {
    * @generated from field: bytes key = 3;
    */
   key?: Uint8Array
+  /**
+   * RetryClass identifies whether the failed operation requires a fresh transaction.
+   *
+   * @generated from field: kvtx.rpc.KvtxRetryClass retry_class = 4;
+   */
+  retryClass?: KvtxRetryClass
 }
 
 export const KvtxIterateStatus: MessageType<KvtxIterateStatus> =
@@ -871,6 +939,7 @@ export const KvtxIterateStatus: MessageType<KvtxIterateStatus> =
       { no: 1, name: 'error', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'valid', kind: 'scalar', T: ScalarType.BOOL },
       { no: 3, name: 'key', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 4, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -881,6 +950,13 @@ export const KvtxIterateStatus: MessageType<KvtxIterateStatus> =
  * @generated from message kvtx.rpc.KvtxIterateResponse
  */
 export interface KvtxIterateResponse {
+  /**
+   * RetryClass identifies whether the failed operation requires a fresh transaction.
+   *
+   * @generated from field: kvtx.rpc.KvtxRetryClass retry_class = 6;
+   */
+  retryClass?: KvtxRetryClass
+
   /**
    * Body contains the message body.
    * First message MUST contain Ack or IteratorError.
@@ -972,6 +1048,7 @@ export const KvtxIterateResponse: MessageType<KvtxIterateResponse> =
         T: ScalarType.BOOL,
         oneof: 'body',
       },
+      { no: 6, name: 'retry_class', kind: 'enum', T: KvtxRetryClass_Enum },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

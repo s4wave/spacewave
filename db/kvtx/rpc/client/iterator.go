@@ -43,7 +43,7 @@ func newIterator(client kvtx_rpc.SRPCKvtxOps_IterateClient) *Iterator {
 func (i *Iterator) Err() error {
 	status := i.status.Load()
 	if errStr := status.GetError(); errStr != "" {
-		return errors.New(errStr)
+		return remoteError(errStr, status.GetRetryClass())
 	}
 	return nil
 }
@@ -97,7 +97,7 @@ func (i *Iterator) Value() ([]byte, error) {
 			i.value.Store(&itValue{value: value})
 			return value, nil
 		case *kvtx_rpc.KvtxIterateResponse_ReqError:
-			return nil, errors.New(b.ReqError)
+			return nil, remoteError(b.ReqError, resp.GetRetryClass())
 		}
 	}
 
@@ -126,8 +126,13 @@ func (i *Iterator) ValueCopy(buf []byte) ([]byte, error) {
 func (i *Iterator) storeErr(err error) {
 	if err != nil {
 		_ = i.client.Close()
+		retryClass := kvtx_rpc.KvtxRetryClass_KVTX_RETRY_CLASS_UNSPECIFIED
+		if errors.Is(err, kvtx.ErrInvalidSnapshot) {
+			retryClass = kvtx_rpc.KvtxRetryClass_KVTX_RETRY_CLASS_INVALID_SNAPSHOT
+		}
 		i.status.Store(&kvtx_rpc.KvtxIterateStatus{
-			Error: err.Error(),
+			Error:      err.Error(),
+			RetryClass: retryClass,
 		})
 	}
 }
@@ -163,7 +168,7 @@ func (i *Iterator) Next() bool {
 			i.status.Store(status)
 			return status.GetValid()
 		case *kvtx_rpc.KvtxIterateResponse_ReqError:
-			i.storeErr(errors.New(b.ReqError))
+			i.storeErr(remoteError(b.ReqError, resp.GetRetryClass()))
 			return false
 		}
 	}
@@ -208,12 +213,12 @@ func (i *Iterator) Seek(k []byte) error {
 			i.status.Store(status)
 			var err error
 			if errStr := status.GetError(); errStr != "" {
-				err = errors.New(errStr)
+				err = remoteError(errStr, status.GetRetryClass())
 				_ = i.client.Close()
 			}
 			return err
 		case *kvtx_rpc.KvtxIterateResponse_ReqError:
-			err := errors.New(b.ReqError)
+			err := remoteError(b.ReqError, resp.GetRetryClass())
 			i.storeErr(err)
 			return err
 		}
