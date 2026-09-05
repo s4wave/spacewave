@@ -57,13 +57,20 @@ func waitRawUpdateRelayParent() error {
 	if raw == "" {
 		return nil
 	}
-	pid, err := strconv.Atoi(raw)
+	pid, err := strconv.ParseUint(raw, 10, 32)
 	if err != nil {
 		return errors.Wrap(err, "parse relay parent pid")
 	}
+	if pid == 0 {
+		return errors.New("relay parent pid must be positive")
+	}
 
 	// Wait on the parent process handle rather than polling its identifier.
-	proc, err := os.FindProcess(pid)
+	// A parent already removed from the process table has released its image.
+	proc, err := os.FindProcess(int(pid))
+	if errors.Is(err, windows.ERROR_INVALID_PARAMETER) {
+		return nil
+	}
 	if err != nil {
 		return errors.Wrap(err, "find relay parent process")
 	}
