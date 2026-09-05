@@ -53,14 +53,17 @@ import (
 // ControllerID is the compiler controller ID.
 const ControllerID = ConfigID
 
-// Version is the controller version
+// Version is the controller version.
 var Version = controller.MustParseVersion("0.0.1")
 
 // controllerDescrip is the controller description.
 var controllerDescrip = "go plugin compiler controller"
 
+// goScriptWebPluginBuildMu serializes GoScript web plugin builds.
 var goScriptWebPluginBuildMu sync.Mutex
 
+// goScriptSharedWebPkgConfig checks the web pkg list for the GoScript shared
+// web pkg and reports whether this plugin provides or consumes it.
 func goScriptSharedWebPkgConfig(webPkgs []*bldr_web_bundler.WebPkgRefConfig) (string, bool, bool) {
 	webPkgID := web_runtime_goscript_build.GoScriptSharedWebPkgID
 	var provider bool
@@ -79,6 +82,7 @@ func goScriptSharedWebPkgConfig(webPkgs []*bldr_web_bundler.WebPkgRefConfig) (st
 	return webPkgID, provider, consumer
 }
 
+// filterGoScriptSharedWebPkgs removes the GoScript shared web pkg from the list.
 func filterGoScriptSharedWebPkgs(webPkgs []*bldr_web_bundler.WebPkgRefConfig) []*bldr_web_bundler.WebPkgRefConfig {
 	out := make([]*bldr_web_bundler.WebPkgRefConfig, 0, len(webPkgs))
 	for _, webPkg := range webPkgs {
@@ -407,6 +411,8 @@ func (c *Controller) BuildManifest(
 	return result, nil
 }
 
+// resolveBuildGoCompiler resolves the Go compiler to use for the platform and
+// build type, falling back to the configured or default compiler.
 func resolveBuildGoCompiler(
 	buildPlatform bldr_platform.Platform,
 	buildType bldr_manifest.BuildType,
@@ -427,6 +433,8 @@ func resolveBuildGoCompiler(
 	)
 }
 
+// validateGoCompilerPlatform returns true if the compiler can target the
+// given platform and reports an error for invalid compiler/platform pairs.
 func validateGoCompilerPlatform(buildPlatform bldr_platform.Platform, goCompiler gocompiler.GoCompiler) (bool, error) {
 	if goCompiler.IsGoScript() {
 		if buildPlatform.GetExecutableExt() != ".mjs" {
@@ -440,6 +448,8 @@ func validateGoCompilerPlatform(buildPlatform bldr_platform.Platform, goCompiler
 	return true, nil
 }
 
+// goAnalysisEnv returns the GOOS/GOARCH values for the platform, used to make
+// analysis build-tag gating match the target compile.
 func goAnalysisEnv(buildPlatform bldr_platform.Platform) (string, string, error) {
 	platformEnv, err := bldr_platform_go.PlatformToGoEnv(buildPlatform)
 	if err != nil {
@@ -1277,12 +1287,16 @@ func (c *Controller) BuildPlugin(
 	return inputManifest, nil
 }
 
+// newGoScriptBuildFlags builds the go build flags used when compiling the
+// GoScript plugin package tree.
 func newGoScriptBuildFlags(buildType bldr_manifest.BuildType, enableCgo bool) []string {
 	buildTags := gocompiler.NewBuildTags(buildType, enableCgo)
 	buildTags = append(buildTags, gocompiler.GoScriptBuildTag, gocompiler.SQLLiteBuildTag)
 	return []string{"-tags=" + strings.Join(buildTags, ",")}
 }
 
+// addCompilerStartupCacheInputs records the environment-dependent inputs that
+// must invalidate the startup cache for the selected compiler.
 func addCompilerStartupCacheInputs(
 	inputManifest *bldr_manifest_builder.InputManifest,
 	goCompilerOpt GoCompiler,
@@ -1303,6 +1317,8 @@ func addCompilerStartupCacheInputs(
 	}
 }
 
+// addTinyGoStartupCacheInputs adds tinygo env cache inputs to the manifest.
+// addTinyGoStartupCacheInputs adds tinygo env cache inputs to the manifest.
 func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.TinyGoStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
@@ -1310,6 +1326,8 @@ func addTinyGoStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManif
 	inputManifest.SortStartupInputs()
 }
 
+// addGoCompilerStartupCacheInputs adds default go compiler env cache inputs.
+// addGoCompilerStartupCacheInputs adds default go compiler env cache inputs.
 func addGoCompilerStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.GoCompilerStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
@@ -1317,6 +1335,8 @@ func addGoCompilerStartupCacheInputs(inputManifest *bldr_manifest_builder.InputM
 	inputManifest.SortStartupInputs()
 }
 
+// addGoWasmOptimizeStartupCacheInputs adds go wasm optimize env cache inputs.
+// addGoWasmOptimizeStartupCacheInputs adds go wasm optimize env cache inputs.
 func addGoWasmOptimizeStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.GoWasmOptimizeStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
@@ -1324,6 +1344,8 @@ func addGoWasmOptimizeStartupCacheInputs(inputManifest *bldr_manifest_builder.In
 	inputManifest.SortStartupInputs()
 }
 
+// addGoWasmDiagnosticStartupCacheInputs adds go wasm diagnostic env cache inputs.
+// addGoWasmDiagnosticStartupCacheInputs adds go wasm diagnostic env cache inputs.
 func addGoWasmDiagnosticStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.GoWasmDiagnosticStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
@@ -1331,6 +1353,8 @@ func addGoWasmDiagnosticStartupCacheInputs(inputManifest *bldr_manifest_builder.
 	inputManifest.SortStartupInputs()
 }
 
+// addGoScriptStartupCacheInputs adds goscript env cache inputs to the manifest.
+// addGoScriptStartupCacheInputs adds goscript env cache inputs to the manifest.
 func addGoScriptStartupCacheInputs(inputManifest *bldr_manifest_builder.InputManifest) {
 	for _, envKey := range gocompiler.GoScriptStartupCacheEnvKeys() {
 		inputManifest.AddStartupInput(bldr_manifest_builder.NewEnvStartupInput(envKey, os.Getenv(envKey)))
@@ -1338,6 +1362,13 @@ func addGoScriptStartupCacheInputs(inputManifest *bldr_manifest_builder.InputMan
 	inputManifest.SortStartupInputs()
 }
 
+// appendInputManifestFiles records source-relative file paths of the given
+// kind in the input manifest. Go files are filtered to paths under the source
+// root; dependency module files are expected to be filtered by the caller.
+// appendInputManifestFiles records source-relative file paths of the given kind
+// in the input manifest. Go source files outside the source root are dropped.
+// appendInputManifestFiles records source-relative file paths of the given kind
+// in the input manifest. Go source files outside the source root are dropped.
 func appendInputManifestFiles(
 	inputManifest *bldr_manifest_builder.InputManifest,
 	sourcePath string,
@@ -1367,6 +1398,8 @@ func appendInputManifestFiles(
 	return nil
 }
 
+// filterPathsUnderBase drops empty paths and paths that fall outside basePath.
+// filterPathsUnderBase drops empty paths and paths that fall outside basePath.
 func filterPathsUnderBase(basePath string, paths []string) []string {
 	if len(paths) == 0 {
 		return nil
@@ -1388,6 +1421,10 @@ func filterPathsUnderBase(basePath string, paths []string) []string {
 	return filtered
 }
 
+// newBuildTagsForAnalyze assembles the build tags used during analysis for the
+// given build type, cgo setting, and Go compiler.
+// newBuildTagsForAnalyze assembles the build tags used during analysis for the
+// given build type, cgo setting, and Go compiler.
 func newBuildTagsForAnalyze(
 	buildType bldr_manifest.BuildType,
 	enableCgo bool,
@@ -1844,6 +1881,10 @@ func existingSourceDirs(sourcePath string, relPaths ...string) ([]string, []stri
 	return existingAbs, existingRel
 }
 
+// sourceFilesUnderDirs walks the given source-relative directories and returns
+// the sorted relative paths of every file found beneath them.
+// sourceFilesUnderDirs walks the given source-relative directories and returns
+// the sorted relative paths of every file found beneath them.
 func sourceFilesUnderDirs(sourcePath string, relDirs []string) ([]string, error) {
 	var files []string
 	for _, relDir := range relDirs {
