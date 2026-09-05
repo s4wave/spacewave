@@ -19,6 +19,9 @@ const (
 	// GoScriptCompileWeight is the estimated memory cost of one GoScript compile.
 	GoScriptCompileWeight int64 = 4
 
+	// GoAnalysisWeight is the estimated memory cost of one plugin package analysis.
+	GoAnalysisWeight int64 = 2
+
 	// ViteBuildWeight is the estimated memory cost of one Vite build.
 	ViteBuildWeight int64 = 2
 

@@ -279,7 +279,9 @@ replace github.com/s4wave/spacewave => `+spacewaveDir+`
 `)
 	writeFile(t, workDir, "plugin/root/root.go", `package root
 
-const Value = "root"
+import "strings"
+
+var Value = strings.TrimSpace(" root ")
 `)
 
 	writeFile(t, spacewaveDir, "go.mod", `module github.com/s4wave/spacewave
@@ -304,6 +306,15 @@ type WebBundlerOutput struct{}
 	)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	root := an.GetLoadedPackages()["example.com/plugin/plugin/root"]
+	if root.Types.Scope().Lookup("Value").Type().String() != "string" {
+		t.Fatal("program declaration lost its inferred type")
+	}
+	dependency := root.Imports["strings"]
+	if dependency == nil || len(dependency.Syntax) != 0 || dependency.TypesInfo != nil {
+		t.Fatal("analysis retained external dependency syntax or expression records")
 	}
 
 	programFiles := an.GetProgramGoCodeFiles()
