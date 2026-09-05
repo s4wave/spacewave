@@ -1,4 +1,12 @@
 
+ž	
+0.57.3
+2026-09-04’Spacewave 0.57.3 restores native command-line and browser build compatibility, improves browser reliability, and reduces memory use during builds."’Spacewave 0.57.3 restores native command-line and browser build compatibility, improves browser reliability, and reduces memory use during builds.2n
+5Native command-line builds now complete successfully.5Native command-line builds now complete successfully.2ª
+SBrowser builds now find required modules reliably when using packaged dependencies.SBrowser builds now find required modules reliably when using packaged dependencies.2ª
+SSafari and other WebKit browser sessions now handle disposable resources correctly.SSafari and other WebKit browser sessions now handle disposable resources correctly.2à
+nAfter a connection becomes invalid, Spacewave now refreshes affected resources instead of reusing stale state.nAfter a connection becomes invalid, Spacewave now refreshes affected resources instead of reusing stale state.:°
+VSpacewave builds now use less memory, reducing failures on memory-constrained systems.VSpacewave builds now use less memory, reducing failures on memory-constrained systems.
 ‰/
 0.57.2
 2026-09-04¥Spacewave 0.57.2 adds a redesigned Keyboard Shortcuts workbench, a dedicated Secret viewer, managed-device support for Forge Workers, and local repository imports for Git Spaces. It also improves Notes, Drive, browser startup, invites, device linking, session recovery, and local file storage."¥Spacewave 0.57.2 adds a redesigned Keyboard Shortcuts workbench, a dedicated Secret viewer, managed-device support for Forge Workers, and local repository imports for Git Spaces. It also improves Notes, Drive, browser startup, invites, device linking, session recovery, and local file storage.*¶

@@ -1,5 +1,24 @@
 #+TITLE: Spacewave Changelog
 
+* v0.57.3
+<2026-09-04 Fri>
+
+Spacewave 0.57.3 restores native command-line and browser build compatibility,
+improves browser reliability, and reduces memory use during builds.
+
+** Fixes
+- Native command-line builds now complete successfully.
+- Browser builds now find required modules reliably when using packaged
+  dependencies.
+- Safari and other WebKit browser sessions now handle disposable resources
+  correctly.
+- After a connection becomes invalid, Spacewave now refreshes affected resources
+  instead of reusing stale state.
+
+** Improvements
+- Spacewave builds now use less memory, reducing failures on memory-constrained
+  systems.
+
 * v0.57.2
 <2026-09-04 Fri>
 
