@@ -1,6 +1,7 @@
 package segment
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"hash/crc32"
@@ -100,9 +101,42 @@ func (w *Writer) Build(dst io.Writer) (int64, error) {
 	return result.Written, nil
 }
 
-// BuildWithMeta sorts entries, streams the SSTable to dst, and returns lookup
-// metadata for the written segment.
+// countingWriter counts bytes accepted by the destination writer.
+type countingWriter struct {
+	dst io.Writer
+	n   int64
+}
+
+// Write forwards to the destination and records the accepted byte count.
+func (cw *countingWriter) Write(p []byte) (int, error) {
+	n, err := cw.dst.Write(p)
+	cw.n += int64(n)
+	if n != len(p) && err == nil {
+		err = io.ErrShortWrite
+	}
+	return n, err
+}
+
+// BuildWithMeta sorts entries and writes the SSTable to dst through a
+// buffered writer, flushing only on success. Written reports the bytes that
+// reached dst; on error Lookup is nil.
 func (w *Writer) BuildWithMeta(dst io.Writer) (BuildResult, error) {
+	counter := &countingWriter{dst: dst}
+	buf := bufio.NewWriterSize(counter, 32*1024)
+	result, err := w.buildWithMeta(buf)
+	if err != nil {
+		return BuildResult{Written: counter.n}, err
+	}
+	if err := buf.Flush(); err != nil {
+		return BuildResult{Written: counter.n}, errors.Wrap(err, "flush segment")
+	}
+	result.Written = counter.n
+	return result, nil
+}
+
+// buildWithMeta encodes the sorted SSTable into the given writer and returns
+// lookup metadata for the encoded segment.
+func (w *Writer) buildWithMeta(dst io.Writer) (BuildResult, error) {
 	if len(w.entries) == 0 {
 		return BuildResult{}, errors.New("no entries")
 	}
