@@ -18,8 +18,18 @@ if(UNIX)
     target_link_libraries(spacewave-zero-native-ipc-test PRIVATE pthread)
 endif()
 
+if(UNIX)
+    add_executable(spacewave-update-test
+        src/update-manager.cpp
+        src/update_manager_test.cc
+    )
+endif()
+
 enable_testing()
 add_test(NAME spacewave-zero-native-ipc-test COMMAND spacewave-zero-native-ipc-test)
+if(UNIX)
+    add_test(NAME spacewave-update-test COMMAND spacewave-update-test)
+endif()
 
 add_executable(spacewave-helper
     src/main.cpp

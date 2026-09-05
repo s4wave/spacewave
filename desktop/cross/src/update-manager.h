@@ -3,21 +3,30 @@
 #include <string>
 
 // UpdateManager handles entrypoint self-update: wait for PID exit,
-// swap binary, relaunch.
+// swap binary, Relaunch.
 class UpdateManager {
 public:
-    UpdateManager(const std::string& currentPath,
-                  const std::string& stagedPath,
-                  int32_t pid);
+  // UpdateManager retains the installed and staged paths and the exiting app
+  // PID.
+  UpdateManager(const std::string &current_path, const std::string &staged_path,
+                int32_t pid);
 
-    bool execute();
+  // execute retains the previous binary until the replacement process launches.
+  bool execute();
 
 private:
-    void waitForProcessExit();
-    bool swapBinary();
-    bool relaunch();
+  // WaitForProcessExit waits for an operating-system process-exit event.
+  bool WaitForProcessExit();
+  // SwapBinary retains the installed binary as a rollback candidate.
+  bool SwapBinary();
+  // Relaunch succeeds only when the operating system creates the replacement
+  // process.
+  bool Relaunch();
 
-    std::string currentPath_;
-    std::string stagedPath_;
-    int32_t pid_;
+  // current_path_ names the installed entrypoint.
+  std::string current_path_;
+  // staged_path_ names the verified download on the same filesystem.
+  std::string staged_path_;
+  // pid_ identifies the application that must exit before replacement.
+  int32_t pid_;
 };
