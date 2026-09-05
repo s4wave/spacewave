@@ -92,7 +92,8 @@ type PreBuildHook func(ctx context.Context, builderConf *bldr_manifest_builder.B
 // dist working dir. Called before calling the Go compiler or bundling the
 // assets or dist fs.
 //
-// XXX: ceiling: unused hook lifecycle; upgrade unused -> remove this method.
+// XXX: ceiling: ad-hoc registration; upgrade stable plugin API -> remove this
+// method.
 func (c *Controller) AddPreBuildHook(hook PreBuildHook) {
 	if hook != nil {
 		c.preBuildHooks = append(c.preBuildHooks, hook)
