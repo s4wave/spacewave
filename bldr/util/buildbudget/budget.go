@@ -25,19 +25,26 @@ const (
 	// ViteBuildWeight is the estimated memory cost of one Vite build.
 	ViteBuildWeight int64 = 2
 
+	// defaultBudgetFractionDenominator divides available host memory to
+	// derive the default budget capacity.
 	defaultBudgetFractionDenominator int64 = 4
 )
 
 // Budget bounds memory-heavy build stages across all Bldr build paths.
 type Budget struct {
+	// semaphore admits build stages up to the configured capacity.
 	semaphore *semaphore.Weighted
-	capacity  int64
+	// capacity is the total budget in GiB.
+	capacity int64
 }
 
 var (
+	// defaultBudgetOnce constructs the default budget on first use.
 	defaultBudgetOnce sync.Once
-	defaultBudget     *Budget
-	defaultBudgetErr  error
+	// defaultBudget is the shared process-wide build budget.
+	defaultBudget *Budget
+	// defaultBudgetErr is the construction error from defaultBudgetOnce.
+	defaultBudgetErr error
 )
 
 // NewBudget constructs a shared build budget with a GiB capacity.
@@ -86,7 +93,10 @@ func (b *Budget) Acquire(ctx context.Context, weight int64) (*Permit, error) {
 	return &Permit{budget: b, weight: weight, released: new(sync.Once)}, nil
 }
 
+// newDefaultBudget constructs the process-wide budget from the environment
+// override or available host memory.
 func newDefaultBudget() (*Budget, error) {
+	// Prefer the explicit environment override when set.
 	raw := strings.TrimSpace(os.Getenv(MemoryBudgetEnv))
 	if raw != "" {
 		capacity, err := strconv.ParseInt(raw, 10, 64)
@@ -96,6 +106,7 @@ func newDefaultBudget() (*Budget, error) {
 		return NewBudget(capacity)
 	}
 
+	// Otherwise derive the budget from available host memory.
 	availableBytes, err := availableHostMemoryBytes()
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve available host memory")
