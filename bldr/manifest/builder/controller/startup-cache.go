@@ -52,6 +52,7 @@ func (c *Controller) validateStartupBuilderResult(
 	le *logrus.Entry,
 	builderCtrl bldr_manifest_builder.Controller,
 ) (*startupValidationResult, error) {
+	// Only cache-safe builders with a complete result can skip compilation.
 	startupBuilderResult := c.c.GetStartupBuilderResult()
 	if startupBuilderResult == nil {
 		return &startupValidationResult{reason: "no startup builder result"}, nil
@@ -65,17 +66,28 @@ func (c *Controller) validateStartupBuilderResult(
 		}, nil
 	}
 
+	// Source identity alone cannot make another build type or platform reusable.
+	requested := c.c.GetBuilderConfig().GetManifestMeta()
+	cached := startupBuilderResult.GetManifest().GetMeta()
+	if requested.GetManifestId() != cached.GetManifestId() ||
+		requested.GetBuildType() != cached.GetBuildType() ||
+		requested.GetPlatformId() != cached.GetPlatformId() {
+		return &startupValidationResult{reason: "startup manifest build identity changed"}, nil
+	}
+
+	// Validate source files and controller inputs before checking stored output.
 	inputManifest := startupBuilderResult.GetInputManifest()
 	if inputManifest == nil {
 		return &startupValidationResult{reason: "startup builder result has no input manifest"}, nil
 	}
-
 	if err := validateStartupFiles(c.c.GetBuilderConfig().GetSourcePath(), inputManifest); err != nil {
 		return &startupValidationResult{reason: err.Error()}, nil
 	}
 	if err := validateStartupInputs(c.c.GetControllerConfig(), inputManifest); err != nil {
 		return &startupValidationResult{reason: err.Error()}, nil
 	}
+
+	// Cached output must still exist in the active volume.
 	reason, err := c.validateStartupManifestAvailability(ctx, le, startupBuilderResult)
 	if err != nil {
 		return nil, err
@@ -84,6 +96,7 @@ func (c *Controller) validateStartupBuilderResult(
 		return &startupValidationResult{reason: reason}, nil
 	}
 
+	// Nested builders and watched manifests remain part of the cached dependency set.
 	subManifestIDs, reason, err := c.validateStartupSubManifestResults(ctx, le, startupBuilderResult)
 	if err != nil {
 		return nil, err
@@ -91,7 +104,6 @@ func (c *Controller) validateStartupBuilderResult(
 	if reason != "" {
 		return &startupValidationResult{reason: reason}, nil
 	}
-
 	manifestDepSnapshot, err := c.validateStartupManifestDeps(ctx, le, inputManifest)
 	if err != nil {
 		return nil, err
@@ -100,6 +112,7 @@ func (c *Controller) validateStartupBuilderResult(
 		return &startupValidationResult{reason: "manifest dependency configuration changed"}, nil
 	}
 
+	// Return an independent snapshot for the build controller's lifetime.
 	return &startupValidationResult{
 		builderResult:       startupBuilderResult.CloneVT(),
 		manifestDepSnapshot: manifestDepSnapshot,
@@ -114,12 +127,14 @@ func (c *Controller) validateStartupManifestAvailability(
 	le *logrus.Entry,
 	startupBuilderResult *bldr_manifest_builder.BuilderResult,
 ) (string, error) {
+	// Resolve the volume that must contain the cached manifest.
 	builderConfig := c.c.GetBuilderConfig()
 	engineID := builderConfig.GetEngineId()
 	if engineID == "" {
 		return "", nil
 	}
 
+	// Require a manifest reference before opening its storage.
 	manifestRef := startupBuilderResult.GetManifestRef()
 	if manifestRef == nil || manifestRef.GetManifestRef() == nil {
 		return "startup builder result has no manifest ref", nil
@@ -173,6 +188,7 @@ func (c *Controller) validateStartupManifestAvailability(
 		).Error(), nil
 	}
 
+	// Verify both the manifest DAG and the executable entrypoint remain readable.
 	entrypoint := startupBuilderResult.GetManifest().GetEntrypoint()
 	err := bldr_manifest_world.AccessStartupManifest(
 		ctx,
@@ -207,6 +223,7 @@ func (c *Controller) validateStartupManifestAvailability(
 	return "", nil
 }
 
+// validateStartupSubManifestResults validates nested compiler inputs and stored output.
 func (c *Controller) validateStartupSubManifestResults(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -218,12 +235,15 @@ func (c *Controller) validateStartupSubManifestResults(
 		if err := subManifestResult.Validate(); err != nil {
 			return nil, errors.Wrapf(err, "invalid startup sub-manifest %q", subManifestID).Error(), nil
 		}
-		inputManifest := subManifestResult.GetInputManifest()
+
 		// The parent InputManifest contains the transitive child file union.
 		// Rechecking files here would hash every nested input twice.
+		inputManifest := subManifestResult.GetInputManifest()
 		if err := validateNestedStartupInputs(inputManifest); err != nil {
 			return nil, errors.Wrapf(err, "validate startup sub-manifest %q", subManifestID).Error(), nil
 		}
+
+		// Validate stored output before recursively accepting descendant manifests.
 		reason, err := c.validateStartupManifestAvailability(ctx, le, subManifestResult)
 		if err != nil {
 			return nil, "", err
@@ -247,6 +267,7 @@ func (c *Controller) validateStartupManifestDeps(
 	le *logrus.Entry,
 	inputManifest *bldr_manifest_builder.InputManifest,
 ) (map[string]*bucket.ObjectRef, error) {
+	// Absence of watched dependencies must agree with the cached dependency set.
 	watchManifestIDs := c.c.GetWatchManifestIds()
 	cachedDeps := inputManifest.GetManifestDeps()
 	if len(watchManifestIDs) == 0 {
@@ -256,6 +277,7 @@ func (c *Controller) validateStartupManifestDeps(
 		return map[string]*bucket.ObjectRef{}, nil
 	}
 
+	// Resolve current dependency references and require an exact snapshot match.
 	resolvedDeps, refs := c.resolveManifestDeps(ctx, le, watchManifestIDs)
 	if !manifestDepsEqual(cachedDeps, resolvedDeps) {
 		return nil, nil
@@ -269,6 +291,7 @@ func enrichBuilderResultForStartupReuse(
 	controllerConfig *configset_proto.ControllerConfig,
 	builderResult *bldr_manifest_builder.BuilderResult,
 ) error {
+	// Builders without input provenance cannot contribute startup cache metadata.
 	if builderResult == nil {
 		return nil
 	}
@@ -277,10 +300,12 @@ func enrichBuilderResultForStartupReuse(
 		return nil
 	}
 
+	// Capture source identities and output policy alongside compiler inputs.
 	if err := captureFileIdentities(builderConfig.GetSourcePath(), inputManifest); err != nil {
 		return err
 	}
 
+	// Bind startup reuse to the effective controller configuration and format.
 	controllerConfigDigest, err := marshalControllerConfigDigest(controllerConfig)
 	if err != nil {
 		return err
@@ -301,6 +326,7 @@ func addSubManifestResultForStartupReuse(
 	subManifestID string,
 	subManifestResult *bldr_manifest_builder.BuilderResult,
 ) error {
+	// Merge only complete nested results into a parent with input provenance.
 	if builderResult == nil || subManifestResult == nil {
 		return nil
 	}
@@ -312,11 +338,13 @@ func addSubManifestResultForStartupReuse(
 		return errors.New("builder result has no input manifest")
 	}
 
+	// Keep an independent nested result for recursive validation.
 	if builderResult.SubManifestResults == nil {
 		builderResult.SubManifestResults = make(map[string]*bldr_manifest_builder.BuilderResult)
 	}
 	builderResult.SubManifestResults[subManifestID] = subManifestResult.CloneVT()
 
+	// Union child file identities into the parent without duplicating watched paths.
 	seenPaths := make(map[string]struct{}, len(inputManifest.GetFiles()))
 	for _, inputFile := range inputManifest.GetFiles() {
 		seenPaths[path.Clean(inputFile.GetPath())] = struct{}{}
@@ -326,6 +354,8 @@ func addSubManifestResultForStartupReuse(
 		if _, ok := seenPaths[cleanPath]; ok {
 			continue
 		}
+
+		// Nested inputs invalidate startup reuse without becoming direct compiler inputs.
 		startupFile := inputFile.CloneVT()
 		startupFile.StartupOnly = true
 		inputManifest.Files = append(inputManifest.Files, startupFile)
@@ -375,6 +405,7 @@ func validateStartupInputsWithControllerConfig(
 	inputManifest *bldr_manifest_builder.InputManifest,
 	validateControllerConfig bool,
 ) error {
+	// Every recorded environment and controller input must still match.
 	var controllerConfigDigest []byte
 	var foundControllerConfigDigest bool
 	var foundStartupCacheFormat bool
@@ -406,6 +437,8 @@ func validateStartupInputsWithControllerConfig(
 			return errors.Errorf("unsupported startup input kind: %s", input.GetKind().String())
 		}
 	}
+
+	// Missing validation metadata cannot authorize a cache hit.
 	if !foundControllerConfigDigest {
 		return errors.New("missing builder controller config digest")
 	}
@@ -443,12 +476,14 @@ func captureFileIdentities(sourcePath string, inputManifest *bldr_manifest_build
 // before re-entering it (for example "../../node_modules/..."). For startup
 // validation we resolve those back to the matching file under sourcePath.
 func resolveStartupInputPath(sourcePath, inputPath string) string {
+	// Resolve ordinary paths directly beneath the source root.
 	cleanPath := filepath.Clean(inputPath)
 	filePath := filepath.Join(sourcePath, cleanPath)
 	if !strings.HasPrefix(cleanPath, "..") {
 		return filePath
 	}
 
+	// Rebase bundler paths that walk out of the source tree and then re-enter it.
 	pathParts := strings.FieldsFunc(cleanPath, func(r rune) bool {
 		return r == '/' || r == '\\'
 	})
@@ -467,11 +502,13 @@ func resolveStartupInputPath(sourcePath, inputPath string) string {
 		}
 	}
 
+	// Keep the original path when no rebased file exists.
 	return filePath
 }
 
 // marshalControllerConfigDigest marshals the controller config to a digest.
 func marshalControllerConfigDigest(controllerConfig *configset_proto.ControllerConfig) ([]byte, error) {
+	// Marshal the effective configuration using its generated codec.
 	if controllerConfig == nil {
 		return nil, nil
 	}
@@ -479,6 +516,8 @@ func marshalControllerConfigDigest(controllerConfig *configset_proto.ControllerC
 	if err != nil {
 		return nil, err
 	}
+
+	// Hash serialized configuration for compact startup comparison.
 	digest := sha256.Sum256(controllerConfigBin)
 	return digest[:], nil
 }
@@ -488,6 +527,7 @@ func manifestDepsEqual(
 	cachedDeps []*bldr_manifest_builder.InputManifest_ManifestDep,
 	currentDeps []*bldr_manifest_builder.InputManifest_ManifestDep,
 ) bool {
+	// Compare dependency identities without depending on collection order.
 	if len(cachedDeps) != len(currentDeps) {
 		return false
 	}

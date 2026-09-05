@@ -1,4 +1,4 @@
-package bldr_dist_compiler
+package bldr_manifest_pack
 
 import (
 	"context"
@@ -11,10 +11,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestWaitForEmbedManifestValueWaitsWhenIdleWithoutValue(t *testing.T) {
+// TestResolveManifestTupleWaitsWhenIdleWithoutValue preserves late-producer readiness.
+func TestResolveManifestTupleWaitsWhenIdleWithoutValue(t *testing.T) {
+	// A bus without manifest producers must remain pending until cancellation.
 	ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
-	defer cancel()
-
+	t.Cleanup(cancel)
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 	b, _, err := controllerbus_core.NewCoreBus(ctx, logrus.NewEntry(log))
@@ -22,14 +23,15 @@ func TestWaitForEmbedManifestValueWaitsWhenIdleWithoutValue(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ref, err := waitForEmbedManifestValue(
+	// Resolve an absent tuple and distinguish idle state from terminal failure.
+	ref, err := ResolveManifestTuple(
 		ctx,
 		b,
-		&EmbedManifest{ManifestId: "missing-core", PlatformId: "web/js/wasm"},
-		bldr_manifest.BuildType_RELEASE,
+		&ManifestTuple{ManifestId: "missing-core", PlatformId: "web/js/wasm", ObjectKey: "dist/missing-core"},
+		bldr_manifest.BuildType_RELEASE.String(),
 	)
 	if ref != nil {
-		defer ref.Release()
+		t.Fatal("unexpected manifest while no producer has a value")
 	}
 	if err == nil {
 		t.Fatal("expected context timeout while waiting for FetchManifest")

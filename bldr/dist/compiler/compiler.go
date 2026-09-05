@@ -4,28 +4,24 @@ package bldr_dist_compiler
 
 import (
 	"context"
-	"errors"
 	"os"
 	"path/filepath"
 	"slices"
-	"sync"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
 	configset_proto "github.com/aperturerobotics/controllerbus/controller/configset/proto"
-	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/util/fsutil"
 	pkgerrors "github.com/pkg/errors"
 	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_builder "github.com/s4wave/spacewave/bldr/manifest/builder"
+	bldr_manifest_pack "github.com/s4wave/spacewave/bldr/manifest/pack"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
 	plugin_compiler_go "github.com/s4wave/spacewave/bldr/plugin/compiler/go"
-	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/world"
-	world_control "github.com/s4wave/spacewave/db/world/control"
 	"github.com/s4wave/spacewave/net/peer"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/mod/modfile"
@@ -43,6 +39,7 @@ var controllerDescrip = "dist compiler controller"
 // Controller is the compiler controller.
 type Controller struct {
 	*bus.BusController[*Config]
+	// preBuildHooks configure the distribution before its manifests are resolved.
 	preBuildHooks []PreBuildHook
 }
 
@@ -51,9 +48,12 @@ type Factory = bus.BusFactory[*Config, *Controller]
 
 // NewController constructs a new dist compiler controller.
 func NewController(le *logrus.Entry, b bus.Bus, conf *Config) (*Controller, error) {
+	// Validate configuration before constructing the compiler.
 	if err := conf.Validate(); err != nil {
 		return nil, err
 	}
+
+	// Attach the configured bus and controller identity.
 	return &Controller{
 		BusController: bus.NewBusController(
 			le,
@@ -91,8 +91,7 @@ type PreBuildHook func(ctx context.Context, builderConf *bldr_manifest_builder.B
 // dist working dir. Called before calling the Go compiler or bundling the
 // assets or dist fs.
 //
-// XXX: ceiling: ad-hoc registration; upgrade stable plugin API -> remove this
-// method.
+// Hooks must be registered before BuildManifest starts.
 func (c *Controller) AddPreBuildHook(hook PreBuildHook) {
 	if hook != nil {
 		c.preBuildHooks = append(c.preBuildHooks, hook)
@@ -120,17 +119,18 @@ func (c *Controller) BuildManifest(
 	args *bldr_manifest_builder.BuildManifestArgs,
 	host bldr_manifest_builder.BuildManifestHost,
 ) (*bldr_manifest_builder.BuilderResult, error) {
+	// Resolve the requested build identity and target platform.
 	builderConf := args.GetBuilderConfig()
 	meta, buildPlatform, err := builderConf.GetManifestMeta().Resolve()
 	if err != nil {
 		return nil, err
 	}
 
+	// Scope build diagnostics to the resolved manifest.
 	platformID := meta.GetPlatformId()
 	manifestID := meta.GetManifestId()
 	buildType := bldr_manifest.ToBuildType(meta.GetBuildType())
 	buildTimestamp := bldr_manifest_builder.ManifestCommitTimestamp(ctx)
-
 	le := c.GetLogger().
 		WithField("manifest-id", manifestID).
 		WithField("build-type", buildType).
@@ -152,7 +152,6 @@ func (c *Controller) BuildManifest(
 	// Resolve the working and source paths.
 	workingPath := builderConf.GetWorkingPath()
 	sourcePath := builderConf.GetSourcePath()
-
 	goModPath := filepath.Join(sourcePath, "go.mod")
 	goModData, err := os.ReadFile(goModPath)
 	if err != nil {
@@ -163,16 +162,13 @@ func (c *Controller) BuildManifest(
 	// Build the output world engine.
 	busEngine := world.NewBusEngine(ctx, c.GetBus(), builderConf.GetEngineId())
 
-	// Clone the config and apply the pre-build hooks.
+	// Apply pre-build hooks to a private configuration snapshot.
 	conf := c.GetConfig().CloneVT()
-
-	// Call any pre-build hooks.
 	for _, hook := range c.preBuildHooks {
 		res, err := hook(ctx, builderConf, busEngine)
 		if err != nil {
 			return nil, err
 		}
-
 		conf.Merge(res.GetConfig())
 	}
 
@@ -184,10 +180,6 @@ func (c *Controller) BuildManifest(
 
 	// Build the list of embed manifests and load plugins.
 	embedSpecs := slices.Clone(conf.GetEmbedManifests())
-	embedManifestIDs := make([]string, len(embedSpecs))
-	for i, em := range embedSpecs {
-		embedManifestIDs[i] = em.GetManifestId()
-	}
 	loadPlugins := slices.Clone(conf.GetLoadPlugins())
 
 	// Determine the project id.
@@ -207,6 +199,7 @@ func (c *Controller) BuildManifest(
 	// Sort and clean up the fields.
 	conf.Normalize()
 
+	// Describe the installed entrypoint and its embedded manifest store.
 	le.Debug("compiling dist")
 	entrypointFilename := projectID + buildPlatform.GetExecutableExt()
 	manifestStoreObjKey := "dist"
@@ -223,135 +216,23 @@ func (c *Controller) BuildManifest(
 		meta.GetRev(),
 	)
 
-	searchKeys := builderConf.GetLinkObjectKeys()
-	if len(searchKeys) == 0 {
-		return nil, errors.New("link_object_keys is empty, cannot scan for manifests")
-	}
-
-	// Scope the manifest search to exactly the platform IDs referenced by
-	// embed_manifests entries. Each embed names a specific (manifest_id,
-	// platform_id) build; there is no implicit cross-platform resolution.
-	searchPlatformSet := make(map[string]struct{}, len(embedSpecs))
-	for _, em := range embedSpecs {
-		searchPlatformSet[em.GetPlatformId()] = struct{}{}
-	}
-	searchPlatformIDs := make([]string, 0, len(searchPlatformSet))
-	for p := range searchPlatformSet {
-		searchPlatformIDs = append(searchPlatformIDs, p)
-	}
-	slices.Sort(searchPlatformIDs)
-
-	// Wait for all requested (manifest_id, platform_id) builds to exist.
-	embedManifests := make([]*bldr_manifest_world.CollectedManifest, len(embedSpecs))
-	handler := world_control.NewWaitForStateHandler(func(
-		ctx context.Context,
-		ws world.WorldState,
-		obj world.ObjectState,
-		rootCs *block.Cursor,
-		rev uint64,
-	) (bool, error) {
-		// Scan for manifests we want to embed. If no embeds are configured,
-		// skip the scan entirely; there is nothing to wait for.
-		if len(embedSpecs) == 0 {
-			return false, nil
-		}
-
-		collectedManifests, manifestErrs, err := bldr_manifest_world.CollectManifests(ctx, ws, searchPlatformIDs, searchKeys...)
+	// FetchManifest owns build-type and platform selection, readiness, and errors.
+	// Resolve each immutable reference before copying its DAG into the bundle.
+	embedManifests := make([]*bldr_manifest.ManifestRef, len(embedSpecs))
+	for i, em := range embedSpecs {
+		ref, err := bldr_manifest_pack.ResolveManifestTuple(ctx, c.GetBus(), &bldr_manifest_pack.ManifestTuple{
+			ManifestId: em.GetManifestId(),
+			PlatformId: em.GetPlatformId(),
+			ObjectKey:  manifestStorePrefix + em.GetManifestId(),
+		}, buildType.String())
 		if err != nil {
-			return false, err
+			return nil, pkgerrors.Wrapf(err, "embed %s@%s", em.GetManifestId(), em.GetPlatformId())
 		}
-		for _, err := range manifestErrs {
-			le.WithError(err).Warn("skipped invalid manifest")
-		}
-
-		var notFoundDescs []string
-		for i, em := range embedSpecs {
-			// Note: matchingManifests is sorted by rev, higher is first in the list.
-			matchingManifests := collectedManifests[em.GetManifestId()]
-			var found *bldr_manifest_world.CollectedManifest
-			for _, cm := range matchingManifests {
-				if cm.Manifest.GetMeta().GetPlatformId() == em.GetPlatformId() {
-					found = cm
-					break
-				}
-			}
-			if found == nil {
-				notFoundDescs = append(notFoundDescs, em.GetManifestId()+"@"+em.GetPlatformId())
-			} else {
-				embedManifests[i] = found
-			}
-		}
-
-		// Wait for missing manifests to exist, if any.
-		if len(notFoundDescs) != 0 {
-			le.Infof("waiting for %d not-found embed manifests: %v", len(notFoundDescs), notFoundDescs)
-			return true, nil
-		}
-
-		return false, nil
-	})
-
-	// Fan out one FetchManifest directive per embed tuple in parallel with the
-	// world-scan watch loop. The watch loop populates CollectedManifest entries
-	// as builds complete; the directives surface terminal builder errors so a
-	// failed embed aborts the dist compile instead of hanging forever. First
-	// error wins and cancels siblings.
-	embedCtx, embedCancel := context.WithCancelCause(ctx)
-	defer embedCancel(nil)
-
-	var directiveRefs []directive.Reference
-	var refsMu sync.Mutex
-	defer func() {
-		refsMu.Lock()
-		for _, ref := range directiveRefs {
-			if ref != nil {
-				ref.Release()
-			}
-		}
-		refsMu.Unlock()
-	}()
-
-	var embedWG sync.WaitGroup
-	for _, em := range embedSpecs {
-		embedWG.Go(func() {
-			ref, err := waitForEmbedManifestValue(
-				embedCtx,
-				c.GetBus(),
-				em,
-				buildType,
-			)
-			if err != nil {
-				if embedCtx.Err() == nil {
-					embedCancel(pkgerrors.Wrapf(err, "embed %s@%s", em.GetManifestId(), em.GetPlatformId()))
-				}
-				return
-			}
-			if ref != nil {
-				refsMu.Lock()
-				directiveRefs = append(directiveRefs, ref)
-				refsMu.Unlock()
-			}
-		})
+		embedManifests[i] = ref
 	}
-
-	// use short-lived read transactions
-	watchLoop := world_control.NewWatchLoop(le, "", handler)
 	ws := world.NewEngineWorldState(busEngine, false)
-	watchErr := watchLoop.Execute(embedCtx, ws)
 
-	// Unblock any in-flight FetchManifest directives before returning.
-	embedCancel(nil)
-	embedWG.Wait()
-
-	if watchErr != nil {
-		if cause := context.Cause(embedCtx); cause != nil && cause != context.Canceled && !errors.Is(cause, context.Canceled) {
-			return nil, cause
-		}
-		return nil, watchErr
-	}
-
-	// When we compile the bundle we will copy the embed manifests to the embedded
-	// volume.
+	// The bundle callback copies exactly the references selected by FetchManifest.
 	initEmbeddedWorld := func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error {
 		// Create the base object store.
 		le.
@@ -363,20 +244,24 @@ func (c *Controller) BuildManifest(
 
 		// Copy the embed plugin manifests to the embedded manifests world.
 		for _, embedManifestInfo := range embedManifests {
+			// Isolate each manifest copy in a transaction on the embedded volume.
 			le.
-				WithField("copy-manifest-id", embedManifestInfo.Manifest.GetMeta().GetManifestId()).
-				WithField("copy-manifest-rev", embedManifestInfo.Manifest.GetMeta().GetRev()).
+				WithField("copy-manifest-id", embedManifestInfo.GetMeta().GetManifestId()).
+				WithField("copy-manifest-rev", embedManifestInfo.GetMeta().GetRev()).
 				Debug("copying manifest to embedded volume")
 			embedTx, err := embedEngine.NewTransaction(ctx, true)
 			if err != nil {
 				return err
 			}
-			manifestObjKey := manifestStorePrefix + embedManifestInfo.Manifest.GetMeta().GetManifestId()
+			defer embedTx.Discard()
+
+			// Preserve the fetched manifest DAG and attach it to the embedded store.
+			manifestObjKey := manifestStorePrefix + embedManifestInfo.GetMeta().GetManifestId()
 			_, _, err = bldr_manifest_world.DeepCopyManifest(
 				ctx,
 				le,
 				ws.AccessWorldState,
-				embedManifestInfo.ManifestRef,
+				embedManifestInfo.GetManifestRef(),
 				nil,
 				embedTx,
 				embedTx.AccessWorldState,
@@ -386,7 +271,6 @@ func (c *Controller) BuildManifest(
 				buildTimestamp.CloneVT(),
 			)
 			if err != nil {
-				embedTx.Discard()
 				return err
 			}
 			if err := embedTx.Commit(ctx); err != nil {
@@ -397,11 +281,13 @@ func (c *Controller) BuildManifest(
 		return nil
 	}
 
+	// Resolve the configured web entrypoint before constructing imports.
 	webStartupSrcPath, err := conf.ParseWebStartupPath()
 	if err != nil {
 		return nil, err
 	}
 
+	// Native distributions include CLI packages for their target OS and architecture.
 	var cliImports map[string]bldr_cli_compiler.CliImport
 	if !bldr_platform.IsWebPlatform(buildPlatform) {
 		cliPkgs, _ := plugin_compiler_go.UpdateRelativeGoPackagePaths(
@@ -418,6 +304,7 @@ func (c *Controller) BuildManifest(
 		}
 	}
 
+	// Compile the host and copy the resolved plugin DAGs into its embedded volume.
 	err = BuildDistBundle(
 		ctx,
 		le,
@@ -444,14 +331,15 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	// Publish the complete distribution manifest in one transaction.
 	tx, err := busEngine.NewTransaction(ctx, true)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Discard()
 
+	// Commit the executable and assets together.
 	le.Debug("bundling dist files")
-	// bundle dist and assets fs
 	committedManifest, committedManifestRef, err := builderConf.CommitManifestWithPaths(
 		ctx,
 		le,
@@ -465,6 +353,7 @@ func (c *Controller) BuildManifest(
 		return nil, err
 	}
 
+	// Return the committed distribution and its build provenance.
 	le.Debug("dist build complete")
 	result := bldr_manifest_builder.NewBuilderResult(
 		committedManifest,
@@ -478,44 +367,11 @@ func (c *Controller) BuildManifest(
 	return result, nil
 }
 
-func waitForEmbedManifestValue(
-	ctx context.Context,
-	b bus.Bus,
-	em *EmbedManifest,
-	buildType bldr_manifest.BuildType,
-) (directive.Reference, error) {
-	dir := bldr_manifest.NewFetchManifest(
-		em.GetManifestId(),
-		[]bldr_manifest.BuildType{buildType},
-		[]string{em.GetPlatformId()},
-		0,
-	)
-	_, _, ref, err := bus.ExecWaitValue[*bldr_manifest.FetchManifestValue](
-		ctx,
-		b,
-		dir,
-		func(isIdle bool, errs []error) (bool, error) {
-			if len(errs) != 0 {
-				return false, errs[0]
-			}
-			// Idle means no resolver currently has a value; manifest producers may
-			// still publish later, so keep waiting under the caller's context.
-			return true, nil
-		},
-		nil,
-		nil,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return ref, nil
-}
-
 // GetSupportedPlatforms returns the base platform IDs this compiler supports.
 // The dist compiler supports native and web platforms including WebAssembly.
 func (c *Controller) GetSupportedPlatforms() []string {
 	return []string{bldr_platform.PlatformID_DESKTOP, bldr_platform.PlatformID_WEB}
 }
 
-// _ is a type assertion
+// _ verifies the manifest compiler contract.
 var _ bldr_manifest_builder.Controller = (*Controller)(nil)
