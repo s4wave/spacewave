@@ -1,6 +1,5 @@
-import { ChannelStream, OpenStreamCtr, PacketStream } from 'starpc'
+import { OpenStreamCtr, type PacketStream } from 'starpc'
 
-import { channelPacketStream } from '../../bldr/channel-packet-stream.js'
 import {
   WebRuntimeClientInit,
   WebRuntimeHostInit,
@@ -15,6 +14,7 @@ import {
   GoWasmProcess,
   loadWebAssemblyModule,
 } from '../../runtime/wasm/go-process.js'
+import { messagePortPacketStream } from './message-port-packet-stream.js'
 import { RuntimeOpfsBridge } from './runtime-opfs-bridge.js'
 
 // Detect whether we are running as a SharedWorker or a dedicated Worker.
@@ -88,28 +88,25 @@ goOpenStreamChannel.port1.onmessage = (msg) => {
   }
 
   const port = msg.ports[0]
-  const portDuplex = channelPacketStream(
-    new ChannelStream('runtime-wasm', port, { remoteOpen: true }),
-  )
+  const portDuplex = messagePortPacketStream(port)
   webRuntime
     .getWebRuntimeServer()
     .rpcStreamHandler(portDuplex)
     .catch(() => {})
 }
 goOpenStreamChannel.port1.start()
+// startGoRpcStreams installs the opener for raw Go MessagePort RPC streams.
 function startGoRpcStreams() {
   goOpenStreamCtr.set(async (): Promise<PacketStream> => {
     const streamChannel = new MessageChannel()
     goOpenStreamChannel.port1.postMessage('open-stream', [streamChannel.port2])
-    return channelPacketStream(
-      new ChannelStream('runtime-wasm', streamChannel.port1, {
-        remoteOpen: true,
-      }),
-    )
+    return messagePortPacketStream(streamChannel.port1)
   })
 }
 
 let goStarted = false
+
+// startGoRuntime starts the process once, after its host configuration is installed.
 async function startGoRuntime(
   webRuntimeId: string,
   env?: Record<string, string>,
@@ -179,15 +176,8 @@ function handlePortMessage(msgEvent: MessageEvent) {
   if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
     const { webRuntimeId, env } = msg.initWebRuntime
     void (async () => {
-      // Install the OPFS bridge before the Go process starts so
-      // RemoteDriver.GetRoot() finds the global port during volume mount. In a
-      // SharedWorker the runtime cannot call getDirectory() itself, so it must
-      // not start Go without the bridge (that crashes on the original OPFS
-      // SecurityError). ensureBridge() retries across live documents; if none
-      // can host yet, defer startup (leave runtimeStarted false) so a later
-      // document's init drives it instead of wedging on a transient first-tab
-      // failure. startGoRuntime is itself idempotent, and runtimeStarted flips
-      // only after the bridge precondition holds.
+      // SharedWorker cannot open OPFS directly. A document must provide its
+      // bridge before Go mounts volumes; retry when another document connects.
       if (runtimeOpfsBridge && !(await runtimeOpfsBridge.ensureBridge())) {
         console.warn(
           'runtime-wasm: OPFS bridge unavailable; deferring Go start until a document can host OPFS',

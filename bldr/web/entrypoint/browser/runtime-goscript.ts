@@ -1,6 +1,4 @@
-import { ChannelStream, OpenStreamCtr, PacketStream } from 'starpc'
-
-import { channelPacketStream } from '../../bldr/channel-packet-stream.js'
+import { OpenStreamCtr, type PacketStream } from 'starpc'
 
 import {
   WebRuntimeClientInit,
@@ -12,9 +10,12 @@ import {
   RemoveWebDocumentFunc,
   WebRuntime,
 } from '../../bldr/web-runtime.js'
+import { messagePortPacketStream } from './message-port-packet-stream.js'
 import { RuntimeOpfsBridge } from './runtime-opfs-bridge.js'
 
+// GoScriptRuntimeMain runs the compiled process until it exits.
 export type GoScriptRuntimeMain = () => void | Promise<void>
+// GoScriptRuntimeMainLoader resolves the compiled process entrypoint.
 export type GoScriptRuntimeMainLoader = () => Promise<GoScriptRuntimeMain>
 
 const isSharedWorker =
@@ -110,9 +111,7 @@ goOpenStreamChannel.port1.onmessage = (msg) => {
   }
 
   const port = msg.ports[0]
-  const portDuplex = channelPacketStream(
-    new ChannelStream('runtime-goscript', port, { remoteOpen: true }),
-  )
+  const portDuplex = messagePortPacketStream(port)
   webRuntime
     .getWebRuntimeServer()
     .rpcStreamHandler(portDuplex)
@@ -120,19 +119,18 @@ goOpenStreamChannel.port1.onmessage = (msg) => {
 }
 goOpenStreamChannel.port1.start()
 
+// startGoRpcStreams installs the opener for raw Go MessagePort RPC streams.
 function startGoRpcStreams() {
   goOpenStreamCtr.set(async (): Promise<PacketStream> => {
     const streamChannel = new MessageChannel()
     goOpenStreamChannel.port1.postMessage('open-stream', [streamChannel.port2])
-    return channelPacketStream(
-      new ChannelStream('runtime-goscript', streamChannel.port1, {
-        remoteOpen: true,
-      }),
-    )
+    return messagePortPacketStream(streamChannel.port1)
   })
 }
 
 let goStarted = false
+
+// startGoScriptRuntime starts the process once, after its host configuration is installed.
 async function startGoScriptRuntime(
   loadDistMain: GoScriptRuntimeMainLoader,
   webRuntimeId: string,
@@ -168,9 +166,11 @@ const runtimeOpfsBridge = isSharedWorker
   : null
 
 let runtimeStarted = false
+// runGoScriptRuntime binds document ports and starts Go after OPFS is available.
 export default function runGoScriptRuntime(
   loadDistMain: GoScriptRuntimeMainLoader,
 ) {
+  // handlePortMessage connects documents and establishes the process storage bridge.
   function handlePortMessage(msgEvent: MessageEvent) {
     if (msgEvent.data === 'close') {
       return
@@ -192,15 +192,8 @@ export default function runGoScriptRuntime(
     if (msg.initWebRuntime?.webRuntimeId && !runtimeStarted) {
       const webRuntimeId = msg.initWebRuntime.webRuntimeId
       void (async () => {
-        // Install the OPFS bridge before the Go process starts so
-        // RemoteDriver.GetRoot() finds the global port during volume mount. In a
-        // SharedWorker the runtime cannot call getDirectory() itself, so it must
-        // not start Go without the bridge (that crashes on the original OPFS
-        // SecurityError). ensureBridge() retries across live documents; if none
-        // can host yet, defer startup (leave runtimeStarted false) so a later
-        // document's init drives it instead of wedging on a transient first-tab
-        // failure. startGoScriptRuntime is itself idempotent, and runtimeStarted
-        // flips only after the bridge precondition holds.
+        // SharedWorker cannot open OPFS directly. A document must provide its
+        // bridge before Go mounts volumes; retry when another document connects.
         if (runtimeOpfsBridge && !(await runtimeOpfsBridge.ensureBridge())) {
           console.warn(
             'runtime-goscript: OPFS bridge unavailable; deferring Go start until a document can host OPFS',
