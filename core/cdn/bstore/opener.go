@@ -5,22 +5,24 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-
 	packfile_store "github.com/s4wave/spacewave/core/provider/spacewave/packfile/store"
 )
 
-// readAheadSize is the minimum range request size to amortize round-trips.
 const (
-	readAheadSize           = 1 * 1024 * 1024
+	// readAheadSize permits the pack reader's sparse cold window. Hash-ordered
+	// packs do not imply locality between consecutive file-content blocks;
+	// the reader grows its window only after observing nearby requests.
+	readAheadSize = 128 * 1024
+	// anonymousReaderPageSize sets resident cache granularity.
 	anonymousReaderPageSize = 4 * 1024
 )
 
 // packURL formats the anonymous CDN pack URL path.
 func packURL(cdnBaseURL, spaceID, packID string) string {
-	if len(packID) < 2 {
-		return strings.TrimRight(cdnBaseURL, "/") + "/" + spaceID + "/packs/" + packID + "/" + packID + ".kvf"
+	shard := packID
+	if len(shard) > 2 {
+		shard = shard[:2]
 	}
-	shard := packID[:2]
 	return strings.TrimRight(cdnBaseURL, "/") + "/" + spaceID + "/packs/" + shard + "/" + packID + ".kvf"
 }
 
@@ -29,9 +31,12 @@ func packURL(cdnBaseURL, spaceID, packID string) string {
 // does not sign requests and does not issue HEAD requests; the pack size must
 // be passed in from the manifest entry.
 func NewAnonymousOpener(httpCli *http.Client, cdnBaseURL, spaceID string) packfile_store.Opener {
+	// Retain the caller's transport or use the shared default client.
 	if httpCli == nil {
 		httpCli = http.DefaultClient
 	}
+
+	// Open known-size immutable packs without a separate metadata request.
 	return func(packID string, size int64) (*packfile_store.PackReader, error) {
 		if size <= 0 {
 			return nil, errors.New("pack size must be known from the manifest")
