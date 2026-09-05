@@ -8,14 +8,16 @@ type CheckAccessResult struct {
 	MatchedBinding *RbacRoleBinding
 }
 
-// CheckAccess evaluates whether the subject has the given verb on
-// resourceType within the provided bindings and roles.
+// CheckAccess matches permission rules in an already-authorized set of bindings.
+// The caller must filter by subject, scope, expiry, and revocation before calling.
+// This helper is not an authorization boundary or a cloud grant evaluator.
 func CheckAccess(
 	roles []*RbacRole,
 	bindings []*RbacRoleBinding,
 	resourceType string,
 	verb string,
 ) CheckAccessResult {
+	// Match only the permissions carried by the supplied, prefiltered bindings.
 	for _, b := range bindings {
 		role := findRole(roles, b.GetRoleId())
 		if role == nil {

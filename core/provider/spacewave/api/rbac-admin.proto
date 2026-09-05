@@ -1,0 +1,68 @@
+syntax = "proto3";
+package provider.spacewave.api;
+
+import "github.com/s4wave/spacewave/core/rbac/rbac.proto";
+
+// RbacListRolesRequest lists platform roles, ordered by ID.
+message RbacListRolesRequest {
+  string after_id = 1;
+  uint32 limit = 2; // Defaults to 100; maximum 200.
+}
+message RbacListRolesResponse {
+  repeated .rbac.RbacRole roles = 1;
+  string next_after_id = 2;
+}
+// RbacPutRoleRequest creates or replaces a custom platform role.
+message RbacPutRoleRequest {
+  .rbac.RbacRole role = 1;
+}
+message RbacPutRoleResponse {
+  string role_id = 1;
+}
+// RbacDeleteRoleRequest removes a custom platform role and revokes its grants.
+message RbacDeleteRoleRequest {
+  string role_id = 1;
+}
+message RbacDeleteRoleResponse {
+  string role_id = 1;
+}
+// RbacGrantRecord includes historical grants; revocation never deletes a grant.
+message RbacGrantRecord {
+  string id = 1;
+  string role_id = 2;
+  string account_id = 3;
+  uint32 version = 4;
+  optional int64 expires_at_ms = 5;
+  optional int64 revoked_at_ms = 6;
+  int64 created_at_ms = 7;
+  string issuer_type = 8;
+  string issuer_id = 9;
+}
+// RbacListGrantsRequest lists account platform grants in ID order.
+message RbacListGrantsRequest {
+  string account_id = 1;
+  string role_id = 2;
+  bool include_inactive = 3;
+  string after_id = 4;
+  uint32 limit = 5; // Defaults to 100; maximum 200.
+}
+message RbacListGrantsResponse {
+  repeated RbacGrantRecord grants = 1;
+  string next_after_id = 2;
+}
+// RbacIssueGrantRequest grants a platform role to an active account.
+message RbacIssueGrantRequest {
+  string role_id = 1;
+  string account_id = 2;
+  optional int64 expires_at_ms = 3;
+}
+message RbacIssueGrantResponse {
+  string grant_id = 1;
+}
+// RbacRevokeGrantRequest tombstones an account platform grant. Repeating is safe.
+message RbacRevokeGrantRequest {
+  string grant_id = 1;
+}
+message RbacRevokeGrantResponse {
+  string grant_id = 1;
+}
