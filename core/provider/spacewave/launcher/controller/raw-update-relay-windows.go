@@ -5,15 +5,36 @@ package spacewave_launcher_controller
 import (
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sys/windows"
 )
 
 // replaceFile replaces the installed binary without first unlinking it.
-// A failed same-volume rename leaves the installed version in place.
+// Windows readers may briefly retain the image after its parent exits. Retry
+// sharing failures for a bounded interval; every failed attempt leaves the
+// installed version in place.
 func replaceFile(tmpPath, dstPath string) error {
-	return errors.Wrap(windows.Rename(tmpPath, dstPath), "replace destination")
+	// External readers provide no event that signals delete sharing is available.
+	deadline := time.NewTimer(10 * time.Second)
+	defer deadline.Stop()
+	for {
+		err := windows.Rename(tmpPath, dstPath)
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, windows.ERROR_ACCESS_DENIED) && !errors.Is(err, windows.ERROR_SHARING_VIOLATION) {
+			return errors.Wrap(err, "replace destination")
+		}
+
+		// Bound retries even when access is permanently denied.
+		select {
+		case <-deadline.C:
+			return errors.Wrap(err, "replace destination")
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
 }
 
 // startRawUpdateRelay transfers update completion to the staged executable.
