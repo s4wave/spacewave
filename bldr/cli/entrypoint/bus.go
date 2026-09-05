@@ -32,7 +32,7 @@ import (
 
 // cliTransformConf is the block transform conf to use.
 var cliTransformConf = []config.Config{
-	&transform_gzip.Config{},
+	&transform_gzip.Config{CompressionLevel: 9},
 }
 
 // CliBusImpl implements the CliBus interface for CLI binaries.

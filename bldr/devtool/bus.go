@@ -40,7 +40,7 @@ import (
 
 // devtoolTransformConf is the block transform conf to use.
 var devtoolTransformConf = []config.Config{
-	&transform_gzip.Config{},
+	&transform_gzip.Config{CompressionLevel: 9},
 }
 
 // DevtoolBus contains a built devtool bus.
