@@ -4,7 +4,6 @@ package bldr_cli_compiler
 
 import (
 	"bytes"
-	"fmt"
 	gast "go/ast"
 	"go/format"
 	"go/parser"
@@ -26,16 +25,6 @@ type FactoryImport struct {
 	// PassBus is true when NewFactory takes a single bus.Bus argument.
 	// When false, NewFactory takes no arguments.
 	PassBus bool
-}
-
-// CliImport describes a discovered NewCliCommands in a Go package.
-type CliImport struct {
-	// Alias is the import alias for the package.
-	Alias string
-	// TakesYieldBroker is true when NewCliCommands declares a second yield
-	// broker parameter. Generated wrappers pass the process-shared broker
-	// and guard the first bus access with a handoff.
-	TakesYieldBroker bool
 }
 
 // brokerConsumerFactories maps factory import paths whose controller
@@ -495,30 +484,17 @@ func buildFactoriesDecl(factoryElts []gast.Expr) gast.Decl {
 // with a handoff so a command process never displaces the foreground serve
 // process on the listener socket.
 func buildCliCommandsDecl(appName string, cliImports map[string]CliImport) (gast.Decl, error) {
-	aliases := make([]string, 0, len(cliImports))
+	imports := make([]CliImport, 0, len(cliImports))
 	for _, ci := range cliImports {
-		if ci.TakesYieldBroker {
-			aliases = append(aliases, ci.Alias)
-		}
+		imports = append(imports, ci)
 	}
-	slices.Sort(aliases)
+	slices.SortFunc(imports, func(a, b CliImport) int { return strings.Compare(a.Alias, b.Alias) })
 
 	var cliElts []gast.Expr
-	for _, alias := range aliases {
-		wrapperSrc := fmt.Sprintf(`func(getBus func() cli_entrypoint.CliBus) []*aperture_cli.Command {
-	handedOff := false
-	protectedGetBus := func() cli_entrypoint.CliBus {
-		if !handedOff {
-			brokers.yield.BeginHandoff(%q, "")
-			handedOff = true
-		}
-		return getBus()
-	}
-	return %s.NewCliCommands(protectedGetBus, brokers.yield)
-}`, appName+" CLI", alias)
-		wrapperExpr, err := parser.ParseExpr(wrapperSrc)
+	for _, ci := range imports {
+		wrapperExpr, err := parser.ParseExpr(ci.CommandBuilder(appName, "brokers.yield"))
 		if err != nil {
-			return nil, errors.Wrapf(err, "parse generated cli command wrapper for %s", alias)
+			return nil, errors.Wrapf(err, "parse generated cli command wrapper for %s", ci.Alias)
 		}
 		cliElts = append(cliElts, wrapperExpr)
 	}

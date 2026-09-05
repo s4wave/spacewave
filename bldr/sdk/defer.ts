@@ -1,3 +1,5 @@
+import './dispose-symbol.js'
+
 /**
  * DisposableStack manages synchronous disposable resources, mimicking Go's defer behavior.
  * Functions added via `defer` are executed in LIFO order when the stack is disposed.

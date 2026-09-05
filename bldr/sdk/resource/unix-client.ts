@@ -1,3 +1,5 @@
+import '../dispose-symbol.js'
+
 import net from 'node:net'
 
 import { StreamConn, castToError } from 'starpc'

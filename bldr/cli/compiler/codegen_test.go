@@ -305,3 +305,21 @@ func TestFormatCliEntrypointBrokerWiring(t *testing.T) {
 		t.Fatalf("generated entrypoint mismatch:\n%s", dmp.DiffPrettyText(dmp.DiffMain(expected, output, false)))
 	}
 }
+
+func TestFormatCliEntrypointMixedCommandSignatures(t *testing.T) {
+	src, err := FormatCliEntrypoint("example", "example", nil, map[string]CliImport{
+		"example.com/simple": {Alias: "simple_cli"},
+		"example.com/broker": {Alias: "broker_cli", TakesYieldBroker: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"simple_cli.NewCliCommands",
+		"broker_cli.NewCliCommands(protectedGetBus, brokers.yield)",
+	} {
+		if !strings.Contains(string(src), want) {
+			t.Fatalf("generated CLI omits %s:\n%s", want, src)
+		}
+	}
+}

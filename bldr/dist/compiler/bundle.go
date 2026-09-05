@@ -21,6 +21,7 @@ import (
 	"github.com/aperturerobotics/util/fsutil"
 	"github.com/pkg/errors"
 	spacewave "github.com/s4wave/spacewave"
+	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	dist_compiler_bundle "github.com/s4wave/spacewave/bldr/dist/compiler/bundle"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
@@ -82,7 +83,7 @@ func BuildDistBundle(
 	buildPlatform bldr_platform.Platform,
 	hostConfigSet map[string]*configset_proto.ControllerConfig,
 	initEmbeddedWorld func(ctx context.Context, embedEngine world.Engine, embedOpPeerID peer.ID) error,
-	cliImports map[string]string,
+	cliImports map[string]bldr_cli_compiler.CliImport,
 	enableCgoOpt enabled.Enabled,
 	goCompilerOpt plugin_compiler_go.GoCompiler,
 	enableCompressionOpt enabled.Enabled,

@@ -1,3 +1,5 @@
+//go:build !js
+
 package bldr_dist_compiler
 
 import (
@@ -5,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	bldr_cli_compiler "github.com/s4wave/spacewave/bldr/cli/compiler"
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_platform "github.com/s4wave/spacewave/bldr/platform"
@@ -17,8 +20,8 @@ func TestFormatDistEntrypointNativeCLI(t *testing.T) {
 	src := FormatDistEntrypoint(
 		meta,
 		[]string{"assets.kvfile", "config-set.bin"},
-		map[string]string{
-			"github.com/s4wave/spacewave/cmd/spacewave/cli": "spacewave_cli",
+		map[string]bldr_cli_compiler.CliImport{
+			"github.com/s4wave/spacewave/cmd/spacewave/cli": {Alias: "spacewave_cli", TakesYieldBroker: true},
 		},
 		true,
 	)
@@ -29,7 +32,7 @@ func TestFormatDistEntrypointNativeCLI(t *testing.T) {
 	if !strings.Contains(src, `spacewave_cli "github.com/s4wave/spacewave/cmd/spacewave/cli"`) {
 		t.Fatalf("expected CLI package import, got:\n%s", src)
 	}
-	if !strings.Contains(src, `var cliCommands = []cli_entrypoint.BuildCommandsFunc{spacewave_cli.NewCliCommands}`) {
+	if !strings.Contains(src, `spacewave_cli.NewCliCommands(protectedGetBus, yieldBroker)`) {
 		t.Fatalf("expected cliCommands declaration, got:\n%s", src)
 	}
 	if !strings.Contains(src, `dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, cliCommands)`) {

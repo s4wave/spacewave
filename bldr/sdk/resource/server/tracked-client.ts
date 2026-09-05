@@ -1,3 +1,5 @@
+import '../../dispose-symbol.js'
+
 import type { Mux, Client as SRPCClient } from 'starpc'
 import type { ClientResourceRef, ReleasedResourceClient } from '../client.js'
 import type { ResourceClientResponse } from '../resource.pb.js'

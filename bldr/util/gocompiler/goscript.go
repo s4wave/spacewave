@@ -90,7 +90,7 @@ func isGoScriptBldrStateRootName(name string) bool {
 // GoScriptBindingRoots returns dependency module roots containing protobuf
 // TypeScript siblings. The main module is covered by GoScript's source root.
 func GoScriptBindingRoots(ctx context.Context, workDir string, env ...string) ([]string, error) {
-	cmd := exec.CommandContext(ctx, "go", "list", "-m", "-f", "{{if not .Main}}{{.Dir}}{{end}}", "all")
+	cmd := exec.CommandContext(ctx, "go", "list", "-mod=readonly", "-m", "-f", "{{if not .Main}}{{.Dir}}{{end}}", "all")
 	cmd.Env = append(os.Environ(), GetDefaultEnv()...)
 	cmd.Env = append(cmd.Env, env...)
 	cmd.Dir = workDir
