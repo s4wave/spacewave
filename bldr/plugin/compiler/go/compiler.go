@@ -1264,7 +1264,7 @@ func (c *Controller) BuildPlugin(
 			return nil, err
 		}
 	}
-	webRuntimeSrcFiles = filterPathsUnderBase(sourcePath, webRuntimeSrcFiles)
+	webRuntimeSrcFiles = filterPathsUnderBase(sourcePath, webRuntimeSrcFiles, workingPath)
 	if len(webRuntimeSrcFiles) != 0 {
 		err = fsutil.ConvertPathsToRelative(sourcePath, webRuntimeSrcFiles)
 		if err != nil {
@@ -1394,12 +1394,20 @@ func appendInputManifestFiles(
 	return nil
 }
 
-// filterPathsUnderBase drops empty paths and paths that fall outside basePath.
-func filterPathsUnderBase(basePath string, paths []string) []string {
+// filterPathsUnderBase retains source files outside generated build roots.
+// Generated inputs are covered by their source and compiler inputs, and must
+// not make startup validation depend on disposable build output.
+func filterPathsUnderBase(basePath string, paths []string, generatedRoots ...string) []string {
 	if len(paths) == 0 {
 		return nil
 	}
+	for _, root := range slices.Clone(generatedRoots) {
+		if resolved, err := filepath.EvalSymlinks(root); err == nil && resolved != root {
+			generatedRoots = append(generatedRoots, resolved)
+		}
+	}
 	filtered := paths[:0]
+nextInput:
 	for _, filePath := range paths {
 		if filePath == "" {
 			continue
@@ -1410,6 +1418,12 @@ func filterPathsUnderBase(basePath string, paths []string) []string {
 		}
 		if relPath == "." || relPath == ".." || strings.HasPrefix(relPath, ".."+string(filepath.Separator)) {
 			continue
+		}
+		for _, root := range generatedRoots {
+			rel, err := filepath.Rel(root, filePath)
+			if err == nil && filepath.IsLocal(rel) {
+				continue nextInput
+			}
 		}
 		filtered = append(filtered, filePath)
 	}
