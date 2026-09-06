@@ -1,0 +1,19 @@
+syntax = "proto3";
+package provider.spacewave.api;
+
+// SpaceLinkNonceRequest checks or consumes consent in the authenticated account.
+// The caller verifies the agent signature before requesting consumption.
+message SpaceLinkNonceRequest {
+  // Payload is the exact signed SpaceLinkAuthRequest, not a re-encoding.
+  // Consent must expire within 24 hours; the HTTP body is limited to 16 KiB.
+  bytes payload = 1;
+  // Consume atomically reserves the payload before issuing an invitation.
+  bool consume = 2;
+}
+
+// SpaceLinkNonceResponse reports whether this call found prior consumption.
+// A false response to consume means this call durably reserved the payload.
+message SpaceLinkNonceResponse {
+  // Consumed is true when an earlier request reserved these consent bytes.
+  bool consumed = 1;
+}

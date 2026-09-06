@@ -1122,19 +1122,22 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/api": {
-      "hash": "0c067382ea43fa733a9eb42a72d2ba12a022cb8f09f4181d2d31873a126f76fc",
+      "hash": "d1b614b86eb21557b937cb6cbf1d2d79210cd014a53dc9daad830fc487bba2a6",
       "generatedFiles": [
         "core/provider/spacewave/api/api.pb.go",
         "core/provider/spacewave/api/api.pb.ts",
         "core/provider/spacewave/api/facets-runtime.pb.go",
         "core/provider/spacewave/api/facets-runtime.pb.ts",
         "core/provider/spacewave/api/rbac-admin.pb.go",
-        "core/provider/spacewave/api/rbac-admin.pb.ts"
+        "core/provider/spacewave/api/rbac-admin.pb.ts",
+        "core/provider/spacewave/api/spacelink-nonce.pb.go",
+        "core/provider/spacewave/api/spacelink-nonce.pb.ts"
       ],
       "protoFiles": [
         "core/provider/spacewave/api/api.proto",
         "core/provider/spacewave/api/facets-runtime.proto",
-        "core/provider/spacewave/api/rbac-admin.proto"
+        "core/provider/spacewave/api/rbac-admin.proto",
+        "core/provider/spacewave/api/spacelink-nonce.proto"
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/cacheseed": {

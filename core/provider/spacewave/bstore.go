@@ -42,10 +42,12 @@ const (
 // SessionTransport child buses provide the optional direct lookup layer.
 const blockStoreBucketConfigRev = 2
 
+// decodedBlockRefInvalidator removes decoded values after storage mutation.
 type decodedBlockRefInvalidator interface {
 	InvalidateDecodedBlockRef(context.Context, *block.BlockRef)
 }
 
+// publicReadRemoteRefresher fetches the authoritative anonymous manifest.
 type publicReadRemoteRefresher interface {
 	Refresh(context.Context) error
 }
@@ -159,6 +161,7 @@ func (b *BlockStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return nil
 }
 
+// invalidateBatchTombstones evicts decoded values for deleted batch entries.
 func (b *BlockStore) invalidateBatchTombstones(ctx context.Context, entries []*block.PutBatchEntry) {
 	for _, entry := range entries {
 		if entry != nil && entry.Tombstone {
@@ -380,12 +383,13 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	}
 	defer relBstoreCtrl()
 
-	// Build and start the sync controller.
+	// Snapshot under the account lock: another mounted Session can replace
+	// the shared signing client while this tracker starts.
 	syncConf := t.a.conf.GetSync()
 	sc := &syncController{
 		le:         le.WithField("component", "sync"),
 		store:      objStore,
-		client:     t.a.sessionClient,
+		client:     t.a.currentSessionClient(),
 		resourceID: t.id,
 		mfst:       mfst,
 		lower:      lower,
@@ -444,7 +448,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	syncOwner.Start(ctx)
 	defer syncOwner.Stop()
 
-	// Done, publish the block store.
+	// Publish only after initial remote state and sync ownership are ready.
 	le.Debug("mounted cloud bstore")
 	t.bstoreCtr.SetValue(bstoreHandle)
 
@@ -454,6 +458,7 @@ func (t *bstoreTracker) executeBlockStoreTracker(rctx context.Context) error {
 	return context.Canceled
 }
 
+// registerPublicReadCdnRootRefresh retains refresh jobs until the returned release.
 func (t *bstoreTracker) registerPublicReadCdnRootRefresh(
 	ctx context.Context,
 	le *logrus.Entry,
@@ -477,6 +482,7 @@ func (t *bstoreTracker) registerPublicReadCdnRootRefresh(
 	}
 }
 
+// getRefGraph returns the volume-owned pack ordering graph when supported.
 func (t *bstoreTracker) getRefGraph() packfile_order.RefGraph {
 	if kvVol, ok := t.a.vol.(kvtx_volume.KvtxVolume); ok {
 		return kvVol.GetRefGraph()
@@ -506,10 +512,13 @@ func (t *bstoreTracker) buildBucketConf() (*bucket.Config, error) {
 // sourceTrackingStore records the source that satisfied completed block reads.
 type sourceTrackingStore struct {
 	block.StoreOps
-	account        *ProviderAccount
-	bstoreID       string
-	source         SyncTelemetryBlockSource
-	upperCache     bool
+	// account receives source observations for bstoreID.
+	account  *ProviderAccount
+	bstoreID string
+	// source identifies reads not already present in an upper cache.
+	source     SyncTelemetryBlockSource
+	upperCache bool
+	// demandStarted and demandFinished bracket each demand read.
 	demandStarted  func()
 	demandFinished func()
 }
@@ -563,6 +572,7 @@ func (s *sourceTrackingStore) GetBlock(ctx context.Context, ref *block.BlockRef)
 
 // dirtyTrackingStore wraps block.StoreOps and calls markDirty on new PutBlock.
 type dirtyTrackingStore struct {
+	// store owns block writes; markDirty records newly supplied blocks.
 	store     block.StoreOps
 	markDirty func(ctx context.Context, h *hash.Hash, size int64)
 }
@@ -694,6 +704,11 @@ func (a *ProviderAccount) BuildBlockStoreOpener(bstoreID string) packfile_store.
 		if size <= 0 {
 			return nil, errors.New("pack size must be known from the manifest")
 		}
+		cli := a.currentSessionClient()
+		if cli == nil {
+			return nil, errors.New("session client not available")
+		}
+
 		url := a.p.endpoint + "/api/bstore/" + bstoreID + "/pack/" + packID
 		return packfile_store.NewHTTPRangeReader(
 			a.p.httpCli,
@@ -702,10 +717,10 @@ func (a *ProviderAccount) BuildBlockStoreOpener(bstoreID string) packfile_store.
 			httpReaderAtReadAheadSize,
 			httpReaderPageSize,
 			func(req *http.Request) error {
-				return a.sessionClient.signPackReadRequest(req, bstoreID)
+				return cli.signPackReadRequest(req, bstoreID)
 			},
 			func(resp *http.Response) {
-				a.sessionClient.observePackReadResponse(bstoreID, resp)
+				cli.observePackReadResponse(bstoreID, resp)
 			},
 		), nil
 	}
@@ -716,6 +731,7 @@ func (t *bstoreTracker) buildOpener() packfile_store.Opener {
 	return t.a.BuildBlockStoreOpener(t.id)
 }
 
+// buildLowerStore selects anonymous CDN or authenticated cloud pack reads.
 func (t *bstoreTracker) buildLowerStore(
 	ctx context.Context,
 	cache packfile_store.IndexCache,
@@ -728,6 +744,7 @@ func (t *bstoreTracker) buildLowerStore(
 	return packfile_store.NewPackfileStore(t.buildOpener(), cache), nil
 }
 
+// isPublicReadSpaceBlockStore requires public-read Space metadata for CDN access.
 func (t *bstoreTracker) isPublicReadSpaceBlockStore(ctx context.Context) bool {
 	metadata, err := t.a.GetSharedObjectMetadata(ctx, t.id)
 	if err != nil {
@@ -736,17 +753,21 @@ func (t *bstoreTracker) isPublicReadSpaceBlockStore(ctx context.Context) bool {
 	return metadata.GetPublicRead() && metadata.GetObjectType() == space.SpaceBodyType
 }
 
+// publicReadRemote owns a CDN manifest and its decoded-cache invalidation.
 type publicReadRemote struct {
+	// cli and addressing identify the anonymous CDN source.
 	cli           *http.Client
 	cdnBaseURL    string
 	spaceID       string
 	lower         *packfile_store.PackfileStore
 	decodedBlocks *block.DecodedBlockCache
 
+	// mtx protects the published manifest snapshot.
 	mtx     sync.Mutex
 	entries []*packfile.PackfileEntry
 }
 
+// newPublicReadRemote builds an anonymous pack store with an initially empty manifest.
 func newPublicReadRemote(
 	cli *http.Client,
 	cdnBaseURL string,
@@ -795,6 +816,7 @@ func (r *publicReadRemote) Entries() []*packfile.PackfileEntry {
 	return clonePackfileEntries(r.entries)
 }
 
+// clonePackfileEntries returns an independent snapshot of non-nil entries.
 func clonePackfileEntries(entries []*packfile.PackfileEntry) []*packfile.PackfileEntry {
 	out := make([]*packfile.PackfileEntry, 0, len(entries))
 	for _, entry := range entries {
@@ -843,8 +865,12 @@ func (a *ProviderAccount) MountBlockStore(ctx context.Context, ref *bstore.Block
 // EnumerateBlockRefs returns all block refs from the cloud block store by pulling
 // the packfile manifest and scanning each packfile's index entries.
 func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID string) ([]*block.BlockRef, error) {
-	// Pull all packfile entries from the cloud.
-	pullData, err := a.sessionClient.SyncPull(ctx, bstoreID, "")
+	// Retain a synchronized signing-client snapshot throughout enumeration.
+	cli, _, _, err := a.getReadySessionClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pullData, err := cli.SyncPull(ctx, bstoreID, "")
 	if err != nil {
 		return nil, errors.Wrap(err, "sync pull")
 	}
@@ -899,7 +925,7 @@ func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID strin
 	return refs, nil
 }
 
-// _ is a type assertion
+// Interface assertions.
 var (
 	_ bstore.BlockStoreProvider = (*ProviderAccount)(nil)
 	_ bstore.BlockStore         = (*BlockStore)(nil)
