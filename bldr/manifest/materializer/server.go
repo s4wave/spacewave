@@ -1,13 +1,18 @@
 package bldr_manifest_materializer
 
 import (
+	"context"
+
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
+	block_rpc_client "github.com/s4wave/spacewave/db/block/rpc/client"
 	block_transform "github.com/s4wave/spacewave/db/block/transform"
 	bucket "github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	bifrost_rpc "github.com/s4wave/spacewave/net/rpc"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,11 +47,20 @@ func NewMaterializer(le *logrus.Entry, b bus.Bus, sfs *block_transform.StepFacto
 // The source is followed read-only and the destination is opened for writes
 // through the bus; the service performs no World mutation, so publication and
 // durability remain the caller's responsibility.
+//
+// When SourceServiceId is set, the source blocks are read through the
+// BlockStore RPC service with that ID instead of the host-local source
+// lookup; the source ref carries its resolved inline transform configuration.
+//
+// The handler runs on a child of the RPC stream context: the child cancels
+// when the stream ends or the resolved source service disappears, which ends
+// the copy and releases the RPC client and cursors with it.
 func (m *Materializer) MaterializeManifest(
 	req *MaterializeManifestRequest,
 	strm SRPCMaterializer_MaterializeManifestStream,
 ) error {
-	ctx := strm.Context()
+	ctx, cancel := context.WithCancel(strm.Context())
+	defer cancel()
 
 	// Validate the request before acquiring any handles.
 	if req.GetSource().GetRootRef().GetEmpty() {
@@ -72,10 +86,63 @@ func (m *Materializer) MaterializeManifest(
 	}
 	defer dest.Release()
 
-	// Follow the source reference read-only from the destination cursor.
-	src, err := bldr_manifest_world.FollowObjectRefReadOnly(ctx, dest, req.GetSource())
-	if err != nil {
-		return errors.Wrap(err, "follow source object ref")
+	// Follow the source reference read-only. If the request carries a source
+	// service ID, the source blocks are read through that BlockStore RPC
+	// service instead of the host-local source lookup. The client reference
+	// and base cursor live until the end of the operation, so their releases
+	// defer here alongside the followed source cursor.
+	var src *bucket_lookup.Cursor
+	if req.GetSourceServiceId() == "" {
+		src, err = bldr_manifest_world.FollowObjectRefReadOnly(ctx, dest, req.GetSource())
+		if err != nil {
+			return errors.Wrap(err, "follow source object ref")
+		}
+	} else {
+		if req.GetSource().GetBucketId() == "" {
+			return errors.New("source bucket id cannot be empty when source service id is set")
+		}
+		if !req.GetSource().GetTransformConfRef().GetEmpty() {
+			return errors.New("source.transform_conf_ref must be empty; resolve the source transform configuration first")
+		}
+
+		// Resolve the BlockStore RPC client for the request-scoped service ID.
+		// The lookup is bound to the handler cancel func so the service is
+		// released when the copy finishes or the stream ends. There is no
+		// fallback to the host-local source lookup: if the service is
+		// unavailable the copy fails.
+		serviceID := req.GetSourceServiceId()
+		clientSet, _, clientsRef, err := bifrost_rpc.ExLookupRpcClientSet(ctx, m.b, serviceID, "", true, cancel)
+		if err != nil {
+			return errors.Wrap(err, "resolve source block store rpc client")
+		}
+		defer clientsRef.Release()
+
+		rawStore := block_rpc_client.NewBlockStore(
+			block_rpc.NewSRPCBlockStoreClientWithServiceID(clientSet, serviceID),
+			0,
+			true,
+		)
+
+		// The raw base cursor preserves the source-encoded bytes as delivered
+		// by the RPC store; the inline transform conf in the source ref is
+		// applied by FollowRef.
+		base := bucket_lookup.NewCursor(
+			ctx,
+			m.b,
+			m.le,
+			m.sfs,
+			rawStore,
+			nil,
+			nil,
+			&bucket.BucketOpArgs{BucketId: req.GetSource().GetBucketId()},
+			nil,
+		)
+		defer base.Release()
+
+		src, err = base.FollowRef(ctx, req.GetSource())
+		if err != nil {
+			return errors.Wrap(err, "follow source object ref over rpc")
+		}
 	}
 	defer src.Release()
 

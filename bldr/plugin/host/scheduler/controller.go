@@ -308,6 +308,19 @@ func (c *Controller) Execute(rctx context.Context) (rerr error) {
 	c.pluginInstances.SetContext(ctx, true)
 	defer c.pluginInstances.ClearContext()
 
+	// Retain the materializer for this execution without blocking the host
+	// discovery below that resolves its startup.
+	if matID := c.conf.GetMaterializerPluginId(); matID != "" && !c.conf.GetDisableCopyManifest() {
+		_, matRef, err := c.bus.AddDirective(
+			bldr_plugin.NewLoadPluginInstanced(matID, c.conf.GetInstanceKey()),
+			nil,
+		)
+		if err != nil {
+			return err
+		}
+		defer matRef.Release()
+	}
+
 	// watch list of plugin hosts
 	errCh := make(chan error, 1)
 	_, hostsRel, err := bus.ExecCollectValuesWatch(

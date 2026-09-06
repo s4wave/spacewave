@@ -72,6 +72,9 @@ type Config struct {
 	// wait budget is reported as exhausted. Execution retries remain unbounded.
 	// If unset or zero, defaults to 60s. Negative values are rejected.
 	StartupWaitBudgetDur string `protobuf:"bytes,15,opt,name=startup_wait_budget_dur,json=startupWaitBudgetDur,proto3" json:"startupWaitBudgetDur,omitempty"`
+	// MaterializerPluginId is the plugin ID to route manifest materialization
+	// through. If empty, the scheduler materializes manifests directly.
+	MaterializerPluginId string `protobuf:"bytes,16,opt,name=materializer_plugin_id,json=materializerPluginId,proto3" json:"materializerPluginId,omitempty"`
 }
 
 func (x *Config) Reset() {
@@ -185,6 +188,13 @@ func (x *Config) GetStartupWaitBudgetDur() string {
 	return ""
 }
 
+func (x *Config) GetMaterializerPluginId() string {
+	if x != nil {
+		return x.MaterializerPluginId
+	}
+	return ""
+}
+
 // PlatformSelectionPolicy restricts a plugin host platform to a plugin ID list.
 type PlatformSelectionPolicy struct {
 	unknownFields []byte
@@ -231,6 +241,7 @@ func (m *Config) CloneVT() *Config {
 	r.Verbose = m.Verbose
 	r.InstanceKey = m.InstanceKey
 	r.StartupWaitBudgetDur = m.StartupWaitBudgetDur
+	r.MaterializerPluginId = m.MaterializerPluginId
 	r.FetchBackoff = protobuf_go_lite.CloneVTValue(m.FetchBackoff)
 	r.ExecBackoff = protobuf_go_lite.CloneVTValue(m.ExecBackoff)
 	r.PlatformSelectionPolicies = protobuf_go_lite.CloneVTSlice(m.PlatformSelectionPolicies)
@@ -311,6 +322,9 @@ func (this *Config) EqualVT(that *Config) bool {
 		return false
 	}
 	if this.StartupWaitBudgetDur != that.StartupWaitBudgetDur {
+		return false
+	}
+	if this.MaterializerPluginId != that.MaterializerPluginId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -436,6 +450,11 @@ func (x *Config) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("startupWaitBudgetDur")
 		s.WriteString(x.StartupWaitBudgetDur)
 	}
+	if x.MaterializerPluginId != "" || s.HasField("materializerPluginId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("materializerPluginId")
+		s.WriteString(x.MaterializerPluginId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -525,6 +544,9 @@ func (x *Config) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "startup_wait_budget_dur", "startupWaitBudgetDur":
 			s.AddField("startup_wait_budget_dur")
 			x.StartupWaitBudgetDur = s.ReadString()
+		case "materializer_plugin_id", "materializerPluginId":
+			s.AddField("materializer_plugin_id")
+			x.MaterializerPluginId = s.ReadString()
 		}
 	})
 }
@@ -616,6 +638,13 @@ func (m *Config) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.MaterializerPluginId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.MaterializerPluginId)
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
 	}
 	if len(m.StartupWaitBudgetDur) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.StartupWaitBudgetDur)
@@ -788,6 +817,7 @@ func (m *Config) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringSlice(1, m.NoCopyBucketIds)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.InstanceKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.StartupWaitBudgetDur)
+	n += protobuf_go_lite.SizeStringNonEmpty(2, m.MaterializerPluginId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -878,6 +908,10 @@ func (x *Config) MarshalProtoText() string {
 	if x.StartupWaitBudgetDur != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "startup_wait_budget_dur")
 		protobuf_go_lite.TextWriteString(&sb, x.StartupWaitBudgetDur)
+	}
+	if x.MaterializerPluginId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "materializer_plugin_id")
+		protobuf_go_lite.TextWriteString(&sb, x.MaterializerPluginId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1090,6 +1124,16 @@ func (m *Config) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.StartupWaitBudgetDur = v
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaterializerPluginId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.MaterializerPluginId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

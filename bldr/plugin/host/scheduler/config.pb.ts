@@ -168,6 +168,13 @@ export interface Config {
    * @generated from field: string startup_wait_budget_dur = 15;
    */
   startupWaitBudgetDur?: string
+  /**
+   * MaterializerPluginId is the plugin ID to route manifest materialization
+   * through. If empty, the scheduler materializes manifests directly.
+   *
+   * @generated from field: string materializer_plugin_id = 16;
+   */
+  materializerPluginId?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -212,6 +219,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
     {
       no: 15,
       name: 'startup_wait_budget_dur',
+      kind: 'scalar',
+      T: ScalarType.STRING,
+    },
+    {
+      no: 16,
+      name: 'materializer_plugin_id',
       kind: 'scalar',
       T: ScalarType.STRING,
     },

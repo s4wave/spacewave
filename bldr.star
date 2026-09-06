@@ -441,6 +441,26 @@ manifest("spacewave-sql",
     },
 )
 
+# bldr-materializer serves the typed MaterializeManifest streaming service from
+# a bundled plugin worker. The scheduler demands it for background manifest
+# copying; embedding it in browser entrypoints keeps the bootstrap available
+# before the Release World fetch plane resolves ordinary plugins.
+manifest("bldr-materializer",
+    builder="bldr/plugin/compiler/go",
+    rev=1,
+    config={
+        "goPkgs": ["./bldr/manifest/materializer"],
+        "configSet": {
+            "bldr-materializer": config_entry("bldr/manifest/materializer", 1),
+        },
+        "platformTypes": {
+            "js": {
+                "goCompiler": "GO_COMPILER_GOSCRIPT",
+            },
+        },
+    },
+)
+
 manifest("spacewave",
     builder="bldr/cli/compiler",
     config={
@@ -573,13 +593,14 @@ manifest("spacewave-cli",
 DEV_MANIFESTS = [
     "web", "spacewave-core", "spacewave-web",
     "spacewave-app", "spacewave-notes", "spacewave-v86", "spacewave-sql", "spacewave-cli-plugin", "spacewave-debug",
+    "bldr-materializer",
 ]
 BROWSER_RELEASE_MANIFESTS = [
-    "spacewave-launcher",
+    "spacewave-launcher", "bldr-materializer",
     "spacewave-browser",
 ]
 BROWSER_RELEASE_E2E_MANIFESTS = [
-    "spacewave-launcher",
+    "spacewave-launcher", "bldr-materializer",
     "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-sql", "spacewave-cli-plugin", "web",
     "spacewave-browser",
 ]
@@ -606,10 +627,13 @@ PLUGIN_RELEASE_BROWSER_MANIFESTS = [
 
 # The launcher mounts and verifies Release World before the scheduler resolves
 # ordinary startup plugins. Entrypoint artifacts therefore embed no desired
-# plugin state besides the launcher itself.
+# plugin state besides the launcher and the bldr-materializer bootstrap plugin;
+# the materializer must be available before background traversal can start.
 def browser_release_embed_manifests(go_platform_id):
     return [
         {"manifestId": "spacewave-launcher",
+         "platformId": go_platform_id},
+        {"manifestId": "bldr-materializer",
          "platformId": go_platform_id},
     ]
 
@@ -692,7 +716,7 @@ build("release-web-e2e",
 # runners do not optimize the unused web/js/wasm dist runtime in parallel.
 build("release-web-e2e-assets",
     manifests=[
-        "spacewave-launcher",
+        "spacewave-launcher", "bldr-materializer",
         "spacewave-core", "spacewave-web", "spacewave-app", "spacewave-notes", "spacewave-sql", "spacewave-cli-plugin", "web",
     ],
     targets=["browser"],
@@ -773,6 +797,9 @@ build("release-web-e2e-goscript",
     },
 )
 build("cli-plugin",  manifests=["spacewave-cli-plugin"], targets=["browser"])
+# Targeted build for the materializer plugin: the build CLI selects whole build
+# targets, so a single-manifest target is the only way to compile one plugin.
+build("materializer", manifests=["bldr-materializer"], targets=["browser"])
 build("cli",         manifests=["spacewave"])
 
 # plugin-release-browser records the browser-side plugin channel manifest set.

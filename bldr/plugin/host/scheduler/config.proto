@@ -60,6 +60,9 @@ message Config {
   // wait budget is reported as exhausted. Execution retries remain unbounded.
   // If unset or zero, defaults to 60s. Negative values are rejected.
   string startup_wait_budget_dur = 15;
+  // MaterializerPluginId is the plugin ID to route manifest materialization
+  // through. If empty, the scheduler materializes manifests directly.
+  string materializer_plugin_id = 16;
 }
 
 // PlatformSelectionPolicy restricts a plugin host platform to a plugin ID list.

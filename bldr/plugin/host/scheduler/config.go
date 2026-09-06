@@ -7,6 +7,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/util/backoff"
 	"github.com/pkg/errors"
+	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	"github.com/s4wave/spacewave/db/volume"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
@@ -68,6 +69,9 @@ func (c *Config) Validate() error {
 		if slices.Contains(policy.GetAllowedPluginIds(), "") {
 			return errors.New("platform_selection_policies: allowed_plugin_ids cannot contain empty values")
 		}
+	}
+	if err := bldr_plugin.ValidatePluginID(c.GetMaterializerPluginId(), true); err != nil {
+		return errors.Wrap(err, "materializer_plugin_id")
 	}
 	if err := c.GetFetchBackoff().Validate(true); err != nil {
 		return errors.Wrap(err, "fetch_backoff")

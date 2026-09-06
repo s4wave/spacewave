@@ -46,6 +46,17 @@ export interface MaterializeManifestRequest {
    * @generated from field: uint32 concurrency = 4;
    */
   concurrency?: number
+  /**
+   * SourceServiceId is the full bus RPC service ID of a BlockStore service
+   * that serves the source encoded blocks. When set, the source cursor is
+   * reconstructed over that RPC store instead of the host-local source
+   * lookup, and the source ref must carry its resolved inline transform
+   * configuration (source.transform_conf_ref must be empty). Empty retains
+   * the native bus source lookup.
+   *
+   * @generated from field: string source_service_id = 5;
+   */
+  sourceServiceId?: string
 }
 
 export const MaterializeManifestRequest: MessageType<MaterializeManifestRequest> =
@@ -61,6 +72,12 @@ export const MaterializeManifestRequest: MessageType<MaterializeManifestRequest>
         T: () => Config,
       },
       { no: 4, name: 'concurrency', kind: 'scalar', T: ScalarType.UINT32 },
+      {
+        no: 5,
+        name: 'source_service_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
