@@ -11,8 +11,10 @@ import (
 
 	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/ulid"
+	"github.com/s4wave/spacewave/core/provider"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/net/crypto"
 	"github.com/s4wave/spacewave/net/peer"
 )
@@ -175,10 +177,12 @@ func TestApplicationRegistration(t *testing.T) {
 }
 
 // enrollApplicationTestSession independently signs a fresh login credential and
-// registers its Session through the ordinary provider API. The test operator
+// registers and mounts its Device Session through the provider. The test operator
 // stands in for a trusted identity integration; no external login is simulated.
 func enrollApplicationTestSession(ctx context.Context, t *testing.T, operator *provider_spacewave.SessionClient, applicationID string, revision uint64) (*provider_spacewave.SessionClient, string) {
 	t.Helper()
+
+	// Create and prove possession of an independent managed account credential.
 	entityKey, _, err := crypto.GenerateEd25519Key(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -203,6 +207,7 @@ func enrollApplicationTestSession(ctx context.Context, t *testing.T, operator *p
 		t.Fatal(err)
 	}
 
+	// Keep the Device key separate from the account's recovery authority.
 	sessionKey, _, err := crypto.GenerateEd25519Key(nil)
 	if err != nil {
 		t.Fatal(err)
@@ -211,8 +216,48 @@ func enrollApplicationTestSession(ctx context.Context, t *testing.T, operator *p
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := entity.RegisterSessionDirect(ctx, sessionID.String(), "fresh profile"); err != nil {
+
+	// Register and mount through the real provider and local Session controller.
+	prov, provRef, err := provider.ExLookupProvider(ctx, env.tb.Bus, "spacewave", false, nil)
+	if err != nil {
 		t.Fatal(err)
 	}
-	return provider_spacewave.NewSessionClient(httpClient, env.cloudURL, "", sessionKey, sessionID.String()), enrolled.GetAccountId()
+	t.Cleanup(provRef.Release)
+	ctrl, releaseCtrl, err := lookupSessionController(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releaseCtrl)
+	entry, err := prov.(*provider_spacewave.Provider).RegisterDeviceSession(ctx, entityKey, sessionKey, "Fresh profile", ctrl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.GetSessionRef().GetProviderResourceRef().GetProviderAccountId() != enrolled.GetAccountId() {
+		t.Fatal("Device registration changed the managed account")
+	}
+
+	// Retain the mounted Device for the test and verify the key it actually uses.
+	mounted, mountRef, err := session.ExMountSession(ctx, env.tb.Bus, entry.GetSessionRef(), false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(mountRef.Release)
+	if mounted.GetPeerId() != sessionID {
+		t.Fatal("mounted Device uses another peer identity")
+	}
+
+	// Read back cloud inventory after mounting to confirm the Device is registered.
+	client := provider_spacewave.NewSessionClient(httpClient, env.cloudURL, "", sessionKey, sessionID.String())
+	registered, err := client.ListSessions(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range registered {
+		if row.GetPeerId() != sessionID.String() {
+			continue
+		}
+		return client, enrolled.GetAccountId()
+	}
+	t.Fatal("mounted Device is absent from cloud session inventory")
+	return nil, ""
 }
