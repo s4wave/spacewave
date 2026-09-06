@@ -1,0 +1,53 @@
+syntax = "proto3";
+package bldr.manifest.materializer;
+
+import "github.com/s4wave/spacewave/db/bucket/bucket.proto";
+import "github.com/s4wave/spacewave/db/block/transform/transform.proto";
+
+// Materializer materializes manifest objects into a destination bucket.
+service Materializer {
+  // MaterializeManifest copies a manifest object graph from its source bucket
+  // into the destination bucket, streaming progress and the copied root.
+  rpc MaterializeManifest(MaterializeManifestRequest) returns (stream MaterializeManifestResponse);
+}
+
+// MaterializeManifestRequest requests the materialization of one manifest.
+message MaterializeManifestRequest {
+  // Source is the immutable manifest object reference to follow.
+  .bucket.ObjectRef source = 1;
+  // Destination is the bucket and volume to materialize into.
+  .bucket.BucketOpArgs destination = 2;
+  // DestinationTransformConf is the transform configuration for the
+  // destination bucket root.
+  .block.transform.Config destination_transform_conf = 3;
+  // Concurrency limits concurrent block reads/writes during the copy.
+  // Zero retains the copy engine's existing unlimited meaning.
+  uint32 concurrency = 4;
+}
+
+// CopyStats reports logical copy accounting for one materialization.
+message CopyStats {
+  // BlocksSeen is the number of logical source blocks encountered.
+  int64 blocks_seen = 1;
+  // BlocksCopied is the number of blocks copied.
+  int64 blocks_copied = 2;
+  // BlocksExisting is the number of blocks that already existed.
+  int64 blocks_existing = 3;
+  // BlocksWritten is the number of blocks written.
+  int64 blocks_written = 4;
+  // BlocksDeduped is the number of blocks skipped as duplicates.
+  int64 blocks_deduped = 5;
+  // SubtreesSkipped is the number of subtrees skipped.
+  int64 subtrees_skipped = 6;
+  // LogicalSourceBytes is the number of logical source bytes seen.
+  int64 logical_source_bytes = 7;
+}
+
+// MaterializeManifestResponse is one streamed response for a materialization.
+message MaterializeManifestResponse {
+  // Stats is the cumulative logical copy accounting snapshot.
+  CopyStats stats = 1;
+  // CopiedRef is the copied root object reference.
+  // Set only on the terminal successful message.
+  .bucket.ObjectRef copied_ref = 2;
+}
