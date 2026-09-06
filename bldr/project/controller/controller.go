@@ -28,30 +28,30 @@ const ControllerID = ConfigID
 
 // Controller is the bldr Project controller.
 type Controller struct {
-	// le is the root logger
+	// le is the root logger.
 	le *logrus.Entry
-	// bus is the controller bus
+	// bus is the controller bus.
 	bus bus.Bus
 
-	// manifestBuilders is the set of keyed build controllers.
-	// NOTE: this will eventually be replaced with Forge jobs.
-	// key is the ManifestBuilderConfig object in b58 format.
+	// manifestBuilders retains builds by their base58-encoded configuration.
 	manifestBuilders *keyed.KeyedRefCount[string, *manifestBuilderTracker]
 	// remotes is the set of keyed remote access controllers.
 	remotes *keyed.KeyedRefCount[string, *remoteTracker]
 	// startup manages the set of "start" plugins listed in the config.
 	startup *routine.StateRoutineContainer[*bldr_project.StartConfig]
-	// statusSinkMtx guards status sinks and build target metadata
+
+	// statusSinkMtx guards status sinks and build target metadata.
 	statusSinkMtx sync.Mutex
-	// manifestBuilderStatusSink receives manifest build status events
+	// manifestBuilderStatusSink receives manifest build status events.
 	manifestBuilderStatusSink ManifestBuilderStatusSink
-	// projectConfigStatusSink receives project config status events
+	// projectConfigStatusSink receives project config status events.
 	projectConfigStatusSink ProjectConfigStatusSink
-	// manifestBuilderBuildTargets records finite build targets by manifest builder key
+	// manifestBuilderBuildTargets records finite build targets by builder key.
 	manifestBuilderBuildTargets map[string][]string
-	// mtx guards writing below fields
+
+	// mtx serializes project config changes and builder registration.
 	mtx sync.Mutex
-	// conf is the current controller config
+	// conf is the current controller config.
 	conf atomic.Pointer[Config]
 	// routines owns the post-Execute tracker and startup lifetimes.
 	routines web_pkg.RoutineGroup
@@ -68,6 +68,7 @@ var errControllerClosed = errors.New("bldr project controller is closed")
 
 // NewController constructs a new controller.
 func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
+	// Registries are initialized here and started by Execute.
 	ctrl := &Controller{
 		le:  le,
 		bus: bus,
@@ -91,6 +92,8 @@ func NewController(le *logrus.Entry, bus bus.Bus, cc *Config) *Controller {
 		keyed.WithRetry[string, *remoteTracker](buildBackoff),
 	)
 	ctrl.manifestBuilderBuildTargets = make(map[string][]string)
+
+	// Startup tasks share the controller's shutdown group with build routines.
 	ctrl.startup = routine.NewStateRoutineContainerWithLoggerVT[*bldr_project.StartConfig](le, routine.WithRetry(buildBackoff))
 	ctrl.startup.SetStateRoutine(func(ctx context.Context, conf *bldr_project.StartConfig) error {
 		if !ctrl.routines.Begin() {
@@ -109,10 +112,12 @@ func (c *Controller) GetConfig() *Config {
 
 // SetManifestBuilderStatusSink sets the manifest builder status sink.
 func (c *Controller) SetManifestBuilderStatusSink(sink ManifestBuilderStatusSink) {
+	// Replace the observer before publishing the current build states.
 	c.statusSinkMtx.Lock()
 	c.manifestBuilderStatusSink = sink
 	c.statusSinkMtx.Unlock()
 
+	// Call observers outside the sink lock so they can replace themselves.
 	for _, builder := range c.getRunningManifestBuilders() {
 		builder.tracker.publishManifestBuilderStatus()
 	}
@@ -120,6 +125,7 @@ func (c *Controller) SetManifestBuilderStatusSink(sink ManifestBuilderStatusSink
 
 // SetProjectConfigStatusSink sets the project config status sink.
 func (c *Controller) SetProjectConfigStatusSink(sink ProjectConfigStatusSink) {
+	// Publish the current configuration after installing the observer.
 	c.statusSinkMtx.Lock()
 	c.projectConfigStatusSink = sink
 	c.statusSinkMtx.Unlock()
@@ -138,10 +144,12 @@ func (c *Controller) GetControllerInfo() *controller.Info {
 
 // UpdateProjectConfig applies an updated project config restarting affected manifest builders.
 func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) error {
+	// Reject invalid replacements before changing any running build.
 	if err := nextConf.Validate(); err != nil {
 		return err
 	}
 
+	// Configuration updates and shutdown use lifecycleMtx before mtx.
 	c.lifecycleMtx.Lock()
 	if c.closed {
 		c.lifecycleMtx.Unlock()
@@ -152,7 +160,7 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
-	// set startup config
+	// Reconcile startup plugins with the replacement configuration.
 	c.startup.SetState(nextConf.GetStart())
 
 	prevCtrlConf := c.conf.Load()
@@ -161,53 +169,52 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 		return nil
 	}
 
-	// update the config
+	// Store a detached configuration before reconciling its builders.
 	nextCtrlConf := prevCtrlConf.CloneVT()
 	nextCtrlConf.ProjectConfig = nextConf.CloneVT()
 	c.conf.Store(nextCtrlConf)
 	c.publishProjectConfigStatus(nextConf)
 
-	// build list of running manifest builders
+	// Snapshot the keyed registry for this reconciliation.
 	manifestBuilders := c.getRunningManifestBuilders()
 
-	// build key/value map of seen keys so we know which to cancel
+	// Track builders retained or restarted by the new manifest set.
 	seenManifestBuilders := make(map[string]struct{}, len(manifestBuilders))
 	restartedManifestBuilders := make(map[string]struct{}, len(manifestBuilders))
 
-	// restart any manifest builders that no longer are up-to-date
+	// Restart builds whose manifest or remote configuration changed.
 	nextManifests := nextConf.GetManifests()
 	nextRemotes := nextConf.GetRemotes()
 	for manifestID, nextManifest := range nextManifests {
 		for _, builder := range manifestBuilders {
-			// find only builders with this manifest id
+			// Only this manifest's builders participate in its reconciliation.
 			if builder.conf.GetManifestId() != manifestID {
 				continue
 			}
 
-			// if we already restarted, continue
+			// Each keyed routine needs at most one restart per update.
 			if _, ok := restartedManifestBuilders[builder.key]; ok {
 				continue
 			}
 
-			// if the remote does not exist: continue
-			// we will delete the builder below
+			// Builders without a remote are removed after reconciliation.
 			remoteConf, remoteConfOk := nextRemotes[builder.conf.RemoteId]
 			if !remoteConfOk || remoteConf == nil {
 				continue
 			}
 
-			// compare the configs and conditionally restart if different
+			// Include unresolved configurations so the build reads current inputs.
 			_, wasReset := c.manifestBuilders.RestartRoutine(
 				builder.key,
 				func(_ string, trk *manifestBuilderTracker) bool {
-					// this includes the case where trkConf is nil (not loaded yet)
+					// An unloaded manifest must also pick up the replacement.
 					if !trk.manifestConf.Load().EqualVT(nextManifest) {
 						return true
 					}
 
 					currRemoteConf := trk.remoteConf.Load()
 					if currRemoteConf == nil {
-						// remote not resolved yet, restart to be sure we pick up any changes.
+						// An unresolved remote must read the replacement configuration.
 						return true
 					}
 
@@ -222,14 +229,13 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 				restartedManifestBuilders[builder.key] = struct{}{}
 			}
 
-			// mark the builder as seen so we don't cancel it later
+			// Retain this build even when its inputs did not require a restart.
 			seenManifestBuilders[builder.key] = struct{}{}
 		}
 	}
 
-	// delete any manifest builders that no longer have corresponding configs
+	// Fail and remove builds whose manifest or remote no longer exists.
 	for _, builder := range manifestBuilders {
-		// if the builder was not seen: delete it
 		if _, ok := seenManifestBuilders[builder.key]; !ok {
 			if _, manifestExists := nextManifests[builder.conf.ManifestId]; !manifestExists {
 				builder.tracker.failWithError(bldr_project.ErrManifestConfNotFound)
@@ -246,6 +252,7 @@ func (c *Controller) UpdateProjectConfig(nextConf *bldr_project.ProjectConfig) e
 // publishProjectConfigStatus publishes a clone of the project config to
 // the status sink.
 func (c *Controller) publishProjectConfigStatus(projectConfig *bldr_project.ProjectConfig) {
+	// Snapshot the observer, then pass it a detached configuration.
 	c.statusSinkMtx.Lock()
 	sink := c.projectConfigStatusSink
 	c.statusSinkMtx.Unlock()
@@ -261,29 +268,18 @@ func (c *Controller) BuildManifestBuilderConfigs(
 	ctx context.Context,
 	manifestBuilderConfigs []*ManifestBuilderConfig,
 ) ([]*bldr_manifest.ManifestRef, []string, error) {
-	// build the manifest builder configs
-	for _, manifestBuilderConf := range manifestBuilderConfigs {
-		if err := manifestBuilderConf.Validate(); err != nil {
-			return nil, nil, err
-		}
+	// Register the complete build before a compiler can fetch a dependency.
+	refs, err := c.addManifestBuilderRefs(manifestBuilderConfigs, false)
+	if err != nil {
+		return nil, nil, err
 	}
-
-	// add refs
-	refs := make([]*ManifestBuilderRef, 0, len(manifestBuilderConfigs))
 	defer func() {
 		for _, ref := range refs {
 			ref.Release()
 		}
 	}()
-	for _, manifestBuilderConfig := range manifestBuilderConfigs {
-		ref, err := c.AddManifestBuilderRef(manifestBuilderConfig)
-		if err != nil {
-			return nil, nil, err
-		}
-		refs = append(refs, ref)
-	}
 
-	// wait for the manifests to finishing building
+	// Await each retained build and preserve completed results on failure.
 	var manifestObjKeys []string
 	var manifestRefs []*bldr_manifest.ManifestRef
 	for _, ref := range refs {
@@ -301,41 +297,17 @@ func (c *Controller) BuildManifestBuilderConfigs(
 
 // AddManifestBuilderRef adds a reference to a manifest compiler.
 func (c *Controller) AddManifestBuilderRef(conf *ManifestBuilderConfig) (*ManifestBuilderRef, error) {
-	if err := conf.Validate(); err != nil {
+	refs, err := c.addManifestBuilderRefs([]*ManifestBuilderConfig{conf}, false)
+	if err != nil {
 		return nil, err
 	}
-
-	c.lifecycleMtx.Lock()
-	if c.closed {
-		c.lifecycleMtx.Unlock()
-		return nil, errControllerClosed
-	}
-	c.mtx.Lock()
-
-	projConf := c.conf.Load().GetProjectConfig()
-	_, ok := projConf.GetManifests()[conf.GetManifestId()]
-	if !ok {
-		c.mtx.Unlock()
-		c.lifecycleMtx.Unlock()
-		return nil, bldr_project.ErrManifestConfNotFound
-	}
-	_, ok = projConf.GetRemotes()[conf.GetRemoteId()]
-	if !ok {
-		c.mtx.Unlock()
-		c.lifecycleMtx.Unlock()
-		return nil, bldr_project.ErrRemoteNotFound
-	}
-
-	ref, tracker, _ := c.manifestBuilders.AddKeyRef(conf.MarshalB58())
-	c.mtx.Unlock()
-	c.lifecycleMtx.Unlock()
-	tracker.refreshManifestBuilderStatusMeta()
-	return newManifestBuilderRef(ref, tracker), nil
+	return refs[0], nil
 }
 
 // AddRemoteRef adds a reference to a Remote.
 // Returns ErrRemoteNotFound if the remote was not found.
 func (c *Controller) AddRemoteRef(remoteID string) (*RemoteRef, error) {
+	// Retention and shutdown share the lifecycle-before-registry lock order.
 	c.lifecycleMtx.Lock()
 	defer c.lifecycleMtx.Unlock()
 
@@ -346,6 +318,7 @@ func (c *Controller) AddRemoteRef(remoteID string) (*RemoteRef, error) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	// Keep only remotes declared by the current project configuration.
 	projConf := c.conf.Load().GetProjectConfig()
 	_, ok := projConf.GetRemotes()[remoteID]
 	if !ok {
@@ -358,6 +331,7 @@ func (c *Controller) AddRemoteRef(remoteID string) (*RemoteRef, error) {
 
 // WaitRemote adds a reference to a remote and waits for it to be ready.
 func (c *Controller) WaitRemote(ctx context.Context, remoteID string) (world.Engine, *RemoteRef, error) {
+	// Retain the remote while its world engine becomes available.
 	remoteRef, err := c.AddRemoteRef(remoteID)
 	if err != nil {
 		return nil, nil, err
@@ -372,8 +346,10 @@ func (c *Controller) WaitRemote(ctx context.Context, remoteID string) (world.Eng
 	return remoteEng, remoteRef, nil
 }
 
-// AddFetchManifestBuilderRef adds a ManifestBuilderRef for a FetchManifest directive.
+// AddFetchManifestBuilderRef retains an active dependency build or starts its
+// default configuration when none exists. The caller releases both references.
 func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMeta *bldr_manifest.ManifestMeta) (*ManifestBuilderRef, *RemoteRef, error) {
+	// All dependency builds use the project's configured fetch remote.
 	manifestRemoteID := c.conf.Load().GetFetchManifestRemote()
 	if manifestRemoteID == "" {
 		return nil, nil, errors.Wrap(bldr_project.ErrEmptyRemoteID, "fetch_manifest: in project controller config")
@@ -390,12 +366,14 @@ func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMet
 		return nil, nil, errors.Wrap(world.ErrEmptyObjectKey, "fetch_manifest: remote")
 	}
 
+	// An unspecified build type retains the development-build default.
 	buildType := manifestMeta.GetBuildType()
 	if buildType == "" {
 		buildType = string(bldr_manifest.BuildType_DEV)
 		manifestMeta.BuildType = buildType
 	}
 
+	// Package providers must finish before the consuming compiler starts.
 	projectConfig := c.conf.Load().GetProjectConfig()
 	webPkgDeps := resolveWebPkgDeps(c.le, projectConfig.GetManifests())
 	dependencyRefs := make([]*ManifestBuilderRef, 0, len(webPkgDeps[manifestMeta.GetManifestId()]))
@@ -405,7 +383,7 @@ func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMet
 		}
 	}()
 	for _, dependencyID := range webPkgDeps[manifestMeta.GetManifestId()] {
-		dependencyRef, err := c.AddManifestBuilderRef(NewManifestBuilderConfig(
+		dependencyRef, err := c.addFetchManifestBuildRef(NewManifestBuilderConfig(
 			dependencyID,
 			buildType,
 			manifestMeta.GetPlatformId(),
@@ -424,8 +402,8 @@ func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMet
 		}
 	}
 
-	// note: BuildManifests overrides RemoteId with manifestRemoteID
-	manifestBuilderRef, err := c.AddManifestBuilderRef(NewManifestBuilderConfig(
+	// Reuse the configured build selected by the enclosing target.
+	manifestBuilderRef, err := c.addFetchManifestBuildRef(NewManifestBuilderConfig(
 		manifestMeta.GetManifestId(),
 		buildType,
 		manifestMeta.GetPlatformId(),
@@ -442,13 +420,14 @@ func (c *Controller) AddFetchManifestBuilderRef(ctx context.Context, manifestMet
 // Returning nil ends execution.
 // Returning an error triggers a retry with backoff.
 func (c *Controller) Execute(ctx context.Context) error {
+	// Start owned registries only while the controller still accepts work.
 	c.lifecycleMtx.Lock()
 	if c.closed {
 		c.lifecycleMtx.Unlock()
 		return context.Canceled
 	}
 
-	// start the plugin build controllers and remote trackers
+	// Keyed routines retain ctx after Execute returns.
 	c.manifestBuilders.SetContext(ctx, true)
 	c.remotes.SetContext(ctx, true)
 	start := c.GetConfig().GetStart()
@@ -463,6 +442,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 
 // StartStartup loads the plugins in the project start config while ctx is active.
 func (c *Controller) StartStartup(ctx context.Context) {
+	// Startup belongs to the same lifetime as the build and remote registries.
 	c.lifecycleMtx.Lock()
 	defer c.lifecycleMtx.Unlock()
 	if c.closed {
@@ -480,6 +460,7 @@ func (c *Controller) HandleDirective(
 	ctx context.Context,
 	di directive.Instance,
 ) ([]directive.Resolver, error) {
+	// Closed controllers cannot contribute new dependency resolvers.
 	c.lifecycleMtx.Lock()
 	closed := c.closed
 	c.lifecycleMtx.Unlock()
@@ -487,6 +468,7 @@ func (c *Controller) HandleDirective(
 		return nil, nil
 	}
 
+	// Project manifests are available through the ordinary fetch directive.
 	dir := di.GetDirective()
 	switch d := dir.(type) {
 	case bldr_manifest.FetchManifest:
@@ -496,7 +478,9 @@ func (c *Controller) HandleDirective(
 	return nil, nil
 }
 
+// Close cancels owned work and joins its routines before returning.
 func (c *Controller) Close() error {
+	// Concurrent callers join the same shutdown operation.
 	c.lifecycleMtx.Lock()
 	if c.closed {
 		done := c.closeDone
@@ -510,6 +494,7 @@ func (c *Controller) Close() error {
 	c.routines.StopAccepting()
 	c.lifecycleMtx.Unlock()
 
+	// Cancel the registries before waiting for all accepted work to finish.
 	c.manifestBuilders.ClearContext()
 	c.remotes.ClearContext()
 	c.startup.ClearContext()
@@ -518,5 +503,5 @@ func (c *Controller) Close() error {
 	return nil
 }
 
-// _ is a type assertion
+// _ verifies the controller interface.
 var _ controller.Controller = (*Controller)(nil)
