@@ -172,7 +172,10 @@ export class ApplicationOperatorClient {
     this.signingEnvPrefix = options.signingEnvPrefix
     this.sessionPeerId = options.sessionPeerId
     this.sign = options.sign
-    this.fetchImpl = options.fetch ?? globalThis.fetch
+
+    // fetchImpl binds the default fetch to globalThis; the Worker fetch
+    // requires globalThis as its receiver.
+    this.fetchImpl = options.fetch ?? globalThis.fetch.bind(globalThis)
   }
 
   // getApplication reads a product registration visible to this session's account.

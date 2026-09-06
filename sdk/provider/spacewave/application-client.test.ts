@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { EnrollManagedAccountRequest } from '@s4wave/core/provider/spacewave/api/application.pb.js'
+import {
+  EnrollManagedAccountRequest,
+  GetApplicationResponse,
+} from '@s4wave/core/provider/spacewave/api/application.pb.js'
 import { SigningPayload } from '@s4wave/core/provider/spacewave/api/api.pb.js'
 
 import {
@@ -79,10 +82,9 @@ describe('ApplicationOperatorClient', () => {
 
   it('signs and sends GetApplication with a verifiable Ed25519 signature', async () => {
     const keypair = await makeKeypair()
-    // GetApplicationResponse{application: Application{id:"123"}}
-    const responseBody = new Uint8Array([
-      0x0a, 0x05, 0x0a, 0x03, 0x31, 0x32, 0x33,
-    ])
+    const responseBody = new Uint8Array(
+      GetApplicationResponse.toBinary({ application: { id: '123' } }),
+    )
     const { client, captured } = makeClient(
       keypair,
       () => new Response(responseBody, { status: 200 }),
@@ -222,6 +224,41 @@ describe('ApplicationOperatorClient', () => {
     })
     // Only the original request must have been sent; the redirect was not followed.
     expect(captured).toHaveLength(1)
+  })
+
+  it('invokes the default fetch with globalThis as its receiver', async () => {
+    // The Worker fetch requires globalThis as its receiver: it throws a
+    // TypeError otherwise. Stand in for it to prove the client binds the
+    // default without changing injected-fetch semantics.
+    const originalFetch = globalThis.fetch
+    const strictFetch = function (
+      this: typeof globalThis,
+      _input: RequestInfo | URL,
+      _init?: RequestInit,
+    ): Promise<Response> {
+      if (this !== globalThis) {
+        throw new TypeError('Illegal invocation')
+      }
+      return Promise.resolve(
+        new Response(
+          new Uint8Array(
+            GetApplicationResponse.toBinary({ application: { id: '123' } }),
+          ),
+          { status: 200 },
+        ),
+      )
+    }
+    globalThis.fetch = strictFetch as typeof globalThis.fetch
+    const client = new ApplicationOperatorClient({
+      apiOrigin: 'https://api.example.com',
+      signingEnvPrefix: 'spacewave',
+      sessionPeerId: '12D3KooWTest',
+      sign: async () => new Uint8Array(64),
+    })
+    globalThis.fetch = originalFetch
+
+    const response = await client.getApplication('app-123')
+    expect(response.application?.id).toBe('123')
   })
 
   it('rejects non-2xx responses with the parsed cloud error', async () => {
