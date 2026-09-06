@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
+	bucket "github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 )
@@ -186,6 +187,27 @@ func (t *pluginInstance) waitForManifestCopyReady(
 	}
 }
 
+// checkDownloadManifestCurrent verifies the context is still live and the
+// manifest is still the download routine's selected request, returning
+// context.Canceled for a replaced request. The routine is nil in
+// direct-executor tests that bypass selection; the equality check applies
+// only when the routine exists.
+func (t *pluginInstance) checkDownloadManifestCurrent(
+	ctx context.Context,
+	manifestSnapshot *bldr_manifest.ManifestSnapshot,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if t.downloadManifestRoutine == nil {
+		return nil
+	}
+	if selected := t.downloadManifestRoutine.GetState(); selected == nil || !selected.EqualVT(manifestSnapshot) {
+		return context.Canceled
+	}
+	return nil
+}
+
 // execDownloadManifest copies manifest blocks from the source bucket to the world bucket.
 func (t *pluginInstance) execDownloadManifest(
 	ctx context.Context,
@@ -269,23 +291,38 @@ func (t *pluginInstance) execDownloadManifest(
 	trace.Log(ctx, "source-bucket-id", src.GetOpArgs().GetBucketId())
 	le.Infof("copying manifest DAG from bucket %s to %s", src.GetOpArgs().GetBucketId(), destBucketID)
 
+	// Copy the manifest DAG: through the materializer plugin when configured,
+	// otherwise with the in-process copy engine. A failed RPC must not fall
+	// back to native copying; the scheduler routine owns retry.
 	copyCtx, copyTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/copy-dag")
 	trace.Log(copyCtx, "accounting-phase", "decode-verify-deserialize-block-publish")
-	localRef, stats, err := bucket_lookup.CopyObjectToBucketWithStats(
-		copyCtx,
-		dest,
-		src,
-		bldr_manifest.NewManifestBlock,
-		t.c.conf.manifestCopyConcurrency(),
-		false,
-		nil,
-	)
+	var localRef *bucket.ObjectRef
+	var stats bucket_lookup.ObjectCopyStats
+	if pluginID := t.c.conf.GetMaterializerPluginId(); pluginID != "" {
+		localRef, stats, err = t.c.materializeManifest(copyCtx, pluginID, dest, src, t.c.conf.manifestCopyConcurrency())
+	} else {
+		localRef, stats, err = bucket_lookup.CopyObjectToBucketWithStats(
+			copyCtx,
+			dest,
+			src,
+			bldr_manifest.NewManifestBlock,
+			t.c.conf.manifestCopyConcurrency(),
+			false,
+			nil,
+		)
+	}
 	copyStats = accounting.apply(stats)
 	copyTask.End()
 	if err != nil {
 		return errors.Wrap(err, "copy manifest block DAG")
 	}
 	logObjectRefAccountingFields(ctx, "local-manifest", localRef)
+
+	// The request may have been replaced while the copy ran; publication
+	// applies only to the currently selected manifest.
+	if err := t.checkDownloadManifestCurrent(ctx, manifestSnapshot); err != nil {
+		return err
+	}
 
 	var synced bool
 	releaseManifestCommit, err := t.c.acquireManifestCommit(ctx)
@@ -294,6 +331,12 @@ func (t *pluginInstance) execDownloadManifest(
 	}
 	if err := func() error {
 		defer releaseManifestCommit()
+
+		// Recheck after the publication permit was acquired: another request
+		// may have replaced this one while the permit was waited for.
+		if err := t.checkDownloadManifestCurrent(ctx, manifestSnapshot); err != nil {
+			return err
+		}
 		if !t.c.conf.GetDisableStoreManifest() {
 			storeCtx, storeTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/store-local-ref")
 			trace.Log(storeCtx, "accounting-phase", "world-op-store-local-manifest-ref")

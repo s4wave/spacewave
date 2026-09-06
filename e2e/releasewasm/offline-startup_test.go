@@ -26,6 +26,7 @@ func TestGoScriptOfflineStartup(t *testing.T) {
 	if err := page.Locator("[data-testid='unixfs-browser']:visible").First().WaitFor(); err != nil {
 		t.Fatal(err)
 	}
+	waitForMaterializerPluginRunningMark(t, page)
 	if _, err := page.WaitForFunction(`async () => {
 		const cache = await caches.open('bldr-control')
 		const response = await cache.match('/__bldr/browser-release-state.json')
@@ -73,5 +74,23 @@ func TestGoScriptOfflineStartup(t *testing.T) {
 	}
 	if _, err := waitForQuickstartDriveContentReady(t, page); err != "" {
 		t.Fatalf("read persisted Drive content offline: %s", err)
+	}
+	waitForMaterializerPluginRunningMark(t, page)
+}
+
+// waitForMaterializerPluginRunningMark waits until the document startup marks
+// record the materializer plugin worker reaching its running state.
+func waitForMaterializerPluginRunningMark(t *testing.T, page playwright.Page) {
+	t.Helper()
+
+	if _, err := page.WaitForFunction(`() => {
+		const marks = globalThis.__swStartupMarks ?? []
+		return marks.some((mark) =>
+			mark.name === 'spacewave.startup.plugin.running' &&
+			mark.detail?.workerId === 'plugin/bldr-materializer',
+		)
+	}`, nil, playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(browserWaitMS)}); err != nil {
+		dumpPageState(t, page)
+		t.Fatalf("materializer plugin running startup mark: %v", err)
 	}
 }

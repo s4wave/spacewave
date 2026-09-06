@@ -28,6 +28,13 @@ type MaterializeManifestRequest struct {
 	// Concurrency limits concurrent block reads/writes during the copy.
 	// Zero retains the copy engine's existing unlimited meaning.
 	Concurrency uint32 `protobuf:"varint,4,opt,name=concurrency,proto3" json:"concurrency,omitempty"`
+	// SourceServiceId is the full bus RPC service ID of a BlockStore service
+	// that serves the source encoded blocks. When set, the source cursor is
+	// reconstructed over that RPC store instead of the host-local source
+	// lookup, and the source ref must carry its resolved inline transform
+	// configuration (source.transform_conf_ref must be empty). Empty retains
+	// the native bus source lookup.
+	SourceServiceId string `protobuf:"bytes,5,opt,name=source_service_id,json=sourceServiceId,proto3" json:"sourceServiceId,omitempty"`
 }
 
 func (x *MaterializeManifestRequest) Reset() {
@@ -62,6 +69,13 @@ func (x *MaterializeManifestRequest) GetConcurrency() uint32 {
 		return x.Concurrency
 	}
 	return 0
+}
+
+func (x *MaterializeManifestRequest) GetSourceServiceId() string {
+	if x != nil {
+		return x.SourceServiceId
+	}
+	return ""
 }
 
 // CopyStats reports logical copy accounting for one materialization.
@@ -174,6 +188,7 @@ func (m *MaterializeManifestRequest) CloneVT() *MaterializeManifestRequest {
 	}
 	r := new(MaterializeManifestRequest)
 	r.Concurrency = m.Concurrency
+	r.SourceServiceId = m.SourceServiceId
 	r.Source = protobuf_go_lite.CloneVTValue(m.Source)
 	r.Destination = protobuf_go_lite.CloneVTValue(m.Destination)
 	r.DestinationTransformConf = protobuf_go_lite.CloneVTValue(m.DestinationTransformConf)
@@ -242,6 +257,9 @@ func (this *MaterializeManifestRequest) EqualVT(that *MaterializeManifestRequest
 		return false
 	}
 	if this.Concurrency != that.Concurrency {
+		return false
+	}
+	if this.SourceServiceId != that.SourceServiceId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -344,6 +362,11 @@ func (x *MaterializeManifestRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("concurrency")
 		s.WriteUint32(x.Concurrency)
 	}
+	if x.SourceServiceId != "" || s.HasField("sourceServiceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("sourceServiceId")
+		s.WriteString(x.SourceServiceId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -385,6 +408,9 @@ func (x *MaterializeManifestRequest) UnmarshalProtoJSON(s *json.UnmarshalState) 
 		case "concurrency":
 			s.AddField("concurrency")
 			x.Concurrency = s.ReadUint32()
+		case "source_service_id", "sourceServiceId":
+			s.AddField("source_service_id")
+			x.SourceServiceId = s.ReadString()
 		}
 	})
 }
@@ -571,6 +597,11 @@ func (m *MaterializeManifestRequest) MarshalToSizedBufferVT(dAtA []byte) (int, e
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.SourceServiceId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.SourceServiceId)
+		i--
+		dAtA[i] = 0x2a
+	}
 	if m.Concurrency != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Concurrency))
 		i--
@@ -747,6 +778,7 @@ func (m *MaterializeManifestRequest) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Concurrency)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SourceServiceId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -804,6 +836,10 @@ func (x *MaterializeManifestRequest) MarshalProtoText() string {
 	if x.Concurrency != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "concurrency")
 		protobuf_go_lite.TextWriteUint(&sb, x.Concurrency)
+	}
+	if x.SourceServiceId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source_service_id")
+		protobuf_go_lite.TextWriteString(&sb, x.SourceServiceId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -942,6 +978,16 @@ func (m *MaterializeManifestRequest) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceServiceId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.SourceServiceId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -180,14 +180,17 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/manifest/materializer": {
-      "hash": "80597470f55b84efdefa06ef5736eb07b97c8a50e299ef385d69cf041c9a0440",
+      "hash": "4e58d95d602f2663ff2b9f5be3a2508092d006e91eb1362399fa203e256fe1b2",
       "generatedFiles": [
+        "bldr/manifest/materializer/config.pb.go",
+        "bldr/manifest/materializer/config.pb.ts",
         "bldr/manifest/materializer/materializer.pb.go",
         "bldr/manifest/materializer/materializer.pb.ts",
         "bldr/manifest/materializer/materializer_srpc.pb.go",
         "bldr/manifest/materializer/materializer_srpc.pb.ts"
       ],
       "protoFiles": [
+        "bldr/manifest/materializer/config.proto",
         "bldr/manifest/materializer/materializer.proto"
       ]
     },
@@ -314,7 +317,7 @@
       ]
     },
     "github.com/s4wave/spacewave/bldr/plugin/host/scheduler": {
-      "hash": "c772ab4a84d679e77779f317f8cc0550926e88cb1a5e293e9ff95a11b625fdf3",
+      "hash": "9fd855b31c3e5e27f74bd880d852783783e8dac13b070ee5a7075533b4849744",
       "generatedFiles": [
         "bldr/plugin/host/scheduler/config.pb.go",
         "bldr/plugin/host/scheduler/config.pb.ts"

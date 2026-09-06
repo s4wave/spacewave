@@ -3475,6 +3475,9 @@ func TestDownloadManifestYieldsColdStartCopyUntilStartupGroupReady(t *testing.T)
 		manifestSnapshot: snapshot,
 		pluginHost:       &testPluginHost{id: "desktop/darwin/arm64"},
 	})
+	// The copy publishes only for the routine's currently selected manifest;
+	// establish the selection this test drives directly.
+	pi.downloadManifestRoutine.SetState(snapshot)
 
 	execCtx, execCancel := context.WithCancel(ctx)
 	defer execCancel()

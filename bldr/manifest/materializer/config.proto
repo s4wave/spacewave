@@ -1,0 +1,5 @@
+syntax = "proto3";
+package bldr.manifest.materializer;
+
+// Config carries the materializer controller configuration.
+message Config {}

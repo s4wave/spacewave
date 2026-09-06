@@ -103,6 +103,7 @@ func NewSchedulerConfig(
 		disableStoreManifest,
 		disableCopyManifest,
 	)
+	schedConf.MaterializerPluginId = materializerPluginID()
 	return schedConf
 }
 
