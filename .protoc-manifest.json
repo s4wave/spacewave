@@ -179,6 +179,18 @@
         "bldr/manifest/fetch/world/config.proto"
       ]
     },
+    "github.com/s4wave/spacewave/bldr/manifest/materializer": {
+      "hash": "80597470f55b84efdefa06ef5736eb07b97c8a50e299ef385d69cf041c9a0440",
+      "generatedFiles": [
+        "bldr/manifest/materializer/materializer.pb.go",
+        "bldr/manifest/materializer/materializer.pb.ts",
+        "bldr/manifest/materializer/materializer_srpc.pb.go",
+        "bldr/manifest/materializer/materializer_srpc.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/manifest/materializer/materializer.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/bldr/manifest/pack": {
       "hash": "fcb522142c11ec696baca5d8aedcba93eab742bc3bfb9889b58e75651a5d0c4c",
       "generatedFiles": [
