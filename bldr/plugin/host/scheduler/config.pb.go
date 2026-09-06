@@ -39,7 +39,8 @@ type Config struct {
 	// This is used if we are watching the same world as the FetchManifest resolver.
 	DisableStoreManifest bool `protobuf:"varint,6,opt,name=disable_store_manifest,json=disableStoreManifest,proto3" json:"disableStoreManifest,omitempty"`
 	// FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
-	// If zero, uses no limit to the number of concurrent fetches.
+	// If zero, uses a finite default of 2, shared by the serialized active
+	// manifest copy allowance.
 	//
 	// Note: the concurrency is limited by the number of blocks that we have seen
 	// so far. Fetches blocks, then the references those blocks reference. We only

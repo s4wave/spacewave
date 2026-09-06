@@ -100,7 +100,8 @@ export interface Config {
   disableStoreManifest?: boolean
   /**
    * FetchConcurrency limits the number of blocks fetched concurrently per-manifest.
-   * If zero, uses no limit to the number of concurrent fetches.
+   * If zero, uses a finite default of 2, shared by the serialized active
+   * manifest copy allowance.
    *
    * Note: the concurrency is limited by the number of blocks that we have seen
    * so far. Fetches blocks, then the references those blocks reference. We only

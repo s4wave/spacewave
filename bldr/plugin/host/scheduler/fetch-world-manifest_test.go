@@ -3012,7 +3012,7 @@ func TestDownloadManifestCopiesExternalVolumeDAGAndCachesSourceReads(t *testing.
 }
 
 func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	le := logrus.NewEntry(logrus.New())
 
@@ -3042,7 +3042,7 @@ func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T)
 	pi := &pluginInstance{
 		c: &Controller{
 			conf: &Config{
-				FetchConcurrency: 4,
+				FetchConcurrency: 1,
 			},
 			objKey:          objKey,
 			peerID:          peer.ID("test"),
@@ -3054,8 +3054,16 @@ func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T)
 		pluginID: "spacewave-core",
 	}
 
+	// Queue three requests against one aggregate copy allowance of one.
+	type manifestCopyRequest struct {
+		ctx        context.Context
+		manifestID string
+		snapshot   *bldr_manifest.ManifestSnapshot
+		errCh      chan error
+		cancel     context.CancelFunc
+	}
+	requests := make([]*manifestCopyRequest, 0, 3)
 	observed := make(chan manifestCopyObservation, 3)
-	errCh := make(chan error, 3)
 	releaseCopy := make(chan struct{})
 	for i := range 3 {
 		suffix := string(rune('a' + i))
@@ -3094,45 +3102,147 @@ func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T)
 		}
 		defer lookupRel()
 
-		snapshot := &bldr_manifest.ManifestSnapshot{
-			ManifestRef: remote.ref.GetManifestRef(),
-			Manifest:    remote.manifest,
-		}
+		reqCtx, reqCancel := context.WithCancel(ctx)
+		defer reqCancel()
+		requests = append(requests, &manifestCopyRequest{
+			ctx:        reqCtx,
+			manifestID: remote.ref.GetMeta().GetManifestId(),
+			snapshot: &bldr_manifest.ManifestSnapshot{
+				ManifestRef: remote.ref.GetManifestRef(),
+				Manifest:    remote.manifest,
+			},
+			errCh:  make(chan error, 1),
+			cancel: reqCancel,
+		})
+	}
+	for _, req := range requests {
 		go func() {
-			errCh <- pi.execDownloadManifest(ctx, snapshot)
+			req.errCh <- pi.execDownloadManifest(req.ctx, req.snapshot)
 		}()
 	}
 
-	seen := make(map[string]bool, 3)
-	for len(seen) < 3 {
-		select {
-		case next := <-observed:
-			seen[next.manifestID] = true
-			if next.active != 0 {
-				close(releaseCopy)
-				t.Fatalf("source block read for %s ran with %d active world access(es)", next.manifestID, next.active)
-			}
-		case <-ctx.Done():
-			t.Fatalf("timed out waiting for source observations: %v", ctx.Err())
+	// The first admitted copy enters traversal alone; the queued requests
+	// must not start reading source blocks.
+	var activeReq *manifestCopyRequest
+	var activeID string
+	select {
+	case obs := <-observed:
+		if obs.active != 0 {
+			t.Fatalf("source block read for %s ran with %d active world access(es)", obs.manifestID, obs.active)
 		}
+		activeID = obs.manifestID
+		for _, req := range requests {
+			if req.manifestID == obs.manifestID {
+				activeReq = req
+			}
+		}
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for the first source observation: %v", ctx.Err())
 	}
-	close(releaseCopy)
-	for range 3 {
-		select {
-		case err := <-errCh:
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-		case <-ctx.Done():
-			t.Fatalf("timed out waiting for manifest copies: %v", ctx.Err())
-		}
+	if activeReq == nil {
+		t.Fatalf("observed unknown manifest %s", activeID)
+	}
+	select {
+	case obs := <-observed:
+		t.Fatalf("queued request %s entered traversal while %s held the copy allowance", obs.manifestID, activeReq.manifestID)
+	default:
 	}
 
-	for manifestID := range seen {
+	// Foreground World access must complete while the active copy holds the
+	// allowance: the copy holds no World access of its own.
+	fgCtx, fgCancel := context.WithTimeout(ctx, 2*time.Second)
+	defer fgCancel()
+	var worldBucketID string
+	if err := ws.AccessWorldState(fgCtx, nil, func(cursor *bucket_lookup.Cursor) error {
+		worldBucketID = cursor.GetOpArgs().GetBucketId()
+		return nil
+	}); err != nil {
+		t.Fatalf("foreground world access failed while a copy held admission: %v", err)
+	}
+	if worldBucketID == "" {
+		t.Fatal("foreground world access returned an empty bucket id")
+	}
+
+	// Cancel one queued request while it waits for admission; it must exit
+	// without entering traversal or publishing.
+	var cancelReq, queuedReq *manifestCopyRequest
+	for _, req := range requests {
+		if req == activeReq {
+			continue
+		}
+		if cancelReq == nil {
+			cancelReq = req
+		} else {
+			queuedReq = req
+		}
+	}
+	cancelReq.cancel()
+	select {
+	case err := <-cancelReq.errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("canceled queued copy failed with %v, want context.Canceled", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for the canceled queued copy: %v", ctx.Err())
+	}
+	got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
+		ctx,
+		baseWS,
+		cancelReq.manifestID,
+		[]string{"desktop/darwin/arm64"},
+		objKey,
+	)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if len(errs) != 0 {
+		t.Fatalf("manifest errors for canceled copy %s = %v", cancelReq.manifestID, errs)
+	}
+	if len(got) != 0 {
+		t.Fatalf("canceled queued copy published %d manifests, want 0", len(got))
+	}
+
+	// Release the active copy; it completes and publishes its copied root.
+	close(releaseCopy)
+	select {
+	case err := <-activeReq.errCh:
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for the active manifest copy: %v", ctx.Err())
+	}
+
+	// The remaining queued request proceeds only after the allowance
+	// released: its first observation must record release already closed.
+	select {
+	case obs := <-observed:
+		if obs.manifestID != queuedReq.manifestID {
+			t.Fatalf("observed source read for %s, want %s", obs.manifestID, queuedReq.manifestID)
+		}
+		if obs.active != 0 {
+			t.Fatalf("source block read for %s ran with %d active world access(es)", obs.manifestID, obs.active)
+		}
+		if obs.copyBlocked {
+			t.Fatalf("queued request %s entered traversal before the copy allowance released", obs.manifestID)
+		}
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for the queued copy to proceed: %v", ctx.Err())
+	}
+	select {
+	case err := <-queuedReq.errCh:
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for the queued manifest copy: %v", ctx.Err())
+	}
+
+	for _, req := range []*manifestCopyRequest{activeReq, queuedReq} {
 		got, errs, err := bldr_manifest_world.CollectManifestsForManifestID(
 			ctx,
 			baseWS,
-			manifestID,
+			req.manifestID,
 			[]string{"desktop/darwin/arm64"},
 			objKey,
 		)
@@ -3140,10 +3250,10 @@ func TestDownloadManifestCopiesSeveralRemoteDAGsOutsideWorldAccess(t *testing.T)
 			t.Fatal(err.Error())
 		}
 		if len(errs) != 0 {
-			t.Fatalf("manifest errors for %s = %v", manifestID, errs)
+			t.Fatalf("manifest errors for %s = %v", req.manifestID, errs)
 		}
 		if len(got) != 1 {
-			t.Fatalf("manifest count for %s = %d, want 1", manifestID, len(got))
+			t.Fatalf("manifest count for %s = %d, want 1", req.manifestID, len(got))
 		}
 	}
 }
@@ -4056,6 +4166,9 @@ func (s *accessCountingWorldState) AccessWorldState(
 type manifestCopyObservation struct {
 	manifestID string
 	active     int32
+	// copyBlocked reports whether the read still waits on release,
+	// observed with a nonblocking select at emission time.
+	copyBlocked bool
 }
 
 type blockingLookupBlockStore struct {
@@ -4088,9 +4201,16 @@ func (s *blockingLookupBlockStore) BeginReadOperation(ctx context.Context) (bloc
 
 func (s *blockingLookupBlockStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
 	s.once.Do(func() {
+		var copyBlocked bool
+		select {
+		case <-s.release:
+		default:
+			copyBlocked = true
+		}
 		s.observed <- manifestCopyObservation{
-			manifestID: s.manifestID,
-			active:     s.activeAccess.Load(),
+			manifestID:  s.manifestID,
+			active:      s.activeAccess.Load(),
+			copyBlocked: copyBlocked,
 		}
 	})
 	select {

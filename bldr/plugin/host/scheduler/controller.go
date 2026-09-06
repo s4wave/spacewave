@@ -10,6 +10,7 @@ import (
 	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ccontainer"
+	"github.com/aperturerobotics/util/csync"
 	"github.com/aperturerobotics/util/keyed"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_world "github.com/s4wave/spacewave/bldr/manifest/world"
@@ -77,10 +78,10 @@ type Controller struct {
 	manifestStoreReady bool
 	// manifestStoreInit closes when the current initialization attempt completes.
 	manifestStoreInit chan struct{}
-	// manifestCommitOnce initializes manifestCommitSlots.
-	manifestCommitOnce sync.Once
-	// manifestCommitSlots serializes world manifest publication and sync.
-	manifestCommitSlots chan struct{}
+	// manifestCopyMtx serializes manifest copies through one aggregate
+	// allowance, held from after startup readiness until local-ref
+	// publication and Sync complete.
+	manifestCopyMtx csync.Mutex
 
 	// pluginInstances manages the list of running plugins by plugin ID.
 	// key: plugin ID
@@ -200,25 +201,6 @@ func (c *Controller) getManifestCopyGate() ManifestCopyGate {
 		return nil
 	}
 	return c.manifestCopyGateCtr.GetValue()
-}
-
-// acquireManifestCommit acquires the manifest commit lock, returning the
-// release func.
-func (c *Controller) acquireManifestCommit(ctx context.Context) (func(), error) {
-	if c == nil {
-		return func() {}, nil
-	}
-	c.manifestCommitOnce.Do(func() {
-		c.manifestCommitSlots = make(chan struct{}, 1)
-	})
-	select {
-	case c.manifestCommitSlots <- struct{}{}:
-		return func() {
-			<-c.manifestCommitSlots
-		}, nil
-	case <-ctx.Done():
-		return nil, context.Canceled
-	}
 }
 
 // ensureManifestStore creates the scheduler manifest store before a plugin reads it.
