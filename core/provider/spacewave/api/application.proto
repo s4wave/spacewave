@@ -1,0 +1,75 @@
+syntax = "proto3";
+package provider.spacewave.api;
+
+// ApplicationState controls all Sessions and provisioning within an application.
+enum ApplicationState {
+  // APPLICATION_STATE_UNKNOWN is invalid for lifecycle mutations.
+  APPLICATION_STATE_UNKNOWN = 0;
+  // APPLICATION_STATE_ACTIVE permits authorized application operations.
+  APPLICATION_STATE_ACTIVE = 1;
+  // APPLICATION_STATE_PAUSED retains Sessions with only status access permitted.
+  APPLICATION_STATE_PAUSED = 2;
+  // APPLICATION_STATE_DISABLED deletes Sessions and requires fresh login on reactivation.
+  APPLICATION_STATE_DISABLED = 3;
+}
+
+// ApplicationFunding identifies who accepts an application's infrastructure costs.
+enum ApplicationFunding {
+  // APPLICATION_FUNDING_UNKNOWN means funding has not been accepted.
+  APPLICATION_FUNDING_UNKNOWN = 0;
+  // APPLICATION_FUNDING_OPERATOR bills the operator-authorized payer.
+  APPLICATION_FUNDING_OPERATOR = 1;
+  // APPLICATION_FUNDING_APERTURE bills the platform-authorized sponsor.
+  APPLICATION_FUNDING_APERTURE = 2;
+}
+
+// Application identifies an approved product and its independent cloud authority.
+message Application {
+  // Id is the immutable cloud registration identifier, distinct from a build project.
+  string id = 1;
+  // DisplayName is the operator-facing product name.
+  string display_name = 2;
+  // OperatorAccountId identifies the account authorized to administer this registration.
+  string operator_account_id = 3;
+  // BillingAccountId is the authorized payer; empty means funding is not configured.
+  string billing_account_id = 4;
+  // State controls current access; new registrations start paused.
+  ApplicationState state = 5;
+  // Revision fences concurrent configuration changes and advances on each mutation.
+  uint64 revision = 6;
+  // CreatedAtMs is the registration time in Unix milliseconds.
+  int64 created_at_ms = 7;
+  // UpdatedAtMs is the last configuration mutation time in Unix milliseconds.
+  int64 updated_at_ms = 8;
+  // Funding distinguishes operator payment from platform sponsorship without suppressing usage.
+  ApplicationFunding funding = 9;
+}
+
+// RegisterApplicationRequest asks a platform administrator to approve a product.
+// Registration creates no paid resources; the operator separately accepts funding.
+message RegisterApplicationRequest {
+  // DisplayName is the product name, with at most 128 UTF-8 bytes.
+  string display_name = 1;
+  // OperatorAccountId identifies the existing account receiving product administration.
+  string operator_account_id = 2;
+  // RequestId deduplicates registration retries for the authenticated administrator.
+  string request_id = 3;
+}
+
+// RegisterApplicationResponse returns the paused registration, including on retry.
+message RegisterApplicationResponse {
+  // Application is the approved product registration.
+  Application application = 1;
+}
+
+// GetApplicationRequest selects a registration visible to its operator or a platform administrator.
+message GetApplicationRequest {
+  // ApplicationId is the cloud registration identifier.
+  string application_id = 1;
+}
+
+// GetApplicationResponse returns the current application configuration.
+message GetApplicationResponse {
+  // Application is the selected product registration.
+  Application application = 1;
+}

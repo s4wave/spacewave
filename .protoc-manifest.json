@@ -1122,10 +1122,12 @@
       ]
     },
     "github.com/s4wave/spacewave/core/provider/spacewave/api": {
-      "hash": "d1b614b86eb21557b937cb6cbf1d2d79210cd014a53dc9daad830fc487bba2a6",
+      "hash": "850d6fbfb0ee451443fcc46549db069a6fcc38d13c59cf28944e91f4a30a316c",
       "generatedFiles": [
         "core/provider/spacewave/api/api.pb.go",
         "core/provider/spacewave/api/api.pb.ts",
+        "core/provider/spacewave/api/application.pb.go",
+        "core/provider/spacewave/api/application.pb.ts",
         "core/provider/spacewave/api/facets-runtime.pb.go",
         "core/provider/spacewave/api/facets-runtime.pb.ts",
         "core/provider/spacewave/api/rbac-admin.pb.go",
@@ -1135,6 +1137,7 @@
       ],
       "protoFiles": [
         "core/provider/spacewave/api/api.proto",
+        "core/provider/spacewave/api/application.proto",
         "core/provider/spacewave/api/facets-runtime.proto",
         "core/provider/spacewave/api/rbac-admin.proto",
         "core/provider/spacewave/api/spacelink-nonce.proto"
