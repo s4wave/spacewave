@@ -373,36 +373,92 @@ describe('WebDocument service worker startup', () => {
     resetStartupMarksForTest()
   })
 
-  it('reloads without throwing when registration leaves the page uncontrolled', async () => {
+  it('waits for first-install control without reloading', async () => {
     const reload = vi.fn()
-    const storage = installSessionStorage()
-    vi.stubGlobal('location', {
-      href: 'https://example.test/app',
-      reload,
-    })
+    vi.stubGlobal('location', { href: 'https://example.test/app', reload })
+    const serviceWorker = {
+      controller: null as ServiceWorker | null,
+      addEventListener: vi.fn(),
+      register: vi.fn(),
+    }
+    vi.stubGlobal('navigator', { serviceWorker })
+    const control = Promise.withResolvers<ServiceWorker>()
+    const sw = { postMessage: vi.fn() } as unknown as ServiceWorker
+    const doc = buildTestWebDocument()
+    const ready = vi.fn()
+    const wb = {
+      register: vi.fn().mockResolvedValue({}),
+      update: vi.fn(),
+      controlling: control.promise,
+    }
+    const started = doc.initServiceWorker(wb, '/sw.mjs', ready)
+    await Promise.resolve()
+    expect(reload).not.toHaveBeenCalled()
+    expect(ready).not.toHaveBeenCalled()
+    serviceWorker.controller = sw
+    control.resolve(sw)
+    await started
+    expect(ready).toHaveBeenCalledOnce()
+    expect(reload).not.toHaveBeenCalled()
+    expect(wb.register).toHaveBeenCalledWith({ immediate: true })
+    expect(wb.update).not.toHaveBeenCalled()
+    doc.serviceWorkerPort?.close()
+  })
+
+  it('attaches a controlled tab before registration settles or fails offline', async () => {
+    const sw = { postMessage: vi.fn() } as unknown as ServiceWorker
     vi.stubGlobal('navigator', {
       serviceWorker: {
-        controller: null,
+        controller: sw,
         addEventListener: vi.fn(),
         register: vi.fn(),
       },
     })
-
+    const registration = Promise.withResolvers<ServiceWorkerRegistration>()
     const doc = buildTestWebDocument()
-    const wb: TestWorkbox = {
-      register: vi
-        .fn()
-        .mockResolvedValue({
-          scope: 'https://example.test/',
-        } as ServiceWorkerRegistration),
-      update: vi.fn().mockResolvedValue(undefined),
+    const ready = vi.fn()
+    const wb = {
+      register: vi.fn(() => registration.promise),
+      update: vi.fn(),
       controlling: new Promise<ServiceWorker>(() => {}),
     }
-
-    await expect(doc.initServiceWorker(wb, '/sw.mjs')).resolves.toBeUndefined()
-    expect(storage.getItem('bldr-sw-controller-reload')).toBe('/sw.mjs')
-    expect(reload).toHaveBeenCalledOnce()
+    const started = doc.initServiceWorker(wb, '/sw.mjs', ready)
+    expect(ready).toHaveBeenCalledOnce()
+    expect(doc.serviceWorkerPort).toBeDefined()
+    registration.reject(new Error('offline'))
+    await started
+    expect(ready).toHaveBeenCalledOnce()
+    expect(wb.update).not.toHaveBeenCalled()
+    doc.serviceWorkerPort?.close()
   })
+
+  it.each([null, {}])(
+    'recovers an uncontrolled forced reload only once with installing=%j',
+    async (installing) => {
+      const reload = vi.fn()
+      installSessionStorage()
+      vi.stubGlobal('location', { href: 'https://example.test/app', reload })
+      vi.spyOn(performance, 'getEntriesByType').mockReturnValue([
+        { type: 'reload' } as PerformanceNavigationTiming,
+      ])
+      vi.stubGlobal('navigator', {
+        serviceWorker: {
+          controller: null,
+          addEventListener: vi.fn(),
+          register: vi.fn(),
+        },
+      })
+      const wb = {
+        register: vi.fn().mockResolvedValue({ active: {}, installing }),
+        update: vi.fn(),
+        controlling: new Promise<ServiceWorker>(() => {}),
+      }
+      await buildTestWebDocument().initServiceWorker(wb, '/sw.mjs')
+      expect(reload).toHaveBeenCalledOnce()
+      await buildTestWebDocument().initServiceWorker(wb, '/sw.mjs')
+      expect(reload).toHaveBeenCalledOnce()
+    },
+  )
 
   it('rebinds the tracker port without duplicating the ServiceWorker message listener', async () => {
     installSessionStorage()
@@ -431,11 +487,9 @@ describe('WebDocument service worker startup', () => {
     vi.stubGlobal('navigator', { serviceWorker })
     const doc = buildTestWebDocument()
     const wb: TestWorkbox = {
-      register: vi
-        .fn()
-        .mockResolvedValue({
-          scope: 'https://example.test/',
-        } as ServiceWorkerRegistration),
+      register: vi.fn().mockResolvedValue({
+        scope: 'https://example.test/',
+      } as ServiceWorkerRegistration),
       update: vi.fn().mockResolvedValue(undefined),
       controlling: Promise.resolve(firstSw),
     }
@@ -445,7 +499,7 @@ describe('WebDocument service worker startup', () => {
     controllerChangeListeners[0](new Event('controllerchange'))
 
     expect(messageListeners).toHaveLength(1)
-    expect(secondPostMessage).toHaveBeenCalledOnce()
+    expect(secondPostMessage).toHaveBeenCalledTimes(3)
     const [message, transfer] = secondPostMessage.mock.calls[0] as [
       { from?: string; initPort?: MessagePort },
       Transferable[],
@@ -465,67 +519,7 @@ describe('WebDocument service worker startup', () => {
     secondPostMessage.mockClear()
   })
 
-  it('does not reload twice when the ServiceWorker controller is still missing', async () => {
-    const reload = vi.fn()
-    installSessionStorage({ 'bldr-sw-controller-reload': '/sw.mjs' })
-    vi.stubGlobal('location', {
-      href: 'https://example.test/app',
-      reload,
-    })
-    vi.stubGlobal('navigator', {
-      serviceWorker: {
-        controller: null,
-        addEventListener: vi.fn(),
-        register: vi.fn(),
-      },
-    })
-    const doc = buildTestWebDocument()
-    const wb: TestWorkbox = {
-      register: vi
-        .fn()
-        .mockResolvedValue({
-          scope: 'https://example.test/',
-        } as ServiceWorkerRegistration),
-      update: vi.fn().mockResolvedValue(undefined),
-      controlling: new Promise<ServiceWorker>(() => {}),
-    }
-
-    await expect(doc.initServiceWorker(wb, '/sw.mjs')).resolves.toBeUndefined()
-    expect(reload).not.toHaveBeenCalled()
-  })
-
-  it('clears bldr-sw-controller-reload when the page is controlled', async () => {
-    const storage = installSessionStorage({
-      'bldr-sw-controller-reload': '/sw.mjs',
-    })
-    const sw = { postMessage: vi.fn() } as unknown as ServiceWorker
-    vi.stubGlobal('navigator', {
-      serviceWorker: {
-        controller: sw,
-        addEventListener: vi.fn(),
-        register: vi.fn(),
-      },
-    })
-    const doc = buildTestWebDocument()
-    vi.spyOn(
-      doc as unknown as { initServiceWorkerPort: (sw: ServiceWorker) => void },
-      'initServiceWorkerPort',
-    ).mockImplementation(() => {})
-    const wb: TestWorkbox = {
-      register: vi
-        .fn()
-        .mockResolvedValue({
-          scope: 'https://example.test/',
-        } as ServiceWorkerRegistration),
-      update: vi.fn().mockResolvedValue(undefined),
-      controlling: Promise.resolve(sw),
-    }
-
-    await doc.initServiceWorker(wb, '/sw.mjs')
-    expect(storage.getItem('bldr-sw-controller-reload')).toBeNull()
-  })
-
-  it('starts the runtime from controllerchange when the awaited path returned early', async () => {
+  it('starts the runtime from controllerchange while registration is pending', async () => {
     const controllerChangeListeners: Array<(ev: Event) => void> = []
     installSessionStorage({ 'bldr-sw-controller-reload': '/sw.mjs' })
     vi.stubGlobal('location', {
@@ -553,19 +547,14 @@ describe('WebDocument service worker startup', () => {
     ).mockImplementation(() => {})
     const onControlReady = vi.fn()
     const wb: TestWorkbox = {
-      register: vi
-        .fn()
-        .mockResolvedValue({
-          scope: 'https://example.test/',
-        } as ServiceWorkerRegistration),
+      register: vi.fn().mockResolvedValue({
+        scope: 'https://example.test/',
+      } as ServiceWorkerRegistration),
       update: vi.fn().mockResolvedValue(undefined),
       controlling: new Promise<ServiceWorker>(() => {}),
     }
 
-    // The controller is already missing after a reload, so this returns before
-    // reaching onControlReady and nothing on the awaited path will ever start
-    // the runtime.
-    await doc.initServiceWorker(wb, '/sw.mjs', onControlReady)
+    void doc.initServiceWorker(wb, '/sw.mjs', onControlReady)
     expect(onControlReady).not.toHaveBeenCalled()
     expect(startRuntimeOnce).not.toHaveBeenCalled()
 
@@ -614,11 +603,9 @@ describe('WebDocument service worker startup', () => {
     const waitConn = vi.fn().mockReturnValue(new Promise(() => {}))
     doc.webRuntimeClient.waitConn = waitConn
     const wb: TestWorkbox = {
-      register: vi
-        .fn()
-        .mockResolvedValue({
-          scope: 'https://example.test/',
-        } as ServiceWorkerRegistration),
+      register: vi.fn().mockResolvedValue({
+        scope: 'https://example.test/',
+      } as ServiceWorkerRegistration),
       update: vi.fn().mockResolvedValue(undefined),
       controlling: Promise.resolve(sw),
     }

@@ -4,9 +4,11 @@ package entrypoint_browser_bundle
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/fastjson"
@@ -55,6 +57,7 @@ type BuildManifest struct {
 	SharedWorker               string                 `json:"sharedWorker"`
 	Wasm                       string                 `json:"wasm,omitempty"`
 	OpfsWorker                 string                 `json:"opfsWorker,omitempty"`
+	RequiredStaticAssets       []string               `json:"requiredStaticAssets,omitempty"`
 	CSS                        []string               `json:"css"`
 	AutoStart                  bool                   `json:"autoStart,omitempty"`
 	DefaultManifestBundle      *DefaultManifestBundle `json:"defaultManifestBundle,omitempty"`
@@ -64,6 +67,25 @@ const stableBootFilename = "boot.mjs"
 
 // WriteBuildManifest writes a manifest.json to the given directory.
 func WriteBuildManifest(dir string, manifest *BuildManifest) error {
+	// The entrypoint tree owns the runtime, split modules, web packages, and
+	// immutable kvfile. Every executable asset must survive an offline restart.
+	var runtimeAssets []string
+	err := fs.WalkDir(os.DirFS(dir), "entrypoint", func(path string, entry fs.DirEntry, err error) error {
+		if os.IsNotExist(err) && path == "entrypoint" {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if entry.Type().IsRegular() && !strings.HasSuffix(path, ".map") {
+			runtimeAssets = append(runtimeAssets, "/"+path)
+		}
+		return nil
+	})
+	if err != nil {
+		return errors.Wrap(err, "enumerate browser runtime assets")
+	}
+	manifest.RequiredStaticAssets = runtimeAssets
 	if err := writeBrowserReleaseManifest(dir, manifest); err != nil {
 		return err
 	}
@@ -87,6 +109,11 @@ func WriteBuildManifest(dir string, manifest *BuildManifest) error {
 		css.SetArrayItem(len(css.GetArray()), a.NewString(path))
 	}
 	obj.Set("css", css)
+	assets := a.NewArray()
+	for _, path := range manifest.RequiredStaticAssets {
+		assets.SetArrayItem(len(assets.GetArray()), a.NewString(path))
+	}
+	obj.Set("requiredStaticAssets", assets)
 	data := obj.MarshalTo(nil)
 	return os.WriteFile(filepath.Join(dir, "manifest.json"), data, 0o644)
 }
@@ -123,7 +150,11 @@ func writeBrowserReleaseManifest(dir string, manifest *BuildManifest) error {
 	routes := a.NewArray()
 	routes.SetArrayItem(0, a.NewString("/"))
 	obj.Set("prerenderedRoutes", routes)
-	obj.Set("requiredStaticAssets", a.NewArray())
+	assets := a.NewArray()
+	for _, path := range manifest.RequiredStaticAssets {
+		assets.SetArrayItem(len(assets.GetArray()), a.NewString(path))
+	}
+	obj.Set("requiredStaticAssets", assets)
 	if manifest.DefaultManifestBundle != nil {
 		bundle := a.NewObject()
 		bundle.Set("metadata", a.NewString(manifest.DefaultManifestBundle.Metadata))
@@ -399,6 +430,15 @@ function clearBootSessionState(){
 }
 async function resetHistoricalStateForBoot(){
   const storedVersion=storageGet(localStorage,bootStateVersionKey);
+  // A missing marker is not evidence of incompatible state. A fresh browser
+  // starts directly, and missing shell metadata must never erase user files.
+  if(!storedVersion){
+    storageSet(localStorage,bootStateVersionKey,bootStateVersion);
+    storageSet(sessionStorage,bootSessionStateVersionKey,bootStateVersion);
+    setBootResetDecision('initialized','no stored compatibility version');
+    clearBootResetReloadParam();
+    return false;
+  }
   if(storedVersion===bootStateVersion){
     if(storageGet(sessionStorage,bootSessionStateVersionKey)!==bootStateVersion){
       clearBootSessionState();

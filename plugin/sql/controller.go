@@ -2,6 +2,7 @@ package sql_plugin
 
 import (
 	"context"
+	"slices"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -217,8 +218,8 @@ func (c *Controller) registerSQL(
 
 func releaseRefs(refs []resource_client.ResourceRef) {
 	// Release registrations in reverse order of acquisition.
-	for i := len(refs) - 1; i >= 0; i-- {
-		refs[i].Release()
+	for _, ref := range slices.Backward(refs) {
+		ref.Release()
 	}
 }
 

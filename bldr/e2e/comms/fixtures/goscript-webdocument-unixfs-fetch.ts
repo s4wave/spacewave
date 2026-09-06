@@ -17,7 +17,7 @@ import {
   detectWorkerCommsConfig,
   type WorkerCommsDetectResult,
 } from '../../../web/bldr/worker-comms-detect.js'
-import { initBrowserReleaseAutoReload } from '../../../web/bldr/browser-release-update.js'
+import { initBrowserReleaseUpdates } from '../../../web/bldr/browser-release-update.js'
 import { timeoutPromise } from '../../../web/bldr/timeout.js'
 import { waitWorkerReady } from './wait-worker-ready.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
@@ -869,7 +869,7 @@ function installReleaseGenerationReloadProbe(eventLog: string[]): void {
   window.addEventListener('beforeunload', () => {
     recordEvent(eventLog, 'release-generation-beforeunload')
   })
-  initBrowserReleaseAutoReload()
+  initBrowserReleaseUpdates()
 }
 
 function dispatchReleaseGenerationMismatch(eventLog: string[]): void {
@@ -879,51 +879,6 @@ function dispatchReleaseGenerationMismatch(eventLog: string[]): void {
       data: { bldrPromotedGenerationId: 'fixture-next-generation' },
     }),
   )
-}
-
-function didReloadBeforeNormalClose(events: string[]): boolean {
-  const reloadIdx = events.findIndex(
-    (line) =>
-      line.includes('release-generation-beforeunload') ||
-      line.includes('release-generation-reload-run'),
-  )
-  if (reloadIdx < 0) {
-    return false
-  }
-  const normalCloseIdx = events.findIndex(
-    (line) =>
-      line.includes('RuntimeClientClosedError') ||
-      line.includes('runtime client generation 1 closed: normal-close'),
-  )
-  return normalCloseIdx < 0 || reloadIdx < normalCloseIdx
-}
-
-function releaseReloadResult(
-  eventLog: string[],
-): WebDocumentUnixFSFixtureResult {
-  recordEvent(eventLog, `release-generation-reload-run ${runCount}`)
-  const events = readPersistedEvents()
-  const reloadBeforeNormalClose = didReloadBeforeNormalClose(events)
-  return {
-    pass: true,
-    variant,
-    detail:
-      'release generation mismatch reloaded the page before normal-close evidence',
-    workerReady: false,
-    startInfo: false,
-    pluginToHostStream: false,
-    preFetchStream: false,
-    fetchSuccess: false,
-    postFetchStream: false,
-    restartSentinelStable: false,
-    releaseBroadcast: events.some((line) =>
-      line.includes('release-generation-broadcast'),
-    ),
-    reloadObserved: true,
-    reloadBeforeNormalClose,
-    reproduced: true,
-    eventLog: events,
-  }
 }
 
 function failureResult(
@@ -952,12 +907,6 @@ async function run() {
   }
   const eventLog = readPersistedEvents()
   recordEvent(eventLog, `run-start variant=${variant} run=${runCount}`)
-
-  if (variant === 'release-generation' && runCount > 1) {
-    window.__results = releaseReloadResult(eventLog)
-    log.textContent = 'DONE'
-    return
-  }
 
   const errors: string[] = []
   let worker: Worker | undefined
@@ -1068,8 +1017,8 @@ async function run() {
       await fetch.requestStarted
       releaseBroadcast = true
       dispatchReleaseGenerationMismatch(eventLog)
-      await timeoutPromise(fixtureTimeoutMs)
-      throw new Error('release generation mismatch did not reload the page')
+      fetch.releaseResponse()
+      fetchSuccess = await fetch.result
     } else if (variant === 'in-flight-reload') {
       mark('fetch-unixfs-inline-in-flight-reload')
       const fetch = startUnixFSInlineFileThroughProxyFetch(eventLog)
@@ -1238,12 +1187,10 @@ async function run() {
 
       const outcome = await Promise.race([
         trigger.waitOutcome(),
-        timeoutPromise(fixtureTimeoutMs).then(
-          (): TerminalOrphanOutcome => ({
-            failedFast: false,
-            err: 'terminal-orphan-timeout',
-          }),
-        ),
+        timeoutPromise(fixtureTimeoutMs).then((): TerminalOrphanOutcome => ({
+          failedFast: false,
+          err: 'terminal-orphan-timeout',
+        })),
       ])
       orphanElapsedMs = performance.now() - closeStartMs
       orphanOutcomeErr = outcome.err
@@ -1295,7 +1242,7 @@ async function run() {
       preFetchStream &&
       fetchSuccess &&
       postFetchStream &&
-      (variant === 'release-generation' || restartSentinelStable) &&
+      restartSentinelStable &&
       !failureReason &&
       errors.length === 0
     window.__results = {
@@ -1353,12 +1300,10 @@ async function run() {
   } catch (err) {
     window.__results = failureResult(eventLog, `error: ${String(err)}`)
   } finally {
-    if (!(variant === 'release-generation' && runCount === 1)) {
-      await replacementDocument?.close()
-      releaseLock?.()
-      worker?.terminate()
-      log.textContent = 'DONE'
-    }
+    await replacementDocument?.close()
+    releaseLock?.()
+    worker?.terminate()
+    log.textContent = 'DONE'
   }
 }
 

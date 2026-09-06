@@ -516,7 +516,7 @@ func (w *Writer) compactOccludedRanges() {
 		return
 	}
 
-	for i := len(ranges) - 1; i >= 0; i-- {
+	for i := range slices.Backward(ranges) {
 		if rangeCoveredByHigherNonce(ranges, i) {
 			w.deleteRange(i)
 			ranges = w.root.GetRanges()

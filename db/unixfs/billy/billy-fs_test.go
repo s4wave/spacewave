@@ -101,8 +101,7 @@ func TestBillyFS_ErrorWrapping(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
-		var pe *os.PathError
-		if !errors.As(err, &pe) {
+		if _, ok := errors.AsType[*os.PathError](err); !ok {
 			t.Fatalf("expected *os.PathError, got %T: %v", err, err)
 		}
 		if !os.IsNotExist(err) {
@@ -381,8 +380,7 @@ func TestBillyFS_OpenFileExclusive(t *testing.T) {
 		if !os.IsNotExist(err) {
 			t.Errorf("expected os.IsNotExist, got %v", err)
 		}
-		var pe *os.PathError
-		if !errors.As(err, &pe) {
+		if _, ok := errors.AsType[*os.PathError](err); !ok {
 			t.Errorf("expected *os.PathError, got %T", err)
 		}
 	})

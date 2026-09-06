@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"io"
+	"slices"
 	"strconv"
 	"sync"
 
@@ -479,8 +480,8 @@ func (rg *RefGraph) hasRefAttempt(ctx context.Context, subject, object string) (
 		quadIDs = append(quadIDs, quadID)
 		postings = postings[n:]
 	}
-	for i := len(quadIDs) - 1; i >= 0; i-- {
-		quadID := quadIDs[i]
+	for _, quadID := range slices.Backward(quadIDs) {
+
 		logKey := cayley_flat.KeyEscape(cayley_hkv.Key{
 			[]byte("l"),
 			[]byte(strconv.FormatUint(quadID, 10)),

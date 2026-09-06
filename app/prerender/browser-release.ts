@@ -7,6 +7,7 @@ export interface BrowserReleaseShellAssets {
   entrypointDecompressedSize?: number
   serviceWorker: string
   sharedWorker: string
+  opfsWorker?: string
   wasm?: string
   css: string[]
 }

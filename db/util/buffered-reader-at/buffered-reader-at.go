@@ -108,6 +108,7 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 				// If this is a DynamicReaderAt we can request the data and keep the entire result.
 				// For HTTP fetchers, this is used to handle status 200 when 206 is expected.
 				var data []byte
+				dataOffset := nr.offset
 				var readErr error
 				sliceReader, sliceReaderOk := br.reader.(SliceReaderAt)
 				if sliceReaderOk {
@@ -115,48 +116,42 @@ func (br *BufferedReaderAt) ReadAt(p []byte, off int64) (n int, err error) {
 					if err != nil {
 						readErr = err
 					}
-					if len(readData) != 0 {
-						// Adjust the offset and size according to the returned offset.
-						// The size can be adjusted w/o a mutex lock but the offset requires a sort and mtx lock.
-						if readDataOffset != nr.offset {
-							br.mtx.Lock()
-							nr.offset = readDataOffset
-							slices.SortFunc(br.cache, func(a, b *cacheRange) int {
-								return int(a.offset - b.offset)
-							})
-							br.mtx.Unlock()
-						}
-					}
+					dataOffset = readDataOffset
 					data = readData
 				}
 
 				// if !sliceReaderOk or if the slice reader returned len(0) try ReadAt
-				if len(data) == 0 {
+				if !sliceReaderOk || (len(data) == 0 && readErr == nil) {
+					dataOffset = nr.offset
 					data = make([]byte, nr.size)
 					var readN int
 					readN, readErr = br.reader.ReadAt(data, nr.offset)
 					data = data[:min(readN, len(data))]
 				}
 
-				if len(data) != 0 { // avoid keeping a reference to the slice capacity
-					nr.size = int64(len(data))
-					nr.data = data
-				}
+				// Publish range metadata under the same lock used by cache lookup.
+				br.mtx.Lock()
+				offsetChanged := nr.offset != dataOffset
+				nr.offset = dataOffset
+				nr.size = int64(len(data))
+				nr.data = data
 				if readErr != nil && (readErr != io.EOF || len(data) == 0) {
 					nr.err = readErr
 				}
-				close(nr.done)
-
-				// If the size was zero, drop the range.
-				// (The calls waiting on the read will still get the readErr).
-				if nr.size == 0 {
-					br.mtx.Lock()
+				if nr.err != nil || nr.size == 0 {
+					// Existing waiters receive this attempt's error; later reads
+					// retry the source instead of retaining a poisoned cache page.
 					idx := slices.Index(br.cache, nr)
 					if idx >= 0 {
 						br.cache = slices.Delete(br.cache, idx, idx+1)
 					}
-					br.mtx.Unlock()
+				} else if offsetChanged {
+					slices.SortFunc(br.cache, func(a, b *cacheRange) int {
+						return int(a.offset - b.offset)
+					})
 				}
+				close(nr.done)
+				br.mtx.Unlock()
 			}(matchedRange)
 		}
 		br.mtx.Unlock()

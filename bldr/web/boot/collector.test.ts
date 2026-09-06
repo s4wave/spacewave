@@ -43,7 +43,7 @@ vi.mock('@aptre/bldr', () => ({
 }))
 
 vi.mock('../bldr/browser-release-update.js', () => ({
-  initBrowserReleaseAutoReload: vi.fn(),
+  initBrowserReleaseUpdates: vi.fn(),
 }))
 
 vi.mock('../bldr/startup-marks.js', () => ({

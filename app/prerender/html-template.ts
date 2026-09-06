@@ -68,7 +68,7 @@ export function buildPageHtml(opts: PageHtmlOptions): string {
   <title>${opts.title}</title>
   <meta name="description" content="${opts.description}"/>
   <meta name="robots" content="index, follow"/>${canonicalTag}
-  <link rel="icon" href="/favicon.ico" type="image/x-icon"/>
+  <link rel="icon" href="${opts.iconUrl}"/>
   <link rel="apple-touch-icon" href="${opts.iconUrl}"/>
   <meta name="theme-color" content="${themeColor}"/>
   <meta property="og:type" content="${ogType}"/>

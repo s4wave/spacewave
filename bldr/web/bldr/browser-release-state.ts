@@ -102,6 +102,8 @@ export function buildReleaseCachePaths(
   addPath(release.shellAssets.sharedWorker)
   addPath(release.shellAssets.opfsWorker)
   addPath(release.shellAssets.wasm)
+  addPath(release.defaultManifestBundle?.metadata)
+  addPath(release.defaultManifestBundle?.pack)
   for (const path of release.shellAssets.css) {
     addPath(path)
   }

@@ -45,6 +45,8 @@ describe('browser release state helpers', () => {
       '/entrypoint/gen-a/runtime.wasm.gz',
       '/images/favicon.ico',
       '/images/logo.png',
+      '/manifest-pack.json',
+      '/manifest.pack.kvf',
       '/opfs-worker-gen-a.mjs',
       '/pricing',
       '/shw-gen-a.mjs',

@@ -14,7 +14,7 @@ type storeTx struct {
 	// BlockTx is the underlying block tx.
 	kvtx.BlockTx
 	// rel indicates if this tx is released
-	rel uint32
+	rel atomic.Uint32
 	// st is the store
 	st *Store
 	// writeTx is the write transaction.
@@ -110,7 +110,7 @@ func (s *storeTx) Discard() {
 
 // release releases the tx
 func (s *storeTx) release() bool {
-	rel := atomic.SwapUint32(&s.rel, 1)
+	rel := s.rel.Swap(1)
 	return rel != 1
 }
 

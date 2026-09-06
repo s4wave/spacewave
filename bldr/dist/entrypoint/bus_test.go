@@ -32,7 +32,7 @@ func TestIsWebDistPlatform(t *testing.T) {
 	}
 }
 
-func TestReleaseSchedulerConfigKeepsReleaseWorldExternal(t *testing.T) {
+func TestReleaseSchedulerConfigCachesReleaseWorld(t *testing.T) {
 	conf := newReleaseSchedulerConfig(
 		"project",
 		"engine",
@@ -41,8 +41,8 @@ func TestReleaseSchedulerConfigKeepsReleaseWorldExternal(t *testing.T) {
 		"peer",
 	)
 
-	if !slices.Contains(conf.GetNoCopyBucketIds(), "spacewave-release") {
-		t.Fatalf("release scheduler no-copy bucket IDs = %v, want spacewave-release", conf.GetNoCopyBucketIds())
+	if slices.Contains(conf.GetNoCopyBucketIds(), "spacewave-release") {
+		t.Fatalf("release scheduler no-copy bucket IDs = %v, must not suppress spacewave-release", conf.GetNoCopyBucketIds())
 	}
 }
 

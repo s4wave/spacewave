@@ -454,3 +454,41 @@ func TestBuildRendererIndexUsesEntrypointPath(t *testing.T) {
 		t.Fatalf("renderer index unexpectedly referenced boot.mjs: %s", html)
 	}
 }
+
+// TestWriteBuildManifestOfflineRuntimeAssets verifies the offline inventory
+// includes the pack and lazy modules while excluding source maps.
+func TestWriteBuildManifestOfflineRuntimeAssets(t *testing.T) {
+	dir := t.TempDir()
+	root := filepath.Join(dir, "entrypoint", "test", "chunks")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"entrypoint/test/assets.kvfile", "entrypoint/test/runtime-goscript.mjs", "entrypoint/test/chunks/lazy.js", "entrypoint/test/chunks/lazy.js.map"} {
+		if err := os.WriteFile(filepath.Join(dir, path), []byte("asset"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := WriteBuildManifest(dir, &BuildManifest{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"manifest.json", "browser-release.json"} {
+		data, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var parser fastjson.Parser
+		value, err := parser.ParseBytes(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assets := value.GetArray("requiredStaticAssets")
+		if len(assets) != 3 {
+			t.Fatalf("%s: expected pack, runtime, and lazy module; got %s", name, data)
+		}
+		for idx, want := range []string{"/entrypoint/test/assets.kvfile", "/entrypoint/test/chunks/lazy.js", "/entrypoint/test/runtime-goscript.mjs"} {
+			if string(assets[idx].GetStringBytes()) != want {
+				t.Fatalf("%s: missing %s", name, want)
+			}
+		}
+	}
+}

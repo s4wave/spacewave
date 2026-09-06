@@ -217,12 +217,13 @@ func TestLauncherOnlyReleaseConfigMountsWorldAndColdStartsRemoteCore(t *testing.
 		t.Fatal(err)
 	}
 	waitForManifestBucket(t, ctx, tb, "transient-plugin", worldBucketID(t, ctx, tb))
-
-	// The transient copy completing after the gate opens gives every scheduler
-	// copy routine a full execution opportunity. Core retaining only its valid
-	// external ref proves its no-copy class started no materializer and published
-	// no local replacement.
-	assertOnlyManifestBucket(t, ctx, tb, "spacewave-core", "spacewave-release")
+	waitForManifestBucket(t, ctx, tb, "spacewave-core", worldBucketID(t, ctx, tb))
+	// Materializing the same executable locally must preserve the running plugin.
+	select {
+	case pluginID := <-host.started:
+		t.Fatalf("offline copy restarted plugin %q", pluginID)
+	default:
+	}
 }
 
 func buildRemoteManifest(

@@ -63,13 +63,9 @@ const CACHES: Record<string, Cache | undefined> = {
   [controlCacheName]: undefined,
 }
 const serviceWorkerFetchTracker = new ServiceWorkerFetchTracker()
-const browserReleaseNetworkRaceTimeoutMs = 800
-// Lifecycle probes trade immediate already-open-tab release pickup for bounded
-// refocus churn; activation and direct manifest fetches stay strong.
+// Lifecycle probes bound repeated refocus checks; direct manifest fetches
+// always check for updates in the background.
 const browserReleaseLifecycleSyncFreshMs = 30000
-const browserReleaseNetworkRaceTimedOut = Symbol(
-  'browserReleaseNetworkRaceTimedOut',
-)
 
 // BrowserReleaseSyncOptions selects release-sync freshness semantics.
 export interface BrowserReleaseSyncOptions {
@@ -278,21 +274,6 @@ function buildGenerationCacheName(generationId: string): string {
   return `bldr-generation-${generationId}`
 }
 
-async function notifyPromotedGenerationReload(
-  previousGenerationId: string,
-  promotedGenerationId: string,
-): Promise<void> {
-  if (previousGenerationId === promotedGenerationId) {
-    return
-  }
-  const currClients = await self.clients.matchAll({ type: 'window' })
-  for (const client of currClients) {
-    client.postMessage({
-      bldrPromotedGenerationId: promotedGenerationId,
-    })
-  }
-}
-
 async function getControlCache(): Promise<Cache> {
   const cached = CACHES[controlCacheName]
   if (cached) {
@@ -352,11 +333,48 @@ function buildHeadResponse(response: Response): Response {
   })
 }
 
-function responseForMethod(request: Request, response: Response): Response {
-  if (request.method === 'HEAD') {
-    return buildHeadResponse(response)
+async function responseForMethod(
+  request: Request,
+  response: Response,
+): Promise<Response> {
+  if (request.method === 'HEAD') return buildHeadResponse(response)
+  const range = request.headers.get('Range')
+  if (request.method !== 'GET' || response.status !== 200 || !range)
+    return response
+  const ifRange = request.headers.get('If-Range')
+  if (
+    ifRange &&
+    ifRange !== response.headers.get('ETag') &&
+    ifRange !== response.headers.get('Last-Modified')
+  )
+    return response
+  const match = /^bytes=(\d*)-(\d*)$/.exec(range)
+  // Unsupported range forms retain the complete response, as HTTP permits.
+  if (!match || (!match[1] && !match[2])) return response
+  const body = await response.blob()
+  const size = body.size
+  const start = match[1]
+    ? Number(match[1])
+    : Math.max(0, size - Number(match[2]))
+  const end =
+    match[1] && match[2] ? Math.min(Number(match[2]), size - 1) : size - 1
+  const headers = new Headers(response.headers)
+  headers.set('Accept-Ranges', 'bytes')
+  // Cache bodies contain decoded bytes, which are the range reader's offsets.
+  headers.delete('Content-Encoding')
+  if (
+    !Number.isSafeInteger(start) ||
+    !Number.isSafeInteger(end) ||
+    start > end ||
+    start >= size
+  ) {
+    headers.set('Content-Range', `bytes */${size}`)
+    headers.set('Content-Length', '0')
+    return new Response(null, { status: 416, headers })
   }
-  return response
+  headers.set('Content-Range', `bytes ${start}-${end}/${size}`)
+  headers.set('Content-Length', String(end - start + 1))
+  return new Response(body.slice(start, end + 1), { status: 206, headers })
 }
 
 async function readCachedJson<T>(row: CacheRow): Promise<T | null> {
@@ -492,9 +510,12 @@ async function stageBrowserRelease(
       )
       return false
     }
+    if (await cache.match(request)) continue
     let response: Response
     try {
-      response = await fetch(new Request(request.url, { cache: 'reload' }))
+      response = await fetch(
+        new Request(request.url, { cache: 'reload', priority: 'low' }),
+      )
     } catch (error) {
       console.warn(
         'ServiceWorker: %s: failed to stage %s for %s: %s',
@@ -577,7 +598,6 @@ export async function syncLatestBrowserRelease(
   await cacheStableBootAsset()
 
   state = state ?? (await loadBrowserReleaseState())
-  const previousPromotedRelease = state.promotedCurrent
   const release =
     options.discoveredRelease ?? (await fetchLatestBrowserRelease())
   if (!release) {
@@ -619,21 +639,11 @@ export async function syncLatestBrowserRelease(
   if (options.lifecycleProbe) {
     browserReleaseLifecycleSyncLastSuccessMs = lifecycleProbeStartedMs
   }
-  if (
-    previousPromotedRelease &&
-    state.promotedCurrent &&
-    !sameBrowserRelease(previousPromotedRelease, state.promotedCurrent)
-  ) {
-    await notifyPromotedGenerationReload(
-      previousPromotedRelease.generationId,
-      state.promotedCurrent.generationId,
-    )
-  }
   return state
 }
 
 function runBrowserReleaseSync(
-  promise: Promise<BrowserReleaseState>,
+  promise: Promise<BrowserReleaseState | null>,
 ): Promise<void> {
   return promise.then(
     () => undefined,
@@ -918,7 +928,8 @@ async function matchStaticPluginAsset(
   if (!response || activePluginRoots.get(asset.pluginId) !== asset.rootHash) {
     return null
   }
-  const cachedResponse = responseForMethod(request, response)
+  const cachedResponse = await responseForMethod(request, response)
+  if (activePluginRoots.get(asset.pluginId) !== asset.rootHash) return null
   const headers = new Headers(cachedResponse.headers)
   headers.set('X-Bldr-Plugin-Asset-Cache', 'generation')
   return new Response(cachedResponse.body, {
@@ -976,43 +987,15 @@ export async function handleBrowserReleaseRequest(
   const request = ev.request
   const state = await loadBrowserReleaseState()
   if (state.promotedCurrent) {
-    const startTime = performance.now()
-    const latestReleasePromise = fetchLatestBrowserRelease()
-    const raceWinner = await Promise.race([
-      latestReleasePromise,
-      new Promise<typeof browserReleaseNetworkRaceTimedOut>((resolve) => {
-        setTimeout(
-          () => resolve(browserReleaseNetworkRaceTimedOut),
-          browserReleaseNetworkRaceTimeoutMs,
-        )
-      }),
-    ])
-    if (raceWinner !== browserReleaseNetworkRaceTimedOut) {
-      if (raceWinner) {
-        ev.waitUntil(
-          runBrowserReleaseSync(
-            syncLatestBrowserRelease({ discoveredRelease: raceWinner }),
-          ),
-        )
-        return buildJsonResponse(request.method, raceWinner)
-      }
-      ev.waitUntil(runBrowserReleaseSync(syncLatestBrowserRelease()))
-      return buildJsonResponse(request.method, state.promotedCurrent)
-    }
+    // A complete generation can start immediately. Discover and stage updates
+    // for the next navigation without putting the network on this tab's path.
     ev.waitUntil(
       runBrowserReleaseSync(
-        latestReleasePromise.then((lateRelease) => {
-          if (lateRelease) {
-            console.info(
-              'ServiceWorker: %s: browser release manifest fetch missed %dms budget: latency=%dms',
-              serviceWorkerId,
-              browserReleaseNetworkRaceTimeoutMs,
-              Math.round(performance.now() - startTime),
-            )
-            return syncLatestBrowserRelease({ discoveredRelease: lateRelease })
-          }
-          return syncLatestBrowserRelease()
-        }),
+        fetchLatestBrowserRelease().then((release) =>
+          release
+            ? syncLatestBrowserRelease({ discoveredRelease: release })
+            : null,
+        ),
       ),
     )
     return buildJsonResponse(request.method, state.promotedCurrent)
@@ -1090,7 +1073,7 @@ async function swInstall() {
 }
 
 // swActivate is called when the service worker becomes active.
-async function swActivate() {
+export async function swActivate() {
   markStartupBoundary('service-worker.activate-start', {
     source: 'service-worker',
     serviceWorkerId,
@@ -1099,7 +1082,8 @@ async function swActivate() {
 
   await self.clients.claim()
   await getControlCache()
-  await runBrowserReleaseSync(syncLatestBrowserRelease())
+  // Offline staging runs under the document's sync message. Fetch events cannot
+  // run until activation settles, so network downloads must not be awaited here.
   markStartupBoundary('service-worker.activate-ready', {
     source: 'service-worker',
     serviceWorkerId,

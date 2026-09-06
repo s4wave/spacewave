@@ -484,8 +484,7 @@ func (r *TerminalResource) waitSSHSession(
 	waitErr := session.Wait()
 	exitCode := 0
 	if waitErr != nil {
-		var exitErr *ssh.ExitError
-		if stderrors.As(waitErr, &exitErr) {
+		if exitErr, ok := stderrors.AsType[*ssh.ExitError](waitErr); ok {
 			exitCode = exitErr.ExitStatus()
 		} else if !clientClosed.Load() {
 			errCh <- terminalConnectResult{err: waitErr}

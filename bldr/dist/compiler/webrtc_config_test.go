@@ -8,7 +8,7 @@ func TestBrowserIceServersForBundle(t *testing.T) {
 		Username:   "user",
 		Credential: "secret",
 	}})
-	if degenerate := browserIceServersForBundle([]*IceServer{nil, &IceServer{}}); len(degenerate) != 0 {
+	if degenerate := browserIceServersForBundle([]*IceServer{nil, {}}); len(degenerate) != 0 {
 		t.Fatalf("degenerate ICE servers = %#v, want empty for bundle default", degenerate)
 	}
 	if len(configured) != 1 || configured[0].URLs[0] != "turn:trusted.example:3478" ||

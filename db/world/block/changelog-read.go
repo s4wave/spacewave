@@ -105,8 +105,8 @@ func readWorldChangeBatch(
 	}
 
 	var changes []*WorldChange
-	for i := len(chunks) - 1; i >= 0; i-- {
-		changes = append(changes, chunks[i]...)
+	for _, chunk := range slices.Backward(chunks) {
+		changes = append(changes, chunk...)
 	}
 	return changes, nil
 }

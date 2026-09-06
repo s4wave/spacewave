@@ -939,7 +939,7 @@ export const Unused = 2
 	if err != nil {
 		t.Fatal(err)
 	}
-	minCode := strings.Split(string(minOut), "sourceMappingURL=")[0]
+	minCode, _, _ := strings.Cut(string(minOut), "sourceMappingURL=")
 	if len(minCode) >= len(readableOut) {
 		t.Fatalf("minified code size = %d, readable code size = %d", len(minCode), len(readableOut))
 	}
