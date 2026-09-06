@@ -13,7 +13,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 )
 
-// maxEngineTxTries is the maximum number of times to retry after discarded
+// maxEngineTxTries bounds retries after a transaction is discarded.
 const maxEngineTxTries = 10
 
 // BuildStorageCursor builds a cursor to the world storage with an empty ref.
@@ -53,7 +53,7 @@ func (e *EngineTx) ApplyWorldOp(
 	return outSeqno, outSysErr, err
 }
 
-// CreateObject creates a object with a key and initial root ref.
+// CreateObject creates an object with a key and initial root ref.
 // Returns ErrObjectExists if the object already exists.
 func (e *EngineTx) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (world.ObjectState, error) {
 	var obj world.ObjectState
@@ -71,7 +71,6 @@ func (e *EngineTx) CreateObject(ctx context.Context, key string, rootRef *bucket
 // GetObject looks up an object by key.
 // Returns nil, false if not found.
 func (e *EngineTx) GetObject(ctx context.Context, key string) (world.ObjectState, bool, error) {
-	// check if object exists
 	var found bool
 	var obj world.ObjectState
 	err := e.performOp(ctx, func(tx *Tx) error {
@@ -218,17 +217,25 @@ func (e *EngineTx) GarbageCollect(ctx context.Context) error {
 	})
 }
 
-// performOp performs an operation while retrying if the read tx was discarded
-// if ErrTxDiscarded is returned, retries against the updated txn
+// performOp retries discarded reads and invalidates coordinated writes whose
+// backing snapshot is stale.
 func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 	if e.writeTx != nil {
 		err := cb(e.writeTx)
-		if e.lease != nil && isCoordinatedWriteSnapshotError(err) {
-			e.Discard()
-			return errors.Wrapf(coord.ErrStaleGeneration, "coordinated write snapshot: %v", err)
+		if isCoordinatedWriteSnapshotError(err) {
+			// Commit and retirement move the lease under the Engine lock.
+			locked := e.engine.bcast.Lock()
+			leased := e.lease != nil
+			locked.Unlock()
+			if leased {
+				e.Discard()
+				return errors.Wrapf(coord.ErrStaleGeneration, "coordinated write snapshot: %v", err)
+			}
 		}
 		return err
 	}
+
+	// A caller-owned read snapshot refreshes from the durable head.
 	if e.readTx != nil {
 		var err error
 		for tries := 0; tries <= maxEngineTxTries; tries++ {
@@ -243,6 +250,7 @@ func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 		return err
 	}
 
+	// Shared reads retry against the latest published head.
 	tries := 0
 	var err error
 	for {
@@ -256,12 +264,10 @@ func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 			return context.Canceled
 		}
 		err = cb(rtx)
-		if err == nil || err != tx.ErrDiscarded {
-			// complete
+		if err != tx.ErrDiscarded {
 			break
 		}
 
-		// retry
 		tries++
 		if tries > maxEngineTxTries {
 			break
@@ -273,6 +279,7 @@ func (e *EngineTx) performOp(ctx context.Context, cb func(tx *Tx) error) error {
 func (e *EngineTx) refreshReadSnapshot(ctx context.Context) error {
 	var headRef *bucket.ObjectRef
 	var err error
+
 	// Load the durable coordinator head before entering Engine publication.
 	if e.engine.writeHeadRefresh != nil {
 		headRef, err = e.engine.writeHeadRefresh(ctx)
@@ -315,6 +322,7 @@ func (e *EngineTx) refreshReadSnapshot(ctx context.Context) error {
 	if !retirementRegistered {
 		retirement = e.engine.beginRetirementLocked(retirement)
 	}
+
 	// Drain the replaced snapshot after unlocking the Engine.
 	locked.Unlock()
 	e.engine.drainRetirement(ctx, retirement)
@@ -325,5 +333,5 @@ func isCoordinatedWriteSnapshotError(err error) bool {
 	return err != nil && errors.Is(err, kvtx.ErrInvalidSnapshot)
 }
 
-// _ is a type assertion
+// Verify the WorldState implementation.
 var _ world.WorldState = (*EngineTx)(nil)
