@@ -22,7 +22,6 @@ import {
 
 import { MessageInput } from '@s4wave/app/chat/MessageInput.js'
 import { MessageList } from '@s4wave/app/chat/MessageList.js'
-import { PreBlock } from '@s4wave/app/docs/CodeBlock.js'
 import type { ChatMessageInfo } from '@s4wave/sdk/chat/rpc/rpc.pb.js'
 import { FileList } from '@s4wave/web/editors/file-browser/FileList.js'
 import type {
@@ -33,9 +32,12 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { StatusList, type StatusListItem } from '@s4wave/web/ui/StatusList.js'
 import '@s4wave/app/docs/docs-prose.css'
 
+import { DemoPreBlock } from './DemoPreBlock.js'
+import { demoCode } from './demo-code.js'
+
 const markdownOverrides = {
   overrides: {
-    pre: { component: PreBlock },
+    pre: { component: DemoPreBlock },
   },
 }
 
@@ -101,8 +103,7 @@ const DRIVE_PREVIEWS: Record<string, string> = {
 The same space works on laptops, phones, and servers.
 
 \`\`\`sh
-spacewave drive sync ./docs
-spacewave device list --json
+${demoCode.drive.code}
 \`\`\`
 `,
   '/deploy.sh': `#!/usr/bin/env bash
@@ -202,7 +203,7 @@ const INITIAL_NOTES = {
 - [ ] Post the notes and docs update
 
 \`\`\`ts
-export const launchMode = 'local-first'
+${demoCode.notes.code}
 \`\`\`
 `,
   },
@@ -216,13 +217,6 @@ through the same encrypted stack as the rest of your space.
 `,
   },
 }
-
-const INITIAL_PLUGIN_CODE = `export default {
-  name: 'release-pulse',
-  command: 'release:announce',
-  description: 'Turn a changelog entry into a launch checklist and status card.',
-}
-`
 
 const NOTE_IDS: Array<keyof typeof INITIAL_NOTES> = ['planning', 'docs']
 
@@ -630,7 +624,7 @@ export function NotesLandingDemo() {
 
 // PluginsLandingDemo renders a live code-and-preview SDK demo.
 export function PluginsLandingDemo() {
-  const [code, setCode] = useState(INITIAL_PLUGIN_CODE)
+  const [code, setCode] = useState<string>(demoCode.plugin.code + '\n')
   const pluginName = derivePluginName(code)
   const commandName = derivePluginCommand(code)
 

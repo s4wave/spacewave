@@ -1,0 +1,17 @@
+[
+  {
+    "code": "spacewave drive sync ./docs\nspacewave device list --json",
+    "lang": "sh",
+    "html": "<pre class=\"shiki vesper\" style=\"background-color:#101010;color:#FFF\" tabindex=\"0\"><code><span class=\"line\"><span style=\"color:#FFC799\">spacewave</span><span style=\"color:#99FFE4\"> drive</span><span style=\"color:#99FFE4\"> sync</span><span style=\"color:#99FFE4\"> ./docs</span></span>\n<span class=\"line\"><span style=\"color:#FFC799\">spacewave</span><span style=\"color:#99FFE4\"> device</span><span style=\"color:#99FFE4\"> list</span><span style=\"color:#99FFE4\"> --json</span></span></code></pre>"
+  },
+  {
+    "code": "export const launchMode = 'local-first'",
+    "lang": "ts",
+    "html": "<pre class=\"shiki vesper\" style=\"background-color:#101010;color:#FFF\" tabindex=\"0\"><code><span class=\"line\"><span style=\"color:#A0A0A0\">export</span><span style=\"color:#A0A0A0\"> const</span><span style=\"color:#FFF\"> launchMode </span><span style=\"color:#A0A0A0\">=</span><span style=\"color:#99FFE4\"> 'local-first'</span></span></code></pre>"
+  },
+  {
+    "code": "export default {\n  name: 'release-pulse',\n  command: 'release:announce',\n  description: 'Turn a changelog entry into a launch checklist and status card.',\n}",
+    "lang": "ts",
+    "html": "<pre class=\"shiki vesper\" style=\"background-color:#101010;color:#FFF\" tabindex=\"0\"><code><span class=\"line\"><span style=\"color:#A0A0A0\">export</span><span style=\"color:#A0A0A0\"> default</span><span style=\"color:#FFF\"> {</span></span>\n<span class=\"line\"><span style=\"color:#FFF\">  name: </span><span style=\"color:#99FFE4\">'release-pulse'</span><span style=\"color:#FFF\">,</span></span>\n<span class=\"line\"><span style=\"color:#FFF\">  command: </span><span style=\"color:#99FFE4\">'release:announce'</span><span style=\"color:#FFF\">,</span></span>\n<span class=\"line\"><span style=\"color:#FFF\">  description: </span><span style=\"color:#99FFE4\">'Turn a changelog entry into a launch checklist and status card.'</span><span style=\"color:#FFF\">,</span></span>\n<span class=\"line\"><span style=\"color:#FFF\">}</span></span></code></pre>"
+  }
+]
