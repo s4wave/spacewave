@@ -289,6 +289,206 @@ func (x *GetApplicationResponse) GetApplication() *Application {
 	return nil
 }
 
+// SetApplicationFundingRequest accepts a payer for subsequent application usage.
+// The server requires application administration and authority over the payer.
+type SetApplicationFundingRequest struct {
+	unknownFields []byte
+	// ApplicationId identifies the approved registration.
+	ApplicationId string `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"applicationId,omitempty"`
+	// BillingAccountId identifies the payer accepting subsequent costs.
+	BillingAccountId string `protobuf:"bytes,2,opt,name=billing_account_id,json=billingAccountId,proto3" json:"billingAccountId,omitempty"`
+	// Funding distinguishes operator payment from platform-authorized sponsorship.
+	Funding ApplicationFunding `protobuf:"varint,3,opt,name=funding,proto3" json:"funding,omitempty"`
+	// ExpectedRevision fences concurrent changes; an identical retry returns its assignment.
+	ExpectedRevision uint64 `protobuf:"varint,4,opt,name=expected_revision,json=expectedRevision,proto3" json:"expectedRevision,omitempty"`
+}
+
+func (x *SetApplicationFundingRequest) Reset() {
+	*x = SetApplicationFundingRequest{}
+}
+
+func (*SetApplicationFundingRequest) ProtoMessage() {}
+
+func (x *SetApplicationFundingRequest) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+func (x *SetApplicationFundingRequest) GetBillingAccountId() string {
+	if x != nil {
+		return x.BillingAccountId
+	}
+	return ""
+}
+
+func (x *SetApplicationFundingRequest) GetFunding() ApplicationFunding {
+	if x != nil {
+		return x.Funding
+	}
+	return ApplicationFunding_APPLICATION_FUNDING_UNKNOWN
+}
+
+func (x *SetApplicationFundingRequest) GetExpectedRevision() uint64 {
+	if x != nil {
+		return x.ExpectedRevision
+	}
+	return 0
+}
+
+// ApplicationFundingAssignment preserves the authority and payer for a funding interval.
+type ApplicationFundingAssignment struct {
+	unknownFields []byte
+	// ApplicationId identifies the approved registration.
+	ApplicationId string `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"applicationId,omitempty"`
+	// Revision identifies the application configuration that accepted this assignment.
+	Revision uint64 `protobuf:"varint,2,opt,name=revision,proto3" json:"revision,omitempty"`
+	// BillingAccountId identifies the payer for usage attributed to this interval.
+	BillingAccountId string `protobuf:"bytes,3,opt,name=billing_account_id,json=billingAccountId,proto3" json:"billingAccountId,omitempty"`
+	// Funding preserves whether the payer accepted operator costs or sponsorship.
+	Funding ApplicationFunding `protobuf:"varint,4,opt,name=funding,proto3" json:"funding,omitempty"`
+	// AuthorizedByAccountId identifies the authenticated account that accepted the costs.
+	AuthorizedByAccountId string `protobuf:"bytes,5,opt,name=authorized_by_account_id,json=authorizedByAccountId,proto3" json:"authorizedByAccountId,omitempty"`
+	// StartedAtMs is the effective start in Unix milliseconds.
+	StartedAtMs int64 `protobuf:"varint,6,opt,name=started_at_ms,json=startedAtMs,proto3" json:"startedAtMs,omitempty"`
+}
+
+func (x *ApplicationFundingAssignment) Reset() {
+	*x = ApplicationFundingAssignment{}
+}
+
+func (*ApplicationFundingAssignment) ProtoMessage() {}
+
+func (x *ApplicationFundingAssignment) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+func (x *ApplicationFundingAssignment) GetRevision() uint64 {
+	if x != nil {
+		return x.Revision
+	}
+	return 0
+}
+
+func (x *ApplicationFundingAssignment) GetBillingAccountId() string {
+	if x != nil {
+		return x.BillingAccountId
+	}
+	return ""
+}
+
+func (x *ApplicationFundingAssignment) GetFunding() ApplicationFunding {
+	if x != nil {
+		return x.Funding
+	}
+	return ApplicationFunding_APPLICATION_FUNDING_UNKNOWN
+}
+
+func (x *ApplicationFundingAssignment) GetAuthorizedByAccountId() string {
+	if x != nil {
+		return x.AuthorizedByAccountId
+	}
+	return ""
+}
+
+func (x *ApplicationFundingAssignment) GetStartedAtMs() int64 {
+	if x != nil {
+		return x.StartedAtMs
+	}
+	return 0
+}
+
+// SetApplicationFundingResponse returns the durably accepted funding assignment.
+type SetApplicationFundingResponse struct {
+	unknownFields []byte
+	// Assignment is stable across identical retries, including after later funding changes.
+	Assignment *ApplicationFundingAssignment `protobuf:"bytes,1,opt,name=assignment,proto3" json:"assignment,omitempty"`
+}
+
+func (x *SetApplicationFundingResponse) Reset() {
+	*x = SetApplicationFundingResponse{}
+}
+
+func (*SetApplicationFundingResponse) ProtoMessage() {}
+
+func (x *SetApplicationFundingResponse) GetAssignment() *ApplicationFundingAssignment {
+	if x != nil {
+		return x.Assignment
+	}
+	return nil
+}
+
+// ListApplicationFundingRequest selects a bounded page of funding history.
+type ListApplicationFundingRequest struct {
+	unknownFields []byte
+	// ApplicationId identifies a registration visible to its operator or platform administration.
+	ApplicationId string `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"applicationId,omitempty"`
+	// AfterRevision excludes assignments at or before this revision.
+	AfterRevision uint64 `protobuf:"varint,2,opt,name=after_revision,json=afterRevision,proto3" json:"afterRevision,omitempty"`
+	// Limit defaults to 50 and cannot exceed 100 assignments.
+	Limit uint32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+}
+
+func (x *ListApplicationFundingRequest) Reset() {
+	*x = ListApplicationFundingRequest{}
+}
+
+func (*ListApplicationFundingRequest) ProtoMessage() {}
+
+func (x *ListApplicationFundingRequest) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+func (x *ListApplicationFundingRequest) GetAfterRevision() uint64 {
+	if x != nil {
+		return x.AfterRevision
+	}
+	return 0
+}
+
+func (x *ListApplicationFundingRequest) GetLimit() uint32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+// ListApplicationFundingResponse returns funding history in increasing revision order.
+type ListApplicationFundingResponse struct {
+	unknownFields []byte
+	// Assignments preserve the payer and authorization for each accepted interval.
+	Assignments []*ApplicationFundingAssignment `protobuf:"bytes,1,rep,name=assignments,proto3" json:"assignments,omitempty"`
+	// NextAfterRevision is the continuation cursor, or zero when there are no more assignments.
+	NextAfterRevision uint64 `protobuf:"varint,2,opt,name=next_after_revision,json=nextAfterRevision,proto3" json:"nextAfterRevision,omitempty"`
+}
+
+func (x *ListApplicationFundingResponse) Reset() {
+	*x = ListApplicationFundingResponse{}
+}
+
+func (*ListApplicationFundingResponse) ProtoMessage() {}
+
+func (x *ListApplicationFundingResponse) GetAssignments() []*ApplicationFundingAssignment {
+	if x != nil {
+		return x.Assignments
+	}
+	return nil
+}
+
+func (x *ListApplicationFundingResponse) GetNextAfterRevision() uint64 {
+	if x != nil {
+		return x.NextAfterRevision
+	}
+	return 0
+}
+
 func (m *Application) CloneVT() *Application {
 	if m == nil {
 		return (*Application)(nil)
@@ -376,6 +576,97 @@ func (m *GetApplicationResponse) CloneVT() *GetApplicationResponse {
 }
 
 func (m *GetApplicationResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetApplicationFundingRequest) CloneVT() *SetApplicationFundingRequest {
+	if m == nil {
+		return (*SetApplicationFundingRequest)(nil)
+	}
+	r := new(SetApplicationFundingRequest)
+	r.ApplicationId = m.ApplicationId
+	r.BillingAccountId = m.BillingAccountId
+	r.Funding = m.Funding
+	r.ExpectedRevision = m.ExpectedRevision
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetApplicationFundingRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ApplicationFundingAssignment) CloneVT() *ApplicationFundingAssignment {
+	if m == nil {
+		return (*ApplicationFundingAssignment)(nil)
+	}
+	r := new(ApplicationFundingAssignment)
+	r.ApplicationId = m.ApplicationId
+	r.Revision = m.Revision
+	r.BillingAccountId = m.BillingAccountId
+	r.Funding = m.Funding
+	r.AuthorizedByAccountId = m.AuthorizedByAccountId
+	r.StartedAtMs = m.StartedAtMs
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ApplicationFundingAssignment) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetApplicationFundingResponse) CloneVT() *SetApplicationFundingResponse {
+	if m == nil {
+		return (*SetApplicationFundingResponse)(nil)
+	}
+	r := new(SetApplicationFundingResponse)
+	r.Assignment = protobuf_go_lite.CloneVTValue(m.Assignment)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetApplicationFundingResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListApplicationFundingRequest) CloneVT() *ListApplicationFundingRequest {
+	if m == nil {
+		return (*ListApplicationFundingRequest)(nil)
+	}
+	r := new(ListApplicationFundingRequest)
+	r.ApplicationId = m.ApplicationId
+	r.AfterRevision = m.AfterRevision
+	r.Limit = m.Limit
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListApplicationFundingRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ListApplicationFundingResponse) CloneVT() *ListApplicationFundingResponse {
+	if m == nil {
+		return (*ListApplicationFundingResponse)(nil)
+	}
+	r := new(ListApplicationFundingResponse)
+	r.NextAfterRevision = m.NextAfterRevision
+	r.Assignments = protobuf_go_lite.CloneVTSlice(m.Assignments)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ListApplicationFundingResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -503,6 +794,139 @@ func (this *GetApplicationResponse) EqualVT(that *GetApplicationResponse) bool {
 
 func (this *GetApplicationResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*GetApplicationResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetApplicationFundingRequest) EqualVT(that *SetApplicationFundingRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ApplicationId != that.ApplicationId {
+		return false
+	}
+	if this.BillingAccountId != that.BillingAccountId {
+		return false
+	}
+	if this.Funding != that.Funding {
+		return false
+	}
+	if this.ExpectedRevision != that.ExpectedRevision {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetApplicationFundingRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetApplicationFundingRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ApplicationFundingAssignment) EqualVT(that *ApplicationFundingAssignment) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ApplicationId != that.ApplicationId {
+		return false
+	}
+	if this.Revision != that.Revision {
+		return false
+	}
+	if this.BillingAccountId != that.BillingAccountId {
+		return false
+	}
+	if this.Funding != that.Funding {
+		return false
+	}
+	if this.AuthorizedByAccountId != that.AuthorizedByAccountId {
+		return false
+	}
+	if this.StartedAtMs != that.StartedAtMs {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ApplicationFundingAssignment) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ApplicationFundingAssignment)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetApplicationFundingResponse) EqualVT(that *SetApplicationFundingResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Assignment, that.Assignment) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetApplicationFundingResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetApplicationFundingResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListApplicationFundingRequest) EqualVT(that *ListApplicationFundingRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ApplicationId != that.ApplicationId {
+		return false
+	}
+	if this.AfterRevision != that.AfterRevision {
+		return false
+	}
+	if this.Limit != that.Limit {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListApplicationFundingRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListApplicationFundingRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ListApplicationFundingResponse) EqualVT(that *ListApplicationFundingResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.EqualVTSliceImplicit(this.Assignments, that.Assignments, func() *ApplicationFundingAssignment { return &ApplicationFundingAssignment{} }) {
+		return false
+	}
+	if this.NextAfterRevision != that.NextAfterRevision {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ListApplicationFundingResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ListApplicationFundingResponse)
 	if !ok {
 		return false
 	}
@@ -887,6 +1311,329 @@ func (x *GetApplicationResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the SetApplicationFundingRequest message to JSON.
+func (x *SetApplicationFundingRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ApplicationId != "" || s.HasField("applicationId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("applicationId")
+		s.WriteString(x.ApplicationId)
+	}
+	if x.BillingAccountId != "" || s.HasField("billingAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("billingAccountId")
+		s.WriteString(x.BillingAccountId)
+	}
+	if x.Funding != 0 || s.HasField("funding") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("funding")
+		x.Funding.MarshalProtoJSON(s)
+	}
+	if x.ExpectedRevision != 0 || s.HasField("expectedRevision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedRevision")
+		s.WriteUint64(x.ExpectedRevision)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetApplicationFundingRequest to JSON.
+func (x *SetApplicationFundingRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetApplicationFundingRequest message from JSON.
+func (x *SetApplicationFundingRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "application_id", "applicationId":
+			s.AddField("application_id")
+			x.ApplicationId = s.ReadString()
+		case "billing_account_id", "billingAccountId":
+			s.AddField("billing_account_id")
+			x.BillingAccountId = s.ReadString()
+		case "funding":
+			s.AddField("funding")
+			x.Funding.UnmarshalProtoJSON(s)
+		case "expected_revision", "expectedRevision":
+			s.AddField("expected_revision")
+			x.ExpectedRevision = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetApplicationFundingRequest from JSON.
+func (x *SetApplicationFundingRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ApplicationFundingAssignment message to JSON.
+func (x *ApplicationFundingAssignment) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ApplicationId != "" || s.HasField("applicationId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("applicationId")
+		s.WriteString(x.ApplicationId)
+	}
+	if x.Revision != 0 || s.HasField("revision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("revision")
+		s.WriteUint64(x.Revision)
+	}
+	if x.BillingAccountId != "" || s.HasField("billingAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("billingAccountId")
+		s.WriteString(x.BillingAccountId)
+	}
+	if x.Funding != 0 || s.HasField("funding") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("funding")
+		x.Funding.MarshalProtoJSON(s)
+	}
+	if x.AuthorizedByAccountId != "" || s.HasField("authorizedByAccountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("authorizedByAccountId")
+		s.WriteString(x.AuthorizedByAccountId)
+	}
+	if x.StartedAtMs != 0 || s.HasField("startedAtMs") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("startedAtMs")
+		s.WriteInt64(x.StartedAtMs)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ApplicationFundingAssignment to JSON.
+func (x *ApplicationFundingAssignment) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ApplicationFundingAssignment message from JSON.
+func (x *ApplicationFundingAssignment) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "application_id", "applicationId":
+			s.AddField("application_id")
+			x.ApplicationId = s.ReadString()
+		case "revision":
+			s.AddField("revision")
+			x.Revision = s.ReadUint64()
+		case "billing_account_id", "billingAccountId":
+			s.AddField("billing_account_id")
+			x.BillingAccountId = s.ReadString()
+		case "funding":
+			s.AddField("funding")
+			x.Funding.UnmarshalProtoJSON(s)
+		case "authorized_by_account_id", "authorizedByAccountId":
+			s.AddField("authorized_by_account_id")
+			x.AuthorizedByAccountId = s.ReadString()
+		case "started_at_ms", "startedAtMs":
+			s.AddField("started_at_ms")
+			x.StartedAtMs = s.ReadInt64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ApplicationFundingAssignment from JSON.
+func (x *ApplicationFundingAssignment) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetApplicationFundingResponse message to JSON.
+func (x *SetApplicationFundingResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Assignment != nil || s.HasField("assignment") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("assignment")
+		x.Assignment.MarshalProtoJSON(s.WithField("assignment"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetApplicationFundingResponse to JSON.
+func (x *SetApplicationFundingResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetApplicationFundingResponse message from JSON.
+func (x *SetApplicationFundingResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "assignment":
+			if s.ReadNil() {
+				x.Assignment = nil
+				return
+			}
+			x.Assignment = &ApplicationFundingAssignment{}
+			x.Assignment.UnmarshalProtoJSON(s.WithField("assignment", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetApplicationFundingResponse from JSON.
+func (x *SetApplicationFundingResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListApplicationFundingRequest message to JSON.
+func (x *ListApplicationFundingRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ApplicationId != "" || s.HasField("applicationId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("applicationId")
+		s.WriteString(x.ApplicationId)
+	}
+	if x.AfterRevision != 0 || s.HasField("afterRevision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("afterRevision")
+		s.WriteUint64(x.AfterRevision)
+	}
+	if x.Limit != 0 || s.HasField("limit") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("limit")
+		s.WriteUint32(x.Limit)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListApplicationFundingRequest to JSON.
+func (x *ListApplicationFundingRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListApplicationFundingRequest message from JSON.
+func (x *ListApplicationFundingRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "application_id", "applicationId":
+			s.AddField("application_id")
+			x.ApplicationId = s.ReadString()
+		case "after_revision", "afterRevision":
+			s.AddField("after_revision")
+			x.AfterRevision = s.ReadUint64()
+		case "limit":
+			s.AddField("limit")
+			x.Limit = s.ReadUint32()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListApplicationFundingRequest from JSON.
+func (x *ListApplicationFundingRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the ListApplicationFundingResponse message to JSON.
+func (x *ListApplicationFundingResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if len(x.Assignments) > 0 || s.HasField("assignments") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("assignments")
+		s.WriteArrayStart()
+		var wroteElement bool
+		for _, element := range x.Assignments {
+			s.WriteMoreIf(&wroteElement)
+			element.MarshalProtoJSON(s.WithField("assignments"))
+		}
+		s.WriteArrayEnd()
+	}
+	if x.NextAfterRevision != 0 || s.HasField("nextAfterRevision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("nextAfterRevision")
+		s.WriteUint64(x.NextAfterRevision)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ListApplicationFundingResponse to JSON.
+func (x *ListApplicationFundingResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ListApplicationFundingResponse message from JSON.
+func (x *ListApplicationFundingResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "assignments":
+			s.AddField("assignments")
+			if s.ReadNil() {
+				x.Assignments = nil
+				return
+			}
+			s.ReadArray(func() {
+				if s.ReadNil() {
+					x.Assignments = append(x.Assignments, nil)
+					return
+				}
+				v := &ApplicationFundingAssignment{}
+				v.UnmarshalProtoJSON(s.WithField("assignments", false))
+				if s.Err() != nil {
+					return
+				}
+				x.Assignments = append(x.Assignments, v)
+			})
+		case "next_after_revision", "nextAfterRevision":
+			s.AddField("next_after_revision")
+			x.NextAfterRevision = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ListApplicationFundingResponse from JSON.
+func (x *ListApplicationFundingResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Application) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1132,6 +1879,258 @@ func (m *GetApplicationResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error
 	return len(dAtA) - i, nil
 }
 
+func (m *SetApplicationFundingRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetApplicationFundingRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetApplicationFundingRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ExpectedRevision != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpectedRevision))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Funding != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Funding))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.BillingAccountId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.BillingAccountId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ApplicationId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ApplicationId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ApplicationFundingAssignment) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ApplicationFundingAssignment) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ApplicationFundingAssignment) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.StartedAtMs != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.StartedAtMs))
+		i--
+		dAtA[i] = 0x30
+	}
+	if len(m.AuthorizedByAccountId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.AuthorizedByAccountId)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if m.Funding != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Funding))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.BillingAccountId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.BillingAccountId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Revision != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Revision))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ApplicationId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ApplicationId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetApplicationFundingResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetApplicationFundingResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetApplicationFundingResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Assignment != nil {
+		size, err := m.Assignment.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListApplicationFundingRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListApplicationFundingRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListApplicationFundingRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Limit != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Limit))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.AfterRevision != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.AfterRevision))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ApplicationId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ApplicationId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ListApplicationFundingResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ListApplicationFundingResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ListApplicationFundingResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.NextAfterRevision != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.NextAfterRevision))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Assignments) > 0 {
+		for iNdEx := len(m.Assignments) - 1; iNdEx >= 0; iNdEx-- {
+			size, err := m.Assignments[iNdEx].MarshalToSizedBufferVT(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Application) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1199,6 +2198,78 @@ func (m *GetApplicationResponse) SizeVT() (n int) {
 		l = m.Application.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetApplicationFundingRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ApplicationId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BillingAccountId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Funding)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpectedRevision)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ApplicationFundingAssignment) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ApplicationId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Revision)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BillingAccountId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Funding)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AuthorizedByAccountId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.StartedAtMs)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetApplicationFundingResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Assignment != nil {
+		l = m.Assignment.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListApplicationFundingRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ApplicationId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.AfterRevision)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.Limit)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ListApplicationFundingResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	for _, e := range m.Assignments {
+		l = e.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextAfterRevision)
 	n += len(m.unknownFields)
 	return n
 }
@@ -1318,6 +2389,128 @@ func (x *GetApplicationResponse) MarshalProtoText() string {
 }
 
 func (x *GetApplicationResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetApplicationFundingRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetApplicationFundingRequest")
+	if x.ApplicationId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "application_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ApplicationId)
+	}
+	if x.BillingAccountId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "billing_account_id")
+		protobuf_go_lite.TextWriteString(&sb, x.BillingAccountId)
+	}
+	if x.Funding != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "funding")
+		protobuf_go_lite.TextWriteStringer(&sb, ApplicationFunding(x.Funding))
+	}
+	if x.ExpectedRevision != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expected_revision")
+		protobuf_go_lite.TextWriteUint(&sb, x.ExpectedRevision)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetApplicationFundingRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ApplicationFundingAssignment) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ApplicationFundingAssignment")
+	if x.ApplicationId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "application_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ApplicationId)
+	}
+	if x.Revision != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "revision")
+		protobuf_go_lite.TextWriteUint(&sb, x.Revision)
+	}
+	if x.BillingAccountId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "billing_account_id")
+		protobuf_go_lite.TextWriteString(&sb, x.BillingAccountId)
+	}
+	if x.Funding != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "funding")
+		protobuf_go_lite.TextWriteStringer(&sb, ApplicationFunding(x.Funding))
+	}
+	if x.AuthorizedByAccountId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "authorized_by_account_id")
+		protobuf_go_lite.TextWriteString(&sb, x.AuthorizedByAccountId)
+	}
+	if x.StartedAtMs != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "started_at_ms")
+		protobuf_go_lite.TextWriteInt(&sb, x.StartedAtMs)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ApplicationFundingAssignment) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetApplicationFundingResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetApplicationFundingResponse")
+	if x.Assignment != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "assignment")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Assignment)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetApplicationFundingResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListApplicationFundingRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ListApplicationFundingRequest")
+	if x.ApplicationId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "application_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ApplicationId)
+	}
+	if x.AfterRevision != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "after_revision")
+		protobuf_go_lite.TextWriteUint(&sb, x.AfterRevision)
+	}
+	if x.Limit != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "limit")
+		protobuf_go_lite.TextWriteUint(&sb, x.Limit)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ListApplicationFundingRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ListApplicationFundingResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ListApplicationFundingResponse")
+	if len(x.Assignments) > 0 {
+		protobuf_go_lite.TextWriteListStart(&sb, initialLen, "assignments")
+		for i, v := range x.Assignments {
+			protobuf_go_lite.TextWriteListSeparator(&sb, i)
+			if v == nil {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, &ApplicationFundingAssignment{})
+			} else {
+				protobuf_go_lite.TextWriteTextMarshaler(&sb, v)
+			}
+		}
+		protobuf_go_lite.TextWriteListEnd(&sb)
+	}
+	if x.NextAfterRevision != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "next_after_revision")
+		protobuf_go_lite.TextWriteUint(&sb, x.NextAfterRevision)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ListApplicationFundingResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1672,6 +2865,385 @@ func (m *GetApplicationResponse) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetApplicationFundingRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetApplicationFundingRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetApplicationFundingRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ApplicationId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ApplicationId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BillingAccountId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BillingAccountId = v
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Funding", wireType)
+			}
+			m.Funding = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Funding = ApplicationFunding(_v)
+			if err != nil {
+				return err
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedRevision", wireType)
+			}
+			m.ExpectedRevision = 0
+			m.ExpectedRevision, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ApplicationFundingAssignment) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ApplicationFundingAssignment: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ApplicationFundingAssignment: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ApplicationId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ApplicationId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Revision", wireType)
+			}
+			m.Revision = 0
+			m.Revision, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BillingAccountId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.BillingAccountId = v
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Funding", wireType)
+			}
+			m.Funding = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.Funding = ApplicationFunding(_v)
+			if err != nil {
+				return err
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AuthorizedByAccountId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AuthorizedByAccountId = v
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartedAtMs", wireType)
+			}
+			m.StartedAtMs = 0
+			m.StartedAtMs, iNdEx, err = protobuf_go_lite.DecodeVarintInt64(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetApplicationFundingResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetApplicationFundingResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetApplicationFundingResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Assignment", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Assignment == nil {
+				m.Assignment = &ApplicationFundingAssignment{}
+			}
+			if err := m.Assignment.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListApplicationFundingRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListApplicationFundingRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListApplicationFundingRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ApplicationId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ApplicationId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AfterRevision", wireType)
+			}
+			m.AfterRevision = 0
+			m.AfterRevision, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Limit", wireType)
+			}
+			m.Limit = 0
+			m.Limit, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ListApplicationFundingResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ListApplicationFundingResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ListApplicationFundingResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Assignments", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Assignments = append(m.Assignments, &ApplicationFundingAssignment{})
+			if err := m.Assignments[len(m.Assignments)-1].UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextAfterRevision", wireType)
+			}
+			m.NextAfterRevision = 0
+			m.NextAfterRevision, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

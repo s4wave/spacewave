@@ -88,4 +88,41 @@ func TestApplicationRegistration(t *testing.T) {
 	if _, err := operatorClient.RegisterApplication(ctx, input); err == nil {
 		t.Fatal("operator registered an application without platform administration")
 	}
+
+	// Accept an operator-owned payer through the signed application boundary.
+	payerID, err := operatorClient.CreateBillingAccount(ctx, "Application integration payer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fundingRequest := &api.SetApplicationFundingRequest{
+		ApplicationId:    app.GetId(),
+		BillingAccountId: payerID,
+		Funding:          api.ApplicationFunding_APPLICATION_FUNDING_OPERATOR,
+		ExpectedRevision: app.GetRevision(),
+	}
+	funded, err := operatorClient.SetApplicationFunding(ctx, fundingRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if funded.GetAssignment().GetBillingAccountId() != payerID {
+		t.Fatal("funding returned a different payer")
+	}
+	retryFunding, err := operatorClient.SetApplicationFunding(ctx, fundingRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !funded.EqualVT(retryFunding) {
+		t.Fatal("funding retry changed the accepted assignment")
+	}
+
+	// Read accepted history through the generated Go-to-Worker response codec.
+	history, err := operatorClient.ListApplicationFunding(ctx, &api.ListApplicationFundingRequest{
+		ApplicationId: app.GetId(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(history.GetAssignments()) != 1 || !history.GetAssignments()[0].EqualVT(funded.GetAssignment()) {
+		t.Fatal("funding history does not contain the accepted assignment")
+	}
 }

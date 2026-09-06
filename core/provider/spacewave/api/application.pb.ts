@@ -292,3 +292,232 @@ export const GetApplicationResponse: MessageType<GetApplicationResponse> =
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * SetApplicationFundingRequest accepts a payer for subsequent application usage.
+ * The server requires application administration and authority over the payer.
+ *
+ * @generated from message provider.spacewave.api.SetApplicationFundingRequest
+ */
+export interface SetApplicationFundingRequest {
+  /**
+   * ApplicationId identifies the approved registration.
+   *
+   * @generated from field: string application_id = 1;
+   */
+  applicationId?: string
+  /**
+   * BillingAccountId identifies the payer accepting subsequent costs.
+   *
+   * @generated from field: string billing_account_id = 2;
+   */
+  billingAccountId?: string
+  /**
+   * Funding distinguishes operator payment from platform-authorized sponsorship.
+   *
+   * @generated from field: provider.spacewave.api.ApplicationFunding funding = 3;
+   */
+  funding?: ApplicationFunding
+  /**
+   * ExpectedRevision fences concurrent changes; an identical retry returns its assignment.
+   *
+   * @generated from field: uint64 expected_revision = 4;
+   */
+  expectedRevision?: bigint
+}
+
+export const SetApplicationFundingRequest: MessageType<SetApplicationFundingRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.SetApplicationFundingRequest',
+    fields: [
+      { no: 1, name: 'application_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 2,
+        name: 'billing_account_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 3, name: 'funding', kind: 'enum', T: ApplicationFunding_Enum },
+      {
+        no: 4,
+        name: 'expected_revision',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ApplicationFundingAssignment preserves the authority and payer for a funding interval.
+ *
+ * @generated from message provider.spacewave.api.ApplicationFundingAssignment
+ */
+export interface ApplicationFundingAssignment {
+  /**
+   * ApplicationId identifies the approved registration.
+   *
+   * @generated from field: string application_id = 1;
+   */
+  applicationId?: string
+  /**
+   * Revision identifies the application configuration that accepted this assignment.
+   *
+   * @generated from field: uint64 revision = 2;
+   */
+  revision?: bigint
+  /**
+   * BillingAccountId identifies the payer for usage attributed to this interval.
+   *
+   * @generated from field: string billing_account_id = 3;
+   */
+  billingAccountId?: string
+  /**
+   * Funding preserves whether the payer accepted operator costs or sponsorship.
+   *
+   * @generated from field: provider.spacewave.api.ApplicationFunding funding = 4;
+   */
+  funding?: ApplicationFunding
+  /**
+   * AuthorizedByAccountId identifies the authenticated account that accepted the costs.
+   *
+   * @generated from field: string authorized_by_account_id = 5;
+   */
+  authorizedByAccountId?: string
+  /**
+   * StartedAtMs is the effective start in Unix milliseconds.
+   *
+   * @generated from field: int64 started_at_ms = 6;
+   */
+  startedAtMs?: bigint
+}
+
+export const ApplicationFundingAssignment: MessageType<ApplicationFundingAssignment> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.ApplicationFundingAssignment',
+    fields: [
+      { no: 1, name: 'application_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'revision', kind: 'scalar', T: ScalarType.UINT64 },
+      {
+        no: 3,
+        name: 'billing_account_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 4, name: 'funding', kind: 'enum', T: ApplicationFunding_Enum },
+      {
+        no: 5,
+        name: 'authorized_by_account_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
+      { no: 6, name: 'started_at_ms', kind: 'scalar', T: ScalarType.INT64 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetApplicationFundingResponse returns the durably accepted funding assignment.
+ *
+ * @generated from message provider.spacewave.api.SetApplicationFundingResponse
+ */
+export interface SetApplicationFundingResponse {
+  /**
+   * Assignment is stable across identical retries, including after later funding changes.
+   *
+   * @generated from field: provider.spacewave.api.ApplicationFundingAssignment assignment = 1;
+   */
+  assignment?: ApplicationFundingAssignment
+}
+
+export const SetApplicationFundingResponse: MessageType<SetApplicationFundingResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.SetApplicationFundingResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'assignment',
+        kind: 'message',
+        T: () => ApplicationFundingAssignment,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ListApplicationFundingRequest selects a bounded page of funding history.
+ *
+ * @generated from message provider.spacewave.api.ListApplicationFundingRequest
+ */
+export interface ListApplicationFundingRequest {
+  /**
+   * ApplicationId identifies a registration visible to its operator or platform administration.
+   *
+   * @generated from field: string application_id = 1;
+   */
+  applicationId?: string
+  /**
+   * AfterRevision excludes assignments at or before this revision.
+   *
+   * @generated from field: uint64 after_revision = 2;
+   */
+  afterRevision?: bigint
+  /**
+   * Limit defaults to 50 and cannot exceed 100 assignments.
+   *
+   * @generated from field: uint32 limit = 3;
+   */
+  limit?: number
+}
+
+export const ListApplicationFundingRequest: MessageType<ListApplicationFundingRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.ListApplicationFundingRequest',
+    fields: [
+      { no: 1, name: 'application_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'after_revision', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 3, name: 'limit', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * ListApplicationFundingResponse returns funding history in increasing revision order.
+ *
+ * @generated from message provider.spacewave.api.ListApplicationFundingResponse
+ */
+export interface ListApplicationFundingResponse {
+  /**
+   * Assignments preserve the payer and authorization for each accepted interval.
+   *
+   * @generated from field: repeated provider.spacewave.api.ApplicationFundingAssignment assignments = 1;
+   */
+  assignments?: ApplicationFundingAssignment[]
+  /**
+   * NextAfterRevision is the continuation cursor, or zero when there are no more assignments.
+   *
+   * @generated from field: uint64 next_after_revision = 2;
+   */
+  nextAfterRevision?: bigint
+}
+
+export const ListApplicationFundingResponse: MessageType<ListApplicationFundingResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.ListApplicationFundingResponse',
+    fields: [
+      {
+        no: 1,
+        name: 'assignments',
+        kind: 'message',
+        T: () => ApplicationFundingAssignment,
+        repeated: true,
+      },
+      {
+        no: 2,
+        name: 'next_after_revision',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
