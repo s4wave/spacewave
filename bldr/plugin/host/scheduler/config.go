@@ -177,9 +177,16 @@ func (c *Config) buildBackoff(
 	return backoffConf
 }
 
-// manifestCopyConcurrency returns the configured manifest copy
-// concurrency.
+// manifestCopyConcurrencyDefault is the aggregate manifest copy allowance
+// used when the config leaves FetchConcurrency unset.
+const manifestCopyConcurrencyDefault = 2
+
+// manifestCopyConcurrency returns the configured manifest copy concurrency.
+// Zero selects the finite default allowance.
 func (c *Config) manifestCopyConcurrency() int {
+	if c.GetFetchConcurrency() == 0 {
+		return manifestCopyConcurrencyDefault
+	}
 	return int(c.GetFetchConcurrency())
 }
 

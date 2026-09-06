@@ -30,6 +30,7 @@ const (
 	manifestCopyPhaseSelected               manifestCopyPhase = "selected"
 	manifestCopyPhaseWaiting                manifestCopyPhase = "waiting-for-running"
 	manifestCopyPhaseWaitingForStartupGroup manifestCopyPhase = "waiting-for-startup-group"
+	manifestCopyPhaseWaitingForAdmission    manifestCopyPhase = "waiting-for-admission"
 	manifestCopyPhaseCopying                manifestCopyPhase = "copying"
 	manifestCopyPhaseDone                   manifestCopyPhase = "done"
 	manifestCopyPhaseFailed                 manifestCopyPhase = "failed"
@@ -260,6 +261,25 @@ func (t *pluginInstance) execDownloadManifest(
 	if err := t.waitForManifestCopyReady(ctx, class, manifestSnapshot, accounting); err != nil {
 		return err
 	}
+
+	// Acquire the aggregate manifest copy allowance. The permit is held
+	// through traversal, local-ref publication, and Sync so the configured
+	// bound covers the copy's total active footprint. The copying phase
+	// starts only after admission.
+	t.setManifestCopyStatus(manifestCopyPhaseWaitingForAdmission, class, manifestSnapshot, accounting, bucket_lookup.ObjectCopyStats{})
+	t.emitManifestCopyStartupMark(manifestCopyPhaseWaitingForAdmission, bucket_lookup.ObjectCopyStats{}, accounting)
+	releaseManifestCopy, err := t.c.manifestCopyMtx.Lock(ctx)
+	if err != nil {
+		return err
+	}
+	defer releaseManifestCopy()
+
+	// Recheck after admission: another request may have replaced this one
+	// while the allowance was queued.
+	if err := t.checkDownloadManifestCurrent(ctx, manifestSnapshot); err != nil {
+		return err
+	}
+
 	materializerCtx, materializerTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/materializer")
 	trace.Log(materializerCtx, "materializer-phase", "start")
 	defer func() {
@@ -324,58 +344,41 @@ func (t *pluginInstance) execDownloadManifest(
 		return err
 	}
 
-	var synced bool
-	releaseManifestCommit, err := t.c.acquireManifestCommit(ctx)
-	if err != nil {
-		return err
-	}
-	if err := func() error {
-		defer releaseManifestCommit()
-
-		// Recheck after the publication permit was acquired: another request
-		// may have replaced this one while the permit was waited for.
-		if err := t.checkDownloadManifestCurrent(ctx, manifestSnapshot); err != nil {
-			return err
-		}
-		if !t.c.conf.GetDisableStoreManifest() {
-			storeCtx, storeTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/store-local-ref")
-			trace.Log(storeCtx, "accounting-phase", "world-op-store-local-manifest-ref")
-			trace.Log(storeCtx, "manifest-copy-phase", "local-ref-publication")
-			manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, manifestMeta)
-			if err := bldr_manifest_world.ExStoreManifestOp(
-				storeCtx,
-				ws,
-				t.c.peerID,
-				manifestKey,
-				[]string{t.c.objKey},
-				bldr_manifest.NewManifestRef(manifestMeta, localRef),
-			); err != nil {
-				storeTask.End()
-				return errors.Wrap(err, "store local manifest ref")
-			}
+	if !t.c.conf.GetDisableStoreManifest() {
+		storeCtx, storeTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/store-local-ref")
+		trace.Log(storeCtx, "accounting-phase", "world-op-store-local-manifest-ref")
+		trace.Log(storeCtx, "manifest-copy-phase", "local-ref-publication")
+		manifestKey := bldr_manifest.NewManifestKey(t.c.objKey, manifestMeta)
+		if err := bldr_manifest_world.ExStoreManifestOp(
+			storeCtx,
+			ws,
+			t.c.peerID,
+			manifestKey,
+			[]string{t.c.objKey},
+			bldr_manifest.NewManifestRef(manifestMeta, localRef),
+		); err != nil {
 			storeTask.End()
+			return errors.Wrap(err, "store local manifest ref")
 		}
-
-		syncCtx, syncTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/sync")
-		trace.Log(syncCtx, "accounting-phase", "world-sync-block-barrier-and-head-commit")
-		var syncErr error
-		synced, syncErr = ws.Sync(syncCtx)
-		if syncErr != nil {
-			syncTask.End()
-			return errors.Wrap(syncErr, "sync local manifest blocks")
-		}
-		if synced && dest.GetTransformer() == nil {
-			copyStats.DestinationDurableBytes = copyStats.LogicalSourceBytes
-			copyStats.DestinationDurableBytesKnown = true
-		}
-		trace.Logf(syncCtx, "destination-durable-bytes", "%d", copyStats.DestinationDurableBytes)
-		trace.Logf(syncCtx, "destination-durable-bytes-known", "%t", copyStats.DestinationDurableBytesKnown)
-		trace.Log(syncCtx, "manifest-copy-phase", "sync-complete")
-		syncTask.End()
-		return nil
-	}(); err != nil {
-		return err
+		storeTask.End()
 	}
+
+	syncCtx, syncTask := trace.NewTask(ctx, "bldr/plugin-host-scheduler/download-manifest/sync")
+	trace.Log(syncCtx, "accounting-phase", "world-sync-block-barrier-and-head-commit")
+	synced, syncErr := ws.Sync(syncCtx)
+	if syncErr != nil {
+		syncTask.End()
+		return errors.Wrap(syncErr, "sync local manifest blocks")
+	}
+	if synced && dest.GetTransformer() == nil {
+		copyStats.DestinationDurableBytes = copyStats.LogicalSourceBytes
+		copyStats.DestinationDurableBytesKnown = true
+	}
+	trace.Logf(syncCtx, "destination-durable-bytes", "%d", copyStats.DestinationDurableBytes)
+	trace.Logf(syncCtx, "destination-durable-bytes-known", "%t", copyStats.DestinationDurableBytesKnown)
+	trace.Log(syncCtx, "manifest-copy-phase", "sync-complete")
+	syncTask.End()
+
 	copyStats = accounting.apply(copyStats)
 	t.setManifestCopyStatus(manifestCopyPhaseDone, class, manifestSnapshot, accounting, copyStats)
 	t.emitManifestCopyStartupMark(manifestCopyPhaseDone, copyStats, accounting)
