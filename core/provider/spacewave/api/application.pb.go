@@ -489,6 +489,208 @@ func (x *ListApplicationFundingResponse) GetNextAfterRevision() uint64 {
 	return 0
 }
 
+// ManagedAccountEnrollment binds a new credential to a verified application identity.
+// The credential signs the domain-separated binary message; the application integration
+// separately authenticates the issuer and subject before submitting it to the provider.
+type ManagedAccountEnrollment struct {
+	unknownFields []byte
+	// ApplicationId identifies the application whose operator approves this enrollment.
+	ApplicationId string `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"applicationId,omitempty"`
+	// Issuer is the verified identity provider's stable namespace, at most 512 UTF-8 bytes.
+	Issuer string `protobuf:"bytes,2,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	// Subject is the verified identity within the issuer, at most 256 UTF-8 bytes.
+	Subject string `protobuf:"bytes,3,opt,name=subject,proto3" json:"subject,omitempty"`
+	// KeypairPeerId embeds the public key of the credential being enrolled.
+	KeypairPeerId string `protobuf:"bytes,4,opt,name=keypair_peer_id,json=keypairPeerId,proto3" json:"keypairPeerId,omitempty"`
+	// ExpectedApplicationRevision invalidates approvals after application configuration changes.
+	ExpectedApplicationRevision uint64 `protobuf:"varint,5,opt,name=expected_application_revision,json=expectedApplicationRevision,proto3" json:"expectedApplicationRevision,omitempty"`
+}
+
+func (x *ManagedAccountEnrollment) Reset() {
+	*x = ManagedAccountEnrollment{}
+}
+
+func (*ManagedAccountEnrollment) ProtoMessage() {}
+
+func (x *ManagedAccountEnrollment) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+func (x *ManagedAccountEnrollment) GetIssuer() string {
+	if x != nil {
+		return x.Issuer
+	}
+	return ""
+}
+
+func (x *ManagedAccountEnrollment) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+func (x *ManagedAccountEnrollment) GetKeypairPeerId() string {
+	if x != nil {
+		return x.KeypairPeerId
+	}
+	return ""
+}
+
+func (x *ManagedAccountEnrollment) GetExpectedApplicationRevision() uint64 {
+	if x != nil {
+		return x.ExpectedApplicationRevision
+	}
+	return 0
+}
+
+// EnrollManagedAccountRequest asks the authenticated application operator to enroll a credential.
+// Only the approved integration submits verified external subjects; this is not a browser assertion.
+type EnrollManagedAccountRequest struct {
+	unknownFields []byte
+	// Enrollment identifies the verified subject and credential being authorized.
+	Enrollment *ManagedAccountEnrollment `protobuf:"bytes,1,opt,name=enrollment,proto3" json:"enrollment,omitempty"`
+	// Signature proves possession over "spacewave 2026-09-06 managed account enrollment v1." followed by Enrollment binary.
+	Signature []byte `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
+}
+
+func (x *EnrollManagedAccountRequest) Reset() {
+	*x = EnrollManagedAccountRequest{}
+}
+
+func (*EnrollManagedAccountRequest) ProtoMessage() {}
+
+func (x *EnrollManagedAccountRequest) GetEnrollment() *ManagedAccountEnrollment {
+	if x != nil {
+		return x.Enrollment
+	}
+	return nil
+}
+
+func (x *EnrollManagedAccountRequest) GetSignature() []byte {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
+// EnrollManagedAccountResponse identifies the ordinary account retained across recovery.
+type EnrollManagedAccountResponse struct {
+	unknownFields []byte
+	// ApplicationId identifies the application that manages the account.
+	ApplicationId string `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"applicationId,omitempty"`
+	// AccountId identifies the ordinary provider account for subsequent Session registration.
+	AccountId string `protobuf:"bytes,2,opt,name=account_id,json=accountId,proto3" json:"accountId,omitempty"`
+	// DomainId is the provider's account namespace.
+	DomainId string `protobuf:"bytes,3,opt,name=domain_id,json=domainId,proto3" json:"domainId,omitempty"`
+	// EntityId is the stable account name within its domain.
+	EntityId string `protobuf:"bytes,4,opt,name=entity_id,json=entityId,proto3" json:"entityId,omitempty"`
+	// KeypairPeerId confirms the newly authorized credential; existing credentials remain valid.
+	KeypairPeerId string `protobuf:"bytes,5,opt,name=keypair_peer_id,json=keypairPeerId,proto3" json:"keypairPeerId,omitempty"`
+}
+
+func (x *EnrollManagedAccountResponse) Reset() {
+	*x = EnrollManagedAccountResponse{}
+}
+
+func (*EnrollManagedAccountResponse) ProtoMessage() {}
+
+func (x *EnrollManagedAccountResponse) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+func (x *EnrollManagedAccountResponse) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *EnrollManagedAccountResponse) GetDomainId() string {
+	if x != nil {
+		return x.DomainId
+	}
+	return ""
+}
+
+func (x *EnrollManagedAccountResponse) GetEntityId() string {
+	if x != nil {
+		return x.EntityId
+	}
+	return ""
+}
+
+func (x *EnrollManagedAccountResponse) GetKeypairPeerId() string {
+	if x != nil {
+		return x.KeypairPeerId
+	}
+	return ""
+}
+
+// SetApplicationStateRequest changes availability under application administration.
+type SetApplicationStateRequest struct {
+	unknownFields []byte
+	// ApplicationId selects the approved application.
+	ApplicationId string `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"applicationId,omitempty"`
+	// State selects Active, Paused, or Disabled; Active requires accepted funding.
+	State ApplicationState `protobuf:"varint,2,opt,name=state,proto3" json:"state,omitempty"`
+	// ExpectedRevision fences concurrent configuration changes.
+	ExpectedRevision uint64 `protobuf:"varint,3,opt,name=expected_revision,json=expectedRevision,proto3" json:"expectedRevision,omitempty"`
+}
+
+func (x *SetApplicationStateRequest) Reset() {
+	*x = SetApplicationStateRequest{}
+}
+
+func (*SetApplicationStateRequest) ProtoMessage() {}
+
+func (x *SetApplicationStateRequest) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+func (x *SetApplicationStateRequest) GetState() ApplicationState {
+	if x != nil {
+		return x.State
+	}
+	return ApplicationState_APPLICATION_STATE_UNKNOWN
+}
+
+func (x *SetApplicationStateRequest) GetExpectedRevision() uint64 {
+	if x != nil {
+		return x.ExpectedRevision
+	}
+	return 0
+}
+
+// SetApplicationStateResponse returns current availability after the durable transition.
+type SetApplicationStateResponse struct {
+	unknownFields []byte
+	// Application contains the new configuration; disabled credentials are never restored.
+	Application *Application `protobuf:"bytes,1,opt,name=application,proto3" json:"application,omitempty"`
+}
+
+func (x *SetApplicationStateResponse) Reset() {
+	*x = SetApplicationStateResponse{}
+}
+
+func (*SetApplicationStateResponse) ProtoMessage() {}
+
+func (x *SetApplicationStateResponse) GetApplication() *Application {
+	if x != nil {
+		return x.Application
+	}
+	return nil
+}
+
 func (m *Application) CloneVT() *Application {
 	if m == nil {
 		return (*Application)(nil)
@@ -667,6 +869,97 @@ func (m *ListApplicationFundingResponse) CloneVT() *ListApplicationFundingRespon
 }
 
 func (m *ListApplicationFundingResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *ManagedAccountEnrollment) CloneVT() *ManagedAccountEnrollment {
+	if m == nil {
+		return (*ManagedAccountEnrollment)(nil)
+	}
+	r := new(ManagedAccountEnrollment)
+	r.ApplicationId = m.ApplicationId
+	r.Issuer = m.Issuer
+	r.Subject = m.Subject
+	r.KeypairPeerId = m.KeypairPeerId
+	r.ExpectedApplicationRevision = m.ExpectedApplicationRevision
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *ManagedAccountEnrollment) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *EnrollManagedAccountRequest) CloneVT() *EnrollManagedAccountRequest {
+	if m == nil {
+		return (*EnrollManagedAccountRequest)(nil)
+	}
+	r := new(EnrollManagedAccountRequest)
+	r.Enrollment = protobuf_go_lite.CloneVTValue(m.Enrollment)
+	r.Signature = protobuf_go_lite.CloneBytes(m.Signature)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *EnrollManagedAccountRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *EnrollManagedAccountResponse) CloneVT() *EnrollManagedAccountResponse {
+	if m == nil {
+		return (*EnrollManagedAccountResponse)(nil)
+	}
+	r := new(EnrollManagedAccountResponse)
+	r.ApplicationId = m.ApplicationId
+	r.AccountId = m.AccountId
+	r.DomainId = m.DomainId
+	r.EntityId = m.EntityId
+	r.KeypairPeerId = m.KeypairPeerId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *EnrollManagedAccountResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetApplicationStateRequest) CloneVT() *SetApplicationStateRequest {
+	if m == nil {
+		return (*SetApplicationStateRequest)(nil)
+	}
+	r := new(SetApplicationStateRequest)
+	r.ApplicationId = m.ApplicationId
+	r.State = m.State
+	r.ExpectedRevision = m.ExpectedRevision
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetApplicationStateRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *SetApplicationStateResponse) CloneVT() *SetApplicationStateResponse {
+	if m == nil {
+		return (*SetApplicationStateResponse)(nil)
+	}
+	r := new(SetApplicationStateResponse)
+	r.Application = protobuf_go_lite.CloneVTValue(m.Application)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *SetApplicationStateResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -927,6 +1220,139 @@ func (this *ListApplicationFundingResponse) EqualVT(that *ListApplicationFunding
 
 func (this *ListApplicationFundingResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*ListApplicationFundingResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *ManagedAccountEnrollment) EqualVT(that *ManagedAccountEnrollment) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ApplicationId != that.ApplicationId {
+		return false
+	}
+	if this.Issuer != that.Issuer {
+		return false
+	}
+	if this.Subject != that.Subject {
+		return false
+	}
+	if this.KeypairPeerId != that.KeypairPeerId {
+		return false
+	}
+	if this.ExpectedApplicationRevision != that.ExpectedApplicationRevision {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *ManagedAccountEnrollment) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*ManagedAccountEnrollment)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *EnrollManagedAccountRequest) EqualVT(that *EnrollManagedAccountRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Enrollment, that.Enrollment) {
+		return false
+	}
+	if !protobuf_go_lite.EqualBytes(this.Signature, that.Signature) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *EnrollManagedAccountRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*EnrollManagedAccountRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *EnrollManagedAccountResponse) EqualVT(that *EnrollManagedAccountResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ApplicationId != that.ApplicationId {
+		return false
+	}
+	if this.AccountId != that.AccountId {
+		return false
+	}
+	if this.DomainId != that.DomainId {
+		return false
+	}
+	if this.EntityId != that.EntityId {
+		return false
+	}
+	if this.KeypairPeerId != that.KeypairPeerId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *EnrollManagedAccountResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*EnrollManagedAccountResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetApplicationStateRequest) EqualVT(that *SetApplicationStateRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ApplicationId != that.ApplicationId {
+		return false
+	}
+	if this.State != that.State {
+		return false
+	}
+	if this.ExpectedRevision != that.ExpectedRevision {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetApplicationStateRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetApplicationStateRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *SetApplicationStateResponse) EqualVT(that *SetApplicationStateResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Application, that.Application) {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *SetApplicationStateResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*SetApplicationStateResponse)
 	if !ok {
 		return false
 	}
@@ -1634,6 +2060,312 @@ func (x *ListApplicationFundingResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
+// MarshalProtoJSON marshals the ManagedAccountEnrollment message to JSON.
+func (x *ManagedAccountEnrollment) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ApplicationId != "" || s.HasField("applicationId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("applicationId")
+		s.WriteString(x.ApplicationId)
+	}
+	if x.Issuer != "" || s.HasField("issuer") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("issuer")
+		s.WriteString(x.Issuer)
+	}
+	if x.Subject != "" || s.HasField("subject") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("subject")
+		s.WriteString(x.Subject)
+	}
+	if x.KeypairPeerId != "" || s.HasField("keypairPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("keypairPeerId")
+		s.WriteString(x.KeypairPeerId)
+	}
+	if x.ExpectedApplicationRevision != 0 || s.HasField("expectedApplicationRevision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedApplicationRevision")
+		s.WriteUint64(x.ExpectedApplicationRevision)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the ManagedAccountEnrollment to JSON.
+func (x *ManagedAccountEnrollment) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the ManagedAccountEnrollment message from JSON.
+func (x *ManagedAccountEnrollment) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "application_id", "applicationId":
+			s.AddField("application_id")
+			x.ApplicationId = s.ReadString()
+		case "issuer":
+			s.AddField("issuer")
+			x.Issuer = s.ReadString()
+		case "subject":
+			s.AddField("subject")
+			x.Subject = s.ReadString()
+		case "keypair_peer_id", "keypairPeerId":
+			s.AddField("keypair_peer_id")
+			x.KeypairPeerId = s.ReadString()
+		case "expected_application_revision", "expectedApplicationRevision":
+			s.AddField("expected_application_revision")
+			x.ExpectedApplicationRevision = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the ManagedAccountEnrollment from JSON.
+func (x *ManagedAccountEnrollment) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the EnrollManagedAccountRequest message to JSON.
+func (x *EnrollManagedAccountRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Enrollment != nil || s.HasField("enrollment") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("enrollment")
+		x.Enrollment.MarshalProtoJSON(s.WithField("enrollment"))
+	}
+	if len(x.Signature) > 0 || s.HasField("signature") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("signature")
+		s.WriteBytes(x.Signature)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the EnrollManagedAccountRequest to JSON.
+func (x *EnrollManagedAccountRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the EnrollManagedAccountRequest message from JSON.
+func (x *EnrollManagedAccountRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "enrollment":
+			if s.ReadNil() {
+				x.Enrollment = nil
+				return
+			}
+			x.Enrollment = &ManagedAccountEnrollment{}
+			x.Enrollment.UnmarshalProtoJSON(s.WithField("enrollment", true))
+		case "signature":
+			s.AddField("signature")
+			x.Signature = s.ReadBytes()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the EnrollManagedAccountRequest from JSON.
+func (x *EnrollManagedAccountRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the EnrollManagedAccountResponse message to JSON.
+func (x *EnrollManagedAccountResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ApplicationId != "" || s.HasField("applicationId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("applicationId")
+		s.WriteString(x.ApplicationId)
+	}
+	if x.AccountId != "" || s.HasField("accountId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("accountId")
+		s.WriteString(x.AccountId)
+	}
+	if x.DomainId != "" || s.HasField("domainId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("domainId")
+		s.WriteString(x.DomainId)
+	}
+	if x.EntityId != "" || s.HasField("entityId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("entityId")
+		s.WriteString(x.EntityId)
+	}
+	if x.KeypairPeerId != "" || s.HasField("keypairPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("keypairPeerId")
+		s.WriteString(x.KeypairPeerId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the EnrollManagedAccountResponse to JSON.
+func (x *EnrollManagedAccountResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the EnrollManagedAccountResponse message from JSON.
+func (x *EnrollManagedAccountResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "application_id", "applicationId":
+			s.AddField("application_id")
+			x.ApplicationId = s.ReadString()
+		case "account_id", "accountId":
+			s.AddField("account_id")
+			x.AccountId = s.ReadString()
+		case "domain_id", "domainId":
+			s.AddField("domain_id")
+			x.DomainId = s.ReadString()
+		case "entity_id", "entityId":
+			s.AddField("entity_id")
+			x.EntityId = s.ReadString()
+		case "keypair_peer_id", "keypairPeerId":
+			s.AddField("keypair_peer_id")
+			x.KeypairPeerId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the EnrollManagedAccountResponse from JSON.
+func (x *EnrollManagedAccountResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetApplicationStateRequest message to JSON.
+func (x *SetApplicationStateRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ApplicationId != "" || s.HasField("applicationId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("applicationId")
+		s.WriteString(x.ApplicationId)
+	}
+	if x.State != 0 || s.HasField("state") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("state")
+		x.State.MarshalProtoJSON(s)
+	}
+	if x.ExpectedRevision != 0 || s.HasField("expectedRevision") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("expectedRevision")
+		s.WriteUint64(x.ExpectedRevision)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetApplicationStateRequest to JSON.
+func (x *SetApplicationStateRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetApplicationStateRequest message from JSON.
+func (x *SetApplicationStateRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "application_id", "applicationId":
+			s.AddField("application_id")
+			x.ApplicationId = s.ReadString()
+		case "state":
+			s.AddField("state")
+			x.State.UnmarshalProtoJSON(s)
+		case "expected_revision", "expectedRevision":
+			s.AddField("expected_revision")
+			x.ExpectedRevision = s.ReadUint64()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetApplicationStateRequest from JSON.
+func (x *SetApplicationStateRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the SetApplicationStateResponse message to JSON.
+func (x *SetApplicationStateResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.Application != nil || s.HasField("application") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("application")
+		x.Application.MarshalProtoJSON(s.WithField("application"))
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the SetApplicationStateResponse to JSON.
+func (x *SetApplicationStateResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the SetApplicationStateResponse message from JSON.
+func (x *SetApplicationStateResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "application":
+			if s.ReadNil() {
+				x.Application = nil
+				return
+			}
+			x.Application = &Application{}
+			x.Application.UnmarshalProtoJSON(s.WithField("application", true))
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the SetApplicationStateResponse from JSON.
+func (x *SetApplicationStateResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
 func (m *Application) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -2131,6 +2863,256 @@ func (m *ListApplicationFundingResponse) MarshalToSizedBufferVT(dAtA []byte) (in
 	return len(dAtA) - i, nil
 }
 
+func (m *ManagedAccountEnrollment) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ManagedAccountEnrollment) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *ManagedAccountEnrollment) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ExpectedApplicationRevision != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpectedApplicationRevision))
+		i--
+		dAtA[i] = 0x28
+	}
+	if len(m.KeypairPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.KeypairPeerId)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.Subject) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Subject)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.Issuer) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.Issuer)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ApplicationId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ApplicationId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EnrollManagedAccountRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EnrollManagedAccountRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *EnrollManagedAccountRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.Signature) > 0 {
+		i = protobuf_go_lite.EncodeBytes(dAtA, i, m.Signature)
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.Enrollment != nil {
+		size, err := m.Enrollment.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *EnrollManagedAccountResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *EnrollManagedAccountResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *EnrollManagedAccountResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.KeypairPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.KeypairPeerId)
+		i--
+		dAtA[i] = 0x2a
+	}
+	if len(m.EntityId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.EntityId)
+		i--
+		dAtA[i] = 0x22
+	}
+	if len(m.DomainId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.DomainId)
+		i--
+		dAtA[i] = 0x1a
+	}
+	if len(m.AccountId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.AccountId)
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.ApplicationId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ApplicationId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetApplicationStateRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetApplicationStateRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetApplicationStateRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ExpectedRevision != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ExpectedRevision))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.State != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.ApplicationId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.ApplicationId)
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *SetApplicationStateResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *SetApplicationStateResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *SetApplicationStateResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Application != nil {
+		size, err := m.Application.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *Application) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -2270,6 +3252,78 @@ func (m *ListApplicationFundingResponse) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.NextAfterRevision)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *ManagedAccountEnrollment) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ApplicationId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Issuer)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Subject)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.KeypairPeerId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpectedApplicationRevision)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *EnrollManagedAccountRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Enrollment != nil {
+		l = m.Enrollment.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
+	n += protobuf_go_lite.SizeBytesNonEmpty(1, m.Signature)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *EnrollManagedAccountResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ApplicationId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.AccountId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.DomainId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.EntityId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.KeypairPeerId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetApplicationStateRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ApplicationId)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.State)
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ExpectedRevision)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *SetApplicationStateResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Application != nil {
+		l = m.Application.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -2511,6 +3565,120 @@ func (x *ListApplicationFundingResponse) MarshalProtoText() string {
 }
 
 func (x *ListApplicationFundingResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *ManagedAccountEnrollment) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ManagedAccountEnrollment")
+	if x.ApplicationId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "application_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ApplicationId)
+	}
+	if x.Issuer != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "issuer")
+		protobuf_go_lite.TextWriteString(&sb, x.Issuer)
+	}
+	if x.Subject != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "subject")
+		protobuf_go_lite.TextWriteString(&sb, x.Subject)
+	}
+	if x.KeypairPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "keypair_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.KeypairPeerId)
+	}
+	if x.ExpectedApplicationRevision != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expected_application_revision")
+		protobuf_go_lite.TextWriteUint(&sb, x.ExpectedApplicationRevision)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *ManagedAccountEnrollment) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *EnrollManagedAccountRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "EnrollManagedAccountRequest")
+	if x.Enrollment != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "enrollment")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Enrollment)
+	}
+	if len(x.Signature) != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signature")
+		protobuf_go_lite.TextWriteBytes(&sb, x.Signature)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *EnrollManagedAccountRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *EnrollManagedAccountResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "EnrollManagedAccountResponse")
+	if x.ApplicationId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "application_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ApplicationId)
+	}
+	if x.AccountId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "account_id")
+		protobuf_go_lite.TextWriteString(&sb, x.AccountId)
+	}
+	if x.DomainId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "domain_id")
+		protobuf_go_lite.TextWriteString(&sb, x.DomainId)
+	}
+	if x.EntityId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "entity_id")
+		protobuf_go_lite.TextWriteString(&sb, x.EntityId)
+	}
+	if x.KeypairPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "keypair_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.KeypairPeerId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *EnrollManagedAccountResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetApplicationStateRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetApplicationStateRequest")
+	if x.ApplicationId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "application_id")
+		protobuf_go_lite.TextWriteString(&sb, x.ApplicationId)
+	}
+	if x.State != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "state")
+		protobuf_go_lite.TextWriteStringer(&sb, ApplicationState(x.State))
+	}
+	if x.ExpectedRevision != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "expected_revision")
+		protobuf_go_lite.TextWriteUint(&sb, x.ExpectedRevision)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetApplicationStateRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *SetApplicationStateResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "SetApplicationStateResponse")
+	if x.Application != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "application")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Application)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *SetApplicationStateResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -3244,6 +4412,388 @@ func (m *ListApplicationFundingResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *ManagedAccountEnrollment) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ManagedAccountEnrollment: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ManagedAccountEnrollment: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ApplicationId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ApplicationId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Issuer", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Issuer = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Subject", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.Subject = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KeypairPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.KeypairPeerId = v
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedApplicationRevision", wireType)
+			}
+			m.ExpectedApplicationRevision = 0
+			m.ExpectedApplicationRevision, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *EnrollManagedAccountRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EnrollManagedAccountRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EnrollManagedAccountRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Enrollment", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Enrollment == nil {
+				m.Enrollment = &ManagedAccountEnrollment{}
+			}
+			if err := m.Enrollment.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signature", wireType)
+			}
+			m.Signature, iNdEx, err = protobuf_go_lite.DecodeBytesAppend(m.Signature, dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *EnrollManagedAccountResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: EnrollManagedAccountResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: EnrollManagedAccountResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ApplicationId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ApplicationId = v
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AccountId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.AccountId = v
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DomainId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.DomainId = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EntityId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.EntityId = v
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KeypairPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.KeypairPeerId = v
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetApplicationStateRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetApplicationStateRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetApplicationStateRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ApplicationId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.ApplicationId = v
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			var _v uint64
+			_v, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			m.State = ApplicationState(_v)
+			if err != nil {
+				return err
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExpectedRevision", wireType)
+			}
+			m.ExpectedRevision = 0
+			m.ExpectedRevision, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *SetApplicationStateResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: SetApplicationStateResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: SetApplicationStateResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Application", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Application == nil {
+				m.Application = &Application{}
+			}
+			if err := m.Application.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

@@ -11,7 +11,10 @@ import (
 
 	"github.com/aperturerobotics/fastjson"
 	"github.com/aperturerobotics/util/ulid"
+	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
+	"github.com/s4wave/spacewave/net/crypto"
+	"github.com/s4wave/spacewave/net/peer"
 )
 
 // TestApplicationRegistration exercises signed registration and operator readback
@@ -125,4 +128,91 @@ func TestApplicationRegistration(t *testing.T) {
 	if len(history.GetAssignments()) != 1 || !history.GetAssignments()[0].EqualVT(funded.GetAssignment()) {
 		t.Fatal("funding history does not contain the accepted assignment")
 	}
+
+	// Activate through the real lifecycle API before enrolling independent credentials.
+	changeState := func(revision uint64, state api.ApplicationState) {
+		t.Helper()
+		_, err := operatorClient.SetApplicationState(ctx, &api.SetApplicationStateRequest{
+			ApplicationId: app.GetId(), ExpectedRevision: revision, State: state,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	changeState(2, api.ApplicationState_APPLICATION_STATE_ACTIVE)
+	first, accountID := enrollApplicationTestSession(ctx, t, operatorClient, app.GetId(), 3)
+	second, recoveredID := enrollApplicationTestSession(ctx, t, operatorClient, app.GetId(), 3)
+	if accountID != recoveredID {
+		t.Fatal("independent credential recovered a different account")
+	}
+	for _, client := range []*provider_spacewave.SessionClient{first, second} {
+		if _, err := client.GetAccountInfo(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Paused Sessions survive, and disabling cannot resurrect them on reactivation.
+	changeState(3, api.ApplicationState_APPLICATION_STATE_PAUSED)
+	if _, err := first.GetAccountInfo(ctx); err == nil {
+		t.Fatal("paused application admitted an account operation")
+	}
+	changeState(4, api.ApplicationState_APPLICATION_STATE_ACTIVE)
+	if _, err := first.GetAccountInfo(ctx); err != nil {
+		t.Fatal(err)
+	}
+	changeState(5, api.ApplicationState_APPLICATION_STATE_DISABLED)
+	changeState(6, api.ApplicationState_APPLICATION_STATE_ACTIVE)
+	if _, err := first.GetAccountInfo(ctx); err == nil {
+		t.Fatal("reactivation restored a disabled Session")
+	}
+	third, reactivatedID := enrollApplicationTestSession(ctx, t, operatorClient, app.GetId(), 7)
+	if reactivatedID != accountID {
+		t.Fatal("fresh login after disable lost the managed account")
+	}
+	if _, err := third.GetAccountInfo(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// enrollApplicationTestSession independently signs a fresh login credential and
+// registers its Session through the ordinary provider API. The test operator
+// stands in for a trusted identity integration; no external login is simulated.
+func enrollApplicationTestSession(ctx context.Context, t *testing.T, operator *provider_spacewave.SessionClient, applicationID string, revision uint64) (*provider_spacewave.SessionClient, string) {
+	t.Helper()
+	entityKey, _, err := crypto.GenerateEd25519Key(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entityID, err := peer.IDFromPrivateKey(entityKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entity := provider_spacewave.NewEntityClientDirect(httpClient, env.cloudURL, "", entityKey, entityID)
+	request, err := entity.SignManagedAccountEnrollment(ctx, &api.ManagedAccountEnrollment{
+		ApplicationId:               applicationID,
+		Issuer:                      "https://identity.example",
+		Subject:                     "same-verified-subject",
+		KeypairPeerId:               entityID.String(),
+		ExpectedApplicationRevision: revision,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	enrolled, err := operator.EnrollManagedAccount(ctx, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sessionKey, _, err := crypto.GenerateEd25519Key(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessionID, err := peer.IDFromPrivateKey(sessionKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := entity.RegisterSessionDirect(ctx, sessionID.String(), "fresh profile"); err != nil {
+		t.Fatal(err)
+	}
+	return provider_spacewave.NewSessionClient(httpClient, env.cloudURL, "", sessionKey, sessionID.String()), enrolled.GetAccountId()
 }
