@@ -94,6 +94,12 @@ function tcpPacketStream(
     }
   })()
   return {
+    async close() {
+      socket.destroy()
+    },
+    abort(error) {
+      socket.destroy(error)
+    },
     source,
     sink: async (input: Source<Uint8Array>): Promise<void> => {
       const observed = (async function* (): AsyncGenerator<Uint8Array> {
@@ -131,6 +137,8 @@ function delayedResourceClientStream(
   const stream = tcpPacketStream(socket)
   let resourceClient = false
   return {
+    close: () => stream.close(),
+    abort: (error) => stream.abort(error),
     source: stream.source,
     sink: async (input: Source<Uint8Array>): Promise<void> => {
       const outgoing = (async function* (): AsyncGenerator<Uint8Array> {

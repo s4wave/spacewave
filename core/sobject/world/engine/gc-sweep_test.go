@@ -1,8 +1,10 @@
 package sobject_world_engine
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -306,8 +308,10 @@ func TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep(t *testing.T) {
 
 	queueGCSweepTestRawOp(t, ctx, sharedObjectID, state, xfrm, maintenancePriv, 1, sobject.NewSOOperationLocalID(), queueSO.queueOps[0])
 	sweepHead := processGCSweepTestStateOps(t, ctx, c, so, state, maintenanceSnap, sharedObjectID, maintenanceID)
-	if entries := getGCSweepTestJournalEntries(t, ctx, c, so, sweepHead); entries > baselineEntries {
-		t.Fatalf("gc sweep left %d pending journal entries, want at most baseline %d", entries, baselineEntries)
+	// A maintenance operation reconciles one bounded chunk. Its commit can
+	// journal new root edges, so compare progress against the pre-sweep head.
+	if entries := getGCSweepTestJournalEntries(t, ctx, c, so, sweepHead); entries >= pending {
+		t.Fatalf("gc sweep left %d pending journal entries, want fewer than %d", entries, pending)
 	}
 }
 
@@ -503,7 +507,7 @@ func processGCSweepTestStateOps(
 	validatorID peer.ID,
 ) *InnerState {
 	t.Helper()
-	queuedOps := append([]*sobject.SOOperation(nil), state.GetOps()...)
+	queuedOps := slices.Clone(state.GetOps())
 	if len(queuedOps) == 0 {
 		t.Fatal("expected queued operations")
 	}
@@ -635,7 +639,7 @@ func (s *testGCSweepSharedObject) AccessSharedObjectState(ctx context.Context, r
 }
 
 func (s *testGCSweepSharedObject) QueueOperation(ctx context.Context, op []byte) (string, error) {
-	s.queueOps = append(s.queueOps, append([]byte(nil), op...))
+	s.queueOps = append(s.queueOps, bytes.Clone(op))
 	if s.queueCh != nil {
 		select {
 		case s.queueCh <- struct{}{}:

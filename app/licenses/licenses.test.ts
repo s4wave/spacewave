@@ -9,6 +9,7 @@ import {
 // Approved SPDX license identifiers for this project.
 const APPROVED_LICENSES = new Set([
   'MIT',
+  'MIT-0',
   'Apache-2.0',
   'Apache-2.0 OR MIT',
   'BSD-2-Clause',

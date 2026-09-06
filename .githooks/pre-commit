@@ -55,6 +55,19 @@ if [ -n "$go_files" ]; then
 	set --
 	while IFS= read -r go_pkg_dir; do
 		[ -n "$go_pkg_dir" ] || continue
+		# Nested tool modules own their dependency graph and have no aptre setup.
+		# Check them from their package directory instead of the root module.
+		module_file=$(cd "$go_pkg_dir" && go env GOMOD)
+		if [ "$module_file" != "$(pwd)/go.mod" ]; then
+			nested_before=$(git diff -- "$go_pkg_dir")
+			(cd "$go_pkg_dir" && go fix . && go test -run '^$' . && go vet .)
+			nested_after=$(git diff -- "$go_pkg_dir")
+			if [ "$nested_before" != "$nested_after" ]; then
+				printf '%s\n' 'go fix changed a nested module; review and stage those changes before committing.' >&2
+				exit 1
+			fi
+			continue
+		fi
 		if GOFLAGS="-mod=mod -tags=purego" go list "$go_pkg_dir" >/dev/null 2>>"$list_err"; then
 			set -- "$@" "$go_pkg_dir"
 		fi

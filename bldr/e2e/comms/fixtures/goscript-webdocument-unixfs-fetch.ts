@@ -7,6 +7,7 @@ import {
   type PacketStream,
 } from 'starpc'
 
+import { channelPacketStream } from '../../../web/bldr/channel-packet-stream.js'
 import { proxyFetch } from '../../../web/fetch/fetch.js'
 import {
   ServiceWorkerHostDefinition,
@@ -366,7 +367,7 @@ function installRuntimePort(
     const stream = new ChannelStream('spacewave-web', ev.ports[0], {
       remoteOpen: true,
     })
-    void handlePluginToHostStream(stream).then(
+    void handlePluginToHostStream(channelPacketStream(stream)).then(
       resolvePluginToHost,
       rejectPluginToHost,
     )
@@ -769,7 +770,7 @@ function installServiceWorkerRuntimePort(
     const stream = new ChannelStream('service-worker-host', ev.ports[0], {
       remoteOpen: true,
     })
-    server.rpcStreamHandler(stream).catch((err: unknown) => {
+    server.rpcStreamHandler(channelPacketStream(stream)).catch((err: unknown) => {
       const message = err instanceof Error ? err.message : String(err)
       recordEvent(eventLog, `service-worker-host-error ${message}`)
     })

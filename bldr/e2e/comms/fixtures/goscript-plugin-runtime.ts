@@ -1,6 +1,7 @@
 import { pushable } from 'it-pushable'
 import { ChannelStream, type PacketStream } from 'starpc'
 
+import { channelPacketStream } from '../../../web/bldr/channel-packet-stream.js'
 import { detectWorkerCommsConfig } from '../../../web/bldr/worker-comms-detect.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 
@@ -151,7 +152,7 @@ function installRuntimePort(
       const stream = new ChannelStream('goscript-runtime-proof', ev.ports[0], {
         remoteOpen: true,
       })
-      void handlePluginToHostStream(stream).then(
+      void handlePluginToHostStream(channelPacketStream(stream)).then(
         resolvePluginToHost,
         rejectPluginToHost,
       )

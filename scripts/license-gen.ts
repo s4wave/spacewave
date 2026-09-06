@@ -43,6 +43,7 @@ const canonicalSpdxIdentifiers = new Map(
     'LGPL-3.0',
     'LGPL-3.0-only',
     'MIT',
+    'MIT-0',
     'MPL-2.0',
     'Unlicense',
     'BlueOak-1.0.0',
@@ -54,7 +55,6 @@ interface GoLicenseEntry {
   name: string
   version: string
   licenseName: string
-  licenseURL: string
   licenseText: string
 }
 
@@ -136,16 +136,13 @@ function run(
   })
 }
 
-// Builds the go-licenses binary from scripts/licenses/ into .tools/.
-// The sub-module pins go-licenses v2 via a `tool` directive so the working
-// version is reproducible and isolated from spacewave's own dependency graph.
+// Builds the license reporter from its isolated module on each generation.
 async function buildGoLicenses(): Promise<string> {
-  const binPath = join(rootDir, '.tools', 'go-licenses')
-  if (existsSync(binPath)) return binPath
+  const binPath = join(rootDir, '.tools', 'license-report')
   mkdirSync(dirname(binPath), { recursive: true })
   const result = await run(
     'go',
-    ['-C', 'scripts/licenses', 'build', '-o', binPath, 'github.com/google/go-licenses/v2'],
+    ['-C', 'scripts/licenses', 'build', '-o', binPath, '.'],
     rootDir,
   )
   if (result.code !== 0) {
@@ -155,11 +152,10 @@ async function buildGoLicenses(): Promise<string> {
   return binPath
 }
 
-// Go license generation: runs go-licenses with a template, deduplicates
+// Go license generation: runs the reporter, deduplicates
 // sub-packages to module level, enriches versions from vendor/modules.txt.
 async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
   console.log('Generating Go licenses...')
-  const tplPath = join(rootDir, 'scripts', 'go-license-template.tpl')
   const binPath = await buildGoLicenses()
 
   // Run go-licenses once per supported (GOOS, GOARCH) pair and union the
@@ -184,12 +180,12 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
   for (const { goos, goarch, cgo } of platforms) {
     const result = await run(
       binPath,
-      ['report', './...', '--template', tplPath, '--ignore', 'github.com/s4wave/spacewave'],
+      ['./...'],
       rootDir,
       { GOOS: goos, GOARCH: goarch, CGO_ENABLED: cgo },
     )
 
-    if (result.code !== 0 && !result.stdout.trim()) {
+    if (result.code !== 0) {
       console.error(`go-licenses failed for ${goos}/${goarch}:`, result.stderr)
       process.exit(1)
     }
@@ -238,14 +234,12 @@ async function generateGoLicenses(): Promise<GoLicenseEntry[]> {
         name: mod,
         version: versions[mod] || entry.version || 'Unknown',
         licenseName: entry.licenseName,
-        licenseURL: entry.licenseURL,
         licenseText: entry.licenseText || '',
       }
     } else {
       const existing = modules[mod]
       if (!existing.licenseText && entry.licenseText) {
         existing.licenseText = entry.licenseText
-        existing.licenseURL = entry.licenseURL
       }
       if (existing.licenseName === 'Unknown' && entry.licenseName !== 'Unknown') {
         existing.licenseName = entry.licenseName
