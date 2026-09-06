@@ -10,20 +10,21 @@ import (
 	"github.com/s4wave/spacewave/db/block/sbset"
 )
 
-// Reader reads from a blob.
+// Reader reads from a blob. Streaming reads retain a bounded window of chunk
+// data. Read, Seek, and Close must not be called concurrently.
 type Reader struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 	bcs       *block.Cursor
 
 	root *Blob
-	// idx is the current read index
+	// idx is the current read index.
 	idx int
 	// chunkIdx is the previous chunk we read from.
-	// this speeds up seeking for idx for sequential reads.
+	// This speeds up seeking for idx during sequential reads.
 	chunkIdx int
 	chunkSet *sbset.SubBlockSet
-	// chunkCache keeps only the active chunk data. The cursor-level cache is
+	// chunkCache keeps active data and bounded read-ahead. The cursor cache is
 	// intentionally bypassed for sequential reads so large HTTP readbacks do not
 	// retain every chunk, but repeated small reads inside one chunk must still
 	// avoid refetching the same block.
@@ -66,7 +67,7 @@ func NewRawReader(ctx context.Context, blob *Blob) *Reader {
 }
 
 // Read implements the reader interface.
-// Read and Seek are not concurrent safe.
+// Read and Seek must not run concurrently.
 func (r *Reader) Read(p []byte) (n int, err error) {
 	readStart := r.idx
 	if readStart < 0 {
@@ -105,6 +106,9 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 		}
 		copy(p, rawBuf[readStart:readEnd])
 	case BlobType_BlobType_CHUNKED:
+		if r.chunkCache.ahead == nil && len(p) >= chunkReadAheadMinRead && r.chunkSet.Len() > 1 {
+			r.chunkCache.ahead = newChunkReadAhead(r.ctx, r.chunkSet)
+		}
 		chkRead, outChkIdx, err := readFromChunks(r.ctx, r.chunkSet, p, readStart, r.chunkIdx, &r.chunkCache)
 		if err == io.EOF {
 			// readStart must be past the end of the chunks.
@@ -138,7 +142,7 @@ func (r *Reader) Read(p []byte) (n int, err error) {
 // Seeking to an offset before the start of the file is an error.
 // Seeking to any positive offset is legal, but the behavior of subsequent
 // I/O operations on the underlying object is implementation-dependent.
-// Read and Seek are not concurrent safe.
+// Read and Seek must not run concurrently.
 func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	blobSize := r.root.GetTotalSize()
 	if blobSize > math.MaxInt64 {
@@ -154,13 +158,20 @@ func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	if nextPos < 0 {
 		return 0, errors.New("seek to before start of blob")
 	}
+	if nextPos != int64(r.idx) && r.chunkCache.ahead != nil {
+		r.chunkCache.ahead.close()
+		r.chunkCache.ahead = nil
+	}
 	r.idx = int(nextPos)
 	return nextPos, nil
 }
 
-// Close closes the reader, canceling the context.
+// Close cancels the reader and waits for its outstanding chunk reads.
 func (r *Reader) Close() error {
 	r.ctxCancel()
+	if r.chunkCache.ahead != nil {
+		r.chunkCache.ahead.close()
+	}
 	r.chunkCache = chunkReadCache{}
 	return nil
 }

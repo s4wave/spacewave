@@ -67,7 +67,7 @@ func (r *ChunkIndex) AppendChunk(chkSet *sbset.SubBlockSet, idx int, size, start
 
 // ReadFromChunks reads up to len(buf) data from the chunks, starting at byte index start.
 // Attempts to start reading from chunkIdx, but will search for the chunk containing start.
-// If the chunk at chunkIdx does not contain start, will binary-search for the appropriate chunk.
+// If the chunk at chunkIdx does not contain start, searches for the appropriate chunk.
 // The value of outChunkIdx should be saved and passed again when stepping through the chunks sequentially.
 // Returns io.EOF if start is past the last chunk.
 func ReadFromChunks(
@@ -80,8 +80,9 @@ func ReadFromChunks(
 }
 
 type chunkReadCache struct {
-	idx  int
-	data []byte
+	idx   int
+	data  []byte
+	ahead *chunkReadAhead
 }
 
 func readFromChunks(
@@ -147,7 +148,10 @@ func fetchChunkDataNoCursorCache(
 	}
 	var data []byte
 	var err error
-	if trace.IsEnabled() {
+	if cache != nil && cache.ahead != nil {
+		cache.data = nil
+		data, err = cache.ahead.read(chunkIdx)
+	} else if trace.IsEnabled() {
 		_, task := trace.NewTask(ctx, "db/block/blob/chunk-fetch")
 		data, err = chunk.FetchDataNoCache(ctx, chunkCursor, false)
 		task.End()
