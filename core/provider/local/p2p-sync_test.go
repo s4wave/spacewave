@@ -186,7 +186,6 @@ func prepareSessionTransportBackends(ctx context.Context, t *testing.T, stA, stB
 	ipB := tptB.(*inproc.Inproc)
 	ipA.ConnectToInproc(ctx, ipB)
 	ipB.ConnectToInproc(ctx, ipA)
-
 }
 
 // addEstablishLink adds an EstablishLinkWithPeer directive to the bus.

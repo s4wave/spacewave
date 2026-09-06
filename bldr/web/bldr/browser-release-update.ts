@@ -1,25 +1,6 @@
-// BrowserReleaseUpdateMessage is the ServiceWorker shell-update broadcast shape.
-export interface BrowserReleaseUpdateMessage {
-  bldrPromotedGenerationId?: string
-}
-
 // BrowserReleaseSyncRequestMessage asks the SW to refresh the release manifest.
 export interface BrowserReleaseSyncRequestMessage {
   bldrSyncManifest: true
-}
-
-// shouldReloadForPromotedGeneration checks if the tab should reload.
-export function shouldReloadForPromotedGeneration(
-  currentGenerationId: string | undefined,
-  promotedGenerationId: string | undefined,
-): boolean {
-  if (!promotedGenerationId) {
-    return false
-  }
-  if (!currentGenerationId) {
-    return true
-  }
-  return currentGenerationId !== promotedGenerationId
 }
 
 // postBrowserReleaseSyncRequest asks the controlling ServiceWorker to sync.
@@ -33,26 +14,11 @@ declare global {
   var __swGenerationId: string | undefined
 }
 
-// initBrowserReleaseAutoReload reloads the tab when a newer promoted shell arrives.
-export function initBrowserReleaseAutoReload(): void {
+// initBrowserReleaseUpdates refreshes the offline cache without interrupting active tabs.
+export function initBrowserReleaseUpdates(): void {
   if (!('serviceWorker' in navigator)) {
     return
   }
-
-  navigator.serviceWorker.addEventListener('message', (ev: MessageEvent) => {
-    const data = ev.data as BrowserReleaseUpdateMessage
-    if (!data || typeof data !== 'object') {
-      return
-    }
-    if (
-      shouldReloadForPromotedGeneration(
-        globalThis.__swGenerationId,
-        data.bldrPromotedGenerationId,
-      )
-    ) {
-      window.location.reload()
-    }
-  })
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {

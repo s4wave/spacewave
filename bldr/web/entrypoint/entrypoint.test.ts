@@ -19,7 +19,7 @@ const hydrateRootMock = vi.hoisted(() =>
 )
 const waitConnMock = vi.hoisted(() => vi.fn(() => Promise.resolve()))
 const bldrRuntimeMock = vi.hoisted(() => ({ isDesktop: false }))
-const initBrowserReleaseAutoReloadMock = vi.hoisted(() => vi.fn())
+const initBrowserReleaseUpdatesMock = vi.hoisted(() => vi.fn())
 
 vi.mock('react-dom/client', () => ({
   createRoot: createRootMock,
@@ -45,7 +45,7 @@ vi.mock('@aptre/bldr', () => ({
 }))
 
 vi.mock('../bldr/browser-release-update.js', () => ({
-  initBrowserReleaseAutoReload: initBrowserReleaseAutoReloadMock,
+  initBrowserReleaseUpdates: initBrowserReleaseUpdatesMock,
 }))
 
 declare global {
@@ -145,7 +145,7 @@ describe('browser entrypoint boot readiness', () => {
     hydrateRootMock.mockClear()
     waitConnMock.mockClear()
     bldrRuntimeMock.isDesktop = false
-    initBrowserReleaseAutoReloadMock.mockClear()
+    initBrowserReleaseUpdatesMock.mockClear()
     renderedRootElements.length = 0
     globalThis.IS_REACT_ACT_ENVIRONMENT = true
     document.body.innerHTML = ''
@@ -165,7 +165,7 @@ describe('browser entrypoint boot readiness', () => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
     bldrRuntimeMock.isDesktop = false
-    initBrowserReleaseAutoReloadMock.mockClear()
+    initBrowserReleaseUpdatesMock.mockClear()
     renderedRootElements.length = 0
     document.body.innerHTML = ''
     window.history.replaceState({}, '', '/')
@@ -187,7 +187,7 @@ describe('browser entrypoint boot readiness', () => {
 
     await importEntrypoint()
 
-    expect(initBrowserReleaseAutoReloadMock).not.toHaveBeenCalled()
+    expect(initBrowserReleaseUpdatesMock).not.toHaveBeenCalled()
   })
 
   it('initializes browser release auto reload in browser runtime', async () => {
@@ -196,7 +196,7 @@ describe('browser entrypoint boot readiness', () => {
 
     await importEntrypoint()
 
-    expect(initBrowserReleaseAutoReloadMock).toHaveBeenCalledTimes(1)
+    expect(initBrowserReleaseUpdatesMock).toHaveBeenCalledTimes(1)
   })
 
   it('resolves boot readiness after immediate render', async () => {

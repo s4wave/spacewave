@@ -3,6 +3,7 @@ package kvtx_block_okra
 import (
 	"bytes"
 	"context"
+	"slices"
 
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
@@ -248,8 +249,8 @@ func (i *Iterator) firstAtOrAfter(path okraPagePath, key []byte) error {
 func (i *Iterator) lastAtOrBefore(path okraPagePath, key []byte) error {
 	for {
 		frame := path.leaf()
-		for idx := len(frame.page.GetEntries()) - 1; idx >= 0; idx-- {
-			ent := frame.page.GetEntries()[idx]
+		for idx, ent := range slices.Backward(frame.page.GetEntries()) {
+
 			if ent.GetAnchor() || len(key) != 0 && bytes.Compare(ent.GetKey(), key) > 0 {
 				continue
 			}
@@ -269,8 +270,8 @@ func (i *Iterator) lastAtOrBefore(path okraPagePath, key []byte) error {
 func (i *Iterator) lastBefore(path okraPagePath, key []byte) error {
 	for {
 		frame := path.leaf()
-		for idx := len(frame.page.GetEntries()) - 1; idx >= 0; idx-- {
-			ent := frame.page.GetEntries()[idx]
+		for idx, ent := range slices.Backward(frame.page.GetEntries()) {
+
 			if ent.GetAnchor() || bytes.Compare(ent.GetKey(), key) >= 0 {
 				continue
 			}

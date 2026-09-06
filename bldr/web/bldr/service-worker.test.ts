@@ -17,6 +17,7 @@ import {
   resolveBrowserRuntimeFetchClientId,
   syncLatestBrowserRelease,
   swFetch,
+  swActivate,
 } from './service-worker.js'
 import type { OpenWebRuntimePortResult } from './web-document-tracker.js'
 
@@ -304,7 +305,46 @@ describe('service worker browser release requests', () => {
     vi.restoreAllMocks()
   })
 
-  it('returns a fresh manifest when the network wins within the budget', async () => {
+  it.each([
+    ['bytes=2-5', 206, '2345', 'bytes 2-5/10'],
+    ['bytes=-3', 206, '789', 'bytes 7-9/10'],
+    ['bytes=8-', 206, '89', 'bytes 8-9/10'],
+    ['bytes=20-30', 416, '', 'bytes */10'],
+  ])(
+    'serves cached pack ranges without transferring the whole pack: %s',
+    async (range, status, body, contentRange) => {
+      const caches = globalThis.caches as unknown as FakeCacheStorage
+      const release = buildRelease('range-release')
+      release.requiredStaticAssets = ['/assets.kvfile']
+      await writeBrowserReleaseState(caches, {
+        ...createEmptyBrowserReleaseState(),
+        promotedCurrent: release,
+      })
+      await writeGenerationCacheResponse(
+        caches,
+        release.generationId,
+        '/assets.kvfile',
+        new Response('0123456789'),
+      )
+      const response = await swFetch(
+        buildFetchOnlyEvent('/assets.kvfile', { headers: { Range: range } }),
+      )
+      expect(response.status).toBe(status)
+      expect(response.headers.get('Content-Range')).toBe(contentRange)
+      expect(await response.text()).toBe(body)
+      expect(fetch).not.toHaveBeenCalled()
+      const whole = await swFetch(buildFetchOnlyEvent('/assets.kvfile'))
+      expect(await whole.text()).toBe('0123456789')
+    },
+  )
+
+  it('activates without waiting for any offline-cache download', async () => {
+    vi.mocked(fetch).mockImplementation(() => new Promise(() => {}))
+    await swActivate()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('returns the complete cached generation while staging a fresh manifest', async () => {
     const cachedRelease = buildRelease('gen-a')
     const freshRelease = buildRelease('gen-b')
     await writeBrowserReleaseState(
@@ -326,7 +366,7 @@ describe('service worker browser release requests', () => {
 
     const response = await handleBrowserReleaseRequest(ev)
 
-    expect(await response.json()).toEqual(freshRelease)
+    expect(await response.json()).toEqual(cachedRelease)
     expect(waitUntilPromises).toHaveLength(1)
     await waitUntilPromises[0]
   })
@@ -385,8 +425,7 @@ describe('service worker browser release requests', () => {
     )
   })
 
-  it('returns the cached manifest when the network misses the budget', async () => {
-    vi.useFakeTimers()
+  it('returns the cached manifest without waiting for a stalled network', async () => {
     const cachedRelease = buildRelease('gen-a')
     const freshRelease = buildRelease('gen-b')
     await writeBrowserReleaseState(
@@ -401,14 +440,11 @@ describe('service worker browser release requests', () => {
     vi.mocked(fetch).mockImplementation(() =>
       Promise.resolve(new Response('asset', { status: 200 })),
     )
-    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
     const { ev, waitUntilPromises } = buildFetchEvent(
       'https://example.test/browser-release.json',
     )
 
-    const responsePromise = handleBrowserReleaseRequest(ev)
-    await vi.advanceTimersByTimeAsync(800)
-    const response = await responsePromise
+    const response = await handleBrowserReleaseRequest(ev)
 
     expect(await response.json()).toEqual(cachedRelease)
     expect(waitUntilPromises).toHaveLength(1)
@@ -419,13 +455,6 @@ describe('service worker browser release requests', () => {
       }),
     )
     await waitUntilPromises[0]
-
-    expect(info).toHaveBeenCalledWith(
-      'ServiceWorker: %s: browser release manifest fetch missed %dms budget: latency=%dms',
-      expect.any(String),
-      800,
-      800,
-    )
   })
 
   it('returns the cached manifest when the network is offline', async () => {

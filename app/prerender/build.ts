@@ -61,6 +61,8 @@ interface BldrManifest {
   entrypointDecompressedSize?: number
   serviceWorker: string
   sharedWorker: string
+  opfsWorker?: string
+  requiredStaticAssets?: string[]
   wasm?: string
   css: string[]
 }
@@ -212,11 +214,15 @@ export function buildPrerenderContext(
       entrypointDecompressedSize: manifest.entrypointDecompressedSize,
       serviceWorker: manifest.serviceWorker,
       sharedWorker: manifest.sharedWorker,
+      opfsWorker: manifest.opfsWorker,
       wasm: manifest.wasm,
       css: manifest.css,
     },
     ['/', ...STATIC_ROUTES.map((page) => page.path), ...blogPaths],
-    collectRequiredStaticAssetUrls(OUTPUT_DIR),
+    [
+      ...(manifest.requiredStaticAssets ?? []),
+      ...collectRequiredStaticAssetUrls(OUTPUT_DIR),
+    ],
   )
   const browserReleasePath = join(DIST_DIR, 'browser-release.json')
   writeFileSync(

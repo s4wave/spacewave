@@ -1,6 +1,7 @@
 package buffered_reader_at
 
 import (
+	"errors"
 	"io"
 	"sync"
 	"testing"
@@ -60,4 +61,37 @@ func TestConcurrentReadAt(t *testing.T) {
 		}(w)
 	}
 	wg.Wait()
+}
+
+type retryReader struct{ attempts int }
+
+func (r *retryReader) ReadAt(p []byte, off int64) (int, error) {
+	r.attempts++
+	if r.attempts == 1 {
+		return 0, errors.New("temporary network error")
+	}
+	for idx := range p {
+		p[idx] = byte(off + int64(idx))
+	}
+	return len(p), nil
+}
+
+func TestReadAtRetriesFailedRange(t *testing.T) {
+	source := &retryReader{}
+	reader := NewBufferedReaderAt(source, 16)
+	buf := make([]byte, 4)
+	if _, err := reader.ReadAt(buf, 3); err == nil {
+		t.Fatal("expected first read to fail")
+	}
+	if n, err := reader.ReadAt(buf, 3); err != nil || n != len(buf) {
+		t.Fatalf("retry: n=%d err=%v", n, err)
+	}
+	if source.attempts != 2 {
+		t.Fatalf("attempts=%d, want 2", source.attempts)
+	}
+	for idx, value := range buf {
+		if value != byte(idx+3) {
+			t.Fatalf("unexpected range: %v", buf)
+		}
+	}
 }

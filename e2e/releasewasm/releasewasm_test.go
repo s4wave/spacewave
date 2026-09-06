@@ -3126,7 +3126,7 @@ func releaseBoolField(m map[string]any, key string) bool {
 func waitForQuickstartDriveContentReady(t *testing.T, page playwright.Page) (*int, string) {
 	t.Helper()
 
-	err := page.Locator("text=getting-started.md").First().WaitFor(
+	err := page.Locator("[data-testid='unixfs-browser']:visible").Locator(`text="getting-started.md"`).First().WaitFor(
 		playwright.LocatorWaitForOptions{Timeout: playwright.Float(quickstartContentReadyRecordMS)},
 	)
 	if err != nil {

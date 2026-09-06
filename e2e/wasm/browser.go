@@ -198,8 +198,7 @@ func (h *Harness) newBrowserPage(s *TestSession) (playwright.Page, error) {
 
 func pageErrorMessage(err error) string {
 	msg := "page error: " + err.Error()
-	var pwErr *playwright.Error
-	if stderrors.As(err, &pwErr) {
+	if pwErr, ok := stderrors.AsType[*playwright.Error](err); ok {
 		stack := strings.TrimSpace(pwErr.Stack)
 		if stack != "" && stack != pwErr.Message {
 			msg += "\n" + stack

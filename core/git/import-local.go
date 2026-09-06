@@ -119,7 +119,6 @@ func importOpenedLocalRepo(
 		}
 		return store.Commit()
 	})
-
 	// Return the published reference together with the captured checkout identity.
 	if err != nil {
 		return nil, "", "", errors.Wrap(err, "import local repository")

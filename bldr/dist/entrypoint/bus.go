@@ -451,7 +451,7 @@ func BuildDistBus(
 	return distBus, nil
 }
 
-// newReleaseSchedulerConfig keeps entrypoint-mounted buckets authoritative.
+// newReleaseSchedulerConfig copies remote manifests after startup for offline use.
 func newReleaseSchedulerConfig(
 	projectID,
 	engineID,
@@ -472,11 +472,11 @@ func newReleaseSchedulerConfig(
 		// their manifest contents still need a complete local copy.
 		false,
 	)
-	// The embedded distribution and Release World buckets remain mounted for
-	// the entrypoint lifetime and stay authoritative without complete local copies.
+	// The embedded distribution is already covered by the offline asset cache.
+	// Release World manifests load on demand, then the startup-group gate lets
+	// the scheduler copy their complete DAGs for offline restarts.
 	pluginSchedConf.NoCopyBucketIds = []string{
 		bldr_dist.GetDistBucketID(projectID),
-		"spacewave-release",
 	}
 	return pluginSchedConf
 }

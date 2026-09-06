@@ -1791,8 +1791,9 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       if (typeof data !== 'object' || !data.from || !data.init) {
         return
       }
-      const currSw = navigator.serviceWorker.controller || sw
+      const currSw = navigator.serviceWorker.controller
       // the service worker wants a new message port for requests
+      if (!currSw || this.closed) return
       this.initServiceWorkerPort(currSw)
       // A service worker talking to this document is proof that one controls
       // it, which is the condition the runtime start is waiting for.
@@ -1808,81 +1809,79 @@ export class WebDocument extends SimpleEventEmitter<WebDocumentEvents> {
       navigator.serviceWorker.addEventListener('message', swMessageCallback)
     }
 
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      attachSwMessageListener()
-      const controller = navigator.serviceWorker.controller
-      if (!controller || this.closed) {
+    let boundController: ServiceWorker | undefined
+    const bindController = (controller: ServiceWorker) => {
+      if (this.closed) return
+      if (boundController === controller) {
+        this.taskEnsureWebRuntimeConnAfterStartGate()
         return
       }
-      // The elected DedicatedWorker lease outlives a ServiceWorker generation.
-      // Rebind immediately so the new tracker can route attached documents to
-      // the still-live host without waiting for a failed connection to solicit
-      // another registration.
+      boundController = controller
+      attachSwMessageListener()
       this.initServiceWorkerPort(controller)
-      // controllerchange is the event form of the condition the runtime start
-      // gate waits for. The awaited path below can return early or never
-      // settle, so this route must start the runtime rather than only rebind
-      // the port to it.
+      markStartupBoundary('service-worker.control-ready', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+      })
+      onControlReady?.()
       this.startRuntimeOnce?.()
       this.taskEnsureWebRuntimeConnAfterStartGate()
+      sessionStorage.removeItem(swControllerReloadSessionKey)
+      controller.postMessage({ crossTab: 'hello' })
+      controller.postMessage({ bldrSyncManifest: true })
+    }
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      const controller = navigator.serviceWorker.controller
+      if (controller) bindController(controller)
     })
+    attachSwMessageListener()
 
-    // register the service worker
-    const wbReg = await wb.register() // ({ immediate: true })
-    markStartupBoundary('service-worker.register-ready', {
-      source: 'browser',
-      documentId: this.webDocumentUuid,
-      runtimeId: this.webRuntimeId,
-    })
-
-    // wait for the service worker to finish startup
-    // await wb.active()
-    await wb.update()
-    markStartupBoundary('service-worker.update-ready', {
-      source: 'browser',
-      documentId: this.webDocumentUuid,
-      runtimeId: this.webRuntimeId,
-    })
-    await registerUpdatedServiceWorker(swUrl, wbReg)
-
-    // workaround for ctrl + shift + r disabling service workers
-    // https://web.dev/service-worker-lifecycle/#shift-reload
-    // Skip this in Electron - it causes spurious reloads that orphan in-flight requests.
-    if (!this.isElectron && wbReg && !navigator.serviceWorker.controller) {
-      const lastReloadUrl = sessionStorage.getItem(swControllerReloadSessionKey)
-      if (lastReloadUrl !== swUrl) {
-        sessionStorage.setItem(swControllerReloadSessionKey, swUrl)
-        console.warn(
-          'WebDocument: service worker controller missing; reloading page',
-        )
-        location.reload()
+    // A controlled tab can attach to the running host immediately. Registration
+    // checks for updates independently of runtime readiness, including offline.
+    const controller = navigator.serviceWorker.controller
+    if (controller) bindController(controller)
+    try {
+      const registration = await wb.register({ immediate: true })
+      markStartupBoundary('service-worker.register-ready', {
+        source: 'browser',
+        documentId: this.webDocumentUuid,
+        runtimeId: this.webRuntimeId,
+      })
+      if (this.closed) return
+      // A forced reload bypasses an already-installed controller. Recover once;
+      // a first installation has no prior active worker and must wait for claim.
+      if (
+        !this.isElectron &&
+        registration?.active &&
+        !navigator.serviceWorker.controller &&
+        performance
+          .getEntriesByType('navigation')
+          .some(
+            (entry) => (entry as PerformanceNavigationTiming).type === 'reload',
+          )
+      ) {
+        if (sessionStorage.getItem(swControllerReloadSessionKey) !== swUrl) {
+          sessionStorage.setItem(swControllerReloadSessionKey, swUrl)
+          location.reload()
+        }
         return
       }
-      console.warn(
-        'WebDocument: service worker controller still missing after reload',
+      void registerUpdatedServiceWorker(swUrl, registration).catch(
+        (err: unknown) => {
+          console.warn('WebDocument: service worker update check failed', err)
+        },
       )
-      return
+      if (!boundController) {
+        // First installation becomes ready through clients.claim/controllerchange.
+        // Absence of a controller during installation is not a reload condition.
+        bindController(
+          navigator.serviceWorker.controller || (await wb.controlling),
+        )
+      }
+    } catch (err) {
+      console.warn('WebDocument: service worker registration failed', err)
     }
-    if (navigator.serviceWorker.controller) {
-      sessionStorage.removeItem(swControllerReloadSessionKey)
-    }
-
-    console.log('WebDocument: service worker registered')
-    const sw = await wb.controlling
-
-    console.log('WebDocument: service worker is controlling this page', sw)
-    markStartupBoundary('service-worker.control-ready', {
-      source: 'browser',
-      documentId: this.webDocumentUuid,
-      runtimeId: this.webRuntimeId,
-    })
-    onControlReady?.()
-    attachSwMessageListener()
-    this.initServiceWorkerPort(sw)
-
-    // Send "hello" to the ServiceWorker cross-tab broker.
-    // The SW creates direct MessagePort channels to every other tab.
-    sw.postMessage({ crossTab: 'hello' })
   }
 
   // notifyWebViewUpdated notifies all subscribers that the web view was updated.

@@ -87,6 +87,7 @@ class StorageFixture {
 }
 
 const localStorage = new StorageFixture({
+  'spacewave-browser-app-state-version': '1000000',
   'spacewave-has-session': '1',
   'spacewave-has-interacted': '1',
   'spacewave-state-devtools': '{"open":true}',
@@ -482,10 +483,10 @@ function installEnvironment({ events, localStorage, sessionStorage, autoStart, e
   }
 }
 
-async function runCase({ name, autoStart, hash, readyState, allowPreload }) {
+async function runCase({ name, autoStart, hash, readyState, allowPreload, fresh = false }) {
   const events = []
   const entrypointURL = 'data:text/javascript,'
-  const localStorage = new StorageFixture({})
+  const localStorage = new StorageFixture(fresh ? {} : {'spacewave-browser-app-state-version': '1000000'})
   const sessionStorage = new StorageFixture({})
   installEnvironment({
     events,
@@ -499,6 +500,13 @@ async function runCase({ name, autoStart, hash, readyState, allowPreload }) {
   })
 
   new Function(script)()
+  if (fresh) {
+    await waitFor(() => events.includes('status:entrypoint'), name + ' entrypoint phase')
+    assert(!events.includes('reload'), name + ' reloaded a fresh browser')
+    assert(!events.some(event => event.startsWith('cleanup:')), name + ' cleaned fresh browser storage')
+    assert(localStorage.getItem('spacewave-browser-app-state-version') === '1000001', name + ' did not initialize version')
+    return
+  }
   await waitFor(() => events.includes('reload'), name + ' reset reload')
 
   const firstFetch = events.findIndex((event) => event.startsWith('fetch:'))
@@ -548,6 +556,7 @@ async function runCase({ name, autoStart, hash, readyState, allowPreload }) {
 }
 
 await runCase({ name: 'browser-hash', autoStart: false, hash: '#/u/1' })
+await runCase({ name: 'fresh-browser', autoStart: false, hash: '#/u/1', fresh: true })
 await runCase({ name: 'electron-autostart', autoStart: true, hash: '' })
 await runCase({ name: 'browser-post-load-root-complete', autoStart: false, hash: '', readyState: 'complete', allowPreload: true })
 await runCase({ name: 'browser-post-load-root-interactive', autoStart: false, hash: '', readyState: 'interactive', allowPreload: true })

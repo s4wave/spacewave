@@ -165,8 +165,10 @@ var deviceMountLinkedSession = func(
 	return prov.MountLinkedDeviceSession(ctx, req)
 }
 
-var deviceUpsertObject = upsertLinkedDeviceObject
-var deviceMountLocalSession = mountLocalDeviceSession
+var (
+	deviceUpsertObject      = upsertLinkedDeviceObject
+	deviceMountLocalSession = mountLocalDeviceSession
+)
 
 func newDeviceCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	var statePath string

@@ -19,6 +19,7 @@ describe('buildPageHtml', () => {
     })
 
     expect(html).toContain('<meta name="darkreader-lock"/>')
+    expect(html).toContain('<link rel="icon" href="/static/assets/icon.png"/>')
     expect(html.indexOf('<meta name="darkreader-lock"/>')).toBeLessThan(
       html.indexOf('<title>Spacewave</title>'),
     )

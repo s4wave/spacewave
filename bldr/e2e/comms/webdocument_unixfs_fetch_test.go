@@ -68,23 +68,26 @@ func TestGoScriptForegroundUnixFSFetchDynamicRelayKeepsRoute(t *testing.T) {
 	t.Logf("dynamic relay events: %s", strings.Join(webDocumentResultEventLog(trace.results), " | "))
 }
 
-// TestGoScriptForegroundUnixFSFetchReleaseGenerationMismatchReloadsBeforeNormalClose
-// verifies that a promoted-generation mismatch broadcast is sufficient to reload
-// the foreground route while the UnixFS-looking fetch is in flight.
-func TestGoScriptForegroundUnixFSFetchReleaseGenerationMismatchReloadsBeforeNormalClose(t *testing.T) {
+// TestGoScriptForegroundUnixFSFetchReleaseGenerationKeepsRoute
+// verifies that caching a new release preserves an in-flight foreground fetch.
+func TestGoScriptForegroundUnixFSFetchReleaseGenerationKeepsRoute(t *testing.T) {
 	installWebDocumentRouteFixtureAssets(t)
 
-	trace := runWebDocumentRouteFixture(t, "chromium", webDocumentRouteReleaseGeneration)
-	results := trace.results
-	if pass, ok := results["pass"].(bool); !ok || !pass {
-		t.Fatalf("release-generation fixture failed: %v", results["detail"])
+	for _, browser := range []string{"chromium", "webkit"} {
+		t.Run(browser, func(t *testing.T) {
+			trace := runWebDocumentRouteFixture(t, browser, webDocumentRouteReleaseGeneration)
+			results := trace.results
+			if pass, ok := results["pass"].(bool); !ok || !pass {
+				t.Fatalf("release-generation fixture failed: %v", results["detail"])
+			}
+			assertBoolResult(t, results, "releaseBroadcast", true)
+			assertBoolResult(t, results, "reloadObserved", false)
+			assertBoolResult(t, results, "reloadBeforeNormalClose", false)
+			assertBoolResult(t, results, "reproduced", false)
+			assertBoolResult(t, results, "restartSentinelStable", true)
+			t.Logf("release-generation events: %s", strings.Join(webDocumentResultEventLog(results), " | "))
+		})
 	}
-	assertBoolResult(t, results, "releaseBroadcast", true)
-	assertBoolResult(t, results, "reloadObserved", true)
-	assertBoolResult(t, results, "reloadBeforeNormalClose", true)
-	assertBoolResult(t, results, "reproduced", true)
-	assertBoolResult(t, results, "restartSentinelStable", false)
-	t.Logf("release-generation events: %s", strings.Join(webDocumentResultEventLog(results), " | "))
 }
 
 // TestGoScriptForegroundUnixFSFetchInFlightReloadZeroDocumentRace verifies that

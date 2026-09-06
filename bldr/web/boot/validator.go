@@ -496,8 +496,8 @@ func validateBootSpanStructure(spans []*BootSpan, total uint64) (map[string][]*B
 
 func validateBootSpanTree(start, end, threshold uint64, roots []*BootSpan, children map[string][]*BootSpan, violations *[]*BootValidationViolation) []bootInterval {
 	stack := make([]bootSpanFrame, 0, len(roots))
-	for idx := len(roots) - 1; idx >= 0; idx-- {
-		stack = append(stack, bootSpanFrame{span: roots[idx], start: start, end: end})
+	for _, root := range slices.Backward(roots) {
+		stack = append(stack, bootSpanFrame{span: root, start: start, end: end})
 	}
 	actionable := make([]bootInterval, 0, len(roots))
 	visited := make(map[string]struct{}, len(children))
@@ -539,8 +539,8 @@ func validateBootSpanTree(start, end, threshold uint64, roots []*BootSpan, child
 				StartMonotonicMicros: interval.start, EndMonotonicMicros: interval.end, SpanId: id,
 			})
 		}
-		for idx := len(nested) - 1; idx >= 0; idx-- {
-			stack = append(stack, bootSpanFrame{span: nested[idx], start: interval.start, end: interval.end})
+		for _, n := range slices.Backward(nested) {
+			stack = append(stack, bootSpanFrame{span: n, start: interval.start, end: interval.end})
 		}
 	}
 	return actionable

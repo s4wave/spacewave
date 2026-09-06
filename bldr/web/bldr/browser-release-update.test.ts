@@ -1,34 +1,20 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  initBrowserReleaseAutoReload,
-  shouldReloadForPromotedGeneration,
-} from './browser-release-update.js'
-
-describe('browser release update reload policy', () => {
-  it('does not reload when the promoted generation matches the active shell', () => {
-    expect(
-      shouldReloadForPromotedGeneration('deadbeefcafebabe', 'deadbeefcafebabe'),
-    ).toBe(false)
-  })
-
-  it('reloads when the promoted generation changes', () => {
-    expect(
-      shouldReloadForPromotedGeneration('deadbeefcafebabe', 'feedfacecafed00d'),
-    ).toBe(true)
-  })
-
-  it('ignores empty promotion messages', () => {
-    expect(
-      shouldReloadForPromotedGeneration('deadbeefcafebabe', undefined),
-    ).toBe(false)
-  })
-})
+import { initBrowserReleaseUpdates } from './browser-release-update.js'
 
 describe('browser release lifecycle sync probes', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
+  })
+
+  it('does not install an automatic reload handler for release promotion', () => {
+    const addEventListener = vi.fn()
+    vi.stubGlobal('navigator', { serviceWorker: { addEventListener } })
+    vi.spyOn(document, 'addEventListener').mockImplementation(() => {})
+    vi.spyOn(window, 'addEventListener').mockImplementation(() => {})
+    initBrowserReleaseUpdates()
+    expect(addEventListener).not.toHaveBeenCalled()
   })
 
   it('posts bldrSyncManifest when the page becomes visible, focused, or online', () => {
@@ -46,7 +32,7 @@ describe('browser release lifecycle sync probes', () => {
       value: 'visible',
     })
 
-    initBrowserReleaseAutoReload()
+    initBrowserReleaseUpdates()
     document.dispatchEvent(new Event('visibilitychange'))
     window.dispatchEvent(new Event('focus'))
     window.dispatchEvent(new Event('online'))

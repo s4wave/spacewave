@@ -20,16 +20,17 @@ import (
 const driveBenchEnv = "E2E_WASM_DRIVE_BENCH"
 
 // TestGoScriptDriveStartupBenchBundled records the time-to-Drive bench for the
-// production bundled build across three runtime states on one owned
+// production bundled build across four runtime states on one owned
 // BrowserContext, writing the same run.json schema as the unbundled bench so
 // cells compare across harnesses. The bundled production path has no Resource
 // SDK client. An opt-in root-runtime trace is read directly from its browser
 // SharedWorker target.
 //
-//   - cold: a fresh context boots the bundled SharedWorker runtime over a cold
+//   - cold: a fresh context boots the bundled worker runtime over a cold
 //     HTTP cache and empty OPFS Space state.
+//   - live: a second tab attaches while the cold tab keeps the runtime alive.
 //   - warm: a return visitor; the cold page is closed to terminate the
-//     SharedWorker, then a fresh page in the same context reboots over the
+//     runtime, then a fresh page in the same context reboots over the
 //     retained HTTP cache and OPFS Space state.
 //   - cache-hot: the asset cache stays warm but the OPFS Space state is cleared
 //     before the reboot, isolating asset-load cost from Space-data cost.
@@ -62,7 +63,20 @@ func TestGoScriptDriveStartupBenchBundled(t *testing.T) {
 		cell:         "cold-bundled",
 	})
 
-	// warm: a return visitor. Closing the cold page terminates the SharedWorker
+	// A second tab must reuse the live host; warm startup below measures a
+	// different operation because closing every tab destroys that host.
+	livePage := testHarness.newPageInContext(t, benchCtx)
+	runBundledDriveBenchCell(t, livePage, bundledDriveBenchCellInput{
+		runStamp:     runStamp,
+		compiler:     string(compiler),
+		runtimeState: "live",
+		cell:         "live-bundled",
+	})
+	if err := livePage.Close(); err != nil {
+		t.Fatalf("close live page: %v", err)
+	}
+
+	// warm: a return visitor. Closing the cold page terminates the worker
 	// runtime (no remaining clients) so the next page boots a fresh worker over
 	// the warm HTTP cache and retained OPFS Space state.
 	if err := coldPage.Close(); err != nil {
@@ -180,6 +194,13 @@ func runBundledDriveBenchCell(t *testing.T, page playwright.Page, in bundledDriv
 		ServedBundle: bundle,
 	}
 	run.Browser.StartupMarks = readBundledStartupMarks(t, page)
+	if in.runtimeState == "live" {
+		for _, mark := range run.Browser.StartupMarks {
+			if mark.Label == "runtime.worker-created" && mark.Source == "browser" {
+				t.Error("second tab created a runtime instead of attaching to the live host")
+			}
+		}
+	}
 	if len(startupTrace) != 0 {
 		tracePath := filepath.Join(cellDir, "runtime.trace")
 		if err := drivebench.WriteArtifact(tracePath, startupTrace); err != nil {
