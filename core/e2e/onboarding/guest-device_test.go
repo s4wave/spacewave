@@ -4,18 +4,20 @@ package onboarding_test
 
 import (
 	"context"
+	"crypto/rand"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/controllerbus/controller/resolver"
-	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	"github.com/aperturerobotics/starpc/srpc"
 	"github.com/aperturerobotics/util/ulid"
 	core_provider "github.com/s4wave/spacewave/core/provider"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	provider_spacewave "github.com/s4wave/spacewave/core/provider/spacewave"
 	resource_provider "github.com/s4wave/spacewave/core/resource/provider"
+	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
 	sobject_world_engine "github.com/s4wave/spacewave/core/sobject/world/engine"
 	"github.com/s4wave/spacewave/core/space"
@@ -29,6 +31,8 @@ import (
 	transport_dialer "github.com/s4wave/spacewave/net/transport/common/dialer"
 	transport_inproc "github.com/s4wave/spacewave/net/transport/inproc"
 	s4wave_provider_local "github.com/s4wave/spacewave/sdk/provider/local"
+	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
+	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,8 +52,9 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 
 	// Keep the authenticated owner session mounted through guest synchronization.
 	ownerEntry := createCloudSession(ctx, t)
-	_, owner, releaseOwner := mountSessionResource(ctx, t, ownerEntry)
+	ownerResource, owner, releaseOwner := mountSessionResource(ctx, t, ownerEntry)
 	t.Cleanup(releaseOwner)
+	t.Cleanup(ownerResource.Close)
 	account := owner.GetProviderAccount().(*provider_spacewave.ProviderAccount)
 	if err := account.ConfigureSessionTransport(ctx, ownerEntry.GetSessionRef().GetProviderResourceRef().GetId(), owner.GetPrivKey(), env.cloudURL, true); err != nil {
 		t.Fatal(err)
@@ -72,11 +77,6 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	shared, releaseShared, err := account.MountSharedObject(ctx, ref, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(releaseShared)
 	ownerSpace, releaseOwnerSpace, err := space.ExMountSpaceSoBody(ctx, owner.GetBus(), ref, false, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -101,15 +101,52 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 		t.Fatal("guest inherited the owner identity")
 	}
 
-	// Approval creates a one-use capability restricted to this guest key.
-	invite, err := shared.(*provider_spacewave.SharedObject).CreateSOInviteOp(
-		ctx, owner.GetPrivKey(), sobject.SOParticipantRole_SOParticipantRole_WRITER,
-		"spacewave", guest.GetPeerId().String(), 1,
-		timestamppb.New(time.Now().Add(time.Minute)),
-	)
+	// The guest proves its own key; approval must not create a cloud Session.
+	nonce := make([]byte, 16)
+	if _, err := rand.Read(nonce); err != nil {
+		t.Fatal(err)
+	}
+	payload, err := (&s4wave_provider_spacewave.SpaceLinkAuthRequest{
+		Version:        1,
+		SessionType:    session.SessionType_SESSION_TYPE_DEVICE,
+		AgentPeerId:    []byte(guest.GetPeerId()),
+		Label:          "Independent guest",
+		RequestedRole:  sobject.SOParticipantRole_SOParticipantRole_WRITER,
+		Nonce:          nonce,
+		ExpiresAt:      time.Now().Add(time.Minute).Unix(),
+		CompletionMode: s4wave_provider_spacewave.SpaceLinkCompletionMode_SpaceLinkCompletionMode_CLI,
+	}).MarshalVT()
 	if err != nil {
 		t.Fatal(err)
 	}
+	signature, err := guest.GetPrivKey().Sign(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ticket, err := (&s4wave_provider_spacewave.SpaceLinkAuthTicket{
+		Payload: payload, AgentSignature: signature,
+	}).MarshalVT()
+	if err != nil {
+		t.Fatal(err)
+	}
+	approval := s4wave_session.NewSRPCSpacewaveSessionResourceServiceClient(
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(ownerResource.GetMux()))),
+	)
+	request := &s4wave_provider_spacewave.ApproveSpaceLinkRequest{
+		Ticket: ticket, ResourceId: []byte(ref.GetProviderResourceRef().GetId()),
+	}
+	invite, err := approval.ApproveGuestSpaceLink(ctx, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if invite.GetTargetPeerId() != guest.GetPeerId().String() {
+		t.Fatal("approval did not bind the guest key")
+	}
+	if _, err := approval.ApproveGuestSpaceLink(ctx, request); err == nil {
+		t.Fatal("replayed ticket minted another invitation")
+	}
+
+	// Complete enrollment through the same local provider used by Device setup.
 	pem, err := keypem.MarshalPrivKeyPem(guest.GetPrivKey())
 	if err != nil {
 		t.Fatal(err)
@@ -151,6 +188,18 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 	if settings.GetIndexPath() != "/guest-enrollment" {
 		t.Fatal("guest did not read the owner's Space settings")
 	}
+
+	// Guest admission must not attach its key to the approving cloud account.
+	cloudSessions, err := account.GetSessionClient().ListSessions(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, cloudSession := range cloudSessions {
+		if cloudSession.GetPeerId() == guest.GetPeerId().String() {
+			t.Fatal("guest key was registered under the approving cloud account")
+		}
+	}
+
 	// Closing enrollment drops its retained Session and rejects stale client calls.
 	provider.Release()
 	if _, err := provider.CompleteSpaceLinkEnrollment(ctx, &s4wave_provider_local.CompleteSpaceLinkEnrollmentRequest{
