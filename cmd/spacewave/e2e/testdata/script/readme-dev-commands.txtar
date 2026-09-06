@@ -23,6 +23,6 @@ package-script test "bun run test:js && bun run test:browser && bun run test:go"
 package-script test:go "go test -tags skip_e2e -timeout=30s -v ./..."
 package-script lint "bun run lint:js && bun run lint:go"
 package-script typecheck "tsgo --noEmit -p tsconfig.json"
-package-script gen "bun run go:aptre -- generate && bun run gen:resource:python && bun run gen:session-journey:python && bun scripts/postprocess-generated.ts && bun run gen:rolldown-runner"
+package-script gen "bun run go:aptre -- generate && bun run gen:resource:python && bun run gen:session-journey:python && bun scripts/postprocess-generated.ts && bun run gen:rolldown-runner && bun run gen:landing-code"
 
 go-build ./cmd/spacewave
