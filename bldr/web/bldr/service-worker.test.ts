@@ -974,6 +974,154 @@ describe('service worker fetch release cache routing', () => {
     })
   })
 
+  it.each([
+    ['/b/pd/spacewave-app/child.mjs', 'plugin-dist'],
+    ['/b/pa/spacewave-app/v/b/fe/child.mjs', 'plugin-assets'],
+    ['/b/pkg/sonner/child.mjs', 'plugin-assets'],
+  ])(
+    'returns the fresh module body after retrying a classified runtime-unavailable 503: %s',
+    async (path, sourceKind) => {
+      // mockReset clears queued mockResolvedValueOnce entries that a previous
+      // failing case left unconsumed; clearAllMocks does not reset queues.
+      vi.mocked(proxyFetch).mockReset()
+      const body = 'export const child = "fresh"\n'
+      vi.mocked(proxyFetch)
+        .mockResolvedValueOnce(
+          new Response(
+            'WebRuntimeClient: client-a: timeout opening stream with host',
+            { status: 500 },
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(body, {
+            status: 200,
+            headers: { 'Content-Type': 'application/javascript' },
+          }),
+        )
+
+      const response = await swFetch(
+        buildFetchOnlyEvent(path, undefined, 'client-a'),
+      )
+
+      expect(response.status).toBe(200)
+      expect(await response.text()).toBe(body)
+      expect(proxyFetch).toHaveBeenCalledTimes(2)
+      expect(response.headers.get('X-Bldr-Fetch-Source')).toBe(sourceKind)
+    },
+  )
+
+  it('returns 503 after retrying a persistent runtime-unavailable timeout', async () => {
+    // mockReset clears queued mockResolvedValueOnce entries that a previous
+    // failing case left unconsumed; clearAllMocks does not reset queues.
+    vi.mocked(proxyFetch).mockReset()
+    vi.mocked(proxyFetch).mockImplementation(
+      async () =>
+        new Response(
+          'WebRuntimeClient: client-a: timeout opening stream with host',
+          { status: 500 },
+        ),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pd/spacewave-app/child.mjs',
+        undefined,
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('X-Bldr-Runtime-Fetch-Error')).toBe(
+      'runtime-unavailable',
+    )
+    expect(proxyFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('returns a classified header timeout without a second attempt once the header deadline expires', async () => {
+    vi.mocked(proxyFetch).mockReset()
+    const realNow = Date.now()
+    let clockCalls = 0
+    // The first three Date.now reads set the deadline, clamp the first
+    // attempt, and pass the first retry guard below the deadline; the next
+    // loop-top read is past the deadline, so no second attempt may start.
+    const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => {
+      clockCalls += 1
+      return clockCalls <= 3 ? realNow : realNow + 2 * 65000
+    })
+    vi.mocked(proxyFetch).mockResolvedValue(
+      new Response(
+        'WebRuntimeClient: client-a: timeout opening stream with host',
+        { status: 500 },
+      ),
+    )
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pd/spacewave-app/child.mjs',
+        undefined,
+        'client-a',
+      ),
+    )
+
+    nowSpy.mockRestore()
+    expect(response.status).toBe(503)
+    expect(response.headers.get('X-Bldr-Runtime-Fetch-Error')).toBe(
+      'runtime-unavailable',
+    )
+    expect(proxyFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries a HEAD request classified runtime-unavailable', async () => {
+    vi.mocked(proxyFetch).mockReset()
+    vi.mocked(proxyFetch)
+      .mockResolvedValueOnce(
+        new Response(
+          'WebRuntimeClient: client-a: timeout opening stream with host',
+          { status: 500 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pd/spacewave-app/child.mjs',
+        { method: 'HEAD' },
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(200)
+    expect(proxyFetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('returns 499 with a single attempt when the request is canceled mid-flight', async () => {
+    vi.mocked(proxyFetch).mockReset()
+    const controller = new AbortController()
+    // The request carries the controller's signal, so aborting the
+    // controller cancels the in-flight request; the proxy observes the
+    // canceled attempt and returns a fresh timeout response.
+    vi.mocked(proxyFetch).mockImplementation(() => {
+      controller.abort()
+      return Promise.resolve(
+        new Response(
+          'WebRuntimeClient: client-a: timeout opening stream with host',
+          { status: 500 },
+        ),
+      )
+    })
+
+    const response = await swFetch(
+      buildFetchOnlyEvent(
+        '/b/pd/spacewave-app/child.mjs',
+        { signal: controller.signal },
+        'client-a',
+      ),
+    )
+
+    expect(response.status).toBe(499)
+    expect(proxyFetch).toHaveBeenCalledTimes(1)
+  })
+
   it('returns live plugin asset lease state for successful plugin fetches', async () => {
     vi.mocked(proxyFetch).mockResolvedValue(
       new Response('export const ok = true', { status: 200 }),

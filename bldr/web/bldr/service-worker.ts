@@ -1882,9 +1882,25 @@ export async function swFetch(
       return cached
     }
   }
-  // Runtime remains the authority for static plugin asset misses and
-  // background revalidation. Relay gaps retain the existing retry/fallback.
+  // Both runtime attempts share a finite header budget. The first header
+  // timeout leaves enough time for one retry and runtime relay recovery.
+  const headerTimeoutDeadlineMs =
+    Date.now() +
+    2 * browserRuntimeFetchHeaderTimeoutMs +
+    browserRuntimeFetchRelayWaitMs
   for (let attempt = 0; attempt < 2; attempt++) {
+    const headerTimeoutMs = Math.min(
+      browserRuntimeFetchHeaderTimeoutMs,
+      Math.max(0, headerTimeoutDeadlineMs - Date.now()),
+    )
+    if (headerTimeoutMs <= 0) {
+      return buildBrowserRuntimeFetchErrorResponse(
+        classifyBrowserRuntimeFetchError(source, {
+          message: 'timed out waiting for runtime fetch response headers',
+        }),
+        request.method,
+      )
+    }
     const runtimeFetchClientId = resolveBrowserRuntimeFetchClientId(
       ev.clientId || '',
       source,
@@ -1924,7 +1940,7 @@ export async function swFetch(
         runtimeFetchClientId,
         {
           abortSignal: trackedFetch.abortController.signal,
-          headerTimeoutMs: browserRuntimeFetchHeaderTimeoutMs,
+          headerTimeoutMs,
         },
       ).finally(() => trackedFetch.release())
     } catch (err) {
@@ -1956,7 +1972,10 @@ export async function swFetch(
         staticPluginAsset.rootHash
     ) {
       await pluginRootUpdates.get(staticPluginAsset.pluginId)
-      if (attempt === 0) {
+      // An expired header budget falls through to the classified
+      // plugin-root-changed response instead of starting another attempt.
+      if (attempt === 0 && Date.now() < headerTimeoutDeadlineMs) {
+        await response.body?.cancel()
         staticPluginAsset = await resolveStaticPluginAsset(source)
         continue
       }
@@ -1979,6 +1998,23 @@ export async function swFetch(
         },
         request.method,
       )
+    }
+
+    // Recover transient delivery before the native module loader caches a
+    // failed dependency. The runtime client is resolved again on the retry.
+    const runtimeFetchErrorCode = response.headers.get(
+      'X-Bldr-Runtime-Fetch-Error',
+    )
+    if (
+      attempt === 0 &&
+      runtimeFetchErrorCode === 'runtime-unavailable' &&
+      (request.method === 'GET' || request.method === 'HEAD') &&
+      Date.now() < headerTimeoutDeadlineMs &&
+      !request.signal.aborted &&
+      !trackedFetch.abortController.signal.aborted
+    ) {
+      await response.body?.cancel()
+      continue
     }
 
     if (staticPluginAssetSource) {
