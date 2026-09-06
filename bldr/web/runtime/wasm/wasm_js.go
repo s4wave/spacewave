@@ -17,6 +17,9 @@ import (
 )
 
 const (
+	// globalOpenStreamToWebRuntime is the name of the global function which
+	// opens a stream to the web runtime:
+	//
 	// BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME?: (
 	//   onMessage: (message: Uint8Array) => void,
 	//   onClose: (errMsg?: string) => void,
@@ -24,6 +27,9 @@ const (
 	//   onReject: (errMsg: string) => void,
 	// ) => void
 	globalOpenStreamToWebRuntime = "BLDR_PLUGIN_OPEN_STREAM_TO_WEB_RUNTIME"
+	// globalSetAcceptStream is the name of the global function which sets the
+	// incoming stream accept callback:
+	//
 	// BLDR_PLUGIN_SET_ACCEPT_STREAM?: (acceptStream: (localPort: MessagePort) => void) => void
 	globalSetAcceptStream = "BLDR_PLUGIN_SET_ACCEPT_STREAM"
 )
@@ -41,9 +47,14 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 			return nil, err
 		}
 
-		packetCallbacks := &jsStreamPacketCallbacks{}
+		// Construct the deferred writer around the packet callback release.
+		packetCallbacks := &jsStreamCallbacks{}
 		packetWriter := newDeferredPushablePacketWriter(packetCallbacks.Release)
+
+		// Open the stream in the background.
 		go openPushableStream(ctx, openStreamFunc, msgHandler, closeHandler, packetWriter, packetCallbacks)
+
+		// Close the writer when the context ends.
 		go func() {
 			<-ctx.Done()
 			_ = packetWriter.Close()
@@ -52,13 +63,15 @@ func NewPushableOpenStream(openStreamFunc js.Value) srpc.OpenStreamFunc {
 	}
 }
 
+// openPushableStream invokes the open stream bridge and wires the packet and
+// promise callbacks to the pending writer.
 func openPushableStream(
 	ctx context.Context,
 	openStreamFunc js.Value,
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
 	packetWriter *deferredPushablePacketWriter,
-	packetCallbacks *jsStreamPacketCallbacks,
+	packetCallbacks *jsStreamCallbacks,
 ) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -74,30 +87,34 @@ func openPushableStream(
 		}
 	}()
 
+	// Refuse to open a stream after cancellation.
 	if err := ctx.Err(); err != nil {
 		packetWriter.fail(err)
 		closeHandler(err)
 		return
 	}
+
+	// Serialize packets from the JS message callback through one handler.
 	packetHandler := newSerialPacketDataHandler(msgHandler, closeHandler, packetCallbacks.Release)
 
+	// jsOnMessage copies each packet message into Go-owned storage and
+	// forwards it to the serialized handler.
 	// (message: Uint8Array) => void
 	jsOnMessage := js.FuncOf(func(this js.Value, args []js.Value) any {
 		defer recoverJSCallback("handle stream packet", func(err error) {
 			packetHandler.Fail(err)
 		})
-		// copy packet from Uint8Array to []byte
+		// Copy the packet into Go-owned storage: the handler may retain the
+		// slice, so it must never alias the JS Uint8Array's backing storage.
 		packet := args[0]
-		dlen := packet.Length()
-		bin := make([]byte, dlen)
-		for i := 0; i < dlen; i++ {
-			bin[i] = byte(packet.Index(i).Int())
-		}
+		bin := make([]byte, packet.Length())
+		js.CopyBytesToGo(bin, packet)
 
 		packetHandler.Handle(bin)
 		return nil
 	})
-	// (errMsg?: string) => void,
+	// jsOnClose closes the handler, propagating the remote error message.
+	// (errMsg?: string) => void
 	jsOnClose := js.FuncOf(func(this js.Value, args []js.Value) any {
 		defer recoverJSCallback("handle stream close", packetHandler.Fail)
 		var errMsg string
@@ -116,46 +133,44 @@ func openPushableStream(
 		packetHandler.Close(err)
 		return nil
 	})
+	// Register the packet callbacks; close the handler when already released.
 	if !packetCallbacks.Set(jsOnMessage, jsOnClose) {
 		packetHandler.Close(io.ErrClosedPipe)
 		return
 	}
 
-	var releasePromiseCallbacks sync.Once
-	var jsThen js.Func
-	var jsCatch js.Func
-	jsThen = js.FuncOf(func(this js.Value, args []js.Value) any {
+	// promiseCallbacks releases the promise pair exactly once, from whichever
+	// of jsThen or jsCatch runs first.
+	promiseCallbacks := &jsStreamCallbacks{}
+
+	// jsThen resolves the pending writer with the stream sink.
+	jsThen := js.FuncOf(func(this js.Value, args []js.Value) any {
 		defer recoverJSCallback("resolve stream sink", func(err error) {
-			releasePromiseCallbacks.Do(func() {
-				releaseJSFunc(jsThen)
-				releaseJSFunc(jsCatch)
-			})
+			promiseCallbacks.Release()
 			packetWriter.fail(err)
 			closeHandler(err)
 		})
+
+		// Release the promise pair before delivering the sink.
 		sink := args[0]
-		releasePromiseCallbacks.Do(func() {
-			releaseJSFunc(jsThen)
-			releaseJSFunc(jsCatch)
-		})
+		promiseCallbacks.Release()
+
 		deferTinyGoCallbackTask(func() {
 			packetWriter.resolve(sink)
 		})
 		return nil
 	})
-	jsCatch = js.FuncOf(func(this js.Value, args []js.Value) any {
+
+	// jsCatch fails the pending writer with the rejection error.
+	jsCatch := js.FuncOf(func(this js.Value, args []js.Value) any {
 		defer recoverJSCallback("reject stream sink", func(err error) {
-			releasePromiseCallbacks.Do(func() {
-				releaseJSFunc(jsThen)
-				releaseJSFunc(jsCatch)
-			})
+			promiseCallbacks.Release()
 			packetWriter.fail(err)
 			closeHandler(err)
 		})
-		releasePromiseCallbacks.Do(func() {
-			releaseJSFunc(jsThen)
-			releaseJSFunc(jsCatch)
-		})
+
+		// Release the promise pair and classify the rejection reason.
+		promiseCallbacks.Release()
 		var err error
 		if len(args) == 0 || args[0].IsUndefined() || args[0].IsNull() {
 			err = errors.New("open stream rejected")
@@ -164,23 +179,28 @@ func openPushableStream(
 		} else {
 			err = errors.Errorf("open stream rejected: %v", args[0])
 		}
+
 		deferTinyGoCallbackTask(func() {
 			packetWriter.fail(err)
 			closeHandler(err)
 		})
 		return nil
 	})
+
+	// Register the promise pair before invoking the bridge.
+	promiseCallbacks.Set(jsThen, jsCatch)
 	if packetWriter.isClosed() {
-		releasePromiseCallbacks.Do(func() {
-			releaseJSFunc(jsThen)
-			releaseJSFunc(jsCatch)
-		})
+		promiseCallbacks.Release()
 		packetCallbacks.Release()
 		return
 	}
+
+	// Invoke the bridge to open the stream.
 	openStreamFunc.Invoke(jsOnMessage, jsOnClose, jsThen, jsCatch)
 }
 
+// releaseJSFunc releases a js.Func, deferring the release on TinyGo so the
+// callback frame has returned to the JS runtime first.
 func releaseJSFunc(fn js.Func) {
 	if runtime.Compiler != "tinygo" {
 		fn.Release()
@@ -194,6 +214,8 @@ func releaseJSFunc(fn js.Func) {
 	})
 }
 
+// deferTinyGoCallbackTask runs fn on a later scheduler task on TinyGo and
+// immediately otherwise.
 func deferTinyGoCallbackTask(fn func()) {
 	if runtime.Compiler != "tinygo" {
 		fn()
@@ -202,30 +224,41 @@ func deferTinyGoCallbackTask(fn func()) {
 	time.AfterFunc(0, fn)
 }
 
-type jsStreamPacketCallbacks struct {
-	mtx       sync.Mutex
-	onMessage js.Func
-	onClose   js.Func
-	ready     bool
-	released  bool
+// jsStreamCallbacks releases a callback pair once when its caller requests
+// cleanup, including when Release precedes Set.
+type jsStreamCallbacks struct {
+	// mtx guards the fields below.
+	mtx sync.Mutex
+
+	// first is the first callback retained until Release.
+	first js.Func
+	// second is the second callback retained until Release.
+	second js.Func
+
+	// ready indicates whether the callbacks were set.
+	ready bool
+	// released prevents registration and selects one cleanup caller.
+	released bool
 }
 
-func (c *jsStreamPacketCallbacks) Set(onMessage, onClose js.Func) bool {
+// Set registers the callback pair and reports whether they were stored.
+func (c *jsStreamCallbacks) Set(first, second js.Func) bool {
 	c.mtx.Lock()
 	if c.released {
 		c.mtx.Unlock()
-		onMessage.Release()
-		onClose.Release()
+		first.Release()
+		second.Release()
 		return false
 	}
-	c.onMessage = onMessage
-	c.onClose = onClose
+	c.first = first
+	c.second = second
 	c.ready = true
 	c.mtx.Unlock()
 	return true
 }
 
-func (c *jsStreamPacketCallbacks) Release() {
+// Release releases the registered callback pair exactly once.
+func (c *jsStreamCallbacks) Release() {
 	c.mtx.Lock()
 	if c.released {
 		c.mtx.Unlock()
@@ -236,14 +269,15 @@ func (c *jsStreamPacketCallbacks) Release() {
 		c.mtx.Unlock()
 		return
 	}
-	onMessage := c.onMessage
-	onClose := c.onClose
+	first := c.first
+	second := c.second
 	c.mtx.Unlock()
 
-	releaseJSFunc(onMessage)
-	releaseJSFunc(onClose)
+	releaseJSFunc(first)
+	releaseJSFunc(second)
 }
 
+// recoverJSCallback converts a recovered panic into an error passed to onErr.
 func recoverJSCallback(label string, onErr func(error)) {
 	if e := recover(); e != nil {
 		var err error
@@ -262,24 +296,39 @@ func recoverJSCallback(label string, onErr func(error)) {
 // callback goroutine is blocked, so callbacks enqueue packets and one Go
 // goroutine drains them.
 type serialPacketDataHandler struct {
-	msgHandler   srpc.PacketDataHandler
+	// msgHandler handles each packet in delivery order.
+	msgHandler srpc.PacketDataHandler
+	// closeHandler is invoked exactly once when the stream finishes.
 	closeHandler srpc.CloseHandler
-	releaseFn    func()
+	// releaseFn releases the stream callbacks.
+	releaseFn func()
 
-	mtx       sync.Mutex
-	notify    chan struct{}
-	finish    sync.Once
-	queue     []serialPacketData
-	closed    bool
-	closeErr  error
+	// mtx guards the fields below.
+	mtx sync.Mutex
+	// notify wakes the drain goroutine; buffered capacity one.
+	notify chan struct{}
+	// queue holds packets awaiting the serialized handler.
+	queue []serialPacketData
+	// closed rejects new packets while the remaining queue drains.
+	closed bool
+	// closeErr is the error passed to closeHandler.
+	closeErr error
+	// finished selects the caller responsible for closeHandler and releaseFn.
+	finished bool
+	// scheduled indicates whether a TinyGo drain task is pending.
 	scheduled bool
 }
 
+// serialPacketData carries one queued packet and its delivery acknowledgement.
 type serialPacketData struct {
-	data    []byte
+	// data is the packet bytes delivered to the message handler.
+	data []byte
+	// handled acknowledges delivery to the JS callback, if any.
 	handled func(error)
 }
 
+// newSerialPacketDataHandler constructs the handler and starts its drain
+// goroutine. releaseFn is invoked exactly once when the stream finishes.
 func newSerialPacketDataHandler(
 	msgHandler srpc.PacketDataHandler,
 	closeHandler srpc.CloseHandler,
@@ -295,10 +344,13 @@ func newSerialPacketDataHandler(
 	return h
 }
 
+// Handle queues a packet without an acknowledgement callback.
 func (h *serialPacketDataHandler) Handle(data []byte) {
 	h.HandleWithResult(data, nil)
 }
 
+// HandleWithResult queues a packet and invokes handled with the delivery
+// result after the message handler returns.
 func (h *serialPacketDataHandler) HandleWithResult(data []byte, handled func(error)) {
 	h.mtx.Lock()
 	if h.closed {
@@ -313,6 +365,7 @@ func (h *serialPacketDataHandler) HandleWithResult(data []byte, handled func(err
 	h.mtx.Unlock()
 }
 
+// Close finishes the stream with err after the queued packets drain.
 func (h *serialPacketDataHandler) Close(err error) {
 	h.mtx.Lock()
 	if h.closed {
@@ -325,6 +378,7 @@ func (h *serialPacketDataHandler) Close(err error) {
 	h.mtx.Unlock()
 }
 
+// Fail finishes the stream immediately, acknowledging queued packets with err.
 func (h *serialPacketDataHandler) Fail(err error) {
 	h.mtx.Lock()
 	if h.closed && len(h.queue) == 0 {
@@ -343,12 +397,24 @@ func (h *serialPacketDataHandler) Fail(err error) {
 			item.handled(err)
 		}
 	}
-	h.finish.Do(func() {
-		h.closeHandler(err)
-		h.releaseFn()
-	})
+	h.finish(err)
 }
 
+// finish invokes closeHandler and releaseFn exactly once.
+func (h *serialPacketDataHandler) finish(err error) {
+	h.mtx.Lock()
+	if h.finished {
+		h.mtx.Unlock()
+		return
+	}
+	h.finished = true
+	h.mtx.Unlock()
+
+	h.closeHandler(err)
+	h.releaseFn()
+}
+
+// run drains queued packets in delivery order until the stream closes.
 func (h *serialPacketDataHandler) run() {
 	for {
 		h.mtx.Lock()
@@ -378,14 +444,12 @@ func (h *serialPacketDataHandler) run() {
 		err := h.closeErr
 		h.mtx.Unlock()
 
-		h.finish.Do(func() {
-			h.closeHandler(err)
-			h.releaseFn()
-		})
+		h.finish(err)
 		return
 	}
 }
 
+// signalLocked wakes the drain goroutine without blocking the caller.
 func (h *serialPacketDataHandler) signalLocked() {
 	select {
 	case h.notify <- struct{}{}:
@@ -393,6 +457,8 @@ func (h *serialPacketDataHandler) signalLocked() {
 	}
 }
 
+// scheduleLocked wakes the drain goroutine, deferring the wake through a
+// scheduler task on TinyGo so callbacks never block.
 func (h *serialPacketDataHandler) scheduleLocked() {
 	if runtime.Compiler != "tinygo" {
 		h.signalLocked()
@@ -410,22 +476,33 @@ func (h *serialPacketDataHandler) scheduleLocked() {
 	})
 }
 
+// deferredPushablePacketWriter queues packets until the JS stream resolves
+// and hands writes to the resolved PushablePacketWriter.
 type deferredPushablePacketWriter struct {
-	mtx       sync.Mutex
-	writer    *PushablePacketWriter
-	queued    [][]byte
-	closed    bool
-	err       error
+	// mtx guards the fields below.
+	mtx sync.Mutex
+
+	// writer is the resolved writer, nil until the stream resolves.
+	writer *PushablePacketWriter
+	// queued holds packets written before the stream resolved.
+	queued [][]byte
+	// closed indicates whether the writer finished.
+	closed bool
+	// err is the error returned by writes after close.
+	err error
+	// releaseFn releases the stream callbacks.
 	releaseFn func()
-	release   sync.Once
 }
 
+// newDeferredPushablePacketWriter constructs the writer.
+// releaseFn is invoked exactly once when the writer finishes.
 func newDeferredPushablePacketWriter(releaseFn func()) *deferredPushablePacketWriter {
 	return &deferredPushablePacketWriter{
 		releaseFn: releaseFn,
 	}
 }
 
+// WritePacket marshals and queues or writes a packet.
 func (w *deferredPushablePacketWriter) WritePacket(pkt *srpc.Packet) error {
 	data, err := pkt.MarshalVT()
 	if err != nil {
@@ -447,6 +524,7 @@ func (w *deferredPushablePacketWriter) WritePacket(pkt *srpc.Packet) error {
 	return w.writer.WritePacketData(data)
 }
 
+// isClosed reports whether the writer already finished.
 func (w *deferredPushablePacketWriter) isClosed() bool {
 	w.mtx.Lock()
 	closed := w.closed
@@ -454,6 +532,7 @@ func (w *deferredPushablePacketWriter) isClosed() bool {
 	return closed
 }
 
+// Close finishes the writer, closing the resolved writer if any.
 func (w *deferredPushablePacketWriter) Close() error {
 	w.mtx.Lock()
 	if w.closed {
@@ -470,10 +549,11 @@ func (w *deferredPushablePacketWriter) Close() error {
 	if writer != nil {
 		err = writer.Close()
 	}
-	w.release.Do(w.releaseFn)
+	w.releaseFn()
 	return err
 }
 
+// resolve hands the queued writes to a writer for the resolved pushable.
 func (w *deferredPushablePacketWriter) resolve(pushable js.Value) {
 	writer := NewPushablePacketWriter(pushable)
 
@@ -491,7 +571,7 @@ func (w *deferredPushablePacketWriter) resolve(pushable js.Value) {
 			w.queued = nil
 			w.mtx.Unlock()
 			_ = writer.Close()
-			w.release.Do(w.releaseFn)
+			w.releaseFn()
 			return
 		}
 	}
@@ -500,6 +580,7 @@ func (w *deferredPushablePacketWriter) resolve(pushable js.Value) {
 	w.mtx.Unlock()
 }
 
+// fail finishes the writer with err.
 func (w *deferredPushablePacketWriter) fail(err error) {
 	if err == nil {
 		err = io.ErrClosedPipe
@@ -519,10 +600,10 @@ func (w *deferredPushablePacketWriter) fail(err error) {
 	if writer != nil {
 		_ = writer.Close()
 	}
-	w.release.Do(w.releaseFn)
+	w.releaseFn()
 }
 
-// GlobalWasmPluginIo gets the message port defined by plugin-wasm.ts
+// GlobalWasmPluginIo gets the message port defined by plugin-wasm.ts.
 func GlobalWasmPluginIo() (*WasmPluginIo, error) {
 	global := js.Global()
 	if global.IsUndefined() {

@@ -13,13 +13,19 @@ import (
 	"github.com/s4wave/spacewave/db/util/jsbuf"
 )
 
+// tinyGoPushBytes is the name of the TinyGo helper global which pushes a
+// copied Uint8Array into a pushable sink.
 const tinyGoPushBytes = "BLDR_TINYGO_PUSH_BYTES"
 
 // PushablePacketWriter is a PacketWriter which writes packets to a Pushable<Uint8Array>.
 type PushablePacketWriter struct {
-	closed        atomic.Bool
-	pushable      js.Value
-	tinyGo        bool
+	// closed indicates whether the writer already ended the pushable.
+	closed atomic.Bool
+	// pushable is the JS Pushable<Uint8Array> sink.
+	pushable js.Value
+	// tinyGo indicates whether the TinyGo push helper is required.
+	tinyGo bool
+	// tinyGoPushRaw is the TinyGo push helper, valid only when tinyGo is set.
 	tinyGoPushRaw js.Value
 }
 
@@ -35,10 +41,12 @@ func NewPushablePacketWriter(pushable js.Value) *PushablePacketWriter {
 
 // WritePacket writes a packet to the remote.
 func (w *PushablePacketWriter) WritePacket(pkt *srpc.Packet) error {
+	// Reject writes after close.
 	if w.closed.Load() {
 		return io.ErrClosedPipe
 	}
 
+	// Marshal the packet and delegate the write.
 	data, err := pkt.MarshalVT()
 	if err != nil {
 		return err
@@ -49,10 +57,12 @@ func (w *PushablePacketWriter) WritePacket(pkt *srpc.Packet) error {
 
 // WritePacketData writes marshaled packet data to the remote.
 func (w *PushablePacketWriter) WritePacketData(data []byte) error {
+	// Reject writes after close.
 	if w.closed.Load() {
 		return io.ErrClosedPipe
 	}
 
+	// Push a JS-owned copy of the data through the TinyGo helper.
 	if w.tinyGo {
 		if w.tinyGoPushRaw.IsUndefined() || w.tinyGoPushRaw.IsNull() || w.tinyGoPushRaw.Type() != js.TypeFunction {
 			return errors.New("tinygo push bytes helper unavailable")
@@ -67,11 +77,12 @@ func (w *PushablePacketWriter) WritePacketData(data []byte) error {
 		return nil
 	}
 
-	a := js.Global().Get("Uint8Array").New(len(data))
-	for i, b := range data {
-		a.SetIndex(i, int(b))
+	// Push a JS-owned copy of the data directly into the sink.
+	arr, err := jsbuf.CopyBytesToJS(data)
+	if err != nil {
+		return err
 	}
-	w.pushable.Get("push").Invoke(a)
+	w.pushable.Get("push").Invoke(arr)
 	return nil
 }
 
@@ -83,5 +94,5 @@ func (w *PushablePacketWriter) Close() error {
 	return nil
 }
 
-// _ is a type assertion
+// _ is a type assertion.
 var _ srpc.PacketWriter = (*PushablePacketWriter)(nil)
