@@ -1,8 +1,6 @@
 package provider_spacewave
 
 import (
-	"context"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/controllerbus/config"
+	"github.com/pkg/errors"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/core/session"
 	"github.com/s4wave/spacewave/core/sobject"
@@ -23,16 +22,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestTryRecoverMissingSharedObjectPeer restores a participant using an unlocked entity credential.
 func TestTryRecoverMissingSharedObjectPeer(t *testing.T) {
 	const (
 		soID      = "so-rejoin"
 		accountID = "test-account"
 	)
 
+	// Give the entity and both participants independent keys.
 	entityPriv, entityPID := generateTestKeypair(t)
 	ownerPriv, ownerPID := generateTestKeypair(t)
 	newPriv, newPID := generateTestKeypair(t)
 
+	// Build the signed server state for this recovery case.
 	state, chainResp, envResp, keypairResp := buildRejoinTestFixtures(
 		t,
 		soID,
@@ -43,11 +45,13 @@ func TestTryRecoverMissingSharedObjectPeer(t *testing.T) {
 		3,
 	)
 
+	// Serialize the signed fixtures through their normal codecs.
 	stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
 	chainJSON := mustMarshalVT(t, chainResp)
 	envJSON := mustMarshalVT(t, envResp)
 	keypairJSON := mustMarshalVT(t, keypairResp)
 
+	// Capture the client mutation accepted by the HTTP service.
 	var posted *api.PostConfigStateRequest
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -62,24 +66,29 @@ func TestTryRecoverMissingSharedObjectPeer(t *testing.T) {
 		case "/api/sobject/" + soID + "/config-state":
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
-				t.Fatalf("read config-state body: %v", err)
+				t.Errorf("read config-state body: %v", err)
+				return
 			}
 			req := &api.PostConfigStateRequest{}
 			if err := req.UnmarshalVT(body); err != nil {
-				t.Fatalf("unmarshal config-state request: %v", err)
+				t.Errorf("unmarshal config-state request: %v", err)
+				return
 			}
 			posted = req
 			w.WriteHeader(http.StatusOK)
 		default:
-			t.Fatalf("unexpected path: %s", r.URL.Path)
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			return
 		}
 	}))
-	defer srv.Close()
+	t.Cleanup(srv.Close)
 
+	// Retain a client authenticated as the recovering participant.
 	acc := NewTestProviderAccount(t, srv.URL)
 	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String())
 	acc.GetEntityKeyStore().Unlock(entityPID, entityPriv)
 
+	// Mount signed state under the recovering participant identity.
 	host := newCloudSOHost(
 		logrus.New().WithField("test", t.Name()),
 		acc.sessionClient,
@@ -93,7 +102,7 @@ func TestTryRecoverMissingSharedObjectPeer(t *testing.T) {
 		nil,
 		nil,
 	)
-	host.soHost.SetContext(context.Background())
+	host.soHost.SetContext(t.Context())
 	so := &SharedObject{
 		tkr:      &sobjectTracker{a: acc, id: soID},
 		host:     host,
@@ -102,8 +111,9 @@ func TestTryRecoverMissingSharedObjectPeer(t *testing.T) {
 	}
 	ref := sobject.NewSharedObjectRef("spacewave", accountID, soID, soID)
 
+	// Attempt recovery and check the resulting participant state.
 	err := so.tkr.tryRecoverMissingSharedObjectPeer(
-		context.Background(),
+		t.Context(),
 		ref,
 		so,
 		acc.sessionClient,
@@ -136,16 +146,19 @@ func TestTryRecoverMissingSharedObjectPeer(t *testing.T) {
 	}
 }
 
+// TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant restores the grant without changing existing membership.
 func TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant(t *testing.T) {
 	const (
 		soID      = "so-rejoin"
 		accountID = "test-account"
 	)
 
+	// Give the entity and both participants independent keys.
 	entityPriv, entityPID := generateTestKeypair(t)
 	ownerPriv, ownerPID := generateTestKeypair(t)
 	newPriv, newPID := generateTestKeypair(t)
 
+	// Build the signed server state for this recovery case.
 	state, chainResp, envResp, keypairResp := buildRejoinMissingGrantFixtures(
 		t,
 		soID,
@@ -158,11 +171,13 @@ func TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant(t *testing.T) {
 		3,
 	)
 
+	// Serialize the signed fixtures through their normal codecs.
 	stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
 	chainJSON := mustMarshalVT(t, chainResp)
 	envJSON := mustMarshalVT(t, envResp)
 	keypairJSON := mustMarshalVT(t, keypairResp)
 
+	// Capture the client mutation accepted by the HTTP service.
 	var posted *api.PostKeyEpochRequest
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -177,26 +192,32 @@ func TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant(t *testing.T) {
 		case "/api/sobject/" + soID + "/key-epoch":
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
-				t.Fatalf("read key-epoch body: %v", err)
+				t.Errorf("read key-epoch body: %v", err)
+				return
 			}
 			req := &api.PostKeyEpochRequest{}
 			if err := req.UnmarshalVT(body); err != nil {
-				t.Fatalf("unmarshal key-epoch request: %v", err)
+				t.Errorf("unmarshal key-epoch request: %v", err)
+				return
 			}
 			posted = req
 			w.WriteHeader(http.StatusOK)
 		case "/api/sobject/" + soID + "/config-state":
-			t.Fatal("unexpected config-state write for missing-grant repair")
+			t.Error("unexpected config-state write for missing-grant repair")
+			return
 		default:
-			t.Fatalf("unexpected path: %s", r.URL.Path)
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			return
 		}
 	}))
-	defer srv.Close()
+	t.Cleanup(srv.Close)
 
+	// Retain a client authenticated as the recovering participant.
 	acc := NewTestProviderAccount(t, srv.URL)
 	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String())
 	acc.GetEntityKeyStore().Unlock(entityPID, entityPriv)
 
+	// Mount signed state under the recovering participant identity.
 	host := newCloudSOHost(
 		logrus.New().WithField("test", t.Name()),
 		acc.sessionClient,
@@ -210,7 +231,7 @@ func TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant(t *testing.T) {
 		nil,
 		nil,
 	)
-	host.soHost.SetContext(context.Background())
+	host.soHost.SetContext(t.Context())
 	so := &SharedObject{
 		tkr:      &sobjectTracker{a: acc, id: soID},
 		host:     host,
@@ -219,8 +240,9 @@ func TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant(t *testing.T) {
 	}
 	ref := sobject.NewSharedObjectRef("spacewave", accountID, soID, soID)
 
+	// Repair the missing grant through the normal recovery path.
 	if err := so.tkr.tryRecoverMissingSharedObjectPeer(
-		context.Background(),
+		t.Context(),
 		ref,
 		so,
 		acc.sessionClient,
@@ -238,6 +260,7 @@ func TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant(t *testing.T) {
 		t.Fatalf("expected recovery envelope for %s", accountID)
 	}
 
+	// Require the repaired grant in both root and epoch caches.
 	cachedState := host.stateCtr.GetValue()
 	if got := participantConfigForPeer(cachedState.GetConfig(), newPID.String()); got == nil {
 		t.Fatal("expected enrolled peer in cached config")
@@ -250,16 +273,19 @@ func TestTryRecoverMissingSharedObjectPeerRepairsMissingGrant(t *testing.T) {
 	}
 }
 
+// TestTryRecoverMissingSharedObjectPeerRequiresCredential rejects recovery without an unlocked entity key.
 func TestTryRecoverMissingSharedObjectPeerRequiresCredential(t *testing.T) {
 	const (
 		soID      = "so-rejoin"
 		accountID = "test-account"
 	)
 
+	// Give the entity and both participants independent keys.
 	entityPriv, _ := generateTestKeypair(t)
 	ownerPriv, ownerPID := generateTestKeypair(t)
 	newPriv, newPID := generateTestKeypair(t)
 
+	// Build the signed server state for this recovery case.
 	state, chainResp, envResp, _ := buildRejoinTestFixtures(
 		t,
 		soID,
@@ -270,6 +296,7 @@ func TestTryRecoverMissingSharedObjectPeerRequiresCredential(t *testing.T) {
 		1,
 	)
 
+	// Serialize the signed fixtures through their normal codecs.
 	stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
 	chainJSON := mustMarshalVT(t, chainResp)
 	envJSON := mustMarshalVT(t, envResp)
@@ -282,11 +309,13 @@ func TestTryRecoverMissingSharedObjectPeerRequiresCredential(t *testing.T) {
 		case "/api/sobject/" + soID + "/recovery-envelope":
 			_, _ = w.Write(envJSON)
 		default:
-			t.Fatalf("unexpected path: %s", r.URL.Path)
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			return
 		}
 	}))
-	defer srv.Close()
+	t.Cleanup(srv.Close)
 
+	// Retain a client authenticated as the recovering participant.
 	acc := NewTestProviderAccount(t, srv.URL)
 	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String())
 	host := newCloudSOHost(
@@ -302,7 +331,7 @@ func TestTryRecoverMissingSharedObjectPeerRequiresCredential(t *testing.T) {
 		nil,
 		nil,
 	)
-	host.soHost.SetContext(context.Background())
+	host.soHost.SetContext(t.Context())
 	so := &SharedObject{
 		tkr:      &sobjectTracker{a: acc, id: soID},
 		host:     host,
@@ -311,8 +340,9 @@ func TestTryRecoverMissingSharedObjectPeerRequiresCredential(t *testing.T) {
 	}
 	ref := sobject.NewSharedObjectRef("spacewave", accountID, soID, soID)
 
+	// Attempt recovery and check the resulting participant state.
 	err := so.tkr.tryRecoverMissingSharedObjectPeer(
-		context.Background(),
+		t.Context(),
 		ref,
 		so,
 		acc.sessionClient,
@@ -322,16 +352,19 @@ func TestTryRecoverMissingSharedObjectPeerRequiresCredential(t *testing.T) {
 	}
 }
 
+// TestTryRecoverMissingSharedObjectPeerRemovedEntity rejects an entity absent from the signed configuration.
 func TestTryRecoverMissingSharedObjectPeerRemovedEntity(t *testing.T) {
 	const (
 		soID      = "so-rejoin"
 		accountID = "test-account"
 	)
 
+	// Give the entity and both participants independent keys.
 	entityPriv, entityPID := generateTestKeypair(t)
 	ownerPriv, ownerPID := generateTestKeypair(t)
 	newPriv, newPID := generateTestKeypair(t)
 
+	// Build the signed server state for this recovery case.
 	state, chainResp, _, _ := buildRejoinTestFixtures(
 		t,
 		soID,
@@ -342,6 +375,7 @@ func TestTryRecoverMissingSharedObjectPeerRemovedEntity(t *testing.T) {
 		1,
 	)
 
+	// Serialize the signed fixtures through their normal codecs.
 	stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
 	chainJSON := mustMarshalVT(t, chainResp)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -351,11 +385,13 @@ func TestTryRecoverMissingSharedObjectPeerRemovedEntity(t *testing.T) {
 		case "/api/sobject/" + soID + "/config-chain":
 			_, _ = w.Write(chainJSON)
 		default:
-			t.Fatalf("unexpected path: %s", r.URL.Path)
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			return
 		}
 	}))
-	defer srv.Close()
+	t.Cleanup(srv.Close)
 
+	// Retain a client authenticated as the recovering participant.
 	acc := NewTestProviderAccount(t, srv.URL)
 	acc.sessionClient = NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String())
 	acc.GetEntityKeyStore().Unlock(entityPID, entityPriv)
@@ -372,7 +408,7 @@ func TestTryRecoverMissingSharedObjectPeerRemovedEntity(t *testing.T) {
 		nil,
 		nil,
 	)
-	host.soHost.SetContext(context.Background())
+	host.soHost.SetContext(t.Context())
 	so := &SharedObject{
 		tkr:      &sobjectTracker{a: acc, id: soID},
 		host:     host,
@@ -381,8 +417,9 @@ func TestTryRecoverMissingSharedObjectPeerRemovedEntity(t *testing.T) {
 	}
 	ref := sobject.NewSharedObjectRef("spacewave", accountID, soID, soID)
 
+	// Attempt recovery and check the resulting participant state.
 	err := so.tkr.tryRecoverMissingSharedObjectPeer(
-		context.Background(),
+		t.Context(),
 		ref,
 		so,
 		acc.sessionClient,
@@ -396,38 +433,56 @@ func TestTryRecoverMissingSharedObjectPeerRemovedEntity(t *testing.T) {
 // keypairs) and a path-counting httptest server. Tests vary cache prepopulation
 // and assert the exact set of HTTP paths hit by tryRecoverMissingSharedObjectPeer.
 type rejoinScenario struct {
-	soID      string
+	// soID identifies the shared object addressed by every fixture route.
+	soID string
+	// accountID identifies the entity authorized to recover membership.
 	accountID string
-
-	state       *sobject.SOState
-	chainResp   *sobject.SOConfigChainResponse
-	envResp     *api.GetSORecoveryEnvelopeResponse
+	// state is the signed shared-object snapshot before recovery.
+	state *sobject.SOState
+	// chainResp proves the snapshot's configuration lineage.
+	chainResp *sobject.SOConfigChainResponse
+	// envResp carries encrypted recovery material for the entity.
+	envResp *api.GetSORecoveryEnvelopeResponse
+	// keypairResp lists the keys authorized to decrypt the envelope.
 	keypairResp *api.ListSORecoveryEntityKeypairsResponse
 
-	srv  *httptest.Server
+	// srv serves the isolated recovery endpoints.
+	srv *httptest.Server
+	// hits counts requests under mu.
 	hits map[string]int
-	mu   sync.Mutex
+	// mu guards request counts across HTTP handlers and assertions.
+	mu sync.Mutex
 
-	acc  *ProviderAccount
+	// acc retains the client's credentials and recovery cache.
+	acc *ProviderAccount
+	// host caches signed state observed during recovery.
 	host *cloudSOHost
-	so   *SharedObject
-	ref  *sobject.SharedObjectRef
+	// so is the client's mounted shared-object facade.
+	so *SharedObject
+	// ref selects the shared object for recovery.
+	ref *sobject.SharedObjectRef
+	// priv is the new participant's private key.
 	priv crypto.PrivKey
-	pid  peer.ID
+	// pid is the new participant's public identity.
+	pid peer.ID
 }
 
+// newRejoinScenario retains a signed recovery fixture and its HTTP service through the test.
 func newRejoinScenario(t *testing.T) *rejoinScenario {
 	t.Helper()
 
+	// Select one isolated shared object and entity.
 	const (
 		soID      = "so-rejoin"
 		accountID = "test-account"
 	)
 
+	// Give the entity and both participants independent keys.
 	entityPriv, entityPID := generateTestKeypair(t)
 	ownerPriv, ownerPID := generateTestKeypair(t)
 	newPriv, newPID := generateTestKeypair(t)
 
+	// Build the signed server state for this recovery case.
 	state, chainResp, envResp, keypairResp := buildRejoinTestFixtures(
 		t,
 		soID,
@@ -438,11 +493,13 @@ func newRejoinScenario(t *testing.T) *rejoinScenario {
 		3,
 	)
 
+	// Serialize the signed fixtures through their normal codecs.
 	stateJSON := mustMarshalSOStateMessageSnapshotJSON(t, state)
 	chainJSON := mustMarshalVT(t, chainResp)
 	envJSON := mustMarshalVT(t, envResp)
 	keypairJSON := mustMarshalVT(t, keypairResp)
 
+	// Retain the recovery fixtures and request counters.
 	sc := &rejoinScenario{
 		soID:        soID,
 		accountID:   accountID,
@@ -455,6 +512,7 @@ func newRejoinScenario(t *testing.T) *rejoinScenario {
 		pid:         newPID,
 	}
 
+	// Serve recovery state while recording which caches missed.
 	sc.srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sc.mu.Lock()
 		sc.hits[r.URL.Path]++
@@ -471,25 +529,29 @@ func newRejoinScenario(t *testing.T) *rejoinScenario {
 		case "/api/sobject/" + soID + "/config-state":
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
-				t.Fatalf("read config-state body: %v", err)
+				t.Errorf("read config-state body: %v", err)
+				return
 			}
 			req := &api.PostConfigStateRequest{}
 			if err := req.UnmarshalVT(body); err != nil {
-				t.Fatalf("unmarshal config-state request: %v", err)
+				t.Errorf("unmarshal config-state request: %v", err)
+				return
 			}
-			_ = req
 			w.WriteHeader(http.StatusOK)
 		default:
-			t.Fatalf("unexpected path: %s", r.URL.Path)
+			t.Errorf("unexpected path: %s", r.URL.Path)
+			return
 		}
 	}))
 	t.Cleanup(sc.srv.Close)
 
+	// Prepare an authenticated account with an initially empty recovery cache.
 	sc.acc = NewTestProviderAccount(t, sc.srv.URL)
 	sc.acc.objStore = hashmap.NewHashmapKvtx(hashmap.NewHashmap[[]byte]())
 	sc.acc.sessionClient = NewSessionClient(http.DefaultClient, sc.srv.URL, DefaultSigningEnvPrefix, newPriv, newPID.String())
 	sc.acc.GetEntityKeyStore().Unlock(entityPID, entityPriv)
 
+	// Bind the shared-object host to the recovering participant.
 	sc.host = newCloudSOHost(
 		logrus.New().WithField("test", t.Name()),
 		sc.acc.sessionClient,
@@ -503,7 +565,7 @@ func newRejoinScenario(t *testing.T) *rejoinScenario {
 		nil,
 		nil,
 	)
-	sc.host.soHost.SetContext(context.Background())
+	sc.host.soHost.SetContext(t.Context())
 	sc.so = &SharedObject{
 		tkr:      &sobjectTracker{a: sc.acc, id: soID},
 		host:     sc.host,
@@ -514,10 +576,11 @@ func newRejoinScenario(t *testing.T) *rejoinScenario {
 	return sc
 }
 
+// primeEnvelopeCache persists the valid recovery envelope before rejoining.
 func (sc *rejoinScenario) primeEnvelopeCache(t *testing.T) {
 	t.Helper()
 	if err := sc.acc.writeRecoveryEnvelopeCache(
-		context.Background(),
+		t.Context(),
 		sc.soID,
 		sc.envResp.GetEnvelope(),
 	); err != nil {
@@ -525,22 +588,25 @@ func (sc *rejoinScenario) primeEnvelopeCache(t *testing.T) {
 	}
 }
 
+// primeKeypairCache persists the known entity keypairs before rejoining.
 func (sc *rejoinScenario) primeKeypairCache(t *testing.T) {
 	t.Helper()
 	for _, entity := range sc.keypairResp.GetEntities() {
 		if err := sc.acc.writeRecoveryEntityKeypairsCache(
-			context.Background(),
+			t.Context(),
 			entity,
 		); err != nil {
-			t.Fatalf("prime keypair cache: %v", err)
+			t.Errorf("prime keypair cache: %v", err)
+			return
 		}
 	}
 }
 
+// run performs recovery through the normal shared-object tracker.
 func (sc *rejoinScenario) run(t *testing.T) {
 	t.Helper()
 	if err := sc.so.tkr.tryRecoverMissingSharedObjectPeer(
-		context.Background(),
+		t.Context(),
 		sc.ref,
 		sc.so,
 		sc.acc.sessionClient,
@@ -549,6 +615,7 @@ func (sc *rejoinScenario) run(t *testing.T) {
 	}
 }
 
+// assertHit checks a route count after the recovery request completes.
 func (sc *rejoinScenario) assertHit(t *testing.T, suffix string, want int) {
 	t.Helper()
 	sc.mu.Lock()
@@ -560,7 +627,7 @@ func (sc *rejoinScenario) assertHit(t *testing.T, suffix string, want int) {
 }
 
 // TestTryRecoverMissingSharedObjectPeerWarmCachesSkipFetches covers the
-// warm-both branch of the Phase 9 iter 2 cache-aware classifier. A complete
+// warm-cache recovery path. A complete
 // envelope + keypair cache must satisfy the rejoin path with zero
 // /recovery-envelope and zero /recovery-entity-keypairs fetches.
 func TestTryRecoverMissingSharedObjectPeerWarmCachesSkipFetches(t *testing.T) {
@@ -619,7 +686,7 @@ func TestTryRecoverMissingSharedObjectPeerStaleEnvelopeRefetches(t *testing.T) {
 	stale := sc.envResp.GetEnvelope().CloneVT()
 	stale.KeyEpoch = sc.envResp.GetEnvelope().GetKeyEpoch() + 99
 	if err := sc.acc.writeRecoveryEnvelopeCache(
-		context.Background(),
+		t.Context(),
 		sc.soID,
 		stale,
 	); err != nil {
@@ -631,7 +698,8 @@ func TestTryRecoverMissingSharedObjectPeerStaleEnvelopeRefetches(t *testing.T) {
 	sc.assertHit(t, "/recovery-entity-keypairs", 0)
 	sc.assertHit(t, "/config-state", 1)
 
-	cached, err := sc.acc.loadRecoveryEnvelopeCache(context.Background(), sc.soID)
+	// Verify successful recovery replaces the stale envelope cache.
+	cached, err := sc.acc.loadRecoveryEnvelopeCache(t.Context(), sc.soID)
 	if err != nil {
 		t.Fatalf("load envelope cache after rejoin: %v", err)
 	}
@@ -644,6 +712,7 @@ func TestTryRecoverMissingSharedObjectPeerStaleEnvelopeRefetches(t *testing.T) {
 	}
 }
 
+// buildRejoinTestFixtures builds signed state before the new peer is enrolled.
 func buildRejoinTestFixtures(
 	t *testing.T,
 	soID string,
@@ -660,6 +729,7 @@ func buildRejoinTestFixtures(
 ) {
 	t.Helper()
 
+	// Build the encrypted block transform carried by participant grants.
 	transformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
@@ -671,6 +741,7 @@ func buildRejoinTestFixtures(
 	}
 	grantInner := &sobject.SOGrantInner{TransformConf: transformConf}
 
+	// Establish signed genesis membership for the original owner.
 	cfg := &sobject.SharedObjectConfig{
 		Participants: []*sobject.SOParticipantConfig{{
 			PeerId:   ownerPID.String(),
@@ -696,6 +767,7 @@ func buildRejoinTestFixtures(
 	cfg.ConfigChainSeqno = genesisEntry.GetConfigSeqno()
 	cfg.ConfigChainHash = genesisHash
 
+	// Encrypt the initial decryption grant for the original owner.
 	ownerPub, err := ownerPID.ExtractPublicKey()
 	if err != nil {
 		t.Fatalf("extract owner public key: %v", err)
@@ -710,6 +782,7 @@ func buildRejoinTestFixtures(
 		t.Fatalf("encrypt owner grant: %v", err)
 	}
 
+	// Sign the initial shared-object root with its sequence number.
 	rootInnerData, err := (&sobject.SORootInner{
 		Seqno:     1,
 		StateData: []byte("state"),
@@ -727,6 +800,7 @@ func buildRejoinTestFixtures(
 		t.Fatalf("sign root: %v", err)
 	}
 
+	// Encrypt recovery material for the entity credential.
 	entityPID, err := peer.IDFromPrivateKey(entityPriv)
 	if err != nil {
 		t.Fatalf("derive entity peer id: %v", err)
@@ -746,29 +820,35 @@ func buildRejoinTestFixtures(
 		t.Fatalf("build recovery envelope: %v", err)
 	}
 
-	return &sobject.SOState{
-			Config:     cfg,
-			Root:       root,
-			RootGrants: []*sobject.SOGrant{ownerGrant},
-		}, &sobject.SOConfigChainResponse{
-			ConfigChanges: []*sobject.SOConfigChange{genesisEntry},
-			KeyEpochs: []*sobject.SOKeyEpoch{{
-				Epoch:      keyEpoch,
-				SeqnoStart: 1,
-				Grants:     []*sobject.SOGrant{ownerGrant},
+	// Return consistent state, history, recovery material, and entity keys.
+	state := &sobject.SOState{
+		Config:     cfg,
+		Root:       root,
+		RootGrants: []*sobject.SOGrant{ownerGrant},
+	}
+	chain := &sobject.SOConfigChainResponse{
+		ConfigChanges: []*sobject.SOConfigChange{genesisEntry},
+		KeyEpochs: []*sobject.SOKeyEpoch{{
+			Epoch:      keyEpoch,
+			SeqnoStart: 1,
+			Grants:     []*sobject.SOGrant{ownerGrant},
+		}},
+	}
+	envelope := &api.GetSORecoveryEnvelopeResponse{
+		Envelope: recoveryEnv,
+	}
+	keypairs := &api.ListSORecoveryEntityKeypairsResponse{
+		Entities: []*api.SORecoveryEntityKeypairs{{
+			EntityId: accountID,
+			Keypairs: []*session.EntityKeypair{{
+				PeerId: entityPID.String(),
 			}},
-		}, &api.GetSORecoveryEnvelopeResponse{
-			Envelope: recoveryEnv,
-		}, &api.ListSORecoveryEntityKeypairsResponse{
-			Entities: []*api.SORecoveryEntityKeypairs{{
-				EntityId: accountID,
-				Keypairs: []*session.EntityKeypair{{
-					PeerId: entityPID.String(),
-				}},
-			}},
-		}
+		}},
+	}
+	return state, chain, envelope, keypairs
 }
 
+// buildRejoinMissingGrantFixtures builds signed membership without the new peer's decryption grant.
 func buildRejoinMissingGrantFixtures(
 	t *testing.T,
 	soID string,
@@ -787,6 +867,7 @@ func buildRejoinMissingGrantFixtures(
 ) {
 	t.Helper()
 
+	// Build the encrypted block transform carried by participant grants.
 	transformConf, err := block_transform.NewConfig([]config.Config{
 		&transform_blockenc.Config{
 			BlockEnc: blockenc.BlockEnc_BlockEnc_XCHACHA20_POLY1305,
@@ -798,6 +879,7 @@ func buildRejoinMissingGrantFixtures(
 	}
 	grantInner := &sobject.SOGrantInner{TransformConf: transformConf}
 
+	// Establish signed genesis membership for the original owner.
 	cfg := &sobject.SharedObjectConfig{
 		Participants: []*sobject.SOParticipantConfig{{
 			PeerId:   ownerPID.String(),
@@ -823,6 +905,7 @@ func buildRejoinMissingGrantFixtures(
 	cfg.ConfigChainSeqno = genesisEntry.GetConfigSeqno()
 	cfg.ConfigChainHash = genesisHash
 
+	// Add the recovering peer to the signed configuration without its grant.
 	selfEnrollEntry, err := sobject.BuildSelfEnrollPeerConfigChange(
 		cfg,
 		newPriv,
@@ -838,6 +921,7 @@ func buildRejoinMissingGrantFixtures(
 		t.Fatalf("build current config: %v", err)
 	}
 
+	// Encrypt the initial decryption grant for the original owner.
 	ownerPub, err := ownerPID.ExtractPublicKey()
 	if err != nil {
 		t.Fatalf("extract owner public key: %v", err)
@@ -852,6 +936,7 @@ func buildRejoinMissingGrantFixtures(
 		t.Fatalf("encrypt owner grant: %v", err)
 	}
 
+	// Sign the initial shared-object root with its sequence number.
 	rootInnerData, err := (&sobject.SORootInner{
 		Seqno:     1,
 		StateData: []byte("state"),
@@ -869,6 +954,7 @@ func buildRejoinMissingGrantFixtures(
 		t.Fatalf("sign root: %v", err)
 	}
 
+	// Encrypt recovery material for the entity credential.
 	entityPID, err := peer.IDFromPrivateKey(entityPriv)
 	if err != nil {
 		t.Fatalf("derive entity peer id: %v", err)
@@ -888,25 +974,30 @@ func buildRejoinMissingGrantFixtures(
 		t.Fatalf("build recovery envelope: %v", err)
 	}
 
-	return &sobject.SOState{
-			Config:     currentCfg,
-			Root:       root,
-			RootGrants: []*sobject.SOGrant{ownerGrant},
-		}, &sobject.SOConfigChainResponse{
-			ConfigChanges: []*sobject.SOConfigChange{genesisEntry, selfEnrollEntry},
-			KeyEpochs: []*sobject.SOKeyEpoch{{
-				Epoch:      keyEpoch,
-				SeqnoStart: 1,
-				Grants:     []*sobject.SOGrant{ownerGrant},
+	// Return consistent state, history, recovery material, and entity keys.
+	state := &sobject.SOState{
+		Config:     currentCfg,
+		Root:       root,
+		RootGrants: []*sobject.SOGrant{ownerGrant},
+	}
+	chain := &sobject.SOConfigChainResponse{
+		ConfigChanges: []*sobject.SOConfigChange{genesisEntry, selfEnrollEntry},
+		KeyEpochs: []*sobject.SOKeyEpoch{{
+			Epoch:      keyEpoch,
+			SeqnoStart: 1,
+			Grants:     []*sobject.SOGrant{ownerGrant},
+		}},
+	}
+	envelope := &api.GetSORecoveryEnvelopeResponse{
+		Envelope: recoveryEnv,
+	}
+	keypairs := &api.ListSORecoveryEntityKeypairsResponse{
+		Entities: []*api.SORecoveryEntityKeypairs{{
+			EntityId: accountID,
+			Keypairs: []*session.EntityKeypair{{
+				PeerId: entityPID.String(),
 			}},
-		}, &api.GetSORecoveryEnvelopeResponse{
-			Envelope: recoveryEnv,
-		}, &api.ListSORecoveryEntityKeypairsResponse{
-			Entities: []*api.SORecoveryEntityKeypairs{{
-				EntityId: accountID,
-				Keypairs: []*session.EntityKeypair{{
-					PeerId: entityPID.String(),
-				}},
-			}},
-		}
+		}},
+	}
+	return state, chain, envelope, keypairs
 }
