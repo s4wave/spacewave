@@ -10,10 +10,9 @@ import (
 	"sync"
 	"syscall/js"
 
-	trace "github.com/s4wave/spacewave/db/traceutil"
-
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
+	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/volume/js/opfs/segment"
 )
 
@@ -31,16 +30,22 @@ const DefaultShardCount = 4
 // by the actor but unread), so a background write returns before it is durable
 // and is fenced only by Sync.
 type writeReq struct {
+	// background marks a request eligible for background coalescing.
 	background bool
-	barrier    bool
-	err        chan error
+	// barrier requires durability of writes accepted before this request.
+	barrier bool
+	// err delivers one buffered completion result.
+	err chan error
 }
 
 // pendingEntry is a buffered, not-yet-published write held for read-through.
 type pendingEntry struct {
-	value     []byte
+	// value holds the accepted immutable value until publication.
+	value []byte
+	// tombstone hides older published values for the key.
 	tombstone bool
-	seq       uint64
+	// seq distinguishes this write from later replacements.
+	seq uint64
 }
 
 // pendingBuffer is a shard's in-memory buffer of accepted-but-unpublished
@@ -50,11 +55,15 @@ type pendingEntry struct {
 // keyed by segment key; a later write to the same key supersedes the earlier
 // one by carrying a higher seq, and a read always sees the latest.
 type pendingBuffer struct {
-	mu      sync.Mutex
-	seq     uint64
+	// mu guards sequence allocation and buffered entries.
+	mu sync.Mutex
+	// seq is the last allocated write sequence.
+	seq uint64
+	// entries maps keys to their latest accepted writes.
 	entries map[string]pendingEntry
 }
 
+// newPendingBuffer creates the read-through state shared with one shard actor.
 func newPendingBuffer() *pendingBuffer {
 	return &pendingBuffer{entries: make(map[string]pendingEntry)}
 }
@@ -123,19 +132,29 @@ func (p *pendingBuffer) length() int {
 	return len(p.entries)
 }
 
+// compactReq carries one cancellable maintenance operation and its result.
 type compactReq struct {
+	// ctx bounds the requested maintenance operation.
 	ctx context.Context
+	// err delivers one buffered completion result.
 	err chan error
 }
 
+// shardActor serializes publication and maintenance for one shard.
 type shardActor struct {
-	shardIdx   int
-	shard      *Shard
+	// shardIdx identifies the shard in the engine.
+	shardIdx int
+	// shard owns immutable generations and durable publication.
+	shard *Shard
+	// foreground carries writes and durability barriers ahead of maintenance.
 	foreground chan writeReq
+	// background carries requests eligible for coalescing.
 	background chan writeReq
+	// compaction carries explicit maintenance operations.
 	compaction chan compactReq
 }
 
+// newShardActor allocates bounded request queues for a shard lifecycle.
 func newShardActor(shardIdx int, shard *Shard) *shardActor {
 	return &shardActor{
 		shardIdx:   shardIdx,
@@ -148,18 +167,30 @@ func newShardActor(shardIdx int, shard *Shard) *shardActor {
 
 // Engine is the multi-shard block store engine.
 type Engine struct {
-	shards      []*Shard
-	actors      []*shardActor
-	pending     []*pendingBuffer
-	ctx         context.Context
-	cancel      context.CancelFunc
-	wg          sync.WaitGroup
+	// shards holds the durable storage owners.
+	shards []*Shard
+	// actors serializes writes and maintenance per shard.
+	actors []*shardActor
+	// pending provides immediate read-through for accepted writes.
+	pending []*pendingBuffer
+	// ctx bounds all engine-owned actors and invalidation work.
+	ctx context.Context
+	// cancel starts engine shutdown.
+	cancel context.CancelFunc
+	// wg joins engine-owned goroutines before resources close.
+	wg sync.WaitGroup
+	// compactionN sets the segment-count trigger for maintenance.
 	compactionN int
-	maxEntryN   int
+	// maxEntryN limits accepted live value sizes.
+	maxEntryN int
+	// broadcaster announces successfully published generations to peer workers.
 	broadcaster *Broadcaster
-	listener    *Listener
-	cache       *cacheCoordinator
-	metrics     *BenchmarkMetrics
+	// listener receives peer generation invalidations.
+	listener *Listener
+	// cache owns shared immutable segment resources.
+	cache *cacheCoordinator
+	// metrics receives optional operation measurements.
+	metrics *BenchmarkMetrics
 }
 
 // NewEngine creates a new block shard engine in the given OPFS directory.
@@ -274,11 +305,15 @@ func (e *Engine) ShardForKey(key []byte) int {
 	return int(h.Sum32() % uint32(len(e.shards)))
 }
 
+// writeDispatchMode selects whether the caller waits for durable publication.
 type writeDispatchMode uint8
 
 const (
+	// writeDispatchWait waits for every affected shard to publish.
 	writeDispatchWait writeDispatchMode = iota
+	// writeDispatchPending returns after buffering and waking background actors.
 	writeDispatchPending
+	// writeDispatchBackground dispatches low-priority maintenance writes.
 	writeDispatchBackground
 )
 
@@ -311,6 +346,7 @@ func (e *Engine) Sync(ctx context.Context) error {
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/sync")
 	defer task.End()
 
+	// Dispatch independent shard requests and join their completion results.
 	var wg sync.WaitGroup
 	errs := make([]error, len(e.actors))
 	for i := range e.actors {
@@ -339,6 +375,7 @@ func (e *Engine) Sync(ctx context.Context) error {
 	}
 	wg.Wait()
 
+	// Report the first failed shard after all dispatchers have finished.
 	for _, err := range errs {
 		if err != nil {
 			return err
@@ -390,6 +427,7 @@ func (e *Engine) CompactOnce(ctx context.Context) error {
 	return nil
 }
 
+// compactShardOnce publishes one compaction and broadcasts its generation.
 func (e *Engine) compactShardOnce(ctx context.Context, shardIdx int, shard *Shard) (bool, error) {
 	if err := ctx.Err(); err != nil {
 		return false, err
@@ -407,7 +445,7 @@ func (e *Engine) compactShardOnce(ctx context.Context, shardIdx int, shard *Shar
 	if compErr == nil {
 		_, compErr = shard.ReclaimPendingDelete(ctx)
 	}
-	gen := shard.Manifest().Generation
+	gen := shard.manifestSnapshot().Generation
 	shard.observeGeneration(gen)
 	release()
 	if compErr != nil {
@@ -488,7 +526,7 @@ func (e *Engine) putToActors(
 		return nil
 	}
 
-	// Foreground: wake each actor and wait for the publish covering this write.
+	// Dispatch foreground writes independently and join their durable results.
 	var wg sync.WaitGroup
 	errs := make([]error, len(e.shards))
 	for i := range buckets {
@@ -528,6 +566,7 @@ func (e *Engine) putToActors(
 	}
 	wg.Wait()
 
+	// Report the first failed shard after all dispatchers have finished.
 	for _, err := range errs {
 		if err != nil {
 			return err
@@ -536,6 +575,7 @@ func (e *Engine) putToActors(
 	return nil
 }
 
+// validateEntryValues rejects oversized live values before buffering any write.
 func (e *Engine) validateEntryValues(entries []segment.Entry) error {
 	if e.maxEntryN < 1 {
 		return nil
@@ -562,6 +602,7 @@ func (e *Engine) GetExistsFromShard(shardIdx int, key []byte) (bool, error) {
 	return e.getExistsFromShard(shardIdx, key, false)
 }
 
+// getFromShard reads pending values before one immutable published generation.
 func (e *Engine) getFromShard(
 	ctx context.Context,
 	shardIdx int,
@@ -594,8 +635,9 @@ func (e *Engine) getFromShard(
 		return pe.value, true, nil
 	}
 
+	// Retain one coherent generation while segment lookups may yield.
 	shard := e.shards[shardIdx]
-	m := shard.Manifest()
+	m := shard.manifestSnapshot()
 	if latestGen := shard.getLatestGeneration(); latestGen > m.Generation {
 		_, subtask := trace.NewTask(ctx, "hydra/opfs-blockshard/get-from-shard/refresh-manifest/latest-gen-ahead")
 		refreshed, err := e.refreshShardManifest(shardIdx)
@@ -681,13 +723,15 @@ func (e *Engine) shouldRetryAfterRefresh(
 	return refreshErr == nil && refreshed != nil && refreshed.Generation > currentGen
 }
 
+// getExistsFromShard resolves existence without fetching live values.
 func (e *Engine) getExistsFromShard(shardIdx int, key []byte, retried bool) (bool, error) {
 	if pe, ok := e.pending[shardIdx].get(key); ok {
 		return !pe.tombstone, nil
 	}
 	ctx := context.Background()
+	// Retain one coherent generation while segment lookups may yield.
 	shard := e.shards[shardIdx]
-	m := shard.Manifest()
+	m := shard.manifestSnapshot()
 	if latestGen := shard.getLatestGeneration(); latestGen > m.Generation {
 		refreshed, err := e.refreshShardManifest(shardIdx)
 		if err == nil && refreshed != nil && refreshed.Generation > m.Generation {
@@ -733,6 +777,7 @@ func (e *Engine) getExistsFromShard(shardIdx int, key []byte, retried bool) (boo
 	return false, nil
 }
 
+// refreshShardManifest installs the newest valid slot without regressing generation.
 func (e *Engine) refreshShardManifest(shardIdx int) (*Manifest, error) {
 	ctx := context.Background()
 	ctx, task := trace.NewTask(ctx, "hydra/opfs-blockshard/refresh-shard-manifest")
@@ -814,6 +859,7 @@ func (e *Engine) GetExistsBatch(ctx context.Context, keys [][]byte) ([]bool, err
 	return out, nil
 }
 
+// statFromShard resolves the newest live value size with one missing-file retry.
 func (e *Engine) statFromShard(
 	ctx context.Context,
 	shardIdx int,
@@ -826,8 +872,9 @@ func (e *Engine) statFromShard(
 		}
 		return int64(len(pe.value)), true, nil
 	}
+	// Retain one coherent generation while segment lookups may yield.
 	shard := e.shards[shardIdx]
-	m := shard.Manifest()
+	m := shard.manifestSnapshot()
 	if latestGen := shard.getLatestGeneration(); latestGen > m.Generation {
 		refreshed, err := e.refreshShardManifest(shardIdx)
 		if err == nil && refreshed != nil && refreshed.Generation > m.Generation {
@@ -873,14 +920,16 @@ func (e *Engine) statFromShard(
 	return 0, false, nil
 }
 
+// getExistsBatchFromShard resolves pending keys before scanning published segments.
 func (e *Engine) getExistsBatchFromShard(
 	ctx context.Context,
 	shardIdx int,
 	keys [][]byte,
 	retried bool,
 ) ([]bool, error) {
+	// Retain one coherent generation while segment lookups may yield.
 	shard := e.shards[shardIdx]
-	m := shard.Manifest()
+	m := shard.manifestSnapshot()
 	if latestGen := shard.getLatestGeneration(); latestGen > m.Generation {
 		refreshed, err := e.refreshShardManifest(shardIdx)
 		if err == nil && refreshed != nil && refreshed.Generation > m.Generation {
@@ -1146,7 +1195,7 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 			_, err = shard.ReclaimPendingDelete(publishCtx)
 			reclaimTask.End()
 		}
-		gen := shard.Manifest().Generation
+		gen := shard.manifestSnapshot().Generation
 		shard.observeGeneration(gen)
 		release()
 		publishTask.End()
@@ -1160,6 +1209,7 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 			e.broadcaster.Send(shardIdx, gen)
 		}
 
+		// Detach the completed batch before collecting the next cycle.
 		currentReqs := reqs
 		reqs = nil
 
@@ -1191,6 +1241,7 @@ func (e *Engine) runActor(ctx context.Context, actor *shardActor) {
 	}
 }
 
+// runCompactReq adapts a maintenance request to the shard compaction result.
 func (e *Engine) runCompactReq(ctx context.Context, shardIdx int, shard *Shard) error {
 	_, err := e.compactShardOnce(ctx, shardIdx, shard)
 	return err
@@ -1244,7 +1295,7 @@ func (e *Engine) runInvalidationListener(ctx context.Context) {
 				}
 				shard := e.shards[idx]
 				shard.observeGeneration(msg.Generation)
-				current := shard.Manifest()
+				current := shard.manifestSnapshot()
 				if msg.Generation > current.Generation {
 					if _, err := e.refreshShardManifest(idx); err != nil {
 						continue
