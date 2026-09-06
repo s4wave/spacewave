@@ -18,6 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TestClassifySessionWSDialErrorReturnsCloudError preserves structured authentication failures.
 func TestClassifySessionWSDialErrorReturnsCloudError(t *testing.T) {
 	dialErr := errors.New("websocket handshake failed")
 	resp := &http.Response{
@@ -27,6 +28,7 @@ func TestClassifySessionWSDialErrorReturnsCloudError(t *testing.T) {
 		)),
 	}
 
+	// Preserve the response classification and its underlying dial error.
 	err := classifySessionWSDialError(dialErr, resp)
 	if err == nil {
 		t.Fatal("expected error")
@@ -43,6 +45,7 @@ func TestClassifySessionWSDialErrorReturnsCloudError(t *testing.T) {
 	}
 }
 
+// TestClassifySessionWSDialErrorFallsBackForOpaqueHandshakeError retains the original error when the server has no typed response.
 func TestClassifySessionWSDialErrorFallsBackForOpaqueHandshakeError(t *testing.T) {
 	dialErr := errors.New("websocket handshake failed")
 	resp := &http.Response{
@@ -50,6 +53,7 @@ func TestClassifySessionWSDialErrorFallsBackForOpaqueHandshakeError(t *testing.T
 		Body:       io.NopCloser(strings.NewReader("bad gateway")),
 	}
 
+	// Preserve the response classification and its underlying dial error.
 	err := classifySessionWSDialError(dialErr, resp)
 	if err == nil {
 		t.Fatal("expected error")
@@ -57,12 +61,12 @@ func TestClassifySessionWSDialErrorFallsBackForOpaqueHandshakeError(t *testing.T
 	if !errors.Is(err, dialErr) {
 		t.Fatal("expected wrapped dial error")
 	}
-	var cloudErr *cloudError
-	if errors.As(err, &cloudErr) {
+	if _, ok := errors.AsType[*cloudError](err); ok {
 		t.Fatal("did not expect opaque handshake failure to become a cloud error")
 	}
 }
 
+// TestWSTrackerDispatchesBlockStoreNonceEventByResourceID routes block-store events using the resource ID in their payload.
 func TestWSTrackerDispatchesBlockStoreNonceEventByResourceID(t *testing.T) {
 	priv, pid := generateTestKeypair(t)
 	ticket := "ticket-123"
@@ -81,6 +85,7 @@ func TestWSTrackerDispatchesBlockStoreNonceEventByResourceID(t *testing.T) {
 		},
 	})
 
+	// Serve the ticket and signed websocket exchange used by the tracker.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/session/ticket":
@@ -88,24 +93,29 @@ func TestWSTrackerDispatchesBlockStoreNonceEventByResourceID(t *testing.T) {
 		case "/api/session/ws":
 			conn, err := websocket.Accept(w, r, nil)
 			if err != nil {
-				t.Fatalf("accept websocket: %v", err)
+				t.Errorf("accept websocket: %v", err)
+				return
 			}
 			defer conn.Close(websocket.StatusNormalClosure, "")
-			if err := conn.Write(context.Background(), websocket.MessageBinary, make([]byte, 32)); err != nil {
-				t.Fatalf("write challenge: %v", err)
+			if err := conn.Write(r.Context(), websocket.MessageBinary, make([]byte, 32)); err != nil {
+				t.Errorf("write challenge: %v", err)
+				return
 			}
-			if _, _, err := conn.Read(context.Background()); err != nil {
-				t.Fatalf("read challenge signature: %v", err)
+			if _, _, err := conn.Read(r.Context()); err != nil {
+				t.Errorf("read challenge signature: %v", err)
+				return
 			}
-			if err := conn.Write(context.Background(), websocket.MessageBinary, eventMsg); err != nil {
-				t.Fatalf("write bstore nonce event: %v", err)
+			if err := conn.Write(r.Context(), websocket.MessageBinary, eventMsg); err != nil {
+				t.Errorf("write bstore nonce event: %v", err)
+				return
 			}
 		default:
 			http.NotFound(w, r)
 		}
 	}))
-	defer srv.Close()
+	t.Cleanup(srv.Close)
 
+	// Register the callback for the payload resource, independently of the envelope.
 	cli := NewSessionClient(http.DefaultClient, srv.URL, DefaultSigningEnvPrefix, priv, pid.String())
 	tracker := newWSTracker(logrus.NewEntry(logrus.New()), func() *SessionClient {
 		return cli
@@ -114,16 +124,18 @@ func TestWSTrackerDispatchesBlockStoreNonceEventByResourceID(t *testing.T) {
 	tracker.RegisterBlockStoreNonceCallback("space-1", func(nonce uint64) {
 		gotNonce <- nonce
 	})
-	defer tracker.UnregisterBlockStoreNonceCallback("space-1")
+	t.Cleanup(func() { tracker.UnregisterBlockStoreNonceCallback("space-1") })
 
+	// Bind the pending read loop to a cancelable test lifetime.
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	t.Cleanup(cancel)
 	done := make(chan error, 1)
 	go func() {
 		_, err := tracker.runWebSocket(ctx, false)
 		done <- err
 	}()
 
+	// Require the expected event without leaving a blocked test on failure.
 	select {
 	case nonce := <-gotNonce:
 		if nonce != 42 {
@@ -140,22 +152,26 @@ func TestWSTrackerDispatchesBlockStoreNonceEventByResourceID(t *testing.T) {
 	}
 }
 
+// TestWaitForAccountChangedRequiresBroadcast blocks until the account publishes a change.
 func TestWaitForAccountChangedRequiresBroadcast(t *testing.T) {
 	bcast := &broadcast.Broadcast{}
 	tracker := &wsTracker{accountBcast: bcast}
 	ctx := t.Context()
 
+	// Observe the blocking call from the test driver.
 	done := make(chan error, 1)
 	go func() {
 		done <- tracker.waitForAccountChanged(ctx)
 	}()
 
+	// Require the expected event without leaving a blocked test on failure.
 	select {
 	case err := <-done:
 		t.Fatalf("wait returned before account broadcast: %v", err)
 	case <-time.After(100 * time.Millisecond):
 	}
 
+	// Wake the already-blocked account waiter through its normal notification.
 	bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		broadcast()
 	})
@@ -169,6 +185,7 @@ func TestWaitForAccountChangedRequiresBroadcast(t *testing.T) {
 	}
 }
 
+// TestWaitForAccountChangedCancellation releases a pending account wait on cancellation.
 func TestWaitForAccountChangedCancellation(t *testing.T) {
 	bcast := &broadcast.Broadcast{}
 	tracker := &wsTracker{accountBcast: bcast}
@@ -178,6 +195,7 @@ func TestWaitForAccountChangedCancellation(t *testing.T) {
 		done <- tracker.waitForAccountChanged(ctx)
 	}()
 
+	// Cancel the wait and require the caller to receive cancellation.
 	cancel()
 	select {
 	case err := <-done:
