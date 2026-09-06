@@ -44,7 +44,7 @@ func TestQueueGCSweepTxRolePromotion(t *testing.T) {
 
 	queued, err := c.queueGCSweepTx(ctx, so)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	if queued {
 		t.Fatal("expected reader role to skip gc sweep queueing")
@@ -56,7 +56,7 @@ func TestQueueGCSweepTxRolePromotion(t *testing.T) {
 	snap.role = sobject.SOParticipantRole_SOParticipantRole_OWNER
 	queued, err = c.queueGCSweepTx(ctx, so)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	if !queued {
 		t.Fatal("expected owner role to queue gc sweep")
@@ -67,7 +67,7 @@ func TestQueueGCSweepTxRolePromotion(t *testing.T) {
 
 	op := &SOWorldOp{}
 	if err := op.UnmarshalVT(so.queueOps[0]); err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	body, ok := op.GetBody().(*SOWorldOp_ApplyTxOp)
 	if !ok {
@@ -89,19 +89,19 @@ func TestExecuteGCSweepMaintenanceWaitsForRoleChanges(t *testing.T) {
 
 	tb, err := alpha_testbed.Default(ctx)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	defer tb.Release()
 
 	ocs, err := tb.BuildEmptyCursor(ctx)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	defer ocs.Release()
 
 	bengine, err := world_block.NewEngine(ctx, tb.Logger, ocs, world_mock.LookupMockOp, nil, false)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 
 	so := &testGCSweepSharedObject{
@@ -141,6 +141,7 @@ func TestExecuteGCSweepMaintenanceWaitsForRoleChanges(t *testing.T) {
 	}
 }
 
+// TestExecuteGCSweepMaintenanceDefersSubthresholdIdleJournal keeps sparse garbage for the backstop instead of every idle interval.
 func TestExecuteGCSweepMaintenanceDefersSubthresholdIdleJournal(t *testing.T) {
 	ctx := context.Background()
 
@@ -193,6 +194,7 @@ func TestExecuteGCSweepMaintenanceDefersSubthresholdIdleJournal(t *testing.T) {
 	}
 }
 
+// TestExecuteGCSweepMaintenanceQueuesThresholdJournal queues maintenance when the journal reaches its work threshold.
 func TestExecuteGCSweepMaintenanceQueuesThresholdJournal(t *testing.T) {
 	ctx := context.Background()
 
@@ -245,6 +247,7 @@ func TestExecuteGCSweepMaintenanceQueuesThresholdJournal(t *testing.T) {
 	}
 }
 
+// TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep reconciles remote deletions through authorized signed maintenance operations.
 func TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep(t *testing.T) {
 	ctx := t.Context()
 
@@ -269,7 +272,7 @@ func TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep(t *testing.T) {
 	for i, key := range keys {
 		tx, err := world_block_tx.NewTxDeleteObject(key)
 		if err != nil {
-			t.Fatal(err.Error())
+			t.Fatal(err)
 		}
 		queueGCSweepTestTx(t, ctx, sharedObjectID, state, xfrm, remotePriv, uint64(i+1), sobject.NewSOOperationLocalID(), tx)
 	}
@@ -286,7 +289,7 @@ func TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep(t *testing.T) {
 	}
 	queued, err := c.queueGCSweepTx(ctx, queueSO)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	if !queued {
 		t.Fatal("authorized maintenance peer did not queue gc sweep")
@@ -296,7 +299,7 @@ func TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep(t *testing.T) {
 	}
 	queuedOp := &SOWorldOp{}
 	if err := queuedOp.UnmarshalVT(queueSO.queueOps[0]); err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	body, ok := queuedOp.GetBody().(*SOWorldOp_ApplyTxOp)
 	if !ok {
@@ -306,28 +309,39 @@ func TestTwoPeerRemoteDeleteQueuesMaintenanceGCSweep(t *testing.T) {
 		t.Fatalf("expected queued GC_SWEEP tx, got %s", body.ApplyTxOp.GetTx().GetTxType().String())
 	}
 
-	queueGCSweepTestRawOp(t, ctx, sharedObjectID, state, xfrm, maintenancePriv, 1, sobject.NewSOOperationLocalID(), queueSO.queueOps[0])
-	sweepHead := processGCSweepTestStateOps(t, ctx, c, so, state, maintenanceSnap, sharedObjectID, maintenanceID)
-	// A maintenance operation reconciles one bounded chunk. Its commit can
-	// journal new root edges, so compare progress against the pre-sweep head.
-	if entries := getGCSweepTestJournalEntries(t, ctx, c, so, sweepHead); entries >= pending {
-		t.Fatalf("gc sweep left %d pending journal entries, want fewer than %d", entries, pending)
+	// Maintenance reconciles a bounded journal chunk, and committing its new
+	// root can append another entry. Require progress across signed operations
+	// and retain the original final garbage-reduction bound.
+	for nonce := uint64(1); nonce <= 4; nonce++ {
+		queueGCSweepTestRawOp(t, ctx, sharedObjectID, state, xfrm, maintenancePriv, nonce, sobject.NewSOOperationLocalID(), queueSO.queueOps[0])
+		sweepHead := processGCSweepTestStateOps(t, ctx, c, so, state, maintenanceSnap, sharedObjectID, maintenanceID)
+		entries := getGCSweepTestJournalEntries(t, ctx, c, so, sweepHead)
+		if entries >= pending {
+			t.Fatalf("maintenance operation %d left %d entries after %d: no progress", nonce, entries, pending)
+		}
+		if entries <= baselineEntries {
+			return
+		}
+		pending = entries
 	}
+	t.Fatalf("bounded maintenance left %d pending journal entries, want at most baseline %d", pending, baselineEntries)
 }
 
+// newGCSweepTestPeer creates an independent signer for operation authority checks.
 func newGCSweepTestPeer(t *testing.T) (crypto.PrivKey, peer.ID) {
 	t.Helper()
 	priv, _, err := crypto.GenerateEd25519Key(nil)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	pid, err := peer.IDFromPrivateKey(priv)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	return priv, pid
 }
 
+// seedGCSweepTestObjects persists a populated World and returns its pre-deletion journal size.
 func seedGCSweepTestObjects(
 	t *testing.T,
 	ctx context.Context,
@@ -339,7 +353,7 @@ func seedGCSweepTestObjects(
 	t.Helper()
 	ws, err := c.buildBlkEngine(ctx, c.le, so, headState.GetHeadRef().CloneVT(), headState.GetHeadRef().GetTransformConf())
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	defer ws.Release()
 
@@ -348,13 +362,13 @@ func seedGCSweepTestObjects(
 	for i := range count {
 		key := "gc-sweep-remote-delete-" + strconv.FormatUint(i, 10)
 		if _, err := world_block.BuildMockObject(ctx, worldState, key); err != nil {
-			t.Fatal(err.Error())
+			t.Fatal(err)
 		}
 		keys = append(keys, key)
 	}
 
 	if _, err := ws.bengine.Sync(ctx); err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	baselineEntries := ws.bengine.GetGCJournalEntries()
 
@@ -363,6 +377,7 @@ func seedGCSweepTestObjects(
 	return keys, baselineEntries
 }
 
+// newTwoPeerGCSweepTestState grants a writer and maintenance owner access to the same World.
 func newTwoPeerGCSweepTestState(
 	t *testing.T,
 	ctx context.Context,
@@ -377,23 +392,23 @@ func newTwoPeerGCSweepTestState(
 	transformConf := headState.GetHeadRef().GetTransformConf()
 	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: c.le}, c.sfs, transformConf)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 
 	stateData, err := headState.MarshalVT()
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	rootInnerData, err := (&sobject.SORootInner{
 		Seqno:     1,
 		StateData: stateData,
 	}).MarshalVT()
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	encodedStateData, err := xfrm.EncodeBlock(rootInnerData)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 
 	remoteGrant := newGCSweepTestGrant(t, sharedObjectID, maintenancePriv, remoteID, transformConf)
@@ -427,11 +442,12 @@ func newTwoPeerGCSweepTestState(
 		maintenanceID,
 	)
 	if _, err := snap.GetRootInner(ctx); err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	return state, snap, xfrm
 }
 
+// newGCSweepTestGrant encrypts the World transform for a test participant.
 func newGCSweepTestGrant(
 	t *testing.T,
 	sharedObjectID string,
@@ -442,7 +458,7 @@ func newGCSweepTestGrant(
 	t.Helper()
 	recipientPub, err := recipientID.ExtractPublicKey()
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	grant, err := sobject.EncryptSOGrant(
 		signerPriv,
@@ -451,11 +467,12 @@ func newGCSweepTestGrant(
 		&sobject.SOGrantInner{TransformConf: transformConf},
 	)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	return grant
 }
 
+// queueGCSweepTestTx encodes a World transaction into a signed operation.
 func queueGCSweepTestTx(
 	t *testing.T,
 	ctx context.Context,
@@ -471,6 +488,7 @@ func queueGCSweepTestTx(
 	queueGCSweepTestRawOp(t, ctx, sharedObjectID, state, xfrm, priv, nonce, localID, marshalApplyTxOpForProcessTest(t, tx))
 }
 
+// queueGCSweepTestRawOp queues an encrypted operation signed by the selected participant.
 func queueGCSweepTestRawOp(
 	t *testing.T,
 	ctx context.Context,
@@ -485,17 +503,18 @@ func queueGCSweepTestRawOp(
 	t.Helper()
 	encodedOpData, err := xfrm.EncodeBlock(opData)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	op, err := sobject.BuildSOOperation(sharedObjectID, priv, encodedOpData, nonce, localID)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	if err := state.QueueOperation(sharedObjectID, op); err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 }
 
+// processGCSweepTestStateOps applies queued operations through the real participant snapshot.
 func processGCSweepTestStateOps(
 	t *testing.T,
 	ctx context.Context,
@@ -556,7 +575,7 @@ func processGCSweepTestStateOps(
 		},
 	)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	if len(rejectedOps) != 0 {
 		t.Fatalf("expected no rejected operations, got %d", len(rejectedOps))
@@ -565,20 +584,21 @@ func processGCSweepTestStateOps(
 		t.Fatalf("expected %d accepted operations, got %d", len(queuedOps), len(acceptedOps))
 	}
 	if err := state.UpdateRootState(sharedObjectID, nextRoot, validatorID.String(), rejectedOps, acceptedOps); err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 
 	rootInner, err := snap.GetRootInner(ctx)
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	head := &InnerState{}
 	if err := head.UnmarshalVT(rootInner.GetStateData()); err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	return head
 }
 
+// getGCSweepTestJournalEntries reads the journal from a reopened committed World head.
 func getGCSweepTestJournalEntries(
 	t *testing.T,
 	ctx context.Context,
@@ -589,7 +609,7 @@ func getGCSweepTestJournalEntries(
 	t.Helper()
 	ws, err := c.buildBlkEngine(ctx, c.le, so, headState.GetHeadRef().CloneVT(), headState.GetHeadRef().GetTransformConf())
 	if err != nil {
-		t.Fatal(err.Error())
+		t.Fatal(err)
 	}
 	defer ws.Release()
 	return ws.bengine.GetGCJournalEntries()
