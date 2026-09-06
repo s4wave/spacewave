@@ -521,3 +521,213 @@ export const ListApplicationFundingResponse: MessageType<ListApplicationFundingR
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * ManagedAccountEnrollment binds a new credential to a verified application identity.
+ * The credential signs the domain-separated binary message; the application integration
+ * separately authenticates the issuer and subject before submitting it to the provider.
+ *
+ * @generated from message provider.spacewave.api.ManagedAccountEnrollment
+ */
+export interface ManagedAccountEnrollment {
+  /**
+   * ApplicationId identifies the application whose operator approves this enrollment.
+   *
+   * @generated from field: string application_id = 1;
+   */
+  applicationId?: string
+  /**
+   * Issuer is the verified identity provider's stable namespace, at most 512 UTF-8 bytes.
+   *
+   * @generated from field: string issuer = 2;
+   */
+  issuer?: string
+  /**
+   * Subject is the verified identity within the issuer, at most 256 UTF-8 bytes.
+   *
+   * @generated from field: string subject = 3;
+   */
+  subject?: string
+  /**
+   * KeypairPeerId embeds the public key of the credential being enrolled.
+   *
+   * @generated from field: string keypair_peer_id = 4;
+   */
+  keypairPeerId?: string
+  /**
+   * ExpectedApplicationRevision invalidates approvals after application configuration changes.
+   *
+   * @generated from field: uint64 expected_application_revision = 5;
+   */
+  expectedApplicationRevision?: bigint
+}
+
+export const ManagedAccountEnrollment: MessageType<ManagedAccountEnrollment> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.ManagedAccountEnrollment',
+    fields: [
+      { no: 1, name: 'application_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'issuer', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'subject', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'keypair_peer_id', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 5,
+        name: 'expected_application_revision',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * EnrollManagedAccountRequest asks the authenticated application operator to enroll a credential.
+ * Only the approved integration submits verified external subjects; this is not a browser assertion.
+ *
+ * @generated from message provider.spacewave.api.EnrollManagedAccountRequest
+ */
+export interface EnrollManagedAccountRequest {
+  /**
+   * Enrollment identifies the verified subject and credential being authorized.
+   *
+   * @generated from field: provider.spacewave.api.ManagedAccountEnrollment enrollment = 1;
+   */
+  enrollment?: ManagedAccountEnrollment
+  /**
+   * Signature proves possession over "spacewave 2026-09-06 managed account enrollment v1." followed by Enrollment binary.
+   *
+   * @generated from field: bytes signature = 2;
+   */
+  signature?: Uint8Array
+}
+
+export const EnrollManagedAccountRequest: MessageType<EnrollManagedAccountRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.EnrollManagedAccountRequest',
+    fields: [
+      {
+        no: 1,
+        name: 'enrollment',
+        kind: 'message',
+        T: () => ManagedAccountEnrollment,
+      },
+      { no: 2, name: 'signature', kind: 'scalar', T: ScalarType.BYTES },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * EnrollManagedAccountResponse identifies the ordinary account retained across recovery.
+ *
+ * @generated from message provider.spacewave.api.EnrollManagedAccountResponse
+ */
+export interface EnrollManagedAccountResponse {
+  /**
+   * ApplicationId identifies the application that manages the account.
+   *
+   * @generated from field: string application_id = 1;
+   */
+  applicationId?: string
+  /**
+   * AccountId identifies the ordinary provider account for subsequent Session registration.
+   *
+   * @generated from field: string account_id = 2;
+   */
+  accountId?: string
+  /**
+   * DomainId is the provider's account namespace.
+   *
+   * @generated from field: string domain_id = 3;
+   */
+  domainId?: string
+  /**
+   * EntityId is the stable account name within its domain.
+   *
+   * @generated from field: string entity_id = 4;
+   */
+  entityId?: string
+  /**
+   * KeypairPeerId confirms the newly authorized credential; existing credentials remain valid.
+   *
+   * @generated from field: string keypair_peer_id = 5;
+   */
+  keypairPeerId?: string
+}
+
+export const EnrollManagedAccountResponse: MessageType<EnrollManagedAccountResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.EnrollManagedAccountResponse',
+    fields: [
+      { no: 1, name: 'application_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'account_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'domain_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'entity_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 5, name: 'keypair_peer_id', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetApplicationStateRequest changes availability under application administration.
+ *
+ * @generated from message provider.spacewave.api.SetApplicationStateRequest
+ */
+export interface SetApplicationStateRequest {
+  /**
+   * ApplicationId selects the approved application.
+   *
+   * @generated from field: string application_id = 1;
+   */
+  applicationId?: string
+  /**
+   * State selects Active, Paused, or Disabled; Active requires accepted funding.
+   *
+   * @generated from field: provider.spacewave.api.ApplicationState state = 2;
+   */
+  state?: ApplicationState
+  /**
+   * ExpectedRevision fences concurrent configuration changes.
+   *
+   * @generated from field: uint64 expected_revision = 3;
+   */
+  expectedRevision?: bigint
+}
+
+export const SetApplicationStateRequest: MessageType<SetApplicationStateRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.SetApplicationStateRequest',
+    fields: [
+      { no: 1, name: 'application_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'state', kind: 'enum', T: ApplicationState_Enum },
+      {
+        no: 3,
+        name: 'expected_revision',
+        kind: 'scalar',
+        T: ScalarType.UINT64,
+      },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * SetApplicationStateResponse returns current availability after the durable transition.
+ *
+ * @generated from message provider.spacewave.api.SetApplicationStateResponse
+ */
+export interface SetApplicationStateResponse {
+  /**
+   * Application contains the new configuration; disabled credentials are never restored.
+   *
+   * @generated from field: provider.spacewave.api.Application application = 1;
+   */
+  application?: Application
+}
+
+export const SetApplicationStateResponse: MessageType<SetApplicationStateResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 'provider.spacewave.api.SetApplicationStateResponse',
+    fields: [
+      { no: 1, name: 'application', kind: 'message', T: () => Application },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })

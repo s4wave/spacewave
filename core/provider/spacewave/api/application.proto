@@ -126,3 +126,58 @@ message ListApplicationFundingResponse {
   // NextAfterRevision is the continuation cursor, or zero when there are no more assignments.
   uint64 next_after_revision = 2;
 }
+
+// ManagedAccountEnrollment binds a new credential to a verified application identity.
+// The credential signs the domain-separated binary message; the application integration
+// separately authenticates the issuer and subject before submitting it to the provider.
+message ManagedAccountEnrollment {
+  // ApplicationId identifies the application whose operator approves this enrollment.
+  string application_id = 1;
+  // Issuer is the verified identity provider's stable namespace, at most 512 UTF-8 bytes.
+  string issuer = 2;
+  // Subject is the verified identity within the issuer, at most 256 UTF-8 bytes.
+  string subject = 3;
+  // KeypairPeerId embeds the public key of the credential being enrolled.
+  string keypair_peer_id = 4;
+  // ExpectedApplicationRevision invalidates approvals after application configuration changes.
+  uint64 expected_application_revision = 5;
+}
+
+// EnrollManagedAccountRequest asks the authenticated application operator to enroll a credential.
+// Only the approved integration submits verified external subjects; this is not a browser assertion.
+message EnrollManagedAccountRequest {
+  // Enrollment identifies the verified subject and credential being authorized.
+  ManagedAccountEnrollment enrollment = 1;
+  // Signature proves possession over "spacewave 2026-09-06 managed account enrollment v1." followed by Enrollment binary.
+  bytes signature = 2;
+}
+
+// EnrollManagedAccountResponse identifies the ordinary account retained across recovery.
+message EnrollManagedAccountResponse {
+  // ApplicationId identifies the application that manages the account.
+  string application_id = 1;
+  // AccountId identifies the ordinary provider account for subsequent Session registration.
+  string account_id = 2;
+  // DomainId is the provider's account namespace.
+  string domain_id = 3;
+  // EntityId is the stable account name within its domain.
+  string entity_id = 4;
+  // KeypairPeerId confirms the newly authorized credential; existing credentials remain valid.
+  string keypair_peer_id = 5;
+}
+
+// SetApplicationStateRequest changes availability under application administration.
+message SetApplicationStateRequest {
+  // ApplicationId selects the approved application.
+  string application_id = 1;
+  // State selects Active, Paused, or Disabled; Active requires accepted funding.
+  ApplicationState state = 2;
+  // ExpectedRevision fences concurrent configuration changes.
+  uint64 expected_revision = 3;
+}
+
+// SetApplicationStateResponse returns current availability after the durable transition.
+message SetApplicationStateResponse {
+  // Application contains the new configuration; disabled credentials are never restored.
+  Application application = 1;
+}
