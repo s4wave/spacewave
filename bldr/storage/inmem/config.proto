@@ -1,0 +1,9 @@
+syntax = "proto3";
+package storage.inmem;
+
+// Config configures ephemeral storage. Volumes survive only for the controller
+// lifetime; callers must retain durable identities and authoritative data elsewhere.
+message Config {
+  // StorageId is the storage identifier to use for LookupStorage.
+  string storage_id = 1;
+}
