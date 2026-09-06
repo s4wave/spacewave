@@ -504,6 +504,16 @@
         "bldr/storage/default/config.proto"
       ]
     },
+    "github.com/s4wave/spacewave/bldr/storage/inmem": {
+      "hash": "ae6617a7282de76f3868704232f62cdfc32da2d45aa2aab9c452ce0002464356",
+      "generatedFiles": [
+        "bldr/storage/inmem/config.pb.go",
+        "bldr/storage/inmem/config.pb.ts"
+      ],
+      "protoFiles": [
+        "bldr/storage/inmem/config.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/bldr/storage/volume": {
       "hash": "bc0ac8b77cdc43adb9fa3a1c6981eb8aa38d46d6e9aaf7eea1551347977a58f1",
       "generatedFiles": [
