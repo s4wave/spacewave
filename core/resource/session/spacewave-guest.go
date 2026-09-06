@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
+	s4wave_session "github.com/s4wave/spacewave/sdk/session"
 )
 
 // ApproveGuestSpaceLink approves an independently keyed guest without registering
@@ -53,9 +54,18 @@ func (r *SpacewaveSessionResource) ApproveGuestSpaceLink(
 	); err != nil {
 		return nil, err
 	}
-	return shared.CreateSOInviteOp(
-		ctx, key, payload.GetRequestedRole(), r.swAcc.GetProviderID(),
-		verified.agentPeerID.String(), 1,
-		timestamppb.New(now.Add(localSpaceLinkInviteTTL)),
-	)
+
+	// Use the invitation owner so the signed grant is also registered with
+	// the cloud mailbox. A bare SO operation cannot admit an offline guest.
+	invite, err := r.parent.CreateSpaceInvite(ctx, &s4wave_session.CreateSpaceInviteRequest{
+		SpaceId:      resourceID,
+		Role:         payload.GetRequestedRole(),
+		TargetPeerId: verified.agentPeerID.String(),
+		MaxUses:      1,
+		ExpiresAt:    timestamppb.New(now.Add(localSpaceLinkInviteTTL)),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return invite.GetInviteMessage(), nil
 }

@@ -1,6 +1,7 @@
 import '../dispose-symbol.js'
 
-import { createAbortController, retryWithAbort } from '@aptre/bldr'
+import { createAbortController } from '../../web/bldr/abort.js'
+import { retryWithAbort } from '../../web/bldr/retry.js'
 import type { ResourceService } from './resource_srpc.pb.js'
 import type {
   ResourceAttachRequest,
