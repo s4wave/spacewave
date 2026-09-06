@@ -135,6 +135,7 @@ import {
   MountSharedObjectSelfEnrollmentRequest,
   MountSharedObjectSelfEnrollmentResponse,
 } from './spacewave-session.pb.js'
+import { SOInviteMessage } from '../../core/sobject/sobject.pb.js'
 import {
   buildDecodeMessageTransform,
   MessageStream,
@@ -143,12 +144,17 @@ import {
 } from 'starpc'
 
 /**
+ * SpacewaveSessionResourceService exposes operations under the mounted cloud Session.
+ *
  * @generated from service s4wave.session.SpacewaveSessionResourceService
  */
 export const SpacewaveSessionResourceServiceDefinition = {
   typeName: 's4wave.session.SpacewaveSessionResourceService',
   methods: {
     /**
+     * WatchOnboardingStatus streams Onboarding Status, the Spacewave cloud session
+     * route-status projection used by root, plan, billing, and lifecycle routers.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOnboardingStatus
      */
     WatchOnboardingStatus: {
@@ -158,6 +164,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * CreateLinkedLocalSession creates a local provider session with cloud identity metadata.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateLinkedLocalSession
      */
     CreateLinkedLocalSession: {
@@ -167,6 +175,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * GetLinkedLocalSession returns the session index of the linked local session.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetLinkedLocalSession
      */
     GetLinkedLocalSession: {
@@ -176,6 +186,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * UnlinkLocalSession removes the linked-local session cross-reference.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UnlinkLocalSession
      */
     UnlinkLocalSession: {
@@ -185,6 +197,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CreateCheckoutSession creates or resumes a Stripe Checkout Session.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateCheckoutSession
      */
     CreateCheckoutSession: {
@@ -194,6 +208,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CancelCheckoutSession cancels pending checkout attempts.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CancelCheckoutSession
      */
     CancelCheckoutSession: {
@@ -203,6 +219,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * WatchSubscriptionStatus streams billing account state changes.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchSubscriptionStatus
      */
     WatchSubscriptionStatus: {
@@ -212,6 +230,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * WatchBillingState streams combined billing account state and usage.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchBillingState
      */
     WatchBillingState: {
@@ -221,6 +241,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * WatchCheckoutStatus streams checkout status changes via the checkout WS.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchCheckoutStatus
      */
     WatchCheckoutStatus: {
@@ -230,6 +252,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * RefreshBillingState invalidates the cached billing snapshot so watches reload.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RefreshBillingState
      */
     RefreshBillingState: {
@@ -239,6 +263,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CancelSubscription cancels the active subscription.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CancelSubscription
      */
     CancelSubscription: {
@@ -248,6 +274,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ReactivateSubscription reactivates a canceled subscription.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReactivateSubscription
      */
     ReactivateSubscription: {
@@ -257,6 +285,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * SwitchBillingInterval switches between monthly and annual billing.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SwitchBillingInterval
      */
     SwitchBillingInterval: {
@@ -266,6 +296,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CreateBillingPortal creates a Stripe billing portal session URL.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateBillingPortal
      */
     CreateBillingPortal: {
@@ -275,6 +307,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CreateBillingAccount creates a new unassigned billing account managed by the caller.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateBillingAccount
      */
     CreateBillingAccount: {
@@ -284,6 +318,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ListManagedBillingAccounts lists billing accounts the caller manages.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListManagedBillingAccounts
      */
     ListManagedBillingAccounts: {
@@ -293,6 +329,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * AssignBillingAccount binds a billing account to a principal.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AssignBillingAccount
      */
     AssignBillingAccount: {
@@ -302,6 +340,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * DetachBillingAccount clears a principal's billing account assignment.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DetachBillingAccount
      */
     DetachBillingAccount: {
@@ -311,6 +351,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * RenameBillingAccount updates the display name on a BA the caller manages.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RenameBillingAccount
      */
     RenameBillingAccount: {
@@ -320,6 +362,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * DeleteBillingAccount permanently removes a managed billing account.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DeleteBillingAccount
      */
     DeleteBillingAccount: {
@@ -329,6 +373,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * RequestDeleteNowEmail sends a delete-now confirmation email with a code and link.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RequestDeleteNowEmail
      */
     RequestDeleteNowEmail: {
@@ -338,6 +384,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ConfirmDeleteNowCode finalizes delete-now using the 6-digit code from email.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ConfirmDeleteNowCode
      */
     ConfirmDeleteNowCode: {
@@ -347,6 +395,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * UndoDeleteNow cancels a pending delete-now countdown.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UndoDeleteNow
      */
     UndoDeleteNow: {
@@ -356,6 +406,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * WatchOrganizations streams the user's org list, emitting on membership changes.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOrganizations
      */
     WatchOrganizations: {
@@ -365,6 +417,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * CreateOrganization creates a new organization.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganization
      */
     CreateOrganization: {
@@ -374,6 +428,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * WatchOrganizationState streams one organization's combined mutable state.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOrganizationState
      */
     WatchOrganizationState: {
@@ -383,6 +439,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * DeleteOrganization deletes an organization.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DeleteOrganization
      */
     DeleteOrganization: {
@@ -392,6 +450,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
      */
     CreateTargetedInviteDraftByUsername: {
@@ -401,6 +461,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ResolveUsername resolves an exact username for an allowed invite context.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResolveUsername
      */
     ResolveUsername: {
@@ -410,6 +472,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CreateTargetedInvitation creates a signed pending targeted invitation.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInvitation
      */
     CreateTargetedInvitation: {
@@ -419,6 +483,9 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CreateSpaceTargetedInvitationByUsername creates a Space targeted invitation
+     * by exact username and stores it in the recipient inbox.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateSpaceTargetedInvitationByUsername
      */
     CreateSpaceTargetedInvitationByUsername: {
@@ -428,6 +495,9 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * AcceptSpaceTargetedInvitation accepts a pending Space targeted invitation
+     * through the existing mailbox-backed join path.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptSpaceTargetedInvitation
      */
     AcceptSpaceTargetedInvitation: {
@@ -437,6 +507,9 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CreateOrganizationTargetedInvitationByUsername creates an organization
+     * targeted invitation by exact username and stores it in the recipient inbox.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganizationTargetedInvitationByUsername
      */
     CreateOrganizationTargetedInvitationByUsername: {
@@ -446,6 +519,9 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * AcceptOrganizationTargetedInvitation accepts a pending organization targeted
+     * invitation and mirrors the membership into local org state.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptOrganizationTargetedInvitation
      */
     AcceptOrganizationTargetedInvitation: {
@@ -455,6 +531,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ListTargetedInvitations lists the caller's targeted invitation inbox.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListTargetedInvitations
      */
     ListTargetedInvitations: {
@@ -464,6 +542,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * WatchTargetedInvitations streams recipient targeted invitation inbox snapshots.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchTargetedInvitations
      */
     WatchTargetedInvitations: {
@@ -473,6 +553,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * GetTargetedInvitation reads one targeted invitation.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetTargetedInvitation
      */
     GetTargetedInvitation: {
@@ -482,6 +564,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * RevokeTargetedInvitation revokes one pending targeted invitation.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeTargetedInvitation
      */
     RevokeTargetedInvitation: {
@@ -491,6 +575,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ProcessTargetedInvitation applies a recipient lifecycle action.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessTargetedInvitation
      */
     ProcessTargetedInvitation: {
@@ -500,6 +586,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * CreateOrgInvite creates an invite for an organization.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrgInvite
      */
     CreateOrgInvite: {
@@ -509,6 +597,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * JoinOrganization joins an organization via invite token.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.JoinOrganization
      */
     JoinOrganization: {
@@ -518,6 +608,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * RevokeOrgInvite revokes an invite by ID.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeOrgInvite
      */
     RevokeOrgInvite: {
@@ -527,6 +619,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * LeaveOrganization leaves an organization.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LeaveOrganization
      */
     LeaveOrganization: {
@@ -536,6 +630,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * RemoveOrgMember removes a member from an organization.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveOrgMember
      */
     RemoveOrgMember: {
@@ -545,6 +641,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * UpdateOrganization updates an organization's display name.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UpdateOrganization
      */
     UpdateOrganization: {
@@ -554,6 +652,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * TransferResource transfers a resource to a typed principal owner.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.TransferResource
      */
     TransferResource: {
@@ -563,6 +663,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * RepairSharedObject retries owner-side repair for a broken shared object.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RepairSharedObject
      */
     RepairSharedObject: {
@@ -572,6 +674,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ReinitializeSharedObject destructively rewrites a broken shared object in place.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReinitializeSharedObject
      */
     ReinitializeSharedObject: {
@@ -581,6 +685,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.MountSharedObjectSelfEnrollment
      */
     MountSharedObjectSelfEnrollment: {
@@ -590,6 +696,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * WatchEmails streams the account's email list, emitting on changes.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchEmails
      */
     WatchEmails: {
@@ -599,6 +707,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.ServerStreaming,
     },
     /**
+     * SendVerificationEmail sends a verification email to the given address.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SendVerificationEmail
      */
     SendVerificationEmail: {
@@ -608,6 +718,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * VerifyEmailCode verifies a 6-digit code for in-app email verification.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.VerifyEmailCode
      */
     VerifyEmailCode: {
@@ -617,6 +729,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * AddEmail adds an email address and sends verification.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AddEmail
      */
     AddEmail: {
@@ -626,6 +740,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * RemoveEmail removes an email address from the account.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveEmail
      */
     RemoveEmail: {
@@ -635,6 +751,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * SetPrimaryEmail promotes a verified email to primary.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SetPrimaryEmail
      */
     SetPrimaryEmail: {
@@ -644,6 +762,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * EnrollSpaceMember enrolls an org member into a space by adding them as a participant.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.EnrollSpaceMember
      */
     EnrollSpaceMember: {
@@ -653,6 +773,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * RemoveSpaceMember removes an org member from a space by removing them as a participant.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveSpaceMember
      */
     RemoveSpaceMember: {
@@ -662,6 +784,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * LookupInviteCode resolves a short invite code to the full SOInviteMessage.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LookupInviteCode
      */
     LookupInviteCode: {
@@ -671,6 +795,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ProcessMailboxEntry accepts or rejects a mailbox entry.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessMailboxEntry
      */
     ProcessMailboxEntry: {
@@ -680,6 +806,13 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * StartDesktopSSOLink runs the native-owned desktop SessionDetails SSO-link
+     * flow. The handler calls the authenticated cloud start endpoint for the
+     * waiting auth-session relay material, opens the system browser to the
+     * provider authorize URL, waits for the OAuth result on the auth-session
+     * WebSocket, and returns the { provider, code } pair so the UI can complete
+     * account linking through the existing Account.LinkSSO mutation.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopSSOLink
      */
     StartDesktopSSOLink: {
@@ -689,6 +822,12 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
+     * for one specific entity keypair. The handler calls the authenticated cloud
+     * start endpoint, opens the system browser to the account-hosted ceremony,
+     * waits for the browser-authenticated result on the auth-session WebSocket,
+     * and returns the unwrap artifacts for the existing unlock path.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopPasskeyReauth
      */
     StartDesktopPasskeyReauth: {
@@ -698,6 +837,8 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * EncryptForHandoff encrypts the active session privkey to a device pubkey.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.EncryptForHandoff
      */
     EncryptForHandoff: {
@@ -729,6 +870,21 @@ export const SpacewaveSessionResourceServiceDefinition = {
       kind: MethodKind.Unary,
     },
     /**
+     * ApproveGuestSpaceLink verifies a signed ticket and issues an OWNER's one-use
+     * targeted invite without registering the guest under the approving account.
+     * The caller must authorize application membership before requesting approval.
+     *
+     * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ApproveGuestSpaceLink
+     */
+    ApproveGuestSpaceLink: {
+      name: 'ApproveGuestSpaceLink',
+      I: ApproveSpaceLinkRequest,
+      O: SOInviteMessage,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ResetSession resets a PIN-locked session.
+     *
      * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResetSession
      */
     ResetSession: {
@@ -741,10 +897,15 @@ export const SpacewaveSessionResourceServiceDefinition = {
 } as const
 
 /**
+ * SpacewaveSessionResourceService exposes operations under the mounted cloud Session.
+ *
  * @generated from service s4wave.session.SpacewaveSessionResourceService
  */
 export interface SpacewaveSessionResourceService {
   /**
+   * WatchOnboardingStatus streams Onboarding Status, the Spacewave cloud session
+   * route-status projection used by root, plan, billing, and lifecycle routers.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOnboardingStatus
    */
   WatchOnboardingStatus(
@@ -753,6 +914,8 @@ export interface SpacewaveSessionResourceService {
   ): MessageStream<WatchOnboardingStatusResponse>
 
   /**
+   * CreateLinkedLocalSession creates a local provider session with cloud identity metadata.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateLinkedLocalSession
    */
   CreateLinkedLocalSession(
@@ -761,6 +924,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CreateLinkedLocalSessionResponse>
 
   /**
+   * GetLinkedLocalSession returns the session index of the linked local session.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetLinkedLocalSession
    */
   GetLinkedLocalSession(
@@ -769,6 +934,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<GetLinkedLocalSessionResponse>
 
   /**
+   * UnlinkLocalSession removes the linked-local session cross-reference.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UnlinkLocalSession
    */
   UnlinkLocalSession(
@@ -777,6 +944,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<UnlinkLocalSessionResponse>
 
   /**
+   * CreateCheckoutSession creates or resumes a Stripe Checkout Session.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateCheckoutSession
    */
   CreateCheckoutSession(
@@ -785,6 +954,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CreateCheckoutSessionResponse>
 
   /**
+   * CancelCheckoutSession cancels pending checkout attempts.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CancelCheckoutSession
    */
   CancelCheckoutSession(
@@ -793,6 +964,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CancelCheckoutSessionResponse>
 
   /**
+   * WatchSubscriptionStatus streams billing account state changes.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchSubscriptionStatus
    */
   WatchSubscriptionStatus(
@@ -801,6 +974,8 @@ export interface SpacewaveSessionResourceService {
   ): MessageStream<WatchSubscriptionStatusResponse>
 
   /**
+   * WatchBillingState streams combined billing account state and usage.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchBillingState
    */
   WatchBillingState(
@@ -809,6 +984,8 @@ export interface SpacewaveSessionResourceService {
   ): MessageStream<WatchBillingStateResponse>
 
   /**
+   * WatchCheckoutStatus streams checkout status changes via the checkout WS.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchCheckoutStatus
    */
   WatchCheckoutStatus(
@@ -817,6 +994,8 @@ export interface SpacewaveSessionResourceService {
   ): MessageStream<WatchCheckoutStatusResponse>
 
   /**
+   * RefreshBillingState invalidates the cached billing snapshot so watches reload.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RefreshBillingState
    */
   RefreshBillingState(
@@ -825,6 +1004,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<RefreshBillingStateResponse>
 
   /**
+   * CancelSubscription cancels the active subscription.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CancelSubscription
    */
   CancelSubscription(
@@ -833,6 +1014,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CancelSubscriptionResponse>
 
   /**
+   * ReactivateSubscription reactivates a canceled subscription.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReactivateSubscription
    */
   ReactivateSubscription(
@@ -841,6 +1024,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<ReactivateSubscriptionResponse>
 
   /**
+   * SwitchBillingInterval switches between monthly and annual billing.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SwitchBillingInterval
    */
   SwitchBillingInterval(
@@ -849,6 +1034,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<SwitchBillingIntervalResponse>
 
   /**
+   * CreateBillingPortal creates a Stripe billing portal session URL.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateBillingPortal
    */
   CreateBillingPortal(
@@ -857,6 +1044,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CreateBillingPortalResponse>
 
   /**
+   * CreateBillingAccount creates a new unassigned billing account managed by the caller.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateBillingAccount
    */
   CreateBillingAccount(
@@ -865,6 +1054,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CreateBillingAccountResponse>
 
   /**
+   * ListManagedBillingAccounts lists billing accounts the caller manages.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListManagedBillingAccounts
    */
   ListManagedBillingAccounts(
@@ -873,6 +1064,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<ListManagedBillingAccountsResponse>
 
   /**
+   * AssignBillingAccount binds a billing account to a principal.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AssignBillingAccount
    */
   AssignBillingAccount(
@@ -881,6 +1074,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<AssignBillingAccountResponse>
 
   /**
+   * DetachBillingAccount clears a principal's billing account assignment.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DetachBillingAccount
    */
   DetachBillingAccount(
@@ -889,6 +1084,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<DetachBillingAccountResponse>
 
   /**
+   * RenameBillingAccount updates the display name on a BA the caller manages.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RenameBillingAccount
    */
   RenameBillingAccount(
@@ -897,6 +1094,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<RenameBillingAccountResponse>
 
   /**
+   * DeleteBillingAccount permanently removes a managed billing account.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DeleteBillingAccount
    */
   DeleteBillingAccount(
@@ -905,6 +1104,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<DeleteBillingAccountResponse>
 
   /**
+   * RequestDeleteNowEmail sends a delete-now confirmation email with a code and link.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RequestDeleteNowEmail
    */
   RequestDeleteNowEmail(
@@ -913,6 +1114,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<RequestDeleteNowEmailResponse>
 
   /**
+   * ConfirmDeleteNowCode finalizes delete-now using the 6-digit code from email.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ConfirmDeleteNowCode
    */
   ConfirmDeleteNowCode(
@@ -921,6 +1124,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<ConfirmDeleteNowCodeResponse>
 
   /**
+   * UndoDeleteNow cancels a pending delete-now countdown.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UndoDeleteNow
    */
   UndoDeleteNow(
@@ -929,6 +1134,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<UndoDeleteNowResponse>
 
   /**
+   * WatchOrganizations streams the user's org list, emitting on membership changes.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOrganizations
    */
   WatchOrganizations(
@@ -937,6 +1144,8 @@ export interface SpacewaveSessionResourceService {
   ): MessageStream<WatchOrganizationsResponse>
 
   /**
+   * CreateOrganization creates a new organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganization
    */
   CreateOrganization(
@@ -945,6 +1154,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CreateOrganizationResponse>
 
   /**
+   * WatchOrganizationState streams one organization's combined mutable state.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOrganizationState
    */
   WatchOrganizationState(
@@ -953,6 +1164,8 @@ export interface SpacewaveSessionResourceService {
   ): MessageStream<WatchOrganizationStateResponse>
 
   /**
+   * DeleteOrganization deletes an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DeleteOrganization
    */
   DeleteOrganization(
@@ -961,6 +1174,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<DeleteOrganizationResponse>
 
   /**
+   * CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
    */
   CreateTargetedInviteDraftByUsername(
@@ -969,6 +1184,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CreateTargetedInviteDraftByUsernameResponse>
 
   /**
+   * ResolveUsername resolves an exact username for an allowed invite context.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResolveUsername
    */
   ResolveUsername(
@@ -977,6 +1194,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<ResolveUsernameResponse>
 
   /**
+   * CreateTargetedInvitation creates a signed pending targeted invitation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInvitation
    */
   CreateTargetedInvitation(
@@ -985,6 +1204,9 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CreateTargetedInvitationResponse>
 
   /**
+   * CreateSpaceTargetedInvitationByUsername creates a Space targeted invitation
+   * by exact username and stores it in the recipient inbox.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateSpaceTargetedInvitationByUsername
    */
   CreateSpaceTargetedInvitationByUsername(
@@ -993,6 +1215,9 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CreateSpaceTargetedInvitationByUsernameResponse>
 
   /**
+   * AcceptSpaceTargetedInvitation accepts a pending Space targeted invitation
+   * through the existing mailbox-backed join path.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptSpaceTargetedInvitation
    */
   AcceptSpaceTargetedInvitation(
@@ -1001,6 +1226,9 @@ export interface SpacewaveSessionResourceService {
   ): Promise<AcceptSpaceTargetedInvitationResponse>
 
   /**
+   * CreateOrganizationTargetedInvitationByUsername creates an organization
+   * targeted invitation by exact username and stores it in the recipient inbox.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganizationTargetedInvitationByUsername
    */
   CreateOrganizationTargetedInvitationByUsername(
@@ -1009,6 +1237,9 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CreateOrganizationTargetedInvitationByUsernameResponse>
 
   /**
+   * AcceptOrganizationTargetedInvitation accepts a pending organization targeted
+   * invitation and mirrors the membership into local org state.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptOrganizationTargetedInvitation
    */
   AcceptOrganizationTargetedInvitation(
@@ -1017,6 +1248,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<AcceptOrganizationTargetedInvitationResponse>
 
   /**
+   * ListTargetedInvitations lists the caller's targeted invitation inbox.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListTargetedInvitations
    */
   ListTargetedInvitations(
@@ -1025,6 +1258,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<ListTargetedInvitationsResponse>
 
   /**
+   * WatchTargetedInvitations streams recipient targeted invitation inbox snapshots.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchTargetedInvitations
    */
   WatchTargetedInvitations(
@@ -1033,6 +1268,8 @@ export interface SpacewaveSessionResourceService {
   ): MessageStream<ListTargetedInvitationsResponse>
 
   /**
+   * GetTargetedInvitation reads one targeted invitation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetTargetedInvitation
    */
   GetTargetedInvitation(
@@ -1041,6 +1278,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<GetTargetedInvitationResponse>
 
   /**
+   * RevokeTargetedInvitation revokes one pending targeted invitation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeTargetedInvitation
    */
   RevokeTargetedInvitation(
@@ -1049,6 +1288,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<RevokeTargetedInvitationResponse>
 
   /**
+   * ProcessTargetedInvitation applies a recipient lifecycle action.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessTargetedInvitation
    */
   ProcessTargetedInvitation(
@@ -1057,6 +1298,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<ProcessTargetedInvitationResponse>
 
   /**
+   * CreateOrgInvite creates an invite for an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrgInvite
    */
   CreateOrgInvite(
@@ -1065,6 +1308,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<CreateOrgInviteResponse>
 
   /**
+   * JoinOrganization joins an organization via invite token.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.JoinOrganization
    */
   JoinOrganization(
@@ -1073,6 +1318,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<JoinOrganizationResponse>
 
   /**
+   * RevokeOrgInvite revokes an invite by ID.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeOrgInvite
    */
   RevokeOrgInvite(
@@ -1081,6 +1328,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<RevokeOrgInviteResponse>
 
   /**
+   * LeaveOrganization leaves an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LeaveOrganization
    */
   LeaveOrganization(
@@ -1089,6 +1338,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<LeaveOrganizationResponse>
 
   /**
+   * RemoveOrgMember removes a member from an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveOrgMember
    */
   RemoveOrgMember(
@@ -1097,6 +1348,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<RemoveOrgMemberResponse>
 
   /**
+   * UpdateOrganization updates an organization's display name.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UpdateOrganization
    */
   UpdateOrganization(
@@ -1105,6 +1358,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<UpdateOrganizationResponse>
 
   /**
+   * TransferResource transfers a resource to a typed principal owner.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.TransferResource
    */
   TransferResource(
@@ -1113,6 +1368,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<TransferResourceResponse>
 
   /**
+   * RepairSharedObject retries owner-side repair for a broken shared object.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RepairSharedObject
    */
   RepairSharedObject(
@@ -1121,6 +1378,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<RepairSharedObjectResponse>
 
   /**
+   * ReinitializeSharedObject destructively rewrites a broken shared object in place.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReinitializeSharedObject
    */
   ReinitializeSharedObject(
@@ -1129,6 +1388,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<ReinitializeSharedObjectResponse>
 
   /**
+   * MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.MountSharedObjectSelfEnrollment
    */
   MountSharedObjectSelfEnrollment(
@@ -1137,6 +1398,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<MountSharedObjectSelfEnrollmentResponse>
 
   /**
+   * WatchEmails streams the account's email list, emitting on changes.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchEmails
    */
   WatchEmails(
@@ -1145,6 +1408,8 @@ export interface SpacewaveSessionResourceService {
   ): MessageStream<WatchEmailsResponse>
 
   /**
+   * SendVerificationEmail sends a verification email to the given address.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SendVerificationEmail
    */
   SendVerificationEmail(
@@ -1153,6 +1418,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<SendVerificationEmailResponse>
 
   /**
+   * VerifyEmailCode verifies a 6-digit code for in-app email verification.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.VerifyEmailCode
    */
   VerifyEmailCode(
@@ -1161,6 +1428,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<VerifyEmailCodeResponse>
 
   /**
+   * AddEmail adds an email address and sends verification.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AddEmail
    */
   AddEmail(
@@ -1169,6 +1438,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<AddEmailResponse>
 
   /**
+   * RemoveEmail removes an email address from the account.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveEmail
    */
   RemoveEmail(
@@ -1177,6 +1448,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<RemoveEmailResponse>
 
   /**
+   * SetPrimaryEmail promotes a verified email to primary.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SetPrimaryEmail
    */
   SetPrimaryEmail(
@@ -1185,6 +1458,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<SetPrimaryEmailResponse>
 
   /**
+   * EnrollSpaceMember enrolls an org member into a space by adding them as a participant.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.EnrollSpaceMember
    */
   EnrollSpaceMember(
@@ -1193,6 +1468,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<EnrollSpaceMemberResponse>
 
   /**
+   * RemoveSpaceMember removes an org member from a space by removing them as a participant.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveSpaceMember
    */
   RemoveSpaceMember(
@@ -1201,6 +1478,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<RemoveSpaceMemberResponse>
 
   /**
+   * LookupInviteCode resolves a short invite code to the full SOInviteMessage.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LookupInviteCode
    */
   LookupInviteCode(
@@ -1209,6 +1488,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<LookupInviteCodeResponse>
 
   /**
+   * ProcessMailboxEntry accepts or rejects a mailbox entry.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessMailboxEntry
    */
   ProcessMailboxEntry(
@@ -1217,6 +1498,13 @@ export interface SpacewaveSessionResourceService {
   ): Promise<ProcessMailboxEntryResponse>
 
   /**
+   * StartDesktopSSOLink runs the native-owned desktop SessionDetails SSO-link
+   * flow. The handler calls the authenticated cloud start endpoint for the
+   * waiting auth-session relay material, opens the system browser to the
+   * provider authorize URL, waits for the OAuth result on the auth-session
+   * WebSocket, and returns the { provider, code } pair so the UI can complete
+   * account linking through the existing Account.LinkSSO mutation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopSSOLink
    */
   StartDesktopSSOLink(
@@ -1225,6 +1513,12 @@ export interface SpacewaveSessionResourceService {
   ): Promise<StartDesktopSSOLinkResponse>
 
   /**
+   * StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
+   * for one specific entity keypair. The handler calls the authenticated cloud
+   * start endpoint, opens the system browser to the account-hosted ceremony,
+   * waits for the browser-authenticated result on the auth-session WebSocket,
+   * and returns the unwrap artifacts for the existing unlock path.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopPasskeyReauth
    */
   StartDesktopPasskeyReauth(
@@ -1233,6 +1527,8 @@ export interface SpacewaveSessionResourceService {
   ): Promise<StartDesktopPasskeyReauthResponse>
 
   /**
+   * EncryptForHandoff encrypts the active session privkey to a device pubkey.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.EncryptForHandoff
    */
   EncryptForHandoff(
@@ -1261,6 +1557,20 @@ export interface SpacewaveSessionResourceService {
   ): Promise<ApproveSpaceLinkResponse>
 
   /**
+   * ApproveGuestSpaceLink verifies a signed ticket and issues an OWNER's one-use
+   * targeted invite without registering the guest under the approving account.
+   * The caller must authorize application membership before requesting approval.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ApproveGuestSpaceLink
+   */
+  ApproveGuestSpaceLink(
+    request: ApproveSpaceLinkRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SOInviteMessage>
+
+  /**
+   * ResetSession resets a PIN-locked session.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResetSession
    */
   ResetSession(
@@ -1270,10 +1580,15 @@ export interface SpacewaveSessionResourceService {
 }
 
 /**
+ * SpacewaveSessionResourceService exposes operations under the mounted cloud Session.
+ *
  * @generated from service s4wave.session.SpacewaveSessionResourceService
  */
 export interface SpacewaveSessionResourceServiceHandler {
   /**
+   * WatchOnboardingStatus streams Onboarding Status, the Spacewave cloud session
+   * route-status projection used by root, plan, billing, and lifecycle routers.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOnboardingStatus
    */
   WatchOnboardingStatus(
@@ -1283,6 +1598,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): MessageStream<WatchOnboardingStatusResponse>
 
   /**
+   * CreateLinkedLocalSession creates a local provider session with cloud identity metadata.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateLinkedLocalSession
    */
   CreateLinkedLocalSession(
@@ -1292,6 +1609,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CreateLinkedLocalSessionResponse>
 
   /**
+   * GetLinkedLocalSession returns the session index of the linked local session.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetLinkedLocalSession
    */
   GetLinkedLocalSession(
@@ -1301,6 +1620,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<GetLinkedLocalSessionResponse>
 
   /**
+   * UnlinkLocalSession removes the linked-local session cross-reference.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UnlinkLocalSession
    */
   UnlinkLocalSession(
@@ -1310,6 +1631,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<UnlinkLocalSessionResponse>
 
   /**
+   * CreateCheckoutSession creates or resumes a Stripe Checkout Session.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateCheckoutSession
    */
   CreateCheckoutSession(
@@ -1319,6 +1642,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CreateCheckoutSessionResponse>
 
   /**
+   * CancelCheckoutSession cancels pending checkout attempts.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CancelCheckoutSession
    */
   CancelCheckoutSession(
@@ -1328,6 +1653,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CancelCheckoutSessionResponse>
 
   /**
+   * WatchSubscriptionStatus streams billing account state changes.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchSubscriptionStatus
    */
   WatchSubscriptionStatus(
@@ -1337,6 +1664,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): MessageStream<WatchSubscriptionStatusResponse>
 
   /**
+   * WatchBillingState streams combined billing account state and usage.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchBillingState
    */
   WatchBillingState(
@@ -1346,6 +1675,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): MessageStream<WatchBillingStateResponse>
 
   /**
+   * WatchCheckoutStatus streams checkout status changes via the checkout WS.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchCheckoutStatus
    */
   WatchCheckoutStatus(
@@ -1355,6 +1686,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): MessageStream<WatchCheckoutStatusResponse>
 
   /**
+   * RefreshBillingState invalidates the cached billing snapshot so watches reload.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RefreshBillingState
    */
   RefreshBillingState(
@@ -1364,6 +1697,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<RefreshBillingStateResponse>
 
   /**
+   * CancelSubscription cancels the active subscription.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CancelSubscription
    */
   CancelSubscription(
@@ -1373,6 +1708,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CancelSubscriptionResponse>
 
   /**
+   * ReactivateSubscription reactivates a canceled subscription.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReactivateSubscription
    */
   ReactivateSubscription(
@@ -1382,6 +1719,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<ReactivateSubscriptionResponse>
 
   /**
+   * SwitchBillingInterval switches between monthly and annual billing.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SwitchBillingInterval
    */
   SwitchBillingInterval(
@@ -1391,6 +1730,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<SwitchBillingIntervalResponse>
 
   /**
+   * CreateBillingPortal creates a Stripe billing portal session URL.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateBillingPortal
    */
   CreateBillingPortal(
@@ -1400,6 +1741,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CreateBillingPortalResponse>
 
   /**
+   * CreateBillingAccount creates a new unassigned billing account managed by the caller.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateBillingAccount
    */
   CreateBillingAccount(
@@ -1409,6 +1752,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CreateBillingAccountResponse>
 
   /**
+   * ListManagedBillingAccounts lists billing accounts the caller manages.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListManagedBillingAccounts
    */
   ListManagedBillingAccounts(
@@ -1418,6 +1763,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<ListManagedBillingAccountsResponse>
 
   /**
+   * AssignBillingAccount binds a billing account to a principal.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AssignBillingAccount
    */
   AssignBillingAccount(
@@ -1427,6 +1774,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<AssignBillingAccountResponse>
 
   /**
+   * DetachBillingAccount clears a principal's billing account assignment.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DetachBillingAccount
    */
   DetachBillingAccount(
@@ -1436,6 +1785,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<DetachBillingAccountResponse>
 
   /**
+   * RenameBillingAccount updates the display name on a BA the caller manages.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RenameBillingAccount
    */
   RenameBillingAccount(
@@ -1445,6 +1796,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<RenameBillingAccountResponse>
 
   /**
+   * DeleteBillingAccount permanently removes a managed billing account.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DeleteBillingAccount
    */
   DeleteBillingAccount(
@@ -1454,6 +1807,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<DeleteBillingAccountResponse>
 
   /**
+   * RequestDeleteNowEmail sends a delete-now confirmation email with a code and link.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RequestDeleteNowEmail
    */
   RequestDeleteNowEmail(
@@ -1463,6 +1818,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<RequestDeleteNowEmailResponse>
 
   /**
+   * ConfirmDeleteNowCode finalizes delete-now using the 6-digit code from email.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ConfirmDeleteNowCode
    */
   ConfirmDeleteNowCode(
@@ -1472,6 +1829,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<ConfirmDeleteNowCodeResponse>
 
   /**
+   * UndoDeleteNow cancels a pending delete-now countdown.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UndoDeleteNow
    */
   UndoDeleteNow(
@@ -1481,6 +1840,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<UndoDeleteNowResponse>
 
   /**
+   * WatchOrganizations streams the user's org list, emitting on membership changes.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOrganizations
    */
   WatchOrganizations(
@@ -1490,6 +1851,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): MessageStream<WatchOrganizationsResponse>
 
   /**
+   * CreateOrganization creates a new organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganization
    */
   CreateOrganization(
@@ -1499,6 +1862,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CreateOrganizationResponse>
 
   /**
+   * WatchOrganizationState streams one organization's combined mutable state.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOrganizationState
    */
   WatchOrganizationState(
@@ -1508,6 +1873,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): MessageStream<WatchOrganizationStateResponse>
 
   /**
+   * DeleteOrganization deletes an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DeleteOrganization
    */
   DeleteOrganization(
@@ -1517,6 +1884,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<DeleteOrganizationResponse>
 
   /**
+   * CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
    */
   CreateTargetedInviteDraftByUsername(
@@ -1526,6 +1895,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CreateTargetedInviteDraftByUsernameResponse>
 
   /**
+   * ResolveUsername resolves an exact username for an allowed invite context.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResolveUsername
    */
   ResolveUsername(
@@ -1535,6 +1906,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<ResolveUsernameResponse>
 
   /**
+   * CreateTargetedInvitation creates a signed pending targeted invitation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInvitation
    */
   CreateTargetedInvitation(
@@ -1544,6 +1917,9 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CreateTargetedInvitationResponse>
 
   /**
+   * CreateSpaceTargetedInvitationByUsername creates a Space targeted invitation
+   * by exact username and stores it in the recipient inbox.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateSpaceTargetedInvitationByUsername
    */
   CreateSpaceTargetedInvitationByUsername(
@@ -1553,6 +1929,9 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CreateSpaceTargetedInvitationByUsernameResponse>
 
   /**
+   * AcceptSpaceTargetedInvitation accepts a pending Space targeted invitation
+   * through the existing mailbox-backed join path.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptSpaceTargetedInvitation
    */
   AcceptSpaceTargetedInvitation(
@@ -1562,6 +1941,9 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<AcceptSpaceTargetedInvitationResponse>
 
   /**
+   * CreateOrganizationTargetedInvitationByUsername creates an organization
+   * targeted invitation by exact username and stores it in the recipient inbox.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganizationTargetedInvitationByUsername
    */
   CreateOrganizationTargetedInvitationByUsername(
@@ -1571,6 +1953,9 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CreateOrganizationTargetedInvitationByUsernameResponse>
 
   /**
+   * AcceptOrganizationTargetedInvitation accepts a pending organization targeted
+   * invitation and mirrors the membership into local org state.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptOrganizationTargetedInvitation
    */
   AcceptOrganizationTargetedInvitation(
@@ -1580,6 +1965,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<AcceptOrganizationTargetedInvitationResponse>
 
   /**
+   * ListTargetedInvitations lists the caller's targeted invitation inbox.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListTargetedInvitations
    */
   ListTargetedInvitations(
@@ -1589,6 +1976,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<ListTargetedInvitationsResponse>
 
   /**
+   * WatchTargetedInvitations streams recipient targeted invitation inbox snapshots.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchTargetedInvitations
    */
   WatchTargetedInvitations(
@@ -1598,6 +1987,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): MessageStream<ListTargetedInvitationsResponse>
 
   /**
+   * GetTargetedInvitation reads one targeted invitation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetTargetedInvitation
    */
   GetTargetedInvitation(
@@ -1607,6 +1998,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<GetTargetedInvitationResponse>
 
   /**
+   * RevokeTargetedInvitation revokes one pending targeted invitation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeTargetedInvitation
    */
   RevokeTargetedInvitation(
@@ -1616,6 +2009,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<RevokeTargetedInvitationResponse>
 
   /**
+   * ProcessTargetedInvitation applies a recipient lifecycle action.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessTargetedInvitation
    */
   ProcessTargetedInvitation(
@@ -1625,6 +2020,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<ProcessTargetedInvitationResponse>
 
   /**
+   * CreateOrgInvite creates an invite for an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrgInvite
    */
   CreateOrgInvite(
@@ -1634,6 +2031,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<CreateOrgInviteResponse>
 
   /**
+   * JoinOrganization joins an organization via invite token.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.JoinOrganization
    */
   JoinOrganization(
@@ -1643,6 +2042,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<JoinOrganizationResponse>
 
   /**
+   * RevokeOrgInvite revokes an invite by ID.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeOrgInvite
    */
   RevokeOrgInvite(
@@ -1652,6 +2053,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<RevokeOrgInviteResponse>
 
   /**
+   * LeaveOrganization leaves an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LeaveOrganization
    */
   LeaveOrganization(
@@ -1661,6 +2064,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<LeaveOrganizationResponse>
 
   /**
+   * RemoveOrgMember removes a member from an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveOrgMember
    */
   RemoveOrgMember(
@@ -1670,6 +2075,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<RemoveOrgMemberResponse>
 
   /**
+   * UpdateOrganization updates an organization's display name.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UpdateOrganization
    */
   UpdateOrganization(
@@ -1679,6 +2086,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<UpdateOrganizationResponse>
 
   /**
+   * TransferResource transfers a resource to a typed principal owner.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.TransferResource
    */
   TransferResource(
@@ -1688,6 +2097,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<TransferResourceResponse>
 
   /**
+   * RepairSharedObject retries owner-side repair for a broken shared object.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RepairSharedObject
    */
   RepairSharedObject(
@@ -1697,6 +2108,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<RepairSharedObjectResponse>
 
   /**
+   * ReinitializeSharedObject destructively rewrites a broken shared object in place.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReinitializeSharedObject
    */
   ReinitializeSharedObject(
@@ -1706,6 +2119,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<ReinitializeSharedObjectResponse>
 
   /**
+   * MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.MountSharedObjectSelfEnrollment
    */
   MountSharedObjectSelfEnrollment(
@@ -1715,6 +2130,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<MountSharedObjectSelfEnrollmentResponse>
 
   /**
+   * WatchEmails streams the account's email list, emitting on changes.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchEmails
    */
   WatchEmails(
@@ -1724,6 +2141,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): MessageStream<WatchEmailsResponse>
 
   /**
+   * SendVerificationEmail sends a verification email to the given address.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SendVerificationEmail
    */
   SendVerificationEmail(
@@ -1733,6 +2152,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<SendVerificationEmailResponse>
 
   /**
+   * VerifyEmailCode verifies a 6-digit code for in-app email verification.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.VerifyEmailCode
    */
   VerifyEmailCode(
@@ -1742,6 +2163,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<VerifyEmailCodeResponse>
 
   /**
+   * AddEmail adds an email address and sends verification.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AddEmail
    */
   AddEmail(
@@ -1751,6 +2174,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<AddEmailResponse>
 
   /**
+   * RemoveEmail removes an email address from the account.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveEmail
    */
   RemoveEmail(
@@ -1760,6 +2185,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<RemoveEmailResponse>
 
   /**
+   * SetPrimaryEmail promotes a verified email to primary.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SetPrimaryEmail
    */
   SetPrimaryEmail(
@@ -1769,6 +2196,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<SetPrimaryEmailResponse>
 
   /**
+   * EnrollSpaceMember enrolls an org member into a space by adding them as a participant.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.EnrollSpaceMember
    */
   EnrollSpaceMember(
@@ -1778,6 +2207,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<EnrollSpaceMemberResponse>
 
   /**
+   * RemoveSpaceMember removes an org member from a space by removing them as a participant.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveSpaceMember
    */
   RemoveSpaceMember(
@@ -1787,6 +2218,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<RemoveSpaceMemberResponse>
 
   /**
+   * LookupInviteCode resolves a short invite code to the full SOInviteMessage.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LookupInviteCode
    */
   LookupInviteCode(
@@ -1796,6 +2229,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<LookupInviteCodeResponse>
 
   /**
+   * ProcessMailboxEntry accepts or rejects a mailbox entry.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessMailboxEntry
    */
   ProcessMailboxEntry(
@@ -1805,6 +2240,13 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<ProcessMailboxEntryResponse>
 
   /**
+   * StartDesktopSSOLink runs the native-owned desktop SessionDetails SSO-link
+   * flow. The handler calls the authenticated cloud start endpoint for the
+   * waiting auth-session relay material, opens the system browser to the
+   * provider authorize URL, waits for the OAuth result on the auth-session
+   * WebSocket, and returns the { provider, code } pair so the UI can complete
+   * account linking through the existing Account.LinkSSO mutation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopSSOLink
    */
   StartDesktopSSOLink(
@@ -1814,6 +2256,12 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<StartDesktopSSOLinkResponse>
 
   /**
+   * StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
+   * for one specific entity keypair. The handler calls the authenticated cloud
+   * start endpoint, opens the system browser to the account-hosted ceremony,
+   * waits for the browser-authenticated result on the auth-session WebSocket,
+   * and returns the unwrap artifacts for the existing unlock path.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopPasskeyReauth
    */
   StartDesktopPasskeyReauth(
@@ -1823,6 +2271,8 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<StartDesktopPasskeyReauthResponse>
 
   /**
+   * EncryptForHandoff encrypts the active session privkey to a device pubkey.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.EncryptForHandoff
    */
   EncryptForHandoff(
@@ -1854,6 +2304,21 @@ export interface SpacewaveSessionResourceServiceHandler {
   ): Promise<ApproveSpaceLinkResponse>
 
   /**
+   * ApproveGuestSpaceLink verifies a signed ticket and issues an OWNER's one-use
+   * targeted invite without registering the guest under the approving account.
+   * The caller must authorize application membership before requesting approval.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ApproveGuestSpaceLink
+   */
+  ApproveGuestSpaceLink(
+    request: ApproveSpaceLinkRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<SOInviteMessage>
+
+  /**
+   * ResetSession resets a PIN-locked session.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResetSession
    */
   ResetSession(
@@ -1942,9 +2407,13 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
     this.EncryptForHandoff = this.EncryptForHandoff.bind(this)
     this.PreviewSpaceLink = this.PreviewSpaceLink.bind(this)
     this.ApproveSpaceLink = this.ApproveSpaceLink.bind(this)
+    this.ApproveGuestSpaceLink = this.ApproveGuestSpaceLink.bind(this)
     this.ResetSession = this.ResetSession.bind(this)
   }
   /**
+   * WatchOnboardingStatus streams Onboarding Status, the Spacewave cloud session
+   * route-status projection used by root, plan, billing, and lifecycle routers.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOnboardingStatus
    */
   WatchOnboardingStatus(
@@ -1963,6 +2432,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CreateLinkedLocalSession creates a local provider session with cloud identity metadata.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateLinkedLocalSession
    */
   async CreateLinkedLocalSession(
@@ -1981,6 +2452,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * GetLinkedLocalSession returns the session index of the linked local session.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetLinkedLocalSession
    */
   async GetLinkedLocalSession(
@@ -1999,6 +2472,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * UnlinkLocalSession removes the linked-local session cross-reference.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UnlinkLocalSession
    */
   async UnlinkLocalSession(
@@ -2016,6 +2491,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CreateCheckoutSession creates or resumes a Stripe Checkout Session.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateCheckoutSession
    */
   async CreateCheckoutSession(
@@ -2034,6 +2511,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CancelCheckoutSession cancels pending checkout attempts.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CancelCheckoutSession
    */
   async CancelCheckoutSession(
@@ -2052,6 +2531,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * WatchSubscriptionStatus streams billing account state changes.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchSubscriptionStatus
    */
   WatchSubscriptionStatus(
@@ -2070,6 +2551,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * WatchBillingState streams combined billing account state and usage.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchBillingState
    */
   WatchBillingState(
@@ -2087,6 +2570,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * WatchCheckoutStatus streams checkout status changes via the checkout WS.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchCheckoutStatus
    */
   WatchCheckoutStatus(
@@ -2105,6 +2590,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * RefreshBillingState invalidates the cached billing snapshot so watches reload.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RefreshBillingState
    */
   async RefreshBillingState(
@@ -2123,6 +2610,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CancelSubscription cancels the active subscription.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CancelSubscription
    */
   async CancelSubscription(
@@ -2140,6 +2629,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * ReactivateSubscription reactivates a canceled subscription.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReactivateSubscription
    */
   async ReactivateSubscription(
@@ -2158,6 +2649,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * SwitchBillingInterval switches between monthly and annual billing.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SwitchBillingInterval
    */
   async SwitchBillingInterval(
@@ -2176,6 +2669,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CreateBillingPortal creates a Stripe billing portal session URL.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateBillingPortal
    */
   async CreateBillingPortal(
@@ -2194,6 +2689,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CreateBillingAccount creates a new unassigned billing account managed by the caller.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateBillingAccount
    */
   async CreateBillingAccount(
@@ -2212,6 +2709,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * ListManagedBillingAccounts lists billing accounts the caller manages.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListManagedBillingAccounts
    */
   async ListManagedBillingAccounts(
@@ -2230,6 +2729,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * AssignBillingAccount binds a billing account to a principal.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AssignBillingAccount
    */
   async AssignBillingAccount(
@@ -2248,6 +2749,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * DetachBillingAccount clears a principal's billing account assignment.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DetachBillingAccount
    */
   async DetachBillingAccount(
@@ -2266,6 +2769,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * RenameBillingAccount updates the display name on a BA the caller manages.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RenameBillingAccount
    */
   async RenameBillingAccount(
@@ -2284,6 +2789,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * DeleteBillingAccount permanently removes a managed billing account.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DeleteBillingAccount
    */
   async DeleteBillingAccount(
@@ -2302,6 +2809,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * RequestDeleteNowEmail sends a delete-now confirmation email with a code and link.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RequestDeleteNowEmail
    */
   async RequestDeleteNowEmail(
@@ -2320,6 +2829,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * ConfirmDeleteNowCode finalizes delete-now using the 6-digit code from email.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ConfirmDeleteNowCode
    */
   async ConfirmDeleteNowCode(
@@ -2338,6 +2849,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * UndoDeleteNow cancels a pending delete-now countdown.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UndoDeleteNow
    */
   async UndoDeleteNow(
@@ -2355,6 +2868,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * WatchOrganizations streams the user's org list, emitting on membership changes.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOrganizations
    */
   WatchOrganizations(
@@ -2372,6 +2887,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CreateOrganization creates a new organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganization
    */
   async CreateOrganization(
@@ -2389,6 +2906,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * WatchOrganizationState streams one organization's combined mutable state.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchOrganizationState
    */
   WatchOrganizationState(
@@ -2407,6 +2926,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * DeleteOrganization deletes an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.DeleteOrganization
    */
   async DeleteOrganization(
@@ -2424,6 +2945,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInviteDraftByUsername
    */
   async CreateTargetedInviteDraftByUsername(
@@ -2443,6 +2966,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * ResolveUsername resolves an exact username for an allowed invite context.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResolveUsername
    */
   async ResolveUsername(
@@ -2460,6 +2985,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CreateTargetedInvitation creates a signed pending targeted invitation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateTargetedInvitation
    */
   async CreateTargetedInvitation(
@@ -2478,6 +3005,9 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CreateSpaceTargetedInvitationByUsername creates a Space targeted invitation
+   * by exact username and stores it in the recipient inbox.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateSpaceTargetedInvitationByUsername
    */
   async CreateSpaceTargetedInvitationByUsername(
@@ -2497,6 +3027,9 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * AcceptSpaceTargetedInvitation accepts a pending Space targeted invitation
+   * through the existing mailbox-backed join path.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptSpaceTargetedInvitation
    */
   async AcceptSpaceTargetedInvitation(
@@ -2515,6 +3048,9 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CreateOrganizationTargetedInvitationByUsername creates an organization
+   * targeted invitation by exact username and stores it in the recipient inbox.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrganizationTargetedInvitationByUsername
    */
   async CreateOrganizationTargetedInvitationByUsername(
@@ -2538,6 +3074,9 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * AcceptOrganizationTargetedInvitation accepts a pending organization targeted
+   * invitation and mirrors the membership into local org state.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AcceptOrganizationTargetedInvitation
    */
   async AcceptOrganizationTargetedInvitation(
@@ -2557,6 +3096,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * ListTargetedInvitations lists the caller's targeted invitation inbox.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ListTargetedInvitations
    */
   async ListTargetedInvitations(
@@ -2575,6 +3116,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * WatchTargetedInvitations streams recipient targeted invitation inbox snapshots.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchTargetedInvitations
    */
   WatchTargetedInvitations(
@@ -2593,6 +3136,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * GetTargetedInvitation reads one targeted invitation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.GetTargetedInvitation
    */
   async GetTargetedInvitation(
@@ -2611,6 +3156,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * RevokeTargetedInvitation revokes one pending targeted invitation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeTargetedInvitation
    */
   async RevokeTargetedInvitation(
@@ -2629,6 +3176,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * ProcessTargetedInvitation applies a recipient lifecycle action.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessTargetedInvitation
    */
   async ProcessTargetedInvitation(
@@ -2647,6 +3196,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * CreateOrgInvite creates an invite for an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.CreateOrgInvite
    */
   async CreateOrgInvite(
@@ -2664,6 +3215,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * JoinOrganization joins an organization via invite token.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.JoinOrganization
    */
   async JoinOrganization(
@@ -2681,6 +3234,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * RevokeOrgInvite revokes an invite by ID.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RevokeOrgInvite
    */
   async RevokeOrgInvite(
@@ -2698,6 +3253,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * LeaveOrganization leaves an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LeaveOrganization
    */
   async LeaveOrganization(
@@ -2715,6 +3272,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * RemoveOrgMember removes a member from an organization.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveOrgMember
    */
   async RemoveOrgMember(
@@ -2732,6 +3291,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * UpdateOrganization updates an organization's display name.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.UpdateOrganization
    */
   async UpdateOrganization(
@@ -2749,6 +3310,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * TransferResource transfers a resource to a typed principal owner.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.TransferResource
    */
   async TransferResource(
@@ -2766,6 +3329,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * RepairSharedObject retries owner-side repair for a broken shared object.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RepairSharedObject
    */
   async RepairSharedObject(
@@ -2783,6 +3348,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * ReinitializeSharedObject destructively rewrites a broken shared object in place.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ReinitializeSharedObject
    */
   async ReinitializeSharedObject(
@@ -2801,6 +3368,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.MountSharedObjectSelfEnrollment
    */
   async MountSharedObjectSelfEnrollment(
@@ -2819,6 +3388,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * WatchEmails streams the account's email list, emitting on changes.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.WatchEmails
    */
   WatchEmails(
@@ -2836,6 +3407,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * SendVerificationEmail sends a verification email to the given address.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SendVerificationEmail
    */
   async SendVerificationEmail(
@@ -2854,6 +3427,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * VerifyEmailCode verifies a 6-digit code for in-app email verification.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.VerifyEmailCode
    */
   async VerifyEmailCode(
@@ -2871,6 +3446,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * AddEmail adds an email address and sends verification.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.AddEmail
    */
   async AddEmail(
@@ -2888,6 +3465,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * RemoveEmail removes an email address from the account.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveEmail
    */
   async RemoveEmail(
@@ -2905,6 +3484,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * SetPrimaryEmail promotes a verified email to primary.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.SetPrimaryEmail
    */
   async SetPrimaryEmail(
@@ -2922,6 +3503,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * EnrollSpaceMember enrolls an org member into a space by adding them as a participant.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.EnrollSpaceMember
    */
   async EnrollSpaceMember(
@@ -2939,6 +3522,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * RemoveSpaceMember removes an org member from a space by removing them as a participant.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.RemoveSpaceMember
    */
   async RemoveSpaceMember(
@@ -2956,6 +3541,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * LookupInviteCode resolves a short invite code to the full SOInviteMessage.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.LookupInviteCode
    */
   async LookupInviteCode(
@@ -2973,6 +3560,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * ProcessMailboxEntry accepts or rejects a mailbox entry.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ProcessMailboxEntry
    */
   async ProcessMailboxEntry(
@@ -2991,6 +3580,13 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * StartDesktopSSOLink runs the native-owned desktop SessionDetails SSO-link
+   * flow. The handler calls the authenticated cloud start endpoint for the
+   * waiting auth-session relay material, opens the system browser to the
+   * provider authorize URL, waits for the OAuth result on the auth-session
+   * WebSocket, and returns the { provider, code } pair so the UI can complete
+   * account linking through the existing Account.LinkSSO mutation.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopSSOLink
    */
   async StartDesktopSSOLink(
@@ -3009,6 +3605,12 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
+   * for one specific entity keypair. The handler calls the authenticated cloud
+   * start endpoint, opens the system browser to the account-hosted ceremony,
+   * waits for the browser-authenticated result on the auth-session WebSocket,
+   * and returns the unwrap artifacts for the existing unlock path.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.StartDesktopPasskeyReauth
    */
   async StartDesktopPasskeyReauth(
@@ -3027,6 +3629,8 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * EncryptForHandoff encrypts the active session privkey to a device pubkey.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.EncryptForHandoff
    */
   async EncryptForHandoff(
@@ -3082,6 +3686,30 @@ export class SpacewaveSessionResourceServiceClient implements SpacewaveSessionRe
   }
 
   /**
+   * ApproveGuestSpaceLink verifies a signed ticket and issues an OWNER's one-use
+   * targeted invite without registering the guest under the approving account.
+   * The caller must authorize application membership before requesting approval.
+   *
+   * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ApproveGuestSpaceLink
+   */
+  async ApproveGuestSpaceLink(
+    request: ApproveSpaceLinkRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<SOInviteMessage> {
+    const requestMsg = ApproveSpaceLinkRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpacewaveSessionResourceServiceDefinition.methods.ApproveGuestSpaceLink
+        .name,
+      ApproveSpaceLinkRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return SOInviteMessage.fromBinary(result)
+  }
+
+  /**
+   * ResetSession resets a PIN-locked session.
+   *
    * @generated from rpc s4wave.session.SpacewaveSessionResourceService.ResetSession
    */
   async ResetSession(

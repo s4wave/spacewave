@@ -11,6 +11,7 @@ import (
 
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
+	_ "github.com/s4wave/spacewave/core/sobject"
 	_ "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 

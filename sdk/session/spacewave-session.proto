@@ -1,87 +1,171 @@
 syntax = "proto3";
 package s4wave.session;
 
+import "github.com/s4wave/spacewave/core/sobject/sobject.proto";
 import "github.com/s4wave/spacewave/sdk/provider/spacewave/spacewave.proto";
 
+// SpacewaveSessionResourceService exposes operations under the mounted cloud Session.
 service SpacewaveSessionResourceService {
+  // WatchOnboardingStatus streams Onboarding Status, the Spacewave cloud session
+  // route-status projection used by root, plan, billing, and lifecycle routers.
   rpc WatchOnboardingStatus(.s4wave.provider.spacewave.WatchOnboardingStatusRequest) returns (stream .s4wave.provider.spacewave.WatchOnboardingStatusResponse);
+  // CreateLinkedLocalSession creates a local provider session with cloud identity metadata.
   rpc CreateLinkedLocalSession(.s4wave.provider.spacewave.CreateLinkedLocalSessionRequest) returns (.s4wave.provider.spacewave.CreateLinkedLocalSessionResponse);
+  // GetLinkedLocalSession returns the session index of the linked local session.
   rpc GetLinkedLocalSession(.s4wave.provider.spacewave.GetLinkedLocalSessionRequest) returns (.s4wave.provider.spacewave.GetLinkedLocalSessionResponse);
+  // UnlinkLocalSession removes the linked-local session cross-reference.
   rpc UnlinkLocalSession(.s4wave.provider.spacewave.UnlinkLocalSessionRequest) returns (.s4wave.provider.spacewave.UnlinkLocalSessionResponse);
 
+  // CreateCheckoutSession creates or resumes a Stripe Checkout Session.
   rpc CreateCheckoutSession(.s4wave.provider.spacewave.CreateCheckoutSessionRequest) returns (.s4wave.provider.spacewave.CreateCheckoutSessionResponse);
+  // CancelCheckoutSession cancels pending checkout attempts.
   rpc CancelCheckoutSession(.s4wave.provider.spacewave.CancelCheckoutSessionRequest) returns (.s4wave.provider.spacewave.CancelCheckoutSessionResponse);
+  // WatchSubscriptionStatus streams billing account state changes.
   rpc WatchSubscriptionStatus(.s4wave.provider.spacewave.WatchSubscriptionStatusRequest) returns (stream .s4wave.provider.spacewave.WatchSubscriptionStatusResponse);
+  // WatchBillingState streams combined billing account state and usage.
   rpc WatchBillingState(.s4wave.provider.spacewave.WatchBillingStateRequest) returns (stream .s4wave.provider.spacewave.WatchBillingStateResponse);
+  // WatchCheckoutStatus streams checkout status changes via the checkout WS.
   rpc WatchCheckoutStatus(.s4wave.provider.spacewave.WatchCheckoutStatusRequest) returns (stream .s4wave.provider.spacewave.WatchCheckoutStatusResponse);
+  // RefreshBillingState invalidates the cached billing snapshot so watches reload.
   rpc RefreshBillingState(.s4wave.provider.spacewave.RefreshBillingStateRequest) returns (.s4wave.provider.spacewave.RefreshBillingStateResponse);
+  // CancelSubscription cancels the active subscription.
   rpc CancelSubscription(.s4wave.provider.spacewave.CancelSubscriptionRequest) returns (.s4wave.provider.spacewave.CancelSubscriptionResponse);
+  // ReactivateSubscription reactivates a canceled subscription.
   rpc ReactivateSubscription(.s4wave.provider.spacewave.ReactivateSubscriptionRequest) returns (.s4wave.provider.spacewave.ReactivateSubscriptionResponse);
+  // SwitchBillingInterval switches between monthly and annual billing.
   rpc SwitchBillingInterval(.s4wave.provider.spacewave.SwitchBillingIntervalRequest) returns (.s4wave.provider.spacewave.SwitchBillingIntervalResponse);
+  // CreateBillingPortal creates a Stripe billing portal session URL.
   rpc CreateBillingPortal(.s4wave.provider.spacewave.CreateBillingPortalRequest) returns (.s4wave.provider.spacewave.CreateBillingPortalResponse);
+  // CreateBillingAccount creates a new unassigned billing account managed by the caller.
   rpc CreateBillingAccount(.s4wave.provider.spacewave.CreateBillingAccountRequest) returns (.s4wave.provider.spacewave.CreateBillingAccountResponse);
+  // ListManagedBillingAccounts lists billing accounts the caller manages.
   rpc ListManagedBillingAccounts(.s4wave.provider.spacewave.ListManagedBillingAccountsRequest) returns (.s4wave.provider.spacewave.ListManagedBillingAccountsResponse);
+  // AssignBillingAccount binds a billing account to a principal.
   rpc AssignBillingAccount(.s4wave.provider.spacewave.AssignBillingAccountRequest) returns (.s4wave.provider.spacewave.AssignBillingAccountResponse);
+  // DetachBillingAccount clears a principal's billing account assignment.
   rpc DetachBillingAccount(.s4wave.provider.spacewave.DetachBillingAccountRequest) returns (.s4wave.provider.spacewave.DetachBillingAccountResponse);
+  // RenameBillingAccount updates the display name on a BA the caller manages.
   rpc RenameBillingAccount(.s4wave.provider.spacewave.RenameBillingAccountRequest) returns (.s4wave.provider.spacewave.RenameBillingAccountResponse);
+  // DeleteBillingAccount permanently removes a managed billing account.
   rpc DeleteBillingAccount(.s4wave.provider.spacewave.DeleteBillingAccountRequest) returns (.s4wave.provider.spacewave.DeleteBillingAccountResponse);
+  // RequestDeleteNowEmail sends a delete-now confirmation email with a code and link.
   rpc RequestDeleteNowEmail(.s4wave.provider.spacewave.RequestDeleteNowEmailRequest) returns (.s4wave.provider.spacewave.RequestDeleteNowEmailResponse);
+  // ConfirmDeleteNowCode finalizes delete-now using the 6-digit code from email.
   rpc ConfirmDeleteNowCode(.s4wave.provider.spacewave.ConfirmDeleteNowCodeRequest) returns (.s4wave.provider.spacewave.ConfirmDeleteNowCodeResponse);
+  // UndoDeleteNow cancels a pending delete-now countdown.
   rpc UndoDeleteNow(.s4wave.provider.spacewave.UndoDeleteNowRequest) returns (.s4wave.provider.spacewave.UndoDeleteNowResponse);
 
+  // WatchOrganizations streams the user's org list, emitting on membership changes.
   rpc WatchOrganizations(.s4wave.provider.spacewave.WatchOrganizationsRequest) returns (stream .s4wave.provider.spacewave.WatchOrganizationsResponse);
+  // CreateOrganization creates a new organization.
   rpc CreateOrganization(.s4wave.provider.spacewave.CreateOrganizationRequest) returns (.s4wave.provider.spacewave.CreateOrganizationResponse);
+  // WatchOrganizationState streams one organization's combined mutable state.
   rpc WatchOrganizationState(.s4wave.provider.spacewave.WatchOrganizationStateRequest) returns (stream .s4wave.provider.spacewave.WatchOrganizationStateResponse);
+  // DeleteOrganization deletes an organization.
   rpc DeleteOrganization(.s4wave.provider.spacewave.DeleteOrganizationRequest) returns (.s4wave.provider.spacewave.DeleteOrganizationResponse);
+  // CreateTargetedInviteDraftByUsername creates an opaque targeted invite draft.
   rpc CreateTargetedInviteDraftByUsername(.s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameRequest) returns (.s4wave.provider.spacewave.CreateTargetedInviteDraftByUsernameResponse);
+  // ResolveUsername resolves an exact username for an allowed invite context.
   rpc ResolveUsername(.s4wave.provider.spacewave.ResolveUsernameRequest) returns (.s4wave.provider.spacewave.ResolveUsernameResponse);
+  // CreateTargetedInvitation creates a signed pending targeted invitation.
   rpc CreateTargetedInvitation(.s4wave.provider.spacewave.CreateTargetedInvitationRequest) returns (.s4wave.provider.spacewave.CreateTargetedInvitationResponse);
+  // CreateSpaceTargetedInvitationByUsername creates a Space targeted invitation
+  // by exact username and stores it in the recipient inbox.
   rpc CreateSpaceTargetedInvitationByUsername(.s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameRequest) returns (.s4wave.provider.spacewave.CreateSpaceTargetedInvitationByUsernameResponse);
+  // AcceptSpaceTargetedInvitation accepts a pending Space targeted invitation
+  // through the existing mailbox-backed join path.
   rpc AcceptSpaceTargetedInvitation(.s4wave.provider.spacewave.AcceptSpaceTargetedInvitationRequest) returns (.s4wave.provider.spacewave.AcceptSpaceTargetedInvitationResponse);
+  // CreateOrganizationTargetedInvitationByUsername creates an organization
+  // targeted invitation by exact username and stores it in the recipient inbox.
   rpc CreateOrganizationTargetedInvitationByUsername(.s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameRequest) returns (.s4wave.provider.spacewave.CreateOrganizationTargetedInvitationByUsernameResponse);
+  // AcceptOrganizationTargetedInvitation accepts a pending organization targeted
+  // invitation and mirrors the membership into local org state.
   rpc AcceptOrganizationTargetedInvitation(.s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationRequest) returns (.s4wave.provider.spacewave.AcceptOrganizationTargetedInvitationResponse);
+  // ListTargetedInvitations lists the caller's targeted invitation inbox.
   rpc ListTargetedInvitations(.s4wave.provider.spacewave.ListTargetedInvitationsRequest) returns (.s4wave.provider.spacewave.ListTargetedInvitationsResponse);
+  // WatchTargetedInvitations streams recipient targeted invitation inbox snapshots.
   rpc WatchTargetedInvitations(.s4wave.provider.spacewave.ListTargetedInvitationsRequest) returns (stream .s4wave.provider.spacewave.ListTargetedInvitationsResponse);
+  // GetTargetedInvitation reads one targeted invitation.
   rpc GetTargetedInvitation(.s4wave.provider.spacewave.GetTargetedInvitationRequest) returns (.s4wave.provider.spacewave.GetTargetedInvitationResponse);
+  // RevokeTargetedInvitation revokes one pending targeted invitation.
   rpc RevokeTargetedInvitation(.s4wave.provider.spacewave.RevokeTargetedInvitationRequest) returns (.s4wave.provider.spacewave.RevokeTargetedInvitationResponse);
+  // ProcessTargetedInvitation applies a recipient lifecycle action.
   rpc ProcessTargetedInvitation(.s4wave.provider.spacewave.ProcessTargetedInvitationRequest) returns (.s4wave.provider.spacewave.ProcessTargetedInvitationResponse);
+  // CreateOrgInvite creates an invite for an organization.
   rpc CreateOrgInvite(.s4wave.provider.spacewave.CreateOrgInviteRequest) returns (.s4wave.provider.spacewave.CreateOrgInviteResponse);
+  // JoinOrganization joins an organization via invite token.
   rpc JoinOrganization(.s4wave.provider.spacewave.JoinOrganizationRequest) returns (.s4wave.provider.spacewave.JoinOrganizationResponse);
+  // RevokeOrgInvite revokes an invite by ID.
   rpc RevokeOrgInvite(.s4wave.provider.spacewave.RevokeOrgInviteRequest) returns (.s4wave.provider.spacewave.RevokeOrgInviteResponse);
+  // LeaveOrganization leaves an organization.
   rpc LeaveOrganization(.s4wave.provider.spacewave.LeaveOrganizationRequest) returns (.s4wave.provider.spacewave.LeaveOrganizationResponse);
+  // RemoveOrgMember removes a member from an organization.
   rpc RemoveOrgMember(.s4wave.provider.spacewave.RemoveOrgMemberRequest) returns (.s4wave.provider.spacewave.RemoveOrgMemberResponse);
+  // UpdateOrganization updates an organization's display name.
   rpc UpdateOrganization(.s4wave.provider.spacewave.UpdateOrganizationRequest) returns (.s4wave.provider.spacewave.UpdateOrganizationResponse);
+  // TransferResource transfers a resource to a typed principal owner.
   rpc TransferResource(.s4wave.provider.spacewave.TransferResourceRequest) returns (.s4wave.provider.spacewave.TransferResourceResponse);
 
+  // RepairSharedObject retries owner-side repair for a broken shared object.
   rpc RepairSharedObject(.s4wave.provider.spacewave.RepairSharedObjectRequest) returns (.s4wave.provider.spacewave.RepairSharedObjectResponse);
+  // ReinitializeSharedObject destructively rewrites a broken shared object in place.
   rpc ReinitializeSharedObject(.s4wave.provider.spacewave.ReinitializeSharedObjectRequest) returns (.s4wave.provider.spacewave.ReinitializeSharedObjectResponse);
+  // MountSharedObjectSelfEnrollment mounts the self-enrollment resource.
   rpc MountSharedObjectSelfEnrollment(MountSharedObjectSelfEnrollmentRequest) returns (MountSharedObjectSelfEnrollmentResponse);
 
+  // WatchEmails streams the account's email list, emitting on changes.
   rpc WatchEmails(.s4wave.provider.spacewave.WatchEmailsRequest) returns (stream .s4wave.provider.spacewave.WatchEmailsResponse);
+  // SendVerificationEmail sends a verification email to the given address.
   rpc SendVerificationEmail(.s4wave.provider.spacewave.SendVerificationEmailRequest) returns (.s4wave.provider.spacewave.SendVerificationEmailResponse);
+  // VerifyEmailCode verifies a 6-digit code for in-app email verification.
   rpc VerifyEmailCode(.s4wave.provider.spacewave.VerifyEmailCodeRequest) returns (.s4wave.provider.spacewave.VerifyEmailCodeResponse);
+  // AddEmail adds an email address and sends verification.
   rpc AddEmail(.s4wave.provider.spacewave.AddEmailRequest) returns (.s4wave.provider.spacewave.AddEmailResponse);
+  // RemoveEmail removes an email address from the account.
   rpc RemoveEmail(.s4wave.provider.spacewave.RemoveEmailRequest) returns (.s4wave.provider.spacewave.RemoveEmailResponse);
+  // SetPrimaryEmail promotes a verified email to primary.
   rpc SetPrimaryEmail(.s4wave.provider.spacewave.SetPrimaryEmailRequest) returns (.s4wave.provider.spacewave.SetPrimaryEmailResponse);
 
+  // EnrollSpaceMember enrolls an org member into a space by adding them as a participant.
   rpc EnrollSpaceMember(.s4wave.provider.spacewave.EnrollSpaceMemberRequest) returns (.s4wave.provider.spacewave.EnrollSpaceMemberResponse);
+  // RemoveSpaceMember removes an org member from a space by removing them as a participant.
   rpc RemoveSpaceMember(.s4wave.provider.spacewave.RemoveSpaceMemberRequest) returns (.s4wave.provider.spacewave.RemoveSpaceMemberResponse);
+  // LookupInviteCode resolves a short invite code to the full SOInviteMessage.
   rpc LookupInviteCode(.s4wave.provider.spacewave.LookupInviteCodeRequest) returns (.s4wave.provider.spacewave.LookupInviteCodeResponse);
+  // ProcessMailboxEntry accepts or rejects a mailbox entry.
   rpc ProcessMailboxEntry(.s4wave.provider.spacewave.ProcessMailboxEntryRequest) returns (.s4wave.provider.spacewave.ProcessMailboxEntryResponse);
 
+  // StartDesktopSSOLink runs the native-owned desktop SessionDetails SSO-link
+  // flow. The handler calls the authenticated cloud start endpoint for the
+  // waiting auth-session relay material, opens the system browser to the
+  // provider authorize URL, waits for the OAuth result on the auth-session
+  // WebSocket, and returns the { provider, code } pair so the UI can complete
+  // account linking through the existing Account.LinkSSO mutation.
   rpc StartDesktopSSOLink(.s4wave.provider.spacewave.StartDesktopSSOLinkRequest) returns (.s4wave.provider.spacewave.StartDesktopSSOLinkResponse);
+  // StartDesktopPasskeyReauth runs the native-owned desktop passkey reauth flow
+  // for one specific entity keypair. The handler calls the authenticated cloud
+  // start endpoint, opens the system browser to the account-hosted ceremony,
+  // waits for the browser-authenticated result on the auth-session WebSocket,
+  // and returns the unwrap artifacts for the existing unlock path.
   rpc StartDesktopPasskeyReauth(.s4wave.provider.spacewave.StartDesktopPasskeyReauthRequest) returns (.s4wave.provider.spacewave.StartDesktopPasskeyReauthResponse);
 
+  // EncryptForHandoff encrypts the active session privkey to a device pubkey.
   rpc EncryptForHandoff(.s4wave.provider.spacewave.EncryptForHandoffRequest) returns (.s4wave.provider.spacewave.EncryptForHandoffResponse);
   // PreviewSpaceLink verifies a SpaceLink ticket for trusted UI display.
   rpc PreviewSpaceLink(.s4wave.provider.spacewave.PreviewSpaceLinkRequest) returns (.s4wave.provider.spacewave.PreviewSpaceLinkResponse);
   // ApproveSpaceLink approves a SpaceLink ticket for a target Space.
   rpc ApproveSpaceLink(.s4wave.provider.spacewave.ApproveSpaceLinkRequest) returns (.s4wave.provider.spacewave.ApproveSpaceLinkResponse);
+  // ApproveGuestSpaceLink verifies a signed ticket and issues an OWNER's one-use
+  // targeted invite without registering the guest under the approving account.
+  // The caller must authorize application membership before requesting approval.
+  rpc ApproveGuestSpaceLink(.s4wave.provider.spacewave.ApproveSpaceLinkRequest) returns (.sobject.SOInviteMessage);
+  // ResetSession resets a PIN-locked session.
   rpc ResetSession(.s4wave.provider.spacewave.ResetSessionRequest) returns (.s4wave.provider.spacewave.ResetSessionResponse);
 }
 
 // MountSharedObjectSelfEnrollmentRequest is the request for MountSharedObjectSelfEnrollment.
-message MountSharedObjectSelfEnrollmentRequest {}
+message MountSharedObjectSelfEnrollmentRequest {
+}
 
 // MountSharedObjectSelfEnrollmentResponse is the response for MountSharedObjectSelfEnrollment.
 message MountSharedObjectSelfEnrollmentResponse {
