@@ -16,26 +16,48 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// LocalProviderResource implements the LocalProviderResourceService.
+// localSpaceLinkNetworkTimeout bounds contact with the approving peer.
 const localSpaceLinkNetworkTimeout = 10 * time.Second
 
+// LocalProviderResource retains Device Sessions until its Resource is released.
 type LocalProviderResource struct {
+	// ProviderResource serves common provider operations.
 	*ProviderResource
-	le       *logrus.Entry
-	b        bus.Bus
+	// b resolves the local Session controller and mounted Sessions.
+	b bus.Bus
+	// provider creates and reopens independently keyed local accounts.
 	provider *provider_local.Provider
 
+	// deviceSessionsMu guards retained Sessions and the release fence.
 	deviceSessionsMu sync.Mutex
-	deviceSessions   map[string]directive.Reference
+	// deviceSessions bridges completed enrollment to other Session consumers.
+	deviceSessions map[string]directive.Reference
+	// released prevents an in-flight enrollment from retaining a late Session.
+	released bool
 }
 
 // NewLocalProviderResource creates a new LocalProviderResource.
-func NewLocalProviderResource(pr *ProviderResource, le *logrus.Entry, b bus.Bus, prov *provider_local.Provider) *LocalProviderResource {
+func NewLocalProviderResource(pr *ProviderResource, _ *logrus.Entry, b bus.Bus, prov *provider_local.Provider) *LocalProviderResource {
 	return &LocalProviderResource{
 		ProviderResource: pr,
-		le:               le,
 		b:                b,
 		provider:         prov,
+	}
+}
+
+// Release drops every Session retained by completed enrollment. An in-flight
+// completion must release its late mount instead of reviving this Resource.
+func (s *LocalProviderResource) Release() {
+	// Withdraw retained references before invoking their teardown callbacks.
+	s.deviceSessionsMu.Lock()
+	s.released = true
+	refs := s.deviceSessions
+	s.deviceSessions = nil
+	s.deviceSessionsMu.Unlock()
+
+	// Session teardown may resolve other resources and must run outside the lock.
+	for _, ref := range refs {
+		ref.Release()
 	}
 }
 
@@ -50,11 +72,13 @@ func (s *LocalProviderResource) CreateAccount(
 	}
 	defer sessionCtrlRef.Release()
 
+	// Create an independent local account before registering its Session.
 	sessRef, err := s.provider.CreateLocalAccountAndSession(ctx, "")
 	if err != nil {
 		return nil, err
 	}
 
+	// Publish the new Session metadata through the controller.
 	meta := &session.SessionMetadata{
 		ProviderDisplayName: "Local",
 		ProviderId:          "local",
@@ -66,6 +90,7 @@ func (s *LocalProviderResource) CreateAccount(
 		return nil, err
 	}
 
+	// Return the registered Session to the caller.
 	return &s4wave_provider_local.CreateAccountResponse{SessionListEntry: listEntry}, nil
 }
 
@@ -76,6 +101,15 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	ctx context.Context,
 	req *s4wave_provider_local.CompleteSpaceLinkEnrollmentRequest,
 ) (*s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse, error) {
+	// Reject new enrollment after the Resource's retained Sessions were released.
+	s.deviceSessionsMu.Lock()
+	released := s.released
+	s.deviceSessionsMu.Unlock()
+	if released {
+		return nil, errors.New("provider resource is released")
+	}
+
+	// Require a targeted invitation and prove the supplied Session key matches it.
 	invite := req.GetInvite()
 	if invite == nil {
 		return nil, errors.New("invite is required")
@@ -98,12 +132,14 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 		return nil, errors.New("invite targets a different peer")
 	}
 
+	// Retain the Session inventory while resolving or registering this identity.
 	sessionCtrl, sessionCtrlRef, err := session.ExLookupSessionController(ctx, s.b, "", false, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer sessionCtrlRef.Release()
 
+	// Reuse this Device identity without replacing another account.
 	listEntry, err := s.lookupLocalSessionByPeerID(ctx, sessionCtrl, sessionPeerID.String())
 	if err != nil {
 		return nil, err
@@ -125,6 +161,7 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 		}
 	}
 
+	// Retain the selected account through invite redemption and transport setup.
 	sessRef := listEntry.GetSessionRef()
 	accountID := sessRef.GetProviderResourceRef().GetProviderAccountId()
 	accIface, accRel, err := s.provider.AccessProviderAccount(ctx, accountID, nil)
@@ -136,6 +173,8 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 	if !ok {
 		return nil, errors.New("unexpected provider account type")
 	}
+
+	// Redeem only once; retries reuse the account's existing grant and transport.
 	networkCtx, networkCancel := context.WithTimeout(ctx, localSpaceLinkNetworkTimeout)
 	defer networkCancel()
 	if !localAccountHasSharedObject(localAcc, invite.GetSharedObjectId()) {
@@ -152,6 +191,8 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 			}
 		}
 	}
+
+	// Keep the approving peer reachable while the completed Session is retained.
 	ownerPeerID, err := peer.IDB58Decode(invite.GetOwnerPeerId())
 	if err != nil {
 		return nil, errors.Wrap(err, "parse invite owner peer id")
@@ -163,6 +204,7 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 		return nil, errors.Wrap(err, "retain completed Device session")
 	}
 
+	// Publish enrollment only after its Session remains retained.
 	return &s4wave_provider_local.CompleteSpaceLinkEnrollmentResponse{SessionListEntry: listEntry}, nil
 }
 
@@ -170,6 +212,7 @@ func (s *LocalProviderResource) CompleteSpaceLinkEnrollment(
 // provider resource lifetime. This bridges the RPC response to the daemon's
 // capacity observer without dropping its transport in between.
 func (s *LocalProviderResource) retainDeviceSession(ctx context.Context, sessRef *session.SessionRef) error {
+	// Acquire a Session reference before entering the release fence.
 	_, ref, err := session.ExMountSession(ctx, s.b, sessRef, false, nil)
 	if err != nil {
 		return err
@@ -177,8 +220,15 @@ func (s *LocalProviderResource) retainDeviceSession(ctx context.Context, sessRef
 	if ref == nil {
 		return errors.New("completed Device session could not be mounted")
 	}
+
+	// Keep one mount per account, or release a late acquisition after closure.
 	key := sessRef.GetProviderResourceRef().GetProviderAccountId()
 	s.deviceSessionsMu.Lock()
+	if s.released {
+		s.deviceSessionsMu.Unlock()
+		ref.Release()
+		return errors.New("provider resource is released")
+	}
 	if s.deviceSessions == nil {
 		s.deviceSessions = make(map[string]directive.Reference)
 	}
@@ -202,6 +252,8 @@ func (s *LocalProviderResource) lookupLocalSessionByPeerID(
 	if peerID == "" {
 		return nil, nil
 	}
+
+	// Match identity against registered Sessions rather than caller-selected accounts.
 	entries, err := sessionCtrl.ListSessions(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "list sessions")
@@ -215,6 +267,8 @@ func (s *LocalProviderResource) lookupLocalSessionByPeerID(
 		if provRef.GetProviderId() != "local" {
 			continue
 		}
+
+		// Retain each candidate account only while checking its Session identity.
 		accountID := provRef.GetProviderAccountId()
 		accIface, accRel, err := s.provider.AccessProviderAccount(ctx, accountID, nil)
 		if err != nil {
@@ -255,5 +309,5 @@ func localAccountHasSharedObject(localAcc *provider_local.ProviderAccount, soID 
 	return false
 }
 
-// _ is a type assertion
+// _ verifies the local provider Resource contract.
 var _ s4wave_provider_local.SRPCLocalProviderResourceServiceServer = (*LocalProviderResource)(nil)

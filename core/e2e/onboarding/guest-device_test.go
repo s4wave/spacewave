@@ -4,6 +4,7 @@ package onboarding_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,6 +123,7 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 		nil, logrus.NewEntry(logrus.New()), env.tb.Bus,
 		localProvider.(*provider_local.Provider),
 	)
+	t.Cleanup(provider.Release)
 	result, err := provider.CompleteSpaceLinkEnrollment(ctx, &s4wave_provider_local.CompleteSpaceLinkEnrollmentRequest{
 		SessionPemPrivateKey: pem,
 		SessionPeerId:        guest.GetPeerId().String(),
@@ -148,6 +150,15 @@ func TestCloudSpaceGuestDevice(t *testing.T) {
 	}
 	if settings.GetIndexPath() != "/guest-enrollment" {
 		t.Fatal("guest did not read the owner's Space settings")
+	}
+	// Closing enrollment drops its retained Session and rejects stale client calls.
+	provider.Release()
+	if _, err := provider.CompleteSpaceLinkEnrollment(ctx, &s4wave_provider_local.CompleteSpaceLinkEnrollmentRequest{
+		SessionPemPrivateKey: pem,
+		SessionPeerId:        guest.GetPeerId().String(),
+		Invite:               invite,
+	}); err == nil || !strings.Contains(err.Error(), "resource is released") {
+		t.Fatalf("enrollment after resource release: %v", err)
 	}
 	t.Log("cloud-owned Space mounted by independent local guest through targeted invitation")
 }

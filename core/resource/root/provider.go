@@ -12,11 +12,13 @@ import (
 
 // LookupProvider accesses a provider Resource by ID.
 func (s *CoreRootServer) LookupProvider(ctx context.Context, req *s4wave_root.LookupProviderRequest) (*s4wave_root.LookupProviderResponse, error) {
+	// Require the caller's Resource generation before retaining a provider.
 	resourceCtx, err := resource_server.MustGetResourceClientContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Retain the selected provider through the child Resource lifetime.
 	prov, providerRef, err := provider.ExLookupProvider(ctx, s.b, req.GetProviderId(), false, nil)
 	if err != nil {
 		return nil, err
@@ -26,13 +28,19 @@ func (s *CoreRootServer) LookupProvider(ctx context.Context, req *s4wave_root.Lo
 		return nil, errors.New("provider not found")
 	}
 
+	// Release enrolled Session mounts before dropping the provider registration.
 	providerResource := resource_provider.NewProviderResource(s.le, s.b, prov)
-	id, err := resourceCtx.AddResource(providerResource.GetMux(), providerRef.Release)
-	if err != nil {
+	release := func() {
+		providerResource.Release()
 		providerRef.Release()
+	}
+	id, err := resourceCtx.AddResource(providerResource.GetMux(), release)
+	if err != nil {
+		release()
 		return nil, err
 	}
 
+	// Publish the handle only after its complete cleanup has been registered.
 	return &s4wave_root.LookupProviderResponse{ResourceId: id}, nil
 }
 
