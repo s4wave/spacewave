@@ -1927,13 +1927,13 @@ func TestFailsafeLogin(t *testing.T) {
 // extractFooterLink extracts the href from the "Manage your account" footer
 // link in email HTML. Returns "" if not found.
 func extractFooterLink(html string) string {
-	anchor := `>Manage your account</a>`
-	idx := strings.Index(html, anchor)
-	if idx < 0 {
+	// Locate the account-management anchor before selecting its href.
+	prefix, _, ok := strings.Cut(html, `>Manage your account</a>`)
+	if !ok {
 		return ""
 	}
-	// Walk backward from the anchor to find href="..."
-	prefix := html[:idx]
+
+	// Read only the quoted href immediately preceding the selected anchor.
 	hrefIdx := strings.LastIndex(prefix, `href="`)
 	if hrefIdx < 0 {
 		return ""
