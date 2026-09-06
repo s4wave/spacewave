@@ -73,3 +73,56 @@ message GetApplicationResponse {
   // Application is the selected product registration.
   Application application = 1;
 }
+
+// SetApplicationFundingRequest accepts a payer for subsequent application usage.
+// The server requires application administration and authority over the payer.
+message SetApplicationFundingRequest {
+  // ApplicationId identifies the approved registration.
+  string application_id = 1;
+  // BillingAccountId identifies the payer accepting subsequent costs.
+  string billing_account_id = 2;
+  // Funding distinguishes operator payment from platform-authorized sponsorship.
+  ApplicationFunding funding = 3;
+  // ExpectedRevision fences concurrent changes; an identical retry returns its assignment.
+  uint64 expected_revision = 4;
+}
+
+// ApplicationFundingAssignment preserves the authority and payer for a funding interval.
+message ApplicationFundingAssignment {
+  // ApplicationId identifies the approved registration.
+  string application_id = 1;
+  // Revision identifies the application configuration that accepted this assignment.
+  uint64 revision = 2;
+  // BillingAccountId identifies the payer for usage attributed to this interval.
+  string billing_account_id = 3;
+  // Funding preserves whether the payer accepted operator costs or sponsorship.
+  ApplicationFunding funding = 4;
+  // AuthorizedByAccountId identifies the authenticated account that accepted the costs.
+  string authorized_by_account_id = 5;
+  // StartedAtMs is the effective start in Unix milliseconds.
+  int64 started_at_ms = 6;
+}
+
+// SetApplicationFundingResponse returns the durably accepted funding assignment.
+message SetApplicationFundingResponse {
+  // Assignment is stable across identical retries, including after later funding changes.
+  ApplicationFundingAssignment assignment = 1;
+}
+
+// ListApplicationFundingRequest selects a bounded page of funding history.
+message ListApplicationFundingRequest {
+  // ApplicationId identifies a registration visible to its operator or platform administration.
+  string application_id = 1;
+  // AfterRevision excludes assignments at or before this revision.
+  uint64 after_revision = 2;
+  // Limit defaults to 50 and cannot exceed 100 assignments.
+  uint32 limit = 3;
+}
+
+// ListApplicationFundingResponse returns funding history in increasing revision order.
+message ListApplicationFundingResponse {
+  // Assignments preserve the payer and authorization for each accepted interval.
+  repeated ApplicationFundingAssignment assignments = 1;
+  // NextAfterRevision is the continuation cursor, or zero when there are no more assignments.
+  uint64 next_after_revision = 2;
+}
