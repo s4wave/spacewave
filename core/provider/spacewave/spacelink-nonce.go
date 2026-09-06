@@ -1,6 +1,7 @@
 package provider_spacewave
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
@@ -8,151 +9,111 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	"github.com/s4wave/spacewave/db/kvtx"
+	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
 )
 
-const (
-	spaceLinkNonceKeyPrefix = "spacelink-nonce/"
-	spaceLinkNonceSkew      = 5 * time.Minute
-)
-
-// CheckSpaceLinkNonceFresh performs the PreviewSpaceLink read-only freshness
-// check. It never creates or updates the consumed marker.
+// CheckSpaceLinkNonceFresh checks account-wide consumption without reserving it.
+// Cloud unavailability fails closed; a local cache cannot establish freshness.
 func (a *ProviderAccount) CheckSpaceLinkNonceFresh(
 	ctx context.Context,
 	agentPeerID, nonce, payload []byte,
 ) error {
-	return a.checkSpaceLinkNonceFresh(ctx, agentPeerID, nonce, payload, time.Now())
+	return a.accessSpaceLinkNonce(ctx, agentPeerID, nonce, payload, time.Time{}, false)
 }
 
-func (a *ProviderAccount) checkSpaceLinkNonceFresh(
-	ctx context.Context,
-	agentPeerID, nonce, payload []byte,
-	now time.Time,
-) error {
-	key, err := spaceLinkNonceKey(agentPeerID, nonce, payload)
-	if err != nil {
-		return err
-	}
-	if a.objStore == nil {
-		return errors.New("account object store not ready")
-	}
-
-	err = kvtx.RunTransaction(ctx, false,
-		func(ctx context.Context) (kvtx.Tx, error) {
-			return a.objStore.NewTransaction(ctx, false)
-		},
-		func(ctx context.Context, tx kvtx.Tx) error {
-			data, found, err := tx.Get(ctx, key)
-			if err != nil {
-				return errors.Wrap(err, "get spacelink nonce marker")
-			}
-			if !found {
-				return nil
-			}
-			expiresAt, err := parseSpaceLinkNonceMarker(data)
-			if err != nil {
-				return errors.Wrap(err, "parse spacelink nonce marker")
-			}
-			if now.Before(expiresAt) {
-				return ErrSpaceLinkNonceConsumed
-			}
-			return nil
-		},
-	)
-	return errors.Wrap(err, "open read transaction")
-}
-
-// ConsumeSpaceLinkNonce atomically records a consumed marker for ApproveSpaceLink.
-// The marker is written before cloud registration or SharedObject mutation.
+// ConsumeSpaceLinkNonce durably reserves consent before registration or mutation.
+// The cloud account owns replay protection across approver Sessions and caches.
 func (a *ProviderAccount) ConsumeSpaceLinkNonce(
 	ctx context.Context,
 	agentPeerID, nonce, payload []byte,
 	expiresAt time.Time,
 ) error {
-	return a.consumeSpaceLinkNonce(ctx, agentPeerID, nonce, payload, expiresAt, time.Now())
+	return a.accessSpaceLinkNonce(ctx, agentPeerID, nonce, payload, expiresAt, true)
 }
 
-func (a *ProviderAccount) consumeSpaceLinkNonce(
+// accessSpaceLinkNonce preserves the verified payload and authenticated account.
+func (a *ProviderAccount) accessSpaceLinkNonce(
 	ctx context.Context,
 	agentPeerID, nonce, payload []byte,
-	expiresAt, now time.Time,
+	expiresAt time.Time,
+	consume bool,
 ) error {
-	key, err := spaceLinkNonceKey(agentPeerID, nonce, payload)
+	// Never substitute re-encoded consent or mismatched verification inputs.
+	var consent s4wave_provider_spacewave.SpaceLinkAuthRequest
+	if err := consent.UnmarshalVT(payload); err != nil {
+		return errors.Wrap(err, "decode spacelink consent")
+	}
+	if len(agentPeerID) == 0 || len(nonce) != 16 ||
+		!bytes.Equal(consent.GetAgentPeerId(), agentPeerID) ||
+		!bytes.Equal(consent.GetNonce(), nonce) ||
+		(consume && consent.GetExpiresAt() != expiresAt.Unix()) {
+		return errors.New("spacelink consent does not match verified inputs")
+	}
+
+	// Preserve consumed markers written by older clients in this cache.
+	// New consumption always goes to the account service.
+	if err := a.checkCachedSpaceLinkNonce(ctx, agentPeerID, nonce, payload); err != nil {
+		return err
+	}
+
+	// Resolve an existing signing Session; no cache-local fallback is safe.
+	cli, _, _, err := a.getReadySessionClient(ctx)
 	if err != nil {
 		return err
 	}
-	if expiresAt.IsZero() {
-		return errors.New("spacelink nonce expiry is required")
+	return cli.accessSpaceLinkNonce(ctx, payload, consume)
+}
+
+// accessSpaceLinkNonce uses the account service's atomic consent reservation.
+func (c *SessionClient) accessSpaceLinkNonce(ctx context.Context, payload []byte, consume bool) error {
+	body, err := (&api.SpaceLinkNonceRequest{Payload: payload, Consume: consume}).MarshalVT()
+	if err != nil {
+		return errors.Wrap(err, "encode spacelink nonce request")
 	}
-	if a.objStore == nil {
-		return errors.New("account object store not ready")
+	data, err := c.doPostBinary(ctx, "/api/account/spacelink/nonce", body, nil, SeedReasonMutation)
+	if err != nil {
+		return errors.Wrap(err, "access account spacelink nonce")
 	}
 
-	return kvtx.RunTransaction(ctx, true,
+	var response api.SpaceLinkNonceResponse
+	if err := response.UnmarshalVT(data); err != nil {
+		return errors.Wrap(err, "decode spacelink nonce response")
+	}
+	if response.GetConsumed() {
+		return ErrSpaceLinkNonceConsumed
+	}
+	return nil
+}
+
+// checkCachedSpaceLinkNonce preserves pre-cloud consumption until its expiry.
+// A missing local marker is never evidence of freshness.
+func (a *ProviderAccount) checkCachedSpaceLinkNonce(ctx context.Context, agentPeerID, nonce, payload []byte) error {
+	if a.objStore == nil {
+		return nil
+	}
+	payloadDigest := sha256.Sum256(payload)
+	key := []byte("spacelink-nonce/agent=" + hex.EncodeToString(agentPeerID) +
+		"/nonce=" + hex.EncodeToString(nonce) + "/payload=" + hex.EncodeToString(payloadDigest[:]))
+
+	return kvtx.RunTransaction(ctx, false,
 		func(ctx context.Context) (kvtx.Tx, error) {
-			return a.objStore.NewTransaction(ctx, true)
+			return a.objStore.NewTransaction(ctx, false)
 		},
 		func(ctx context.Context, tx kvtx.Tx) error {
 			data, found, err := tx.Get(ctx, key)
-			if err != nil {
-				return errors.Wrap(err, "get spacelink nonce marker")
+			if err != nil || !found {
+				return err
 			}
-			if found {
-				markerExpiresAt, err := parseSpaceLinkNonceMarker(data)
-				if err != nil {
-					return errors.Wrap(err, "parse spacelink nonce marker")
-				}
-				if now.Before(markerExpiresAt) {
-					return ErrSpaceLinkNonceConsumed
-				}
+			if len(data) != 8 {
+				return errors.New("invalid cached spacelink nonce marker")
 			}
-			if err := tx.Set(ctx, key, encodeSpaceLinkNonceMarker(expiresAt.Add(spaceLinkNonceSkew))); err != nil {
-				return errors.Wrap(err, "set spacelink nonce marker")
+			expiresAt := time.Unix(int64(binary.BigEndian.Uint64(data)), 0)
+			if time.Now().Before(expiresAt) {
+				return ErrSpaceLinkNonceConsumed
 			}
 			return nil
 		},
 	)
-}
-
-func spaceLinkNonceKey(agentPeerID, nonce, payload []byte) ([]byte, error) {
-	if len(agentPeerID) == 0 {
-		return nil, errors.New("spacelink agent peer id is required")
-	}
-	if len(nonce) == 0 {
-		return nil, errors.New("spacelink nonce is required")
-	}
-	if len(payload) == 0 {
-		return nil, errors.New("spacelink payload is required")
-	}
-	payloadDigest := sha256.Sum256(payload)
-	key := make([]byte, 0,
-		len(spaceLinkNonceKeyPrefix)+
-			len("agent=/nonce=/payload=")+
-			hex.EncodedLen(len(agentPeerID))+
-			hex.EncodedLen(len(nonce))+
-			hex.EncodedLen(len(payloadDigest)),
-	)
-	key = append(key, spaceLinkNonceKeyPrefix...)
-	key = append(key, "agent="...)
-	key = hex.AppendEncode(key, agentPeerID)
-	key = append(key, "/nonce="...)
-	key = hex.AppendEncode(key, nonce)
-	key = append(key, "/payload="...)
-	key = hex.AppendEncode(key, payloadDigest[:])
-	return key, nil
-}
-
-func encodeSpaceLinkNonceMarker(expiresAt time.Time) []byte {
-	var data [8]byte
-	binary.BigEndian.PutUint64(data[:], uint64(expiresAt.Unix()))
-	return data[:]
-}
-
-func parseSpaceLinkNonceMarker(data []byte) (time.Time, error) {
-	if len(data) != 8 {
-		return time.Time{}, errors.New("invalid spacelink nonce marker")
-	}
-	secs := int64(binary.BigEndian.Uint64(data))
-	return time.Unix(secs, 0), nil
 }
