@@ -9,6 +9,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/config"
 	"github.com/aperturerobotics/controllerbus/controller"
+	"github.com/aperturerobotics/controllerbus/directive"
 	"github.com/aperturerobotics/starpc/srpc"
 	bldr_manifest "github.com/s4wave/spacewave/bldr/manifest"
 	bldr_manifest_materializer "github.com/s4wave/spacewave/bldr/manifest/materializer"
@@ -30,7 +31,7 @@ import (
 )
 
 // TestMaterializeManifestThroughPluginHostVolumeProxy exercises browser
-// worker source access with and without an instance key.
+// worker demand, copy completion, and release with and without an instance key.
 func TestMaterializeManifestThroughPluginHostVolumeProxy(t *testing.T) {
 	t.Run("empty instance key", func(t *testing.T) {
 		runBrowserCopyFixture(t, "")
@@ -102,7 +103,7 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer srcCursor.Release()
+	t.Cleanup(srcCursor.Release)
 	destCursor, _, err := bucket_lookup.BuildEmptyCursor(
 		ctx, hostTB.Bus, le, hostTB.StepFactorySet,
 		"mm-dest", hostTB.Volume.GetID(), destTransformConf, nil,
@@ -110,7 +111,7 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer destCursor.Release()
+	t.Cleanup(destCursor.Release)
 
 	// Small valid manifest: one nested FS directory node referenced by both
 	// dist and assets, so the graph is exactly two blocks.
@@ -153,14 +154,16 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer srcSel.Release()
+	t.Cleanup(srcSel.Release)
 
 	// Source blocks must be absent from the destination before the call.
 	rootRef := srcRef.GetRootRef()
 	for _, ref := range []*block.BlockRef{rootRef, dirRef} {
-		if _, exists, err := destCursor.GetBucket().GetBlock(ctx, ref); err != nil {
+		_, exists, err := destCursor.GetBucket().GetBlock(ctx, ref)
+		if err != nil {
 			t.Fatal(err.Error())
-		} else if exists {
+		}
+		if exists {
 			t.Fatal("test setup: destination already holds a source block")
 		}
 	}
@@ -179,6 +182,7 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	); err != nil {
 		t.Fatal(err.Error())
 	}
+
 	// Expose the host mux on the host bus under the web-worker server identity,
 	// exactly as host/web does, and route the plugin's host client through a
 	// bus invoker carrying that identity.
@@ -198,7 +202,7 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer relRpcServiceCtrl()
+	t.Cleanup(relRpcServiceCtrl)
 	hostClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(
 		bifrost_rpc.NewInvoker(hostTB.Bus, workerServerID, true),
 	)))
@@ -215,7 +219,7 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer relBridge()
+	t.Cleanup(relBridge)
 
 	// Plugin bus: mount the host volume proxy under the plugin-host volume
 	// alias, exactly as the plugin entrypoint does.
@@ -239,7 +243,7 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer relProxyVol()
+	t.Cleanup(relProxyVol)
 
 	// Serve the real Materializer on the plugin bus pipe.
 	pluginMux := srpc.NewMux()
@@ -251,25 +255,43 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	}
 	pluginClient := srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(pluginMux)))
 
-	// Host bus: reach the plugin's services through the plugin pipe.
-	pluginBridge := bifrost_rpc.NewClientController(
-		le,
-		hostTB.Bus,
-		controller.NewInfo("test-plugin-bridge", controller.MustParseVersion("0.0.1"), "host bus bridge to plugin services"),
-		pluginClient,
-		[]string{bldr_plugin.PluginServiceIDPrefix + "bldr-materializer/"},
-	)
-	relPluginBridge, err := hostTB.Bus.AddController(ctx, pluginBridge, nil)
+	// Route the copy's RPC lookup through the scheduler's normal plugin demand.
+	// The fixture publishes its already constructed worker only for LoadPlugin.
+	ctrl := &Controller{bus: hostTB.Bus, conf: &Config{InstanceKey: instanceKey}}
+	demanded := make(chan string, 1)
+	released := make(chan struct{})
+	relPluginHandler, err := hostTB.Bus.AddHandler(directive.NewFuncHandler(
+		func(ctx context.Context, inst directive.Instance) ([]directive.Resolver, error) {
+			switch dir := inst.GetDirective().(type) {
+			case bifrost_rpc.LookupRpcClient:
+				return directive.R(bldr_plugin.ResolveLookupRpcClient(ctx, dir, ctrl))
+			case bldr_plugin.LoadPlugin:
+				if dir.LoadPluginID() != "bldr-materializer" {
+					return nil, nil
+				}
+				return directive.R(directive.NewFuncResolver(
+					func(ctx context.Context, handler directive.ResolverHandler) error {
+						demanded <- dir.LoadPluginInstanceKey()
+						defer close(released)
+						_, _ = handler.AddValue(bldr_plugin.NewRunningPlugin(pluginClient))
+						handler.MarkIdle(true)
+						<-ctx.Done()
+						return ctx.Err()
+					},
+				), nil)
+			}
+			return nil, nil
+		},
+	))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer relPluginBridge()
+	t.Cleanup(relPluginHandler)
 
 	// Call the scheduler helper against the host bus. Bound the call so the
 	// RPC completes or fails within the deadline instead of hanging.
 	copyCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	ctrl := &Controller{bus: hostTB.Bus, conf: &Config{InstanceKey: instanceKey}}
+	t.Cleanup(cancel)
 	copiedRef, _, err := ctrl.materializeManifest(
 		copyCtx,
 		"bldr-materializer",
@@ -279,6 +301,21 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	)
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+
+	// The copy must demand the scheduler's instance and release it on completion.
+	select {
+	case got := <-demanded:
+		if got != instanceKey {
+			t.Fatalf("materializer instance key = %q, want %q", got, instanceKey)
+		}
+	default:
+		t.Fatal("copy completed without demanding the materializer plugin")
+	}
+	select {
+	case <-released:
+	case <-time.After(2 * time.Second):
+		t.Fatal("completed copy retained its materializer plugin demand")
 	}
 
 	// The copied root must match the source root hash and sit in the
@@ -321,7 +358,7 @@ func runBrowserCopyFixture(t *testing.T, instanceKey string) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer gotCursor.Release()
+	t.Cleanup(gotCursor.Release)
 	_, gotBcs := gotCursor.BuildTransaction(nil)
 	gotManifest, err := bldr_manifest.UnmarshalManifest(ctx, gotBcs)
 	if err != nil {
