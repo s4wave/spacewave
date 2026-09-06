@@ -14,18 +14,22 @@ import type { PacketStream } from 'starpc'
 import { Client as ResourceClient } from '../../sdk/resource/client.js'
 import { ResourceServiceClient } from '../resource_srpc.pb.js'
 
+// report publishes lifecycle barriers to the parent test process.
 function report(marker: string): void {
   console.log(marker)
 }
 
+// bytes encodes domain fixture requests.
 function bytes(value: string): Uint8Array {
   return new TextEncoder().encode(value)
 }
 
+// text decodes domain fixture responses.
 function text(value: Uint8Array): string {
   return new TextDecoder().decode(value)
 }
 
+// decodeID requires the fixed-width child resource identifier.
 function decodeID(data: Uint8Array): number {
   if (data.length !== 4) throw new Error(`child ID length = ${data.length}`)
   return new DataView(data.buffer, data.byteOffset, data.byteLength).getUint32(
@@ -33,6 +37,7 @@ function decodeID(data: Uint8Array): number {
   )
 }
 
+// tcpSocketToPacketStream owns one RPC connection, including cancellation.
 function tcpSocketToPacketStream(socket: net.Socket): PacketStream {
   const source = async function* (): AsyncGenerator<Uint8Array> {
     const packets = pushable<Uint8Array>({ objectMode: true })
@@ -47,6 +52,12 @@ function tcpSocketToPacketStream(socket: net.Socket): PacketStream {
     )
   }
   return {
+    async close() {
+      socket.destroy()
+    },
+    abort(error) {
+      socket.destroy(error)
+    },
     source: source(),
     sink: async (input: Source<Uint8Array>): Promise<void> => {
       for await (const chunk of pipe(input, prependLengthPrefixTransform())) {
@@ -66,6 +77,7 @@ function tcpSocketToPacketStream(socket: net.Socket): PacketStream {
   }
 }
 
+// nextStreamValue retains an active iterator after checking its first response.
 async function nextStreamValue(
   stream: AsyncIterable<Uint8Array>,
   want: string,
@@ -80,6 +92,7 @@ async function nextStreamValue(
   return iterator
 }
 
+// expectAbort rejects normal completion of an explicitly canceled RPC.
 async function expectAbort(iterator: AsyncIterator<Uint8Array>): Promise<void> {
   try {
     await iterator.next()
@@ -90,6 +103,7 @@ async function expectAbort(iterator: AsyncIterator<Uint8Array>): Promise<void> {
   throw new Error('active stream completed instead of aborting')
 }
 
+// main checks resource adoption, cancellation, release, and server invalidation.
 async function main(): Promise<void> {
   const address = process.argv[2]
   if (!address)

@@ -37,6 +37,12 @@ function tcpSocketToPacketStream(socket: net.Socket): PacketStream {
   }
 
   return {
+    async close() {
+      socket.destroy()
+    },
+    abort(error) {
+      socket.destroy(error)
+    },
     source: socketSource(),
     sink: async (source: Source<Uint8Array>): Promise<void> => {
       for await (const chunk of pipe(source, prependLengthPrefixTransform())) {

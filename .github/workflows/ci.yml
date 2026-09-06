@@ -445,12 +445,15 @@ jobs:
           jq '[.entries[] | {name, source}] | unique' \
             app/licenses/licenses.json > .tmp/committed-tuples.json
 
+      - name: Test license reporter
+        run: go -C scripts/licenses test ./...
+
       - name: Generate licenses
         run: bun run licenses
 
       - name: Validate SPDX allowlist
         run: |
-          allowed='["0bsd","apache-2.0","apache-2.0 or mit","bsd-2-clause","bsd-3-clause","cc0-1.0","isc","mit","mpl-2.0"]'
+          allowed='["0bsd","apache-2.0","apache-2.0 or mit","bsd-2-clause","bsd-3-clause","cc0-1.0","isc","mit","mit-0","mpl-2.0"]'
           unknown=$(jq --argjson allowed "$allowed" -r \
             '[.entries[].spdx | ascii_downcase] | unique - $allowed | .[]' \
             app/licenses/licenses.json)

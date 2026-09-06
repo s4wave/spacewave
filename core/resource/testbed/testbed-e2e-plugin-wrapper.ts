@@ -1,30 +1,23 @@
 import type { BackendAPI } from '@aptre/bldr-sdk'
+
 import { TestbedRoot } from '../../../sdk/testbed/testbed.js'
 import { TestbedResourceServiceClient } from '../../../sdk/testbed/testbed_srpc.pb.js'
-import testMain from './testbed-e2e'
+import testMain from './testbed-e2e.js'
 
+// main runs the plugin test and reports its result through the testbed service.
 export default async function main(
   backendAPI: BackendAPI,
   abortSignal: AbortSignal,
 ) {
-  let testbedRoot: TestbedRoot | undefined
   let success = false
   let errorMsg = ''
 
   try {
-    console.log('testbed wrapper: setting up testbed client...')
-
-    // Call TestbedResourceService directly on the bus mux (not through
-    // the resource system, which has a different root resource per plugin).
-    const testbedService = new TestbedResourceServiceClient(backendAPI.client)
-    console.log('testbed wrapper: testbed service client ready')
-
     // ResourceClient carries the client session context needed to attach child resources.
     using rootRef = await backendAPI.resourceClient.accessRootResource()
-    testbedRoot = new TestbedRoot(rootRef)
+    const testbedRoot = new TestbedRoot(rootRef)
     console.log('testbed wrapper: testbed root ready')
 
-    // run the test
     console.log('testbed wrapper: running test...')
     await testMain(backendAPI, abortSignal, testbedRoot)
 
@@ -36,7 +29,7 @@ export default async function main(
     console.error('testbed wrapper: test failed:', err)
   }
 
-  // report result to testbed
+  // Report failures as well as successful completion to the testbed.
   try {
     console.log('testbed wrapper: marking test result...')
     const testbedService = new TestbedResourceServiceClient(backendAPI.client)

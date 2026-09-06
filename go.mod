@@ -58,12 +58,12 @@ require (
 )
 
 require (
-	filippo.io/age v1.3.1
+	filippo.io/age v1.3.2
 	filippo.io/edwards25519 v1.2.0
 )
 
 require (
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 	golang.org/x/mod v0.40.0 // latest
 	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0
@@ -73,20 +73,21 @@ require (
 
 require (
 	bazil.org/fuse v0.0.0-20230120002735-62a210ff1fd5
-	github.com/go-sql-driver/mysql v1.10.0
+	github.com/go-sql-driver/mysql v1.10.1
 	github.com/libp2p/go-yamux/v5 v5.1.0
 	github.com/pion/logging v0.2.4
 	github.com/pion/transport/v4 v4.1.0
-	go.starlark.net v0.0.0-20260708150628-5395d018f003
-	golang.org/x/exp v0.0.0-20260820142414-ca536658362e
+	go.starlark.net v0.0.0-20260904161901-6ecada49e42f
+	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gorm.io/gorm v1.31.2
 	gotest.tools/v3 v3.5.2
-	modernc.org/sqlite v1.57.0
+	modernc.org/sqlite v1.58.0
 )
 
 require (
 	github.com/emirpasic/gods v1.18.1 // indirect
+	github.com/ncruces/go-sqlite3-wasm/v5 v5.0.35304 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 )
@@ -108,23 +109,23 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hack-pad/safejs v0.1.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/klauspost/compress v1.19.2
+	github.com/klauspost/compress v1.20.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mattn/go-isatty v0.0.24
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mr-tron/base58 v1.3.0
-	github.com/ncruces/go-sqlite3 v0.35.3
+	github.com/ncruces/go-sqlite3 v0.35.4
 	github.com/pierrec/lz4/v4 v4.1.29
 	github.com/pion/datachannel v1.6.2
 	github.com/pion/sdp/v3 v3.0.19
-	github.com/pion/webrtc/v4 v4.2.18
+	github.com/pion/webrtc/v4 v4.2.20
 	github.com/pkg/errors v0.9.1
-	github.com/quic-go/quic-go v0.61.0
+	github.com/quic-go/quic-go v0.62.0
 	github.com/restic/chunker v0.5.0
 	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.4.0
-	github.com/sirupsen/logrus v1.10.1
+	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cast v1.10.0
 	github.com/tetratelabs/wazero v1.12.0
@@ -163,7 +164,6 @@ require (
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/mxschmitt/playwright-go v0.6201.1
-	github.com/ncruces/go-sqlite3-wasm/v3 v3.2.35304 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
@@ -181,7 +181,7 @@ require (
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/rogpeppe/go-internal v1.14.1 // indirect
+	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
@@ -197,9 +197,9 @@ require (
 	gopkg.in/src-d/go-errors.v1 v1.0.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
-	modernc.org/libc v1.74.4 // indirect
+	modernc.org/libc v1.75.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
-	modernc.org/memory v1.11.0 // indirect
+	modernc.org/memory v1.12.1 // indirect
 )
 
 replace github.com/pion/ice/v4 => github.com/aperturerobotics/pion-ice/v4 v4.0.0-20260902093134-beabc67bc5d7

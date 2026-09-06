@@ -1,6 +1,7 @@
 import { ChannelStream, Client as SRPCClient, type PacketStream } from 'starpc'
 
 import { detectWorkerCommsConfig } from '../../../web/bldr/worker-comms-detect.js'
+import { channelPacketStream } from '../../../web/bldr/channel-packet-stream.js'
 import { PluginStartInfo } from '../../../plugin/plugin.pb.js'
 import { Client as ResourceClient } from '../../../sdk/resource/client.js'
 import { ResourceServiceClient } from '../../../resource/resource_srpc.pb.js'
@@ -22,11 +23,13 @@ declare global {
   }
 }
 
+// WorkerMessage carries the fixture worker's readiness and failure notifications.
 type WorkerMessage = { type: string } & Record<string, unknown>
 
 const workerId = 'plugin/goscript-resource-service-proof'
 const documentId = 'goscript-resource-service-proof-doc'
 
+// holdWebDocumentLock retains the document registration until fixture cleanup.
 async function holdWebDocumentLock(name: string): Promise<() => void> {
   let releaseLock: (() => void) | undefined
   const waitReleased = new Promise<void>((resolve) => {
@@ -44,6 +47,7 @@ async function holdWebDocumentLock(name: string): Promise<() => void> {
   return () => releaseLock?.()
 }
 
+// encodeStartInfo uses the generated plugin startup codec for the worker bridge.
 function encodeStartInfo(): Uint8Array {
   const json = PluginStartInfo.toJsonString({
     instanceId: 'inst1',
@@ -53,6 +57,7 @@ function encodeStartInfo(): Uint8Array {
   return new TextEncoder().encode(btoa(json))
 }
 
+// waitWorkerMsg releases its listener after the requested event or deadline.
 function waitWorkerMsg(
   worker: Worker,
   type: string,
@@ -82,6 +87,7 @@ function waitWorkerMsg(
   })
 }
 
+// connectWorkerRuntime handles the runtime handshake and opens lifecycle-aware RPC streams.
 function connectWorkerRuntime(documentPort: MessagePort): {
   openStream: () => Promise<PacketStream>
 } {
@@ -139,11 +145,12 @@ function connectWorkerRuntime(documentPort: MessagePort): {
       )
       runtimePort.postMessage({ openStream: true }, [channel.port2])
       await stream.waitRemoteOpen
-      return stream
+      return channelPacketStream(stream)
     },
   }
 }
 
+// proveResourceService verifies that releasing a client reference removes its server registration.
 async function proveResourceService(
   openStream: () => Promise<PacketStream>,
   mark: (step: string) => void,
@@ -223,6 +230,7 @@ async function proveResourceService(
   }
 }
 
+// run owns the worker and document registration through the ResourceService proof.
 async function run() {
   const log = document.getElementById('log')!
   const mark = (step: string) => {
@@ -349,6 +357,7 @@ async function run() {
   }
 }
 
+// waitWorkerReady observes the runtime handshake within the fixture's startup deadline.
 function waitWorkerReady(port: MessagePort): Promise<boolean> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve(false), 5000)

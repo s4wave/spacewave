@@ -10,6 +10,8 @@
 import { Server, Client, ChannelStream, createHandler, createMux } from 'starpc'
 import { EchoerDefinition, EchoerClient, EchoerServer } from 'starpc/echo'
 import type { ChannelStreamOpts } from 'starpc'
+
+import { channelPacketStream } from '../../../web/bldr/channel-packet-stream.js'
 import type { CrossTabBrokerMessage } from '../../../web/bldr/cross-tab-broker.js'
 
 declare global {
@@ -60,7 +62,7 @@ function addPeer(peerId: string, port: MessagePort) {
     if (ev.data?.type === 'relay' && ev.ports?.[0]) {
       const subPort = ev.ports[0]
       const stream = new ChannelStream(peerId, subPort, streamOpts)
-      server.rpcStreamHandler(stream).catch(() => {})
+      server.rpcStreamHandler(channelPacketStream(stream)).catch(() => {})
     }
   }
   port.start()
@@ -93,7 +95,7 @@ window.callEcho = async (peerId: string, body: string): Promise<string> => {
   port.postMessage({ type: 'relay', port: port2 }, [port2])
 
   const stream = new ChannelStream('local', port1, streamOpts)
-  const client = new Client(async () => stream)
+  const client = new Client(async () => channelPacketStream(stream))
   const echoer = new EchoerClient(client)
 
   const response = await echoer.Echo({ body })

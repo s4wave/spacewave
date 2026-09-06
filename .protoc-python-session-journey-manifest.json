@@ -1,7 +1,7 @@
 {
   "version": 2,
   "protocFlagsHash": "f3371eb4a4768e3b7f3e3ac546ec7bb7da05b08dda4ec8d0fe2f6c63f6b19da9",
-  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.16.0,starpc=v0.49.21,protobuf-es-lite=1.1.1,uv.lock=9ea29cdcd067c109dff4ff5c391c126336da950818433d250483e0a0e08964d0",
+  "toolVersions": "protoc=embedded,protobuf-go-lite=v0.16.0,starpc=v0.49.21,protobuf-es-lite=1.1.1,uv.lock=5fccb6074f95e8c7bbe63024bf9e7a979dbc3cb85d87de9a1758ba1a00866e51",
   "packages": {
     "github.com/s4wave/spacewave/core/account/settings": {
       "hash": "1af76fbc3c912306359da754ce9c7c78c666d86eba042fad5441aec84a1e42fb",
