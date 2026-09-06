@@ -151,10 +151,8 @@ func (a *BrowserAsset) Validate() error {
 		}
 	}
 
-	// Every asset still declares its size, digest, and response media type.
-	if a.GetSize() == 0 {
-		return errors.New("missing content size")
-	}
+	// Empty JavaScript modules are valid assets. Their size is zero, but they
+	// still require a digest and response media type.
 	if len(a.GetSha256()) != 32 {
 		return errors.New("invalid content sha256")
 	}
