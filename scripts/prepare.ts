@@ -14,6 +14,7 @@ const generatedFiles = [
   { actual: 'tsconfig.json', expected: 'tsconfig.json' },
 ]
 
+// run executes one setup step and stops preparation on failure.
 function run(command: string, args: string[]) {
   const result = spawnSync(command, args, {
     cwd: process.cwd(),
@@ -24,11 +25,13 @@ function run(command: string, args: string[]) {
   }
 }
 
+// removeTools discards generated tooling that no longer matches its source.
 function removeTools(reason: string) {
   console.log(`prepare: removing .tools: ${reason}`)
   rmSync(join(process.cwd(), '.tools'), { recursive: true, force: true })
 }
 
+// validateTools preserves generated tooling only when it matches the pinned module.
 function validateTools() {
   const repoRoot = process.cwd()
   const toolsDir = join(repoRoot, '.tools')
@@ -70,11 +73,6 @@ function validateTools() {
 }
 
 run('go', ['mod', 'vendor'])
-
-// Build the bldr tool to .tools/bldr-bin so later invocations skip the `go run`
-// source compile (~60s per CI job). The .tools directory is restored by the CI
-// cache, so most jobs reuse the binary.
-run('go', ['build', '-o', join('.tools', 'bldr-bin'), './bldr/cmd/bldr'])
 
 validateTools()
 run('bun', ['run', 'setup'])
