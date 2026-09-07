@@ -3418,7 +3418,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/chat": {
-      "hash": "2aa8ab5b6f97c3ccd63289ad1301b5352ab005844503ce1e0ade58296438005b",
+      "hash": "d44c60e85cb882f5a46a70d54bc127ce0073e7036d2f437d046b9c52be5c3d29",
       "generatedFiles": [
         "sdk/chat/chat.pb.go",
         "sdk/chat/chat.pb.ts"
@@ -3427,8 +3427,18 @@
         "sdk/chat/chat.proto"
       ]
     },
+    "github.com/s4wave/spacewave/sdk/chat/content": {
+      "hash": "1a9b7ebddd05d617a64bf5622510841b33e78fd614c4d024a458e84dbfdecb89",
+      "generatedFiles": [
+        "sdk/chat/content/content.pb.go",
+        "sdk/chat/content/content.pb.ts"
+      ],
+      "protoFiles": [
+        "sdk/chat/content/content.proto"
+      ]
+    },
     "github.com/s4wave/spacewave/sdk/chat/rpc": {
-      "hash": "99868f9b6cc1766b628857adb0676f0835bf7eb1d0841683b6d60cc4a0b80448",
+      "hash": "d866c87b91b4934ddbf498b2e3ec693a29bb1a7b5e0ed40a5e84ec1cade072a4",
       "generatedFiles": [
         "sdk/chat/rpc/rpc.pb.go",
         "sdk/chat/rpc/rpc.pb.ts",

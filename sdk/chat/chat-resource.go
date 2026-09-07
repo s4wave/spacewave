@@ -226,6 +226,12 @@ func (r *ChatResource) SendMessage(
 		return nil, err
 	}
 
+	// Normalize the request content before resolving a send identity.
+	content, err := normalizeSendMessageContent(req)
+	if err != nil {
+		return nil, err
+	}
+
 	// Resolve the sender-scoped retry before reserving a history position.
 	msgKey := ""
 	if transactionID := req.GetTransactionId(); transactionID != "" {
@@ -236,7 +242,7 @@ func (r *ChatResource) SendMessage(
 			return nil, err
 		}
 		if prior != nil {
-			if prior.GetSenderPeerId() != r.localPeerID || prior.GetContent().GetText() != req.GetText() || prior.GetReplyToKey() != req.GetReplyToKey() {
+			if prior.GetSenderPeerId() != r.localPeerID || !prior.GetContent().EqualVT(content) || prior.GetReplyToKey() != req.GetReplyToKey() {
 				return nil, errors.New("chat send transaction conflicts with its accepted message")
 			}
 			return &spacewave_chat_rpc.SendMessageResponse{MessageKey: msgKey}, nil
@@ -250,7 +256,7 @@ func (r *ChatResource) SendMessage(
 	}
 	msg := &ChatMessage{
 		SenderPeerId: r.localPeerID,
-		Content:      &ChatMessageContent{Content: &ChatMessageContent_Text{Text: req.GetText()}},
+		Content:      content,
 		CreatedAt:    timestamppb.Now(),
 		ReplyToKey:   req.GetReplyToKey(),
 		Index:        index,
@@ -451,10 +457,38 @@ func (r *ChatResource) readMessage(ctx context.Context, key string) (*spacewave_
 		ObjectKey:    key,
 		SenderPeerId: msg.GetSenderPeerId(),
 		Text:         msg.GetContent().GetText(),
+		Content:      msg.GetContent().CloneVT(),
 		CreatedAt:    msg.GetCreatedAt(),
 		ReplyToKey:   msg.GetReplyToKey(),
 		Index:        msg.GetIndex(),
 	}, nil
+}
+
+// normalizeSendMessageContent validates one shared content value without decrypting it.
+func normalizeSendMessageContent(req *spacewave_chat_rpc.SendMessageRequest) (*ChatMessageContent, error) {
+	// Keep the existing text request wire shape while accepting typed content.
+	content := req.GetContent()
+	if content == nil {
+		return &ChatMessageContent{Content: &ChatMessageContent_Text{Text: req.GetText()}}, nil
+	}
+	if req.GetText() != "" {
+		return nil, errors.New("chat send cannot include both text and content")
+	}
+
+	// Require an explicit variant and a complete encrypted envelope.
+	switch value := content.GetContent().(type) {
+	case *ChatMessageContent_Text:
+		if value == nil {
+			return nil, errors.New("chat text content is missing")
+		}
+	case *ChatMessageContent_Ciphertext:
+		if value == nil || value.Ciphertext.GetAlgorithm() == "" || value.Ciphertext.GetCiphertext() == "" || value.Ciphertext.GetSenderKey() == "" || value.Ciphertext.GetSessionId() == "" {
+			return nil, errors.New("chat encrypted content is incomplete")
+		}
+	default:
+		return nil, errors.New("chat message content is missing")
+	}
+	return content.CloneVT(), nil
 }
 
 // messageKey identifies a message sent without a transaction identity.

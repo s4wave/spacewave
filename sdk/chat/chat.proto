@@ -2,6 +2,7 @@ syntax = "proto3";
 package spacewave.chat;
 
 import "google/protobuf/timestamp.proto";
+import "github.com/s4wave/spacewave/sdk/chat/content/content.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/chat;spacewave_chat";
 
@@ -30,14 +31,6 @@ message ChatMessage {
   string reply_to_key = 4;
   // Index is the zero-based message index within the channel.
   uint64 index = 5;
-}
-
-// ChatMessageContent contains the message body.
-message ChatMessageContent {
-  oneof content {
-    // Text is a plain text message.
-    string text = 1;
-  }
 }
 
 // ChatMessagePage stores a bounded page of channel message keys.

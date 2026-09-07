@@ -12,6 +12,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	content "github.com/s4wave/spacewave/sdk/chat/content"
 )
 
 // ChatMessageInfo contains flattened message info for the client.
@@ -21,7 +22,7 @@ type ChatMessageInfo struct {
 	ObjectKey string `protobuf:"bytes,1,opt,name=object_key,json=objectKey,proto3" json:"objectKey,omitempty"`
 	// SenderPeerId is the sender's peer ID.
 	SenderPeerId string `protobuf:"bytes,2,opt,name=sender_peer_id,json=senderPeerId,proto3" json:"senderPeerId,omitempty"`
-	// Text is the message text content.
+	// Text is the message text content. Empty for ciphertext messages.
 	Text string `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
 	// CreatedAt is the message creation timestamp.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
@@ -29,6 +30,8 @@ type ChatMessageInfo struct {
 	ReplyToKey string `protobuf:"bytes,5,opt,name=reply_to_key,json=replyToKey,proto3" json:"replyToKey,omitempty"`
 	// Index is the immutable zero-based position in the channel history.
 	Index uint64 `protobuf:"varint,6,opt,name=index,proto3" json:"index,omitempty"`
+	// Content is the full typed message content, including ciphertext envelopes.
+	Content *content.ChatMessageContent `protobuf:"bytes,7,opt,name=content,proto3" json:"content,omitempty"`
 }
 
 func (x *ChatMessageInfo) Reset() {
@@ -77,6 +80,13 @@ func (x *ChatMessageInfo) GetIndex() uint64 {
 		return x.Index
 	}
 	return 0
+}
+
+func (x *ChatMessageInfo) GetContent() *content.ChatMessageContent {
+	if x != nil {
+		return x.Content
+	}
+	return nil
 }
 
 // GetChannelInfoRequest is a request for channel info.
@@ -218,6 +228,9 @@ type SendMessageRequest struct {
 	// TransactionId identifies a retryable send within the authenticated sender
 	// and channel. Reuse with different content is rejected; empty always appends.
 	TransactionId string `protobuf:"bytes,3,opt,name=transaction_id,json=transactionId,proto3" json:"transactionId,omitempty"`
+	// Content is the typed message content. When set, it is persisted as given
+	// and the legacy text field is rejected if also supplied.
+	Content *content.ChatMessageContent `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
 }
 
 func (x *SendMessageRequest) Reset() {
@@ -245,6 +258,13 @@ func (x *SendMessageRequest) GetTransactionId() string {
 		return x.TransactionId
 	}
 	return ""
+}
+
+func (x *SendMessageRequest) GetContent() *content.ChatMessageContent {
+	if x != nil {
+		return x.Content
+	}
+	return nil
 }
 
 // SendMessageResponse is the response after sending a message.
@@ -278,6 +298,7 @@ func (m *ChatMessageInfo) CloneVT() *ChatMessageInfo {
 	r.ReplyToKey = m.ReplyToKey
 	r.Index = m.Index
 	r.CreatedAt = protobuf_go_lite.CloneVTValue(m.CreatedAt)
+	r.Content = protobuf_go_lite.CloneVTValue(m.Content)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -393,6 +414,7 @@ func (m *SendMessageRequest) CloneVT() *SendMessageRequest {
 	r.Text = m.Text
 	r.ReplyToKey = m.ReplyToKey
 	r.TransactionId = m.TransactionId
+	r.Content = protobuf_go_lite.CloneVTValue(m.Content)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
 	}
@@ -441,6 +463,9 @@ func (this *ChatMessageInfo) EqualVT(that *ChatMessageInfo) bool {
 		return false
 	}
 	if this.Index != that.Index {
+		return false
+	}
+	if !protobuf_go_lite.IsEqualVT(this.Content, that.Content) {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -592,6 +617,9 @@ func (this *SendMessageRequest) EqualVT(that *SendMessageRequest) bool {
 	if this.TransactionId != that.TransactionId {
 		return false
 	}
+	if !protobuf_go_lite.IsEqualVT(this.Content, that.Content) {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -661,6 +689,11 @@ func (x *ChatMessageInfo) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("index")
 		s.WriteUint64(x.Index)
 	}
+	if x.Content != nil || s.HasField("content") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("content")
+		x.Content.MarshalProtoJSON(s.WithField("content"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -700,6 +733,13 @@ func (x *ChatMessageInfo) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "index":
 			s.AddField("index")
 			x.Index = s.ReadUint64()
+		case "content":
+			if s.ReadNil() {
+				x.Content = nil
+				return
+			}
+			x.Content = &content.ChatMessageContent{}
+			x.Content.UnmarshalProtoJSON(s.WithField("content", true))
 		}
 	})
 }
@@ -1026,6 +1066,11 @@ func (x *SendMessageRequest) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("transactionId")
 		s.WriteString(x.TransactionId)
 	}
+	if x.Content != nil || s.HasField("content") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("content")
+		x.Content.MarshalProtoJSON(s.WithField("content"))
+	}
 	s.WriteObjectEnd()
 }
 
@@ -1052,6 +1097,13 @@ func (x *SendMessageRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "transaction_id", "transactionId":
 			s.AddField("transaction_id")
 			x.TransactionId = s.ReadString()
+		case "content":
+			if s.ReadNil() {
+				x.Content = nil
+				return
+			}
+			x.Content = &content.ChatMessageContent{}
+			x.Content.UnmarshalProtoJSON(s.WithField("content", true))
 		}
 	})
 }
@@ -1131,6 +1183,16 @@ func (m *ChatMessageInfo) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.Content != nil {
+		size, err := m.Content.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x3a
 	}
 	if m.Index != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.Index))
@@ -1440,6 +1502,16 @@ func (m *SendMessageRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if m.Content != nil {
+		size, err := m.Content.MarshalToSizedBufferVT(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		i -= size
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(size))
+		i--
+		dAtA[i] = 0x22
+	}
 	if len(m.TransactionId) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.TransactionId)
 		i--
@@ -1510,6 +1582,10 @@ func (m *ChatMessageInfo) SizeVT() (n int) {
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ReplyToKey)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.Index)
+	if m.Content != nil {
+		l = m.Content.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1596,6 +1672,10 @@ func (m *SendMessageRequest) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Text)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.ReplyToKey)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TransactionId)
+	if m.Content != nil {
+		l = m.Content.SizeVT()
+		n += protobuf_go_lite.SizeMessage(1, l)
+	}
 	n += len(m.unknownFields)
 	return n
 }
@@ -1637,6 +1717,10 @@ func (x *ChatMessageInfo) MarshalProtoText() string {
 	if x.Index != 0 {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "index")
 		protobuf_go_lite.TextWriteUint(&sb, x.Index)
+	}
+	if x.Content != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "content")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Content)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -1764,6 +1848,10 @@ func (x *SendMessageRequest) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transaction_id")
 		protobuf_go_lite.TextWriteString(&sb, x.TransactionId)
 	}
+	if x.Content != nil {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "content")
+		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Content)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -1869,6 +1957,21 @@ func (m *ChatMessageInfo) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Content", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Content == nil {
+				m.Content = &content.ChatMessageContent{}
+			}
+			if err := m.Content.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -2275,6 +2378,21 @@ func (m *SendMessageRequest) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.TransactionId = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Content", wireType)
+			}
+			msgStart, postIndex, err := protobuf_go_lite.DecodeLengthDelimited(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			if m.Content == nil {
+				m.Content = &content.ChatMessageContent{}
+			}
+			if err := m.Content.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
