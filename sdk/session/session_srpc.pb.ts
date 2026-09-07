@@ -7,6 +7,8 @@ import {
   AcceptLocalPairingAnswerResponse,
   AcceptLocalPairingOfferRequest,
   AcceptLocalPairingOfferResponse,
+  AccessPeerTransportRequest,
+  AccessPeerTransportResponse,
   AccessSessionStateAtomRequest,
   AccessSessionStateAtomResponse,
   CancelTransferRequest,
@@ -283,6 +285,17 @@ export const SessionResourceServiceDefinition = {
       name: 'AccessStateAtom',
       I: AccessSessionStateAtomRequest,
       O: AccessSessionStateAtomResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * AccessPeerTransport mounts the account's authenticated peer stream service.
+     *
+     * @generated from rpc s4wave.session.SessionResourceService.AccessPeerTransport
+     */
+    AccessPeerTransport: {
+      name: 'AccessPeerTransport',
+      I: AccessPeerTransportRequest,
+      O: AccessPeerTransportResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -623,6 +636,16 @@ export interface SessionResourceService {
   ): Promise<AccessSessionStateAtomResponse>
 
   /**
+   * AccessPeerTransport mounts the account's authenticated peer stream service.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.AccessPeerTransport
+   */
+  AccessPeerTransport(
+    request: AccessPeerTransportRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AccessPeerTransportResponse>
+
+  /**
    * @generated from rpc s4wave.session.SessionResourceService.WatchStateAtoms
    */
   WatchStateAtoms(
@@ -961,6 +984,17 @@ export interface SessionResourceServiceHandler {
   ): Promise<AccessSessionStateAtomResponse>
 
   /**
+   * AccessPeerTransport mounts the account's authenticated peer stream service.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.AccessPeerTransport
+   */
+  AccessPeerTransport(
+    request: AccessPeerTransportRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<AccessPeerTransportResponse>
+
+  /**
    * @generated from rpc s4wave.session.SessionResourceService.WatchStateAtoms
    */
   WatchStateAtoms(
@@ -1153,6 +1187,7 @@ export class SessionResourceServiceClient implements SessionResourceService {
     this.ConfirmPairing = this.ConfirmPairing.bind(this)
     this.DeleteAccount = this.DeleteAccount.bind(this)
     this.AccessStateAtom = this.AccessStateAtom.bind(this)
+    this.AccessPeerTransport = this.AccessPeerTransport.bind(this)
     this.WatchStateAtoms = this.WatchStateAtoms.bind(this)
     this.GetTransferInventory = this.GetTransferInventory.bind(this)
     this.StartTransfer = this.StartTransfer.bind(this)
@@ -1527,6 +1562,25 @@ export class SessionResourceServiceClient implements SessionResourceService {
       abortSignal || undefined,
     )
     return AccessSessionStateAtomResponse.fromBinary(result)
+  }
+
+  /**
+   * AccessPeerTransport mounts the account's authenticated peer stream service.
+   *
+   * @generated from rpc s4wave.session.SessionResourceService.AccessPeerTransport
+   */
+  async AccessPeerTransport(
+    request: AccessPeerTransportRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<AccessPeerTransportResponse> {
+    const requestMsg = AccessPeerTransportRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SessionResourceServiceDefinition.methods.AccessPeerTransport.name,
+      AccessPeerTransportRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return AccessPeerTransportResponse.fromBinary(result)
   }
 
   /**

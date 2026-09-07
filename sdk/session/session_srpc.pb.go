@@ -55,6 +55,8 @@ type SRPCSessionResourceServiceClient interface {
 	DeleteAccount(ctx context.Context, in *DeleteAccountRequest) (*DeleteAccountResponse, error)
 
 	AccessStateAtom(ctx context.Context, in *AccessSessionStateAtomRequest) (*AccessSessionStateAtomResponse, error)
+	// AccessPeerTransport mounts the account's authenticated peer stream service.
+	AccessPeerTransport(ctx context.Context, in *AccessPeerTransportRequest) (*AccessPeerTransportResponse, error)
 
 	WatchStateAtoms(ctx context.Context, in *WatchSessionStateAtomsRequest) (SRPCSessionResourceService_WatchStateAtomsClient, error)
 
@@ -425,6 +427,15 @@ func (c *srpcSessionResourceServiceClient) AccessStateAtom(ctx context.Context, 
 	return out, nil
 }
 
+func (c *srpcSessionResourceServiceClient) AccessPeerTransport(ctx context.Context, in *AccessPeerTransportRequest) (*AccessPeerTransportResponse, error) {
+	out := new(AccessPeerTransportResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "AccessPeerTransport", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSessionResourceServiceClient) WatchStateAtoms(ctx context.Context, in *WatchSessionStateAtomsRequest) (SRPCSessionResourceService_WatchStateAtomsClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "WatchStateAtoms", in)
 	if err != nil {
@@ -729,6 +740,8 @@ type SRPCSessionResourceServiceServer interface {
 	DeleteAccount(context.Context, *DeleteAccountRequest) (*DeleteAccountResponse, error)
 
 	AccessStateAtom(context.Context, *AccessSessionStateAtomRequest) (*AccessSessionStateAtomResponse, error)
+	// AccessPeerTransport mounts the account's authenticated peer stream service.
+	AccessPeerTransport(context.Context, *AccessPeerTransportRequest) (*AccessPeerTransportResponse, error)
 
 	WatchStateAtoms(*WatchSessionStateAtomsRequest, SRPCSessionResourceService_WatchStateAtomsStream) error
 
@@ -814,6 +827,7 @@ func (SRPCSessionResourceServiceHandler) GetMethodIDs() []string {
 		"ConfirmPairing",
 		"DeleteAccount",
 		"AccessStateAtom",
+		"AccessPeerTransport",
 		"WatchStateAtoms",
 		"GetTransferInventory",
 		"StartTransfer",
@@ -886,6 +900,8 @@ func (d *SRPCSessionResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_DeleteAccount(d.impl, strm)
 	case "AccessStateAtom":
 		return true, d.InvokeMethod_AccessStateAtom(d.impl, strm)
+	case "AccessPeerTransport":
+		return true, d.InvokeMethod_AccessPeerTransport(d.impl, strm)
 	case "WatchStateAtoms":
 		return true, d.InvokeMethod_WatchStateAtoms(d.impl, strm)
 	case "GetTransferInventory":
@@ -1158,6 +1174,18 @@ func (SRPCSessionResourceServiceHandler) InvokeMethod_AccessStateAtom(impl SRPCS
 		return err
 	}
 	out, err := impl.AccessStateAtom(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSessionResourceServiceHandler) InvokeMethod_AccessPeerTransport(impl SRPCSessionResourceServiceServer, strm srpc.Stream) error {
+	req := new(AccessPeerTransportRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.AccessPeerTransport(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -1608,6 +1636,14 @@ type SRPCSessionResourceService_AccessStateAtomStream interface {
 }
 
 type srpcSessionResourceService_AccessStateAtomStream struct {
+	srpc.Stream
+}
+
+type SRPCSessionResourceService_AccessPeerTransportStream interface {
+	srpc.Stream
+}
+
+type srpcSessionResourceService_AccessPeerTransportStream struct {
 	srpc.Stream
 }
 

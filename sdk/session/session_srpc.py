@@ -162,6 +162,13 @@ SESSIONRESOURCESERVICE_SERVICE = ServiceDescriptor(
             False,
         ),
         MethodDescriptor(
+            "AccessPeerTransport",
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportRequest,
+            _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportResponse,
+            False,
+            False,
+        ),
+        MethodDescriptor(
             "WatchStateAtoms",
             _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSessionStateAtomsRequest,
             _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSessionStateAtomsResponse,
@@ -734,6 +741,29 @@ class SessionResourceServiceClient:
         finally:
             await call.aclose()
 
+    async def access_peer_transport(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportResponse
+    ):
+        call = await self._client.open_call(
+            self._service,
+            "AccessPeerTransport",
+            request.SerializeToString(deterministic=True),
+        )
+        try:
+            data = await call.receive()
+            if data is None:
+                raise CallProtocolError("missing unary response")
+            response = _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportResponse()
+            response.ParseFromString(data)
+            if await call.receive() is not None:
+                raise CallProtocolError("extra unary response")
+            return response
+        finally:
+            await call.aclose()
+
     async def watch_state_atoms(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSessionStateAtomsRequest,
@@ -1226,6 +1256,12 @@ class SessionResourceServiceServer(Protocol):
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessSessionStateAtomRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessSessionStateAtomResponse: ...
+    async def access_peer_transport(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportResponse
+    ): ...
     def watch_state_atoms(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSessionStateAtomsRequest,
@@ -1579,6 +1615,17 @@ def register_session_resource_service(
         await call.send(response.SerializeToString(deterministic=True))
 
     registry.register(service, "AccessStateAtom", access_state_atom_handler)
+
+    async def access_peer_transport_handler(call: Call) -> None:
+        first = await call.receive()
+        if first is None:
+            raise CallProtocolError("missing initial request")
+        request = _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportRequest()
+        request.ParseFromString(first)
+        response = await implementation.access_peer_transport(request)
+        await call.send(response.SerializeToString(deterministic=True))
+
+    registry.register(service, "AccessPeerTransport", access_peer_transport_handler)
 
     async def watch_state_atoms_handler(call: Call) -> None:
         first = await call.receive()

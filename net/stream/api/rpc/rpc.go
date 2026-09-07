@@ -28,16 +28,16 @@ func AttachRPCToStream(
 		buf := make([]byte, 1500)
 		d := &Data{}
 		for {
-			n, err := s.Read(buf)
-			if err != nil {
-				errCh <- err
-				return
+			n, readErr := s.Read(buf)
+			if n != 0 {
+				d.Data = buf[:n]
+				if err := rpc.Send(d); err != nil {
+					errCh <- err
+					return
+				}
 			}
-
-			d.Data = buf[:n]
-			err = rpc.Send(d)
-			if err != nil {
-				errCh <- err
+			if readErr != nil {
+				errCh <- readErr
 				return
 			}
 		}

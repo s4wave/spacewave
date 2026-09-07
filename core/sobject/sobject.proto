@@ -31,6 +31,9 @@ message SharedObjectListEntry {
   // Source indicates how the shared object was acquired.
   // Known values: "created" (owner-created), "shared" (invite-received or org-enrolled).
   string source = 3;
+  // TransportPeerId is the verified invite endpoint retained for reconnect.
+  // Empty for entries created before this field was added.
+  string transport_peer_id = 4;
 }
 
 // SharedObjectMeta is the contents of the provider_feature_meta field for a SharedObject.
@@ -584,6 +587,10 @@ message SOInviteMessage {
   uint32 max_uses = 9;
   // Signature is the owner's signature over this message (without this field).
   .peer.Signature signature = 10;
+  // TransportPeerId is the optional network endpoint peer ID carried in this
+  // signed message, separate from OwnerPeerId, the signing identity.
+  // Empty means use OwnerPeerId for existing messages.
+  string transport_peer_id = 11;
 }
 
 // SOJoinResponse is a signed response from an invitee requesting to join.

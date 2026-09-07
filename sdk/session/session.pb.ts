@@ -725,6 +725,13 @@ export interface MountSharedObjectResponse {
    * @generated from field: hash.HashType hash_type = 6;
    */
   hashType?: HashType
+  /**
+   * TransportPeerId is the verified invitation endpoint for remote service discovery.
+   * Empty for owner-created and preexisting records.
+   *
+   * @generated from field: string transport_peer_id = 7;
+   */
+  transportPeerId?: string
 }
 
 export const MountSharedObjectResponse: MessageType<MountSharedObjectResponse> =
@@ -742,6 +749,12 @@ export const MountSharedObjectResponse: MessageType<MountSharedObjectResponse> =
       { no: 4, name: 'shared_object_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 5, name: 'block_store_id', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'hash_type', kind: 'enum', T: HashType_Enum },
+      {
+        no: 7,
+        name: 'transport_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -2258,6 +2271,49 @@ export const AccessSessionStateAtomResponse: MessageType<AccessSessionStateAtomR
     typeName: 's4wave.session.AccessSessionStateAtomResponse',
     fields: [
       { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * AccessPeerTransportRequest is the request for AccessPeerTransport.
+ *
+ * @generated from message s4wave.session.AccessPeerTransportRequest
+ */
+export interface AccessPeerTransportRequest {}
+
+export const AccessPeerTransportRequest: MessageType<AccessPeerTransportRequest> =
+  /* @__PURE__ */ createEmptyMessageType<AccessPeerTransportRequest>(
+    's4wave.session.AccessPeerTransportRequest',
+    true,
+  )
+
+/**
+ * AccessPeerTransportResponse is the response for AccessPeerTransport.
+ *
+ * @generated from message s4wave.session.AccessPeerTransportResponse
+ */
+export interface AccessPeerTransportResponse {
+  /**
+   * ResourceId is the mounted account's Bifrost StreamService resource.
+   *
+   * @generated from field: uint32 resource_id = 1;
+   */
+  resourceId?: number
+  /**
+   * PeerId is the authenticated local account session peer.
+   *
+   * @generated from field: string peer_id = 2;
+   */
+  peerId?: string
+}
+
+export const AccessPeerTransportResponse: MessageType<AccessPeerTransportResponse> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.session.AccessPeerTransportResponse',
+    fields: [
+      { no: 1, name: 'resource_id', kind: 'scalar', T: ScalarType.UINT32 },
+      { no: 2, name: 'peer_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

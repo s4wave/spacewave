@@ -228,14 +228,16 @@ class SharedObjectList(_message.Message):
     def __init__(self, shared_objects: _Optional[_Iterable[_Union[SharedObjectListEntry, _Mapping]]] = ...) -> None: ...
 
 class SharedObjectListEntry(_message.Message):
-    __slots__ = ("ref", "meta", "source")
+    __slots__ = ("ref", "meta", "source", "transport_peer_id")
     REF_FIELD_NUMBER: _ClassVar[int]
     META_FIELD_NUMBER: _ClassVar[int]
     SOURCE_FIELD_NUMBER: _ClassVar[int]
+    TRANSPORT_PEER_ID_FIELD_NUMBER: _ClassVar[int]
     ref: SharedObjectRef
     meta: SharedObjectMeta
     source: str
-    def __init__(self, ref: _Optional[_Union[SharedObjectRef, _Mapping]] = ..., meta: _Optional[_Union[SharedObjectMeta, _Mapping]] = ..., source: _Optional[str] = ...) -> None: ...
+    transport_peer_id: str
+    def __init__(self, ref: _Optional[_Union[SharedObjectRef, _Mapping]] = ..., meta: _Optional[_Union[SharedObjectMeta, _Mapping]] = ..., source: _Optional[str] = ..., transport_peer_id: _Optional[str] = ...) -> None: ...
 
 class SharedObjectMeta(_message.Message):
     __slots__ = ("body_type", "body_meta", "account_private")
@@ -538,7 +540,7 @@ class QueuedSOOperation(_message.Message):
     def __init__(self, local_id: _Optional[str] = ..., op_data: _Optional[bytes] = ...) -> None: ...
 
 class SOInviteMessage(_message.Message):
-    __slots__ = ("invite_id", "shared_object_id", "owner_peer_id", "provider_id", "token", "role", "target_peer_id", "expires_at", "max_uses", "signature")
+    __slots__ = ("invite_id", "shared_object_id", "owner_peer_id", "provider_id", "token", "role", "target_peer_id", "expires_at", "max_uses", "signature", "transport_peer_id")
     INVITE_ID_FIELD_NUMBER: _ClassVar[int]
     SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
     OWNER_PEER_ID_FIELD_NUMBER: _ClassVar[int]
@@ -549,6 +551,7 @@ class SOInviteMessage(_message.Message):
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     MAX_USES_FIELD_NUMBER: _ClassVar[int]
     SIGNATURE_FIELD_NUMBER: _ClassVar[int]
+    TRANSPORT_PEER_ID_FIELD_NUMBER: _ClassVar[int]
     invite_id: str
     shared_object_id: str
     owner_peer_id: str
@@ -559,7 +562,8 @@ class SOInviteMessage(_message.Message):
     expires_at: _timestamp_pb2.Timestamp
     max_uses: int
     signature: _peer_pb2.Signature
-    def __init__(self, invite_id: _Optional[str] = ..., shared_object_id: _Optional[str] = ..., owner_peer_id: _Optional[str] = ..., provider_id: _Optional[str] = ..., token: _Optional[bytes] = ..., role: _Optional[_Union[SOParticipantRole, str]] = ..., target_peer_id: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., max_uses: _Optional[int] = ..., signature: _Optional[_Union[_peer_pb2.Signature, _Mapping]] = ...) -> None: ...
+    transport_peer_id: str
+    def __init__(self, invite_id: _Optional[str] = ..., shared_object_id: _Optional[str] = ..., owner_peer_id: _Optional[str] = ..., provider_id: _Optional[str] = ..., token: _Optional[bytes] = ..., role: _Optional[_Union[SOParticipantRole, str]] = ..., target_peer_id: _Optional[str] = ..., expires_at: _Optional[_Union[datetime.datetime, _timestamp_pb2.Timestamp, _Mapping]] = ..., max_uses: _Optional[int] = ..., signature: _Optional[_Union[_peer_pb2.Signature, _Mapping]] = ..., transport_peer_id: _Optional[str] = ...) -> None: ...
 
 class SOJoinResponse(_message.Message):
     __slots__ = ("invite_id", "responder_peer_id", "responder_pubkey", "signature")

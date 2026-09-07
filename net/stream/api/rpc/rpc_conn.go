@@ -3,6 +3,7 @@ package stream_api_rpc
 import (
 	"io"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/s4wave/spacewave/net/peer"
@@ -10,9 +11,16 @@ import (
 
 // NetConn wraps an RPC into a net.Conn compat interface.
 type NetConn struct {
-	rpc          RPC
-	localPeerID  peer.ID
+	// rpc carries ordered data packets and connection cancellation.
+	rpc RPC
+	// localPeerID identifies the local endpoint.
+	localPeerID peer.ID
+	// remotePeerID identifies the authenticated remote endpoint.
 	remotePeerID peer.ID
+	// readMtx serializes receives and access to readBuffer.
+	readMtx sync.Mutex
+	// readBuffer retains the unread suffix of the last received packet.
+	readBuffer []byte
 }
 
 // NewNetConn constructs a new NetConn.
@@ -28,6 +36,19 @@ func NewNetConn(localPeerID, remotePeerID peer.ID, rpc RPC) *NetConn {
 // Read can be made to time out and return an Error with Timeout() == true
 // after a fixed time limit; see SetDeadline and SetReadDeadline.
 func (n *NetConn) Read(b []byte) (int, error) {
+	if len(b) == 0 {
+		return 0, nil
+	}
+
+	n.readMtx.Lock()
+	defer n.readMtx.Unlock()
+
+	if len(n.readBuffer) > 0 {
+		read := copy(b, n.readBuffer)
+		n.readBuffer = n.readBuffer[read:]
+		return read, nil
+	}
+
 	for {
 		data, err := n.rpc.Recv()
 		if err != nil {
@@ -39,12 +60,10 @@ func (n *NetConn) Read(b []byte) (int, error) {
 			continue
 		}
 
-		copy(b, buf)
-		if len(buf) > len(b) {
-			return len(buf), io.ErrShortBuffer
-		}
-
-		return len(buf), nil
+		n.readBuffer = append(n.readBuffer[:0], buf...)
+		read := copy(b, n.readBuffer)
+		n.readBuffer = n.readBuffer[read:]
+		return read, nil
 	}
 }
 
@@ -62,7 +81,9 @@ func (n *NetConn) Write(b []byte) (nw int, err error) {
 // Close closes the connection.
 // Any blocked Read or Write operations will be unblocked and return errors.
 func (n *NetConn) Close() error {
-	// TODO
+	if closer, ok := n.rpc.(io.Closer); ok {
+		return closer.Close()
+	}
 	return nil
 }
 

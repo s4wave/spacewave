@@ -56,6 +56,8 @@ func (s *StoreReadThrough) GetSupportedFeatures() block.StoreFeature {
 }
 
 // BeginReadOperation opens read scopes on the currently available sources.
+// Writeback keeps the primary source writable because lower-source hits are
+// inserted into it before the scoped read returns.
 func (s *StoreReadThrough) BeginReadOperation(ctx context.Context) (block.StoreOps, func(), error) {
 	primary := block.StoreOps(nil)
 	if s.primary != nil {
@@ -67,7 +69,7 @@ func (s *StoreReadThrough) BeginReadOperation(ctx context.Context) (block.StoreO
 	}
 
 	var releasePrimary, releaseLower func()
-	if primary != nil {
+	if primary != nil && !s.writeback {
 		scoped, release, err := primary.BeginReadOperation(ctx)
 		if err != nil {
 			return nil, nil, err

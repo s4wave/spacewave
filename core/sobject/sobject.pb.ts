@@ -863,6 +863,13 @@ export interface SharedObjectListEntry {
    * @generated from field: string source = 3;
    */
   source?: string
+  /**
+   * TransportPeerId is the verified invite endpoint retained for reconnect.
+   * Empty for entries created before this field was added.
+   *
+   * @generated from field: string transport_peer_id = 4;
+   */
+  transportPeerId?: string
 }
 
 export const SharedObjectListEntry: MessageType<SharedObjectListEntry> =
@@ -872,6 +879,12 @@ export const SharedObjectListEntry: MessageType<SharedObjectListEntry> =
       { no: 1, name: 'ref', kind: 'message', T: () => SharedObjectRef },
       { no: 2, name: 'meta', kind: 'message', T: () => SharedObjectMeta },
       { no: 3, name: 'source', kind: 'scalar', T: ScalarType.STRING },
+      {
+        no: 4,
+        name: 'transport_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -2223,6 +2236,14 @@ export interface SOInviteMessage {
    * @generated from field: peer.Signature signature = 10;
    */
   signature?: Signature
+  /**
+   * TransportPeerId is the optional network endpoint peer ID carried in this
+   * signed message, separate from OwnerPeerId, the signing identity.
+   * Empty means use OwnerPeerId for existing messages.
+   *
+   * @generated from field: string transport_peer_id = 11;
+   */
+  transportPeerId?: string
 }
 
 export const SOInviteMessage: MessageType<SOInviteMessage> =
@@ -2239,6 +2260,12 @@ export const SOInviteMessage: MessageType<SOInviteMessage> =
       { no: 8, name: 'expires_at', kind: 'message', T: () => Timestamp },
       { no: 9, name: 'max_uses', kind: 'scalar', T: ScalarType.UINT32 },
       { no: 10, name: 'signature', kind: 'message', T: () => Signature },
+      {
+        no: 11,
+        name: 'transport_peer_id',
+        kind: 'scalar',
+        T: ScalarType.STRING,
+      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

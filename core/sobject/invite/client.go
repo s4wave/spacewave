@@ -46,7 +46,7 @@ func JoinViaInvite(
 		return nil, errors.New("invite message is nil")
 	}
 
-	ownerPeerID, err := peer.IDB58Decode(inviteMsg.GetOwnerPeerId())
+	ownerPeerID, err := inviteMsg.VerifyTransportPeer()
 	if err != nil {
 		return nil, errors.Wrap(err, "parse owner peer ID from invite")
 	}

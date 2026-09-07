@@ -5,8 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aperturerobotics/controllerbus/directive"
 	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	"github.com/s4wave/spacewave/core/sobject"
+	"github.com/s4wave/spacewave/net/link"
 )
 
 // TestAutoStartP2PSyncIfNeededNoDevices verifies the auto-start helper is a
@@ -79,10 +81,14 @@ func TestAutoStartP2PSyncIfNeededWithDevice(t *testing.T) {
 // restores P2P sync after restart even though invite enrollment does not add a
 // paired-device record.
 func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
-	ctx := t.Context()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
 
 	_, _, acc, sess, release := setupProviderAndSession(ctx, t)
 	defer release()
+	_, _, _, remoteSess, releaseRemote := setupProviderAndSession(ctx, t)
+	defer releaseRemote()
+	remotePeerID := remoteSess.GetPeerId().String()
 
 	spaceRef, err := acc.CreateSharedObject(ctx, "auto-start-shared-space", &sobject.SharedObjectMeta{
 		BodyType: "space",
@@ -94,6 +100,7 @@ func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
 	for _, entry := range soList.GetSharedObjects() {
 		if entry.GetRef().GetProviderResourceRef().GetId() == spaceRef.GetProviderResourceRef().GetId() {
 			entry.Source = "shared"
+			entry.TransportPeerId = remotePeerID
 		}
 	}
 	acc.GetSOListCtr().SetValue(soList)
@@ -106,6 +113,25 @@ func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
 	if st == nil {
 		t.Fatal("expected non-nil session transport")
 	}
+	linkTargets := make(chan string, 1)
+	removeHandler, err := st.GetChildBus().AddHandler(directive.NewFuncHandler(
+		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			establish, ok := di.GetDirective().(link.EstablishLinkWithPeer)
+			if !ok {
+				return nil, nil
+			}
+			select {
+			case linkTargets <- establish.EstablishLinkTargetPeerId().String():
+			default:
+			}
+			return nil, nil
+		},
+	))
+	if err != nil {
+		t.Fatalf("add link directive handler: %v", err)
+	}
+	defer removeHandler()
+
 	startCtx, cancelStart := context.WithCancel(ctx)
 	if err := acc.AutoStartP2PSyncIfNeeded(startCtx, st); err != nil {
 		t.Fatalf("AutoStartP2PSyncIfNeeded: %v", err)
@@ -119,6 +145,14 @@ func TestAutoStartP2PSyncIfNeededWithSharedSpace(t *testing.T) {
 	}
 	if !acc.IsP2PSyncRunning() {
 		t.Fatal("expected P2P sync to outlive the session-mount startup context")
+	}
+	select {
+	case target := <-linkTargets:
+		if target != remotePeerID {
+			t.Fatalf("auto-start link target = %s, want saved transport peer %s", target, remotePeerID)
+		}
+	case <-ctx.Done():
+		t.Fatalf("timed out waiting for auto-start link to %s", remotePeerID)
 	}
 }
 

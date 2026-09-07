@@ -253,6 +253,9 @@ func (f peerBlockFanout) run(ctx context.Context) ([]byte, bool) {
 	for _, sess := range f.sessions {
 		go func(sess *peerSession) {
 			data, found, err := sess.requestBlock(reqCtx, f.ref, f.hops)
+			if err != nil {
+				sess.le.WithError(err).Debug("dex block request failed")
+			}
 			if err != nil || !found {
 				results <- peerBlockFanoutResult{}
 				return

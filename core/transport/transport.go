@@ -20,6 +20,7 @@ import (
 	"github.com/s4wave/spacewave/net/peer"
 	peer_controller "github.com/s4wave/spacewave/net/peer/controller"
 	"github.com/s4wave/spacewave/net/signaling"
+	stream_api_accept "github.com/s4wave/spacewave/net/stream/api/accept"
 	transport_controller "github.com/s4wave/spacewave/net/transport/controller"
 	transport_webrtc "github.com/s4wave/spacewave/net/transport/webrtc"
 	transport_websocket "github.com/s4wave/spacewave/net/transport/websocket"
@@ -493,13 +494,13 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 			return false, nil
 		case resolver.LoadControllerWithConfig:
 			switch d.GetLoadControllerConfig().(type) {
-			case *dex_solicit.Config, *link_solicit_controller.Config,
+			case *stream_api_accept.Config, *dex_solicit.Config, *link_solicit_controller.Config,
 				*transport_webrtc.Config, *transport_websocket.Config:
 				return false, nil
 			}
 		case loader.ExecController:
 			switch d.GetExecControllerConfig().(type) {
-			case *dex_solicit.Config, *link_solicit_controller.Config,
+			case *stream_api_accept.Config, *dex_solicit.Config, *link_solicit_controller.Config,
 				*transport_webrtc.Config, *transport_websocket.Config:
 				return false, nil
 			}
@@ -530,6 +531,7 @@ func (t *SessionTransport) Execute(ctx context.Context) (err error) {
 	}
 	sr.AddFactory(link_solicit_controller.NewFactory())
 	sr.AddFactory(dex_solicit.NewFactory(b))
+	sr.AddFactory(stream_api_accept.NewFactory(b))
 
 	t.setStartupStage("solicit-controller")
 
