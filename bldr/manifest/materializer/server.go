@@ -213,5 +213,5 @@ func newCopyStats(stats *bucket_lookup.ObjectCopyStats) *CopyStats {
 
 // _ is a type assertion
 var (
-	_ SRPCMaterializerServer = ((*Materializer)(nil))
+	_ SRPCMaterializerServer = (*Materializer)(nil)
 )

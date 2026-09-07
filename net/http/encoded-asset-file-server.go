@@ -17,6 +17,7 @@ const encodedAssetVary = "Accept-Encoding"
 // NewEncodedAssetFileServer serves an http.FileSystem with browser release
 // asset headers for precompressed immutable files.
 func NewEncodedAssetFileServer(hfs http.FileSystem) http.Handler {
+	// Keep directory, conditional, and range handling in the standard file server.
 	fileServer := http.FileServer(hfs)
 
 	// Apply immutable asset metadata before serving or decoding the file.
@@ -41,7 +42,14 @@ func applyEncodedAssetHeaders(rw http.ResponseWriter, req *http.Request, hfs htt
 		return
 	}
 
-	// Verify the encoded file exists before setting response headers.
+	// Plain assets need no metadata read; FileServer supplies the size and
+	// replaces Content-Type when it returns an HTTP error.
+	if encoded == "" {
+		rw.Header().Set("Content-Type", contentType)
+		return
+	}
+
+	// Verify the encoded file exists before advertising an encoded response.
 	st, err := statHTTPFile(hfs, reqPath)
 	if err != nil {
 		return
@@ -86,6 +94,7 @@ func encodedAssetContentType(name string) (string, string) {
 
 // contentTypeForAsset returns the content type for an asset file name.
 func contentTypeForAsset(name string) string {
+	// Keep browser module and release formats independent of host MIME tables.
 	switch {
 	case strings.HasSuffix(name, ".wasm"):
 		return "application/wasm"
@@ -100,6 +109,8 @@ func contentTypeForAsset(name string) string {
 	case strings.HasSuffix(name, ".kvfile"), strings.HasSuffix(name, ".packedmsg"):
 		return "application/octet-stream"
 	}
+
+	// Resolve other extensions through the registered MIME types.
 	if ext := path.Ext(name); ext != "" {
 		if contentType := mime.TypeByExtension(ext); contentType != "" {
 			return contentType
@@ -123,9 +134,12 @@ func acceptsEncoding(req *http.Request, want string) bool {
 // encodingQuality parses the q parameter from one Accept-Encoding element. A
 // missing q parameter means quality 1.
 func encodingQuality(params string) float64 {
+	// An omitted quality parameter accepts the encoding at full quality.
 	if params == "" {
 		return 1
 	}
+
+	// Honor an explicit quality and reject malformed values.
 	for param := range strings.SplitSeq(params, ";") {
 		key, value, ok := strings.Cut(strings.TrimSpace(param), "=")
 		if !ok || !strings.EqualFold(key, "q") {
@@ -162,6 +176,7 @@ func openHTTPFile(hfs http.FileSystem, name string) (http.File, error) {
 // cleanHTTPFilePath normalizes a request path and rejects traversal outside
 // the filesystem root.
 func cleanHTTPFilePath(name string) (string, error) {
+	// HTTP asset paths use slash separators on every host platform.
 	if strings.Contains(name, "\\") {
 		return "", fs.ErrPermission
 	}
