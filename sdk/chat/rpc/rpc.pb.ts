@@ -49,6 +49,12 @@ export interface ChatMessageInfo {
    * @generated from field: string reply_to_key = 5;
    */
   replyToKey?: string
+  /**
+   * Index is the immutable zero-based position in the channel history.
+   *
+   * @generated from field: uint64 index = 6;
+   */
+  index?: bigint
 }
 
 export const ChatMessageInfo: MessageType<ChatMessageInfo> =
@@ -60,6 +66,7 @@ export const ChatMessageInfo: MessageType<ChatMessageInfo> =
       { no: 3, name: 'text', kind: 'scalar', T: ScalarType.STRING },
       { no: 4, name: 'created_at', kind: 'message', T: () => Timestamp },
       { no: 5, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 6, name: 'index', kind: 'scalar', T: ScalarType.UINT64 },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -233,6 +240,13 @@ export interface SendMessageRequest {
    * @generated from field: string reply_to_key = 2;
    */
   replyToKey?: string
+  /**
+   * TransactionId identifies a retryable send within the authenticated sender
+   * and channel. Reuse with different content is rejected; empty always appends.
+   *
+   * @generated from field: string transaction_id = 3;
+   */
+  transactionId?: string
 }
 
 export const SendMessageRequest: MessageType<SendMessageRequest> =
@@ -241,6 +255,7 @@ export const SendMessageRequest: MessageType<SendMessageRequest> =
     fields: [
       { no: 1, name: 'text', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'transaction_id', kind: 'scalar', T: ScalarType.STRING },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

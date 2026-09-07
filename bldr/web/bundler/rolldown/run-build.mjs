@@ -278,17 +278,17 @@ async function runBuild(request, dependencyRoot) {
     if (!goscript?.sharedExternalImports)
       return null;
     if (source.startsWith("@goscript/")) {
-      const rel2 = source.slice("@goscript/".length);
-      if (!rel2.endsWith(".js") || !sharedGoScriptRel(rel2))
+      const rel = source.slice("@goscript/".length);
+      if (!rel.endsWith(".js") || !sharedGoScriptRel(rel))
         return null;
-      return sharedImportURL(rel2);
+      return sharedImportURL(rel);
     }
     if (!importer || importer.startsWith("\x00") || !source.endsWith(".js") || !source.startsWith("./") && !source.startsWith("../")) {
       return null;
     }
-    const outputRoot2 = join(goScriptOutputRoot, "@goscript");
+    const outputRoot = join(goScriptOutputRoot, "@goscript");
     const targetPath = normalize(join(dirname(importer), source));
-    const rel = relative(outputRoot2, targetPath).split(sep).join("/");
+    const rel = relative(outputRoot, targetPath).split(sep).join("/");
     if (rel === "" || rel.startsWith("..") || isAbsolute(rel))
       return null;
     if (!sharedGoScriptRel(rel) || !existingTypeScriptSibling(targetPath))
@@ -299,9 +299,9 @@ async function runBuild(request, dependencyRoot) {
     if (!importer || importer.startsWith("\x00") || !source.endsWith(".js") || !source.startsWith("./") && !source.startsWith("../")) {
       return null;
     }
-    const outputRoot2 = join(goScriptOutputRoot, "@goscript");
+    const outputRoot = join(goScriptOutputRoot, "@goscript");
     const targetPath = normalize(join(dirname(importer), source));
-    const rel = relative(outputRoot2, targetPath);
+    const rel = relative(outputRoot, targetPath);
     if (rel === "" || rel.startsWith("..") || isAbsolute(rel))
       return null;
     return existingSourcePath(join(sourceRoot, "vendor", "github.com", "s4wave", "goscript", "gs", rel));
@@ -566,10 +566,10 @@ function readLocalModule(sourceRoot) {
     try {
       contents = readFileSync(join(root, "go.mod"), "utf8");
     } catch {
-      const parent2 = dirname(root);
-      if (parent2 === root)
+      const parent = dirname(root);
+      if (parent === root)
         return null;
-      root = parent2;
+      root = parent;
       continue;
     }
     const name = contents.match(/^\s*module\s+(\S+)/m)?.[1] || "";
