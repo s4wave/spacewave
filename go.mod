@@ -4,7 +4,7 @@ go 1.26.5
 
 tool github.com/s4wave/goscript/cmd/goscript
 
-require github.com/s4wave/goscript v0.2.31-0.20260906123026-2a17599607ba
+require github.com/s4wave/goscript v0.2.31-0.20260907032623-523ce45c43a4
 
 replace (
 	// aperture: use compatibility forks
@@ -46,7 +46,7 @@ require (
 	github.com/aperturerobotics/go-protoc-gen-prost v0.0.0-20260705010911-9f53feac967b // indirect
 	github.com/aperturerobotics/go-protoc-wasi v0.0.0-20260808023521-7b1595380c3f // indirect
 	github.com/aperturerobotics/go-quickjs-wasi-reactor v0.15.1
-	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260705010951-74676ff0da98
+	github.com/aperturerobotics/go-quickjs-wasi-reactor/wazero-quickjs v0.0.0-20260906074410-727d9e299192
 	github.com/aperturerobotics/go-websocket v1.8.15-0.20260619192713-a096778f08c1
 	github.com/aperturerobotics/go-winjob v0.0.0-20260705010911-656e088d1b05
 	github.com/aperturerobotics/json-iterator-lite v1.1.0 // latest
