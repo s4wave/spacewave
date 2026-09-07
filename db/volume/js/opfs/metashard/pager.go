@@ -15,14 +15,21 @@ import (
 // OpfsPager implements pagestore.Pager backed by a single OPFS file.
 // Pages are stored at offset = pageID * pageSize.
 type OpfsPager struct {
-	dir       js.Value
-	filename  string
-	pgSize    int
+	// dir contains the page file.
+	dir js.Value
+	// filename identifies the page file within dir.
+	filename string
+	// pgSize is the fixed byte size of each page.
+	pgSize int
+	// pageCount is the allocation high-water mark.
 	pageCount uint32
-	freed     []pagestore.PageID
-	// Files are opened lazily on first write.
-	syncFile      *opfs.SyncFile
-	asyncFile     *opfs.AsyncFile
+	// freed contains page IDs available for reuse.
+	freed []pagestore.PageID
+	// syncFile is opened lazily for synchronous writes.
+	syncFile *opfs.SyncFile
+	// asyncFile is opened lazily for asynchronous reads or writes.
+	asyncFile *opfs.AsyncFile
+	// freelistPages holds the pages encoding the current free-page chain.
 	freelistPages []pagestore.PageID
 }
 
@@ -50,6 +57,7 @@ func (p *OpfsPager) PageSize() int { return p.pgSize }
 // page read costs an awaited getFileHandle round-trip per call, which turns
 // each B+tree traversal into O(depth) avoidable Promise hops.
 func (p *OpfsPager) ReadPage(id pagestore.PageID, buf []byte) error {
+	// Reuse an existing synchronous handle when available.
 	clear(buf)
 	off := int64(id) * int64(p.pgSize)
 	if p.syncFile != nil {
@@ -62,6 +70,8 @@ func (p *OpfsPager) ReadPage(id pagestore.PageID, buf []byte) error {
 		}
 		return nil
 	}
+
+	// Retain one asynchronous handle across this pager's reads.
 	if p.asyncFile == nil {
 		f, err := opfs.OpenAsyncFile(p.dir, p.filename)
 		if err != nil {
@@ -69,6 +79,8 @@ func (p *OpfsPager) ReadPage(id pagestore.PageID, buf []byte) error {
 		}
 		p.asyncFile = f
 	}
+
+	// Require one complete page from the asynchronous handle.
 	n, err := p.asyncFile.ReadAt(buf[:p.pgSize], off)
 	if err != nil && err != io.EOF {
 		return errors.Wrap(err, "read page")
@@ -81,6 +93,7 @@ func (p *OpfsPager) ReadPage(id pagestore.PageID, buf []byte) error {
 
 // WritePage writes a page. Uses a sync handle when preferred, async otherwise.
 func (p *OpfsPager) WritePage(id pagestore.PageID, buf []byte) error {
+	// Retain a writable handle for the selected runtime driver.
 	if opfs.PreferSyncAccessHandles() {
 		if p.syncFile == nil {
 			f, err := opfs.CreateSyncFile(p.dir, p.filename)
@@ -93,6 +106,8 @@ func (p *OpfsPager) WritePage(id pagestore.PageID, buf []byte) error {
 		_, err := p.syncFile.WriteAt(buf[:p.pgSize], off)
 		return err
 	}
+
+	// The asynchronous driver buffers writes until its handle closes.
 	if p.asyncFile == nil {
 		f, err := opfs.CreateAsyncFile(p.dir, p.filename)
 		if err != nil {
@@ -107,11 +122,14 @@ func (p *OpfsPager) WritePage(id pagestore.PageID, buf []byte) error {
 
 // AllocPage returns the next free page ID.
 func (p *OpfsPager) AllocPage() pagestore.PageID {
+	// Reuse freed pages before extending the allocation high-water mark.
 	if len(p.freed) > 0 {
 		id := p.freed[len(p.freed)-1]
 		p.freed = p.freed[:len(p.freed)-1]
 		return id
 	}
+
+	// Reserve the next page beyond all previous allocations.
 	id := pagestore.PageID(p.pageCount)
 	p.pageCount++
 	return id
@@ -156,12 +174,14 @@ func (p *OpfsPager) Close() error {
 
 // LoadFreelist restores the free-page state from the committed freelist chain.
 func (p *OpfsPager) LoadFreelist(root pagestore.PageID) error {
+	// Replace the previous allocation state with the committed chain.
 	p.freed = nil
 	p.freelistPages = nil
 	if root == pagestore.InvalidPage {
 		return nil
 	}
 
+	// Follow and decode every page in the committed chain.
 	buf := make([]byte, p.pgSize)
 	pageID := root
 	for pageID != pagestore.InvalidPage {
@@ -182,6 +202,7 @@ func (p *OpfsPager) LoadFreelist(root pagestore.PageID) error {
 // PersistFreelist writes the current free-page state to freelist pages.
 // Returns the root freelist page ID, or InvalidPage if the freelist is empty.
 func (p *OpfsPager) PersistFreelist() (pagestore.PageID, error) {
+	// Recycle the previous chain before allocating its replacement.
 	if len(p.freelistPages) > 0 {
 		p.freed = append(p.freed, p.freelistPages...)
 		p.freelistPages = nil
@@ -190,11 +211,13 @@ func (p *OpfsPager) PersistFreelist() (pagestore.PageID, error) {
 		return pagestore.InvalidPage, nil
 	}
 
+	// Require room for at least one free-page ID per chain page.
 	capacity := pagestore.FreelistPageCapacity(p.pgSize)
 	if capacity < 1 {
 		return pagestore.InvalidPage, errors.New("page size too small for freelist")
 	}
 
+	// Allocate the replacement chain beyond all existing pages.
 	freed := slices.Clone(p.freed)
 	pageCount := (len(freed) + capacity - 1) / capacity
 	pages := make([]pagestore.PageID, pageCount)
@@ -203,9 +226,10 @@ func (p *OpfsPager) PersistFreelist() (pagestore.PageID, error) {
 		p.pageCount++
 	}
 
+	// Write the chain backward so each link points to an assigned page.
 	buf := make([]byte, p.pgSize)
 	off := 0
-	for i := len(pages) - 1; i >= 0; i-- {
+	for i, page := range slices.Backward(pages) {
 		nextPage := pagestore.InvalidPage
 		if i+1 < len(pages) {
 			nextPage = pages[i+1]
@@ -215,12 +239,13 @@ func (p *OpfsPager) PersistFreelist() (pagestore.PageID, error) {
 		if written == 0 {
 			return pagestore.InvalidPage, errors.New("freelist page wrote zero entries")
 		}
-		if err := p.WritePage(pages[i], buf); err != nil {
+		if err := p.WritePage(page, buf); err != nil {
 			return pagestore.InvalidPage, errors.Wrap(err, "write freelist page")
 		}
 		off += written
 	}
 
+	// Retain the chain for reuse by the next commit.
 	p.freelistPages = pages
 	return pages[0], nil
 }
