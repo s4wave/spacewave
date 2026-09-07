@@ -13,6 +13,7 @@ import (
 	"sync"
 	"syscall/js"
 
+	"github.com/aperturerobotics/util/promise"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/opfs"
 	"github.com/s4wave/spacewave/db/opfs/filelock"
@@ -24,14 +25,22 @@ import (
 // MetaShard is a metadata store backed by a single OPFS page file
 // with dual superblocks and B+tree page store.
 type MetaShard struct {
-	dir        js.Value
+	// dir contains the page file and both superblock slots.
+	dir js.Value
+	// lockPrefix identifies the cross-worker metadata WebLock.
 	lockPrefix string
-	pageSize   int
-	pager      *OpfsPager
-	le         *logrus.Entry
+	// pageSize is the fixed size of each metadata page.
+	pageSize int
+	// pager accesses the currently loaded committed page file under mtx.
+	pager *OpfsPager
+	// le records corruption recovery.
+	le *logrus.Entry
 
-	mu         sync.RWMutex
-	rootPage   pagestore.PageID
+	// mtx guards the committed pager, generation, validation, and recovery state.
+	mtx sync.RWMutex
+	// rootPage identifies the currently loaded B+tree root.
+	rootPage pagestore.PageID
+	// generation identifies the currently loaded commit.
 	generation uint64
 	// stateLoaded reports whether rootPage and generation describe a superblock
 	// this process has read and validated. It distinguishes an empty shard from
@@ -51,7 +60,8 @@ type MetaShard struct {
 	// revalidations counts full read-validate-rebuild passes, so a test can
 	// assert that a run of reads over an unchanged shard performs one.
 	revalidations uint64
-	testHook      func(string) error
+	// testHook injects failures at durable publication boundaries.
+	testHook func(string) error
 	// resetGenerationFloor is the greatest generation this process has seen
 	// in validated state or decoded from on-disk superblocks before reset.
 	resetGenerationFloor uint64
@@ -59,12 +69,14 @@ type MetaShard struct {
 
 // NewMetaShard opens or creates a meta shard in the given OPFS directory.
 func NewMetaShard(dir js.Value, lockPrefix string, pageSize int, le *logrus.Entry) (*MetaShard, error) {
+	// Select the page layout and trace the complete open operation.
 	ctx, task := trace.NewTask(context.Background(), "hydra/metashard/open")
 	defer task.End()
 	if pageSize == 0 {
 		pageSize = pagestore.DefaultPageSize
 	}
 
+	// Acquire shared access before inspecting committed files.
 	ms := &MetaShard{
 		dir:        dir,
 		lockPrefix: lockPrefix,
@@ -80,6 +92,8 @@ func NewMetaShard(dir js.Value, lockPrefix string, pageSize int, le *logrus.Entr
 		return nil, errors.Wrap(err, "acquire meta read lock")
 	}
 	lockTask.End()
+
+	// Load the committed generation, upgrading to exclusive recovery if needed.
 	err = ms.reloadCommittedState()
 	release()
 	if err != nil {
@@ -102,6 +116,7 @@ func (ms *MetaShard) Get(key []byte) ([]byte, bool, error) {
 // getAt looks up a key and reports the commit generation that served it, so a
 // caller spanning several reads can tell whether they came from one generation.
 func (ms *MetaShard) getAt(ctx context.Context, key []byte) ([]byte, bool, uint64, error) {
+	// Read one committed snapshot while publication is excluded.
 	tree, generation, release, err := ms.openCommittedTreeForRead(ctx)
 	if err != nil {
 		return nil, false, 0, err
@@ -111,9 +126,12 @@ func (ms *MetaShard) getAt(ctx context.Context, key []byte) ([]byte, bool, uint6
 	if err == nil || !IsCorruptError(err) {
 		return val, found, generation, err
 	}
+
+	// Recover corruption before retrying against a new committed snapshot.
 	if err := ms.recoverCorruptState(ctx); err != nil {
 		return nil, false, 0, errors.Wrap(err, "recover corrupt meta shard")
 	}
+	// Retry once after recovery, retaining the snapshot through the read.
 	tree, generation, release, err = ms.openCommittedTreeForRead(ctx)
 	if err != nil {
 		return nil, false, 0, err
@@ -127,18 +145,18 @@ func (ms *MetaShard) getAt(ctx context.Context, key []byte) ([]byte, bool, uint6
 // and may call Put/Delete. After fn returns, the transaction is committed
 // by writing dirty pages and flipping the superblock.
 func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
+	// Exclude publication in other workers for the complete transaction.
 	ctx, task := trace.NewTask(context.Background(), "hydra/metashard/write-tx")
 	defer task.End()
-	// Acquire write lock.
 	release, err := ms.acquireStateLock(context.Background(), true)
 	if err != nil {
 		return errors.Wrap(err, "acquire meta write lock")
 	}
 	defer release()
 
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
+	// Rebuild allocator state under the local lock before applying mutations.
+	ms.mtx.Lock()
+	defer ms.mtx.Unlock()
 	if err := ms.reloadCommittedStateLocked(true); err != nil {
 		if !IsCorruptError(err) {
 			return errors.Wrap(err, "reload committed state")
@@ -193,6 +211,7 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 		return err
 	}
 
+	// Advance the generation without reusing a recovered database epoch.
 	gen++
 	if gen == 1 {
 		// Nothing was committed before this, so this commit creates the
@@ -220,6 +239,7 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 			gen = ms.resetGenerationFloor + 1
 		}
 	}
+	// Encode the new root and alternate publication slot.
 	sb := pagestore.Superblock{
 		Magic:        pagestore.SuperblockMagic,
 		Version:      1,
@@ -228,7 +248,6 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 		FreelistPage: freelistPage,
 		PageCount:    ms.pager.PageCount(),
 	}
-
 	slot, slotIndex := "super-a", 0
 	if gen%2 == 0 {
 		slot, slotIndex = "super-b", 1
@@ -236,6 +255,7 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 	var sbBuf [pagestore.SuperblockSize]byte
 	pagestore.EncodeSuperblock(sbBuf[:], &sb)
 
+	// Publish only after the page file is durable and closed.
 	if err := writeSuper(ms.dir, slot, sbBuf[:]); err != nil {
 		return errors.Wrap(err, "write superblock")
 	}
@@ -243,6 +263,7 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 		return err
 	}
 
+	// Retain the published root and exact slot bytes for later freshness checks.
 	ms.rootPage = tree.RootID()
 	ms.generation = gen
 	// The other slot still holds what the reload before this write read, so
@@ -254,10 +275,13 @@ func (ms *MetaShard) WriteTx(fn func(tree *pagestore.Tree) error) error {
 
 // ScanPrefix iterates over entries matching the prefix.
 func (ms *MetaShard) ScanPrefix(prefix []byte, fn func(key, value []byte) bool) error {
+	// Release the snapshot before invoking caller callbacks.
 	entries, err := ms.collectPrefix(context.Background(), prefix)
 	if err != nil {
 		return err
 	}
+
+	// Visit the retained entries until the caller stops.
 	for i := range entries {
 		if !fn(entries[i].key, entries[i].value) {
 			return nil
@@ -277,6 +301,7 @@ func (ms *MetaShard) collectPrefix(ctx context.Context, prefix []byte) ([]metaEn
 // collectPrefixAt materializes every committed entry under prefix and reports
 // the commit generation that served them.
 func (ms *MetaShard) collectPrefixAt(ctx context.Context, prefix []byte) ([]metaEntry, uint64, error) {
+	// Read one committed snapshot while publication is excluded.
 	tree, generation, release, err := ms.openCommittedTreeForRead(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -286,9 +311,12 @@ func (ms *MetaShard) collectPrefixAt(ctx context.Context, prefix []byte) ([]meta
 	if err == nil || !IsCorruptError(err) {
 		return entries, generation, err
 	}
+
+	// Recover corruption before retrying against a new committed snapshot.
 	if err := ms.recoverCorruptState(ctx); err != nil {
 		return nil, 0, errors.Wrap(err, "recover corrupt meta shard")
 	}
+	// Retry once after recovery, retaining the snapshot through the read.
 	tree, generation, release, err = ms.openCommittedTreeForRead(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -300,8 +328,8 @@ func (ms *MetaShard) collectPrefixAt(ctx context.Context, prefix []byte) ([]meta
 
 // Generation returns the current commit generation.
 func (ms *MetaShard) Generation() uint64 {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
+	ms.mtx.RLock()
+	defer ms.mtx.RUnlock()
 	return ms.generation
 }
 
@@ -309,8 +337,8 @@ func (ms *MetaShard) Generation() uint64 {
 // tree to validate it. The walk is O(tree) and holds the shared metadata lock,
 // so a run of reads over a shard nothing has committed to costs one.
 func (ms *MetaShard) Revalidations() uint64 {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
+	ms.mtx.RLock()
+	defer ms.mtx.RUnlock()
 	return ms.revalidations
 }
 
@@ -321,11 +349,13 @@ func (ms *MetaShard) RefreshGeneration() (uint64, error) {
 
 // RefreshGenerationContext reloads the committed superblock and returns its generation.
 func (ms *MetaShard) RefreshGenerationContext(ctx context.Context) (uint64, error) {
+	// Hold shared access while checking the persisted generation.
 	release, err := ms.acquireStateLock(ctx, false)
 	if err != nil {
 		return 0, errors.Wrap(err, "acquire meta read lock")
 	}
 
+	// Release shared access before any exclusive corruption recovery.
 	if err := ms.reloadCommittedState(); err != nil {
 		release()
 		if !IsCorruptError(err) {
@@ -342,17 +372,20 @@ func (ms *MetaShard) RefreshGenerationContext(ctx context.Context) (uint64, erro
 
 // Close releases open metadata page-file handles.
 func (ms *MetaShard) Close() error {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
+	ms.mtx.Lock()
+	defer ms.mtx.Unlock()
 	return ms.pager.Close()
 }
 
 // OpenCommittedTree opens a tree at the currently committed root.
 func (ms *MetaShard) OpenCommittedTree() (*pagestore.Tree, uint64) {
-	ms.mu.RLock()
+	// Snapshot the currently loaded root and generation.
+	ms.mtx.RLock()
 	rootPage := ms.rootPage
 	generation := ms.generation
-	ms.mu.RUnlock()
+	ms.mtx.RUnlock()
+
+	// Open a view backed by the committed pager.
 	return pagestore.OpenTree(ms.pager, rootPage), generation
 }
 
@@ -362,10 +395,12 @@ func (ms *MetaShard) OpenCommittedTree() (*pagestore.Tree, uint64) {
 // pages immediately, so a walk that overlaps one reads pages that now belong to
 // another subtree and silently reports missing keys.
 func (ms *MetaShard) openCommittedTreeForRead(ctx context.Context) (*pagestore.Tree, uint64, func(), error) {
+	// Prevent page recycling throughout the complete tree walk.
 	releaseLock, err := ms.acquireStateLock(ctx, false)
 	if err != nil {
 		return nil, 0, nil, errors.Wrap(err, "acquire meta read lock")
 	}
+	// Release shared access before any exclusive corruption recovery.
 	if err := ms.reloadCommittedState(); err != nil {
 		releaseLock()
 		if !IsCorruptError(err) {
@@ -383,6 +418,7 @@ func (ms *MetaShard) openCommittedTreeForRead(ctx context.Context) (*pagestore.T
 			return nil, 0, nil, errors.Wrap(err, "reload recovered state")
 		}
 	}
+	// Bind the page-file lifetime to the shared publication lock.
 	tree, generation, closeSnapshot := ms.openCommittedSnapshotTree()
 	return tree, generation, func() {
 		closeSnapshot()
@@ -390,10 +426,10 @@ func (ms *MetaShard) openCommittedTreeForRead(ctx context.Context) (*pagestore.T
 	}, nil
 }
 
+// reloadCommittedState serializes refresh against local readers and writers.
 func (ms *MetaShard) reloadCommittedState() error {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
+	ms.mtx.Lock()
+	defer ms.mtx.Unlock()
 	return ms.reloadCommittedStateLocked(false)
 }
 
@@ -407,13 +443,24 @@ func (ms *MetaShard) reloadCommittedState() error {
 // freelist and must rebuild it from the committed chain rather than trust the
 // in-memory copy left behind by an earlier commit.
 func (ms *MetaShard) reloadCommittedStateLocked(revalidate bool) error {
+	// Read both slots under the caller's metadata lock without serial I/O waits.
 	var aBuf [pagestore.SuperblockSize]byte
 	var bBuf [pagestore.SuperblockSize]byte
-	if err := readSuper(ms.dir, "super-a", aBuf[:]); err != nil {
-		return err
+	bRead := promise.NewPromise[struct{}]()
+	go func() {
+		err := readSuper(ms.dir, "super-b", bBuf[:])
+		bRead.SetResult(struct{}{}, err)
+	}()
+	aErr := readSuper(ms.dir, "super-a", aBuf[:])
+
+	// Join the second read before returning, including first-slot failures.
+	// Await cannot cancel: both buffers and the caller's locks outlive the I/O.
+	_, bErr := bRead.Await(context.Background())
+	if aErr != nil {
+		return aErr
 	}
-	if err := readSuper(ms.dir, "super-b", bBuf[:]); err != nil {
-		return err
+	if bErr != nil {
+		return bErr
 	}
 
 	// A decodable generation is evidence about the database on disk even when
@@ -427,18 +474,18 @@ func (ms *MetaShard) reloadCommittedStateLocked(revalidate bool) error {
 
 	// Every read operation reloads, because another agent may have committed
 	// since the last one. Reloading in full costs a whole-tree validation walk
-	// and a pager rebuild that drops the page cache, so a point read would cost
+	// and a pager rebuild, so a point read would cost
 	// O(tree) and a run of M reads O(M*tree). The superblocks themselves say
 	// whether any of that is necessary: when both are byte for byte the ones
 	// this state was loaded from, nothing has been committed since, the state in
 	// hand is that state, and it was validated when it was loaded.
-
 	if !revalidate && ms.stateLoaded &&
 		aBuf == ms.loadedSupers[0] && bBuf == ms.loadedSupers[1] {
 		return nil
 	}
 	ms.revalidations++
 
+	// Validate changed slots without reusing the committed pager.
 	validatePager := NewOpfsPager(ms.dir, "pages.dat", ms.pageSize)
 	sb, err := pickValidSuperblock(validatePager, aBuf[:], bBuf[:])
 	if closeErr := validatePager.Close(); closeErr != nil && err == nil {
@@ -448,11 +495,11 @@ func (ms *MetaShard) reloadCommittedStateLocked(revalidate bool) error {
 		return err
 	}
 
+	// Rebuild page allocation state only after accepting the disk contents.
 	if err := ms.pager.Close(); err != nil {
 		return errors.Wrap(err, "close committed pager")
 	}
 	ms.pager = NewOpfsPager(ms.dir, "pages.dat", ms.pageSize)
-
 	rootPage := pagestore.InvalidPage
 	var gen uint64
 	if sb != nil {
@@ -470,6 +517,7 @@ func (ms *MetaShard) reloadCommittedStateLocked(revalidate bool) error {
 		}
 	}
 
+	// Install one coherent committed generation for readers and writers.
 	ms.rootPage = rootPage
 	ms.generation = gen
 	ms.loadedSupers = [2][pagestore.SuperblockSize]byte{aBuf, bBuf}
@@ -493,54 +541,57 @@ func newGenerationEpoch() (uint64, error) {
 	return uint64(binary.BigEndian.Uint32(buf[:]))<<generationEpochShift | 1, nil
 }
 
+// recoverCorruptState revalidates under the exclusive lock before resetting corruption.
 func (ms *MetaShard) recoverCorruptState(ctx context.Context) error {
+	// Exclude other workers before replacing any persistent files.
 	release, err := ms.acquireStateLock(ctx, true)
 	if err != nil {
 		return errors.Wrap(err, "acquire meta write lock")
 	}
 	defer release()
 
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
+	ms.mtx.Lock()
+	defer ms.mtx.Unlock()
 
 	// Recovery runs because a read of the loaded generation failed, so the
 	// generation match that lets an ordinary reload skip validation is exactly
 	// the condition under test here.
-	if err := ms.reloadCommittedStateLocked(true); err == nil {
-		return nil
-	} else if !IsCorruptError(err) {
+	err = ms.reloadCommittedStateLocked(true)
+	if err == nil || !IsCorruptError(err) {
 		return err
-	} else {
-		return ms.resetCorruptStateLocked(err)
 	}
+	return ms.resetCorruptStateLocked(err)
 }
 
+// openCommittedTreeLocked opens the loaded tree while the caller holds mtx.
 func (ms *MetaShard) openCommittedTreeLocked() (*pagestore.Tree, uint64) {
 	return pagestore.OpenTree(ms.pager, ms.rootPage), ms.generation
 }
 
+// openCommittedSnapshotTree creates an operation-scoped reader under the metadata WebLock.
 func (ms *MetaShard) openCommittedSnapshotTree() (*pagestore.Tree, uint64, func()) {
-	ms.mu.RLock()
+	// Pin the loaded root and page count while the caller holds the WebLock.
+	ms.mtx.RLock()
 	rootPage := ms.rootPage
 	generation := ms.generation
 	pageCount := ms.pager.PageCount()
-	ms.mu.RUnlock()
+	ms.mtx.RUnlock()
 
+	// Give this operation a private, read-only page-file handle.
 	pager := NewOpfsPager(ms.dir, "pages.dat", ms.pageSize)
 	pager.SetPageCount(pageCount)
 	return pagestore.OpenTree(pager, rootPage), generation, func() {
+		// A read-only AsyncFile has no writable stream to close or flush.
 		_ = pager.Close()
 	}
 }
 
+// acquireStateLock excludes cross-worker publication for a metadata operation.
 func (ms *MetaShard) acquireStateLock(ctx context.Context, exclusive bool) (func(), error) {
-	release, err := filelock.AcquireWebLockContext(ctx, ms.lockPrefix+"/meta/write", exclusive)
-	if err != nil {
-		return nil, err
-	}
-	return release, nil
+	return filelock.AcquireWebLockContext(ctx, ms.lockPrefix+"/meta/write", exclusive)
 }
 
+// scanPrefixEntries clones the matching entries before the caller releases its snapshot.
 func scanPrefixEntries(tree *pagestore.Tree, prefix []byte) ([]metaEntry, error) {
 	var entries []metaEntry
 	err := tree.ScanPrefix(prefix, func(key, value []byte) bool {
@@ -553,6 +604,7 @@ func scanPrefixEntries(tree *pagestore.Tree, prefix []byte) ([]metaEntry, error)
 	return entries, err
 }
 
+// resetCorruptStateLocked records the corruption before resetting under both locks.
 func (ms *MetaShard) resetCorruptStateLocked(cause error) error {
 	ms.le.WithError(cause).
 		WithField("lock-prefix", ms.lockPrefix).
@@ -560,15 +612,16 @@ func (ms *MetaShard) resetCorruptStateLocked(cause error) error {
 	return ms.resetCommittedStateLocked()
 }
 
+// resetCommittedStateLocked removes corrupt files while preserving the generation floor.
 func (ms *MetaShard) resetCommittedStateLocked() error {
-	floor := ms.resetGenerationFloor
-	if ms.generation > floor {
-		floor = ms.generation
-	}
+	// Preserve a generation floor that replacements must exceed.
+	floor := max(ms.generation, ms.resetGenerationFloor)
 	if floor == math.MaxUint64 {
 		return &generationFloorError{generation: floor}
 	}
 	ms.resetGenerationFloor = floor
+
+	// Release handles before deleting the corrupt files.
 	if err := ms.pager.Close(); err != nil {
 		return errors.Wrap(err, "close page file")
 	}
@@ -578,18 +631,19 @@ func (ms *MetaShard) resetCommittedStateLocked() error {
 		}
 	}
 
+	// Reinitialize an empty pager without lowering the recovery floor.
 	ms.pager = NewOpfsPager(ms.dir, "pages.dat", ms.pageSize)
 	ms.pager.SetPageCount(0)
 	if err := ms.pager.LoadFreelist(pagestore.InvalidPage); err != nil {
 		return err
 	}
-
 	ms.rootPage = pagestore.InvalidPage
 	ms.generation = 0
 	ms.loadedSupers = [2][pagestore.SuperblockSize]byte{}
 	return nil
 }
 
+// callTestHook injects a configured publication-boundary failure.
 func (ms *MetaShard) callTestHook(stage string) error {
 	if ms.testHook != nil {
 		return ms.testHook(stage)
@@ -597,7 +651,9 @@ func (ms *MetaShard) callTestHook(stage string) error {
 	return nil
 }
 
+// pickValidSuperblock validates the newest decodable slot, then falls back to the older slot.
 func pickValidSuperblock(pager *OpfsPager, a, b []byte) (*pagestore.Superblock, error) {
+	// Recover from a single decodable slot when its peer is absent or corrupt.
 	sa, errA := pagestore.DecodeSuperblock(a)
 	sb, errB := pagestore.DecodeSuperblock(b)
 	if errA != nil && errB != nil {
@@ -609,6 +665,8 @@ func pickValidSuperblock(pager *OpfsPager, a, b []byte) (*pagestore.Superblock, 
 	if errB != nil {
 		return validateOnlySuperblock(pager, "super-a", sa)
 	}
+
+	// Prefer the latest generation, retaining the older slot as a fallback.
 	if sb.Generation > sa.Generation {
 		valid, err := validateSuperblock(pager, sb)
 		if err == nil {
@@ -639,6 +697,7 @@ func pickValidSuperblock(pager *OpfsPager, a, b []byte) (*pagestore.Superblock, 
 	))
 }
 
+// validateOnlySuperblock reports corruption when the sole decodable slot is unusable.
 func validateOnlySuperblock(
 	pager *OpfsPager,
 	slot string,
@@ -651,7 +710,9 @@ func validateOnlySuperblock(
 	return valid, nil
 }
 
+// validateSuperblock checks the freelist and complete tree before accepting a slot.
 func validateSuperblock(pager *OpfsPager, sb *pagestore.Superblock) (*pagestore.Superblock, error) {
+	// Validate allocation state before following any tree pages.
 	pager.SetPageCount(sb.PageCount)
 	if err := pager.LoadFreelist(sb.FreelistPage); err != nil {
 		return nil, errors.Wrap(err, "load freelist")
@@ -662,6 +723,7 @@ func validateSuperblock(pager *OpfsPager, sb *pagestore.Superblock) (*pagestore.
 	if uint32(sb.RootPage) >= sb.PageCount {
 		return nil, errors.Errorf("root page %d outside page count %d", sb.RootPage, sb.PageCount)
 	}
+	// Walk the complete tree before making this slot the committed state.
 	tree := pagestore.OpenTree(pager, sb.RootPage)
 	if err := tree.ScanPrefix(nil, func(_, _ []byte) bool { return true }); err != nil {
 		return nil, errors.Wrapf(
@@ -696,9 +758,12 @@ func readSuper(dir js.Value, name string, buf []byte) error {
 
 // writeSuper writes a superblock to OPFS.
 func writeSuper(dir js.Value, name string, data []byte) error {
+	// Use the selected runtime driver for durable slot publication.
 	if !opfs.PreferSyncAccessHandles() {
 		return opfs.WriteFile(dir, name, data)
 	}
+
+	// Flush the sync handle before releasing publication to readers.
 	f, err := opfs.CreateSyncFile(dir, name)
 	if err != nil {
 		return err
