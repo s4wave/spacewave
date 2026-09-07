@@ -24,6 +24,8 @@ message ChatMessageInfo {
   .google.protobuf.Timestamp created_at = 4;
   // ReplyToKey is the key of the message being replied to.
   string reply_to_key = 5;
+  // Index is the immutable zero-based position in the channel history.
+  uint64 index = 6;
 }
 
 // GetChannelInfoRequest is a request for channel info.
@@ -68,6 +70,9 @@ message SendMessageRequest {
   string text = 1;
   // ReplyToKey is the optional key of the message to reply to.
   string reply_to_key = 2;
+  // TransactionId identifies a retryable send within the authenticated sender
+  // and channel. Reuse with different content is rejected; empty always appends.
+  string transaction_id = 3;
 }
 
 // SendMessageResponse is the response after sending a message.
