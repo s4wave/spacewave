@@ -12,6 +12,7 @@ import (
 	protobuf_go_lite "github.com/aperturerobotics/protobuf-go-lite"
 	json "github.com/aperturerobotics/protobuf-go-lite/json"
 	timestamppb "github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
+	content "github.com/s4wave/spacewave/sdk/chat/content"
 )
 
 // ChatChannel is a chat channel world object.
@@ -68,7 +69,7 @@ type ChatMessage struct {
 	// SenderPeerId is the peer ID of the message sender.
 	SenderPeerId string `protobuf:"bytes,1,opt,name=sender_peer_id,json=senderPeerId,proto3" json:"senderPeerId,omitempty"`
 	// Content is the message content.
-	Content *ChatMessageContent `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	Content *content.ChatMessageContent `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
 	// CreatedAt is the message creation timestamp.
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"createdAt,omitempty"`
 	// ReplyToKey is the object key of the message being replied to.
@@ -90,7 +91,7 @@ func (x *ChatMessage) GetSenderPeerId() string {
 	return ""
 }
 
-func (x *ChatMessage) GetContent() *ChatMessageContent {
+func (x *ChatMessage) GetContent() *content.ChatMessageContent {
 	if x != nil {
 		return x.Content
 	}
@@ -117,46 +118,6 @@ func (x *ChatMessage) GetIndex() uint64 {
 	}
 	return 0
 }
-
-// ChatMessageContent contains the message body.
-type ChatMessageContent struct {
-	unknownFields []byte
-	// Types that are assignable to Content:
-	//
-	//	*ChatMessageContent_Text
-	Content isChatMessageContent_Content `protobuf_oneof:"content"`
-}
-
-func (x *ChatMessageContent) Reset() {
-	*x = ChatMessageContent{}
-}
-
-func (*ChatMessageContent) ProtoMessage() {}
-
-func (m *ChatMessageContent) GetContent() isChatMessageContent_Content {
-	if m != nil {
-		return m.Content
-	}
-	return nil
-}
-
-func (x *ChatMessageContent) GetText() string {
-	if x, ok := x.GetContent().(*ChatMessageContent_Text); ok {
-		return x.Text
-	}
-	return ""
-}
-
-type isChatMessageContent_Content interface {
-	isChatMessageContent_Content()
-}
-
-type ChatMessageContent_Text struct {
-	// Text is a plain text message.
-	Text string `protobuf:"bytes,1,opt,name=text,proto3,oneof"`
-}
-
-func (*ChatMessageContent_Text) isChatMessageContent_Content() {}
 
 // ChatMessagePage stores a bounded page of channel message keys.
 type ChatMessagePage struct {
@@ -293,39 +254,6 @@ func (m *ChatMessage) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
-func (m *ChatMessageContent) CloneVT() *ChatMessageContent {
-	if m == nil {
-		return (*ChatMessageContent)(nil)
-	}
-	r := new(ChatMessageContent)
-	if m.Content != nil {
-		r.Content = m.Content.(interface {
-			CloneOneofVT() isChatMessageContent_Content
-		}).CloneOneofVT()
-	}
-	if len(m.unknownFields) > 0 {
-		r.unknownFields = slices.Clone(m.unknownFields)
-	}
-	return r
-}
-
-func (m *ChatMessageContent) CloneMessageVT() protobuf_go_lite.CloneMessage {
-	return m.CloneVT()
-}
-
-func (m *ChatMessageContent_Text) CloneVT() *ChatMessageContent_Text {
-	if m == nil {
-		return (*ChatMessageContent_Text)(nil)
-	}
-	r := new(ChatMessageContent_Text)
-	r.Text = m.Text
-	return r
-}
-
-func (m *ChatMessageContent_Text) CloneOneofVT() isChatMessageContent_Content {
-	return m.CloneVT()
-}
-
 func (m *ChatMessagePage) CloneVT() *ChatMessagePage {
 	if m == nil {
 		return (*ChatMessagePage)(nil)
@@ -437,52 +365,6 @@ func (this *ChatMessage) EqualMessageVT(thatMsg any) bool {
 		return false
 	}
 	return this.EqualVT(that)
-}
-
-func (this *ChatMessageContent) EqualVT(that *ChatMessageContent) bool {
-	if this == that {
-		return true
-	} else if this == nil || that == nil {
-		return false
-	}
-	if this.Content == nil && that.Content != nil {
-		return false
-	} else if this.Content != nil {
-		if that.Content == nil {
-			return false
-		}
-		if !this.Content.(interface {
-			EqualVT(isChatMessageContent_Content) bool
-		}).EqualVT(that.Content) {
-			return false
-		}
-	}
-	return string(this.unknownFields) == string(that.unknownFields)
-}
-
-func (this *ChatMessageContent) EqualMessageVT(thatMsg any) bool {
-	that, ok := thatMsg.(*ChatMessageContent)
-	if !ok {
-		return false
-	}
-	return this.EqualVT(that)
-}
-
-func (this *ChatMessageContent_Text) EqualVT(thatIface isChatMessageContent_Content) bool {
-	that, ok := thatIface.(*ChatMessageContent_Text)
-	if !ok {
-		return false
-	}
-	if this == that {
-		return true
-	}
-	if this == nil && that != nil || this != nil && that == nil {
-		return false
-	}
-	if this.Text != that.Text {
-		return false
-	}
-	return true
 }
 
 func (this *ChatMessagePage) EqualVT(that *ChatMessagePage) bool {
@@ -685,7 +567,7 @@ func (x *ChatMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 				x.Content = nil
 				return
 			}
-			x.Content = &ChatMessageContent{}
+			x.Content = &content.ChatMessageContent{}
 			x.Content.UnmarshalProtoJSON(s.WithField("content", true))
 		case "created_at", "createdAt":
 			if s.ReadNil() {
@@ -706,53 +588,6 @@ func (x *ChatMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 
 // UnmarshalJSON unmarshals the ChatMessage from JSON.
 func (x *ChatMessage) UnmarshalJSON(b []byte) error {
-	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
-}
-
-// MarshalProtoJSON marshals the ChatMessageContent message to JSON.
-func (x *ChatMessageContent) MarshalProtoJSON(s *json.MarshalState) {
-	if x == nil {
-		s.WriteNil()
-		return
-	}
-	s.WriteObjectStart()
-	var wroteField bool
-	if x.Content != nil {
-		switch ov := x.Content.(type) {
-		case *ChatMessageContent_Text:
-			s.WriteMoreIf(&wroteField)
-			s.WriteObjectField("text")
-			s.WriteString(ov.Text)
-		}
-	}
-	s.WriteObjectEnd()
-}
-
-// MarshalJSON marshals the ChatMessageContent to JSON.
-func (x *ChatMessageContent) MarshalJSON() ([]byte, error) {
-	return json.DefaultMarshalerConfig.Marshal(x)
-}
-
-// UnmarshalProtoJSON unmarshals the ChatMessageContent message from JSON.
-func (x *ChatMessageContent) UnmarshalProtoJSON(s *json.UnmarshalState) {
-	if s.ReadNil() {
-		return
-	}
-	s.ReadObject(func(key string) {
-		switch key {
-		default:
-			s.Skip() // ignore unknown field
-		case "text":
-			s.AddField("text")
-			ov := &ChatMessageContent_Text{}
-			x.Content = ov
-			ov.Text = s.ReadString()
-		}
-	})
-}
-
-// UnmarshalJSON unmarshals the ChatMessageContent from JSON.
-func (x *ChatMessageContent) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -1050,60 +885,6 @@ func (m *ChatMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *ChatMessageContent) MarshalVT() (dAtA []byte, err error) {
-	if m == nil {
-		return nil, nil
-	}
-	size := m.SizeVT()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *ChatMessageContent) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ChatMessageContent) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	if m == nil {
-		return 0, nil
-	}
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.unknownFields != nil {
-		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
-	}
-	if vtmsg, ok := m.Content.(interface {
-		MarshalToSizedBufferVT([]byte) (int, error)
-	}); ok {
-		size, err := vtmsg.MarshalToSizedBufferVT(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *ChatMessageContent_Text) MarshalToVT(dAtA []byte) (int, error) {
-	size := m.SizeVT()
-	return m.MarshalToSizedBufferVT(dAtA[:size])
-}
-
-func (m *ChatMessageContent_Text) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i = protobuf_go_lite.EncodeString(dAtA, i, m.Text)
-	i--
-	dAtA[i] = 0xa
-	return len(dAtA) - i, nil
-}
-
 func (m *ChatMessagePage) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil
@@ -1285,29 +1066,6 @@ func (m *ChatMessage) SizeVT() (n int) {
 	return n
 }
 
-func (m *ChatMessageContent) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if vtmsg, ok := m.Content.(interface{ SizeVT() int }); ok {
-		n += vtmsg.SizeVT()
-	}
-	n += len(m.unknownFields)
-	return n
-}
-
-func (m *ChatMessageContent_Text) SizeVT() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	n += protobuf_go_lite.SizeStringValue(1, m.Text)
-	return n
-}
-
 func (m *ChatMessagePage) SizeVT() (n int) {
 	if m == nil {
 		return 0
@@ -1404,21 +1162,6 @@ func (x *ChatMessage) MarshalProtoText() string {
 }
 
 func (x *ChatMessage) String() string {
-	return x.MarshalProtoText()
-}
-
-func (x *ChatMessageContent) MarshalProtoText() string {
-	var sb protobuf_go_lite.TextBuilder
-	initialLen := protobuf_go_lite.TextStartMessage(&sb, "ChatMessageContent")
-	switch body := x.Content.(type) {
-	case *ChatMessageContent_Text:
-		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "text")
-		protobuf_go_lite.TextWriteString(&sb, body.Text)
-	}
-	return protobuf_go_lite.TextFinishMessage(&sb)
-}
-
-func (x *ChatMessageContent) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -1610,7 +1353,7 @@ func (m *ChatMessage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			if m.Content == nil {
-				m.Content = &ChatMessageContent{}
+				m.Content = &content.ChatMessageContent{}
 			}
 			if err := m.Content.UnmarshalVT(dAtA[msgStart:postIndex]); err != nil {
 				return err
@@ -1650,59 +1393,6 @@ func (m *ChatMessage) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-		default:
-			iNdEx = preIndex
-			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return protobuf_go_lite.ErrInvalidLength
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-func (m *ChatMessageContent) UnmarshalVT(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	var err error
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
-		if err != nil {
-			return err
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: ChatMessageContent: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: ChatMessageContent: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Text", wireType)
-			}
-			var v string
-			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
-			if err != nil {
-				return err
-			}
-			m.Content = &ChatMessageContent_Text{Text: v}
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

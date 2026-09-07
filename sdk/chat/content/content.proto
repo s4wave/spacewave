@@ -1,0 +1,28 @@
+syntax = "proto3";
+package spacewave.chat;
+
+option go_package = "github.com/s4wave/spacewave/sdk/chat/content;spacewave_chat_content";
+
+// ChatCiphertext is an opaque encrypted message body.
+message ChatCiphertext {
+  // Algorithm is the encryption scheme identifier, e.g. m.megolm.v1.
+  string algorithm = 1;
+  // Ciphertext is the encrypted payload.
+  string ciphertext = 2;
+  // SenderKey is the public key of the sending device.
+  string sender_key = 3;
+  // SessionId identifies the encryption session.
+  string session_id = 4;
+  // DeviceId is the identifier of the sending device.
+  string device_id = 5;
+}
+
+// ChatMessageContent contains the message body.
+message ChatMessageContent {
+  oneof content {
+    // Text is a plain text message.
+    string text = 1;
+    // Ciphertext is an encrypted message body.
+    ChatCiphertext ciphertext = 2;
+  }
+}

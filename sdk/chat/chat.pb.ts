@@ -7,6 +7,7 @@ import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import { Timestamp } from '@aptre/protobuf-es-lite/google/protobuf/timestamp'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { ChatMessageContent } from './content/content.pb.js'
 
 export const protobufPackage = 'spacewave.chat'
 
@@ -51,46 +52,6 @@ export const ChatChannel: MessageType<ChatChannel> =
       { no: 2, name: 'topic', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'created_at', kind: 'message', T: () => Timestamp },
       { no: 4, name: 'message_count', kind: 'scalar', T: ScalarType.UINT64 },
-    ] satisfies readonly PartialFieldInfo[],
-    packedByDefault: true,
-  })
-
-/**
- * ChatMessageContent contains the message body.
- *
- * @generated from message spacewave.chat.ChatMessageContent
- */
-export interface ChatMessageContent {
-  /**
-   * @generated from oneof spacewave.chat.ChatMessageContent.content
-   */
-  content?:
-    | {
-        value?: undefined
-        case: undefined
-      }
-    | {
-        /**
-         * Text is a plain text message.
-         *
-         * @generated from field: string text = 1;
-         */
-        value: string
-        case: 'text'
-      }
-}
-
-export const ChatMessageContent: MessageType<ChatMessageContent> =
-  /* @__PURE__ */ createMessageType({
-    typeName: 'spacewave.chat.ChatMessageContent',
-    fields: [
-      {
-        no: 1,
-        name: 'text',
-        kind: 'scalar',
-        T: ScalarType.STRING,
-        oneof: 'content',
-      },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

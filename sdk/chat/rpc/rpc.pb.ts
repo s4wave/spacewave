@@ -2,6 +2,7 @@
 // @generated from file github.com/s4wave/spacewave/sdk/chat/rpc/rpc.proto (package spacewave.chat.rpc, syntax proto3)
 /* eslint-disable */
 
+import { ChatMessageContent } from '../content/content.pb.js'
 import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import {
   createEmptyMessageType,
@@ -32,7 +33,7 @@ export interface ChatMessageInfo {
    */
   senderPeerId?: string
   /**
-   * Text is the message text content.
+   * Text is the message text content. Empty for ciphertext messages.
    *
    * @generated from field: string text = 3;
    */
@@ -55,6 +56,12 @@ export interface ChatMessageInfo {
    * @generated from field: uint64 index = 6;
    */
   index?: bigint
+  /**
+   * Content is the full typed message content, including ciphertext envelopes.
+   *
+   * @generated from field: spacewave.chat.ChatMessageContent content = 7;
+   */
+  content?: ChatMessageContent
 }
 
 export const ChatMessageInfo: MessageType<ChatMessageInfo> =
@@ -67,6 +74,7 @@ export const ChatMessageInfo: MessageType<ChatMessageInfo> =
       { no: 4, name: 'created_at', kind: 'message', T: () => Timestamp },
       { no: 5, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 6, name: 'index', kind: 'scalar', T: ScalarType.UINT64 },
+      { no: 7, name: 'content', kind: 'message', T: () => ChatMessageContent },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
@@ -247,6 +255,13 @@ export interface SendMessageRequest {
    * @generated from field: string transaction_id = 3;
    */
   transactionId?: string
+  /**
+   * Content is the typed message content. When set, it is persisted as given
+   * and the legacy text field is rejected if also supplied.
+   *
+   * @generated from field: spacewave.chat.ChatMessageContent content = 4;
+   */
+  content?: ChatMessageContent
 }
 
 export const SendMessageRequest: MessageType<SendMessageRequest> =
@@ -256,6 +271,7 @@ export const SendMessageRequest: MessageType<SendMessageRequest> =
       { no: 1, name: 'text', kind: 'scalar', T: ScalarType.STRING },
       { no: 2, name: 'reply_to_key', kind: 'scalar', T: ScalarType.STRING },
       { no: 3, name: 'transaction_id', kind: 'scalar', T: ScalarType.STRING },
+      { no: 4, name: 'content', kind: 'message', T: () => ChatMessageContent },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })

@@ -2,6 +2,7 @@ syntax = "proto3";
 package spacewave.chat.rpc;
 
 import "google/protobuf/timestamp.proto";
+import "github.com/s4wave/spacewave/sdk/chat/content/content.proto";
 
 option go_package = "github.com/s4wave/spacewave/sdk/chat/rpc;spacewave_chat_rpc";
 
@@ -18,7 +19,7 @@ message ChatMessageInfo {
   string object_key = 1;
   // SenderPeerId is the sender's peer ID.
   string sender_peer_id = 2;
-  // Text is the message text content.
+  // Text is the message text content. Empty for ciphertext messages.
   string text = 3;
   // CreatedAt is the message creation timestamp.
   .google.protobuf.Timestamp created_at = 4;
@@ -26,6 +27,8 @@ message ChatMessageInfo {
   string reply_to_key = 5;
   // Index is the immutable zero-based position in the channel history.
   uint64 index = 6;
+  // Content is the full typed message content, including ciphertext envelopes.
+  .spacewave.chat.ChatMessageContent content = 7;
 }
 
 // GetChannelInfoRequest is a request for channel info.
@@ -73,6 +76,9 @@ message SendMessageRequest {
   // TransactionId identifies a retryable send within the authenticated sender
   // and channel. Reuse with different content is rejected; empty always appends.
   string transaction_id = 3;
+  // Content is the typed message content. When set, it is persisted as given
+  // and the legacy text field is rejected if also supplied.
+  .spacewave.chat.ChatMessageContent content = 4;
 }
 
 // SendMessageResponse is the response after sending a message.
