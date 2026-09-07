@@ -112,9 +112,20 @@ func LookupObjectBody[T block.Block](
 	objKey string,
 	ctor func() block.Block,
 ) (out T, err error) {
-	out, objRef, err := LookupObject[T](ctx, ws, objKey, ctor)
-	ReleaseObjectState(objRef)
-	return out, err
+	// Read bytes directly when the transport can return the body in one response.
+	bodies, err := LookupObjectBodies[T](ctx, ws, []string{objKey}, ctor)
+	if err != nil {
+		// A batch RPC may reject a valid block larger than its response envelope.
+		// Remote errors need not retain their Go type; the object read remains authoritative.
+		var state ObjectState
+		out, state, err = LookupObject[T](ctx, ws, objKey, ctor)
+		ReleaseObjectState(state)
+		return out, err
+	}
+	if !bodies[0].Exists {
+		return out, ErrObjectNotFound
+	}
+	return bodies[0].Body, nil
 }
 
 // LookupObjectBodyBytes looks up the transformed root body for an object.
