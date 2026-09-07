@@ -546,6 +546,87 @@ func TestStartP2PSyncSameTransportRestartAddsDesiredWork(t *testing.T) {
 	}
 }
 
+// TestStartP2PSyncAddsSharedObjectAfterStartup proves that a shared object
+// created after startup is picked up by the running SO-list watcher.
+func TestStartP2PSyncAddsSharedObjectAfterStartup(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
+	_, sessRef, acc, sess, release := setupProviderAndSession(ctx, t)
+	defer release()
+
+	if err := acc.CreateSessionTransport(ctx, sess.GetPrivKey(), ""); err != nil {
+		t.Fatal(err)
+	}
+	defer acc.StopSessionTransport()
+
+	st := acc.GetSessionTransport()
+	if st == nil {
+		t.Fatal("expected non-nil session transport")
+	}
+
+	dexLoads := make(chan string, 8)
+	removeHandler, err := st.GetChildBus().AddHandler(directive.NewFuncHandler(
+		func(_ context.Context, di directive.Instance) ([]directive.Resolver, error) {
+			load, ok := di.GetDirective().(resolver.LoadControllerWithConfig)
+			if !ok {
+				return nil, nil
+			}
+			loadConfig, ok := load.GetLoadControllerConfig().(*dex_solicit.Config)
+			if !ok {
+				return nil, nil
+			}
+			select {
+			case dexLoads <- loadConfig.GetBucketId():
+			default:
+			}
+			return nil, nil
+		},
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeHandler()
+
+	if err := acc.StartP2PSync(ctx, st); err != nil {
+		t.Fatal(err)
+	}
+	defer acc.StopP2PSync()
+	if !acc.IsP2PSyncRunning() {
+		t.Fatal("expected P2P sync running after startup")
+	}
+
+	newRef, err := acc.CreateSharedObject(
+		ctx,
+		"post-start-space",
+		&sobject.SharedObjectMeta{BodyType: "space"},
+		"",
+		"",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	newBucketID := provider_local.BlockStoreBucketID(
+		sessRef.GetProviderResourceRef().GetProviderId(),
+		newRef.GetProviderResourceRef().GetProviderAccountId(),
+		newRef.GetBlockStoreId(),
+	)
+
+	for {
+		select {
+		case bucketID := <-dexLoads:
+			if bucketID == newBucketID {
+				if !acc.IsP2PSyncRunning() {
+					t.Fatal("expected P2P sync running after shared object start")
+				}
+				return
+			}
+		case <-ctx.Done():
+			t.Fatalf("timed out waiting for DEX solicit controller for %s", newBucketID)
+		}
+	}
+}
+
 func TestStartP2PSyncCoalescedCallerOwnsLifecycle(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()

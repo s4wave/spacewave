@@ -754,6 +754,9 @@ type SharedObjectListEntry struct {
 	// Source indicates how the shared object was acquired.
 	// Known values: "created" (owner-created), "shared" (invite-received or org-enrolled).
 	Source string `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	// TransportPeerId is the verified invite endpoint retained for reconnect.
+	// Empty for entries created before this field was added.
+	TransportPeerId string `protobuf:"bytes,4,opt,name=transport_peer_id,json=transportPeerId,proto3" json:"transportPeerId,omitempty"`
 }
 
 func (x *SharedObjectListEntry) Reset() {
@@ -779,6 +782,13 @@ func (x *SharedObjectListEntry) GetMeta() *SharedObjectMeta {
 func (x *SharedObjectListEntry) GetSource() string {
 	if x != nil {
 		return x.Source
+	}
+	return ""
+}
+
+func (x *SharedObjectListEntry) GetTransportPeerId() string {
+	if x != nil {
+		return x.TransportPeerId
 	}
 	return ""
 }
@@ -1322,7 +1332,6 @@ type SOOperationResult struct {
 	// Body is the body of the result.
 	//
 	// Types that are assignable to Body:
-	//
 	//	*SOOperationResult_Success
 	//	*SOOperationResult_ErrorDetails
 	Body isSOOperationResult_Body `protobuf_oneof:"body"`
@@ -2040,6 +2049,10 @@ type SOInviteMessage struct {
 	MaxUses uint32 `protobuf:"varint,9,opt,name=max_uses,json=maxUses,proto3" json:"maxUses,omitempty"`
 	// Signature is the owner's signature over this message (without this field).
 	Signature *peer.Signature `protobuf:"bytes,10,opt,name=signature,proto3" json:"signature,omitempty"`
+	// TransportPeerId is the optional network endpoint peer ID carried in this
+	// signed message, separate from OwnerPeerId, the signing identity.
+	// Empty means use OwnerPeerId for existing messages.
+	TransportPeerId string `protobuf:"bytes,11,opt,name=transport_peer_id,json=transportPeerId,proto3" json:"transportPeerId,omitempty"`
 }
 
 func (x *SOInviteMessage) Reset() {
@@ -2116,6 +2129,13 @@ func (x *SOInviteMessage) GetSignature() *peer.Signature {
 		return x.Signature
 	}
 	return nil
+}
+
+func (x *SOInviteMessage) GetTransportPeerId() string {
+	if x != nil {
+		return x.TransportPeerId
+	}
+	return ""
 }
 
 // SOJoinResponse is a signed response from an invitee requesting to join.
@@ -3012,7 +3032,6 @@ type SOTerminalReceiptInner struct {
 	// Outcome distinguishes acceptance from the existing signed rejection payload.
 	//
 	// Types that are assignable to Outcome:
-	//
 	//	*SOTerminalReceiptInner_Accepted
 	//	*SOTerminalReceiptInner_SignedRejection
 	Outcome isSOTerminalReceiptInner_Outcome `protobuf_oneof:"outcome"`
@@ -3217,6 +3236,7 @@ func (m *SharedObjectListEntry) CloneVT() *SharedObjectListEntry {
 	}
 	r := new(SharedObjectListEntry)
 	r.Source = m.Source
+	r.TransportPeerId = m.TransportPeerId
 	r.Ref = protobuf_go_lite.CloneVTValue(m.Ref)
 	r.Meta = protobuf_go_lite.CloneVTValue(m.Meta)
 	if len(m.unknownFields) > 0 {
@@ -3784,6 +3804,7 @@ func (m *SOInviteMessage) CloneVT() *SOInviteMessage {
 	r.Role = m.Role
 	r.TargetPeerId = m.TargetPeerId
 	r.MaxUses = m.MaxUses
+	r.TransportPeerId = m.TransportPeerId
 	r.Token = protobuf_go_lite.CloneBytes(m.Token)
 	r.ExpiresAt = protobuf_go_lite.CloneVTValue(m.ExpiresAt)
 	r.Signature = protobuf_go_lite.CloneVTValue(m.Signature)
@@ -4216,6 +4237,9 @@ func (this *SharedObjectListEntry) EqualVT(that *SharedObjectListEntry) bool {
 		return false
 	}
 	if this.Source != that.Source {
+		return false
+	}
+	if this.TransportPeerId != that.TransportPeerId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -5061,6 +5085,9 @@ func (this *SOInviteMessage) EqualVT(that *SOInviteMessage) bool {
 		return false
 	}
 	if !protobuf_go_lite.IsEqualVT(this.Signature, that.Signature) {
+		return false
+	}
+	if this.TransportPeerId != that.TransportPeerId {
 		return false
 	}
 	return string(this.unknownFields) == string(that.unknownFields)
@@ -6368,6 +6395,11 @@ func (x *SharedObjectListEntry) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("source")
 		s.WriteString(x.Source)
 	}
+	if x.TransportPeerId != "" || s.HasField("transportPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transportPeerId")
+		s.WriteString(x.TransportPeerId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -6402,6 +6434,9 @@ func (x *SharedObjectListEntry) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "source":
 			s.AddField("source")
 			x.Source = s.ReadString()
+		case "transport_peer_id", "transportPeerId":
+			s.AddField("transport_peer_id")
+			x.TransportPeerId = s.ReadString()
 		}
 	})
 }
@@ -8491,6 +8526,11 @@ func (x *SOInviteMessage) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("signature")
 		x.Signature.MarshalProtoJSON(s.WithField("signature"))
 	}
+	if x.TransportPeerId != "" || s.HasField("transportPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transportPeerId")
+		s.WriteString(x.TransportPeerId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -8546,6 +8586,9 @@ func (x *SOInviteMessage) UnmarshalProtoJSON(s *json.UnmarshalState) {
 			}
 			x.Signature = &peer.Signature{}
 			x.Signature.UnmarshalProtoJSON(s.WithField("signature", true))
+		case "transport_peer_id", "transportPeerId":
+			s.AddField("transport_peer_id")
+			x.TransportPeerId = s.ReadString()
 		}
 	})
 }
@@ -10150,6 +10193,11 @@ func (m *SharedObjectListEntry) MarshalToSizedBufferVT(dAtA []byte) (int, error)
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.TransportPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TransportPeerId)
+		i--
+		dAtA[i] = 0x22
 	}
 	if len(m.Source) > 0 {
 		i = protobuf_go_lite.EncodeString(dAtA, i, m.Source)
@@ -11764,6 +11812,11 @@ func (m *SOInviteMessage) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.TransportPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TransportPeerId)
+		i--
+		dAtA[i] = 0x5a
+	}
 	if m.Signature != nil {
 		size, err := m.Signature.MarshalToSizedBufferVT(dAtA[:i])
 		if err != nil {
@@ -13082,6 +13135,7 @@ func (m *SharedObjectListEntry) SizeVT() (n int) {
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.Source)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TransportPeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -13586,6 +13640,7 @@ func (m *SOInviteMessage) SizeVT() (n int) {
 		l = m.Signature.SizeVT()
 		n += protobuf_go_lite.SizeMessage(1, l)
 	}
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TransportPeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -14087,6 +14142,10 @@ func (x *SharedObjectListEntry) MarshalProtoText() string {
 	if x.Source != "" {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "source")
 		protobuf_go_lite.TextWriteString(&sb, x.Source)
+	}
+	if x.TransportPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transport_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.TransportPeerId)
 	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
@@ -14894,6 +14953,10 @@ func (x *SOInviteMessage) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "signature")
 		protobuf_go_lite.TextWriteTextMarshaler(&sb, x.Signature)
 	}
+	if x.TransportPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transport_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.TransportPeerId)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -15645,6 +15708,16 @@ func (m *SharedObjectListEntry) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			m.Source = v
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TransportPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TransportPeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -18017,6 +18090,16 @@ func (m *SOInviteMessage) UnmarshalVT(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TransportPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TransportPeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

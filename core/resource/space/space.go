@@ -5,6 +5,7 @@ import (
 
 	"github.com/aperturerobotics/controllerbus/bus"
 	"github.com/aperturerobotics/starpc/srpc"
+	"github.com/pkg/errors"
 	bldr_plugin "github.com/s4wave/spacewave/bldr/plugin"
 	resource_server "github.com/s4wave/spacewave/bldr/resource/server"
 	plugin_space "github.com/s4wave/spacewave/core/plugin/space"
@@ -123,13 +124,13 @@ func (r *SpaceResource) WatchSpaceState(
 		if err := func() error {
 			wtx, err := worldEng.NewTransaction(ctx, false)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "open world transaction")
 			}
 			defer wtx.Discard()
 
 			prevWorldSeqno, err = wtx.GetSeqno(ctx)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "read world sequence")
 			}
 
 			// Start a ready SpaceState response.
@@ -138,13 +139,13 @@ func (r *SpaceResource) WatchSpaceState(
 			// Build the world object list.
 			state.WorldContents, err = space_world.BuildWorldContents(ctx, wtx)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "read world contents")
 			}
 
 			// Load SpaceSettings when present.
 			state.Settings, err = space_world.LookupSpaceSettingsBody(ctx, wtx)
 			if err != nil {
-				return err
+				return errors.Wrap(err, "read Space settings")
 			}
 
 			// Attach shared-object transform information.

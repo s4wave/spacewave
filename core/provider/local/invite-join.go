@@ -40,7 +40,7 @@ func (a *ProviderAccount) JoinViaInvite(
 	if inviteMsg == nil {
 		return nil, errors.New("invite message is nil")
 	}
-	ownerPeerID, err := peer.IDB58Decode(inviteMsg.GetOwnerPeerId())
+	ownerPeerID, err := inviteMsg.VerifyTransportPeer()
 	if err != nil {
 		return nil, errors.Wrap(err, "parse invite owner peer id")
 	}
@@ -80,7 +80,7 @@ func (a *ProviderAccount) JoinViaInvite(
 		joinCtx,
 		childBus,
 		st.GetPeerID(),
-		inviteMsg.GetOwnerPeerId(),
+		ownerPeerID.String(),
 	); err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (a *ProviderAccount) JoinViaInvite(
 	}
 
 	// Mount the shared object and apply the grant.
-	if err := a.mountInvitedSO(ctx, result); err != nil {
+	if err := a.mountInvitedSO(ctx, result, ownerPeerID); err != nil {
 		return nil, errors.Wrap(err, "mount invited shared object")
 	}
 
@@ -165,6 +165,7 @@ func (a *ProviderAccount) waitDirectInviteOwnerOnline(
 func (a *ProviderAccount) mountInvitedSO(
 	ctx context.Context,
 	result *sobject_invite.JoinResult,
+	ownerPeerID peer.ID,
 ) error {
 	if result.Grant == nil {
 		return errors.New("invite result has no grant")
@@ -219,16 +220,22 @@ func (a *ProviderAccount) mountInvitedSO(
 		soList = &sobject.SharedObjectList{}
 	}
 
-	// Skip if already in the list.
+	// Refresh the verified endpoint when an existing participant accepts a new invite.
 	for _, entry := range soList.GetSharedObjects() {
 		if entry.GetRef().GetProviderResourceRef().GetId() == soID {
+			entry.TransportPeerId = ownerPeerID.String()
+			if err := a.writeSharedObjectList(ctx, soList); err != nil {
+				return errors.Wrap(err, "persist invited peer endpoint")
+			}
+			a.soListCtr.SetValue(soList)
 			return nil
 		}
 	}
 
 	soList.SharedObjects = append(soList.SharedObjects, &sobject.SharedObjectListEntry{
-		Ref:    ref.CloneVT(),
-		Source: "shared",
+		Ref:             ref.CloneVT(),
+		Source:          "shared",
+		TransportPeerId: ownerPeerID.String(),
 		Meta: &sobject.SharedObjectMeta{
 			BodyType: "space",
 		},

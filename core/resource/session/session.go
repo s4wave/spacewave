@@ -314,6 +314,7 @@ func (r *SessionResource) addSharedObjectResource(
 
 	return &s4wave_session.MountSharedObjectResponse{
 		ResourceId:       id,
+		TransportPeerId:  r.sharedObjectTransportPeer(mountedSo.GetSharedObjectID()),
 		SharedObjectMeta: meta,
 		PeerId:           mountedSo.GetPeerID().String(),
 		SharedObjectId:   mountedSo.GetSharedObjectID(),
@@ -1303,6 +1304,13 @@ func (r *SessionResource) CreateSpaceInvite(
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "create invite")
+	}
+
+	// Local invitations use the session transport while retaining the Space signer.
+	if local, ok := r.session.GetProviderAccount().(*provider_local.ProviderAccount); ok {
+		if err := local.PrepareDirectInvite(ctx, r.session.GetPrivKey(), ih.GetPrivKey(), msg); err != nil {
+			return nil, err
+		}
 	}
 
 	resp := &s4wave_session.CreateSpaceInviteResponse{InviteMessage: msg}

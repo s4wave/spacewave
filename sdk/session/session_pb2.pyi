@@ -214,20 +214,22 @@ class MountSharedObjectRequest(_message.Message):
     def __init__(self, shared_object_id: _Optional[str] = ...) -> None: ...
 
 class MountSharedObjectResponse(_message.Message):
-    __slots__ = ("resource_id", "shared_object_meta", "peer_id", "shared_object_id", "block_store_id", "hash_type")
+    __slots__ = ("resource_id", "shared_object_meta", "peer_id", "shared_object_id", "block_store_id", "hash_type", "transport_peer_id")
     RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
     SHARED_OBJECT_META_FIELD_NUMBER: _ClassVar[int]
     PEER_ID_FIELD_NUMBER: _ClassVar[int]
     SHARED_OBJECT_ID_FIELD_NUMBER: _ClassVar[int]
     BLOCK_STORE_ID_FIELD_NUMBER: _ClassVar[int]
     HASH_TYPE_FIELD_NUMBER: _ClassVar[int]
+    TRANSPORT_PEER_ID_FIELD_NUMBER: _ClassVar[int]
     resource_id: int
     shared_object_meta: _sobject_pb2.SharedObjectMeta
     peer_id: str
     shared_object_id: str
     block_store_id: str
     hash_type: _hash_pb2.HashType
-    def __init__(self, resource_id: _Optional[int] = ..., shared_object_meta: _Optional[_Union[_sobject_pb2.SharedObjectMeta, _Mapping]] = ..., peer_id: _Optional[str] = ..., shared_object_id: _Optional[str] = ..., block_store_id: _Optional[str] = ..., hash_type: _Optional[_Union[_hash_pb2.HashType, str]] = ...) -> None: ...
+    transport_peer_id: str
+    def __init__(self, resource_id: _Optional[int] = ..., shared_object_meta: _Optional[_Union[_sobject_pb2.SharedObjectMeta, _Mapping]] = ..., peer_id: _Optional[str] = ..., shared_object_id: _Optional[str] = ..., block_store_id: _Optional[str] = ..., hash_type: _Optional[_Union[_hash_pb2.HashType, str]] = ..., transport_peer_id: _Optional[str] = ...) -> None: ...
 
 class WatchSharedObjectHealthRequest(_message.Message):
     __slots__ = ("shared_object_id",)
@@ -524,6 +526,18 @@ class AccessSessionStateAtomResponse(_message.Message):
     RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
     resource_id: int
     def __init__(self, resource_id: _Optional[int] = ...) -> None: ...
+
+class AccessPeerTransportRequest(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class AccessPeerTransportResponse(_message.Message):
+    __slots__ = ("resource_id", "peer_id")
+    RESOURCE_ID_FIELD_NUMBER: _ClassVar[int]
+    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    resource_id: int
+    peer_id: str
+    def __init__(self, resource_id: _Optional[int] = ..., peer_id: _Optional[str] = ...) -> None: ...
 
 class WatchSessionStateAtomsRequest(_message.Message):
     __slots__ = ()

@@ -544,13 +544,16 @@ func (a *ProviderAccount) runP2PSyncStart(
 	var (
 		err           error
 		inviteStarted bool
+		soList        *sobject.SharedObjectList
 	)
 	for {
+		soList = a.soListCtr.GetValue()
 		err = a.startP2PSyncControllers(
 			state,
 			sessionTransport,
 			childBus,
 			&inviteStarted,
+			soList,
 		)
 		if state.finishStart(err) {
 			continue
@@ -564,12 +567,26 @@ func (a *ProviderAccount) runP2PSyncStart(
 		break
 	}
 	if err == nil {
+		// Keep list reconciliation in this owned worker after startup completes.
+		state.addWorker()
+		defer state.workerDone()
 		a.releaseP2PSyncLowerSource(state)
 		state.markStartupExited()
 		if previous != nil {
 			a.retireP2PSyncState(previous)
 		}
-		return
+		for {
+			soList, err = a.soListCtr.WaitValueChange(state.ctx, soList, nil)
+			if err != nil {
+				return
+			}
+			if err := a.startP2PSyncControllers(state, sessionTransport, childBus, &inviteStarted, soList); err != nil {
+				if state.ctx.Err() == nil {
+					a.le.WithError(err).Warn("failed to synchronize added shared objects")
+				}
+				return
+			}
+		}
 	}
 
 	state.markStartupExited()
@@ -610,12 +627,12 @@ func (a *ProviderAccount) startP2PSyncControllers(
 	sessionTransport *transport.SessionTransport,
 	childBus bus.Bus,
 	inviteStarted *bool,
+	soList *sobject.SharedObjectList,
 ) error {
 	syncCtx := state.ctx
 	if err := a.retainConfiguredP2PPeers(state); err != nil {
 		return errors.Wrap(err, "retain configured P2P peers")
 	}
-	soList := a.soListCtr.GetValue()
 	for _, entry := range soList.GetSharedObjects() {
 		ref := entry.GetRef()
 		provRef := ref.GetProviderResourceRef()

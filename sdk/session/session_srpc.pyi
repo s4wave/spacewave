@@ -120,6 +120,12 @@ class SessionResourceServiceClient:
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessSessionStateAtomRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessSessionStateAtomResponse: ...
+    async def access_peer_transport(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportResponse
+    ): ...
     def watch_state_atoms(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSessionStateAtomsRequest,
@@ -322,6 +328,12 @@ class SessionResourceServiceServer(Protocol):
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessSessionStateAtomRequest,
     ) -> _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessSessionStateAtomResponse: ...
+    async def access_peer_transport(
+        self,
+        request: _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportRequest,
+    ) -> (
+        _github_com_s4wave_spacewave_sdk_session_session_pb2.AccessPeerTransportResponse
+    ): ...
     def watch_state_atoms(
         self,
         request: _github_com_s4wave_spacewave_sdk_session_session_pb2.WatchSessionStateAtomsRequest,

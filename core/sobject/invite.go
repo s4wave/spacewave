@@ -11,7 +11,6 @@ import (
 	"github.com/aperturerobotics/util/ulid"
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/net/crypto"
-	"github.com/s4wave/spacewave/net/hash"
 	"github.com/s4wave/spacewave/net/peer"
 )
 
@@ -104,21 +103,9 @@ func buildSOInviteMessage(
 		MaxUses:        maxUses,
 	}
 
-	data, err := msg.MarshalVT()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "marshal invite message for signing")
+	if err := msg.Sign(ownerPrivKey); err != nil {
+		return nil, nil, err
 	}
-	sig, err := peer.NewSignature(
-		"sobject invite",
-		ownerPrivKey,
-		hash.RecommendedHashType,
-		data,
-		true,
-	)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "sign invite message")
-	}
-	msg.Signature = sig
 
 	return msg, &SOInvite{
 		InviteId:        inviteID,

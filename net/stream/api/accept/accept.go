@@ -132,7 +132,12 @@ func (c *Controller) AttachRPC(rpc stream_api_rpc.RPC) error {
 			}
 		},
 	}:
-		return <-errCh
+		select {
+		case err := <-errCh:
+			return err
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }
 
@@ -172,18 +177,7 @@ func (c *Controller) resolveHandleMountedStream(
 
 // Resolve resolves the values, emitting them to the handler.
 func (c *Controller) Resolve(ctx context.Context, handler directive.ResolverHandler) error {
-	var rpc *queuedRPC
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case rpc = <-c.rpcCh:
-	}
-
-	h, err := NewMountedStreamHandler(c.le, c.bus, rpc)
-	if err != nil {
-		rpc.doneCb(err)
-		return err
-	}
+	h := &MountedStreamHandler{le: c.le, rpcCh: c.rpcCh, b: c.bus}
 
 	handler.AddValue(link.MountedStreamHandler(h))
 	return nil

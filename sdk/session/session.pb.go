@@ -741,6 +741,9 @@ type MountSharedObjectResponse struct {
 	// HashType is the hash type preferred by the block store used for the shared object.
 	// The zero value (0) indicates any.
 	HashType hash.HashType `protobuf:"varint,6,opt,name=hash_type,json=hashType,proto3" json:"hashType,omitempty"`
+	// TransportPeerId is the verified invitation endpoint for remote service discovery.
+	// Empty for owner-created and preexisting records.
+	TransportPeerId string `protobuf:"bytes,7,opt,name=transport_peer_id,json=transportPeerId,proto3" json:"transportPeerId,omitempty"`
 }
 
 func (x *MountSharedObjectResponse) Reset() {
@@ -789,6 +792,13 @@ func (x *MountSharedObjectResponse) GetHashType() hash.HashType {
 		return x.HashType
 	}
 	return hash.HashType(0)
+}
+
+func (x *MountSharedObjectResponse) GetTransportPeerId() string {
+	if x != nil {
+		return x.TransportPeerId
+	}
+	return ""
 }
 
 // WatchSharedObjectHealthRequest is the request type for WatchSharedObjectHealth.
@@ -1908,6 +1918,46 @@ func (x *AccessSessionStateAtomResponse) GetResourceId() uint32 {
 	return 0
 }
 
+// AccessPeerTransportRequest is the request for AccessPeerTransport.
+type AccessPeerTransportRequest struct {
+	unknownFields []byte
+}
+
+func (x *AccessPeerTransportRequest) Reset() {
+	*x = AccessPeerTransportRequest{}
+}
+
+func (*AccessPeerTransportRequest) ProtoMessage() {}
+
+// AccessPeerTransportResponse is the response for AccessPeerTransport.
+type AccessPeerTransportResponse struct {
+	unknownFields []byte
+	// ResourceId is the mounted account's Bifrost StreamService resource.
+	ResourceId uint32 `protobuf:"varint,1,opt,name=resource_id,json=resourceId,proto3" json:"resourceId,omitempty"`
+	// PeerId is the authenticated local account session peer.
+	PeerId string `protobuf:"bytes,2,opt,name=peer_id,json=peerId,proto3" json:"peerId,omitempty"`
+}
+
+func (x *AccessPeerTransportResponse) Reset() {
+	*x = AccessPeerTransportResponse{}
+}
+
+func (*AccessPeerTransportResponse) ProtoMessage() {}
+
+func (x *AccessPeerTransportResponse) GetResourceId() uint32 {
+	if x != nil {
+		return x.ResourceId
+	}
+	return 0
+}
+
+func (x *AccessPeerTransportResponse) GetPeerId() string {
+	if x != nil {
+		return x.PeerId
+	}
+	return ""
+}
+
 // WatchSessionStateAtomsRequest is the request for WatchStateAtoms.
 type WatchSessionStateAtomsRequest struct {
 	unknownFields []byte
@@ -2992,6 +3042,7 @@ func (m *MountSharedObjectResponse) CloneVT() *MountSharedObjectResponse {
 	r.SharedObjectId = m.SharedObjectId
 	r.BlockStoreId = m.BlockStoreId
 	r.HashType = m.HashType
+	r.TransportPeerId = m.TransportPeerId
 	r.SharedObjectMeta = protobuf_go_lite.CloneVTValue(m.SharedObjectMeta)
 	if len(m.unknownFields) > 0 {
 		r.unknownFields = slices.Clone(m.unknownFields)
@@ -3551,6 +3602,38 @@ func (m *AccessSessionStateAtomResponse) CloneVT() *AccessSessionStateAtomRespon
 }
 
 func (m *AccessSessionStateAtomResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AccessPeerTransportRequest) CloneVT() *AccessPeerTransportRequest {
+	if m == nil {
+		return (*AccessPeerTransportRequest)(nil)
+	}
+	r := new(AccessPeerTransportRequest)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AccessPeerTransportRequest) CloneMessageVT() protobuf_go_lite.CloneMessage {
+	return m.CloneVT()
+}
+
+func (m *AccessPeerTransportResponse) CloneVT() *AccessPeerTransportResponse {
+	if m == nil {
+		return (*AccessPeerTransportResponse)(nil)
+	}
+	r := new(AccessPeerTransportResponse)
+	r.ResourceId = m.ResourceId
+	r.PeerId = m.PeerId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = slices.Clone(m.unknownFields)
+	}
+	return r
+}
+
+func (m *AccessPeerTransportResponse) CloneMessageVT() protobuf_go_lite.CloneMessage {
 	return m.CloneVT()
 }
 
@@ -4467,6 +4550,9 @@ func (this *MountSharedObjectResponse) EqualVT(that *MountSharedObjectResponse) 
 	if this.HashType != that.HashType {
 		return false
 	}
+	if this.TransportPeerId != that.TransportPeerId {
+		return false
+	}
 	return string(this.unknownFields) == string(that.unknownFields)
 }
 
@@ -5257,6 +5343,46 @@ func (this *AccessSessionStateAtomResponse) EqualVT(that *AccessSessionStateAtom
 
 func (this *AccessSessionStateAtomResponse) EqualMessageVT(thatMsg any) bool {
 	that, ok := thatMsg.(*AccessSessionStateAtomResponse)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AccessPeerTransportRequest) EqualVT(that *AccessPeerTransportRequest) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AccessPeerTransportRequest) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AccessPeerTransportRequest)
+	if !ok {
+		return false
+	}
+	return this.EqualVT(that)
+}
+
+func (this *AccessPeerTransportResponse) EqualVT(that *AccessPeerTransportResponse) bool {
+	if this == that {
+		return true
+	} else if this == nil || that == nil {
+		return false
+	}
+	if this.ResourceId != that.ResourceId {
+		return false
+	}
+	if this.PeerId != that.PeerId {
+		return false
+	}
+	return string(this.unknownFields) == string(that.unknownFields)
+}
+
+func (this *AccessPeerTransportResponse) EqualMessageVT(thatMsg any) bool {
+	that, ok := thatMsg.(*AccessPeerTransportResponse)
 	if !ok {
 		return false
 	}
@@ -6987,6 +7113,11 @@ func (x *MountSharedObjectResponse) MarshalProtoJSON(s *json.MarshalState) {
 		s.WriteObjectField("hashType")
 		x.HashType.MarshalProtoJSON(s)
 	}
+	if x.TransportPeerId != "" || s.HasField("transportPeerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("transportPeerId")
+		s.WriteString(x.TransportPeerId)
+	}
 	s.WriteObjectEnd()
 }
 
@@ -7026,6 +7157,9 @@ func (x *MountSharedObjectResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
 		case "hash_type", "hashType":
 			s.AddField("hash_type")
 			x.HashType.UnmarshalProtoJSON(s)
+		case "transport_peer_id", "transportPeerId":
+			s.AddField("transport_peer_id")
+			x.TransportPeerId = s.ReadString()
 		}
 	})
 }
@@ -8759,6 +8893,86 @@ func (x *AccessSessionStateAtomResponse) UnmarshalProtoJSON(s *json.UnmarshalSta
 
 // UnmarshalJSON unmarshals the AccessSessionStateAtomResponse from JSON.
 func (x *AccessSessionStateAtomResponse) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AccessPeerTransportRequest message to JSON.
+func (x *AccessPeerTransportRequest) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AccessPeerTransportRequest to JSON.
+func (x *AccessPeerTransportRequest) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AccessPeerTransportRequest message from JSON.
+func (x *AccessPeerTransportRequest) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		// no fields
+	})
+}
+
+// UnmarshalJSON unmarshals the AccessPeerTransportRequest from JSON.
+func (x *AccessPeerTransportRequest) UnmarshalJSON(b []byte) error {
+	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
+}
+
+// MarshalProtoJSON marshals the AccessPeerTransportResponse message to JSON.
+func (x *AccessPeerTransportResponse) MarshalProtoJSON(s *json.MarshalState) {
+	if x == nil {
+		s.WriteNil()
+		return
+	}
+	s.WriteObjectStart()
+	var wroteField bool
+	if x.ResourceId != 0 || s.HasField("resourceId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("resourceId")
+		s.WriteUint32(x.ResourceId)
+	}
+	if x.PeerId != "" || s.HasField("peerId") {
+		s.WriteMoreIf(&wroteField)
+		s.WriteObjectField("peerId")
+		s.WriteString(x.PeerId)
+	}
+	s.WriteObjectEnd()
+}
+
+// MarshalJSON marshals the AccessPeerTransportResponse to JSON.
+func (x *AccessPeerTransportResponse) MarshalJSON() ([]byte, error) {
+	return json.DefaultMarshalerConfig.Marshal(x)
+}
+
+// UnmarshalProtoJSON unmarshals the AccessPeerTransportResponse message from JSON.
+func (x *AccessPeerTransportResponse) UnmarshalProtoJSON(s *json.UnmarshalState) {
+	if s.ReadNil() {
+		return
+	}
+	s.ReadObject(func(key string) {
+		switch key {
+		default:
+			s.Skip() // ignore unknown field
+		case "resource_id", "resourceId":
+			s.AddField("resource_id")
+			x.ResourceId = s.ReadUint32()
+		case "peer_id", "peerId":
+			s.AddField("peer_id")
+			x.PeerId = s.ReadString()
+		}
+	})
+}
+
+// UnmarshalJSON unmarshals the AccessPeerTransportResponse from JSON.
+func (x *AccessPeerTransportResponse) UnmarshalJSON(b []byte) error {
 	return json.DefaultUnmarshalerConfig.Unmarshal(b, x)
 }
 
@@ -11077,6 +11291,11 @@ func (m *MountSharedObjectResponse) MarshalToSizedBufferVT(dAtA []byte) (int, er
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
 	}
+	if len(m.TransportPeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.TransportPeerId)
+		i--
+		dAtA[i] = 0x3a
+	}
 	if m.HashType != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.HashType))
 		i--
@@ -12629,6 +12848,80 @@ func (m *AccessSessionStateAtomResponse) MarshalToSizedBufferVT(dAtA []byte) (in
 	_ = l
 	if m.unknownFields != nil {
 		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if m.ResourceId != 0 {
+		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AccessPeerTransportRequest) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AccessPeerTransportRequest) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AccessPeerTransportRequest) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AccessPeerTransportResponse) MarshalVT() (dAtA []byte, err error) {
+	if m == nil {
+		return nil, nil
+	}
+	size := m.SizeVT()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBufferVT(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AccessPeerTransportResponse) MarshalToVT(dAtA []byte) (int, error) {
+	size := m.SizeVT()
+	return m.MarshalToSizedBufferVT(dAtA[:size])
+}
+
+func (m *AccessPeerTransportResponse) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
+	if m == nil {
+		return 0, nil
+	}
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.unknownFields != nil {
+		i = protobuf_go_lite.EncodeRawBytes(dAtA, i, m.unknownFields)
+	}
+	if len(m.PeerId) > 0 {
+		i = protobuf_go_lite.EncodeString(dAtA, i, m.PeerId)
+		i--
+		dAtA[i] = 0x12
 	}
 	if m.ResourceId != 0 {
 		i = protobuf_go_lite.EncodeVarint(dAtA, i, uint64(m.ResourceId))
@@ -14335,6 +14628,7 @@ func (m *MountSharedObjectResponse) SizeVT() (n int) {
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.SharedObjectId)
 	n += protobuf_go_lite.SizeStringNonEmpty(1, m.BlockStoreId)
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.HashType)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.TransportPeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -14740,6 +15034,28 @@ func (m *AccessSessionStateAtomResponse) SizeVT() (n int) {
 	var l int
 	_ = l
 	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AccessPeerTransportRequest) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += len(m.unknownFields)
+	return n
+}
+
+func (m *AccessPeerTransportResponse) SizeVT() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += protobuf_go_lite.SizeVarintNonZero(1, m.ResourceId)
+	n += protobuf_go_lite.SizeStringNonEmpty(1, m.PeerId)
 	n += len(m.unknownFields)
 	return n
 }
@@ -15471,6 +15787,10 @@ func (x *MountSharedObjectResponse) MarshalProtoText() string {
 		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "hash_type")
 		protobuf_go_lite.TextWriteStringer(&sb, hash.HashType(x.HashType))
 	}
+	if x.TransportPeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "transport_peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.TransportPeerId)
+	}
 	return protobuf_go_lite.TextFinishMessage(&sb)
 }
 
@@ -16141,6 +16461,34 @@ func (x *AccessSessionStateAtomResponse) MarshalProtoText() string {
 }
 
 func (x *AccessSessionStateAtomResponse) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AccessPeerTransportRequest) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	protobuf_go_lite.TextStartMessage(&sb, "AccessPeerTransportRequest")
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AccessPeerTransportRequest) String() string {
+	return x.MarshalProtoText()
+}
+
+func (x *AccessPeerTransportResponse) MarshalProtoText() string {
+	var sb protobuf_go_lite.TextBuilder
+	initialLen := protobuf_go_lite.TextStartMessage(&sb, "AccessPeerTransportResponse")
+	if x.ResourceId != 0 {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "resource_id")
+		protobuf_go_lite.TextWriteUint(&sb, x.ResourceId)
+	}
+	if x.PeerId != "" {
+		protobuf_go_lite.TextWriteFieldPrefix(&sb, initialLen, "peer_id")
+		protobuf_go_lite.TextWriteString(&sb, x.PeerId)
+	}
+	return protobuf_go_lite.TextFinishMessage(&sb)
+}
+
+func (x *AccessPeerTransportResponse) String() string {
 	return x.MarshalProtoText()
 }
 
@@ -17613,6 +17961,16 @@ func (m *MountSharedObjectResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TransportPeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.TransportPeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
@@ -19769,6 +20127,111 @@ func (m *AccessSessionStateAtomResponse) UnmarshalVT(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AccessPeerTransportRequest) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AccessPeerTransportRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AccessPeerTransportRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return protobuf_go_lite.ErrInvalidLength
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.unknownFields = append(m.unknownFields, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (m *AccessPeerTransportResponse) UnmarshalVT(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	var err error
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		wire, iNdEx, err = protobuf_go_lite.DecodeVarint(dAtA, iNdEx)
+		if err != nil {
+			return err
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AccessPeerTransportResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AccessPeerTransportResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ResourceId", wireType)
+			}
+			m.ResourceId = 0
+			m.ResourceId, iNdEx, err = protobuf_go_lite.DecodeVarintUint32(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			var v string
+			v, iNdEx, err = protobuf_go_lite.DecodeString(dAtA, iNdEx)
+			if err != nil {
+				return err
+			}
+			m.PeerId = v
 		default:
 			iNdEx = preIndex
 			skippy, err := protobuf_go_lite.Skip(dAtA[iNdEx:])

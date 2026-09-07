@@ -14,8 +14,8 @@ import (
 )
 
 // AutoStartP2PSyncIfNeeded starts P2P sync when the account has a paired
-// Device or a Space joined from another account. Called from session mount so
-// both pairing and invite enrollment restore DEX and SO sync after restart.
+// Device, a joined Space, or an owned Space with invitations or participants.
+// Session mount restores both invitation service and synchronization.
 //
 // Errors mounting the account settings SO are logged and swallowed so a
 // missing or unreadable SO does not abort the session mount.
@@ -36,9 +36,50 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 		return nil
 	}
 	sharedSpaceCount := 0
+	invitedPeers := make(map[string]struct{})
 	if soList := a.soListCtr.GetValue(); soList != nil {
 		for _, entry := range soList.GetSharedObjects() {
 			if entry.GetSource() == "shared" {
+				sharedSpaceCount++
+				if endpoint := entry.GetTransportPeerId(); endpoint != "" {
+					invitedPeers[endpoint] = struct{}{}
+				}
+				continue
+			}
+
+			// Owners must remain reachable before the first recipient accepts.
+			so, release, err := a.MountSharedObject(ctx, entry.GetRef(), nil)
+			if err != nil {
+				return errors.Wrap(err, "inspect shared object for invitation service")
+			}
+			local, ok := so.(*SharedObject)
+			if !ok {
+				release()
+				continue
+			}
+			state, err := local.soHost.GetHostState(ctx)
+			release()
+			if err != nil {
+				return errors.Wrap(err, "inspect invitation state")
+			}
+			shared := len(state.GetRootGrants()) > 1
+			for _, invite := range state.GetInvites() {
+				target := invite.GetTargetPeerId()
+				active := sobject.ValidateInviteUsable(invite) == nil
+				for _, grant := range state.GetRootGrants() {
+					if target != "" && grant.GetPeerId() == target {
+						active = true
+						break
+					}
+				}
+				if active {
+					shared = true
+					if target != "" {
+						invitedPeers[target] = struct{}{}
+					}
+				}
+			}
+			if shared {
 				sharedSpaceCount++
 			}
 		}
@@ -53,6 +94,16 @@ func (a *ProviderAccount) AutoStartP2PSyncIfNeeded(
 	}).Debug("auto-starting P2P sync")
 	if err := a.StartPersistentP2PSync(ctx, st); err != nil {
 		return errors.Wrap(err, "auto-start P2P sync")
+	}
+	// Both targeted peers retain the link so deterministic WebRTC offers can start.
+	for target := range invitedPeers {
+		targetPeer, err := peer.IDB58Decode(target)
+		if err != nil {
+			return errors.Wrap(err, "parse invitation recipient")
+		}
+		if err := a.RetainP2PPeer(ctx, targetPeer); err != nil {
+			return errors.Wrap(err, "restore invitation recipient")
+		}
 	}
 	var pendingEnroll map[string]struct{}
 	a.p2pSyncBcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {

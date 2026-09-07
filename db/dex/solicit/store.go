@@ -51,11 +51,15 @@ func (*Store) Sync(context.Context) (bool, error) { return true, nil }
 
 // GetBlock fans the request out to the controller's current peer sessions.
 func (s *Store) GetBlock(ctx context.Context, ref *block.BlockRef) ([]byte, bool, error) {
+	sessions := s.controller.snapshotSessions()
 	data, found := peerBlockFanout{
-		sessions: s.controller.snapshotSessions(),
+		sessions: sessions,
 		ref:      ref,
 		hops:     s.controller.cc.GetMaxForwardHops(),
 	}.run(ctx)
+	if !found {
+		s.controller.le.WithField("session-count", len(sessions)).WithField("ref", ref.String()).Debug("dex block unavailable")
+	}
 	return data, found, nil
 }
 

@@ -31,6 +31,8 @@ service SessionResourceService {
   rpc ConfirmPairing(ConfirmPairingRequest) returns (ConfirmPairingResponse);
   rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
   rpc AccessStateAtom(AccessSessionStateAtomRequest) returns (AccessSessionStateAtomResponse);
+  // AccessPeerTransport mounts the account's authenticated peer stream service.
+  rpc AccessPeerTransport(AccessPeerTransportRequest) returns (AccessPeerTransportResponse);
   rpc WatchStateAtoms(WatchSessionStateAtomsRequest) returns (stream WatchSessionStateAtomsResponse);
   rpc GetTransferInventory(GetTransferInventoryRequest) returns (GetTransferInventoryResponse);
   rpc StartTransfer(StartTransferRequest) returns (StartTransferResponse);
@@ -158,6 +160,9 @@ message MountSharedObjectResponse {
   // HashType is the hash type preferred by the block store used for the shared object.
   // The zero value (0) indicates any.
   .hash.HashType hash_type = 6;
+  // TransportPeerId is the verified invitation endpoint for remote service discovery.
+  // Empty for owner-created and preexisting records.
+  string transport_peer_id = 7;
 }
 
 // WatchSharedObjectHealthRequest is the request type for WatchSharedObjectHealth.
@@ -512,6 +517,18 @@ message AccessSessionStateAtomRequest {
 message AccessSessionStateAtomResponse {
   // ResourceId is the ID of the state atom resource.
   uint32 resource_id = 1;
+}
+
+// AccessPeerTransportRequest is the request for AccessPeerTransport.
+message AccessPeerTransportRequest {
+}
+
+// AccessPeerTransportResponse is the response for AccessPeerTransport.
+message AccessPeerTransportResponse {
+  // ResourceId is the mounted account's Bifrost StreamService resource.
+  uint32 resource_id = 1;
+  // PeerId is the authenticated local account session peer.
+  string peer_id = 2;
 }
 
 // WatchSessionStateAtomsRequest is the request for WatchStateAtoms.
