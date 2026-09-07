@@ -11,7 +11,7 @@ dev = [
     "mypy==2.3.1",
     # The StarPC generator supplies Ruff for formatting and linting.
     "starpc-python-plugin @ git+https://github.com/aperturerobotics/starpc.git@b78c815f1e13b4a2d8e7f602658d6c695fa26e53#subdirectory=python/plugin",
-    "types-protobuf==7.35.1.20260827",
+    "types-protobuf==7.35.1.20260906",
 ]
 
 [build-system]
