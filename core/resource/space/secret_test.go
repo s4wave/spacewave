@@ -232,3 +232,51 @@ func setupSecretSpaceResourceTest(
 		tb.Release()
 	}
 }
+
+// TestSpaceResourceWritesSecretWithoutChangingGrants covers writer-only replacement.
+func TestSpaceResourceWritesSecretWithoutChangingGrants(t *testing.T) {
+	ctx := t.Context()
+	tb, resource, release := setupSecretSpaceResourceTest(ctx, t)
+	defer release()
+	pub, err := tb.Volume.GetPeerID().ExtractPublicKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pem, err := keypem.MarshalPubKeyPem(pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := resource.CreateSecret(ctx, &s4wave_space.CreateSecretRequest{ObjectKey: "secrets/rotation", Kind: s4wave_secret.SecretKindProviderCredential, Value: []byte("old"), ReaderPublicKeyPem: pem, ParticipantRole: sobject.SOParticipantRole_SOParticipantRole_WRITER})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = resource.WriteSecretPayload(ctx, &s4wave_space.WriteSecretPayloadRequest{ObjectKey: "secrets/rotation", ExpectedKind: s4wave_secret.SecretKindProviderCredential, ContentType: "application/json", Value: []byte("new")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	read, err := resource.ReadSecretPayload(ctx, &s4wave_space.ReadSecretPayloadRequest{ObjectKey: "secrets/rotation", ExpectedKind: s4wave_secret.SecretKindProviderCredential})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(read.GetPayload().GetValue()) != "new" || !created.GetSecret().GetRef().EqualVT(read.GetSecret().GetRef()) {
+		t.Fatal("replacement changed identity or failed to persist")
+	}
+
+	// Read access never authorizes credential replacement.
+	_, pub, err = crypto.GenerateEd25519Key(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader, err := peer.IDFromPublicKey(pub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s4wave_secret.AddSecretParticipant(ctx, tb.Bus, created.GetSecret(), reader.String(), pub, sobject.SOParticipantRole_SOParticipantRole_READER, ""); err != nil {
+		t.Fatal(err)
+	}
+	resource.sessionPeerID = reader.String()
+	_, err = resource.WriteSecretPayload(ctx, &s4wave_space.WriteSecretPayloadRequest{ObjectKey: "secrets/rotation", Value: []byte("forbidden")})
+	if !errors.Is(err, s4wave_secret.ErrPayloadAccessDenied) {
+		t.Fatalf("reader write: %v", err)
+	}
+}

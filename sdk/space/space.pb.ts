@@ -507,6 +507,12 @@ export interface CreateSecretRequest {
    * @generated from field: bytes reader_public_key_pem = 6;
    */
   readerPublicKeyPem?: Uint8Array
+  /**
+   * ParticipantRole grants the supplied key read or write access. UNKNOWN defaults to READER.
+   *
+   * @generated from field: sobject.SOParticipantRole participant_role = 7;
+   */
+  participantRole?: SOParticipantRole
 }
 
 export const CreateSecretRequest: MessageType<CreateSecretRequest> =
@@ -523,6 +529,12 @@ export const CreateSecretRequest: MessageType<CreateSecretRequest> =
         name: 'reader_public_key_pem',
         kind: 'scalar',
         T: ScalarType.BYTES,
+      },
+      {
+        no: 7,
+        name: 'participant_role',
+        kind: 'enum',
+        T: SOParticipantRole_Enum,
       },
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
@@ -550,6 +562,63 @@ export const CreateSecretResponse: MessageType<CreateSecretResponse> =
     ] satisfies readonly PartialFieldInfo[],
     packedByDefault: true,
   })
+
+/**
+ * WriteSecretPayloadRequest replaces an existing Secret's encrypted payload.
+ *
+ * @generated from message s4wave.space.WriteSecretPayloadRequest
+ */
+export interface WriteSecretPayloadRequest {
+  /**
+   * ObjectKey identifies the parent Secret whose grants remain unchanged.
+   *
+   * @generated from field: string object_key = 1;
+   */
+  objectKey?: string
+  /**
+   * ExpectedKind prevents writing credentials into a Secret of another kind.
+   *
+   * @generated from field: string expected_kind = 2;
+   */
+  expectedKind?: string
+  /**
+   * Value is the new payload, kept inside the nested SharedObject.
+   *
+   * @generated from field: bytes value = 3;
+   */
+  value?: Uint8Array
+  /**
+   * ContentType describes Value's encoding.
+   *
+   * @generated from field: string content_type = 4;
+   */
+  contentType?: string
+}
+
+export const WriteSecretPayloadRequest: MessageType<WriteSecretPayloadRequest> =
+  /* @__PURE__ */ createMessageType({
+    typeName: 's4wave.space.WriteSecretPayloadRequest',
+    fields: [
+      { no: 1, name: 'object_key', kind: 'scalar', T: ScalarType.STRING },
+      { no: 2, name: 'expected_kind', kind: 'scalar', T: ScalarType.STRING },
+      { no: 3, name: 'value', kind: 'scalar', T: ScalarType.BYTES },
+      { no: 4, name: 'content_type', kind: 'scalar', T: ScalarType.STRING },
+    ] satisfies readonly PartialFieldInfo[],
+    packedByDefault: true,
+  })
+
+/**
+ * WriteSecretPayloadResponse acknowledges durable nested payload storage.
+ *
+ * @generated from message s4wave.space.WriteSecretPayloadResponse
+ */
+export interface WriteSecretPayloadResponse {}
+
+export const WriteSecretPayloadResponse: MessageType<WriteSecretPayloadResponse> =
+  /* @__PURE__ */ createEmptyMessageType<WriteSecretPayloadResponse>(
+    's4wave.space.WriteSecretPayloadResponse',
+    true,
+  )
 
 /**
  * ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.

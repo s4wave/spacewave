@@ -31,6 +31,13 @@ func (r *SpaceResource) CreateSecret(
 		return nil, errors.New("space shared object ref is missing")
 	}
 
+	role := req.GetParticipantRole()
+	if role == sobject.SOParticipantRole_SOParticipantRole_UNKNOWN {
+		role = sobject.SOParticipantRole_SOParticipantRole_READER
+	}
+	if role != sobject.SOParticipantRole_SOParticipantRole_READER && role != sobject.SOParticipantRole_SOParticipantRole_WRITER {
+		return nil, errors.New("Secret participant role must be reader or writer")
+	}
 	var readerPeerID string
 	var readerPub crypto.PubKey
 	if len(req.GetReaderPublicKeyPem()) != 0 {
@@ -87,7 +94,7 @@ func (r *SpaceResource) CreateSecret(
 			secret,
 			readerPeerID,
 			readerPub,
-			sobject.SOParticipantRole_SOParticipantRole_READER,
+			role,
 			"",
 		); err != nil {
 			return nil, errors.Wrap(err, "grant reader")
@@ -135,4 +142,30 @@ func (r *SpaceResource) ReadSecretPayload(
 		Secret:  secret.CloneVT(),
 		Payload: payload,
 	}, nil
+}
+
+// WriteSecretPayload replaces a Secret payload under the mounted session writer grant.
+func (r *SpaceResource) WriteSecretPayload(ctx context.Context, req *s4wave_space.WriteSecretPayloadRequest) (*s4wave_space.WriteSecretPayloadResponse, error) {
+	// Read the existing Secret identity from the parent World.
+	if req.GetObjectKey() == "" {
+		return nil, errors.New("object_key cannot be empty")
+	}
+	tx, err := r.space.GetWorldEngine().NewTransaction(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Discard()
+	if err := world_types.CheckObjectType(ctx, tx, req.GetObjectKey(), s4wave_secret.SecretTypeID); err != nil {
+		return nil, err
+	}
+	secret, err := world.LookupObjectBody[*s4wave_secret.Secret](ctx, tx, req.GetObjectKey(), s4wave_secret.NewSecretBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	// Delegate payload authority and persistence to the Secret component.
+	if err := s4wave_secret.WriteSecretPayloadForPeer(ctx, r.b, secret, req.GetExpectedKind(), r.sessionPeerID, req.GetContentType(), req.GetValue()); err != nil {
+		return nil, err
+	}
+	return &s4wave_space.WriteSecretPayloadResponse{}, nil
 }
