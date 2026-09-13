@@ -63,9 +63,9 @@ func waitAccountFetcherRetryDelay(
 	}
 }
 
-// accountFetcher runs a loop that fetches account state from the cloud when the
-// epoch advances past the last fetched epoch. Single goroutine, triggered by
-// epoch changes via accountBcast.
+// accountFetcher refreshes persisted state on startup and after account epoch
+// changes. Cached state provides immediate reads but never replaces the first
+// live refresh. One goroutine waits for changes through accountBcast.
 func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 	// Initialize account-fetcher logging and retry state.
 	le := a.le.WithField("component", "account-fetcher")
@@ -76,16 +76,18 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 		var epoch, lastFetched uint64
 		var cli *SessionClient
 		var ch <-chan struct{}
+		var bootstrapped bool
 		a.accountBcast.HoldLock(func(_ func(), getWaitCh func() <-chan struct{}) {
 			epoch = a.state.epoch
 			lastFetched = a.state.lastFetchedEpoch
 			cli = a.sessionClient
+			bootstrapped = a.state.accountBootstrapFetched
 			ch = getWaitCh()
 		})
 
 		// Wait for a usable authenticated client when an epoch needs fetching.
-		if epoch > lastFetched {
-			if cli == nil || cli.priv == nil || cli.peerID == "" {
+		if !bootstrapped || epoch > lastFetched {
+			if cli == nil || cli.SignedHTTPClient == nil || cli.peerID == "" || (cli.priv == nil && cli.sign == nil) {
 				select {
 				case <-ctx.Done():
 					return ctx.Err()
@@ -176,8 +178,8 @@ func (a *ProviderAccount) accountFetcher(ctx context.Context) error {
 			a.syncSharedObjectListAccess(state.GetSubscriptionStatus())
 			a.refreshSelfRejoinSweepState()
 
-			// Persist the fetched state when the server epoch advanced.
-			if uint64(state.GetEpoch()) > lastFetched {
+			// Replace startup cache even when coverage changed without an epoch change.
+			if !bootstrapped || uint64(state.GetEpoch()) > lastFetched {
 				if err := a.writeAccountStateCache(ctx, state); err != nil {
 					le.WithError(err).Warn("failed to write account state cache")
 				}
