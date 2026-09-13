@@ -70,7 +70,17 @@ func (h *cloudSOHost) pendingPublication() *api.PendingSOPublication {
 
 // publishCheckpoint sends only work captured before the corresponding block
 // fence. Newer local writes keep their own obligation through acknowledgment.
-func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSOPublication) error {
+func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSOPublication) (retErr error) {
+	// A nonce conflict requires authoritative state before the scheduler retries.
+	// Refresh through the existing seed coordinator so persisted work can reconcile.
+	defer func() {
+		var cloudErr *cloudError
+		if errors.As(retErr, &cloudErr) && cloudErr.Code == "nonce_too_low" {
+			if err := h.pullStateSingleflight(ctx, SeedReasonGapRecovery); err != nil {
+				retErr = errors.Wrap(err, "refresh conflicting publication")
+			}
+		}
+	}()
 	if sent == nil {
 		return nil
 	}

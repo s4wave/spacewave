@@ -288,8 +288,29 @@ func TestCloudPublicationRecoversRejectedNonce(t *testing.T) {
 			return nil
 		},
 	}
-	if err := host.acceptCloudSnapshot(t.Context(), cloud, 4); err != nil {
-		t.Fatal(err)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/ops") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"code":"nonce_too_low","message":"Operation nonce conflicts with accepted work"}`))
+			return
+		}
+		data, err := (&api.SOStateMessage{Content: &api.SOStateMessage_Snapshot{Snapshot: cloud}, Seqno: 4}).MarshalVT()
+		if err != nil {
+			t.Error(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/protobuf")
+		_, _ = w.Write(data)
+	}))
+	t.Cleanup(server.Close)
+	host.client = NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peerID.String())
+	host.client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
+		return submit("test-ticket")
+	}
+	if err := host.publishCheckpoint(t.Context(), host.pendingPublication()); err == nil {
+		t.Fatal("conflicting request was acknowledged")
 	}
 	recovered := host.pending.GetOperations()[0]
 	inner, err := recovered.UnmarshalInner()
