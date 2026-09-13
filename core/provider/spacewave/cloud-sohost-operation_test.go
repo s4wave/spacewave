@@ -248,3 +248,71 @@ func TestCloudPublicationConcurrentAcceptance(t *testing.T) {
 		t.Fatal("revocation contacted the cloud or discarded retained work")
 	}
 }
+
+// TestCloudPublicationRecoversRejectedNonce preserves unsubmitted local work
+// when a restored cache reused a nonce consumed by a different rejected write.
+func TestCloudPublicationRecoversRejectedNonce(t *testing.T) {
+	key, peerID := generateTestKeypair(t)
+	config := &sobject.SharedObjectConfig{
+		ConfigChainHash: []byte("verified history"),
+		ConsensusMode:   sobject.SOConsensusMode_SO_CONSENSUS_MODE_SINGLE_VALIDATOR,
+		Participants:    []*sobject.SOParticipantConfig{{PeerId: peerID.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER}},
+	}
+	rejectedOp := buildTestSOOperation(t, key, 2)
+	pendingOp := buildTestSOOperation(t, key, 2)
+	original, err := pendingOp.UnmarshalInner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cloud := &sobject.SOState{
+		Config:              config,
+		Root:                buildTestSORoot(t, key, 3, []*sobject.SOAccountNonce{{PeerId: peerID.String(), Nonce: 1}}),
+		QueuedAccountNonces: []*sobject.SOAccountNonce{{PeerId: peerID.String(), Nonce: 2}},
+		OpRejections:        []*sobject.SOPeerOpRejections{{PeerId: peerID.String(), Rejections: []*sobject.SOOperationRejection{buildTestSOOperationRejection(t, key, peerID, 2, rejectedOp)}}},
+	}
+	if got := cloud.GetNextAccountNonce(peerID.String()); got != 3 {
+		t.Fatalf("next nonce = %d", got)
+	}
+	previous := cloud.CloneVT()
+	previous.OpRejections = nil
+	previous.Ops = []*sobject.SOOperation{pendingOp}
+	var persisted *api.VerifiedSOStateCache
+	host := &cloudSOHost{
+		le: logrus.New().WithField("test", t.Name()), soID: testSharedObjectID,
+		privKey: key, peerID: peerID, stateCtr: ccontainer.NewCContainer(previous),
+		verifiedConfig: config, lastConfigChainHash: config.ConfigChainHash,
+		cloudState: cloud.CloneVT(), peerState: previous,
+		pending: &api.PendingSOPublication{FirstPendingUnixMilli: 17, Operations: []*sobject.SOOperation{pendingOp}},
+		persistVerifiedStateCache: func(_ context.Context, cache *api.VerifiedSOStateCache) error {
+			persisted = cache.CloneVT()
+			return nil
+		},
+	}
+	if err := host.acceptCloudSnapshot(t.Context(), cloud, 4); err != nil {
+		t.Fatal(err)
+	}
+	recovered := host.pending.GetOperations()[0]
+	inner, err := recovered.UnmarshalInner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if inner.GetNonce() != 3 || inner.GetLocalId() != original.GetLocalId() || string(inner.GetOpData()) != string(original.GetOpData()) {
+		t.Fatalf("recovery changed operation identity or contents: %v", inner)
+	}
+	if err := recovered.ValidateSignature(testSharedObjectID, config.Participants); err != nil {
+		t.Fatal(err)
+	}
+	if persisted == nil || !persisted.GetPendingPublication().EqualVT(host.pending) || host.pending.GetFirstPendingUnixMilli() != 17 {
+		t.Fatal("recovery was not durable or extended the publication deadline")
+	}
+	if got := host.stateCtr.GetValue().GetNextAccountNonce(peerID.String()); got != 4 {
+		t.Fatalf("next nonce after recovery = %d", got)
+	}
+	host.hydrateVerifiedStateCache(persisted)
+	if err := host.acceptCloudSnapshot(t.Context(), cloud, 4); err != nil {
+		t.Fatal(err)
+	}
+	if !host.pending.GetOperations()[0].EqualVT(recovered) {
+		t.Fatal("restart rewrote the recovered operation again")
+	}
+}

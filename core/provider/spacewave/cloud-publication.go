@@ -242,8 +242,52 @@ func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SO
 		_ = next.QueueOperation(h.soID, operation)
 	}
 
+	// A signed rejection consumes its nonce even when an older cache reused it
+	// for different local work. Re-sign only that provably unpublished collision;
+	// retain the operation ID, encrypted contents, and original flush deadline.
+	pending := h.pendingPublication()
+	for i, operation := range pending.GetOperations() {
+		inner, err := operation.UnmarshalInner()
+		if err != nil {
+			return err
+		}
+		if inner.GetPeerId() != h.peerID.String() {
+			continue
+		}
+		collision := false
+		for _, group := range next.GetOpRejections() {
+			if group.GetPeerId() != inner.GetPeerId() {
+				continue
+			}
+			for _, rejection := range group.GetRejections() {
+				rejected, err := rejection.UnmarshalInner()
+				if err != nil {
+					return err
+				}
+				if rejected.GetOpNonce() == inner.GetNonce() && rejected.GetLocalId() != inner.GetLocalId() {
+					collision = true
+				}
+			}
+		}
+		if !collision {
+			continue
+		}
+		if err := operation.ValidateSignature(h.soID, next.GetConfig().GetParticipants()); err != nil {
+			return err
+		}
+		operation, err = sobject.BuildSOOperation(h.soID, h.privKey, inner.GetOpData(), next.GetNextAccountNonce(inner.GetPeerId()), inner.GetLocalId())
+		if err != nil {
+			return err
+		}
+		if err := next.QueueOperation(h.soID, operation); err != nil {
+			return err
+		}
+		pending.Operations[i] = operation
+	}
+
 	cache := h.buildVerifiedStateCache()
 	if cache != nil && h.persistVerifiedStateCache != nil {
+		cache.PendingPublication = pending
 		cache.PeerState = next.CloneVT()
 		cache.CloudState = cloud.CloneVT()
 		cache.CloudSequence = sequence
@@ -253,6 +297,7 @@ func (h *cloudSOHost) acceptCloudSnapshot(ctx context.Context, cloud *sobject.SO
 	}
 	var configChanged bool
 	h.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
+		h.pending = pending
 		h.peerState = next.CloneVT()
 		h.cloudState = cloud.CloneVT()
 		h.lastSeqno = sequence

@@ -379,29 +379,31 @@ func (s *SOState) GetOperationStatus(peerID, localID string) (*SOOperation, *SOO
 	return nil, nil, nil
 }
 
-// GetNextAccountNonce determines the next nonce for an account.
+// GetNextAccountNonce advances past every queued, committed, or rejected write.
 func (s *SOState) GetNextAccountNonce(peerID string) uint64 {
-	var currentNonce uint64
-
-	// Check queued_account_nonces first
+	var current uint64
 	for _, nonce := range s.GetQueuedAccountNonces() {
 		if nonce.GetPeerId() == peerID {
-			currentNonce = nonce.GetNonce()
-			break
+			current = max(current, nonce.GetNonce())
 		}
 	}
-
-	// If no queued nonce, check the root
-	if currentNonce == 0 {
-		for _, nonce := range s.GetRoot().GetAccountNonces() {
-			if nonce.GetPeerId() == peerID {
-				currentNonce = nonce.GetNonce()
-				break
+	for _, nonce := range s.GetRoot().GetAccountNonces() {
+		if nonce.GetPeerId() == peerID {
+			current = max(current, nonce.GetNonce())
+		}
+	}
+	for _, group := range s.GetOpRejections() {
+		if group.GetPeerId() != peerID {
+			continue
+		}
+		for _, rejection := range group.GetRejections() {
+			inner, err := rejection.UnmarshalInner()
+			if err == nil {
+				current = max(current, inner.GetOpNonce())
 			}
 		}
 	}
-
-	return currentNonce + 1
+	return current + 1
 }
 
 // QueueOperation queues an operation for a writer or validator.
