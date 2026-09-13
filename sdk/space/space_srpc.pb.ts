@@ -25,6 +25,8 @@ import {
   WatchSpaceContentsStateRequest,
   WatchSpaceSharingStateRequest,
   WatchSpaceStateRequest,
+  WriteSecretPayloadRequest,
+  WriteSecretPayloadResponse,
 } from './space.pb.js'
 import { MethodKind } from '@aptre/protobuf-es-lite'
 import { DeployManifestsMessage } from '../deploy/deploy.pb.js'
@@ -94,6 +96,17 @@ export const SpaceResourceServiceDefinition = {
       name: 'ReadSecretPayload',
       I: ReadSecretPayloadRequest,
       O: ReadSecretPayloadResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * WriteSecretPayload replaces the nested payload under the mounted session's writer grant.
+     *
+     * @generated from rpc s4wave.space.SpaceResourceService.WriteSecretPayload
+     */
+    WriteSecretPayload: {
+      name: 'WriteSecretPayload',
+      I: WriteSecretPayloadRequest,
+      O: WriteSecretPayloadResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -179,6 +192,16 @@ export interface SpaceResourceService {
   ): Promise<ReadSecretPayloadResponse>
 
   /**
+   * WriteSecretPayload replaces the nested payload under the mounted session's writer grant.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WriteSecretPayload
+   */
+  WriteSecretPayload(
+    request: WriteSecretPayloadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<WriteSecretPayloadResponse>
+
+  /**
    * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
   DeployManifests(
@@ -262,6 +285,17 @@ export interface SpaceResourceServiceHandler {
   ): Promise<ReadSecretPayloadResponse>
 
   /**
+   * WriteSecretPayload replaces the nested payload under the mounted session's writer grant.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WriteSecretPayload
+   */
+  WriteSecretPayload(
+    request: WriteSecretPayloadRequest,
+    abortSignal: AbortSignal,
+    context: ServerContext,
+  ): Promise<WriteSecretPayloadResponse>
+
+  /**
    * @generated from rpc s4wave.space.SpaceResourceService.DeployManifests
    */
   DeployManifests(
@@ -304,6 +338,7 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
     this.MountSpaceContents = this.MountSpaceContents.bind(this)
     this.CreateSecret = this.CreateSecret.bind(this)
     this.ReadSecretPayload = this.ReadSecretPayload.bind(this)
+    this.WriteSecretPayload = this.WriteSecretPayload.bind(this)
     this.DeployManifests = this.DeployManifests.bind(this)
     this.AddSpacePlugin = this.AddSpacePlugin.bind(this)
     this.RemoveSpacePlugin = this.RemoveSpacePlugin.bind(this)
@@ -408,6 +443,25 @@ export class SpaceResourceServiceClient implements SpaceResourceService {
       abortSignal || undefined,
     )
     return ReadSecretPayloadResponse.fromBinary(result)
+  }
+
+  /**
+   * WriteSecretPayload replaces the nested payload under the mounted session's writer grant.
+   *
+   * @generated from rpc s4wave.space.SpaceResourceService.WriteSecretPayload
+   */
+  async WriteSecretPayload(
+    request: WriteSecretPayloadRequest,
+    abortSignal?: AbortSignal,
+  ): Promise<WriteSecretPayloadResponse> {
+    const requestMsg = WriteSecretPayloadRequest.create(request)
+    const result = await this.rpc.request(
+      this.service,
+      SpaceResourceServiceDefinition.methods.WriteSecretPayload.name,
+      WriteSecretPayloadRequest.toBinary(requestMsg),
+      abortSignal || undefined,
+    )
+    return WriteSecretPayloadResponse.fromBinary(result)
   }
 
   /**

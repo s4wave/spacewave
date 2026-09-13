@@ -26,6 +26,8 @@ type SRPCSpaceResourceServiceClient interface {
 	CreateSecret(ctx context.Context, in *CreateSecretRequest) (*CreateSecretResponse, error)
 
 	ReadSecretPayload(ctx context.Context, in *ReadSecretPayloadRequest) (*ReadSecretPayloadResponse, error)
+	// WriteSecretPayload replaces the nested payload under the mounted session's writer grant.
+	WriteSecretPayload(ctx context.Context, in *WriteSecretPayloadRequest) (*WriteSecretPayloadResponse, error)
 
 	DeployManifests(ctx context.Context) (SRPCSpaceResourceService_DeployManifestsClient, error)
 
@@ -156,6 +158,15 @@ func (c *srpcSpaceResourceServiceClient) ReadSecretPayload(ctx context.Context, 
 	return out, nil
 }
 
+func (c *srpcSpaceResourceServiceClient) WriteSecretPayload(ctx context.Context, in *WriteSecretPayloadRequest) (*WriteSecretPayloadResponse, error) {
+	out := new(WriteSecretPayloadResponse)
+	err := c.cc.ExecCall(ctx, c.serviceID, "WriteSecretPayload", in, out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *srpcSpaceResourceServiceClient) DeployManifests(ctx context.Context) (SRPCSpaceResourceService_DeployManifestsClient, error) {
 	stream, err := c.cc.NewStream(ctx, c.serviceID, "DeployManifests", nil)
 	if err != nil {
@@ -225,6 +236,8 @@ type SRPCSpaceResourceServiceServer interface {
 	CreateSecret(context.Context, *CreateSecretRequest) (*CreateSecretResponse, error)
 
 	ReadSecretPayload(context.Context, *ReadSecretPayloadRequest) (*ReadSecretPayloadResponse, error)
+	// WriteSecretPayload replaces the nested payload under the mounted session's writer grant.
+	WriteSecretPayload(context.Context, *WriteSecretPayloadRequest) (*WriteSecretPayloadResponse, error)
 
 	DeployManifests(SRPCSpaceResourceService_DeployManifestsStream) error
 
@@ -265,6 +278,7 @@ func (SRPCSpaceResourceServiceHandler) GetMethodIDs() []string {
 		"MountSpaceContents",
 		"CreateSecret",
 		"ReadSecretPayload",
+		"WriteSecretPayload",
 		"DeployManifests",
 		"AddSpacePlugin",
 		"RemoveSpacePlugin",
@@ -292,6 +306,8 @@ func (d *SRPCSpaceResourceServiceHandler) InvokeMethod(
 		return true, d.InvokeMethod_CreateSecret(d.impl, strm)
 	case "ReadSecretPayload":
 		return true, d.InvokeMethod_ReadSecretPayload(d.impl, strm)
+	case "WriteSecretPayload":
+		return true, d.InvokeMethod_WriteSecretPayload(d.impl, strm)
 	case "DeployManifests":
 		return true, d.InvokeMethod_DeployManifests(d.impl, strm)
 	case "AddSpacePlugin":
@@ -363,6 +379,18 @@ func (SRPCSpaceResourceServiceHandler) InvokeMethod_ReadSecretPayload(impl SRPCS
 		return err
 	}
 	out, err := impl.ReadSecretPayload(strm.Context(), req)
+	if err != nil {
+		return err
+	}
+	return strm.MsgSend(out)
+}
+
+func (SRPCSpaceResourceServiceHandler) InvokeMethod_WriteSecretPayload(impl SRPCSpaceResourceServiceServer, strm srpc.Stream) error {
+	req := new(WriteSecretPayloadRequest)
+	if err := strm.MsgRecv(req); err != nil {
+		return err
+	}
+	out, err := impl.WriteSecretPayload(strm.Context(), req)
 	if err != nil {
 		return err
 	}
@@ -473,6 +501,14 @@ type SRPCSpaceResourceService_ReadSecretPayloadStream interface {
 }
 
 type srpcSpaceResourceService_ReadSecretPayloadStream struct {
+	srpc.Stream
+}
+
+type SRPCSpaceResourceService_WriteSecretPayloadStream interface {
+	srpc.Stream
+}
+
+type srpcSpaceResourceService_WriteSecretPayloadStream struct {
 	srpc.Stream
 }
 

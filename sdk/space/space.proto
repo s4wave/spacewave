@@ -22,6 +22,8 @@ service SpaceResourceService {
   rpc CreateSecret(CreateSecretRequest) returns (CreateSecretResponse) {}
 
   rpc ReadSecretPayload(ReadSecretPayloadRequest) returns (ReadSecretPayloadResponse) {}
+  // WriteSecretPayload replaces the nested payload under the mounted session's writer grant.
+  rpc WriteSecretPayload(WriteSecretPayloadRequest) returns (WriteSecretPayloadResponse) {}
 
   rpc DeployManifests(stream .s4wave.deploy.DeployManifestsMessage) returns (stream .s4wave.deploy.DeployManifestsMessage) {}
 
@@ -138,12 +140,30 @@ message CreateSecretRequest {
   bytes value = 5;
   // ReaderPublicKeyPem optionally grants read access to this peer key.
   bytes reader_public_key_pem = 6;
+  // ParticipantRole grants the supplied key read or write access. UNKNOWN defaults to READER.
+  .sobject.SOParticipantRole participant_role = 7;
 }
 
 // CreateSecretResponse returns the redacted Secret parent metadata.
 message CreateSecretResponse {
   // Secret is the created parent Secret object metadata.
   .s4wave.secret.Secret secret = 1;
+}
+
+// WriteSecretPayloadRequest replaces an existing Secret's encrypted payload.
+message WriteSecretPayloadRequest {
+  // ObjectKey identifies the parent Secret whose grants remain unchanged.
+  string object_key = 1;
+  // ExpectedKind prevents writing credentials into a Secret of another kind.
+  string expected_kind = 2;
+  // Value is the new payload, kept inside the nested SharedObject.
+  bytes value = 3;
+  // ContentType describes Value's encoding.
+  string content_type = 4;
+}
+
+// WriteSecretPayloadResponse acknowledges durable nested payload storage.
+message WriteSecretPayloadResponse {
 }
 
 // ReadSecretPayloadRequest reads a Secret payload under the mounted session authority.
