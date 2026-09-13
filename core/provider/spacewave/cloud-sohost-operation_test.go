@@ -3,11 +3,13 @@ package provider_spacewave
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/util/ccontainer"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
@@ -260,6 +262,7 @@ func TestCloudPublicationRecoversRejectedNonce(t *testing.T) {
 	}
 	rejectedOp := buildTestSOOperation(t, key, 2)
 	pendingOp := buildTestSOOperation(t, key, 2)
+	laterOp := buildTestSOOperation(t, key, 3)
 	original, err := pendingOp.UnmarshalInner()
 	if err != nil {
 		t.Fatal(err)
@@ -275,21 +278,50 @@ func TestCloudPublicationRecoversRejectedNonce(t *testing.T) {
 	}
 	previous := cloud.CloneVT()
 	previous.OpRejections = nil
-	previous.Ops = []*sobject.SOOperation{pendingOp}
+	previous.Ops = []*sobject.SOOperation{pendingOp, laterOp}
 	var persisted *api.VerifiedSOStateCache
 	host := &cloudSOHost{
 		le: logrus.New().WithField("test", t.Name()), soID: testSharedObjectID,
 		privKey: key, peerID: peerID, stateCtr: ccontainer.NewCContainer(previous),
 		verifiedConfig: config, lastConfigChainHash: config.ConfigChainHash,
 		cloudState: cloud.CloneVT(), peerState: previous,
-		pending: &api.PendingSOPublication{FirstPendingUnixMilli: 17, Operations: []*sobject.SOOperation{pendingOp}},
+		pending: &api.PendingSOPublication{FirstPendingUnixMilli: 17, Operations: []*sobject.SOOperation{pendingOp, laterOp}},
 		persistVerifiedStateCache: func(_ context.Context, cache *api.VerifiedSOStateCache) error {
 			persisted = cache.CloneVT()
 			return nil
 		},
 	}
+	var submissions atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/ops") {
+			if submissions.Add(1) > 1 {
+				data, err := io.ReadAll(r.Body)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				var batch api.PostOpsRequest
+				if err := batch.UnmarshalVT(data); err != nil {
+					t.Error(err)
+					return
+				}
+				if len(batch.Operations) != 2 {
+					t.Errorf("batch operation count = %d", len(batch.Operations))
+					return
+				}
+				for i, operation := range batch.Operations {
+					inner, err := operation.UnmarshalInner()
+					if err != nil {
+						t.Error(err)
+						return
+					}
+					if inner.Nonce != uint64(i+3) {
+						t.Errorf("batch operation %d nonce = %d", i, inner.Nonce)
+					}
+				}
+				w.Header().Set("Content-Type", "application/protobuf")
+				return
+			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
 			_, _ = w.Write([]byte(`{"code":"nonce_too_low","message":"Operation nonce conflicts with accepted work"}`))
@@ -317,7 +349,7 @@ func TestCloudPublicationRecoversRejectedNonce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if inner.GetNonce() != 3 || inner.GetLocalId() != original.GetLocalId() || string(inner.GetOpData()) != string(original.GetOpData()) {
+	if inner.GetNonce() != 4 || inner.GetLocalId() != original.GetLocalId() || string(inner.GetOpData()) != string(original.GetOpData()) {
 		t.Fatalf("recovery changed operation identity or contents: %v", inner)
 	}
 	if err := recovered.ValidateSignature(testSharedObjectID, config.Participants); err != nil {
@@ -326,7 +358,7 @@ func TestCloudPublicationRecoversRejectedNonce(t *testing.T) {
 	if persisted == nil || !persisted.GetPendingPublication().EqualVT(host.pending) || host.pending.GetFirstPendingUnixMilli() != 17 {
 		t.Fatal("recovery was not durable or extended the publication deadline")
 	}
-	if got := host.stateCtr.GetValue().GetNextAccountNonce(peerID.String()); got != 4 {
+	if got := host.stateCtr.GetValue().GetNextAccountNonce(peerID.String()); got != 5 {
 		t.Fatalf("next nonce after recovery = %d", got)
 	}
 	host.hydrateVerifiedStateCache(persisted)
@@ -335,5 +367,78 @@ func TestCloudPublicationRecoversRejectedNonce(t *testing.T) {
 	}
 	if !host.pending.GetOperations()[0].EqualVT(recovered) {
 		t.Fatal("restart rewrote the recovered operation again")
+	}
+	if err := host.publishCheckpoint(t.Context(), host.pendingPublication()); err != nil {
+		t.Fatal(err)
+	}
+	if host.pending != nil {
+		t.Fatal("accepted recovery batch remained pending")
+	}
+}
+
+// TestWaitOperationPublishesWithoutBatchDelay exercises the confirmation wait
+// against the real publication scheduler with its background routine stopped.
+func TestWaitOperationPublishesWithoutBatchDelay(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	key, peerID := generateTestKeypair(t)
+	config := &sobject.SharedObjectConfig{
+		ConfigChainHash: []byte("verified history"),
+		ConsensusMode:   sobject.SOConsensusMode_SO_CONSENSUS_MODE_SINGLE_VALIDATOR,
+		Participants:    []*sobject.SOParticipantConfig{{PeerId: peerID.String(), Role: sobject.SOParticipantRole_SOParticipantRole_OWNER}},
+	}
+	operation := buildTestSOOperation(t, key, 1)
+	inner, err := operation.UnmarshalInner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	initial := &sobject.SOState{Config: config, Root: buildTestSORoot(t, key, 1, nil), Ops: []*sobject.SOOperation{operation}, QueuedAccountNonces: []*sobject.SOAccountNonce{{PeerId: peerID.String(), Nonce: 1}}}
+	accepted := &sobject.SOState{Config: config, Root: buildTestSORoot(t, key, 2, []*sobject.SOAccountNonce{{PeerId: peerID.String(), Nonce: 1}})}
+	var host *cloudSOHost
+	var posts, uploads atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/sync/push") {
+			uploads.Add(1)
+			w.Header().Set("Content-Type", "application/protobuf")
+			return
+		}
+		if !strings.HasSuffix(r.URL.Path, "/ops") {
+			t.Errorf("unexpected request: %s", r.URL.Path)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if uploads.Load() == 0 {
+			t.Error("operation reached cloud before its blocks")
+		}
+		posts.Add(1)
+		if err := host.handleStateDelta(ctx, &api.SOStateMessage{Content: &api.SOStateMessage_Snapshot{Snapshot: accepted}, Seqno: 2}); err != nil {
+			t.Error(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/protobuf")
+	}))
+	t.Cleanup(server.Close)
+	client := NewSessionClient(server.Client(), server.URL, DefaultSigningEnvPrefix, key, peerID.String())
+	client.executeWriteTicketAudience = func(_ context.Context, _ string, _ writeTicketAudience, submit func(string) error) error {
+		return submit("test-ticket")
+	}
+	syncer := newDirtySyncExecuteTestController(t, client, nil)
+	host = &cloudSOHost{
+		le: logrus.New().WithField("test", t.Name()), client: client, soID: testSharedObjectID,
+		privKey: key, peerID: peerID, stateCtr: ccontainer.NewCContainer(initial),
+		verifiedConfig: config, lastConfigChainHash: config.ConfigChainHash,
+		cloudState: initial.CloneVT(), peerState: initial.CloneVT(), syncer: syncer,
+		pending:                   &api.PendingSOPublication{FirstPendingUnixMilli: time.Now().UnixMilli(), Operations: []*sobject.SOOperation{operation}},
+		persistVerifiedStateCache: func(context.Context, *api.VerifiedSOStateCache) error { return nil },
+	}
+	host.soHost = sobject.NewSOHost(ctx, func(context.Context, string, func()) (ccontainer.Watchable[*sobject.SOState], func(), error) {
+		return host.stateCtr, func() {}, nil
+	}, nil, testSharedObjectID)
+	syncer.setPublication(host, host.pending)
+	shared := &SharedObject{host: host, localPid: peerID}
+	seq, rejected, err := shared.WaitOperation(ctx, inner.GetLocalId())
+	if err != nil || rejected || seq != 2 || posts.Load() != 1 {
+		t.Fatalf("confirmation did not publish immediately: seq=%d rejected=%t posts=%d error=%v", seq, rejected, posts.Load(), err)
 	}
 }

@@ -101,6 +101,14 @@ func (h *cloudSOHost) publishCheckpoint(ctx context.Context, sent *api.PendingSO
 			return err
 		}
 	}
+	// Re-signing can move a recovered write beyond newer queued nonces.
+	// The cloud batch wire contract requires strictly increasing nonce order.
+	slices.SortStableFunc(sent.GetOperations(), func(a, b *sobject.SOOperation) int {
+		aa, _ := a.UnmarshalInner()
+		bb, _ := b.UnmarshalInner()
+		return cmp.Compare(aa.GetNonce(), bb.GetNonce())
+	})
+
 	var batch []*sobject.SOOperation
 	for _, operation := range sent.GetOperations() {
 		if err := operation.ValidateSignature(h.soID, config.GetParticipants()); err != nil {

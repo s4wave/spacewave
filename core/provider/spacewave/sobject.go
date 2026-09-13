@@ -165,7 +165,7 @@ func (s *SharedObject) QueueOperation(ctx context.Context, op []byte) (string, e
 
 // WaitOperation waits for the operation to be confirmed or rejected by the provider.
 func (s *SharedObject) WaitOperation(ctx context.Context, localID string) (uint64, bool, error) {
-	// Simple version: wait for state change.
+	// Watch the same accepted state used by the publication coordinator.
 	soStateCtr, relSoStateCtr, err := s.host.GetSOHost().GetSOStateCtr(ctx, nil)
 	if err != nil {
 		return 0, false, err
@@ -173,6 +173,7 @@ func (s *SharedObject) WaitOperation(ctx context.Context, localID string) (uint6
 	defer relSoStateCtr()
 
 	var current *sobject.SOState
+	flushed := false
 	for {
 		next, err := soStateCtr.WaitValueChange(ctx, current, nil)
 		if err != nil {
@@ -194,7 +195,14 @@ func (s *SharedObject) WaitOperation(ctx context.Context, localID string) (uint6
 		}
 
 		if found {
-			// Still pending, wait for next change.
+			// A caller waiting for confirmation needs its write published now,
+			// rather than after the background batching deadline.
+			if !flushed && s.host.syncer != nil {
+				if err := s.host.syncer.FlushNowUnordered(ctx); err != nil {
+					return 0, false, errors.Wrap(err, "publish shared operation")
+				}
+				flushed = true
+			}
 			continue
 		}
 
