@@ -17,7 +17,7 @@ replace (
 	github.com/dolthub/vitess => github.com/aperturerobotics/vitess v0.0.0-20260628002426-ab1c68c3a83d // aperture-7
 	github.com/go-git/go-git/v6 => github.com/aperturerobotics/go-git/v6 v6.0.0-alpha.3.0.20260905023630-65a0b75d77a7
 	github.com/pion/webrtc/v4 => github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260812073402-46b0606ba62e
-	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d
+	github.com/sirupsen/logrus => github.com/aperturerobotics/logrus v1.10.2-0.20260913213951-7d7e1a12b0ec // master
 
 	// https://github.com/wazero/wazero/pull/2479
 	// https://github.com/wazero/wazero/pull/2481

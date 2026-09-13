@@ -70,8 +70,8 @@ github.com/aperturerobotics/json-iterator-lite v1.1.0 h1:ZLLqHhHTKYlmCAP873ras2e
 github.com/aperturerobotics/json-iterator-lite v1.1.0/go.mod h1:SvGGBv3OVxUyqO0ZxA/nvs6z3cg7NIbZ64TnbV2OISo=
 github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008 h1:eSXCl4Xfl/zS2J04S1kNpgPrRroxa/fmC2pirWxWez8=
 github.com/aperturerobotics/jsonpath v0.1.5-0.20260620020844-bd6430df1008/go.mod h1:1IuiZEtDbe75SMjyk2Fk+Fa+Yp56kf3WM1wYgorqc6o=
-github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d h1:OCeEdD6ku6SBaRvSksJH7NgaqB0dtL8z3AQCLpFa9Dg=
-github.com/aperturerobotics/logrus v1.9.5-0.20260430110313-9c892333814d/go.mod h1:FXZFonkDAnFozmO+5hGAFvB0Yg9/j2SIhA/QuIkP180=
+github.com/aperturerobotics/logrus v1.10.2-0.20260913213951-7d7e1a12b0ec h1:vPLuLHEbOWLbxvg/yKeBHFx+6pC76TVS/HYEcR0o/mA=
+github.com/aperturerobotics/logrus v1.10.2-0.20260913213951-7d7e1a12b0ec/go.mod h1:SLEg8TqYulVKKfIGHldVp2K2aYz2DKSVBq4g/H5bR7Q=
 github.com/aperturerobotics/pion-ice/v4 v4.0.0-20260902093134-beabc67bc5d7 h1:QVnuMp/kAZKSjsObfUTcRGhsuatozDYC4izHwbwSXUI=
 github.com/aperturerobotics/pion-ice/v4 v4.0.0-20260902093134-beabc67bc5d7/go.mod h1:jRUQp/WkShwjXjAnxYkNvqC7Tt8fosisWI+suCJS9oc=
 github.com/aperturerobotics/pion-webrtc/v4 v4.2.16-0.20260812073402-46b0606ba62e h1:RcGcvxFgUr1lBZ9T4CYXWRZrcqPGF/i+puqpqrEgBxM=
