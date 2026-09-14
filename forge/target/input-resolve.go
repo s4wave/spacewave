@@ -12,7 +12,8 @@ import (
 
 // ResolveInputMap resolves a ValueMap to an InputMap.
 // returns a function which can be used to release the values.
-// inputVals is the contents of the inputs ValueSet.
+// inputVals supplies aliased and scheduler-provided values. Other target inputs
+// resolve afresh; a retained value cannot satisfy a now-missing required source.
 // returns the list of unresolved inputs.
 func ResolveInputMap(
 	ctx context.Context,
@@ -26,6 +27,11 @@ func ResolveInputMap(
 	// add all values provided in the value map
 	for k, v := range inputVals {
 		im[k] = NewInputValueInline(v)
+	}
+	for _, input := range tgt.GetInputs() {
+		if input.GetInputType() != InputType_InputType_ALIAS {
+			delete(im, input.GetName())
+		}
 	}
 
 	// resolve all Input from the Target.

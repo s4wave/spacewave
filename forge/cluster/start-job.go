@@ -89,6 +89,7 @@ func (o *ClusterStartJobOp) ApplyWorldOp(
 		}
 
 		job.JobState = forge_job.State_JobState_RUNNING
+		job.Result = nil
 		if err := job.Validate(); err != nil {
 			return err
 		}

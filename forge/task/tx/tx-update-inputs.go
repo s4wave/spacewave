@@ -132,7 +132,9 @@ func (t *TxUpdateInputs) ExecuteTx(
 		return nil
 	}
 
-	// sort by name & mark as dirty
+	// Previous outputs remain on the completed Pass; they do not represent
+	// these new input values.
+	valueSet.Outputs = nil
 	valueSet.SortValues()
 	root.ValueSet = valueSet
 	bcs.SetBlock(root, true)
@@ -169,6 +171,7 @@ func (t *TxUpdateInputs) ExecuteTx(
 
 	// mark as pending
 	root.TaskState = forge_task.State_TaskState_PENDING
+	root.Result = nil
 
 	return nil
 }
