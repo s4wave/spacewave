@@ -8,16 +8,20 @@ import (
 	"testing"
 
 	"github.com/aperturerobotics/util/gitroot"
+	provider_local "github.com/s4wave/spacewave/core/provider/local"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 )
 
+// TestE2ECloudAuthConfigEndpoint checks local discovery without a cloud service.
 func TestE2ECloudAuthConfigEndpoint(t *testing.T) {
+	// Start the fixture and fetch its advertised endpoints.
 	endpoint, stop, err := startE2ECloudAuthConfigEndpoint("")
 	if err != nil {
 		t.Fatalf("start endpoint: %v", err)
 	}
 	t.Cleanup(stop)
 
+	// Decode the same binary response consumed by the provider.
 	resp, err := http.Get(endpoint + e2eCloudAuthConfigPath)
 	if err != nil {
 		t.Fatalf("get auth config: %v", err)
@@ -39,6 +43,7 @@ func TestE2ECloudAuthConfigEndpoint(t *testing.T) {
 	}
 }
 
+// TestStableE2ECloudAuthConfigAddr checks stable, distinct per-harness ports.
 func TestStableE2ECloudAuthConfigAddr(t *testing.T) {
 	a := stableE2ECloudAuthConfigAddr("/repo/.bldr/e2e-wasm/wasm-a")
 	b := stableE2ECloudAuthConfigAddr("/repo/.bldr/e2e-wasm/wasm-a")
@@ -51,7 +56,9 @@ func TestStableE2ECloudAuthConfigAddr(t *testing.T) {
 	}
 }
 
+// TestApplyE2ECloudAuthConfigEndpoint checks both discovery and restart signaling.
 func TestApplyE2ECloudAuthConfigEndpoint(t *testing.T) {
+	// Load the production manifest so new provider paths cannot escape the fixture.
 	repoRoot, err := gitroot.FindRepoRoot()
 	if err != nil {
 		t.Fatalf("repo root: %v", err)
@@ -61,11 +68,13 @@ func TestApplyE2ECloudAuthConfigEndpoint(t *testing.T) {
 		t.Fatalf("load project config: %v", err)
 	}
 
+	// Apply the fixture to the compiled provider configuration.
 	endpoint := "http://127.0.0.1:12345"
 	if err := applyE2ECloudAuthConfigEndpoint(projectConfig, endpoint); err != nil {
 		t.Fatalf("apply endpoint: %v", err)
 	}
 
+	// Check cloud discovery retains the local endpoint.
 	builder := projectConfig.GetManifests()["spacewave-core"].GetBuilder()
 	goConf, err := decodeGoPluginConfig(builder.GetConfig())
 	if err != nil {
@@ -84,5 +93,18 @@ func TestApplyE2ECloudAuthConfigEndpoint(t *testing.T) {
 	}
 	if swConf.GetAccountEndpoint() != endpoint {
 		t.Fatalf("account endpoint = %q, want %q", swConf.GetAccountEndpoint(), endpoint)
+	}
+
+	// Standalone sessions must rendezvous locally after restoring persisted stores.
+	localEntry := goConf.GetConfigSet()["provider-local"]
+	if localEntry == nil {
+		t.Fatal("provider-local config missing")
+	}
+	localConf := &provider_local.Config{}
+	if err := localConf.UnmarshalJSON(localEntry.GetConfig()); err != nil {
+		t.Fatal(err)
+	}
+	if localConf.GetSignalingUrl() != endpoint {
+		t.Fatalf("signaling endpoint = %q, want %q", localConf.GetSignalingUrl(), endpoint)
 	}
 }
