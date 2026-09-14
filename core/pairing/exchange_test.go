@@ -6,8 +6,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/core/transport"
 	stream_packet "github.com/s4wave/spacewave/net/stream/packet"
 )
+
+// TestPairingSolicitStoppedTransport reports teardown instead of dereferencing its cleared bus.
+func TestPairingSolicitStoppedTransport(t *testing.T) {
+	engine := &Engine{ctx: t.Context()}
+	ctx, active := engine.begin(true, true, "code", "", StatusCodeGenerated)
+	defer engine.Clear()
+	engine.runSolicit(ctx, active, &transport.SessionTransport{})
+	snapshot, _ := engine.Snapshot()
+	if snapshot.Status != StatusFailed || snapshot.ErrMsg == "" {
+		t.Fatalf("stopped transport did not fail pairing: %+v", snapshot)
+	}
+}
 
 // TestPairingRejectionDelivery keeps the rejecting side alive until its peer
 // receives the decision, whether that peer has already approved or is waiting.

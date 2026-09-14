@@ -115,6 +115,7 @@ func TestAccountMergeReturningSession(t *testing.T) {
 	}
 	recovery := sobject.NewSharedObjectRef(a.GetProviderID(), a.GetAccountID(), sourceSettings.GetProviderResourceRef().GetId(), sourceSettings.GetBlockStoreId())
 	waitReplicaObject(ctx, t, a, recovery)
+	waitReplicaMigrationAdmission(ctx, t, a, sourceSettings)
 	b.StopP2PSync()
 	b.StopSessionTransport()
 	destination.StopP2PSync()
@@ -172,6 +173,44 @@ func TestAccountMergeReturningSession(t *testing.T) {
 		if err != nil || !found || !bytes.Equal(data, payloads[i]) {
 			t.Fatalf("returning Session lacks an independent file copy: found=%v err=%v", found, err)
 		}
+	}
+}
+
+// waitReplicaMigrationAdmission waits for the authorization published after the recovery object.
+func waitReplicaMigrationAdmission(ctx context.Context, t *testing.T, account *ProviderAccount, source *sobject.SharedObjectRef) {
+	t.Helper()
+	ref, err := account.GetAccountSettingsRef(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	object, release, err := account.MountSharedObject(ctx, ref, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+
+	// Object discovery precedes final admission; both must survive the source leaving.
+	states, releaseStates, err := object.AccessSharedObjectState(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseStates()
+	if _, err := states.WaitValueWithValidator(ctx, func(snapshot sobject.SharedObjectStateSnapshot) (bool, error) {
+		if snapshot == nil {
+			return false, nil
+		}
+		settings, _, err := decodeAccountSettingsSnapshot(ctx, snapshot)
+		if err != nil {
+			return false, err
+		}
+		for _, migration := range settings.GetAcceptedMigrations() {
+			if migration.GetSource().EqualVT(source.GetProviderResourceRef()) {
+				return true, nil
+			}
+		}
+		return false, nil
+	}, nil); err != nil {
+		t.Fatalf("replica did not retain migration admission: %v", err)
 	}
 }
 

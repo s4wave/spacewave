@@ -23,7 +23,14 @@ const ProtocolID = protocol.ID("alpha/account-pairing/2")
 const confirmationTimeout = 120 * time.Second
 
 func (e *Engine) runSolicit(ctx context.Context, active *attempt, transport *transport.SessionTransport) {
+	// The Session may stop its transport after code registration returns.
 	childBus := transport.GetChildBus()
+	if childBus == nil {
+		e.fail(active, StatusFailed, errors.New("pairing transport stopped before solicitation"))
+		return
+	}
+
+	// Retain the solicitation until this attempt ends or accepts a stream.
 	streams := make(chan link_solicit.SolicitMountedStream, 1)
 	_, ref, err := childBus.AddDirective(
 		link_solicit.NewSolicitProtocol(ProtocolID, []byte("pairing-confirm"), "", 0),
