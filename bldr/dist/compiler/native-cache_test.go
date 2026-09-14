@@ -41,7 +41,7 @@ func TestNativeAssetPackageCache(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(dir, "assets.kvfile"), asset, 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte(FormatDistEntrypoint(meta, files, nil, true)), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte(FormatDistEntrypoint(meta, files, nil, true, "")), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		cmd := exec.CommandContext(t.Context(), "go", "list", "-mod=mod", "-export", "-f", "{{.Export}}", ".")

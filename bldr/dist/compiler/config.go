@@ -68,6 +68,11 @@ func (c *Config) Validate() error {
 			return errors.Wrapf(err, "cli_pkgs[%d]: invalid import path", i)
 		}
 	}
+	if pkg := c.GetNativeRunnerPackage(); pkg != "" {
+		if err := module.CheckImportPath(pkg); err != nil {
+			return errors.Wrap(err, "native_runner_package")
+		}
+	}
 	return nil
 }
 
@@ -155,6 +160,9 @@ func (c *Config) Merge(o *Config) {
 	}
 	c.EnableCompression = c.EnableCompression.Merge(o.GetEnableCompression())
 	c.EmbedNativeVolume = c.EmbedNativeVolume.Merge(o.GetEmbedNativeVolume())
+	if pkg := o.GetNativeRunnerPackage(); pkg != "" {
+		c.NativeRunnerPackage = pkg
+	}
 }
 
 // Normalize sorts and deduplicates the fields.

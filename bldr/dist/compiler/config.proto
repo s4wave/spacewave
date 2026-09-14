@@ -114,6 +114,11 @@ message Config {
   // GoscriptDeferredFunctions lists exported package/path.Function boundaries
   // whose modules initialize on first invocation in a GoScript dist build.
   repeated string goscript_deferred_functions = 16;
+
+  // NativeRunnerPackage supplies Run with the dist_entrypoint.NativeRunner
+  // signature. It owns a native event loop around the existing distribution
+  // lifetime. Empty uses the default runner; browser builds ignore this field.
+  string native_runner_package = 17;
 }
 
 // PreBuildHookResult is the output of a pre-build hook.

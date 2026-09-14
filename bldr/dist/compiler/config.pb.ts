@@ -232,6 +232,14 @@ export interface Config {
    * @generated from field: repeated string goscript_deferred_functions = 16;
    */
   goscriptDeferredFunctions?: string[]
+  /**
+   * NativeRunnerPackage supplies Run with the dist_entrypoint.NativeRunner
+   * signature. It owns a native event loop around the existing distribution
+   * lifetime. Empty uses the default runner; browser builds ignore this field.
+   *
+   * @generated from field: string native_runner_package = 17;
+   */
+  nativeRunnerPackage?: string
 }
 
 export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
@@ -299,6 +307,12 @@ export const Config: MessageType<Config> = /* @__PURE__ */ createMessageType({
       kind: 'scalar',
       T: ScalarType.STRING,
       repeated: true,
+    },
+    {
+      no: 17,
+      name: 'native_runner_package',
+      kind: 'scalar',
+      T: ScalarType.STRING,
     },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,

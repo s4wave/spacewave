@@ -24,11 +24,26 @@ import (
 )
 
 // Main runs the default main entrypoint for a native program.
+// Keep the native runtime's export data out of generated main packages.
+//
+//go:noinline
 func Main(
 	distMetaB58 string,
 	logLevel logrus.Level,
 	assetsFS fs.FS,
 	commandBuilders []cli_entrypoint.BuildCommandsFunc,
+) {
+	MainWithRunner(distMetaB58, logLevel, assetsFS, commandBuilders, nil)
+}
+
+// MainWithRunner retains native assets, logging, CLI dispatch and signals while
+// allowing a native event loop to own the distribution's foreground lifetime.
+func MainWithRunner(
+	distMetaB58 string,
+	logLevel logrus.Level,
+	assetsFS fs.FS,
+	commandBuilders []cli_entrypoint.BuildCommandsFunc,
+	runner NativeRunner,
 ) {
 	assetsFS = nativeAssetsFS{FS: assetsFS, executable: os.Executable}
 
@@ -112,7 +127,15 @@ func Main(
 	red := fcolor.New(fcolor.FgRed)
 	red.Fprint(os.Stderr, banner.FormatBanner()+"\n")
 
-	if err := Run(ctx, le, distMeta, assetsFS, "", nil, nil); err != nil && err != context.Canceled {
+	run := func(ctx context.Context, preBuildHooks, postStartHooks []DistBusHook) error {
+		return Run(ctx, le, distMeta, assetsFS, "", preBuildHooks, postStartHooks)
+	}
+	if runner == nil {
+		runner = func(ctx context.Context, _ *logrus.Entry, run NativeRun) error {
+			return run(ctx, nil, nil)
+		}
+	}
+	if err := runner(ctx, le, run); err != nil && err != context.Canceled {
 		le.WithError(err).Error("exiting with fatal error")
 		ctxCancel()
 		<-time.After(time.Millisecond * 100)

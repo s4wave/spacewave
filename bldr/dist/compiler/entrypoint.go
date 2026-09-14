@@ -3,7 +3,6 @@
 package bldr_dist_compiler
 
 import (
-	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -12,31 +11,31 @@ import (
 	bldr_dist "github.com/s4wave/spacewave/bldr/dist"
 )
 
-// distEntrypointFmt is the format for the dist entrypoint file.
-const distEntrypointFmt = `package main
+// distEntrypointTemplate contains the generated distribution main package.
+const distEntrypointTemplate = `package main
 
 import (
 	"embed"
 
-%s	dist_entrypoint "github.com/s4wave/spacewave/bldr/dist/entrypoint"
+__IMPORTS__	dist_entrypoint "github.com/s4wave/spacewave/bldr/dist/entrypoint"
 	"github.com/sirupsen/logrus"
 )
 
 // DistMeta is the dist metadata encoded in b58.
 // type: bldr_dist.DistMeta
-var DistMeta = %q
+var DistMeta = __META__
 
 // LogLevel is the logging level to use.
 var LogLevel = logrus.DebugLevel
 
 // AssetsFS contains embedded static assets.
 //
-//%s
+//__EMBED__
 var AssetsFS embed.FS
 
-%s
+__COMMANDS__
 func main() {
-	%s
+	__MAIN__
 }
 `
 
@@ -46,6 +45,7 @@ func FormatDistEntrypoint(
 	embedAssetsFS []string,
 	cliImports map[string]bldr_cli_compiler.CliImport,
 	nativeBuild bool,
+	nativeRunnerPackage string,
 ) string {
 	var goEmbedLine string
 	if len(embedAssetsFS) != 0 {
@@ -101,14 +101,17 @@ func FormatDistEntrypoint(
 	mainCall := "dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS)"
 	if nativeBuild {
 		mainCall = "dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS, cliCommands)"
+		if nativeRunnerPackage != "" {
+			importLines.WriteString("\tnative_runner " + strconv.Quote(nativeRunnerPackage) + "\n")
+			mainCall = "dist_entrypoint.MainWithRunner(DistMeta, LogLevel, AssetsFS, cliCommands, native_runner.Run)"
+		}
 	}
 
-	return fmt.Sprintf(
-		distEntrypointFmt,
-		importLines.String(),
-		meta.MarshalB58(),
-		goEmbedLine,
-		cliCommandsDecl,
-		mainCall,
-	)
+	return strings.NewReplacer(
+		"__IMPORTS__", importLines.String(),
+		"__META__", strconv.Quote(meta.MarshalB58()),
+		"__EMBED__", goEmbedLine,
+		"__COMMANDS__", cliCommandsDecl,
+		"__MAIN__", mainCall,
+	).Replace(distEntrypointTemplate)
 }

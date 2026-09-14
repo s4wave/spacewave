@@ -330,6 +330,7 @@ func (c *Controller) BuildManifest(
 		conf.GetBrowserIceServers(),
 		conf.GetBrowserIceServersEndpoint(),
 		conf.GetGoscriptDeferredFunctions(),
+		conf.GetNativeRunnerPackage(),
 	)
 	if err != nil {
 		return nil, err

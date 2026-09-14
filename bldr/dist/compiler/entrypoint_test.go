@@ -24,6 +24,7 @@ func TestFormatDistEntrypointNativeCLI(t *testing.T) {
 			"github.com/s4wave/spacewave/cmd/spacewave/cli": {Alias: "spacewave_cli", TakesYieldBroker: true},
 		},
 		true,
+		"",
 	)
 
 	if !strings.Contains(src, `cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"`) {
@@ -42,7 +43,7 @@ func TestFormatDistEntrypointNativeCLI(t *testing.T) {
 
 func TestFormatDistEntrypointWeb(t *testing.T) {
 	meta := bldr_dist.NewDistMeta("spacewave", "web/js/wasm", nil, nil, "dist")
-	src := FormatDistEntrypoint(meta, []string{"assets.url"}, nil, false)
+	src := FormatDistEntrypoint(meta, []string{"assets.url"}, nil, false, "example.com/native")
 
 	if strings.Contains(src, "cli_entrypoint") {
 		t.Fatalf("did not expect CLI imports in web entrypoint, got:\n%s", src)
@@ -50,8 +51,20 @@ func TestFormatDistEntrypointWeb(t *testing.T) {
 	if strings.Contains(src, "cliCommands") {
 		t.Fatalf("did not expect CLI declarations in web entrypoint, got:\n%s", src)
 	}
+	if strings.Contains(src, "native_runner") {
+		t.Fatalf("native runner leaked into browser entrypoint:\n%s", src)
+	}
 	if !strings.Contains(src, `dist_entrypoint.Main(DistMeta, LogLevel, AssetsFS)`) {
 		t.Fatalf("expected web main call without cliCommands, got:\n%s", src)
+	}
+}
+
+func TestFormatDistEntrypointNativeRunner(t *testing.T) {
+	meta := bldr_dist.NewDistMeta("spacewave", "desktop/linux/amd64", nil, nil, "dist")
+	src := FormatDistEntrypoint(meta, []string{"assets.kvfile"}, nil, true, "example.com/app/tray")
+	if !strings.Contains(src, `native_runner "example.com/app/tray"`) ||
+		!strings.Contains(src, "dist_entrypoint.MainWithRunner(DistMeta, LogLevel, AssetsFS, cliCommands, native_runner.Run)") {
+		t.Fatalf("native runner must retain distribution setup and assets:\n%s", src)
 	}
 }
 
