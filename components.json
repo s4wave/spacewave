@@ -4,7 +4,7 @@
   "rsc": false,
   "tsx": true,
   "tailwind": {
-    "css": "./web/style/shadcn.css",
+    "css": "./web/style/app.css",
     "baseColor": "gray",
     "cssVariables": true
   },
