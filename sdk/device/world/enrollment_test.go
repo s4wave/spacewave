@@ -1,6 +1,8 @@
 package s4wave_device_world_test
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/s4wave/spacewave/db/block"
@@ -115,4 +117,100 @@ func TestEnsureEnrolledDevice(t *testing.T) {
 	if _, err := s4wave_device_world.EnsureEnrolledDevice(ctx, tb.Engine, id, "Desktop"); err == nil {
 		t.Fatal("conflicting Device peer overwritten")
 	}
+}
+
+// TestEnsureEnrolledDeviceAcceptedAfterRejectedCreate recovers enrollment when
+// a later Device create is rejected after the accepted World already has the
+// matching ready Device.
+func TestEnsureEnrolledDeviceAcceptedAfterRejectedCreate(t *testing.T) {
+	ctx := t.Context()
+	tb, err := testbed.Default(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(tb.Release)
+	local, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := local.GetPeerID()
+	rejected := errors.New("rejected op: transaction apply failed: tx_batch[0]: object already exists")
+	engine := &applyThenRejectEngine{Engine: tb.Engine, err: rejected}
+
+	// The write applies, then Commit reports the live duplicate-create rejection.
+	key, err := s4wave_device_world.EnsureEnrolledDevice(ctx, engine, id, "Desktop")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Accepted state is the enrollment result; a missing Device keeps the write error.
+	read, err := tb.Engine.NewTransaction(ctx, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(read.Discard)
+	device, _, err := world.LookupObject[*s4wave_device.Device](ctx, read, key, s4wave_device.NewDeviceBlock)
+	read.Discard()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if device.GetPeerId() != id.String() || !device.IsSelectable() {
+		t.Fatal("rejected create did not retain the accepted Device", device)
+	}
+	other, err := peer.NewPeer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	missing := &rejectWithoutApplyEngine{Engine: tb.Engine, err: rejected}
+	if _, err := s4wave_device_world.EnsureEnrolledDevice(ctx, missing, other.GetPeerID(), "Other desktop"); !errors.Is(err, rejected) {
+		t.Fatalf("missing Device error = %v, want rejected create", err)
+	}
+}
+
+type applyThenRejectEngine struct {
+	world.Engine
+	err error
+}
+
+type applyThenRejectTx struct {
+	world.Tx
+	err error
+}
+
+func (e *applyThenRejectEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	tx, err := e.Engine.NewTransaction(ctx, write)
+	if err != nil || !write {
+		return tx, err
+	}
+	return &applyThenRejectTx{Tx: tx, err: e.err}, nil
+}
+
+func (t *applyThenRejectTx) Commit(ctx context.Context) error {
+	if err := t.Tx.Commit(ctx); err != nil {
+		return err
+	}
+	return t.err
+}
+
+type rejectWithoutApplyEngine struct {
+	world.Engine
+	err error
+}
+
+type rejectWithoutApplyTx struct {
+	world.Tx
+	err error
+}
+
+func (e *rejectWithoutApplyEngine) NewTransaction(ctx context.Context, write bool) (world.Tx, error) {
+	tx, err := e.Engine.NewTransaction(ctx, write)
+	if err != nil || !write {
+		return tx, err
+	}
+	return &rejectWithoutApplyTx{Tx: tx, err: e.err}, nil
+}
+
+func (t *rejectWithoutApplyTx) Commit(ctx context.Context) error {
+	t.Tx.Discard()
+	return t.err
 }

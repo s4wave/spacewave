@@ -90,11 +90,58 @@ func EnsureEnrolledDevice(ctx context.Context, engine world.Engine, authenticate
 			err = world_types.SetObjectType(ctx, tx, key, s4wave_device.DeviceTypeID)
 		}
 	}
+
+	// A queued duplicate create is rejected after the first accepted Device.
+	// Release this write before reading accepted state; a second transaction
+	// while this one is open can deadlock the store.
+	if errors.Is(err, world.ErrObjectExists) {
+		tx.Discard()
+		return readyEnrolledDevice(ctx, engine, authenticatedPeer, key, err)
+	}
 	if err != nil {
 		return "", err
 	}
 	if err := tx.Commit(ctx); err != nil {
+		tx.Discard()
+		if ctx.Err() != nil {
+			return "", err
+		}
+		return readyEnrolledDevice(ctx, engine, authenticatedPeer, key, err)
+	}
+	return key, nil
+}
+
+// readyEnrolledDevice returns key when the accepted World already has a matching
+// ready Device. writeErr is returned when that Device is absent so the caller
+// keeps the original create or commit failure.
+func readyEnrolledDevice(ctx context.Context, engine world.Engine, authenticatedPeer peer.ID, key string, writeErr error) (string, error) {
+	tx, err := engine.NewTransaction(ctx, false)
+	if err != nil {
 		return "", err
+	}
+	defer tx.Discard()
+	exists, err := tx.HasObject(ctx, key)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return "", writeErr
+	}
+
+	// Preserve a conflicting object at this key; only a matching ready Device
+	// completes enrollment.
+	if err := world_types.CheckObjectType(ctx, tx, key, s4wave_device.DeviceTypeID); err != nil {
+		return "", err
+	}
+	device, _, err := world.LookupObject[*s4wave_device.Device](ctx, tx, key, s4wave_device.NewDeviceBlock)
+	if err != nil {
+		return "", err
+	}
+	if device.GetPeerId() != authenticatedPeer.String() {
+		return "", errors.New("Device record does not match the authenticated peer")
+	}
+	if device.GetSetupState() != s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_DEVICE_SESSION_READY {
+		return "", writeErr
 	}
 	return key, nil
 }
