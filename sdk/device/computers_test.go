@@ -32,6 +32,7 @@ func TestCreateComputersDashboardOpCreatesTypedDashboard(t *testing.T) {
 	}
 
 	obj, found, err := tb.WorldState.GetObject(ctx, "computers")
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("GetObject: %v", err)
 	}

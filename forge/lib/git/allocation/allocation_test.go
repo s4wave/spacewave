@@ -47,8 +47,12 @@ func TestCreateOrReuseAllocationLinksForgeAndGitProvenance(t *testing.T) {
 		args.RepoObjectKey,
 		args.WorktreeObjectKey,
 	} {
-		if _, err := ws.CreateObject(ctx, objKey, nil); err != nil {
-			t.Fatal(err)
+		{
+			createdObject, err := ws.CreateObject(ctx, objKey, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	alloc, objKey, rootRef, err := CreateOrReuse(ctx, ws, args)

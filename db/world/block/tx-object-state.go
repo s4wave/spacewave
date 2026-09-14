@@ -26,6 +26,11 @@ func NewTxObjectState(t *Tx, key string, o world.ObjectState) *TxObjectState {
 	return &TxObjectState{tx: t, key: key, o: o}
 }
 
+// Release releases the object handle owned by this transaction wrapper.
+func (t *TxObjectState) Release() {
+	world.ReleaseObjectState(t.o)
+}
+
 // GetKey returns the key this state object is for.
 func (t *TxObjectState) GetKey() string {
 	return t.key

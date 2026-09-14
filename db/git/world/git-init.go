@@ -83,7 +83,9 @@ func (o *GitInitOp) ApplyWorldOp(
 	}
 
 	// Register the repository object in world state.
-	_, err = worldHandle.CreateObject(ctx, objKey, repoRef)
+	var createdObject world.ObjectState
+	createdObject, err = worldHandle.CreateObject(ctx, objKey, repoRef)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}

@@ -32,6 +32,7 @@ func SecretFactory(
 	}
 
 	objState, found, err := ws.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return nil, nil, err
 	}

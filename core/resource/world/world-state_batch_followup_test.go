@@ -86,9 +86,13 @@ func TestWatchWorldStateBatchedBodyReadTracksAccess(t *testing.T) {
 		t.Fatalf("NewTransaction: %v", err)
 	}
 	objectKey := "batch-followup/revision"
-	if _, err := writeTx.CreateObject(ctx, objectKey, nil); err != nil {
-		writeTx.Release()
-		t.Fatalf("CreateObject: %v", err)
+	{
+		createdObject, err := writeTx.CreateObject(ctx, objectKey, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			writeTx.Release()
+			t.Fatalf("CreateObject: %v", err)
+		}
 	}
 	if err := writeTx.Commit(ctx); err != nil {
 		writeTx.Release()
@@ -128,6 +132,7 @@ func TestWatchWorldStateBatchedBodyReadTracksAccess(t *testing.T) {
 	}
 	defer updateTx.Release()
 	obj, found, err := updateTx.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("GetObject update: %v", err)
 	}
@@ -193,10 +198,12 @@ func TestWatchWorldStateBatchedBodyReadTracksPageSnapshotRevision(t *testing.T) 
 	if err != nil {
 		t.Fatalf("NewTransaction initial: %v", err)
 	}
-	_, _, err = world.CreateWorldObject(ctx, writeTx, objectKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, writeTx, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(byteslice.NewByteSlice(&initialBody), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		writeTx.Discard()
 		t.Fatalf("CreateWorldObject initial: %v", err)

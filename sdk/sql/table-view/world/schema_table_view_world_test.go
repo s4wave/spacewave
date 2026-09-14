@@ -179,10 +179,11 @@ func TestSqlTableViewUpdateRowPersistsTypedValue(t *testing.T) {
 
 func createSqlDbObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
 	t.Helper()
-	_, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(sql_mysql.NewRootBlock(), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
@@ -199,10 +200,11 @@ func createSqlSchemaObject(
 	schema *s4wave_sql_schema.Schema,
 ) {
 	t.Helper()
-	_, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(schema, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
@@ -223,10 +225,11 @@ func createSqlTableViewObject(
 	tableView *s4wave_sql_table_view.TableView,
 ) {
 	t.Helper()
-	_, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(tableView, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}

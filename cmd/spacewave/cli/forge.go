@@ -185,11 +185,13 @@ func buildForgeCreateJobCommand(statePath *string, sessionIdx *uint, spaceID *st
 				JobState:  forge_job.State_JobState_PENDING,
 				Timestamp: timestamppb.New(time.Now()),
 			}
-			_, _, err = world.CreateWorldObject(ctx, tx, key, func(bcs *block.Cursor) error {
+			var createdObject world.ObjectState
+			createdObject, _, err = world.CreateWorldObject(ctx, tx, key, func(bcs *block.Cursor) error {
 				bcs.ClearAllRefs()
 				bcs.SetBlock(njob, true)
 				return nil
 			})
+			world.ReleaseObjectState(createdObject)
 			if err != nil {
 				return errors.Wrap(err, "create job object")
 			}

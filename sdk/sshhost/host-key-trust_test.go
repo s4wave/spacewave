@@ -54,12 +54,13 @@ func TestRememberSshHostKeyPinNormalizesAndDeduplicatesAcceptedKey(t *testing.T)
 		t.Fatalf("RememberSshHostKeyPin duplicate: %v", err)
 	}
 
-	host, _, err := world.LookupObject[*SshHost](
+	host, objectState, err := world.LookupObject[*SshHost](
 		ctx,
 		tb.WorldState,
 		"hosts/prod",
 		NewSshHostBlock,
 	)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatalf("LookupObject: %v", err)
 	}

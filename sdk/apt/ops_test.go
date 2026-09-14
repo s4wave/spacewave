@@ -286,6 +286,7 @@ func readAptBlock[T block.Block](
 	t.Helper()
 
 	objectState, found, err := ws.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatalf("GetObject(%s): %v", objectKey, err)
 	}

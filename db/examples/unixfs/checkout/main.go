@@ -123,7 +123,8 @@ func execute(rctx context.Context) error {
 	ws := world.NewEngineWorldState(eng, true)
 
 	objKey := "test-filesystem"
-	_, exists, err := ws.GetObject(ctx, objKey)
+	objectState, exists, err := ws.GetObject(ctx, objKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		return err
 	}

@@ -84,6 +84,7 @@ func TestRestartMidClaimLeavesOneRunnableController(t *testing.T) {
 	)
 	observerConfig.ClaimId = "different-owner"
 	obj, err := world.MustGetObject(ctx, tb.WorldState, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err)
 	}

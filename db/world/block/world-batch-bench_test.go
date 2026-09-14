@@ -227,19 +227,27 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 	filters := make([]world.GraphQuad, 0, roots*(len(outPredicates)+len(inPredicates)))
 	for i := range roots {
 		rootKey := relationshipFanoutRootKey(i)
-		if _, err := writeWs.CreateObject(ctx, rootKey, nil); err != nil {
-			writeWs.Discard()
-			ocs.Release()
-			tbed.Release()
-			tb.Fatal(err.Error())
-		}
-		for predIndex, pred := range outPredicates {
-			targetKey := rootKey + "/out/" + strconv.Itoa(predIndex)
-			if _, err := writeWs.CreateObject(ctx, targetKey, nil); err != nil {
+		{
+			createdObject, err := writeWs.CreateObject(ctx, rootKey, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
 				writeWs.Discard()
 				ocs.Release()
 				tbed.Release()
 				tb.Fatal(err.Error())
+			}
+		}
+		for predIndex, pred := range outPredicates {
+			targetKey := rootKey + "/out/" + strconv.Itoa(predIndex)
+			{
+				createdObject2, err := writeWs.CreateObject(ctx, targetKey, nil)
+				world.ReleaseObjectState(createdObject2)
+				if err != nil {
+					writeWs.Discard()
+					ocs.Release()
+					tbed.Release()
+					tb.Fatal(err.Error())
+				}
 			}
 			if err := writeWs.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(rootKey, pred, targetKey, "")); err != nil {
 				writeWs.Discard()
@@ -251,11 +259,15 @@ func setupRelationshipFanoutBenchWorld(ctx context.Context, tb testing.TB, roots
 		}
 		for predIndex, pred := range inPredicates {
 			sourceKey := rootKey + "/in/" + strconv.Itoa(predIndex)
-			if _, err := writeWs.CreateObject(ctx, sourceKey, nil); err != nil {
-				writeWs.Discard()
-				ocs.Release()
-				tbed.Release()
-				tb.Fatal(err.Error())
+			{
+				createdObject3, err := writeWs.CreateObject(ctx, sourceKey, nil)
+				world.ReleaseObjectState(createdObject3)
+				if err != nil {
+					writeWs.Discard()
+					ocs.Release()
+					tbed.Release()
+					tb.Fatal(err.Error())
+				}
 			}
 			if err := writeWs.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(sourceKey, pred, rootKey, "")); err != nil {
 				writeWs.Discard()
@@ -319,17 +331,25 @@ func setupGraphPathBenchWorld(ctx context.Context, tb testing.TB, roots int) (*w
 		rootKey := "bench/path/root/" + strconv.Itoa(i)
 		targetKey := rootKey + "/target"
 		rootKeys[i] = rootKey
-		if _, err := writeWs.CreateObject(ctx, rootKey, nil); err != nil {
-			writeWs.Discard()
-			ocs.Release()
-			tbed.Release()
-			tb.Fatal(err.Error())
+		{
+			createdObject, err := writeWs.CreateObject(ctx, rootKey, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				writeWs.Discard()
+				ocs.Release()
+				tbed.Release()
+				tb.Fatal(err.Error())
+			}
 		}
-		if _, err := writeWs.CreateObject(ctx, targetKey, nil); err != nil {
-			writeWs.Discard()
-			ocs.Release()
-			tbed.Release()
-			tb.Fatal(err.Error())
+		{
+			createdObject2, err := writeWs.CreateObject(ctx, targetKey, nil)
+			world.ReleaseObjectState(createdObject2)
+			if err != nil {
+				writeWs.Discard()
+				ocs.Release()
+				tbed.Release()
+				tb.Fatal(err.Error())
+			}
 		}
 		if err := writeWs.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(rootKey, "<bench/path-out>", targetKey, "")); err != nil {
 			writeWs.Discard()

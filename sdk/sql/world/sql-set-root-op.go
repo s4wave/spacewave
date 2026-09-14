@@ -102,6 +102,7 @@ func (o *SqlSetRootOp) ApplyWorldOp(
 		return false, err
 	}
 	os, err := world.MustGetObject(ctx, ws, o.GetObjectKey())
+	defer world.ReleaseObjectState(os)
 	if err != nil {
 		return false, err
 	}

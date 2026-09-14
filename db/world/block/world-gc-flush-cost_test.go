@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 )
 
@@ -88,8 +89,12 @@ func runWorldCommitCostTrial(t *testing.T) map[int]time.Duration {
 	windowDurations := make([]time.Duration, 0, worldCommitCostWindow)
 	values := make(map[int]time.Duration, len(checkpoints))
 	for i := 1; i <= 128; i++ {
-		if _, err := world_block.BuildMockObject(ctx, ws, "gc-flush-cost/"+strconv.Itoa(i)); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := world_block.BuildMockObject(ctx, ws, "gc-flush-cost/"+strconv.Itoa(i))
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 		start := time.Now()
 		if err := ws.Commit(ctx); err != nil {

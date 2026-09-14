@@ -136,31 +136,38 @@ func CreateTaskWithTarget(
 		return nil
 	})
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, nil, err
 	}
 
 	// create the <type> ref
 	err = world_types.SetObjectType(ctx, ws, objKey, TaskTypeID)
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, nil, err
 	}
 
 	// create the target
 	tgtObjKey := NewTargetKey(objKey)
-	_, _, err = forge_target.CreateTarget(ctx, ws, tgtObjKey, tgt)
+	var createdObject world.ObjectState
+	createdObject, _, err = forge_target.CreateTarget(ctx, ws, tgtObjKey, tgt)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, nil, err
 	}
 
 	// link target -> parent -> task
 	err = world_parent.SetObjectParent(ctx, ws, tgtObjKey, objKey, false)
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, nil, err
 	}
 
 	// link to the target
 	err = ws.SetGraphQuad(ctx, NewTaskToTargetQuad(objKey, tgtObjKey))
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, nil, err
 	}
 
@@ -168,6 +175,7 @@ func CreateTaskWithTarget(
 	if len(peerID) != 0 {
 		_, _, err = identity_world.LinkObjectToKeypair(ctx, ws, sender, objKey, peerID, "", nil)
 		if err != nil {
+			world.ReleaseObjectState(objState)
 			return nil, nil, err
 		}
 	}

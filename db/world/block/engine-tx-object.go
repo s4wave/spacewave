@@ -32,12 +32,11 @@ func (t *EngineTxObjectState) GetRootRef(ctx context.Context) (*bucket.ObjectRef
 	var rref *bucket.ObjectRef
 	var outRev uint64
 	err := t.t.performOp(ctx, func(tx *Tx) error {
-		obj, err := t.lookupObject(ctx, tx)
-		if err != nil {
+		return t.withObject(ctx, tx, func(obj world.ObjectState) error {
+			var err error
+			rref, outRev, err = obj.GetRootRef(ctx)
 			return err
-		}
-		rref, outRev, err = obj.GetRootRef(ctx)
-		return err
+		})
 	})
 	return rref, outRev, err
 }
@@ -69,11 +68,11 @@ func (t *EngineTxObjectState) SetRootRef(ctx context.Context, nref *bucket.Objec
 
 	var outRev uint64
 	err := t.t.performOp(ctx, func(tx *Tx) error {
-		obj, berr := t.lookupObject(ctx, tx)
-		if berr == nil {
-			outRev, berr = obj.SetRootRef(ctx, nref)
-		}
-		return berr
+		return t.withObject(ctx, tx, func(obj world.ObjectState) error {
+			var err error
+			outRev, err = obj.SetRootRef(ctx, nref)
+			return err
+		})
 	})
 	return outRev, err
 }
@@ -94,11 +93,11 @@ func (t *EngineTxObjectState) ApplyObjectOp(
 	var outRev uint64
 	var outSysErr bool
 	err := t.t.performOp(ctx, func(tx *Tx) error {
-		obj, berr := t.lookupObject(ctx, tx)
-		if berr == nil {
-			outRev, outSysErr, berr = obj.ApplyObjectOp(ctx, op, opSender)
-		}
-		return berr
+		return t.withObject(ctx, tx, func(obj world.ObjectState) error {
+			var err error
+			outRev, outSysErr, err = obj.ApplyObjectOp(ctx, op, opSender)
+			return err
+		})
 	})
 	return outRev, outSysErr, err
 }
@@ -112,11 +111,11 @@ func (t *EngineTxObjectState) IncrementRev(ctx context.Context) (uint64, error) 
 
 	var val uint64
 	err := t.t.performOp(ctx, func(tx *Tx) error {
-		obj, berr := t.lookupObject(ctx, tx)
-		if berr == nil {
-			val, berr = obj.IncrementRev(ctx)
-		}
-		return berr
+		return t.withObject(ctx, tx, func(obj world.ObjectState) error {
+			var err error
+			val, err = obj.IncrementRev(ctx)
+			return err
+		})
 	})
 	return val, err
 }
@@ -159,25 +158,33 @@ func (t *EngineTxObjectState) WaitRev(
 	}
 }
 
-// lookupObject returns the object or ErrObjectNotFound
-func (t *EngineTxObjectState) lookupObject(ctx context.Context, tx *Tx) (world.ObjectState, error) {
+// withObject borrows the cached write handle or scopes a fresh read handle to cb.
+func (t *EngineTxObjectState) withObject(ctx context.Context, tx *Tx, cb func(world.ObjectState) error) error {
 	if t.obj != nil && t.t.writeTx != nil {
-		return t.obj, nil
+		return cb(t.obj)
 	}
 
 	obj, found, err := tx.GetObject(ctx, t.key)
 	if err != nil {
-		return nil, err
+		world.ReleaseObjectState(obj)
+		return err
 	}
 	// note: to create a EngineTxObjectState, we previously checked
 	// if the object key exists. it must have been deleted since.
 	if !found {
-		return nil, world.ErrObjectNotFound
+		return world.ErrObjectNotFound
 	}
 	if t.t.writeTx != nil {
 		t.obj = obj
+	} else {
+		defer world.ReleaseObjectState(obj)
 	}
-	return obj, nil
+	return cb(obj)
+}
+
+// Release releases the cached write handle owned by this wrapper.
+func (t *EngineTxObjectState) Release() {
+	world.ReleaseObjectState(t.obj)
 }
 
 // _ is a type assertion

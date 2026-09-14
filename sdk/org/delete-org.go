@@ -51,6 +51,7 @@ func (o *DeleteOrganizationOp) ApplyWorldOp(
 	objKey := o.GetOrgObjectKey()
 
 	objState, found, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return true, err
 	}

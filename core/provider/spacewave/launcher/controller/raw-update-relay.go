@@ -23,7 +23,7 @@ func init() {
 
 func runRawUpdateRelayFromEnv() {
 	if cleanupPath := os.Getenv(rawUpdateRelayCleanupEnv); cleanupPath != "" {
-		_ = os.Remove(cleanupPath)
+		_ = os.Remove(cleanupPath) //nolint:gosec // The parent updater passes its owned relay path for cleanup.
 		_ = os.Unsetenv(rawUpdateRelayCleanupEnv)
 	}
 
@@ -82,7 +82,7 @@ func copyFileMode(srcPath, dstPath string, mode os.FileMode) error {
 	tmpPath := dstPath + ".copying"
 	defer os.Remove(tmpPath)
 
-	dst, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
+	dst, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode) //nolint:gosec // The updater selects the executable destination and its adjacent staging file.
 	if err != nil {
 		return errors.Wrap(err, "create destination")
 	}
@@ -93,7 +93,7 @@ func copyFileMode(srcPath, dstPath string, mode os.FileMode) error {
 	if err := dst.Close(); err != nil {
 		return errors.Wrap(err, "close destination")
 	}
-	if err := os.Chmod(tmpPath, mode); err != nil {
+	if err := os.Chmod(tmpPath, mode); err != nil { //nolint:gosec // Apply the executable mode to the updater's staging file.
 		return errors.Wrap(err, "chmod destination")
 	}
 	return replaceFile(tmpPath, dstPath)

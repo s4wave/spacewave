@@ -390,7 +390,7 @@ func TestGoClientResourceLifecycleAgainstPythonServer(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("timed out invalidating Go ResourceClient generation")
 	}
-	stale := client.AccessRootResource()
+	stale := client.AccessRootResource() //nolint:lostresource // The server has invalidated this generation; the test verifies the returned reference is already released.
 	if _, err := stale.GetClient(); !errors.Is(err, resource.ErrResourceOrClientReleased) {
 		t.Fatalf("invalidated root error = %v, want %v", err, resource.ErrResourceOrClientReleased)
 	}

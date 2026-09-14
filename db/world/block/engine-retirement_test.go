@@ -13,6 +13,7 @@ import (
 	coord_inmem "github.com/s4wave/spacewave/db/coord/inmem"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/tx"
+	"github.com/s4wave/spacewave/db/world"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/sirupsen/logrus"
 )
@@ -45,8 +46,12 @@ func TestEngineRootPublicationUnlocksBeforeReadTransactionDrain(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer writer.Discard()
-	if _, err := writer.CreateObject(ctx, "retirement/deadlock", nil); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, err := writer.CreateObject(ctx, "retirement/deadlock", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	locked := engine.bcast.Lock()
@@ -166,9 +171,13 @@ func TestEngineHeadPublishesRootAndReadTransactionTogether(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := writer.CreateObject(ctx, "retirement/head/"+strconv.Itoa(i), nil); err != nil {
-			writer.Discard()
-			t.Fatal(err)
+		{
+			createdObject, err := writer.CreateObject(ctx, "retirement/head/"+strconv.Itoa(i), nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				writer.Discard()
+				t.Fatal(err)
+			}
 		}
 		if _, err := writer.CommitBlockTransaction(ctx); err != nil {
 			writer.Discard()
@@ -226,8 +235,12 @@ func TestEngineCloseDrainsCoordinatorSnapshot(t *testing.T) {
 	if readTx == nil || !readTx.state.discarded.Load() {
 		t.Fatal("coordinator read transaction was not drained by Engine.Close")
 	}
-	if _, _, err := snapshot.GetObject(ctx, "after-close"); !errors.Is(err, tx.ErrDiscarded) {
-		t.Fatalf("coordinator snapshot operation after Close = %v, want %v", err, tx.ErrDiscarded)
+	{
+		objectState, _, err := snapshot.GetObject(ctx, "after-close")
+		world.ReleaseObjectState(objectState)
+		if !errors.Is(err, tx.ErrDiscarded) {
+			t.Fatalf("coordinator snapshot operation after Close = %v, want %v", err, tx.ErrDiscarded)
+		}
 	}
 	locked = engine.bcast.Lock()
 	registered = len(engine.coordinatorTxs)
@@ -409,9 +422,13 @@ func TestEngineCloseWaitsForInFlightCommitLease(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := writer.CreateObject(ctx, "retirement/close-commit", nil); err != nil {
-		writer.Discard()
-		t.Fatal(err)
+	{
+		createdObject, err := writer.CreateObject(ctx, "retirement/close-commit", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			writer.Discard()
+			t.Fatal(err)
+		}
 	}
 
 	commitDone := make(chan error, 1)
@@ -510,9 +527,13 @@ func TestEngineCloseWaitsForPublishedCommitCleanup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := writer.CreateObject(ctx, "retirement/close-publish", nil); err != nil {
-		writer.Discard()
-		t.Fatal(err)
+	{
+		createdObject, err := writer.CreateObject(ctx, "retirement/close-publish", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			writer.Discard()
+			t.Fatal(err)
+		}
 	}
 
 	commitDone := make(chan error, 1)

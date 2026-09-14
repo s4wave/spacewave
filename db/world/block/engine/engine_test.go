@@ -158,7 +158,8 @@ func TestWorldEngineController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, found, err := engTx.GetObject(ctx, "test-object")
+	objectState, found, err := engTx.GetObject(ctx, "test-object")
+	world.ReleaseObjectState(objectState)
 	if !found && err == nil {
 		err = errors.New("object not found after remounting")
 	}
@@ -221,9 +222,13 @@ func TestWorldEngineControllerUsesDeferredDurabilityWithoutGenerations(t *testin
 	if err != nil {
 		t.Fatalf("new write transaction with unsupported coordinator: %v", err)
 	}
-	if _, err := tx.CreateObject(ctx, "unsupported-coordinator-fallback", nil); err != nil {
-		tx.Discard()
-		t.Fatalf("create object with unsupported coordinator: %v", err)
+	{
+		createdObject, err := tx.CreateObject(ctx, "unsupported-coordinator-fallback", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			tx.Discard()
+			t.Fatalf("create object with unsupported coordinator: %v", err)
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatalf("commit with unsupported coordinator: %v", err)
@@ -379,9 +384,13 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, err := staleTx.CreateObject(ctx, "coordinator-stale-head-object", nil); err != nil {
-		staleTx.Discard()
-		t.Fatal(err.Error())
+	{
+		createdObject, err := staleTx.CreateObject(ctx, "coordinator-stale-head-object", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			staleTx.Discard()
+			t.Fatal(err.Error())
+		}
 	}
 	writeRawHead(&bucket.ObjectRef{BucketId: bucketID})
 	if err := staleTx.Commit(ctx); !errors.Is(err, coord.ErrStaleGeneration) {
@@ -408,9 +417,13 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, err := tx.CreateObject(ctx, "coordinator-head-watch-object", nil); err != nil {
-		tx.Discard()
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := tx.CreateObject(ctx, "coordinator-head-watch-object", nil)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
@@ -450,9 +463,13 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, err := firstWriterTx.CreateObject(ctx, "coordinator-serialized-writer-a", nil); err != nil {
-		firstWriterTx.Discard()
-		t.Fatal(err.Error())
+	{
+		createdObject3, err := firstWriterTx.CreateObject(ctx, "coordinator-serialized-writer-a", nil)
+		world.ReleaseObjectState(createdObject3)
+		if err != nil {
+			firstWriterTx.Discard()
+			t.Fatal(err.Error())
+		}
 	}
 	secondWriterTx := make(chan world.Tx, 1)
 	secondWriterErr := make(chan error, 1)
@@ -483,9 +500,13 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("second writer did not acquire after first writer commit")
 	}
-	if _, err := secondTx.CreateObject(ctx, "coordinator-serialized-writer-b", nil); err != nil {
-		secondTx.Discard()
-		t.Fatal(err.Error())
+	{
+		createdObject4, err := secondTx.CreateObject(ctx, "coordinator-serialized-writer-b", nil)
+		world.ReleaseObjectState(createdObject4)
+		if err != nil {
+			secondTx.Discard()
+			t.Fatal(err.Error())
+		}
 	}
 	if err := secondTx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
@@ -498,11 +519,14 @@ func TestWorldEngineControllerCoordinatorHeadWatch(t *testing.T) {
 		if err != nil {
 			t.Fatal(err.Error())
 		}
-		_, foundWatchObject, err := rtx.GetObject(waitCtx, "coordinator-head-watch-object")
+		objectState, foundWatchObject, err := rtx.GetObject(waitCtx, "coordinator-head-watch-object")
+		world.ReleaseObjectState(objectState)
 		if err == nil && foundWatchObject {
-			_, foundWriterA, err := rtx.GetObject(waitCtx, "coordinator-serialized-writer-a")
+			objectState2, foundWriterA, err := rtx.GetObject(waitCtx, "coordinator-serialized-writer-a")
+			world.ReleaseObjectState(objectState2)
 			if err == nil && foundWriterA {
-				_, foundWriterB, err := rtx.GetObject(waitCtx, "coordinator-serialized-writer-b")
+				objectState3, foundWriterB, err := rtx.GetObject(waitCtx, "coordinator-serialized-writer-b")
+				world.ReleaseObjectState(objectState3)
 				if err == nil {
 					foundWatchObject = foundWriterB
 				}
@@ -728,10 +752,11 @@ func TestWorldEngineWatchReload(t *testing.T) {
 		defer worldEngRef.Release()
 
 		return world.ExecTransaction(ctx, worldEng, true, func(ctx context.Context, wtx world.WorldState) error {
-			_, _, err := world.CreateWorldObject(ctx, wtx, objKey, func(bcs *block.Cursor) error {
+			createdObject, _, err := world.CreateWorldObject(ctx, wtx, objKey, func(bcs *block.Cursor) error {
 				_, err := blob.BuildBlobWithBytes(ctx, []byte("Hello world"), bcs)
 				return err
 			})
+			world.ReleaseObjectState(createdObject)
 			return err
 		})
 	}(); err != nil {

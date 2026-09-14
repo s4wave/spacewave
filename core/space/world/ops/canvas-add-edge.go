@@ -67,6 +67,7 @@ func (o *CanvasAddEdgeOp) ApplyWorldOp(
 	edge := o.GetEdge()
 
 	objState, found, err := worldHandle.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return false, err
 	}

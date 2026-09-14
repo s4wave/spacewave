@@ -253,14 +253,17 @@ func (t *WorldState) renameObjectDescendants(ctx context.Context, oldKey, newKey
 		return nil, err
 	}
 
-	var out world.ObjectState
-	for _, rename := range renames {
+	out, err := t.renameObjectSingle(ctx, oldKey, newKey)
+	if err != nil {
+		world.ReleaseObjectState(out)
+		return nil, err
+	}
+	for _, rename := range renames[1:] {
 		obj, err := t.renameObjectSingle(ctx, rename.oldKey, rename.newKey)
+		world.ReleaseObjectState(obj)
 		if err != nil {
+			world.ReleaseObjectState(out)
 			return nil, err
-		}
-		if rename.oldKey == oldKey {
-			out = obj
 		}
 	}
 	return out, nil
@@ -338,6 +341,7 @@ func (t *WorldState) DeleteObject(ctx context.Context, key string) (bool, error)
 	k := []byte(objectKeyPrefix + key)
 
 	objState, found, err := t.GetObject(ctx, key)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		if err != world.ErrObjectNotFound {
 			return false, err

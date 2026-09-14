@@ -44,6 +44,7 @@ func ObjectLayoutFactory(
 	}
 
 	objState, found, err := ws.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -79,6 +80,7 @@ func ObjectLayoutFactory(
 
 			objState, found, err := ws.GetObject(ctx, objectKey)
 			if err != nil {
+				world.ReleaseObjectState(objState)
 				return err
 			}
 			if !found {
@@ -133,6 +135,7 @@ func ObjectLayoutFactory(
 			taskCtx, task := trace.NewTask(ctx, "alpha/layout/set-layout/get-object")
 			var err error
 			writeState, found, err = wtx.GetObject(taskCtx, objectKey)
+			defer world.ReleaseObjectState(writeState)
 			task.End()
 			if err != nil {
 				wtx.Discard()

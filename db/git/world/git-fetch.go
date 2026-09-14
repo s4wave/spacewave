@@ -87,7 +87,8 @@ func (o *GitFetchOp) ApplyWorldOp(
 	objKey := o.GetObjectKey()
 
 	// Confirm that the target repository object exists before fetching.
-	_, exists, err := worldHandle.GetObject(ctx, objKey)
+	objectState, exists, err := worldHandle.GetObject(ctx, objKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		return false, err
 	}

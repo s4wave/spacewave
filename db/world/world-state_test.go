@@ -58,10 +58,12 @@ func TestLookupObjectBodyReleasesObjectState(t *testing.T) {
 	defer wtb.Release()
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
-	_, _, err = world.CreateWorldObject(ctx, ws, "example/body-release", func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, "example/body-release", func(bcs *block.Cursor) error {
 		bcs.SetBlock(block_mock.NewExample("body"), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,10 +103,12 @@ func TestLookupObjectBodiesPreservesKeysAndMissingMarkers(t *testing.T) {
 		{key: "example/batch-beta", msg: "beta"},
 		{key: "example/batch-gamma", msg: "gamma"},
 	} {
-		_, _, err = world.CreateWorldObject(ctx, ws, entry.key, func(bcs *block.Cursor) error {
+		var createdObject world.ObjectState
+		createdObject, _, err = world.CreateWorldObject(ctx, ws, entry.key, func(bcs *block.Cursor) error {
 			bcs.SetBlock(block_mock.NewExample(entry.msg), true)
 			return nil
 		})
+		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -160,10 +164,12 @@ func TestAccessWorldObjectReleasesObjectState(t *testing.T) {
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	const key = "example/access-release"
-	_, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
 		bcs.SetBlock(block_mock.NewExample("access"), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,18 +228,22 @@ func TestCreateWorldObjectReleasesExistingObjectState(t *testing.T) {
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	const key = "example/create-release"
-	_, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
 		bcs.SetBlock(block_mock.NewExample("create"), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	wrapped := &releaseCountingWorldState{WorldState: ws}
-	_, _, err = world.CreateWorldObject(ctx, wrapped, key, func(*block.Cursor) error {
+	var createdObject2 world.ObjectState
+	createdObject2, _, err = world.CreateWorldObject(ctx, wrapped, key, func(*block.Cursor) error {
 		return nil
 	})
+	world.ReleaseObjectState(createdObject2)
 	if err != world.ErrObjectExists {
 		t.Fatalf("expected object-exists error, got %v", err)
 	}
@@ -242,10 +252,12 @@ func TestCreateWorldObjectReleasesExistingObjectState(t *testing.T) {
 	}
 
 	wrapped.releases = 0
-	_, _, err = world.CreateWorldObject(ctx, wrapped, "example/create-missing", func(bcs *block.Cursor) error {
+	var createdObject3 world.ObjectState
+	createdObject3, _, err = world.CreateWorldObject(ctx, wrapped, "example/create-missing", func(bcs *block.Cursor) error {
 		bcs.SetBlock(block_mock.NewExample("missing"), true)
 		return nil
 	})
+	defer world.ReleaseObjectState(createdObject3)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -264,10 +276,12 @@ func TestLookupRootRefReleasesObjectState(t *testing.T) {
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	const key = "example/root-ref-release"
-	_, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
 		bcs.SetBlock(block_mock.NewExample("root-ref"), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,10 +314,12 @@ func TestLookupObjectReleasesDecodeErrorState(t *testing.T) {
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	const key = "example/decode-release"
-	_, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&releaseTestBlock{data: "bad"}, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,10 +358,12 @@ func TestCollectObjectBodiesReleasesPartialFailureStates(t *testing.T) {
 		"example/collect-good": "good",
 		"example/collect-bad":  "bad",
 	} {
-		_, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+		var createdObject world.ObjectState
+		createdObject, _, err = world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
 			bcs.SetBlock(&releaseTestBlock{data: data}, true)
 			return nil
 		})
+		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -402,7 +420,8 @@ func TestEngineWorldStateRetriesStaleGenerationWriteOperation(t *testing.T) {
 			ws := world.NewEngineWorldState(eng, true)
 			key := "retry-object"
 
-			_, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "bucket"})
+			createdObject, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "bucket"})
+			world.ReleaseObjectState(createdObject)
 			if err != nil {
 				t.Fatalf("CreateObject returned error after transient stale generation: %v", err)
 			}

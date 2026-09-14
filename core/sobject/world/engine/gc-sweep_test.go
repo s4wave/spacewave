@@ -361,8 +361,12 @@ func seedGCSweepTestObjects(
 	keys := make([]string, 0, count)
 	for i := range count {
 		key := "gc-sweep-remote-delete-" + strconv.FormatUint(i, 10)
-		if _, err := world_block.BuildMockObject(ctx, worldState, key); err != nil {
-			t.Fatal(err)
+		{
+			createdObject, err := world_block.BuildMockObject(ctx, worldState, key)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 		keys = append(keys, key)
 	}

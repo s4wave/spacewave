@@ -104,7 +104,8 @@ func TestMountSpaceBodyProvidesSpaceWorldOps(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	gotSettings, _, err := space_world.LookupSpaceSettings(ctx, ws)
+	gotSettings, objectState, err := space_world.LookupSpaceSettings(ctx, ws)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

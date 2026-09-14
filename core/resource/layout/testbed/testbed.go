@@ -205,6 +205,7 @@ func (t *Testbed) SetupLayoutEngine(ctx context.Context, objectKey string) (*Set
 	engineRef := t.ResClient.CreateResourceReference(createWorldResp.ResourceId)
 	engine, err := s4wave_world.NewEngine(t.ResClient, engineRef)
 	if err != nil {
+		engineRef.Release()
 		return nil, errors.Wrap(err, "create engine")
 	}
 

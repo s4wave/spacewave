@@ -265,6 +265,7 @@ func (b *BatchFSWriter) Commit(ctx context.Context) error {
 	})
 
 	obj, exists, err := b.ws.GetObject(ctx, b.objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}

@@ -10,7 +10,7 @@ import (
 )
 
 func replaceFile(tmpPath, dstPath string) error {
-	if err := os.Rename(tmpPath, dstPath); err != nil {
+	if err := os.Rename(tmpPath, dstPath); err != nil { //nolint:gosec // The updater owns both staged and executable paths.
 		return errors.Wrap(err, "replace destination")
 	}
 	return nil
@@ -25,8 +25,7 @@ func startRawUpdateRelay(tmpPath, targetPath string) error {
 }
 
 func startRawUpdateTarget(targetPath, cleanupPath string) error {
-	// #nosec G204 -- the self-update relay executes the target binary path.
-	if err := syscall.Exec(targetPath, rawUpdateArgs(targetPath), rawUpdateTargetEnv(cleanupPath)); err != nil {
+	if err := syscall.Exec(targetPath, rawUpdateArgs(targetPath), rawUpdateTargetEnv(cleanupPath)); err != nil { //nolint:gosec // Execute the selected update binary directly, without a shell.
 		return errors.Wrap(err, "exec raw update target")
 	}
 	return nil

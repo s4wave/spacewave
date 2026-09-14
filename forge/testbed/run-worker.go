@@ -70,7 +70,8 @@ func (tb *Testbed) RunWorkerWithTasks(
 	if err != nil {
 		return nil, err
 	}
-	_, _, err = forge_job.CreateJobWithTasks(
+	var createdObject world.ObjectState
+	createdObject, _, err = forge_job.CreateJobWithTasks(
 		ctx,
 		createJobTx,
 		sender,
@@ -79,6 +80,7 @@ func (tb *Testbed) RunWorkerWithTasks(
 		"",
 		ts,
 	)
+	world.ReleaseObjectState(createdObject)
 	if err == nil {
 		err = createJobTx.Commit(ctx)
 	}

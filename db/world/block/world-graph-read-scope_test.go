@@ -36,11 +36,19 @@ func TestWorldStateLookupGraphQuadsReadOnlyUsesReadOperation(t *testing.T) {
 	writeStore := &readOperationCountingStore{StoreOps: writeWs.store}
 	writeWs.store = writeStore
 
-	if _, err := writeWs.CreateObject(ctx, "read-scope/a", nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := writeWs.CreateObject(ctx, "read-scope/a", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := writeWs.CreateObject(ctx, "read-scope/b", nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := writeWs.CreateObject(ctx, "read-scope/b", nil)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if err := writeWs.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("read-scope/a", "<read-scope-rel>", "read-scope/b", "")); err != nil {
 		t.Fatal(err.Error())

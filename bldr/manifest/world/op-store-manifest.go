@@ -93,6 +93,7 @@ func (o *StoreManifestOp) ApplyWorldOp(
 			// get the object with objKey
 			obj, err := world.MustGetObject(ctx, ws, objKey)
 			if err != nil {
+				world.ReleaseObjectState(obj)
 				if err == context.Canceled {
 					return false, err
 				}
@@ -100,6 +101,7 @@ func (o *StoreManifestOp) ApplyWorldOp(
 			}
 
 			_, err = obj.IncrementRev(ctx)
+			world.ReleaseObjectState(obj)
 			if err != nil {
 				return false, err
 			}

@@ -517,6 +517,7 @@ func scanWorld(ctx context.Context, ws world.WorldState) (map[string]*ObjectDesc
 		}
 		objectState, found, err := ws.GetObject(ctx, key)
 		if err != nil {
+			world.ReleaseObjectState(objectState)
 			return nil, err
 		}
 		if !found {

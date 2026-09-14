@@ -432,6 +432,7 @@ func readParentSecret(
 ) *s4wave_secret.Secret {
 	t.Helper()
 	obj, found, err := ws.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err)
 	}

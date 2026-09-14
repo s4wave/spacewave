@@ -20,6 +20,7 @@ func NewTableViewBlock() block.Block {
 // ReadTableViewRoot reads a SQL table view object's root.
 func ReadTableViewRoot(ctx context.Context, ws world.WorldState, objectKey string) (*TableView, error) {
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, err
 	}

@@ -64,9 +64,13 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	target := &forge_target.Target{Exec: &forge_target.Exec{Disable: true}}
 	ts := timestamppb.Now()
 
-	if _, _, err := forge_task.CreateTaskWithTarget(ctx, tb.WorldState, sender,
-		taskKey, "retry-result", target, "", 1, ts); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, _, err := forge_task.CreateTaskWithTarget(ctx, tb.WorldState, sender,
+			taskKey, "retry-result", target, "", 1, ts)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	updateTarget := NewTxUpdateInputs(taskKey)
 	updateTarget.TxUpdateInputs.UpdateTarget = true
@@ -74,9 +78,13 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, updateTarget, sender); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := forge_pass.CreatePassWithTarget(ctx, tb.WorldState, sender,
-		passKey, forge_target.NewValueSet(), target.CloneVT(), 1, 1, "", ts); err != nil {
-		t.Fatal(err)
+	{
+		createdObject2, _, err := forge_pass.CreatePassWithTarget(ctx, tb.WorldState, sender,
+			passKey, forge_target.NewValueSet(), target.CloneVT(), 1, 1, "", ts)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := tb.WorldState.SetGraphQuad(ctx,
 		forge_task.NewTaskToPassQuad(taskKey, passKey, 1)); err != nil {
@@ -88,6 +96,7 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	}
 	executionKey := forge_pass.BuildPassExecutionObjKey(passKey, sender.String())
 	executionObject, err := world.MustGetObject(ctx, tb.WorldState, executionKey)
+	defer world.ReleaseObjectState(executionObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +154,8 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 		NewTxRetry(taskKey, 1, nextInputs), sender); err != nil {
 		t.Fatalf("retry failed task: %v", err)
 	}
-	task, _, err := forge_task.LookupTask(ctx, tb.WorldState, taskKey)
+	task, objectState, err := forge_task.LookupTask(ctx, tb.WorldState, taskKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +196,8 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	if !passes[0].GetResult().Equals(failed) {
 		t.Fatal("predecessor result history changed")
 	}
-	execution, _, err := forge_execution.LookupExecution(ctx, tb.WorldState, executionKey)
+	execution, objectState2, err := forge_execution.LookupExecution(ctx, tb.WorldState, executionKey)
+	world.ReleaseObjectState(objectState2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +208,9 @@ func TestTxRetryClearsTerminalTaskResultAndRetainsAttemptHistory(t *testing.T) {
 	if _, _, err := tb.WorldState.ApplyWorldOp(ctx, NewTxStart(taskKey, true), sender); err != nil {
 		t.Fatalf("start successor pass: %v", err)
 	}
-	task, _, err = forge_task.LookupTask(ctx, tb.WorldState, taskKey)
+	var objectState3 world.ObjectState
+	task, objectState3, err = forge_task.LookupTask(ctx, tb.WorldState, taskKey)
+	world.ReleaseObjectState(objectState3)
 	if err != nil {
 		t.Fatal(err)
 	}

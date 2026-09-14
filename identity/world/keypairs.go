@@ -87,6 +87,7 @@ func LookupKeypairOp(ctx context.Context, opTypeID string) (world.Operation, err
 func LookupKeypair(ctx context.Context, w world.WorldState, objKey string) (*identity.Keypair, world.ObjectState, error) {
 	obj, objFound, err := w.GetObject(ctx, objKey)
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, nil, err
 	}
 	if !objFound {

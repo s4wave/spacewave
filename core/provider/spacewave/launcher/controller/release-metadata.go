@@ -714,6 +714,7 @@ func readReleaseMetadataBlock[T block.Block](
 	ctor func() block.Block,
 ) (T, error) {
 	obj, err := world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	var zero T
 	if err != nil {
 		return zero, err

@@ -85,10 +85,10 @@ func (s *Storage) ensureVolume(key string) (*volume_world.Backing, error) {
 	}
 	backing := &volume_world.Backing{KvObjectKey: key + "/kv"}
 	kvObject, err := tx.CreateObject(ctx, backing.KvObjectKey, nil)
+	world.ReleaseObjectState(kvObject)
 	if err != nil {
 		return nil, err
 	}
-	world.ReleaseObjectState(kvObject)
 	if err := world_types.SetObjectType(ctx, tx, backing.KvObjectKey, volume_world.KVObjectTypeID); err != nil {
 		return nil, err
 	}

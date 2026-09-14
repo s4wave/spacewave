@@ -353,6 +353,7 @@ func (r *TerminalResource) persistState(ctx context.Context, state *Terminal) er
 		return err
 	}
 	writeState, found, err := wtx.GetObject(ctx, r.objKey)
+	defer world.ReleaseObjectState(writeState)
 	if err != nil {
 		wtx.Discard()
 		return err

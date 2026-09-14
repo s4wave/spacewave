@@ -314,7 +314,8 @@ func CreateWorldObjectWorktree(
 ) error {
 	// Ensure the referenced workdir object exists before creating the worktree.
 	workdirObjKey := workdirRef.GetObjectKey()
-	_, wdObjExists, err := ws.GetObject(ctx, workdirObjKey)
+	objectState, wdObjExists, err := ws.GetObject(ctx, workdirObjKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		return err
 	}

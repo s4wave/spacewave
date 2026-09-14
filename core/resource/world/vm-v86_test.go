@@ -618,6 +618,7 @@ func TestVmV86TypedObject(t *testing.T) {
 		}
 		defer readTx.Release()
 		objectStateValue, found, err := readTx.GetObject(ctx, imageKey)
+		defer world.ReleaseObjectState(objectStateValue)
 		if err != nil {
 			t.Fatalf("get V86Image catalog object: %v", err)
 		}
@@ -628,7 +629,6 @@ func TestVmV86TypedObject(t *testing.T) {
 		if !ok {
 			t.Fatalf("V86Image object state type = %T", objectStateValue)
 		}
-		defer objectState.Release()
 
 		objectClient, err := objectState.GetResourceRef().GetClient()
 		if err != nil {

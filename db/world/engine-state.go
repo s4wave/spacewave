@@ -95,7 +95,8 @@ func (e *engineWorldState) ApplyWorldOp(
 func (e *engineWorldState) CreateObject(ctx context.Context, key string, rootRef *bucket.ObjectRef) (ObjectState, error) {
 	var outState ObjectState
 	err := e.performOp(ctx, true, func(tx Tx) error {
-		_, err := tx.CreateObject(ctx, key, rootRef)
+		obj, err := tx.CreateObject(ctx, key, rootRef)
+		ReleaseObjectState(obj)
 		if err != nil {
 			return err
 		}
@@ -120,8 +121,9 @@ func (e *engineWorldState) IterateObjects(ctx context.Context, prefix string, re
 func (e *engineWorldState) GetObject(ctx context.Context, key string) (ObjectState, bool, error) {
 	var found bool
 	err := e.performOp(ctx, false, func(tx Tx) error {
-		var nerr error
-		_, found, nerr = tx.GetObject(ctx, key)
+		obj, exists, nerr := tx.GetObject(ctx, key)
+		ReleaseObjectState(obj)
+		found = exists
 		return nerr
 	})
 	var outState ObjectState
@@ -148,7 +150,8 @@ func (e *engineWorldState) DeleteObject(ctx context.Context, key string) (bool, 
 func (e *engineWorldState) RenameObject(ctx context.Context, oldKey, newKey string, descendants bool) (ObjectState, error) {
 	var outState ObjectState
 	err := e.performOp(ctx, true, func(tx Tx) error {
-		_, err := tx.RenameObject(ctx, oldKey, newKey, descendants)
+		obj, err := tx.RenameObject(ctx, oldKey, newKey, descendants)
+		ReleaseObjectState(obj)
 		if err != nil {
 			return err
 		}

@@ -86,10 +86,14 @@ func TestCopyV86ImageFromCdnCopiesAssetObjectsBeforeEdges(t *testing.T) {
 	}
 
 	// Verify destination object, type, and graph edge state.
-	if _, found, err := dstTB.WorldState.GetObject(ctx, assetKey); err != nil {
-		t.Fatalf("get copied asset: %v", err)
-	} else if !found {
-		t.Fatalf("expected destination asset object %q to exist", assetKey)
+	{
+		objectState, found, err := dstTB.WorldState.GetObject(ctx, assetKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatalf("get copied asset: %v", err)
+		} else if !found {
+			t.Fatalf("expected destination asset object %q to exist", assetKey)
+		}
 	}
 	ft, explicit, err := unixfs_world.LookupFsType(ctx, dstTB.WorldState, assetKey)
 	if err != nil {
@@ -129,6 +133,7 @@ func createFSNodeObjectWithFile(
 		t.Fatalf("create fs-node object %q: %v", objKey, err)
 	}
 	obj, found, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("get fs-node object %q: %v", objKey, err)
 	}
@@ -179,6 +184,7 @@ func readFSNodeFile(t *testing.T, ctx context.Context, ws world.WorldState, objK
 func describeFSNodeObject(t *testing.T, ctx context.Context, ws world.WorldState, objKey string) string {
 	t.Helper()
 	obj, found, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return fmt.Sprintf("get object: %v", err)
 	}

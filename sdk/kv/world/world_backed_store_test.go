@@ -276,10 +276,11 @@ func commitDeleteThroughRPC(t *testing.T, ctx context.Context, store kvtx.Store,
 
 func createKvStoreObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string, setType bool) *bucket.ObjectRef {
 	t.Helper()
-	_, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(kvtx_block.NewKeyValueStoreForWorkload(kvtx_block.WorkloadClassDefault), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
@@ -296,10 +297,14 @@ func createKvStoreObject(t *testing.T, ctx context.Context, ws world.WorldState,
 // is written, so the first commit advances the root from an empty base.
 func createEmptyKvStoreObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
 	t.Helper()
-	if _, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
-		return nil
-	}); err != nil {
-		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
+	{
+		createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+			return nil
+		})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, objectKey, s4wave_kv_world.KvStoreTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
@@ -309,6 +314,7 @@ func createEmptyKvStoreObject(t *testing.T, ctx context.Context, ws world.WorldS
 func getObjectRoot(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) *bucket.ObjectRef {
 	t.Helper()
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("MustGetObject(%s): %v", objectKey, err)
 	}
@@ -327,6 +333,7 @@ func openWorldBackedStore(
 ) (kvtx.Store, func()) {
 	t.Helper()
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("MustGetObject(%s): %v", objectKey, err)
 	}

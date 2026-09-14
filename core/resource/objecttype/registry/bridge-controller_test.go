@@ -88,8 +88,12 @@ func TestBridgeResolverKeepsPluginResourceClientAfterRequestContextCancel(t *tes
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
-	if _, err := world.MustGetObject(ctx, readTx, "test/objecttype-seed"); err != nil {
-		t.Fatalf("seeded object was not committed through attached engine: %v", err)
+	{
+		objectState, err := world.MustGetObject(ctx, readTx, "test/objecttype-seed")
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatalf("seeded object was not committed through attached engine: %v", err)
+		}
 	}
 
 	cleanup()

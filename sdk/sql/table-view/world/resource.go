@@ -250,6 +250,7 @@ func (r *SqlTableViewResource) openTargetSqlOps(
 	write bool,
 ) (*s4wave_sql_world.WorldBackedSql, hydra_sql.SqlTransaction, hydra_sql.SqlOps, error) {
 	obj, err := world.MustGetObject(ctx, r.ws, targetKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, nil, err
 	}

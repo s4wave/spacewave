@@ -175,6 +175,7 @@ func buildObjectInfoCommand(statePath *string, sessionIdx *uint, spaceID *string
 			defer tx.Discard()
 
 			obj, found, err := tx.GetObject(ctx, objectKey)
+			defer world.ReleaseObjectState(obj)
 			if err != nil {
 				return errors.Wrap(err, "get object")
 			}
@@ -427,8 +428,13 @@ func buildObjectCreateCommand(statePath *string, sessionIdx *uint, spaceID *stri
 
 			switch objType {
 			case "":
-				if _, err = tx.CreateObject(ctx, key, nil); err != nil {
-					return errors.Wrap(err, "create object")
+				{
+					var createdObject world.ObjectState
+					createdObject, err = tx.CreateObject(ctx, key, nil)
+					world.ReleaseObjectState(createdObject)
+					if err != nil {
+						return errors.Wrap(err, "create object")
+					}
 				}
 				if err := world_types.SetObjectType(ctx, tx, key, objectTypeID); err != nil {
 					return errors.Wrap(err, "set object type")

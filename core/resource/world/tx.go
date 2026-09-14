@@ -96,26 +96,31 @@ func (r *TxResource) CommitMutations(
 		case *s4wave_world.TransactionMutation_CreateObject:
 			obj, err := r.tx.CreateObject(ctx, mutation.CreateObject.GetObjectKey(), mutation.CreateObject.GetRootRef())
 			if err != nil {
+				world.ReleaseObjectState(obj)
 				return nil, err
 			}
+			key := obj.GetKey()
 			_, rev, err := obj.GetRootRef(ctx)
+			world.ReleaseObjectState(obj)
 			if err != nil {
 				return nil, err
 			}
 			results = append(results, &s4wave_world.TransactionMutationResult{
 				Result: &s4wave_world.TransactionMutationResult_CreateObject{
-					CreateObject: &s4wave_world.CreateObjectMutationResult{ObjectKey: obj.GetKey(), Rev: rev},
+					CreateObject: &s4wave_world.CreateObjectMutationResult{ObjectKey: key, Rev: rev},
 				},
 			})
 		case *s4wave_world.TransactionMutation_SetObjectRoot:
 			obj, found, err := r.tx.GetObject(ctx, mutation.SetObjectRoot.GetObjectKey())
 			if err != nil {
+				world.ReleaseObjectState(obj)
 				return nil, err
 			}
 			if !found {
 				return nil, errors.Errorf("object not found: %s", mutation.SetObjectRoot.GetObjectKey())
 			}
 			rev, err := obj.SetRootRef(ctx, mutation.SetObjectRoot.GetRootRef())
+			world.ReleaseObjectState(obj)
 			if err != nil {
 				return nil, err
 			}

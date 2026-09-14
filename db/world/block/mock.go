@@ -47,7 +47,9 @@ func BuildMockObject(ctx context.Context, ws world.WorldState, objKey string) (w
 	}
 
 	// Register the newly written root reference as a world object.
-	_, err = ws.CreateObject(ctx, objKey, oref)
+	var createdObject world.ObjectState
+	createdObject, err = ws.CreateObject(ctx, objKey, oref)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return nil, err
 	}
@@ -55,6 +57,7 @@ func BuildMockObject(ctx context.Context, ws world.WorldState, objKey string) (w
 	// Read back the object to confirm registration succeeded.
 	objState, found, err := ws.GetObject(ctx, objKey)
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, err
 	}
 	if !found {

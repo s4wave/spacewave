@@ -71,11 +71,15 @@ func (o *CreateChatChannelOp) ApplyWorldOp(
 		ThreadIndexedMessageCount: new(uint64),
 	}
 
-	if _, _, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
-		bcs.SetBlock(channel, true)
-		return nil
-	}); err != nil {
-		return false, err
+	{
+		createdObject, _, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+			bcs.SetBlock(channel, true)
+			return nil
+		})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			return false, err
+		}
 	}
 
 	if err := world_types.SetObjectType(ctx, ws, objKey, ChatChannelTypeID); err != nil {

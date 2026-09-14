@@ -114,10 +114,12 @@ func (o *CreateTerminalOp) ApplyWorldOp(
 		UpdatedAt:        o.GetTimestamp(),
 	}
 
-	_, _, err = world.CreateWorldObject(ctx, ws, o.GetObjectKey(), func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, o.GetObjectKey(), func(bcs *block.Cursor) error {
 		bcs.SetBlock(terminal, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}

@@ -45,8 +45,12 @@ func TestFSCursorProjectsGitWorktreePaths(t *testing.T) {
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	sender := wtb.Volume.GetPeerID()
-	if _, err := ws.CreateObject(ctx, "repo/demo", &bucket.ObjectRef{}); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, err := ws.CreateObject(ctx, "repo/demo", &bucket.ObjectRef{})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, "repo/demo", git_world.GitRepoTypeID); err != nil {
 		t.Fatal(err)

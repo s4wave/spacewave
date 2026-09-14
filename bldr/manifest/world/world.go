@@ -58,7 +58,7 @@ func NewManifestQuad(srcObjKey, destObjKey, manifestID string) world.GraphQuad {
 
 // CreateManifestStore creates a ManifestStore object if it doesn't exist.
 func CreateManifestStore(ctx context.Context, ws world.WorldState, objKey string) (created bool, err error) {
-	_, hostExists, err := ws.GetObject(ctx, objKey)
+	hostExists, err := ws.HasObject(ctx, objKey)
 	if err != nil {
 		return false, err
 	}
@@ -66,7 +66,8 @@ func CreateManifestStore(ctx context.Context, ws world.WorldState, objKey string
 		return false, nil
 	}
 
-	_, err = ws.CreateObject(ctx, objKey, nil)
+	createdObj, err := ws.CreateObject(ctx, objKey, nil)
+	world.ReleaseObjectState(createdObj)
 	if err != nil {
 		return false, err
 	}
@@ -309,6 +310,7 @@ func SetManifest(
 ) (world.ObjectState, bool, error) {
 	var changed bool
 	obj, objOk, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, false, err
 	}
@@ -340,7 +342,9 @@ func SetManifest(
 			}
 		}
 	} else {
-		_, err = ws.CreateObject(ctx, objKey, rootRef)
+		created, createErr := ws.CreateObject(ctx, objKey, rootRef)
+		world.ReleaseObjectState(created)
+		err = createErr
 		if err == nil {
 			// create the <type> ref
 			err = world_types.SetObjectType(ctx, ws, objKey, ManifestTypeID)
@@ -353,6 +357,7 @@ func SetManifest(
 // LookupManifest looks up a Manifest in the world.
 func LookupManifest(ctx context.Context, ws world.WorldState, objKey string) (*bldr_manifest.Manifest, *bucket.ObjectRef, error) {
 	obj, err := world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -368,6 +373,7 @@ func LookupManifest(ctx context.Context, ws world.WorldState, objKey string) (*b
 // LookupManifestRef looks up a ManifestRef object in the world.
 func LookupManifestRef(ctx context.Context, ws world.WorldState, objKey string) (*bldr_manifest.ManifestRef, *bucket.ObjectRef, error) {
 	obj, err := world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -955,6 +961,7 @@ func lookupStartupManifestObject(
 	objKey string,
 ) (*bldr_manifest.Manifest, *bucket.ObjectRef, error) {
 	obj, err := world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -972,6 +979,7 @@ func lookupStartupManifestObjectLocal(
 	objKey string,
 ) (*bldr_manifest.Manifest, *bucket.ObjectRef, error) {
 	obj, err := world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1295,6 +1303,7 @@ func CollectStartupManifestsForManifestID(
 // LookupManifestBundle looks up a ManifestBundle in the world.
 func LookupManifestBundle(ctx context.Context, ws world.WorldState, objKey string) (*bldr_manifest.ManifestBundle, *bucket.ObjectRef, error) {
 	obj, err := world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1326,23 +1335,27 @@ func ExtractManifestBundle(
 
 	obj, objOk, err := ws.GetObject(ctx, objKey)
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, nil, nil, err
 	}
 
 	if objOk {
 		_, err = obj.SetRootRef(ctx, rootRef)
 		if err != nil {
+			world.ReleaseObjectState(obj)
 			return nil, nil, nil, err
 		}
 	} else {
 		obj, err = ws.CreateObject(ctx, objKey, rootRef)
 		if err != nil {
+			world.ReleaseObjectState(obj)
 			return nil, nil, nil, err
 		}
 
 		// create the <type> ref
 		err = world_types.SetObjectType(ctx, ws, objKey, ManifestBundleTypeID)
 		if err != nil {
+			world.ReleaseObjectState(obj)
 			return nil, nil, nil, err
 		}
 	}
@@ -1353,6 +1366,7 @@ func ExtractManifestBundle(
 	manifestObjKeys := make([]string, len(manifestRefs))
 	for i, manifestRef := range manifestRefs {
 		if err := manifestRef.Validate(); err != nil {
+			world.ReleaseObjectState(obj)
 			return nil, nil, nil, err
 		}
 		var manifest *bldr_manifest.Manifest
@@ -1365,18 +1379,22 @@ func ExtractManifestBundle(
 			return err
 		})
 		if err != nil {
+			world.ReleaseObjectState(obj)
 			return nil, nil, nil, err
 		}
 		manifestObjKey, err := bldr_manifest.NewManifestBundleEntryKey(objKey, manifest.GetMeta())
 		if err != nil {
+			world.ReleaseObjectState(obj)
 			return nil, nil, nil, err
 		}
 		_, _, err = SetManifest(ctx, ws, sender, manifestObjKey, manifestRef.GetManifestRef())
 		if err != nil {
+			world.ReleaseObjectState(obj)
 			return nil, nil, nil, err
 		}
 		quad := NewManifestQuad(objKey, manifestObjKey, manifest.GetMeta().GetManifestId())
 		if err := ws.SetGraphQuad(ctx, quad); err != nil {
+			world.ReleaseObjectState(obj)
 			return nil, nil, nil, err
 		}
 		manifests[i] = manifest

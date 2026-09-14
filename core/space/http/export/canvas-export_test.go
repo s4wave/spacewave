@@ -104,10 +104,14 @@ func TestExportSpaceWithCanvasWorldObjectNode(t *testing.T) {
 			ViewPath:  "/" + imageName,
 		},
 	}}
-	if _, _, err := world.CreateWorldObject(ctx, ws, "canvas", func(bcs *block.Cursor) error {
-		return s4wave_canvas.WriteCanvasState(ctx, bcs, nil, canvas)
-	}); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, _, err := world.CreateWorldObject(ctx, ws, "canvas", func(bcs *block.Cursor) error {
+			return s4wave_canvas.WriteCanvasState(ctx, bcs, nil, canvas)
+		})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, "canvas", s4wave_canvas_world.CanvasTypeID); err != nil {
 		t.Fatal(err)

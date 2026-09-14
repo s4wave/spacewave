@@ -83,11 +83,13 @@ func (o *ClusterCreateOp) ApplyWorldOp(
 		return false, err
 	}
 
-	_, _, err = world.CreateWorldObject(ctx, worldHandle, clusterKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, worldHandle, clusterKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(clstr, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	"github.com/s4wave/spacewave/db/world"
 	s4wave_canvas "github.com/s4wave/spacewave/sdk/canvas"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
 	sdk_engine "github.com/s4wave/spacewave/sdk/world/engine"
@@ -682,7 +683,8 @@ var canvasNodeAddSpecs = []canvasNodeAddSpec{
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
-			_, found, err := tx.GetObject(ctx, objKey)
+			objectState, found, err := tx.GetObject(ctx, objKey)
+			world.ReleaseObjectState(objectState)
 			tx.Discard()
 			if err != nil {
 				return errors.Wrap(err, "check object")

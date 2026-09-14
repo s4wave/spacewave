@@ -143,10 +143,11 @@ func createSqlDbObject(
 	setType bool,
 ) *bucket.ObjectRef {
 	t.Helper()
-	_, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(sql_mysql.NewRootBlock(), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
@@ -163,10 +164,14 @@ func createSqlDbObject(
 // block is written, so the first transaction opens against an empty root.
 func createEmptySqlDbObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
 	t.Helper()
-	if _, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
-		return nil
-	}); err != nil {
-		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
+	{
+		createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+			return nil
+		})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, objectKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
@@ -176,6 +181,7 @@ func createEmptySqlDbObject(t *testing.T, ctx context.Context, ws world.WorldSta
 func getObjectRoot(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) *bucket.ObjectRef {
 	t.Helper()
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("MustGetObject(%s): %v", objectKey, err)
 	}
@@ -277,6 +283,7 @@ func openWorldBackedSql(
 ) (hydra_sql.SqlStore, func()) {
 	t.Helper()
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("MustGetObject(%s): %v", objectKey, err)
 	}

@@ -44,11 +44,19 @@ func TestWorldState_RenameObject(t *testing.T) {
 	newKey := "rename-new"
 	otherKey := "rename-other"
 	rootRef := &bucket.ObjectRef{BucketId: "test-bucket"}
-	if _, err := ws.CreateObject(ctx, oldKey, rootRef); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, oldKey, rootRef)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := ws.CreateObject(ctx, otherKey, rootRef); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := ws.CreateObject(ctx, otherKey, rootRef)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	oldValue := world.KeyToGraphValue(oldKey).String()
@@ -65,6 +73,7 @@ func TestWorldState_RenameObject(t *testing.T) {
 	}
 
 	oldObj, err := world.MustGetObject(ctx, ws, oldKey)
+	defer world.ReleaseObjectState(oldObj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -74,6 +83,7 @@ func TestWorldState_RenameObject(t *testing.T) {
 	}
 
 	renamed, err := ws.RenameObject(ctx, oldKey, newKey, false)
+	defer world.ReleaseObjectState(renamed)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -88,15 +98,21 @@ func TestWorldState_RenameObject(t *testing.T) {
 		t.Fatalf("expected rev %d to be preserved, got %d", oldRev, newRev)
 	}
 
-	_, err = ws.RenameObject(ctx, newKey, otherKey, false)
+	var objectState world.ObjectState
+	objectState, err = ws.RenameObject(ctx, newKey, otherKey, false)
+	world.ReleaseObjectState(objectState)
 	if !errors.Is(err, world.ErrObjectExists) {
 		t.Fatalf("expected ErrObjectExists, got %v", err)
 	}
-	_, err = ws.RenameObject(ctx, "rename-missing", "rename-unused", false)
+	var objectState2 world.ObjectState
+	objectState2, err = ws.RenameObject(ctx, "rename-missing", "rename-unused", false)
+	world.ReleaseObjectState(objectState2)
 	if !errors.Is(err, world.ErrObjectNotFound) {
 		t.Fatalf("expected ErrObjectNotFound, got %v", err)
 	}
-	_, err = ws.RenameObject(ctx, "rename-missing", otherKey, true)
+	var objectState3 world.ObjectState
+	objectState3, err = ws.RenameObject(ctx, "rename-missing", otherKey, true)
+	world.ReleaseObjectState(objectState3)
 	if !errors.Is(err, world.ErrObjectNotFound) {
 		t.Fatalf("expected ErrObjectNotFound, got %v", err)
 	}
@@ -105,15 +121,23 @@ func TestWorldState_RenameObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if _, found, err := ws.GetObject(ctx, oldKey); err != nil {
-		t.Fatal(err.Error())
-	} else if found {
-		t.Fatalf("expected old key %q to be absent", oldKey)
+	{
+		objectState4, found, err := ws.GetObject(ctx, oldKey)
+		world.ReleaseObjectState(objectState4)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else if found {
+			t.Fatalf("expected old key %q to be absent", oldKey)
+		}
 	}
-	if _, found, err := ws.GetObject(ctx, newKey); err != nil {
-		t.Fatal(err.Error())
-	} else if !found {
-		t.Fatalf("expected new key %q to exist", newKey)
+	{
+		objectState5, found, err := ws.GetObject(ctx, newKey)
+		world.ReleaseObjectState(objectState5)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else if !found {
+			t.Fatalf("expected new key %q to exist", newKey)
+		}
 	}
 
 	oldSubj, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad(oldValue, "", "", ""), 0)
@@ -201,8 +225,12 @@ func TestWorldState_RenameGitRepoWithWizardChildren(t *testing.T) {
 	workdirKey := repoKey + "/workdir"
 	worktreeKey := repoKey + "/worktree"
 	for _, key := range []string{repoKey, workdirKey, worktreeKey} {
-		if _, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: key}); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: key})
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, repoKey, git_world.GitRepoTypeID); err != nil {
@@ -224,22 +252,34 @@ func TestWorldState_RenameGitRepoWithWizardChildren(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if _, err := ws.RenameObject(ctx, repoKey, "myrepo", true); err != nil {
-		t.Fatal(err.Error())
+	{
+		objectState, err := ws.RenameObject(ctx, repoKey, "myrepo", true)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	for _, key := range []string{repoKey, workdirKey, worktreeKey} {
-		if _, found, err := ws.GetObject(ctx, key); err != nil {
-			t.Fatal(err.Error())
-		} else if found {
-			t.Fatalf("expected old key %q to be absent", key)
+		{
+			objectState2, found, err := ws.GetObject(ctx, key)
+			world.ReleaseObjectState(objectState2)
+			if err != nil {
+				t.Fatal(err.Error())
+			} else if found {
+				t.Fatalf("expected old key %q to be absent", key)
+			}
 		}
 	}
 	for _, key := range []string{"myrepo", "myrepo/workdir", "myrepo/worktree"} {
-		if _, found, err := ws.GetObject(ctx, key); err != nil {
-			t.Fatal(err.Error())
-		} else if !found {
-			t.Fatalf("expected new key %q to exist", key)
+		{
+			objectState3, found, err := ws.GetObject(ctx, key)
+			world.ReleaseObjectState(objectState3)
+			if err != nil {
+				t.Fatal(err.Error())
+			} else if !found {
+				t.Fatalf("expected new key %q to exist", key)
+			}
 		}
 	}
 }

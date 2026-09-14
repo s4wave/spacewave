@@ -74,10 +74,12 @@ func (o *CreateAptRepositoryOp) ApplyWorldOp(
 
 	objectKey := o.GetObjectKey()
 	repository := o.GetRepository().CloneVT()
-	_, _, err = world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(repository, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}
@@ -172,10 +174,12 @@ func (o *AddAptPackageOp) ApplyWorldOp(
 
 	packageKey := o.GetPackageKey()
 	aptPackage := o.GetAptPackage().CloneVT()
-	_, _, err = world.CreateWorldObject(ctx, ws, packageKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, packageKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(aptPackage, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}
@@ -363,6 +367,7 @@ func applyAptPackageStateTransition(
 		return err
 	}
 	objectState, err := world.MustGetObject(ctx, ws, packageKey)
+	defer world.ReleaseObjectState(objectState)
 	if err != nil {
 		return err
 	}
@@ -431,10 +436,12 @@ func (o *AddAptBuildSpecOp) ApplyWorldOp(
 
 	buildSpecKey := o.GetBuildSpecKey()
 	buildSpec := o.GetBuildSpec().CloneVT()
-	_, _, err = world.CreateWorldObject(ctx, ws, buildSpecKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, buildSpecKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(buildSpec, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}

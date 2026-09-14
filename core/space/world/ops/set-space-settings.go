@@ -98,7 +98,8 @@ func (o *SetSpaceSettingsOp) ApplyWorldOp(
 
 	// check if exists if we need to prevent overwriting
 	if !o.GetOverwrite() {
-		_, exists, err := worldHandle.GetObject(ctx, objKey)
+		objectState, exists, err := worldHandle.GetObject(ctx, objKey)
+		world.ReleaseObjectState(objectState)
 		if err != nil {
 			return false, err
 		}

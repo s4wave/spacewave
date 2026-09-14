@@ -73,6 +73,7 @@ func ImportDebPackage(
 	parsed.Checksums = AptPackageChecksums(deb)
 
 	objectState, existing, err := lookupAptPackageImportTarget(ctx, ws, packageKey)
+	defer world.ReleaseObjectState(objectState)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -98,6 +99,7 @@ func ImportDebPackage(
 			return nil, nil, err
 		}
 		objectState, err = world.MustGetObject(ctx, ws, packageKey)
+		defer world.ReleaseObjectState(objectState)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -128,19 +130,24 @@ func lookupAptPackageImportTarget(
 ) (world.ObjectState, *AptPackage, error) {
 	objectState, found, err := ws.GetObject(ctx, packageKey)
 	if err != nil {
+		world.ReleaseObjectState(objectState)
 		return nil, nil, err
 	}
 	if !found {
+		world.ReleaseObjectState(objectState)
 		return nil, nil, nil
 	}
 	if err := world_types.CheckObjectType(ctx, ws, packageKey, AptPackageTypeID); err != nil {
+		world.ReleaseObjectState(objectState)
 		return nil, nil, err
 	}
 	existing, err := readAptPackageObject(ctx, objectState)
 	if err != nil {
+		world.ReleaseObjectState(objectState)
 		return nil, nil, err
 	}
 	if existing.GetState() != AptPackageState_AptPackageState_IMPORTING {
+		world.ReleaseObjectState(objectState)
 		return nil, nil, errors.Wrapf(
 			ErrInvalidAptPackageStateTransition,
 			"%s -> %s",

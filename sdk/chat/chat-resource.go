@@ -483,10 +483,10 @@ func (r *ChatResource) appendMessage(ctx context.Context, wtx world.WorldState, 
 		Index:        index,
 	}
 	obj, err := wtx.CreateObject(ctx, msgKey, nil)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, err
 	}
-	defer world.ReleaseObjectState(obj)
 	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {
 		bcs.SetBlock(msg, true)
 		return nil
@@ -588,13 +588,13 @@ func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_ch
 	}
 	channel.ReadPositions[r.personPeerID] = position
 	object, found, err := tx.GetObject(ctx, r.objectKey)
+	defer world.ReleaseObjectState(object)
 	if err != nil {
 		return nil, err
 	}
 	if !found {
 		return nil, world.ErrObjectNotFound
 	}
-	defer world.ReleaseObjectState(object)
 	if _, _, err := world.AccessObjectState(ctx, object, true, func(cursor *block.Cursor) error {
 		cursor.SetBlock(channel, true)
 		return nil
@@ -611,13 +611,13 @@ func (r *ChatResource) commitReadPosition(ctx context.Context, req *spacewave_ch
 func (r *ChatResource) appendChannelMessageKey(ctx context.Context, ws world.WorldState, msgKey string, state *ChatStateChange) (uint64, string, error) {
 	// Acquire the mutable channel inside the caller's transaction.
 	obj, found, err := ws.GetObject(ctx, r.objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return 0, "", err
 	}
 	if !found {
 		return 0, "", world.ErrObjectNotFound
 	}
-	defer world.ReleaseObjectState(obj)
 
 	// Allocate the next position, retaining a caller's stable send identity.
 	var index uint64
@@ -656,16 +656,17 @@ func (r *ChatResource) appendMessagePageKey(ctx context.Context, ws world.WorldS
 	// Open or create the page containing this accepted position.
 	pageKey := r.messagePageKey(index / chatMessagePageSize)
 	obj, found, err := ws.GetObject(ctx, pageKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}
 	if !found {
 		obj, err = ws.CreateObject(ctx, pageKey, nil)
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			return err
 		}
 	}
-	defer world.ReleaseObjectState(obj)
 
 	// Append within the fixed-size page selected by the channel position.
 	_, _, err = world.AccessObjectState(ctx, obj, true, func(bcs *block.Cursor) error {

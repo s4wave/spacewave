@@ -301,7 +301,8 @@ func requireGraphEndpoints(ctx context.Context, b *testing.B, open func() (bench
 	b.Helper()
 	for _, key := range benchGraphEndpointKeys {
 		tx, discard := open()
-		_, found, err := tx.GetObject(ctx, key)
+		objectState, found, err := tx.GetObject(ctx, key)
+		world.ReleaseObjectState(objectState)
 		if err == nil && !found {
 			err = world.ErrObjectNotFound
 		}

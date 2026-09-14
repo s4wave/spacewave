@@ -355,7 +355,7 @@ func (c *SignedHTTPClient) Do(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	return c.httpCli.Do(req)
+	return c.httpCli.Do(req) //nolint:gosec // This outbound HTTP client intentionally accepts caller-selected requests.
 }
 
 // doPost signs and executes a POST request, returning the response body.

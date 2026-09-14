@@ -68,11 +68,15 @@ func (o *InitOrganizationOp) ApplyWorldOp(
 			JoinedAt:    o.GetTimestamp(),
 		}},
 	}
-	if _, _, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
-		bcs.SetBlock(state, true)
-		return nil
-	}); err != nil {
-		return true, err
+	{
+		createdObject, _, err := world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+			bcs.SetBlock(state, true)
+			return nil
+		})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			return true, err
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, objKey, OrganizationTypeID); err != nil {
 		return true, err

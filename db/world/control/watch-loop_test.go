@@ -44,6 +44,7 @@ func TestWatchLoop(t *testing.T) {
 
 	// perform a couple revisions
 	obj1, err := ws.CreateObject(ctx, objKey, nil)
+	defer world.ReleaseObjectState(obj1)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -182,8 +183,12 @@ func TestWatchLoopWakeAfterWaitClearIsSticky(t *testing.T) {
 	recvWatchLoopEvent(t, events, "initial handler")
 	release <- struct{}{}
 
-	if _, err := tb.WorldState.CreateObject(ctx, "wake-after-clear", nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := tb.WorldState.CreateObject(ctx, "wake-after-clear", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	recvWatchLoopEvent(t, events, "world-change handler")
 
@@ -209,8 +214,12 @@ func TestWatchLoopReportsObjectDeletion(t *testing.T) {
 	}
 
 	objKey := "delete-object"
-	if _, err := tb.WorldState.CreateObject(ctx, objKey, nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := tb.WorldState.CreateObject(ctx, objKey, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	foundCh := make(chan bool, 4)

@@ -43,6 +43,7 @@ func (h *gitCloneHandler) Execute(ctx context.Context) error {
 	repoObjKey := h.conf.GetObjectKey()
 
 	alreadyExistsObj, alreadyExists, err := h.ws.GetObject(ctx, repoObjKey)
+	defer world.ReleaseObjectState(alreadyExistsObj)
 	if err != nil {
 		return err
 	}

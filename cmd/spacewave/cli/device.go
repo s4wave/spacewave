@@ -915,6 +915,7 @@ func upsertLinkedDeviceObject(
 	defer tx.Discard()
 
 	existingState, found, err := tx.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(existingState)
 	if err != nil {
 		return "", err
 	}
@@ -945,11 +946,13 @@ func upsertLinkedDeviceObject(
 			return "", err
 		}
 		next = projected
-		_, _, err = world.CreateWorldObject(ctx, tx, objectKey, func(bcs *block.Cursor) error {
+		var createdObject world.ObjectState
+		createdObject, _, err = world.CreateWorldObject(ctx, tx, objectKey, func(bcs *block.Cursor) error {
 			bcs.ClearAllRefs()
 			bcs.SetBlock(next, true)
 			return nil
 		})
+		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			return "", err
 		}

@@ -179,10 +179,10 @@ func (c *WatchLoop) executeOnce(ctx context.Context, ws world.WorldState) (bool,
 	var objFound bool
 	if c.objectKey != "" {
 		objState, objFound, err = ws.GetObject(ctx, c.objectKey)
+		defer world.ReleaseObjectState(objState)
 		if err != nil {
 			return true, err
 		}
-		defer world.ReleaseObjectState(objState)
 	}
 	if objFound {
 		rootRef, rev, err = objState.GetRootRef(ctx)

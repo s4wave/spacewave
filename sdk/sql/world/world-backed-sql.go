@@ -120,6 +120,7 @@ func (s *WorldBackedSql) clearActiveTx(tx *worldBackedSqlTx) {
 
 func (s *WorldBackedSql) refreshInnerRoot(ctx context.Context) error {
 	obj, err := world.MustGetObject(ctx, s.ws, s.key)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}

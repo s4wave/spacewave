@@ -191,7 +191,7 @@ func createLegacyThreadReply(
 	rootKey string,
 ) {
 	t.Helper()
-	_, _, err := world.CreateWorldObject(ctx, ws, messageKey, func(cursor *block.Cursor) error {
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, messageKey, func(cursor *block.Cursor) error {
 		cursor.SetBlock(&ChatMessage{
 			SenderPeerId: "bob-device",
 			PersonPeerId: "bob",
@@ -205,6 +205,7 @@ func createLegacyThreadReply(
 		}, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}

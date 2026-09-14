@@ -13,6 +13,7 @@ import (
 	kvtest "github.com/s4wave/spacewave/db/kvtx/kvtest"
 	store_kvkey "github.com/s4wave/spacewave/db/store/kvkey"
 	store_kvtx_inmem "github.com/s4wave/spacewave/db/store/kvtx/inmem"
+	"github.com/s4wave/spacewave/db/world"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/sirupsen/logrus"
 )
@@ -76,12 +77,16 @@ func TestEngineCreateObjectCommitReplaysIdentically(t *testing.T) {
 			t.Fatal(err)
 		}
 		engineTx := &EngineTx{writeTx: NewTx(state)}
-		if _, err := engineTx.CreateObject(
-			ctx,
-			"replay/object",
-			&bucket.ObjectRef{BucketId: "replay-bucket"},
-		); err != nil {
-			t.Fatal(err)
+		{
+			createdObject, err := engineTx.CreateObject(
+				ctx,
+				"replay/object",
+				&bucket.ObjectRef{BucketId: "replay-bucket"},
+			)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 
 		var faultStore *kvtest.FaultStore
@@ -95,6 +100,7 @@ func TestEngineCreateObjectCommitReplaysIdentically(t *testing.T) {
 		commitStore.faultStore = nil
 
 		object, found, err := state.GetObject(ctx, "replay/object")
+		defer world.ReleaseObjectState(object)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -89,6 +89,7 @@ func TestTypedObjectResource(t *testing.T) {
 
 		objectKey := "test-untyped-object-" + t.Name()
 		obj, err := sdkTx.CreateObject(ctx, objectKey, &bucket.ObjectRef{})
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			sdkTx.Release()
 			t.Fatalf("CreateObject failed: %v", err)
@@ -110,6 +111,7 @@ func TestTypedObjectResource(t *testing.T) {
 
 		// Verify the object was created
 		obj2, found, err := readTx.GetObject(ctx, objectKey)
+		defer world.ReleaseObjectState(obj2)
 		if err != nil {
 			t.Fatalf("GetObject failed: %v", err)
 		}
@@ -134,9 +136,7 @@ func TestTypedObjectResource(t *testing.T) {
 		t.Logf("Correctly returned error for object without type: %v", err)
 
 		// Cleanup: release the object reference
-		if objRef, ok := obj2.(interface{ Release() }); ok {
-			objRef.Release()
-		}
+
 		_ = resClient // referenced for cleanup func
 	})
 
@@ -284,6 +284,7 @@ func TestTypedObjectResource(t *testing.T) {
 
 		// Verify the object was created
 		obj, found, err := readTx.GetObject(ctx, objectKey)
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			t.Fatalf("GetObject failed: %v", err)
 		}
@@ -414,6 +415,7 @@ func TestTypedObjectResource(t *testing.T) {
 			t.Fatalf("NewTransaction failed: %v", err)
 		}
 		obj, found, err := readTx.GetObject(ctx, objectKey)
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			readTx.Release()
 			t.Fatalf("GetObject failed: %v", err)
@@ -672,13 +674,19 @@ func TestSqlTypedObjectResourceFirstTransactionFromEmptyRoot(t *testing.T) {
 	defer tx.Discard(ctx)
 
 	const objectKey = "sql/resource-empty-root"
-	_, err = tx.CreateObject(ctx, objectKey, nil)
+	var createdObject world.ObjectState
+	createdObject, err = tx.CreateObject(ctx, objectKey, nil)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateObject(%s): %v", objectKey, err)
 	}
 	typeObjectKey := world_types.BuildTypeObjectKey(s4wave_sql_world.SqlDbTypeID)
-	if _, err := tx.CreateObject(ctx, typeObjectKey, nil); err != nil && !errors.Is(err, world.ErrObjectExists) {
-		t.Fatalf("CreateObject(%s): %v", typeObjectKey, err)
+	{
+		createdObject2, err := tx.CreateObject(ctx, typeObjectKey, nil)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil && !errors.Is(err, world.ErrObjectExists) {
+			t.Fatalf("CreateObject(%s): %v", typeObjectKey, err)
+		}
 	}
 	typeQuad := world.NewGraphQuadWithKeys(
 		objectKey,

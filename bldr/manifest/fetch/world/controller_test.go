@@ -237,8 +237,12 @@ func TestControllerRekeysUnsupportedHashReset(t *testing.T) {
 	badRef := &bucket.ObjectRef{
 		RootRef: block.NewBlockRef(hash.NewHash(hash.HashType(999), []byte{1, 2, 3})),
 	}
-	if _, err := ws.CreateObject(ctx, badManifestKey, badRef); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, err := ws.CreateObject(ctx, badManifestKey, badRef)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, badManifestKey, bldr_manifest_world.ManifestTypeID); err != nil {
 		t.Fatal(err)

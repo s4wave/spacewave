@@ -11,6 +11,7 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	resource_state "github.com/s4wave/spacewave/bldr/resource/state"
 	resource_testbed "github.com/s4wave/spacewave/core/resource/testbed"
+	"github.com/s4wave/spacewave/db/world"
 	s4wave_testbed "github.com/s4wave/spacewave/sdk/testbed"
 	s4wave_world "github.com/s4wave/spacewave/sdk/world"
 )
@@ -105,6 +106,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 	t.Run("GetEngineInfo", func(t *testing.T) {
 		f := setupRPCWorldFixture(ctx, t)
 		engineRef := f.createEngineRef(ctx, t)
+		defer engineRef.Release()
 
 		ec, _ := engineClient(t, engineRef)
 		infoResp, err := ec.GetEngineInfo(ctx, &s4wave_world.GetEngineInfoRequest{})
@@ -127,6 +129,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 	t.Run("WorldStateOperations", func(t *testing.T) {
 		f := setupRPCWorldFixture(ctx, t)
 		engineRef := f.createEngineRef(ctx, t)
+		defer engineRef.Release()
 
 		ec, _ := engineClient(t, engineRef)
 
@@ -238,6 +241,7 @@ func TestTestbedResourceServerViaRpc(t *testing.T) {
 	t.Run("WatchWorldStateViaTransaction", func(t *testing.T) {
 		f := setupRPCWorldFixture(ctx, t)
 		engineRef := f.createEngineRef(ctx, t)
+		defer engineRef.Release()
 
 		ec, engineSrpcClient := engineClient(t, engineRef)
 
@@ -387,6 +391,7 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 
 		objKey := "test-obj-" + t.Name()
 		obj, err := tx.CreateObject(ctx, objKey, nil)
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -425,7 +430,8 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 
 		objKey := "test-ws-obj-" + t.Name()
 
-		_, found, err := tx.GetObject(ctx, objKey)
+		objectState, found, err := tx.GetObject(ctx, objKey)
+		world.ReleaseObjectState(objectState)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -434,6 +440,7 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 		}
 
 		obj, err := tx.CreateObject(ctx, objKey, nil)
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -444,6 +451,7 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 		}
 
 		retrievedObj, found, err := tx.GetObject(ctx, objKey)
+		defer world.ReleaseObjectState(retrievedObj)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -464,7 +472,9 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 			t.Fatal("expected deleted=true")
 		}
 
-		_, found, err = tx.GetObject(ctx, objKey)
+		var objectState2 world.ObjectState
+		objectState2, found, err = tx.GetObject(ctx, objKey)
+		world.ReleaseObjectState(objectState2)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -487,6 +497,7 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 
 		objKey := "test-objstate-" + t.Name()
 		obj, err := tx.CreateObject(ctx, objKey, nil)
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -531,6 +542,7 @@ func TestTestbedResourceServerViaSDK(t *testing.T) {
 
 		objKey := "test-wait-" + t.Name()
 		obj, err := tx.CreateObject(ctx, objKey, nil)
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

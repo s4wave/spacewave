@@ -185,11 +185,11 @@ func inspectCanvasState(ctx context.Context, object *ObjectDescriptor, state *s4
 				continue
 			}
 			objectState, found, err := object.World.GetObject(ctx, key)
+			world.ReleaseObjectState(objectState)
 			if err != nil {
 				return nil, errors.Wrapf(err, "resolve Canvas graph reference %s", value)
 			}
 			if found {
-				world.ReleaseObjectState(objectState)
 				out.Dependencies = append(out.Dependencies, key)
 			}
 		}

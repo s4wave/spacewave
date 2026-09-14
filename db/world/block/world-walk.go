@@ -67,13 +67,13 @@ func (t *WorldState) WalkBlocks(ctx context.Context, resolve func(context.Contex
 				return false, err
 			}
 			object, found, err := t.GetObject(ctx, objectBlock.GetKey())
+			defer world.ReleaseObjectState(object)
 			if err != nil {
 				return false, err
 			}
 			if !found {
 				return false, world.ErrObjectNotFound
 			}
-			defer world.ReleaseObjectState(object)
 			objectRef, _, err := object.GetRootRef(ctx)
 			if err != nil || objectRef.GetRootRef().GetEmpty() {
 				return err == nil, err

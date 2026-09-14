@@ -33,11 +33,15 @@ func TestEngineReopensWorldCollectionAndDetachesResource(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = engine.Close() })
-	if _, _, err := world.CreateWorldObject(ctx, engine.State, "todos", func(cursor *block.Cursor) error {
-		cursor.SetBlock(kvtx_block.NewKeyValueStoreForWorkload(kvtx_block.WorkloadClassDefault), true)
-		return nil
-	}); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, _, err := world.CreateWorldObject(ctx, engine.State, "todos", func(cursor *block.Cursor) error {
+			cursor.SetBlock(kvtx_block.NewKeyValueStoreForWorkload(kvtx_block.WorkloadClassDefault), true)
+			return nil
+		})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, engine.State, "todos", kv_world.KvStoreTypeID); err != nil {
 		t.Fatal(err)

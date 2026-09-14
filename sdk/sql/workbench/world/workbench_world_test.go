@@ -367,10 +367,11 @@ func openSqlWorkbenchTestEngine(
 
 func createSqlDbObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
 	t.Helper()
-	_, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(sql_mysql.NewRootBlock(), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
@@ -387,10 +388,11 @@ func createSqlQueryObject(
 	query *s4wave_sql_query.Query,
 ) {
 	t.Helper()
-	_, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(query, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
@@ -411,10 +413,11 @@ func createSqlQueryResultObject(
 	result *s4wave_sql_query_result.QueryResult,
 ) {
 	t.Helper()
-	_, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(result, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
@@ -448,10 +451,11 @@ func createSqlWorkbenchObject(
 	workbench *s4wave_sql_workbench.Workbench,
 ) {
 	t.Helper()
-	_, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, rootRef, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(workbench, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}

@@ -109,7 +109,8 @@ func TestRemoteObjectStateApplyObjectOpPreservesExecutionClaim(t *testing.T) {
 	}
 
 	if err := world.ExecTransaction(ctx, engine, false, func(ctx context.Context, ws world.WorldState) error {
-		execution, _, err := forge_execution.LookupExecution(ctx, ws, objectKey)
+		execution, objectState, err := forge_execution.LookupExecution(ctx, ws, objectKey)
+		world.ReleaseObjectState(objectState)
 		if err != nil {
 			return err
 		}

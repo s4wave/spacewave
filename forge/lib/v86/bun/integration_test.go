@@ -91,6 +91,7 @@ func TestV86Execution(t *testing.T) {
 	rootfsTar := v86fsDir + "/rootfs.tar"
 	t.Setenv("V86FS_DIR", "")
 	rootfsObj := importV86RootfsTarForTest(t, ctx, tb, rootfsTar, "v86-test/rootfs")
+	defer world.ReleaseObjectState(rootfsObj)
 	yaml := `
 inputs:
   - name: rootfs
@@ -258,6 +259,7 @@ exec:
 	// Store stage A output as a world object so stage B can reference it.
 	stageARef := outValA.GetBucketRef()
 	stageAObj, err := ws.CreateObject(ctx, "stage-a-output", stageARef)
+	defer world.ReleaseObjectState(stageAObj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -32,32 +32,40 @@ func buildTaskWithPass(
 	target := &forge_target.Target{Exec: &forge_target.Exec{Disable: true}}
 	passKey := forge_task.NewPassKey(taskKey, 1)
 	ts := timestamp.Now()
-	if _, _, err := forge_task.CreateTaskWithTarget(
-		ctx,
-		tb.WorldState,
-		sender,
-		taskKey,
-		"tx-complete",
-		target,
-		"",
-		1,
-		ts,
-	); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, _, err := forge_task.CreateTaskWithTarget(
+			ctx,
+			tb.WorldState,
+			sender,
+			taskKey,
+			"tx-complete",
+			target,
+			"",
+			1,
+			ts,
+		)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
-	if _, _, err := forge_pass.CreatePassWithTarget(
-		ctx,
-		tb.WorldState,
-		sender,
-		passKey,
-		forge_target.NewValueSet(),
-		target.CloneVT(),
-		1,
-		1,
-		"",
-		ts,
-	); err != nil {
-		t.Fatal(err)
+	{
+		createdObject2, _, err := forge_pass.CreatePassWithTarget(
+			ctx,
+			tb.WorldState,
+			sender,
+			passKey,
+			forge_target.NewValueSet(),
+			target.CloneVT(),
+			1,
+			1,
+			"",
+			ts,
+		)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := tb.WorldState.SetGraphQuad(
 		ctx,
@@ -123,7 +131,8 @@ func TestTxCompleteConvertsFailedPassToFailedTask(t *testing.T) {
 		t.Fatalf("complete task: %v", err)
 	}
 
-	task, _, err := forge_task.LookupTask(ctx, tb.WorldState, taskKey)
+	task, objectState, err := forge_task.LookupTask(ctx, tb.WorldState, taskKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +171,8 @@ func TestTxCompleteRejectsSuccessOutsideChecking(t *testing.T) {
 		t.Fatal("completing an already complete task was accepted")
 	}
 
-	task, _, err := forge_task.LookupTask(ctx, tb.WorldState, taskKey)
+	task, objectState, err := forge_task.LookupTask(ctx, tb.WorldState, taskKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}

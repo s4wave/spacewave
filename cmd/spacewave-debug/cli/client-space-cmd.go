@@ -192,10 +192,11 @@ func (sa *SpaceArgs) RunPlugins(c *appcli.Context) error {
 		return errors.Wrap(err, "mount space contents")
 	}
 
-	contentsClient, err := sa.getResourceClient(ctx, contentsResp.GetResourceId())
+	contentsClient, releaseContents, err := sa.getResourceClient(ctx, contentsResp.GetResourceId())
 	if err != nil {
 		return errors.Wrap(err, "space contents client")
 	}
+	defer releaseContents()
 	contentsSvc := s4wave_space.NewSRPCSpaceContentsResourceServiceClient(contentsClient)
 
 	strm, err := contentsSvc.WatchState(ctx, &s4wave_space.WatchSpaceContentsStateRequest{})
@@ -243,6 +244,7 @@ func (sa *SpaceArgs) mountSpaceResource(ctx context.Context) (s4wave_space.SRPCS
 	rootRef := resClient.AccessRootResource()
 	root, err := s4wave_root.NewRoot(resClient, rootRef)
 	if err != nil {
+		rootRef.Release()
 		resClient.Release()
 		return nil, nil, errors.Wrap(err, "root resource")
 	}
@@ -322,10 +324,15 @@ func (sa *SpaceArgs) mountSpaceResource(ctx context.Context) (s4wave_space.SRPCS
 
 // getResourceClient gets an SRPC client for a resource ID using the resource
 // client opened by mountSpaceResource.
-func (sa *SpaceArgs) getResourceClient(ctx context.Context, resourceID uint32) (srpc.Client, error) {
+func (sa *SpaceArgs) getResourceClient(ctx context.Context, resourceID uint32) (srpc.Client, func(), error) {
 	if sa.resClient == nil {
-		return nil, errors.New("resource client not initialized")
+		return nil, nil, errors.New("resource client not initialized")
 	}
 	ref := sa.resClient.CreateResourceReference(resourceID)
-	return ref.GetClient()
+	client, err := ref.GetClient()
+	if err != nil {
+		ref.Release()
+		return nil, nil, err
+	}
+	return client, ref.Release, nil
 }

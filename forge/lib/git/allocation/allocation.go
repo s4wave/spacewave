@@ -159,6 +159,7 @@ func CreateOrReuse(
 	}
 
 	existing, found, err := ws.GetObject(ctx, args.ObjectKey)
+	defer world.ReleaseObjectState(existing)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -180,11 +181,12 @@ func CreateOrReuse(
 		return existingAlloc, args.ObjectKey, ref, err
 	}
 
-	_, rootRef, err := world.CreateWorldObject(ctx, ws, args.ObjectKey, func(bcs *block.Cursor) error {
+	createdObject, rootRef, err := world.CreateWorldObject(ctx, ws, args.ObjectKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(alloc, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return nil, "", nil, err
 	}

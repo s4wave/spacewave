@@ -176,6 +176,7 @@ func (r *GitRepoResource) GetTreeResource(ctx context.Context, req *s4wave_git.G
 		func(subCtx context.Context) (srpc.Invoker, *unixfs.FSHandle, func(), error) {
 			// Look up the git repo object in the world state.
 			objState, objFound, err := r.ws.GetObject(subCtx, r.objKey)
+			defer world.ReleaseObjectState(objState)
 			if err != nil {
 				return nil, nil, nil, err
 			}

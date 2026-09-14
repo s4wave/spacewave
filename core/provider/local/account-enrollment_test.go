@@ -469,8 +469,12 @@ func seedProviderReplicaPayload(ctx context.Context, t *testing.T, fixture *Prov
 		t.Fatal(err)
 	}
 	defer ws.Discard()
-	if _, err := ws.CreateObject(ctx, "payload", &bucket.ObjectRef{RootRef: root}); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, err := ws.CreateObject(ctx, "payload", &bucket.ObjectRef{RootRef: root})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, "payload", "test/replica-payload"); err != nil {
 		t.Fatal(err)

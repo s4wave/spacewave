@@ -18,10 +18,12 @@ func TestLookupPassReleasesObjectState(t *testing.T) {
 	defer wtb.Release()
 
 	const key = "forge/pass/lookup-release"
-	_, _, err = world.CreateWorldObject(ctx, wtb.WorldState, key, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, wtb.WorldState, key, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&Pass{PassState: State_PassState_PENDING}, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,10 +46,12 @@ func TestLookupPassReleasesObjectState(t *testing.T) {
 	}
 
 	const badKey = "forge/pass/lookup-release-bad"
-	_, _, err = world.CreateWorldObject(ctx, wtb.WorldState, badKey, func(bcs *block.Cursor) error {
+	var createdObject2 world.ObjectState
+	createdObject2, _, err = world.CreateWorldObject(ctx, wtb.WorldState, badKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&invalidPassBlock{}, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject2)
 	if err != nil {
 		t.Fatal(err)
 	}

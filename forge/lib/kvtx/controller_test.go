@@ -14,6 +14,8 @@ import (
 	target_json "github.com/s4wave/spacewave/forge/target/json"
 	"github.com/s4wave/spacewave/forge/testbed"
 	forge_value "github.com/s4wave/spacewave/forge/value"
+
+	"github.com/s4wave/spacewave/db/world"
 )
 
 const testYAML = `
@@ -89,6 +91,7 @@ func TestKvtx(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	testObj, err := ws.CreateObject(ctx, "test-blob", testBlob.GetBucketRef())
+	defer world.ReleaseObjectState(testObj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

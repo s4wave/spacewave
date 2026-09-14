@@ -20,6 +20,7 @@ func NewSchemaBlock() block.Block {
 // ReadSchemaRoot reads a SQL schema object's root.
 func ReadSchemaRoot(ctx context.Context, ws world.WorldState, objectKey string) (*Schema, error) {
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, err
 	}

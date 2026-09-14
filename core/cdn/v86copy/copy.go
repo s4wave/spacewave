@@ -139,7 +139,8 @@ func ensureCopiedWorldObject(
 	if objectKey == "" {
 		return bucket_lookup.ObjectCopyStats{}, nil
 	}
-	_, found, err := dst.GetObject(ctx, objectKey)
+	objectState, found, err := dst.GetObject(ctx, objectKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		return bucket_lookup.ObjectCopyStats{}, errors.Wrap(err, "probe destination object")
 	}
@@ -151,6 +152,7 @@ func ensureCopiedWorldObject(
 	}
 
 	srcObj, srcFound, err := src.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(srcObj)
 	if err != nil {
 		return bucket_lookup.ObjectCopyStats{}, errors.Wrap(err, "get source object")
 	}
@@ -187,8 +189,12 @@ func ensureCopiedWorldObject(
 	if err != nil {
 		return stats, errors.Wrap(err, "copy object blocks")
 	}
-	if _, err := dst.CreateObject(ctx, objectKey, dstRef); err != nil {
-		return stats, errors.Wrap(err, "create destination object")
+	{
+		createdObject, err := dst.CreateObject(ctx, objectKey, dstRef)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			return stats, errors.Wrap(err, "create destination object")
+		}
 	}
 	if err := ensureCopiedObjectType(ctx, src, dst, objectKey); err != nil {
 		return stats, err
@@ -251,6 +257,7 @@ func ensureCopiedObjectType(ctx context.Context, src, dst world.WorldState, obje
 // object exists and carries the V86Image type marker.
 func readCdnV86Image(ctx context.Context, ws world.WorldState, objKey string) (*s4wave_vm.V86Image, error) {
 	objState, found, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return nil, errors.Wrap(err, "get object")
 	}
@@ -334,7 +341,8 @@ func checkDstV86Image(
 	if dst.GetReadOnly() {
 		return false, errors.New("destination world state is read-only")
 	}
-	_, found, err := dst.GetObject(ctx, dstObjectKey)
+	objectState, found, err := dst.GetObject(ctx, dstObjectKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		return false, errors.Wrap(err, "probe destination object")
 	}

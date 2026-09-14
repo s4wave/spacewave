@@ -105,7 +105,8 @@ func (o *EntityUpdateOp) ApplyWorldOp(
 
 	// Link the entity to its domain information when available.
 	diKey := NewDomainInfoKey(domainID)
-	_, diExists, err := worldHandle.GetObject(ctx, diKey)
+	objectState, diExists, err := worldHandle.GetObject(ctx, diKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		return false, err
 	}

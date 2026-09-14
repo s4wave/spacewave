@@ -21,6 +21,8 @@ import (
 	unixfs_world_testbed "github.com/s4wave/spacewave/db/unixfs/world/testbed"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	"github.com/sirupsen/logrus"
+
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // buildDstBatchTestbed spins up a UnixFS-backed destination world and
@@ -67,6 +69,7 @@ func srcHandleFromFS(t *testing.T, srcFs fstest.MapFS) *unixfs.FSHandle {
 func readWorldUnixFSMetricFile(t *testing.T, ctx context.Context, wtb *world_testbed.Testbed, objKey, name string) ([]byte, *file.File, time.Duration) {
 	t.Helper()
 	obj, found, err := wtb.WorldState.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

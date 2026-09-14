@@ -383,16 +383,17 @@ func (r *ChatResource) readThread(ctx context.Context, ws world.WorldState, key 
 // writeThread creates or replaces one thread summary inside the caller's transaction.
 func (r *ChatResource) writeThread(ctx context.Context, ws world.WorldState, key string, thread *ChatThread) error {
 	object, found, err := ws.GetObject(ctx, key)
+	defer world.ReleaseObjectState(object)
 	if err != nil {
 		return err
 	}
 	if !found {
 		object, err = ws.CreateObject(ctx, key, nil)
+		defer world.ReleaseObjectState(object)
 		if err != nil {
 			return err
 		}
 	}
-	defer world.ReleaseObjectState(object)
 	_, _, err = world.AccessObjectState(ctx, object, true, func(cursor *block.Cursor) error {
 		cursor.SetBlock(thread, true)
 		return nil
@@ -403,13 +404,13 @@ func (r *ChatResource) writeThread(ctx context.Context, ws world.WorldState, key
 // writeChannel replaces channel metadata inside the caller's transaction.
 func (r *ChatResource) writeChannel(ctx context.Context, ws world.WorldState, channel *ChatChannel) error {
 	object, found, err := ws.GetObject(ctx, r.objectKey)
+	defer world.ReleaseObjectState(object)
 	if err != nil {
 		return err
 	}
 	if !found {
 		return world.ErrObjectNotFound
 	}
-	defer world.ReleaseObjectState(object)
 	_, _, err = world.AccessObjectState(ctx, object, true, func(cursor *block.Cursor) error {
 		cursor.SetBlock(channel, true)
 		return nil

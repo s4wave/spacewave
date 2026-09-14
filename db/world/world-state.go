@@ -286,6 +286,7 @@ func MustGetObject(ctx context.Context, w WorldStateObject, key string) (ObjectS
 		err = ErrObjectNotFound
 	}
 	if err != nil {
+		ReleaseObjectState(obj)
 		return nil, err
 	}
 	return obj, nil

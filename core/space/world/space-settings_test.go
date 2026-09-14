@@ -7,6 +7,7 @@ import (
 
 	space_world "github.com/s4wave/spacewave/core/space/world"
 	space_world_ops "github.com/s4wave/spacewave/core/space/world/ops"
+	"github.com/s4wave/spacewave/db/world"
 	world_testbed "github.com/s4wave/spacewave/db/world/testbed"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_canvas_world "github.com/s4wave/spacewave/sdk/canvas/world"
@@ -94,7 +95,8 @@ func TestSetSpaceSettingsKeybindingOverridesPreservesSettingsFields(t *testing.T
 		t.Fatalf("ApplyWorldOp keybinding settings failed: %v", err)
 	}
 
-	settings, _, err := space_world.LookupSpaceSettings(ctx, tb.WorldState)
+	settings, objectState, err := space_world.LookupSpaceSettings(ctx, tb.WorldState)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +163,8 @@ func TestSetSpaceSettingsKeybindingOverridesMergesConcurrentSurfaces(t *testing.
 		t.Fatal(err)
 	}
 
-	got, _, err := space_world.LookupSpaceSettings(ctx, tb.WorldState)
+	got, objectState, err := space_world.LookupSpaceSettings(ctx, tb.WorldState)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,8 +197,12 @@ func TestLookupSpaceIndexObjectTypeFollowsDurableObjectMetadata(t *testing.T) {
 		{objectPath: "layout", indexPath: "layout", typeID: s4wave_layout_world.ObjectLayoutTypeID},
 	}
 	for _, indexObject := range indexObjects {
-		if _, err := tb.WorldState.CreateObject(ctx, indexObject.objectPath, nil); err != nil {
-			t.Fatalf("CreateObject(%q) failed: %v", indexObject.objectPath, err)
+		{
+			createdObject, err := tb.WorldState.CreateObject(ctx, indexObject.objectPath, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatalf("CreateObject(%q) failed: %v", indexObject.objectPath, err)
+			}
 		}
 		if err := world_types.SetObjectType(ctx, tb.WorldState, indexObject.objectPath, indexObject.typeID); err != nil {
 			t.Fatalf("SetObjectType(%q) failed: %v", indexObject.objectPath, err)

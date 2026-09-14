@@ -190,11 +190,15 @@ func TestTransaction(t *testing.T) {
 
 // createKvStoreObjectIn creates a typed kv/store object in the supplied World state.
 func createKvStoreObjectIn(ctx context.Context, ws world.WorldState, objectKey string) error {
-	if _, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(cursor *block.Cursor) error {
-		cursor.SetBlock(kvtx_block.NewKeyValueStoreForWorkload(kvtx_block.WorkloadClassDefault), true)
-		return nil
-	}); err != nil {
-		return err
+	{
+		createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(cursor *block.Cursor) error {
+			cursor.SetBlock(kvtx_block.NewKeyValueStoreForWorkload(kvtx_block.WorkloadClassDefault), true)
+			return nil
+		})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			return err
+		}
 	}
 	return world_types.SetObjectType(ctx, ws, objectKey, kv_world.KvStoreTypeID)
 }

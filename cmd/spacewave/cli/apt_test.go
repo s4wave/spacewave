@@ -128,6 +128,7 @@ func TestAptImportDebCommitsAndReadsBack(t *testing.T) {
 
 	packageKey := "apt/repos/stable/packages/busybox"
 	objectState, found, err := readTx.GetObject(ctx, packageKey)
+	defer world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,10 +210,14 @@ func TestAptImportDebInvalidPackageAborts(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
-	if _, found, err := readTx.GetObject(ctx, packageKey); err != nil {
-		t.Fatal(err)
-	} else if found {
-		t.Fatal("invalid import committed a package object")
+	{
+		objectState, found, err := readTx.GetObject(ctx, packageKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err)
+		} else if found {
+			t.Fatal("invalid import committed a package object")
+		}
 	}
 	quads, err := readTx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(
 		"apt/repos/stable",
@@ -260,10 +265,14 @@ func TestAptImportDebWrapsCommitError(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
-	if _, found, err := readTx.GetObject(ctx, "apt/repos/stable/packages/busybox"); err != nil {
-		t.Fatal(err)
-	} else if found {
-		t.Fatal("failed commit made package visible")
+	{
+		objectState, found, err := readTx.GetObject(ctx, "apt/repos/stable/packages/busybox")
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err)
+		} else if found {
+			t.Fatal("failed commit made package visible")
+		}
 	}
 }
 

@@ -30,6 +30,7 @@ func NewQueryBlock() block.Block {
 // ReadQueryRoot reads a SQL query object's root.
 func ReadQueryRoot(ctx context.Context, ws world.WorldState, objectKey string) (*Query, error) {
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, err
 	}

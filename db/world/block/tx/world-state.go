@@ -176,6 +176,7 @@ func (w *WorldState) GetObject(ctx context.Context, key string) (world.ObjectSta
 
 	objs, objsFound, err := w.world.GetObject(ctx, key)
 	if err != nil || !objsFound {
+		world.ReleaseObjectState(objs)
 		return nil, false, err
 	}
 	return NewObjectState(w, key, objs), true, nil
@@ -211,6 +212,7 @@ func (w *WorldState) CreateObject(ctx context.Context, key string, rootRef *buck
 
 	obj, err := w.world.CreateObject(ctx, key, rootRef)
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 
@@ -238,12 +240,14 @@ func (w *WorldState) RenameObject(ctx context.Context, oldKey, newKey string, de
 
 	obj, err := w.world.RenameObject(ctx, oldKey, newKey, descendants)
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 
 	for _, rename := range renames {
 		t, err := NewTxRenameObject(rename.oldKey, rename.newKey)
 		if err != nil {
+			world.ReleaseObjectState(obj)
 			return nil, err
 		}
 		w.txBatch.Txs = append(w.txBatch.Txs, t)

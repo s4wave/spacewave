@@ -32,7 +32,8 @@ func TestControllerEnsuresManifestStoreOnPluginDemand(t *testing.T) {
 		false,
 	))
 	state := world.NewEngineWorldState(tb.BusEngine, false)
-	_, exists, err := state.GetObject(ctx, objectKey)
+	objectState, exists, err := state.GetObject(ctx, objectKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatalf("read manifest store before plugin demand: %v", err)
 	}

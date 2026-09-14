@@ -223,6 +223,7 @@ func TestForwardRemoteFramesReportsClosedAfterClientCloseAndExit(t *testing.T) {
 		t.Fatal(err)
 	}
 	objState, found, err := tb.WorldState.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		t.Fatal(err)
 	}

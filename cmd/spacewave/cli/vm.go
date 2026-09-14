@@ -440,6 +440,7 @@ func readV86VM(c *cli.Context, statePath string, sessionIdx uint32, spaceID, key
 func readV86VMFromTx(c *cli.Context, tx world.WorldState, key string) (*v86VMCLIEntry, error) {
 	ctx := c.Context
 	obj, found, err := tx.GetObject(ctx, key)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, errors.Wrap(err, "get VM")
 	}
@@ -598,10 +599,14 @@ func createV86VM(
 		return "", errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
-	if _, found, err := tx.GetObject(ctx, vmKey); err != nil {
-		return "", errors.Wrap(err, "probe destination VM")
-	} else if found {
-		return "", errors.Errorf("destination VM %q already exists", vmKey)
+	{
+		objectState, found, err := tx.GetObject(ctx, vmKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			return "", errors.Wrap(err, "probe destination VM")
+		} else if found {
+			return "", errors.Errorf("destination VM %q already exists", vmKey)
+		}
 	}
 	op := s4wave_vm.NewCreateVmV86Op(vmKey, name, args.imageObjectKey, time.Now())
 	op.Config = &s4wave_vm.V86Config{
@@ -798,10 +803,14 @@ func importV86ImageTar(
 		return "", errors.Wrap(err, "new transaction")
 	}
 	defer tx.Discard()
-	if _, found, err := tx.GetObject(ctx, dstKey); err != nil {
-		return "", errors.Wrap(err, "probe destination")
-	} else if found {
-		return "", errors.Errorf("destination image %q already exists", dstKey)
+	{
+		objectState, found, err := tx.GetObject(ctx, dstKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			return "", errors.Wrap(err, "probe destination")
+		} else if found {
+			return "", errors.Errorf("destination image %q already exists", dstKey)
+		}
 	}
 	ts := time.Now()
 	edges := make(map[string]string, 5)
@@ -917,6 +926,7 @@ func importV86SingleFile(ctx context.Context, tx world.WorldState, key, name, pa
 		return "", errors.Wrap(err, "fs-init "+name)
 	}
 	obj, err := world.MustGetObject(ctx, tx, key)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return "", err
 	}
@@ -1032,6 +1042,7 @@ func withVmWorldReadTx(
 func readV86ImageFromTx(c *cli.Context, tx world.WorldState, key string) (*v86ImageCLIEntry, error) {
 	ctx := c.Context
 	obj, found, err := tx.GetObject(ctx, key)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, errors.Wrap(err, "get v86 image")
 	}

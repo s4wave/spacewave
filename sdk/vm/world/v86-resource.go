@@ -126,21 +126,19 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 		return nil
 	}
 
+	objState, found, err := r.ws.GetObject(ctx, r.objectKey)
+	defer world.ReleaseObjectState(objState)
+	if err != nil {
+		return err
+	}
+	if !found {
+		releaseRuntime()
+		return emit(s4wave_process.ExecutionState_ExecutionState_STOPPED, "")
+	}
+
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
-		}
-
-		objState, found, err := r.ws.GetObject(ctx, r.objectKey)
-		if err != nil {
-			return err
-		}
-		if !found {
-			releaseRuntime()
-			if err := emit(s4wave_process.ExecutionState_ExecutionState_STOPPED, ""); err != nil {
-				return err
-			}
-			return nil
 		}
 
 		_, rev, err := objState.GetRootRef(ctx)
@@ -327,6 +325,7 @@ func (r *v86Resource) Execute(req *s4wave_process.ExecuteRequest, stream s4wave_
 
 func (r *v86Resource) ensureRuntimeGeneration(ctx context.Context) (uint64, error) {
 	objState, found, err := r.ws.GetObject(ctx, r.objectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return 0, err
 	}
@@ -375,6 +374,7 @@ func (r *v86Resource) updateObservedState(
 	errorMessage string,
 ) (changed bool, accepted bool, err error) {
 	objState, found, err := r.ws.GetObject(ctx, r.objectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return false, false, err
 	}
@@ -431,6 +431,7 @@ func (r *v86Resource) applyRuntimeStatus(
 	}
 
 	objState, found, err := r.ws.GetObject(ctx, r.objectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return nil, err
 	}

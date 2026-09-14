@@ -263,8 +263,12 @@ func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, type
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ws.CreateObject(ctx, key, root); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, err := ws.CreateObject(ctx, key, root)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, key, typeID); err != nil {
 		t.Fatal(err)
@@ -273,9 +277,10 @@ func setObject(t *testing.T, ctx context.Context, ws world.WorldState, key, type
 
 func setCanvasState(t *testing.T, ctx context.Context, ws world.WorldState, key string, state *s4wave_canvas.CanvasState) {
 	t.Helper()
-	_, _, err := world.CreateWorldObject(ctx, ws, key, func(blocks *block.Cursor) error {
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, key, func(blocks *block.Cursor) error {
 		return s4wave_canvas.WriteCanvasState(ctx, blocks, nil, state)
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,8 +303,12 @@ func setObjectBlock(t *testing.T, ctx context.Context, ws world.WorldState, key,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ws.CreateObject(ctx, key, root); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, err := ws.CreateObject(ctx, key, root)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, key, typeID); err != nil {
 		t.Fatal(err)

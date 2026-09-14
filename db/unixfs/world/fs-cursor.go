@@ -202,6 +202,7 @@ func (f *FSCursor) GetProxyCursor(ctx context.Context) (unixfs.FSCursor, error) 
 
 		// lookup the object state
 		objState, objFound, err := f.ws.GetObject(ctx, f.objKey)
+		defer world.ReleaseObjectState(objState)
 		if !objFound {
 			err = unixfs_errors.ErrNotExist
 		}

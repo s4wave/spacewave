@@ -45,13 +45,16 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 		return err
 	}
 	oref1 := &bucket.ObjectRef{BucketId: "test-1"}
-	_, err = ws.CreateObject(ctx, objKey, oref1)
+	var createdObject world.ObjectState
+	createdObject, err = ws.CreateObject(ctx, objKey, oref1)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return errors.Wrapf(err, "create object: %s", objKey)
 	}
 
 	// Read back the created object and verify its root reference.
 	objState, err := world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return errors.Wrapf(err, "get object: %s", objKey)
 	}
@@ -85,6 +88,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	defer ws.Discard()
 
 	objState, err = world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return errors.Wrapf(err, "get object: %s", objKey)
 	}
@@ -118,6 +122,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	// Update the object reference and commit the writable transaction.
 	objState2, err := world.MustGetObject(ctx, ws2, objKey)
+	defer world.ReleaseObjectState(objState2)
 	if err != nil {
 		ws2.Discard()
 		return err
@@ -147,6 +152,7 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 			return rerr
 		}
 		objState3, rerr := world.MustGetObject(ctx, ws3, objKey)
+		defer world.ReleaseObjectState(objState3)
 		if rerr == nil {
 			var oref3 *bucket.ObjectRef
 			oref3, _, rerr = objState3.GetRootRef(ctx)
@@ -168,7 +174,9 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 
 	// Add a second object and connect it with a graph quad.
 	obj2Key := "test-object-2"
-	_, err = ws2.CreateObject(ctx, obj2Key, oref1)
+	var createdObject2 world.ObjectState
+	createdObject2, err = ws2.CreateObject(ctx, obj2Key, oref1)
+	world.ReleaseObjectState(createdObject2)
 	if err != nil {
 		ws2.Discard()
 		return err
@@ -466,10 +474,11 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	// Recreate the object with a blob payload.
-	_, bref, err := world.CreateWorldObject(ctx, ws2, objKey, func(bcs *block.Cursor) error {
+	createdObject3, bref, err := world.CreateWorldObject(ctx, ws2, objKey, func(bcs *block.Cursor) error {
 		_, berr := blob.BuildBlobWithBytes(ctx, blobTestData, bcs)
 		return berr
 	})
+	world.ReleaseObjectState(createdObject3)
 	if err == nil {
 		err = ws2.Commit(ctx)
 	} else {
@@ -522,7 +531,8 @@ func TestWorldEngine_Basic(ctx context.Context, le *logrus.Entry, eng world.Engi
 	}
 
 	for k, ref := range testObjs {
-		_, err := ws2.CreateObject(ctx, k, ref)
+		createdObject4, err := ws2.CreateObject(ctx, k, ref)
+		world.ReleaseObjectState(createdObject4)
 		if err != nil {
 			ws2.Discard()
 			return err

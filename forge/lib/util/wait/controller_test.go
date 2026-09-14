@@ -60,11 +60,13 @@ func TestUtilWait(t *testing.T) {
 	go func() {
 		<-time.After(time.Second)
 		tb.Logger.Info("creating input object for test: input/example")
-		_, _, _ = world.CreateWorldObject(ctx, tb.WorldState, "input/example", func(bcs *block.Cursor) error {
+		var createdObject world.ObjectState
+		createdObject, _, _ = world.CreateWorldObject(ctx, tb.WorldState, "input/example", func(bcs *block.Cursor) error {
 			bsl := []byte("hello world!")
 			bcs.SetBlock(byteslice.NewByteSlice(&bsl), true)
 			return nil
 		})
+		world.ReleaseObjectState(createdObject)
 		setInputObject.Store(true)
 	}()
 

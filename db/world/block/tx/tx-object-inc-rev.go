@@ -69,6 +69,7 @@ func (t *TxObjectIncRev) ExecuteTx(
 
 	// get the object
 	obj, err := world.MustGetObject(ctx, worldInstance, t.GetObjectKey())
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return false, err
 	}

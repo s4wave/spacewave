@@ -20,6 +20,7 @@ import (
 func TestEngineCommit(t *testing.T) {
 	ctx := context.Background()
 	ws, objState, oldRef := newEngineTestState(t, ctx, "repo/commit")
+	defer world.ReleaseObjectState(objState)
 
 	eng := NewEngine(ctx, ws, objState)
 	tx, err := eng.NewTransaction(ctx, true)
@@ -63,6 +64,7 @@ func TestEngineCommit(t *testing.T) {
 func TestEngineDiscard(t *testing.T) {
 	ctx := context.Background()
 	ws, objState, oldRef := newEngineTestState(t, ctx, "repo/discard")
+	defer world.ReleaseObjectState(objState)
 
 	eng := NewEngine(ctx, ws, objState)
 	tx, err := eng.NewTransaction(ctx, true)
@@ -100,6 +102,7 @@ func TestEngineDiscard(t *testing.T) {
 func TestEngineChangeCb(t *testing.T) {
 	ctx := context.Background()
 	ws, objState, _ := newEngineTestState(t, ctx, "repo/change-cb")
+	defer world.ReleaseObjectState(objState)
 
 	eng := NewEngine(ctx, ws, objState)
 	changeCh := make(chan struct{}, 1)
@@ -136,7 +139,8 @@ func TestEngineChangeCb(t *testing.T) {
 
 func TestOpenRepoFSCursorWriteCapability(t *testing.T) {
 	ctx := context.Background()
-	ws, _, _ := newEngineTestState(t, ctx, "repo/cursor-capability")
+	ws, objectState, _ := newEngineTestState(t, ctx, "repo/cursor-capability")
+	world.ReleaseObjectState(objectState)
 
 	readOnlyCursor, err := OpenRepoFSCursor(ctx, ws, "repo/cursor-capability", false)
 	if err != nil {

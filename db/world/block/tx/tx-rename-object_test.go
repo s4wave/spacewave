@@ -37,11 +37,19 @@ func TestWorldState_RenameObject(t *testing.T) {
 	oldKey := "tx-rename-old"
 	newKey := "tx-rename-new"
 	otherKey := "tx-rename-other"
-	if _, err := world_block.BuildMockObject(ctx, ws, oldKey); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := world_block.BuildMockObject(ctx, ws, oldKey)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := world_block.BuildMockObject(ctx, ws, otherKey); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := world_block.BuildMockObject(ctx, ws, otherKey)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	oldValue := world.KeyToGraphValue(oldKey).String()
 	newValue := world.KeyToGraphValue(newKey).String()
@@ -62,8 +70,12 @@ func TestWorldState_RenameObject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, err := forkedTx.RenameObject(ctx, oldKey, newKey, false); err != nil {
-		t.Fatal(err.Error())
+	{
+		objectState, err := forkedTx.RenameObject(ctx, oldKey, newKey, false)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	txBatch := forkedTx.GetTxBatch()
 	if len(txBatch.GetTxs()) != 1 {
@@ -86,15 +98,23 @@ func TestWorldState_RenameObject(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if _, found, err := ws.GetObject(ctx, oldKey); err != nil {
-		t.Fatal(err.Error())
-	} else if found {
-		t.Fatalf("expected old key %q to be absent", oldKey)
+	{
+		objectState2, found, err := ws.GetObject(ctx, oldKey)
+		world.ReleaseObjectState(objectState2)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else if found {
+			t.Fatalf("expected old key %q to be absent", oldKey)
+		}
 	}
-	if _, found, err := ws.GetObject(ctx, newKey); err != nil {
-		t.Fatal(err.Error())
-	} else if !found {
-		t.Fatalf("expected new key %q to exist", newKey)
+	{
+		objectState3, found, err := ws.GetObject(ctx, newKey)
+		world.ReleaseObjectState(objectState3)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else if !found {
+			t.Fatalf("expected new key %q to exist", newKey)
+		}
 	}
 	oldQuads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuad(oldValue, "", "", ""), 0)
 	if err != nil {
@@ -135,8 +155,12 @@ func TestWorldState_RenameObjectDescendants(t *testing.T) {
 	oldKeys := []string{"repo-1", "repo-1/workdir", "repo-1/worktree"}
 	newKeys := []string{"myrepo", "myrepo/workdir", "myrepo/worktree"}
 	for _, key := range oldKeys {
-		if _, err := world_block.BuildMockObject(ctx, ws, key); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := world_block.BuildMockObject(ctx, ws, key)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	if err := ws.Commit(ctx); err != nil {
@@ -152,8 +176,12 @@ func TestWorldState_RenameObjectDescendants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, err := forkedTx.RenameObject(ctx, oldKeys[0], newKeys[0], true); err != nil {
-		t.Fatal(err.Error())
+	{
+		objectState, err := forkedTx.RenameObject(ctx, oldKeys[0], newKeys[0], true)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	txBatch := forkedTx.GetTxBatch()
 	if len(txBatch.GetTxs()) != len(oldKeys) {
@@ -173,17 +201,25 @@ func TestWorldState_RenameObjectDescendants(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	for _, key := range oldKeys {
-		if _, found, err := ws.GetObject(ctx, key); err != nil {
-			t.Fatal(err.Error())
-		} else if found {
-			t.Fatalf("expected old key %q to be absent", key)
+		{
+			objectState2, found, err := ws.GetObject(ctx, key)
+			world.ReleaseObjectState(objectState2)
+			if err != nil {
+				t.Fatal(err.Error())
+			} else if found {
+				t.Fatalf("expected old key %q to be absent", key)
+			}
 		}
 	}
 	for _, key := range newKeys {
-		if _, found, err := ws.GetObject(ctx, key); err != nil {
-			t.Fatal(err.Error())
-		} else if !found {
-			t.Fatalf("expected new key %q to exist", key)
+		{
+			objectState3, found, err := ws.GetObject(ctx, key)
+			world.ReleaseObjectState(objectState3)
+			if err != nil {
+				t.Fatal(err.Error())
+			} else if !found {
+				t.Fatalf("expected new key %q to exist", key)
+			}
 		}
 	}
 }

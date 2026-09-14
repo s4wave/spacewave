@@ -113,6 +113,7 @@ func TestWorldOpRegistryBridgeControllerAppliesPluginWorldAndObjectOps(t *testin
 		t.Fatal(err)
 	}
 	obj, err := objectTx.CreateObject(ctx, "test/object-op-target", nil)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		objectTx.Discard()
 		t.Fatalf("CreateObject: %v", err)
@@ -214,8 +215,12 @@ func assertWorldObjectExists(t *testing.T, ctx context.Context, engine world.Eng
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
-	if _, err := world.MustGetObject(ctx, readTx, key); err != nil {
-		t.Fatalf("object %q was not committed through attached world state: %v", key, err)
+	{
+		objectState, err := world.MustGetObject(ctx, readTx, key)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatalf("object %q was not committed through attached world state: %v", key, err)
+		}
 	}
 }
 
@@ -226,8 +231,12 @@ func assertWorldObjectMissing(t *testing.T, ctx context.Context, engine world.En
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
-	if _, err := world.MustGetObject(ctx, readTx, key); err == nil {
-		t.Fatalf("object %q exists after failed validation", key)
+	{
+		objectState, err := world.MustGetObject(ctx, readTx, key)
+		world.ReleaseObjectState(objectState)
+		if err == nil {
+			t.Fatalf("object %q exists after failed validation", key)
+		}
 	}
 }
 
@@ -239,6 +248,7 @@ func assertObjectRevAtLeast(t *testing.T, ctx context.Context, engine world.Engi
 	}
 	defer readTx.Discard()
 	obj, err := world.MustGetObject(ctx, readTx, key)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("object %q was not committed: %v", key, err)
 	}
@@ -258,12 +268,13 @@ func assertObjectSettingsIndexPath(t *testing.T, ctx context.Context, engine wor
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
-	settings, _, err := world.LookupObject[*space_world.SpaceSettings](
+	settings, objectState, err := world.LookupObject[*space_world.SpaceSettings](
 		ctx,
 		readTx,
 		key,
 		space_world.NewSpaceSettingsBlock,
 	)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatalf("LookupObject(%q): %v", key, err)
 	}

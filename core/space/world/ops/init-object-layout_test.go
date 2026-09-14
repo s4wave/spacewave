@@ -45,7 +45,8 @@ func TestInitObjectLayoutCreatesFilesTab(t *testing.T) {
 		t.Fatalf("object type = %q, want %q", objectType, s4wave_layout_world.ObjectLayoutTypeID)
 	}
 
-	layout, _, err := s4wave_layout_world.LookupObjectLayout(ctx, ws, objKey)
+	layout, objectState, err := s4wave_layout_world.LookupObjectLayout(ctx, ws, objKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}

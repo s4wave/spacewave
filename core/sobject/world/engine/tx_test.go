@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/core/sobject"
 	"github.com/s4wave/spacewave/db/coord"
+	"github.com/s4wave/spacewave/db/world"
 	world_block_tx "github.com/s4wave/spacewave/db/world/block/tx"
 )
 
@@ -80,8 +81,12 @@ func TestWriteTransactionRefreshesAcceptedBase(t *testing.T) {
 	if found, err := tx.HasObject(ctx, "remote-object"); err != nil || !found {
 		t.Fatalf("write did not refresh accepted state: found=%v, err=%v", found, err)
 	}
-	if _, err := tx.CreateObject(ctx, "local-object", head.GetHeadRef()); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, err := tx.CreateObject(ctx, "local-object", head.GetHeadRef())
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Accept the submitted operation through replay, preserving the remote write.
@@ -136,8 +141,12 @@ func TestWriteTransactionRetainsSharedObjectBase(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tx.Discard()
-	if _, err := tx.CreateObject(ctx, "local-object", head.GetHeadRef()); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, err := tx.CreateObject(ctx, "local-object", head.GetHeadRef())
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Change authority before commit and require rejection before submission.

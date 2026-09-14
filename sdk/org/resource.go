@@ -113,6 +113,7 @@ func (r *OrgResource) watchOrgWorld(ctx context.Context) error {
 
 		objState, found, err := r.ws.GetObject(ctx, r.objKey)
 		if err != nil {
+			world.ReleaseObjectState(objState)
 			r.setWatchError(err)
 			return err
 		}

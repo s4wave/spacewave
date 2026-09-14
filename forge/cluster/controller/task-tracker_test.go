@@ -45,7 +45,8 @@ func TestTaskTrackerRetriesTransientWorldError(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = forge_job.CreateJobWithTasks(
+	var createdObject world.ObjectState
+	createdObject, _, err = forge_job.CreateJobWithTasks(
 		ctx,
 		tb.WorldState,
 		peerID,
@@ -56,6 +57,7 @@ func TestTaskTrackerRetriesTransientWorldError(t *testing.T) {
 		peerID,
 		timestamp.Now(),
 	)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +93,8 @@ func TestTaskTrackerRetriesTransientWorldError(t *testing.T) {
 			if err != nil {
 				return waitForChanges, err
 			}
-			job, _, err := forge_job.LookupJob(ctx, ws, jobKey)
+			job, objectState, err := forge_job.LookupJob(ctx, ws, jobKey)
+			world.ReleaseObjectState(objectState)
 			if err != nil {
 				return waitForChanges, err
 			}

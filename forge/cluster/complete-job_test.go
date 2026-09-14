@@ -28,10 +28,14 @@ func completeJobTestSetup(t *testing.T, ws world.WorldState, peerID net_peer.ID)
 	}
 
 	jobKey := "job/test-job"
-	if _, _, err := forge_job.CreateJobWithTasks(ctx, ws, peerID, jobKey, map[string]*forge_target.Target{
-		"task-a": {Exec: &forge_target.Exec{Disable: true}},
-	}, peerID, timestamp.Now()); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, _, err := forge_job.CreateJobWithTasks(ctx, ws, peerID, jobKey, map[string]*forge_target.Target{
+			"task-a": {Exec: &forge_target.Exec{Disable: true}},
+		}, peerID, timestamp.Now())
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	taskKey := forge_job.NewJobTaskKey(jobKey, "task-a")
 
@@ -56,6 +60,7 @@ func setTaskResult(t *testing.T, ws world.WorldState, taskKey string, res *forge
 			return err
 		}
 		tgtObj, err := world.MustGetObject(ctx, ws, forge_task.NewTargetKey(taskKey))
+		defer world.ReleaseObjectState(tgtObj)
 		if err != nil {
 			return err
 		}

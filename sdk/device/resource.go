@@ -99,6 +99,7 @@ func (r *DeviceResource) AccessCheckoutRoot(ctx context.Context, req *AccessChec
 		stateWS = accessWS
 	}
 	objState, found, err := stateWS.GetObject(ctx, r.objKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return nil, err
 	}

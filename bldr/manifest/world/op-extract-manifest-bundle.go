@@ -73,7 +73,8 @@ func (o *ExtractManifestBundleOp) ApplyWorldOp(
 	sender peer.ID,
 ) (sysErr bool, err error) {
 	// store the object for the manifest
-	_, _, _, err = ExtractManifestBundle(ctx, ws, sender, o.GetObjectKey(), o.GetManifestBundle())
+	obj, _, _, err := ExtractManifestBundle(ctx, ws, sender, o.GetObjectKey(), o.GetManifestBundle())
+	world.ReleaseObjectState(obj)
 	if err != nil {
 		return false, err
 	}

@@ -81,10 +81,12 @@ func (o *CreateWizardObjectOp) ApplyWorldOp(
 		Name:            o.GetName(),
 		ConfigData:      o.GetInitialConfigData(),
 	}
-	_, _, err = world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(state, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}

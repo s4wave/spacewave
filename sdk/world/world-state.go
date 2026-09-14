@@ -116,7 +116,12 @@ func (ws *WorldState) CreateObject(ctx context.Context, key string, rootRef *buc
 	}
 
 	objRef := ws.client.CreateResourceReference(resp.ResourceId)
-	return NewObjectState(ws.client, objRef, resp.ObjectKey)
+	obj, err := NewObjectState(ws.client, objRef, resp.ObjectKey)
+	if err != nil {
+		objRef.Release()
+		return nil, err
+	}
+	return obj, nil
 }
 
 // GetObject retrieves an object from the world by its key.

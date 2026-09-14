@@ -50,7 +50,8 @@ func (o *UpdateBlockStoreStateOp) ApplyWorldOp(
 		bstoreRef.GetProviderResourceRef().GetId(),
 	)
 	if o.GetIfNotExists() {
-		_, exists, err := worldHandle.GetObject(ctx, objKey)
+		objectState, exists, err := worldHandle.GetObject(ctx, objKey)
+		world.ReleaseObjectState(objectState)
 		if err != nil {
 			return false, err
 		}

@@ -101,6 +101,7 @@ func TestConnectTerminalOpensSshHostSession(t *testing.T) {
 				t.Fatalf("create Terminal: %v", err)
 			}
 			objState, found, err := tb.WorldState.GetObject(ctx, "terminal/prod-ssh")
+			defer world.ReleaseObjectState(objState)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -203,6 +204,7 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 		t.Fatalf("create Terminal: %v", err)
 	}
 	objState, found, err := tb.WorldState.GetObject(ctx, "terminal/prod-ssh")
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,6 +250,7 @@ func TestConnectTerminalChallengesAndRemembersAcceptedUnknownSshHostKey(t *testi
 	}
 
 	sshHostObj, found, err := tb.WorldState.GetObject(ctx, "hosts/prod")
+	defer world.ReleaseObjectState(sshHostObj)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -321,6 +324,7 @@ func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T)
 		t.Fatalf("create Terminal: %v", err)
 	}
 	objState, found, err := tb.WorldState.GetObject(ctx, "terminal/prod-ssh")
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -353,6 +357,7 @@ func TestConnectTerminalRejectsUnknownSshHostKeyWithoutRemembering(t *testing.T)
 	}
 
 	sshHostObj, found, err := tb.WorldState.GetObject(ctx, "hosts/prod")
+	defer world.ReleaseObjectState(sshHostObj)
 	if err != nil {
 		t.Fatal(err)
 	}

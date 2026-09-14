@@ -70,6 +70,8 @@ linters:
     gosec:
       excludes:
         - G306
+        # Review integer bounds separately; conversions alone are too broad a signal.
+        - G115
     importas:
       no-unaliased: true
     custom:
@@ -80,15 +82,20 @@ linters:
           check-paths: true
           resources:
             - type: github.com/s4wave/spacewave/db/world.ObjectState
+              nil-on-false-functions:
+                - github.com/s4wave/spacewave/db/world.WorldStateObject.GetObject
+                - github.com/s4wave/spacewave/db/world/block.WorldState.GetObject
               consumers:
                 - github.com/s4wave/spacewave/db/world.ReleaseObjectState:0
-                - github.com/s4wave/spacewave/core/resource/world.NewObjectStateResource:2
+                - github.com/s4wave/spacewave/sdk/git/repofs.newRepoFSCursor:1
                 - github.com/s4wave/spacewave/db/world/block.NewTxObjectState:2
                 - github.com/s4wave/spacewave/db/world/block/tx.NewObjectState:2
                 - github.com/s4wave/spacewave/db/world/vlogger.NewObjectState:1
+              success-consumers:
+                - github.com/s4wave/spacewave/bldr/resource/server.ResourceClientContext.AddResource:1
             - type: github.com/s4wave/spacewave/bldr/resource/client.ResourceRef
               release-methods: [Release]
-              consumers:
+              success-consumers:
                 - github.com/s4wave/spacewave/sdk/root.NewRoot:1
                 - github.com/s4wave/spacewave/sdk/session.NewSession:1
                 - github.com/s4wave/spacewave/sdk/world.NewEngine:1
@@ -105,6 +112,8 @@ linters:
                 - github.com/s4wave/spacewave/sdk/provider/spacewave.NewSpacewaveProvider:1
                 - github.com/s4wave/spacewave/sdk/bucket/lookup.NewCursor:1
               borrowed:
+                # The returned engine and cleanup own this view of their reference.
+                - github.com/s4wave/spacewave/cmd/spacewave/cli.sdkClient.accessWorldEngineWithRef
                 - github.com/s4wave/spacewave/sdk/root.Root.GetResourceRef
                 - github.com/s4wave/spacewave/sdk/session.Session.GetResourceRef
                 - github.com/s4wave/spacewave/sdk/world.Engine.GetResourceRef

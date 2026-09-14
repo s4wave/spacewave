@@ -168,6 +168,7 @@ func (w *FSWriter) getWorldObject(ctx context.Context, checkExists bool) (world.
 // applyConfirmOp gets the world object, applies the op, and confirms it (if applicable)
 func (w *FSWriter) applyConfirmOp(ctx context.Context, op func(wobj world.ObjectState) (nrev uint64, sysErr bool, err error)) error {
 	wobj, err := w.getWorldObject(ctx, true)
+	defer world.ReleaseObjectState(wobj)
 	if err != nil {
 		return err
 	}

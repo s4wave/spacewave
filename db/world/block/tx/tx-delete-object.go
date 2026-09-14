@@ -73,7 +73,8 @@ func (t *TxDeleteObject) ExecuteTx(
 	// Confirm the object exists when the operation requires it.
 	failNotFound := t.GetFailIfNotFound()
 	if failNotFound {
-		_, err := world.MustGetObject(ctx, worldInstance, objKey)
+		objectState, err := world.MustGetObject(ctx, worldInstance, objKey)
+		world.ReleaseObjectState(objectState)
 		if err != nil {
 			return false, err
 		}

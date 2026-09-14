@@ -26,6 +26,11 @@ func NewObjectState(le *logrus.Entry, objectState world.ObjectState) *ObjectStat
 	}
 }
 
+// Release releases the handle owned by this logging wrapper.
+func (o *ObjectState) Release() {
+	world.ReleaseObjectState(o.ObjectState)
+}
+
 // le returns a logger with object fields
 func (o *ObjectState) le() *logrus.Entry {
 	return o.ble.WithField("object-key", objectKeyForLogging(o.GetKey()))

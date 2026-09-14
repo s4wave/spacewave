@@ -179,13 +179,21 @@ func seedKeypairObjects(t *testing.T, ctx context.Context, ws world.WorldState) 
 		{key: "identity/entity", typeID: identity_world.EntityTypeID},
 	}
 	for _, key := range []string{"kp/alpha", "kp/beta", "kp/gamma", "object/untyped"} {
-		if _, err := ws.CreateObject(ctx, key, nil); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := ws.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	for _, obj := range objects {
-		if _, err := ws.CreateObject(ctx, obj.key, nil); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject2, err := ws.CreateObject(ctx, obj.key, nil)
+			world.ReleaseObjectState(createdObject2)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 		if err := world_types.SetObjectType(ctx, ws, obj.key, obj.typeID); err != nil {
 			t.Fatal(err.Error())

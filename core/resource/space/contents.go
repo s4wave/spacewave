@@ -248,7 +248,7 @@ type SpaceContentsResource struct {
 
 // NewSpaceContentsResource creates a new SpaceContentsResource.
 func NewSpaceContentsResource(le *logrus.Entry, b bus.Bus, engine world.Engine, spaceID, engineID string) *SpaceContentsResource {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background()) //nolint:gosec // SpaceContentsResource.Release owns the stored cancellation function.
 	r := &SpaceContentsResource{
 		le:              le,
 		b:               b,
@@ -365,7 +365,7 @@ func (r *SpaceContentsResource) startControllerLocked(
 
 func (r *SpaceContentsResource) ensureStartOwnerLocked() {
 	if r.ctx == nil {
-		r.ctx, r.ctxCancel = context.WithCancel(context.Background())
+		r.ctx, r.ctxCancel = context.WithCancel(context.Background()) //nolint:gosec // SpaceContentsResource.Release owns cancellation across method calls.
 	}
 	if r.start == nil {
 		r.start = newSpaceContentsStartRoutine(r.le)
@@ -1286,6 +1286,7 @@ func collectAvailablePluginManifestRefs(
 			return nil, err
 		}
 		ref, _, err := obj.GetRootRef(ctx)
+		world.ReleaseObjectState(obj)
 		if err != nil {
 			return nil, err
 		}

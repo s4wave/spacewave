@@ -58,7 +58,9 @@ func EnsureEnrolledDevice(ctx context.Context, engine world.Engine, authenticate
 		if err := world_types.CheckObjectType(ctx, tx, key, s4wave_device.DeviceTypeID); err != nil {
 			return "", err
 		}
-		device, _, err = world.LookupObject[*s4wave_device.Device](ctx, tx, key, s4wave_device.NewDeviceBlock)
+		var objectState world.ObjectState
+		device, objectState, err = world.LookupObject[*s4wave_device.Device](ctx, tx, key, s4wave_device.NewDeviceBlock)
+		world.ReleaseObjectState(objectState)
 		if err != nil {
 			return "", err
 		}
@@ -85,7 +87,9 @@ func EnsureEnrolledDevice(ctx context.Context, engine world.Engine, authenticate
 		_, _, err = world.AccessWorldObject(ctx, tx, key, true, write)
 	}
 	if !exists {
-		_, _, err = world.CreateWorldObject(ctx, tx, key, write)
+		var createdObject world.ObjectState
+		createdObject, _, err = world.CreateWorldObject(ctx, tx, key, write)
+		world.ReleaseObjectState(createdObject)
 		if err == nil {
 			err = world_types.SetObjectType(ctx, tx, key, s4wave_device.DeviceTypeID)
 		}
@@ -133,7 +137,8 @@ func readyEnrolledDevice(ctx context.Context, engine world.Engine, authenticated
 	if err := world_types.CheckObjectType(ctx, tx, key, s4wave_device.DeviceTypeID); err != nil {
 		return "", err
 	}
-	device, _, err := world.LookupObject[*s4wave_device.Device](ctx, tx, key, s4wave_device.NewDeviceBlock)
+	device, objectState, err := world.LookupObject[*s4wave_device.Device](ctx, tx, key, s4wave_device.NewDeviceBlock)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		return "", err
 	}

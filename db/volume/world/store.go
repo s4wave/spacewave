@@ -39,10 +39,10 @@ func (s *worldStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, e
 		}
 	}()
 	obj, found, err := wtx.GetObject(ctx, t.key)
+	t.object = obj
 	if err != nil {
 		return nil, err
 	}
-	t.object = obj
 	ref := s.conf.GetInitHeadRef().Clone()
 	if found {
 		ref, _, err = obj.GetRootRef(ctx)

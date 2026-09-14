@@ -116,10 +116,12 @@ func (o *CreateV86ImageOp) ApplyWorldOp(
 	img := o.GetImage().CloneVT()
 	img.CreatedAt = o.GetTimestamp()
 
-	_, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(img, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}
@@ -204,6 +206,7 @@ func (o *SetV86ImageMetadataOp) ApplyWorldOp(
 
 	objKey := o.GetObjectKey()
 	objState, found, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return true, err
 	}

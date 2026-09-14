@@ -468,10 +468,11 @@ func TestChatResourceRejectsAnonymousSender(t *testing.T) {
 func createChatChannel(t *testing.T, ctx context.Context, ws world.WorldState, objectKey, name string) {
 	t.Helper()
 
-	_, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&ChatChannel{Name: name, CreatedAt: timestamppb.Now()}, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
@@ -487,7 +488,7 @@ func createChatMessage(t *testing.T, ctx context.Context, ws world.WorldState, c
 	if !ok {
 		t.Fatalf("message key %q does not end with an index", msgKey)
 	}
-	_, _, err := world.CreateWorldObject(ctx, ws, msgKey, func(bcs *block.Cursor) error {
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, msgKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&ChatMessage{
 			SenderPeerId: sender,
 			Content:      &ChatMessageContent{Content: &ChatMessageContent_Text{Text: text}},
@@ -496,6 +497,7 @@ func createChatMessage(t *testing.T, ctx context.Context, ws world.WorldState, c
 		}, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", msgKey, err)
 	}
@@ -516,6 +518,7 @@ func appendChatMessageKey(t *testing.T, ctx context.Context, ws world.WorldState
 		t.Fatalf("message key %q does not end with an index", msgKey)
 	}
 	channelObj, found, err := ws.GetObject(ctx, channelKey)
+	defer world.ReleaseObjectState(channelObj)
 	if err != nil {
 		t.Fatalf("GetObject(%s): %v", channelKey, err)
 	}
@@ -538,11 +541,13 @@ func appendChatMessageKey(t *testing.T, ctx context.Context, ws world.WorldState
 	}
 	pageKey := channelKey + "/message-page/" + strconv.FormatUint(msgIndex/chatMessagePageSize, 10)
 	pageObj, found, err := ws.GetObject(ctx, pageKey)
+	defer world.ReleaseObjectState(pageObj)
 	if err != nil {
 		t.Fatalf("GetObject(%s): %v", pageKey, err)
 	}
 	if !found {
 		pageObj, err = ws.CreateObject(ctx, pageKey, nil)
+		defer world.ReleaseObjectState(pageObj)
 		if err != nil {
 			t.Fatalf("CreateObject(%s): %v", pageKey, err)
 		}

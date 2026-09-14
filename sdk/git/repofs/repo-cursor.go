@@ -18,6 +18,7 @@ func OpenRepoFSCursor(
 ) (unixfs.FSCursor, error) {
 	objState, found, err := ws.GetObject(ctx, objectKey)
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, err
 	}
 	if !found {
@@ -28,6 +29,7 @@ func OpenRepoFSCursor(
 	tx, err := eng.NewTransaction(ctx, write)
 	if err != nil {
 		eng.Close()
+		world.ReleaseObjectState(objState)
 		return nil, err
 	}
 
@@ -41,6 +43,7 @@ func OpenRepoFSCursor(
 	return newRepoFSCursor(cursor, func() {
 		tx.Discard()
 		eng.Close()
+		world.ReleaseObjectState(objState)
 	}), nil
 }
 

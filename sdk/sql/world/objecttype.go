@@ -34,6 +34,7 @@ func SqlDbFactory(
 		return nil, nil, err
 	}
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, err
 	}
