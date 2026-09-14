@@ -11,6 +11,7 @@ linters:
     - depguard
     - gosec
     - importas
+    - lostresource
     - misspell
     - nonavigate
     - revive
@@ -72,6 +73,46 @@ linters:
     importas:
       no-unaliased: true
     custom:
+      lostresource:
+        type: 'module'
+        description: Checks discarded handles and missing resource releases.
+        settings:
+          check-paths: true
+          resources:
+            - type: github.com/s4wave/spacewave/db/world.ObjectState
+              consumers:
+                - github.com/s4wave/spacewave/db/world.ReleaseObjectState:0
+                - github.com/s4wave/spacewave/core/resource/world.NewObjectStateResource:2
+                - github.com/s4wave/spacewave/db/world/block.NewTxObjectState:2
+                - github.com/s4wave/spacewave/db/world/block/tx.NewObjectState:2
+                - github.com/s4wave/spacewave/db/world/vlogger.NewObjectState:1
+            - type: github.com/s4wave/spacewave/bldr/resource/client.ResourceRef
+              release-methods: [Release]
+              consumers:
+                - github.com/s4wave/spacewave/sdk/root.NewRoot:1
+                - github.com/s4wave/spacewave/sdk/session.NewSession:1
+                - github.com/s4wave/spacewave/sdk/world.NewEngine:1
+                - github.com/s4wave/spacewave/sdk/world.NewWorldState:1
+                - github.com/s4wave/spacewave/sdk/world.NewObjectState:1
+                - github.com/s4wave/spacewave/sdk/world.NewTx:1
+                - github.com/s4wave/spacewave/sdk/world/engine.NewSDKEngine:1
+                - github.com/s4wave/spacewave/sdk/world/engine.NewSDKWorldState:1
+                - github.com/s4wave/spacewave/sdk/world/engine.NewSDKObjectState:1
+                - github.com/s4wave/spacewave/sdk/world/engine.NewSDKTx:1
+                - github.com/s4wave/spacewave/sdk/world/engine.NewSDKObjectIterator:1
+                - github.com/s4wave/spacewave/sdk/viewer/registry.NewViewerRegistry:1
+                - github.com/s4wave/spacewave/sdk/provider/local.NewLocalProvider:1
+                - github.com/s4wave/spacewave/sdk/provider/spacewave.NewSpacewaveProvider:1
+                - github.com/s4wave/spacewave/sdk/bucket/lookup.NewCursor:1
+              borrowed:
+                - github.com/s4wave/spacewave/sdk/root.Root.GetResourceRef
+                - github.com/s4wave/spacewave/sdk/session.Session.GetResourceRef
+                - github.com/s4wave/spacewave/sdk/world.Engine.GetResourceRef
+                - github.com/s4wave/spacewave/sdk/world.WorldState.GetResourceRef
+                - github.com/s4wave/spacewave/sdk/world.ObjectState.GetResourceRef
+                - github.com/s4wave/spacewave/sdk/viewer/registry.ViewerRegistry.GetResourceRef
+                - github.com/s4wave/spacewave/sdk/provider/local.LocalProvider.GetResourceRef
+                - github.com/s4wave/spacewave/sdk/provider/spacewave.SpacewaveProvider.GetResourceRef
       nonavigate:
         type: 'module'
         description: Forbids Harness.Navigate calls in e2e/wasm tests (destroys WASM process).
