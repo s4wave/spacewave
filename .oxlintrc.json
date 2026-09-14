@@ -247,6 +247,7 @@
         "react/rules-of-hooks": "error"
       },
       "jsPlugins": [
+        "@shadcn/lint",
         {
           "name": "react-doctor",
           "specifier": "oxlint-plugin-react-doctor"
