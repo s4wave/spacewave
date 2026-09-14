@@ -64,6 +64,24 @@ func TestPeerWatcherObservationAfterSkipsStalePeers(t *testing.T) {
 	if obs.Sequence <= afterSeq {
 		t.Fatalf("expected sequence after %d, got %d", afterSeq, obs.Sequence)
 	}
+	t.Run("preserves-unleased-peer", testPeerWatcherPreservesUnleasedPeer)
+}
+
+// testPeerWatcherPreservesUnleasedPeer keeps a reconnect from hiding a new client.
+func testPeerWatcherPreservesUnleasedPeer(t *testing.T) {
+	pw := &PeerWatcher{pending: make(chan BrowserPeerObservation, 8)}
+	pw.observePeer(peer.ID("leased"))
+	after := pw.LatestSequence()
+	pw.observePeer(peer.ID("new-client"))
+	pw.observePeer(peer.ID("leased"))
+
+	// Resource connections consume every mount and apply their own lease check.
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	obs, err := pw.WaitForDistinctPeerObservationAfter(ctx, after)
+	if err != nil || obs.PeerID != peer.ID("new-client") {
+		t.Fatalf("new client was hidden by reconnect: peer=%q err=%v", obs.PeerID, err)
+	}
 }
 
 func TestResourceConnectionTimingSnapshot(t *testing.T) {
