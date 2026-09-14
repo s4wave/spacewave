@@ -85,7 +85,7 @@ func TestProjectOwnedStartupManifestPreflightsSelectActivePlatforms(t *testing.T
 		},
 	}
 
-	got := projectOwnedStartupManifestPreflightsForPlatforms(projectConfig, "js", "web/js/wasm")
+	got := ProjectOwnedStartupManifestPreflightsForPlatforms(projectConfig, "js", "web/js/wasm")
 	want := []StartupManifestPreflight{
 		{PluginID: "web", PlatformIDs: []string{"web/js/wasm"}},
 		{PluginID: "frontend", PlatformIDs: []string{"js"}},

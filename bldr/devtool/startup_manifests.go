@@ -103,9 +103,9 @@ func ProjectOwnedStartupManifestPreflights(projectConfig *bldr_project.ProjectCo
 	return preflights
 }
 
-// projectOwnedStartupManifestPreflightsForPlatforms narrows known builders to
+// ProjectOwnedStartupManifestPreflightsForPlatforms narrows known builders to
 // the single platform used by the active browser development mode.
-func projectOwnedStartupManifestPreflightsForPlatforms(
+func ProjectOwnedStartupManifestPreflightsForPlatforms(
 	projectConfig *bldr_project.ProjectConfig,
 	goPluginPlatformID,
 	wasmPlatformID string,

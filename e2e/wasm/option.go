@@ -98,6 +98,7 @@ type options struct {
 	headless                  *bool
 	browserName               string
 	workerMode                WorkerMode
+	goPlatformID              string
 	manifestBuildTimeout      time.Duration
 	preserveStartupBuildCache *bool
 	configMutators            []func(*bldr_project.ProjectConfig) error
@@ -378,7 +379,10 @@ func WithGoScriptCore() Option {
 // WithGoScriptBrowserStartup enables the production-shaped browser GoScript
 // startup surface used by staging: launcher plus core, without dev-only debug.
 func WithGoScriptBrowserStartup() Option {
-	return WithConfigMutator(ConfigureGoScriptBrowserStartup)
+	return func(o *options) {
+		o.goPlatformID = "js"
+		o.configMutators = append(o.configMutators, ConfigureGoScriptBrowserStartup)
+	}
 }
 
 // EnableTinyGoForManifest enables TinyGo for a Go plugin Manifest's web
