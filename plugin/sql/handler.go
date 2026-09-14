@@ -297,8 +297,12 @@ func (h *SQLHandler) SeedQuickstart(
 }
 
 func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState) error {
-	if _, err := ws.CreateObject(ctx, sqlQuickstartDBKey, nil); err != nil {
-		return errors.Wrap(err, "create SQL database object")
+	{
+		createdObject, err := ws.CreateObject(ctx, sqlQuickstartDBKey, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			return errors.Wrap(err, "create SQL database object")
+		}
 	}
 	if err := h.seedSQLDatabase(ctx, ws); err != nil {
 		return errors.Wrap(err, "seed SQL database")
@@ -314,10 +318,11 @@ func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState)
 			Value: &s4wave_sql.SqlValue_IntValue{IntValue: 1},
 		}},
 	}
-	_, _, err := world.CreateWorldObject(ctx, ws, sqlQuickstartQueryKey, func(bcs *block.Cursor) error {
+	createdObject2, _, err := world.CreateWorldObject(ctx, ws, sqlQuickstartQueryKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(query, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject2)
 	if err != nil {
 		return errors.Wrap(err, "create SQL query object")
 	}
@@ -329,6 +334,7 @@ func (h *SQLHandler) seedSQLQuickstart(ctx context.Context, ws world.WorldState)
 
 func (h *SQLHandler) seedSQLDatabase(ctx context.Context, ws world.WorldState) error {
 	obj, err := world.MustGetObject(ctx, ws, sqlQuickstartDBKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return errors.Wrap(err, "open SQL database object")
 	}

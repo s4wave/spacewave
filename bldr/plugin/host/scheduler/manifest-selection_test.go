@@ -11,6 +11,8 @@ import (
 	"github.com/s4wave/spacewave/db/testbed"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/sirupsen/logrus"
+
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // TestManifestSelectionPlatformPreference checks the same platform ordering
@@ -73,6 +75,7 @@ func TestManifestSelectionPlatformPreference(t *testing.T) {
 				}
 				if persisted {
 					obj, found, err := ws.GetObject(ctx, hostKey)
+					defer world.ReleaseObjectState(obj)
 					if err != nil || !found {
 						t.Fatalf("host object: found=%t, error=%v", found, err)
 					}
@@ -132,6 +135,7 @@ func TestWorldManifestSelectionKeepsCurrentPlatform(t *testing.T) {
 	selectManifest := func() *executePluginArgs {
 		t.Helper()
 		obj, found, err := ws.GetObject(ctx, hostKey)
+		defer world.ReleaseObjectState(obj)
 		if err != nil || !found {
 			t.Fatalf("host object: found=%t, error=%v", found, err)
 		}

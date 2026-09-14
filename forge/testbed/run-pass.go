@@ -27,7 +27,7 @@ func (tb *Testbed) RunPassWithTarget(
 	passObjectKey := "pass/1"
 	peerID := tb.Volume.GetPeerID()
 	sender := peerID
-	_, _, err := forge_pass.CreatePassWithTarget(
+	createdObject, _, err := forge_pass.CreatePassWithTarget(
 		ctx,
 		worldState,
 		sender,
@@ -39,6 +39,7 @@ func (tb *Testbed) RunPassWithTarget(
 		peerID.String(),
 		ts,
 	)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return nil, err
 	}

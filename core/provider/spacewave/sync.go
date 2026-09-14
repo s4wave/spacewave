@@ -969,7 +969,7 @@ func syncTmpDir() string {
 		return ""
 	}
 	tmpDir := filepath.Join(dir, "tmp")
-	_ = os.MkdirAll(tmpDir, 0o755)
+	_ = os.MkdirAll(tmpDir, 0o755) //nolint:gosec // The launcher selects the plugin's local state directory.
 	return tmpDir
 }
 

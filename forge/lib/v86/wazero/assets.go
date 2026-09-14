@@ -226,10 +226,14 @@ func mountCdnWorld(ctx context.Context, opts AssetOptions) (world_state.WorldSta
 func resolveV86ImageKey(ctx context.Context, ws world_state.WorldState, preferred string) (string, error) {
 	// Honor an existing explicit image before scanning the CDN catalogue.
 	if preferred != "" {
-		if _, found, err := ws.GetObject(ctx, preferred); err != nil {
-			return "", errors.Wrap(err, "probe preferred v86 image")
-		} else if found {
-			return preferred, nil
+		{
+			objectState, found, err := ws.GetObject(ctx, preferred)
+			world_state.ReleaseObjectState(objectState)
+			if err != nil {
+				return "", errors.Wrap(err, "probe preferred v86 image")
+			} else if found {
+				return preferred, nil
+			}
 		}
 	}
 

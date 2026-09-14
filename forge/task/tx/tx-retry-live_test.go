@@ -17,9 +17,13 @@ func TestTxRetryRejectsLivePredecessor(t *testing.T) {
 	f := newCustodyFixture(t)
 	taskKey := "test/task/retry-live-predecessor"
 	passKey := forge_task.NewPassKey(taskKey, 1)
-	if _, _, err := forge_task.CreateTaskWithTarget(f.ctx, f.tb.WorldState,
-		f.peerID, taskKey, "retry-live-predecessor", f.target.CloneVT(), f.peerID, 1, f.ts); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, _, err := forge_task.CreateTaskWithTarget(f.ctx, f.tb.WorldState,
+			f.peerID, taskKey, "retry-live-predecessor", f.target.CloneVT(), f.peerID, 1, f.ts)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	updateTarget := task_tx.NewTxUpdateInputs(taskKey)
 	updateTarget.TxUpdateInputs.UpdateTarget = true

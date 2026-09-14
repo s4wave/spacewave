@@ -17,11 +17,19 @@ func BenchmarkWorldStateSetGraphQuadWrite(b *testing.B) {
 	ws, cleanup := setupWorldWriteBench(ctx, b)
 	defer cleanup()
 
-	if _, err := ws.CreateObject(ctx, "bench/set-graph/source", nil); err != nil {
-		b.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, "bench/set-graph/source", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			b.Fatal(err.Error())
+		}
 	}
-	if _, err := ws.CreateObject(ctx, "bench/set-graph/target", nil); err != nil {
-		b.Fatal(err.Error())
+	{
+		createdObject2, err := ws.CreateObject(ctx, "bench/set-graph/target", nil)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			b.Fatal(err.Error())
+		}
 	}
 	quads := make([]world.GraphQuad, b.N)
 	for i := range quads {
@@ -64,8 +72,12 @@ func BenchmarkWorldStateCreateObjectWrite(b *testing.B) {
 	var readCount, readBytes uint64
 	for i := range b.N {
 		opCtx, counter := block.WithReadCounter(ctx)
-		if _, err := ws.CreateObject(opCtx, keys[i], nil); err != nil {
-			b.Fatal(err.Error())
+		{
+			createdObject, err := ws.CreateObject(opCtx, keys[i], nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				b.Fatal(err.Error())
+			}
 		}
 		snapshot := counter.Snapshot()
 		readCount += snapshot.BlockReadCount
@@ -99,11 +111,19 @@ func BenchmarkWorldStateMultiOpWriteTransaction(b *testing.B) {
 	var readCount, readBytes uint64
 	for i := range b.N {
 		opCtx, counter := block.WithReadCounter(ctx)
-		if _, err := ws.CreateObject(opCtx, subjectKeys[i], nil); err != nil {
-			b.Fatal(err.Error())
+		{
+			createdObject, err := ws.CreateObject(opCtx, subjectKeys[i], nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				b.Fatal(err.Error())
+			}
 		}
-		if _, err := ws.CreateObject(opCtx, objectKeys[i], nil); err != nil {
-			b.Fatal(err.Error())
+		{
+			createdObject2, err := ws.CreateObject(opCtx, objectKeys[i], nil)
+			world.ReleaseObjectState(createdObject2)
+			if err != nil {
+				b.Fatal(err.Error())
+			}
 		}
 		if err := ws.SetGraphQuad(opCtx, quads[i]); err != nil {
 			b.Fatal(err.Error())

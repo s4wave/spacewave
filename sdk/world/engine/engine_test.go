@@ -211,8 +211,12 @@ func TestSDKTxCommitMutations(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer readTx.Discard()
-	if _, found, err := readTx.GetObject(ctx, "batch/a"); err != nil || !found {
-		t.Fatalf("created object found=%v err=%v", found, err)
+	{
+		objectState, found, err := readTx.GetObject(ctx, "batch/a")
+		world.ReleaseObjectState(objectState)
+		if err != nil || !found {
+			t.Fatalf("created object found=%v err=%v", found, err)
+		}
 	}
 	quads, err := readTx.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("batch/a", "<batch-rel>", "batch/b", ""), 1)
 	if err != nil || len(quads) != 1 {
@@ -240,9 +244,13 @@ func TestSDKTxCommitMutations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, found, err := checkTx.GetObject(ctx, "batch/discarded"); err != nil || found {
-		checkTx.Discard()
-		t.Fatalf("discarded object found=%v err=%v", found, err)
+	{
+		objectState2, found, err := checkTx.GetObject(ctx, "batch/discarded")
+		world.ReleaseObjectState(objectState2)
+		if err != nil || found {
+			checkTx.Discard()
+			t.Fatalf("discarded object found=%v err=%v", found, err)
+		}
 	}
 	checkTx.Discard()
 
@@ -268,8 +276,12 @@ func TestSDKTxCommitMutations(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer canceledCheckTx.Discard()
-	if _, found, err := canceledCheckTx.GetObject(ctx, "batch/canceled"); err != nil || found {
-		t.Fatalf("canceled object found=%v err=%v", found, err)
+	{
+		objectState3, found, err := canceledCheckTx.GetObject(ctx, "batch/canceled")
+		world.ReleaseObjectState(objectState3)
+		if err != nil || found {
+			t.Fatalf("canceled object found=%v err=%v", found, err)
+		}
 	}
 }
 
@@ -284,7 +296,9 @@ func TestSDKEngine_WaitSeqno(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, err = tx.CreateObject(ctx, "wait-seqno-obj", nil)
+	var createdObject world.ObjectState
+	createdObject, err = tx.CreateObject(ctx, "wait-seqno-obj", nil)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		tx.Discard()
 		t.Fatal(err.Error())
@@ -354,7 +368,8 @@ func TestSDKEngine_CreateAndGetObject(t *testing.T) {
 	objKey := "test-obj-create-get"
 
 	// Verify object does not exist yet.
-	_, found, err := tx.GetObject(ctx, objKey)
+	objectState, found, err := tx.GetObject(ctx, objKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -364,6 +379,7 @@ func TestSDKEngine_CreateAndGetObject(t *testing.T) {
 
 	// Create the object.
 	obj, err := tx.CreateObject(ctx, objKey, nil)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -373,6 +389,7 @@ func TestSDKEngine_CreateAndGetObject(t *testing.T) {
 
 	// Verify object exists now.
 	retrieved, found, err := tx.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(retrieved)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -398,7 +415,9 @@ func TestSDKEngine_DeleteObject(t *testing.T) {
 
 	objKey := "test-obj-delete"
 
-	_, err = tx.CreateObject(ctx, objKey, nil)
+	var createdObject world.ObjectState
+	createdObject, err = tx.CreateObject(ctx, objKey, nil)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -411,7 +430,8 @@ func TestSDKEngine_DeleteObject(t *testing.T) {
 		t.Fatal("expected deleted=true")
 	}
 
-	_, found, err := tx.GetObject(ctx, objKey)
+	objectState, found, err := tx.GetObject(ctx, objKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -432,15 +452,23 @@ func TestSDKEngine_ListObjectsWithType(t *testing.T) {
 	}
 
 	for _, key := range []string{"typed/a", "typed/b", "typed/c"} {
-		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
-			tx.Discard()
-			t.Fatal(err.Error())
+		{
+			createdObject, err := tx.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				tx.Discard()
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	typeObjKey := world_types.BuildTypeObjectKey("sdk/type")
-	if _, err := tx.CreateObject(ctx, typeObjKey, nil); err != nil {
-		tx.Discard()
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := tx.CreateObject(ctx, typeObjKey, nil)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
 	}
 	if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("typed/a", world_types.TypePred.String(), typeObjKey, "")); err != nil {
 		tx.Discard()
@@ -494,8 +522,12 @@ func TestSDKEngine_CheckObjectTypeThroughEngineWorldState(t *testing.T) {
 	defer cleanup()
 
 	ws := world.NewEngineWorldState(engine, true)
-	if _, err := ws.CreateObject(ctx, "typed/check", nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, "typed/check", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, "typed/check", "sdk/type-check"); err != nil {
 		t.Fatal(err.Error())
@@ -514,8 +546,12 @@ func TestSDKEngine_ListObjectsWithTypeThroughEngineWorldState(t *testing.T) {
 
 	ws := world.NewEngineWorldState(engine, true)
 	for _, key := range []string{"typed/engine-a", "typed/engine-b"} {
-		if _, err := ws.CreateObject(ctx, key, nil); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := ws.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 		if err := world_types.SetObjectType(ctx, ws, key, "sdk/type-list"); err != nil {
 			t.Fatal(err.Error())
@@ -587,9 +623,13 @@ func TestSDKEngine_LookupGraphQuadsBatch(t *testing.T) {
 	}
 
 	for _, key := range []string{"batch/subj-a", "batch/subj-b", "batch/obj"} {
-		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
-			tx.Discard()
-			t.Fatal(err.Error())
+		{
+			createdObject, err := tx.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				tx.Discard()
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("batch/subj-a", "<batch-rel>", "batch/obj", "")); err != nil {
@@ -656,15 +696,23 @@ func TestSDKEngine_GetObjectMetadataBatch(t *testing.T) {
 	}
 
 	for _, key := range []string{"metadata/parent", "metadata/child"} {
-		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
-			tx.Discard()
-			t.Fatal(err.Error())
+		{
+			createdObject, err := tx.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				tx.Discard()
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	typeObjKey := world_types.BuildTypeObjectKey("sdk/metadata")
-	if _, err := tx.CreateObject(ctx, typeObjKey, nil); err != nil {
-		tx.Discard()
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := tx.CreateObject(ctx, typeObjKey, nil)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
 	}
 	if err := tx.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("metadata/child", world_types.TypePred.String(), typeObjKey, "")); err != nil {
 		tx.Discard()
@@ -726,13 +774,21 @@ func TestSDKEngine_GetObjectRootRefsBatch(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if _, err := tx.CreateObject(ctx, "root-ref/alpha", &bucket.ObjectRef{BucketId: "alpha-bucket"}); err != nil {
-		tx.Discard()
-		t.Fatal(err.Error())
+	{
+		createdObject, err := tx.CreateObject(ctx, "root-ref/alpha", &bucket.ObjectRef{BucketId: "alpha-bucket"})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := tx.CreateObject(ctx, "root-ref/beta", &bucket.ObjectRef{BucketId: "beta-bucket"}); err != nil {
-		tx.Discard()
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := tx.CreateObject(ctx, "root-ref/beta", &bucket.ObjectRef{BucketId: "beta-bucket"})
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
@@ -783,9 +839,13 @@ func TestSDKEngine_QueryGraphPath(t *testing.T) {
 	}
 
 	for _, key := range []string{"path/a", "path/b", "path/c", "path/d"} {
-		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
-			tx.Discard()
-			t.Fatal(err.Error())
+		{
+			createdObject, err := tx.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				tx.Discard()
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	for _, edge := range [][2]string{
@@ -889,7 +949,9 @@ func TestSDKEngine_TransactionCommit(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	_, err = tx.CreateObject(ctx, "commit-obj", nil)
+	var createdObject world.ObjectState
+	createdObject, err = tx.CreateObject(ctx, "commit-obj", nil)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		tx.Discard()
 		t.Fatal(err.Error())
@@ -925,6 +987,7 @@ func TestSDKEngine_ObjectState(t *testing.T) {
 	defer tx.Discard()
 
 	obj, err := tx.CreateObject(ctx, "objstate-test", nil)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -970,9 +1033,13 @@ func TestSDKEngine_IterateObjects(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, key := range []string{"iterator/a", "iterator/b", "other/c"} {
-		if _, err := writeTx.CreateObject(ctx, key, nil); err != nil {
-			writeTx.Discard()
-			t.Fatal(err)
+		{
+			createdObject, err := writeTx.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				writeTx.Discard()
+				t.Fatal(err)
+			}
 		}
 	}
 	if err := writeTx.Commit(ctx); err != nil {
@@ -1025,11 +1092,15 @@ func TestSDKEngine_GraphQuadOperations(t *testing.T) {
 	defer tx.Discard()
 
 	// Create two objects so graph quads reference valid IRIs.
-	_, err = tx.CreateObject(ctx, "graph-subj", nil)
+	var createdObject world.ObjectState
+	createdObject, err = tx.CreateObject(ctx, "graph-subj", nil)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, err = tx.CreateObject(ctx, "graph-obj", nil)
+	var createdObject2 world.ObjectState
+	createdObject2, err = tx.CreateObject(ctx, "graph-obj", nil)
+	world.ReleaseObjectState(createdObject2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1086,11 +1157,15 @@ func TestSDKEngine_DeleteGraphObject(t *testing.T) {
 	}
 	defer tx.Discard()
 
-	_, err = tx.CreateObject(ctx, "dgo-subj", nil)
+	var createdObject world.ObjectState
+	createdObject, err = tx.CreateObject(ctx, "dgo-subj", nil)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, err = tx.CreateObject(ctx, "dgo-obj", nil)
+	var createdObject2 world.ObjectState
+	createdObject2, err = tx.CreateObject(ctx, "dgo-obj", nil)
+	world.ReleaseObjectState(createdObject2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1146,7 +1221,9 @@ func TestSDKEngine_ReadOnlyTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, err = wtx.CreateObject(ctx, "readonly-obj", nil)
+	var createdObject world.ObjectState
+	createdObject, err = wtx.CreateObject(ctx, "readonly-obj", nil)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		wtx.Discard()
 		t.Fatal(err.Error())
@@ -1164,6 +1241,7 @@ func TestSDKEngine_ReadOnlyTransaction(t *testing.T) {
 	defer rtx.Discard()
 
 	obj, found, err := rtx.GetObject(ctx, "readonly-obj")
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1217,7 +1295,9 @@ func TestSDKEngine_SeqnoAfterOperations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, err = tx1.CreateObject(ctx, "seqno-a", nil)
+	var createdObject world.ObjectState
+	createdObject, err = tx1.CreateObject(ctx, "seqno-a", nil)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		tx1.Discard()
 		t.Fatal(err.Error())
@@ -1240,7 +1320,9 @@ func TestSDKEngine_SeqnoAfterOperations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, err = tx2.CreateObject(ctx, "seqno-b", nil)
+	var createdObject2 world.ObjectState
+	createdObject2, err = tx2.CreateObject(ctx, "seqno-b", nil)
+	world.ReleaseObjectState(createdObject2)
 	if err != nil {
 		tx2.Discard()
 		t.Fatal(err.Error())
@@ -1298,6 +1380,7 @@ func TestSDKWorldStateObjectAccessWorldStateInvokesCallback(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	obj, err := ws.CreateObject(ctx, "sdk-obj-access-world-state", nil)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

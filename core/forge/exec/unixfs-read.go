@@ -70,6 +70,7 @@ func (h *unixfsReadHandler) Execute(ctx context.Context) error {
 
 	// Build a snapshot of the source object as the output.
 	obj, err := world.MustGetObject(ctx, h.ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return errors.Wrap(err, "get source object for snapshot")
 	}

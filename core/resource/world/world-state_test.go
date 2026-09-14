@@ -420,8 +420,12 @@ func TestGraphPathQueryResourceClose(t *testing.T) {
 	defer tx.Release()
 
 	for _, key := range []string{"query/a", "query/b", "query/c"} {
-		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := tx.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	for _, edge := range [][2]string{
@@ -527,8 +531,12 @@ func TestWorldStateListGraphEdgeBuckets(t *testing.T) {
 		"bucket/target-b",
 		"bucket/target-c",
 	} {
-		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := tx.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	for _, edge := range [][3]string{
@@ -619,8 +627,12 @@ func TestWorldStateResourceOperationObserverLookupGraphQuadsBatch(t *testing.T) 
 	defer tbCleanup()
 
 	for _, key := range []string{"operation/a", "operation/b", "operation/c"} {
-		if _, err := tb.WorldState.CreateObject(ctx, key, nil); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := tb.WorldState.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	for _, edge := range [][2]string{
@@ -698,11 +710,19 @@ func TestWorldStateResourceGetObjectRootRefsBatch(t *testing.T) {
 
 	alphaRef := &bucket.ObjectRef{BucketId: "alpha-bucket"}
 	betaRef := &bucket.ObjectRef{BucketId: "beta-bucket"}
-	if _, err := tb.WorldState.CreateObject(ctx, "root-ref/alpha", alphaRef); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := tb.WorldState.CreateObject(ctx, "root-ref/alpha", alphaRef)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := tb.WorldState.CreateObject(ctx, "root-ref/beta", betaRef); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := tb.WorldState.CreateObject(ctx, "root-ref/beta", betaRef)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	var records []resource_world.WorldStateOperationRecord
@@ -768,10 +788,11 @@ func TestWorldStateResourceGetObjectBodiesBatch(t *testing.T) {
 		{key: "body/beta", msg: "beta"},
 		{key: "body/gamma", msg: "gamma"},
 	} {
-		_, _, err := world.CreateWorldObject(ctx, tb.WorldState, entry.key, func(bcs *block.Cursor) error {
+		createdObject, _, err := world.CreateWorldObject(ctx, tb.WorldState, entry.key, func(bcs *block.Cursor) error {
 			bcs.SetBlock(block_mock.NewExample(entry.msg), true)
 			return nil
 		})
+		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -870,8 +891,12 @@ func TestWorldStateResourceOperationObserverQueryGraphPath(t *testing.T) {
 	defer tbCleanup()
 
 	for _, key := range []string{"operation-path/a", "operation-path/b", "operation-path/c"} {
-		if _, err := tb.WorldState.CreateObject(ctx, key, nil); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := tb.WorldState.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	for _, edge := range [][2]string{
@@ -1124,6 +1149,7 @@ func TestWorldStateBasicOperations(t *testing.T) {
 		rootRef := &bucket.ObjectRef{}
 
 		obj, err := tx.CreateObject(ctx, objKey, rootRef)
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			t.Fatalf("CreateObject failed: %v", err)
 		}
@@ -1134,6 +1160,7 @@ func TestWorldStateBasicOperations(t *testing.T) {
 		}
 
 		retrievedObj, found, err := tx.GetObject(ctx, objKey)
+		defer world.ReleaseObjectState(retrievedObj)
 		if err != nil {
 			t.Fatalf("GetObject failed: %v", err)
 		}
@@ -1186,7 +1213,9 @@ func TestWorldStateBasicOperations(t *testing.T) {
 		objKey := "test-delete-" + t.Name()
 		rootRef := &bucket.ObjectRef{}
 
-		_, err = tx.CreateObject(ctx, objKey, rootRef)
+		var createdObject world.ObjectState
+		createdObject, err = tx.CreateObject(ctx, objKey, rootRef)
+		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			t.Fatalf("CreateObject failed: %v", err)
 		}
@@ -1199,7 +1228,8 @@ func TestWorldStateBasicOperations(t *testing.T) {
 			t.Fatal("expected deleted=true")
 		}
 
-		_, found, err := tx.GetObject(ctx, objKey)
+		objectState, found, err := tx.GetObject(ctx, objKey)
+		world.ReleaseObjectState(objectState)
 		if err != nil {
 			t.Fatalf("GetObject after delete failed: %v", err)
 		}
@@ -1391,6 +1421,7 @@ func TestEngineWorldRootSnapshots(t *testing.T) {
 		t.Fatalf("NewTransaction(write) failed: %v", err)
 	}
 	obj, err := writeTx.CreateObject(ctx, "root-snapshot/object", &bucket.ObjectRef{})
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("CreateObject failed: %v", err)
 	}
@@ -1476,7 +1507,8 @@ func TestWatchWorldState(t *testing.T) {
 
 		// Access an object through tracked WorldState to register tracking
 		objKey := "test-watch-object-" + t.Name()
-		_, found, err := trackedWs.GetObject(ctx, objKey)
+		objectState, found, err := trackedWs.GetObject(ctx, objKey)
+		world.ReleaseObjectState(objectState)
 		if err != nil {
 			t.Fatalf("GetObject failed: %v", err)
 		}
@@ -1493,6 +1525,7 @@ func TestWatchWorldState(t *testing.T) {
 
 		// Make changes through write transaction
 		obj, err := writeTx.CreateObject(ctx, objKey, &bucket.ObjectRef{})
+		defer world.ReleaseObjectState(obj)
 		if err != nil {
 			t.Fatalf("CreateObject failed: %v", err)
 		}
@@ -1582,7 +1615,8 @@ func TestWatchWorldState(t *testing.T) {
 			objKey := fmt.Sprintf("test-unique-%s-%d", t.Name(), i)
 
 			// Access object through tracked WorldState to register tracking
-			_, _, err := trackedWs.GetObject(ctx, objKey)
+			objectState, _, err := trackedWs.GetObject(ctx, objKey)
+			world.ReleaseObjectState(objectState)
 			if err != nil {
 				t.Fatalf("GetObject failed: %v", err)
 			}
@@ -1595,11 +1629,13 @@ func TestWatchWorldState(t *testing.T) {
 
 			obj, err := writeTx.CreateObject(ctx, objKey, &bucket.ObjectRef{})
 			if err != nil {
+				world.ReleaseObjectState(obj)
 				writeTx.Release()
 				t.Fatalf("CreateObject failed: %v", err)
 			}
 
 			_, err = obj.IncrementRev(ctx)
+			world.ReleaseObjectState(obj)
 			if err != nil {
 				writeTx.Release()
 				t.Fatalf("IncrementRev failed: %v", err)

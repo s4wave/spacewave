@@ -34,6 +34,7 @@ func CanvasFactory(
 	// Read the current canvas state from the world object.
 	var state *s4wave_canvas.CanvasState
 	objState, found, err := ws.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return nil, nil, err
 	}

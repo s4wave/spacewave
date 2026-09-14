@@ -127,7 +127,8 @@ func (t *TxStart) ExecuteTx(
 	}
 
 	passKey := forge_task.NewPassKey(objKey, nextNonce)
-	_, _, err = forge_pass.CreatePassWithTarget(
+	var createdObject world.ObjectState
+	createdObject, _, err = forge_pass.CreatePassWithTarget(
 		ctx,
 		worldState,
 		sender,
@@ -139,6 +140,7 @@ func (t *TxStart) ExecuteTx(
 		passPeerID.String(),
 		root.GetTimestamp(),
 	)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return err
 	}

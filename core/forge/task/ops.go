@@ -55,7 +55,9 @@ func (o *ForgeTaskCreateOp) ApplyWorldOp(
 
 	// Create the task with the default noop exec target.
 	tgt := space_exec_noop.NewTarget()
-	_, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, o.GetName(), tgt, "", 1, o.GetTimestamp())
+	var createdObject world.ObjectState
+	createdObject, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, o.GetName(), tgt, "", 1, o.GetTimestamp())
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}

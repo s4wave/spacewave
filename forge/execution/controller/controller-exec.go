@@ -59,6 +59,7 @@ func (c *Controller) executeWithConfig(rctx context.Context, execConf *ExecConfi
 	defer completeTx.Discard()
 
 	execObjState, err := world.MustGetObject(ctx, completeTx, c.conf.GetObjectKey())
+	defer world.ReleaseObjectState(execObjState)
 	if err != nil {
 		return err
 	}

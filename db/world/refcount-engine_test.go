@@ -33,10 +33,12 @@ func TestRefCountEngineRevisionReads(t *testing.T) {
 	}
 
 	// Commit through a separate handle to the same engine.
-	_, _, err = world.CreateWorldObject(ctx, tb.WorldState, "seqno/example", func(cursor *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, tb.WorldState, "seqno/example", func(cursor *block.Cursor) error {
 		cursor.SetBlock(block_mock.NewExample("before"), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}

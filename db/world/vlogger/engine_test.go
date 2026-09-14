@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	core_testbed "github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/world"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	"github.com/s4wave/spacewave/db/world/testbed"
 	world_vlogger "github.com/s4wave/spacewave/db/world/vlogger"
@@ -53,14 +54,19 @@ func TestWorldVloggerRedactsObjectKeys(t *testing.T) {
 	const secretObjectKey = "secrets/ssh/password"
 	ws := world_vlogger.NewWorldState(le, tb.WorldState)
 	obj, err := ws.CreateObject(ctx, secretObjectKey, nil)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := obj.GetRootRef(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := ws.GetObject(ctx, secretObjectKey); err != nil {
-		t.Fatal(err)
+	{
+		objectState, _, err := ws.GetObject(ctx, secretObjectKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := ws.DeleteGraphObject(ctx, secretObjectKey); err != nil {
 		t.Fatal(err)

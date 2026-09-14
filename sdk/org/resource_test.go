@@ -95,10 +95,12 @@ func setupOrgWatchWorld(
 		tb.Release()
 		t.Fatal(err.Error())
 	}
-	_, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(state, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err == nil {
 		err = ws.Commit(ctx)
 	}

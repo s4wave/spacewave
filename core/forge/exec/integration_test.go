@@ -99,6 +99,7 @@ func createTestFS(
 		t.Fatalf("FsInit: %v", err)
 	}
 	obj, err := world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("MustGetObject: %v", err)
 	}

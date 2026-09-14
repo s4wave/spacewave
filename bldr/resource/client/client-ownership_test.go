@@ -114,8 +114,8 @@ func TestResourceLifetimeCloseQueuesAllReleases(t *testing.T) {
 		controls = append(controls, req)
 		return true
 	})
-	lifetime.createReference(11)
-	lifetime.createReference(3)
+	lifetime.createReference(11) //nolint:lostresource // Leave references outstanding to verify releaseAll queues their releases.
+	lifetime.createReference(3)  //nolint:lostresource // Leave references outstanding to verify releaseAll queues their releases.
 	lifetime.releaseAll()
 	if len(controls) != 4 {
 		t.Fatalf("controls = %d, want 4", len(controls))
@@ -126,14 +126,14 @@ func TestResourceLifetimeCloseQueuesAllReleases(t *testing.T) {
 			t.Fatalf("close control %d = %s/%d", i, kind, id)
 		}
 	}
-	if got := lifetime.createReference(11); !got.(*resourceRef).released {
+	if got := lifetime.createReference(11); !got.(*resourceRef).released { //nolint:lostresource // Verify that a retired lifetime cannot create a live reference.
 		t.Fatal("reference created after close was live")
 	}
 }
 
 func TestResourceLifetimeReleasedNotificationClearsReferences(t *testing.T) {
 	lifetime := newResourceLifetime(context.Background(), nil, func(*resource.ResourceClientRequest) bool { return true })
-	ref := lifetime.createReference(9)
+	ref := lifetime.createReference(9) //nolint:lostresource // Exercise server-driven release with an outstanding local reference.
 	lifetime.releaseFromServer(9)
 	if _, err := ref.GetClient(); err != resource.ErrResourceOrClientReleased {
 		t.Fatalf("GetClient error = %v", err)

@@ -38,9 +38,13 @@ func TestWorldEngineStaleHeadPublicationRejectsOpenWriter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := initialTx.CreateObject(ctx, "coord-baseline/stale-head/initial", &bucket.ObjectRef{BucketId: "coord-baseline-bucket"}); err != nil {
-		initialTx.Discard()
-		t.Fatal(err)
+	{
+		createdObject, err := initialTx.CreateObject(ctx, "coord-baseline/stale-head/initial", &bucket.ObjectRef{BucketId: "coord-baseline-bucket"})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			initialTx.Discard()
+			t.Fatal(err)
+		}
 	}
 	if err := initialTx.Commit(ctx); err != nil {
 		t.Fatal(err)
@@ -51,9 +55,13 @@ func TestWorldEngineStaleHeadPublicationRejectsOpenWriter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := freshTx.CreateObject(ctx, "coord-baseline/stale-head/fresh", &bucket.ObjectRef{BucketId: "coord-baseline-bucket"}); err != nil {
-		freshTx.Discard()
-		t.Fatal(err)
+	{
+		createdObject2, err := freshTx.CreateObject(ctx, "coord-baseline/stale-head/fresh", &bucket.ObjectRef{BucketId: "coord-baseline-bucket"})
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			freshTx.Discard()
+			t.Fatal(err)
+		}
 	}
 	if err := freshTx.Commit(ctx); err != nil {
 		t.Fatal(err)
@@ -64,8 +72,12 @@ func TestWorldEngineStaleHeadPublicationRejectsOpenWriter(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer staleTx.Discard()
-	if _, err := staleTx.CreateObject(ctx, "coord-baseline/stale-head/rejected", &bucket.ObjectRef{BucketId: "coord-baseline-bucket"}); err != nil {
-		t.Fatal(err)
+	{
+		createdObject3, err := staleTx.CreateObject(ctx, "coord-baseline/stale-head/rejected", &bucket.ObjectRef{BucketId: "coord-baseline-bucket"})
+		world.ReleaseObjectState(createdObject3)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := rootOwner.SetRootRef(ctx, firstRoot); err != nil {
 		t.Fatal(err)
@@ -92,9 +104,13 @@ func BenchmarkWorldEngineOneWriterBaseline(b *testing.B) {
 			b.Fatal(err)
 		}
 		key := "coord-baseline/object/" + strconv.Itoa(i)
-		if _, err := tx.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "coord-baseline-bucket"}); err != nil {
-			tx.Discard()
-			b.Fatal(err)
+		{
+			createdObject, err := tx.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "coord-baseline-bucket"})
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				tx.Discard()
+				b.Fatal(err)
+			}
 		}
 		start := time.Now()
 		if err := tx.Commit(ctx); err != nil {
@@ -196,12 +212,14 @@ func worldEngineBaselineHash(ctx context.Context, ws world.WorldState, prefix st
 		key := iter.Key()
 		obj, found, err := ws.GetObject(ctx, key)
 		if err != nil {
+			world.ReleaseObjectState(obj)
 			return 0, err
 		}
 		if !found {
 			continue
 		}
 		ref, rev, err := obj.GetRootRef(ctx)
+		world.ReleaseObjectState(obj)
 		if err != nil {
 			return 0, err
 		}

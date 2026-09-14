@@ -12,6 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/coord"
 	"github.com/s4wave/spacewave/db/testbed"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	"github.com/s4wave/spacewave/net/hash"
 	"github.com/sirupsen/logrus"
@@ -321,9 +322,13 @@ func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, err := firstTx.CreateObject(ctx, "after-execute-return", nil); err != nil {
-		firstTx.Discard()
-		t.Fatal(err.Error())
+	{
+		createdObject, err := firstTx.CreateObject(ctx, "after-execute-return", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			firstTx.Discard()
+			t.Fatal(err.Error())
+		}
 	}
 	if err := firstTx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
@@ -340,7 +345,8 @@ func TestControllerEngineSurvivesExecuteRestartUntilClose(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, found, err := restartReadTx.GetObject(ctx, "after-execute-return")
+	objectState, found, err := restartReadTx.GetObject(ctx, "after-execute-return")
+	world.ReleaseObjectState(objectState)
 	restartReadTx.Discard()
 	if err != nil {
 		t.Fatal(err.Error())

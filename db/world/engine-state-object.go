@@ -30,6 +30,7 @@ func (e *engineWorldStateObject) GetRootRef(ctx context.Context) (*bucket.Object
 	var outRev uint64
 	err := e.e.performOp(ctx, false, func(tx Tx) error {
 		obj, err := MustGetObject(ctx, tx, e.key)
+		defer ReleaseObjectState(obj)
 		if err != nil {
 			return err
 		}
@@ -51,6 +52,7 @@ func (e *engineWorldStateObject) AccessWorldState(
 	return e.e.performOp(ctx, false, func(tx Tx) error {
 		if ref.GetEmpty() {
 			obj, err := MustGetObject(ctx, tx, e.key)
+			defer ReleaseObjectState(obj)
 			if err != nil {
 				return err
 			}
@@ -69,6 +71,7 @@ func (e *engineWorldStateObject) SetRootRef(ctx context.Context, nref *bucket.Ob
 	var outRev uint64
 	err := e.e.performOp(ctx, true, func(tx Tx) error {
 		obj, berr := MustGetObject(ctx, tx, e.key)
+		defer ReleaseObjectState(obj)
 		if berr == nil {
 			outRev, berr = obj.SetRootRef(ctx, nref)
 		}
@@ -90,6 +93,7 @@ func (e *engineWorldStateObject) ApplyObjectOp(
 	var outSysErr bool
 	err := e.e.performOp(ctx, true, func(tx Tx) error {
 		obj, berr := MustGetObject(ctx, tx, e.key)
+		defer ReleaseObjectState(obj)
 		if berr == nil {
 			outRev, outSysErr, berr = obj.ApplyObjectOp(ctx, op, opSender)
 		}
@@ -104,6 +108,7 @@ func (e *engineWorldStateObject) IncrementRev(ctx context.Context) (uint64, erro
 	var val uint64
 	err := e.e.performOp(ctx, true, func(tx Tx) error {
 		obj, berr := MustGetObject(ctx, tx, e.key)
+		defer ReleaseObjectState(obj)
 		if berr == nil {
 			val, berr = obj.IncrementRev(ctx)
 		}
@@ -135,6 +140,7 @@ func (e *engineWorldStateObject) WaitRev(
 			}
 			nSeqno = seqno + 1
 			objState, objFound, err := tx.GetObject(ctx, e.key)
+			defer ReleaseObjectState(objState)
 			if err != nil {
 				return err
 			}

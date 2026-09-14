@@ -24,6 +24,7 @@ import (
 	"github.com/s4wave/spacewave/db/testbed"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	volume_kvtx "github.com/s4wave/spacewave/db/volume/common/kvtx"
+	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
 	world_mock "github.com/s4wave/spacewave/db/world/mock"
 	world_types "github.com/s4wave/spacewave/db/world/types"
@@ -95,11 +96,19 @@ func TestBundleManifestsKvfileWorldRootLifetime(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	defer wtx.Discard()
-	if _, err := wtx.CreateObject(ctx, "bundle-root-closure-object", &bucket.ObjectRef{BucketId: tb.BucketId}); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := wtx.CreateObject(ctx, "bundle-root-closure-object", &bucket.ObjectRef{BucketId: tb.BucketId})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := wtx.CreateObject(ctx, "manifest-fixture", manifestRef); err != nil {
-		t.Fatal(err)
+	{
+		createdObject2, err := wtx.CreateObject(ctx, "manifest-fixture", manifestRef)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, wtx, "manifest-fixture", bldr_manifest_world.ManifestTypeID); err != nil {
 		t.Fatal(err)

@@ -38,6 +38,7 @@ func registerV86ConfigMounts(
 	srv *unixfs_v86fs.Server,
 ) (func(), error) {
 	objState, found, err := ws.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return nil, errors.Wrap(err, "get vm object")
 	}
@@ -132,6 +133,7 @@ func ensureHomeMount(
 	}
 
 	vmObjState, found, err := ws.GetObject(ctx, vmObjectKey)
+	defer world.ReleaseObjectState(vmObjState)
 	if err != nil {
 		return nil, errors.Wrap(err, "get vm object")
 	}
@@ -203,10 +205,14 @@ func ensureEmptyFSNodeObject(
 	ws world.WorldState,
 	objKey string,
 ) error {
-	if _, found, err := ws.GetObject(ctx, objKey); err != nil {
-		return errors.Wrap(err, "probe fs-node object")
-	} else if found {
-		return nil
+	{
+		objectState, found, err := ws.GetObject(ctx, objKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			return errors.Wrap(err, "probe fs-node object")
+		} else if found {
+			return nil
+		}
 	}
 
 	op := &unixfs_world.FsInitOp{

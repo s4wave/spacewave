@@ -63,11 +63,15 @@ func TestListCollectObjectsWithTypeReleasesStates(t *testing.T) {
 	const typeID = "test/release-check-block"
 	store := func(ws world.WorldState, key, value string) {
 		t.Helper()
-		if _, _, err := world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
-			bcs.SetBlock(&releaseTestBlock{Value: value}, true)
-			return nil
-		}); err != nil {
-			t.Fatalf("CreateWorldObject %s: %v", key, err)
+		{
+			createdObject, _, err := world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+				bcs.SetBlock(&releaseTestBlock{Value: value}, true)
+				return nil
+			})
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatalf("CreateWorldObject %s: %v", key, err)
+			}
 		}
 		if err := world_types.SetObjectType(ctx, ws, key, typeID); err != nil {
 			t.Fatalf("SetObjectType %s: %v", key, err)

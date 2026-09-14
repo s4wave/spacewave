@@ -307,8 +307,12 @@ func TestCollectManifestsResetsStoreWithUnsupportedHashRef(t *testing.T) {
 	badRef := &bucket.ObjectRef{
 		RootRef: block.NewBlockRef(hash.NewHash(hash.HashType(999), []byte{1, 2, 3})),
 	}
-	if _, err := ws.CreateObject(ctx, badManifestKey, badRef); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, badManifestKey, badRef)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, badManifestKey, ManifestTypeID); err != nil {
 		t.Fatal(err.Error())
@@ -337,10 +341,14 @@ func TestCollectManifestsResetsStoreWithUnsupportedHashRef(t *testing.T) {
 	if err := CheckManifestStoreType(ctx, ws, storeKey); err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, found, err := ws.GetObject(ctx, badManifestKey); err != nil {
-		t.Fatal(err.Error())
-	} else if found {
-		t.Fatal("stale manifest object still exists after reset")
+	{
+		objectState, found, err := ws.GetObject(ctx, badManifestKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else if found {
+			t.Fatal("stale manifest object still exists after reset")
+		}
 	}
 	candidates, err := ListManifestCandidates(ctx, ws, storeKey)
 	if err != nil {
@@ -930,10 +938,14 @@ func TestPruneStartupManifestCandidateRemovesOnlyProofGatedDerivedCandidate(t *t
 	if !res.Pruned || !res.DeletedObject || res.DeletedEdges != 1 {
 		t.Fatalf("prune result = %+v, want one edge and object deleted", res)
 	}
-	if _, ok, err := ws.GetObject(ctx, wrongIDKey); err != nil {
-		t.Fatal(err.Error())
-	} else if ok {
-		t.Fatal("expected proof-gated derived candidate object to be deleted")
+	{
+		objectState, ok, err := ws.GetObject(ctx, wrongIDKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else if ok {
+			t.Fatal("expected proof-gated derived candidate object to be deleted")
+		}
 	}
 	quads, err := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys(storeKey, PredManifest.String(), wrongIDKey, ""), 0)
 	if err != nil {
@@ -1051,10 +1063,14 @@ func TestPruneStartupManifestCandidatePreservesProtectedAndUnprovenCandidates(t 
 	}
 
 	for _, key := range []string{spaceLocalKey, derivedKey} {
-		if _, ok, err := ws.GetObject(ctx, key); err != nil {
-			t.Fatal(err.Error())
-		} else if !ok {
-			t.Fatalf("expected protected/unproven candidate %q to remain", key)
+		{
+			objectState, ok, err := ws.GetObject(ctx, key)
+			world.ReleaseObjectState(objectState)
+			if err != nil {
+				t.Fatal(err.Error())
+			} else if !ok {
+				t.Fatalf("expected protected/unproven candidate %q to remain", key)
+			}
 		}
 	}
 }
@@ -1121,10 +1137,14 @@ func TestPruneStartupManifestCandidateRequiresExclusiveReachability(t *testing.T
 	if res.Pruned || !strings.HasPrefix(res.Reason, "reachable-from-other-root:") {
 		t.Fatalf("shared candidate prune result = %+v, want reachability no-op", res)
 	}
-	if _, ok, err := ws.GetObject(ctx, wrongIDKey); err != nil {
-		t.Fatal(err.Error())
-	} else if !ok {
-		t.Fatal("expected shared reachable candidate object to remain")
+	{
+		objectState, ok, err := ws.GetObject(ctx, wrongIDKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else if !ok {
+			t.Fatal("expected shared reachable candidate object to remain")
+		}
 	}
 }
 
@@ -2266,6 +2286,7 @@ func storeTestManifestRefObject(
 func objectRev(t *testing.T, ctx context.Context, ws world.WorldState, objKey string) uint64 {
 	t.Helper()
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -2282,6 +2303,7 @@ func objectRev(t *testing.T, ctx context.Context, ws world.WorldState, objKey st
 func objectRootRef(t *testing.T, ctx context.Context, ws world.WorldState, objKey string) *bucket.ObjectRef {
 	t.Helper()
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -2304,8 +2326,12 @@ func createStartupGraphBuildResultMarker(ctx context.Context, ws world.WorldStat
 		return err
 	}
 	objKey := manifestKey + "/build-result"
-	if _, err := ws.CreateObject(ctx, objKey, ref); err != nil {
-		return err
+	{
+		createdObject, err := ws.CreateObject(ctx, objKey, ref)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			return err
+		}
 	}
 	return world_types.SetObjectType(ctx, ws, objKey, "bldr/manifest-build-result")
 }

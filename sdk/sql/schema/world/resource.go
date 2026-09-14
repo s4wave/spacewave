@@ -113,6 +113,7 @@ func (r *SqlSchemaResource) openTargetRows(
 	query string,
 ) (driver.Rows, func(), error) {
 	obj, err := world.MustGetObject(ctx, r.ws, targetKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, err
 	}

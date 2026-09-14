@@ -41,10 +41,11 @@ func TestChatResourceListMessagesReadsOnlyRequestedPage(t *testing.T) {
 func createBadChatMessageObject(t *testing.T, ctx context.Context, ws world.WorldState, channelKey, msgKey string) {
 	t.Helper()
 
-	_, _, err := world.CreateWorldObject(ctx, ws, msgKey, func(bcs *block.Cursor) error {
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, msgKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&ChatChannel{Name: "wrong block", CreatedAt: timestamppb.Now()}, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", msgKey, err)
 	}

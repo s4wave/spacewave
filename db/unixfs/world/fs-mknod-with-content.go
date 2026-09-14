@@ -112,6 +112,7 @@ func (o *FsMknodWithContentOp) ApplyWorldOp(
 	sender peer.ID,
 ) (sysErr bool, err error) {
 	obj, err := world.MustGetObject(ctx, worldHandle, o.GetObjectKey())
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return false, err
 	}

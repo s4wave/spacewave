@@ -479,6 +479,7 @@ func TestWatchWorldManifestUsesStartupManifestRefsAndSkipsBadCandidate(t *testin
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -558,6 +559,7 @@ func TestWatchWorldManifestFiltersWebPlatformForUnlistedPlugin(t *testing.T) {
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -642,6 +644,7 @@ func TestWatchWorldManifestExecutesBootstrapManifestAndRecordsUnreadableRetained
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -742,6 +745,7 @@ func TestWatchWorldManifestExecutesReadableLauncherWithUnavailableRetainedReleas
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -878,6 +882,7 @@ func TestWatchWorldManifestIgnoresWrongPlatformRetainedRefAndSelectsCurrent(t *t
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -911,10 +916,14 @@ func TestWatchWorldManifestIgnoresWrongPlatformRetainedRefAndSelectsCurrent(t *t
 	if len(status.Plugins) != 0 {
 		t.Fatalf("expected ignored retained ref not to surface as a skip error, got %+v", status.Plugins)
 	}
-	if _, ok, err := ws.GetObject(ctx, ignoredRefKey); err != nil {
-		t.Fatal(err.Error())
-	} else if !ok {
-		t.Fatal("expected ignored retained ref to remain in the graph")
+	{
+		objectState, ok, err := ws.GetObject(ctx, ignoredRefKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else if !ok {
+			t.Fatal("expected ignored retained ref to remain in the graph")
+		}
 	}
 }
 
@@ -975,6 +984,7 @@ func TestWatchWorldManifestQuarantinesWrongManifestIDRetainedRef(t *testing.T) {
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1019,10 +1029,14 @@ func TestWatchWorldManifestQuarantinesWrongManifestIDRetainedRef(t *testing.T) {
 			t.Fatalf("quarantine diagnostic %q does not contain %q", lastError, want)
 		}
 	}
-	if _, ok, err := ws.GetObject(ctx, quarantinedRefKey); err != nil {
-		t.Fatal(err.Error())
-	} else if !ok {
-		t.Fatal("expected quarantined retained ref to remain in the graph")
+	{
+		objectState, ok, err := ws.GetObject(ctx, quarantinedRefKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else if !ok {
+			t.Fatal("expected quarantined retained ref to remain in the graph")
+		}
 	}
 }
 
@@ -1084,6 +1098,7 @@ func TestWatchWorldManifestClearsSkippedRefStatusAfterBucketFix(t *testing.T) {
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1221,7 +1236,8 @@ func TestWatchWorldManifestLauncherStartsAfterPruningUnavailableRetainedReleaseR
 	if !deleted {
 		t.Fatal("expected retained release ref object to be deleted")
 	}
-	_, ok, err := ws.GetObject(ctx, launcherRefKey)
+	objectState, ok, err := ws.GetObject(ctx, launcherRefKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1268,6 +1284,7 @@ func TestWatchWorldManifestLauncherStartsAfterPruningUnavailableRetainedReleaseR
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1354,6 +1371,7 @@ func TestWatchWorldManifestRecordsCompactSkippedRefStatusWhenNoCandidate(t *test
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1540,6 +1558,7 @@ func TestWatchWorldManifestSelectsManifestClassPairsByRevision(t *testing.T) {
 			}
 
 			obj, ok, err := ws.GetObject(ctx, objKey)
+			defer world.ReleaseObjectState(obj)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
@@ -1664,6 +1683,7 @@ func TestWatchWorldManifestFallsBackToBestDownloadWhenNoLocalExecutable(t *testi
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1752,6 +1772,7 @@ func TestProcessManifestWorldStateRunsDownloadAndExecuteForRemoteManifest(t *tes
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1889,6 +1910,7 @@ func TestProcessManifestWorldStateSuppressesNoCopyBucketWhileDynamicManifestCopi
 	}
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -2550,6 +2572,7 @@ func TestDownloadManifestCopiesRemoteDAGAndStoresLocalWorldRef(t *testing.T) {
 		t.Fatal("stored local manifest entrypoint changed")
 	}
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -3180,6 +3203,7 @@ func TestWatchWorldManifestSkipsUnchangedSelectionInputs(t *testing.T) {
 
 	ws := &accessCountingWorldState{WorldState: baseWS}
 	obj, ok, err := baseWS.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -3219,6 +3243,7 @@ func TestWatchWorldManifestSkipsUnchangedSelectionInputs(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	obj, ok, err = baseWS.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -3263,6 +3288,7 @@ func TestWatchWorldManifestReprocessesReplacementHostWithSamePlatform(t *testing
 		t.Fatal(err.Error())
 	}
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -3342,6 +3368,7 @@ func TestWatchWorldManifestReprocessesNestedSelectionGraphChange(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -4367,6 +4394,7 @@ func corruptTestWorldObjectRoot(
 	t.Helper()
 
 	obj, ok, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

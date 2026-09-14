@@ -219,6 +219,7 @@ func (r *CanvasResource) watchCanvasWorld(ctx context.Context) error {
 
 		objState, found, err := r.ws.GetObject(ctx, r.objKey)
 		if err != nil {
+			world.ReleaseObjectState(objState)
 			r.setCanvasWatchError(err)
 			return err
 		}
@@ -313,6 +314,7 @@ func (r *CanvasResource) persistState(ctx context.Context, previous, next *Canva
 		return err
 	}
 	writeState, found, err := wtx.GetObject(ctx, r.objKey)
+	defer world.ReleaseObjectState(writeState)
 	if err != nil {
 		wtx.Discard()
 		return err

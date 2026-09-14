@@ -99,12 +99,14 @@ func CreatePassWithTarget(
 		return nil
 	})
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, nil, err
 	}
 
 	// create the <type> ref
 	err = world_types.SetObjectType(ctx, ws, objKey, PassTypeID)
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, nil, err
 	}
 
@@ -112,6 +114,7 @@ func CreatePassWithTarget(
 	if len(peerID) != 0 {
 		_, _, err = identity_world.LinkObjectToKeypair(ctx, ws, sender, objKey, peerID, "", nil)
 		if err != nil {
+			world.ReleaseObjectState(objState)
 			return nil, nil, err
 		}
 	}

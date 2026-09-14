@@ -16,8 +16,12 @@ func TestWorldStateSetGraphQuadValidatesAndDeduplicates(t *testing.T) {
 
 	keys := []string{"graph-insert/source", "graph-insert/target"}
 	for _, key := range keys {
-		if _, err := ws.CreateObject(ctx, key, nil); err != nil {
-			t.Fatal(err)
+		{
+			createdObject, err := ws.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 
@@ -42,6 +46,7 @@ func TestWorldStateSetGraphQuadValidatesAndDeduplicates(t *testing.T) {
 			t.Fatal(err)
 		}
 		_, revisions[i], err = obj.GetRootRef(ctx)
+		world.ReleaseObjectState(obj)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -56,6 +61,7 @@ func TestWorldStateSetGraphQuadValidatesAndDeduplicates(t *testing.T) {
 			t.Fatal(err)
 		}
 		_, revision, err := obj.GetRootRef(ctx)
+		world.ReleaseObjectState(obj)
 		if err != nil || revision != revisions[i] {
 			t.Fatalf("duplicate changed %s revision: got=%d want=%d err=%v", key, revision, revisions[i], err)
 		}

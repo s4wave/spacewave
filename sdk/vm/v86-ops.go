@@ -69,10 +69,12 @@ func (o *CreateVmV86Op) ApplyWorldOp(
 		CreatedAt: o.GetTimestamp(),
 	}
 
-	_, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(vm, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}
@@ -170,17 +172,21 @@ func (o *SetV86ConfigOp) Validate() error {
 func resolveVmV86Object(ctx context.Context, ws world.WorldState, objKey string) (objState world.ObjectState, sysErr bool, err error) {
 	objState, found, err := ws.GetObject(ctx, objKey)
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, true, err
 	}
 	if !found {
+		world.ReleaseObjectState(objState)
 		return nil, false, errors.New("vm-v86 object not found")
 	}
 
 	typeID, err := world_types.GetObjectType(ctx, ws, objKey)
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, true, err
 	}
 	if typeID != VmV86TypeID {
+		world.ReleaseObjectState(objState)
 		return nil, false, errors.Errorf("object %q is not a VmV86 (type=%q)", objKey, typeID)
 	}
 	return objState, false, nil
@@ -198,6 +204,7 @@ func (o *SetV86ConfigOp) ApplyWorldOp(
 	}
 
 	objState, sysErr, err := resolveVmV86Object(ctx, ws, o.GetObjectKey())
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return sysErr, err
 	}
@@ -339,6 +346,7 @@ func (o *SetV86StateOp) ApplyWorldOp(
 	}
 
 	objState, sysErr, err := resolveVmV86Object(ctx, ws, o.GetObjectKey())
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return sysErr, err
 	}

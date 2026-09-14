@@ -25,7 +25,8 @@ type ObjectStateResource struct {
 
 // NewObjectStateResource creates a new ObjectStateResource.
 //
-// lookupOp may be nil
+// It borrows obj for the resource lifetime. The caller must release obj after
+// retiring the resource. lookupOp may be nil.
 func NewObjectStateResource(le *logrus.Entry, b bus.Bus, obj world.ObjectState, lookupOp world.LookupOp) *ObjectStateResource {
 	objResource := &ObjectStateResource{le: le, b: b, obj: obj, lookupOp: lookupOp}
 	mux := srpc.NewMux()

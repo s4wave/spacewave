@@ -177,8 +177,12 @@ func TestWorldState_GetObjectMetadataBatch(t *testing.T) {
 
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
 	for _, key := range []string{"parent", "child-a", "child-b", "child-c"} {
-		if _, err := ws.CreateObject(ctx, key, oref); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := ws.CreateObject(ctx, key, oref)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 	}
 
@@ -256,11 +260,19 @@ func TestWorldStateDefaultGraphKVTXUsesOkra(t *testing.T) {
 	defer ws.Discard()
 
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
-	if _, err := ws.CreateObject(ctx, "default/a", oref); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, "default/a", oref)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := ws.CreateObject(ctx, "default/b", oref); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := ws.CreateObject(ctx, "default/b", oref)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	quad := world.NewGraphQuadWithKeys("default/a", "<default-rel>", "default/b", "")
 	if err := ws.SetGraphQuad(ctx, quad); err != nil {
@@ -330,14 +342,26 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 	defer ws.Discard()
 
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
-	if _, err := ws.CreateObject(ctx, "explicit/a", oref); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, "explicit/a", oref)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := ws.CreateObject(ctx, "explicit/b", oref); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := ws.CreateObject(ctx, "explicit/b", oref)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := world.MustGetObject(ctx, ws, "explicit/a"); err != nil {
-		t.Fatal(err.Error())
+	{
+		objectState, err := world.MustGetObject(ctx, ws, "explicit/a")
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	quad := world.NewGraphQuadWithKeys("explicit/a", "<explicit-rel>", "explicit/b", "")
 	if err := ws.SetGraphQuad(ctx, quad); err != nil {
@@ -371,8 +395,12 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 		t.Fatal(err.Error())
 	}
 	defer readWS.Discard()
-	if _, err := world.MustGetObject(ctx, readWS, "explicit/a"); err != nil {
-		t.Fatal(err.Error())
+	{
+		objectState2, err := world.MustGetObject(ctx, readWS, "explicit/a")
+		world.ReleaseObjectState(objectState2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	quads, err := readWS.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("explicit/a", "<explicit-rel>", "", ""), 0)
 	if err != nil {
@@ -430,11 +458,19 @@ func TestWorldState_GetObjectRootRefsBatch(t *testing.T) {
 
 	alphaRef := &bucket.ObjectRef{BucketId: "alpha-bucket"}
 	betaRef := &bucket.ObjectRef{BucketId: "beta-bucket"}
-	if _, err := ws.CreateObject(ctx, "alpha", alphaRef); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, "alpha", alphaRef)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := ws.CreateObject(ctx, "beta", betaRef); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := ws.CreateObject(ctx, "beta", betaRef)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	refs, err := world.GetObjectRootRefsBatch(ctx, ws, []string{"beta", "missing", "alpha", "alpha"})
@@ -492,8 +528,12 @@ func TestWorldState_LookupGraphQuadsReturnsFullTypeQuad(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if _, err := ws.CreateObject(ctx, "repo-1", nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, "repo-1", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, "repo-1", "git/repo"); err != nil {
 		t.Fatal(err.Error())
@@ -541,11 +581,19 @@ func TestWorldState_QueryGraphPathSeesUncommittedWrite(t *testing.T) {
 	}
 	defer ws.Discard()
 
-	if _, err := ws.CreateObject(ctx, "path-pending/a", nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, "path-pending/a", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := ws.CreateObject(ctx, "path-pending/b", nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := ws.CreateObject(ctx, "path-pending/b", nil)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("path-pending/a", "<path-pending-rel>", "path-pending/b", "")); err != nil {
 		t.Fatal(err.Error())
@@ -597,11 +645,19 @@ func TestWorldState_LookupGraphQuadsBatchSeesUncommittedWrite(t *testing.T) {
 	}
 	defer ws.Discard()
 
-	if _, err := ws.CreateObject(ctx, "batch-pending/a", nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, "batch-pending/a", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := ws.CreateObject(ctx, "batch-pending/b", nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := ws.CreateObject(ctx, "batch-pending/b", nil)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys("batch-pending/a", "<batch-pending-rel>", "batch-pending/b", "")); err != nil {
 		t.Fatal(err.Error())
@@ -647,13 +703,17 @@ func TestWorldState_DeleteObject(t *testing.T) {
 	// Create two objects for graph deletion checks.
 	objKey1 := "test-obj1"
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
-	_, err = ws.CreateObject(ctx, objKey1, oref)
+	var createdObject world.ObjectState
+	createdObject, err = ws.CreateObject(ctx, objKey1, oref)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	objKey2 := "test-obj2"
-	_, err = ws.CreateObject(ctx, objKey2, oref)
+	var createdObject2 world.ObjectState
+	createdObject2, err = ws.CreateObject(ctx, objKey2, oref)
+	world.ReleaseObjectState(createdObject2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -701,7 +761,9 @@ func TestWorldState_DeleteObject(t *testing.T) {
 	}
 
 	// Verify the deleted object is no longer addressable.
-	_, err = world.MustGetObject(ctx, ws, objKey1)
+	var objectState world.ObjectState
+	objectState, err = world.MustGetObject(ctx, ws, objKey1)
+	world.ReleaseObjectState(objectState)
 	if err == nil {
 		t.Fatal("Expected error when getting deleted object, but got nil")
 	}
@@ -765,6 +827,7 @@ func TestWorldState_DisabledChangelogObjectOperations(t *testing.T) {
 	objKey := "disabled-changelog-object"
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
 	obj, err := ws.CreateObject(ctx, objKey, oref)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -825,11 +888,19 @@ func TestWorldState_DeleteObjectRemovesLiteralPredicateQuads(t *testing.T) {
 	rootRef := &bucket.ObjectRef{BucketId: "test-bucket"}
 	imageKey := "image"
 	oldAssetKey := "image-old-asset"
-	if _, err := ws.CreateObject(ctx, imageKey, rootRef); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, imageKey, rootRef)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := ws.CreateObject(ctx, oldAssetKey, rootRef); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := ws.CreateObject(ctx, oldAssetKey, rootRef)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if err := ws.SetGraphQuad(ctx, world.NewGraphQuadWithKeys(imageKey, "v86image/wasm", oldAssetKey, "")); err != nil {
 		t.Fatal(err.Error())
@@ -884,11 +955,19 @@ func TestWorldState_DeleteObjectWithMalformedGraphQuad(t *testing.T) {
 	objKey := "delete-malformed-obj"
 	otherKey := "delete-malformed-other"
 	oref := &bucket.ObjectRef{BucketId: "test-bucket"}
-	if _, err := ws.CreateObject(ctx, objKey, oref); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, objKey, oref)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := ws.CreateObject(ctx, otherKey, oref); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := ws.CreateObject(ctx, otherKey, oref)
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	err = ws.AccessCayleyGraph(ctx, true, func(ctx context.Context, h world.CayleyHandle) error {
@@ -944,6 +1023,7 @@ func TestWorldState_ChangelogObjectSetStoresCurrentAndPreviousObjectRefs(t *test
 	}
 
 	obj, err := ws.CreateObject(ctx, "changelog-set-ref", &bucket.ObjectRef{BucketId: "initial-bucket"})
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1000,8 +1080,12 @@ func TestWorldState_ChangelogDeleteObjectStoresPreviousObjectRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if _, err := ws.CreateObject(ctx, "changelog-delete-ref", &bucket.ObjectRef{BucketId: "deleted-bucket"}); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, "changelog-delete-ref", &bucket.ObjectRef{BucketId: "deleted-bucket"})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	deleted, err := ws.DeleteObject(ctx, "changelog-delete-ref")
 	if err != nil {
@@ -1061,7 +1145,9 @@ func TestWorldEngine_Fork(t *testing.T) {
 
 	// Seed the original state with a mock object.
 	objKey := "tx-test-obj-1"
-	_, err = world_block.BuildMockObject(ctx, ws, objKey)
+	var createdObject world.ObjectState
+	createdObject, err = world_block.BuildMockObject(ctx, ws, objKey)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1076,7 +1162,9 @@ func TestWorldEngine_Fork(t *testing.T) {
 	sender := tb.Volume.GetPeerID()
 	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err == nil {
-		_, err = world.MustGetObject(ctx, ws, objKey)
+		var objectState world.ObjectState
+		objectState, err = world.MustGetObject(ctx, ws, objKey)
+		world.ReleaseObjectState(objectState)
 	}
 	if err != nil {
 		t.Fatal(err.Error())
@@ -1107,6 +1195,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 
 	// Verify the original state remains unchanged.
 	obj, err := world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err == nil {
 		checkRev(obj, 1)
 	}
@@ -1131,6 +1220,7 @@ func TestWorldEngine_Fork(t *testing.T) {
 
 	// Verify the forked revision was published.
 	obj, err = world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err == nil {
 		checkRev(obj, 2)
 	}
@@ -1180,7 +1270,9 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	oref1 := &bucket.ObjectRef{BucketId: "test-1"}
-	_, err = ws.CreateObject(ctx, objKey, oref1)
+	var createdObject world.ObjectState
+	createdObject, err = ws.CreateObject(ctx, objKey, oref1)
+	world.ReleaseObjectState(createdObject)
 	if err == nil {
 		err = ws.Commit(ctx)
 	}
@@ -1197,6 +1289,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	obj1, err := world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj1)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1219,6 +1312,7 @@ func TestWorldEngine_UpdateRootRef(t *testing.T) {
 
 	// Verify the read transaction observes the committed revision.
 	obj1, err = world.MustGetObject(ctx, rtx, objKey)
+	defer world.ReleaseObjectState(obj1)
 	if err == nil {
 		var rev uint64
 		_, rev, err = obj1.GetRootRef(ctx)
@@ -1314,7 +1408,9 @@ func TestWorldState_Basic(t *testing.T) {
 
 	// Create all test objects in the world.
 	forEachObj(func(objKey string) error {
-		_, err = ws.CreateObject(ctx, objKey, oref)
+		var createdObject world.ObjectState
+		createdObject, err = ws.CreateObject(ctx, objKey, oref)
+		world.ReleaseObjectState(createdObject)
 		return err
 	})
 
@@ -1503,7 +1599,8 @@ func TestWorldState_GC_CreateObject(t *testing.T) {
 		t.Fatal("no refgraph")
 	}
 
-	_, err := world_block.BuildMockObject(ctx, ws, "gc-test-obj")
+	createdObject, err := world_block.BuildMockObject(ctx, ws, "gc-test-obj")
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1545,7 +1642,8 @@ func TestWorldState_GC_DeleteObject(t *testing.T) {
 		t.Fatal("no refgraph")
 	}
 
-	_, err := world_block.BuildMockObject(ctx, ws, "gc-del-obj")
+	createdObject, err := world_block.BuildMockObject(ctx, ws, "gc-del-obj")
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1601,6 +1699,7 @@ func TestWorldState_GC_SetRootRef(t *testing.T) {
 	}
 
 	objState, err := world_block.BuildMockObject(ctx, ws, "gc-swap-obj")
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1679,6 +1778,7 @@ func TestWorldState_GC_SetRootRef_OrphanBlock(t *testing.T) {
 	}
 
 	objState, err := world_block.BuildMockObject(ctx, ws, "gc-orphan-obj")
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1759,8 +1859,12 @@ func TestWorldState_GC_PinsCurrentRootDuringPhysicalSweep(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	for i := range 1 {
-		if _, err := world_block.BuildMockObject(ctx, ws, "gc-journal-"+strconv.Itoa(i)); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := world_block.BuildMockObject(ctx, ws, "gc-journal-"+strconv.Itoa(i))
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 	}
 	if err := ws.Commit(ctx); err != nil {
@@ -1807,8 +1911,12 @@ func TestWorldState_GC_ReconcileJournalInBoundedDurableChunks(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	for i := range 65 {
-		if _, err := world_block.BuildMockObject(ctx, ws, "gc-bounded-"+strconv.Itoa(i)); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := world_block.BuildMockObject(ctx, ws, "gc-bounded-"+strconv.Itoa(i))
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 		if err := ws.Commit(ctx); err != nil {
 			t.Fatal(err.Error())
@@ -1844,11 +1952,19 @@ func TestWorldState_GC_ReconcileJournalInBoundedDurableChunks(t *testing.T) {
 	if entries := reopened.GetGCJournalEntries(); entries == 0 || entries >= entriesBefore {
 		t.Fatalf("reopened journal entries = %d, want bounded pending suffix", entries)
 	}
-	if _, err := world.MustGetObject(ctx, reopened, "gc-bounded-64"); err != nil {
-		t.Fatal(err.Error())
+	{
+		objectState, err := world.MustGetObject(ctx, reopened, "gc-bounded-64")
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := world_block.BuildMockObject(ctx, reopened, "gc-pending-write"); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject2, err := world_block.BuildMockObject(ctx, reopened, "gc-pending-write")
+		world.ReleaseObjectState(createdObject2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if err := reopened.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
@@ -1859,8 +1975,12 @@ func TestWorldState_GC_ReconcileJournalInBoundedDurableChunks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, err := world.MustGetObject(ctx, reopened, "gc-pending-write"); err != nil {
-		t.Fatal(err.Error())
+	{
+		objectState2, err := world.MustGetObject(ctx, reopened, "gc-pending-write")
+		world.ReleaseObjectState(objectState2)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 
 	for i := 0; i < 4 && reopened.GetGCJournalEntries() != 0; i++ {
@@ -1886,6 +2006,7 @@ func TestWorldState_GC_DoesNotAuthorizePhysicalDeletion(t *testing.T) {
 	ws, tb := buildGCTestWorld(t)
 
 	obj, err := world_block.BuildMockObject(ctx, ws, "world-local-gc")
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1922,6 +2043,7 @@ func TestWorldState_GC_ForkDoesNotCollectBlocksReachableFromOriginal(t *testing.
 	ws, tb := buildGCTestWorld(t)
 
 	obj, err := world_block.BuildMockObject(ctx, ws, "shared-before-fork")
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -1987,7 +2109,9 @@ func TestWorldState_GC_Fork(t *testing.T) {
 	}
 
 	// Create an object before fork.
-	_, err = world_block.BuildMockObject(ctx, ws, "pre-fork-obj")
+	var createdObject world.ObjectState
+	createdObject, err = world_block.BuildMockObject(ctx, ws, "pre-fork-obj")
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -2048,7 +2172,9 @@ func TestWorldState_GC_Fork(t *testing.T) {
 	}
 
 	// Create a new object in the forked state.
-	_, err = world_block.BuildMockObject(ctx, forked, "post-fork-obj")
+	var createdObject2 world.ObjectState
+	createdObject2, err = world_block.BuildMockObject(ctx, forked, "post-fork-obj")
+	world.ReleaseObjectState(createdObject2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -2101,11 +2227,14 @@ func TestWorldState_GC_FullLifecycle(t *testing.T) {
 	}
 
 	// Create two objects.
-	_, err := world_block.BuildMockObject(ctx, ws, "obj-keep")
+	createdObject, err := world_block.BuildMockObject(ctx, ws, "obj-keep")
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, err = world_block.BuildMockObject(ctx, ws, "obj-delete")
+	var createdObject2 world.ObjectState
+	createdObject2, err = world_block.BuildMockObject(ctx, ws, "obj-delete")
+	world.ReleaseObjectState(createdObject2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -2211,7 +2340,9 @@ func TestWorldState_GC_SweepTx(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 		defer btx.Discard()
-		_, err = btx.CreateObject(ctx, objKey, &bucket.ObjectRef{BucketId: "test"})
+		var createdObject world.ObjectState
+		createdObject, err = btx.CreateObject(ctx, objKey, &bucket.ObjectRef{BucketId: "test"})
+		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -2317,8 +2448,12 @@ func commitObjectInEngine(t *testing.T, ctx context.Context, eng *world_block.En
 		t.Fatal(err.Error())
 	}
 	defer btx.Discard()
-	if _, err := btx.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "test"}); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := btx.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "test"})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	ref, err := btx.CommitBlockTransaction(ctx)
 	if err != nil {
@@ -2411,13 +2546,21 @@ func TestEngineDeferredDurabilityCrashRecovery(t *testing.T) {
 
 	// obj-a's blocks were fenced durable by Sync, so it recovers (this read also
 	// proves block-before-head ordering: the head names only durable blocks)...
-	if _, err := world.MustGetObject(ctx, recovered, "obj-a"); err != nil {
-		t.Fatalf("recovery must land on the last Sync'd head with its blocks present: %v", err.Error())
+	{
+		objectState, err := world.MustGetObject(ctx, recovered, "obj-a")
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatalf("recovery must land on the last Sync'd head with its blocks present: %v", err.Error())
+		}
 	}
 
 	// ...and obj-b, committed after the last Sync, is rolled back.
-	if _, err := world.MustGetObject(ctx, recovered, "obj-b"); err == nil {
-		t.Fatal("post-Sync commit must not survive a crash before the next Sync")
+	{
+		objectState2, err := world.MustGetObject(ctx, recovered, "obj-b")
+		world.ReleaseObjectState(objectState2)
+		if err == nil {
+			t.Fatal("post-Sync commit must not survive a crash before the next Sync")
+		}
 	}
 }
 
@@ -2437,10 +2580,12 @@ func TestEngineTxObjectBodyPagePairsSeqnoWithBodies(t *testing.T) {
 
 	const objectKey = "body/race"
 	initialBody := []byte("version-initial")
-	_, _, err = world.CreateWorldObject(ctx, tx, objectKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, tx, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(byteslice.NewByteSlice(&initialBody), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}

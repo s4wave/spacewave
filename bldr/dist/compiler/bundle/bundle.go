@@ -78,6 +78,7 @@ func BundleManifestsKvfile(
 
 		return world_types.IterateObjectsWithType(ctx, wtx, bldr_manifest_world.ManifestTypeID, func(objKey string) (bool, error) {
 			obj, err := world.MustGetObject(ctx, wtx, objKey)
+			defer world.ReleaseObjectState(obj)
 			if err != nil {
 				return false, err
 			}

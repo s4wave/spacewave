@@ -19,6 +19,7 @@ func (t *Tx) GetObject(ctx context.Context, key string) (world.ObjectState, bool
 
 	cobj, ok, err := t.state.GetObject(ctx, key)
 	if err != nil || !ok || cobj == nil {
+		world.ReleaseObjectState(cobj)
 		return nil, ok, err
 	}
 	return NewTxObjectState(t, key, cobj), true, nil
@@ -55,6 +56,7 @@ func (t *Tx) CreateObject(ctx context.Context, key string, rootRef *bucket.Objec
 
 	cobj, err := t.state.CreateObject(ctx, key, rootRef)
 	if err != nil || cobj == nil {
+		world.ReleaseObjectState(cobj)
 		return nil, err
 	}
 	return NewTxObjectState(t, key, cobj), nil
@@ -70,6 +72,7 @@ func (t *Tx) RenameObject(ctx context.Context, oldKey, newKey string, descendant
 
 	cobj, err := t.state.RenameObject(ctx, oldKey, newKey, descendants)
 	if err != nil || cobj == nil {
+		world.ReleaseObjectState(cobj)
 		return nil, err
 	}
 	return NewTxObjectState(t, newKey, cobj), nil

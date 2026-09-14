@@ -20,6 +20,7 @@ import (
 	git_world "github.com/s4wave/spacewave/db/git/world"
 	unixfs_block "github.com/s4wave/spacewave/db/unixfs/block"
 	"github.com/s4wave/spacewave/db/volume"
+	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/sdk/cli/runner"
 	s4wave_deploy "github.com/s4wave/spacewave/sdk/deploy"
 	s4wave_space "github.com/s4wave/spacewave/sdk/space"
@@ -426,7 +427,8 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 			if err != nil {
 				return errors.Wrap(err, "new transaction")
 			}
-			_, exists, err := readTx.GetObject(ctx, objectKey)
+			objectState, exists, err := readTx.GetObject(ctx, objectKey)
+			world.ReleaseObjectState(objectState)
 			if err != nil {
 				readTx.Discard()
 				return errors.Wrap(err, "check object")

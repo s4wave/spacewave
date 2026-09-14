@@ -353,7 +353,8 @@ func waitForForgeExecutionState(
 					t.Fatalf("ListPassExecutions(%s): %v", passKey, err)
 				}
 				for _, execKey := range execKeys {
-					execState, _, err := forge_execution.LookupExecution(ctx, ws, execKey)
+					execState, objectState, err := forge_execution.LookupExecution(ctx, ws, execKey)
+					world.ReleaseObjectState(objectState)
 					if err != nil {
 						t.Fatalf("LookupExecution(%s): %v", execKey, err)
 					}
@@ -483,7 +484,8 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 	}
 	defer readTx.Discard()
 	for _, wizardKey := range []string{clusterWizardKey, jobWizardKey, taskWizardKey} {
-		_, found, err := readTx.GetObject(ctx, wizardKey)
+		objectState, found, err := readTx.GetObject(ctx, wizardKey)
+		world.ReleaseObjectState(objectState)
 		if err != nil {
 			t.Fatalf("GetObject(%s): %v", wizardKey, err)
 		}
@@ -571,7 +573,8 @@ func TestSpaceContentsResource_ForgeWizardChainStartsApprovedWorker(t *testing.T
 		if len(execKeys) == 0 {
 			t.Fatalf("expected execution for pass %s", passKeys[0])
 		}
-		execState, _, err := forge_execution.LookupExecution(ctx, tb.WorldState, execKeys[0])
+		execState, objectState2, err := forge_execution.LookupExecution(ctx, tb.WorldState, execKeys[0])
+		world.ReleaseObjectState(objectState2)
 		if err != nil {
 			t.Fatalf("LookupExecution(%s): %v", execKeys[0], err)
 		}

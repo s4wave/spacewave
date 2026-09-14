@@ -175,10 +175,12 @@ func setupWizardWatchWorld(
 		tb.Release()
 		t.Fatal(err.Error())
 	}
-	_, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(state, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err == nil {
 		err = ws.Commit(ctx)
 	}
@@ -1156,6 +1158,7 @@ func TestClusterWizardFinalize(t *testing.T) {
 	defer readTx.Release()
 
 	clusterObj, found, err := readTx.GetObject(ctx, clusterKey)
+	defer world.ReleaseObjectState(clusterObj)
 	if err != nil {
 		t.Fatalf("GetObject(cluster): %v", err)
 	}
@@ -1163,7 +1166,8 @@ func TestClusterWizardFinalize(t *testing.T) {
 		t.Fatal("cluster object not found after finalize")
 	}
 
-	_, wizardFound, err := readTx.GetObject(ctx, wizardKey)
+	objectState, wizardFound, err := readTx.GetObject(ctx, wizardKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatalf("GetObject(wizard): %v", err)
 	}
@@ -1381,7 +1385,8 @@ func TestForgeWizardChain(t *testing.T) {
 
 	// Objects exist.
 	for _, key := range []string{clusterKey, jobKey, taskKey} {
-		_, found, err := readTx.GetObject(ctx, key)
+		objectState, found, err := readTx.GetObject(ctx, key)
+		world.ReleaseObjectState(objectState)
 		if err != nil {
 			t.Fatalf("GetObject(%s): %v", key, err)
 		}
@@ -1392,7 +1397,8 @@ func TestForgeWizardChain(t *testing.T) {
 
 	// Wizard objects deleted.
 	for _, key := range []string{clusterWizardKey, jobWizardKey, taskWizardKey} {
-		_, found, err := readTx.GetObject(ctx, key)
+		objectState2, found, err := readTx.GetObject(ctx, key)
+		world.ReleaseObjectState(objectState2)
 		if err != nil {
 			t.Fatalf("GetObject(%s): %v", key, err)
 		}
@@ -1572,7 +1578,8 @@ func TestGitRepoWizardOp(t *testing.T) {
 		if err != nil {
 			t.Fatalf("NewTransaction(verify create): %v", err)
 		}
-		_, found, err := readTx.GetObject(ctx, wizardKey)
+		objectState, found, err := readTx.GetObject(ctx, wizardKey)
+		world.ReleaseObjectState(objectState)
 		if err != nil {
 			readTx.Release()
 			t.Fatalf("GetObject(wizard): %v", err)
@@ -1605,7 +1612,9 @@ func TestGitRepoWizardOp(t *testing.T) {
 			t.Fatalf("NewTransaction(verify delete): %v", err)
 		}
 		defer readTx.Release()
-		_, found, err = readTx.GetObject(ctx, wizardKey)
+		var objectState2 world.ObjectState
+		objectState2, found, err = readTx.GetObject(ctx, wizardKey)
+		world.ReleaseObjectState(objectState2)
 		if err != nil {
 			t.Fatalf("GetObject(wizard after delete): %v", err)
 		}

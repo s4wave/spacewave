@@ -182,7 +182,8 @@ func TestWorldEngineController(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	_, found, err := engTx.GetObject(ctx, "test-object")
+	objectState, found, err := engTx.GetObject(ctx, "test-object")
+	world.ReleaseObjectState(objectState)
 	if !found && err == nil {
 		err = errors.New("object not found after remounting")
 	}

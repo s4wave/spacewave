@@ -158,7 +158,8 @@ func (r *TypedObjectResource) AccessTypedObject(ctx context.Context, req *s4wave
 	}
 
 	// Verify that the object exists.
-	_, found, err := ws.GetObject(ctx, objectKey)
+	objectState, found, err := ws.GetObject(ctx, objectKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		return nil, err
 	}

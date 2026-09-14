@@ -193,6 +193,7 @@ func (a *ClientArgs) MountSession(ctx context.Context, sessionIdx uint32) (*s4wa
 	rootRef := resClient.AccessRootResource()
 	root, err := s4wave_root.NewRoot(resClient, rootRef)
 	if err != nil {
+		rootRef.Release()
 		resClient.Release()
 		return nil, nil, errors.Wrap(err, "root resource")
 	}
@@ -273,7 +274,7 @@ func findProjectRoot() (string, error) {
 
 func findSocket() (string, error) {
 	if p := os.Getenv("SPACEWAVE_DEBUG_SOCK"); p != "" {
-		if _, err := os.Stat(p); err == nil {
+		if _, err := os.Stat(p); err == nil { //nolint:gosec // The operator selects the debug socket path.
 			return p, nil
 		}
 		return "", errors.Errorf("socket not found at SPACEWAVE_DEBUG_SOCK=%s", p)

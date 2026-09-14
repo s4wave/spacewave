@@ -47,6 +47,7 @@ func (w *commitDuringCheckWorldState) commitObjectRevision(ctx context.Context) 
 	defer tx.Discard()
 
 	obj, found, err := tx.GetObject(ctx, w.objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}
@@ -69,9 +70,13 @@ func TestTrackedWorldStateCommitDuringRevisionCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewTransaction initial: %v", err)
 	}
-	if _, err := writeTx.CreateObject(ctx, objectKey, nil); err != nil {
-		writeTx.Discard()
-		t.Fatalf("CreateObject initial: %v", err)
+	{
+		createdObject, err := writeTx.CreateObject(ctx, objectKey, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			writeTx.Discard()
+			t.Fatalf("CreateObject initial: %v", err)
+		}
 	}
 	if err := writeTx.Commit(ctx); err != nil {
 		writeTx.Discard()
@@ -100,8 +105,12 @@ func TestTrackedWorldStateCommitDuringRevisionCheck(t *testing.T) {
 	trackedWs := resource_world.NewTrackedWorldState(readTx, watchWs, seqno, trackedCtx)
 	defer trackedWs.Close()
 
-	if _, _, err := trackedWs.GetObject(ctx, objectKey); err != nil {
-		t.Fatalf("GetObject tracked: %v", err)
+	{
+		objectState, _, err := trackedWs.GetObject(ctx, objectKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatalf("GetObject tracked: %v", err)
+		}
 	}
 
 	waitCtx, waitCancel := context.WithTimeout(ctx, 10*time.Second)

@@ -35,6 +35,7 @@ func (f *CoreClientFactory) NewClient(ctx context.Context, c *cli.Context) (runn
 	rootRef := resources.Client.AccessRootResource()
 	root, err := s4wave_root.NewRoot(resources.Client, rootRef)
 	if err != nil {
+		rootRef.Release()
 		resources.Release()
 		return nil, errors.Wrap(err, "root resource")
 	}

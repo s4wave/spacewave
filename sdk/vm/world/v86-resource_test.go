@@ -26,7 +26,8 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	ws := world.NewEngineWorldState(wtb.Engine, true)
 	const objectKey = "vm/v86/test"
 	const generation = uint64(7)
-	_, _, err = world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&s4wave_vm.VmV86{
 			State:         s4wave_vm.VmState_VmState_RUNNING,
 			ObservedState: s4wave_vm.VmState_VmState_STARTING,
@@ -34,6 +35,7 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 		}, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,6 +111,7 @@ func TestV86RuntimeStatusGenerationFence(t *testing.T) {
 	}
 
 	objState, found, err := ws.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		t.Fatal(err)
 	}

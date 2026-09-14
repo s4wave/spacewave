@@ -42,6 +42,7 @@ func TestCreateSshHostOpCreatesTypedHostWithoutCredentialPayload(t *testing.T) {
 	}
 
 	obj, found, err := tb.WorldState.GetObject(ctx, "hosts/prod")
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("GetObject: %v", err)
 	}

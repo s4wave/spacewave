@@ -13,6 +13,7 @@ import (
 	hydra_sql "github.com/s4wave/spacewave/db/sql"
 	sql_rpc "github.com/s4wave/spacewave/db/sql/rpc"
 	sql_rpc_client "github.com/s4wave/spacewave/db/sql/rpc/client"
+	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	s4wave_sql_world "github.com/s4wave/spacewave/sdk/sql/world"
 	"github.com/s4wave/spacewave/testbed"
@@ -75,8 +76,12 @@ func TestWorldBackedSqlFirstCommitFromEmptyObjectRefLands(t *testing.T) {
 	defer tb.Release()
 
 	objectKey := "sql/empty-object-ref-db"
-	if _, err := tb.WorldState.CreateObject(ctx, objectKey, &bucket.ObjectRef{}); err != nil {
-		t.Fatalf("CreateObject(%s): %v", objectKey, err)
+	{
+		createdObject, err := tb.WorldState.CreateObject(ctx, objectKey, &bucket.ObjectRef{})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatalf("CreateObject(%s): %v", objectKey, err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, tb.WorldState, objectKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)
@@ -125,8 +130,12 @@ func TestWorldBackedSqlFirstCommitFromNilRootLands(t *testing.T) {
 	defer tb.Release()
 
 	objectKey := "sql/nil-root-db"
-	if _, err := tb.WorldState.CreateObject(ctx, objectKey, nil); err != nil {
-		t.Fatalf("CreateObject(%s): %v", objectKey, err)
+	{
+		createdObject, err := tb.WorldState.CreateObject(ctx, objectKey, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatalf("CreateObject(%s): %v", objectKey, err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, tb.WorldState, objectKey, s4wave_sql_world.SqlDbTypeID); err != nil {
 		t.Fatalf("SetObjectType(%s): %v", objectKey, err)

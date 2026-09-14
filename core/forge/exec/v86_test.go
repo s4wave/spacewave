@@ -338,6 +338,7 @@ func readTestV86ObservedState(t *testing.T, ctx context.Context, ws world.WorldS
 
 func readV86States(ctx context.Context, ws world.WorldState, objectKey string) (s4wave_vm.VmState, s4wave_vm.VmState, error) {
 	obj, found, err := ws.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return 0, 0, err
 	}

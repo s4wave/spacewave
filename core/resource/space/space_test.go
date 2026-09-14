@@ -531,10 +531,11 @@ func (f *recordingChatFactory) create(
 
 func createSpaceResourceChatChannel(t *testing.T, ctx context.Context, ws world.WorldState, key string) {
 	t.Helper()
-	_, _, err := world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, key, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&spacewave_chat.ChatChannel{Name: "General", CreatedAt: timestamppb.Now()}, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", key, err)
 	}
@@ -551,6 +552,7 @@ func assertSpaceChatSender(t *testing.T, ctx context.Context, engine world.Engin
 	}
 	defer tx.Discard()
 	obj, found, err := tx.GetObject(ctx, messageKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("GetObject(%s): %v", messageKey, err)
 	}

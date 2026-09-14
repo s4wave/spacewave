@@ -30,6 +30,7 @@ func NewWorkbenchBlock() block.Block {
 // ReadWorkbenchRoot reads a SQL workbench object's root.
 func ReadWorkbenchRoot(ctx context.Context, ws world.WorldState, objectKey string) (*Workbench, error) {
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, err
 	}

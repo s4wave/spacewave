@@ -70,10 +70,12 @@ func (o *InitForgeQuickstartOp) ApplyWorldOp(
 		Name:      "Forge Dashboard",
 		CreatedAt: o.GetTimestamp(),
 	}
-	_, _, err = world.CreateWorldObject(ctx, ws, dashKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, dashKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(dashboard, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}
@@ -94,7 +96,9 @@ func (o *InitForgeQuickstartOp) ApplyWorldOp(
 		"link":    space_exec_noop.NewTarget(),
 		"test":    space_exec_noop.NewTarget(),
 	}
-	_, _, err = forge_job.CreateJobWithTasks(ctx, ws, sessionPeerID, jobKey, tasks, "", o.GetTimestamp())
+	var createdObject2 world.ObjectState
+	createdObject2, _, err = forge_job.CreateJobWithTasks(ctx, ws, sessionPeerID, jobKey, tasks, "", o.GetTimestamp())
+	world.ReleaseObjectState(createdObject2)
 	if err != nil {
 		return false, err
 	}
@@ -178,10 +182,12 @@ func (o *InitForgeQuickstartOp) ApplyWorldOp(
 			},
 		},
 	}
-	_, _, err = world.CreateWorldObject(ctx, ws, layoutKey, func(bcs *block.Cursor) error {
+	var createdObject3 world.ObjectState
+	createdObject3, _, err = world.CreateWorldObject(ctx, ws, layoutKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(layout, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject3)
 	if err != nil {
 		return false, err
 	}

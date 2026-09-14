@@ -62,10 +62,12 @@ func (o *CreateComputersDashboardOp) ApplyWorldOp(
 		CreatedAt: o.GetTimestamp(),
 	}
 
-	_, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(dashboard, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}

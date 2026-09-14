@@ -475,10 +475,11 @@ func TestSqlQueryRunCreatesLinkedQueryResult(t *testing.T) {
 
 func createSqlDbObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
 	t.Helper()
-	_, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(sql_mysql.NewRootBlock(), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}
@@ -501,10 +502,11 @@ func createEmptySqlQueryObject(t *testing.T, ctx context.Context, ws world.World
 
 func createSqlQueryObject(t *testing.T, ctx context.Context, ws world.WorldState, objectKey string) {
 	t.Helper()
-	_, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+	createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(&s4wave_sql_query.Query{}, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatalf("CreateWorldObject(%s): %v", objectKey, err)
 	}

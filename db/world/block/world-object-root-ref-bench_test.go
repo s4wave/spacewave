@@ -24,12 +24,15 @@ func BenchmarkWorldStateGetObjectRootRefsBatch(b *testing.B) {
 			for _, key := range keys {
 				obj, exists, err := ws.GetObject(ctx, key)
 				if err != nil {
+					world.ReleaseObjectState(obj)
 					b.Fatal(err.Error())
 				}
 				if !exists {
 					continue
 				}
-				if _, _, err := obj.GetRootRef(ctx); err != nil {
+				_, _, err = obj.GetRootRef(ctx)
+				world.ReleaseObjectState(obj)
+				if err != nil {
 					b.Fatal(err.Error())
 				}
 				found++
@@ -83,11 +86,15 @@ func setupObjectRootRefBenchWorld(ctx context.Context, tb testing.TB, count int)
 	keys := make([]string, 0, count)
 	for i := range count {
 		key := "bench/root-ref/" + strconv.Itoa(i)
-		if _, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "bucket-" + strconv.Itoa(i)}); err != nil {
-			ws.Discard()
-			ocs.Release()
-			tbed.Release()
-			tb.Fatal(err.Error())
+		{
+			createdObject, err := ws.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "bucket-" + strconv.Itoa(i)})
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				ws.Discard()
+				ocs.Release()
+				tbed.Release()
+				tb.Fatal(err.Error())
+			}
 		}
 		keys = append(keys, key)
 	}

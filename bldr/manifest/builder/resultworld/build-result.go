@@ -33,6 +33,7 @@ func SetManifestBuildResult(
 
 	objKey := ManifestBuildResultKey(manifestObjKey)
 	obj, objOk, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +53,9 @@ func SetManifestBuildResult(
 	if err != nil {
 		return nil, err
 	}
-	if _, err := ws.CreateObject(ctx, objKey, ref); err != nil {
+	created, err := ws.CreateObject(ctx, objKey, ref)
+	world.ReleaseObjectState(created)
+	if err != nil {
 		return nil, err
 	}
 	if err := world_types.SetObjectType(ctx, ws, objKey, ManifestBuildResultTypeID); err != nil {
@@ -68,6 +71,7 @@ func LookupManifestBuildResult(
 	manifestObjKey string,
 ) (*bldr_manifest_builder.BuilderResult, *bucket.ObjectRef, error) {
 	obj, err := world.MustGetObject(ctx, ws, ManifestBuildResultKey(manifestObjKey))
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, err
 	}

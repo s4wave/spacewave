@@ -78,6 +78,7 @@ func (c *Controller) ProcessState(
 				execution_transaction.NewTxCancel(),
 				c.peerID,
 			)
+			world.ReleaseObjectState(executionObj)
 			if err != nil {
 				return true, err
 			}

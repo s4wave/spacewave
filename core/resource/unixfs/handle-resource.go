@@ -837,7 +837,7 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 		if err != nil {
 			return err
 		}
-		defer watchHandle.Release()
+		defer func() { watchHandle.Release() }()
 	}
 	for {
 		var ch <-chan struct{}
@@ -846,11 +846,13 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 		})
 		objState, objRev, err := r.watchObjectRev(ctx)
 		if err != nil {
+			world.ReleaseObjectState(objState)
 			return err
 		}
 		if haveObjRev && objState != nil && objRev != lastObjRev {
 			nextWatchHandle, err := r.newObjectFSHandle(ctx)
 			if err != nil {
+				world.ReleaseObjectState(objState)
 				return err
 			}
 			watchHandle.Release()
@@ -859,6 +861,7 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 
 		entries, err := readWatchEntries(ctx, watchHandle)
 		if err != nil {
+			world.ReleaseObjectState(objState)
 			return err
 		}
 
@@ -867,6 +870,7 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 		}
 		if prev == nil || !resp.EqualVT(prev) {
 			if err := strm.Send(resp); err != nil {
+				world.ReleaseObjectState(objState)
 				return err
 			}
 			prev = resp
@@ -876,7 +880,9 @@ func (r *FSHandleResource) WatchReaddir(req *s4wave_unixfs.HandleWatchReaddirReq
 			haveObjRev = true
 		}
 
-		if err := r.waitReaddirChange(ctx, ch, objState, objRev); err != nil {
+		err = r.waitReaddirChange(ctx, ch, objState, objRev)
+		world.ReleaseObjectState(objState)
+		if err != nil {
 			return err
 		}
 	}
@@ -888,13 +894,16 @@ func (r *FSHandleResource) watchObjectRev(ctx context.Context) (world.ObjectStat
 	}
 	objState, found, err := r.ws.GetObject(ctx, r.objKey)
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, 0, err
 	}
 	if !found {
+		world.ReleaseObjectState(objState)
 		return nil, 0, world.ErrObjectNotFound
 	}
 	_, rev, err := objState.GetRootRef(ctx)
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, 0, err
 	}
 	return objState, rev, nil

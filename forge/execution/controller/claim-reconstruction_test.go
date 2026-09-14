@@ -60,6 +60,7 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 		t.Fatal(err)
 	}
 	obj, err := world.MustGetObject(ctx, tb.WorldState, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +104,8 @@ func TestReconstructedConfigResumesClaimBeforeTargetConstruction(t *testing.T) {
 		t.Fatalf("target construction count before reconstruction = %d, want 0", got)
 	}
 
-	running, _, err := forge_execution.LookupExecution(ctx, tb.WorldState, objKey)
+	running, objectState, err := forge_execution.LookupExecution(ctx, tb.WorldState, objKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}

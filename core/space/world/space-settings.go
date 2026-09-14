@@ -29,6 +29,7 @@ func LookupSpaceSettings(ctx context.Context, ws world.WorldState) (*SpaceSettin
 		NewSpaceSettingsBlock,
 	)
 	if errors.Is(err, world.ErrObjectNotFound) {
+		world.ReleaseObjectState(state)
 		return nil, nil, nil
 	}
 	return settings, state, err

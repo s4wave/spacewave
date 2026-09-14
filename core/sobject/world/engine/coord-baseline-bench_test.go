@@ -92,9 +92,13 @@ func BenchmarkSharedObjectWorldEngineFinalizationBaseline(b *testing.B) {
 			b.Fatal(err)
 		}
 		key := "coord-baseline/object/" + strconv.Itoa(i)
-		if _, err := tx.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "coord-baseline-bucket"}); err != nil {
-			tx.Discard()
-			b.Fatal(err)
+		{
+			createdObject, err := tx.CreateObject(ctx, key, &bucket.ObjectRef{BucketId: "coord-baseline-bucket"})
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				tx.Discard()
+				b.Fatal(err)
+			}
 		}
 		start := time.Now()
 		if err := tx.Commit(ctx); err != nil {
@@ -135,12 +139,14 @@ func sharedObjectBaselineHash(ctx context.Context, ws world.WorldState, prefix s
 		key := iter.Key()
 		obj, found, err := ws.GetObject(ctx, key)
 		if err != nil {
+			world.ReleaseObjectState(obj)
 			return 0, err
 		}
 		if !found {
 			continue
 		}
 		ref, rev, err := obj.GetRootRef(ctx)
+		world.ReleaseObjectState(obj)
 		if err != nil {
 			return 0, err
 		}

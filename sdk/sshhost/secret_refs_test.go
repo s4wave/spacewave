@@ -110,11 +110,15 @@ func createSecretParent(
 		CreatedAt:   timestamppb.New(time.Unix(100, 0)),
 		UpdatedAt:   timestamppb.New(time.Unix(100, 0)),
 	}
-	if _, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
-		bcs.SetBlock(secret, true)
-		return nil
-	}); err != nil {
-		t.Fatalf("CreateWorldObject %s: %v", objectKey, err)
+	{
+		createdObject, _, err := world.CreateWorldObject(ctx, ws, objectKey, func(bcs *block.Cursor) error {
+			bcs.SetBlock(secret, true)
+			return nil
+		})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatalf("CreateWorldObject %s: %v", objectKey, err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, objectKey, s4wave_secret.SecretTypeID); err != nil {
 		t.Fatalf("SetObjectType %s: %v", objectKey, err)

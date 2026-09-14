@@ -7,6 +7,7 @@ import (
 	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/bucket"
 	"github.com/s4wave/spacewave/db/coord"
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // TestEngineUnchangedHeadDoesNotReadBlocks checks that an identical durable
@@ -29,8 +30,12 @@ func TestEngineUnchangedHeadDoesNotReadBlocks(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(writer.Discard)
-			if _, err := writer.CreateObject(t.Context(), "identity/example", nil); err != nil {
-				t.Fatal(err)
+			{
+				createdObject, err := writer.CreateObject(t.Context(), "identity/example", nil)
+				world.ReleaseObjectState(createdObject)
+				if err != nil {
+					t.Fatal(err)
+				}
 			}
 			if err := writer.Commit(t.Context()); err != nil {
 				t.Fatal(err)

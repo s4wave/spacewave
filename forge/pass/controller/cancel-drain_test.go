@@ -36,7 +36,8 @@ func TestProcessStateReplaysCancelAndWaitsForDrain(t *testing.T) {
 	peerID := tb.Volume.GetPeerID()
 	claimID := "pass-controller-test"
 	passKey := "test/pass/controller-cancel-drain"
-	_, _, err = forge_pass.CreatePassWithTarget(
+	var createdObject world.ObjectState
+	createdObject, _, err = forge_pass.CreatePassWithTarget(
 		ctx,
 		tb.WorldState,
 		peerID,
@@ -48,6 +49,7 @@ func TestProcessStateReplaysCancelAndWaitsForDrain(t *testing.T) {
 		peerID.String(),
 		timestamp.Now(),
 	)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,6 +63,7 @@ func TestProcessStateReplaysCancelAndWaitsForDrain(t *testing.T) {
 
 	executionKey := forge_pass.BuildPassExecutionObjKey(passKey, peerID.String())
 	executionObject, err := world.MustGetObject(ctx, tb.WorldState, executionKey)
+	defer world.ReleaseObjectState(executionObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,6 +85,7 @@ func TestProcessStateReplaysCancelAndWaitsForDrain(t *testing.T) {
 	}
 
 	passObject, err := world.MustGetObject(ctx, tb.WorldState, passKey)
+	defer world.ReleaseObjectState(passObject)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +112,8 @@ func TestProcessStateReplaysCancelAndWaitsForDrain(t *testing.T) {
 	}
 
 	process()
-	execution, _, err := forge_execution.LookupExecution(ctx, tb.WorldState, executionKey)
+	execution, objectState, err := forge_execution.LookupExecution(ctx, tb.WorldState, executionKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}

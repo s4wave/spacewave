@@ -41,7 +41,8 @@ func TestEnsureEnrolledDevice(t *testing.T) {
 	if err := world_types.CheckObjectType(ctx, tx, key, s4wave_device.DeviceTypeID); err != nil {
 		t.Fatal(err)
 	}
-	device, _, err := world.LookupObject[*s4wave_device.Device](ctx, tx, key, s4wave_device.NewDeviceBlock)
+	device, objectState, err := world.LookupObject[*s4wave_device.Device](ctx, tx, key, s4wave_device.NewDeviceBlock)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +73,8 @@ func TestEnsureEnrolledDevice(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(read.Discard)
-	updated, _, err := world.LookupObject[*s4wave_device.Device](ctx, read, key, s4wave_device.NewDeviceBlock)
+	updated, objectState2, err := world.LookupObject[*s4wave_device.Device](ctx, read, key, s4wave_device.NewDeviceBlock)
+	world.ReleaseObjectState(objectState2)
 	read.Discard()
 	if err != nil {
 		t.Fatal(err)
@@ -149,7 +151,8 @@ func TestEnsureEnrolledDeviceAcceptedAfterRejectedCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(read.Discard)
-	device, _, err := world.LookupObject[*s4wave_device.Device](ctx, read, key, s4wave_device.NewDeviceBlock)
+	device, objectState, err := world.LookupObject[*s4wave_device.Device](ctx, read, key, s4wave_device.NewDeviceBlock)
+	world.ReleaseObjectState(objectState)
 	read.Discard()
 	if err != nil {
 		t.Fatal(err)

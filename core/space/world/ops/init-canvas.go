@@ -77,9 +77,11 @@ func (o *CanvasInitOp) ApplyWorldOp(
 
 	// Create a blank canvas.
 	state := &s4wave_canvas.CanvasState{}
-	_, _, err = world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
 		return s4wave_canvas.WriteCanvasState(ctx, bcs, nil, state)
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}

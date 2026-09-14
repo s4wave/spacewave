@@ -290,6 +290,7 @@ func describeStartupManifestGraphObjectParts(
 	parts = append(parts, typePart)
 
 	obj, found, err := ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		parts = append(parts, "skip="+err.Error())
 		return parts

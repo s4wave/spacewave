@@ -232,12 +232,16 @@ func CreateSecret(
 	if err != nil {
 		return nil, err
 	}
-	if _, _, err := world.CreateWorldObject(ctx, wtx, opts.ObjectKey, func(bcs *block.Cursor) error {
-		bcs.SetBlock(secret, true)
-		return nil
-	}); err != nil {
-		wtx.Discard()
-		return nil, err
+	{
+		createdObject, _, err := world.CreateWorldObject(ctx, wtx, opts.ObjectKey, func(bcs *block.Cursor) error {
+			bcs.SetBlock(secret, true)
+			return nil
+		})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			wtx.Discard()
+			return nil, err
+		}
 	}
 	if err := world_types.SetObjectType(ctx, wtx, opts.ObjectKey, SecretTypeID); err != nil {
 		wtx.Discard()
@@ -419,6 +423,7 @@ func (p *SecretPayload) UnmarshalBlock(data []byte) error {
 
 func (r *SecretResource) readSecret(ctx context.Context) (*Secret, error) {
 	objState, found, err := r.ws.GetObject(ctx, r.objKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return nil, err
 	}

@@ -82,6 +82,7 @@ func CreateJobWithTasks(
 		return nil
 	})
 	if err != nil {
+		world.ReleaseObjectState(objState)
 		return nil, nil, err
 	}
 
@@ -94,11 +95,14 @@ func CreateJobWithTasks(
 	// create the tasks & targets & links
 	for taskName, taskTgt := range tasks {
 		if err := forge_task.ValidateName(taskName); err != nil {
+			world.ReleaseObjectState(objState)
 			return nil, nil, errors.Wrapf(err, "tasks[%s]", taskName)
 		}
 		taskKey := NewJobTaskKey(objKey, taskName)
 		replicas := uint32(1)
-		_, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, taskName, taskTgt, tasksPeer, replicas, ts)
+		var createdObject world.ObjectState
+		createdObject, _, err = forge_task.CreateTaskWithTarget(ctx, ws, sender, taskKey, taskName, taskTgt, tasksPeer, replicas, ts)
+		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			return objState, rootRef, errors.Wrapf(err, "tasks[%s]", taskName)
 		}

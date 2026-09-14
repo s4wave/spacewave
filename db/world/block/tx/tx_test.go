@@ -43,7 +43,9 @@ func TestWorldState(t *testing.T) {
 	// Seed the base state with a mock object and commit it.
 	objKey := "tx-test-obj-1"
 	sender := tb.Volume.GetPeerID()
-	_, err = world_block.BuildMockObject(ctx, ws, objKey)
+	var createdObject world.ObjectState
+	createdObject, err = world_block.BuildMockObject(ctx, ws, objKey)
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -57,7 +59,9 @@ func TestWorldState(t *testing.T) {
 	// Reopen the base state before forking and applying changes.
 	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err == nil {
-		_, err = world.MustGetObject(ctx, ws, objKey)
+		var objectState world.ObjectState
+		objectState, err = world.MustGetObject(ctx, ws, objKey)
+		world.ReleaseObjectState(objectState)
 	}
 	if err != nil {
 		t.Fatal(err.Error())
@@ -88,6 +92,7 @@ func TestWorldState(t *testing.T) {
 
 	// Verify the forked operation changed the object revision.
 	obj, err := world.MustGetObject(ctx, forkedTx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -123,7 +128,9 @@ func TestWorldState(t *testing.T) {
 	// Apply the recorded transaction to a fresh state and verify its result.
 	ws, err = world_block.BuildMockWorldState(ctx, le, true, ocs, false)
 	if err == nil {
-		_, err = world.MustGetObject(ctx, ws, objKey)
+		var objectState2 world.ObjectState
+		objectState2, err = world.MustGetObject(ctx, ws, objKey)
+		world.ReleaseObjectState(objectState2)
 	}
 	if err != nil {
 		t.Fatal(err.Error())
@@ -144,6 +151,7 @@ func TestWorldState(t *testing.T) {
 
 	// ensure the change was applied to the object
 	obj, err = world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -154,6 +162,7 @@ func TestWorldState(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	obj, err = world.MustGetObject(ctx, objectTx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

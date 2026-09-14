@@ -217,6 +217,7 @@ func TestObjectLayoutFactorySharesExternalWorldUpdates(t *testing.T) {
 		t.Fatal(err)
 	}
 	objState, found, err := wtx.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		t.Fatal(err)
 	}

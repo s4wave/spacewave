@@ -53,11 +53,15 @@ func (r *SpaceResource) DeployManifests(strm s4wave_space.SRPCSpaceResourceServi
 	// Reject a known wrong host before block transfer; repeat this check in the write transaction.
 	engine := r.space.GetWorldEngine()
 	ws := world.NewEngineWorldState(engine, false)
-	if _, exists, err := ws.GetObject(ctx, objectKey); err != nil {
-		return sendDeployManifestsResult(strm, errors.Wrap(err, "check manifest store").Error())
-	} else if exists {
-		if err := bldr_manifest_world.CheckManifestStoreType(ctx, ws, objectKey); err != nil {
-			return sendDeployManifestsResult(strm, errors.Wrap(err, "manifest store type").Error())
+	{
+		objectState, exists, err := ws.GetObject(ctx, objectKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			return sendDeployManifestsResult(strm, errors.Wrap(err, "check manifest store").Error())
+		} else if exists {
+			if err := bldr_manifest_world.CheckManifestStoreType(ctx, ws, objectKey); err != nil {
+				return sendDeployManifestsResult(strm, errors.Wrap(err, "manifest store type").Error())
+			}
 		}
 	}
 
@@ -102,14 +106,18 @@ func (r *SpaceResource) DeployManifests(strm s4wave_space.SRPCSpaceResourceServi
 	txws := world.WorldState(tx)
 
 	// Authoritatively verify or create the host store inside this transaction.
-	if _, exists, err := txws.GetObject(ctx, objectKey); err != nil {
-		return sendDeployManifestsResult(strm, errors.Wrap(err, "check manifest store in transaction").Error())
-	} else if exists {
-		if err := bldr_manifest_world.CheckManifestStoreType(ctx, txws, objectKey); err != nil {
-			return sendDeployManifestsResult(strm, errors.Wrap(err, "manifest store type in transaction").Error())
+	{
+		objectState2, exists, err := txws.GetObject(ctx, objectKey)
+		world.ReleaseObjectState(objectState2)
+		if err != nil {
+			return sendDeployManifestsResult(strm, errors.Wrap(err, "check manifest store in transaction").Error())
+		} else if exists {
+			if err := bldr_manifest_world.CheckManifestStoreType(ctx, txws, objectKey); err != nil {
+				return sendDeployManifestsResult(strm, errors.Wrap(err, "manifest store type in transaction").Error())
+			}
+		} else if _, err := bldr_manifest_world.CreateManifestStore(ctx, txws, objectKey); err != nil {
+			return sendDeployManifestsResult(strm, errors.Wrap(err, "create manifest store").Error())
 		}
-	} else if _, err := bldr_manifest_world.CreateManifestStore(ctx, txws, objectKey); err != nil {
-		return sendDeployManifestsResult(strm, errors.Wrap(err, "create manifest store").Error())
 	}
 
 	// Mutate deterministic child Manifest objects and their host edges.

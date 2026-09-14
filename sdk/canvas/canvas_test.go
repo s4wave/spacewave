@@ -111,9 +111,11 @@ func setupCanvasWatchWorld(
 		tb.Release()
 		t.Fatal(err.Error())
 	}
-	_, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, objKey, func(bcs *block.Cursor) error {
 		return WriteCanvasState(ctx, bcs, nil, state)
 	})
+	world.ReleaseObjectState(createdObject)
 	if err == nil {
 		err = ws.Commit(ctx)
 	}

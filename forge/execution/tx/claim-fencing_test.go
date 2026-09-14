@@ -69,7 +69,8 @@ func (f *claimFixture) apply(t *testing.T, tx *Tx) error {
 
 func (f *claimFixture) execution(t *testing.T) *forge_execution.Execution {
 	t.Helper()
-	execution, _, err := forge_execution.LookupExecution(t.Context(), f.tb.WorldState, f.objKey)
+	execution, objectState, err := forge_execution.LookupExecution(t.Context(), f.tb.WorldState, f.objKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err)
 	}

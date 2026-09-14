@@ -25,6 +25,11 @@ func NewObjectState(w *WorldState, key string, o world.ObjectState) *ObjectState
 	return &ObjectState{w: w, key: key, o: o}
 }
 
+// Release releases the object handle owned by this transaction wrapper.
+func (t *ObjectState) Release() {
+	world.ReleaseObjectState(t.o)
+}
+
 // GetKey returns the key this state object is for.
 func (t *ObjectState) GetKey() string {
 	return t.key

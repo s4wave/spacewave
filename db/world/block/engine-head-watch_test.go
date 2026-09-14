@@ -64,10 +64,12 @@ func TestEngineRevisionWaitersShareHeadWatch(t *testing.T) {
 
 	// Publish through another engine and its normal coordinator event.
 	ws := world.NewEngineWorldState(writer, true)
-	_, _, err = world.CreateWorldObject(ctx, ws, "head-watch/example", func(cursor *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, "head-watch/example", func(cursor *block.Cursor) error {
 		cursor.SetBlock(block_mock.NewExample("before"), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}

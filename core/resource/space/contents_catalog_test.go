@@ -175,6 +175,7 @@ func TestSpaceContentsResourceWatchStateInvalidatesAvailablePluginCatalogWhenMan
 	}
 	defer rootRefTx.Discard()
 	manifestObject, err := world.MustGetObject(ctx, rootRefTx, updatedSpec.key)
+	defer world.ReleaseObjectState(manifestObject)
 	if err != nil {
 		watchCancel()
 		t.Fatalf("MustGetObject(%s): %v", updatedSpec.key, err)
@@ -246,8 +247,12 @@ func seedCatalogCacheTestManifests(
 	defer seedTx.Discard()
 	for _, spec := range specs {
 		manifests[spec.key] = catalogCacheTestManifest(spec)
-		if _, err := seedTx.CreateObject(ctx, spec.key, catalogCacheTestObjectRef(t, spec.key+"/initial-root")); err != nil {
-			t.Fatalf("CreateObject(%s): %v", spec.key, err)
+		{
+			createdObject, err := seedTx.CreateObject(ctx, spec.key, catalogCacheTestObjectRef(t, spec.key+"/initial-root"))
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatalf("CreateObject(%s): %v", spec.key, err)
+			}
 		}
 		if err := world_types.SetObjectType(ctx, seedTx, spec.key, bldr_manifest_world.ManifestTypeID); err != nil {
 			t.Fatalf("SetObjectType(%s): %v", spec.key, err)

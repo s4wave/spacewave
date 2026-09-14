@@ -418,7 +418,7 @@ func RunTypeScriptTest(
 	wrapperContents := strings.ReplaceAll(string(templateBytes), "{{TEST_FILE_NAME}}", testFileName)
 
 	// Write the wrapper to a temporary file
-	err = os.WriteFile(wrapperPath, []byte(wrapperContents), 0o644)
+	err = os.WriteFile(wrapperPath, []byte(wrapperContents), 0o644) //nolint:gosec // Test callers select their source and generated wrapper paths.
 	if err != nil {
 		return false, "", fmt.Errorf("failed to write wrapper file: %w", err)
 	}

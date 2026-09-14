@@ -183,8 +183,12 @@ func TestDeployManifestsPublishesNativeAndJSAndReplays(t *testing.T) {
 	ws := world.NewEngineWorldState(eng, false)
 	for _, ref := range []*bldr_manifest.ManifestRef{native, js} {
 		key := bldr_manifest.NewManifestKey("plugin-host", ref.GetMeta())
-		if _, ok, e := ws.GetObject(ctx, key); e != nil || !ok {
-			t.Fatalf("child %s missing: %v", key, e)
+		{
+			objectState, ok, e := ws.GetObject(ctx, key)
+			world.ReleaseObjectState(objectState)
+			if e != nil || !ok {
+				t.Fatalf("child %s missing: %v", key, e)
+			}
 		}
 	}
 	edges, e := ws.LookupGraphQuads(ctx, world.NewGraphQuadWithKeys("plugin-host", bldr_manifest_world.PredManifest.String(), "", ""), 0)
@@ -224,8 +228,12 @@ func TestDeployManifestsMissingBlockAndWrongHostDoNotPublish(t *testing.T) {
 		t.Fatalf("missing block published %d edges", len(edges))
 	}
 	tx, _ := eng.NewTransaction(ctx, true)
-	if _, e := tx.CreateObject(ctx, "wrong-host", nil); e != nil {
-		t.Fatal(e)
+	{
+		createdObject, e := tx.CreateObject(ctx, "wrong-host", nil)
+		world.ReleaseObjectState(createdObject)
+		if e != nil {
+			t.Fatal(e)
+		}
 	}
 	if e := world_types.SetObjectType(ctx, tx, "wrong-host", "other-type"); e != nil {
 		t.Fatal(e)
@@ -293,7 +301,9 @@ func TestDeployManifestsInTransactionFenceRejectsWrongHost(t *testing.T) {
 		if e != nil {
 			return
 		}
-		_, e = tx.CreateObject(ctx, "fenced-host", nil)
+		var createdObject world.ObjectState
+		createdObject, e = tx.CreateObject(ctx, "fenced-host", nil)
+		world.ReleaseObjectState(createdObject)
 		if e == nil {
 			e = world_types.SetObjectType(ctx, tx, "fenced-host", "other-type")
 		}

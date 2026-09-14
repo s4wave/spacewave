@@ -97,6 +97,7 @@ func (h *execControllerHandle) SetOutputs(
 	}
 
 	obj, err := world.MustGetObject(ctx, h.ws, h.c.conf.GetObjectKey())
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}
@@ -135,6 +136,7 @@ func (h *execControllerHandle) WriteLog(ctx context.Context, level, message stri
 	}
 
 	obj, err := world.MustGetObject(ctx, h.ws, h.c.conf.GetObjectKey())
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}

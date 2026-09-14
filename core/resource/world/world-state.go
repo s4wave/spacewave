@@ -187,16 +187,19 @@ func (r *WorldStateResource) CreateObject(ctx context.Context, req *s4wave_world
 
 	obj, err := r.ws.CreateObject(ctx, req.GetObjectKey(), req.GetRootRef())
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 
+	key := obj.GetKey()
 	objResource := NewObjectStateResource(r.le, r.b, obj, r.lookupOp)
-	id, err := resourceCtx.AddResource(objResource.GetMux(), func() {})
+	id, err := resourceCtx.AddResource(objResource.GetMux(), func() { world.ReleaseObjectState(obj) })
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 
-	return &s4wave_world.CreateObjectResponse{ResourceId: id, ObjectKey: obj.GetKey()}, nil
+	return &s4wave_world.CreateObjectResponse{ResourceId: id, ObjectKey: key}, nil
 }
 
 // GetObject looks up an object by key.
@@ -208,6 +211,7 @@ func (r *WorldStateResource) GetObject(ctx context.Context, req *s4wave_world.Ge
 
 	obj, found, err := r.ws.GetObject(ctx, req.GetObjectKey())
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 
@@ -215,13 +219,15 @@ func (r *WorldStateResource) GetObject(ctx context.Context, req *s4wave_world.Ge
 		return &s4wave_world.GetObjectResponse{Found: false}, nil
 	}
 
+	key := obj.GetKey()
 	objResource := NewObjectStateResource(r.le, r.b, obj, r.lookupOp)
-	id, err := resourceCtx.AddResource(objResource.GetMux(), func() {})
+	id, err := resourceCtx.AddResource(objResource.GetMux(), func() { world.ReleaseObjectState(obj) })
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 
-	return &s4wave_world.GetObjectResponse{Found: true, ResourceId: id, ObjectKey: obj.GetKey()}, nil
+	return &s4wave_world.GetObjectResponse{Found: true, ResourceId: id, ObjectKey: key}, nil
 }
 
 // IterateObjects returns an iterator with the given object key prefix.
@@ -255,16 +261,19 @@ func (r *WorldStateResource) RenameObject(ctx context.Context, req *s4wave_world
 
 	obj, err := r.ws.RenameObject(ctx, req.GetOldObjectKey(), req.GetNewObjectKey(), req.GetDescendants())
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 
+	key := obj.GetKey()
 	objResource := NewObjectStateResource(r.le, r.b, obj, r.lookupOp)
-	id, err := resourceCtx.AddResource(objResource.GetMux(), func() {})
+	id, err := resourceCtx.AddResource(objResource.GetMux(), func() { world.ReleaseObjectState(obj) })
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 
-	return &s4wave_world.RenameObjectResponse{ResourceId: id, ObjectKey: obj.GetKey()}, nil
+	return &s4wave_world.RenameObjectResponse{ResourceId: id, ObjectKey: key}, nil
 }
 
 // DeleteObject deletes an object and associated graph quads by ID.

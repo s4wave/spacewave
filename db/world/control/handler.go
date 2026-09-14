@@ -75,6 +75,7 @@ func WaitForObjectRev(
 	}
 	out, found, err := ws.GetObject(ctx, objKey)
 	if err != nil {
+		world.ReleaseObjectState(out)
 		return nil, err
 	}
 	if !found {

@@ -23,6 +23,7 @@ func storeBlockUpdate[T block.Block](
 	newOp func(*bucket.ObjectRef) world.Operation,
 ) (uint64, bool, error) {
 	obj, objFound, err := w.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return 0, false, err
 	}
@@ -69,6 +70,7 @@ func applyRefUpdate(
 	}
 
 	obj, objFound, err := worldHandle.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return false, err
 	}
@@ -77,8 +79,12 @@ func applyRefUpdate(
 		return false, err
 	}
 
-	if _, err := worldHandle.CreateObject(ctx, objKey, ref); err != nil {
-		return true, err
+	{
+		createdObject, err := worldHandle.CreateObject(ctx, objKey, ref)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			return true, err
+		}
 	}
 	if err := world_types.SetObjectType(ctx, worldHandle, objKey, typeID); err != nil {
 		return true, err

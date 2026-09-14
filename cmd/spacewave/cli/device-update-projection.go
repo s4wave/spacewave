@@ -133,6 +133,7 @@ func projectDeviceLauncherInfo(
 	defer tx.Discard()
 
 	objState, found, err := tx.GetObject(ctx, record.DeviceObjectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return err
 	}

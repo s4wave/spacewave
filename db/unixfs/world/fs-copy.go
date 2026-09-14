@@ -33,6 +33,7 @@ func FsCopy(
 		return 0, sysErr, err
 	}
 	obj, err := world.MustGetObject(ctx, ws, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return 0, false, err
 	}
@@ -99,6 +100,7 @@ func (o *FsCopyOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	// get the src fs object
 	fsObj, err := world.MustGetObject(ctx, worldHandle, o.GetObjectKey())
+	defer world.ReleaseObjectState(fsObj)
 	if err != nil {
 		return false, err
 	}

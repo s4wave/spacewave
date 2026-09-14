@@ -78,6 +78,7 @@ func (o *FsRemoveOp) ApplyWorldOp(
 ) (sysErr bool, err error) {
 	// get the fs object
 	obj, err := world.MustGetObject(ctx, worldHandle, o.GetObjectKey())
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return false, err
 	}

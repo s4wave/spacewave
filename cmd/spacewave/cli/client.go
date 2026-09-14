@@ -247,6 +247,7 @@ func buildSDKClient(ctx context.Context, conn net.Conn) (*sdkClient, error) {
 		rootRef := resClient.AccessRootResource()
 		root, err := s4wave_root.NewRoot(resClient, rootRef)
 		if err != nil {
+			rootRef.Release()
 			resClient.Release()
 			resultCh <- buildResult{err: err}
 			return
@@ -296,6 +297,7 @@ func buildSDKClientFromInvoker(ctx context.Context, invoker srpc.Invoker) (*sdkC
 	rootRef := resClient.AccessRootResource()
 	root, err := s4wave_root.NewRoot(resClient, rootRef)
 	if err != nil {
+		rootRef.Release()
 		resClient.Release()
 		return nil, errors.Wrap(err, "root resource")
 	}

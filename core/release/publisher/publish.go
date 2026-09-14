@@ -138,6 +138,7 @@ func collectBlocks(ctx context.Context, eng world.Engine, metadata *release.Rele
 	for objects.Valid() {
 		object, exists, err := tx.GetObject(ctx, objects.Key())
 		if err != nil {
+			world.ReleaseObjectState(object)
 			return nil, nil, err
 		}
 		if !exists {

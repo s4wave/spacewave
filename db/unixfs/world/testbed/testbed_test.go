@@ -55,10 +55,12 @@ func TestEngineWorldFilesystemSurvivesConcurrentWriteAndSync(t *testing.T) {
 	// Commit an unrelated object through another short transaction.
 	const unrelatedKey = "test/concurrent-object"
 	const unrelatedValue = "concurrent write survives"
-	_, _, err = world.CreateWorldObject(ctx, ws, unrelatedKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, ws, unrelatedKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(block_mock.NewExample(unrelatedValue), true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		t.Fatal(err)
 	}

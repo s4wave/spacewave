@@ -32,8 +32,12 @@ func TestFSCursorRejectsInvalidGitRepoProjection(t *testing.T) {
 	defer wtb.Release()
 
 	ws := world.NewEngineWorldState(wtb.Engine, true)
-	if _, err := ws.CreateObject(ctx, "repo/invalid", &bucket.ObjectRef{}); err != nil {
-		t.Fatal(err)
+	{
+		createdObject, err := ws.CreateObject(ctx, "repo/invalid", &bucket.ObjectRef{})
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, "repo/invalid", git_world.GitRepoTypeID); err != nil {
 		t.Fatal(err)

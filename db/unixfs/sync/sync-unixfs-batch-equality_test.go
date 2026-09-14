@@ -144,6 +144,7 @@ func runImportsCapturingRootRef(t *testing.T, tarPayloads [][]byte, useBatch boo
 	}
 
 	obj, err := world.MustGetObject(ctx, wtb.WorldState, objKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("MustGetObject: %v", err)
 	}

@@ -67,7 +67,9 @@ func (o *ForgeJobCreateOp) ApplyWorldOp(
 	}
 
 	// Create the job with tasks.
-	_, _, err = forge_job.CreateJobWithTasks(ctx, ws, sender, jobKey, tasks, "", o.GetTimestamp())
+	var createdObject world.ObjectState
+	createdObject, _, err = forge_job.CreateJobWithTasks(ctx, ws, sender, jobKey, tasks, "", o.GetTimestamp())
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}

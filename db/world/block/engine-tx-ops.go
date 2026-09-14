@@ -59,9 +59,11 @@ func (e *EngineTx) CreateObject(ctx context.Context, key string, rootRef *bucket
 	var obj world.ObjectState
 	if err := e.performOp(ctx, func(tx *Tx) error {
 		var err error
+		world.ReleaseObjectState(obj)
 		obj, err = tx.CreateObject(ctx, key, rootRef)
 		return err
 	}); err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 
@@ -75,14 +77,17 @@ func (e *EngineTx) GetObject(ctx context.Context, key string) (world.ObjectState
 	var obj world.ObjectState
 	err := e.performOp(ctx, func(tx *Tx) error {
 		var nerr error
+		world.ReleaseObjectState(obj)
 		obj, found, nerr = tx.GetObject(ctx, key)
 		return nerr
 	})
 	if err != nil || !found {
+		world.ReleaseObjectState(obj)
 		return nil, found, err
 	}
 
 	if e.writeTx == nil {
+		world.ReleaseObjectState(obj)
 		obj = nil
 	}
 	return newEngineTxObjectState(e, key, obj), true, nil
@@ -116,9 +121,11 @@ func (e *EngineTx) RenameObject(ctx context.Context, oldKey, newKey string, desc
 	var obj world.ObjectState
 	if err := e.performOp(ctx, func(tx *Tx) error {
 		var err error
+		world.ReleaseObjectState(obj)
 		obj, err = tx.RenameObject(ctx, oldKey, newKey, descendants)
 		return err
 	}); err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, err
 	}
 

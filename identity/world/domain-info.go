@@ -71,6 +71,7 @@ func LookupDomainInfoOp(ctx context.Context, opTypeID string) (world.Operation, 
 func LookupDomainInfo(ctx context.Context, w world.WorldState, objKey string) (*identity_domain.DomainInfo, world.ObjectState, error) {
 	obj, objFound, err := w.GetObject(ctx, objKey)
 	if err != nil {
+		world.ReleaseObjectState(obj)
 		return nil, nil, err
 	}
 	if !objFound {

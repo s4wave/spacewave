@@ -12,6 +12,7 @@ import (
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
 	"github.com/s4wave/spacewave/db/testbed"
+	"github.com/s4wave/spacewave/db/world"
 	world_types "github.com/s4wave/spacewave/db/world/types"
 	"github.com/sirupsen/logrus"
 )
@@ -33,8 +34,12 @@ func TestWorldState_CreateObjectJournalsRootRefBatch(t *testing.T) {
 	}
 	recorder := installRecordingRefGraph(t, ws)
 
-	if _, err := ws.CreateObject(ctx, objKey, rootRef); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, objKey, rootRef)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if len(recorder.applyBatches) != 0 {
 		t.Fatalf("ApplyRefBatch calls before reconciliation = %d, want 0", len(recorder.applyBatches))
@@ -126,6 +131,7 @@ func TestWorldState_ReconcileGCJournalPreservesRootSwapOrder(t *testing.T) {
 	rootA := writeRefBatchTestBlock(t, ctx, ocs, "root A")
 	rootB := writeRefBatchTestBlock(t, ctx, ocs, "root B")
 	obj, err := ws.CreateObject(ctx, "ref-batch/swap-order", rootA)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +203,8 @@ func TestWorldTypes_EnsureTypeExistsJournalsObjectRefBatch(t *testing.T) {
 	assertRefEdgeSet(t, "type batch removes", recorder.applyBatches[0].removes, nil)
 	assertOutgoingRefs(t, ctx, recorder, "world", []string{objIRI})
 
-	_, exists, err := ws.GetObject(ctx, objKey)
+	objectState, exists, err := ws.GetObject(ctx, objKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

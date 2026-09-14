@@ -157,9 +157,13 @@ func initWorldEngineStressVolume(t *testing.T, boltPath string) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	if _, err := tx.CreateObject(ctx, "stress/init", nil); err != nil {
-		tx.Discard()
-		t.Fatal(err.Error())
+	{
+		createdObject, err := tx.CreateObject(ctx, "stress/init", nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			tx.Discard()
+			t.Fatal(err.Error())
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
@@ -579,18 +583,22 @@ func commitWorldEngineStressKey(ctx context.Context, eng world.Engine, key strin
 			}
 			return lastErr
 		}
-		if _, err := tx.CreateObject(ctx, key, nil); err != nil {
-			tx.Discard()
-			lastErr = fmt.Errorf("create object: %w", err)
-			if errors.Is(err, coord.ErrStaleGeneration) {
-				select {
-				case <-ctx.Done():
-					return fmt.Errorf("after %d attempts: %w; context: %v", attempt+1, lastErr, ctx.Err())
-				case <-time.After(time.Duration(attempt+1) * 5 * time.Millisecond):
+		{
+			createdObject, err := tx.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				tx.Discard()
+				lastErr = fmt.Errorf("create object: %w", err)
+				if errors.Is(err, coord.ErrStaleGeneration) {
+					select {
+					case <-ctx.Done():
+						return fmt.Errorf("after %d attempts: %w; context: %v", attempt+1, lastErr, ctx.Err())
+					case <-time.After(time.Duration(attempt+1) * 5 * time.Millisecond):
+					}
+					continue
 				}
-				continue
+				return lastErr
 			}
-			return lastErr
 		}
 		err = tx.Commit(ctx)
 		if err == nil {
@@ -677,7 +685,8 @@ func describeWorldEngineStressState(ctx context.Context, eng world.Engine, write
 				parts = append(parts, fmt.Sprintf("probeErr[%s]=new read transaction: %v", key, err))
 				continue
 			}
-			_, found, err := tx.GetObject(ctx, key)
+			objectState, found, err := tx.GetObject(ctx, key)
+			world.ReleaseObjectState(objectState)
 			tx.Discard()
 			if err != nil {
 				parts = append(parts, fmt.Sprintf("probeErr[%s]=%v", key, err))
@@ -720,7 +729,8 @@ func readWorldEngineStressKey(ctx context.Context, eng world.Engine, key string,
 		return fmt.Errorf("new read transaction: %w", err)
 	}
 	defer tx.Discard()
-	_, found, err := tx.GetObject(ctx, key)
+	objectState, found, err := tx.GetObject(ctx, key)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		return fmt.Errorf("get object: %w", err)
 	}

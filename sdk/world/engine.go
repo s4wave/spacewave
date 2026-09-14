@@ -73,7 +73,12 @@ func (e *Engine) NewTransaction(ctx context.Context, write bool) (*Tx, error) {
 
 	// Create resource reference and wrapper for the transaction
 	txRef := e.client.CreateResourceReference(resp.ResourceId)
-	return NewTx(e.client, txRef, resp.ReadOnly)
+	tx, err := NewTx(e.client, txRef, resp.ReadOnly)
+	if err != nil {
+		txRef.Release()
+		return nil, err
+	}
+	return tx, nil
 }
 
 // GetSeqno returns the current sequence number of the world state.

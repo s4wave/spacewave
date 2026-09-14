@@ -39,6 +39,7 @@ func GetObjectRootRefsBatch(ctx context.Context, ws WorldState, keys []string) (
 		out[i] = ref
 		obj, exists, err := ws.GetObject(ctx, key)
 		if err != nil {
+			ReleaseObjectState(obj)
 			return nil, err
 		}
 		ref.Exists = exists
@@ -46,6 +47,7 @@ func GetObjectRootRefsBatch(ctx context.Context, ws WorldState, keys []string) (
 			continue
 		}
 		rootRef, rev, err := obj.GetRootRef(ctx)
+		ReleaseObjectState(obj)
 		if err != nil {
 			return nil, err
 		}

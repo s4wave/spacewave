@@ -52,6 +52,7 @@ func (o *SqlSchemaSetRootOp) ApplyWorldOp(
 		return false, err
 	}
 	obj, err := world.MustGetObject(ctx, ws, o.GetObjectKey())
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return false, err
 	}

@@ -73,11 +73,13 @@ func (o *WorkerCreateOp) ApplyWorldOp(
 		return false, err
 	}
 
-	_, _, err = world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(wrk, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}

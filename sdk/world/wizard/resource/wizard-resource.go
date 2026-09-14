@@ -47,10 +47,6 @@ type wizardStateWatchSnapshot struct {
 	err   error
 }
 
-type wizardReleasableObjectState interface {
-	Release()
-}
-
 // NewWizardResource creates a new WizardResource.
 func NewWizardResource(ws world.WorldState, engine world.Engine, objKey string, state *wizard.WizardState) *WizardResource {
 	if state == nil {
@@ -131,6 +127,7 @@ func (r *WizardResource) watchWizardWorld(ctx context.Context) error {
 
 		objState, found, err := r.ws.GetObject(ctx, r.objKey)
 		if err != nil {
+			world.ReleaseObjectState(objState)
 			r.setWizardStateWatchError(err)
 			return err
 		}
@@ -140,9 +137,7 @@ func (r *WizardResource) watchWizardWorld(ctx context.Context) error {
 		}
 
 		state, rev, err := func() (*wizard.WizardState, uint64, error) {
-			if rel, ok := objState.(wizardReleasableObjectState); ok {
-				defer rel.Release()
-			}
+			defer world.ReleaseObjectState(objState)
 			_, rev, err := objState.GetRootRef(ctx)
 			if err != nil {
 				return nil, 0, err
@@ -372,6 +367,7 @@ func (r *WizardResource) persistState(ctx context.Context, state *wizard.WizardS
 		return 0, err
 	}
 	writeState, found, err := wtx.GetObject(ctx, r.objKey)
+	defer world.ReleaseObjectState(writeState)
 	if err != nil {
 		wtx.Discard()
 		return 0, err

@@ -296,6 +296,7 @@ func (r *SqlQueryResource) openRows(
 ) (driver.Rows, func(), error) {
 	targetKey := query.GetTargetDbObjectKey()
 	obj, err := world.MustGetObject(ctx, r.ws, targetKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "sql/query: open target db object")
 	}
@@ -398,10 +399,12 @@ func (r *SqlQueryResource) createResultObjectAtKey(
 		wtx.Discard()
 		return err
 	}
-	_, _, err = world.CreateWorldObject(ctx, wtx, resultKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, wtx, resultKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(result, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		wtx.Discard()
 		return err

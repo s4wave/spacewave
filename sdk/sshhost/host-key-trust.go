@@ -74,6 +74,7 @@ func RememberSshHostKeyPin(ctx context.Context, eng world.Engine, objectKey stri
 	}
 	return world.ExecTransaction(ctx, eng, true, func(ctx context.Context, wtx world.WorldState) error {
 		writeState, found, err := wtx.GetObject(ctx, objectKey)
+		defer world.ReleaseObjectState(writeState)
 		if err != nil {
 			return err
 		}

@@ -92,7 +92,8 @@ func TestImportDebPackageRejectsInvalidDebBeforeWorldMutation(t *testing.T) {
 	if _, _, err := ImportDebPackage(ctx, ws, "apt/repos/stable", packageKey, []byte("deb")); !errors.Is(err, ErrInvalidDebPackage) {
 		t.Fatalf("ImportDebPackage invalid deb err = %v, want invalid deb package", err)
 	}
-	_, found, err := ws.GetObject(ctx, packageKey)
+	objectState, found, err := ws.GetObject(ctx, packageKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		t.Fatalf("GetObject: %v", err)
 	}

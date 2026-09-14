@@ -97,15 +97,20 @@ func TestExecuteQuickstartPassesAttachedEngineResourceToPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer readTx.Discard()
-	if _, err := world.MustGetObject(ctx, readTx, "quickstart/seeded-object"); err != nil {
-		t.Fatalf("seeded object was not committed through attached engine: %v", err)
+	{
+		objectState, err := world.MustGetObject(ctx, readTx, "quickstart/seeded-object")
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatalf("seeded object was not committed through attached engine: %v", err)
+		}
 	}
-	settings, _, err := world.LookupObject[*space_world.SpaceSettings](
+	settings, objectState2, err := world.LookupObject[*space_world.SpaceSettings](
 		ctx,
 		readTx,
 		"quickstart/settings",
 		space_world.NewSpaceSettingsBlock,
 	)
+	world.ReleaseObjectState(objectState2)
 	if err != nil {
 		t.Fatalf("recursive built-in world op did not commit settings: %v", err)
 	}

@@ -63,7 +63,8 @@ func (h *exportZipHandler) Execute(ctx context.Context) error {
 	objKey := h.conf.objectKey
 
 	// Verify the object exists.
-	_, found, err := h.ws.GetObject(ctx, objKey)
+	objectState, found, err := h.ws.GetObject(ctx, objKey)
+	world.ReleaseObjectState(objectState)
 	if err != nil {
 		return errors.Wrap(err, "get object")
 	}
@@ -133,6 +134,7 @@ func (h *exportZipHandler) buildFSZip(ctx context.Context, w io.Writer, objKey s
 // buildRawZip creates a zip with the object's raw block data as a single entry.
 func (h *exportZipHandler) buildRawZip(ctx context.Context, w io.Writer, objKey string, typeID string) error {
 	objState, found, err := h.ws.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return err
 	}

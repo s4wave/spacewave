@@ -28,6 +28,7 @@ func openBoundedWorldBackedStore(
 ) (*s4wave_kv_world.WorldBackedStore, func()) {
 	t.Helper()
 	obj, err := world.MustGetObject(ctx, ws, objectKey)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		t.Fatalf("MustGetObject(%s): %v", objectKey, err)
 	}

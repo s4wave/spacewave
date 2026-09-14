@@ -140,8 +140,12 @@ func createSpaceWithIndexObjectType(
 	}
 
 	ws := world.NewEngineWorldState(mounted.GetSharedObjectBody().GetWorldEngine(), true)
-	if _, err := ws.CreateObject(ctx, indexPath, nil); err != nil {
-		t.Fatalf("CreateObject(%q, %q) failed: %v", name, indexPath, err)
+	{
+		createdObject, err := ws.CreateObject(ctx, indexPath, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatalf("CreateObject(%q, %q) failed: %v", name, indexPath, err)
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, indexPath, typeID); err != nil {
 		t.Fatalf("SetObjectType(%q, %q) failed: %v", name, typeID, err)

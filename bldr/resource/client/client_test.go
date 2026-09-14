@@ -831,7 +831,7 @@ func TestCreateResourceReferenceAfterClientReleaseIsReleased(t *testing.T) {
 	}
 
 	c.Release()
-	ref := c.CreateResourceReference(42)
+	ref := c.CreateResourceReference(42) //nolint:lostresource // The test verifies that retirement creates an already-released reference.
 	if _, err := ref.GetClient(); !errors.Is(err, resource.ErrResourceOrClientReleased) {
 		t.Fatalf("released client GetClient error = %v, want released", err)
 	}

@@ -43,6 +43,7 @@ func WatchWorldObject[T watchBlock[T]](
 	emit func(state T, changed bool) error,
 ) error {
 	objState, found, err := ws.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return err
 	}

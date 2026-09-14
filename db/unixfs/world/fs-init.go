@@ -115,6 +115,7 @@ func (o *FsInitOp) ApplyWorldOp(
 	// check if exists
 	objKey := o.GetObjectKey()
 	objState, exists, err := worldHandle.GetObject(ctx, objKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return false, err
 	}
@@ -127,7 +128,9 @@ func (o *FsInitOp) ApplyWorldOp(
 		}
 	} else {
 		// create the fs object
-		_, err = worldHandle.CreateObject(ctx, objKey, fsRef)
+		var createdObject world.ObjectState
+		createdObject, err = worldHandle.CreateObject(ctx, objKey, fsRef)
+		world.ReleaseObjectState(createdObject)
 		if err != nil {
 			return false, err
 		}

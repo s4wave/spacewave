@@ -59,11 +59,13 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewTransaction failed: %v", err)
 	}
-	_, _, err = world.CreateWorldObject(ctx, tx, objectKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, tx, objectKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(device, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		tx.Discard()
 		t.Fatalf("CreateWorldObject failed: %v", err)
@@ -229,6 +231,7 @@ func TestTypedObjectResourceDevice(t *testing.T) {
 		t.Fatalf("NewTransaction(update) failed: %v", err)
 	}
 	updateState, found, err := tx2.GetObject(ctx, objectKey)
+	defer world.ReleaseObjectState(updateState)
 	if err != nil {
 		tx2.Discard()
 		t.Fatalf("GetObject(update) failed: %v", err)
@@ -341,11 +344,13 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 			},
 		}},
 	}
-	_, _, err = world.CreateWorldObject(ctx, tx, deviceObjectKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, tx, deviceObjectKey, func(bcs *block.Cursor) error {
 		bcs.ClearAllRefs()
 		bcs.SetBlock(device, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		tx.Discard()
 		t.Fatalf("CreateWorldObject(device) failed: %v", err)
@@ -498,6 +503,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatalf("NewTransaction(revoke) failed: %v", err)
 	}
 	revokeState, found, err := revokeTx.GetObject(ctx, deviceObjectKey)
+	defer world.ReleaseObjectState(revokeState)
 	if err != nil {
 		revokeTx.Discard()
 		t.Fatalf("GetObject(revoke) failed: %v", err)
@@ -535,6 +541,7 @@ func TestDeviceResourceAccessCheckoutRoot(t *testing.T) {
 		t.Fatalf("NewTransaction(disable) failed: %v", err)
 	}
 	disabledState, found, err := disabledTx.GetObject(ctx, deviceObjectKey)
+	defer world.ReleaseObjectState(disabledState)
 	if err != nil {
 		disabledTx.Discard()
 		t.Fatalf("GetObject(disable) failed: %v", err)

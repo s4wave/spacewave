@@ -17,6 +17,8 @@ import (
 	"github.com/sirupsen/logrus"
 	git_urls "github.com/whilp/git-urls"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/s4wave/spacewave/db/world"
 )
 
 // Version is the version of the controller implementation.
@@ -100,6 +102,7 @@ func (c *Controller) Execute(ctx context.Context) error {
 	ws := ipv.GetWorldState()
 	repoObjKey := c.conf.GetObjectKey()
 	alreadyExistsObj, alreadyExists, err := ws.GetObject(ctx, repoObjKey)
+	defer world.ReleaseObjectState(alreadyExistsObj)
 	if err != nil {
 		return err
 	}

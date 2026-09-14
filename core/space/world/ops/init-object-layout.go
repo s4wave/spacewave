@@ -110,10 +110,12 @@ func (o *InitObjectLayoutOp) ApplyWorldOp(
 	}
 
 	// Create the object with the layout body
-	_, _, err = world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
+	var createdObject world.ObjectState
+	createdObject, _, err = world.CreateWorldObject(ctx, worldHandle, objKey, func(bcs *block.Cursor) error {
 		bcs.SetBlock(layout, true)
 		return nil
 	})
+	world.ReleaseObjectState(createdObject)
 	if err != nil {
 		return false, err
 	}

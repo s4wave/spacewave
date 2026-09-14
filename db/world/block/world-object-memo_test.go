@@ -50,8 +50,12 @@ func TestSetObjectTypeReusesObjectExistenceWithinTransaction(t *testing.T) {
 	const objCount = 3
 	for i := range objCount {
 		key := "memo/obj-" + strconv.Itoa(i)
-		if _, err := ws.CreateObject(ctx, key, nil); err != nil {
-			t.Fatal(err.Error())
+		{
+			createdObject, err := ws.CreateObject(ctx, key, nil)
+			world.ReleaseObjectState(createdObject)
+			if err != nil {
+				t.Fatal(err.Error())
+			}
 		}
 		if err := world_types.SetObjectType(ctx, ws, key, typeID); err != nil {
 			t.Fatal(err.Error())
@@ -68,8 +72,12 @@ func TestSetObjectTypeIdempotentSameTypeIsNoOp(t *testing.T) {
 	defer cleanup()
 
 	key := "idempotent/obj"
-	if _, err := ws.CreateObject(ctx, key, nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	const typeID = "idempotent-type"
 	if err := world_types.SetObjectType(ctx, ws, key, typeID); err != nil {
@@ -87,8 +95,12 @@ func TestSetObjectTypeDeletesStaleTypeEdgeOnTypeChange(t *testing.T) {
 	defer cleanup()
 
 	key := "retype/obj"
-	if _, err := ws.CreateObject(ctx, key, nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if err := world_types.SetObjectType(ctx, ws, key, "type-one"); err != nil {
 		t.Fatal(err.Error())
@@ -113,8 +125,12 @@ func TestHasObjectForgetsDeletedObject(t *testing.T) {
 	defer cleanup()
 
 	key := "forget/obj"
-	if _, err := ws.CreateObject(ctx, key, nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	// CreateObject records existence, so the memo answers positively.
 	if !ws.objectExistsKnown(key) {
@@ -154,11 +170,19 @@ func TestHasObjectForgetsRenamedObject(t *testing.T) {
 
 	oldKey := "rename/src"
 	newKey := "rename/dst"
-	if _, err := ws.CreateObject(ctx, oldKey, nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, oldKey, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
-	if _, err := ws.RenameObject(ctx, oldKey, newKey, false); err != nil {
-		t.Fatal(err.Error())
+	{
+		objectState, err := ws.RenameObject(ctx, oldKey, newKey, false)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if ws.objectExistsKnown(oldKey) {
 		t.Fatal("expected old-key memo invalidated after RenameObject")
@@ -185,8 +209,12 @@ func TestHasObjectMemoResetsWithBlockTransaction(t *testing.T) {
 	defer cleanup()
 
 	key := "reset/obj"
-	if _, err := ws.CreateObject(ctx, key, nil); err != nil {
-		t.Fatal(err.Error())
+	{
+		createdObject, err := ws.CreateObject(ctx, key, nil)
+		world.ReleaseObjectState(createdObject)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 	if !ws.objectExistsKnown(key) {
 		t.Fatal("expected created object memoized")

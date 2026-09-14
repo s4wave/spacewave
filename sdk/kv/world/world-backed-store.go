@@ -85,12 +85,13 @@ func (s *WorldBackedStore) WatchPrefixBounded(ctx context.Context, prefix []byte
 	}
 	var prev []kvtx.WatchEntry
 	var havePrev bool
+	obj, err := world.MustGetObject(ctx, s.ws, s.key)
+	defer world.ReleaseObjectState(obj)
+	if err != nil {
+		return err
+	}
 	for {
 		if err := ctx.Err(); err != nil {
-			return err
-		}
-		obj, err := world.MustGetObject(ctx, s.ws, s.key)
-		if err != nil {
 			return err
 		}
 		_, rev, err := obj.GetRootRef(ctx)
@@ -226,6 +227,7 @@ func (s *WorldBackedStore) clearActiveTx(tx *worldBackedTx) {
 
 func (s *WorldBackedStore) refreshInnerRoot(ctx context.Context) error {
 	obj, err := world.MustGetObject(ctx, s.ws, s.key)
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}

@@ -41,11 +41,13 @@ func (i *InputWorldObject) ResolveValue(
 		ws := inpWorld.GetWorldState()
 		inpObjs, inpObjsExists, err = ws.GetObject(ctx, objKey)
 		if err != nil {
+			world.ReleaseObjectState(inpObjs)
 			return nil, nil, err
 		}
 		if inpObjsExists {
 			objSnapshot, err := forge_value.NewWorldObjectSnapshot(ctx, inpObjs, ws)
 			if err != nil {
+				world.ReleaseObjectState(inpObjs)
 				return nil, nil, err
 			}
 			inpObjsValue = NewInputValueInline(forge_value.NewValueWithWorldObjectSnapshot(inpName, objSnapshot))
@@ -58,6 +60,7 @@ func (i *InputWorldObject) ResolveValue(
 	if inpObjsExists {
 		_, inpObjsRev, err = inpObjs.GetRootRef(ctx)
 		if err != nil {
+			world.ReleaseObjectState(inpObjs)
 			return nil, nil, err
 		}
 	}
@@ -65,9 +68,12 @@ func (i *InputWorldObject) ResolveValue(
 	desiredMinimumRev := i.GetObjectRev()
 	if desiredMinimumRev != 0 {
 		if desiredMinimumRev > inpObjsRev {
+			world.ReleaseObjectState(inpObjs)
 			return nil, nil, nil
 		}
 	}
 
-	return NewInputValueWorldObject(inpObjsValue, inpWorld, inpObjs, nil), nil, nil
+	return NewInputValueWorldObject(inpObjsValue, inpWorld, inpObjs, nil), func() {
+		world.ReleaseObjectState(inpObjs)
+	}, nil
 }

@@ -134,6 +134,7 @@ func projectDevicePolicyCapabilities(
 	defer tx.Discard()
 
 	objState, found, err := tx.GetObject(ctx, record.DeviceObjectKey)
+	defer world.ReleaseObjectState(objState)
 	if err != nil {
 		return err
 	}
@@ -332,8 +333,12 @@ func sameDeviceCapabilities(a, b []*s4wave_device.DeviceCapability) bool {
 // verifyForgeWorkerLink proves the declared Worker object exists and carries
 // the forge/worker type quad. It runs inside the caller's transaction.
 func verifyForgeWorkerLink(ctx context.Context, ws world.WorldState, workerObjectKey string) error {
-	if _, _, err := forge_worker.LookupWorker(ctx, ws, workerObjectKey); err != nil {
-		return errors.Wrapf(err, "verify forge worker %q", workerObjectKey)
+	{
+		_, objectState, err := forge_worker.LookupWorker(ctx, ws, workerObjectKey)
+		world.ReleaseObjectState(objectState)
+		if err != nil {
+			return errors.Wrapf(err, "verify forge worker %q", workerObjectKey)
+		}
 	}
 	if err := forge_worker.CheckWorkerType(ctx, ws, workerObjectKey); err != nil {
 		return errors.Wrapf(err, "verify forge worker %q", workerObjectKey)

@@ -95,13 +95,16 @@ func applyManifestBundle(
 		return errors.Errorf("manifest bundle count mismatch: got %d want %d", len(bundle.GetManifestRefs()), len(meta.GetManifests()))
 	}
 	obj, objOk, err := ws.GetObject(ctx, meta.GetManifests()[0].GetObjectKey())
+	defer world.ReleaseObjectState(obj)
 	if err != nil {
 		return err
 	}
 	if objOk {
 		_, err = obj.SetRootRef(ctx, meta.GetManifestBundleRef())
 	} else {
-		_, err = ws.CreateObject(ctx, meta.GetManifests()[0].GetObjectKey(), meta.GetManifestBundleRef())
+		created, createErr := ws.CreateObject(ctx, meta.GetManifests()[0].GetObjectKey(), meta.GetManifestBundleRef())
+		world.ReleaseObjectState(created)
+		err = createErr
 	}
 	if err != nil {
 		return errors.Wrap(err, "store manifest bundle")
