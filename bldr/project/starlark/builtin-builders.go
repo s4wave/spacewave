@@ -107,6 +107,8 @@ var validDistCompilerFields = map[string]bool{
 	"embed_manifests":              true,
 	"embedNativeVolume":            true,
 	"embed_native_volume":          true,
+	"nativeRunnerPackage":          true,
+	"native_runner_package":        true,
 	"cliPkgs":                      true,
 	"cli_pkgs":                     true,
 	"updateGuardPluginIds":         true,
