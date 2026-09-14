@@ -21,8 +21,6 @@ type taskTracker struct {
 	objKey string
 	// objLoop is the object watcher loop
 	objLoop *world_control.WatchLoop
-	// prevState is the prev task state
-	prevState forge_task.State
 }
 
 // newTaskTracker constructs a new task tracker routine.
@@ -86,11 +84,9 @@ func (t *taskTracker) processState(
 	taskState := task.GetTaskState()
 	le.Debugf("task %q: %s", taskKey, taskState.String())
 
-	if t.prevState != taskState {
-		// Wake the job tracker when the task state changes.
-		t.jt.objLoop.Wake()
-	}
-	t.prevState = taskState
+	// Reconcile every new Task snapshot. A fast retry can complete between
+	// observations, changing its result without changing the observed state.
+	t.jt.objLoop.Wake()
 
 	// Assign unclaimed tasks to this cluster.
 	taskPeerID := task.GetPeerId()

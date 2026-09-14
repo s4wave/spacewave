@@ -57,8 +57,10 @@ export enum State {
   TaskState_CHECKING = 3,
 
   /**
-   * TaskState_COMPLETE is the terminal state of the task.
-   * This includes both success and failure termination states.
+   * TaskState_COMPLETE is complete for the current target and input values.
+   * A target or watched input change transitions the Task to PENDING.
+   * An explicitly canceled Task remains stopped until retried.
+   * COMPLETE includes both success and failure results.
    *
    * @generated from enum value: TaskState_COMPLETE = 4;
    */

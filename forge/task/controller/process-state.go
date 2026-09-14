@@ -50,11 +50,9 @@ func (c *Controller) ProcessState(
 	if currState != forge_task.State_TaskState_RUNNING {
 		c.syncWatchPassStates(nil)
 	}
-
-	// check if completed
-	// TODO: add an option to enable restarting COMPLETE tasks if inputs change.
-	if currState == forge_task.State_TaskState_COMPLETE {
-		le.Debug("task is marked as complete")
+	// Explicit cancellation remains stopped until the operator retries it.
+	if currState == forge_task.State_TaskState_COMPLETE && taskState.GetResult().GetCanceled() {
+		c.syncWatchInputObjects(nil, false)
 		return true, nil
 	}
 
@@ -103,36 +101,13 @@ func (c *Controller) ProcessState(
 
 	// determine if the inputs are dirty and need to trigger a update
 	// if the Task is not PENDING and !input.WatchChanges, ignore the change.
-	inputsDirty := func() bool {
-		// if any inputs were added or removed: always update / restart.
-		if len(addedInputs) != 0 || len(removedInputs) != 0 {
-			return true
-		}
-
-		// if nothing else was changed: not dirty
-		if len(changedInputs) == 0 {
-			return false
-		}
-
-		// if we are in PENDING or RETRY state: always update
-		if currState == forge_task.State_TaskState_PENDING || currState == forge_task.State_TaskState_RETRY {
-			return true
-		}
-
-		for _, taskInp := range taskTarget.GetInputs() {
-			// skip any with watch_changes=false
-			if !taskInp.GetWatchChanges() {
-				continue
-			}
-			for _, changedInput := range changedInputs {
-				if changedInput.GetName() == taskInp.GetName() {
-					return true
-				}
-			}
-		}
-
-		return false
-	}()
+	inputsDirty := taskInputsDirty(
+		currState,
+		taskTarget.GetInputs(),
+		addedInputs,
+		removedInputs,
+		changedInputs,
+	)
 
 	// if the target or any inputs changed, transmit a transaction to update.
 	if targetDirty || inputsDirty {
@@ -160,6 +135,12 @@ func (c *Controller) ProcessState(
 	if len(unsetInputs) != 0 {
 		unsetInputNames := forge_target.GetInputsNames(unsetInputs)
 		le.Debugf("waiting for %d unset inputs: %s", len(unsetInputNames), unsetInputNames)
+		return true, nil
+	}
+
+	// A completed task is current until its target or watched inputs change.
+	if currState == forge_task.State_TaskState_COMPLETE {
+		le.Debug("task is marked as complete")
 		return true, nil
 	}
 
@@ -207,6 +188,30 @@ func (c *Controller) ProcessState(
 		forge_value.ErrUnknownState,
 		"%s", currState.String(),
 	)
+}
+
+// taskInputsDirty applies the target's restart policy to resolved input changes.
+func taskInputsDirty(
+	taskState forge_task.State,
+	targetInputs []*forge_target.Input,
+	addedInputs, removedInputs, changedInputs forge_value.ValueSlice,
+) bool {
+	if taskState == forge_task.State_TaskState_PENDING || taskState == forge_task.State_TaskState_RETRY {
+		return len(addedInputs)+len(removedInputs)+len(changedInputs) != 0
+	}
+	for _, taskInput := range targetInputs {
+		if !taskInput.GetWatchChanges() {
+			continue
+		}
+		for _, changes := range []forge_value.ValueSlice{addedInputs, removedInputs, changedInputs} {
+			for _, changedInput := range changes {
+				if changedInput.GetName() == taskInput.GetName() {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // buildUpdateInputValueSet builds the input delta accepted by TxUpdateInputs.

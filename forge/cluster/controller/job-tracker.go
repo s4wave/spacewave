@@ -123,8 +123,9 @@ func (jt *jobTracker) processState(
 		return true, err
 	}
 
-	// Stop when the job is no longer running.
-	if jobState != forge_job.State_JobState_RUNNING {
+	// Cancellation remains terminal until an explicit restart.
+	if job.GetResult().GetCanceled() {
+		jt.taskTrackers.SyncKeys(nil, true)
 		return true, nil
 	}
 
@@ -143,9 +144,14 @@ func (jt *jobTracker) processState(
 		}
 	}
 
-	// Synchronize task watchers with the pending task set.
+	// Retain task watches after completion so input changes or explicit retries
+	// make the Job running again. The Task controller owns input resolution.
 	jt.c.le.Debugf("found %d pending tasks: %v", len(pendingTasks), pendingTasks)
-	jt.taskTrackers.SyncKeys(pendingTasks, true)
+	jt.taskTrackers.SyncKeys(taskKeys, true)
+	if jobState == forge_job.State_JobState_COMPLETE && len(pendingTasks) != 0 {
+		_, _, err = forge_cluster.StartJob(ctx, ws, clusterKey, jobKey, jt.c.peerID)
+		return true, err
+	}
 
 	// Complete the job when no tasks remain.
 	if len(pendingTasks) == 0 {

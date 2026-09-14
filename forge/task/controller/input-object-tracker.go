@@ -61,14 +61,10 @@ func (t *inputObjectTracker) processState(
 	obj world.ObjectState, // may be nil if not found
 	rootRef *bucket.ObjectRef, rev uint64,
 ) (waitForChanges bool, err error) {
-	// skip the initial state (we saw it already)
-	if t.firstCheck {
+	// Recheck the initial snapshot too: the source may have changed between
+	// Task input resolution and attachment of this watch.
+	if t.firstCheck || rev != t.prevObjRev {
 		t.firstCheck = false
-		return true, nil
-	}
-
-	// if the object rev changed, trigger a re-check of the Task.
-	if rev != t.prevObjRev {
 		t.prevObjRev = rev
 		le.Infof("input object changed: %s at %d", t.objKey, rev)
 		t.c.objLoop.Wake()

@@ -73,8 +73,10 @@ enum State {
   // The Task controller will then check the Pass results.
   // Transition to COMPLETE state on failure (invalid) or success (validation).
   TaskState_CHECKING = 3;
-  // TaskState_COMPLETE is the terminal state of the task.
-  // This includes both success and failure termination states.
+  // TaskState_COMPLETE is complete for the current target and input values.
+  // A target or watched input change transitions the Task to PENDING.
+  // An explicitly canceled Task remains stopped until retried.
+  // COMPLETE includes both success and failure results.
   TaskState_COMPLETE = 4;
   // TaskState_RETRY wait for a change in Inputs before retrying with a new Pass.
   // When the assigned Pass is deleted or Inputs are different from latest resolved,

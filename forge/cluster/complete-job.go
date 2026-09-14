@@ -79,7 +79,7 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 		return false, errors.Errorf("cluster %s not linked to job %s", clusterKey, jobKey)
 	}
 
-	// check if the job is in RUNNING state
+	// Read the current Job before deriving its aggregate result.
 	var jobResult *forge_value.Result
 	var job *forge_job.Job
 	_, _, err = world.AccessWorldObject(ctx, worldHandle, jobKey, false, func(bcs *block.Cursor) error {
@@ -92,6 +92,9 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 	if err != nil {
 		return false, err
 	}
+	if job.GetResult().GetCanceled() {
+		return false, nil
+	}
 
 	// The job result aggregates the linked task results: the job completes
 	// successfully only when every linked task completed successfully.
@@ -102,7 +105,9 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 	jobResult = forge_value.NewResultWithSuccess()
 	for i, task := range tasks {
 		if !task.IsComplete() {
-			return false, errors.Errorf("task %s is not complete", taskKeys[i])
+			// A watched input can restart a Task after the controller's read.
+			// Keep the Job unchanged; its Task watcher schedules reconciliation.
+			return false, nil
 		}
 		if res := task.GetResult(); !res.GetSuccess() {
 			jobResult = forge_value.NewResultWithError(errors.Errorf(
@@ -110,6 +115,12 @@ func (o *ClusterCompleteJobOp) ApplyWorldOp(
 			))
 			break
 		}
+	}
+
+	// A repeated reconciliation of the same result must not write another
+	// Job revision and wake its own tracker again.
+	if job.IsComplete() && job.GetResult().EqualVT(jobResult) {
+		return false, nil
 	}
 
 	// transition job to complete with the result
