@@ -598,7 +598,7 @@ jobs:
             timeout_minutes: 30
             job_timeout_minutes: 50
           - name: pairing
-            run: '^TestPairing(HomeDrive|SignedInDrive|StorageQuota)Journey$'
+            run: '^Test(Pairing(HomeDrive|SignedInDrive|StorageQuota)Journey|E2ESignalingReconnect)$'
             timeout_minutes: 30
             job_timeout_minutes: 50
           - name: web-lifecycle-host
