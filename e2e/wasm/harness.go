@@ -59,6 +59,7 @@ type Harness struct {
 	headless       bool
 	browserName    string
 	workerMode     WorkerMode
+	goPlatformID   string
 	manifestWait   time.Duration
 	ctx            context.Context
 	cancel         context.CancelFunc
@@ -314,7 +315,8 @@ func Boot(ctx context.Context, le *logrus.Entry, opts ...Option) (_ *Harness, re
 	// Resolve startup values from the loaded config.
 	appID := projConfig.GetId()
 	startPlugins := projConfig.GetStart().GetPlugins()
-	startupManifestPreflights := devtool.ProjectOwnedStartupManifestPreflights(projConfig, "web/js/wasm")
+	h.goPlatformID = o.goPlatformID
+	startupManifestPreflights := devtool.ProjectOwnedStartupManifestPreflightsForPlatforms(projConfig, h.goPlatformID, "web/js/wasm")
 	webStartupSrcPath, _ := projConfig.GetStart().ParseWebStartupPath()
 
 	port, err := findFreePort()
@@ -982,7 +984,7 @@ func (h *Harness) startupManifestSummary() string {
 }
 
 func (h *Harness) startupManifestRequests() []manifestFetchRequest {
-	preflights := devtool.ProjectOwnedStartupManifestPreflights(h.projConfig, "web/js/wasm")
+	preflights := devtool.ProjectOwnedStartupManifestPreflightsForPlatforms(h.projConfig, h.goPlatformID, "web/js/wasm")
 	requests := make([]manifestFetchRequest, 0, len(preflights))
 	for _, preflight := range preflights {
 		requests = append(requests, manifestFetchRequest{

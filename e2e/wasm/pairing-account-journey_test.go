@@ -16,9 +16,12 @@ import (
 // TestPairingHomeDriveJourney enters from Home, reads its durable copy offline,
 // then receives a new file after both clients reconnect with preserved stores.
 func TestPairingHomeDriveJourney(t *testing.T) {
+	started := time.Now()
 	// Retain failures from both independent browser processes.
 	h := harness(t)
+	t.Logf("harness ready after %s", time.Since(started).Round(time.Millisecond))
 	a, b := h.NewCleanSession(t), h.NewCleanSession(t)
+	t.Logf("clients ready after %s", time.Since(started).Round(time.Millisecond))
 	for _, client := range []*TestSession{a, b} {
 		messages, stop := client.WatchConsole()
 		done := make(chan struct{})
@@ -99,6 +102,7 @@ func TestPairingHomeDriveJourney(t *testing.T) {
 	}
 	defer stream.Close()
 	waitPairingSpaceCopy(t, stream, drive.GetSpaceID())
+	t.Logf("receiver copy durable after %s", time.Since(started).Round(time.Millisecond))
 	NavigateHash(t, h, b.Page(), fmt.Sprintf("#/u/%d/so/%s", index, drive.GetSpaceID()))
 	WaitForDriveReady(t, h, b.Page())
 	openDriveEntry(t, b.Page(), file.Name)
@@ -116,6 +120,7 @@ func TestPairingHomeDriveJourney(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitForUnixFSFileText(t, b.Page(), "offline paired file", string(file.Buffer))
+	t.Logf("offline read complete after %s", time.Since(started).Round(time.Millisecond))
 
 	// Restart the original process and prove continued synchronization.
 	if err := h.loadAppPageURL(a, fmt.Sprintf("%s/#/u/%d/so/%s", h.BaseURL(), drive.GetSessionIndex(), drive.GetSpaceID())); err != nil {
@@ -123,6 +128,7 @@ func TestPairingHomeDriveJourney(t *testing.T) {
 	}
 	WaitForApp(t, a.Page())
 	WaitForDriveReady(t, h, a.Page())
+	t.Logf("source restarted after %s", time.Since(started).Round(time.Millisecond))
 	update := playwright.InputFile{Name: "after-reconnect.md", MimeType: "text/markdown", Buffer: []byte("This update arrived after both clients restarted.\n")}
 	uploadDriveFileThroughUI(t, a.Page(), update)
 	waitForDriveEntry(t, a.Page(), update.Name)
@@ -130,6 +136,7 @@ func TestPairingHomeDriveJourney(t *testing.T) {
 	WaitForDriveReady(t, h, b.Page())
 	openDriveEntry(t, b.Page(), update.Name)
 	waitForUnixFSFileText(t, b.Page(), "file after reconnect", string(update.Buffer))
+	t.Logf("reconnected update received after %s", time.Since(started).Round(time.Millisecond))
 }
 
 // waitPairingSpaceCopy waits for the selected Space's complete local block copy.
@@ -164,13 +171,18 @@ func startPairingPages(t *testing.T, source, receiving playwright.Page, sourceIn
 
 	// Both clients run on this host. Gather host candidates without waiting
 	// for a public STUN server that the CI runner may be unable to reach.
+	// Keep the same network environment when either client reloads.
+	hostCandidatesOnly := `(() => {
+		const PeerConnection = globalThis.RTCPeerConnection
+		globalThis.RTCPeerConnection = class extends PeerConnection {
+			constructor(config) { super({ ...config, iceServers: [] }) }
+		}
+	})()`
 	for _, page := range []playwright.Page{source, receiving} {
-		if _, err := page.Evaluate(`() => {
-			const PeerConnection = globalThis.RTCPeerConnection
-			globalThis.RTCPeerConnection = class extends PeerConnection {
-				constructor(config) { super({ ...config, iceServers: [] }) }
-			}
-		}`); err != nil {
+		if err := page.Context().AddInitScript(playwright.Script{Content: &hostCandidatesOnly}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := page.Evaluate(hostCandidatesOnly); err != nil {
 			t.Fatal(err)
 		}
 	}

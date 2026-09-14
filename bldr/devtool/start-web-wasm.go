@@ -132,7 +132,7 @@ func (a *DevtoolArgs) executeWebProject(ctx context.Context, compilerName, goPlu
 	appID := currProjConf.GetId()
 	startConf := currProjConf.GetStart()
 	startupPlugins := startConf.GetPlugins()
-	startupManifestPreflights := projectOwnedStartupManifestPreflightsForPlatforms(
+	startupManifestPreflights := ProjectOwnedStartupManifestPreflightsForPlatforms(
 		currProjConf,
 		goPluginPlatformID,
 		"web/js/wasm",
