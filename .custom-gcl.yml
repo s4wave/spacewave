@@ -2,3 +2,5 @@ version: v2.1.6
 plugins:
   - module: 'github.com/s4wave/spacewave/lint/nonavigate'
     path: ./lint/nonavigate
+  - module: 'github.com/aperturerobotics/common/lint/lostresource'
+    version: v0.0.0-20260914210456-9fa41e3d3dd9
