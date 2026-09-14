@@ -1,10 +1,15 @@
-# Login exposes the account entrypoint and primary browser/local subcommands.
+# Login offers each session source and keeps explicit shortcuts available.
 spacewave login --help
-stdout "sign up or log in to a Spacewave account"
-stdout "local    create a local offline account"
-stdout "browser  sign in via the browser handoff flow"
+stdout "add a Spacewave session to this device"
+stdout "create a local offline account"
+stdout "sign in via the browser handoff flow"
+stdout "add an account using a code from another device"
+stdout "open an existing .s4wave Session volume"
 stdout "--username value"
 stdout "--pem-file value"
+
+! spacewave login
+stderr "choose a login method"
 
 spacewave login browser --help
 stdout "sign in via the browser handoff flow"

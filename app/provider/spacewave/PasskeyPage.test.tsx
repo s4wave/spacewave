@@ -60,6 +60,8 @@ vi.mock('@s4wave/app/auth/handoff-state.js', () => ({
     mockCompleteStoredHandoff(...args) as Promise<boolean>,
   hasStoredHandoffRequest: (): boolean =>
     mockHasStoredHandoffRequest() as boolean,
+  getAuthReturnPath: () =>
+    mockHasStoredHandoffRequest() ? '/auth/link/payload-123' : '/login',
 }))
 
 vi.mock('./keypair-utils.js', () => ({
@@ -179,6 +181,25 @@ describe('PasskeyPage', () => {
     render(<PasskeyPage />)
 
     expect(screen.getByDisplayValue('spacewave')).toBeDefined()
+  })
+
+  it('returns to the CLI link after a username check fails', async () => {
+    mockHasStoredHandoffRequest.mockReturnValue(true)
+    mockPasskeyCheckUsername.mockRejectedValue(
+      new Error('Username is reserved'),
+    )
+
+    render(<PasskeyPage />)
+    fireEvent.change(screen.getByPlaceholderText('your-username'), {
+      target: { value: 'admin' },
+    })
+    fireEvent.click(screen.getByText('Continue'))
+    await screen.findByText('Username is reserved')
+    fireEvent.click(screen.getByText('Back to login'))
+
+    expect(mockNavigate).toHaveBeenCalledWith({
+      path: '/auth/link/payload-123',
+    })
   })
 
   it('shows fallback guidance after create-account hits username_taken', async () => {

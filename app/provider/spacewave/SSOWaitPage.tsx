@@ -6,6 +6,10 @@ import { LuArrowLeft } from 'react-icons/lu'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
+import {
+  completeStoredHandoff,
+  getAuthReturnPath,
+} from '@s4wave/app/auth/handoff-state.js'
 import { useRootResource } from '@s4wave/web/hooks/useRootResource.js'
 import { useNavigate, useParams } from '@s4wave/web/router/router.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
@@ -33,6 +37,7 @@ type SSOWaitState =
   | { step: 'logging_in' }
   | { step: 'redirecting' }
   | { step: 'pin_prompt'; encryptedBlob: string; username: string }
+  | { step: 'complete' }
   | { step: 'error'; message: string }
 
 // SSOWaitPage handles the SSO in-progress state.
@@ -88,6 +93,10 @@ export function SSOWaitPage() {
             }
             setState({ step: 'logging_in' })
             const sessionIndex = await loginWithEntityPem(root, pemPrivateKey)
+            if (await completeStoredHandoff(root, sessionIndex)) {
+              setState({ step: 'complete' })
+              return
+            }
             navigate({ path: `/u/${sessionIndex}` })
             return
           }
@@ -179,7 +188,7 @@ export function SSOWaitPage() {
   }, [])
 
   const handleCancel = useCallback(() => {
-    navigate({ path: '/login' })
+    navigate({ path: getAuthReturnPath() })
   }, [navigate])
 
   const handleSubmitPin = useCallback(async () => {
@@ -199,6 +208,10 @@ export function SSOWaitPage() {
         unwrapPemWithPin(spacewave, state.encryptedBlob, pin),
       )
       const sessionIndex = await loginWithEntityPem(root, pemBytes)
+      if (await completeStoredHandoff(root, sessionIndex)) {
+        setState({ step: 'complete' })
+        return
+      }
       navigate({ path: `/u/${sessionIndex}` })
     } catch {
       setPinError('Incorrect PIN')
@@ -217,40 +230,19 @@ export function SSOWaitPage() {
 
   if (state.step === 'error') {
     return (
-      <AuthScreenLayout
-        intro={
-          <>
-            <AnimatedLogo followMouse={false} />
-            <h2 className="text-foreground text-lg font-semibold">
-              Sign-in failed
-            </h2>
-          </>
-        }
-      >
-        <div className="flex w-full flex-col items-center gap-4">
-          <LoadingCard
-            view={{
-              state: 'error',
-              title: `Sign-in with ${providerLabel} failed`,
-              error: state.message,
-            }}
-          />
-          <div className="flex w-full flex-col gap-2">
-            <AuthPrimaryActionButton
-              onClick={handleRetry}
-              icon={<ProviderIcon provider={provider} className="size-4" />}
-            >
-              Try again
-            </AuthPrimaryActionButton>
-            <AuthSecondaryActionButton
-              onClick={handleCancel}
-              className="flex items-center justify-center gap-2"
-            >
-              <LuArrowLeft className="size-4" />
-              Back to login
-            </AuthSecondaryActionButton>
-          </div>
-        </div>
+      <SSOWaitError
+        provider={provider}
+        message={state.message}
+        onRetry={handleRetry}
+        onCancel={handleCancel}
+      />
+    )
+  }
+
+  if (state.step === 'complete') {
+    return (
+      <AuthScreenLayout intro={<h2>Sign-in complete</h2>}>
+        <p>You can close this tab and return to Spacewave CLI.</p>
       </AuthScreenLayout>
     )
   }
@@ -331,6 +323,56 @@ export function SSOWaitPage() {
             </AuthSecondaryActionButton>
           </div>
         )}
+      </div>
+    </AuthScreenLayout>
+  )
+}
+
+function SSOWaitError({
+  provider,
+  message,
+  onRetry,
+  onCancel,
+}: {
+  provider: string
+  message: string
+  onRetry: () => void
+  onCancel: () => void
+}) {
+  return (
+    <AuthScreenLayout
+      intro={
+        <>
+          <AnimatedLogo followMouse={false} />
+          <h2 className="text-foreground text-lg font-semibold">
+            Sign-in failed
+          </h2>
+        </>
+      }
+    >
+      <div className="flex w-full flex-col items-center gap-4">
+        <LoadingCard
+          view={{
+            state: 'error',
+            title: `Sign-in with ${getProviderLabel(provider)} failed`,
+            error: message,
+          }}
+        />
+        <div className="flex w-full flex-col gap-2">
+          <AuthPrimaryActionButton
+            onClick={isDesktop ? onRetry : onCancel}
+            icon={<ProviderIcon provider={provider} className="size-4" />}
+          >
+            {isDesktop ? 'Try again' : 'Return to sign-in'}
+          </AuthPrimaryActionButton>
+          <AuthSecondaryActionButton
+            onClick={onCancel}
+            className="flex items-center justify-center gap-2"
+          >
+            <LuArrowLeft className="size-4" />
+            Back to login
+          </AuthSecondaryActionButton>
+        </div>
       </div>
     </AuthScreenLayout>
   )

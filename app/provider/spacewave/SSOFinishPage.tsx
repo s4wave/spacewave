@@ -9,6 +9,10 @@ import { usePromise } from '@s4wave/web/hooks/usePromise.js'
 import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import type { SSOCodeExchangeResponse } from '@s4wave/sdk/provider/spacewave/spacewave.pb.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
+import {
+  completeStoredHandoff,
+  getAuthReturnPath,
+} from '@s4wave/app/auth/handoff-state.js'
 import { setPendingSSOState } from './sso-state.js'
 import {
   clearSSOBrowserBinding,
@@ -145,6 +149,11 @@ export function SSOFinishPage() {
         if (controller.signal.aborted) return
 
         const sessionIndex = loginResp.sessionListEntry?.sessionIndex ?? 0
+        if (await completeStoredHandoff(root, sessionIndex)) {
+          clearSSOBrowserBinding()
+          setState({ step: 'complete' })
+          return
+        }
         clearSSOBrowserBinding()
         navigate({ path: `/u/${sessionIndex}` })
       } catch (e) {
@@ -183,6 +192,11 @@ export function SSOFinishPage() {
       })
       const sessionIndex = loginResp.sessionListEntry?.sessionIndex ?? 0
 
+      if (await completeStoredHandoff(root, sessionIndex)) {
+        clearSSOBrowserBinding()
+        setState({ step: 'complete' })
+        return
+      }
       clearSSOBrowserBinding()
       setState({ step: 'complete' })
       navigate({ path: `/u/${sessionIndex}` })
@@ -198,7 +212,7 @@ export function SSOFinishPage() {
   }, [])
 
   const handleCancel = useCallback(() => {
-    navigate({ path: '/login' })
+    navigate({ path: getAuthReturnPath() })
   }, [navigate])
 
   // Compute the status message.
@@ -211,7 +225,7 @@ export function SSOFinishPage() {
       case 'logging_in':
         return 'Mounting session...'
       case 'complete':
-        return 'Welcome to Spacewave!'
+        return 'Sign-in complete. Return to Spacewave CLI.'
       default:
         return ''
     }
@@ -232,7 +246,7 @@ export function SSOFinishPage() {
           <button
             onClick={() => {
               clearSSOBrowserBinding()
-              navigate({ path: '/login' })
+              navigate({ path: getAuthReturnPath() })
             }}
             className="text-brand hover:text-brand/80 mt-2 text-sm underline"
           >

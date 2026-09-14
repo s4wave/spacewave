@@ -11,7 +11,9 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { SpacewaveProvider } from '@s4wave/sdk/provider/spacewave/spacewave.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import { useCloudProviderConfig } from '@s4wave/app/provider/spacewave/useSpacewaveAuth.js'
+import { setSSOStartIntent } from '@s4wave/app/provider/spacewave/sso-start-intent.js'
 import {
+  clearStoredHandoffPayload,
   decodeHandoffRequest,
   enrollHandoffSession,
   setStoredHandoffPayload,
@@ -107,6 +109,7 @@ export function HandoffPage() {
           const idx = resp.result.value?.sessionIndex ?? 0
           setState('completing')
           await enrollHandoffSession(root, idx, request)
+          clearStoredHandoffPayload()
           setState('complete')
           return { type: 'session', sessionIndex: idx }
         }
@@ -147,6 +150,7 @@ export function HandoffPage() {
 
       setState('completing')
       await enrollHandoffSession(root, sessionIndex, request)
+      clearStoredHandoffPayload()
       setState('complete')
 
       return { sessionIndex }
@@ -170,6 +174,32 @@ export function HandoffPage() {
         : ''
     navigate({ path: `/auth/passkey${usernameQuery}` })
   }, [handoffPayload, navigate, routeHints.username])
+
+  const handleLoginWithPem = useCallback(
+    async (pemPrivateKey: Uint8Array): Promise<{ sessionIndex: number }> => {
+      if (!root || !request) throw new Error('Invalid handoff request')
+      using provider = await root.lookupProvider('spacewave')
+      const sw = new SpacewaveProvider(provider.resourceRef)
+      const resp = await sw.loginWithEntityKey(pemPrivateKey)
+      const sessionIndex = resp.sessionListEntry?.sessionIndex ?? 0
+      setState('completing')
+      await enrollHandoffSession(root, sessionIndex, request)
+      clearStoredHandoffPayload()
+      setState('complete')
+      return { sessionIndex }
+    },
+    [request, root],
+  )
+
+  const handleSignInWithSSO = useCallback(
+    (provider: 'google' | 'github') => {
+      if (!handoffPayload) throw new Error('Invalid handoff request')
+      setStoredHandoffPayload(handoffPayload)
+      setSSOStartIntent(provider, `/auth/link/${handoffPayload}`)
+      navigate({ path: `/auth/sso/${provider}` })
+    },
+    [handoffPayload, navigate],
+  )
 
   if (!request) {
     return (
@@ -255,6 +285,8 @@ export function HandoffPage() {
         onCreateAccountWithPassword={handleCreateAccountWithPassword}
         onNavigateToSession={handleNavigateToSession}
         onContinueWithPasskey={handleContinueWithPasskey}
+        onLoginWithPem={handleLoginWithPem}
+        onSignInWithSSO={handleSignInWithSSO}
       />
     </AuthScreenLayout>
   )

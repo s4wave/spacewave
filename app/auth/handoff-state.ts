@@ -44,6 +44,15 @@ export function getStoredHandoffRequest(): HandoffRequest | null {
   return decodeHandoffRequest(sessionStorage.getItem(handoffStorageKey))
 }
 
+export function getStoredHandoffPath(): string | null {
+  const payload = sessionStorage.getItem(handoffStorageKey)
+  return decodeHandoffRequest(payload) ? `/auth/link/${payload}` : null
+}
+
+export function getAuthReturnPath(): string {
+  return getStoredHandoffPath() ?? '/login'
+}
+
 export function hasStoredHandoffRequest(): boolean {
   return getStoredHandoffRequest() != null
 }

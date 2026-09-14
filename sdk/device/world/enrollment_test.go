@@ -211,6 +211,6 @@ func (e *rejectWithoutApplyEngine) NewTransaction(ctx context.Context, write boo
 }
 
 func (t *rejectWithoutApplyTx) Commit(ctx context.Context) error {
-	t.Tx.Discard()
+	t.Discard()
 	return t.err
 }

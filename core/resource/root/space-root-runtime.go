@@ -61,6 +61,9 @@ func (s *CoreRootServer) WatchSpaceRootRuntime(
 		return sendSpaceRootRuntimeError(strm, req.GetAliasId(), "", "", err)
 	}
 	statePath := alias.GetNative().GetPath()
+	if alias.GetKind() == s4wave_root.SpaceRootKind_SpaceRootKind_S4WAVE_FILE {
+		statePath = filepath.Dir(statePath)
+	}
 	socketPath := filepath.Join(statePath, spaceRootRuntimeSocketName)
 
 	if err := strm.Send(&s4wave_root.WatchSpaceRootRuntimeResponse{
@@ -111,18 +114,37 @@ func (s *CoreRootServer) WatchSpaceRootRuntime(
 			}
 			return sendSpaceRootRuntimeError(strm, alias.GetAliasId(), statePath, socketPath, errors.Wrap(err, "watch sessions"))
 		}
-		runtimeSessions := client.buildSpaceRootRuntimeSessions(ctx, resp.GetSessions())
+		sessions := resp.GetSessions()
+		if alias.GetKind() == s4wave_root.SpaceRootKind_SpaceRootKind_S4WAVE_FILE {
+			sessions = sessionsFromSpaceRootFile(alias.GetNative().GetPath(), sessions)
+		}
+		runtimeSessions := client.buildSpaceRootRuntimeSessions(ctx, sessions)
 		if err := strm.Send(&s4wave_root.WatchSpaceRootRuntimeResponse{
 			Status:          s4wave_root.SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_READY,
 			AliasId:         alias.GetAliasId(),
 			StatePath:       statePath,
 			SocketPath:      socketPath,
-			Sessions:        resp.GetSessions(),
+			Sessions:        sessions,
 			RuntimeSessions: runtimeSessions,
 		}); err != nil {
 			return err
 		}
 	}
+}
+
+func sessionsFromSpaceRootFile(path string, entries []*session.SessionListEntry) []*session.SessionListEntry {
+	if filepath.Base(path) == "cli.s4wave" {
+		return entries
+	}
+	filtered := make([]*session.SessionListEntry, 0, len(entries))
+	for _, entry := range entries {
+		ref := entry.GetSessionRef().GetProviderResourceRef()
+		filename := strings.ReplaceAll("p/"+ref.GetProviderId()+"/"+ref.GetProviderAccountId(), "/", "_") + ".s4wave"
+		if filepath.Base(path) == filename {
+			filtered = append(filtered, entry)
+		}
+	}
+	return filtered
 }
 
 func (c *spaceRootRuntimeClient) buildSpaceRootRuntimeSessions(

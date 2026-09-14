@@ -224,11 +224,9 @@ func validateSpaceRootAliasRecord(
 	if strings.Contains(aliasID, "/") {
 		return nil, errors.New("space root alias id cannot contain /")
 	}
-	if record.GetKind() == s4wave_root.SpaceRootKind_SpaceRootKind_S4WAVE_FILE {
-		return nil, errors.New(".s4wave files are not supported yet")
-	}
-	if record.GetKind() != s4wave_root.SpaceRootKind_SpaceRootKind_NATIVE_DIRECTORY {
-		return nil, errors.New("space root alias kind must be native directory")
+	if record.GetKind() != s4wave_root.SpaceRootKind_SpaceRootKind_NATIVE_DIRECTORY &&
+		record.GetKind() != s4wave_root.SpaceRootKind_SpaceRootKind_S4WAVE_FILE {
+		return nil, errors.New("space root alias kind must be native directory or .s4wave file")
 	}
 	if record.GetOpenMode() != s4wave_root.SpaceRootOpenMode_SpaceRootOpenMode_OPEN_EXISTING {
 		return nil, errors.New("space root alias open mode must be open existing")
@@ -242,13 +240,10 @@ func validateSpaceRootAliasRecord(
 	if path == "." || path == "" {
 		return nil, errors.New("native path is required")
 	}
-	if filepath.Ext(path) == ".s4wave" {
-		return nil, errors.New(".s4wave files are not supported yet")
-	}
 	if !filepath.IsAbs(path) {
 		return nil, errors.New("native path must be absolute")
 	}
-	if err := validateExistingSpaceRootPath(path); err != nil {
+	if err := validateSpaceRootAliasPath(record.GetKind(), path); err != nil {
 		return nil, err
 	}
 
@@ -260,7 +255,7 @@ func validateSpaceRootAliasRecord(
 	return &s4wave_root.SpaceRootAliasRecord{
 		AliasId:         aliasID,
 		DisplayName:     displayName,
-		Kind:            s4wave_root.SpaceRootKind_SpaceRootKind_NATIVE_DIRECTORY,
+		Kind:            record.GetKind(),
 		OpenMode:        s4wave_root.SpaceRootOpenMode_SpaceRootOpenMode_OPEN_EXISTING,
 		Native:          &s4wave_root.NativeSpaceRootMetadata{Path: path},
 		Status:          s4wave_root.SpaceRootStatus_SpaceRootStatus_READY,
@@ -269,6 +264,31 @@ func validateSpaceRootAliasRecord(
 		CreatedAtUnixMs: createdAt,
 		UpdatedAtUnixMs: now,
 	}, nil
+}
+
+func validateSpaceRootAliasPath(kind s4wave_root.SpaceRootKind, path string) error {
+	if kind == s4wave_root.SpaceRootKind_SpaceRootKind_S4WAVE_FILE {
+		if filepath.Ext(path) != ".s4wave" {
+			return errors.New("selected file must have the .s4wave extension")
+		}
+		info, err := os.Stat(path)
+		if err != nil {
+			return errors.Wrap(err, "stat selected .s4wave file")
+		}
+		if !info.Mode().IsRegular() {
+			return errors.New("selected .s4wave path is not a regular file")
+		}
+		if filepath.Base(path) != "cli.s4wave" {
+			if _, err := os.Stat(filepath.Join(filepath.Dir(path), "cli.s4wave")); err != nil {
+				return errors.Wrap(err, "find sibling Session catalog cli.s4wave")
+			}
+		}
+		return validateExistingSpaceRootPath(filepath.Dir(path))
+	}
+	if filepath.Ext(path) == ".s4wave" {
+		return errors.New("select the state-root directory or use the .s4wave file kind")
+	}
+	return validateExistingSpaceRootPath(path)
 }
 
 func validateExistingSpaceRootPath(path string) error {
@@ -303,7 +323,8 @@ func refreshSpaceRootAliasStatus(
 	record *s4wave_root.SpaceRootAliasRecord,
 ) *s4wave_root.SpaceRootAliasRecord {
 	out := record.CloneVT()
-	if out.GetKind() != s4wave_root.SpaceRootKind_SpaceRootKind_NATIVE_DIRECTORY ||
+	if (out.GetKind() != s4wave_root.SpaceRootKind_SpaceRootKind_NATIVE_DIRECTORY &&
+		out.GetKind() != s4wave_root.SpaceRootKind_SpaceRootKind_S4WAVE_FILE) ||
 		out.GetOpenMode() != s4wave_root.SpaceRootOpenMode_SpaceRootOpenMode_OPEN_EXISTING {
 		out.Status = s4wave_root.SpaceRootStatus_SpaceRootStatus_UNSUPPORTED
 		out.StatusMessage = "configured root mode is not supported by this app"
@@ -311,7 +332,7 @@ func refreshSpaceRootAliasStatus(
 	}
 
 	path := out.GetNative().GetPath()
-	if err := validateExistingSpaceRootPath(path); err != nil {
+	if err := validateSpaceRootAliasPath(out.GetKind(), path); err != nil {
 		out.Status = s4wave_root.SpaceRootStatus_SpaceRootStatus_INVALID
 		if os.IsNotExist(errors.Cause(err)) {
 			out.Status = s4wave_root.SpaceRootStatus_SpaceRootStatus_MISSING
