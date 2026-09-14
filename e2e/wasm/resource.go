@@ -58,7 +58,8 @@ func (h *Harness) connectSessionResources(ctx context.Context, s *TestSession, a
 
 		le.Info("waiting for new browser peer")
 		waitStartedAt := time.Now()
-		peerObs, err := h.getPeerWatcher().WaitForPeerObservationAfter(ctx, afterSeq)
+		// Preserve each mount so another client's reconnect cannot hide this client's peer.
+		peerObs, err := h.getPeerWatcher().WaitForDistinctPeerObservationAfter(ctx, afterSeq)
 		waitCompletedAt := time.Now()
 		s.recordPeerWaitTiming(waitStartedAt, waitCompletedAt, peerObs, err)
 		if err != nil {
