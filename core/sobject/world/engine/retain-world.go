@@ -15,11 +15,10 @@ import (
 	"github.com/s4wave/spacewave/db/kvtx"
 	"github.com/s4wave/spacewave/db/world"
 	world_block "github.com/s4wave/spacewave/db/world/block"
+	"github.com/sirupsen/logrus"
 )
 
-// retainPublicationWorld fences all candidate dependencies before local authority
-// accepts the operation or root. Completed immutable subtrees are retained in the
-// SharedObject's local store, with at most 1024 new completion records in memory.
+// retainPublicationWorld fences dependencies for asynchronously persisted providers.
 func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.SharedObject, head *bucket.ObjectRef) error {
 	retention, ok := so.(sobject.PublicationRetention)
 	if !ok {
@@ -28,23 +27,38 @@ func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.Shar
 	if head.GetRootRef().GetEmpty() {
 		return nil
 	}
-	store := so.GetBlockStore()
 	local, release, err := retention.AccessPublicationRetention(ctx)
 	if err != nil {
 		return err
 	}
 	defer release()
-	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: c.le}, c.sfs, head.GetTransformConf())
+	return RetainWorld(ctx, c.le, c.sfs, so, head, local, nil)
+}
+
+// RetainWorld copies a complete World graph into its SharedObject's block store.
+// Completion proofs skip immutable subtrees only after their ownership writes
+// are durable. The caller owns the proof store and serializes calls for it.
+// visited observes newly traversed blocks; cached complete subtrees are omitted.
+func RetainWorld(ctx context.Context, le *logrus.Entry, sfs *block_transform.StepFactorySet, so sobject.SharedObject, head *bucket.ObjectRef, local kvtx.Store, visited func(*block.BlockRef, []byte)) error {
+	store := so.GetBlockStore()
+	const maxPendingBytes = 4 << 20
+	writes := block.NewBufferedStoreWithSettings(ctx, store, &block.BufferedStoreSettings{
+		MaxPendingEntries: 128,
+		MaxPendingBytes:   maxPendingBytes,
+		DrainBatchEntries: 128,
+	})
+
+	xfrm, err := block_transform.NewTransformer(controller.ConstructOpts{Logger: le}, sfs, head.GetTransformConf())
 	if err != nil {
 		return err
 	}
 	bucketID := store.GetID()
 	localRef := head.CloneVT()
 	localRef.BucketId = bucketID
-	cursor := bucket_lookup.NewCursor(ctx, so.GetBus(), c.le, c.sfs, store, xfrm, localRef, &bucket.BucketOpArgs{BucketId: bucketID, VolumeId: bucketID}, head.GetTransformConf())
+	cursor := bucket_lookup.NewCursor(ctx, so.GetBus(), le, sfs, store, xfrm, localRef, &bucket.BucketOpArgs{BucketId: bucketID, VolumeId: bucketID}, head.GetTransformConf())
 	cursor.SetBucketIDOverride(bucketID)
 	defer cursor.Release()
-	ws, err := world_block.BuildWorldStateFromCursor(ctx, c.le, false, cursor, world.NewWorldStorageFromCursor(cursor), nil, false)
+	ws, err := world_block.BuildWorldStateFromCursor(ctx, le, false, cursor, world.NewWorldStorageFromCursor(cursor), nil, false)
 	if err != nil {
 		return err
 	}
@@ -54,7 +68,7 @@ func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.Shar
 	// subtrees, but never records a parent whose descendants failed.
 	pending := make(map[string]struct{})
 	flush := func() error {
-		fenced, err := store.Sync(ctx)
+		fenced, err := writes.Sync(ctx)
 		if err != nil {
 			return err
 		}
@@ -94,8 +108,19 @@ func (c *Controller) retainPublicationWorld(ctx context.Context, so sobject.Shar
 		}
 		return info.Constructor, nil
 	}, func(ref *block.BlockRef, data []byte) error {
-		_, _, err := store.PutBlock(ctx, data, &block.PutOpts{ForceBlockRef: ref})
-		return err
+		// Presence alone does not prove destination bucket ownership. Batch
+		// every visited block, bypassing the bounded buffer for large payloads.
+		var target block.StoreOps = writes
+		if len(data) > maxPendingBytes {
+			target = store
+		}
+		if err := target.PutBlockBatch(ctx, []*block.PutBatchEntry{{Ref: ref, Data: data}}); err != nil {
+			return err
+		}
+		if visited != nil {
+			visited(ref, data)
+		}
+		return nil
 	}, &world_block.WalkBlocksOptions{
 		Known: func(domain string, ref *block.BlockRef) (bool, error) {
 			k := key(domain, ref)
