@@ -86,6 +86,8 @@ Expose changing state through server-streaming `Watch*` RPCs. Unary calls serve 
 
 RPCs returning `resource_id` allocate server resources. Wrap them with `resourceRef.createRef(id)` and release the resulting reference. Resource release owns teardown. Composite `useResource` values expose their IDs through `getResourceIds`; the hook retries server-released resources unless release is expected and terminal.
 
+Go callers own each returned resource handle. Release every acquired `world.ObjectState` with `world.ReleaseObjectState`, and release resource references, cursors, and iterators through their existing cleanup API. Never discard a handle with `_`, including in existence checks or helpers returning only a body or error. Release it on success and on error paths after acquisition, or explicitly transfer ownership to the caller. Committing or discarding a transaction does not release its independently adopted remote object handles; they otherwise remain on the server until the client disconnects. Use the real RPC testbed for lifecycle regressions and verify resource counts return to baseline while the connection stays open.
+
 Mutable shared state belongs on stable domain components or registries, while per-client Resource wrappers forward operations. Cloud-backed state flows from cloud sync into Go provider/ObjectStore caches, through watches, and into React. Hash changes and session WebSocket notifications invalidate the caches.
 
 Proto3 bools can deserialize as `undefined` in TypeScript. Normalize with `field ?? false` or `!!field`; test the containing message for `null` to identify loading.

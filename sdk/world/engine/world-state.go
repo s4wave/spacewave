@@ -440,8 +440,10 @@ func (ws *SDKWorldState) ApplyWorldOp(ctx context.Context, op world.Operation, s
 // HasObject reports whether an object exists at key. The client keeps no
 // transaction-local knowledge, so it queries the remote resource directly.
 func (ws *SDKWorldState) HasObject(ctx context.Context, key string) (bool, error) {
-	_, found, err := ws.GetObject(ctx, key)
+	obj, found, err := ws.GetObject(ctx, key)
+	world.ReleaseObjectState(obj)
 	return found, err
 }
 
+// _ is a type assertion.
 var _ world.WorldState = (*SDKWorldState)(nil)

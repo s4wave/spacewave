@@ -114,7 +114,7 @@ func SetObjectType(ctx context.Context, ws world.WorldState, key, typeID string)
 		return world.ErrEmptyObjectKey
 	}
 
-	// check that the object representing the type exists and create it if not
+	// Create the type object if it is absent.
 	if _, err := EnsureTypeExists(ctx, ws, typeID); err != nil {
 		return err
 	}
@@ -154,7 +154,9 @@ func EnsureTypeExists(ctx context.Context, ws world.WorldState, typeID string) (
 		return false, err
 	}
 	if !exists {
-		if _, err = ws.CreateObject(ctx, objKey, nil); err != nil {
+		obj, err := ws.CreateObject(ctx, objKey, nil)
+		world.ReleaseObjectState(obj)
+		if err != nil {
 			return false, err
 		}
 	}
@@ -232,7 +234,7 @@ func ListObjectsWithType(ctx context.Context, ws world.WorldState, typeID string
 // ListCollectObjectsWithType returns the list of object keys with the given type id.
 // Unmarshals the bodies of the matched objects.
 //
-// ctor must return an object of type T
+// ctor must return an object of type T.
 // Returns two slices of length len(objKeys). If any objects are not found,
 // their entries are nil and ErrNotFound is returned after all states release.
 func ListCollectObjectsWithType[T block.Block](ctx context.Context, ws world.WorldState, typeID string, ctor func() block.Block) ([]T, []string, error) {
