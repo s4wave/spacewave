@@ -49,7 +49,7 @@ export enum SpaceRootKind {
   SpaceRootKind_NATIVE_DIRECTORY = 1,
 
   /**
-   * SpaceRootKind_S4WAVE_FILE is a deferred single-volume file shape.
+   * SpaceRootKind_S4WAVE_FILE selects an existing native volume in a state root.
    *
    * @generated from enum value: SpaceRootKind_S4WAVE_FILE = 2;
    */

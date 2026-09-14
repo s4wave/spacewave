@@ -16,6 +16,10 @@ import {
 } from '@s4wave/web/ui/dialog.js'
 import AnimatedLogo from '@s4wave/app/landing/AnimatedLogo.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
+import {
+  completeStoredHandoff,
+  getAuthReturnPath,
+} from '@s4wave/app/auth/handoff-state.js'
 import { useStaticHref } from '@s4wave/app/prerender/StaticContext.js'
 import { LoadingCard } from '@s4wave/web/ui/loading/LoadingCard.js'
 import { AuthProgressCard } from '@s4wave/web/ui/credential/AuthProgressCard.js'
@@ -44,6 +48,7 @@ type SSOConfirmState =
   | { step: 'confirm'; username: string }
   | { step: 'creating' }
   | { step: 'logging_in' }
+  | { step: 'complete' }
   | { step: 'error'; message: string }
 
 const SIGNUP_HIGHLIGHTS = ['End-to-end encrypted', 'Local-first', 'Open source']
@@ -95,7 +100,7 @@ export function SSOConfirmPage() {
 
   const handleCancel = useCallback(() => {
     clearPendingSSOState()
-    navigate({ path: '/login' })
+    navigate({ path: getAuthReturnPath() })
   }, [navigate])
 
   const handleRestartDesktop = useCallback(() => {
@@ -170,6 +175,11 @@ export function SSOConfirmPage() {
           root,
           new TextEncoder().encode(entity.pem),
         )
+        if (await completeStoredHandoff(root, sessionIndex)) {
+          clearPendingSSOState()
+          setState({ step: 'complete' })
+          return
+        }
         clearPendingSSOState()
         navigate({ path: `/u/${sessionIndex}` })
       })
@@ -185,6 +195,14 @@ export function SSOConfirmPage() {
       })
     }
   }, [pendingState, username, pin, confirmPin, root, navigate])
+
+  if (state.step === 'complete') {
+    return (
+      <AuthScreenLayout intro={<h2>Sign-in complete</h2>}>
+        <p>You can close this tab and return to Spacewave CLI.</p>
+      </AuthScreenLayout>
+    )
+  }
 
   // No pending state = expired.
   if (!pendingState) {

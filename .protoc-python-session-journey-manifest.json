@@ -124,7 +124,7 @@
       ]
     },
     "github.com/s4wave/spacewave/sdk/root": {
-      "hash": "8d5e7f2b7138ef760f98b6a2936816e1d57c4935c80dcc1739250cda08f706c9",
+      "hash": "e1b92f0b9f94351fd6097a15c0c70c1ee982b6e7c49d2b1ee362cec02b9b35e7",
       "generatedFiles": [
         "sdk/root/root_pb2.py",
         "sdk/root/root_pb2.pyi",

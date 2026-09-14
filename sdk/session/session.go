@@ -226,9 +226,14 @@ func (s *Session) ConfirmSASMatch(ctx context.Context, confirmed bool) error {
 
 // ConfirmPairing finalizes a verified pairing and persists the remote peer.
 func (s *Session) ConfirmPairing(ctx context.Context, remotePeerID string, displayName string) error {
-	_, err := s.service.ConfirmPairing(ctx, &ConfirmPairingRequest{
+	_, err := s.ConfirmPairingWithResult(ctx, remotePeerID, displayName)
+	return err
+}
+
+// ConfirmPairingWithResult finalizes pairing and returns the registered Session.
+func (s *Session) ConfirmPairingWithResult(ctx context.Context, remotePeerID, displayName string) (*ConfirmPairingResponse, error) {
+	return s.service.ConfirmPairing(ctx, &ConfirmPairingRequest{
 		RemotePeerId: remotePeerID,
 		DisplayName:  displayName,
 	})
-	return err
 }

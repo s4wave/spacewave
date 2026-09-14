@@ -11,8 +11,8 @@ import { useResourceValue } from '@aptre/bldr-sdk/hooks/useResource.js'
 import { cn } from '@s4wave/web/style/utils.js'
 import { AuthScreenLayout } from '@s4wave/app/auth/AuthScreenLayout.js'
 import {
-  clearStoredHandoffPayload,
   completeStoredHandoff,
+  getAuthReturnPath,
   hasStoredHandoffRequest,
 } from '@s4wave/app/auth/handoff-state.js'
 import { base64ToBytes, generateAuthKeypairs } from './keypair-utils.js'
@@ -66,6 +66,9 @@ export function PasskeyPage() {
   const [username, setUsername] = useState(() => getInitialPasskeyUsername())
   const [usernameError, setUsernameError] = useState('')
   const [choiceMessage, setChoiceMessage] = useState('')
+  const handleBackToLogin = useCallback(() => {
+    navigate({ path: getAuthReturnPath() })
+  }, [navigate])
   const handleUsernameInputRef = useCallback(
     (node: HTMLInputElement | null) => {
       node?.focus()
@@ -291,7 +294,6 @@ export function PasskeyPage() {
           </p>
           <button
             onClick={() => {
-              clearStoredHandoffPayload()
               setState({ step: 'username' })
               setUsernameError('')
             }}
@@ -300,10 +302,7 @@ export function PasskeyPage() {
             Try again
           </button>
           <button
-            onClick={() => {
-              clearStoredHandoffPayload()
-              navigate({ path: '/login' })
-            }}
+            onClick={handleBackToLogin}
             className="text-foreground-alt hover:text-foreground text-xs transition-colors"
           >
             Back to login
@@ -365,7 +364,7 @@ export function PasskeyPage() {
             Use a different username
           </button>
           <button
-            onClick={() => navigate({ path: '/login' })}
+            onClick={handleBackToLogin}
             className="text-foreground-alt hover:text-foreground text-xs transition-colors"
           >
             Back to login
@@ -432,7 +431,7 @@ export function PasskeyPage() {
           </button>
 
           <button
-            onClick={() => navigate({ path: '/login' })}
+            onClick={handleBackToLogin}
             className="text-foreground-alt hover:text-foreground text-xs transition-colors"
           >
             Back to login

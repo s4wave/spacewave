@@ -10,6 +10,7 @@ import (
 
 	"github.com/aperturerobotics/starpc/srpc"
 	plugin "github.com/s4wave/spacewave/bldr/plugin"
+	"github.com/s4wave/spacewave/core/provider"
 	"github.com/s4wave/spacewave/core/session"
 	db_testbed "github.com/s4wave/spacewave/db/testbed"
 	volume_controller "github.com/s4wave/spacewave/db/volume/controller"
@@ -93,6 +94,72 @@ func TestSpaceRootAliasRegistryRejectsUnsupportedSelections(t *testing.T) {
 		},
 	}); err == nil {
 		t.Fatal("expected non-root directory rejection")
+	}
+}
+
+func TestSpaceRootFileAliasUsesItsContainingStateRoot(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	server, serverCancel := setupSpaceRootAliasServer(t.Context(), t)
+	defer serverCancel()
+	statePath := makeSpaceRootAliasDir(t)
+	filePath := filepath.Join(statePath, "cli.s4wave")
+	if err := os.WriteFile(filePath, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	record, err := server.UpsertSpaceRootAlias(t.Context(), &s4wave_root.UpsertSpaceRootAliasRequest{
+		Record: &s4wave_root.SpaceRootAliasRecord{
+			AliasId:  "file",
+			Kind:     s4wave_root.SpaceRootKind_SpaceRootKind_S4WAVE_FILE,
+			OpenMode: s4wave_root.SpaceRootOpenMode_SpaceRootOpenMode_OPEN_EXISTING,
+			Native:   &s4wave_root.NativeSpaceRootMetadata{Path: filePath},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.GetRecord().GetStatus() != s4wave_root.SpaceRootStatus_SpaceRootStatus_READY {
+		t.Fatalf("file status = %s", record.GetRecord().GetStatus())
+	}
+
+	previous := connectSpaceRootRuntimeFunc
+	connectSpaceRootRuntimeFunc = func(_ context.Context, gotPath string) (*spaceRootRuntimeClient, error) {
+		if gotPath != statePath {
+			t.Fatalf("runtime path = %q, want %q", gotPath, statePath)
+		}
+		return &spaceRootRuntimeClient{root: &testSpaceRootRuntimeRoot{
+			sessions: []*session.SessionListEntry{{SessionIndex: 7}},
+		}}, nil
+	}
+	t.Cleanup(func() { connectSpaceRootRuntimeFunc = previous })
+	stream := &testSpaceRootRuntimeStream{
+		ctx: ctx,
+		onSend: func(resp *s4wave_root.WatchSpaceRootRuntimeResponse) {
+			if resp.GetStatus() == s4wave_root.SpaceRootRuntimeStatus_SpaceRootRuntimeStatus_READY {
+				cancel()
+			}
+		},
+	}
+	if err := server.WatchSpaceRootRuntime(&s4wave_root.WatchSpaceRootRuntimeRequest{AliasId: "file"}, stream); err != nil {
+		t.Fatal(err)
+	}
+	if len(stream.sent) != 2 || len(stream.sent[1].GetSessions()) != 1 {
+		t.Fatalf("runtime responses = %#v", stream.sent)
+	}
+}
+
+func TestSpaceRootFileSelectsItsAccountSessions(t *testing.T) {
+	entries := []*session.SessionListEntry{
+		{SessionIndex: 1, SessionRef: &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{
+			ProviderId: "local", ProviderAccountId: "first",
+		}}},
+		{SessionIndex: 2, SessionRef: &session.SessionRef{ProviderResourceRef: &provider.ProviderResourceRef{
+			ProviderId: "local", ProviderAccountId: "second",
+		}}},
+	}
+	selected := sessionsFromSpaceRootFile("/state/p_local_second.s4wave", entries)
+	if len(selected) != 1 || selected[0].GetSessionIndex() != 2 {
+		t.Fatalf("selected sessions = %#v", selected)
 	}
 }
 

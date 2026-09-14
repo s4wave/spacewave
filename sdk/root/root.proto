@@ -302,7 +302,7 @@ enum SpaceRootKind {
   SpaceRootKind_UNSPECIFIED = 0;
   // SpaceRootKind_NATIVE_DIRECTORY is a native filesystem state-root directory.
   SpaceRootKind_NATIVE_DIRECTORY = 1;
-  // SpaceRootKind_S4WAVE_FILE is a deferred single-volume file shape.
+  // SpaceRootKind_S4WAVE_FILE selects an existing native volume in a state root.
   SpaceRootKind_S4WAVE_FILE = 2;
 }
 

@@ -41,6 +41,11 @@ func (l *LocalProvider) CreateAccount(ctx context.Context) (*CreateAccountRespon
 	return l.service.CreateAccount(ctx, &CreateAccountRequest{})
 }
 
+// PreparePairingSession creates an unregistered local Session for receiving an account.
+func (l *LocalProvider) PreparePairingSession(ctx context.Context) (*CreateAccountResponse, error) {
+	return l.service.CreateAccount(ctx, &CreateAccountRequest{DeferRegistration: true})
+}
+
 // CompleteSpaceLinkEnrollment creates or reopens the caller's own local
 // session from the supplied Device key and joins the target Space through the
 // one-use targeted invite from a local SpaceLink approval.

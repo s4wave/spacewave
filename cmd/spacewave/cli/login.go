@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/aperturerobotics/cli"
+	"github.com/manifoldco/promptui"
 	"github.com/pkg/errors"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	session_pb "github.com/s4wave/spacewave/core/session"
@@ -85,7 +86,7 @@ func newLoginCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 	var pemFile string
 	return &cli.Command{
 		Name:  "login",
-		Usage: "sign up or log in to a Spacewave account",
+		Usage: "add a Spacewave session to this device",
 		Flags: append(clientFlags(&statePath, &sessionIdx),
 			&cli.StringFlag{
 				Name:    "username",
@@ -115,6 +116,8 @@ func newLoginCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 		Subcommands: []*cli.Command{
 			newLoginLocalCommand(&statePath, &sessionIdx),
 			newLoginBrowserCommand(),
+			newLoginPairCommand(),
+			newLoginFileCommand(),
 		},
 		Action: func(c *cli.Context) error {
 			if useBrowser && pemFile != "" {
@@ -123,8 +126,42 @@ func newLoginCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 			if useBrowser {
 				return runLoginBrowser(c, statePath, c.String("output"))
 			}
+			if pemFile == "" && c.String("username") == "" && c.String("password") == "" {
+				return runLoginChooser(c, statePath, c.String("output"))
+			}
 			return runLogin(c, statePath, c.String("output"), pemFile)
 		},
+	}
+}
+
+func runLoginChooser(c *cli.Context, statePath, outputFormat string) error {
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return errors.New("choose a login method: spacewave login browser, spacewave login local, spacewave login p2p, or spacewave login file <path>")
+	}
+
+	choices := []string{
+		"Log in to Spacewave Cloud",
+		"Create a local account on this device",
+		"Pair using a device code",
+		"Add a .s4wave session file",
+	}
+	choice, _, err := (&promptui.Select{
+		Label: "How would you like to log in?",
+		Items: choices,
+		Size:  len(choices),
+	}).Run()
+	if err != nil {
+		return errors.Wrap(err, "choose login method")
+	}
+	switch choice {
+	case 0:
+		return runLoginBrowser(c, statePath, outputFormat)
+	case 1:
+		return runAccountCreateLocal(c, statePath, outputFormat)
+	case 2:
+		return runLoginPair(c, statePath, outputFormat)
+	default:
+		return runLoginFile(c, statePath, outputFormat, "")
 	}
 }
 
