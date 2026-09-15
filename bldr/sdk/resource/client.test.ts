@@ -25,6 +25,45 @@ function setInitializedResourceSession(client: Client): void {
 }
 
 describe('ResourceClient', () => {
+  it('retires an idle transport generation and acquires a fresh root', async () => {
+    const service = buildUnusedService()
+    const signals: AbortSignal[] = []
+    let finished = 0
+    service.ResourceClient = async function* (_request, signal) {
+      signals.push(signal!)
+      try {
+        yield buildResourceClientInit(signals.length)
+        await new Promise<void>((resolve) => {
+          if (signal!.aborted) resolve()
+          else
+            signal!.addEventListener('abort', () => resolve(), { once: true })
+        })
+      } finally {
+        finished++
+      }
+    }
+    const client = new Client(service, new AbortController().signal)
+    const first = await client.accessRootResource()
+    const retired = vi.fn()
+    client.onConnectionLost(retired)
+
+    client.resetConnection()
+
+    expect(first.released).toBe(true)
+    expect(signals[0].aborted).toBe(true)
+    expect(retired).toHaveBeenCalledOnce()
+    const second = await client.accessRootResource()
+    expect(second.resourceId).toBe(2)
+    expect(second.released).toBe(false)
+    expect(client.connectionGeneration).toBe(1)
+    client.dispose('CONNECTION_FAILED')
+    await waitForCondition(() => finished === 2)
+    client.resetConnection()
+    await expect(client.accessRootResource()).rejects.toThrow(
+      'Client has been disposed',
+    )
+  })
+
   it('rejects pending root acquisition when closed during reconnect', async () => {
     const lost = deferredVoid()
     const controller = new AbortController()

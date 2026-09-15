@@ -640,7 +640,7 @@ export class Client {
       controller.abort()
       const err = new Error(ackBody.value.error)
       if (ackBody.value.error === resourceAttachClientNotFound) {
-        this.restartConnectionAfterStaleAttachClient()
+        this.resetConnection()
         throw new ResourceClientError(
           'Resource attach client was released',
           'CONNECTION_FAILED',
@@ -1207,7 +1207,11 @@ export class Client {
     this.connectionLostEvents.emit(undefined)
   }
 
-  private restartConnectionAfterStaleAttachClient(): void {
+  // resetConnection retires the current transport generation and its references.
+  // Transport owners call this after their underlying connection closes.
+  // The next resource acquisition opens a fresh generation through the service.
+  resetConnection(): void {
+    if (this.disposed) return
     const controller = this.connectionController
     this.connectionController = null
     this.clearAttachSession()
