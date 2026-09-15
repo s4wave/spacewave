@@ -83,3 +83,50 @@ func BenchmarkEncodeBlock(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkDecodeBlock(b *testing.B) {
+	g, err := NewGzip(&Config{})
+	if err != nil {
+		b.Fatal(err)
+	}
+	data := bytes.Repeat([]byte("block contents"), 32)
+	encoded, err := g.EncodeBlock(data)
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	for b.Loop() {
+		decoded, err := g.DecodeBlock(encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if !bytes.Equal(decoded, data) {
+			b.Fatal("decoded block differs from input")
+		}
+	}
+}
+
+func TestDecodeBlockRecoversAfterInvalidInput(t *testing.T) {
+	g, err := NewGzip(&Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := []byte("valid block after a failed decode")
+	encoded, err := g.EncodeBlock(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, invalid := range [][]byte{nil, []byte("not gzip"), encoded[:len(encoded)-1]} {
+		if _, err := g.DecodeBlock(invalid); err == nil {
+			t.Fatal("invalid compressed block was accepted")
+		}
+		decoded, err := g.DecodeBlock(encoded)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(decoded, data) {
+			t.Fatal("failed decode affected the following block")
+		}
+	}
+}
