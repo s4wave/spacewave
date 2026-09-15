@@ -76,7 +76,7 @@ func makeRefGraphBenchEdges(iteration, count int) []block_gc.RefEdge {
 }
 
 func refGraphBenchTransactions(edges int) int {
-	const refGraphApplyBatchLimit = 512
+	const refGraphApplyBatchLimit = 4096
 	if edges == 0 {
 		return 0
 	}
