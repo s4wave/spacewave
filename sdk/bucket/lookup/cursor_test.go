@@ -10,6 +10,7 @@ import (
 	resource_client "github.com/s4wave/spacewave/bldr/resource/client"
 	"github.com/s4wave/spacewave/db/block"
 	block_mock "github.com/s4wave/spacewave/db/block/mock"
+	transform_gzip "github.com/s4wave/spacewave/db/block/transform/gzip"
 	"github.com/s4wave/spacewave/db/bucket"
 )
 
@@ -114,6 +115,44 @@ func TestSDKBucketLookupStorePutBlockBatchUsesRemoteBatch(t *testing.T) {
 	}
 	if !entries[2].GetTombstone() || !entries[2].GetRef().EqualVT(tombstoneRef) {
 		t.Fatal("entry[2] did not preserve tombstone")
+	}
+}
+
+func TestSDKBucketLookupStoreBatchesDecodedPayloads(t *testing.T) {
+	xfrm, err := transform_gzip.NewGzip(&transform_gzip.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := &bucketLookupBatchService{}
+	store := &cursorStore{service: service, xfrm: xfrm}
+	var entries []*block.PutBatchEntry
+	for i := range 12 {
+		data, err := xfrm.EncodeBlock(bytes.Repeat([]byte{byte(i)}, 1<<20))
+		if err != nil {
+			t.Fatal(err)
+		}
+		entries = append(entries, &block.PutBatchEntry{Ref: testSDKBlockRef(t, data), Data: data})
+	}
+	if err := store.PutBlockBatch(t.Context(), entries); err != nil {
+		t.Fatal(err)
+	}
+	if service.putBatchCalls < 2 {
+		t.Fatal("expanded payloads were sent in one packet")
+	}
+	seen := 0
+	for _, req := range service.putBatchRequests {
+		if req.SizeVT() >= 10_000_000 {
+			t.Fatal("batch exceeds the Resource packet limit")
+		}
+		for _, entry := range req.Entries {
+			if !entry.Ref.EqualVT(entries[seen].Ref) || !bytes.Equal(entry.Data, bytes.Repeat([]byte{byte(seen)}, 1<<20)) {
+				t.Fatalf("batch changed entry %d", seen)
+			}
+			seen++
+		}
+	}
+	if seen != len(entries) {
+		t.Fatalf("received %d entries, want %d", seen, len(entries))
 	}
 }
 
@@ -238,6 +277,7 @@ type bucketLookupBatchService struct {
 	putBlockCalls       int
 	putBatchCalls       int
 	putBatchRequest     *PutBlockBatchRequest
+	putBatchRequests    []*PutBlockBatchRequest
 	getBlockCalls       int
 	getBlockResponse    *GetBlockResponse
 	existsBatchCalls    int
@@ -271,6 +311,7 @@ func (s *bucketLookupBatchService) PutBlock(context.Context, *PutBlockRequest) (
 func (s *bucketLookupBatchService) PutBlockBatch(_ context.Context, req *PutBlockBatchRequest) (*PutBlockBatchResponse, error) {
 	s.putBatchCalls++
 	s.putBatchRequest = req
+	s.putBatchRequests = append(s.putBatchRequests, req)
 	return &PutBlockBatchResponse{}, nil
 }
 
