@@ -345,9 +345,11 @@ type countingStore struct {
 	kvtx.Store
 	reads   atomic.Int64
 	commits atomic.Int64
+	opens   atomic.Int64
 }
 
 func (s *countingStore) NewTransaction(ctx context.Context, write bool) (kvtx.Tx, error) {
+	s.opens.Add(1)
 	tx, err := s.Store.NewTransaction(ctx, write)
 	if err != nil {
 		return nil, err

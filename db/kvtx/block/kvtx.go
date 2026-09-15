@@ -43,7 +43,7 @@ const (
 func DefaultKeyValueStoreImplForWorkload(workload WorkloadClass) KVImplType {
 	switch workload {
 	case WorkloadClassGraphPrefixRead, WorkloadClassGCRefGraph:
-		return KVImplType_KV_IMPL_TYPE_OKRA
+		return KVImplType_KV_IMPL_TYPE_OKRA_INLINE
 	default:
 		return DefaultKeyValueStoreImpl
 	}
@@ -107,7 +107,7 @@ func (i KVImplType) Validate() error {
 	switch i {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		return nil
-	case KVImplType_KV_IMPL_TYPE_OKRA:
+	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
 		return nil
 	default:
 		return NewErrUnknownImpl(i)
@@ -124,7 +124,7 @@ func (k *KeyValueStore) Validate() error {
 		if err := k.GetIavlRoot().Validate(); err != nil {
 			return errors.Wrap(err, "iavl_root")
 		}
-	case KVImplType_KV_IMPL_TYPE_OKRA:
+	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
 		if err := k.GetOkraRoot().Validate(); err != nil {
 			return errors.Wrap(err, "okra_root")
 		}
@@ -146,11 +146,15 @@ func (k *KeyValueStore) BuildKvTransaction(ctx context.Context, bcs *block.Curso
 		return iavl.NewTx(taskCtx, treeBcs, nil, write, func(ncs *block.Cursor) {
 			_ = ncs.SetAsSubBlock(2, bcs)
 		})
-	case KVImplType_KV_IMPL_TYPE_OKRA:
+	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
 		treeBcs := bcs.FollowSubBlock(3)
 		taskCtx, subtask := trace.NewTask(ctx, "hydra/kvtx-block/key-value-store/build-kv-transaction/okra-new-tx")
 		defer subtask.End()
-		return okra.NewTx(taskCtx, treeBcs, nil, write, func(ncs *block.Cursor) {
+		newTx := okra.NewTx
+		if impl == KVImplType_KV_IMPL_TYPE_OKRA_INLINE {
+			newTx = okra.NewTxWithInlineValues
+		}
+		return newTx(taskCtx, treeBcs, nil, write, func(ncs *block.Cursor) {
 			_ = ncs.SetAsSubBlock(3, bcs)
 		})
 	default:

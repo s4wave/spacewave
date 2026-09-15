@@ -255,7 +255,9 @@ func (t *WorldState) BuildStorageCursor(ctx context.Context) (*bucket_lookup.Cur
 	if err != nil {
 		return nil, err
 	}
-	cursor.SetTransactionStore(t.store)
+	if t.store != nil {
+		cursor.SetTransactionStore(t.store)
+	}
 	return cursor, nil
 }
 
@@ -272,7 +274,9 @@ func (t *WorldState) AccessWorldState(
 		return world.ErrWorldStorageUnavailable
 	}
 	return storage.AccessWorldState(ctx, ref, func(cursor *bucket_lookup.Cursor) error {
-		cursor.SetTransactionStore(t.store)
+		if t.store != nil {
+			cursor.SetTransactionStore(t.store)
+		}
 		return cb(cursor)
 	})
 }
@@ -925,7 +929,9 @@ func (t *WorldState) buildGCKvTransaction(
 	kvs *kvtx_block.KeyValueStore,
 	gcTreeBcs *block.Cursor,
 ) (kvtx.BlockTx, bool, error) {
-	if kvs.GetImplType() != kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA || t.btx == nil || t.store == nil {
+	impl := kvs.GetImplType()
+	isOkra := impl == kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA || impl == kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE
+	if !isOkra || t.btx == nil || t.store == nil {
 		ktx, err := kvs.BuildKvTransaction(ctx, gcTreeBcs, true)
 		return ktx, false, err
 	}
@@ -934,7 +940,11 @@ func (t *WorldState) buildGCKvTransaction(
 	isolatedKVS := kvs.CloneVT()
 	isolatedRoot.SetBlock(isolatedKVS, false)
 	treeBcs := isolatedRoot.FollowSubBlock(3)
-	ktx, err := kvtx_block_okra.NewTx(ctx, treeBcs, isolatedTx, true, func(ncs *block.Cursor) {
+	newTx := kvtx_block_okra.NewTx
+	if impl == kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE {
+		newTx = kvtx_block_okra.NewTxWithInlineValues
+	}
+	ktx, err := newTx(ctx, treeBcs, isolatedTx, true, func(ncs *block.Cursor) {
 		_ = ncs.SetAsSubBlock(3, isolatedRoot)
 		gcTreeBcs.SetBlock(isolatedKVS.CloneVT(), true)
 	})

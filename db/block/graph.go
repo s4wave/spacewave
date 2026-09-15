@@ -1,6 +1,9 @@
 package block
 
-import "slices"
+import (
+	"cmp"
+	"slices"
+)
 
 // GraphNode is a node in the in-memory block graph.
 type GraphNode interface {
@@ -30,22 +33,27 @@ type AttributedNode interface {
 // while a transaction traverses and mutates block state. The write path
 // orders work with SortBlockGraph; visualizations read Nodes and Edges.
 //
-// A BlockGraph is a directed acyclic graph by construction: edges are
-// content-hashed references, so a cycle cannot be expressed.
+// Stored references are acyclic; SortBlockGraph also detects cycles introduced
+// while constructing an unpublished graph. The owner serializes all access.
 type BlockGraph struct {
-	nodes  map[int64]GraphNode
-	from   map[int64]map[int64]GraphEdge
-	to     map[int64]map[int64]GraphEdge
+	// nodes holds the current value for each identifier.
+	nodes map[int64]GraphNode
+	// edges indexes each directed edge once; adjacency lists contain only IDs.
+	edges map[[2]int64]GraphEdge
+	// from and to avoid a separate hash table for each usually small adjacency.
+	from map[int64][]int64
+	to   map[int64][]int64
+	// nextID is the next candidate identifier for NewNode.
 	nextID int64
 }
 
 // NewBlockGraph constructs a new empty block graph.
 func NewBlockGraph() *BlockGraph {
 	return &BlockGraph{
-		nodes:  make(map[int64]GraphNode),
-		from:   make(map[int64]map[int64]GraphEdge),
-		to:     make(map[int64]map[int64]GraphEdge),
-		nextID: 0,
+		nodes: make(map[int64]GraphNode),
+		edges: make(map[[2]int64]GraphEdge),
+		from:  make(map[int64][]int64),
+		to:    make(map[int64][]int64),
 	}
 }
 
@@ -85,7 +93,7 @@ func (g *BlockGraph) Nodes() []GraphNode {
 		nodes = append(nodes, node)
 	}
 	slices.SortFunc(nodes, func(a, b GraphNode) int {
-		return int(a.ID() - b.ID())
+		return cmp.Compare(a.ID(), b.ID())
 	})
 	return nodes
 }
@@ -97,47 +105,54 @@ func (g *BlockGraph) From(id int64) []GraphNode {
 		return nil
 	}
 	nodes := make([]GraphNode, 0, len(edges))
-	for toID := range edges {
+	for _, toID := range edges {
 		if node := g.nodes[toID]; node != nil {
 			nodes = append(nodes, node)
 		}
 	}
 	slices.SortFunc(nodes, func(a, b GraphNode) int {
-		return int(a.ID() - b.ID())
+		return cmp.Compare(a.ID(), b.ID())
 	})
 	return nodes
 }
 
 // Edges returns all edges ordered by from then to node ID.
 func (g *BlockGraph) Edges() []GraphEdge {
-	edges := make([]GraphEdge, 0)
-	for _, byTo := range g.from {
-		for _, edge := range byTo {
-			edges = append(edges, edge)
-		}
+	edges := make([]GraphEdge, 0, len(g.edges))
+	for _, edge := range g.edges {
+		edges = append(edges, edge)
 	}
 	slices.SortFunc(edges, func(a, b GraphEdge) int {
 		if a.From().ID() != b.From().ID() {
-			return int(a.From().ID() - b.From().ID())
+			return cmp.Compare(a.From().ID(), b.From().ID())
 		}
-		return int(a.To().ID() - b.To().ID())
+		return cmp.Compare(a.To().ID(), b.To().ID())
 	})
 	return edges
 }
 
 // RemoveEdge removes the edge between two nodes, if present.
 func (g *BlockGraph) RemoveEdge(fid, tid int64) {
-	if g.from[fid] != nil {
-		delete(g.from[fid], tid)
-		if len(g.from[fid]) == 0 {
-			delete(g.from, fid)
-		}
+	key := [2]int64{fid, tid}
+	if _, ok := g.edges[key]; !ok {
+		return
 	}
-	if g.to[tid] != nil {
-		delete(g.to[tid], fid)
-		if len(g.to[tid]) == 0 {
-			delete(g.to, tid)
-		}
+	delete(g.edges, key)
+	removeAdjacent(g.from, fid, tid)
+	removeAdjacent(g.to, tid, fid)
+}
+
+// removeAdjacent removes one ID without retaining an empty adjacency list.
+func removeAdjacent(adjacent map[int64][]int64, id, target int64) {
+	ids := adjacent[id]
+	if index := slices.Index(ids, target); index >= 0 {
+		ids[index] = ids[len(ids)-1]
+		ids = ids[:len(ids)-1]
+	}
+	if len(ids) == 0 {
+		delete(adjacent, id)
+	} else {
+		adjacent[id] = ids
 	}
 }
 
@@ -147,22 +162,14 @@ func (g *BlockGraph) RemoveNode(id int64) {
 		return
 	}
 	delete(g.nodes, id)
-	for toID := range g.from[id] {
-		if g.to[toID] != nil {
-			delete(g.to[toID], id)
-			if len(g.to[toID]) == 0 {
-				delete(g.to, toID)
-			}
-		}
+	for _, toID := range g.from[id] {
+		delete(g.edges, [2]int64{id, toID})
+		removeAdjacent(g.to, toID, id)
 	}
 	delete(g.from, id)
-	for fromID := range g.to[id] {
-		if g.from[fromID] != nil {
-			delete(g.from[fromID], id)
-			if len(g.from[fromID]) == 0 {
-				delete(g.from, fromID)
-			}
-		}
+	for _, fromID := range g.to[id] {
+		delete(g.edges, [2]int64{fromID, id})
+		removeAdjacent(g.from, fromID, id)
 	}
 	delete(g.to, id)
 }
@@ -183,14 +190,13 @@ func (g *BlockGraph) SetEdge(e GraphEdge) {
 		g.AddNode(to)
 	}
 	g.nodes[to.ID()] = to
-	if g.from[from.ID()] == nil {
-		g.from[from.ID()] = make(map[int64]GraphEdge)
+	fid, tid := from.ID(), to.ID()
+	key := [2]int64{fid, tid}
+	if _, exists := g.edges[key]; !exists {
+		g.from[fid] = append(g.from[fid], tid)
+		g.to[tid] = append(g.to[tid], fid)
 	}
-	g.from[from.ID()][to.ID()] = e
-	if g.to[to.ID()] == nil {
-		g.to[to.ID()] = make(map[int64]GraphEdge)
-	}
-	g.to[to.ID()][from.ID()] = e
+	g.edges[key] = e
 }
 
 // graphNode is a bare node identified only by its ID.

@@ -7,14 +7,16 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
 )
 
-// BuildEntry is one sorted key/value reference used by the Okra fixture builder.
+// BuildEntry is one sorted key/value entry used by the Okra tree builder.
 type BuildEntry struct {
 	Key []byte
 
 	ValueRef    *block.BlockRef
 	ValueIsBlob bool
+	ValueBlob   *blob.Blob
 }
 
 type buildNode struct {
@@ -75,7 +77,7 @@ func buildTreeAtCursor(rootCursor *block.Cursor, entries iter.Seq[BuildEntry]) (
 			return nil, ErrUnsortedEntries
 		}
 		ref := ent.ValueRef.Clone()
-		leafHash, err := hashLeaf(key, ref, ent.ValueIsBlob)
+		leafHash, err := hashBuildEntry(ent)
 		if err != nil {
 			return nil, err
 		}
@@ -86,6 +88,7 @@ func buildTreeAtCursor(rootCursor *block.Cursor, entries iter.Seq[BuildEntry]) (
 				Size:        1,
 				ValueRef:    ref,
 				ValueIsBlob: ent.ValueIsBlob,
+				ValueBlob:   ent.ValueBlob.CloneVT(),
 			},
 		})
 		prevKey = key

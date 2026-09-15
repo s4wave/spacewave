@@ -15,7 +15,7 @@ message KeyValueStore {
   .kvtx.block.iavl.Node iavl_root = 2;
 
   // OkraRoot is the root metadata for the Okra tree.
-  // KV_IMPL_TYPE_OKRA
+  // KV_IMPL_TYPE_OKRA or KV_IMPL_TYPE_OKRA_INLINE
   .kvtx.block.okra.Root okra_root = 3;
 }
 
@@ -27,4 +27,7 @@ enum KVImplType {
   KV_IMPL_TYPE_IAVL = 1;
   // KEY_VALUE_IMPL_OKRA is the Okra-backed tree value.
   KV_IMPL_TYPE_OKRA = 2;
+  // KV_IMPL_TYPE_OKRA_INLINE packs small byte values into Okra pages.
+  // The distinct tag makes readers without inline-value support reject it.
+  KV_IMPL_TYPE_OKRA_INLINE = 3;
 }

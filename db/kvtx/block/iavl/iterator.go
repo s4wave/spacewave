@@ -159,6 +159,8 @@ func (i *Iterator) Next() bool {
 		}
 
 		if !entry.visited {
+			// Mark the parent before append can move the traversal stack.
+			entry.visited = true
 			// visit first child
 			var firstNode *Node
 			var firstCursor *block.Cursor
@@ -178,7 +180,6 @@ func (i *Iterator) Next() bool {
 					cursor: firstCursor,
 				})
 			}
-			entry.visited = true
 		} else {
 			// dequeue and visit second child
 			i.stack = i.stack[:lastIdx]
@@ -278,6 +279,8 @@ func (i *Iterator) Seek(k []byte) error {
 		cmp := bytes.Compare(entry.node.GetKey(), k)
 
 		if !entry.visited {
+			// Mark the parent before append can move the traversal stack.
+			entry.visited = true
 			var shouldVisitFirst bool
 			if i.rev {
 				// In reverse mode (looking for <= k):
@@ -310,7 +313,6 @@ func (i *Iterator) Seek(k []byte) error {
 					})
 				}
 			}
-			entry.visited = true
 		} else {
 			// dequeue and visit second child
 			i.stack = i.stack[:lastIdx]
@@ -410,6 +412,8 @@ func (i *Iterator) seekToEnd() error {
 		}
 
 		if !entry.visited {
+			// Mark the parent before append can move the traversal stack.
+			entry.visited = true
 			// visit right child first in reverse mode
 			rightNode, rightCursor, err := entry.node.FollowRight(i.ctx, entry.cursor)
 			if err != nil {
@@ -421,7 +425,6 @@ func (i *Iterator) seekToEnd() error {
 					cursor: rightCursor,
 				})
 			}
-			entry.visited = true
 		} else {
 			// dequeue and visit left child
 			i.stack = i.stack[:lastIdx]
@@ -455,6 +458,8 @@ func (i *Iterator) seekToBeginning() error {
 		}
 
 		if !entry.visited {
+			// Mark the parent before append can move the traversal stack.
+			entry.visited = true
 			// visit left child first in forward mode
 			leftNode, leftCursor, err := entry.node.FollowLeft(i.ctx, entry.cursor)
 			if err != nil {
@@ -466,7 +471,6 @@ func (i *Iterator) seekToBeginning() error {
 					cursor: leftCursor,
 				})
 			}
-			entry.visited = true
 		} else {
 			// dequeue and visit right child
 			i.stack = i.stack[:lastIdx]

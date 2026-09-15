@@ -31,13 +31,17 @@ import (
 // nothing proportional to how many edges it holds and neither does keeping one
 // open.
 type RefGraph struct {
+	// handle owns the Cayley indexes and their cached metadata.
 	handle *cayley.Handle
-	store  kvtx.Store
+	// store addresses the same prefixed durable graph as handle.
+	store kvtx.Store
 
+	// writeMu serializes bounded ownership transitions.
 	writeMu sync.Mutex
 }
 
 const (
+	// refGraphApplySliceLimit bounds preparation and application together.
 	refGraphApplySliceLimit = 4096
 	// Commit each bounded ownership slice without subdividing it into extra
 	// fsyncs. Additions still commit before removals, and slices release writeMu.
@@ -402,17 +406,27 @@ func (rg *RefGraph) filterExistingRemoves(
 		added[edge] = struct{}{}
 	}
 
-	existing := make([]RefEdge, 0, len(removes))
+	// Resolve all unknown edges together. The caller bounds each slice and
+	// holds writeMu, so one lookup can serve the whole ownership transition.
+	var unknown []RefEdge
 	for _, edge := range removes {
-		if _, ok := added[edge]; ok {
-			existing = append(existing, edge)
-			continue
+		if _, ok := added[edge]; !ok {
+			unknown = append(unknown, edge)
 		}
-		found, err := rg.hasRef(ctx, edge.Subject, edge.Object)
-		if err != nil {
-			return nil, err
+	}
+	found, err := rg.hasRefs(ctx, unknown)
+	if err != nil {
+		return nil, err
+	}
+	existing := make([]RefEdge, 0, len(removes))
+	var index int
+	for _, edge := range removes {
+		present := true
+		if _, ok := added[edge]; !ok {
+			present = found[index]
+			index++
 		}
-		if found {
+		if present {
 			existing = append(existing, edge)
 		}
 	}
@@ -423,40 +437,86 @@ func (rg *RefGraph) filterExistingRemoves(
 // reads the complete object-predicate-subject posting key rather than scanning
 // keys that share its unpadded base62 prefix.
 func (rg *RefGraph) hasRef(ctx context.Context, subject, object string) (bool, error) {
-	var found bool
+	found, err := rg.hasRefs(ctx, []RefEdge{{Subject: subject, Object: object}})
+	if err != nil {
+		return false, err
+	}
+	return found[0], nil
+}
+
+// hasRefs resolves node IDs in one batch and reads exact edge postings under
+// one storage transaction. A stale snapshot retries the complete lookup.
+func (rg *RefGraph) hasRefs(ctx context.Context, edges []RefEdge) ([]bool, error) {
+	if len(edges) == 0 {
+		return nil, ctx.Err()
+	}
+	var found []bool
 	err := kvtx.RunOperation(ctx, func(ctx context.Context) error {
 		var err error
-		found, err = rg.hasRefAttempt(ctx, subject, object)
+		found, err = rg.hasRefsAttempt(ctx, edges)
 		return err
 	})
 	return found, err
 }
 
-// hasRefAttempt reads one exact edge without external effects so hasRef can
-// replay the full lookup when one of its storage snapshots becomes invalid.
-func (rg *RefGraph) hasRefAttempt(ctx context.Context, subject, object string) (bool, error) {
+// hasRefsAttempt reads exact edges without external effects.
+func (rg *RefGraph) hasRefsAttempt(ctx context.Context, edges []RefEdge) ([]bool, error) {
+	found := make([]bool, len(edges))
 	qs, ok := graph.Unwrap(rg.handle.QuadStore).(*cayley_kv.QuadStore)
 	if !ok {
-		return rg.hasRefGeneric(ctx, subject, object)
+		for i, edge := range edges {
+			var err error
+			found[i], err = rg.hasRefGeneric(ctx, edge.Subject, edge.Object)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return found, nil
 	}
-	ids, err := resolveIRIRefIDs(ctx, qs, []string{PredGCRef, object, subject})
+	names := []string{PredGCRef}
+	seen := map[string]struct{}{PredGCRef: {}}
+	for _, edge := range edges {
+		for _, name := range [2]string{edge.Subject, edge.Object} {
+			if _, ok := seen[name]; !ok {
+				seen[name] = struct{}{}
+				names = append(names, name)
+			}
+		}
+	}
+	ids, err := resolveIRIRefIDs(ctx, qs, names)
 	if err != nil {
-		return false, errors.Wrap(err, "resolve exact ref edge")
+		return nil, errors.Wrap(err, "resolve exact ref edges")
 	}
-	predID, objectID, subjectID := ids[PredGCRef], ids[object], ids[subject]
-	if predID == 0 || objectID == 0 || subjectID == 0 {
-		return false, nil
+	predID := ids[PredGCRef]
+	if predID == 0 {
+		return found, nil
 	}
+	tx, err := rg.store.NewTransaction(ctx, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "open exact ref edge transaction")
+	}
+	defer tx.Discard()
+	for i, edge := range edges {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		objectID, subjectID := ids[edge.Object], ids[edge.Subject]
+		if objectID == 0 || subjectID == 0 {
+			continue
+		}
+		found[i], err = hasRefInTransaction(ctx, tx, predID, objectID, subjectID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return found, nil
+}
 
+// hasRefInTransaction checks the complete posting key and validates its primitive.
+func hasRefInTransaction(ctx context.Context, tx kvtx.Tx, predID, objectID, subjectID uint64) (bool, error) {
 	indexKey := cayley_flat.KeyEscape(cayley_kv.DefaultQuadIndexes[1].Key(
 		[]uint64{objectID, predID, subjectID},
 	))
-	tx, err := rg.store.NewTransaction(ctx, false)
-	if err != nil {
-		return false, errors.Wrap(err, "open exact ref edge transaction")
-	}
-	defer tx.Discard()
-
 	postings, found, err := tx.Get(ctx, indexKey)
 	if err != nil {
 		return false, errors.Wrap(err, "read exact ref edge index")

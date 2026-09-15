@@ -4,6 +4,7 @@ import (
 	"context"
 	"iter"
 
+	"github.com/s4wave/spacewave/db/block"
 	"github.com/s4wave/spacewave/db/kvtx"
 )
 
@@ -11,6 +12,31 @@ import (
 // retaining the same packed representation as incremental Set operations.
 // Existing iterators keep their snapshot. Discard the transaction on error.
 func (t *Tx) ReplaceAll(ctx context.Context, values iter.Seq2[[]byte, []byte]) error {
+	return t.replaceAll(ctx, func(yield func(BuildEntry, error) bool) {
+		for key, value := range values {
+			entry, err := t.buildValueEntry(ctx, key, value)
+			if !yield(entry, err) {
+				return
+			}
+		}
+	})
+}
+
+// ReplaceAllCursors builds one tree from sorted block values. Values are
+// materialized once, after their final mutations, using the existing block
+// transformer and write buffer. Discard the transaction on error.
+func (t *Tx) ReplaceAllCursors(ctx context.Context, values iter.Seq2[[]byte, *block.Cursor], isBlob bool) error {
+	return t.replaceAll(ctx, func(yield func(BuildEntry, error) bool) {
+		for key, cursor := range values {
+			ref, err := t.materializeValueCursor(ctx, cursor)
+			if !yield(BuildEntry{Key: key, ValueRef: ref, ValueIsBlob: isBlob}, err) {
+				return
+			}
+		}
+	})
+}
+
+func (t *Tx) replaceAll(ctx context.Context, values iter.Seq2[BuildEntry, error]) error {
 	if !t.write {
 		return kvtx.ErrNotWrite
 	}
@@ -19,16 +45,15 @@ func (t *Tx) ReplaceAll(ctx context.Context, values iter.Seq2[[]byte, []byte]) e
 	}
 	var valueErr error
 	entries := func(yield func(BuildEntry) bool) {
-		for key, value := range values {
+		for entry, err := range values {
 			if valueErr = ctx.Err(); valueErr != nil {
 				return
 			}
-			ref, err := t.buildBlobValue(ctx, value)
 			if err != nil {
 				valueErr = err
 				return
 			}
-			if !yield(BuildEntry{Key: key, ValueRef: ref, ValueIsBlob: true}) {
+			if !yield(entry) {
 				return
 			}
 		}

@@ -32,8 +32,18 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 
 	seen := make(map[string]struct{}, len(quads))
 	deltas := make([]graph.Delta, len(quads))
-	endpoints := make([][2]*ObjectState, len(quads))
+	// Keep first-seen order while counting both ends of every relationship.
+	// A shared endpoint needs one lookup and one revision mutation per batch.
+	type endpointUpdate struct {
+		state *ObjectState
+		count uint64
+	}
+	endpointIndexes := make(map[string]int)
+	var endpoints []endpointUpdate
 	for i, q := range quads {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		cq, err := world.GraphQuadToCayleyQuad(q, true)
 		if err != nil {
 			return err
@@ -44,27 +54,33 @@ func (t *WorldState) InsertGraphQuads(ctx context.Context, quads []world.GraphQu
 			return &graph.DeltaError{Delta: deltas[i], Err: graph.ErrQuadExists}
 		}
 		seen[key] = struct{}{}
-		for j, value := range [2]string{q.GetSubject(), q.GetObj()} {
+		for _, value := range [2]string{q.GetSubject(), q.GetObj()} {
 			key, err := world.GraphValueToKey(value)
 			if err != nil {
 				return err
 			}
-			endpoints[i][j], err = t.mustGetObject(ctx, key)
+			if index, ok := endpointIndexes[key]; ok {
+				endpoints[index].count++
+				continue
+			}
+			state, err := t.mustGetObject(ctx, key)
 			if err != nil {
 				return err
 			}
+			endpointIndexes[key] = len(endpoints)
+			endpoints = append(endpoints, endpointUpdate{state: state, count: 1})
 		}
 	}
 	if err := t.insertGraphDeltas(ctx, deltas); err != nil {
 		return err
 	}
 
-	for i, q := range quads {
-		for _, endpoint := range endpoints[i] {
-			if _, err := endpoint.incrementRev(ctx, false); err != nil {
-				return err
-			}
+	for _, endpoint := range endpoints {
+		if _, err := endpoint.state.incrementRevBy(ctx, endpoint.count, false); err != nil {
+			return err
 		}
+	}
+	for _, q := range quads {
 		if _, err := t.queueWorldChange(ctx, &WorldChange{
 			ChangeType: WorldChangeType_WorldChange_GRAPH_SET,
 			Quad:       world.GraphQuadToQuad(q),

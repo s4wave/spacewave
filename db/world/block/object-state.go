@@ -7,6 +7,7 @@ import (
 	block_gc "github.com/s4wave/spacewave/db/block/gc"
 	"github.com/s4wave/spacewave/db/bucket"
 	bucket_lookup "github.com/s4wave/spacewave/db/bucket/lookup"
+	kvtx_block_okra "github.com/s4wave/spacewave/db/kvtx/block/okra"
 	trace "github.com/s4wave/spacewave/db/traceutil"
 	"github.com/s4wave/spacewave/db/world"
 	"github.com/s4wave/spacewave/net/peer"
@@ -14,15 +15,18 @@ import (
 
 // ObjectState implements the ObjectState interface attached to block cursor.
 type ObjectState struct {
-	w   *WorldState
+	// w owns this object's transaction and change records.
+	w *WorldState
+	// bcs points to the object's metadata in the World index.
 	bcs *block.Cursor
+	// key identifies the object within the World.
 	key string
 }
 
 // NewObjectState constructs a new ObjectState from a block cursor and world state.
 func NewObjectState(ctx context.Context, w *WorldState, bcs *block.Cursor) (*ObjectState, error) {
 	s := &ObjectState{w: w, bcs: bcs}
-	obj, err := s.GetRoot(ctx)
+	obj, err := UnmarshalObject(ctx, bcs)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +91,9 @@ func (o *ObjectState) SetRootRef(ctx context.Context, nref *bucket.ObjectRef) (u
 	root.Rev++
 	r := root.Rev
 
-	o.bcs.SetBlock(root, true)
+	if err := o.setRoot(ctx, root); err != nil {
+		return 0, err
+	}
 
 	changeBcs, err := o.w.queueWorldChange(ctx, &WorldChange{
 		Key:        o.key,
@@ -176,11 +182,19 @@ func (o *ObjectState) IncrementRev(ctx context.Context) (uint64, error) {
 
 // incrementRev increments the object rev optionally adding a changelog entry.
 func (o *ObjectState) incrementRev(ctx context.Context, addToChangelog bool) (uint64, error) {
+	return o.incrementRevBy(ctx, 1, addToChangelog)
+}
+
+// incrementRevBy applies a batch's revision delta with one immutable root copy.
+func (o *ObjectState) incrementRevBy(ctx context.Context, count uint64, addToChangelog bool) (uint64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
 	root, err := o.GetRoot(ctx)
 	if err != nil {
 		return 0, err
 	}
-	nrev := root.Rev + 1
+	nrev := root.Rev + count
 	if addToChangelog {
 		_, err = o.w.queueWorldChange(ctx, &WorldChange{
 			Key:        o.key,
@@ -193,8 +207,26 @@ func (o *ObjectState) incrementRev(ctx context.Context, addToChangelog bool) (ui
 	}
 	root = root.Clone()
 	root.Rev = nrev
-	o.bcs.SetBlock(root, true)
+	if err := o.setRoot(ctx, root); err != nil {
+		return 0, err
+	}
 	return nrev, nil
+}
+
+// setRoot updates both the metadata and its content-derived index entry.
+// IAVL follows mutable cursors directly; Okra must rebuild the entry's hash
+// and page boundaries after its value changes.
+func (o *ObjectState) setRoot(ctx context.Context, root *Object) error {
+	cursor, err := o.getCursor(ctx)
+	if err != nil {
+		return err
+	}
+	cursor.SetBlock(root, true)
+	o.bcs = cursor
+	if _, packed := o.w.objTree.(*kvtx_block_okra.Tx); packed {
+		return o.w.objTree.SetCursorAtKey(ctx, []byte(objectKeyPrefix+o.key), cursor, false)
+	}
+	return nil
 }
 
 // WaitRev waits until the object rev is >= the specified.
@@ -239,10 +271,31 @@ func (o *ObjectState) WaitRev(
 	}
 }
 
-// GetRoot unmarshals root from the block cursor
+// GetRoot unmarshals the root from the block cursor.
 func (o *ObjectState) GetRoot(ctx context.Context) (*Object, error) {
-	return UnmarshalObject(ctx, o.bcs)
+	cursor, err := o.getCursor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return UnmarshalObject(ctx, cursor)
 }
 
-// _ is a type assertion
+// getCursor resolves replaced packed pages without mutating a read handle.
+func (o *ObjectState) getCursor(ctx context.Context) (*block.Cursor, error) {
+	// Packed mutations replace pages. Resolve the current entry so retained
+	// object handles observe subsequent mutations in this World transaction.
+	if _, packed := o.w.objTree.(*kvtx_block_okra.Tx); packed {
+		cursor, err := o.w.objTree.GetCursorAtKey(ctx, []byte(objectKeyPrefix+o.key))
+		if err != nil {
+			return nil, err
+		}
+		if cursor == nil {
+			return nil, world.ErrObjectNotFound
+		}
+		return cursor, nil
+	}
+	return o.bcs, nil
+}
+
+// _ is a type assertion.
 var _ world.ObjectState = (*ObjectState)(nil)

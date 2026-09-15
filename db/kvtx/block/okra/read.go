@@ -151,6 +151,10 @@ func (p *Page) searchEntry(key []byte) int {
 }
 
 func (t *Tx) entryToValue(ctx context.Context, page *Page, cursor *block.Cursor, index int) ([]byte, error) {
+	// Raw inline values need neither a cursor handle nor a storage round trip.
+	if value := page.GetEntries()[index].GetValueBlob(); value != nil && value.GetBlobType() == blob.BlobType_BlobType_RAW {
+		return bytes.Clone(value.GetRawData()), ctx.Err()
+	}
 	valueCursor := page.FollowValue(cursor, index)
 	if page.GetEntries()[index].GetValueIsBlob() {
 		return blob.FetchToBytes(ctx, valueCursor)

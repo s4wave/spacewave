@@ -35,7 +35,7 @@ type okraBuiltPage struct {
 func (t *Tx) setEntry(ctx context.Context, next BuildEntry) error {
 	key := slices.Clone(next.Key)
 	valueRef := next.ValueRef.Clone()
-	leafHash, err := hashLeaf(key, valueRef, next.ValueIsBlob)
+	leafHash, err := hashBuildEntry(next)
 	if err != nil {
 		return err
 	}
@@ -46,6 +46,7 @@ func (t *Tx) setEntry(ctx context.Context, next BuildEntry) error {
 			Size:        1,
 			ValueRef:    valueRef,
 			ValueIsBlob: next.ValueIsBlob,
+			ValueBlob:   next.ValueBlob.CloneVT(),
 		},
 	}
 
@@ -559,8 +560,10 @@ func (t *Tx) materializeValueCursor(ctx context.Context, cursor *block.Cursor) (
 	if cursor.IsDirty() || cursor.GetRef().GetEmpty() {
 		btx := cursor.GetTransaction()
 		if btx != nil {
-			if t.bcs != nil && btx == t.bcs.GetTransaction() {
-				staged := t.stagedValueStore(ctx, btx)
+			if t.bcs != nil && (cursor.IsSubBlock() || btx == t.bcs.GetTransaction()) {
+				// The adopting tree owns staged writes, including inline values
+				// borrowed from a different read transaction.
+				staged := t.stagedValueStore(ctx, t.bcs.GetTransaction())
 				cursor = cursor.DetachRecursive(true, true, true)
 				cursor.MarkDirty()
 				btx = cursor.GetTransaction()

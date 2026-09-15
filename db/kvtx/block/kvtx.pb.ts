@@ -37,6 +37,14 @@ export enum KVImplType {
    * @generated from enum value: KV_IMPL_TYPE_OKRA = 2;
    */
   KV_IMPL_TYPE_OKRA = 2,
+
+  /**
+   * KV_IMPL_TYPE_OKRA_INLINE packs small byte values into Okra pages.
+   * The distinct tag makes readers without inline-value support reject it.
+   *
+   * @generated from enum value: KV_IMPL_TYPE_OKRA_INLINE = 3;
+   */
+  KV_IMPL_TYPE_OKRA_INLINE = 3,
 }
 
 export const KVImplType_Enum = /* @__PURE__ */ createEnumType(
@@ -45,6 +53,7 @@ export const KVImplType_Enum = /* @__PURE__ */ createEnumType(
     [0, 'KV_IMPL_TYPE_UNKNOWN'],
     [1, 'KV_IMPL_TYPE_IAVL'],
     [2, 'KV_IMPL_TYPE_OKRA'],
+    [3, 'KV_IMPL_TYPE_OKRA_INLINE'],
   ],
 )
 
@@ -70,7 +79,7 @@ export interface KeyValueStore {
   iavlRoot?: Node
   /**
    * OkraRoot is the root metadata for the Okra tree.
-   * KV_IMPL_TYPE_OKRA
+   * KV_IMPL_TYPE_OKRA or KV_IMPL_TYPE_OKRA_INLINE
    *
    * @generated from field: kvtx.block.okra.Root okra_root = 3;
    */

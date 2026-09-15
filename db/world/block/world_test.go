@@ -1,6 +1,7 @@
 package world_block_test
 
 import (
+	"bytes"
 	"context"
 	"slices"
 	"strconv"
@@ -230,6 +231,7 @@ func TestWorldStateExplicitKVImplCompatibility(t *testing.T) {
 	for _, impl := range []kvtx_block.KVImplType{
 		kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL,
 		kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA,
+		kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE,
 	} {
 		t.Run(impl.String(), func(t *testing.T) {
 			testWorldStateExplicitKVImplCompatibility(t, impl)
@@ -288,8 +290,8 @@ func TestWorldStateDefaultGraphKVTXUsesOkra(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 	assertWorldStoreImpl(t, "object", writtenRoot.GetObjectKeyValue(), kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL)
-	assertWorldStoreImpl(t, "graph", writtenRoot.GetGraphKeyValue(), kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA)
-	assertWorldStoreImpl(t, "gc graph", writtenRoot.GetGcGraph(), kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA)
+	assertWorldStoreImpl(t, "graph", writtenRoot.GetGraphKeyValue(), kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE)
+	assertWorldStoreImpl(t, "gc graph", writtenRoot.GetGcGraph(), kvtx_block.KVImplType_KV_IMPL_TYPE_OKRA_INLINE)
 	assertWorldStoreImpl(t, "gc journal", writtenRoot.GetGcJournal(), kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL)
 
 	readWS, err := world_block.BuildMockWorldState(ctx, le, false, ocs, false)
@@ -364,8 +366,24 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 		}
 	}
 	quad := world.NewGraphQuadWithKeys("explicit/a", "<explicit-rel>", "explicit/b", "")
+	retained, err := world.MustGetObject(ctx, ws, "explicit/a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer world.ReleaseObjectState(retained)
+	beforeRoot, err := ws.GetRoot(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeHash := slices.Clone(beforeRoot.GetObjectKeyValue().GetOkraRoot().GetRootHash())
 	if err := ws.SetGraphQuad(ctx, quad); err != nil {
 		t.Fatal(err.Error())
+	}
+	if _, rev, err := retained.GetRootRef(ctx); err != nil || rev != 2 {
+		t.Fatalf("retained object revision=%d err=%v", rev, err)
+	}
+	if _, err := retained.IncrementRev(ctx); err != nil {
+		t.Fatal(err)
 	}
 	if err := ws.Commit(ctx); err != nil {
 		t.Fatal(err.Error())
@@ -377,6 +395,9 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 		t.Fatal(err.Error())
 	}
 	assertWorldKVImpl(t, writtenRoot, impl)
+	if impl != kvtx_block.KVImplType_KV_IMPL_TYPE_IAVL && bytes.Equal(beforeHash, writtenRoot.GetObjectKeyValue().GetOkraRoot().GetRootHash()) {
+		t.Fatal("object mutation left the packed index hash unchanged")
+	}
 
 	rg := ws.GetRefGraph()
 	if rg == nil {
@@ -395,6 +416,10 @@ func testWorldStateExplicitKVImplCompatibility(t *testing.T, impl kvtx_block.KVI
 		t.Fatal(err.Error())
 	}
 	defer readWS.Discard()
+	refs, err := readWS.GetObjectRootRefsBatch(ctx, []string{"explicit/a", "explicit/b"})
+	if err != nil || refs[0].Rev != 3 || refs[1].Rev != 2 {
+		t.Fatalf("object revisions after readback=%v err=%v", refs, err)
+	}
 	{
 		objectState2, err := world.MustGetObject(ctx, readWS, "explicit/a")
 		world.ReleaseObjectState(objectState2)

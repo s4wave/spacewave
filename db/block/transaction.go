@@ -330,10 +330,16 @@ func (t *Transaction) WriteAtRoot(ctx context.Context, clearTree bool, subRoot *
 	// by this write.
 	var buffered *BufferedStore
 	drainBuffered := false
+	existingBuffer, _ := writeStore.(*BufferedStore)
 	switch {
 	case t.writeBuffer != nil:
 		buffered = t.writeBuffer
 		writeStore = buffered
+	case existingBuffer != nil && t.bufferedStoreSettings == nil:
+		// The caller already owns writeback and its final durability fence.
+		// Draining another coalescer into that buffer only repeats hashing,
+		// cloning, and queue bookkeeping for every block.
+		buffered = existingBuffer
 	case writeStore != nil:
 		buffered = NewBufferedStoreWithSettings(ctx, writeStore, t.bufferedStoreSettings)
 		writeStore = buffered
