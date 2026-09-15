@@ -208,7 +208,7 @@ export function Community() {
 
       {/* Contribute */}
       <section className="mx-auto w-full max-w-4xl px-4 pb-14 @lg:px-8 @lg:pb-16">
-        <span className="text-foreground-alt mb-8 block text-center text-xs font-semibold tracking-[0.2em] uppercase">
+        <span className="text-foreground-alt tracking-brand-wide mb-8 block text-center text-xs font-semibold uppercase">
           Get involved
         </span>
         <div className="grid gap-4 @lg:grid-cols-3">
@@ -239,7 +239,7 @@ export function Community() {
 
       {/* Principles */}
       <section className="mx-auto w-full max-w-4xl px-4 py-14 @lg:px-8 @lg:py-16">
-        <span className="text-foreground-alt mb-8 block text-center text-xs font-semibold tracking-[0.2em] uppercase">
+        <span className="text-foreground-alt tracking-brand-wide mb-8 block text-center text-xs font-semibold uppercase">
           What we believe
         </span>
         <div className="grid gap-x-8 gap-y-10 @lg:grid-cols-2">
@@ -266,7 +266,7 @@ export function Community() {
 
       {/* Built With Open Source */}
       <section className="mx-auto w-full max-w-4xl px-4 py-14 @lg:px-8 @lg:py-16">
-        <span className="text-foreground-alt mb-2 block text-center text-xs font-semibold tracking-[0.2em] uppercase">
+        <span className="text-foreground-alt tracking-brand-wide mb-2 block text-center text-xs font-semibold uppercase">
           Built with open source
         </span>
         <p className="text-foreground-alt/50 mb-4 text-center text-xs">
@@ -378,31 +378,31 @@ export function Community() {
                           )}
                           <span
                             title={entry.version}
-                            className="text-foreground-alt/40 max-w-28 truncate text-[0.55rem]"
+                            className="text-foreground-alt/40 micro-fine max-w-28 truncate"
                           >
                             {entry.version}
                           </span>
                         </div>
                         <div className="ml-auto flex shrink-0 gap-1">
-                          <span className="border-foreground/8 text-foreground-alt/50 rounded-full border px-2 py-0.5 text-[0.55rem] font-medium">
+                          <span className="border-foreground/8 text-foreground-alt/50 micro-fine rounded-full border px-2 py-0.5 font-medium">
                             {entry.spdx}
                           </span>
                           {(entry.source === 'go' ||
                             entry.source === 'both') && (
-                            <span className="rounded-full border border-cyan-500/15 px-2 py-0.5 text-[0.55rem] font-medium text-cyan-400/60">
+                            <span className="micro-fine rounded-full border border-cyan-500/15 px-2 py-0.5 font-medium text-cyan-400/60">
                               Go
                             </span>
                           )}
                           {(entry.source === 'js' ||
                             entry.source === 'both') && (
-                            <span className="rounded-full border border-yellow-500/15 px-2 py-0.5 text-[0.55rem] font-medium text-yellow-400/60">
+                            <span className="micro-fine rounded-full border border-yellow-500/15 px-2 py-0.5 font-medium text-yellow-400/60">
                               JS
                             </span>
                           )}
                         </div>
                       </div>
                       {entry.purpose && (
-                        <p className="text-foreground-alt/50 text-[0.6rem] leading-relaxed">
+                        <p className="text-foreground-alt/50 micro-text leading-relaxed">
                           {entry.purpose}
                         </p>
                       )}

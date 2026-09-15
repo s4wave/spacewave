@@ -9,8 +9,6 @@ import {
   IWindowFrameProps,
 } from '@s4wave/app/window/WindowFrame.js'
 
-const electronStyles = `/* bldr: using electron */`
-
 export interface IAppShellProps {
   children?: React.ReactNode
   isElectron?: boolean
@@ -24,7 +22,6 @@ export function AppShell(props: IAppShellProps) {
   const isMacElectron = isElectron && isMac
   return (
     <StateNamespaceProvider rootAtom={localStateAtom}>
-      {isElectron ? <style>{electronStyles}</style> : null}
       <WindowFrame
         className={'dark'}
         centerTopBar={isMacElectron || undefined}

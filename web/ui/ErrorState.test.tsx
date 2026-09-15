@@ -69,10 +69,8 @@ describe('ErrorState', () => {
 
   it('applies custom className', () => {
     const { container } = render(
-      <ErrorState message="Failed" className="my-custom-class" />,
+      <ErrorState message="Failed" className="mt-1" />,
     )
-    expect(
-      container.firstElementChild?.classList.contains('my-custom-class'),
-    ).toBe(true)
+    expect(container.firstElementChild?.classList.contains('mt-1')).toBe(true)
   })
 })

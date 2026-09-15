@@ -336,30 +336,25 @@ export function FloatingWindow({
     getZIndexSnapshot,
   )
 
-  const panelStyle = useMemo(
-    () => ({
-      left: state.position.x,
-      top: state.position.y,
-      width: state.size.width,
-      height: state.size.height,
-      zIndex,
-    }),
-    [state.position, state.size, zIndex],
-  )
-
   return (
     <div
       ref={panelRef}
       role="dialog"
       aria-label={title}
       className={cn(
-        'fixed flex flex-col overflow-hidden',
+        'floating-window-position fixed flex flex-col overflow-hidden',
         'rounded-lg shadow-lg',
         'bg-background-menu/95 backdrop-blur-sm',
         'border-popover-border border',
         className,
       )}
-      style={panelStyle}
+      style={{
+        '--floating-window-left': `${state.position.x}px`,
+        '--floating-window-top': `${state.position.y}px`,
+        '--floating-window-width': `${state.size.width}px`,
+        '--floating-window-height': `${state.size.height}px`,
+        '--floating-window-z-index': zIndex,
+      }}
       onMouseDown={handleMouseDown}
       data-testid={testId}
     >

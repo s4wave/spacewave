@@ -8,13 +8,6 @@ import spacewaveIcon from '@s4wave/web/images/spacewave-icon.png'
 
 import './AnimatedLogo.css'
 
-// extStyle accepts a style object with extended CSS properties (such as
-// dynamicRangeLimit) and returns it as React.CSSProperties. Centralizes the
-// single type widening needed for non-standard CSS properties.
-function extStyle(s: Record<string, unknown>): React.CSSProperties {
-  return s as React.CSSProperties
-}
-
 function rectEquals(a: DOMRect | null, b: DOMRect): boolean {
   return (
     a !== null &&
@@ -120,49 +113,48 @@ const AnimatedLogo = ({
     rotateY: canAnimate ? mousePosition.x * 8.42 : 0,
     scale: canAnimate ? 1 + mousePosition.distance * 0.002 : 1,
   }
-  const fixedSizeStyle = fixedSize
-    ? {
-        width: fixedSize,
-        height: fixedSize,
-      }
-    : undefined
-
   return (
     <div
       ref={mouseRef}
-      className={cn('group relative perspective-[1000px]', containerClassName)}
-      style={fixedSizeStyle}
+      className={cn(
+        'group relative perspective-logo',
+        fixedSize && 'animated-logo-fixed-size',
+        containerClassName,
+      )}
+      style={
+        fixedSize
+          ? {
+              '--animated-logo-size':
+                typeof fixedSize === 'number' ? `${fixedSize}px` : fixedSize,
+            }
+          : undefined
+      }
     >
       <div
-        className="relative size-20 @lg:h-28 @lg:w-28"
+        className="animated-logo-transform relative size-20 @lg:h-28 @lg:w-28"
         style={{
-          ...fixedSizeStyle,
-          transform: `rotateX(${transform.rotateX}deg) rotateY(${transform.rotateY}deg) scale(${transform.scale})`,
-          transition: reduceMotion ? 'none' : 'transform 0.8s ease-out',
+          '--animated-logo-transform': `rotateX(${transform.rotateX}deg) rotateY(${transform.rotateY}deg) scale(${transform.scale})`,
+          '--animated-logo-transition': reduceMotion
+            ? 'none'
+            : 'transform 0.8s ease-out',
         }}
       >
         {/* Background Gradient Layer - Blur for Depth */}
         <div
           className={cn(
-            'absolute -inset-[2px] z-[1] rounded-3xl opacity-50 blur-md transition duration-800 will-change-transform group-hover:scale-105 group-hover:opacity-55',
-            'bg-[radial-gradient(circle_farthest-corner_at_100%_0,var(--color-brand),transparent),radial-gradient(circle_farthest-corner_at_0_100%,var(--color-logo-blue),transparent),radial-gradient(circle_farthest-corner_at_0_0,var(--color-brand),transparent),radial-gradient(circle_at_50%_50%,var(--color-logo-base)_10%,var(--color-logo-dark)_80%)]',
-            canRunAnimation && 'animate-[pulse_10s_ease-in-out_infinite]',
+            'absolute -inset-0.5 z-1 rounded-3xl opacity-50 blur-md transition duration-800 will-change-transform group-hover:scale-105 group-hover:opacity-55',
+            'animated-logo-background',
+            canRunAnimation
+              ? 'animated-logo-blur'
+              : 'animated-logo-blur-paused',
           )}
-          style={extStyle({
-            animationName: canRunAnimation ? 'logoBlur' : 'none',
-            animationDuration: '10s',
-            animationIterationCount: 'infinite',
-            animationTimingFunction: 'ease-in-out',
-            animationPlayState: canRunAnimation ? 'running' : 'paused',
-            dynamicRangeLimit: 'no-limit',
-          })}
         />
 
         {/* Background Gradient Layer - Sharp for Clean Border */}
         <div
           className={cn(
-            'absolute -inset-[1px] z-[2] rounded-3xl will-change-transform',
-            'bg-[radial-gradient(circle_farthest-corner_at_100%_0,var(--color-brand),transparent),radial-gradient(circle_farthest-corner_at_0_100%,var(--color-logo-blue),transparent),radial-gradient(circle_farthest-corner_at_0_0,var(--color-brand),transparent),radial-gradient(circle_at_50%_50%,var(--color-logo-base)_10%,var(--color-logo-dark)_80%)]',
+            'absolute -inset-0.25 z-2 rounded-3xl will-change-transform',
+            'animated-logo-background',
           )}
         />
 
@@ -170,19 +162,14 @@ const AnimatedLogo = ({
         <div
           className={cn(
             'relative z-10 h-full w-full overflow-hidden rounded-3xl',
+            fixedSize && 'animated-logo-fixed-content',
             className,
           )}
-          style={fixedSize ? { width: '100%', height: '100%' } : undefined}
         >
           <img
             src={spacewaveIcon}
             alt="Spacewave Icon"
             className="h-full w-full max-w-none"
-            style={
-              fixedSize
-                ? { width: '100%', height: '100%', maxWidth: 'none' }
-                : undefined
-            }
           />
         </div>
       </div>

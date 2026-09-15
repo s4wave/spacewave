@@ -23,10 +23,15 @@ export function CanvasSelectionOverlay({
   return (
     <div
       className={cn(
-        'border-brand/30 bg-brand/5 pointer-events-none absolute rounded-sm border',
+        'canvas-selection-box border-brand/30 bg-brand/5 pointer-events-none absolute rounded-sm border',
         className,
       )}
-      style={{ left, top, width, height }}
+      style={{
+        '--canvas-selection-left': left,
+        '--canvas-selection-top': top,
+        '--canvas-selection-width': width,
+        '--canvas-selection-height': height,
+      }}
     />
   )
 }

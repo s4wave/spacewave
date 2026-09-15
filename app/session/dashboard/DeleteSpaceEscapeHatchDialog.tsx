@@ -165,7 +165,7 @@ export function DeleteSpaceEscapeHatchDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle variant="withIcon">
             <LuShieldAlert className="text-destructive size-4" />
             Delete a Space
           </DialogTitle>
@@ -393,7 +393,7 @@ function SpaceSelectList({
               <div className="text-foreground truncate text-xs font-medium select-none">
                 {choice.hasName ? choice.name : 'Unnamed space'}
               </div>
-              <div className="text-foreground-alt/70 truncate font-mono text-[0.65rem] break-all select-text">
+              <div className="text-foreground-alt/70 micro-label truncate font-mono break-all select-text">
                 {choice.id}
               </div>
             </div>
@@ -413,7 +413,7 @@ interface SelectedSpaceSummaryProps {
 function SelectedSpaceSummary({ space, health }: SelectedSpaceSummaryProps) {
   return (
     <div className="border-foreground/8 bg-background-card/30 rounded-lg border px-3 py-2.5">
-      <div className="text-foreground-alt/50 text-[0.55rem] font-medium tracking-widest uppercase select-none">
+      <div className="text-foreground-alt/50 micro-fine font-medium tracking-widest uppercase select-none">
         Space
       </div>
       <div className="text-foreground mt-0.5 truncate text-sm font-medium">

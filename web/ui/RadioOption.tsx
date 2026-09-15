@@ -51,7 +51,7 @@ function RadioOption({
             {tag && (
               <span
                 className={cn(
-                  'rounded px-1.5 py-0.5 text-[10px] font-medium',
+                  'rounded px-1.5 py-0.5 micro-ten font-medium',
                   selected
                     ? 'bg-brand/20 text-brand'
                     : 'bg-foreground/10 text-foreground-alt',

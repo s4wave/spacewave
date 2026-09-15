@@ -77,19 +77,15 @@ export function BindingCapture({
       <Button
         ref={captureButtonRef}
         type="button"
-        variant="outline"
-        size="sm"
         aria-label={
           capturing
             ? `Recording shortcut for ${commandLabel}`
             : `Change shortcut for ${commandLabel}`
         }
         aria-pressed={capturing}
-        className={cn(
-          'border-foreground/10 bg-background/40 hover:border-foreground/20 min-w-28 justify-center font-normal',
-          capturing &&
-            'border-brand/50 bg-brand/10 text-brand ring-brand/20 ring-4',
-        )}
+        variant="capture"
+        data-capturing={capturing}
+        className="min-w-28 justify-center"
         onBlur={cancelCapture}
         onClick={capturing ? cancelCapture : startCapture}
       >
@@ -105,9 +101,8 @@ export function BindingCapture({
       {binding ? (
         <Button
           type="button"
-          variant="ghost"
-          size="icon"
-          className="text-foreground-alt/55 hover:text-foreground size-8"
+          variant="muted"
+          size="iconSm"
           aria-label={`Clear shortcut for ${commandLabel}`}
           onClick={clearBinding}
         >
@@ -117,9 +112,8 @@ export function BindingCapture({
       {isCustomized && onReset ? (
         <Button
           type="button"
-          variant="ghost"
-          size="icon"
-          className="text-foreground-alt/55 hover:text-foreground size-8"
+          variant="muted"
+          size="iconSm"
           aria-label={`Reset shortcut for ${commandLabel}`}
           onClick={onReset}
         >

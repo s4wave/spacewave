@@ -34,7 +34,7 @@ export function WhichKeyPanel() {
 
   return (
     <>
-      <div className="bg-background/30 pointer-events-none fixed inset-0 z-40 backdrop-blur-[1px]" />
+      <div className="bg-background/30 pointer-events-none fixed inset-0 z-40 backdrop-blur-xs" />
       <section
         aria-label="Key sequence continuations"
         className="border-foreground/10 bg-background-card/95 pointer-events-auto fixed right-0 bottom-0 left-0 z-50 border-t px-4 py-3 shadow-none"

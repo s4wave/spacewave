@@ -6,7 +6,6 @@ import {
   LuTriangleAlert,
 } from 'react-icons/lu'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Badge } from '@s4wave/web/ui/badge.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { Input } from '@s4wave/web/ui/input.js'
@@ -104,12 +103,12 @@ export function KeyboardMapVariant({
             onChange={handleQueryChange}
             placeholder="Highlight matching commands"
             aria-label="Filter keyboard assignments"
-            className="border-foreground/10 bg-background/30 focus-visible:border-brand/50 focus-visible:ring-brand/15 pl-9"
+            variant="searchPanel"
           />
         </label>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="xl:grid-cols-keybindings grid gap-4">
         <div className="border-foreground/8 bg-background-card/30 overflow-x-auto rounded-xl border p-4 sm:p-6">
           <div className="mx-auto max-w-4xl min-w-180 space-y-2">
             {keyboardRows.map((row) => (
@@ -152,7 +151,7 @@ export function KeyboardMapVariant({
         <aside className="border-foreground/8 bg-background-card/30 rounded-xl border p-4">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-foreground-alt/45 text-[10px] font-semibold tracking-wider uppercase">
+              <span className="text-foreground-alt/45 micro-ten font-semibold tracking-wider uppercase">
                 Inspected key
               </span>
               <div className="mt-1 font-mono text-lg">{activeKey ?? '—'}</div>
@@ -165,12 +164,11 @@ export function KeyboardMapVariant({
               <Button
                 key={command.id}
                 type="button"
-                variant="ghost"
-                className={cn(
-                  'h-auto w-full justify-between px-2.5 py-2 text-left',
-                  command.id === selectedCommand?.id &&
-                    'bg-brand/10 text-brand',
-                )}
+                variant={
+                  command.id === selectedCommand?.id ? 'brandGhost' : 'ghost'
+                }
+                size="commandRow"
+                className="h-auto w-full justify-between text-left"
                 aria-pressed={command.id === selectedCommand?.id}
                 onClick={() => selectCommand(command.id)}
               >
@@ -178,7 +176,7 @@ export function KeyboardMapVariant({
                   <span className="block truncate text-xs font-medium">
                     {command.label}
                   </span>
-                  <span className="text-foreground-alt/45 block text-[10px] font-normal">
+                  <span className="text-foreground-alt/45 micro-ten block font-normal">
                     {command.context}
                   </span>
                 </span>
@@ -204,10 +202,7 @@ export function KeyboardMapVariant({
                   </p>
                 </div>
                 {conflictCommandIds.has(selectedCommand.id) ? (
-                  <Badge
-                    variant="destructive"
-                    className="bg-destructive/15 text-destructive"
-                  >
+                  <Badge variant="conflict">
                     <LuTriangleAlert />
                   </Badge>
                 ) : null}

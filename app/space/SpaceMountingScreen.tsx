@@ -87,12 +87,12 @@ function SpaceMountStepper({ current }: { current: SpaceMountStage }) {
               aria-hidden="true"
             >
               {isActive ? (
-                <span className="bg-brand/30 absolute inset-[-6px] animate-ping rounded-full motion-reduce:animate-none" />
+                <span className="bg-brand/30 inset-logo-outline absolute animate-ping rounded-full motion-reduce:animate-none" />
               ) : null}
             </span>
             <span
               className={cn(
-                'text-[0.6rem] font-medium tracking-widest uppercase transition-colors select-none',
+                'micro-text font-medium tracking-widest uppercase transition-colors select-none',
                 isComplete && 'text-foreground-alt/55',
                 isActive && 'text-foreground',
                 !isComplete && !isActive && 'text-foreground-alt/35',

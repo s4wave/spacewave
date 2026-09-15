@@ -93,20 +93,20 @@ export function ResizeBorder({
     setIsDragging(true)
   }
 
-  const style: React.CSSProperties = isHorizontal
+  const positionStyle = isHorizontal
     ? {
-        left: position === 'right' ? coords.x + coords.width : coords.x,
-        top: coords.y,
-        height: coords.height,
-        width: HANDLE_SIZE,
-        transform: `translateX(-${HANDLE_OFFSET}px)`,
+        '--resize-border-left': `${position === 'right' ? coords.x + coords.width : coords.x}px`,
+        '--resize-border-top': `${coords.y}px`,
+        '--resize-border-height': `${coords.height}px`,
+        '--resize-border-width': `${HANDLE_SIZE}px`,
+        '--resize-border-transform': `translateX(-${HANDLE_OFFSET}px)`,
       }
     : {
-        left: coords.x,
-        top: position === 'bottom' ? coords.y + coords.height : coords.y,
-        width: coords.width,
-        height: HANDLE_SIZE,
-        transform: `translateY(-${HANDLE_OFFSET}px)`,
+        '--resize-border-left': `${coords.x}px`,
+        '--resize-border-top': `${position === 'bottom' ? coords.y + coords.height : coords.y}px`,
+        '--resize-border-width': `${coords.width}px`,
+        '--resize-border-height': `${HANDLE_SIZE}px`,
+        '--resize-border-transform': `translateY(-${HANDLE_OFFSET}px)`,
       }
 
   return (
@@ -114,19 +114,19 @@ export function ResizeBorder({
       role="separator"
       aria-orientation={isHorizontal ? 'vertical' : 'horizontal'}
       className={cn(
-        'absolute z-50',
+        'resize-border-position absolute z-50',
         isHorizontal ? 'cursor-col-resize' : 'cursor-row-resize',
       )}
-      style={style}
+      style={positionStyle}
       onMouseDown={handleMouseDown}
     >
       {isDragging && (
         <div
           className={cn(
-            'border-editor-border bg-resize-handle-active absolute rounded-[2.5px] border',
+            'border-editor-border bg-resize-handle-active absolute rounded-menu-button border',
             isHorizontal
-              ? 'left-1/2 h-full w-[2px] -translate-x-1/2'
-              : 'top-1/2 h-[2px] w-full -translate-y-1/2',
+              ? 'left-1/2 h-full w-0.5 -translate-x-1/2'
+              : 'top-1/2 h-0.5 w-full -translate-y-1/2',
           )}
         />
       )}

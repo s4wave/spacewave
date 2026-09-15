@@ -48,7 +48,7 @@ export function SessionSyncStatusButton() {
           sideOffset={6}
           onEscapeKeyDown={onClick}
           onPointerDownOutside={onClick}
-          className="border-foreground/15 bg-background-card text-foreground z-50 w-80 max-w-[calc(100vw-1rem)] rounded-lg p-0 shadow-xl backdrop-blur-md"
+          variant="status"
         >
           <SessionSyncStatusPopover status={status} />
         </PopoverContent>
@@ -207,7 +207,7 @@ function SessionSyncStatusPopover({
 function SyncMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-foreground/6 bg-foreground/5 rounded-md border px-2 py-1.5">
-      <div className="text-foreground-alt/50 text-[0.6rem] font-medium tracking-widest uppercase">
+      <div className="text-foreground-alt/50 micro-text font-medium tracking-widest uppercase">
         {label}
       </div>
       <div className="text-xs font-semibold">{value}</div>

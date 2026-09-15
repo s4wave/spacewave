@@ -71,7 +71,7 @@ export function GroupedPanelsVariant(props: KeybindingVariantProps) {
             onChange={handleQueryChange}
             placeholder="Filter collections"
             aria-label="Filter shortcut collections"
-            className="border-foreground/10 bg-background/30 focus-visible:border-brand/50 focus-visible:ring-brand/15 pl-9"
+            variant="searchPanel"
           />
         </label>
       </div>

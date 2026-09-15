@@ -136,8 +136,8 @@ function VariantLayout({
 
   return (
     <div
-      className="shell-flexlayout bg-editor-border overflow-hidden"
-      style={{ position: 'relative', height }}
+      className="layout-debug-frame shell-flexlayout bg-editor-border overflow-hidden"
+      style={{ '--layout-debug-height': `${height}px` }}
       {...dataAttrs}
     >
       <OptimizedLayout model={model} renderTab={renderTab} />
@@ -184,7 +184,7 @@ function VariantPreview({
           <p className="text-foreground-alt text-xs">{description}</p>
         </div>
         {selected && (
-          <span className="bg-brand/20 text-brand rounded-full px-2 py-0.5 text-[10px] font-semibold">
+          <span className="bg-brand/20 text-brand micro-ten rounded-full px-2 py-0.5 font-semibold">
             Selected
           </span>
         )}
@@ -497,12 +497,12 @@ export function LayoutDebug() {
                           <span className="text-foreground text-xs font-semibold">
                             {opt.label}
                           </span>
-                          <span className="text-foreground-alt text-[10px]">
+                          <span className="text-foreground-alt micro-ten">
                             {opt.description}
                           </span>
                         </div>
                         {picked && (
-                          <span className="bg-brand/20 text-brand shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                          <span className="bg-brand/20 text-brand micro-ten shrink-0 rounded-full px-2 py-0.5 font-semibold">
                             Selected
                           </span>
                         )}

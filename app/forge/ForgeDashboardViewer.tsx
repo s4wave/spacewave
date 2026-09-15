@@ -340,7 +340,7 @@ export function ForgeDashboardViewer({
                     key={metric.label}
                     className="border-foreground/6 bg-background-card/30 rounded-lg border p-3"
                   >
-                    <div className="text-foreground-alt/60 mb-1 text-[0.6rem] font-medium tracking-widest uppercase">
+                    <div className="text-foreground-alt/60 micro-text mb-1 font-medium tracking-widest uppercase">
                       {metric.label}
                     </div>
                     <div className="text-foreground text-xl font-semibold tabular-nums">

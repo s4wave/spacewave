@@ -166,12 +166,12 @@ export function ObjectViewerDetails({
                                   {component.name}
                                 </p>
                                 {isSelected && (
-                                  <span className="border-brand/30 bg-brand/10 text-brand shrink-0 rounded border px-1.5 py-0.5 text-[0.65rem] font-medium select-none">
+                                  <span className="border-brand/30 bg-brand/10 text-brand micro-label shrink-0 rounded border px-1.5 py-0.5 font-medium select-none">
                                     Active
                                   </span>
                                 )}
                               </div>
-                              <p className="text-foreground-alt/50 font-mono text-[0.6rem] break-all select-none">
+                              <p className="text-foreground-alt/50 micro-text font-mono break-all select-none">
                                 ID: {component.componentID}
                               </p>
                             </div>

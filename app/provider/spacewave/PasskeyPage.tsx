@@ -448,7 +448,7 @@ export function PasskeyPage() {
         {state.step === 'complete' ? (
           <LuCheck className="text-brand size-6" />
         ) : (
-          <Spinner size="md" className="text-foreground-alt" />
+          <Spinner size="md" variant="muted" />
         )}
         <p className="text-foreground-alt text-sm">{statusMessage}</p>
       </div>

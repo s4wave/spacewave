@@ -19,6 +19,7 @@ export interface CopyButtonProps {
   label?: string
   // size selects between the small and medium icon sizes.
   size?: 'sm' | 'md'
+  variant?: 'default' | 'toolbar'
 }
 
 // COPIED_RESET_MS is how long the "Copied" affordance stays visible.
@@ -32,6 +33,7 @@ export function CopyButton({
   className,
   label = 'Copy',
   size = 'sm',
+  variant = 'default',
 }: CopyButtonProps) {
   const [status, setStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -95,6 +97,7 @@ export function CopyButton({
       }
       className={cn(
         'text-foreground-alt hover:text-foreground flex shrink-0 items-center justify-center rounded transition-colors',
+        variant === 'toolbar' && 'hover:bg-foreground/5',
         boxCls,
         className,
       )}

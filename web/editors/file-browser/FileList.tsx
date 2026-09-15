@@ -1,6 +1,5 @@
 import {
   createContext,
-  type CSSProperties,
   type DragEvent,
   type MouseEvent,
   type ReactNode,
@@ -37,7 +36,6 @@ interface FileListProps {
   onContextMenu?: (item: ListItem<FileEntry>, event: MouseEvent) => void
   onStateChange?: (state: ListState) => void
   rowHeight?: number
-  headerStyle?: CSSProperties
   loadingId?: string | null
   autoHeight?: boolean
   placeholder?: ReactNode
@@ -112,7 +110,6 @@ export function FileList({
   onContextMenu,
   onStateChange,
   rowHeight,
-  headerStyle,
   loadingId,
   autoHeight,
   placeholder,
@@ -172,61 +169,55 @@ export function FileList({
     ],
   )
 
-  const renderHeader = useCallback(
-    ({ state, dispatch }: RenderHeaderProps) => {
-      const key = state.sortKey ?? 'name'
-      const sortKey: SortColumn = isSortColumn(key) ? key : 'name'
-      const sortDirection = state.sortDirection ?? 'asc'
-      const SortChevron = sortDirection === 'asc' ? LuChevronDown : LuChevronUp
+  const renderHeader = useCallback(({ state, dispatch }: RenderHeaderProps) => {
+    const key = state.sortKey ?? 'name'
+    const sortKey: SortColumn = isSortColumn(key) ? key : 'name'
+    const sortDirection = state.sortDirection ?? 'asc'
+    const SortChevron = sortDirection === 'asc' ? LuChevronDown : LuChevronUp
 
-      const handleSort = (column: SortColumn) => {
-        dispatch({ type: 'SET_SORT', sortKey: column })
-      }
+    const handleSort = (column: SortColumn) => {
+      dispatch({ type: 'SET_SORT', sortKey: column })
+    }
 
-      return (
-        <div
-          className="bg-panel-header text-foreground-alt border-foreground/8 flex items-center border-b px-3 py-1.5 text-xs select-none"
-          style={headerStyle}
+    return (
+      <div className="bg-panel-header text-foreground-alt border-foreground/8 flex items-center border-b px-3 py-1.5 text-xs select-none">
+        <button
+          type="button"
+          className={cn(
+            'flex min-w-30 flex-1 cursor-pointer items-center gap-1 bg-transparent p-0 text-left',
+            sortKey === 'name' && 'text-foreground',
+          )}
+          onClick={() => handleSort('name')}
         >
-          <button
-            type="button"
-            className={cn(
-              'flex min-w-[120px] flex-1 cursor-pointer items-center gap-1 bg-transparent p-0 text-left',
-              sortKey === 'name' && 'text-foreground',
-            )}
-            onClick={() => handleSort('name')}
-          >
-            <span>Name</span>
-            {sortKey === 'name' && <SortChevron className="size-3" />}
-          </button>
-          <button
-            type="button"
-            className={cn(
-              'flex w-[140px] min-w-[100px] shrink cursor-pointer items-center gap-1 bg-transparent p-0 text-left text-xs',
-              sortKey === 'date' && 'text-foreground',
-            )}
-            onClick={() => handleSort('date')}
-          >
-            <span>Date Modified</span>
-            {sortKey === 'date' && <SortChevron className="size-3" />}
-          </button>
-          <button
-            type="button"
-            className={cn(
-              'flex w-[70px] min-w-[50px] shrink cursor-pointer items-center justify-end gap-1 bg-transparent p-0 text-left text-xs',
-              sortKey === 'size' && 'text-foreground',
-            )}
-            onClick={() => handleSort('size')}
-          >
-            {sortKey === 'size' && <SortChevron className="size-3" />}
-            <span>Size</span>
-          </button>
-          <div className="w-8"></div>
-        </div>
-      )
-    },
-    [headerStyle],
-  )
+          <span>Name</span>
+          {sortKey === 'name' && <SortChevron className="size-3" />}
+        </button>
+        <button
+          type="button"
+          className={cn(
+            'flex w-35 min-w-25 shrink cursor-pointer items-center gap-1 bg-transparent p-0 text-left text-xs',
+            sortKey === 'date' && 'text-foreground',
+          )}
+          onClick={() => handleSort('date')}
+        >
+          <span>Date Modified</span>
+          {sortKey === 'date' && <SortChevron className="size-3" />}
+        </button>
+        <button
+          type="button"
+          className={cn(
+            'flex w-17.5 min-w-12.5 shrink cursor-pointer items-center justify-end gap-1 bg-transparent p-0 text-left text-xs',
+            sortKey === 'size' && 'text-foreground',
+          )}
+          onClick={() => handleSort('size')}
+        >
+          {sortKey === 'size' && <SortChevron className="size-3" />}
+          <span>Size</span>
+        </button>
+        <div className="w-8"></div>
+      </div>
+    )
+  }, [])
 
   return (
     <FileListRowConfigContext.Provider value={rowConfig}>

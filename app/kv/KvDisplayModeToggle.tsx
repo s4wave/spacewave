@@ -30,7 +30,7 @@ export function KvDisplayModeToggle({
           aria-checked={option === mode}
           onClick={() => onModeChange(option)}
           className={cn(
-            'px-2 py-0.5 text-[0.6rem] font-medium transition-colors',
+            'px-2 py-0.5 micro-text font-medium transition-colors',
             option === mode
               ? 'bg-brand/15 text-foreground'
               : 'text-foreground-alt/60 hover:text-foreground hover:bg-foreground/5',

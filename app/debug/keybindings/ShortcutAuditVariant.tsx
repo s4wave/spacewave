@@ -179,7 +179,7 @@ export function ShortcutAuditVariant({
         </button>
       </div>
 
-      <div className="border-foreground/8 bg-background-card/30 grid overflow-hidden rounded-xl border lg:grid-cols-[minmax(19rem,0.9fr)_minmax(0,1.1fr)]">
+      <div className="border-foreground/8 bg-background-card/30 lg:grid-cols-shortcut-audit grid overflow-hidden rounded-xl border">
         <div className="border-foreground/8 border-b lg:border-r lg:border-b-0">
           <div className="border-foreground/8 border-b p-3">
             <label className="relative block">
@@ -189,7 +189,7 @@ export function ShortcutAuditVariant({
                 onChange={handleQueryChange}
                 placeholder="Search review queue"
                 aria-label="Search binding review queue"
-                className="border-foreground/10 bg-background/30 focus-visible:border-brand/50 focus-visible:ring-brand/15 pl-9"
+                variant="searchPanel"
               />
             </label>
           </div>
@@ -217,7 +217,7 @@ export function ShortcutAuditVariant({
             <div>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <span className="text-brand text-[10px] font-semibold tracking-wider uppercase">
+                  <span className="text-brand micro-ten font-semibold tracking-wider uppercase">
                     Review assignment
                   </span>
                   <h3 className="mt-2 text-xl font-semibold">
@@ -227,14 +227,12 @@ export function ShortcutAuditVariant({
                     {selectedCommand.description}
                   </p>
                 </div>
-                <Badge variant="outline" className="border-foreground/10">
-                  {selectedCommand.context}
-                </Badge>
+                <Badge variant="muted">{selectedCommand.context}</Badge>
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <div className="border-foreground/8 rounded-lg border p-4">
-                  <span className="text-foreground-alt/45 text-[10px] font-semibold tracking-wider uppercase">
+                  <span className="text-foreground-alt/45 micro-ten font-semibold tracking-wider uppercase">
                     Current
                   </span>
                   <BindingCapture
@@ -247,7 +245,7 @@ export function ShortcutAuditVariant({
                   />
                 </div>
                 <div className="border-foreground/8 rounded-lg border p-4">
-                  <span className="text-foreground-alt/45 text-[10px] font-semibold tracking-wider uppercase">
+                  <span className="text-foreground-alt/45 micro-ten font-semibold tracking-wider uppercase">
                     Factory default
                   </span>
                   <Keycap
@@ -303,9 +301,7 @@ export function ShortcutAuditVariant({
                     <Button
                       key={binding}
                       type="button"
-                      variant="outline"
-                      size="sm"
-                      className="border-foreground/10 bg-background/30 hover:border-brand/40 hover:bg-brand/10"
+                      variant="debugOutline"
                       onClick={() => applySuggestion(binding)}
                     >
                       <Keycap chord={binding} />

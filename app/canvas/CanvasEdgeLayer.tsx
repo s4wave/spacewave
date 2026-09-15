@@ -158,8 +158,8 @@ export function CanvasEdgeLayer({
 
   return (
     <svg
-      className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
-      style={{ zIndex: 0 }}
+      className="canvas-layer-z-index pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+      style={{ '--canvas-layer-z-index': 0 }}
     >
       <defs>
         <marker

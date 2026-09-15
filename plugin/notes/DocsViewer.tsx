@@ -104,10 +104,7 @@ function DocsViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
     >
       <div className="bg-background-primary flex h-full w-full overflow-hidden">
         {/* Tree sidebar */}
-        <div
-          className="border-border border-r"
-          style={{ width: 220, minWidth: 220 }}
-        >
+        <div className="border-border w-55 min-w-55 border-r">
           <DocsSidebar
             source={firstSource}
             worldState={worldState}
@@ -136,10 +133,7 @@ function DocsViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
 
         {/* TOC panel (shown when viewing a page with headings, not editing) */}
         {selectedPage && !editing && tocContent && (
-          <div
-            className="border-border border-l"
-            style={{ width: 180, minWidth: 180 }}
-          >
+          <div className="border-border w-45 min-w-45 border-l">
             <DocsToc content={tocContent} format={selectedPageFormat} />
           </div>
         )}

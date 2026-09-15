@@ -1,9 +1,7 @@
 import { type ComponentProps, type ReactNode, type Ref } from 'react'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Input } from '@s4wave/web/ui/input.js'
 
-import { wizardInputClassName } from './wizard-field-styles.js'
 import { WizardFieldFrame } from './WizardFieldFrame.js'
 
 export interface WizardFieldProps extends ComponentProps<'input'> {
@@ -12,6 +10,7 @@ export interface WizardFieldProps extends ComponentProps<'input'> {
   fieldClassName?: string
   labelClassName?: string
   inputRef?: Ref<HTMLInputElement>
+  variant?: 'default' | 'error' | 'compactMono'
 }
 
 export function WizardField({
@@ -19,8 +18,9 @@ export function WizardField({
   help,
   fieldClassName,
   labelClassName,
-  className,
+  className: _className,
   inputRef,
+  variant = 'default',
   ...props
 }: WizardFieldProps) {
   return (
@@ -32,7 +32,13 @@ export function WizardField({
     >
       <Input
         ref={inputRef}
-        className={cn(wizardInputClassName, className)}
+        variant={
+          variant === 'error'
+            ? 'wizardError'
+            : variant === 'compactMono'
+              ? 'wizardMono'
+              : 'wizard'
+        }
         {...props}
       />
     </WizardFieldFrame>

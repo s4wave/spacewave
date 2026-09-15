@@ -49,9 +49,11 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  variant,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  variant?: 'default' | 'compact' | 'editor' | 'panel'
 }) {
   const environment = useAppEnvironment()
   return (
@@ -62,6 +64,11 @@ function DialogContent({
         data-slot="dialog-content"
         className={cn(
           'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg',
+          variant === 'compact' && 'gap-0 p-0',
+          variant === 'editor' &&
+            'bg-background-card flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:h-(--height-keybinding-editor) sm:w-(--width-command-editor) sm:!max-w-5xl sm:rounded-lg sm:border',
+          variant === 'panel' &&
+            'border-foreground/10 bg-background-get-started max-w-md overflow-hidden border p-0',
           className,
         )}
         {...props}
@@ -81,11 +88,24 @@ function DialogContent({
   )
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
+function DialogHeader({
+  className,
+  variant,
+  ...props
+}: React.ComponentProps<'div'> & {
+  variant?: 'default' | 'editor' | 'panel'
+}) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn('flex flex-col gap-2 text-center sm:text-left', className)}
+      className={cn(
+        'flex flex-col gap-2 text-center sm:text-left',
+        variant === 'editor' &&
+          'border-foreground/8 shrink-0 border-b px-4 py-3 pr-12 text-left sm:px-5 sm:py-4',
+        variant === 'panel' &&
+          'border-foreground/8 border-b px-6 py-5 text-left',
+        className,
+      )}
       {...props}
     />
   )
@@ -106,12 +126,21 @@ function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
 
 function DialogTitle({
   className,
+  variant,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Title>) {
+}: React.ComponentProps<typeof DialogPrimitive.Title> & {
+  variant?: 'default' | 'withIcon' | 'editor'
+}) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn('text-lg leading-none font-semibold', className)}
+      className={cn(
+        'text-lg leading-none font-semibold',
+        variant === 'withIcon' && 'flex items-center gap-2',
+        variant === 'editor' &&
+          'flex items-center gap-2 text-base font-semibold tracking-tight',
+        className,
+      )}
       {...props}
     />
   )
@@ -119,12 +148,20 @@ function DialogTitle({
 
 function DialogDescription({
   className,
+  variant,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Description>) {
+}: React.ComponentProps<typeof DialogPrimitive.Description> & {
+  variant?: 'default' | 'editor' | 'relaxed'
+}) {
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn('text-muted-foreground text-sm', className)}
+      className={cn(
+        'text-muted-foreground text-sm',
+        variant === 'editor' && 'text-foreground-alt/70 text-xs',
+        variant === 'relaxed' && 'leading-relaxed',
+        className,
+      )}
       {...props}
     />
   )

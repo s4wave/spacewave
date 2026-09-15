@@ -39,16 +39,7 @@ function TestBaseLayout(
 ) {
   return (
     <BaseLayoutContextProvider>
-      <div
-        style={{
-          width: '800px',
-          height: '600px',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="relative flex h-150 w-200 flex-col overflow-hidden">
         <BaseLayout {...props} />
       </div>
     </BaseLayoutContextProvider>
@@ -790,16 +781,7 @@ describe('BaseLayout E2E', () => {
 
     await render(
       <BaseLayoutContextProvider>
-        <div
-          style={{
-            width: '800px',
-            height: '600px',
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
+        <div className="relative flex h-150 w-200 flex-col overflow-hidden">
           <BaseLayout
             ref={ref}
             layoutHost={layoutHost}
@@ -854,16 +836,7 @@ describe('BaseLayout E2E', () => {
 
     const view = await render(
       <BaseLayoutContextProvider>
-        <div
-          style={{
-            width: '800px',
-            height: '600px',
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
+        <div className="relative flex h-150 w-200 flex-col overflow-hidden">
           <BaseLayout
             key="initial"
             ref={ref}
@@ -931,16 +904,7 @@ describe('BaseLayout E2E', () => {
 
     await view.rerender(
       <BaseLayoutContextProvider>
-        <div
-          style={{
-            width: '800px',
-            height: '600px',
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}
-        >
+        <div className="relative flex h-150 w-200 flex-col overflow-hidden">
           <BaseLayout
             key="reloaded"
             layoutHost={buildStaticLayoutHost(request.body.value)}

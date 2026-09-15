@@ -253,7 +253,7 @@ describe('UnixFSGalleryViewer', () => {
     )
 
     expect(screen.getByTestId('unixfs-gallery-grid').className).toContain(
-      'grid-cols-[repeat(auto-fill,minmax(min(100%,12rem),1fr))]',
+      'grid-cols-gallery',
     )
   })
 

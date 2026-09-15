@@ -11,7 +11,7 @@ export function MenuButton({ children, onClick }: MenuButtonProps) {
     <button
       onClick={onClick}
       className={cn(
-        'rounded-menu-button text-topbar-button-text text-topbar-menu text-shadow-glow',
+        'rounded-menu-button text-topbar-button-text text-topbar-menu ui-text-shadow',
         'hover:text-topbar-button-text-hi hover:bg-pulldown-hover',
         'flex h-5 items-center justify-center px-[4px] whitespace-nowrap transition-colors',
       )}

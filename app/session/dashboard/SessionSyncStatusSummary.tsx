@@ -78,7 +78,7 @@ function SessionSyncStatusSummaryIcon({
 function SummaryPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-foreground/6 bg-foreground/5 rounded-md border px-2 py-1">
-      <div className="text-foreground-alt/50 text-[0.55rem] font-medium tracking-widest uppercase">
+      <div className="text-foreground-alt/50 micro-fine font-medium tracking-widest uppercase">
         {label}
       </div>
       <div className="text-foreground text-xs font-semibold">{value}</div>

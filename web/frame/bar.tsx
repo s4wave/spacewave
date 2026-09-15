@@ -8,12 +8,8 @@ export interface IBarProps {
   hidden?: boolean
   // left are elements for the bottom bar left side.
   left?: React.ReactNode
-  // leftStyle are additional styles for the left Flex box.
-  leftStyle?: CSSProperties
   // right are elements for the bottom bar right side.
   right?: React.ReactNode
-  // rightStyle are additional styles for the right Flex box.
-  rightStyle?: CSSProperties
   // style are additional styles for the bar.
   style?: CSSProperties
   // className added to the root element, if applicable
@@ -22,8 +18,15 @@ export interface IBarProps {
   hideTopBorder?: boolean
 }
 
-export function Bar(props?: IBarProps) {
-  if (props?.hidden) return null
+export function Bar({
+  hidden,
+  className,
+  style,
+  left,
+  right,
+  hideTopBorder,
+}: IBarProps = {}) {
+  if (hidden) return null
   return (
     <div
       className={cn(
@@ -32,22 +35,17 @@ export function Bar(props?: IBarProps) {
         'text-center text-xs tabular-nums',
         'no-underline outline-0',
         'transition-colors duration-120',
-        'min-height-bar h-bar text-nav text-nav-font',
-        props?.className,
+        'min-h-bar h-bar text-bar-font',
+        className,
       )}
-      style={props?.style}
+      style={style}
     >
-      <div
-        className="flex min-w-0 flex-grow overflow-hidden text-left"
-        style={props?.leftStyle}
-      >
-        {props?.left}
+      <div className="flex min-w-0 flex-grow overflow-hidden text-left">
+        {left}
       </div>
-      <div className="flex shrink-0 overflow-hidden" style={props?.rightStyle}>
-        {props?.right}
-      </div>
-      {!props?.hideTopBorder ? (
-        <span className="after:bg-bar-border-top after:pointer-events-none after:absolute after:top-0 after:left-0 after:h-[1px] after:w-full after:content-['']" />
+      <div className="flex shrink-0 overflow-hidden">{right}</div>
+      {!hideTopBorder ? (
+        <span className="after:bg-bar-border-top after:content-blank after:pointer-events-none after:absolute after:top-0 after:left-0 after:h-0.25 after:w-full" />
       ) : null}
     </div>
   )

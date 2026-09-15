@@ -183,10 +183,10 @@ describe('PathInput', () => {
   })
 
   it('applies custom className', () => {
-    render(<PathInput path="/Users/testuser" className="custom-class" />)
+    render(<PathInput path="/Users/testuser" className="mt-1" />)
 
     const container = screen.getByRole('button', { name: 'File path' })
-    expect(container.className).toContain('custom-class')
+    expect(container.className).toContain('mt-1')
   })
 
   it('stops propagation when segment button is clicked', async () => {

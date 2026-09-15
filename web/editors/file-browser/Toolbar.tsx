@@ -102,7 +102,7 @@ export function Toolbar({
   const showOverflow = collapseLevel !== 'none'
 
   return (
-    <PanelHeader ref={toolbarRef} className="gap-1.5" height={height}>
+    <PanelHeader ref={toolbarRef} variant="compact" height={height}>
       {showNav && (
         <div className="flex items-center gap-0.5">
           <NavIconButton
@@ -279,7 +279,7 @@ function OverflowMenu({
           <LuEllipsisVertical className="size-4" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="text-ui min-w-[140px]">
+      <DropdownMenuContent align="end" variant="compact" className="min-w-35">
         <DropdownMenuItem onClick={onSearchClick}>
           <LuSearch className="size-3.5" />
           Search

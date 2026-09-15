@@ -267,7 +267,7 @@ function UnixFSGalleryBody({
           >
             <div
               data-testid="unixfs-gallery-grid"
-              className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,12rem),1fr))] gap-3"
+              className="grid-cols-gallery grid gap-3"
             >
               {previewItems.map((item) => {
                 const supportsLightbox = !!item.previewURL

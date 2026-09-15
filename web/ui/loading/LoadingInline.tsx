@@ -3,7 +3,7 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { Spinner, type SpinnerSize } from './Spinner.js'
 
 // LoadingInlineTone controls the color applied to both the spinner and label.
-export type LoadingInlineTone = 'brand' | 'muted' | 'destructive'
+export type LoadingInlineTone = 'brand' | 'muted' | 'subtle' | 'destructive'
 
 interface LoadingInlineProps {
   label: string
@@ -15,6 +15,7 @@ interface LoadingInlineProps {
 const toneClasses: Record<LoadingInlineTone, string> = {
   brand: 'text-brand',
   muted: 'text-foreground-alt',
+  subtle: 'text-foreground-alt/40',
   destructive: 'text-destructive',
 }
 

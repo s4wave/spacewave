@@ -36,17 +36,9 @@ export function GroupedCommandRow({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span className="truncate text-sm font-medium">{command.label}</span>
-          <Badge
-            variant="outline"
-            className="border-foreground/10 text-foreground-alt/65 font-normal"
-          >
-            {command.context}
-          </Badge>
+          <Badge variant="muted">{command.context}</Badge>
           {hasConflict ? (
-            <Badge
-              variant="destructive"
-              className="bg-destructive/15 text-destructive"
-            >
+            <Badge variant="conflict">
               <LuTriangleAlert /> Conflict
             </Badge>
           ) : null}

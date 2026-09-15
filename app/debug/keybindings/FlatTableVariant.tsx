@@ -46,7 +46,7 @@ export function FlatTableVariant({
             onChange={handleQueryChange}
             placeholder="Search commands, contexts, or keys"
             aria-label="Search shortcut inventory"
-            className="border-foreground/10 bg-background/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 pl-9"
+            variant="search"
           />
         </label>
       </div>
@@ -54,7 +54,7 @@ export function FlatTableVariant({
       <div className="overflow-x-auto">
         <table className="w-full min-w-200 border-collapse">
           <thead>
-            <tr className="border-foreground/8 bg-background/30 text-foreground-alt/50 border-b text-left text-[10px] font-semibold tracking-wider uppercase">
+            <tr className="border-foreground/8 bg-background/30 text-foreground-alt/50 micro-ten border-b text-left font-semibold tracking-wider uppercase">
               <th className="px-4 py-2.5">Command</th>
               <th className="px-4 py-2.5">Category &amp; context</th>
               <th className="px-4 py-2.5 text-right">Binding</th>

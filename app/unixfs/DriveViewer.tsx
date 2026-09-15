@@ -186,7 +186,7 @@ function DriveGettingStartedAction({
         <span className="text-foreground text-xs font-medium select-none">
           {label}
         </span>
-        <span className="text-foreground-alt/55 text-[0.65rem] leading-snug select-none">
+        <span className="text-foreground-alt/55 micro-label leading-snug select-none">
           {description}
         </span>
       </span>

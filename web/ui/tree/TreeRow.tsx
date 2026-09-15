@@ -119,7 +119,7 @@ export function TreeRow<T = void>({
   return (
     <div
       className={cn(
-        'relative flex cursor-pointer items-center gap-1 py-1 text-xs select-none',
+        'tree-row-indent relative flex cursor-pointer items-center gap-1 py-1 text-xs select-none',
         'border-foreground/6 border-b outline-none transition-colors',
         'focus-visible:ring-brand/30 focus-visible:ring-1 focus-visible:ring-inset',
         isSelected &&
@@ -130,9 +130,9 @@ export function TreeRow<T = void>({
       draggable={!!nodeOnDragStart}
       onDragStart={nodeOnDragStart ? onDragStart : undefined}
       style={{
-        paddingLeft: `${level * levelIndentPx + 4}px`,
-        paddingRight: '8px',
-        minHeight: '28px',
+        '--tree-row-padding-left': `${level * levelIndentPx + 4}px`,
+        '--tree-row-padding-right': '8px',
+        '--tree-row-min-height': '28px',
       }}
       onClick={handleTreeItemSelect}
       onKeyDown={handleTreeItemKeyDown}
@@ -159,15 +159,17 @@ export function TreeRow<T = void>({
           {Array.from({ length: level }).map((_, i) => (
             <div
               key={i}
-              className="border-foreground/6 absolute top-0 bottom-0 border-l"
-              style={{ left: `${(i + 1) * levelIndentPx + 1.5}px` }}
+              className="border-foreground/6 tree-guide-position absolute top-0 bottom-0 border-l"
+              style={{
+                '--tree-guide-left': `${(i + 1) * levelIndentPx + 1.5}px`,
+              }}
             />
           ))}
         </div>
       )}
       {hasChildren ? (
         <button
-          className="hover:bg-foreground/5 rounded p-[2px] transition-colors"
+          className="hover:bg-foreground/5 rounded p-0.5 transition-colors"
           onClick={handleToggle}
           tabIndex={-1}
           aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${node.name}`}
@@ -194,7 +196,7 @@ export function TreeRow<T = void>({
       </span>
       {node.detail && (
         <span
-          className="text-foreground-alt/50 ml-2 max-w-[42%] min-w-0 shrink truncate text-[0.6rem]"
+          className="text-foreground-alt/50 micro-text ml-2 max-w-[42%] min-w-0 shrink truncate"
           title={node.detail}
         >
           {node.detail}
@@ -205,7 +207,7 @@ export function TreeRow<T = void>({
           {node.icons.map((iconData, iconIndex) => (
             <button
               key={iconIndex}
-              className="text-foreground-alt hover:bg-foreground/5 hover:text-foreground relative rounded p-[2px] transition-colors [&>svg]:h-3 [&>svg]:w-3"
+              className="text-foreground-alt hover:bg-foreground/5 hover:text-foreground relative rounded p-0.5 transition-colors [&>svg]:h-3 [&>svg]:w-3"
               onClick={(e) => {
                 e.stopPropagation()
                 iconData.onClick?.(e)

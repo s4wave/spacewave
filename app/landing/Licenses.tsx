@@ -147,7 +147,7 @@ function LicenseGroup({
                     </p>
                   )}
                   {hasCustomText && (
-                    <pre className="text-foreground-alt/60 mt-2 max-h-64 overflow-y-auto text-[11px] leading-relaxed whitespace-pre-wrap">
+                    <pre className="text-foreground-alt/60 text-metadata mt-2 max-h-64 overflow-y-auto leading-relaxed whitespace-pre-wrap">
                       {reconstructText(entry)}
                     </pre>
                   )}

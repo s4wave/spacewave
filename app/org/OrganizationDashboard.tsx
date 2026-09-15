@@ -145,20 +145,13 @@ export function OrganizationDashboard() {
         </div>
 
         <div className="w-full max-w-md">
-          <Command
-            className={cn(
-              'border-ui-outline bg-background-get-started/95 relative flex flex-col overflow-hidden rounded-lg border shadow-xl backdrop-blur-sm',
-              !isEmpty ? 'h-[min(380px,60vh)]' : 'max-h-[min(380px,60vh)]',
-            )}
-          >
+          <Command variant={isEmpty ? 'dashboardEmpty' : 'dashboard'}>
             <CommandInput
-              className="border-ui-outline placeholder:text-foreground-alt/50 h-11 border-b"
+              variant="dashboard"
               placeholder={!isEmpty ? 'Search spaces...' : 'Get started...'}
             />
-            <CommandList className="min-h-0 flex-1 overflow-y-auto bg-transparent">
-              <CommandEmpty className="text-foreground-alt py-8 text-center text-sm">
-                No results
-              </CommandEmpty>
+            <CommandList variant="transparent">
+              <CommandEmpty variant="dashboard">No results</CommandEmpty>
 
               {!isEmpty && (
                 <CommandGroup
@@ -170,19 +163,20 @@ export function OrganizationDashboard() {
                           e.stopPropagation()
                           handleCreateSpace('drive')
                         }}
-                        className="text-brand/70 hover:text-brand cursor-pointer text-[10px] font-medium tracking-normal normal-case transition-colors"
+                        className="text-brand/70 hover:text-brand micro-ten cursor-pointer font-medium tracking-normal normal-case transition-colors"
                       >
                         + New Space
                       </button>
                     </span>
                   }
-                  className="py-1"
+                  variant="compact"
                 >
                   {spaces.map((space) => (
                     <CommandItem
                       key={space.id}
                       value={`space-${space.displayName}-${space.id}`}
-                      className="group mx-1 flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5"
+                      variant="dashboard"
+                      className="mx-1"
                       onSelect={() => handleSpaceClick(space.id ?? '')}
                     >
                       <div className="bg-brand/10 group-data-[selected=true]:bg-brand/20 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
@@ -206,13 +200,14 @@ export function OrganizationDashboard() {
 
               <CommandGroup
                 heading={isEmpty ? 'Get Started' : 'Create'}
-                className="py-1"
+                variant="compact"
               >
                 {quickstartOptions.map((opt) => (
                   <CommandItem
                     key={opt.id}
                     value={`create-${opt.id}`}
-                    className="group mx-1 flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5"
+                    variant="dashboard"
+                    className="mx-1"
                     onSelect={() => handleCreateSpace(opt.id)}
                   >
                     <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">
@@ -231,7 +226,8 @@ export function OrganizationDashboard() {
                 ))}
                 <CommandItem
                   value="join-space"
-                  className="group mx-1 flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5"
+                  variant="dashboard"
+                  className="mx-1"
                   onSelect={handleJoinSpace}
                 >
                   <div className="bg-foreground/5 group-data-[selected=true]:bg-foreground/10 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors">

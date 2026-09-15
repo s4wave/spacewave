@@ -40,13 +40,16 @@ export function KeyboardKey({
       aria-label={`${label}: ${mappedCommands.length} assigned commands`}
       aria-pressed={selected}
       className={cn(
-        'border-foreground/12 bg-background-card-alt text-foreground-alt/60 relative flex h-11 min-w-9 items-center justify-center rounded-md border px-1 font-mono text-[10px] shadow-[0_2px_0_rgba(255,255,255,0.06)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
+        'keyboard-key-layout border-foreground/12 bg-background-card-alt text-foreground-alt/60 relative flex h-11 min-w-9 items-center justify-center rounded-md border px-1 font-mono micro-ten keyboard-shadow transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
         mappedCommands.length > 0 &&
           'border-brand/30 bg-brand/8 text-foreground hover:border-brand/60 hover:bg-brand/15',
         selected && 'border-brand bg-brand/20 text-brand -translate-y-0.5',
         hasConflict && 'border-destructive/60 bg-destructive/10',
       )}
-      style={{ flexGrow: definition.grow ?? 1, flexBasis: 0 }}
+      style={{
+        '--keyboard-key-flex-grow': definition.grow ?? 1,
+        '--keyboard-key-flex-basis': '0px',
+      }}
       onMouseEnter={hover}
       onMouseLeave={clearHover}
       onFocus={hover}
@@ -57,7 +60,7 @@ export function KeyboardKey({
       {mappedCommands.length > 0 ? (
         <span
           className={cn(
-            'bg-brand text-background absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full text-[8px] font-semibold',
+            'bg-brand text-background absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full micro-eight font-semibold',
             hasConflict && 'bg-destructive',
           )}
         >

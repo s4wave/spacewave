@@ -203,7 +203,7 @@ const HeroFeature: React.FC<HeroFeatureProps> = ({
   } as const
 
   return (
-    <li className="group flex items-center transition duration-300 ease-in-out select-none hover:-translate-y-[1px]">
+    <li className="group flex items-center transition duration-300 ease-in-out select-none hover:-translate-y-0.25">
       <span
         className={cn(
           colorClasses[color],
@@ -277,7 +277,9 @@ const FaqItem: React.FC<FaqItemProps> = ({
       <div
         className={cn(
           'grid transition-all duration-300 ease-in-out',
-          isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+          isOpen
+            ? 'grid-rows-expand opacity-100'
+            : 'grid-rows-collapse opacity-0',
         )}
       >
         <div className="overflow-hidden">
@@ -345,7 +347,7 @@ const FaqAccordion: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <span className="text-foreground-alt mb-8 block text-center text-xs font-semibold tracking-[0.2em] uppercase">
+      <span className="text-foreground-alt tracking-brand-wide mb-8 block text-center text-xs font-semibold uppercase">
         Frequently asked questions
       </span>
       <div className="flex flex-col gap-3">
@@ -373,7 +375,7 @@ const HeroSection: React.FC = () => {
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <div className="bg-background absolute inset-0">
             <svg
-              className="absolute h-full w-full opacity-[0.03]"
+              className="opacity-subtle absolute h-full w-full"
               xmlns="http://www.w3.org/2000/svg"
               width="100%"
               height="100%"
@@ -667,8 +669,8 @@ function NetworkNode({
       </text>
       <foreignObject x={x - 10} y={y - 10} width="20" height="20">
         <div
-          className="flex h-full w-full items-center justify-center"
-          style={{ color }}
+          className="landing-feature-color flex h-full w-full items-center justify-center"
+          style={{ '--landing-feature-color': color }}
         >
           <Icon className="size-4" />
         </div>
@@ -1031,12 +1033,12 @@ function UseCaseCard({
       ref={ref}
       href={resolvedHref}
       className={cn(
-        'border-foreground/6 bg-background-card/30 group cursor-pointer rounded-lg border p-6 no-underline backdrop-blur-sm transition-all duration-500',
+        'feature-reveal-delay border-foreground/6 bg-background-card/30 group cursor-pointer rounded-lg border p-6 no-underline backdrop-blur-sm transition-all duration-500',
         visible
           ? 'translate-y-0 opacity-100 hover:-translate-y-1'
           : 'translate-y-8 opacity-0',
       )}
-      style={{ transitionDelay: `${index * 80}ms` }}
+      style={{ '--feature-reveal-delay': `${index * 80}ms` }}
     >
       <div className="mb-4 flex items-center gap-3">
         <div className="bg-brand/8 group-hover:bg-brand/15 flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors">
@@ -1102,7 +1104,7 @@ function ArchitectureStackDiagram() {
 
   return (
     <div ref={ref} className="mx-auto max-w-lg px-4">
-      <div className="space-y-[-1px]">
+      <div className="space-y-tight">
         {STACK_LAYERS.map((layer, i) => {
           const LayerIcon = layer.icon
           const isTop = i === STACK_LAYERS.length - 1
@@ -1110,21 +1112,20 @@ function ArchitectureStackDiagram() {
             <div
               key={layer.name}
               className={cn(
-                'transition-all duration-500',
+                'landing-stack-delay transition-all duration-500',
                 visible
                   ? 'translate-x-0 opacity-100'
                   : '-translate-x-4 opacity-0',
               )}
               style={{
-                transitionDelay: `${(STACK_LAYERS.length - 1 - i) * 100}ms`,
+                '--landing-stack-delay': `${(STACK_LAYERS.length - 1 - i) * 100}ms`,
               }}
             >
               {isTop ? (
                 <div
-                  className="border-foreground/8 bg-background-card relative rounded-lg border px-5 py-4 backdrop-blur-sm"
+                  className="landing-stack-position landing-stack-top border-foreground/8 bg-background-card relative rounded-lg border px-5 py-4 backdrop-blur-sm"
                   style={{
-                    zIndex: STACK_LAYERS.length - i,
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                    '--landing-stack-z-index': STACK_LAYERS.length - i,
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -1141,11 +1142,11 @@ function ArchitectureStackDiagram() {
                     </div>
                     <div
                       className={cn(
-                        'border-brand/15 text-brand/60 flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.55rem] font-medium transition-all duration-500',
+                        'landing-stack-delay border-brand/15 text-brand/60 flex items-center gap-1 rounded-full border px-2 py-0.5 micro-fine font-medium transition-all duration-500',
                         visible ? 'opacity-100' : 'opacity-0',
                       )}
                       style={{
-                        transitionDelay: `${STACK_LAYERS.length * 100 + 300}ms`,
+                        '--landing-stack-delay': `${STACK_LAYERS.length * 100 + 300}ms`,
                       }}
                     >
                       <LuPlus className="size-2.5" />
@@ -1155,10 +1156,10 @@ function ArchitectureStackDiagram() {
                 </div>
               ) : (
                 <div
-                  className="border-foreground/8 bg-background-card/80 flex items-center gap-2 rounded-t-lg border-x border-t px-4 py-2"
+                  className="landing-stack-position landing-stack-offset border-foreground/8 bg-background-card/80 flex items-center gap-2 rounded-t-lg border-x border-t px-4 py-2"
                   style={{
-                    zIndex: STACK_LAYERS.length - i,
-                    marginLeft: `${(STACK_LAYERS.length - 1 - i) * 6}px`,
+                    '--landing-stack-z-index': STACK_LAYERS.length - i,
+                    '--landing-stack-offset': `${(STACK_LAYERS.length - 1 - i) * 6}px`,
                   }}
                 >
                   <div className="bg-brand/8 flex size-5 shrink-0 items-center justify-center rounded">
@@ -1167,7 +1168,7 @@ function ArchitectureStackDiagram() {
                   <span className="text-foreground-alt text-xs font-medium">
                     {layer.name}
                   </span>
-                  <span className="text-foreground-alt/50 text-[0.6rem]">
+                  <span className="text-foreground-alt/50 micro-text">
                     {layer.desc}
                   </span>
                 </div>
@@ -1179,14 +1180,14 @@ function ArchitectureStackDiagram() {
 
       <div
         className={cn(
-          'mt-3 flex items-center justify-end gap-1.5 transition-all duration-500',
+          'landing-cta-delay mt-3 flex items-center justify-end gap-1.5 transition-all duration-500',
           visible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
         )}
-        style={{ transitionDelay: '600ms' }}
+        style={{ '--landing-cta-delay': '600ms' }}
       >
         <div className="border-brand/20 bg-brand/5 flex items-center gap-1.5 rounded-full border px-3 py-1">
           <LuCircuitBoard className="text-brand size-3" />
-          <span className="text-brand text-[0.5rem] font-semibold tracking-widest uppercase">
+          <span className="text-brand micro-tiny font-semibold tracking-widest uppercase">
             ControllerBus connects all layers
           </span>
         </div>
@@ -1274,11 +1275,6 @@ interface FeatureItem {
 }
 
 const ComparisonChart: React.FC = () => {
-  const columns = {
-    gridTemplateColumns:
-      'minmax(0, 1fr) clamp(5.5rem, 24%, 12rem) clamp(3.25rem, 16%, 12rem)',
-  }
-
   // Features organized by key benefits and capabilities
   const features: FeatureItem[] = [
     // Core features
@@ -1349,7 +1345,7 @@ const ComparisonChart: React.FC = () => {
     <div className="mx-auto max-w-4xl text-base @md:text-lg">
       <div className="border-foreground/10 bg-background-card-alt overflow-hidden rounded-lg border backdrop-blur-sm">
         {/* Header */}
-        <div className="border-foreground/10 grid border-b" style={columns}>
+        <div className="comparison-chart-grid border-foreground/10 grid border-b">
           <div className="p-4 font-medium">Feature</div>
           <div className="px-1 py-4 text-center text-sm font-medium text-white @md:p-4 @md:text-base">
             Spacewave
@@ -1364,8 +1360,7 @@ const ComparisonChart: React.FC = () => {
           {features.map((feature) => (
             <div
               key={feature.name}
-              className="grid items-center"
-              style={columns}
+              className="comparison-chart-grid grid items-center"
             >
               <div className="flex items-center gap-2 p-4">
                 <span className="text-foreground-alt flex-shrink-0">

@@ -234,7 +234,7 @@ export function ForgeClusterViewer({
                       key={state}
                       className="border-foreground/6 bg-background-card/30 rounded-lg border px-3 py-2"
                     >
-                      <div className="text-foreground-alt/60 text-[0.6rem] tracking-widest uppercase">
+                      <div className="text-foreground-alt/60 micro-text tracking-widest uppercase">
                         {label}
                       </div>
                       <div className="text-foreground mt-1 text-lg font-semibold">
@@ -370,8 +370,10 @@ export function ForgeClusterViewer({
                       </div>
                       <div className="bg-foreground/8 h-1.5 w-full overflow-hidden rounded-full">
                         <div
-                          className="bg-brand h-full transition-[width] duration-200"
-                          style={{ width: `${progressPercent}%` }}
+                          className="bg-brand forge-progress-width progress-width-transition h-full"
+                          style={{
+                            '--forge-progress-width': `${progressPercent}%`,
+                          }}
                         />
                       </div>
                       {startable && (

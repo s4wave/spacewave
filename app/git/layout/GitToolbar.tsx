@@ -51,7 +51,7 @@ export function GitToolbar({
           onClick={onBack}
           disabled={!canGoBack}
           className={cn(
-            'rounded p-[2px]',
+            'rounded p-0.5',
             canGoBack ? 'hover:bg-pulldown-hover' : 'cursor-default opacity-40',
           )}
         >
@@ -61,7 +61,7 @@ export function GitToolbar({
           onClick={onForward}
           disabled={!canGoForward}
           className={cn(
-            'rounded p-[2px]',
+            'rounded p-0.5',
             canGoForward
               ? 'hover:bg-pulldown-hover'
               : 'cursor-default opacity-40',
@@ -73,7 +73,7 @@ export function GitToolbar({
           onClick={onUp}
           disabled={currentPath === '/'}
           className={cn(
-            'rounded p-[2px]',
+            'rounded p-0.5',
             currentPath !== '/'
               ? 'hover:bg-pulldown-hover'
               : 'cursor-default opacity-40',

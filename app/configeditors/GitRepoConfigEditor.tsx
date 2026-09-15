@@ -7,9 +7,6 @@ import { cn } from '@s4wave/web/style/utils.js'
 import { RadioOption } from '@s4wave/web/ui/RadioOption.js'
 import type { CreateGitRepoWizardOp } from '@s4wave/core/git/git.pb.js'
 
-const inputClassName =
-  'border-foreground/10 bg-background/20 text-foreground placeholder:text-foreground-alt/40 focus-visible:border-brand/50 focus-visible:ring-brand/15 h-9 text-xs md:text-xs'
-
 // GitRepoConfigEditor edits the config-specific fields of a CreateGitRepoWizardOp.
 // Renders a new/clone toggle and clone options (URL, ref, depth, recursive).
 export function GitRepoConfigEditor({
@@ -77,7 +74,7 @@ export function GitRepoConfigEditor({
                   })
                 }
                 placeholder="https://github.com/user/repo.git"
-                className={inputClassName}
+                variant="configCompact"
               />
             </div>
             <div className="space-y-2">
@@ -97,7 +94,7 @@ export function GitRepoConfigEditor({
                   })
                 }
                 placeholder="main (leave empty for default)"
-                className={inputClassName}
+                variant="configCompact"
               />
             </div>
             <div className="space-y-2">

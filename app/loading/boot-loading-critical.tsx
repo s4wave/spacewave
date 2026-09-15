@@ -42,9 +42,5 @@ export const BOOT_LOADING_CRITICAL_CSS = `
 // a single injected stylesheet. The style is inlined rather than linked so it
 // is applied without a network round-trip during the boot window.
 export function BootLoadingCriticalStyle() {
-  return (
-    <style href="sw-boot-loading-critical" precedence="high">
-      {BOOT_LOADING_CRITICAL_CSS}
-    </style>
-  )
+  return null
 }

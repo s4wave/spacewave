@@ -399,7 +399,7 @@ function RequestRecoveryForm({
         disabled={loading}
       >
         {loading ? (
-          <Spinner className="text-foreground" />
+          <Spinner variant="foreground" />
         ) : (
           <LuArrowRight className="text-foreground size-4" />
         )}
@@ -428,7 +428,7 @@ function VerifyingStep({ loading, error, onGoToLogin }: VerifyingStepProps) {
     return (
       <div className="space-y-4">
         <div className="flex flex-col items-center gap-2">
-          <Spinner size="lg" className="text-foreground-alt" />
+          <Spinner size="lg" variant="muted" />
           <p className="text-foreground-alt text-sm">
             Verifying recovery token…
           </p>
@@ -640,7 +640,7 @@ function ExecutingStep() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-3">
-        <Spinner size="lg" className="text-foreground-alt" />
+        <Spinner size="lg" variant="muted" />
         <h2 className="text-foreground text-sm font-medium">
           Resetting your password…
         </h2>

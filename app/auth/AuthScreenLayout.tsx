@@ -32,7 +32,7 @@ export function AuthScreenLayout({
   return (
     <div
       className={cn(
-        'bg-background-landing [container-type:size] relative flex w-full flex-1 flex-col items-center justify-center gap-6 overflow-y-auto outline-none',
+        'bg-background-landing @container relative flex w-full flex-1 flex-col items-center justify-center gap-6 overflow-y-auto outline-none',
         'auth-very-short:justify-start',
         className,
       )}

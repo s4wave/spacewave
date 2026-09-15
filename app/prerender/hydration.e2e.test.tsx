@@ -123,9 +123,7 @@ describe('Hydration', () => {
     const serverButton = container.querySelector(
       'button[aria-label="Scroll down to learn more"]',
     )
-    expect(serverButton?.getAttribute('class')).toContain(
-      'animate-[pulse_8s_ease-in-out_infinite]',
-    )
+    expect(serverButton?.getAttribute('class')).toContain('animate-logo-medium')
 
     setDocumentVisibility('hidden')
     root = hydrateRoot(container, tree)
@@ -136,7 +134,7 @@ describe('Hydration', () => {
       'button[aria-label="Scroll down to learn more"]',
     )
     expect(hydratedButton?.getAttribute('class')).toContain(
-      'animate-[pulse_8s_ease-in-out_infinite]',
+      'animate-logo-medium',
     )
   })
 

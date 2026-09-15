@@ -22,7 +22,7 @@ export function QuickstartUnavailable({
         <EmptyState
           title="Quickstart not available"
           description={description}
-          className="p-0"
+          variant="compact"
         />
         <div className="mt-6 flex justify-center">
           {onBack ? (

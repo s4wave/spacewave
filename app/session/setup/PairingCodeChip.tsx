@@ -30,7 +30,7 @@ export function PairingCodeChip({ code, className }: PairingCodeChipProps) {
         onClick={handleCopy}
         aria-label="Copy pairing code"
         className={cn(
-          'border-foreground/20 bg-foreground/5 text-foreground rounded-md border font-mono text-2xl font-bold tracking-[0.2em]',
+          'border-foreground/20 bg-foreground/5 text-foreground rounded-md border font-mono text-2xl font-bold tracking-brand-wide',
           'flex h-14 items-center justify-center gap-3 px-4 select-all',
           'cursor-pointer transition-colors hover:border-foreground/40 hover:bg-foreground/8',
           'focus-visible:border-brand/50 focus-visible:outline-none',

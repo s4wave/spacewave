@@ -145,7 +145,7 @@ export function BillingCancelPage() {
       {checkout.consentDialog}
       <div className="flex flex-col items-center gap-2">
         <AnimatedLogo followMouse={false} />
-        <div className="border-brand/25 bg-brand/8 text-brand mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium tracking-wide uppercase">
+        <div className="border-brand/25 bg-brand/8 text-brand text-metadata mt-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 font-medium tracking-wide uppercase">
           <LuCalendarX className="size-3.5" />
           {isCancelScheduled
             ? 'Cancellation scheduled'

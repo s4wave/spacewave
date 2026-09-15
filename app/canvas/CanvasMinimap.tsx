@@ -159,10 +159,13 @@ export function CanvasMinimap({
     <div
       ref={minimapRef}
       className={cn(
-        'bg-background-card/30 border-foreground/6 absolute right-4 bottom-4 overflow-hidden rounded-lg border backdrop-blur-sm',
+        'minimap-size bg-background-card/30 border-foreground/6 absolute right-4 bottom-4 overflow-hidden rounded-lg border backdrop-blur-sm',
         className,
       )}
-      style={{ width: MINIMAP_WIDTH, height: MINIMAP_HEIGHT }}
+      style={{
+        '--minimap-width': `${MINIMAP_WIDTH}px`,
+        '--minimap-height': `${MINIMAP_HEIGHT}px`,
+      }}
       role="button"
       tabIndex={0}
       aria-label="Center canvas minimap"
@@ -172,22 +175,22 @@ export function CanvasMinimap({
       {nodeRects.map((r) => (
         <div
           key={r.key}
-          className="bg-foreground-alt/25 absolute rounded-[1px]"
+          className="minimap-rect bg-foreground-alt/25 absolute rounded-xs"
           style={{
-            left: r.x,
-            top: r.y,
-            width: r.width,
-            height: r.height,
+            '--minimap-left': `${r.x}px`,
+            '--minimap-top': `${r.y}px`,
+            '--minimap-rect-width': `${r.width}px`,
+            '--minimap-rect-height': `${r.height}px`,
           }}
         />
       ))}
       <div
-        className="border-brand/30 bg-brand/5 absolute rounded-sm border"
+        className="minimap-rect border-brand/30 bg-brand/5 absolute rounded-sm border"
         style={{
-          left: vpRect.x,
-          top: vpRect.y,
-          width: vpRect.width,
-          height: vpRect.height,
+          '--minimap-left': `${vpRect.x}px`,
+          '--minimap-top': `${vpRect.y}px`,
+          '--minimap-rect-width': `${vpRect.width}px`,
+          '--minimap-rect-height': `${vpRect.height}px`,
         }}
       />
     </div>

@@ -248,7 +248,7 @@ export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
               'border-foreground/6 mt-2 border-t pt-2',
           )}
         >
-          <div className="text-foreground-alt/50 mb-1 text-[0.6rem] font-medium tracking-wider uppercase">
+          <div className="text-foreground-alt/50 micro-text mb-1 font-medium tracking-wider uppercase">
             Invites
           </div>
           <div className="space-y-1">
@@ -272,7 +272,7 @@ export function SpaceMembersPanel({ compact = false }: SpaceMembersPanelProps) {
               'border-foreground/6 mt-2 border-t pt-2',
           )}
         >
-          <div className="text-foreground-alt/50 mb-1 text-[0.6rem] font-medium tracking-wider uppercase">
+          <div className="text-foreground-alt/50 micro-text mb-1 font-medium tracking-wider uppercase">
             Pending Requests
           </div>
           {mailboxEntries.length > 0 ? (
@@ -434,7 +434,7 @@ function PendingRequestRow(props: {
         <span className="text-foreground-alt/40 text-xs">{inviteLabel}</span>
       )}
       {props.processing ? (
-        <Spinner size="sm" className="text-foreground-alt/40" />
+        <Spinner size="sm" variant="subtle" />
       ) : (
         <>
           <button

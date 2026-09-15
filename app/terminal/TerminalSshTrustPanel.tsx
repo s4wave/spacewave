@@ -1,6 +1,5 @@
 import { LuCheck, LuShieldQuestion, LuX } from 'react-icons/lu'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import { Button } from '@s4wave/web/ui/button.js'
 import { DashboardButton } from '@s4wave/web/ui/DashboardButton.js'
 
@@ -27,7 +26,7 @@ export function TerminalSshTrustPanel({
             <LuShieldQuestion className="size-3.5 shrink-0" />
             Confirm SSH host key
           </div>
-          <div className="grid gap-1 text-xs md:grid-cols-[8rem_minmax(0,1fr)]">
+          <div className="md:grid-cols-form grid gap-1 text-xs">
             <span className="text-foreground-alt/60 select-none">Host</span>
             <span className="text-foreground font-mono break-all">
               {challenge.sshTrustHost || 'unknown'}
@@ -52,14 +51,11 @@ export function TerminalSshTrustPanel({
         </div>
         <div className="flex shrink-0 gap-2">
           <Button
-            className={cn(
-              'border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground',
-              'h-7 gap-1.5 px-3 text-xs font-medium transition-all duration-150 select-none',
-            )}
+            variant="brandOutline"
+            size="brandWide"
+            className="select-none"
             onClick={() => onRespond(true)}
-            size="sm"
             type="button"
-            variant="outline"
           >
             <LuCheck className="size-3.5" />
             Trust

@@ -186,10 +186,6 @@ export function FileListEntry({
     [context?.selectedIds, entry, getDownloadDragTarget],
   )
 
-  const iconStyle = useMemo(
-    () => (entry?.color ? { color: entry.color } : undefined),
-    [entry],
-  )
   const isDropTargetActive = entry?.id === dropTargetEntryId
 
   const handleDragStart = useCallback(
@@ -247,24 +243,24 @@ export function FileListEntry({
   if (!entry) return null
 
   const defaultNode = (
-    <div className="flex min-w-[120px] flex-1 items-center gap-2 overflow-hidden">
+    <div className="flex min-w-30 flex-1 items-center gap-2 overflow-hidden">
       {isEntryLoading ? (
-        <Spinner className="text-brand shrink-0" />
+        <Spinner variant="brand" className="shrink-0" />
       ) : entry.isDir ? (
         <LuFolder
           className={cn(
-            'size-4 shrink-0',
+            'file-entry-color size-4 shrink-0',
             selected ? 'text-brand' : 'text-foreground-alt/80',
           )}
-          style={iconStyle}
+          style={{ '--file-entry-color': entry.color }}
         />
       ) : (
         <LuFile
           className={cn(
-            'size-4 shrink-0',
+            'file-entry-color size-4 shrink-0',
             selected ? 'text-foreground' : 'text-foreground-alt/60',
           )}
-          style={iconStyle}
+          style={{ '--file-entry-color': entry.color }}
         />
       )}
       <span className="truncate">{entry.name || entry.id}</span>
@@ -280,12 +276,12 @@ export function FileListEntry({
             path: currentPath ?? '/',
           })
         : defaultNode}
-      <div className="text-foreground-alt/50 w-[140px] min-w-[100px] shrink text-xs">
+      <div className="text-foreground-alt/50 w-35 min-w-25 shrink text-xs">
         {entryDetails?.modTime
           ? format(entryDetails.modTime, 'MMM dd, yyyy')
           : '—'}
       </div>
-      <div className="text-foreground-alt/50 w-[70px] min-w-[50px] shrink text-right text-xs">
+      <div className="text-foreground-alt/50 w-17.5 min-w-12.5 shrink text-right text-xs">
         {entryDetails?.size && !entry.isSymlink
           ? entry.isDir
             ? entryDetails.size
@@ -324,6 +320,7 @@ export function FileListEntry({
           : 'text-foreground/90 hover:bg-foreground/5',
         focused && !selected && 'ring-brand/25 ring-1 ring-inset',
         isDropTargetActive && 'bg-brand/10 ring-brand/40 ring-1 ring-inset',
+        style['--list-row-height'] !== undefined && 'list-row-height',
       )}
       draggable={dragEnvelope !== null || downloadDragTarget !== null}
       onClick={handleEntrySelect}
@@ -337,7 +334,7 @@ export function FileListEntry({
       onDrop={handleDrop}
     >
       {selected && (
-        <span className="bg-brand/80 absolute top-1 bottom-1 left-0 w-[2px] rounded-r" />
+        <span className="bg-brand/80 absolute top-1 bottom-1 left-0 w-0.5 rounded-r" />
       )}
       {rowContent}
     </div>

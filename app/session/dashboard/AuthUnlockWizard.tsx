@@ -186,9 +186,9 @@ function AuthUnlockWizardContent({
 
             <div className="bg-foreground/5 h-1.5 w-full overflow-hidden rounded-full">
               <div
-                className="bg-brand h-full transition-[width] duration-300"
+                className="bg-brand progress-width progress-width-transition-medium h-full"
                 style={{
-                  width: `${Math.min(100, (unlockedCount / required) * 100)}%`,
+                  '--progress-width': `${Math.min(100, (unlockedCount / required) * 100)}%`,
                 }}
               />
             </div>

@@ -19,16 +19,9 @@ function MockShellFlexLayout({ withMenu = true }: { withMenu?: boolean }) {
     : 'shell-flexlayout'
 
   return (
-    <div
-      className={shellClass}
-      style={{ width: 800, height: 400 }}
-      data-testid="shell"
-    >
+    <div className={`${shellClass} h-100 w-200`} data-testid="shell">
       <div className="flexlayout__optimized_layout">
-        <div
-          className="flexlayout__layout"
-          style={{ position: 'relative', width: '100%', height: '100%' }}
-        >
+        <div className="flexlayout__layout relative size-full">
           <div className="flexlayout__layout_main">
             <div className="flexlayout__row">
               <div className="flexlayout__tabset_container">
@@ -96,7 +89,7 @@ function MockShellFlexLayout({ withMenu = true }: { withMenu?: boolean }) {
                     className="flexlayout__tabset_content"
                     data-testid="content"
                   >
-                    <div className="flexlayout__tab" style={{ flex: 1 }}>
+                    <div className="flexlayout__tab flex-1">
                       <div>Tab content</div>
                     </div>
                   </div>

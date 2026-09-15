@@ -133,7 +133,7 @@ function ListenerYieldNotifierInner({
       <Dialog open={active != null} onOpenChange={onOpenChange}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle variant="withIcon">
               <LuTriangleAlert className="text-warning size-5 shrink-0" />
               Allow command-line takeover?
             </DialogTitle>
@@ -152,7 +152,7 @@ function ListenerYieldNotifierInner({
               </div>
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="space-y-0.5">
-                  <p className="text-foreground-alt/60 text-[0.65rem] font-medium tracking-wider uppercase select-none">
+                  <p className="text-foreground-alt/60 micro-label font-medium tracking-wider uppercase select-none">
                     Requesting runtime
                   </p>
                   <p className="text-foreground truncate text-sm font-medium">
@@ -160,7 +160,7 @@ function ListenerYieldNotifierInner({
                   </p>
                 </div>
                 <div className="space-y-0.5">
-                  <p className="text-foreground-alt/60 text-[0.65rem] font-medium tracking-wider uppercase select-none">
+                  <p className="text-foreground-alt/60 micro-label font-medium tracking-wider uppercase select-none">
                     Socket path
                   </p>
                   <p className="text-foreground-alt truncate font-mono text-xs">
@@ -258,7 +258,7 @@ function RuntimeHandoffBanner({
           </p>
           <p className="text-foreground-alt/60 mt-0.5 text-xs">
             {requesterName} is running against{' '}
-            <code className="bg-foreground/5 rounded px-1 py-0.5 font-mono text-[10px]">
+            <code className="bg-foreground/5 micro-ten rounded px-1 py-0.5 font-mono">
               {socketPath}
             </code>
             . Runtime actions are disabled until you reclaim.

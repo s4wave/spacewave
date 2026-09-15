@@ -21,8 +21,8 @@ export function ProgressBar({ value, indeterminate, rate }: ProgressBarProps) {
           <div className="bg-brand animate-progress-indeterminate absolute inset-y-0 w-1/3 rounded-full motion-reduce:left-0 motion-reduce:w-full motion-reduce:animate-none motion-reduce:opacity-70" />
         ) : (
           <div
-            className="bg-brand h-full rounded-full transition-[width] duration-200 motion-reduce:transition-none"
-            style={{ width: `${pct}%` }}
+            className="bg-brand progress-width progress-width-transition h-full rounded-full motion-reduce:transition-none"
+            style={{ '--progress-width': `${pct}%` }}
           />
         )}
       </div>

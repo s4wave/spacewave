@@ -321,30 +321,27 @@ function SqlQueryEditor({
       <div className="flex items-center gap-2">
         <Button
           variant="default"
-          size="sm"
           onClick={() => void handleRun()}
           disabled={!canRun}
-          className="h-7 gap-1 text-xs"
+          size="toolbar"
         >
           <LuPlay className="size-3.5" />
           Run
         </Button>
         <Button
           variant="outline"
-          size="sm"
           onClick={() => void handleSave()}
           disabled={busy || paramError != null || !(textDirty || paramsDirty)}
-          className="h-7 gap-1 text-xs"
+          size="toolbar"
         >
           <LuSave className="size-3.5" />
           Save
         </Button>
         <Button
           variant="ghost"
-          size="sm"
           onClick={handleDiscard}
           disabled={busy || !(textDirty || paramsDirty)}
-          className="h-7 gap-1 text-xs"
+          size="toolbar"
         >
           <LuUndo2 className="size-3.5" />
           Discard
@@ -398,9 +395,9 @@ function SqlQueryEditor({
             {onOpenTargetDb && targetDb.trim() ? (
               <Button
                 variant="ghost"
-                size="sm"
                 onClick={() => onOpenTargetDb(targetDb)}
-                className="h-7 shrink-0 text-xs"
+                className="shrink-0"
+                size="toolbarText"
               >
                 Open
               </Button>
@@ -414,13 +411,7 @@ function SqlQueryEditor({
           <span className="text-foreground text-xs font-medium">
             Parameters
           </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={addParam}
-            disabled={busy}
-            className="h-6 gap-1 px-2 text-xs"
-          >
+          <Button variant="ghost" onClick={addParam} disabled={busy} size="xs">
             <LuPlus className="size-3" />
             Add
           </Button>
@@ -577,11 +568,11 @@ function ParamEditorRow({
         className="border-foreground/10 bg-background-primary text-foreground focus-visible:ring-ring min-w-0 flex-1 rounded border px-2 py-1 font-mono text-xs focus-visible:ring-1 focus-visible:outline-none disabled:opacity-50"
       />
       <Button
-        variant="ghost"
-        size="sm"
         onClick={() => onRemove(row.id)}
         disabled={disabled}
-        className="text-destructive/70 hover:text-destructive hover:bg-destructive/10 size-6 shrink-0 p-0"
+        variant="dangerGhost"
+        size="iconXs"
+        className="shrink-0"
       >
         <LuTrash2 className="size-3.5" />
       </Button>

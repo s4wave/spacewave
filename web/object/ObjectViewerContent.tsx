@@ -119,7 +119,7 @@ export function ObjectViewerContent({
     <div
       className={cn(
         'flex h-full w-full flex-col overflow-hidden',
-        !disablePadding && 'p-[5px]',
+        !disablePadding && 'p-1.25',
       )}
     >
       <WebViewErrorBoundary>

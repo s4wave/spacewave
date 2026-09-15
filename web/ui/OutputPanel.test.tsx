@@ -83,12 +83,8 @@ describe('OutputPanel', () => {
   })
 
   it('applies custom className', () => {
-    const { container } = render(
-      <OutputPanel lines={[]} className="my-output-panel" />,
-    )
-    expect(
-      container.firstElementChild?.classList.contains('my-output-panel'),
-    ).toBe(true)
+    const { container } = render(<OutputPanel lines={[]} className="mt-1" />)
+    expect(container.firstElementChild?.classList.contains('mt-1')).toBe(true)
   })
 
   it('shows both error and lines when both are present', () => {

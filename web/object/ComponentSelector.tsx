@@ -197,7 +197,7 @@ export function ComponentSelector({
           role="menu"
           className={cn(
             'absolute right-0 bottom-full z-50 mb-1',
-            'border-border bg-background-card min-w-[200px] rounded-md border p-1 shadow-md',
+            'border-border bg-background-card min-w-50 rounded-md border p-1 shadow-md',
           )}
         >
           <div className="text-foreground px-2 py-1.5 text-sm font-semibold">
@@ -216,7 +216,7 @@ export function ComponentSelector({
               return (
                 <div
                   key={`hdr-${entry.category}`}
-                  className="text-muted-foreground px-2 py-1 text-[10px] font-medium tracking-wider uppercase"
+                  className="text-muted-foreground micro-ten px-2 py-1 font-medium tracking-wider uppercase"
                 >
                   {entry.category}
                 </div>

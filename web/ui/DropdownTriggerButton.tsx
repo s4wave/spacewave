@@ -35,7 +35,7 @@ export function DropdownTriggerButton({
         ],
         triggerStyle === 'ghost' && [
           'text-foreground-alt hover:text-brand hover:bg-transparent',
-          'h-auto px-0 py-0 text-[11px] font-normal shadow-none',
+          'h-auto px-0 py-0 text-metadata font-normal shadow-none',
         ],
         className,
       )}

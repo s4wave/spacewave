@@ -55,7 +55,7 @@ export function ActionCard({
           {label}
         </h4>
         {!compact && (
-          <p className="text-foreground-alt/50 text-[0.6rem] select-none">
+          <p className="text-foreground-alt/50 micro-text select-none">
             {description}
           </p>
         )}

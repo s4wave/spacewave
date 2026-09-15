@@ -18,7 +18,7 @@ export function DebugIndex({ links }: DebugIndexProps) {
     <div className="bg-background flex h-full w-full flex-1 overflow-y-auto p-6">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <div>
-          <p className="text-brand text-xs font-semibold tracking-[0.22em] uppercase">
+          <p className="text-brand tracking-brand-display text-xs font-semibold uppercase">
             Developer
           </p>
           <h1 className="text-foreground mt-2 text-2xl font-semibold tracking-tight">

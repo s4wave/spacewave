@@ -83,7 +83,7 @@ function InviteRow(props: {
           icon={<LuTrash2 className="size-3" />}
           onClick={() => void handleRevoke()}
           disabled={revoking}
-          className="text-destructive hover:bg-destructive/10"
+          variant="destructive"
         >
           Revoke
         </DashboardButton>

@@ -63,12 +63,12 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
             </div>
           ) : null}
           {view.lastActivity ? (
-            <div className="text-foreground-alt/40 mt-2 text-[0.65rem]">
+            <div className="text-foreground-alt/40 micro-label mt-2">
               {view.lastActivity}
             </div>
           ) : null}
           {view.error ? (
-            <div className="bg-destructive/5 border-destructive/15 text-destructive mt-2 rounded-md border px-2 py-1 text-[0.65rem] leading-relaxed">
+            <div className="bg-destructive/5 border-destructive/15 text-destructive micro-label mt-2 rounded-md border px-2 py-1 leading-relaxed">
               {view.error}
             </div>
           ) : null}
@@ -78,7 +78,7 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
                 <button
                   type="button"
                   onClick={view.onRetry}
-                  className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground rounded-md border px-2 py-1 text-[0.65rem] font-medium transition duration-150"
+                  className="border-foreground/8 bg-foreground/5 hover:bg-foreground/10 hover:border-foreground/15 text-foreground-alt hover:text-foreground micro-label rounded-md border px-2 py-1 font-medium transition duration-150"
                 >
                   {view.retryLabel ?? 'Retry'}
                 </button>
@@ -87,7 +87,7 @@ export function LoadingCard({ view, className }: LoadingCardProps) {
                 <button
                   type="button"
                   onClick={view.onCancel}
-                  className="text-foreground-alt/60 hover:text-foreground-alt rounded-md px-2 py-1 text-[0.65rem] font-medium transition-colors"
+                  className="text-foreground-alt/60 hover:text-foreground-alt micro-label rounded-md px-2 py-1 font-medium transition-colors"
                 >
                   {view.cancelLabel ?? 'Cancel'}
                 </button>
@@ -121,7 +121,7 @@ function LoadingCardIcon({ state }: { state: LoadingState }) {
 function RatePill({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-foreground/6 bg-foreground/5 rounded-md border px-2 py-1">
-      <div className="text-foreground-alt/50 text-[0.55rem] font-medium tracking-widest uppercase">
+      <div className="text-foreground-alt/50 micro-fine font-medium tracking-widest uppercase">
         {label}
       </div>
       <div className="text-foreground text-xs font-semibold tabular-nums">

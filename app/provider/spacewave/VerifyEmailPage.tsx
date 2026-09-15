@@ -89,7 +89,7 @@ export function VerifyEmailPage() {
           {/* Email cards */}
           {loading && !emails ? (
             <div className="flex items-center justify-center py-8">
-              <Spinner size="md" className="text-foreground-alt" />
+              <Spinner size="md" variant="muted" />
             </div>
           ) : (
             <>
@@ -340,7 +340,7 @@ function EmailCard({
             }}
             className={cn(
               inputClass,
-              'text-center font-mono text-lg tracking-[0.3em]',
+              'text-center font-mono text-lg tracking-brand-extra-wide',
             )}
           />
           <button

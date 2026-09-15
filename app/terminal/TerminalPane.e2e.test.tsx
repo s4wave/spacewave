@@ -115,7 +115,7 @@ describe('TerminalPane design-system visuals', () => {
 
   it('paints the console on the warm design tokens and mono font', async () => {
     await render(
-      <div className="bg-background-dark flex h-[560px] w-[900px] flex-col">
+      <div className="bg-background-dark flex h-140 w-225 flex-col">
         <TerminalPane connectTerminal={sampleConnector()} />
       </div>,
     )

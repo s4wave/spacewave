@@ -82,7 +82,7 @@ function OrgMemberRow(props: {
         <div className="text-foreground-alt/50 flex items-center gap-2 text-xs">
           <span
             className={cn(
-              'rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase',
+              'rounded-full px-1.5 py-0.5 micro-nine font-semibold tracking-wider uppercase',
               isMemberOwner
                 ? 'bg-brand/15 text-brand'
                 : 'bg-foreground/10 text-foreground-alt/70',
@@ -98,7 +98,7 @@ function OrgMemberRow(props: {
           icon={<LuUserMinus className="size-3" />}
           onClick={() => void handleRemove()}
           disabled={removing}
-          className="text-destructive hover:bg-destructive/10"
+          variant="destructive"
         >
           {removing ? 'Removing…' : 'Remove'}
         </DashboardButton>

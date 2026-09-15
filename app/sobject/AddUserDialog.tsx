@@ -298,7 +298,7 @@ export function AddUserDialog({
           </TabsList>
 
           {hasOrgTab && (
-            <TabsContent value="members" className="space-y-3 pt-2">
+            <TabsContent value="members" variant="formTight">
               <OrgMembersTab
                 session={session ?? null}
                 spaceId={spaceId}
@@ -309,7 +309,7 @@ export function AddUserDialog({
             </TabsContent>
           )}
 
-          <TabsContent value="code" className="space-y-3 pt-2">
+          <TabsContent value="code" variant="formTight">
             {shortCode ? (
               <div className="space-y-2">
                 <label
@@ -365,7 +365,7 @@ export function AddUserDialog({
           </TabsContent>
 
           {isCloudProvider && (
-            <TabsContent value="username" className="space-y-3 pt-2">
+            <TabsContent value="username" variant="formTight">
               <div className="space-y-2">
                 <label
                   htmlFor={usernameInputId}
@@ -408,7 +408,7 @@ export function AddUserDialog({
             </TabsContent>
           )}
 
-          <TabsContent value="link" className="space-y-4 pt-3">
+          <TabsContent value="link" variant="form">
             <div className="border-foreground/8 bg-background-card/20 rounded-lg border p-3">
               <div className="text-foreground text-sm font-medium">
                 Share a Space invite
@@ -611,11 +611,11 @@ function OrgMembersTab({
                   {primaryLabel}
                 </div>
                 {secondaryLabel && (
-                  <div className="text-foreground-alt/50 truncate font-mono text-[10px]">
+                  <div className="text-foreground-alt/50 micro-ten truncate font-mono">
                     {secondaryLabel}
                   </div>
                 )}
-                <div className="text-foreground-alt/50 text-[10px]">
+                <div className="text-foreground-alt/50 micro-ten">
                   {member.roleId === 'org:owner' ? 'Owner' : 'Member'}
                 </div>
               </div>

@@ -309,7 +309,7 @@ function useSessionContainerController(props: SessionContainerProps) {
           <span
             data-testid="session-account-provider-badge"
             className={cn(
-              'ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wider uppercase',
+              'ml-1.5 rounded-full px-1.5 py-0.5 micro-nine font-semibold tracking-wider uppercase',
               badgeClass,
             )}
           >
@@ -571,7 +571,7 @@ export function SessionContainer(props: SessionContainerProps) {
                             </h2>
                             <p className="text-foreground-alt/60 text-center text-xs">
                               No page exists at{' '}
-                              <code className="text-foreground-alt/80 bg-foreground/5 rounded px-1.5 py-0.5 font-mono text-[0.7rem]">
+                              <code className="text-foreground-alt/80 bg-foreground/5 micro-seven rounded px-1.5 py-0.5 font-mono">
                                 {path}
                               </code>
                             </p>
@@ -691,7 +691,7 @@ function TargetedInvitationInbox(props: {
   if (!session || pending.length === 0) return null
 
   return (
-    <div className="pointer-events-none fixed right-4 bottom-16 z-40 w-[min(22rem,calc(100vw-2rem))]">
+    <div className="pointer-events-none fixed right-4 bottom-16 z-40 w-(--width-session-overlay)">
       <div className="border-foreground/10 bg-background-card/95 pointer-events-auto rounded-lg border p-3 shadow-lg backdrop-blur">
         <div className="mb-2 flex items-center gap-2">
           <LuInbox className="text-foreground-alt size-4" />

@@ -84,7 +84,7 @@ export function ShellTabLabel({ tab }: ShellTabLabelProps) {
         className={cn(
           'bg-background-secondary text-foreground rounded-menu-button',
           'border-none outline-none',
-          'text-[0.6875rem] leading-5 font-medium tracking-[-0.01em]',
+          'text-metadata leading-5 font-medium tracking-tight-brand',
           'w-full max-w-64 min-w-12 px-1 py-0',
         )}
         value={editValue}

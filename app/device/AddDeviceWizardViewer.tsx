@@ -798,7 +798,7 @@ function SshHostSetupForm({
           <LuServer className="size-3.5" />
           SSH Endpoint
         </div>
-        <div className="grid gap-2 sm:grid-cols-[1fr_5rem_8rem]">
+        <div className="sm:grid-cols-device grid gap-2">
           <WizardField
             label="Host"
             value={config.host ?? ''}
@@ -907,7 +907,7 @@ function SshHostSetupForm({
           Trust mode: <span className="font-medium">{trustMode}</span>. Leave
           the fields empty to ask on the first connection.
         </p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-[8rem_1fr]">
+        <div className="sm:grid-cols-form mt-3 grid gap-2">
           <WizardField
             label="Algorithm"
             value={config.hostKeyAlgorithm ?? 'ssh-ed25519'}
@@ -915,7 +915,7 @@ function SshHostSetupForm({
               onConfigChange({ hostKeyAlgorithm: e.target.value })
             }
             placeholder="ssh-ed25519"
-            className="font-mono text-xs"
+            variant="compactMono"
           />
           <WizardField
             label="Fingerprint"
@@ -924,7 +924,7 @@ function SshHostSetupForm({
               onConfigChange({ hostKeyFingerprint: e.target.value })
             }
             placeholder="SHA256:..."
-            className="font-mono text-xs"
+            variant="compactMono"
           />
         </div>
         <WizardTextareaField
@@ -1047,7 +1047,7 @@ function CommandPanel({
         </div>
         <CopyButton text={command} label={`Copy ${title}`} />
       </div>
-      <pre className="border-foreground/8 bg-background/40 text-foreground-alt overflow-x-auto rounded-md border p-2 font-mono text-[0.7rem] leading-relaxed">
+      <pre className="border-foreground/8 bg-background/40 text-foreground-alt micro-seven overflow-x-auto rounded-md border p-2 font-mono leading-relaxed">
         {command}
       </pre>
     </div>
@@ -1101,9 +1101,10 @@ function SpaceLinkApprovalPanel({
           {DEVICE_APPROVAL_CLOUD_REQUIRED}
         </p>
         <Button
-          size="sm"
+          variant="brandOutline"
+          size="toolbarWide"
           onClick={onSignIn}
-          className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs transition duration-150"
+          className="mt-3"
         >
           <LuLogIn className="size-3.5" />
           Sign in or create account
@@ -1180,10 +1181,11 @@ function SpaceLinkApprovalPanel({
         )}
         {ticketReady && (
           <Button
-            size="sm"
             onClick={onApprove}
             disabled={busy}
-            className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs transition duration-150"
+            variant="brandOutline"
+            size="toolbarWide"
+            className="mt-3"
           >
             <LuClipboardCheck className="size-3.5" />
             {busy ? 'Checking ticket…' : 'Approve'}

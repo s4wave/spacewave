@@ -268,7 +268,7 @@ export function BillingAccountsPage() {
                 : 'Create your first BillingAccount',
               onClick: () => void handleCreate(),
             }}
-            className="border-foreground/10 bg-foreground/5 rounded-md border"
+            variant="panel"
           />
         )}
         {detachError && (
@@ -297,7 +297,7 @@ export function BillingAccountsPage() {
                       </span>
                       <span
                         className={cn(
-                          'rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase',
+                          'rounded-full px-2 py-0.5 micro-ten font-semibold tracking-wider uppercase',
                           subscriptionStatusBadgeColor(ba.subscriptionStatus),
                         )}
                       >

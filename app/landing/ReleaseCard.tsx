@@ -46,10 +46,7 @@ function CategorySection({
 
   return (
     <div className="mt-4">
-      <Badge
-        variant="outline"
-        className="text-foreground-alt border-foreground/15 mb-2 text-xs"
-      >
+      <Badge variant="release" className="mb-2">
         {label}
       </Badge>
       <ul className="flex flex-col gap-2">

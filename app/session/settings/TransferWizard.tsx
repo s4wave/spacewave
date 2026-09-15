@@ -507,7 +507,7 @@ function InventoryStep({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Spinner size="md" className="text-foreground-alt" />
+        <Spinner size="md" variant="muted" />
       </div>
     )
   }
@@ -610,7 +610,7 @@ function ProgressStep({
       <div className="mb-4 flex items-center gap-2">
         {phase !== TransferPhase.TransferPhase_COMPLETE &&
           phase !== TransferPhase.TransferPhase_FAILED && (
-            <Spinner className="text-brand" />
+            <Spinner variant="brand" />
           )}
         {phase === TransferPhase.TransferPhase_COMPLETE && (
           <LuCheck className="text-brand size-4" />
@@ -645,8 +645,8 @@ function ProgressStep({
                 {total > 0 && (
                   <div className="bg-foreground/10 mt-1.5 h-1 overflow-hidden rounded-full">
                     <div
-                      className="bg-brand h-full rounded-full transition-[width]"
-                      style={{ width: `${pct}%` }}
+                      className="bg-brand progress-width transition-width h-full rounded-full"
+                      style={{ '--progress-width': `${pct}%` }}
                     />
                   </div>
                 )}

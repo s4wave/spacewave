@@ -312,7 +312,7 @@ export function DriveLandingDemo() {
       title="Live file browser"
       subtitle="Open folders, inspect files, and see how the workspace moves through your devices."
     >
-      <div className="grid gap-0 @lg:grid-cols-[1.2fr_1fr]">
+      <div className="@lg:grid-cols-demo-wide grid gap-0">
         <div className="border-foreground/8 min-w-0 border-b @lg:border-r @lg:border-b-0">
           <div className="border-foreground/8 grid gap-2 border-b p-3 text-xs @lg:grid-cols-3">
             <div className="border-foreground/8 bg-background/40 rounded-md border px-2.5 py-2">
@@ -409,7 +409,7 @@ export function DevicesLandingDemo() {
       title="Live device surface"
       subtitle="Select a node, inspect its state, and run the same control path."
     >
-      <div className="grid gap-0 @lg:grid-cols-[0.95fr_1.05fr]">
+      <div className="@lg:grid-cols-demo-balanced grid gap-0">
         <div className="border-foreground/8 border-b p-3 @lg:border-r @lg:border-b-0">
           <StatusList
             items={items}
@@ -430,7 +430,7 @@ export function DevicesLandingDemo() {
               </div>
               <div
                 className={cn(
-                  'rounded-full px-2 py-0.5 text-[0.55rem] font-semibold tracking-widest uppercase',
+                  'rounded-full px-2 py-0.5 micro-fine font-semibold tracking-widest uppercase',
                   selectedItem?.status === 'success' &&
                     'bg-success/15 text-success',
                   selectedItem?.status === 'pending' &&
@@ -544,7 +544,7 @@ export function NotesLandingDemo() {
       title="Markdown notebook preview"
       subtitle="Edit markdown and preview the rendered note."
     >
-      <div className="grid gap-0 @lg:grid-cols-[0.65fr_1.35fr]">
+      <div className="@lg:grid-cols-demo-reading grid gap-0">
         <div className="border-foreground/8 border-b p-3 @lg:border-r @lg:border-b-0">
           <div className="mb-3 space-y-1">
             <div className="text-foreground text-sm font-semibold">
@@ -599,11 +599,11 @@ export function NotesLandingDemo() {
                 Markdown source and rendered preview
               </div>
             </div>
-            <div className="border-brand/20 bg-brand/8 text-brand rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold tracking-wide uppercase">
+            <div className="border-brand/20 bg-brand/8 text-brand micro-label rounded-full border px-2 py-0.5 font-semibold tracking-wide uppercase">
               static shell
             </div>
           </div>
-          <div className="grid h-[28rem] min-h-0 gap-0 overflow-hidden @lg:grid-cols-[1fr_1fr]">
+          <div className="grid h-112 min-h-0 gap-0 overflow-hidden @lg:grid-cols-2">
             <textarea
               aria-label="Notebook markdown"
               value={selectedNote.body}
@@ -645,7 +645,7 @@ ${code.trim()}
       title="SDK code preview"
       subtitle="Edit the plugin skeleton and watch the derived preview update."
     >
-      <div className="grid gap-0 @lg:grid-cols-[1fr_1fr]">
+      <div className="grid gap-0 @lg:grid-cols-2">
         <div className="border-foreground/8 border-b p-3 @lg:border-r @lg:border-b-0">
           <textarea
             aria-label="Plugin source"

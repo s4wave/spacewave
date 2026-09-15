@@ -134,9 +134,9 @@ function StateGroupNode({ node, level }: { node: GroupNode; level: number }) {
         type="button"
         onClick={handleToggle}
         className={cn(
-          'text-foreground-alt hover:bg-pulldown-hover/40 flex h-6 items-center gap-1 text-xs transition-colors duration-100',
+          'debug-tree-indent text-foreground-alt hover:bg-pulldown-hover/40 flex h-6 items-center gap-1 text-xs transition-colors duration-100',
         )}
-        style={{ paddingLeft: `${level * 12 + 8}px` }}
+        style={{ '--debug-tree-padding-left': `${level * 12 + 8}px` }}
       >
         <span className="flex size-4 shrink-0 items-center justify-center">
           {isExpanded ? (
@@ -205,12 +205,12 @@ function StateEntryNode({
           }
         }}
         className={cn(
-          'flex h-6 cursor-pointer items-center gap-1 text-xs transition-colors duration-100',
+          'debug-tree-indent flex h-6 cursor-pointer items-center gap-1 text-xs transition-colors duration-100',
           isSelected
             ? 'bg-ui-selected text-foreground'
             : 'text-text-secondary hover:bg-pulldown-hover/50',
         )}
-        style={{ paddingLeft: `${level * 12 + 8}px` }}
+        style={{ '--debug-tree-padding-left': `${level * 12 + 8}px` }}
       >
         <span
           role="button"
@@ -314,10 +314,10 @@ function StateTreeNodeInner({
           }
         }}
         className={cn(
-          'flex h-5 cursor-pointer items-center gap-1 text-xs',
+          'debug-tree-indent flex h-5 cursor-pointer items-center gap-1 text-xs',
           'text-text-secondary hover:bg-pulldown-hover/50 transition-colors duration-100',
         )}
-        style={{ paddingLeft: `${level * 12 + 8}px` }}
+        style={{ '--debug-tree-padding-left': `${level * 12 + 8}px` }}
       >
         <span
           role="button"

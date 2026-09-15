@@ -27,14 +27,10 @@ export function AuditQueueRow({
   return (
     <Button
       type="button"
-      variant="ghost"
       aria-pressed={selected}
-      className={cn(
-        'h-auto w-full justify-start gap-3 rounded-lg border p-3 text-left',
-        selected
-          ? 'border-brand/30 bg-brand/10 hover:bg-brand/10'
-          : 'border-transparent hover:border-foreground/8 hover:bg-foreground/3',
-      )}
+      variant={selected ? 'selectedRow' : 'unselectedRow'}
+      size="row"
+      className="w-full justify-start text-left"
       onClick={select}
     >
       <span
@@ -62,7 +58,7 @@ export function AuditQueueRow({
             <span className="bg-brand size-1.5 shrink-0 rounded-full" />
           ) : null}
         </span>
-        <span className="text-foreground-alt/45 mt-0.5 block text-[10px] font-normal">
+        <span className="text-foreground-alt/45 micro-ten mt-0.5 block font-normal">
           {hasConflict
             ? 'Conflicting assignment'
             : command.binding

@@ -249,10 +249,7 @@ function BlogViewer({ objectInfo, worldState }: ObjectViewerComponentProps) {
           ) : (
             <div className="flex h-full overflow-hidden">
               {/* Post list sidebar */}
-              <div
-                className="border-border border-r"
-                style={{ width: 250, minWidth: 250 }}
-              >
+              <div className="border-border w-62.5 min-w-62.5 border-r">
                 <NoteList
                   source={firstSource}
                   worldState={worldState}

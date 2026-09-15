@@ -18,10 +18,13 @@ function PopoverTrigger({
 
 function PopoverContent({
   className,
+  variant,
   align = 'center',
   sideOffset = 4,
   ...props
-}: React.ComponentProps<typeof PopoverPrimitive.Content>) {
+}: React.ComponentProps<typeof PopoverPrimitive.Content> & {
+  variant?: 'default' | 'status' | 'compact'
+}) {
   const environment = useAppEnvironment()
   return (
     <PopoverPrimitive.Portal>
@@ -32,6 +35,9 @@ function PopoverContent({
         sideOffset={sideOffset}
         className={cn(
           'border-popover-border bg-popover text-popover-text data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-72 origin-(--radix-popover-content-transform-origin) rounded-md border p-4 shadow-lg outline-hidden',
+          variant === 'status' &&
+            'border-foreground/15 bg-background-card text-foreground z-50 w-80 max-w-(--max-width-viewport-control) rounded-lg p-0 shadow-xl backdrop-blur-md',
+          variant === 'compact' && 'w-72 p-3',
           className,
         )}
         {...props}

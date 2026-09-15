@@ -139,7 +139,9 @@ function FaqItem({
       <div
         className={cn(
           'grid transition-all duration-300 ease-in-out',
-          isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+          isOpen
+            ? 'grid-rows-expand opacity-100'
+            : 'grid-rows-collapse opacity-0',
         )}
       >
         <div className="overflow-hidden">
@@ -161,7 +163,7 @@ function FaqSection() {
 
   return (
     <section className="relative z-10 mx-auto w-full max-w-4xl px-4 py-14 @lg:px-8 @lg:py-16">
-      <span className="text-foreground-alt mb-8 block text-center text-xs font-semibold tracking-[0.2em] uppercase">
+      <span className="text-foreground-alt tracking-brand-wide mb-8 block text-center text-xs font-semibold uppercase">
         Frequently asked questions
       </span>
       <div className="flex flex-col gap-3">
@@ -252,7 +254,7 @@ export function Pricing() {
 
       {/* Overage table */}
       <section className="relative z-10 mx-auto w-full max-w-4xl px-4 pb-14 @lg:px-8 @lg:pb-16">
-        <span className="text-foreground-alt mb-6 block text-center text-xs font-semibold tracking-[0.2em] uppercase">
+        <span className="text-foreground-alt tracking-brand-wide mb-6 block text-center text-xs font-semibold uppercase">
           Usage above baseline
         </span>
         <div className="border-foreground/8 bg-background-card/50 overflow-hidden rounded-lg border backdrop-blur-sm">

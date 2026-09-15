@@ -104,11 +104,10 @@ export function KvCreateKeyForm({
       ) : null}
       <div className="flex items-center gap-2">
         <Button
-          variant="outline"
-          size="sm"
           onClick={() => void handleCreate()}
           disabled={!canCreate}
-          className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 h-7 gap-1 text-xs"
+          variant="brandOutline"
+          size="toolbar"
         >
           <LuPlus className="size-3.5" />
           Create

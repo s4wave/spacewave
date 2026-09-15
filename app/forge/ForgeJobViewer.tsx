@@ -237,7 +237,7 @@ export function ForgeJobViewer({
                 <span className="text-foreground-alt/50 text-xs">-&gt;</span>
                 <span>{toTask?.data.name || edge.to}</span>
               </div>
-              <div className="text-foreground-alt/50 mt-1 text-[0.6rem] tracking-widest uppercase">
+              <div className="text-foreground-alt/50 micro-text mt-1 tracking-widest uppercase">
                 {edge.kind}
               </div>
             </div>
@@ -286,8 +286,8 @@ export function ForgeJobViewer({
               </div>
               <div className="bg-foreground/8 mt-3 h-1.5 w-full overflow-hidden rounded-full">
                 <div
-                  className="bg-brand h-full transition-[width] duration-200"
-                  style={{ width: `${progressPercent}%` }}
+                  className="bg-brand forge-progress-width progress-width-transition h-full"
+                  style={{ '--forge-progress-width': `${progressPercent}%` }}
                 />
               </div>
             </InfoCard>

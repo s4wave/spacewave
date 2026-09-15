@@ -36,7 +36,7 @@ export function Keycap({ chord, className, muted = false }: KeycapProps) {
         <kbd
           key={token}
           className={cn(
-            'border-foreground/15 bg-background-card-alt text-foreground-alt inline-flex min-w-6 items-center justify-center rounded border px-1.5 py-0.5 font-mono text-[11px] leading-5 shadow-[inset_0_-1px_0_rgba(255,255,255,0.08)]',
+            'border-foreground/15 bg-background-card-alt text-foreground-alt inline-flex min-w-6 items-center justify-center rounded border px-1.5 py-0.5 font-mono text-metadata leading-5 keycap-shadow',
             muted && 'text-foreground-alt/50 bg-background/60',
           )}
         >

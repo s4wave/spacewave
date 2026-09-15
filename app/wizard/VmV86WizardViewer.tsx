@@ -1024,9 +1024,10 @@ function SourcePickerStep({
             Copy a published image from the catalog to continue.
           </p>
           <Button
-            size="sm"
+            variant="brandOutline"
+            size="toolbarWide"
             onClick={onOpenCdnPicker}
-            className="border-brand/30 bg-brand/10 hover:border-brand/50 hover:bg-brand/15 text-foreground mt-3 h-7 rounded-md border px-3 text-xs"
+            className="mt-3"
           >
             Browse image catalog
           </Button>
@@ -1162,7 +1163,7 @@ function CdnImagePickerModal({
     >
       <div
         role="presentation"
-        className="border-foreground/8 bg-background-card/95 flex max-h-[80vh] w-full max-w-md flex-col gap-3 rounded-xl border p-4 shadow-lg backdrop-blur-sm"
+        className="border-foreground/8 bg-background-card/95 max-h-wizard flex w-full max-w-md flex-col gap-3 rounded-xl border p-4 shadow-lg backdrop-blur-sm"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
@@ -1170,10 +1171,10 @@ function CdnImagePickerModal({
             VM image catalog
           </h3>
           <Button
-            variant="outline"
-            size="sm"
+            variant="quiet"
+            size="toolbarSm"
             onClick={onClose}
-            className="border-foreground/8 hover:border-foreground/15 hover:bg-foreground/5 text-foreground-alt hover:text-foreground h-7 bg-transparent px-2 text-xs transition duration-150"
+            className=""
           >
             Close
           </Button>
@@ -1201,9 +1202,10 @@ function CdnImagePickerModal({
               </p>
               {!errorCopy.unpublished && (
                 <Button
-                  size="sm"
+                  variant="destructiveOutline"
+                  size="toolbarWide"
                   onClick={handleRetry}
-                  className="border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/15 mt-3 h-7 rounded-md border px-3 text-xs"
+                  className="mt-3"
                 >
                   Retry
                 </Button>

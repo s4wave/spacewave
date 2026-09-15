@@ -284,7 +284,7 @@ function AddEmailForm({
           icon={
             adding ? <Spinner size="sm" /> : <LuArrowRight className="size-3" />
           }
-          className="text-brand hover:bg-brand/10"
+          variant="primary"
           disabled={!canSubmit}
           onClick={() => void onSubmit()}
         >
@@ -377,7 +377,7 @@ function EmailRow({
                 {addr}
               </p>
               {primary && (
-                <span className="border-brand/30 bg-brand/10 text-brand inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[0.55rem] font-semibold tracking-widest uppercase select-none">
+                <span className="border-brand/30 bg-brand/10 text-brand micro-fine inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 font-semibold tracking-widest uppercase select-none">
                   <LuStar className="size-2.5" />
                   Primary
                 </span>
@@ -455,7 +455,7 @@ function EmailRow({
                   <LuStar className="size-3" />
                 )
               }
-              className="text-brand hover:bg-brand/10"
+              variant="primary"
               disabled={settingPrimary}
               onClick={() => void onSetPrimary(addr)}
             >
@@ -487,7 +487,7 @@ function EmailRow({
             }}
             className={cn(
               inputClass,
-              'text-center font-mono text-base tracking-[0.3em]',
+              'text-center font-mono text-base tracking-brand-extra-wide',
             )}
             aria-label={'Verification code for ' + addr}
           />
@@ -539,7 +539,7 @@ function RemoveAction({
     <DashboardButton
       icon={removing ? <Spinner size="sm" /> : <LuTrash2 className="size-3" />}
       disabled={!canRemove || removing}
-      className={cn(canRemove && 'text-destructive hover:bg-destructive/10')}
+      variant={canRemove ? 'destructive' : undefined}
       onClick={() => void onRemove()}
     >
       Remove

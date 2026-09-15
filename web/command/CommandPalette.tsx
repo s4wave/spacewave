@@ -30,7 +30,6 @@ import {
   LuServer,
 } from 'react-icons/lu'
 
-import { cn } from '@s4wave/web/style/utils.js'
 import {
   CommandDialog,
   CommandEmpty,
@@ -399,10 +398,8 @@ function CommandPaletteItem({
       value={searchValue}
       onSelect={() => enabled && onSelect(commandId)}
       disabled={!enabled}
-      className={cn(
-        'min-h-12 rounded-none border-b border-foreground/6 px-3 py-2 data-[selected=true]:bg-brand/25',
-        !enabled && 'cursor-default opacity-50',
-      )}
+      variant={enabled ? 'palette' : 'paletteDisabled'}
+      className={!enabled ? 'cursor-default' : undefined}
     >
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-medium">
@@ -419,7 +416,7 @@ function CommandPaletteItem({
         )}
       </span>
       {displayBindings.length > 0 && (
-        <CommandShortcut className="text-brand/90 shrink-0 pl-4">
+        <CommandShortcut variant="brand">
           {formatKeybindingHint(displayBindings)}
         </CommandShortcut>
       )}
@@ -440,7 +437,7 @@ function CommandChordItem({
         continuation.commandId ?? ''
       }`}
       onSelect={() => onSelect(continuation)}
-      className={cn(continuation.conflict && 'text-warning')}
+      variant={continuation.conflict ? 'conflict' : undefined}
     >
       <kbd className="bg-brand/10 text-brand min-w-10 rounded px-2 py-0.5 text-center font-mono text-xs">
         {formatResolvedKey(continuation.key)}
@@ -454,7 +451,7 @@ function CommandChordItem({
         )}
       </span>
       {continuation.conflict && (
-        <CommandShortcut className="text-warning">Conflict</CommandShortcut>
+        <CommandShortcut variant="warning">Conflict</CommandShortcut>
       )}
     </CommandItem>
   )
@@ -846,7 +843,7 @@ export function CommandPalette() {
       open={open}
       onOpenChange={handleOpenChange}
       showCloseButton={false}
-      className="border-foreground/10 bg-background-card/95 top-auto bottom-4 max-h-[min(34rem,calc(100vh-4rem))] w-[min(64rem,calc(100vw-2rem))] translate-y-0 overflow-hidden shadow-none sm:max-w-none"
+      variant="palette"
     >
       <div onKeyDownCapture={handlePaletteKeyDown}>
         <CommandInput
@@ -866,18 +863,21 @@ export function CommandPalette() {
                 : 'Filtering'}
           </span>
         </div>
-        <CommandList className="max-h-[min(24rem,calc(100vh-12rem))] scroll-py-2 pb-0">
+        <CommandList
+          variant="palette"
+          className="max-h-(--max-height-command-results) scroll-py-2"
+        >
           {subItemCommandId ? (
             <>
               <CommandEmpty>No items found.</CommandEmpty>
               <CommandGroup
-                className="!px-0 [&_[cmdk-group-heading]]:px-3"
+                variant="palette"
                 heading={activeSubItemCommand?.command?.label ?? ''}
               >
                 <CommandItem
                   value="__back__"
                   onSelect={handleBack}
-                  className="text-foreground-alt"
+                  variant="back"
                 >
                   &larr; Back to commands
                 </CommandItem>
@@ -907,7 +907,7 @@ export function CommandPalette() {
             <>
               <CommandEmpty>No commands found.</CommandEmpty>
               <CommandGroup
-                className="!px-0 [&_[cmdk-group-heading]]:px-3"
+                variant="palette"
                 heading={`${paletteMode === 'chord' ? 'Chord' : 'Filter'} mode`}
               >
                 {paletteMode === 'chord' &&
@@ -922,11 +922,7 @@ export function CommandPalette() {
                   ))}
               </CommandGroup>
               {filteredGrouped.map((g) => (
-                <CommandGroup
-                  key={g.group}
-                  className="!px-0 [&_[cmdk-group-heading]]:px-3"
-                  heading={g.group}
-                >
+                <CommandGroup key={g.group} variant="palette" heading={g.group}>
                   {g.commands.map((cmd) => {
                     const commandId = cmd.command?.commandId
                     if (!commandId) return null

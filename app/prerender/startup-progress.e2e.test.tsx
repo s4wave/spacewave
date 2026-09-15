@@ -41,7 +41,7 @@ describe('startup surfaces', () => {
         detail: '',
       }
       await render(
-        <div style={{ position: 'fixed', inset: 0, display: 'flex' }}>
+        <div className="fixed inset-0 flex">
           <AppLoadingScreen />
         </div>,
       )
@@ -83,7 +83,7 @@ describe('startup surfaces', () => {
   it('shows quickstart progress without requiring a disclosure', async () => {
     await page.viewport(320, 568)
     await render(
-      <div style={{ position: 'fixed', inset: 0, display: 'flex' }}>
+      <div className="fixed inset-0 flex">
         <QuickstartSetupScreen
           quickstartId="drive"
           progress={{
@@ -133,7 +133,7 @@ describe('startup surfaces', () => {
     vi.stubGlobal('WebGL2RenderingContext', undefined)
     const retry = vi.fn()
     await render(
-      <div style={{ position: 'fixed', inset: 0, display: 'flex' }}>
+      <div className="fixed inset-0 flex">
         <LoadingScreen
           view={{
             state: 'error',
@@ -170,7 +170,7 @@ it('reports only measured current-download bytes', async () => {
     },
   ]
   await render(
-    <div style={{ position: 'fixed', inset: 0, display: 'flex' }}>
+    <div className="fixed inset-0 flex">
       <AppLoadingScreen />
     </div>,
   )
@@ -201,7 +201,7 @@ it('retains startup feedback under reduced motion', async () => {
   })
   await page.viewport(390, 844)
   await render(
-    <div style={{ position: 'fixed', inset: 0, display: 'flex' }}>
+    <div className="fixed inset-0 flex">
       <AppLoadingScreen />
     </div>,
   )
@@ -218,7 +218,7 @@ it('keeps recovery reachable when an error wraps on a tiny screen', async () => 
   await page.viewport(320, 568)
   const back = vi.fn()
   await render(
-    <div style={{ position: 'fixed', inset: 0, display: 'flex' }}>
+    <div className="fixed inset-0 flex">
       <LoadingScreen
         view={{
           state: 'error',

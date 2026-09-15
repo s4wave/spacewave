@@ -99,7 +99,7 @@ function Section({ title, description, children }: SectionProps) {
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-foreground-alt/50 text-[0.55rem] font-medium tracking-widest uppercase">
+    <div className="text-foreground-alt/50 micro-fine font-medium tracking-widest uppercase">
       {children}
     </div>
   )
@@ -121,14 +121,26 @@ const spinnerSizes: Record<SpinnerSize, string> = {
 // Spinner inherits text color from parent so container state colors apply.
 function Spinner({
   size = 'md',
+  variant = 'default',
   className,
 }: {
   size?: SpinnerSize
+  variant?: 'default' | 'brand' | 'muted' | 'destructive' | 'success'
   className?: string
 }) {
+  const variantCls =
+    variant === 'brand'
+      ? 'text-brand'
+      : variant === 'destructive'
+        ? 'text-destructive'
+        : variant === 'muted'
+          ? 'text-foreground-alt'
+          : variant === 'success'
+            ? 'text-success'
+            : ''
   return (
     <LuLoader
-      className={cn('animate-spin', spinnerSizes[size], className)}
+      className={cn('animate-spin', spinnerSizes[size], variantCls, className)}
       aria-hidden="true"
     />
   )
@@ -144,7 +156,7 @@ function SpinnerSection() {
         {(['sm', 'md', 'lg', 'xl'] as SpinnerSize[]).map((size) => (
           <div key={size} className="flex flex-col items-center gap-2">
             <div className="flex h-12 items-center justify-center">
-              <Spinner size={size} className="text-brand" />
+              <Spinner size={size} variant="brand" />
             </div>
             <Label>{size}</Label>
           </div>
@@ -153,15 +165,26 @@ function SpinnerSection() {
       <div className="border-foreground/8 mt-4 grid grid-cols-4 gap-4 border-t pt-4">
         {(
           [
-            { tone: 'brand', cls: 'text-brand' },
-            { tone: 'muted', cls: 'text-foreground-alt' },
-            { tone: 'destructive', cls: 'text-destructive' },
-            { tone: 'success', cls: 'text-success' },
+            { tone: 'brand' },
+            { tone: 'muted' },
+            { tone: 'destructive' },
+            { tone: 'success' },
           ] as const
-        ).map(({ tone, cls }) => (
+        ).map(({ tone }) => (
           <div key={tone} className="flex flex-col items-center gap-2">
             <div className="flex h-12 items-center justify-center">
-              <Spinner size="lg" className={cls} />
+              <Spinner
+                size="lg"
+                variant={
+                  tone === 'brand'
+                    ? 'brand'
+                    : tone === 'muted'
+                      ? 'muted'
+                      : tone === 'destructive'
+                        ? 'destructive'
+                        : 'success'
+                }
+              />
             </div>
             <Label>{tone}</Label>
           </div>
@@ -193,8 +216,8 @@ function ProgressBar({
           <div className="bg-brand animate-progress-indeterminate absolute inset-y-0 w-1/3 rounded-full" />
         ) : (
           <div
-            className="bg-brand h-full rounded-full transition-[width] duration-200"
-            style={{ width: `${pct}%` }}
+            className="bg-brand progress-width progress-width-transition h-full rounded-full"
+            style={{ '--progress-width': `${pct}%` }}
           />
         )}
       </div>
@@ -379,7 +402,7 @@ function LoadingCardIcon({ state }: { state: LoadingState }) {
 function RatePill({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-foreground/6 bg-foreground/5 rounded-md border px-2 py-1">
-      <div className="text-foreground-alt/50 text-[0.55rem] font-medium tracking-widest uppercase">
+      <div className="text-foreground-alt/50 micro-fine font-medium tracking-widest uppercase">
         {label}
       </div>
       <div className="text-foreground text-xs font-semibold tabular-nums">
@@ -517,7 +540,7 @@ function LoadingInlineSection() {
               className="border-foreground/8 bg-foreground/5 text-foreground flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs"
               disabled
             >
-              <Spinner size="sm" className="text-brand" />
+              <Spinner size="sm" variant="brand" />
               <span>Creating…</span>
             </button>
             <button
@@ -564,7 +587,7 @@ function LoadingScreenSection() {
       <div className="border-foreground/6 bg-background/80 relative flex h-64 items-center justify-center overflow-hidden rounded-lg border">
         <div className="relative z-10 flex flex-col items-center gap-4">
           <div className="bg-brand/10 flex size-12 items-center justify-center rounded-xl">
-            <Spinner size="xl" className="text-brand" />
+            <Spinner size="xl" variant="brand" />
           </div>
           <div className="space-y-1 text-center">
             <div className="text-foreground text-lg font-semibold tracking-tight select-none">

@@ -58,11 +58,9 @@ describe('List', () => {
     })
 
     it('applies custom className', () => {
-      render(
-        <List items={[]} rowComponent={TestRow} className="my-custom-class" />,
-      )
+      render(<List items={[]} rowComponent={TestRow} className="mt-1" />)
       const list = screen.getByRole('list')
-      expect(list.className).toContain('my-custom-class')
+      expect(list.className).toContain('mt-1')
     })
 
     it('renders header content when header prop is provided', () => {

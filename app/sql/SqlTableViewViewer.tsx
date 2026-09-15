@@ -78,10 +78,9 @@ export function SqlTableViewViewer({
         <div className="flex-1" />
         <Button
           variant="ghost"
-          size="sm"
           onClick={rowsResource.retry}
           disabled={rowsResource.loading}
-          className="h-6 gap-1 px-2 text-xs"
+          size="xs"
         >
           <LuRefreshCw className="size-3" />
           Refresh

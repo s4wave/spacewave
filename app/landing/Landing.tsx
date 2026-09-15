@@ -195,7 +195,7 @@ export function Landing() {
           <span
             className={
               pageActive
-                ? 'text-foreground-alt animate-[pulse_2s_ease-in-out_infinite]'
+                ? 'text-foreground-alt animate-pulse'
                 : 'text-foreground-alt'
             }
           >

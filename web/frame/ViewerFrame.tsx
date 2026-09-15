@@ -153,7 +153,7 @@ function CollapsedBottomBarItems({
                   trigger: event.currentTarget,
                 })
               }}
-              className={cn(itemSelected && 'bg-accent text-accent-foreground')}
+              variant={itemSelected ? 'selected' : 'default'}
             >
               <span className="truncate">{item.menuLabel ?? item.id}</span>
             </DropdownMenuItem>

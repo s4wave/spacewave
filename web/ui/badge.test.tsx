@@ -19,9 +19,9 @@ describe('Badge', () => {
   })
 
   it('applies custom className', () => {
-    render(<Badge className="my-custom">Custom</Badge>)
+    render(<Badge className="mt-1">Custom</Badge>)
     const badge = screen.getByText('Custom')
-    expect(badge.className).toContain('my-custom')
+    expect(badge.className).toContain('mt-1')
   })
 
   it('renders as span by default', () => {

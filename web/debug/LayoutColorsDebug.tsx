@@ -262,20 +262,36 @@ function DemoLayout({
   vars?: Record<string, string>
 }) {
   const model = useMemo(() => Model.fromJson(makeDemoModel(prefix)), [prefix])
+  const applyVars = useColorSchemeVars(vars)
   const renderTab = useCallback(
     (node: TabNode) => <SampleContent node={node} />,
     [],
   )
 
   return (
-    <div
-      className="rounded-lg p-4"
-      style={{ backgroundColor: 'oklch(0.22 0 0)', ...vars }}
-    >
-      <div className="overflow-hidden" style={{ position: 'relative', height }}>
+    <div ref={applyVars} className="layout-colors-surface rounded-lg p-4">
+      <div
+        className="layout-colors-frame overflow-hidden"
+        style={{ '--layout-colors-height': `${height}px` }}
+      >
         <OptimizedLayout model={model} renderTab={renderTab} />
       </div>
     </div>
+  )
+}
+
+// useColorSchemeVars scopes the debug palette to one preview surface. The
+// values are already CSS custom properties; assigning them through the DOM
+// keeps the palette data-driven without injecting ordinary inline styles.
+function useColorSchemeVars(vars?: Record<string, string>) {
+  return useCallback(
+    (element: HTMLDivElement | null) => {
+      if (!element || !vars) return
+      for (const [name, value] of Object.entries(vars)) {
+        element.style.setProperty(name, value)
+      }
+    },
+    [vars],
   )
 }
 
@@ -341,14 +357,14 @@ function SchemePreviewCard({
           <p className="text-foreground-alt text-xs">{scheme.description}</p>
         </div>
         {selected && (
-          <span className="bg-brand/20 text-brand rounded-full px-2 py-0.5 text-[10px] font-semibold">
+          <span className="bg-brand/20 text-brand micro-ten rounded-full px-2 py-0.5 font-semibold">
             Selected
           </span>
         )}
       </div>
       <div
+        ref={useColorSchemeVars(scheme.vars)}
         className="border-window-border overflow-hidden rounded-lg border"
-        style={scheme.vars}
       >
         <DemoLayout
           prefix={`card-${scheme.id}`}
@@ -380,8 +396,8 @@ function SwatchRow({ scheme }: { scheme: ColorScheme }) {
         return (
           <div key={s.key} className="flex flex-col items-center gap-1">
             <div
-              className="size-8 rounded border border-white/10"
-              style={{ backgroundColor: value || `var(${s.key})` }}
+              className="layout-colors-swatch size-8 rounded border border-white/10"
+              style={{ '--layout-color-swatch': value || `var(${s.key})` }}
             />
             <span className="text-foreground-alt text-xs">{s.label}</span>
           </div>
@@ -454,7 +470,7 @@ export function LayoutColorsDebug() {
                     {selected.description}
                   </span>
                 </div>
-                <div style={selected.vars}>
+                <div ref={useColorSchemeVars(selected.vars)}>
                   <DemoLayout
                     prefix={`enlarged-${selected.id}`}
                     height={260}
