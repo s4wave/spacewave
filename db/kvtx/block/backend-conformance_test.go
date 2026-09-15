@@ -288,6 +288,7 @@ func backendConformanceImpls() []KVImplType {
 	return []KVImplType{
 		KVImplType_KV_IMPL_TYPE_IAVL,
 		KVImplType_KV_IMPL_TYPE_OKRA,
+		KVImplType_KV_IMPL_TYPE_OKRA_INLINE,
 	}
 }
 

@@ -31,6 +31,7 @@ func TestGraphInsertionBatchMatchesIndividualWrites(t *testing.T) {
 		for i := range quads {
 			quads[i] = world.NewGraphQuadWithKeys("from", "<edge>", "to", fmt.Sprintf("<label-%03d>", i))
 		}
+		quads = append(quads, world.NewGraphQuadWithKeys("from", "<edge>", "from", ""))
 		start := time.Now()
 		if batch {
 			if err := ws.InsertGraphQuads(ctx, quads); err != nil {

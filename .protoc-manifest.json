@@ -2010,7 +2010,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/kvtx/block": {
-      "hash": "1e91fc6571a9f257dc74a621295586ad96a031c48536ceb99d9ea50feac37fe6",
+      "hash": "981ff72e2cebc9f153363c12f441f9e4f2e235fa3d3fc05561cd14436c509936",
       "generatedFiles": [
         "db/kvtx/block/kvtx.pb.go",
         "db/kvtx/block/kvtx.pb.ts"
@@ -2030,7 +2030,7 @@
       ]
     },
     "github.com/s4wave/spacewave/db/kvtx/block/okra": {
-      "hash": "e110ffa74d657473ffc283a46e2410e71b4801040efb43b0d0e9793ea1da6b52",
+      "hash": "da7f2ca1bea185e822fe305717537d0dcdde6ca0d3d284021110f6754294264c",
       "generatedFiles": [
         "db/kvtx/block/okra/okra.pb.go",
         "db/kvtx/block/okra/okra.pb.ts"

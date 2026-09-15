@@ -66,6 +66,33 @@ func TestTransactionLeaf(t *testing.T) {
 	}
 }
 
+// TestTransactionBufferedStore retains caller writeback ownership and honors
+// explicit synchronous writes when the supplied store already buffers blocks.
+func TestTransactionBufferedStore(t *testing.T) {
+	for _, syncWrite := range []bool{false, true} {
+		ctx := t.Context()
+		store := block_mock.NewMockStore(0)
+		buffer := block.NewBufferedStore(ctx, store)
+		tx, cursor := block.NewTransaction(buffer, nil, nil, &block.PutOpts{Sync: syncWrite})
+		cursor.SetBlock(block_mock.NewExample("buffered transaction"), true)
+		ref, _, err := tx.Write(ctx, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if exists, err := store.GetBlockExists(ctx, ref); err != nil || exists != syncWrite {
+			t.Fatalf("sync=%v: durable=%v err=%v", syncWrite, exists, err)
+		}
+		if _, err := buffer.Sync(ctx); err != nil {
+			t.Fatal(err)
+		}
+		_, read := block.NewTransaction(store, nil, ref, nil)
+		body, err := block_mock.UnmarshalExample(ctx, read)
+		if err != nil || body.GetMsg() != "buffered transaction" {
+			t.Fatalf("readback: %v, %v", body, err)
+		}
+	}
+}
+
 // TestTransactionLeafFailure propagates hook, storage, and cancellation errors.
 func TestTransactionLeafFailure(t *testing.T) {
 	for _, failure := range []string{"hook", "storage", "cancel"} {

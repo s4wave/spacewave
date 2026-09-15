@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/s4wave/spacewave/db/block"
+	"github.com/s4wave/spacewave/db/block/blob"
 )
 
 const (
@@ -81,11 +82,11 @@ func (p *Page) Validate() error {
 			if !ent.GetChildRef().GetEmpty() {
 				return errors.Wrapf(ErrUnexpectedEntryMetadata, "entry %d leaf child ref", idx)
 			}
-			if ent.GetAnchor() && (!ent.GetValueRef().GetEmpty() || ent.GetValueIsBlob()) {
+			if ent.GetAnchor() && (!ent.GetValueRef().GetEmpty() || ent.GetValueIsBlob() || ent.GetValueBlob() != nil) {
 				return errors.Wrapf(ErrUnexpectedEntryMetadata, "entry %d anchor value", idx)
 			}
 		} else {
-			if !ent.GetValueRef().GetEmpty() || ent.GetValueIsBlob() {
+			if !ent.GetValueRef().GetEmpty() || ent.GetValueIsBlob() || ent.GetValueBlob() != nil {
 				return errors.Wrapf(ErrUnexpectedEntryMetadata, "entry %d internal value", idx)
 			}
 			if !ent.GetChildRef().GetEmpty() {
@@ -93,6 +94,9 @@ func (p *Page) Validate() error {
 					return errors.Wrap(err, "child_ref")
 				}
 			}
+		}
+		if ent.GetValueBlob() != nil && (!ent.GetValueIsBlob() || !ent.GetValueRef().GetEmpty()) {
+			return errors.Wrapf(ErrUnexpectedEntryMetadata, "entry %d ambiguous inline value", idx)
 		}
 		size += ent.GetSize()
 	}
@@ -189,11 +193,47 @@ func (p *Page) FollowValue(cursor *block.Cursor, index int) *block.Cursor {
 		return nil
 	}
 	ent := p.GetEntries()[index]
+	if ent.GetValueBlob() != nil {
+		return cursor.FollowSubBlock(entryValueRefID(index))
+	}
 	return cursor.FollowRef(entryValueRefID(index), ent.GetValueRef())
+}
+
+// GetSubBlocks exposes inline Blobs through the ordinary cursor lifecycle.
+func (p *Page) GetSubBlocks() map[uint32]block.SubBlock {
+	var values map[uint32]block.SubBlock
+	for index, entry := range p.GetEntries() {
+		if entry.GetValueBlob() != nil {
+			if values == nil {
+				values = make(map[uint32]block.SubBlock)
+			}
+			values[entryValueRefID(index)] = entry.GetValueBlob()
+		}
+	}
+	return values
+}
+
+// GetSubBlockCtor returns the constructor for an inline Blob value.
+func (p *Page) GetSubBlockCtor(id uint32) block.SubBlockCtor {
+	index, ok := entryIndexFromValueRefID(id)
+	if !ok || index >= len(p.Entries) || p.Entries[index] == nil {
+		return nil
+	}
+	return blob.NewBlobSubBlockCtor(&p.Entries[index].ValueBlob)
+}
+
+// ApplySubBlock applies an inline value update to its page entry.
+func (p *Page) ApplySubBlock(id uint32, next block.SubBlock) error {
+	index, ok := entryIndexFromValueRefID(id)
+	if !ok || index >= len(p.Entries) || p.Entries[index] == nil {
+		return ErrUnexpectedEntryMetadata
+	}
+	return block.ApplySubBlock(&p.Entries[index].ValueBlob, next)
 }
 
 // _ is a type assertion
 var (
-	_ block.Block         = (*Page)(nil)
-	_ block.BlockWithRefs = (*Page)(nil)
+	_ block.Block              = (*Page)(nil)
+	_ block.BlockWithRefs      = (*Page)(nil)
+	_ block.BlockWithSubBlocks = (*Page)(nil)
 )

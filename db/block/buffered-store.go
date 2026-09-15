@@ -97,6 +97,9 @@ func (s *BufferedStore) PutBlock(ctx context.Context, data []byte, opts *PutOpts
 // putBlock verifies and buffers a block, optionally resolving prior existence.
 // Batch callers discard the existence result and let storage deduplicate at drain.
 func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts, checkExists bool) (*BlockRef, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
 	if len(data) == 0 {
 		return nil, false, ErrEmptyBlock
 	}
@@ -163,6 +166,9 @@ func (s *BufferedStore) putBlock(ctx context.Context, data []byte, opts *PutOpts
 		refs: CloneBlockRefs(opts.GetRefs()),
 	}
 	for {
+		if err := ctx.Err(); err != nil {
+			return nil, false, err
+		}
 		var done bool
 		var alreadyExists bool
 		var putErr error
@@ -433,9 +439,15 @@ func (s *BufferedStore) logPendingShape(ctx context.Context, category string) {
 // drainNextBatch writes one batch of queued blocks, returning false when
 // the queue is empty or the batch was returned for retry.
 func (s *BufferedStore) drainNextBatch(ctx context.Context) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
 	var batch *drainBatch
 	var drainErr error
 	s.bcast.HoldLock(func(_ func(), _ func() <-chan struct{}) {
+		if drainErr = ctx.Err(); drainErr != nil {
+			return
+		}
 		if s.drainErr != nil {
 			drainErr = s.drainErr
 			return
@@ -515,10 +527,12 @@ func (s *BufferedStore) takeDrainBatchLocked() *drainBatch {
 			continue
 		}
 		pending.queued = false
+		// Pending content is immutable after enqueue; replacements allocate a
+		// new pendingBlock. The drain borrows the same content as its data bytes.
 		batch.entries = append(batch.entries, &PutBatchEntry{
-			Ref:       pending.ref.Clone(),
+			Ref:       pending.ref,
 			Data:      pending.data,
-			Refs:      CloneBlockRefs(pending.refs),
+			Refs:      pending.refs,
 			Tombstone: pending.tombstone,
 		})
 	}

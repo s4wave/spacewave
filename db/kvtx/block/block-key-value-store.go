@@ -64,7 +64,7 @@ func (k *KeyValueStore) GetSubBlocks() map[uint32]block.SubBlock {
 	switch k.GetImplType() {
 	case KVImplType_KV_IMPL_TYPE_IAVL:
 		m[2] = k.GetIavlRoot()
-	case KVImplType_KV_IMPL_TYPE_OKRA:
+	case KVImplType_KV_IMPL_TYPE_OKRA, KVImplType_KV_IMPL_TYPE_OKRA_INLINE:
 		m[3] = k.GetOkraRoot()
 	}
 	return m

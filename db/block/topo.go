@@ -1,8 +1,8 @@
 package block
 
 import (
+	"container/heap"
 	"fmt"
-	"slices"
 	"strings"
 )
 
@@ -25,18 +25,28 @@ func (e Unorderable) Error() string {
 
 const maxCyclicComponentsInError = 10
 
-// insertNodeByID inserts nod into the ID-ordered queue.
-func insertNodeByID(queue []GraphNode, nod GraphNode) []GraphNode {
-	lo, hi := 0, len(queue)
-	for lo < hi {
-		mid := int(uint(lo+hi) >> 1)
-		if queue[mid].ID() < nod.ID() {
-			lo = mid + 1
-		} else {
-			hi = mid
-		}
-	}
-	return slices.Insert(queue, lo, nod)
+// nodeQueue orders ready nodes by ID without shifting the whole frontier.
+type nodeQueue []GraphNode
+
+// Len returns the number of ready nodes.
+func (q nodeQueue) Len() int { return len(q) }
+
+// Less orders nodes by identifier.
+func (q nodeQueue) Less(i, j int) bool { return q[i].ID() < q[j].ID() }
+
+// Swap exchanges two heap entries.
+func (q nodeQueue) Swap(i, j int) { q[i], q[j] = q[j], q[i] }
+
+// Push appends a ready node before heap adjustment.
+func (q *nodeQueue) Push(node any) { *q = append(*q, node.(GraphNode)) }
+
+// Pop removes the last heap entry and releases its reference.
+func (q *nodeQueue) Pop() any {
+	last := len(*q) - 1
+	node := (*q)[last]
+	(*q)[last] = nil
+	*q = (*q)[:last]
+	return node
 }
 
 // SortBlockGraph returns a topological ordering of the block graph where
@@ -49,13 +59,13 @@ func SortBlockGraph(g *BlockGraph) ([]GraphNode, error) {
 	indegree := make(map[int64]int, len(nodes))
 	for _, nod := range nodes {
 		indegree[nod.ID()] += 0
-		for _, dep := range g.From(nod.ID()) {
-			indegree[dep.ID()]++
+		for _, depID := range g.from[nod.ID()] {
+			indegree[depID]++
 		}
 	}
 
-	// queue holds zero-indegree nodes kept ordered by ID for determinism.
-	queue := make([]GraphNode, 0, len(nodes))
+	// Nodes are already ID-ordered, so this initial queue is a valid min-heap.
+	queue := make(nodeQueue, 0, len(nodes))
 	for _, nod := range nodes {
 		if indegree[nod.ID()] == 0 {
 			queue = append(queue, nod)
@@ -64,13 +74,12 @@ func SortBlockGraph(g *BlockGraph) ([]GraphNode, error) {
 
 	sorted := make([]GraphNode, 0, len(nodes))
 	for len(queue) != 0 {
-		nod := queue[0]
-		queue = queue[1:]
+		nod := heap.Pop(&queue).(GraphNode)
 		sorted = append(sorted, nod)
-		for _, dep := range g.From(nod.ID()) {
-			indegree[dep.ID()]--
-			if indegree[dep.ID()] == 0 {
-				queue = insertNodeByID(queue, dep)
+		for _, depID := range g.from[nod.ID()] {
+			indegree[depID]--
+			if indegree[depID] == 0 {
+				heap.Push(&queue, g.nodes[depID])
 			}
 		}
 	}

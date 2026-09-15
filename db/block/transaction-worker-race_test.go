@@ -1,100 +1,61 @@
 package block
 
 import (
-	"context"
-	"runtime"
 	"testing"
-	"time"
 
 	"github.com/pkg/errors"
-	"github.com/s4wave/spacewave/net/hash"
 )
 
-var errTransactionWorkerMarshal = errors.New("transaction worker marshal failed")
-
+// TestWriteAtRootWaitsForWorkersAfterEncodeError verifies that a failed write
+// joins an encoder already running on an independent sibling subtree.
 func TestWriteAtRootWaitsForWorkersAfterEncodeError(t *testing.T) {
-	oldEncodeConcurrency := maxEncodeConcurrency
-	maxEncodeConcurrency = 0
-	defer func() {
-		maxEncodeConcurrency = oldEncodeConcurrency
+	started := make(chan struct{})
+	release := make(chan struct{})
+	failed := make(chan struct{})
+	done := make(chan error, 1)
+	want := errors.New("transaction worker marshal failed")
+	tx, root := NewTransaction(NopStoreOps{}, nil, nil, nil)
+	root.SetBlock(&transactionWorkerBlock{}, true)
+	root.FollowRef(1, nil).SetBlock(&transactionWorkerBlock{marshal: func() ([]byte, error) {
+		close(started)
+		<-release
+		return nil, nil
+	}}, true)
+	root.FollowRef(2, nil).SetBlock(&transactionWorkerBlock{marshal: func() ([]byte, error) {
+		<-started
+		close(failed)
+		return nil, want
+	}}, true)
+	go func() {
+		_, _, err := tx.Write(t.Context(), true)
+		done <- err
 	}()
-
-	marshalDone := make(chan struct{})
-	tx, rootCursor := NewTransaction(transactionWorkerStore{}, nil, nil, nil)
-	rootCursor.SetBlock(&transactionWorkerRoot{
-		marshalDone: marshalDone,
-	}, true)
-	childCursor := rootCursor.FollowRef(1, nil)
-	childCursor.SetBlock(&transactionWorkerErrorBlock{}, true)
-
-	if _, _, err := tx.Write(context.Background(), true); !errors.Is(err, errTransactionWorkerMarshal) {
-		t.Fatalf("expected marshal error, got %v", err)
-	}
+	<-failed
 	select {
-	case <-marshalDone:
+	case err := <-done:
+		close(release)
+		t.Fatalf("write returned while sibling encoder was running: %v", err)
 	default:
-		t.Error("Write returned before its encode workers stopped")
 	}
-
-	// Keep the test alive long enough for an incorrectly detached worker to
-	// finish mutating the transaction, so the race detector observes the bug.
-	<-marshalDone
-	time.Sleep(10 * time.Millisecond)
-}
-
-type transactionWorkerRoot struct {
-	ref         *BlockRef
-	marshalDone chan struct{}
-}
-
-func (r *transactionWorkerRoot) MarshalBlock() ([]byte, error) {
-	deadline := time.Now().Add(100 * time.Millisecond)
-	for time.Now().Before(deadline) {
-		runtime.Gosched()
-	}
-	close(r.marshalDone)
-	return []byte{1}, nil
-}
-
-func (r *transactionWorkerRoot) UnmarshalBlock([]byte) error {
-	return nil
-}
-
-func (r *transactionWorkerRoot) ApplyBlockRef(id uint32, ref *BlockRef) error {
-	if id == 1 {
-		r.ref = ref.Clone()
-	}
-	return nil
-}
-
-func (r *transactionWorkerRoot) GetBlockRefs() (map[uint32]*BlockRef, error) {
-	return map[uint32]*BlockRef{1: r.ref}, nil
-}
-
-func (r *transactionWorkerRoot) GetBlockRefCtor(uint32) Ctor {
-	return func() Block {
-		return &transactionWorkerErrorBlock{}
+	close(release)
+	if err := <-done; !errors.Is(err, want) {
+		t.Fatalf("write error=%v want=%v", err, want)
 	}
 }
 
-type transactionWorkerErrorBlock struct{}
-
-func (*transactionWorkerErrorBlock) MarshalBlock() ([]byte, error) {
-	return nil, errTransactionWorkerMarshal
+// transactionWorkerBlock exposes controlled encoder lifetimes without I/O.
+type transactionWorkerBlock struct {
+	// marshal supplies this block's encode behavior when non-nil.
+	marshal func() ([]byte, error)
 }
 
-func (*transactionWorkerErrorBlock) UnmarshalBlock([]byte) error {
-	return nil
+// MarshalBlock delegates to the controlled encoder, or emits an empty root.
+func (b *transactionWorkerBlock) MarshalBlock() ([]byte, error) {
+	if b.marshal != nil {
+		return b.marshal()
+	}
+	return nil, nil
 }
 
-type transactionWorkerStore struct {
-	NopStoreOps
-}
-
-func (transactionWorkerStore) GetHashType() hash.HashType {
-	return DefaultHashType
-}
-
-func (transactionWorkerStore) PutBlock(_ context.Context, _ []byte, opts *PutOpts) (*BlockRef, bool, error) {
-	return opts.GetForceBlockRef().Clone(), false, nil
-}
+// UnmarshalBlock accepts the empty test payload.
+func (*transactionWorkerBlock) UnmarshalBlock([]byte) error { return nil }

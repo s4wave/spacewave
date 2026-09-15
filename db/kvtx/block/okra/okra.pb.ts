@@ -7,6 +7,7 @@ import type { MessageType } from '@aptre/protobuf-es-lite/message'
 import { createMessageType } from '@aptre/protobuf-es-lite/message'
 import { ScalarType } from '@aptre/protobuf-es-lite/scalar'
 import type { PartialFieldInfo } from '@aptre/protobuf-es-lite/field'
+import { Blob } from '../../../block/blob/blob.pb.js'
 
 export const protobufPackage = 'kvtx.block.okra'
 
@@ -115,6 +116,14 @@ export interface Entry {
    * @generated from field: bool value_is_blob = 7;
    */
   valueIsBlob?: boolean
+  /**
+   * ValueBlob embeds a small value in the page instead of a separate block.
+   * Present only in stores tagged KV_IMPL_TYPE_OKRA_INLINE. ValueRef is empty
+   * and ValueIsBlob is true when this field is present.
+   *
+   * @generated from field: blob.Blob value_blob = 8;
+   */
+  valueBlob?: Blob
 }
 
 export const Entry: MessageType<Entry> = /* @__PURE__ */ createMessageType({
@@ -127,6 +136,7 @@ export const Entry: MessageType<Entry> = /* @__PURE__ */ createMessageType({
     { no: 5, name: 'child_ref', kind: 'message', T: () => BlockRef },
     { no: 6, name: 'value_ref', kind: 'message', T: () => BlockRef },
     { no: 7, name: 'value_is_blob', kind: 'scalar', T: ScalarType.BOOL },
+    { no: 8, name: 'value_blob', kind: 'message', T: () => Blob },
   ] satisfies readonly PartialFieldInfo[],
   packedByDefault: true,
 })

@@ -14,6 +14,8 @@ type Tx struct {
 	write bool
 	bcs   *block.Cursor
 	root  *Root
+	// inlineValues permits the layout selected by the owning store's format tag.
+	inlineValues bool
 
 	tx         *block.Transaction
 	rel        func()
@@ -206,15 +208,11 @@ func (t *Tx) Set(ctx context.Context, key, val []byte) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	valueRef, err := t.buildBlobValue(ctx, val)
+	entry, err := t.buildValueEntry(ctx, key, val)
 	if err != nil {
 		return err
 	}
-	return t.setEntry(ctx, BuildEntry{
-		Key:         key,
-		ValueRef:    valueRef,
-		ValueIsBlob: true,
-	})
+	return t.setEntry(ctx, entry)
 }
 
 // SetCursorAtKey sets the key to a reference to the object at bcs.
