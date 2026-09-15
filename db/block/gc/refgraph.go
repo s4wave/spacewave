@@ -342,57 +342,48 @@ func (rg *RefGraph) prepareOrphanMarks(
 		return adds, removes, nil
 	}
 
-	// Collect current owners for each removed edge before applying the transition.
-	owners := make(map[string]map[string]struct{})
-	stagingRemoves := make(map[string]struct{})
+	// Only removed owners matter to the existence query. Loading every current
+	// owner makes releasing one reference proportional to a block's sharing.
+	removedOwners := make(map[string]map[string]struct{})
 	for _, edge := range removes {
-		if edge.Subject == NodeUnreferenced {
-			stagingRemoves[edge.Object] = struct{}{}
-			continue
-		}
 		if IsPermanentRoot(edge.Object) {
 			continue
 		}
-		if _, ok := owners[edge.Object]; ok {
+		set := removedOwners[edge.Object]
+		if set == nil {
+			set = make(map[string]struct{})
+			removedOwners[edge.Object] = set
+		}
+		set[edge.Subject] = struct{}{}
+	}
+
+	// A new owner survives unless the same batch removes it. Additions land
+	// first, so an edge present in both lists cannot keep its target alive.
+	for _, edge := range adds {
+		if set, ok := removedOwners[edge.Object]; ok && edge.Subject != NodeUnreferenced {
+			if _, removed := set[edge.Subject]; !removed {
+				delete(removedOwners, edge.Object)
+			}
+		}
+	}
+
+	// An explicit staging removal must not recreate its marker. Otherwise,
+	// stop the indexed lookup as soon as one unaffected owner is found.
+	for object, set := range removedOwners {
+		if _, removingStaging := set[NodeUnreferenced]; removingStaging {
 			continue
 		}
-		sources, err := rg.GetIncomingRefs(ctx, edge.Object)
+		excluded := make([]string, 0, len(set))
+		for owner := range set {
+			excluded = append(excluded, owner)
+		}
+		owned, err := rg.HasIncomingRefsExcluding(ctx, object, excluded...)
 		if err != nil {
 			return nil, nil, err
 		}
-		set := make(map[string]struct{}, len(sources))
-		for _, source := range sources {
-			if source != NodeUnreferenced {
-				set[source] = struct{}{}
-			}
+		if !owned {
+			adds = append(adds, RefEdge{Subject: NodeUnreferenced, Object: object})
 		}
-		owners[edge.Object] = set
-	}
-
-	// Additions land before removals, so an object whose only owner this batch
-	// both adds and removes ends the batch with no owner at all. Deleting first
-	// would leave that owner in the set and hide the orphan.
-	// Apply additions to the owner sets before removing edges.
-	for _, edge := range adds {
-		if set, ok := owners[edge.Object]; ok && edge.Subject != NodeUnreferenced {
-			set[edge.Subject] = struct{}{}
-		}
-	}
-
-	// Remove outgoing owners and mark objects with no remaining owners.
-	for _, edge := range removes {
-		if set, ok := owners[edge.Object]; ok {
-			delete(set, edge.Subject)
-		}
-	}
-	for object, set := range owners {
-		if len(set) != 0 {
-			continue
-		}
-		if _, removingStaging := stagingRemoves[object]; removingStaging {
-			continue
-		}
-		adds = append(adds, RefEdge{Subject: NodeUnreferenced, Object: object})
 	}
 	return adds, removes, nil
 }
