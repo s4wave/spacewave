@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"hash/crc32"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -1378,6 +1379,9 @@ func (j *journal) checkpoint() error {
 	}
 	defer clear(data)
 	digest := sha256.Sum256(data)
+	if len(data) > math.MaxUint32 {
+		return errors.New("journal checkpoint snapshot exceeds uint32 marker range")
+	}
 	encrypted, err := j.writer.crypto.SealCheckpointGeneration(j.writer.identity, generation, nextSequence, data)
 	if err != nil {
 		return err
@@ -1388,8 +1392,8 @@ func (j *journal) checkpoint() error {
 	}
 	markerData, err = marshalJournalGenerationMarker(journalGenerationMarker{
 		Identity: j.writer.identity, Generation: generation,
-		NextSequence: nextSequence, SnapshotLength: uint32(len(data)),
-		SnapshotDigest: digest[:], RetiredLength: uint64(len(retired)),
+		NextSequence: nextSequence, SnapshotLength: uint32(len(data)), //nolint:gosec // the preceding MaxUint32 check protects the durable marker field.
+		SnapshotDigest: digest[:], RetiredLength: uint64(len(retired)), //nolint:gosec // retired is the in-memory journal byte slice being marked.
 		RetiredDigest: retiredDigest[:],
 	})
 	if err != nil {
@@ -1456,15 +1460,15 @@ func marshalJournalFrame(kind SOJournalRecordKind, sequence uint64, payload []by
 	frame := make([]byte, journalHeaderSize+len(payload)+journalTrailerSize)
 	copy(frame[:4], journalMagic[:])
 	binary.BigEndian.PutUint16(frame[4:6], journalFrameVersion)
-	binary.BigEndian.PutUint16(frame[6:8], uint16(kind))
+	binary.BigEndian.PutUint16(frame[6:8], uint16(kind)) //nolint:gosec // validJournalRecordKind restricts kind to the uint16 frame field.
 	binary.BigEndian.PutUint64(frame[8:16], sequence)
-	binary.BigEndian.PutUint32(frame[16:20], uint32(len(payload)))
+	binary.BigEndian.PutUint32(frame[16:20], uint32(len(payload))) //nolint:gosec // journalMaxPayload bounds payload below uint32 max.
 	headerCRC := crc32.Checksum(frame[:20], crc32.MakeTable(crc32.Castagnoli))
 	binary.BigEndian.PutUint32(frame[20:24], headerCRC)
 	copy(frame[journalHeaderSize:], payload)
 	trailerOffset := journalHeaderSize + len(payload)
 	copy(frame[trailerOffset:trailerOffset+4], journalTrailerMagic[:])
-	binary.BigEndian.PutUint32(frame[trailerOffset+4:], uint32(len(payload)))
+	binary.BigEndian.PutUint32(frame[trailerOffset+4:], uint32(len(payload))) //nolint:gosec // journalMaxPayload bounds payload below uint32 max.
 	frameCRC := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	_, _ = frameCRC.Write(frame[:24])
 	_, _ = frameCRC.Write(payload)
@@ -1514,7 +1518,7 @@ func scanJournalFrom(storage JournalStorage, initialSequence uint64) ([]*SOJourn
 					return nil, 0, errors.Wrap(readErr, "read journal frame trailer")
 				}
 				actualPayloadLength := remaining - int64(journalHeaderSize+journalTrailerSize)
-				if bytes.Equal(trailer[:4], journalTrailerMagic[:]) && binary.BigEndian.Uint32(trailer[4:]) == uint32(actualPayloadLength) {
+				if bytes.Equal(trailer[:4], journalTrailerMagic[:]) && binary.BigEndian.Uint32(trailer[4:]) == uint32(actualPayloadLength) { //nolint:gosec // actualPayloadLength is non-negative and came from the bounded frame remainder.
 					return nil, 0, errors.Wrap(ErrJournalCorrupt, "journal frame header length disagrees with committed trailer")
 				}
 			}
@@ -1638,7 +1642,7 @@ func validJournalHeaderPrefixForSequence(header []byte, expectedSequence uint64)
 		observed := len(header) - 20
 		for index := 0; index < observed && index < 4; index++ {
 			shift := uint(8 * (3 - index))
-			if header[20+index] != byte(expectedCRC>>shift) {
+			if header[20+index] != byte(expectedCRC>>shift) { //nolint:gosec // shift selects one byte of the fixed-width CRC.
 				return false
 			}
 		}

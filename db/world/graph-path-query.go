@@ -131,11 +131,11 @@ func QueryGraphPathWithLookups(ctx context.Context, ws WorldStateGraph, query *G
 				}
 				nextSeen[nextKey] = struct{}{}
 				next = append(next, nextKey)
-				if uint32(len(next)) >= query.ResultLimit {
+				if uint32(len(next)) >= query.ResultLimit { //nolint:gosec // traversal results are bounded by the uint32 ResultLimit field.
 					break
 				}
 			}
-			if uint32(len(next)) >= query.ResultLimit {
+			if uint32(len(next)) >= query.ResultLimit { //nolint:gosec // traversal results are bounded by the uint32 ResultLimit field.
 				break
 			}
 		}
@@ -175,7 +175,7 @@ func uniqueNonEmptyKeys(keys []string, limit uint32) []string {
 		}
 		seen[key] = struct{}{}
 		out = append(out, key)
-		if limit != 0 && uint32(len(out)) >= limit {
+		if limit != 0 && uint32(len(out)) >= limit { //nolint:gosec // final results are bounded by the uint32 query limit.
 			break
 		}
 	}

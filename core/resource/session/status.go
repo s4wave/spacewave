@@ -74,7 +74,7 @@ func (r *StatusResource) WatchControllers(
 			}
 			return &s4wave_status.WatchControllersResponse{
 				Controllers:     infos,
-				ControllerCount: uint32(len(infos)),
+				ControllerCount: uint32(len(infos)), //nolint:gosec // infos is the bounded response collection.
 			}
 		},
 		func(resp *s4wave_status.WatchControllersResponse) error {
@@ -103,7 +103,7 @@ func (r *StatusResource) WatchDirectives(
 			}
 			return &s4wave_status.WatchDirectivesResponse{
 				Directives:     infos,
-				DirectiveCount: uint32(len(infos)),
+				DirectiveCount: uint32(len(infos)), //nolint:gosec // infos is the bounded response collection.
 			}
 		},
 		func(resp *s4wave_status.WatchDirectivesResponse) error {
@@ -378,7 +378,7 @@ func buildPluginsResponse(snapshot *plugin_host_scheduler.PluginStatusSnapshot) 
 	}
 	return &s4wave_status.WatchPluginsResponse{
 		Plugins:     infos,
-		PluginCount: uint32(len(infos)),
+		PluginCount: uint32(len(infos)), //nolint:gosec // infos is the bounded response collection.
 	}
 }
 
@@ -445,14 +445,14 @@ func buildNetworkStatsResponse(
 	}
 	resp.Peers = make([]*s4wave_status.NetworkPeerInfo, 0, len(peersByID))
 	for _, peerInfo := range peersByID {
-		peerInfo.LinkCount = uint32(len(peerInfo.Links))
+		peerInfo.LinkCount = uint32(len(peerInfo.Links)) //nolint:gosec // links are the bounded peer response collection.
 		resp.Peers = append(resp.Peers, peerInfo)
 	}
 	slices.SortFunc(resp.Peers, func(a, b *s4wave_status.NetworkPeerInfo) int {
 		return cmp.Compare(a.GetPeerId(), b.GetPeerId())
 	})
-	resp.PeerCount = uint32(len(resp.Peers))
-	resp.LinkCount = uint32(len(links))
+	resp.PeerCount = uint32(len(resp.Peers)) //nolint:gosec // peers is the bounded response collection.
+	resp.LinkCount = uint32(len(links))      //nolint:gosec // links is the bounded response collection.
 	return resp
 }
 
@@ -550,11 +550,11 @@ func buildPluginManifestRecoveryStatuses(
 			InstanceKey:                 row.InstanceKey,
 			ExecuteManifestRef:          row.ExecuteManifestRef,
 			DownloadManifestRef:         row.DownloadManifestRef,
-			SkippedCandidateCount:       uint32(row.SkippedCandidateCount),
+			SkippedCandidateCount:       uint32(row.SkippedCandidateCount), //nolint:gosec // persisted candidate counters are nonnegative.
 			SkippedCandidateSummary:     row.SkippedCandidateSummary,
-			IgnoredCandidateCount:       uint32(row.IgnoredCandidateCount),
+			IgnoredCandidateCount:       uint32(row.IgnoredCandidateCount), //nolint:gosec // persisted candidate counters are nonnegative.
 			IgnoredCandidateSummary:     row.IgnoredCandidateSummary,
-			QuarantinedCandidateCount:   uint32(row.QuarantinedCandidateCount),
+			QuarantinedCandidateCount:   uint32(row.QuarantinedCandidateCount), //nolint:gosec // persisted candidate counters are nonnegative.
 			QuarantinedCandidateSummary: row.QuarantinedCandidateSummary,
 		})
 	}

@@ -137,7 +137,7 @@ func RunStatus(config Config, c *cli.Context, outputFormat string, sessionIdx ui
 		}
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("spaceCount")
-		ms.WriteInt32(int32(len(spaces)))
+		ms.WriteInt32(int32(len(spaces))) //nolint:gosec // the JSON writer's repeated-space count is bounded by the in-memory result.
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("recovery")
 		writeRecoveryStatusJSON(ms, recovery, recoveryErr)

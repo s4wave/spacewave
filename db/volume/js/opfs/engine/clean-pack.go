@@ -59,7 +59,7 @@ func (e *Engine) CleanPack(ctx context.Context) (bool, error) {
 			if err := decode(current, location); err != nil {
 				return nil, err
 			}
-			payload = binary.LittleEndian.AppendUint32(payload, uint32(len(extent.record.Key)))
+			payload = binary.LittleEndian.AppendUint32(payload, uint32(len(extent.record.Key))) //nolint:gosec // relocation payloads are bounded by maxPackBytes.
 			payload = binary.LittleEndian.AppendUint32(payload, location.Length)
 			payload = binary.LittleEndian.AppendUint32(payload, location.Checksum)
 			payload = append(payload, extent.record.Key...)
@@ -87,7 +87,7 @@ func (e *Engine) CleanPack(ctx context.Context) (bool, error) {
 					return nil, err
 				}
 				location.Pack = newName
-				location.PackBytes = uint32(len(payload))
+				location.PackBytes = uint32(len(payload)) //nolint:gosec // the preceding maxPackBytes check bounds the fixed-width location field.
 				record.Value, err = encode(location)
 				if err != nil {
 					return nil, err

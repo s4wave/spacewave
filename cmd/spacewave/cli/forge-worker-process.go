@@ -32,7 +32,7 @@ func buildForgeWorkerProcessCommand(statePath *string, sessionIdx *uint, spaceID
 				return err
 			}
 			defer client.close()
-			session, err := client.mountSession(ctx, uint32(*sessionIdx))
+			session, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}

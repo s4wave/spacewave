@@ -3,6 +3,7 @@ package store
 import (
 	"cmp"
 	"context"
+	"math"
 	"slices"
 	"sync"
 
@@ -329,7 +330,11 @@ func (s *PackfileStore) GetBlock(ctx context.Context, ref *block.BlockRef) ([]by
 				continue
 			}
 		}
-		size := int64(entry.GetSizeBytes())
+		size, err := manifestPackSize(entry)
+		if err != nil {
+			trace.Log(ctx, "result", "invalid-pack-size")
+			return nil, false, err
+		}
 		if size <= 0 {
 			continue
 		}
@@ -361,9 +366,9 @@ func (s *PackfileStore) recordLookupStats(candidateCount, openedCount, negativeC
 	var notify func()
 	s.mtx.Lock()
 	s.stats.LookupCount++
-	s.stats.CandidatePacks += uint64(candidateCount)
-	s.stats.OpenedPacks += uint64(openedCount)
-	s.stats.NegativePacks += uint64(negativeCount)
+	s.stats.CandidatePacks += uint64(candidateCount) //nolint:gosec // counts are non-negative slice/loop lengths.
+	s.stats.OpenedPacks += uint64(openedCount)       //nolint:gosec // counts are non-negative slice/loop lengths.
+	s.stats.NegativePacks += uint64(negativeCount)   //nolint:gosec // counts are non-negative slice/loop lengths.
 	if targetHit {
 		s.stats.TargetHits++
 	}
@@ -412,7 +417,10 @@ func (s *PackfileStore) GetBlockExists(ctx context.Context, ref *block.BlockRef)
 				continue
 			}
 		}
-		size := int64(entry.GetSizeBytes())
+		size, err := manifestPackSize(entry)
+		if err != nil {
+			return false, err
+		}
 		if size <= 0 {
 			continue
 		}
@@ -502,7 +510,10 @@ func (s *PackfileStore) GetBlockExistsBatch(ctx context.Context, refs []*block.B
 					continue
 				}
 			}
-			size := int64(entry.GetSizeBytes())
+			size, err := manifestPackSize(entry)
+			if err != nil {
+				return nil, err
+			}
 			if size <= 0 {
 				continue
 			}
@@ -563,7 +574,10 @@ func (s *PackfileStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bl
 				continue
 			}
 		}
-		size := int64(entry.GetSizeBytes())
+		size, err := manifestPackSize(entry)
+		if err != nil {
+			return nil, err
+		}
 		if size <= 0 {
 			continue
 		}
@@ -583,6 +597,16 @@ func (s *PackfileStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bl
 		negative++
 	}
 	return nil, nil
+}
+
+// manifestPackSize validates the wire-sized pack length before it crosses
+// into the int64-based range-reader API.
+func manifestPackSize(entry *packfile.PackfileEntry) (int64, error) {
+	size := entry.GetSizeBytes()
+	if size > math.MaxInt64 {
+		return 0, errors.Errorf("packfile %s size exceeds int64 range: %d", entry.GetId(), size)
+	}
+	return int64(size), nil //nolint:gosec // the MaxInt64 check above makes this conversion representable.
 }
 
 // PutBlock is not supported on a read-only store.

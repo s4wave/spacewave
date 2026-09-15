@@ -121,7 +121,7 @@ func (a *tuiArgs) Run(c *cli.Context) error {
 		ExportName:       a.exportName,
 		PluginID:         pluginID,
 		DaemonSocketPath: daemonSocketPath,
-		SessionIndex:     uint32(a.sessionIndex),
+		SessionIndex:     sessionIndex32(a.sessionIndex),
 		SessionObjectKey: strings.TrimSpace(a.sessionObjectKey),
 		SpaceName:        strings.TrimSpace(a.spaceName),
 		StateStoreID:     "tui/" + pluginID,

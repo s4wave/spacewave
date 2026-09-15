@@ -312,7 +312,7 @@ func (e *PackReader) readIndexTailSuffix(ctx context.Context, maxBound bool) ([]
 	if !ok {
 		return nil, ErrIncompleteCachedPackRange
 	}
-	_, tail, err := kvfile.TrimIndexTail(suffix, uint64(e.size))
+	_, tail, err := kvfile.TrimIndexTail(suffix, uint64(e.size)) //nolint:gosec // e.size is rejected when negative and is the validated pack length.
 	if err != nil {
 		return nil, err
 	}
@@ -324,11 +324,11 @@ func (e *PackReader) indexTailWindow(maxBound bool) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if maxTail > uint64(e.size) {
-		maxTail = uint64(e.size)
+	if maxTail > uint64(e.size) { //nolint:gosec // e.size is non-negative and comes from the validated pack reader.
+		maxTail = uint64(e.size) //nolint:gosec // e.size is non-negative and comes from the validated pack reader.
 	}
 	if maxBound {
-		return int(maxTail), nil
+		return int(maxTail), nil //nolint:gosec // maxTail is capped by the non-negative int64 pack size.
 	}
 	window := uint64(defaultIndexTailInitialWindow)
 	estimated := 8 + e.blockCount*(128+8+10)
@@ -338,10 +338,10 @@ func (e *PackReader) indexTailWindow(maxBound bool) (int, error) {
 	if window > maxTail {
 		window = maxTail
 	}
-	if window > uint64(e.size) {
-		window = uint64(e.size)
+	if window > uint64(e.size) { //nolint:gosec // e.size is non-negative and comes from the validated pack reader.
+		window = uint64(e.size) //nolint:gosec // e.size is non-negative and comes from the validated pack reader.
 	}
-	return int(window), nil
+	return int(window), nil //nolint:gosec // window is capped by the non-negative int64 pack size.
 }
 
 func (e *PackReader) parseIndexTail(tail []byte) ([]*kvfile.IndexEntry, error) {
@@ -440,16 +440,16 @@ func (e *PackReader) promoteBlocksInSpanLocked(sp *span) []func() {
 		return nil
 	}
 	pos := sort.Search(len(e.entriesByOff), func(i int) bool {
-		return int64(e.entriesByOff[i].GetOffset()) >= sp.off
+		return int64(e.entriesByOff[i].GetOffset()) >= sp.off //nolint:gosec // validateIndexEntries bounds offsets by the int64 pack size.
 	})
 	var jobs []func()
 	for ; pos < len(e.entriesByOff); pos++ {
 		entry := e.entriesByOff[pos]
-		eOff := int64(entry.GetOffset())
+		eOff := int64(entry.GetOffset()) //nolint:gosec // validateIndexEntries bounds offsets by the int64 pack size.
 		if eOff >= sp.end() {
 			break
 		}
-		eEnd := eOff + int64(entry.GetSize())
+		eEnd := eOff + int64(entry.GetSize()) //nolint:gosec // validated entries have non-overflowing extents within the int64 pack size.
 		if eEnd > sp.end() {
 			continue
 		}
@@ -590,8 +590,8 @@ func (e *PackReader) findEntryByKeyLocked(key []byte) (*kvfile.IndexEntry, bool)
 // target bytes. The returned slice of contained entries always includes the
 // target.
 func (e *PackReader) semanticWindowLocked(target *kvfile.IndexEntry) (int64, int64, []*kvfile.IndexEntry) {
-	targetOff := int64(target.GetOffset())
-	targetEnd := targetOff + int64(target.GetSize())
+	targetOff := int64(target.GetOffset())           //nolint:gosec // validateIndexEntries bounds the target offset by the int64 pack size.
+	targetEnd := targetOff + int64(target.GetSize()) //nolint:gosec // validated target extents cannot overflow or exceed the pack.
 
 	start := targetOff
 	end := targetEnd
@@ -609,12 +609,12 @@ func (e *PackReader) semanticWindowLocked(target *kvfile.IndexEntry) (int64, int
 	intendedEnd := targetEnd + half
 
 	pos := sort.Search(len(e.entriesByOff), func(i int) bool {
-		return int64(e.entriesByOff[i].GetOffset()) >= intendedStart
+		return int64(e.entriesByOff[i].GetOffset()) >= intendedStart //nolint:gosec // validateIndexEntries bounds offsets by the int64 pack size.
 	})
 	for ; pos < len(e.entriesByOff); pos++ {
 		entry := e.entriesByOff[pos]
-		eOff := int64(entry.GetOffset())
-		eEnd := eOff + int64(entry.GetSize())
+		eOff := int64(entry.GetOffset())      //nolint:gosec // validateIndexEntries bounds offsets by the int64 pack size.
+		eEnd := eOff + int64(entry.GetSize()) //nolint:gosec // validated entries have non-overflowing extents within the int64 pack size.
 		if eOff >= intendedEnd {
 			break
 		}

@@ -1,6 +1,7 @@
 package clouderror
 
 import (
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -106,14 +107,22 @@ func ParseResponse(resp *http.Response, body []byte) *Error {
 	if headerDelay <= 0 {
 		return ce
 	}
-	headerSeconds := uint32(headerDelay / time.Second)
-	if headerDelay%time.Second != 0 {
-		headerSeconds++
-	}
+	headerSeconds := retryAfterSeconds(headerDelay)
 	if headerSeconds > ce.RetryAfterSeconds {
 		ce.RetryAfterSeconds = headerSeconds
 	}
 	return ce
+}
+
+func retryAfterSeconds(delay time.Duration) uint32 {
+	seconds := delay / time.Second
+	if seconds >= time.Duration(math.MaxUint32) {
+		return math.MaxUint32
+	}
+	if delay%time.Second != 0 {
+		seconds++
+	}
+	return uint32(seconds) //nolint:gosec // the MaxUint32 duration bound above protects the API field.
 }
 
 // ParseRetryAfterHeader parses a Retry-After header as delay seconds or date.

@@ -75,7 +75,7 @@ func buildForgeCreateClusterCommand(statePath *string, sessionIdx *uint, spaceID
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -153,7 +153,7 @@ func buildForgeCreateJobCommand(statePath *string, sessionIdx *uint, spaceID *st
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -259,7 +259,7 @@ func buildForgeCreateWorkerCommand(statePath *string, sessionIdx *uint, spaceID 
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}

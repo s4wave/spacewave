@@ -415,7 +415,7 @@ func (s *Store) AddDeduped(bstoreID string, bytes int64, count int) {
 	s.bcast.HoldLock(func(broadcast func(), _ func() <-chan struct{}) {
 		state := s.getOrCreateStateLocked(bstoreID)
 		state.dedupedUploadBytes += bytes
-		state.dedupedUploadCount += uint64(count)
+		state.dedupedUploadCount += uint64(count) //nolint:gosec // count is clamped to a non-negative in-memory event count above.
 		state.lastActivityAt = now
 		broadcast()
 	})

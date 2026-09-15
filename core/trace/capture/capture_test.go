@@ -96,17 +96,17 @@ func (c *fakeTraceClient) StartTrace(_ context.Context, req *s4wave_trace.StartT
 }
 
 func (c *fakeTraceClient) StopTrace(ctx context.Context, _ *s4wave_trace.StopTraceRequest) (s4wave_trace.SRPCTraceService_StopTraceClient, error) {
-	return &fakeStopTraceStream{fakeTraceStream: fakeTraceStream{ctx: ctx}, data: cloneTraceChunks(c.stopData)}, nil
+	return &fakeStopTraceStream{ctx: ctx, data: cloneTraceChunks(c.stopData)}, nil
 }
 
 func (c *fakeTraceClient) CaptureCPUProfile(ctx context.Context, req *s4wave_trace.CaptureCPUProfileRequest) (s4wave_trace.SRPCTraceService_CaptureCPUProfileClient, error) {
 	c.cpuReq = req.CloneVT()
-	return &fakeCPUProfileStream{fakeTraceStream: fakeTraceStream{ctx: ctx}, data: cloneTraceChunks(c.cpuData)}, nil
+	return &fakeCPUProfileStream{ctx: ctx, data: cloneTraceChunks(c.cpuData)}, nil
 }
 
 func (c *fakeTraceClient) CaptureMemoryProfile(ctx context.Context, req *s4wave_trace.CaptureMemoryProfileRequest) (s4wave_trace.SRPCTraceService_CaptureMemoryProfileClient, error) {
 	c.memReq = req.CloneVT()
-	return &fakeMemoryProfileStream{fakeTraceStream: fakeTraceStream{ctx: ctx}, data: cloneTraceChunks(c.memoryData)}, nil
+	return &fakeMemoryProfileStream{ctx: ctx, data: cloneTraceChunks(c.memoryData)}, nil
 }
 
 type fakeTraceStream struct {

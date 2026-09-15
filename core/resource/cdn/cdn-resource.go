@@ -174,10 +174,10 @@ func copyV86ImageProgress(
 ) *s4wave_cdn.CopyV86ImageToSpaceProgress {
 	return &s4wave_cdn.CopyV86ImageToSpaceProgress{
 		Stage:              stage,
-		BlocksSeen:         uint64(stats.BlocksSeen),
-		BlocksCopied:       uint64(stats.BlocksCopied),
-		BlocksWritten:      uint64(stats.BlocksWritten),
-		LogicalSourceBytes: uint64(stats.LogicalSourceBytes),
+		BlocksSeen:         uint64(stats.BlocksSeen),         //nolint:gosec // progress counters are nonnegative by contract.
+		BlocksCopied:       uint64(stats.BlocksCopied),       //nolint:gosec // progress counters are nonnegative by contract.
+		BlocksWritten:      uint64(stats.BlocksWritten),      //nolint:gosec // progress counters are nonnegative by contract.
+		LogicalSourceBytes: uint64(stats.LogicalSourceBytes), //nolint:gosec // progress counters are nonnegative by contract.
 	}
 }
 

@@ -53,14 +53,14 @@ func hashKeyValue(key, value []byte) ([]byte, error) {
 	var size [4]byte
 	h := borrowOkraHasher()
 	defer releaseOkraHasher(h)
-	binary.BigEndian.PutUint32(size[:], uint32(len(key)))
+	binary.BigEndian.PutUint32(size[:], uint32(len(key))) //nolint:gosec // hashKeyValue checks the key length against the uint32 framing field.
 	if _, err := h.Write(size[:]); err != nil {
 		return nil, err
 	}
 	if _, err := h.Write(key); err != nil {
 		return nil, err
 	}
-	binary.BigEndian.PutUint32(size[:], uint32(len(value)))
+	binary.BigEndian.PutUint32(size[:], uint32(len(value))) //nolint:gosec // hashKeyValue checks the value length against the uint32 framing field.
 	if _, err := h.Write(size[:]); err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func hashPage(page *Page) ([]byte, error) {
 		if uint64(len(part)) > math.MaxUint32 {
 			return nil, errors.New("okra page bound exceeds uint32 length")
 		}
-		binary.BigEndian.PutUint32(buf[:4], uint32(len(part)))
+		binary.BigEndian.PutUint32(buf[:4], uint32(len(part))) //nolint:gosec // the preceding MaxUint32 check protects the page-bound framing field.
 		if _, err := h.Write(buf[:4]); err != nil {
 			return nil, err
 		}
@@ -153,7 +153,7 @@ func hashPage(page *Page) ([]byte, error) {
 		if uint64(len(ent.GetKey())) > math.MaxUint32 {
 			return nil, errors.New("okra entry key exceeds uint32 length")
 		}
-		binary.BigEndian.PutUint32(buf[:4], uint32(len(ent.GetKey())))
+		binary.BigEndian.PutUint32(buf[:4], uint32(len(ent.GetKey()))) //nolint:gosec // the preceding MaxUint32 check protects the entry-key framing field.
 		if _, err := h.Write(buf[:4]); err != nil {
 			return nil, err
 		}

@@ -3,6 +3,7 @@ package v86_wazero
 import (
 	"encoding/binary"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -122,14 +123,17 @@ func (fs *Host9PFS) loadChildren(parent *host9pInode, values []*fastjson.Value) 
 			return errors.New("fs.json entry has fewer than 6 fields")
 		}
 		name := string(fields[0].GetStringBytes())
+		if len(name) > math.MaxUint16 {
+			return errors.Errorf("fs.json entry name exceeds 9P length: %d", len(name))
+		}
 		inode := &host9pInode{
 			ino:    uint64(len(fs.inodes)),
 			name:   name,
 			size:   fields[1].GetUint64(),
 			mtime:  fields[2].GetUint64(),
-			mode:   uint32(fields[3].GetUint()),
-			uid:    uint32(fields[4].GetUint()),
-			gid:    uint32(fields[5].GetUint()),
+			mode:   uint32(fields[3].GetUint()), //nolint:gosec // fs.json metadata is emitted as the 9P u32 mode field.
+			uid:    uint32(fields[4].GetUint()), //nolint:gosec // fs.json metadata is emitted as the 9P u32 uid field.
+			gid:    uint32(fields[5].GetUint()), //nolint:gosec // fs.json metadata is emitted as the 9P u32 gid field.
 			parent: parent,
 		}
 		parent.children = append(parent.children, inode)
@@ -163,7 +167,7 @@ func (fs *Host9PFS) Handle(req []byte) []byte {
 		return nil
 	}
 	size := binary.LittleEndian.Uint32(req)
-	if size > uint32(len(req)) {
+	if uint64(size) > uint64(len(req)) {
 		return p9Error(binary.LittleEndian.Uint16(req[5:]), p9EIO)
 	}
 	msgType := req[4]
@@ -205,7 +209,7 @@ func (fs *Host9PFS) stats() (uint64, byte, uint64, uint32, uint32, bool) {
 		return 0, 0, 0, 0, 0, false
 	}
 	return fs.requests.Load(),
-		byte(fs.lastType.Load()),
+		byte(fs.lastType.Load()), //nolint:gosec // lastType stores the fixed-width 9P message type byte.
 		fs.notifies.Load(),
 		fs.availIdx.Load(),
 		fs.availLastIdx.Load(),
@@ -263,7 +267,7 @@ func (fs *Host9PFS) handleWalk(tag uint16, body []byte) []byte {
 	}
 	fs.fids[newfid] = node
 	var out []byte
-	out = p9AppendU16(out, uint16(count))
+	out = p9AppendU16(out, uint16(count)) //nolint:gosec // TWalk's count is a uint16 protocol field.
 	out = append(out, qids...)
 	return p9Reply(p9RWalk, tag, out)
 }
@@ -338,10 +342,13 @@ func (fs *Host9PFS) handleReadDir(tag uint16, body []byte) []byte {
 	offset := binary.LittleEndian.Uint64(body[4:])
 	count := int(binary.LittleEndian.Uint32(body[12:]))
 	var entries []byte
-	for i := int(offset); i < len(node.children); i++ {
+	if offset >= uint64(len(node.children)) {
+		return p9Reply(p9RReadDir, tag, p9AppendU32(nil, 0))
+	}
+	for i := int(offset); i < len(node.children); i++ { //nolint:gosec // offset is bounded by the child slice length above.
 		child := node.children[i]
 		entry := append([]byte{}, child.qid()...)
-		entry = p9AppendU64(entry, uint64(i+1))
+		entry = p9AppendU64(entry, uint64(i+1)) //nolint:gosec // directory offsets are nonnegative slice indexes.
 		entry = append(entry, child.dtype())
 		entry = p9AppendString(entry, child.name)
 		if len(entries)+len(entry) > count {
@@ -349,7 +356,7 @@ func (fs *Host9PFS) handleReadDir(tag uint16, body []byte) []byte {
 		}
 		entries = append(entries, entry...)
 	}
-	out := p9AppendU32(nil, uint32(len(entries)))
+	out := p9AppendU32(nil, uint32(len(entries))) //nolint:gosec // entries is bounded by the negotiated 9P message size.
 	out = append(out, entries...)
 	return p9Reply(p9RReadDir, tag, out)
 }
@@ -369,7 +376,7 @@ func (fs *Host9PFS) handleRead(tag uint16, body []byte) []byte {
 	if err != nil {
 		return p9Error(tag, p9EIO)
 	}
-	out := p9AppendU32(nil, uint32(len(data)))
+	out := p9AppendU32(nil, uint32(len(data))) //nolint:gosec // data is bounded by the negotiated 9P read size.
 	out = append(out, data...)
 	return p9Reply(p9RRead, tag, out)
 }
@@ -416,7 +423,10 @@ func (fs *Host9PFS) readFile(node *host9pInode, offset uint64, count uint32) ([]
 		return nil, err
 	}
 	defer f.Close()
-	n, err := f.ReadAt(data, int64(offset))
+	if offset > math.MaxInt64 {
+		return nil, errors.New("9P file offset exceeds int64 range")
+	}
+	n, err := f.ReadAt(data, int64(offset)) //nolint:gosec // the preceding MaxInt64 check protects os.File.ReadAt.
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
@@ -475,7 +485,7 @@ func (n *host9pInode) dtype() byte {
 // p9Reply frames a reply: size, message type, tag, then body.
 func p9Reply(typ byte, tag uint16, body []byte) []byte {
 	out := make([]byte, 7, 7+len(body))
-	binary.LittleEndian.PutUint32(out, uint32(7+len(body)))
+	binary.LittleEndian.PutUint32(out, uint32(7+len(body))) //nolint:gosec // 9P frames use a uint32 byte length.
 	out[4] = typ
 	binary.LittleEndian.PutUint16(out[5:], tag)
 	return append(out, body...)
@@ -488,7 +498,7 @@ func p9Error(tag uint16, errno uint32) []byte {
 
 // p9AppendString writes a length-prefixed string.
 func p9AppendString(dst []byte, value string) []byte {
-	dst = p9AppendU16(dst, uint16(len(value)))
+	dst = p9AppendU16(dst, uint16(len(value))) //nolint:gosec // loadChildren rejects names beyond the uint16 9P field.
 	return append(dst, value...)
 }
 

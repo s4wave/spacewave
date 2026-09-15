@@ -449,7 +449,7 @@ func (s *SOStateParticipantHandle) GetTransformer(ctx context.Context) (*block_t
 func (s *SOStateParticipantHandle) GetTransformInfo(ctx context.Context) (*TransformInfo, error) {
 	grants := s.state.GetRootGrants()
 	info := &TransformInfo{
-		GrantCount: uint32(len(grants)),
+		GrantCount: uint32(len(grants)), //nolint:gosec // grants is the bounded in-memory grant set.
 	}
 
 	// Find and decrypt local grant to extract transform steps.

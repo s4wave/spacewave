@@ -1,12 +1,20 @@
 package clouderror
 
 import (
+	"math"
 	"net/http"
 	"testing"
 	"time"
 
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 )
+
+func TestRetryAfterSecondsSaturates(t *testing.T) {
+	delay := time.Duration(math.MaxUint32)*time.Second + time.Nanosecond
+	if got := retryAfterSeconds(delay); got != math.MaxUint32 {
+		t.Fatalf("retry-after seconds: got %d, want %d", got, math.MaxUint32)
+	}
+}
 
 func TestRetryDelayPrefersStructuredRetryAfter(t *testing.T) {
 	body, err := (&api.ErrorResponse{

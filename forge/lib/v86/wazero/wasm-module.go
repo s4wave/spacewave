@@ -43,7 +43,7 @@ func buildSharedModule(imports *wasmExternImports, opts HostRuntimeOptions) ([]b
 		memorySection = appendLimits(memorySection, wasmLimits{Min: memoryMin})
 		sections = append(sections, wasmSection(5, memorySection))
 	}
-	exportSection := appendExternExports(appendU32(nil, uint32(len(imports.Memories)+len(imports.Tables))), imports)
+	exportSection := appendExternExports(appendU32(nil, uint32(len(imports.Memories)+len(imports.Tables))), imports) //nolint:gosec // wasm export counts are in-memory module slice lengths.
 	sections = append(sections, wasmSection(7, exportSection))
 	return wasmModule(sections...), nil
 }
@@ -69,21 +69,21 @@ func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) 
 		key := signatureKey(fn.ParamTypes(), fn.ResultTypes())
 		typeIndex, ok := typeMap[key]
 		if !ok {
-			typeIndex = uint32(len(types))
+			typeIndex = uint32(len(types)) //nolint:gosec // wasm type indexes are bounded by the in-memory type table.
 			typeMap[key] = typeIndex
 			types = append(types, typeEntry{params: fn.ParamTypes(), results: fn.ResultTypes()})
 		}
 		funcs = append(funcs, functionImport{name: name, typeIndex: typeIndex})
 	}
 
-	typeSection := appendU32(nil, uint32(len(types)))
+	typeSection := appendU32(nil, uint32(len(types))) //nolint:gosec // wasm section counts are in-memory slice lengths.
 	for _, typ := range types {
 		typeSection = append(typeSection, 0x60)
 		typeSection = appendValueTypes(typeSection, typ.params)
 		typeSection = appendValueTypes(typeSection, typ.results)
 	}
 
-	importCount := uint32(len(funcs) + len(imports.Memories) + len(imports.Tables))
+	importCount := uint32(len(funcs) + len(imports.Memories) + len(imports.Tables)) //nolint:gosec // wasm import counts are in-memory module slice lengths.
 	importSection := appendU32(nil, importCount)
 	if len(imports.Memories) != 0 {
 		importSection = appendName(importSection, sharedModuleName)
@@ -104,7 +104,7 @@ func buildEnvModule(compiled wazero.CompiledModule, imports *wasmExternImports) 
 		importSection = appendU32(importSection, fn.typeIndex)
 	}
 
-	exportCount := uint32(len(funcs) + len(imports.Memories) + len(imports.Tables))
+	exportCount := uint32(len(funcs) + len(imports.Memories) + len(imports.Tables)) //nolint:gosec // wasm export counts are in-memory module slice lengths.
 	exportSection := appendU32(nil, exportCount)
 	exportSection = appendExternExports(exportSection, imports)
 	for i, fn := range funcs {
@@ -151,7 +151,7 @@ func signatureKey(params, results []api.ValueType) string {
 
 // appendValueTypes writes a length-prefixed list of value types.
 func appendValueTypes(out []byte, types []api.ValueType) []byte {
-	out = appendU32(out, uint32(len(types)))
+	out = appendU32(out, uint32(len(types))) //nolint:gosec // wasm type counts are in-memory slice lengths.
 	for _, typ := range types {
 		out = append(out, wasmValueType(typ))
 	}
@@ -186,14 +186,14 @@ func wasmModule(sections ...[]byte) []byte {
 // wasmSection frames one section: id byte plus LEB128 length prefix.
 func wasmSection(id byte, payload []byte) []byte {
 	out := []byte{id}
-	out = appendU32(out, uint32(len(payload)))
+	out = appendU32(out, uint32(len(payload))) //nolint:gosec // wasm sections use a uint32 LEB length for in-memory payloads.
 	out = append(out, payload...)
 	return out
 }
 
 // appendName writes a length-prefixed wasm name string.
 func appendName(out []byte, name string) []byte {
-	out = appendU32(out, uint32(len(name)))
+	out = appendU32(out, uint32(len(name))) //nolint:gosec // wasm names use a uint32 LEB length for in-memory strings.
 	return append(out, name...)
 }
 

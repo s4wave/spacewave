@@ -95,7 +95,7 @@ func newSessionInfoCommand() *cli.Command {
 		Usage: "show session details and peer info",
 		Flags: clientFlags(&statePath, &sessionIdx),
 		Action: func(c *cli.Context) error {
-			return runSessionInfo(c, statePath, c.String("output"), uint32(sessionIdx))
+			return runSessionInfo(c, statePath, c.String("output"), sessionIndex32(sessionIdx))
 		},
 	}
 }
@@ -160,7 +160,7 @@ func runSessionInfo(c *cli.Context, statePath, outputFormat string, sessionIdx u
 		ms.WriteUint32(sessionIdx)
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("spaceCount")
-		ms.WriteInt32(int32(len(spaces)))
+		ms.WriteInt32(int32(len(spaces))) //nolint:gosec // the JSON writer's repeated-space count is bounded by the in-memory result.
 		ms.WriteMoreIf(&f)
 		ms.WriteObjectField("spaces")
 		ms.WriteArrayStart()
@@ -217,7 +217,7 @@ func newSessionLogoutCommand() *cli.Command {
 		ArgsUsage: "[session-index|session-id|account-id]",
 		Flags:     sessionLogoutFlags(&statePath, &sessionIdx, &sessionID, &accountID, &yes),
 		Action: func(c *cli.Context) error {
-			return runSessionLogout(c, statePath, uint32(sessionIdx), sessionLogoutTarget{
+			return runSessionLogout(c, statePath, sessionIndex32(sessionIdx), sessionLogoutTarget{
 				Positional: c.Args().First(),
 				SessionID:  sessionID,
 				AccountID:  accountID,
@@ -380,7 +380,7 @@ func newSessionRevokeCommand() *cli.Command {
 			if pid == "" {
 				return errors.New("session peer ID argument required")
 			}
-			return runSessionRevoke(c, statePath, uint32(sessionIdx), pemFile, pid)
+			return runSessionRevoke(c, statePath, sessionIndex32(sessionIdx), pemFile, pid)
 		},
 	}
 }

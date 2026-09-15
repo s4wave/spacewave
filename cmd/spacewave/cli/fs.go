@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"io"
+	"math"
 	"os"
 	"path"
 	"strconv"
@@ -96,7 +97,11 @@ func parseFsURI(arg string, spaceFlag string, sessFlag int) (fsURI, error) {
 	}
 
 	if sessFlag > 0 {
-		result.sessionIdx = uint32(sessFlag)
+		var err error
+		result.sessionIdx, err = sessionIndexFromInt(sessFlag)
+		if err != nil {
+			return fsURI{}, err
+		}
 	}
 	if spaceFlag != "" {
 		result.spaceID = spaceFlag
@@ -371,6 +376,9 @@ func buildFsCatCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
+			if offset > math.MaxInt64 || limit > math.MaxInt64 {
+				return errors.New("offset and limit must fit in int64")
+			}
 			uri, err := parseFsURI(c.Args().First(), spaceID, sessIdx)
 			if err != nil {
 				return err
@@ -389,18 +397,19 @@ func buildFsCatCommand() *cli.Command {
 			defer pathCleanup()
 
 			ctx := c.Context
-			pos := int64(offset)
+			pos := int64(offset) //nolint:gosec // the MaxInt64 check above bounds the UnixFS request offset.
 			var totalRead uint64
 
 			for {
 				chunkLen := int64(readChunkSize)
 				if limit > 0 {
-					remaining := int64(limit) - int64(totalRead)
-					if remaining <= 0 {
+					if totalRead >= limit {
 						break
 					}
-					if chunkLen > remaining {
-						chunkLen = remaining
+					remaining := min(limit-totalRead, math.MaxInt64)
+					remainingInt := int64(remaining) //nolint:gosec // remaining is capped at MaxInt64 above.
+					if chunkLen > remainingInt {
+						chunkLen = remainingInt
 					}
 				}
 

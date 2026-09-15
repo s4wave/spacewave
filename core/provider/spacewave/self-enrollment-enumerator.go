@@ -150,7 +150,7 @@ func (a *ProviderAccount) enumerateSelfEnrollmentCandidates(
 	return &SelfEnrollmentSummary{
 		ids:           ids,
 		generationKey: key,
-		count:         uint32(len(ids)),
+		count:         uint32(len(ids)), //nolint:gosec // ids is the bounded in-memory enumeration result.
 		loaded:        loaded,
 	}, nil
 }

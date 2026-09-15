@@ -152,7 +152,7 @@ func (s *entityKeypairsWatchState) runWatchLoop(
 			}
 			resp := &s4wave_account.WatchEntityKeypairsResponse{
 				Keypairs:      states,
-				UnlockedCount: uint32(len(unlockedPeers)),
+				UnlockedCount: uint32(len(unlockedPeers)), //nolint:gosec // the response count is the bounded unlocked-peer result.
 			}
 			if prev == nil || !resp.EqualVT(prev) {
 				if err := send(resp); err != nil {

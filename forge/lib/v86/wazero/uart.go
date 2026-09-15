@@ -143,12 +143,12 @@ func (u *uartDevice) writeData(ctx context.Context, value uint32) {
 	}
 	u.throwInterrupt(ctx, uartIirTHRI)
 	if u.modemControl&uartMcrLoopback != 0 {
-		u.receive(ctx, byte(value))
+		u.receive(ctx, byte(value)) //nolint:gosec // UART data registers are one byte wide.
 		return
 	}
-	u.host.serialOutput = append(u.host.serialOutput, byte(value))
+	u.host.serialOutput = append(u.host.serialOutput, byte(value)) //nolint:gosec // UART data registers are one byte wide.
 	if u.host.serialSink != nil {
-		_, _ = u.host.serialSink.Write([]byte{byte(value)})
+		_, _ = u.host.serialSink.Write([]byte{byte(value)}) //nolint:gosec // UART data registers are one byte wide.
 	}
 }
 

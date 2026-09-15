@@ -75,7 +75,7 @@ func (h *Hub) Emit(event *StructuredLogEvent) (*EmitStructuredLogResponse, error
 
 	if h.retainedEventLimit != 0 && len(h.views) != 0 {
 		h.retained = append(h.retained, assigned)
-		if uint32(len(h.retained)) > h.retainedEventLimit {
+		if uint32(len(h.retained)) > h.retainedEventLimit { //nolint:gosec // retained is bounded by the uint32 event limit before this comparison.
 			copy(h.retained, h.retained[1:])
 			h.retained[len(h.retained)-1] = nil
 			h.retained = h.retained[:len(h.retained)-1]
@@ -158,7 +158,7 @@ func (h *Hub) buildStateLocked(filter *StructuredLogFilter, rng *StructuredLogRa
 
 	limit := int(rng.GetLimit())
 	if rng.GetTail() && limit > 0 && len(matches) > limit {
-		skipped += uint64(len(matches) - limit)
+		skipped += uint64(len(matches) - limit) //nolint:gosec // both values are non-negative lengths after the positive limit and len check.
 		matches = matches[len(matches)-limit:]
 	} else if !rng.GetTail() && limit > 0 && len(matches) > limit {
 		matches = matches[:limit]
@@ -312,7 +312,7 @@ func (v *View) appendFollowEventLocked(event *StructuredLogEvent) bool {
 			return false
 		}
 		dropped := len(events) - limit
-		v.state.DroppedEventCount += uint64(dropped)
+		v.state.DroppedEventCount += uint64(dropped) //nolint:gosec // dropped is the non-negative length removed from the bounded event slice.
 		events = events[dropped:]
 	}
 

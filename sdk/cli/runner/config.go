@@ -1,7 +1,9 @@
 package runner
 
 import (
+	"fmt"
 	"io"
+	"math"
 	"os"
 	"time"
 
@@ -47,6 +49,19 @@ func DefaultClientFlags(sessionIdx *uint) []cli.Flag {
 			EnvVars:     []string{"SPACEWAVE_SESSION_INDEX"},
 			Value:       1,
 			Destination: sessionIdx,
+			Action: func(_ *cli.Context, value uint) error {
+				if value > math.MaxUint32 {
+					return fmt.Errorf("session-index exceeds uint32 range: %d", value)
+				}
+				return nil
+			},
 		},
 	}
+}
+
+func sessionIndex32(value uint) uint32 {
+	if value > math.MaxUint32 {
+		panic("session index must be validated before conversion")
+	}
+	return uint32(value) //nolint:gosec // the range check enforces the session-index API.
 }

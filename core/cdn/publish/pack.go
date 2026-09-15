@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -52,7 +53,10 @@ func FetchSourcePackToTempFile(
 	}
 
 	// Bound downloads by the advertised pack size before creating a local file.
-	maxBytes := int64(entry.GetSizeBytes()) + 4096
+	if entry.GetSizeBytes() > math.MaxInt64-4096 {
+		return "", errors.Errorf("source pack size exceeds local reader limit: %d", entry.GetSizeBytes())
+	}
+	maxBytes := int64(entry.GetSizeBytes()) + 4096 //nolint:gosec // the explicit MaxInt64-4096 check makes this conversion and addition representable.
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
 	if err != nil {
 		return "", errors.Wrap(err, "read source pack body")
@@ -192,7 +196,7 @@ type KVFilePushMetadata struct {
 // PackResult returns the metadata needed for v1 pack identity.
 func (m KVFilePushMetadata) PackResult() *writer.PackResult {
 	return &writer.PackResult{
-		BlockCount:       uint64(m.BlockCount),
+		BlockCount:       uint64(m.BlockCount), //nolint:gosec // block counts are nonnegative in KVFilePushMetadata.
 		BloomFilter:      m.BloomFilter,
 		SortedKeyDigest:  m.SortedKeyDigest,
 		PackBytesDigest:  m.PackBytesDigest,
@@ -204,14 +208,17 @@ func (m KVFilePushMetadata) PackResult() *writer.PackResult {
 // BuildKVFilePushMetadata verifies a kvfile and builds sync/push metadata.
 func BuildKVFilePushMetadata(ctx context.Context, data []byte) (*KVFilePushMetadata, error) {
 	// Size the membership filter for the complete indexed block set.
-	rdr, err := kvfile.BuildReader(bytesReaderAt(data), uint64(len(data)))
+	rdr, err := kvfile.BuildReader(bytesReaderAt(data), uint64(len(data))) //nolint:gosec // len(data) is the actual in-memory byte slice length.
 	if err != nil {
 		return nil, err
 	}
-	blockCount := int(rdr.Size())
+	if rdr.Size() > uint64(^uint(0)>>1) {
+		return nil, errors.Errorf("kvfile block count exceeds local int range: %d", rdr.Size())
+	}
+	blockCount := int(rdr.Size()) //nolint:gosec // the preceding check bounds the reader count to int's range.
 	policy := writer.DefaultPolicy()
-	if uint64(blockCount) > policy.BloomExpectedBlocks {
-		policy.BloomExpectedBlocks = uint64(blockCount)
+	if uint64(blockCount) > policy.BloomExpectedBlocks { //nolint:gosec // blockCount is a non-negative in-memory entry count.
+		policy.BloomExpectedBlocks = uint64(blockCount) //nolint:gosec // blockCount was checked against the platform int range and is non-negative.
 	}
 	bf := policy.NewBloomFilter()
 	keys := make([][]byte, 0, blockCount)

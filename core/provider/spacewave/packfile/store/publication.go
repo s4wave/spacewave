@@ -136,8 +136,8 @@ retry:
 			return
 		}
 		for _, entry := range contained {
-			off := int64(entry.GetOffset())
-			end := off + int64(entry.GetSize())
+			off := int64(entry.GetOffset())     //nolint:gosec // the catalog validator bounds offsets by the int64 pack size.
+			end := off + int64(entry.GetSize()) //nolint:gosec // validated entry extents cannot overflow or exceed the pack.
 			isTarget := bytes.Equal(entry.GetKey(), key)
 			job, ok := e.admitBlockLocked(entry, off, end, isTarget)
 			if !ok {
@@ -221,7 +221,7 @@ func (e *PackReader) statBlock(ctx context.Context, key []byte, ref *block.Block
 		if !ok {
 			return
 		}
-		size = int64(entry.GetSize())
+		size = int64(entry.GetSize()) //nolint:gosec // the catalog validator bounds entry sizes by the int64 pack size.
 		found = true
 	})
 	if !found {

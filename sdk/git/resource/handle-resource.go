@@ -438,8 +438,8 @@ func (r *GitRepoResource) GetDiffStat(ctx context.Context, req *s4wave_git.GetDi
 
 			var totalAdd, totalDel uint32
 			for _, fs := range patch.Stats() {
-				add := uint32(fs.Addition)
-				del := uint32(fs.Deletion)
+				add := uint32(fs.Addition) //nolint:gosec // git diff statistics are nonnegative counts from the patch parser.
+				del := uint32(fs.Deletion) //nolint:gosec // git diff statistics are nonnegative counts from the patch parser.
 				resp.Files = append(resp.Files, &s4wave_git.DiffFileStat{
 					Path:      fs.Name,
 					Additions: add,

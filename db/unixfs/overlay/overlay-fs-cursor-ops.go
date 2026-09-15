@@ -887,7 +887,10 @@ func (r *cursorReader) Read(p []byte) (int, error) {
 	if uint64(len(p)) > remaining {
 		p = p[:remaining]
 	}
-	n, err := r.ops.ReadAt(r.ctx, int64(r.off), p)
+	if r.off > math.MaxInt64 {
+		return 0, errors.New("cursor offset exceeds int64 read range")
+	}
+	n, err := r.ops.ReadAt(r.ctx, int64(r.off), p) //nolint:gosec // the preceding MaxInt64 check protects the signed read API.
 	if n > 0 {
 		r.off += uint64(n)
 		if err == io.EOF {

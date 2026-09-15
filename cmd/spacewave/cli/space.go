@@ -79,7 +79,7 @@ func newSpaceCreateCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -126,7 +126,7 @@ func newSpaceDeleteCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -166,7 +166,7 @@ func newSpaceRenameCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -198,7 +198,7 @@ func newSpaceInfoCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -261,7 +261,7 @@ func newSpaceResolveCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -293,7 +293,7 @@ func newSpaceSettingsCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -400,7 +400,7 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -579,7 +579,7 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				return err
 			}
 			defer client.close()
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}

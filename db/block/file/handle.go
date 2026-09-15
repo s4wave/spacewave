@@ -161,7 +161,7 @@ func (r *Handle) Read(p []byte) (n int, err error) {
 			break
 		}
 
-		readLen := min(uint64(len(p)-n), totalSize-idx)
+		readLen := min(uint64(len(p)-n), totalSize-idx) //nolint:gosec // len(p)-n is nonnegative; widening to uint64 is exact.
 		readEnd := idx + readLen
 		if r.nextEval != 0 && r.nextEval < readEnd {
 			readEnd = r.nextEval

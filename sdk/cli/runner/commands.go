@@ -20,7 +20,7 @@ func NewStatusCommand(config Config) *cli.Command {
 		Usage: "check daemon health and show summary",
 		Flags: config.ClientFlags(&sessionIdx),
 		Action: func(c *cli.Context) error {
-			return RunStatus(config, c, c.String("output"), uint32(sessionIdx))
+			return RunStatus(config, c, c.String("output"), sessionIndex32(sessionIdx))
 		},
 	}
 }
@@ -34,7 +34,7 @@ func NewWhoamiCommand(config Config) *cli.Command {
 		Usage: "show current session identity",
 		Flags: config.ClientFlags(&sessionIdx),
 		Action: func(c *cli.Context) error {
-			return RunWhoami(config, c, c.String("output"), uint32(sessionIdx))
+			return RunWhoami(config, c, c.String("output"), sessionIndex32(sessionIdx))
 		},
 	}
 }
@@ -71,7 +71,7 @@ func NewSpaceListCommand(config Config, sessionIdx *uint) *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return RunSpaceList(config, c, c.String("output"), uint32(*sessionIdx), watch)
+			return RunSpaceList(config, c, c.String("output"), sessionIndex32(*sessionIdx), watch)
 		},
 	}
 }

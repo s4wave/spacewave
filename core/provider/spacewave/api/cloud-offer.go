@@ -2,6 +2,8 @@ package provider_spacewave_api
 
 import (
 	_ "embed"
+	"fmt"
+	"math"
 
 	"github.com/aperturerobotics/fastjson"
 )
@@ -43,20 +45,27 @@ func readCloudOffer() CloudOffer {
 		Version:                  string(value.GetStringBytes("version")),
 		PolicyVersion:            string(value.GetStringBytes("policyVersion")),
 		Currency:                 string(value.GetStringBytes("currency")),
-		DefaultOverageLimitCents: uint32(value.GetUint64("defaultOverageLimitCents")),
-		MonthlyPriceCents:        uint32(value.GetUint64("monthlyPriceCents")),
+		DefaultOverageLimitCents: cloudOfferUint32(value.GetUint64("defaultOverageLimitCents"), "defaultOverageLimitCents"),
+		MonthlyPriceCents:        cloudOfferUint32(value.GetUint64("monthlyPriceCents"), "monthlyPriceCents"),
 		StorageBytes:             value.GetUint64("storageBytes"),
 		WriteOperations:          value.GetUint64("writeOperations"),
 		ReadOperations:           value.GetUint64("readOperations"),
-		WriteMicrodollars:        uint32(value.GetUint64("writeMicrodollars")),
-		ReadMicrodollars:         uint32(value.GetUint64("readMicrodollars")),
+		WriteMicrodollars:        cloudOfferUint32(value.GetUint64("writeMicrodollars"), "writeMicrodollars"),
+		ReadMicrodollars:         cloudOfferUint32(value.GetUint64("readMicrodollars"), "readMicrodollars"),
 	}
 	limits := value.GetArray("overageLimitsCents")
 	if len(limits) != len(offer.OverageLimitsCents) {
 		panic("cloud offer requires four spending limits")
 	}
 	for idx, limit := range limits {
-		offer.OverageLimitsCents[idx] = uint32(limit.GetUint64())
+		offer.OverageLimitsCents[idx] = cloudOfferUint32(limit.GetUint64(), "overageLimitsCents")
 	}
 	return offer
+}
+
+func cloudOfferUint32(value uint64, field string) uint32 {
+	if value > math.MaxUint32 {
+		panic(fmt.Sprintf("cloud offer field %s exceeds uint32 range: %d", field, value))
+	}
+	return uint32(value) //nolint:gosec // the explicit MaxUint32 check protects the fixed-width offer contract.
 }

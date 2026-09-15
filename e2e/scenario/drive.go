@@ -113,7 +113,7 @@ func driveUploadCrashRecovery(_ context.Context, rt runtime.Runtime) error {
 func crashRecoveryUploadContents() []byte {
 	contents := make([]byte, crashRecoveryUploadSize)
 	for index := range contents {
-		contents[index] = byte((index * 31) ^ (index >> 7) ^ (index >> 15))
+		contents[index] = byte((index * 31) ^ (index >> 7) ^ (index >> 15)) //nolint:gosec // the fixture intentionally keeps the low byte of its deterministic pattern.
 	}
 	return contents
 }

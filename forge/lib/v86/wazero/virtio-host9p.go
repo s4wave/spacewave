@@ -33,9 +33,9 @@ func (h *HostRuntime) registerHost9P(fs *Host9PFS) {
 		return
 	}
 	dev := &virtioHost9PDevice{
-		virtioCommonConfig: virtioCommonConfig{featuresOK: true},
-		host:               h,
-		fs:                 fs,
+		featuresOK: true,
+		host:       h,
+		fs:         fs,
 	}
 	dev.deviceFeatures[0] = virtioHost9PMountTagFeature | virtqDescIndirectFeature | virtqEventIdxFeature
 	dev.deviceFeatures[1] = 1 // VIRTIO_F_VERSION_1.
@@ -80,7 +80,7 @@ func (d *virtioHost9PDevice) registerISRPort() {
 func (d *virtioHost9PDevice) registerConfigPorts() {
 	tag := []byte("host9p")
 	d.host.RegisterIORead(virtioHost9PConfigPort, 16, func(context.Context, uint16) uint32 {
-		return uint32(len(tag))
+		return uint32(len(tag)) //nolint:gosec // the fixed host9p tag length fits the config register.
 	})
 	for i := range uint16(254) {
 		offset := i

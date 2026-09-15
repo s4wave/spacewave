@@ -45,11 +45,11 @@ func (h *HostRuntime) registerPIT() {
 			return uint32(pit.counterRead(counter))
 		})
 		h.RegisterIOWrite(uint16(0x40+counter), 8, func(_ context.Context, _ uint16, value uint32) {
-			pit.counterWrite(counter, uint8(value))
+			pit.counterWrite(counter, uint8(value)) //nolint:gosec // PIT data ports consume the low byte of an 8-bit IO write.
 		})
 	}
 	h.RegisterIOWrite(0x43, 8, func(ctx context.Context, _ uint16, value uint32) {
-		pit.writeControl(ctx, uint8(value))
+		pit.writeControl(ctx, uint8(value)) //nolint:gosec // the PIT control port consumes the low byte of an 8-bit IO write.
 	})
 }
 
@@ -85,9 +85,9 @@ func (p *pitDevice) counterRead(i int) uint8 {
 		latch := p.counterLatch[i]
 		p.counterLatch[i]--
 		if latch == 2 {
-			return uint8(p.counterLatchValue[i])
+			return uint8(p.counterLatchValue[i]) //nolint:gosec // the latched PIT value is a 16-bit counter read split into bytes.
 		}
-		return uint8(p.counterLatchValue[i] >> 8)
+		return uint8(p.counterLatchValue[i] >> 8) //nolint:gosec // the latched PIT value is a 16-bit counter read split into bytes.
 	}
 
 	nextLow := p.counterNextLow[i]
@@ -96,7 +96,7 @@ func (p *pitDevice) counterRead(i int) uint8 {
 	}
 	value := p.counterValue(i, p.host.microtick())
 	if nextLow != 0 {
-		return uint8(value)
+		return uint8(value) //nolint:gosec // the PIT counter is a 16-bit hardware register.
 	}
 	return uint8(value >> 8)
 }
@@ -173,7 +173,7 @@ func (p *pitDevice) counterValue(i int, now float64) uint16 {
 	} else if value < 0 {
 		value = value%reload + reload
 	}
-	return uint16(value)
+	return uint16(value) //nolint:gosec // counterValue normalizes the value into the 16-bit reload range.
 }
 
 // didRollover reports whether counter i has wrapped by now.

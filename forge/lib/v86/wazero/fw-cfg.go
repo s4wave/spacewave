@@ -56,10 +56,10 @@ func (h *HostRuntime) registerFWCfgPorts() {
 // fwCfgFileDir renders the fw_cfg file-directory entry describing the
 func (h *HostRuntime) fwCfgFileDir() []byte {
 	out := make([]byte, 4+64*len(h.optionROMs))
-	binary.BigEndian.PutUint32(out[0:], uint32(len(h.optionROMs)))
+	binary.BigEndian.PutUint32(out[0:], uint32(len(h.optionROMs))) //nolint:gosec // fw_cfg file counts use a uint32 directory field.
 	for i, rom := range h.optionROMs {
 		ptr := 4 + 64*i
-		binary.BigEndian.PutUint32(out[ptr:], uint32(len(rom.data)))
+		binary.BigEndian.PutUint32(out[ptr:], uint32(len(rom.data))) //nolint:gosec // fw_cfg ROM sizes use a uint32 directory field.
 		binary.BigEndian.PutUint16(out[ptr+4:], fwCfgFileStart+uint16(i))
 		copy(out[ptr+8:ptr+64], rom.name)
 	}

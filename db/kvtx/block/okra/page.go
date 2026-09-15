@@ -18,11 +18,11 @@ func NewPageBlock() block.Block {
 }
 
 func entryChildRefID(index int) uint32 {
-	return entryChildRefIDBase + uint32(index)
+	return entryChildRefIDBase + uint32(index) //nolint:gosec // page entry indexes are bounded by the in-memory page representation.
 }
 
 func entryValueRefID(index int) uint32 {
-	return entryValueRefIDBase + uint32(index)
+	return entryValueRefIDBase + uint32(index) //nolint:gosec // page entry indexes are bounded by the in-memory page representation.
 }
 
 func entryIndexFromChildRefID(id uint32) (int, bool) {

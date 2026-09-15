@@ -206,9 +206,9 @@ func (h *HostRuntime) registerV86FS(ctx context.Context, server *unixfs_v86fs.Se
 		return
 	}
 	dev := &virtioV86FSDevice{
-		virtioCommonConfig: virtioCommonConfig{featuresOK: true},
-		host:               h,
-		session:            unixfs_v86fs.NewLocalSession(ctx, server),
+		featuresOK: true,
+		host:       h,
+		session:    unixfs_v86fs.NewLocalSession(ctx, server),
 	}
 	dev.deviceFeatures[1] = 1 // VIRTIO_F_VERSION_1.
 	for i := range dev.queues {
@@ -467,9 +467,9 @@ func (q *virtioQueue) popRequest() (*virtioBufferChain, error) {
 
 // pushReply stages one used-ring entry; entries publish on flushReplies.
 func (q *virtioQueue) pushReply(chain *virtioBufferChain) {
-	usedIdx := (q.usedIdx() + uint16(q.stagedReplies)) & uint16(q.mask())
+	usedIdx := (q.usedIdx() + uint16(q.stagedReplies)) & uint16(q.mask()) //nolint:gosec // virtio used-ring indices are intentionally 16-bit.
 	host := q.device.virtioHost()
-	host.guestWriteUint32(q.usedAddr+4+uint32(usedIdx)*8, uint32(chain.headIdx))
+	host.guestWriteUint32(q.usedAddr+4+uint32(usedIdx)*8, uint32(chain.headIdx)) //nolint:gosec // descriptor indexes use the guest's fixed-width ring fields.
 	host.guestWriteUint32(q.usedAddr+8+uint32(usedIdx)*8, chain.lengthWritten)
 	q.stagedReplies++
 }
@@ -479,7 +479,7 @@ func (q *virtioQueue) flushReplies(ctx context.Context) {
 	if q.stagedReplies == 0 {
 		return
 	}
-	q.device.virtioHost().guestWriteUint16(q.usedAddr+2, uint16(uint32(q.usedIdx())+q.stagedReplies))
+	q.device.virtioHost().guestWriteUint16(q.usedAddr+2, uint16(uint32(q.usedIdx())+q.stagedReplies)) //nolint:gosec // the virtio used index intentionally wraps at uint16.
 	q.stagedReplies = 0
 	if q.device.featureNegotiated(29) || q.availFlags()&virtqAvailNoIRQ == 0 {
 		q.device.virtioRaiseIRQ(ctx, virtioISRQueue)
@@ -491,7 +491,7 @@ func (q *virtioQueue) notifyMeAfter(skipped uint32) {
 	if q.usedAddr == 0 || q.size == 0 {
 		return
 	}
-	availEvent := uint16(uint32(q.availIdx()) + skipped)
+	availEvent := uint16(uint32(q.availIdx()) + skipped) //nolint:gosec // the virtio event index intentionally wraps at uint16.
 	q.device.virtioHost().guestWriteUint16(q.usedAddr+4+q.size*8, availEvent)
 }
 
@@ -580,7 +580,7 @@ func (c *virtioBufferChain) write(data []byte) uint32 {
 		}
 		n := min(len(data), int(buf.len))
 		if host.guestWrite(buf.addr, data[:n]) {
-			written += uint32(n)
+			written += uint32(n) //nolint:gosec // n is bounded by the guest buffer's uint32 length.
 		}
 		data = data[n:]
 	}
@@ -667,8 +667,8 @@ func newVirtioV86FSPCISpace() []byte {
 // writeVirtioPCICap writes one virtio PCI capability structure.
 func writeVirtioPCICap(space []byte, off, next int, typ, bar byte, capOffset, size uint32, extra []byte) {
 	space[off] = 0x09
-	space[off+1] = byte(next)
-	space[off+2] = byte(16 + len(extra))
+	space[off+1] = byte(next)            //nolint:gosec // PCI capability links are one-byte offsets.
+	space[off+2] = byte(16 + len(extra)) //nolint:gosec // the capability length is the fixed one-byte PCI field.
 	space[off+3] = typ
 	space[off+4] = bar
 	binary.LittleEndian.PutUint32(space[off+8:], capOffset)

@@ -42,7 +42,7 @@ func (s *Session) SendMsg(msg protobuf_go_lite.Message) error {
 
 	// Allocate the length-prefixed packet and marshal the payload.
 	pktBuf := make([]byte, size+4)
-	binary.LittleEndian.PutUint32(pktBuf[:4], uint32(size))
+	binary.LittleEndian.PutUint32(pktBuf[:4], uint32(size)) //nolint:gosec // size is bounded by the packet framing limit.
 	if _, err := msg.MarshalToSizedBufferVT(pktBuf[4:]); err != nil {
 		return err
 	}

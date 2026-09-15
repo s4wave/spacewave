@@ -36,7 +36,7 @@ func graphKey(kind byte, nodes ...string) []byte {
 	key := make([]byte, 1, size)
 	key[0] = kind
 	for _, node := range nodes {
-		key = binary.BigEndian.AppendUint32(key, uint32(len(node)))
+		key = binary.BigEndian.AppendUint32(key, uint32(len(node))) //nolint:gosec // graph node keys are bounded by the OPFS record size contract.
 		key = append(key, node...)
 	}
 	return key

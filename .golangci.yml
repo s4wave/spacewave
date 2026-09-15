@@ -70,8 +70,6 @@ linters:
     gosec:
       excludes:
         - G306
-        # Review integer bounds separately; conversions alone are too broad a signal.
-        - G115
     importas:
       no-unaliased: true
     custom:

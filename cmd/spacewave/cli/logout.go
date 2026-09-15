@@ -20,7 +20,7 @@ func newLogoutCommand(_ func() cli_entrypoint.CliBus) *cli.Command {
 		ArgsUsage: "[session-index|session-id|account-id]",
 		Flags:     sessionLogoutFlags(&statePath, &sessionIdx, &sessionID, &accountID, &yes),
 		Action: func(c *cli.Context) error {
-			return runSessionLogout(c, statePath, uint32(sessionIdx), sessionLogoutTarget{
+			return runSessionLogout(c, statePath, sessionIndex32(sessionIdx), sessionLogoutTarget{
 				Positional: c.Args().First(),
 				SessionID:  sessionID,
 				AccountID:  accountID,

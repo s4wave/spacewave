@@ -37,11 +37,22 @@ func parseCanvasURI(arg, spaceFlag string, sessFlag int) (fsURI, error) {
 	if arg == "" {
 		result := fsURI{sessionIdx: 1, spaceID: spaceFlag}
 		if sessFlag > 0 {
-			result.sessionIdx = uint32(sessFlag)
+			var err error
+			result.sessionIdx, err = sessionIndexFromInt(sessFlag)
+			if err != nil {
+				return fsURI{}, err
+			}
 		}
 		return result, nil
 	}
 	return parseFsURI(arg, spaceFlag, sessFlag)
+}
+
+func canvasZIndex(value int) (int32, error) {
+	if value < math.MinInt32 || value > math.MaxInt32 {
+		return 0, errors.Errorf("canvas z-index out of int32 range: %d", value)
+	}
+	return int32(value), nil //nolint:gosec // the explicit int32 range check bounds the canvas protocol field.
 }
 
 // mountCanvasContext connects to the daemon and mounts the full chain to get
@@ -193,7 +204,6 @@ func buildCanvasShowCommand() *cli.Command {
 			if err != nil {
 				return err
 			}
-
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
 				return err
@@ -753,6 +763,10 @@ func buildCanvasNodeAddSubcommand(spec canvasNodeAddSpec) *cli.Command {
 			if err != nil {
 				return err
 			}
+			zIndex, err := canvasZIndex(nz)
+			if err != nil {
+				return err
+			}
 
 			cc, cleanup, err := mountCanvasContext(c, statePath, uri)
 			if err != nil {
@@ -764,7 +778,7 @@ func buildCanvasNodeAddSubcommand(spec canvasNodeAddSpec) *cli.Command {
 			node := &s4wave_canvas.CanvasNode{
 				Width:  nw,
 				Height: nh,
-				ZIndex: int32(nz),
+				ZIndex: zIndex,
 				Type:   spec.nodeType,
 				Pinned: true,
 			}
@@ -897,7 +911,11 @@ func buildCanvasNodeSetCommand() *cli.Command {
 				node.Height = nh
 			}
 			if c.IsSet("z") {
-				node.ZIndex = int32(nz)
+				zIndex, err := canvasZIndex(nz)
+				if err != nil {
+					return err
+				}
+				node.ZIndex = zIndex
 			}
 			if c.IsSet("text") {
 				node.TextContent = text

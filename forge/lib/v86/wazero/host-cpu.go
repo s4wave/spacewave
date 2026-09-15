@@ -2,6 +2,7 @@ package v86_wazero
 
 import (
 	"context"
+	"math"
 
 	"github.com/pkg/errors"
 	"github.com/tetratelabs/wazero/api"
@@ -103,7 +104,10 @@ func (h *HostRuntime) createMemory(ctx context.Context, opts HostBootOptions) er
 		minimumSize = defaultMinimumMemorySize
 	}
 	if len(opts.Initrd) != 0 {
-		minimumSize = max(minimumSize, initrdAddress+uint32(len(opts.Initrd)))
+		if uint64(len(opts.Initrd)) > math.MaxUint32-initrdAddress {
+			return errors.New("initrd exceeds guest address space")
+		}
+		minimumSize = max(minimumSize, initrdAddress+uint32(len(opts.Initrd))) //nolint:gosec // the preceding address-space check protects the uint32 guest size.
 	}
 	if size < minimumSize {
 		size = minimumSize
@@ -141,7 +145,7 @@ func (h *HostRuntime) loadBIOS(ctx context.Context, bios []byte, vgaBIOS []byte)
 	if len(bios) > 0x100000 {
 		return errors.Errorf("BIOS image too large for v86 low memory window: %d bytes", len(bios))
 	}
-	if err := h.writeGuestBlob(ctx, uint32(0x100000-len(bios)), bios); err != nil {
+	if err := h.writeGuestBlob(ctx, uint32(0x100000-len(bios)), bios); err != nil { //nolint:gosec // the preceding 1 MiB BIOS bound makes the offset non-negative and uint32-sized.
 		return errors.Wrap(err, "write BIOS")
 	}
 	if len(vgaBIOS) != 0 {

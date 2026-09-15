@@ -37,7 +37,7 @@ func policyTag(policy Policy) string {
 
 func writePart(h io.Writer, part []byte) {
 	var lenBuf [4]byte
-	binary.BigEndian.PutUint32(lenBuf[:], uint32(len(part)))
+	binary.BigEndian.PutUint32(lenBuf[:], uint32(len(part))) //nolint:gosec // pack identity parts are bounded strings and fixed-size digests in the v1 framing.
 	_, _ = h.Write(lenBuf[:])
 	_, _ = h.Write(part)
 }

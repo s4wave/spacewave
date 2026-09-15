@@ -102,7 +102,7 @@ func fillProjectedImagePixels(pixels []byte) {
 		state ^= state >> 27
 		value := state * 0x2545f4914f6cdd1d
 		for idx := range 8 {
-			pixels[offset+idx] = byte(value >> (idx * 8))
+			pixels[offset+idx] = byte(value >> (idx * 8)) //nolint:gosec // each shift selects one byte of the fixture's fixed-width PRNG value.
 		}
 	}
 }

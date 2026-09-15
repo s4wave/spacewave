@@ -93,7 +93,7 @@ func (a *deviceApproveArgs) Run(c *cli.Context) error {
 		return err
 	}
 	defer client.close()
-	sess, err := client.mountSession(ctx, uint32(a.sessionIdx))
+	sess, err := client.mountSession(ctx, sessionIndex32(a.sessionIdx))
 	if err != nil {
 		return err
 	}

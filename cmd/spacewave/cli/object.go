@@ -66,7 +66,7 @@ func buildObjectListCommand(statePath *string, sessionIdx *uint, spaceID *string
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -145,7 +145,7 @@ func buildObjectInfoCommand(statePath *string, sessionIdx *uint, spaceID *string
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -226,7 +226,7 @@ func buildObjectGraphCommand(statePath *string, sessionIdx *uint, spaceID *strin
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -397,7 +397,7 @@ func buildObjectCreateCommand(statePath *string, sessionIdx *uint, spaceID *stri
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -505,7 +505,7 @@ func buildObjectDeleteCommand(statePath *string, sessionIdx *uint, spaceID *stri
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(*sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(*sessionIdx))
 			if err != nil {
 				return err
 			}

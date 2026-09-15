@@ -1406,7 +1406,10 @@ func (h *cloudSOHost) syncConfigChainResponse(
 			if entry.GetConfigSeqno() == 0 {
 				continue
 			}
-			prevIdx := int(entry.GetConfigSeqno()) - 1
+			if entry.GetConfigSeqno() > uint64(len(entries)) {
+				continue
+			}
+			prevIdx := int(entry.GetConfigSeqno()) - 1 //nolint:gosec // the preceding sequence bound makes this a valid slice-index conversion.
 			if prevIdx < 0 || prevIdx >= len(entries) {
 				continue
 			}

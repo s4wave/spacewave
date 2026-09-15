@@ -72,11 +72,11 @@ func buildChunkIndexJC(
 			return 0, err
 		}
 
-		totalSize += uint64(nchk.Length) //nolint:gosec
-		if err := appendChunkData(ctx, ci, chkSet, idx, uint64(nchk.Length), chkStart, nchk.Data); err != nil {
+		totalSize += uint64(nchk.Length)                                                                        //nolint:gosec // chunker lengths are nonnegative and bounded by the fixed chunk buffer.
+		if err := appendChunkData(ctx, ci, chkSet, idx, uint64(nchk.Length), chkStart, nchk.Data); err != nil { //nolint:gosec // chunker lengths are nonnegative and bounded by the fixed chunk buffer.
 			return 0, err
 		}
-		chkStart += uint64(nchk.Length) //nolint:gosec
+		chkStart += uint64(nchk.Length) //nolint:gosec // chunker lengths are nonnegative and bounded by the fixed chunk buffer.
 		idx++
 
 		if err := ctx.Err(); err != nil {

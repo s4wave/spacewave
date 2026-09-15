@@ -373,7 +373,7 @@ func (o *transportCompositionOwner) setLinks(state *transportCompositionSession,
 		if generation != state.generation {
 			return
 		}
-		state.snapshot.ActivePeerCount = uint32(max(count, 0))
+		state.snapshot.ActivePeerCount = uint32(max(count, 0)) //nolint:gosec // count is the non-negative length of the active peer set.
 		switch {
 		case count > 0:
 			state.hadPeers = true

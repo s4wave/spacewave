@@ -2,6 +2,7 @@ package resource_session
 
 import (
 	"context"
+	"math"
 	"slices"
 	"strings"
 	"time"
@@ -171,7 +172,7 @@ func (r *SessionResource) buildLocalSyncStatusSnapshot(
 		resp.State = s4wave_session.SyncStatusState_SyncStatusState_ACTIVE
 	}
 	if rate != nil {
-		rate.apply(resp, syncStatusCounters{uploadBytes: int64(traffic.UploadedBytes), downloadBytes: int64(traffic.DownloadedBytes)}, now)
+		rate.apply(resp, syncStatusCounters{uploadBytes: signedTransferCounter(traffic.UploadedBytes), downloadBytes: signedTransferCounter(traffic.DownloadedBytes)}, now)
 	}
 	if resp.UploadBytesPerSecond > 0 {
 		resp.Direction = s4wave_session.SyncActivityDirection_SyncActivityDirection_UPLOAD
@@ -203,12 +204,12 @@ func syncStatusFromSpacewaveTelemetry(
 		P2PState:                          syncStatusSpacewaveP2PState(composition.P2PState),
 		PendingUploadBytes:                nonNegativeUint64(telemetry.PendingUploadBytes),
 		PendingDownloadBytes:              0,
-		PendingUploadCount:                uint32(max(telemetry.PendingUploadCount, 0)),
+		PendingUploadCount:                uint32Count(telemetry.PendingUploadCount),
 		PendingDownloadCount:              0,
 		ActiveUploadBytes:                 nonNegativeUint64(telemetry.ActiveUploadBytes),
 		ActiveUploadTransferredBytes:      nonNegativeUint64(telemetry.ActiveUploadTransferredBytes),
-		InFlightUploadCount:               uint32(max(telemetry.InFlightPushes, 0)),
-		ActiveStoreCount:                  uint32(max(telemetry.StoreCount, 0)),
+		InFlightUploadCount:               uint32Count(telemetry.InFlightPushes),
+		ActiveStoreCount:                  uint32Count(telemetry.StoreCount),
 		ActivePeerCount:                   composition.ActivePeerCount,
 		DirectP2PDisabled:                 !composition.DirectP2PEnabled,
 		LastError:                         telemetry.LastError,
@@ -217,27 +218,27 @@ func syncStatusFromSpacewaveTelemetry(
 		PackFullResponseFallbackCount:     telemetry.FullResponseFallbackCount,
 		PackFullResponseFallbackBytes:     nonNegativeUint64(telemetry.FullResponseFallbackBytes),
 		PackLastFullResponseFallbackBytes: nonNegativeUint64(telemetry.LastFullResponseFallback),
-		PackManifestEntries:               uint32(max(telemetry.ManifestEntries, 0)),
+		PackManifestEntries:               uint32Count(telemetry.ManifestEntries),
 		PackBlockCountTotal:               telemetry.PackBlockCountTotal,
 		PackBlockCountMin:                 telemetry.PackBlockCountMin,
 		PackBlockCountMax:                 telemetry.PackBlockCountMax,
 		PackSizeBytesTotal:                telemetry.PackSizeBytesTotal,
 		PackSizeBytesMin:                  telemetry.PackSizeBytesMin,
 		PackSizeBytesMax:                  telemetry.PackSizeBytesMax,
-		PackBloomFilterCount:              uint32(max(telemetry.BloomFilterCount, 0)),
-		PackBloomMissingCount:             uint32(max(telemetry.BloomMissingCount, 0)),
-		PackBloomInvalidCount:             uint32(max(telemetry.BloomInvalidCount, 0)),
-		PackBloomParameterShapeCount:      uint32(max(telemetry.BloomParameterShapeCount, 0)),
+		PackBloomFilterCount:              uint32Count(telemetry.BloomFilterCount),
+		PackBloomMissingCount:             uint32Count(telemetry.BloomMissingCount),
+		PackBloomInvalidCount:             uint32Count(telemetry.BloomInvalidCount),
+		PackBloomParameterShapeCount:      uint32Count(telemetry.BloomParameterShapeCount),
 		PackBloomMaxFalsePositiveRate:     telemetry.BloomMaxFalsePositiveRate,
-		PackBloomRiskPackCount:            uint32(max(telemetry.BloomRiskPackCount, 0)),
+		PackBloomRiskPackCount:            uint32Count(telemetry.BloomRiskPackCount),
 		PackLookupCount:                   telemetry.LookupCount,
 		PackCandidatePacks:                telemetry.CandidatePacks,
 		PackOpenedPacks:                   telemetry.OpenedPacks,
 		PackNegativePacks:                 telemetry.NegativePacks,
 		PackTargetHits:                    telemetry.TargetHits,
-		PackLastCandidatePacks:            uint32(max(telemetry.LastCandidatePacks, 0)),
-		PackLastOpenedPacks:               uint32(max(telemetry.LastOpenedPacks, 0)),
-		PackLastNegativePacks:             uint32(max(telemetry.LastNegativePacks, 0)),
+		PackLastCandidatePacks:            uint32Count(telemetry.LastCandidatePacks),
+		PackLastOpenedPacks:               uint32Count(telemetry.LastOpenedPacks),
+		PackLastNegativePacks:             uint32Count(telemetry.LastNegativePacks),
 		PackLastTargetHit:                 telemetry.LastTargetHit,
 		PackIndexCacheHits:                telemetry.IndexCacheHits,
 		PackIndexCacheMisses:              telemetry.IndexCacheMisses,
@@ -282,6 +283,23 @@ func syncStatusFromSpacewaveTelemetry(
 		}, now)
 	}
 	return resp
+}
+
+func signedTransferCounter(value uint64) int64 {
+	if value > math.MaxInt64 {
+		return math.MaxInt64
+	}
+	return int64(value) //nolint:gosec // the MaxInt64 check saturates the uint64 transport counter for rate arithmetic.
+}
+
+func uint32Count(value int) uint32 {
+	if value <= 0 {
+		return 0
+	}
+	if uint64(value) > math.MaxUint32 {
+		return math.MaxUint32
+	}
+	return uint32(value) //nolint:gosec // the positive MaxUint32 check bounds this telemetry count conversion.
 }
 
 func syncStatusFromLocalState(

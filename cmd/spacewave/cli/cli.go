@@ -4,6 +4,9 @@
 package spacewave_cli
 
 import (
+	"fmt"
+	"math"
+
 	"github.com/aperturerobotics/cli"
 	cli_entrypoint "github.com/s4wave/spacewave/bldr/cli/entrypoint"
 	yield_policy "github.com/s4wave/spacewave/core/resource/listener/yieldpolicy"
@@ -133,8 +136,28 @@ func clientFlags(statePath *string, sessionIdx *uint) []cli.Flag {
 			EnvVars:     []string{"SPACEWAVE_SESSION_INDEX"},
 			Value:       1,
 			Destination: sessionIdx,
+			Action: func(_ *cli.Context, value uint) error {
+				if value > math.MaxUint32 {
+					return fmt.Errorf("session-index exceeds uint32 range: %d", value)
+				}
+				return nil
+			},
 		},
 	}
+}
+
+func sessionIndex32(value uint) uint32 {
+	if value > math.MaxUint32 {
+		panic("session index must be validated before conversion")
+	}
+	return uint32(value) //nolint:gosec // the range check enforces the daemon's uint32 session-index API.
+}
+
+func sessionIndexFromInt(value int) (uint32, error) {
+	if value <= 0 || uint64(value) > math.MaxUint32 {
+		return 0, fmt.Errorf("session index out of range: %d", value)
+	}
+	return uint32(value), nil //nolint:gosec // the positive MaxUint32 check bounds the URI session index.
 }
 
 // daemonClientFlags returns common flags for daemon clients that do not select a session.

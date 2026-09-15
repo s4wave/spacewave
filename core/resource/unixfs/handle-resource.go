@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"math"
 	"slices"
 	"sync"
 	"time"
@@ -405,7 +406,10 @@ func (r *FSHandleResource) ReadAt(ctx context.Context, req *s4wave_unixfs.Handle
 		if err != nil {
 			return nil, err
 		}
-		length = int64(size) - offset
+		if size > math.MaxInt64 {
+			return nil, errors.Errorf("handle size exceeds int64 range: %d", size)
+		}
+		length = int64(size) - offset //nolint:gosec // the preceding MaxInt64 check protects the signed range calculation.
 		if length <= 0 {
 			return &s4wave_unixfs.HandleReadAtResponse{
 				Eof: true,
@@ -554,7 +558,9 @@ func (r *FSHandleResource) Readdir(req *s4wave_unixfs.HandleReaddirRequest, strm
 			defer childHandle.Release()
 
 			if info, infoErr := childHandle.GetFileInfo(ctx); infoErr == nil {
-				entry.Size = uint64(info.Size())
+				if info.Size() >= 0 {
+					entry.Size = uint64(info.Size()) //nolint:gosec // file-info sizes are non-negative at this boundary.
+				}
 				entry.ModTime = info.ModTime().Unix()
 				entry.Mode = uint32(info.Mode())
 			}

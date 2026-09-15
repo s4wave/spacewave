@@ -2,6 +2,7 @@ package resource_world
 
 import (
 	"context"
+	"math"
 	"slices"
 	"sync"
 
@@ -37,7 +38,11 @@ func NewGraphPathQueryResource(
 		result = &world.GraphPathQueryResult{}
 	}
 	if pageSize == 0 {
-		pageSize = uint32(len(result.ObjectKeys))
+		if len(result.ObjectKeys) > math.MaxUint32 {
+			pageSize = math.MaxUint32
+		} else {
+			pageSize = uint32(len(result.ObjectKeys)) //nolint:gosec // the preceding length check bounds the uint32 page-size field.
+		}
 		if pageSize == 0 {
 			pageSize = 1
 		}

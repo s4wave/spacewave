@@ -3,6 +3,7 @@ package v86_wazero
 import (
 	"context"
 	"encoding/binary"
+	"math"
 	"sync"
 )
 
@@ -127,7 +128,7 @@ func (d *ne2kDevice) register(ctx context.Context) error {
 			return uint32(d.readPort(ctx, offset))
 		})
 		d.host.RegisterIOWrite(port, 8, func(ctx context.Context, _ uint16, value uint32) {
-			d.writePort(ctx, offset, byte(value))
+			d.writePort(ctx, offset, byte(value&0xff)) //nolint:gosec // an 8-bit IO write uses only the low byte.
 		})
 	}
 
@@ -141,8 +142,8 @@ func (d *ne2kDevice) register(ctx context.Context) error {
 		return uint32(d.readData(ctx)) | uint32(d.readData(ctx))<<8
 	})
 	d.host.RegisterIOWrite(dataPort, 16, func(ctx context.Context, _ uint16, value uint32) {
-		d.writeData(ctx, byte(value))
-		d.writeData(ctx, byte(value>>8))
+		d.writeData(ctx, byte(value&0xff)) //nolint:gosec // the 16-bit IO write is serialized one byte at a time.
+		d.writeData(ctx, byte(value>>8))   //nolint:gosec // the shifted 16-bit IO value is serialized as its high byte.
 	})
 	d.host.RegisterIORead(dataPort, 32, func(ctx context.Context, _ uint16) uint32 {
 		return uint32(d.readData(ctx)) |
@@ -151,10 +152,10 @@ func (d *ne2kDevice) register(ctx context.Context) error {
 			uint32(d.readData(ctx))<<24
 	})
 	d.host.RegisterIOWrite(dataPort, 32, func(ctx context.Context, _ uint16, value uint32) {
-		d.writeData(ctx, byte(value))
-		d.writeData(ctx, byte(value>>8))
-		d.writeData(ctx, byte(value>>16))
-		d.writeData(ctx, byte(value>>24))
+		d.writeData(ctx, byte(value&0xff)) //nolint:gosec // the 32-bit IO write is serialized one byte at a time.
+		d.writeData(ctx, byte(value>>8))   //nolint:gosec // the shifted 32-bit IO value is serialized one byte at a time.
+		d.writeData(ctx, byte(value>>16))  //nolint:gosec // the shifted 32-bit IO value is serialized one byte at a time.
+		d.writeData(ctx, byte(value>>24))  //nolint:gosec // the shifted 32-bit IO value is serialized one byte at a time.
 	})
 
 	d.updateIRQ(ctx)
@@ -212,7 +213,7 @@ func (d *ne2kDevice) ReceiveFrame(ctx context.Context, frame []byte) {
 
 	packetLen := max(len(frame), ne2kMinFrameLen)
 	totalLen := packetLen + 4
-	needed := byte(1 + (totalLen >> 8))
+	needed := byte(1 + (totalLen >> 8)) //nolint:gosec // the NE2000 receive ring uses an 8-bit page count for bounded Ethernet frames.
 	if !d.rxAvailable(needed) {
 		return
 	}
@@ -223,10 +224,10 @@ func (d *ne2kDevice) ReceiveFrame(ctx context.Context, frame []byte) {
 		next += d.pstart - d.pstop
 	}
 
-	d.writeRing(offset, []byte{enrsrRXOK, next, byte(totalLen), byte(totalLen >> 8)})
+	d.writeRing(offset, []byte{enrsrRXOK, next, byte(totalLen), byte(totalLen >> 8)}) //nolint:gosec // these are the two low bytes of the fixed-width NE2000 receive length.
 	d.writeRing(offset+4, frame)
 	if len(frame) < ne2kMinFrameLen {
-		d.writeRingZeros(offset+4+uint16(len(frame)), ne2kMinFrameLen-len(frame))
+		d.writeRingZeros(offset+4+uint16(len(frame)), ne2kMinFrameLen-len(frame)) //nolint:gosec // this branch proves len(frame) is below the 64-byte minimum.
 	}
 	// Advance only CURR. BOUNDARY is the driver's read pointer: lib8390 ei_receive
 	// reads the next ring page as EN0_BOUNDARY+1, so the device must never write it
@@ -311,11 +312,11 @@ func (d *ne2kDevice) readPage0(offset uint16) byte {
 	case en0ISR:
 		return d.isr
 	case en0RSARLO:
-		return byte(d.rsar)
+		return byte(d.rsar) //nolint:gosec // the register exposes the low byte of the 16-bit DMA address.
 	case en0RSARHI:
 		return byte(d.rsar >> 8)
 	case en0RCNTLO:
-		return byte(d.rcnt)
+		return byte(d.rcnt) //nolint:gosec // the register exposes the low byte of the 16-bit DMA count.
 	case en0RCNTHI:
 		return byte(d.rcnt >> 8)
 	case en0RSR:
@@ -332,7 +333,7 @@ func (d *ne2kDevice) writePage0(ctx context.Context, offset uint16, value byte) 
 		d.pstart = value
 	case en0Stoppg:
 		if int(value) > len(d.memory)>>8 {
-			value = byte(len(d.memory) >> 8)
+			value = byte(min(len(d.memory)>>8, math.MaxUint8)) //nolint:gosec // the register is an 8-bit page number and is explicitly clamped.
 		}
 		d.pstop = value
 	case en0Boundary:
@@ -439,7 +440,7 @@ func (d *ne2kDevice) advanceDMA(ctx context.Context) {
 // transmit copies the transmit-buffer frame and hands it to the outbound
 func (d *ne2kDevice) transmit(ctx context.Context) {
 	start := uint16(d.tpsr) << 8
-	end := min(uint32(start)+uint32(d.tcnt), uint32(len(d.memory)))
+	end := min(uint32(start)+uint32(d.tcnt), uint32(len(d.memory))) //nolint:gosec // guest memory is the uint32-addressed device window.
 	frame := append([]byte(nil), d.memory[start:end]...)
 	if d.outbound != nil {
 		d.outbound(frame)
@@ -592,7 +593,7 @@ func (d *ne2kDevice) page() byte {
 
 // ne2kPort returns the IO base for adapter index id.
 func ne2kPort(id int) uint16 {
-	return uint16(ne2kPCIPortBase + ne2kPCIPortStep*id)
+	return uint16(ne2kPCIPortBase + ne2kPCIPortStep*id) //nolint:gosec // adapter IDs are allocated from the bounded PCI device set.
 }
 
 // ne2kPCIID returns the PCI device number for adapter index id.
@@ -600,7 +601,7 @@ func ne2kPCIID(id int) uint16 {
 	if id == 0 {
 		return 0x05 << 3
 	}
-	return uint16(0x07+id) << 3
+	return uint16(0x07+id) << 3 //nolint:gosec // adapter IDs are allocated from the bounded PCI device set.
 }
 
 // newNE2KPCISpace builds the adapter's config space exposing its IO BAR.

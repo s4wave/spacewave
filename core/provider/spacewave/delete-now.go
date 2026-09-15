@@ -69,8 +69,11 @@ func (c *SessionClient) ConfirmDeleteNowCode(ctx context.Context, code string) (
 	if err := resp.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "unmarshal delete-now confirm response")
 	}
+	if resp.GetDeleteAt() < 0 {
+		return nil, errors.Errorf("delete-at timestamp is negative: %d", resp.GetDeleteAt())
+	}
 	return &ConfirmDeleteNowCodeResult{
-		DeleteAt:         uint64(resp.GetDeleteAt()),
+		DeleteAt:         uint64(resp.GetDeleteAt()), //nolint:gosec // the preceding validation rejects negative signed timestamps.
 		InvoiceTotal:     resp.GetInvoiceTotal(),
 		InvoiceAmountDue: resp.GetInvoiceAmountDue(),
 		InvoiceCurrency:  resp.GetInvoiceCurrency(),

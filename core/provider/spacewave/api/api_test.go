@@ -15,6 +15,16 @@ func jsonHasField(data []byte, field string) bool {
 	return bytes.Contains(data, needle)
 }
 
+func TestCloudOfferUint32RejectsOverflow(t *testing.T) {
+	t.Helper()
+	defer func() {
+		if recover() == nil {
+			t.Fatal("cloudOfferUint32 accepted a value above uint32 range")
+		}
+	}()
+	cloudOfferUint32(uint64(^uint32(0))+1, "test")
+}
+
 // jsonFieldStringValue extracts a string value for a given JSON field.
 // Returns empty string if not found. Only works for simple string values.
 func jsonFieldStringValue(data []byte, field string) string {

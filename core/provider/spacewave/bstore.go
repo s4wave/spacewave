@@ -2,6 +2,7 @@ package provider_spacewave
 
 import (
 	"context"
+	"math"
 	"net/http"
 	"sync"
 	"time"
@@ -901,7 +902,10 @@ func (a *ProviderAccount) EnumerateBlockRefs(ctx context.Context, bstoreID strin
 	// For each packfile, open it and enumerate all block hashes from the index.
 	var refs []*block.BlockRef
 	for _, entry := range entries {
-		size := int64(entry.GetSizeBytes())
+		if entry.GetSizeBytes() > math.MaxInt64 {
+			return nil, errors.Errorf("packfile %s size exceeds int64 range: %d", entry.GetId(), entry.GetSizeBytes())
+		}
+		size := int64(entry.GetSizeBytes()) //nolint:gosec // the explicit MaxInt64 check protects the int64 opener API.
 		if size <= 0 {
 			continue
 		}

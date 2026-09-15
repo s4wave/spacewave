@@ -83,7 +83,7 @@ func forward(ctx context.Context, socket *net.UDPConn, remote netip.AddrPort, pe
 			if n > MaxPacketSize {
 				return errors.New("UDP packet exceeds maximum size")
 			}
-			binary.BigEndian.PutUint16(header[:], uint16(n))
+			binary.BigEndian.PutUint16(header[:], uint16(n)) //nolint:gosec // n is bounded by the maximum UDP packet size check above.
 			if err := writeFull(peerStream, header[:]); err != nil {
 				return err
 			}

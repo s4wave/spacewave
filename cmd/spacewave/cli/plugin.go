@@ -362,7 +362,7 @@ func buildPluginListCommand() *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -448,7 +448,7 @@ func buildPluginAddCommand() *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(sessionIdx))
 			if err != nil {
 				return err
 			}
@@ -507,7 +507,7 @@ func buildPluginRemoveCommand() *cli.Command {
 			}
 			defer client.close()
 
-			sess, err := client.mountSession(ctx, uint32(sessionIdx))
+			sess, err := client.mountSession(ctx, sessionIndex32(sessionIdx))
 			if err != nil {
 				return err
 			}
