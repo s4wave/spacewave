@@ -13,17 +13,28 @@ import (
 
 // Gzip is the gzip compression step.
 type Gzip struct {
-	// writers and readers reuse codec buffers across independent blocks.
-	writers sync.Pool
-	readers sync.Pool
+	// level selects the encoder configuration.
+	level int
+	// writers shares reusable encoders with every transformer at this level.
+	writers *sync.Pool
 }
 
 // gzipReader keeps the input reader stable so resetting it releases block data
 // retained by both gzip and its underlying flate decompressor.
 type gzipReader struct {
-	input  bytes.Reader
+	// input releases the completed block when returned to the pool.
+	input bytes.Reader
+	// reader retains the decoder's reusable buffers.
 	reader *gzip.Reader
 }
+
+var (
+	// gzipWriters shares codec storage across short-lived cursor transformers.
+	// Each legal compression level has a separate pool.
+	gzipWriters [gzip.BestCompression - gzip.HuffmanOnly + 1]sync.Pool
+	// gzipReaders decodes independently of the encoder's compression level.
+	gzipReaders = sync.Pool{New: func() any { return &gzipReader{} }}
+)
 
 // NewGzip constructs the gzip compression step.
 func NewGzip(c *Config) (*Gzip, error) {
@@ -31,14 +42,7 @@ func NewGzip(c *Config) (*Gzip, error) {
 		return nil, err
 	}
 	level := c.EffectiveCompressionLevel()
-	return &Gzip{
-		writers: sync.Pool{New: func() any {
-			// The validated compression level cannot fail writer construction.
-			writer, _ := gzip.NewWriterLevel(io.Discard, level)
-			return writer
-		}},
-		readers: sync.Pool{New: func() any { return &gzipReader{} }},
-	}, nil
+	return &Gzip{level: level, writers: &gzipWriters[level-gzip.HuffmanOnly]}, nil
 }
 
 // EncodeBlock encodes the block according to the config.
@@ -46,7 +50,11 @@ func NewGzip(c *Config) (*Gzip, error) {
 func (g *Gzip) EncodeBlock(data []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.Grow(len(data))
-	wr := g.writers.Get().(*gzip.Writer)
+	wr, ok := g.writers.Get().(*gzip.Writer)
+	if !ok {
+		// The constructor validated the level before selecting this pool.
+		wr, _ = gzip.NewWriterLevel(io.Discard, g.level)
+	}
 	wr.Reset(&buf)
 	defer func() {
 		// Keep compressor storage, but release the completed block's output buffer.
@@ -66,7 +74,7 @@ func (g *Gzip) EncodeBlock(data []byte) ([]byte, error) {
 // DecodeBlock decodes the block according to the config.
 // May reuse the same byte slice if possible.
 func (g *Gzip) DecodeBlock(data []byte) ([]byte, error) {
-	rd := g.readers.Get().(*gzipReader)
+	rd := gzipReaders.Get().(*gzipReader)
 	rd.input.Reset(data)
 	defer func() {
 		rd.input.Reset(nil)
@@ -74,7 +82,7 @@ func (g *Gzip) DecodeBlock(data []byte) ([]byte, error) {
 			_ = rd.reader.Close()
 			rd.reader.Header = gzip.Header{}
 		}
-		g.readers.Put(rd)
+		gzipReaders.Put(rd)
 	}()
 	var err error
 	if rd.reader == nil {
