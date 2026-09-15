@@ -24,6 +24,7 @@ import (
 	bldr_pipesock "github.com/s4wave/spacewave/bldr/util/pipesock"
 	"github.com/s4wave/spacewave/bldr/util/tailwriter"
 	"github.com/s4wave/spacewave/db/unixfs"
+	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	unixfs_sync "github.com/s4wave/spacewave/db/unixfs/sync"
 	"github.com/s4wave/spacewave/net/util/randstring"
 	"github.com/sirupsen/logrus"
@@ -200,20 +201,12 @@ func (h *ProcessHost) ExecutePlugin(
 		return err
 	}
 
-	pluginDistDir, err := h.syncPluginDist(ctx, pluginID, pluginDist)
+	pluginDistDir, err := h.syncPluginDist(ctx, pluginID, entrypoint, pluginDist)
 	if err != nil {
 		return err
 	}
 
-	// the "embed" io/fs will clear the permissions bits
-	// set the executable to chmod +x
 	entrypointPath := filepath.Join(pluginDistDir, entrypoint)
-	le.
-		WithField("entrypoint-path", entrypointPath).
-		Debug("setting native plugin entrypoint executable bit")
-	if err := os.Chmod(entrypointPath, 0o755); err != nil {
-		return err
-	}
 
 	// configure entrypoint process
 	entrypointProc := exec.CommandContext(ctx, entrypointPath, "exec-plugin")
@@ -401,7 +394,7 @@ func (h *ProcessHost) ensurePluginStateDir(pluginID string) (string, error) {
 
 // syncPluginDist materializes or updates the plugin's dist checkout from
 // its FS handle and returns the directory.
-func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID string, pluginDist *unixfs.FSHandle) (string, error) {
+func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID, entrypoint string, pluginDist *unixfs.FSHandle) (string, error) {
 	pluginDistDir := h.pluginDistDir(pluginID)
 	if err := os.MkdirAll(pluginDistDir, 0o755); err != nil {
 		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
@@ -417,8 +410,14 @@ func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID string, plugi
 		pluginDistDir,
 		pluginDist,
 		unixfs_sync.DeleteMode_DeleteMode_BEFORE,
-		nil,
+		func(_ context.Context, path string, _ unixfs.FSCursorNodeType) (bool, error) {
+			return filepath.Clean(path) != entrypoint, nil
+		},
 	); err != nil {
+		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
+		return "", err
+	}
+	if err := materializeEntrypoint(ctx, pluginDist, entrypoint, pluginDistDir); err != nil {
 		h.recordPluginPackageStatus(pluginID, pluginDistDir, false, false, "sync", err)
 		return "", err
 	}
@@ -428,6 +427,37 @@ func (h *ProcessHost) syncPluginDist(ctx context.Context, pluginID string, plugi
 		Debug("native plugin dist sync complete")
 	h.recordPluginPackageStatus(pluginID, pluginDistDir, true, false, "sync", nil)
 	return pluginDistDir, nil
+}
+
+// materializeEntrypoint replaces the executable with a complete new inode.
+// Updating a previously executed inode in place leaves macOS code-signing caches
+// referring to its old contents, even when the replacement signature is valid.
+func materializeEntrypoint(ctx context.Context, dist *unixfs.FSHandle, entrypoint, dir string) error {
+	handle, _, err := dist.LookupPath(ctx, entrypoint)
+	if err != nil {
+		return err
+	}
+	source := unixfs_billy.NewBillyFSFile(ctx, entrypoint, handle, os.O_RDONLY, time.Time{})
+	defer source.Close()
+
+	destination := filepath.Join(dir, entrypoint)
+	file, err := os.CreateTemp(filepath.Dir(destination), ".entrypoint-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(file.Name())
+	defer file.Close()
+	if _, err := io.Copy(file, source); err != nil {
+		return err
+	}
+	// Embedded distributions can omit executable permission bits.
+	if err := file.Chmod(0o755); err != nil {
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	return os.Rename(file.Name(), destination)
 }
 
 // InvalidatePluginDist clears only the derived native plugin dist checkout.

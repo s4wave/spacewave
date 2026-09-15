@@ -3,6 +3,7 @@
 package plugin_host_process
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,6 +15,40 @@ import (
 	unixfs_billy "github.com/s4wave/spacewave/db/unixfs/billy"
 	"github.com/sirupsen/logrus"
 )
+
+func TestProcessHostSyncReplacesExecutableInode(t *testing.T) {
+	host := newTestProcessHost(t)
+	entrypoint := filepath.Join(host.pluginDistDir("sample"), "entrypoint")
+	writeDiskFile(t, entrypoint, []byte("old executable"))
+	old, err := os.Open(entrypoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer old.Close()
+
+	dist := newTestDistHandle(t, map[string][]byte{
+		"entrypoint": []byte("new executable"),
+	})
+	defer dist.Release()
+	if _, err := host.syncPluginDist(t.Context(), "sample", "entrypoint", dist); err != nil {
+		t.Fatal(err)
+	}
+	assertFileContents(t, entrypoint, "new executable")
+	retained, err := io.ReadAll(old)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(retained) != "old executable" {
+		t.Fatalf("previous executable changed: %q", retained)
+	}
+	info, err := os.Stat(entrypoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o755 {
+		t.Fatalf("executable permissions: %v", info.Mode())
+	}
+}
 
 func TestProcessHostInvalidatePluginDistPreservesPluginState(t *testing.T) {
 	ctx := t.Context()
@@ -58,7 +93,7 @@ func TestProcessHostSyncPluginDistRebuildsSelectedDistAndPreservesState(t *testi
 	})
 	defer selectedDist.Release()
 
-	distDir, err := host.syncPluginDist(ctx, pluginID, selectedDist)
+	distDir, err := host.syncPluginDist(ctx, pluginID, "entrypoint", selectedDist)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
