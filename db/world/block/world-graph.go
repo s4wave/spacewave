@@ -12,6 +12,7 @@ import (
 
 // graphQuadBatchCollector resolves filters within one underlying transaction.
 type graphQuadBatchCollector interface {
+	// CollectFilteredQuadsBatch resolves each filter with an independent limit.
 	CollectFilteredQuadsBatch(ctx context.Context, filters []quad.Quad, limitPerFilter uint32) ([][]quad.Quad, error)
 }
 
@@ -158,63 +159,10 @@ func (g *graphPathReadOperation) QueryGraphPath(ctx context.Context, query *worl
 
 // setGraphQuad validates endpoints and records newly inserted relationships.
 func (t *WorldState) setGraphQuad(ctx context.Context, q world.GraphQuad) error {
-	if !t.write {
-		return tx.ErrNotWrite
+	err := t.InsertGraphQuads(ctx, []world.GraphQuad{q})
+	if err != nil && graph.IsQuadExist(err) {
+		return nil
 	}
-	if t.discarded.Load() {
-		return tx.ErrDiscarded
-	}
-
-	cq, err := world.GraphQuadToCayleyQuad(q, true)
-	if err != nil {
-		return err
-	}
-
-	// Resolve both endpoints before adding the relationship.
-	subjKey, err := world.GraphValueToKey(q.GetSubject())
-	if err != nil {
-		return err
-	}
-	subjRef, err := t.mustGetObject(ctx, subjKey)
-	if err != nil {
-		return err
-	}
-
-	objKey, err := world.GraphValueToKey(q.GetObj())
-	if err != nil {
-		return err
-	}
-	objRef, err := t.mustGetObject(ctx, objKey)
-	if err != nil {
-		return err
-	}
-
-	// The insertion result owns duplicate detection; duplicate relationships
-	// do not advance endpoint revisions or append World changes.
-	deltas := [1]graph.Delta{{Quad: cq, Action: graph.Add}}
-	err = t.graphHd.ApplyDeltas(ctx, deltas[:], graph.IgnoreOpts{})
-	if err != nil {
-		if graph.IsQuadExist(err) {
-			return nil
-		}
-		return err
-	}
-
-	// Advance endpoint revisions without separate INCREMENT_REV changes.
-	_, err = subjRef.incrementRev(ctx, false)
-	if err != nil {
-		return err
-	}
-	_, err = objRef.incrementRev(ctx, false)
-	if err != nil {
-		return err
-	}
-
-	// Record the complete relationship change.
-	_, err = t.queueWorldChange(ctx, &WorldChange{
-		ChangeType: WorldChangeType_WorldChange_GRAPH_SET,
-		Quad:       world.GraphQuadToQuad(q),
-	})
 	return err
 }
 
