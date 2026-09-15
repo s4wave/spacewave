@@ -18,6 +18,7 @@ import (
 
 // ResourceClient creates references for resource IDs returned by RPCs.
 type ResourceClient interface {
+	// CreateResourceReference acquires a reference the caller must release.
 	CreateResourceReference(resourceID uint32) resource_client.ResourceRef
 }
 
@@ -116,18 +117,22 @@ type cursorStore struct {
 	xfrm    block.Transformer
 }
 
+// GetHashType selects the storage default.
 func (s *cursorStore) GetHashType() hash.HashType {
 	return 0
 }
 
+// GetSupportedFeatures advertises the cursor's batch RPCs.
 func (s *cursorStore) GetSupportedFeatures() block.StoreFeature {
 	return block.StoreFeatureNativeBatchPut | block.StoreFeatureNativeBatchExists
 }
 
+// BeginReadOperation reuses this cursor without acquiring another resource.
 func (s *cursorStore) BeginReadOperation(context.Context) (block.StoreOps, func(), error) {
 	return s, func() {}, nil
 }
 
+// PutBlock sends decoded content for the server to transform and store.
 func (s *cursorStore) PutBlock(
 	ctx context.Context,
 	data []byte,
@@ -151,9 +156,26 @@ func (s *cursorStore) PutBlock(
 	return resp.GetRef(), resp.GetExisted(), nil
 }
 
+// PutBlockBatch preserves entry order across bounded decoded requests.
 func (s *cursorStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
-	reqEntries := make([]*PutBlockBatchEntry, len(entries))
-	for i, entry := range entries {
+	// Bound decoded payloads: compressed blocks can expand far beyond the
+	// caller's write buffer. Leave room below the Resource packet limit.
+	const batchBytes = 4 << 20
+	req := &PutBlockBatchRequest{}
+	size := 0
+	flush := func() error {
+		if len(req.Entries) == 0 {
+			return nil
+		}
+		_, err := s.service.PutBlockBatch(ctx, req)
+		if err != nil {
+			return errors.Wrapf(err, "write %d blocks (%d bytes)", len(req.Entries), size)
+		}
+		req = &PutBlockBatchRequest{}
+		size = 0
+		return err
+	}
+	for _, entry := range entries {
 		data := entry.Data
 		if !entry.Tombstone && s.xfrm != nil {
 			var err error
@@ -163,19 +185,26 @@ func (s *cursorStore) PutBlockBatch(ctx context.Context, entries []*block.PutBat
 				return err
 			}
 		}
-		reqEntries[i] = &PutBlockBatchEntry{
+		decoded := &PutBlockBatchEntry{
 			Ref:       entry.Ref,
 			Data:      data,
 			Refs:      entry.Refs,
 			Tombstone: entry.Tombstone,
 		}
+		// Ten bytes cover the repeated field's tag and length prefix.
+		entrySize := decoded.SizeVT() + 10
+		if size+entrySize > batchBytes {
+			if err := flush(); err != nil {
+				return err
+			}
+		}
+		req.Entries = append(req.Entries, decoded)
+		size += entrySize
 	}
-	_, err := s.service.PutBlockBatch(ctx, &PutBlockBatchRequest{
-		Entries: reqEntries,
-	})
-	return err
+	return flush()
 }
 
+// GetBlockExistsBatch returns one existence result per requested reference.
 func (s *cursorStore) GetBlockExistsBatch(ctx context.Context, refs []*block.BlockRef) ([]bool, error) {
 	resp, err := s.service.GetBlockExistsBatch(ctx, &GetBlockExistsBatchRequest{
 		Refs: refs,
@@ -190,6 +219,7 @@ func (s *cursorStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Blo
 	return found, nil
 }
 
+// GetBlock restores the storage transform after reading decoded remote content.
 func (s *cursorStore) GetBlock(
 	ctx context.Context,
 	ref *block.BlockRef,
@@ -209,15 +239,18 @@ func (s *cursorStore) GetBlock(
 	return data, resp.GetFound(), nil
 }
 
+// GetBlockExists reports whether the cursor can resolve the block.
 func (s *cursorStore) GetBlockExists(ctx context.Context, ref *block.BlockRef) (bool, error) {
 	_, found, err := s.GetBlock(ctx, ref)
 	return found, err
 }
 
+// RmBlock rejects removal, which the cursor Resource does not expose.
 func (s *cursorStore) RmBlock(ctx context.Context, ref *block.BlockRef) error {
 	return errors.New("bucket lookup cursor resource does not support removing blocks")
 }
 
+// StatBlock reports the transformed size, or nil when the block is absent.
 func (s *cursorStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*block.BlockStat, error) {
 	data, found, err := s.GetBlock(ctx, ref)
 	if err != nil {
@@ -229,6 +262,7 @@ func (s *cursorStore) StatBlock(ctx context.Context, ref *block.BlockRef) (*bloc
 	return &block.BlockStat{Ref: ref, Size: int64(len(data))}, nil
 }
 
+// Sync completes immediately because each cursor RPC finishes its write.
 func (s *cursorStore) Sync(ctx context.Context) (bool, error) {
 	return true, nil
 }
