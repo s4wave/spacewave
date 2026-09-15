@@ -2,6 +2,7 @@ package block_rpc_client
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/aperturerobotics/starpc/srpc"
@@ -9,10 +10,12 @@ import (
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
 )
 
+// testBlockStoreClient records feature and batch calls without a transport.
 type testBlockStoreClient struct {
 	features     block.StoreFeature
 	featureCalls int
 	batchEntries []*block_rpc.PutBlockBatchEntry
+	batchHook    func(context.Context, *block_rpc.PutBlockBatchRequest) error
 }
 
 func (c *testBlockStoreClient) SRPCClient() srpc.Client {
@@ -42,10 +45,15 @@ func (c *testBlockStoreClient) PutBlock(
 }
 
 func (c *testBlockStoreClient) PutBlockBatch(
-	_ context.Context,
+	ctx context.Context,
 	req *block_rpc.PutBlockBatchRequest,
 ) (*block_rpc.PutBlockBatchResponse, error) {
 	c.batchEntries = req.GetEntries()
+	if c.batchHook != nil {
+		if err := c.batchHook(ctx, req); err != nil {
+			return nil, err
+		}
+	}
 	return &block_rpc.PutBlockBatchResponse{}, nil
 }
 
@@ -99,12 +107,18 @@ func TestBlockStoreGetSupportedFeaturesMasksReadOnlyWrites(t *testing.T) {
 	store := NewBlockStore(client, 0, true)
 
 	expected := block.StoreFeatureNativeBatchExists | block.StoreFeatureSelfBuffered
-	got := store.GetSupportedFeatures()
-	if got != expected {
-		t.Fatalf("expected read-safe features on read-only client, got %v", got)
+	// Concurrent first readers must wait for the same initialized feature set.
+	var readers sync.WaitGroup
+	for range 16 {
+		readers.Go(func() {
+			if got := store.GetSupportedFeatures(); got != expected {
+				t.Errorf("expected read-safe features on read-only client, got %v", got)
+			}
+		})
 	}
+	readers.Wait()
 
-	got = store.GetSupportedFeatures()
+	got := store.GetSupportedFeatures()
 	if got != expected {
 		t.Fatalf("expected cached read-only feature set, got %v", got)
 	}
@@ -135,5 +149,5 @@ func TestBlockStorePutBlockBatchForwardsRefs(t *testing.T) {
 	}
 }
 
-// _ is a type assertion
+// _ verifies the test client contract.
 var _ block_rpc.SRPCBlockStoreClient = (*testBlockStoreClient)(nil)

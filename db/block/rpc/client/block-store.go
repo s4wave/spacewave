@@ -3,7 +3,7 @@ package block_rpc_client
 import (
 	"context"
 	"errors"
-	"sync/atomic"
+	"sync"
 
 	"github.com/s4wave/spacewave/db/block"
 	block_rpc "github.com/s4wave/spacewave/db/block/rpc"
@@ -13,14 +13,14 @@ import (
 
 // BlockStore implements a BlockStore backed by a BlockStore service.
 type BlockStore struct {
-	// client is the client to use
+	// client carries the remote store operations.
 	client block_rpc.SRPCBlockStoreClient
-	// hashType is the preferred hash type to use for writes
+	// hashType is the preferred hash type for writes.
 	hashType hash.HashType
-	// readOnly disables write calls
+	// readOnly disables write calls.
 	readOnly bool
 	// featuresOnce guards the lazy lookup of supportedFeatures.
-	featuresOnce atomic.Bool
+	featuresOnce sync.Once
 	// supportedFeatures caches the remote feature bitmask after the first call.
 	supportedFeatures block.StoreFeature
 }
@@ -50,18 +50,18 @@ func (v *BlockStore) GetHashType() hash.HashType {
 // for the lifetime of the store, and this method is on the hot path.
 func (v *BlockStore) GetSupportedFeatures() block.StoreFeature {
 	// Fetch and cache the remote feature set once for this store lifetime.
-	if v.featuresOnce.CompareAndSwap(false, true) {
+	v.featuresOnce.Do(func() {
 		resp, err := v.client.GetSupportedFeatures(context.Background(), &block_rpc.GetSupportedFeaturesRequest{})
 		if err != nil {
 			v.supportedFeatures = block.StoreFeature_STORE_FEATURE_UNKNOWN
-			return v.supportedFeatures
+			return
 		}
 		features := resp.GetFeatures()
 		if v.readOnly {
 			features &^= block.StoreFeatureNativeBatchPut
 		}
 		v.supportedFeatures = features
-	}
+	})
 	return v.supportedFeatures
 }
 
@@ -95,29 +95,56 @@ func (v *BlockStore) PutBlock(ctx context.Context, data []byte, opts *block.PutO
 	return addedRef, resp.GetExisted(), nil
 }
 
-// PutBlockBatch requests a remote batch write.
+// PutBlockBatch preserves operation order across bounded remote requests.
+// A failed request stops submission; earlier requests may have committed.
 func (v *BlockStore) PutBlockBatch(ctx context.Context, entries []*block.PutBatchEntry) error {
 	// Reject read-only clients before building the remote batch request.
 	if v.readOnly {
 		return block_store.ErrReadOnly
 	}
-	req := &block_rpc.PutBlockBatchRequest{Entries: make([]*block_rpc.PutBlockBatchEntry, 0, len(entries))}
+	// Leave room for the Resource envelope around encoded block messages.
+	const batchBytes = 4 << 20
+	req := &block_rpc.PutBlockBatchRequest{}
+	size := 0
+	flush := func() error {
+		if len(req.Entries) == 0 {
+			return nil
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		resp, err := v.client.PutBlockBatch(ctx, req)
+		if err != nil {
+			return err
+		}
+		if errStr := resp.GetError(); errStr != "" {
+			return errors.New(errStr)
+		}
+		req = &block_rpc.PutBlockBatchRequest{}
+		size = 0
+		return nil
+	}
 	for _, entry := range entries {
-		req.Entries = append(req.Entries, &block_rpc.PutBlockBatchEntry{
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		wireEntry := &block_rpc.PutBlockBatchEntry{
 			Ref:       entry.Ref,
 			Data:      entry.Data,
 			Refs:      entry.Refs,
 			Tombstone: entry.Tombstone,
-		})
+		}
+		// Ten bytes cover the repeated field's tag and length prefix.
+		entrySize := wireEntry.SizeVT() + 10
+		if size+entrySize > batchBytes {
+			if err := flush(); err != nil {
+				return err
+			}
+		}
+		req.Entries = append(req.Entries, wireEntry)
+		size += entrySize
 	}
-	resp, err := v.client.PutBlockBatch(ctx, req)
-	if err != nil {
-		return err
-	}
-	if errStr := resp.GetError(); errStr != "" {
-		return errors.New(errStr)
-	}
-	return nil
+	return flush()
 }
 
 // GetBlock gets a block with a cid reference.
@@ -161,7 +188,11 @@ func (v *BlockStore) GetBlockExistsBatch(ctx context.Context, refs []*block.Bloc
 	if errStr := resp.GetError(); errStr != "" {
 		return nil, errors.New(errStr)
 	}
-	return resp.GetExists(), nil
+	found := resp.GetExists()
+	if len(found) != len(refs) {
+		return nil, errors.New("block store returned an invalid existence result count")
+	}
+	return found, nil
 }
 
 // StatBlock returns metadata about a block without reading its data.
@@ -206,5 +237,5 @@ func (v *BlockStore) Sync(ctx context.Context) (bool, error) {
 	return resp.GetFenced(), nil
 }
 
-// _ is a type assertion
+// _ verifies the remote store contract.
 var _ block.StoreOps = (*BlockStore)(nil)
