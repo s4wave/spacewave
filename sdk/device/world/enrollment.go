@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"strings"
 	"time"
 
 	"github.com/aperturerobotics/protobuf-go-lite/types/known/timestamppb"
@@ -33,12 +32,6 @@ func EnsureEnrolledDevice(ctx context.Context, engine world.Engine, authenticate
 	if engine == nil || authenticatedPeer == "" {
 		return "", errors.New("mounted World and authenticated Device peer are required")
 	}
-	if _, err := authenticatedPeer.ExtractPublicKey(); err != nil {
-		return "", errors.Wrap(err, "validate authenticated Device peer")
-	}
-	if strings.TrimSpace(label) == "" {
-		return "", errors.New("Device label is required")
-	}
 
 	// Resolve the established Device key under the World's transaction lock.
 	key := EnrolledDeviceObjectKey(authenticatedPeer)
@@ -47,61 +40,29 @@ func EnsureEnrolledDevice(ctx context.Context, engine world.Engine, authenticate
 		return "", err
 	}
 	defer tx.Discard()
-	exists, err := tx.HasObject(ctx, key)
-	if err != nil {
-		return "", err
-	}
 
 	// Preserve all existing Device state and reject another object at this key.
-	var device *s4wave_device.Device
-	if exists {
-		if err := world_types.CheckObjectType(ctx, tx, key, s4wave_device.DeviceTypeID); err != nil {
-			return "", err
-		}
-		var objectState world.ObjectState
-		device, objectState, err = world.LookupObject[*s4wave_device.Device](ctx, tx, key, s4wave_device.NewDeviceBlock)
-		world.ReleaseObjectState(objectState)
-		if err != nil {
-			return "", err
-		}
-		if device.GetPeerId() != authenticatedPeer.String() {
-			return "", errors.New("Device record does not match the authenticated peer")
-		}
-		if device.GetSetupState() == s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_DEVICE_SESSION_READY {
-			return key, nil
-		}
-	}
-
-	// Publish session readiness without asserting daemon liveness or capabilities.
-	now := timestamppb.New(time.Now())
-	if device == nil {
-		device = &s4wave_device.Device{PeerId: authenticatedPeer.String(), Label: label, CreatedAt: now.CloneVT()}
-	}
-	device.SetupState = s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_DEVICE_SESSION_READY
-	device.UpdatedAt = now
-	write := func(cursor *block.Cursor) error {
-		cursor.SetBlock(device, true)
-		return nil
-	}
-	if exists {
-		_, _, err = world.AccessWorldObject(ctx, tx, key, true, write)
-	}
-	if !exists {
-		var createdObject world.ObjectState
-		createdObject, _, err = world.CreateWorldObject(ctx, tx, key, write)
-		world.ReleaseObjectState(createdObject)
-		if err == nil {
-			err = world_types.SetObjectType(ctx, tx, key, s4wave_device.DeviceTypeID)
-		}
-	}
-
-	// A queued duplicate create is rejected after the first accepted Device.
-	// Release this write before reading accepted state; a second transaction
-	// while this one is open can deadlock the store.
+	_, device, err := EnsureDevice(ctx, tx, authenticatedPeer, label)
 	if errors.Is(err, world.ErrObjectExists) {
+		// Release this write before reading accepted state; overlapping transactions
+		// can deadlock a store that serializes writes.
 		tx.Discard()
 		return readyEnrolledDevice(ctx, engine, authenticatedPeer, key, err)
 	}
+	if err != nil {
+		return "", err
+	}
+	if device.GetSetupState() == s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_DEVICE_SESSION_READY {
+		return key, nil
+	}
+
+	// Publish session readiness without asserting daemon liveness or capabilities.
+	device.SetupState = s4wave_device.DeviceSetupState_DEVICE_SETUP_STATE_DEVICE_SESSION_READY
+	device.UpdatedAt = timestamppb.New(time.Now())
+	_, _, err = world.AccessWorldObject(ctx, tx, key, true, func(cursor *block.Cursor) error {
+		cursor.SetBlock(device, true)
+		return nil
+	})
 	if err != nil {
 		return "", err
 	}
