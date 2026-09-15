@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/aperturerobotics/controllerbus/bus/inmem"
 	"github.com/aperturerobotics/controllerbus/controller"
@@ -208,7 +209,8 @@ func recvObjectTypeRegistrationCount(
 }
 
 func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
-	ctx := t.Context()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
 	le := logrus.NewEntry(logrus.New())
 	b := inmem.NewBus(directive_controller.NewController(ctx, le))
 
@@ -227,6 +229,15 @@ func TestPluginHostRootRegistersObjectTypeThroughCore(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(releaseCoreController)
+
+	// Native core is available while the plugin resolver waits for a core
+	// plugin generation that this host does not load.
+	pending := &coreResourceController{waitForQualifiedLookup: true}
+	releasePending, err := b.AddController(ctx, pending, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(releasePending)
 
 	hostRoot := plugin_host_root.NewRoot()
 	pluginRoot := NewPluginHostRoot(ctx, le, b, "test-plugin", "main", nil, nil, nil, hostRoot, "atoms", "volume", nil)

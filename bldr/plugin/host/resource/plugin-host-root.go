@@ -179,24 +179,25 @@ func (r *PluginHostRoot) RegisterObjectType(
 		return nil, err
 	}
 
-	// Connect to the core ObjectType registry Resource service.
-	invokers, _, serviceRef, err := bifrost_rpc.ExLookupRpcService(
+	// Use the first available core route. Other host resolvers may wait for
+	// a core plugin generation while native core is already serving.
+	serviceID := bldr_plugin.PluginServiceID("spacewave-core", resource.SRPCResourceServiceServiceID)
+	invoker, _, serviceRef, err := bus.ExecOneOffWithFilterTyped[srpc.Invoker](
 		ctx,
 		r.b,
-		bldr_plugin.PluginServiceID("spacewave-core", resource.SRPCResourceServiceServiceID),
-		"",
-		true,
+		bifrost_rpc.NewLookupRpcService(serviceID, ""),
 		nil,
+		nil,
+		func(value directive.TypedAttachedValue[srpc.Invoker]) (bool, error) {
+			queryable, ok := value.GetValue().(srpc.QueryableInvoker)
+			return !ok || queryable.HasService(serviceID), nil
+		},
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "lookup core Resource service")
 	}
-	if len(invokers) == 0 {
-		serviceRef.Release()
-		return nil, errors.New("core Resource service not found")
-	}
 	resourceService := resource.NewSRPCResourceServiceClient(
-		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invokers[0]))),
+		srpc.NewClient(srpc.NewServerPipe(srpc.NewServer(invoker.GetValue()))),
 	)
 	resources, err := resource_client.NewClient(r.ctx, resourceService)
 	if err != nil {
