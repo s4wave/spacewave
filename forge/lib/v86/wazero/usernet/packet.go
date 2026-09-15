@@ -309,7 +309,7 @@ func buildARPReply(dest [6]byte, senderIP netip.Addr, targetIP netip.Addr) []byt
 func buildIPv4(proto byte, src netip.Addr, dest netip.Addr, payload []byte) []byte {
 	ip := make([]byte, ipv4HeaderSize+len(payload))
 	ip[0] = 0x45
-	binary.BigEndian.PutUint16(ip[2:4], uint16(len(ip)))
+	binary.BigEndian.PutUint16(ip[2:4], uint16(len(ip))) //nolint:gosec // callers cap IPv4 frames at defaultMTU.
 	ip[6] = 2 << 5
 	ip[8] = 32
 	ip[9] = proto
@@ -335,7 +335,7 @@ func buildUDP(src netip.Addr, dest netip.Addr, sport uint16, dport uint16, data 
 	msg := make([]byte, udpHeaderSize+len(data))
 	binary.BigEndian.PutUint16(msg[0:2], sport)
 	binary.BigEndian.PutUint16(msg[2:4], dport)
-	binary.BigEndian.PutUint16(msg[4:6], uint16(len(msg)))
+	binary.BigEndian.PutUint16(msg[4:6], uint16(len(msg))) //nolint:gosec // UDP payloads are capped by the guest MTU.
 	copy(msg[udpHeaderSize:], data)
 	sum := pseudoHeaderChecksum(src, dest, ipProtoUDP, len(msg))
 	binary.BigEndian.PutUint16(msg[6:8], inetChecksum(msg, sum))
@@ -391,7 +391,7 @@ func pseudoHeaderChecksum(src netip.Addr, dest netip.Addr, proto byte, size int)
 		(uint32(sb[2])<<8 | uint32(sb[3])) +
 		(uint32(db[0])<<8 | uint32(db[1])) +
 		(uint32(db[2])<<8 | uint32(db[3])) +
-		uint32(proto) + uint32(size)
+		uint32(proto) + uint32(size) //nolint:gosec // protocol and payload size are already narrow wire fields.
 }
 
 // tcpFlag reports whether one TCP flag bit is set.
@@ -529,8 +529,8 @@ func buildDNSResponse(req *dnsPacket, answers [][]byte, rcode byte) []byte {
 		flags |= 0x0100
 	}
 	binary.BigEndian.PutUint16(msg[2:4], flags)
-	binary.BigEndian.PutUint16(msg[4:6], uint16(len(req.questions)))
-	binary.BigEndian.PutUint16(msg[6:8], uint16(len(answers)))
+	binary.BigEndian.PutUint16(msg[4:6], uint16(len(req.questions))) //nolint:gosec // one DNS request is limited by the guest MTU.
+	binary.BigEndian.PutUint16(msg[6:8], uint16(len(answers)))       //nolint:gosec // generated answers fit in the guest MTU.
 	offset := 12
 	for _, q := range req.questions {
 		copy(msg[offset:], q.rawName)
@@ -549,11 +549,11 @@ func buildDNSResponse(req *dnsPacket, answers [][]byte, rcode byte) []byte {
 // buildDNSAnswer appends one A-record answer for a name.
 func buildDNSAnswer(q dnsQuestion, dat []byte, ttl uint32) []byte {
 	answer := make([]byte, 12+len(dat))
-	binary.BigEndian.PutUint16(answer[0:2], 0xc000|uint16(q.nameStart))
+	binary.BigEndian.PutUint16(answer[0:2], 0xc000|uint16(q.nameStart)) //nolint:gosec // DNS name offsets are packet-local and bounded by the guest MTU.
 	binary.BigEndian.PutUint16(answer[2:4], q.qtype)
 	binary.BigEndian.PutUint16(answer[4:6], q.qclass)
 	binary.BigEndian.PutUint32(answer[6:10], ttl)
-	binary.BigEndian.PutUint16(answer[10:12], uint16(len(dat)))
+	binary.BigEndian.PutUint16(answer[10:12], uint16(len(dat))) //nolint:gosec // DNS RDATA is limited to the fixed address record size.
 	copy(answer[12:], dat)
 	return answer
 }

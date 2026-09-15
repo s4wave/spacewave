@@ -12,7 +12,7 @@ func (r *SessionResource) WatchStateAtoms(
 		func(storeIDs []string) error {
 			return strm.Send(&s4wave_session.WatchSessionStateAtomsResponse{
 				StoreIds:   storeIDs,
-				StoreCount: uint32(len(storeIDs)),
+				StoreCount: uint32(len(storeIDs)), //nolint:gosec // storeIDs is the bounded response collection.
 			})
 		},
 	)

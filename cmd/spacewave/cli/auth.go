@@ -133,7 +133,7 @@ func newAuthBackupGenerateCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
-			return runAuthBackupGenerate(c, statePath, uint32(sessionIdx), pemFile)
+			return runAuthBackupGenerate(c, statePath, sessionIndex32(sessionIdx), pemFile)
 		},
 	}
 }
@@ -302,7 +302,7 @@ func newAuthMethodListCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
-			return runAuthMethodList(c, statePath, c.String("output"), uint32(sessionIdx))
+			return runAuthMethodList(c, statePath, c.String("output"), sessionIndex32(sessionIdx))
 		},
 	}
 }
@@ -389,7 +389,7 @@ func newAuthMethodAddPasswordCommand() *cli.Command {
 		Usage: "add a new password-derived keypair",
 		Flags: append(clientFlags(&statePath, &sessionIdx), pemFileFlag(&pemFile)),
 		Action: func(c *cli.Context) error {
-			return runAuthMethodAddPassword(c, statePath, uint32(sessionIdx), pemFile)
+			return runAuthMethodAddPassword(c, statePath, sessionIndex32(sessionIdx), pemFile)
 		},
 	}
 }
@@ -440,7 +440,7 @@ func newAuthMethodAddPemCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
-			return runAuthMethodAddPem(c, statePath, uint32(sessionIdx), authPemFile)
+			return runAuthMethodAddPem(c, statePath, sessionIndex32(sessionIdx), authPemFile)
 		},
 	}
 }
@@ -562,7 +562,7 @@ func newAuthMethodAddBackupCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
-			return runAuthMethodAddBackup(c, statePath, uint32(sessionIdx), pemFile)
+			return runAuthMethodAddBackup(c, statePath, sessionIndex32(sessionIdx), pemFile)
 		},
 	}
 }
@@ -587,7 +587,7 @@ func newAuthMethodRemoveCommand() *cli.Command {
 			if pid == "" {
 				return errors.New("peer-id argument required")
 			}
-			return runAuthMethodRemove(c, statePath, uint32(sessionIdx), pemFile, pid)
+			return runAuthMethodRemove(c, statePath, sessionIndex32(sessionIdx), pemFile, pid)
 		},
 	}
 }
@@ -654,7 +654,7 @@ func newAuthPasswdCommand() *cli.Command {
 		Usage: "change the account password",
 		Flags: clientFlags(&statePath, &sessionIdx),
 		Action: func(c *cli.Context) error {
-			return runChangePassword(c, statePath, uint32(sessionIdx))
+			return runChangePassword(c, statePath, sessionIndex32(sessionIdx))
 		},
 	}
 }
@@ -736,7 +736,7 @@ func newAuthLockCommand() *cli.Command {
 			newAuthLockStatusCommand(),
 		},
 		Action: func(c *cli.Context) error {
-			return runAuthLockNow(c, statePath, uint32(sessionIdx))
+			return runAuthLockNow(c, statePath, sessionIndex32(sessionIdx))
 		},
 	}
 }
@@ -750,7 +750,7 @@ func newAuthLockSetPinCommand() *cli.Command {
 		Usage: "lock session with a PIN",
 		Flags: clientFlags(&statePath, &sessionIdx),
 		Action: func(c *cli.Context) error {
-			return runAuthLockSetPin(c, statePath, uint32(sessionIdx))
+			return runAuthLockSetPin(c, statePath, sessionIndex32(sessionIdx))
 		},
 	}
 }
@@ -798,7 +798,7 @@ func newAuthLockSetAutoCommand() *cli.Command {
 		Usage: "set session to auto-unlock mode",
 		Flags: clientFlags(&statePath, &sessionIdx),
 		Action: func(c *cli.Context) error {
-			return runAuthLockSetAuto(c, statePath, uint32(sessionIdx))
+			return runAuthLockSetAuto(c, statePath, sessionIndex32(sessionIdx))
 		},
 	}
 }
@@ -870,7 +870,7 @@ func newAuthLockStatusCommand() *cli.Command {
 		Usage: "show current lock mode and locked state",
 		Flags: clientFlags(&statePath, &sessionIdx),
 		Action: func(c *cli.Context) error {
-			return runAuthLockStatus(c, statePath, uint32(sessionIdx))
+			return runAuthLockStatus(c, statePath, sessionIndex32(sessionIdx))
 		},
 	}
 }
@@ -931,7 +931,7 @@ func newAuthUnlockCommand() *cli.Command {
 		Usage: "unlock a PIN-locked session",
 		Flags: clientFlags(&statePath, &sessionIdx),
 		Action: func(c *cli.Context) error {
-			return runAuthUnlock(c, statePath, uint32(sessionIdx))
+			return runAuthUnlock(c, statePath, sessionIndex32(sessionIdx))
 		},
 	}
 }
@@ -983,7 +983,7 @@ func newAuthThresholdCommand() *cli.Command {
 			newAuthThresholdSetCommand(),
 		},
 		Action: func(c *cli.Context) error {
-			return runAuthThresholdShow(c, statePath, uint32(sessionIdx))
+			return runAuthThresholdShow(c, statePath, sessionIndex32(sessionIdx))
 		},
 	}
 }
@@ -1059,7 +1059,7 @@ func newAuthThresholdSetCommand() *cli.Command {
 			if err != nil {
 				return errors.Wrap(err, "parse threshold")
 			}
-			return runAuthThresholdSet(c, statePath, uint32(sessionIdx), pemFile, uint32(threshold))
+			return runAuthThresholdSet(c, statePath, sessionIndex32(sessionIdx), pemFile, uint32(threshold))
 		},
 	}
 }

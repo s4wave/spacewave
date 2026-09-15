@@ -108,7 +108,7 @@ func (c *Controller) materializeManifest(
 		Source:                   sourceRef,
 		Destination:              destOpArgs,
 		DestinationTransformConf: dest.GetTransformConf().CloneVT(),
-		Concurrency:              uint32(concurrency),
+		Concurrency:              uint32(concurrency), //nolint:gosec // concurrency comes from the uint32 scheduler setting and the positive default.
 		SourceServiceId:          bldr_plugin.HostServiceIDPrefix + sourceID,
 	}
 

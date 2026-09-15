@@ -95,7 +95,7 @@ func recordReadCounter(ctx context.Context, found bool, bytes int) {
 	}
 	counter.count.Add(1)
 	if found {
-		counter.bytes.Add(uint64(bytes))
+		counter.bytes.Add(nonNegativeReadBytes(bytes))
 		return
 	}
 	counter.misses.Add(1)
@@ -112,7 +112,7 @@ func RecordResourceGetBlock(ctx context.Context, ref *BlockRef, found bool, byte
 		counter.resourceGetBlockRefs.Add(1)
 	}
 	if found {
-		counter.resourceGetBlockBytes.Add(uint64(bytes))
+		counter.resourceGetBlockBytes.Add(nonNegativeReadBytes(bytes))
 		return
 	}
 	counter.resourceGetBlockMisses.Add(1)
@@ -126,7 +126,14 @@ func recordDecodedBlockUnmarshal(ctx context.Context, bytes int) {
 		return
 	}
 	counter.decodedBlockUnmarshalCount.Add(1)
-	counter.decodedBlockUnmarshalBytes.Add(uint64(bytes))
+	counter.decodedBlockUnmarshalBytes.Add(nonNegativeReadBytes(bytes))
+}
+
+func nonNegativeReadBytes(value int) uint64 {
+	if value <= 0 {
+		return 0
+	}
+	return uint64(value) //nolint:gosec // the positive check protects the unsigned counter from negative callback values.
 }
 
 // recordDecodedBlockCacheMiss records a decoded block cache attempt that

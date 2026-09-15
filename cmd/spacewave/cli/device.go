@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -1161,6 +1162,10 @@ func parseDeviceSetupRecord(data []byte) (*deviceSetupRecord, error) {
 	if v.Type() != fastjson.TypeObject {
 		return nil, errors.New("device setup state must be object")
 	}
+	sessionIndex := v.GetUint("sessionIndex")
+	if sessionIndex > math.MaxUint32 {
+		return nil, errors.Errorf("device setup session index exceeds uint32 range: %d", sessionIndex)
+	}
 	return &deviceSetupRecord{
 		SetupState:       string(v.GetStringBytes("setupState")),
 		PeerID:           string(v.GetStringBytes("peerId")),
@@ -1174,7 +1179,7 @@ func parseDeviceSetupRecord(data []byte) (*deviceSetupRecord, error) {
 		AccountID:        string(v.GetStringBytes("accountId")),
 		ResourceID:       string(v.GetStringBytes("resourceId")),
 		SessionID:        string(v.GetStringBytes("sessionId")),
-		SessionIndex:     uint32(v.GetUint("sessionIndex")),
+		SessionIndex:     uint32(sessionIndex), //nolint:gosec // the MaxUint32 check above bounds persisted setup state.
 		SessionPeerID:    string(v.GetStringBytes("sessionPeerId")),
 		DeviceObjectKey:  string(v.GetStringBytes("deviceObjectKey")),
 		FailureReason:    string(v.GetStringBytes("failureReason")),

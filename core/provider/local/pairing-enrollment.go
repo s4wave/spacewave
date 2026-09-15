@@ -70,7 +70,7 @@ func (a *ProviderAccount) OfferPairingAccount(ctx context.Context, key crypto.Pr
 			}
 		}
 	}
-	offer.SessionCount = uint32(len(active))
+	offer.SessionCount = uint32(len(active)) //nolint:gosec // the offer count is the in-memory session map cardinality.
 	return offer, nil
 }
 

@@ -30,10 +30,10 @@ func (h *HostRuntime) registerPS2() {
 		return uint32(ps2.readStatus())
 	})
 	h.RegisterIOWrite(0x60, 8, func(ctx context.Context, _ uint16, value uint32) {
-		ps2.writeData(ctx, uint8(value))
+		ps2.writeData(ctx, uint8(value)) //nolint:gosec // the PS/2 data port consumes the low byte of an 8-bit IO write.
 	})
 	h.RegisterIOWrite(0x64, 8, func(ctx context.Context, _ uint16, value uint32) {
-		ps2.writeCommand(ctx, uint8(value))
+		ps2.writeCommand(ctx, uint8(value)) //nolint:gosec // the PS/2 command port consumes the low byte of an 8-bit IO write.
 	})
 }
 

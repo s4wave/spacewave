@@ -91,20 +91,26 @@ func (c *Controller) GetTransferSnapshot() (TransferSnapshot, <-chan struct{}) {
 
 // recordTransfer runs outside the peer's write lock to preserve lock ordering.
 func (c *Controller) recordTransfer(peerID string, uploaded, downloaded int) {
+	if uploaded < 0 {
+		uploaded = 0
+	}
+	if downloaded < 0 {
+		downloaded = 0
+	}
 	if uploaded == 0 && downloaded == 0 {
 		return
 	}
 	c.bcast.HoldLock(func(changed func(), _ func() <-chan struct{}) {
-		c.transfer.UploadedBytes += uint64(uploaded)
-		c.transfer.DownloadedBytes += uint64(downloaded)
+		c.transfer.UploadedBytes += uint64(uploaded)     //nolint:gosec // negative callback values are normalized above.
+		c.transfer.DownloadedBytes += uint64(downloaded) //nolint:gosec // negative callback values are normalized above.
 		c.transfer.LastActivity = time.Now()
 		if c.peerTransfers == nil {
 			c.peerTransfers = make(map[string]PeerTransferSnapshot)
 		}
 		peer := c.peerTransfers[peerID]
 		peer.PeerID = peerID
-		peer.UploadedBytes += uint64(uploaded)
-		peer.DownloadedBytes += uint64(downloaded)
+		peer.UploadedBytes += uint64(uploaded)     //nolint:gosec // negative callback values are normalized above.
+		peer.DownloadedBytes += uint64(downloaded) //nolint:gosec // negative callback values are normalized above.
 		c.peerTransfers[peerID] = peer
 		changed()
 	})

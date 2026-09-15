@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"math"
 	"strconv"
 	"time"
 
@@ -187,7 +188,11 @@ func (r *Reservation) UnmarshalJSON(data []byte) error {
 		Backend:     string(value.GetStringBytes("request", "backend")),
 	}
 	r.Generation = value.GetUint64("generation")
-	r.State = ReservationState(value.GetInt("state"))
+	state := value.GetInt("state")
+	if state < 0 || state > math.MaxUint8 {
+		return errors.Errorf("reservation state out of range: %d", state)
+	}
+	r.State = ReservationState(state) //nolint:gosec // the explicit uint8 range check bounds the persisted enum.
 	if tsValue := value.Get("leaseExpiresAt"); tsValue != nil && tsValue.Type() != fastjson.TypeNull {
 		ts := &timestamp.Timestamp{}
 		if err := ts.UnmarshalJSON(tsValue.MarshalTo(nil)); err != nil {

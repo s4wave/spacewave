@@ -137,7 +137,7 @@ func newBillingUsageCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
-			return runBillingUsage(c, statePath, c.String("output"), uint32(sessionIdx), billingAccountID)
+			return runBillingUsage(c, statePath, c.String("output"), sessionIndex32(sessionIdx), billingAccountID)
 		},
 	}
 }

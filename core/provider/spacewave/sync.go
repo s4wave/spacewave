@@ -759,7 +759,7 @@ func (s *syncController) pushPreparedChunk(ctx context.Context, chunk *preparedS
 	err := s.pushPackfile(
 		ctx,
 		entry.GetId(),
-		int(entry.GetBlockCount()),
+		int(entry.GetBlockCount()), //nolint:gosec // prepared entries are produced under writer.DefaultMaxBlocksPerPack (4096).
 		func(ctx context.Context, packID string, blockCount int) error {
 			return s.client.syncPushDataWithProgress(
 				ctx,
@@ -837,7 +837,7 @@ func (s *syncController) flush(ctx context.Context, orderBlocks bool) error {
 		}
 	}
 
-	maxChunkBlocks := int(writer.DefaultPolicy().MaxBlocksPerPack)
+	maxChunkBlocks := int(writer.DefaultPolicy().MaxBlocksPerPack) //nolint:gosec // the built-in policy caps this at 4096 blocks.
 	start := 0
 	entries := make([]*packfile.PackfileEntry, 0)
 	flushedBlocks := make([]dirtyCandidate, 0, len(dedupedBlocks)+len(blocks))

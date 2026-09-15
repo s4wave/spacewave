@@ -119,7 +119,7 @@ func buildDevtoolStatusManifestFetchRows(rows []BldrDevtoolManifestFetchRow) []*
 			BuildTypes:          splitStatusList(row.BuildType),
 			RemoteIds:           splitStatusList(row.RemoteID),
 			State:               buildDevtoolStatusManifestState(row.State),
-			ReadyRefCount:       uint32(row.ReadyRefCount),
+			ReadyRefCount:       uint32(row.ReadyRefCount), //nolint:gosec // status counts originate from in-memory slice lengths and are serialized as the proto's uint32 count.
 			ReadyRefs:           row.ReadyRefs,
 			LocalBuildIds:       splitStatusList(row.LocalBuildIDs),
 			BlockedOnLocalBuild: row.BlockedOnLocalBuild,
@@ -145,7 +145,7 @@ func buildDevtoolStatusManifestBuildRows(rows []BldrDevtoolManifestBuildRow) []*
 			CacheHit:                row.CacheHit,
 			FullRebuild:             row.FullRebuild,
 			HotRebuild:              row.HotRebuild,
-			WatchedFileCount:        uint32(row.WatchedFileCount),
+			WatchedFileCount:        uint32(row.WatchedFileCount), //nolint:gosec // the status contract represents this in-memory file count as uint32.
 			DependencyRebuildReason: row.DependencyRebuildReason,
 			Summary:                 row.Summary,
 			Error:                   row.Error,

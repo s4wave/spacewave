@@ -3,6 +3,8 @@
 package spacewave_cli
 
 import (
+	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -28,12 +30,24 @@ type gitContext struct {
 	client    *sdkClient
 }
 
+func uint32GitFlag(c *cli.Context, name string) (uint32, error) {
+	value := c.Uint(name)
+	if value > math.MaxUint32 {
+		return 0, fmt.Errorf("--%s exceeds uint32 range: %d", name, value)
+	}
+	return uint32(value), nil //nolint:gosec // the MaxUint32 check bounds the git protocol field.
+}
+
 // parseGitURI parses the git URI, allowing it to be empty for positional key resolution.
 func parseGitURI(arg, spaceFlag string, sessFlag int) (fsURI, error) {
 	if arg == "" {
 		result := fsURI{sessionIdx: 1, spaceID: spaceFlag}
 		if sessFlag > 0 {
-			result.sessionIdx = uint32(sessFlag)
+			var err error
+			result.sessionIdx, err = sessionIndexFromInt(sessFlag)
+			if err != nil {
+				return fsURI{}, err
+			}
 		}
 		return result, nil
 	}
@@ -71,7 +85,11 @@ func mountGitEngine(c *cli.Context, statePath, spaceID string, sessIdx int) (*sd
 
 	idx := uint32(1)
 	if sessIdx > 0 {
-		idx = uint32(sessIdx)
+		var err error
+		idx, err = sessionIndexFromInt(sessIdx)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	sess, err := client.mountSession(ctx, idx)
@@ -399,10 +417,18 @@ func buildGitLogCommand() *cli.Command {
 			defer cleanup()
 
 			ctx := c.Context
+			limit, err := uint32GitFlag(c, "limit")
+			if err != nil {
+				return err
+			}
+			offset, err := uint32GitFlag(c, "offset")
+			if err != nil {
+				return err
+			}
 			req := &s4wave_git.LogRequest{
 				RefName:  c.String("ref"),
-				Limit:    uint32(c.Uint("limit")),
-				Offset:   uint32(c.Uint("offset")),
+				Limit:    limit,
+				Offset:   offset,
 				SinceRef: c.String("since"),
 			}
 
@@ -437,8 +463,8 @@ func buildGitLogCommand() *cli.Command {
 			writeTable(w, "", rows)
 
 			if resp.GetHasMore() {
-				nextOffset := req.GetOffset() + uint32(len(commits))
-				w.WriteString("\nUse --offset " + strconv.FormatUint(uint64(nextOffset), 10) + " to see more\n")
+				nextOffset := uint64(req.GetOffset()) + uint64(len(commits))
+				w.WriteString("\nUse --offset " + strconv.FormatUint(nextOffset, 10) + " to see more\n")
 			}
 
 			return nil
@@ -899,13 +925,17 @@ func buildGitCloneCommand() *cli.Command {
 				return err
 			}
 			defer cleanup()
+			depth, err := uint32GitFlag(c, "depth")
+			if err != nil {
+				return err
+			}
 
 			cloneOpts := &git_block.CloneOpts{
 				Url:          url,
 				RemoteName:   c.String("remote"),
 				Ref:          c.String("ref"),
 				SingleBranch: c.Bool("single-branch"),
-				Depth:        uint32(c.Uint("depth")),
+				Depth:        depth,
 				Recursive:    c.Bool("recursive"),
 				TagMode:      tagMode,
 				Insecure:     c.Bool("insecure"),
@@ -989,6 +1019,10 @@ func buildGitFetchCommand() *cli.Command {
 				return err
 			}
 			defer cleanup()
+			depth, err := uint32GitFlag(c, "depth")
+			if err != nil {
+				return err
+			}
 
 			tagMode, err := parseTagMode(c.String("tag-mode"))
 			if err != nil {
@@ -999,7 +1033,7 @@ func buildGitFetchCommand() *cli.Command {
 				RemoteName: c.String("remote"),
 				RemoteUrl:  c.String("remote-url"),
 				RefSpecs:   c.StringSlice("ref-spec"),
-				Depth:      uint32(c.Uint("depth")),
+				Depth:      depth,
 				TagMode:    tagMode,
 				Force:      c.Bool("force"),
 				Insecure:   c.Bool("insecure"),

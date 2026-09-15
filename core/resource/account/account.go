@@ -101,7 +101,7 @@ func (r *AccountResource) watchLocalAccountInfo(
 				AccountId:    r.localAccount.GetAccountID(),
 				EntityId:     settings.GetDisplayName(),
 				ProviderId:   r.localAccount.GetProviderID(),
-				KeypairCount: uint32(len(settings.GetEntityKeypairs())),
+				KeypairCount: uint32(len(settings.GetEntityKeypairs())), //nolint:gosec // this count is bounded by the loaded account settings.
 			}, nil
 		},
 	)

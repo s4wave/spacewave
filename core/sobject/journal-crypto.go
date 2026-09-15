@@ -303,7 +303,7 @@ func journalCheckpointGenerationAAD(scopeID, identity []byte, generation, nextSe
 	aad = append(aad, number[:]...)
 	binary.BigEndian.PutUint64(number[:], nextSequence)
 	aad = append(aad, number[:]...)
-	binary.BigEndian.PutUint64(number[:], uint64(snapshotLength))
+	binary.BigEndian.PutUint64(number[:], uint64(snapshotLength)) //nolint:gosec // snapshotLength is a non-negative in-memory length encoded in the AAD's uint64 slot.
 	aad = append(aad, number[:]...)
 	aad = append(aad, snapshotDigest...)
 	return aad
@@ -364,13 +364,13 @@ func journalAAD(scopeID []byte, kind SOJournalRecordKind, sequence uint64, key *
 	aad := make([]byte, 0, 128+len(keyBytes))
 	aad = append(aad, []byte("spacewave/sharedobject-journal/aad/v1")...)
 	var number [8]byte
-	binary.BigEndian.PutUint64(number[:], uint64(JournalFormatVersion))
+	binary.BigEndian.PutUint64(number[:], uint64(JournalFormatVersion)) //nolint:gosec // the format version is a fixed uint32 constant.
 	aad = append(aad, number[:]...)
-	binary.BigEndian.PutUint64(number[:], uint64(kind))
+	binary.BigEndian.PutUint64(number[:], uint64(kind)) //nolint:gosec // validJournalRecordKind restricts kind to the journal enum range.
 	aad = append(aad, number[:]...)
 	binary.BigEndian.PutUint64(number[:], sequence)
 	aad = append(aad, number[:]...)
-	binary.BigEndian.PutUint64(number[:], uint64(payloadLength))
+	binary.BigEndian.PutUint64(number[:], uint64(payloadLength)) //nolint:gosec // payloadLength is checked non-negative before AAD construction.
 	aad = append(aad, number[:]...)
 	aad = append(aad, scopeID...)
 	aad = append(aad, []byte("journal-identity/v1")...)

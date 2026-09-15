@@ -4,6 +4,7 @@ package spacewave_cli
 
 import (
 	"context"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -305,6 +306,9 @@ func runDebugMemoryProfile(
 	if debug < 0 {
 		return errors.New("debug must be greater than or equal to zero")
 	}
+	if debug > math.MaxInt32 {
+		return errors.New("debug exceeds int32 range")
+	}
 	if outputPath == "" {
 		outputPath = defaultDebugMemoryProfileOutputPath(time.Now(), profile)
 	}
@@ -328,7 +332,7 @@ func runDebugMemoryProfile(
 	byteCount, err := trace_capture.CaptureMemoryProfile(c.Context, traceClient, f, trace_capture.MemoryProfileArgs{
 		Profile: profile,
 		GC:      gc,
-		Debug:   int32(debug),
+		Debug:   int32(debug), //nolint:gosec // the MaxInt32 check above bounds the trace request field.
 	})
 	if err != nil {
 		return err

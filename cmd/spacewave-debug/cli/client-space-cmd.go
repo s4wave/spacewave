@@ -249,7 +249,7 @@ func (sa *SpaceArgs) mountSpaceResource(ctx context.Context) (s4wave_space.SRPCS
 		return nil, nil, errors.Wrap(err, "root resource")
 	}
 
-	resp, err := root.MountSessionByIdx(ctx, uint32(sa.client.SessionIdx))
+	resp, err := root.MountSessionByIdx(ctx, sessionIndex32(sa.client.SessionIdx))
 	if err != nil {
 		root.Release()
 		resClient.Release()

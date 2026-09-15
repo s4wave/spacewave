@@ -721,7 +721,7 @@ func (r *ChatResource) readMessageKeys(ctx context.Context, startIndex, endIndex
 	}
 
 	// Visit only pages intersecting the requested history interval.
-	keys := make([]string, 0, int(endIndex-startIndex))
+	keys := make([]string, 0, int(endIndex-startIndex)) //nolint:gosec // the requested history interval is bounded by the page query contract.
 	for pageIndex := startIndex / chatMessagePageSize; pageIndex <= (endIndex-1)/chatMessagePageSize; pageIndex++ {
 		page, err := r.readMessagePage(ctx, pageIndex)
 		if err != nil {

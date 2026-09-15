@@ -244,7 +244,7 @@ func (c *Client) writeFrame(data []byte) error {
 	}
 
 	lenBuf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(lenBuf, uint32(len(data)))
+	binary.LittleEndian.PutUint32(lenBuf, uint32(len(data))) //nolint:gosec // the MaxUint32 check above bounds the frame length.
 	if _, err := c.conn.Write(lenBuf); err != nil {
 		return err
 	}

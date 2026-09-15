@@ -34,11 +34,11 @@ func (c *Controller) executeGCSweepMaintenance(ctx context.Context, so sobject.S
 	// Read configurable durations from the config proto.
 	idleWindow := gcSweepDefaultIdleWindow
 	if d := c.conf.GetGcSweepIdleWindowDur(); d != 0 {
-		idleWindow = time.Duration(d)
+		idleWindow = time.Duration(d) //nolint:gosec // configuration duration is already represented in nanoseconds.
 	}
 	backstopInterval := gcSweepDefaultBackstopInterval
 	if d := c.conf.GetGcSweepBackstopIntervalDur(); d != 0 {
-		backstopInterval = time.Duration(d)
+		backstopInterval = time.Duration(d) //nolint:gosec // configuration duration is already represented in nanoseconds.
 	}
 
 	c.le.Debug("gc sweep maintenance routine started")

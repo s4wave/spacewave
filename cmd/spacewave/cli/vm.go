@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"io/fs"
+	"math"
 	"os"
 	"slices"
 	"strconv"
@@ -69,14 +70,14 @@ func newVmStartCommand(statePath *string, sessionIdx *uint, spaceID *string) *cl
 			if key == "" {
 				return errors.New("VM key required")
 			}
-			if err := setV86VMState(c, *statePath, uint32(*sessionIdx), *spaceID, key, s4wave_vm.VmState_VmState_STARTING); err != nil {
+			if err := setV86VMState(c, *statePath, sessionIndex32(*sessionIdx), *spaceID, key, s4wave_vm.VmState_VmState_STARTING); err != nil {
 				return err
 			}
 			if !wait {
 				os.Stdout.WriteString("starting\n")
 				return nil
 			}
-			return watchV86VM(c, *statePath, uint32(*sessionIdx), *spaceID, key)
+			return watchV86VM(c, *statePath, sessionIndex32(*sessionIdx), *spaceID, key)
 		},
 	}
 }
@@ -91,7 +92,7 @@ func newVmWatchCommand(statePath *string, sessionIdx *uint, spaceID *string) *cl
 			if key == "" {
 				return errors.New("VM key required")
 			}
-			return watchV86VM(c, *statePath, uint32(*sessionIdx), *spaceID, key)
+			return watchV86VM(c, *statePath, sessionIndex32(*sessionIdx), *spaceID, key)
 		},
 	}
 }
@@ -117,7 +118,7 @@ func newVmStopCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli
 			if key == "" {
 				return errors.New("VM key required")
 			}
-			if err := setV86VMState(c, *statePath, uint32(*sessionIdx), *spaceID, key, s4wave_vm.VmState_VmState_STOPPED); err != nil {
+			if err := setV86VMState(c, *statePath, sessionIndex32(*sessionIdx), *spaceID, key, s4wave_vm.VmState_VmState_STOPPED); err != nil {
 				return err
 			}
 			os.Stdout.WriteString("stopped\n")
@@ -158,7 +159,7 @@ func newVmCreateV86Command(statePath *string, sessionIdx *uint, spaceID *string)
 			if name == "" {
 				return errors.New("VM name required")
 			}
-			key, err := createV86VM(c, *statePath, uint32(*sessionIdx), *spaceID, name, args)
+			key, err := createV86VM(c, *statePath, sessionIndex32(*sessionIdx), *spaceID, name, args)
 			if err != nil {
 				return err
 			}
@@ -173,7 +174,7 @@ func newVmListCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli
 		Name:  "list",
 		Usage: "list VMs in a space",
 		Action: func(c *cli.Context) error {
-			vms, err := readV86VMs(c, *statePath, uint32(*sessionIdx), *spaceID)
+			vms, err := readV86VMs(c, *statePath, sessionIndex32(*sessionIdx), *spaceID)
 			if err != nil {
 				return err
 			}
@@ -192,7 +193,7 @@ func newVmInfoCommand(statePath *string, sessionIdx *uint, spaceID *string) *cli
 			if key == "" {
 				return errors.New("VM key required")
 			}
-			vm, err := readV86VM(c, *statePath, uint32(*sessionIdx), *spaceID, key)
+			vm, err := readV86VM(c, *statePath, sessionIndex32(*sessionIdx), *spaceID, key)
 			if err != nil {
 				return err
 			}
@@ -230,7 +231,7 @@ func newVmImageV86ListCommand(statePath *string, sessionIdx *uint, spaceID *stri
 		Name:  "list",
 		Usage: "list v86 images in a space",
 		Action: func(c *cli.Context) error {
-			images, err := readV86Images(c, *statePath, uint32(*sessionIdx), *spaceID)
+			images, err := readV86Images(c, *statePath, sessionIndex32(*sessionIdx), *spaceID)
 			if err != nil {
 				return err
 			}
@@ -269,7 +270,7 @@ func newVmImageV86ImportTarCommand(statePath *string, sessionIdx *uint, spaceID 
 			&cli.StringFlag{Name: "kernel-version", Usage: "kernel version", Destination: &args.kernelVersion},
 		},
 		Action: func(c *cli.Context) error {
-			key, err := importV86ImageTar(c, *statePath, uint32(*sessionIdx), *spaceID, args)
+			key, err := importV86ImageTar(c, *statePath, sessionIndex32(*sessionIdx), *spaceID, args)
 			if err != nil {
 				return err
 			}
@@ -306,7 +307,7 @@ func newVmImageV86CopyFromCdnCommand(statePath *string, sessionIdx *uint, spaceI
 			if dstKey == "" {
 				dstKey = srcKey
 			}
-			if err := copyV86ImageFromCdn(c, *statePath, uint32(*sessionIdx), *spaceID, cdnID, srcKey, dstKey); err != nil {
+			if err := copyV86ImageFromCdn(c, *statePath, sessionIndex32(*sessionIdx), *spaceID, cdnID, srcKey, dstKey); err != nil {
 				return err
 			}
 			os.Stdout.WriteString(dstKey + "\n")
@@ -325,7 +326,7 @@ func newVmImageV86InfoCommand(statePath *string, sessionIdx *uint, spaceID *stri
 			if key == "" {
 				return errors.New("image key required")
 			}
-			image, err := readV86Image(c, *statePath, uint32(*sessionIdx), *spaceID, key)
+			image, err := readV86Image(c, *statePath, sessionIndex32(*sessionIdx), *spaceID, key)
 			if err != nil {
 				return err
 			}
@@ -380,6 +381,13 @@ type v86VMCreateArgs struct {
 	bootArgs        string
 	runtimePluginID string
 	mounts          cli.StringSlice
+}
+
+func vmMemoryMiB(value uint) (uint32, error) {
+	if value > math.MaxUint32 {
+		return 0, errors.Errorf("memory size exceeds uint32 range: %d MiB", value)
+	}
+	return uint32(value), nil //nolint:gosec // the MaxUint32 check bounds the VM configuration field.
 }
 
 func readV86Images(c *cli.Context, statePath string, sessionIdx uint32, spaceID string) ([]*v86ImageCLIEntry, error) {
@@ -609,9 +617,17 @@ func createV86VM(
 		}
 	}
 	op := s4wave_vm.NewCreateVmV86Op(vmKey, name, args.imageObjectKey, time.Now())
+	memoryMb, err := vmMemoryMiB(args.memoryMb)
+	if err != nil {
+		return "", err
+	}
+	vgaMemoryMb, err := vmMemoryMiB(args.vgaMemoryMb)
+	if err != nil {
+		return "", err
+	}
 	op.Config = &s4wave_vm.V86Config{
-		MemoryMb:        uint32(args.memoryMb),
-		VgaMemoryMb:     uint32(args.vgaMemoryMb),
+		MemoryMb:        memoryMb,
+		VgaMemoryMb:     vgaMemoryMb,
 		Networking:      args.networking,
 		SerialEnabled:   args.serialEnabled,
 		BootArgs:        args.bootArgs,

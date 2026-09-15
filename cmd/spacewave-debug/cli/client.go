@@ -4,6 +4,8 @@ package cli
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"net"
 	"os"
 	"path/filepath"
@@ -53,8 +55,21 @@ func (a *ClientArgs) BuildFlags() []cli.Flag {
 			Usage:       "session index to use",
 			Value:       1,
 			Destination: &a.SessionIdx,
+			Action: func(_ *cli.Context, value uint) error {
+				if value > math.MaxUint32 {
+					return fmt.Errorf("session-idx exceeds uint32 range: %d", value)
+				}
+				return nil
+			},
 		},
 	}
+}
+
+func sessionIndex32(value uint) uint32 {
+	if value > math.MaxUint32 {
+		panic("session index must be validated before conversion")
+	}
+	return uint32(value) //nolint:gosec // the range check enforces the debug bridge's uint32 session-index API.
 }
 
 // BuildCommands returns the command list.

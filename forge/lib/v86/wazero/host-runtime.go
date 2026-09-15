@@ -248,7 +248,7 @@ func (h *HostRuntime) callback(name string, results []api.ValueType) api.GoModul
 		case "microtick":
 			stack[0] = api.EncodeF64(float64(time.Since(h.started).Microseconds()) / 1000)
 		case "get_rand_int":
-			stack[0] = api.EncodeI32(int32(h.random.Add(0x9e3779b9)))
+			stack[0] = api.EncodeI32(int32(h.random.Add(0x9e3779b9))) //nolint:gosec // wasm i32 uses the PRNG's low 32-bit bit pattern.
 		case "cpu_exception_hook":
 			h.exceptions.Add(1)
 			if len(stack) != 0 {
@@ -348,22 +348,22 @@ func (h *HostRuntime) apicTimer(ctx context.Context, now float64) float64 {
 // readIO services a guest IO port read through its registered handler.
 func (h *HostRuntime) readIO(ctx context.Context, port uint32, width int) uint32 {
 	if h.ioReads != nil {
-		h.ioReads[uint16(port)]++
+		h.ioReads[uint16(port)]++ //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
 	}
-	slot := h.ioPorts[uint16(port)]
+	slot := h.ioPorts[uint16(port)] //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
 	var value uint32
 	switch width {
 	case 8:
-		value = slot.read8(ctx, uint16(port)) & 0xff
+		value = slot.read8(ctx, uint16(port)) & 0xff //nolint:gosec // the registered port is an x86 16-bit IO address.
 	case 16:
-		value = slot.read16(ctx, uint16(port)) & 0xffff
+		value = slot.read16(ctx, uint16(port)) & 0xffff //nolint:gosec // the registered port is an x86 16-bit IO address.
 	case 32:
-		value = slot.read32(ctx, uint16(port))
+		value = slot.read32(ctx, uint16(port)) //nolint:gosec // the registered port is an x86 16-bit IO address.
 	default:
 		value = 0
 	}
 	if h.ioLastReads != nil {
-		h.ioLastReads[uint16(port)] = value
+		h.ioLastReads[uint16(port)] = value //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
 	}
 	return value
 }
@@ -371,19 +371,19 @@ func (h *HostRuntime) readIO(ctx context.Context, port uint32, width int) uint32
 // writeIO services a guest IO port write through its registered handler.
 func (h *HostRuntime) writeIO(ctx context.Context, port, value uint32, width int) {
 	if h.ioWrites != nil {
-		h.ioWrites[uint16(port)]++
+		h.ioWrites[uint16(port)]++ //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
 	}
 	if h.ioLastWrites != nil {
-		h.ioLastWrites[uint16(port)] = value
+		h.ioLastWrites[uint16(port)] = value //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
 	}
-	slot := h.ioPorts[uint16(port)]
+	slot := h.ioPorts[uint16(port)] //nolint:gosec // x86 IO port addresses are the low 16 bits of the guest port value.
 	switch width {
 	case 8:
-		slot.write8(ctx, uint16(port), value&0xff)
+		slot.write8(ctx, uint16(port), value&0xff) //nolint:gosec // the registered port is an x86 16-bit IO address.
 	case 16:
-		slot.write16(ctx, uint16(port), value&0xffff)
+		slot.write16(ctx, uint16(port), value&0xffff) //nolint:gosec // the registered port is an x86 16-bit IO address.
 	case 32:
-		slot.write32(ctx, uint16(port), value)
+		slot.write32(ctx, uint16(port), value) //nolint:gosec // the registered port is an x86 16-bit IO address.
 	}
 }
 

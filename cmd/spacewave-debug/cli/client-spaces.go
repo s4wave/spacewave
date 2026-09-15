@@ -13,7 +13,7 @@ import (
 func (a *ClientArgs) RunListSpaces(c *cli.Context) error {
 	ctx := c.Context
 
-	sess, cleanup, err := a.MountSession(ctx, uint32(a.SessionIdx))
+	sess, cleanup, err := a.MountSession(ctx, sessionIndex32(a.SessionIdx))
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (a *ClientArgs) RunListSpaces(c *cli.Context) error {
 func (a *ClientArgs) RunCreateSpace(c *cli.Context) error {
 	ctx := c.Context
 
-	sess, cleanup, err := a.MountSession(ctx, uint32(a.SessionIdx))
+	sess, cleanup, err := a.MountSession(ctx, sessionIndex32(a.SessionIdx))
 	if err != nil {
 		return err
 	}

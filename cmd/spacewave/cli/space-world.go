@@ -201,7 +201,7 @@ func mountSpaceWorldEngine(
 		return nil, nil, "", err
 	}
 
-	sess, err := client.mountSession(ctx, uint32(sessionIdx))
+	sess, err := client.mountSession(ctx, sessionIndex32(sessionIdx))
 	if err != nil {
 		client.close()
 		return nil, nil, "", err

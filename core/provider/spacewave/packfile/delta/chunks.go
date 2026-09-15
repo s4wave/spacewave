@@ -46,7 +46,7 @@ func EmitDeltaChunks(
 	if maxBytes <= 0 {
 		maxBytes = DefaultMaxChunkBytes
 	}
-	maxBlocks := int(writer.DefaultPolicy().MaxBlocksPerPack)
+	maxBlocks := int(writer.DefaultPolicy().MaxBlocksPerPack) //nolint:gosec // the built-in policy caps this at 4096 blocks.
 
 	// Carry one lookahead block between chunks without advancing past it.
 	var emitted []*packfile.PackfileEntry
@@ -91,11 +91,11 @@ func EmitDeltaChunks(
 			// index position before accepting the block into this chunk.
 			entry := kvfile.IndexEntry{
 				Key:    []byte(h.MarshalString()),
-				Offset: uint64(chunkBytes),
-				Size:   uint64(len(data)),
+				Offset: uint64(chunkBytes), //nolint:gosec // chunkBytes is non-negative and bounded by the int64 pack byte ceiling.
+				Size:   uint64(len(data)),  //nolint:gosec // data is the in-memory block accepted by the bounded pack writer.
 			}
 			entrySize := entry.SizeVT()
-			entryBytes := int64(entrySize + binary.PutUvarint(sizeBuf[:], uint64(entrySize)) + 8)
+			entryBytes := int64(entrySize + binary.PutUvarint(sizeBuf[:], uint64(entrySize)) + 8) //nolint:gosec // the writer's pack ceiling bounds the encoded entry size below int64 max.
 			remaining := maxBytes - chunkBytes - indexBytes - entryBytes
 			if int64(len(data)) > remaining || (maxBlocks > 0 && chunkBlocks >= maxBlocks) {
 				if chunkBlocks == 0 {

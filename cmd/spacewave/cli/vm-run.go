@@ -6,6 +6,7 @@ import (
 	"context"
 	stderrors "errors"
 	"io"
+	"math"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -162,7 +163,10 @@ func buildV86RunBoot(ctx context.Context, args *v86RunArgs) (v86_wazero.HostBoot
 		Cmdline:   args.bootArgs,
 	}
 	if args.memoryMb > 0 {
-		boot.MemorySize = uint32(args.memoryMb) * 1024 * 1024
+		if args.memoryMb > math.MaxUint32/(1024*1024) {
+			return v86_wazero.HostBootOptions{}, nil, nil, errors.New("memory-mb exceeds the runtime addressable size")
+		}
+		boot.MemorySize = uint32(args.memoryMb * 1024 * 1024) //nolint:gosec // the MaxUint32 division check bounds the byte size.
 	}
 	if args.net {
 		boot.Networking = &v86_wazero.NetworkConfig{}

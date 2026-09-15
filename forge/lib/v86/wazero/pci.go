@@ -76,7 +76,7 @@ func (h *HostRuntime) registerPCI() {
 			pci.write(uint32(i), value, 1)
 		})
 		h.RegisterIORead(pciConfigAddress+i, 8, func(context.Context, uint16) uint32 {
-			return uint32(byte(pci.addr >> (8 * i)))
+			return uint32(byte(pci.addr >> (8 * i))) //nolint:gosec // PCI config reads expose one selected byte.
 		})
 		h.RegisterIOWrite(pciConfigAddress+i, 8, func(_ context.Context, _ uint16, value uint32) {
 			mask := uint32(0xff) << (8 * i)
@@ -153,11 +153,11 @@ func (p *pciDevice) write(offset, value uint32, width int) {
 		if pciBARIndex(addr&^3) >= 0 {
 			return
 		}
-		binary.LittleEndian.PutUint16(space[addr:], uint16(value))
+		binary.LittleEndian.PutUint16(space[addr:], uint16(value)) //nolint:gosec // the registered 16-bit PCI write uses the low word.
 		p.query()
 		return
 	}
-	space[addr] = byte(value)
+	space[addr] = byte(value) //nolint:gosec // the registered 8-bit PCI write uses the low byte.
 	p.query()
 }
 

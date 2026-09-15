@@ -943,6 +943,9 @@ func (r *SpacewaveSessionResource) CreateOrgInvite(
 	if err := inv.UnmarshalVT(data); err != nil {
 		return nil, errors.Wrap(err, "unmarshal invite")
 	}
+	if req.GetMaxUses() < 0 {
+		return nil, errors.Errorf("invite max uses must not be negative: %d", req.GetMaxUses())
+	}
 
 	// Mirror to local org SO.
 	var inviteType s4wave_org.OrgInviteType
@@ -956,7 +959,7 @@ func (r *SpacewaveSessionResource) CreateOrgInvite(
 	}
 	createInviteOp := &s4wave_org.CreateOrgInviteOp{
 		Type:      inviteType,
-		MaxUses:   uint32(req.GetMaxUses()),
+		MaxUses:   uint32(req.GetMaxUses()), //nolint:gosec // MaxUses is a non-negative int32 and therefore fits uint32.
 		Config:    req.GetEmail(),
 		Timestamp: timestamppb.Now(),
 	}

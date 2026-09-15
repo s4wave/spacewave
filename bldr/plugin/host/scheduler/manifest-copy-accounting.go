@@ -148,8 +148,8 @@ func (a *manifestCopyAccounting) apply(stats bucket_lookup.ObjectCopyStats) buck
 		return stats
 	}
 	readCount, readBytes := a.counters.snapshot()
-	stats.DemandReadCount = int64(readCount)
-	stats.DemandReadBytes = int64(readBytes)
+	stats.DemandReadCount = int64(readCount) //nolint:gosec // copy statistics use signed counters; the read counter's monotonic values are bounded by the signed stats API.
+	stats.DemandReadBytes = int64(readBytes) //nolint:gosec // copy statistics use signed counters; the read counter's monotonic values are bounded by the signed stats API.
 	return stats
 }
 

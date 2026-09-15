@@ -3,6 +3,7 @@ package v86_wazero
 import (
 	"context"
 	"encoding/binary"
+	"math"
 
 	"github.com/pkg/errors"
 )
@@ -71,7 +72,7 @@ func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd
 		cmdlineSize = binary.LittleEndian.Uint32(bzimage[linuxBootHdrCmdlineSize:])
 	}
 	cmdlineBytes := append([]byte(cmdline), 0)
-	if uint32(len(cmdlineBytes)) >= cmdlineSize {
+	if uint64(len(cmdlineBytes)) >= uint64(cmdlineSize) {
 		return errors.Errorf("kernel cmdline length %d exceeds limit %d", len(cmdlineBytes), cmdlineSize)
 	}
 
@@ -90,10 +91,13 @@ func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd
 	}
 
 	protectedModeStart := (setupSects + 1) * 512
-	if protectedModeStart >= uint32(len(bzimage)) {
+	if uint64(protectedModeStart) >= uint64(len(bzimage)) {
 		return errors.Errorf("kernel protected-mode offset %#x exceeds image size %#x", protectedModeStart, len(bzimage))
 	}
 	if len(initrd) != 0 {
+		if uint64(len(initrd)) > math.MaxUint32 {
+			return errors.New("initrd exceeds linux boot protocol size")
+		}
 		if uint64(kernelHighAddress)+uint64(len(bzimage))-uint64(protectedModeStart) >= initrdAddress {
 			return errors.New("kernel image overlaps fixed initrd address")
 		}
@@ -101,7 +105,7 @@ func (h *HostRuntime) loadLinuxKernel(ctx context.Context, kernel []byte, initrd
 			return errors.Wrap(err, "write initrd")
 		}
 		binary.LittleEndian.PutUint32(bzimage[linuxBootHdrRamdiskImage:], initrdAddress)
-		binary.LittleEndian.PutUint32(bzimage[linuxBootHdrRamdiskSize:], uint32(len(initrd)))
+		binary.LittleEndian.PutUint32(bzimage[linuxBootHdrRamdiskSize:], uint32(len(initrd))) //nolint:gosec // the preceding MaxUint32 check protects the boot protocol field.
 	}
 	if basePtr+protectedModeStart >= 0xa0000 {
 		return errors.New("kernel real-mode setup exceeds low memory")

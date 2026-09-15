@@ -76,14 +76,14 @@ func (h *HostRuntime) registerCMOS() {
 	h.cmos = cmos
 	cmos.fill(h.guestMemorySize)
 	h.RegisterIOWrite(0x70, 8, func(_ context.Context, _ uint16, value uint32) {
-		cmos.index = byte(value & 0x7f)
-		cmos.nmiDisabled = byte(value >> 7)
+		cmos.index = byte(value & 0x7f)     //nolint:gosec // CMOS index is the low 7 bits of the 8-bit hardware port.
+		cmos.nmiDisabled = byte(value >> 7) //nolint:gosec // the NMI flag is one hardware bit.
 	})
 	h.RegisterIORead(0x71, 8, func(ctx context.Context, _ uint16) uint32 {
 		return uint32(cmos.read(ctx))
 	})
 	h.RegisterIOWrite(0x71, 8, func(ctx context.Context, _ uint16, value uint32) {
-		cmos.write(ctx, byte(value))
+		cmos.write(ctx, byte(value)) //nolint:gosec // the CMOS data port is eight bits wide.
 	})
 }
 
@@ -91,7 +91,7 @@ func (h *HostRuntime) registerCMOS() {
 // equipment info, and the SMP count byte.
 func (c *cmosDevice) fill(memorySize uint32) {
 	bootOrder := bootOrderCDFirst
-	c.data[cmosBiosBootflag1] = byte(1 | ((bootOrder >> 4) & 0xf0))
+	c.data[cmosBiosBootflag1] = byte(1 | ((bootOrder >> 4) & 0xf0)) //nolint:gosec // the boot flag is an eight-bit CMOS register.
 	c.data[cmosBiosBootflag2] = byte(bootOrder & 0xff)
 	c.data[cmosMemBaseLow] = 640 & 0xff
 	c.data[cmosMemBaseHigh] = 640 >> 8
@@ -101,18 +101,18 @@ func (c *cmosDevice) fill(memorySize uint32) {
 		memoryAbove1M = (memorySize - 1024*1024) >> 10
 		memoryAbove1M = min(memoryAbove1M, uint32(0xffff))
 	}
-	c.data[cmosMemOldExtLow] = byte(memoryAbove1M)
-	c.data[cmosMemOldExtHigh] = byte(memoryAbove1M >> 8)
-	c.data[cmosMemExtLow] = byte(memoryAbove1M)
-	c.data[cmosMemExtHigh] = byte(memoryAbove1M >> 8)
+	c.data[cmosMemOldExtLow] = byte(memoryAbove1M)       //nolint:gosec // CMOS stores the low byte of the fixed-width field.
+	c.data[cmosMemOldExtHigh] = byte(memoryAbove1M >> 8) //nolint:gosec // CMOS stores the next byte of the fixed-width field.
+	c.data[cmosMemExtLow] = byte(memoryAbove1M)          //nolint:gosec // CMOS stores the low byte of the fixed-width field.
+	c.data[cmosMemExtHigh] = byte(memoryAbove1M >> 8)    //nolint:gosec // CMOS stores the next byte of the fixed-width field.
 
 	memoryAbove16M := uint32(0)
 	if memorySize >= 16*1024*1024 {
 		memoryAbove16M = (memorySize - 16*1024*1024) >> 16
 		memoryAbove16M = min(memoryAbove16M, uint32(0xffff))
 	}
-	c.data[cmosMemExt2Low] = byte(memoryAbove16M)
-	c.data[cmosMemExt2High] = byte(memoryAbove16M >> 8)
+	c.data[cmosMemExt2Low] = byte(memoryAbove16M)       //nolint:gosec // CMOS stores the low byte of the fixed-width field.
+	c.data[cmosMemExt2High] = byte(memoryAbove16M >> 8) //nolint:gosec // CMOS stores the next byte of the fixed-width field.
 	c.data[cmosMemHighmemLow] = 0
 	c.data[cmosMemHighmemMid] = 0
 	c.data[cmosMemHighmemHigh] = 0
@@ -203,7 +203,7 @@ func (c *cmosDevice) write(_ context.Context, value byte) {
 
 // bcdPack encodes a two-digit decimal as packed BCD.
 func bcdPack(value int) byte {
-	return byte((value/10)<<4 | value%10)
+	return byte((value/10)<<4 | value%10) //nolint:gosec // callers pass one decimal time field, whose BCD digits fit in a byte.
 }
 
 // bcdUnpack decodes a packed-BCD byte into its decimal value.
@@ -214,7 +214,7 @@ func bcdUnpack(value byte) int {
 // encodeTime renders a two-digit clock value honoring the BCD format bit.
 func (c *cmosDevice) encodeTime(value int) byte {
 	if c.statusB&4 != 0 {
-		return byte(value)
+		return byte(value) //nolint:gosec // the CMOS binary time field is one byte by hardware definition.
 	}
 	return bcdPack(value)
 }

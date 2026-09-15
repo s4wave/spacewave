@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"math"
 	"time"
 
 	"github.com/pkg/errors"
@@ -109,7 +110,11 @@ func (a *ProviderAccount) checkCachedSpaceLinkNonce(ctx context.Context, agentPe
 			if len(data) != 8 {
 				return errors.New("invalid cached spacelink nonce marker")
 			}
-			expiresAt := time.Unix(int64(binary.BigEndian.Uint64(data)), 0)
+			expiresUnix := binary.BigEndian.Uint64(data)
+			if expiresUnix > math.MaxInt64 {
+				return errors.New("cached spacelink nonce expiry exceeds time range")
+			}
+			expiresAt := time.Unix(int64(expiresUnix), 0) //nolint:gosec // the explicit MaxInt64 check protects time.Unix's signed seconds argument.
 			if time.Now().Before(expiresAt) {
 				return ErrSpaceLinkNonceConsumed
 			}

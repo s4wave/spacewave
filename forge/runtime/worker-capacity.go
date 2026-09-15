@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"math"
 	"slices"
 	"strconv"
 	"time"
@@ -229,7 +230,11 @@ func (w *WorkerCapacity) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	w.OwnerState = CapacityOwnerState(value.GetInt("ownerState"))
+	ownerState := value.GetInt("ownerState")
+	if ownerState < 0 || ownerState > math.MaxUint8 {
+		return errors.Errorf("capacity owner state out of range: %d", ownerState)
+	}
+	w.OwnerState = CapacityOwnerState(ownerState) //nolint:gosec // the explicit uint8 range check bounds the persisted enum.
 	w.Backends = nil
 	for _, b := range value.GetArray("backends") {
 		w.Backends = append(w.Backends, string(b.GetStringBytes()))

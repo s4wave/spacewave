@@ -227,7 +227,7 @@ func buildSqlStatement(
 		}
 		out.Args = append(out.Args, &SqlArgument{
 			Name:    arg.Name,
-			Ordinal: int32(arg.Ordinal),
+			Ordinal: int32(arg.Ordinal), //nolint:gosec // SQL argument ordinals are nonnegative and bounded by the request parser.
 			Value:   value,
 		})
 	}

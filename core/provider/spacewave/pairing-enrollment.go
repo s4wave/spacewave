@@ -48,7 +48,7 @@ func (a *ProviderAccount) OfferPairingAccount(ctx context.Context, key crypto.Pr
 	for _, member := range members {
 		offer.ActiveSessionPeerIds = append(offer.ActiveSessionPeerIds, member.GetPeerId())
 	}
-	offer.SessionCount = uint32(len(members))
+	offer.SessionCount = uint32(len(members)) //nolint:gosec // the cloud response's session list bounds this offer count.
 	return offer, nil
 }
 

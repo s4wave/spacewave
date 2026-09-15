@@ -162,11 +162,11 @@ func (s *packStore) writePack(ctx context.Context, entries []*block.PutBatchEntr
 
 			// The pack carries full identity and framing beside each payload.
 			checksum := crc32.ChecksumIEEE(entry.Data)
-			payload = binary.LittleEndian.AppendUint32(payload, uint32(len(key)))
-			payload = binary.LittleEndian.AppendUint32(payload, uint32(len(entry.Data)))
+			payload = binary.LittleEndian.AppendUint32(payload, uint32(len(key)))        //nolint:gosec // pack payloads are bounded by maxPackBytes.
+			payload = binary.LittleEndian.AppendUint32(payload, uint32(len(entry.Data))) //nolint:gosec // pack payloads are bounded by maxPackBytes.
 			payload = binary.LittleEndian.AppendUint32(payload, checksum)
 			payload = append(payload, key...)
-			location := &Location{Offset: uint64(len(payload)), Length: uint32(len(entry.Data)), Checksum: checksum}
+			location := &Location{Offset: uint64(len(payload)), Length: uint32(len(entry.Data)), Checksum: checksum} //nolint:gosec // both lengths are bounded by maxPackBytes before encoding.
 			payload = append(payload, entry.Data...)
 			encoded, err := encode(location)
 			if err != nil {
@@ -193,7 +193,7 @@ func (s *packStore) writePack(ctx context.Context, entries []*block.PutBatchEntr
 					return nil, err
 				}
 				location.Pack = name
-				location.PackBytes = uint32(len(payload))
+				location.PackBytes = uint32(len(payload)) //nolint:gosec // the preceding maxPackBytes check bounds the fixed-width location field.
 				record.Value, err = encode(location)
 				if err != nil {
 					return nil, err
@@ -299,7 +299,7 @@ func (e *Engine) readLocation(ctx context.Context, location *Location) ([]byte, 
 	if location.Length >= windowBytes {
 		// Large payloads use one bounded range call and avoid displacing small-read windows.
 		var err error
-		data, err = e.backend.Read(ctx, location.Pack, int64(location.Offset), int(location.Length))
+		data, err = e.backend.Read(ctx, location.Pack, int64(location.Offset), int(location.Length)) //nolint:gosec // validateLocation bounds offset and length by the 4 MiB pack limit.
 		if err != nil {
 			return nil, err
 		}
@@ -311,7 +311,7 @@ func (e *Engine) readLocation(ctx context.Context, location *Location) ([]byte, 
 			base := offset / windowBytes * windowBytes
 			size := min(uint64(windowBytes), uint64(location.PackBytes)-base)
 			key := location.Pack + ":" + strconv.FormatUint(base, 10)
-			window, err := e.readCached(ctx, key, location.Pack, int64(base), int(size))
+			window, err := e.readCached(ctx, key, location.Pack, int64(base), int(size)) //nolint:gosec // validated pack metadata bounds base and size by maxPackBytes.
 			if err != nil {
 				return nil, err
 			}

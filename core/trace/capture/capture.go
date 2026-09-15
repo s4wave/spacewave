@@ -3,6 +3,7 @@ package trace_capture
 import (
 	"context"
 	"io"
+	"math"
 	"time"
 
 	"github.com/pkg/errors"
@@ -86,7 +87,11 @@ func CaptureCPUProfile(
 	if args.Duration <= 0 {
 		return 0, errors.New("duration must be greater than zero")
 	}
-	durationMillis := uint32(args.Duration / time.Millisecond)
+	durationMillisValue := args.Duration / time.Millisecond
+	if durationMillisValue > math.MaxUint32 {
+		return 0, errors.New("duration exceeds trace protocol limit")
+	}
+	durationMillis := uint32(durationMillisValue) //nolint:gosec // the preceding MaxUint32 check protects the trace request field.
 	if durationMillis == 0 {
 		durationMillis = 1
 	}

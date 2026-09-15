@@ -548,7 +548,7 @@ func getObjectBodiesBatchPage(
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	if consumed == 0 || uint64(consumed) >= uint64(len(keys)-start) {
+	if consumed <= 0 || uint64(consumed) >= uint64(len(keys)-start) { //nolint:gosec // consumed is a bounded page count from the world batch API.
 		return bodies, 0, worldSeqno, nil
 	}
 	return bodies, startKeyIndex + consumed, worldSeqno, nil

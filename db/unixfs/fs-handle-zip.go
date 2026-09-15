@@ -184,11 +184,14 @@ func zipFile(ctx context.Context, zw *zip.Writer, parent *FSHandle, name string,
 // writeFileToZip streams one file handle into a zip entry with deflate
 // compression.
 func writeFileToZip(ctx context.Context, zw *zip.Writer, handle *FSHandle, entryPath string, info fs.FileInfo) error {
+	if info.Size() < 0 {
+		return errors.Errorf("zip entry %s has negative size: %d", entryPath, info.Size())
+	}
 	header := &zip.FileHeader{
 		Name:               entryPath,
 		Method:             zip.Deflate,
 		Modified:           info.ModTime(),
-		UncompressedSize64: uint64(info.Size()),
+		UncompressedSize64: uint64(info.Size()), //nolint:gosec // the preceding check protects the zip unsigned size field.
 	}
 	header.SetMode(info.Mode())
 

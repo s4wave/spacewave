@@ -245,7 +245,10 @@ func EncodeBinaryFrame(msg *V86FsMessage) ([]byte, error) {
 	if msg == nil {
 		return nil, errors.New("nil v86fs message")
 	}
-	tag := uint16(msg.GetTag())
+	if msg.GetTag() > math.MaxUint16 {
+		return nil, errors.Errorf("v86fs tag exceeds uint16 protocol range: %d", msg.GetTag())
+	}
+	tag := uint16(msg.GetTag()) //nolint:gosec // the preceding MaxUint16 check protects the guest frame tag.
 	switch body := msg.GetBody().(type) {
 	case *V86FsMessage_MountReply:
 		r := body.MountReply
@@ -268,7 +271,10 @@ func EncodeBinaryFrame(msg *V86FsMessage) ([]byte, error) {
 		w.u32(r.GetStatus())
 		w.u32(r.GetMode())
 		w.u64(r.GetSize())
-		w.u64(uint64(r.GetMtimeSec()))
+		if r.GetMtimeSec() < 0 {
+			return nil, errors.New("v86fs mtime seconds cannot be negative")
+		}
+		w.u64(uint64(r.GetMtimeSec())) //nolint:gosec // the preceding check protects the unsigned guest timestamp field.
 		w.u32(r.GetMtimeNsec())
 		return w.bytes(), nil
 	case *V86FsMessage_ReaddirReply:
@@ -285,7 +291,7 @@ func EncodeBinaryFrame(msg *V86FsMessage) ([]byte, error) {
 		r := body.ReadReply
 		w := newBinaryFrameWriter(v86fsMsgReadReply, tag, 8+len(r.GetData()))
 		w.u32(r.GetStatus())
-		w.u32(uint32(len(r.GetData())))
+		w.u32(uint32(len(r.GetData()))) //nolint:gosec // read replies are bounded by the guest read request and uint32 frame length.
 		w.raw(r.GetData())
 		return w.bytes(), nil
 	case *V86FsMessage_CreateReply:
@@ -438,14 +444,14 @@ type binaryFrameWriter struct {
 
 func newBinaryFrameWriter(typ byte, tag uint16, payloadSize int) *binaryFrameWriter {
 	w := &binaryFrameWriter{data: make([]byte, v86fsFrameHeaderSize, v86fsFrameHeaderSize+payloadSize)}
-	binary.LittleEndian.PutUint32(w.data[:4], uint32(v86fsFrameHeaderSize+payloadSize))
+	binary.LittleEndian.PutUint32(w.data[:4], uint32(v86fsFrameHeaderSize+payloadSize)) //nolint:gosec // every frame payload is bounded by the uint32 guest frame length.
 	w.data[4] = typ
 	binary.LittleEndian.PutUint16(w.data[5:7], tag)
 	return w
 }
 
 func (w *binaryFrameWriter) bytes() []byte {
-	binary.LittleEndian.PutUint32(w.data[:4], uint32(len(w.data)))
+	binary.LittleEndian.PutUint32(w.data[:4], uint32(len(w.data))) //nolint:gosec // encoded frames are bounded by the uint32 guest frame length.
 	return w.data
 }
 
@@ -460,7 +466,7 @@ func (w *binaryFrameWriter) string(value string) error {
 	if len(value) > math.MaxUint16 {
 		return errors.Errorf("v86fs binary string exceeds uint16 length: %d bytes", len(value))
 	}
-	w.u16(uint16(len(value)))
+	w.u16(uint16(len(value))) //nolint:gosec // the MaxUint16 length check immediately above bounds this field.
 	w.raw([]byte(value))
 	return nil
 }
@@ -509,10 +515,13 @@ func encodeReaddirReply(tag uint16, reply *V86FsReaddirReply) ([]byte, error) {
 	}
 	w := newBinaryFrameWriter(v86fsMsgReaddirReply, tag, payloadSize)
 	w.u32(reply.GetStatus())
-	w.u32(uint32(len(reply.GetEntries())))
+	w.u32(uint32(len(reply.GetEntries()))) //nolint:gosec // the readdir response is bounded by the uint32 guest frame length.
 	for _, ent := range reply.GetEntries() {
 		w.u64(ent.GetInodeId())
-		w.raw([]byte{byte(ent.GetDtType())})
+		if ent.GetDtType() > math.MaxUint8 {
+			return nil, errors.Errorf("v86fs dirent type exceeds byte range: %d", ent.GetDtType())
+		}
+		w.raw([]byte{byte(ent.GetDtType())}) //nolint:gosec // the preceding MaxUint8 check protects the guest dirent field.
 		if err := w.string(ent.GetName()); err != nil {
 			return nil, err
 		}

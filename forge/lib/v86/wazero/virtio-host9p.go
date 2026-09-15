@@ -80,7 +80,7 @@ func (d *virtioHost9PDevice) registerISRPort() {
 func (d *virtioHost9PDevice) registerConfigPorts() {
 	tag := []byte("host9p")
 	d.host.RegisterIORead(virtioHost9PConfigPort, 16, func(context.Context, uint16) uint32 {
-		return uint32(len(tag))
+		return uint32(len(tag)) //nolint:gosec // the fixed host9p tag length fits the config register.
 	})
 	for i := range uint16(254) {
 		offset := i

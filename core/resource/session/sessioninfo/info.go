@@ -1,6 +1,8 @@
 package sessioninfo
 
 import (
+	"math"
+
 	"github.com/s4wave/spacewave/core/provider"
 	api "github.com/s4wave/spacewave/core/provider/spacewave/api"
 	s4wave_provider_spacewave "github.com/s4wave/spacewave/sdk/provider/spacewave"
@@ -27,14 +29,21 @@ func BuildEmptyBillingUsageInfo() *s4wave_provider_spacewave.BillingUsageInfo {
 	offer := api.CurrentCloudOffer()
 	return &s4wave_provider_spacewave.BillingUsageInfo{
 		StorageBaselineBytes: float64(offer.StorageBytes),
-		WriteOpsBaseline:     int64(offer.WriteOperations),
-		ReadOpsBaseline:      int64(offer.ReadOperations),
+		WriteOpsBaseline:     cloudOfferOperationsInt64(offer.WriteOperations),
+		ReadOpsBaseline:      cloudOfferOperationsInt64(offer.ReadOperations),
 		OfferVersion:         offer.Version,
 		MonthlyPriceCents:    offer.MonthlyPriceCents,
 		WriteMicrodollars:    offer.WriteMicrodollars,
 		ReadMicrodollars:     offer.ReadMicrodollars,
 		PolicyVersion:        offer.PolicyVersion,
 	}
+}
+
+func cloudOfferOperationsInt64(value uint64) int64 {
+	if value > math.MaxInt64 {
+		panic("cloud offer operation baseline exceeds int64 range")
+	}
+	return int64(value) //nolint:gosec // the explicit MaxInt64 check protects the billing projection field.
 }
 
 // BuildBillingUsageInfo projects the payer's accepted usage, period, and budget.

@@ -357,12 +357,13 @@ func splitRefBatch(
 		return nil, nil, adds, removes, 0
 	}
 	if uint64(len(adds)) >= maxEdges {
-		n := int(maxEdges)
+		n := int(maxEdges) //nolint:gosec // this branch proves maxEdges is no larger than len(adds), an int-sized slice.
 		return adds[:n], nil, adds[n:], removes, maxEdges
 	}
-	removeLimit := int(maxEdges) - len(adds)
+	removeLimitValue := min(maxEdges-uint64(len(adds)), uint64(len(removes)))
+	removeLimit := int(removeLimitValue) //nolint:gosec // the preceding bound makes this no larger than len(removes).
 	if removeLimit >= len(removes) {
-		return adds, removes, nil, nil, uint64(len(adds) + len(removes))
+		return adds, removes, nil, nil, uint64(len(adds) + len(removes)) //nolint:gosec // both values are non-negative slice lengths.
 	}
 	return adds, removes[:removeLimit], nil, removes[removeLimit:], maxEdges
 }

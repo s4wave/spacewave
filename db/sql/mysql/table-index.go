@@ -285,7 +285,7 @@ func (idx *tableIndex) PrefixLengths() []uint16 {
 	out := make([]uint16, len(idx.columns))
 	for i, col := range idx.columns {
 		if col.GetLength() > 0 && col.GetLength() <= int64(^uint16(0)) {
-			out[i] = uint16(col.GetLength())
+			out[i] = uint16(col.GetLength()) //nolint:gosec // the explicit positive uint16 bound protects the MySQL prefix field.
 		}
 	}
 	return out

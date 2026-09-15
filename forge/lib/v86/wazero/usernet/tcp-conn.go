@@ -143,7 +143,7 @@ func (c *tcpConn) process(packet *ethPacket) {
 		return
 	}
 	if tcpFlag(tcp, tcpFlagACK) && len(tcp.data) > 0 {
-		c.ack += uint32(len(tcp.data))
+		c.ack += uint32(len(tcp.data)) //nolint:gosec // TCP receive data is bounded by the negotiated guest MSS.
 		reply := c.ipv4ReplyLocked(tcpFlagACK)
 		c.stack.sendTCP(c, reply, nil, 0)
 		data = bytes.Clone(tcp.data)
@@ -244,11 +244,11 @@ func (c *tcpConn) consumeAckLocked(tcp *tcpPacket) {
 		c.haveLastAck = true
 		return
 	}
-	nack := int32(tcp.ack - c.lastAck)
+	nack := int32(tcp.ack - c.lastAck) //nolint:gosec // TCP sequence arithmetic intentionally interprets the uint32 delta as signed.
 	if nack > 0 {
 		c.lastAck = tcp.ack
 		if int(nack) > c.sendBuffer.Len() {
-			nack = int32(c.sendBuffer.Len())
+			nack = int32(c.sendBuffer.Len()) //nolint:gosec // nack is positive and this branch bounds the buffer length by int32.
 		}
 		if nack > 0 {
 			c.sendBuffer.Next(int(nack))

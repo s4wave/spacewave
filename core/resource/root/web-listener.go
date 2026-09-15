@@ -764,7 +764,7 @@ func tcpListenHostPort(addr net.Addr) (string, uint32, error) {
 	if host == "<nil>" || host == "" {
 		host = "127.0.0.1"
 	}
-	return host, uint32(tcpAddr.Port), nil
+	return host, uint32(tcpAddr.Port), nil //nolint:gosec // net.TCPAddr.Port is validated as a TCP port by the listener.
 }
 
 func newWebSecret() (string, error) {

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"math"
 	"os"
 	"os/exec"
 	"runtime"
@@ -270,7 +271,7 @@ func waitRemoteShellProcess(
 	}
 	if serr := session.SendMsg(&s4wave_terminal.TerminalFrame{
 		Kind:     s4wave_terminal.TerminalFrameKind_TERMINAL_FRAME_KIND_EXIT,
-		ExitCode: int32(exitCode),
+		ExitCode: remoteShellExitCode(exitCode),
 		Error:    exitErr,
 	}); serr != nil {
 		errCh <- serr
@@ -349,8 +350,8 @@ func startPtyRemoteShell(ctx context.Context, openFrame *s4wave_terminal.Termina
 	cmd := buildRemoteShellCommand(ctx, openFrame)
 	cols, rows := s4wave_terminal.NormalizeTerminalFrameSize(openFrame.GetCols(), openFrame.GetRows())
 	ptmx, err := pty.StartWithSize(cmd, &pty.Winsize{
-		Cols: uint16(cols),
-		Rows: uint16(rows),
+		Cols: ptyDimension(cols),
+		Rows: ptyDimension(rows),
 	})
 	if err != nil {
 		return nil, err
@@ -399,7 +400,24 @@ func (p *ptyRemoteShellProcess) Write(buf []byte) (int, error) {
 }
 
 func (p *ptyRemoteShellProcess) Resize(cols, rows uint32) error {
-	return pty.Setsize(p.ptmx, &pty.Winsize{Cols: uint16(cols), Rows: uint16(rows)})
+	return pty.Setsize(p.ptmx, &pty.Winsize{Cols: ptyDimension(cols), Rows: ptyDimension(rows)})
+}
+
+func remoteShellExitCode(value int) int32 {
+	if value > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if value < math.MinInt32 {
+		return math.MinInt32
+	}
+	return int32(value) //nolint:gosec // the explicit int32 bounds preserve the terminal protocol's signed exit code.
+}
+
+func ptyDimension(value uint32) uint16 {
+	if value > math.MaxUint16 {
+		return math.MaxUint16
+	}
+	return uint16(value) //nolint:gosec // the explicit MaxUint16 bound protects the kernel pty field.
 }
 
 func (p *ptyRemoteShellProcess) Close() error {

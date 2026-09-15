@@ -47,7 +47,7 @@ func (s *span) readAt(p []byte, off int64) int {
 	if available < len(p) {
 		p = p[:available]
 	}
-	return copyPagedBytes(p, s.pages, s.pageSize, uint64(off-s.off))
+	return copyPagedBytes(p, s.pages, s.pageSize, uint64(off-s.off)) //nolint:gosec // the preceding range checks make the span-relative offset non-negative and bounded.
 }
 
 // copySpans copies bytes starting at off from a list of disjoint spans.

@@ -3,6 +3,7 @@ package bldr_buildbudget
 
 import (
 	"context"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -110,6 +111,9 @@ func newDefaultBudget() (*Budget, error) {
 	availableBytes, err := availableHostMemoryBytes()
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve available host memory")
+	}
+	if availableBytes > math.MaxInt64 {
+		return nil, errors.Errorf("available host memory exceeds int64 range: %d", availableBytes)
 	}
 	availableGiB := int64(availableBytes / (1 << 30))
 	capacity := max(availableGiB/defaultBudgetFractionDenominator, GoScriptCompileWeight)

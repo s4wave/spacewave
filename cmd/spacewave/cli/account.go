@@ -139,7 +139,7 @@ func newAccountInfoCommand() *cli.Command {
 			},
 		),
 		Action: func(c *cli.Context) error {
-			return runAccountInfo(c, statePath, c.String("output"), uint32(sessionIdx))
+			return runAccountInfo(c, statePath, c.String("output"), sessionIndex32(sessionIdx))
 		},
 	}
 }

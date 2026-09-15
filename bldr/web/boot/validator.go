@@ -664,7 +664,7 @@ func ValidateBootReport(report *BootReport) *BootValidation {
 	if total != 0 {
 		hi, lo := bits.Mul64(validation.UnknownDurationMicros, 1_000_000)
 		ppm, _ := bits.Div64(hi, lo, total)
-		validation.UnknownPartsPerMillion = uint32(ppm)
+		validation.UnknownPartsPerMillion = uint32(ppm) //nolint:gosec // bits.Div64 computes a parts-per-million quotient bounded by the uint32 report field.
 	}
 	if !spanContractInvalid && validation.UnknownDurationMicros > threshold {
 		validation.Violations = append(validation.Violations,

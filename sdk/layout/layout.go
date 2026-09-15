@@ -99,10 +99,10 @@ func ValidateBorders(borders []*BorderDef) error {
 		if err := loc.Validate(); err != nil {
 			return err
 		}
-		if seen&(1<<(byte(loc)-1)) != 0 {
+		if seen&(1<<(byte(loc)-1)) != 0 { //nolint:gosec // loc is a validated border enum whose value selects one bit.
 			return errors.Errorf("duplicate border side: %v", loc.String())
 		}
-		seen |= (1 << (byte(loc) - 1))
+		seen |= (1 << (byte(loc) - 1)) //nolint:gosec // loc is a validated border enum whose value selects one bit.
 	}
 	return nil
 }
