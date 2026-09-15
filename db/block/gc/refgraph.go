@@ -38,8 +38,10 @@ type RefGraph struct {
 }
 
 const (
-	refGraphApplyBatchLimit = 512
 	refGraphApplySliceLimit = 4096
+	// Commit each bounded ownership slice without subdividing it into extra
+	// fsyncs. Additions still commit before removals, and slices release writeMu.
+	refGraphApplyBatchLimit = refGraphApplySliceLimit
 )
 
 // refBatchError reports a failed ownership transition together with the
