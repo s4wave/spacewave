@@ -6,6 +6,7 @@ import (
 	"context"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aperturerobotics/cli"
@@ -488,7 +489,7 @@ func newSpaceImportGitCommand(statePath *string, sessionIdx *uint) *cli.Command 
 
 // newSpaceDeployCommand builds the space deploy subcommand.
 func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
-	var spaceID, dbPath, manifestID, objectKey string
+	var spaceID, dbPath, manifestID, objectKey, platformID string
 	return &cli.Command{
 		Name:  "deploy",
 		Usage: "deploy a manifest set from a .bldr devtool DB into a space",
@@ -512,6 +513,11 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 				EnvVars:     []string{"SPACEWAVE_MANIFEST_ID"},
 				Required:    true,
 				Destination: &manifestID,
+			},
+			&cli.StringFlag{
+				Name:        "platform",
+				Usage:       "deploy only this platform (e.g., desktop/darwin/arm64; default: all built platforms)",
+				Destination: &platformID,
 			},
 			&cli.StringFlag{
 				Name:        "object-key",
@@ -547,6 +553,21 @@ func newSpaceDeployCommand(statePath *string, sessionIdx *uint) *cli.Command {
 			refs, err := lookupDevtoolManifestSet(ctx, le, vol, manifestID)
 			if err != nil {
 				return errors.Wrap(err, "lookup manifest set")
+			}
+			if platformID != "" {
+				available := make([]string, 0, len(refs))
+				selected := -1
+				for i, ref := range refs {
+					id := ref.GetMeta().GetPlatformId()
+					available = append(available, id)
+					if id == platformID {
+						selected = i
+					}
+				}
+				if selected == -1 {
+					return errors.Errorf("platform %q not built for %s (available: %s)", platformID, manifestID, strings.Join(available, ", "))
+				}
+				refs = refs[selected : selected+1]
 			}
 			for _, ref := range refs {
 				ref.ManifestRef.TransformConf = transformConf

@@ -71,7 +71,10 @@ func (r *SpaceResource) DeployManifests(strm s4wave_space.SRPCSpaceResourceServi
 		return sendDeployManifestsResult(strm, errors.Wrap(err, "build storage cursor").Error())
 	}
 	defer cursor.Release()
-	dest := cursor.GetBucket()
+	dest := block.NewBufferedStoreWithSettings(ctx, cursor.GetBucket(), &block.BufferedStoreSettings{
+		MaxPendingEntries: 128,
+		MaxPendingBytes:   4 << 20,
+	})
 	src := &streamStoreOps{strm: strm}
 	visited := make(map[string]bool)
 	storedRefs := make([]*bucket.ObjectRef, len(refs))
@@ -95,6 +98,11 @@ func (r *SpaceResource) DeployManifests(strm s4wave_space.SRPCSpaceResourceServi
 			RootRef:       rootRef,
 			TransformConf: ref.GetManifestRef().GetTransformConf(),
 		}
+	}
+
+	// Make every copied block durable before publishing references to the set.
+	if _, err := dest.Sync(ctx); err != nil {
+		return sendDeployManifestsResult(strm, errors.Wrap(err, "sync manifest blocks").Error())
 	}
 
 	// Publish the host, child objects, and graph edges in one transaction.
